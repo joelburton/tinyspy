@@ -13,7 +13,7 @@ export type ButtonWeight = 'primary' | 'secondary'
  *  Reveal), `destructive` = dark red (End / Concede), `quiet` = gray (a dialog's
  *  Cancel). Tone and weight are ORTHOGONAL — all four tones work in both
  *  treatments, and each tone carries the five values that takes. */
-export type ButtonTone = 'quiet' | 'action' | 'caution' | 'destructive'
+export type ButtonTone = 'quiet' | 'normal' | 'caution' | 'destructive' | 'success'
 
 /**
  * The DEFAULT tone is `action`: everything that goes through a purpose button is
@@ -83,7 +83,7 @@ export function ActionButton({
   iconOnly,
   iconSize = 18,
   weight = 'secondary',
-  tone = 'action',
+  tone = 'normal',
   tooltip,
   className,
   ...rest

@@ -67,7 +67,7 @@ See [`common.md → Deferred / open`](common.md#deferred--open) for more detail 
   not dark ink on the current one, which would also flip the hover-direction rule
   (a filled tone's hover must move the way its ink is safe: darker for white,
   lighter for dark). Try it during an eyeball pass, with
-  `--chrome-caution-secondary-color` as the fallback if no orange works.
+  `--button-caution-secondary-color` as the fallback if no orange works.
 - **The five terminal frames, seen at 4px around a real board.** They were picked
   as one family — same lightness, same chroma, four hues plus an achromatic
   neutral — and the won/lost pair was taken deliberately greener and redder than
@@ -75,7 +75,7 @@ See [`common.md → Deferred / open`](common.md#deferred--open) for more detail 
   raised chroma read as a *band* at 4px, or as the outcome at strength? Two of the
   five (near, warning) have no consumer at all, so they are judged on the palette
   page rather than in a game.
-- **Should the `--secondary-*` slot tokens be renamed `--tone-*`?** Raised during the button-taxonomy work (shipped 2026-08-18) and never settled. `.secondary` is a *treatment* and the slot holds a *tone*, so the current name describes the caller rather than the contents — and it now has a `--primary-*` twin with the same shape, which makes the asymmetry easier to see: `--primary-color` reads as "the filled treatment's fill", which is what it is, while `--secondary-color` reads as "the outline's ink" only because you know what `secondary` means. A rename touches `theme.css` + `ActionButton.module.css` + strands' `HintBar` and nothing else.
+- **Should the `--secondary-*` slot tokens be renamed `--tone-*`?** Raised during the button-taxonomy work (shipped 2026-08-18) and never settled. `.secondary` is a *treatment* and the slot holds a *tone*, so the current name describes the caller rather than the contents — and it now has a `--primary-*` twin with the same shape, which makes the asymmetry easier to see: `--button-slot-primary-color` reads as "the filled treatment's fill", which is what it is, while `--button-slot-secondary-color` reads as "the outline's ink" only because you know what `secondary` means. A rename touches `theme.css` + `ActionButton.module.css` + strands' `HintBar` and nothing else.
 
 - **`dismiss` may want a shared component, not just a shared class.** The icon-only ✕ appears on toasts, pills, banners, floating panels and game cards with **five** implementations (`Toast .close`, `GenericFeedbackPill .close`, `historyViewer .bannerExit`, `FloatingPanel .closeButton`, `ClubGameCard .deleteButton`). They agree on being neutral and disagree on everything else — size, glyph, hover, whether there's a border. Now that the neutral `<button>` means none of them is undoing anything, the differences left are real and small enough to be worth a single component. Not urgent; noticed while sorting the fourteen kinds ([ui.md](ui.md#what-a-button-is-the-fourteen-kinds)).
 

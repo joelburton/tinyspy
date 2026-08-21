@@ -98,7 +98,7 @@ feedback: {
 
 Two exclusions, both deliberate. **`manual` keeps its `×` as the only target** — its whole point is see-and-acknowledge, and a body that swallowed the gesture would make the `×` look decorative. **`permanent` isn't dismissable at all**: it's a condition, not a message you've finished reading, and nothing would bring it back. The pill is a plain click target, never a `role="button"`: a game can show a hundred of these and none of them should become tab stops; `cursor: pointer` tells a mouse user what the tap teaches by working. Pinned by [`GenericFeedbackPill.test.tsx`](../src/common/components/feedback/GenericFeedbackPill.test.tsx) (both exclusions, both directions) and [`letterboxed.e2e.ts`](../e2e/letterboxed.e2e.ts) at phone size.
 
-**Transient vs permanent (the look, which now follows `mode`).** Every pill's **whole border is the tone color** (saturated `--outcome-*-ink-color`) — a thick **left bar** (like the turn-log outcome bars) plus thin sides in the *same* color, uniform width on every pill. (A pale-gray side border read as no border, so the sides carry the tone too; `neutral` has no tone, so its border is a visible dark gray.) The mode only changes the **background**: `sticky` / `timed` / `manual` are *messages* and get a plain white background. `permanent` — the terminal verdict, out-of-race, an end-game mode like codenamesduet's sudden death — gets a **lightened-tone background**, so a permanent `error` (light-red fill) reads as *more* emphatically "error" than a transient one (white fill). The fill is the permanence signal. **Peer identity is independent of it:** a message about another player ("● leah found APPLE") carries a leading `dot` in their player color whatever its mode — the dot, never the fill, says *who* (the `dot`-carries-identity rule from [Player identity = a colored disc](#player-identity--a-colored-disc)).
+**Transient vs permanent (the look, which now follows `mode`).** Every pill's **whole border is the tone color** (saturated `--outcomes-*-ink-color`) — a thick **left bar** (like the turn-log outcome bars) plus thin sides in the *same* color, uniform width on every pill. (A pale-gray side border read as no border, so the sides carry the tone too; `neutral` has no tone, so its border is a visible dark gray.) The mode only changes the **background**: `sticky` / `timed` / `manual` are *messages* and get a plain white background. `permanent` — the terminal verdict, out-of-race, an end-game mode like codenamesduet's sudden death — gets a **lightened-tone background**, so a permanent `error` (light-red fill) reads as *more* emphatically "error" than a transient one (white fill). The fill is the permanence signal. **Peer identity is independent of it:** a message about another player ("● leah found APPLE") carries a leading `dot` in their player color whatever its mode — the dot, never the fill, says *who* (the `dot`-carries-identity rule from [Player identity = a colored disc](#player-identity--a-colored-disc)).
 
 **Tone follows the event, not the viewer's stake.** One event reads as **one tone everywhere**, regardless of whether it helps or hurts the viewer. A *found word is green* in **both** modes: coop (a teammate found one) and compete (an opponent found one — adverse to me, but still "they found a word"). We do **not** recolor by competitive stake. Otherwise the player maintains two color-meanings for the same event — green-means-found in coop, something-else in compete — which is hard to learn and easy to misread; the identity `dot` already says *who*, so the tone is free to say only *what happened*.
 
@@ -395,7 +395,7 @@ Within each file, token names describe the *role* of the value, not the value it
 | good (semantic) | bad (literal) |
 |---|---|
 | `--page-bg-color`, `--page-surface-color`, `--page-text-color` | `--color-near-black`, `--color-light-gray` |
-| `--chrome-action-color`, `--color-error` | `--color-blue`, `--color-red` |
+| `--button-normal-primary-color`, `--chrome-fault-color` | `--color-blue`, `--color-red` |
 | `--codenamesduet-agent`, `--codenamesduet-assassin` | `--codenamesduet-green`, `--codenamesduet-red` |
 
 The reason: when (not if) we add a second theme, every literal name becomes a lie — "the green is actually pink in pink mode" reads wrong. Semantic names cascade cleanly through theme swaps.
@@ -437,8 +437,8 @@ scheme and the rules below, and a page you can look at.
 ```
 
 **The bucket comes first, and it is load-bearing**: it makes a cross-bucket
-borrow look wrong at the call site. `--chrome-destructive-primary-color` in a
-button reads as correct; `--outcome-lost-fill-color` in a button reads as a
+borrow look wrong at the call site. `--button-destructive-primary-color` in a
+button reads as correct; `--outcomes-lost-fill-color` in a button reads as a
 mistake — which is exactly the error the audit kept finding. A leading `--color-`
 would bury the bucket in the middle, where the eye skips it.
 
@@ -447,7 +447,7 @@ would bury the bucket in the middle, where the eye skips it.
 / `-time` as synonyms. Saying it costs the least informative word about sixty
 times and buys two things: nothing has an implicit default you have to know, and
 `grep -- '-color:'` enumerates the whole palette. The evidence it matters is in
-the file: `--tile-border-width` sits beside `--tile-selected-border-color`, and
+the file: `--tile-edge-width` sits beside `--tile-selected-edge-color`, and
 only the suffix tells you which is which.
 
 **Scales are the exception and stay quality-first.** `--radius-sm / -md / -lg` is
@@ -458,16 +458,17 @@ not a thing with qualities; the quality *is* the thing. Stated so nobody "fixes"
 
 | bucket | what it answers |
 |---|---|
-| `outcome-*` | how a move or a game went — won · lost · near · warning · neutral |
+| `outcomes-*` | how a move or a game went — won · lost · near · warning · neutral · noted · error |
 | `gamelist-*` | the state of a game as an object in a list (club cards, the crossword picker) |
-| `chrome-*` | controls: the four tones, plus fault / cursor / link / caret / badge / disabled |
-| `pill-*` | the feedback pill's seven tones |
+| `button-*` | what kind of action a control offers — normal · success · destructive · caution · quiet — plus the treatment SLOTS a `.primary` / `.secondary` reads |
+| `chrome-*` | the app furniture that isn't a button or a field: fault / cursor / link / caret / badge / definable / floating-control |
+| `pill-*` | the feedback pill's seven tones — which ARE the outcome families, aliased |
 | `toast-*` | a toast's left stripe |
 | `view-*` | what you are looking at — history, share-preview |
 | `mark-*` | the board-feedback vocabulary ([tile-feedback.md](../plans/tile-feedback.md)) — dims, attention, flash durations, the grid cursor |
 | `member-*` | player identity, one per value of `common.profiles.color` |
 | `gamemode-*` | coop vs compete |
-| `page-*`, `control-*` | page furniture and form chrome |
+| `page-*`, `field-*` | the page's own surfaces and text; the things you type into |
 | `tile-*`, `kbd-*`, `rank-*` | the warm tile ramp, the on-screen keyboard, the word-rank ladder |
 | `wordle-*` | the letter-judgment palette, shared by wordle and waffle |
 | per-game | **brand** colors, in that game's own `theme.css` |
@@ -507,15 +508,17 @@ under it becomes a phantom reference, which the same guard fails on. Its data fi
 spells every token out in full inside `var(…)` — a name built from a template
 collapses to a prefix in the scanner and stops guarding anything.
 
-### The five outcome variants
+### The seven outcome variants
 
 | variant | for |
 |---|---|
 | **`-ink`** | text, and thin lines on a light ground: a pill's border, a verdict word, an outline ring. Must stay recognizably ITS color when thin |
 | **`-fill`** | filling a piece: a verdict tile, a turn-log outcome bar. The tier a player meets most often |
 | **`-edge`** | the border on a piece wearing `-fill`. Quiet definition, not a ring: barely darker than the fill it edges |
-| **`-terminal-frame`** | the band around a board that is no longer a live position. Big areas, so it reads as a band without shouting the outcome at full saturation |
+| **`-terminalFrame`** | the band around a board that is no longer a live position. Big areas, so it reads as a band without shouting the outcome at full saturation |
 | **`-wash`** | a much lighter version of the same message |
+| **`-base`** | the anchor the family was designed from. **Nothing paints it** — every other cell derives from IT rather than from a sibling, so no formula silently carries another's tweak |
+| **`-bar`** | a status bar showing an outcome: the turn log's left bar. Every cell is `fill` today, so it is a name rather than a new decision — wanting a boring turn's neutral bar lighter than a neutral verdict tile is a real want that had nowhere to live |
 
 **Role names, not lightness names**, for the same reason tokens are semantic:
 `-pale` becomes the *darkest* thing on screen the moment a dark theme lands.
@@ -536,9 +539,9 @@ same problem wearing a function.
 
 **And a component module may reference a color, never hold one.** Values live in a
 `theme.css` — common's when shared, the game's when brand. This is the first
-rule's blind spot stated as its own rule: `--tile-ink-color: #fff` *is* a `--…:`
+rule's blind spot stated as its own rule: `--tile-slot-ink-color: #fff` *is* a `--…:`
 line, so it passes cleanly, and twelve boards used exactly that shape to write a
-raw white while `--ink-on-dark-color` sat in the theme meaning the same thing. The
+raw white while `--ink-onDark-color` sat in the theme meaning the same thing. The
 value had a slot but no name, and a second theme would have reached nine of the
 whites and silently left twelve behind. Shadows are exempt: a shadow is geometry
 plus an alpha black, and a component may keep its own where it is
@@ -551,7 +554,7 @@ catches a bad name.
 ### Alias when it's a dependency, copy when it's a coincidence
 
 An alias is right when *the two differing would be a bug*.
-`--gamelist-won-color: var(--outcome-won-fill-color)` is the canonical case: a
+`--gamelist-won-color: var(--outcomes-won-fill-color)` is the canonical case: a
 game shown as won on the club page and a game won on the board say the identical
 thing. That holds even though one is a 4px stripe and the other a whole tile face
 — **a rendering difference does not make a coincidence.** If a thin stripe needed
@@ -559,7 +562,7 @@ a lighter green to read, that is a variant within the won family, not a license 
 decouple.
 
 A copy is right when two messages merely agree today. `--chrome-fault-color` and
-`--chrome-destructive-primary-color` are one red, but "this will delete something"
+`--button-destructive-primary-color` are one red, but "this will delete something"
 and "something broke" are different sentences, and either is free to move.
 
 **A COPY KEEPS THE SAME HEX.** Copying decouples the *name*; it never means
@@ -595,8 +598,9 @@ for an alias because a hex already exists, that's the coincidence case.
 ### What's machine-checked
 
 [`src/guards/cssTokens.test.ts`](../src/guards/cssTokens.test.ts) fails when: a `var()` names a
-token nothing defines; a defined token has no reader; a chrome tone is short one
-of its five values, or any tone token says "fill"; a color literal sits outside a
+token nothing defines; a defined token has no reader; a family in the `button`,
+`outcomes` or `pill` bucket is short one of its variants, or any button token
+says "fill"; a color literal sits outside a
 `--…:` line; a component module holds a color value; a `var()` falls back to a
 color; or a `cursor: pointer` out-ranks the disabled cursor.
 [`palette.test.ts`](../src/common/components/palette/palette.test.ts) fails when a
@@ -887,10 +891,10 @@ and the shared `.tile` / `.tileWord` classes in
 [`common/components/game/PlayArea.module.css`](../src/common/components/game/PlayArea.module.css).
 A player who learns the board in one game reads it in the next.
 
-- **Resting** — a warm fill from the shared **tile ramp** (`--tile-bg-color`, which
-  aliases `--tile-3-color`, the normal shade — see [The warm tile ramp](#the-warm-tile-ramp)),
-  a matching border a step darker (`--tile-border-color` = `--tile-3-edge-color`), near-black
-  ink (`--tile-ink-color`), and a small drop shadow (`--tile-shadow`) so a tile reads as
+- **Resting** — a warm fill from the shared **tile ramp** (`--tile-slot-fill-color`, which
+  aliases `--tile-3-fill-color`, the normal shade — see [The warm tile ramp](#the-warm-tile-ramp)),
+  a matching border a step darker (`--tile-slot-edge-color` = `--tile-3-edge-color`), near-black
+  ink (`--tile-slot-ink-color`), and a small drop shadow (`--tile-shadow`) so a tile reads as
   a physical tile.
 - **Hover** — a **dark** ring (`box-shadow: 0 0 0 2px var(--tile-selected-bg)`,
   composed with the resting shadow). Not accent-blue, not a fill change.
@@ -929,19 +933,19 @@ reason (below).
 
 | token | role |
 |---|---|
-| `--tile-1-color` … `--tile-5-color` (+ `-edge-color`) | the ramp, lightest → darkest |
-| `--tile-3-color` = `--tile-bg-color` | **the normal tile** — what most games use at rest |
-| `--tile-disabled-color` (+ `-edge-color`) | a darker shade **past** the ramp, for "disabled / missing / spent" (e.g. a scrabble rack tile already on the board) |
+| `--tile-1-fill-color` … `--tile-5-fill-color` (+ `-edge-color`) | the ramp, lightest → darkest |
+| `--tile-3-fill-color` = `--tile-slot-fill-color` | **the normal tile** — what most games use at rest |
+| `--tile-spent-fill-color` (+ `-edge-color`) | a darker shade **past** the ramp, for "disabled / missing / spent" (e.g. a scrabble rack tile already on the board) |
 | `--mark-attention-tile-color` | a **translucent warm-yellow OVERLAY** — stack it over any shade (`background: linear-gradient(var(--mark-attention-tile-color), var(--mark-attention-tile-color)), <fill>`) to mark a tile "lighter + more yellow" without leaving the family (scrabble's just-placed / turn-viewer tiles) |
-| `--mark-grid-cursor-color` | the shared keyboard/crossword **entry-cursor** ring (orange-brown, deliberately not red/blue since scrabble's premium squares use those) — scrabble, bananagrams |
+| `--mark-gridCursor-color` | the shared keyboard/crossword **entry-cursor** ring (orange-brown, deliberately not red/blue since scrabble's premium squares use those) — scrabble, bananagrams |
 
-**Who uses what:** most games take `--tile-3-color` via the shared `.tile`'s `--tile-bg-color`
+**Who uses what:** most games take `--tile-3-fill-color` via the shared `.tile`'s `--tile-slot-fill-color`
 (psychicnum, connections, boggle, scrabble — decided/result states then override by
 re-setting the tokens). **stackdown** shades its stack by depth off shades **1–4**
 (top = 1, deepest = 4). Legitimate divergences: **wordle** and **waffle** always
 color tiles by the wordle result palette (green/yellow/gray), so they never show a
 ramp shade; **codenamesduet** uses its role colors (agent green / neutral tan /
-assassin red) with the ramp only for unpicked cards; **spellingbee** uses `--tile-2-color`
+assassin red) with the ramp only for unpicked cards; **spellingbee** uses `--tile-2-fill-color`
 for its hexes + an accent-yellow center. If a game's tiles are always meaning-coded
 (wordle), that's the reason to skip the ramp — otherwise reach for it.
 
@@ -954,16 +958,16 @@ inverts cleanly); the semantic token names make it a one-file swap.
 outcome is known and fixed (psychicnum: a submitted guess — green = a secret, red
 = a miss; connections: a tile placed into a solved category — it becomes part of
 that category's colored band). A decided tile colors **permanently** by re-setting
-`--tile-bg-color` / `--tile-border-color`, dropping any spent/dim/gray treatment — the color
+`--tile-slot-fill-color` / `--tile-slot-edge-color`, dropping any spent/dim/gray treatment — the color
 *is* the "already decided" signal and a record of what's found vs ruled out. It's
 mutually exclusive with the selected dark-fill (a decided tile is `disabled`, so
 it's never both).
 
 The fill is the game's **result palette at full saturation**, not a washed-out
-pastel — psychicnum's decided tiles use `--outcome-*-fill-color` (the exact tone
+pastel — psychicnum's decided tiles use `--outcomes-*-fill-color` (the exact tone
 the TurnLog outcome bars use), and connections' use the four saturated rank
 colors of the bands. The rule and the reason live in
-[The five outcome variants](#the-five-outcome-variants).
+[The seven outcome variants](#the-seven-outcome-variants).
 
 A *transient* flash (a brief pop on a just-made move) is a different thing —
 prefer the permanent fill when the result is durable.
@@ -973,7 +977,7 @@ resting fill (the default for an untouched tile everywhere) assumes a game's
 *result* colors read as distinct from it. codenamesduet is the one deliberate
 exception: its neutral (bystander) result is a warm tan (`#b4986e`) close enough
 to the beige that an unrevealed beige tile would read as "guessed neutral," so it
-sets never-revealed tiles to `--tile-1-color`, the lightest shade of the ramp —
+sets never-revealed tiles to `--tile-1-fill-color`, the lightest shade of the ramp —
 still in the tile family, just clearly distinct from the tan. Default everywhere
 else stays the shared beige; deviate only when a result color forces it. See
 [codenamesduet.md → Board tile colors](games/codenamesduet.md#board-tile-colors).
@@ -1053,9 +1057,9 @@ color, cursor and a radius, and nothing else. Chrome is opt-in:
 
 ```
 button                    neutral — font: inherit · color: inherit · cursor: pointer · border-radius
-.button                   a general button's SHAPE (theme.css) — padding, border width, radius. Paints nothing.
+.button                   a general button's SHAPE (utilities.css) — padding, border width, radius. Paints nothing.
   .primary                the filled treatment    ┐ exactly one of these, always
-  .secondary              the outline treatment   ┘ × the four tones
+  .secondary              the outline treatment   ┘ × the five families
 .tile                     a game piece (each board's module)
 .key                      a keycap (module-local)
 ```
@@ -1132,7 +1136,7 @@ and that question has the same answer either way.
 `surface` belongs with the accidental kinds rather than the general ones: **a
 chat bubble is a message that happens to be clickable**, and if it grows button
 chrome it stops being a message. (They were tried with a
-`1px solid var(--control-border-color)` border and are deliberately borderless.)
+`1px solid var(--field-edge-color)` border and are deliberately borderless.)
 
 **`float` is not a kind** — it's a *placement modifier* on an `action` or a
 `trigger` (the chat FAB, Shuffle, Pause, InfoSwitch). It earns a name only
@@ -1164,9 +1168,9 @@ not chrome*. If a control could lift, nothing would separate it from a piece, an
 "a control that looks like a tile is a bug" would stop being a rule anyone can
 enforce.
 
-It needs no new colors — the chrome tone sweep already minted all of them:
-filled hovers to `--chrome-<tone>-fill-hover-color`, outline hovers to
-`--chrome-<tone>-wash-color`. Both treatments change the **background and
+It needs no new colors — each family already carries both: filled hovers read
+`--button-<family>-primary-hover-color`, outline hovers
+`--button-<family>-secondary-hover-color`. Both treatments change the **background and
 nothing else**; each re-states its own border so a hover can never shift the
 hairline as a side effect (the two rules pair `.button` / `.secondary` at
 matching weights, the outline's landing second).
@@ -1183,7 +1187,7 @@ one implementation of that rule, not the rule itself.
 | control | why it styles itself |
 |---|---|
 | crosswords' source picker (`.segBtn`) | a **segmented control**: one border on the wrapper, `overflow: hidden` for the rounded ends, `border-left` dividers between segments, no per-button border or radius. `.button` gives every element its own border and radius, which doesn't restyle a segmented control — it dismantles it |
-| crosswords' pencil/pen + scope buttons (`.btn`) | a game-surface control bar whose ON state is `--crosswords-cursor`, a **game** color. Its selected state can't come from a chrome tone without lying about what the color means |
+| crosswords' pencil/pen + scope buttons (`.btn`) | a game-surface control bar whose ON state is `--crosswords-cursor`, a **game** color. Its selected state can't come from a button family without lying about what the color means |
 
 The distinction that keeps this honest: what made the button sweep worth doing was
 that buttons were being handed chrome they never asked for. Neither of these has
@@ -1402,25 +1406,33 @@ chat bubble, the `×` close, and the `✓`/`✗` marks.
 **Two axes + natural width.** A semantic button composes from `ActionButton`'s two
 axes: **weight** (`primary` = the filled-accent main action like Submit;
 `secondary` = the outline everything else builds on) and **tone** (`quiet |
-action | caution | destructive` — CHROME's own vocabulary, not the outcome
-palette's: a control saying "this is irreversible" is a different question from a
-game saying "you lost"). Each tone re-sets the slot tokens both treatments read,
-so a tone works in either weight. Today: Hint / Reveal = `caution`, End /
-Concede = `destructive`, Submit / Peel / Back-at-terminal = `primary`+`action`,
-Clear / Delete = `action`, and a bare dialog Cancel is `quiet`+`secondary`.
+normal | caution | destructive | success` — the BUTTON bucket's own vocabulary,
+not the outcome palette's: a control saying "this is irreversible" is a different
+question from a game saying "you lost"). Each tone re-sets the slot tokens both
+treatments read, so a tone works in either weight. Today: Hint / Reveal =
+`caution`, End / Concede = `destructive`, Submit / Peel / Back-at-terminal =
+`primary`+`normal`, Clear / Delete = `normal`, and a bare dialog Cancel is
+`quiet`+`secondary`. `success` has no caller and is wired anyway.
 
-**The grid is complete, and that is load-bearing.** All four tones carry all five
-values — `-primary-color` / `-primary-hover-color` / `-primary-ink-color` /
-`-secondary-color` / `-secondary-hover-color` — whether or not anything reads them
-yet, because a family picked at one sitting is picked by one formula. `quiet` is
-the cautionary tale: it spent a redesign as an outline-only tone on the argument
-that a filled quiet button would out-shout its neighbour, which is a claim about
-one USE promoted into a fact about the TONE — and it made `tone="quiet"` +
-`weight="primary"` silently paint action-blue. Cancel wants the outline because
-**secondary is the right treatment there**, which says nothing about the tone. Two
-guards in [`cssTokens.test.ts`](../src/guards/cssTokens.test.ts) hold the grid and the
-naming: every tone carries all five, and no tone token may say "fill" — the axis
-is primary/secondary, and the property is always a background. Action-row
+The tone was called `action` until 2026-08-20, and the rename removed a real
+collision: `action` is also one of the fourteen BUTTON KINDS above, so one word
+named a purpose in one taxonomy and a color in another.
+
+**The grid is complete, and that is load-bearing.** All five families carry all
+six values — `-base-color` / `-primary-color` / `-primary-hover-color` /
+`-primary-ink-color` / `-secondary-color` / `-secondary-hover-color` — whether or
+not anything reads them yet, because a family picked at one sitting is picked by
+one formula. (`-base` is the anchor the other five derive from, and nothing
+paints it.) `quiet` is the cautionary tale: it spent a redesign as an
+outline-only tone on the argument that a filled quiet button would out-shout its
+neighbour, which is a claim about one USE promoted into a fact about the TONE —
+and it made `tone="quiet"` + `weight="primary"` silently paint blue. Cancel wants
+the outline because **secondary is the right treatment there**, which says
+nothing about the tone. Two guards in
+[`cssTokens.test.ts`](../src/guards/cssTokens.test.ts) hold the grid and the
+naming: every family in the `button`, `outcomes` and `pill` buckets carries every
+one of its variants, and no button token may say "fill" — the axis is
+primary/secondary, and the property is always a background. Action-row
 buttons size to their **own icon + label** (`flex: 0 0 auto`), left-aligned — they do
 **not** stretch to equal widths or the column's right edge: equalizing widths clipped
 a longer label's icon, and unequal widths actually *aid* recognition ("Hint is the

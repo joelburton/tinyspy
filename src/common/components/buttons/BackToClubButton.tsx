@@ -40,7 +40,7 @@ export function BackToClubButton({
       label={label ?? (compact ? 'Club' : 'Back to club')}
       tooltip={label ?? 'Back to club'}
       weight={variant}
-      tone="action"
+      tone="normal"
       // The VISIBLE text may be "Club" (compact) or nothing at all (iconOnly),
       // but the control is always announced in full. ActionButton only sets an
       // aria-label for the icon-only case, so `compact` needs this said here —

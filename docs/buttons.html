@@ -45,7 +45,8 @@
 
      Each tone has a picker on its card — nudge and everything rederives. */
   :root {
-    --action-primary: #1976d2;
+    --normal-primary: #1976d2;
+    --success-primary: #2e7d32;
     --caution-primary: #d56417;
     --destructive-primary: #b71c1c;
     --quiet-primary: #737373;
@@ -138,7 +139,8 @@
   .secondary { color: var(--secondary); border-color: var(--edge, var(--secondary)); }
   .secondary:hover:not(:disabled) { background: var(--secondary-hover); }
 
-  .action     { --primary: var(--action-primary); --primary-hover: var(--action-primary-hover); --secondary: var(--action-secondary); --secondary-hover: var(--action-secondary-hover); }
+  .normal     { --primary: var(--normal-primary); --primary-hover: var(--normal-primary-hover); --secondary: var(--normal-secondary); --secondary-hover: var(--normal-secondary-hover); }
+  .success    { --primary: var(--success-primary); --primary-hover: var(--success-primary-hover); --secondary: var(--success-secondary); --secondary-hover: var(--success-secondary-hover); }
   .caution    { --primary: var(--caution-primary); --primary-hover: var(--caution-primary-hover); --secondary: var(--caution-secondary); --secondary-hover: var(--caution-secondary-hover); }
   .destructive{ --primary: var(--destructive-primary); --primary-hover: var(--destructive-primary-hover); --secondary: var(--destructive-secondary); --secondary-hover: var(--destructive-secondary-hover); }
   .quiet      { --primary: var(--quiet-primary); --primary-hover: var(--quiet-primary-hover); --secondary: var(--quiet-secondary); --secondary-hover: var(--quiet-secondary-hover); }
@@ -154,7 +156,7 @@
   .tier.t-secondary { background: var(--secondary); color: #fff; }
 
   /* Today's values, for the before/after. */
-  .today .action      { --primary: #1976d2; --primary-hover: #1565c0; --secondary: #1976d2; --secondary-hover: #f0f0f0; }
+  .today .normal      { --primary: #1976d2; --primary-hover: #1565c0; --secondary: #1976d2; --secondary-hover: #f0f0f0; }
   .today .caution     { --primary: #ef6c00; --primary-hover: #c05600; --secondary: #ef6c00; --secondary-hover: #f0f0f0; }
   .today .destructive { --primary: #8e1b2e; --primary-hover: #741624; --secondary: #8e1b2e; --secondary-hover: #f0f0f0; }
   /* The odd one out, and deliberately shown that way: quiet is the only tone
@@ -203,17 +205,39 @@
   darker shade of the same tone, and takes a faint wash of it on hover. Every tone
   works in <em>both</em> treatments — the grid is the point. Drag the sliders and
   every card recomputes; the hexes under each name are what is in
-  <code>theme.css</code> today.
+  <code>themes/daylight.css</code> today.
 </p>
 
-<div class="card action" data-tone="action">
-  <p class="tone-name"><input class="pick" type="color" data-pick="action"> action</p>
+<div class="card normal" data-tone="normal">
+  <p class="tone-name"><input class="pick" type="color" data-pick="normal"> normal</p>
   <p class="hexes"></p>
   <div class="row">
-    <div class="cell"><span class="cap">primary</span><button class="primary action">Submit</button></div>
-    <div class="cell"><span class="cap">secondary</span><button class="secondary action">Restart</button></div>
-    <div class="cell"><span class="cap">primary, disabled</span><button class="primary action" disabled>Submit</button></div>
-    <div class="cell"><span class="cap">secondary, disabled</span><button class="secondary action" disabled>Restart</button></div>
+    <div class="cell"><span class="cap">primary</span><button class="primary normal">Submit</button></div>
+    <div class="cell"><span class="cap">secondary</span><button class="secondary normal">Restart</button></div>
+    <div class="cell"><span class="cap">primary, disabled</span><button class="primary normal" disabled>Submit</button></div>
+    <div class="cell"><span class="cap">secondary, disabled</span><button class="secondary normal" disabled>Restart</button></div>
+  </div>
+  <div class="tiers">
+    <div class="tier t-secondary-hover">-secondary-hover</div>
+    <div class="tier t-primary">-primary</div>
+    <div class="tier t-primary-hover">-primary-hover</div>
+    <div class="tier t-secondary">-secondary</div>
+  </div>
+</div>
+
+<!-- RESERVED. Nothing in the app asks for `success` — it is drawn here for the
+     same reason it is written in the stylesheet: a family picked beside its
+     siblings is picked by one formula, where one derived in two years next to
+     the button that needed it is reasoned about differently. There is no
+     `.today` row for it because it has no past. -->
+<div class="card success" data-tone="success">
+  <p class="tone-name"><input class="pick" type="color" data-pick="success"> success <span style="font-weight:400;color:#6b6b6b">— reserved; no caller today</span></p>
+  <p class="hexes"></p>
+  <div class="row">
+    <div class="cell"><span class="cap">primary</span><button class="primary success">Yes, do it</button></div>
+    <div class="cell"><span class="cap">secondary</span><button class="secondary success">Confirm</button></div>
+    <div class="cell"><span class="cap">primary, disabled</span><button class="primary success" disabled>Yes, do it</button></div>
+    <div class="cell"><span class="cap">secondary, disabled</span><button class="secondary success" disabled>Confirm</button></div>
   </div>
   <div class="tiers">
     <div class="tier t-secondary-hover">-secondary-hover</div>
@@ -278,10 +302,13 @@
   <p class="tone-name">before the sweep, for the record</p>
   <p class="hexes">how these buttons looked until 2026-08-17 — one gray hover for every tone, a
   brighter orange, a maroon red, and quiet's border and label disagreeing. Kept because the
-  cards above are only legible as an improvement next to what they replaced; NOT current.</p>
+  cards above are only legible as an improvement next to what they replaced; NOT current.
+  (The `normal` family was called `action` at that date; renamed 2026-08-20, because
+  `action` is also one of the fourteen button KINDS and one word was naming a purpose
+  in one taxonomy and a color in another.)</p>
   <div class="row">
-    <div class="cell"><span class="cap">action</span><button class="primary action">Submit</button></div>
-    <div class="cell"><span class="cap">action</span><button class="secondary action">Restart</button></div>
+    <div class="cell"><span class="cap">normal</span><button class="primary normal">Submit</button></div>
+    <div class="cell"><span class="cap">normal</span><button class="secondary normal">Restart</button></div>
     <div class="cell"><span class="cap">caution</span><button class="primary caution">Use hint</button></div>
     <div class="cell"><span class="cap">caution</span><button class="secondary caution">Hint</button></div>
     <div class="cell"><span class="cap">destructive</span><button class="primary destructive">Delete club</button></div>
@@ -291,8 +318,8 @@
 </div>
 
 <p class="lede" style="margin-top:2rem">
-  Keep this in step with <code>src/common/theme.css</code> → CHROME. The tones are
-  settled; the sliders are here so a future change is <em>derived</em> rather than
+  Keep this in step with <code>src/common/themes/daylight.css</code> → BUTTON. The
+  families are settled; the sliders are here so a future change is <em>derived</em> rather than
   hand-picked, which is the whole reason a family stays a family.
 </p>
 
@@ -365,7 +392,7 @@ const overWhite = (hex, t) => {
   return oklabToHex(c.map((v, i) => w[i] + (v - w[i]) * t))
 }
 
-const TONES = ['action', 'caution', 'destructive', 'quiet']
+const FAMILIES = ['normal', 'success', 'caution', 'destructive', 'quiet']
 const root = document.documentElement
 const knobs = {
   hover: document.getElementById('hover'),
@@ -399,7 +426,7 @@ function apply() {
   document.getElementById('washOut').textContent = `${Math.round(tWash * 100)}% over white`
   document.getElementById('dimOut').textContent = `${Math.round(dim * 100)}% opacity`
 
-  for (const tone of TONES) {
+  for (const tone of FAMILIES) {
     const primary = getComputedStyle(root).getPropertyValue(`--${tone}-primary`).trim()
     const v = {
       'primary-hover': darken(primary, dHover),

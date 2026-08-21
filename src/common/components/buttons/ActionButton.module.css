@@ -11,19 +11,26 @@
  * purpose: the primary is what a filled button is painted with, the secondary is
  * that color taken down far enough to carry small text on white. Orange is the
  * case that settles it — a fillable orange can't be read as type, and a readable
- * orange can't be used as a fill (theme.css → FIVE VALUES PER TONE). The
+ * orange can't be used as a fill (themes/daylight.css → BUTTON). The
  * secondary paints the border and the label both, because a border in one shade
  * around a label in another is a distinction nothing was making on purpose.
  *
- * The tones are CHROME's, not the outcome palette's: a control saying "this is
- * irreversible" is a different question from a game saying "you lost", even
- * where the two hexes agree today (docs/ui.md → The color system).
+ * The tones are the BUTTON bucket's, not the outcome palette's: a control saying
+ * "this is irreversible" is a different question from a game saying "you lost",
+ * even where the two hexes agree today (docs/ui.md → The color system).
  *
- * ALL FOUR tones get a class, quiet included. It is the default in theme.css, so
- * a quiet SECONDARY would work without one — but the default primary slots are
- * action's, so a quiet button that asked for `primary` used to come out
- * action-blue. A tone that only half-exists is the thing the completeness rule
- * exists to prevent, so quiet is wired like the rest and both treatments answer.
+ * ALL FIVE families get a class, and both of the ones nothing calls for are
+ * written anyway. `quiet` is the default for a bare `.secondary`, so a quiet
+ * SECONDARY would work without one — but the default primary slots are normal's,
+ * so a quiet button that asked for `primary` used to come out blue. `success`
+ * has no caller at all today. Both are here for the same reason the token grid
+ * is rectangular: a family that only half-exists is what the completeness rule
+ * exists to prevent, and the half that is missing is always found by the button
+ * that needed it, two years later, by someone reasoning differently.
+ *
+ * `normal` was called `action` until 2026-08-20. The rename removed a real
+ * collision: `action` is also one of the fourteen BUTTON KINDS (docs/ui.md), so
+ * the word was naming a purpose in one taxonomy and a color in another.
  */
 
 .caution {
@@ -42,7 +49,7 @@
   --button-slot-secondary-hover-color: var(--button-destructive-secondary-hover-color);
 }
 
-.action {
+.normal {
   --button-slot-primary-color: var(--button-normal-primary-color);
   --button-slot-primary-hover-color: var(--button-normal-primary-hover-color);
   --button-slot-primary-ink-color: var(--button-normal-primary-ink-color);
@@ -50,7 +57,7 @@
   --button-slot-secondary-hover-color: var(--button-normal-secondary-hover-color);
 }
 
-/* Also the DEFAULT in theme.css (a bare `.secondary` is quiet). Declared anyway,
+/* Also the DEFAULT in themes/daylight.css (a bare `.secondary` is quiet). Declared anyway,
    so `tone="quiet"` behaves like every other tone rather than relying on the
    slots happening to be unset — which is exactly what broke the primary pair. */
 .quiet {
@@ -59,4 +66,15 @@
   --button-slot-primary-ink-color: var(--button-quiet-primary-ink-color);
   --button-slot-secondary-color: var(--button-quiet-secondary-color);
   --button-slot-secondary-hover-color: var(--button-quiet-secondary-hover-color);
+}
+
+/* A confirming YES. RESERVED — nothing asks for it today, and it is wired today
+   so that the day something does, it inherits a family picked with its siblings
+   rather than one derived beside the button that wanted it. */
+.success {
+  --button-slot-primary-color: var(--button-success-primary-color);
+  --button-slot-primary-hover-color: var(--button-success-primary-hover-color);
+  --button-slot-primary-ink-color: var(--button-success-primary-ink-color);
+  --button-slot-secondary-color: var(--button-success-secondary-color);
+  --button-slot-secondary-hover-color: var(--button-success-secondary-hover-color);
 }
