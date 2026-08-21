@@ -632,7 +632,7 @@ the scanner counts it as a reference and reserved cells stay alive.
 | 4 | ~~the **midnight spike**~~ **DONE 2026-08-21** | The split holds; all 161 roles answered, one chain, nothing undefined. Kept behind `?theme=midnight`. Dark mode is NOT part of this sprint — everything learned is [dark-mode.md](dark-mode.md), and §19 keeps the one-line summary |
 | 5 | ~~shallow whole-app pattern pass~~ **DONE 2026-08-21** | Ten patterns named, plus five below the line, in §7 → "The named patterns". Read off the rendered surfaces, then counted. Also settled: device density (§9), and three findings that are name collisions rather than patterns |
 | 6 | homepage | the rehearsal: lowest blast radius |
-| 7 | dialogs + forms | the first real win — many near-identical instances |
+| 7 | dialogs + forms | the first real win — many near-identical instances. Also decide here: whether to LOAD a font (§18) |
 | 8 | clubpage + remaining non-game chrome | Also inherits from step 6: the VIEWPORT-FIT chain (punted, §7), `.header` → `.page-header` in both HomePage and ClubPage, and `<ModePill>` reading the shared `.badge` |
 | 9 | shared game chrome | `common/components/game/` — 258 rules, and every game sits on it. Also: the **contract-slot guard**, checked per mount point (§9, §10) |
 | 10 | per game — CSS pass, then tile-feedback pass, back to back | psychicnum first, as the control |
@@ -751,7 +751,15 @@ vocabulary; invent it if we ever need it.
   visualize, and "control" is vague. It is used for text occasionally too.
 - **What actually goes in `light-mode.css`** — possibly nothing. Kept as a named
   home so nobody invents a filename mid-work.
-- **Device density** (§9) — owed before step 6.
+- **Device density** (§9) — SETTLED 2026-08-21, see §9.
+- **Should we LOAD a font?** (Joel, 2026-08-21) — decide at step 7. We ship no
+  webfont at all today: no `@font-face`, no font file in the repo, `body` is
+  `system-ui, -apple-system, sans-serif`. So type is SF Pro on a Mac, Segoe UI
+  Variable on Windows, Roboto on Android — three different sets of metrics, which
+  is where the cross-platform differences come from. Measured 2026-08-21: 124
+  `font-weight` declarations over six values — 600×54, 700×42, 500×14, 800×9,
+  400×3, and **650×2**, which only renders as 650 on a variable font and rounds
+  to 700 everywhere else.
 - **Which cursor colors**, given the board cursor is amber today for a recorded
   reason: scrabble's premium squares are already red and blue.
 - **Whether the shrinking allowlist is the right guard mechanism.**
