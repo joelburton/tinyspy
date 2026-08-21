@@ -24,7 +24,9 @@
 
 /* ─── GametypeFilter — the compact dropdown ──────────────────────────────── */
 
-/* The trigger skin for the page's <FilterSelect> (see GametypeFilter.tsx for
+/* The club page's skin for <FilterSelect>'s closed state — SAME NAME as the
+ * class it lands beside in FilterSelect.module.css, deliberately: the two are
+ * the same element seen from two files. (see GametypeFilter.tsx for
  * why it isn't a native <select>). Same surface + border treatment and the
  * same 0.8rem as .modeOption beside it, so the two filters read as one pair —
  * the whole reason both live in this file.
@@ -34,7 +36,7 @@
  * the control declines focus on mousedown, so it can never be focused, and a
  * ring here would impersonate the games list's own 2px keyboard cursor
  * (docs/ui.md → ClubPage keyboard navigation). */
-.filterTrigger {
+.closedSelect {
   font-size: 0.8rem;
   padding: 0.25rem 0.55rem;
   max-width: 11rem;
@@ -44,7 +46,7 @@
   color: var(--page-text-color);
 }
 
-.filterTrigger:hover {
+.closedSelect:hover {
   background-color: var(--page-surface-hover-color);
 }
 
@@ -56,10 +58,10 @@
  * tab bar, where it's something you tap rather than heading chrome. */
 /* Touch: bigger tap targets. NOT the iOS focus-zoom floor — that only applies
  * to focusable text fields, and both of these are <button>s (docs/mobile.md →
- * Decisions #3). The trigger reaching 16px is a coincidence of the two aiming
+ * Decisions #3). The closed select reaching 16px is a coincidence of the two aiming
  * at similar sizes. */
 @media (--touch) {
-  .filterTrigger {
+  .closedSelect {
     font-size: max(16px, 1em);
     padding: 0.4rem 0.7rem;
   }

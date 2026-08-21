@@ -47,7 +47,7 @@ export function GametypeFilter({ value, options, onChange }: Props) {
       label="Filter your games by game"
       value={value}
       onChange={onChange}
-      className={styles.filterTrigger}
+      className={styles.closedSelect}
       options={[{ value: 'all', label: 'All games' }, ...options]}
     />
   )

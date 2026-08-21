@@ -37,7 +37,7 @@ export type FilterOption = {
  * observe.
  *
  * So: don't take focus at all. `onMouseDown` + `preventDefault()` on the
- * trigger and each option stops the browser focusing them, which means the
+ * closed select and each option stops the browser focusing them, which means the
  * game keeps the keyboard the entire time — the caret keeps blinking even
  * while the list is open, and typing goes to the board, which is honest,
  * because it does.
@@ -60,14 +60,14 @@ export function FilterSelect({
   value: string
   options: FilterOption[]
   onChange: (value: string) => void
-  /** Accessible name for the trigger, e.g. "Whose words to show". */
+  /** Accessible name for the closed select, e.g. "Whose words to show". */
   label: string
   /**
    * Merged onto the TRIGGER, for a caller whose surface has its own control
    * look — the club page's filters wear that page's surface + border treatment
    * so they match the mode buttons beside them, while the info-panel filters
    * keep the understated heading-row look. Behavior is identical either way;
-   * only the trigger's skin differs.
+   * only the closed select's skin differs.
    */
   className?: string
 }) {
@@ -99,7 +99,7 @@ export function FilterSelect({
     <div className={styles.root} ref={rootRef}>
       <button
         type="button"
-        className={cls(styles.trigger, className)}
+        className={cls(styles.closedSelect, className)}
         aria-label={label}
         aria-expanded={open}
         // The whole trick: preventing mousedown's default stops the browser
@@ -108,7 +108,7 @@ export function FilterSelect({
         onMouseDown={(e) => e.preventDefault()}
         onClick={() => setOpen((o) => !o)}
       >
-        {/* The trigger shows the SELECTED option's disc — one value at a time,
+        {/* The closed select shows the SELECTED option's disc — one value at a time,
             so it needs no reserved slot, only the disc when there is one.
             Without it, picking a player would drop the color the list just
             used to identify them. */}

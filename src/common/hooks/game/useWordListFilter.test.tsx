@@ -12,7 +12,7 @@ import { render, renderHook, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import type { WordListRow } from '../../components/game/lists/WordList'
 import { gp } from '../../test/gamePlayers'
-import { filterOptions, filterTriggers, pickFilter } from '../../test/filterSelect'
+import { filterOptions, closedSelects, pickFilter } from '../../test/filterSelect'
 import { useWordListFilter } from './useWordListFilter'
 
 const found = (word: string, userId: string, extra: Partial<WordListRow> = {}): WordListRow =>
@@ -64,7 +64,7 @@ describe('useWordListFilter — the two axes', () => {
     // control, and "Bonus" could never match.
     const { result } = setup({ hasBonus: false })
     render(<>{result.current.picker}</>)
-    expect(filterTriggers()).toHaveLength(1)
+    expect(closedSelects()).toHaveLength(1)
     expect(await filterOptions(0)).toEqual(['All', 'Found', 'Missed', 'me', 'moth'])
   })
 

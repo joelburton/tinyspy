@@ -1,7 +1,7 @@
 /* FilterSelect — the non-native dropdown used by the in-game info-panel
  * filters. See FilterSelect.tsx for WHY it isn't a <select>.
  *
- * The trigger is deliberately pixel-matched to the old `.select` in
+ * The closed select is deliberately pixel-matched to the old `.select` in
  * infoPanel.module.css (same font-size, padding, border, radius, max-width),
  * so swapping a filter over changes its behavior and nothing else. While the
  * turn-log picker is still native, the two sit side by side in the same info
@@ -12,9 +12,9 @@
   display: inline-flex;
 }
 
-/* ─── Trigger ─────────────────────────────────────────────── */
+/* ─── The select, CLOSED ──────────────────────────────────── */
 
-.trigger {
+.closedSelect {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
@@ -28,7 +28,7 @@
   padding: 0.05rem 0.3rem;
   max-width: 9rem;
   cursor: pointer;
-  /* This control can never hold focus (the trigger preventDefaults its own
+  /* This control can never hold focus (it preventDefaults its own
    * mousedown), so a focus ring would be a lie about where the keyboard is —
    * the whole point of the component. Belt and braces with that. */
   outline: none;
@@ -47,7 +47,7 @@
  * Kept in `em` (matching <Dot>'s own default) so the disc scales with the
  * option text — which matters at the mobile size, where options grow to 1rem
  * and a rem-fixed disc would look shrunken beside them. */
-.trigger,
+.closedSelect,
 .option {
   --filter-select-dot: 0.65em;
 }
@@ -78,7 +78,7 @@
  * border + soft shadow, and the same 1500 tier — above page content, below
  * chat. A literal, not a token: the repo has no z-index scale in theme.css and
  * bans `var()` fallbacks (src/guards/cssTokens.test.ts fails on phantom tokens). */
-/* The list hangs from the trigger's RIGHT edge and opens leftward, always.
+/* The list hangs from the closed select's RIGHT edge and opens leftward, always.
  * These filters are only ever placed at the right end of a heading row or
  * column, so right-anchoring is the one correct behavior and not worth a prop
  * — one rule means the two word-list pickers can't drift apart.
@@ -87,7 +87,7 @@
  * (docs/mobile.md still carries "cap handles at 10" as a TODO), and a
  * left-anchored list would push off-screen and widen the document. Growing
  * leftward from a right edge can't: the popover's right edge is pinned to a
- * trigger that is already on-screen, and `max-width` bounds the reach. */
+ * closed select that is already on-screen, and `max-width` bounds the reach. */
 .popover {
   position: absolute;
   top: calc(100% + 2px);

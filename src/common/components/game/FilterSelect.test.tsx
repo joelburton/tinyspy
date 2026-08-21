@@ -24,9 +24,9 @@ const WITH_DOTS = [
   { value: 'u2', label: 'moth', dot: 'blue' },
 ]
 
-const trigger = () => screen.getByRole('button', { name: 'Whose words' })
+const closed = () => screen.getByRole('button', { name: 'Whose words' })
 const optionButtons = () =>
-  Array.from(trigger().parentElement!.querySelectorAll('button')).filter(
+  Array.from(closed().parentElement!.querySelectorAll('button')).filter(
     (b) => !b.hasAttribute('aria-expanded'),
   )
 
@@ -41,13 +41,13 @@ function setup(options = PLAIN, value = 'all') {
 describe('FilterSelect — picking', () => {
   it('shows the current option, and nothing is open until you click', () => {
     setup()
-    expect(trigger()).toHaveTextContent('All')
+    expect(closed()).toHaveTextContent('All')
     expect(optionButtons()).toHaveLength(0)
   })
 
   it('opens on click, lists every option, and reports the VALUE not the label', async () => {
     const { onChange, user } = setup()
-    await user.click(trigger())
+    await user.click(closed())
     expect(optionButtons().map((b) => b.textContent)).toEqual(['All', 'Found'])
     await user.click(optionButtons()[1])
     expect(onChange).toHaveBeenCalledWith('found')
@@ -55,7 +55,7 @@ describe('FilterSelect — picking', () => {
 
   it('closes after picking', async () => {
     const { user } = setup()
-    await user.click(trigger())
+    await user.click(closed())
     await user.click(optionButtons()[1])
     expect(optionButtons()).toHaveLength(0)
   })
@@ -65,7 +65,7 @@ describe('FilterSelect — picking', () => {
   // the keyboard. Here it must still close, and still report.
   it('re-picking the option already selected still closes and reports', async () => {
     const { onChange, user } = setup()
-    await user.click(trigger())
+    await user.click(closed())
     await user.click(optionButtons()[0])
     expect(onChange).toHaveBeenCalledWith('all')
     expect(optionButtons()).toHaveLength(0)
@@ -78,20 +78,20 @@ describe('FilterSelect — never takes focus', () => {
    * activeElement check would pass even with the handler deleted — a guard
    * that can't fail. Preventing mousedown's default is what stops the browser
    * focusing the control, so that's what's pinned. */
-  it('the trigger prevents its own mousedown default', async () => {
+  it('the closed select prevents its own mousedown default', async () => {
     const { user } = setup()
     const e = new MouseEvent('mousedown', { bubbles: true, cancelable: true })
-    trigger().dispatchEvent(e)
+    closed().dispatchEvent(e)
     expect(e.defaultPrevented).toBe(true)
     // …and the click still works, which is the half that could regress if
     // someone "fixed" this by preventing the click instead.
-    await user.click(trigger())
+    await user.click(closed())
     expect(optionButtons()).toHaveLength(2)
   })
 
   it('each option prevents its own mousedown default', async () => {
     const { user } = setup()
-    await user.click(trigger())
+    await user.click(closed())
     for (const option of optionButtons()) {
       const e = new MouseEvent('mousedown', { bubbles: true, cancelable: true })
       option.dispatchEvent(e)
@@ -105,7 +105,7 @@ describe('FilterSelect — identity discs', () => {
   // so every option gets the disc's width once ANY option has one.
   it('reserves a disc slot on every option when any option has one', async () => {
     const { user } = setup(WITH_DOTS)
-    await user.click(trigger())
+    await user.click(closed())
     const slots = optionButtons().map((b) => b.querySelectorAll('[class*="dotSlot"]').length)
     expect(slots).toEqual([1, 1, 1])
     // …but only the players actually draw a disc inside it.
@@ -115,35 +115,35 @@ describe('FilterSelect — identity discs', () => {
 
   it('reserves nothing when no option has a disc', async () => {
     const { user } = setup(PLAIN)
-    await user.click(trigger())
+    await user.click(closed())
     for (const b of optionButtons()) {
       expect(b.querySelectorAll('[class*="dotSlot"]')).toHaveLength(0)
     }
   })
 
-  it('the trigger shows the selected player’s disc', async () => {
+  it('the closed select shows the selected player’s disc', async () => {
     setup(WITH_DOTS, 'u2')
-    expect(trigger()).toHaveTextContent('moth')
-    expect(trigger().querySelectorAll('[class*="dot_"]')).toHaveLength(1)
+    expect(closed()).toHaveTextContent('moth')
+    expect(closed().querySelectorAll('[class*="dot_"]')).toHaveLength(1)
   })
 
-  it('the trigger shows no disc for an option without one', () => {
+  it('the closed select shows no disc for an option without one', () => {
     setup(WITH_DOTS, 'all')
-    expect(trigger().querySelectorAll('[class*="dot_"]')).toHaveLength(0)
+    expect(closed().querySelectorAll('[class*="dot_"]')).toHaveLength(0)
   })
 })
 
 describe('FilterSelect — dismissal', () => {
   it('closes on Escape', async () => {
     const { user } = setup()
-    await user.click(trigger())
+    await user.click(closed())
     await user.keyboard('{Escape}')
     expect(optionButtons()).toHaveLength(0)
   })
 
   it('closes on a pointerdown outside, and stays open for one inside', async () => {
     const { user } = setup()
-    await user.click(trigger())
+    await user.click(closed())
     await user.pointer({ target: optionButtons()[0], keys: '[MouseLeft>]' })
     expect(optionButtons()).toHaveLength(2)
     await user.pointer({ target: document.body, keys: '[MouseLeft>]' })
