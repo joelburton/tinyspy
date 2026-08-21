@@ -134,7 +134,13 @@ a-b-c-d       --outcomes-lost-fill-color
 
 **A name without a bucket is a smell.** Names prefer the same word the code uses.
 
-- **camelCaps where it helps** over runtogetherwords: `--spellingbee-centerTile-fill-color`.
+- **Hyphens separate DIFFERENT QUESTIONS; camelCaps joins words that answer
+  one.** `--button-quiet-primary-hover-color` is hyphenated because `primary`
+  and `hover` are two questions — what am I doing (hovering) and on what (a
+  primary button, toned quiet). `inFlight`, `gameOver`, `terminalFrame` and
+  `centerTile` each join up because the two words are one quality. **Part-count
+  is not a thing to optimize**: five parts is fine, and compressing to reach
+  four is how the rule gets misapplied.
 - **Only the ENDS are parsed.** A guard matches the bucket at the front and the
   variant + kind at the back; the middle is a label and needs no constraint.
 - **`_localName`** for a value built up over calculations inside one file:
@@ -222,9 +228,17 @@ display-p3 profile.
   −0.115, the outline's hover at 8% over the card. This is the model working —
   a family picked at one sitting by one formula — and it is what everything else
   gets measured against.
-- **`dullframe` is `oklch(0.45, 0.105, <family hue>)`** for lost, near, warning
-  and neutral. **Won is lifted to 0.564** at the same chroma, because at the
-  family's lightness a green reads as black at normal zoom.
+- ~~**`dullframe` is `oklch(0.45, 0.105, <family hue>)`**~~ — **WRONG on two
+  counts, corrected 2026-08-20 by resolving it in a browser.** Renamed
+  `terminalFrame`, since a semantic name beats a descriptive one. The hue was
+  the **ink's**, not base's — obvious in warning, whose ink sits 21.5° off its
+  own base because Material's ramps rotate — and it does not reproduce exactly
+  anyway: Chrome's oklch lands 1–4 bytes off each recorded value, because the
+  originals came from a different oklab implementation. It now derives from
+  BASE (Joel's call, small shift accepted), which moved four values: won, lost
+  and near by 1–3 bytes, warning by 10. **Won is lifted to 0.564** at the same
+  chroma, because at the family's lightness a green reads as black at normal
+  zoom; neutral is achromatic.
 
 **Does not derive, and needs a value per member:**
 
@@ -315,9 +329,16 @@ Two boundary rules, because both edges leak:
 - **pills** — the feedback mechanism, in the header (global feedback: what other
   players are doing) and below the board (local feedback: about *you*). Same look,
   same purpose.
-- **outcomes** — `won` · `lost` · `near` · `warning` · `neutral`. A won game or a
-  good move; a lost game or a bad move; close-to-right or a tie; a move that
-  cannot be made ("not a word"); a neutral non-result. Shown as pill colors,
+- **outcomes** — `won` · `lost` · `near` · `warning` · `neutral` · `noted` ·
+  `error`. A won game or a good move; a lost game or a bad move; close-to-right
+  or a tie; a move that cannot be made ("not a word"); a non-result so boring it
+  doesn't matter; a turn that COUNTS without being a verdict; a FAULT on this
+  move — the request never arrived, which is broken rather than refused.
+  `noted` and `error` were promoted out of the pill vocabulary on 2026-08-20,
+  which made the pill vocabulary EXACTLY this vocabulary with nothing left over.
+  Both are anchored at ink weight rather than at a 400, because each arrived
+  with one shipping value and that value is ink-weight — visible on the palette
+  page as a family whose base and fill are the same color. Shown as pill colors,
   turn-log bars, tile colors. Needs many variants: text, outlines, fills, bars.
   Outcome colors should be used **only** for outcomes. Outcomes can be
   button-like (you press a tile), so the bucket carries interactive variants too.
@@ -435,8 +456,8 @@ the scanner counts it as a reference and reserved cells stay alive.
 | # | step | exit criterion |
 |---|---|---|
 | 1 | this doc | decisions settled; `css-system.md` folded in and deleted |
-| 2 | build the theme | `light-mode.css` + `daylight.css` + `fixed.css` exist and every token resolves. Every value that MOVED is deliberate — recorded in §16, decided on the spot, or painted hot pink (§15). The snapshot is the record, at desktop and phone widths |
-| 3 | rebuild `/palette` | §11: every family visible as a family, doing its job, with formulas |
+| 2 | ~~build the theme~~ **DONE 2026-08-20** | Five files, not three: `themes/light-mode.css`, `themes/daylight.css`, `fixed.css`, `base.css` (element resets + every non-color value, including depth), `utilities.css` (the global classes). `theme.css` is deleted. 98 renames across 386 sites in 72 files. Verified at 1280 and 390: 200 of 204 baseline tokens pixel-identical, the four movers being `terminalFrame` (§6) |
+| 3 | rebuild `/palette` | **half done 2026-08-20** — every family is there as a rectangle of squares, with its formula printed under every cell. What is left is §11's first rule: every variant rendered DOING ITS JOB, since an ink that doesn't read as its color is invisible on a chip |
 | 4 | the **midnight spike** | a throwaway dark theme renders the homepage and one game. Kept behind a flag or deleted. This is what tells us whether the split works |
 | 5 | shallow whole-app pattern pass | the top ~10 patterns NAMED, app-wide, by reading rendered surfaces |
 | 6 | homepage | the rehearsal: lowest blast radius |
@@ -534,6 +555,9 @@ this is the colour pass's agenda.
 | the destructive red `#b71c1c` | lost's ink `#c62828` | 0.037 — it should read differently |
 | `--member-blue-*` `#1976d2` | the action blue | byte-identical; member colors must relate to nothing |
 | near's fill `#ffb74d` | warning's fill `#ffa726` | 3.9° of hue — a split by name only |
+| `noted`'s base `#1976d2` | `error`'s base `#b71c1c` | both anchored at INK weight, so each family's fill is as dark as its ink. Re-anchor at a 400 once the palette shows them beside their siblings |
+| a pill's tint at 18% | `noted` + `error` at 8% | five families mix one way and two the other; it ships today and was preserved rather than normalized |
+| an outcome's `wash` | a pill's `tint` | two answers to one question at two strengths — deciding which survives moves pixels |
 
 Also: `--chrome-disabled-opacity` ships as an EFFECT rather than a per-family
 color. **A game piece has no `disabled`** — measured across all sixteen games,
