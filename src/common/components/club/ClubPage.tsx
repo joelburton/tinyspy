@@ -1048,8 +1048,8 @@ export function ClubPage({ handle, session }: Props) {
             {/* Heading + its filter, one row. The whole row is hidden on
                 mobile (the tab bar names the view and the mobile filter row
                 above carries the control). */}
-            <div className={styles.headingRow}>
-              <h3 className={styles.sectionHeading}>Start a new game</h3>
+            <div className={cls('heading-with-controls', styles.headingRow)}>
+              <h3>Start a new game</h3>
               <ModeFilter value={effectiveMode} onChange={setModeFilter} soloClub={soloClub} />
             </div>
             {/* The scrolling card: the heading above stays put; only the
@@ -1115,8 +1115,8 @@ export function ClubPage({ handle, session }: Props) {
               included — current / shelved / finished being a flag on the row
               rather than three sections (docs/states.md). The count is of
               what's SHOWING, so it agrees with the list under a filter. */}
-          <div className={styles.headingRow}>
-            <h3 className={styles.sectionHeading}>Your games ({visibleGames.length})</h3>
+          <div className={cls('heading-with-controls', styles.headingRow)}>
+            <h3>Your games ({visibleGames.length})</h3>
             <GametypeFilter
               value={selectedGametype}
               options={gametypeOptions}

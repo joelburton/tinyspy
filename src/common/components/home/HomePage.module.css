@@ -13,12 +13,6 @@
   margin-right: 0.45em;
 }
 
-/* The list is the shared `.item-list` / `.item-row` (common/patterns/list.css);
- * only the gap above it is home's. */
-.clubsList {
-  margin-top: 0.5rem;
-}
-
 .clubName {
   font-weight: 500;
 }

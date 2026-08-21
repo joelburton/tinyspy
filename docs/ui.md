@@ -1096,6 +1096,31 @@ assembling the same skeleton by hand is how they drifted apart before.
   trigger, `0.3rem` on the chat bubble), which is why the visible separation is
   wider than the number.
 
+## The heading levels
+
+Four levels, each with a meaning, declared in
+[`base.css`](../src/common/base.css). **The level is the decision** — a heading
+takes no class to be the right size.
+
+| | meaning | size | margin |
+|---|---|---|---|
+| `h1` | the **page's** title — "Create a club", the club's name, the home greeting, every error screen | `1.5rem` | `0 0 1rem` |
+| `h2` | a **dialog or notice** title — CelebrationDialog, DeviceBlockNotice | `1.25rem` | `1.25rem` |
+| `h3` | a **section** heading — "Your clubs", "Start a new game", the info column's panels | `1.15rem` | `1.15rem` |
+| `h4` | a **subsection** inside prose — a game's Help | `1rem` | `1rem` |
+
+Declared rather than left to the browser because the default mattered: until
+2026-08-21 the space between a page's section heading and the list under it
+*was* the UA's `margin-block: 1em` — a number nobody chose, load-bearing on the
+homepage and the club page, and different from the number the info column used.
+
+**These sizes are for non-game pages.** A game's info column is the packed
+surface, so it steps its headings down and drops the margin —
+`infoPanel.heading` is `0.95rem` at weight 600 with the gap coming from its
+parent's `gap`. Expect the same of `h2` and `h4` if a game ever needs them.
+That override is the point of declaring a default: it's a deliberate step down
+from a stated size rather than a second guess at the browser's.
+
 ## Headings that carry a control
 
 `<h1>`–`<h6>` are **headings**; the strip at the top of the page is a **header**
@@ -1125,6 +1150,10 @@ Words: 34 · Score: 118               [ Kind ▾ ] [ Who ▾ ]
   only takes effect once the row is full. So the shared `0.5rem` costs nothing
   on a wide screen — it's the tightest instance's answer (the word list, which
   carries two selects).
+- **It never touches the heading's size or margin** — the level owns those (see
+  above). `h3` is one size on a page and a smaller one in a game's info column,
+  and this row is used in both, so zeroing the margin here would make the row
+  responsible for vertical rhythm it can't judge.
 - **`min-width: 0` on the heading slot decides who gives** when the line runs
   out. Without it the heading refuses to shrink and shoves the control off the
   edge. It only makes yielding possible, though — the default is wrapping to a

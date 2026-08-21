@@ -90,28 +90,6 @@
   min-height: 0;
 }
 
-/* Each column's heading row: the section h3 on the left, that list's filter
- * control on the right (ModeFilter / GametypeFilter — see clubFilters.module.css).
- * The h3 keeps its own default margins, which is what keeps the two columns'
- * list frames aligned with each other: both rows are built the same way, so
- * both are the same height. */
-.headingRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  flex-shrink: 0;
-}
-
-/* The h3 inside a .headingRow. A named class rather than `.headingRow h3` so
- * the JSX says which headings are COLUMN LABELS — the "Join the active game"
- * h3 deliberately isn't one (it's a live call to action, and it survives the
- * mobile breakpoint that hides these). min-width: 0 lets it shrink instead of
- * pushing the filter out of a narrow column. */
-.sectionHeading {
-  min-width: 0;
-}
-
 /* The two scrolling card frames — the start-buttons card (left) and
  * the games list (right). One rule so the paired panels can't drift
  * apart cosmetically: fixed-size visual container (flex: 1 takes the
@@ -208,6 +186,12 @@
 .mobileFilters {
   display: none;
 }
+
+/* `.headingRow` is a bare hook: the shape is the shared
+ * `.heading-with-controls` (common/patterns/heading.css), and this class
+ * exists only so the mobile block below can hide the row. A module can't
+ * target a global class without `:global()`, which nothing in this codebase
+ * uses. */
 
 @media (--mobile) {
   .tabs {

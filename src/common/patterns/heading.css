@@ -42,6 +42,11 @@
    pattern doesn't bake in an element — the mistake `.button` made by assuming
    its element was a <button>.
 
+   IT DOES NOT TOUCH THE HEADING'S SIZE OR MARGIN. The LEVEL owns those
+   (base.css → the heading levels): h3 is one size on a page and a smaller one
+   in a game's info column, and this row is used in both. Zeroing the margin
+   here would have made the row responsible for vertical rhythm it can't judge.
+
    `min-width: 0` decides WHO GIVES when the line runs out of room. Without it
    a heading refuses to shrink below its text and shoves the control off the
    right edge; with it the heading is the one that yields.
@@ -60,6 +65,5 @@
    choice. So 0.5rem costs nothing on a wide screen and is simply the tightest
    instance's answer (the word list, with two selects). */
 .heading-with-controls > :first-child {
-  margin: 0;
   min-width: 0;
 }

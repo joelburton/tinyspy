@@ -345,14 +345,61 @@ body {
   width: 100%;
 }
 
+/* ---------- The heading levels ----------
+ *
+ * FOUR LEVELS, EACH WITH A MEANING, and the level is the decision — a
+ * heading takes no class to be the right size. Measured across the app,
+ * this is what each one is already used for:
+ *
+ *   h1   the PAGE's title            "Create a club", the club's name, the
+ *                                    home greeting, every error screen
+ *   h2   a DIALOG or notice title    CelebrationDialog, DeviceBlockNotice
+ *   h3   a SECTION heading           "Your clubs", "Start a new game",
+ *                                    the info column's panels, Help prose
+ *   h4   a SUBSECTION inside prose   letterboxed's Help
+ *
+ * Declared rather than left to the browser, because until 2026-08-21 the
+ * spacing between a page's section heading and the list under it WAS the
+ * UA's `margin-block: 1em` — a number nobody had chosen, load-bearing on
+ * two pages, and different from the number the info column uses. A
+ * default that matters is a decision.
+ *
+ * THE SIZES ARE FOR NON-GAME PAGES. A game's info column is the packed
+ * surface — vertical space there is the scarce thing — so it runs its
+ * headings smaller and tighter (`infoPanel.heading`: 0.95rem, no margin,
+ * the gap coming from its parent's `gap`). Expect the same of h2 and h4
+ * if a game ever needs them. That override is the point of declaring a
+ * default: it is now a deliberate step down from a stated size rather
+ * than a second guess at the browser's. */
+
 h1 {
-  margin-top: 0;
   /* Smaller than the browser default (2rem). Every h1 is a page title on a
-   * card/shell screen (home "Welcome, …", the club "Club: <name>", the claim
-   * + create-club screens) — the game play surface has no h1. A gentler title
+   * card/shell screen — the game play surface has no h1. A gentler title
    * size reads better and leaves breathing room for long club names /
    * usernames before they wrap, which matters most on a narrow (phone) card. */
   font-size: 1.5rem;
+  /* No space above: an h1 is the first thing in its card. */
+  margin: 0 0 1rem;
+}
+
+h2 {
+  /* The browser default is 1.5em — the same rendered size as our h1, which
+   * makes it not a level at all. Stepped down so the four sizes descend. */
+  font-size: 1.25rem;
+  margin-block: 1.25rem;
+}
+
+h3 {
+  font-size: 1.15rem;
+  /* The gap between a section heading and what it introduces. Load-bearing
+   * on the club page and the homepage, where nothing else separates the
+   * heading from the list below it. */
+  margin-block: 1.15rem;
+}
+
+h4 {
+  font-size: 1rem;
+  margin-block: 1rem;
 }
 
 form {
