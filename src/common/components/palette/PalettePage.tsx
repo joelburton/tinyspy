@@ -1,3 +1,5 @@
+import { useState } from 'react'
+import { cls } from '../../lib/util/cls'
 import { FAMILIES, tokenOf, type Family } from './palette'
 import styles from './PalettePage.module.css'
 
@@ -53,8 +55,12 @@ import styles from './PalettePage.module.css'
  * reserved cell is not dead code. See `palette.ts`.
  */
 export function PalettePage() {
+  // A plain controlled checkbox: an event handler sets state, which is the one
+  // shape this repo allows (no setState in an effect — docs/code-conventions.md).
+  const [explain, setExplain] = useState(true)
+
   return (
-    <div className={`card ${styles.page}`}>
+    <div className={cls('card', styles.page, !explain && styles.noExplain)}>
       <h1>Palette</h1>
       <p className={styles.intro}>
         Every color family in <code>common/themes/daylight.css</code>. A member missing a variant is a
@@ -62,6 +68,10 @@ export function PalettePage() {
         variant means the same thing in every member, and ACROSS a row to ask whether a member is a
         family or several unrelated colors sharing a name.
       </p>
+      <label className={styles.explainToggle}>
+        <input type="checkbox" checked={explain} onChange={(e) => setExplain(e.target.checked)} />
+        Explain each cell — its token, what it resolved to, and the formula behind it
+      </label>
       <nav className={styles.index}>
         {FAMILIES.map((f) => (
           <a key={f.name} href={`#${slug(f.name)}`}>
@@ -126,12 +136,14 @@ function Row({ family, name, cells }: { family: Family; name: string; cells: str
         return (
           <div key={token} className={styles.cell}>
             <div className={styles.swatch} style={{ background: cell }} />
-            <code className={borrowed ? styles.borrowed : undefined}>
-              {borrowed ? '↗ ' : ''}
-              {token}
-            </code>
-            <code className={styles.value} ref={showResolved(token)} />
-            <span className={styles.formula}>{formula ?? '—'}</span>
+            <div className={styles.explain}>
+              <code className={borrowed ? styles.borrowed : undefined}>
+                {borrowed ? '↗ ' : ''}
+                {token}
+              </code>
+              <code className={styles.value} ref={showResolved(token)} />
+              <span className={styles.formula}>{formula ?? '—'}</span>
+            </div>
           </div>
         )
       })}

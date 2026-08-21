@@ -78,6 +78,37 @@
   color: var(--page-text-color);
 }
 
+/* The checkbox that hides the per-cell text. Full size and full contrast — it is
+ * a control, and the page's rule against muting applies to it too. */
+.explainToggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* `display: contents` so the three lines stay children of `.cell`'s flex column
+ * and keep its gap — the wrapper exists to be switched off, not to lay anything
+ * out. Switching it off is `display: none` on the parent's class, which
+ * overrides `contents` and takes the whole subtree with it. */
+.explain {
+  display: contents;
+}
+
+.noExplain .explain {
+  display: none;
+}
+
+/* With the text gone the swatches can sit close enough to compare, which is the
+ * entire point of hiding it: a family is judged by how its members look BESIDE
+ * each other, and three lines of monospace between every pair is exactly the
+ * distance that judgment cannot survive. */
+.noExplain .grid {
+  gap: 0.35rem;
+}
+
 .cell {
   display: flex;
   flex-direction: column;
