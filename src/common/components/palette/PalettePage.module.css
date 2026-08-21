@@ -1,6 +1,18 @@
 /*
  * The palette page. Deliberately plain: nothing here should compete with the
- * swatches, which are the only thing on the page worth looking at.
+ * swatches.
+ *
+ * NOTHING ON THIS PAGE IS MUTED, and that is a correction rather than a
+ * preference. Six rules here reached for `--page-text-muted-color` — the token
+ * name, the resolved value, the formula, the column heads, the intro and the
+ * family note — on the reflex that they were "secondary to the swatch". They
+ * are not secondary; they are the DATA. A swatch you cannot name is a colored
+ * rectangle, and the page's whole job is telling you which token painted it.
+ * Muting is for text a reader can skip, and there is none of that here.
+ *
+ * Hierarchy comes from size, weight and case instead, which cost no legibility:
+ * a column head is small and uppercase, a formula is italic, a value is
+ * monospace. See docs/ui.md — muting is asked about, never defaulted to.
  *
  * Every color below comes from a token — this page is not exempt from its own
  * subject matter, and `cssTokens.test.ts` would fail it anyway.
@@ -11,7 +23,7 @@
 }
 
 .intro {
-  color: var(--page-text-muted-color);
+  color: var(--page-text-color);
   margin-bottom: 1rem;
 }
 
@@ -33,13 +45,13 @@
 .count {
   font-weight: 400;
   font-size: 0.85rem;
-  color: var(--page-text-muted-color);
+  color: var(--page-text-color);
 }
 
 .note {
   max-width: 46rem;
   margin: 0.25rem 0 1rem;
-  color: var(--page-text-muted-color);
+  color: var(--page-text-color);
 }
 
 /* Columns come from the component (one per variant, plus the label column). */
@@ -55,7 +67,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  color: var(--page-text-muted-color);
+  color: var(--page-text-color);
 }
 
 /* The member label sits beside a swatch block, not above it. */
@@ -70,7 +82,11 @@
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
-  font-size: 0.7rem;
+  /* Small, but not small enough to squint at: this is the token's NAME, its
+     resolved value and the formula that produced it — three lines you are meant
+     to read, in a grid that has to fit a seven-wide family on one screen. */
+  font-size: 0.8rem;
+  line-height: 1.35;
 }
 
 /* A wide, short block: wide enough to judge a color against its neighbour, short
@@ -83,22 +99,19 @@
 }
 
 .value {
-  color: var(--page-text-muted-color);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
-/* The formula that produced the value, under the value. Quieter than the token
- * and the same size, because the two are read together: what it IS, and what it
- * came FROM. Muted is right here — a formula is genuinely secondary to the color
- * it explains — and it is the one place on this page where a column of small
- * gray text is the whole point, since an exception only shows up against the
- * four cells that agree with each other. */
+/* The formula that produced the value, under the value. ITALIC, not gray: the
+ * two are read together — what it IS, and what it came FROM — and an exception
+ * only shows up when you can read the four cells that agree with each other.
+ * Italic separates it from the value above without costing a shade of contrast,
+ * which is the trade every "secondary" style on this page should make. */
 .formula {
-  color: var(--page-text-muted-color);
   font-style: italic;
-  line-height: 1.3;
 }
 
-/* A token from another bucket. Muted rather than alarming — some borrows are
+/* A token from another bucket. Marked rather than alarming — some borrows are
  * correct — but never invisible. */
 .borrowed {
   color: var(--outcomes-warning-ink-color);
