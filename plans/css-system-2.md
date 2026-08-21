@@ -362,6 +362,36 @@ has to be read through. `common/patterns/button.css` and
 that name nothing, `.muted` being the clearest case. It went 293 → 129 lines,
 of which the button was 164.
 
+**THE PAGE SHELL — the step-8 target, stated 2026-08-21 (Joel).** The
+viewport-fit chain below is one half of this; the centering is the other, and
+they live on the same two elements, so they get built together.
+
+> **A page is an optional header above a centered, width-bounded body, and the
+> body is either a card or a layout.**
+
+Verified against all six non-game pages:
+
+| page | header | body | centered by |
+|---|---|---|---|
+| home | ✓ | `.card` | `.card`: `max-width: 480px; margin: 0 auto` |
+| club | ✓ | two-column region | `.body`: `max-width: 62.5rem; margin-inline: auto` |
+| create-club | — | `.card` | as home |
+| login | — | `.card` | as home |
+| claim-a-handle | — | `.card` | as home |
+| palette | — | `.card` | as home |
+
+The axis that varies is the body's WIDTH and KIND: five pages are a 480px
+bordered card; ClubPage is a 1000px centered region that is NOT a card — no
+border, no background — holding two framed panels side by side. Both are
+centered and bounded.
+
+The no-scroll rule binds on home and club (the two with lists) and is satisfied
+trivially by the rest, which are short forms. **GamePage is out of scope** — its
+layout is its own thing and shouldn't be forced into this box.
+
+Like the header, this is structure, so it is a COMPONENT, not a class. It owns
+the height bound, the centering, and the `.frame` rename below.
+
 **PUNTED at step 6 to step 8: the VIEWPORT-FIT chain** (Joel, 2026-08-21) — it
 moves layout, and one instance isn't enough to see the shape. Revisit at the
 club page, which is where the second instance of the *bound* is.
@@ -682,7 +712,7 @@ the scanner counts it as a reference and reserved cells stay alive.
 | 5 | ~~shallow whole-app pattern pass~~ **DONE 2026-08-21** | Ten patterns named, plus five below the line, in §7 → "The named patterns". Read off the rendered surfaces, then counted. Also settled: device density (§9), and three findings that are name collisions rather than patterns |
 | 6 | homepage | the rehearsal: lowest blast radius |
 | 7 | dialogs + forms | the first real win — many near-identical instances. Also decide here: whether to LOAD a font (§18) |
-| 8 | clubpage + remaining non-game chrome | Also inherits from step 6: the VIEWPORT-FIT chain (punted, §7) and `<ModePill>` reading the shared `.badge` |
+| 8 | clubpage + remaining non-game chrome | Build **the page shell** (§7): an optional header above a centered, width-bounded body. Absorbs the punted viewport-fit chain, the `.frame` rename and `<ModePill>` reading the shared `.badge` |
 | 9 | shared game chrome | `common/components/game/` — 258 rules, and every game sits on it. Also: the **contract-slot guard**, checked per mount point (§9, §10) |
 | 10 | per game — CSS pass, then tile-feedback pass, back to back | psychicnum first, as the control |
 | 11 | assets | 17 game logos carry baked color; the wordmark and favicon carry near-whites that fail on a dark page. All of it at once, at the end — doing one per game argues about a tree sixteen times |
