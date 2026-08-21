@@ -13,9 +13,12 @@
   aspect-ratio: 1;
   box-sizing: border-box;
   container-type: inline-size;
-  /* No fill — the tiles (each with its own shade + shadow) sit on the page; an
-     evident border defines the board area (same 2px frame as the turn-log / word-
-     list boxes). */
+  /* The GROUND a tile casts onto. Transparent in daylight — the tiles sit
+     straight on the page, which is light enough to take a shadow — and a real
+     color under a dark theme, where an alpha black over a near-black page moves
+     nothing. An evident border defines the board area either way (the same 2px
+     frame as the turn-log / word-list boxes). */
+  background: var(--board-ground-color);
   border: 2px solid var(--page-divider-color);
   border-radius: var(--radius-lg);
 }

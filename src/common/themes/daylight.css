@@ -523,6 +523,22 @@
      standards.css beside the resting width it is tuned against.) */
   --tile-selected-edge-color:  #000000;
 
+  /* ══ BOARD ══════════════════════════════════════════════════════
+     The ground a game piece casts its shadow onto.
+
+     TRANSPARENT here, and that is not a placeholder: the page is
+     already light, so a board needs no surface of its own for a shadow
+     to land on, and every board that wants no fill gets to keep the
+     page showing through. A shadow is a CONTRAST between a piece and
+     what is behind it, and on a near-white page a 30% black has 250
+     units of room to work in.
+
+     It exists as a token because that stops being true the moment the
+     page is dark — see themes/midnight.css → BOARD, where the same
+     role has to be a real color. A board with no ground on a dark page
+     has shadows that measure 5 units out of 255, which is to say none. */
+  --board-ground-color:  transparent;
+
   /* ══ KBD ════════════════════════════════════════════════════════
      The on-screen keyboard's own chrome (wordle + wordiply). The
      JUDGED keys are not here — they wear the wordle palette in

@@ -291,6 +291,32 @@
      The RULE survived the flip; only the value moved. */
   --tile-selected-edge-color:  #ffffff;
 
+  /* ══ BOARD ══════════════════════════════════════════════════════
+     The ground a game piece casts its shadow onto — and on a dark page
+     it has to be a real color, because a shadow is a contrast between
+     a piece and what is behind it, and an alpha black over #121212 has
+     18 units to work in rather than 250. Measured before this existed:
+     the tile shadow moved the page by 5 of 255, which is to say the
+     depth cue every board leans on was simply absent.
+
+     TILE-HUED, not a neutral gray. The board is made of the same warm
+     material its pieces are, so the ground is more of that material
+     rather than a different substance underneath — a gray would have
+     read as a tray the tiles were sitting in, which is a second object
+     nobody asked for.
+
+     ⚠️ TEMPORARY VALUE. It is one rung ABOVE the ramp: same hue and
+     chroma as shade 1, one further step of lightness, where the step
+     is the ramp's own (0.048 in oklch L, measured between shades 1 and
+     2). Think of it as the shade 0 the ramp does not have.
+
+     Above rather than AT shade 1, because the ramp's lightest shade is
+     already spoken for — stackdown's exposed tile is shade 1, so a
+     ground of the same value would leave the top of a stack flush with
+     its board, held apart by nothing but an edge. A ground has to sit
+     outside the range of the pieces standing on it. */
+  --board-ground-color:  #776951;
+
   /* ══ KBD ════════════════════════════════════════════════════════
      An untried key is a faint warm DARK: barely off the page, which is
      what daylight's faint warm WHITE is too. The relationship that

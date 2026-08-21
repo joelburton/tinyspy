@@ -2,6 +2,7 @@
  "--avail-h": "26,26,26,255 | 0px | none | 1 | 0s",
  "--avail-w": "26,26,26,255 | 0px | none | 1 | 0s",
  "--board-col-debug-tint-color": "26,26,26,255 | 0px | none | 1 | 0s",
+ "--board-ground-color": "0,0,0,0 | 0px | none | 1 | 0s",
  "--board-reserve": "26,26,26,255 | 0px | none | 1 | 0s",
  "--board-width": "26,26,26,255 | 0px | none | 1 | 0s",
  "--button-caution-base-color": "213,100,23,255 | 0px | none | 1 | 0s",
