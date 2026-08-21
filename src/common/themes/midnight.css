@@ -319,23 +319,23 @@
      the tile shadow moved the page by 5 of 255, which is to say the
      depth cue every board leans on was simply absent.
 
-     TILE-HUED, not a neutral gray. The board is made of the same warm
-     material its pieces are, so the ground is more of that material
-     rather than a different substance underneath — a gray would have
-     read as a tray the tiles were sitting in, which is a second object
-     nobody asked for.
+     TRANSPARENT for now, so the hued page can be judged on its own.
+     The tile-hued ground that was here — `#776951`, one rung above the
+     tile ramp — WORKED: it took the stackdown tile's shadow from a
+     step of 5 to 33 out of 255. It is parked rather than deleted,
+     because it is still the strongest answer to the depth question and
+     a slate page does not replace it (plans/css-system-2.md §19).
 
-     ⚠️ TEMPORARY VALUE. It is one rung ABOVE the ramp: same hue and
-     chroma as shade 1, one further step of lightness, where the step
-     is the ramp's own (0.048 in oklch L, measured between shades 1 and
-     2). Think of it as the shade 0 the ramp does not have.
+     Two things it taught while it was in:
 
-     Above rather than AT shade 1, because the ramp's lightest shade is
-     already spoken for — stackdown's exposed tile is shade 1, so a
-     ground of the same value would leave the top of a stack flush with
-     its board, held apart by nothing but an edge. A ground has to sit
-     outside the range of the pieces standing on it. */
-  --board-ground-color:  #776951;
+       · a ground must sit OUTSIDE the range of the pieces standing on
+         it. Set to shade 1 it collided with stackdown's exposed tile,
+         which is also shade 1, and the top of a stack came out flush
+         with its board, held apart by nothing but an edge.
+       · a ground makes the shadow's ALPHA a theme's business: matching
+         daylight's perceptual step on a tan ground needs roughly
+         double it. */
+  --board-ground-color:  transparent;
 
   /* ══ KBD ════════════════════════════════════════════════════════
      An untried key is a faint warm DARK: barely off the page, which is
