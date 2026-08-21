@@ -328,6 +328,14 @@ advantage is specificity: `.gamesList :global(.item-row)` is (0,2,0) and beats a
 pattern's (0,1,0) on weight, where a bare local class ties at (0,1,0) and wins
 only because module CSS loads after `patterns/`.
 
+**A class name says what the thing IS, not what slot it sits in.** `.body` is
+the worst offender: body of *what*? — and everyone's default reading is the
+page's `<body>`. Ten classes are called `.body` today. Nine of them agree on a
+real concept (a panel's content area, as opposed to its header) and want a name
+that says so; ClubPage's was the two-column region and is now `.columns`, which
+names the thing rather than the slot. The same test catches `.wrapper`,
+`.content` and `.card` when they're doing a specific job.
+
 **Don't give a local class a global's bare name.** `styles.button` beside
 `'button'` on the same element are two unrelated classes that look like one; a
 modifier should say what it modifies (`.saveButton`, not `.button`).

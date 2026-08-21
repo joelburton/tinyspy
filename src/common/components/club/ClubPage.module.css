@@ -17,7 +17,7 @@
   width: 100%;
   /* Total height = viewport minus the body's vertical padding
    * (defined in common/base.css's body rule). Without this,
-   * .body's flex: 1 has no upper bound, and the .gamesList
+   * .columns's flex: 1 has no upper bound, and the .gamesList
    * overflow-y: auto inside it never triggers. */
   height: calc(100svh - 2 * var(--page-padding-y));
   display: flex;
@@ -30,7 +30,7 @@
  * two-column body — sits in a centered content well so the columns
  * don't sprawl on a wide desktop. ~1000px, in rems. */
 .titleBlock,
-.body {
+.columns {
   width: 100%;
   max-width: 62.5rem;
   margin-inline: auto;
@@ -40,7 +40,7 @@
  * height; min-height: 0 lets the inner columns' overflow:auto
  * actually kick in (without this, the column would grow to fit
  * content rather than respecting the flex bound). */
-.body {
+.columns {
   flex: 1;
   display: flex;
   flex-direction: row;
@@ -195,16 +195,16 @@
 
   /* The body becomes a single stacked column; the selected section
    * fills it (its own flex: 1 from the desktop rules still applies). */
-  .body {
+  .columns {
     flex-direction: column;
   }
 
-  /* Show exactly one column, chosen by the tab (data-tab on .body). */
-  .body[data-tab='new'] .right {
+  /* Show exactly one column, chosen by the tab (data-tab on .columns). */
+  .columns[data-tab='new'] .right {
     display: none;
   }
 
-  .body[data-tab='completed'] .left {
+  .columns[data-tab='completed'] .left {
     display: none;
   }
 

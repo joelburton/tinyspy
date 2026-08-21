@@ -1021,7 +1021,7 @@ export function ClubPage({ handle, session }: Props) {
           frame with internal overflow-y: auto. The `data-tab` attr
           drives the mobile single-column view (see the CSS); it's
           inert on desktop where both columns are always shown. */}
-      <main className={styles.body} data-tab={mobileTab}>
+      <main className={styles.columns} data-tab={mobileTab}>
         <section className={styles.left}>
           {activeGame && (
             <div>
