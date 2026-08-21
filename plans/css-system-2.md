@@ -469,7 +469,7 @@ the scanner counts it as a reference and reserved cells stay alive.
 | 1 | this doc | decisions settled; `css-system.md` folded in and deleted |
 | 2 | ~~build the theme~~ **DONE 2026-08-20** | Five files, not three: `themes/light-mode.css`, `themes/daylight.css`, `fixed.css`, `base.css` (element resets + every non-color value, including depth), `utilities.css` (the global classes). `theme.css` is deleted. 98 renames across 386 sites in 72 files. Verified at 1280 and 390: 200 of 204 baseline tokens pixel-identical, the four movers being `terminalFrame` (§6) |
 | 3 | rebuild `/palette` | **swatch half DONE 2026-08-20** — every family is a rectangle of squares with its formula printed under each cell. The in-situ half is DEFERRED, not skipped: it was built by hand, was wrong about the pill in three ways at once, and got reverted. It returns when the demos can render the REAL components (§11) |
-| 4 | ~~the **midnight spike**~~ **DONE 2026-08-20** | `themes/dark-mode.css` + `themes/midnight.css`, all 161 roles answered, behind `?theme=midnight`. The split holds everywhere except DEPTH — see §19 |
+| 4 | ~~the **midnight spike**~~ **DONE 2026-08-21** | The split holds; all 161 roles answered, one chain, nothing undefined. Kept behind `?theme=midnight`. Dark mode is NOT part of this sprint — everything learned is [dark-mode.md](dark-mode.md), and §19 keeps the one-line summary |
 | 5 | shallow whole-app pattern pass | the top ~10 patterns NAMED, app-wide, by reading rendered surfaces |
 | 6 | homepage | the rehearsal: lowest blast radius |
 | 7 | dialogs + forms | the first real win — many near-identical instances |
@@ -598,94 +598,23 @@ vocabulary; invent it if we ever need it.
 - **What `css-philosophy.md` becomes** when this ships. It is reasoning about
   decided design — neither work-in-flight nor current-state. Joel wants it kept.
 
-## 19. What the midnight spike found — 2026-08-20
+## 19. The midnight spike — moved out
 
-A throwaway dark theme, complete (all 161 roles daylight defines), reachable at
-`?theme=midnight`. `themes/loadTheme.ts` picks ONE chain and dynamically imports
-it, so a role midnight forgot would resolve to nothing rather than to a
-plausible light hex — which is §3's rule made mechanical.
+Step 4 ran on 2026-08-20/21 and answered its question: the file split holds when
+something other than daylight asks it to. Everything it found — what survived the
+flip, the depth ceiling, the three answers to it, and what building a dark theme
+would still cost — is now **[dark-mode.md](dark-mode.md)**, because it outgrew a
+section and because dark mode is not part of this sprint.
 
-**The split holds.** Every family kept its SHAPE across the flip; only values and
-directions changed. `edge` survives untouched — the fill taken 84% toward black
-reads as an edge on a dark board too. `ink` fails to derive in BOTH themes, and
-for mirrored reasons: gold cannot go dark in daylight and cannot go light in
-midnight, so a family constrained at one end is constrained at the other by a
-different amount. Role names beat lightness names, as claimed: `wash` mixes
-toward the card, so a wash is genuinely darker here, and the name still fits.
-The `ink` cell added to the pill that morning paid for itself the same day — it
-reads `--page-text-color`, so pills flipped to light-on-dark with no further
-edit.
+What matters to THIS sprint, in one line each:
 
-**⚠️ DEPTH DOES NOT SURVIVE, and that contradicts where we put it.** Shadows,
-scrims and the three dims sit in `base.css` as non-themed, on the argument that
-"this object stands off its ground" is the same sentence in both themes. The
-sentence is; the value isn't. Measured, as how far the page darkens under each
-shadow, out of 255:
-
-| | daylight | midnight |
-|---|---:|---:|
-| `--tile-shadow` | 75 | **5** |
-| `--shadow-dialog` | 87 | **6** |
-| `--shadow-popover` | 45 | **3** |
-
-An alpha black over `#121212` is invisible. The GEOMETRY is theme-independent
-and belongs where it is; the shadow's ink is not. **This is the decision step 5
-inherits**, and two of the three ways out have now been tried on 2026-08-21.
-
-**⚠️ THE CEILING, which settles the shape of the answer.** A shadow can only
-DARKEN what is under it, so the ground's own lightness is the most a shadow can
-ever say. Daylight's page is L\* 98 and a 30% black makes a perceptual step of
-26. A dark page at L\* 12 can make at most **12**, by going all the way to pure
-black — so a darkening shadow can never carry on a dark page what it carries on
-a light one, **at any alpha**. Tuning the shadow is not a fix, and it never was.
-Depth on a dark page needs a LIGHTER cue: a ground the piece stands on, or
-lightness-as-hover.
-
-| | L\* | step a 30% black makes |
-|---|---:|---:|
-| daylight `#fafafa` | 98 | 26 |
-| `#121212` | 5.5 | 1.9 |
-| a lifted slate `#1a1f2b` | 11.8 | 4.6 |
-| the tan board ground `#776951` | 50 | 15 |
-
-**Tried — a board ground** (`--board-ground-color`, transparent in daylight
-because the page already IS a ground). At `#776951`, one rung above the tile
-ramp, the stackdown tile shadow went from 5 to 33 out of 255. Two things it
-taught: a ground must sit OUTSIDE the range of the pieces standing on it — set
-to shade 1 it collided with stackdown's exposed tile, which is also shade 1 —
-and a ground makes the shadow's ALPHA a theme's business, since matching
-daylight's step on a tan ground needs roughly double it. Parked, not deleted.
-
-**Tried — a hued, lifted page.** `#1a1f2b`, a blue-slate. There is no law that
-dark mode means black: Solarized, Dracula and Nord are all hued, and Material's
-`#121212` is one convention rather than the convention. It roughly triples the
-shadow's room and is a real quality win on its own — a hued dark reads as a
-considered surface where a neutral one reads as an absence. It does NOT rescue
-shadows, per the ceiling above.
-
-**Not tried — lightness-as-hover.** Worth recording how it would avoid becoming
-a rule change, since "a theme is only values" is the property worth protecting:
-give the hover rule BOTH channels, a shadow and a fill, and let each theme zero
-one out. A shadow at alpha 0 costs nothing; a hover fill equal to the resting
-fill costs nothing. Same CSS, both themes, values only.
-
-**Two bugs the spike found that were never about theming:**
-
-- **Nothing painted the page background.** `--page-bg-color` existed, was
-  documented as "off-white so pure-white cards have a subtle ground", and was
-  read by two components — so what you saw behind every screen was the USER
-  AGENT's canvas. Invisible in light mode, where that canvas is white and the
-  token is `#fafafa`. Midnight only looked right because Chrome's dark canvas is
-  `#121212`, the same value midnight had picked. Fixed in `base.css`; daylight's
-  page moves `#ffffff` → `#fafafa`, which is the ground the cards were always
-  designed for.
-- **`--outcomes-near-ink-color` measures 1.89:1 against the page in daylight** —
-  gold as text does not carry, which is the gold problem stated in contrast
-  rather than in prose. It is a LIGHT-mode problem only: midnight's near ink
-  measures 13.28. Not fixed here; it is the colour pass's.
-
-**What did not need saying twice:** the treatment slots are byte-identical in
-both themes, which is the correct outcome — a slot is a contract, not a
-decision. And `--ink-onDark-color` / `--ink-onLight-color` are unchanged too: a
-role named for the ground it sits on is a role a theme has nothing to say about.
-`--print-ink-color` is the one role that must NOT flip, because paper is paper.
+- **The split holds.** 161 roles, one chain, nothing undefined. Every family kept
+  its shape; only values and directions changed.
+- **⚠️ Depth is the exception**, and it is the decision step 5 inherits. A shadow
+  can only darken what is under it, so on a dark page it is capped by the page's
+  own lightness — tuning the alpha was never the fix. `base.css` is right for the
+  geometry; the shadow's ink is not obviously right there.
+- **Three bugs it found that were never about theming**, all fixed: the page
+  background was never painted, stackdown's depth ramp named a token the rename
+  had moved, and the judged letter ink could not be pinned to one side of the
+  flip.

@@ -78,10 +78,15 @@
   opacity: 0.92;
 }
 
-/* ⚠️ TEMPORARY — the depth hover, standing in for stackdown's tile-feedback
- * pass. It was a blue border (`--button-normal-primary-color`), which is a
- * CONTROL color on a game piece, and it also made stackdown useless for the one
- * question being asked of it: does a shadow read as hover on a dark page.
+/* ⚠️ WRITTEN FAST, TO TEST DARK MODE, AND NOT CAREFULLY CONSIDERED — see
+ * plans/dark-mode.md. A stand-in for stackdown's tile-feedback pass, put here in
+ * minutes so the midnight spike had a hover it could actually judge; the real tf
+ * pass should treat none of it as decided.
+ *
+ * It was a blue border (`--button-normal-primary-color`), which is a CONTROL
+ * color on a game piece — its own small bug, and worth fixing whatever happens
+ * to dark mode. It also made stackdown useless for the one question being asked
+ * of it: does a shadow read as hover on a dark page.
  *
  * The pair matches what the CONVERTED games do — connections and wordle wear the
  * shared `.tile` hover, which deepens the shadow AND rises. The two are one
