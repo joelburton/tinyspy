@@ -24,8 +24,10 @@
    strip into. `min-width: 0` lets that content ellipsize instead of forcing the
    strip wider.
 
-   The gap is between individual MARKS (logo, chat bubble). GamePage passes a
-   wider one via `leftClassName`; its module says why. */
+   The gap is between individual MARKS (logo, chat bubble) and is the same on
+   every page. The marks carry their own hover padding on top of it — 0.25rem on
+   the menu trigger, 0.3rem on the chat bubble — so the visible separation is
+   about 0.925rem, not 0.375rem. */
 .left {
   display: flex;
   align-items: center;

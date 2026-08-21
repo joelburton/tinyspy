@@ -488,7 +488,6 @@ export function GamePage({
           resets it above the breakpoint) so this renders exactly the old header,
           and the switch button is `display: none`. */}
       <PageHeader
-        leftClassName={styles.left}
         right={
           <>
             {/* Pause + timer ride the INFO page on mobile (hence `infoOpen ||

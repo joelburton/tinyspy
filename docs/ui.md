@@ -1064,10 +1064,12 @@ assembling the same skeleton by hand is how they drifted apart before.
 - **The left slot takes `flex: 1` and `min-width: 0`** — that's the room a
   `<StatusSlot>` has to render a feedback pill or the players strip into, and
   the `min-width` is what lets it ellipsize instead of widening the strip.
-- **GamePage's wider left gap (`0.75rem` vs `0.375rem`) is deliberate**, passed
-  via `leftClassName`: a game logo is line art floating inside its 32px box
-  where the club logo is a full-bleed tile that inks to the edge, so the same
-  number reads tighter there.
+- **One gap on every page**, `0.375rem`. GamePage used `0.75rem` and carried a
+  rationale about its logo reading differently; the two logos are both 32×32 and
+  deliberately interchangeable inside the menu trigger, so there was nothing to
+  compensate for. The marks add their own hover padding on top (`0.25rem` on the
+  trigger, `0.3rem` on the chat bubble), which is why the visible separation is
+  wider than the number.
 
 ## Headings that carry a control
 

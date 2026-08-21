@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react'
-import { cls } from '../../lib/util/cls'
 import styles from './PageHeader.module.css'
 
 type Props = {
@@ -10,10 +9,6 @@ type Props = {
    *  so all three pages have one shape and adding something later is
    *  adding a child rather than restructuring a header. */
   right?: ReactNode
-  /** Extra class on the LEFT slot. GamePage is the only caller — it widens
-   *  the gap between its marks; `GamePage.module.css` says why the same
-   *  number reads differently there. */
-  leftClassName?: string
 }
 
 /**
@@ -49,10 +44,10 @@ type Props = {
  *   game   left: menu, panel toggles, status slot.        right: pause,
  *                                                          timer, info switch
  */
-export function PageHeader({ children, right, leftClassName }: Props) {
+export function PageHeader({ children, right }: Props) {
   return (
     <header className={styles.header}>
-      <div className={cls(styles.left, leftClassName)}>{children}</div>
+      <div className={styles.left}>{children}</div>
       <div className={styles.right}>{right}</div>
     </header>
   )
