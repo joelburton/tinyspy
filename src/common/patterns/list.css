@@ -98,6 +98,17 @@
   display: flex;
   align-items: center;
   gap: 0.6rem;
+  /* A row is the full width of its list — that is what makes the hover tint
+     and the hairline run edge to edge. Redundant while `.item-list` is a flex
+     column (items stretch by default) and correct if it ever isn't.
+
+     SQUARE, always. Rows abut inside a frame, so the frame owns the rounding
+     and a rounded row would show its corners against the row above. Only a
+     <button> row actually needs this said — it takes `--radius-md` from
+     base.css's element reset — but declaring it here means a button row stops
+     having to remember, and it costs an <a> or <div> row nothing. */
+  width: 100%;
+  border-radius: 0;
   /* Tuned to the box, not taken from a ramp (plans/css-system-2.md §7). A row
      carrying TWO lines of text takes a little of the vertical back — the
      second line more than pays for it — but that variant waits for its first
