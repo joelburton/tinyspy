@@ -270,6 +270,20 @@ describe('the color families are complete rectangles', () => {
       where: 'themes/daylight.css → OUTCOMES',
     },
     {
+      /**
+       * The one family whose cells live in TWO files, which is why it is worth
+       * guarding: the fills and edges are in fixed.css (exempt from theming —
+       * everyone arrives already knowing that green), and the ink is in each
+       * theme, because it is half of a contrast whose other half is the page.
+       * A half-finished move would leave a kind with a fill and no ink, and
+       * nothing else would notice.
+       */
+      bucket: 'wordle',
+      families: ['green', 'yellow', 'gray'],
+      variants: ['fill-color', 'edge-color', 'ink-color'],
+      where: 'fixed.css for fill/edge, themes/*.css for ink',
+    },
+    {
       bucket: 'pill',
       families: ['won', 'lost', 'near', 'warning', 'neutral', 'noted', 'error'],
       variants: ['color', 'tint-color', 'ink-color'],
@@ -338,6 +352,53 @@ describe('the color families are complete rectangles', () => {
  * a UI color that belongs in common? — is asked per game as each converts
  * (docs/ui.md → The color system).
  */
+/**
+ * Guard: every THEME answers exactly the same roles.
+ *
+ * The rectangle guards above ask whether a token is defined *somewhere*, which
+ * is the right question for a family and the wrong one for a theme. A role that
+ * daylight defines and midnight forgets passes them cleanly — midnight is not
+ * where they look — and then resolves to nothing at all on a dark page, where
+ * an undefined custom property invalidates the whole declaration silently.
+ *
+ * It has to be nothing rather than something: the chain loads ONE theme
+ * (common/themes/loadTheme.ts) precisely so a forgotten role fails loudly
+ * instead of falling back to a plausible LIGHT hex. This test is what makes
+ * "loudly" mean "before it ships".
+ *
+ * The check is set equality, in both directions. A token only midnight defines
+ * is the same bug wearing the other hat: either it is a role, in which case
+ * daylight owes an answer, or it is not, in which case it belongs in base.css
+ * or fixed.css with everything else no theme touches.
+ */
+describe('the themes are in step', () => {
+  const THEMES = ['daylight', 'midnight']
+
+  /** The tokens a theme file defines, by name. */
+  const rolesOf = (theme: string) => {
+    const css = stripComments(readFileSync(join(SRC, `common/themes/${theme}.css`), 'utf8'))
+    return new Set([...css.matchAll(/(--[a-zA-Z0-9_-]+)\s*:/g)].map((m) => m[1]))
+  }
+
+  it('every theme defines exactly the same roles', () => {
+    const [first, ...rest] = THEMES
+    const base = rolesOf(first)
+    for (const theme of rest) {
+      const other = rolesOf(theme)
+      const missing = [...base].filter((t) => !other.has(t)).sort()
+      const extra = [...other].filter((t) => !base.has(t)).sort()
+      expect(
+        { missing, extra },
+        `\`${theme}\` is out of step with \`${first}\`. A role one theme answers and ` +
+          `another does not resolves to NOTHING under the second — the chain loads one ` +
+          `theme, so there is no light value to fall back on.\n` +
+          `missing from ${theme}:\n  ${missing.join('\n  ')}\n` +
+          `only in ${theme}:\n  ${extra.join('\n  ')}`,
+      ).toEqual({ missing: [], extra: [] })
+    }
+  })
+})
+
 describe('no unnamed colors', () => {
   // Values that carry no design decision, so naming them would be noise.
   const NO_DECISION = /^(transparent|currentColor|inherit|initial|unset|none)$/

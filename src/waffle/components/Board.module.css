@@ -117,17 +117,17 @@
 .wordleGreen {
   --tile-slot-fill-color: var(--wordle-green-fill-color);
   --tile-slot-edge-color: var(--wordle-green-edge-color);
-  --tile-slot-ink-color: var(--ink-onDark-color);
+  --tile-slot-ink-color: var(--wordle-green-ink-color);
 }
 .wordleYellow {
   --tile-slot-fill-color: var(--wordle-yellow-fill-color);
   --tile-slot-edge-color: var(--wordle-yellow-edge-color);
-  --tile-slot-ink-color: var(--ink-onDark-color);
+  --tile-slot-ink-color: var(--wordle-yellow-ink-color);
 }
 .wordleGray {
   --tile-slot-fill-color: var(--wordle-gray-fill-color);
   --tile-slot-edge-color: var(--wordle-gray-edge-color);
-  --tile-slot-ink-color: var(--ink-onDark-color);
+  --tile-slot-ink-color: var(--wordle-gray-ink-color);
 }
 /* Not a played state: a waffle tile always has a color once the board loads,
  * and a hole is a `.hole` span rather than a tile. `.blank` is only what a tile
@@ -155,7 +155,9 @@
 .inFlight {
   --tile-slot-fill-color: var(--wordle-gray-fill-color);
   --tile-slot-edge-color: var(--wordle-gray-edge-color);
-  --tile-slot-ink-color: var(--ink-onDark-color);
+  /* It wears the gray FILL, so it takes the gray's own ink rather than a
+     generic on-dark white, which is only right while the page is light. */
+  --tile-slot-ink-color: var(--wordle-gray-ink-color);
 }
 
 /* Turn-history: the two cells the viewed swap moved. Ringed in the shared

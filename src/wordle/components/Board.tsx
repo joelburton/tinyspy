@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { cls } from '../../common/lib/util/cls'
-import { revealBorderVar, revealVar, tileColor } from '../lib/colors'
+import { revealBorderVar, revealInkVar, revealVar, tileColor } from '../lib/colors'
 import shared from '../../common/components/game/PlayArea.module.css'
 import history from '../../common/components/game/lists/historyViewer.module.css'
 import styles from './Board.module.css'
@@ -185,6 +185,7 @@ export function Board({
                         ? {
                             ['--reveal-bg' as string]: revealVar(color),
                             ['--reveal-border' as string]: revealBorderVar(color),
+                            ['--reveal-ink' as string]: revealInkVar(color),
                             animationDelay: `${c * REVEAL_STEP_S}s`,
                           }
                         : undefined

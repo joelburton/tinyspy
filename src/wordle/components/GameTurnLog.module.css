@@ -32,19 +32,26 @@
   height: 1.4rem;
   font-size: 0.8rem;
   font-weight: 700;
-  color: var(--ink-onDark-color);
+  /* The square defaults to the not-in-the-word gray, so it takes the gray's
+     own ink; each colored class below re-states the pair. The ink is per-KIND
+     rather than a generic on-dark white because it is half of a contrast whose
+     other half is the page — see themes/daylight.css → WORDLE INK. */
+  color: var(--wordle-gray-ink-color);
   border-radius: 3px;
   background: var(--wordle-gray-fill-color);
 }
 
 .wordleGreen {
   background: var(--wordle-green-fill-color);
+  color: var(--wordle-green-ink-color);
 }
 .wordleYellow {
   background: var(--wordle-yellow-fill-color);
+  color: var(--wordle-yellow-ink-color);
 }
 .wordleGray {
   background: var(--wordle-gray-fill-color);
+  color: var(--wordle-gray-ink-color);
 }
 .blank {
   /* A guess's colors are always g/y/x, so this is defensive — keep it readable

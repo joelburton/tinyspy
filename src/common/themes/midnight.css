@@ -285,6 +285,25 @@
   --kbd-key-ink-color:         var(--page-text-color);
   --kbd-key-edge-color:        #5b5f63;
 
+  /* ══ WORDLE INK ═════════════════════════════════════════════════
+     THE FLIP, and the reason this tier is themed at all. The fills do
+     not move — everyone arrives knowing that green — but on a dark
+     page they are the LIGHTER thing in the frame, so the ink that
+     reads on them is dark. `--ink-onLight-color` says exactly that,
+     and it is the same token daylight's is the twin of.
+
+     What this buys is the two-vocabularies rule surviving the flip. On
+     the keyboard the ink is what separates an untried key from a tried
+     one at a glance: in daylight, black on the pale cap and white on
+     any judgment; here, near-white on the dark cap and near-black on
+     any judgment. Both readings are "the ink flips when you try a
+     letter", which is the thing a player actually learns. Pin the
+     judged ink to white and midnight loses it entirely — which is what
+     it did until this tier existed. */
+  --wordle-green-ink-color:   var(--ink-onLight-color);
+  --wordle-yellow-ink-color:  var(--ink-onLight-color);
+  --wordle-gray-ink-color:    var(--ink-onLight-color);
+
   /* ══ RANK ═══════════════════════════════════════════════════════ */
   --rank-bar-fill-color:  #d9c02a;
   --rank-bar-edge-color:  #8f7420;

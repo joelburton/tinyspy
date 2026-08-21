@@ -52,6 +52,33 @@ export function revealBorderVar(c: TileColor): string | undefined {
   }
 }
 
+/**
+ * The matching INK — the color the letter takes once the flip lands on a
+ * judgment.
+ *
+ * Its own variable for the same reason the edge has one: the keyframes paint
+ * `color` themselves and `animation-fill-mode: both` makes the final frame
+ * stick, so a freshly-flipped tile keeps whatever they left it with. It used to
+ * be a hard `--ink-onDark-color`, which is only right while the page is light —
+ * the judged ink is half of a contrast whose other half is the page, and it
+ * flips with the theme (themes/daylight.css → WORDLE INK). Painting the flip
+ * with a generic white would have left every revealed row wearing light ink on
+ * a light fill the moment a dark theme loaded, while the rows already on screen
+ * at mount — which take the static classes — looked right.
+ */
+export function revealInkVar(c: TileColor): string | undefined {
+  switch (c) {
+    case 'wordleGreen':
+      return 'var(--wordle-green-ink-color)'
+    case 'wordleYellow':
+      return 'var(--wordle-yellow-ink-color)'
+    case 'wordleGray':
+      return 'var(--wordle-gray-ink-color)'
+    default:
+      return undefined
+  }
+}
+
 /** Strength order so the on-screen keyboard can keep the BEST color
  *  seen for a letter across all guesses (green beats yellow beats
  *  gray). Higher = stronger. */

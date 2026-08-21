@@ -547,6 +547,25 @@
   --kbd-key-ink-color:         var(--page-text-color);
   --kbd-key-edge-color:        #767a7f;
 
+  /* ══ WORDLE INK ═════════════════════════════════════════════════
+     The ink each judged letter surface carries — a board tile, a
+     keycap and a turn-log square alike. The FILLS are in fixed.css and
+     no theme touches them; this is the half that has to move, because
+     it is half of a contrast whose other half is the page.
+
+     WHITE here, which is what those fills were tuned for: the note in
+     fixed.css about yellow deliberately stopping at 2.57 rather than
+     reaching 3.0 is about THIS pairing. It is `--ink-onDark-color`
+     rather than a fourth `#ffffff`, because that is what the token
+     means — the ink for a surface darker than its ground — and in
+     daylight a saturated fill is exactly that.
+
+     One cell per kind, not one shared value, so that when a fill is
+     retuned only its own ink has to follow. */
+  --wordle-green-ink-color:   var(--ink-onDark-color);
+  --wordle-yellow-ink-color:  var(--ink-onDark-color);
+  --wordle-gray-ink-color:    var(--ink-onDark-color);
+
   /* ══ RANK ═══════════════════════════════════════════════════════
      The shared <RankBar> (spellingbee + wordwheel). ONE palette for
      both, not each game's accent: a rank ladder means the same thing

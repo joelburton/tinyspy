@@ -30,8 +30,10 @@
    *
    *   - an empty tile is EMPTY — transparent with a light edge — where the shared
    *     resting fill is the warm cream a clickable tile wants;
-   *   - the ink is WHITE, because the three feedback fills are saturated (a typed
-   *     but unscored tile flips it back to dark, see `.filled`);
+   *   - the ink here is only ever worn by an EMPTY tile, which has no letter:
+   *     a typed-but-unscored tile flips it to the page's ink (`.filled`), and a
+   *     judged one takes its own kind's (`.wordleGreen` and friends, whose ink
+   *     is themed — see themes/daylight.css → WORDLE INK);
    *   - no shadow: these tiles are flat, and they are inert — a lift would imply
    *     something to press.
    *
@@ -136,14 +138,17 @@
 .wordleGreen {
   --tile-slot-fill-color: var(--wordle-green-fill-color);
   --tile-slot-edge-color: var(--wordle-green-edge-color);
+  --tile-slot-ink-color: var(--wordle-green-ink-color);
 }
 .wordleYellow {
   --tile-slot-fill-color: var(--wordle-yellow-fill-color);
   --tile-slot-edge-color: var(--wordle-yellow-edge-color);
+  --tile-slot-ink-color: var(--wordle-yellow-ink-color);
 }
 .wordleGray {
   --tile-slot-fill-color: var(--wordle-gray-fill-color);
   --tile-slot-edge-color: var(--wordle-gray-edge-color);
+  --tile-slot-ink-color: var(--wordle-gray-ink-color);
 }
 .blank {
   /* An empty tile is the board's default — stated anyway, because a color class
@@ -169,7 +174,9 @@
 .inFlight {
   --tile-slot-fill-color: var(--wordle-gray-fill-color);
   --tile-slot-edge-color: var(--wordle-gray-edge-color);
-  --tile-slot-ink-color: var(--ink-onDark-color);
+  /* It wears the gray FILL, so it takes the gray's ink — not a generic
+     on-dark white, which is only right while the page is light. */
+  --tile-slot-ink-color: var(--wordle-gray-ink-color);
 }
 
 /* A refused guess wears the SHARED verdict ring + shake (common
@@ -225,13 +232,13 @@
     transform: rotateX(-90deg);
     background: var(--reveal-bg);
     border-color: var(--reveal-border);
-    color: var(--ink-onDark-color);
+    color: var(--reveal-ink);
   }
   100% {
     transform: rotateX(0deg);
     background: var(--reveal-bg);
     border-color: var(--reveal-border);
-    color: var(--ink-onDark-color);
+    color: var(--reveal-ink);
   }
 }
 
@@ -241,6 +248,6 @@
     animation: none;
     background: var(--reveal-bg);
     border-color: var(--reveal-bg);
-    color: var(--ink-onDark-color);
+    color: var(--reveal-ink);
   }
 }

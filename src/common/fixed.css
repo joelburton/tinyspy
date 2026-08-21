@@ -96,13 +96,21 @@
   --wordle-yellow-edge-color:  #9f862d;  /* the fill, 84% */
   --wordle-gray-edge-color:    #75787a;  /* the fill, 84% */
 
-  /* White on all three, which is what the fills above were tuned for.
-     The contrast note is about THIS pairing. Written per surface so
-     the decision sits beside the fill it depends on, rather than as an
-     anonymous #fff in two component files. (`blank` takes the page's
-     own ink and has no cell here — an un-evaluated tile is not a
-     judgment.) */
-  --wordle-green-ink-color:    #ffffff;
-  --wordle-yellow-ink-color:   #ffffff;
-  --wordle-gray-ink-color:     #ffffff;
+  /* THE INK IS NOT HERE — it is the one part of this palette a theme
+     gets to move, and it lives in themes/daylight.css and
+     themes/midnight.css as `--wordle-<kind>-ink-color`.
+
+     The FILLS are exempt because they are the thing everyone arrives
+     already knowing; the ink is not part of that memory, and it cannot
+     be exempt because it is doing a second job. On the keyboard the
+     ink is what separates an UNTRIED key from a TRIED one at a glance:
+     black on the pale untried cap, white on any judged one. That
+     reading survives only if the two inks stay opposite, and the
+     untried cap follows the page — so on a dark page it went near-
+     white, met white judged ink, and the distinction vanished. Both
+     halves of a contrast cannot be pinned to one side of the flip.
+
+     So: three cells, one per kind, per theme. `blank` has none — an
+     un-evaluated tile is not a judgment, and takes the page's own ink
+     wherever it is. */
 }
