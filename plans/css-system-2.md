@@ -102,8 +102,8 @@ common/
     midnight.css     complete
   fixed.css          colors exempt from theming: member + wordle
   base.css           element resets, body, box-sizing
-  utilities.css      the small global set: muted, card, error, definable
-  patterns/          shared modules, cut by PATTERN never by container
+  utilities.css      the adjustments that name nothing: muted, error
+  patterns/          ONE NAMED PATTERN PER FILE — button.css, list.css
 <game>/
   brand.css          --<game>-* tokens. Nothing else
 ```
@@ -349,6 +349,40 @@ second pinned-to-bottom variant in `WordEditDialog.actions`), the **badge**
 (`Toast.close` · `FloatingPanel.closeButton` · `ClubGameCard.deleteButton`), the
 **empty state** (`WordList.empty` · `TurnLog.turnLogEmpty`), and **transition
 timing** (30 declarations at 80 / 100 / 120 / 160ms).
+
+**Shipped at step 6: `.button-small`** (`utilities.css`) — `0.8rem` at weight
+500 in `0.25rem 0.6rem`. A SIZE, composing with any tone and either treatment.
+Its second consumer, `clubFilters.module.css`'s `.modeOption`, adopts it at step
+8; that will add weight 500 and move its padding 0.05rem.
+
+**A pattern gets a FILE, named for the pattern** (Joel, 2026-08-21) — the
+default, not a threshold to clear: too many files merge easily, one long file
+has to be read through. `common/patterns/button.css` and
+`common/patterns/list.css` exist; `utilities.css` keeps only the adjustments
+that name nothing, `.muted` being the clearest case. It went 293 → 129 lines,
+of which the button was 164.
+
+**Shipped at step 6: `.item-list` / `.item-row`** (`patterns/list.css`), with
+the homepage's clubs list as the first consumer. The hairline is declared on
+the LIST (`> *:not(:last-child)`), not the row, because a row wrapped in an
+`<li>` is never its parent's last child and the usual `:last-child` suppression
+silently stops working. Two rulings that came with it: **the element follows the
+behavior** — `<a>` when the row navigates to a URL (middle-click / cmd-click are
+real behavior a `<button>` can't fake), `<button>` otherwise, and today's six
+lists vary mostly by accident; and **a game's corner flag is not an outcome
+bar** — it is deliberately more prominent and a different thing, so the two
+never merge. The two-line density variant waits for its first consumer
+(clubpage) rather than shipping unused. Crosswords' setup chooser is drifted on
+three values (`6px` not `--radius-md`, its own hover and rule colors) and Joel
+ruled that unintended — it converts at its own pass.
+
+Found by converting the homepage's "+ New club", which also made **`.button`
+element-agnostic**: `display: inline-block`, the radius and
+`text-decoration: none` moved into it from the `button { … }` element reset,
+which a `<a>` never matches. Every existing button already computed to those
+three, so nothing moved. The button now carries no class of its own —
+`cls('button', 'secondary', 'button-small')` and nothing else, which is the
+shape the rest of step 6 should reach for.
 
 Three things the reading turned up that are not patterns:
 

@@ -210,13 +210,13 @@ describe('CSS custom-property tokens', () => {
  * anything.
  */
 describe('button shape and treatment are separate', () => {
-  const UTILITIES = join(SRC, 'common/utilities.css')
+  const BUTTON_CSS = join(SRC, 'common/patterns/button.css')
 
-  /** The declarations of a top-level rule in utilities.css, by exact selector. */
+  /** The declarations of a top-level rule in button.css, by exact selector. */
   const ruleBody = (selector: string) => {
-    const css = stripComments(readFileSync(UTILITIES, 'utf8'))
+    const css = stripComments(readFileSync(BUTTON_CSS, 'utf8'))
     const m = new RegExp(`(^|\\})\\s*${selector.replace(/[.]/g, '\\.')}\\s*\\{([^}]*)\\}`, 'm').exec(css)
-    expect(m, `utilities.css has no \`${selector}\` rule`).not.toBeNull()
+    expect(m, `button.css has no \`${selector}\` rule`).not.toBeNull()
     return m![2]
   }
 

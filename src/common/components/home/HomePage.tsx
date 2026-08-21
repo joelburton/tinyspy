@@ -225,14 +225,16 @@ export function HomePage({ session }: Props) {
 
         <section className={styles.clubsSection}>
           {/* Section header is a flex row: title on the left, the
-              quiet "+ New club" button on the right. Creating a new
-              club is the uncommon path (most users land here, click
-              into an existing club, go play), so the button is
-              outline-styled + small rather than competing with the
-              primary accent-filled buttons elsewhere on the page. */}
+              "+ New club" button on the right. Creating a new club is
+              the uncommon path (most users land here, click into an
+              existing club, go play) — which is the `quiet` tone, and
+              the outline treatment says it isn't the obvious action.
+              Nothing about it is special, so it has no class of its
+              own: quiet + outline + small, and `.button` covers the
+              rest whether it's a <button> or a link. */}
           <header className={styles.sectionHeader}>
             <h3>Your clubs</h3>
-            <Link to="/c/new" className={styles.newClubButton}>
+            <Link to="/c/new" className={cls('button', 'secondary', 'button-small')}>
               + New club
             </Link>
           </header>
@@ -246,7 +248,7 @@ export function HomePage({ session }: Props) {
           ) : (
             <ul
               ref={listRef}
-              className={styles.clubsList}
+              className={cls('item-list', styles.clubsList)}
               tabIndex={0}
               role="group"
               aria-label="Your clubs"
@@ -281,7 +283,7 @@ export function HomePage({ session }: Props) {
                 >
                   <Link
                     to={`/c/${c.handle}`}
-                    className={cls(styles.clubItem, i === kbCursor && styles.kbCursor)}
+                    className={cls('item-row', i === kbCursor && styles.kbCursor)}
                   >
                     {/* Name + (for a solo club) its pill, and nothing else. The
                         row used to end with the club's `/c/<handle>` URL — the

@@ -1,152 +1,21 @@
 /* ============================================================
- * utilities.css — the small set of global CLASSES.
+ * utilities.css — the global classes that are ADJUSTMENTS.
  *
- * Everything here is unscoped, which is the whole reason the set is
- * small. A class earns a place by being used across unrelated screens
- * and by naming something a component module could not own: `.card` is
- * the page-card surface four top-level screens share, `.button` is the
- * shape every general button takes.
+ * `.muted` is the clearest case: it says "quieter than its neighbor"
+ * and names nothing. A class that names a THING gets its own file in
+ * patterns/ instead — the button did, and the list did after it. The
+ * default is a new file per pattern: too many files merge easily, one
+ * long file has to be read through (plans/css-system-2.md §7).
+ *
+ * Everything here is unscoped, which is why the set stays small.
  *
  * The split from base.css is element-vs-class: base.css overrules
  * browser defaults and holds the shared non-color values, this file
  * holds the looks you opt into.
  *
- * Loaded last (see main.tsx), so a rule here can out-rank an element
- * rule in base.css at equal specificity.
+ * Loaded after base.css (see main.tsx), so a rule here can out-rank an
+ * element rule there at equal specificity.
  * ============================================================ */
-
-/* ---------- The general button ---------- */
-
-/* `.button` — a GENERAL button: an action (Submit, Hint, End game), a form's
-   commit/cancel pair, a choice, a tab, a toggle, a dismiss. It is what the bare
-   element used to hand out unasked. Its siblings are `.tile` (a game piece) and
-   `.key` (a keycap), which live with their boards — and the "accidental" kinds
-   (a list row, a text link, a chat bubble, a menu trigger) take none of the
-   three: they want the neutral element and their own surface feedback.
-
-   THREE CLASSES, TWO JOBS. `.button` is the SHAPE and paints nothing at all;
-   `.primary` and `.secondary` are the two TREATMENTS and paint everything. So a
-   button is always `button primary` or `button secondary` — never `button`
-   alone, which is a shape with no color and looks it.
-
-   That split is the same rule the TOKENS follow, applied one layer up: both
-   treatments marked, no unmarked default. `.button` used to carry the shape AND
-   the filled paint, which made "unmarked" silently mean "primary" — one name
-   doing two jobs. It also cost a cascade dependency: `.secondary` only won
-   because it was declared after `.button` at equal weight. Now neither overrides
-   the other, because exactly one applies.
-
-   FAMILY is the other axis: normal / success / destructive / caution / quiet,
-   which each treatment reads off its own slot tokens (defaulted in the theme,
-   re-set per family by ActionButton.module.css) rather than out of hard-coded
-   colors here.
-
-   FLAT — color only, no motion, no shadow. Not conservatism: it is the
-   load-bearing half of "depth belongs to game pieces, not chrome". If a control
-   could lift, nothing would separate it from a piece, and "a control that looks
-   like a tile is a bug" would stop being a rule anyone could enforce. The one
-   exception is placement, not kind: a control FLOATING over a board keeps its
-   shadow, because it has a board to cast onto. */
-.button {
-  /* Tighter than the inputs/textareas in base.css: buttons are click targets,
-     not typing surfaces, and don't need the same breathing room. Icon glyphs are
-     unaffected — they're sized by explicit pixel props, not padding.
-     (--iconButton-size tracks the height this produces.) */
-  padding: 0.4rem 0.65rem;
-  /* Width and style only — the COLOR is the treatment's, below. Split into
-     longhands rather than `border: 1px solid transparent` so this rule really
-     does declare no color, which is what src/guards/cssTokens.test.ts checks. */
-  border-width: 1px;
-  border-style: solid;
-}
-
-/* PRIMARY — the filled treatment. */
-.primary {
-  background: var(--button-slot-primary-color);
-  border-color: var(--button-slot-primary-color);
-  color: var(--button-slot-primary-ink-color);
-}
-
-/* The hover the bare element could never safely have. Safe here precisely
-   because it is opt-in: only something that asked to be a button can get it. */
-.primary:hover:not(:disabled) {
-  background: var(--button-slot-primary-hover-color);
-  border-color: var(--button-slot-primary-hover-color);
-}
-
-/* SECONDARY — the outline treatment. Its family defaults to `quiet` (the way out
-   of a dialog), which is what every bare `.secondary` in the app is; a toned
-   button re-sets the slots on its own element instead (ActionButton.module.css).
-
-   Tokens rather than hard-coded colors so the family can be swapped without
-   out-cascading this rule — the same re-set-the-token discipline the tiles use.
-
-   ONE token paints both the border and the label, deliberately.
-
-   PLAIN class selectors, deliberately. `.secondary` used to be `button.secondary`
-   (0,1,1), which a module class could not out-rank without a `:not()` trick —
-   strands' hint bar carries a comment about exactly that arithmetic. At (0,1,0)
-   a game's own class beats it the ordinary way. */
-.secondary {
-  background: transparent;
-  border-color: var(--button-slot-secondary-color);
-  color: var(--button-slot-secondary-color);
-}
-
-/* Hover changes the BACKGROUND and nothing else, to a faint wash of the button's
-   OWN family — where this used to be one gray for every family. A tint of itself
-   reads as the button getting more engaged; gray reads as it going duller, which
-   is the wrong direction for a hover. 8% over white is enough: what the eye
-   catches is white becoming a color at all, not how much color.
-
-   No border re-statement needed, and that is the split paying for itself. While
-   `.button` carried the filled paint, its hover's border-color reached every
-   outline button too and the hairline jumped from the family's secondary to its
-   primary-hover under the pointer (measured: #ae4000 → #c45400 on Hint), so this
-   rule had to say the border again to hold it still. `.primary:hover` cannot
-   match a secondary button at all, so there is nothing left to undo. */
-.secondary:hover:not(:disabled) {
-  background: var(--button-slot-secondary-hover-color);
-}
-
-/* The icon-and-label button look: a Lucide icon + a text label on one centered
-   line. The ONE place the "icon beside a label" shape is defined (docs/ui.md →
-   Button iconography) — every such button composes it via cls(), the same way
-   they compose `secondary`, instead of re-declaring inline-flex/gap in their own
-   module. Pure shape: no fill/border/color (those come from `.button`, and from
-   `secondary` if it's the outline), and no width (a per-button modifier adds
-   min-width or flex-grow). So a play button is
-   `cls('button', 'icon-button', styles.inputButton)`; a secondary one is
-   `cls('button', 'secondary', 'icon-button', …)`.
-
-   For a labelless rectangular button — same chrome as its labeled siblings, just
-   square because there's no text — add the `icon-only` modifier below. Still NOT
-   for the round icon pills (ShuffleButton, PauseButton): those are a separate,
-   fixed-size circular shape that style themselves. */
-.icon-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4em;
-}
-
-/* Icon-ONLY rectangular button: keeps `.button`'s (or `secondary`'s) fill +
-   border, but is a FIXED square box (not padding hugging the icon). Its
-   `padding: 0` beats `.button`'s on source order — same weight, later in the
-   file — which is why this block must stay BELOW the button rules. This
-   DECOUPLES icon size from button size — the glyph can be scaled up/down for
-   per-glyph visual-weight tuning (some Lucide icons read smaller/denser than
-   others) WITHOUT moving the button's footprint; it just floats centered
-   (`icon-button` does the centering). Compose with `icon-button` — a primary
-   submit is `cls('button', 'icon-button', 'icon-only')`, a secondary one
-   `cls('button', 'secondary', 'icon-button', 'icon-only')`. The shared counterpart of
-   `icon-button` for the no-label case, so every game's icon-only action button
-   matches. (`--iconButton-size` tunes the box once, globally.) */
-.icon-only {
-  width: var(--iconButton-size);
-  height: var(--iconButton-size);
-  padding: 0;
-}
 
 /* ---------- Surfaces and text ---------- */
 

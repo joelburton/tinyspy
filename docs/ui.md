@@ -1036,6 +1036,40 @@ sixteen games are v3**, with bananagrams and crosswords the two documented layou
 exceptions (their own board layouts; see their game docs). There is no v4. A game
 doc calling a game "v3" means "conforms to this standard."
 
+## Lists of things you can go into
+
+The homepage's clubs, a club's games, the games you can start, a chooser in a
+setup dialog — all the same shape, and it's the shared `.item-list` /
+`.item-row` pattern in
+[`patterns/list.css`](../src/common/patterns/list.css).
+
+- **One framed panel, rows abutting inside it**, with a hairline between them —
+  not a stack of separately-tinted tiles. The frame is what says "this is a
+  list", so a row draws no fill and no border of its own.
+- **The frame owns no padding.** The rows carry all of it, so the space above
+  the first row equals the space between any two, and each row's rule and hover
+  tint run the panel's full width instead of floating inside an inset.
+- **The hairline belongs to the list, not the row** — `.item-list >
+  *:not(:last-child)`. On the row it needs a `:last-child` rule to suppress the
+  final line, and that rule breaks as soon as the row is wrapped in an `<li>`,
+  because then the row is never its parent's last child.
+- **Keyboard focus recolors the frame's border** rather than drawing a ring: a
+  ring outside a scrolling panel reads as a second frame. Which *row* the cursor
+  is on is marked separately by the caller.
+- **The element follows the behavior.** A row that navigates to a URL is an
+  `<a>` — the whole row being the anchor is what makes middle-click and
+  cmd-click "open in new tab" work, which a `<button>` can't fake. Anything else
+  is a `<button>`, and it's an "accidental" button: the neutral element, never
+  `.button`. Today's six lists vary between `<a>`, `<button>` and `<li>` mostly
+  by accident; the rule is what they converge on as each converts.
+- **A game's status on a row is a corner flag, not a bar** — see
+  `ClubGameCard`'s `.openFlag`. It is deliberately more prominent than an
+  outcome bar and is a different thing entirely; don't reach for the turn-log
+  bar vocabulary here.
+
+Converted so far: the homepage's clubs list. Still to come: clubpage's games +
+start-a-game lists, crosswords' setup puzzle chooser, the menu's items.
+
 ## Mode pills
 
 A gametype's interaction `mode` (`'coop'` / `'compete'`, on the manifest) is **not** baked into its display `name` — it's shown at presentation time as a small colored pill via the shared [`<ModePill>`](../src/common/components/game/ModePill.tsx). So a coop + compete sibling pair carries the same `name` (e.g. both manifests say `wordle`), distinguished by the pill.
@@ -1057,7 +1091,7 @@ color, cursor and a radius, and nothing else. Chrome is opt-in:
 
 ```
 button                    neutral — font: inherit · color: inherit · cursor: pointer · border-radius
-.button                   a general button's SHAPE (utilities.css) — padding, border width, radius. Paints nothing.
+.button                   a general button's SHAPE (patterns/button.css) — padding, border width, radius. Paints nothing.
   .primary                the filled treatment    ┐ exactly one of these, always
   .secondary              the outline treatment   ┘ × the five families
 .tile                     a game piece (each board's module)
@@ -1195,6 +1229,23 @@ that problem — each asks for exactly what it wants. Converting them would chan
 how two controls look in order to make the stylesheet tidier, which is backwards.
 The cost of the exemption, since it isn't zero: their hover colors are hand-picked
 rather than derived from a tone, so a future theme has two extra places to visit.
+
+**A smaller button is a SIZE, not a kind** — the global `.button-small`
+(`utilities.css`): `0.8rem` at weight 500 in `0.25rem 0.6rem` of padding, the
+extra weight being what holds a 0.8rem label together rather than a separate
+choice. It composes with any tone and either treatment, so the homepage's
+"+ New club" is `cls('button', 'secondary', 'button-small')`. It carries no
+meaning of its own; how important the button is has already been said by the
+tone. `clubFilters.module.css`'s `.modeOption` is the same adjustment written
+by hand (0.05rem apart on the padding) and adopts this at its own pass.
+
+**`.button` works on any element, including a link.** It declares
+`display: inline-block`, the radius and `text-decoration: none` itself, rather
+than leaving them to the `button { … }` element reset in `base.css` that a
+`<a>` never matches. Every real `<button>` already computed to exactly those
+three, so declaring them changed nothing and made the class portable: the
+homepage's "+ New club" is a `<Link>` wearing
+`cls('button', 'secondary', 'button-small')` and no class of its own.
 
 **One case is genuinely unsettled**: `GameScratchpad`'s "take over" — a small
 inline text button, currently a white fill with a gray border, which could
