@@ -1096,6 +1096,32 @@ assembling the same skeleton by hand is how they drifted apart before.
   trigger, `0.3rem` on the chat bubble), which is why the visible separation is
   wider than the number.
 
+## A segmented choice
+
+A few options in a row, exactly one chosen — the club page's mobile tabs and
+its co-op/compete/all filter, crosswords' puzzle-source picker. The shared
+`.segmented` in
+[`patterns/segmented.css`](../src/common/patterns/segmented.css).
+
+- **Joined, not a row of buttons.** The shape is the message: the options are
+  mutually exclusive, so they share one border and touch. Separate buttons with
+  a gap read as independent toggles you could press several of.
+- **The segments are not `.button`s.** `.button` gives every element its own
+  border and radius, which doesn't restyle a segmented control, it dismantles
+  it. The frame owns the border and the rounding; a segment owns only its fill —
+  the same division `.item-list` makes with its rows.
+- **Its children are its segments**, no class per option. A caller wanting
+  full-width segments (the mobile tab bar) sets `flex: 1` on them from its own
+  module.
+- **The chosen one reads off `aria-pressed`**, which the markup already carries
+  for its own sake — so the state lives in one place instead of in a class that
+  styling and accessibility have to keep in step. It's filled in the action
+  family, the paint a primary button takes, because "this is the one" is the
+  same statement.
+
+Crosswords' picker is the same control and converts at its own pass; it fills
+the chosen segment with a game brand color today.
+
 ## The heading levels
 
 Four levels, each with a meaning, declared in

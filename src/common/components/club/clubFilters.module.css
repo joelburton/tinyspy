@@ -16,30 +16,10 @@
 
 /* ─── ModeFilter — the All / Co-op / Compete segmented buttons ───────────── */
 
+/* The mode filter is the shared `.segmented` (common/patterns/segmented.css);
+ * only "don't let this squeeze" is the club page's. */
 .modeFilter {
-  display: flex;
-  gap: 0.25rem;
-  /* Never squeezed by a long heading — the heading wraps first. */
   flex-shrink: 0;
-}
-
-/* Deliberately NOT named `.button`: ClubPage's keyboard e2e finds the start
- * buttons by `[class*="_button_"]` and a filter button would join that set. */
-/* The size is the shared `button-small`; what's left is this control's own
- * behavior. (`cursor` is already the bare <button>'s.) */
-
-/* The option carries `.button`, whose filled accent + white IS the selected
- * look — so (exactly like the mobile tab bar) only the UNselected option is
- * overridden back to the surface treatment. The attribute selector puts it at
- * (0,2,0), comfortably over `.button`'s (0,1,0). */
-.modeOption[aria-pressed='false'] {
-  background: var(--page-surface-color);
-  border-color: var(--page-surface-border-color);
-  color: var(--page-text-color);
-}
-
-.modeOption[aria-pressed='false']:hover {
-  background: var(--page-surface-hover-color);
 }
 
 /* ─── GametypeFilter — the compact dropdown ──────────────────────────────── */

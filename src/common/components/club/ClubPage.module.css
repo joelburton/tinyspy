@@ -143,27 +143,21 @@
  * uses. */
 
 @media (--mobile) {
+  /* The bar spans the same centered well the club name and the columns do —
+   * `.segmented` is inline-flex by default, since most of them hug. */
   .tabs {
     display: flex;
     flex-shrink: 0;
-    gap: 0.5rem;
-    /* Center inside the same content well as the title + body. */
+    align-self: stretch;
     width: 100%;
     max-width: 62.5rem;
     margin-inline: auto;
   }
 
-  /* Each toggle shares the row evenly. Each carries `.button`, whose filled
-   * accent + white IS the pressed (active-view) look, so we only override the
-   * UNpressed toggle back to the surface treatment. */
+  /* Two segments splitting the bar evenly; the rest of their look is the
+   * shared `.segmented` (common/patterns/segmented.css). */
   .tab {
     flex: 1;
-  }
-
-  .tab[aria-pressed='false'] {
-    background: var(--page-surface-color);
-    border-color: var(--page-surface-border-color);
-    color: var(--page-text-color);
   }
 
   /* The body becomes a single stacked column; the selected section

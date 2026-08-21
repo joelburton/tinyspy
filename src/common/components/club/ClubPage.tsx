@@ -966,11 +966,11 @@ export function ClubPage({ handle, session }: Props) {
           is the honest shape: two independent toggle buttons whose pressed
           state says which view is showing. `role="group"` + a label ties
           them together for assistive tech without over-claiming behavior. */}
-      <div className={styles.tabs} role="group" aria-label="Show new game or your games">
+      <div className={cls('segmented', styles.tabs)} role="group" aria-label="Show new game or your games">
         <button
           type="button"
           aria-pressed={mobileTab === 'new'}
-          className={cls('button', 'primary', styles.tab)}
+          className={styles.tab}
           onClick={() => setMobileTab('new')}
         >
           New game
@@ -978,7 +978,7 @@ export function ClubPage({ handle, session }: Props) {
         <button
           type="button"
           aria-pressed={mobileTab === 'completed'}
-          className={cls('button', 'primary', styles.tab)}
+          className={styles.tab}
           onClick={() => setMobileTab('completed')}
         >
           Your games

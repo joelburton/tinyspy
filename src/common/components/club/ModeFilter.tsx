@@ -30,12 +30,12 @@ type Props = {
 export function ModeFilter({ value, onChange, soloClub }: Props) {
   if (soloClub) return null
   return (
-    <div className={styles.modeFilter} role="group" aria-label="Filter games by mode">
+    <div className={cls('segmented', styles.modeFilter)} role="group" aria-label="Filter games by mode">
       {MODE_FILTER_OPTIONS.map((o) => (
         <button
           key={o.value}
           type="button"
-          className={cls('button', 'primary', 'button-small', styles.modeOption)}
+          className={styles.modeOption}
           aria-pressed={value === o.value}
           // Don't let the press MOVE FOCUS off the start list. That list is a
           // keyboard tab stop holding the Up/Down cursor (ClubPage's

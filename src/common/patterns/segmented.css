@@ -1,0 +1,67 @@
+/* ============================================================
+ * segmented.css — a segmented choice.
+ *
+ * A few options in a row, exactly one chosen: the club page's mobile
+ * tabs, its co-op / compete / all filter, crosswords' puzzle-source
+ * picker.
+ *
+ * One pattern, one file (plans/css-system-2.md §7).
+ * ============================================================ */
+
+/* JOINED, NOT A ROW OF BUTTONS, and the shape is the message: these options are
+   mutually exclusive, so they share one border and touch each other. Separate
+   buttons with a gap between them read as independent toggles you could press
+   several of — which is exactly what these aren't.
+
+   THE SEGMENTS ARE NOT `.button`s. `.button` gives every element its own border
+   and its own radius, which doesn't restyle a segmented control, it dismantles
+   it (docs/ui.md → the fourteen kinds). The frame owns the border and the
+   rounding, the segments own nothing but their fill — the same division the
+   item list makes with its rows.
+
+   `overflow: hidden` is what rounds the ends: the first and last segments are
+   square and get clipped to the frame's radius, so the corners stay clean
+   however many segments there are. */
+.segmented {
+  display: inline-flex;
+  align-self: flex-start;
+  border: 1px solid var(--field-edge-color);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+/* Its CHILDREN are its segments — no class needed on each one, the same way
+   `.item-list` addresses its own rows. A caller that wants full-width segments
+   (the mobile tab bar) sets `flex: 1` on them from its own module. */
+.segmented > * {
+  padding: 0.25rem 0.7rem;
+  font-size: 0.8rem;
+  background: var(--page-surface-color);
+  color: var(--page-text-color);
+  /* Undo the bare <button>'s radius from base.css: an abutting segment must be
+     square, and the frame above supplies the rounding. */
+  border: none;
+  border-radius: 0;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 100ms ease;
+}
+
+/* One hairline between segments, and none at the ends — the frame closes those. */
+.segmented > * + * {
+  border-left: 1px solid var(--field-edge-color);
+}
+
+/* THE CHOSEN ONE reads off `aria-pressed`, which the markup already carries for
+   its own sake — so the state lives in one place rather than in a class the
+   styling and the accessibility have to keep in step. Filled in the action
+   family, the same paint a primary button takes, because "this is the one" is
+   the same statement. */
+.segmented > [aria-pressed='true'] {
+  background: var(--button-normal-primary-color);
+  color: var(--button-normal-primary-ink-color);
+}
+
+.segmented > *:hover:not([aria-pressed='true']) {
+  background: var(--page-surface-hover-color);
+}
