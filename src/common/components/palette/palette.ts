@@ -66,22 +66,6 @@
  * page about families.
  */
 
-/**
- * Which in-situ rendering shows this family DOING ITS JOB.
- *
- * The squares answer one question — is this family a rectangle? — and cannot
- * answer the other one. An ink taken 10% down from its base is a perfectly good
- * chip and may still fail the moment it is small text on a white page, which is
- * the whole orange lesson. So every family renders twice, and the second
- * rendering is the one that catches a value nobody would query on a chip.
- *
- * A kind per family rather than per variant, because the variants of a family
- * are meant to be seen TOGETHER: an outcome's fill and edge are a tile, its ink
- * is the word on that tile, its wash is the pill beside it. Splitting them into
- * seven independent demos would lose exactly what the demo is for.
- */
-export type Demo = 'outcome' | 'button' | 'pill' | 'tile' | 'member' | 'wordle' | 'toast'
-
 export type Family = {
   /** Heading. */
   name: string
@@ -96,8 +80,6 @@ export type Family = {
   note: string
   /** Column headings — the variants every member carries, in order. */
   variants: string[]
-  /** How one member of this family is drawn doing its job, beside the squares. */
-  demo: Demo
   /**
    * The formula behind a cell, keyed by `variant` or — where the formula differs
    * from member to member, which is itself the interesting part — by
@@ -139,7 +121,6 @@ export const FAMILIES: Family[] = [
       'and `error` are anchored at INK weight rather than at the 400 the other ' +
       'five use — look for the row whose base and fill are the same color, which ' +
       'is the thing to fix.',
-    demo: 'outcome',
     variants: ['base', 'ink', 'fill', 'edge', 'wash', 'bar', 'terminalFrame'],
     formulas: {
       base: 'chosen · never painted',
@@ -265,7 +246,6 @@ export const FAMILIES: Family[] = [
       '`success`, which nothing reads today. `base` is the anchor; the other four ' +
       'are one formula away from it, and this is the family that proves the model ' +
       'works.',
-    demo: 'button',
     variants: ['base', 'primary', 'primary-hover', 'primary-ink', 'secondary', 'secondary-hover'],
     formulas: {
       base: 'chosen · never painted',
@@ -342,7 +322,6 @@ export const FAMILIES: Family[] = [
       'plus the darker shade beyond it for a piece that is spent. Depth, not ' +
       'meaning: a game reads its resting fill off this, and stackdown reads ' +
       'shades 2–5 as stack depth.',
-    demo: 'tile',
     variants: ['fill', 'edge'],
     formulas: {
       fill: 'hand-tuned along a lightness ramp — the ramp does NOT derive from one anchor',
@@ -384,7 +363,6 @@ export const FAMILIES: Family[] = [
       'decides how many members this family has. The borders are hand-tuned per ' +
       'hue rather than computed: one formula gave a yellow that vanished and a ' +
       'purple that went black.',
-    demo: 'member',
     variants: ['fill', 'edge'],
     formulas: {
       fill: 'chosen — a mid-tone that reads as a small disc and as bold text',
@@ -437,7 +415,6 @@ export const FAMILIES: Family[] = [
       'became the outcome `noted`, and `error` became an outcome once a move ' +
       'could break rather than lose. This family mints no color of its own; the ' +
       'tints are the irregular part, five at 18% and two at 8%.',
-    demo: 'pill',
     variants: ['color', 'tint'],
     formulas: {
       color: 'the outcome ink, aliased',
@@ -485,7 +462,6 @@ export const FAMILIES: Family[] = [
       "A toast's left stripe, and nothing else — the message text carries the " +
       'meaning. Deliberately three copies rather than reaching into the outcome ' +
       'or chrome palettes, which a toast has no relationship to.',
-    demo: 'toast',
     variants: ['stripe'],
     formulas: {
       stripe: 'aliased to chrome, except success — a toast is not a game being won',
@@ -506,7 +482,6 @@ export const FAMILIES: Family[] = [
       'people say, and the `wordle-` prefix is what keeps it honest in a theme ' +
       'swap. (`--wordle-blank-fill-color` is not a member — it says there is no ' +
       'letter here yet, which is not a judgment.)',
-    demo: 'wordle',
     variants: ['fill', 'edge', 'ink'],
     formulas: {
       fill: "chosen — NYT's hue held, saturation up, lightness down until white reads",

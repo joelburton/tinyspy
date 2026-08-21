@@ -424,6 +424,17 @@ shrinking allowlist so a *new* violation anywhere still fails.
    size, `bar` as a 7px bar in a list row, `fill` as a filled tile with a label,
    `wash` as a pill background with words. The orange lesson — ink at −10%
    doesn't *read* — is invisible on a color chip.
+
+   **⚠️ BY RENDERING THE REAL COMPONENT, NEVER A HAND-DRAWN COPY.** Tried the
+   other way on 2026-08-20 and reverted it the same day. The hand-drawn pill
+   painted its text in the tone color (a real pill inherits black), drew one
+   state (a real pill has two — `.outline` transient, bare tone permanent), and
+   between those two errors made the family look like it needed a third color it
+   has never had in any commit. **An invented example is worse than no example**:
+   it doesn't merely fail to check the stylesheet, it manufactures evidence about
+   it. So this waits until `<GenericFeedbackPill>`, `<ActionButton>`, `<Dot>`,
+   `<TurnLogBar>` and the shared `.tile` can be mounted on the page — which may
+   mean waiting until the components themselves have been through their passes.
 2. **Print the formula under every cell.** Four inks at `base −10%` and orange at
    `−20%` makes the exception legible, and an unexplained fifth number stand out.
 3. **Show `base`**, marked as never-shipped.
@@ -457,7 +468,7 @@ the scanner counts it as a reference and reserved cells stay alive.
 |---|---|---|
 | 1 | this doc | decisions settled; `css-system.md` folded in and deleted |
 | 2 | ~~build the theme~~ **DONE 2026-08-20** | Five files, not three: `themes/light-mode.css`, `themes/daylight.css`, `fixed.css`, `base.css` (element resets + every non-color value, including depth), `utilities.css` (the global classes). `theme.css` is deleted. 98 renames across 386 sites in 72 files. Verified at 1280 and 390: 200 of 204 baseline tokens pixel-identical, the four movers being `terminalFrame` (§6) |
-| 3 | ~~rebuild `/palette`~~ **DONE 2026-08-20** | Every family twice: a rectangle of squares with its formula under each cell, and a strip drawing that family doing its job — ink as a word, fill+edge as a piece, wash as a pill with words, bar as a 7px segment in a log row, terminalFrame as a band hard against the tiles. `base` is drawn struck through. No theme toggle yet; there is no second theme to toggle to |
+| 3 | rebuild `/palette` | **swatch half DONE 2026-08-20** — every family is a rectangle of squares with its formula printed under each cell. The in-situ half is DEFERRED, not skipped: it was built by hand, was wrong about the pill in three ways at once, and got reverted. It returns when the demos can render the REAL components (§11) |
 | 4 | the **midnight spike** | a throwaway dark theme renders the homepage and one game. Kept behind a flag or deleted. This is what tells us whether the split works |
 | 5 | shallow whole-app pattern pass | the top ~10 patterns NAMED, app-wide, by reading rendered surfaces |
 | 6 | homepage | the rehearsal: lowest blast radius |
