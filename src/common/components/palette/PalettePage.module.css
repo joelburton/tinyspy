@@ -103,3 +103,172 @@
 .borrowed {
   color: var(--outcomes-warning-ink-color);
 }
+
+/* ── The in-situ strip ─────────────────────────────────────────────────────
+ *
+ * Every family renders twice, and this is the half the squares cannot do. The
+ * SHAPES live here; the paint arrives as an inline style built from the
+ * member's own cells (see PalettePage.tsx). Nothing below names a color except
+ * through a token, because this page is not exempt from its own subject.
+ *
+ * Sizes are the real ones wherever a real one exists — a 7px bar is 7px, a
+ * verdict word is at body size, a keycap letter is the size a keycap letter is.
+ * A demo drawn at a convenient size would answer a question nobody asked. */
+.situ {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--page-surface-border-color);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.situRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* The member label, sized to the widest name in the roster so the demos below
+ * it line up in columns — a row of tiles you cannot scan vertically is a row
+ * you cannot compare. */
+.situRow > .memberHead {
+  flex: 0 0 5.5rem;
+}
+
+/* `base`, struck through: the anchor, which nothing paints. */
+.situAnchor {
+  position: relative;
+  width: 1.6rem;
+  height: 1.6rem;
+  border: 1px solid var(--page-divider-color);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.situStrike {
+  position: absolute;
+  inset: 0;
+  /* A hairline corner-to-corner. `currentColor` rather than a token: the strike
+   * has to read on any anchor, light or dark, and the anchor sets the text
+   * color it inherits. */
+  background: linear-gradient(
+    to top right,
+    transparent calc(50% - 1px),
+    currentColor calc(50% - 1px),
+    currentColor calc(50% + 1px),
+    transparent calc(50% + 1px)
+  );
+  opacity: 0.5;
+}
+
+/* ink, as a word at the size a verdict is read at. */
+.situInk {
+  font-weight: 600;
+  min-width: 4.5rem;
+}
+
+/* fill + edge: a game piece. Square, because every board piece in the app is. */
+.situTile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  border: var(--tile-edge-width) solid;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  box-shadow: var(--tile-shadow);
+}
+
+/* wash: only judged with words on it. */
+.situWash {
+  padding: 0.25rem 0.7rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+}
+
+/* bar: 7px, in a log row, which is the only place its width means anything. */
+.situBarRow {
+  display: inline-flex;
+  align-items: stretch;
+  gap: 0.5rem;
+  min-height: 1.6rem;
+}
+
+.situBar {
+  width: 7px;
+  border-radius: 2px;
+}
+
+.situBarText {
+  align-self: center;
+  font-size: 0.85rem;
+  color: var(--page-text-muted-color);
+}
+
+/* terminalFrame: a band drawn hard against the tiles, no whitespace between —
+ * which is the case it has to survive, and the reason a light gray failed. */
+.situBoard {
+  display: inline-grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2px;
+  padding: 2px;
+  border: 5px solid;
+  border-radius: var(--radius-sm);
+}
+
+.situBoardTile {
+  width: 0.9rem;
+  height: 0.9rem;
+  background: var(--tile-3-fill-color);
+}
+
+/* A button, at the real padding and radius `.button` gives one. */
+.situButton {
+  padding: 0.4rem 0.65rem;
+  border: 1px solid;
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+}
+
+/* The state a demo is standing in for, since a static page cannot hover. */
+.situState {
+  margin-left: 0.4rem;
+  font-size: 0.7rem;
+  font-style: normal;
+  opacity: 0.75;
+}
+
+/* The feedback pill: the whole border in the tone, the left side thicker. */
+.situPill {
+  padding: 0.3rem 0.75rem;
+  border: 1px solid;
+  border-left-width: 5px;
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+}
+
+/* A member dot, at the size <Dot> draws one. */
+.situDot {
+  width: 0.85rem;
+  height: 0.85rem;
+  border: 2px solid;
+  border-radius: 50%;
+}
+
+/* …and the same hue as a chat author's name, which is its other job. */
+.situName {
+  font-weight: 700;
+}
+
+/* A toast: its stripe is the whole of its color. */
+.situToast {
+  padding: 0.45rem 0.75rem;
+  border-left: 4px solid;
+  border-radius: var(--radius-sm);
+  background: var(--page-surface-color);
+  box-shadow: var(--shadow-toast);
+  font-size: 0.9rem;
+}

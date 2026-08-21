@@ -1,4 +1,4 @@
-import { FAMILIES, tokenOf, type Family } from './palette'
+import { FAMILIES, tokenOf, type Family, type Member } from './palette'
 import styles from './PalettePage.module.css'
 
 /**
@@ -24,11 +24,17 @@ import styles from './PalettePage.module.css'
  * browser has resolved the cascade, and the alternative is a `useEffect` that
  * calls `setState` — which this repo bans outright (docs/code-conventions.md).
  *
- * SQUARES ONLY, so far. Every variant should also render DOING ITS JOB — an ink
- * as text at real size, a bar as a 7px segment in a list row, a fill as a filled
- * tile, a wash as a pill background with words — because the orange lesson (an
- * ink that doesn't READ as its color) is invisible on a color chip. That is the
- * next pass on this page, not a thing it does yet.
+ * EVERY FAMILY RENDERS TWICE. The grid of squares answers "is this a
+ * rectangle?"; the strip below it answers "does this value do its job?". Both
+ * are needed and neither substitutes: an ink at base −10% is a perfectly good
+ * chip and can still fail the moment it is small text on a white page, which is
+ * the orange lesson and is invisible on a swatch. So an ink is drawn as text at
+ * real size, a bar as a 7px segment in a list row, a fill and its edge as a
+ * tile, a wash as a pill with words in it.
+ *
+ * `base` is drawn too, struck through and labelled — it is the anchor every
+ * other cell derives from and NOTHING paints it, so a demo that quietly omitted
+ * it would be hiding the one cell whose whole nature is not being used.
  *
  * Not linked from anywhere, but it ships and it needs no session: type `/palette`
  * when you want to see a family. There is nothing to protect — it renders tokens,
@@ -88,7 +94,180 @@ function FamilyGrid({ family }: { family: Family }) {
           <Row key={member.name} family={family} name={member.name} cells={member.cells} />
         ))}
       </div>
+      <div className={styles.situ}>
+        {family.members.map((member) => (
+          <div key={member.name} className={styles.situRow}>
+            <div className={styles.memberHead}>{member.name}</div>
+            <InSitu family={family} member={member} />
+          </div>
+        ))}
+      </div>
     </section>
+  )
+}
+
+/**
+ * One member of a family, drawn as the things it actually paints.
+ *
+ * Every color here arrives as an inline style built from the member's own cells,
+ * never from a class — the module holds the SHAPES (a tile is 3rem square with a
+ * 2px border) and the family supplies the paint. That split is the same one the
+ * app itself uses, and it is also what keeps this file honest: a color literal
+ * in PalettePage.module.css would fail the no-unnamed-colors guard, and a color
+ * literal here would mean the page had stopped being a view of the theme.
+ */
+function InSitu({ family, member }: { family: Family; member: Member }) {
+  /** A member's cell for one variant, as the `var(--token)` string. */
+  const v = (variant: string) => member.cells[family.variants.indexOf(variant)]
+
+  switch (family.demo) {
+    case 'outcome':
+      return (
+        <>
+          <Anchor color={v('base')} />
+          {/* ink: text at the size a verdict word is actually read at. */}
+          <span className={styles.situInk} style={{ color: v('ink') }}>
+            {member.name}
+          </span>
+          {/* fill + edge: a piece, wearing the family's own ink as its label. */}
+          <span
+            className={styles.situTile}
+            style={{ background: v('fill'), borderColor: v('edge'), color: v('ink') }}
+          >
+            {member.name.slice(0, 2)}
+          </span>
+          {/* wash: a pill background, with words on it. */}
+          <span className={styles.situWash} style={{ background: v('wash'), color: v('ink') }}>
+            {member.name} — with words on it
+          </span>
+          {/* bar: a 7px segment at the left of a log row, which is the only
+              place its width is judged. */}
+          <span className={styles.situBarRow}>
+            <span className={styles.situBar} style={{ background: v('bar') }} />
+            <span className={styles.situBarText}>a turn that went {member.name}</span>
+          </span>
+          {/* terminalFrame: a band around a board, drawn hard against the tiles
+              with no whitespace, which is the case it has to survive. */}
+          <span className={styles.situBoard} style={{ borderColor: v('terminalFrame') }}>
+            <span className={styles.situBoardTile} />
+            <span className={styles.situBoardTile} />
+            <span className={styles.situBoardTile} />
+            <span className={styles.situBoardTile} />
+          </span>
+        </>
+      )
+
+    case 'button':
+      return (
+        <>
+          <Anchor color={v('base')} />
+          <span
+            className={styles.situButton}
+            style={{
+              background: v('primary'),
+              borderColor: v('primary'),
+              color: v('primary-ink'),
+            }}
+          >
+            Submit
+          </span>
+          <span
+            className={styles.situButton}
+            style={{
+              background: v('primary-hover'),
+              borderColor: v('primary-hover'),
+              color: v('primary-ink'),
+            }}
+          >
+            Submit
+            <em className={styles.situState}>hover</em>
+          </span>
+          <span
+            className={styles.situButton}
+            style={{ borderColor: v('secondary'), color: v('secondary') }}
+          >
+            Cancel
+          </span>
+          <span
+            className={styles.situButton}
+            style={{
+              background: v('secondary-hover'),
+              borderColor: v('secondary'),
+              color: v('secondary'),
+            }}
+          >
+            Cancel
+            <em className={styles.situState}>hover</em>
+          </span>
+        </>
+      )
+
+    case 'pill':
+      // The real pill: the whole border in the tone, the left side thicker, and
+      // the tint behind it — which is only judged with text on top of it.
+      return (
+        <span
+          className={styles.situPill}
+          style={{ borderColor: v('color'), background: v('tint'), color: v('color') }}
+        >
+          {member.name} — a message a player reads
+        </span>
+      )
+
+    case 'tile':
+      return (
+        <span
+          className={styles.situTile}
+          style={{ background: v('fill'), borderColor: v('edge') }}
+        >
+          W
+        </span>
+      )
+
+    case 'member':
+      // A dot beside a bold name, which is how a member is met: in the club list
+      // and as the author of a chat line.
+      return (
+        <>
+          <span
+            className={styles.situDot}
+            style={{ background: v('fill'), borderColor: v('edge') }}
+          />
+          <span className={styles.situName} style={{ color: v('fill') }}>
+            {member.name}
+          </span>
+        </>
+      )
+
+    case 'wordle':
+      return (
+        <span
+          className={styles.situTile}
+          style={{ background: v('fill'), borderColor: v('edge'), color: v('ink') }}
+        >
+          A
+        </span>
+      )
+
+    case 'toast':
+      return (
+        <span className={styles.situToast} style={{ borderLeftColor: v('stripe') }}>
+          {member.name} — the stripe is the whole of a toast's color
+        </span>
+      )
+  }
+}
+
+/**
+ * The `base` cell: struck through, because nothing paints it. Drawn rather than
+ * skipped — an anchor that vanished from the demo would be an anchor you could
+ * forget was there.
+ */
+function Anchor({ color }: { color: string }) {
+  return (
+    <span className={styles.situAnchor} style={{ background: color }} title="base — never painted">
+      <span className={styles.situStrike} />
+    </span>
   )
 }
 
