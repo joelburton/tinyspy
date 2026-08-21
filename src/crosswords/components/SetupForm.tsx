@@ -203,10 +203,10 @@ export function SetupForm({ clubHandle, players, value, onChange }: SetupBodyPro
 
   return (
     <div className={styles.setup}>
-      <div className={styles.seg} role="group" aria-label="Puzzle source">
+      <div className="segmented" role="group" aria-label="Puzzle source">
         <button
           type="button"
-          className={cls(styles.segBtn, source === 'library' && styles.segOn)}
+          
           aria-pressed={source === 'library'}
           // Drop any parsed upload board/filename when leaving the Upload tab so
           // a stale solution grid can't ride along in `setup` (belt-and-braces
@@ -217,7 +217,7 @@ export function SetupForm({ clubHandle, players, value, onChange }: SetupBodyPro
         </button>
         <button
           type="button"
-          className={cls(styles.segBtn, source === 'nyt' && styles.segOn)}
+          
           aria-pressed={source === 'nyt'}
           onClick={() =>
             // No `date` seeded. It used to default to today, back when the NYT
@@ -231,7 +231,7 @@ export function SetupForm({ clubHandle, players, value, onChange }: SetupBodyPro
         </button>
         <button
           type="button"
-          className={cls(styles.segBtn, source === 'guardian' && styles.segOn)}
+          
           aria-pressed={source === 'guardian'}
           onClick={() =>
             onChange({
@@ -247,7 +247,7 @@ export function SetupForm({ clubHandle, players, value, onChange }: SetupBodyPro
         </button>
         <button
           type="button"
-          className={cls(styles.segBtn, source === 'upload' && styles.segOn)}
+          
           aria-pressed={source === 'upload'}
           onClick={() => onChange({ ...s, source: 'upload' })}
         >

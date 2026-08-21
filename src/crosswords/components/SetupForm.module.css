@@ -10,30 +10,6 @@
    * .tabStack. */
 }
 
-/* Library / NYT-by-date source toggle. */
-.seg {
-  display: inline-flex;
-  align-self: flex-start;
-  border: 1px solid var(--field-edge-color);
-  border-radius: 6px;
-  overflow: hidden;
-}
-.segBtn {
-  padding: 0.3rem 0.7rem;
-  font: inherit;
-  font-size: 0.9rem;
-  background: var(--field-fill-color);
-  color: var(--page-text-color);
-  cursor: pointer;
-}
-.segBtn + .segBtn {
-  border-left: 1px solid var(--field-edge-color);
-}
-.segOn {
-  background: var(--crosswords-cursor);
-  font-weight: 700;
-}
-
 /* All three source-tab bodies stack in ONE grid cell, so the block is always
  * as tall as the tallest tab — the library's search + 10-row list — no matter
  * which tab is active. That's what keeps the dialog from resizing when the

@@ -1382,15 +1382,21 @@ A **disabled** button is the deliberate exception to "everything gets a hover":
 it has none, and that missing answer is what tells you it's dead — see
 [A disabled button still gets a tooltip](#a-disabled-button-still-gets-a-tooltip--usually-a-better-one).
 
-**Two general buttons deliberately don't use `.button`**, and they're recorded
-here so a future sweep doesn't "helpfully" convert them. The rule above is about
-*feedback* — color only, no motion, no shadow — and both obey it; `.button` is
-one implementation of that rule, not the rule itself.
+**One general button deliberately doesn't use `.button`**, and it's recorded
+here so a future sweep doesn't "helpfully" convert it. The rule above is about
+*feedback* — color only, no motion, no shadow — and it obeys that; `.button` is
+one implementation of the rule, not the rule itself.
 
 | control | why it styles itself |
 |---|---|
-| crosswords' source picker (`.segBtn`) | a **segmented control**: one border on the wrapper, `overflow: hidden` for the rounded ends, `border-left` dividers between segments, no per-button border or radius. `.button` gives every element its own border and radius, which doesn't restyle a segmented control — it dismantles it |
 | crosswords' pencil/pen + scope buttons (`.btn`) | a game-surface control bar whose ON state is `--crosswords-cursor`, a **game** color. Its selected state can't come from a button family without lying about what the color means |
+
+Crosswords' puzzle-source picker used to be listed here too, on the strength of
+being a segmented control that `.button` would dismantle. That was right about
+`.button` and wrong about the conclusion: the answer was a segmented-control
+pattern, not a per-game exemption. It is [`.segmented`](#a-segmented-choice)
+now, and the yellow it filled its chosen segment with was never a decision — it
+had simply reached for the game's cursor color because that was to hand.
 
 The distinction that keeps this honest: what made the button sweep worth doing was
 that buttons were being handed chrome they never asked for. Neither of these has
