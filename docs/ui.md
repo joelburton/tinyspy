@@ -1036,6 +1036,47 @@ sixteen games are v3**, with bananagrams and crosswords the two documented layou
 exceptions (their own board layouts; see their game docs). There is no v4. A game
 doc calling a game "v3" means "conforms to this standard."
 
+## Headings that carry a control
+
+`<h1>`–`<h6>` are **headings**; the strip at the top of the page is a **header**
+(`<header>`, and the class should be `.page-header` — today both HomePage and
+ClubPage call it `.header`, which reads as a parent of "section header" when the
+two are unrelated). Different words for different things.
+
+`.heading-with-controls` in
+[`patterns/heading.css`](../src/common/patterns/heading.css) is the first:
+
+```
+Your clubs                          [ + New club ]
+Start a new game                    [ Co-op ▾ ]
+Your games (7)                      [ All games ▾ ]
+Turns                               [ Everyone ▾ ]
+Words: 34 · Score: 118               [ Kind ▾ ] [ Who ▾ ]
+```
+
+- **The control acts on what's BELOW the heading**, never on the page — the
+  picker filters the log beneath it, "+ New club" adds to the list beneath it.
+  That relationship is the pattern; "a flex row with space-between" would
+  describe half the app. A page-level control belongs in the page header.
+- **A bare heading takes no class.** The name is deliberately hard to talk
+  yourself into for an `<h3>` with nothing beside it.
+- **The gap is a minimum, not a spacing choice.** With `space-between` and two
+  children the heading sits left and the control right whatever the gap is; it
+  only takes effect once the row is full. So the shared `0.5rem` costs nothing
+  on a wide screen — it's the tightest instance's answer (the word list, which
+  carries two selects).
+- **`min-width: 0` on the heading slot decides who gives** when the line runs
+  out. Without it the heading refuses to shrink and shoves the control off the
+  edge. It only makes yielding possible, though — the default is wrapping to a
+  second line, which we don't want, so a heading that can get long owes an
+  explicit answer: ellipsis, or dropping a whole clause the way the word list
+  hides `· Longest: 7` on mobile. Prefer dropping a clause when the heading is
+  made of facts; `Score: 11…` loses a number.
+
+Converted so far: the homepage. Still to come: the club page's two, and
+`infoPanel.headerRow` (the turn log + word list) — where the turn log's dead
+`headerAction` branch goes at the same time.
+
 ## Lists of things you can go into
 
 The homepage's clubs, a club's games, the games you can start, a chooser in a

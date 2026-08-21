@@ -14,23 +14,6 @@
   margin-right: 0.45em;
 }
 
-/* "Your clubs" section header — title on the left, "+ New club"
- * button on the right. Flex row with space-between aligns the
- * button to the right edge of the section. h3 default margins
- * zeroed so the button vertical-aligns to the title baseline
- * cleanly. */
-
-.sectionHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-.sectionHeader h3 {
-  margin: 0;
-}
-
 /* The clubs list is the shared `.item-list` / `.item-row` pattern
  * (common/patterns/list.css) — the same one ClubPage's games list is,
  * one level apart: home lists clubs, a club lists its games. They were

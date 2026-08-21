@@ -6,7 +6,7 @@ import { createRoot } from 'react-dom/client'
  *
  *   fixed.css       colors no theme gets to touch (member + wordle)
  *   base.css        element resets + every non-color value, incl. depth
- *   patterns/*.css  one named pattern per file — badge, button, list
+ *   patterns/*.css  one named pattern per file — badge, button, heading, list
  *   utilities.css   the adjustments that name nothing: muted, error
  *
  * THEME-DEPENDENT, chosen at startup by loadTheme():
@@ -28,6 +28,7 @@ import './common/fixed.css'
 import './common/base.css'
 import './common/patterns/badge.css'
 import './common/patterns/button.css'
+import './common/patterns/heading.css'
 import './common/patterns/list.css'
 import './common/utilities.css'
 import App from './App.tsx'

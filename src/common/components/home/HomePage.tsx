@@ -224,15 +224,16 @@ export function HomePage({ session }: Props) {
         </h1>
 
         <section className={styles.clubsSection}>
-          {/* Section header is a flex row: title on the left, the
-              "+ New club" button on the right. Creating a new club is
+          {/* The shared `.heading-with-controls` (common/patterns/heading.css):
+              the heading, and on the right the control that acts on what's
+              below it — here the action that ADDS to the list. Creating a new club is
               the uncommon path (most users land here, click into an
               existing club, go play) — which is the `quiet` tone, and
               the outline treatment says it isn't the obvious action.
               Nothing about it is special, so it has no class of its
               own: quiet + outline + small, and `.button` covers the
               rest whether it's a <button> or a link. */}
-          <header className={styles.sectionHeader}>
+          <header className="heading-with-controls">
             <h3>Your clubs</h3>
             <Link to="/c/new" className={cls('button', 'secondary', 'button-small')}>
               + New club

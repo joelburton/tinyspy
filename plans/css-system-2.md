@@ -362,6 +362,24 @@ has to be read through. `common/patterns/button.css` and
 that name nothing, `.muted` being the clearest case. It went 293 → 129 lines,
 of which the button was 164.
 
+**Shipped at step 6: `.badge`** (`patterns/badge.css`) — the shape only, border
+in `currentColor` so the caller sets `color` alone. "Solo" on a club row and
+"Co-op" on a game row are one thing. Solo adopted the mode pill's shape (six
+sites to one, and `text-transform` on a shared badge would render "Co-op" as
+"CO-OP"). `<ModePill>` still holds its own copy; it reads the class at step 8.
+
+**Shipped at step 6: `.heading-with-controls`** (`patterns/heading.css`) — a
+heading with the control that acts on what's BELOW it. Named to refuse the
+wrong use: a bare `<h3>` takes no class. Two things the reading settled: the
+`gap` is a MINIMUM that only bites once the row is full (so `0.5rem` everywhere
+costs nothing and is the tightest instance's answer), and `min-width: 0` on the
+heading slot decides who gives — it makes yielding possible without saying how,
+and a heading that can get long owes ellipsis or a dropped clause. **Naming
+ruling (Joel):** `<h1>`–`<h6>` are HEADINGS, the top-of-page strip is a HEADER —
+`.header` in HomePage + ClubPage should become `.page-header`, owed at step 8.
+Found on the way: `<TurnLog>`'s `headerAction` is optional in name only (all
+eleven call sites pass it); the dead branch goes when the turn log converts.
+
 **Shipped at step 6: `.item-list` / `.item-row`** (`patterns/list.css`), with
 the homepage's clubs list as the first consumer. The hairline is declared on
 the LIST (`> *:not(:last-child)`), not the row, because a row wrapped in an

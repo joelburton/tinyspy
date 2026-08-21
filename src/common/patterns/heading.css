@@ -1,0 +1,65 @@
+/* ============================================================
+ * heading.css — headings that carry something else on the line.
+ *
+ * `<h1>`–`<h6>` are HEADINGS; the page's top strip is a HEADER
+ * (`<header>`, `.page-header`). Different words for different things,
+ * and this file is about the first.
+ *
+ * One pattern, one file (plans/css-system-2.md §7).
+ * ============================================================ */
+
+/* A heading on the left, and on the right the control that changes what's
+   BELOW it. That relationship is the whole pattern — not "a flex row with
+   space-between", which would also describe half the app:
+
+     Your clubs                          [ + New club ]
+     Start a new game                    [ Co-op ▾ ]
+     Your games (7)                      [ All games ▾ ]
+     Turns                               [ Everyone ▾ ]
+     Words: 34 · Score: 118              [ Kind ▾ ] [ Who ▾ ]
+
+   The control acts on the section under the heading, never on the page: the
+   picker filters the log beneath it, "+ New club" adds to the list beneath it.
+   A page-level control belongs in `.page-header` instead.
+
+   THE NAME REFUSES THE WRONG USE. A bare heading with nothing beside it is
+   just an `<h3>` — it takes no class, and "heading-with-controls" is hard to
+   talk yourself into for one. Plural because a section may have two (the word
+   list's Kind + Who).
+
+   `flex-shrink: 0` is about this row as an item of ITS parent: every instance
+   sits in a height-bounded column above a scrolling box, and when that column
+   is squeezed the box gives, not the heading. */
+.heading-with-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+/* The heading slot. Addressed as the first child rather than `h3` so the
+   pattern doesn't bake in an element — the mistake `.button` made by assuming
+   its element was a <button>.
+
+   `min-width: 0` decides WHO GIVES when the line runs out of room. Without it
+   a heading refuses to shrink below its text and shoves the control off the
+   right edge; with it the heading is the one that yields.
+
+   ⚠️ It only makes yielding POSSIBLE — it doesn't say how, and the default
+   (wrapping to a second line) is the outcome we don't want. A heading that can
+   get long owes an explicit answer, and there are two good ones already in the
+   app: ellipsis (`overflow: hidden; text-overflow: ellipsis`), or dropping a
+   whole clause the way the word list hides `· Longest: 7` on mobile. Prefer
+   dropping a clause when the heading is made of facts — `Score: 11…` loses a
+   number, which is worse than losing a labeled one entirely.
+
+   Note the gap only ever bites here. With `space-between` and two children the
+   heading sits left and the control sits right whatever the gap is; it is a
+   MINIMUM separation that takes effect once the row is full, not a spacing
+   choice. So 0.5rem costs nothing on a wide screen and is simply the tightest
+   instance's answer (the word list, with two selects). */
+.heading-with-controls > :first-child {
+  margin: 0;
+  min-width: 0;
+}
