@@ -1,0 +1,127 @@
+/* ============================================================
+ * fixed.css — colors EXEMPT from the whole system.
+ *
+ * ⚠️ DRAFT — nothing imports this yet (plans/css-system.md → step 3).
+ *
+ * Hex, no role, no theme. Two sets qualify, and the exemption is
+ * principled rather than a carve-out:
+ *
+ *   MEMBER COLORS   a member's color is their identity. Hand-picked,
+ *                   blessed one at a time, exactly as many as we have
+ *                   names for.
+ *   THE WORDLE      everyone arrives already knowing what wordle green
+ *   VOCABULARY      means. Re-theming it breaks the one thing it is for.
+ *
+ * **Nothing here may point at a role.** A role moves from theme to
+ * theme; these may not. `--wordlelike-green-fill-color` is a hex, full
+ * stop — it is not `--green-fill` under another name, and pointing it at
+ * one would silently re-theme the recognition.
+ *
+ * This file is loaded under every theme, unchanged.
+ * ============================================================ */
+
+:root {
+  /* ══ MEMBER IDENTITY ══════════════════════════════════════════
+     One pair per name in `common.profiles.color`. The DB stores a NAME,
+     not a hex, and the FE resolves it via `colorVarFor` to one of these
+     — which is why these must stay TOKENS and can never become classes:
+     `<Dot>` builds `var(--member-${name}-dot-color)` at runtime, so the
+     token name IS the mapping.
+
+     Values are mid-tones: saturated enough to read as small filled
+     circles (member-list dots) and bold name labels (chat usernames),
+     dark enough to stay legible as text on the surface.
+
+     Each fill has a PAIRED `-border` — the ring the shared <Dot> draws
+     around it, and what lets a light fill (yellow) stay visible against
+     a light background, where a pale disc alone would vanish.
+
+     ⚠️ TWO THINGS OWED, both recorded rather than done here:
+
+     1. `--member-blue-dot-color` is #1976d2 — BYTE-IDENTICAL to the
+        action blue. A member's dot is currently the action color. That
+        is a regrettable coincidence to be fixed by picking a distinct
+        member blue, not documented as sharing. Owed at step 3b.
+
+     2. THE BORDERS FLIP UNDER POLARITY. On a light page a ring is
+        darker than its fill; on a dark page it must be lighter. So the
+        member set is the one "fixed" thing that is not fully fixed:
+        eight dots that never move, plus eight rings that do. Whether a
+        ring is a chosen hex per polarity or a derivation off the dot is
+        the difference between 16 hexes and 8, and is unsettled.
+
+        (The comment they arrived with claims they were seeded by
+        formula — OKLCH lightness clamped to min(0.85 × fillL, 0.55).
+        Measured, that reproduces exactly ONE of the eight: brown. The
+        other seven were hand-tuned afterward, as the same comment
+        invited. So there is no formula to invert; a dark set is eight
+        fresh judgments either way.) */
+  --member-red-dot-color:    #d32f2f;  --member-red-border-color:    #b30115;
+  --member-orange-dot-color: #ff9800;  --member-orange-border-color: #a25f01;
+  --member-yellow-dot-color: #ffe05a;  --member-yellow-border-color: #867004;
+  --member-green-dot-color:  #388e3c;  --member-green-border-color:  #1b5e20;
+  --member-brown-dot-color:  #8d6e63;  --member-brown-border-color:  #74564b;
+  --member-blue-dot-color:   #1976d2;  --member-blue-border-color:   #035dad;
+  --member-purple-dot-color: #9b3ec3;  --member-purple-border-color: #650189;
+  --member-pink-dot-color:   #f86194;  --member-pink-border-color:   #c9135e;
+
+  /* ══ THE WORDLE VOCABULARY ════════════════════════════════════
+     Shared by the letter-coloring games — waffle today, wordle as it
+     converges — and by the shared <GuessKeyboard>. Three consumers
+     speaking a language nobody here designed.
+
+     ⚠️ STILL NAMED `--wordle-*`, and that is a known wrong name kept on
+     purpose. It should be `--wordlelike-*`, so that `--wordle-` goes
+     back to meaning wordle's OWN and the §4.5 guard ("a `--<game>-`
+     token referenced from outside `src/<game>/` is an error") can read
+     it correctly. That rename touches nine files across wordle, waffle
+     and common, and the roster schedules it for wordle's own pass — a
+     structural step that moves no pixels should not also be reaching
+     into two games' stylesheets.
+
+     Under a HUE name rather than a meaning name once renamed, which is
+     what lets the two greens be different claims backed by one value:
+     wordle's means "right letter, right spot" (a verdict on one guess)
+     and waffle's means "this letter is in its final position" (a state
+     on a board). Each game names its own meaning and points here.
+
+     Darker and more saturated than NYT's, and only just: these carry
+     WHITE letters, and at NYT's values white sits under the 3:1 floor
+     for large bold text. GREEN lands on the floor at 2.98. YELLOW
+     deliberately stops SHORT at 2.57 — getting it to 3.0 meant a gold
+     dark enough to stop reading as Wordle's yellow, and familiarity is
+     worth real money here. */
+  --wordle-green-fill-color:  #66a45f;  /* right letter, right spot */
+  --wordle-yellow-fill-color: #bd9f35;  /* in the word, wrong spot */
+  /* Lightened from #787c7e so a spent letter RECEDES: "not in the word"
+     is what you want to stop looking at. It holds WHITE letters, so it
+     cannot go lighter than about #959595 without dropping under 3:1;
+     this sits at 3.26. */
+  --wordle-gray-fill-color:   #8b8f91;  /* not in the word */
+
+  /* Matching EDGES, each ~16% darker than its fill. A colored tile with
+     a border of its own fill reads as a flat block; a slightly darker
+     edge gives it the quiet definition every other surface has.
+
+     Written out rather than derived through `--<fam>-edge`: that
+     derivation reads `--polarity-away`, and these may not follow
+     polarity. The operation is the same, the exemption is the point. */
+  --wordle-green-edge-color:  #568a50;
+  --wordle-yellow-edge-color: #9f862d;
+  --wordle-gray-edge-color:   #75787a;
+
+  /* The ink each judged surface carries — a board tile and a keycap
+     both. White on all three, which is what the fills above were tuned
+     for. Written here rather than as `--ink-on-dark`, for the same
+     reason as the edges. */
+  --wordle-green-ink-color:  #ffffff;
+  --wordle-yellow-ink-color: #ffffff;
+  --wordle-gray-ink-color:   #ffffff;
+
+  /* ⚠️ IN OR OUT? The three above are imported vocabulary. This one is
+     the UN-evaluated tile, and nobody arrives knowing what an empty
+     wordle tile looks like — so it may not belong in this file at all.
+     Out, and it follows the theme like any other surface; in, and a dark
+     theme gets a light-gray tile sitting on a dark board. Unsettled. */
+  --wordle-blank-fill-color:  #d3d6da;
+}
