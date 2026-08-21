@@ -24,28 +24,48 @@
 
 :root {
   /* ══ PAGE ═══════════════════════════════════════════════════════
-     Not pure black. A page at #000 gives a shadow nothing to fall on
-     and makes every surface above it a stark step; a dark gray leaves
-     room to move in both directions. The surface is LIGHTER than the
-     page here, where in daylight it is lighter too — the relationship
-     survives the flip even though both values move. */
-  --page-bg-color:                #121212;
-  --page-surface-color:           #1e1e1e;
-  --page-surface-border-color:    #343434;
-  --page-surface-hover-color:     #2a2a2a;
-  --page-text-color:              #e8e8e8;
-  --page-text-muted-color:        #9a9a9a;
-  --page-divider-color:           #6d6d6d;
+     A BLUE-SLATE, not a neutral near-black, and there is no law that
+     said it had to be one. Material's #121212 is a convention rather
+     than the convention — Solarized, Dracula, Nord and most editor
+     themes people actually live in are hued, and a hued dark reads as
+     a considered surface where a neutral one reads as an absence.
+
+     It is also LIFTED, from L* 5.5 to L* 11.8, and that half is about
+     shadows: a shadow can only darken what is under it, so the page's
+     own lightness is the ceiling on how much a shadow can ever say.
+     Lifting the page roughly triples the room — a 30% black makes a
+     perceptual step of 4.6 here against 1.9 at #121212.
+
+     ⚠️ Triple is still not enough. Daylight's step is 26. Even at this
+     lightness the CEILING — a shadow all the way to pure black — is
+     11.8, so a darkening shadow can never carry on a dark page what it
+     carries on a light one, at any alpha. That is a fact about the
+     page rather than about the value, and it is why the depth question
+     needs a lighter cue (a raised ground, or lightness-as-hover) and
+     not a stronger shadow. See plans/css-system-2.md §19.
+
+     COOL all the way up, so the family holds together, and the warm
+     tile ramp is deliberately left warm against it — a board of wood
+     on a slate table. The surface is LIGHTER than the page, as it is
+     in daylight: that relationship survives the flip even though both
+     values move. */
+  --page-bg-color:                #1a1f2b;
+  --page-surface-color:           #232936;
+  --page-surface-border-color:    #39414f;
+  --page-surface-hover-color:     #2e3543;
+  --page-text-color:              #e8eaee;
+  --page-text-muted-color:        #99a0ad;
+  --page-divider-color:           #6d7482;
 
   /* ══ FIELD ══════════════════════════════════════════════════════
      A field sits at the page's own darkness rather than the card's, so
      it reads as a well rather than a raised panel. The placeholder
      formula is unchanged from daylight and still works, because it is
      stated relative to the field's own fill. */
-  --field-fill-color:             #171717;
-  --field-edge-color:             #4a4a4a;
-  --field-strong-edge-color:      #6a6a6a;
-  --field-muted-ink-color:        #a4a4a4;
+  --field-fill-color:             #151a24;
+  --field-edge-color:             #454e5e;
+  --field-strong-edge-color:      #67707f;
+  --field-muted-ink-color:        #a4abb8;
   --field-placeholder-ink-color:  color-mix(in oklab, var(--page-text-muted-color) 50%, var(--field-fill-color));
 
   /* ══ BUTTON ═════════════════════════════════════════════════════
@@ -397,8 +417,8 @@
   /* Near-BLACK on purpose, where daylight is near-white: most of a
      library is unplayed, and the unplayed stripe should recede into
      the page whichever page it is. The ROLE is "recede"; the value is
-     whatever recedes here. */
-  --gamelist-unplayed-color:   #242424;
+     whatever recedes here — which is the page's own hue, a step up. */
+  --gamelist-unplayed-color:   #262c39;
 
   /* ══ GAMEMODE ═══════════════════════════════════════════════════
      The 800-level tones daylight uses are unreadable on dark, so both
@@ -421,7 +441,7 @@
   --ink-onDark-color:   #ffffff;
   --ink-onLight-color:  #121212;
 
-  --entry-illegal-ink-color:  #6a6a6a;
+  --entry-illegal-ink-color:  #69707d;
 
   /* PAPER IS PAPER. Print does not have a dark mode — the page is
      white cardstock in every theme — so this keeps daylight's value

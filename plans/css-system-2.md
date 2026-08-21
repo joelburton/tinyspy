@@ -629,11 +629,45 @@ shadow, out of 255:
 | `--shadow-popover` | 45 | **3** |
 
 An alpha black over `#121212` is invisible. The GEOMETRY is theme-independent
-and belongs where it is; the shadow's ink is not. Three ways out, none chosen:
-split each shadow into geometry + a themed ink token; move the whole family to
-the theme; or accept that dark surfaces express elevation with a lighter surface
-tint rather than a shadow, which is what most dark systems actually do. **This
-is the decision step 5 inherits.**
+and belongs where it is; the shadow's ink is not. **This is the decision step 5
+inherits**, and two of the three ways out have now been tried on 2026-08-21.
+
+**⚠️ THE CEILING, which settles the shape of the answer.** A shadow can only
+DARKEN what is under it, so the ground's own lightness is the most a shadow can
+ever say. Daylight's page is L\* 98 and a 30% black makes a perceptual step of
+26. A dark page at L\* 12 can make at most **12**, by going all the way to pure
+black — so a darkening shadow can never carry on a dark page what it carries on
+a light one, **at any alpha**. Tuning the shadow is not a fix, and it never was.
+Depth on a dark page needs a LIGHTER cue: a ground the piece stands on, or
+lightness-as-hover.
+
+| | L\* | step a 30% black makes |
+|---|---:|---:|
+| daylight `#fafafa` | 98 | 26 |
+| `#121212` | 5.5 | 1.9 |
+| a lifted slate `#1a1f2b` | 11.8 | 4.6 |
+| the tan board ground `#776951` | 50 | 15 |
+
+**Tried — a board ground** (`--board-ground-color`, transparent in daylight
+because the page already IS a ground). At `#776951`, one rung above the tile
+ramp, the stackdown tile shadow went from 5 to 33 out of 255. Two things it
+taught: a ground must sit OUTSIDE the range of the pieces standing on it — set
+to shade 1 it collided with stackdown's exposed tile, which is also shade 1 —
+and a ground makes the shadow's ALPHA a theme's business, since matching
+daylight's step on a tan ground needs roughly double it. Parked, not deleted.
+
+**Tried — a hued, lifted page.** `#1a1f2b`, a blue-slate. There is no law that
+dark mode means black: Solarized, Dracula and Nord are all hued, and Material's
+`#121212` is one convention rather than the convention. It roughly triples the
+shadow's room and is a real quality win on its own — a hued dark reads as a
+considered surface where a neutral one reads as an absence. It does NOT rescue
+shadows, per the ceiling above.
+
+**Not tried — lightness-as-hover.** Worth recording how it would avoid becoming
+a rule change, since "a theme is only values" is the property worth protecting:
+give the hover rule BOTH channels, a shadow and a fill, and let each theme zero
+one out. A shadow at alpha 0 costs nothing; a hover fill equal to the resting
+fill costs nothing. Same CSS, both themes, values only.
 
 **Two bugs the spike found that were never about theming:**
 
