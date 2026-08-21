@@ -387,10 +387,14 @@ times in 24 files doing two unrelated jobs**:
   That is board geometry and stays with the games.
 
 **`.frame` is the element this lands on, and it wants renaming at the same
-time** (Joel, 2026-08-21). All three pages already declare one — GamePage
+time** (Joel, 2026-08-21). It is the page's OUTER STACK — a flex column with a
+gap, holding the page's top-level pieces and carrying the bound. Nothing about
+it is header-specific; a page wants one as soon as it has more than one piece,
+which is why login and claim-a-handle have none (their card is their only
+piece). All three pages that do have one declare nearly the same rule — GamePage
 `display:flex` + column + `gap: 1rem`, Home and Club the same plus `width:
-100%`, and only the BOUND differs (none / `max-height` / `height`). But the word
-is taken: `frame` means "a rectangle drawn around a board" in four places
+100%` — and only the BOUND differs (none / `max-height` / `height`). But the
+word is taken: `frame` means "a rectangle drawn around a board" in four places
 (`historyViewer.frame`, `PlayArea.gameOverFrame`, crosswords' `.peerFrame`,
 bananagrams' `.boardFrame`), and that is the documented sense. Rename the
 page-level one — `.page` is the candidate — when the bound is settled, so the

@@ -50,15 +50,20 @@
   color: var(--chrome-badge-color);
 }
 
-/* The page frame — chrome strip on top, the content card below.
+/* The page's OUTER STACK: the header, then the card. Nothing about it is
+ * header-specific — it's a flex column with a gap and the height bound, and any
+ * page with more than one top-level piece wants the same thing. ClubPage and
+ * GamePage each declare their own (see §8 of plans/css-system-2.md: they differ
+ * only in the bound, and the name wants to change — `frame` elsewhere means a
+ * rectangle drawn around a board).
  *
- * Plenty of pages are a centered `.card`: login, claim-a-handle, create-club,
- * the palette, and every loading / error state. Home is the only one that
- * pairs a card body with a PAGE HEADER — the others are pre-auth or have no
- * menu — and that pairing is the whole reason this exists, to give the header
- * somewhere to live OUTSIDE the card. Inside, it inherited the card's 2rem
- * padding and its border, so it read as page content and lined up with nothing
- * else in the app.
+ * Login and claim-a-handle are centered cards with no stack at all, because
+ * their card is their only piece. Home has two, which is why this exists.
+ *
+ * SEPARATELY, the header sits outside the card rather than inside it: inside,
+ * it inherited the card's 2rem padding and its border, so it read as page
+ * content and lined up with nothing else in the app. That's a fact about the
+ * header, not about this rule.
  *
  * MAX-height, where ClubPage's frame takes a fixed `height` — and the
  * difference is the point (docs/ui.md → "Page-height fits the viewport"). Home
