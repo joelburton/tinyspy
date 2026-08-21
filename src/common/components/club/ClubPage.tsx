@@ -1133,7 +1133,7 @@ export function ClubPage({ handle, session }: Props) {
               start list: focus the container, arrows move, Enter opens. */}
           <div
             ref={gamesListRef}
-            className={styles.gamesList}
+            className={cls('item-list', styles.gamesList)}
             tabIndex={0}
             role="group"
             aria-label="Your games"

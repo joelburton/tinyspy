@@ -166,7 +166,16 @@ export function ClubGameCard({
       ref={kbCursor ? (el) => el?.scrollIntoView({ block: 'nearest' }) : undefined}
     >
       <Link to={`/g/${gametype}/${gameId}`} className={styles.link}>
-        <div className={cls(styles.card, styles[variant], kbCursor && 'kb-cursor')}>
+        <div
+          className={cls(
+            styles.card,
+            // A `row` IS a row of the shared `.item-list` and takes its look
+            // from there; a `standalone` is the active-game callout above the
+            // lists, belongs to none, and draws its own box.
+            variant === 'row' ? 'item-row' : styles.standalone,
+            kbCursor && 'kb-cursor',
+          )}
+        >
           {state === 'suspended' && (
             // Yellow corner-flag triangle: "still open for play."
             // See the openFlag base class in CSS for the geometry
@@ -189,22 +198,20 @@ export function ClubGameCard({
               aria-hidden="true"
             />
           )}
-          {/* Logo + content, mirroring the StartGameButtons cards: the
-              gametype logo (was a text label) on the left, the
-              algorithmic title + a muted status/date line on the right. */}
-          <div className={styles.body}>
-            <GameLogo gametype={gametype} />
-            <div className={styles.content}>
-              <div className={styles.titleRow}>
-                {title && <span className={styles.title}>{title}</span>}
-                {manifest && (
-                  <ModePill mode={manifest.mode} soloClub={soloClub} aiOpponent={manifest.aiOpponent} />
-                )}
-              </div>
-              <div className={styles.meta}>
-                <span>{statusLabel}</span>
-                <span className={styles.startedAt}>{dateLabel}</span>
-              </div>
+          {/* Logo + content, mirroring the StartGameButtons rows: the
+              gametype logo on the left, the algorithmic title + a muted
+              status/date line on the right. */}
+          <GameLogo gametype={gametype} />
+          <div className={styles.content}>
+            <div className={styles.titleRow}>
+              {title && <span className={styles.title}>{title}</span>}
+              {manifest && (
+                <ModePill mode={manifest.mode} soloClub={soloClub} aiOpponent={manifest.aiOpponent} />
+              )}
+            </div>
+            <div className={styles.meta}>
+              <span>{statusLabel}</span>
+              <span className={styles.startedAt}>{dateLabel}</span>
             </div>
           </div>
         </div>

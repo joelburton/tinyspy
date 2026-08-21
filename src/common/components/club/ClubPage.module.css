@@ -90,32 +90,10 @@
   min-height: 0;
 }
 
-/* The games-list frame. Its twin, `.startList`, is now the shared `.item-list`
- * (common/patterns/list.css) and this rule is what that pattern says, written
- * out — it stays here only until the divider question is settled: the pattern
- * draws the rule between rows on the frame's direct children, and in THIS list
- * a row is a `.card` two levels down inside its `.wrapper`, where it also
- * carries the hover tint. `flex: 1` is the caller's half either way — it takes
- * the column's remaining height after the heading. */
+/* The games-list frame is the shared `.item-list`; `flex: 1` is the caller's
+ * half — it takes the column's remaining height after the heading. */
 .gamesList {
   flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  background: var(--page-surface-color);
-  /* A step darker than the usual --page-surface-border-color: these two frames are
-   * the page's main structure (they're what makes the body read as two
-   * columns), and the pale card border let them fade into the background.
-   * Same token as the row rules inside the start list, so the frame and its
-   * contents' lines agree. */
-  border: 1px solid var(--field-edge-color);
-  border-radius: var(--radius-lg);
-  /* NEITHER frame owns padding: the rows inside carry their own, so the space
-   * above the first item equals the space between any two (a frame padding on
-   * top of that made the first row sit noticeably lower than the rhythm below
-   * it), and the row rules + hover tint run the full width of the panel
-   * instead of floating inside an inset. An empty list's message supplies its
-   * own inset — see .emptyList. */
-  padding: 0;
 }
 
 /* BOTH OF THIS PAGE'S LISTS ARE PACKED, and that is a fact about the page
@@ -137,22 +115,6 @@
  * self-padding row, so it supplies the inset the container no longer does. */
 .emptyList {
   padding: 1rem;
-}
-
-/* Both lists are the page's ONLY keyboard tab stops (see ClubPage's kb-nav
- * block): the focused list's border warms to the accent, and the `.kb-cursor`
- * on a row inside it marks what Enter would do. `.startList` gets this from
- * `.item-list`; this is the same rule for the frame that hasn't converted. */
-.gamesList:focus {
-  outline: none;
-  border-color: var(--chrome-cursor-color);
-}
-
-.gamesList {
-  display: flex;
-  flex-direction: column;
-  /* No gap — like the start list, the rows abut and the rule between them is
-   * the separation. */
 }
 
 /* Club title block — a full-width row of the .frame column (between
