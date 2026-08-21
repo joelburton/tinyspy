@@ -103,7 +103,7 @@ common/
   fixed.css          colors exempt from theming: member + wordle
   base.css           element resets, body, box-sizing
   utilities.css      the adjustments that name nothing: muted, error
-  patterns/          ONE NAMED PATTERN PER FILE — button.css, list.css
+  patterns/          ONE NAMED PATTERN PER FILE — badge, button, heading, list
 <game>/
   brand.css          --<game>-* tokens. Nothing else
 ```
@@ -362,6 +362,35 @@ has to be read through. `common/patterns/button.css` and
 that name nothing, `.muted` being the clearest case. It went 293 → 129 lines,
 of which the button was 164.
 
+**PUNTED at step 6 to step 8: the VIEWPORT-FIT chain** (Joel, 2026-08-21) — it
+moves layout, and one instance isn't enough to see the shape. Revisit at the
+club page, which is where the second instance of the *bound* is.
+
+What the reading found, so it isn't re-derived. `min-height: 0` appears **48
+times in 24 files doing two unrelated jobs**:
+
+- **The viewport-fit chain, 17 sites**, in three roles. The **bound** —
+  `max-height` / `height` off the viewport — exists in exactly two places,
+  `HomePage.frame` and `ClubPage.frame`, and they deliberately differ
+  (`max-height` for a centered card so it isn't stretched, `height` for a
+  full-bleed page; docs/ui.md → Page-height fits the viewport). The **relay** is
+  a flex column + `min-height: 0` that carries the bound down: `HomePage.card`
+  `.clubsSection` · `ClubPage.left` `.startBlock` `.right` · `TurnLog.turnLog` ·
+  `PlayArea.infoCol` · `FloatingPanel.body` · `GameScratchpad.body` ·
+  `AnagramDialog.content` · `InfoSheet` (mobile) · `ChatBody` · crosswords ×6 ·
+  `letterboxed.chainBlock`. The **scroller** ends it with `flex: 1` +
+  `overflow-y: auto`. Eleven of the seventeen relays are game chrome or games,
+  so most of this is steps 9–10 anyway.
+- **Letting a flex or grid item shrink below its content, 31 sites** — the same
+  declaration, nothing to do with the viewport: every game's `.board` / `.grid`
+  / `.tile`, `bananagrams` ×4, and `ClubPage.body` (a ROW splitting sideways).
+  That is board geometry and stays with the games.
+
+Naming is unsettled and is the other reason to wait: the relay is "a flex column
+that lets a height bound through instead of stopping it", and neither
+`.passes-height` nor anything mechanism-shaped (`.min-height-zero`) is good
+enough to ship.
+
 **Shipped at step 6: `.badge`** (`patterns/badge.css`) — the shape only, border
 in `currentColor` so the caller sets `color` alone. "Solo" on a club row and
 "Co-op" on a game row are one thing. Solo adopted the mode pill's shape (six
@@ -604,7 +633,7 @@ the scanner counts it as a reference and reserved cells stay alive.
 | 5 | ~~shallow whole-app pattern pass~~ **DONE 2026-08-21** | Ten patterns named, plus five below the line, in §7 → "The named patterns". Read off the rendered surfaces, then counted. Also settled: device density (§9), and three findings that are name collisions rather than patterns |
 | 6 | homepage | the rehearsal: lowest blast radius |
 | 7 | dialogs + forms | the first real win — many near-identical instances |
-| 8 | clubpage + remaining non-game chrome | |
+| 8 | clubpage + remaining non-game chrome | Also inherits from step 6: the VIEWPORT-FIT chain (punted, §7), `.header` → `.page-header` in both HomePage and ClubPage, and `<ModePill>` reading the shared `.badge` |
 | 9 | shared game chrome | `common/components/game/` — 258 rules, and every game sits on it. Also: the **contract-slot guard**, checked per mount point (§9, §10) |
 | 10 | per game — CSS pass, then tile-feedback pass, back to back | psychicnum first, as the control |
 | 11 | assets | 17 game logos carry baked color; the wordmark and favicon carry near-whites that fail on a dark page. All of it at once, at the end — doing one per game argues about a tree sixteen times |
