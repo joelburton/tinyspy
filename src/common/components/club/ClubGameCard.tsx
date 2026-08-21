@@ -157,7 +157,7 @@ export function ClubGameCard({
 
   return (
     <div
-      className={cls(styles.wrapper, kbCursor && styles.kbCursor)}
+      className={styles.wrapper}
       // Clicking IS selecting. On the wrapper (not the <Link>) so a click
       // anywhere on the card counts, including the delete affordance — it's
       // still this card either way.
@@ -166,7 +166,7 @@ export function ClubGameCard({
       ref={kbCursor ? (el) => el?.scrollIntoView({ block: 'nearest' }) : undefined}
     >
       <Link to={`/g/${gametype}/${gameId}`} className={styles.link}>
-        <div className={cls(styles.card, styles[variant])}>
+        <div className={cls(styles.card, styles[variant], kbCursor && 'kb-cursor')}>
           {state === 'suspended' && (
             // Yellow corner-flag triangle: "still open for play."
             // See the openFlag base class in CSS for the geometry

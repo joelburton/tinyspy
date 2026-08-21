@@ -35,7 +35,7 @@
 }
 
 .trigger:focus-visible {
-  outline: 2px solid var(--chrome-cursor-color);
+  outline: var(--chrome-cursor-ring);
   outline-offset: 2px;
 }
 
@@ -133,7 +133,7 @@
  * :focus) so a mouse click on an item doesn't double-paint a
  * ring on top of the activation flash. */
 .item:focus-visible {
-  outline: 2px solid var(--chrome-cursor-color);
+  outline: var(--chrome-cursor-ring);
   outline-offset: -2px;
 }
 

@@ -285,7 +285,7 @@ export function HomePage({ session }: Props) {
                 >
                   <Link
                     to={`/c/${c.handle}`}
-                    className={cls('item-row', i === kbCursor && styles.kbCursor)}
+                    className={cls('item-row', i === kbCursor && 'kb-cursor')}
                   >
                     {/* Name + (for a solo club) its pill, and nothing else. The
                         row used to end with the club's `/c/<handle>` URL — the

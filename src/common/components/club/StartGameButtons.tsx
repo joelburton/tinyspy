@@ -87,7 +87,7 @@ export function StartGameButtons({
           <button
             key={g.gametype}
             type="button"
-            className={cls(styles.button, i === cursor && styles.kbCursor)}
+            className={cls(styles.button, i === cursor && 'kb-cursor')}
             // Keep the keyboard cursor's button in the scrolled frame's view.
             ref={i === cursor ? (el) => el?.scrollIntoView({ block: 'nearest' }) : undefined}
             onClick={() => {

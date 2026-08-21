@@ -374,7 +374,7 @@ textarea {
 
 input:focus,
 textarea:focus {
-  outline: 2px solid var(--chrome-cursor-color);
+  outline: var(--chrome-cursor-ring);
   outline-offset: -1px;
 }
 

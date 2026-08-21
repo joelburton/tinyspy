@@ -407,6 +407,18 @@ none }` already says a click leaves no ring; `:focus-visible` then puts one back
 for a keyboard that has ⌥Z anyway. Nine call sites, and the fix is removing the
 tab stop rather than restyling the ring — **at the shuffle games' passes**.
 
+**Shipped at step 6: `--chrome-cursor-ring` + `.kb-cursor`**
+(`patterns/focus-ring.css`) — thirteen sites wrote `2px solid
+var(--chrome-cursor-color)` by hand; now one token. **The offset is the only
+variable and it is not taste**: `-2px` when the element abuts its neighbours,
+`-1px` when it has its own border to sit inside, `+2px` when it has clear space.
+`.kb-cursor` is the class form for the case a pseudo-class cannot express — the
+list holds the focus, so the row the arrows point at has no focus of its own.
+Three byte-identical copies became one. **Not converted, deliberately:**
+`ColorChoiceList.swatchActive` draws the same ring to mean "the color you
+chose", and tying a selected state to a keyboard decision would marry them
+forever — noted in place, its own question at the account pass.
+
 **Shipped at step 6: `<PageHeader>`** (`components/chrome/PageHeader.tsx`) — a
 COMPONENT, not a class, and the correction is the lesson: it was half-built as
 `patterns/page-header.css` before Joel asked whether a shared component already

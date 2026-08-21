@@ -299,16 +299,3 @@
   border-color: var(--button-destructive-primary-color);
 }
 
-/* ClubPage's keyboard list-nav cursor — the ring marking which game Enter
- * would open (the LIST container holds the actual focus). INSET, like the
- * start list's cursor: a full-bleed row has no margin for an outward ring to
- * sit in, and the scrolling frame would clip one.
- *
- * The CLASS lands on the wrapper (that's what the JSX toggles, and the wrapper
- * is what owns the row's full box), but the ring has to be drawn on the .card
- * INSIDE it: the card is positioned + opaque, so it paints over an inset
- * outline on its parent and the ring simply never appeared. */
-.kbCursor .card {
-  outline: 2px solid var(--chrome-cursor-color);
-  outline-offset: -2px;
-}

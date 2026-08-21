@@ -50,16 +50,6 @@
   color: var(--chrome-badge-color);
 }
 
-/* The keyboard list-nav cursor — the ring marking which club Enter would open.
- * The LIST holds the actual focus (it's the tab stop); this ring says which row
- * it's pointing at. Identical to ClubPage's `.kbCursor`, down to the INSET
- * offset: the rows abut now, so a ring drawn outside the row would overlap its
- * neighbour and get clipped by the frame's overflow at the first and last row. */
-.kbCursor {
-  outline: 2px solid var(--chrome-cursor-color);
-  outline-offset: -2px;
-}
-
 /* The page frame — chrome strip on top, the content card below. Home is the
  * one page whose body is a centered `.card`, so this exists purely to give the
  * header somewhere to live OUTSIDE it: inside, the header inherited the card's

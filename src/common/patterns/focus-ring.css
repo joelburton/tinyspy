@@ -1,0 +1,48 @@
+/* ============================================================
+ * focus-ring.css — the ring that says the keyboard is pointing here.
+ *
+ * One pattern, one file (plans/css-system-2.md §7).
+ * ============================================================ */
+
+:root {
+  /* The ring itself: one width, one color, everywhere. Composed from
+     --chrome-cursor-color so a theme moves every ring at once, and kept as a
+     whole `outline` shorthand because the width and the color are never chosen
+     separately. */
+  --chrome-cursor-ring: 2px solid var(--chrome-cursor-color);
+}
+
+/* THE OFFSET IS THE ONLY THING THAT VARIES, and it is not a preference — it
+   follows from what the element sits against:
+ *
+ *   -2px   the element ABUTS its neighbours (a list row, a menu item). An
+ *          outside ring would overlap the next one and get clipped by the
+ *          frame's overflow at the first and last.
+ *   -1px   the element has its OWN BORDER to sit just inside (an input, a
+ *          select, a swatch).
+ *   +2px   the element has clear space around it (a standalone button, a
+ *          menu trigger).
+ *
+ * So a site declares `outline: var(--chrome-cursor-ring)` with the offset its
+ * situation calls for. Only the abutting case gets a class, because it is the
+ * one applied as a class rather than as a `:focus-visible` rule — see below. */
+
+/* THE KEYBOARD CURSOR — the ring on the row a focused LIST is pointing at.
+ *
+ * Distinct from `:focus-visible` in mechanism, identical in meaning. The list
+ * container is the tab stop and holds the real focus; arrows move a cursor
+ * through the rows and this marks which one Enter would open. Because no
+ * element is focused, no pseudo-class can express it — the page toggles this
+ * class instead. (A menu does the same job with real focus, moving it item to
+ * item programmatically; both are "the keyboard is here".)
+ *
+ * Inset, because these rows always abut inside a frame.
+ *
+ * ⚠️ NOT A SELECTED STATE. This says where the keyboard is, not what is
+ * chosen. `ColorChoiceList.swatchActive` draws the same ring to mark the color
+ * you have picked — that is a different meaning wearing the same paint, and it
+ * deliberately does not read this. */
+.kb-cursor {
+  outline: var(--chrome-cursor-ring);
+  outline-offset: -2px;
+}

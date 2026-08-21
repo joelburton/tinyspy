@@ -147,7 +147,7 @@
 
 /* The two lists are the page's ONLY keyboard tab stops (see ClubPage's
  * kb-nav block): the focused list's border warms to the accent, and the
- * item cursor inside it (StartGameButtons/.kbCursor, ClubGameCard/.kbCursor)
+ * item cursor inside it (the shared `.kb-cursor` on each row)
  * marks what Enter would do. No default focus ring — the border IS the
  * focus indicator, and the browser's outline doubles up with the item ring. */
 .startList:focus,

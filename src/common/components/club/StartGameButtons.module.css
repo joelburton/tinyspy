@@ -82,7 +82,7 @@
 
 /* NO focus style here, deliberately. These buttons are not a keyboard
  * destination: ClubPage makes the LIST CONTAINER the tab stop and moves a
- * cursor between items with Up/Down (`.kbCursor` below), and the page's key
+ * cursor between items with Up/Down (the shared `.kb-cursor`), and the page's key
  * handler swallows Tab so focus never lands on an item anyway. A focus ring
  * here painted a SECOND accent ring that looked like the cursor but wasn't the
  * one Enter acted on — and it appeared on click, which is the one moment the
@@ -122,10 +122,3 @@
   line-height: 1.25;
 }
 
-/* ClubPage's keyboard list-nav cursor — the ring marking which button
- * Enter would press (the LIST container holds the actual focus). Accent
- * ring inset so it doesn't clip against the scrolled frame's edges. */
-.kbCursor {
-  outline: 2px solid var(--chrome-cursor-color);
-  outline-offset: -2px;
-}

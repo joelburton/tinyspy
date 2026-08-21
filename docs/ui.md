@@ -1036,6 +1036,31 @@ sixteen games are v3**, with bananagrams and crosswords the two documented layou
 exceptions (their own board layouts; see their game docs). There is no v4. A game
 doc calling a game "v3" means "conforms to this standard."
 
+## The ring that says the keyboard is here
+
+One ring — `--chrome-cursor-ring` (`2px solid var(--chrome-cursor-color)`, in
+[`patterns/focus-ring.css`](../src/common/patterns/focus-ring.css)) — and the
+only thing that varies is the offset, which follows from what the element sits
+against rather than from taste:
+
+| offset | when | e.g. |
+|---|---|---|
+| `-2px` | the element **abuts** its neighbours; an outside ring would overlap the next one and be clipped by the frame | list rows, menu items |
+| `-1px` | the element has **its own border** to sit just inside | inputs, selects, the color swatch |
+| `+2px` | the element has **clear space** around it | a standalone button, the menu trigger |
+
+**The keyboard cursor is the same meaning by a different mechanism.** On the
+homepage's clubs and the club page's two lists, the *container* is the tab stop
+and holds real focus; arrows move a cursor through the rows, and `.kb-cursor`
+marks which row Enter would open. No element is focused, so no pseudo-class can
+say it — the page toggles the class. A menu does the same job with real focus,
+moving it item to item programmatically. Both mean "the keyboard is pointing
+here", so both wear the same ring.
+
+**It is not a selected state.** `ColorChoiceList`'s active swatch draws the same
+ring to mark the color you have *chosen* — a different meaning wearing the same
+paint. It deliberately doesn't read the token, so the two can part company.
+
 ## The page header
 
 Home, club and game all carry the same strip: the menu trigger hard against the
