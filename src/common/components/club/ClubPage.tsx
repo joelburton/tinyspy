@@ -1059,7 +1059,7 @@ export function ClubPage({ handle, session }: Props) {
                 container takes focus, arrows move the cursor, Enter starts. */}
             <div
               ref={startListRef}
-              className={styles.startList}
+              className={cls('item-list', styles.startList)}
               tabIndex={0}
               role="group"
               aria-label="Start a new game"

@@ -90,12 +90,13 @@
   min-height: 0;
 }
 
-/* The two scrolling card frames — the start-buttons card (left) and
- * the games list (right). One rule so the paired panels can't drift
- * apart cosmetically: fixed-size visual container (flex: 1 takes the
- * column's remaining height after the fixed h3 heading), scrolling
- * internally via overflow-y: auto + min-height: 0. */
-.startList,
+/* The games-list frame. Its twin, `.startList`, is now the shared `.item-list`
+ * (common/patterns/list.css) and this rule is what that pattern says, written
+ * out — it stays here only until the divider question is settled: the pattern
+ * draws the rule between rows on the frame's direct children, and in THIS list
+ * a row is a `.card` two levels down inside its `.wrapper`, where it also
+ * carries the hover tint. `flex: 1` is the caller's half either way — it takes
+ * the column's remaining height after the heading. */
 .gamesList {
   flex: 1;
   min-height: 0;
@@ -123,12 +124,10 @@
   padding: 1rem;
 }
 
-/* The two lists are the page's ONLY keyboard tab stops (see ClubPage's
- * kb-nav block): the focused list's border warms to the accent, and the
- * item cursor inside it (the shared `.kb-cursor` on each row)
- * marks what Enter would do. No default focus ring — the border IS the
- * focus indicator, and the browser's outline doubles up with the item ring. */
-.startList:focus,
+/* Both lists are the page's ONLY keyboard tab stops (see ClubPage's kb-nav
+ * block): the focused list's border warms to the accent, and the `.kb-cursor`
+ * on a row inside it marks what Enter would do. `.startList` gets this from
+ * `.item-list`; this is the same rule for the frame that hasn't converted. */
 .gamesList:focus {
   outline: none;
   border-color: var(--chrome-cursor-color);

@@ -1,60 +1,20 @@
-/* Per-gametype Start buttons on ClubPage. A DENSE LIST — rows separated by a
- * hairline rule, not a stack of outline cards.
+/* One row of the shared `.item-list` — the frame draws the hairline between
+ * rows and owns the hover, so this keeps only what is this list's:
  *
- * The cards were the earlier treatment ("options to consider, not actions to
- * take" — see StartGameButtons.tsx). They read well at three games and badly
- * at thirteen: each row carried a full border plus its own gap, so the frame
- * showed barely half the roster and every game past MooseWheel needed a
- * scroll. A rule between rows draws the same "these are separate things"
- * boundary in a third of the vertical space, and it's the ordinary idiom for
- * a list you SCAN (which is what picking a game is) rather than a set of
- * primary actions. The frame around the whole list still carries the card
- * chrome, so the block reads as one panel instead of thirteen.
+ *   border-radius  a bare <button> gets `--radius-md` from base.css's element
+ *                  reset, and an abutting row must be square.
+ *   padding        tighter than the shared row. The club page is deliberately
+ *                  more packed: both its lists carry two lines of text per
+ *                  row, where home's carry one.
+ *   gap            wider than the shared row, for the 32px game logo — home's
+ *                  row spaces a small dot from a name.
+ *   width          fill the frame, so the hover and the rule run edge to edge.
  */
-
-.list {
-  display: flex;
-  flex-direction: column;
-  /* No gap: rows abut, and the bottom rule below IS the separation. A gap
-   * here would float the rules away from the rows they divide. */
-  /* No outer margin either: the list sits inside ClubPage's .startList card,
-   * whose padding owns the breathing room on all four sides. */
-}
-
-/* One row — an "accidental" button (docs/ui.md): it is a list row that happens
- * to be clickable, so it takes the neutral <button> and adds only a hairline
- * underneath. `border-radius: 0` is the one thing it does undo: the base keeps a
- * radius so a row's HOVER tint has soft corners, and abutting rows want square
- * ones.
- *
- * Flex row: [logo] + [content stack]. The logo is fixed-width (32px);
- * .content takes the rest. align-items: center so the 32px logo lines up
- * vertically against the two-line text stack to its right. */
 .button {
-  border-bottom: 1px solid var(--field-edge-color);
   border-radius: 0;
-  color: var(--page-text-color);
-  /* The row owns ALL the list's padding — its frame (ClubPage's .startList)
-   * has none, so this is what holds the first row off the top border by
-   * exactly the half-gap every other row is held off its neighbour by.
-   * Vertical is tight (the two-line text stack sets the height and the rules
-   * do the separating); horizontal is the frame inset the container used to
-   * supply. */
   padding: 0.4rem 0.9rem;
-  text-align: left;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
   gap: 0.85rem;
   width: 100%;
-  cursor: pointer;
-  transition: background-color 100ms ease;
-}
-
-/* The last row's rule would be a line under the list with nothing below it —
- * the frame's own border already closes the block. */
-.button:last-child {
-  border-bottom: none;
 }
 
 /* Stacked title + meta to the right of the logo. flex: 1 so the
@@ -68,16 +28,6 @@
    * hairline separates one game from the next. */
   flex: 1;
   min-width: 0;
-}
-
-/* Hover: the row tints. The old card lit its BORDER to the accent, which a
- * row with only a bottom rule can't do (lighting just the underline reads as
- * highlighting the row below). A background tint is the list idiom, and it's
- * the same `--page-surface-hover-color` the club's other hoverable surfaces use.
- * Still no accent FILL — a row is not a `.button`, and these stay quiet
- * until pressed. */
-.button:hover:not(:disabled) {
-  background: var(--page-surface-hover-color);
 }
 
 /* NO focus style here, deliberately. These buttons are not a keyboard

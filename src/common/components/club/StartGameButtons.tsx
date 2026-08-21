@@ -80,14 +80,14 @@ export function StartGameButtons({
   onCursorTo,
 }: Props) {
   return (
-    <div className={styles.list}>
+    <>
       {games.map((g, i) => {
         const fits = playerCountFits(g.numberOfPlayers, memberCount)
         return (
           <button
             key={g.gametype}
             type="button"
-            className={cls(styles.button, i === cursor && 'kb-cursor')}
+            className={cls('item-row', styles.button, i === cursor && 'kb-cursor')}
             // Keep the keyboard cursor's button in the scrolled frame's view.
             ref={i === cursor ? (el) => el?.scrollIntoView({ block: 'nearest' }) : undefined}
             onClick={() => {
@@ -136,6 +136,6 @@ export function StartGameButtons({
           </button>
         )
       })}
-    </div>
+    </>
   )
 }
