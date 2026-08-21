@@ -42,6 +42,7 @@ import { TriggerWithChevron } from '../panels/TriggerWithChevron'
 import { PauseBoundary } from './PauseBoundary'
 import { PauseButton } from '../buttons/PauseButton'
 import { InfoSwitchButton } from './InfoSwitchButton'
+import { PageHeader } from '../chrome/PageHeader'
 import { StatusSlot } from './StatusSlot'
 import { SuspendConfirmDialog } from './SuspendConfirmDialog'
 import styles from './GamePage.module.css'
@@ -486,55 +487,57 @@ export function GamePage({
           Desktop is UNCHANGED — `infoOpen` is always false there (useInfoSheet
           resets it above the breakpoint) so this renders exactly the old header,
           and the switch button is `display: none`. */}
-      <header className={styles.header}>
-        <div className={styles.left}>
-          <Menu
-            ref={menuRef}
-            trigger={
-              <TriggerWithChevron>
-                <GameLogo gametype={gametype} />
-              </TriggerWithChevron>
-            }
-            sections={sections}
-            triggerLabel="Game menu"
-            // The game menu sits over boards that read window keydowns for play
-            // (crosswords' cursor). A focused trigger would swallow those keys /
-            // reopen the menu, so let focus fall back to the board on close.
-            returnFocusOnClose={false}
-          />
-          {/* The menu is the one thing on BOTH pages — it's how you leave the
-              game, and stranding it on one page is what the old full-height
-              sheet did (it covered the header outright). */}
-          {!infoOpen && (
-            <>
-              <div className={styles.panelToggles}>
-                <ChatBubble />
-                {manifest.scratchpad?.enabled && <ScratchpadBubble />}
-              </div>
-              <StatusSlot
-                players={players}
-                globalFeedback={globalFeedback}
-                onCloseGlobalFeedback={globalFeedbackClear}
-              />
-            </>
-          )}
-        </div>
-        <div className={styles.right}>
-          {/* Pause + timer ride the INFO page on mobile (hence `infoOpen ||
-              !isMobile`), and stay in place on desktop where there's room. */}
-          {(!isMobile || infoOpen) && (
-            <>
-              <PauseButton paused={paused} onPause={sendManualPause} />
-              {showTimer && !gameOver && (
-                <span className={styles.timer}>
-                  {formatTimerSeconds(timer.displaySeconds)}
-                </span>
-              )}
-            </>
-          )}
-          <InfoSwitchButton open={infoOpen} />
-        </div>
-      </header>
+      <PageHeader
+        leftClassName={styles.left}
+        right={
+          <>
+            {/* Pause + timer ride the INFO page on mobile (hence `infoOpen ||
+                !isMobile`), and stay in place on desktop where there's room. */}
+            {(!isMobile || infoOpen) && (
+              <>
+                <PauseButton paused={paused} onPause={sendManualPause} />
+                {showTimer && !gameOver && (
+                  <span className={styles.timer}>
+                    {formatTimerSeconds(timer.displaySeconds)}
+                  </span>
+                )}
+              </>
+            )}
+            <InfoSwitchButton open={infoOpen} />
+          </>
+        }
+      >
+        <Menu
+          ref={menuRef}
+          trigger={
+            <TriggerWithChevron>
+              <GameLogo gametype={gametype} />
+            </TriggerWithChevron>
+          }
+          sections={sections}
+          triggerLabel="Game menu"
+          // The game menu sits over boards that read window keydowns for play
+          // (crosswords' cursor). A focused trigger would swallow those keys /
+          // reopen the menu, so let focus fall back to the board on close.
+          returnFocusOnClose={false}
+        />
+        {/* The menu is the one thing on BOTH pages — it's how you leave the
+            game, and stranding it on one page is what the old full-height
+            sheet did (it covered the header outright). */}
+        {!infoOpen && (
+          <>
+            <div className={styles.panelToggles}>
+              <ChatBubble />
+              {manifest.scratchpad?.enabled && <ScratchpadBubble />}
+            </div>
+            <StatusSlot
+              players={players}
+              globalFeedback={globalFeedback}
+              onCloseGlobalFeedback={globalFeedbackClear}
+            />
+          </>
+        )}
+      </PageHeader>
 
       <PauseBoundary
         paused={paused}

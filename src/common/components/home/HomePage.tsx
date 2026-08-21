@@ -11,6 +11,7 @@ import { Dot } from '../text/Dot'
 import { PuzpuzpuzWordmark } from '../branding/PuzpuzpuzWordmark'
 import { PuzpuzpuzLogo } from '../branding/PuzpuzpuzLogo'
 import { Menu, type MenuHandle } from '../panels/Menu'
+import { PageHeader } from '../chrome/PageHeader'
 import { TriggerWithChevron } from '../panels/TriggerWithChevron'
 import { useAccountMenuSection } from '../../hooks/account/useAccountMenuSection'
 import { useAppShortcuts } from '../../hooks/input/useAppShortcuts'
@@ -186,7 +187,7 @@ export function HomePage({ session }: Props) {
           artwork again; the menu holds only the account submenu today, and the
           point of the header is that Help and anything else non-user now have
           somewhere to live. */}
-      <header className={styles.header}>
+      <PageHeader>
         <Menu
           ref={menuRef}
           trigger={
@@ -197,7 +198,7 @@ export function HomePage({ session }: Props) {
           sections={[accountSection]}
           triggerLabel="Main menu"
         />
-      </header>
+      </PageHeader>
       <div className={cls('card', styles.card)}>
         <PuzpuzpuzWordmark />
         {/* Greeting leads with the identity DISC in the user's own profile

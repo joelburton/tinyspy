@@ -27,6 +27,9 @@ to each other.
 Read the folder comment and match the file's **job**, not its shape. Some rules
 that fall out of the taxonomy and have bitten us before:
 
+- **Furniture that every page carries and no page owns** (the top strip) →
+  `components/chrome/`. It isn't home's, club's or game's just because all three
+  render it — filing it under any one of them is what let three copies drift.
 - A **reusable form control** (a labeled input/select/radio) → `components/fields/`,
   even if today it's only used by the setup dialog. Fields are general; the setup
   dialog is one consumer.
@@ -43,6 +46,8 @@ that fall out of the taxonomy and have bitten us before:
 
 ```
 components/
+  chrome/        # furniture every page carries, belonging to no one page
+      PageHeader
   auth/          # pre-app screens — sign in, claim a handle
       LoginScreen, ClaimHandleScreen
   home/          # the landing page after login (your clubs)

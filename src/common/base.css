@@ -245,10 +245,19 @@
      but stays 0.5rem on a portrait tablet, so any constant is right at
      one width and wrong at the other. (A fixed 3.3rem measured flush
      at 390px and let the sheet ride 4px over the header's rule at
-     768px.) The remaining terms are the header's own box: its 2.5rem
-     tallest child (the menu trigger), its 0.5rem padding-bottom, and
-     the 1px rule. */
-  --game-header-bottom: calc(var(--page-padding-y) + 2.5rem + 0.5rem + 1px);
+     768px.) The remaining terms are the header's own box: its height,
+     its 0.5rem padding-bottom, and the 1px rule. */
+  --game-header-bottom: calc(
+    var(--page-padding-y) + var(--page-header-height) + 0.5rem + 1px
+  );
+
+  /* The page header's height, read by <PageHeader> and by the sheet
+     offset above. A REAL contract between two files, not a description:
+     this used to be the literal 2.5rem in both places, true only because
+     the header's tallest child happens to be the menu trigger (a 32px
+     logo plus 0.25rem of padding each side). Change this and both move
+     together; change the trigger and this is the one number to update. */
+  --page-header-height: 2.5rem;
 
   /* Type + the page's own ink, which every element inherits. */
   font-family: system-ui, -apple-system, sans-serif;

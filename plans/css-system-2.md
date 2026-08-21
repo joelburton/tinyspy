@@ -397,6 +397,19 @@ in `currentColor` so the caller sets `color` alone. "Solo" on a club row and
 sites to one, and `text-transform` on a shared badge would render "Co-op" as
 "CO-OP"). `<ModePill>` still holds its own copy; it reads the class at step 8.
 
+**Shipped at step 6: `<PageHeader>`** (`components/chrome/PageHeader.tsx`) — a
+COMPONENT, not a class, and the correction is the lesson: it was half-built as
+`patterns/page-header.css` before Joel asked whether a shared component already
+existed. None did — home, club and game each hand-rolled the `<header>`. Once
+the pattern grew two slots it was structure, which §7's own table sends to a
+component, and §7 already records the general case ("a shared stylesheet with
+several consumers and no component is a component waiting to be written").
+**The height is now a real contract**: `--page-header-height` in `base.css`,
+read by the component and by `--game-header-bottom` (which positions the mobile
+InfoSheet). Both were the literal `2.5rem`, true only because the header's
+tallest child happens to be the menu trigger — and the token's own comment
+records the sheet riding 4px over the rule when that coincidence slipped.
+
 **Shipped at step 6: `.heading-with-controls`** (`patterns/heading.css`) — a
 heading with the control that acts on what's BELOW it. Named to refuse the
 wrong use: a bare `<h3>` takes no class. Two things the reading settled: the
@@ -633,7 +646,7 @@ the scanner counts it as a reference and reserved cells stay alive.
 | 5 | ~~shallow whole-app pattern pass~~ **DONE 2026-08-21** | Ten patterns named, plus five below the line, in §7 → "The named patterns". Read off the rendered surfaces, then counted. Also settled: device density (§9), and three findings that are name collisions rather than patterns |
 | 6 | homepage | the rehearsal: lowest blast radius |
 | 7 | dialogs + forms | the first real win — many near-identical instances. Also decide here: whether to LOAD a font (§18) |
-| 8 | clubpage + remaining non-game chrome | Also inherits from step 6: the VIEWPORT-FIT chain (punted, §7), `.header` → `.page-header` in both HomePage and ClubPage, and `<ModePill>` reading the shared `.badge` |
+| 8 | clubpage + remaining non-game chrome | Also inherits from step 6: the VIEWPORT-FIT chain (punted, §7) and `<ModePill>` reading the shared `.badge` |
 | 9 | shared game chrome | `common/components/game/` — 258 rules, and every game sits on it. Also: the **contract-slot guard**, checked per mount point (§9, §10) |
 | 10 | per game — CSS pass, then tile-feedback pass, back to back | psychicnum first, as the control |
 | 11 | assets | 17 game logos carry baked color; the wordmark and favicon carry near-whites that fail on a dark page. All of it at once, at the end — doing one per game argues about a tree sixteen times |

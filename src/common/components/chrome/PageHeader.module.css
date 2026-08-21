@@ -1,0 +1,45 @@
+/* The strip at the top of every page. See PageHeader.tsx for what it is and
+   why the two slots always exist. */
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  /* Fixed chrome: even when the page's columns are tall, the strip keeps its
+     height and the scrolling surfaces below give instead. */
+  flex-shrink: 0;
+  /* The height is a CONTRACT — see the component docstring. `min-height`, not
+     `height`, so an unexpectedly tall child grows the strip rather than being
+     clipped; the guarantee is "never shorter". */
+  min-height: var(--page-header-height);
+  /* The same divider the play surface uses between its board / info columns,
+     so the strip reads as bounded without a card around it. */
+  border-bottom: 1px solid var(--page-divider-color);
+  padding-bottom: 0.5rem;
+}
+
+/* The left slot. `flex: 1` so it claims all the room the right slot doesn't —
+   that's the space a <StatusSlot> has to render a feedback pill or the players
+   strip into. `min-width: 0` lets that content ellipsize instead of forcing the
+   strip wider.
+
+   The gap is between individual MARKS (logo, chat bubble). GamePage passes a
+   wider one via `leftClassName`; its module says why. */
+.left {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  flex: 1;
+  min-width: 0;
+}
+
+/* The right slot — pause, timer and the info switch on a game; empty on home
+   and club. `flex-shrink: 0` so the left slot gives space before this one
+   does: a feedback pill pushes the timer out only if there's no other choice. */
+.right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}

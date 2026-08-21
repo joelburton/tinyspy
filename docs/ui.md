@@ -1036,12 +1036,45 @@ sixteen games are v3**, with bananagrams and crosswords the two documented layou
 exceptions (their own board layouts; see their game docs). There is no v4. A game
 doc calling a game "v3" means "conforms to this standard."
 
+## The page header
+
+Home, club and game all carry the same strip: the menu trigger hard against the
+page's top-left (the body's own padding is the only margin), a thin rule
+beneath, and whatever else that page needs on the line. It is the shared
+[`<PageHeader>`](../src/common/components/chrome/PageHeader.tsx) — a **component
+rather than a class**, because the two slots are structure, and three pages each
+assembling the same skeleton by hand is how they drifted apart before.
+
+|  | left slot | right slot |
+|---|---|---|
+| home | the menu | — |
+| club | menu · chat bubble · status slot | — |
+| game | menu · panel toggles · status slot | pause · timer · info switch |
+
+- **Both slots always render**, even when the right one is empty. One shape for
+  three pages, and putting something on the right later is adding a child rather
+  than restructuring a header.
+- **The height is a contract**, `--page-header-height` in `base.css`. All three
+  were `2.5rem` by arithmetic nobody had written down — a 32px logo plus the
+  menu trigger's `0.25rem` of padding each side — while `--game-header-bottom`
+  hard-coded that same `2.5rem` to position the mobile `<InfoSheet>` under this
+  rule. Two places agreeing by coincidence is how the sheet ends up riding 4px
+  over the rule at one viewport, which happened once already. Both now read the
+  token.
+- **The left slot takes `flex: 1` and `min-width: 0`** — that's the room a
+  `<StatusSlot>` has to render a feedback pill or the players strip into, and
+  the `min-width` is what lets it ellipsize instead of widening the strip.
+- **GamePage's wider left gap (`0.75rem` vs `0.375rem`) is deliberate**, passed
+  via `leftClassName`: a game logo is line art floating inside its 32px box
+  where the club logo is a full-bleed tile that inks to the edge, so the same
+  number reads tighter there.
+
 ## Headings that carry a control
 
 `<h1>`–`<h6>` are **headings**; the strip at the top of the page is a **header**
-(`<header>`, and the class should be `.page-header` — today both HomePage and
-ClubPage call it `.header`, which reads as a parent of "section header" when the
-two are unrelated). Different words for different things.
+(`<header>`) and is the shared
+[`<PageHeader>`](../src/common/components/chrome/PageHeader.tsx). Different
+words for different things.
 
 `.heading-with-controls` in
 [`patterns/heading.css`](../src/common/patterns/heading.css) is the first:

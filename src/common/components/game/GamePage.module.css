@@ -20,47 +20,16 @@
   gap: 1rem;
 }
 
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  /* Thin rule under the header — the same divider the play surface uses
-   * between its board / info columns, so the chrome strip reads as bounded
-   * without a card around it. (Its height is part of --game-chrome-height.) */
-  border-bottom: 1px solid var(--page-divider-color);
-  padding-bottom: 0.5rem;
-}
-
-/* Left group: logo + panel-toggle pair + status-slot. `flex: 1` so the
- * group expands to fill all the space the right-group doesn't
- * claim — that's the room the status-slot has to render its pill
- * / strip. `min-width: 0` lets the inner StatusSlot's children
- * shrink with ellipsis overflow on narrow widths. */
+/* GamePage's LEFT SLOT of the shared <PageHeader> — only the gap, which is
+ * wider here than home's and club's 0.375rem. Not drift: a game logo is line
+ * art floating inside its 32px box where the club logo is a full-bleed tile
+ * that inks to the edge, so the same number reads tighter here. (The slot's
+ * flex: 1 + min-width: 0 — the room a StatusSlot renders its pill into — come
+ * from the component.) */
 .left {
-  display: flex;
-  align-items: center;
   gap: 0.75rem;
-  flex: 1;
-  min-width: 0;
 }
 
-/* Right group: pause + timer. `flex-shrink: 0` so the left group
- * gives space before this one does — feedback pills push the
- * pause/timer out only if there's no other choice.
- *
- * This used to carry `margin-right: 2rem`, reserving room for a
- * fixed account chip that overlapped the header's right end from
- * the viewport corner. The chip is gone — its items are the last
- * submenu of the logo menu now (see useAccountMenuSection) — so
- * the reservation went with it. That 2rem was dead space at every
- * viewport and it's the width the mobile header needs. */
-.right {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-shrink: 0;
-}
 
 /* The floating-panel toggles: chat bubble + (when the manifest opts in)
  * scratchpad bubble. Grouped in one flex item so the pair sits tighter than

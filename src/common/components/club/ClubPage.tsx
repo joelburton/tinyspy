@@ -25,6 +25,7 @@ import { GametypeFilter, type GametypeOption } from './GametypeFilter'
 import { ModeFilter } from './ModeFilter'
 import { MODE_FILTER_VALUES, type ModeFilterValue } from './modeFilterOptions'
 import { Menu, type MenuHandle } from '../panels/Menu'
+import { PageHeader } from '../chrome/PageHeader'
 import { TriggerWithChevron } from '../panels/TriggerWithChevron'
 import { PuzpuzpuzLogo } from '../branding/PuzpuzpuzLogo'
 import { SetupGameDialog } from '../setup/SetupGameDialog'
@@ -914,7 +915,7 @@ export function ClubPage({ handle, session }: Props) {
 
   return (
     <div className={styles.frame}>
-      <header className={styles.header}>
+      <PageHeader>
         <Menu
           ref={menuRef}
           trigger={
@@ -938,7 +939,7 @@ export function ClubPage({ handle, session }: Props) {
           onCloseGlobalFeedback={clearGlobalFeedback}
           presentUserIds={presentUserIds}
         />
-      </header>
+      </PageHeader>
 
       {/* Club title — a full-width row spanning both body columns.
           The "Club:" / "Solo Club:" prefix says what kind of venue

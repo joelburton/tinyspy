@@ -111,15 +111,5 @@
   min-height: 0;
 }
 
-/* The same fixed-chrome strip ClubPage carries, down to the gap: square site
- * logo hard against the page's top-left (the body's own padding is the only
- * margin), thin rule beneath. Spacing to the card below comes from `.frame`'s
- * gap, not a margin here. */
-.header {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  flex-shrink: 0;
-  border-bottom: 1px solid var(--page-divider-color);
-  padding-bottom: 0.5rem;
-}
+/* The strip itself is the shared <PageHeader>. Spacing to the card below comes
+ * from `.frame`'s gap, not a margin on the header. */
