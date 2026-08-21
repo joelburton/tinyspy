@@ -69,8 +69,20 @@
   gap: 1.25rem;
 }
 
-/* The games-list frame is the shared `.item-list`; `flex: 1` is the caller's
- * half — it takes the column's remaining height after the heading. */
+/* The left column's lower half: the "Start a new game" heading, fixed, above
+ * the scrolling list. `flex: 1` + `min-height: 0` are what give the list a
+ * definite height to scroll against — the right column doesn't need this
+ * because its heading and list are the column's only children. */
+.startBlock {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Both list frames are the shared `.item-list`; `flex: 1` is the caller's half
+ * — each takes what's left of its column after the heading. */
+.startList,
 .gamesList {
   flex: 1;
 }
