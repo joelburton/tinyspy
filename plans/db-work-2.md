@@ -31,6 +31,7 @@ this file is a reason to hold the alpha schema freeze.
 | # | item | owner doc | the DB change |
 |---|---|---|---|
 | 1 | crosswords dictionary-puzzle bulk import | [crosswords.md → §9](../docs/games/crosswords.md#9-deferred) | data, not schema — but it's the trigger for the picker bound |
+| 2 | setgame `card` → `tile` | [setgame.md → Deferred](../docs/games/setgame.md#deferred) | a rename reaching columns, `smallint` declarations, loop variables and function bodies across `supabase/sql/setgame.sql` (141 mentions) plus the migration |
 
 ---
 
@@ -46,6 +47,18 @@ does.
 
 `fetch-nyt-range` (the bulk NYT CLI) is the same category — a script blocked on
 the `NYT_COOKIE_JAR` secret, writing data, touching no schema.
+
+---
+
+## 2. setgame's `card` → `tile`
+
+The app has one word for the main game piece — **tile** — whatever the physical
+game uses; codenamesduet deals in real-world cards and calls them tiles.
+setgame is the holdout. Deferred for size rather than doubt: 765 mentions in
+`src/setgame/`, 141 in SQL, 128 in its doc.
+
+The DB half is why it's indexed here. Worth doing when setgame's CSS /
+tile-feedback pass opens these files anyway.
 
 ---
 

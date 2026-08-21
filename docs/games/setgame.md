@@ -663,6 +663,22 @@ would file a bug report for.
 
 ## Deferred
 
+- **Rename `card` → `tile` throughout** (Joel, 2026-08-21). The app has one word
+  for the main game piece — **tile** — regardless of what the physical game uses.
+  codenamesduet deals in real-world cards too and calls them tiles; setgame is
+  the holdout, and it makes `.card` mean a fourth thing app-wide (the others are
+  a bordered surface panel, a popover, and a list row).
+
+  Not small, and it is why this is deferred rather than done: **765 mentions in
+  `src/setgame/`, 141 in SQL, 128 in this doc.** The SQL half is the part that
+  costs — `cards` is a column and appears in `smallint` declarations, loop
+  variables and function bodies across `supabase/sql/setgame.sql`, so it is a
+  DB-touching rename, indexed in [`plans/db-work-2.md`](../../plans/db-work-2.md).
+  The FE half includes `components/Card.tsx`, `lib/cards.ts` and their tests.
+
+  Worth doing when setgame's CSS/tile-feedback pass comes up, so the rename
+  rides along with a pass that is already opening every one of these files.
+
 - **`target_sets` for coop** — an opt-in finish line, spellingbee's machinery.
   Only bites in a timed game. Nobody has asked for it.
 
