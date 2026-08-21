@@ -54,6 +54,10 @@
  * button that never takes focus can't trigger that. It stays big because it's
  * the mobile layout's only filter control, sitting alone in the row under the
  * tab bar, where it's something you tap rather than heading chrome. */
+/* Touch: bigger tap targets. NOT the iOS focus-zoom floor — that only applies
+ * to focusable text fields, and both of these are <button>s (docs/mobile.md →
+ * Decisions #3). The trigger reaching 16px is a coincidence of the two aiming
+ * at similar sizes. */
 @media (--touch) {
   .filterTrigger {
     font-size: max(16px, 1em);

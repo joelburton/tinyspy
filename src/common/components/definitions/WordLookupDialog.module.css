@@ -31,7 +31,7 @@
    A class rule, so it needs its own override past the global input floor. */
 @media (--touch) {
   .input {
-    font-size: 16px;
+    font-size: max(16px, 1em);
   }
 }
 

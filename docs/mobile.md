@@ -181,6 +181,19 @@ portrait.
    wants tap targets *bigger*). Mind the **iOS trap**: an `<input>` with a font
    under **16px** triggers focus-zoom on iOS, so shrink the *field*, not the
    input font, past that floor.
+   **The floor is a rule about AUTHORING, not a shared class**, and that's
+   forced: `base.css` floors `input, textarea` at `max(16px, 1em)`, but any
+   class that sets its own `font-size` out-ranks an element rule, so the
+   override has to sit beside the declaration that caused it. Five sites do it
+   today — `ChatBody`, `GameScratchpad`, `WordLookupDialog`, `AnagramDialog`,
+   and `FilterSelect`'s club-page trigger. **`max(16px, 1em)`, never a bare
+   `16px`**: the `1em` resolves to the inherited size, so it raises anything
+   under the floor and never shrinks a field that was already bigger.
+
+   A `<button>` never triggers focus-zoom — only a focusable text field does. A
+   touch rule on a button is tap-target sizing, a different thing that happens
+   to look identical.
+
 4. **The infoCol-as-a-separate-screen** (rough POC in psychicnum — a menu-opened
    sheet) is the pattern that makes most games tablet-ready with little extra
    CSS. **Phones need the most per-game tweaking; tablets mostly inherit.**
