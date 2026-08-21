@@ -1197,6 +1197,13 @@ setup dialog — all the same shape, and it's the shared `.item-list` /
   outcome bar and is a different thing entirely; don't reach for the turn-log
   bar vocabulary here.
 
+**An empty list gets a message inside the frame** — `.item-list-empty`, paired
+with `muted`. It's the one thing in there that isn't a self-padding row, so it
+supplies the inset the frame deliberately doesn't. A list may instead be
+replaced wholesale by a sentence *outside* the frame — what the homepage does
+with "You haven't joined a club yet." — which is a different choice: no empty
+box at all.
+
 **The menu is not one of these.** It looks the same and isn't: a menu is a set
 of *actions* you pick from and it closes; a list is a set of *places* that stay
 put. So the menu keeps menu names and doesn't compose `.item-row` — a menu isn't

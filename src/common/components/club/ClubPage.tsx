@@ -1090,7 +1090,7 @@ export function ClubPage({ handle, session }: Props) {
                   club enrolled in only coop gametypes, filtered to Compete.
                   Say so rather than showing a blank card. */}
               {visibleStartable.length === 0 ? (
-                <p className={`muted ${styles.emptyList}`}>
+                <p className={cls('muted', 'item-list-empty')}>
                   {effectiveMode === 'all'
                     ? 'No games available in this club.'
                     : `No ${MODE_LABEL[effectiveMode]} games in this club.`}
@@ -1151,7 +1151,7 @@ export function ClubPage({ handle, session }: Props) {
                 empty it (and a selection that goes stale falls back to
                 'all' — see selectedGametype). */}
             {visibleGames.length === 0 ? (
-              <p className={`muted ${styles.emptyList}`}>No games yet.</p>
+              <p className={cls('muted', 'item-list-empty')}>No games yet.</p>
             ) : (
               visibleGames.map((g, i) => (
                 <ClubGameCard

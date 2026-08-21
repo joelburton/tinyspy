@@ -67,6 +67,21 @@
   border-color: var(--chrome-cursor-color);
 }
 
+/* The message shown when there is nothing in the list — "No games yet.", "No
+   games available in this club." It sits INSIDE the frame, so it is the one
+   thing in there that isn't a self-padding row and has to supply the inset the
+   frame deliberately doesn't. Not a row: no hairline, no hover, nothing to
+   click.
+
+   Pair it with `muted` — the message is an absence, not a value.
+
+   (A list may instead be replaced wholesale by a sentence outside the frame,
+   which is what the homepage does with "You haven't joined a club yet." That
+   is a different choice — no empty box — and takes nothing from here.) */
+.item-list-empty {
+  padding: 1rem;
+}
+
 /* ---------- The row ---------- */
 
 /* THE ELEMENT SHOULD NOT BE ARBITRARY, and today it is: across the app's six

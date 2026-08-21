@@ -48,46 +48,25 @@
   min-height: 0;
 }
 
-/* Left column: active game (fixed) + the start-a-new-game block.
- * The column itself never scrolls — scrolling lives inside the
- * .startList card (below), so the "Start a new game" heading stays
- * put, mirroring the right column's heading + scrolling frame. */
-.left {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-  min-height: 0;
-}
-
-/* The "Start a new game" block: heading (fixed) + the scrolling
- * card. flex: 1 + min-height: 0 bound it to the column's remaining
- * height (after the active-game block) so the card's overflow-y
- * actually engages — the same recipe as .right. */
-.startBlock {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-
-/* Right column: "Other games" heading + the scrolling list.
- * flex: 1 + min-height: 0 are the two halves of the "this
- * column has a definite height and its internal scroll works"
- * recipe; without them the column would expand to fit content
- * and the gamesList's overflow-y: auto would have nothing to
- * scroll against. */
+/* The two columns. Each takes half the width and has a DEFINITE height —
+ * `flex: 1` + `min-height: 0` are the two halves of "this column's internal
+ * scroll works": without them the column expands to fit its content and the
+ * list inside has nothing to scroll against. Neither column scrolls itself;
+ * scrolling lives in the list frame, so both headings stay put. */
+.left,
 .right {
   flex: 1;
   display: flex;
   flex-direction: column;
-  /* NO gap: the h3 heading's own margin-bottom is the only space above the
-   * gamesList frame, which is exactly the space the LEFT column has between
-   * its "Start a new game" h3 and the first start button (the h3's
-   * margin-bottom collapses over the button list's smaller margin-top).
-   * Any gap here would push the frame's top border below the buttons'. */
-  gap: 0;
   min-height: 0;
+}
+
+/* Only the LEFT column has two blocks to separate — the active-game callout
+ * above the start-a-new-game block. The right column is one heading and one
+ * list, where the h3's own margin is the whole space above the frame (and
+ * matches what the left column has between its h3 and its first row). */
+.left {
+  gap: 1.25rem;
 }
 
 /* The games-list frame is the shared `.item-list`; `flex: 1` is the caller's
@@ -109,12 +88,6 @@
 .gamesList :global(.item-row) {
   padding: 0.4rem 0.9rem;
   gap: 0.85rem;
-}
-
-/* An empty list's message — the one thing in either frame that ISN'T a
- * self-padding row, so it supplies the inset the container no longer does. */
-.emptyList {
-  padding: 1rem;
 }
 
 /* Club title block — a full-width row of the .frame column (between
