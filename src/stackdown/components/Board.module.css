@@ -84,6 +84,11 @@
   opacity: 0.92;
 }
 
+/* ⚠️ TEMPORARY — the depth hover, standing in for stackdown's tile-feedback
+ * pass. It was a blue border (`--button-normal-primary-color`), which is a
+ * CONTROL color on a game piece, and it also made stackdown useless for the one
+ * question being asked of it: does a shadow read as hover on a dark page.
+ * Restore or replace when stackdown takes its real tf pass. */
 .tile:not(:disabled):hover {
-  border-color: var(--button-normal-primary-color);
+  box-shadow: var(--stackdown-tile-hover-shadow);
 }

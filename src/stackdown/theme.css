@@ -15,6 +15,18 @@
    * they scale with the board. Values unchanged. */
   --stackdown-tile-edge-color: rgb(0 0 0 / 20%);
   --stackdown-tile-shadow:     0 0.4cqi 0.8cqi rgb(0 0 0 / 28%);
+
+  /* HOVER — ⚠️ TEMPORARY, and a mini-version of the tile-feedback pass rather
+     than the pass itself. stackdown is pre-tf, so its hover was a blue ring
+     borrowed from the button palette; this swaps it for the depth cue the
+     converted games use, so the dark-mode question can actually be looked at.
+
+     FARTHER AND SOFTER, which is what elevation is: the drop trebles, the blur
+     doubles, the alpha barely moves — the same relationship the shared
+     `--tile-hover-shadow` has to `--tile-shadow`. NO LIFT, deliberately: the
+     question on the table is whether the SHADOW reads against the page, and a
+     transform would answer a different one very loudly. */
+  --stackdown-tile-hover-shadow: 0 1.2cqi 1.6cqi rgb(0 0 0 / 32%);
 }
 
 /* ⚠️ TEMPORARY EXPERIMENT — how strong CAN a shadow be on a dark page?
@@ -39,5 +51,6 @@
  * DELETE THIS once the depth question is settled. It is a measurement, not a
  * design. */
 html[data-theme='midnight'] {
-  --stackdown-tile-shadow: 0 0.4cqi 0.8cqi rgb(0 0 0 / 100%);
+  --stackdown-tile-shadow:       0 0.4cqi 0.8cqi rgb(0 0 0 / 100%);
+  --stackdown-tile-hover-shadow: 0 1.2cqi 1.6cqi rgb(0 0 0 / 100%);
 }
