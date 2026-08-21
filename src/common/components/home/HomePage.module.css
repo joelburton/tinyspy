@@ -6,31 +6,15 @@
   align-items: center;
 }
 
-/* The disc is scaled to the h1 rather than left at its em-relative default,
- * which at this size read as a speck. --dot-size is the shared knob (see
- * Dot.module.css); the right margin is the gap to the username. */
+/* Scaled up against the h1 — at the disc's em-relative default it reads as a
+ * speck here. `--dot-size` is the shared knob (Dot.module.css). */
 .greetingDot {
   --dot-size: 0.7em;
   margin-right: 0.45em;
 }
 
-/* The clubs list is the shared `.item-list` / `.item-row` pattern
- * (common/patterns/list.css) — the same one ClubPage's games list is,
- * one level apart: home lists clubs, a club lists its games. They were
- * drawn differently for no reason other than having been built at
- * different times.
- *
- * Each row is a <Link>, so the whole row is the click target and
- * middle-click / cmd-click "open in new tab" keeps working.
- *
- * Solo clubs share the row surface with regular clubs; the only visual
- * distinction is an outlined "Solo" pill in the row (rendered by
- * HomePage's render-time partition, with solo sorted to the top).
- * Earlier iterations layered a star icon + tinted background + filled
- * badge, which read as too much signal for one piece of information —
- * the pill alone is sufficient distinction.
- *
- * All that's left here is the gap above the frame. */
+/* The list is the shared `.item-list` / `.item-row` (common/patterns/list.css);
+ * only the gap above it is home's. */
 .clubsList {
   margin-top: 0.5rem;
 }
@@ -39,39 +23,21 @@
   font-weight: 500;
 }
 
-/* "Solo" — the shared `.badge` (common/patterns/badge.css), which is the same
- * thing a game row's mode pill is: a one-word label saying what KIND of thing
- * the row holds. The badge paints no color, so all that's left here is which
- * color this one takes — the same accent as the page's link affordances, so
- * the visual vocabulary stays consistent. Outlined rather than filled, which
- * the shape already guarantees: quieter than a solid badge while still
- * anchoring the row as "this is your solo space." */
+/* The shared `.badge` paints no color, so the caller picks one. This takes the
+ * page's link accent. */
 .soloBadge {
   color: var(--chrome-badge-color);
 }
 
-/* The page's OUTER STACK: the header, then the card. Nothing about it is
- * header-specific — it's a flex column with a gap and the height bound, and any
- * page with more than one top-level piece wants the same thing. ClubPage and
- * GamePage each declare their own (see §8 of plans/css-system-2.md: they differ
- * only in the bound, and the name wants to change — `frame` elsewhere means a
- * rectangle drawn around a board).
+/* The page's outer stack: the header, then the card, 1rem apart. (ClubPage and
+ * GamePage each declare their own; unifying them is step 8 of
+ * plans/css-system-2.md, which is also where the name changes — `frame`
+ * elsewhere means a rectangle drawn around a board.)
  *
- * Login and claim-a-handle are centered cards with no stack at all, because
- * their card is their only piece. Home has two, which is why this exists.
- *
- * SEPARATELY, the header sits outside the card rather than inside it: inside,
- * it inherited the card's 2rem padding and its border, so it read as page
- * content and lined up with nothing else in the app. That's a fact about the
- * header, not about this rule.
- *
- * MAX-height, where ClubPage's frame takes a fixed `height` — and the
- * difference is the point (docs/ui.md → "Page-height fits the viewport"). Home
- * is a centered card sized to its content, so a fixed height would stretch it
- * to the full viewport and strand a two-club list at the top of a tall empty
- * box. A max-height leaves the common case exactly as it looks today and only
- * binds when the clubs would otherwise push the page into scrolling — at which
- * point the LIST scrolls (see .clubsList) and the page still doesn't.
+ * MAX-height, not `height`. Home's body is a card sized to its content, so a
+ * fixed height would stretch it to the full viewport and strand a two-club list
+ * at the top of a tall empty box. This only binds when the clubs would
+ * otherwise scroll the page — at which point the LIST scrolls instead.
  *
  * `svh`, not `vh`, for the mobile-Safari reason documented on `body`. */
 .frame {
@@ -82,12 +48,11 @@
   max-height: calc(100svh - 2 * var(--page-padding-y));
 }
 
-/* Home's `.card` (the shared class supplies the surface + padding; this adds
- * only the layout) becomes a flex column that may shrink, so the bound above
- * can reach the list inside it. `min-height: 0` is the load-bearing half: a
- * flex item's floor is its content by default, which would let the card keep
- * its natural height and push the page into a scroll anyway — the same trap
- * the mobile InfoSheet hit. */
+/* Layout only — the shared `.card` supplies the surface and padding. A flex
+ * column that may shrink, so the bound above can reach the list inside it.
+ * `min-height: 0` is the load-bearing half: a flex item's floor is its content
+ * by default, which would let the card keep its natural height and push the
+ * page into a scroll anyway — the trap the mobile InfoSheet hit. */
 .card {
   display: flex;
   flex-direction: column;
@@ -109,6 +74,3 @@
   flex-direction: column;
   min-height: 0;
 }
-
-/* The strip itself is the shared <PageHeader>. Spacing to the card below comes
- * from `.frame`'s gap, not a margin on the header. */
