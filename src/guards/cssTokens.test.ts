@@ -426,6 +426,58 @@ describe('the themes are in step', () => {
     return new Set([...css.matchAll(/(--[a-zA-Z0-9_-]+)\s*:/g)].map((m) => m[1]))
   }
 
+  /** Relative luminance of a `#rrggbb`, for ordering a ramp. */
+  const luminance = (hex: string) => {
+    const n = parseInt(hex.slice(1), 16)
+    const chan = (v: number) => {
+      const c = v / 255
+      return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
+    }
+    return 0.2126 * chan((n >> 16) & 255) + 0.7152 * chan((n >> 8) & 255) + 0.0722 * chan(n & 255)
+  }
+
+  /**
+   * The tile ramp runs LIGHTEST to DARKEST in every theme, and `spent` sits
+   * below the whole of it.
+   *
+   * The numbers are an ORDINAL, and every consumer reads them as one — most
+   * sharply stackdown, which maps covering-depth onto the ramp so the exposed
+   * tile is 1 and the buried ones are 2, 3, 4. Midnight's first ramp ran the
+   * other way, because it preserved "how far each shade sits from the page"
+   * rather than "how dark each shade is" — two rules that agree in daylight and
+   * are opposites on a dark page. The result lit the BOTTOM of a stack and left
+   * the top in shadow.
+   *
+   * Deeper means less light reaches it. That is a fact about lighting, not about
+   * the page, so it does not flip with the theme — and a theme is exactly where
+   * someone would flip it by accident, which is why this is a test rather than a
+   * sentence in a comment.
+   */
+  it('the tile ramp descends 1 → 5 in every theme, with spent below it', () => {
+    for (const theme of THEMES) {
+      const css = stripComments(readFileSync(join(SRC, `common/themes/${theme}.css`), 'utf8'))
+      const hexOf = (name: string) => {
+        const m = new RegExp(`--tile-${name}-fill-color:\\s*(#[0-9a-fA-F]{6})`).exec(css)
+        expect(m, `${theme}.css has no --tile-${name}-fill-color literal`).not.toBeNull()
+        return m![1]
+      }
+      const ramp = [1, 2, 3, 4, 5].map((n) => ({ n: String(n), lum: luminance(hexOf(String(n))) }))
+      const descending = ramp.every((s, i) => i === 0 || s.lum < ramp[i - 1].lum)
+      expect(
+        descending,
+        `${theme}.css: the tile ramp must run LIGHTEST (1) to DARKEST (5) — the ` +
+          `numbers are an ordinal and stackdown reads them as covering-depth, so an ` +
+          `inverted ramp lights the bottom of a stack. Luminances 1→5: ` +
+          ramp.map((s) => s.lum.toFixed(4)).join(' '),
+      ).toBe(true)
+      expect(
+        luminance(hexOf('spent')) < ramp[4].lum,
+        `${theme}.css: \`spent\` must sit below shade 5 — it is the shade BEYOND the ` +
+          `ramp, for a piece that is out of play.`,
+      ).toBe(true)
+    }
+  })
+
   it('every theme defines exactly the same roles', () => {
     const [first, ...rest] = THEMES
     const base = rolesOf(first)

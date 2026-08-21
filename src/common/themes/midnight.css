@@ -251,15 +251,33 @@
      The warm ramp, kept warm and run dark. It does not derive in
      daylight either (hue holds while chroma RISES as it darkens), so
      this is twelve fresh values in the same shape: one material
-     getting thicker, starting from a dark wood rather than an ivory.
-     The NUMBERS keep their meaning — 3 is still the everyday tile,
-     stackdown still reads 2–5 as depth — which is what makes a ramp a
-     contract rather than a picture. */
-  --tile-1-fill-color:      #3a3327;   --tile-1-edge-color:      #55492f;
-  --tile-2-fill-color:      #443c2d;   --tile-2-edge-color:      #605232;
+     getting thicker, starting from a warm wood rather than an ivory.
+
+     ⚠️ THE DIRECTION IS THE CONTRACT, and this file got it backwards
+     once. `1` IS THE LIGHTEST AND `5` IS THE DARKEST, in every theme —
+     the numbers are an ordinal, and every consumer reads them as one.
+     The first version of this ramp ran the other way, because it
+     preserved "how far each shade sits from the page" rather than "how
+     dark each shade is", and those two agree in daylight and are
+     opposites here.
+
+     Stackdown is what exposed it. It maps covering-depth onto the
+     ramp — the exposed tile is 1, the buried ones 2, 3, 4 — so an
+     inverted ramp lit the BOTTOM of the stack and left the top in
+     shadow, which is not how anything works. Deeper means less light
+     reaches it, and that is a fact about lighting rather than about the
+     page, so it does not flip with the theme.
+
+     A dark ramp therefore runs from a warm wood DOWN toward the page's
+     own black, and a buried tile approaches the background instead of
+     receding from it — which is what being buried looks like. `3` is
+     still the everyday tile and did not move at all: it is the middle
+     of five either way. */
+  --tile-1-fill-color:      #695b43;   --tile-1-edge-color:      #8a754a;
+  --tile-2-fill-color:      #5a4e3a;   --tile-2-edge-color:      #786641;
   --tile-3-fill-color:      #4e4433;   --tile-3-edge-color:      #6b5b38;  /* NORMAL */
-  --tile-4-fill-color:      #5a4e3a;   --tile-4-edge-color:      #786641;
-  --tile-5-fill-color:      #695b43;   --tile-5-edge-color:      #8a754a;
+  --tile-4-fill-color:      #443c2d;   --tile-4-edge-color:      #605232;
+  --tile-5-fill-color:      #3a3327;   --tile-5-edge-color:      #55492f;
   --tile-spent-fill-color:  #2b261d;   --tile-spent-edge-color:  #423a2b;
 
   --tile-slot-fill-color:  var(--tile-3-fill-color);
@@ -274,12 +292,15 @@
   --tile-selected-edge-color:  #ffffff;
 
   /* ══ KBD ════════════════════════════════════════════════════════
-     An untried key is a faint warm DARK — the step below the tile
-     ramp, running the direction the ramp runs. The daylight comment's
-     reasoning inverts cleanly: a mid gray would read as disabled or
-     vanish into the page, and a hint of warmth says "an object". The
-     hover goes to near-black rather than to white, which is the same
-     move away from the page. */
+     An untried key is a faint warm DARK: barely off the page, which is
+     what daylight's faint warm WHITE is too. The relationship that
+     matters is to the PAGE and not to the tile ramp — daylight's key
+     happens to sit a step lighter than tile 1, and that is a
+     coincidence of light mode rather than a rule. The reasoning
+     inverts cleanly: a mid gray would read as disabled or vanish, and
+     a hint of warmth says "an object, not the page". The hover moves
+     further FROM the page, which in daylight means toward white and
+     here means toward a lighter warm. */
   --kbd-key-fill-color:        #2c2820;
   --kbd-key-hover-fill-color:  #383226;
   --kbd-key-ink-color:         var(--page-text-color);
