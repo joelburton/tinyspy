@@ -28,7 +28,7 @@
 
 .filled {
   border-style: solid;
-  border-color: var(--chrome-action-primary-color);
+  border-color: var(--button-normal-primary-color);
   background: var(--page-surface-color);
   cursor: pointer;
 }
@@ -45,13 +45,13 @@
  *   - good: an accepted word (the player's own, or a teammate's valid find)
  *   - bad:  a teammate's rejected word (their tiles bounced back) */
 .won {
-  border-color: var(--outcome-won-ink-color);
-  box-shadow: 0 0 0 3px var(--outcome-won-ink-color);
+  border-color: var(--outcomes-won-ink-color);
+  box-shadow: 0 0 0 3px var(--outcomes-won-ink-color);
 }
 
 .lost {
-  border-color: var(--outcome-lost-ink-color);
-  box-shadow: 0 0 0 3px var(--outcome-lost-ink-color);
+  border-color: var(--outcomes-lost-ink-color);
+  box-shadow: 0 0 0 3px var(--outcomes-lost-ink-color);
 }
 
 /* A flashed slot is `disabled` (not interactive during the flash), which the

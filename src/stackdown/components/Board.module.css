@@ -56,9 +56,9 @@
  * the candidates. The red ring (box-shadow) is the always-visible signal;
  * the red border is a bonus (hover may recolor it, but the ring stays). */
 .flash {
-  border-color: var(--outcome-lost-ink-color);
+  border-color: var(--outcomes-lost-ink-color);
   box-shadow:
-    0 0 0 0.5cqi var(--outcome-lost-ink-color),
+    0 0 0 0.5cqi var(--outcomes-lost-ink-color),
     var(--stackdown-tile-shadow);
 }
 
@@ -69,9 +69,9 @@
  * tiles stay ON the board in the snapshot (the strictly-before boundary), so
  * the ring is always visible. */
 .viewed {
-  border-color: var(--outcome-won-ink-color);
+  border-color: var(--outcomes-won-ink-color);
   box-shadow:
-    0 0 0 0.5cqi var(--outcome-won-ink-color),
+    0 0 0 0.5cqi var(--outcomes-won-ink-color),
     var(--stackdown-tile-shadow);
 }
 
@@ -82,5 +82,5 @@
 }
 
 .tile:not(:disabled):hover {
-  border-color: var(--chrome-action-primary-color);
+  border-color: var(--button-normal-primary-color);
 }

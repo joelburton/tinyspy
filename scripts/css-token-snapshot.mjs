@@ -5,8 +5,8 @@
  *     node scripts/css-token-snapshot.mjs after.json before.json   # capture + diff
  *
  * This is the acceptance instrument for the css-system sprint's step 3
- * (plans/css-system.md → §4.3), whose exit criterion is **nothing looks
- * different**. Restructuring 561 token definitions across new files is exactly
+ * (plans/css-system-2.md → §13), whose exit criterion is that every value which
+ * MOVED is deliberate. Restructuring hundreds of token definitions across new files is exactly
  * the kind of change that is impossible to eyeball and trivial to get subtly
  * wrong, so the check is mechanical: resolve every token before, resolve every
  * token after, and require the two lists to be identical.
@@ -42,7 +42,7 @@
  * ── Scope ────────────────────────────────────────────────────────────────
  *
  * Tokens defined under `src/common/` only. A game's own tokens ship in that
- * game's lazy chunk (§6.1) and are simply not present on the page this loads, so
+ * game's lazy chunk (§9) and are simply not present on the page this loads, so
  * including them would record fifteen false "unresolved"s. Widen the scope when
  * a game converts — pass its route and re-run.
  *
@@ -82,7 +82,7 @@ const names = new Set()
 for (const file of walk(join(ROOT, 'src', 'common'))) {
   const text = strip(readFileSync(file, 'utf8'))
   for (const m of text.matchAll(/(--[a-zA-Z0-9_-]+)\s*:/g)) {
-    // `--_name` is private to one file (§3.1) and is not a shared contract;
+    // `--_name` is private to one file (§5) and is not a shared contract;
     // it also may not be in scope on :root, so probing it would record noise.
     if (!m[1].startsWith('--_')) names.add(m[1])
   }

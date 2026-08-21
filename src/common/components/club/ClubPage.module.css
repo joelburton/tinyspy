@@ -16,7 +16,7 @@
 .frame {
   width: 100%;
   /* Total height = viewport minus the body's vertical padding
-   * (defined in common/theme.css's body rule). Without this,
+   * (defined in common/base.css's body rule). Without this,
    * .body's flex: 1 has no upper bound, and the .gamesList
    * overflow-y: auto inside it never triggers. */
   height: calc(100svh - 2 * var(--page-padding-y));
@@ -152,7 +152,7 @@
    * columns), and the pale card border let them fade into the background.
    * Same token as the row rules inside the start list, so the frame and its
    * contents' lines agree. */
-  border: 1px solid var(--control-border-color);
+  border: 1px solid var(--field-edge-color);
   border-radius: var(--radius-lg);
   /* NEITHER frame owns padding: the rows inside carry their own, so the space
    * above the first item equals the space between any two (a frame padding on

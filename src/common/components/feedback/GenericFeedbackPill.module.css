@@ -116,9 +116,9 @@
   background: var(--pill-error-tint-color);
 }
 
-.info {
-  border-color: var(--pill-info-color);
-  background: var(--pill-info-tint-color);
+.noted {
+  border-color: var(--pill-noted-color);
+  background: var(--pill-noted-tint-color);
 }
 
 /* Outline = the TRANSIENT look: drop the fill tint back to a plain white surface,

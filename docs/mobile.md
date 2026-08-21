@@ -293,7 +293,7 @@ migration: not worth the churn for games you don't play on a phone. Unit tests t
 The three shell screens ([`HomePage`](../src/common/components/home/HomePage.tsx),
 [`LoginScreen`](../src/common/components/auth/LoginScreen.tsx),
 [`ClaimHandleScreen`](../src/common/components/auth/ClaimHandleScreen.tsx)) all
-render inside the global `.card` (in [`theme.css`](../src/common/theme.css)). Two
+render inside the global `.card` (in [`utilities.css`](../src/common/utilities.css)). Two
 fixes made them phone-safe:
 
 - **`overflow-wrap: anywhere` on `.card`.** Long *unbreakable* tokens — a long
@@ -380,7 +380,7 @@ back out), leaving the sheet wider than the screen. `@media (--touch)` pins the
 field to 16px; desktop keeps 0.9rem. This is the exact trap
 [Decisions #3](#decisions--directions) warned about. That sweep has since
 happened: a global `@media (--touch) { input, textarea { font-size: max(16px,
-1em) } }` in [theme.css](../src/common/theme.css) floors every element-styled
+1em) } }` in [base.css](../src/common/base.css) floors every element-styled
 field, and the three class-styled fields that would out-specificity it (this
 chat input, the scratchpad textarea, the word-lookup input) each carry their own
 `--touch` pin — so no sub-16px input remains.
@@ -421,7 +421,7 @@ white-on-yellow, unreadable, unplayable.
 Two declarations, and they have to agree:
 
 - `<meta name="color-scheme" content="only light">` in `index.html`
-- `color-scheme: only light` on `:root` in `src/common/theme.css`
+- `color-scheme: only light` on `:root` in `src/common/themes/light-mode.css`
 
 The **`only` keyword is the whole point** — a bare `light` states a preference
 but does *not* forbid the browser's transformation. And the CSS one is

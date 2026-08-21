@@ -459,7 +459,7 @@ export function PlayArea(ctx: GamePageCtx) {
       if (row.rank_idx > was) {
         const member = players.find((p) => p.user_id === row.user_id)
         globalFeedback.show({
-          tone: 'info',
+          tone: 'noted',
           text: (
             <>
               <ActorDot actor={member} fallback="An opponent" /> reached{' '}

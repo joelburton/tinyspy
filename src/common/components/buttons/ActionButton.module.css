@@ -27,36 +27,36 @@
  */
 
 .caution {
-  --primary-color: var(--chrome-caution-primary-color);
-  --primary-hover-color: var(--chrome-caution-primary-hover-color);
-  --primary-ink-color: var(--chrome-caution-primary-ink-color);
-  --secondary-color: var(--chrome-caution-secondary-color);
-  --secondary-hover-color: var(--chrome-caution-secondary-hover-color);
+  --button-slot-primary-color: var(--button-caution-primary-color);
+  --button-slot-primary-hover-color: var(--button-caution-primary-hover-color);
+  --button-slot-primary-ink-color: var(--button-caution-primary-ink-color);
+  --button-slot-secondary-color: var(--button-caution-secondary-color);
+  --button-slot-secondary-hover-color: var(--button-caution-secondary-hover-color);
 }
 
 .destructive {
-  --primary-color: var(--chrome-destructive-primary-color);
-  --primary-hover-color: var(--chrome-destructive-primary-hover-color);
-  --primary-ink-color: var(--chrome-destructive-primary-ink-color);
-  --secondary-color: var(--chrome-destructive-secondary-color);
-  --secondary-hover-color: var(--chrome-destructive-secondary-hover-color);
+  --button-slot-primary-color: var(--button-destructive-primary-color);
+  --button-slot-primary-hover-color: var(--button-destructive-primary-hover-color);
+  --button-slot-primary-ink-color: var(--button-destructive-primary-ink-color);
+  --button-slot-secondary-color: var(--button-destructive-secondary-color);
+  --button-slot-secondary-hover-color: var(--button-destructive-secondary-hover-color);
 }
 
 .action {
-  --primary-color: var(--chrome-action-primary-color);
-  --primary-hover-color: var(--chrome-action-primary-hover-color);
-  --primary-ink-color: var(--chrome-action-primary-ink-color);
-  --secondary-color: var(--chrome-action-secondary-color);
-  --secondary-hover-color: var(--chrome-action-secondary-hover-color);
+  --button-slot-primary-color: var(--button-normal-primary-color);
+  --button-slot-primary-hover-color: var(--button-normal-primary-hover-color);
+  --button-slot-primary-ink-color: var(--button-normal-primary-ink-color);
+  --button-slot-secondary-color: var(--button-normal-secondary-color);
+  --button-slot-secondary-hover-color: var(--button-normal-secondary-hover-color);
 }
 
 /* Also the DEFAULT in theme.css (a bare `.secondary` is quiet). Declared anyway,
    so `tone="quiet"` behaves like every other tone rather than relying on the
    slots happening to be unset — which is exactly what broke the primary pair. */
 .quiet {
-  --primary-color: var(--chrome-quiet-primary-color);
-  --primary-hover-color: var(--chrome-quiet-primary-hover-color);
-  --primary-ink-color: var(--chrome-quiet-primary-ink-color);
-  --secondary-color: var(--chrome-quiet-secondary-color);
-  --secondary-hover-color: var(--chrome-quiet-secondary-hover-color);
+  --button-slot-primary-color: var(--button-quiet-primary-color);
+  --button-slot-primary-hover-color: var(--button-quiet-primary-hover-color);
+  --button-slot-primary-ink-color: var(--button-quiet-primary-ink-color);
+  --button-slot-secondary-color: var(--button-quiet-secondary-color);
+  --button-slot-secondary-hover-color: var(--button-quiet-secondary-hover-color);
 }

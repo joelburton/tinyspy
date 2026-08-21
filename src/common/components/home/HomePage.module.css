@@ -42,10 +42,10 @@
   font-size: 0.8rem;
   font-weight: 500;
   padding: 0.25rem 0.6rem;
-  border: 1px solid var(--control-border-strong-color);
+  border: 1px solid var(--field-strong-edge-color);
   border-radius: var(--radius-md);
   background: transparent;
-  color: var(--control-text-muted-color);
+  color: var(--field-muted-ink-color);
   text-decoration: none;
   white-space: nowrap;
   transition: background 100ms ease, color 100ms ease,
@@ -93,7 +93,7 @@
   /* The frame. A step darker than --page-surface-border-color, matching ClubPage's
    * panels, so the two pages' lists carry the same weight of line. */
   background: var(--page-surface-color);
-  border: 1px solid var(--control-border-color);
+  border: 1px solid var(--field-edge-color);
   border-radius: var(--radius-lg);
   /* NO padding: the rows carry their own, so the space above the first row
    * equals the space between any two, and each row's rule and hover tint run
@@ -127,7 +127,7 @@
    * ClubPage's rows so a club row and a game row have the same inset. */
   padding: 0.5rem 0.9rem;
   background: transparent;
-  border-bottom: 1px solid var(--control-border-color);
+  border-bottom: 1px solid var(--field-edge-color);
   text-decoration: none;
   color: var(--page-text-color);
   transition: background-color 100ms ease;

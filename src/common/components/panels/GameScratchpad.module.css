@@ -23,9 +23,9 @@
   padding: 0.15rem 0.5rem;
   font: inherit;
   font-size: 0.8rem;
-  border: 1px solid var(--control-border-color);
+  border: 1px solid var(--field-edge-color);
   border-radius: 6px;
-  background: var(--control-bg-color);
+  background: var(--field-fill-color);
   color: var(--page-text-color);
   cursor: pointer;
 }

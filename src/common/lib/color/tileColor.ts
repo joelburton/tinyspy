@@ -11,7 +11,7 @@
  *   'x' wordleGray   — not in the word
  *   anything else → 'blank' (an un-evaluated tile, or a hole/absent cell)
  *
- * The color *values* are the shared "Wordle colors" in common/theme.css
+ * The color *values* are the shared "Wordle colors" in common/fixed.css
  * (`--wordle-green-fill-color/yellow/gray/blank`) — one palette across the
  * letter-coloring games, so a player reads the same green/yellow/gray in
  * waffle and wordle. This code→key mapping is shared too; only each game's

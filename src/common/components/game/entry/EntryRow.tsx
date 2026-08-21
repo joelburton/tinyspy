@@ -59,7 +59,7 @@ type Props = {
   onExtraKey?: (e: KeyboardEvent) => boolean
   /** Last submitted value, for ArrowUp recall (the universal last-move history). */
   recall?: string
-  /** Extra class on the row — e.g. a per-game `--entrybox-font-size` override. */
+  /** Extra class on the row — e.g. a per-game `--entryBox-font-size` override. */
   className?: string
 }
 

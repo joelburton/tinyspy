@@ -27,7 +27,7 @@ describe('RankBar — a readout, not a control', () => {
     expect(container.querySelectorAll('[tabindex]')).toHaveLength(0)
     // No implicitly-focusable element either — a tier is an <li>, never a
     // <button>. If a tooltip ever needs real keyboard reach, it gets a proper
-    // button (common/theme.css → `.definable` names the same escape hatch),
+    // button (common/utilities.css → `.definable` names the same escape hatch),
     // not a tabIndex back on the list item.
     expect(container.querySelectorAll('button, a[href], input')).toHaveLength(0)
   })

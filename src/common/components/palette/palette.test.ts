@@ -6,7 +6,7 @@ import { FAMILIES, tokenOf } from './palette'
  *
  * This is the half `cssTokens.test.ts` cannot see. That test knows whether a
  * token is defined and whether anything reads it; it has no idea that
- * `--outcome-near-wash-color` was missing for a month while its four siblings
+ * `--outcomes-near-wash-color` was missing for a month while its four siblings
  * existed, because nothing referenced it and nothing defined it. A hole is
  * invisible to a scanner and obvious in a grid.
  *

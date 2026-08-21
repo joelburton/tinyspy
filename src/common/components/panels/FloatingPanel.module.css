@@ -110,7 +110,7 @@
 .closeButton:hover:not(:disabled) {
   background: var(--page-surface-hover-color);
   color: var(--page-text-color);
-  border-color: var(--control-border-color);
+  border-color: var(--field-edge-color);
 }
 
 .body {

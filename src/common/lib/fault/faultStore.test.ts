@@ -71,7 +71,7 @@ describe('routing: a fault never reaches slot state', () => {
     const modal = renderHook(() => useCurrentFault())
     act(() =>
       slot.result.current.showLocalFeedback({
-        tone: 'info', text: 'Game over', mode: { kind: 'sticky' },
+        tone: 'noted', text: 'Game over', mode: { kind: 'sticky' },
       }),
     )
     expect(slot.result.current.localFeedback?.text).toBe('Game over')

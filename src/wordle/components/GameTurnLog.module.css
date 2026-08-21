@@ -14,7 +14,7 @@
  * one deliberate departure from the global `.definable`: colored blocks can't
  * take an underline, so the hover cue is a tone-colored ring instead. The
  * `outline` draws outside the box, so it never reflows the log. (Hover only —
- * like every definable word, this isn't focusable; see common/theme.css.) */
+ * like every definable word, this isn't focusable; see common/utilities.css.) */
 .definable {
   cursor: pointer;
   border-radius: 4px;
@@ -32,7 +32,7 @@
   height: 1.4rem;
   font-size: 0.8rem;
   font-weight: 700;
-  color: var(--ink-on-dark-color);
+  color: var(--ink-onDark-color);
   border-radius: 3px;
   background: var(--wordle-gray-fill-color);
 }

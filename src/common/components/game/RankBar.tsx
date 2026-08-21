@@ -50,7 +50,7 @@ export function RankBar({ score, total, targetIdx = null }: Props) {
             // of them per bar (fourteen in the DOM, since the info column and
             // the mobile status bar each render one). The same rule the
             // definable words follow, and for the same reasons — see
-            // common/theme.css → `.definable`.
+            // common/utilities.css → `.definable`.
             //
             // It carried `tabIndex={0}` until 2026-08-16, which trapped: a click
             // parked focus on the square, the NEXT keystroke promoted it to

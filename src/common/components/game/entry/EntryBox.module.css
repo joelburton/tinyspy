@@ -20,9 +20,9 @@
   flex: 1 1 auto;
   min-width: 0;
   /* Size is a per-game knob — the default lives at :root in theme.css; a
-     consumer raises it by re-setting --entrybox-font-size on its EntryBox
+     consumer raises it by re-setting --entryBox-font-size on its EntryBox
      element. The caret's 1.15em height tracks this. */
-  font-size: var(--entrybox-font-size);
+  font-size: var(--entryBox-font-size);
   /* The shared entered-text look: bold, all-caps, slightly letter-spaced. On
      `.box` (not `.value`) so it also reaches a consumer that renders the value
      via `children` (spellingbee's per-character <TypedWord>). The placeholder

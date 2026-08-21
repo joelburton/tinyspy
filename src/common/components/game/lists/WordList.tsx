@@ -162,7 +162,7 @@ export function WordList({
    *  of the cell — opens the definition.
    *
    *  Pointer-only, deliberately: NOT focusable, no `role="button"`. See
-   *  common/theme.css → `.definable`. This list is the worst case for the
+   *  common/utilities.css → `.definable`. This list is the worst case for the
    *  alternative — a found-words grid can hold a hundred words, so making each
    *  one a tab stop buried every real control behind a hundred presses. */
   function wordActivation(word: string) {

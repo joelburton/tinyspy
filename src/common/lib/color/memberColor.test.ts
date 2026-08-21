@@ -7,7 +7,7 @@ import { colorByUserIdMap, colorVarFor } from './memberColor'
  * the FE can drop into style props. The DB's CHECK constraint
  * keeps the palette closed, but these helpers defend in depth:
  * unknown names fall through to body text rather than producing
- * a broken `var(--member-undefined-dot-color)` reference.
+ * a broken `var(--member-undefined-fill-color)` reference.
  */
 
 describe('colorVarFor', () => {
@@ -23,7 +23,7 @@ describe('colorVarFor', () => {
       'pink',
     ]
     for (const name of palette) {
-      expect(colorVarFor(name)).toBe(`var(--member-${name}-dot-color)`)
+      expect(colorVarFor(name)).toBe(`var(--member-${name}-fill-color)`)
     }
   })
 
@@ -47,8 +47,8 @@ describe('colorByUserIdMap', () => {
       { user_id: 'ada', color: 'red', username: 'ada' },
       { user_id: 'bea', color: 'blue', username: 'bea' },
     ])
-    expect(m.get('ada')).toBe('var(--member-red-dot-color)')
-    expect(m.get('bea')).toBe('var(--member-blue-dot-color)')
+    expect(m.get('ada')).toBe('var(--member-red-fill-color)')
+    expect(m.get('bea')).toBe('var(--member-blue-fill-color)')
   })
 
   it('returns undefined for a user_id not in the roster', () => {
@@ -66,7 +66,7 @@ describe('colorByUserIdMap', () => {
       { user_id: 'ada', color: 'red' },
       { user_id: 'bea', color: 'chartreuse' },
     ])
-    expect(m.get('ada')).toBe('var(--member-red-dot-color)')
+    expect(m.get('ada')).toBe('var(--member-red-fill-color)')
     expect(m.get('bea')).toBe('var(--page-text-color)')
   })
 

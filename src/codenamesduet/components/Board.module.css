@@ -97,7 +97,7 @@
  * pattern psychicnum's .correct/.incorrect use). The keycard squares (below)
  * carry the "what does a key SAY" signal; the fill carries "what happened":
  *   white  — no one has guessed it (explicit #fff so it doesn't inherit the
- *            shared beige --tile-bg-color)
+ *            shared beige --tile-slot-fill-color)
  *   tan    — someone guessed it as a neutral (which player → triangles)
  *   green  — we contacted an agent (global)
  *   red    — the assassin was hit (global)
@@ -108,31 +108,31 @@
   /* Never-guessed tile: the shared "attention" shade 1 (the lightest of the warm
      tile family) — lighter than the normal tile (shade 3), so it doesn't read like
      the darker revealed-neutral. */
-  --tile-bg-color: var(--tile-1-color);
-  --tile-border-color: var(--tile-1-edge-color);
+  --tile-slot-fill-color: var(--tile-1-fill-color);
+  --tile-slot-edge-color: var(--tile-1-edge-color);
 }
 .bgNeutral {
-  --tile-bg-color: var(--codenamesduet-neutral);
-  --tile-border-color: var(--codenamesduet-neutral);
-  --tile-ink-color: var(--ink-on-dark-color);
+  --tile-slot-fill-color: var(--codenamesduet-neutral);
+  --tile-slot-edge-color: var(--codenamesduet-neutral);
+  --tile-slot-ink-color: var(--ink-onDark-color);
 }
 .bgAgent {
-  --tile-bg-color: var(--codenamesduet-agent);
-  --tile-border-color: var(--codenamesduet-agent);
-  --tile-ink-color: var(--ink-on-dark-color);
+  --tile-slot-fill-color: var(--codenamesduet-agent);
+  --tile-slot-edge-color: var(--codenamesduet-agent);
+  --tile-slot-ink-color: var(--ink-onDark-color);
 }
 .bgAssassin {
   /* Real Duet uses black for the assassin; we use red because "red = wrong
    * pick" reads more obviously on screen than "black = ominous." */
-  --tile-bg-color: var(--codenamesduet-assassin);
-  --tile-border-color: var(--codenamesduet-assassin);
-  --tile-ink-color: var(--ink-on-dark-color);
+  --tile-slot-fill-color: var(--codenamesduet-assassin);
+  --tile-slot-edge-color: var(--codenamesduet-assassin);
+  --tile-slot-ink-color: var(--ink-onDark-color);
 }
 
 /* Pending (the guess RPC is in flight): an accent ring, distinct from the shared
  * dark hover ring. Per-game state, composed on top of the shared `.tile`. */
 .tilePending {
-  outline: 2px solid var(--chrome-action-primary-color);
+  outline: 2px solid var(--button-normal-primary-color);
   outline-offset: -2px;
 }
 

@@ -1,7 +1,7 @@
 /*
  * wordle (codename `wordle`) theme tokens. The per-letter feedback palette
  * (the classic Wordle green/yellow/gray + the neutral blank) is now the shared
- * "Wordle colors" in common/theme.css (`--wordle-green-fill-color/yellow/gray/blank`) —
+ * "Wordle colors" in common/fixed.css (`--wordle-green-fill-color/yellow/gray/blank`) —
  * waffle uses the same palette. Only wordle's own board/keyboard CHROME stays
  * here. Imported by the PlayArea.
  */

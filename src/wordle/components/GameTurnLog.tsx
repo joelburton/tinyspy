@@ -93,7 +93,7 @@ export function GameTurnLog({
   // one click looks up the guess. Guesses are stored lowercase, which the lookup wants.
   const { define, popover } = useDefinePopover()
   // Pointer-only, deliberately: NOT focusable, no `role="button"`. See
-  // common/theme.css → `.definable` for why every definable word is like this.
+  // common/utilities.css → `.definable` for why every definable word is like this.
   const defineProps = (word: string) => ({
     className: cls(styles.squares, styles.definable),
     title: 'Click to define',

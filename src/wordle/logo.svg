@@ -1,5 +1,5 @@
 <!-- wordle logo — two Wordle-style letter tiles in the shared feedback
-     colors (common/theme.css): "W" on yellow, "N" on green — the WordNerd
+     colors (common/fixed.css): "W" on yellow, "N" on green — the WordNerd
      initials. The tiles are taller than wide so the pair fills a square
      (no letterboxing in the app's square logo slots). Hand-authored; no
      external source.
@@ -8,7 +8,7 @@
      SVG file cannot read CSS custom properties. Keep them in step by hand:
      yellow #BD9F35, green #66A45F. (They were NYT's #c9b458 / #6aaa64 until
      both were darkened so white letters clear the contrast floor — see the
-     token comment in common/theme.css. A logo left behind would have been the
+     token comment in common/fixed.css. A logo left behind would have been the
      only place in the app still showing the old palette.) -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="wordle">
   <rect x="2" y="2" width="60" height="124" rx="6" fill="#bd9f35"/>

@@ -37,7 +37,7 @@ type Props = {
  * these over a game and none of them should become tab stops. `cursor: pointer`
  * is what tells a mouse user the same thing the tap teaches by working.
  *
- * Visual tone (`success` / `error` / `warning` / `neutral` / `info`) picks a
+ * Visual tone (`won` / `lost` / `near` / `warning` / `neutral` / `noted` / `error`) picks a
  * background + border color via a CSS-class branch. Tones are global UI-state
  * vocabulary (docs/ui.md → "Two vocabularies") — a connections "wrong guess"
  * pill looks like a codenamesduet "clue invalid" pill looks like a future Boggle

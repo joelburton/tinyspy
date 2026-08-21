@@ -616,7 +616,7 @@ All three fire when nothing is focused (the mid-game common case, where word gam
 Conventions live in [`code-conventions.md`](code-conventions.md); the short version:
 
 - **CSS Modules**, one `*.module.css` per component, co-located with the `.tsx`.
-- **Design tokens at `:root`** in [`src/common/theme.css`](../src/common/theme.css) — colors, spacing, font stack, radii. All other CSS references these via `var(--token-name)`.
+- **Design tokens at `:root`**, split across [`src/common/themes/daylight.css`](../src/common/themes/daylight.css) (colors), [`src/common/fixed.css`](../src/common/fixed.css) (colors no theme touches) and [`src/common/base.css`](../src/common/base.css) (everything that isn't a color). All other CSS references these via `var(--token-name)`.
 - **Per-game themes are optional**, though every game currently ships one for structural parity. Each game's `theme.css` overrides tokens for that gametype's palette — codenamesduet's has greens/reds/neutrals; psychicnum's is a near-empty placeholder that piggybacks entirely on the global tokens (the toy game has no palette of its own yet, but the file exists so every game folder has the same shape).
 - **Utility classes** in `common/theme.css` for the things every screen needs: `.card`, `.muted`, `.error`, `.actions`, `.link-button`. No CSS framework.
 

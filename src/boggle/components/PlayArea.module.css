@@ -133,7 +133,7 @@
 }
 
 .tile span {
-  /* inherit the app's system-ui sans-serif (common/theme.css), like every other
+  /* inherit the app's system-ui sans-serif (common/base.css), like every other
    * game's tiles — don't set a font-family here. */
   font-weight: 700;
   font-size: 42cqmin;
@@ -150,7 +150,7 @@
  * isn't interactive, so scope to the button role).
  *
  * `:not(:disabled)` is not decoration: `[role='button']` makes this (0,2,1),
- * which OUT-RANKS theme.css's `button:disabled { cursor: not-allowed }` at
+ * which OUT-RANKS base.css's `button:disabled { cursor: not-allowed }` at
  * (0,1,1). boggle never disables a tile today (it guards the handler instead),
  * so this is a trap rather than a bug — but a tile that ever did get `disabled`
  * would silently keep the pointer and claim to be clickable. */
@@ -165,9 +165,9 @@
  * route reads at a glance and lifts off the neighbouring tiles. Overrides the
  * resting `.tile` fill/text (placed after it, equal specificity). */
 .selected {
-  background: var(--chrome-action-primary-color);
-  color: var(--ink-on-dark-color);
-  box-shadow: 0 0 0 2px var(--chrome-action-primary-color);
+  background: var(--button-normal-primary-color);
+  color: var(--ink-onDark-color);
+  box-shadow: 0 0 0 2px var(--button-normal-primary-color);
 }
 
 /* The below-board REGION (universal). Board-matched width (a long typed word

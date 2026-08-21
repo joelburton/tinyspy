@@ -70,7 +70,7 @@ export function GameTurnLog({ guesses, players, selfId, mode, isTerminal }: Prop
   // Click-to-define (a common feature — see common/hooks/definitions/useDefinePopover).
   const { define, popover } = useDefinePopover()
   // Pointer-only, deliberately: NOT focusable, no `role="button"`. See
-  // common/theme.css → `.definable` for why every definable word is like this.
+  // common/utilities.css → `.definable` for why every definable word is like this.
   const defineProps = (word: string) => ({
     className: 'definable',
     title: 'Click to define',

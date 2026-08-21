@@ -122,20 +122,20 @@
   left: 0.4rem;
   width: 7px;
   border-radius: 3px;
-  background: var(--outcome-neutral-fill-color); /* neutral default */
+  background: var(--outcomes-neutral-bar-color); /* neutral default */
 }
 
 .barInner_won {
-  background: var(--outcome-won-fill-color);
+  background: var(--outcomes-won-bar-color);
 }
 .barInner_lost {
-  background: var(--outcome-lost-fill-color);
+  background: var(--outcomes-lost-bar-color);
 }
 .barInner_near {
-  background: var(--outcome-near-fill-color);
+  background: var(--outcomes-near-bar-color);
 }
 .barInner_neutral {
-  background: var(--outcome-neutral-fill-color);
+  background: var(--outcomes-neutral-bar-color);
 }
 
 /* ─── Content library ────────────────────────────────────────────────────

@@ -36,7 +36,7 @@
  * point on this bar, so the pill and the bar now agree. */
 .fill {
   height: 100%;
-  background: var(--outcome-won-fill-color);
+  background: var(--outcomes-won-fill-color);
   transition: width 180ms ease-out;
 }
 
@@ -45,7 +45,7 @@
  * visually distinct rather than merely 100% wide — a deeper green, still within
  * the same "this is going well" vocabulary. */
 .fillFull {
-  background: var(--outcome-won-ink-color);
+  background: var(--outcomes-won-ink-color);
 }
 
 /* ── The Hint button's two states ─────────────────────────────
@@ -69,13 +69,13 @@
  * this is (0,2,0) and beats theme.css's `.secondary` (0,1,0) without an
  * !important. */
 .hintReady:not(:disabled) {
-  background: var(--chrome-caution-primary-color);
-  border-color: var(--chrome-caution-primary-color);
+  background: var(--button-caution-primary-color);
+  border-color: var(--button-caution-primary-color);
   /* The Lucide glyph strokes with currentColor, so this inks the icon too.
    * White on the caution orange is a settled choice, not an open question: it
    * measures 3.71 against the 4.5 label floor, and dark ink on a bright warm
    * fill is the trade connections rejected for gold. It reads. */
-  color: var(--chrome-caution-primary-ink-color);
+  color: var(--button-caution-primary-ink-color);
 }
 
 /* The hover needs the extra `.row` term, and this is the one place the new
@@ -89,6 +89,6 @@
 .row .hintReady:not(:disabled):hover {
   /* Darker on hover — a filled button can't use the outline's
    * fill-on-hover, since it is already filled. */
-  background: var(--chrome-caution-primary-hover-color);
-  border-color: var(--chrome-caution-primary-hover-color);
+  background: var(--button-caution-primary-hover-color);
+  border-color: var(--button-caution-primary-hover-color);
 }

@@ -65,7 +65,7 @@ import '../theme.css'
  *  Check skips them (see `handleCheck`), so this flags that they weren't tested.
  *  Unpunctuated: the pill is a one-line LABEL, not prose. */
 const PENCIL_SKIPPED_MSG: GenericFeedbackMsg = {
-  tone: 'info',
+  tone: 'noted',
   text: 'Check skips pencil marks',
   mode: { kind: 'timed' },
 }

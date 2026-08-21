@@ -900,7 +900,7 @@ export function ClubPage({ handle, session }: Props) {
           id: 'rename',
           label: 'Rename club',
           onClick: () => setGlobalFeedback({
-            tone: 'info',
+            tone: 'noted',
             text: 'Rename club: coming soon',
             mode: { kind: 'timed' },
           }),

@@ -117,11 +117,11 @@
  * outline in the app's standard success/error colors (the outcome-strong pair),
  * matching scrabble's board and the app-wide green=good / red=bad vocabulary. */
 .dropOk {
-  outline: 3px solid var(--outcome-won-ink-color);
+  outline: 3px solid var(--outcomes-won-ink-color);
   outline-offset: -3px;
 }
 .dropNo {
-  outline: 3px solid var(--outcome-lost-ink-color);
+  outline: 3px solid var(--outcomes-lost-ink-color);
   outline-offset: -3px;
 }
 
@@ -278,8 +278,8 @@ button.floatingRotate {
   min-height: 34px;
   padding: 0.3rem 0.4rem;
   font-size: 0.9rem;
-  color: var(--chrome-action-primary-color);
-  border: 2px dashed var(--chrome-action-primary-color);
+  color: var(--button-normal-primary-color);
+  border: 2px dashed var(--button-normal-primary-color);
   border-radius: var(--radius-md);
   transition: background 100ms ease, border-color 100ms ease, color 100ms ease;
 }

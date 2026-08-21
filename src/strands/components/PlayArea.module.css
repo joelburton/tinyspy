@@ -73,11 +73,11 @@
 /* The traced word inside the shared move row. Overrides only what strands wants
  * differently from the other EntryBoxes: the theme color (the word IS the
  * thread you're drawing on the board, so it wears the board's ink) and the size
- * it already read at. `--entrybox-font-size` rather than a raw `font-size`
+ * it already read at. `--entryBox-font-size` rather than a raw `font-size`
  * because the shared caret's height tracks that variable — setting the property
  * directly would leave the caret at the default size beside a bigger word. */
 .echo {
-  --entrybox-font-size: 1.75rem;
+  --entryBox-font-size: 1.75rem;
   letter-spacing: 0.08em;
   color: var(--strands-theme);
 }

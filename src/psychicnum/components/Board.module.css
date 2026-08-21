@@ -98,15 +98,15 @@
  * peeks through them; a second of a hidden edge costs nothing, since it will be
  * back. See plans/tile-feedback.md. */
 .correct {
-  --tile-bg-color: var(--outcome-won-fill-color);
-  --tile-border-color: var(--outcome-won-edge-color);
-  --tile-ink-color: var(--ink-on-dark-color);
+  --tile-slot-fill-color: var(--outcomes-won-fill-color);
+  --tile-slot-edge-color: var(--outcomes-won-edge-color);
+  --tile-slot-ink-color: var(--ink-onDark-color);
 }
 
 .incorrect {
-  --tile-bg-color: var(--outcome-lost-fill-color);
-  --tile-border-color: var(--outcome-lost-edge-color);
-  --tile-ink-color: var(--ink-on-dark-color);
+  --tile-slot-fill-color: var(--outcomes-lost-fill-color);
+  --tile-slot-edge-color: var(--outcomes-lost-edge-color);
+  --tile-slot-ink-color: var(--ink-onDark-color);
 }
 
 /* Positioning context for the identity dot below. (The shared in-flight dim and

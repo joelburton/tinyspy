@@ -152,7 +152,11 @@ export type GamePageCtx = {
  *   error — a real failure, not a bad move: a lost connection, a service that
  *           didn't answer, a server key nobody wrote words for. Angrier red than
  *           `lost`, which is the whole reason it is its own tone.
- *   info  — news. "Leah invited you", "everyone here has played every puzzle".
+ *   noted — a turn that COUNTS without being a verdict, and news that isn't a
+ *           result at all: "Leah invited you", "everyone here has played every
+ *           puzzle". Was `info` until the tone was promoted to an outcome
+ *           family, which is what made this vocabulary EXACTLY the outcome
+ *           vocabulary with nothing left over.
  *
  * The line between `lost`, `warning` and `error` is not yet drawn where it
  * should be — most server rejections currently take `error` by default, and
@@ -166,7 +170,7 @@ export type GenericFeedbackTone =
   | 'warning'
   | 'neutral'
   | 'error'
-  | 'info'
+  | 'noted'
 
 /** A single feedback message. The `dismiss` mode picks how it
  *  leaves the screen. See docs/ui.md → "Dismiss modes" for the

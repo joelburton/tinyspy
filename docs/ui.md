@@ -386,7 +386,7 @@ Future targets:
 
 ## Theme: one global theme today
 
-The current theme is light (`color-scheme: light`, `--page-bg-color: #fafafa` / `--page-surface-color: #ffffff`), with tokens at `:root` in [`common/theme.css`](../src/common/theme.css). Most games add a per-game theme file ([`codenamesduet/theme.css`](../src/codenamesduet/theme.css), [`wordle/theme.css`](../src/wordle/theme.css) the letter-feedback palette, [`stackdown/theme.css`](../src/stackdown/theme.css) the felt + tile ink, …) declaring additional tokens scoped to that game's gameplay surface.
+The current theme is light (`color-scheme: light`, `--page-bg-color: #fafafa` / `--page-surface-color: #ffffff`), with tokens at `:root` in [`common/themes/daylight.css`](../src/common/themes/daylight.css). Most games add a per-game theme file ([`codenamesduet/theme.css`](../src/codenamesduet/theme.css), [`wordle/theme.css`](../src/wordle/theme.css) the letter-feedback palette, [`stackdown/theme.css`](../src/stackdown/theme.css) the felt + tile ink, …) declaring additional tokens scoped to that game's gameplay surface.
 
 ### Tokens are semantic, not literal
 
@@ -882,7 +882,7 @@ Two rules keep the signal clean:
 
 Board tiles a player can act on (psychicnum's word tiles, connections's category
 tiles; the pattern every game's tiles share) converge on **one look**, driven
-entirely by the `--tile-*` tokens in [`common/theme.css`](../src/common/theme.css)
+entirely by the `--tile-*` tokens in [`common/themes/daylight.css`](../src/common/themes/daylight.css)
 and the shared `.tile` / `.tileWord` classes in
 [`common/components/game/PlayArea.module.css`](../src/common/components/game/PlayArea.module.css).
 A player who learns the board in one game reads it in the next.
@@ -922,7 +922,7 @@ per-game option if a future board wants one.)
 ## The warm tile ramp
 
 Tile colors come from **one warm (slightly-yellow) family** in
-[`common/theme.css`](../src/common/theme.css) — five shades on a hand-tuned
+[`common/themes/daylight.css`](../src/common/themes/daylight.css) — five shades on a hand-tuned
 lightness ramp (lightest → darkest), each with a matching `-border`, plus two
 extras. **Default to this ramp for any game's tiles**; diverge only with a real
 reason (below).
@@ -1468,7 +1468,7 @@ Where there's no interesting reason, the ordinary tooltip is fine and the button
 just reads as not-yet-available. Either way, say something.
 
 This pairs with how `disabled` is drawn at all
-([theme.css → `--chrome-disabled-opacity`](../src/common/theme.css)). The fade is
+([base.css → `--chrome-disabled-opacity`](../src/common/base.css)). The fade is
 only 0.75 — deliberately small — because what actually tells you a control is
 dead is that **it doesn't answer the pointer**. The missing hover carries the
 message; the color only has to be different enough to spot the odd one out in a

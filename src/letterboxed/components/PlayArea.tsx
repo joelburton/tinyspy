@@ -324,7 +324,7 @@ export function PlayArea(ctx: GamePageCtx) {
       //
       // It costs nothing to lose: the turn log keeps the hint's CONTENT ("Hint:
       // 8 letters: ADG"), so the pill is a convenience copy, not the record.
-      showLocalFeedback(stickyPill('info', helpPillText(kind, r.word)))
+      showLocalFeedback(stickyPill('noted', helpPillText(kind, r.word)))
       void db
         .rpc('log_help', { target_game: gameId, word_shown: r.word, kind })
         .then(({ error }) => {
@@ -490,9 +490,9 @@ export function PlayArea(ctx: GamePageCtx) {
       // showLocalFeedback from here is sound: messageFor runs once per NEW
       // event inside the hook's effect (the seen-set), never during render.
       if (e.kind === 'hint' || e.kind === 'spoiler') {
-        if (e.word) showLocalFeedback(stickyPill('info', helpPillText(e.kind, e.word)))
+        if (e.word) showLocalFeedback(stickyPill('noted', helpPillText(e.kind, e.word)))
         return {
-          tone: 'info',
+          tone: 'noted',
           text: (
             <>
               <ActorDot actor={member} fallback="A teammate" />{' '}
@@ -511,7 +511,7 @@ export function PlayArea(ctx: GamePageCtx) {
               `undid ${e.word?.toUpperCase() ?? 'the last word'}`
             : 'cleared the chain'
       return {
-        tone: e.kind === 'played' ? 'won' : 'info',
+        tone: e.kind === 'played' ? 'won' : 'noted',
         text: (
           <>
             <ActorDot actor={member} fallback="A teammate" /> {what}

@@ -78,7 +78,7 @@
 }
 
 .saveButton:hover {
-  background: var(--chrome-action-primary-hover-color);
+  background: var(--button-normal-primary-hover-color);
 }
 
 .saveButton:disabled,
@@ -102,6 +102,6 @@
  * because the tone CLASSES are scoped to ActionButton.module.css and a raw
  * <button> can't reach them — the same discipline, just spelled out locally. */
 .deleteButton {
-  --secondary-color: var(--chrome-destructive-secondary-color);
-  --secondary-hover-color: var(--chrome-destructive-secondary-hover-color);
+  --button-slot-secondary-color: var(--button-destructive-secondary-color);
+  --button-slot-secondary-hover-color: var(--button-destructive-secondary-hover-color);
 }

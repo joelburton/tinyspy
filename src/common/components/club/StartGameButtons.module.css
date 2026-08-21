@@ -31,7 +31,7 @@
  * .content takes the rest. align-items: center so the 32px logo lines up
  * vertically against the two-line text stack to its right. */
 .button {
-  border-bottom: 1px solid var(--control-border-color);
+  border-bottom: 1px solid var(--field-edge-color);
   border-radius: 0;
   color: var(--page-text-color);
   /* The row owns ALL the list's padding — its frame (ClubPage's .startList)

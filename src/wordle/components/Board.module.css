@@ -35,7 +35,7 @@
    *   - no shadow: these tiles are flat, and they are inert — a lift would imply
    *     something to press.
    *
-   * The EDGE WIDTH is not here — it's the shared `--tile-border-width`, because
+   * The EDGE WIDTH is not here — it's the shared `--tile-edge-width`, because
    * width is the selected channel and the resting/selected pair has to be tuned
    * together for every board at once.
    *
@@ -46,9 +46,9 @@
    * element in Board.tsx). `aspect-ratio` then derives the HEIGHT from that
    * width so the tiles stay SQUARE (wordle's look) instead of flex-filling — a
    * keyboard shares this column below the board, so the board hugs its height. */
-  --tile-bg-color: transparent;
-  --tile-border-color: var(--wordle-tile-border);
-  --tile-ink-color: var(--ink-on-dark-color);
+  --tile-slot-fill-color: transparent;
+  --tile-slot-edge-color: var(--wordle-tile-border);
+  --tile-slot-ink-color: var(--ink-onDark-color);
   --tile-shadow: none;
   display: grid;
   grid-auto-rows: 1fr;
@@ -124,8 +124,8 @@
 
 /* A typed-but-not-submitted tile: dark border, no fill, dark text. */
 .filled {
-  --tile-border-color: var(--wordle-tile-border-filled);
-  --tile-ink-color: var(--page-text-color);
+  --tile-slot-edge-color: var(--wordle-tile-border-filled);
+  --tile-slot-ink-color: var(--page-text-color);
 }
 
 /* Server feedback colors, applied by RE-SETTING the shared `.tile`'s `--tile-*`
@@ -134,22 +134,22 @@
  * than the fill itself — the quiet definition every other surface in this app has,
  * instead of a flat block of color. */
 .wordleGreen {
-  --tile-bg-color: var(--wordle-green-fill-color);
-  --tile-border-color: var(--wordle-green-edge-color);
+  --tile-slot-fill-color: var(--wordle-green-fill-color);
+  --tile-slot-edge-color: var(--wordle-green-edge-color);
 }
 .wordleYellow {
-  --tile-bg-color: var(--wordle-yellow-fill-color);
-  --tile-border-color: var(--wordle-yellow-edge-color);
+  --tile-slot-fill-color: var(--wordle-yellow-fill-color);
+  --tile-slot-edge-color: var(--wordle-yellow-edge-color);
 }
 .wordleGray {
-  --tile-bg-color: var(--wordle-gray-fill-color);
-  --tile-border-color: var(--wordle-gray-edge-color);
+  --tile-slot-fill-color: var(--wordle-gray-fill-color);
+  --tile-slot-edge-color: var(--wordle-gray-edge-color);
 }
 .blank {
   /* An empty tile is the board's default — stated anyway, because a color class
    * is looked up by name (`styles[color]`) and a missing one would be a silent
    * hole rather than a visible mistake. */
-  --tile-bg-color: transparent;
+  --tile-slot-fill-color: transparent;
 }
 
 /* In flight — the row you just submitted, while the server works out its colors.
@@ -167,9 +167,9 @@
  * lands. See plans/tile-feedback.md. */
 
 .inFlight {
-  --tile-bg-color: var(--wordle-gray-fill-color);
-  --tile-border-color: var(--wordle-gray-edge-color);
-  --tile-ink-color: var(--ink-on-dark-color);
+  --tile-slot-fill-color: var(--wordle-gray-fill-color);
+  --tile-slot-edge-color: var(--wordle-gray-edge-color);
+  --tile-slot-ink-color: var(--ink-onDark-color);
 }
 
 /* A refused guess wears the SHARED verdict ring + shake (common
@@ -225,13 +225,13 @@
     transform: rotateX(-90deg);
     background: var(--reveal-bg);
     border-color: var(--reveal-border);
-    color: var(--ink-on-dark-color);
+    color: var(--ink-onDark-color);
   }
   100% {
     transform: rotateX(0deg);
     background: var(--reveal-bg);
     border-color: var(--reveal-border);
-    color: var(--ink-on-dark-color);
+    color: var(--ink-onDark-color);
   }
 }
 
@@ -241,6 +241,6 @@
     animation: none;
     background: var(--reveal-bg);
     border-color: var(--reveal-bg);
-    color: var(--ink-on-dark-color);
+    color: var(--ink-onDark-color);
   }
 }

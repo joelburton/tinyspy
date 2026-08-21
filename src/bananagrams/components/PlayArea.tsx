@@ -150,7 +150,7 @@ export function PlayArea(ctx: GamePageCtx) {
         r.kind === 'clean'
           ? { tone: 'won' as const, text: 'Every word checks out, and the grid is one piece.' }
           : r.kind === 'empty'
-            ? { tone: 'info' as const, text: 'Nothing on the board to check yet.' }
+            ? { tone: 'noted' as const, text: 'Nothing on the board to check yet.' }
             : r.kind === 'invalid'
               ? {
                   tone: 'lost' as const,

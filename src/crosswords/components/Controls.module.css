@@ -26,25 +26,25 @@
    the row's full height rather than just the text. */
 .rule {
   width: 1px;
-  height: var(--icon-button-size);
+  height: var(--iconButton-size);
   background: var(--page-text-color);
   /* Its own breathing room, so the rule doesn't crowd the squares. */
   margin: 0 0.35rem;
 }
 
 /* Every square in the bar — the two Fill glyphs and the six scope buttons — is
-   the SAME box as a shared icon-only action button (`--icon-button-size`), so
+   the SAME box as a shared icon-only action button (`--iconButton-size`), so
    the End / Concede button passed in as children sits flush with them. */
 .btn {
-  width: var(--icon-button-size);
-  height: var(--icon-button-size);
+  width: var(--iconButton-size);
+  height: var(--iconButton-size);
   padding: 0;
   font: inherit;
   font-size: 0.9rem;
   line-height: 1;
-  background: var(--control-bg-color);
+  background: var(--field-fill-color);
   color: var(--page-text-color);
-  border: 1px solid var(--control-border-color);
+  border: 1px solid var(--field-edge-color);
   border-radius: 6px;
   cursor: pointer;
 }

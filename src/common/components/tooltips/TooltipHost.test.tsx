@@ -135,11 +135,11 @@ describe('TooltipHost', () => {
  * menu covering it.
  */
 describe('the iOS long-press callout is suppressed in CSS', () => {
-  it('theme.css turns the callout off on every [data-tooltip] target', async () => {
+  it('utilities.css turns the callout off on every [data-tooltip] target', async () => {
     const { readFileSync } = await import('node:fs')
-    const css = readFileSync('src/common/theme.css', 'utf8')
+    const css = readFileSync('src/common/utilities.css', 'utf8')
     const rule = css.match(/\[data-tooltip\]\s*\{[^}]*\}/)?.[0] ?? ''
-    expect(rule, 'no [data-tooltip] rule in theme.css').not.toBe('')
+    expect(rule, 'no [data-tooltip] rule in utilities.css').not.toBe('')
     expect(rule).toContain('-webkit-touch-callout: none')
     // The callout is the text-selection UI wearing another hat, so the pair
     // travels together.

@@ -418,7 +418,7 @@ src/common/components/chat/FloatingChat.tsx
 src/common/components/chat/FloatingChat.module.css
 ```
 
-**Design tokens at `:root`** in [`src/common/theme.css`](../src/common/theme.css) — colors, spacing scale, font stack, radii. Every `*.module.css` references them via `var(--token-name)`. Each game's `theme.css` (optional) overrides tokens for that gametype's palette.
+**Design tokens at `:root`**, split by what they are: colors live in [`src/common/themes/daylight.css`](../src/common/themes/daylight.css) (the theme) and [`src/common/fixed.css`](../src/common/fixed.css) (member + wordle, exempt from theming); everything that isn't a color — radii, sizes, spacing, durations, the depth family — lives in [`src/common/base.css`](../src/common/base.css). Every `*.module.css` references them via `var(--token-name)`. Each game's `theme.css` (optional) declares that gametype's brand tokens.
 
 `cls()` (in [`src/common/lib/util/cls.ts`](../src/common/lib/util/cls.ts)) is a tiny hand-rolled `clsx` equivalent for combining conditional class names. ~10 lines; no dependency.
 
@@ -437,7 +437,7 @@ Six rules that are otherwise only discoverable by reading the code:
 2. **Desktop-first: `@media (--mobile)` blocks override the base rule**, never the reverse. See [`ui.md`](ui.md#audience-and-platform-desktop-first) — a `min-width` media query means a rule got written backwards.
 3. **A component that renders on two surfaces keeps the roomier one as its base rule.** The compressed variant is an override scoped to the surface — e.g. `[data-mobile-status] .stats { … }`, keyed off the attribute `<MobileStatusBar>` already stamps. No media query needed (the bar doesn't exist on desktop) and no `compact` prop to thread through call sites. Writing it the other way round leaks the phone's budget onto a desktop that has room to spare; see [`mobile.md`](mobile.md).
 4. **State classes win by re-setting tokens, not by out-cascading.** A state (`.achieved`, `.dropOk`) should set `--tile-bg-color` and let the base rule consume it, rather than restating `background` at higher specificity.
-5. **Click-to-define words are pointer-only** — no `tabIndex`, no `role="button"`, no focus style. The reasoning is in [`theme.css`](../src/common/theme.css)'s `.definable` block. A word that genuinely needs keyboard reach gets a real `<button>`.
+5. **Click-to-define words are pointer-only** — no `tabIndex`, no `role="button"`, no focus style. The reasoning is in [`utilities.css`](../src/common/utilities.css)'s `.definable` block. A word that genuinely needs keyboard reach gets a real `<button>`.
 6. **`_variant` suffixes** name the classes behind a `` styles[`base_${key}`] `` lookup: `.outcome_won`, `.day_lost`, `.barInner_good`, `.viewedTile_oneAway`, `.guessWord_G`. Base name, underscore, the key's value. The underscore is what marks a class as *dynamically* selected — grep it to find every class that isn't referenced literally anywhere.
 
 #### The z-index ladder

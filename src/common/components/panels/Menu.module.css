@@ -269,7 +269,7 @@
   justify-content: center;
   /* The glyph is a quiet index, not a second label: it sits at the muted weight
    * so the words stay the thing you read. */
-  color: var(--control-text-muted-color);
+  color: var(--field-muted-ink-color);
   /* The row is `align-items: baseline` for the label/shortcut; an icon has no
    * baseline worth aligning, so nudge it onto the text's optical line. */
   align-self: center;

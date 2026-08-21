@@ -2,8 +2,8 @@
  * bananagrams/theme.css — game-specific design tokens + one global rule.
  *
  * Mirrors the other games' per-game theme files. bananagrams's bespoke
- * surface is the cream letter tile; the rest piggybacks on common/theme.css
- * (the keyboard cursor now uses the shared --mark-grid-cursor-color).
+ * surface is the cream letter tile; the rest piggybacks on common/themes/daylight.css
+ * (the keyboard cursor now uses the shared --mark-gridCursor-color).
  */
 
 :root {
@@ -11,7 +11,7 @@
   --bananagrams-tile-edge: #cdb887;
   --bananagrams-tile-ink: #4a3b22;
   /* The game's blue ACCENT — zoom slider, icons, dump-armed state, done button.
-     (The keyboard-entry cursor moved to the shared --mark-grid-cursor-color.) */
+     (The keyboard-entry cursor moved to the shared --mark-gridCursor-color.) */
   --bananagrams-cursor: #4aa3ff;
   /* The in-game error red (the hand-miss flash) — a second red beside
      `--outcome-lost-*`, saying much the same thing in a value nothing chose

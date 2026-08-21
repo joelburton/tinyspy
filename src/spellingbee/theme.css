@@ -18,7 +18,7 @@
  * walk every consumer.
  */
 :root {
-  --spellingbee-hex:           var(--tile-2-color); /* trying the shared warm ramp (was #e6e6e6) */
+  --spellingbee-hex:           var(--tile-2-fill-color); /* trying the shared warm ramp (was #e6e6e6) */
   --spellingbee-accent:        #f7da21;
   --spellingbee-hex-text:      #1a1a1a;
 
@@ -33,7 +33,7 @@
   /* Shared-component token: the common <RankBar> / <Stats> read this generic
    * name so one copy serves both hive-family games. Only the TEXT color is
    * per-game now — the ladder's own fill + edge are shared (`--rank-bar-fill-color` /
-   * `--rank-bar-edge-color` in common/theme.css), since a rank ladder means the same
+   * `--rank-bar-edge-color` in common/themes/daylight.css), since a rank ladder means the same
    * thing in both games. */
   --rank-text:                 var(--spellingbee-hex-text);
 }

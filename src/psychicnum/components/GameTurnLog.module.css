@@ -10,7 +10,7 @@
   white-space: normal;
 }
 
-/* (Click-to-define uses the GLOBAL `.definable` utility in common/theme.css — the
+/* (Click-to-define uses the GLOBAL `.definable` utility in common/utilities.css — the
  * same underline-on-hover the other text-word logs wear. There was a local copy
  * here that differed only by keeping a focus ring; now that definable words
  * aren't focusable at all, the two are the same thing and the local one is gone.

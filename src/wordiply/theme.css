@@ -20,5 +20,5 @@
   --wordiply-accent:      #2f9e8f;
   --wordiply-base-dim:    var(--page-text-muted-color);
   --wordiply-row:         var(--page-surface-color);
-  --wordiply-row-empty:   var(--control-bg-color);
+  --wordiply-row-empty:   var(--field-fill-color);
 }

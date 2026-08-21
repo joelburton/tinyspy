@@ -29,7 +29,7 @@ export function PalettePage() {
     <div className={`card ${styles.page}`}>
       <h1>Palette</h1>
       <p className={styles.intro}>
-        Every color family in <code>common/theme.css</code>. A member missing a variant is a bug in
+        Every color family in <code>common/themes/daylight.css</code>. A member missing a variant is a bug in
         what "family" means — see <code>palette.ts</code>.
       </p>
       <nav className={styles.index}>

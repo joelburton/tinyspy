@@ -103,7 +103,7 @@
   z-index: 1;
 }
 
-/* Per-tile feedback fill = the shared "Wordle colors" (common/theme.css),
+/* Per-tile feedback fill = the shared "Wordle colors" (common/fixed.css),
  * applied by RE-SETTING the shared `.tile`'s `--tile-*` tokens (so the fill wins
  * regardless of stylesheet order — the codenamesduet pattern). White ink on the
  * saturated three, dark ink on the neutral blank.
@@ -115,19 +115,19 @@
  * SELECTION legible below: a picked-up tile thickens this edge, which needs the
  * edge to be a different color from the fill in the first place. */
 .wordleGreen {
-  --tile-bg-color: var(--wordle-green-fill-color);
-  --tile-border-color: var(--wordle-green-edge-color);
-  --tile-ink-color: var(--ink-on-dark-color);
+  --tile-slot-fill-color: var(--wordle-green-fill-color);
+  --tile-slot-edge-color: var(--wordle-green-edge-color);
+  --tile-slot-ink-color: var(--ink-onDark-color);
 }
 .wordleYellow {
-  --tile-bg-color: var(--wordle-yellow-fill-color);
-  --tile-border-color: var(--wordle-yellow-edge-color);
-  --tile-ink-color: var(--ink-on-dark-color);
+  --tile-slot-fill-color: var(--wordle-yellow-fill-color);
+  --tile-slot-edge-color: var(--wordle-yellow-edge-color);
+  --tile-slot-ink-color: var(--ink-onDark-color);
 }
 .wordleGray {
-  --tile-bg-color: var(--wordle-gray-fill-color);
-  --tile-border-color: var(--wordle-gray-edge-color);
-  --tile-ink-color: var(--ink-on-dark-color);
+  --tile-slot-fill-color: var(--wordle-gray-fill-color);
+  --tile-slot-edge-color: var(--wordle-gray-edge-color);
+  --tile-slot-ink-color: var(--ink-onDark-color);
 }
 /* Not a played state: a waffle tile always has a color once the board loads,
  * and a hole is a `.hole` span rather than a tile. `.blank` is only what a tile
@@ -135,9 +135,9 @@
  * keeps its flat edge — the darker border above is for the three colors that
  * carry meaning. */
 .blank {
-  --tile-bg-color: var(--wordle-blank-fill-color);
-  --tile-border-color: var(--wordle-blank-fill-color);
-  --tile-ink-color: var(--page-text-color);
+  --tile-slot-fill-color: var(--wordle-blank-fill-color);
+  --tile-slot-edge-color: var(--wordle-blank-fill-color);
+  --tile-slot-ink-color: var(--page-text-color);
 }
 
 /* The two cells of a swap IN FLIGHT. Their old color was invalidated the moment
@@ -153,9 +153,9 @@
  * Declared after `.blank` on purpose: an in-flight cell is unjudged, so it wears
  * both classes, and same-file order settles which fill wins. */
 .inFlight {
-  --tile-bg-color: var(--wordle-gray-fill-color);
-  --tile-border-color: var(--wordle-gray-edge-color);
-  --tile-ink-color: var(--ink-on-dark-color);
+  --tile-slot-fill-color: var(--wordle-gray-fill-color);
+  --tile-slot-edge-color: var(--wordle-gray-edge-color);
+  --tile-slot-ink-color: var(--ink-onDark-color);
 }
 
 /* Turn-history: the two cells the viewed swap moved. Ringed in the shared

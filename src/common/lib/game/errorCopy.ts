@@ -56,8 +56,8 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   // The GAME-lifecycle raises are races, same as letterboxed's: a peer ended
   // the game, took the turn, or conceded while your call was in flight.
   'not-your-turn': { text: () => 'Not your turn' },
-  'game-not-in-play': { text: () => 'Game over', tone: 'info' },
-  'you-conceded': { text: () => 'Already conceded', tone: 'info' },
+  'game-not-in-play': { text: () => 'Game over', tone: 'noted' },
+  'you-conceded': { text: () => 'Already conceded', tone: 'noted' },
   'not-a-player': { text: () => "You're not in this game" },
   'not-club-member': { text: () => "You're not in this club" },
   // A session that expired under a page left open overnight — the one fault
@@ -136,7 +136,7 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   // (docs/games/bananagrams.md), so the server's view of your hand can
   // legitimately differ from the screen's for a moment — which makes these
   // three ordinary play, not broken clients.
-  'bunch-too-low': { text: () => 'Bunch too low to dump', tone: 'info' },
+  'bunch-too-low': { text: () => 'Bunch too low to dump', tone: 'noted' },
   'hand-not-empty': { text: () => 'Place all your tiles first' },
   'tile-not-held': { text: () => "You don't have that tile" },
   // A setup pair that can't seat everyone: players x hand size beats the bunch.
@@ -156,19 +156,19 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   // Two seats taking turns, so both can race the turn flip: the clue arrives
   // just as you tap, or the flip lands just as you do. All four are ordinary
   // two-player timing, not broken clients.
-  'not-clue-giver': { text: () => 'Not the clue-giver', tone: 'info' },
-  'you-are-clue-giver': { text: () => "You're giving the clue", tone: 'info' },
-  'no-clue-yet': { text: () => 'Wait for the clue', tone: 'info' },
-  'clue-already-given': { text: () => 'Clue already given', tone: 'info' },
+  'not-clue-giver': { text: () => 'Not the clue-giver', tone: 'noted' },
+  'you-are-clue-giver': { text: () => "You're giving the clue", tone: 'noted' },
+  'no-clue-yet': { text: () => 'Wait for the clue', tone: 'noted' },
+  'clue-already-given': { text: () => 'Clue already given', tone: 'noted' },
   // Your partner turned that cell over in the same moment.
-  'already-revealed': { text: () => 'Already revealed', tone: 'info' },
+  'already-revealed': { text: () => 'Already revealed', tone: 'noted' },
 
   // ── strands ──
   // The earned-hint economy, which nothing else on the roster has. All three
   // are reachable, and in COOP the hint bar is shared — so a teammate can fill
   // it, spend it, or ring a word between your check and your click.
-  'not-enough-hint-points': { text: () => 'Hint bar not full yet', tone: 'info' },
-  'hint-already-showing': { text: () => 'A hint is already showing', tone: 'info' },
+  'not-enough-hint-points': { text: () => 'Hint bar not full yet', tone: 'noted' },
+  'hint-already-showing': { text: () => 'A hint is already showing', tone: 'noted' },
   // The one path check a teammate can cause: they found a word that overlaps
   // the path you were drawing. Every other path rejection means the FE built a
   // shape it should never have built.
@@ -187,7 +187,7 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   // would tell the player nothing they could act on. `info`: nobody erred.
   'no-unplayed-weekday': {
     text: () => "You've played every one of those",
-    tone: 'info',
+    tone: 'noted',
   },
   'nyt-auth': { text: () => 'NYT rejected the cookie — it may be expired' },
   'nyt-no-puzzle': { text: (d) => `No NYT crossword published for ${d[0]}` },
@@ -202,8 +202,8 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   // The two cheat rungs, exhausted. psychicnum RAISES here where stackdown
   // returns null and lets the FE narrate — a real divergence between the two
   // implementations of the same feature, recorded rather than smoothed over.
-  'nothing-to-hint': { text: () => 'Nothing left to hint', tone: 'info' },
-  'nothing-to-spoil': { text: () => 'Nothing left to show', tone: 'info' },
+  'nothing-to-hint': { text: () => 'Nothing left to hint', tone: 'noted' },
+  'nothing-to-spoil': { text: () => 'Nothing left to show', tone: 'noted' },
   // A setup choice the dictionary can't satisfy: more words than that band has.
   'too-few-words': { text: () => 'Not enough words at that difficulty' },
 
@@ -219,7 +219,7 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   // the table has, which reads as a lie to everyone else.
   'no-unplayed-puzzle': {
     text: () => 'Everyone here has played every puzzle',
-    tone: 'info',
+    tone: 'noted',
   },
 
   // ── connections ──
@@ -227,23 +227,23 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   // and in coop the mistake budget is SHARED, so a teammate's fourth wrong
   // guess can eliminate the team while your submit is in flight. `info`: it's
   // the state of the game, not a complaint about the guess.
-  'eliminated': { text: () => 'Out of mistakes', tone: 'info' },
+  'eliminated': { text: () => 'Out of mistakes', tone: 'noted' },
 
   // ── waffle ──
   // A shared coop grid with a shared swap budget, so both are lost races: a
   // teammate spent the last swap, or solved it, while your swap was in flight.
-  'no-swaps-left': { text: () => 'No swaps left', tone: 'info' },
+  'no-swaps-left': { text: () => 'No swaps left', tone: 'noted' },
 
   // ── wordle ──
   // Both are per-player states a second submit can land on: the coop board is
   // shared, so a teammate's winning guess can arrive while yours is in flight.
-  'already-solved': { text: () => 'Already solved', tone: 'info' },
+  'already-solved': { text: () => 'Already solved', tone: 'noted' },
 
   // ── wordiply ──
   // The guess budget is REAL and, in coop, SHARED — so a teammate can spend the
   // last of five between your check and your submit. That's a lost race, same
   // family as letterboxed's below.
-  'no-guesses-left': { text: () => 'No guesses left', tone: 'info' },
+  'no-guesses-left': { text: () => 'No guesses left', tone: 'noted' },
   // The two ways a player-chosen starter (setup.custom_base) fails to make a
   // board. Unlike everything else here these fire at CREATE time and land on
   // the setup dialog's error line, not the below-board pill — but the
@@ -267,14 +267,14 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   // moment, and the player did nothing wrong. `info`, not `error`, for the same
   // reason — the cards visibly leaving (they light up as they go) is most of
   // the explanation, and this only names it.
-  'cards-gone': { text: () => 'Someone got there first', tone: 'info' },
+  'cards-gone': { text: () => 'Someone got there first', tone: 'noted' },
   // Both of these mean a broken or stale client rather than a player action:
   // the FE checks a set locally before it submits (the whole board is face-up),
   // and it disables the hint button outright in compete. Registered anyway,
   // because a fault is a poor way to learn that a guard slipped — and phrased
   // as statements of the rule, since that is all a player could do about it.
   'not-a-set': { text: () => 'Not a set' },
-  'hint-in-compete': { text: () => 'No hints when competing', tone: 'info' },
+  'hint-in-compete': { text: () => 'No hints when competing', tone: 'noted' },
 
   // ── letterboxed ──
   // Its coop chain is SHARED and free-for-all, so a teammate's word can land
@@ -292,7 +292,7 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   // Not a failure — news. A teammate finished, conceded the group out, or the
   // clock ran out while your word was in flight; `info` says "this is what
   // happened" rather than "you did something wrong".
-  'already-ended': { text: () => 'Game over', tone: 'info' },
+  'already-ended': { text: () => 'Game over', tone: 'noted' },
   // Undo is likewise racy in coop: two players can undo the same last word.
   'nothing-to-undo': { text: () => 'Nothing to undo' },
   // The three ways a player-typed board (setup.custom_sides) fails to make a

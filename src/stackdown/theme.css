@@ -4,10 +4,10 @@
  * Board.tsx), so it isn't a token. Imported by the PlayArea.
  */
 :root {
-  /* Letter ink = the shared tile ink (common/theme.css --tile-ink-color), same as
-     scrabble/boggle: stackdown's tiles use the same warm --tile-1-color..4 fill ramp, so
+  /* Letter ink = the shared tile ink (common/themes/daylight.css --tile-slot-ink-color), same as
+     scrabble/boggle: stackdown's tiles use the same warm --tile-1-fill-color..4 fill ramp, so
      they take the same near-black ink. A game-named alias keeps the override seam. */
-  --stackdown-tile-ink: var(--tile-ink-color);
+  --stackdown-tile-ink: var(--tile-slot-ink-color);
 
   /* ── Board chrome, named during the palette sweep ─────────────────────────
    * A stack of tiles that OVERLAP, so the edge and the drop shadow are doing

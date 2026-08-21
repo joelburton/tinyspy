@@ -23,7 +23,7 @@ type Props = {
  * (via cursor.ts) and sent as coordinates; the server checks/reveals against
  * the shielded solution.
  *
- * Every button in the bar is a uniform square (`--icon-button-size`), so the
+ * Every button in the bar is a uniform square (`--iconButton-size`), so the
  * only things telling them apart are the glyph and the group they sit in —
  * hence the two devices this row leans on:
  *

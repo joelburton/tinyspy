@@ -30,10 +30,10 @@
  */
 :root {
   --letterboxed-accent:     #3f9d5c;
-  --letterboxed-used:       var(--outcome-won-wash-color);
-  --letterboxed-ghost:      var(--control-text-muted-color);
+  --letterboxed-used:       var(--outcomes-won-wash-color);
+  --letterboxed-ghost:      var(--field-muted-ink-color);
   --letterboxed-box:        var(--page-divider-color);
   --letterboxed-tile:       var(--page-surface-color);
   --letterboxed-tile-text:  var(--page-text-color);
-  --letterboxed-seed:       var(--outcome-won-ink-color);
+  --letterboxed-seed:       var(--outcomes-won-ink-color);
 }

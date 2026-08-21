@@ -2,7 +2,7 @@
 <!-- stackdown logo — two overlapping lettered tiles like the in-game stack:
      "S" on top (tile shade 2) covering part of the deeper "D" tile (shade 4),
      whose letter is shifted toward its uncovered corner so it stays readable.
-     Tile fills/borders mirror the shared tile ramp in common/theme.css.
+     Tile fills/borders mirror the shared tile ramp in common/themes/daylight.css.
      Hand-authored; no external source. -->
 
 <svg

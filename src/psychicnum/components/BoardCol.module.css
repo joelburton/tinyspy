@@ -17,7 +17,7 @@
  * entry font — a single short guess word reads large. Applied to the shared
  * <EntryRow>'s row; the var cascades down to the EntryBox inside it. */
 .bigEntry {
-  --entrybox-font-size: 2rem;
+  --entryBox-font-size: 2rem;
 }
 
 /* On a phone the board fills the screen and 2rem reads oversized, so dial the
@@ -26,7 +26,7 @@
  * keyboard, so it can't trigger focus-zoom. Phones only; tablets/desktop keep 2rem. */
 @media (--phone) {
   .bigEntry {
-    --entrybox-font-size: 1.5rem;
+    --entryBox-font-size: 1.5rem;
   }
 }
 

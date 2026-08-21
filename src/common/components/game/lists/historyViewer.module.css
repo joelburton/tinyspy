@@ -39,7 +39,7 @@
 .frame {
   /* `--viewer-accent` defaults to the history token, so every history game is
    *  unchanged; a wrapper can override it (scrabble's `.sharePreview` sets it to
-   *  `--view-share-preview-color`) to recolor the frame + banner for a different kind
+   *  `--view-sharePreview-color`) to recolor the frame + banner for a different kind
    *  of read-only overlay. Custom properties cascade, so setting it on the board
    *  column reaches both the board `.frame` and the below-board `.banner`. */
   outline: 4px solid var(--viewer-accent, var(--view-history-color));
@@ -49,11 +49,11 @@
 
 /* Recolor the frame + banner for scrabble's coop "showing a move" preview — the
  * SAME overlay chrome as history, but with its own tinkerable accent (theme.css →
- * --view-share-preview-color). Applied to the board column so the var cascades to both
+ * --view-sharePreview-color). Applied to the board column so the var cascades to both
  * the board frame and the banner. The `.viewedNumber` #N ring stays history-only
  * (a shared move has no log handle). */
 .sharePreview {
-  --viewer-accent: var(--view-share-preview-color);
+  --viewer-accent: var(--view-sharePreview-color);
 }
 
 /* The "#N" turn handle whose turn is currently open in the viewer — a blue ring

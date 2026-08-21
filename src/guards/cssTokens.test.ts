@@ -17,7 +17,7 @@ import { describe, expect, it } from 'vitest'
  * A token counts as DEFINED if it's declared in any stylesheet (`--x:`)
  * or set inline from a component (a quoted `'--x'` style key in a .tsx —
  * e.g. the wordle reveal animation's `--reveal-bg`). Tokens whose names
- * are built dynamically (`var(--member-${name}-dot-color)`) are matched by
+ * are built dynamically (`var(--member-${name}-fill-color)`) are matched by
  * prefix.
  */
 
@@ -94,7 +94,7 @@ describe('CSS custom-property tokens', () => {
 
     const isDefined = (name: string) =>
       defined.has(name) ||
-      // dynamic name like `var(--member-${x}-dot-color)` → captured as the
+      // dynamic name like `var(--member-${x}-fill-color)` → captured as the
       // trailing-dash prefix; OK if any defined token extends it.
       (name.endsWith('-') && [...defined.keys()].some((d) => d.startsWith(name)))
 
@@ -128,7 +128,7 @@ describe('CSS custom-property tokens', () => {
   it('every defined token is referenced (no dead tokens)', () => {
     const { defined, refs } = scanTokens()
 
-    // A ref whose name was built dynamically (`var(--member-${x}-dot-color)`) is
+    // A ref whose name was built dynamically (`var(--member-${x}-fill-color)`) is
     // captured as its trailing-dash prefix, so it vouches for every token that
     // extends it — the same rule the forward guard uses, read the other way.
     const dynamicPrefixes = [...refs.keys()].filter((r) => r.endsWith('-'))
@@ -149,31 +149,6 @@ describe('CSS custom-property tokens', () => {
 })
 
 /**
- * Guard: the four chrome tones are a COMPLETE GRID, named for their treatment.
- *
- * Two decisions live here because prose couldn't hold them. Both were agreed,
- * both were written down, and both were quietly undone by a later pass that
- * renamed its way past them — after which the doc was stamped "superseded" to
- * match the code, rather than the code being brought back to the decision. A test
- * is the version of a decision that argues back. The rules themselves are in
- * docs/ui.md → The color system.
- *
- * ONE — every tone carries all five values, whether or not anything reads them
- * yet. A family picked at one sitting is picked by one formula; a value derived
- * alone in two years, next to the button that happened to need it, is reasoned
- * about differently and drifts out of family. `quiet` is the case that proves it:
- * it went two years as an outline-only tone on the argument that "a filled quiet
- * button would out-shout its neighbour" — a claim about one USE, promoted into a
- * fact about the TONE, which then made `tone="quiet" weight="primary"` paint
- * itself action-blue. Nothing reads quiet's primary trio today. It is still
- * written today.
- *
- * TWO — the names say the TREATMENT (`primary` / `secondary`), never the paint.
- * "fill" named the property while pretending to name the axis, so `-fill-color`
- * and the `.primary` class were one idea spelled two ways. It is banned by name
- * here, because that is the rename that keeps coming back.
- */
-/**
  * Guard: `.button` is the SHAPE, the treatment is the PAINT, and every button
  * says which treatment it wants.
  *
@@ -189,13 +164,13 @@ describe('CSS custom-property tokens', () => {
  * anything.
  */
 describe('button shape and treatment are separate', () => {
-  const THEME = join(SRC, 'common/theme.css')
+  const UTILITIES = join(SRC, 'common/utilities.css')
 
-  /** The declarations of a top-level rule in theme.css, by exact selector. */
+  /** The declarations of a top-level rule in utilities.css, by exact selector. */
   const ruleBody = (selector: string) => {
-    const css = stripComments(readFileSync(THEME, 'utf8'))
+    const css = stripComments(readFileSync(UTILITIES, 'utf8'))
     const m = new RegExp(`(^|\\})\\s*${selector.replace(/[.]/g, '\\.')}\\s*\\{([^}]*)\\}`, 'm').exec(css)
-    expect(m, `theme.css has no \`${selector}\` rule`).not.toBeNull()
+    expect(m, `utilities.css has no \`${selector}\` rule`).not.toBeNull()
     return m![2]
   }
 
@@ -255,33 +230,85 @@ describe('button shape and treatment are separate', () => {
   })
 })
 
-describe('the chrome tones are complete', () => {
-  const TONES = ['action', 'caution', 'destructive', 'quiet']
-  const VALUES = [
-    'primary-color',
-    'primary-hover-color',
-    'primary-ink-color',
-    'secondary-color',
-    'secondary-hover-color',
+describe('the color families are complete rectangles', () => {
+  /**
+   * Every family in a bucket carries every variant of that bucket, always,
+   * whether or not anything reads the cell yet. The variant lists differ from
+   * bucket to bucket — a button never needs a `bar`, an outcome never needs a
+   * hover — but within a bucket the grid is rectangular.
+   *
+   * `base` is in both lists and is painted by nothing: it is the anchor each
+   * family was designed from, and its siblings derive from IT rather than from
+   * each other, so no formula silently inherits another's tweak.
+   */
+  const BUCKETS = [
+    {
+      bucket: 'button',
+      families: ['normal', 'success', 'destructive', 'caution', 'quiet'],
+      variants: [
+        'base-color',
+        'primary-color',
+        'primary-hover-color',
+        'primary-ink-color',
+        'secondary-color',
+        'secondary-hover-color',
+      ],
+      where: 'themes/daylight.css → BUTTON',
+    },
+    {
+      bucket: 'outcomes',
+      families: ['won', 'lost', 'near', 'warning', 'neutral', 'noted', 'error'],
+      variants: [
+        'base-color',
+        'ink-color',
+        'fill-color',
+        'edge-color',
+        'wash-color',
+        'bar-color',
+        'terminalFrame-color',
+      ],
+      where: 'themes/daylight.css → OUTCOMES',
+    },
+    {
+      bucket: 'pill',
+      families: ['won', 'lost', 'near', 'warning', 'neutral', 'noted', 'error'],
+      variants: ['color', 'tint-color'],
+      where: 'themes/daylight.css → PILL',
+    },
   ]
 
-  it('every tone carries all five treatment values', () => {
-    const { defined } = scanTokens()
-    const missing = TONES.flatMap((tone) =>
-      VALUES.map((v) => `--chrome-${tone}-${v}`).filter((t) => !defined.has(t)),
-    )
-    expect(
-      missing,
-      `A chrome tone is missing part of its family. Every tone carries all five ` +
-        `values even with no reader — derive it now, from the primary, with the ` +
-        `formula at theme.css → FIVE VALUES PER TONE:\n${missing.join('\n')}`,
-    ).toEqual([])
-  })
+  for (const { bucket, families, variants, where } of BUCKETS) {
+    it(`every ${bucket} family carries every variant`, () => {
+      const { defined } = scanTokens()
+      const missing = families.flatMap((f) =>
+        variants.map((v) => `--${bucket}-${f}-${v}`).filter((t) => !defined.has(t)),
+      )
+      expect(
+        missing,
+        `A ${bucket} family is missing part of its rectangle. Every family carries ` +
+          `every variant even with no reader — a family picked at one sitting is ` +
+          `picked by one formula, where a value derived alone in two years drifts. ` +
+          `Write it now, at ${where}:\n${missing.join('\n')}`,
+      ).toEqual([])
+    })
+  }
 
-  it('no chrome tone token says "fill" — the axis is primary/secondary', () => {
+  /**
+   * `quiet` is the case that proves the rule above. It went two years as an
+   * outline-only tone on the argument that "a filled quiet button would out-shout
+   * its neighbour" — a claim about one USE, promoted into a fact about the
+   * FAMILY, which then made `tone="quiet" weight="primary"` paint itself blue.
+   * Nothing reads quiet's primary trio today. It is still written today.
+   *
+   * And the names say the TREATMENT (`primary` / `secondary`), never the paint.
+   * "fill" named the property while pretending to name the axis, so `-fill-color`
+   * and the `.primary` class were one idea spelled two ways. It is banned by name
+   * here, because that is the rename that keeps coming back.
+   */
+  it('no button family token says "fill" — the axis is primary/secondary', () => {
     const { defined } = scanTokens()
-    const named = [...defined.keys()].filter((t) =>
-      TONES.some((tone) => t.startsWith(`--chrome-${tone}-`) && t.includes('fill')),
+    const named = [...defined.keys()].filter(
+      (t) => t.startsWith('--button-') && t.includes('fill'),
     )
     expect(
       named,
@@ -350,8 +377,8 @@ describe('no unnamed colors', () => {
    *
    * This is the blind spot of the rule above, stated as its own rule. `--x: #fff`
    * IS a custom-property definition, so it passes cleanly, and twelve boards used
-   * exactly that shape to write a raw white into `--tile-ink-color` while
-   * `--ink-on-dark-color` sat in theme.css meaning the same thing. The value had a
+   * exactly that shape to write a raw white into `--tile-slot-ink-color` while
+   * `--ink-onDark-color` sat in theme.css meaning the same thing. The value had a
    * SLOT but no NAME, and a second theme could reach nine of the whites and not
    * the other twelve.
    *

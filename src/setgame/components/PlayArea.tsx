@@ -560,7 +560,7 @@ export function PlayArea(ctx: GamePageCtx) {
         onCardClick={onCardClick}
         pill={
           viewing
-            ? stickyPill('info', viewing.description)
+            ? stickyPill('noted', viewing.description)
             : over
             ? terminalPill(over.tone, over.verdict)
             : isLocallyDone

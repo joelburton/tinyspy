@@ -16,7 +16,7 @@
  * confirmed yet, and the pale-to-saturated jump on acceptance reads as "that
  * became real" instead of "that turned into a different thing".
  *
- * Derived from the shared palette in common/theme.css rather than invented, so
+ * Derived from the shared palette in common/themes/daylight.css rather than invented, so
  * a future theme switch moves these with it. */
 
 :root {

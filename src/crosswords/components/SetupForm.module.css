@@ -14,7 +14,7 @@
 .seg {
   display: inline-flex;
   align-self: flex-start;
-  border: 1px solid var(--control-border-color);
+  border: 1px solid var(--field-edge-color);
   border-radius: 6px;
   overflow: hidden;
 }
@@ -22,12 +22,12 @@
   padding: 0.3rem 0.7rem;
   font: inherit;
   font-size: 0.9rem;
-  background: var(--control-bg-color);
+  background: var(--field-fill-color);
   color: var(--page-text-color);
   cursor: pointer;
 }
 .segBtn + .segBtn {
-  border-left: 1px solid var(--control-border-color);
+  border-left: 1px solid var(--field-edge-color);
 }
 .segOn {
   background: var(--crosswords-cursor);
@@ -175,8 +175,8 @@
   font: inherit;
   text-align: center;
   color: var(--page-text-color);
-  background: var(--control-bg-color);
-  border: 2px dashed var(--control-border-color);
+  background: var(--field-fill-color);
+  border: 2px dashed var(--field-edge-color);
   border-radius: 8px;
   cursor: pointer;
 }

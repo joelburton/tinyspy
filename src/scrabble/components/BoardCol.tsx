@@ -567,7 +567,7 @@ export function BoardCol({
         blank = true
       }
       if (rackIdx < 0) {
-        showLocalFeedback({ tone: 'info', text: `No “${letter}” tile` })
+        showLocalFeedback({ tone: 'noted', text: `No “${letter}” tile` })
         return
       }
       setStaged((prev) => [...prev.filter((s) => !(s.x === tx && s.y === ty)), { x: tx, y: ty, letter, blank, rackIdx }])
@@ -637,7 +637,7 @@ export function BoardCol({
     } else if (res.result === 'stale') {
       lastActionRef.current = prevAction // no commit — un-claim
       pendingDrawRef.current = prevDraw
-      showLocalFeedback({ tone: 'info', text: 'Board changed' })
+      showLocalFeedback({ tone: 'noted', text: 'Board changed' })
     } else if (res.result === 'invalid') {
       lastActionRef.current = prevAction // no commit — un-claim
       pendingDrawRef.current = prevDraw
@@ -674,7 +674,7 @@ export function BoardCol({
     if (res.result === 'stale') {
       lastActionRef.current = prevAction // no commit — un-claim
       pendingDrawRef.current = prevDraw
-      showLocalFeedback({ tone: 'info', text: 'Board changed' })
+      showLocalFeedback({ tone: 'noted', text: 'Board changed' })
     } else {
       setSelected(new Set())
       pendingDrawRef.current = res.drawn?.length ?? tiles.length
@@ -775,7 +775,7 @@ export function BoardCol({
     <>
       {/* `.sharePreview` on the column recolors the frame + banner via the
           cascading `--viewer-accent` var, so a teammate's shared move reads
-          distinctly from a history replay (theme.css → --view-share-preview-color). */}
+          distinctly from a history replay (theme.css → --view-sharePreview-color). */}
       <div className={cls(shared.boardCol, styles.boardCol, viewShared && history.sharePreview)}>
         {/* Mobile only (CSS-hidden on desktop, where the info column carries it):
             the live turn/score + bag readout, above the board. It's a fixed-height

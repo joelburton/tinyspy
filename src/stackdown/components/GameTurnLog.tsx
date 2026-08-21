@@ -78,7 +78,7 @@ export function GameTurnLog({
   // spellingbee's WordList — same "Click to define" affordance). stopPropagation
   // so defining a word doesn't ALSO open that row's turn viewer.
   // Pointer-only, deliberately: NOT focusable, no `role="button"`. See
-  // common/theme.css → `.definable` for why every definable word is like this.
+  // common/utilities.css → `.definable` for why every definable word is like this.
   const defineActivation = (word: string) => ({
     onClick: (e: MouseEvent<HTMLSpanElement>) => {
       e.stopPropagation()

@@ -264,7 +264,7 @@ export function InfoCol({
             <p className={cls(shared.infoState, styles.answerLine)}>
               The answer was{' '}
               {/* Pointer-only, deliberately: NOT focusable, no `role="button"`.
-                  See common/theme.css → `.definable`. */}
+                  See common/utilities.css → `.definable`. */}
               <strong
                 className={cls('definable', styles.answerReveal)}
                 title="Click to define"

@@ -89,5 +89,5 @@
 /* A token from another bucket. Muted rather than alarming — some borrows are
  * correct — but never invisible. */
 .borrowed {
-  color: var(--outcome-warning-ink-color);
+  color: var(--outcomes-warning-ink-color);
 }

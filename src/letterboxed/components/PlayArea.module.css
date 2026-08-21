@@ -236,7 +236,7 @@
 }
 .chainRemove:hover,
 .chainRemove:focus-visible {
-  background: var(--control-bg-color);
+  background: var(--field-fill-color);
 }
 .chainEmpty {
   color: var(--page-text-muted-color);

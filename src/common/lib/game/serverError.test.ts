@@ -108,8 +108,8 @@ describe('failureMessage', () => {
   })
 
   it('honors a copy entry that is news rather than a failure', () => {
-    withCopy('already-ended', { text: () => 'Game over', tone: 'info' })
-    expect(failureMessage({ message: 'already-ended|', code: 'P0001' }, 'word').tone).toBe('info')
+    withCopy('already-ended', { text: () => 'Game over', tone: 'noted' })
+    expect(failureMessage({ message: 'already-ended|', code: 'P0001' }, 'word').tone).toBe('noted')
   })
 
   it('renders an unknown key as a FAULT carrying the raw text', () => {
@@ -195,7 +195,7 @@ describe('faultMessage', () => {
 
   it('ignores a friendly tone — a fault is never news', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
-    withCopy('already-ended', { text: () => 'Game over', tone: 'info' })
+    withCopy('already-ended', { text: () => 'Game over', tone: 'noted' })
     expect(faultMessage({ message: 'already-ended|', code: 'P0001' }, 'new game').tone).toBe('error')
   })
 

@@ -83,7 +83,7 @@ export function GameTurnLog({
   // the lookup wants.
   const { define, popover } = useDefinePopover()
   // Pointer-only, deliberately: NOT focusable, no role="button". See
-  // common/theme.css → `.definable` for why every definable word is like this.
+  // common/utilities.css → `.definable` for why every definable word is like this.
   const defineProps = (word: string) => ({
     className: 'definable',
     title: 'Click to define',

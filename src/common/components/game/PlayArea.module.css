@@ -19,7 +19,7 @@
 
 /* ─── Shell ──────────────────────────────────────────────────────────────
  * Layout fills to the viewport bottom (docs/ui.md → "Page-height fits the
- * viewport"); --game-chrome-height (common/theme.css) is the body-padding +
+ * viewport"); --game-chrome-height (common/base.css) is the body-padding +
  * header + gap offset so a header redesign moves one number.
  *
  * Column placement: the info column sits flush against the RIGHT edge of the
@@ -244,7 +244,7 @@
   top: 0.5rem;
   right: 0.5rem;
   z-index: 2;
-  box-shadow: var(--shadow-board-float);
+  box-shadow: var(--shadow-boardFloat);
 }
 
 /* Info column: a fixed column — `flex: 0 0` means it never grows or shrinks (the
@@ -375,11 +375,11 @@
 }
 
 .outcome_won {
-  color: var(--outcome-won-ink-color);
+  color: var(--outcomes-won-ink-color);
 }
 
 .outcome_lost {
-  color: var(--outcome-lost-ink-color);
+  color: var(--outcomes-lost-ink-color);
 }
 
 .outcome_neutral {
@@ -428,9 +428,9 @@
   /* Out over the BORDER, not just the face. `inset: 0` lands on the padding box,
    * which leaves the tile's edge undimmed — and an edge that carries any color
    * then shows straight through the mark. A mark on a piece covers the piece. */
-  inset: calc(-1 * var(--tile-border-width));
+  inset: calc(-1 * var(--tile-edge-width));
   border-radius: inherit;
-  background: var(--mark-in-flight-dim-color);
+  background: var(--mark-inFlight-dim-color);
   pointer-events: none;
   /* Above content a game has lifted for the attention wash below (which sits at
    * 1), because the two can overlap: a realtime update can land a hair before
@@ -453,7 +453,7 @@
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: var(--mark-not-your-turn-dim-color);
+  background: var(--mark-notYourTurn-dim-color);
   pointer-events: none;
 }
 
@@ -509,11 +509,11 @@
  * takes whatever is legible on it.
  *
  * Qualified with `.tileFace` so it beats a game's own state class (which sets
- * `--tile-bg-color` from another stylesheet at the same specificity — order between
+ * `--tile-slot-fill-color` from another stylesheet at the same specificity — order between
  * modules is the bundler's business and this must not be a coin flip). */
 .tileFace.verdictFill {
-  --tile-bg-color: var(--verdict-fill);
-  --tile-ink-color: var(--verdict-ink);
+  --tile-slot-fill-color: var(--verdict-fill);
+  --tile-slot-ink-color: var(--verdict-ink);
   animation: verdict-shake 0.4s ease-in-out;
 }
 
@@ -524,25 +524,25 @@
  * whether you meet it on the board now or in the log a minute later, and neither
  * place is free to pick its own shade. Same family, two tiers, one meaning. */
 .verdictLost {
-  --verdict-tone: var(--outcome-lost-ink-color);
-  --verdict-fill: var(--outcome-lost-fill-color);
-  --verdict-ink: var(--ink-on-dark-color);
+  --verdict-tone: var(--outcomes-lost-ink-color);
+  --verdict-fill: var(--outcomes-lost-fill-color);
+  --verdict-ink: var(--ink-onDark-color);
 }
 
 /* A caution — "you can't do that", "you already tried that". Orange, and dark
  * ink: white on this one measures about 2:1. */
 .verdictWarning {
-  --verdict-tone: var(--outcome-warning-ink-color);
-  --verdict-fill: var(--outcome-warning-fill-color);
-  --verdict-ink: var(--ink-on-light-color);
+  --verdict-tone: var(--outcomes-warning-ink-color);
+  --verdict-fill: var(--outcomes-warning-fill-color);
+  --verdict-ink: var(--ink-onLight-color);
 }
 
 /* A near miss — "one away". Gold, and dark ink for the same reason wordle's
  * yellow keeps it: a gold dark enough to carry white text isn't gold any more. */
 .verdictNear {
-  --verdict-tone: var(--outcome-near-ink-color);
-  --verdict-fill: var(--outcome-near-fill-color);
-  --verdict-ink: var(--ink-on-light-color);
+  --verdict-tone: var(--outcomes-near-ink-color);
+  --verdict-fill: var(--outcomes-near-fill-color);
+  --verdict-ink: var(--ink-onLight-color);
 }
 
 @keyframes verdict-shake {
@@ -599,7 +599,7 @@
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: var(--mark-game-over-dim-color);
+  background: var(--mark-gameOver-dim-color);
   pointer-events: none;
 }
 
@@ -626,7 +626,7 @@
 .gameOverFrame {
   /* Neutral unless a tone class below re-sets it — an ENDED game (nobody beat
    * anybody) keeps the plain gray. */
-  --game-over-frame: var(--outcome-neutral-terminal-frame-color);
+  --game-over-frame: var(--outcomes-neutral-terminalFrame-color);
   outline: 4px solid var(--game-over-frame);
   outline-offset: 3px;
 }
@@ -636,11 +636,11 @@
  * as well say WHICH. Declared after `.gameOverFrame` — they land on the same
  * element, so same-file order settles it. */
 .gameOverWon {
-  --game-over-frame: var(--outcome-won-terminal-frame-color);
+  --game-over-frame: var(--outcomes-won-terminalFrame-color);
 }
 
 .gameOverLost {
-  --game-over-frame: var(--outcome-lost-terminal-frame-color);
+  --game-over-frame: var(--outcomes-lost-terminalFrame-color);
 }
 
 /* ATTENTION — this changed, look here.
@@ -672,10 +672,10 @@
  * Not a violation of "ink = tried vs untried": ink's job is to be legible against
  * whatever is behind it, and for this second that is the wash rather than the
  * state. Qualified with `.tileFace` so it outranks the game's own state class,
- * which sets `--tile-ink-color` from another stylesheet at equal specificity — order
+ * which sets `--tile-slot-ink-color` from another stylesheet at equal specificity — order
  * between modules is the bundler's business, and this must not be a coin flip. */
 .tileFace.attentionFlash {
-  --tile-ink-color: var(--page-text-color);
+  --tile-slot-ink-color: var(--page-text-color);
 }
 
 .attentionFlash::before {
@@ -684,7 +684,7 @@
   /* Over the border too — see `.dimInFlight::after`. This is the one that made it
    * obvious: a decided tile whose edge carried its verdict kept that ring while its
    * face went yellow. */
-  inset: calc(-1 * var(--tile-border-width));
+  inset: calc(-1 * var(--tile-edge-width));
   border-radius: inherit;
   background: var(--mark-attention-tile-color);
   pointer-events: none;
@@ -705,7 +705,7 @@
  * already the history viewer's frame and the two can co-occur — your turn can
  * start while you are reading a past turn. */
 .yourTurnFlash {
-  animation: your-turn-flash var(--mark-your-turn-flash-duration) ease-out;
+  animation: your-turn-flash var(--mark-yourTurn-flash-duration) ease-out;
 }
 
 @keyframes your-turn-flash {
@@ -735,7 +735,7 @@
  * because which of the two a board wants is a real decision about that board and
  * belongs where the board is written.
  *
- * The resting look comes ENTIRELY from the --tile-* tokens (common/theme.css), so
+ * The resting look comes ENTIRELY from the --tile-* tokens (common/themes/daylight.css), so
  * a state class (a result fill, the selected state) overrides by re-setting a
  * token on the same element — robust against stylesheet insertion order, unlike
  * trying to out-cascade another module. See docs/ui.md → "Interactive tile
@@ -749,15 +749,15 @@
   text-align: center;
   padding: 0.4rem 0.5rem;
   font: inherit;
-  color: var(--tile-ink-color);
-  background: var(--tile-bg-color);
+  color: var(--tile-slot-ink-color);
+  background: var(--tile-slot-fill-color);
   /* Width is a TOKEN because it is a channel: the vocabulary puts "selected —
    * part of the move I'm building" on border WIDTH, and a state class must be
    * able to thicken the edge by re-setting a property on the same element rather
    * than by out-cascading this shorthand from another module (which would depend
    * on stylesheet order). Every tile is `box-sizing: border-box`, so a thicker
    * border eats inward and nothing reflows. See plans/tile-feedback.md. */
-  border: var(--tile-border-width) solid var(--tile-border-color);
+  border: var(--tile-edge-width) solid var(--tile-slot-edge-color);
   border-radius: var(--radius-md);
   box-shadow: var(--tile-shadow);
   /* A query container (width axis) so the label can auto-fit the tile — see
@@ -885,11 +885,11 @@
  *
  * Selected qualifies `.tile` rather than standing alone, so it beats the game
  * class that set the resting edge on specificity instead of on stylesheet order:
- * a game's color class sets `--tile-border-color` from its own module, and a
+ * a game's color class sets `--tile-slot-edge-color` from its own module, and a
  * single-class rule here would be a coin flip between the two. */
 .tile.selected {
-  border-width: var(--tile-selected-border-width);
-  border-color: var(--tile-selected-border-color);
+  border-width: var(--tile-selected-edge-width);
+  border-color: var(--tile-selected-edge-color);
 }
 
 

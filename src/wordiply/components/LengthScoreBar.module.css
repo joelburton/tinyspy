@@ -38,8 +38,8 @@
 .track {
   height: 0.75rem;
   border-radius: 0.5rem;
-  background: var(--control-bg-color);
-  border: 1px solid var(--control-border-color);
+  background: var(--field-fill-color);
+  border: 1px solid var(--field-edge-color);
   overflow: hidden;
 }
 
