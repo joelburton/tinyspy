@@ -56,26 +56,15 @@
   font-weight: 500;
 }
 
-/* Solo pill — outlined accent rather than filled. Quieter than
- * a solid-fill badge while still anchoring the row as "this is
- * your solo space." The same accent color as link affordances
- * elsewhere on the page, so the visual vocabulary stays
- * consistent. */
+/* "Solo" — the shared `.badge` (common/patterns/badge.css), which is the same
+ * thing a game row's mode pill is: a one-word label saying what KIND of thing
+ * the row holds. The badge paints no color, so all that's left here is which
+ * color this one takes — the same accent as the page's link affordances, so
+ * the visual vocabulary stays consistent. Outlined rather than filled, which
+ * the shape already guarantees: quieter than a solid badge while still
+ * anchoring the row as "this is your solo space." */
 .soloBadge {
-  display: inline-block;
-  font-size: 0.7rem;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  font-weight: 600;
-  background: transparent;
   color: var(--chrome-badge-color);
-  border: 1px solid var(--chrome-badge-color);
-  padding: 0.1rem 0.45rem;
-  border-radius: 999px;
-  line-height: 1.2;
-  /* A pill label is a single unit — never let the card's overflow-wrap
-   * break "SOLO" into "SOL / O" when a long club name squeezes the row. */
-  white-space: nowrap;
 }
 
 /* The keyboard list-nav cursor — the ring marking which club Enter would open.
@@ -86,15 +75,6 @@
 .kbCursor {
   outline: 2px solid var(--chrome-cursor-color);
   outline-offset: -2px;
-}
-
-/* The focused list warms its border to the accent, exactly as ClubPage's two
- * panels do — the frame IS the focus indicator, so no default outline (which
- * would double up with the row ring inside it). */
-.clubsList:focus,
-.clubsList:focus-visible {
-  outline: none;
-  border-color: var(--chrome-cursor-color);
 }
 
 /* The page frame — chrome strip on top, the content card below. Home is the

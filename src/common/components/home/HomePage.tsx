@@ -292,7 +292,9 @@ export function HomePage({ session }: Props) {
                         and a monospace URL is a developer's view of a venue the
                         friends know by name. */}
                     <span className={styles.clubName}>{c.name}</span>
-                    {c.handle.startsWith('=') && <span className={styles.soloBadge}>Solo</span>}
+                    {c.handle.startsWith('=') && (
+                      <span className={cls('badge', styles.soloBadge)}>Solo</span>
+                    )}
                   </Link>
                 </li>
               ))}

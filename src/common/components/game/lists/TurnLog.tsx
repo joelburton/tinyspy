@@ -44,9 +44,15 @@ export function TurnLog({
   children,
 }: {
   heading: string
-  /** Optional control rendered right-aligned on the heading row — e.g. wordle's
-   *  "whose guesses" dropdown. Omit (the default) and the bare `<h3>` renders
-   *  exactly as before, so every other consumer is unaffected. */
+  /** Control rendered right-aligned on the heading row — in practice always the
+   *  `useTurnLogPlayerPicker` dropdown.
+   *
+   *  ⚠️ OPTIONAL IN NAME ONLY, and it should stop being optional. Every one of
+   *  the eleven `<TurnLog>` call sites passes it (verified 2026-08-21), so the
+   *  bare-`<h3>` branch below has no callers. It was written to let games adopt
+   *  the picker one at a time; the last one landed and nobody removed the ramp.
+   *  Make it required and delete the branch — the section-header pattern pass
+   *  is the moment to do it (plans/css-system-2.md §7). */
   headerAction?: ReactNode
   /** True when there are no rows — renders the muted empty state instead. */
   empty: boolean
@@ -76,9 +82,14 @@ export function TurnLog({
 
   return (
     <section className={cls(styles.turnLog, className)}>
+      {/* Heading + a right-aligned control on one line.
+          ⚠️ DEAD BRANCH: all eleven call sites pass `headerAction`, so the
+          `<h3>`-alone arm never runs. Delete it (and make the prop required)
+          at the section-header pattern pass — see the prop's docstring. Note
+          the branch wouldn't be needed even with an empty right-hand slot:
+          `space-between` with one child puts the heading on the left, exactly
+          where a bare `<h3>` sits. */}
       {headerAction ? (
-        // Heading + a right-aligned control on one line. Only when an action is
-        // passed, so the bare-heading layout is untouched for everyone else.
         <div className={infoPanel.headerRow}>
           <h3 className={infoPanel.heading}>{heading}</h3>
           {headerAction}

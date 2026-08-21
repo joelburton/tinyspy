@@ -1,0 +1,43 @@
+/* ============================================================
+ * badge.css — the badge.
+ *
+ * A one-word category label attached to whatever it sits beside:
+ * "Co-op" on a game, "Solo" on a club. It says what KIND of thing
+ * this is, not how the thing is going — a badge never reports a
+ * result, which is why it takes none of the outcome colors
+ * (docs/ui.md → Mode pills).
+ *
+ * One pattern, one file (plans/css-system-2.md §7).
+ * ============================================================ */
+
+/* THE SHAPE, and it paints no color — the same split `.button` makes. The
+   border is `currentColor`, so a caller sets `color` alone and the outline
+   follows it. That is what lets one class carry a teal mode pill, a purple
+   one and a gray Solo badge without knowing about any of them.
+
+   Small, outlined, and never filled: a badge sits inside a row that already
+   has a hover tint and a title, so a fill would out-shout the thing it is
+   labeling. `--radius-sm`, not a full 999px round — the fully-round shape
+   belongs to the feedback pill, and the two should not be confusable
+   (docs/ui.md → Feedback pill).
+
+   NOT uppercase. `text-transform` here would render "Co-op" as "CO-OP" and
+   silently overrule the spelling `MODE_LABEL` sets (docs/ui.md → Mode pills:
+   the DB says `coop`, the UI says "Co-op"). A badge shows its label as
+   written. */
+.badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1.4;
+  padding: 0.05rem 0.4rem;
+  border: 1px solid currentColor;
+  border-radius: var(--radius-sm);
+  /* The badge rides beside text of a different size (a club name, a game
+     title), so it centers on the line box rather than sitting on the
+     baseline. */
+  vertical-align: middle;
+  /* A label is a single unit — never let a squeezed row's overflow-wrap
+     break "Solo" into "Sol / o". */
+  white-space: nowrap;
+}
