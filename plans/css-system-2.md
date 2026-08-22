@@ -163,8 +163,9 @@ a-b-c-d       --outcomes-lost-fill-color
   when it doesn't. `h1/h2/h3` taught everyone that a low number is a big
   heading, so `--space-1` = "the biggest space" costs nothing; `--radius-sm/md/lg`
   beats `--radius-1/2/3` because nothing about a radius says which end 1 is. The
-  test: can a reader guess the direction unprompted? (docs/naming.md → Numbers or
-  names?)
+  test: can a reader guess the direction unprompted? Either way **the name says
+  the whole thing** — `--font-size-2`, never `--font-2`. (docs/naming.md →
+  Numbers or names?)
 - **Only the ENDS are parsed.** A guard matches the bucket at the front and the
   variant + kind at the back; the middle is a label and needs no constraint.
 - **`_localName`** for a value built up over calculations inside one file:
@@ -312,7 +313,7 @@ column, not per instance by each caller.
 
 The contrast is exactly today's `FilterSelect`: the club page overrides six of
 the component's seven decisions for one instance (a caller disagreeing with a
-component), where the scoped form is `.infoCol { --space-2: …; --text-2: … }`
+component), where the scoped form is `.infoCol { --space-2: …; --font-size-2: … }`
 (a surface stating its own density, once). Which also settles what to do at
 step 9 — the component should state the ROOMY default and the info column
 should tighten it, rather than the reverse, which is what leaves the club page
@@ -887,6 +888,27 @@ Better to see a screaming page and fix a dozen of them together, thoughtfully,
 than to stall a structural pass on a single hue. The swatch page (§11) makes
 them impossible to miss, and a guard fails the build if any token resolves to the
 marker, so none can ship.
+
+### There is no hot pink for a LENGTH
+
+The marker works for color because a wrong hue is loud and harmless. There is no
+equivalent for a border-width or a font-size: an absurd value breaks the layout,
+and a plausible one is invisible. So the non-color vocabularies (§18) get the
+other half of the same discipline — **snap to the nearest step, keep moving, and
+write the objection down here.** Same rule as the colors: don't stall a
+structural pass arguing one value.
+
+**The quibble list.** Anything a surface's conversion made you want to argue
+about, recorded when it comes up and settled together at the end, when there is
+a whole app to look at rather than one screen.
+
+| raised at | the quibble |
+|---|---|
+| *(empty — add as the sweep surfaces them)* | |
+
+The failure this prevents: "don't quibble" quietly meaning "your objection
+evaporated". An objection with nowhere to go is either argued about immediately
+or lost, and both are worse than a line in a table.
 
 ## 16. Parked
 

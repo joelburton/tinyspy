@@ -196,6 +196,11 @@ radius says which end 1 is.
 The test is whether a reader can guess the direction without being told. If they
 can't, the number is a second thing to memorize and the name is free.
 
+**Either way the name says the WHOLE thing.** `--font-size-2`, never
+`--font-2`; `--border-width-1`, never `--border-1`. Brevity is worth something
+and it is worth less than a reader — human or model — having to guess what
+`--font-2` scales. A token name is read far more often than it is typed.
+
 Evidence, and it's why this is written down: the three consistency levels were
 numbered first, and Joel — who invented the scheme — misread his own numbering
 within the hour. `consistency-1` can equally mean "most consistent, the winner"
@@ -228,7 +233,7 @@ column, not per instance by each caller.
 
 The contrast is exactly today's `FilterSelect`: the club page overrides six of
 the component's seven decisions for one instance (a caller disagreeing with a
-component), where the scoped form is `.infoCol { --space-2: …; --text-2: … }`
+component), where the scoped form is `.infoCol { --space-2: …; --font-size-2: … }`
 (a surface stating its own density, once). Which also settles what to do at
 step 9 — the component should state the ROOMY default and the info column
 should tighten it, rather than the reverse, which is what leaves the club page
