@@ -1036,3 +1036,139 @@ What matters to THIS sprint, in one line each:
   background was never painted, stackdown's depth ramp named a token the rename
   had moved, and the judged letter ink could not be pinned to one side of the
   flip.
+
+## 20. The z- layers — a conversation, NOT decisions
+
+⚠️ **Nothing in this section is settled**, and step 6c did not act on any of it.
+It is the record of one evening's thinking (2026-08-21) about what covers what,
+written down so it survives the session. Joel's framing, Joel's names, Joel's
+provisional numbers. Read it as "where the conversation got to", and expect the
+names to change before anything is blessed.
+
+The step-6c ladder that SHIPPED is `base.css` → "The Z-INDEX LADDER" and
+`code-conventions.md`. This section describes something different: the model we
+would want, which today's tokens only partly implement.
+
+### Why "z-", and why not "z-index"
+
+**`z-` is the concept; `z-index` is one CSS property that sometimes implements
+it.** The question a z- name answers is "what does the user see on top of what",
+which is not always a paint-order question. The clearest case: **the pause gate
+is a z- with no z-index at all** — `PauseBoundary` UNMOUNTS the play surface
+rather than covering it, which is better for several reasons and is not going
+to change.
+
+The prefix also separates a thing from its layer: `toast` is a component,
+`z-toast` is the band toasts live in and that other toast-like things could join.
+
+### The layers, bottom to top
+
+Numbers are ILLUSTRATIVE — spacing and gaps are arbitrary, chosen so there is
+room to insert. They are not proposed token values.
+
+| z- | layer | what lives there |
+|---|---|---|
+| 0 | page | the literal page: text, buttons, cards. Nothing is ever deliberately stacked here |
+| 10–45 | board | the board, and pieces stacked ON it (stackdown's tile depth is the only real case) |
+| 50 | board question | something briefly over the board, asking about the board — crosswords' rebus entry |
+| 60 | drag ghost | a piece in transit. Above its board, below anything that floats over the window |
+| 100 | infoCol | on mobile only, where the info column covers the board. On desktop this is not a layer at all |
+| 200 | panel | a **thinking-space you keep open**: the scratchpad, crosswords' setter-note and clue-explainer |
+| 300 | dialog | a **question that is patient**. Movable, opens where you left it, no dim. Word-lookup, the anagram finder, edit-word |
+| 350 | modal | a question worth **thinking about or talking about**. Dims, centers, movable. Setup, edit-club, edit-profile |
+| 500 | pause gate | everything below is hidden when the game is paused. **Not z-index** — a render gate |
+| 500 | chat | above every dim, on purpose: the setup form is exactly what people talk about |
+| 700 | toast | announcements you must see even mid-setup ("Joel invited you"). Stack vertically |
+| 800 | blocking modal | **the world stops.** No thought needed, no conversation needed. Confirmations, crosswords' number-jump |
+| 900 | critical modal | as blocking, but strictly above it. Faults only. Queued, never simultaneous |
+| top | tooltip | always the very top — see "the satellites" |
+
+**The ordering rule, which is the most useful sentence in the conversation:**
+*shorter-lived or more important sits higher.* The code has no rule today, only
+numbers people picked one at a time.
+
+### The satellites — things that are NOT rungs
+
+Three things attach to a layer rather than occupying one. This is what kept the
+ladder short:
+
+- **A scrim sits one below its owner.** A layer that dims carries its own; the
+  scrim is a property, not a rung. (Already true in code: `FloatingPanel` paints
+  its backdrop at `zIndex - 1`.)
+- **A dropdown sits just above its host.** Our select-replacement
+  (`FilterSelect`) has to beat whatever contains it — a page, an info column, or
+  one day a modal. As a rung it would have to outrank a blocking modal, which is
+  absurd for a filter. As a satellite it is one rule that works everywhere.
+- **A tooltip goes to the absolute top**, because it cannot know its host and
+  never blocks anything. **Joel's argument for why that is safe:** you cannot
+  hover what a modal has made inert, so a tooltip can never need to cover one —
+  and a tooltip on a control INSIDE a modal then just works.
+
+Menus and the definition popup are the same shape: anchored to what you clicked,
+no scrim, dismissed by the next click anywhere. They can never contend with each
+other (opening one dismisses the other), which is the argument for not splitting
+them.
+
+### The four question-shaped things
+
+They differ in intent, not implementation — one component with a dim property is
+fine, but in docs and in conversation they are four different things.
+
+| | dims | centers | movable | resizable |
+|---|---|---|---|---|
+| dialog | no | no — **opens where you left it** | yes | by the test below |
+| modal | yes | yes | yes — to see the board while filling a form | by the test below |
+| blocking modal | yes | yes | **no** | no |
+| critical modal | yes | yes | **no** | no |
+
+**Immovability is the visible signal**, and a better teacher than a scrim
+shade: if you can drag it, you can leave it for later; if you cannot, deal with
+it now.
+
+**Two scrim colors, ~35% and ~55%** — the light one for modals (the board stays
+readable), the dark one for blocking and critical. Both tokens already exist
+(`--scrim-light-color`, `--scrim-color`) at 40% and 45%, a difference nobody can
+see, and they are currently assigned by how a thing was BUILT rather than by
+what it means.
+
+**What "dim" must mean: everything under it is inert.** For a blocking modal
+that has to be literally true — nothing may outrank it. For a modal it means
+"focus is here", and chat sitting above it is a deliberate exception rather than
+a lie, because a modal never claimed the world stopped.
+
+**Resizing — who knows the right size?** *Content knows* → auto-fit, never
+resizable; a form is as tall as its fields (setup already does this with
+`fitContent`). *The user knows* → resizable; how much scratchpad, how much chat
+history, how many anagram results is a question only the person can answer.
+Predicts the current code exactly: chat, the scratchpad and the crossword notes
+are the only three resizable things in the app.
+
+### Measured: where the code disagrees with the model
+
+All verified 2026-08-21, and none of it was changed.
+
+| finding | consequence |
+|---|---|
+| **A fault is at the ordinary panel tier (500); chat is at 10000** | **an open chat panel covers a fault.** Worst case: "can't reach the server" hidden behind the thing the message is about |
+| **scrabble's center-letter picker is at 50** | below almost everything. It is also 41 hand-rolled lines — no focus trap, no Esc, and a scrim click CANCELS, the opposite of every other modal's see-and-acknowledge contract. Its tier is the smallest thing wrong with it |
+| **Confirmations and number-jump sit below chat** | classed as blocking, but chat covers them today |
+| **The celebration is above chat** | should come down. Open question, below |
+| **Nothing creates a stacking context around a board** — `.boardCol` is `position: relative` with no z-index, and `isolation` appears nowhere in `src/` | the "board" layer is a convention, not a seal: tile numbers race the whole app. Harmless today only because every board's numbers are small. Joel's ruling: assume the invariant *nothing in a layer with a range ever enters another layer* holds, and treat how as an implementation detail |
+| **Nothing raises anything within a tier** | two panels at one tier stack by DOM render order — fixed by component order, not by which you opened. So a strict order is in force today that nobody chose and nobody can see |
+| **`draggable={false}` is passed by exactly two components** — confirmations and faults | the three-way dim/drag split above is ALREADY encoded in the affordances. Only the tier is wrong |
+
+### Open
+
+1. **The celebration**: below chat (the moment you most want to say "gg") or a
+   blocking modal (dismiss before chatting)? Joel: decide later.
+2. **The multiple-movable-things strategy**, for the panel layer and the dialog
+   layer both: (a) a strict order, (b) opened order, (c) raise on interaction.
+   Needed sooner than it looked — crosswords can plausibly have the note, the
+   explainer and the anagram finder open at once.
+3. **scrabble's center-letter picker**: modal or blocking modal? Decide during
+   scrabble's pass.
+4. **Do the two scrim colors earn their keep**, given that immovability already
+   signals the category?
+5. **Names.** Every name here is Joel's working vocabulary, deliberately kept
+   while thinking. `AnagramDialog` / `WordLookupDialog` are named for a category
+   they may not be in, whatever it ends up called.
