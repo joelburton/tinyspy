@@ -313,7 +313,7 @@
   --outcomes-noted-edge-color:    color-mix(in srgb, var(--outcomes-noted-base-color) 84%, black);
   --outcomes-error-edge-color:    color-mix(in srgb, var(--outcomes-error-base-color) 84%, black);
 
-  /* WASH — a value per family, and this tier is the colour pass's
+  /* WASH — a value per family, and this tier is the color pass's
      clearest piece of agenda. Three of the five reproduce as a mix
      with the card, in three different recipes (won 37% oklab, warning
      35% sRGB, neutral 15% oklab). Lost and near reproduce as nothing:
@@ -435,7 +435,7 @@
      THE TINTS ARE THE IRREGULAR PART. Five mix at 18% and two at 8%,
      which is what ships today and is preserved here rather than
      normalized — evening them up moves pixels on real pills, and this
-     is a structural pass. It is the colour pass's to reconcile, along
+     is a structural pass. It is the color pass's to reconcile, along
      with the fact that a tint and the outcome `wash` are two answers
      to one question at two different strengths. */
   --pill-won-color:      var(--outcomes-won-ink-color);

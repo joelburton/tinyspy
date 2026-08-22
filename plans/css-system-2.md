@@ -833,10 +833,10 @@ arrangement — `FilterSelect`'s club-page override (which inverts at step 9: th
 component states the roomy default, the info column tightens it), the filters
 rendered twice for desktop and mobile, and the two-column fold.
 
-**Steps 2 and 10 are structural passes, not colour passes** — but a few values
+**Steps 2 and 10 are structural passes, not color passes** — but a few values
 shifting is fine and expected. What is not fine is a value shifting without
 anyone noticing: every move is recorded (§16), decided, or marked (§15). Broad
-colour tinkering stays a separate later pass; the structure is what makes it
+color tinkering stays a separate later pass; the structure is what makes it
 cheap.
 
 ## 14. Roster — measured 2026-08-20
@@ -929,7 +929,7 @@ or lost, and both are worse than a line in a table.
 ## 16. Parked
 
 Places where two meanings collide on one value today. Recorded, not fixed —
-this is the colour pass's agenda.
+this is the color pass's agenda.
 
 | parked | against | apart |
 |---|---|---|

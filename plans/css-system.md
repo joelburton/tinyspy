@@ -813,7 +813,7 @@ which was the property the old rule protected.
 
 Step 3 relocates and does not retune, so where two meanings in one family+role
 disagree today, one is parked at its own value rather than forced onto the cell.
-This is the list a colour pass starts from:
+This is the list a color pass starts from:
 
 | parked | against | apart |
 |---|---|---|
@@ -832,7 +832,7 @@ did — and moving it into that game's file is spellingbee's own pass.
 
 And `disabled` is a role with no values: it ships as an EFFECT
 (`--chrome-disabled-opacity: 0.75`) rather than a color per family. Minting ten
-cells is a colour pass, not a relocation.
+cells is a color pass, not a relocation.
 
 ### 4.4 — the tile ramp
 

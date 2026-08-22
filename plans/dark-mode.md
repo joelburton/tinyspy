@@ -40,7 +40,7 @@ family kept its SHAPE — only values and directions changed.
 - **`--print-ink-color` is the one role that must NOT flip.** Paper is paper.
 
 What a spike cannot prove is that the theme will be GOOD. It proves nothing
-structural blocks it, and that what remains is colour work.
+structural blocks it, and that what remains is color work.
 
 ## 2. What it cost to get there
 
@@ -127,7 +127,7 @@ disagrees with itself — see the UNRESOLVED block in
 
 ## 4. What is left, if we build it
 
-All of it is colour work, not structural work.
+All of it is color work, not structural work.
 
 - **Values picked against the wrong context.** Most of midnight was written
   against an L\* 5.5 page and the page is now 18.9. `--page-text-color` at
