@@ -1089,7 +1089,7 @@ relationships. These do:
 | `z-dialog` | A question that can wait. No dim, movable, reopens where you left it                   | 2100 | the anagram finder; edit-word |
 | `z-modal` | A question worth thinking or talking about. Dims to focus you; chat stays reachable    | 2200 | setup; edit profile |
 | `z-pause-gate` | Everything below it is gone while the game is paused. **A render gate, not a z-index** | 3000 | a player drops off the call; the Pause button |
-| `z-chat` | Always reachable, over every lower-than-chat dim — talking is what the app is for      | 3100 | the chat panel, and the round launcher it collapses to |
+| `z-chat` | Always reachable, over every lower-than-chat dim — talking is what the app is for      | 3100 | the chat panel (opened from the header bubble, which is ordinary page content) |
 | `z-toast` | An announcement you must see wherever you are and whatever you are doing               | 4000 | "Joel invited you to a game" |
 | `z-modal-blocking` | The world stops. Answer it now; nothing underneath is live                             | 5000 | confirm end game; crosswords' jump-to-number |
 | `z-modal-fault` | As blocking, but strictly above it — an error must be readable even mid-question       | 5100 | "can't reach the server" |
@@ -1204,7 +1204,7 @@ All verified 2026-08-21, and none of it was changed.
 | **Nothing creates a stacking context around a board** — `.boardCol` is `position: relative` with no z-index, and `isolation` appears nowhere in `src/` | the "board" layer is a convention, not a seal: tile numbers race the whole app. Harmless today only because every board's numbers are small. Joel's ruling: assume the invariant *nothing in a layer with a range ever enters another layer* holds, and treat how as an implementation detail |
 | **Nothing raises anything within a tier** | two panels at one tier stack by DOM render order — fixed by component order, not by which you opened. So a strict order is in force today that nobody chose and nobody can see |
 | **`draggable={false}` is passed by exactly two components** — confirmations and faults | the three-way dim/drag split above is ALREADY encoded in the affordances. Only the tier is wrong |
-| **The chat launcher sits one below the chat panel** | vestigial. `FloatingChat` renders the launcher ONLY when the panel is closed (`if (!open) return …`), so the two can never overlap and the panel has nothing to win against. 6c preserved the offset as a `calc(… - 1)` without checking the claim behind it. The launcher belongs AT `z-chat` |
+| **`FloatingChat`'s bottom-right launcher does not render at all** | BOTH call sites pass `hideClosedButton` (GamePage:612, ClubPage:1190), so the closed branch returns null and `.openButton` is dead CSS. Chat opens from the header `<ChatBubble>`, which is ordinary page content. The z-index on that dead rule is what 6c converted into `calc(var(--z-index-chatPanel) - 1)` — a derivation given to a rule nothing renders. The component's comment above the branch ("the legacy bottom-right toggle, for ClubPage, which still uses that affordance") is stale |
 
 ### Open
 
