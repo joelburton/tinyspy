@@ -810,8 +810,8 @@ the scanner counts it as a reference and reserved cells stay alive.
 | 4 | ~~the **midnight spike**~~ **DONE 2026-08-21** | The split holds; all 161 roles answered, one chain, nothing undefined. Kept behind `?theme=midnight`. Dark mode is NOT part of this sprint — everything learned is [dark-mode.md](dark-mode.md), and §19 keeps the one-line summary |
 | 5 | ~~shallow whole-app pattern pass~~ **DONE 2026-08-21** | Ten patterns named, plus five below the line, in §7 → "The named patterns". Read off the rendered surfaces, then counted. Also settled: device density (§9), and three findings that are name collisions rather than patterns |
 | 6 | ~~homepage~~ · ~~clubpage~~ **PARTLY DONE 2026-08-21, and deliberately stopped** | Both were converted with the pattern half of the toolkit — see "Why 6 stopped" below. Shipped off them: `.badge`, `.button-small` + an element-agnostic `.button`, `--chrome-cursor-ring` + `.kb-cursor`, `.heading-with-controls`, `.item-list`/`.item-row`/`.item-list-empty`, `.segmented`, `<PageHeader>`. `HomePage.module.css` 254 → 76 lines; `ClubPage.module.css` 270 → 216 |
-| 6a | **VOCABULARY — adoption** | The values that already exist and are ignored: `--radius-sm/md/lg` (hand-typed 43 times), `--chrome-disabled-opacity` (4 values doing one job). No design decisions — adopt, and ship each with its guard |
-| 6b | **VOCABULARY — invention** | Pick provisional values for `--space-N`, `--font-size-N`, line-height, letter-spacing, transition duration (§18). Into `base.css`; the extra text gray into the theme. **Snap and move on** — objections go in §15's quibble list, not into a debate |
+| 6a | **the CONVERSION PROCESS + the allowlist guard** | Not a sweep. Write down the silent-vs-ask rule (below), and build the shrinking-allowlist guard mechanism ONCE so every vocabulary can use it. Radius needs no new values — `--radius-sm/md/lg` already exist |
+| 6b | **VOCABULARY — invention** | Pick provisional values for `--space-N`, `--font-size-N`, line-height, letter-spacing, transition duration, and a small **opacity** vocabulary (§18). Into `base.css`; the extra text gray into the theme. **Snap and move on** — objections go in §15's quibble list, not into a debate |
 | 6c | **z-index, on its own** | Not a ramp — a stacking order, named by bucket (`--z-index-chatPanel`), and its failure mode is a real bug rather than drift. Needs a survey of what stacks against what |
 | 6d | **homepage, again** | The rehearsal for the full toolkit: patterns + vocabulary + the page shell. Plus a **React pass** — the duplication is not only in the CSS |
 | 7 | dialogs + forms | the first real win — many near-identical instances. Also decide here: whether to LOAD a font (§18) |
@@ -820,6 +820,35 @@ the scanner counts it as a reference and reserved cells stay alive.
 | 10 | per game — CSS pass, then tile-feedback pass, back to back | psychicnum first, as the control |
 | 11 | assets | 17 game logos carry baked color; the wordmark and favicon carry near-whites that fail on a dark page. All of it at once, at the end — doing one per game argues about a tree sixteen times |
 | 12 | fold + delete | durable rules into `docs/ui.md` and `docs/code-conventions.md`; the allowlist empties; this doc goes |
+
+### How a value gets converted (Joel, 2026-08-21)
+
+**Vocabularies are not swept in; they are applied area by area.** When an area
+is being converted, for each raw value in it:
+
+- **it equals a vocabulary value → change it silently.** No discussion; nobody
+  chose `4px` over `--radius-sm`, they're the same number.
+- **it doesn't → surface it, look at it together, then change it.** Almost every
+  near-miss (`3px` against `--radius-sm`'s 4, `0.45` against a disabled 0.5) was
+  picked at a different time by a different hand, not decided. Asking once, in
+  context, is how we find the few that were.
+
+This is why there is no up-front adoption pass: you cannot fit the near-misses
+to a scale without looking at them, and looking at all of them at once is the
+forest-for-trees failure §15 exists to prevent.
+
+**TUNED surfaces are exempt** — a board's radii and dims are fitted to the game,
+and that is the whole meaning of tuned.
+
+**The guard is a SHRINKING ALLOWLIST**, the mechanism §10 already specifies, and
+it is what makes this work without a warning nobody reads:
+
+- a file **not yet converted** is on the list, and is silent;
+- a converted file that regresses **fails**;
+- a **new** file fails immediately, because it isn't on the list.
+
+Build the mechanism once in 6a; each vocabulary then plugs into it as its values
+are settled.
 
 ### Why 6 stopped, and what the reorder buys
 

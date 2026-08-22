@@ -57,7 +57,23 @@ See [`common.md → Deferred / open`](common.md#deferred--open) for more detail 
 - ~~**Retire the `-bg` half of the outcome vocabulary with `color-mix`.**~~ Overtaken by the 2026-08-18 palette sweep (docs/ui.md → The color system), which renamed the tier `-wash` and deleted the three cells nobody read. What survives of the idea is one live question, recorded in the token: the feedback pill computes its tint as `fill 18% over the surface` while the `-wash` tier exists at a different value for the same job, so one of the two is redundant. Deciding which moves pixels.
 - **Member-color borders beyond dots — the `-edge` question.** The paired `--member-NAME-border-color` tokens + the shared `<Dot>` shipped 2026-07-07 (docs/ui.md → Player identity = a colored disc). What's still open: raw member colors also sit directly on the page background in **tile-selection borders** (connections peers), **crosswords peer-cursor frames**, and **chat name labels** — a light-yellow player has the same contrast problem there that the dot border solved. When those bite, decide whether the border token generalizes into an `-edge` ("this color legible against the body background") vocabulary, and whether name labels should switch to the border shade outright.
 - **Below-board `--avail-h` chrome-subtraction isn't tokenized** (carried over from the 2026-07-01 review §3.1). The below-board slot *structure* + reserved height were shared/tokenized, but each game still hand-subtracts its own chrome height in the board/`.wrap` `--avail-h` (`- 5rem` / `- 4.4rem` / `- 8.5rem` / `- 3.5rem`) rather than deriving it from the slot token — hand-synced and drift-prone. Derive it from the slot token when convenient. *(A broader CSS pass may re-examine this — flagged so it isn't lost.)*
-- **Literal radii → tokenize by *semantic intent*** (2026-07-01 review §3.3 — deferred to Joel). `4px` / `6px` / `8px` recur across ~16 sites equal to `--radius-sm` / `-md` / `-lg`. This is explicitly **NOT a mechanical `4px→-sm` swap** — each site should be tokenized by what it *is* (a card → `lg`, a panel → `md`, a tile → `sm`), a human judgment; leave the sub-grain `2px` / `3px` micro-radii and boggle's tuned `12px` tray. Two related low-priority leftovers noted in the same review: bananagrams `.dumpHot` green is still a literal (a distinct dump-zone-arming affordance), and `--shadow-popover` was minted by the palette sweep, with the `0.12` and `0.08` variants named beside it rather than folded in.
+- **Literal radii → tokenize by *semantic intent*** (2026-07-01 review §3.3; the
+  process settled 2026-08-21). `4px` / `6px` / `8px` recur across sites equal to
+  `--radius-sm` / `-md` / `-lg`. The ruling stands and is the important half:
+  this is **NOT a mechanical `4px→-sm` swap** — each site is tokenized by what it
+  *is* (a card → `lg`, a panel → `md`, a chip → `sm`), which is a human judgment.
+
+  What changed is *when*: no longer a sweep, but **area by area as each surface
+  is converted** (plans/css-system-2.md §13 → "How a value gets converted"). A
+  raw value equal to a token changes silently; one that isn't — the `2px` and
+  `3px` micro-radii, boggle's `12px` tray — gets surfaced and looked at once, in
+  context, rather than living as a standing exemption. Tuned surfaces (a game's
+  board) are exempt outright.
+
+  Two related leftovers from the same review: bananagrams `.dumpHot` green is
+  still a literal (a distinct dump-zone-arming affordance), and
+  `--shadow-popover` was minted by the palette sweep, with the `0.12` and `0.08`
+  variants named beside it rather than folded in.
 
 - **An orange that can carry white ink.** The filled caution tone puts white at
   **3.08:1**, under the 4.5 floor for a label, and nobody chose that — it fell out
