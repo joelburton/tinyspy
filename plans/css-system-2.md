@@ -357,7 +357,7 @@ gets converted").
 | 5 | `--opacity-1 … -2` | provisional; grows when the `0.4`s surface | `base.css` |
 | 6 | `--transition-duration-paint / -nudge / -travel` | `100 · 80 · 180ms` | `base.css` |
 | 7 | `--letter-spacing-label / -wide` | `0.03em · 0.2em` | `base.css` |
-| 8 | `--border-width-hairline / -thick / -frame` | `1 · 2 · 4px` | `base.css` |
+| 8 | `--border-width-line / -line-thick / -frame` | `1 · 2 · 4px` | `base.css` |
 
 Only #4 is themed. Everything else is a constant: a theme is color (§3), and a
 distance is the same distance in daylight and midnight.
@@ -397,15 +397,20 @@ the distinction is a small response versus a real journey. Joel's call to keep
 game-surface and TUNED. Recorded so a sweep doesn't take them by accident; we
 name them when they start recurring.
 
-**8 · border width, and it has room to grow.** `hairline` is the 1px of a
-divider or a field edge (48 uses); `thick` is 2px, the "this box is a thing"
-border (the active-game callout, the info-panel box, the feedback pill);
-`frame` is 4px, "something is happening to what's inside" (the history ring,
-the game-over frame, the toast stripe). `--border-width-thick` rather than
-`-border`, which inside `--border-width-` is noise.
+**8 · border width, and it has room to grow.** `line` is the 1px of a divider or
+a field edge (48 uses); `line-thick` is 2px, the "this box is a thing" border
+(the active-game callout, the info-panel box, the feedback pill); `frame` is
+4px, "something is happening to what's inside" (the history ring, the game-over
+frame, the toast stripe).
 
-The names leave the obvious room: if a heavier frame is ever needed — your-move
-thinner than you-lost — it is `frame-thick`, and nothing has to be renamed.
+**NOT `hairline`** — in print that means a genuinely hair-thin rule, 0.25pt or
+so, and on screen it would imply 1px *plus* a gray to fake the thinness. We
+don't do that; ours is an ordinary 1px line, so it is `line`.
+
+Two scales, one pattern: `line` → `line-thick`, `frame` → `frame-thick`. The
+second half of each is unused today and self-explains the day it is needed — a
+heavier frame if your-move should read lighter than you-lost — with nothing to
+rename.
 
 Two `3px` survive (the rank bar, the verdict outline). Not pre-decided: they get
 surfaced at their pass under the rule below.
