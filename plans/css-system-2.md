@@ -1087,7 +1087,7 @@ relationships. These do:
 | `z-infocol` | The readouts and controls beside the board — a page of its own on a phone              | 1300 | the turn log; the found-word list |
 | `z-workspace` | A thinking-space you open and keep open, and move where you want it                    | 2000 | the scratchpad; crosswords' setter-note |
 | `z-dialog` | A question that can wait. No dim, movable, reopens where you left it                   | 2100 | the anagram finder; edit-word |
-| `z-modal` | A question worth thinking or talking about. Dims to focus you; chat stays reachable    | 2200 | setup; edit profile |
+| `z-modal-normal` | A question worth thinking or talking about. Dims to focus you; chat stays reachable | 2200 | setup; edit profile; the celebration |
 | `z-pause-gate` | Everything below it is gone while the game is paused. **A render gate, not a z-index** | 3000 | a player drops off the call; the Pause button |
 | `z-chat` | Always reachable, over every lower-than-chat dim — talking is what the app is for      | 3100 | the chat panel (opened from the header bubble, which is ordinary page content) |
 | `z-toast` | An announcement you must see wherever you are and whatever you are doing               | 4000 | "Joel invited you to a game" |
@@ -1110,11 +1110,11 @@ changing because they were wrong even with the prefix:
   dialogs, modals, confirmations and faults — six layers — so naming one layer
   after it would be a lie the prefix can't fix. "workspace" appears zero times
   in the repo and is nearly Joel's own phrase for the category.
-- **`z-modal` · `z-modal-blocking` · `z-modal-fault`** — Joel's call, over a
-  proposal to drop the shared stem. The stem is load-bearing precisely BECAUSE
-  the three are not adjacent: `z-modal` sits below chat while the other two sit
-  above it, with the pause gate, chat and toasts in between, so the name is the
-  only thing that says they are kin. They share "look at me", a dim, and
+- **`z-modal-normal` · `z-modal-blocking` · `z-modal-fault`** — Joel's call, over
+  a proposal to drop the shared stem. The stem is load-bearing precisely BECAUSE
+  the three are not adjacent: `z-modal-normal` sits below chat while the other
+  two sit above it, with the pause gate, chat and toasts in between, so the name
+  is the only thing that says they are kin. They share "look at me", a dim, and
   centering. Longer is usually better for a name, and nobody has to wonder
   whether blocking is more or less than modal.
 
@@ -1135,6 +1135,12 @@ ladder short:
   (`FilterSelect`) has to beat whatever contains it — a page, an info column, or
   one day a modal. As a rung it would have to outrank a blocking modal, which is
   absurd for a filter. As a satellite it is one rule that works everywhere.
+- **Help sits just above whoever summoned it.** From the game page that is the
+  page; from the setup modal's footer "?" it is that modal. Classing it as a
+  rung fails both ways: `z-modal-blocking` would dim and inert the form you
+  opened the rules FOR, and `z-modal-normal` ties with setup and dims it too.
+  Today it works by accident — `HelpPanel` passes no tier, so it ties with setup
+  at the panel default and wins on DOM order.
 - **A tooltip goes to the absolute top**, because it cannot know its host and
   never blocks anything. **Joel's argument for why that is safe:** you cannot
   hover what a modal has made inert, so a tooltip can never need to cover one —
@@ -1153,7 +1159,7 @@ fine, but in docs and in conversation they are four different things.
 | | dims | centers | movable | resizable |
 |---|---|---|---|---|
 | dialog | no | no — **opens where you left it** | yes | by the test below |
-| modal | yes | yes | yes — to see the board while filling a form | by the test below |
+| modal-normal | yes | yes | yes — to see the board while filling a form | by the test below |
 | blocking modal | yes | yes | **no** | no |
 | critical modal | yes | yes | **no** | no |
 
@@ -1206,22 +1212,111 @@ All verified 2026-08-21, and none of it was changed.
 | **`draggable={false}` is passed by exactly two components** — confirmations and faults | the three-way dim/drag split above is ALREADY encoded in the affordances. Only the tier is wrong |
 | ~~**`FloatingChat`'s bottom-right launcher does not render at all**~~ **FIXED 2026-08-22** | Both call sites passed `hideClosedButton`, so the closed branch returned null and `.openButton` was dead CSS — carrying the z-index 6c had converted into a `calc(… - 1)`, a derivation given to a rule nothing renders. Removed: the branch, the always-true prop, and the module stylesheet (45 lines, all of it that button). The dead-token guard then caught `--shadow-floating`, which only that rule read, so it went too. Chat opens from the header `<ChatBubble>` — ordinary page content, not a layer |
 
+### The tokens
+
+**`--z-<layer>`, not `--z-index-<layer>`** (Joel, 2026-08-22). The token IS the
+layer name, and the layer name is the whole point of splitting `z-` from
+`z-index`. Two things fall out:
+
+- **A layer with no z-index can sit in the list** as a commented line without
+  reading as a broken token. `z-pause-gate: 3000` commented in the ladder block
+  is a layer that happens not to need the property; `--z-index-pause-gate` would
+  have claimed a mechanism it deliberately doesn't use.
+- **It matches the repo.** `--radius-md` feeds `border-radius`, `--shadow-panel`
+  feeds `box-shadow` — tokens here are named for what they ARE, not for the
+  property that consumes them. `--z-index-*` was the odd one out. It also fits
+  §5 better: `z` is a bucket, where `z-index` is a property name in the bucket
+  slot.
+
+**Multi-word layers keep their hyphens** — `--z-modal-blocking`, not
+`--z-modalBlocking`. §5's camelCase rule is for words that cannot be separated
+(`inFlight`), and here `blocking` clarifies `modal` — two questions, not one
+unsplittable idea. Worth folding that test into §5 when the sprint lands; it is
+sharper than what §5 says today.
+
+**A token exists exactly when something reads it.** `cssTokens.test.ts` fails on
+a token defined but never referenced — that is what killed `--shadow-floating`
+the moment the chat launcher went. So `z-page`, `z-board` and `z-pause-gate`
+appear as **commented lines in ladder order**, carrying their numbers, and
+graduate to real tokens if a reader ever appears. `z-board` graduating would
+itself be the signal that boards became sealed.
+
+### The families, settled 2026-08-22
+
+| component | family | why |
+|---|---|---|
+| `CluePanel` (codenamesduet) | `z-modal-normal` | it demands attention — "here's the answer you asked for". Dim is right |
+| `CelebrationDialog` | `z-modal-normal` | it looks like one, it already dims, and you can still chat |
+| scrabble's center-letter picker | `z-modal-normal` | the board goes inert, which is the point; chat stays |
+| `HelpPanel` | `z-workspace`, **plus the satellite rule** | keep-open, no Save, X-to-close. Its resting home is the workspace layer; when something above that summons it, it sits just above its summoner |
+
+**⚠️ The celebration must NOT be unified onto `FloatingPanel`.** It is the one
+modal that isn't one — a hand-rolled fixed scrim with a card at
+`max-width: min(90vw, 420px)` and no media query, so it stays a small card over
+a dimmed board at every size, phone included. That is the look Joel wants. The
+plausible tidy-up ("the modal family should share the shell") would hand it
+`FloatingPanel`'s full-screen phone sheet and silently delete the decision.
+
+### "modal" is a family, never a member
+
+`z-modal-normal` · `z-modal-blocking` · `z-modal-fault`. **No silent default** —
+§7's rule, written after `.button` meant "primary" by staying quiet.
+
+The structural reason it matters here: the family word cannot also be a rung.
+Two members sit at 5000 and 5100 while the third sits at 2200, so if the third
+were called `z-modal`, one string would mean both "all three" and "the one at
+2200" — and a CSS class named for the family would collide with a token named
+for the member. With three explicit members, `.modal` is free to carry what the
+three share, and `.modal-normal` styles only the non-blocking one.
+
+`normal` because this repo already uses it for the unmarked member of a family
+(`--button-normal-primary-color` is the tone a button has when it isn't caution,
+destructive or quiet). Rejected: `-nonblocking` (defines by negation, and is a
+two-character difference from `-blocking` at reading speed, in the one place a
+misread is a real bug).
+
+### The vocabulary is for code too, not just for layers
+
+The conversation's real product is that `workspace`, `dialog` and `modal` now
+mean something tight. So they get used everywhere (Joel, 2026-08-22):
+
+- **A React component entirely about one family takes that family's name.** A
+  component shared ACROSS families keeps a generic one — `FloatingPanel` is the
+  shell for chat, dialogs, all three modals, and faults, so naming it after any
+  one of them would be the lie `z-workspace` exists to avoid.
+- **A CSS class names what it styles, not what it happens to be attached to.**
+  `.floatingPanel` means "this changes every panel in the app"; `.dialog` means
+  "this changes three components you can name". The class name states the blast
+  radius.
+
+**Measured: "Dialog" currently names four different families**, which is the
+best argument for the above. `ConfirmDialog` and `FaultDialog` are
+`z-modal-blocking` and `z-modal-fault` — the two strictest things in the app,
+and the only two components that pass `draggable={false}`. `SetupGameDialog`,
+`EditProfileDialog` and `EditClubDialog` are `z-modal-normal`. `NoteDialog` and
+`ExplainDialog` are **workspaces** — no dim, resizable, and they remember their
+rect. Only `AnagramDialog`, `WordLookupDialog` and `WordEditDialog` are actually
+dialogs.
+
+**The renames get their own step**, not a ride-along with each area's pass: the
+vocabulary is app-wide, and doing it per-area leaves one word meaning different
+things in the repo for weeks. Settle the full roster first — a rename encodes a
+classification, and arguing classification one rename at a time means having the
+same argument sixteen times.
+
 ### Open
 
-1. **The celebration**: below chat (the moment you most want to say "gg") or a
-   blocking modal (dismiss before chatting)? Joel: decide later.
-2. **The multiple-movable-things strategy**, for the panel layer and the dialog
-   layer both: (a) a strict order, (b) opened order, (c) raise on interaction.
-   Needed sooner than it looked — crosswords can plausibly have the note, the
-   explainer and the anagram finder open at once.
-3. **scrabble's center-letter picker**: modal or blocking modal? Decide during
-   scrabble's pass.
-4. **Do the two scrim colors earn their keep**, given that immovability already
+1. **The multiple-movable-things strategy**, for the workspace layer and the
+   dialog layer both: (a) a strict order, (b) opened order, (c) raise on
+   interaction. Needed sooner than it looked — crosswords can plausibly have the
+   note, the explainer and the anagram finder open at once. NB: (a) is in force
+   TODAY by accident, via DOM render order, which is also the only reason
+   Help-over-setup works.
+2. **Do the two scrim colors earn their keep**, given that immovability already
    signals the category?
-5. **How the shipped tokens reconcile with these names.** Not a rename: 6c's
-   tokens don't map 1:1 onto this model — `--z-index-panel` today means
-   `FloatingPanel`'s default tier, which in this vocabulary is the dialog/modal
-   band, not `z-workspace`. The shape on the table is `--z-index-<layer>`,
-   keeping the prefix (`z-index` really is the property being set) and taking
-   the layer name as the suffix, so `z-chat` ↔ `--z-index-chat`. Deferred until
-   the categories stop moving.
+3. **The reconciliation itself** — 6c's shipped tokens don't map 1:1 onto this
+   model (`--z-index-panel` today means `FloatingPanel`'s default tier, which in
+   this vocabulary is the dialog/modal band, not `z-workspace`), and every value
+   changes to the numbers in the table above.
+4. **The component roster**, every `FloatingPanel` consumer with its family and
+   its new name, settled in one pass before any rename lands.
