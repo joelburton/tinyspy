@@ -1078,22 +1078,22 @@ relationships. These do:
 - **The jump from 5100 to 9000 is the point** — nothing lives above a fault
   except the thing that blocks nothing.
 
-| layer | what it is for | z | sharp examples |
-|---|---|---|---|
-| `z-page` | The page itself. Nothing here is ever deliberately drawn over anything else | 0 | the club page's game list; any button in the header |
-| `z-board` | The play surface and the pieces on it, including pieces stacked on other pieces | 1000<br>(–1099) | a wordle tile; stackdown's tile depth |
-| `z-board-question` | A box over one square of the board, showing or taking something for that square | 1100 | crosswords' rebus entry; its read-only peek |
-| `z-ghost` | A piece in transit, following the pointer between two places on its own board | 1200 | dragging a scrabble rack tile; a bananagrams hand tile |
-| `z-infocol` | The readouts and controls beside the board — a page of its own on a phone | 1300 | the turn log; the found-word list |
-| `z-workspace` | A thinking-space you open and keep open, and move where you want it | 2000 | the scratchpad; crosswords' setter-note |
-| `z-dialog` | A question that can wait. No dim, movable, reopens where you left it | 2100 | the anagram finder; edit-word |
-| `z-modal` | A question worth thinking or talking about. Dims to focus you; chat stays reachable | 2200 | setup; edit profile |
+| layer | what it is for                                                                         | z | sharp examples |
+|---|----------------------------------------------------------------------------------------|---|---|
+| `z-page` | The page itself. Nothing here is ever deliberately drawn over anything else            | 0 | the club page's game list; any button in the header |
+| `z-board` | The play surface and the pieces on it, including pieces stacked on other pieces        | 1000<br>(–1099) | a wordle tile; stackdown's tile depth |
+| `z-board-question` | A box over one square of the board, showing or taking something for that square        | 1100 | crosswords' rebus entry; its read-only peek |
+| `z-ghost` | A piece in transit, following the pointer between two places on its own board          | 1200 | dragging a scrabble rack tile; a bananagrams hand tile |
+| `z-infocol` | The readouts and controls beside the board — a page of its own on a phone              | 1300 | the turn log; the found-word list |
+| `z-workspace` | A thinking-space you open and keep open, and move where you want it                    | 2000 | the scratchpad; crosswords' setter-note |
+| `z-dialog` | A question that can wait. No dim, movable, reopens where you left it                   | 2100 | the anagram finder; edit-word |
+| `z-modal` | A question worth thinking or talking about. Dims to focus you; chat stays reachable    | 2200 | setup; edit profile |
 | `z-pause-gate` | Everything below it is gone while the game is paused. **A render gate, not a z-index** | 3000 | a player drops off the call; the Pause button |
-| `z-chat` | Always reachable, over every dim — talking is what the app is for | 3100 | the chat panel; its closed launcher, one below |
-| `z-toast` | An announcement you must see wherever you are and whatever you are doing | 4000 | "Joel invited you to a game" |
-| `z-modal-blocking` | The world stops. Answer it now; nothing underneath is live | 5000 | confirm end game; crosswords' jump-to-number |
-| `z-modal-fault` | As blocking, but strictly above it — an error must be readable even mid-question | 5100 | "can't reach the server" |
-| `z-tooltip` | Always the very top. You asked for it by hovering, and it blocks nothing | 9000 | a button's hover label |
+| `z-chat` | Always reachable, over every lower-than-chat dim — talking is what the app is for      | 3100 | the chat panel, and the round launcher it collapses to |
+| `z-toast` | An announcement you must see wherever you are and whatever you are doing               | 4000 | "Joel invited you to a game" |
+| `z-modal-blocking` | The world stops. Answer it now; nothing underneath is live                             | 5000 | confirm end game; crosswords' jump-to-number |
+| `z-modal-fault` | As blocking, but strictly above it — an error must be readable even mid-question       | 5100 | "can't reach the server" |
+| `z-tooltip` | Always the very top. You asked for it by hovering, and it blocks nothing               | 9000 | a button's hover label |
 
 **The ordering rule, which is the most useful sentence in the conversation:**
 *shorter-lived or more important sits higher.* The code has no rule today, only
@@ -1204,6 +1204,7 @@ All verified 2026-08-21, and none of it was changed.
 | **Nothing creates a stacking context around a board** — `.boardCol` is `position: relative` with no z-index, and `isolation` appears nowhere in `src/` | the "board" layer is a convention, not a seal: tile numbers race the whole app. Harmless today only because every board's numbers are small. Joel's ruling: assume the invariant *nothing in a layer with a range ever enters another layer* holds, and treat how as an implementation detail |
 | **Nothing raises anything within a tier** | two panels at one tier stack by DOM render order — fixed by component order, not by which you opened. So a strict order is in force today that nobody chose and nobody can see |
 | **`draggable={false}` is passed by exactly two components** — confirmations and faults | the three-way dim/drag split above is ALREADY encoded in the affordances. Only the tier is wrong |
+| **The chat launcher sits one below the chat panel** | vestigial. `FloatingChat` renders the launcher ONLY when the panel is closed (`if (!open) return …`), so the two can never overlap and the panel has nothing to win against. 6c preserved the offset as a `calc(… - 1)` without checking the claim behind it. The launcher belongs AT `z-chat` |
 
 ### Open
 
