@@ -218,6 +218,22 @@ Named rather than numbered because there is no visual anchor to say which end of
 `consistency-1/2/3` is which — see [Numbers or names?](#numbers-or-names)
 above, which this is the cautionary example for.
 
+**LOCKED IS ABOUT WHO DECIDES, NOT ABOUT THE RESULTING NUMBER.** A locked
+component makes no per-instance re-decisions — but a *surface* may declare one
+density and everything inside it follows. That is one decision applying to
+everything in a scope, not a hundred small ones, and the component never knows.
+So `<FilterSelect>` being locked is compatible with it rendering smaller in a
+game's info column, because "things are tighter here" is said once by the info
+column, not per instance by each caller.
+
+The contrast is exactly today's `FilterSelect`: the club page overrides six of
+the component's seven decisions for one instance (a caller disagreeing with a
+component), where the scoped form is `.infoCol { --space-2: …; --text-2: … }`
+(a surface stating its own density, once). Which also settles what to do at
+step 9 — the component should state the ROOMY default and the info column
+should tighten it, rather than the reverse, which is what leaves the club page
+undoing six values.
+
 The boundary is the **surface**, not the folder — `components/game/` holds locked
 things (`<ModePill>`, `FilterSelect`), and `<PageHeader>` is locked while
 GamePage carries it. And the line runs *inside* boardCol: the board's contents
