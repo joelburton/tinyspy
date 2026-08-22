@@ -31,7 +31,8 @@
  * `stamp` and `set` take `--dry` to print what they would do and change nothing.
  */
 
-import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
+import { readFileSync, writeFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
 
 /** The seven states, in ladder order — though there is no ladder to walk: the
@@ -61,40 +62,36 @@ const SYNTAX = {
 }
 
 /**
- * Excluded, each for a reason — none of them "we don't plan to touch it".
+ * Excluded, for one reason: this script is the sprint's own tooling, and step
+ * 12 deletes it outright rather than stamping it.
  *
- * Assets and data have no comment line to carry a stamp (`.png`, `.json`) or
- * would be corrupted by inventing one (`.ipuz`, `.puz`). The sprint still owns
- * the assets; they are step 11, tracked in the plan rather than in the file.
- * `supabase/temp/` and `supabase/branches/` are CLI scratch, `*~` are editor
- * backups, and this script is sprint tooling that step 12 deletes outright.
+ * Everything else that drops out of scope drops out for a reason built into
+ * the two rules above it — a file must be TRACKED BY GIT (see `inScope`) and
+ * its language must have a first-line comment. Between them that excludes the
+ * CLI's scratch under `supabase/.temp/`, the generated Deno wordlists (which a
+ * rebuild would wipe the stamp off), editor backups, and every asset and
+ * puzzle-data file. The sprint still owns the assets; they are step 11,
+ * tracked in the plan rather than in the file.
  */
-export const EXCLUDED = [
-  /\/node_modules\//,
-  /^supabase\/(temp|branches)\//,
-  /~$/,
-  /\.DS_Store$/,
-  /^scripts\/cs-stamp\.mjs$/,
-]
+export const EXCLUDED = [/^scripts\/cs-stamp\.mjs$/]
 
 const CWD = process.cwd()
 const extOf = (p) => (p.match(/\.[^./]+$/) ?? [''])[0]
 
-/** Every file in scope, repo-relative, sorted. */
+/**
+ * Every file in scope, repo-relative, sorted.
+ *
+ * Scope is what GIT TRACKS, not what is on disk. That is the same question as
+ * "is this hand-written source", asked in the one place that already knows the
+ * answer: generated files are gitignored, CLI scratch is untracked, and a file
+ * someone genuinely adds is tracked the moment they `git add` it — at which
+ * point the guard is right to demand a stamp on it.
+ */
 export function inScope() {
-  const out = []
-  const walk = (dir) => {
-    for (const name of readdirSync(dir).sort()) {
-      const p = join(dir, name)
-      if (statSync(p).isDirectory()) walk(p)
-      else {
-        const r = relative(CWD, p)
-        if (SYNTAX[extOf(r)] && !EXCLUDED.some((rx) => rx.test(r))) out.push(r)
-      }
-    }
-  }
-  for (const root of ROOTS) walk(join(CWD, root))
-  return out
+  return execFileSync('git', ['ls-files', '-z', ...ROOTS], { cwd: CWD, encoding: 'utf8' })
+    .split('\0')
+    .filter((r) => r && SYNTAX[extOf(r)] && !EXCLUDED.some((rx) => rx.test(r)))
+    .sort()
 }
 
 /** Matches a stamp line and nothing else — the tight regex is what makes
