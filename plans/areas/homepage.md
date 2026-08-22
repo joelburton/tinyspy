@@ -4,8 +4,8 @@ The first area of the CSS sprint's step 7. The process is
 [css-system-2.md](../css-system-2.md) §21; the plan holds the order, this file
 holds everything else.
 
-**Status: audited. Twenty-one findings, four resolved (F5, F6, F6.1, F8),
-nothing built.**
+**Status: audited. Twenty-one findings, seven resolved (F1, F2, F4, F5, F6,
+F6.1, F8). Shipped so far: the two fixes and the class guard.**
 
 ## The area's files
 
@@ -44,14 +44,28 @@ nothing complains. `HomePage.tsx:278` also points a comment at it — "once the
 clubs outgrow the card — see `.clubsList`" — and the scroll it describes is real
 but comes from `.item-list`, which sets `overflow-y: auto` and `min-height: 0`.
 
-> resolution:
+> **resolution (Joel, 2026-08-22): fixed.** The `<ul>` is `className="item-list"`
+> — no `cls()` around a single literal — and the comment now names what actually
+> scrolls: `.item-list` supplies the `overflow-y: auto`, and it bites once
+> `.frame`'s max-height stops the clubs growing the page.
 
 **F2 · `.soloItem` never existed.** The component docstring (`HomePage.tsx:44`)
 says solo clubs are "visually distinguished — see the `.soloItem` styles". There
 is no such class in any commit reachable from here; what distinguishes a solo row
 today is the `Solo` badge and nothing else.
 
-> resolution:
+> **resolution (Joel, 2026-08-22): fixed by explaining the badge properly.** The
+> docstring now says a solo club is marked by a "Solo" BADGE on the row — the
+> shared `.badge`, a one-word label saying what KIND of thing this is, small and
+> outlined, never the fully-round feedback pill.
+>
+> The row's own JSX comment called it "its pill", which is the confusion
+> `badge.css` is written to prevent ("`--radius-sm`, not a full 999px round — the
+> fully-round shape belongs to the feedback pill, and the two should not be
+> confusable"). Now "its badge".
+>
+> The block still opens with "used to be hidden … Now they're", which is F17's
+> archaeology and F17's call — left alone.
 
 **F3 · `e2e/home-keyboard.e2e.ts` has been failing since 2026-08-21.** It locates
 rows with `[class*="_clubItem"]`. `.clubItem` was deleted in `89122fc7` ("the
@@ -66,12 +80,65 @@ class="item-row">`, while the `scrollIntoView` ref rides the `<li>`.
 
 > resolution:
 
-**F4 · The "class defined ≠ referenced" guard (§10) has three live cases here.**
-One page produced all three, and each is exactly the shape §10 names: a
-`styles.typo` that fails silently (F1), a stale name in prose (F2), and a bare
-global string in a test (F3). Cheap to build now against real evidence.
+**F4 · The "class defined ≠ referenced" guard (§10) has two live cases here** —
+a `styles.typo` that fails silently (F1) and a bare class-name string that fails
+silently (F3), which is exactly the pair §10 names. **F2 is not one of them**: a
+stale class name inside a comment is prose, and no guard can tell a wrong
+`.soloItem` from a right one without flagging every word that starts with a dot.
+Said here because the audit's first draft claimed all three.
 
-> resolution:
+It would be a static guard in `src/guards/`, not a render test, and the reason is
+load-bearing: **vitest resolves CSS modules through a proxy that fabricates any
+class name asked for** (`css: false`), so a rendered component happily reports
+`className="undefined"`-free markup for a class that does not exist. A test can
+assert a class is APPLIED; only a text scan can assert it EXISTS.
+
+Four checks, in the shape `cssTokens.test.ts` already uses:
+
+1. every `styles.x` in a component resolves to a class in its sibling module —
+   catches F1;
+2. every class defined in a module is read by its sibling — catches the rule left
+   behind when markup changes;
+3. every global class written as a string literal (`'item-list'`, `'badge'`,
+   `'kb-cursor'`) exists in a global stylesheet — catches a typo'd global, which
+   today paints nothing and says nothing;
+4. every `[class*="_x"]` selector in `e2e/` names a class some module defines —
+   catches F3, and would have failed the day `.clubItem` was deleted rather than
+   four weeks later.
+
+> **resolution (Joel, 2026-08-22): built — `src/guards/cssClasses.test.ts`,
+> four checks, whole repo including the games.** Each was verified by planting
+> the bug it exists to catch (in throwaway files, so nothing existing was
+> touched) and each caught its own; the shrink arm of the allowlist was planted
+> too. Suite: 1956 → 1960 in 201 files.
+>
+> Two false-positive shapes had to be designed out, both found by running it
+> rather than by thinking about it:
+>
+> - the import statement itself reads as a member access — `import gridCursor
+>   from '…/gridCursor.module.css'` looks exactly like `gridCursor.module` — so
+>   imports come out before the member scan;
+> - a string inside `cls(…)` is not necessarily a class: `cls(styles.tile,
+>   outcome === 'won' && styles.won)` holds a comparison operand. Thirty-three of
+>   those drowned the one real name until both sides of a comparison were
+>   dropped.
+>
+> **It found four more live bugs on its first run**, none of them in this area,
+> all listed on the plan's §7 carried-forward against the area that owns them
+> and on the guard's own pending lists:
+>
+> - `strands/HintBar.tsx` reads `styles.hint`; the module defines `.hintReady`
+>   and no `.hint`, so the Hint button's base class has been `undefined`;
+> - `codenamesduet/CluePanel.module.css` `.clueLabel`, `setgame/PlayArea.module.
+>   css` `.breakdown` + three siblings, and `stackdown/WordEntry.module.css`
+>   `.good` / `.bad` are defined and read by nothing;
+> - **`e2e/club-keyboard.e2e.ts` is red for the same reason F3 is** —
+>   `[class*="_kbCursor_"] a` returns null now that the cursor row takes the
+>   global `.kb-cursor`, and the href assertion under it fails. Two specs, one
+>   rename, four weeks unnoticed.
+>
+> What it cannot catch is stated in the file: a stale class name inside a
+> comment, which is F2's shape and is prose.
 
 ### Vocabulary — this is where the first ones land
 
@@ -416,9 +483,9 @@ Written before any change, so the diff against it is the signal (§21).
   this area caused, and it is the one spec that must be green before the area
   closes.
 - **No unit test renders HomePage.** Grepped: the only mentions outside the page
-  are `App.tsx`'s route and three comments. So the vitest baseline (1956 in 200
-  files) should not move except by tests this area adds — F21 says it should add
-  some.
+  are `App.tsx`'s route and three comments. So the vitest baseline should not
+  move except by tests this area adds — F21 says it should add some, and F4's
+  guard already moved it from 1956 in 200 files to **1960 in 201**.
 - **`cssTokens.test.ts` → `no dead tokens`** fires the moment a vocabulary token
   lands with no reader, which F5 says will be most of them. It gets the allowlist
   in the same commit as the tokens, so this is a break we cause and close

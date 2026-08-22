@@ -1,4 +1,4 @@
-// cs-audited
+// cs-partial
 
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import type { Session } from '@supabase/supabase-js'
@@ -40,12 +40,13 @@ type Props = {
  *
  * Solo clubs (handle = `=<username>`) used to be hidden from
  * this list and surfaced as a separate "Play solo" section.
- * Now they're listed alongside regular clubs but visually
- * distinguished — see the `.soloItem` styles — and always
- * sorted to the top. The user's solo club is the default
- * landing spot for play-alone, and being a regular row in the
- * clubs list makes it discoverable without learning a separate
- * UI shape.
+ * Now they're listed alongside regular clubs, marked by a
+ * "Solo" BADGE on the row (the shared `.badge` — a one-word
+ * label saying what KIND of thing this is, small and outlined,
+ * never the fully-round feedback pill), and always sorted to
+ * the top. The user's solo club is the default landing spot
+ * for play-alone, and being a regular row in the clubs list
+ * makes it discoverable without learning a separate UI shape.
  *
  * Clubs RLS does the visibility filtering: the
  * `.from('clubs').select` below returns only the clubs the
@@ -252,7 +253,7 @@ export function HomePage({ session }: Props) {
           ) : (
             <ul
               ref={listRef}
-              className={cls('item-list', styles.clubsList)}
+              className="item-list"
               tabIndex={0}
               role="group"
               aria-label="Your clubs"
@@ -274,9 +275,10 @@ export function HomePage({ session }: Props) {
                 <li
                   key={c.handle}
                   onClick={() => setCursor(i)}
-                  // Keep the ring in view now that the list scrolls (it does
-                  // once the clubs outgrow the card — see .clubsList). Without
-                  // this, Up/Down walks the cursor straight out of the visible
+                  // Keep the ring in view now that the list scrolls — the
+                  // shared `.item-list` supplies the `overflow-y: auto`, and it
+                  // bites once `.frame`'s max-height stops the clubs growing
+                  // the page. Without this, Up/Down walks the cursor out of the
                   // box, since the focus is on the LIST and never moves to the
                   // row the browser would otherwise scroll to. The same ref
                   // callback ClubPage's two lists use, on the <li> rather than
@@ -289,7 +291,7 @@ export function HomePage({ session }: Props) {
                     to={`/c/${c.handle}`}
                     className={cls('item-row', i === kbCursor && 'kb-cursor')}
                   >
-                    {/* Name + (for a solo club) its pill, and nothing else. The
+                    {/* Name + (for a solo club) its badge, and nothing else. The
                         row used to end with the club's `/c/<handle>` URL — the
                         same thing ClubPage dropped from its own body: it's what
                         the browser's address bar will say the moment you click,
