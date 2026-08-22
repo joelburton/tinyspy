@@ -407,10 +407,10 @@ frame, the toast stripe).
 so, and on screen it would imply 1px *plus* a gray to fake the thinness. We
 don't do that; ours is an ordinary 1px line, so it is `line`.
 
-Two scales, one pattern: `line` → `line-thick`, `frame` → `frame-thick`. The
-second half of each is unused today and self-explains the day it is needed — a
-heavier frame if your-move should read lighter than you-lost — with nothing to
-rename.
+Two scales, one pattern: `line` → `line-thick`, `frame` → `frame-thick`. Three
+of the four are in use today; only **`frame-thick` is hypothetical**, and it
+self-explains the day it is needed — a heavier frame if your-move should read
+lighter than you-lost — with nothing to rename.
 
 Two `3px` survive (the rank bar, the verdict outline). Not pre-decided: they get
 surfaced at their pass under the rule below.
