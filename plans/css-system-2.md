@@ -885,6 +885,35 @@ vocabulary; invent it if we ever need it.
 - **What actually goes in `light-mode.css`** — possibly nothing. Kept as a named
   home so nobody invents a filename mid-work.
 - **Device density** (§9) — SETTLED 2026-08-21, see §9.
+- **A limited vocabulary of DISTANCES** (Joel, 2026-08-21 — noodled, not
+  decided). The shape, so it isn't re-derived:
+
+  - `--space-1 … --space-N`, global, and **property-agnostic**: it mostly feeds
+    `gap` (40 distinct gap values against 14 margin ones), so a name like
+    `--margin-top-2` would be read as a `gap` within a week.
+  - **Not theme- or polarity-scoped.** Themes are color (§3).
+  - **The class names the thing and reads the token.** The markup stays
+    `<button class="button primary">` — no `mt-2`-style utility, because a
+    spacing decision in JSX can't be changed by editing CSS, and every pattern
+    so far has *absorbed* spacing rather than parameterizing it.
+  - **DENSITY SCOPES are the real prize.** `.infoCol` re-declares the same token
+    names one notch tighter and its whole subtree follows, so "this is smaller
+    in the info column" stops being N overrides in a dozen modules. Custom
+    properties already do this in three places here — a game's `--tile-bg-color`,
+    `<Dot>`'s `--dot-size`, scrabble's `--viewer-accent` on the board column.
+  - **A hand-entered literal length becomes a smell in consistency-2 and -3**,
+    needing justification. That is the `no unnamed colors` guard's sentence with
+    a different noun, and that guard has held for months.
+  - **Measure the scale AFTER the patterns land.** Every pattern named on
+    2026-08-21 ate spacing declarations rather than standardizing them —
+    `.clubsList`'s margin vanished, `.left`/`.right` collapsed to one, the h3
+    margins became a heading level. Fitting a ramp now fits it to numbers that
+    won't exist at step 12.
+
+  Measured 2026-08-21, gap + margin in rem: **consistency-3** 17 distinct values
+  over 79 declarations (five cover 55); **consistency-2** 12 over 45, same top
+  five; **consistency-1** 20 over 222, and out of scope by definition.
+
 - **Should we LOAD a font?** (Joel, 2026-08-21) — decide at step 7. We ship no
   webfont at all today: no `@font-face`, no font file in the repo, `body` is
   `system-ui, -apple-system, sans-serif`. So type is SF Pro on a Mac, Segoe UI
