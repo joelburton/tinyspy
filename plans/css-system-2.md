@@ -1063,25 +1063,37 @@ The prefix also separates a thing from its layer: `toast` is a component,
 
 ### The layers, bottom to top
 
-Numbers are ILLUSTRATIVE — spacing and gaps are arbitrary, chosen so there is
-room to insert. They are not proposed token values.
+**The numbers are PROPOSED, and deliberately not today's.** The shipped values
+were never planned — they arrived one at a time — so they encode no
+relationships. These do:
 
-| z- | layer | what lives there |
-|---|---|---|
-| 0 | `z-page` | the literal page: text, buttons, cards. Nothing is ever deliberately stacked here |
-| 10–45 | `z-board` | the board, and pieces stacked ON it (stackdown's tile depth is the only real case) |
-| 50 | `z-board-question` | something briefly over the board, asking about the board — crosswords' rebus entry |
-| 60 | `z-ghost` | a piece in transit. Above its board, below anything that floats over the window |
-| 100 | `z-infocol` | the info column. A real layer even on desktop, where it happens to sit beside the board rather than over it |
-| 200 | `z-workspace` | a **thinking-space you keep open**: the scratchpad, crosswords' setter-note and clue-explainer |
-| 300 | `z-dialog` | a **question that is patient**. Movable, opens where you left it, no dim. Word-lookup, the anagram finder, edit-word |
-| 350 | `z-modal` | a question worth **thinking about or talking about**. Dims, centers, movable. Setup, edit-club, edit-profile |
-| 500 | `z-pause-gate` | everything below is hidden when the game is paused. **Not z-index** — a render gate |
-| 500 | `z-chat` | above every dim, on purpose: the setup form is exactly what people talk about |
-| 700 | `z-toast` | announcements you must see even mid-setup ("Joel invited you"). Stack vertically |
-| 800 | `z-modal-blocking` | **the world stops.** No thought needed, no conversation needed. Confirmations, crosswords' number-jump |
-| 900 | `z-modal-fault` | as blocking, but strictly above it. Faults only. Queued, never simultaneous |
-| top | `z-tooltip` | always the very top — see "the satellites" |
+- **A thousand is a different world.** The play surface, the floating windows,
+  the always-available system, an announcement, a stop — crossing one of those
+  boundaries is a change of kind.
+- **A hundred is a layer within a world.** Kin, ordered, genuinely distinct.
+- **Ten would be a tweak of a layer**, not a new one. Nothing uses one yet;
+  the step exists so that when something does, it says so.
+- **`z-board` owns a RANGE**, 1000–1099, for pieces stacked on other pieces.
+  Every layer could have one; only this one needs it today.
+- **The jump from 5100 to 9000 is the point** — nothing lives above a fault
+  except the thing that blocks nothing.
+
+| layer | what it is for | z | sharp examples |
+|---|---|---|---|
+| `z-page` | The page itself. Nothing here is ever deliberately drawn over anything else | 0 | the club page's game list; any button in the header |
+| `z-board` | The play surface and the pieces on it, including pieces stacked on other pieces | 1000<br>(–1099) | a wordle tile; stackdown's tile depth |
+| `z-board-question` | A box over one square of the board, showing or taking something for that square | 1100 | crosswords' rebus entry; its read-only peek |
+| `z-ghost` | A piece in transit, following the pointer between two places on its own board | 1200 | dragging a scrabble rack tile; a bananagrams hand tile |
+| `z-infocol` | The readouts and controls beside the board — a page of its own on a phone | 1300 | the turn log; the found-word list |
+| `z-workspace` | A thinking-space you open and keep open, and move where you want it | 2000 | the scratchpad; crosswords' setter-note |
+| `z-dialog` | A question that can wait. No dim, movable, reopens where you left it | 2100 | the anagram finder; edit-word |
+| `z-modal` | A question worth thinking or talking about. Dims to focus you; chat stays reachable | 2200 | setup; edit profile |
+| `z-pause-gate` | Everything below it is gone while the game is paused. **A render gate, not a z-index** | 3000 | a player drops off the call; the Pause button |
+| `z-chat` | Always reachable, over every dim — talking is what the app is for | 3100 | the chat panel; its closed launcher, one below |
+| `z-toast` | An announcement you must see wherever you are and whatever you are doing | 4000 | "Joel invited you to a game" |
+| `z-modal-blocking` | The world stops. Answer it now; nothing underneath is live | 5000 | confirm end game; crosswords' jump-to-number |
+| `z-modal-fault` | As blocking, but strictly above it — an error must be readable even mid-question | 5100 | "can't reach the server" |
+| `z-tooltip` | Always the very top. You asked for it by hovering, and it blocks nothing | 9000 | a button's hover label |
 
 **The ordering rule, which is the most useful sentence in the conversation:**
 *shorter-lived or more important sits higher.* The code has no rule today, only
