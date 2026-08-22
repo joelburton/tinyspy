@@ -4,7 +4,7 @@
 what is; this plan describes what we agreed the play surfaces *should* say, so
 that an audit has something to check each game against.
 
-**PAUSED 2026-08-20, behind [css-system.md](css-system.md).** The CSS restructure
+**PAUSED 2026-08-20, behind [css-system-2.md](css-system-2.md).** The CSS restructure
 resets what a game's stylesheet looks like underneath this sprint, so converting a
 board now and again afterwards is work done to be undone. From here on each game
 takes its **CSS pass and its tile-feedback pass back to back, in that order**,

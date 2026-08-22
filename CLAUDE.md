@@ -59,13 +59,14 @@ A plan is a working document for a sprint: the agreed design, the evidence, and 
 
 | file | the work |
 |---|---|
-| [plans/css-system.md](plans/css-system.md) | **The active sprint** — one palette in one place, a theme/polarity-ready structure, and named patterns. Start a session there. Runs BEFORE tile-feedback; each game takes its CSS pass and its tf pass back to back |
-| [plans/tile-feedback.md](plans/tile-feedback.md) | **The design target for tile/board feedback** — one channel per meaning, with a per-game conversion roster tracked by **tf level** (tf0 untouched · tf1 done in round 1, pre color+buttons · tf2 done against the current framework, on top of that game's CSS pass; every game ends at tf2). **PAUSED behind css-system.md.** Folds into ui.md once the games conform |
+| [plans/css-system-2.md](plans/css-system-2.md) | **The active sprint, and the ONLY spec for it** — one palette in one place, a theme-ready structure, named patterns, and the vocabularies. Start a session there (§13 holds the next step). Runs BEFORE tile-feedback; each game takes its CSS pass and its tf pass back to back |
+| [plans/tile-feedback.md](plans/tile-feedback.md) | **The design target for tile/board feedback** — one channel per meaning, with a per-game conversion roster tracked by **tf level** (tf0 untouched · tf1 done in round 1, pre color+buttons · tf2 done against the current framework, on top of that game's CSS pass; every game ends at tf2). **PAUSED behind css-system-2.md.** Folds into ui.md once the games conform |
 | [plans/dark-mode.md](plans/dark-mode.md) | **Not scheduled** — what the midnight spike proved: the CSS system CAN carry a dark theme, what it would still cost, and the one thing not solved (depth on a dark page). Reachable today behind `?theme=midnight` |
 | [plans/keyboard-nav-plan.md](plans/keyboard-nav-plan.md) | Arrow-key navigation of board pieces for the five games where clicking pieces IS the move; two prerequisites land first |
 | [plans/error-copy-sprint.md](plans/error-copy-sprint.md) | **Not scheduled**: the error-message redesign — why `ERROR_COPY` is wrong in shape, with the evidence; don't extend the table meanwhile |
-| [plans/css-philosophy.md](plans/css-philosophy.md) | **The reasoning archive** behind css-system.md: what CSS we share and why we haven't. Kept in full — the plan cites it rather than restating it |
+| [plans/css-philosophy.md](plans/css-philosophy.md) | **The reasoning archive** behind css-system-2.md: what CSS we share and why we haven't. Kept in full — the plan cites it rather than restating it |
 | [plans/db-work-2.md](plans/db-work-2.md) | The queue of DB-touching deferred items (whole-docs sweep); delete it when it empties |
+| plans/css-system-outdated-dont-read.md | **DO NOT READ.** The superseded first draft of the CSS sprint, much of whose model failed. Listed here only so its presence in `plans/` isn't mistaken for an oversight. Open it if — and only if — Joel says to |
 
 
 ## Educational priority — clarity over brevity

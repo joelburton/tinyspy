@@ -62,7 +62,7 @@ function scanTokens() {
   //   UNDERSCORE a leading --_ marks a name private to one file
   //              (--_cardGap), the CSS answer to a local variable.
   //
-  // Both conventions are plans/css-system.md §3.1. A narrower class does not
+  // Both conventions are plans/css-system-2.md §5. A narrower class does not
   // reject them — it makes them INVISIBLE here, so a typo'd --_crdGap would
   // never fail this guard. That is the failure mode to protect against.
   const TOKEN = String.raw`--[a-zA-Z0-9_-]+`
