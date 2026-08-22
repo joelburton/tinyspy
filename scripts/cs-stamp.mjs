@@ -34,6 +34,7 @@
 import { execFileSync } from 'node:child_process'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
+import { pathToFileURL } from 'node:url'
 
 /** The seven states, in ladder order — though there is no ladder to walk: the
  *  stamp is simply the latest true statement about the file. A file can go
@@ -94,9 +95,15 @@ export function inScope() {
     .sort()
 }
 
-/** Matches a stamp line and nothing else — the tight regex is what makes
- *  `unstamp` safe to run blind over 1300 files. */
-const STAMP_RE = new RegExp(`^(?://|--|#|/\\*) cs-(${STAMPS.join('|')})(?: \\*/)?$`)
+/**
+ * Matches a stamp line and nothing else. Note it reads ANY `cs-<word>`, not
+ * only the seven: a typo'd `cs-audted` is a stamp that is wrong, and saying so
+ * is far more use than reporting "no stamp" about a line sitting right there.
+ * The guard judges the word against `STAMPS`; this only finds it. It also
+ * means `unstamp` takes a typo'd stamp back out at step 12 rather than leaving
+ * the one line nobody can see.
+ */
+const STAMP_RE = /^(?:\/\/|--|#|\/\*) cs-([a-z][a-z-]*)(?: \*\/)?$/
 
 /** A shebang has to stay on line 1, so the stamp goes under it. */
 const isShebang = (line) => line.startsWith('#!')
@@ -139,7 +146,12 @@ function removeStamp(rel) {
 
 // ─── the commands ────────────────────────────────────────────────────────────
 
-const [cmd, ...rest] = process.argv.slice(2)
+// Only when run as a script. The guard imports `inScope` and `readStamp` from
+// here so the scope has one home, and a top-level CLI would exit(1) out of the
+// middle of a vitest run.
+const runAsScript = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href
+
+const [cmd, ...rest] = runAsScript ? process.argv.slice(2) : ['noop']
 const dry = rest.includes('--dry')
 const args = rest.filter((a) => a !== '--dry')
 
@@ -159,14 +171,23 @@ if (cmd === 'stamp') {
 } else if (cmd === 'list') {
   for (const f of inScope()) if (readStamp(f) === args[0]) console.log(f)
 } else if (cmd === 'tally') {
-  const counts = Object.fromEntries([...STAMPS, 'MISSING'].map((s) => [s, 0]))
-  for (const f of inScope()) counts[readStamp(f) ?? 'MISSING']++
-  const total = Object.values(counts).reduce((a, b) => a + b, 0)
-  for (const s of [...STAMPS, 'MISSING']) {
-    if (counts[s]) console.log(`  cs-${s}`.padEnd(14), String(counts[s]).padStart(5))
+  const counts = new Map()
+  for (const f of inScope()) {
+    const s = readStamp(f)
+    const key = s === null ? 'MISSING' : STAMPS.includes(s) ? s : `INVALID cs-${s}`
+    counts.set(key, (counts.get(key) ?? 0) + 1)
   }
-  console.log('  total'.padEnd(14), String(total).padStart(5))
-} else {
+  // The seven in ladder order first, then anything wrong — which sorts to the
+  // bottom precisely so it is the last thing on screen.
+  const order = [...STAMPS, ...[...counts.keys()].filter((k) => !STAMPS.includes(k)).sort()]
+  let total = 0
+  for (const s of order) {
+    if (!counts.get(s)) continue
+    total += counts.get(s)
+    console.log(`  ${s.startsWith('INVALID') || s === 'MISSING' ? s : `cs-${s}`}`.padEnd(20), String(counts.get(s)).padStart(5))
+  }
+  console.log('  total'.padEnd(20), String(total).padStart(5))
+} else if (cmd !== 'noop') {
   console.error('usage: cs-stamp.mjs stamp|unstamp|tally|list <stamp>|set <stamp> <path>...')
   process.exit(1)
 }
