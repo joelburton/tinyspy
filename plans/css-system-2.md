@@ -1037,17 +1037,26 @@ What matters to THIS sprint, in one line each:
   had moved, and the judged letter ink could not be pinned to one side of the
   flip.
 
-## 20. The z- layers — a conversation, NOT decisions
+## 20. The z- layers — the blessed vocabulary
 
-⚠️ **Nothing in this section is settled**, and step 6c did not act on any of it.
-It is the record of one evening's thinking (2026-08-21) about what covers what,
-written down so it survives the session. Joel's framing, Joel's names, Joel's
-provisional numbers. Read it as "where the conversation got to", and expect the
-names to change before anything is blessed.
+**BLESSED 2026-08-22**, over an evening with Joel. **Everything in this section
+is agreed except what is listed under "Open" at the end** — that is the rule for
+reading it, and the answer to "when did we decide this?" is "here, unless it is
+under Open."
 
-The step-6c ladder that SHIPPED is `base.css` → "The Z-INDEX LADDER" and
-`code-conventions.md`. This section describes something different: the model we
-would want, which today's tokens only partly implement.
+These are the words to use in conversation, in docs, in component names and in
+CSS class names — not only for stacking. A `dialog`, a `workspace` and a
+`modal-normal` are now specific things, where before the conversation they were
+loose talk.
+
+**⚠️ NONE OF IT IS BUILT.** What ships today is step 6c's ladder — `base.css` →
+"The Z-INDEX LADDER" and `code-conventions.md` — which uses DIFFERENT names and
+DIFFERENT numbers, because it was written before this vocabulary existed. 6c
+acted on none of this and moved no pixel. Reconciling the two is Open item 3.
+
+Earlier drafts of this section used placeholder names Joel coined to think with
+("panel", "critical modal", "notification"). Those are gone; if one resurfaces
+anywhere in the repo, the table below wins.
 
 ### Why "z-", and why not "z-index"
 
@@ -1125,7 +1134,7 @@ about the viewport, not about what kind of thing it is.
 
 ### The satellites — things that are NOT rungs
 
-Three things attach to a layer rather than occupying one. This is what kept the
+Four things attach to a layer rather than occupying one. This is what kept the
 ladder short:
 
 - **A scrim sits one below its owner.** A layer that dims carries its own; the
@@ -1133,14 +1142,14 @@ ladder short:
   its backdrop at `zIndex - 1`.)
 - **A dropdown sits just above its host.** Our select-replacement
   (`FilterSelect`) has to beat whatever contains it — a page, an info column, or
-  one day a modal. As a rung it would have to outrank a blocking modal, which is
-  absurd for a filter. As a satellite it is one rule that works everywhere.
+  one day a modal. As a rung it would have to outrank `z-modal-blocking`, which
+  is absurd for a filter. As a satellite it is one rule that works everywhere.
 - **Help sits just above whoever summoned it.** From the game page that is the
   page; from the setup modal's footer "?" it is that modal. Classing it as a
   rung fails both ways: `z-modal-blocking` would dim and inert the form you
   opened the rules FOR, and `z-modal-normal` ties with setup and dims it too.
   Today it works by accident — `HelpPanel` passes no tier, so it ties with setup
-  at the panel default and wins on DOM order.
+  at the shipped `--z-index-panel` default and wins on DOM order.
 - **A tooltip goes to the absolute top**, because it cannot know its host and
   never blocks anything. **Joel's argument for why that is safe:** you cannot
   hover what a modal has made inert, so a tooltip can never need to cover one —
@@ -1158,14 +1167,14 @@ fine, but in docs and in conversation they are four different things.
 
 | | dims | centers | movable | resizable |
 |---|---|---|---|---|
-| dialog | no | no — **opens where you left it** | yes | by the test below |
-| modal-normal | yes | yes | yes — to see the board while filling a form | by the test below |
-| blocking modal | yes | yes | **no** | no |
-| critical modal | yes | yes | **no** | no |
+| `dialog` | no | no — **opens where you left it** | yes | by the test below |
+| `modal-normal` | yes | yes | yes — to see the board while filling a form | by the test below |
+| `modal-blocking` | yes | yes | **no** | no |
+| `modal-fault` | yes | yes | **no** | no |
 
 **Buttons.** A dialog is very likely to carry a **Save** / **OK** / **Start** —
-it has an answer to give, and the button is how it ends. A panel is very unlikely
-to: there is nothing to answer, so it closes by its X. Measured: the scratchpad,
+it has an answer to give, and the button is how it ends. A workspace is very
+unlikely to: there is nothing to answer, so it closes by its X. Measured: the scratchpad,
 the setter-note and the clue-explainer have no buttons at all; edit-word has
 Save, setup has Start, confirmations have their confirm/cancel pair.
 
@@ -1179,16 +1188,18 @@ button that only acts within a surface says nothing about its category.
 shade: if you can drag it, you can leave it for later; if you cannot, deal with
 it now.
 
-**Two scrim colors, ~35% and ~55%** — the light one for modals (the board stays
-readable), the dark one for blocking and critical. Both tokens already exist
-(`--scrim-light-color`, `--scrim-color`) at 40% and 45%, a difference nobody can
-see, and they are currently assigned by how a thing was BUILT rather than by
-what it means.
+**Two scrim colors, ~35% and ~55%** — the light one for `modal-normal` (the
+board stays readable), the dark one for `modal-blocking` and `modal-fault`.
+Both tokens already exist (`--scrim-light-color`, `--scrim-color`) at 40% and
+45%, a difference nobody can see, and they are currently assigned by how a thing
+was BUILT rather than by what it means. **Whether the two colors earn their keep
+at all is Open item 2** — immovability may already signal the category.
 
-**What "dim" must mean: everything under it is inert.** For a blocking modal
-that has to be literally true — nothing may outrank it. For a modal it means
-"focus is here", and chat sitting above it is a deliberate exception rather than
-a lie, because a modal never claimed the world stopped.
+**What "dim" must mean: everything under it is inert.** For `modal-blocking` and
+`modal-fault` that has to be literally true — nothing may outrank them. For
+`modal-normal` it means "focus is here", and chat sitting above it is a
+deliberate exception rather than a lie, because a `modal-normal` never claimed
+the world stopped.
 
 **Resizing — who knows the right size?** *Content knows* → auto-fit, never
 resizable; a form is as tall as its fields (setup already does this with
