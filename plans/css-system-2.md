@@ -366,7 +366,7 @@ gets converted").
 | 2 | `--font-size-1 … -3` | `1 · 0.85 · 0.75rem` | `base.css` |
 | 3 | `--line-height-1 … -3` | `1.5 · 1.25 · 1` | `base.css` |
 | 4 | the text grays, ×4 | the existing two, a label gray, true black | **the theme** |
-| 5 | `--opacity-1 … -2` | provisional; grows when the `0.4`s surface | `base.css` |
+| 5 | `--opacity-1 … -2` | provisional; grows when the `0.4`s surface. **Numbers are a HOLDING POSITION** — opacity spans at least two KINDS (a disabled control, `OpponentStrip`'s separator), so it wants role names once the spectrum is visible. `css-philosophy.md` → "When a numbered scale is honest" |
 | 6 | `--transition-duration-paint / -nudge / -travel` | `100 · 80 · 180ms` | `base.css` |
 | 7 | `--letter-spacing-label / -wide` | `0.03em · 0.2em` | `base.css` |
 | 8 | `--border-width-line / -line-thick / -frame` | `1 · 2 · 4px` | `base.css` |

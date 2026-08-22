@@ -1307,6 +1307,74 @@ One term to keep straight, since the distinction does real work above:
 **lightness**, not *brightness* — brightness is about light sources, and the
 property we keep trading against chroma is lightness.
 
+## When a numbered scale is honest, and when it lies
+
+> Added 2026-08-21, from Joel, thinking it out while tea steeped. It explains
+> something we'd already been doing by instinct one case at a time, and catches
+> one place we got it wrong.
+
+Early in the sprint I proposed a palette of the form:
+
+```css
+--red-1:    #aabbcc;   /* the bad-move ink   */
+--red-2:    #bbccdd;   /* the bad-move edge  */
+--orange-1: #ccddee;   /* the warning ink    */
+--amber-1:  #ddeeff;   /* the warning fill   */
+```
+
+Joel rejected it immediately, and the model it belonged to failed for other
+reasons too. But `--font-size-1 … -3` reads as obviously *right*, and the two
+look like the same move. The difference is worth naming, because it decides how
+every future vocabulary gets named.
+
+**A numbered scale is honest when the number is the WHOLE meaning, and
+dishonest when it displaces a meaning that already exists.**
+
+There is no fact about "2-ness" hiding inside `--font-size-2`: bigger and
+smaller genuinely is all there is. `--red-1` has a fact underneath it — *this is
+the losing-move ink* — and the number pushes it out of view, so every reader
+translates. Translation is where drift gets in.
+
+Three consequences fall out.
+
+**1 · The swap test.** Can two members trade places and still be the same kind of
+thing, just more or less of it? Font sizes, yes. `red-1` and `red-2` — an ink
+and an edge — no: those are not two amounts of one thing, they are two jobs that
+happen to share a hue.
+
+**2 · A scale whose members drift into different names was measuring the wrong
+axis.** Joel's sharpest observation: the warning INK was dark enough to be called
+orange and the warning FILL light enough to be called amber, so one meaning
+landed in two families. That isn't a naming inconvenience — it is proof the
+"family" was never a scale.
+
+**3 · Colors are semantic here and sizes are not.** This app does not pick red
+because red is pretty; it has a specific hue for a losing move. Hiding that
+behind `red-N` obscures the very fact the color system exists to state. A font
+size carries no such fact: `--font-size-2` does not claim to be what help text
+is, it restricts an otherwise free choice to three. **A vocabulary of degrees
+narrows a choice; a vocabulary of meanings makes one.**
+
+### It predicts the eight vocabularies — and catches one
+
+We numbered `--spacer`, `--font-size` and `--line-height`, and **named**
+`--transition-duration-paint / -nudge / -travel`,
+`--letter-spacing-label / -wide`, `--border-width-line / -frame`. Every numbered
+one is pure degree; every named one is different KINDS. We did that case by case
+without stating why, which is decent evidence the principle is real rather than
+constructed after the fact. The text grays are the same story from the other
+end: they were already `--page-text-color` / `--page-text-muted-color` rather
+than `--gray-1/-2`, which is also why they are the only THEMED vocabulary.
+
+**`--opacity-1 … -2` is the one it catches.** Opacity spans at least two kinds
+today — a disabled control, and `OpponentStrip`'s separator glyph — so numbering
+them repeats `red-1`/`red-2`: two jobs sharing a mechanism, dressed as degrees.
+
+**Ruling (Joel, 2026-08-21): keep the numbers for now, and name them once the
+spectrum is visible.** We do not yet know why the separator differs, and naming
+before seeing the range is how you get names that fit the first case and nothing
+else. The numbers are a holding position, recorded as one.
+
 ## Naming: local names, promoted on repetition
 
 A worked question, using AnagramDialog's result count — a small muted line that
