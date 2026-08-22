@@ -184,6 +184,24 @@ A test fixture user with a stable role across the pgTAP suite — `ada`, `bea`, 
 
 ## Per-game vocabulary
 
+### Numbers or names?
+
+**Numbers work when the scale has a visual intuition; names work when it
+doesn't.** `h1 / h2 / h3` taught everyone that a low number means a big
+heading, so `--space-1` reading as "the biggest space" costs nobody anything —
+even though it's numerically backwards. `--radius-sm / md / lg` is a clear win
+over `--radius-1 / 2 / 3` for the same reason in reverse: nothing about a
+radius says which end 1 is.
+
+The test is whether a reader can guess the direction without being told. If they
+can't, the number is a second thing to memorize and the name is free.
+
+Evidence, and it's why this is written down: the three CONSISTENCIES were
+numbered first, and Joel — who invented the scheme — misread his own numbering
+within the hour. `consistency-1` can equally mean "most consistent, the winner"
+or "lowest, the least". There is no visual anchor to settle it, so it takes
+names.
+
 ### consistency-1 / consistency-2 / consistency-3
 
 How much a surface is allowed to differ from the rest of the app — and the

@@ -159,6 +159,12 @@ a-b-c-d       --outcomes-lost-fill-color
   `centerTile` each join up because the two words are one quality. **Part-count
   is not a thing to optimize**: five parts is fine, and compressing to reach
   four is how the rule gets misapplied.
+- **Numbers or names?** Numbers when the scale has a visual intuition, names
+  when it doesn't. `h1/h2/h3` taught everyone that a low number is a big
+  heading, so `--space-1` = "the biggest space" costs nothing; `--radius-sm/md/lg`
+  beats `--radius-1/2/3` because nothing about a radius says which end 1 is. The
+  test: can a reader guess the direction unprompted? (docs/naming.md → Numbers or
+  names?)
 - **Only the ENDS are parsed.** A guard matches the bucket at the front and the
   variant + kind at the back; the middle is a label and needs no constraint.
 - **`_localName`** for a value built up over calculations inside one file:
