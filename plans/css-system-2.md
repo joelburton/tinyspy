@@ -1068,24 +1068,48 @@ room to insert. They are not proposed token values.
 
 | z- | layer | what lives there |
 |---|---|---|
-| 0 | page | the literal page: text, buttons, cards. Nothing is ever deliberately stacked here |
-| 10–45 | board | the board, and pieces stacked ON it (stackdown's tile depth is the only real case) |
-| 50 | board question | something briefly over the board, asking about the board — crosswords' rebus entry |
-| 60 | drag ghost | a piece in transit. Above its board, below anything that floats over the window |
-| 100 | infoCol | on mobile only, where the info column covers the board. On desktop this is not a layer at all |
-| 200 | panel | a **thinking-space you keep open**: the scratchpad, crosswords' setter-note and clue-explainer |
-| 300 | dialog | a **question that is patient**. Movable, opens where you left it, no dim. Word-lookup, the anagram finder, edit-word |
-| 350 | modal | a question worth **thinking about or talking about**. Dims, centers, movable. Setup, edit-club, edit-profile |
-| 500 | pause gate | everything below is hidden when the game is paused. **Not z-index** — a render gate |
-| 500 | chat | above every dim, on purpose: the setup form is exactly what people talk about |
-| 700 | toast | announcements you must see even mid-setup ("Joel invited you"). Stack vertically |
-| 800 | blocking modal | **the world stops.** No thought needed, no conversation needed. Confirmations, crosswords' number-jump |
-| 900 | critical modal | as blocking, but strictly above it. Faults only. Queued, never simultaneous |
-| top | tooltip | always the very top — see "the satellites" |
+| 0 | `z-page` | the literal page: text, buttons, cards. Nothing is ever deliberately stacked here |
+| 10–45 | `z-board` | the board, and pieces stacked ON it (stackdown's tile depth is the only real case) |
+| 50 | `z-board-question` | something briefly over the board, asking about the board — crosswords' rebus entry |
+| 60 | `z-ghost` | a piece in transit. Above its board, below anything that floats over the window |
+| 100 | `z-infocol` | the info column. A real layer even on desktop, where it happens to sit beside the board rather than over it |
+| 200 | `z-workspace` | a **thinking-space you keep open**: the scratchpad, crosswords' setter-note and clue-explainer |
+| 300 | `z-dialog` | a **question that is patient**. Movable, opens where you left it, no dim. Word-lookup, the anagram finder, edit-word |
+| 350 | `z-modal` | a question worth **thinking about or talking about**. Dims, centers, movable. Setup, edit-club, edit-profile |
+| 500 | `z-pause-gate` | everything below is hidden when the game is paused. **Not z-index** — a render gate |
+| 500 | `z-chat` | above every dim, on purpose: the setup form is exactly what people talk about |
+| 700 | `z-toast` | announcements you must see even mid-setup ("Joel invited you"). Stack vertically |
+| 800 | `z-modal-blocking` | **the world stops.** No thought needed, no conversation needed. Confirmations, crosswords' number-jump |
+| 900 | `z-modal-fault` | as blocking, but strictly above it. Faults only. Queued, never simultaneous |
+| top | `z-tooltip` | always the very top — see "the satellites" |
 
 **The ordering rule, which is the most useful sentence in the conversation:**
 *shorter-lived or more important sits higher.* The code has no rule today, only
 numbers people picked one at a time.
+
+### The names, agreed 2026-08-21
+
+Agreed in conversation; nothing in code carries them yet. **The `z-` prefix does
+most of the disambiguation** — it says "layer" out loud, so a layer may safely
+reuse a component's word (`z-toast` beside `toast`). Only two names needed
+changing because they were wrong even with the prefix:
+
+- **`z-workspace`**, not `z-panel`. `FloatingPanel` is the shell for chat,
+  dialogs, modals, confirmations and faults — six layers — so naming one layer
+  after it would be a lie the prefix can't fix. "workspace" appears zero times
+  in the repo and is nearly Joel's own phrase for the category.
+- **`z-modal` · `z-modal-blocking` · `z-modal-fault`** — Joel's call, over a
+  proposal to drop the shared stem. The stem is load-bearing precisely BECAUSE
+  the three are not adjacent: `z-modal` sits below chat while the other two sit
+  above it, with the pause gate, chat and toasts in between, so the name is the
+  only thing that says they are kin. They share "look at me", a dim, and
+  centering. Longer is usually better for a name, and nobody has to wonder
+  whether blocking is more or less than modal.
+
+**`z-infocol` is a layer on desktop too**, even though nothing overlaps there.
+The info column is genuinely distinct from the board, its questions and its
+pieces; that it happens to sit beside the board rather than over it is a fact
+about the viewport, not about what kind of thing it is.
 
 ### The satellites — things that are NOT rungs
 
@@ -1181,6 +1205,10 @@ All verified 2026-08-21, and none of it was changed.
    scrabble's pass.
 4. **Do the two scrim colors earn their keep**, given that immovability already
    signals the category?
-5. **Names.** Every name here is Joel's working vocabulary, deliberately kept
-   while thinking. `AnagramDialog` / `WordLookupDialog` are named for a category
-   they may not be in, whatever it ends up called.
+5. **How the shipped tokens reconcile with these names.** Not a rename: 6c's
+   tokens don't map 1:1 onto this model — `--z-index-panel` today means
+   `FloatingPanel`'s default tier, which in this vocabulary is the dialog/modal
+   band, not `z-workspace`. The shape on the table is `--z-index-<layer>`,
+   keeping the prefix (`z-index` really is the property being set) and taking
+   the layer name as the suffix, so `z-chat` ↔ `--z-index-chat`. Deferred until
+   the categories stop moving.
