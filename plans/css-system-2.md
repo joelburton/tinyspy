@@ -186,6 +186,26 @@ a-b-c-d       --outcomes-lost-fill-color
   token referenced from outside `src/<game>/` is an error — one guard, one
   convention, and it makes co-location checkable. (No codename is another's
   followed by a hyphen; re-check if a game is added.)
+- **A value belonging to ONE component carries that component's WHOLE name — and
+  usually shouldn't be a token at all** (Joel, 2026-08-22). The example is
+  `--shadow-notice`, and it is wrong twice over.
+
+  First, ask whether it wants a name: §7's rule is that a value with one reader
+  belongs inside its class as a number. Only something a class cannot hold — a
+  themed color, a slot a game fills — earns a global token.
+
+  If it does earn one, **a shortened component name invents a category**.
+  "Notice" reads as a family of notices with this as one member; there is no
+  such family, only `DeviceBlockNotice`, about a device being too small. A
+  reader cannot recover the component from the token, which is the whole
+  failure: *what's a "notice"?* And the name inverts the grammar above —
+  `shadow-notice` is `<kind>-<thing>` where the order is bucket-first. Written
+  correctly it is `--deviceBlockNotice-shadow`.
+
+  The general form: **shortening a name to make it look general is how a
+  one-off acquires the appearance of a system.** If there is genuinely a family,
+  name the family and say what its members are; if there is one consumer, say
+  its name in full.
 
 ## 6. Families, variants, and how a value gets picked
 
