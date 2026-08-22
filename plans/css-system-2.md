@@ -12,6 +12,24 @@ sitting or it rots the way its predecessor did.
 
 ---
 
+## 0. What this sprint turned out to be
+
+It began as CSS. It is a **sweep, area by area — homepage, clubpage, then each
+game — locking down shared ideas to reduce difference and code.** CSS is the
+biggest part and not the only one: the same duplication lives in the React
+(three pages hand-rolling one header; a component's parts renamed by every
+consumer), and the sweep reads each file once, so anything the area needs gets
+done while it is open.
+
+**Growing is expected, not scope creep** — as long as the growth is organized by
+area. Things that joined after the plan was written: the three consistencies
+(§6.5), the heading levels, the `:global` rule and its guard, the class-naming
+conventions, `<PageHeader>` as a component, and the spacing vocabulary (§18).
+
+The corollary, which is why the doc keeps growing too: **anything we decide
+mid-sweep gets written down here or in `docs/`, because the sweep outlives any
+one session.**
+
 ## 1. Goals
 
 Sixteen games share a great deal. They should have little customized CSS. Instead
@@ -904,15 +922,39 @@ vocabulary; invent it if we ever need it.
   - **A hand-entered literal length becomes a smell in consistency-2 and -3**,
     needing justification. That is the `no unnamed colors` guard's sentence with
     a different noun, and that guard has held for months.
-  - **Measure the scale AFTER the patterns land.** Every pattern named on
-    2026-08-21 ate spacing declarations rather than standardizing them —
-    `.clubsList`'s margin vanished, `.left`/`.right` collapsed to one, the h3
-    margins became a heading level. Fitting a ramp now fits it to numbers that
-    won't exist at step 12.
+  - **DEFINE IT PROVISIONALLY NOW, apply as each surface converts, re-fit the
+    values once near the end.** My first instinct was to measure after the
+    patterns land, on the grounds that patterns keep eating spacing
+    declarations — `.clubsList`'s margin vanished, `.left`/`.right` collapsed to
+    one, the h3 margins became a heading level. Joel's counter, and it wins:
+    this sweep reads every file exactly once, so a scale that doesn't exist yet
+    means seeing `gap: 0.4rem` and leaving it, then coming back later.
 
-  Measured 2026-08-21, gap + margin in rem: **consistency-3** 17 distinct values
-  over 79 declarations (five cover 55); **consistency-2** 12 over 45, same top
-  five; **consistency-1** 20 over 222, and out of scope by definition.
+    The caution was weak anyway, because **the indirection makes re-fitting
+    nearly free**: a site says `var(--space-2)`, so re-tuning the ramp is
+    editing five numbers in one place and no site moves. Getting the values
+    slightly wrong now costs almost nothing; not having names costs a second
+    pass over everything.
+
+    It also fixes something visible in this doc's own history: every pattern
+    written on 2026-08-21 picked a spacing value and then justified it in a
+    comment — `0.5rem` on the heading row, `0.4rem 0.9rem` on the packed rows,
+    `0.375rem` in the page header. Each defensible alone; together they are
+    three opinions of "small".
+
+  **STILL BEING THOUGHT THROUGH — not decided, and not to be treated as
+  settled.** Recorded here because it is too big to hold in session memory.
+
+  Measured 2026-08-21, gap + margin in rem, as the before-picture:
+  **consistency-3** 17 distinct values over 79 declarations (five cover 55);
+  **consistency-2** 12 over 45, the same top five; **consistency-1** 20 over
+  222, out of scope by definition. The union of the two top-fives is roughly
+  `0.25 · 0.4 · 0.5 · 0.75 · 1 · 1.5`.
+
+  **The one open question inside the question:** are `0.4` and `0.5` two steps
+  or one? They are the two most-used values (14 and 18 in consistency-3), which
+  either means both are real or means one idea is spelled two ways. Joel is not
+  ready to settle this yet.
 
 - **Should we LOAD a font?** (Joel, 2026-08-21) — decide at step 7. We ship no
   webfont at all today: no `@font-face`, no font file in the repo, `body` is
