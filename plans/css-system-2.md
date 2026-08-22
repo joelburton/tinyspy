@@ -1121,6 +1121,18 @@ fine, but in docs and in conversation they are four different things.
 | blocking modal | yes | yes | **no** | no |
 | critical modal | yes | yes | **no** | no |
 
+**Buttons.** A dialog is very likely to carry a **Save** / **OK** / **Start** —
+it has an answer to give, and the button is how it ends. A panel is very unlikely
+to: there is nothing to answer, so it closes by its X. Measured: the scratchpad,
+the setter-note and the clue-explainer have no buttons at all; edit-word has
+Save, setup has Start, confirmations have their confirm/cancel pair.
+
+The sharper form of the test is **whether the button ENDS the thing**, because
+word-lookup and the anagram finder each have a primary button (*Look up*,
+*Find*) that acts INSIDE the dialog and leaves it open. That is what lets them
+be the patient kind you keep beside a cryptic while still being dialogs. So a
+button that only acts within a surface says nothing about its category.
+
 **Immovability is the visible signal**, and a better teacher than a scrim
 shade: if you can drag it, you can leave it for later; if you cannot, deal with
 it now.
