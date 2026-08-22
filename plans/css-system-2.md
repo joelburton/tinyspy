@@ -796,7 +796,7 @@ too big to carry inside the area that found it (§21).
 
 | area | what it is |
 |---|---|
-| `homepage` | **RUNNING.** The rehearsal for the full toolkit: patterns + vocabulary + the page shell, plus a **React pass** — the duplication is not only in the CSS |
+| `homepage` | **NEXT, not yet opened.** The rehearsal for the full toolkit: patterns + vocabulary + the page shell, plus a **React pass** — the duplication is not only in the CSS |
 | `dialogs-and-forms` | The first real win — many near-identical instances. Also decide here: whether to LOAD a font (§18) |
 | `club-page` | Build **the page shell** (§7): an optional header above a centered, width-bounded body. Absorbs the punted viewport-fit chain, the `.frame` rename, `<ModePill>` reading the shared `.badge`, and the leftovers listed in "Why 6 stopped" |
 | `shared-game-chrome` | `common/components/game/` — 258 rules, and every game sits on it. Also: the **contract-slot guard**, checked per mount point (§9, §10) |
@@ -1432,12 +1432,33 @@ scheduled one usually lands directly after the area that found it.
 A file audited inside one area can be fixed inside a later one: **the stamp
 tracks the file, the plan tracks the area.**
 
+### How an area opens, and how it closes
+
+**Opening an area is one thing: LIST ITS FILES AND STOP** (Joel, 2026-08-22).
+The whole output is the files thought to belong to the area — its OWN files,
+`HomePage.tsx` and `HomePage.module.css`, not the things they depend on. **No
+stamps, no audit, no reading ahead**, until Joel has agreed the list.
+
+The reason is that what counts as "the homepage area" is Joel's to define, and
+stamping first means the disagreement arrives *after* the audit exists — a list
+of findings about files he would have excluded, which is exactly the drowning
+this process is built to prevent. Dependencies are a separate question, answered
+later by reading, not at the moment the area opens.
+
+**An area is committed before the next one opens.** Several commits inside one
+area is normal and expected; **no commit spans two areas.** The exception is the
+one above: a sweep caused by this area's rename ships with this area.
+
+**Claude does not decide that we are moving on.** Finishing a step is not
+permission to start the next one — and that includes the sprint's own setup,
+which is committed before any area opens.
+
 ### Broken is expected, and it comes in three kinds
 
-The app does not need to work until the sprint ends; only what is `cs-fixed`
-should. Stopping mid-area to repair every consumer makes the diff unreadable and
-is how both of us lose the thread. But "broken" covers three different things
-and they get three different rules.
+The app does not need to work until the sprint ends; only what has reached
+`cs-fixed` should. Stopping mid-area to repair every consumer makes the diff
+unreadable and is how both of us lose the thread. But "broken" covers three
+different things and they get three different rules.
 
 | kind | what it is | the rule |
 |---|---|---|
