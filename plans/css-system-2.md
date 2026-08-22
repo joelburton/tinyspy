@@ -809,13 +809,37 @@ the scanner counts it as a reference and reserved cells stay alive.
 | 3 | rebuild `/palette` | **swatch half DONE 2026-08-20** — every family is a rectangle of squares with its formula printed under each cell. The in-situ half is DEFERRED, not skipped: it was built by hand, was wrong about the pill in three ways at once, and got reverted. It returns when the demos can render the REAL components (§11) |
 | 4 | ~~the **midnight spike**~~ **DONE 2026-08-21** | The split holds; all 161 roles answered, one chain, nothing undefined. Kept behind `?theme=midnight`. Dark mode is NOT part of this sprint — everything learned is [dark-mode.md](dark-mode.md), and §19 keeps the one-line summary |
 | 5 | ~~shallow whole-app pattern pass~~ **DONE 2026-08-21** | Ten patterns named, plus five below the line, in §7 → "The named patterns". Read off the rendered surfaces, then counted. Also settled: device density (§9), and three findings that are name collisions rather than patterns |
-| 6 | homepage | the rehearsal: lowest blast radius |
+| 6 | ~~homepage~~ · ~~clubpage~~ **PARTLY DONE 2026-08-21, and deliberately stopped** | Both were converted with the pattern half of the toolkit — see "Why 6 stopped" below. Shipped off them: `.badge`, `.button-small` + an element-agnostic `.button`, `--chrome-cursor-ring` + `.kb-cursor`, `.heading-with-controls`, `.item-list`/`.item-row`/`.item-list-empty`, `.segmented`, `<PageHeader>`. `HomePage.module.css` 254 → 76 lines; `ClubPage.module.css` 270 → 216 |
+| 6a | **VOCABULARY — adoption** | The values that already exist and are ignored: `--radius-sm/md/lg` (hand-typed 43 times), `--chrome-disabled-opacity` (4 values doing one job). No design decisions — adopt, and ship each with its guard |
+| 6b | **VOCABULARY — invention** | Pick provisional values for `--space-N`, `--font-size-N`, line-height, letter-spacing, transition duration (§18). Into `base.css`; the extra text gray into the theme. **Snap and move on** — objections go in §15's quibble list, not into a debate |
+| 6c | **z-index, on its own** | Not a ramp — a stacking order, named by bucket (`--z-index-chatPanel`), and its failure mode is a real bug rather than drift. Needs a survey of what stacks against what |
+| 6d | **homepage, again** | The rehearsal for the full toolkit: patterns + vocabulary + the page shell. Plus a **React pass** — the duplication is not only in the CSS |
 | 7 | dialogs + forms | the first real win — many near-identical instances. Also decide here: whether to LOAD a font (§18) |
-| 8 | clubpage + remaining non-game chrome | Build **the page shell** (§7): an optional header above a centered, width-bounded body. Absorbs the punted viewport-fit chain, the `.frame` rename and `<ModePill>` reading the shared `.badge` |
+| 8 | clubpage, again + remaining non-game chrome | Build **the page shell** (§7): an optional header above a centered, width-bounded body. Absorbs the punted viewport-fit chain, the `.frame` rename, `<ModePill>` reading the shared `.badge`, and the leftovers listed in "Why 6 stopped" |
 | 9 | shared game chrome | `common/components/game/` — 258 rules, and every game sits on it. Also: the **contract-slot guard**, checked per mount point (§9, §10) |
 | 10 | per game — CSS pass, then tile-feedback pass, back to back | psychicnum first, as the control |
 | 11 | assets | 17 game logos carry baked color; the wordmark and favicon carry near-whites that fail on a dark page. All of it at once, at the end — doing one per game argues about a tree sixteen times |
 | 12 | fold + delete | durable rules into `docs/ui.md` and `docs/code-conventions.md`; the allowlist empties; this doc goes |
+
+### Why 6 stopped, and what the reorder buys
+
+The homepage and club page were being converted with an **incomplete toolkit**:
+the patterns existed, the vocabularies didn't. So every conversion picked a
+spacing value and justified it in a comment — `0.5rem` on the heading row,
+`0.4rem 0.9rem` on the packed rows, `0.375rem` in the page header — and each
+surface would have needed revisiting once `--space-N` existed.
+
+Building the vocabulary first means **each area gets ONE pass with everything**,
+instead of a pass per tool. That is the whole reason 6 stops half-done rather
+than finishing; a future session asking "why was clubpage abandoned mid-way"
+should read this paragraph.
+
+Left on the club page for step 8: the two-line row (§7's named-patterns list),
+`ClubGameCard`'s `.wrapper` / `.card` names — after the conversion the wrapper
+IS the row and the card is its inner box, so both names describe the previous
+arrangement — `FilterSelect`'s club-page override (which inverts at step 9: the
+component states the roomy default, the info column tightens it), the filters
+rendered twice for desktop and mobile, and the two-column fold.
 
 **Steps 2 and 10 are structural passes, not colour passes** — but a few values
 shifting is fine and expected. What is not fine is a value shifting without
