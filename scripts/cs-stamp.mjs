@@ -166,6 +166,12 @@ if (cmd === 'stamp') {
 } else if (cmd === 'set') {
   const [stamp, ...paths] = args
   if (!STAMPS.includes(stamp)) throw new Error(`unknown stamp: ${stamp}`)
+  // Check EVERY path before writing ANY. A typo'd path partway down a list of
+  // twenty otherwise leaves half the area stamped and half not, which is the
+  // one state this tooling exists to prevent.
+  const scope = new Set(inScope())
+  const bad = paths.map((p) => relative(CWD, join(CWD, p))).filter((r) => !scope.has(r))
+  if (bad.length) throw new Error(`not a file in scope:\n  ${bad.join('\n  ')}`)
   for (const p of paths) writeStamp(relative(CWD, join(CWD, p)), stamp, dry)
   console.log(`${dry ? 'would set' : 'set'} ${paths.length} file(s) cs-${stamp}`)
 } else if (cmd === 'list') {
