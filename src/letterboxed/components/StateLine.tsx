@@ -1,3 +1,5 @@
+// cs-unmet
+
 import { BOARD_SIZE, PAR } from '../lib/board'
 import styles from './PlayArea.module.css'
 

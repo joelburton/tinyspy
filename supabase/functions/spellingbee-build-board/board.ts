@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * spellingbee-build-board — the PURE board-building core.
  *

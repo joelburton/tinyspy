@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * scrabble-suggest-move — Edge Function behind the coop "suggest a move"
  * button (docs/scrabble-ai.md).

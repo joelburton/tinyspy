@@ -1,3 +1,5 @@
+// cs-unmet
+
 import { detectFormat, parsePuzzleBuffer } from './parse/format'
 import type { PuzzleTemplate } from './types'
 

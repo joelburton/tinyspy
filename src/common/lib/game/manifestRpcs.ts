@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * Shared manifest RPC dispatchers — the tiny, identical wrappers every game's
  * manifest hand-copied to turn a Supabase `db.rpc(...)` / edge-function invoke

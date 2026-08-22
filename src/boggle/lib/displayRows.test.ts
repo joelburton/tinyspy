@@ -1,3 +1,5 @@
+// cs-unmet
+
 import { describe, expect, it } from 'vitest'
 import { buildDisplayRows } from './displayRows'
 import type { FoundWordRow } from '../hooks/useGame'

@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# cs-unmet
+
 # Step 1 — link this checkout to the hosted project.
 #
 # Idempotent: re-linking to the same ref no-ops. Everything the

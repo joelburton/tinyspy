@@ -1,4 +1,6 @@
 #!/usr/bin/env -S npx tsx
+// cs-unmet
+
 /**
  * GENERATE stackdown boards into a vendored text file —
  * `supabase/data/stackdown-boards.jsonl` (one JSON board per line). This

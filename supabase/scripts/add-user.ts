@@ -1,4 +1,6 @@
 #!/usr/bin/env -S npx tsx
+// cs-unmet
+
 /**
  * Provision a player account BEFORE that person's first sign-in, so they
  * arrive to a handle, a color and a solo club already waiting.

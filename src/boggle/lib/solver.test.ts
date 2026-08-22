@@ -1,3 +1,5 @@
+// cs-unmet
+
 import { describe, expect, it } from 'vitest'
 import { buildTrie, createSolver, listWords, parseBoard } from './solver'
 import { boggleSolverFixture as fixture } from './solver.fixture'

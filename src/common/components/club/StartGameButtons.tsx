@@ -1,3 +1,5 @@
+// cs-unmet
+
 import type { GameManifest } from '../../lib/games'
 import {
   playerCountFits,

@@ -1,4 +1,6 @@
 #!/usr/bin/env -S npx tsx
+// cs-unmet
+
 /**
  * Audit the committed stackdown board library against the CURRENT
  * dictionary filter.

@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * waffle — the turn-history replay. Given the starting `scramble`, the hidden
  * `solution`, and the coop swap log, reconstruct what the board looked like at any

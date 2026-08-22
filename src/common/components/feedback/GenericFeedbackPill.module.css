@@ -1,3 +1,5 @@
+/* cs-unmet */
+
 /* The shared feedback pill — header (global) and below-board (local). Same
  * height as PlayersStrip so the header swap doesn't reflow (docs/ui.md → "Layout
  * stability").

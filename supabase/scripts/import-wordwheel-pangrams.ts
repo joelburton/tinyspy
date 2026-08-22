@@ -1,4 +1,6 @@
 #!/usr/bin/env -S npx tsx
+// cs-unmet
+
 /**
  * Rebuild `wordwheel.pangrams` — the board-seed pool (the word-wheel twin of
  * import-spellingbee-pangrams.ts). See docs/games/wordwheel.md.

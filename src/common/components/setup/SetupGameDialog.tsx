@@ -1,3 +1,5 @@
+// cs-unmet
+
 import { formFailureText } from '../../lib/game/serverError'
 import { Suspense, useState } from 'react'
 import { MODE_LABEL, type GameManifest, type Member, type RichMessage as RichMessageType } from '../../lib/games'

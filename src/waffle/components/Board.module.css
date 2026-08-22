@@ -1,3 +1,5 @@
+/* cs-unmet */
+
 /* waffle's 5×5 lattice. It lives in a `.board` wrapper inside the shared
  * `.boardCol` (common PlayArea.module.css), like every converged game; the
  * wrapper carries NO border/background (the inter-tile gaps show the column

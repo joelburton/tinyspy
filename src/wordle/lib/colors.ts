@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * wordle's color module = the shared code→class-key mapper (the server,
  * `common.wordle_colors`, is authoritative — the FE never recomputes,

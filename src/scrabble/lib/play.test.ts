@@ -1,3 +1,5 @@
+// cs-unmet
+
 import { describe, expect, it } from 'vitest'
 import { cellIndex, type Cell } from './board'
 import { boardUpToSeq, evaluatePlay, tilesUsed, type Placement } from './play'

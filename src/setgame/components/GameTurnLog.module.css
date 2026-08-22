@@ -1,3 +1,5 @@
+/* cs-unmet */
+
 /* The log's own cells. The shared <TurnLog> owns the panel, the heading row and
  * the scroll box; these are the two columns setgame puts in them. */
 

@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * Waffle board geometry — the fixed 5×5 lattice that every part of
  * the game agrees on: the FE render (here), the board generator

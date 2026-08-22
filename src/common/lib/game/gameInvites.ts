@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * Game-invitation model — the data + pure logic behind the "Moth added
  * you to a new spellingbee game" popup (see `useGameInvitations`).

@@ -1,3 +1,5 @@
+/* cs-unmet */
+
 /* scrabble's move-log cell bits. The panel / scroll-box / outcome-bar / row
  * chrome now come from the shared <TurnLog> (TurnLog.module.css); this holds only
  * the in-cell content styling: the score color and the played word (which

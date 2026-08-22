@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * stackdown — the board geometry + stacking logic, ported verbatim
  * from the prototype's `core.ts` / `main.tsx` (the throwaway tool that

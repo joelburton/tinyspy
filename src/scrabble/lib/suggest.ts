@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * Scrabble move suggester — the AI that recommends plays (docs/scrabble-ai.md).
  *

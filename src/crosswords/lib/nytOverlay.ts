@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * NYT overlay-PNG analysis — ported from crossplay's `nyt.ts`
  * (`detectOverlayMarkings` + `applyOverlayMarkings`).

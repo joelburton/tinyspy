@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * wordiply's scoring — the FE port of the server's math. Both the length
  * score and the compete comparator MUST match `wordiply._length_score` and

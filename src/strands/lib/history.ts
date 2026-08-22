@@ -1,3 +1,5 @@
+// cs-unmet
+
 import type { Coord } from './board'
 
 /** The shape `<Board>` needs for a found word — mirrors `FoundPath`. */

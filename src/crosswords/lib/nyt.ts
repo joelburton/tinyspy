@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * Pure conversion of an NYT v6 puzzle JSON into our template + solution —
  * ported from crossplay's `nyt.ts` (`nytResponseToPuzzleState` + the clue

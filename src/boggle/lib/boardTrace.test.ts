@@ -1,3 +1,5 @@
+// cs-unmet
+
 import { describe, expect, it } from 'vitest'
 import { traceableStr } from './boardTrace'
 import { buildTrie, listWords, parseBoard } from './solver'

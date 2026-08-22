@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * Tests for strands' GameTurnLog — a pure presentational component (props in,
  * the shared `<TurnLog>` table out; no supabase mocking).

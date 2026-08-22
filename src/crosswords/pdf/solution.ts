@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * Answer-key ("solution") PDF generator — a verbatim port of crossplay's
  * `print/solution.ts`, retyped onto this repo's crosswords types.

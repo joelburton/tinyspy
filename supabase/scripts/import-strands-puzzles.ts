@@ -1,4 +1,6 @@
 #!/usr/bin/env -S npx tsx
+// cs-unmet
+
 /**
  * Load `strands.puzzles` from the local archive file
  * `supabase/data/strands-puzzles.jsonl`.

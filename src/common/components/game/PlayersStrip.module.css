@@ -1,3 +1,5 @@
+/* cs-unmet */
+
 /* Colored-username row. Inline flow with middle-dot separators
  * between entries; truncates with ellipsis if the entire strip
  * overflows the available width (the parent <StatusSlot> sets

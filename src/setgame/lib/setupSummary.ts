@@ -1,3 +1,5 @@
+// cs-unmet
+
 import type { Member } from '../../common/lib/games'
 import { coopRows, rosterRow, timerRow, type SetupRow } from '../../common/lib/game/setupRows'
 import { paletteOf, type SetgameSetup } from './setup'

@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * The **parity oracle**: NYT's own word lists, replayed through our adjacency
  * and no-reuse rules.

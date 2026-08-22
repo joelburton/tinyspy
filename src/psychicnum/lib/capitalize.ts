@@ -1,3 +1,5 @@
+// cs-unmet
+
 /** Sentence-case a message's first letter. Server errors come back lowercase
  *  (`'setup.guesses is required'`); local feedback should read as a sentence.
  *  Used by psychicnum's guess dispatch + info-column action handlers, which

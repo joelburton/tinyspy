@@ -1,3 +1,5 @@
+// cs-unmet
+
 import { outcomeVerb, type Member, type GamePlayer } from '../../common/lib/games'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { OpponentStrip } from '../../common/components/game/OpponentStrip'

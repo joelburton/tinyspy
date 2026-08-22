@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * Tests for chatOpenStore. The store is small but it's the only
  * place chat-open state is shared between the GamePage header's

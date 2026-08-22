@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * Flat typed-array trie — the shared dictionary structure for word games.
  *

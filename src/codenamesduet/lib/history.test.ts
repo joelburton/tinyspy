@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * Unit test for the codenamesduet turn-history snapshot (lib/history.ts). Pure —
  * no DOM, no supabase. Covers the three things the replay has to get right:

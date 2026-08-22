@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * The 7-hex flat-top honeycomb geometry — the single source shared by the on-screen
  * board (`Letters` / `Letter`, drawn as SVG) and the PDF export (`printSpellingbeePdf`,

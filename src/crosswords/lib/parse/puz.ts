@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * Parse a legacy binary `.puz` file into the same `{ state, solution }`
  * shape `parseIpuzBuffer` returns. Ported from crossplay's `puzzle.ts`.

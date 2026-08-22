@@ -1,3 +1,5 @@
+// cs-unmet
+
 import type { GameManifest } from './common/lib/games'
 import { codenamesduetGame } from './codenamesduet/manifest'
 import {

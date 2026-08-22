@@ -1,3 +1,5 @@
+// cs-unmet
+
 import styles from '../../common/components/game/Stats.module.css'
 
 /** The figures behind boggle's 4-cell stat grid (all `found / total`). */

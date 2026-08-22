@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * Component tests for psychicnum's PlayArea — focused on the per-player
  * CONCEDE flow (compete drop-out) and its coop counterpart (whole-table End).

@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * The help vocabulary — ONE definition of what each help rung shows, because
  * three surfaces must agree word-for-word: the requester's own pill (askHelp),

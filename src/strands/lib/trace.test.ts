@@ -1,3 +1,5 @@
+// cs-unmet
+
 import { describe, expect, it } from 'vitest'
 import { coordKey, type Coord } from './board'
 import { clearTrace, clickTile, typeLetter, type Trace } from './trace'

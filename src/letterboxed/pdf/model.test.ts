@@ -1,3 +1,5 @@
+// cs-unmet
+
 import { describe, expect, it } from 'vitest'
 import { buildLetterboxedPrintModel } from './model'
 import type { EventRow, PlayerRow } from '../hooks/useGame'

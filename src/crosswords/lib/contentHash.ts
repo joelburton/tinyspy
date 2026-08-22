@@ -1,3 +1,5 @@
+// cs-unmet
+
 import type { Cell, Clue } from './types.ts'
 
 /**

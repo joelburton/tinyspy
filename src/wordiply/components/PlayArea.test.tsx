@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * Render + behavior tests for wordiply's PlayArea — the composition (the
  * five-row board, the length-only readout, the terminal reveal), which `tsc`

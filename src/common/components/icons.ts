@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * Semantic icon registry — the ONE place that maps an action to its Lucide
  * glyph, so "hint = lightbulb" lives here instead of being re-decided at every

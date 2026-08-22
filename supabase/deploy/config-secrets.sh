@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# cs-unmet
+
 # Step 5 — set the edge-function secrets.
 #
 # Only ANTHROPIC_API_KEY today (codenamesduet's clue suggester,

@@ -1,3 +1,5 @@
+// cs-unmet
+
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from 'vitest'
 import type { Cell, PuzzleState } from '../lib/types'

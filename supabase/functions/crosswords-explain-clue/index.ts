@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * crosswords-explain-clue — Edge Function behind the "Explain cryptic clue"
  * game-menu item. Asks Claude to EXPLAIN (not solve) how a cryptic clue yields

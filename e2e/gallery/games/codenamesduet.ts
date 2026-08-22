@@ -1,3 +1,5 @@
+// cs-unmet
+
 import { execFileSync } from 'node:child_process'
 import { asUser, createCodenamesduetGame, type E2EClub, type E2EMember } from '../../helpers/fixtures'
 import { endGame } from '../endGame'

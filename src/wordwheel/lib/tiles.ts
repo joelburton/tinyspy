@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * The multiset tile-spend rule, as a single boolean — the FE twin of the edge
  * function's `fitsTiles`. The wheel is a MULTISET: a letter may sit on two

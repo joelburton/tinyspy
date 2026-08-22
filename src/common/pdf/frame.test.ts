@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * Tests for the shared print frame (docs/pdf.md) — the à-la-carte primitives EVERY
  * game's printer composes, so a regression here degrades all five print outputs at

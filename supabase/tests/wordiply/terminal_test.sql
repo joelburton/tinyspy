@@ -1,3 +1,5 @@
+-- cs-unmet
+
 -- ============================================================
 -- Test: wordiply terminal transitions (end_game / submit_timeout /
 --        replay_board / concede)

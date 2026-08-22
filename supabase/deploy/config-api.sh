@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# cs-unmet
+
 # Step 3 — PostgREST config: exposed schemas, search path, max rows.
 #
 # PATCH /v1/projects/{ref}/postgrest. Server-side this also triggers a

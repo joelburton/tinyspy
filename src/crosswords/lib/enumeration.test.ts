@@ -1,3 +1,5 @@
+// cs-unmet
+
 import { describe, expect, it } from 'vitest'
 import { enumerationFor } from './enumeration'
 import { cellKey, type CellState, type CellsMap } from '../hooks/useCells'

@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * Pure conversion of a Guardian crossword's embedded JSON into our template +
  * solution — the twin of `nyt.ts`, and simpler: the Guardian data is

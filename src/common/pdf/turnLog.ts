@@ -1,3 +1,5 @@
+// cs-unmet
+
 import { BLACK, DARK_GRAY, MEDIUM_GRAY, drawSetup, fit, type PrintDoc } from './frame'
 import type { SetupRow } from '../lib/game/setupRows'
 

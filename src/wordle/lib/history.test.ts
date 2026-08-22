@@ -1,3 +1,5 @@
+// cs-unmet
+
 import { describe, it, expect } from 'vitest'
 import { turnSnapshot } from './history'
 import type { GuessRow } from '../hooks/useGame'

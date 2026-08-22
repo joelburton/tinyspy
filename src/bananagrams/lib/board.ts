@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * Player-board model — a FIXED 25×25 arena.
  *

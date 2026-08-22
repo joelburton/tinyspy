@@ -1,3 +1,5 @@
+/* cs-unmet */
+
 /* wordle play surface. The two-column SHELL (.layout / .boardCol / .infoCol) comes
  * from the shared common/components/game/PlayArea.module.css (imported as `shared` in
  * PlayArea.tsx) and is composed via cls(); only the info-column WIDTH is wordle-

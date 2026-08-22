@@ -1,3 +1,5 @@
+// cs-unmet
+
 import type { Member } from '../../common/lib/games'
 import { difficultyValue } from '../../common/lib/game/difficulty'
 import { BOARD_KEY, rosterRow, timerRow, type SetupRow } from '../../common/lib/game/setupRows'

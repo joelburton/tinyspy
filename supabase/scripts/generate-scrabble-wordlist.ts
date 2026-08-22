@@ -1,4 +1,6 @@
 #!/usr/bin/env -S npx tsx
+// cs-unmet
+
 /**
  * Generate the bundled scrabble dictionary asset from `common.words`.
  *

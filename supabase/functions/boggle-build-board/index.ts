@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * boggle-build-board — Edge Function that rolls a MothCubes board meeting the
  * setup's constraints and creates the game in one round-trip.

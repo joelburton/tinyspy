@@ -1,3 +1,5 @@
+// cs-unmet
+
 import type { TimerMode } from '../../common/lib/games'
 import type { CoopTurnSetup } from '../../common/components/fields/CoopStyleField'
 import { parseSides } from './customBoard'

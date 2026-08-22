@@ -1,3 +1,5 @@
+// cs-unmet
+
 import { asUser, createWaffleGame, type E2EClub, type E2EMember } from '../../helpers/fixtures'
 import { endGame } from '../endGame'
 import type { Cell, GameGallery } from '../types'

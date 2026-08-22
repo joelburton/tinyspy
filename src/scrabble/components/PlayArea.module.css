@@ -1,3 +1,5 @@
+/* cs-unmet */
+
 /* scrabble's play surface, on the shared two-column scaffold
  * (common/components/game/PlayArea.module.css, imported as `shared`). PlayArea holds the
  * layout-root vars here; the board column's own styles (board sizing + the rack row)

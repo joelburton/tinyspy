@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * Component tests for letterboxed's PlayArea — the GAME MENU it publishes.
  *

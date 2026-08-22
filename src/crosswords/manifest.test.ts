@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * Tests for crosswords' `startGameInClub` — specifically the setup-leak
  * backstop (review finding 1.1).

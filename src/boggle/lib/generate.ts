@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * Board generation: roll a dice set and rejection-sample until a board meets the
  * setup's constraints — measured against the **required** words only (see

@@ -1,3 +1,5 @@
+// cs-unmet
+
 import { execFileSync } from 'node:child_process'
 import { createClient } from '@supabase/supabase-js'
 import { asUser, type E2EClub, type E2EMember } from '../helpers/fixtures'

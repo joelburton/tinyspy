@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * The PURE board-building core for letterboxed, unit-tested by
  * ./board_test.ts. No network, no Supabase, no Deno APIs — everything here is

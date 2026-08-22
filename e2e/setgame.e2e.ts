@@ -1,3 +1,5 @@
+// cs-unmet
+
 import { test, expect } from '@playwright/test'
 import { createClubWithMembers, createSetgameGame, createSoloClub } from './helpers/fixtures'
 import { boardOf, claim, findNonSetOn, findSetOn, letterForSlot } from './helpers/setgame'

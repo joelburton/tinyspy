@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * Convert one or more `.puz` files to `.ipuz` JSON — an author-tooling CLI
  * (`npm run crosswords:puz-to-ipuz`). Ported from crossplay's script of the

@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * Tests for useGameInvitations — specifically the "entering the invited
  * game dismisses the popup for good" behavior.

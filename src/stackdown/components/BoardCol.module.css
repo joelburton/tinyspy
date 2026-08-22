@@ -1,3 +1,5 @@
+/* cs-unmet */
+
 /* stackdown's board column — the square stacked-tile canvas plus the below-board
  * region (the move row — ⌫ + the five-slot WordEntry + Submit — and the
  * local-feedback slot), on the shared scaffold's `.boardCol`. This is the

@@ -1,3 +1,5 @@
+-- cs-unmet
+
 -- ============================================================
 -- Test: waffle compete — independent boards, opponent hidden,
 --        fewest-swaps winner

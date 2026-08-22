@@ -1,3 +1,5 @@
+// cs-unmet
+
 import { readFileSync, writeFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { games } from '../games'

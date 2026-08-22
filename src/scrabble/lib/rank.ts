@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * Scrabble move suggester — ranking (docs/scrabble-ai.md S3).
  *

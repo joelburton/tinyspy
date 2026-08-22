@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * Tests for the word-edit dialog's client half. The permission gate and the
  * journal live server-side (words_edit_test.sql); what's pinned here is the

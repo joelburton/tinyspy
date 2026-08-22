@@ -1,3 +1,5 @@
+# cs-unmet
+
 """Color census — every color literal in src/**/*.css, grouped by game, each one
 measured against the nearest token in common/theme.css (oklab distance) so a
 lookalike can be spotted.

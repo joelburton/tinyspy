@@ -1,3 +1,5 @@
+// cs-unmet
+
 // Explicit `.ts`, unlike the rest of the FE tree: the letterboxed-build-board
 // edge function imports this file directly, and Deno resolves no extensions.
 // Same reason boggle's customBoard.ts writes `./dice.ts`.

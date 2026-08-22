@@ -1,3 +1,5 @@
+// cs-unmet
+
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 import { buildTrie, walkWord } from '../../common/lib/game/trie'

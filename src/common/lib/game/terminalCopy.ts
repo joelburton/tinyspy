@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * The per-status copy a game's terminal state shows — every game's `buildOver()`
  * returns this shape. Two cuts at the same outcome, for two surfaces of

@@ -1,3 +1,5 @@
+/* cs-unmet */
+
 /* HowToPlay rules-text styles. The panel chrome (surface, padding, header,
  * close X) lives on <FloatingPanel>, and the Got-it action row is the shared
  * modalActions.module.css; this stylesheet owns only the rules-color swatches.

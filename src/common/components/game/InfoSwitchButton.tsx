@@ -1,3 +1,5 @@
+// cs-unmet
+
 import { IconInfoPanelClose, IconInfoPanelOpen } from '../icons'
 import { setInfoSheetOpen } from '../../lib/game/infoSheetStore'
 import styles from './InfoSwitchButton.module.css'

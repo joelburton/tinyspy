@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# cs-unmet
+
 # Step 4 — auth config: site URL, redirect allowlist, Resend SMTP, and
 # the magic-link email template.
 #

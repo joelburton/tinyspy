@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * Grid renderer. Draws cells, numbers, and fills. Check-history flags
  * (`revealed`, `wrong`) are intentionally ignored — the print output

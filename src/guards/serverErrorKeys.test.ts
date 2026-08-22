@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * The server-error key INVENTORY — a repo-wide guard over the contract the
  * sixteen SQL files, the edge functions, and `ERROR_COPY` share.

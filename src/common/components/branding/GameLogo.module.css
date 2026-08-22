@@ -1,3 +1,5 @@
+/* cs-unmet */
+
 /* The square game-logo image. Sized at 32×32 in the header; the
  * SVG uses `currentColor` for stroke/fill so the icon inherits
  * the wrapping link's color (which is theme text color by default).

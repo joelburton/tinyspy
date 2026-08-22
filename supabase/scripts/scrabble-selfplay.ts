@@ -1,4 +1,6 @@
 #!/usr/bin/env -S npx tsx
+// cs-unmet
+
 /**
  * scrabble AI self-play harness — the measurement CLI behind the strength
  * ladder (docs/scrabble-ai-strength.md).

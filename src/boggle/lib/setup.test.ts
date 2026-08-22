@@ -1,3 +1,5 @@
+// cs-unmet
+
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_BOGGLE_SETUP_COOP, legalError } from './setup'
 

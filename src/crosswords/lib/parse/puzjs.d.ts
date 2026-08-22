@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * Minimal type shim for `puzjs` (which ships no types). Ported from
  * crossplay. Only the `decode` surface `puz.ts` actually reads is

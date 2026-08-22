@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * The coop turn-history replay. Uses the same 21-distinct-letter reference board
  * as colors_test so the expected colors are easy to reason about:

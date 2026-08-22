@@ -1,3 +1,5 @@
+// cs-unmet
+
 // NB: explicit .ts extension — the boggle-build-board edge function imports this
 // module (it must not trust the client's parse), and Deno requires extensions.
 // Vite/Vitest/tsc accept them too (tsconfig `allowImportingTsExtensions`).

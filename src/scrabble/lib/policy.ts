@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * scrabble AI player — the move-selection *policy* (docs/scrabble-ai-strength.md).
  *

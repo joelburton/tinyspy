@@ -1,3 +1,5 @@
+/* cs-unmet */
+
 /* The five-slot word-entry row under the board — the middle of the move row,
  * flanked by the ⌫ and Submit buttons (BoardCol.module.css → `.moveArea`, which
  * owns the spacing above: a margin here would offset the slots from the buttons

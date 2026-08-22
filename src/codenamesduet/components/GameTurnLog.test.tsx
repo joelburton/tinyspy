@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * Tests for GameTurnLog. A pure presentational component — it takes `clues` +
  * `guesses` and renders the shared <TurnLog> table, one row per turn. No

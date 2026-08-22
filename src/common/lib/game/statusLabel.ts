@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * The vocabulary every game's `labelFor` speaks — the club-page **status
  * line**, the second line of a game card (see docs/game-status-labels.md).

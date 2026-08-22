@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * Pure waffle (waffle) board generation — geometry, the exact
  * minimum-swaps par calculation, and the board fill + anchored

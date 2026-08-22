@@ -1,3 +1,5 @@
+/* cs-unmet */
+
 /* The shared move row (MoveRow.tsx): an icon-only Delete button | whatever is
  * being entered | an icon-only Submit button, on one centered line. The display
  * between them flex-fills where it can (see EntryBox.module.css → `.box

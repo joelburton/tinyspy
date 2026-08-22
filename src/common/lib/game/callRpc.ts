@@ -1,3 +1,5 @@
+// cs-unmet
+
 import type { GenericFeedbackMsg } from '../games'
 import { failureMessage } from './serverError'
 

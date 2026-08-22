@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * Minimal HTML→plain-text for crossword clue markup — shared by the puzzle
  * converters (`nyt.ts`, `guardian.ts`). Both feeds ship clue text with HTML

@@ -1,3 +1,5 @@
+// cs-unmet
+
 import { colorVarFor } from '../../common/lib/color/memberColor'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { TerminalActionRow } from '../../common/components/game/terminal/TerminalActionRow'

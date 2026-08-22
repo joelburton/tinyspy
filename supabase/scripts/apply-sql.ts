@@ -1,4 +1,6 @@
 #!/usr/bin/env -S npx tsx
+// cs-unmet
+
 /**
  * Apply the repeatable SQL files — `supabase/sql/*.sql` — to a database.
  *

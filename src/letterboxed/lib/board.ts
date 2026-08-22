@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * The board's geometry and rules, FE-side. Pure functions over the `sides`
  * string — no React, no network — so they unit-test directly.

@@ -1,3 +1,5 @@
+/* cs-unmet */
+
 /* wordiply's length-score readout — a big percentage over a filled track,
  * rendered only at terminal (mid-game the info column shows "guesses n/5"
  * instead; the score is a terminal-only reveal). See LengthScoreBar.tsx for the

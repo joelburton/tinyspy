@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * Render smoke tests for boggle's PlayArea: does the play surface mount and
  * render without throwing — in coop, in compete, and at terminal?

@@ -1,4 +1,6 @@
 #!/usr/bin/env -S npx tsx
+// cs-unmet
+
 /**
  * Rebuild `spellingbee.pangrams` — the board-seed pool.
  *

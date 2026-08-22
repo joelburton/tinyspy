@@ -1,3 +1,5 @@
+// cs-unmet
+
 import { cls } from '../../lib/util/cls'
 import { MODE_LABEL } from '../../lib/games'
 import styles from './ModePill.module.css'

@@ -1,4 +1,6 @@
 #!/usr/bin/env -S npx tsx
+// cs-unmet
+
 /**
  * Rebuild `letterboxed.seeds` — the board-seed pool. See
  * docs/letterboxed-plan.md §4 + §9.

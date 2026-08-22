@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * "Which parser do I use?" for .puz / .ipuz inputs. Ported from
  * crossplay's `format.ts` — a single source of truth so detection can't

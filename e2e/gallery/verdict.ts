@@ -1,3 +1,5 @@
+// cs-unmet
+
 import { execFileSync } from 'node:child_process'
 import type { E2EClub, E2EMember } from '../helpers/fixtures'
 

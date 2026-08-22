@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * Tests for scrabble's move log — specifically the shared "whose moves?" picker
  * (2026-08-02), which scrabble bends in two ways the other games don't:

@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * The canonical crossword data shapes — ported from crossplay's
  * `packages/shared/src/index.ts` (the module both its client and server

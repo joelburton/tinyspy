@@ -1,4 +1,6 @@
 #!/usr/bin/env -S npx tsx
+// cs-unmet
+
 /**
  * Fetch NYT Strands puzzles into the local archive file
  * `supabase/data/strands-puzzles.jsonl`. **This is the only script that talks

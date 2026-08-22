@@ -1,3 +1,5 @@
+// cs-unmet
+
 // Patch the description ("note") field of a .puz file in place — an
 // author-tooling CLI (`npm run crosswords:set-note`). Ported from crossplay's
 // set-puz-note.mjs. Kept a plain node .mjs script (like the source): it

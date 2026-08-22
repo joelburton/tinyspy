@@ -1,3 +1,5 @@
+// cs-unmet
+
 import { describe, expect, it } from 'vitest'
 import { generateBoard, mulberry32, rollBoard } from './generate'
 import { DICE_BY_NAME } from './dice'

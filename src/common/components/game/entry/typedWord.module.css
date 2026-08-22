@@ -1,3 +1,5 @@
+/* cs-unmet */
+
 /* Per-character styling for a typed word rendered inside <EntryBox> (a game
  * passes its own `<TypedWord>` as the box's children). The input-like box, the
  * blinking caret, and the placeholder are EntryBox's; only the illegal-letter

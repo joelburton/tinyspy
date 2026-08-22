@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * "Is this failure just the game having already ended?" — the one server error
  * a gallery builder EXPECTS.

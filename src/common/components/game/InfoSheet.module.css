@@ -1,3 +1,5 @@
+/* cs-unmet */
+
 /* The mobile "info column as an off-canvas sheet" wrapper (docs/mobile.md → the
  * psychicnum recipe). Extracted from the per-game copies once three games shared
  * it byte-for-byte (psychicnum / wordle / codenamesduet). See InfoSheet.tsx. */

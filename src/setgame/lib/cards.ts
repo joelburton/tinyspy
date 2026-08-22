@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * The deck's algebra — pure functions over a card, no React, no network.
  *

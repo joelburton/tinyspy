@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * Waffle's green/yellow/gray feedback, ported to TypeScript from the SQL
  * `waffle.board_colors` (the board merger, migration `20260624000000_waffle.sql`)

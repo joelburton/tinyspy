@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * Boggle dice sets, ported verbatim from wsboggle (`dice.py`, itself from
  * tboggle). Each set is a bag of six-sided dice; `n` is the board side length

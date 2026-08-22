@@ -1,3 +1,5 @@
+// cs-unmet
+
 import type { RichMessage as RichMessageType } from '../../lib/games'
 import { Dot } from './Dot'
 import styles from './RichMessage.module.css'

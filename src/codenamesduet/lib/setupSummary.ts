@@ -1,3 +1,5 @@
+// cs-unmet
+
 import type { Member } from '../../common/lib/games'
 import { rosterRow, timerRow, type SetupRow } from '../../common/lib/game/setupRows'
 import type { CodenamesduetSetup } from './setup'

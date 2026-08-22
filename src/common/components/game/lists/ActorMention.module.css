@@ -1,3 +1,5 @@
+/* cs-unmet */
+
 /* Actor mention — a player's name + identity disc, in either order. Backs the two
  * widgets in ActorMention.tsx (ActorTag = name-then-dot, ActorDot = dot-then-name).
  * The disc carries the identity; the name stays plain text so the two never fight

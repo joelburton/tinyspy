@@ -1,3 +1,5 @@
+/* cs-unmet */
+
 /* connections-specific bits of the turn log. Everything structural — the panel
  * chrome, the row look (outcome bar, divider), the two-row-entry hugging
  * (`.entryHead`/`.entryCont`), and the column-sizing classes (`.main` / `.who`) —

@@ -1,3 +1,5 @@
+/* cs-unmet */
+
 /* scrabble's board column — the SQUARE 15×15 board (the waffle/boggle hug model)
  * plus the below-board RACK + ACTION row (scrabble's GameEntryArea — the rack is
  * the input, so it lives in the board column with everything needed to play). The

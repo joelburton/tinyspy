@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * The strands puzzle shape + its validator, shared by the two halves of the
  * pipeline: `fetch-strands-puzzles.ts` (NYT → local JSONL) and

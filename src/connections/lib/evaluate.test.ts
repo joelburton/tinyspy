@@ -1,3 +1,5 @@
+// cs-unmet
+
 import { describe, expect, it } from 'vitest'
 import { evaluateGuess, sameTileSet } from './evaluate'
 import type { Category } from './board'

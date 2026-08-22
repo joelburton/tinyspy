@@ -1,3 +1,5 @@
+// cs-unmet
+
 import { asUser, createLetterboxedGame, type E2EClub } from '../../helpers/fixtures'
 import { endGame } from '../endGame'
 import type { Cell, GameGallery } from '../types'

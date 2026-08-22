@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# cs-unmet
+
 # Step 7 — wait for PostgREST's schema cache to catch up with config-api.
 #
 # The connections import goes through PostgREST; until the exposed-schemas

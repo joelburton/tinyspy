@@ -1,3 +1,5 @@
+-- cs-unmet
+
 -- Seed data applied after `supabase db reset`.
 --
 -- The Duet word list lives at the bottom of the codenamesduet baseline

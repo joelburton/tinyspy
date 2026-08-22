@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * scrabble-ai-move — the autonomous AI opponent's move driver (compete;
  * docs/scrabble-ai-strength.md).

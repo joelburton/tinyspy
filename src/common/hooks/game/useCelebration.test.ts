@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * Tests for useCelebration — the one-shot "celebrate at the moment of the win"
  * state machine (waffle's coop win is the first consumer). Both halves of its

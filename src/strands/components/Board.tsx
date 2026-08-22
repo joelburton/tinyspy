@@ -1,3 +1,5 @@
+// cs-unmet
+
 import { COLS, ROWS, coordKey, letterAt, type Board as BoardLetters, type Coord } from '../lib/board'
 import { cls } from '../../common/lib/util/cls'
 import history from '../../common/components/game/lists/historyViewer.module.css'

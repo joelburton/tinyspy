@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * Client-side board tracing — "can this word be spelled along adjacent tiles,
  * no tile reused?" The FE uses it to gate guesses before submitting: only

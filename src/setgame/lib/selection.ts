@@ -1,3 +1,5 @@
+// cs-unmet
+
 import type { Card } from './cards'
 
 /** How many cards a claim is. Three, always — that is what a set is. */

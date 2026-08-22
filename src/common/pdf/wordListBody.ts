@@ -1,3 +1,5 @@
+// cs-unmet
+
 import { drawSetup, type PrintDoc, type PrintHeader } from './frame'
 import { drawWordColumns } from './wordColumns'
 import type { WordSection } from './wordSections'

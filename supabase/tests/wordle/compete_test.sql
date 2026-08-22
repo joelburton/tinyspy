@@ -1,3 +1,5 @@
+-- cs-unmet
+
 -- ============================================================
 -- Test: wordle compete — independent boards, opponent hidden,
 --        fewest-guesses winner

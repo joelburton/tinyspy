@@ -1,4 +1,6 @@
 #!/usr/bin/env -S npx tsx
+// cs-unmet
+
 /**
  * letterboxed seed-yield spike — see docs/letterboxed-plan.md §9.
  *

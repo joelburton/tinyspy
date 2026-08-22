@@ -1,3 +1,5 @@
+// cs-unmet
+
 import { asUser, createWordwheelGame, type E2EClub } from '../../helpers/fixtures'
 import { endGame } from '../endGame'
 import { gameAlreadyOver } from '../serverError'

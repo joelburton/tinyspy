@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * Shared render-only mapping from a server per-letter color code to a
  * CSS-module class key, used by the letter-coloring games (wordle and

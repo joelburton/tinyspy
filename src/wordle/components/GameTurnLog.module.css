@@ -1,3 +1,5 @@
+/* cs-unmet */
+
 /* wordle's turn log rides the shared <TurnLog> table — the panel border, the
  * between-turns dividers, the right-aligned who column, and the scroll box all
  * come from common/components/game/lists/TurnLog.module.css. The ONLY wordle-specific bit is

@@ -1,3 +1,5 @@
+/* cs-unmet */
+
 /* Pause-state banner. Rendered standalone in the slot where
  * PlayArea would otherwise sit (PauseBoundary conditional-renders
  * either PlayArea or this overlay, never both at the same time).

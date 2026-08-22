@@ -1,3 +1,5 @@
+/* cs-unmet */
+
 /* Compete terminal reveal of opponents' words. Sits below the "best possible
  * word" reveal in the info column; a plain list (no card) — this is real
  * information, not a boxed aside, matching the .reveal treatment. */

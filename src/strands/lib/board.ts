@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * strands board geometry — the pure, dependency-free core every other layer
  * builds on: the FE tracer, the puzzle importer (`supabase/scripts/lib/

@@ -1,3 +1,5 @@
+/* cs-unmet */
+
 /* The board wrapper. NO border/background today — the colored tiles carry the
  * look (like psychicnum/connections); it exists so a future framed board adds
  * the frame in one place, and it holds the tile-size knobs. It just centers the

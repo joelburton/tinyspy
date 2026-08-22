@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * Tests for the shared turn-log PDF body (scrabble, psychicnum). twoColGeom is
  * pure page geometry — the board renderer and the log both derive their column

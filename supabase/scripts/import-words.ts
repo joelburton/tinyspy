@@ -1,4 +1,6 @@
 #!/usr/bin/env -S npx tsx
+// cs-unmet
+
 /**
  * Seed `common.words` — the master playable-word list shared by every
  * word game — directly from the word-list project's working copy at

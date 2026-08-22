@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * Render smoke + wiring tests for crosswords' PlayArea — the one game that
  * lacked a PlayArea test (every sibling has one). Deliberately shallow: the

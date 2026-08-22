@@ -1,3 +1,5 @@
+// cs-unmet
+
 import type { Member } from '../../lib/games'
 import { Dot } from '../text/Dot'
 import styles from './PlayersStrip.module.css'

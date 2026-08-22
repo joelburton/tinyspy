@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * Tests for turnOutcome — the per-turn outcome-bar verdict for the GameTurnLog.
  * Pure function over a turn's guesses; the precedence is the contract (the bar

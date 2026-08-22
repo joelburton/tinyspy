@@ -1,3 +1,5 @@
+// cs-unmet
+
 import { describe, expect, it } from 'vitest'
 import { DICE_BY_NAME, DICE_SETS, boardToDisplay, faceToDisplay } from './dice'
 

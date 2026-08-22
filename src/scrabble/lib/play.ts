@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * scrabble — the pure play engine: given the current board and a set of new
  * tile placements, decide whether the play is geometrically legal, read off

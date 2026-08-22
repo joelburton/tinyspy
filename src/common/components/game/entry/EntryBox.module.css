@@ -1,3 +1,5 @@
+/* cs-unmet */
+
 /* The capture-input display. A plain <div> — the game captures keystrokes off
  * the window rather than into a focusable field. Deliberately CHROME-LESS: no
  * border / background / padding box, just large centered text with the simulated

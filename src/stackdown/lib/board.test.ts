@@ -1,3 +1,5 @@
+// cs-unmet
+
 import { describe, expect, it } from 'vitest'
 import { covers, depthMap, exposedIds, letterCorner, type Tile } from './board'
 

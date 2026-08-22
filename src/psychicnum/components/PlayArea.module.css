@@ -1,3 +1,5 @@
+/* cs-unmet */
+
 /* psychicnum play surface (the thin coordinator). The two-column SHELL, the
  * info-column readouts, and the tile chrome all come from the shared
  * common/components/game/PlayArea.module.css (imported as `shared`). The only class left

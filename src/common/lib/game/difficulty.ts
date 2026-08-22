@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * Vocabulary-difficulty bands (1..6), shared by every word game's setup. The
  * band IS `common.words.difficulty`; the labels + sample words here just SIGNAL

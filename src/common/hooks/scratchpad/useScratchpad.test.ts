@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * Tests for useScratchpad — the raciest code in the scratchpad feature (the
  * 2026-07-05 review flagged it as having zero unit tests). Three behaviors

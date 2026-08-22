@@ -1,4 +1,6 @@
 #!/usr/bin/env -S npx tsx
+// cs-unmet
+
 /**
  * Load the vendored stackdown board library into `stackdown.boards` —
  * `npm run _stackdown:import` (public entry: `gmake g-stackdown-puzzles

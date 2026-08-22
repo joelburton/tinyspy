@@ -1,3 +1,5 @@
+// cs-unmet
+
 import { describe, expect, it } from 'vitest'
 import { convertNytPuzzle, NytConvertError, type NytCell, type NytPuzzleResponse } from './nyt'
 

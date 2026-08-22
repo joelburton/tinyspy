@@ -1,3 +1,5 @@
+// cs-unmet
+
 import type { ReactNode } from 'react'
 import { BackToClubButton } from '../buttons/BackToClubButton'
 import styles from './DeviceBlockNotice.module.css'

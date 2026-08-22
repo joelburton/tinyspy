@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# cs-unmet
+
 # Step 0 — create a fresh hosted Supabase project.
 #
 # The one step that COSTS something and can't be undone by re-running,

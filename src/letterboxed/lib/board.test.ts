@@ -1,3 +1,5 @@
+// cs-unmet
+
 import { describe, expect, it } from 'vitest'
 import { canFollow, coveredLetters, layout, pathPoints, rejectReason, tailLetter } from './board'
 

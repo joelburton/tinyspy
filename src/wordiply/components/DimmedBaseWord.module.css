@@ -1,3 +1,5 @@
+/* cs-unmet */
+
 /* The typed/guessed word. Uppercased for a tile-y look; the BASE portion
  * renders in a dimmer color so the player's added letters stand out. */
 .word {

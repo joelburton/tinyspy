@@ -1,3 +1,5 @@
+// cs-unmet
+
 /**
  * Tests for useClubChat. This hook is the pattern parent for every
  * "initial load + Realtime INSERT append + SUBSCRIBED refetch on

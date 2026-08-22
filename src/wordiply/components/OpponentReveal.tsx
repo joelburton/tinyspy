@@ -1,3 +1,5 @@
+// cs-unmet
+
 import type { GamePlayer } from '../../common/lib/games'
 import { DimmedBaseWord } from './DimmedBaseWord'
 import styles from './OpponentReveal.module.css'

@@ -1,3 +1,5 @@
+// cs-unmet
+
 import { describe, expect, it } from 'vitest'
 import { emptyBoard, idx, setChar } from './board'
 import { boardWords } from './words'
