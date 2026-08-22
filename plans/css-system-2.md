@@ -1441,12 +1441,27 @@ and they get three different rules.
 
 | kind | what it is | the rule |
 |---|---|---|
-| **compile break** | a rename, a newly-required prop; consumers don't build | **Sweep every consumer mechanically, in the same commit.** That's find-and-replace, not an audit, and it keeps `tsc -b` usable for the area you're standing in |
+| **compile break** | a rename, a newly-required prop; consumers don't build | **We MAY sweep every consumer in the same commit — and Joel decides that, not Claude.** Plenty of things break the build and plenty of them we simply leave. The case it fits is a rename, where the fix is find-and-replace and keeping `tsc -b` alive is worth it for the area we're standing in |
 | **test break** | it builds; a spec asserts the old shape | **Predict it, write the spec names in the area file, leave it.** The diff against that prediction is what tells us we broke something we didn't expect |
 | **behavior break** | it builds and passes; it looks or acts wrong somewhere we haven't reached | **Leave it.** Note it against the area that owns the surface |
 
 The baseline the test-break rule measures against: **1953 tests in 199 files**,
 green at the stamp sweep (1956 with the stamp guard).
+
+**A sweep is invisible to the stamp model** (Joel, 2026-08-22). When we do
+decide to fix the consumers of a rename, those files are edited and **their
+stamps do not move** — a `cs-unmet` file stays `cs-unmet`, and it does not
+become `cs-found` by having been touched.
+
+The stamp answers *has this been read*, not *has this been edited*. A
+find-and-replace over an import path involves no reading and produces no
+knowledge, so a stamp that moved would be a lie — and an expensive one, because
+we would reach that file later and its own first line would tell us we had
+already been there.
+
+It is also why such a commit doesn't break "no commit spans two areas": the
+sweep is not a second area's work, it belongs to the area whose rename caused
+it, and it ships with that area.
 
 ### Renaming is the point, not a risk
 
