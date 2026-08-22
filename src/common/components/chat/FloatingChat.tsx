@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'react'
-import { IconChat } from '../icons'
 import { useClubChat } from '../../hooks/chat/useClubChat'
 import { setChatOpen, useChatOpen } from '../../lib/chat/chatOpenStore'
 import {
@@ -10,7 +9,6 @@ import {
 } from '../../lib/chat/chatUnread'
 import { FloatingPanel } from '../panels/FloatingPanel'
 import { ChatBody } from './ChatBody'
-import styles from './FloatingChat.module.css'
 
 import type { Member } from '../../lib/games'
 
@@ -19,23 +17,19 @@ type Props = {
   members: Member[]
   /** The viewing member — their own messages never count as unread. */
   selfId: string
-  /** When true, render nothing in the closed state — the bubble
-   *  is being supplied elsewhere (e.g. the GamePage header's
-   *  `<ChatBubble>`). The open-state panel still renders here.
-   *  ClubPage omits this prop and gets the legacy bottom-right
-   *  toggle button for its closed state. */
-  hideClosedButton?: boolean
 }
 
 /**
- * The always-on chat companion. Renders as one of two shapes:
+ * The always-on chat panel. Renders as one of two shapes:
  *
- *   - **Closed**: a small circular chat-bubble button in the
- *     bottom-right corner. Click to open.
- *   - **Open**: a floating, draggable, resizable panel above
- *     every other UI layer (z-index 10000). Position + size
- *     persist across club↔game navigation and across browser
- *     sessions via `useDraggablePanel`'s localStorage glue.
+ *   - **Closed**: nothing. What you click to open chat is the
+ *     header's `<ChatBubble>`, which is ordinary page content, not
+ *     a layer — this component stays mounted to keep the unread
+ *     badge and the `!` detector alive.
+ *   - **Open**: a floating, draggable, resizable panel at
+ *     `--z-index-chatPanel`. Position + size persist across
+ *     club↔game navigation and across browser sessions via
+ *     `useDraggablePanel`'s localStorage glue.
  *
  * Open/closed state ALSO persists (localStorage key
  * `puzpuzpuz:chat:open`) so the panel feels continuous as the
@@ -67,11 +61,11 @@ type Props = {
  * modal, a popover) closes on its own Escape — we don't arbitrate a
  * single "topmost" dismiss, which is fine for the rare two-open case.
  *
- * Why z-index 10000: chat needs to sit above the four modals
- * (Setup / HowToPlay / Hint / SuspendConfirm at z-index 500) so
- * the "ask the partner what timer to pick" use case works while
- * SetupGameDialog is open. The Setup backdrop sits at zIndex-1
- * (499); chat at 10000 is well above that.
+ * Why chat outranks the panel tier: it needs to sit above the four
+ * modals (Setup / HowToPlay / Hint / SuspendConfirm, all at
+ * `--z-index-panel`) so the "ask the partner what timer to pick" use
+ * case works while SetupGameDialog is open. Setup's backdrop paints
+ * one below its own panel, so chat clears both.
  *
  * Lifecycle: mounted once per page (ClubPage and GamePage each
  * render an instance). localStorage glue makes the open/closed
@@ -81,7 +75,6 @@ export function FloatingChat({
   clubHandle,
   members,
   selfId,
-  hideClosedButton = false,
 }: Props) {
   // Open/closed state lives in the shared chatOpenStore so the
   // GamePage header's `<ChatBubble>` can flip the same flag from
@@ -143,23 +136,13 @@ export function FloatingChat({
     )
   }, [messages, open, loading, selfId, members, clubHandle])
 
-  // Closed shape — either render nothing (when the bubble is in
-  // the GamePage header) or the legacy bottom-right toggle (for
-  // ClubPage, which still uses that affordance).
-  if (!open) {
-    if (hideClosedButton) return null
-    return (
-      <button
-        type="button"
-        className={styles.openButton}
-        onClick={() => setChatOpen(true)}
-        aria-label="Open chat"
-        title="Chat"
-      >
-        <IconChat size={22} />
-      </button>
-    )
-  }
+  // Closed shape — nothing. The affordance that opens chat is the
+  // header's `<ChatBubble>`, on both pages that mount this; it flips
+  // the same shared flag from outside this component tree. The
+  // effects above still run while closed, which is the point of
+  // rendering null rather than not mounting: the unread badge and
+  // the `!` force-open detector need the subscription alive.
+  if (!open) return null
 
   // Open shape — the floating panel.
   return (

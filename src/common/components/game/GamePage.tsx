@@ -602,14 +602,13 @@ export function GamePage({
           color instead of a '?'. (`players` remains the right data for the
           PlayersStrip / peer-game feedback, which are about THIS game.)
 
-          hideClosedButton: the closed-state toggle lives in the header
-          (<ChatBubble> above) on GamePage; FloatingChat only renders the panel
-          itself, not a duplicate bubble. */}
+          The closed-state toggle is the header's <ChatBubble> (above);
+          FloatingChat renders the panel itself, and nothing at all while
+          closed. */}
       <FloatingChat
         clubHandle={commonGame.club_handle}
         members={clubMembers}
         selfId={session.user.id}
-        hideClosedButton
       />
 
       {/* Per-game scratchpad — opt-in via the manifest. Outside PauseBoundary

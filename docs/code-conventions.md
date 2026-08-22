@@ -474,8 +474,8 @@ This section covers the *file mechanics* only. For the design philosophy — des
 **CSS Modules**, one `*.module.css` per component, co-located with the `.tsx`:
 
 ```
-src/common/components/chat/FloatingChat.tsx
-src/common/components/chat/FloatingChat.module.css
+src/common/components/chat/ChatBody.tsx
+src/common/components/chat/ChatBody.module.css
 ```
 
 **Design tokens at `:root`**, split by what they are: colors live in [`src/common/themes/daylight.css`](../src/common/themes/daylight.css) (the theme) and [`src/common/fixed.css`](../src/common/fixed.css) (member + wordle, exempt from theming); everything that isn't a color — radii, sizes, spacing, durations, the depth family — lives in [`src/common/base.css`](../src/common/base.css). Every `*.module.css` references them via `var(--token-name)`. Each game's `theme.css` (optional) declares that gametype's brand tokens.
@@ -509,7 +509,7 @@ Six rules that are otherwise only discoverable by reading the code:
 | `--z-index-infoSheet` | 40 | the info column as a full-bleed page, below `--mobile` |
 | `--z-index-panel` | **500** | `FloatingPanel`'s default — the setup dialog, confirms, Help. Its backdrop paints at `calc(… - 1)` |
 | `--z-index-popover` | 1500 | `Menu` (its flyout at `calc(… + 1)`), `FilterSelect`, the definition popover, crosswords' number-jump |
-| `--z-index-chatPanel` | 10000 | deliberately above dialogs: you can chat with a setup dialog open. The closed launcher sits at `calc(… - 1)` |
+| `--z-index-chatPanel` | 10000 | deliberately above dialogs: you can chat with a setup dialog open. What opens chat is the header's `<ChatBubble>` — ordinary page content, not a layer |
 | `--z-index-scratchpad` | 10000 | the same rank for the same reason, named separately because it is a separate decision |
 | `--z-index-celebration` | 10001 | one beat, above everything except… |
 | `--z-index-toast` / `--z-index-tooltip` | 12000 | …these, which nothing ever covers |

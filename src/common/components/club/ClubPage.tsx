@@ -1180,14 +1180,13 @@ export function ClubPage({ handle, session }: Props) {
         </section>
       </main>
 
-      {/* hideClosedButton: the chat-bubble toggle lives in the
-          header (<ChatBubble> above); FloatingChat only renders
-          the panel itself, not a duplicate bottom-right button. */}
+      {/* The chat-bubble toggle lives in the header (<ChatBubble>
+          above); FloatingChat renders the panel itself, and nothing
+          at all while closed. */}
       <FloatingChat
         clubHandle={club.handle}
         members={members}
         selfId={selfId}
-        hideClosedButton
       />
 
       {/* The "~" word-lookup dialog (owned by useAppShortcuts). Null

@@ -153,7 +153,6 @@
      the family if someone decides they should. */
   --shadow-popover:     0 8px 24px rgb(0 0 0 / 18%);
   --shadow-dialog:      0 12px 48px rgb(0 0 0 / 35%);  /* further off the page than a menu */
-  --shadow-floating:    0 4px 12px rgb(0 0 0 / 18%);   /* the chat bubble, a toast */
   --shadow-notice:      0 8px 24px rgb(0 0 0 / 8%);
   --shadow-panel:       0 8px 24px rgb(0 0 0 / 12%);
   --shadow-toast:       0 4px 16px rgb(0 0 0 / 30%);
@@ -241,8 +240,9 @@
   --z-index-panel:         500;    /* <FloatingPanel>'s default: setup, confirms, Help */
   --z-index-popover:       1500;   /* Menu, FilterSelect, the definition popover */
   --z-index-chatPanel:     10000;  /* deliberately ABOVE the panel tier: you can chat
-                                      with a setup dialog open. Its launcher sits one
-                                      below, at `calc(… - 1)`. */
+                                      with a setup dialog open. What OPENS chat is the
+                                      header's <ChatBubble>, ordinary page content — so
+                                      this tier has exactly one consumer, the panel. */
   --z-index-scratchpad:    10000;  /* the same rank for the same reason, and a separate
                                       name because it is a separate decision */
   --z-index-celebration:   10001;  /* one beat over everything except… */
