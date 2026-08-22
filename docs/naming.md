@@ -184,6 +184,31 @@ A test fixture user with a stable role across the pgTAP suite — `ada`, `bea`, 
 
 ## Per-game vocabulary
 
+### consistency-1 / consistency-2 / consistency-3
+
+How much a surface is allowed to differ from the rest of the app — and the
+number says what a DIFFERENCE there *means*, which is what makes it usable in a
+sentence: *"that's consistency-2, and we're making it pink for this game
+because …"*.
+
+| | the surface | a difference is |
+|---|---|---|
+| **consistency-1** | a game's board and its pieces | expected — tuned to fit |
+| **consistency-2** | game chrome: the info column, and the furniture around the board | a claim, and it owes a reason |
+| **consistency-3** | everything non-game: menus, dialogs, buttons, home, club | a bug, until someone says otherwise |
+
+The boundary is the **surface**, not the folder — `components/game/` holds
+consistency-3 things (`<ModePill>`, `FilterSelect`) and `<PageHeader>` is
+consistency-3 while GamePage carries it. And the line runs *inside* boardCol:
+the board's contents are consistency-1, the frame around them is consistency-2.
+
+The shared vocabulary — outcome colors, the tile ramp, member colors, the
+feedback pill, the focus ring — cuts across all three and is none of them: the
+consistencies say how much may vary, the vocabulary says what may never.
+
+Fuller version, with the sprint's step order against it, in
+[`plans/css-system-2.md` §6.5](../plans/css-system-2.md).
+
 The cross-cutting terms above apply everywhere. Each game also has its own small lexicon for domain-specific things — connections's `category` / `tile` / `matched`, spellingbee's `pangram` / `bonus word` / `letter mask` / `outcome`, etc. Those lexicons live in the per-game doc's `## Vocabulary` section so the words sit next to the code that uses them:
 
 - [`connections.md → Vocabulary`](games/connections.md#vocabulary)

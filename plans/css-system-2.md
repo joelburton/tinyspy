@@ -260,6 +260,42 @@ display-p3 profile.
   thicker, not a tint plus a darkening. A single-anchor mix with white misses the
   deep end by 0.027 of lightness.
 
+## 6.5 The three CONSISTENCIES
+
+Every surface sits in one of three, and **the number says what a DIFFERENCE
+means** there. Use the words in conversation, comments and commit messages:
+*"that's consistency-2, and we're making it pink for this game because …"*.
+
+| | the surface | a difference here is |
+|---|---|---|
+| **consistency-1** | a game's board and its pieces | **expected.** Tuned to fit, wildly different between games, and standardizing it is not a goal |
+| **consistency-2** | game chrome — the info column, and the furniture AROUND the board | **a claim, and it owes a reason.** Standard in general (the turn-log frame, the setup disclosures), with named exceptions where a game genuinely differs (psychicnum's status line can't read like spellingbee's) |
+| **consistency-3** | everything non-game — menus, dialogs, buttons, the homepage, the club page | **a bug**, until someone says otherwise. Not fatal, but it wastes lines and attention for nothing |
+
+Two things the split needs to be usable:
+
+- **The boundary is the SURFACE, not the folder.** `components/game/` holds
+  consistency-3 things — `<ModePill>` lives there and all six render sites are
+  club surfaces; `FilterSelect` lives there and its contested consumer is the
+  club page — while `<PageHeader>` is consistency-3 and GamePage carries it.
+  §14's roster files work by folder, which is how `<ModePill>` got filed at step
+  9 when it belongs to step 8.
+- **The line runs INSIDE boardCol.** A board's contents are consistency-1; the
+  furniture around them is consistency-2 — the board frame, the history ring,
+  the game-over frame, `dimNotYourTurn`, the below-board feedback slot, the
+  your-turn flash. "boardCol is per-game" would otherwise invite a game to
+  restyle the frame.
+
+**The shared vocabulary cuts across all three and is none of them.** The outcome
+colors, the tile ramp, member colors, the feedback pill, the focus ring: 100%
+standard everywhere *including* inside the most-tuned board. The three
+consistencies answer "how much may this vary"; the vocabulary answers "what may
+never vary".
+
+The step order already obeys this, which is some evidence the model is real
+rather than invented: steps 6–8 are consistency-3, step 9 is consistency-2's
+shared half, step 10 is consistency-1 plus consistency-2's per-game half.
+
 ## 7. Patterns — the bigger win
 
 The pattern list gets written by reading rendered surfaces, **never by grepping
