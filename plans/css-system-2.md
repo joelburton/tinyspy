@@ -775,7 +775,7 @@ the scanner counts it as a reference and reserved cells stay alive.
 | 6 | ~~homepage~~ · ~~clubpage~~ **PARTLY DONE 2026-08-21, and deliberately stopped** | Both were converted with the pattern half of the toolkit — see "Why 6 stopped" below. Shipped off them: `.badge`, `.button-small` + an element-agnostic `.button`, `--chrome-cursor-ring` + `.kb-cursor`, `.heading-with-controls`, `.item-list`/`.item-row`/`.item-list-empty`, `.segmented`, `<PageHeader>`. `HomePage.module.css` 254 → 76 lines; `ClubPage.module.css` 270 → 216 |
 | 6a | **the CONVERSION PROCESS + the allowlist guard** | Not a sweep. Write down the silent-vs-ask rule (below), and build the shrinking-allowlist guard mechanism ONCE so every vocabulary can use it. Radius needs no new values — `--radius-sm/md/lg` already exist |
 | 6b | ~~**VOCABULARY — invention**~~ **NAMED 2026-08-21** | The eight vocabularies and their provisional values are §6.6, with the a/b/c rule that governs a value outside them. Names agreed, values provisional. **Not rolled out** — they land area by area (§13 → "How a value gets converted") |
-| 6c | **z-index, on its own** | Not a ramp — a stacking order, named by bucket (`--z-index-chatPanel`), and its failure mode is a real bug rather than drift. Needs a survey of what stacks against what |
+| 6c | **z-index, on its own** | Not a ramp — a stacking order, named by bucket (`--z-index-chatPanel`), and its failure mode is a real bug rather than drift. Needs a survey of what stacks against what. Two rules of its own, below: the ladder doc is updated as the ladder is built, and no value moves |
 | 6d | **homepage, again** | The rehearsal for the full toolkit: patterns + vocabulary + the page shell. Plus a **React pass** — the duplication is not only in the CSS |
 | 7 | dialogs + forms | the first real win — many near-identical instances. Also decide here: whether to LOAD a font (§18) |
 | 8 | clubpage, again + remaining non-game chrome | Build **the page shell** (§7): an optional header above a centered, width-bounded body. Absorbs the punted viewport-fit chain, the `.frame` rename, `<ModePill>` reading the shared `.badge`, and the leftovers listed in "Why 6 stopped" |
@@ -812,6 +812,35 @@ it is what makes this work without a warning nobody reads:
 
 Build the mechanism once in 6a; each vocabulary then plugs into it as its values
 are settled.
+
+### 6c is the exception on docs, and it moves no values (Joel, 2026-08-21)
+
+**The ladder doc gets updated as the ladder is built** — not held to step 12.
+`docs/code-conventions.md` → "The z-index ladder" already documents this
+thinking as eight tiers, so it is a specific place that is trying to record the
+answer; leaving it stale while the tokens land is how the two disagree. This is
+a named exception to "decisions go in the sprint doc"; it is not a license to
+distribute the other seven vocabularies early. `docs/ui.md` restates two of the
+numbers inline (toasts at 12000, `Menu` at ~1500) and is part of the same edit.
+
+**No value moves in 6c.** The conversion rule above still governs, and for a
+stacking order the bespoke arm is the common case:
+
+- **two places share a value that is in the vocabulary → convert both.** Same
+  number, now named.
+- **a value is bespoke → leave the number exactly as it is** and record it as
+  *talk about it when we reach that area*, against the step that owns the
+  surface.
+
+So 6c ships names and a guard, and changes what paints where **not at all**.
+The three already known, all going on the carried-forward list rather than into
+this step:
+
+| record against | what |
+|---|---|
+| **9** (shared game chrome) | The two drag ghosts disagree — bananagrams 1000, scrabble 100 — and `dragGhost.module.css` says the split is unintended. Two tiers apart, so naming them cannot paper over it |
+| **10** (scrabble) | `BlankPicker`'s full-screen overlay at `z-index: 50`, below the 500 panel tier. Already the known anomaly in the ladder doc; it wants a look, not a reflex bump |
+| **8** (non-game chrome) | The ladder doc files the account `Menu` under in-board controls (10–100) and again under popovers (1500). It ships at 1500; the doc's first row is the stale one |
 
 ### Why 6 stopped, and what the reorder buys
 
