@@ -196,33 +196,36 @@ radius says which end 1 is.
 The test is whether a reader can guess the direction without being told. If they
 can't, the number is a second thing to memorize and the name is free.
 
-Evidence, and it's why this is written down: the three CONSISTENCIES were
+Evidence, and it's why this is written down: the three consistency levels were
 numbered first, and Joel — who invented the scheme — misread his own numbering
 within the hour. `consistency-1` can equally mean "most consistent, the winner"
-or "lowest, the least". There is no visual anchor to settle it, so it takes
-names.
+or "lowest, the least". There is no visual anchor to settle it, so they took
+names instead: **tuned / justified / locked**, below.
 
-### consistency-1 / consistency-2 / consistency-3
+### tuned / justified / locked
 
-How much a surface is allowed to differ from the rest of the app — and the
-number says what a DIFFERENCE there *means*, which is what makes it usable in a
-sentence: *"that's consistency-2, and we're making it pink for this game
-because …"*.
+**How much a surface is allowed to differ from the rest of the app** — named for
+the LICENSE each carries, because that is what you need in a sentence: *"the
+turn log is justified, and we're making it pink for this game because …"*.
 
-| | the surface | a difference is |
+| | the surface | a difference there is |
 |---|---|---|
-| **consistency-1** | a game's board and its pieces | expected — tuned to fit |
-| **consistency-2** | game chrome: the info column, and the furniture around the board | a claim, and it owes a reason |
-| **consistency-3** | everything non-game: menus, dialogs, buttons, home, club | a bug, until someone says otherwise |
+| **tuned** | a game's board and its pieces | **expected.** Fitted to the game; standardizing it is not a goal |
+| **justified** | game chrome: the info column, and the furniture around the board | **allowed, and it owes a reason** written in the file. Standard in general — the turn-log frame, the setup disclosures — with named exceptions where a game genuinely differs |
+| **locked** | everything non-game: menus, dialogs, buttons, home, club | **a bug**, until someone says otherwise. Not fatal, but it wastes lines and attention for nothing |
 
-The boundary is the **surface**, not the folder — `components/game/` holds
-consistency-3 things (`<ModePill>`, `FilterSelect`) and `<PageHeader>` is
-consistency-3 while GamePage carries it. And the line runs *inside* boardCol:
-the board's contents are consistency-1, the frame around them is consistency-2.
+Named rather than numbered because there is no visual anchor to say which end of
+`consistency-1/2/3` is which — see [Numbers or names?](#numbers-or-names)
+above, which this is the cautionary example for.
+
+The boundary is the **surface**, not the folder — `components/game/` holds locked
+things (`<ModePill>`, `FilterSelect`), and `<PageHeader>` is locked while
+GamePage carries it. And the line runs *inside* boardCol: the board's contents
+are tuned, the frame around them is justified.
 
 The shared vocabulary — outcome colors, the tile ramp, member colors, the
 feedback pill, the focus ring — cuts across all three and is none of them: the
-consistencies say how much may vary, the vocabulary says what may never.
+three say how much may vary, the vocabulary says what may never.
 
 Fuller version, with the sprint's step order against it, in
 [`plans/css-system-2.md` §6.5](../plans/css-system-2.md).

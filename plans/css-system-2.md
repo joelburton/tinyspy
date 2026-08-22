@@ -22,7 +22,7 @@ consumer), and the sweep reads each file once, so anything the area needs gets
 done while it is open.
 
 **Growing is expected, not scope creep** — as long as the growth is organized by
-area. Things that joined after the plan was written: the three consistencies
+area. Things that joined after the plan was written: the three consistency levels
 (§6.5), the heading levels, the `:global` rule and its guard, the class-naming
 conventions, `<PageHeader>` as a component, and the spacing vocabulary (§18).
 
@@ -284,41 +284,45 @@ display-p3 profile.
   thicker, not a tint plus a darkening. A single-anchor mix with white misses the
   deep end by 0.027 of lightness.
 
-## 6.5 The three CONSISTENCIES
+## 6.5 tuned / justified / locked
 
-Every surface sits in one of three, and **the number says what a DIFFERENCE
-means** there. Use the words in conversation, comments and commit messages:
-*"that's consistency-2, and we're making it pink for this game because …"*.
+Every surface sits in one of three, named for the **license** each carries —
+which is what you need in a sentence: *"the turn log is justified, and we're
+making it pink for this game because …"*.
 
-| | the surface | a difference here is |
+| | the surface | a difference there is |
 |---|---|---|
-| **consistency-1** | a game's board and its pieces | **expected.** Tuned to fit, wildly different between games, and standardizing it is not a goal |
-| **consistency-2** | game chrome — the info column, and the furniture AROUND the board | **a claim, and it owes a reason.** Standard in general (the turn-log frame, the setup disclosures), with named exceptions where a game genuinely differs (psychicnum's status line can't read like spellingbee's) |
-| **consistency-3** | everything non-game — menus, dialogs, buttons, the homepage, the club page | **a bug**, until someone says otherwise. Not fatal, but it wastes lines and attention for nothing |
+| **tuned** | a game's board and its pieces | **expected.** Fitted to the game, wildly different between games, and standardizing it is not a goal |
+| **justified** | game chrome — the info column, and the furniture AROUND the board | **allowed, and it owes a reason** in the file. Standard in general (the turn-log frame, the setup disclosures), with named exceptions where a game genuinely differs (psychicnum's status line can't read like spellingbee's) |
+| **locked** | everything non-game — menus, dialogs, buttons, the homepage, the club page | **a bug**, until someone says otherwise. Not fatal, but it wastes lines and attention for nothing |
+
+**Named, not numbered.** These were `consistency-1/2/3` for about an hour, and
+Joel misread his own numbering in that time — nothing says whether `1` is "most
+consistent, the winner" or "lowest, therefore least" (§5 → Numbers or names?).
+`chrome` was considered for the middle and rejected: this codebase already uses
+that word for the NON-game UI (§8), so it would have named the opposite thing.
 
 Two things the split needs to be usable:
 
 - **The boundary is the SURFACE, not the folder.** `components/game/` holds
-  consistency-3 things — `<ModePill>` lives there and all six render sites are
-  club surfaces; `FilterSelect` lives there and its contested consumer is the
-  club page — while `<PageHeader>` is consistency-3 and GamePage carries it.
-  §14's roster files work by folder, which is how `<ModePill>` got filed at step
-  9 when it belongs to step 8.
-- **The line runs INSIDE boardCol.** A board's contents are consistency-1; the
-  furniture around them is consistency-2 — the board frame, the history ring,
-  the game-over frame, `dimNotYourTurn`, the below-board feedback slot, the
-  your-turn flash. "boardCol is per-game" would otherwise invite a game to
-  restyle the frame.
+  LOCKED things — `<ModePill>` lives there and all six render sites are club
+  surfaces; `FilterSelect` lives there and its contested consumer is the club
+  page — while `<PageHeader>` is locked and GamePage carries it. §14's roster
+  files work by folder, which is how `<ModePill>` got filed at step 9 when it
+  belongs to step 8.
+- **The line runs INSIDE boardCol.** A board's contents are tuned; the furniture
+  around them is justified — the board frame, the history ring, the game-over
+  frame, `dimNotYourTurn`, the below-board feedback slot, the your-turn flash.
+  "boardCol is per-game" would otherwise invite a game to restyle the frame.
 
 **The shared vocabulary cuts across all three and is none of them.** The outcome
 colors, the tile ramp, member colors, the feedback pill, the focus ring: 100%
-standard everywhere *including* inside the most-tuned board. The three
-consistencies answer "how much may this vary"; the vocabulary answers "what may
-never vary".
+standard everywhere *including* inside the most-tuned board. The three levels
+answer "how much may this vary"; the vocabulary answers "what may never vary".
 
 The step order already obeys this, which is some evidence the model is real
-rather than invented: steps 6–8 are consistency-3, step 9 is consistency-2's
-shared half, step 10 is consistency-1 plus consistency-2's per-game half.
+rather than invented: steps 6–8 are locked surfaces, step 9 is justified's
+shared half, step 10 is tuned plus justified's per-game half.
 
 ## 7. Patterns — the bigger win
 
@@ -925,7 +929,7 @@ vocabulary; invent it if we ever need it.
     in the info column" stops being N overrides in a dozen modules. Custom
     properties already do this in three places here — a game's `--tile-bg-color`,
     `<Dot>`'s `--dot-size`, scrabble's `--viewer-accent` on the board column.
-  - **A hand-entered literal length becomes a smell in consistency-2 and -3**,
+  - **A hand-entered literal length becomes a smell on JUSTIFIED and LOCKED surfaces**,
     needing justification. That is the `no unnamed colors` guard's sentence with
     a different noun, and that guard has held for months.
   - **DEFINE IT PROVISIONALLY NOW, apply as each surface converts, re-fit the
@@ -952,13 +956,13 @@ vocabulary; invent it if we ever need it.
   settled.** Recorded here because it is too big to hold in session memory.
 
   Measured 2026-08-21, gap + margin in rem, as the before-picture:
-  **consistency-3** 17 distinct values over 79 declarations (five cover 55);
-  **consistency-2** 12 over 45, the same top five; **consistency-1** 20 over
+  **locked** 17 distinct values over 79 declarations (five cover 55);
+  **justified** 12 over 45, the same top five; **tuned** 20 over
   222, out of scope by definition. The union of the two top-fives is roughly
   `0.25 · 0.4 · 0.5 · 0.75 · 1 · 1.5`.
 
   **The one open question inside the question:** are `0.4` and `0.5` two steps
-  or one? They are the two most-used values (14 and 18 in consistency-3), which
+  or one? They are the two most-used values (14 and 18 on locked surfaces), which
   either means both are real or means one idea is spelled two ways. Joel is not
   ready to settle this yet.
 
