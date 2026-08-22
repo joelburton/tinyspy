@@ -1054,10 +1054,6 @@ loose talk.
 DIFFERENT numbers, because it was written before this vocabulary existed. 6c
 acted on none of this and moved no pixel. Reconciling the two is Open item 3.
 
-Earlier drafts of this section used placeholder names Joel coined to think with
-("panel", "critical modal", "notification"). Those are gone; if one resurfaces
-anywhere in the repo, the table below wins.
-
 ### Why "z-", and why not "z-index"
 
 **`z-` is the concept; `z-index` is one CSS property that sometimes implements
