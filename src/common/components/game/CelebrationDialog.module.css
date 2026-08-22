@@ -6,10 +6,9 @@
   position: fixed;
   inset: 0;
   background: var(--scrim-color);
-  /* Above the standard modal layer (setup/help ~500) and the chat panel
-     (10000) so the celebration is never occluded. Hard-coded — there's no
-     z-index token scale in theme.css. */
-  z-index: 10001;
+  /* Above the panel tier and the chat panel, so the celebration is never
+     occluded (base.css → the z-index ladder). */
+  z-index: var(--z-index-celebration);
   display: flex;
   align-items: center;
   justify-content: center;

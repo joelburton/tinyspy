@@ -1,8 +1,8 @@
 /* FloatingChat's closed-state toggle button.
  *
- * Fixed bottom-right, circular, accent-filled. Sits just below
- * the open chat panel's z-index (9999 vs panel's 10000) so the
- * panel always wins. The closed-state shape — a single circular
+ * Fixed bottom-right, circular, accent-filled. Sits exactly one below
+ * the open chat panel so the panel always wins — derived, so the two
+ * cannot drift apart. The closed-state shape — a single circular
  * button with a chat-bubble icon — matches the conventional
  * "open chat" affordance users recognize from other apps.
  */
@@ -11,7 +11,7 @@
   position: fixed;
   bottom: 1rem;
   right: 1rem;
-  z-index: 9999;
+  z-index: calc(var(--z-index-chatPanel) - 1);
 
   /* A circle, not a pill. */
   width: 3.25rem;

@@ -67,9 +67,16 @@ type Props = {
    *  Incompatible with `persistKey` (a saved height would fight the
    *  fit), so only the ephemeral, non-persisted panels honor it. */
   fitContent?: boolean
-  /** Stacking tier. Defaults to 500 (the modal tier). Chat passes
-   *  10000 so it sits above every modal regardless of open order. */
-  zIndex?: number
+  /** Stacking tier, as a token from the ladder in `base.css` — chat
+   *  passes `var(--z-index-chatPanel)` so it sits above every modal
+   *  regardless of open order. Defaults to the panel tier.
+   *
+   *  A STRING, not a number, because the ladder's one home is CSS: a
+   *  numeric default here would be a second copy of the order, free to
+   *  disagree with the tokens. The backdrop's `- 1` survives the change
+   *  as `calc()`. `guards/vocabularies.test.ts` fails on a numeric
+   *  literal passed to this prop. */
+  zIndex?: string
   /** When true, a full-screen phone sheet stays clear of the
    *  on-screen keyboard: it's sized to the measured visual viewport
    *  (which shrinks by the keyboard), so a panel with a text input
@@ -101,9 +108,10 @@ type Props = {
  * panel body and close button are NOT drag handles — clicking the
  * X reliably closes; selecting text in the body reliably selects.
  *
- * Stacking: z-index is the only mechanism. Default 500 (modal
- * tier). FloatingChat passes 10000 to sit above modals. The
- * backdrop, when present, paints at `zIndex - 1`.
+ * Stacking: z-index is the only mechanism, and every tier is a token
+ * from base.css's ladder. Default `--z-index-panel` (the modal tier);
+ * FloatingChat passes `--z-index-chatPanel` to sit above modals. The
+ * backdrop, when present, paints one below at `calc(… - 1)`.
  */
 export function FloatingPanel({
   title,
@@ -117,7 +125,7 @@ export function FloatingPanel({
   closeOnEsc = true,
   backdrop = false,
   persistKey,
-  zIndex = 500,
+  zIndex = 'var(--z-index-panel)',
   fitContent = false,
   reserveKeyboard = false,
   children,
@@ -160,7 +168,7 @@ export function FloatingPanel({
       {backdrop && (
         <div
           className={styles.backdrop}
-          style={{ zIndex: zIndex - 1 }}
+          style={{ zIndex: `calc(${zIndex} - 1)` }}
           aria-hidden="true"
           // No onClick — backdrop click is intentionally a no-op
           // (see Props.backdrop docstring). preventDefault on mousedown so the
@@ -218,7 +226,7 @@ function FloatingPanelBody({
   minWidth: number
   minHeight: number
   persistKey: string | undefined
-  zIndex: number
+  zIndex: string
   fitContent: boolean
   reserveKeyboard: boolean
   children: ReactNode
@@ -288,7 +296,7 @@ function PersistedPanel({
   minWidth: number
   minHeight: number
   persistKey: string
-  zIndex: number
+  zIndex: string
   reserveKeyboard: boolean
   children: ReactNode
 }) {
@@ -342,7 +350,7 @@ function EphemeralPanel({
   resizable: boolean
   minWidth: number
   minHeight: number
-  zIndex: number
+  zIndex: string
   fitContent: boolean
   reserveKeyboard: boolean
   children: ReactNode
@@ -409,7 +417,7 @@ function PanelRnd({
   resizable: boolean
   minWidth: number
   minHeight: number
-  zIndex: number
+  zIndex: string
   fitContent?: boolean
   reserveKeyboard?: boolean
   children: ReactNode

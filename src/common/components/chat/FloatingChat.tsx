@@ -167,7 +167,7 @@ export function FloatingChat({
       title="Chat"
       onClose={() => setChatOpen(false)}
       persistKey="puzpuzpuz:chat:rect"
-      zIndex={10000}
+      zIndex="var(--z-index-chatPanel)"
       defaultPosition="center"
       defaultSize={{ width: 340, height: 460 }}
       minWidth={260}

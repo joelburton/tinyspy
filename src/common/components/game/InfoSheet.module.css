@@ -38,7 +38,7 @@
      * on another. Going full width picks one, and it's what retired the `wide`
      * opt-out that five games needed to get this behavior anyway. */
     width: 100%;
-    z-index: 40;
+    z-index: var(--z-index-infoSheet);
     background: var(--page-surface-color);
     /* No extra top padding now that the ✕ is gone from the corner. */
     padding: 1rem;

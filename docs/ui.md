@@ -169,7 +169,7 @@ where they are.* Mechanics:
 
 ### Toasts
 
-A **toast** is a bottom-right **announcement** — a *different surface* from the feedback pill above, for a different job. Feedback is about *your* action, near your eyes (the input, or the header for peer moves); a toast is a *club/game event you should notice wherever you are on the page* — a friend added you to a game, a friend is setting up the next one. Toasts **stack vertically** (newest nearest the corner), sit **above everything including the chat panel** (z-index 12000), and each carries an **✕** plus an optional single **action button** (e.g. "Join"). There are no validity tones here — a toast is neutral chrome with a tone accent stripe; it's an announcement, not a verdict.
+A **toast** is a bottom-right **announcement** — a *different surface* from the feedback pill above, for a different job. Feedback is about *your* action, near your eyes (the input, or the header for peer moves); a toast is a *club/game event you should notice wherever you are on the page* — a friend added you to a game, a friend is setting up the next one. Toasts **stack vertically** (newest nearest the corner), sit **above everything including the chat panel** (`--z-index-toast`, the ladder's top), and each carries an **✕** plus an optional single **action button** (e.g. "Join"). There are no validity tones here — a toast is neutral chrome with a tone accent stripe; it's an announcement, not a verdict.
 
 One shared store + one host: any code calls `showToast(spec)` / `dismissToast(id)` (`lib/toast/toastStore.ts`), and the single `<ToastHost>` (`components/toasts/`, portaled to `<body>`, mounted once in `App.tsx`) renders the stack. The host is capped to the viewport and scrolls internally, so a flood of toasts never scrolls the *page* (the [page-never-scrolls](#page-height-fits-the-viewport) invariant). Consumers today: game invitations (`useGameInvitations`, now headless) and the "…is setting up a new … game" club heads-up (`useClubSetupPresence`). See [common-folders.md](common-folders.md) for the file homes.
 
@@ -761,7 +761,7 @@ The split is by viewport because a flyout has nowhere to go on a phone: the popo
 
 Two consequences worth knowing. The flyout is `position: fixed`, not absolutely positioned inside the popover: `.popover` is `overflow-y: auto`, and the spec computes `overflow-x` to `auto` alongside it, so an absolutely-positioned child would be **clipped** at the popover's edge instead of overflowing. Scrolling the parent list therefore closes the flyout rather than letting it detach (crosswords' ~20-item menu really does scroll). And a submenu parent has no `onClick`, so the shell's `+` / `⌥⌫` shortcut dispatchers call `item.onClick?.()` — a real guard, not appeasement.
 
-**Z-index.** Menu sits at ~1500 — above the 500-tier modals (suspend-confirm, hint, setup; so a menu click can open one of these) and below chat at 10000 (chat stays available for "what does this option do?" Q&A during play).
+**Z-index.** Menu takes `--z-index-popover` — above the `--z-index-panel` modals (suspend-confirm, hint, setup; so a menu click can open one of these) and below `--z-index-chatPanel` (chat stays available for "what does this option do?" Q&A during play). The ladder is in [code-conventions.md](code-conventions.md#the-z-index-ladder).
 
 **Layout stability.** The menu is a popover anchored to the trigger; it overlays the page without reflowing anything underneath. Per [Layout stability](#layout-stability).
 

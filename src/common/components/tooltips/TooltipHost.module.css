@@ -4,7 +4,7 @@
  * and level with toasts (12000) — a tooltip should never sit under anything. */
 .bubble {
   position: fixed;
-  z-index: 12000;
+  z-index: var(--z-index-tooltip);
   background: var(--page-text-color);
   color: var(--page-surface-color);
   font-size: 0.75rem;

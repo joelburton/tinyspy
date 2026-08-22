@@ -75,9 +75,8 @@
 /* ─── Popover ─────────────────────────────────────────────── */
 
 /* Elevation idiom copied from Menu's popover / DefinitionPopover: surface +
- * border + soft shadow, and the same 1500 tier — above page content, below
- * chat. A literal, not a token: the repo has no z-index scale in theme.css and
- * bans `var()` fallbacks (src/guards/cssTokens.test.ts fails on phantom tokens). */
+ * border + soft shadow, and the same popover tier — above page content, below
+ * chat. */
 /* The list hangs from the closed select's RIGHT edge and opens leftward, always.
  * These filters are only ever placed at the right end of a heading row or
  * column, so right-anchoring is the one correct behavior and not worth a prop
@@ -92,7 +91,7 @@
   position: absolute;
   top: calc(100% + 2px);
   right: 0;
-  z-index: 1500;
+  z-index: var(--z-index-popover);
   min-width: 100%;
   width: max-content;
   max-width: 14rem;

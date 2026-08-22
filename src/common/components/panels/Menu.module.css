@@ -39,10 +39,10 @@
   outline-offset: 2px;
 }
 
-/* The popover. Position: absolute below the trigger; high z-index
- * so it floats above page chrome (modals at ~500, but the chat
- * panel is at 10000 — see GamePage menu docs for why we land in
- * between).
+/* The popover. Position: absolute below the trigger; the popover tier
+ * so it floats above page chrome but below the chat panel — see
+ * GamePage menu docs for why we land in between, and base.css for the
+ * ladder.
  *
  * `top: calc(100% + 0.35rem)` lifts the popover slightly off the
  * trigger so the rounded corners read as distinct surfaces.
@@ -52,7 +52,7 @@
   position: absolute;
   top: calc(100% + 0.35rem);
   left: 0;
-  z-index: 1500;
+  z-index: var(--z-index-popover);
   /* Size to the WIDEST item on one line, so labels like "Print answer key (PDF)"
    * don't wrap. The popover is absolutely positioned inside the narrow
    * inline-block `.menu`, so plain shrink-to-fit would clamp to that tiny
@@ -206,10 +206,11 @@
  * alongside it — so a flyout absolutely positioned inside the popover would be
  * CLIPPED at the popover's edge rather than overflowing past it. Fixed
  * coordinates (supplied inline from the parent row's rect) escape the scroll
- * container. z-index one above `.popover`'s 1500 so it stacks over its parent. */
+ * container. One above `.popover` so it stacks over its parent — the `+ 1` is
+ * the whole point, so it derives rather than restating the tier's number. */
 .flyout {
   position: fixed;
-  z-index: 1501;
+  z-index: calc(var(--z-index-popover) + 1);
   width: max-content;
   min-width: 10rem;
   max-width: calc(100vw - 2 * var(--page-padding-x));

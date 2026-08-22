@@ -44,7 +44,7 @@ export function GameScratchpad({ gameId, ownerId, myId, username, isTerminal }: 
       onClose={() => setScratchpadOpen(false)}
       persistKey={`puzpuzpuz:scratchpad:${gameId}`}
       closeOnEsc={false}
-      zIndex={10000}
+      zIndex="var(--z-index-scratchpad)"
       defaultPosition="center"
       defaultSize={{ width: 320, height: 360 }}
       minWidth={240}

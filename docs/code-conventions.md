@@ -502,20 +502,26 @@ Six rules that are otherwise only discoverable by reading the code:
 
 #### The z-index ladder
 
-Tiers, low to high. Most values are in CSS; the panel tiers are set in JS (`FloatingPanel`'s `zIndex` prop). Stay inside a tier rather than inventing a number between two of them:
+**The ladder is named, and it lives in [`base.css`](../src/common/base.css) → "The Z-INDEX LADDER".** Read a token; never write a page-level number. This is a stacking *order*, not a scale — its failure mode is a visible bug (a menu behind a backdrop), which is why the tiers carry names and not `--z-index-1…5`: nothing about "3" says whether it beats the chat panel.
 
-| tier | range | what |
+| token | value | what |
 |---|---|---|
-| board layers | 0–5 | tiles, rings, the keyboard cursor, the history frame — all *within* a board's stacking context |
-| in-board controls | 10–100 | bananagrams's floating zoom controls, scrabble's floating buttons, the account menu |
-| panels / dialogs | **500** | `FloatingPanel`'s default (its backdrop paints at `zIndex - 1`) — the setup dialog, confirms, Help |
-| bananagrams drag ghost | 1000 | a pointer-following tile, above its own arena |
-| popovers | 1500 | the definition popover, `Menu`, crosswords' number-jump |
-| chat + scratchpad | 9999–10000 | deliberately above dialogs: you can chat with a setup dialog open |
-| celebration | 10001 | one beat, above everything except… |
-| toasts + tooltips | 12000 | always the top layer |
+| `--z-index-infoSheet` | 40 | the info column as a full-bleed page, below `--mobile` |
+| `--z-index-panel` | **500** | `FloatingPanel`'s default — the setup dialog, confirms, Help. Its backdrop paints at `calc(… - 1)` |
+| `--z-index-popover` | 1500 | `Menu` (its flyout at `calc(… + 1)`), `FilterSelect`, the definition popover, crosswords' number-jump |
+| `--z-index-chatPanel` | 10000 | deliberately above dialogs: you can chat with a setup dialog open. The closed launcher sits at `calc(… - 1)` |
+| `--z-index-scratchpad` | 10000 | the same rank for the same reason, named separately because it is a separate decision |
+| `--z-index-celebration` | 10001 | one beat, above everything except… |
+| `--z-index-toast` / `--z-index-tooltip` | 12000 | …these, which nothing ever covers |
 
-**Known anomaly:** scrabble's `BlankPicker.module.css` overlay sits at `z-index: 50` — a full-screen `position: fixed` modal parked *below* the 500 panel tier, so an open chat or menu would paint over it. Harmless in practice (nothing else is usually up mid-move) and left as-is rather than changed blind; it wants a look, not a reflex bump.
+**What is NOT on the ladder** is layering inside a component's own stacking context — a ring over a tile, a floating shuffle on its board, the keyboard cursor. Those compete only with their siblings and stay small local numbers. The app has a clean gap: everything local is ≤ 10, everything page-level is ≥ 40.
+
+**The rule is guarded**, by `guards/vocabularies.test.ts`, and in two halves:
+
+- **In CSS, across all of `src/` — boards included.** This is the one vocabulary where tuned surfaces are *not* exempt: a board's radius is a game's decision, but a board's rank against the chat panel is a whole-app decision that merely happens to be written in a game's file. Values 0–10 stay legal as local layering; anything above must read a token.
+- **In TypeScript.** `<FloatingPanel>`'s `zIndex` prop is typed `string` and takes `var(--z-index-chatPanel)`, so the order has one home rather than a CSS list and a TS list free to disagree. A numeric literal fails the guard. A *computed* z-index is still fine — stackdown stacks its tile pile with `zIndex: t.z`, which is per-tile data, not a tier.
+
+**Three values are deliberately still literals**, each with a step that owns it (see [css-system-2.md](../plans/css-system-2.md) § Carried forward): the two drag ghosts, which disagree at 1000 (bananagrams) and 100 (scrabble); and scrabble's `BlankPicker` overlay at 50, a full-screen `position: fixed` modal parked *below* the panel tier, so an open chat or menu paints over it. Naming them would bless arrangements nobody has decided on. They sit on the guard's pending list until then.
 
 #### Duplication and drift that are deliberate
 

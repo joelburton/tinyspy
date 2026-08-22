@@ -209,6 +209,46 @@
   --mark-notYourTurn-dim-color:  rgb(0 0 0 / 12%);
   --mark-gameOver-dim-color:     rgb(0 0 0 / 12%);
 
+  /* ── The Z-INDEX LADDER ────────────────────────────────────────
+     Every page-level layer, low to high. Not a scale — a stacking
+     ORDER, so unlike a radius or a duration the failure mode is a
+     visible bug (a menu painting behind a backdrop) rather than drift.
+     That is why these are named buckets and not `--z-index-1…5`:
+     nothing about "3" says whether it beats the chat panel.
+
+     WHAT BELONGS HERE is anything that leaves its box — `position:
+     fixed`, or absolute against the page. Those join the root stacking
+     context and genuinely compete with each other.
+
+     WHAT DOES NOT is layering INSIDE a component's own stacking
+     context: a ring over a tile, a floating shuffle over its board,
+     the keyboard cursor. Those compete only with their siblings, and
+     the numbers are small and local by nature. The app has a clean gap
+     — everything local is ≤ 10, everything page-level is ≥ 40 — which
+     is what lets `guards/vocabularies.test.ts` draw the line at 10 and
+     require a token above it, across `src/` INCLUDING the boards. A
+     board's radius is tuned to its game; a board's rank against the
+     chat panel is a whole-app question that merely happens to be
+     written in a game's file.
+
+     The values are spread wide on purpose: room to insert a layer
+     without renumbering its neighbors.
+
+     Read from TypeScript too — `<FloatingPanel zIndex="var(--z-index-
+     chatPanel)">` — so this file is the single home for the order, not
+     a copy of a list of numbers kept somewhere else. */
+  --z-index-infoSheet:     40;     /* the info column as a full-bleed page, below --mobile */
+  --z-index-panel:         500;    /* <FloatingPanel>'s default: setup, confirms, Help */
+  --z-index-popover:       1500;   /* Menu, FilterSelect, the definition popover */
+  --z-index-chatPanel:     10000;  /* deliberately ABOVE the panel tier: you can chat
+                                      with a setup dialog open. Its launcher sits one
+                                      below, at `calc(… - 1)`. */
+  --z-index-scratchpad:    10000;  /* the same rank for the same reason, and a separate
+                                      name because it is a separate decision */
+  --z-index-celebration:   10001;  /* one beat over everything except… */
+  --z-index-toast:         12000;  /* …these two, which nothing ever covers */
+  --z-index-tooltip:       12000;
+
   /* ── Page geometry ─────────────────────────────────────────────
      Page padding — the breathing room on every page (the body's
      padding), split by axis: horizontal keeps the roomier 1rem,

@@ -1,11 +1,13 @@
-/* The `#` jump-to-number popup. A lightweight centered-near-top modal;
- * z-index 1500 sits above board content but below the floating chat
- * (9999/10000), matching the Menu/DefinitionPopover tier. */
+/* The `#` jump-to-number popup. A lightweight centered-near-top modal that
+ * takes the POPOVER tier rather than the panel one — above board content,
+ * below the floating chat, matching Menu/DefinitionPopover. That a dialog
+ * rides the popover tier is recorded as a question for step 8, not changed
+ * here (plans/css-system-2.md §7 → Carried forward). */
 .backdrop {
   position: fixed;
   inset: 0;
   background: var(--crosswords-dialog-scrim-color);
-  z-index: 1500;
+  z-index: var(--z-index-popover);
   display: flex;
   align-items: flex-start;
   justify-content: center;
