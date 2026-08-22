@@ -17,7 +17,7 @@
  * none, because a disc IS the mark here and a box around it reads as noise. See
  * the Board.tsx header. */
 
-.board {
+/* @@ */ .board {
   /* A DEFINITE 6×8 box, sized by --board-h in PlayArea.module.css. Definite
    * rather than `width: 100%` because the board column is `flex: 0 0 auto` and
    * hugs its content — a percentage would resolve against a column that is
@@ -43,7 +43,7 @@
 }
 
 .paths,
-.grid {
+/* @@ */ .grid {
   position: absolute;
   inset: 0.9rem;
   /* Explicit, not inferred: an <svg> does not reliably take its size from
@@ -56,11 +56,11 @@
 /* ── The drawing layer ─────────────────────────────────────── */
 /* preserveAspectRatio="none" in the TSX: the viewBox is 6×8 and the box is
  * 6/8, so the units are already square — `none` just avoids rounding drift. */
-.paths {
+/* @@ */ .paths {
   pointer-events: none;
 }
 
-.line {
+/* @@ */ .line {
   fill: none;
   /* Cell units, so the weight is proportional at any board size. 0.22 of a
    * cell: clearly a connector, but narrower than the discs it joins, so the
@@ -70,45 +70,45 @@
   stroke-linejoin: round;
 }
 
-.lineTheme {
+/* @@ */ .lineTheme {
   stroke: var(--strands-theme);
 }
 
-.lineSpangram {
+/* @@ */ .lineSpangram {
   stroke: var(--strands-spangram);
 }
 
-.lineTrace {
+/* @@ */ .lineTrace {
   stroke: var(--strands-active);
 }
 
 /* Words nobody found, at the reveal. Gray and drawn UNDER the found paths, so
  * the post-game board reads "here's what you got, and here's what was there"
  * rather than putting the misses on equal footing with the finds. */
-.lineMissed {
+/* @@ */ .lineMissed {
   stroke: var(--strands-missed);
 }
 
-.discTheme {
+/* @@ */ .discTheme {
   fill: var(--strands-theme);
 }
 
-.discSpangram {
+/* @@ */ .discSpangram {
   fill: var(--strands-spangram);
 }
 
-.discTrace {
+/* @@ */ .discTrace {
   fill: var(--strands-active);
 }
 
-.discMissed {
+/* @@ */ .discMissed {
   fill: var(--strands-missed);
 }
 
 /* The "click me again to submit" marker on the most recent tile. A ring
  * OUTSIDE the disc rather than a color change, so it reads as an extra
  * affordance rather than a different kind of selection. */
-.discLastRing {
+/* @@ */ .discLastRing {
   fill: none;
   stroke: var(--strands-active-ring);
   stroke-width: 0.06;
@@ -121,7 +121,7 @@
  * `--view-history-color`, the same blue the board frame and the log's viewed-row
  * outline take. It was gold until 2026-08-18, left over from when the viewer was
  * yellow: strands was the last game whose ring disagreed with its own frame. */
-.discViewed {
+/* @@ */ .discViewed {
   fill: none;
   stroke: var(--view-history-color);
   stroke-width: 0.1;
@@ -132,13 +132,13 @@
  * as the other rings; solid rather than the hint's dashes, because this is one
  * moment's answer to one keystroke, not a standing state. Fades itself out via
  * the column's flash timer (~1s). */
-.discAmbiguous {
+/* @@ */ .discAmbiguous {
   fill: none;
   stroke: var(--chrome-fault-color);
   stroke-width: 0.1;
 }
 
-.discHint {
+/* @@ */ .discHint {
   fill: none;
   stroke: var(--strands-hint-ring);
   stroke-width: 0.08;
@@ -146,13 +146,13 @@
 }
 
 /* ── The letter layer ──────────────────────────────────────── */
-.grid {
+/* @@ */ .grid {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   grid-template-rows: repeat(8, 1fr);
 }
 
-.tile {
+/* @@ */ .tile {
   /* Chrome-less: no border, no background, no radius — which is what the bare
    * <button> already is. The disc under it is the mark. */
   /* Finding a word here is a rapid run of taps across adjacent letters, so opt
@@ -178,7 +178,7 @@
   line-height: 1;
 }
 
-.tile:disabled {
+/* @@ */ .tile:disabled {
   cursor: default;
   /* Override the global `button:disabled { opacity: 0.5 }`. These are LETTERS,
    * not a control whose unavailability needs signalling — and at terminal the
@@ -195,7 +195,7 @@
  * blue square around it. Same pointer-only reasoning as the shared WordList's
  * clickable words. */
 .tile:focus,
-.tile:focus-visible {
+/* @@ */ .tile:focus-visible {
   outline: none;
 }
 
@@ -203,21 +203,21 @@
  * contrast. The disc carries the meaning; the letter stays legible. */
 .tileTheme,
 .tileSpangram,
-.tileTrace {
+/* @@ */ .tileTrace {
   color: var(--strands-on-disc);
 }
 
-.tileMissed {
+/* @@ */ .tileMissed {
   color: var(--strands-on-disc);
 }
 
 /* A hinted-but-unfound letter keeps normal text color — the ring around it is
  * the signal, and recoloring the letter would imply it was already found. */
-.tileHinted {
+/* @@ */ .tileHinted {
   color: var(--page-text-color);
 }
 
-.tileLast {
+/* @@ */ .tileLast {
   color: var(--strands-on-disc);
 }
 
@@ -227,7 +227,7 @@
  * after every submission. Same `(hover: hover)` gate, for the same reason, as
  * the tooltip bubble (docs/ui.md → Tooltips). */
 @media (hover: hover) {
-  .tile:not(:disabled):hover {
+/* @@ */   .tile:not(:disabled):hover {
     opacity: 0.75;
   }
 }

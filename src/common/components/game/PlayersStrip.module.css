@@ -9,7 +9,7 @@
  * docs/ui.md → "Layout stability."
  */
 
-.strip {
+/* @@ */ .strip {
   display: flex;
   align-items: center;
   flex-wrap: nowrap;
@@ -21,7 +21,7 @@
   font-weight: 500;
 }
 
-.entry {
+/* @@ */ .entry {
   white-space: nowrap;
   display: inline-flex;
   align-items: center;
@@ -30,13 +30,13 @@
 /* Per-player dot — the shared <Dot> (present = fill + paired border ring;
  * away = the hollow variant). Same outer size either way, so present↔away
  * doesn't shift the row. This class only sizes + spaces it. */
-.dot {
-  --dot-size: 0.85rem;
-  --dot-border-width: 2px;
+/* @@ */ .dot {
+/* @@ */   --dot-size: 0.85rem;
+/* @@ */   --dot-border-width: 2px;
   margin-right: 0.4rem;
 }
 
-.username {
+/* @@ */ .username {
   /* Names are plain black; the color cue lives on the dot. */
   color: var(--page-text-color);
   font-weight: 500;
@@ -51,18 +51,18 @@
  * 56.25rem (900px) is the app's shared desktop→mobile line — see
  * ClubPage.module.css, where this breakpoint was first established. */
 @media (--mobile) {
-  .username {
+/* @@ */   .username {
     display: none;
   }
 
   /* The margin existed to separate the dot from its (now-hidden) name;
    * with dots alone, the strip's own `gap` does the spacing. */
-  .dot {
+/* @@ */   .dot {
     margin-right: 0;
   }
 
   /* Dots sit closer together than the name-bearing entries did. */
-  .strip {
+/* @@ */   .strip {
     gap: 0.6rem;
   }
 }

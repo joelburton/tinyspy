@@ -1,6 +1,6 @@
 /* cs-unmet */
 
-.overlay {
+/* @@ */ .overlay {
   position: fixed;
   inset: 0;
   background: var(--scrim-color);
@@ -9,7 +9,7 @@
   justify-content: center;
   z-index: 50;
 }
-.panel {
+/* @@ */ .panel {
   background: var(--page-surface-color);
   padding: 20px;
   border-radius: 10px;
@@ -22,11 +22,11 @@
   min-width: 0;
   box-sizing: border-box;
 }
-.prompt {
+/* @@ */ .prompt {
   margin: 0 0 12px;
   font-weight: 600;
 }
-.grid {
+/* @@ */ .grid {
   display: grid;
   /* `minmax(0, 1fr)` (not `1fr`) lets the columns shrink to share the panel
      width evenly instead of being floored at each button's min-content. */
@@ -34,7 +34,7 @@
   gap: 4px;
   margin-bottom: 12px;
 }
-.letter {
+/* @@ */ .letter {
   aspect-ratio: 1;
   /* Reset the inherited (global) button padding/min-width/font so the tile is
      sized by its grid column, like a rack tile. */
@@ -49,6 +49,6 @@
   font-weight: 700;
   cursor: pointer;
 }
-.letter:hover {
+/* @@ */ .letter:hover {
   background: var(--scrabble-tile-selected);
 }

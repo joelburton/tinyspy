@@ -20,7 +20,7 @@
  * rather than growing the page. (Lives here, not per-game, so `<TurnLog>` needs
  * no `className` for the common case — the className prop is for the rare
  * override.) */
-.turnLog {
+/* @@ */ .turnLog {
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -38,15 +38,15 @@
  * `min-height: 0`) — the same whether empty or full — the table scrolls inside. */
 /* The log's interior: it scrolls vertically. The frame (flex sizing + the 2px
  * border) is the shared `infoPanel.box`, composed alongside this. */
-.turnLogBox {
+/* @@ */ .turnLogBox {
   overflow-y: auto;
 }
 
-.turnLogEmpty {
+/* @@ */ .turnLogEmpty {
   padding: 0.6rem 0.75rem;
 }
 
-.turnLogTable {
+/* @@ */ .turnLogTable {
   width: 100%;
   border-collapse: collapse;
 }
@@ -56,7 +56,7 @@
  * single-ELEMENT specificity (0,0,1), so any game cell class — or the bar atom's
  * `.bar` — overrides it without a specificity fight. No vertical borders between
  * cells; the only divider is `.turnLogDivider` below. */
-:where(.turnLogTable) td {
+/* @@ */ :where(.turnLogTable) td {
   padding: 0.6rem 0.4rem;
   vertical-align: middle;
   font-size: 0.9rem;
@@ -67,10 +67,10 @@
  * so a multi-row turn gets NO mid-turn line; the very first turn's row is
  * suppressed by :first-child, so a game can apply it to every turn-start row
  * unconditionally. Full width, reaching the left edge (over the bar column too). */
-.turnLogDivider td {
+/* @@ */ .turnLogDivider td {
   border-top: 1px solid var(--page-divider-color);
 }
-.turnLogDivider:first-child td {
+/* @@ */ .turnLogDivider:first-child td {
   border-top: none;
 }
 
@@ -80,10 +80,10 @@
  * facing padding. (Preferred over a `:has()`/`:not()` selector that re-derives
  * the row kind from structure — the explicit class names what the component
  * already knows.) Inert for single-row entries (which carry neither). */
-.entryHead td {
+/* @@ */ .entryHead td {
   padding-bottom: 0.1rem;
 }
-.entryCont td {
+/* @@ */ .entryCont td {
   padding-top: 0;
 }
 
@@ -103,19 +103,19 @@
  *     then spills into the next cell (the psychicnum #n overlap).
  * The cell's padding sets the spacing: left padding = the bar's left margin,
  * right padding = the gap to the next cell. */
-.bar {
+/* @@ */ .bar {
   position: relative;
   padding: 0 0.3rem 0 0.4rem;
 }
 
-.bar::before {
+/* @@ */ .bar::before {
   content: '';
   display: block;
   width: 7px;
   height: 0;
 }
 
-.barInner {
+/* @@ */ .barInner {
   position: absolute;
   /* Inset top/bottom so adjacent rows' bars read as separate segments; left
    * aligns the bar with its column (after the cell's left padding). */
@@ -127,16 +127,16 @@
   background: var(--outcomes-neutral-bar-color); /* neutral default */
 }
 
-.barInner_won {
+/* @@ */ .barInner_won {
   background: var(--outcomes-won-bar-color);
 }
-.barInner_lost {
+/* @@ */ .barInner_lost {
   background: var(--outcomes-lost-bar-color);
 }
-.barInner_near {
+/* @@ */ .barInner_near {
   background: var(--outcomes-near-bar-color);
 }
-.barInner_neutral {
+/* @@ */ .barInner_neutral {
   background: var(--outcomes-neutral-bar-color);
 }
 
@@ -159,19 +159,19 @@
  * wrap). Exactly one cell per row should be `.main`; put it where the slack
  * should land (typically the last content cell before `.who`, so the gap sits
  * between the content and the actor). */
-.main {
+/* @@ */ .main {
   width: 100%;
 }
 
 /* A secondary content column — sized to fit its content, doesn't absorb slack,
  * stays on one line. No emphasis baked in (a game adds its own). */
-.other {
+/* @@ */ .other {
   white-space: nowrap;
 }
 
 /* The lead value of the row — the guessed number, the played word. EMPHASIS, not
  * sizing: compose with a sizing class (`.main` / `.other`) for the column. */
-.primary {
+/* @@ */ .primary {
   font-weight: 700;
   font-size: 1rem;
   font-variant-numeric: tabular-nums;
@@ -179,7 +179,7 @@
 
 /* Minor / de-emphasized info — a turn number, a small note. Muted; sizes to its
  * content (typically space-free, so it never wraps). */
-.meta {
+/* @@ */ .meta {
   color: var(--page-text-muted-color);
 }
 
@@ -190,7 +190,7 @@
  * unchanged until hovered. The tight negative margin keeps the number sitting where
  * the bare text did, so adopting the handle shifts no layout. The `outline` channel
  * is left to the yellow "viewing" marker (historyViewer `.viewedNumber`). */
-.turnNumber {
+/* @@ */ .turnNumber {
   display: inline-block;
   padding: 1px 5px;
   margin: -1px -3px;
@@ -200,7 +200,7 @@
 }
 /* Hover = a background tint + the number darkens to full-strength (a span can't take
  * focus, so there's no focus state to style). */
-.turnNumber:hover {
+/* @@ */ .turnNumber:hover {
   background: var(--page-surface-hover-color);
   color: black;
 }
@@ -209,7 +209,7 @@
  * "name ●"), so the discs line up at the right edge across rows and the slack
  * goes to `.main` instead — NOT `width: 100%`, which would steal the slack and
  * wrap a sibling. Never wraps the name. */
-.who {
+/* @@ */ .who {
   text-align: right;
   white-space: nowrap;
 }

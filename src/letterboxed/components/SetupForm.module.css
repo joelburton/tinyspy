@@ -13,7 +13,7 @@
    Sized for the WRITTEN board, not the twelve letters: the field keeps your
    separators ("ABC-DEF-GHI-JKL" is fifteen characters), so a box cut to twelve
    would scroll the moment you typed it the way it's printed. */
-.sidesInput {
+/* @@ */ .sidesInput {
   width: 17rem;
   text-transform: uppercase;
   letter-spacing: 0.2em;
@@ -31,7 +31,7 @@
    So it differs on three axes at once rather than tone alone: much lighter (a
    mix toward the control background), italic, and untracked. Lifted wholesale
    from boggle's `.boardInput::placeholder`, which met the same problem first. */
-.sidesInput::placeholder {
+/* @@ */ .sidesInput::placeholder {
   color: var(--field-placeholder-ink-color);
   font-style: italic;
   letter-spacing: normal;

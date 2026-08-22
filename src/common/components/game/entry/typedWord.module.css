@@ -15,6 +15,6 @@
 
 /* A character the submission will reject — off the puzzle's letters entirely,
  * or (wordwheel) past the tile count for that letter. */
-.illegal {
+/* @@ */ .illegal {
   color: var(--entry-illegal-ink-color);
 }

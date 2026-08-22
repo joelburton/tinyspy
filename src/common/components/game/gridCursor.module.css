@@ -20,7 +20,7 @@
  * value on bananagrams's. That genuinely differs per board, so it stays local;
  * everything else here is identical in both.
  */
-.cursor {
+/* @@ */ .cursor {
   position: absolute;
   inset: 0;
   box-sizing: border-box;
@@ -31,14 +31,14 @@
 }
 
 /* Horizontal: heavy top + bottom, so the eye runs along the row. */
-.cursorH {
+/* @@ */ .cursorH {
   border: 1px solid var(--mark-gridCursor-color);
   border-top-width: 5px;
   border-bottom-width: 5px;
 }
 
 /* Vertical: heavy left + right, so the eye runs down the column. */
-.cursorV {
+/* @@ */ .cursorV {
   border: 1px solid var(--mark-gridCursor-color);
   border-left-width: 5px;
   border-right-width: 5px;

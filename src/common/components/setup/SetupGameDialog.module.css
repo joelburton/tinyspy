@@ -8,7 +8,7 @@
  * right (macOS order). A dedicated row (not the shared modalActions) because
  * the icon-only Help button must NOT take modalActions' 6rem button floor;
  * `.footerActions` reproduces that floor for the two text buttons only. */
-.footer {
+/* @@ */ .footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -16,12 +16,12 @@
   margin-top: 1.5rem;
 }
 
-.footerActions {
+/* @@ */ .footerActions {
   display: flex;
   gap: 0.75rem;
 }
 
-.footerActions button {
+/* @@ */ .footerActions button {
   min-width: 6rem;
 }
 
@@ -31,21 +31,21 @@
  * carries the same words two inches above, so the short button reads fine.
  * `--phone`, not `--mobile`: a tablet has the room. */
 @media (--phone) {
-  .startDetail {
+/* @@ */   .startDetail {
     display: none;
   }
 }
 
 /* Player picker — a checkbox list of club members, all checked by
  * default. Sits above the game-specific setup body. */
-.players {
+/* @@ */ .players {
   margin: 0 0 1rem;
   padding: 0.6rem 0.75rem;
   border: 1px solid var(--page-surface-border-color);
   border-radius: var(--radius-md);
 }
 
-.playersLegend {
+/* @@ */ .playersLegend {
   padding: 0 0.35rem;
   font-size: 0.8rem;
   font-weight: 600;
@@ -54,7 +54,7 @@
   color: var(--page-text-muted-color);
 }
 
-.playerRow {
+/* @@ */ .playerRow {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -63,11 +63,11 @@
 }
 
 /* The shared <Dot>, sized for the picker rows. */
-.playerDot {
-  --dot-size: 0.7rem;
+/* @@ */ .playerDot {
+/* @@ */   --dot-size: 0.7rem;
 }
 
-.playerHint {
+/* @@ */ .playerHint {
   margin: 0.4rem 0 0;
   font-size: 0.85rem;
   color: var(--chrome-fault-color);
@@ -79,7 +79,7 @@
  * TRULY fixed at one line: nowrap + ellipsis means even an over-long message
  * can't wrap and grow the dialog (validators should write messages that fit;
  * the call site sets `title` so a clipped one is hoverable). */
-.setupHint {
+/* @@ */ .setupHint {
   margin: 0.4rem 0 0;
   font-size: 0.85rem;
   color: var(--chrome-fault-color);
@@ -90,7 +90,7 @@
 
 /* The "(you)" marker on the creator's row — they can't deselect
  * themselves. */
-.playerSelf {
+/* @@ */ .playerSelf {
   color: var(--page-text-muted-color);
   font-size: 0.85em;
 }
@@ -103,7 +103,7 @@
  * async data lands), and over-reserving would make every SHORT form open too
  * tall and visibly shrink — the same jump, inverted. The residual growth is a
  * fraction of the old one and now lands downward from a fixed header. */
-.bodyReserve {
+/* @@ */ .bodyReserve {
   display: block;
   min-height: 15rem;
 }

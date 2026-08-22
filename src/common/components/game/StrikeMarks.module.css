@@ -4,7 +4,7 @@
  * The marks scale with the font (width/height in `em`) so they read at the
  * surrounding text scale. See StrikeMarks.tsx. */
 
-.marks {
+/* @@ */ .marks {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
@@ -13,18 +13,18 @@
 }
 
 .used,
-.open {
+/* @@ */ .open {
   width: 1.05em;
   height: 1.05em;
 }
 
 /* A USED mark — a red square-X. Lucide icons stroke with currentColor, so
  * `color` sets the glyph color. */
-.used {
+/* @@ */ .used {
   color: var(--outcomes-lost-ink-color);
 }
 
 /* An OPEN slot — a dashed square in black. */
-.open {
+/* @@ */ .open {
   color: var(--page-text-color);
 }

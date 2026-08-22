@@ -20,7 +20,7 @@
  * fills in — they are pictures the app owns.
  * ============================================================ */
 
-:root {
+/* @@ */ :root {
   /* ══ MEMBER ═════════════════════════════════════════════════════
      One pair per name in common.profiles.color. The DB stores a NAME
      (not a hex) and the FE resolves it through colorVarFor, so the
@@ -46,14 +46,14 @@
      Was `-dot-` / `-border-`. `dot` named the one COMPONENT that draws
      them, and these also paint chat names and list labels; fill/edge
      is what every other pair in the app calls the same two jobs. */
-  --member-red-fill-color:     #d32f2f;   --member-red-edge-color:     #b30115;
-  --member-orange-fill-color:  #ff9800;   --member-orange-edge-color:  #a25f01;
-  --member-yellow-fill-color:  #ffe05a;   --member-yellow-edge-color:  #867004;
-  --member-green-fill-color:   #388e3c;   --member-green-edge-color:   #1b5e20;
-  --member-brown-fill-color:   #8d6e63;   --member-brown-edge-color:   #74564b;
-  --member-blue-fill-color:    #1976d2;   --member-blue-edge-color:    #035dad;
-  --member-purple-fill-color:  #9b3ec3;   --member-purple-edge-color:  #650189;
-  --member-pink-fill-color:    #f86194;   --member-pink-edge-color:    #c9135e;
+/* @@ */   --member-red-fill-color:     #d32f2f;   --member-red-edge-color:     #b30115;
+/* @@ */   --member-orange-fill-color:  #ff9800;   --member-orange-edge-color:  #a25f01;
+/* @@ */   --member-yellow-fill-color:  #ffe05a;   --member-yellow-edge-color:  #867004;
+/* @@ */   --member-green-fill-color:   #388e3c;   --member-green-edge-color:   #1b5e20;
+/* @@ */   --member-brown-fill-color:   #8d6e63;   --member-brown-edge-color:   #74564b;
+/* @@ */   --member-blue-fill-color:    #1976d2;   --member-blue-edge-color:    #035dad;
+/* @@ */   --member-purple-fill-color:  #9b3ec3;   --member-purple-edge-color:  #650189;
+/* @@ */   --member-pink-fill-color:    #f86194;   --member-pink-edge-color:    #c9135e;
 
   /* ══ WORDLE ═════════════════════════════════════════════════════
      The per-letter feedback palette shared by the letter-coloring
@@ -89,14 +89,14 @@
      NOTE — the wordle-vocabulary rename is scheduled for wordle's own
      pass (css-system-2 §14), so these names are UNCHANGED here on
      purpose. Renaming them now would spend the same call sites twice. */
-  --wordle-green-fill-color:   #66a45f;  /* right letter, right spot */
-  --wordle-yellow-fill-color:  #bd9f35;  /* in the word, wrong spot */
-  --wordle-gray-fill-color:    #8b8f91;  /* not in the word */
-  --wordle-blank-fill-color:   #d3d6da;  /* un-evaluated / neutral surface */
+/* @@ */   --wordle-green-fill-color:   #66a45f;  /* right letter, right spot */
+/* @@ */   --wordle-yellow-fill-color:  #bd9f35;  /* in the word, wrong spot */
+/* @@ */   --wordle-gray-fill-color:    #8b8f91;  /* not in the word */
+/* @@ */   --wordle-blank-fill-color:   #d3d6da;  /* un-evaluated / neutral surface */
 
-  --wordle-green-edge-color:   #568a50;  /* the fill, 84% */
-  --wordle-yellow-edge-color:  #9f862d;  /* the fill, 84% */
-  --wordle-gray-edge-color:    #75787a;  /* the fill, 84% */
+/* @@ */   --wordle-green-edge-color:   #568a50;  /* the fill, 84% */
+/* @@ */   --wordle-yellow-edge-color:  #9f862d;  /* the fill, 84% */
+/* @@ */   --wordle-gray-edge-color:    #75787a;  /* the fill, 84% */
 
   /* THE INK IS NOT HERE — it is the one part of this palette a theme
      gets to move, and it lives in themes/daylight.css and

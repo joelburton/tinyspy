@@ -4,7 +4,7 @@
  * constrain the width and let the height follow its intrinsic aspect ratio.
  * Fills the card, centered, with clear space below before the screen's heading /
  * sign-in copy. */
-.wordmark {
+/* @@ */ .wordmark {
   display: block;
   width: 100%;
   height: auto;

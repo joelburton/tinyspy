@@ -42,7 +42,7 @@
    like a tile is a bug" would stop being a rule anyone could enforce. The one
    exception is placement, not kind: a control FLOATING over a board keeps its
    shadow, because it has a board to cast onto. */
-.button {
+/* @@ */ .button {
   /* Tighter than the inputs/textareas in base.css: buttons are click targets,
      not typing surfaces, and don't need the same breathing room. Icon glyphs are
      unaffected — they're sized by explicit pixel props, not padding.
@@ -70,7 +70,7 @@
 }
 
 /* PRIMARY — the filled treatment. */
-.primary {
+/* @@ */ .primary {
   background: var(--button-slot-primary-color);
   border-color: var(--button-slot-primary-color);
   color: var(--button-slot-primary-ink-color);
@@ -78,7 +78,7 @@
 
 /* The hover the bare element could never safely have. Safe here precisely
    because it is opt-in: only something that asked to be a button can get it. */
-.primary:hover:not(:disabled) {
+/* @@ */ .primary:hover:not(:disabled) {
   background: var(--button-slot-primary-hover-color);
   border-color: var(--button-slot-primary-hover-color);
 }
@@ -96,7 +96,7 @@
    (0,1,1), which a module class could not out-rank without a `:not()` trick —
    strands' hint bar carries a comment about exactly that arithmetic. At (0,1,0)
    a game's own class beats it the ordinary way. */
-.secondary {
+/* @@ */ .secondary {
   background: transparent;
   border-color: var(--button-slot-secondary-color);
   color: var(--button-slot-secondary-color);
@@ -114,7 +114,7 @@
    primary-hover under the pointer (measured: #ae4000 → #c45400 on Hint), so this
    rule had to say the border again to hold it still. `.primary:hover` cannot
    match a secondary button at all, so there is nothing left to undo. */
-.secondary:hover:not(:disabled) {
+/* @@ */ .secondary:hover:not(:disabled) {
   background: var(--button-slot-secondary-hover-color);
 }
 
@@ -132,7 +132,7 @@
    square because there's no text — add the `icon-only` modifier below. Still NOT
    for the round icon pills (ShuffleButton, PauseButton): those are a separate,
    fixed-size circular shape that style themselves. */
-.icon-button {
+/* @@ */ .icon-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -151,7 +151,7 @@
    `cls('button', 'secondary', 'icon-button', 'icon-only')`. The shared counterpart of
    `icon-button` for the no-label case, so every game's icon-only action button
    matches. (`--iconButton-size` tunes the box once, globally.) */
-.icon-only {
+/* @@ */ .icon-only {
   width: var(--iconButton-size);
   height: var(--iconButton-size);
   padding: 0;
@@ -168,7 +168,7 @@
 
    Like `.icon-only`, this must stay BELOW `.button`: its padding wins on source
    order at equal specificity, not on weight. */
-.button-small {
+/* @@ */ .button-small {
   font-size: 0.8rem;
   font-weight: 500;
   padding: 0.25rem 0.6rem;

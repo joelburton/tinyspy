@@ -1,7 +1,7 @@
 /* cs-unmet */
 
 /* The palette as a 2-column grid of selectable swatches. */
-.swatches {
+/* @@ */ .swatches {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.5rem;
@@ -9,7 +9,7 @@
 
 /* One color option: the actual color circle + its name. The selected
  * one gets an accent ring. */
-.swatch {
+/* @@ */ .swatch {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -20,7 +20,7 @@
   cursor: pointer;
   text-align: left;
 }
-.swatch:hover:not(:disabled) {
+/* @@ */ .swatch:hover:not(:disabled) {
   border-color: var(--chrome-cursor-color);
 }
 /* ⚠️ The same ring the keyboard cursor draws, meaning something else: this
@@ -30,7 +30,7 @@
    state to a decision about keyboard affordances, and the two would then have
    to move together forever. Whether "selected" should look like "the cursor is
    here" at all is a real question, and it belongs to the account pass. */
-.swatchActive {
+/* @@ */ .swatchActive {
   border-color: var(--chrome-cursor-color);
   outline: 2px solid var(--chrome-cursor-color);
   outline-offset: -1px;
@@ -38,11 +38,11 @@
 
 /* The shared <Dot> as the swatch — at picker size the paired border ring is
  * doing real work (a light yellow swatch alone would vanish on the surface). */
-.dot {
-  --dot-size: 1.1rem;
-  --dot-border-width: 2px;
+/* @@ */ .dot {
+/* @@ */   --dot-size: 1.1rem;
+/* @@ */   --dot-border-width: 2px;
 }
 
-.swatchName {
+/* @@ */ .swatchName {
   text-transform: capitalize;
 }

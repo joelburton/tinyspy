@@ -23,34 +23,34 @@
  * surface — no cross-game token bleed.
  * ============================================================ */
 
-:root {
+/* @@ */ :root {
   /* Agent — the "good" target color. Deep forest green; reads as
      saturated on white without screaming. */
-  --codenamesduet-agent:               #2e7d32;
-  --codenamesduet-agent-soft-banner:   rgb(46 125 50 / 18%);
-  --codenamesduet-agent-text:          #1b5e20;  /* dark green; readable on soft-bright bg */
+/* @@ */   --codenamesduet-agent:               #2e7d32;
+/* @@ */   --codenamesduet-agent-soft-banner:   rgb(46 125 50 / 18%);
+/* @@ */   --codenamesduet-agent-text:          #1b5e20;  /* dark green; readable on soft-bright bg */
 
   /* Neutral bystander — warm tan, low-key on the board. */
-  --codenamesduet-neutral:             #b4986e;
-  --codenamesduet-neutral-soft-bright: rgb(180 152 110 / 30%);
-  --codenamesduet-neutral-text:        #6b5832;  /* dark tan; readable on soft-bright bg */
+/* @@ */   --codenamesduet-neutral:             #b4986e;
+/* @@ */   --codenamesduet-neutral-soft-bright: rgb(180 152 110 / 30%);
+/* @@ */   --codenamesduet-neutral-text:        #6b5832;  /* dark tan; readable on soft-bright bg */
 
   /* Assassin — the "you lose" red. Also drives the sudden-death
      wrapper border and the in-board error banner. */
-  --codenamesduet-assassin:            #be3c3c;
-  --codenamesduet-assassin-soft:       rgb(190 60 60 / 16%);
-  --codenamesduet-assassin-text:       #8b1a1a;  /* dark red; readable on soft-bright bg */
+/* @@ */   --codenamesduet-assassin:            #be3c3c;
+/* @@ */   --codenamesduet-assassin-soft:       rgb(190 60 60 / 16%);
+/* @@ */   --codenamesduet-assassin-text:       #8b1a1a;  /* dark red; readable on soft-bright bg */
 
   /* Keycard-square fills — the small corner chips showing what a key card says
      about a cell. Mid-saturation: more present than the translucent `-soft`
      hints, but lighter than the solid "found" fills, so the square (what the
      key SAYS) never competes with the tile background (what HAPPENED). Solid,
      not translucent, so they read consistently on any tile background. */
-  --codenamesduet-agent-key:           #66bb6a;
-  --codenamesduet-neutral-key:         #d4b483;
-  --codenamesduet-assassin-key:        #e06666;
+/* @@ */   --codenamesduet-agent-key:           #66bb6a;
+/* @@ */   --codenamesduet-neutral-key:         #d4b483;
+/* @@ */   --codenamesduet-assassin-key:        #e06666;
 
   /* Named during the palette sweep: the hairline between a tile's two halves on
    * the keycard. Value unchanged. */
-  --codenamesduet-tile-rule-color: rgb(0 0 0 / 28%);
+/* @@ */   --codenamesduet-tile-rule-color: rgb(0 0 0 / 28%);
 }

@@ -15,14 +15,14 @@
  * lays its pieces on one baseline-aligned row WITHOUT turning the host `<td>`
  * into a flex container — which would drop it out of the table layout and break
  * the column alignment down the log. */
-.move {
+/* @@ */ .move {
   display: inline-flex;
   align-items: baseline;
   gap: 0.3rem;
 }
 
 /* Swapped letters lead — bigger, bolder, full body color. */
-.letter {
+/* @@ */ .letter {
   font-size: 1.1rem;
   font-weight: 700;
   letter-spacing: 0.03em;
@@ -30,12 +30,12 @@
 }
 
 /* Coordinates recede — smaller and lighter so the letters lead. */
-.coord {
+/* @@ */ .coord {
   font-size: 0.75rem;
   color: var(--page-text-muted-color);
 }
 
-.arrow {
+/* @@ */ .arrow {
   color: var(--page-text-muted-color);
   margin: 0 0.15rem;
 }

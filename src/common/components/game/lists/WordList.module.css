@@ -11,7 +11,7 @@
  * words — while the word text stays black (found) / gray (missed). The
  * recently-found state adds a thick finder-color underline that fades after 5s. */
 
-.wrapper {
+/* @@ */ .wrapper {
   width: 100%;
   flex: 1 1 auto;
   min-height: 0;
@@ -27,7 +27,7 @@
  * the list scrolls HORIZONTALLY inside once words run past the visible columns.
  * The frame (flex sizing + the 2px border) is the shared `infoPanel.box`,
  * composed alongside this; the heading is `infoPanel.heading`. */
-.box {
+/* @@ */ .box {
   display: flex;
   overflow: hidden;
   padding: 0.5rem 0.6rem;
@@ -37,17 +37,17 @@
  * the right): APPLE / BERRY in column 1, CHERRY / DURIAN in column 2, … It fills
  * the card box at a FIXED height, so each column is exactly that tall; three
  * columns show at a time and the rest scroll HORIZONTALLY. */
-.list {
+/* @@ */ .list {
   list-style: none;
   margin: 0;
   padding: 0;
   /* --wl-row-height is referenced by the row-style below; keeping it a token
    * means the row count is derived from it + the box height. */
-  --wl-row-height: 26px;
+/* @@ */   --wl-row-height: 26px;
   /* Column WIDTH as a real defined token (not a `var(--x, fallback)`, which
    * src/guards/cssTokens.test.ts flags as phantom — see Board.module.css's same note): a
    * game/layout can override it, but the default lives here as a concrete value. */
-  --wl-col-width: 10.5rem;
+/* @@ */   --wl-col-width: 10.5rem;
   display: grid;
   /* As many rows as fit the fixed height; columns then flow rightward. */
   grid-template-rows: repeat(auto-fill, var(--wl-row-height));
@@ -66,7 +66,7 @@
   min-width: 0;
 }
 
-.row {
+/* @@ */ .row {
   font-size: 17px;
   line-height: var(--wl-row-height);
   letter-spacing: 0.02em;
@@ -76,16 +76,16 @@
 /* The leading attribution marker: the shared <Dot> in the finder's color.
  * Shrunk below the word so it reads as a marker (em-sized, so it tracks the
  * row's text). */
-.dot {
-  --dot-size: 0.6em;
+/* @@ */ .dot {
+/* @@ */   --dot-size: 0.6em;
   margin-right: 7px;
 }
 
 /* Missed words (post-terminal reveal) swap in the hollow variant — the ring,
  * not the text color, is the "missed" signal. Lighter (divider gray) than the
  * muted word text so the ring reads as a faint marker, not a second emphasis. */
-.dotUnfound {
-  --dot-ring: var(--page-divider-color);
+/* @@ */ .dotUnfound {
+/* @@ */   --dot-ring: var(--page-divider-color);
 }
 
 /* The word text itself — and the ONLY click-to-define target (not the whole
@@ -93,33 +93,33 @@
  * this span. Plain body-black for found words; finder identity lives in the dot.
  * Underlines (hover + recent flash) scope here too so they don't run under the
  * leading dot. */
-.word {
+/* @@ */ .word {
   cursor: pointer;
   text-underline-offset: 2px;
 }
 
-.word:hover {
+/* @@ */ .word:hover {
   text-decoration: underline;
   text-decoration-thickness: 1px;
 }
 
 /* Pangram — emphasized by font-weight (a found one, or a missed one in gray).
  * Games without pangrams (boggle) simply never set the row's `isPangram`. */
-.pangram {
+/* @@ */ .pangram {
   font-weight: 700;
 }
 
 /* Bonus indicator — a trailing '•' bullet (emitted as text in the TSX). Just muted
  * so it reads as a marker, not part of the word; it's a normal inline character,
  * so it centers with the word with no size/vertical-align tricks. */
-.bonusDot {
+/* @@ */ .bonusDot {
   color: var(--page-text-muted-color);
 }
 
 /* Recently-found underline on the word. Thickness + offset here; the underline
  * COLOR is set inline to the finder color in the TSX (CSS can't know it), since
  * the word text is black. */
-.recent .word {
+/* @@ */ .recent .word {
   text-decoration: underline;
   text-decoration-thickness: 2px;
   text-underline-offset: 3px;
@@ -127,12 +127,12 @@
 
 /* When the list is empty the grid is dropped (.listEmpty) so the placeholder is a
  * normal full-width block that can center. */
-.listEmpty {
+/* @@ */ .listEmpty {
   display: block;
   overflow: hidden;
 }
 
-.empty {
+/* @@ */ .empty {
   font-style: italic;
   color: var(--page-text-muted-color);
   text-align: center;
@@ -142,7 +142,7 @@
 /* Unfound required words (the post-terminal reveal — what the team / field
  * missed). The hollow ○ ring (.dotUnfound) is the primary signal; the word also
  * goes medium gray to stay de-emphasized next to the black found words. */
-.unfound {
+/* @@ */ .unfound {
   color: var(--page-text-muted-color);
 }
 
@@ -152,12 +152,12 @@
  * their place there, the longest word doesn't. `nowrap` keeps the clause whole
  * on the desktop side, so a narrow info column breaks BETWEEN tallies rather
  * than inside one. */
-.longest {
+/* @@ */ .longest {
   white-space: nowrap;
 }
 
 @media (--mobile) {
-  .longest {
+/* @@ */   .longest {
     display: none;
   }
 }

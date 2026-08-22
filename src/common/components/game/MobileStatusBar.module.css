@@ -5,7 +5,7 @@
 
 /* Desktop: the info column is on-screen, so this line would be a duplicate —
  * generate no box at all (not even a gap in `.boardCol`'s flex column). */
-.bar {
+/* @@ */ .bar {
   display: none;
 }
 
@@ -24,7 +24,7 @@
    *
    * Full `--page-text-color` (not muted): this is a real value the player reads, not
    * background chrome (docs/ui.md → the two vocabularies). */
-  .bar {
+/* @@ */   .bar {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -45,6 +45,6 @@
  * Block-level, so a game can pass a small stack (spellingbee's rank bar over its
  * score/words) as readily as one line of text; it shrink-wraps its content and
  * `.bar`'s centering places it. */
-.inner {
+/* @@ */ .inner {
   min-width: 0;
 }

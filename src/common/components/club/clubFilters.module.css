@@ -20,7 +20,7 @@
 
 /* The mode filter is the shared `.segmented` (common/patterns/segmented.css);
  * only "don't let this squeeze" is the club page's. */
-.modeFilter {
+/* @@ */ .modeFilter {
   flex-shrink: 0;
 }
 
@@ -38,7 +38,7 @@
  * the control declines focus on mousedown, so it can never be focused, and a
  * ring here would impersonate the games list's own 2px keyboard cursor
  * (docs/ui.md → ClubPage keyboard navigation). */
-.closedSelect {
+/* @@ */ .closedSelect {
   font-size: 0.8rem;
   padding: 0.25rem 0.55rem;
   max-width: 11rem;
@@ -48,7 +48,7 @@
   color: var(--page-text-color);
 }
 
-.closedSelect:hover {
+/* @@ */ .closedSelect:hover {
   background-color: var(--page-surface-hover-color);
 }
 
@@ -63,12 +63,12 @@
  * Decisions #3). The closed select reaching 16px is a coincidence of the two aiming
  * at similar sizes. */
 @media (--touch) {
-  .closedSelect {
+/* @@ */   .closedSelect {
     font-size: max(16px, 1em);
     padding: 0.4rem 0.7rem;
   }
 
-  .modeOption {
+/* @@ */   .modeOption {
     font-size: 0.9rem;
     padding: 0.4rem 0.75rem;
   }

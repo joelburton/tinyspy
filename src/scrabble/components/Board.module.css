@@ -1,6 +1,6 @@
 /* cs-unmet */
 
-.board {
+/* @@ */ .board {
   display: grid;
   grid-template-columns: repeat(15, 1fr);
   grid-template-rows: repeat(15, 1fr);
@@ -24,14 +24,14 @@
    common/components/game/lists/historyViewer.module.css (.frame), applied in Board.tsx. */
 
 .cell,
-.tile {
+/* @@ */ .tile {
   position: relative;
   min-width: 0;
   min-height: 0;
   border-radius: 3px;
 }
 
-.cell {
+/* @@ */ .cell {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -43,11 +43,11 @@
   font-weight: 600;
   cursor: pointer;
 }
-.cell.DW { background: var(--scrabble-dw); color: var(--scrabble-dw-ink-color); }
-.cell.TW { background: var(--scrabble-tw); color: var(--ink-onDark-color); }
-.cell.DL { background: var(--scrabble-dl); color: var(--scrabble-dl-ink-color); }
-.cell.TL { background: var(--scrabble-tl); color: var(--ink-onDark-color); }
-.cell.center { font-size: 4.6cqi; color: var(--scrabble-dw-ink-color); }
+/* @@ */ .cell.DW { background: var(--scrabble-dw); color: var(--scrabble-dw-ink-color); }
+/* @@ */ .cell.TW { background: var(--scrabble-tw); color: var(--ink-onDark-color); }
+/* @@ */ .cell.DL { background: var(--scrabble-dl); color: var(--scrabble-dl-ink-color); }
+/* @@ */ .cell.TL { background: var(--scrabble-tl); color: var(--ink-onDark-color); }
+/* @@ */ .cell.center { font-size: 4.6cqi; color: var(--scrabble-dw-ink-color); }
 
 /* Drag-drop feedback on the hovered target cell: a thick, saturated RING in the
  * app's standard success/error colors (the outcome-strong pair — same green=good
@@ -62,17 +62,17 @@
  * instead (z-index above its neighbours), exactly like the `.viewedTile`
  * turn-highlight below does with the green token. (bananagrams needs neither
  * trick — its occupied cell is plain text, not an opaque overlay tile.) */
-.dropOk {
+/* @@ */ .dropOk {
   outline: 3px solid var(--outcomes-won-ink-color);
   outline-offset: -3px;
 }
-.dropNo .tile {
+/* @@ */ .dropNo .tile {
   outline: 3px solid var(--outcomes-lost-ink-color);
   outline-offset: -3px;
   z-index: 2;
 }
 
-.tile {
+/* @@ */ .tile {
   /* Fill the (position:relative) cell. The letter + value are absolutely
      positioned WITHIN the tile, so without an explicit box the span would
      collapse to zero size and its face/border wouldn't render.
@@ -89,20 +89,20 @@
   box-shadow: var(--scrabble-cell-inner-shadow);
   cursor: grab;
 }
-.tile.committed {
+/* @@ */ .tile.committed {
   cursor: default;
 }
 /* Placed-but-not-committed (this-turn) tiles get the attention overlay (a warm-
    yellow wash over the normal tile) so the player sees exactly what they're laying
    down before they commit the word. */
-.tile.tentative {
+/* @@ */ .tile.tentative {
   background: var(--scrabble-tile-attention);
 }
 /* A placed blank shows its declared letter normally, marked as a blank by a
    thin ring around the glyph (like circling a wildcard) rather than a tinted
    face. The ring is sized in `em` off the letter's font-size, so it scales
    with the tile and stays centered on the glyph. */
-.tile.blank .letter::after {
+/* @@ */ .tile.blank .letter::after {
   content: '';
   position: absolute;
   left: 50%;
@@ -114,7 +114,7 @@
   border-radius: 50%;
   pointer-events: none;
 }
-.tile.lifted {
+/* @@ */ .tile.lifted {
   opacity: 0.3;
 }
 /* A just-accepted word: green outline for ~1s. The SAME success green the
@@ -122,7 +122,7 @@
    version of that signal, not a second green. (Both were hand-picked literals
    once; the ramp lives in common/themes/daylight.css so a palette change reaches every
    good/bad cue at once.) */
-.tile.flashAccept {
+/* @@ */ .tile.flashAccept {
   outline: 3px solid var(--outcomes-won-ink-color);
   outline-offset: -3px;
   z-index: 2;
@@ -130,7 +130,7 @@
 /* Turn-viewer: the tiles THIS turn placed — the attention overlay (so they read
    as "this turn's play", matching a just-placed tile) PLUS a persistent
    success-green outline (the good words of this turn). */
-.tile.viewedTile {
+/* @@ */ .tile.viewedTile {
   background: var(--scrabble-tile-attention);
   outline: 3px solid var(--outcomes-won-ink-color);
   outline-offset: -3px;
@@ -138,7 +138,7 @@
 }
 /* New tiles in a rejected (not-in-dictionary) word: red outline for ~1s — the
    app-wide failure red, the counterpart to `.flashAccept`'s green above. */
-.tile.flashReject {
+/* @@ */ .tile.flashReject {
   outline: 3px solid var(--outcomes-lost-ink-color);
   outline-offset: -3px;
   z-index: 2;
@@ -147,7 +147,7 @@
 /* Tile glyph layout — sized as a fraction of the tile (cqmin), so it's
    identical on the board and in the rack. MUST stay in sync with
    Rack.module.css's .letter / .value. */
-.letter {
+/* @@ */ .letter {
   position: absolute;
   top: 14%;
   /* Horizontally centered (anchored at the glyph's middle), nudged a hair
@@ -159,7 +159,7 @@
   font-weight: 700;
   line-height: 1;
 }
-.value {
+/* @@ */ .value {
   position: absolute;
   right: 8%;
   bottom: 4%;
@@ -171,6 +171,6 @@
  * in, and scrabble's cells are 3px (`.cell, .tile` above). The ring itself — the
  * thick-on-the-axis shape and its direction variants — is the shared
  * common/components/game/gridCursor.module.css. */
-.cursor {
+/* @@ */ .cursor {
   border-radius: 3px;
 }

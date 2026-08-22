@@ -29,20 +29,20 @@
  * brand anchors (that game's brand.css).
  * ============================================================ */
 
-:root {
+/* @@ */ :root {
   /* ══ PAGE ═══════════════════════════════════════════════════════
      The page's own surfaces and text. The page is off-white so
      pure-white cards have a subtle ground; borders are a pale gray
      just visible against the bg; text is near-black for body, medium
      gray for muted, darker gray for dividers (which sit on the bg,
      not on cards). */
-  --page-bg-color:                #fafafa;
-  --page-surface-color:           #ffffff;
-  --page-surface-border-color:    #e2e2e2;
-  --page-surface-hover-color:     #f0f0f0;
-  --page-text-color:              #1a1a1a;
-  --page-text-muted-color:        #6b6b6b;
-  --page-divider-color:           #8a8a8a;
+/* @@ */   --page-bg-color:                #fafafa;
+/* @@ */   --page-surface-color:           #ffffff;
+/* @@ */   --page-surface-border-color:    #e2e2e2;
+/* @@ */   --page-surface-hover-color:     #f0f0f0;
+/* @@ */   --page-text-color:              #1a1a1a;
+/* @@ */   --page-text-muted-color:        #6b6b6b;
+/* @@ */   --page-divider-color:           #8a8a8a;
 
   /* ══ FIELD ══════════════════════════════════════════════════════
      Form controls you type into. Inputs sit on white with a soft gray
@@ -53,15 +53,15 @@
      and buttons are their own bucket with their own five families —
      which left `--field-edge-color` sounding like it might paint
      one. A field is the thing you type into. */
-  --field-fill-color:             #ffffff;
-  --field-edge-color:             #cfcfcf;
-  --field-strong-edge-color:      #b0b0b0;
-  --field-muted-ink-color:        #555555;
+/* @@ */   --field-fill-color:             #ffffff;
+/* @@ */   --field-edge-color:             #cfcfcf;
+/* @@ */   --field-strong-edge-color:      #b0b0b0;
+/* @@ */   --field-muted-ink-color:        #555555;
   /* A PLACEHOLDER's ink — the muted text taken half-way to the field's
      own background, so a hint is visibly not data. Two setup forms
      (boggle's and letterboxed's board inputs) arrived at the identical
      recipe independently, which is what promoted it here. */
-  --field-placeholder-ink-color:  color-mix(in oklab, var(--page-text-muted-color) 50%, var(--field-fill-color));
+/* @@ */   --field-placeholder-ink-color:  color-mix(in oklab, var(--page-text-muted-color) 50%, var(--field-fill-color));
 
   /* ══ BUTTON ═════════════════════════════════════════════════════
      Things you can do, graded by CONSEQUENCE — five families:
@@ -107,12 +107,12 @@
      it does not ship. If it and this file disagree, this file wins. */
 
   /* NORMAL — Material Blue 700. Was the `action` family. */
-  --button-normal-base-color:                #1976d2;
-  --button-normal-primary-color:             var(--button-normal-base-color);
-  --button-normal-primary-hover-color:       oklch(from var(--button-normal-base-color) calc(l - 0.05) c h);
-  --button-normal-primary-ink-color:         #ffffff;
-  --button-normal-secondary-color:           oklch(from var(--button-normal-base-color) calc(l - 0.115) c h);
-  --button-normal-secondary-hover-color:     color-mix(in oklab, var(--button-normal-base-color) 8%, var(--page-surface-color));
+/* @@ */   --button-normal-base-color:                #1976d2;
+/* @@ */   --button-normal-primary-color:             var(--button-normal-base-color);
+/* @@ */   --button-normal-primary-hover-color:       oklch(from var(--button-normal-base-color) calc(l - 0.05) c h);
+/* @@ */   --button-normal-primary-ink-color:         #ffffff;
+/* @@ */   --button-normal-secondary-color:           oklch(from var(--button-normal-base-color) calc(l - 0.115) c h);
+/* @@ */   --button-normal-secondary-hover-color:     color-mix(in oklab, var(--button-normal-base-color) 8%, var(--page-surface-color));
 
   /* SUCCESS — a confirming YES. RESERVED: nothing reads it today, and
      it is written today for the reason the whole file is written this
@@ -120,12 +120,12 @@
      700 — deliberately a COPY of the hex `--outcomes-won-ink-color`
      carries and not an alias of it: pressing YES is not winning, and
      tuning the color of a won game must not move a button. */
-  --button-success-base-color:               #2e7d32;
-  --button-success-primary-color:            var(--button-success-base-color);
-  --button-success-primary-hover-color:      oklch(from var(--button-success-base-color) calc(l - 0.05) c h);
-  --button-success-primary-ink-color:        #ffffff;
-  --button-success-secondary-color:          oklch(from var(--button-success-base-color) calc(l - 0.115) c h);
-  --button-success-secondary-hover-color:    color-mix(in oklab, var(--button-success-base-color) 8%, var(--page-surface-color));
+/* @@ */   --button-success-base-color:               #2e7d32;
+/* @@ */   --button-success-primary-color:            var(--button-success-base-color);
+/* @@ */   --button-success-primary-hover-color:      oklch(from var(--button-success-base-color) calc(l - 0.05) c h);
+/* @@ */   --button-success-primary-ink-color:        #ffffff;
+/* @@ */   --button-success-secondary-color:          oklch(from var(--button-success-base-color) calc(l - 0.115) c h);
+/* @@ */   --button-success-secondary-hover-color:    color-mix(in oklab, var(--button-success-base-color) 8%, var(--page-surface-color));
 
   /* DESTRUCTIVE — irreversible.
      This DELIBERATELY collides with the game-loss red: it sits 0.037
@@ -140,12 +140,12 @@
      25.1° it is both light for a red and slightly COOL of where the
      danger reds live (26–29°), and light + cool of red is salmon — so
      every lightening of it walked toward pink. */
-  --button-destructive-base-color:           #b71c1c;
-  --button-destructive-primary-color:        var(--button-destructive-base-color);
-  --button-destructive-primary-hover-color:  oklch(from var(--button-destructive-base-color) calc(l - 0.05) c h);
-  --button-destructive-primary-ink-color:    #ffffff;
-  --button-destructive-secondary-color:      oklch(from var(--button-destructive-base-color) calc(l - 0.115) c h);
-  --button-destructive-secondary-hover-color:color-mix(in oklab, var(--button-destructive-base-color) 8%, var(--page-surface-color));
+/* @@ */   --button-destructive-base-color:           #b71c1c;
+/* @@ */   --button-destructive-primary-color:        var(--button-destructive-base-color);
+/* @@ */   --button-destructive-primary-hover-color:  oklch(from var(--button-destructive-base-color) calc(l - 0.05) c h);
+/* @@ */   --button-destructive-primary-ink-color:    #ffffff;
+/* @@ */   --button-destructive-secondary-color:      oklch(from var(--button-destructive-base-color) calc(l - 0.115) c h);
+/* @@ */   --button-destructive-secondary-hover-color:color-mix(in oklab, var(--button-destructive-base-color) 8%, var(--page-surface-color));
 
   /* CAUTION — consequential, not destructive. NOT the outcome orange:
      `outcomes-warning` sits at oklab hue 69.6°, a true bright orange;
@@ -156,12 +156,12 @@
 
      Deliberately not taken any REDDER: destructive owns hue 27.5, and
      two warnings separated only by lightness would be a poor pair. */
-  --button-caution-base-color:               #d56417;
-  --button-caution-primary-color:            var(--button-caution-base-color);
-  --button-caution-primary-hover-color:      oklch(from var(--button-caution-base-color) calc(l - 0.05) c h);
-  --button-caution-primary-ink-color:        #ffffff;
-  --button-caution-secondary-color:          oklch(from var(--button-caution-base-color) calc(l - 0.115) c h);
-  --button-caution-secondary-hover-color:    color-mix(in oklab, var(--button-caution-base-color) 8%, var(--page-surface-color));
+/* @@ */   --button-caution-base-color:               #d56417;
+/* @@ */   --button-caution-primary-color:            var(--button-caution-base-color);
+/* @@ */   --button-caution-primary-hover-color:      oklch(from var(--button-caution-base-color) calc(l - 0.05) c h);
+/* @@ */   --button-caution-primary-ink-color:        #ffffff;
+/* @@ */   --button-caution-secondary-color:          oklch(from var(--button-caution-base-color) calc(l - 0.115) c h);
+/* @@ */   --button-caution-secondary-hover-color:    color-mix(in oklab, var(--button-caution-base-color) 8%, var(--page-surface-color));
 
   /* QUIET — active, but not the thing we are pointing you at. Named
      for its VOLUME rather than its purpose, because "cancel" made
@@ -173,12 +173,12 @@
      SECONDARY is the right treatment there, which says nothing about
      whether a quiet button can be filled. It can.
      (White on #737373 measures 4.74:1 — better than normal's 4.60.) */
-  --button-quiet-base-color:                 #737373;
-  --button-quiet-primary-color:              var(--button-quiet-base-color);
-  --button-quiet-primary-hover-color:        oklch(from var(--button-quiet-base-color) calc(l - 0.05) c h);
-  --button-quiet-primary-ink-color:          #ffffff;
-  --button-quiet-secondary-color:            oklch(from var(--button-quiet-base-color) calc(l - 0.115) c h);
-  --button-quiet-secondary-hover-color:      color-mix(in oklab, var(--button-quiet-base-color) 8%, var(--page-surface-color));
+/* @@ */   --button-quiet-base-color:                 #737373;
+/* @@ */   --button-quiet-primary-color:              var(--button-quiet-base-color);
+/* @@ */   --button-quiet-primary-hover-color:        oklch(from var(--button-quiet-base-color) calc(l - 0.05) c h);
+/* @@ */   --button-quiet-primary-ink-color:          #ffffff;
+/* @@ */   --button-quiet-secondary-color:            oklch(from var(--button-quiet-base-color) calc(l - 0.115) c h);
+/* @@ */   --button-quiet-secondary-hover-color:      color-mix(in oklab, var(--button-quiet-base-color) 8%, var(--page-surface-color));
 
   /* The two TREATMENT SLOTS — contract slots, not design decisions.
      `.primary` and `.secondary` must paint without knowing their
@@ -194,11 +194,11 @@
      primary defaults to NORMAL (the filled button is usually the one
      you are being pointed at); secondary defaults to QUIET (what a
      bare `.secondary` — a dialog's Cancel — should be). */
-  --button-slot-primary-color:               var(--button-normal-primary-color);
-  --button-slot-primary-hover-color:         var(--button-normal-primary-hover-color);
-  --button-slot-primary-ink-color:           var(--button-normal-primary-ink-color);
-  --button-slot-secondary-color:             var(--button-quiet-secondary-color);
-  --button-slot-secondary-hover-color:       var(--button-quiet-secondary-hover-color);
+/* @@ */   --button-slot-primary-color:               var(--button-normal-primary-color);
+/* @@ */   --button-slot-primary-hover-color:         var(--button-normal-primary-hover-color);
+/* @@ */   --button-slot-primary-ink-color:           var(--button-normal-primary-ink-color);
+/* @@ */   --button-slot-secondary-color:             var(--button-quiet-secondary-color);
+/* @@ */   --button-slot-secondary-hover-color:       var(--button-quiet-secondary-hover-color);
 
   /* ══ OUTCOMES ═══════════════════════════════════════════════════
      How a move or a game went. Seven families:
@@ -253,11 +253,11 @@
      `fill` is base exactly — the fill is what the family was designed
      from — and is written as its own cell anyway, so a future theme
      can part the two without every consumer moving. */
-  --outcomes-won-base-color:      #66bb6a;  /* green 400 */
-  --outcomes-lost-base-color:     #ef5350;  /* red 400 */
-  --outcomes-near-base-color:     #ffb74d;  /* amber 300 — gold */
-  --outcomes-warning-base-color:  #ffa726;  /* orange 400 */
-  --outcomes-neutral-base-color:  #bdbdbd;  /* gray 400 */
+/* @@ */   --outcomes-won-base-color:      #66bb6a;  /* green 400 */
+/* @@ */   --outcomes-lost-base-color:     #ef5350;  /* red 400 */
+/* @@ */   --outcomes-near-base-color:     #ffb74d;  /* amber 300 — gold */
+/* @@ */   --outcomes-warning-base-color:  #ffa726;  /* orange 400 */
+/* @@ */   --outcomes-neutral-base-color:  #bdbdbd;  /* gray 400 */
   /* THE TWO NEW FAMILIES SIT AT INK WEIGHT, not at the 400 the other
      five anchor on, and the palette page is where that gets settled.
      Each arrived with exactly one value already shipping — the blue a
@@ -266,16 +266,16 @@
      pixel-identical; the cost is that `fill` comes out as dark as `ink`
      instead of a tier lighter, which the palette will show plainly.
      Re-anchor both once we can see the families beside their siblings. */
-  --outcomes-noted-base-color:    #1976d2;  /* blue 700 — INK WEIGHT, provisional */
-  --outcomes-error-base-color:    #b71c1c;  /* red 900 — INK WEIGHT, provisional */
+/* @@ */   --outcomes-noted-base-color:    #1976d2;  /* blue 700 — INK WEIGHT, provisional */
+/* @@ */   --outcomes-error-base-color:    #b71c1c;  /* red 900 — INK WEIGHT, provisional */
 
-  --outcomes-won-fill-color:      var(--outcomes-won-base-color);
-  --outcomes-lost-fill-color:     var(--outcomes-lost-base-color);
-  --outcomes-near-fill-color:     var(--outcomes-near-base-color);
-  --outcomes-warning-fill-color:  var(--outcomes-warning-base-color);
-  --outcomes-neutral-fill-color:  var(--outcomes-neutral-base-color);
-  --outcomes-noted-fill-color:    var(--outcomes-noted-base-color);
-  --outcomes-error-fill-color:    var(--outcomes-error-base-color);
+/* @@ */   --outcomes-won-fill-color:      var(--outcomes-won-base-color);
+/* @@ */   --outcomes-lost-fill-color:     var(--outcomes-lost-base-color);
+/* @@ */   --outcomes-near-fill-color:     var(--outcomes-near-base-color);
+/* @@ */   --outcomes-warning-fill-color:  var(--outcomes-warning-base-color);
+/* @@ */   --outcomes-neutral-fill-color:  var(--outcomes-neutral-base-color);
+/* @@ */   --outcomes-noted-fill-color:    var(--outcomes-noted-base-color);
+/* @@ */   --outcomes-error-fill-color:    var(--outcomes-error-base-color);
 
   /* INK — a value per family, because this tier does NOT derive. The
      step down from base runs 0.037 to 0.305 in oklab lightness, and
@@ -285,18 +285,18 @@
      families happen to match the button step (0.115); three don't.
      The palette page prints every step, which is what makes near
      legible as the deliberate outlier. */
-  --outcomes-won-ink-color:       #2e7d32;  /* green 800 — base −0.195 L */
-  --outcomes-lost-ink-color:      #c62828;  /* red 800   — base −0.115 L */
-  --outcomes-near-ink-color:      #f9a825;  /* yellow 800 gold — base −0.037 L */
-  --outcomes-warning-ink-color:   #ef6c00;  /* orange 800 — base −0.117 L */
-  --outcomes-neutral-ink-color:   #616161;  /* gray 700  — base −0.305 L */
+/* @@ */   --outcomes-won-ink-color:       #2e7d32;  /* green 800 — base −0.195 L */
+/* @@ */   --outcomes-lost-ink-color:      #c62828;  /* red 800   — base −0.115 L */
+/* @@ */   --outcomes-near-ink-color:      #f9a825;  /* yellow 800 gold — base −0.037 L */
+/* @@ */   --outcomes-warning-ink-color:   #ef6c00;  /* orange 800 — base −0.117 L */
+/* @@ */   --outcomes-neutral-ink-color:   #616161;  /* gray 700  — base −0.305 L */
   /* The two provisional families step nowhere, because their base IS
      the ink. Written as var(base) rather than as a repeated hex so the
      day a real 400 is chosen, this cell is the one that has to be
      given a value and the compiler of last resort — your eye on the
      palette — sees a family with a zero step. */
-  --outcomes-noted-ink-color:     var(--outcomes-noted-base-color);   /* base −0 L */
-  --outcomes-error-ink-color:     var(--outcomes-error-base-color);   /* base −0 L */
+/* @@ */   --outcomes-noted-ink-color:     var(--outcomes-noted-base-color);   /* base −0 L */
+/* @@ */   --outcomes-error-ink-color:     var(--outcomes-error-base-color);   /* base −0 L */
 
   /* EDGE — the only outcome tier that derives exactly, for all five.
      84% of base on the gamma-encoded sRGB bytes, which is the step
@@ -307,13 +307,13 @@
 
      Deliberately NOT the ink tone, which is several steps down and
      reads as a harsh ring rather than as an edge. */
-  --outcomes-won-edge-color:      color-mix(in srgb, var(--outcomes-won-base-color) 84%, black);
-  --outcomes-lost-edge-color:     color-mix(in srgb, var(--outcomes-lost-base-color) 84%, black);
-  --outcomes-near-edge-color:     color-mix(in srgb, var(--outcomes-near-base-color) 84%, black);
-  --outcomes-warning-edge-color:  color-mix(in srgb, var(--outcomes-warning-base-color) 84%, black);
-  --outcomes-neutral-edge-color:  color-mix(in srgb, var(--outcomes-neutral-base-color) 84%, black);
-  --outcomes-noted-edge-color:    color-mix(in srgb, var(--outcomes-noted-base-color) 84%, black);
-  --outcomes-error-edge-color:    color-mix(in srgb, var(--outcomes-error-base-color) 84%, black);
+/* @@ */   --outcomes-won-edge-color:      color-mix(in srgb, var(--outcomes-won-base-color) 84%, black);
+/* @@ */   --outcomes-lost-edge-color:     color-mix(in srgb, var(--outcomes-lost-base-color) 84%, black);
+/* @@ */   --outcomes-near-edge-color:     color-mix(in srgb, var(--outcomes-near-base-color) 84%, black);
+/* @@ */   --outcomes-warning-edge-color:  color-mix(in srgb, var(--outcomes-warning-base-color) 84%, black);
+/* @@ */   --outcomes-neutral-edge-color:  color-mix(in srgb, var(--outcomes-neutral-base-color) 84%, black);
+/* @@ */   --outcomes-noted-edge-color:    color-mix(in srgb, var(--outcomes-noted-base-color) 84%, black);
+/* @@ */   --outcomes-error-edge-color:    color-mix(in srgb, var(--outcomes-error-base-color) 84%, black);
 
   /* WASH — a value per family, and this tier is the color pass's
      clearest piece of agenda. Three of the five reproduce as a mix
@@ -323,18 +323,18 @@
      14° and 18° off their own family's hue. Recorded as hexes rather
      than as three formulas plus two exceptions — one honest column
      beats a column that pretends to derive. */
-  --outcomes-won-wash-color:      #c8e6c9;  /* green 100  = base 37% over the card, in oklab */
-  --outcomes-lost-wash-color:     #ffcdd2;  /* red 100    — a Material 100; +14° off the family hue */
-  --outcomes-near-wash-color:     #ffecb3;  /* amber 100  — a Material 100; +18° off the family hue */
-  --outcomes-warning-wash-color:  #ffe0b2;  /* orange 100 = base 35% over the card, in sRGB */
-  --outcomes-neutral-wash-color:  #f5f5f5;  /* gray 100   = base 15% over the card, in oklab */
+/* @@ */   --outcomes-won-wash-color:      #c8e6c9;  /* green 100  = base 37% over the card, in oklab */
+/* @@ */   --outcomes-lost-wash-color:     #ffcdd2;  /* red 100    — a Material 100; +14° off the family hue */
+/* @@ */   --outcomes-near-wash-color:     #ffecb3;  /* amber 100  — a Material 100; +18° off the family hue */
+/* @@ */   --outcomes-warning-wash-color:  #ffe0b2;  /* orange 100 = base 35% over the card, in sRGB */
+/* @@ */   --outcomes-neutral-wash-color:  #f5f5f5;  /* gray 100   = base 15% over the card, in oklab */
   /* The two provisional families have no recorded wash to preserve —
      nothing paints one — so they take a mix rather than a value. 20%
      lands them in the same visual band as the five Material 100s above,
      which is what a wash has to be; it is a placeholder that looks
      right, not a fourth recipe worth keeping. */
-  --outcomes-noted-wash-color:    color-mix(in oklab, var(--outcomes-noted-base-color) 20%, var(--page-surface-color));
-  --outcomes-error-wash-color:    color-mix(in oklab, var(--outcomes-error-base-color) 20%, var(--page-surface-color));
+/* @@ */   --outcomes-noted-wash-color:    color-mix(in oklab, var(--outcomes-noted-base-color) 20%, var(--page-surface-color));
+/* @@ */   --outcomes-error-wash-color:    color-mix(in oklab, var(--outcomes-error-base-color) 20%, var(--page-surface-color));
 
   /* BAR — the turn log's left bar. Every cell is `fill` today, so this
      tier is a NAME rather than a new decision, and the name is what it
@@ -342,13 +342,13 @@
      wanting a boring turn's neutral bar to sit lighter than a neutral
      verdict tile is a real want that had nowhere to live. Written as
      its own tier so that change is one cell, not a fork. */
-  --outcomes-won-bar-color:       var(--outcomes-won-fill-color);
-  --outcomes-lost-bar-color:      var(--outcomes-lost-fill-color);
-  --outcomes-near-bar-color:      var(--outcomes-near-fill-color);
-  --outcomes-warning-bar-color:   var(--outcomes-warning-fill-color);
-  --outcomes-neutral-bar-color:   var(--outcomes-neutral-fill-color);
-  --outcomes-noted-bar-color:     var(--outcomes-noted-fill-color);
-  --outcomes-error-bar-color:     var(--outcomes-error-fill-color);
+/* @@ */   --outcomes-won-bar-color:       var(--outcomes-won-fill-color);
+/* @@ */   --outcomes-lost-bar-color:      var(--outcomes-lost-fill-color);
+/* @@ */   --outcomes-near-bar-color:      var(--outcomes-near-fill-color);
+/* @@ */   --outcomes-warning-bar-color:   var(--outcomes-warning-fill-color);
+/* @@ */   --outcomes-neutral-bar-color:   var(--outcomes-neutral-fill-color);
+/* @@ */   --outcomes-noted-bar-color:     var(--outcomes-noted-fill-color);
+/* @@ */   --outcomes-error-bar-color:     var(--outcomes-error-fill-color);
 
   /* TERMINALFRAME — the band around a finished board, drawn hard against
      the board's edge with no whitespace around it, so it has to carry
@@ -389,13 +389,13 @@
      near GAMUT-MAPS on the way out: oklch(0.45 0.105 73.5°) is outside
      sRGB, so the browser lands it at a lower chroma. That is the
      clamp, not a tweak. */
-  --outcomes-won-terminalFrame-color:      oklch(from var(--outcomes-won-base-color)     0.564 0.105 h);
-  --outcomes-lost-terminalFrame-color:     oklch(from var(--outcomes-lost-base-color)    0.45  0.105 h);
-  --outcomes-near-terminalFrame-color:     oklch(from var(--outcomes-near-base-color)    0.45  0.105 h);
-  --outcomes-warning-terminalFrame-color:  oklch(from var(--outcomes-warning-base-color) 0.45  0.105 h);
-  --outcomes-noted-terminalFrame-color:    oklch(from var(--outcomes-noted-base-color)   0.45  0.105 h);
-  --outcomes-error-terminalFrame-color:    oklch(from var(--outcomes-error-base-color)   0.45  0.105 h);
-  --outcomes-neutral-terminalFrame-color:  oklch(from var(--outcomes-neutral-base-color) 0.45  0     h);
+/* @@ */   --outcomes-won-terminalFrame-color:      oklch(from var(--outcomes-won-base-color)     0.564 0.105 h);
+/* @@ */   --outcomes-lost-terminalFrame-color:     oklch(from var(--outcomes-lost-base-color)    0.45  0.105 h);
+/* @@ */   --outcomes-near-terminalFrame-color:     oklch(from var(--outcomes-near-base-color)    0.45  0.105 h);
+/* @@ */   --outcomes-warning-terminalFrame-color:  oklch(from var(--outcomes-warning-base-color) 0.45  0.105 h);
+/* @@ */   --outcomes-noted-terminalFrame-color:    oklch(from var(--outcomes-noted-base-color)   0.45  0.105 h);
+/* @@ */   --outcomes-error-terminalFrame-color:    oklch(from var(--outcomes-error-base-color)   0.45  0.105 h);
+/* @@ */   --outcomes-neutral-terminalFrame-color:  oklch(from var(--outcomes-neutral-base-color) 0.45  0     h);
 
   /* ══ PILL ═══════════════════════════════════════════════════════
      The feedback pill — in the header (what other players are doing)
@@ -440,37 +440,37 @@
      is a structural pass. It is the color pass's to reconcile, along
      with the fact that a tint and the outcome `wash` are two answers
      to one question at two different strengths. */
-  --pill-won-color:      var(--outcomes-won-ink-color);
-  --pill-lost-color:     var(--outcomes-lost-ink-color);
-  --pill-near-color:     var(--outcomes-near-ink-color);
-  --pill-warning-color:  var(--outcomes-warning-ink-color);
-  --pill-neutral-color:  var(--outcomes-neutral-ink-color);
-  --pill-noted-color:    var(--outcomes-noted-ink-color);
-  --pill-error-color:    var(--outcomes-error-ink-color);
+/* @@ */   --pill-won-color:      var(--outcomes-won-ink-color);
+/* @@ */   --pill-lost-color:     var(--outcomes-lost-ink-color);
+/* @@ */   --pill-near-color:     var(--outcomes-near-ink-color);
+/* @@ */   --pill-warning-color:  var(--outcomes-warning-ink-color);
+/* @@ */   --pill-neutral-color:  var(--outcomes-neutral-ink-color);
+/* @@ */   --pill-noted-color:    var(--outcomes-noted-ink-color);
+/* @@ */   --pill-error-color:    var(--outcomes-error-ink-color);
 
-  --pill-won-tint-color:      color-mix(in oklab, var(--outcomes-won-base-color) 18%, var(--page-surface-color));
-  --pill-lost-tint-color:     color-mix(in oklab, var(--outcomes-lost-base-color) 18%, var(--page-surface-color));
-  --pill-near-tint-color:     color-mix(in oklab, var(--outcomes-near-base-color) 18%, var(--page-surface-color));
-  --pill-warning-tint-color:  color-mix(in oklab, var(--outcomes-warning-base-color) 18%, var(--page-surface-color));
+/* @@ */   --pill-won-tint-color:      color-mix(in oklab, var(--outcomes-won-base-color) 18%, var(--page-surface-color));
+/* @@ */   --pill-lost-tint-color:     color-mix(in oklab, var(--outcomes-lost-base-color) 18%, var(--page-surface-color));
+/* @@ */   --pill-near-tint-color:     color-mix(in oklab, var(--outcomes-near-base-color) 18%, var(--page-surface-color));
+/* @@ */   --pill-warning-tint-color:  color-mix(in oklab, var(--outcomes-warning-base-color) 18%, var(--page-surface-color));
   /* Neutral has no tone to carry recognition, so the BORDER does the
      whole job of saying "this is a feedback pill" — and its tint is
      the plain surface, on purpose: the one pill that says nothing
      should look like it. Written as a cell rather than left out, so
      the family stays a rectangle. */
-  --pill-neutral-tint-color:  var(--page-surface-color);
-  --pill-noted-tint-color:    color-mix(in oklab, var(--outcomes-noted-base-color) 8%, var(--page-surface-color));
-  --pill-error-tint-color:    color-mix(in oklab, var(--outcomes-error-base-color) 8%, var(--page-surface-color));
+/* @@ */   --pill-neutral-tint-color:  var(--page-surface-color);
+/* @@ */   --pill-noted-tint-color:    color-mix(in oklab, var(--outcomes-noted-base-color) 8%, var(--page-surface-color));
+/* @@ */   --pill-error-tint-color:    color-mix(in oklab, var(--outcomes-error-base-color) 8%, var(--page-surface-color));
 
   /* One value, seven cells. Not an alias chain and not a single shared
      token: each tone owns its ink so any one of them can move alone,
      which is the whole reason for writing the column out. */
-  --pill-won-ink-color:       var(--page-text-color);
-  --pill-lost-ink-color:      var(--page-text-color);
-  --pill-near-ink-color:      var(--page-text-color);
-  --pill-warning-ink-color:   var(--page-text-color);
-  --pill-neutral-ink-color:   var(--page-text-color);
-  --pill-noted-ink-color:     var(--page-text-color);
-  --pill-error-ink-color:     var(--page-text-color);
+/* @@ */   --pill-won-ink-color:       var(--page-text-color);
+/* @@ */   --pill-lost-ink-color:      var(--page-text-color);
+/* @@ */   --pill-near-ink-color:      var(--page-text-color);
+/* @@ */   --pill-warning-ink-color:   var(--page-text-color);
+/* @@ */   --pill-neutral-ink-color:   var(--page-text-color);
+/* @@ */   --pill-noted-ink-color:     var(--page-text-color);
+/* @@ */   --pill-error-ink-color:     var(--page-text-color);
 
   /* ══ TILE ═══════════════════════════════════════════════════════
      The warm tile ramp — the canonical look every game's word / letter
@@ -498,12 +498,12 @@
      measured across all sixteen games, every unclickable piece shows a
      STATE instead, and setgame overrides the global dim because
      dimming a card "reads as a different card". */
-  --tile-1-fill-color:      #faf7ef;   --tile-1-edge-color:      #ead8ae;
-  --tile-2-fill-color:      #f6efdf;   --tile-2-edge-color:      #e5d09e;
-  --tile-3-fill-color:      #f2e8ce;   --tile-3-edge-color:      #e1c88e;  /* NORMAL */
-  --tile-4-fill-color:      #eadbb8;   --tile-4-edge-color:      #dabc77;
-  --tile-5-fill-color:      #e3cfa1;   --tile-5-edge-color:      #d2b060;
-  --tile-spent-fill-color:  #cbb476;   --tile-spent-edge-color:  #ac8f4c;
+/* @@ */   --tile-1-fill-color:      #faf7ef;   --tile-1-edge-color:      #ead8ae;
+/* @@ */   --tile-2-fill-color:      #f6efdf;   --tile-2-edge-color:      #e5d09e;
+/* @@ */   --tile-3-fill-color:      #f2e8ce;   --tile-3-edge-color:      #e1c88e;  /* NORMAL */
+/* @@ */   --tile-4-fill-color:      #eadbb8;   --tile-4-edge-color:      #dabc77;
+/* @@ */   --tile-5-fill-color:      #e3cfa1;   --tile-5-edge-color:      #d2b060;
+/* @@ */   --tile-spent-fill-color:  #cbb476;   --tile-spent-edge-color:  #ac8f4c;
 
   /* The three TILE SLOTS — contract slots, not design decisions. The
      shared `.tile` reads ONLY these for its colors, so a game restyles
@@ -511,9 +511,9 @@
      stylesheet, and a state class does the same. Defaulted here to
      shade 3 and a near-black ink, which is what an unstyled tile is.
      Games overwrite them constantly; that is the mechanism working. */
-  --tile-slot-fill-color:  var(--tile-3-fill-color);
-  --tile-slot-edge-color:  var(--tile-3-edge-color);
-  --tile-slot-ink-color:   #1a1a1a;
+/* @@ */   --tile-slot-fill-color:  var(--tile-3-fill-color);
+/* @@ */   --tile-slot-edge-color:  var(--tile-3-edge-color);
+/* @@ */   --tile-slot-ink-color:   #1a1a1a;
 
   /* BLACK, not a darker shade of whatever the tile already is.
      Selection has to be unmistakable at a glance across a board of
@@ -523,7 +523,7 @@
      nothing else on a board, which is what makes it legible on all of
      them. (The WIDTH is the selected channel; it lives in
      standards.css beside the resting width it is tuned against.) */
-  --tile-selected-edge-color:  #000000;
+/* @@ */   --tile-selected-edge-color:  #000000;
 
   /* ══ BOARD ══════════════════════════════════════════════════════
      The ground a game piece casts its shadow onto.
@@ -539,7 +539,7 @@
      page is dark — see themes/midnight.css → BOARD, where the same
      role has to be a real color. A board with no ground on a dark page
      has shadows that measure 5 units out of 255, which is to say none. */
-  --board-ground-color:  transparent;
+/* @@ */   --board-ground-color:  transparent;
 
   /* ══ KBD ════════════════════════════════════════════════════════
      The on-screen keyboard's own chrome (wordle + wordiply). The
@@ -560,10 +560,10 @@
      neighbours, so the shadow has little room to read. Going white
      rather than tinting keeps it a lightness change, so it can't be
      read as a state. */
-  --kbd-key-fill-color:        #fdfbf6;
-  --kbd-key-hover-fill-color:  #ffffff;
-  --kbd-key-ink-color:         var(--page-text-color);
-  --kbd-key-edge-color:        #767a7f;
+/* @@ */   --kbd-key-fill-color:        #fdfbf6;
+/* @@ */   --kbd-key-hover-fill-color:  #ffffff;
+/* @@ */   --kbd-key-ink-color:         var(--page-text-color);
+/* @@ */   --kbd-key-edge-color:        #767a7f;
 
   /* ══ WORDLE INK ═════════════════════════════════════════════════
      The ink each judged letter surface carries — a board tile, a
@@ -580,9 +580,9 @@
 
      One cell per kind, not one shared value, so that when a fill is
      retuned only its own ink has to follow. */
-  --wordle-green-ink-color:   var(--ink-onDark-color);
-  --wordle-yellow-ink-color:  var(--ink-onDark-color);
-  --wordle-gray-ink-color:    var(--ink-onDark-color);
+/* @@ */   --wordle-green-ink-color:   var(--ink-onDark-color);
+/* @@ */   --wordle-yellow-ink-color:  var(--ink-onDark-color);
+/* @@ */   --wordle-gray-ink-color:    var(--ink-onDark-color);
 
   /* ══ RANK ═══════════════════════════════════════════════════════
      The shared <RankBar> (spellingbee + wordwheel). ONE palette for
@@ -592,8 +592,8 @@
      goal-square marker is deliberately not in this family — it is
      `--page-text-color`, so it reads as a mark ON the ladder rather
      than as another rung state. */
-  --rank-bar-fill-color:  #f7da21;
-  --rank-bar-edge-color:  #ddab35;
+/* @@ */   --rank-bar-fill-color:  #f7da21;
+/* @@ */   --rank-bar-edge-color:  #ddab35;
 
   /* ══ MARK ═══════════════════════════════════════════════════════
      What a surface wears TEMPORARILY to say something about itself.
@@ -612,15 +612,15 @@
      neither side of itself, and on a green tile it comes out sickly
      rather than urgent. The state is not lost by covering it for a
      second, because the fade hands it straight back. */
-  --mark-attention-board-color:  #ffd21a;
-  --mark-attention-tile-color:   var(--mark-attention-board-color);
+/* @@ */   --mark-attention-board-color:  #ffd21a;
+/* @@ */   --mark-attention-tile-color:   var(--mark-attention-board-color);
 
   /* The keyboard / crossword ENTRY cursor ring on a tile grid
      (scrabble, bananagrams, future grid games). A slightly-orange
      brown — deliberately NOT red or blue, since scrabble's premium
      squares already use those. Shared so the cursor reads the same
      across grid-entry games. */
-  --mark-gridCursor-color:  #c9881f;
+/* @@ */   --mark-gridCursor-color:  #c9881f;
 
   /* ══ VIEW ═══════════════════════════════════════════════════════
      "You are not looking at the live board." Two of them, wearing the
@@ -643,9 +643,9 @@
 
      The BANNER is the page's own ink at 10% — a wash rather than a
      color of its own. */
-  --view-history-color:         #4a7bab;
-  --view-sharePreview-color:    #ffd21a;
-  --view-history-banner-color:  color-mix(in oklab, var(--page-text-color) 10%, var(--page-surface-color));
+/* @@ */   --view-history-color:         #4a7bab;
+/* @@ */   --view-sharePreview-color:    #ffd21a;
+/* @@ */   --view-history-banner-color:  color-mix(in oklab, var(--page-text-color) 10%, var(--page-surface-color));
 
   /* ══ CHROME ═════════════════════════════════════════════════════
      App furniture that isn't a button, a field or a game surface.
@@ -666,30 +666,30 @@
      because "this will delete something" and "something broke" are
      different messages that happen to agree today. Error UI is
      canonically-and-permanently red. */
-  --chrome-fault-color:          #b71c1c;
+/* @@ */   --chrome-fault-color:          #b71c1c;
   /* CURSOR — where the keyboard is pointing in a list or a button set. */
-  --chrome-cursor-color:         #1976d2;
+/* @@ */   --chrome-cursor-color:         #1976d2;
   /* CARET — the simulated text cursor the capture-input games draw,
      standing in for the blinking caret a real <input> would give. */
-  --chrome-caret-color:          #1976d2;
+/* @@ */   --chrome-caret-color:          #1976d2;
   /* LINK — an anchor, and `.link-button` (a <button> that looks like
      one). */
-  --chrome-link-color:           #1976d2;
-  --chrome-link-hover-color:     #0067c1;
+/* @@ */   --chrome-link-color:           #1976d2;
+/* @@ */   --chrome-link-hover-color:     #0067c1;
   /* BADGE — a small outlined label on a list row (Home's SOLO). Filed
      under chrome as app furniture rather than under gamelist, which is
      about a GAME's state in a list; this marks a club. */
-  --chrome-badge-color:          #1976d2;
+/* @@ */   --chrome-badge-color:          #1976d2;
   /* DEFINABLE — the hover cue on a click-to-define word. The shared
      `.definable` rule underlines, and only wordle's log needs a color
      at all: its words are rendered as letter SQUARES, which can't take
      an underline, so it rings them instead. Worth asking whether that
      ring should simply be `currentColor`. */
-  --chrome-definable-ring-color: #1976d2;
+/* @@ */   --chrome-definable-ring-color: #1976d2;
   /* The translucent surface a control floating OVER a board takes, so
      a little of the tiles shows through and it doesn't read as an
      opaque patch stuck on top (the Shuffle button). */
-  --chrome-floatingControl-fill-color: color-mix(in oklab, var(--page-surface-color) 65%, transparent);
+/* @@ */   --chrome-floatingControl-fill-color: color-mix(in oklab, var(--page-surface-color) 65%, transparent);
 
   /* ══ GAMELIST ═══════════════════════════════════════════════════
      The state of a game as an object in a LIST — the club page's cards
@@ -708,17 +708,17 @@
      as its own state — the crossword picker folds "ended manually"
      into the suspended stripe. It gets minted when crosswords converts
      and that fold is unpicked. */
-  --gamelist-won-color:        var(--outcomes-won-fill-color);
-  --gamelist-lost-color:       var(--outcomes-lost-fill-color);
-  --gamelist-suspended-color:  #fdd835;  /* yellow 600 */
-  --gamelist-current-color:    #fb8c00;  /* orange 600 */
+/* @@ */   --gamelist-won-color:        var(--outcomes-won-fill-color);
+/* @@ */   --gamelist-lost-color:       var(--outcomes-lost-fill-color);
+/* @@ */   --gamelist-suspended-color:  #fdd835;  /* yellow 600 */
+/* @@ */   --gamelist-current-color:    #fb8c00;  /* orange 600 */
   /* Nobody here has played this puzzle. A COPY of the neutral wash
      rather than an alias: a 4px stripe on a long list wants its own
      lightness, and "no outcome" is a different statement from "a
      neutral outcome". Near-white on purpose, since most of a library
      is unplayed and a mid-gray stripe on every row would be noise
      competing with the real colors. */
-  --gamelist-unplayed-color:   #f5f5f5;  /* gray 100 */
+/* @@ */   --gamelist-unplayed-color:   #f5f5f5;  /* gray 100 */
 
   /* ══ GAMEMODE ═══════════════════════════════════════════════════
      "Co-op" vs "Compete", shown next to a gametype's name (ModePill).
@@ -731,8 +731,8 @@
      These two are also the app's designated ONE-OFF pair: treat teal
      and purple as fully built out and flexible, so a rare need doesn't
      mint a new color. */
-  --gamemode-coop-ink-color:     #00695c;  /* teal 800 */
-  --gamemode-compete-ink-color:  #6a1b9a;  /* purple 800 */
+/* @@ */   --gamemode-coop-ink-color:     #00695c;  /* teal 800 */
+/* @@ */   --gamemode-compete-ink-color:  #6a1b9a;  /* purple 800 */
 
   /* ══ TOAST ══════════════════════════════════════════════════════
      A toast's left stripe — the whole of a toast's color; the message
@@ -746,9 +746,9 @@
      SUCCESS IS THE EXCEPTION and stays a COPY: buttons have a success
      family now, but a toast saying an import finished is not a button
      you can press, and it is not a game being won either. */
-  --toast-info-stripe-color:     var(--button-normal-primary-color);
-  --toast-success-stripe-color:  #2e7d32;
-  --toast-error-stripe-color:    var(--chrome-fault-color);
+/* @@ */   --toast-info-stripe-color:     var(--button-normal-primary-color);
+/* @@ */   --toast-success-stripe-color:  #2e7d32;
+/* @@ */   --toast-error-stripe-color:    var(--chrome-fault-color);
 
   /* ══ INK ════════════════════════════════════════════════════════
      Ink for a filled verdict. The fill itself is not a token of its
@@ -757,16 +757,16 @@
      drawn. Only the ink has to be decided, and the tones don't agree:
      white on the red, dark on the orange and the gold, which is where
      each stays legible. Ink follows the background it sits on. */
-  --ink-onDark-color:   #ffffff;
-  --ink-onLight-color:  var(--page-text-color);
+/* @@ */   --ink-onDark-color:   #ffffff;
+/* @@ */   --ink-onLight-color:  var(--page-text-color);
 
   /* A character the entry row will reject — grayed past
      `--page-text-muted-color`, which is still readable body text. */
-  --entry-illegal-ink-color:  #aaaaaa;
+/* @@ */   --entry-illegal-ink-color:  #aaaaaa;
 
   /* Ink for the PRINT stylesheet (base.css). Its own name because
      print is its own medium — near-black on paper rather than the
      screen's `--page-text-color`, which is tuned against a near-white
      page. */
-  --print-ink-color:  #111111;
+/* @@ */   --print-ink-color:  #111111;
 }

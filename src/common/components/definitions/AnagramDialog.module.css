@@ -5,7 +5,7 @@
  * and the scrolling result list. The search row + input + button rules
  * mirror WordLookupDialog.module.css — same family, same look. */
 
-.content {
+/* @@ */ .content {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -15,12 +15,12 @@
   min-height: 0;
 }
 
-.form {
+/* @@ */ .form {
   display: flex;
   gap: 0.4rem;
 }
 
-.input {
+/* @@ */ .input {
   flex: 1 1 auto;
   min-width: 0;
   padding: 0.4rem 0.55rem;
@@ -34,12 +34,12 @@
 /* iOS focus-zoom floor (docs/mobile.md → Decisions #3) — same rule as the
  * word-lookup input: under 16px a phone zooms in on focus and stays there. */
 @media (--touch) {
-  .input {
+/* @@ */   .input {
     font-size: max(16px, 1em);
   }
 }
 
-.input:focus {
+/* @@ */ .input:focus {
   outline: var(--chrome-cursor-ring);
   outline-offset: -1px;
 }
@@ -47,15 +47,15 @@
 /* Layout only. The chrome is the shared `button primary` (theme.css) — this used
    to re-declare the action fill, its border, the radius and its own hover, which
    is the same duplication the button sweep removed everywhere else. */
-.button {
+/* @@ */ .button {
   flex: 0 0 auto;
 }
 
-.button:hover {
+/* @@ */ .button:hover {
   background: var(--button-normal-primary-hover-color);
 }
 
-.button:disabled {
+/* @@ */ .button:disabled {
   opacity: 0.6;
   /* not-allowed, not default: this is still a control, it just won't take the
      press right now. `default` says "this isn't a button", which is the message
@@ -64,19 +64,19 @@
 }
 
 /* The syntax line — instructional chrome, not content, so muted. */
-.hint {
+/* @@ */ .hint {
   margin: 0;
   font-size: 0.75rem;
   color: var(--page-text-muted-color);
 }
 
-.error {
+/* @@ */ .error {
   margin: 0;
   font-size: 0.85rem;
   color: var(--chrome-fault-color);
 }
 
-.count {
+/* @@ */ .count {
   margin: 0;
   font-size: 0.8rem;
   color: var(--page-text-muted-color);
@@ -85,7 +85,7 @@
 /* The result list: the one flexible child, scrolling INSIDE the panel —
  * min-height: 0 is what lets flex actually bound it (without it the list
  * pushes the panel taller and nothing scrolls). */
-.list {
+/* @@ */ .list {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
@@ -95,7 +95,7 @@
   border-top: 1px solid var(--page-surface-border-color);
 }
 
-.row {
+/* @@ */ .row {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
@@ -103,7 +103,7 @@
   padding: 0.15rem 0.25rem;
 }
 
-.word {
+/* @@ */ .word {
   font-size: 0.95rem;
   color: var(--page-text-color);
   cursor: pointer;
@@ -111,7 +111,7 @@
 
 /* The band number — context beside the word, muted BY REQUEST (the spec
  * asked for it muted; not the don't-default-to-muted case). */
-.band {
+/* @@ */ .band {
   font-size: 0.8rem;
   color: var(--page-text-muted-color);
   font-variant-numeric: tabular-nums;

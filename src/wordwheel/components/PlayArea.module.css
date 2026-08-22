@@ -15,9 +15,9 @@
  * to 999rem (don't comment the knob OUT: the token must stay defined, or the
  * cssTokens guard trips on the now-undefined var() reference in the shared
  * module). */
-.layout {
-  --board-units-w: 300;
-  --board-units-h: 300;
-  --board-units-cap: 300;
-  --max-board-size: 30rem;
+/* @@ */ .layout {
+/* @@ */   --board-units-w: 300;
+/* @@ */   --board-units-h: 300;
+/* @@ */   --board-units-cap: 300;
+/* @@ */   --max-board-size: 30rem;
 }

@@ -5,10 +5,10 @@
  * a club row. The badge paints no color, so all that's left here is which color
  * each mode takes. Deliberately outside the won/lost/active outcome palette, so
  * a mode never reads as a result. */
-.coop {
+/* @@ */ .coop {
   color: var(--gamemode-coop-ink-color);
 }
 
-.compete {
+/* @@ */ .compete {
   color: var(--gamemode-compete-ink-color);
 }

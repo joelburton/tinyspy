@@ -16,7 +16,7 @@
  * stay at their intrinsic sizes.
  */
 
-.frame {
+/* @@ */ .frame {
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -27,7 +27,7 @@
  * scratchpad bubble. Grouped in one flex item so the pair sits tighter than
  * the header's 0.75rem gap — the two are related in purpose (each toggles a
  * floating panel), and the closeness is what signals that. */
-.panelToggles {
+/* @@ */ .panelToggles {
   display: flex;
   align-items: center;
   gap: 0.1rem;
@@ -35,7 +35,7 @@
 
 /* The countdown / count-up display. Tabular-nums so MM:SS digits
  * don't shift the right edge as they tick. */
-.timer {
+/* @@ */ .timer {
   font-variant-numeric: tabular-nums;
   font-weight: 600;
   color: var(--page-text-color);

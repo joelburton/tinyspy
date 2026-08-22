@@ -7,7 +7,7 @@
  * as the local-feedback slot) beneath them; a slim chrome strip
  * (state · actions · setup) at the bottom of the right column. The page
  * itself never scrolls — the clue lists scroll internally. */
-.wrap {
+/* @@ */ .wrap {
   display: flex;
   flex-direction: column;
   /* Fixed to the viewport (like the shared .layout) so the min-height:0 chain
@@ -18,7 +18,7 @@
   overflow: hidden;
 }
 
-.layout {
+/* @@ */ .layout {
   display: grid;
   /* board = intrinsic width (min-content, NOT auto — a long unbreakable
    * clue in the right column must not grow the board column out from
@@ -30,7 +30,7 @@
   min-height: 0;
 }
 
-.boardSlot {
+/* @@ */ .boardSlot {
   grid-column: 1;
   grid-row: 1 / 4; /* span all rows so the board gets full height */
   min-width: 0;
@@ -38,7 +38,7 @@
   display: flex;
 }
 
-.clues {
+/* @@ */ .clues {
   grid-column: 2;
   grid-row: 1;
   display: grid;
@@ -51,7 +51,7 @@
 /* Active-clue bar — a fixed 3-line reserved height so the layout never
  * reflows as the cursor crosses short/long clues (which also gives the
  * local-feedback pill a fixed-height home, per the plan). */
-.activeClue {
+/* @@ */ .activeClue {
   grid-column: 2;
   grid-row: 2;
   display: flex;
@@ -67,12 +67,12 @@
   min-height: calc(3 * 1.35em + 0.3rem);
   min-width: 0;
 }
-.activeClueLabel {
+/* @@ */ .activeClueLabel {
   font-weight: 700;
   color: var(--crosswords-clue-label);
   flex-shrink: 0;
 }
-.activeClueText {
+/* @@ */ .activeClueText {
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
@@ -81,7 +81,7 @@
   min-width: 0;
 }
 
-.strip {
+/* @@ */ .strip {
   grid-column: 2;
   grid-row: 3;
   display: flex;
@@ -91,18 +91,18 @@
 /* The tool row. Everything in it — the fill toggle, check/reveal, and the
  * End / Concede action — is laid out by <Controls>, which owns the grouping
  * and the rules between groups (Controls.module.css). */
-.toolRow {
+/* @@ */ .toolRow {
   display: flex;
   align-items: center;
   gap: 0.8rem;
 }
-.actions {
+/* @@ */ .actions {
   display: flex;
   gap: 0.5rem;
   align-items: center;
 }
 
-.loading {
+/* @@ */ .loading {
   flex: 1;
   display: flex;
   align-items: center;
@@ -111,7 +111,7 @@
 
 /* Desktop: the sheet wrapper chain (InfoSheet .wrap → .sheetContent) generates
  * no boxes, so .clues / .strip stay grid items of .layout exactly as before. */
-.sheetContent {
+/* @@ */ .sheetContent {
   display: contents;
 }
 
@@ -122,37 +122,37 @@
  * Keyboard-required still holds; this is the tablet/phone-with-a-keyboard
  * layout, not a touch-entry mode. */
 @media (--mobile) {
-  .layout {
+/* @@ */   .layout {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
   }
   /* No flex-grow: the active-clue bar hugs the grid's bottom edge (the eyes
    * stay on the cursor ↔ clue pair); leftover height falls below the bar. */
-  .boardSlot {
+/* @@ */   .boardSlot {
     flex: 0 1 auto;
     min-height: 0;
     justify-content: center;
   }
   /* 2 reserved lines on a tablet (wide enough that a clamped clue is rare),
    * back at the compact size (the bar sits right under the grid here). */
-  .activeClue {
+/* @@ */   .activeClue {
     font-size: 1.05rem;
     min-height: calc(2 * 1.35em + 0.3rem);
   }
-  .activeClueText {
+/* @@ */   .activeClueText {
     -webkit-line-clamp: 2;
     line-clamp: 2;
   }
   /* The sheet interior: a real column — the clue lists fill + scroll
    * internally, the controls strip sits below them. */
-  .sheetContent {
+/* @@ */   .sheetContent {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
     min-height: 0;
   }
-  .clues {
+/* @@ */   .clues {
     flex: 1;
     min-height: 0;
   }
@@ -160,10 +160,10 @@
 
 /* …3 reserved lines on a phone (narrower → the same clue wraps more). */
 @media (--phone) {
-  .activeClue {
+/* @@ */   .activeClue {
     min-height: calc(3 * 1.35em + 0.3rem);
   }
-  .activeClueText {
+/* @@ */   .activeClueText {
     -webkit-line-clamp: 3;
     line-clamp: 3;
   }

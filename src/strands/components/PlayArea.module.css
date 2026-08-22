@@ -21,7 +21,7 @@
  *
  * The three terms: the vertical room left above the below-board stack, the
  * per-tile cap, and whatever height the available WIDTH can afford at 6/8. */
-.layout {
+/* @@ */ .layout {
   /* A FIXED info column, like wordle / connections / waffle. strands does NOT
    * compose the shared `.responsiveInfoCol` — that one is for the three
    * WORD-LIST games (spellingbee / wordwheel / boggle), whose multi-column list
@@ -30,23 +30,23 @@
    * corner. The scaffold has no default on purpose, so declaring it is
    * mandatory: leave it out and --avail-w is invalid at computed-value time,
    * which silently collapses the board to zero height rather than erroring. */
-  --info-col-width: 22rem;
-  --max-tile-size: 6rem;
+/* @@ */   --info-col-width: 22rem;
+/* @@ */   --max-tile-size: 6rem;
   /* The board's own chrome: 0.9rem padding a side + a 2px border a side. Keep
    * in sync with `.board` in Board.module.css — they describe one box. */
-  --board-frame: 2.05rem;
+/* @@ */   --board-frame: 2.05rem;
   /* The below-board stack: the echo/pill slot (2.5rem) + the hint row (2.25rem)
    * + two 0.75rem column gaps, plus ~1rem of breathing room. Keep in sync with
    * `.echoSlot` and HintBar.module.css. */
-  --avail-h: calc(100svh - var(--game-chrome-height) - 8.25rem);
-  --board-h: min(
+/* @@ */   --avail-h: calc(100svh - var(--game-chrome-height) - 8.25rem);
+/* @@ */   --board-h: min(
     calc(var(--avail-h) - var(--board-frame)),
     calc(8 * var(--max-tile-size)),
     calc((var(--avail-w) - var(--board-frame)) * 8 / 6)
   );
 }
 
-.loading {
+/* @@ */ .loading {
   padding: 2rem;
   color: var(--page-text-muted-color);
 }
@@ -56,7 +56,7 @@
  * one did, never both. Fixed height because it empties between traces, and a
  * collapsing slot would bounce the board on every submission (docs/ui.md →
  * Layout stability, and the no-reflow rule). */
-.echoSlot {
+/* @@ */ .echoSlot {
   min-height: 2.5rem;
   display: flex;
   align-items: center;
@@ -78,8 +78,8 @@
  * it already read at. `--entryBox-font-size` rather than a raw `font-size`
  * because the shared caret's height tracks that variable — setting the property
  * directly would leave the caret at the default size beside a bigger word. */
-.echo {
-  --entryBox-font-size: 1.75rem;
+/* @@ */ .echo {
+/* @@ */   --entryBox-font-size: 1.75rem;
   letter-spacing: 0.08em;
   color: var(--strands-theme);
 }
@@ -87,11 +87,11 @@
 /* The move row spans the slot, so the EntryBox between the buttons flex-fills
  * exactly as it does in every other game. Without this the row hugs its content
  * (the slot centers it) and the buttons crowd a one-letter word. */
-.moveRow {
+/* @@ */ .moveRow {
   width: 100%;
 }
 
-.clue {
+/* @@ */ .clue {
   margin: 0 0 0.5rem;
   font-size: 1.05rem;
   font-weight: 600;
@@ -100,7 +100,7 @@
 
 /* Hints-used, appended to the progress line. Muted because it's a footnote on
  * the count, not a second stat competing with it. */
-.hintsUsed {
+/* @@ */ .hintsUsed {
   color: var(--page-text-muted-color);
 }
 
@@ -108,7 +108,7 @@
    sentence: they're a LIST — spangram first, then the rest — and a phone's
    column is narrow enough that eight of them need somewhere to break. The gap
    is what separates them, so no punctuation has to. */
-.solutionWords {
+/* @@ */ .solutionWords {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;

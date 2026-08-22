@@ -7,14 +7,14 @@
  * the two dialogs read as siblings. */
 
 /* Scrollable checkbox list — one row per registered gametype. */
-.games {
+/* @@ */ .games {
   margin: 0;
   padding: 0.6rem 0.75rem;
   border: 1px solid var(--page-surface-border-color);
   border-radius: var(--radius-md);
 }
 
-.gamesLegend {
+/* @@ */ .gamesLegend {
   padding: 0 0.35rem;
   font-size: 0.8rem;
   font-weight: 600;
@@ -23,7 +23,7 @@
   color: var(--page-text-muted-color);
 }
 
-.gameRow {
+/* @@ */ .gameRow {
   display: flex;
   align-items: flex-start;
   gap: 0.5rem;
@@ -32,17 +32,17 @@
 }
 
 /* The label + description stack to the right of the checkbox. */
-.gameText {
+/* @@ */ .gameText {
   display: flex;
   flex-direction: column;
   line-height: 1.25;
 }
 
-.gameName {
+/* @@ */ .gameName {
   font-weight: 600;
 }
 
-.gameDesc {
+/* @@ */ .gameDesc {
   font-size: 0.85rem;
   color: var(--page-text-muted-color);
 }

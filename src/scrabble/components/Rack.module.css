@@ -1,6 +1,6 @@
 /* cs-unmet */
 
-.rack {
+/* @@ */ .rack {
   display: flex;
   flex-wrap: nowrap;
   justify-content: flex-start;
@@ -18,7 +18,7 @@
   min-height: calc(var(--rack-tile-size) + 2 * 8px);
 }
 
-.tile {
+/* @@ */ .tile {
   position: relative;
   flex: 0 0 auto;
   width: var(--rack-tile-size);
@@ -36,28 +36,28 @@
 }
 /* An unplaced blank shows a faint "?" where its letter will go (it has no
    letter until it's placed and declared) — see Rack.tsx. */
-.tile.blank .letter {
+/* @@ */ .tile.blank .letter {
   opacity: 0.4;
 }
 /* A hand tile that's currently placed on the board — shown in the darker
    "disabled" warm shade so it reads as "in use / on the board", not faded out. */
-.tile.used {
+/* @@ */ .tile.used {
   background: var(--tile-spent-fill-color);
   border-color: var(--tile-spent-edge-color);
   cursor: default;
 }
-.tile.selected {
+/* @@ */ .tile.selected {
   background: var(--scrabble-tile-selected);
   transform: translateY(-4px);
 }
 /* A freshly-drawn tile: yellow outline for ~1s. */
-.tile.flashNew {
+/* @@ */ .tile.flashNew {
   outline: 3px solid var(--scrabble-rack-selected-outline-color);
   outline-offset: 1px;
 }
 
 /* MUST stay in sync with Board.module.css's .letter / .value. */
-.letter {
+/* @@ */ .letter {
   position: absolute;
   top: 14%;
   /* Centered (glyph midpoint), nudged a hair left — see Board.module.css. */
@@ -67,7 +67,7 @@
   font-weight: 700;
   line-height: 1;
 }
-.value {
+/* @@ */ .value {
   position: absolute;
   right: 8%;
   bottom: 4%;

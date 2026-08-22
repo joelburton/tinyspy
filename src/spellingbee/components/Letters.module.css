@@ -19,7 +19,7 @@
 /* The board wrapper: no tray (no border/background) — the hexes carry their own
  * shape — just the structural element between .boardCol and the .grid, centering
  * the grid horizontally. */
-.board {
+/* @@ */ .board {
   display: flex;
   justify-content: center;
 }
@@ -27,7 +27,7 @@
 /* Shrink-wraps the hive svg exactly (a flex child hugs its content) and anchors
  * the floating shuffle control (`floatingControl` prop), so the float hugs the
  * VISUAL hive's top-right — not `.board`, which stretches to the column width. */
-.floatAnchor {
+/* @@ */ .floatAnchor {
   position: relative;
 }
 
@@ -35,7 +35,7 @@
  * now the <svg> itself. `--u` (one unit) is defined on .boardCol so the below-board
  * input row reads the board width from the same source. `overflow: visible` lets
  * the outermost hexes' strokes / focus rings paint past the viewBox edge. */
-.grid {
+/* @@ */ .grid {
   display: block;
   width: calc(256 * var(--u));
   height: calc(267 * var(--u));
@@ -68,19 +68,19 @@
  * role/tabindex/keydown). Hover dims the whole hex; press scales it about its OWN
  * center — transform-box/-origin, since an SVG transform is otherwise about the
  * viewBox origin. */
-.hex {
+/* @@ */ .hex {
   cursor: pointer;
   transform-box: fill-box;
   transform-origin: center;
   transition: transform 80ms ease, filter 80ms ease;
 }
-.hex:hover {
+/* @@ */ .hex:hover {
   filter: brightness(0.96);
 }
-.hex:active {
+/* @@ */ .hex:active {
   transform: scale(0.9);
 }
-.hex:focus {
+/* @@ */ .hex:focus {
   outline: none;
 }
 
@@ -90,13 +90,13 @@
  * tile replays it. Base opacity 0 so it's invisible between taps; the one-shot
  * animation fades from bright to that 0 (no `forwards` needed, since it ends at
  * the base). */
-.hexFlash {
+/* @@ */ .hexFlash {
   fill: var(--ink-onDark-color);
   opacity: 0;
   pointer-events: none;
   animation: hexFlash 260ms ease-out;
 }
-@keyframes hexFlash {
+/* @@ */ @keyframes hexFlash {
   from {
     opacity: 0.7;
   }
@@ -106,7 +106,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hexFlash {
+/* @@ */   .hexFlash {
     animation: none;
   }
 }
@@ -115,20 +115,20 @@
  * matching tile-family border (--tile-2-edge-color), so the border tracks the fill if
  * the shade changes; the center is the mandatory-letter yellow with a darker amber
  * edge. */
-.hexShape {
+/* @@ */ .hexShape {
   fill: var(--spellingbee-hex);
   stroke: var(--tile-2-edge-color);
   stroke-width: 1.5;
   stroke-linejoin: round;
   transition: fill 80ms ease;
 }
-.center .hexShape {
+/* @@ */ .center .hexShape {
   fill: var(--spellingbee-accent);
   stroke: var(--spellingbee-accent-edge);
 }
 
 
-.hexText {
+/* @@ */ .hexText {
   fill: var(--spellingbee-hex-text);
   font-size: 30px; /* flower coordinate units (scaled by --u) */
   font-weight: 800;

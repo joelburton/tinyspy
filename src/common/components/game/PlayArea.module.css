@@ -32,7 +32,7 @@
  * layout gap below is the MINIMUM board↔divider separation, felt only when
  * the board is at its --avail-w cap and the auto margins have collapsed to
  * zero — no card around either column. */
-.layout {
+/* @@ */ .layout {
   height: calc(100svh - var(--game-chrome-height));
   /* Definite width = the real content area (viewport minus scrollbar minus body
    * padding), NOT shrink-to-fit. This is load-bearing: `body` uses
@@ -52,7 +52,7 @@
   /* The gap between the board column and the info column. Shared (same for every
    * game) but a named token so a game's available-width math can subtract it
    * without re-stating the literal. */
-  --layout-gap: 1.5rem;
+/* @@ */   --layout-gap: 1.5rem;
   gap: var(--layout-gap);
   align-items: stretch;
 
@@ -70,7 +70,7 @@
    * which forces a scrollbar. `--client-width` is measured + kept current with a
    * ResizeObserver (common/lib/util/layoutWidth.ts); it falls back to `100vw` for the
    * first paint before the JS runs. */
-  --avail-w: calc(var(--client-width, 100vw) - var(--info-col-width) - var(--layout-gap) - 2 * var(--page-padding-x));
+/* @@ */   --avail-w: calc(var(--client-width, 100vw) - var(--info-col-width) - var(--layout-gap) - 2 * var(--page-padding-x));
 }
 
 /* Opt-in mobile layout (docs/mobile.md → the psychicnum recipe). A game that has
@@ -84,8 +84,8 @@
  * simply don't compose it. The board's own mobile SIZING (e.g. wordle capping by
  * the leftover height for its keyboard) stays in that game's board module. */
 @media (--mobile) {
-  .mobileFill {
-    --avail-w: calc(var(--client-width, 100vw) - 2 * var(--page-padding-x));
+/* @@ */   .mobileFill {
+/* @@ */     --avail-w: calc(var(--client-width, 100vw) - 2 * var(--page-padding-x));
     /* --game-chrome-height rounds ~1px short at phone width; trim a pixel to keep
      * the hard no-scroll invariant (docs/ui.md → page fits the viewport). */
     height: calc(100svh - var(--game-chrome-height) - 1px);
@@ -125,8 +125,8 @@
  * below the 900px `--mobile` cutoff for every sane reserve, so it never actually
  * binds before the info column goes off-canvas into the InfoSheet — mobile is
  * untouched (mobileFill overrides --avail-w there regardless). */
-.responsiveInfoCol {
-  --info-col-width: clamp(
+/* @@ */ .responsiveInfoCol {
+/* @@ */   --info-col-width: clamp(
     22rem,
     calc(
       var(--client-width, 100vw) - var(--board-reserve) - var(--layout-gap) -
@@ -153,7 +153,7 @@
  * makes the column a positioning context; nothing anchors to it TODAY (the
  * floating shuffle moved inside each game's board root — see .floatingShuffle —
  * precisely because the column's top-right is no longer the board's). */
-.boardCol {
+/* @@ */ .boardCol {
   flex: 0 0 auto;
   margin-left: auto;
   margin-right: auto;
@@ -167,7 +167,7 @@
    * visible during layout work: raise the alpha to see the column. Deliberately
    * kept — do NOT remove until Joel asks. Named because every color is named,
    * which also means the knob is now findable instead of buried in a rule. */
-  --board-col-debug-tint-color: rgb(40 120 255 / 0%);
+/* @@ */   --board-col-debug-tint-color: rgb(40 120 255 / 0%);
   background: var(--board-col-debug-tint-color);
 }
 
@@ -185,7 +185,7 @@
  * this extraction. Each game supplies --cols / --max-tile-width / --grid-gap.
  * See docs/ui.md → "Board sizing". (Square boards compute --side instead — see
  * each square game's board module; they are NOT identical enough to share.) */
-.hugRectWidth {
+/* @@ */ .hugRectWidth {
   width: min(
     var(--avail-w),
     calc(var(--cols) * var(--max-tile-width) + (var(--cols) - 1) * var(--grid-gap))
@@ -199,7 +199,7 @@
  * whether that slot is a column (psychicnum's belowBoard) or a row (connections'
  * commit row); a game's entry/commit CONTROLS don't use this — only the lone
  * pill/message does. */
-.localFeedback {
+/* @@ */ .localFeedback {
   /* `flex: 1` fills a swap box (`.moveAreaOrLocalFeedback`); `min-height`
    * reserves its own height where it stands ALONE next to a `.moveArea` in a
    * non-swap game (wordle / stackdown / bananagrams / waffle), so the board
@@ -221,7 +221,7 @@
  * stability). A flex column that vertically centers its single child. Games where
  * the move area and feedback are SEPARATE (wordle, stackdown, bananagrams, waffle)
  * don't use this — each reserves its own height. */
-.moveAreaOrLocalFeedback {
+/* @@ */ .moveAreaOrLocalFeedback {
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -241,7 +241,7 @@
  * It must NOT anchor to `.boardCol`: the column spans the full layout height
  * while the board stack centers vertically within it, so the column's top-right
  * can sit well above the visual board. */
-.floatingShuffle {
+/* @@ */ .floatingShuffle {
   position: absolute;
   top: 0.5rem;
   right: 0.5rem;
@@ -259,7 +259,7 @@
  * divider between the columns; padding-left keeps content off it. `min-height: 0`
  * is essential — without it the column grows to fit content and the log's
  * `overflow-y: auto` never engages. */
-.infoCol {
+/* @@ */ .infoCol {
   flex: 0 0 var(--info-col-width);
   display: flex;
   flex-direction: column;
@@ -277,7 +277,7 @@
  * from it. The sheet's own 1rem padding is the page margin here, matching the
  * board page's. */
 @media (--mobile) {
-  .infoCol {
+/* @@ */   .infoCol {
     border-left: none;
     padding-left: 0;
   }
@@ -288,7 +288,7 @@
  * swapping between them doesn't shift the log below (docs/ui.md → "Layout
  * stability"). `flex-shrink: 0` anchors it; the log takes the rest via its own
  * flex: 1 + overflow. */
-.actionSlot {
+/* @@ */ .actionSlot {
   min-height: 6rem;
   display: flex;
   flex-direction: column;
@@ -300,7 +300,7 @@
   flex-shrink: 0;
 }
 
-.actionSlot p {
+/* @@ */ .actionSlot p {
   margin: 0;
 }
 
@@ -314,27 +314,27 @@
 /* SETUP is a <details> disclosure ("Setup options"). Closed by default so it
  * doesn't claim space; opening it grows the slot — an allowed exception to the
  * no-growth rule precisely because it's closable and reclaims the space. */
-.infoSetup {
+/* @@ */ .infoSetup {
   color: var(--page-text-color);
   font-size: 0.85rem;
 }
 
-.infoSetup summary {
+/* @@ */ .infoSetup summary {
   cursor: pointer;
   user-select: none;
 }
 
-.infoSetup ul {
+/* @@ */ .infoSetup ul {
   margin: 0.3rem 0 0;
   padding-left: 1.25rem;
 }
 
-.infoState {
+/* @@ */ .infoState {
   color: var(--page-text-color);
   font-size: 0.95rem;
 }
 
-.infoHelp {
+/* @@ */ .infoHelp {
   color: var(--page-text-muted-color);
   font-size: 0.9rem;
 }
@@ -344,14 +344,14 @@
  * buttons share the row and wrap as needed. Terminal (.terminalActions): the
  * play buttons are replaced by the bold outcome line + a compact back-to-club
  * button (kept on one line). */
-.infoActions {
+/* @@ */ .infoActions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
 }
 
-.terminalActions {
+/* @@ */ .terminalActions {
   flex-wrap: nowrap;
 }
 
@@ -364,27 +364,27 @@
  * short one". They sit left-aligned with a consistent gap (`.infoActions` `gap`)
  * and wrap when the row runs out; they deliberately don't stretch to the column's
  * right margin, which is fine. nowrap keeps each label on one line. */
-.helperButton {
+/* @@ */ .helperButton {
   flex: 0 0 auto;
   white-space: nowrap;
 }
 
 /* The terminal outcome line — bold, color-coded by result; grows so the
  * back-to-club button sits at the right edge. */
-.outcome {
+/* @@ */ .outcome {
   flex: 1;
   font-weight: 700;
 }
 
-.outcome_won {
+/* @@ */ .outcome_won {
   color: var(--outcomes-won-ink-color);
 }
 
-.outcome_lost {
+/* @@ */ .outcome_lost {
   color: var(--outcomes-lost-ink-color);
 }
 
-.outcome_neutral {
+/* @@ */ .outcome_neutral {
   color: var(--page-text-color);
 }
 
@@ -400,7 +400,7 @@
  * and the scrolling turn log below gives way so the page itself never scrolls.
  * `flex-shrink: 0` keeps its content height wherever it sits (the action slot
  * already refuses to shrink; the log — flex: 1, min-height: 0 — makes room). */
-.terminalExtra {
+/* @@ */ .terminalExtra {
   flex-shrink: 0;
 }
 
@@ -420,11 +420,11 @@
  * contents instead of fading toward the page. It covers the whole element,
  * content included: this mark means "hands off, this is with the server", and a
  * legible letter sitting brightly on top of it would undercut that. */
-.dimInFlight {
+/* @@ */ .dimInFlight {
   position: relative;
 }
 
-.dimInFlight::after {
+/* @@ */ .dimInFlight::after {
   content: '';
   position: absolute;
   /* Out over the BORDER, not just the face. `inset: 0` lands on the padding box,
@@ -446,11 +446,11 @@
  * tiles are already disabled by each game's own read-only gate, and swallowing
  * clicks here would also swallow the click-anywhere-to-exit that the history
  * viewer relies on. */
-.dimNotYourTurn {
+/* @@ */ .dimNotYourTurn {
   position: relative;
 }
 
-.dimNotYourTurn::after {
+/* @@ */ .dimNotYourTurn::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -500,7 +500,7 @@
  * Replaying it needs a REMOUNT, because a CSS animation only restarts when the
  * element is new: refusing the same word twice must shake twice, so the caller
  * keys the element on a nonce (see wordle's BoardCol, connections' Board). */
-.verdictRing {
+/* @@ */ .verdictRing {
   outline: 3px solid var(--verdict-tone);
   outline-offset: 2px;
   border-radius: var(--radius-sm);
@@ -513,9 +513,9 @@
  * Qualified with `.tileFace` so it beats a game's own state class (which sets
  * `--tile-slot-fill-color` from another stylesheet at the same specificity — order between
  * modules is the bundler's business and this must not be a coin flip). */
-.tileFace.verdictFill {
-  --tile-slot-fill-color: var(--verdict-fill);
-  --tile-slot-ink-color: var(--verdict-ink);
+/* @@ */ .tileFace.verdictFill {
+/* @@ */   --tile-slot-fill-color: var(--verdict-fill);
+/* @@ */   --tile-slot-ink-color: var(--verdict-ink);
   animation: verdict-shake 0.4s ease-in-out;
 }
 
@@ -525,29 +525,29 @@
  * TURN-LOG BAR ALREADY WEARS. That is the point of it: a wrong guess is one red,
  * whether you meet it on the board now or in the log a minute later, and neither
  * place is free to pick its own shade. Same family, two tiers, one meaning. */
-.verdictLost {
-  --verdict-tone: var(--outcomes-lost-ink-color);
-  --verdict-fill: var(--outcomes-lost-fill-color);
-  --verdict-ink: var(--ink-onDark-color);
+/* @@ */ .verdictLost {
+/* @@ */   --verdict-tone: var(--outcomes-lost-ink-color);
+/* @@ */   --verdict-fill: var(--outcomes-lost-fill-color);
+/* @@ */   --verdict-ink: var(--ink-onDark-color);
 }
 
 /* A caution — "you can't do that", "you already tried that". Orange, and dark
  * ink: white on this one measures about 2:1. */
-.verdictWarning {
-  --verdict-tone: var(--outcomes-warning-ink-color);
-  --verdict-fill: var(--outcomes-warning-fill-color);
-  --verdict-ink: var(--ink-onLight-color);
+/* @@ */ .verdictWarning {
+/* @@ */   --verdict-tone: var(--outcomes-warning-ink-color);
+/* @@ */   --verdict-fill: var(--outcomes-warning-fill-color);
+/* @@ */   --verdict-ink: var(--ink-onLight-color);
 }
 
 /* A near miss — "one away". Gold, and dark ink for the same reason wordle's
  * yellow keeps it: a gold dark enough to carry white text isn't gold any more. */
-.verdictNear {
-  --verdict-tone: var(--outcomes-near-ink-color);
-  --verdict-fill: var(--outcomes-near-fill-color);
-  --verdict-ink: var(--ink-onLight-color);
+/* @@ */ .verdictNear {
+/* @@ */   --verdict-tone: var(--outcomes-near-ink-color);
+/* @@ */   --verdict-fill: var(--outcomes-near-fill-color);
+/* @@ */   --verdict-ink: var(--ink-onLight-color);
 }
 
-@keyframes verdict-shake {
+/* @@ */ @keyframes verdict-shake {
   0%, 100% { transform: translateX(0); }
   20%      { transform: translateX(-5px); }
   40%      { transform: translateX(5px); }
@@ -558,7 +558,7 @@
 /* The color survives; the movement doesn't. */
 @media (prefers-reduced-motion: reduce) {
   .verdictRing,
-  .tileFace.verdictFill {
+/* @@ */   .tileFace.verdictFill {
     animation: none;
   }
 }
@@ -570,7 +570,7 @@
  * something that is about to be said anyway. */
 @media (prefers-reduced-motion: reduce) {
   .tile:hover:not(:disabled),
-  .tile:active:not(:disabled) {
+/* @@ */   .tile:active:not(:disabled) {
     transform: none;
   }
 }
@@ -592,11 +592,11 @@
  * SURFACE, where there is no longer any distinction between active and spent to
  * preserve. It stays weak because a finished board is exactly what people sit
  * and read afterwards. */
-.dimGameOver {
+/* @@ */ .dimGameOver {
   position: relative;
 }
 
-.dimGameOver::after {
+/* @@ */ .dimGameOver::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -625,10 +625,10 @@
  * They can co-occur (a finished game can be put into the viewer) and an element
  * has only one outline, so the board drops this while the viewer is open — the
  * viewer is the state you chose and the one you can leave. */
-.gameOverFrame {
+/* @@ */ .gameOverFrame {
   /* Neutral unless a tone class below re-sets it — an ENDED game (nobody beat
    * anybody) keeps the plain gray. */
-  --game-over-frame: var(--outcomes-neutral-terminalFrame-color);
+/* @@ */   --game-over-frame: var(--outcomes-neutral-terminalFrame-color);
   outline: 4px solid var(--game-over-frame);
   outline-offset: 3px;
 }
@@ -637,12 +637,12 @@
  * this band is already the biggest thing on screen saying "finished", so it may
  * as well say WHICH. Declared after `.gameOverFrame` — they land on the same
  * element, so same-file order settles it. */
-.gameOverWon {
-  --game-over-frame: var(--outcomes-won-terminalFrame-color);
+/* @@ */ .gameOverWon {
+/* @@ */   --game-over-frame: var(--outcomes-won-terminalFrame-color);
 }
 
-.gameOverLost {
-  --game-over-frame: var(--outcomes-lost-terminalFrame-color);
+/* @@ */ .gameOverLost {
+/* @@ */   --game-over-frame: var(--outcomes-lost-terminalFrame-color);
 }
 
 /* ATTENTION — this changed, look here.
@@ -661,7 +661,7 @@
  *
  * Reduced motion keeps this: the carrier is the color, and the movement is only
  * how it leaves. */
-.attentionFlash {
+/* @@ */ .attentionFlash {
   position: relative;
 }
 
@@ -676,11 +676,11 @@
  * state. Qualified with `.tileFace` so it outranks the game's own state class,
  * which sets `--tile-slot-ink-color` from another stylesheet at equal specificity — order
  * between modules is the bundler's business, and this must not be a coin flip. */
-.tileFace.attentionFlash {
-  --tile-slot-ink-color: var(--page-text-color);
+/* @@ */ .tileFace.attentionFlash {
+/* @@ */   --tile-slot-ink-color: var(--page-text-color);
 }
 
-.attentionFlash::before {
+/* @@ */ .attentionFlash::before {
   content: '';
   position: absolute;
   /* Over the border too — see `.dimInFlight::after`. This is the one that made it
@@ -694,7 +694,7 @@
   animation: attention-flash var(--mark-attention-flash-duration) ease-out forwards;
 }
 
-@keyframes attention-flash {
+/* @@ */ @keyframes attention-flash {
   0%, 70% { opacity: 1; }
   100%    { opacity: 0; }
 }
@@ -706,11 +706,11 @@
  * A `box-shadow` ring rather than an outline, because `outline` on a board box is
  * already the history viewer's frame and the two can co-occur — your turn can
  * start while you are reading a past turn. */
-.yourTurnFlash {
+/* @@ */ .yourTurnFlash {
   animation: your-turn-flash var(--mark-yourTurn-flash-duration) ease-out;
 }
 
-@keyframes your-turn-flash {
+/* @@ */ @keyframes your-turn-flash {
   0% {
     box-shadow: 0 0 0 5px var(--mark-attention-board-color);
   }
@@ -742,7 +742,7 @@
  * token on the same element — robust against stylesheet insertion order, unlike
  * trying to out-cascade another module. See docs/ui.md → "Interactive tile
  * states" and plans/tile-feedback.md. */
-.tileFace {
+/* @@ */ .tileFace {
   width: 100%;
   height: 100%;
   display: flex;
@@ -770,7 +770,7 @@
 
 /* The interaction half. Always applied ALONGSIDE `.tileFace` — it deliberately
  * carries no box of its own, so this class is exactly "and you can act on it". */
-.tile {
+/* @@ */ .tile {
   cursor: pointer;
   /* Touch behavior, canonical for every interactive-tile game (psychicnum,
    * connections, waffle, codenamesduet — docs/mobile.md → tap-press feedback):
@@ -795,7 +795,7 @@
  * bigger). `--len` is the word's char count (set inline by the board), 100cqi
  * the tile's inner width, the factor ≈ width-per-char in em for bold
  * uppercase. See docs/ui.md → "Tile content: letter vs word". */
-.tileWord {
+/* @@ */ .tileWord {
   /* Above the attention wash. `.attentionFlash` draws its yellow as an
    * absolutely-positioned overlay, and one of those paints over in-flow text by
    * default — so without this the flash HIDES the word it is pointing at. (The
@@ -820,7 +820,7 @@
  * resting one; the tile's own geometry does not move. Subtle on purpose: you know where your own pointer is, so hover's whole job is
  * to say the surface is alive. That frees the background for state and attention,
  * which have nowhere else to go. See plans/tile-feedback.md. */
-.tile:hover:not(:disabled) {
+/* @@ */ .tile:hover:not(:disabled) {
   box-shadow: var(--tile-hover-shadow);
   /* …and the piece RISES while its shadow falls away. The two are one gesture: the
    * tile goes up 2px, the shadow's drop goes 2px → 6px and its blur 6px → 12px, so
@@ -862,13 +862,13 @@
  * It bends "background = state" for a moment, and that is fine here: nobody reads
  * a tile's exact shade during the instant their finger is on it, and the darken is
  * gone before they lift it. The rule protects what a RESTING tile says. */
-.tile:active:not(:disabled) {
+/* @@ */ .tile:active:not(:disabled) {
   transform: translateY(0) scale(0.96);
   box-shadow: var(--tile-shadow);
   filter: brightness(0.92);
 }
 
-.tile:disabled {
+/* @@ */ .tile:disabled {
   cursor: default;
   /* A decided/locked tile is NOT faded — unlike a normal disabled button. Its
    * fill carries the result (psychicnum's green/red, a spent state) and its text
@@ -889,7 +889,7 @@
  * class that set the resting edge on specificity instead of on stylesheet order:
  * a game's color class sets `--tile-slot-edge-color` from its own module, and a
  * single-class rule here would be a coin flip between the two. */
-.tile.selected {
+/* @@ */ .tile.selected {
   border-width: var(--tile-selected-edge-width);
   border-color: var(--tile-selected-edge-color);
 }

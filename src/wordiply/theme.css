@@ -18,9 +18,9 @@
  * Two-vocabularies rule (docs/ui.md): tokens are named by wordiply's
  * vocabulary (`accent`, `base`, `row`) rather than literal colors.
  */
-:root {
-  --wordiply-accent:      #2f9e8f;
-  --wordiply-base-dim:    var(--page-text-muted-color);
-  --wordiply-row:         var(--page-surface-color);
-  --wordiply-row-empty:   var(--field-fill-color);
+/* @@ */ :root {
+/* @@ */   --wordiply-accent:      #2f9e8f;
+/* @@ */   --wordiply-base-dim:    var(--page-text-muted-color);
+/* @@ */   --wordiply-row:         var(--page-surface-color);
+/* @@ */   --wordiply-row-empty:   var(--field-fill-color);
 }

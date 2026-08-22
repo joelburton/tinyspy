@@ -24,7 +24,7 @@
    `overflow: hidden` is what rounds the ends: the first and last segments are
    square and get clipped to the frame's radius, so the corners stay clean
    however many segments there are. */
-.segmented {
+/* @@ */ .segmented {
   display: inline-flex;
   align-self: flex-start;
   border: 1px solid var(--field-edge-color);
@@ -35,7 +35,7 @@
 /* Its CHILDREN are its segments — no class needed on each one, the same way
    `.item-list` addresses its own rows. A caller that wants full-width segments
    (the mobile tab bar) sets `flex: 1` on them from its own module. */
-.segmented > * {
+/* @@ */ .segmented > * {
   padding: 0.25rem 0.7rem;
   font-size: 0.8rem;
   background: var(--page-surface-color);
@@ -50,7 +50,7 @@
 }
 
 /* One hairline between segments, and none at the ends — the frame closes those. */
-.segmented > * + * {
+/* @@ */ .segmented > * + * {
   border-left: 1px solid var(--field-edge-color);
 }
 
@@ -59,11 +59,11 @@
    styling and the accessibility have to keep in step. Filled in the action
    family, the same paint a primary button takes, because "this is the one" is
    the same statement. */
-.segmented > [aria-pressed='true'] {
+/* @@ */ .segmented > [aria-pressed='true'] {
   background: var(--button-normal-primary-color);
   color: var(--button-normal-primary-ink-color);
 }
 
-.segmented > *:hover:not([aria-pressed='true']) {
+/* @@ */ .segmented > *:hover:not([aria-pressed='true']) {
   background: var(--page-surface-hover-color);
 }

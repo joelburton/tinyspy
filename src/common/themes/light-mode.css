@@ -16,7 +16,7 @@
  * what it decided).
  * ============================================================ */
 
-:root {
+/* @@ */ :root {
   /* `only` — not a bare `light` — is what opts us out of Chrome
      Android's / Samsung Internet's forced dark mode; see the matching
      <meta name="color-scheme"> in index.html for the why. This

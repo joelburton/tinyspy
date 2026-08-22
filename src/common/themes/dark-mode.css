@@ -12,7 +12,7 @@
  * turned out to be a VALUE, and values are midnight's job.
  * ============================================================ */
 
-:root {
+/* @@ */ :root {
   /* The dark twin of light-mode.css's declaration, and `only` for the
      same reason: it stops Chrome Android / Samsung Internet applying
      their own auto-darkening on top of ours, which would double-invert

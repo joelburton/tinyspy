@@ -4,12 +4,12 @@
  * does all the positioning, so nothing here needs pixel geometry. */
 /* Sizing lives in PlayArea.module.css's `.board` (it needs the column's
  * --side); this rule carries only the look + touch behavior. */
-.board {
+/* @@ */ .board {
   display: block;
   touch-action: manipulation;
 }
 
-.box {
+/* @@ */ .box {
   fill: none;
   stroke: var(--letterboxed-box);
   stroke-width: 0.8;
@@ -17,7 +17,7 @@
 
 /* The word in progress, drawn letter to letter. No fill — it is a path, not
  * a shape — and round joins so a sharp turn doesn't spike. */
-.path {
+/* @@ */ .path {
   fill: none;
   stroke: var(--letterboxed-accent);
   stroke-width: 1.6;
@@ -31,7 +31,7 @@
  * mistaken for the line you're drawing right now. Thinner and more transparent
  * than `.path` for the same reason — the same shape in a quieter voice, which
  * is how strands distinguishes its found tracks from its missed ones. */
-.ghostPath {
+/* @@ */ .ghostPath {
   fill: none;
   stroke: var(--letterboxed-ghost);
   stroke-width: 1.2;
@@ -40,16 +40,16 @@
   opacity: 0.7;
 }
 
-.node {
+/* @@ */ .node {
   cursor: pointer;
 }
-.node circle {
+/* @@ */ .node circle {
   fill: var(--letterboxed-tile);
   stroke: var(--letterboxed-box);
   stroke-width: 0.7;
   transition: fill 120ms ease, stroke 120ms ease;
 }
-.node text {
+/* @@ */ .node text {
   fill: var(--letterboxed-tile-text);
   font-size: 7px;
   font-weight: 650;
@@ -60,24 +60,24 @@
 }
 
 /* Already covered by the chain — the progress readout, at a glance. */
-.covered circle {
+/* @@ */ .covered circle {
   fill: var(--letterboxed-used);
 }
 
 /* In the word being built right now. */
-.inWord circle {
+/* @@ */ .inWord circle {
   stroke: var(--letterboxed-accent);
   stroke-width: 1.4;
 }
 
 /* The word's current last letter: click it again to submit. */
-.last circle {
+/* @@ */ .last circle {
   fill: var(--letterboxed-accent);
 }
-.last text {
+/* @@ */ .last text {
   fill: var(--page-surface-color);
 }
 
-.disabled {
+/* @@ */ .disabled {
   cursor: default;
 }

@@ -11,7 +11,7 @@
  * columns, so they're not squished into a narrow wrapping strip). UPPERCASE to
  * read as "the words I clicked"; soft-wrap on long sets (the dot separator gives
  * natural break points). */
-.words {
+/* @@ */ .words {
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;

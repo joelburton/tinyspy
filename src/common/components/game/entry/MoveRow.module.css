@@ -9,7 +9,7 @@
  * slots and by strands' traced-word echo, so the control is one control
  * everywhere. The fixed slot HEIGHT and the board-matched WIDTH stay with each
  * host's below-board region — those are board-specific. */
-.moveRow {
+/* @@ */ .moveRow {
   display: flex;
   flex-direction: row;
   align-items: center;

@@ -33,12 +33,12 @@
  *     no height cap → --max-tile-height: 999rem
  * Don't comment a knob OUT: the token must stay defined, or the calc breaks and
  * the phantom-token guard (src/guards/cssTokens.test.ts) fails.                        */
-.board {
-   --max-tile-width: 9rem;
-   --max-tile-height: 7rem;
-  --grid-gap: 0.5rem;
-  --cols: 5;
-  --rows: 5;
+/* @@ */ .board {
+/* @@ */    --max-tile-width: 9rem;
+/* @@ */    --max-tile-height: 7rem;
+/* @@ */   --grid-gap: 0.5rem;
+/* @@ */   --cols: 5;
+/* @@ */   --rows: 5;
 
   flex: 1 1 0;
   min-height: 0;
@@ -55,7 +55,7 @@
 /* HUGS: as wide as the tiles+gaps need, capped per tile, never past --avail-w
  * (the width left beside the info column — the shared scaffold token on .layout).
  * With --max-tile-width at 999rem it fills --avail-w. */
-.grid {
+/* @@ */ .grid {
   flex: 1;
   min-height: 0;
   display: grid;
@@ -66,9 +66,9 @@
   gap: var(--grid-gap);
   /* Tune the shared `.tileWord` auto-fit (clamp by `--len`) for a 5-col board of
    * single words. Starting values — adjust during manual verification. */
-  --tile-font-min: 0.8rem;
-  --tile-font-factor: 0.9;
-  --tile-font-max: 1.6rem;
+/* @@ */   --tile-font-min: 0.8rem;
+/* @@ */   --tile-font-factor: 0.9;
+/* @@ */   --tile-font-max: 1.6rem;
 }
 
 /* codenamesduet tiles carry corner OVERLAYS (keycard squares, neutral triangles,
@@ -78,11 +78,11 @@
  * per-game composition — `cls(shared.tile, styles.overlayTile)` — keeping the
  * shared tile's contract narrow. (The shared `.tile` already sets
  * `container-type: inline-size`, which the cqi-sized overlays below rely on.) */
-.overlayTile {
+/* @@ */ .overlayTile {
   position: relative;
 }
 
-.tileKey {
+/* @@ */ .tileKey {
   /* Pending indicator — bottom-right corner, out of the way of
    * the centered word. */
   position: absolute;
@@ -106,34 +106,34 @@
  * The shared `.tile` supplies the hover ring (a box-shadow, NOT a recolor — so
  * codenamesduet's "never recolor on hover" rule still holds) and the un-faded
  * disabled look, so no per-game cursor/hover/disabled rules are needed here. */
-.bgWhite {
+/* @@ */ .bgWhite {
   /* Never-guessed tile: the shared "attention" shade 1 (the lightest of the warm
      tile family) — lighter than the normal tile (shade 3), so it doesn't read like
      the darker revealed-neutral. */
-  --tile-slot-fill-color: var(--tile-1-fill-color);
-  --tile-slot-edge-color: var(--tile-1-edge-color);
+/* @@ */   --tile-slot-fill-color: var(--tile-1-fill-color);
+/* @@ */   --tile-slot-edge-color: var(--tile-1-edge-color);
 }
-.bgNeutral {
-  --tile-slot-fill-color: var(--codenamesduet-neutral);
-  --tile-slot-edge-color: var(--codenamesduet-neutral);
-  --tile-slot-ink-color: var(--ink-onDark-color);
+/* @@ */ .bgNeutral {
+/* @@ */   --tile-slot-fill-color: var(--codenamesduet-neutral);
+/* @@ */   --tile-slot-edge-color: var(--codenamesduet-neutral);
+/* @@ */   --tile-slot-ink-color: var(--ink-onDark-color);
 }
-.bgAgent {
-  --tile-slot-fill-color: var(--codenamesduet-agent);
-  --tile-slot-edge-color: var(--codenamesduet-agent);
-  --tile-slot-ink-color: var(--ink-onDark-color);
+/* @@ */ .bgAgent {
+/* @@ */   --tile-slot-fill-color: var(--codenamesduet-agent);
+/* @@ */   --tile-slot-edge-color: var(--codenamesduet-agent);
+/* @@ */   --tile-slot-ink-color: var(--ink-onDark-color);
 }
-.bgAssassin {
+/* @@ */ .bgAssassin {
   /* Real Duet uses black for the assassin; we use red because "red = wrong
    * pick" reads more obviously on screen than "black = ominous." */
-  --tile-slot-fill-color: var(--codenamesduet-assassin);
-  --tile-slot-edge-color: var(--codenamesduet-assassin);
-  --tile-slot-ink-color: var(--ink-onDark-color);
+/* @@ */   --tile-slot-fill-color: var(--codenamesduet-assassin);
+/* @@ */   --tile-slot-edge-color: var(--codenamesduet-assassin);
+/* @@ */   --tile-slot-ink-color: var(--ink-onDark-color);
 }
 
 /* Pending (the guess RPC is in flight): an accent ring, distinct from the shared
  * dark hover ring. Per-game state, composed on top of the shared `.tile`. */
-.tilePending {
+/* @@ */ .tilePending {
   outline: 2px solid var(--button-normal-primary-color);
   outline-offset: -2px;
 }
@@ -142,7 +142,7 @@
  * (`--view-history-color`), the same signal the board frame + viewed log row
  * wear. An inset outline so it hugs just inside the tile edge (over the fill,
  * clear of the grid gap and neighbours). Pairs with the board-level `.frame`. */
-.viewedCell {
+/* @@ */ .viewedCell {
   outline: 3px solid var(--view-history-color);
   outline-offset: -3px;
 }
@@ -154,7 +154,7 @@
  * to clue for); the peer's is top-right and shown only once the game is over
  * (their view is secret during play). Bottom/top placement mirrors a
  * tabletop: my card near me, my opponent's across the table. */
-.keySquare {
+/* @@ */ .keySquare {
   position: absolute;
   /* Scale with the tile (cqi = % of the tile's width, via the shared tile's
    * container-type) so the square shrinks on small tiles instead of crowding the
@@ -165,21 +165,21 @@
   border-radius: 4px;
   border: 1px solid var(--codenamesduet-tile-rule-color);
 }
-.keyMine {
+/* @@ */ .keyMine {
   bottom: 5px;
   left: 5px;
 }
-.keyPeer {
+/* @@ */ .keyPeer {
   top: 5px;
   right: 5px;
 }
-.keyAgent {
+/* @@ */ .keyAgent {
   background: var(--codenamesduet-agent-key);
 }
-.keyNeutral {
+/* @@ */ .keyNeutral {
   background: var(--codenamesduet-neutral-key);
 }
-.keyAssassin {
+/* @@ */ .keyAssassin {
   background: var(--codenamesduet-assassin-key);
 }
 
@@ -188,7 +188,7 @@
  * up, me below pointing down). White: it reads cleanly on the saturated tile
  * backgrounds, where black (and profile colors) get lost. Shown only while the
  * cell is unrevealed — a contacted agent / hit assassin drops the markers. */
-.triangle {
+/* @@ */ .triangle {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
@@ -197,11 +197,11 @@
   border-left: clamp(6px, 6cqi, 10px) solid transparent;
   border-right: clamp(6px, 6cqi, 10px) solid transparent;
 }
-.triPeer {
+/* @@ */ .triPeer {
   top: 4px;
   border-bottom: clamp(8px, 8cqi, 13px) solid var(--page-surface-color); /* points up */
 }
-.triMine {
+/* @@ */ .triMine {
   bottom: 4px;
   border-top: clamp(8px, 8cqi, 13px) solid var(--page-surface-color); /* points down */
 }

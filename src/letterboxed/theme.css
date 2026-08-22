@@ -30,12 +30,12 @@
  * Two-vocabularies rule (docs/ui.md): tokens are named by letterboxed's
  * vocabulary (`box`, `tile`, `used`, `accent`) rather than literal colors.
  */
-:root {
-  --letterboxed-accent:     #3f9d5c;
-  --letterboxed-used:       var(--outcomes-won-wash-color);
-  --letterboxed-ghost:      var(--field-muted-ink-color);
-  --letterboxed-box:        var(--page-divider-color);
-  --letterboxed-tile:       var(--page-surface-color);
-  --letterboxed-tile-text:  var(--page-text-color);
-  --letterboxed-seed:       var(--outcomes-won-ink-color);
+/* @@ */ :root {
+/* @@ */   --letterboxed-accent:     #3f9d5c;
+/* @@ */   --letterboxed-used:       var(--outcomes-won-wash-color);
+/* @@ */   --letterboxed-ghost:      var(--field-muted-ink-color);
+/* @@ */   --letterboxed-box:        var(--page-divider-color);
+/* @@ */   --letterboxed-tile:       var(--page-surface-color);
+/* @@ */   --letterboxed-tile-text:  var(--page-text-color);
+/* @@ */   --letterboxed-seed:       var(--outcomes-won-ink-color);
 }

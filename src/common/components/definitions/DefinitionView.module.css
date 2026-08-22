@@ -5,7 +5,7 @@
  * container (the floating card or the FloatingPanel body); this
  * file only styles the text + the clickable cross-ref. */
 
-.view {
+/* @@ */ .view {
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
@@ -13,14 +13,14 @@
 
 /* The word being defined. Lowercased + emphasized so the eye lands
  * on it; updates in place as the user chases cross-refs. */
-.headword {
+/* @@ */ .headword {
   font-size: 1.05rem;
   font-weight: 600;
   color: var(--page-text-color);
   letter-spacing: 0.01em;
 }
 
-.body {
+/* @@ */ .body {
   margin: 0;
   font-size: 0.92rem;
   line-height: 1.45;
@@ -30,13 +30,13 @@
   white-space: pre-wrap;
 }
 
-.status {
+/* @@ */ .status {
   font-size: 0.9rem;
   color: var(--page-text-muted-color);
   font-style: italic;
 }
 
-.error {
+/* @@ */ .error {
   font-size: 0.9rem;
   color: var(--chrome-fault-color);
 }
@@ -45,7 +45,7 @@
  * Looks like a link (accent color, underline) but is a real button
  * for keyboard + a11y — which the neutral <button> lets it be without
  * undoing anything. */
-.ref {
+/* @@ */ .ref {
   appearance: none;
   margin: 0;
   color: var(--chrome-link-color);
@@ -54,18 +54,18 @@
   cursor: pointer;
 }
 
-.ref:hover {
+/* @@ */ .ref:hover {
   color: var(--chrome-link-hover-color);
 }
 
-.attribution {
+/* @@ */ .attribution {
   margin-top: 0.15rem;
   font-size: 0.72rem;
   color: var(--page-text-muted-color);
 }
 
 /* Categorization tags (band · dialects · slur/crude · wordle). */
-.meta {
+/* @@ */ .meta {
   margin-top: 0.1rem;
   font-size: 0.72rem;
   color: var(--page-text-muted-color);
@@ -74,7 +74,7 @@
 
 /* The editors-only "Edit word…" link — quiet chrome, styled like the
  * cross-reference links (it's a navigation, not a call to action). */
-.editLink {
+/* @@ */ .editLink {
   align-self: flex-start;
   margin-top: 0.3rem;
   font-size: 0.8rem;

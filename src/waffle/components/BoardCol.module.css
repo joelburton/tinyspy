@@ -9,7 +9,7 @@
  * `.localFeedback` reserves its own height (the board never reflows as the pill
  * appears/clears; docs/ui.md → Layout stability). `flex-shrink: 0` keeps the
  * region from being squeezed. */
-.belowBoard {
+/* @@ */ .belowBoard {
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -21,6 +21,6 @@
 
 /* waffle has NO below-board move controls — the move is swapping tiles on the
  * board — so `.moveArea` is empty. `display: contents` (generates no box). */
-.moveArea {
+/* @@ */ .moveArea {
   display: contents;
 }

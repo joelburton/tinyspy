@@ -15,6 +15,6 @@
  * psychicnum's right column holds short readouts + the turn log, so a narrow column
  * suffices. Both the shared `.infoCol` and the board's `.grid` --avail-w math read
  * it (it cascades from `.layout` to both columns). */
-.layout {
-  --info-col-width: 22rem;
+/* @@ */ .layout {
+/* @@ */   --info-col-width: 22rem;
 }

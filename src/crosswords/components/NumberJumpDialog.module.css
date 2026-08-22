@@ -5,7 +5,7 @@
  * below the floating chat, matching Menu/DefinitionPopover. That a dialog
  * rides the popover tier is recorded as a question for the dialogs-and-forms area, not changed
  * here (plans/css-system-2.md §7 → Carried forward). */
-.backdrop {
+/* @@ */ .backdrop {
   position: fixed;
   inset: 0;
   background: var(--crosswords-dialog-scrim-color);
@@ -16,7 +16,7 @@
   padding-top: 20vh;
 }
 
-.card {
+/* @@ */ .card {
   width: min(280px, calc(100% - 2rem));
   background: var(--page-surface-color);
   border: 1px solid var(--page-surface-border-color);
@@ -25,13 +25,13 @@
   padding: 0.75rem 1rem 0.85rem;
 }
 
-.label {
+/* @@ */ .label {
   font-size: 0.85rem;
   color: var(--page-text-color);
   margin-bottom: 0.4rem;
 }
 
-.input {
+/* @@ */ .input {
   width: 100%;
   box-sizing: border-box;
   font: inherit;
@@ -42,11 +42,11 @@
   outline: none;
 }
 
-.input:focus {
+/* @@ */ .input:focus {
   border-color: var(--page-text-color);
 }
 
-.error {
+/* @@ */ .error {
   margin-top: 0.4rem;
   font-size: 0.85rem;
   color: var(--chrome-fault-color);

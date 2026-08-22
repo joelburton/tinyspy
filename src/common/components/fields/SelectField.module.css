@@ -5,18 +5,18 @@
  * match: the same padding / border / radius tokens as the other controls, plus
  * `appearance: none` and a custom chevron so the trigger looks deliberate rather
  * than system-default. */
-.field {
+/* @@ */ .field {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
 }
 
-.label {
+/* @@ */ .label {
   font-weight: 600;
   font-size: 0.9rem;
 }
 
-.select {
+/* @@ */ .select {
   /* Match theme.css's control sizing so the dropdown sits flush with the
    * text inputs / buttons around it. */
   font: inherit;
@@ -37,16 +37,16 @@
   background-position: right 0.85rem center;
 }
 
-.select:hover:not(:disabled) {
+/* @@ */ .select:hover:not(:disabled) {
   border-color: var(--field-strong-edge-color);
 }
 
-.select:focus {
+/* @@ */ .select:focus {
   outline: var(--chrome-cursor-ring);
   outline-offset: -1px;
 }
 
-.select:disabled {
+/* @@ */ .select:disabled {
   opacity: 0.55;
   cursor: not-allowed;
 }

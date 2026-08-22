@@ -16,6 +16,6 @@
  * wordle's right column (guess counter + guess list) fits a narrow column. A rem,
  * never a pixel lock; the shared `.infoCol` and the board's --avail-w math both
  * read it. */
-.layout {
-  --info-col-width: 22rem;
+/* @@ */ .layout {
+/* @@ */   --info-col-width: 22rem;
 }

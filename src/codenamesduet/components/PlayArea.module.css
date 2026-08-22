@@ -16,6 +16,6 @@
  * each game declares its own). codenamesduet's right column (setup + agent/turn
  * state + the clue log) fits a narrow column; the shared `.infoCol` reads this. A
  * rem, never a pixel lock. */
-.layout {
-  --info-col-width: 22rem;
+/* @@ */ .layout {
+/* @@ */   --info-col-width: 22rem;
 }

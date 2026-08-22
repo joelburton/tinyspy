@@ -20,9 +20,9 @@
  * viewport − chrome − the below-board stack (the input row / feedback pill
  * min-height 2.75rem + the board column's 0.75rem gap + the .belowBoard
  * margin-top 1.5rem = 5rem). Keep in sync with `.belowBoard`. */
-.layout {
-  --board-reserve: 24rem;
-  --avail-h: calc(100svh - var(--game-chrome-height) - 5rem);
+/* @@ */ .layout {
+/* @@ */   --board-reserve: 24rem;
+/* @@ */   --avail-h: calc(100svh - var(--game-chrome-height) - 5rem);
 }
 
 /* Mobile: the info column is off-canvas, so the state readout (the 4-cell Stats
@@ -40,9 +40,9 @@
  * then 4.25rem while the grid ran a notch smaller than the other games'. Adopting
  * the shared type scale added 3px, so the budget follows. */
 @media (--mobile) {
-  .layout {
-    --mobile-status-height: 4.5rem;
-    --avail-h: calc(
+/* @@ */   .layout {
+/* @@ */     --mobile-status-height: 4.5rem;
+/* @@ */     --avail-h: calc(
       100svh - var(--game-chrome-height) - 5rem - var(--mobile-status-height) - 0.75rem
     );
   }
@@ -62,10 +62,10 @@
  * The two knobs on the shared <Stats> grid are set here rather than there
  * because both exist for the FOUR-column shape: opt out of the 20rem cap the
  * two-column games want, and put a real floor between adjacent centered figures. */
-.mobileStatus {
+/* @@ */ .mobileStatus {
   width: var(--side);
-  --stats-max-width: none;
-  --stats-col-gap: 0.75rem;
+/* @@ */   --stats-max-width: none;
+/* @@ */   --stats-col-gap: 0.75rem;
 }
 
 /* The board column. Computes `--side` — the largest square that fits — HERE
@@ -81,10 +81,10 @@
  * (or drop the term) to let the board grow; LOWER it for smaller tiles. A real
  * defined value rather than a commented-out knob + var() fallback, so the token
  * isn't "phantom" (see src/guards/cssTokens.test.ts). Relative units (rem). */
-.boardCol {
-  --max-tile-size: 6rem; /* cap = --cols × 6rem + gaps (≈ 32rem at 5×5) */
-  --grid-gap: 10px;
-  --side: min(
+/* @@ */ .boardCol {
+/* @@ */   --max-tile-size: 6rem; /* cap = --cols × 6rem + gaps (≈ 32rem at 5×5) */
+/* @@ */   --grid-gap: 10px;
+/* @@ */   --side: min(
     var(--avail-w),
     var(--avail-h),
     calc(var(--cols) * var(--max-tile-size) + (var(--cols) - 1) * var(--grid-gap))
@@ -95,7 +95,7 @@
  * `--side` square. The dark "tray" (dice-box look) + padding sit on the grid
  * itself; box-sizing keeps the padding inside --side. The board column hugs this
  * definite size (boardCol is `flex: 0 0 auto`). */
-.grid {
+/* @@ */ .grid {
   width: var(--side);
   height: var(--side);
   display: grid;
@@ -111,7 +111,7 @@
   position: relative;
 }
 
-.tile {
+/* @@ */ .tile {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -134,7 +134,7 @@
   container-type: size;
 }
 
-.tile span {
+/* @@ */ .tile span {
   /* inherit the app's system-ui sans-serif (common/base.css), like every other
    * game's tiles — don't set a font-family here. */
   font-weight: 700;
@@ -144,7 +144,7 @@
 }
 
 /* A blank tile (face 0) renders a faint "?", matching scrabble's blank. */
-.blank {
+/* @@ */ .blank {
   opacity: 0.4;
 }
 
@@ -156,17 +156,17 @@
  * (0,1,1). boggle never disables a tile today (it guards the handler instead),
  * so this is a trap rather than a bug — but a tile that ever did get `disabled`
  * would silently keep the pointer and claim to be clickable. */
-.tile[role='button']:not(:disabled) {
+/* @@ */ .tile[role='button']:not(:disabled) {
   cursor: pointer;
 }
-.tile[role='button']:active {
+/* @@ */ .tile[role='button']:active {
   transform: scale(0.92);
 }
 
 /* A tile on the current traced path: accent fill + a light ring so the word's
  * route reads at a glance and lifts off the neighbouring tiles. Overrides the
  * resting `.tile` fill/text (placed after it, equal specificity). */
-.selected {
+/* @@ */ .selected {
   background: var(--button-normal-primary-color);
   color: var(--ink-onDark-color);
   box-shadow: 0 0 0 2px var(--button-normal-primary-color);
@@ -179,7 +179,7 @@
  * swap box inside it. Column so that box STRETCHES to the full board width
  * (column flex's default align-items: stretch) — that's what lets the input row
  * span the board and its EntryBox flex-fill between the buttons. */
-.belowBoard {
+/* @@ */ .belowBoard {
   width: var(--side);
   margin-top: 1.5rem;
   display: flex;
@@ -190,7 +190,7 @@
 /* (The input row + its EntryBox/Delete/Submit live in the shared
  * common/components/game/entry/EntryRow now; only the below-board slot wrapper is here.) */
 
-.loading {
+/* @@ */ .loading {
   padding: 2rem;
   color: var(--page-text-color);
 }

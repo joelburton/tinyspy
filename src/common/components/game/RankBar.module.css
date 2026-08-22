@@ -37,7 +37,7 @@
  * once, and it leaked the phone's height budget onto a desktop that had room
  * to spare. Keep the desktop look in the base rule; let mobile take things
  * away. */
-.rankBar {
+/* @@ */ .rankBar {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -45,7 +45,7 @@
   margin-bottom: 8px;
 }
 
-.label {
+/* @@ */ .label {
   font-size: 14px;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -53,7 +53,7 @@
   color: var(--rank-text);
 }
 
-.track {
+/* @@ */ .track {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -69,7 +69,7 @@
 }
 
 /* The rule connecting the squares, behind them; the squares draw on top. */
-.track::before {
+/* @@ */ .track::before {
   content: '';
   position: absolute;
   left: 0;
@@ -81,7 +81,7 @@
   z-index: 0;
 }
 
-.tier {
+/* @@ */ .tier {
   position: relative;
   z-index: 1;
   width: 14px;
@@ -98,7 +98,7 @@
 /* Achieved tiers take the fill; the border is already the shared dark gold, so
  * the bright square stands out against the white track without the heaviness of
  * a near-black outline (which is reserved for the goal marker below). */
-.achieved {
+/* @@ */ .achieved {
   background: var(--rank-bar-fill-color);
 }
 
@@ -113,7 +113,7 @@
  * `box-sizing: border-box` is global, so the thicker border eats inward and
  * the square's 14px footprint is unchanged — no reflow of the track.
  * Declared after `.achieved` so it wins the border-color cascade. */
-.target {
+/* @@ */ .target {
   border-width: 3px;
   border-color: var(--page-text-color);
 }
@@ -125,7 +125,7 @@
  * tabIndex (see RankBar.tsx), and when it did, this selector is what made the
  * bubble stick — a click parked focus, the next keystroke promoted it, and
  * neither the pointer leaving nor Tab could clear it. */
-.tooltip {
+/* @@ */ .tooltip {
   position: absolute;
   bottom: calc(100% + 8px);
   left: 50%;
@@ -143,7 +143,7 @@
   transition: opacity 80ms ease;
 }
 
-.tier:hover .tooltip {
+/* @@ */ .tier:hover .tooltip {
   opacity: 1;
 }
 
@@ -163,7 +163,7 @@
  * on desktop the info column has room above and the status bar isn't rendered
  * at all — so neither call site has a decision to make. */
 @media (--mobile) {
-  .tooltip {
+/* @@ */   .tooltip {
     bottom: auto;
     top: calc(100% + 8px);
   }
@@ -180,19 +180,19 @@
  * ever apply on a phone. And no `compact` prop to thread through three games'
  * call sites — the surface a component lands in decides its own shape, so the
  * two can't drift apart the way a hand-passed flag can. */
-[data-mobile-status] .rankBar {
+/* @@ */ [data-mobile-status] .rankBar {
   flex-direction: row;
   gap: 0.5rem;
   margin-bottom: 0;
 }
 
-[data-mobile-status] .label {
+/* @@ */ [data-mobile-status] .label {
   /* Doesn't shrink or wrap — the track absorbs the width instead. */
   flex: 0 0 auto;
   white-space: nowrap;
 }
 
-[data-mobile-status] .track {
+/* @@ */ [data-mobile-status] .track {
   /* A MINIMUM separation, not the spacing: `space-between` still distributes
    * whatever width is left over. It matters here because there IS no spare
    * width — the status block's centered shrink-wrapping parent chain leaves

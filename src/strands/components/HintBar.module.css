@@ -3,7 +3,7 @@
 /* The hint bar + its button, below the board. See HintBar.tsx for why it lives
  * there rather than in the info column. */
 
-.row {
+/* @@ */ .row {
   display: flex;
   align-items: center;
   gap: 0.6rem;
@@ -12,7 +12,7 @@
   min-height: 2.25rem;
 }
 
-.track {
+/* @@ */ .track {
   flex: 1;
   height: 1.25rem;
   border-radius: var(--radius-sm);
@@ -36,7 +36,7 @@
  * carry two unrelated ideas. Green is what the roster already uses for a good
  * outcome, and specifically what the `valid word` pill shows when a find puts a
  * point on this bar, so the pill and the bar now agree. */
-.fill {
+/* @@ */ .fill {
   height: 100%;
   background: var(--outcomes-won-fill-color);
   transition: width 180ms ease-out;
@@ -46,7 +46,7 @@
  * earning nothing (the cap is deliberate and unwarned), so the filled state is
  * visually distinct rather than merely 100% wide — a deeper green, still within
  * the same "this is going well" vocabulary. */
-.fillFull {
+/* @@ */ .fillFull {
   background: var(--outcomes-won-ink-color);
 }
 
@@ -70,7 +70,7 @@
 /* Specificity note: `:not(:disabled)` contributes its argument's weight, so
  * this is (0,2,0) and beats theme.css's `.secondary` (0,1,0) without an
  * !important. */
-.hintReady:not(:disabled) {
+/* @@ */ .hintReady:not(:disabled) {
   background: var(--button-caution-primary-color);
   border-color: var(--button-caution-primary-color);
   /* The Lucide glyph strokes with currentColor, so this inks the icon too.
@@ -88,7 +88,7 @@
  * settles it. (Before the base inverted, theme's rule was `button.secondary…` at
  * (0,3,1) and won outright, which meant a ready bar washed pale under the
  * pointer instead of darkening — this is the rule finally doing what it says.) */
-.row .hintReady:not(:disabled):hover {
+/* @@ */ .row .hintReady:not(:disabled):hover {
   /* Darker on hover — a filled button can't use the outline's
    * fill-on-hover, since it is already filled. */
   background: var(--button-caution-primary-hover-color);

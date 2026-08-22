@@ -5,6 +5,6 @@
  * modalActions.module.css; this stylesheet owns only the rules-color swatches.
  */
 
-.hintAgent    { color: var(--codenamesduet-agent-text); }
-.hintNeutral  { color: var(--codenamesduet-neutral-text); }
-.hintAssassin { color: var(--codenamesduet-assassin-text); }
+/* @@ */ .hintAgent    { color: var(--codenamesduet-agent-text); }
+/* @@ */ .hintNeutral  { color: var(--codenamesduet-neutral-text); }
+/* @@ */ .hintAssassin { color: var(--codenamesduet-assassin-text); }

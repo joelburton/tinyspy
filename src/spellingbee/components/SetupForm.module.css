@@ -5,20 +5,20 @@
  * fieldset/legend/paragraph scaffold; only this letter-input layout is
  * game-specific. */
 
-.customRow {
+/* @@ */ .customRow {
   display: flex;
   gap: 1rem;
   align-items: flex-end;
   flex-wrap: wrap;
 }
 
-.field {
+/* @@ */ .field {
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
 }
 
-.field > span {
+/* @@ */ .field > span {
   font-size: 0.85rem;
   font-weight: 600;
 }
@@ -26,17 +26,17 @@
 /* Letter inputs read like the honeycomb: uppercase, spaced, centered mono. The
  * stored value stays lowercase (the SetupForm cleans it); text-transform is
  * display-only. */
-.letterInput {
+/* @@ */ .letterInput {
   text-transform: uppercase;
   letter-spacing: 0.2em;
   font-family: monospace;
   text-align: center;
 }
 
-.centerInput {
+/* @@ */ .centerInput {
   width: 3.5rem;
 }
 
-.outerInput {
+/* @@ */ .outerInput {
   width: 10rem;
 }

@@ -1,6 +1,6 @@
 /* cs-unmet */
 
-.controls {
+/* @@ */ .controls {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -9,7 +9,7 @@
   gap: 0.4rem 0.5rem;
 }
 
-.group {
+/* @@ */ .group {
   display: flex;
   align-items: center;
   gap: 0.25rem;
@@ -18,7 +18,7 @@
 /* Group name ("Fill:", "Check:", "Reveal:"). Full text color, not muted: it's
    what disambiguates the one-character squares beside it, so it's load-bearing
    content rather than background chrome. */
-.label {
+/* @@ */ .label {
   font-size: 0.85rem;
   font-weight: 700;
   color: var(--page-text-color);
@@ -26,7 +26,7 @@
 
 /* The dark vertical rule between groups. Sized off the button box so it spans
    the row's full height rather than just the text. */
-.rule {
+/* @@ */ .rule {
   width: 1px;
   height: var(--iconButton-size);
   background: var(--page-text-color);
@@ -37,7 +37,7 @@
 /* Every square in the bar — the two Fill glyphs and the six scope buttons — is
    the SAME box as a shared icon-only action button (`--iconButton-size`), so
    the End / Concede button passed in as children sits flush with them. */
-.btn {
+/* @@ */ .btn {
   width: var(--iconButton-size);
   height: var(--iconButton-size);
   padding: 0;
@@ -50,10 +50,10 @@
   border-radius: 6px;
   cursor: pointer;
 }
-.btn:hover:not(:disabled) {
+/* @@ */ .btn:hover:not(:disabled) {
   background: var(--page-surface-hover-color);
 }
-.btn:disabled {
+/* @@ */ .btn:disabled {
   opacity: 0.5;
   /* A refused control, not an inert one — so `not-allowed`. */
   cursor: not-allowed;
@@ -61,22 +61,22 @@
 
 /* The Fill toggle's selected side, in the game's established "active" yellow
    (the same token as the cursor cell). */
-.btnOn {
+/* @@ */ .btnOn {
   background: var(--crosswords-cursor);
   border-color: var(--crosswords-line);
 }
-.btnOn:hover:not(:disabled) {
+/* @@ */ .btnOn:hover:not(:disabled) {
   background: var(--crosswords-cursor);
 }
 
 /* The two Fill glyphs are both the letter "P" — the STYLE is the distinction,
    and it's the same one the grid itself draws with. */
-.pencilBtn {
+/* @@ */ .pencilBtn {
   color: var(--crosswords-pencil);
   font-weight: 500;
   font-style: italic;
 }
-.penBtn {
+/* @@ */ .penBtn {
   color: var(--crosswords-pen);
   font-weight: 800;
 }

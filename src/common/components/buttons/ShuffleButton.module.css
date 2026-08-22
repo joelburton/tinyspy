@@ -7,7 +7,7 @@
  * The glyph rotates on hover via the inner .glyph span (rotating the button
  * itself would spin the whole pill, which reads as a twitch). */
 
-.shuffle {
+/* @@ */ .shuffle {
   width: 35px;
   height: 35px;
   padding: 0;
@@ -28,16 +28,16 @@
   transition: transform 120ms ease, background 120ms ease;
 }
 
-.shuffle:hover:not(:disabled) {
+/* @@ */ .shuffle:hover:not(:disabled) {
   /*background: color-mix(in oklab, var(--page-surface-hover-color) 85%, transparent);*/
   transform: translateY(-1px);
 }
 
-.shuffle:active:not(:disabled) {
+/* @@ */ .shuffle:active:not(:disabled) {
   transform: translateY(0);
 }
 
-.shuffle:disabled {
+/* @@ */ .shuffle:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
@@ -53,21 +53,21 @@
    Left as-is for now. Fix it where the shuffle games get their pass, not here
    — it is nine call sites and the right change is removing the tab stop, not
    restyling the ring. */
-.shuffle:focus {
+/* @@ */ .shuffle:focus {
   outline: none;
 }
 
-.shuffle:focus-visible {
+/* @@ */ .shuffle:focus-visible {
   outline: var(--chrome-cursor-ring);
   outline-offset: 2px;
 }
 
-.glyph {
+/* @@ */ .glyph {
   display: inline-block;
   line-height: 1;
   transition: transform 120ms ease;
 }
 
-.shuffle:hover:not(:disabled) .glyph {
+/* @@ */ .shuffle:hover:not(:disabled) .glyph {
   transform: rotate(90deg);
 }

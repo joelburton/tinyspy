@@ -29,7 +29,7 @@
  * absolute-position over the corner without fighting the Link's click target.
  */
 
-.wrapper {
+/* @@ */ .wrapper {
   position: relative;
   /* THE HOVER LIVES HERE, not on the card, because the wrapper is what the
    * list treats as a row: the shared `.item-list` draws the hairline between
@@ -40,7 +40,7 @@
   transition: background-color 100ms ease;
 }
 
-.wrapper:hover {
+/* @@ */ .wrapper:hover {
   background: var(--page-surface-hover-color);
 }
 
@@ -49,20 +49,20 @@
  * flag needs — a positioning context and the overflow that clips the triangle
  * to the frame's rounded corner. It paints no surface of its own: the wrapper
  * above carries the tint so the hairline tints with it. */
-.card {
+/* @@ */ .card {
   position: relative;
   overflow: hidden;
 }
 
 /* The Link wrapper around clickable cards. Strips link styles so
  * the card itself is the affordance; the whole surface clicks. */
-.link {
+/* @@ */ .link {
   display: block;
   text-decoration: none;
   color: inherit;
 }
 
-.content {
+/* @@ */ .content {
   display: flex;
   flex-direction: column;
   /* No gap: the two lines' own line-heights are the leading (see the start
@@ -73,7 +73,7 @@
 }
 
 /* Title + mode pill on one row. */
-.titleRow {
+/* @@ */ .titleRow {
   display: flex;
   align-items: center;
   gap: 0.4rem;
@@ -84,7 +84,7 @@
  * leading as a start-list row's title (StartGameButtons/.title), so the two
  * panels' rows are the same object seen twice; only .active scales it up.
  * word-break since some gametypes generate long titles. */
-.gameTitle {
+/* @@ */ .gameTitle {
   font-weight: 600;
   font-size: 1rem;
   line-height: 1.2;
@@ -94,7 +94,7 @@
 /* The subtle second line — same small muted register as the start
  * buttons' description: the status on the left, the started-at date
  * right-justified. */
-.meta {
+/* @@ */ .meta {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
@@ -106,7 +106,7 @@
 }
 
 /* Right-justified even if the status is short or the line wraps. */
-.startedAt {
+/* @@ */ .startedAt {
   margin-left: auto;
   white-space: nowrap;
 }
@@ -116,7 +116,7 @@
  * a blue ring means "the keyboard cursor is here / Enter acts on this", and
  * this callout isn't in either list. A dark neutral border keeps the
  * prominence without lying about that. */
-.standalone {
+/* @@ */ .standalone {
   border: 2px solid var(--page-text-color);
   border-radius: var(--radius-md);
   /* Even on all four sides, at the rows' horizontal inset — so its logo +
@@ -131,7 +131,7 @@
  * titles that run long — connections' three words, scrabble's opening
  * three — wrapped to a second line and shoved the callout's own height
  * around; it's prominent enough from its border and its position. */
-.standalone .gameTitle {
+/* @@ */ .standalone .gameTitle {
   font-size: 1.25rem;
 }
 
@@ -162,7 +162,7 @@
  * The delete affordance lives OUTSIDE the card (sibling in
  * wrapper), so on hover it sits above the card and naturally
  * covers this corner — no z-index gymnastics needed. */
-.openFlag {
+/* @@ */ .openFlag {
   position: absolute;
   top: 0;
   right: 0;
@@ -175,7 +175,7 @@
 /* Suspended flag: yellow. "Still open for play, we'll come back
  * to this." Color from --gamelist-suspended-color — the
  * semantic "in flight, not done" token. */
-.openFlagSuspended {
+/* @@ */ .openFlagSuspended {
   background: var(--gamelist-suspended-color);
 }
 
@@ -183,7 +183,7 @@
  * now" — deliberately more forceful than the suspended yellow
  * so a glance at a list reads "current game" before "the other
  * still-open ones." Color from --gamelist-current-color. */
-.openFlagActive {
+/* @@ */ .openFlagActive {
   background: var(--gamelist-current-color);
 }
 
@@ -207,7 +207,7 @@
  * own surface until the user commits to it.
  */
 
-.deleteButton {
+/* @@ */ .deleteButton {
   position: absolute;
   top: 0.4rem;
   right: 0.4rem;
@@ -233,11 +233,11 @@
 
 /* Reveal on hover (mouse) or focus-within (keyboard). */
 .wrapper:hover .deleteButton,
-.wrapper:focus-within .deleteButton {
+/* @@ */ .wrapper:focus-within .deleteButton {
   opacity: 1;
 }
 
-.deleteButton:hover:not(:disabled) {
+/* @@ */ .deleteButton:hover:not(:disabled) {
   background: var(--page-surface-hover-color);
   color: var(--page-text-color);
   border-color: var(--field-strong-edge-color);
@@ -250,7 +250,7 @@
  * palette on a control, for a button where nobody has lost anything. It is now
  * the plain destructive treatment every other irreversible control wears: the
  * tone on the text and the border, no fill (docs/ui.md → The color system). */
-.deleteButtonActive {
+/* @@ */ .deleteButtonActive {
   opacity: 1;
   width: auto;
   padding: 0.3rem 0.7rem;
@@ -266,7 +266,7 @@
   font-weight: 600;
 }
 
-.deleteButtonActive:hover:not(:disabled) {
+/* @@ */ .deleteButtonActive:hover:not(:disabled) {
   background: var(--button-destructive-secondary-hover-color);
   color: var(--button-destructive-primary-color);
   border-color: var(--button-destructive-primary-color);

@@ -13,7 +13,7 @@
  * (docs/ui.md → "Layout stability"). The clue-giver's guess-phase line ("Your
  * clue: WORD · N  Waiting for X to guess…") is the longest, and stays on one row
  * on a desktop-width board. */
-.cluePanel {
+/* @@ */ .cluePanel {
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -24,7 +24,7 @@
 
 /* Sudden death is the one state that still carries its own visual — a tinted
  * background + accent border — to drive the "things just got real" beat. */
-.cluePanel.suddenDeath {
+/* @@ */ .cluePanel.suddenDeath {
   border: 1px solid var(--codenamesduet-assassin);
   background: var(--codenamesduet-assassin-soft);
   border-radius: var(--radius-md);
@@ -32,18 +32,18 @@
 }
 
 /* "Your clue:" lead-in, muted so the WORD beside it carries the emphasis. */
-.clueLabel {
+/* @@ */ .clueLabel {
   color: var(--page-text-muted-color);
 }
 
 /* The active clue, inline — prominent but sized to sit on the control line. */
-.clueDisplay {
+/* @@ */ .clueDisplay {
   font-size: 1.2rem;
 }
 
 /* "Waiting for <peer> to …" — muted; the <ActorTag> inside carries the peer's
  * identity disc. */
-.waiting {
+/* @@ */ .waiting {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
@@ -51,7 +51,7 @@
 
 /* The clue-giver's form: the one-line control row, with the suggestion reasoning
  * / submit error wrapping below it (centered). */
-.clueForm {
+/* @@ */ .clueForm {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -61,7 +61,7 @@
 /* The control row stays on ONE line (label, count, word, submit, AI) — no wrap,
  * so the AI button never drops below the inputs. When space is tight the word
  * field shrinks (flex-shrink) rather than the row breaking. */
-.clueLine {
+/* @@ */ .clueLine {
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -71,14 +71,14 @@
 }
 
 /* Single-digit count — fixed narrow box, centered text. */
-.countInput {
+/* @@ */ .countInput {
   width: 2.5rem;
   text-align: center;
 }
 
 /* The clue word — a comfortable fixed-ish width (shrinks on narrow viewports);
  * NOT full board-width, so the row reads as a compact cluster. */
-.wordInput {
+/* @@ */ .wordInput {
   flex: 0 1 14rem;
   min-width: 6rem;
 }
@@ -86,14 +86,14 @@
 /* Submit button — the shared icon+label look (via the global `.icon-button`).
  * Holds its width + stays one line in the no-wrap row, like the AI button
  * beside it. */
-.submitBtn {
+/* @@ */ .submitBtn {
   flex-shrink: 0;
   white-space: nowrap;
 }
 
 /* The AI clue-suggestion button — icon + label via the global `.icon-button`.
  * Hold its width (no shrink) + keep the label on one line. */
-.aiBtn {
+/* @@ */ .aiBtn {
   font-size: 0.9rem;
   flex-shrink: 0;
   white-space: nowrap;
@@ -102,18 +102,18 @@
 /* The AI suggestion panel body (inside a <FloatingPanel>): the picked clue,
  * then the reasoning. The panel scrolls (FloatingPanel's .body) when the
  * reasoning is long. */
-.suggestionBody {
+/* @@ */ .suggestionBody {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
   padding: 0.3rem;
 }
 
-.suggestionClue {
+/* @@ */ .suggestionClue {
   font-size: 1.3rem;
 }
 
-.suggestionReasoning {
+/* @@ */ .suggestionReasoning {
   margin: 0;
   line-height: 1.5;
   color: var(--page-text-color);
@@ -124,13 +124,13 @@
 }
 
 /* "Asking Claude…" while the edge function runs. */
-.suggestionLoading {
+/* @@ */ .suggestionLoading {
   margin: 0;
   color: var(--page-text-muted-color);
 }
 
 /* The API error message, shown in the dialog (not the local flash bar). */
-.suggestionError {
+/* @@ */ .suggestionError {
   margin: 0;
   line-height: 1.5;
   color: var(--chrome-fault-color);

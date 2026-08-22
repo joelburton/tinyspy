@@ -5,18 +5,18 @@
  * per-tile background is computed at runtime (depth shading, an hsl ramp in
  * Board.tsx), so it isn't a token. Imported by the PlayArea.
  */
-:root {
+/* @@ */ :root {
   /* Letter ink = the shared tile ink (common/themes/daylight.css --tile-slot-ink-color), same as
      scrabble/boggle: stackdown's tiles use the same warm --tile-1-fill-color..4 fill ramp, so
      they take the same near-black ink. A game-named alias keeps the override seam. */
-  --stackdown-tile-ink: var(--tile-slot-ink-color);
+/* @@ */   --stackdown-tile-ink: var(--tile-slot-ink-color);
 
   /* ── Board chrome, named during the palette sweep ─────────────────────────
    * A stack of tiles that OVERLAP, so the edge and the drop shadow are doing
    * real work: they separate a tile from the one beneath it. Sized in `cqi` so
    * they scale with the board. Values unchanged. */
-  --stackdown-tile-edge-color: rgb(0 0 0 / 20%);
-  --stackdown-tile-shadow:     0 0.4cqi 0.8cqi rgb(0 0 0 / 28%);
+/* @@ */   --stackdown-tile-edge-color: rgb(0 0 0 / 20%);
+/* @@ */   --stackdown-tile-shadow:     0 0.4cqi 0.8cqi rgb(0 0 0 / 28%);
 
   /* HOVER — ⚠️ WRITTEN FAST, TO TEST DARK MODE, AND NOT CAREFULLY CONSIDERED.
      See plans/dark-mode.md.
@@ -33,7 +33,7 @@
      `--tile-hover-shadow` has to `--tile-shadow`. NO LIFT, deliberately: the
      question on the table is whether the SHADOW reads against the page, and a
      transform would answer a different one very loudly. */
-  --stackdown-tile-hover-shadow: 0 1.2cqi 1.6cqi rgb(0 0 0 / 32%);
+/* @@ */   --stackdown-tile-hover-shadow: 0 1.2cqi 1.6cqi rgb(0 0 0 / 32%);
 }
 
 /* ⚠️ AN EXPERIMENT, WRITTEN FAST — how strong CAN a shadow be on a dark page?
@@ -61,7 +61,7 @@
  *
  * DELETE THIS with the spike, or once the depth question is settled. It is a
  * measurement, not a design. */
-html[data-theme='midnight'] {
-  --stackdown-tile-shadow:       0 0.4cqi 0.8cqi rgb(0 0 0 / 100%);
-  --stackdown-tile-hover-shadow: 0 1.2cqi 1.6cqi rgb(0 0 0 / 100%);
+/* @@ */ html[data-theme='midnight'] {
+/* @@ */   --stackdown-tile-shadow:       0 0.4cqi 0.8cqi rgb(0 0 0 / 100%);
+/* @@ */   --stackdown-tile-hover-shadow: 0 1.2cqi 1.6cqi rgb(0 0 0 / 100%);
 }

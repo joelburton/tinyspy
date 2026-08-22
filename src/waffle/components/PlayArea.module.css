@@ -10,6 +10,6 @@
  * each game declares its own). waffle's right column (setup + swap state + the
  * swap log) fits a narrow column; the shared `.infoCol` reads this. A rem, never
  * a pixel lock. */
-.layout {
-  --info-col-width: 22rem;
+/* @@ */ .layout {
+/* @@ */   --info-col-width: 22rem;
 }

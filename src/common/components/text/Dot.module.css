@@ -8,7 +8,7 @@
  *   --dot-border-width  ring width (default 1px; bump to 2px on larger dots)
  *   --dot-ring          hollow-variant ring color (default body text)
  */
-.dot {
+/* @@ */ .dot {
   display: inline-block;
   width: var(--dot-size, 0.65em);
   height: var(--dot-size, 0.65em);
@@ -19,7 +19,7 @@
 }
 
 /* The "nobody" ring — transparent center, neutral outline. */
-.hollow {
+/* @@ */ .hollow {
   background: transparent;
   border-color: var(--dot-ring, var(--page-text-color));
 }

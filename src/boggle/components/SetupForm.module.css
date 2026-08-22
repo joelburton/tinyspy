@@ -8,7 +8,7 @@
 
 /* Space between the Scoring section's ladder dropdown and the minimum-word-
  * length row below it. */
-.scoringRowGap {
+/* @@ */ .scoringRowGap {
   margin-top: 0.75rem;
 }
 
@@ -20,7 +20,7 @@
  * `QU` is two (lib/customBoard.ts → The mixed-case rule) — so a field that
  * displayed everything uppercase would show a different board than the one it
  * holds. */
-.boardInput {
+/* @@ */ .boardInput {
   width: 100%;
   font-family: monospace;
   letter-spacing: 0.12em;
@@ -40,14 +40,14 @@
  * Deliberate divergence from the app's other inputs, which leave `::placeholder`
  * to the browser: their hints are prose ("Search…") that could never be read as
  * data. If placeholders ever get a global treatment, this rule folds into it. */
-.boardInput::placeholder {
+/* @@ */ .boardInput::placeholder {
   color: var(--field-placeholder-ink-color);
   font-style: italic;
   letter-spacing: normal;
 }
 
 /* The "Board constraints" min/max grid. */
-.grid {
+/* @@ */ .grid {
   display: grid;
   grid-template-columns: auto 1fr 1fr;
   gap: 0.4rem 0.6rem;
@@ -56,7 +56,7 @@
   max-width: 360px;
 }
 
-.colHead {
+/* @@ */ .colHead {
   font-size: 0.75rem;
   color: var(--page-text-muted-color);
   text-transform: uppercase;
@@ -64,11 +64,11 @@
   text-align: center;
 }
 
-.rowLabel {
+/* @@ */ .rowLabel {
   color: var(--page-text-color);
 }
 
-.numInput {
+/* @@ */ .numInput {
   width: 100%;
   text-align: right;
 }

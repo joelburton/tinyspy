@@ -7,7 +7,7 @@
  * chevron is a text glyph rather than an icon component: it's a single
  * character at a single size, and the two directions have to be optically
  * identical mirrored — which a font gives for free and two SVGs wouldn't. */
-.button {
+/* @@ */ .button {
   display: none;
   align-items: center;
   justify-content: center;
@@ -28,14 +28,14 @@
   transition: background 80ms ease;
 }
 
-.button:hover {
+/* @@ */ .button:hover {
   background: var(--page-surface-hover-color);
 }
 
 /* Mobile only: on desktop the info column is always visible, so there is
  * nothing to switch to and the button would be a control with no meaning. */
 @media (max-width: 56.25rem) {
-  .button {
+/* @@ */   .button {
     display: flex;
   }
 }

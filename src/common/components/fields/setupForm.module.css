@@ -20,30 +20,30 @@
  * padding; these rules only shape the fieldsets + radio rows within.
  */
 
-.setup {
+/* @@ */ .setup {
   display: flex;
   flex-direction: column;
   gap: 1rem;
 }
 
-.fieldset {
+/* @@ */ .fieldset {
   border: 1px solid var(--page-surface-border-color);
   border-radius: var(--radius-md);
   padding: 0.75rem 1rem 1rem;
   margin: 0;
 }
 
-.fieldset legend {
+/* @@ */ .fieldset legend {
   font-weight: 600;
   padding: 0 0.25rem;
 }
 
 /* An intro paragraph placed directly under the legend (`<p class="muted">`). */
-.fieldset > p {
+/* @@ */ .fieldset > p {
   margin: 0.25rem 0 0.75rem 0;
 }
 
-.radioRow {
+/* @@ */ .radioRow {
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
@@ -51,14 +51,14 @@
 
 /* A radio sits inline with its label; the input loses its default vertical
  * drift via the flex alignment. */
-.radio {
+/* @@ */ .radio {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
   cursor: pointer;
 }
 
-.radio input {
+/* @@ */ .radio input {
   margin: 0;
   /* Override theme.css's input padding (`0.6rem 0.9rem`) — that sizes text
    * inputs, not radios. */
@@ -70,13 +70,13 @@
  * wordwheel ("unique letters only"); the two had byte-identical private copies,
  * and wordwheel's even carried a comment saying it mirrored bananagrams's, which
  * is the standing signal to make the match structural rather than remembered. */
-.checkRow {
+/* @@ */ .checkRow {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   cursor: pointer;
 }
 
-.checkRow input {
+/* @@ */ .checkRow input {
   margin: 0;
 }

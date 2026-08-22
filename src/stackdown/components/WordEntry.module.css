@@ -4,7 +4,7 @@
  * flanked by the ⌫ and Submit buttons (BoardCol.module.css → `.moveArea`, which
  * owns the spacing above: a margin here would offset the slots from the buttons
  * they're supposed to line up with). */
-.row {
+/* @@ */ .row {
   display: flex;
   gap: 8px;
   justify-content: center;
@@ -12,7 +12,7 @@
 
 /* One slot. Empty slots are a dashed placeholder; filled slots carry the
  * picked-up letter and are clickable to return the tile. */
-.slot {
+/* @@ */ .slot {
   width: 48px;
   height: 48px;
   display: flex;
@@ -28,14 +28,14 @@
   color: var(--page-text-color);
 }
 
-.filled {
+/* @@ */ .filled {
   border-style: solid;
   border-color: var(--button-normal-primary-color);
   background: var(--page-surface-color);
   cursor: pointer;
 }
 
-.filled:hover:not(:disabled) {
+/* @@ */ .filled:hover:not(:disabled) {
   background: var(--page-surface-hover-color);
 }
 
@@ -46,12 +46,12 @@
  * so an accepted/rejected word reads emphatically at a glance.
  *   - good: an accepted word (the player's own, or a teammate's valid find)
  *   - bad:  a teammate's rejected word (their tiles bounced back) */
-.won {
+/* @@ */ .won {
   border-color: var(--outcomes-won-ink-color);
   box-shadow: 0 0 0 3px var(--outcomes-won-ink-color);
 }
 
-.lost {
+/* @@ */ .lost {
   border-color: var(--outcomes-lost-ink-color);
   box-shadow: 0 0 0 3px var(--outcomes-lost-ink-color);
 }
@@ -62,6 +62,6 @@
  * red/green ring; only the outline signals the result. (`.slot.good` /
  * `.slot.bad` out-specific `button:disabled`.) */
 .slot.good,
-.slot.bad {
+/* @@ */ .slot.bad {
   opacity: 1;
 }

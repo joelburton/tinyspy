@@ -13,23 +13,23 @@
  * outline would draw a broken box). See common/components/game/lists/TurnLog.tsx. */
 
 /* Row 1, the clue word inside the `.main` cell — bold + lightly spaced. */
-.clueWord {
+/* @@ */ .clueWord {
   font-weight: 700;
   letter-spacing: 0.03em;
 }
 
 /* Each guessed word (row 2), colored by its reveal outcome — the same agent-green
  * / neutral-tan / assassin-red vocabulary the board uses for revealed tiles. */
-.guessWord {
+/* @@ */ .guessWord {
   font-weight: 700;
   letter-spacing: 0.03em;
 }
-.guessWord_G {
+/* @@ */ .guessWord_G {
   color: var(--codenamesduet-agent);
 }
-.guessWord_N {
+/* @@ */ .guessWord_N {
   color: var(--codenamesduet-neutral-text);
 }
-.guessWord_A {
+/* @@ */ .guessWord_A {
   color: var(--codenamesduet-assassin);
 }

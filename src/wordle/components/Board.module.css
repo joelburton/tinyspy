@@ -4,16 +4,16 @@
  * look (like psychicnum/connections); it exists so a future framed board adds
  * the frame in one place, and it holds the tile-size knobs. It just centers the
  * grid; the grid drives its own size (see below). */
-.board {
+/* @@ */ .board {
   /* ─── Tile size cap — TINKER HERE ────────────────────────────────────────
    * The board grows to fill the space, but a tile never exceeds this width.
    * Square tiles, so width is the only knob. Relative units (rem). To REMOVE
    * the cap, SET it to 999rem (the calc term goes huge → the grid fills
    * --avail-w). Don't comment it out — the phantom-token guard
    * (src/guards/cssTokens.test.ts) needs it defined. */
-  --max-tile-width: 3.7rem;
-  --grid-gap: 0.35rem;
-  --cols: 5;
+/* @@ */   --max-tile-width: 3.7rem;
+/* @@ */   --grid-gap: 0.35rem;
+/* @@ */   --cols: 5;
   display: flex;
   justify-content: center;
 }
@@ -25,7 +25,7 @@
  * wordle's iconic look — instead of the flex-fill the other v3 boards use
  * (a keyboard shares this column below the board, so the board hugs its height
  * rather than filling the column). Each row is its own 5-col grid (`.row`). */
-.grid {
+/* @@ */ .grid {
   /* The TILE TOKENS for this board. wordle's tiles are the shared `.tile` (box,
    * radius, token plumbing — see common PlayArea.module.css), and these are the
    * four places wordle's piece differs from the warm default:
@@ -50,17 +50,17 @@
    * element in Board.tsx). `aspect-ratio` then derives the HEIGHT from that
    * width so the tiles stay SQUARE (wordle's look) instead of flex-filling — a
    * keyboard shares this column below the board, so the board hugs its height. */
-  --tile-slot-fill-color: transparent;
-  --tile-slot-edge-color: var(--wordle-tile-border);
-  --tile-slot-ink-color: var(--ink-onDark-color);
-  --tile-shadow: none;
+/* @@ */   --tile-slot-fill-color: transparent;
+/* @@ */   --tile-slot-edge-color: var(--wordle-tile-border);
+/* @@ */   --tile-slot-ink-color: var(--ink-onDark-color);
+/* @@ */   --tile-shadow: none;
   display: grid;
   grid-auto-rows: 1fr;
   gap: var(--grid-gap);
   aspect-ratio: var(--cols) / var(--rows);
 }
 
-.row {
+/* @@ */ .row {
   display: grid;
   grid-template-columns: repeat(var(--cols), 1fr);
   gap: var(--grid-gap);
@@ -88,7 +88,7 @@
  * room — measured identical at 720px and 900px (board 318×383 either way), and
  * only engaging below that (248×298 at 617px). The same reason it's already
  * inert on a tall phone, where the per-tile cap wins. */
-.grid {
+/* @@ */ .grid {
   max-width: calc(
     (100svh - var(--game-chrome-height) - 15rem) * var(--cols) / var(--rows)
   );
@@ -98,7 +98,7 @@
  * (mirrors the board `.frame`), applied while inspecting a past turn. The row's
  * tiles keep their g/y/x colors; this just marks WHICH row this turn played. An
  * outline (not a border) so it layers outside the tiles without resizing them. */
-.viewedRow {
+/* @@ */ .viewedRow {
   outline: 3px solid var(--view-history-color);
   outline-offset: 2px;
   border-radius: 4px;
@@ -107,7 +107,7 @@
 /* The box comes from the SHARED `.tile` (composed in Board.tsx); this is what is
  * left over. wordle's tiles are inert `<div>`s, so they get none of the shared
  * interaction chrome — that lives on `button.tile`. */
-.tile {
+/* @@ */ .tile {
   /* The grid already squares its cells (1fr rows under the grid's own
    * aspect-ratio); this holds the shape if either ever changes. */
   aspect-ratio: 1;
@@ -120,16 +120,16 @@
  * specificity, decided by whichever stylesheet the bundler happened to put
  * second. The color is inherited from the tile, which is what lets the reveal
  * keyframes swap dark ink for white mid-flip. */
-.letter {
+/* @@ */ .letter {
   font-size: 1.6rem;
   font-weight: 700;
   line-height: 1;
 }
 
 /* A typed-but-not-submitted tile: dark border, no fill, dark text. */
-.filled {
-  --tile-slot-edge-color: var(--wordle-tile-border-filled);
-  --tile-slot-ink-color: var(--page-text-color);
+/* @@ */ .filled {
+/* @@ */   --tile-slot-edge-color: var(--wordle-tile-border-filled);
+/* @@ */   --tile-slot-ink-color: var(--page-text-color);
 }
 
 /* Server feedback colors, applied by RE-SETTING the shared `.tile`'s `--tile-*`
@@ -137,26 +137,26 @@
  * and codenamesduet use). The border is a slightly DARKER shade of the fill rather
  * than the fill itself — the quiet definition every other surface in this app has,
  * instead of a flat block of color. */
-.wordleGreen {
-  --tile-slot-fill-color: var(--wordle-green-fill-color);
-  --tile-slot-edge-color: var(--wordle-green-edge-color);
-  --tile-slot-ink-color: var(--wordle-green-ink-color);
+/* @@ */ .wordleGreen {
+/* @@ */   --tile-slot-fill-color: var(--wordle-green-fill-color);
+/* @@ */   --tile-slot-edge-color: var(--wordle-green-edge-color);
+/* @@ */   --tile-slot-ink-color: var(--wordle-green-ink-color);
 }
-.wordleYellow {
-  --tile-slot-fill-color: var(--wordle-yellow-fill-color);
-  --tile-slot-edge-color: var(--wordle-yellow-edge-color);
-  --tile-slot-ink-color: var(--wordle-yellow-ink-color);
+/* @@ */ .wordleYellow {
+/* @@ */   --tile-slot-fill-color: var(--wordle-yellow-fill-color);
+/* @@ */   --tile-slot-edge-color: var(--wordle-yellow-edge-color);
+/* @@ */   --tile-slot-ink-color: var(--wordle-yellow-ink-color);
 }
-.wordleGray {
-  --tile-slot-fill-color: var(--wordle-gray-fill-color);
-  --tile-slot-edge-color: var(--wordle-gray-edge-color);
-  --tile-slot-ink-color: var(--wordle-gray-ink-color);
+/* @@ */ .wordleGray {
+/* @@ */   --tile-slot-fill-color: var(--wordle-gray-fill-color);
+/* @@ */   --tile-slot-edge-color: var(--wordle-gray-edge-color);
+/* @@ */   --tile-slot-ink-color: var(--wordle-gray-ink-color);
 }
-.blank {
+/* @@ */ .blank {
   /* An empty tile is the board's default — stated anyway, because a color class
    * is looked up by name (`styles[color]`) and a missing one would be a silent
    * hole rather than a visible mistake. */
-  --tile-slot-fill-color: transparent;
+/* @@ */   --tile-slot-fill-color: transparent;
 }
 
 /* In flight — the row you just submitted, while the server works out its colors.
@@ -173,12 +173,12 @@
  * which it does, because the row stops being pending the moment its colored row
  * lands. See plans/tile-feedback.md. */
 
-.inFlight {
-  --tile-slot-fill-color: var(--wordle-gray-fill-color);
-  --tile-slot-edge-color: var(--wordle-gray-edge-color);
+/* @@ */ .inFlight {
+/* @@ */   --tile-slot-fill-color: var(--wordle-gray-fill-color);
+/* @@ */   --tile-slot-edge-color: var(--wordle-gray-edge-color);
   /* It wears the gray FILL, so it takes the gray's ink — not a generic
      on-dark white, which is only right while the page is light. */
-  --tile-slot-ink-color: var(--wordle-gray-ink-color);
+/* @@ */   --tile-slot-ink-color: var(--wordle-gray-ink-color);
 }
 
 /* A refused guess wears the SHARED verdict ring + shake (common
@@ -203,7 +203,7 @@
  * letters turn over left-to-right. `forwards` holds the final colored
  * state after the animation ends.
  */
-.reveal {
+/* @@ */ .reveal {
   /* `both` (not just `forwards`) is load-bearing: each tile has a
    * staggered `animation-delay`, and during that delay `both` holds the
    * 0% keyframe — the dark-text "typed" look — so the letters stay
@@ -215,7 +215,7 @@
   backface-visibility: hidden;
 }
 
-@keyframes tile-flip {
+/* @@ */ @keyframes tile-flip {
   /* First half: still the typed-but-unscored look (dark text, no fill). */
   0% {
     transform: rotateX(0deg);
@@ -246,7 +246,7 @@
 
 /* Respect reduced-motion: skip the flip, just show the final color. */
 @media (prefers-reduced-motion: reduce) {
-  .reveal {
+/* @@ */   .reveal {
     animation: none;
     background: var(--reveal-bg);
     border-color: var(--reveal-bg);

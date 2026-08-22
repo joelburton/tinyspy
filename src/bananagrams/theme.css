@@ -8,27 +8,27 @@
  * (the keyboard cursor now uses the shared --mark-gridCursor-color).
  */
 
-:root {
-  --bananagrams-tile-face: #f3e3bf;
-  --bananagrams-tile-edge: #cdb887;
-  --bananagrams-tile-ink: #4a3b22;
+/* @@ */ :root {
+/* @@ */   --bananagrams-tile-face: #f3e3bf;
+/* @@ */   --bananagrams-tile-edge: #cdb887;
+/* @@ */   --bananagrams-tile-ink: #4a3b22;
   /* The game's blue ACCENT — zoom slider, icons, dump-armed state, done button.
      (The keyboard-entry cursor moved to the shared --mark-gridCursor-color.) */
-  --bananagrams-cursor: #4aa3ff;
+/* @@ */   --bananagrams-cursor: #4aa3ff;
   /* The in-game error red (the hand-miss flash) — a second red beside
      `--outcome-lost-*`, saying much the same thing in a value nothing chose
      deliberately. Brand, or a UI color that belongs in common? UNDECIDED, and
      it belongs to this game's tile-feedback conversion, where the flash itself
      gets looked at. See plans/tile-feedback.md → the roster. */
-  --bananagrams-error: #d84a4a;
-  --bananagrams-grid-edge: #8893a3; /* thick outer border = the real edge of the arena */
+/* @@ */   --bananagrams-error: #d84a4a;
+/* @@ */   --bananagrams-grid-edge: #8893a3; /* thick outer border = the real edge of the arena */
 }
 
 /* Set while a tile is being dragged (toggled on document.body by
  * PlayerBoard). Global — not a module class — because it targets the
  * body element directly to kill text selection + show the grab cursor
  * app-wide for the duration of the drag. */
-body.mg-dragging {
+/* @@ */ body.mg-dragging {
   user-select: none;
   cursor: grabbing;
 
@@ -36,13 +36,13 @@ body.mg-dragging {
    * Values unchanged and deliberately NOT collapsed onto the shared elevation
    * set: this board is a physical-tile metaphor with its own depth, and whether
    * it should share the app's shadows is its conversion's question. */
-  --bananagrams-board-veil-color:    color-mix(in srgb, var(--page-surface-color) 55%, transparent);
-  --bananagrams-tile-shadow:         0 2px 8px rgb(0 0 0 / 30%);
-  --bananagrams-tile-resting-shadow: 0 1px 2px rgb(0 0 0 / 20%);
-  --bananagrams-hand-shadow:         0 2px 6px rgb(0 0 0 / 18%);
-  --bananagrams-drag-shadow:         0 6px 14px rgb(0 0 0 / 35%);
+/* @@ */   --bananagrams-board-veil-color:    color-mix(in srgb, var(--page-surface-color) 55%, transparent);
+/* @@ */   --bananagrams-tile-shadow:         0 2px 8px rgb(0 0 0 / 30%);
+/* @@ */   --bananagrams-tile-resting-shadow: 0 1px 2px rgb(0 0 0 / 20%);
+/* @@ */   --bananagrams-hand-shadow:         0 2px 6px rgb(0 0 0 / 18%);
+/* @@ */   --bananagrams-drag-shadow:         0 6px 14px rgb(0 0 0 / 35%);
   /* The drop-target green — a PROSPECTIVE verdict (plans/tile-feedback.md), which
    * the vocabulary will want to own once this game converts. */
-  --bananagrams-drop-ok-fill-color:  rgb(120 200 130 / 22%);
-  --bananagrams-drop-ok-edge-color:  rgb(120 200 130 / 80%);
+/* @@ */   --bananagrams-drop-ok-fill-color:  rgb(120 200 130 / 22%);
+/* @@ */   --bananagrams-drop-ok-edge-color:  rgb(120 200 130 / 80%);
 }

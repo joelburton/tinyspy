@@ -49,7 +49,12 @@ const INDEXED_BY_TILE_COLOR: [file: string, classes: readonly string[]][] = [
 describe('the letter palette reaches the stylesheets', () => {
   it.each(INDEXED_BY_TILE_COLOR)('%s defines every class it is indexed with', (file, classes) => {
     const css = readFileSync(join(process.cwd(), 'src', file), 'utf8')
-    const missing = classes.filter((c) => !new RegExp(`^\\.${c}\\b`, 'm').test(css))
+    // Anchored at the line start so a mention inside a comment or a descendant
+    // selector doesn't count as a definition — but the sprint's `/* @@ */`
+    // undecided marker also sits at column 0, so it is allowed in front.
+    const missing = classes.filter(
+      (c) => !new RegExp(`^(?:/\\* @@ \\*/ )?\\.${c}\\b`, 'm').test(css),
+    )
     expect(
       missing,
       `${file} is indexed by TileColor but defines no rule for: ${missing.join(', ')}`,

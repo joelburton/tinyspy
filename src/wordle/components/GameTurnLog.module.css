@@ -6,7 +6,7 @@
  * the guess itself, rendered as five colored mini-tiles (the per-letter g/y/x
  * feedback); that lives here. */
 
-.squares {
+/* @@ */ .squares {
   display: inline-flex;
   gap: 0.15rem;
 }
@@ -17,16 +17,16 @@
  * take an underline, so the hover cue is a tone-colored ring instead. The
  * `outline` draws outside the box, so it never reflows the log. (Hover only —
  * like every definable word, this isn't focusable; see common/utilities.css.) */
-.definable {
+/* @@ */ .definable {
   cursor: pointer;
   border-radius: 4px;
 }
-.definable:hover {
+/* @@ */ .definable:hover {
   outline: 2px solid var(--chrome-definable-ring-color);
   outline-offset: 2px;
 }
 
-.sq {
+/* @@ */ .sq {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -43,19 +43,19 @@
   background: var(--wordle-gray-fill-color);
 }
 
-.wordleGreen {
+/* @@ */ .wordleGreen {
   background: var(--wordle-green-fill-color);
   color: var(--wordle-green-ink-color);
 }
-.wordleYellow {
+/* @@ */ .wordleYellow {
   background: var(--wordle-yellow-fill-color);
   color: var(--wordle-yellow-ink-color);
 }
-.wordleGray {
+/* @@ */ .wordleGray {
   background: var(--wordle-gray-fill-color);
   color: var(--wordle-gray-ink-color);
 }
-.blank {
+/* @@ */ .blank {
   /* A guess's colors are always g/y/x, so this is defensive — keep it readable
    * (dark text on the neutral surface) if a blank ever slips through. Borrows the
    * page's own surface rather than the keycap's fill, which it borrowed until the

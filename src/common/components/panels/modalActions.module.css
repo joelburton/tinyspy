@@ -17,7 +17,7 @@
  *
  * Button ORDER is the caller's JSX, in macOS convention: Cancel on the left,
  * the default/confirm action rightmost (see docs/ui.md → Dialog buttons). */
-.modalActions {
+/* @@ */ .modalActions {
   display: flex;
   justify-content: flex-end;
   gap: 0.75rem;
@@ -27,6 +27,6 @@
 /* A floor width so a lone "Got it" / "Close" button doesn't read as cramped,
  * and a Cancel/Save pair sit at matched widths. Floor only — wider buttons
  * (a long "Back to club") keep their natural width. */
-.modalActions button {
+/* @@ */ .modalActions button {
   min-width: 6rem;
 }

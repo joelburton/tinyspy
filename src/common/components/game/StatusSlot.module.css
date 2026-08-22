@@ -12,7 +12,7 @@
  * in when usernames are long.
  */
 
-.slot {
+/* @@ */ .slot {
   flex: 1;
   min-width: 0;
   display: flex;

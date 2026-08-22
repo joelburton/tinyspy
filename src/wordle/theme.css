@@ -7,12 +7,12 @@
  * waffle uses the same palette. Only wordle's own board/keyboard CHROME stays
  * here. Imported by the PlayArea.
  */
-:root {
+/* @@ */ :root {
   /* The neutral key / empty-tile surface is the shared blank; a filled but
      un-submitted tile gets a darker border. */
   /* (The keycap's fill moved to common as `--kbd-key-fill-color` — it is the
      shared keyboard's chrome, not wordle's palette, and the shared component was
      reading a token only wordle defined.) */
-  --wordle-tile-border: var(--wordle-blank-fill-color);
-  --wordle-tile-border-filled: #878a8c;
+/* @@ */   --wordle-tile-border: var(--wordle-blank-fill-color);
+/* @@ */   --wordle-tile-border-filled: #878a8c;
 }

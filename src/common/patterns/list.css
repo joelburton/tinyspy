@@ -32,7 +32,7 @@
 
    The border is a step darker than `--page-surface-border-color`: these frames
    are the page's main structure, and they carry a heavier line than a card. */
-.item-list {
+/* @@ */ .item-list {
   display: flex;
   flex-direction: column;
   margin: 0;
@@ -55,7 +55,7 @@
    wrapped, because then the row is never its parent's last child. Stated as a
    property of the list it holds however the rows are nested, and there is
    nothing to suppress. */
-.item-list > *:not(:last-child) {
+/* @@ */ .item-list > *:not(:last-child) {
   border-bottom: 1px solid var(--field-edge-color);
 }
 
@@ -64,7 +64,7 @@
    second frame. Which row the cursor is on is marked separately, by the
    caller. */
 .item-list:focus,
-.item-list:focus-visible {
+/* @@ */ .item-list:focus-visible {
   outline: none;
   border-color: var(--chrome-cursor-color);
 }
@@ -80,7 +80,7 @@
    (A list may instead be replaced wholesale by a sentence outside the frame,
    which is what the homepage does with "You haven't joined a club yet." That
    is a different choice — no empty box — and takes nothing from here.) */
-.item-list-empty {
+/* @@ */ .item-list-empty {
   padding: 1rem;
 }
 
@@ -111,7 +111,7 @@
 
    Like `.button`, this declares what the element would otherwise supply, so
    the choice above stays about behavior rather than styling. */
-.item-row {
+/* @@ */ .item-row {
   display: flex;
   align-items: center;
   gap: 0.6rem;
@@ -138,7 +138,7 @@
   transition: background-color 100ms ease;
 }
 
-.item-row:hover {
+/* @@ */ .item-row:hover {
   background: var(--page-surface-hover-color);
   text-decoration: none;
 }

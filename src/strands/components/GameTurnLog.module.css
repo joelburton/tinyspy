@@ -8,7 +8,7 @@
  * without a fixed box the words after them would step in and out by a pixel or
  * two down the log. Inline-flex so the glyph centers in its box and sits on the
  * word's optical center line. */
-.mark {
+/* @@ */ .mark {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -20,7 +20,7 @@
   color: var(--page-text-muted-color);
 }
 
-.word {
+/* @@ */ .word {
   font-weight: 600;
   letter-spacing: 0.02em;
 }
@@ -31,30 +31,30 @@
  * reads as 15px type on a white row (see theme.css). Rejects stay plain body
  * text — the outcome bar already says they missed, and coloring them too would
  * double the signal. */
-.theme {
+/* @@ */ .theme {
   color: var(--strands-theme-text);
 }
 
-.spangram {
+/* @@ */ .spangram {
   color: var(--strands-spangram-text);
 }
 
 /* The glyph tints with its word, so the two never disagree about a row. */
-.markTheme {
+/* @@ */ .markTheme {
   color: var(--strands-theme-text);
 }
 
-.markSpangram {
+/* @@ */ .markSpangram {
   color: var(--strands-spangram-text);
 }
 
 /* Click-to-define, on dictionary words only. Pointer-only and NOT focusable —
  * the shared rule for every definable word (common/utilities.css → .definable). */
-.definable {
+/* @@ */ .definable {
   cursor: pointer;
 }
 
-.definable:hover {
+/* @@ */ .definable:hover {
   text-decoration: underline;
   text-underline-offset: 2px;
 }

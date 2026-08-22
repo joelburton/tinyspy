@@ -7,7 +7,7 @@
 
 /* The red "SUDDEN DEATH:" lead-in on the otherwise-muted info-column help, so a
  * player skimming past "the help hasn't changed" still catches that it has. */
-.suddenDeathTag {
+/* @@ */ .suddenDeathTag {
   color: var(--codenamesduet-assassin);
 }
 
@@ -15,7 +15,7 @@
  * explaining that their partner gives every remaining clue (Duet's finished-player
  * rule). Painted in the "agent" green soft-banner fill so it reads as an
  * accomplishment ("you're done!"), not a warning. */
-.finishedNote {
+/* @@ */ .finishedNote {
   font-size: 0.9rem;
   line-height: 1.45;
   padding: 0.55rem 0.7rem;
@@ -28,7 +28,7 @@
  * clues now." Informational rather than celebratory, so it's painted in the calm
  * neutral (bystander tan) tones instead of the agent green, keeping the two notes
  * visually distinct. */
-.peerDoneNote {
+/* @@ */ .peerDoneNote {
   font-size: 0.9rem;
   line-height: 1.45;
   padding: 0.55rem 0.7rem;

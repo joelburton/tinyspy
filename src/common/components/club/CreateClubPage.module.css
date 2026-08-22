@@ -3,7 +3,7 @@
 /* Create-club form layout. The fields stack label-over-control (rather
  * than the browser-default inline flow) so the inputs get the card's
  * full width and the usernames textarea has room to grow. */
-.form {
+/* @@ */ .form {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
@@ -12,20 +12,20 @@
 
 /* One field: label text on its own line, control below, optional muted
  * helper under that. */
-.field {
+/* @@ */ .field {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
 }
 
 .field input,
-.field textarea {
+/* @@ */ .field textarea {
   width: 100%;
 }
 
 /* The label text + its discreet handle hint share one line, sitting
  * above the control. */
-.labelRow {
+/* @@ */ .labelRow {
   display: flex;
   align-items: baseline;
   gap: 0.4rem;
@@ -33,7 +33,7 @@
 }
 
 /* "(becomes handle: jb)" — muted, lighter, smaller than the label. */
-.handleHint {
+/* @@ */ .handleHint {
   font-size: 0.8rem;
   font-weight: 400;
   color: var(--page-text-muted-color);
@@ -41,7 +41,7 @@
 
 /* Multi-line members input — vertical resize only (horizontal resize
  * would break out of the card). */
-.textarea {
+/* @@ */ .textarea {
   resize: vertical;
   min-height: 3.5rem;
   line-height: 1.4;
@@ -51,7 +51,7 @@
  * link). macOS convention (matches the app's other dialogs): right-
  * justified, with the default action rightmost — so Cancel comes first
  * in the DOM, Create club last. */
-.buttonRow {
+/* @@ */ .buttonRow {
   display: flex;
   gap: 0.75rem;
   align-items: center;
@@ -59,6 +59,6 @@
   margin-top: 0.5rem;
 }
 
-.buttonRow button {
+/* @@ */ .buttonRow button {
   min-width: 6rem;
 }

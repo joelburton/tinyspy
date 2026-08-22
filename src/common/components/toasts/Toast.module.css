@@ -4,7 +4,7 @@
  * a tone-colored left stripe, a soft shadow, an X top-right, and an optional
  * action button. The positioning/stacking is the host's job (ToastHost); this
  * is just the card. */
-.toast {
+/* @@ */ .toast {
   position: relative;
   background: var(--page-surface-color);
   border: 1px solid var(--page-surface-border-color);
@@ -19,28 +19,28 @@
 
 /* Tone drives ONLY the left stripe color (cosmetic — the message text carries
    the meaning). */
-.info {
-  --stripe: var(--toast-info-stripe-color);
+/* @@ */ .info {
+/* @@ */   --stripe: var(--toast-info-stripe-color);
 }
-.success {
-  --stripe: var(--toast-success-stripe-color);
+/* @@ */ .success {
+/* @@ */   --stripe: var(--toast-success-stripe-color);
 }
-.error {
-  --stripe: var(--toast-error-stripe-color);
+/* @@ */ .error {
+/* @@ */   --stripe: var(--toast-error-stripe-color);
 }
 
-.message {
+/* @@ */ .message {
   margin: 0;
   padding-right: 1.25rem; /* clear the close button */
   color: var(--page-text-color);
   line-height: 1.35;
 }
 
-.action {
+/* @@ */ .action {
   align-self: flex-end;
 }
 
-.close {
+/* @@ */ .close {
   position: absolute;
   top: 0.25rem;
   right: 0.4rem;
@@ -50,6 +50,6 @@
   padding: 0.15rem 0.35rem;
   cursor: pointer;
 }
-.close:hover {
+/* @@ */ .close:hover {
   color: var(--page-text-color);
 }

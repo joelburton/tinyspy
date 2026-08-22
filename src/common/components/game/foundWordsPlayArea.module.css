@@ -45,9 +45,9 @@
  * above it (~0.75rem), and the extra `.belowBoard` margin-top that drops the
  * input row down off the board (1.5rem) — 5rem total. Keep this in sync with
  * `.belowBoard`'s margin-top below. */
-.layout {
-  --board-reserve: 24rem;
-  --avail-h: calc(100svh - var(--game-chrome-height) - 5rem);
+/* @@ */ .layout {
+/* @@ */   --board-reserve: 24rem;
+/* @@ */   --avail-h: calc(100svh - var(--game-chrome-height) - 5rem);
 }
 
 /* Mobile: the info column is off-canvas, so the state unit (RankBar + Stats) is
@@ -58,9 +58,9 @@
  * scrolling (the hard no-scroll invariant). The extra 0.75rem is `.boardCol`'s
  * flex gap between the status block and the board. */
 @media (--mobile) {
-  .layout {
-    --mobile-status-height: 4.25rem;
-    --avail-h: calc(
+/* @@ */   .layout {
+/* @@ */     --mobile-status-height: 4.25rem;
+/* @@ */     --avail-h: calc(
       100svh - var(--game-chrome-height) - 5rem - var(--mobile-status-height) - 0.75rem
     );
   }
@@ -70,7 +70,7 @@
  * a comfortable reading width rather than the full phone width (the two figures
  * shouldn't drift to opposite edges). Only ever rendered inside the mobile-only
  * `<MobileStatusBar>`. */
-.mobileStatus {
+/* @@ */ .mobileStatus {
   width: min(20rem, 100%);
 }
 
@@ -85,13 +85,13 @@
  * the game's own PlayArea.module.css — change them there, not here. To REMOVE
  * the cap, SET it to 999rem (don't comment the knob OUT: the token must stay
  * defined, or the cssTokens guard trips on the now-undefined var() reference). */
-.boardCol {
-  --u: min(
+/* @@ */ .boardCol {
+/* @@ */   --u: min(
     calc(var(--avail-w) / var(--board-units-w)),
     calc(var(--avail-h) / var(--board-units-h)),
     calc(var(--max-board-size) / var(--board-units-cap))
   );
-  --board-width: calc(var(--board-units-w) * var(--u));
+/* @@ */   --board-width: calc(var(--board-units-w) * var(--u));
 }
 
 /* The below-board REGION. Board-matched width + the gap off the board; the
@@ -106,7 +106,7 @@
  *
  * (The input row + its EntryBox/Delete/Submit live in the shared
  * common/components/game/entry/EntryRow; only the slot wrapper is here.) */
-.belowBoard {
+/* @@ */ .belowBoard {
   width: var(--board-width);
   margin-top: 1.5rem;
   display: flex;
@@ -114,7 +114,7 @@
 }
 
 .loading,
-.empty {
+/* @@ */ .empty {
   padding: 48px 16px;
   text-align: center;
   color: var(--page-text-muted-color);

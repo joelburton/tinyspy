@@ -8,7 +8,7 @@
  * The one thing borrowed is the SELECTED vocabulary — the dark ring — so
  * "I picked this" reads the same as it does everywhere else. */
 
-.card {
+/* @@ */ .card {
   /* Sized entirely by the board's --card-w. The ratio matches CARD_BOX in
    * lib/shapes.ts — that is the SVG's viewBox, so at this ratio the face maps
    * onto the card exactly, with no crop and no letterbox. */
@@ -33,7 +33,7 @@
   transition: background 0.08s ease, box-shadow 0.08s ease, transform 0.08s ease;
 }
 
-.face {
+/* @@ */ .face {
   display: block;
   width: 100%;
   height: 100%;
@@ -41,11 +41,11 @@
 
 /* Scoped to the <button> form: a readOnly card is a div and must not react to
  * the pointer at all. */
-button.card:hover:not(:disabled) {
+/* @@ */ button.card:hover:not(:disabled) {
   background: var(--setgame-card-hover-bg);
 }
 
-.card:disabled {
+/* @@ */ .card:disabled {
   cursor: default;
   /* Override the global `button:disabled { opacity: 0.5 }`. A card's COLORS
    * are one of its four attributes, so dimming them doesn't read as "you can't
@@ -55,7 +55,7 @@ button.card:hover:not(:disabled) {
 }
 
 /* A readout card: same face, no interaction at all. */
-.readOnly {
+/* @@ */ .readOnly {
   cursor: default;
 }
 
@@ -63,13 +63,13 @@ button.card:hover:not(:disabled) {
  * symbols, and the symbols are the entire content of the card. The small lift
  * is inside the card's own box (transform, not layout), so it cannot nudge a
  * neighbor. */
-.selected {
+/* @@ */ .selected {
   box-shadow: 0 0 0 3px var(--setgame-card-selected), var(--setgame-card-lift-shadow);
   transform: translateY(-2px);
 }
 
 /* A selected card keeps its ring under the pointer; only the fill moves. */
-button.selected:hover:not(:disabled) {
+/* @@ */ button.selected:hover:not(:disabled) {
   box-shadow: 0 0 0 3px var(--setgame-card-selected), var(--setgame-card-lift-shadow);
 }
 
@@ -77,7 +77,7 @@ button.selected:hover:not(:disabled) {
  * outcome — the hint never says which set, only that one runs through this
  * card. Drawn as an outline rather than a box-shadow ring so it is visibly a
  * DIFFERENT kind of mark from selection. */
-.hinted {
+/* @@ */ .hinted {
   outline: 4px dashed var(--setgame-hint-ring);
   outline-offset: 3px;
 }
@@ -98,11 +98,11 @@ button.selected:hover:not(:disabled) {
  * LENGTH says the one thing they cannot know, which is how long the network is
  * taking. Drawn as an overlay so it darkens the symbols with the card, rather
  * than as an opacity that would fade them against the page. */
-.held {
+/* @@ */ .held {
   position: relative;
 }
 
-.held::after {
+/* @@ */ .held::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -111,13 +111,13 @@ button.selected:hover:not(:disabled) {
 }
 
 /* Everyone else's view of those same cards. */
-.leaving {
+/* @@ */ .leaving {
   background: var(--setgame-leaving-bg);
 }
 
 /* The replacements, for everyone including the claimer — they did not choose
  * these, so they are news to them too. */
-.arriving {
+/* @@ */ .arriving {
   background: var(--setgame-arriving-bg);
 }
 
@@ -127,12 +127,12 @@ button.selected:hover:not(:disabled) {
  *
  * Only `arriving` needs this: held and leaving cards are spent, so `Board`
  * disables them and they cannot be hovered at all. */
-button.card.arriving:hover:not(:disabled) {
+/* @@ */ button.card.arriving:hover:not(:disabled) {
   background: var(--setgame-arriving-hover-bg);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .card {
+/* @@ */   .card {
     transition: none;
   }
 
@@ -140,7 +140,7 @@ button.card.arriving:hover:not(:disabled) {
 }
 
 /* The shared <pattern> host: present in the DOM, occupying nothing. */
-.defs {
+/* @@ */ .defs {
   position: absolute;
   width: 0;
   height: 0;
@@ -162,7 +162,7 @@ button.card.arriving:hover:not(:disabled) {
  * empty-slot placeholder (Board.module.css) and the board's height-bound
  * card-size term read the same number instead of restating it. */
 @media (--mobile) {
-  .card {
-    --setgame-card-ratio: 100 / 86;
+/* @@ */   .card {
+/* @@ */     --setgame-card-ratio: 100 / 86;
   }
 }

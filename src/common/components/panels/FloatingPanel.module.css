@@ -29,7 +29,7 @@
  * clicks meant for the page beneath; the panel re-enables events on itself.
  * One layer per panel — its z-index stacks the whole panel; the backdrop, when
  * present, sits just below at zIndex - 1. */
-.clipLayer {
+/* @@ */ .clipLayer {
   position: fixed;
   inset: 0;
   overflow: hidden;
@@ -38,7 +38,7 @@
 
 /* The Rnd outer — positioning only, no visual treatment. Re-enable pointer
    events (the clip layer turns them off) so the panel is interactive. */
-.rnd {
+/* @@ */ .rnd {
   /* react-rnd inlines transform/width/height. We only need the
      stacking-context's z-index, passed via inline style by the
      component. */
@@ -47,7 +47,7 @@
 
 /* The 100%/100% wrapper that actually carries the surface
  * treatment AND the flex column layout. */
-.shell {
+/* @@ */ .shell {
   width: 100%;
   height: 100%;
   background: var(--page-surface-color);
@@ -61,7 +61,7 @@
   overflow: hidden;
 }
 
-.header {
+/* @@ */ .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -78,11 +78,11 @@
 /* Class applied when the panel is draggable. react-rnd uses it
  * as its dragHandleClassName, AND we use it locally to flip the
  * cursor so the user discovers the affordance on hover. */
-.dragHandle {
+/* @@ */ .dragHandle {
   cursor: move;
 }
 
-.title {
+/* @@ */ .title {
   font-weight: 600;
   font-size: 0.9rem;
   /* Truncate long titles rather than blowing out the header
@@ -95,7 +95,7 @@
 /* The close X — a quiet square icon. The transparent border is deliberate:
  * it reserves the hover border's 1px so nothing shifts when it lights up. The
  * hover treatment matches the ClubGameCard delete button's idle state. */
-.closeButton {
+/* @@ */ .closeButton {
   border: 1px solid transparent;
   color: var(--page-text-muted-color);
   width: 1.4rem;
@@ -109,13 +109,13 @@
   cursor: pointer;
   flex-shrink: 0;
 }
-.closeButton:hover:not(:disabled) {
+/* @@ */ .closeButton:hover:not(:disabled) {
   background: var(--page-surface-hover-color);
   color: var(--page-text-color);
   border-color: var(--field-edge-color);
 }
 
-.body {
+/* @@ */ .body {
   /* Body is both:
      - a flex ITEM of the shell (flex: 1 1 auto + min-height: 0)
        so it takes the height left over by the header
@@ -155,7 +155,7 @@
  * standalone (home-screen) PWA mode; on devices without safe areas the env()
  * values resolve to 0 and the sheet is edge-to-edge. */
 @media (--phone) {
-  .rnd {
+/* @@ */   .rnd {
     position: absolute !important;
     inset:
       env(safe-area-inset-top) env(safe-area-inset-right)
@@ -168,7 +168,7 @@
   }
   /* Edge-to-edge: drop the floating card's rounded corners so it reads as a
      sheet, not a card cropped at the screen edge. */
-  .shell {
+/* @@ */   .shell {
     border-radius: 0;
   }
 }
@@ -184,7 +184,7 @@
  * events on the page underneath but doesn't catch anything
  * happening above its z-index (chat at 10000 is unaffected).
  * Only Setup uses this today. */
-.backdrop {
+/* @@ */ .backdrop {
   position: fixed;
   inset: 0;
   background: var(--scrim-light-color);

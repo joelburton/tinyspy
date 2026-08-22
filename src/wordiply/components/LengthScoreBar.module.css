@@ -13,31 +13,31 @@
  * anchor, baseline-aligned so the big number and the small print sit on one
  * line) over the `.track`.
  */
-.wrap {
+/* @@ */ .wrap {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
 }
 
-.head {
+/* @@ */ .head {
   display: flex;
   align-items: baseline;
   gap: 0.5rem;
 }
 
-.pct {
+/* @@ */ .pct {
   font-size: 1.5rem;
   font-weight: 800;
   color: var(--page-text-color);
   line-height: 1;
 }
 
-.anchor {
+/* @@ */ .anchor {
   font-size: 0.85rem;
   color: var(--page-text-muted-color);
 }
 
-.track {
+/* @@ */ .track {
   height: 0.75rem;
   border-radius: 0.5rem;
   background: var(--field-fill-color);
@@ -45,7 +45,7 @@
   overflow: hidden;
 }
 
-.fill {
+/* @@ */ .fill {
   height: 100%;
   background: var(--wordiply-accent);
   border-radius: 0.5rem 0 0 0.5rem;

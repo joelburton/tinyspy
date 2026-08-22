@@ -8,7 +8,7 @@
 /* A hint row's colspan cell carries a clue sentence (not a one-word value), so
  * let it wrap to as many lines as it needs — the log scrolls, so a taller row
  * is fine. */
-.hint {
+/* @@ */ .hint {
   white-space: normal;
 }
 

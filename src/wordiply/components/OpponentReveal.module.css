@@ -3,21 +3,21 @@
 /* Compete terminal reveal of opponents' words. Sits below the "best possible
  * word" reveal in the info column; a plain list (no card) — this is real
  * information, not a boxed aside, matching the .reveal treatment. */
-.reveal {
+/* @@ */ .reveal {
   margin-top: 0.9rem;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
 
-.heading {
+/* @@ */ .heading {
   margin: 0;
   font-size: 0.85rem;
   font-weight: 700;
   color: var(--page-text-color);
 }
 
-.opponents {
+/* @@ */ .opponents {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -26,26 +26,26 @@
   gap: 0.6rem;
 }
 
-.opponent {
+/* @@ */ .opponent {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
 }
 
-.name {
+/* @@ */ .name {
   font-size: 0.9rem;
   font-weight: 700;
   color: var(--wordiply-accent);
 }
 
-.none {
+/* @@ */ .none {
   font-size: 0.85rem;
   color: var(--page-text-muted-color);
 }
 
 /* Each opponent's words: compact rows echoing the board (dimmed base + a teal
  * length number), just without the boxed row outline. */
-.words {
+/* @@ */ .words {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -54,13 +54,13 @@
   gap: 0.15rem;
 }
 
-.word {
+/* @@ */ .word {
   display: flex;
   align-items: baseline;
   gap: 0.5rem;
 }
 
-.wordText {
+/* @@ */ .wordText {
   flex: 1;
   min-width: 0;
   font-size: 1rem;
@@ -68,7 +68,7 @@
   overflow-wrap: anywhere;
 }
 
-.badge {
+/* @@ */ .badge {
   flex: 0 0 auto;
   color: var(--wordiply-accent);
   font-weight: 800;

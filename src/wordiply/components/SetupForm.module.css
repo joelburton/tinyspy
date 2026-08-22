@@ -9,7 +9,7 @@
    monospace + uppercase + tracked out, and centered in a box sized to hold them
    rather than stretching across the dialog. Four letters is the maximum a base
    can be (wordiply.games.base's own check constraint). */
-.baseInput {
+/* @@ */ .baseInput {
   width: 6rem;
   text-transform: uppercase;
   letter-spacing: 0.2em;

@@ -13,13 +13,13 @@
  * Matching it exactly makes the board fill all the height it can. Keep in sync with
  * BoardCol.module.css `.belowBoard` — BOTH regimes: the desktop one-line row here
  * and the phone two-row override below. */
-.layout {
-  --info-col-width: 25rem;
-  --avail-h: calc(100svh - var(--game-chrome-height) - 4.4rem);
+/* @@ */ .layout {
+/* @@ */   --info-col-width: 25rem;
+/* @@ */   --avail-h: calc(100svh - var(--game-chrome-height) - 4.4rem);
   /* Rack tile size — tied to the board's available space (≈ --side) so the rack
    * shrinks on a cramped laptop and the rack + action row keep fitting on one line.
    * Defined on .layout (not .boardCol) so the floating drag ghost can read it too. */
-  --rack-tile-size: clamp(22px, calc(min(var(--avail-w), var(--avail-h)) / 18), 38px);
+/* @@ */   --rack-tile-size: clamp(22px, calc(min(var(--avail-w), var(--avail-h)) / 18), 38px);
 }
 
 /* The controls fill the space beside the rack: Recall on the left, the commit
@@ -27,7 +27,7 @@
  * split reads from the gap between them, so there's no divider rule. Because
  * belowBoard is pinned to --side, this flex:1 free space — not the board —
  * absorbs any change in the commit slot's width, so the board never moves. */
-.controls {
+/* @@ */ .controls {
   flex: 1;
   min-width: 0;
   display: flex;
@@ -46,8 +46,8 @@
  *
  * Both --avail-h regimes need it — this one and the --phone override below. */
 @media (--mobile) {
-  .layout {
-    --avail-h: calc(
+/* @@ */   .layout {
+/* @@ */     --avail-h: calc(
       100svh - var(--game-chrome-height) - 4.4rem - var(--mobile-status-height, 1.75rem) - 0.75rem
     );
   }
@@ -64,13 +64,13 @@
  * flex-basis to 0%, so at equal specificity source order decides — an earlier
  * override silently loses. */
 @media (--phone) {
-  .layout {
+/* @@ */   .layout {
     /* The taller two-row reserve, PLUS the mobile status bar (see the --mobile
      * block above — a phone is inside --mobile, so it gets the bar too). The one
      * exception is a very wide landscape phone (>56.25rem), where the bar is
      * CSS-hidden but this still reserves its height: the board is height-bound
      * and tiny there anyway, so a slightly smaller board beats a second regime. */
-    --avail-h: calc(
+/* @@ */     --avail-h: calc(
       100svh - var(--game-chrome-height) - 6.1rem - var(--mobile-status-height, 1.75rem) - 0.75rem
     );
   }
@@ -79,7 +79,7 @@
    * with game state; a coop one-liner *almost* fits at 375px but compete's
    * Pass button overflows it). The commit slot's margin-left:auto still
    * right-justifies it within the new row. */
-  .controls {
+/* @@ */   .controls {
     flex-basis: 100%;
   }
 }
@@ -91,7 +91,7 @@
  * right-justify is the SEPARATE `.commitButtons` (docs/code-conventions.md →
  * below-board structure). The board never moves when it resizes — the flex:1
  * `.controls` free space absorbs it (belowBoard is pinned). */
-.moveAreaOrLocalFeedback {
+/* @@ */ .moveAreaOrLocalFeedback {
   flex: 0 0 auto;
   margin-left: auto;
   display: flex;
@@ -101,7 +101,7 @@
 /* Pill mode: fill the whole space left of the right edge (so `margin-left: auto`
  * resolves to 0) — everything right of Recall becomes the full-width feedback
  * area, letting a longer message read before it ellipsis-clips. */
-.moveAreaOrLocalFeedbackPill {
+/* @@ */ .moveAreaOrLocalFeedbackPill {
   flex: 1 1 auto;
   min-width: 0;
 }
@@ -109,14 +109,14 @@
 /* The commit BUTTONS [Swap] [Submit] [Pass], right-justified — the button layout,
  * kept separate from the area above (which just says "this is where the buttons
  * or the feedback go"). */
-.commitButtons {
+/* @@ */ .commitButtons {
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: 6px;
 }
 
-.loading {
+/* @@ */ .loading {
   padding: 2rem;
   color: var(--page-text-color);
 }

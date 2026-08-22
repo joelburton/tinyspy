@@ -9,7 +9,7 @@
  * share one width. `box-sizing: border-box` keeps the 2px frame inside --side.
  * `container-type` makes `cqi` inside resolve against the canvas width, so tile
  * typography scales with the board. */
-.canvas {
+/* @@ */ .canvas {
   position: relative;
   width: var(--side);
   aspect-ratio: 1;
@@ -30,7 +30,7 @@
  * component. Size + position are set inline (percentages of the canvas);
  * everything here scales with the board via `cqi` so it looks the same at
  * any board size. 6cqi ≈ the prototype's 1.35rem at the natural size. */
-.tile {
+/* @@ */ .tile {
   position: absolute;
   display: flex;
   font-size: clamp(0.7rem, 6cqi, 1.8rem);
@@ -54,7 +54,7 @@
  * exposed tile bears it) — PlayArea adds this class for ~0.9s to point out
  * the candidates. The red ring (box-shadow) is the always-visible signal;
  * the red border is a bonus (hover may recolor it, but the ring stays). */
-.flash {
+/* @@ */ .flash {
   border-color: var(--outcomes-lost-ink-color);
   box-shadow:
     0 0 0 0.5cqi var(--outcomes-lost-ink-color),
@@ -67,7 +67,7 @@
  * turn-viewer uses for a turn's tiles, so the two games read alike. These
  * tiles stay ON the board in the snapshot (the strictly-before boundary), so
  * the ring is always visible. */
-.viewed {
+/* @@ */ .viewed {
   border-color: var(--outcomes-won-ink-color);
   box-shadow:
     0 0 0 0.5cqi var(--outcomes-won-ink-color),
@@ -76,7 +76,7 @@
 
 /* Covered (disabled) tiles fade back so the clickable frontier reads as
  * the bright layer. */
-.tile:disabled {
+/* @@ */ .tile:disabled {
   opacity: 0.92;
 }
 
@@ -104,7 +104,7 @@
  * the layout it is drawn from.
  *
  * Restore or replace when stackdown takes its real tf pass. */
-.tile:not(:disabled):hover {
+/* @@ */ .tile:not(:disabled):hover {
   box-shadow: var(--stackdown-tile-hover-shadow);
   transform: translateY(-0.5cqi);
 }
@@ -118,6 +118,6 @@
  * always hovering what it presses. With this rule first, hover won and the press
  * feedback was dead on every desktop click. The shared tile orders them this way
  * for the same reason. */
-.tile:not(:disabled):active {
+/* @@ */ .tile:not(:disabled):active {
   transform: scale(0.94);
 }

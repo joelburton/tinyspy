@@ -9,19 +9,19 @@
  * doesn't fall back to a default — it makes that calc invalid, which silently
  * empties --avail-w and every board size derived from it. 22rem is the roster
  * standard; ours holds two stat cells, the chain, and the move log. */
-.layout {
+/* @@ */ .layout {
   /* Wider than the 22rem roster default: the move log carries a whole WORD
    * plus a username on one row, and letterboxed words run long (a 9- or
    * 10-letter word is an ordinary move here, where wordle's rows are always
    * five letters). The board gives up the difference via --avail-w, and it can
    * afford to — twelve letters on a square reach a comfortable size well
    * before the 34rem cap. */
-  --info-col-width: 26rem;
+/* @@ */   --info-col-width: 26rem;
 }
 
 /* The board column hugs the square. A max-width keeps a big desktop from
  * inflating a 12-letter board into a wall. */
-.boardCol {
+/* @@ */ .boardCol {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -43,11 +43,11 @@
    * never-scroll outranks never-move, and the shift is rare by design
    * (lib/chainRows.ts). BoardCol sets the two --chain-rows-* vars inline;
    * the fallbacks keep the calc valid before React hydrates a value. */
-  --avail-h: calc(
+/* @@ */   --avail-h: calc(
     100svh - var(--game-chrome-height) - 8rem -
       (var(--chain-rows-desktop, 2) - 2) * 2.8rem
   );
-  --side: min(var(--avail-w), var(--avail-h), 34rem);
+/* @@ */   --side: min(var(--avail-w), var(--avail-h), 34rem);
   width: var(--side);
 }
 
@@ -56,8 +56,8 @@
  * readout, and the accepted-word pill restates the cap). All the phone needs
  * is the narrower chain-rows base: 3 reserved rows instead of 2. */
 @media (--mobile) {
-  .boardCol {
-    --avail-h: calc(
+/* @@ */   .boardCol {
+/* @@ */     --avail-h: calc(
       100svh - var(--game-chrome-height) - 8rem -
         (var(--chain-rows-mobile, 3) - 3) * 2.8rem
     );
@@ -77,7 +77,7 @@
  *
  * No width: the column already sets `width: var(--side)` on ITSELF, and a flex
  * child stretches, so the board still sizes from the column exactly as before. */
-.snapshot {
+/* @@ */ .snapshot {
   display: flex;
   flex-direction: column;
   gap: inherit;
@@ -85,7 +85,7 @@
 }
 
 .loading,
-.empty {
+/* @@ */ .empty {
   padding: 2rem;
   color: var(--page-text-muted-color);
 }
@@ -93,12 +93,12 @@
 /* The reserved height lives on the shared `.moveAreaOrLocalFeedback` this
  * composes with; all that's left here is pinning the WIDTH to the board so a
  * long typed word can't widen the column and shift the centered board. */
-.entrySlot {
+/* @@ */ .entrySlot {
   width: 100%;
 }
 
 /* The square itself, sized by the column's --side. */
-.board {
+/* @@ */ .board {
   width: var(--side);
   height: var(--side);
 }
@@ -109,14 +109,14 @@
  * 2-cell stat grid (the shape spellingbee/wordwheel's shared <Stats> uses —
  * theirs hardcodes Score/Words labels, so this is the same look rather than
  * the same component). */
-.stats {
+/* @@ */ .stats {
   /* auto-flow column so a future extra cell needs no grid re-declaration. */
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
   gap: 0.5rem;
 }
-.statCell {
+/* @@ */ .statCell {
   display: flex;
   flex-direction: column;
   gap: 0.1rem;
@@ -124,20 +124,20 @@
 /* Full text color at 600, not muted at 400: these NAME the numbers beside
  * them, so they are structure rather than decoration, and the repo's standing
  * rule is that light unbolded text is for things that don't matter. */
-.statLabel {
+/* @@ */ .statLabel {
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--page-text-color);
 }
-.statValue {
+/* @@ */ .statValue {
   font-size: 1.5rem;
   font-weight: 650;
   font-variant-numeric: tabular-nums;
   line-height: 1.1;
 }
-.statOf {
+/* @@ */ .statOf {
   font-size: 0.9rem;
   font-weight: 500;
   color: var(--page-text-muted-color);
@@ -145,7 +145,7 @@
 
 /* A titled block in the info column — today only the revealed solution wears
  * it (the chain lives above the board, the move log is the shared TurnLog). */
-.chainBlock {
+/* @@ */ .chainBlock {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
@@ -153,7 +153,7 @@
 }
 /* Same reasoning as .statLabel — a block's title is what tells you what you
  * are looking at. */
-.blockTitle {
+/* @@ */ .blockTitle {
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -166,7 +166,7 @@
  * The slot reserves TWO LINES from the start: chain words run long (a 9-letter
  * word plus its ×), so a second row appears on an ordinary game, and the board
  * must not jump down when it does (docs/ui.md → layout stability). */
-.chain {
+/* @@ */ .chain {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -183,7 +183,7 @@
    * (docs/ui.md → layout stability). The row count comes from BoardCol's
    * estimate (base 2; a long chain can raise it, and .boardCol's --avail-h
    * takes the extra out of the board rather than the page). */
-  --rows: var(--chain-rows-desktop, 2);
+/* @@ */   --rows: var(--chain-rows-desktop, 2);
   min-height: calc(var(--rows) * 2.4rem + (var(--rows) - 1) * 0.4rem);
   width: 100%;
 }
@@ -191,15 +191,15 @@
 /* A phone's board column is much narrower, so the same chain wraps sooner —
  * the base is three rows, reserved up front for the same reason. */
 @media (--mobile) {
-  .chain {
-    --rows: var(--chain-rows-mobile, 3);
+/* @@ */   .chain {
+/* @@ */     --rows: var(--chain-rows-mobile, 3);
   }
 }
 
 /* Outlined pills, not filled: the chain sits directly above the board, and a
  * row of solid blocks there competes with the board's own filled letter nodes
  * for the eye. The outline reads as "a thing you played" without shouting. */
-.chainWord {
+/* @@ */ .chainWord {
   display: inline-flex;
   align-items: center;
   gap: 0.1rem;
@@ -217,14 +217,14 @@
 
 /* The last word is the only one that can be taken back, so it makes room for
  * the × rather than every pill carrying the padding for one. */
-.chainLast {
+/* @@ */ .chainLast {
   padding-right: 0.25rem;
 }
 
 /* A real touch target. This is the ONLY undo affordance in the game and the
  * site is used on phones, so it gets the ~2.2rem box a thumb needs — not the
  * bare glyph it started as. */
-.chainRemove {
+/* @@ */ .chainRemove {
   all: unset;
   cursor: pointer;
   display: inline-flex;
@@ -237,15 +237,15 @@
   color: var(--page-text-color);
 }
 .chainRemove:hover,
-.chainRemove:focus-visible {
+/* @@ */ .chainRemove:focus-visible {
   background: var(--field-fill-color);
 }
-.chainEmpty {
+/* @@ */ .chainEmpty {
   color: var(--page-text-muted-color);
   align-self: center;
 }
 
-.solution {
+/* @@ */ .solution {
   font-weight: 600;
   letter-spacing: 0.02em;
 }
@@ -256,7 +256,7 @@
  * A DARKER green than the board's accent: the accent is the right idea, but a
  * filled circle carries a color that a few thin glyph strokes don't, so at
  * text weight it read as a light green rather than as a deliberate mark. */
-.seedLetter {
+/* @@ */ .seedLetter {
   color: var(--letterboxed-seed);
 }
 
@@ -268,10 +268,10 @@
  * color — a taken-back word is a real move (in turn-by-turn co-op it costs
  * the undoer their go), and the log's whole job is to be readable. Italics
  * carry the distinction instead. */
-.logWord {
+/* @@ */ .logWord {
   font-weight: 600;
   letter-spacing: 0.02em;
 }
-.logRetreat {
+/* @@ */ .logRetreat {
   font-style: italic;
 }

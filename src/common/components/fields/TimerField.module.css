@@ -8,7 +8,7 @@
 
 /* Radios + the inline MM:SS input side by side. flex-wrap for
  * narrow screens. */
-.timerRow {
+/* @@ */ .timerRow {
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
@@ -18,14 +18,14 @@
 /* Each radio is a label wrapping the input + its text. The Down
  * radio's label additionally contains the MM:SS text input so the
  * gap value accommodates it. */
-.radio {
+/* @@ */ .radio {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
   cursor: pointer;
 }
 
-.radio input[type='radio'] {
+/* @@ */ .radio input[type='radio'] {
   margin: 0;
   /* Override theme.css's input padding (`0.6rem 0.9rem`) — that
    * sizes text inputs, not radios. */
@@ -36,7 +36,7 @@
  * width sized for "MM:SS"; tabular-nums so digits don't shift
  * width as the user types. Disabled state when Down isn't
  * selected; invalid state for malformed input. */
-.timerInput {
+/* @@ */ .timerInput {
   width: 5rem;
   text-align: center;
   font-variant-numeric: tabular-nums;
@@ -44,12 +44,12 @@
   margin-left: 0.3rem;
 }
 
-.timerInput:disabled {
+/* @@ */ .timerInput:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-.timerInput[aria-invalid='true'] {
+/* @@ */ .timerInput[aria-invalid='true'] {
   outline: 2px solid var(--chrome-fault-color);
   outline-offset: -1px;
 }

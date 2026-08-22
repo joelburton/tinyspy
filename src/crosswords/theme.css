@@ -6,58 +6,58 @@
  * they only ship when crosswords is being played. Semantic names tied to
  * the crossword vocabulary — the cursor cell, the crossing clue, the
  * active word — not literal colors. */
-:root {
+/* @@ */ :root {
   /* The cursor cell (the one you're typing into). */
-  --crosswords-cursor: #ffd54a;
+/* @@ */   --crosswords-cursor: #ffd54a;
   /* The crossing clue's "secondary" highlight in the clue list. */
-  --crosswords-cursor-soft: #fff1bf;
+/* @@ */   --crosswords-cursor-soft: #fff1bf;
   /* Every cell of the word the cursor is in. */
-  --crosswords-in-word: #d7ebff;
+/* @@ */   --crosswords-in-word: #d7ebff;
 
   /* Clue-list panel header (uppercase Across / Down). */
-  --crosswords-header-bg: #f3f4f6;
-  --crosswords-header-fg: #374151;
-  --crosswords-header-border: #d1d5db;
+/* @@ */   --crosswords-header-bg: #f3f4f6;
+/* @@ */   --crosswords-header-fg: #374151;
+/* @@ */   --crosswords-header-border: #d1d5db;
 
   /* Clue-list rows + the active-clue readout. These are a cool slate family
      rather than the app's neutral grays, and that is DELIBERATE — see
      docs/games/crosswords.md → "The clue-list grays". Named here (rather than
      left as literals in three modules) so the palette is findable and the
      cssTokens guard covers them; the values are unchanged. */
-  --crosswords-row-hover: #f1f5f9;
-  --crosswords-row-rule: #eef2f6;
-  --crosswords-clue-num: #475569;
-  --crosswords-clue-label: #444;
+/* @@ */   --crosswords-row-hover: #f1f5f9;
+/* @@ */   --crosswords-row-rule: #eef2f6;
+/* @@ */   --crosswords-clue-num: #475569;
+/* @@ */   --crosswords-clue-label: #444;
   /* The rebus (multi-letter) input's warm background — an "you're typing
      something unusual into this cell" cue, distinct from the grid's white. */
-  --crosswords-rebus-bg: #fffbe6;
+/* @@ */   --crosswords-rebus-bg: #fffbe6;
 
   /* Grid ink. */
-  --crosswords-block: #000;
-  --crosswords-line: #000;
-  --crosswords-fill: #111;
-  --crosswords-pencil: #555;
+/* @@ */   --crosswords-block: #000;
+/* @@ */   --crosswords-line: #000;
+/* @@ */   --crosswords-fill: #111;
+/* @@ */   --crosswords-pencil: #555;
   /* Ink blue — used ONLY by the Fill toggle's "pen" glyph, to read as a pen
      against the pencil's gray italic. Grid entries themselves are
      `--crosswords-fill` near-black however they were typed; the distinction
      exists in the toggle, not on the board. */
-  --crosswords-pen: #1a4fd6;
+/* @@ */   --crosswords-pen: #1a4fd6;
   /* "You got this wrong", on a game surface — which is what `--outcome-lost-*`
      means, in a red of its own that nothing chose deliberately. Whether this is
      brand (crosswords' check-mark red) or a UI color that belongs in common is
      UNDECIDED, and belongs to this game's tile-feedback conversion, where the
      mark itself gets looked at. See plans/tile-feedback.md → the roster. */
-  --crosswords-wrong: #d33;
-  --crosswords-revealed: #00a3d9;
+/* @@ */   --crosswords-wrong: #d33;
+/* @@ */   --crosswords-revealed: #00a3d9;
 
   /* ── Grid chrome, named during the palette sweep ──────────────────────────
    * The printed puzzle's own markings rather than anyone's progress — a black
    * block is a fact about the grid. Values unchanged; whether the grays should
    * be the shared page tokens is crosswords' conversion to decide. */
-  --crosswords-rule-color:       #333333;
-  --crosswords-block-fill-color: #000000;
-  --crosswords-shade-color:      rgb(0 0 0 / 18%);
-  --crosswords-cell-ink-color:   #111111;
-  --crosswords-dialog-scrim-color: rgb(0 0 0 / 25%);
-  --crosswords-dialog-shadow:    0 12px 32px rgb(0 0 0 / 30%);
+/* @@ */   --crosswords-rule-color:       #333333;
+/* @@ */   --crosswords-block-fill-color: #000000;
+/* @@ */   --crosswords-shade-color:      rgb(0 0 0 / 18%);
+/* @@ */   --crosswords-cell-ink-color:   #111111;
+/* @@ */   --crosswords-dialog-scrim-color: rgb(0 0 0 / 25%);
+/* @@ */   --crosswords-dialog-shadow:    0 12px 32px rgb(0 0 0 / 30%);
 }

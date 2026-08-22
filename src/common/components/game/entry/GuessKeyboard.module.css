@@ -5,7 +5,7 @@
  * child and drives the column width — 100% would collapse to the narrower
  * grid's hugged width. ~30rem, capped by `--avail-w` (the scaffold token =
  * width beside the info column) so it shrinks on a narrow screen. */
-.keyboard {
+/* @@ */ .keyboard {
   /* A KEY'S OWN DEPTH — deliberately not the tile shadows, and deliberately local
    * to this module so nothing outside the keyboard can reach for them.
    *
@@ -18,10 +18,10 @@
    * going white underneath (see --kbd-key-hover-fill-color). Same light angle as everything else
    * (the 1px x-offset), because a shadow that disagrees about where the light is
    * looks broken beside the rest. */
-  --key-shadow: 1px 1px 3px rgb(0 0 0 / 26%);
-  --key-hover-shadow: 1px 4px 9px rgb(0 0 0 / 30%);
+/* @@ */   --key-shadow: 1px 1px 3px rgb(0 0 0 / 26%);
+/* @@ */   --key-hover-shadow: 1px 4px 9px rgb(0 0 0 / 30%);
 
-  --kb-gap: 0.3rem;
+/* @@ */   --kb-gap: 0.3rem;
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
@@ -49,11 +49,11 @@
  * │ It costs nothing else: a `visibility: hidden` subtree is already out of   │
  * │ reach of the pointer, out of the tab order, and out of the a11y tree.     │
  * └──────────────────────────────────────────────────────────────────────────┘ */
-.gameOver {
+/* @@ */ .gameOver {
   visibility: hidden;
 }
 
-.row {
+/* @@ */ .row {
   display: flex;
   justify-content: center;
   gap: var(--kb-gap);
@@ -62,7 +62,7 @@
 /* Every letter key is exactly one tenth of the keyboard width (less the nine
  * gaps of the widest row), so keys line up at the same size across rows
  * instead of stretching to fill each row's leftover space. */
-.key {
+/* @@ */ .key {
   flex: 0 0 calc((100% - 9 * var(--kb-gap)) / 10);
   height: 3.2rem;
   padding: 0;
@@ -111,13 +111,13 @@
  * A key is much smaller than a tile, so if the gesture proves too big here it
  * gets toned DOWN for this surface — but only after we have looked at the same
  * one on both. */
-.key:hover:not(:disabled) {
+/* @@ */ .key:hover:not(:disabled) {
   background: var(--kbd-key-hover-fill-color);
   box-shadow: var(--key-hover-shadow);
   transform: translateY(-2px);
 }
 
-.key:active:not(:disabled) {
+/* @@ */ .key:active:not(:disabled) {
   transform: translateY(0) scale(0.96);
   box-shadow: var(--key-shadow);
   /* The darken is the press's real message — see the tile's `:active`. It matters
@@ -130,7 +130,7 @@
  * make. */
 @media (prefers-reduced-motion: reduce) {
   .key:hover:not(:disabled),
-  .key:active:not(:disabled) {
+/* @@ */   .key:active:not(:disabled) {
     transform: none;
   }
 }
@@ -142,7 +142,7 @@
    or not your turn — which is a refusal, not the key ceasing to be a key. (At
    game over the keyboard is WITHDRAWN, not disabled, so that case never lands
    here.) A spent tile is the other story and keeps `default`. */
-.key:disabled {
+/* @@ */ .key:disabled {
   cursor: not-allowed;
   opacity: 0.6;
 }
@@ -151,7 +151,7 @@
  * bottom row's leftover EQUALLY (basis 0, not auto — "Enter" is wider than
  * "⌫" but they stay the same size). WIDTH only — the two differ in what they
  * hold, so they size their text separately. */
-.wide {
+/* @@ */ .wide {
   flex: 1 1 0;
 }
 
@@ -170,13 +170,13 @@
  * Placed after the state tints below would be wrong: Enter never carries a
  * letter result, so nothing can overwrite it, and keeping it here puts it beside
  * the other structural key rules. */
-.enter {
+/* @@ */ .enter {
   background: var(--button-normal-primary-color);
   /* Under the pointer it DARKENS, like every other filled action button — rather
    * than taking the untried cap's white, which the hover rule would otherwise
    * hand it (same trap the judged keys hit: the rule reads this token off the
    * element, so anything with its own fill has to say what its hover fill is). */
-  --kbd-key-hover-fill-color: var(--button-normal-primary-hover-color);
+/* @@ */   --kbd-key-hover-fill-color: var(--button-normal-primary-hover-color);
   border-color: var(--button-normal-primary-hover-color);
   color: var(--button-normal-primary-ink-color);
 }
@@ -184,7 +184,7 @@
 /* A wide key holding a WORD rather than a character. "Enter" has to fit across
  * a cap barely wider than a letter's, so it alone stays small; ⌫ keeps the
  * larger size, which is what makes it legible as a glyph. */
-.wideText {
+/* @@ */ .wideText {
   font-size: 0.85rem;
 }
 
@@ -213,21 +213,21 @@
  * Each carries a slightly DARKER edge of its own color, matching the board
  * tiles: the quiet definition the rest of the app gives a colored surface,
  * rather than a flat block. */
-.wordleGreen {
+/* @@ */ .wordleGreen {
   background: var(--wordle-green-fill-color);
-  --kbd-key-hover-fill-color: var(--wordle-green-fill-color);
+/* @@ */   --kbd-key-hover-fill-color: var(--wordle-green-fill-color);
   border-color: var(--wordle-green-edge-color);
   color: var(--wordle-green-ink-color);
 }
-.wordleYellow {
+/* @@ */ .wordleYellow {
   background: var(--wordle-yellow-fill-color);
-  --kbd-key-hover-fill-color: var(--wordle-yellow-fill-color);
+/* @@ */   --kbd-key-hover-fill-color: var(--wordle-yellow-fill-color);
   border-color: var(--wordle-yellow-edge-color);
   color: var(--wordle-yellow-ink-color);
 }
-.wordleGray {
+/* @@ */ .wordleGray {
   background: var(--wordle-gray-fill-color);
-  --kbd-key-hover-fill-color: var(--wordle-gray-fill-color);
+/* @@ */   --kbd-key-hover-fill-color: var(--wordle-gray-fill-color);
   border-color: var(--wordle-gray-edge-color);
   color: var(--wordle-gray-ink-color);
 }

@@ -2,7 +2,7 @@
 
 /* Opponents' remaining-tile counts, stacked at the top of the right column
  * above the hand. */
-.peers {
+/* @@ */ .peers {
   flex: 0 0 auto;
   display: flex;
   flex-direction: column;
@@ -13,7 +13,7 @@
   background: var(--page-surface-color);
 }
 
-.heading {
+/* @@ */ .heading {
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -21,7 +21,7 @@
   margin-bottom: 0.15rem;
 }
 
-.peer {
+/* @@ */ .peer {
   display: flex;
   align-items: center;
   gap: 0.4rem;
@@ -29,11 +29,11 @@
 }
 
 /* The shared <Dot>, sized for the peer rows. */
-.dot {
-  --dot-size: 10px;
+/* @@ */ .dot {
+/* @@ */   --dot-size: 10px;
 }
 
-.name {
+/* @@ */ .name {
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -41,7 +41,7 @@
   white-space: nowrap;
 }
 
-.count {
+/* @@ */ .count {
   font-variant-numeric: tabular-nums;
   font-weight: 700;
   color: var(--page-text-color);

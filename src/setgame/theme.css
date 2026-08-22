@@ -29,39 +29,39 @@
  * strands' and letterboxed's could, because those channels are already
  * attributes. */
 
-:root {
+/* @@ */ :root {
   /* Traditional — Set's own. */
-  --setgame-red: #d42a2a;
-  --setgame-green: #12922f;
-  --setgame-purple: #7b2d8e;
+/* @@ */   --setgame-red: #d42a2a;
+/* @@ */   --setgame-green: #12922f;
+/* @@ */   --setgame-purple: #7b2d8e;
 
   /* The card face. Plain white on the warm page, like a real card on a table —
    * NOT the warm tile ramp the letter games use, whose whole job is to make a
    * tile read as a game piece. A playing card reads as one already. */
-  --setgame-card-bg: #ffffff;
+/* @@ */   --setgame-card-bg: #ffffff;
   /* Hover: the card GRAYS, rather than growing a ring. A ring on hover competes
    * with the ring that means "selected" — the one mark on this board that has
    * to be unmistakable — and a border that thickens under the pointer also
    * nudges the eye toward the edges of a card whose content is its middle. */
-  --setgame-card-hover-bg: #ededed;
+/* @@ */   --setgame-card-hover-bg: #ededed;
   /* A plain mid-gray, dark enough to actually draw the card's edge. Two
    * earlier values were too light to see: the page's divider gray, and then a
    * warm tone that still disappeared once the board lost its frame. A white
    * card on a warm ground needs a real edge or it reads as a floating symbol
    * rather than as a card. */
-  --setgame-card-border: rgb(128 128 128);
+/* @@ */   --setgame-card-border: rgb(128 128 128);
 
   /* Selection: a dark ring, the same "I picked this" vocabulary as the shared
    * tile's selected state, but drawn AROUND the card rather than filling it —
    * a fill would bury the symbols, which are the entire point of the card. */
-  --setgame-card-selected: var(--page-text-color);
+/* @@ */   --setgame-card-selected: var(--page-text-color);
 
   /* A live hint's ring: saturated green, and thick. It started neutral gray on
    * the theory that a hint is not an outcome — but a hint you have to hunt for
    * is not a hint, and a thin gray dash on a white card next to eleven other
    * white cards was genuinely easy to miss. It stays DASHED, which is what
    * keeps it distinct from the solid ring of a selected card. */
-  --setgame-hint-ring: #16a34a;
+/* @@ */   --setgame-hint-ring: #16a34a;
 
   /* ── The claim flash (lib/flash.ts) ─────────────────────────────────────
    * FILLS, not rings. A border change is the worst possible mark for something
@@ -84,29 +84,29 @@
    * The hovered variants exist so the pointer still says "this one" on a lit
    * card; they are the same tints grayed slightly, in the same direction the
    * ordinary hover grays a white card. */
-  --setgame-leaving-bg: #c6f0ce;
-  --setgame-leaving-hover-bg: #b4debc;
-  --setgame-arriving-bg: #ffefac;
-  --setgame-arriving-hover-bg: #eddd9a;
+/* @@ */   --setgame-leaving-bg: #c6f0ce;
+/* @@ */   --setgame-leaving-hover-bg: #b4debc;
+/* @@ */   --setgame-arriving-bg: #ffefac;
+/* @@ */   --setgame-arriving-hover-bg: #eddd9a;
   /* The claimer's own three, from the click until the hold ends. A BLACK veil,
    * where the not-your-turn dim is a white one — held vs disabled are different
    * states and must not be confusable. */
-  --setgame-held-veil: rgb(0 0 0 / 26%);
+/* @@ */   --setgame-held-veil: rgb(0 0 0 / 26%);
 
 }
 
 /* Colorblind-safe: the same three slots, repainted. Set on the play surface's
  * root by PlayArea when `setup.palette` says so, so it reaches the board, the
  * last-set panel and anything else drawing a card. */
-.setgamePaletteColorblind {
-  --setgame-red: #0072b2;      /* blue */
-  --setgame-green: #e69f00;    /* orange */
-  --setgame-purple: #cc79a7;   /* magenta */
+/* @@ */ .setgamePaletteColorblind {
+/* @@ */   --setgame-red: #0072b2;      /* blue */
+/* @@ */   --setgame-green: #e69f00;    /* orange */
+/* @@ */   --setgame-purple: #cc79a7;   /* magenta */
 
   /* ── Card chrome, named during the palette sweep ──────────────────────────
    * Values unchanged; setgame's in-flight + arriving/leaving marks predate the
    * feedback vocabulary and fold in at its conversion. */
-  --setgame-card-shadow:          0 1px 2px rgb(0 0 0 / 10%);
-  --setgame-card-lift-shadow:     0 2px 6px rgb(0 0 0 / 18%);
-  --setgame-symbol-outline-color: #000000;
+/* @@ */   --setgame-card-shadow:          0 1px 2px rgb(0 0 0 / 10%);
+/* @@ */   --setgame-card-lift-shadow:     0 2px 6px rgb(0 0 0 / 18%);
+/* @@ */   --setgame-symbol-outline-color: #000000;
 }

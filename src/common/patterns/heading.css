@@ -32,7 +32,7 @@
    `flex-shrink: 0` is about this row as an item of ITS parent: every instance
    sits in a height-bounded column above a scrolling box, and when that column
    is squeezed the box gives, not the heading. */
-.heading-with-controls {
+/* @@ */ .heading-with-controls {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -66,6 +66,6 @@
    MINIMUM separation that takes effect once the row is full, not a spacing
    choice. So 0.5rem costs nothing on a wide screen and is simply the tightest
    instance's answer (the word list, with two selects). */
-.heading-with-controls > :first-child {
+/* @@ */ .heading-with-controls > :first-child {
   min-width: 0;
 }

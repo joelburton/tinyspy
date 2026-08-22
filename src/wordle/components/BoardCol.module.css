@@ -10,7 +10,7 @@
  * (keyboard). A real flex column whose `gap` reproduces the board column's own
  * 0.75rem gap the two used to get as direct .boardCol children — so wrapping them
  * here shifts nothing. See docs/code-conventions.md → below-board structure. */
-.belowBoard {
+/* @@ */ .belowBoard {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
@@ -22,6 +22,6 @@
 
 /* wordle's move controls are the on-screen keyboard. `display: contents` so this
  * naming wrapper generates no box — the keyboard keeps its exact place. */
-.moveArea {
+/* @@ */ .moveArea {
   display: contents;
 }

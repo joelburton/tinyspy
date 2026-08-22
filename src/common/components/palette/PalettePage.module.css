@@ -20,17 +20,17 @@
  * subject matter, and `cssTokens.test.ts` would fail it anyway.
  */
 
-.page {
+/* @@ */ .page {
   max-width: 72rem;
 }
 
-.intro {
+/* @@ */ .intro {
   color: var(--page-text-color);
   margin-bottom: 1rem;
 }
 
 /* Jump links — the page is long, and you usually arrive wanting one family. */
-.index {
+/* @@ */ .index {
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
@@ -38,33 +38,33 @@
   border-bottom: 1px solid var(--page-divider-color);
 }
 
-.family {
+/* @@ */ .family {
   margin-top: 2.5rem;
 }
 
 /* members × variants, stated next to the heading: the shape IS the claim this
  * page makes, so it should be readable without counting rows. */
-.count {
+/* @@ */ .count {
   font-weight: 400;
   font-size: 0.85rem;
   color: var(--page-text-color);
 }
 
-.note {
+/* @@ */ .note {
   max-width: 46rem;
   margin: 0.25rem 0 1rem;
   color: var(--page-text-color);
 }
 
 /* Columns come from the component (one per variant, plus the label column). */
-.grid {
+/* @@ */ .grid {
   display: grid;
   gap: 0.5rem 1rem;
   align-items: start;
 }
 
 .variantHead,
-.memberHead {
+/* @@ */ .memberHead {
   font-size: 0.8rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -73,7 +73,7 @@
 }
 
 /* The member label sits beside a swatch block, not above it. */
-.memberHead {
+/* @@ */ .memberHead {
   align-self: center;
   text-transform: none;
   font-size: 0.95rem;
@@ -82,7 +82,7 @@
 
 /* The checkbox that hides the per-cell text. Full size and full contrast — it is
  * a control, and the page's rule against muting applies to it too. */
-.explainToggle {
+/* @@ */ .explainToggle {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -95,11 +95,11 @@
  * and keep its gap — the wrapper exists to be switched off, not to lay anything
  * out. Switching it off is `display: none` on the parent's class, which
  * overrides `contents` and takes the whole subtree with it. */
-.explain {
+/* @@ */ .explain {
   display: contents;
 }
 
-.noExplain .explain {
+/* @@ */ .noExplain .explain {
   display: none;
 }
 
@@ -107,11 +107,11 @@
  * entire point of hiding it: a family is judged by how its members look BESIDE
  * each other, and three lines of monospace between every pair is exactly the
  * distance that judgment cannot survive. */
-.noExplain .grid {
+/* @@ */ .noExplain .grid {
   gap: 0.35rem;
 }
 
-.cell {
+/* @@ */ .cell {
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
@@ -125,13 +125,13 @@
 /* A wide, short block: wide enough to judge a color against its neighbour, short
  * enough that a family fits on one screen. The border is the page's own divider,
  * not a swatch color — a pale swatch still needs an edge to have a size. */
-.swatch {
+/* @@ */ .swatch {
   height: 2.5rem;
   border: 1px solid var(--page-divider-color);
   border-radius: var(--radius-sm);
 }
 
-.value {
+/* @@ */ .value {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
@@ -140,12 +140,12 @@
  * only shows up when you can read the four cells that agree with each other.
  * Italic separates it from the value above without costing a shade of contrast,
  * which is the trade every "secondary" style on this page should make. */
-.formula {
+/* @@ */ .formula {
   font-style: italic;
 }
 
 /* A token from another bucket. Marked rather than alarming — some borrows are
  * correct — but never invisible. */
-.borrowed {
+/* @@ */ .borrowed {
   color: var(--outcomes-warning-ink-color);
 }

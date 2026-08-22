@@ -1,6 +1,6 @@
 /* cs-unmet */
 
-.content {
+/* @@ */ .content {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
@@ -8,7 +8,7 @@
 
 /* A labeled field. Used for both the (read-only) username block and
  * the color <fieldset> — the fieldset reset keeps them visually aligned. */
-.field {
+/* @@ */ .field {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
@@ -18,14 +18,14 @@
   min-width: 0;
 }
 
-.label {
+/* @@ */ .label {
   font-weight: 600;
   font-size: 0.9rem;
   color: var(--page-text-muted-color);
   padding: 0;
 }
 
-.username {
+/* @@ */ .username {
   font-size: 1.05rem;
 }
 

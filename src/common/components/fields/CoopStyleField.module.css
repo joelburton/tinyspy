@@ -6,7 +6,7 @@
  * the setup form uses between its sections, so the first-player picker reads as
  * a distinct step below the style choice rather than crowding against it.
  */
-.controls {
+/* @@ */ .controls {
   display: flex;
   flex-direction: column;
   gap: 1rem;

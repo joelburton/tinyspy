@@ -5,30 +5,30 @@
  * PlayArea.tsx import, so they only ship when someone plays it. Premium
  * colors follow the familiar Scrabble palette; tiles are a warm cream.
  */
-:root {
-  --scrabble-board-bg: #1f6f54; /* the felt green between cells */
-  --scrabble-cell-bg: #ffffff; /* a plain (non-premium) empty square — white */
+/* @@ */ :root {
+/* @@ */   --scrabble-board-bg: #1f6f54; /* the felt green between cells */
+/* @@ */   --scrabble-cell-bg: #ffffff; /* a plain (non-premium) empty square — white */
 
-  --scrabble-tw: #e06a52; /* triple word  */
-  --scrabble-dw: #f0a9a0; /* double word + center star */
-  --scrabble-tl: #5a91c8; /* triple letter */
-  --scrabble-dl: #acd0ea; /* double letter */
+/* @@ */   --scrabble-tw: #e06a52; /* triple word  */
+/* @@ */   --scrabble-dw: #f0a9a0; /* double word + center star */
+/* @@ */   --scrabble-tl: #5a91c8; /* triple letter */
+/* @@ */   --scrabble-dl: #acd0ea; /* double letter */
 
-  --scrabble-tile-bg: var(--tile-3-fill-color); /* the shared normal tile (shade 3) */
-  --scrabble-tile-ink: var(--tile-slot-ink-color);
-  --scrabble-tile-edge: var(--tile-3-edge-color);
+/* @@ */   --scrabble-tile-bg: var(--tile-3-fill-color); /* the shared normal tile (shade 3) */
+/* @@ */   --scrabble-tile-ink: var(--tile-slot-ink-color);
+/* @@ */   --scrabble-tile-edge: var(--tile-3-edge-color);
   /* A placed-but-not-committed tile (and, in the turn-viewer, a tile THIS turn
      played): the normal tile with the shared attention OVERLAY stacked on top —
      brighter + more yellow, so it clearly stands out from the committed C tiles. */
-  --scrabble-tile-attention: linear-gradient(var(--mark-attention-tile-color), var(--mark-attention-tile-color)), var(--scrabble-tile-bg);
-  --scrabble-tile-selected: #ffd24d; /* a rack tile picked for exchange */
+/* @@ */   --scrabble-tile-attention: linear-gradient(var(--mark-attention-tile-color), var(--mark-attention-tile-color)), var(--scrabble-tile-bg);
+/* @@ */   --scrabble-tile-selected: #ffd24d; /* a rack tile picked for exchange */
   /* (No cursor alias: the keyboard cursor is the shared gridCursor module, which
      reads --mark-gridCursor-color directly. This game-named alias pointed straight at it
      and had no other reader.) */
 }
 
 /* While dragging a tile, suppress text selection + show the grab cursor. */
-body.scrabble-dragging {
+/* @@ */ body.scrabble-dragging {
   user-select: none;
   cursor: grabbing;
 
@@ -38,16 +38,16 @@ body.scrabble-dragging {
   /* The DOUBLE squares carry dark ink of their own hue; the TRIPLE squares are
      saturated enough to carry white, which they take from the shared ink token.
      The center star is a double-word, so it inks like one. */
-  --scrabble-dw-ink-color:   #7a3b34;
-  --scrabble-dl-ink-color:   #2c4f6b;
+/* @@ */   --scrabble-dw-ink-color:   #7a3b34;
+/* @@ */   --scrabble-dl-ink-color:   #2c4f6b;
   /* A plain square's ink — the muted green-gray the premium labels are read
      against. */
-  --scrabble-cell-ink-color: #6b8378;
-  --scrabble-cell-inner-shadow: inset 0 -2px 0 rgb(0 0 0 / 12%);
-  --scrabble-tile-shadow:    0 2px 6px rgb(0 0 0 / 25%);
-  --scrabble-tile-lift-shadow: 0 4px 10px rgb(0 0 0 / 30%);
-  --scrabble-rack-bg-color:  #6b4a2a;
-  --scrabble-rack-shadow:    0 2px 0 rgb(0 0 0 / 20%);
-  --scrabble-rack-selected-outline-color: #e6b324;
-  --scrabble-dialog-shadow:  0 8px 32px rgb(0 0 0 / 30%);
+/* @@ */   --scrabble-cell-ink-color: #6b8378;
+/* @@ */   --scrabble-cell-inner-shadow: inset 0 -2px 0 rgb(0 0 0 / 12%);
+/* @@ */   --scrabble-tile-shadow:    0 2px 6px rgb(0 0 0 / 25%);
+/* @@ */   --scrabble-tile-lift-shadow: 0 4px 10px rgb(0 0 0 / 30%);
+/* @@ */   --scrabble-rack-bg-color:  #6b4a2a;
+/* @@ */   --scrabble-rack-shadow:    0 2px 0 rgb(0 0 0 / 20%);
+/* @@ */   --scrabble-rack-selected-outline-color: #e6b324;
+/* @@ */   --scrabble-dialog-shadow:  0 8px 32px rgb(0 0 0 / 30%);
 }

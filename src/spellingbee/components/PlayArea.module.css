@@ -16,9 +16,9 @@
  * `--max-board-size` to taste; to REMOVE the cap, SET it to 999rem (don't
  * comment the knob OUT: the token must stay defined, or the cssTokens guard
  * trips on the now-undefined var() reference in the shared module). */
-.layout {
-  --board-units-w: 256;
-  --board-units-h: 267;
-  --board-units-cap: 320;
-  --max-board-size: 30rem;
+/* @@ */ .layout {
+/* @@ */   --board-units-w: 256;
+/* @@ */   --board-units-h: 267;
+/* @@ */   --board-units-cap: 320;
+/* @@ */   --max-board-size: 30rem;
 }

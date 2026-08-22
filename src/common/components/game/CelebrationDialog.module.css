@@ -4,7 +4,7 @@
    Distinct from the plain FloatingPanel dialogs (Help, the confirms):
    this one's whole job is the festive moment. */
 
-.backdrop {
+/* @@ */ .backdrop {
   position: fixed;
   inset: 0;
   background: var(--scrim-color);
@@ -16,7 +16,7 @@
   justify-content: center;
 }
 
-.card {
+/* @@ */ .card {
   position: relative;
   background: var(--page-surface-color);
   color: var(--page-text-color);
@@ -31,7 +31,7 @@
   animation: cardIn 0.35s cubic-bezier(0.18, 1.15, 0.45, 1) both;
 }
 
-@keyframes cardIn {
+/* @@ */ @keyframes cardIn {
   from { transform: scale(0.85); opacity: 0; }
   to   { transform: scale(1);    opacity: 1; }
 }
@@ -39,7 +39,7 @@
 /* Confetti row above the title. Each emoji bounces in with a small stagger
    (animationDelay set inline) plus a continuous JUMP — the per-piece stagger
    turns the shared keyframes into a rolling wave across the row. */
-.confetti {
+/* @@ */ .confetti {
   display: flex;
   justify-content: center;
   gap: 0.3rem;
@@ -51,14 +51,14 @@
   height: 2.6rem;
 }
 
-.piece {
+/* @@ */ .piece {
   display: inline-block;
   animation:
     pieceIn 0.5s cubic-bezier(0.18, 1.4, 0.5, 1) both,
     pieceJump 1.4s ease-in-out 0.6s infinite;
 }
 
-@keyframes pieceIn {
+/* @@ */ @keyframes pieceIn {
   0%   { transform: translateY(-1.6em) scale(0.4) rotate(-30deg); opacity: 0; }
   60%  { opacity: 1; }
   100% { transform: translateY(0) scale(1) rotate(0); opacity: 1; }
@@ -66,7 +66,7 @@
 
 /* A real hop, not a shimmer: almost half an em of travel with a snappy period.
    The ground time (0/25/100%) makes it read as jumping rather than floating. */
-@keyframes pieceJump {
+/* @@ */ @keyframes pieceJump {
   0%, 100% { transform: translateY(0) rotate(-8deg); }
   25%      { transform: translateY(0) rotate(-8deg); }
   55%      { transform: translateY(-0.4em) rotate(9deg); }
@@ -80,18 +80,18 @@
    a leftover from when h2's browser default was also 1.5rem. Settle it at the
    dialogs-and-forms area (plans/css-system-2.md §13): either drop to the h2 size, or
    keep it and say why here. */
-.title {
+/* @@ */ .title {
   margin: 0.2rem 0 0.3rem;
   font-size: 1.5rem;
   color: var(--page-text-color);
 }
 
-.body {
+/* @@ */ .body {
   margin: 0 0 1.4rem;
   color: var(--page-text-muted-color);
 }
 
-.actions {
+/* @@ */ .actions {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -103,11 +103,11 @@
    has. The only thing left here is the roomier padding, because a celebration's
    buttons are the whole content of a small dialog rather than one control in a
    row, and a heavier label on the action you're being offered. */
-.button {
+/* @@ */ .button {
   padding: 0.55rem 1rem;
 }
 
-.primary {
+/* @@ */ .primary {
   font-weight: 600;
 }
 
@@ -116,7 +116,7 @@
    differ from the one a form's buttons get. It's a local copy of the shared
    ring, and the shared version should own it. Fix when the dialogs get their
    area (plans/css-system-2.md §13), not here. */
-.button:focus-visible {
+/* @@ */ .button:focus-visible {
   outline: var(--chrome-cursor-ring);
   outline-offset: 2px;
 }

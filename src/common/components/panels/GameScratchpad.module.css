@@ -2,7 +2,7 @@
 
 /* Fills the FloatingPanel body (a flex column); the textarea grows to fill.
  * The min-height:0 chain lets the textarea scroll internally. */
-.body {
+/* @@ */ .body {
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;
@@ -12,7 +12,7 @@
 }
 
 /* The lock / status bar above the textarea. */
-.lockBar {
+/* @@ */ .lockBar {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -21,7 +21,7 @@
   font-size: 0.85rem;
   color: var(--page-text-muted-color);
 }
-.takeOver {
+/* @@ */ .takeOver {
   padding: 0.15rem 0.5rem;
   font: inherit;
   font-size: 0.8rem;
@@ -31,11 +31,11 @@
   color: var(--page-text-color);
   cursor: pointer;
 }
-.takeOver:hover {
+/* @@ */ .takeOver:hover {
   background: var(--page-surface-hover-color);
 }
 
-.textarea {
+/* @@ */ .textarea {
   flex: 1 1 auto;
   min-height: 0;
   resize: none;
@@ -57,11 +57,11 @@
    monospace 0.9rem. A class rule, so it needs its own touch override — the global
    input floor in theme.css can't reach past this class's specificity. */
 @media (--touch) {
-  .textarea {
+/* @@ */   .textarea {
     font-size: max(16px, 1em);
   }
 }
-.textarea:read-only {
+/* @@ */ .textarea:read-only {
   background: var(--page-surface-color);
   color: var(--page-text-muted-color);
 }

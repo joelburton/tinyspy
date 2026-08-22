@@ -1,6 +1,6 @@
 /* cs-unmet */
 
-.setup {
+/* @@ */ .setup {
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
@@ -21,22 +21,22 @@
  * its MAX-content, so a long row would widen the column (and the dialog) no
  * matter what .setup's max-width says. The explicit 0 minimum lets the column
  * be narrower than its content, which is what allows the title to ellipsize. */
-.tabStack {
+/* @@ */ .tabStack {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
 }
-.tabBody {
+/* @@ */ .tabBody {
   grid-area: 1 / 1;
   display: flex;
   flex-direction: column;
   gap: 0.6rem; /* match .setup's stack gap */
   min-height: 0;
 }
-.tabHidden {
+/* @@ */ .tabHidden {
   visibility: hidden;
 }
 
-.search {
+/* @@ */ .search {
   padding: 0.4rem 0.6rem;
   border: 1px solid var(--page-surface-border-color);
   border-radius: 6px;
@@ -46,10 +46,10 @@
 /* The Guardian tab's instructional lead + the per-series character hint are
  * REAL help text, so they stay full --page-text-color (never muted): the
  * understatement comes from size / italic / placement, not dimming. */
-.lead {
+/* @@ */ .lead {
   margin: 0 0 0.75rem;
 }
-.guardianHint {
+/* @@ */ .guardianHint {
   margin-top: 0.5rem;
   font-size: 0.85rem;
   font-style: italic;
@@ -59,8 +59,8 @@
  * not a max-height — it holds its size while filtering shrinks the results,
  * and it's the height the other two tabs inherit via the .tabStack overlay.
  * `--row-h` is the one knob; each .item is pinned to it. */
-.list {
-  --row-h: 2.4rem;
+/* @@ */ .list {
+/* @@ */   --row-h: 2.4rem;
   height: calc(8 * var(--row-h) + 2px);
   overflow-y: auto;
   border: 1px solid var(--page-surface-border-color);
@@ -69,7 +69,7 @@
   flex-direction: column;
 }
 
-.item {
+/* @@ */ .item {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -87,10 +87,10 @@
   border-left: 4px solid var(--gamelist-unplayed-color);
   font: inherit;
 }
-.item:last-child { border-bottom: none; }
-.item:hover { background: var(--crosswords-row-hover); }
+/* @@ */ .item:last-child { border-bottom: none; }
+/* @@ */ .item:hover { background: var(--crosswords-row-hover); }
 .selected,
-.selected:hover {
+/* @@ */ .selected:hover {
   background: var(--crosswords-in-word);
 }
 
@@ -103,21 +103,21 @@
  *
  * Only the COLOR varies, never the width — that's what keeps the stripe
  * from reflowing the list. */
-.statusSolved  { border-left-color: var(--gamelist-won-color); }
+/* @@ */ .statusSolved  { border-left-color: var(--gamelist-won-color); }
 /* Yellow covers both "a game is live" and "a game was ended manually" — the
  * RPC folds them into one bucket. Same tone the club page uses for "still
  * open, we'll come back to it". */
-.statusPlaying { border-left-color: var(--gamelist-suspended-color); }
-.statusLost    { border-left-color: var(--gamelist-lost-color); }
+/* @@ */ .statusPlaying { border-left-color: var(--gamelist-suspended-color); }
+/* @@ */ .statusLost    { border-left-color: var(--gamelist-lost-color); }
 /* Neither transparent nor the strong neutral: near-white keeps the stripe
  * honest about its width while leaving all the signal to the three played
  * states. Most of a library is unplayed, and a mid-gray stripe on every one
  * of those rows would read as noise competing with the real colors. */
-.statusUnplayed { border-left-color: var(--gamelist-unplayed-color); }
+/* @@ */ .statusUnplayed { border-left-color: var(--gamelist-unplayed-color); }
 
 /* One line per row (rows are fixed-height): a long title ellipsizes instead
  * of wrapping. */
-.itemTitle {
+/* @@ */ .itemTitle {
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
@@ -128,7 +128,7 @@
   min-width: 0;
 }
 
-.empty {
+/* @@ */ .empty {
   padding: 1rem;
   text-align: center;
   color: var(--page-text-muted-color);
@@ -136,10 +136,10 @@
 
 /* Upload tab: a hidden native file input + a dropzone that is also a button
  * (click opens the file chooser; drag-drop drops onto it). */
-.fileInput {
+/* @@ */ .fileInput {
   display: none;
 }
-.dropzone {
+/* @@ */ .dropzone {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -158,22 +158,22 @@
   border-radius: 8px;
   cursor: pointer;
 }
-.dropzone:hover {
+/* @@ */ .dropzone:hover {
   border-color: var(--page-text-color);
 }
 /* Active drag-over state — highlight the target. */
-.dropOver {
+/* @@ */ .dropOver {
   border-color: var(--page-text-color);
   background: var(--crosswords-in-word);
 }
-.dropTitle {
+/* @@ */ .dropTitle {
   font-weight: 600;
 }
-.dropMeta {
+/* @@ */ .dropMeta {
   color: var(--page-text-muted-color);
   font-size: 0.85rem;
 }
-.uploadError {
+/* @@ */ .uploadError {
   color: var(--chrome-fault-color);
   font-size: 0.9rem;
   margin: 0;
@@ -187,7 +187,7 @@
  * date box and the timer below it jumping a row when the lookup lands, since
  * the line is empty until then.
  */
-.nextDate {
+/* @@ */ .nextDate {
   color: var(--page-text-color);
   line-height: 1.4;
   min-height: 1.4em;

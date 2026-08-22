@@ -7,11 +7,11 @@
 /* Desktop: `display: contents` — the wrapper generates no box, so the child (a
  * game's InfoCol) is the flex child of `.layout` exactly as before, and the
  * close button is hidden. */
-.wrap {
+/* @@ */ .wrap {
   display: contents;
 }
 
-.close {
+/* @@ */ .close {
   display: none;
 }
 
@@ -20,7 +20,7 @@
    * (translateX 100%); `.open` slides it in. position: fixed takes it out of the
    * flex row so the board column fills the width. Scrolls internally so the page
    * itself never scrolls (docs/ui.md → page fits the viewport). */
-  .wrap {
+/* @@ */   .wrap {
     display: block;
     position: fixed;
     /* BELOW the header, not over it. The sheet used to start at `top: 0` and
@@ -75,12 +75,12 @@
    * `min-height: 0` is the load-bearing one: without it a flex item's implicit
    * `min-height: auto` refuses to shrink under its content, so the log would push
    * the sheet tall again even inside a flex column. */
-  .wrap > :not(.close) {
+/* @@ */   .wrap > :not(.close) {
     flex: 1 1 auto;
     min-height: 0;
   }
 
-  .open {
+/* @@ */   .open {
     transform: translateX(0);
     visibility: visible;
   }

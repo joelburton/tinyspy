@@ -18,10 +18,10 @@
  * column and --avail-h above the rack row). LOWER it (e.g. 2.6rem) to cap tile size.
  * A real value (not a commented-out knob + var() fallback) so the token isn't
  * "phantom" (src/guards/cssTokens.test.ts). Relative units (rem). */
-.boardCol {
-  --max-tile-size: 999rem; /* effectively uncapped; lower (e.g. 2.6rem) to cap */
-  --grid-gap: 2px;
-  --side: min(
+/* @@ */ .boardCol {
+/* @@ */   --max-tile-size: 999rem; /* effectively uncapped; lower (e.g. 2.6rem) to cap */
+/* @@ */   --grid-gap: 2px;
+/* @@ */   --side: min(
     var(--avail-w),
     var(--avail-h),
     calc(15 * var(--max-tile-size) + 14 * var(--grid-gap))
@@ -36,7 +36,7 @@
  * as large as possible, counted into `--avail-h` (PlayArea.module.css .layout). The
  * action buttons are compact so the rack + actions fit on one line within the board
  * width. Keep the height math in sync with `.layout`'s --avail-h. */
-.belowBoard {
+/* @@ */ .belowBoard {
   width: var(--side);
   min-height: 3.4rem;
   margin-top: 0.25rem;
@@ -50,7 +50,7 @@
 /* One horizontal row: the rack on the left, then the controls filling the rest.
  * nowrap so it never grows a second line (which would reflow the board height) —
  * labels + messages are kept terse to fit. */
-.moveArea {
+/* @@ */ .moveArea {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -72,18 +72,18 @@
  * The .layout --avail-h override in PlayArea.module.css subtracts the same
  * 5.1rem — keep the two in sync. */
 @media (--phone) {
-  .moveArea {
+/* @@ */   .moveArea {
     flex-wrap: wrap;
     row-gap: 10px;
   }
-  .belowBoard {
+/* @@ */   .belowBoard {
     min-height: 5.1rem;
   }
 }
 
 /* Positioning context for the shuffle button floating over the rack's top-right
  * corner (so the ⟲ reads as "shuffle the rack"). Sized to the rack. */
-.rackWrap {
+/* @@ */ .rackWrap {
   flex: 0 0 auto;
   position: relative;
 }
@@ -91,7 +91,7 @@
 /* The shuffle control, floated over the rack's top-right corner and scaled down
  * (it's a quick reshuffle of the rack, not a turn action — like the board games'
  * shuffle floating over the board corner). */
-.rackShuffle {
+/* @@ */ .rackShuffle {
   position: absolute;
   top: -9px;
   right: -14px;
@@ -105,7 +105,7 @@
  * tokens from ancestors (.layout / :root). The pointer-following mechanics
  * (fixed + center-translate + tilt) come from the shared
  * common/components/game/dragGhost.module.css, composed alongside this. */
-.ghost {
+/* @@ */ .ghost {
   width: var(--rack-tile-size);
   height: var(--rack-tile-size);
   background: var(--scrabble-tile-bg);

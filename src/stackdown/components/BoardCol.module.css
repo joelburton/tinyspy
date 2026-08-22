@@ -12,14 +12,14 @@
  * scaffold), the height left above the below-board stack (--avail-h), and a hard
  * cap so it doesn't get silly on a huge monitor. Both the canvas (Board.module.css)
  * and the below-board region read `--side` so they share one width. */
-.boardCol {
-  --side: min(var(--avail-w), var(--avail-h), 620px);
+/* @@ */ .boardCol {
+/* @@ */   --side: min(var(--avail-w), var(--avail-h), 620px);
 }
 
 /* Everything under the board: the move row, then the fixed-height local feedback
  * slot. Pinned to the board's --side so a long feedback pill can't widen the
  * column and shift the board; centered so the move row + pill sit under it. */
-.belowBoard {
+/* @@ */ .belowBoard {
   width: var(--side);
   display: flex;
   flex-direction: column;
@@ -42,6 +42,6 @@
  * The margin lives here rather than on the WordEntry's own `.row`: the buttons
  * are centered against the slots, and a margin inside the flex line would push
  * the slots down relative to them. */
-.moveArea {
+/* @@ */ .moveArea {
   margin-top: 1rem;
 }

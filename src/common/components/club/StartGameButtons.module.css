@@ -3,7 +3,7 @@
 /* Stacked title + meta to the right of the logo. flex: 1 so the
  * stack absorbs the available width; min-width: 0 lets the
  * inner meta truncate if a future shortDescription runs long. */
-.content {
+/* @@ */ .content {
   display: flex;
   flex-direction: column;
   /* No gap — the two lines' own line-heights are the whole leading. A gap on
@@ -31,20 +31,20 @@
  * `.button` nor a tone (docs/ui.md → a list row is an "accidental" button),
  * which is why the class is `.row`. Its look is entirely the shared
  * `.item-row` plus the club page's packed spacing (ClubPage.module.css). */
-.row:disabled {
+/* @@ */ .row:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
 /* Name + mode pill on one row above the meta line. */
-.titleRow {
+/* @@ */ .titleRow {
   display: flex;
   flex-direction: row;
   align-items: center;
   gap: 0.4rem;
 }
 
-.gametypeName {
+/* @@ */ .gametypeName {
   font-weight: 600;
   font-size: 1rem;
   color: var(--page-text-color);
@@ -54,7 +54,7 @@
 /* Subtle second line: short description · player-count badge.
  * Muted color so the prominent first line stays the visual
  * anchor of each row. */
-.meta {
+/* @@ */ .meta {
   color: var(--page-text-muted-color);
   font-size: 0.85rem;
   line-height: 1.25;

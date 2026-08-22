@@ -3,7 +3,7 @@
 /* The device-block screen (see DeviceBlockNotice.tsx). Fills the play surface
  * GamePage hands the PlayArea and centers a single explanatory card. */
 
-.wrap {
+/* @@ */ .wrap {
   /* Fill the play area and center the card both ways. flex:1 so it claims the
    * space the board column would have — the surface never scrolls. */
   flex: 1;
@@ -14,7 +14,7 @@
   min-height: 0;
 }
 
-.card {
+/* @@ */ .card {
   max-width: 28rem;
   display: flex;
   flex-direction: column;
@@ -28,13 +28,13 @@
   box-shadow: var(--shadow-notice);
 }
 
-.title {
+/* @@ */ .title {
   margin: 0;
   font-size: 1.25rem;
   font-weight: 600;
 }
 
-.body {
+/* @@ */ .body {
   margin: 0;
   line-height: 1.5;
   color: var(--page-text-color);

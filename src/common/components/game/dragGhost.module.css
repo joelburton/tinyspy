@@ -24,7 +24,7 @@
  * alone pending the z-index-ladder item in docs/css-audit.md — a fixed-position
  * overlay's tier is a whole-app question, not a per-component one.
  */
-.ghost {
+/* @@ */ .ghost {
   position: fixed;
   transform: translate(-50%, -50%) rotate(-3deg);
   display: flex;

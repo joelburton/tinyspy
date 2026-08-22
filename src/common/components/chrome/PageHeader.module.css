@@ -3,7 +3,7 @@
 /* The strip at the top of every page. See PageHeader.tsx for what it is and
    why the two slots always exist. */
 
-.header {
+/* @@ */ .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -30,7 +30,7 @@
    every page. The marks carry their own hover padding on top of it — 0.25rem on
    the menu trigger, 0.3rem on the chat bubble — so the visible separation is
    about 0.925rem, not 0.375rem. */
-.left {
+/* @@ */ .left {
   display: flex;
   align-items: center;
   gap: 0.375rem;
@@ -41,7 +41,7 @@
 /* The right slot — pause, timer and the info switch on a game; empty on home
    and club. `flex-shrink: 0` so the left slot gives space before this one
    does: a feedback pill pushes the timer out only if there's no other choice. */
-.right {
+/* @@ */ .right {
   display: flex;
   align-items: center;
   gap: 0.5rem;

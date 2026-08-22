@@ -3,7 +3,7 @@
 /* The five-row guess grid. Every row is the SAME fixed height so the board
  * never reflows as guesses land or the game ends (layout-stability rule).
  * Compact vertical rhythm so the on-screen keyboard fits below on mobile. */
-.board {
+/* @@ */ .board {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -13,7 +13,7 @@
   width: 100%;
 }
 
-.row {
+/* @@ */ .row {
   min-height: 2.5rem;
   display: flex;
   align-items: center;
@@ -25,19 +25,19 @@
 
 /* A landed guess: same 2px medium-dark gray outline as an empty row, but
  * SOLID (not dashed) — the only change on submit is the dashes filling in. */
-.done {
+/* @@ */ .done {
   background: var(--wordiply-row);
   border: 2px solid var(--field-strong-edge-color);
 }
 
 /* The active (being-typed) row is still an empty row — same dashed gray
  * outline; the live word inside is what marks it as active. */
-.active {
+/* @@ */ .active {
   background: var(--wordiply-row-empty);
   border: 2px dashed var(--field-strong-edge-color);
 }
 
-.rowWord {
+/* @@ */ .rowWord {
   flex: 1;
   min-width: 0;
   font-size: 1.1rem;
@@ -47,7 +47,7 @@
 
 /* The one live readout — this guess's length. Just a plain teal number (no
  * chip / border / padding). */
-.badge {
+/* @@ */ .badge {
   flex: 0 0 auto;
   color: var(--wordiply-accent);
   font-weight: 800;
@@ -56,7 +56,7 @@
 
 /* A future, unfilled row — a clearly-visible dashed outline (medium-dark, not
  * a faint hairline). */
-.empty {
+/* @@ */ .empty {
   border: 2px dashed var(--field-strong-edge-color);
   background: var(--wordiply-row-empty);
 }

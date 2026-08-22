@@ -6,12 +6,12 @@
  * One pattern, one file (plans/css-system-2.md §7).
  * ============================================================ */
 
-:root {
+/* @@ */ :root {
   /* The ring itself: one width, one color, everywhere. Composed from
      --chrome-cursor-color so a theme moves every ring at once, and kept as a
      whole `outline` shorthand because the width and the color are never chosen
      separately. */
-  --chrome-cursor-ring: 2px solid var(--chrome-cursor-color);
+/* @@ */   --chrome-cursor-ring: 2px solid var(--chrome-cursor-color);
 }
 
 /* THE OFFSET IS THE ONLY THING THAT VARIES, and it is not a preference — it
@@ -44,7 +44,7 @@
  * chosen. `ColorChoiceList.swatchActive` draws the same ring to mark the color
  * you have picked — that is a different meaning wearing the same paint, and it
  * deliberately does not read this. */
-.kb-cursor {
+/* @@ */ .kb-cursor {
   outline: var(--chrome-cursor-ring);
   outline-offset: -2px;
 }

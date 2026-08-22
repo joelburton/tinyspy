@@ -8,7 +8,7 @@
  * "GamePage menu" for the contract.
  */
 
-.menu {
+/* @@ */ .menu {
   /* Anchor for the absolutely-positioned popover. inline-block
    * so the trigger doesn't grab a full row in flex layouts. */
   position: relative;
@@ -19,7 +19,7 @@
  * <button> already leaves it looking like whatever the caller provided; this
  * adds the padding and a subtle hover/focus background hint that it's
  * interactive. */
-.trigger {
+/* @@ */ .trigger {
   padding: 0.25rem;
   margin: 0;
   cursor: pointer;
@@ -32,11 +32,11 @@
 }
 
 .trigger:hover,
-.trigger[aria-expanded='true'] {
+/* @@ */ .trigger[aria-expanded='true'] {
   background: var(--page-surface-border-color);
 }
 
-.trigger:focus-visible {
+/* @@ */ .trigger:focus-visible {
   outline: var(--chrome-cursor-ring);
   outline-offset: 2px;
 }
@@ -50,7 +50,7 @@
  * trigger so the rounded corners read as distinct surfaces.
  * Anchored left (default for left-side triggers like the logo);
  * if a future caller wants right-anchoring we'll add a prop. */
-.popover {
+/* @@ */ .popover {
   position: absolute;
   top: calc(100% + 0.35rem);
   left: 0;
@@ -85,7 +85,7 @@
  * triggers near the viewport's right edge. The popover's right
  * edge sticks to the trigger's right edge so the menu opens
  * leftward into the page rather than off-screen. */
-.popoverRight {
+/* @@ */ .popoverRight {
   left: auto;
   right: 0;
 }
@@ -93,7 +93,7 @@
 /* Per-item button. Left-align text; full-width row so the click target is
  * the whole row width. Hover and focus give the same background hint —
  * keyboard and mouse users see the same "this is current" cue. */
-.item {
+/* @@ */ .item {
   margin: 0;
   padding: 0.5rem 0.85rem;
   cursor: pointer;
@@ -113,7 +113,7 @@
 
 /* The shortcut hint (e.g. "⌥C") — pushed to the right edge, de-emphasized
    (it's an annotation, not the action). */
-.itemShortcut {
+/* @@ */ .itemShortcut {
   margin-left: auto;
   color: var(--page-text-muted-color);
   font-size: 0.82rem;
@@ -122,7 +122,7 @@
 }
 
 .item:hover:not(:disabled),
-.item:focus {
+/* @@ */ .item:focus {
   background: var(--page-surface-hover-color);
 }
 
@@ -134,12 +134,12 @@
  * row identifiable in those contexts. :focus-visible (not
  * :focus) so a mouse click on an item doesn't double-paint a
  * ring on top of the activation flash. */
-.item:focus-visible {
+/* @@ */ .item:focus-visible {
   outline: var(--chrome-cursor-ring);
   outline-offset: -2px;
 }
 
-.itemDisabled {
+/* @@ */ .itemDisabled {
   cursor: not-allowed;
   opacity: 0.45;
 }
@@ -147,7 +147,7 @@
 /* Section divider — thin horizontal rule that separates the
  * common items from the per-game items. Margins inside the
  * padding so it doesn't touch the popover edges. */
-.divider {
+/* @@ */ .divider {
   height: 0;
   margin: 0.3rem 0;
   border-top: 1px solid var(--page-surface-border-color);
@@ -157,15 +157,15 @@
  * title + credits (crossplay parity). Matches an item's horizontal padding so it
  * lines up with the buttons below; the title reads at item size, the sub-lines
  * (author / copyright) are muted and smaller. */
-.header {
+/* @@ */ .header {
   padding: 0.35rem 0.85rem 0.45rem;
 }
-.headerTitle {
+/* @@ */ .headerTitle {
   color: var(--page-text-color);
   font-size: 0.95rem;
   font-weight: 600;
 }
-.headerLine {
+/* @@ */ .headerLine {
   color: var(--page-text-muted-color);
   font-size: 0.82rem;
   margin-top: 0.1rem;
@@ -181,7 +181,7 @@
 /* The "there's more behind this row" affordance. `margin-left: auto` pushes it
  * to the right edge the way `.itemShortcut` does — a row never has both, since
  * a submenu parent carries no shortcut (it isn't a command). */
-.itemChevron {
+/* @@ */ .itemChevron {
   margin-left: auto;
   padding-left: 0.5rem;
   color: var(--page-text-muted-color);
@@ -192,13 +192,13 @@
 /* The parent row of an OPEN flyout stays lit, so it's unambiguous which row the
  * floating panel belongs to — without it, a panel hanging in space beside a
  * list of identical rows makes you count pixels to find its owner. */
-.itemOpen {
+/* @@ */ .itemOpen {
   background: var(--page-surface-hover-color);
 }
 
 /* The drill-down's "‹ Back" row. Muted like a breadcrumb rather than styled as
  * a command: it undoes a navigation step, it doesn't do anything to the game. */
-.itemBack {
+/* @@ */ .itemBack {
   color: var(--page-text-muted-color);
   font-weight: 600;
 }
@@ -210,7 +210,7 @@
  * coordinates (supplied inline from the parent row's rect) escape the scroll
  * container. One above `.popover` so it stacks over its parent — the `+ 1` is
  * the whole point, so it derives rather than restating the tier's number. */
-.flyout {
+/* @@ */ .flyout {
   position: fixed;
   z-index: calc(var(--z-index-popover) + 1);
   width: max-content;
@@ -236,7 +236,7 @@
  * popover leftward, so its flyout has to go leftward too or it runs off-screen.
  * The inline style supplies `right` instead of `left`; this just flips the
  * overlap. */
-.flyoutLeft {
+/* @@ */ .flyoutLeft {
   margin-left: 0;
   margin-right: -1px;
 }
@@ -245,8 +245,8 @@
  * label's text rather than a fixed px so it tracks the menu's type, and given a
  * little right margin — `.item` is a flex row whose `gap` is the wide
  * label↔shortcut gutter, which would fling the dot away from its own name. */
-.itemDot {
-  --dot-size: 0.7em;
+/* @@ */ .itemDot {
+/* @@ */   --dot-size: 0.7em;
   flex: none;
   margin-right: -1rem;
 }
@@ -260,7 +260,7 @@
  * `flex: none` so a glyph never stretches the row, and the box is sized to the
  * 15px icon rather than the icon sizing the box — a future glyph with different
  * bearings then can't shift every label beside it. */
-.itemIconSlot {
+/* @@ */ .itemIconSlot {
   flex: none;
   width: 1.05rem;
   /* Cancel most of the row's `gap`, which exists as the wide label↔shortcut

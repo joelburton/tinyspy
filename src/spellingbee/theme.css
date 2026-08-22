@@ -19,10 +19,10 @@
  * than literal colors. A future palette tweak doesn't have to
  * walk every consumer.
  */
-:root {
-  --spellingbee-hex:           var(--tile-2-fill-color); /* trying the shared warm ramp (was #e6e6e6) */
-  --spellingbee-accent:        #f7da21;
-  --spellingbee-hex-text:      #1a1a1a;
+/* @@ */ :root {
+/* @@ */   --spellingbee-hex:           var(--tile-2-fill-color); /* trying the shared warm ramp (was #e6e6e6) */
+/* @@ */   --spellingbee-accent:        #f7da21;
+/* @@ */   --spellingbee-hex-text:      #1a1a1a;
 
   /* A darker-amber edge for the yellow accent — the center hex's stroke
    * (`Letters.module.css`), so the bright-yellow cell reads as outlined rather
@@ -30,12 +30,12 @@
    * feedback-warning amber; now its own token, since that feedback palette is
    * gone — the submission pill is the shared <GenericFeedbackPill> off the common
    * --outcome-* tones.) */
-  --spellingbee-accent-edge:   #a86b00;
+/* @@ */   --spellingbee-accent-edge:   #a86b00;
 
   /* Shared-component token: the common <RankBar> / <Stats> read this generic
    * name so one copy serves both hive-family games. Only the TEXT color is
    * per-game now — the ladder's own fill + edge are shared (`--rank-bar-fill-color` /
    * `--rank-bar-edge-color` in common/themes/daylight.css), since a rank ladder means the same
    * thing in both games. */
-  --rank-text:                 var(--spellingbee-hex-text);
+/* @@ */   --rank-text:                 var(--spellingbee-hex-text);
 }

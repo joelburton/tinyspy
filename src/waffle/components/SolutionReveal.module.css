@@ -1,32 +1,32 @@
 /* cs-unmet */
 
-.reveal {
+/* @@ */ .reveal {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
   align-items: flex-start;
 }
 
-.wordCols {
+/* @@ */ .wordCols {
   display: flex;
   gap: 1.5rem;
   flex-wrap: wrap;
 }
 
-.group {
+/* @@ */ .group {
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
 }
 
-.heading {
+/* @@ */ .heading {
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--page-text-muted-color);
 }
 
-.word {
+/* @@ */ .word {
   font-family: monospace;
   font-weight: 600;
   letter-spacing: 0.08em;
@@ -37,14 +37,14 @@
   color: var(--page-text-color);
 }
 
-.word:hover {
+/* @@ */ .word:hover {
   background: var(--page-surface-hover-color);
   text-decoration: underline;
 }
 
 /* An unsolved word: an em dash placeholder aligned with the word slots (same
  * monospace metrics + padding), muted since there's nothing to read yet. */
-.unsolved {
+/* @@ */ .unsolved {
   font-family: monospace;
   font-weight: 600;
   letter-spacing: 0.08em;

@@ -17,7 +17,7 @@
 /* The board wrapper: no tray (no border/background) — the tiles carry their own
  * shape — just the structural element between .boardCol and the .grid, centering
  * the grid horizontally. */
-.board {
+/* @@ */ .board {
   display: flex;
   justify-content: center;
 }
@@ -25,7 +25,7 @@
 /* Shrink-wraps the wheel svg exactly (a flex child hugs its content) and anchors
  * the floating shuffle control (`floatingControl` prop), so the float hugs the
  * VISUAL wheel's top-right — not `.board`, which stretches to the column width. */
-.floatAnchor {
+/* @@ */ .floatAnchor {
   position: relative;
 }
 
@@ -33,7 +33,7 @@
  * itself. `--u` (one unit) is defined on .boardCol so the below-board input row
  * reads the board width from the same source. `overflow: visible` lets the
  * outermost tiles' strokes / focus rings paint past the viewBox edge. */
-.grid {
+/* @@ */ .grid {
   display: block;
   width: calc(300 * var(--u));
   height: calc(300 * var(--u));
@@ -54,7 +54,7 @@
  * role/tabindex/keydown). Hover dims the whole tile; press scales it about its OWN
  * center — transform-box/-origin, since an SVG transform is otherwise about the
  * viewBox origin. */
-.tile {
+/* @@ */ .tile {
   cursor: pointer;
   transform-box: fill-box;
   transform-origin: center;
@@ -64,13 +64,13 @@
    * hides our own circular flash below. */
   -webkit-tap-highlight-color: transparent;
 }
-.tile:hover {
+/* @@ */ .tile:hover {
   filter: brightness(0.96);
 }
-.tile:active {
+/* @@ */ .tile:active {
   transform: scale(0.9);
 }
-.tile:focus {
+/* @@ */ .tile:focus {
   outline: none;
 }
 
@@ -80,7 +80,7 @@
  * click). The visual cue is a DARKENED BACKGROUND only (see `.tileShape` below) —
  * the gold border + the letter stay put, so the tile reads as "spent" rather than
  * grayed out. The tile re-enables the moment the letter leaves the word. */
-.tile.disabled {
+/* @@ */ .tile.disabled {
   cursor: default;
   pointer-events: none;
 }
@@ -88,10 +88,10 @@
  * → a darker red. The `.center.disabled` rule outspecifies both `.center .tileShape`
  * (which sets the resting red) and the plain `.disabled` rule, so a used center
  * gets the darker red rather than the outer tan. */
-.tile.disabled .tileShape {
+/* @@ */ .tile.disabled .tileShape {
   fill: var(--wordwheel-tile-used);
 }
-.tile.center.disabled .tileShape {
+/* @@ */ .tile.center.disabled .tileShape {
   fill: var(--wordwheel-accent-used);
 }
 
@@ -101,13 +101,13 @@
  * replays it. Base opacity 0 so it's invisible between taps; the one-shot
  * animation fades from bright to that 0 (no `forwards` needed, since it ends at
  * the base). */
-.tileFlash {
+/* @@ */ .tileFlash {
   fill: var(--ink-onDark-color);
   opacity: 0;
   pointer-events: none;
   animation: tileFlash 260ms ease-out;
 }
-@keyframes tileFlash {
+/* @@ */ @keyframes tileFlash {
   from {
     opacity: 0.7;
   }
@@ -117,7 +117,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .tileFlash {
+/* @@ */   .tileFlash {
     animation: none;
   }
 }
@@ -128,20 +128,20 @@
  * outer tiles, so all nine tiles read as one set and only the fill says "center".
  * (A darker-red edge was tried and left commented out mid-tuning; the shared
  * border won, so its token is gone.) */
-.tileShape {
+/* @@ */ .tileShape {
   fill: var(--wordwheel-tile);
   stroke: var(--tile-5-edge-color);
   stroke-width: 14;
   transition: fill 80ms ease;
 }
-.center .tileShape {
+/* @@ */ .center .tileShape {
   fill: var(--wordwheel-accent);
   stroke: var(--tile-5-edge-color);
   stroke-width: 14;
 }
 
 
-.tileText {
+/* @@ */ .tileText {
   fill: var(--wordwheel-tile-text);
   font-size: 34px; /* wheel coordinate units (scaled by --u) */
   font-weight: 800;
@@ -152,7 +152,7 @@
 }
 /* The center letter sits on the saturated-red fill — white reads cleanly where
  * black would fight the color; the center tile is also bigger, so bump the glyph. */
-.center .tileText {
+/* @@ */ .center .tileText {
   fill: var(--wordwheel-center-text);
   font-size: 40px;
 }

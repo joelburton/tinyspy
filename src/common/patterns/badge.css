@@ -27,7 +27,7 @@
    silently overrule the spelling `MODE_LABEL` sets (docs/ui.md → Mode pills:
    the DB says `coop`, the UI says "Co-op"). A badge shows its label as
    written. */
-.badge {
+/* @@ */ .badge {
   display: inline-block;
   font-size: 0.7rem;
   font-weight: 700;

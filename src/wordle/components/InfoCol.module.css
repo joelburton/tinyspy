@@ -8,12 +8,12 @@
  * margin (this <p> sits outside .actionSlot, which zeroes its own paragraphs), so
  * the spacing matches the info column's own 1rem gap — like waffle's terminalExtra,
  * which wraps a margin-less component. */
-.answerLine {
+/* @@ */ .answerLine {
   margin: 0;
 }
 
 /* The revealed word itself — letter-spaced so the five letters read as the word,
  * like the board tiles (only the word, not the "The answer was" lead-in). */
-.answerReveal {
+/* @@ */ .answerReveal {
   letter-spacing: 0.08em;
 }

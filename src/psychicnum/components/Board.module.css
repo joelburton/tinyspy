@@ -18,10 +18,10 @@
  * and the phantom-token guard (src/guards/cssTokens.test.ts) fails. Example caps:
  *     --max-tile-width: 8rem;
  *     --max-tile-height: 12rem;                                                */
-.board {
-  --max-tile-width: 12.5rem;   /* ≈ 200px */
-  --max-tile-height: 9.5rem;
-  --grid-gap: 0.5rem;
+/* @@ */ .board {
+/* @@ */   --max-tile-width: 12.5rem;   /* ≈ 200px */
+/* @@ */   --max-tile-height: 9.5rem;
+/* @@ */   --grid-gap: 0.5rem;
 
   /* The board fills the column HEIGHT (flex:1) but each 1fr row tops out at
    * --max-tile-height; rows still shrink on short screens. --rows is set inline
@@ -51,16 +51,16 @@
  * full width). --avail-w (the width left beside the info column) is the shared
  * scaffold token, set on .layout in common/components/game/PlayArea.module.css — every
  * hug game reads the same one. --cols is set inline. */
-.grid {
+/* @@ */ .grid {
   /* WIDTH: the shared rectangular hug (`shared.hugRectWidth`, composed on this
    * element in Board.tsx). This game keeps its own fill behavior below. */
   flex: 1;
   min-height: 0;
   display: grid;
   gap: var(--grid-gap);
-  --tile-font-min: 0.85rem;
-  --tile-font-factor: 0.9;
-  --tile-font-max: 2.6rem;
+/* @@ */   --tile-font-min: 0.85rem;
+/* @@ */   --tile-font-factor: 0.9;
+/* @@ */   --tile-font-max: 2.6rem;
 }
 
 /* A guessed tile is "decided": it colors PERMANENTLY by result — green if the
@@ -99,22 +99,22 @@
  * attention, the in-flight dim — extend over the border box, so the edge never
  * peeks through them; a second of a hidden edge costs nothing, since it will be
  * back. See plans/tile-feedback.md. */
-.correct {
-  --tile-slot-fill-color: var(--outcomes-won-fill-color);
-  --tile-slot-edge-color: var(--outcomes-won-edge-color);
-  --tile-slot-ink-color: var(--ink-onDark-color);
+/* @@ */ .correct {
+/* @@ */   --tile-slot-fill-color: var(--outcomes-won-fill-color);
+/* @@ */   --tile-slot-edge-color: var(--outcomes-won-edge-color);
+/* @@ */   --tile-slot-ink-color: var(--ink-onDark-color);
 }
 
-.incorrect {
-  --tile-slot-fill-color: var(--outcomes-lost-fill-color);
-  --tile-slot-edge-color: var(--outcomes-lost-edge-color);
-  --tile-slot-ink-color: var(--ink-onDark-color);
+/* @@ */ .incorrect {
+/* @@ */   --tile-slot-fill-color: var(--outcomes-lost-fill-color);
+/* @@ */   --tile-slot-edge-color: var(--outcomes-lost-edge-color);
+/* @@ */   --tile-slot-ink-color: var(--ink-onDark-color);
 }
 
 /* Positioning context for the identity dot below. (The shared in-flight dim and
  * attention wash bring their own; this is for the dot, which is always available
  * on a decided tile.) */
-.tile {
+/* @@ */ .tile {
   position: relative;
 }
 
@@ -128,7 +128,7 @@
  * the selection border, the history ring, or a neighbour — and small, because it
  * answers a question you ask deliberately ("who got that one?") rather than one
  * the board should be shouting. */
-.actorDot {
+/* @@ */ .actorDot {
   position: absolute;
   /* Sized and inset in `cqi` — a percentage of the TILE's own width, which the
    * shared `.tileFace` already makes available by being an inline-size container
@@ -144,10 +144,10 @@
    * shared face, which trades a cosmetic gain for tiles that collapse to nothing
    * if a board's height is ever indefinite. Legible beats proportional: the floor
    * holds the phone at a readable ~18px and desktop still scales. */
-  --dot-size: clamp(1.15rem, 13cqi, 1.5rem);
+/* @@ */   --dot-size: clamp(1.15rem, 13cqi, 1.5rem);
   /* The ring scales with the disc, or it reads as a hairline on a big tile and as
    * most of the disc on a small one. */
-  --dot-border-width: max(1.5px, 1.2cqi);
+/* @@ */   --dot-border-width: max(1.5px, 1.2cqi);
   right: 7cqi;
   bottom: 7cqi;
   /* Above the attention wash (which sits at 0 so it can lighten the tile under
@@ -190,7 +190,7 @@
  * (This is the board's only tile-level ring now. The terminal answer key used to
  * add a second one in a neon green of its own; revealing a secret simply turns it
  * green today — the reveal is a state change, not a mark. See PlayArea.) */
-.viewed {
+/* @@ */ .viewed {
   outline: 3px solid var(--view-history-color);
   outline-offset: 2px;
 }

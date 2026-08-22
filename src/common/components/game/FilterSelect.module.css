@@ -9,14 +9,14 @@
  * turn-log picker is still native, the two sit side by side in the same info
  * column and must look identical. */
 
-.root {
+/* @@ */ .root {
   position: relative;
   display: inline-flex;
 }
 
 /* ─── The select, CLOSED ──────────────────────────────────── */
 
-.closedSelect {
+/* @@ */ .closedSelect {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
@@ -36,7 +36,7 @@
   outline: none;
 }
 
-.label {
+/* @@ */ .label {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -50,15 +50,15 @@
  * option text — which matters at the mobile size, where options grow to 1rem
  * and a rem-fixed disc would look shrunken beside them. */
 .closedSelect,
-.option {
-  --filter-select-dot: 0.65em;
+/* @@ */ .option {
+/* @@ */   --filter-select-dot: 0.65em;
 }
 
-.dot {
-  --dot-size: var(--filter-select-dot);
+/* @@ */ .dot {
+/* @@ */   --dot-size: var(--filter-select-dot);
 }
 
-.dotSlot {
+/* @@ */ .dotSlot {
   flex: none;
   display: inline-flex;
   align-items: center;
@@ -69,7 +69,7 @@
 /* The affordance mark: a small solid caret, the same "this opens a list of
  * choices" language a native <select> uses — NOT the header menus' chevron,
  * which means "this opens a menu of commands". */
-.caret {
+/* @@ */ .caret {
   flex: none;
   opacity: 0.7;
 }
@@ -89,7 +89,7 @@
  * left-anchored list would push off-screen and widen the document. Growing
  * leftward from a right edge can't: the popover's right edge is pinned to a
  * closed select that is already on-screen, and `max-width` bounds the reach. */
-.popover {
+/* @@ */ .popover {
   position: absolute;
   top: calc(100% + 2px);
   right: 0;
@@ -107,7 +107,7 @@
   overflow: hidden;
 }
 
-.option {
+/* @@ */ .option {
   display: flex;
   align-items: center;
   gap: 0.35rem;
@@ -126,14 +126,14 @@
   text-overflow: ellipsis;
   outline: none;
 }
-.option:hover {
+/* @@ */ .option:hover {
   background: var(--page-surface-hover-color);
 }
 
 /* The current value. Weight rather than color, so it reads as "this one" in
  * both themes without introducing a palette the info panel doesn't already
  * use. */
-.optionOn {
+/* @@ */ .optionOn {
   font-weight: 700;
 }
 
@@ -145,11 +145,11 @@
  * cramped custom list on a phone. The TRIGGER stays small: it lives in a tight
  * heading row, and growing it would reflow the panel. */
 @media (max-width: 56.25rem) {
-  .popover {
+/* @@ */   .popover {
     padding: 0.25rem;
     max-width: min(18rem, 80vw);
   }
-  .option {
+/* @@ */   .option {
     font-size: 1rem;
     padding: 0.6rem 0.75rem;
   }

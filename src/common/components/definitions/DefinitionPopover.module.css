@@ -4,7 +4,7 @@
  * surface anchored below the clicked word. Mirrors the elevation
  * idiom of Menu's popover (surface + border + soft shadow). */
 
-.card {
+/* @@ */ .card {
   position: fixed;
   z-index: var(--z-index-popover); /* same tier as Menu's popover — above content, below chat */
   background: var(--page-surface-color);

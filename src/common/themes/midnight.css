@@ -24,7 +24,7 @@
  * here, so nobody has to translate while reading daylight.
  * ============================================================ */
 
-:root {
+/* @@ */ :root {
   /* ══ PAGE ═══════════════════════════════════════════════════════
      A BLUE-SLATE, not a neutral near-black, and there is no law that
      said it had to be one. Material's #121212 is a convention rather
@@ -51,24 +51,24 @@
      on a slate table. The surface is LIGHTER than the page, as it is
      in daylight: that relationship survives the flip even though both
      values move. */
-  --page-bg-color:                #262e3f;
-  --page-surface-color:           #2f394c;
-  --page-surface-border-color:    #454f63;
-  --page-surface-hover-color:     #3a4459;
-  --page-text-color:              #e8eaee;
-  --page-text-muted-color:        #99a0ad;
-  --page-divider-color:           #7b8391;
+/* @@ */   --page-bg-color:                #262e3f;
+/* @@ */   --page-surface-color:           #2f394c;
+/* @@ */   --page-surface-border-color:    #454f63;
+/* @@ */   --page-surface-hover-color:     #3a4459;
+/* @@ */   --page-text-color:              #e8eaee;
+/* @@ */   --page-text-muted-color:        #99a0ad;
+/* @@ */   --page-divider-color:           #7b8391;
 
   /* ══ FIELD ══════════════════════════════════════════════════════
      A field sits at the page's own darkness rather than the card's, so
      it reads as a well rather than a raised panel. The placeholder
      formula is unchanged from daylight and still works, because it is
      stated relative to the field's own fill. */
-  --field-fill-color:             #1f2532;
-  --field-edge-color:             #505b6e;
-  --field-strong-edge-color:      #727d8f;
-  --field-muted-ink-color:        #a4abb8;
-  --field-placeholder-ink-color:  color-mix(in oklab, var(--page-text-muted-color) 50%, var(--field-fill-color));
+/* @@ */   --field-fill-color:             #1f2532;
+/* @@ */   --field-edge-color:             #505b6e;
+/* @@ */   --field-strong-edge-color:      #727d8f;
+/* @@ */   --field-muted-ink-color:        #a4abb8;
+/* @@ */   --field-placeholder-ink-color:  color-mix(in oklab, var(--page-text-muted-color) 50%, var(--field-fill-color));
 
   /* ══ BUTTON ═════════════════════════════════════════════════════
      THE ONE PLACE THE MODEL VISIBLY BENDS, and worth reading closely.
@@ -90,19 +90,19 @@
 
   /* NORMAL — Material Blue 400: the tier that reads on dark where 700
      reads on white. */
-  --button-normal-base-color:                #42a5f5;
-  --button-normal-primary-color:             var(--button-normal-base-color);
-  --button-normal-primary-hover-color:       oklch(from var(--button-normal-base-color) calc(l + 0.05) c h);
-  --button-normal-primary-ink-color:         #0a1621;
-  --button-normal-secondary-color:           oklch(from var(--button-normal-base-color) calc(l + 0.115) c h);
-  --button-normal-secondary-hover-color:     color-mix(in oklab, var(--button-normal-base-color) 8%, var(--page-surface-color));
+/* @@ */   --button-normal-base-color:                #42a5f5;
+/* @@ */   --button-normal-primary-color:             var(--button-normal-base-color);
+/* @@ */   --button-normal-primary-hover-color:       oklch(from var(--button-normal-base-color) calc(l + 0.05) c h);
+/* @@ */   --button-normal-primary-ink-color:         #0a1621;
+/* @@ */   --button-normal-secondary-color:           oklch(from var(--button-normal-base-color) calc(l + 0.115) c h);
+/* @@ */   --button-normal-secondary-hover-color:     color-mix(in oklab, var(--button-normal-base-color) 8%, var(--page-surface-color));
 
-  --button-success-base-color:               #66bb6a;
-  --button-success-primary-color:            var(--button-success-base-color);
-  --button-success-primary-hover-color:      oklch(from var(--button-success-base-color) calc(l + 0.05) c h);
-  --button-success-primary-ink-color:        #0c1a0d;
-  --button-success-secondary-color:          oklch(from var(--button-success-base-color) calc(l + 0.115) c h);
-  --button-success-secondary-hover-color:    color-mix(in oklab, var(--button-success-base-color) 8%, var(--page-surface-color));
+/* @@ */   --button-success-base-color:               #66bb6a;
+/* @@ */   --button-success-primary-color:            var(--button-success-base-color);
+/* @@ */   --button-success-primary-hover-color:      oklch(from var(--button-success-base-color) calc(l + 0.05) c h);
+/* @@ */   --button-success-primary-ink-color:        #0c1a0d;
+/* @@ */   --button-success-secondary-color:          oklch(from var(--button-success-base-color) calc(l + 0.115) c h);
+/* @@ */   --button-success-secondary-hover-color:    color-mix(in oklab, var(--button-success-base-color) 8%, var(--page-surface-color));
 
   /* DESTRUCTIVE — and here is a real dark-mode problem, recorded
      rather than solved: daylight's destructive is a DARK red, which is
@@ -111,39 +111,39 @@
      is exactly the salmon daylight rejected for looking friendly. The
      tone loses some of its gravity in the flip, and no amount of
      formula fixes that; it is a per-theme judgment. */
-  --button-destructive-base-color:           #e05252;
-  --button-destructive-primary-color:        var(--button-destructive-base-color);
-  --button-destructive-primary-hover-color:  oklch(from var(--button-destructive-base-color) calc(l + 0.05) c h);
-  --button-destructive-primary-ink-color:    #1e0a0a;
-  --button-destructive-secondary-color:      oklch(from var(--button-destructive-base-color) calc(l + 0.115) c h);
-  --button-destructive-secondary-hover-color: color-mix(in oklab, var(--button-destructive-base-color) 8%, var(--page-surface-color));
+/* @@ */   --button-destructive-base-color:           #e05252;
+/* @@ */   --button-destructive-primary-color:        var(--button-destructive-base-color);
+/* @@ */   --button-destructive-primary-hover-color:  oklch(from var(--button-destructive-base-color) calc(l + 0.05) c h);
+/* @@ */   --button-destructive-primary-ink-color:    #1e0a0a;
+/* @@ */   --button-destructive-secondary-color:      oklch(from var(--button-destructive-base-color) calc(l + 0.115) c h);
+/* @@ */   --button-destructive-secondary-hover-color: color-mix(in oklab, var(--button-destructive-base-color) 8%, var(--page-surface-color));
 
   /* CAUTION — the same hue rotation daylight makes (a third of the way
      from orange to red, so it reads as caution rather than
      highlighter), taken up in lightness instead of down. */
-  --button-caution-base-color:               #e2843c;
-  --button-caution-primary-color:            var(--button-caution-base-color);
-  --button-caution-primary-hover-color:      oklch(from var(--button-caution-base-color) calc(l + 0.05) c h);
-  --button-caution-primary-ink-color:        #1e1006;
-  --button-caution-secondary-color:          oklch(from var(--button-caution-base-color) calc(l + 0.115) c h);
-  --button-caution-secondary-hover-color:    color-mix(in oklab, var(--button-caution-base-color) 8%, var(--page-surface-color));
+/* @@ */   --button-caution-base-color:               #e2843c;
+/* @@ */   --button-caution-primary-color:            var(--button-caution-base-color);
+/* @@ */   --button-caution-primary-hover-color:      oklch(from var(--button-caution-base-color) calc(l + 0.05) c h);
+/* @@ */   --button-caution-primary-ink-color:        #1e1006;
+/* @@ */   --button-caution-secondary-color:          oklch(from var(--button-caution-base-color) calc(l + 0.115) c h);
+/* @@ */   --button-caution-secondary-hover-color:    color-mix(in oklab, var(--button-caution-base-color) 8%, var(--page-surface-color));
 
-  --button-quiet-base-color:                 #8d8d8d;
-  --button-quiet-primary-color:              var(--button-quiet-base-color);
-  --button-quiet-primary-hover-color:        oklch(from var(--button-quiet-base-color) calc(l + 0.05) c h);
-  --button-quiet-primary-ink-color:          #141414;
-  --button-quiet-secondary-color:            oklch(from var(--button-quiet-base-color) calc(l + 0.115) c h);
-  --button-quiet-secondary-hover-color:      color-mix(in oklab, var(--button-quiet-base-color) 8%, var(--page-surface-color));
+/* @@ */   --button-quiet-base-color:                 #8d8d8d;
+/* @@ */   --button-quiet-primary-color:              var(--button-quiet-base-color);
+/* @@ */   --button-quiet-primary-hover-color:        oklch(from var(--button-quiet-base-color) calc(l + 0.05) c h);
+/* @@ */   --button-quiet-primary-ink-color:          #141414;
+/* @@ */   --button-quiet-secondary-color:            oklch(from var(--button-quiet-base-color) calc(l + 0.115) c h);
+/* @@ */   --button-quiet-secondary-hover-color:      color-mix(in oklab, var(--button-quiet-base-color) 8%, var(--page-surface-color));
 
   /* The treatment slots, defaulted exactly as daylight defaults them.
      Identical lines in both themes, which is the correct outcome: a
      slot is a contract, not a decision, so a theme has nothing to say
      about which family fills it. */
-  --button-slot-primary-color:               var(--button-normal-primary-color);
-  --button-slot-primary-hover-color:         var(--button-normal-primary-hover-color);
-  --button-slot-primary-ink-color:           var(--button-normal-primary-ink-color);
-  --button-slot-secondary-color:             var(--button-quiet-secondary-color);
-  --button-slot-secondary-hover-color:       var(--button-quiet-secondary-hover-color);
+/* @@ */   --button-slot-primary-color:               var(--button-normal-primary-color);
+/* @@ */   --button-slot-primary-hover-color:         var(--button-normal-primary-hover-color);
+/* @@ */   --button-slot-primary-ink-color:           var(--button-normal-primary-ink-color);
+/* @@ */   --button-slot-secondary-color:             var(--button-quiet-secondary-color);
+/* @@ */   --button-slot-secondary-hover-color:       var(--button-quiet-secondary-hover-color);
 
   /* ══ OUTCOMES ═══════════════════════════════════════════════════
      The seven families, same variants, and the two tiers that flip:
@@ -159,21 +159,21 @@
 
      `edge`, `bar` and `terminalFrame` keep their daylight formulas
      unchanged except for terminalFrame's lightness (below). */
-  --outcomes-won-base-color:      #66bb6a;
-  --outcomes-lost-base-color:     #ef5350;
-  --outcomes-near-base-color:     #ffb74d;
-  --outcomes-warning-base-color:  #ffa726;
-  --outcomes-neutral-base-color:  #9e9e9e;
-  --outcomes-noted-base-color:    #42a5f5;
-  --outcomes-error-base-color:    #e53935;
+/* @@ */   --outcomes-won-base-color:      #66bb6a;
+/* @@ */   --outcomes-lost-base-color:     #ef5350;
+/* @@ */   --outcomes-near-base-color:     #ffb74d;
+/* @@ */   --outcomes-warning-base-color:  #ffa726;
+/* @@ */   --outcomes-neutral-base-color:  #9e9e9e;
+/* @@ */   --outcomes-noted-base-color:    #42a5f5;
+/* @@ */   --outcomes-error-base-color:    #e53935;
 
-  --outcomes-won-fill-color:      var(--outcomes-won-base-color);
-  --outcomes-lost-fill-color:     var(--outcomes-lost-base-color);
-  --outcomes-near-fill-color:     var(--outcomes-near-base-color);
-  --outcomes-warning-fill-color:  var(--outcomes-warning-base-color);
-  --outcomes-neutral-fill-color:  var(--outcomes-neutral-base-color);
-  --outcomes-noted-fill-color:    var(--outcomes-noted-base-color);
-  --outcomes-error-fill-color:    var(--outcomes-error-base-color);
+/* @@ */   --outcomes-won-fill-color:      var(--outcomes-won-base-color);
+/* @@ */   --outcomes-lost-fill-color:     var(--outcomes-lost-base-color);
+/* @@ */   --outcomes-near-fill-color:     var(--outcomes-near-base-color);
+/* @@ */   --outcomes-warning-fill-color:  var(--outcomes-warning-base-color);
+/* @@ */   --outcomes-neutral-fill-color:  var(--outcomes-neutral-base-color);
+/* @@ */   --outcomes-noted-fill-color:    var(--outcomes-noted-base-color);
+/* @@ */   --outcomes-error-fill-color:    var(--outcomes-error-base-color);
 
   /* base +L, where daylight is base −L. The steps are NOT the mirror
      of daylight's: gold has almost nowhere to go up (it turns to
@@ -181,45 +181,45 @@
      family that was constrained at one end is constrained at the
      other, and by a different amount — so `ink` does not derive in
      either theme, which is the same finding twice. */
-  --outcomes-won-ink-color:       #a5d6a7;
-  --outcomes-lost-ink-color:      #ef9a9a;
-  --outcomes-near-ink-color:      #ffd54f;
-  --outcomes-warning-ink-color:   #ffcc80;
-  --outcomes-neutral-ink-color:   #bdbdbd;
-  --outcomes-noted-ink-color:     #90caf9;
-  --outcomes-error-ink-color:     #ef9a9a;
+/* @@ */   --outcomes-won-ink-color:       #a5d6a7;
+/* @@ */   --outcomes-lost-ink-color:      #ef9a9a;
+/* @@ */   --outcomes-near-ink-color:      #ffd54f;
+/* @@ */   --outcomes-warning-ink-color:   #ffcc80;
+/* @@ */   --outcomes-neutral-ink-color:   #bdbdbd;
+/* @@ */   --outcomes-noted-ink-color:     #90caf9;
+/* @@ */   --outcomes-error-ink-color:     #ef9a9a;
 
   /* Unchanged formula, unchanged space. An edge is still the fill
      taken toward black, and on a dark page that still reads as an
      edge — this tier survives the flip untouched, which is the
      strongest evidence in the file that the model works. */
-  --outcomes-won-edge-color:      color-mix(in srgb, var(--outcomes-won-base-color) 84%, black);
-  --outcomes-lost-edge-color:     color-mix(in srgb, var(--outcomes-lost-base-color) 84%, black);
-  --outcomes-near-edge-color:     color-mix(in srgb, var(--outcomes-near-base-color) 84%, black);
-  --outcomes-warning-edge-color:  color-mix(in srgb, var(--outcomes-warning-base-color) 84%, black);
-  --outcomes-neutral-edge-color:  color-mix(in srgb, var(--outcomes-neutral-base-color) 84%, black);
-  --outcomes-noted-edge-color:    color-mix(in srgb, var(--outcomes-noted-base-color) 84%, black);
-  --outcomes-error-edge-color:    color-mix(in srgb, var(--outcomes-error-base-color) 84%, black);
+/* @@ */   --outcomes-won-edge-color:      color-mix(in srgb, var(--outcomes-won-base-color) 84%, black);
+/* @@ */   --outcomes-lost-edge-color:     color-mix(in srgb, var(--outcomes-lost-base-color) 84%, black);
+/* @@ */   --outcomes-near-edge-color:     color-mix(in srgb, var(--outcomes-near-base-color) 84%, black);
+/* @@ */   --outcomes-warning-edge-color:  color-mix(in srgb, var(--outcomes-warning-base-color) 84%, black);
+/* @@ */   --outcomes-neutral-edge-color:  color-mix(in srgb, var(--outcomes-neutral-base-color) 84%, black);
+/* @@ */   --outcomes-noted-edge-color:    color-mix(in srgb, var(--outcomes-noted-base-color) 84%, black);
+/* @@ */   --outcomes-error-edge-color:    color-mix(in srgb, var(--outcomes-error-base-color) 84%, black);
 
   /* Toward the card, not toward white. One formula for all seven,
      where daylight needs three recipes plus two hand-picked Material
      100s — a dark theme has no Material ramp to inherit, so it gets
      the consistency daylight lost by having one. */
-  --outcomes-won-wash-color:      color-mix(in oklab, var(--outcomes-won-base-color) 22%, var(--page-surface-color));
-  --outcomes-lost-wash-color:     color-mix(in oklab, var(--outcomes-lost-base-color) 22%, var(--page-surface-color));
-  --outcomes-near-wash-color:     color-mix(in oklab, var(--outcomes-near-base-color) 22%, var(--page-surface-color));
-  --outcomes-warning-wash-color:  color-mix(in oklab, var(--outcomes-warning-base-color) 22%, var(--page-surface-color));
-  --outcomes-neutral-wash-color:  color-mix(in oklab, var(--outcomes-neutral-base-color) 22%, var(--page-surface-color));
-  --outcomes-noted-wash-color:    color-mix(in oklab, var(--outcomes-noted-base-color) 22%, var(--page-surface-color));
-  --outcomes-error-wash-color:    color-mix(in oklab, var(--outcomes-error-base-color) 22%, var(--page-surface-color));
+/* @@ */   --outcomes-won-wash-color:      color-mix(in oklab, var(--outcomes-won-base-color) 22%, var(--page-surface-color));
+/* @@ */   --outcomes-lost-wash-color:     color-mix(in oklab, var(--outcomes-lost-base-color) 22%, var(--page-surface-color));
+/* @@ */   --outcomes-near-wash-color:     color-mix(in oklab, var(--outcomes-near-base-color) 22%, var(--page-surface-color));
+/* @@ */   --outcomes-warning-wash-color:  color-mix(in oklab, var(--outcomes-warning-base-color) 22%, var(--page-surface-color));
+/* @@ */   --outcomes-neutral-wash-color:  color-mix(in oklab, var(--outcomes-neutral-base-color) 22%, var(--page-surface-color));
+/* @@ */   --outcomes-noted-wash-color:    color-mix(in oklab, var(--outcomes-noted-base-color) 22%, var(--page-surface-color));
+/* @@ */   --outcomes-error-wash-color:    color-mix(in oklab, var(--outcomes-error-base-color) 22%, var(--page-surface-color));
 
-  --outcomes-won-bar-color:       var(--outcomes-won-fill-color);
-  --outcomes-lost-bar-color:      var(--outcomes-lost-fill-color);
-  --outcomes-near-bar-color:      var(--outcomes-near-fill-color);
-  --outcomes-warning-bar-color:   var(--outcomes-warning-fill-color);
-  --outcomes-neutral-bar-color:   var(--outcomes-neutral-fill-color);
-  --outcomes-noted-bar-color:     var(--outcomes-noted-fill-color);
-  --outcomes-error-bar-color:     var(--outcomes-error-fill-color);
+/* @@ */   --outcomes-won-bar-color:       var(--outcomes-won-fill-color);
+/* @@ */   --outcomes-lost-bar-color:      var(--outcomes-lost-fill-color);
+/* @@ */   --outcomes-near-bar-color:      var(--outcomes-near-fill-color);
+/* @@ */   --outcomes-warning-bar-color:   var(--outcomes-warning-fill-color);
+/* @@ */   --outcomes-neutral-bar-color:   var(--outcomes-neutral-fill-color);
+/* @@ */   --outcomes-noted-bar-color:     var(--outcomes-noted-fill-color);
+/* @@ */   --outcomes-error-bar-color:     var(--outcomes-error-fill-color);
 
   /* Lifted from daylight's 0.45 to 0.62: the band has to carry against
      a DARK page on one side now, where daylight's problem was carrying
@@ -227,13 +227,13 @@
      different — and won loses its exception, because at 0.62 a green
      no longer reads as black. The exception was a fact about a
      lightness, not about green. */
-  --outcomes-won-terminalFrame-color:      oklch(from var(--outcomes-won-base-color)      0.62 0.105 h);
-  --outcomes-lost-terminalFrame-color:     oklch(from var(--outcomes-lost-base-color)     0.62 0.105 h);
-  --outcomes-near-terminalFrame-color:     oklch(from var(--outcomes-near-base-color)     0.62 0.105 h);
-  --outcomes-warning-terminalFrame-color:  oklch(from var(--outcomes-warning-base-color)  0.62 0.105 h);
-  --outcomes-noted-terminalFrame-color:    oklch(from var(--outcomes-noted-base-color)    0.62 0.105 h);
-  --outcomes-error-terminalFrame-color:    oklch(from var(--outcomes-error-base-color)    0.62 0.105 h);
-  --outcomes-neutral-terminalFrame-color:  oklch(from var(--outcomes-neutral-base-color)  0.62 0    h);
+/* @@ */   --outcomes-won-terminalFrame-color:      oklch(from var(--outcomes-won-base-color)      0.62 0.105 h);
+/* @@ */   --outcomes-lost-terminalFrame-color:     oklch(from var(--outcomes-lost-base-color)     0.62 0.105 h);
+/* @@ */   --outcomes-near-terminalFrame-color:     oklch(from var(--outcomes-near-base-color)     0.62 0.105 h);
+/* @@ */   --outcomes-warning-terminalFrame-color:  oklch(from var(--outcomes-warning-base-color)  0.62 0.105 h);
+/* @@ */   --outcomes-noted-terminalFrame-color:    oklch(from var(--outcomes-noted-base-color)    0.62 0.105 h);
+/* @@ */   --outcomes-error-terminalFrame-color:    oklch(from var(--outcomes-error-base-color)    0.62 0.105 h);
+/* @@ */   --outcomes-neutral-terminalFrame-color:  oklch(from var(--outcomes-neutral-base-color)  0.62 0    h);
 
   /* ══ PILL ═══════════════════════════════════════════════════════
      Every border still aliases an outcome ink; every tint still mixes
@@ -245,29 +245,29 @@
      Had the ink stayed an inheritance, it would have worked by luck;
      as a cell it works by design, and can be tuned per tone the day a
      wash gets dark enough to need it. */
-  --pill-won-color:      var(--outcomes-won-ink-color);
-  --pill-lost-color:     var(--outcomes-lost-ink-color);
-  --pill-near-color:     var(--outcomes-near-ink-color);
-  --pill-warning-color:  var(--outcomes-warning-ink-color);
-  --pill-neutral-color:  var(--outcomes-neutral-ink-color);
-  --pill-noted-color:    var(--outcomes-noted-ink-color);
-  --pill-error-color:    var(--outcomes-error-ink-color);
+/* @@ */   --pill-won-color:      var(--outcomes-won-ink-color);
+/* @@ */   --pill-lost-color:     var(--outcomes-lost-ink-color);
+/* @@ */   --pill-near-color:     var(--outcomes-near-ink-color);
+/* @@ */   --pill-warning-color:  var(--outcomes-warning-ink-color);
+/* @@ */   --pill-neutral-color:  var(--outcomes-neutral-ink-color);
+/* @@ */   --pill-noted-color:    var(--outcomes-noted-ink-color);
+/* @@ */   --pill-error-color:    var(--outcomes-error-ink-color);
 
-  --pill-won-tint-color:      color-mix(in oklab, var(--outcomes-won-base-color) 18%, var(--page-surface-color));
-  --pill-lost-tint-color:     color-mix(in oklab, var(--outcomes-lost-base-color) 18%, var(--page-surface-color));
-  --pill-near-tint-color:     color-mix(in oklab, var(--outcomes-near-base-color) 18%, var(--page-surface-color));
-  --pill-warning-tint-color:  color-mix(in oklab, var(--outcomes-warning-base-color) 18%, var(--page-surface-color));
-  --pill-neutral-tint-color:  var(--page-surface-color);
-  --pill-noted-tint-color:    color-mix(in oklab, var(--outcomes-noted-base-color) 8%, var(--page-surface-color));
-  --pill-error-tint-color:    color-mix(in oklab, var(--outcomes-error-base-color) 8%, var(--page-surface-color));
+/* @@ */   --pill-won-tint-color:      color-mix(in oklab, var(--outcomes-won-base-color) 18%, var(--page-surface-color));
+/* @@ */   --pill-lost-tint-color:     color-mix(in oklab, var(--outcomes-lost-base-color) 18%, var(--page-surface-color));
+/* @@ */   --pill-near-tint-color:     color-mix(in oklab, var(--outcomes-near-base-color) 18%, var(--page-surface-color));
+/* @@ */   --pill-warning-tint-color:  color-mix(in oklab, var(--outcomes-warning-base-color) 18%, var(--page-surface-color));
+/* @@ */   --pill-neutral-tint-color:  var(--page-surface-color);
+/* @@ */   --pill-noted-tint-color:    color-mix(in oklab, var(--outcomes-noted-base-color) 8%, var(--page-surface-color));
+/* @@ */   --pill-error-tint-color:    color-mix(in oklab, var(--outcomes-error-base-color) 8%, var(--page-surface-color));
 
-  --pill-won-ink-color:       var(--page-text-color);
-  --pill-lost-ink-color:      var(--page-text-color);
-  --pill-near-ink-color:      var(--page-text-color);
-  --pill-warning-ink-color:   var(--page-text-color);
-  --pill-neutral-ink-color:   var(--page-text-color);
-  --pill-noted-ink-color:     var(--page-text-color);
-  --pill-error-ink-color:     var(--page-text-color);
+/* @@ */   --pill-won-ink-color:       var(--page-text-color);
+/* @@ */   --pill-lost-ink-color:      var(--page-text-color);
+/* @@ */   --pill-near-ink-color:      var(--page-text-color);
+/* @@ */   --pill-warning-ink-color:   var(--page-text-color);
+/* @@ */   --pill-neutral-ink-color:   var(--page-text-color);
+/* @@ */   --pill-noted-ink-color:     var(--page-text-color);
+/* @@ */   --pill-error-ink-color:     var(--page-text-color);
 
   /* ══ TILE ═══════════════════════════════════════════════════════
      The warm ramp, kept warm and run dark. It does not derive in
@@ -295,23 +295,23 @@
      receding from it — which is what being buried looks like. `3` is
      still the everyday tile and did not move at all: it is the middle
      of five either way. */
-  --tile-1-fill-color:      #695b43;   --tile-1-edge-color:      #8a754a;
-  --tile-2-fill-color:      #5a4e3a;   --tile-2-edge-color:      #786641;
-  --tile-3-fill-color:      #4e4433;   --tile-3-edge-color:      #6b5b38;  /* NORMAL */
-  --tile-4-fill-color:      #443c2d;   --tile-4-edge-color:      #605232;
-  --tile-5-fill-color:      #3a3327;   --tile-5-edge-color:      #55492f;
-  --tile-spent-fill-color:  #2b261d;   --tile-spent-edge-color:  #423a2b;
+/* @@ */   --tile-1-fill-color:      #695b43;   --tile-1-edge-color:      #8a754a;
+/* @@ */   --tile-2-fill-color:      #5a4e3a;   --tile-2-edge-color:      #786641;
+/* @@ */   --tile-3-fill-color:      #4e4433;   --tile-3-edge-color:      #6b5b38;  /* NORMAL */
+/* @@ */   --tile-4-fill-color:      #443c2d;   --tile-4-edge-color:      #605232;
+/* @@ */   --tile-5-fill-color:      #3a3327;   --tile-5-edge-color:      #55492f;
+/* @@ */   --tile-spent-fill-color:  #2b261d;   --tile-spent-edge-color:  #423a2b;
 
-  --tile-slot-fill-color:  var(--tile-3-fill-color);
-  --tile-slot-edge-color:  var(--tile-3-edge-color);
-  --tile-slot-ink-color:   #f0ece4;
+/* @@ */   --tile-slot-fill-color:  var(--tile-3-fill-color);
+/* @@ */   --tile-slot-edge-color:  var(--tile-3-edge-color);
+/* @@ */   --tile-slot-ink-color:   #f0ece4;
 
   /* WHITE, where daylight uses black, and for the identical argument:
      selection has to be unmistakable across a board of colored tiles,
      and the color that belongs to nothing else on the board is the one
      that reads on all of them. On a dark board that color is white.
      The RULE survived the flip; only the value moved. */
-  --tile-selected-edge-color:  #ffffff;
+/* @@ */   --tile-selected-edge-color:  #ffffff;
 
   /* ══ BOARD ══════════════════════════════════════════════════════
      The ground a game piece casts its shadow onto — and on a dark page
@@ -337,7 +337,7 @@
        · a ground makes the shadow's ALPHA a theme's business: matching
          daylight's perceptual step on a tan ground needs roughly
          double it. */
-  --board-ground-color:  transparent;
+/* @@ */   --board-ground-color:  transparent;
 
   /* ══ KBD ════════════════════════════════════════════════════════
      An untried key is a faint warm DARK: barely off the page, which is
@@ -349,10 +349,10 @@
      a hint of warmth says "an object, not the page". The hover moves
      further FROM the page, which in daylight means toward white and
      here means toward a lighter warm. */
-  --kbd-key-fill-color:        #2c2820;
-  --kbd-key-hover-fill-color:  #383226;
-  --kbd-key-ink-color:         var(--page-text-color);
-  --kbd-key-edge-color:        #5b5f63;
+/* @@ */   --kbd-key-fill-color:        #2c2820;
+/* @@ */   --kbd-key-hover-fill-color:  #383226;
+/* @@ */   --kbd-key-ink-color:         var(--page-text-color);
+/* @@ */   --kbd-key-edge-color:        #5b5f63;
 
   /* ══ WORDLE INK ═════════════════════════════════════════════════
      THE FLIP, and the reason this tier is themed at all. The fills do
@@ -369,70 +369,70 @@
      letter", which is the thing a player actually learns. Pin the
      judged ink to white and midnight loses it entirely — which is what
      it did until this tier existed. */
-  --wordle-green-ink-color:   var(--ink-onLight-color);
-  --wordle-yellow-ink-color:  var(--ink-onLight-color);
-  --wordle-gray-ink-color:    var(--ink-onLight-color);
+/* @@ */   --wordle-green-ink-color:   var(--ink-onLight-color);
+/* @@ */   --wordle-yellow-ink-color:  var(--ink-onLight-color);
+/* @@ */   --wordle-gray-ink-color:    var(--ink-onLight-color);
 
   /* ══ RANK ═══════════════════════════════════════════════════════ */
-  --rank-bar-fill-color:  #d9c02a;
-  --rank-bar-edge-color:  #8f7420;
+/* @@ */   --rank-bar-fill-color:  #d9c02a;
+/* @@ */   --rank-bar-edge-color:  #8f7420;
 
   /* ══ MARK ═══════════════════════════════════════════════════════
      The attention yellow barely moves: a saturated yellow is the one
      hue that reads as news on both a white page and a black one, which
      is a small piece of evidence that "attention" is a real role
      rather than a light-mode habit. */
-  --mark-attention-board-color:  #ffd21a;
-  --mark-attention-tile-color:   var(--mark-attention-board-color);
+/* @@ */   --mark-attention-board-color:  #ffd21a;
+/* @@ */   --mark-attention-tile-color:   var(--mark-attention-board-color);
 
   /* The grid cursor lightens, because a mid brown on a dark board is
      as invisible as a pale one is on a light board. */
-  --mark-gridCursor-color:  #e0a640;
+/* @@ */   --mark-gridCursor-color:  #e0a640;
 
   /* ══ VIEW ═══════════════════════════════════════════════════════
      History stays clearly blue for the reason daylight gives — it is
      the only thing separating "you can leave this" from "this game is
      finished" — but lightens to carry on the dark page. */
-  --view-history-color:         #7fb0dd;
-  --view-sharePreview-color:    #ffd21a;
-  --view-history-banner-color:  color-mix(in oklab, var(--page-text-color) 10%, var(--page-surface-color));
+/* @@ */   --view-history-color:         #7fb0dd;
+/* @@ */   --view-sharePreview-color:    #ffd21a;
+/* @@ */   --view-history-banner-color:  color-mix(in oklab, var(--page-text-color) 10%, var(--page-surface-color));
 
   /* ══ CHROME ═════════════════════════════════════════════════════
      Every blue lightens to the tier that reads on dark; each stays its
      own copy, so the house rule survives the flip unexamined — which
      is itself worth noting, since a theme is exactly the moment two
      "coincidentally equal" values could have parted and none did. */
-  --chrome-fault-color:          #ef5350;
-  --chrome-cursor-color:         #64b5f6;
-  --chrome-caret-color:          #64b5f6;
-  --chrome-link-color:           #64b5f6;
-  --chrome-link-hover-color:     #90caf9;
-  --chrome-badge-color:          #64b5f6;
-  --chrome-definable-ring-color: #64b5f6;
-  --chrome-floatingControl-fill-color: color-mix(in oklab, var(--page-surface-color) 65%, transparent);
+/* @@ */   --chrome-fault-color:          #ef5350;
+/* @@ */   --chrome-cursor-color:         #64b5f6;
+/* @@ */   --chrome-caret-color:          #64b5f6;
+/* @@ */   --chrome-link-color:           #64b5f6;
+/* @@ */   --chrome-link-hover-color:     #90caf9;
+/* @@ */   --chrome-badge-color:          #64b5f6;
+/* @@ */   --chrome-definable-ring-color: #64b5f6;
+/* @@ */   --chrome-floatingControl-fill-color: color-mix(in oklab, var(--page-surface-color) 65%, transparent);
 
   /* ══ GAMELIST ═══════════════════════════════════════════════════ */
-  --gamelist-won-color:        var(--outcomes-won-fill-color);
-  --gamelist-lost-color:       var(--outcomes-lost-fill-color);
-  --gamelist-suspended-color:  #ffd54f;
-  --gamelist-current-color:    #ffa726;
+/* @@ */   --gamelist-won-color:        var(--outcomes-won-fill-color);
+/* @@ */   --gamelist-lost-color:       var(--outcomes-lost-fill-color);
+/* @@ */   --gamelist-suspended-color:  #ffd54f;
+/* @@ */   --gamelist-current-color:    #ffa726;
   /* Near-BLACK on purpose, where daylight is near-white: most of a
      library is unplayed, and the unplayed stripe should recede into
      the page whichever page it is. The ROLE is "recede"; the value is
      whatever recedes here — which is the page's own hue, a step up. */
-  --gamelist-unplayed-color:   #333c4d;
+/* @@ */   --gamelist-unplayed-color:   #333c4d;
 
   /* ══ GAMEMODE ═══════════════════════════════════════════════════
      The 800-level tones daylight uses are unreadable on dark, so both
      lift to the 200s. Still outside the outcome vocabulary, still a
      teal/purple pair, and still the app's designated one-off colors. */
-  --gamemode-coop-ink-color:     #4db6ac;
-  --gamemode-compete-ink-color:  #ce93d8;
+/* @@ */   --gamemode-coop-ink-color:     #4db6ac;
+/* @@ */   --gamemode-compete-ink-color:  #ce93d8;
 
   /* ══ TOAST ══════════════════════════════════════════════════════ */
-  --toast-info-stripe-color:     var(--button-normal-primary-color);
-  --toast-success-stripe-color:  #66bb6a;
-  --toast-error-stripe-color:    var(--chrome-fault-color);
+/* @@ */   --toast-info-stripe-color:     var(--button-normal-primary-color);
+/* @@ */   --toast-success-stripe-color:  #66bb6a;
+/* @@ */   --toast-error-stripe-color:    var(--chrome-fault-color);
 
   /* ══ INK ════════════════════════════════════════════════════════
      UNCHANGED FROM DAYLIGHT, both of them, and that is correct rather
@@ -440,13 +440,13 @@
      ink for a surface that is light", and a filled red verdict tile is
      a dark surface in either theme. A role named for the ground it
      sits on is a role a theme has nothing to say about. */
-  --ink-onDark-color:   #ffffff;
-  --ink-onLight-color:  #121212;
+/* @@ */   --ink-onDark-color:   #ffffff;
+/* @@ */   --ink-onLight-color:  #121212;
 
-  --entry-illegal-ink-color:  #69707d;
+/* @@ */   --entry-illegal-ink-color:  #69707d;
 
   /* PAPER IS PAPER. Print does not have a dark mode — the page is
      white cardstock in every theme — so this keeps daylight's value
      exactly. A "theme" role that must not flip, and the only one. */
-  --print-ink-color:  #111111;
+/* @@ */   --print-ink-color:  #111111;
 }

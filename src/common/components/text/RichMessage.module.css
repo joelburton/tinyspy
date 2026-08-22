@@ -2,7 +2,7 @@
 
 /* An inline player segment in a RichMessage — a leading identity disc + name,
  * kept together so it never wraps mid-"● name". */
-.player {
+/* @@ */ .player {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
@@ -11,6 +11,6 @@
 
 /* The identity disc — the shared <Dot> (fill + paired border ring); this
  * class only sizes it for the inline message row. */
-.dot {
-  --dot-size: 0.6rem;
+/* @@ */ .dot {
+/* @@ */   --dot-size: 0.6rem;
 }

@@ -30,17 +30,17 @@
  * LOWER it for smaller tiles. Defined outright (not a `var(--x, fallback)`
  * knob) so the token isn't "phantom" — see src/guards/cssTokens.test.ts. Relative
  * units (rem). */
-.board {
-  --max-tile-size: 6rem; /* cap = 5×6rem + 4×0.5rem gap = 32rem (512px) */
-  --grid-gap: 0.5rem;
-  --cols: 5;
-  --rows: 5;
+/* @@ */ .board {
+/* @@ */   --max-tile-size: 6rem; /* cap = 5×6rem + 4×0.5rem gap = 32rem (512px) */
+/* @@ */   --grid-gap: 0.5rem;
+/* @@ */   --cols: 5;
+/* @@ */   --rows: 5;
   /* Vertical counterpart of the shared --avail-w (on .layout): the height left
    * for the board = viewport − chrome − the below-board slot (its min-height
    * 2.75rem + the board column's 0.75rem gap = 3.5rem). Waffle needs this because
    * a square is bounded by height too — the rectangular games flex-fill height
    * and don't. */
-  --avail-h: calc(100svh - var(--game-chrome-height) - 3.5rem);
+/* @@ */   --avail-h: calc(100svh - var(--game-chrome-height) - 3.5rem);
 
   flex: 0 0 auto;
 }
@@ -54,8 +54,8 @@
  * rather than raising it; the extra 0.75rem is `.boardCol`'s flex gap between
  * the bar and the board. */
 @media (--mobile) {
-  .board {
-    --avail-h: calc(
+/* @@ */   .board {
+/* @@ */     --avail-h: calc(
       100svh - var(--game-chrome-height) - 3.5rem - var(--mobile-status-height, 1.75rem) - 0.75rem
     );
   }
@@ -67,14 +67,14 @@
  * definite size (the boardCol is `flex: 0 0 auto`), so a container-query square
  * isn't usable here (a shrink-wrapped size container collapses) — hence the
  * viewport math. Gap + letter size derive from `--side` as concrete lengths. */
-.grid {
-  --side: min(
+/* @@ */ .grid {
+/* @@ */   --side: min(
     var(--avail-w),
     var(--avail-h),
     calc(var(--cols) * var(--max-tile-size) + (var(--cols) - 1) * var(--grid-gap))
   );
   /* ≈ 8% of the side — matches the prior single-glyph look. */
-  --letter-size: calc(var(--side) / 12);
+/* @@ */   --letter-size: calc(var(--side) / 12);
   width: var(--side);
   height: var(--side);
   display: grid;
@@ -85,14 +85,14 @@
 
 /* A hole — an interior cell in no word. Just empty space (the 1fr track sizes
  * it); no tile chrome. */
-.hole {
+/* @@ */ .hole {
   width: 100%;
   height: 100%;
 }
 
 /* The letter on a tile. Sized from the grid's `--letter-size` (inherited), so it
  * scales with the board without relying on the tile being a query container. */
-.letter {
+/* @@ */ .letter {
   font-size: var(--letter-size);
   font-weight: 700;
   line-height: 1;
@@ -116,30 +116,30 @@
  * that share these colors share their definition too. It is also what makes
  * SELECTION legible below: a picked-up tile thickens this edge, which needs the
  * edge to be a different color from the fill in the first place. */
-.wordleGreen {
-  --tile-slot-fill-color: var(--wordle-green-fill-color);
-  --tile-slot-edge-color: var(--wordle-green-edge-color);
-  --tile-slot-ink-color: var(--wordle-green-ink-color);
+/* @@ */ .wordleGreen {
+/* @@ */   --tile-slot-fill-color: var(--wordle-green-fill-color);
+/* @@ */   --tile-slot-edge-color: var(--wordle-green-edge-color);
+/* @@ */   --tile-slot-ink-color: var(--wordle-green-ink-color);
 }
-.wordleYellow {
-  --tile-slot-fill-color: var(--wordle-yellow-fill-color);
-  --tile-slot-edge-color: var(--wordle-yellow-edge-color);
-  --tile-slot-ink-color: var(--wordle-yellow-ink-color);
+/* @@ */ .wordleYellow {
+/* @@ */   --tile-slot-fill-color: var(--wordle-yellow-fill-color);
+/* @@ */   --tile-slot-edge-color: var(--wordle-yellow-edge-color);
+/* @@ */   --tile-slot-ink-color: var(--wordle-yellow-ink-color);
 }
-.wordleGray {
-  --tile-slot-fill-color: var(--wordle-gray-fill-color);
-  --tile-slot-edge-color: var(--wordle-gray-edge-color);
-  --tile-slot-ink-color: var(--wordle-gray-ink-color);
+/* @@ */ .wordleGray {
+/* @@ */   --tile-slot-fill-color: var(--wordle-gray-fill-color);
+/* @@ */   --tile-slot-edge-color: var(--wordle-gray-edge-color);
+/* @@ */   --tile-slot-ink-color: var(--wordle-gray-ink-color);
 }
 /* Not a played state: a waffle tile always has a color once the board loads,
  * and a hole is a `.hole` span rather than a tile. `.blank` is only what a tile
  * wears before `colors` arrives (and for a watcher who is sent none), so it
  * keeps its flat edge — the darker border above is for the three colors that
  * carry meaning. */
-.blank {
-  --tile-slot-fill-color: var(--wordle-blank-fill-color);
-  --tile-slot-edge-color: var(--wordle-blank-fill-color);
-  --tile-slot-ink-color: var(--page-text-color);
+/* @@ */ .blank {
+/* @@ */   --tile-slot-fill-color: var(--wordle-blank-fill-color);
+/* @@ */   --tile-slot-edge-color: var(--wordle-blank-fill-color);
+/* @@ */   --tile-slot-ink-color: var(--page-text-color);
 }
 
 /* The two cells of a swap IN FLIGHT. Their old color was invalidated the moment
@@ -154,12 +154,12 @@
  *
  * Declared after `.blank` on purpose: an in-flight cell is unjudged, so it wears
  * both classes, and same-file order settles which fill wins. */
-.inFlight {
-  --tile-slot-fill-color: var(--wordle-gray-fill-color);
-  --tile-slot-edge-color: var(--wordle-gray-edge-color);
+/* @@ */ .inFlight {
+/* @@ */   --tile-slot-fill-color: var(--wordle-gray-fill-color);
+/* @@ */   --tile-slot-edge-color: var(--wordle-gray-edge-color);
   /* It wears the gray FILL, so it takes the gray's own ink rather than a
      generic on-dark white, which is only right while the page is light. */
-  --tile-slot-ink-color: var(--wordle-gray-ink-color);
+/* @@ */   --tile-slot-ink-color: var(--wordle-gray-ink-color);
 }
 
 /* Turn-history: the two cells the viewed swap moved. Ringed in the shared
@@ -169,7 +169,7 @@
  * the channel is free while viewing: you cannot select, and nothing can be in
  * flight); `position: relative` + a z-index lift it so the ring paints over
  * neighbouring tiles rather than under. */
-.viewedTile {
+/* @@ */ .viewedTile {
   outline: 3px solid var(--view-history-color);
   outline-offset: 2px;
   position: relative;

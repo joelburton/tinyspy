@@ -7,7 +7,7 @@
  * `display: block` strips the inline-image baseline gap; the parent flex row
  * aligns everything via `align-items: center`. */
 
-.logo {
+/* @@ */ .logo {
   display: block;
   width: 32px;
   height: 32px;

@@ -4,7 +4,7 @@
  * it clamps to the VIEWPORT and escapes overflow-hidden ancestors; the host
  * sets left/top imperatively after measuring. Above the chat panel (10000)
  * and level with toasts (12000) — a tooltip should never sit under anything. */
-.bubble {
+/* @@ */ .bubble {
   position: fixed;
   z-index: var(--z-index-tooltip);
   background: var(--page-text-color);
@@ -19,7 +19,7 @@
   animation: tooltipIn 120ms ease;
 }
 
-@keyframes tooltipIn {
+/* @@ */ @keyframes tooltipIn {
   from {
     opacity: 0;
   }

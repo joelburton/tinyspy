@@ -26,23 +26,23 @@
  * than literal colors. A future palette tweak doesn't have to
  * walk every consumer.
  */
-:root {
-  --wordwheel-tile:          var(--tile-2-fill-color); /* the shared warm ramp */
-  --wordwheel-tile-text:     #1a1a1a;
+/* @@ */ :root {
+/* @@ */   --wordwheel-tile:          var(--tile-2-fill-color); /* the shared warm ramp */
+/* @@ */   --wordwheel-tile-text:     #1a1a1a;
 
   /* Moderately-saturated red — the center tile. */
-  --wordwheel-accent:        #d6494f;
-  --wordwheel-center-text:   #ffffff;
+/* @@ */   --wordwheel-accent:        #d6494f;
+/* @@ */   --wordwheel-center-text:   #ffffff;
 
   /* Used-tile fills: a couple of steps darker than the resting fills. Applied to
    * the tile background only (not the border / letter) to mark a spent letter. */
-  --wordwheel-tile-used:     #d8c79c;
-  --wordwheel-accent-used:   #a83c41;
+/* @@ */   --wordwheel-tile-used:     #d8c79c;
+/* @@ */   --wordwheel-accent-used:   #a83c41;
 
   /* Shared-component token: the common <RankBar> / <Stats> read this generic
    * name so one copy serves both hive-family games. Only the TEXT color is
    * per-game now — the ladder's own fill + edge are shared (`--rank-bar-fill-color` /
    * `--rank-bar-edge-color` in common/themes/daylight.css). wordwheel's red stays the WHEEL's
    * accent; the ladder is yellow in both games on purpose. */
-  --rank-text:               var(--wordwheel-tile-text);
+/* @@ */   --rank-text:               var(--wordwheel-tile-text);
 }

@@ -11,7 +11,7 @@
  * "active play surface."
  */
 
-.overlay {
+/* @@ */ .overlay {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -21,22 +21,22 @@
   border-radius: var(--radius-lg);
 }
 
-.banner {
+/* @@ */ .banner {
   max-width: 32rem;
   text-align: center;
 }
 
-.banner strong {
+/* @@ */ .banner strong {
   display: block;
   margin-bottom: 0.5rem;
   font-size: 1.05rem;
 }
 
-.banner p {
+/* @@ */ .banner p {
   margin: 0.5rem 0 0 0;
 }
 
-.banner strong + strong {
+/* @@ */ .banner strong + strong {
   margin-top: 0.5rem;
 }
 
@@ -44,7 +44,7 @@
  * (width shrink-wraps its longest row, then `margin-inline: auto`), but
  * the rows themselves are LEFT-aligned so every dot shares one column —
  * a tidy vertical stack rather than each row centered on its own width. */
-.roster {
+/* @@ */ .roster {
   width: fit-content;
   margin: 0.75rem auto 0;
   padding: 0;
@@ -55,7 +55,7 @@
   gap: 0.4rem;
 }
 
-.rosterItem {
+/* @@ */ .rosterItem {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -63,17 +63,17 @@
 
 /* A touch larger than the inline header dot, with a matching ring width;
  * the hollow (away) variant rings in gray so absence reads at a glance. */
-.rosterDot {
-  --dot-size: 0.85rem;
-  --dot-border-width: 2px;
-  --dot-ring: var(--page-text-muted-color);
+/* @@ */ .rosterDot {
+/* @@ */   --dot-size: 0.85rem;
+/* @@ */   --dot-border-width: 2px;
+/* @@ */   --dot-ring: var(--page-text-muted-color);
 }
 
-.rosterName {
+/* @@ */ .rosterName {
   color: var(--page-text-color);
 }
 
-.actions {
+/* @@ */ .actions {
   margin-top: 1rem;
   display: flex;
   justify-content: center;
@@ -81,6 +81,6 @@
   flex-wrap: wrap;
 }
 
-.actions button {
+/* @@ */ .actions button {
   min-width: 7rem;
 }

@@ -13,13 +13,13 @@
  * layout; the dot centers itself on the text via its own `vertical-align: middle`,
  * which is what `align-items: center` was doing here. `nowrap` still applies (and
  * still keeps "● joel" together), and no call site relies on the box being flex. */
-.mention {
+/* @@ */ .mention {
   display: inline;
   white-space: nowrap;
 }
 
 /* The name — plain text (weight 500). */
-.name {
+/* @@ */ .name {
   font-weight: 500;
 }
 
@@ -29,7 +29,7 @@
  * on a narrow header/below-board row, so this keeps them fitting a long username.
  * Turn logs pass `show="both"` and keep their names. */
 @media (--phone) {
-  .namePhoneHidden {
+/* @@ */   .namePhoneHidden {
     display: none;
   }
 }
@@ -37,9 +37,9 @@
 /* Gap between name and dot — the margin sits on the dot, on whichever side the
  * name is. (When the name is hidden on a phone, this is the dot's gap from the
  * surrounding sentence text, which reads fine.) */
-.dotAfter {
+/* @@ */ .dotAfter {
   margin-left: 0.4rem;
 }
-.dotBefore {
+/* @@ */ .dotBefore {
   margin-right: 0.4rem;
 }

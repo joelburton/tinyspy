@@ -14,7 +14,7 @@
  * labels are `YYYY-MM-DD: <clue or two words>`, which fits the 480px dialog
  * with room to spare, and the exhausted sentence is shorter still.
  */
-.next {
+/* @@ */ .next {
   color: var(--page-text-color);
   line-height: 1.4;
   min-height: 1.4em;
@@ -28,6 +28,6 @@
  * a date input sized to its own content is a smaller target than a full-width
  * box, which is the right weight for something you rarely touch.
  */
-.date {
+/* @@ */ .date {
   margin-top: 0.5rem;
 }

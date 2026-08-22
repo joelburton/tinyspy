@@ -10,15 +10,15 @@
  * the "currently viewing" yellow ring lives on that handle
  * (common/components/game/lists/historyViewer.module.css → .viewedNumber). */
 
-.score {
+/* @@ */ .score {
   color: var(--outcomes-won-ink-color);
   font-weight: 600;
 }
-.scoreNeg {
+/* @@ */ .scoreNeg {
   color: var(--outcomes-lost-ink-color);
   font-weight: 600;
 }
-.word {
+/* @@ */ .word {
   font-weight: 700;
   letter-spacing: 0.04em;
 }

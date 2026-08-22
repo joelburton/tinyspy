@@ -3,25 +3,25 @@
 /* The greeting — "● joel — welcome!". Flex so the identity disc sits on the
  * text's center line rather than its baseline; a disc hung off the baseline
  * reads as a bullet point, which is the one thing it must not look like. */
-.greeting {
+/* @@ */ .greeting {
   display: flex;
   align-items: center;
 }
 
 /* Scaled up against the h1 — at the disc's em-relative default it reads as a
  * speck here. `--dot-size` is the shared knob (Dot.module.css). */
-.greetingDot {
-  --dot-size: 0.7em;
+/* @@ */ .greetingDot {
+/* @@ */   --dot-size: 0.7em;
   margin-right: 0.45em;
 }
 
-.clubName {
+/* @@ */ .clubName {
   font-weight: 500;
 }
 
 /* The shared `.badge` paints no color, so the caller picks one. This takes the
  * page's link accent. */
-.soloBadge {
+/* @@ */ .soloBadge {
   color: var(--chrome-badge-color);
 }
 
@@ -36,7 +36,7 @@
  * otherwise scroll the page — at which point the LIST scrolls instead.
  *
  * `svh`, not `vh`, for the mobile-Safari reason documented on `body`. */
-.frame {
+/* @@ */ .frame {
   width: 100%;
   display: flex;
   flex-direction: column;
@@ -49,7 +49,7 @@
  * `min-height: 0` is the load-bearing half: a flex item's floor is its content
  * by default, which would let the card keep its natural height and push the
  * page into a scroll anyway — the trap the mobile InfoSheet hit. */
-.card {
+/* @@ */ .card {
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -59,13 +59,13 @@
  * squeeze — the wordmark especially, which is a `width: 100%` <img> and would
  * simply get shorter (it takes no className of its own, hence the child
  * selector rather than a class on the component). */
-.card > *:not(.clubsSection) {
+/* @@ */ .card > *:not(.clubsSection) {
   flex-shrink: 0;
 }
 
 /* The section between the card and the scrolling list — same flex-column +
  * min-height: 0 relay, or the bound stops here and the list never scrolls. */
-.clubsSection {
+/* @@ */ .clubsSection {
   display: flex;
   flex-direction: column;
   min-height: 0;

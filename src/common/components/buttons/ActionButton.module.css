@@ -35,48 +35,48 @@
  * the word was naming a purpose in one taxonomy and a color in another.
  */
 
-.caution {
-  --button-slot-primary-color: var(--button-caution-primary-color);
-  --button-slot-primary-hover-color: var(--button-caution-primary-hover-color);
-  --button-slot-primary-ink-color: var(--button-caution-primary-ink-color);
-  --button-slot-secondary-color: var(--button-caution-secondary-color);
-  --button-slot-secondary-hover-color: var(--button-caution-secondary-hover-color);
+/* @@ */ .caution {
+/* @@ */   --button-slot-primary-color: var(--button-caution-primary-color);
+/* @@ */   --button-slot-primary-hover-color: var(--button-caution-primary-hover-color);
+/* @@ */   --button-slot-primary-ink-color: var(--button-caution-primary-ink-color);
+/* @@ */   --button-slot-secondary-color: var(--button-caution-secondary-color);
+/* @@ */   --button-slot-secondary-hover-color: var(--button-caution-secondary-hover-color);
 }
 
-.destructive {
-  --button-slot-primary-color: var(--button-destructive-primary-color);
-  --button-slot-primary-hover-color: var(--button-destructive-primary-hover-color);
-  --button-slot-primary-ink-color: var(--button-destructive-primary-ink-color);
-  --button-slot-secondary-color: var(--button-destructive-secondary-color);
-  --button-slot-secondary-hover-color: var(--button-destructive-secondary-hover-color);
+/* @@ */ .destructive {
+/* @@ */   --button-slot-primary-color: var(--button-destructive-primary-color);
+/* @@ */   --button-slot-primary-hover-color: var(--button-destructive-primary-hover-color);
+/* @@ */   --button-slot-primary-ink-color: var(--button-destructive-primary-ink-color);
+/* @@ */   --button-slot-secondary-color: var(--button-destructive-secondary-color);
+/* @@ */   --button-slot-secondary-hover-color: var(--button-destructive-secondary-hover-color);
 }
 
-.normal {
-  --button-slot-primary-color: var(--button-normal-primary-color);
-  --button-slot-primary-hover-color: var(--button-normal-primary-hover-color);
-  --button-slot-primary-ink-color: var(--button-normal-primary-ink-color);
-  --button-slot-secondary-color: var(--button-normal-secondary-color);
-  --button-slot-secondary-hover-color: var(--button-normal-secondary-hover-color);
+/* @@ */ .normal {
+/* @@ */   --button-slot-primary-color: var(--button-normal-primary-color);
+/* @@ */   --button-slot-primary-hover-color: var(--button-normal-primary-hover-color);
+/* @@ */   --button-slot-primary-ink-color: var(--button-normal-primary-ink-color);
+/* @@ */   --button-slot-secondary-color: var(--button-normal-secondary-color);
+/* @@ */   --button-slot-secondary-hover-color: var(--button-normal-secondary-hover-color);
 }
 
 /* Also the DEFAULT in themes/daylight.css (a bare `.secondary` is quiet). Declared anyway,
    so `tone="quiet"` behaves like every other tone rather than relying on the
    slots happening to be unset — which is exactly what broke the primary pair. */
-.quiet {
-  --button-slot-primary-color: var(--button-quiet-primary-color);
-  --button-slot-primary-hover-color: var(--button-quiet-primary-hover-color);
-  --button-slot-primary-ink-color: var(--button-quiet-primary-ink-color);
-  --button-slot-secondary-color: var(--button-quiet-secondary-color);
-  --button-slot-secondary-hover-color: var(--button-quiet-secondary-hover-color);
+/* @@ */ .quiet {
+/* @@ */   --button-slot-primary-color: var(--button-quiet-primary-color);
+/* @@ */   --button-slot-primary-hover-color: var(--button-quiet-primary-hover-color);
+/* @@ */   --button-slot-primary-ink-color: var(--button-quiet-primary-ink-color);
+/* @@ */   --button-slot-secondary-color: var(--button-quiet-secondary-color);
+/* @@ */   --button-slot-secondary-hover-color: var(--button-quiet-secondary-hover-color);
 }
 
 /* A confirming YES. RESERVED — nothing asks for it today, and it is wired today
    so that the day something does, it inherits a family picked with its siblings
    rather than one derived beside the button that wanted it. */
-.success {
-  --button-slot-primary-color: var(--button-success-primary-color);
-  --button-slot-primary-hover-color: var(--button-success-primary-hover-color);
-  --button-slot-primary-ink-color: var(--button-success-primary-ink-color);
-  --button-slot-secondary-color: var(--button-success-secondary-color);
-  --button-slot-secondary-hover-color: var(--button-success-secondary-hover-color);
+/* @@ */ .success {
+/* @@ */   --button-slot-primary-color: var(--button-success-primary-color);
+/* @@ */   --button-slot-primary-hover-color: var(--button-success-primary-hover-color);
+/* @@ */   --button-slot-primary-ink-color: var(--button-success-primary-ink-color);
+/* @@ */   --button-slot-secondary-color: var(--button-success-secondary-color);
+/* @@ */   --button-slot-secondary-hover-color: var(--button-success-secondary-hover-color);
 }

@@ -10,7 +10,7 @@
  * position whatever its value (and the icon never shifts). The fixed `width` fits
  * the widest realistic score ("+999") so it never grows/shrinks; a game needing
  * more room overrides via `className`. */
-.button {
+/* @@ */ .button {
   display: inline-flex;
   align-items: center;
   justify-content: space-between;
@@ -20,7 +20,7 @@
 
 /* Tabular figures so the digits don't jitter as the score changes; the span hugs
  * its content at the right edge (right-justified by the space-between above). */
-.score {
+/* @@ */ .score {
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }

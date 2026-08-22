@@ -30,7 +30,7 @@
  */
 
 /* The heading above the box — outside the frame, not inside it. */
-.heading {
+/* @@ */ .heading {
   margin: 0;
   font-size: 0.95rem;
   font-weight: 600;
@@ -43,7 +43,7 @@
  * (`useTurnLogPlayerPicker`) and the word list's kind/who pair
  * (`useWordListFilter`) both wear it. A panel with a bare <h3> renders the
  * heading alone and never touches this. */
-.headerRow {
+/* @@ */ .headerRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -58,7 +58,7 @@
 
 /* Two filters side by side (the word list's KIND + WHO), as one group at the
  * right of the heading row. */
-.selectGroup {
+/* @@ */ .selectGroup {
   display: flex;
   align-items: center;
   gap: 0.35rem;
@@ -70,7 +70,7 @@
  * `min-height: 0`, so the box shrinks rather than pushing the column taller and
  * the interior gets a definite height to scroll within), inside an evident
  * 2px border. */
-.box {
+/* @@ */ .box {
   flex: 1;
   min-height: 0;
   border: 2px solid var(--page-divider-color);

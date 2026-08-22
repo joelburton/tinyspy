@@ -13,7 +13,7 @@
  * white.)
  */
 
-.pill {
+/* @@ */ .pill {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
@@ -35,7 +35,7 @@
   white-space: nowrap;
 }
 
-.text {
+/* @@ */ .text {
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -43,12 +43,12 @@
 /* Leading identity disc — the shared <Dot>, sized to match the PlayersStrip
  * dot so the two read as the same convention. The pill's `gap` spaces it from
  * the text. */
-.dot {
-  --dot-size: 0.85rem;
-  --dot-border-width: 2px;
+/* @@ */ .dot {
+/* @@ */   --dot-size: 0.85rem;
+/* @@ */   --dot-border-width: 2px;
 }
 
-.close {
+/* @@ */ .close {
   /* A tight × glyph button. */
   margin: 0;
   cursor: pointer;
@@ -62,7 +62,7 @@
   justify-content: center;
 }
 
-.close:hover {
+/* @@ */ .close:hover {
   opacity: 0.7;
 }
 
@@ -78,13 +78,13 @@
  * concept under two names, with the translation buried in a CSS rule.
  */
 
-.won {
+/* @@ */ .won {
   border-color: var(--pill-won-color);
   background: var(--pill-won-tint-color);
   color: var(--pill-won-ink-color);
 }
 
-.lost {
+/* @@ */ .lost {
   border-color: var(--pill-lost-color);
   background: var(--pill-lost-tint-color);
   color: var(--pill-lost-ink-color);
@@ -93,7 +93,7 @@
 /* near — a near miss (connections' "one away"), in the GOLD its turn-log bar
  * wears. It is a result, not a caution: "you were close" and "you can't do that"
  * are different messages and no longer the same color. */
-.near {
+/* @@ */ .near {
   border-color: var(--pill-near-color);
   background: var(--pill-near-tint-color);
   color: var(--pill-near-ink-color);
@@ -103,13 +103,13 @@
  * opponent made progress, you can't do that yet). Distinct from won/lost so it
  * never reads as a result — and, since 2026-08-17, distinct from `near` above,
  * which IS one. */
-.warning {
+/* @@ */ .warning {
   border-color: var(--pill-warning-color);
   background: var(--pill-warning-tint-color);
   color: var(--pill-warning-ink-color);
 }
 
-.neutral {
+/* @@ */ .neutral {
   border-color: var(--pill-neutral-color);
   background: var(--pill-neutral-tint-color);
   color: var(--pill-neutral-ink-color);
@@ -118,13 +118,13 @@
 /* error — the failure that ISN'T a move: a lost connection, a service that
  * didn't answer, a key nobody wrote words for. A step angrier than `lost`,
  * because a refused move and a broken thing must not look the same. */
-.error {
+/* @@ */ .error {
   border-color: var(--pill-error-color);
   background: var(--pill-error-tint-color);
   color: var(--pill-error-ink-color);
 }
 
-.noted {
+/* @@ */ .noted {
   border-color: var(--pill-noted-color);
   background: var(--pill-noted-tint-color);
   color: var(--pill-noted-ink-color);
@@ -136,7 +136,7 @@
  * rides the leading `dot`, which a white background doesn't fight. Defined AFTER
  * the tone rules so this background wins over the tone tint for `.outline.<tone>`;
  * it deliberately does NOT touch the border, so the tone border color stays. */
-.outline {
+/* @@ */ .outline {
   background: var(--page-surface-color);
 }
 
@@ -145,7 +145,7 @@
  * only affordance: on touch the gesture teaches itself by working, and on
  * desktop a pointer says "this responds" without adding chrome to a message
  * that's meant to be read and forgotten. */
-.tappable {
+/* @@ */ .tappable {
   cursor: pointer;
 }
 

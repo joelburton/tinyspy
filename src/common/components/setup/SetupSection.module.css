@@ -4,14 +4,14 @@
  * `.fieldset` chrome) whose <summary> is the clickable header showing the field's
  * current value, and whose body holds the editable controls when expanded. */
 
-.section {
+/* @@ */ .section {
   border: 1px solid var(--page-surface-border-color);
   border-radius: var(--radius-md);
 }
 
 /* The header row. Bold like a fieldset legend; the native disclosure triangle
  * sits inline before the text. Whole row is the click target. */
-.summary {
+/* @@ */ .summary {
   font-weight: 600;
   padding: 0.6rem 0.75rem;
   cursor: pointer;
@@ -20,17 +20,17 @@
   border-radius: var(--radius-md);
 }
 
-.summary:hover {
+/* @@ */ .summary:hover {
   background: var(--page-surface-hover-color);
 }
 
 /* Square off the summary's bottom corners once open so it meets the body. */
-.section[open] .summary {
+/* @@ */ .section[open] .summary {
   border-radius: var(--radius-md) var(--radius-md) 0 0;
 }
 
 /* The revealed controls. Top padding is 0 because the summary already spaces it;
  * the rest matches `.fieldset`'s inner padding. */
-.body {
+/* @@ */ .body {
   padding: 0.25rem 1rem 0.85rem;
 }

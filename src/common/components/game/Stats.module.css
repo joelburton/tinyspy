@@ -17,7 +17,7 @@
  * — and the compressed shape is scoped to `[data-mobile-status]` at the bottom
  * of this file. See RankBar.module.css for why the split is written this way
  * round. */
-.stats {
+/* @@ */ .stats {
   display: grid;
   /* Two columns by default (Score / Words). A game with more sets
    * `grid-template-columns` inline — boggle swings between 2 and 4 depending on
@@ -37,7 +37,7 @@
   text-align: center;
 }
 
-.cell {
+/* @@ */ .cell {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -50,7 +50,7 @@
  * glance, and the mobile status bar has room for it (measured — see boggle's
  * --mobile-status-height). A label may be stacked on two lines (boggle's "REQ" /
  * "WORDS"), hence the explicit line-height. */
-.label {
+/* @@ */ .label {
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.06em;
@@ -59,14 +59,14 @@
   line-height: 1.2;
 }
 
-.value {
+/* @@ */ .value {
   font-size: 18px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--rank-text);
 }
 
-.muted {
+/* @@ */ .muted {
   font-size: 13px;
   font-weight: 500;
   color: var(--page-text-muted-color);
@@ -74,7 +74,7 @@
 
 /* An OPTIONAL third line under the value — the found-share as a percent. Only
  * boggle passes one today; games that don't simply never render the element. */
-.percent {
+/* @@ */ .percent {
   font-size: 11px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
@@ -93,7 +93,7 @@
  * readable pair on a wide phone instead of drifting to opposite edges. A grid
  * with MORE columns needs every pixel the phone has and opts out by setting
  * `--stats-max-width: none` (boggle). */
-[data-mobile-status] .stats {
+/* @@ */ [data-mobile-status] .stats {
   border-top: none;
   border-bottom: none;
   padding: 0;

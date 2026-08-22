@@ -11,15 +11,15 @@
  * wrapper that generates no box — the reserved-height swap box inside it
  * (`shared.moveAreaOrLocalFeedback`) keeps its exact place as a `.boardCol` flex
  * child. See docs/code-conventions.md → below-board structure. */
-.belowBoard {
+/* @@ */ .belowBoard {
   display: contents;
 }
 
 /* psychicnum's one deliberate entry tweak (kept from the old GuessForm): a bigger
  * entry font — a single short guess word reads large. Applied to the shared
  * <EntryRow>'s row; the var cascades down to the EntryBox inside it. */
-.bigEntry {
-  --entryBox-font-size: 2rem;
+/* @@ */ .bigEntry {
+/* @@ */   --entryBox-font-size: 2rem;
 }
 
 /* On a phone the board fills the screen and 2rem reads oversized, so dial the
@@ -27,8 +27,8 @@
  * EntryBox is a display <div>, not a focusable <input> — it never raises the
  * keyboard, so it can't trigger focus-zoom. Phones only; tablets/desktop keep 2rem. */
 @media (--phone) {
-  .bigEntry {
-    --entryBox-font-size: 1.5rem;
+/* @@ */   .bigEntry {
+/* @@ */     --entryBox-font-size: 1.5rem;
   }
 }
 

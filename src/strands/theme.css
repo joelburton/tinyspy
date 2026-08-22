@@ -21,16 +21,16 @@
  * Derived from the shared palette in common/themes/daylight.css rather than invented, so
  * a future theme switch moves these with it. */
 
-:root {
-  --strands-theme: #6d3fc0;
-  --strands-spangram: #d9a520;
-  --strands-active: #c3aee8;
+/* @@ */ :root {
+/* @@ */   --strands-theme: #6d3fc0;
+/* @@ */   --strands-spangram: #d9a520;
+/* @@ */   --strands-active: #c3aee8;
   /* The ring on the most recent tile — the "click again to submit" marker.
    * A step darker than the fill it sits around, so it reads on top of it. */
-  --strands-active-ring: #7b5fc4;
+/* @@ */   --strands-active-ring: #7b5fc4;
   /* A spent hint's dashed ring. Neutral on purpose: a hint is not an outcome,
    * so it must not borrow the purple/gold vocabulary of a found word. */
-  --strands-hint-ring: #8a8a94;
+/* @@ */   --strands-hint-ring: #8a8a94;
   /* TEXT variants of the two board colors, for the turn log.
    *
    * The board colors above are tuned as DISC FILLS with white letters on top,
@@ -40,13 +40,13 @@
    * fills: same hues, so a word still reads as "the purple one" / "the gold
    * one", but at a weight that survives being 15px type instead of a 40px disc.
    */
-  --strands-theme-text: #56309c;
-  --strands-spangram-text: #8a6410;
+/* @@ */   --strands-theme-text: #56309c;
+/* @@ */   --strands-spangram-text: #8a6410;
   /* Words nobody found, drawn at the reveal. Deliberately gray rather than a
    * fourth hue: a miss is the ABSENCE of an outcome, so it must not borrow the
    * purple/gold vocabulary that means "you got this". */
 
-  --strands-missed: #9e9aa7;
+/* @@ */   --strands-missed: #9e9aa7;
   /* Letters sitting on a saturated disc. */
-  --strands-on-disc: #ffffff;
+/* @@ */   --strands-on-disc: #ffffff;
 }

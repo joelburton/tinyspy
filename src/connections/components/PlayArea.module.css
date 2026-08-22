@@ -34,8 +34,8 @@
  * each game declares its own). connections' right column (setup + "N/4 found" +
  * mistakes + the turn log) fits a narrow column; the shared `.infoCol` reads
  * this. A rem, never a pixel lock. */
-.layout {
-  --info-col-width: 22rem;
+/* @@ */ .layout {
+/* @@ */   --info-col-width: 22rem;
 }
 
 /* The board wrapper. Visually empty TODAY — no border, no background, no padding
@@ -51,11 +51,11 @@
  *     no height cap → --max-tile-height: 999rem
  * Don't comment a knob OUT: the token must stay defined, or the calc breaks and
  * the phantom-token guard (src/guards/cssTokens.test.ts) fails.                        */
-.board {
-   --max-tile-width: 12rem;
-   --max-tile-height: 9rem;
-  --grid-gap: 0.5rem;
-  --cols: 4;            /* connections is always 4 columns */
+/* @@ */ .board {
+/* @@ */    --max-tile-width: 12rem;
+/* @@ */    --max-tile-height: 9rem;
+/* @@ */   --grid-gap: 0.5rem;
+/* @@ */   --cols: 4;            /* connections is always 4 columns */
 
   /* Fills the column HEIGHT (the grid's `flex: 1` + 1fr rows fill it, capped by
    * max-height); its WIDTH comes from the grid's definite hug width. */
@@ -82,7 +82,7 @@
  * token on .layout). With --max-tile-width at 999rem it simply fills --avail-w.
  * --cols/--rows drive the 1fr tracks; the bands span all columns (`grid-column:
  * 1 / -1`). The --tile-font-* knobs tune the shared .tileWord auto-fit. */
-.grid {
+/* @@ */ .grid {
   flex: 1;
   min-height: 0;
   display: grid;
@@ -91,9 +91,9 @@
   grid-template-columns: repeat(var(--cols), 1fr);
   grid-template-rows: repeat(var(--rows), 1fr);
   gap: var(--grid-gap);
-  --tile-font-min: 1rem;
-  --tile-font-factor: 0.94;
-  --tile-font-max: 1.95rem;
+/* @@ */   --tile-font-min: 1rem;
+/* @@ */   --tile-font-factor: 0.94;
+/* @@ */   --tile-font-max: 1.95rem;
 }
 
 /* A solved/revealed category is "one long tile", and it says so by WEARING the
@@ -103,16 +103,16 @@
  * tiles use. What's left here is only what makes a band long rather than square:
  * the full-width span and the two stacked lines. The name auto-fits the band
  * width via a container query (the face is already an inline-size container). */
-.band {
+/* @@ */ .band {
   grid-column: 1 / -1;
   min-height: 0;
   /* Dark ink: the rank palette is four pastels, which is where dark ink belongs
    * (the white-on-color half of the ramp is for saturated fills). */
-  --tile-slot-ink-color: var(--page-text-color);
+/* @@ */   --tile-slot-ink-color: var(--page-text-color);
   flex-direction: column;
 }
 
-.band strong {
+/* @@ */ .band strong {
   display: block;
   /* Auto-fit, same idea as the shared .tileWord — `--len` is the name's char
    * count (set inline by Board), 100cqi is the band's inner width. */
@@ -120,7 +120,7 @@
   margin-bottom: 0.25rem;
 }
 
-.bandMembers {
+/* @@ */ .bandMembers {
   font-size: 1.35rem;
   letter-spacing: 0.02em;
 }
@@ -130,7 +130,7 @@
  * over in-flow text by default — so without this the flash hides the band it is
  * pointing at. */
 .band strong,
-.bandMembers {
+/* @@ */ .bandMembers {
   position: relative;
   z-index: 1;
 }
@@ -151,24 +151,24 @@
  *     two ringed tiles collide.
  * A guessed tile stays on the grid in the strictly-before snapshot even for a
  * correct guess (it hasn't collapsed into its band yet) — that's what we ring. */
-.viewedTile {
+/* @@ */ .viewedTile {
   outline: 3px solid var(--view-history-color);
   outline-offset: 0;
 }
-.viewedTile_correct {
-  --tile-slot-fill-color: var(--outcomes-won-fill-color);
-  --tile-slot-edge-color: var(--outcomes-won-ink-color);
-  --tile-slot-ink-color: var(--ink-onDark-color);
+/* @@ */ .viewedTile_correct {
+/* @@ */   --tile-slot-fill-color: var(--outcomes-won-fill-color);
+/* @@ */   --tile-slot-edge-color: var(--outcomes-won-ink-color);
+/* @@ */   --tile-slot-ink-color: var(--ink-onDark-color);
 }
-.viewedTile_oneAway {
-  --tile-slot-fill-color: var(--outcomes-near-fill-color);
-  --tile-slot-edge-color: var(--outcomes-near-ink-color);
-  --tile-slot-ink-color: var(--ink-onDark-color);
+/* @@ */ .viewedTile_oneAway {
+/* @@ */   --tile-slot-fill-color: var(--outcomes-near-fill-color);
+/* @@ */   --tile-slot-edge-color: var(--outcomes-near-ink-color);
+/* @@ */   --tile-slot-ink-color: var(--ink-onDark-color);
 }
-.viewedTile_wrong {
-  --tile-slot-fill-color: var(--outcomes-lost-fill-color);
-  --tile-slot-edge-color: var(--outcomes-lost-ink-color);
-  --tile-slot-ink-color: var(--ink-onDark-color);
+/* @@ */ .viewedTile_wrong {
+/* @@ */   --tile-slot-fill-color: var(--outcomes-lost-fill-color);
+/* @@ */   --tile-slot-edge-color: var(--outcomes-lost-ink-color);
+/* @@ */   --tile-slot-ink-color: var(--ink-onDark-color);
 }
 
 /* Coop "Mistakes remaining ●●●○" — left-justified on the input row below the
@@ -176,7 +176,7 @@
  * old NYT-style placement: the mistake dots on the same line as the buttons.
  * (Compete shows the per-player OpponentStrip in its own row instead; the
  * textual N/4 count lives in the info column.) */
-.mistakesInline {
+/* @@ */ .mistakesInline {
   margin-right: auto;
   display: inline-flex;
   align-items: center;
@@ -189,7 +189,7 @@
 
 /* The below-board REGION (universal). `display: contents` — the swap box inside
  * (`shared.moveAreaOrLocalFeedback`) keeps its place as a `.boardCol` child. */
-.belowBoard {
+/* @@ */ .belowBoard {
   display: contents;
 }
 
@@ -198,7 +198,7 @@
  * margin-right:auto). Lives inside the shared `.moveAreaOrLocalFeedback` swap box
  * — which reserves the height — and the pill takes its place when there's
  * feedback. */
-.moveArea {
+/* @@ */ .moveArea {
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -215,7 +215,7 @@
  * for its Submit too). The icon+label look is the global `.icon-button` class
  * (composed via cls() at the call site); this just adds the floor width. Here
  * it's the Clear + Submit pair. */
-.inputButton {
+/* @@ */ .inputButton {
   min-width: 7rem;
 }
 
@@ -223,7 +223,7 @@
   /* On a phone the Clear/Submit buttons go icon-only (BoardCol passes
    * `iconOnly`), so drop the text-era floor width — they shrink to the icon and
    * the tight commit row (mistakes readout + both buttons) fits a narrow screen. */
-  .inputButton {
+/* @@ */   .inputButton {
     min-width: 0;
   }
 
@@ -232,8 +232,8 @@
    * with multi-letter WORD tiles (the others are single letters / numbers), so lower
    * the floor HERE — that lets the auto-fit middle term win and the word fits on one
    * line. Set on the grid; the token cascades into every `.tileWord` below it. */
-  .grid {
-    --tile-font-min: 0.7rem;
+/* @@ */   .grid {
+/* @@ */     --tile-font-min: 0.7rem;
   }
 }
 
@@ -264,8 +264,8 @@
  * and stop lifting on hover, which is how this arrived here in the first place
  * (the color was set inline and lost both). So it composes WITH each shadow, and
  * the hover/press pair restate their own beside it. */
-.peerPick {
-  --peer-band:
+/* @@ */ .peerPick {
+/* @@ */   --peer-band:
     inset 0 0 0 var(--connections-peer-inner-border-inset) var(--tile-slot-fill-color),
     inset 0 0 0 calc(
       var(--connections-peer-inner-border-inset) + var(--connections-peer-inner-border-width)
@@ -273,10 +273,10 @@
   box-shadow: var(--peer-band), var(--tile-shadow);
 }
 
-.peerPick:hover:not(:disabled) {
+/* @@ */ .peerPick:hover:not(:disabled) {
   box-shadow: var(--peer-band), var(--tile-hover-shadow);
 }
 
-.peerPick:active:not(:disabled) {
+/* @@ */ .peerPick:active:not(:disabled) {
   box-shadow: var(--peer-band), var(--tile-shadow);
 }
