@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-found
 
 import puzpuzpuzLogo from '../../puzpuzpuz.svg?url'
 import styles from './PuzpuzpuzLogo.module.css'

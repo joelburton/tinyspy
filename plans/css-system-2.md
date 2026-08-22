@@ -374,6 +374,16 @@ gets converted").
 Only #4 is themed. Everything else is a constant: a theme is color (§3), and a
 distance is the same distance in daylight and midnight.
 
+**`font-weight` is deliberately not a ninth** (Joel, 2026-08-22). Or, said the
+other way, it is one and CSS already ships it: `100 … 900`. Those are the numbers
+the property takes, so a token would only rename them. What the sprint gets from
+it is a **rule — a font-weight must be a multiple of 100** — and one that isn't
+is a bug fixed by the audit of the area that owns it, never swept. The repo
+writes six values today (`600` ×54, `700` ×40, `500` ×14, `800` ×9, `400` ×3,
+`650` ×2), so the rule costs exactly two fixes, both letterboxed's, both on §7's
+carried-forward list. It is enforceable by the same guard the other vocabularies
+use and needs no tokens at all.
+
 ### Notes on the ones that took an argument
 
 **1 · spacer, not space.** "Space" is a key on the keyboard, and casually it also
@@ -383,6 +393,16 @@ implementation-tied — the vocabulary feeds both.
 
 `--spacer-1` is the BIGGEST, `h1`-style. It reads naturally that way even though
 it is numerically backwards (§5 → Numbers or names?).
+
+**The scale governs `gap` and `margin`. Padding is PARKED, not excluded** (Joel,
+2026-08-22). The question is whether the room inside a box belongs on the same
+ramp as the space between boxes, and there isn't enough evidence yet to answer
+it: padding tends to run smaller (text inside a button), and today's tuples are
+often fitted to their box — `.item-row`'s `padding: 0.5rem 0.9rem` is annotated
+in `list.css` as exactly that. So paddings stay ad-hoc for now and the guard does
+not look at them. Revisit later in the sprint; finding every padding in the repo
+is one grep away, so nothing is lost by deciding late — and deciding early, with
+two data points, is how a ramp gets a level nobody wanted.
 
 **`0.4rem` is deliberately absent.** It and `0.5rem` are the two most-used
 values in locked surfaces (14 and 18), which is exactly what
@@ -599,6 +619,7 @@ Everything step 6 found and did not do. Each line is a task with an owner step.
 | **10** (scrabble) | **`BlankPicker`'s overlay at `z-index: 50`** — a full-screen `position: fixed` modal parked BELOW the panel tier, so an open chat or menu paints over it. Long-recorded as the ladder's known anomaly; it wants a look, not a reflex bump |
 | **each surface** | **Ten consumer modules style `<Dot>` as a bare `.dot`.** The qualified form already exists in half the app (`greetingDot`, `playerDot`, `rosterDot`, `actorDot`, `itemDot`, `bonusDot`) |
 | **shuffle games** | `<ShuffleButton>` should never take focus at all — game stuff doesn't. Its `:focus { outline: none }` says a click leaves no ring, then `:focus-visible` puts one back for a keyboard that has ⌥Z. The fix is removing the tab stop, not restyling the ring |
+| **letterboxed** | **Two `font-weight: 650`** — `components/Board.module.css:55` and `components/PlayArea.module.css:136`. A weight must be a multiple of 100 (§6.6), so both are bugs to fix at that area's audit, not values to keep. Found by the homepage area (`plans/areas/homepage.md` → F8); they are the `pending` list of the font-weight guard until then |
 | **crosswords** | its setup chooser is drifted on three values (`6px` not `--radius-md`, its own hover and rule colors) — unintended, per Joel |
 | **account** | `ColorChoiceList.swatchActive` draws the cursor ring to mean "the color you CHOSE" — deliberately not converted, since tying a selected state to a keyboard decision marries them forever. Whether "selected" should look like "the cursor is here" is its own question |
 | **when it has a consumer** | the two-line density variant of `.item-row` |
@@ -1422,6 +1443,12 @@ An area is a loose unit of reading — a page, a component family, a game.
 `plans/areas/<area>.md` holds its audit (numbered findings, each with its
 resolution), its predicted test breaks, and its notes. **The plan holds the
 order** (§13); the area file holds everything else.
+
+**Findings are numbered `F1`, `F2`, … and sub-numbered `F6.1` when one finding
+grows a list of its own** (Joel, 2026-08-22). The prefix is the whole point: an
+hour into an area, a bare "2" is whatever list was last on screen, while `F2` can
+only be that finding. Use the F-number everywhere the finding is referred to — in
+the area file, in conversation, in a commit message.
 
 **Dependencies are listed, not audited.** Reading the homepage is the first time
 the page header appears; auditing it there would hand Joel a list nobody can

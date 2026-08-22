@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited
 
 import { test, expect } from '@playwright/test'
 import { createClubWithMembers } from './helpers/fixtures'
