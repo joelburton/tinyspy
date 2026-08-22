@@ -779,13 +779,28 @@ the scanner counts it as a reference and reserved cells stay alive.
 | 6a | **the CONVERSION PROCESS + the allowlist guard** | Not a sweep. Write down the silent-vs-ask rule (below), and build the shrinking-allowlist guard mechanism ONCE so every vocabulary can use it. Radius needs no new values — `--radius-sm/md/lg` already exist |
 | 6b | ~~**VOCABULARY — invention**~~ **NAMED 2026-08-21** | The eight vocabularies and their provisional values are §6.6, with the a/b/c rule that governs a value outside them. Names agreed, values provisional. **Not rolled out** — they land area by area (§13 → "How a value gets converted") |
 | 6c | ~~**z-index, on its own**~~ **DONE 2026-08-21** | Eight tokens in `base.css`, low to high: `infoSheet` 40 · `panel` 500 · `popover` 1500 · `chatPanel` / `scratchpad` 10000 · `celebration` 10001 · `toast` / `tooltip` 12000, with four derivations (`calc(… ± 1)`) replacing the four off-by-one literals. **No painted pixel moved.** `<FloatingPanel zIndex>` is now a `string` taking `var(…)`, so the order has one home. The guard walks ALL of `src/` for this vocabulary — 0–10 is local layering, above is a tier — plus a second half that fails on a numeric `zIndex` in TypeScript. Three literals held back as decisions, filed in §7. `code-conventions.md` + `ui.md` updated in the same commit, per the rule below |
-| 6d | **homepage, again** | The rehearsal for the full toolkit: patterns + vocabulary + the page shell. Plus a **React pass** — the duplication is not only in the CSS |
-| 7 | dialogs + forms | the first real win — many near-identical instances. Also decide here: whether to LOAD a font (§18) |
-| 8 | clubpage, again + remaining non-game chrome | Build **the page shell** (§7): an optional header above a centered, width-bounded body. Absorbs the punted viewport-fit chain, the `.frame` rename, `<ModePill>` reading the shared `.badge`, and the leftovers listed in "Why 6 stopped" |
-| 9 | shared game chrome | `common/components/game/` — 258 rules, and every game sits on it. Also: the **contract-slot guard**, checked per mount point (§9, §10) |
-| 10 | per game — CSS pass, then tile-feedback pass, back to back | psychicnum first, as the control |
+| 7 | **the areas** | All the remaining reading, run **area by area** — the process is §21. The plan keeps the ORDER (below); each area's audit and notes live in `plans/areas/<area>.md`. **Areas are named, never numbered** |
 | 11 | assets | 17 game logos carry baked color; the wordmark and favicon carry near-whites that fail on a dark page. All of it at once, at the end — doing one per game argues about a tree sixteen times |
-| 12 | fold + delete | durable rules into `docs/ui.md` and `docs/code-conventions.md`; the allowlist empties; this doc goes |
+| 12 | fold + delete | durable rules into `docs/ui.md` and `docs/code-conventions.md`; the allowlist empties; **every `cs-` stamp comes out** (`cs-stamp.mjs unstamp`, then the script and its guard go); this doc goes |
+
+**Steps 8, 9 and 10 were folded into 7** on 2026-08-22, and their numbers are
+**retired rather than reused** — so a reference to "step 9" written before that
+date reads as stale instead of silently pointing at something else.
+
+### The areas, in order
+
+Named, because "7e is the menu area" is not a thing anyone should have to hold
+in their head. **The list grows**: every dependency that surfaces as `cs-found`
+is a candidate area, and one gets scheduled when the audit it would produce is
+too big to carry inside the area that found it (§21).
+
+| area | what it is |
+|---|---|
+| `homepage` | **RUNNING.** The rehearsal for the full toolkit: patterns + vocabulary + the page shell, plus a **React pass** — the duplication is not only in the CSS |
+| `dialogs-and-forms` | The first real win — many near-identical instances. Also decide here: whether to LOAD a font (§18) |
+| `club-page` | Build **the page shell** (§7): an optional header above a centered, width-bounded body. Absorbs the punted viewport-fit chain, the `.frame` rename, `<ModePill>` reading the shared `.badge`, and the leftovers listed in "Why 6 stopped" |
+| `shared-game-chrome` | `common/components/game/` — 258 rules, and every game sits on it. Also: the **contract-slot guard**, checked per mount point (§9, §10) |
+| per game, one area each | CSS pass then tile-feedback pass, back to back. `psychicnum` first, as the control |
 
 ### How a value gets converted (Joel, 2026-08-21)
 
@@ -1352,3 +1367,90 @@ same argument sixteen times.
    changes to the numbers in the table above.
 4. **The component roster**, every `FloatingPanel` consumer with its family and
    its new name, settled in one pass before any rename lands.
+
+## 21. The area process — stamps, areas, and what "broken" means
+
+Blessed 2026-08-22. §13's step 7 is the whole rest of the sprint, and this is
+how it runs. The sprint reads **every** file — CSS, React, tests, SQL, edge
+functions, scripts — so the first requirement is knowing, for any file, whether
+it has been read.
+
+### The stamp
+
+Every file in scope carries one comment on its first line, `cs-` for
+"css-system" (the sprint outgrew the name; the name stays).
+
+| stamp | means | who sets it |
+|---|---|---|
+| `cs-unmet` | not reached yet | the initial sweep |
+| `cs-found` | reached through the import/render graph | whoever reads the file that pointed at it |
+| `cs-audited` | an audit for it exists in `plans/areas/<area>.md` | Claude |
+| `cs-partial` | some findings resolved; it names which are outstanding and where | Claude |
+| `cs-fixed` | every finding resolved | Claude |
+| `cs-blessed` | **Joel read it himself** | **only Joel** |
+| `cs-na` | in the tree, deliberately not read | either |
+
+**`cs-fixed` and `cs-blessed` are different claims.** "Claude found nothing" and
+"Joel actually read it" are not the same statement, and the sprint's real exit
+criterion is the second one.
+
+**There is no ladder to walk.** The stamp is the latest true statement about a
+file, not a position in a sequence. A file can go `unmet` → `audited` in one
+sitting, and — the load-bearing half — **a dependency at `cs-found` stays there
+until an area is scheduled for it. Being found is not a claim on attention.**
+
+**Why in the file** rather than one manifest: this sprint renames constantly, and
+a manifest rots on every rename while a stamp travels with the file.
+
+`scripts/cs-stamp.mjs` does the work (`stamp` · `unstamp` · `tally` · `list` ·
+`set`) and owns the scope: **what git tracks**, in `src/` `e2e/` `supabase/`
+`scripts/`, in a language with a first-line comment. 1351 files at the sweep.
+Assets and puzzle data have nowhere to put a comment, so they stay the plan's
+business — they are step 11. `src/guards/csStamps.test.ts` fails on a file with
+no stamp (which is every NEW file) or a word outside the seven, and prints the
+tally.
+
+**Stamping a migration is safe**, checked before the sweep rather than assumed:
+`supabase_migrations.schema_migrations` is keyed on `version` with no checksum
+of the file, and `migration list` matched local to remote with a stamped
+migration on disk. `stamp` and `unstamp` are exact inverses, proved by
+round-tripping all 1351 files and diffing, which is what step 12 depends on.
+
+### Areas
+
+An area is a loose unit of reading — a page, a component family, a game.
+`plans/areas/<area>.md` holds its audit (numbered findings, each with its
+resolution), its predicted test breaks, and its notes. **The plan holds the
+order** (§13); the area file holds everything else.
+
+**Dependencies are listed, not audited.** Reading the homepage is the first time
+the page header appears; auditing it there would hand Joel a list nobody can
+hold in one sitting. So a dependency is stamped `cs-found`, listed by name in
+the area file, and left. Whether it becomes its own area is Joel's call, and a
+scheduled one usually lands directly after the area that found it.
+
+A file audited inside one area can be fixed inside a later one: **the stamp
+tracks the file, the plan tracks the area.**
+
+### Broken is expected, and it comes in three kinds
+
+The app does not need to work until the sprint ends; only what is `cs-fixed`
+should. Stopping mid-area to repair every consumer makes the diff unreadable and
+is how both of us lose the thread. But "broken" covers three different things
+and they get three different rules.
+
+| kind | what it is | the rule |
+|---|---|---|
+| **compile break** | a rename, a newly-required prop; consumers don't build | **Sweep every consumer mechanically, in the same commit.** That's find-and-replace, not an audit, and it keeps `tsc -b` usable for the area you're standing in |
+| **test break** | it builds; a spec asserts the old shape | **Predict it, write the spec names in the area file, leave it.** The diff against that prediction is what tells us we broke something we didn't expect |
+| **behavior break** | it builds and passes; it looks or acts wrong somewhere we haven't reached | **Leave it.** Note it against the area that owns the surface |
+
+The baseline the test-break rule measures against: **1953 tests in 199 files**,
+green at the stamp sweep (1956 with the stamp guard).
+
+### Renaming is the point, not a risk
+
+A lot of renaming happens here — it is what a whole-repo read is FOR, and
+"that's a lot of work" is not an argument against one. The stamp is what makes
+it safe: a rename that breaks something reaches a file we have not read yet,
+and that file's stamp already says so.
