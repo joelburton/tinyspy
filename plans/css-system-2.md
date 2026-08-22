@@ -1456,6 +1456,11 @@ hour into an area, a bare "2" is whatever list was last on screen, while `F2` ca
 only be that finding. Use the F-number everywhere the finding is referred to — in
 the area file, in conversation, in a commit message.
 
+**The same goes for the plan's other two numberings, and they collide.** This doc
+has sections 1–21 AND steps 1–12, so "5" is either §5 (Naming) or step 5 (the
+shallow pattern pass), and F5 is a third thing. Write `§5` for a section, `step 5`
+for a step, `F5` for a finding — and **never a bare number for any of them**.
+
 **Dependencies are listed, not audited.** Reading the homepage is the first time
 the page header appears; auditing it there would hand Joel a list nobody can
 hold in one sitting. So a dependency is stamped `cs-found`, listed by name in
