@@ -85,7 +85,7 @@ const VOCABULARIES: Vocabulary[] = [
     name: 'border-radius',
     property: 'border-radius',
     // `0` a square corner · `50%` a circle · `999px` a pill — shapes, not steps.
-    // (The pill gets a name when badges are settled at step 6d; until then it
+    // (The pill gets a name when badges are settled in the homepage area; until then it
     // is spelled out here rather than pretended into the scale.)
     // `inherit` and friends aren't values at all — they defer to somewhere else,
     // which is the opposite of writing a literal.
@@ -117,10 +117,10 @@ const VOCABULARIES: Vocabulary[] = [
     root: '.',
     pending: [
       // All three are recorded decisions, not oversights — plans/css-system-2.md
-      // §7 → Carried forward names the step that owns each.
-      'src/bananagrams/components/PlayerBoard.module.css', // drag ghost, 1000 → step 9
-      'src/scrabble/components/BoardCol.module.css', //       drag ghost, 100  → step 9
-      'src/scrabble/components/BlankPicker.module.css', //     overlay, 50     → step 10
+      // §7 → Carried forward names the area that owns each.
+      'src/bananagrams/components/PlayerBoard.module.css', // drag ghost, 1000 → shared-game-chrome
+      'src/scrabble/components/BoardCol.module.css', //       drag ghost, 100  → shared-game-chrome
+      'src/scrabble/components/BlankPicker.module.css', //     overlay, 50     → the scrabble area
     ],
     fix:
       'Page-level layers read a token from base.css → the z-index ladder. A ' +

@@ -78,7 +78,7 @@
    and the size disagree. It may be earned: a celebration's title is the loudest
    thing on screen at that moment. But it should be a decision, and today it is
    a leftover from when h2's browser default was also 1.5rem. Settle it at the
-   dialogs pass (plans/css-system-2.md step 7): either drop to the h2 size, or
+   dialogs-and-forms area (plans/css-system-2.md §13): either drop to the h2 size, or
    keep it and say why here. */
 .title {
   margin: 0.2rem 0 0.3rem;
@@ -115,7 +115,7 @@
    buttons, and nothing about being in this dialog should make their focus ring
    differ from the one a form's buttons get. It's a local copy of the shared
    ring, and the shared version should own it. Fix when the dialogs get their
-   pass (plans/css-system-2.md step 7), not here. */
+   area (plans/css-system-2.md §13), not here. */
 .button:focus-visible {
   outline: var(--chrome-cursor-ring);
   outline-offset: 2px;

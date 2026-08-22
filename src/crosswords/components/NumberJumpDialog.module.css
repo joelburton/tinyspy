@@ -3,7 +3,7 @@
 /* The `#` jump-to-number popup. A lightweight centered-near-top modal that
  * takes the POPOVER tier rather than the panel one — above board content,
  * below the floating chat, matching Menu/DefinitionPopover. That a dialog
- * rides the popover tier is recorded as a question for step 8, not changed
+ * rides the popover tier is recorded as a question for the dialogs-and-forms area, not changed
  * here (plans/css-system-2.md §7 → Carried forward). */
 .backdrop {
   position: fixed;

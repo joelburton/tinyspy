@@ -26,7 +26,7 @@
 }
 
 /* The page's outer stack: the header, then the card, 1rem apart. (ClubPage and
- * GamePage each declare their own; unifying them is step 8 of
+ * GamePage each declare their own; unifying them is the club-page area of
  * plans/css-system-2.md, which is also where the name changes — `frame`
  * elsewhere means a rectangle drawn around a board.)
  *
