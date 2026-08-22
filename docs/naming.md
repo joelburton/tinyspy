@@ -209,47 +209,16 @@ names instead: **tuned / justified / locked**, below.
 
 ### tuned / justified / locked
 
-**How much a surface is allowed to differ from the rest of the app** — named for
-the LICENSE each carries, because that is what you need in a sentence: *"the
-turn log is justified, and we're making it pink for this game because …"*.
+How much a surface is allowed to differ from the rest of the app, named for the
+LICENSE each carries: a game's board is **tuned** (a difference is expected),
+game chrome is **justified** (a difference owes a reason in the file), and
+everything non-game is **locked** (a difference is a bug until someone says
+otherwise).
 
-| | the surface | a difference there is |
-|---|---|---|
-| **tuned** | a game's board and its pieces | **expected.** Fitted to the game; standardizing it is not a goal |
-| **justified** | game chrome: the info column, and the furniture around the board | **allowed, and it owes a reason** written in the file. Standard in general — the turn-log frame, the setup disclosures — with named exceptions where a game genuinely differs |
-| **locked** | everything non-game: menus, dialogs, buttons, home, club | **a bug**, until someone says otherwise. Not fatal, but it wastes lines and attention for nothing |
-
-Named rather than numbered because there is no visual anchor to say which end of
-`consistency-1/2/3` is which — see [Numbers or names?](#numbers-or-names)
-above, which this is the cautionary example for.
-
-**LOCKED IS ABOUT WHO DECIDES, NOT ABOUT THE RESULTING NUMBER.** A locked
-component makes no per-instance re-decisions — but a *surface* may declare one
-density and everything inside it follows. That is one decision applying to
-everything in a scope, not a hundred small ones, and the component never knows.
-So `<FilterSelect>` being locked is compatible with it rendering smaller in a
-game's info column, because "things are tighter here" is said once by the info
-column, not per instance by each caller.
-
-The contrast is exactly today's `FilterSelect`: the club page overrides six of
-the component's seven decisions for one instance (a caller disagreeing with a
-component), where the scoped form is `.infoCol { --space-2: …; --font-size-2: … }`
-(a surface stating its own density, once). Which also settles what to do at
-step 9 — the component should state the ROOMY default and the info column
-should tighten it, rather than the reverse, which is what leaves the club page
-undoing six values.
-
-The boundary is the **surface**, not the folder — `components/game/` holds locked
-things (`<ModePill>`, `FilterSelect`), and `<PageHeader>` is locked while
-GamePage carries it. And the line runs *inside* boardCol: the board's contents
-are tuned, the frame around them is justified.
-
-The shared vocabulary — outcome colors, the tile ramp, member colors, the
-feedback pill, the focus ring — cuts across all three and is none of them: the
-three say how much may vary, the vocabulary says what may never.
-
-Fuller version, with the sprint's step order against it, in
-[`plans/css-system-2.md` §6.5](../plans/css-system-2.md).
+**The definition lives in [`plans/css-system-2.md` §6.5](../plans/css-system-2.md)**
+— including the two boundary rules and what "locked" does and doesn't constrain
+— and that file has precedence while the sprint runs. Repeating it here would
+just create a second copy to disagree with.
 
 The cross-cutting terms above apply everywhere. Each game also has its own small lexicon for domain-specific things — connections's `category` / `tile` / `matched`, spellingbee's `pangram` / `bonus word` / `letter mask` / `outcome`, etc. Those lexicons live in the per-game doc's `## Vocabulary` section so the words sit next to the code that uses them:
 

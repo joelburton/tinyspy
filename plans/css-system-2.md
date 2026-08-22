@@ -7,8 +7,20 @@ complex to understand and too fragile to maintain. On any conflict, this
 document wins. `css-system.md` is being folded in and deleted.
 
 **Editorial rule:** decisions, plans and measurements — not rationale. The
-"why" lives in `css-philosophy.md`. This file has to stay readable in one
-sitting or it rots the way its predecessor did.
+"why" lives in `css-philosophy.md`.
+
+**This file has PRECEDENCE while the sprint runs.** Where it and `ui.md`,
+`naming.md` or `code-conventions.md` disagree, this wins — the sprint is one
+organic unit, and scattering its decisions across four files invites
+"which do we believe, line 100 of code-conventions or line 200 of this?".
+Those docs get updated at step 12, when the sprint's durable half moves out
+and this file is deleted.
+
+**It has to stay readable in one sitting**, and that is a maintained property,
+not a hope: its predecessor rotted from being clogged with "we decided then to
+do it this way" and never being tidied, not from length as such. **So it gets
+READ AND TIDIED, not only appended to.** A finished step keeps its ruling and
+loses its story; how something was discovered is `css-philosophy.md`'s.
 
 ---
 
@@ -519,211 +531,74 @@ second pinned-to-bottom variant in `WordEditDialog.actions`), the **badge**
 **empty state** (`WordList.empty` · `TurnLog.turnLogEmpty`), and **transition
 timing** (30 declarations at 80 / 100 / 120 / 160ms).
 
-**Shipped at step 6: `.button-small`** (`utilities.css`) — `0.8rem` at weight
-500 in `0.25rem 0.6rem`. A SIZE, composing with any tone and either treatment.
-Its second consumer, `clubFilters.module.css`'s `.modeOption`, adopts it at step
-8; that will add weight 500 and move its padding 0.05rem.
+### What shipped, and the rule each leaves behind
 
-**A pattern gets a FILE, named for the pattern** (Joel, 2026-08-21) — the
-default, not a threshold to clear: too many files merge easily, one long file
-has to be read through. `common/patterns/button.css` and
-`common/patterns/list.css` exist; `utilities.css` keeps only the adjustments
-that name nothing, `.muted` being the clearest case. It went 293 → 129 lines,
-of which the button was 164.
+Step 6's surfaces (homepage, clubpage) produced these. The **rule** column is
+what still governs; how each was discovered is not kept.
 
-**THE PAGE SHELL — the step-8 target, stated 2026-08-21 (Joel).** The
-viewport-fit chain below is one half of this; the centering is the other, and
-they live on the same two elements, so they get built together.
+| | where | the rule |
+|---|---|---|
+| `.badge` | `patterns/badge.css` | the SHAPE only — the border is `currentColor`, so a caller sets `color` alone. "Solo" on a club row and "Co-op" on a game row are one thing |
+| `.button` (made element-agnostic) + `.button-small` | `patterns/button.css` | `.button` declares its own `display`, radius and `text-decoration`, so it works on a `<a>`. `-small` is a SIZE and composes with any tone |
+| `--chrome-cursor-ring` + `.kb-cursor` | `patterns/focus-ring.css` | one ring; the OFFSET is not taste — `-2px` abutting, `-1px` with its own border, `+2px` with clear space. `.kb-cursor` is the class form for the case no pseudo-class can express (the LIST holds focus) |
+| `.heading-with-controls` | `patterns/heading.css` | a heading plus the control that acts on what is BELOW it. Owns the row, never the type. The `gap` is a MINIMUM (only bites when full); `min-width: 0` decides who gives, without saying how |
+| `.item-list` · `.item-row` · `.item-list-empty` | `patterns/list.css` | the hairline is the LIST's, not the row's — on the row it needs a `:last-child` rule that breaks the moment the row is wrapped. The ELEMENT FOLLOWS THE BEHAVIOR: `<a>` when the row navigates (middle-click is real), `<button>` otherwise |
+| `.segmented` | `patterns/segmented.css` | joined, not a row of buttons — the shape says the options are exclusive. Segments are NOT `.button`s: a button's own border and radius dismantle a segmented control. The chosen one reads `aria-pressed`, which the markup already carries |
+| `<PageHeader>` | `components/chrome/` | a COMPONENT — two slots are structure. Both slots always render. The height is a CONTRACT (`--page-header-height`), read by the component and by `--game-header-bottom` |
+| `h1`–`h4` | `base.css` | four levels, and the LEVEL is the decision — a heading takes no class to be the right size. The sizes are for non-game pages; the info column steps down deliberately |
+| the `:global()` guard | `guards/cssTokens.test.ts` | a module styles its own elements: a `:global()` subject needs a local ancestor, or it restyles every surface |
+| the allowlist guard | `guards/vocabularies.test.ts` | the shrinking-list mechanism every vocabulary plugs into |
 
-> **A page is an optional header above a centered, width-bounded body, and the
-> body is either a card or a layout.**
+Three rulings that outlive the pattern they came from:
 
-Verified against all six non-game pages:
+- **A pattern gets a FILE, named for the pattern** — the default, not a
+  threshold. Too many files merge easily; one long file has to be read through.
+  `utilities.css` keeps only the adjustments that name nothing.
+- **The MENU is not a list.** It looks identical and is a different thing: a
+  menu is a set of ACTIONS you pick from and it closes, a list is a set of
+  PLACES that stay put. Compose on IS-A, never on LOOKS-LIKE — the step-5
+  reading broke that rule on its first outing, and **the same question is owed
+  to every other row-shaped thing** before it converts.
+- **A game's corner flag is not an outcome bar.** Deliberately more prominent, a
+  different thing; the two never merge.
 
-| page | header | body | centered by |
-|---|---|---|---|
-| home | ✓ | `.card` | `.card`: `max-width: 480px; margin: 0 auto` |
-| club | ✓ | two-column region | `.body`: `max-width: 62.5rem; margin-inline: auto` |
-| create-club | — | `.card` | as home |
-| login | — | `.card` | as home |
-| claim-a-handle | — | `.card` | as home |
-| palette | — | `.card` | as home |
-
-The axis that varies is the body's WIDTH and KIND: five pages are a 480px
-bordered card; ClubPage is a 1000px centered region that is NOT a card — no
-border, no background — holding two framed panels side by side. Both are
-centered and bounded.
-
-The no-scroll rule binds on home and club (the two with lists) and is satisfied
-trivially by the rest, which are short forms. **GamePage is out of scope** — its
-layout is its own thing and shouldn't be forced into this box.
-
-Like the header, this is structure, so it is a COMPONENT, not a class. It owns
-the height bound, the centering, and the `.frame` rename below.
-
-**PUNTED at step 6 to step 8: the VIEWPORT-FIT chain** (Joel, 2026-08-21) — it
-moves layout, and one instance isn't enough to see the shape. Revisit at the
-club page, which is where the second instance of the *bound* is.
-
-What the reading found, so it isn't re-derived. `min-height: 0` appears **48
-times in 24 files doing two unrelated jobs**:
-
-- **The viewport-fit chain, 17 sites**, in three roles. The **bound** —
-  `max-height` / `height` off the viewport — exists in exactly two places,
-  `HomePage.frame` and `ClubPage.frame`, and they deliberately differ
-  (`max-height` for a centered card so it isn't stretched, `height` for a
-  full-bleed page; docs/ui.md → Page-height fits the viewport). The **relay** is
-  a flex column + `min-height: 0` that carries the bound down: `HomePage.card`
-  `.clubsSection` · `ClubPage.left` `.startBlock` `.right` · `TurnLog.turnLog` ·
-  `PlayArea.infoCol` · `FloatingPanel.body` · `GameScratchpad.body` ·
-  `AnagramDialog.content` · `InfoSheet` (mobile) · `ChatBody` · crosswords ×6 ·
-  `letterboxed.chainBlock`. The **scroller** ends it with `flex: 1` +
-  `overflow-y: auto`. Eleven of the seventeen relays are game chrome or games,
-  so most of this is steps 9–10 anyway.
-- **Letting a flex or grid item shrink below its content, 31 sites** — the same
-  declaration, nothing to do with the viewport: every game's `.board` / `.grid`
-  / `.tile`, `bananagrams` ×4, and `ClubPage.body` (a ROW splitting sideways).
-  That is board geometry and stays with the games.
-
-**`.frame` is the element this lands on, and it wants renaming at the same
-time** (Joel, 2026-08-21). It is the page's OUTER STACK — a flex column with a
-gap, holding the page's top-level pieces and carrying the bound. Nothing about
-it is header-specific; a page wants one as soon as it has more than one piece,
-which is why login and claim-a-handle have none (their card is their only
-piece). All three pages that do have one declare nearly the same rule — GamePage
-`display:flex` + column + `gap: 1rem`, Home and Club the same plus `width:
-100%` — and only the BOUND differs (none / `max-height` / `height`). But the
-word is taken: `frame` means "a rectangle drawn around a board" in four places
-(`historyViewer.frame`, `PlayArea.gameOverFrame`, crosswords' `.peerFrame`,
-bananagrams' `.boardFrame`), and that is the documented sense. Rename the
-page-level one — `.page` is the candidate — when the bound is settled, so the
-element is touched once.
-
-Naming is unsettled and is the other reason to wait: the relay is "a flex column
-that lets a height bound through instead of stopping it", and neither
-`.passes-height` nor anything mechanism-shaped (`.min-height-zero`) is good
-enough to ship.
-
-**Shipped at step 6: `.badge`** (`patterns/badge.css`) — the shape only, border
-in `currentColor` so the caller sets `color` alone. "Solo" on a club row and
-"Co-op" on a game row are one thing. Solo adopted the mode pill's shape (six
-sites to one, and `text-transform` on a shared badge would render "Co-op" as
-"CO-OP"). `<ModePill>` still holds its own copy; it reads the class at step 8.
-
-**Owed, noted in the code rather than fixed (Joel, 2026-08-21):**
-**Ten consumer modules style `<Dot>` as a bare `.dot`** — a component's own
-module may use short names because the file is the subject; a consumer's may
-not (docs/code-conventions.md → "A component's own module may use short
-names"). Rename at each surface's pass; the qualified form already exists in
-half the app (`greetingDot`, `playerDot`, `rosterDot`, `actorDot`, `itemDot`,
-`bonusDot`).
-**Nine `.body` classes want real names** — a class called `.body` says "body of
-what?" and reads as the page's `<body>`. All nine mean "a panel's content area,
-as opposed to its header": `FloatingPanel`, `GameScratchpad`, `SetupSection`,
-`CelebrationDialog`, `DeviceBlockNotice`, `FaultDialog`, `DefinitionView`,
-crosswords' `ExplainDialog`. Rename at each one's pass (**steps 7–9**);
-ClubPage's tenth was the two-column region and became `.columns`.
-`CelebrationDialog`'s `.title` is an `<h2>` at `1.5rem` — exactly h1's declared
-size, where h2 is `1.25rem`. The one place a level and its size disagree, and a
-leftover from when h2's browser default was also `1.5rem`. It may be earned (a
-celebration's title is the loudest thing on screen at that moment) but it should
-be a decision — **step 7**.
-`CelebrationDialog`'s `.button:focus-visible` is a local copy of the shared
-focus ring — nothing about being in that dialog should make a button's ring
-differ from a form's, so it goes at **step 7**. And `<ShuffleButton>` **should
-never take focus at all**: game stuff doesn't get real focus, which is why board
-tiles and readouts don't (docs/keyboard-shortcuts.md). Its `:focus { outline:
-none }` already says a click leaves no ring; `:focus-visible` then puts one back
-for a keyboard that has ⌥Z anyway. Nine call sites, and the fix is removing the
-tab stop rather than restyling the ring — **at the shuffle games' passes**.
-
-**Shipped at step 6: `--chrome-cursor-ring` + `.kb-cursor`**
-(`patterns/focus-ring.css`) — thirteen sites wrote `2px solid
-var(--chrome-cursor-color)` by hand; now one token. **The offset is the only
-variable and it is not taste**: `-2px` when the element abuts its neighbours,
-`-1px` when it has its own border to sit inside, `+2px` when it has clear space.
-`.kb-cursor` is the class form for the case a pseudo-class cannot express — the
-list holds the focus, so the row the arrows point at has no focus of its own.
-Three byte-identical copies became one. **Not converted, deliberately:**
-`ColorChoiceList.swatchActive` draws the same ring to mean "the color you
-chose", and tying a selected state to a keyboard decision would marry them
-forever — noted in place, its own question at the account pass.
-
-**Shipped at step 6: `<PageHeader>`** (`components/chrome/PageHeader.tsx`) — a
-COMPONENT, not a class, and the correction is the lesson: it was half-built as
-`patterns/page-header.css` before Joel asked whether a shared component already
-existed. None did — home, club and game each hand-rolled the `<header>`. Once
-the pattern grew two slots it was structure, which §7's own table sends to a
-component, and §7 already records the general case ("a shared stylesheet with
-several consumers and no component is a component waiting to be written").
-**The height is now a real contract**: `--page-header-height` in `base.css`,
-read by the component and by `--game-header-bottom` (which positions the mobile
-InfoSheet). Both were the literal `2.5rem`, true only because the header's
-tallest child happens to be the menu trigger — and the token's own comment
-records the sheet riding 4px over the rule when that coincidence slipped.
-
-**Shipped at step 6: `.heading-with-controls`** (`patterns/heading.css`) — a
-heading with the control that acts on what's BELOW it. Named to refuse the
-wrong use: a bare `<h3>` takes no class. Two things the reading settled: the
-`gap` is a MINIMUM that only bites once the row is full (so `0.5rem` everywhere
-costs nothing and is the tightest instance's answer), and `min-width: 0` on the
-heading slot decides who gives — it makes yielding possible without saying how,
-and a heading that can get long owes ellipsis or a dropped clause. **Naming
-ruling (Joel):** `<h1>`–`<h6>` are HEADINGS, the top-of-page strip is a HEADER —
-`.header` in HomePage + ClubPage should become `.page-header`, owed at step 8.
-Found on the way: `<TurnLog>`'s `headerAction` is optional in name only (all
-eleven call sites pass it); the dead branch goes when the turn log converts.
-
-**Shipped at step 6: `.item-list` / `.item-row`** (`patterns/list.css`), with
-the homepage's clubs list as the first consumer. The hairline is declared on
-the LIST (`> *:not(:last-child)`), not the row, because a row wrapped in an
-`<li>` is never its parent's last child and the usual `:last-child` suppression
-silently stops working. Two rulings that came with it: **the element follows the
-behavior** — `<a>` when the row navigates to a URL (middle-click / cmd-click are
-real behavior a `<button>` can't fake), `<button>` otherwise, and today's six
-lists vary mostly by accident; and **a game's corner flag is not an outcome
-bar** — it is deliberately more prominent and a different thing, so the two
-never merge.
-
-**The MENU is not a list** (Joel, 2026-08-21), and the step-5 reading had it
-filed as one on the strength of looking identical. A menu is a set of ACTIONS
-you pick from and it closes; a list is a set of PLACES that stay put. It keeps
-menu names and does not compose `.item-row` — §7's compose on IS-A, never on
-LOOKS-LIKE, which the pattern list itself broke first time out. If the two end
-up sharing code, the shared thing gets its own name and both read it. **The
-same question is owed to every other row-shaped thing on the list** before it
-converts. The two-line density variant waits for its first consumer
-(clubpage) rather than shipping unused. Crosswords' setup chooser is drifted on
-three values (`6px` not `--radius-md`, its own hover and rule colors) and Joel
-ruled that unintended — it converts at its own pass.
-
-Found by converting the homepage's "+ New club", which also made **`.button`
-element-agnostic**: `display: inline-block`, the radius and
-`text-decoration: none` moved into it from the `button { … }` element reset,
-which a `<a>` never matches. Every existing button already computed to those
-three, so nothing moved. The button now carries no class of its own —
-`cls('button', 'secondary', 'button-small')` and nothing else, which is the
-shape the rest of step 6 should reach for.
-
-Three things the reading turned up that are not patterns:
+### Not patterns, though they look like it
 
 - **`.card` and `.actions` each name two different things.** Global `.card` is
-  the page card (homepage, login, club, create-club); `ClubGameCard.card` is a
-  game row in a list. Global `.actions` is a COLUMN of buttons with a top
-  margin; `.modalActions` is an end-aligned ROW. Same word, different thing,
-  in both cases.
-- **`.muted` and `.error` already exist globally and are re-typed anyway** — 65
-  declarations of `color: var(--page-text-muted-color)` and local `.error` rules
-  in `WordEditDialog` + `AnagramDialog`. Whatever the pattern pass ships, the
-  existing utilities are evidence that shipping it is not the same as adopting
-  it.
-- **Three token vocabularies paint a 1px line**, and the theme means them
-  differently — `--page-surface-border-color` `#e2e2e2` (37 uses),
+  the page card; `ClubGameCard.card` is a row in a list. Global `.actions` is a
+  COLUMN of buttons; `.modalActions` is an end-aligned ROW.
+- **`.muted` and `.error` ship globally and are re-typed anyway** — 65
+  declarations of the muted color, local `.error` rules in two dialogs. Shipping
+  a pattern is not the same as adopting it.
+- **Three token vocabularies paint a 1px line** and the theme means them
+  differently — `--page-surface-border-color` `#e2e2e2` (37),
   `--field-edge-color` `#cfcfcf` (13), `--page-divider-color` `#8a8a8a` (10) —
-  but the usage crosses: `HomePage.clubsList` draws a list container in the
-  FIELD edge, `ClubGameCard.row` draws a row divider in it, and `infoPanel.box`
-  draws a 2px border in the DIVIDER gray. Settle per surface at its pass, not
-  here.
+  but usage crosses all three. Settle per surface.
+
+### Carried forward — the checklist
+
+Everything step 6 found and did not do. Each line is a task with an owner step.
+
+| step | |
+|---|---|
+| **8** | **The page shell.** *A page is an optional header above a centered, width-bounded body, and the body is either a card or a layout.* Verified on all six non-game pages: five are a 480px `.card`, ClubPage is a 1000px centered region that is NOT a card. A COMPONENT, like the header. GamePage is out of scope |
+| **8** | **The viewport-fit chain**, which the shell owns. `min-height: 0` appears 48× in 24 files doing TWO jobs: 17 sites are the chain (the **bound** — `max-height` on a centered card, `height` on a full-bleed page, only two sites; the **relay** — a flex column carrying it down; the **scroller**), and 31 are a flex/grid item allowed to shrink below its content, which is board geometry and stays. Eleven of the relays are steps 9–10 anyway. The relay still has no good name |
+| **8** | **`.frame` → `.page`.** It is the page's outer stack, not anything header-specific; all three pages declare nearly the same rule and only the bound differs. The word is taken: `frame` means "a rectangle around a board" in four places. Rename when the bound is settled, so the element is touched once |
+| **8** | `<ModePill>` reads the shared `.badge` — it still holds its own copy of the five values |
+| **8** | **The two-line row** — `.content` / a name line / a muted meta line, in both `StartGameButtons` and `ClubGameCard`. The pattern should name the SLOTS; each component keeps its own name for what goes in one (`.gameTitle`, `.gametypeName`) |
+| **8** | `ClubGameCard`'s `.wrapper` / `.card` names — after the conversion the wrapper IS the row and the card is its inner box, so both names describe the previous arrangement |
+| **8** | The club page's filters render TWICE, desktop and mobile, each hidden in the other mode. A markup decision before a CSS one |
+| **8** | The two-column fold: `.columns` stacks at `--mobile` and `data-tab` hides one side. GamePage answers the same question with the InfoSheet |
+| **7** | `CelebrationDialog`'s `.title` is an `<h2>` at `1.5rem` — h1's size, where h2 is `1.25rem`. May be earned; should be a decision |
+| **7** | `CelebrationDialog`'s `.button:focus-visible` re-declares the shared ring. Nothing about that dialog should change a button's ring |
+| **7–9** | **Nine `.body` classes want real names.** All nine mean "a panel's content area, as opposed to its header": `FloatingPanel`, `GameScratchpad`, `SetupSection`, `CelebrationDialog`, `DeviceBlockNotice`, `FaultDialog`, `DefinitionView`, crosswords' `ExplainDialog`. ClubPage's tenth became `.columns` |
+| **9** | `FilterSelect`'s club-page override INVERTS: the component states the roomy default, the info column tightens it. Today the club page undoes six of its seven decisions one at a time |
+| **9** | `<TurnLog>`'s `headerAction` is optional in name only — all eleven call sites pass it, so the bare-`<h3>` arm is dead. Make it required |
+| **each surface** | **Ten consumer modules style `<Dot>` as a bare `.dot`.** The qualified form already exists in half the app (`greetingDot`, `playerDot`, `rosterDot`, `actorDot`, `itemDot`, `bonusDot`) |
+| **shuffle games** | `<ShuffleButton>` should never take focus at all — game stuff doesn't. Its `:focus { outline: none }` says a click leaves no ring, then `:focus-visible` puts one back for a keyboard that has ⌥Z. The fix is removing the tab stop, not restyling the ring |
+| **crosswords** | its setup chooser is drifted on three values (`6px` not `--radius-md`, its own hover and rule colors) — unintended, per Joel |
+| **account** | `ColorChoiceList.swatchActive` draws the cursor ring to mean "the color you CHOSE" — deliberately not converted, since tying a selected state to a keyboard decision marries them forever. Whether "selected" should look like "the cursor is here" is its own question |
+| **when it has a consumer** | the two-line density variant of `.item-row` |
 
 ## 8. The buckets
 
