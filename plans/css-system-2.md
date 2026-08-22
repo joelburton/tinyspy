@@ -1249,6 +1249,15 @@ itself be the signal that boards became sealed.
 | `CelebrationDialog` | `z-modal-normal` | it looks like one, it already dims, and you can still chat |
 | scrabble's center-letter picker | `z-modal-normal` | the board goes inert, which is the point; chat stays |
 | `HelpPanel` | `z-workspace`, **plus the satellite rule** | keep-open, no Save, X-to-close. Its resting home is the workspace layer; when something above that summons it, it sits just above its summoner |
+| `FloatingChat` → **`ChatWorkspace`** | **workspace**, living at `z-chat` | it matches the workspace test on every axis — resizable, remembers its rect, no dim, no Save, X-to-close, meant to be kept open. Only its layer differs. The current name says `FloatingPanel`, the shell it shares with five other families, which is the thing the rule above exists to stop; `ChatWorkspace` also slots in beside `ChatBody` and `ChatBubble` |
+
+**⚠️ `ChatWorkspace` must NOT be moved to `z-workspace`** — the name will invite
+exactly that. The reason it sits at `z-chat` is the most-discussed rule in this
+whole section: the conversation has to stay reachable over every dim below it,
+and chat is the one workspace that can OPEN ITSELF (a `!` message force-opens it
+for every recipient), so a self-opening panel materializing under a setup modal
+would be worse than not opening at all. That belongs in the component's
+docstring, not only here.
 
 **⚠️ The celebration must NOT be unified onto `FloatingPanel`.** It is the one
 modal that isn't one — a hand-rolled fixed scrim with a card at
@@ -1274,6 +1283,22 @@ three share, and `.modal-normal` styles only the non-blocking one.
 destructive or quiet). Rejected: `-nonblocking` (defines by negation, and is a
 two-character difference from `-blocking` at reading speed, in the one place a
 misread is a real bug).
+
+### One list of names, for both the things and the layers
+
+The families and the layers share a name on purpose. A `workspace` is a kind of
+thing; `z-workspace` is where that kind of thing lives — and inventing a second
+vocabulary for the second axis would mean every future conversation has to say
+which list it means, forever, to buy correctness in two components.
+
+So: **a layer is where its family lives unless a component states otherwise.**
+Two components state otherwise, both written down: `ChatWorkspace` (permanent,
+at `z-chat`) and `HelpPanel` (conditional, just above whatever summoned it).
+That is the same move the satellites make — the scrim and the dropdown were
+never given names either, just described relative to something that had one.
+
+**An exception is safe when it is written where the tempted person is standing.**
+That means the component's docstring, not only this document.
 
 ### The vocabulary is for code too, not just for layers
 
