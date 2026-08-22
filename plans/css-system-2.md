@@ -341,6 +341,89 @@ The step order already obeys this, which is some evidence the model is real
 rather than invented: steps 6–8 are locked surfaces, step 9 is justified's
 shared half, step 10 is tuned plus justified's per-game half.
 
+## 6.6 The vocabularies
+
+**Chosen 2026-08-21. The NAMES are agreed; the VALUES are provisional** — a
+token's whole point is that re-tuning it later is editing one number, not
+revisiting every site. Applied area by area, never swept (§13 → "How a value
+gets converted").
+
+| # | vocabulary | steps | lives in |
+|---|---|---|---|
+| 1 | `--spacer-1 … -5` | `1.5 · 1 · 0.75 · 0.5 · 0.25rem` | `base.css` |
+| 2 | `--font-size-1 … -3` | `1 · 0.85 · 0.75rem` | `base.css` |
+| 3 | `--line-height-1 … -3` | `1.5 · 1.25 · 1` | `base.css` |
+| 4 | the text grays, ×4 | the existing two, a label gray, true black | **the theme** |
+| 5 | `--opacity-1 … -2` | provisional; grows when the `0.4`s surface | `base.css` |
+| 6 | `--transition-duration-paint / -nudge / -travel` | `100 · 80 · 180ms` | `base.css` |
+| 7 | `--letter-spacing-label / -wide` | `0.03em · 0.2em` | `base.css` |
+| 8 | `--border-width-hairline / -thick / -frame` | `1 · 2 · 4px` | `base.css` |
+
+Only #4 is themed. Everything else is a constant: a theme is color (§3), and a
+distance is the same distance in daylight and midnight.
+
+### Notes on the ones that took an argument
+
+**1 · spacer, not space.** "Space" is a key on the keyboard, and casually it also
+means the room *inside* a button between its border and its label. "Spacer" says
+what these are: the space BETWEEN things. `gap` and `margin` were rejected as
+implementation-tied — the vocabulary feeds both.
+
+`--spacer-1` is the BIGGEST, `h1`-style. It reads naturally that way even though
+it is numerically backwards (§5 → Numbers or names?).
+
+**`0.4rem` is deliberately absent.** It and `0.5rem` are the two most-used
+values in locked surfaces (14 and 18), which is exactly what
+difference-without-distinction looks like. Every `0.4` becomes `--spacer-4`
+(`0.5rem`) at its area's pass; if converting one loses something real, that is
+when we learn it and add a member — see the a/b/c rule below.
+
+**6 · three transition buckets, kept separate to be collapsed later.** They fell
+out of reading all 52 uses:
+
+| | job | today |
+|---|---|---|
+| `-paint` | a color settling instead of jumping — hover tints, a button's background | 80–120ms, pure drift |
+| `-nudge` | a piece answering the pointer by MOVING — the tile lift, the shuffle glyph | 80–120ms |
+| `-travel` | something arriving, leaving or growing — the mobile info sheet, a progress bar | 160–240ms, and these have a reason: a sheet that snaps in at 80ms reads as a glitch |
+
+`nudge` rather than `move`, so it doesn't read as a near-synonym of `travel`:
+the distinction is a small response versus a real journey. Joel's call to keep
+`-paint` and `-nudge` apart until we know whether they are one thing.
+
+**ANIMATIONS ARE NOT IN THIS.** `--mark-attention-flash-duration` and
+`--mark-yourTurn-flash-duration` already exist; `verdict-shake 0.4s`,
+`tileFlash 260ms`, `hexFlash 260ms`, `tile-flip 0.55s` and `cardIn 0.35s` are
+game-surface and TUNED. Recorded so a sweep doesn't take them by accident; we
+name them when they start recurring.
+
+**8 · border width, and it has room to grow.** `hairline` is the 1px of a
+divider or a field edge (48 uses); `thick` is 2px, the "this box is a thing"
+border (the active-game callout, the info-panel box, the feedback pill);
+`frame` is 4px, "something is happening to what's inside" (the history ring,
+the game-over frame, the toast stripe). `--border-width-thick` rather than
+`-border`, which inside `--border-width-` is noise.
+
+The names leave the obvious room: if a heavier frame is ever needed — your-move
+thinner than you-lost — it is `frame-thick`, and nothing has to be renamed.
+
+Two `3px` survive (the rank bar, the verdict outline). Not pre-decided: they get
+surfaced at their pass under the rule below.
+
+### The a/b/c rule — what happens when a value doesn't fit
+
+**A value outside the vocabulary is surfaced and explicitly decided.** One of:
+
+- **(a) add it to the vocabulary** — it is a level nobody had named;
+- **(b) fit it to an existing level** — the usual answer;
+- **(c) keep it bespoke** — rare, and it owes a reason written in the file.
+
+**Never silently kept because it is already there.** The test is Joel's: *"there
+is no such thing as 6 bespoke values."* Recurrence means a level nobody named,
+not six exceptions. This governs every vocabulary here, and it is the half §13's
+silent-vs-ask rule was missing — that one says when to ask, this one says what
+the answer may be.
+
 ## 7. Patterns — the bigger win
 
 The pattern list gets written by reading rendered surfaces, **never by grepping
@@ -811,7 +894,7 @@ the scanner counts it as a reference and reserved cells stay alive.
 | 5 | ~~shallow whole-app pattern pass~~ **DONE 2026-08-21** | Ten patterns named, plus five below the line, in §7 → "The named patterns". Read off the rendered surfaces, then counted. Also settled: device density (§9), and three findings that are name collisions rather than patterns |
 | 6 | ~~homepage~~ · ~~clubpage~~ **PARTLY DONE 2026-08-21, and deliberately stopped** | Both were converted with the pattern half of the toolkit — see "Why 6 stopped" below. Shipped off them: `.badge`, `.button-small` + an element-agnostic `.button`, `--chrome-cursor-ring` + `.kb-cursor`, `.heading-with-controls`, `.item-list`/`.item-row`/`.item-list-empty`, `.segmented`, `<PageHeader>`. `HomePage.module.css` 254 → 76 lines; `ClubPage.module.css` 270 → 216 |
 | 6a | **the CONVERSION PROCESS + the allowlist guard** | Not a sweep. Write down the silent-vs-ask rule (below), and build the shrinking-allowlist guard mechanism ONCE so every vocabulary can use it. Radius needs no new values — `--radius-sm/md/lg` already exist |
-| 6b | **VOCABULARY — invention** | Pick provisional values for `--space-N`, `--font-size-N`, line-height, letter-spacing, transition duration, and a small **opacity** vocabulary (§18). Into `base.css`; the extra text gray into the theme. **Snap and move on** — objections go in §15's quibble list, not into a debate |
+| 6b | ~~**VOCABULARY — invention**~~ **NAMED 2026-08-21** | The eight vocabularies and their provisional values are §6.6, with the a/b/c rule that governs a value outside them. Names agreed, values provisional. **Not rolled out** — they land area by area (§13 → "How a value gets converted") |
 | 6c | **z-index, on its own** | Not a ramp — a stacking order, named by bucket (`--z-index-chatPanel`), and its failure mode is a real bug rather than drift. Needs a survey of what stacks against what |
 | 6d | **homepage, again** | The rehearsal for the full toolkit: patterns + vocabulary + the page shell. Plus a **React pass** — the duplication is not only in the CSS |
 | 7 | dialogs + forms | the first real win — many near-identical instances. Also decide here: whether to LOAD a font (§18) |
@@ -1004,58 +1087,8 @@ vocabulary; invent it if we ever need it.
 - **What actually goes in `light-mode.css`** — possibly nothing. Kept as a named
   home so nobody invents a filename mid-work.
 - **Device density** (§9) — SETTLED 2026-08-21, see §9.
-- **A limited vocabulary of DISTANCES** (Joel, 2026-08-21 — noodled, not
-  decided). The shape, so it isn't re-derived:
-
-  - `--space-1 … --space-N`, global, and **property-agnostic**: it mostly feeds
-    `gap` (40 distinct gap values against 14 margin ones), so a name like
-    `--margin-top-2` would be read as a `gap` within a week.
-  - **Not theme- or polarity-scoped.** Themes are color (§3).
-  - **The class names the thing and reads the token.** The markup stays
-    `<button class="button primary">` — no `mt-2`-style utility, because a
-    spacing decision in JSX can't be changed by editing CSS, and every pattern
-    so far has *absorbed* spacing rather than parameterizing it.
-  - **DENSITY SCOPES are the real prize.** `.infoCol` re-declares the same token
-    names one notch tighter and its whole subtree follows, so "this is smaller
-    in the info column" stops being N overrides in a dozen modules. Custom
-    properties already do this in three places here — a game's `--tile-bg-color`,
-    `<Dot>`'s `--dot-size`, scrabble's `--viewer-accent` on the board column.
-  - **A hand-entered literal length becomes a smell on JUSTIFIED and LOCKED surfaces**,
-    needing justification. That is the `no unnamed colors` guard's sentence with
-    a different noun, and that guard has held for months.
-  - **DEFINE IT PROVISIONALLY NOW, apply as each surface converts, re-fit the
-    values once near the end.** My first instinct was to measure after the
-    patterns land, on the grounds that patterns keep eating spacing
-    declarations — `.clubsList`'s margin vanished, `.left`/`.right` collapsed to
-    one, the h3 margins became a heading level. Joel's counter, and it wins:
-    this sweep reads every file exactly once, so a scale that doesn't exist yet
-    means seeing `gap: 0.4rem` and leaving it, then coming back later.
-
-    The caution was weak anyway, because **the indirection makes re-fitting
-    nearly free**: a site says `var(--space-2)`, so re-tuning the ramp is
-    editing five numbers in one place and no site moves. Getting the values
-    slightly wrong now costs almost nothing; not having names costs a second
-    pass over everything.
-
-    It also fixes something visible in this doc's own history: every pattern
-    written on 2026-08-21 picked a spacing value and then justified it in a
-    comment — `0.5rem` on the heading row, `0.4rem 0.9rem` on the packed rows,
-    `0.375rem` in the page header. Each defensible alone; together they are
-    three opinions of "small".
-
-  **STILL BEING THOUGHT THROUGH — not decided, and not to be treated as
-  settled.** Recorded here because it is too big to hold in session memory.
-
-  Measured 2026-08-21, gap + margin in rem, as the before-picture:
-  **locked** 17 distinct values over 79 declarations (five cover 55);
-  **justified** 12 over 45, the same top five; **tuned** 20 over
-  222, out of scope by definition. The union of the two top-fives is roughly
-  `0.25 · 0.4 · 0.5 · 0.75 · 1 · 1.5`.
-
-  **The one open question inside the question:** are `0.4` and `0.5` two steps
-  or one? They are the two most-used values (14 and 18 on locked surfaces), which
-  either means both are real or means one idea is spelled two ways. Joel is not
-  ready to settle this yet.
+- **The VOCABULARIES** — decided 2026-08-21, moved to §6.6. Values are
+  provisional by declaration; the names are the part that was agreed.
 
 - **Should we LOAD a font?** (Joel, 2026-08-21) — decide at step 7. We ship no
   webfont at all today: no `@font-face`, no font file in the repo, `body` is
