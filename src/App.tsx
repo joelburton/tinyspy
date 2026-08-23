@@ -19,6 +19,9 @@ import { useWordEdit } from './common/lib/definitions/wordEditStore'
 import { GameInvitations } from './common/components/game/GameInvitations'
 import { ToastHost } from './common/components/toasts/ToastHost'
 import { FaultDialog } from './common/components/feedback/FaultDialog'
+import { Loading } from './common/components/loading-and-errs/Loading'
+import { ErrorPage } from './common/components/loading-and-errs/ErrorPage'
+import { logStamp } from './common/lib/supabase/realtimeDiag'
 import { TooltipHost } from './common/components/tooltips/TooltipHost'
 import { useRealtimeReconnect } from './common/hooks/realtime/useRealtimeReconnect'
 import { useBacktickEscape } from './common/hooks/input/useBacktickEscape'
@@ -87,7 +90,7 @@ export default function App() {
   // reason. Keyed by the request so switching words remounts fresh state.
   const wordEdit = useWordEdit()
 
-  if (loading) return <div className="card">Loading…</div>
+  if (loading) return <Loading />
   // The palette page, ahead of the auth gates on purpose: it renders tokens, not
   // data, so there is nothing to sign in for. Unlinked but not hidden — it ships,
   // and anyone who types the path gets it. See PalettePage for what it is for.
@@ -133,13 +136,21 @@ export default function App() {
         const [, gametype, gameId] = gameMatch
         const game = games.find((g) => g.gametype === gametype)
         if (!game) {
+          // A FAULT, not a polite empty state (Joel, 2026-08-23): every
+          // gametype in a URL came from a link this app wrote, so an
+          // unregistered one means the registry and the link disagree. There is
+          // no server error to classify, so the diagnostics line is written by
+          // hand, the same way the homepage's no-clubs fault writes its own.
           page = (
-            <div className="card">
-              <h1>Unknown game type</h1>
-              <p className="error">
-                No registered game called <code>{gametype}</code>.
-              </p>
-            </div>
+            <ErrorPage
+              message={
+                <>
+                  There's no game type called <code>{gametype}</code>. The link is
+                  wrong, or the game was removed from the app.
+                </>
+              }
+              diagnostics={`route — key=unknown-gametype detail="${gametype}" — ${logStamp()}`}
+            />
           )
         } else {
           const PlayArea = game.PlayArea
@@ -148,7 +159,7 @@ export default function App() {
               key={gameId}
               gameId={gameId}
               session={session}
-              gametype={gametype}
+              manifest={game}
             >
               {(ctx) => (
                 // The two mount-only console breadcrumbs for "blank play

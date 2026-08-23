@@ -1,6 +1,8 @@
 // cs-unmet
 
 import { Component, type ReactNode } from 'react'
+import { ErrorPage } from '../loading-and-errs/ErrorPage'
+import { logStamp } from '../../lib/supabase/realtimeDiag'
 
 /**
  * Error boundary around the play surface — the only boundary in the app.
@@ -37,16 +39,20 @@ export class PlayAreaErrorBoundary extends Component<
 
   render() {
     if (this.state.error === null) return this.props.children
+    // Reload is offered ALONGSIDE the shared "← Back home", not instead of it:
+    // a crashed render is the one dead end where retrying the same URL is a
+    // real fix, and the one where leaving might lose a game in progress
+    // (F39 `loading-and-errors`).
     return (
-      <div className="card">
-        <h1>Something went wrong</h1>
-        <p className="error">{this.state.error.message}</p>
-        <p>
+      <ErrorPage
+        message={this.state.error.message}
+        diagnostics={`play area — key=render-crashed detail="${this.state.error.name}" — ${logStamp()}`}
+        action={
           <button type="button" className="button primary" onClick={() => window.location.reload()}>
             Reload
           </button>
-        </p>
-      </div>
+        }
+      />
     )
   }
 }

@@ -7,7 +7,6 @@ import { db as commonDb } from '../../db'
 import { supabase } from '../../lib/supabase/supabase'
 import { channelLeaving, releaseChannel } from '../../lib/supabase/channelTeardown'
 import { cls } from '../../lib/util/cls'
-import { Link } from '../../lib/routing/Link'
 import { navigate } from '../../lib/routing/router'
 import { channelDedupSuffix } from '../../lib/supabase/channelDedup'
 import { onPostgresAttached } from '../../lib/supabase/postgresAttached'
@@ -18,6 +17,9 @@ import { IconBack, IconHelp } from '../icons'
 import { MODE_LABEL, playerCountFits } from '../../lib/games'
 import { useClubPresence } from '../../hooks/realtime/useClubPresence'
 import { useClubSetupPresence } from '../../hooks/realtime/useClubSetupPresence'
+import { Loading } from '../loading-and-errs/Loading'
+import { ErrorPage } from '../loading-and-errs/ErrorPage'
+import { logStamp } from '../../lib/supabase/realtimeDiag'
 import { ChatBubble } from '../chat/ChatBubble'
 import { FloatingChat } from '../chat/FloatingChat'
 import { ClubGameCard } from './ClubGameCard'
@@ -755,18 +757,17 @@ export function ClubPage({ handle, session }: Props) {
     }
   }, [club])
 
-  if (loading) return <div className="card">Loading club…</div>
+  if (loading) return <Loading />
+  // The club did not load, so there is no page to put a modal over — the
+  // failure IS the route (F39 `loading-and-errors`). `error` already carries
+  // the classifier's words via `failureText`; the line below adds the handle,
+  // which is the one thing a reader needs that the message cannot know.
   if (error || !club) {
     return (
-      <div className="card">
-        <h1>Couldn't load club</h1>
-        <p className="error">{error ?? 'Unknown error.'}</p>
-        <p>
-          <Link to="/" className="link-button">
-            ← Back home
-          </Link>
-        </p>
-      </div>
+      <ErrorPage
+        message={error ?? 'Unknown error.'}
+        diagnostics={`club — key=club-load-failed detail="${handle}" — ${logStamp()}`}
+      />
     )
   }
 

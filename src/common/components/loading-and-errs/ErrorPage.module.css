@@ -1,0 +1,52 @@
+/* cs-unmet */
+
+/* The fault modal's three lines, as a PAGE. Deliberately the same values as
+   FaultDialog.module.css — if one of them changes, both should. */
+
+/* @@ */ .page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacer-4);
+}
+
+/* Line 1: the shape test. Red, unmissable, no softening.
+
+   An `<h1>` because on a page this IS the page's title (base.css → the heading
+   levels), where the modal's is a `<p>` inside a panel that has its own title.
+   The size is the modal's, not h1's: the word carries the weight, and a 1.5rem
+   "Error" over one sentence reads as shouting.
+
+   That size and the diagnostics size below are NOT on the font-size ramp, and
+   that is the point — they are FaultDialog's, to the digit. Matching the modal
+   is the whole design, so converting one side alone would break it. Both files
+   sit on the guard's pending list and convert together at `dialogs-and-forms`. */
+/* @@ */ .heading {
+  color: var(--chrome-fault-color);
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+/* Line 2: what went wrong, in words. Wraps freely — a raw fe-error-key must be
+   readable in full. */
+/* @@ */ .message {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Line 3: small and muted by design. Line 2 is what a player reads; this is
+   what they read ALOUD to whoever debugs. Same content as the `[db]` line. */
+/* @@ */ .diagnostics {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--page-text-muted-color);
+  overflow-wrap: anywhere;
+}
+
+/* The way out. Row rather than stack, since there are at most two. */
+/* @@ */ .actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacer-2);
+  margin: var(--spacer-4) 0 0;
+}

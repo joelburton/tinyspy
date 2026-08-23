@@ -10,7 +10,6 @@ import {
   type ReactNode,
 } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import { games } from '../../../games'
 import type {
   GenericFeedbackApi,
   GenericFeedbackMsg,
@@ -33,7 +32,6 @@ import { formatTimerSeconds } from '../../hooks/game/useGameTimer'
 import { useClubRoster } from '../../hooks/club/useClubRoster'
 import { useChatFeedback } from '../../hooks/chat/useChatFeedback'
 import { navigate } from '../../lib/routing/router'
-import { Link } from '../../lib/routing/Link'
 import { ChatBubble } from '../chat/ChatBubble'
 import { FloatingChat } from '../chat/FloatingChat'
 import { ScratchpadBubble } from '../panels/ScratchpadBubble'
@@ -47,6 +45,10 @@ import { InfoSwitchButton } from './InfoSwitchButton'
 import { PageHeader } from '../chrome/PageHeader'
 import { StatusSlot } from './StatusSlot'
 import { SuspendConfirmDialog } from './SuspendConfirmDialog'
+import { Loading } from '../loading-and-errs/Loading'
+import { ErrorPage } from '../loading-and-errs/ErrorPage'
+import { logStamp } from '../../lib/supabase/realtimeDiag'
+import type { GameManifest } from '../../lib/games'
 import styles from './GamePage.module.css'
 
 type Props = {
@@ -56,11 +58,19 @@ type Props = {
   /** Authenticated session, threaded into useCommonGame for
    *  presence tracking and re-exposed via ctx to PlayArea. */
   session: Session
-  /** The gametype string. Used here to look up the manifest's
-   *  submitTimeout dispatcher when the timer expires, to pick
-   *  the right SVG for `<GameLogo>`, and to fetch the per-game
-   *  `help` component for the menu's Help item. */
-  gametype: string
+  /**
+   * The game's manifest, resolved by the ROUTER and handed down.
+   *
+   * Not the gametype string: App already looks the manifest up to decide
+   * whether the URL names a real game at all, and a second lookup here could
+   * only fail in a way the first one already ruled out (it did have one, and
+   * the dead branch rendered "Unknown game type." where nobody could reach it —
+   * plans/areas/homepage.md → F39 `loading-and-errors`).
+   *
+   * Used for the submitTimeout dispatcher when the timer expires, the right SVG
+   * for `<GameLogo>`, and the per-game `help` component for the menu.
+   */
+  manifest: GameManifest
   /** Render-prop child. Receives `GamePageCtx` and returns the
    *  per-gametype play surface JSX. Called only when the game is
    *  loaded AND not paused — PauseBoundary conditional-renders
@@ -137,9 +147,10 @@ const PEER_PILL_MS = 3000
 export function GamePage({
   gameId,
   session,
-  gametype,
+  manifest,
   children,
 }: Props) {
+  const gametype = manifest.gametype
   const {
     commonGame,
     players,
@@ -220,8 +231,6 @@ export function GamePage({
     prevExpiredRef.current = timer.expired
     if (!timer.expired || wasExpired) return
     if (commonGame.ended_at !== null) return // a peer already ended it
-    const manifest = games.find((g) => g.gametype === gametype)
-    if (!manifest) return
     manifest.submitTimeout(gameId).then((result) => {
       if (result.error) {
         // P0001 'game is not active' on a peer-race is silently
@@ -237,7 +246,7 @@ export function GamePage({
         )
       }
     })
-  }, [timer.expired, paused, commonGame, gameId, gametype])
+  }, [timer.expired, paused, commonGame, gameId, manifest])
 
   // App-chrome keyboard shortcuts: "/" opens chat, "?" opens this menu,
   // "~" opens the word-lookup dialog (the hook owns + returns that
@@ -420,12 +429,7 @@ export function GamePage({
     globalFeedback: globalFeedbackApi,
   })
 
-  // Resolve the gametype's manifest once for downstream uses
-  // (logo, help component). Find returns undefined for unknown
-  // gametypes; we guard render below.
-  const manifest = games.find((g) => g.gametype === gametype)
-
-  if (loading) return <div className="card">Loading game…</div>
+  if (loading) return <Loading />
   // No common.games row for this id. The likely stories: the game was
   // deleted (someone in the club cleaned it up), or the URL is wrong /
   // stale. Either way the player has nowhere to go from here except
@@ -433,21 +437,12 @@ export function GamePage({
   // same shape as ClubPage's couldn't-load card.
   if (!commonGame) {
     return (
-      <div className="card">
-        <h1>Game not found</h1>
-        <p>
-          There's no game here. It may have been deleted, or the link
-          you followed might be wrong or out of date.
-        </p>
-        <p>
-          <Link to="/" className="link-button">
-            ← Back home
-          </Link>
-        </p>
-      </div>
+      <ErrorPage
+        message="There's no game here. It may have been deleted, or the link you followed might be wrong or out of date."
+        diagnostics={`game — key=game-not-found detail="${gametype}/${gameId}" — ${logStamp()}`}
+      />
     )
   }
-  if (!manifest) return <div className="card">Unknown game type.</div>
 
   // The gametype's manual end-game dispatcher, if it has one (bananagrams has no
   // whole-table end — see the manifest). Used by the pause overlay's End-game

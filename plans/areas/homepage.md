@@ -5,9 +5,9 @@ The first area of the CSS sprint's step 7. The process is
 holds everything else.
 
 **Status: RESUMED, and a second subject added.** Thirty-nine findings,
-THIRTY resolved (F1, F2, F4, F5, F6, F6.1, F7, F8, F9, F10, F11, F14, F15,
+THIRTY-ONE resolved (F1, F2, F4, F5, F6, F6.1, F7, F8, F9, F10, F11, F14, F15,
 F16, F17, F18, F19, F20, F22, F23, F24, F25, F28, F29, F32, F33, F34, F35, F36,
-F37) — where "resolved" includes the ones FOLDED into a later finding rather
+F37, F39) — where "resolved" includes the ones FOLDED into a later finding rather
 than fixed.
 
 Shipped so far: the two dead-reference fixes, the class guard, the vocabularies,
@@ -1403,7 +1403,59 @@ has it — after which there is nothing to narrow and nothing to check.
 delete a game type? If we ever do, we can re-think this to be something more
 polite. But this is a fault, and not at all transient."*).
 
-> resolution:
+> **resolution (Joel, 2026-08-23): BUILT, fix-forward across all eight sites in
+> one commit.**
+>
+> **The fix-forward call, and why it was the only sensible one.** The choice was
+> between doing this everywhere now and doing the homepage's share first — and
+> the homepage has NO share: of the eight sites, two are the router's, two are
+> ClubPage's, three are GamePage's and one is the error boundary's. The
+> homepage's own "not ready" is the blank reserved line and its own failure is
+> the fault modal, both already built by F14 (`empty-clubs-is-a-fault`). Doing
+> "the homepage's part" would have converted the shell's loader and left seven,
+> which is worse than not starting: the inconsistency stops looking accidental
+> and starts looking decided.
+>
+> **Joel explicitly allowed the multi-area commit** — §21 says no commit spans
+> two areas, and this one touches ClubPage and GamePage before either area
+> opens. *"I'm explicitly allowing multiple-areas in commit. This doesn't make
+> clubpage or gamepage 'found' or change their sprint-marker, remember."*
+> Neither stamp moved.
+>
+> **What shipped**, in `src/common/components/loading-and-errs/`:
+>
+> - **`<Loading />`** — one word, no card, no border, muted. Three call sites.
+> - **`<ErrorPage />`** — the fault modal's three lines as a page: the red
+>   "Error", the message, the small separate diagnostics. Inside a `.card`,
+>   which is what all five already were and what a card IS (F37
+>   `card-only-page`), so the page still reads white-on-gray like the modal.
+>   Diagnostics are REQUIRED by the type, not optional — a page that says
+>   "something went wrong" and nothing else leaves nothing to diagnose.
+> - **One way out on every one of them**, "← Back home", with Reload passed as
+>   an extra action by the error boundary only.
+>
+> **The unreachable branch is gone, and its removal changed a prop.** App now
+> hands `<GamePage>` the MANIFEST it already resolved instead of the gametype
+> string, so the second lookup — and the `Unknown game type.` it guarded — has
+> nothing left to do. `gametype` is derived from `manifest.gametype` inside.
+>
+> **Two things the guards caught, both worth keeping:**
+>
+> - `vocabularies.test.ts` failed the new CSS file immediately, which is the
+>   "a new file has no row at all" property doing its job. Its two spacers were
+>   exact matches and converted silently; its two FONT SIZES are FaultDialog's
+>   to the digit and stay bespoke with the reason in the file — matching the
+>   modal is the design, so converting one side alone would break it. Both files
+>   convert together at `dialogs-and-forms`.
+> - `PlayAreaErrorBoundary.test.tsx` went red on the old copy, which is the test
+>   earning its keep. It now asserts the red "Error", the thrown message, the
+>   `key=render-crashed` diagnostics, AND both ways out — with a note saying why
+>   Reload is asserted beside "← Back home" rather than instead of it.
+>
+> **Full e2e run: 216 passed, 7 failed, none of them caused by this.** Six are
+> the filed club-page and homepage specs (F3 `home-keyboard-spec` and the two
+> club specs on the plan's carried-forward list). The seventh is
+> `wordle-keyboard.e2e.ts` — see below.
 
 ### The three names this area produced
 

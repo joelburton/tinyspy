@@ -331,6 +331,10 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/components/definitions/WordEditDialog.module.css': ['0.8rem', '0.9rem', '0.85rem'],
       'src/common/components/definitions/WordLookupDialog.module.css': ['0.95rem', 'max(16px,', '1em)'],
       'src/common/components/feedback/FaultDialog.module.css': ['1.1rem', '0.78rem'],
+      // ErrorPage is FaultDialog's twin as a PAGE (F39 `loading-and-errors`);
+      // its two sizes are copied to the digit so the two read as one event.
+      // They convert together or not at all.
+      'src/common/components/loading-and-errs/ErrorPage.module.css': ['1.1rem', '0.78rem'],
       'src/common/components/feedback/GenericFeedbackPill.module.css': ['1.1rem'],
       'src/common/components/fields/SelectField.module.css': ['0.9rem'],
       'src/common/components/game/CelebrationDialog.module.css': ['2.4rem', '1.5rem'],
