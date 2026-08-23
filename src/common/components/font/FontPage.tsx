@@ -6,7 +6,7 @@ import { FONT, GRADES, LINE, SAMPLE, SIZES, TILE_WORDS, WEIGHTS, WIDTHS } from '
 import styles from './FontPage.module.css'
 
 /**
- * The font page — one candidate face, shown doing the jobs this app asks of it.
+ * The font page — the app's face, shown doing the jobs this app asks of it.
  *
  * The twin of `/palette`, and for the same reason: a decision you cannot look
  * at is a decision nobody can check. Type `/font` to see it; it is not linked
@@ -61,14 +61,15 @@ export function FontPage() {
   return (
     <div className={cls('card', styles.page)}>
       <h1>Font — {FONT.family}</h1>
-      <p className="muted">
-        Everything below the next paragraph is set in <strong>{FONT.family}</strong>, served from{' '}
-        <code>{FONT.file}</code> ({FONT.sizeKB} KB, Latin only). This paragraph is not — it is the
-        system font, left here on purpose so there is always something real to compare against.{' '}
+      <p className={cls('muted', styles.systemFont)}>
+        <strong>{FONT.family}</strong> is the app's font now — everything on this page is set in it
+        except this paragraph, which is pinned to the system font so there is always a baseline on
+        screen. Served from <code>{FONT.file}</code> ({FONT.sizeKB} KB), built by{' '}
+        <code>scripts/subset-font.py</code>.{' '}
         <a href="/font?theme=daylight">daylight</a> · <a href="/font?theme=midnight">midnight</a>
       </p>
 
-      <div className={styles.costs}>
+      <div className={cls(styles.costs, styles.systemFont)}>
         {FONT.costs.map((c) => (
           <span key={c.dials}>
             {c.dials}: <strong>{c.kb} KB</strong>
@@ -76,7 +77,7 @@ export function FontPage() {
         ))}
       </div>
 
-      <div className={styles.specimen}>
+      <div>
         {/* ── The live one ─────────────────────────────────────────── */}
         <section className={styles.section}>
           <div className={styles.sectionHead}>
@@ -177,7 +178,7 @@ export function FontPage() {
           <div className={styles.sectionHead}>
             <h2>Against the system font</h2>
             <span className={styles.rowLabel}>
-              Same words, same size. The top line is what the app looks like today. The width
+              Same words, same size. The top line is what the app looked like before this landed. The width
               slider above drives the bottom line, and the reason to reach for it here is that
               this face sets NARROWER than the system one — so the comparison to make is not only
               against 100%. Somewhere a little above it is the width at which the two hold the
@@ -187,7 +188,7 @@ export function FontPage() {
           </div>
           <div className={styles.row}>
             <span className={styles.rowLabel}>system-ui</span>
-            <span style={{ fontFamily: 'system-ui, sans-serif' }}>{SAMPLE}</span>
+            <span className={styles.systemFont}>{SAMPLE}</span>
           </div>
           <div className={styles.row}>
             <span className={styles.rowLabel}>

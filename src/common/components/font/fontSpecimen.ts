@@ -19,9 +19,10 @@
 /** The candidate, and what it is. */
 export const FONT = {
   family: 'Roboto Flex',
-  file: '/fonts/roboto-flex-latin.woff2',
-  /** Latin subset, carrying weight · width · grade · slant · optical size. */
-  sizeKB: 288,
+  file: '/fonts/roboto-flex.woff2',
+  /** Our own subset — Latin plus `→ ← ≥ ≈ ≠` — carrying weight · width ·
+   *  grade · slant · optical size. Built by `scripts/subset-font.py`. */
+  sizeKB: 292,
   /** What the same file costs with fewer dials, measured from Google's CDN. */
   costs: [
     { dials: 'weight only', kb: 33 },
@@ -29,7 +30,7 @@ export const FONT = {
     { dials: 'weight + width', kb: 58 },
     { dials: 'weight + width + grade', kb: 79 },
     { dials: '+ optical size', kb: 235 },
-    { dials: '+ slant (this file)', kb: 288 },
+    { dials: '+ slant (what we ship)', kb: 292 },
   ],
 } as const
 

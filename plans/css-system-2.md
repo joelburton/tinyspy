@@ -648,26 +648,30 @@ Three rulings that outlive the pattern they came from:
 
 ### Carried forward — the checklist
 
-Everything step 6 found and did not do. Each line is a task with an owner step.
+Everything step 6 found and did not do. Each line is a task with an OWNING
+AREA. (It used to say "step", with the numbers 8/9/10 that were retired when
+those steps folded into 7 — the mapping is the one §6.5 uses: the old 8 was
+locked surfaces, the old 9 was justified's shared half, the old 10 was tuned
+plus justified's per-game half.)
 
-| step | |
+| area | |
 |---|---|
-| **8** | **The page shell.** *A page is an optional header above a centered, width-bounded body, and the body is either a card or a layout.* Verified on all six non-game pages: five are a 480px `.card`, ClubPage is a 1000px centered region that is NOT a card. A COMPONENT, like the header. GamePage is out of scope |
-| **8** | **The viewport-fit chain**, which the shell owns. `min-height: 0` appears 48× in 24 files doing TWO jobs: 17 sites are the chain (the **bound** — `max-height` on a centered card, `height` on a full-bleed page, only two sites; the **relay** — a flex column carrying it down; the **scroller**), and 31 are a flex/grid item allowed to shrink below its content, which is board geometry and stays. Eleven of the relays are steps 9–10 anyway. The relay still has no good name |
-| **8** | **`.frame` → `.page`.** It is the page's outer stack, not anything header-specific; all three pages declare nearly the same rule and only the bound differs. The word is taken: `frame` means "a rectangle around a board" in four places. Rename when the bound is settled, so the element is touched once |
-| **8** | `<ModePill>` reads the shared `.badge` — it still holds its own copy of the five values |
-| **8** | **The two-line row** — `.content` / a name line / a muted meta line, in both `StartGameButtons` and `ClubGameCard`. The pattern should name the SLOTS; each component keeps its own name for what goes in one (`.gameTitle`, `.gametypeName`) |
-| **8** | `ClubGameCard`'s `.wrapper` / `.card` names — after the conversion the wrapper IS the row and the card is its inner box, so both names describe the previous arrangement |
-| **8** | The club page's filters render TWICE, desktop and mobile, each hidden in the other mode. A markup decision before a CSS one |
-| **8** | The two-column fold: `.columns` stacks at `--mobile` and `data-tab` hides one side. GamePage answers the same question with the InfoSheet |
-| **8** | **A dialog riding the popover tier.** crosswords' `NumberJumpDialog` is a `position: fixed` modal with its own scrim taking `--z-index-popover`, not `--z-index-panel` — so a menu could open over it. It has always painted this way; converting it named the tier without asking whether it is the right one |
-| **9** | **The two drag ghosts disagree** — bananagrams 1000, scrabble 100, and `dragGhost.module.css` says the split is unintended. Both are `position: fixed`, so they are two tiers apart against everything else: scrabble's paints BELOW an open dialog, bananagrams's above. Nobody drags mid-dialog, which is why it has never shown. Neither takes a token until they agree |
-| **7** | `CelebrationDialog`'s `.title` is an `<h2>` at `1.5rem` — h1's size, where h2 is `1.25rem`. May be earned; should be a decision |
-| **7** | `CelebrationDialog`'s `.button:focus-visible` re-declares the shared ring. Nothing about that dialog should change a button's ring |
-| **7–9** | **Nine `.body` classes want real names.** All nine mean "a panel's content area, as opposed to its header": `FloatingPanel`, `GameScratchpad`, `SetupSection`, `CelebrationDialog`, `DeviceBlockNotice`, `FaultDialog`, `DefinitionView`, crosswords' `ExplainDialog`. ClubPage's tenth became `.columns` |
-| **9** | `FilterSelect`'s club-page override INVERTS: the component states the roomy default, the info column tightens it. Today the club page undoes six of its seven decisions one at a time |
-| **9** | `<TurnLog>`'s `headerAction` is optional in name only — all eleven call sites pass it, so the bare-`<h3>` arm is dead. Make it required |
-| **10** (scrabble) | **`BlankPicker`'s overlay at `z-index: 50`** — a full-screen `position: fixed` modal parked BELOW the panel tier, so an open chat or menu paints over it. Long-recorded as the ladder's known anomaly; it wants a look, not a reflex bump |
+| `club-page` | **The page shell.** *A page is an optional header above a centered, width-bounded body, and the body is either a card or a layout.* Verified on all six non-game pages: five are a 480px `.card`, ClubPage is a 1000px centered region that is NOT a card. A COMPONENT, like the header. GamePage is out of scope |
+| `club-page` | **The viewport-fit chain**, which the shell owns. `min-height: 0` appears 48× in 24 files doing TWO jobs: 17 sites are the chain (the **bound** — `max-height` on a centered card, `height` on a full-bleed page, only two sites; the **relay** — a flex column carrying it down; the **scroller**), and 31 are a flex/grid item allowed to shrink below its content, which is board geometry and stays. Eleven of the relays are steps 9–10 anyway. The relay still has no good name |
+| `club-page` | **`.frame` → `.page`.** It is the page's outer stack, not anything header-specific; all three pages declare nearly the same rule and only the bound differs. The word is taken: `frame` means "a rectangle around a board" in four places. Rename when the bound is settled, so the element is touched once |
+| `club-page` | `<ModePill>` reads the shared `.badge` — it still holds its own copy of the five values |
+| `club-page` | **The two-line row** — `.content` / a name line / a muted meta line, in both `StartGameButtons` and `ClubGameCard`. The pattern should name the SLOTS; each component keeps its own name for what goes in one (`.gameTitle`, `.gametypeName`) |
+| `club-page` | `ClubGameCard`'s `.wrapper` / `.card` names — after the conversion the wrapper IS the row and the card is its inner box, so both names describe the previous arrangement |
+| `club-page` | The club page's filters render TWICE, desktop and mobile, each hidden in the other mode. A markup decision before a CSS one |
+| `club-page` | The two-column fold: `.columns` stacks at `--mobile` and `data-tab` hides one side. GamePage answers the same question with the InfoSheet |
+| `dialogs-and-forms` | **A dialog riding the popover tier.** crosswords' `NumberJumpDialog` is a `position: fixed` modal with its own scrim taking `--z-index-popover`, not `--z-index-panel` — so a menu could open over it. It has always painted this way; converting it named the tier without asking whether it is the right one |
+| `shared-game-chrome` | **The two drag ghosts disagree** — bananagrams 1000, scrabble 100, and `dragGhost.module.css` says the split is unintended. Both are `position: fixed`, so they are two tiers apart against everything else: scrabble's paints BELOW an open dialog, bananagrams's above. Nobody drags mid-dialog, which is why it has never shown. Neither takes a token until they agree |
+| `dialogs-and-forms` | `CelebrationDialog`'s `.title` is an `<h2>` at `1.5rem` — h1's size, where h2 is `1.25rem`. May be earned; should be a decision |
+| `dialogs-and-forms` | `CelebrationDialog`'s `.button:focus-visible` re-declares the shared ring. Nothing about that dialog should change a button's ring |
+| `dialogs-and-forms` + `shared-game-chrome` | **Nine `.body` classes want real names.** All nine mean "a panel's content area, as opposed to its header": `FloatingPanel`, `GameScratchpad`, `SetupSection`, `CelebrationDialog`, `DeviceBlockNotice`, `FaultDialog`, `DefinitionView`, crosswords' `ExplainDialog`. ClubPage's tenth became `.columns` |
+| `shared-game-chrome` | `FilterSelect`'s club-page override INVERTS: the component states the roomy default, the info column tightens it. Today the club page undoes six of its seven decisions one at a time |
+| `shared-game-chrome` | `<TurnLog>`'s `headerAction` is optional in name only — all eleven call sites pass it, so the bare-`<h3>` arm is dead. Make it required |
+| `scrabble` | **`BlankPicker`'s overlay at `z-index: 50`** — a full-screen `position: fixed` modal parked BELOW the panel tier, so an open chat or menu paints over it. Long-recorded as the ladder's known anomaly; it wants a look, not a reflex bump |
 | **each surface** | **Ten consumer modules style `<Dot>` as a bare `.dot`.** The qualified form already exists in half the app (`greetingDot`, `playerDot`, `rosterDot`, `actorDot`, `itemDot`, `bonusDot`) |
 | **shuffle games** | `<ShuffleButton>` should never take focus at all — game stuff doesn't. Its `:focus { outline: none }` says a click leaves no ring, then `:focus-visible` puts one back for a keyboard that has ⌥Z. The fix is removing the tab stop, not restyling the ring |
 | **the area that takes `base.css`** | **Six chrome shadow levels nobody chose.** They were preserved from what the component modules already held and given names, which is what made them look like a system. Measured 2026-08-22: five of the six have exactly ONE reader (`popover` alone has four: Menu ×2, FilterSelect, DefinitionPopover), so §7's own rule — a value with one reader belongs in its class as a number — disqualifies most of them; three share a geometry (`0 8px 24px`) and differ only in opacity (18 / 12 / 8%); and they are not a ladder — `toast` is the TOPMOST z-layer and blurs 16 where `dialog` blurs 48. The names also lead with the KIND where §5's grammar is bucket-first, and `notice` invents a category for a single component called `DeviceBlockNotice` (global, it would be `--deviceBlockNotice-shadow`). Decide the count and the names there |
@@ -680,6 +684,11 @@ Everything step 6 found and did not do. Each line is a task with an owner step.
 | **crosswords** | its setup chooser is drifted on three values (`6px` not `--radius-md`, its own hover and rule colors) — unintended, per Joel |
 | **account** | `ColorChoiceList.swatchActive` draws the cursor ring to mean "the color you CHOSE" — deliberately not converted, since tying a selected state to a keyboard decision marries them forever. Whether "selected" should look like "the cursor is here" is its own question |
 | **when it has a consumer** | the two-line density variant of `.item-row` |
+| `dialogs-and-forms` | **Five setup forms set `font-family: monospace`** — spellingbee, wordwheel, boggle, letterboxed, wordiply — all on the field that previews letters or a board. One decision written five times by five hands, and none of them wrote down why. Do NOT change them piecemeal (Joel, 2026-08-22): decide once, here, whether a letters preview wants a mono face at all now that the app has a real one |
+| `dialogs-and-forms` | **`GameScratchpad` is monospace** (`ui-monospace, 'SF Mono', …`). Plausibly right — it is a notepad — but it is the same unexamined choice as the setup forms, so it gets asked at the same time |
+| `waffle` | **`SolutionReveal` sets monospace twice**, so the revealed grid's letters line up in a column. The alignment need is real; whether monospace is how to meet it is not obvious now that the app font's digits are tabular and its width dial can hold a column |
+| `codenamesduet` | **`Board.module.css` sets `ui-monospace, Menlo, monospace`** on the board. The most consequential of the mono uses, because it is a play surface rather than a form |
+| `the area that takes `/palette`` | `PalettePage` sets monospace for token values and formulas. The one mono use with an obvious reason — a hex is a code-shaped thing — recorded so the sweep does not treat it as an oversight |
 
 ## 8. The buckets
 
@@ -934,9 +943,9 @@ this step:
 
 | record against | what |
 |---|---|
-| **9** (shared game chrome) | The two drag ghosts disagree — bananagrams 1000, scrabble 100 — and `dragGhost.module.css` says the split is unintended. Two tiers apart, so naming them cannot paper over it |
-| **10** (scrabble) | `BlankPicker`'s full-screen overlay at `z-index: 50`, below the 500 panel tier. Already the known anomaly in the ladder doc; it wants a look, not a reflex bump |
-| **8** (non-game chrome) | The ladder doc files the account `Menu` under in-board controls (10–100) and again under popovers (1500). It ships at 1500; the doc's first row is the stale one |
+| `shared-game-chrome` | The two drag ghosts disagree — bananagrams 1000, scrabble 100 — and `dragGhost.module.css` says the split is unintended. Two tiers apart, so naming them cannot paper over it |
+| `scrabble` | `BlankPicker`'s full-screen overlay at `z-index: 50`, below the 500 panel tier. Already the known anomaly in the ladder doc; it wants a look, not a reflex bump |
+| `club-page` | The ladder doc files the account `Menu` under in-board controls (10–100) and again under popovers (1500). It ships at 1500; the doc's first row is the stale one |
 
 ### Why 6 stopped, and what the reorder buys
 
@@ -1737,13 +1746,24 @@ font change is reviewed like any other diff.
 
 ### Still open
 
-1. **Grade and slant verdicts** — whether both dials earn their place in the
-   shipped file. Look at them on `/font`; slant is the one that matters,
-   because crosswords renders real `<em>` out of the puzzle source and this
-   font has no drawn italic.
+1. ~~**Grade and slant verdicts**~~ — **BOTH KEPT** (Joel, 2026-08-22). Grade
+   because the dark-page correction has no other clean form, and slant because
+   nine places ask for italics and this family has no drawn one — the font's
+   own oblique beats the browser's synthesized skew.
 2. **The resting-width tune**, above.
-3. **Fallback metrics.** The system face stands in until the file lands, and it
-   takes different space, so the swap moves text. `size-adjust` and the
-   `ascent-override` family on a fallback `@font-face` are what make the
-   stand-in occupy the same box — the real reason to write our own `@font-face`
-   rather than link someone else's.
+3. **Fallback metrics** — deferred by Joel, 2026-08-22, understood as not
+   urgent. The system face stands in until the file lands and takes different
+   space, so the swap moves text. `size-adjust` and the `ascent-override`
+   family on a fallback `@font-face` are what make the stand-in occupy the same
+   box. Note it is only worth solving for whichever `font-display` we settle
+   on: it is the fix for `swap`'s reflow, and largely moot under `optional`.
+4. ~~**`font-display`**~~ — **SETTLED: `swap`** (Joel, 2026-08-22). A moment of
+   system font on a cold load, then a switch. The two alternatives were weighed
+   and lost: `optional` never swaps, but in an SPA a missed window means a
+   whole SESSION in the fallback rather than a moment, because there is no
+   second document load to pick the font up; `block` hides the text entirely
+   for up to ~3s rather than showing the wrong face. With the preload in
+   `index.html`, `swap`'s window is small.
+5. **The monospace surfaces** — nine declarations across seven files, none of
+   them a considered decision. Filed on §7's carried-forward against the areas
+   that meet them first, deliberately NOT swept (Joel, 2026-08-22).

@@ -27,6 +27,49 @@
  * The shared CLASSES are next door in utilities.css.
  * ============================================================ */
 
+/* THE APP'S FACE — Roboto Flex, self-hosted, one file for everything.
+ *
+ * A VARIABLE font: one file carrying five dials rather than one file per
+ * weight. Weight 100–1000, width 25–151%, grade −200…150, slant 0…−10°, and
+ * optical size 8–144. `font-stretch` is how CSS spells width, and declaring
+ * the ranges here is what lets a rule ask for 62.5% or 700 without a second
+ * download. plans/css-system-2.md §22 has why this face, what each dial buys
+ * and what each one cost in bytes.
+ *
+ * WIDTH IS THE ONE THAT EARNED IT. A word on a psychicnum or connections tile
+ * has to fit a width the board fixes, and until now the only lever was making
+ * the text smaller — worst exactly where it hurts most, on a phone.
+ *
+ * GRADE IS INK WITHOUT WIDTH: every glyph keeps its exact advance, so text can
+ * darken or lighten with nothing on the page moving. That is the correct fix
+ * for light text on a dark ground reading heavier than the same weight does
+ * here, and it is why a theme may one day set a non-color value.
+ *
+ * NO ITALIC EXISTS in this family — there is a slant dial instead, which is
+ * the font's own oblique rather than drawn italic letterforms. Nine places in
+ * the app ask for italics; `font-style: oblique` reaches the dial, and plain
+ * `font-style: italic` gets the browser's synthesized skew.
+ *
+ * The file is built by `scripts/subset-font.py` and committed. It carries the
+ * Latin range plus `→ ← ≥ ≈ ≠`, and a symbol outside that set is a question
+ * for the area that wants it, not something to add here quietly (§22).
+ *
+ * DIGITS ARE TABULAR — all ten advance identically, so a score or a timer
+ * changing costs zero pixels, with no CSS from us. `font-variant-numeric:
+ * proportional-nums` is the way back out if prose ever wants it.
+ *
+ * ⚠️ ANYTHING THAT MEASURES TEXT TO FIT IT must wait for `document.fonts.ready`
+ * — measuring before the file lands measures the FALLBACK and fits to it, and
+ * the fit goes stale when the real font arrives. Only shows on a cold cache. */
+@font-face {
+  font-family: 'Roboto Flex';
+  src: url('/fonts/roboto-flex.woff2') format('woff2-variations');
+  font-weight: 100 1000;
+  font-stretch: 25% 151%;
+  font-style: oblique 0deg 10deg;
+  font-display: swap;
+}
+
 /* @@ */ :root {
   /* Radii. */
 /* @@ */   --radius-sm:  4px;   /* small chips, tiles, hint pills */
@@ -517,8 +560,13 @@
      together; change the trigger and this is the one number to update. */
 /* @@ */   --page-header-height: 2.5rem;
 
-  /* Type + the page's own ink, which every element inherits. */
-  font-family: system-ui, -apple-system, sans-serif;
+  /* Type + the page's own ink, which every element inherits.
+     The fallbacks are what shows while the file is in flight, and on the one
+     visit where it never arrives. RESTING WIDTH IS 100% for now: this face
+     sets narrower than SF Pro and 110% measured indistinguishable from it, but
+     that tune waits until we have used it a while — and until the areas
+     already converted can be re-checked against it (§22). */
+  font-family: 'Roboto Flex', system-ui, -apple-system, sans-serif;
   color: var(--page-text-color);
 }
 

@@ -43,6 +43,22 @@
          The apple-* metas cover iOS versions that predate manifest support.
          NOTE: iOS caches this at add-time — after this ships, REMOVE and
          RE-ADD the app to the home screen for it to take effect. -->
+    <!-- Start the font downloading now, rather than when the CSS gets around to
+         asking for it. Without this the browser learns the URL only after
+         base.css has parsed, which is a round trip it could have spent
+         fetching. `crossorigin` is required even though the file is same-origin
+         — font requests are made in CORS mode, and a preload whose mode doesn't
+         match the real request downloads the file TWICE.
+         The file itself is built by scripts/subset-font.py; see
+         plans/css-system-2.md §22. -->
+    <link
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      href="/fonts/roboto-flex.woff2"
+      crossorigin
+    />
+
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="theme-color" content="#fafafa" />
     <meta name="mobile-web-app-capable" content="yes" />

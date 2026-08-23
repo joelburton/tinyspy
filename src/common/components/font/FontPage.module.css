@@ -1,24 +1,9 @@
 /* cs-unmet */
 
-/* The candidate face, loaded ONLY here.
- *
- * An @font-face declaration costs nothing until something references the
- * family, so parsing this on every page downloads no bytes anywhere but
- * `/font`. That is what keeps an evaluation off the app's critical path while
- * the decision is still open.
- *
- * The ranges are the file's own: it was subset from Google's CDN carrying
- * weight, width, grade, slant and optical size. `font-stretch` is how CSS
- * spells the width dial, and declaring the range here is what lets a rule
- * further down ask for 62.5%. */
-@font-face {
-  font-family: 'Roboto Flex';
-  src: url('/fonts/roboto-flex-latin.woff2') format('woff2-variations');
-  font-weight: 100 1000;
-  font-stretch: 25% 151%;
-  font-style: oblique 0deg 10deg;
-  font-display: swap;
-}
+/* The face is declared in base.css now — this page used to carry its own
+ * @font-face while the decision was open, and no longer needs one. What it
+ * still needs is the OPPOSITE: somewhere on the page set in the system font,
+ * so there is a baseline to compare against. That is `.systemFont` below. */
 
 /* @@ */ .page {
   width: 100%;
@@ -29,11 +14,11 @@
   gap: var(--spacer-1);
 }
 
-/* Everything below the intro is set in the candidate. The intro is not, so
-   there is always one piece of the app's real chrome on screen to compare
-   against. */
-/* @@ */ .specimen {
-  font-family: 'Roboto Flex', system-ui, sans-serif;
+/* The app's font is now the page's font, so the specimen needs no rule of its
+   own — but the labels and the intro do, because a comparison needs one side
+   that ISN'T the thing being judged. */
+/* @@ */ .systemFont {
+  font-family: system-ui, -apple-system, sans-serif;
 }
 
 /* @@ */ .section {
