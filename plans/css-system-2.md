@@ -875,7 +875,7 @@ too big to carry inside the area that found it (§21).
 | area | what it is |
 |---|---|
 | `homepage` | **OPEN, and paused for scaffolding.** The rehearsal for the full toolkit: patterns + vocabulary + the page shell, plus a **React pass** — the duplication is not only in the CSS. Audited; fourteen findings still open; the vocabularies and the z- ladder came out of it and are built (`plans/areas/homepage.md`) |
-| `dialogs-and-forms` | The first real win — many near-identical instances. Also decide here: whether to LOAD a font (§18) |
+| `dialogs-and-forms` | The first real win — many near-identical instances. (The font question that used to be parked here was answered early — §22.) |
 | `club-page` | Build **the page shell** (§7): an optional header above a centered, width-bounded body. Absorbs the punted viewport-fit chain, the `.frame` rename, `<ModePill>` reading the shared `.badge`, and the leftovers listed in "Why 6 stopped" |
 | `shared-game-chrome` | `common/components/game/` — 258 rules, and every game sits on it. Also: the **contract-slot guard**, checked per mount point (§9, §10) |
 | per game, one area each | CSS pass then tile-feedback pass, back to back. `psychicnum` first, as the control |
@@ -1096,14 +1096,13 @@ vocabulary; invent it if we ever need it.
 - **The VOCABULARIES** — decided 2026-08-21, moved to §6.6. Values are
   provisional by declaration; the names are the part that was agreed.
 
-- **Should we LOAD a font?** (Joel, 2026-08-21) — decide at step 7. We ship no
-  webfont at all today: no `@font-face`, no font file in the repo, `body` is
-  `system-ui, -apple-system, sans-serif`. So type is SF Pro on a Mac, Segoe UI
-  Variable on Windows, Roboto on Android — three different sets of metrics, which
-  is where the cross-platform differences come from. Measured 2026-08-21: 124
-  `font-weight` declarations over six values — 600×54, 700×42, 500×14, 800×9,
-  400×3, and **650×2**, which only renders as 650 on a variable font and rounds
-  to 700 everywhere else.
+- ~~**Should we LOAD a font?**~~ **ANSWERED 2026-08-22: yes, `Roboto Flex` —
+  see §22**, which holds the comparison, the measurements and the subset rule.
+  One thing from the original note is worth keeping, because §22 changes it:
+  the argument that a `650` weight "only renders as 650 on a variable font and
+  rounds to 700 everywhere else" **stops being true the day we load one**. The
+  multiple-of-100 rule stands on its own — a closed vocabulary is the point —
+  but that half of its justification is now false and should not be repeated.
 - **Which cursor colors**, given the board cursor is amber today for a recorded
   reason: scrabble's premium squares are already red and blue.
 - ~~**Whether the shrinking allowlist is the right guard mechanism.**~~
@@ -1619,3 +1618,132 @@ A lot of renaming happens here — it is what a whole-repo read is FOR, and
 "that's a lot of work" is not an argument against one. The stamp is what makes
 it safe: a rename that breaks something reaches a file we have not read yet,
 and that file's stamp already says so.
+
+## 22. The font — decided 2026-08-22
+
+**We ship `Roboto Flex`.** §18 had "should we LOAD a font?" open and §13 pinned
+it to the `dialogs-and-forms` area; it was answered early because the tile
+problem below turned out to be a live bug rather than a preference.
+
+**The point is NOT that the system font is bad.** Joel designs on macOS, so the
+app has been tuned against SF Pro and looks right there. The point is that
+`system-ui` means three different faces with three different sets of metrics —
+SF Pro, Segoe UI Variable, Roboto — so today the app has never actually been
+seen as designed by anyone on Windows or Android.
+
+### Why this one, over the neutral faces we compared
+
+Measured from Google's own CDN, Latin subset, so these are bytes a browser
+really downloads:
+
+| family | weight | italic | width | grade | optical |
+|---|---|---|---|---|---|
+| **Roboto Flex** | 100–1000 | **no** (slant only) | **25–151** | **−200…150** | 8–144 |
+| Google Sans | 400–700 | yes | — | −50…200 | 17–18 |
+| Inter | 100–900 | yes | — | — | 14–32 |
+| Noto Sans | 100–900 | yes | 62.5–100 | — | — |
+| Open Sans | 300–800 | yes | 75–100 | — | — |
+| Roboto | 100–900 | yes | 75–100 | — | — |
+
+**WIDTH IS THE ONE THAT DECIDED IT, and it fixes something broken.** psychicnum
+and connections put a whole word on a tile whose width the board fixes, so the
+only lever today is making the text SMALLER — which is worst exactly where it
+hurts most, on a phone. A width dial takes the space out of the letters
+instead, so the word stays at a readable size and gets narrower. That is a real
+improvement to a shipped surface, not a preference, and no other candidate
+combines it with grade.
+
+**Grade is ink without width** — every glyph keeps its exact advance, so text
+can darken or lighten with nothing on the page moving. It is the correct fix for
+the one thing the midnight spike could not solve cleanly: light text on a dark
+ground reads heavier than the same weight does dark-on-light. Compare with the
+alternative, which is picking a lighter weight per theme and reflowing every
+line.
+
+**What it costs, per dial** (same file, subset differently):
+
+| dials | KB |
+|---|---|
+| weight only | 33 |
+| weight + grade | 55 |
+| weight + width | 58 |
+| weight + width + grade | 79 |
+| + optical size | 235 |
+| + slant | 288 |
+
+Optical size is the expensive one — each dial multiplies against the others, so
+the fourth costs far more than the third. **We ship all five anyway** (Joel,
+2026-08-22): Netlify is fast, the players have good connections, and the file is
+cached after the first visit. Dropping optical size is the lever to pull if that
+ever stops being true, and it costs nothing but a re-subset.
+
+### The subset, and the rule that goes with it
+
+**Our subset is Latin plus `→ ← ≥ ≈ ≠`.** Those five are drawn in the original
+1.7 MB font and were dropped by Google's Latin slice; `→` alone is used 28
+times, so taking Google's slice unchanged would have put a fallback glyph in the
+middle of our own sentences.
+
+**Twelve symbols we use are not in the font at all**: `↔ ↗ ↵ ⇧ ⇒ ⌥ ⌫ ✓ ✕ ✗ ★ ⟲`.
+Emoji are a separate matter and always were — the OS draws those and always
+did, under `system-ui` too.
+
+**THE RULE (Joel, 2026-08-22): a symbol outside the subset is surfaced and
+decided by the area that wants it** — the a/b/c rule, applied to characters.
+Deciding twelve of them now, out of context, is how a rule becomes six
+exceptions. The two shapes it will take:
+
+- **a standalone mark is a clean lucide swap** — `✕` as a close affordance, `★`
+  on a scrabble premium square, `✓`/`✗` as a status mark. They are already
+  icon-shaped and lucide does them better than a text character;
+- **a glyph inside a sentence is not.** `⌥Z` in a keyboard hint is TEXT, with a
+  letter beside it; an inline SVG there has to be sized and baseline-aligned by
+  hand or it looks pasted in. That is a small design job per site.
+
+The sharpest illustration of why the boundary matters: `↑` and `↓` are in
+Google's slice and `←` and `→` are not, so an arrow-key hint would have rendered
+two arrows in the app font and two in a fallback, side by side.
+
+### Facts that change how we write CSS
+
+- **Digits are TABULAR by default** — all ten advance 1156 units. Scores,
+  timers and counts are width-stable with no CSS at all, which is the
+  layout-stability rule getting a win for free. The font carries `pnum` to go
+  the other way if prose ever wants it, and no `tnum`, because it does not need
+  one.
+- **Resting width stays 100% for now.** The face sets narrower than SF Pro;
+  measured on `/font`, **110% is indistinguishable** from what Joel is used to.
+  Not adopted yet — use it a while first, then tune, and re-check the areas
+  already converted (Joel, 2026-08-22).
+- **⚠️ ANYTHING THAT MEASURES TEXT TO FIT IT MUST WAIT FOR THE FONT.** A tile
+  that measures before the file lands measures the FALLBACK, fits to it, and
+  goes stale when the real font arrives. `document.fonts.ready` is the gate.
+  This only shows on a cold cache, which is exactly the bug nobody can
+  reproduce.
+- **Optical sizing changes advance widths**, and that is fine: it is a function
+  of the font-size, which any fitting code knows already.
+
+### Where it comes from
+
+**Self-hosted, from the app's own origin.** Not Google's CDN — that means two
+extra servers, and the font's URL is not even known until their stylesheet
+arrives, so it is a chain of round trips before a byte of font moves. The old
+argument for their CDN (someone else's visit warmed the cache) died when
+browsers partitioned caches per site. Not Supabase Storage either, which is the
+same third-origin problem wearing our own logo.
+
+Netlify serves it beside everything else, it is versioned with the code, and a
+font change is reviewed like any other diff.
+
+### Still open
+
+1. **Grade and slant verdicts** — whether both dials earn their place in the
+   shipped file. Look at them on `/font`; slant is the one that matters,
+   because crosswords renders real `<em>` out of the puzzle source and this
+   font has no drawn italic.
+2. **The resting-width tune**, above.
+3. **Fallback metrics.** The system face stands in until the file lands, and it
+   takes different space, so the swap moves text. `size-adjust` and the
+   `ascent-override` family on a fallback `@font-face` are what make the
+   stand-in occupy the same box — the real reason to write our own `@font-face`
+   rather than link someone else's.
