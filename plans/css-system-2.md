@@ -346,10 +346,10 @@ column, not per instance by each caller.
 The contrast is exactly today's `FilterSelect`: the club page overrides six of
 the component's seven decisions for one instance (a caller disagreeing with a
 component), where the scoped form is `.infoCol { --space-2: …; --font-size-2: … }`
-(a surface stating its own density, once). Which also settles what to do at
-step 9 — the component should state the ROOMY default and the info column
-should tighten it, rather than the reverse, which is what leaves the club page
-undoing six values.
+(a surface stating its own density, once). Which also settles what to do at the
+**`shared-game-chrome`** area — the component should state the ROOMY default and
+the info column should tighten it, rather than the reverse, which is what leaves
+the club page undoing six values.
 
 Two things the split needs to be usable:
 
@@ -357,8 +357,8 @@ Two things the split needs to be usable:
   LOCKED things — `<ModePill>` lives there and all six render sites are club
   surfaces; `FilterSelect` lives there and its contested consumer is the club
   page — while `<PageHeader>` is locked and GamePage carries it. §14's roster
-  files work by folder, which is how `<ModePill>` got filed at step 9 when it
-  belongs to step 8.
+  files work by folder, which is how `<ModePill>` got filed under
+  **`shared-game-chrome`** when it belongs to **`club-page`**.
 - **The line runs INSIDE boardCol.** A board's contents are tuned; the furniture
   around them is justified — the board frame, the history ring, the game-over
   frame, `dimNotYourTurn`, the below-board feedback slot, the your-turn flash.
@@ -369,9 +369,10 @@ colors, the tile ramp, member colors, the feedback pill, the focus ring: 100%
 standard everywhere *including* inside the most-tuned board. The three levels
 answer "how much may this vary"; the vocabulary answers "what may never vary".
 
-The step order already obeys this, which is some evidence the model is real
-rather than invented: steps 6–8 are locked surfaces, step 9 is justified's
-shared half, step 10 is tuned plus justified's per-game half.
+The area order already obeys this, which is some evidence the model is real
+rather than invented: `homepage`, `dialogs-and-forms` and `club-page` are locked
+surfaces, `shared-game-chrome` is justified's shared half, and the per-game areas
+are tuned plus justified's per-game half.
 
 ## 6.6 The vocabularies
 
@@ -755,8 +756,8 @@ Everything step 6 found and did not do. Each line is a task with an owner step.
   | `--rank-text` | `RankBar.module.css:51,132` · `Stats.module.css:64` | spellingbee · wordwheel |
 
   psychicnum sets `--cols` inline on the parent (`Board.tsx:131`) rather than in
-  a CSS file; it inherits, so it counts. **The guard lands at step 9**, when
-  this CSS is open anyway.
+  a CSS file; it inherits, so it counts. **The guard lands at the
+  `shared-game-chrome` area**, when this CSS is open anyway.
 - **Not every token is a design decision.** Six kinds, and two aren't tokens in
   spirit: a **contract slot** is a blank a game fills in (`--tile-bg-color`,
   `--grid-gap`), and **local math** is arithmetic (`--cols`, `--side`). Neither
@@ -783,7 +784,7 @@ Everything step 6 found and did not do. Each line is a task with an owner step.
 |---|---|
 | `no unnamed colors` | sharpens into a LOCATION rule: a hex appears only in a theme file or a game's `brand.css` |
 | rectangular families | a test per bucket that every member carries every variant |
-| contract slots | new, **at step 9**: every game mounting a component defines the slots it reads. Must check per MOUNT POINT — repo-wide "is it defined anywhere" is what the phantom-token guard already does, and it passes all fifteen (§9) |
+| contract slots | new, **at the `shared-game-chrome` area**: every game mounting a component defines the slots it reads. Must check per MOUNT POINT — repo-wide "is it defined anywhere" is what the phantom-token guard already does, and it passes all fifteen (§9) |
 | `no dead tokens` | **the hazard.** Reserved cells look dead. `palette.ts` / `PalettePage.tsx` is written to BE the reader that keeps them alive — verify that mechanism before relying on it |
 | `:global()` | **SHIPPED 2026-08-21.** A `:global()` subject with no local ancestor styles every surface; the module it sits in gives it no scope. Verified by planting all three cases |
 | class defined ≠ referenced | both directions; neither a bare global string nor `styles.typo` fails loudly |
@@ -869,7 +870,7 @@ too big to carry inside the area that found it (§21).
 
 | area | what it is |
 |---|---|
-| `homepage` | **NEXT, not yet opened.** The rehearsal for the full toolkit: patterns + vocabulary + the page shell, plus a **React pass** — the duplication is not only in the CSS |
+| `homepage` | **OPEN, and paused for scaffolding.** The rehearsal for the full toolkit: patterns + vocabulary + the page shell, plus a **React pass** — the duplication is not only in the CSS. Audited; fourteen findings still open; the vocabularies and the z- ladder came out of it and are built (`plans/areas/homepage.md`) |
 | `dialogs-and-forms` | The first real win — many near-identical instances. Also decide here: whether to LOAD a font (§18) |
 | `club-page` | Build **the page shell** (§7): an optional header above a centered, width-bounded body. Absorbs the punted viewport-fit chain, the `.frame` rename, `<ModePill>` reading the shared `.badge`, and the leftovers listed in "Why 6 stopped" |
 | `shared-game-chrome` | `common/components/game/` — 258 rules, and every game sits on it. Also: the **contract-slot guard**, checked per mount point (§9, §10) |
@@ -946,14 +947,15 @@ instead of a pass per tool. That is the whole reason 6 stops half-done rather
 than finishing; a future session asking "why was clubpage abandoned mid-way"
 should read this paragraph.
 
-Left on the club page for step 8: the two-line row (§7's named-patterns list),
+Left for the `club-page` area: the two-line row (§7's named-patterns list),
 `ClubGameCard`'s `.wrapper` / `.card` names — after the conversion the wrapper
 IS the row and the card is its inner box, so both names describe the previous
-arrangement — `FilterSelect`'s club-page override (which inverts at step 9: the
-component states the roomy default, the info column tightens it), the filters
-rendered twice for desktop and mobile, and the two-column fold.
+arrangement — `FilterSelect`'s club-page override (which inverts at
+`shared-game-chrome`: the component states the roomy default, the info column
+tightens it), the filters rendered twice for desktop and mobile, and the
+two-column fold.
 
-**Steps 2 and 10 are structural passes, not color passes** — but a few values
+**Step 2 and the per-game areas are structural passes, not color passes** — but a few values
 shifting is fine and expected. What is not fine is a value shifting without
 anyone noticing: every move is recorded (§16), decided, or marked (§15). Broad
 color tinkering stays a separate later pass; the structure is what makes it
