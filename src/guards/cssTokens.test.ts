@@ -179,15 +179,12 @@ describe('CSS custom-property tokens', () => {
    * is just dead, and the guard below should say so.
    */
   const DECLARED_AHEAD = [
-    // The spacer ramp. `--spacer-2` is off the list already: the homepage's
-    // card gap was an exact match and converted silently at its audit.
-    '--spacer-1',
-    '--spacer-3',
-    '--spacer-4',
-    '--spacer-5',
+    // The spacer ramp. Four of its five steps are read now — `--spacer-2` by
+    // the homepage's card gap, the rest by the font page, which is the first
+    // surface written after the ramp existed and so is the first that could
+    // simply use it.
     '--font-size-1',
     '--font-size-2',
-    '--font-size-3',
     '--line-height-1',
     '--line-height-2',
     '--line-height-3',
@@ -198,8 +195,6 @@ describe('CSS custom-property tokens', () => {
     '--transition-duration-travel',
     '--letter-spacing-label',
     '--letter-spacing-wide',
-    '--border-width-line',
-    '--border-width-line-thick',
     '--border-width-frame',
 
     // The two text grays the ramp was missing. The other two —

@@ -58,6 +58,18 @@ function walk(dir: string, exts: string[] = ['.css']): string[] {
 
 const stripComments = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, '')
 
+/**
+ * Drop `@font-face` blocks before scanning.
+ *
+ * What looks like a declaration inside one is a DESCRIPTOR — it describes what
+ * the font file contains, and styles nothing. `font-weight: 100 1000` there
+ * means "this file covers that range", which is a fact about the file, not a
+ * weight anyone chose; the same goes for `font-stretch: 25% 151%` and
+ * `font-style: oblique 0deg 10deg`. Scanning them would demand a token for a
+ * number that describes a binary.
+ */
+const stripFontFace = (s: string) => s.replace(/@font-face\s*\{[^}]*\}/g, '')
+
 /** `//` to end of line, but not the one inside `https://`. TS only — CSS has
  *  no line comments, and a stray `//` there would eat a real declaration. */
 const stripLineComments = (s: string) => s.replace(/(^|[^:])\/\/[^\n]*/g, '$1')
@@ -561,7 +573,7 @@ describe('a converted surface writes vocabulary values, not literals', () => {
       const found = new Map<string, Set<string>>()
 
       for (const f of walk(join(SRC, v.root ?? 'common'))) {
-        const css = stripComments(readFileSync(f, 'utf8'))
+        const css = stripFontFace(stripComments(readFileSync(f, 'utf8')))
         const literals = new Set<string>()
         // Boundary is `{`, `;` or a line start — NOT `^` alone. Anchoring on
         // the line start misses `.x { border-radius: 4px }` written on one

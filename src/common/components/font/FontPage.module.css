@@ -1,0 +1,133 @@
+/* cs-unmet */
+
+/* The candidate face, loaded ONLY here.
+ *
+ * An @font-face declaration costs nothing until something references the
+ * family, so parsing this on every page downloads no bytes anywhere but
+ * `/font`. That is what keeps an evaluation off the app's critical path while
+ * the decision is still open.
+ *
+ * The ranges are the file's own: it was subset from Google's CDN carrying
+ * weight, width, grade, slant and optical size. `font-stretch` is how CSS
+ * spells the width dial, and declaring the range here is what lets a rule
+ * further down ask for 62.5%. */
+@font-face {
+  font-family: 'Roboto Flex';
+  src: url('/fonts/roboto-flex-latin.woff2') format('woff2-variations');
+  font-weight: 100 1000;
+  font-stretch: 25% 151%;
+  font-style: oblique 0deg 10deg;
+  font-display: swap;
+}
+
+/* @@ */ .page {
+  width: 100%;
+  max-width: 60rem;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacer-1);
+}
+
+/* Everything below the intro is set in the candidate. The intro is not, so
+   there is always one piece of the app's real chrome on screen to compare
+   against. */
+/* @@ */ .specimen {
+  font-family: 'Roboto Flex', system-ui, sans-serif;
+}
+
+/* @@ */ .section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacer-4);
+}
+
+/* @@ */ .sectionHead {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacer-5);
+  border-bottom: var(--border-width-line) solid var(--page-surface-border-color);
+  padding-bottom: var(--spacer-5);
+}
+
+/* A row is LABEL then SPECIMEN, and the label column is fixed so every
+   specimen starts at the same x. Reading down a column is the whole point:
+   two grades differ only in ink, and that is invisible unless the two lines
+   begin at the same place. */
+/* @@ */ .row {
+  display: grid;
+  grid-template-columns: 11rem 1fr;
+  gap: var(--spacer-3);
+  align-items: baseline;
+}
+
+/* @@ */ .rowLabel {
+  font-size: var(--font-size-3);
+  color: var(--page-text-muted-color);
+  font-family: system-ui, sans-serif;
+}
+
+/* The tile test: a box whose width does NOT move, which is the constraint the
+   real boards impose. Overflow is visible on purpose — a word that does not
+   fit should be seen not fitting. */
+/* @@ */ .tileRow {
+  display: flex;
+  gap: var(--spacer-4);
+  flex-wrap: wrap;
+}
+
+/* @@ */ .tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: var(--border-width-line-thick) solid var(--page-surface-border-color);
+  border-radius: var(--radius-sm);
+  background: var(--page-surface-color);
+  height: 3.5rem;
+  overflow: visible;
+  white-space: nowrap;
+}
+
+/* @@ */ .controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacer-3);
+  padding: 0.75rem;
+  border: var(--border-width-line) solid var(--page-surface-border-color);
+  border-radius: var(--radius-md);
+  background: var(--page-surface-color);
+}
+
+/* @@ */ .control {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacer-5);
+  font-size: var(--font-size-3);
+  font-family: system-ui, sans-serif;
+}
+
+/* @@ */ .controlValue {
+  color: var(--page-text-muted-color);
+}
+
+/* @@ */ .stage {
+  border: var(--border-width-line) solid var(--page-surface-border-color);
+  border-radius: var(--radius-md);
+  padding: var(--spacer-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacer-3);
+}
+
+/* @@ */ .costs {
+  font-size: var(--font-size-3);
+  font-family: system-ui, sans-serif;
+  color: var(--page-text-muted-color);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacer-4);
+}
+
+/* @@ */ .unused {
+  color: var(--page-text-muted-color);
+}
