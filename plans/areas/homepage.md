@@ -4,15 +4,16 @@ The first area of the CSS sprint's step 7. The process is
 [css-system-2.md](../css-system-2.md) §21; the plan holds the order, this file
 holds everything else.
 
-**Status: RESUMED, and a second subject added.** Thirty-nine findings,
-THIRTY-FIVE resolved (F1, F2, F4, F5, F6, F6.1, F7, F8, F9, F10, F11, F14, F15,
+**Status: RESUMED; three subjects.** Forty-three findings, THIRTY-SIX
+resolved (F1, F2, F4, F5, F6, F6.1, F7, F8, F9, F10, F11, F14, F15,
 F16, F17, F18, F19, F20, F22, F23, F24, F25, F26, F27, F28, F29, F30, F31, F32,
-F33, F34, F35, F36, F37, F39) — where "resolved" includes the ones FOLDED into a
-later finding rather than fixed.
+F33, F34, F35, F36, F37, F39, F40) — where "resolved" includes the ones FOLDED
+into a later finding rather than fixed.
 
-**Four open: F3 (`home-keyboard-spec`), F12 (`page-header-trio`), F21
-(`homepage-no-vitest`), F38 (`selection-lists`)** — and F3 belongs to F38, so it
-is really three.
+**Seven open: F3 (`home-keyboard-spec`), F12 (`page-header-trio`), F21
+(`homepage-no-vitest`), F38 (`selection-lists`), F41 (`header-literals`),
+F42 (`chevron-outside-the-icon-set`), F43 (`unequal-mark-separation`).**
+F3 belongs to F38.
 
 Shipped so far: the two dead-reference fixes, the class guard, the vocabularies,
 the font-weight rule, the z- ladder, the greeting's word space, the comment/doc
@@ -34,6 +35,17 @@ Agreed with Joel 2026-08-22 when the area opened, then stamped `cs-audited`:
 | `src/common/components/home/HomePage.module.css` | 71 lines, 8 rules, 4 raw values |
 | `e2e/home-keyboard.e2e.ts` | the page's only test — and it is red (F3) |
 
+Two subjects were added later, each bringing its own files:
+
+| added | file | |
+|---|---|---|
+| 2026-08-22, basic page structure | `src/common/base.css` | its page-level half |
+| 2026-08-23, the page header | `src/common/components/chrome/PageHeader.tsx` + `.module.css` | |
+| " | `src/common/components/panels/TriggerWithChevron.tsx` + `.module.css` | the trigger's standard content |
+
+`ClubPage` and `GamePage` were read as EVIDENCE for both, and are neither
+`cs-found` nor `cs-audited` by that — see §21's note on what "found" means.
+
 **`src/common/components/branding/homeTitle.png`** is in the area but carries no
 stamp: a PNG has nowhere to put a comment. Joel reviews it himself and this file
 records the date he says he has.
@@ -42,7 +54,7 @@ records the date he says he has.
 
 ## Findings
 
-**Numbered `F1` … `F39`, and sub-numbered `F6.1` where one finding grows its own
+**Numbered `F1` … `F43`, and sub-numbered `F6.1` where one finding grows its own
 list** (Joel, 2026-08-22). The prefix is the point: an hour into an area, "2" is
 whatever list was last on screen and `F2` is only ever this finding. Refer to
 them by their F-number everywhere — in this file, in conversation, in a commit
@@ -1574,6 +1586,106 @@ polite. But this is a fault, and not at all transient."*).
 > the filed club-page and homepage specs (F3 `home-keyboard-spec` and the two
 > club specs on the plan's carried-forward list). The seventh is
 > `wordle-keyboard.e2e.ts` — see below.
+
+### The page header — the third subject, added 2026-08-23
+
+Joel moved the header into this area (*"I believe we've already decided the
+header is in the homepage area — if not, it is now"*), reversing the black-box
+scope note above. **He also said in advance that sign-off will be partial:** the
+homepage's header holds one thing, so most of what the slots are FOR is not
+visible here. *"I won't entirely sign off on everything now, since the homepage
+is missing lots of things that got into the slots, so we'll probably re-open in
+the clubpage, where we see more stuff."*
+
+**The files:** `components/chrome/PageHeader.tsx` + `.module.css`, and
+`components/panels/TriggerWithChevron.tsx` + `.module.css`.
+
+**What the audit CONFIRMED, so it does not become a finding:**
+
+- **The strip is genuinely one component**, not three that look alike.
+  `<PageHeader>` owns the two slots, the rule and the height; its own docstring
+  records that home, club and game each used to assemble the skeleton by hand,
+  *"which is how the three drifted apart in the first place"*. What is still
+  written three times is one level in — the menu trigger — which is F12
+  (`page-header-trio`), and is narrower than that finding's name suggests.
+- **The height is a real contract and it is COMPOSED**, which is the thing
+  `--game-chrome-height` is not (F28 `gamepage-bounds-itself`).
+  `--game-header-bottom` is `--page-padding-y + --page-header-height + 0.5rem +
+  1px`, and the mobile InfoSheet positions itself from it. Measured: the strip
+  is **49px total — 40px of content, 8px padding, 1px rule** — on home and club,
+  at 1280×900 and at 375×667. 40px is exactly the declared `2.5rem`, so the
+  contract is not merely plausible, it is met on the nose.
+- **The strip has no mobile treatment at all** and does not need one: identical
+  at both widths. What changes on a phone is what the pages PUT in it.
+- **The docstring's "what each page puts in it" table is accurate today**,
+  checked against all three call sites.
+
+**F40 · `header-line-belongs-to-header` · The rule under the header is painted
+with a color that belongs to fifteen other things.** `border-bottom: 1px solid
+var(--page-divider-color)`, and that token has sixteen non-theme readers: the
+play surface's board/info column divider, the turn log's top rule, stackdown's
+and strands' board borders, a `<Dot>` ring, wordiply's `text-decoration-color`.
+
+Joel ruled on this on 2026-08-22, before the header was in scope, and it was
+never written down: *"let's not couple the color of the line below the
+pageheader (which in my mind belongs to the pageheader; no pageheader, no line)
+and the divider between boardCol and infoCol. They may be coincidentally the
+same today, but they're not the same thing."*
+
+> **resolution (Joel, 2026-08-23): done — `--pageHeader-border-color`, in both
+> themes, at today's value.** `#8a8a8a` in daylight and `#7b8391` in midnight,
+> so **nothing moves on screen**; the reason is written at the declaration in
+> both files, since a token that equals its neighbor needs to say why it is not
+> its neighbor.
+>
+> `--page-divider-color` goes from sixteen readers to fifteen. What that buys is
+> narrow and worth stating plainly: changing the play surface's column divider
+> can no longer edit the header's rule, and vice versa. What it does NOT buy is
+> any sorting of the remaining fifteen, which are still one color doing several
+> jobs — board borders, a turn-log rule, a `<Dot>` ring, a
+> `text-decoration-color`. That pile belongs to the areas that own its readers.
+
+**F41 · `header-literals` · Five raw values, and only one of them is a
+decision.** `gap: 1rem` between the slots, `.left`'s `gap: 0.375rem`, `.right`'s
+`gap: 0.5rem`, `padding-bottom: 0.5rem`, and the rule's `1px`. Four are exact
+matches for a vocabulary member — `--spacer-2`, `--spacer-4` twice, and
+`--border-width-line` — so they convert silently (§13). **`0.375rem` is the one
+that is not on the ramp**, and it is the gap between the marks in the left slot,
+which F43 (`unequal-mark-separation`) is about. All five are on the guard's
+pending rows for this file today.
+
+> resolution:
+
+**F42 · `chevron-outside-the-icon-set` · The menu chevron is a hand-inlined SVG
+in a component that is not an icon.** `TriggerWithChevron.tsx` declares its own
+10×10 `<svg>` with a `<path>`, while the app has `components/icons` — which
+ClubPage imports from by name (`IconBack`, `IconHelp`). So there is one icon
+living outside the icon set, in a file whose job is layout.
+
+Its size is also the only hard-coded pixel dimension in the header
+(`width="10" height="10"`), where everything else in the strip is either a
+token or an em.
+
+> resolution:
+
+**F43 · `unequal-mark-separation` · The marks in the left slot are not evenly
+spaced, and the CSS says they are.** The slot sets one `gap: 0.375rem` for
+everything in it, and each mark then carries its own hover padding on top — the
+menu trigger `0.25rem`, the chat bubble `0.3rem`, the status slot none. So the
+VISIBLE separations differ: about 14.8px between the trigger and the chat
+bubble, about 10.8px between the chat bubble and the status slot.
+
+Measured on the club page (three marks): box-to-box gaps of 6px and 5px, the
+second being the fractional `0.3rem` rounding. The homepage cannot show this at
+all — it has ONE mark — which is exactly the reason Joel expects to reopen the
+header at `club-page`.
+
+The comment in the file already computes the answer in prose — *"the visible
+separation is about 0.925rem, not 0.375rem"* — which is correct arithmetic
+today and is the kind of derived number that rots the moment a mark's padding
+changes.
+
+> resolution:
 
 ### The three names this area produced
 

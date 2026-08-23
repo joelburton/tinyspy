@@ -59,6 +59,9 @@
 /* @@ */   --page-text-muted-color:        #99a0ad;
 /* @@ */   --page-divider-color:           #7b8391;
 
+  /* The line under the pageHeader. No pageHeader, no line. */
+/* @@ */   --pageHeader-border-color:      #7b8391;
+
   /* The other two text grays, and both are the daylight decision read
      against this page rather than a second decision. `label` keeps its
      relationship to muted — a step toward the reader, so a small

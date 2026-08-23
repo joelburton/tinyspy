@@ -15,9 +15,8 @@
      `height`, so an unexpectedly tall child grows the strip rather than being
      clipped; the guarantee is "never shorter". */
   min-height: var(--page-header-height);
-  /* The same divider the play surface uses between its board / info columns,
-     so the strip reads as bounded without a card around it. */
-  border-bottom: 1px solid var(--page-divider-color);
+  /* The strip reads as bounded without a card around it. */
+  border-bottom: 1px solid var(--pageHeader-border-color);
   padding-bottom: 0.5rem;
 }
 

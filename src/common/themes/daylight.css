@@ -44,6 +44,9 @@
 /* @@ */   --page-text-muted-color:        #6b6b6b;
 /* @@ */   --page-divider-color:           #8a8a8a;
 
+  /* The line under the pageHeader. No pageHeader, no line. */
+/* @@ */   --pageHeader-border-color:      #8a8a8a;
+
   /* THE OTHER TWO TEXT GRAYS. The four together are one of the eight
      vocabularies (plans/css-system-2.md §6.6) and the only one that is
      color, which is why it is here and the other seven are constants
