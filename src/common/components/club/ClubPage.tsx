@@ -917,7 +917,7 @@ export function ClubPage({ handle, session }: Props) {
   ]
 
   return (
-    <div className={styles.frame}>
+    <div className={cls('pageHeaderAndMainArea', styles.frame)}>
       <PageHeader>
         <Menu
           ref={menuRef}

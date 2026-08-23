@@ -71,6 +71,15 @@
 }
 
 /* @@ */ :root {
+  /* The DEFAULT page-content width — "the width when a page doesn't need a
+     custom one" (Joel, 2026-08-23). Four of the six non-game pages take it, and
+     a new page would too. The one page that is wider chose its own number for
+     its own reasons and writes it in its own file, which is why there is no
+     second tier here called "wide". GamePage caps nothing: its content width IS
+     the page's. Inert on a phone, where every page is full-bleed.
+     See patterns/page.css. */
+/* @@ */   --pageMain-width: 480px;
+
   /* Radii. */
 /* @@ */   --radius-sm:  4px;   /* small chips, tiles, hint pills */
 /* @@ */   --radius-md:  6px;   /* buttons, inputs, panels */

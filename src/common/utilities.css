@@ -21,18 +21,20 @@
 
 /* ---------- Surfaces and text ---------- */
 
-/* The page-card surface — a centered white panel a whole screen sits in.
-   Thirteen uses across nine files: LoginScreen, ClaimHandleScreen,
-   CreateClubPage, HomePage, PalettePage, and every "Loading…" / error state
-   (App, ClubPage, GamePage, PlayAreaErrorBoundary). Cross-cutting enough to
-   live globally rather than be duplicated in each component's module. */
+/* A CARD in the ordinary sense: a bordered section of a page, like a post-it
+   note (plans/areas/homepage.md → F37 `card-only-page`). The app has few of
+   them — the homepage's body is one, the error page is one, and the club page
+   has none at all.
+
+   IT CARRIES THE SURFACE AND NOTHING ELSE. No width and no centering: how wide
+   a page's content is, and where it sits, is the PAGEMAIN's business
+   (patterns/page.css). Bundling the two here is what let one class stand in
+   for a page on five screens and made "a card" mean four different things. */
 /* @@ */ .card {
   background: var(--page-surface-color);
   border: 1px solid var(--page-surface-border-color);
   border-radius: var(--radius-lg);
   padding: 2rem;
-  max-width: 480px;
-  margin: 0 auto;
   /* Break long unbreakable tokens (a 30-char username in the "Welcome"
    * heading, a long email, a solo club's `=handle`) instead of letting
    * them force the card wider than its column and scroll the page. Only

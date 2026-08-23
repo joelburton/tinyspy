@@ -190,7 +190,7 @@ export function HomePage({ session }: Props) {
   )
 
   return (
-    <div className={styles.frame}>
+    <div className="pageHeaderAndMainArea">
       {/* PAGE chrome, not card content — the same strip ClubPage and GamePage
           carry: square site logo hard against the page's top-left, thin rule
           beneath, the card below it. A sibling of the card rather than a child,
@@ -207,7 +207,7 @@ export function HomePage({ session }: Props) {
           triggerLabel="Main menu"
         />
       </PageHeader>
-      <div className={cls('card', styles.card)}>
+      <div className={cls('card', 'pageMain', 'pageMain-fills', styles.card)}>
         <PuzpuzpuzWordmark />
         {/* Greeting leads with the identity DISC in the user's own profile
             color — the app-wide "this color is you" marker (docs/ui.md →

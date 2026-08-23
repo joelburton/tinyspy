@@ -2,30 +2,28 @@
 
 /* ClubPage layout + component-scoped styles.
  *
- * Per docs/ui.md → "Page-height fits the viewport", the page
- * fills the viewport vertically and doesn't scroll: the height
- * below is 100svh minus twice `--page-padding-y`, the body's own
- * vertical padding (common/base.css). The header is auto-sized;
- * the two-column body takes the rest. The right column's
- * games-list frame absorbs growth via overflow-y: auto.
+ * The page fills the viewport and doesn't scroll — the shared
+ * `.pageHeaderAndMainArea` (common/patterns/page.css) supplies that bound, as
+ * it does on every page. The header is auto-sized; the two-column body takes
+ * the rest, and the right column's games-list frame absorbs growth via
+ * overflow-y: auto.
  *
  * There is no `.card` on this page. The only card-style chrome is
  * the gamesList frame (a border + radius around the scroll region)
  * and the per-game ClubGameCard items inside it.
  */
 
+/* The wrapper's layout is the shared `.pageHeaderAndMainArea`
+ * (common/patterns/page.css); all this adds is the page's own
+ * content width.
+ *
+ * BESPOKE, and deliberately not a second tier in the vocabulary: 1000px was
+ * chosen for THIS page, so that two columns of dense rows have room without
+ * sprawling on a wide desktop. Set as the shared token so everything below
+ * reads one number (plans/areas/homepage.md → F30 `pagemain-widths`). */
 /* @@ */ .frame {
-  width: 100%;
-  /* Total height = viewport minus the body's vertical padding
-   * (defined in common/base.css's body rule). Without this,
-   * .columns's flex: 1 has no upper bound, and the .gamesList
-   * overflow-y: auto inside it never triggers. */
-  height: calc(100svh - 2 * var(--page-padding-y));
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  --pageMain-width: 62.5rem;
 }
-
 
 /* Everything below the (full-width) header — the club's name and the two
  * columns — sits in a centered content well so the columns don't sprawl on a
@@ -33,7 +31,7 @@
 .clubNameBlock,
 /* @@ */ .columns {
   width: 100%;
-  max-width: 62.5rem;
+  max-width: var(--pageMain-width);
   margin-inline: auto;
 }
 
@@ -163,7 +161,7 @@
     flex-shrink: 0;
     align-self: stretch;
     width: 100%;
-    max-width: 62.5rem;
+    max-width: var(--pageMain-width);
     margin-inline: auto;
   }
 

@@ -3,6 +3,7 @@
 import { useState, type SubmitEvent } from 'react'
 import { supabase } from '../../lib/supabase/supabase'
 import { PuzpuzpuzWordmark } from '../branding/PuzpuzpuzWordmark'
+import { cls } from '../../lib/util/cls'
 
 /**
  * Magic-link sign-in flow with two verification paths.
@@ -101,84 +102,86 @@ export function LoginScreen() {
   }
 
   return (
-    <div className="card">
-      <PuzpuzpuzWordmark />
+    <div className="pageHeaderAndMainArea">
+      <div className={cls('card', 'pageMain')}>
+        <PuzpuzpuzWordmark />
 
-      {status === 'sent' ? (
-        <p>
-          Sent a magic link and a sign-in code to <strong>{email}</strong>.
-          Click the link in the email, or enter the code below.
-        </p>
-      ) : (
-        <p>
-          {action === 'send-link'
-            ? 'Sign in with a magic link.'
-            : 'Enter your email and the code from your sign-in email.'}
-        </p>
-      )}
-
-      <form onSubmit={onSubmit}>
-        <input
-          type="email"
-          required
-          placeholder="you@example.com"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          disabled={busy}
-        />
-        {action === 'verify-code' && (
-          <input
-            type="text"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            autoComplete="one-time-code"
-            placeholder="Sign-in code"
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            disabled={busy}
-            required
-          />
+        {status === 'sent' ? (
+          <p>
+            Sent a magic link and a sign-in code to <strong>{email}</strong>.
+            Click the link in the email, or enter the code below.
+          </p>
+        ) : (
+          <p>
+            {action === 'send-link'
+              ? 'Sign in with a magic link.'
+              : 'Enter your email and the code from your sign-in email.'}
+          </p>
         )}
-        <button
-          type="submit"
-          className="button primary"
-          disabled={
-            busy || !email || (action === 'verify-code' && !code.trim())
-          }
-        >
-          {action === 'send-link'
-            ? status === 'sending'
-              ? 'Sending…'
-              : 'Send magic link'
-            : status === 'verifying'
-              ? 'Verifying…'
-              : 'Verify code'}
-        </button>
-        <p>
-          <button
-            type="button"
-            className="link-button"
-            onClick={toggleAction}
+
+        <form onSubmit={onSubmit}>
+          <input
+            type="email"
+            required
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             disabled={busy}
+          />
+          {action === 'verify-code' && (
+            <input
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              autoComplete="one-time-code"
+              placeholder="Sign-in code"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              disabled={busy}
+              required
+            />
+          )}
+          <button
+            type="submit"
+            className="button primary"
+            disabled={
+              busy || !email || (action === 'verify-code' && !code.trim())
+            }
           >
             {action === 'send-link'
-              ? 'I have a code already'
-              : 'Send me a magic link instead'}
+              ? status === 'sending'
+                ? 'Sending…'
+                : 'Send magic link'
+              : status === 'verifying'
+                ? 'Verifying…'
+                : 'Verify code'}
           </button>
-        </p>
-      </form>
+          <p>
+            <button
+              type="button"
+              className="link-button"
+              onClick={toggleAction}
+              disabled={busy}
+            >
+              {action === 'send-link'
+                ? 'I have a code already'
+                : 'Send me a magic link instead'}
+            </button>
+          </p>
+        </form>
 
-      {error && <p className="error">{error}</p>}
+        {error && <p className="error">{error}</p>}
 
-      {status === 'sent' && import.meta.env.DEV && (
-        <p className="muted">
-          In local dev, the email lands in Mailpit at{' '}
-          <a href="http://localhost:54324" target="_blank" rel="noreferrer">
-            http://localhost:54324
-          </a>
-          .
-        </p>
-      )}
+        {status === 'sent' && import.meta.env.DEV && (
+          <p className="muted">
+            In local dev, the email lands in Mailpit at{' '}
+            <a href="http://localhost:54324" target="_blank" rel="noreferrer">
+              http://localhost:54324
+            </a>
+            .
+          </p>
+        )}
+      </div>
     </div>
   )
 }

@@ -1,0 +1,94 @@
+/* cs-unmet */
+
+/* ============================================================
+ * page.css — how every page in the app is laid out.
+ *
+ * The vocabulary, settled in the homepage area (plans/areas/homepage.md →
+ * F26 `three-wrappers`, F30 `pagemain-widths`, F37 `card-only-page`):
+ *
+ *   page      the <body> element, tip to tail. Very light gray, its own
+ *             padding, `min-height: 100svh`. NEVER scrolls. Everything
+ *             called `--page-*` is about this and nothing else.
+ *   pageHeader   the strip at the top, when a page has one (PageHeader.tsx).
+ *   pageMain     everything else — the page's actual content.
+ *
+ * THE RULE: the page is bounded, and a designated part INSIDE it scrolls.
+ * Never the document.
+ *
+ * Before this, three pages wrote near-identical copies of the wrapper under
+ * the name `.frame` (which already means "a rectangle drawn around a board"
+ * elsewhere), and three more had no page structure at all — they rendered a
+ * bare `.card` and let it stand in for the page.
+ * ============================================================ */
+
+/* The element holding the pageHeader and the pageMain.
+ *
+ * A long, unglamorous name on purpose (Joel, 2026-08-23): it is a highly
+ * specific thing, not easily explained, and rarely written. What it must NOT
+ * be called is `.page` — that is `<body>` — or `.frame`, which is taken.
+ *
+ * It exists because React cannot render `<body>`. Three of the four things it
+ * does are really the page's (the bound, the width, the centering) and only
+ * the stacking is about the header-and-main pair; dissolving it would mean
+ * per-route rules on `<body>`, reachable only through an attribute set outside
+ * the React tree. Keeping it costs nothing, so we keep it.
+ *
+ * `height`, not `max-height`: the page fills the viewport whatever its content
+ * (Joel, 2026-08-23 — the homepage used to shrink to its card and now behaves
+ * like the club page). The empty room ends up INSIDE the pageMain rather than
+ * below it.
+ *
+ * `svh`, not `vh`, for the mobile-Safari reason documented on `body`.
+ *
+ * NO `width: 100%`. It looks load-bearing — `body` is a grid that centers its
+ * child — but the child it centers is `#root`, which is `width: 100%` itself,
+ * and a block-level flex container fills its containing block regardless.
+ * Measured: identical with and without (F27 `width-100-undeclared`). */
+/* @@ */ .pageHeaderAndMainArea {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacer-2);
+  height: calc(100svh - 2 * var(--page-padding-y));
+}
+
+/* The page's content.
+ *
+ * `min-height: 0` is the load-bearing half of the bound reaching downward: a
+ * flex item's floor is its content by default, which would let the pageMain
+ * keep its natural height and push the page into a scroll anyway — the trap
+ * the mobile InfoSheet hit.
+ *
+ * The width is the DEFAULT one — "the width when a page doesn't need a custom
+ * one" (Joel, 2026-08-23). A page that needs its own says so in its own file,
+ * with the reason; there is deliberately no second tier called "wide", because
+ * the one page that is wider chose its number for itself. On a phone this cap
+ * is inert: every page is full-bleed to within the body's 4px of padding.
+ *
+ * `margin-inline: auto` is the app's ONLY horizontal centering that does
+ * anything. `body` says it centers, and cannot: the child it would center is
+ * `#root` at `width: 100%` (F31 `centering-said-4x`). */
+/* @@ */ .pageMain {
+  min-height: 0;
+  max-width: var(--pageMain-width);
+  margin-inline: auto;
+  width: 100%;
+}
+
+/* A pageMain that FILLS the wrapper rather than hugging its content.
+ *
+ * Not a taste: a scroller needs a definite height to scroll AGAINST, so a page
+ * whose growth is absorbed by something inside it — the homepage's club list,
+ * the club page's games list — must fill. A page with no scroller must not,
+ * or a short form sits in a viewport-tall box.
+ *
+ * So the test is mechanical: does this pageMain contain a scroller?
+ *
+ * The flex column comes with it for the same reason. Filling is only ever done
+ * to hand a definite height DOWNWARD, and the app's way of handing height down
+ * is a column of flex items whose floors are released (`min-height: 0`). A
+ * pageMain that fills and is not a column has filled for nothing. */
+/* @@ */ .pageMain-fills {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}

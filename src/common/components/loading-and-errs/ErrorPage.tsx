@@ -43,10 +43,14 @@ type Props = {
  * (F37 `card-only-page`), and what all five of these already were. So the page
  * still reads as white-on-gray like the modal does; only the content inside it
  * is now one shape instead of five.
+ *
+ * It is also a `.pageMain`, taking the app's default page width: an error is a
+ * page like any other, and "the width when a page doesn't need a custom one" is
+ * exactly what it wants (Joel, 2026-08-23).
  */
 export function ErrorPage({ message, diagnostics, action }: Props) {
   return (
-    <div className={cls('card', styles.page)}>
+    <div className={cls('card', 'pageMain', styles.page)}>
       <h1 className={styles.heading}>Error</h1>
       <p className={styles.message}>{message}</p>
       <p className={styles.diagnostics}>{diagnostics}</p>

@@ -31,46 +31,18 @@
   color: var(--flex-color-1);
 }
 
-/* The page's outer stack: the header, then the card, one spacer apart. (ClubPage and
- * GamePage each declare their own; unifying them is the club-page area of
- * plans/css-system-2.md, which is also where the name changes — `frame`
- * elsewhere means a rectangle drawn around a board.)
+/* The card is this page's pageMain and takes everything from the shared
+ * classes — the surface from `.card`, the bound, width and centering from
+ * `.pageMain`, the flex column from `.pageMain-fills`. This class exists ONLY
+ * as a prefix for the selector below.
  *
- * MAX-height, not `height`. Home's body is a card sized to its content, so a
- * fixed height would stretch it to the full viewport and strand a two-club list
- * at the top of a tall empty box. This only binds when the clubs would
- * otherwise scroll the page — at which point the LIST scrolls instead.
- *
- * `svh`, not `vh`, for the mobile-Safari reason documented on `body`.
- *
- * NO `width: 100%`. It looks load-bearing — `body` is a grid that centers its
- * child — but the child it centers is `#root`, which is `width: 100%` itself,
- * and a block-level flex container fills its containing block. Measured: the
- * frame is the same width with the declaration and without it. ClubPage and
- * GamePage disagree about writing it for the same reason nobody noticed
- * (plans/areas/homepage.md → F27 `width-100-undeclared`). */
-/* @@ */ .frame {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacer-2);
-  max-height: calc(100svh - 2 * var(--page-padding-y));
-}
-
-/* Layout only — the shared `.card` supplies the surface and padding. A flex
- * column that may shrink, so the bound above can reach the list inside it.
- * `min-height: 0` is the load-bearing half: a flex item's floor is its content
- * by default, which would let the card keep its natural height and push the
- * page into a scroll anyway — the trap the mobile InfoSheet hit. */
-/* @@ */ .card {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-
-/* Everything above the clubs section is fixed furniture and must NOT absorb the
+ * Everything above the clubs section is fixed furniture and must NOT absorb the
  * squeeze — the wordmark especially, which is a `width: 100%` <img> and would
  * simply get shorter (it takes no className of its own, hence the child
- * selector rather than a class on the component). */
+ * selector rather than a class on the component).
+ *
+ * The pattern can't say this for us: "everything except the scroller" has to
+ * name the scroller, and only the page knows which of its children that is. */
 /* @@ */ .card > *:not(.clubsSection) {
   flex-shrink: 0;
 }

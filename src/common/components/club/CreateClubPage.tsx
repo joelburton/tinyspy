@@ -6,6 +6,7 @@ import type { Session } from '@supabase/supabase-js'
 import { db as commonDb } from '../../db'
 import { navigate } from '../../lib/routing/router'
 import styles from './CreateClubPage.module.css'
+import { cls } from '../../lib/util/cls'
 
 type Props = {
   session: Session
@@ -176,79 +177,81 @@ export function CreateClubPage({ session: _session }: Props) {
   }
 
   return (
-    <div className="card">
-      <h1>Create a club</h1>
-      <p className="muted">
-        A club is a fixed group of friends who play games together.
-        Membership is set at creation and can't be changed later
-        (no invitations, no leaving). Chat and any in-progress games
-        in this club will be visible to all members.
-      </p>
+    <div className="pageHeaderAndMainArea">
+      <div className={cls('card', 'pageMain')}>
+        <h1>Create a club</h1>
+        <p className="muted">
+          A club is a fixed group of friends who play games together.
+          Membership is set at creation and can't be changed later
+          (no invitations, no leaving). Chat and any in-progress games
+          in this club will be visible to all members.
+        </p>
 
-      <form onSubmit={onSubmit} className={styles.form}>
-        <label className={styles.field}>
-          <span className={styles.labelRow}>
-            Club name
-            {/* Discreet preview of the derived URL handle, so the
-                handle-based validation reads sensibly ("JB!" → "jb").
-                Hidden when the name is blank; "(empty)" when the name
-                has no slug-able characters at all (e.g. "!!!"). */}
-            {name.trim() && (
-              <span className={styles.handleHint}>
-                {previewSlug ? `(becomes handle: ${previewSlug})` : '(empty)'}
-              </span>
-            )}
-          </span>
-          {/* maxLength mirrors the CHECK on common.clubs.name — the same
-              belt-and-braces the handle field uses (ClaimHandleScreen). The
-              server is the authority; this just means you can't type a name
-              only to be told no. */}
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            disabled={busy}
-            placeholder="Joel and Leah"
-            maxLength={CLUB_NAME_MAX}
-            autoFocus
-            required
-          />
-          <span className="muted">
-            Up to {CLUB_NAME_MAX} characters — it headlines the club page.
-          </span>
-        </label>
+        <form onSubmit={onSubmit} className={styles.form}>
+          <label className={styles.field}>
+            <span className={styles.labelRow}>
+              Club name
+              {/* Discreet preview of the derived URL handle, so the
+                  handle-based validation reads sensibly ("JB!" → "jb").
+                  Hidden when the name is blank; "(empty)" when the name
+                  has no slug-able characters at all (e.g. "!!!"). */}
+              {name.trim() && (
+                <span className={styles.handleHint}>
+                  {previewSlug ? `(becomes handle: ${previewSlug})` : '(empty)'}
+                </span>
+              )}
+            </span>
+            {/* maxLength mirrors the CHECK on common.clubs.name — the same
+                belt-and-braces the handle field uses (ClaimHandleScreen). The
+                server is the authority; this just means you can't type a name
+                only to be told no. */}
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              disabled={busy}
+              placeholder="Joel and Leah"
+              maxLength={CLUB_NAME_MAX}
+              autoFocus
+              required
+            />
+            <span className="muted">
+              Up to {CLUB_NAME_MAX} characters — it headlines the club page.
+            </span>
+          </label>
 
-        <label className={styles.field}>
-          Other members' usernames
-          <textarea
-            className={styles.textarea}
-            value={usernamesInput}
-            onChange={(e) => setUsernamesInput(e.target.value)}
-            disabled={busy}
-            placeholder="alice, bob"
-            rows={2}
-          />
-          <span className="muted">
-            Comma or space separated. You're added automatically.
-          </span>
-        </label>
+          <label className={styles.field}>
+            Other members' usernames
+            <textarea
+              className={styles.textarea}
+              value={usernamesInput}
+              onChange={(e) => setUsernamesInput(e.target.value)}
+              disabled={busy}
+              placeholder="alice, bob"
+              rows={2}
+            />
+            <span className="muted">
+              Comma or space separated. You're added automatically.
+            </span>
+          </label>
 
-        {error && <p className="error">{error}</p>}
+          {error && <p className="error">{error}</p>}
 
-        <div className={styles.buttonRow}>
-          <button
-            type="button"
-            className="button secondary"
-            onClick={() => navigate('/')}
-            disabled={busy}
-          >
-            Cancel
-          </button>
-          <button type="submit" className="button primary" disabled={busy}>
-            {busy ? 'Creating…' : 'Create club'}
-          </button>
-        </div>
-      </form>
+          <div className={styles.buttonRow}>
+            <button
+              type="button"
+              className="button secondary"
+              onClick={() => navigate('/')}
+              disabled={busy}
+            >
+              Cancel
+            </button>
+            <button type="submit" className="button primary" disabled={busy}>
+              {busy ? 'Creating…' : 'Create club'}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   )
 }

@@ -155,57 +155,59 @@ export function ClaimHandleScreen({ onClaimed, email }: Props) {
   }
 
   return (
-    <div className="card">
-      <h1>Let&rsquo;s set you up</h1>
-      <p>
-        Your username is your permanent handle — pick one you&rsquo;ll be happy with. Your color can be changed later.
-      </p>
+    <div className="pageHeaderAndMainArea">
+      <div className={cls('card', 'pageMain')}>
+        <h1>Let&rsquo;s set you up</h1>
+        <p>
+          Your username is your permanent handle — pick one you&rsquo;ll be happy with. Your color can be changed later.
+        </p>
 
-      <form onSubmit={onSubmit} className={styles.form}>
-        <label className={styles.field}>
-          <span className={styles.label}>Username</span>
-          <input
-            type="text"
-            value={desired}
-            onChange={(e) => setDesired(e.target.value)}
-            disabled={busy}
-            autoFocus
-            required
-            // Hard stop at the CHECK's ceiling — a handle you can't submit
-            // shouldn't be typeable in the first place.
-            maxLength={15}
-          />
-          <span className={cls(styles.help, localValid ? 'muted' : 'error')}>
-            3–15 characters: lowercase letters, digits, and hyphens. Must
-            start with a letter.
-          </span>
-        </label>
+        <form onSubmit={onSubmit} className={styles.form}>
+          <label className={styles.field}>
+            <span className={styles.label}>Username</span>
+            <input
+              type="text"
+              value={desired}
+              onChange={(e) => setDesired(e.target.value)}
+              disabled={busy}
+              autoFocus
+              required
+              // Hard stop at the CHECK's ceiling — a handle you can't submit
+              // shouldn't be typeable in the first place.
+              maxLength={15}
+            />
+            <span className={cls(styles.help, localValid ? 'muted' : 'error')}>
+              3–15 characters: lowercase letters, digits, and hyphens. Must
+              start with a letter.
+            </span>
+          </label>
 
-        <fieldset className={styles.field}>
-          <legend className={styles.label}>Player color</legend>
-          <ColorChoiceList value={selected} onChange={setSelected} disabled={busy} />
-        </fieldset>
+          <fieldset className={styles.field}>
+            <legend className={styles.label}>Player color</legend>
+            <ColorChoiceList value={selected} onChange={setSelected} disabled={busy} />
+          </fieldset>
 
-        {error && <p className="error">{error}</p>}
+          {error && <p className="error">{error}</p>}
 
-        {/* Always-available escape (a user can land here on a stale
-            session and not want — or be able — to claim anything; the
-            rest of the app's chrome isn't mounted behind the needsClaim
-            gate). Sits beside Accept now, styled as a real button. */}
-        <div className={styles.buttonRow}>
-          <button
-            type="button"
-            className="button secondary"
-            disabled={busy}
-            onClick={() => void handleSignOut()}
-          >
-            Not you? Sign out
-          </button>
-          <button type="submit" className="button primary" disabled={busy || !HANDLE_REGEX.test(desired)}>
-            {busy ? 'Setting up…' : 'Accept'}
-          </button>
-        </div>
-      </form>
+          {/* Always-available escape (a user can land here on a stale
+              session and not want — or be able — to claim anything; the
+              rest of the app's chrome isn't mounted behind the needsClaim
+              gate). Sits beside Accept now, styled as a real button. */}
+          <div className={styles.buttonRow}>
+            <button
+              type="button"
+              className="button secondary"
+              disabled={busy}
+              onClick={() => void handleSignOut()}
+            >
+              Not you? Sign out
+            </button>
+            <button type="submit" className="button primary" disabled={busy || !HANDLE_REGEX.test(desired)}>
+              {busy ? 'Setting up…' : 'Accept'}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   )
 }
