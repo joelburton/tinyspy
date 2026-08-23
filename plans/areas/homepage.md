@@ -240,9 +240,19 @@ have.
 > shorthand; a value with no match is clean, which is what makes `border: 0`
 > and `transition: none` come out right without naming them.
 >
-> The cost is that `pending` is now 200 lines. That is the honest size of the
+> The cost is that `pending` covers 200 files. That is the honest size of the
 > job — it is the sprint's to-do list seen from the guard's side, and an area
-> deletes its rows as it converts them.
+> deletes from it as it converts.
+>
+> **And it is keyed by VALUE, which this area is the reason for.** §18 had
+> "whether the shrinking allowlist is the right guard mechanism" open; the
+> homepage answered it by accident. Converting `.frame`'s gap while F7 stayed
+> open left `HomePage.module.css` on the list, and a file-level list excuses
+> the WHOLE file — so the value we had just converted could have been written
+> back to `1rem` in silence. Now a row names the literals still allowed there,
+> any other literal in that file fails, and the conversion is protected the
+> moment it lands. Verified by planting exactly that: reverting the gap now
+> fails, where the day before it would not have.
 
 **F6 · The spacer vocabulary spans three properties; the guard takes one.**
 `vocabularies.test.ts` is keyed on a single `property` per entry (`border-radius`,

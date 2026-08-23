@@ -393,8 +393,12 @@ decided outright. Two mechanisms came with them and are the part to know:
 - **`guards/vocabularies.test.ts` now runs an entry per vocabulary**, and an
   entry takes a LIST of properties plus an optional `extract` regex for the
   ones the app writes as a shorthand (`border: 1px solid …`, `transition:
-  opacity 120ms ease`). Its `pending` lists total ~200 files: that is the
-  sprint's own to-do list, and an area deletes its rows as it converts them.
+  opacity 120ms ease`). Its `pending` covers ~200 files: that is the sprint's
+  own to-do list, and an area deletes from it as it converts.
+- **`pending` is keyed BY VALUE**, `path → the literals still allowed there`.
+  See §18's answered question below — the short version is that a partially
+  converted file is the normal case, and a file-level list gives it no
+  protection at all.
 
 | # | vocabulary | steps | lives in |
 |---|---|---|---|
@@ -1102,7 +1106,29 @@ vocabulary; invent it if we ever need it.
   to 700 everywhere else.
 - **Which cursor colors**, given the board cursor is amber today for a recorded
   reason: scrabble's premium squares are already red and blue.
-- **Whether the shrinking allowlist is the right guard mechanism.**
+- ~~**Whether the shrinking allowlist is the right guard mechanism.**~~
+  **ANSWERED 2026-08-22, with evidence rather than opinion: keep it, and key it
+  by VALUE instead of by file.**
+
+  The mechanism is right — a warning nobody reads is worthless, and the
+  property that earns its keep is that a NEW file fails immediately.
+
+  The granularity was wrong, and the homepage proved it the day it landed.
+  `HomePage.module.css` converted `.frame`'s gap to `--spacer-2` and stayed on
+  the pending list, because F7's `0.45em` on the greeting disc is still open —
+  so the conversion we had just made was **unprotected**: writing `1rem` back
+  would have been silent. A partially converted file is the NORMAL case, not
+  the exception, and "what survives is what a test asserts" is this document's
+  own recorded failure mode.
+
+  So a row is `path → the literals still allowed there`, holding the offending
+  PARTS (`border: 1px solid var(--x)` lists `1px`) rather than whole
+  declarations, so the row stays true when the color beside it changes. Two
+  shrink arms: a listed value that is no longer written fails, and a row whose
+  file no longer offends at all fails. Cost, measured on spacer: 60 files carry
+  136 distinct literals — median 2 per file, max 8, 27 files with exactly one.
+  The list roughly doubles in WIDTH, not in length, and stops being a list of
+  filenames and starts being an inventory of what is left.
 - **What `css-philosophy.md` becomes** when this ships. It is reasoning about
   decided design — neither work-in-flight nor current-state. Joel wants it kept.
 

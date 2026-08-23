@@ -14,18 +14,22 @@ import { describe, expect, it } from 'vitest'
  * unconverted file would be red for weeks, and a guard that only warns is
  * one nobody reads.
  *
- * So this is a **SHRINKING ALLOWLIST**, the mechanism §10 specifies:
+ * So this is a **SHRINKING ALLOWLIST**, the mechanism §10 specifies, and it
+ * shrinks BY VALUE rather than by file:
  *
- *   - a file NOT YET CONVERTED sits in the vocabulary's `pending` list and
- *     is silent;
- *   - a CONVERTED file that regresses FAILS;
- *   - a NEW file fails immediately, because it isn't on the list — which is
+ *   - a value not yet converted sits on its file's `pending` row and is
+ *     silent;
+ *   - any OTHER literal in that file FAILS — so converting one value on a
+ *     page protects it immediately, even while another value on the same page
+ *     is still open;
+ *   - a NEW file fails immediately, because it has no row at all — which is
  *     the property that makes this worth having on day one, before a single
  *     surface converts.
  *
- * Delete a path from `pending` when its area is converted. When a list
- * empties, delete the list — and the day every list is empty, this file has
- * done its job.
+ * Delete a value from a row when it converts, and the row when the file is
+ * clean. Both are enforced: a listed value that is no longer written, and a
+ * row whose file no longer offends at all, each fail. The day every object is
+ * empty, this file has done its job.
  *
  * ⚠️ TUNED SURFACES ARE EXEMPT, and that is the DEFAULT scope, not the rule.
  * A game's board fits its own game; that is what tuned means (docs/naming.md
@@ -98,8 +102,25 @@ type Vocabulary = {
   /** Where to look, under `src/`. Defaults to `common` — tuned surfaces are
    *  exempt. Widen it only for a value a game does not get to decide. */
   root?: string
-  /** Files not yet converted. Delete a line when its area is done. */
-  pending: string[]
+  /**
+   * Files not yet converted, each listing the literals it is still allowed to
+   * write. Delete a value when it converts; delete the row when the file is
+   * clean.
+   *
+   * BY VALUE, not by file, and the homepage is why. It converted `.frame`'s
+   * gap to `--spacer-2` and stayed on the list, because a second value on the
+   * same page (F7's `0.45em`) is still open — so under a file-level list the
+   * conversion we had just made was unprotected: writing `1rem` back would
+   * have been silent. A partially converted file is the NORMAL case, not the
+   * exception, and the sprint's own recorded failure is that what survives is
+   * what a test asserts.
+   *
+   * The values are the offending PARTS, not whole declarations: `border: 1px
+   * solid var(--x)` lists `1px`, and `margin: 0.25rem 0 0.75rem 0` lists
+   * `0.25rem` and `0.75rem`. A part is what was actually chosen, so the row
+   * stays true when the color beside it changes.
+   */
+  pending: Record<string, string[]>
   /** What to tell someone who trips it. */
   fix: string
 }
@@ -114,14 +135,14 @@ const VOCABULARIES: Vocabulary[] = [
     // `inherit` and friends aren't values at all — they defer to somewhere else,
     // which is the opposite of writing a literal.
     allowed: /^(0|50%|999px|inherit|initial|unset|revert)$/,
-    pending: [
-      'src/common/components/feedback/GenericFeedbackPill.module.css',
-      'src/common/components/game/FilterSelect.module.css',
-      'src/common/components/game/RankBar.module.css',
-      'src/common/components/game/entry/GuessKeyboard.module.css',
-      'src/common/components/game/lists/TurnLog.module.css',
-      'src/common/components/panels/GameScratchpad.module.css',
-    ],
+    pending: {
+      'src/common/components/feedback/GenericFeedbackPill.module.css': ['0.5rem'],
+      'src/common/components/game/entry/GuessKeyboard.module.css': ['4px'],
+      'src/common/components/game/FilterSelect.module.css': ['4px'],
+      'src/common/components/game/lists/TurnLog.module.css': ['3px'],
+      'src/common/components/game/RankBar.module.css': ['2px', '4px'],
+      'src/common/components/panels/GameScratchpad.module.css': ['6px'],
+    },
     fix:
       'Use `--radius-sm` / `-md` / `-lg`, chosen by what the thing IS — a card ' +
       'takes lg, a panel md, a chip sm (docs/deferred.md). A value that is not ' +
@@ -148,12 +169,12 @@ const VOCABULARIES: Vocabulary[] = [
     // which is the opposite of writing a literal.
     allowed: /^([1-9]00|normal|bold|lighter|bolder|inherit|initial|unset|revert)$/,
     root: '.',
-    pending: [
+    pending: {
       // letterboxed's two `650`s — the whole cost of the rule, and they are
       // fixed by the `letterboxed` area's audit, not swept now.
-      'src/letterboxed/components/Board.module.css',
-      'src/letterboxed/components/PlayArea.module.css',
-    ],
+      'src/letterboxed/components/Board.module.css': ['650'],
+      'src/letterboxed/components/PlayArea.module.css': ['650'],
+    },
     fix:
       'A font-weight is a multiple of 100 — that is the scale CSS itself ' +
       'defines, and we add nothing to it. A value between two steps is tuned ' +
@@ -183,72 +204,76 @@ const VOCABULARIES: Vocabulary[] = [
     // that pull a child out past its parent's padding are NOT here: that is a
     // real distance and it takes a token with a minus in front of it.
     allowed: /^(0|auto|inherit|initial|unset|revert)$/,
-    pending: [
-      // Every file in `common/` that still writes a literal gap or margin.
-      // This is the sprint's own to-do list seen from the guard's side: an
-      // area converts its files and deletes its lines, and the day the list
-      // empties the vocabulary is fully in force.
-      'src/common/base.css',
-      'src/common/components/account/ColorChoiceList.module.css',
-      'src/common/components/account/EditProfileDialog.module.css',
-      'src/common/components/auth/ClaimHandleScreen.module.css',
-      'src/common/components/branding/PuzpuzpuzWordmark.module.css',
-      'src/common/components/buttons/SubmitWithScore.module.css',
-      'src/common/components/chat/ChatBody.module.css',
-      'src/common/components/chrome/PageHeader.module.css',
-      'src/common/components/club/ClubGameCard.module.css',
-      'src/common/components/club/ClubPage.module.css',
-      'src/common/components/club/CreateClubPage.module.css',
-      'src/common/components/club/EditClubDialog.module.css',
-      'src/common/components/club/StartGameButtons.module.css',
-      'src/common/components/definitions/AnagramDialog.module.css',
-      'src/common/components/definitions/DefinitionView.module.css',
-      'src/common/components/definitions/WordEditDialog.module.css',
-      'src/common/components/definitions/WordLookupDialog.module.css',
-      'src/common/components/feedback/FaultDialog.module.css',
-      'src/common/components/feedback/GenericFeedbackPill.module.css',
-      'src/common/components/fields/CoopStyleField.module.css',
-      'src/common/components/fields/NextPuzzleField.module.css',
-      'src/common/components/fields/SelectField.module.css',
-      'src/common/components/fields/setupForm.module.css',
-      'src/common/components/fields/TimerField.module.css',
-      'src/common/components/game/CelebrationDialog.module.css',
-      'src/common/components/game/DeviceBlockNotice.module.css',
-      'src/common/components/game/entry/EntryBox.module.css',
-      'src/common/components/game/entry/GuessKeyboard.module.css',
-      'src/common/components/game/entry/MoveRow.module.css',
-      'src/common/components/game/FilterSelect.module.css',
-      'src/common/components/game/foundWordsPlayArea.module.css',
-      'src/common/components/game/GamePage.module.css',
-      'src/common/components/game/HelpPanel.module.css',
-      'src/common/components/game/infoPanel.module.css',
-      'src/common/components/game/lists/ActorMention.module.css',
-      'src/common/components/game/lists/historyViewer.module.css',
-      'src/common/components/game/lists/TurnLog.module.css',
-      'src/common/components/game/lists/WordList.module.css',
-      'src/common/components/game/OpponentStrip.module.css',
-      'src/common/components/game/PauseOverlay.module.css',
-      'src/common/components/game/PlayArea.module.css',
-      'src/common/components/game/PlayersStrip.module.css',
-      'src/common/components/game/RankBar.module.css',
-      'src/common/components/game/Stats.module.css',
-      'src/common/components/game/StrikeMarks.module.css',
-      'src/common/components/home/HomePage.module.css', // its gap converted; the 0.45em is F7, still open
-      'src/common/components/palette/PalettePage.module.css',
-      'src/common/components/panels/FloatingPanel.module.css',
-      'src/common/components/panels/GameScratchpad.module.css',
-      'src/common/components/panels/Menu.module.css',
-      'src/common/components/panels/modalActions.module.css',
-      'src/common/components/panels/TriggerWithChevron.module.css',
-      'src/common/components/setup/SetupGameDialog.module.css',
-      'src/common/components/text/RichMessage.module.css',
-      'src/common/components/toasts/Toast.module.css',
-      'src/common/components/toasts/ToastHost.module.css',
-      'src/common/patterns/button.css',
-      'src/common/patterns/heading.css',
-      'src/common/patterns/list.css',
-      'src/common/utilities.css',
-    ],
+    pending: {
+      // Every file in `common/` that still writes a literal gap or margin, and
+      // the values it writes. This is the sprint's own to-do list seen from the
+      // guard's side: an area converts a value and deletes it from its row, the
+      // row goes when the file is clean, and the day the object is empty the
+      // vocabulary is fully in force.
+      'src/common/base.css': ['1rem', '1.25rem', '1.15rem', '0.75rem'],
+      'src/common/components/account/ColorChoiceList.module.css': ['0.5rem'],
+      'src/common/components/account/EditProfileDialog.module.css': ['1.25rem', '0.4rem'],
+      'src/common/components/auth/ClaimHandleScreen.module.css': ['1.25rem', '1.5rem', '0.4rem', '0.75rem', '0.5rem'],
+      'src/common/components/branding/PuzpuzpuzWordmark.module.css': ['1.5rem'],
+      'src/common/components/buttons/SubmitWithScore.module.css': ['0.5rem'],
+      'src/common/components/chat/ChatBody.module.css': ['0.4rem', '0.3rem'],
+      'src/common/components/chrome/PageHeader.module.css': ['1rem', '0.375rem', '0.5rem'],
+      'src/common/components/club/ClubGameCard.module.css': ['0.4rem', '0.5rem'],
+      'src/common/components/club/ClubPage.module.css': ['1rem', '1.25rem', '0.85rem'],
+      'src/common/components/club/CreateClubPage.module.css': ['1.25rem', '1.5rem', '0.4rem', '0.75rem', '0.5rem'],
+      'src/common/components/club/EditClubDialog.module.css': ['0.5rem'],
+      'src/common/components/club/StartGameButtons.module.css': ['0.4rem'],
+      'src/common/components/definitions/AnagramDialog.module.css': ['0.5rem', '0.4rem'],
+      'src/common/components/definitions/DefinitionView.module.css': ['0.3rem', '0.15rem', '0.1rem'],
+      'src/common/components/definitions/WordEditDialog.module.css': ['0.55rem', '0.2rem', '0.5rem', '0.35rem', '0.9rem', '0.3rem'],
+      'src/common/components/definitions/WordLookupDialog.module.css': ['0.6rem', '0.4rem'],
+      'src/common/components/feedback/FaultDialog.module.css': ['0.5rem'],
+      'src/common/components/feedback/GenericFeedbackPill.module.css': ['0.5rem'],
+      'src/common/components/fields/CoopStyleField.module.css': ['1rem'],
+      'src/common/components/fields/NextPuzzleField.module.css': ['0.5rem'],
+      'src/common/components/fields/SelectField.module.css': ['0.35rem'],
+      'src/common/components/fields/setupForm.module.css': ['1rem', '0.25rem', '0.75rem', '0.4rem', '0.5rem'],
+      'src/common/components/fields/TimerField.module.css': ['1rem', '0.4rem', '0.3rem'],
+      'src/common/components/game/CelebrationDialog.module.css': ['0.3rem', '0.4rem', '0.2rem', '1.4rem', '0.5rem'],
+      'src/common/components/game/DeviceBlockNotice.module.css': ['1rem'],
+      'src/common/components/game/entry/EntryBox.module.css': ['1px'],
+      'src/common/components/game/entry/GuessKeyboard.module.css': ['0.4rem'],
+      'src/common/components/game/entry/MoveRow.module.css': ['0.5rem'],
+      'src/common/components/game/FilterSelect.module.css': ['0.25rem', '0.35rem'],
+      'src/common/components/game/foundWordsPlayArea.module.css': ['1.5rem'],
+      'src/common/components/game/GamePage.module.css': ['1rem', '0.1rem'],
+      'src/common/components/game/HelpPanel.module.css': ['1rem'],
+      'src/common/components/game/infoPanel.module.css': ['0.5rem', '0.35rem'],
+      'src/common/components/game/lists/ActorMention.module.css': ['0.4rem'],
+      'src/common/components/game/lists/historyViewer.module.css': ['0.6rem'],
+      'src/common/components/game/lists/TurnLog.module.css': ['0.5rem', '-1px', '-3px'],
+      'src/common/components/game/lists/WordList.module.css': ['0.5rem', '16px', '7px'],
+      'src/common/components/game/OpponentStrip.module.css': ['0.25rem', '0.3rem', '0.6rem', '0.35rem'],
+      'src/common/components/game/PauseOverlay.module.css': ['0.5rem', '0.75rem', '0.4rem', '1rem'],
+      'src/common/components/game/PlayArea.module.css': ['0.75rem', '1rem', '0.3rem', '0.5rem'],
+      'src/common/components/game/PlayersStrip.module.css': ['1.25rem', '0.4rem', '0.6rem'],
+      'src/common/components/game/RankBar.module.css': ['8px', '0.5rem'],
+      'src/common/components/game/Stats.module.css': ['8px', '12px', '2px', '0.25rem'],
+      'src/common/components/game/StrikeMarks.module.css': ['0.3rem', '0.4rem'],
+      // The row this whole mechanism was reshaped for: the homepage's gap
+      // converted to `--spacer-2` and is now PROTECTED, while F7's em-relative
+      // disc gap is still open and still excused. One file, two fates.
+      'src/common/components/home/HomePage.module.css': ['0.45em'],
+      'src/common/components/palette/PalettePage.module.css': ['1rem', '0.75rem', '2.5rem', '0.25rem', '0.5rem', '0.35rem', '0.15rem'],
+      'src/common/components/panels/FloatingPanel.module.css': ['0.5rem'],
+      'src/common/components/panels/GameScratchpad.module.css': ['0.4rem', '0.5rem'],
+      'src/common/components/panels/Menu.module.css': ['1.5rem', '0.3rem', '0.1rem', '-1px', '-1rem'],
+      'src/common/components/panels/modalActions.module.css': ['0.75rem', '1.5rem'],
+      'src/common/components/panels/TriggerWithChevron.module.css': ['0.1rem'],
+      'src/common/components/setup/SetupGameDialog.module.css': ['0.75rem', '1.5rem', '1rem', '0.5rem', '0.4rem'],
+      'src/common/components/text/RichMessage.module.css': ['0.25rem'],
+      'src/common/components/toasts/Toast.module.css': ['0.7rem'],
+      'src/common/components/toasts/ToastHost.module.css': ['0.6rem'],
+      'src/common/patterns/button.css': ['0.4em'],
+      'src/common/patterns/heading.css': ['0.5rem'],
+      'src/common/patterns/list.css': ['0.6rem'],
+      'src/common/utilities.css': ['1rem', '1.5rem'],
+    },
     fix:
       'Use `--spacer-1` … `-5` (1.5 · 1 · 0.75 · 0.5 · 0.25rem), remembering ' +
       'that -1 is the BIGGEST. A value that is not on the ramp is a decision, ' +
@@ -262,52 +287,52 @@ const VOCABULARIES: Vocabulary[] = [
     // parent deliberately, which a rem token cannot express and should not
     // replace. The ramp is for absolute sizes.
     allowed: /^(\d*\.?\d+(em|%)|inherit|initial|unset|revert)$/,
-    pending: [
-      'src/common/base.css',
-      'src/common/components/account/EditProfileDialog.module.css',
-      'src/common/components/auth/ClaimHandleScreen.module.css',
-      'src/common/components/buttons/ShuffleButton.module.css',
-      'src/common/components/chat/ChatBody.module.css',
-      'src/common/components/chat/ChatBubble.module.css',
-      'src/common/components/club/clubFilters.module.css',
-      'src/common/components/club/ClubGameCard.module.css',
-      'src/common/components/club/CreateClubPage.module.css',
-      'src/common/components/club/EditClubDialog.module.css',
-      'src/common/components/club/StartGameButtons.module.css',
-      'src/common/components/definitions/AnagramDialog.module.css',
-      'src/common/components/definitions/DefinitionView.module.css',
-      'src/common/components/definitions/WordEditDialog.module.css',
-      'src/common/components/definitions/WordLookupDialog.module.css',
-      'src/common/components/feedback/FaultDialog.module.css',
-      'src/common/components/feedback/GenericFeedbackPill.module.css',
-      'src/common/components/fields/SelectField.module.css',
-      'src/common/components/game/CelebrationDialog.module.css',
-      'src/common/components/game/DeviceBlockNotice.module.css',
-      'src/common/components/game/entry/GuessKeyboard.module.css',
-      'src/common/components/game/FilterSelect.module.css',
-      'src/common/components/game/infoPanel.module.css',
-      'src/common/components/game/InfoSwitchButton.module.css',
-      'src/common/components/game/lists/historyViewer.module.css',
-      'src/common/components/game/lists/TurnLog.module.css',
-      'src/common/components/game/lists/WordList.module.css',
-      'src/common/components/game/MobileStatusBar.module.css',
-      'src/common/components/game/OpponentStrip.module.css',
-      'src/common/components/game/PauseOverlay.module.css',
-      'src/common/components/game/PlayArea.module.css',
-      'src/common/components/game/RankBar.module.css',
-      'src/common/components/game/Stats.module.css',
-      'src/common/components/palette/PalettePage.module.css',
-      'src/common/components/panels/FloatingPanel.module.css',
-      'src/common/components/panels/GameScratchpad.module.css',
-      'src/common/components/panels/Menu.module.css',
-      'src/common/components/setup/SetupGameDialog.module.css',
-      'src/common/components/toasts/Toast.module.css',
-      'src/common/components/tooltips/TooltipHost.module.css',
-      'src/common/patterns/badge.css',
-      'src/common/patterns/button.css',
-      'src/common/patterns/segmented.css',
-      'src/common/utilities.css',
-    ],
+    pending: {
+      'src/common/base.css': ['1.5rem', '1.25rem', '1.15rem', '1rem', 'max(16px,', '1em)'],
+      'src/common/components/account/EditProfileDialog.module.css': ['0.9rem', '1.05rem'],
+      'src/common/components/auth/ClaimHandleScreen.module.css': ['0.9rem'],
+      'src/common/components/buttons/ShuffleButton.module.css': ['32px'],
+      'src/common/components/chat/ChatBody.module.css': ['0.9rem', 'max(16px,', '1em)'],
+      'src/common/components/chat/ChatBubble.module.css': ['0.7rem'],
+      'src/common/components/club/clubFilters.module.css': ['0.8rem', 'max(16px,', '1em)', '0.9rem'],
+      'src/common/components/club/ClubGameCard.module.css': ['1rem', '0.85rem', '1.25rem', '1.1rem'],
+      'src/common/components/club/CreateClubPage.module.css': ['0.8rem'],
+      'src/common/components/club/EditClubDialog.module.css': ['0.8rem', '0.85rem'],
+      'src/common/components/club/StartGameButtons.module.css': ['1rem', '0.85rem'],
+      'src/common/components/definitions/AnagramDialog.module.css': ['0.95rem', 'max(16px,', '1em)', '0.75rem', '0.85rem', '0.8rem'],
+      'src/common/components/definitions/DefinitionView.module.css': ['1.05rem', '0.92rem', '0.9rem', '0.72rem', '0.8rem'],
+      'src/common/components/definitions/WordEditDialog.module.css': ['0.8rem', '0.9rem', '0.85rem'],
+      'src/common/components/definitions/WordLookupDialog.module.css': ['0.95rem', 'max(16px,', '1em)'],
+      'src/common/components/feedback/FaultDialog.module.css': ['1.1rem', '0.78rem'],
+      'src/common/components/feedback/GenericFeedbackPill.module.css': ['1.1rem'],
+      'src/common/components/fields/SelectField.module.css': ['0.9rem'],
+      'src/common/components/game/CelebrationDialog.module.css': ['2.4rem', '1.5rem'],
+      'src/common/components/game/DeviceBlockNotice.module.css': ['1.25rem'],
+      'src/common/components/game/entry/GuessKeyboard.module.css': ['1.2rem', '0.85rem'],
+      'src/common/components/game/FilterSelect.module.css': ['0.8rem', '1rem'],
+      'src/common/components/game/infoPanel.module.css': ['0.95rem'],
+      'src/common/components/game/InfoSwitchButton.module.css': ['1.35rem'],
+      'src/common/components/game/lists/historyViewer.module.css': ['1rem'],
+      'src/common/components/game/lists/TurnLog.module.css': ['0.9rem', '1rem'],
+      'src/common/components/game/lists/WordList.module.css': ['17px'],
+      'src/common/components/game/MobileStatusBar.module.css': ['0.95rem'],
+      'src/common/components/game/OpponentStrip.module.css': ['0.85rem', '0.75rem'],
+      'src/common/components/game/PauseOverlay.module.css': ['1.05rem'],
+      'src/common/components/game/PlayArea.module.css': ['0.85rem', '0.95rem', '0.9rem'],
+      'src/common/components/game/RankBar.module.css': ['14px', '12px'],
+      'src/common/components/game/Stats.module.css': ['11px', '18px', '13px'],
+      'src/common/components/palette/PalettePage.module.css': ['0.85rem', '0.8rem', '0.95rem'],
+      'src/common/components/panels/FloatingPanel.module.css': ['0.9rem', '1rem'],
+      'src/common/components/panels/GameScratchpad.module.css': ['0.85rem', '0.8rem', '0.9rem', 'max(16px,', '1em)'],
+      'src/common/components/panels/Menu.module.css': ['0.95rem', '0.82rem', '1rem'],
+      'src/common/components/setup/SetupGameDialog.module.css': ['0.8rem', '0.85rem'],
+      'src/common/components/toasts/Toast.module.css': ['1.2rem'],
+      'src/common/components/tooltips/TooltipHost.module.css': ['0.75rem'],
+      'src/common/patterns/badge.css': ['0.7rem'],
+      'src/common/patterns/button.css': ['0.8rem'],
+      'src/common/patterns/segmented.css': ['0.8rem'],
+      'src/common/utilities.css': ['0.9rem', '0.85rem'],
+    },
     fix:
       'Use `--font-size-1` … `-3` (1 · 0.85 · 0.75rem), -1 being the biggest. ' +
       'Headings are not on this ramp — their sizes are decided by h1–h4 in ' +
@@ -317,31 +342,31 @@ const VOCABULARIES: Vocabulary[] = [
     name: 'line-height',
     properties: ['line-height'],
     allowed: /^(normal|inherit|initial|unset|revert)$/,
-    pending: [
-      'src/common/components/buttons/ShuffleButton.module.css',
-      'src/common/components/chat/ChatBody.module.css',
-      'src/common/components/chat/ChatBubble.module.css',
-      'src/common/components/club/ClubGameCard.module.css',
-      'src/common/components/club/CreateClubPage.module.css',
-      'src/common/components/club/EditClubDialog.module.css',
-      'src/common/components/club/StartGameButtons.module.css',
-      'src/common/components/definitions/DefinitionView.module.css',
-      'src/common/components/feedback/GenericFeedbackPill.module.css',
-      'src/common/components/fields/NextPuzzleField.module.css',
-      'src/common/components/game/CelebrationDialog.module.css',
-      'src/common/components/game/DeviceBlockNotice.module.css',
-      'src/common/components/game/InfoSwitchButton.module.css',
-      'src/common/components/game/lists/historyViewer.module.css',
-      'src/common/components/game/PlayArea.module.css',
-      'src/common/components/game/Stats.module.css',
-      'src/common/components/palette/PalettePage.module.css',
-      'src/common/components/panels/FloatingPanel.module.css',
-      'src/common/components/panels/GameScratchpad.module.css',
-      'src/common/components/panels/Menu.module.css',
-      'src/common/components/toasts/Toast.module.css',
-      'src/common/components/tooltips/TooltipHost.module.css',
-      'src/common/patterns/badge.css',
-    ],
+    pending: {
+      'src/common/components/buttons/ShuffleButton.module.css': ['1'],
+      'src/common/components/chat/ChatBody.module.css': ['1.35'],
+      'src/common/components/chat/ChatBubble.module.css': ['1.1rem'],
+      'src/common/components/club/ClubGameCard.module.css': ['1.2', '1.25', '1'],
+      'src/common/components/club/CreateClubPage.module.css': ['1.4'],
+      'src/common/components/club/EditClubDialog.module.css': ['1.25'],
+      'src/common/components/club/StartGameButtons.module.css': ['1.2', '1.25'],
+      'src/common/components/definitions/DefinitionView.module.css': ['1.45'],
+      'src/common/components/feedback/GenericFeedbackPill.module.css': ['1'],
+      'src/common/components/fields/NextPuzzleField.module.css': ['1.4'],
+      'src/common/components/game/CelebrationDialog.module.css': ['1'],
+      'src/common/components/game/DeviceBlockNotice.module.css': ['1.5'],
+      'src/common/components/game/InfoSwitchButton.module.css': ['1'],
+      'src/common/components/game/lists/historyViewer.module.css': ['1'],
+      'src/common/components/game/PlayArea.module.css': ['1.1'],
+      'src/common/components/game/Stats.module.css': ['1.2'],
+      'src/common/components/palette/PalettePage.module.css': ['1.35'],
+      'src/common/components/panels/FloatingPanel.module.css': ['1'],
+      'src/common/components/panels/GameScratchpad.module.css': ['1.5'],
+      'src/common/components/panels/Menu.module.css': ['1'],
+      'src/common/components/toasts/Toast.module.css': ['1.35', '1'],
+      'src/common/components/tooltips/TooltipHost.module.css': ['1.2'],
+      'src/common/patterns/badge.css': ['1.4'],
+    },
     fix:
       'Use `--line-height-1` … `-3` (1.5 · 1.25 · 1): prose, a tighter block, ' +
       'and a single line that should occupy exactly its own height.',
@@ -352,19 +377,19 @@ const VOCABULARIES: Vocabulary[] = [
     // 0 and 1 are not steps on a ramp — they are "gone" and "here", which is
     // a different question from how faint something should be.
     allowed: /^(0|1|inherit|initial|unset|revert)$/,
-    pending: [
-      'src/common/components/buttons/ShuffleButton.module.css',
-      'src/common/components/club/StartGameButtons.module.css',
-      'src/common/components/definitions/AnagramDialog.module.css',
-      'src/common/components/definitions/WordEditDialog.module.css',
-      'src/common/components/feedback/GenericFeedbackPill.module.css',
-      'src/common/components/fields/SelectField.module.css',
-      'src/common/components/fields/TimerField.module.css',
-      'src/common/components/game/entry/GuessKeyboard.module.css',
-      'src/common/components/game/FilterSelect.module.css',
-      'src/common/components/game/OpponentStrip.module.css',
-      'src/common/components/panels/Menu.module.css',
-    ],
+    pending: {
+      'src/common/components/buttons/ShuffleButton.module.css': ['0.45'],
+      'src/common/components/club/StartGameButtons.module.css': ['0.5'],
+      'src/common/components/definitions/AnagramDialog.module.css': ['0.6'],
+      'src/common/components/definitions/WordEditDialog.module.css': ['0.6'],
+      'src/common/components/feedback/GenericFeedbackPill.module.css': ['0.7'],
+      'src/common/components/fields/SelectField.module.css': ['0.55'],
+      'src/common/components/fields/TimerField.module.css': ['0.5'],
+      'src/common/components/game/entry/GuessKeyboard.module.css': ['0.6'],
+      'src/common/components/game/FilterSelect.module.css': ['0.7'],
+      'src/common/components/game/OpponentStrip.module.css': ['0.5'],
+      'src/common/components/panels/Menu.module.css': ['0.45'],
+    },
     fix:
       'Use `--opacity-1` / `-2` — or say why this one is a ROLE rather than a ' +
       'step, the way `--chrome-disabled-opacity` is. Those two numbers are a ' +
@@ -375,18 +400,18 @@ const VOCABULARIES: Vocabulary[] = [
     name: 'letter-spacing',
     properties: ['letter-spacing'],
     allowed: /^(normal|inherit|initial|unset|revert)$/,
-    pending: [
-      'src/common/components/club/EditClubDialog.module.css',
-      'src/common/components/definitions/DefinitionView.module.css',
-      'src/common/components/game/entry/EntryBox.module.css',
-      'src/common/components/game/lists/WordList.module.css',
-      'src/common/components/game/OpponentStrip.module.css',
-      'src/common/components/game/PlayArea.module.css',
-      'src/common/components/game/RankBar.module.css',
-      'src/common/components/game/Stats.module.css',
-      'src/common/components/palette/PalettePage.module.css',
-      'src/common/components/setup/SetupGameDialog.module.css',
-    ],
+    pending: {
+      'src/common/components/club/EditClubDialog.module.css': ['0.03em'],
+      'src/common/components/definitions/DefinitionView.module.css': ['0.01em'],
+      'src/common/components/game/entry/EntryBox.module.css': ['0.05em'],
+      'src/common/components/game/lists/WordList.module.css': ['0.02em'],
+      'src/common/components/game/OpponentStrip.module.css': ['0.04em'],
+      'src/common/components/game/PlayArea.module.css': ['0.03em'],
+      'src/common/components/game/RankBar.module.css': ['0.04em'],
+      'src/common/components/game/Stats.module.css': ['0.06em'],
+      'src/common/components/palette/PalettePage.module.css': ['0.03em'],
+      'src/common/components/setup/SetupGameDialog.module.css': ['0.03em'],
+    },
     fix:
       'Use `--letter-spacing-label` (a small uppercase label) or `-wide` ' +
       '(letters presented as objects rather than as a word). Prose takes ' +
@@ -406,20 +431,20 @@ const VOCABULARIES: Vocabulary[] = [
     properties: ['transition', 'transition-duration'],
     extract: /\d*\.?\d+m?s\b/g,
     allowed: /^0m?s$/,
-    pending: [
-      'src/common/components/buttons/ShuffleButton.module.css',
-      'src/common/components/chat/ChatBubble.module.css',
-      'src/common/components/club/ClubGameCard.module.css',
-      'src/common/components/game/entry/GuessKeyboard.module.css',
-      'src/common/components/game/InfoSheet.module.css',
-      'src/common/components/game/InfoSwitchButton.module.css',
-      'src/common/components/game/PlayArea.module.css',
-      'src/common/components/game/RankBar.module.css',
-      'src/common/components/panels/Menu.module.css',
-      'src/common/components/panels/ScratchpadBubble.module.css',
-      'src/common/patterns/list.css',
-      'src/common/patterns/segmented.css',
-    ],
+    pending: {
+      'src/common/components/buttons/ShuffleButton.module.css': ['120ms'],
+      'src/common/components/chat/ChatBubble.module.css': ['100ms'],
+      'src/common/components/club/ClubGameCard.module.css': ['100ms', '120ms', '160ms'],
+      'src/common/components/game/entry/GuessKeyboard.module.css': ['80ms'],
+      'src/common/components/game/InfoSheet.module.css': ['160ms'],
+      'src/common/components/game/InfoSwitchButton.module.css': ['80ms'],
+      'src/common/components/game/PlayArea.module.css': ['80ms'],
+      'src/common/components/game/RankBar.module.css': ['80ms'],
+      'src/common/components/panels/Menu.module.css': ['100ms', '80ms'],
+      'src/common/components/panels/ScratchpadBubble.module.css': ['100ms'],
+      'src/common/patterns/list.css': ['100ms'],
+      'src/common/patterns/segmented.css': ['100ms'],
+    },
     fix:
       'Use `--transition-duration-paint` (a color settling), `-nudge` (a piece ' +
       'answering the pointer by moving a little) or `-travel` (something ' +
@@ -450,48 +475,48 @@ const VOCABULARIES: Vocabulary[] = [
     ],
     extract: /\d*\.?\d+(?:px|rem|em)\b/g,
     allowed: /^0(px|rem|em)?$/,
-    pending: [
-      'src/common/base.css',
-      'src/common/components/account/ColorChoiceList.module.css',
-      'src/common/components/buttons/ShuffleButton.module.css',
-      'src/common/components/chat/ChatBody.module.css',
-      'src/common/components/chrome/PageHeader.module.css',
-      'src/common/components/club/clubFilters.module.css',
-      'src/common/components/club/ClubGameCard.module.css',
-      'src/common/components/club/EditClubDialog.module.css',
-      'src/common/components/definitions/AnagramDialog.module.css',
-      'src/common/components/definitions/DefinitionPopover.module.css',
-      'src/common/components/definitions/WordEditDialog.module.css',
-      'src/common/components/definitions/WordLookupDialog.module.css',
-      'src/common/components/feedback/GenericFeedbackPill.module.css',
-      'src/common/components/fields/SelectField.module.css',
-      'src/common/components/fields/setupForm.module.css',
-      'src/common/components/game/DeviceBlockNotice.module.css',
-      'src/common/components/game/entry/GuessKeyboard.module.css',
-      'src/common/components/game/FilterSelect.module.css',
-      'src/common/components/game/gridCursor.module.css',
-      'src/common/components/game/infoPanel.module.css',
-      'src/common/components/game/InfoSwitchButton.module.css',
-      'src/common/components/game/lists/historyViewer.module.css',
-      'src/common/components/game/lists/TurnLog.module.css',
-      'src/common/components/game/PauseOverlay.module.css',
-      'src/common/components/game/PlayArea.module.css',
-      'src/common/components/game/RankBar.module.css',
-      'src/common/components/game/Stats.module.css',
-      'src/common/components/palette/PalettePage.module.css',
-      'src/common/components/panels/FloatingPanel.module.css',
-      'src/common/components/panels/GameScratchpad.module.css',
-      'src/common/components/panels/Menu.module.css',
-      'src/common/components/setup/SetupGameDialog.module.css',
-      'src/common/components/setup/SetupSection.module.css',
-      'src/common/components/text/Dot.module.css',
-      'src/common/components/toasts/Toast.module.css',
-      'src/common/patterns/badge.css',
-      'src/common/patterns/button.css',
-      'src/common/patterns/list.css',
-      'src/common/patterns/segmented.css',
-      'src/common/utilities.css',
-    ],
+    pending: {
+      'src/common/base.css': ['1px'],
+      'src/common/components/account/ColorChoiceList.module.css': ['1px'],
+      'src/common/components/buttons/ShuffleButton.module.css': ['1px'],
+      'src/common/components/chat/ChatBody.module.css': ['1px'],
+      'src/common/components/chrome/PageHeader.module.css': ['1px'],
+      'src/common/components/club/clubFilters.module.css': ['1px'],
+      'src/common/components/club/ClubGameCard.module.css': ['2px', '1px'],
+      'src/common/components/club/EditClubDialog.module.css': ['1px'],
+      'src/common/components/definitions/AnagramDialog.module.css': ['1px'],
+      'src/common/components/definitions/DefinitionPopover.module.css': ['1px'],
+      'src/common/components/definitions/WordEditDialog.module.css': ['1px'],
+      'src/common/components/definitions/WordLookupDialog.module.css': ['1px'],
+      'src/common/components/feedback/GenericFeedbackPill.module.css': ['2px', '0.4rem'],
+      'src/common/components/fields/SelectField.module.css': ['1px'],
+      'src/common/components/fields/setupForm.module.css': ['1px'],
+      'src/common/components/game/DeviceBlockNotice.module.css': ['1px'],
+      'src/common/components/game/entry/GuessKeyboard.module.css': ['1px'],
+      'src/common/components/game/FilterSelect.module.css': ['1px'],
+      'src/common/components/game/gridCursor.module.css': ['1px', '5px'],
+      'src/common/components/game/infoPanel.module.css': ['2px'],
+      'src/common/components/game/InfoSwitchButton.module.css': ['1px'],
+      'src/common/components/game/lists/historyViewer.module.css': ['2px'],
+      'src/common/components/game/lists/TurnLog.module.css': ['1px'],
+      'src/common/components/game/PauseOverlay.module.css': ['1px'],
+      'src/common/components/game/PlayArea.module.css': ['1px'],
+      'src/common/components/game/RankBar.module.css': ['2px', '3px'],
+      'src/common/components/game/Stats.module.css': ['1px'],
+      'src/common/components/palette/PalettePage.module.css': ['1px'],
+      'src/common/components/panels/FloatingPanel.module.css': ['1px'],
+      'src/common/components/panels/GameScratchpad.module.css': ['1px'],
+      'src/common/components/panels/Menu.module.css': ['1px'],
+      'src/common/components/setup/SetupGameDialog.module.css': ['1px'],
+      'src/common/components/setup/SetupSection.module.css': ['1px'],
+      'src/common/components/text/Dot.module.css': ['1px'],
+      'src/common/components/toasts/Toast.module.css': ['1px', '4px'],
+      'src/common/patterns/badge.css': ['1px'],
+      'src/common/patterns/button.css': ['1px'],
+      'src/common/patterns/list.css': ['1px'],
+      'src/common/patterns/segmented.css': ['1px'],
+      'src/common/utilities.css': ['1px'],
+    },
     fix:
       'Use `--border-width-line` (a divider or a field edge), `-line-thick` ' +
       '("this box is a thing") or `-frame` ("something is happening to what ' +
@@ -511,13 +536,13 @@ const VOCABULARIES: Vocabulary[] = [
     // needs 11 locally, that is the conversation, not a quiet edit here.
     allowed: /^([0-9]|10|auto|inherit|initial|unset|revert)$/,
     root: '.',
-    pending: [
+    pending: {
       // All three are recorded decisions, not oversights — plans/css-system-2.md
       // §7 → Carried forward names the area that owns each.
-      'src/bananagrams/components/PlayerBoard.module.css', // drag ghost, 1000 → shared-game-chrome
-      'src/scrabble/components/BoardCol.module.css', //       drag ghost, 100  → shared-game-chrome
-      'src/scrabble/components/BlankPicker.module.css', //     overlay, 50     → the scrabble area
-    ],
+      'src/bananagrams/components/PlayerBoard.module.css': ['1000'], // drag ghost → shared-game-chrome
+      'src/scrabble/components/BlankPicker.module.css': ['50'], //      overlay    → the scrabble area
+      'src/scrabble/components/BoardCol.module.css': ['100'], //        drag ghost → shared-game-chrome
+    },
     fix:
       'Page-level layers read a token from base.css → THE Z- LAYERS, which is ' +
       'the ladder being migrated to (`--z-workspace`, `--z-modal-normal`, …); ' +
@@ -531,13 +556,13 @@ const VOCABULARIES: Vocabulary[] = [
 describe('a converted surface writes vocabulary values, not literals', () => {
   for (const v of VOCABULARIES) {
     it(`${v.name}: every converted file uses the vocabulary`, () => {
-      const pending = new Set(v.pending)
       const offenders: string[] = []
-      const cleanPending = new Set(v.pending)
+      /** What each file actually writes today, for the shrink arms below. */
+      const found = new Map<string, Set<string>>()
 
       for (const f of walk(join(SRC, v.root ?? 'common'))) {
         const css = stripComments(readFileSync(f, 'utf8'))
-        const literals: string[] = []
+        const literals = new Set<string>()
         // Boundary is `{`, `;` or a line start — NOT `^` alone. Anchoring on
         // the line start misses `.x { border-radius: 4px }` written on one
         // line, which this codebase does write (crosswords' ClueLists), and a
@@ -567,30 +592,49 @@ describe('a converted surface writes vocabulary values, not literals', () => {
             // that each carry no decision at all.
             parts = value.includes('calc(') ? [value] : value.split(/\s+/)
           }
-          if (parts.every((p) => v.allowed.test(p))) continue
-          literals.push(value)
+          // The offending PARTS, not the whole declaration: one bad number
+          // beside three good ones should list one number.
+          for (const p of parts) if (!v.allowed.test(p)) literals.add(p)
         }
-        if (!literals.length) continue
-        if (pending.has(rel(f))) {
-          cleanPending.delete(rel(f))
-          continue
-        }
-        offenders.push(`${rel(f)}  →  ${literals.join(', ')}`)
+        if (!literals.size) continue
+        found.set(rel(f), literals)
+        // Only the values this file is ALREADY known to write are excused —
+        // which is what makes converting one value on a page protect it,
+        // even while another value on the same page is still open.
+        const excused = new Set(v.pending[rel(f)] ?? [])
+        const unlisted = [...literals].filter((p) => !excused.has(p))
+        if (unlisted.length) offenders.push(`${rel(f)}  →  ${unlisted.join(', ')}`)
       }
 
       expect(
         offenders,
-        `${v.name}: a literal value on a CONVERTED surface (or in a new file, ` +
-          `which is the same thing — it isn't on the pending list).\n${v.fix}\n\n` +
+        `${v.name}: a literal value on a CONVERTED surface — a value not on the ` +
+          `file's pending row, or a file with no row at all (a new file is the ` +
+          `same thing).\n${v.fix}\n\n` +
           offenders.join('\n'),
       ).toEqual([])
 
-      // The list SHRINKS. A path that no longer offends must leave it, or the
-      // allowlist quietly stops meaning anything.
+      // The list SHRINKS, and now in two ways. A path that no longer offends
+      // at all must leave it, or the allowlist quietly stops meaning anything.
+      const stalePaths = Object.keys(v.pending)
+        .filter((p) => !found.has(p))
+        .sort()
       expect(
-        [...cleanPending],
-        `${v.name}: these paths are on the pending list but no longer write a ` +
-          `literal — delete them from it:\n${[...cleanPending].join('\n')}`,
+        stalePaths,
+        `${v.name}: these paths are on the pending list but write no literal at ` +
+          `all any more — delete the row (or fix the path, if the file moved):\n` +
+          stalePaths.join('\n'),
+      ).toEqual([])
+
+      // …and a listed VALUE that is gone must leave too, which is the arm that
+      // makes a row shrink as an area converts one number at a time.
+      const staleValues = Object.entries(v.pending)
+        .flatMap(([p, vals]) => vals.filter((x) => !found.get(p)?.has(x)).map((x) => `${p}  →  ${x}`))
+        .sort()
+      expect(
+        staleValues,
+        `${v.name}: these values are excused on the pending list but are no ` +
+          `longer written there — delete them from the row:\n${staleValues.join('\n')}`,
       ).toEqual([])
     })
   }
