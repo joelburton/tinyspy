@@ -20,6 +20,15 @@ type Props = {
  *   manually paused    a triangle — press to resume
  *   presence-paused    a triangle, dimmed and inert
  *
+ * WHY A TOGGLE. A pause control that only pauses leaves the header lying about
+ * the state of the game: the bars still say "press to pause" while the game is
+ * already stopped, and the only honest thing it can do about that is grey
+ * itself out — which is a control saying "not now" when what it should say is
+ * "here is how you get out". One button that changes face says both what the
+ * game IS doing and what you can do about it, in the place your eye already
+ * goes, and it costs the header no width to do it. It also puts resume where a
+ * player on a phone can reach it without the overlay being the only route.
+ *
  * The third state is the one worth reading twice. When the game is paused
  * because someone left, the button still shows the resume face, because that IS
  * the state of the game — but it is disabled, because you cannot clear that
