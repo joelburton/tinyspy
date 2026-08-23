@@ -33,6 +33,130 @@
 /* @@ */   --radius-md:  6px;   /* buttons, inputs, panels */
 /* @@ */   --radius-lg:  8px;   /* cards, modals */
 
+  /* ══ THE VOCABULARIES ══════════════════════════════════════════
+     A vocabulary is a short, closed list of the values a surface may
+     write for one kind of measurement, so that a number in a rule is
+     a CHOICE FROM A LIST rather than a fresh decision nobody will
+     remember making. The radii above are one; these are the rest.
+
+     plans/css-system-2.md §6.6 names eight. Seven are here, because a
+     distance, a duration and a weight of line are the same in daylight
+     and midnight. The eighth is the text grays, which is color and
+     therefore lives in the theme.
+
+     THEY ARE NOT APPLIED IN A SWEEP. A surface converts when its area
+     is audited; until then the app writes the same literals it always
+     did, and `guards/vocabularies.test.ts` holds the list of what has
+     not converted yet. That is why a token here can be live and
+     unread — see the declared-ahead list in `guards/cssTokens.test.ts`,
+     which is what keeps the dead-token guard honest meanwhile.
+
+     WHEN A VALUE DOES NOT FIT, it is surfaced and decided out loud —
+     (a) add a level to the vocabulary, (b) fit it to an existing one,
+     or (c) keep it bespoke with the reason written in the file. Never
+     kept silently because it is already there: recurrence means a
+     level nobody has named, not six exceptions.
+
+     THE NUMBERS RUN BACKWARDS on purpose: `-1` is the BIGGEST, the way
+     `h1` is the biggest heading. Reading "spacer-1" as "the large one"
+     is learned once and then correct everywhere, and it lets a level
+     be appended to the small end without renumbering the ramp. */
+
+  /* SPACER — the space BETWEEN things: `gap` and `margin`.
+
+     Not "space", which is a key on the keyboard, and which casually
+     also means the room INSIDE a box between its border and its label.
+     That room is PADDING, and padding is deliberately not on this
+     ramp yet: paddings run smaller than gaps (text inside a button)
+     and today's are often a tuple fitted to one box, so there is not
+     enough evidence to say the two belong on one scale. Parked, not
+     excluded — the guard checks gap and margin only.
+
+     `0.4rem` is deliberately absent. It and `0.5rem` are the two most
+     common values in the app, which is what difference-without-
+     distinction looks like; a `0.4` becomes `--spacer-4` at its area's
+     pass, and if converting one loses something real, that is when we
+     learn it and add a member. */
+/* @@ */   --spacer-1:  1.5rem;
+/* @@ */   --spacer-2:  1rem;
+/* @@ */   --spacer-3:  0.75rem;
+/* @@ */   --spacer-4:  0.5rem;
+/* @@ */   --spacer-5:  0.25rem;
+
+  /* FONT SIZE — body text and the two quieter steps under it. The
+     headings are not on this ramp: they are sized by `h1`–`h4` below,
+     which is where a heading's size is decided. */
+/* @@ */   --font-size-1:  1rem;
+/* @@ */   --font-size-2:  0.85rem;
+/* @@ */   --font-size-3:  0.75rem;
+
+  /* LINE HEIGHT — unitless, so it multiplies the element's own size
+     rather than a size inherited from somewhere else. `-1` is prose,
+     `-2` a tighter block, `-3` a single line that should occupy
+     exactly its own height (a badge, a tile's letter). */
+/* @@ */   --line-height-1:  1.5;
+/* @@ */   --line-height-2:  1.25;
+/* @@ */   --line-height-3:  1;
+
+  /* OPACITY, and these two numbers are a HOLDING POSITION. Opacity in
+     this app spans at least two different KINDS of statement — a
+     control that is unavailable, and a divider that should be present
+     without being loud — and a numbered ramp cannot tell them apart.
+     The values are the two the app writes most; the names are expected
+     to become roles once the full spectrum is visible.
+
+     `--chrome-disabled-opacity` below is NOT on this ramp for exactly
+     that reason: it is a role with a documented argument behind its
+     value, not a step. */
+/* @@ */   --opacity-1:  0.7;
+/* @@ */   --opacity-2:  0.5;
+
+  /* TRANSITION DURATION, named by the JOB rather than by the number,
+     because "how long" is not the question a reader has — "what kind
+     of change is this" is:
+
+       paint   a color settling instead of jumping (a hover tint)
+       nudge   a piece answering the pointer by MOVING a little
+       travel  something arriving, leaving or growing — and these have
+               a reason to be slower: a sheet that snaps in at 80ms
+               reads as a glitch rather than as a sheet
+
+     `nudge` rather than `move`, so it does not read as a near-synonym
+     of `travel`: the distinction is a small response versus a real
+     journey. `paint` and `nudge` are kept apart until we know whether
+     they are one thing.
+
+     ANIMATIONS ARE NOT IN THIS. The flash and shake durations are
+     game-surface and tuned; they keep their own names. */
+/* @@ */   --transition-duration-paint:   100ms;
+/* @@ */   --transition-duration-nudge:   80ms;
+/* @@ */   --transition-duration-travel:  180ms;
+
+  /* LETTER SPACING — two, and both are for text that is not being read
+     as prose. `label` is the hair of extra room that makes a small
+     uppercase label legible; `wide` is the deliberate spread of
+     letters presented as objects rather than as a word. */
+/* @@ */   --letter-spacing-label:  0.03em;
+/* @@ */   --letter-spacing-wide:   0.2em;
+
+  /* BORDER WIDTH, named by what the line SAYS:
+
+       line        a divider or a field edge
+       line-thick  "this box is a thing" — the info panel, the pill
+       frame       "something is happening to what is inside" — the
+                   history ring, the game-over frame, the toast stripe
+
+     Not `hairline`: in print that means a genuinely hair-thin rule,
+     and on screen it would imply faking thinness with a gray. Ours is
+     an ordinary 1px line, so it is `line`.
+
+     The two scales are `line` → `line-thick` and `frame` → a
+     `frame-thick` that does not exist yet and self-explains the day
+     something needs it. */
+/* @@ */   --border-width-line:        1px;
+/* @@ */   --border-width-line-thick:  2px;
+/* @@ */   --border-width-frame:       4px;
+
   /* Border WIDTH is the "selected" channel on a game piece — the
      tile's edge thickens to say "this piece is part of the move I'm
      building", leaving the background free for state and attention,

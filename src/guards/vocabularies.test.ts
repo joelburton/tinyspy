@@ -67,8 +67,19 @@ const stripLineComments = (s: string) => s.replace(/(^|[^:])\/\/[^\n]*/g, '$1')
  */
 type Vocabulary = {
   name: string
-  /** The property this governs. */
-  property: string
+  /**
+   * The properties this governs — a LIST, because a vocabulary is named for
+   * what it measures and not for the property that consumes it. Spacer feeds
+   * `gap` and `margin` both, and splitting it into two entries would mean two
+   * copies of one `fix` string, drifting apart the first time either is
+   * edited. It is also where a property REJOINS later: padding is parked
+   * rather than excluded, and rejoining is then one word, not a new entry.
+   *
+   * Longhands are named individually. `margin-bottom` is as much a margin as
+   * `margin` is, and a guard that only knew the shorthand would be a guard
+   * with a hole exactly where a converted file is most likely to write one.
+   */
+  properties: string[]
   /** Literal values that stay literal. */
   allowed: RegExp
   /** Where to look, under `src/`. Defaults to `common` — tuned surfaces are
@@ -83,7 +94,7 @@ type Vocabulary = {
 const VOCABULARIES: Vocabulary[] = [
   {
     name: 'border-radius',
-    property: 'border-radius',
+    properties: ['border-radius'],
     // `0` a square corner · `50%` a circle · `999px` a pill — shapes, not steps.
     // (The pill gets a name when badges are settled in the homepage area; until then it
     // is spelled out here rather than pretended into the scale.)
@@ -104,8 +115,104 @@ const VOCABULARIES: Vocabulary[] = [
       'one of them is a question for Joel, not a rounding.',
   },
   {
+    name: 'spacer',
+    // Gap and margin, in every spelling each has. PADDING IS DELIBERATELY
+    // ABSENT — plans/css-system-2.md §6.6: whether the room inside a box
+    // belongs on the same ramp as the space between boxes is undecided, and
+    // today's paddings are often a tuple fitted to one box (`.item-row`'s
+    // says so in list.css). Parked, not excluded; it rejoins this list.
+    properties: [
+      'gap',
+      'row-gap',
+      'column-gap',
+      'margin',
+      'margin-top',
+      'margin-right',
+      'margin-bottom',
+      'margin-left',
+      'margin-block',
+      'margin-inline',
+    ],
+    // `0` is no space at all and `auto` is the centering trick — neither is a
+    // small-or-large question, so neither wants a step. The negative margins
+    // that pull a child out past its parent's padding are NOT here: that is a
+    // real distance and it takes a token with a minus in front of it.
+    allowed: /^(0|auto|inherit|initial|unset|revert)$/,
+    pending: [
+      // Every file in `common/` that still writes a literal gap or margin.
+      // This is the sprint's own to-do list seen from the guard's side: an
+      // area converts its files and deletes its lines, and the day the list
+      // empties the vocabulary is fully in force.
+      'src/common/base.css',
+      'src/common/components/account/ColorChoiceList.module.css',
+      'src/common/components/account/EditProfileDialog.module.css',
+      'src/common/components/auth/ClaimHandleScreen.module.css',
+      'src/common/components/branding/PuzpuzpuzWordmark.module.css',
+      'src/common/components/buttons/SubmitWithScore.module.css',
+      'src/common/components/chat/ChatBody.module.css',
+      'src/common/components/chrome/PageHeader.module.css',
+      'src/common/components/club/ClubGameCard.module.css',
+      'src/common/components/club/ClubPage.module.css',
+      'src/common/components/club/CreateClubPage.module.css',
+      'src/common/components/club/EditClubDialog.module.css',
+      'src/common/components/club/StartGameButtons.module.css',
+      'src/common/components/definitions/AnagramDialog.module.css',
+      'src/common/components/definitions/DefinitionView.module.css',
+      'src/common/components/definitions/WordEditDialog.module.css',
+      'src/common/components/definitions/WordLookupDialog.module.css',
+      'src/common/components/feedback/FaultDialog.module.css',
+      'src/common/components/feedback/GenericFeedbackPill.module.css',
+      'src/common/components/fields/CoopStyleField.module.css',
+      'src/common/components/fields/NextPuzzleField.module.css',
+      'src/common/components/fields/SelectField.module.css',
+      'src/common/components/fields/setupForm.module.css',
+      'src/common/components/fields/TimerField.module.css',
+      'src/common/components/game/CelebrationDialog.module.css',
+      'src/common/components/game/DeviceBlockNotice.module.css',
+      'src/common/components/game/entry/EntryBox.module.css',
+      'src/common/components/game/entry/GuessKeyboard.module.css',
+      'src/common/components/game/entry/MoveRow.module.css',
+      'src/common/components/game/FilterSelect.module.css',
+      'src/common/components/game/foundWordsPlayArea.module.css',
+      'src/common/components/game/GamePage.module.css',
+      'src/common/components/game/HelpPanel.module.css',
+      'src/common/components/game/infoPanel.module.css',
+      'src/common/components/game/lists/ActorMention.module.css',
+      'src/common/components/game/lists/historyViewer.module.css',
+      'src/common/components/game/lists/TurnLog.module.css',
+      'src/common/components/game/lists/WordList.module.css',
+      'src/common/components/game/OpponentStrip.module.css',
+      'src/common/components/game/PauseOverlay.module.css',
+      'src/common/components/game/PlayArea.module.css',
+      'src/common/components/game/PlayersStrip.module.css',
+      'src/common/components/game/RankBar.module.css',
+      'src/common/components/game/Stats.module.css',
+      'src/common/components/game/StrikeMarks.module.css',
+      'src/common/components/home/HomePage.module.css', // its gap converted; the 0.45em is F7, still open
+      'src/common/components/palette/PalettePage.module.css',
+      'src/common/components/panels/FloatingPanel.module.css',
+      'src/common/components/panels/GameScratchpad.module.css',
+      'src/common/components/panels/Menu.module.css',
+      'src/common/components/panels/modalActions.module.css',
+      'src/common/components/panels/TriggerWithChevron.module.css',
+      'src/common/components/setup/SetupGameDialog.module.css',
+      'src/common/components/text/RichMessage.module.css',
+      'src/common/components/toasts/Toast.module.css',
+      'src/common/components/toasts/ToastHost.module.css',
+      'src/common/patterns/button.css',
+      'src/common/patterns/heading.css',
+      'src/common/patterns/list.css',
+      'src/common/utilities.css',
+    ],
+    fix:
+      'Use `--spacer-1` … `-5` (1.5 · 1 · 0.75 · 0.5 · 0.25rem), remembering ' +
+      'that -1 is the BIGGEST. A value that is not on the ramp is a decision, ' +
+      'not a rounding: add a level, fit it to one, or keep it bespoke with the ' +
+      'reason written in the file — never silently because it was already there.',
+  },
+  {
     name: 'z-index',
-    property: 'z-index',
+    properties: ['z-index'],
     // 0–10 is LOCAL layering inside a component's own stacking context — a
     // ring over a tile, a shuffle floating on its board, the keyboard cursor.
     // Those compete only with their siblings, so they are not on the ladder
@@ -144,13 +251,21 @@ describe('a converted surface writes vocabulary values, not literals', () => {
         // line, which this codebase does write (crosswords' ClueLists), and a
         // guard with a hole in it is worse than knowing you have none. Found
         // by planting, which is the only reason it isn't still there.
-        const decl = new RegExp(`(?:^|[{;])\\s*${v.property}\\s*:\\s*([^;}]+)`, 'gm')
+        const decl = new RegExp(
+          `(?:^|[{;])\\s*(?:${v.properties.join('|')})\\s*:\\s*([^;}]+)`,
+          'gm',
+        )
         for (const m of css.matchAll(decl)) {
           const value = m[1].trim()
           // CONTAINS, not starts-with: `calc(var(--z-index-popover) + 1)` is a
           // derivation off the ladder, which is the point of naming the tier.
           if (value.includes('var(')) continue
-          if (v.allowed.test(value)) continue
+          // A calc() has spaces INSIDE it, so it is judged whole; everything
+          // else is judged part by part, because a shorthand is several
+          // decisions written on one line and `margin: 0 auto` is two values
+          // that each carry no decision at all.
+          const parts = value.includes('calc(') ? [value] : value.split(/\s+/)
+          if (parts.every((p) => v.allowed.test(p))) continue
           literals.push(value)
         }
         if (!literals.length) continue

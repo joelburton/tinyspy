@@ -156,6 +156,54 @@ describe('CSS custom-property tokens', () => {
   })
 
   /**
+   * Tokens declared AHEAD of their first reader, which the dead-token guard
+   * below would otherwise fail on.
+   *
+   * The CSS sprint lands a vocabulary as a whole ramp and then converts
+   * surfaces to it area by area (plans/css-system-2.md §6.6), so for a while
+   * most of a ramp has nowhere reading it. The alternative — parking the
+   * scale in a comment until someone needs a step — is worse than it sounds:
+   * a commented token is invisible to every instrument we own. This guard,
+   * the phantom guard, the palette page and scripts/css-token-snapshot.mjs
+   * all read declarations, and none of them reads a comment. A ramp is also
+   * ONE decision rather than five; declaring `-2` alone invites the other
+   * four being re-argued at every area.
+   *
+   * So the debt is written down instead, and it is checked from both sides:
+   * a name here must still exist, and a name here must still be unread. The
+   * list empties two ways — an area converting a value to the token, or
+   * /palette growing a row that shows the ramp doing its job.
+   *
+   * IT IS NOT A PLACE TO PUT A TOKEN YOU ARE UNSURE OF. Everything on it is
+   * a step in a ramp whose other steps are in use; a one-off with no reader
+   * is just dead, and the guard below should say so.
+   */
+  const DECLARED_AHEAD = [
+    // The spacer ramp. `--spacer-2` is off the list already: the homepage's
+    // card gap was an exact match and converted silently at its audit.
+    '--spacer-1',
+    '--spacer-3',
+    '--spacer-4',
+    '--spacer-5',
+    '--font-size-1',
+    '--font-size-2',
+    '--font-size-3',
+    '--line-height-1',
+    '--line-height-2',
+    '--line-height-3',
+    '--opacity-1',
+    '--opacity-2',
+    '--transition-duration-paint',
+    '--transition-duration-nudge',
+    '--transition-duration-travel',
+    '--letter-spacing-label',
+    '--letter-spacing-wide',
+    '--border-width-line',
+    '--border-width-line-thick',
+    '--border-width-frame',
+  ]
+
+  /**
    * The MIRROR of the guard above, and the one that catches the bug the other
    * can't see: a token defined and then never read. It costs nothing at runtime
    * (an unused custom property just sits there), which is exactly why these rot
@@ -176,6 +224,10 @@ describe('CSS custom-property tokens', () => {
   it('every defined token is referenced (no dead tokens)', () => {
     const { defined, refs } = scanTokens()
 
+    // The declared-ahead list, and both of its arms fail — see the block
+    // comment above it.
+    const ahead = new Set(DECLARED_AHEAD)
+
     // A ref whose name was built dynamically (`var(--member-${x}-fill-color)`) is
     // captured as its trailing-dash prefix, so it vouches for every token that
     // extends it — the same rule the forward guard uses, read the other way.
@@ -184,7 +236,7 @@ describe('CSS custom-property tokens', () => {
       refs.has(name) || dynamicPrefixes.some((p) => name.startsWith(p))
 
     const dead = [...defined.entries()]
-      .filter(([name]) => !isReferenced(name))
+      .filter(([name]) => !isReferenced(name) && !ahead.has(name))
       .map(([name, file]) => `${name}  (defined in ${file})`)
 
     expect(
@@ -192,6 +244,26 @@ describe('CSS custom-property tokens', () => {
       `Defined but never read via var() — delete them. If the token is a reserved cell in a ` +
         `color family, it belongs on the palette page (common/components/palette/palette.ts), ` +
         `which is what keeps it alive:\n${dead.join('\n')}`,
+    ).toEqual([])
+
+    // ARM 1: a name on the list must still EXIST. This is what stops the list
+    // from becoming a graveyard of misspellings that excuse nothing.
+    const phantomAhead = [...ahead].filter((name) => !defined.has(name)).sort()
+    expect(
+      phantomAhead,
+      `On the declared-ahead list but not defined anywhere. Either the token was ` +
+        `renamed and the list wasn't, or it was deleted and the line should go ` +
+        `with it:\n${phantomAhead.join('\n')}`,
+    ).toEqual([])
+
+    // ARM 2: the list SHRINKS. A token that has found its first reader is an
+    // ordinary live token, and leaving it here would quietly re-exempt it if
+    // that reader ever went away.
+    const arrived = [...ahead].filter((name) => isReferenced(name)).sort()
+    expect(
+      arrived,
+      `These are read now, so they are no longer declared ahead of anything — ` +
+        `delete them from DECLARED_AHEAD:\n${arrived.join('\n')}`,
     ).toEqual([])
   })
 })
