@@ -4,9 +4,9 @@ The first area of the CSS sprint's step 7. The process is
 [css-system-2.md](../css-system-2.md) §21; the plan holds the order, this file
 holds everything else.
 
-**Status: RESUMED, and a second subject added.** Thirty-eight findings,
-twenty-six resolved (F1, F2, F4, F5, F6, F6.1, F7, F8, F9, F10, F11, F14, F15,
-F16, F17, F18, F19, F20, F22, F23, F24, F25, F29, F32, F36, F37) — where
+**Status: RESUMED, and a second subject added.** Thirty-nine findings,
+twenty-seven resolved (F1, F2, F4, F5, F6, F6.1, F7, F8, F9, F10, F11, F14, F15,
+F16, F17, F18, F19, F20, F22, F23, F24, F25, F28, F29, F32, F36, F37) — where
 "resolved" includes the ones FOLDED into a later finding rather than fixed.
 
 Shipped so far: the two dead-reference fixes, the class guard, the vocabularies,
@@ -37,7 +37,7 @@ records the date he says he has.
 
 ## Findings
 
-**Numbered `F1` … `F38`, and sub-numbered `F6.1` where one finding grows its own
+**Numbered `F1` … `F39`, and sub-numbered `F6.1` where one finding grows its own
 list** (Joel, 2026-08-22). The prefix is the point: an hour into an area, "2" is
 whatever list was last on screen and `F2` is only ever this finding. Refer to
 them by their F-number everywhere — in this file, in conversation, in a commit
@@ -48,7 +48,7 @@ resolving another finding, one from Joel looking at the page, one from a
 question he asked about it — and each took the next free number rather than a
 sub-number. A finding is not required to have come from the audit.
 
-**F26-F38 are the second subject, basic page structure** (added 2026-08-22),
+**F26-F39 are the second subject, basic page structure** (added 2026-08-22),
 and they share the same numbering deliberately: they are findings against this
 area, not a separate list with its own "F1".
 
@@ -1039,7 +1039,32 @@ home and club and leaves the game page wrong. A composed expression that
 evaluates to today's 5rem would be a fix; a re-derivation that moves a game
 board by 3px would be a regression.
 
-> resolution:
+> **resolution (Joel, 2026-08-23): GamePage keeps bounding itself, and the
+> difference is deliberate — but the token owes an honest derivation.**
+>
+> **Why it is not drift.** Home and club bound the page, so their pageMain takes
+> what flex leaves it. The game route cannot work that way, because the boards
+> do not size themselves from their parent — they compute from the VIEWPORT: 20
+> declarations across eleven games, all shaped `calc(100svh -
+> var(--game-chrome-height) - <tuned rem>)`. CSS `calc()` cannot reference a
+> parent's computed height, so bounding the page and giving the play area
+> `flex: 1` would produce a correctly sized BOX with nothing for those twenty
+> formulas to compute from. That is not a rename; it is re-tuning eleven games'
+> board math.
+>
+> **What should still change, without moving a pixel.** `--game-chrome-height`
+> is a hand-measured `5rem` standing in for parts that all have names:
+> `--page-header-height` (2.5rem) + the wrapper's gap (1rem) + twice
+> `--page-padding-y` (1rem) = **4.5rem**. Its own comment says the measurement
+> was "≈4.8rem, set a hair higher to stay off the bottom edge". So about half a
+> rem is unaccounted for by the names, and until it is composed, a change to
+> `--page-padding-y` silently moves home and club and leaves eleven boards
+> wrong. Compose it only after measuring where the residue comes from, so the
+> number stays exactly what it is today.
+>
+> **And the standing condition, in Joel's words (2026-08-23):** *"we need to
+> quadruple check the gamepage layout; it's the most sensitive part of the
+> codebase. Sneeze wrong and the page starts scrolling."*
 
 **F29 · The never-scroll invariant binds on two pages out of eight, and nothing
 enforces it.** There is no `overflow: hidden` anywhere — deliberately, per
@@ -1254,6 +1279,70 @@ those two is "a dev page that needs the room".
 - `ui.md:373` says ClubPage fits via `height: calc(100vh - body padding)`. It is
   `100svh`, and the difference is the whole mobile-Safari reason `base.css`
   documents at length.
+
+> resolution:
+
+### Loading and errors
+
+**F39 · There are nine ways to say "not ready" or "broken", and they should be
+two.** Written as a homepage finding at Joel's instruction (2026-08-23): the
+work is not on this page, but **this is the first place a person can meet either
+state** — you see the app's loading screen on the way here, and this page's own
+empty and failed states were the ones F14 had to fix.
+
+**What ships today.**
+
+*Three sites say "loading", identically in meaning and differently in text:*
+
+| where | text |
+|---|---|
+| `App.tsx:90` | "Loading…" |
+| `ClubPage:758` | "Loading club…" |
+| `GamePage:428` | "Loading game…" |
+
+All three are a bare sentence inside a `.card`. **And the homepage answers the
+same question a fourth way** — while its clubs are in flight it renders a blank
+muted line holding the slot (F14), not a card and not a word. So on the path to
+one screen there are two different treatments of "not ready yet".
+
+*Five sites are dead ends, and no two look alike:*
+
+| where | shape | way out |
+|---|---|---|
+| `App.tsx:137` | `h1` + the offending gametype in `<code>` | **none** |
+| `GamePage:450` | one bare sentence, "Unknown game type." | none |
+| `ClubPage:761` | `h1` + the error | ← Back home |
+| `GamePage:436` | `h1` + prose | ← Back home |
+| `PlayAreaErrorBoundary:41` | `h1` + `error.message` | Reload button |
+
+**The agreed shape.**
+
+1. **`<Loading />`** — one component, one message, **no card and no border**
+   (Joel: *"they're not a card and don't need or want a border"*). A bordered box
+   that lives for 200ms and is replaced by a differently shaped one is a flash.
+2. **`<ErrorPage />`** — one component, five callers, wearing the FAULT look: the
+   dark red "Error", the message, and the diagnostics line smaller and set
+   apart, exactly as the fault modal does it. **Always** carries diagnostics.
+3. **The rule that decides these and every future case (Joel, 2026-08-23: *"good
+   rule"*): the fault MODAL when the page behind survives; a fault PAGE when it
+   does not.** A modal is dismissable, and dismissing one of these would strand
+   you on a blank page — the failure here IS the whole route.
+4. **One exit, the same one:** "← Back home" on all five, plus Reload on the
+   error boundary, where reloading is the actual fix.
+5. **Both components live in `loading-and-errs/`.**
+
+**One of the five is unreachable and gets deleted rather than restyled.**
+`App.tsx:134` looks the gametype up from the URL and only mounts `<GamePage>` in
+the branch where it found a manifest — passing the same string it just
+validated. `GamePage:426` then repeats the identical lookup and renders
+"Unknown game type." at 450 if it misses, which it cannot. The check is partly
+load-bearing for TypeScript (`.find()` returns `T | undefined`), so the clean
+fix is **App passing the manifest instead of the gametype string** — it already
+has it — after which there is nothing to narrow and nothing to check.
+
+**And "unknown game type" is a fault, not a polite empty state** (Joel: *"did we
+delete a game type? If we ever do, we can re-think this to be something more
+polite. But this is a fault, and not at all transient."*).
 
 > resolution:
 
