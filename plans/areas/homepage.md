@@ -43,6 +43,10 @@ whatever list was last on screen and `F2` is only ever this finding. Refer to
 them by their F-number everywhere — in this file, in conversation, in a commit
 message.
 
+**And every finding carries a SLUG beside its number** (Joel, 2026-08-23) — see
+the plan's §21. The number is the address; the slug is the hook, so a list of
+numbers does not cost him a trip back to the audit to remember which is which.
+
 The first audit stopped at F22. F23, F24 and F25 were raised later — one while
 resolving another finding, one from Joel looking at the page, one from a
 question he asked about it — and each took the next free number rather than a
@@ -57,7 +61,7 @@ it, and an empty one means the finding is still open.
 
 ### Dead references — three of them on a 71-line page
 
-**F1 · `styles.clubsList` is undefined.** `HomePage.tsx:255` writes
+**F1 · `dead-clubslist-class` · `styles.clubsList` is undefined.** `HomePage.tsx:255` writes
 `cls('item-list', styles.clubsList)`, and the `.clubsList` rule was deleted in
 `bae1f941` ("headings get four levels that mean something") when the h3 took
 over the gap it supplied. `cls()` drops the undefined, so it paints nothing and
@@ -70,7 +74,7 @@ but comes from `.item-list`, which sets `overflow-y: auto` and `min-height: 0`.
 > scrolls: `.item-list` supplies the `overflow-y: auto`, and it bites once
 > `.frame`'s max-height stops the clubs growing the page.
 
-**F2 · `.soloItem` never existed.** The component docstring (`HomePage.tsx:44`)
+**F2 · `soloitem-never-existed` · `.soloItem` never existed.** The component docstring (`HomePage.tsx:44`)
 says solo clubs are "visually distinguished — see the `.soloItem` styles". There
 is no such class in any commit reachable from here; what distinguishes a solo row
 today is the `Solo` badge and nothing else.
@@ -88,7 +92,7 @@ today is the `Solo` badge and nothing else.
 > The block still opens with "used to be hidden … Now they're", which is F17's
 > archaeology and F17's call — left alone.
 
-**F3 · `e2e/home-keyboard.e2e.ts` has been failing since 2026-08-21.** It locates
+**F3 · `home-keyboard-spec` · `e2e/home-keyboard.e2e.ts` has been failing since 2026-08-21.** It locates
 rows with `[class*="_clubItem"]`. `.clubItem` was deleted in `89122fc7` ("the
 homepage stops describing a button and a list, and just uses them") — the commit
 that made the list `.item-list` / `.item-row` — and that commit did not touch the
@@ -101,7 +105,7 @@ class="item-row">`, while the `scrollIntoView` ref rides the `<li>`.
 
 > resolution:
 
-**F4 · The "class defined ≠ referenced" guard (§10) has two live cases here** —
+**F4 · `class-exists-guard` · The "class defined ≠ referenced" guard (§10) has two live cases here** —
 a `styles.typo` that fails silently (F1) and a bare class-name string that fails
 silently (F3), which is exactly the pair §10 names. **F2 is not one of them**: a
 stale class name inside a comment is prose, and no guard can tell a wrong
@@ -163,7 +167,7 @@ Four checks, in the shape `cssTokens.test.ts` already uses:
 
 ### Vocabulary — this is where the first ones land
 
-**F5 · None of the eight vocabularies exist yet** (grepped: no `--spacer-`,
+**F5 · `the-eight-vocabularies` · None of the eight vocabularies exist yet** (grepped: no `--spacer-`,
 `--font-size-`, `--line-height-`, `--opacity-`, `--transition-duration-`,
 `--letter-spacing-`, `--border-width-` anywhere in `src/`). The homepage consumes
 almost none of them — its whole raw-value inventory is four numbers:
@@ -239,7 +243,7 @@ first need them.
 > `.frame`'s `gap: 1rem` → `--spacer-2`. It is the whole conversion this area
 > gets, because F7 owns the other two numbers and is still open.
 
-**F5.1 · Every vocabulary got a guard entry, not just spacer's** (Joel,
+**F5.1 · `guard-per-vocabulary` · Every vocabulary got a guard entry, not just spacer's** (Joel,
 2026-08-22: *"if you think the guards are useful and don't get in our way, feel
 free to add. guards are for you, not me."*). So `vocabularies.test.ts` now runs
 eleven entries instead of two, and two of them needed a mechanism it did not
@@ -268,7 +272,7 @@ have.
 > moment it lands. Verified by planting exactly that: reverting the gap now
 > fails, where the day before it would not have.
 
-**F6 · The spacer vocabulary spans three properties; the guard takes one.**
+**F6 · `spacer-spans-3-properties` · The spacer vocabulary spans three properties; the guard takes one.**
 `vocabularies.test.ts` is keyed on a single `property` per entry (`border-radius`,
 `z-index`). Spacer feeds `gap`, `margin` and `padding` — deliberately, per §6.6
 ("`gap` and `margin` were rejected as implementation-tied"). Either the entry
@@ -285,7 +289,7 @@ grows a property list, or spacer ships as three entries sharing one `fix` string
 > the shorthand would have a hole exactly where a converted file is most likely
 > to write one. Sixty files in `common/` still write a literal gap or margin.
 
-**F6.1 · Padding needs an explicit ruling, because two records already disagree
+**F6.1 · `padding-parked` · Padding needs an explicit ruling, because two records already disagree
 about it.** §6.6 names the vocabulary "spacer" precisely to mean *the space
 BETWEEN things*, and rejects "space" partly because "casually it also means the
 room INSIDE a button between its border and its label" — which is padding. And
@@ -315,7 +319,7 @@ decided to keep. Three ways out, and it is Joel's call which:
 > deciding late. `.item-row`'s tuple is untouched and its annotation stays true.
 > Recorded in §6.6 as well, since that is where the spacer scale is defined.
 
-**F7 · `0.45em` and `0.7em` are em-relative; the spacer scale is rem.** Both are
+**F7 · `greeting-dot-gap` · `0.45em` and `0.7em` are em-relative; the spacer scale is rem.** Both are
 on the greeting disc and both are em on purpose — the disc and its gap track the
 h1's font size, which is what keeps it from reading as a bullet point. A rem
 token cannot express that, so this is an a/b/c call: (a) the vocabulary grows an
@@ -349,7 +353,7 @@ app agree.
 > guard must distinguish bespoke-by-intent from bespoke-by-laziness rather than
 > making bespoke expensive.
 
-**F8 · `font-weight` is not one of the eight, and the app writes six values.**
+**F8 · `font-weight-multiples-of-100` · `font-weight` is not one of the eight, and the app writes six values.**
 Counted across `src/`: `600` ×54, `700` ×40, `500` ×14, `800` ×9, `400` ×3,
 `650` ×2. The `650`s are both letterboxed. `500` is the "slightly-emphasized
 name" weight and it is shared — `.clubName` here, plus `Menu`, `PlayersStrip`,
@@ -382,7 +386,7 @@ name" weight and it is shared — `.clubName` here, plus `Menu`, `PlayersStrip`,
 > again inside a game, since `root: '.'` is the part of this entry that is easy
 > to get wrong and impossible to see.
 
-**F9 · The radius guard has already assigned a decision to this area.**
+**F9 · `badge-vs-pill-shape` · The radius guard has already assigned a decision to this area.**
 `vocabularies.test.ts` says, in its own comment: *"The pill gets a name when
 badges are settled in the homepage area."* `999px` is spelled out in the
 `allowed` list rather than pretended into the scale. HomePage itself writes no
@@ -440,7 +444,7 @@ badge-vs-pill shape question is answerable here.
 
 ### Color
 
-**F10 · `--chrome-badge-color` has exactly one reader in the app**, and it is
+**F10 · `solo-badge-color` · `--chrome-badge-color` has exactly one reader in the app**, and it is
 `.soloBadge`. §7's rule is that a value with one reader belongs inside its class
 as a number — except this one is themed (`#1976d2` daylight, `#64b5f6` midnight),
 which is the one thing a class cannot hold. So the question is whether it is a
@@ -494,7 +498,7 @@ and it is blue in both themes.
 
 ### Patterns and duplication — the React pass
 
-**F11 · The list-cursor logic is written twice, for three lists.** Clamp with no
+**F11 · `list-cursor-written-twice` · The list-cursor logic is written twice, for three lists.** Clamp with no
 wrap, Enter opens the row under the cursor, the ring hides unless the container
 proper holds focus, `scrollIntoView({ block: 'nearest' })` on the cursor row.
 `HomePage.tsx:145-174` is one; `ClubPage.tsx:837-868` is the other, parameterized
@@ -509,7 +513,7 @@ over its two lists. A `useListCursor` would sit beside the existing 2-D
 > `scrollIntoView({ block: 'nearest' })` are four of the behaviors F38's
 > component has to get right.
 
-**F12 · The page-header trio is written three times.** Identical apart from the
+**F12 · `page-header-trio` · The page-header trio is written three times.** Identical apart from the
 logo, the sections and the label:
 
 ```tsx
@@ -525,7 +529,7 @@ promotes on the second. Whether the chevron-wrapped logo becomes a prop on
 
 > resolution:
 
-**F13 · `.frame` — already carried forward to the `club-page` area**, recorded
+**F13 · `frame-to-clubpage` · `.frame` — already carried forward to the `club-page` area**, recorded
 here only so the homepage's shape is on file when that area opens. Home's is the
 simplest of the three declarations (`width: 100%`, flex column, `gap: 1rem`) and
 the only one bounded by `max-height` rather than `height` — because its body is a
@@ -536,7 +540,7 @@ a full-viewport box.
 
 ### Behavior
 
-**F14 · A failed clubs fetch is displayed as "You haven't joined a club yet."**
+**F14 · `empty-clubs-is-a-fault` · A failed clubs fetch is displayed as "You haven't joined a club yet."**
 The load logs to the console and returns, leaving `clubs` empty, which renders
 the empty-state sentence. The comment above that branch says it exists so a fetch
 failure or RLS regression "shouldn't render a blank list silently" — but what it
@@ -582,7 +586,7 @@ none of it.
 > 'failed'`, and the muted line renders a blank while loading rather than
 > vanishing, so the answer does not push the list down when it arrives.
 
-**F23 · The fault modal has to reach the homepage, and it already does**
+**F23 · `fault-modal-reaches-home` · The fault modal has to reach the homepage, and it already does**
 (raised by Joel, 2026-08-22, when F14 was decided: *"faults get a modal, so
 we'll need to get the modal-fault set up as part of this"*). Worth its own
 number because the homepage is a SHELL page, and shell pages have twice been
@@ -637,7 +641,7 @@ resolved to nothing, silently.
 > 'Close'})` is ambiguous. The spec takes `button.primary` — a global class from
 > `patterns/button.css`, not a module hash, so it cannot rot the way F3 did.
 
-**F15 · `focusListOnLoad` re-runs on every length change, not on load.** Its
+**F15 · `focus-on-every-refetch` · `focusListOnLoad` re-runs on every length change, not on load.** Its
 dependency is `[ordered.length]`, and the club list is realtime — a friend adding
 you to a club re-runs it. It only takes focus when `document.activeElement` is
 `null` or `<body>`, so the blast radius is small, but the name promises less than
@@ -648,7 +652,7 @@ the effect does.
 > page re-derives with its own effect and its own dependency array. The bug
 > stands; it just gets fixed once, somewhere else.
 
-**F25 · The `=` convention is a database convention, so the database should
+**F25 · `is-solo-column` · The `=` convention is a database convention, so the database should
 own it** (Joel, 2026-08-22, on being asked whether the ordering belonged in the
 DB or the component: *"it removes 'FE needs to know the = convention', which is
 arguably more of a db thing"*).
@@ -706,7 +710,7 @@ second name for one list.
 > `like '=%'` in SQL. *"Fine for now, but we should get '=' stuff out of FE
 > when we get to them."* Filed on the plan's carried-forward list.
 
-**F16 · The empty branch tests `clubs`; everything else reads `ordered`.**
+**F16 · `clubs-vs-ordered` · The empty branch tests `clubs`; everything else reads `ordered`.**
 `clubs.length === 0` gates the message while the keyboard, the ring and the rows
 all index `ordered`. They are the same set — `ordered` is a partition of `clubs`
 — so this is one name too many, not a bug.
@@ -718,7 +722,7 @@ all index `ordered`. They are the same set — `ordered` is a partition of `club
 
 ### Comments and docs
 
-**F17 · Four archaeology blocks**, which CLAUDE.md rules out ("how it used to
+**F17 · `archaeology-comments` · Four archaeology blocks**, which CLAUDE.md rules out ("how it used to
 work" is not useful): `HomePage.tsx:41-48` (solo clubs "used to be hidden"),
 `178-191` (the header "sat INSIDE the card at first", an "even earlier attempt"
 hung it off the wordmark), `214-217` (the email that "used to sit under this"),
@@ -766,7 +770,7 @@ it is Joel's call which sentence in each is the load-bearing one.
 >   buttons" — is gone. Same shape as the others: buttons that are not here.
 >   (It was also the sentence F19's stale docstring in `games.ts` echoed.)
 
-**F18 · `docs/common.md:284` describes a homepage that isn't there.** It says a
+**F18 · `stale-solo-club-doc` · `docs/common.md:284` describes a homepage that isn't there.** It says a
 solo club is "visually distinguished (star icon, accent background tint, 'Solo'
 badge)". There is no star and no tint; the badge is the whole treatment.
 
@@ -774,7 +778,7 @@ badge)". There is no star and no tint; the badge is the whole treatment.
 > 'Solo' badge on the row and always sorted to the top" — the star and the tint
 > are gone, since neither was ever built.
 
-**F19 · `games.ts:801` names HomePage as a consumer it no longer has.**
+**F19 · `stale-playercountfits-doc` · `games.ts:801` names HomePage as a consumer it no longer has.**
 `playerCountFits`'s docstring says it is used by "ClubPage (Start button
 enable/disable) and HomePage (which solo-game buttons to surface)". HomePage
 stopped carrying per-gametype start buttons — its own docstring explains why —
@@ -787,7 +791,7 @@ and does not import `games.ts` at all.
 > does). The docstring had ClubPage but not the component that actually paints
 > the buttons.
 
-**F20 · `useSwallowTab`'s docstring sends the reader to the wrong page.** It ends
+**F20 · `stale-swallowtab-link` · `useSwallowTab`'s docstring sends the reader to the wrong page.** It ends
 "`HomePage` (whose club list is arrow-driven — see docs/ui.md → ClubPage)". The
 homepage's own list is documented under another page's heading.
 
@@ -799,7 +803,7 @@ homepage's own list is documented under another page's heading.
 
 ### Tests
 
-**F21 · HomePage has an e2e test and no vitest test, and it should have both.**
+**F21 · `homepage-no-vitest` · HomePage has an e2e test and no vitest test, and it should have both.**
 The e2e spec (F3) covers the keyboard in a real browser, which is the right tool
 for `document.activeElement` and a computed outline — but everything below that
 goes unchecked: the solo/regular partition and its ordering, the `Solo` badge
@@ -819,7 +823,7 @@ than a live Supabase.
 
 ### Lists
 
-**F24 · An empty list keeps its BOX, and says so inside it — the homepage is
+**F24 · `empty-list-keeps-box` · An empty list keeps its BOX, and says so inside it — the homepage is
 the one place that doesn't** (Joel, 2026-08-22). *"We should be consistent and I
 think 'keep the box, show the empty message inside' is clearer."*
 
@@ -856,7 +860,7 @@ Three things to carry into that sitting:
 
 ### Layers
 
-**F22 · The homepage is the first surface to need the z- vocabulary, and it
+**F22 · `z-ladder` · The homepage is the first surface to need the z- vocabulary, and it
 needs two different things from it.** The page itself sits on `z-page`, and the
 menu hanging off the header sits *above* whatever contains it. §20 is blessed
 and was not built; the four items under its "Open" are all about layers this
@@ -895,7 +899,7 @@ page never reaches.
 > is `z-page` — so converting it alone would put it under any `FloatingPanel`
 > still at 500. It moves when the panels do.
 
-**F22.1 · How a satellite names its host — decided, not built.** §20 says a
+**F22.1 · `satellite-host-slot` · How a satellite names its host — decided, not built.** §20 says a
 dropdown "sits just above its host" and never says how that is written. Two
 shapes: the component names the host token (`calc(var(--z-modal-normal) + 1)`),
 or the host fills a contract slot the satellite reads.
@@ -976,7 +980,7 @@ different-without-distinction), like 'no scrolling', page-height, etc."*
 | PalettePage | `.card` + `.page` | 72rem | none | no | *(dev page — off-table)* |
 | FontPage | `.card` + `.page` | 60rem | none | no | *(dev page — off-table)* |
 
-**F26 · Three `.frame` rules, and only one of the differences is a decision.**
+**F26 · `three-wrappers` · Three `.frame` rules, and only one of the differences is a decision.**
 
 | | home | club | game |
 |---|---|---|---|
@@ -1000,7 +1004,7 @@ ARE is the question, and it cannot be asked in a word that means nothing.
 
 > resolution:
 
-**F27 · `width: 100%` is load-bearing, and only two of the three frames say
+**F27 · `width-100-undeclared` · `width: 100%` is load-bearing, and only two of the three frames say
 it.** `body` is `display: grid; place-items: start center`, so `justify-items`
 is `center` and a grid item is sized to its CONTENT, not stretched. Home and
 club therefore need `width: 100%` to fill the page's column; GamePage does not
@@ -1016,7 +1020,7 @@ nobody can tell the design from the omission.
 
 > resolution:
 
-**F28 · GamePage skips the page-level bound entirely, and pays for it with a
+**F28 · `gamepage-bounds-itself` · GamePage skips the page-level bound entirely, and pays for it with a
 hand-measured lump.** Home and club COMPOSE their bound from the page's own
 parts — `100svh` minus twice `--page-padding-y`. GamePage's frame has no bound;
 the fit happens one level down, in `PlayArea.module.css:36`:
@@ -1066,7 +1070,7 @@ board by 3px would be a regression.
 > quadruple check the gamepage layout; it's the most sensitive part of the
 > codebase. Sneeze wrong and the page starts scrolling."*
 
-**F29 · The never-scroll invariant binds on two pages out of eight, and nothing
+**F29 · `which-pages-never-scroll` · The never-scroll invariant binds on two pages out of eight, and nothing
 enforces it.** There is no `overflow: hidden` anywhere — deliberately, per
 `ui.md` → Rolling out ("not a global `body { overflow: hidden }` bomb"), so a
 page that stops fitting simply scrolls, and nothing says so. Five of the eight
@@ -1110,7 +1114,7 @@ makes it tall.
 > F33: there is still no way for a page to DECLARE that it fits, and nothing
 > notices when one stops fitting.
 
-**F30 · Four widths for "how wide is a page's body", with no relationship
+**F30 · `pagemain-widths` · Four widths for "how wide is a page's body", with no relationship
 between them.** `.card` is `480px` — the only one in px, in a rem app —
 ClubPage's content well is `62.5rem`, PalettePage is `72rem`, FontPage is
 `60rem`. Two of those exist only to override `.card`: both pages write
@@ -1128,7 +1132,7 @@ express it.
 
 > resolution:
 
-**F31 · Centering is declared three or four times over.** `body` centers its
+**F31 · `centering-said-4x` · Centering is declared three or four times over.** `body` centers its
 grid item (`place-items: start center`); `.card` also says `margin: 0 auto`;
 FontPage's `.page` says `margin: 0 auto` again; ClubPage's content well says
 `margin-inline: auto`. At most one of these is doing work at any given moment,
@@ -1136,7 +1140,7 @@ and which one is not obvious from any of them.
 
 > resolution:
 
-**F32 · Five of the eight pages have no page structure at all — they ARE a
+**F32 · `pages-that-are-just-a-card` · Five of the eight pages have no page structure at all — they ARE a
 card.** So the contract this subject is about ("an optional header above a
 centered, width-bounded body") is expressed nowhere: on three pages it is three
 near-copies of a module class, and on five it is absent, with the card standing
@@ -1183,7 +1187,7 @@ turns out to be.
 > F33 carries: the page element still has no name of its own. And the transient
 > states — the seven loading/error boxes — are none of these three and are F35's.
 
-**F35.1 · What a card is, and what makes the homepage white** (Joel,
+**F35.1 · `card-is-white` · What a card is, and what makes the homepage white** (Joel,
 2026-08-22). Settled alongside F37's definition and recorded here because this
 page is where it shows:
 
@@ -1199,7 +1203,7 @@ after the one page in three where it applies.
 
 > resolution: recorded, nothing to build
 
-**F35 · `frame` and `card` are both vague names, and `card` is the worse of
+**F35 · `card-and-frame-names` · `frame` and `card` are both vague names, and `card` is the worse of
 the two.** *(Half answered: `card`'s meaning is settled by F37 — Bootstrap's
 sense, a bordered section of a page. `frame`'s name is still open, in F33.)* Raised by Joel, 2026-08-22, on reading the audit: *"you talked about
 'frame' and 'card' and those are ridiculously bad names; complete vague. we
@@ -1239,7 +1243,7 @@ concept is what the thing is FOR, not what it looks like.
 
 > resolution:
 
-**F33 · The page element's name — a proposal, deferred by Joel.** *"We'll
+**F33 · `wrapper-name` · The page element's name — a proposal, deferred by Joel.** *"We'll
 discuss this when we dive in."* Written down now so the proposal is on the
 record and F26 has something to wait for; F35 is the wider question it sits
 inside.
@@ -1270,7 +1274,7 @@ those two is "a dev page that needs the room".
 
 > resolution:
 
-**F34 · Two stale records about page height**, both found while measuring:
+**F34 · `stale-height-records` · Two stale records about page height**, both found while measuring:
 
 - `ClubPage.module.css`'s frame comment says *"The body's 2rem padding (in
   theme.css) means we subtract 4rem from 100svh"*. The rule subtracts
@@ -1284,7 +1288,7 @@ those two is "a dev page that needs the room".
 
 ### Loading and errors
 
-**F39 · There are nine ways to say "not ready" or "broken", and they should be
+**F39 · `loading-and-errors` · There are nine ways to say "not ready" or "broken", and they should be
 two.** Written as a homepage finding at Joel's instruction (2026-08-23): the
 work is not on this page, but **this is the first place a person can meet either
 state** — you see the app's loading screen on the way here, and this page's own
@@ -1352,7 +1356,7 @@ Each of these came out of the page-structure audit rather than out of the
 homepage, and each is a THING to build rather than a line to change. They keep
 this area's numbering (§ "Findings") because they were found here.
 
-**F36 · CreateClubPage should be a modal, not a page** (Joel, 2026-08-22:
+**F36 · `createclub-modal` · CreateClubPage should be a modal, not a page** (Joel, 2026-08-22:
 *"CreateClubPage is a separate page, and that's probably pure-history: it was
 one of the very first things we ever wrote in the app, and had thought out none
 of the UI. I argue that it should be a modal — just like Setup and EditProfile
@@ -1379,7 +1383,7 @@ home is the only entry, so it can be home's modal until that changes.
 
 > resolution: *(agreed, not built — "we'll do that one soon")*
 
-**F37 · `CardOnlyPage` — a page whose whole body is one card** (Joel,
+**F37 · `card-only-page` · `CardOnlyPage` — a page whose whole body is one card** (Joel,
 2026-08-22: *"a page that is 'just a card' (LoginPage): let's call that a
 'CardOnlyPage'; we can use different CSS for that, if needed, and the
 understanding that it will fix a width makes sense. They're not `.card`s."*).
@@ -1405,7 +1409,7 @@ Two things to decide when it is built, both of which other findings hand to it:
 
 > resolution: *(named, not built)*
 
-**F38 · `SelectionLists` — the keyboard-navigable list wants a real component**
+**F38 · `selection-lists` · `SelectionLists` — the keyboard-navigable list wants a real component**
 (Joel, 2026-08-22: *"we have several findings about the keyboard navigable lists
 like we use in the homepage and createclub (and also places like the
 pick-a-crossword puzzle in the setup). There are lots of problems with them;

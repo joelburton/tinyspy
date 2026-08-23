@@ -1668,6 +1668,43 @@ one above: a sweep caused by this area's rename ships with this area.
 permission to start the next one — and that includes the sprint's own setup,
 which is committed before any area opens.
 
+### Findings are numbered AND slugged
+
+**Every finding in an area file gets a number and a slug**, written together as
+its heading:
+
+```
+**F26 · `three-wrappers` · Three `.frame` rules, and only one of the
+differences is a decision.**
+```
+
+The **number** is the address: an hour into an area, "2" is whatever list was
+last on screen and `F2` is only ever this finding. It never changes, and
+findings raised after the audit take the next free number rather than a
+sub-number — a finding is not required to have come from the audit. Sub-numbers
+(`F6.1`) are for a finding that grows its own list.
+
+The **slug** is the hook (Joel, 2026-08-23). Two or three kebab words naming the
+SUBJECT rather than the verdict, so it survives the finding being resolved
+either way. It does not have to be self-explanatory enough to skip reading the
+audit — it only has to be enough to remember which finding this is.
+
+**Why both.** Claude was writing a fresh parenthetical every time a finding came
+up in conversation — F26 was "the three frames", then "the three `.frame`
+copies", then "the three wrappers" — which puts the ambiguity the number
+removed straight back at the description layer. A slug is written once and
+reused verbatim, which also makes it greppable.
+
+**The rules:**
+
+- **A new finding gets a slug when it is written.** No exceptions, or the file
+  goes half-slugged, which is worse than neither.
+- **In conversation, say the number AND the slug** — `F26 (three-wrappers)`.
+  Repeating it every mention is fine and preferred: *"a little bit more to read
+  is less disruptive for me than switching context to remember what F99 is."*
+- **A slug may be renamed if the subject genuinely changes**, never silently.
+  The whole value is that it does not move underneath you.
+
 ### Broken is expected, and it comes in three kinds
 
 The app does not need to work until the sprint ends; only what has reached
