@@ -34,7 +34,7 @@ begin;
 
 set search_path = common, public, extensions;
 
-select plan(23);
+select plan(26);
 
 -- Cast: ada/bea/cade are the three in-club personas this test
 -- uses (creating clubs, being members, exercising the handle-
@@ -249,6 +249,39 @@ select ok(
       and cm.user_id = 'ada11111-1111-1111-1111-111111111111'
   )),
   'solo clubs: the sole member is the user themselves'
+);
+
+-- `is_solo` is the generated column that carries the `=` convention, so that
+-- knowing what a solo handle looks like stays the database's job (the home
+-- list orders by it). Asserted as an EQUIVALENCE over every fixture club, in
+-- both directions: a wrong generation expression that simply said `true` (or
+-- `false`) would pass a one-sided check on one club.
+select is(
+  (select count(*) from common.clubs where is_solo <> (handle like '=%')),
+  0::bigint,
+  'solo clubs: is_solo agrees with the = prefix on every club'
+);
+
+select is(
+  (select count(*) filter (where is_solo) from common.clubs
+    where created_by in (
+      'ada11111-1111-1111-1111-111111111111',
+      'bea22222-2222-2222-2222-222222222222',
+      'cade3333-3333-3333-3333-333333333333'
+    )),
+  3::bigint,
+  'solo clubs: is_solo is true for exactly the three auto-created ones'
+);
+
+-- Generated, not writable: an INSERT naming it is rejected outright — 428C9,
+-- `generated_always`, "cannot insert a non-DEFAULT value" — so no caller can
+-- create a club that lies about being solo.
+select throws_ok(
+  $$insert into common.clubs (handle, name, created_by, is_solo)
+    values ('not-solo-really', 'Nope', 'ada11111-1111-1111-1111-111111111111', true)$$,
+  '428C9',
+  null,
+  'solo clubs: is_solo cannot be written by a caller'
 );
 
 -- ============================================================

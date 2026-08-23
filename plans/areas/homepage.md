@@ -4,11 +4,14 @@ The first area of the CSS sprint's step 7. The process is
 [css-system-2.md](../css-system-2.md) §21; the plan holds the order, this file
 holds everything else.
 
-**Status: audited, scaffolding done, RESUMED.** Twenty-four findings,
-seventeen resolved (F1, F2, F4, F5, F6, F6.1, F7, F8, F9, F10, F14, F17, F18,
-F19, F20, F22, F23). Shipped: the two fixes, the class guard, the vocabularies,
+**Status: RESUMED, and a second subject added.** Thirty-eight findings,
+twenty-six resolved (F1, F2, F4, F5, F6, F6.1, F7, F8, F9, F10, F11, F14, F15,
+F16, F17, F18, F19, F20, F22, F23, F24, F25, F29, F32, F36, F37) — where
+"resolved" includes the ones FOLDED into a later finding rather than fixed.
+
+Shipped so far: the two dead-reference fixes, the class guard, the vocabularies,
 the font-weight rule, the z- ladder, the greeting's word space, the comment/doc
-trim, the badge's shape + color, and the empty-clubs fault.
+trim, the badge's shape + color, the empty-clubs fault, and `clubs.is_solo`.
 
 **The pause is Joel's call (2026-08-22), and the reason generalizes:** the first
 area pays for the toolkit every later area will use. F5 and F22 are not homepage
@@ -34,14 +37,20 @@ records the date he says he has.
 
 ## Findings
 
-**Numbered `F1` … `F24`, and sub-numbered `F6.1` where one finding grows its own
-list** (Joel, 2026-08-22). The audit stopped at F22; F23 and F24 were raised
-later — one while resolving another finding, one from Joel noticing the page —
-and each took the next number rather than a sub-number. A finding is not
-required to have come from the audit. The prefix is the point: an hour into an area, "2" is
+**Numbered `F1` … `F38`, and sub-numbered `F6.1` where one finding grows its own
+list** (Joel, 2026-08-22). The prefix is the point: an hour into an area, "2" is
 whatever list was last on screen and `F2` is only ever this finding. Refer to
 them by their F-number everywhere — in this file, in conversation, in a commit
 message.
+
+The first audit stopped at F22. F23, F24 and F25 were raised later — one while
+resolving another finding, one from Joel looking at the page, one from a
+question he asked about it — and each took the next free number rather than a
+sub-number. A finding is not required to have come from the audit.
+
+**F26-F38 are the second subject, basic page structure** (added 2026-08-22),
+and they share the same numbering deliberately: they are findings against this
+area, not a separate list with its own "F1".
 
 Each finding is what was measured; the resolution goes in the quoted block under
 it, and an empty one means the finding is still open.
@@ -492,7 +501,13 @@ proper holds focus, `scrollIntoView({ block: 'nearest' })` on the cursor row.
 over its two lists. A `useListCursor` would sit beside the existing 2-D
 `useBoardCursorKeys` in `hooks/input/`. The fix spans this area and `club-page`.
 
-> resolution:
+> **resolution: folded into F38 (SelectionLists), 2026-08-22.** Not fixed —
+> reclassified. This finding proposed a shared HOOK for the cursor arithmetic;
+> the duplication is a symptom and the missing thing is bigger than a hook.
+> Nothing measured here is lost: clamp with no wrap, Enter opens the row under
+> the cursor, the ring hides unless the container proper holds focus, and
+> `scrollIntoView({ block: 'nearest' })` are four of the behaviors F38's
+> component has to get right.
 
 **F12 · The page-header trio is written three times.** Identical apart from the
 logo, the sections and the label:
@@ -628,14 +643,78 @@ you to a club re-runs it. It only takes focus when `document.activeElement` is
 `null` or `<body>`, so the blast radius is small, but the name promises less than
 the effect does.
 
-> resolution:
+> **resolution: folded into F38 (SelectionLists), 2026-08-22.** WHEN a list
+> takes focus, and on what, is the component's decision — not something each
+> page re-derives with its own effect and its own dependency array. The bug
+> stands; it just gets fixed once, somewhere else.
+
+**F25 · The `=` convention is a database convention, so the database should
+own it** (Joel, 2026-08-22, on being asked whether the ordering belonged in the
+DB or the component: *"it removes 'FE needs to know the = convention', which is
+arguably more of a db thing"*).
+
+The page did the date ordering in SQL and the solo-first partition in a
+`useMemo` afterwards, which is two sort orders in two languages — and it is
+what created F16, since partitioning produces a SECOND array and therefore a
+second name for one list.
+
+> **resolution: built — `common.clubs.is_solo`, a stored generated column
+> (`handle like '=%'`).**
+>
+> The alternatives were considered and named: PostgREST cannot `order` by an
+> expression, so the DB half needed either this column, a view/RPC (more
+> machinery than one list is worth), or ordering by `handle` and hoping `=`
+> sorted first — which is wrong under the default collation, where punctuation
+> is largely ignored at the primary level, so `=joel` would sort among the
+> `j`s. Claude's own preference had been to sort in the load callback and keep
+> the schema untouched; Joel took the column for the better reason, that the
+> convention does not belong in the FE at all.
+>
+> **What it changed:**
+>
+> - `20260822000000_clubs_is_solo.sql`, a FORWARD migration — the recent
+>   precedent, and an in-place edit would never reach prod. STORED rather than
+>   VIRTUAL (PG17 has no virtual, and `handle` is a primary key that is never
+>   updated, so it is computed once per club forever).
+> - The query is `select handle, name, is_solo` +
+>   `order=is_solo.desc,created_at.desc`. Postgres sorts `false` before `true`,
+>   so descending puts solo on top.
+> - **The `useMemo` is gone, and with it F16** — one array, one name, one
+>   order. The keyboard cursor, the ring, the Enter target and the rows all
+>   index `clubs`, which now arrives in display order.
+> - The badge reads `c.is_solo`. The homepage no longer contains the string
+>   `'='` anywhere.
+> - `src/types/db.ts` regenerated (`npm run types:gen`).
+>
+> **Three pgTAP assertions**, plan 23 → 26: an EQUIVALENCE over every club in
+> both directions (a generation expression that just said `true` would pass a
+> one-sided check), the count for the three fixture users, and that a caller
+> cannot write it. The last one corrected a guess — the SQLSTATE is `428C9`
+> (`generated_always`), not the `42601` first written, and the test is how that
+> was found rather than the docs. The equivalence arm was verified by planting:
+> swapping the expression to `handle like '#%'` inside a rolled-back
+> transaction makes it report 3 disagreements where the real one reports 0.
+>
+> **Local was reset rather than patched by hand** — Joel: *"local can be reset
+> whenever we want (please read this carefully, this only applies to local, NOT
+> production. production data is precious)."* `gmake db ENV=local` then
+> `gmake db-seed ENV=local`.
+>
+> **Left for their own areas, and Joel agrees it should not stay that way:**
+> `ClubPage.tsx:115` and `SetupGameDialog.tsx:208` still test
+> `handle.startsWith('=')`, and `common.sql` + the setgame migration write
+> `like '=%'` in SQL. *"Fine for now, but we should get '=' stuff out of FE
+> when we get to them."* Filed on the plan's carried-forward list.
 
 **F16 · The empty branch tests `clubs`; everything else reads `ordered`.**
 `clubs.length === 0` gates the message while the keyboard, the ring and the rows
 all index `ordered`. They are the same set — `ordered` is a partition of `clubs`
 — so this is one name too many, not a bug.
 
-> resolution:
+> **resolution: dissolved by F25, not fixed.** `ordered` existed only to move
+> solo clubs to the front; once the database sorts them there, the second array
+> has no reason to exist and there is one name again. Nothing was renamed —
+> the thing that needed two names stopped happening.
 
 ### Comments and docs
 
@@ -770,7 +849,10 @@ Three things to carry into that sitting:
 3. **`list.css`'s comment blesses the exception** and has to go with it, or the
    pattern file will still be describing the choice we just dropped.
 
-> resolution:
+> **resolution: the RULE stands — keep the box, put the message inside — and
+> the WORK folds into F38 (SelectionLists), 2026-08-22.** An empty list still
+> showing its frame is something a SelectionList does, not something three pages
+> each remember to do. The three notes above survive as requirements on it.
 
 ### Layers
 
@@ -842,6 +924,435 @@ or the host fills a contract slot the satellite reads.
 > converts, and a token nothing reads is a token the dead-token guard should
 > fail on. It lands with the first satellite — which, per F22, is not the menu
 > and not this area.
+
+### Basic page structure — the second subject, added 2026-08-22
+
+Joel added this to the area after the first pass: *"the stuff that is shared
+across all pages (or SHOULD be shared, but it is copied or
+different-without-distinction), like 'no scrolling', page-height, etc."*
+
+**Scope, as he bounded it:**
+
+- **The header is a BLACK BOX.** *"There *is* one, but we've got enough in this
+  list without going into stuff like where the logo is in it. For now, we only
+  care where the header is (if there is one)."*
+- **ClubPage and GamePage are INVESTIGATED, and investigating is not
+  FINDING.** Their stamps do not move. `cs-found` means *"we came across this
+  organically while exploring that area"* — it is the mechanism that makes sure
+  a page gets audited by SOME area, so it has to mean something. Neither page is
+  used to make the homepage; they are read here as evidence, which is a
+  different act. And if a finding suggests a rename worth rolling forward onto
+  them, *"we always discuss that explicitly."*
+- **Answering a question `club-page` was carrying is fine.** *"Changing these
+  now will change how club-page works — that's not a problem. club-page is not
+  retro."* So the four rows on the plan's carried-forward list that this subject
+  covers (the page shell, the viewport-fit chain, `.frame` → `.page`) get
+  ANSWERED here, and that area inherits the answers.
+- **`/palette` and `/font` are OFF-TABLE** (Joel, 2026-08-22): they *"have no
+  relationship to the real pages in the app"*, so nothing they do is evidence
+  about how the app looks or works. They appear in the table below because they
+  are routes; they do not get a vote.
+- **GamePage is FRAGILE, and that is a standing caution, not a finding.** Joel:
+  *"it needs to handle complex layouts and has very specific stuff for mobile,
+  far more than we worry about for homepage/clubpage. It may be that this keeps
+  gamepage from using things from the other two. We need to be extra careful and
+  thoughtful; we've spent a lot of time getting gamepage layouts tuned."* So
+  where a finding below says GamePage differs, "differs" is the measurement and
+  NOT the recommendation — the question is always whether the difference is
+  earned, and the default answer for a tuned surface is yes.
+- **Out of bounds:** the play surface's own sizing, the InfoSheet, dialogs,
+  panels, chat — anything below page → body → card.
+
+**The eight pages, measured.** Every route's outermost element:
+
+| page | outer element | width | viewport bound | header | |
+|---|---|---|---|---|---|
+| HomePage | `styles.frame` | `width: 100%` | **max-height** `calc(100svh - 2 * var(--page-padding-y))` | yes |
+| ClubPage | `styles.frame` | `width: 100%` | **height**, same expression | yes |
+| GamePage | `styles.frame` | *(none)* | **none — see F29** | yes |
+| CreateClubPage | bare `.card` | 480px | none | no |
+| LoginScreen | bare `.card` | 480px | none | no |
+| ClaimHandleScreen | bare `.card` | 480px | none | no |
+| PalettePage | `.card` + `.page` | 72rem | none | no | *(dev page — off-table)* |
+| FontPage | `.card` + `.page` | 60rem | none | no | *(dev page — off-table)* |
+
+**F26 · Three `.frame` rules, and only one of the differences is a decision.**
+
+| | home | club | game |
+|---|---|---|---|
+| `width: 100%` | yes | yes | **no** |
+| flex column | yes | yes | yes |
+| `gap` | `var(--spacer-2)` | `1rem` | `1rem` |
+| bound | `max-height: calc(…)` | `height: calc(…)` | none |
+
+The bound's `max-` vs bare is a real distinction and is already written down
+(`ui.md` → Page-height fits the viewport): home's body is a content-sized card,
+so a fixed height would stretch it and strand a two-club list at the top of an
+empty box. The other two rows are not distinctions. The gap is the same value
+said two ways — home converted to the spacer vocabulary, the others did not —
+and `width: 100%` is load-bearing (F27), so its absence on GamePage is either a
+bug or an undocumented dependency.
+
+**Not discussable until F35 settles the NAME** (Joel, 2026-08-22: *"before we
+even discuss this, 'frame' needs a clear name. 'frame' around what?"*). Three
+rules that share a bad name look like three copies of one thing; whether they
+ARE is the question, and it cannot be asked in a word that means nothing.
+
+> resolution:
+
+**F27 · `width: 100%` is load-bearing, and only two of the three frames say
+it.** `body` is `display: grid; place-items: start center`, so `justify-items`
+is `center` and a grid item is sized to its CONTENT, not stretched. Home and
+club therefore need `width: 100%` to fill the page's column; GamePage does not
+declare it, so its width is whatever its content happens to be. It looks right
+today only because a play surface is wide. Whichever way this is settled, it
+should be settled once, where the centering is declared.
+
+**Read against the GamePage caution above** (Joel: *"probably related to my
+point about gamepage is fragile"*). Content-width may be exactly what a play
+surface wants — a board that sizes itself and a page that shrink-wraps it is a
+coherent design. What is not defensible is that it is nowhere written down, so
+nobody can tell the design from the omission.
+
+> resolution:
+
+**F28 · GamePage skips the page-level bound entirely, and pays for it with a
+hand-measured lump.** Home and club COMPOSE their bound from the page's own
+parts — `100svh` minus twice `--page-padding-y`. GamePage's frame has no bound;
+the fit happens one level down, in `PlayArea.module.css:36`:
+`height: calc(100svh - var(--game-chrome-height))`, where
+`--game-chrome-height: 5rem` is a single number that bundles the header, the gap
+below it AND the body's bottom padding, described in `base.css` as "≈ 4.8rem,
+set a hair higher to stay off the bottom edge".
+
+So the same question has two answers, one composed and one measured — and the
+measured one silently desyncs if `--page-padding-y` ever changes, since nothing
+connects the 5rem to it. (`--game-chrome-height` is also on the list of
+constants owed a re-measure after the font switch.) The play surface's own
+sizing is out of bounds here; where the page's bound LIVES is not.
+
+**Same caution, and it bites harder here** (Joel: *"same"*). `--game-chrome-
+height` is a number that was TUNED, over a long time, against real game layouts
+on real phones. The finding is not "compose it like the other two" — it is that
+one number silently stands in for three, so a change to any of the three moves
+home and club and leaves the game page wrong. A composed expression that
+evaluates to today's 5rem would be a fix; a re-derivation that moves a game
+board by 3px would be a regression.
+
+> resolution:
+
+**F29 · The never-scroll invariant binds on two pages out of eight, and nothing
+enforces it.** There is no `overflow: hidden` anywhere — deliberately, per
+`ui.md` → Rolling out ("not a global `body { overflow: hidden }` bomb"), so a
+page that stops fitting simply scrolls, and nothing says so. Five of the eight
+pages declare no bound at all. Some of those are fine (a login card is short),
+and at least one is not: `/palette` is long and scrolls today. The finding is
+not "make every page fit" — it is that the invariant currently has no way to be
+checked, and no way for a page to declare that it opts out.
+
+**And the finding has to answer WHICH pages should get it** (Joel, 2026-08-22),
+because "all of them" is not obviously right and neither is the status quo. The
+eight, with what each one is:
+
+| page | fits today | should it never scroll? |
+|---|---|---|
+| HomePage | bounded (max-height) | yes — it is bounded |
+| ClubPage | bounded (height) | yes |
+| GamePage | via the play surface | yes, and it is the page the rule exists FOR |
+| CreateClubPage | short form, no bound | ? — a real app page with no bound |
+| LoginScreen | short form, no bound | ? — pre-auth |
+| ClaimHandleScreen | short form, no bound | ? — pre-auth |
+| PalettePage · FontPage | long, scrolls | off-table (dev pages) |
+
+The three question marks are the actual decision, and they are the same three
+pages F32 is about — a form that is short today has no bound, which means
+nothing tells anyone what happens when a validation message or a longer roster
+makes it tall.
+
+> **resolution (Joel, 2026-08-22): the three question marks are answered by
+> answering what those pages ARE, not by giving each a bound.**
+>
+> - **CreateClubPage stops being a page** — it becomes a modal (F36), and a
+>   dialog owns its own height rules, so the question does not arise.
+> - **The two pre-auth screens are `CardOnlyPage`s** (F37), and whether that
+>   type has a viewport bound is one decision made once, in the type, rather
+>   than a per-page omission.
+> - **Home, Club and Game** stay as measured: bounded, bounded, and bounded one
+>   level down (F28). Game is the page the rule exists for.
+> - **`/palette` and `/font`** are off-table.
+>
+> What is left of this finding is the enforcement half, which moves to F37 and
+> F33: there is still no way for a page to DECLARE that it fits, and nothing
+> notices when one stops fitting.
+
+**F30 · Four widths for "how wide is a page's body", with no relationship
+between them.** `.card` is `480px` — the only one in px, in a rem app —
+ClubPage's content well is `62.5rem`, PalettePage is `72rem`, FontPage is
+`60rem`. Two of those exist only to override `.card`: both pages write
+`cls('card', styles.page)` where `styles.page` is nothing but a `max-width`,
+because `.card` bundles a LOOK (surface, border, radius, padding) with a WIDTH,
+and they want the look at a different width.
+
+**Discount the two dev pages** (per the scope note): their widths are not
+evidence about the app. What is left is still a finding — `.card` at `480px`
+against ClubPage's `62.5rem`, one in px and one in rem, with nothing saying they
+are the two answers to the same question — and the OVERRIDE pattern the dev
+pages use is evidence about `.card`'s shape even though their numbers are not:
+wanting the look at another width is apparently normal, and `.card` cannot
+express it.
+
+> resolution:
+
+**F31 · Centering is declared three or four times over.** `body` centers its
+grid item (`place-items: start center`); `.card` also says `margin: 0 auto`;
+FontPage's `.page` says `margin: 0 auto` again; ClubPage's content well says
+`margin-inline: auto`. At most one of these is doing work at any given moment,
+and which one is not obvious from any of them.
+
+> resolution:
+
+**F32 · Five of the eight pages have no page structure at all — they ARE a
+card.** So the contract this subject is about ("an optional header above a
+centered, width-bounded body") is expressed nowhere: on three pages it is three
+near-copies of a module class, and on five it is absent, with the card standing
+in for the page. Adding a header to any of those five today means writing a
+fourth copy of `.frame`.
+
+**Joel's suspicion — "these are mostly either error pages or not-yet-
+authenticated pages, right?" — is right about four of the five, and the fifth
+is the interesting one.** Checked:
+
+| page | what it is |
+|---|---|
+| `LoginScreen` | pre-auth |
+| `ClaimHandleScreen` | pre-auth (signed in, no profile yet) |
+| `PalettePage` · `FontPage` | dev pages, off-table |
+| **`CreateClubPage`** | **a real, authenticated, everyday app page** — you reach it from the homepage's "+ New club" |
+
+So there IS a fully in-app page with no header and no bound, and it is one click
+from the page this area is auditing.
+
+**And the same shape has a fourth job nobody named: transient states.** `.card`
+is also what every loading and error screen renders as — `App.tsx:90` "Loading…",
+`ClubPage:758` "Loading club…", `GamePage:428` "Loading game…", `GamePage:450`
+"Unknown game type.", plus `PlayAreaErrorBoundary` and two more. Those are not
+pages with a body; they are a sentence in a box where a page will be.
+
+**This may want its own area** (Joel: *"we should still come up with a standard
+for these. Depending what we decide, this might introduce a new 'area'"*). The
+candidate scope is coherent and it is not the homepage's: the pre-auth pair, the
+transient states, and whatever a headerless in-app page like CreateClubPage
+turns out to be.
+
+> **resolution (Joel, 2026-08-22): the five split three ways, and each way has a
+> name now.**
+>
+> - **CreateClubPage → a modal** (F36). The one genuinely in-app case, and it
+>   was never a design decision — it is one of the first things written in the
+>   app.
+> - **LoginScreen + ClaimHandleScreen → `CardOnlyPage`** (F37), a named page
+>   TYPE rather than five pages missing their structure.
+> - **`/palette` + `/font`** — off-table.
+>
+> So "the contract is expressed nowhere" narrows to one true statement, which
+> F33 carries: the page element still has no name of its own. And the transient
+> states — the seven loading/error boxes — are none of these three and are F35's.
+
+**F35.1 · What a card is, and what makes the homepage white** (Joel,
+2026-08-22). Settled alongside F37's definition and recorded here because this
+page is where it shows:
+
+- **A card has a white background** — the app's default background, now
+  `--default-bg-color` (plan §6.6 → Backgrounds).
+- **Which is what makes the homepage's pageMain white**: the card IS the
+  pageMain there. The pageMain is not white in its own right, and on ClubPage
+  and GamePage it paints nothing at all.
+
+That distinction is the correction this whole thread produced. The white was
+read first as pageMain's, which would have named the app's most-shared color
+after the one page in three where it applies.
+
+> resolution: recorded, nothing to build
+
+**F35 · `frame` and `card` are both vague names, and `card` is the worse of
+the two.** *(Half answered: `card`'s meaning is settled by F37 — Bootstrap's
+sense, a bordered section of a page. `frame`'s name is still open, in F33.)* Raised by Joel, 2026-08-22, on reading the audit: *"you talked about
+'frame' and 'card' and those are ridiculously bad names; complete vague. we
+discussed these kind of names."*
+
+**Why the audit missed it, since that matters more than the finding.** `frame`
+was flagged — but only because the plan's carried-forward list had already
+flagged it, so what looks like a naming pass was an inherited one. The same
+question was never put to `card`, and `card` was in front of me the whole time:
+F30 says it bundles a look with a width and F32 says it stands in for a page,
+which are two SYMPTOMS of a name that does not say what the thing is for. I
+described both symptoms and did not name the cause.
+
+**`card` measured: fourteen call sites, four different jobs.**
+
+| job | sites |
+|---|---|
+| the page's whole body | HomePage (inside the frame), CreateClubPage, LoginScreen, ClaimHandleScreen |
+| a transient state — a sentence where a page will be | `App.tsx:90`, `ClubPage:758` + `:761`, `GamePage:428` + `:436` + `:450`, `PlayAreaErrorBoundary:41` |
+| a dev page's wide surface | PalettePage, FontPage (off-table, but they show the width is fought) |
+| an inner box | `App.tsx:137` |
+
+A name earns its keep by ruling something out. `card` rules nothing out: it
+describes a LOOK (white, bordered, rounded, padded) and every one of those four
+jobs is a different thing that happens to want the look. That is why it also
+carries `max-width: 480px` — the width belongs to one of the four jobs and rides
+along on the other three.
+
+**`frame` fails differently.** It is not too vague, it is TAKEN: it means "a
+rectangle drawn around a board" in four other places, and the page-level thing
+it names here draws no rectangle at all. Two meanings, one word, and the page
+one is the newcomer.
+
+Both are the naming rule the repo already writes down (`docs/naming.md`,
+`code-conventions.md` → self-describing names): a name states the concept, and a
+concept is what the thing is FOR, not what it looks like.
+
+> resolution:
+
+**F33 · The page element's name — a proposal, deferred by Joel.** *"We'll
+discuss this when we dive in."* Written down now so the proposal is on the
+record and F26 has something to wait for; F35 is the wider question it sits
+inside.
+
+`.frame` is wrong here: it means "a rectangle drawn around a board" in four
+other places, and this element draws nothing.
+
+**Proposed: `.page`.** It is the page — one per route, outermost, holding the
+header and the body. It is also the word `ui.md`'s own contract sentence
+already uses, so the class and the doc would finally say the same thing. The
+two bounds become base + modifier rather than two rules:
+
+- **`.page`** — `width: 100%`, flex column, the standard gap, and
+  `max-height: calc(100svh - 2 * var(--page-padding-y))`. Max-height is the
+  right DEFAULT because it is the safe one: it changes nothing until the page
+  would otherwise overflow.
+- **`.page-fill`** — swaps that for `height`, for a page whose body must occupy
+  the full viewport whatever its content (club, game).
+
+One consequence to settle with it: `PalettePage` and `FontPage` already use
+`.page` as a module class meaning "the width override" (F30). Module-scoped, so
+there is no technical collision, but two different `.page`s in one codebase is
+exactly the confusion this rename exists to end. They would want a name that
+says what they are — and F35 says that name has to describe the JOB, which for
+those two is "a dev page that needs the room".
+
+> resolution:
+
+> resolution:
+
+**F34 · Two stale records about page height**, both found while measuring:
+
+- `ClubPage.module.css`'s frame comment says *"The body's 2rem padding (in
+  theme.css) means we subtract 4rem from 100svh"*. The rule subtracts
+  `2 * var(--page-padding-y)` — which is **1rem** total, not 4 — and the body
+  rule lives in `base.css`, not `theme.css`.
+- `ui.md:373` says ClubPage fits via `height: calc(100vh - body padding)`. It is
+  `100svh`, and the difference is the whole mobile-Safari reason `base.css`
+  documents at length.
+
+> resolution:
+
+### The three names this area produced
+
+Each of these came out of the page-structure audit rather than out of the
+homepage, and each is a THING to build rather than a line to change. They keep
+this area's numbering (§ "Findings") because they were found here.
+
+**F36 · CreateClubPage should be a modal, not a page** (Joel, 2026-08-22:
+*"CreateClubPage is a separate page, and that's probably pure-history: it was
+one of the very first things we ever wrote in the app, and had thought out none
+of the UI. I argue that it should be a modal — just like Setup and EditProfile
+are."*).
+
+The evidence agrees. It is already dialog-sized — an `h1`, one input, one
+textarea, an error line, Cancel + Create — which is SMALLER than
+`EditClubDialog`, and that dialog is its exact sibling: create and edit of the
+same object. `SetupGameDialog` and `EditProfileDialog` are the same shape again.
+
+The argument that convinced, though, is not consistency. The act is **add to
+this list**: a modal keeps the club list behind it, where the page makes you
+leave the list in order to add to it and then puts you back. The homepage's
+"+ New club" stops being navigation and becomes what it always was.
+
+What it dissolves: the only genuinely in-app headerless page (F32), the hardest
+of F29's three question marks, one route, and one more `.card` standing in for a
+page. The remaining headerless screens are then all pre-auth — a category with
+one answer (F37).
+
+Nothing blocks it. `/c/new` rotting is fine. The one design question is where the
+trigger lives if a club is ever created from somewhere other than home; today
+home is the only entry, so it can be home's modal until that changes.
+
+> resolution: *(agreed, not built — "we'll do that one soon")*
+
+**F37 · `CardOnlyPage` — a page whose whole body is one card** (Joel,
+2026-08-22: *"a page that is 'just a card' (LoginPage): let's call that a
+'CardOnlyPage'; we can use different CSS for that, if needed, and the
+understanding that it will fix a width makes sense. They're not `.card`s."*).
+
+Today: `LoginScreen` and `ClaimHandleScreen` are a bare `<div className="card">`
+and nothing else, which is why F32 read them as pages missing their structure.
+They are not missing anything — they are a page TYPE nobody had named.
+
+The rule it settles: **a `.card` is a card in Bootstrap's sense** — a bordered
+section of a page, like a post-it note — and the app has few of them. HomePage's
+body is one. ClubPage has none. A card does not imply a slot to fill (something
+that lazy-loads its content can still be a card). A CardOnlyPage LOOKS like a
+card and is not one; it is a page, and it may take its own CSS.
+
+Two things to decide when it is built, both of which other findings hand to it:
+
+1. **Its width.** F30's `480px` is really this type's width — plus HomePage's,
+   which is a headed page whose card takes the same measure. So the number
+   belongs to a page vocabulary ("the narrow page body"), not to `.card`.
+2. **Whether it has a viewport bound.** F29's remaining question, and the point
+   of naming the type is that this gets decided once instead of being absent
+   twice.
+
+> resolution: *(named, not built)*
+
+**F38 · `SelectionLists` — the keyboard-navigable list wants a real component**
+(Joel, 2026-08-22: *"we have several findings about the keyboard navigable lists
+like we use in the homepage and createclub (and also places like the
+pick-a-crossword puzzle in the setup). There are lots of problems with them;
+let's not keep listing them as unresolved right now. Instead, add a new finding:
+we need a sharper reusable thing (most likely is a react component, not merely a
+css-pattern)."*)
+
+**The name is deliberate and provisional** — "list" alone is too vague, since it
+also means a plain bulleted list of text. A SelectionList is a list you move a
+cursor through and choose from.
+
+Known sites: the homepage's clubs, ClubPage's two lists (start a game, your
+games), the crossword-puzzle picker in setup — and CreateClubPage, which is
+about to become a modal (F36) without ceasing to have one.
+
+**It is probably a React component, not a CSS pattern**, and the reason is in
+what folded into it: the duplicated logic is behavior, not paint. `.item-list` /
+`.item-row` can stay exactly what they are — the look — and the component owns
+the parts three pages currently each remember.
+
+**Folded in, so they stop being tracked separately** (each marked resolved in
+place, pointing here):
+
+- **F11** — the cursor logic written twice: clamp with no wrap, Enter opens the
+  row under the cursor, the ring hides unless the container proper holds focus,
+  `scrollIntoView({ block: 'nearest' })`.
+- **F15** — when the list takes focus on arrival, and what it takes focus on.
+- **F24** — an empty list keeps its box and puts the message inside it.
+
+**And F3 is not folded, but its blocking question is now this one's.** The red
+spec cannot be rewritten until someone says whether the cursor ring rides the
+row's `<a>` or its `<li>`; today the ring is on one and the scroll ref is on the
+other, which is the sort of thing a component exists to stop being a per-page
+accident.
+
+> resolution:
 
 ## Dependencies — found, listed, and LEFT
 

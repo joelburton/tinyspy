@@ -498,6 +498,28 @@ lighter than you-lost — with nothing to rename.
 Two `3px` survive (the rank bar, the verdict outline). Not pre-decided: they get
 surfaced at their pass under the rule below.
 
+### Backgrounds — the default and the page (Joel, 2026-08-22)
+
+Two names, and everything else is an exception that gets addressed when we reach
+it.
+
+- **`--page-bg-color` is the PAGE's background** — very light gray, `#fafafa`
+  today, unchanged. It is `<body>` and nothing else.
+- **`--default-bg-color` is white**, `#ffffff` today, unchanged, and it is what a
+  background is unless something says otherwise. Cards, list frames, panels,
+  every dialog, popovers, toasts, segments, the info sheet, the pause overlay,
+  the feedback pill, inputs.
+
+Stated theme-neutrally so the rule survives midnight: **the default background is
+a step lighter than the page.** Daylight `#fafafa` → `#ffffff`; midnight
+`#262e3f` → `#2f394c`. Which is why neither name can carry a color.
+
+The exceptions are known and are NOT being named now — the hover gray, the
+open/active gray, a dialog titlebar, scrims, board dims, the two inverted
+near-blacks (the tooltip and the chat unread chip). Joel: *"I suspect we're
+likely to improve the names and hexes for the exceptions when we hit them, but
+that's not now."*
+
 ### The a/b/c rule — what happens when a value doesn't fit
 
 **A value outside the vocabulary is surfaced and explicitly decided.** One of:
@@ -660,10 +682,12 @@ plus justified's per-game half.)
 | `club-page` | **The viewport-fit chain**, which the shell owns. `min-height: 0` appears 48× in 24 files doing TWO jobs: 17 sites are the chain (the **bound** — `max-height` on a centered card, `height` on a full-bleed page, only two sites; the **relay** — a flex column carrying it down; the **scroller**), and 31 are a flex/grid item allowed to shrink below its content, which is board geometry and stays. Eleven of the relays are steps 9–10 anyway. The relay still has no good name |
 | `club-page` | **`.frame` → `.page`.** It is the page's outer stack, not anything header-specific; all three pages declare nearly the same rule and only the bound differs. The word is taken: `frame` means "a rectangle around a board" in four places. Rename when the bound is settled, so the element is touched once |
 | `club-page` | **`<ModePill>` is a BADGE and should be renamed** — 27 references across `src/` and `e2e/`, plus `ui.md`'s "Mode pills" heading. Its module already reads the shared `.badge` and holds nothing but the two colors, so this is a name, not a conversion. **The rule it carries is general (Joel, 2026-08-22): "pill" means the FEEDBACK pill and nothing else** — the fully-round-ended lozenge is a badge, and the app has other loose uses (`ui.md`'s "chat unread pill", `base.css`'s "hint pills" in the `--radius-sm` comment). Fix each where its area comes up |
+| `club-page` | **The `=` solo-handle convention is still tested in the FE** — `ClubPage.tsx:115` (`soloClub`) and `SetupGameDialog.tsx:208` (`modeSuffix`). `common.clubs.is_solo` now carries it (a generated column, `plans/areas/homepage.md` → F25), and the homepage reads that instead. Joel, 2026-08-22: *"fine for now, but we should get '=' stuff out of FE when we get to them."* The two SQL sites (`common.sql`, the setgame migration) write `like '=%'` and can take the column too |
 | `club-page` | **The two-line row** — `.content` / a name line / a muted meta line, in both `StartGameButtons` and `ClubGameCard`. The pattern should name the SLOTS; each component keeps its own name for what goes in one (`.gameTitle`, `.gametypeName`) |
 | `club-page` | `ClubGameCard`'s `.wrapper` / `.card` names — after the conversion the wrapper IS the row and the card is its inner box, so both names describe the previous arrangement |
 | `club-page` | The club page's filters render TWICE, desktop and mobile, each hidden in the other mode. A markup decision before a CSS one |
 | `club-page` | The two-column fold: `.columns` stacks at `--mobile` and `data-tab` hides one side. GamePage answers the same question with the InfoSheet |
+| `dialogs-and-forms` | **`FloatingPanel`'s titlebar wears the HOVER gray at rest.** `.header` is `--page-surface-hover-color` (`#f0f0f0`) permanently — chat, the scratchpad and every dialog built on the panel. Joel, 2026-08-22: titlebars not being white *"makes sense"*, but it is only the hover gray by accident and **the two must not be coupled**; the titlebar wants its own token, at whatever value, so a hover-color change cannot move it |
 | `dialogs-and-forms` | **A dialog riding the popover tier.** crosswords' `NumberJumpDialog` is a `position: fixed` modal with its own scrim taking `--z-index-popover`, not `--z-index-panel` — so a menu could open over it. It has always painted this way; converting it named the tier without asking whether it is the right one |
 | `shared-game-chrome` | **The two drag ghosts disagree** — bananagrams 1000, scrabble 100, and `dragGhost.module.css` says the split is unintended. Both are `position: fixed`, so they are two tiers apart against everything else: scrabble's paints BELOW an open dialog, bananagrams's above. Nobody drags mid-dialog, which is why it has never shown. Neither takes a token until they agree |
 | `dialogs-and-forms` | `CelebrationDialog`'s `.title` is an `<h2>` at `1.5rem` — h1's size, where h2 is `1.25rem`. May be earned; should be a decision |
@@ -1568,6 +1592,16 @@ criterion is the second one.
 file, not a position in a sequence. A file can go `unmet` → `audited` in one
 sitting, and — the load-bearing half — **a dependency at `cs-found` stays there
 until an area is scheduled for it. Being found is not a claim on attention.**
+
+**But `cs-found` means one specific thing, and reading is not it** (Joel,
+2026-08-22): *"'found' marks 'we came across this organically while exploring
+that area' — this helps us make sure a page will be audited in an area.
+Reading-needed-for-research isn't 'found'."* So a file the area DEPENDS ON gets
+the stamp, because the stamp is how we guarantee something downstream of an
+audited surface eventually gets an area of its own. A file opened as EVIDENCE —
+compared against, measured, quoted — does not, however carefully it was read.
+The homepage area investigating ClubPage's and GamePage's page structure moved
+neither stamp.
 
 **Why in the file** rather than one manifest: this sprint renames constantly, and
 a manifest rots on every rename while a stamp travels with the file.

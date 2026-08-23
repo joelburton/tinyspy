@@ -480,18 +480,21 @@ export type Database = {
           created_at: string
           created_by: string
           handle: string
+          is_solo: boolean
           name: string
         }
         Insert: {
           created_at?: string
           created_by: string
           handle: string
+          is_solo?: boolean
           name: string
         }
         Update: {
           created_at?: string
           created_by?: string
           handle?: string
+          is_solo?: boolean
           name?: string
         }
         Relationships: [

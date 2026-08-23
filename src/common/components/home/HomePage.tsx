@@ -1,6 +1,6 @@
 // cs-partial
 
-import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { Link } from '../../lib/routing/Link'
 import { navigate } from '../../lib/routing/router'
@@ -25,6 +25,10 @@ import styles from './HomePage.module.css'
 type ClubListEntry = {
   handle: string
   name: string
+  /** Generated column on `common.clubs` — the `=` handle prefix, decided by
+   *  the database (docs/common.md → Solo clubs). The page never tests the
+   *  prefix itself: knowing what a solo handle looks like is the DB's job. */
+  is_solo: boolean
 }
 
 type Props = {
@@ -63,9 +67,11 @@ export function HomePage({ session }: Props) {
   // we are in is what let this page tell people they had joined no clubs.
   const [load, setLoad] = useState<'loading' | 'loaded' | 'failed'>('loading')
 
-  // Load every club the caller is a member of (incl. their solo club),
-  // newest-first; the render layer partitions solo vs regular and puts
-  // solo on top regardless of timestamp.
+  // Load every club the caller is a member of (incl. their solo club), IN
+  // DISPLAY ORDER: solo clubs first, then newest-first within each group.
+  // Postgres sorts false before true, so `is_solo` descending puts solo on
+  // top. The page renders what it is handed — there is one array and one
+  // order, and neither is re-derived here.
   //
   // Subscribed to MY clubs_members rows so the list stays live: when a
   // friend accepts an invite and I add them — or when I'm added to /
@@ -84,7 +90,8 @@ export function HomePage({ session }: Props) {
     load: async ({ mounted }) => {
       const { data, error } = await commonDb
         .from('clubs')
-        .select('handle, name')
+        .select('handle, name, is_solo')
+        .order('is_solo', { ascending: false })
         .order('created_at', { ascending: false })
       if (!mounted()) return
       // Both arms below are FAULTS, not empty states, and the reason is a site
@@ -114,22 +121,6 @@ export function HomePage({ session }: Props) {
       }
     },
   })
-
-  // Partition: solo clubs (handle prefix '=') vs regular. The
-  // prefix is the only reliable signal — handles are slugified
-  // by `slugify_club_name` which strips '='-style chars, so no
-  // user-created club can collide. See common.md → "Solo clubs".
-  //
-  // Flattened into ONE display-ordered array (solo first) because the keyboard
-  // cursor below indexes it: the cursor and the rendered rows have to walk the
-  // same order, so there's exactly one list and it renders from this.
-  const ordered = useMemo(
-    () => [
-      ...clubs.filter((c) => c.handle.startsWith('=')),
-      ...clubs.filter((c) => !c.handle.startsWith('=')),
-    ],
-    [clubs],
-  )
 
   // ─── Keyboard navigation ─────────────────────────────────────────────────
   // The same shape ClubPage uses for its two lists: the LIST holds focus, and
@@ -165,7 +156,7 @@ export function HomePage({ session }: Props) {
   // under us — the club list is realtime), and hidden entirely unless the
   // container holds focus. -1 = no ring.
   const kbCursor =
-    listFocused && ordered.length > 0 ? Math.min(cursor, ordered.length - 1) : -1
+    listFocused && clubs.length > 0 ? Math.min(cursor, clubs.length - 1) : -1
 
   function onListKeyDown(e: KeyboardEvent) {
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
@@ -173,11 +164,11 @@ export function HomePage({ session }: Props) {
       const delta = e.key === 'ArrowDown' ? 1 : -1
       // Clamp to the ends — deliberately no wrap-around, matching ClubPage.
       setCursor((c) =>
-        Math.max(0, Math.min(ordered.length - 1, Math.min(c, ordered.length - 1) + delta)),
+        Math.max(0, Math.min(clubs.length - 1, Math.min(c, clubs.length - 1) + delta)),
       )
     } else if (e.key === 'Enter') {
       e.preventDefault()
-      const club = ordered[Math.min(cursor, ordered.length - 1)]
+      const club = clubs[Math.min(cursor, clubs.length - 1)]
       if (club) navigate(`/c/${club.handle}`)
     }
   }
@@ -189,13 +180,13 @@ export function HomePage({ session }: Props) {
   // just jitter the page.
   useEffect(
     function focusListOnLoad() {
-      if (ordered.length === 0) return
+      if (clubs.length === 0) return
       const el = listRef.current
       const idle =
         document.activeElement === null || document.activeElement === document.body
       if (el && idle) el.focus({ preventScroll: true })
     },
-    [ordered.length],
+    [clubs.length],
   )
 
   return (
@@ -281,7 +272,7 @@ export function HomePage({ session }: Props) {
                 if (e.target === e.currentTarget) setListFocused(false)
               }}
             >
-              {ordered.map((c, i) => (
+              {clubs.map((c, i) => (
                 // Clicking IS selecting, so the mouse and the keyboard agree on
                 // "the selected club". On the <li> because <Link> owns its own
                 // onClick for routing; the row's click bubbles here first. This
@@ -308,7 +299,7 @@ export function HomePage({ session }: Props) {
                     className={cls('item-row', i === kbCursor && 'kb-cursor')}
                   >
                     <span className={styles.clubName}>{c.name}</span>
-                    {c.handle.startsWith('=') && (
+                    {c.is_solo && (
                       <span className={cls('badge', styles.soloBadge)}>Solo</span>
                     )}
                   </Link>
