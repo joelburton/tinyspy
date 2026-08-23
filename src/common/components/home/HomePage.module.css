@@ -41,9 +41,15 @@
  * at the top of a tall empty box. This only binds when the clubs would
  * otherwise scroll the page — at which point the LIST scrolls instead.
  *
- * `svh`, not `vh`, for the mobile-Safari reason documented on `body`. */
+ * `svh`, not `vh`, for the mobile-Safari reason documented on `body`.
+ *
+ * NO `width: 100%`. It looks load-bearing — `body` is a grid that centers its
+ * child — but the child it centers is `#root`, which is `width: 100%` itself,
+ * and a block-level flex container fills its containing block. Measured: the
+ * frame is the same width with the declaration and without it. ClubPage and
+ * GamePage disagree about writing it for the same reason nobody noticed
+ * (plans/areas/homepage.md → F27 `width-100-undeclared`). */
 /* @@ */ .frame {
-  width: 100%;
   display: flex;
   flex-direction: column;
   gap: var(--spacer-2);

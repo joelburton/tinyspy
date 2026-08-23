@@ -6,9 +6,7 @@
  * so there is a baseline to compare against. That is `.systemFont` below. */
 
 /* @@ */ .page {
-  width: 100%;
   max-width: 60rem;
-  margin: 0 auto;
   display: flex;
   flex-direction: column;
   gap: var(--spacer-1);

@@ -5,10 +5,10 @@ The first area of the CSS sprint's step 7. The process is
 holds everything else.
 
 **Status: RESUMED, and a second subject added.** Thirty-nine findings,
-THIRTY-ONE resolved (F1, F2, F4, F5, F6, F6.1, F7, F8, F9, F10, F11, F14, F15,
-F16, F17, F18, F19, F20, F22, F23, F24, F25, F28, F29, F32, F33, F34, F35, F36,
-F37, F39) — where "resolved" includes the ones FOLDED into a later finding rather
-than fixed.
+THIRTY-THREE resolved (F1, F2, F4, F5, F6, F6.1, F7, F8, F9, F10, F11, F14, F15,
+F16, F17, F18, F19, F20, F22, F23, F24, F25, F27, F28, F29, F31, F32, F33, F34,
+F35, F36, F37, F39) — where "resolved" includes the ones FOLDED into a later
+finding rather than fixed.
 
 Shipped so far: the two dead-reference fixes, the class guard, the vocabularies,
 the font-weight rule, the z- ladder, the greeting's word space, the comment/doc
@@ -1019,7 +1019,25 @@ surface wants — a board that sizes itself and a page that shrink-wraps it is a
 coherent design. What is not defensible is that it is nowhere written down, so
 nobody can tell the design from the omission.
 
-> resolution:
+> **resolution (2026-08-23): the FINDING was wrong. `width: 100%` is redundant
+> on all three, and GamePage is the only one not writing something that does
+> nothing.**
+>
+> The reasoning behind the finding skipped an element. `body` does center its
+> grid item — but its child is `#root`, which is `width: 100%` itself, and a
+> block-level flex container fills its containing block regardless. **Measured
+> rather than argued, after getting it wrong once**: a frame with `width: 100%`
+> and one without are both 1248px in a 1280px viewport, at the same x.
+>
+> So there is no undocumented dependency to write down, and nothing to add to
+> GamePage. What shipped instead is a subtraction: **the homepage's frame drops
+> the declaration**, with the measurement recorded at the rule so the next
+> reader does not re-derive the same wrong conclusion. ClubPage's copy is
+> described, not touched — not this area's file.
+>
+> Worth keeping for its own sake: the finding was stated with confidence and
+> was false, and the thing that caught it was measuring a claim about layout in
+> a browser rather than reasoning about the cascade.
 
 **F28 · `gamepage-bounds-itself` · GamePage skips the page-level bound entirely, and pays for it with a
 hand-measured lump.** Home and club COMPOSE their bound from the page's own
@@ -1139,7 +1157,33 @@ FontPage's `.page` says `margin: 0 auto` again; ClubPage's content well says
 `margin-inline: auto`. At most one of these is doing work at any given moment,
 and which one is not obvious from any of them.
 
-> resolution:
+> **resolution (2026-08-23): only ONE of the four was redundant, so the
+> finding's premise — "at most one is doing work" — was backwards.** Checked one
+> at a time:
+>
+> - **`body`'s `place-items: start center`** — a no-op in Chromium, since the
+>   child it centers is `#root` at `width: 100%`. **Left alone anyway.**
+>   `PlayArea.module.css` documents a WebKit-only bug whose mechanism is this
+>   exact declaration: `justify-items: center` sizes the grid item to its
+>   content's MAX-CONTENT width, and a WordList's column-major grid leaked
+>   ~9500px through it and dragged the board off-screen in Safari — which is why
+>   `.layout` pins its own width. A Chromium measurement is not evidence about
+>   that, so removing it needs a real Safari. The rule now says so at the
+>   declaration.
+> - **`.card`'s `margin: 0 auto`** — load-bearing. On the homepage the card is a
+>   flex item under `align-items: stretch` capped by `max-width`, and without
+>   the auto margins it sits left.
+> - **ClubPage's `margin-inline: auto`** — load-bearing, same shape.
+> - **FontPage's `margin: 0 auto`** — the only genuine duplicate: that page
+>   writes `cls('card', styles.page)`, so it was restating what `.card` already
+>   said. **Removed**, along with a `width: 100%` beside it that F27
+>   (`width-100-undeclared`) showed does nothing.
+>
+> So the one rule Joel asked for is already the arrangement: **the pageMain
+> centers itself**, because it is the thing with a max-width and therefore the
+> thing with room to be centered in. What was wrong was not four rules fighting
+> — it was one page repeating a shared class, and a fourth declaration that
+> looks dead and is a Safari landmine.
 
 **F32 · `pages-that-are-just-a-card` · Five of the eight pages have no page structure at all — they ARE a
 card.** So the contract this subject is about ("an optional header above a

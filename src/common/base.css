@@ -647,6 +647,22 @@
      all to `dvh` together if we ever want the dynamic behavior. */
   min-height: 100svh;
   padding: var(--page-padding-y) var(--page-padding-x);
+  /* `start` so a short page sits at the TOP of a tall viewport instead of
+     stretching to fill it.
+
+     THE `center` HALF LOOKS DEAD AND IS NOT SAFE TO REMOVE. The only child it
+     can center is `#root`, which is `width: 100%`, so in Chromium it does
+     nothing — measured. But `PlayArea.module.css` documents a WebKit-only bug
+     whose mechanism is this exact declaration: `justify-items: center` sizes
+     the grid item to its content's MAX-CONTENT width, and a WordList's
+     column-major grid leaked ~9500px up through it, dragging the board
+     off-screen in Safari. That is why `.layout` pins its own width. Changing
+     this needs a real Safari, not a headless Chromium
+     (plans/areas/homepage.md → F31 `centering-said-4x`).
+
+     Horizontal centering of the page's content is the PAGEMAIN's own, and is
+     the one rule: it is the thing with a max-width, so it is the thing with
+     room to be centered in. */
   display: grid;
   place-items: start center;
   /* THE PAGE'S LAYER, SAID OUT LOUD. It changes nothing and is meant to: a
