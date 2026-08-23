@@ -59,6 +59,15 @@
 /* @@ */   --page-text-muted-color:        #99a0ad;
 /* @@ */   --page-divider-color:           #7b8391;
 
+  /* The other two text grays, and both are the daylight decision read
+     against this page rather than a second decision. `label` keeps its
+     relationship to muted — a step toward the reader, so a small
+     uppercase word stays legible — and `strong` is the top of the
+     ramp, the most ink available: on a dark page that is pure white,
+     the same way it is pure black on a light one. */
+/* @@ */   --page-text-label-color:        #adb4c0;
+/* @@ */   --page-text-strong-color:       #ffffff;
+
   /* ══ FIELD ══════════════════════════════════════════════════════
      A field sits at the page's own darkness rather than the card's, so
      it reads as a well rather than a raised panel. The placeholder

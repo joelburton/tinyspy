@@ -380,12 +380,27 @@ token's whole point is that re-tuning it later is editing one number, not
 revisiting every site. Applied area by area, never swept (§13 → "How a value
 gets converted").
 
+**ALL EIGHT LANDED 2026-08-22**, in the homepage area (its F5). The seven
+constants are in `base.css`, the text grays are in both themes, and every
+declaration carries `/* @@ */` except `--page-text-strong-color`, which Joel
+decided outright. Two mechanisms came with them and are the part to know:
+
+- **`DECLARED_AHEAD` in `guards/cssTokens.test.ts`** lets a ramp be live before
+  it is read. It fails from both sides — a name on it must still exist, and a
+  name on it must still be unread — so the debt is countable and the dead-token
+  guard stays live for everything else.
+- **`guards/vocabularies.test.ts` now runs an entry per vocabulary**, and an
+  entry takes a LIST of properties plus an optional `extract` regex for the
+  ones the app writes as a shorthand (`border: 1px solid …`, `transition:
+  opacity 120ms ease`). Its `pending` lists total ~200 files: that is the
+  sprint's own to-do list, and an area deletes its rows as it converts them.
+
 | # | vocabulary | steps | lives in |
 |---|---|---|---|
 | 1 | `--spacer-1 … -5` | `1.5 · 1 · 0.75 · 0.5 · 0.25rem` | `base.css` |
 | 2 | `--font-size-1 … -3` | `1 · 0.85 · 0.75rem` | `base.css` |
 | 3 | `--line-height-1 … -3` | `1.5 · 1.25 · 1` | `base.css` |
-| 4 | the text grays, ×4 | the existing two, a label gray, true black | **the theme** |
+| 4 | the text grays, ×4 | `--page-text-color` · `-muted-color` · **`-label-color`** · **`-strong-color`** | **the theme** |
 | 5 | `--opacity-1 … -2` | provisional; grows when the `0.4`s surface. **Numbers are a HOLDING POSITION** — opacity spans at least two KINDS (a disabled control, `OpponentStrip`'s separator), so it wants role names once the spectrum is visible. `css-philosophy.md` → "When a numbered scale is honest" |
 | 6 | `--transition-duration-paint / -nudge / -travel` | `100 · 80 · 180ms` | `base.css` |
 | 7 | `--letter-spacing-label / -wide` | `0.03em · 0.2em` | `base.css` |
@@ -405,6 +420,17 @@ carried-forward list. It is enforceable by the same guard the other vocabularies
 use and needs no tokens at all.
 
 ### Notes on the ones that took an argument
+
+**4 · the two text grays that did not exist.** `label` is the small uppercase
+word that says what a GROUP of controls is. Every label in the app currently
+borrows `muted`, and the two are not the same claim: muted means "this content
+is de-emphasized", where a label is not content at all — it is structure, and it
+has to stay readable at 0.8rem in caps. Which is why it is a hair DARKER than
+muted rather than lighter (`#5a5a5a`), and why it is `@@` until Joel says
+otherwise. `strong` is the other end: more ink than body text, `#000000`, Joel's
+call and not marked undecided. Midnight answers both by translation — `strong`
+is pure white there, because the role is "the most ink available against this
+page", and that sentence survives the flip while "true black" does not.
 
 **1 · spacer, not space.** "Space" is a key on the keyboard, and casually it also
 means the room *inside* a button between its border and its label. "Spacer" says
@@ -1202,6 +1228,13 @@ ladder short:
   (`FilterSelect`) has to beat whatever contains it — a page, an info column, or
   one day a modal. As a rung it would have to outrank `z-modal-blocking`, which
   is absurd for a filter. As a satellite it is one rule that works everywhere.
+  **HOW it is written was decided 2026-08-22** (homepage F22.1) and is not built
+  yet: a contract slot, `z-index: calc(var(--z-host, var(--z-page)) + 1)`, with
+  a host that isn't the page setting `--z-host` on itself. Custom properties
+  inherit, and our three "just above the host" satellites all render in place;
+  the one that portals is the tooltip, which wants no host at all. It lands with
+  the first satellite that converts — a token nothing reads is a token the
+  dead-token guard should fail on.
 - **Help sits just above whoever summoned it.** From the game page that is the
   page; from the setup modal's footer "?" it is that modal. Classing it as a
   rung fails both ways: `z-modal-blocking` would dim and inert the form you
@@ -1305,10 +1338,15 @@ sharper than what §5 says today.
 
 **A token exists exactly when something reads it.** `cssTokens.test.ts` fails on
 a token defined but never referenced — that is what killed `--shadow-floating`
-the moment the chat launcher went. So `z-page`, `z-board` and `z-pause-gate`
-appear as **commented lines in ladder order**, carrying their numbers, and
-graduate to real tokens if a reader ever appears. `z-board` graduating would
-itself be the signal that boards became sealed.
+the moment the chat launcher went.
+
+**Superseded 2026-08-22, when the ladder was built** (homepage F22): §6.6's
+`DECLARED_AHEAD` list does this job properly, so every rung landed as a live
+token and the unread ones are written down instead of commented out. Only
+`z-pause-gate` is still a commented line, and now for its own reason rather than
+to dodge a guard — it is a render gate, not a z-index, so there is no value for
+a token to hold. `z-board` graduating to a reader would still be the signal that
+boards became sealed.
 
 ### The families, settled 2026-08-22
 
@@ -1408,10 +1446,15 @@ same argument sixteen times.
    Help-over-setup works.
 2. **Do the two scrim colors earn their keep**, given that immovability already
    signals the category?
-3. **The reconciliation itself** — 6c's shipped tokens don't map 1:1 onto this
-   model (`--z-index-panel` today means `FloatingPanel`'s default tier, which in
-   this vocabulary is the dialog/modal band, not `z-workspace`), and every value
-   changes to the numbers in the table above.
+3. ~~**The reconciliation itself**~~ — **ANSWERED 2026-08-22 (homepage F22): the
+   two ladders coexist and migrate a rung at a time.** It read as a big-bang
+   problem — 6c's tokens don't map 1:1 onto this model, and every value changes
+   — and it isn't one. `THE Z- LAYERS` in `base.css` is the target and grows a
+   reader at a time; the `--z-index-*` block above it empties as each
+   component's area is audited; the sprint ends when it is empty. Moving a
+   component alone would rank it against neighbors that have not moved, which is
+   how a menu ends up under a panel — so the order is the constraint, not the
+   values.
 4. **The component roster**, every `FloatingPanel` consumer with its family and
    its new name, settled in one pass before any rename lands.
 

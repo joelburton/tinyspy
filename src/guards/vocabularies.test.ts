@@ -80,6 +80,19 @@ type Vocabulary = {
    * with a hole exactly where a converted file is most likely to write one.
    */
   properties: string[]
+  /**
+   * Pull the governed values OUT of a value that carries more than one
+   * decision — `border: 1px solid var(--x)` and `transition: opacity 120ms
+   * ease` are the two that matter, and both are how the app actually writes
+   * a width and a duration. Without this, an entry keyed on the longhand
+   * would match almost nothing and read as coverage while catching nothing,
+   * which is worse than having no entry at all.
+   *
+   * Every match is judged against `allowed`; a value with no match is clean,
+   * which is what makes `border: 0` and `transition: none` come out right
+   * without naming them.
+   */
+  extract?: RegExp
   /** Literal values that stay literal. */
   allowed: RegExp
   /** Where to look, under `src/`. Defaults to `common` — tuned surfaces are
@@ -243,6 +256,250 @@ const VOCABULARIES: Vocabulary[] = [
       'reason written in the file — never silently because it was already there.',
   },
   {
+    name: 'font-size',
+    properties: ['font-size'],
+    // A percentage or an `em` is a size RELATIVE to something — it tracks a
+    // parent deliberately, which a rem token cannot express and should not
+    // replace. The ramp is for absolute sizes.
+    allowed: /^(\d*\.?\d+(em|%)|inherit|initial|unset|revert)$/,
+    pending: [
+      'src/common/base.css',
+      'src/common/components/account/EditProfileDialog.module.css',
+      'src/common/components/auth/ClaimHandleScreen.module.css',
+      'src/common/components/buttons/ShuffleButton.module.css',
+      'src/common/components/chat/ChatBody.module.css',
+      'src/common/components/chat/ChatBubble.module.css',
+      'src/common/components/club/clubFilters.module.css',
+      'src/common/components/club/ClubGameCard.module.css',
+      'src/common/components/club/CreateClubPage.module.css',
+      'src/common/components/club/EditClubDialog.module.css',
+      'src/common/components/club/StartGameButtons.module.css',
+      'src/common/components/definitions/AnagramDialog.module.css',
+      'src/common/components/definitions/DefinitionView.module.css',
+      'src/common/components/definitions/WordEditDialog.module.css',
+      'src/common/components/definitions/WordLookupDialog.module.css',
+      'src/common/components/feedback/FaultDialog.module.css',
+      'src/common/components/feedback/GenericFeedbackPill.module.css',
+      'src/common/components/fields/SelectField.module.css',
+      'src/common/components/game/CelebrationDialog.module.css',
+      'src/common/components/game/DeviceBlockNotice.module.css',
+      'src/common/components/game/entry/GuessKeyboard.module.css',
+      'src/common/components/game/FilterSelect.module.css',
+      'src/common/components/game/infoPanel.module.css',
+      'src/common/components/game/InfoSwitchButton.module.css',
+      'src/common/components/game/lists/historyViewer.module.css',
+      'src/common/components/game/lists/TurnLog.module.css',
+      'src/common/components/game/lists/WordList.module.css',
+      'src/common/components/game/MobileStatusBar.module.css',
+      'src/common/components/game/OpponentStrip.module.css',
+      'src/common/components/game/PauseOverlay.module.css',
+      'src/common/components/game/PlayArea.module.css',
+      'src/common/components/game/RankBar.module.css',
+      'src/common/components/game/Stats.module.css',
+      'src/common/components/palette/PalettePage.module.css',
+      'src/common/components/panels/FloatingPanel.module.css',
+      'src/common/components/panels/GameScratchpad.module.css',
+      'src/common/components/panels/Menu.module.css',
+      'src/common/components/setup/SetupGameDialog.module.css',
+      'src/common/components/toasts/Toast.module.css',
+      'src/common/components/tooltips/TooltipHost.module.css',
+      'src/common/patterns/badge.css',
+      'src/common/patterns/button.css',
+      'src/common/patterns/segmented.css',
+      'src/common/utilities.css',
+    ],
+    fix:
+      'Use `--font-size-1` … `-3` (1 · 0.85 · 0.75rem), -1 being the biggest. ' +
+      'Headings are not on this ramp — their sizes are decided by h1–h4 in ' +
+      'base.css, which is where a heading size belongs.',
+  },
+  {
+    name: 'line-height',
+    properties: ['line-height'],
+    allowed: /^(normal|inherit|initial|unset|revert)$/,
+    pending: [
+      'src/common/components/buttons/ShuffleButton.module.css',
+      'src/common/components/chat/ChatBody.module.css',
+      'src/common/components/chat/ChatBubble.module.css',
+      'src/common/components/club/ClubGameCard.module.css',
+      'src/common/components/club/CreateClubPage.module.css',
+      'src/common/components/club/EditClubDialog.module.css',
+      'src/common/components/club/StartGameButtons.module.css',
+      'src/common/components/definitions/DefinitionView.module.css',
+      'src/common/components/feedback/GenericFeedbackPill.module.css',
+      'src/common/components/fields/NextPuzzleField.module.css',
+      'src/common/components/game/CelebrationDialog.module.css',
+      'src/common/components/game/DeviceBlockNotice.module.css',
+      'src/common/components/game/InfoSwitchButton.module.css',
+      'src/common/components/game/lists/historyViewer.module.css',
+      'src/common/components/game/PlayArea.module.css',
+      'src/common/components/game/Stats.module.css',
+      'src/common/components/palette/PalettePage.module.css',
+      'src/common/components/panels/FloatingPanel.module.css',
+      'src/common/components/panels/GameScratchpad.module.css',
+      'src/common/components/panels/Menu.module.css',
+      'src/common/components/toasts/Toast.module.css',
+      'src/common/components/tooltips/TooltipHost.module.css',
+      'src/common/patterns/badge.css',
+    ],
+    fix:
+      'Use `--line-height-1` … `-3` (1.5 · 1.25 · 1): prose, a tighter block, ' +
+      'and a single line that should occupy exactly its own height.',
+  },
+  {
+    name: 'opacity',
+    properties: ['opacity'],
+    // 0 and 1 are not steps on a ramp — they are "gone" and "here", which is
+    // a different question from how faint something should be.
+    allowed: /^(0|1|inherit|initial|unset|revert)$/,
+    pending: [
+      'src/common/components/buttons/ShuffleButton.module.css',
+      'src/common/components/club/StartGameButtons.module.css',
+      'src/common/components/definitions/AnagramDialog.module.css',
+      'src/common/components/definitions/WordEditDialog.module.css',
+      'src/common/components/feedback/GenericFeedbackPill.module.css',
+      'src/common/components/fields/SelectField.module.css',
+      'src/common/components/fields/TimerField.module.css',
+      'src/common/components/game/entry/GuessKeyboard.module.css',
+      'src/common/components/game/FilterSelect.module.css',
+      'src/common/components/game/OpponentStrip.module.css',
+      'src/common/components/panels/Menu.module.css',
+    ],
+    fix:
+      'Use `--opacity-1` / `-2` — or say why this one is a ROLE rather than a ' +
+      'step, the way `--chrome-disabled-opacity` is. Those two numbers are a ' +
+      'holding position and expected to become role names, so a value that ' +
+      'does not fit is evidence, not a nuisance.',
+  },
+  {
+    name: 'letter-spacing',
+    properties: ['letter-spacing'],
+    allowed: /^(normal|inherit|initial|unset|revert)$/,
+    pending: [
+      'src/common/components/club/EditClubDialog.module.css',
+      'src/common/components/definitions/DefinitionView.module.css',
+      'src/common/components/game/entry/EntryBox.module.css',
+      'src/common/components/game/lists/WordList.module.css',
+      'src/common/components/game/OpponentStrip.module.css',
+      'src/common/components/game/PlayArea.module.css',
+      'src/common/components/game/RankBar.module.css',
+      'src/common/components/game/Stats.module.css',
+      'src/common/components/palette/PalettePage.module.css',
+      'src/common/components/setup/SetupGameDialog.module.css',
+    ],
+    fix:
+      'Use `--letter-spacing-label` (a small uppercase label) or `-wide` ' +
+      '(letters presented as objects rather than as a word). Prose takes ' +
+      'neither — it takes `normal`.',
+  },
+  {
+    /**
+     * Written as the `transition:` shorthand almost everywhere, so this
+     * entry EXTRACTS the time from it. An entry that only knew
+     * `transition-duration` would have matched nothing in this repo.
+     *
+     * Animations are deliberately out of scope: `--mark-attention-flash-
+     * duration` and the game-surface flashes and shakes are tuned, and they
+     * keep their own names.
+     */
+    name: 'transition-duration',
+    properties: ['transition', 'transition-duration'],
+    extract: /\d*\.?\d+m?s\b/g,
+    allowed: /^0m?s$/,
+    pending: [
+      'src/common/components/buttons/ShuffleButton.module.css',
+      'src/common/components/chat/ChatBubble.module.css',
+      'src/common/components/club/ClubGameCard.module.css',
+      'src/common/components/game/entry/GuessKeyboard.module.css',
+      'src/common/components/game/InfoSheet.module.css',
+      'src/common/components/game/InfoSwitchButton.module.css',
+      'src/common/components/game/PlayArea.module.css',
+      'src/common/components/game/RankBar.module.css',
+      'src/common/components/panels/Menu.module.css',
+      'src/common/components/panels/ScratchpadBubble.module.css',
+      'src/common/patterns/list.css',
+      'src/common/patterns/segmented.css',
+    ],
+    fix:
+      'Use `--transition-duration-paint` (a color settling), `-nudge` (a piece ' +
+      'answering the pointer by moving a little) or `-travel` (something ' +
+      'arriving, leaving or growing). Pick by what KIND of change it is; the ' +
+      'number is downstream of that.',
+  },
+  {
+    /**
+     * Same shape, and the same reason: a width is nearly always written
+     * inside `border: 1px solid …`. `border-radius` is not swept up by the
+     * `border` alternative — the regex requires a `:` immediately after the
+     * property name, so `border-radius:` simply does not match.
+     */
+    name: 'border-width',
+    properties: [
+      'border',
+      'border-top',
+      'border-right',
+      'border-bottom',
+      'border-left',
+      'border-width',
+      'border-top-width',
+      'border-right-width',
+      'border-bottom-width',
+      'border-left-width',
+      'border-block',
+      'border-inline',
+    ],
+    extract: /\d*\.?\d+(?:px|rem|em)\b/g,
+    allowed: /^0(px|rem|em)?$/,
+    pending: [
+      'src/common/base.css',
+      'src/common/components/account/ColorChoiceList.module.css',
+      'src/common/components/buttons/ShuffleButton.module.css',
+      'src/common/components/chat/ChatBody.module.css',
+      'src/common/components/chrome/PageHeader.module.css',
+      'src/common/components/club/clubFilters.module.css',
+      'src/common/components/club/ClubGameCard.module.css',
+      'src/common/components/club/EditClubDialog.module.css',
+      'src/common/components/definitions/AnagramDialog.module.css',
+      'src/common/components/definitions/DefinitionPopover.module.css',
+      'src/common/components/definitions/WordEditDialog.module.css',
+      'src/common/components/definitions/WordLookupDialog.module.css',
+      'src/common/components/feedback/GenericFeedbackPill.module.css',
+      'src/common/components/fields/SelectField.module.css',
+      'src/common/components/fields/setupForm.module.css',
+      'src/common/components/game/DeviceBlockNotice.module.css',
+      'src/common/components/game/entry/GuessKeyboard.module.css',
+      'src/common/components/game/FilterSelect.module.css',
+      'src/common/components/game/gridCursor.module.css',
+      'src/common/components/game/infoPanel.module.css',
+      'src/common/components/game/InfoSwitchButton.module.css',
+      'src/common/components/game/lists/historyViewer.module.css',
+      'src/common/components/game/lists/TurnLog.module.css',
+      'src/common/components/game/PauseOverlay.module.css',
+      'src/common/components/game/PlayArea.module.css',
+      'src/common/components/game/RankBar.module.css',
+      'src/common/components/game/Stats.module.css',
+      'src/common/components/palette/PalettePage.module.css',
+      'src/common/components/panels/FloatingPanel.module.css',
+      'src/common/components/panels/GameScratchpad.module.css',
+      'src/common/components/panels/Menu.module.css',
+      'src/common/components/setup/SetupGameDialog.module.css',
+      'src/common/components/setup/SetupSection.module.css',
+      'src/common/components/text/Dot.module.css',
+      'src/common/components/toasts/Toast.module.css',
+      'src/common/patterns/badge.css',
+      'src/common/patterns/button.css',
+      'src/common/patterns/list.css',
+      'src/common/patterns/segmented.css',
+      'src/common/utilities.css',
+    ],
+    fix:
+      'Use `--border-width-line` (a divider or a field edge), `-line-thick` ' +
+      '("this box is a thing") or `-frame` ("something is happening to what ' +
+      'is inside"). A game piece\'s own edge is not on this ramp — it has ' +
+      '`--tile-edge-width` and `--tile-selected-edge-width`, which are a ' +
+      'channel rather than a weight of line.',
+  },
+  {
     name: 'z-index',
     properties: ['z-index'],
     // 0–10 is LOCAL layering inside a component's own stacking context — a
@@ -262,9 +519,12 @@ const VOCABULARIES: Vocabulary[] = [
       'src/scrabble/components/BlankPicker.module.css', //     overlay, 50     → the scrabble area
     ],
     fix:
-      'Page-level layers read a token from base.css → the z-index ladder. A ' +
-      'tier that is not on it is a question for Joel: inventing a number ' +
-      'between two named ones is how a menu ends up behind a backdrop.',
+      'Page-level layers read a token from base.css → THE Z- LAYERS, which is ' +
+      'the ladder being migrated to (`--z-workspace`, `--z-modal-normal`, …); ' +
+      'the `--z-index-*` block above it is the one being retired, a rung at a ' +
+      'time, as each component\'s area is audited. A tier on neither is a ' +
+      'question for Joel: inventing a number between two named ones is how a ' +
+      'menu ends up behind a backdrop.',
   },
 ]
 
@@ -289,14 +549,24 @@ describe('a converted surface writes vocabulary values, not literals', () => {
         )
         for (const m of css.matchAll(decl)) {
           const value = m[1].trim()
-          // CONTAINS, not starts-with: `calc(var(--z-index-popover) + 1)` is a
-          // derivation off the ladder, which is the point of naming the tier.
-          if (value.includes('var(')) continue
-          // A calc() has spaces INSIDE it, so it is judged whole; everything
-          // else is judged part by part, because a shorthand is several
-          // decisions written on one line and `margin: 0 auto` is two values
-          // that each carry no decision at all.
-          const parts = value.includes('calc(') ? [value] : value.split(/\s+/)
+          let parts: string[]
+          if (v.extract) {
+            // An extracting vocabulary judges only the parts it can name, so
+            // the `var()` skip below would be wrong here: the whole point is
+            // that `border: 1px solid var(--edge-color)` has a literal width
+            // sitting next to a perfectly good token.
+            parts = value.match(v.extract) ?? []
+            if (!parts.length) continue
+          } else {
+            // CONTAINS, not starts-with: `calc(var(--z-index-popover) + 1)` is a
+            // derivation off the ladder, which is the point of naming the tier.
+            if (value.includes('var(')) continue
+            // A calc() has spaces INSIDE it, so it is judged whole; everything
+            // else is judged part by part, because a shorthand is several
+            // decisions written on one line and `margin: 0 auto` is two values
+            // that each carry no decision at all.
+            parts = value.includes('calc(') ? [value] : value.split(/\s+/)
+          }
           if (parts.every((p) => v.allowed.test(p))) continue
           literals.push(value)
         }

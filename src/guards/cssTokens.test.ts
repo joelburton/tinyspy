@@ -201,6 +201,30 @@ describe('CSS custom-property tokens', () => {
     '--border-width-line',
     '--border-width-line-thick',
     '--border-width-frame',
+
+    // The two text grays the ramp was missing. The other two —
+    // `--page-text-color` and `--page-text-muted-color` — are read everywhere
+    // and keep the names they have.
+    '--page-text-label-color',
+    '--page-text-strong-color',
+
+    // The z- ladder (base.css → THE Z- LAYERS). `--z-page` is off the list:
+    // `body` reads it, which is how the page's own layer got said out loud.
+    // The rest arrive as their components' areas are audited — a rung moves
+    // one component at a time, because moving one alone would rank it against
+    // neighbors still on the old ladder.
+    '--z-board',
+    '--z-board-question',
+    '--z-ghost',
+    '--z-infocol',
+    '--z-workspace',
+    '--z-dialog',
+    '--z-modal-normal',
+    '--z-chat',
+    '--z-toast',
+    '--z-modal-blocking',
+    '--z-modal-fault',
+    '--z-tooltip',
   ]
 
   /**

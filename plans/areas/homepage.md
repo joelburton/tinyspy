@@ -4,8 +4,15 @@ The first area of the CSS sprint's step 7. The process is
 [css-system-2.md](../css-system-2.md) §21; the plan holds the order, this file
 holds everything else.
 
-**Status: audited. Twenty-one findings, seven resolved (F1, F2, F4, F5, F6,
-F6.1, F8). Shipped so far: the two fixes and the class guard.**
+**Status: audited, and PAUSED for scaffolding.** Twenty-two findings, eight
+resolved (F1, F2, F4, F5, F6, F6.1, F8, F22). Shipped: the two fixes, the class
+guard, the vocabularies, the font-weight rule and the z- ladder.
+
+**The pause is Joel's call (2026-08-22), and the reason generalizes:** the first
+area pays for the toolkit every later area will use. F5 and F22 are not homepage
+work — they are the vocabulary and the layer ladder the whole sprint reads —
+and they surfaced here only because this is the first surface anyone looked at.
+Expect the second area to be much smaller.
 
 ## The area's files
 
@@ -196,6 +203,46 @@ first need them.
 >
 > Eight, not nine: F8 settles `font-weight` as CSS's own scale rather than a
 > vocabulary of ours.
+>
+> **BUILT, 2026-08-22.** Seven ramps in `base.css` — spacer, font-size,
+> line-height, opacity, transition-duration, letter-spacing, border-width —
+> every declaration carrying `/* @@ */`, because landing a ramp is not agreeing
+> its numbers. `DECLARED_AHEAD` in `cssTokens.test.ts` holds the ones with no
+> reader yet and fails from both sides: a name on it must still exist, and a
+> name on it must still be unread.
+>
+> **The eighth landed too, and it needed two new values.** The text grays are
+> the one themed vocabulary, and the ramp was two members short:
+> `--page-text-label-color` (Joel: pick something, mark it `@@` — it is
+> `#5a5a5a` in daylight, a hair DARKER than muted, because a label is
+> structure rather than de-emphasized content and has to stay legible small and
+> uppercase) and `--page-text-strong-color` (Joel: true black, `#000000`, and
+> NO `@@` — that one is decided). Midnight answers both by translation, and
+> both of midnight's values carry `@@`: `strong` is pure white there, since the
+> role is "the most ink available against this page".
+>
+> **The homepage converted the one value it owns that was an exact match** —
+> `.frame`'s `gap: 1rem` → `--spacer-2`. It is the whole conversion this area
+> gets, because F7 owns the other two numbers and is still open.
+
+**F5.1 · Every vocabulary got a guard entry, not just spacer's** (Joel,
+2026-08-22: *"if you think the guards are useful and don't get in our way, feel
+free to add. guards are for you, not me."*). So `vocabularies.test.ts` now runs
+eleven entries instead of two, and two of them needed a mechanism it did not
+have.
+
+> **resolution: built.** `transition-duration` and `border-width` are almost
+> never written as the property the vocabulary is named for — the app writes
+> `transition: opacity 120ms ease` and `border: 1px solid var(--x)`. An entry
+> keyed on the longhand would have matched **zero** declarations in `common/`
+> while looking like coverage, which is worse than no entry at all. So a
+> vocabulary may declare an `extract` regex that pulls its own values out of a
+> shorthand; a value with no match is clean, which is what makes `border: 0`
+> and `transition: none` come out right without naming them.
+>
+> The cost is that `pending` is now 200 lines. That is the honest size of the
+> job — it is the sprint's to-do list seen from the guard's side, and an area
+> deletes its rows as it converts them.
 
 **F6 · The spacer vocabulary spans three properties; the guard takes one.**
 `vocabularies.test.ts` is keyed on a single `property` per entry (`border-radius`,
@@ -208,6 +255,11 @@ grows a property list, or spacer ships as three entries sharing one `fix` string
 > a small change to the guard's `Vocabulary` type and its declaration regex, and
 > it keeps one `fix` string per vocabulary instead of copies drifting apart. The
 > list is where padding rejoins later, without the entry changing shape.
+>
+> **BUILT.** `properties: string[]`, and the longhands are named individually —
+> `margin-bottom` is as much a margin as `margin` is, and a guard that knew only
+> the shorthand would have a hole exactly where a converted file is most likely
+> to write one. Sixty files in `common/` still write a literal gap or margin.
 
 **F6.1 · Padding needs an explicit ruling, because two records already disagree
 about it.** §6.6 names the vocabulary "spacer" precisely to mean *the space
@@ -278,6 +330,10 @@ name" weight and it is shared — `.clubName` here, plus `Menu`, `PlayersStrip`,
 > two letterboxed files on `pending` until that area clears them. Unlike the
 > other vocabularies this one needs no tokens at all — it is a guard and nothing
 > else.
+>
+> **BUILT, exactly as written.** Verified by planting a `650` in `common/` and
+> again inside a game, since `root: '.'` is the part of this entry that is easy
+> to get wrong and impossible to see.
 
 **F9 · The radius guard has already assigned a decision to this area.**
 `vocabularies.test.ts` says, in its own comment: *"The pill gets a name when
@@ -415,6 +471,77 @@ than a live Supabase.
 
 > resolution:
 
+### Layers
+
+**F22 · The homepage is the first surface to need the z- vocabulary, and it
+needs two different things from it.** The page itself sits on `z-page`, and the
+menu hanging off the header sits *above* whatever contains it. §20 is blessed
+and was not built; the four items under its "Open" are all about layers this
+page never reaches.
+
+> **resolution (Joel, 2026-08-22): build the ladder now, move nothing but what
+> we meet.** *"we don't have to new z- vocabulary in base, yet the homepage area
+> relies on it… i agree that we should build this now (not changing other things
+> to it yet; only as we 'meet' them will we move items to the new layer vocab)."*
+>
+> **The two ladders coexist, and that is §20's Open item 3 answered.** It reads
+> there as a big-bang problem — "every value changes" — and it isn't one: the
+> new block grows a reader at a time, the old `--z-index-*` block empties a rung
+> at a time, and the sprint ends when it is empty. Moving a component alone
+> would rank it against neighbors that have not moved, which is precisely how a
+> menu ends up under a panel.
+>
+> **`z-page` is said out loud on `body`**, which is Joel's call and worth
+> recording because the declaration deliberately does nothing: `body` is
+> `position: static`, and z-index does not apply to a static box, so it cannot
+> reorder anything or create a stacking context. It is documentation that the
+> dead-token guard can see. Two things NOT to do with it are written at the
+> declaration: don't add `position: relative` to "make it work" (that changes
+> the containing block for every absolutely-positioned descendant), and don't
+> repeat it on page-level components (on a POSITIONED element `z-index: 0` DOES
+> create a stacking context, which traps a menu inside its host).
+>
+> **`z-pause-gate` stays a commented line**, and now for its own reason rather
+> than to dodge a guard: it is a render gate, not a z-index. Everything else
+> landed live, because `DECLARED_AHEAD` (F5) retired the workaround §20 was
+> written around.
+>
+> **The menu did NOT move, and that is the point.** `<Menu>` is shared with
+> ClubPage and GamePage; today it sits at `--z-index-popover` (1500), above the
+> panel tier. As a satellite it would sit just above its HOST, which on a page
+> is `z-page` — so converting it alone would put it under any `FloatingPanel`
+> still at 500. It moves when the panels do.
+
+**F22.1 · How a satellite names its host — decided, not built.** §20 says a
+dropdown "sits just above its host" and never says how that is written. Two
+shapes: the component names the host token (`calc(var(--z-modal-normal) + 1)`),
+or the host fills a contract slot the satellite reads.
+
+> **resolution (Joel handed the call to Claude, 2026-08-22): a contract slot,
+> `--z-host`.** The satellite writes one rule everywhere —
+> `z-index: calc(var(--z-host, var(--z-page)) + 1)` — and a host that is not the
+> page sets `--z-host` on itself. Custom properties inherit, so a menu opened
+> inside a modal picks the modal up and the same menu on a page falls through to
+> the default.
+>
+> The alternative makes the component name its host, which is the one thing the
+> satellite rule exists to avoid: `<Menu>` is on three pages today and §20
+> already anticipates it inside a modal, so the hard-coded form needs a prop
+> threading the right token down, and that prop is wrong by default somewhere.
+>
+> Two facts checked rather than assumed. **Inheritance reaches our satellites**:
+> `Menu`, `FilterSelect` and `DefinitionPopover` all render in place, under their
+> host. `TooltipHost` is the only one that portals — and it is the one satellite
+> that wants no host, since §20 sends it to the absolute top. **And `+1` behaves
+> either way**: if the host makes its own stacking context the satellite rides
+> above the host's content and cannot escape it, which is correct; if it doesn't,
+> the satellite genuinely outranks the host, which is also correct.
+>
+> **Not built, deliberately.** `--z-host` has no consumer until a satellite
+> converts, and a token nothing reads is a token the dead-token guard should
+> fail on. It lands with the first satellite — which, per F22, is not the menu
+> and not this area.
+
 ## Dependencies — found, listed, and LEFT
 
 Reached by reading the three files above and stamped `cs-found`. §21: being found
@@ -490,10 +617,21 @@ Written before any change, so the diff against it is the signal (§21).
   lands with no reader, which F5 says will be most of them. It gets the allowlist
   in the same commit as the tokens, so this is a break we cause and close
   together rather than one we leave.
+  **Happened as predicted**, and the allowlist landed with it.
 - **`vocabularies.test.ts`** gets a new entry per vocabulary this area ships,
   and `HomePage.module.css` must NOT be on its pending list afterwards (the list
   shrinks, and a path that no longer offends has to leave it). F8's font-weight
   entry lands here too, with letterboxed's two files on `pending`.
+  **Half wrong, and the wrong half is the useful one: `HomePage.module.css` IS
+  on the spacer pending list**, because F7 is open. Its gap converted; its
+  `0.45em` did not, and a file leaves the list only when it stops offending
+  entirely. So this area cannot clear its own row until F7 is answered — which
+  is the prediction earning its keep, since the plan to write the row off was
+  made before anyone noticed the two numbers had different fates.
+- **Actual suite movement**: 1960 → **1968 in 201 files**. One new `it` per
+  vocabulary entry: spacer, font-weight, font-size, line-height, opacity,
+  letter-spacing, transition-duration, border-width. No test's assertions
+  changed, and nothing went red on the way.
 - **`csStamps.test.ts`** fails on any new file without a stamp — including a new
   hook from F11 or F12, and this file's own siblings if `plans/areas/` ever grows
   a `.ts`.

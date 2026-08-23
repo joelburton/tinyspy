@@ -44,6 +44,23 @@
 /* @@ */   --page-text-muted-color:        #6b6b6b;
 /* @@ */   --page-divider-color:           #8a8a8a;
 
+  /* THE OTHER TWO TEXT GRAYS. The four together are one of the eight
+     vocabularies (plans/css-system-2.md §6.6) and the only one that is
+     color, which is why it is here and the other seven are constants
+     in base.css.
+
+     `label` is for the small uppercase word that says what a GROUP of
+     controls is. It is not `muted`, though every label in the app
+     currently borrows that: muted means "this content is
+     de-emphasized", and a label is not de-emphasized content at all —
+     it is structure, and it has to stay readable at 0.8rem in caps.
+     Which is why this is a hair DARKER than muted rather than lighter.
+
+     `strong` is more ink than body text, not less: the top of the
+     ramp. Nothing reads it yet. */
+/* @@ */   --page-text-label-color:        #5a5a5a;
+           --page-text-strong-color:       #000000;
+
   /* ══ FIELD ══════════════════════════════════════════════════════
      Form controls you type into. Inputs sit on white with a soft gray
      border; `strong-edge` is the heavier border a bordered-not-ghosty
