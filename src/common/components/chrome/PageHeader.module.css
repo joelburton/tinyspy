@@ -11,10 +11,27 @@
   /* Fixed chrome: even when the page's columns are tall, the strip keeps its
      height and the scrolling surfaces below give instead. */
   flex-shrink: 0;
-  /* The height is a CONTRACT — see the component docstring. `min-height`, not
-     `height`, so an unexpectedly tall child grows the strip rather than being
-     clipped; the guarantee is "never shorter". */
-  min-height: var(--page-header-height);
+  /* The height is a CONTRACT, and `height` is what makes it one: a second file
+     does arithmetic with this number. `--game-header-bottom` is composed from
+     it, and the mobile <InfoSheet> sits at that `top` — so a strip that could
+     grow at runtime would put the sheet wrong by exactly the growth, which is
+     the bug the token's own comment records happening once.
+
+     Nothing can grow it. Every child that varies caps itself: the feedback pill
+     is `white-space: nowrap` with an ellipsis, the players strip ellipsises,
+     and the marks are fixed. Measured: the content box is exactly this value.
+
+     If a future child DOES overflow, fix the child — not this. Clipping here
+     would hide it, and `overflow: hidden` on the left slot would clip the open
+     menu, whose popover is absolutely positioned inside it.
+
+     `content-box`, against the app's universal border-box, and it is the
+     composition above that decides that: `--game-header-bottom` adds the
+     padding and the rule to this number, so the number is the CONTENT height.
+     Under border-box the same declaration would mean the total, and the strip
+     would lose 9px it does not have to give. */
+  box-sizing: content-box;
+  height: var(--page-header-height);
   /* The strip reads as bounded without a card around it. */
   border-bottom: 1px solid var(--pageHeader-border-color);
   padding-bottom: 0.5rem;
