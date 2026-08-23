@@ -5,10 +5,14 @@ The first area of the CSS sprint's step 7. The process is
 holds everything else.
 
 **Status: RESUMED, and a second subject added.** Thirty-nine findings,
-THIRTY-THREE resolved (F1, F2, F4, F5, F6, F6.1, F7, F8, F9, F10, F11, F14, F15,
-F16, F17, F18, F19, F20, F22, F23, F24, F25, F27, F28, F29, F31, F32, F33, F34,
-F35, F36, F37, F39) — where "resolved" includes the ones FOLDED into a later
-finding rather than fixed.
+THIRTY-FIVE resolved (F1, F2, F4, F5, F6, F6.1, F7, F8, F9, F10, F11, F14, F15,
+F16, F17, F18, F19, F20, F22, F23, F24, F25, F26, F27, F28, F29, F30, F31, F32,
+F33, F34, F35, F36, F37, F39) — where "resolved" includes the ones FOLDED into a
+later finding rather than fixed.
+
+**Four open: F3 (`home-keyboard-spec`), F12 (`page-header-trio`), F21
+(`homepage-no-vitest`), F38 (`selection-lists`)** — and F3 belongs to F38, so it
+is really three.
 
 Shipped so far: the two dead-reference fixes, the class guard, the vocabularies,
 the font-weight rule, the z- ladder, the greeting's word space, the comment/doc
@@ -1003,7 +1007,53 @@ even discuss this, 'frame' needs a clear name. 'frame' around what?"*). Three
 rules that share a bad name look like three copies of one thing; whether they
 ARE is the question, and it cannot be asked in a word that means nothing.
 
-> resolution:
+> **resolution (Joel, 2026-08-23): BUILT — one pattern, in
+> `common/patterns/page.css`, and it turned out to cover six pages rather than
+> the three that had a wrapper.**
+>
+> Once F33 (`wrapper-name`) settled the word, the question could be asked, and
+> the answer was that the three rules WERE three copies: `width: 100%` did
+> nothing (F27 `width-100-undeclared`), the gap was the same value written two
+> ways, and the bound differed only in `max-height` vs `height` — a difference
+> Joel then removed by ruling that the homepage may fill like the club page and
+> looking at it (*"it looks fine"*).
+>
+> **The pattern, three classes:**
+>
+> - `.pageHeaderAndMainArea` — the wrapper. The bound lives here:
+>   `height: calc(100svh - 2 * var(--page-padding-y))`.
+> - `.pageMain` — `min-height: 0`, the width, the centering.
+> - `.pageMain-fills` — `flex: 1` plus the flex column.
+>
+> **THE RULE:** the page is bounded and a designated part inside it scrolls,
+> never the document. **And one conditional, which is mechanical rather than a
+> taste:** a pageMain FILLS when it contains a scroller and HUGS when it does
+> not — a scroller needs a definite height to scroll against, and a short form
+> should not sit in a viewport-tall box. The flex column rides with `fills` for
+> the same reason: filling is only ever done to hand height downward.
+>
+> **The three card-only pages gained the wrapper they never had**, which is what
+> makes them ordinary rather than special. Measured before deciding: at 375×667
+> and 360×640 every non-game page fits, the tallest being ClaimHandleScreen at
+> 541 of 640 — so they need no bound of their own and no scroller.
+>
+> **The club page then needed a second pass, and it is the more interesting
+> half.** Its first conversion gave `.pageMain` to four sibling elements — the
+> club name, the tab bar, the mobile filter row, the columns — on the grounds
+> that they shared a well. Joel: *"that is a completely wrong structure. There
+> is one pageMain; this goes around the 'main part of the page'. It is nonsense
+> otherwise."* He is right in a way worth keeping: **sharing a width is not
+> being the same thing**, and four elements each claiming to be the main part
+> means the page has no main part — the class degenerates into "an element that
+> happens to be 1000px wide". There is now one `<main>` holding all four, and
+> the old `<main>` (the two-column body) went back to being a div: it was never
+> the main part of the page, only the biggest piece of it.
+>
+> **GamePage takes none of this**, per F28 (`gamepage-bounds-itself`).
+>
+> Verified at each step rather than at the end: the club well is 1000@140 at
+> 1280×900 and 367@4 at 375×667 with its children full width inside it, the
+> games list 717 tall holding 715 of content, and neither size scrolls.
 
 **F27 · `width-100-undeclared` · `width: 100%` is load-bearing, and only two of the three frames say
 it.** `body` is `display: grid; place-items: start center`, so `justify-items`
@@ -1149,7 +1199,33 @@ pages use is evidence about `.card`'s shape even though their numbers are not:
 wanting the look at another width is apparently normal, and `.card` cannot
 express it.
 
-> resolution:
+> **resolution (Joel, 2026-08-23): ONE token, not two — and the finding's
+> "four widths" was really one width, one bespoke number, and one page that
+> caps nothing.**
+>
+> Measured at 1280 and 1600 before deciding: LoginScreen, ClaimHandleScreen,
+> CreateClubPage and HomePage are **all 480px**, at both sizes. They looked like
+> four separate decisions because they are four separate pages with four module
+> files — but the width had only ever been declared once, on `.card`. Joel had
+> expected them to differ; they do not.
+>
+> - **`--pageMain-width: 480px`** is the DEFAULT — *"the width when we don't
+>   need a custom width; if we had a new page, it would probably be there"*.
+> - **The club page's 1000px is BESPOKE** — *"it's not 'wide' in a named way, it
+>   was particularly chosen for clubpage"* — so it sets the token on itself and
+>   the rules below it read one number. There is deliberately no second tier
+>   called "wide", which would be a category invented for one member.
+> - **GamePage caps nothing.** Its content width IS the page's.
+>
+> **And the width left `.card` entirely**, with the centering, because they are
+> one decision: a capped block sits LEFT unless it also has auto margins, which
+> is why `.card` was carrying both. `.card` now carries only the surface — the
+> bundle of look-plus-width is what let one class stand in for a page on five
+> screens (F35 `card-and-frame-names`).
+>
+> **On a phone none of this exists.** Measured: every page is 367@4 at 375 wide
+> and 352@4 at 360 — full-bleed to within the body's 4px — so both caps are
+> inert below ~488px of viewport.
 
 **F31 · `centering-said-4x` · Centering is declared three or four times over.** `body` centers its
 grid item (`place-items: start center`); `.card` also says `margin: 0 auto`;
@@ -1556,7 +1632,17 @@ Two things to decide when it is built, both of which other findings hand to it:
    of naming the type is that this gets decided once instead of being absent
    twice.
 
-> resolution: *(named, not built)*
+> **resolution (2026-08-23): named, and both decisions handed to it are now
+> answered by the pattern (F26 `three-wrappers`).** Its width is the default
+> `--pageMain-width`; it has no bound of its own, because a bound needs a
+> scroller to absorb into and these pages have none — measured at 541 of 640 in
+> the worst case.
+>
+> What is left of the type is a NAME rather than a thing to build: a
+> CardOnlyPage is a page that renders no header and whose pageMain happens to be
+> a card. That is exactly what LoginScreen, ClaimHandleScreen and CreateClubPage
+> now are, in the same three classes every other page uses — and CreateClubPage
+> is due to stop being one at all (F36 `createclub-modal`).
 
 **F38 · `selection-lists` · `SelectionLists` — the keyboard-navigable list wants a real component**
 (Joel, 2026-08-22: *"we have several findings about the keyboard navigable lists
