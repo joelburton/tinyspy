@@ -4,10 +4,11 @@ The first area of the CSS sprint's step 7. The process is
 [css-system-2.md](../css-system-2.md) §21; the plan holds the order, this file
 holds everything else.
 
-**Status: audited, scaffolding done, RESUMED.** Twenty-two findings, nine
-resolved (F1, F2, F4, F5, F6, F6.1, F7, F8, F22). Shipped: the two fixes, the
-class guard, the vocabularies, the font-weight rule, the z- ladder and the
-greeting's word space.
+**Status: audited, scaffolding done, RESUMED.** Twenty-four findings,
+seventeen resolved (F1, F2, F4, F5, F6, F6.1, F7, F8, F9, F10, F14, F17, F18,
+F19, F20, F22, F23). Shipped: the two fixes, the class guard, the vocabularies,
+the font-weight rule, the z- ladder, the greeting's word space, the comment/doc
+trim, the badge's shape + color, and the empty-clubs fault.
 
 **The pause is Joel's call (2026-08-22), and the reason generalizes:** the first
 area pays for the toolkit every later area will use. F5 and F22 are not homepage
@@ -33,8 +34,11 @@ records the date he says he has.
 
 ## Findings
 
-**Numbered `F1` … `F21`, and sub-numbered `F6.1` where one finding grows its own
-list** (Joel, 2026-08-22). The prefix is the point: an hour into an area, "2" is
+**Numbered `F1` … `F24`, and sub-numbered `F6.1` where one finding grows its own
+list** (Joel, 2026-08-22). The audit stopped at F22; F23 and F24 were raised
+later — one while resolving another finding, one from Joel noticing the page —
+and each took the next number rather than a sub-number. A finding is not
+required to have come from the audit. The prefix is the point: an hour into an area, "2" is
 whatever list was last on screen and `F2` is only ever this finding. Refer to
 them by their F-number everywhere — in this file, in conversation, in a commit
 message.
@@ -376,7 +380,54 @@ badges are settled in the homepage area."* `999px` is spelled out in the
 radius, but it is the app's only `.badge` consumer outside the mode pills, so the
 badge-vs-pill shape question is answerable here.
 
-> resolution:
+> **resolution (Joel, 2026-08-22): two roles, two shapes — and the premise the
+> guard was waiting on turned out to be false in both directions.**
+>
+> The roles first, in Joel's words. A **pill** is the feedback box that
+> `useLocalFeedback` / `useGlobalFeedback` put on screen — those two are its
+> only users and probably always will be, they are styled the same, and they
+> always take a SEMANTIC color (won, lost — the outcome vocabulary). A **badge**
+> is the one-word category label: Solo on the homepage, Co-op / Compete /
+> AI-compete on the club page. Its color carries no meaning, which is why it
+> takes the flexible pair.
+>
+> The shapes: **a badge is "curved, look like a circle but with a flat middle"**
+> — a lozenge — and **a pill is a rounded rectangle.**
+>
+> **Measured, and this is why the finding could not just be answered:** the
+> feedback pill has never been fully round. `GenericFeedbackPill.module.css` is
+> `border-radius: 0.5rem`, deliberately, with the reason at the declaration —
+> its thick left accent bar *"would curve into a crescent on a 999px pill"*. So
+> `badge.css`'s stated reason for `--radius-sm` (*"not a full 999px round — the
+> fully-round shape belongs to the feedback pill"*) was false, and the guard's
+> *"the pill gets a name when badges are settled"* was written expecting a
+> `999px` the pill never had. The two shapes were 4px and 8px, which is not a
+> distinction anyone can see.
+>
+> **What shipped:**
+>
+> - **`--radius-round: 999px`** in `base.css`, `@@`, documented as a SHAPE and
+>   not a fourth step: past half the box's height the ends cap into semicircles,
+>   so a wide box becomes a stadium and a square one a circle. Distinct from
+>   `50%`, which is half of each axis and ellipses a wide box instead.
+> - **`.badge` takes it** (was `--radius-sm`). This is a visible change on every
+>   badge in the app — Solo, and the mode badges on the club page.
+> - **The pill is untouched.** Its `0.5rem` stays, and `badge.css`'s comment now
+>   says what actually separates them.
+> - **9b — the guard, which Joel handed to Claude:** `999px` comes OFF the
+>   `allowed` list. Leaving it there would make the token a suggestion, and a
+>   token nobody is made to use is the one that rots — `--radius-md` did exactly
+>   that for months. Verified by planting a literal `999px` in `badge.css`:
+>   red, with the right message, and green again on restore.
+> - The two `999px` writers left in `common/` go on `pending` rather than being
+>   swept: `ChatBubble`'s counter chip and `ShuffleButton`. Both are square
+>   boxes that may want `50%` instead, which is their own areas' call.
+>   letterboxed's two are a game's own surface and the vocabulary does not look
+>   there.
+>
+> **Blessed on sight (Joel, 2026-08-22): *"it's fine"*** — so `--radius-round`
+> ships without `@@`, and `.badge`'s `0.4rem` side padding stays as it is
+> against the new ~9.6px end caps.
 
 ### Color
 
@@ -388,7 +439,49 @@ badge *family* token that only one badge has claimed, or a homepage value wearin
 a general name. Related: `badge.css` describes the result as "a gray Solo badge"
 and it is blue in both themes.
 
-> resolution:
+> **resolution (Joel, 2026-08-22): three color tokens become two, named
+> `--flex-color-1` and `--flex-color-2`, and Solo takes 1 — the same one Co-op
+> takes.** `--chrome-badge-color` is deleted.
+>
+> Badge colors come from the app's two FLEXIBLE colors, which have no meaning of
+> their own: *"we don't use 'teal means coop' through the app in other ways; we
+> just need to pick two colors that are different."* A third isn't needed
+> because the two never share a screen — Solo is the homepage's, the mode badges
+> are the club page's.
+>
+> **The naming is the finding, and it went further than F10 asked.** The first
+> attempt aliased `--chrome-badge-color: var(--gamemode-coop-ink-color)`, which
+> Joel rejected twice over: *"there is no one 'chrome badge color'; this
+> suggests there is"*, and a mode-named token would make an arbitrary choice
+> look decided — *"we'd be making something arbitrary into a 'considered'
+> thing"*. Both old names claimed a meaning the app relies on nowhere. The
+> numbered names are what keeps that true; the rule they carry is that a
+> consumer picks a NUMBER, and which number is arbitrary.
+>
+> Checked before touching anything, at Joel's instruction: **badges are the only
+> readers.** `--gamemode-*-ink-color` had exactly two, `ModePill`'s `.coop` and
+> `.compete` — and ModePill IS the shared `.badge` — while
+> `--chrome-badge-color` had exactly one, `.soloBadge`. Three consumer lines in
+> two files, so the rename was small and total.
+>
+> The old blue (`#1976d2` daylight, `#64b5f6` midnight) is gone with the token.
+> It was the app's link blue, which made a category label look clickable.
+>
+> **Both flexible colors were already in BOTH themes**, so nothing was owed
+> there: daylight runs them at 800 (`#00695c` / `#6a1b9a`), midnight lifts both
+> to the 300s (`#4db6ac` / `#ce93d8`), with the reason at the declaration — the
+> 800s are unreadable on dark.
+>
+> **Two docs updated with the work** (§13's 6c exception — a doc already
+> recording this decision): `ui.md`'s token-family table row, and its Mode pills
+> → Look bullet, which said "co-op = teal, compete = purple" as though the
+> pairing meant something.
+>
+> **Owed: `scripts/css-token-baseline.json` still holds all three old names**,
+> including `--chrome-badge-color` at its pre-change blue. It is the sprint's
+> hand-captured "before" snapshot, not a test, so it was left alone rather than
+> quietly rewritten — a rename shows up there as removed + added, which is what
+> it is for.
 
 ### Patterns and duplication — the React pass
 
@@ -436,7 +529,98 @@ renders instead is a sentence that states something false. The app has a fault
 surface (`server-error-keys`, the pill and the fault modal) and this path uses
 none of it.
 
-> resolution:
+> **resolution (Joel, 2026-08-22): both empty cases are FAULTS.** *"It is a
+> site-invariant that every member has a solo club; we need no flexibility in
+> the app for that: if you have no clubs, something is very wrong. The load
+> failed or the database deleted your solo club. Both are faults."*
+>
+> Built as seven decisions, in the order they were agreed:
+>
+> 1. **The failed fetch** goes through the existing path — `faultMessage(error,
+>    'clubs')` then `presentFault(...)` — which also writes the `[db]` line the
+>    modal's diagnostics repeat. No new `ERROR_COPY` key: a transport failure
+>    already classifies as a fault, and the table is frozen behind
+>    `plans/error-copy-sprint.md`.
+> 2. **Zero rows after a SUCCESSFUL fetch** has no server error to classify, so
+>    it is a hand-raised `presentFault`, with a diagnostics line in the house
+>    shape (`clubs — key=no-clubs detail="…" — <stamp>`) built from the shared
+>    `logStamp`.
+> 3. **Its words**, proposed by Claude and approved by Joel: *"Something's
+>    wrong with your account — you should always have at least your own solo
+>    club."*
+> 4. **The page keeps a line behind the modal, and its only job is to be true**
+>    — "Your clubs couldn't be loaded." when the fetch errored, "No clubs found
+>    for your account." when it succeeded and returned nothing.
+> 5. **The check lives in the load callback, not in render.** `clubs` is `[]`
+>    before the first fetch answers, so a render-time test would fault on every
+>    page load.
+> 6. **It fires on EVERY load, not once per mount.** Joel: *"their account is
+>    hopelessly fucked. showing it every time is simplest."*
+> 7. **A vitest test is the natural first case for F21**, since this is all
+>    stub-the-fetch-and-assert work.
+>
+> **A third state had to exist, and finding that out is what point 5 is really
+> about.** The page tracked only `clubs`, so "no clubs" and "not asked yet" were
+> the same value — which is why the old sentence was wrong in TWO moments, not
+> one: it also claimed you had joined no clubs during the half-second before the
+> first fetch answered. So the component now holds `load: 'loading' | 'loaded' |
+> 'failed'`, and the muted line renders a blank while loading rather than
+> vanishing, so the answer does not push the list down when it arrives.
+
+**F23 · The fault modal has to reach the homepage, and it already does**
+(raised by Joel, 2026-08-22, when F14 was decided: *"faults get a modal, so
+we'll need to get the modal-fault set up as part of this"*). Worth its own
+number because the homepage is a SHELL page, and shell pages have twice been
+caught missing something the game pages load — `theme.css` ships in PlayArea's
+lazy chunk, so `SetupForm` and Help had to import their own or every token
+resolved to nothing, silently.
+
+> **resolution: nothing to build — verified, not assumed.** Two halves, both
+> checked by reading the code rather than by trusting the mount:
+>
+> - **The host renders on `/`.** `<FaultDialog />` sits in `App.tsx` after the
+>   auth + claim-handle gates and outside the route switch, so it is on every
+>   real page.
+> - **Its styling is not in a lazy chunk.** `FaultDialog.module.css` reads
+>   exactly two tokens, `--chrome-fault-color` and `--page-text-muted-color`,
+>   and both are declared in `themes/daylight.css`, which `loadTheme()` imports
+>   eagerly at startup — the theme chain is global, unlike a game's brand
+>   anchors.
+>
+> So the homepage calls `presentFault` and nothing else is wired.
+>
+> **And then it was tested for real, which is Joel's call and the reason this
+> finding was worth a number:** *"'faults show up in real browsers' is a
+> critical test and we can only be certain as an e2e test. I'd give it a name
+> that says that it's more about faults than the homepage; it's just here that
+> we're hitting it."*
+>
+> **`e2e/faults.e2e.ts`**, named for the fault modal rather than for this page,
+> two cases:
+>
+> 1. **The wiring**, via `window.pupfault()` — the console trigger `FaultDialog`
+>    installs, since a real fault is a bug or a dead network and there is no
+>    honest UI path to one on demand. Asserts no modal BEFORE (a modal that were
+>    always up would pass everything after it), then the canned text and its
+>    diagnostics line on screen, then Close dismissing it with the page usable
+>    behind.
+> 2. **A real fault the app raises itself** — F14's empty club list. Reaching it
+>    means breaking the site invariant from outside the app, so
+>    `removeAllClubMemberships` (new fixture, psql like `deleteUser`) strips the
+>    user's memberships and leaves the profile: they sign in fine and the clubs
+>    query comes back empty. Asserts the fault text, its `key=no-clubs`
+>    diagnostics, and — behind the dismissed modal — that the page says "No
+>    clubs found for your account." and never the old sentence.
+>
+> **Both were verified by planting.** Rendering `<FaultDialog>` conditionally
+> false in `App.tsx` reddens BOTH cases, which is what proves the browser half
+> rather than the store half; disabling the zero-clubs `presentFault` reddens
+> only the second. Restored, and green after.
+>
+> One locator note worth keeping, since it cost a run: the panel's `×` and the
+> modal's button carry the SAME accessible name, so `getByRole('button', {name:
+> 'Close'})` is ambiguous. The spec takes `button.primary` — a global class from
+> `patterns/button.css`, not a module hash, so it cannot rot the way F3 did.
 
 **F15 · `focusListOnLoad` re-runs on every length change, not on load.** Its
 dependency is `[ordered.length]`, and the club list is realtime — a friend adding
@@ -463,13 +647,53 @@ hung it off the wordmark), `214-217` (the email that "used to sit under this"),
 live reason for the current arrangement, so this is a trim, not a delete — and
 it is Joel's call which sentence in each is the load-bearing one.
 
-> resolution:
+> **resolution (Joel, 2026-08-22): *"all these examples are junk; remove"*.**
+>
+> The first attempt only changed the TENSE — "the row used to end with the URL"
+> became "no URL on the row" — and Joel rejected it with the rule that makes
+> this finding decidable: **a comment explains the code that is THERE.** *"The
+> right comment for this is NO COMMENT AT ALL. Comments are for 'explain this
+> code' and there's LITERALLY NO CODE HERE for a URL."* Same for the missing
+> email, and same for the menu not hanging off the wordmark — *"we don't hang
+> the menu off the wordmark, why should we explain why we don't."*
+>
+> So an absence is not a subject, whatever tense it's written in. What each
+> block kept is only what points at code on the screen:
+>
+> - **the docstring** states that solo clubs are listed alongside regular ones,
+>   badged and sorted to the top — which is what `ordered` and the badge do;
+> - **the header comment** keeps that this is page chrome and that it is a
+>   SIBLING of the card, which is why `<PageHeader>` sits where it does in the
+>   tree. The menu paragraph is gone entirely;
+> - **the greeting comment** keeps why the disc leads and the name precedes the
+>   salutation, which is the order of the JSX. The email paragraph is gone, and
+>   so is the "where 'Welcome, joel' buried it" clause — that compared against a
+>   version that does not exist;
+> - **the row comment is gone**, all of it. `<span>{c.name}</span>` plus a
+>   conditional badge needs no gloss.
+>
+> **Two more went, by Joel's own hand, and they widen the rule past absences.**
+>
+> - The badge's "small and outlined, never the fully-round feedback pill" is
+>   gone: *"we don't need to describe what a badge looks like; that becomes
+>   stale."* So a comment does not restate what a stylesheet says either —
+>   `badge.css` owns the shape, and a second copy in a docstring is a copy that
+>   rots. This reverses part of F2's resolution from earlier the same day; what
+>   survives of it is that the row is marked by a BADGE and what a badge is FOR
+>   (a one-word label saying what kind of thing this is), which is the part
+>   `.badge` cannot say for itself.
+> - The docstring's whole first-paragraph tail — "Per-gametype 'Start X'
+>   affordances live on each club's own page … so this page doesn't carry those
+>   buttons" — is gone. Same shape as the others: buttons that are not here.
+>   (It was also the sentence F19's stale docstring in `games.ts` echoed.)
 
 **F18 · `docs/common.md:284` describes a homepage that isn't there.** It says a
 solo club is "visually distinguished (star icon, accent background tint, 'Solo'
 badge)". There is no star and no tint; the badge is the whole treatment.
 
-> resolution:
+> **resolution (Joel, 2026-08-22): fixed.** The sentence now reads "marked by a
+> 'Solo' badge on the row and always sorted to the top" — the star and the tint
+> are gone, since neither was ever built.
 
 **F19 · `games.ts:801` names HomePage as a consumer it no longer has.**
 `playerCountFits`'s docstring says it is used by "ClubPage (Start button
@@ -477,13 +701,22 @@ enable/disable) and HomePage (which solo-game buttons to surface)". HomePage
 stopped carrying per-gametype start buttons — its own docstring explains why —
 and does not import `games.ts` at all.
 
-> resolution:
+> **resolution (Joel, 2026-08-22): fixed, and it names both REAL callers rather
+> than one.** Grepped: `StartGameButtons` (disables the gametypes that don't fit
+> the club's member count) and `ClubPage`'s Enter handler (re-checks before
+> starting, so the keyboard no-ops on a disabled button exactly as a click
+> does). The docstring had ClubPage but not the component that actually paints
+> the buttons.
 
 **F20 · `useSwallowTab`'s docstring sends the reader to the wrong page.** It ends
 "`HomePage` (whose club list is arrow-driven — see docs/ui.md → ClubPage)". The
 homepage's own list is documented under another page's heading.
 
-> resolution:
+> **resolution (Joel, 2026-08-22): fixed — it points at
+> `docs/keyboard-shortcuts.md` → "Club page and home page" now.** That file has
+> a row for the home club list's arrow keys, which is what the sentence is
+> about; `ui.md`'s treatment of the list is "Lists of things you can go into"
+> and is about the shared `.item-list` LOOK, not its keyboard.
 
 ### Tests
 
@@ -502,6 +735,40 @@ APPLIED but never that it EXISTS — F1–F3 are precisely what a render test ca
 catch, and that is the static guard's job (F4). And the page's data arrives
 through `useRealtimeRefetch`, so the test needs the club fetch stubbed rather
 than a live Supabase.
+
+> resolution:
+
+### Lists
+
+**F24 · An empty list keeps its BOX, and says so inside it — the homepage is
+the one place that doesn't** (Joel, 2026-08-22). *"We should be consistent and I
+think 'keep the box, show the empty message inside' is clearer."*
+
+The two shapes ship side by side today, and the pattern file already knows:
+
+- **ClubPage does it inside**, in both lists. `.item-list` stays, and the
+  message is a `<p class="muted item-list-empty">` within it — "No games yet.",
+  "No games available in this club.". `list.css` gives `.item-list-empty` its
+  own padding for exactly this.
+- **HomePage replaces the whole list** with a bare `<p class="muted">` sibling —
+  no frame at all. `list.css:80` records that as a deliberate alternative: *"A
+  list may instead be replaced wholesale by a sentence outside the frame, which
+  is what the homepage does … That is a different choice — no empty box."*
+
+So this is not drift that crept in; it is two answers, one of which Joel has now
+picked. **Fix it when this area takes the list work, not before.**
+
+Three things to carry into that sitting:
+
+1. **F14's two sentences move inside the box** — "Your clubs couldn't be
+   loaded." and "No clubs found for your account." are the text this finding
+   relocates. They were written into the existing `<p>` and stay as they are.
+2. **The homepage's container is a `<ul>`, ClubPage's is a `<div>`.** A `<p>`
+   inside a `<ul>` is not valid markup, so the empty message becomes an `<li>`
+   or the container stops being a list element. ClubPage never had to answer
+   this.
+3. **`list.css`'s comment blesses the exception** and has to go with it, or the
+   pattern file will still be describing the choice we just dropped.
 
 > resolution:
 
@@ -617,7 +884,7 @@ becomes its own area is Joel's call.
 | `common/patterns/heading.css` | `.heading-with-controls` |
 | `common/patterns/focus-ring.css` | `.kb-cursor` |
 | `common/base.css` | `h1` / `h3`, `--page-padding-y` |
-| `common/themes/daylight.css` · `midnight.css` | `--chrome-badge-color` |
+| `common/themes/daylight.css` · `midnight.css` | `--flex-color-1` (F10 — was `--chrome-badge-color`) |
 
 **e2e**
 

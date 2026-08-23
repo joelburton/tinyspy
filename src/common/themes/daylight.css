@@ -693,10 +693,6 @@
      one). */
 /* @@ */   --chrome-link-color:           #1976d2;
 /* @@ */   --chrome-link-hover-color:     #0067c1;
-  /* BADGE — a small outlined label on a list row (Home's SOLO). Filed
-     under chrome as app furniture rather than under gamelist, which is
-     about a GAME's state in a list; this marks a club. */
-/* @@ */   --chrome-badge-color:          #1976d2;
   /* DEFINABLE — the hover cue on a click-to-define word. The shared
      `.definable` rule underlines, and only wordle's log needs a color
      at all: its words are rendered as letter SQUARES, which can't take
@@ -737,19 +733,27 @@
      competing with the real colors. */
 /* @@ */   --gamelist-unplayed-color:   #f5f5f5;  /* gray 100 */
 
-  /* ══ GAMEMODE ═══════════════════════════════════════════════════
-     "Co-op" vs "Compete", shown next to a gametype's name (ModePill).
-     An outlined chip — transparent background, border + text both this
-     color. Deliberately OUTSIDE the outcome vocabulary so a mode pill
-     never reads as a result: co-op = teal (collaborative), compete =
-     purple (rivalry). Dark 800-level tones so they stay legible as
-     text + border on the surface.
+  /* ══ FLEX ══════════════════════════════════════════════════════
+     The app's two FLEXIBLE colors: a pair that is fully built out and
+     ready, so a rare need for "another color, just different from that
+     one" doesn't mint a new family. If a third is ever needed we make
+     one up.
 
-     These two are also the app's designated ONE-OFF pair: treat teal
-     and purple as fully built out and flexible, so a rare need doesn't
-     mint a new color. */
-/* @@ */   --gamemode-coop-ink-color:     #00695c;  /* teal 800 */
-/* @@ */   --gamemode-compete-ink-color:  #6a1b9a;  /* purple 800 */
+     They mean NOTHING, and the numbered names are how that is kept
+     true. A name like `coop` would claim teal IS the color of
+     collaboration — "making something arbitrary into a 'considered'
+     thing" — when all the pair has to be is two colors that are clearly
+     not each other. Badges are the only readers today: Co-op takes 1
+     and Compete takes 2 on the club page, Solo takes 1 on the homepage.
+
+     Deliberately OUTSIDE the outcome vocabulary, which is the one real
+     constraint on them: a badge says what KIND of thing this is, so it
+     must never read as a result.
+
+     Dark 800-level tones, to stay legible as text + border on the
+     surface. */
+/* @@ */   --flex-color-1:  #00695c;  /* teal 800 */
+/* @@ */   --flex-color-2:  #6a1b9a;  /* purple 800 */
 
   /* ══ TOAST ══════════════════════════════════════════════════════
      A toast's left stripe — the whole of a toast's color; the message

@@ -416,7 +416,6 @@
 /* @@ */   --chrome-caret-color:          #64b5f6;
 /* @@ */   --chrome-link-color:           #64b5f6;
 /* @@ */   --chrome-link-hover-color:     #90caf9;
-/* @@ */   --chrome-badge-color:          #64b5f6;
 /* @@ */   --chrome-definable-ring-color: #64b5f6;
 /* @@ */   --chrome-floatingControl-fill-color: color-mix(in oklab, var(--page-surface-color) 65%, transparent);
 
@@ -431,12 +430,13 @@
      whatever recedes here — which is the page's own hue, a step up. */
 /* @@ */   --gamelist-unplayed-color:   #333c4d;
 
-  /* ══ GAMEMODE ═══════════════════════════════════════════════════
+  /* ══ FLEX ══════════════════════════════════════════════════════
      The 800-level tones daylight uses are unreadable on dark, so both
-     lift to the 200s. Still outside the outcome vocabulary, still a
-     teal/purple pair, and still the app's designated one-off colors. */
-/* @@ */   --gamemode-coop-ink-color:     #4db6ac;
-/* @@ */   --gamemode-compete-ink-color:  #ce93d8;
+     lift. Still outside the outcome vocabulary, still a teal/purple
+     pair — though nothing requires that either: the pair's only job is
+     to be two colors that are clearly not each other. */
+/* @@ */   --flex-color-1:  #4db6ac;
+/* @@ */   --flex-color-2:  #ce93d8;
 
   /* ══ TOAST ══════════════════════════════════════════════════════ */
 /* @@ */   --toast-info-stripe-color:     var(--button-normal-primary-color);

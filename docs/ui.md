@@ -467,7 +467,7 @@ not a thing with qualities; the quality *is* the thing. Stated so nobody "fixes"
 | `view-*` | what you are looking at — history, share-preview |
 | `mark-*` | the board-feedback vocabulary ([tile-feedback.md](../plans/tile-feedback.md)) — dims, attention, flash durations, the grid cursor |
 | `member-*` | player identity, one per value of `common.profiles.color` |
-| `gamemode-*` | coop vs compete |
+| `flex-color-*` | the app's two flexible colors — a pair that means nothing, so a badge has two ways to differ (see [Mode pills](#mode-pills)) |
 | `page-*`, `field-*` | the page's own surfaces and text; the things you type into |
 | `tile-*`, `kbd-*`, `rank-*` | the warm tile ramp, the on-screen keyboard, the word-rank ladder |
 | `wordle-*` | the letter-judgment palette, shared by wordle and waffle |
@@ -1246,7 +1246,7 @@ A gametype's interaction `mode` (`'coop'` / `'compete'`, on the manifest) is **n
 Rules:
 
 - **Spelling.** The DB, code, and gametype strings spell it `coop`; the **UI says "Co-op"** (and "Compete"). The one place the FE text differs from the stored value — `MODE_LABEL` in [`lib/games.ts`](../src/common/lib/games.ts) owns the mapping.
-- **Look.** An outlined chip — transparent background, with the border and text both in the mode color: co-op = teal, compete = purple (`--gamemode-*-ink-color` in `theme.css`). Deliberately outside the won/lost/active outcome palette so a mode pill never reads as a result.
+- **Look.** The shared `.badge` — an outlined lozenge, transparent background, border and text both one color. That color is one of the app's two **flexible** colors (`--flex-color-1` / `--flex-color-2`, teal and purple today), and which mode gets which is arbitrary: the pair carries no meaning, and the two only have to be clearly different from each other. What isn't arbitrary is that they sit outside the won/lost/active outcome palette, so a mode never reads as a result.
 - **Solo clubs.** In a solo club (handle starts with `=`, one player) **no pill renders** — neither "Co-op" (no one to cooperate with) nor "Compete" — **with one exception**: a compete variant whose manifest declares **`aiOpponent: true`** (scrabble — solo play seats an autonomous AI opponent) shows an **"AI Compete"** pill, because there IS someone to beat. A compete variant *without* an AI (bananagrams) is "compete for 1" — a race with nobody to beat, effectively coop — so it stays pill-less. The flag lives on the manifest so the club UI never has to know about specific games (the removability invariant); pass `soloClub` + the manifest's `aiOpponent` to `<ModePill>`.
 - **Where it shows.** Anywhere a gametype name appears next to its mode: the per-gametype Start buttons (`StartGameButtons`), the club's games list (`ClubGameCard`), and the club editor (`EditClubDialog`). The Start buttons + games list pass `soloClub` (so solo clubs show no pill); the editor **never** passes it, so it always shows the pill — it lists both siblings, and the pill is the only thing distinguishing two now-identically-named rows. The setup dialog confirms the mode in its title via `MODE_LABEL` (dropped in a solo club, matching the suppression).
 

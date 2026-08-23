@@ -798,8 +798,10 @@ export type TimerMode =
 
 /**
  * Does a player count fall inside a gametype's supported range?
- * Used by ClubPage (Start button enable/disable) and HomePage
- * (which solo-game buttons to surface).
+ * Used on the club page, and only there: StartGameButtons
+ * disables the ones that don't fit the club's member count, and
+ * ClubPage's Enter handler re-checks before starting, so the
+ * keyboard no-ops on a disabled button exactly as a click does.
  */
 export function playerCountFits(
   range: GameManifest['numberOfPlayers'],

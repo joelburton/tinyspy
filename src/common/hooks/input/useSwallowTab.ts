@@ -32,7 +32,8 @@ import { useGlobalKeyHandler } from './useGlobalKeyHandler'
  * spellingbee, wordle, wordwheel, wordiply, psychicnum) already get this from
  * that hook and don't need it; crosswords deliberately keeps Tab as clue
  * navigation. Callers today: the five window-key games' PlayAreas, and
- * `HomePage` (whose club list is arrow-driven — see docs/ui.md → ClubPage).
+ * `HomePage` (whose club list is arrow-driven — see docs/keyboard-shortcuts.md
+ * → "Club page and home page").
  */
 export function useSwallowTab(): void {
   useGlobalKeyHandler((e: KeyboardEvent) => {

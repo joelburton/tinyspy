@@ -75,6 +75,14 @@
 /* @@ */   --radius-sm:  4px;   /* small chips, tiles, hint pills */
 /* @@ */   --radius-md:  6px;   /* buttons, inputs, panels */
 /* @@ */   --radius-lg:  8px;   /* cards, modals */
+  /* Not a fourth step — a SHAPE. Any radius past half the box's height rounds
+     the ends into semicircles, so a wide box becomes a stadium (a circle with
+     a flat middle) and a square one becomes a circle. `999px` is the usual way
+     to say "past half, whatever the height turns out to be"; the browser
+     clamps it. Readers: the badge, a round icon button, a counter chip.
+     Distinct from `50%`, which is half of EACH axis and so ellipses a wide
+     box instead of capping it. */
+  --radius-round:  999px;
 
   /* ══ THE VOCABULARIES ══════════════════════════════════════════
      A vocabulary is a short, closed list of the values a surface may

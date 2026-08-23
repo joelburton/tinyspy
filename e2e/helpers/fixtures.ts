@@ -176,6 +176,30 @@ export async function deleteUser(userId: string): Promise<void> {
 }
 
 /**
+ * Drop every club membership a user has, leaving their profile and auth user
+ * intact — so they can still sign in, and the homepage's clubs query (filtered
+ * by RLS to the clubs you belong to) comes back EMPTY.
+ *
+ * The app cannot reach this state on its own: `claim_username` materializes a
+ * solo club atomically with the profile, so a signed-in user always has at
+ * least that one. Which is exactly why the homepage treats no clubs as a FAULT
+ * rather than an empty state (plans/areas/homepage.md → F14) — and why testing
+ * that fault means breaking the invariant from outside the app.
+ */
+export async function removeAllClubMemberships(userId: string): Promise<void> {
+  if (!/^[0-9a-f-]{36}$/.test(userId)) throw new Error(`bad userId: ${userId}`)
+  execFileSync(
+    'psql',
+    [
+      process.env.SUPABASE_DB_URL ?? 'postgresql://postgres:postgres@127.0.0.1:54322/postgres',
+      '-v', 'ON_ERROR_STOP=1', '-q', '--single-transaction',
+      '-c', `delete from common.clubs_members where user_id = '${userId}'`,
+    ],
+    { stdio: 'ignore' },
+  )
+}
+
+/**
  * Return a copy of a session that supabase-js will treat as EXPIRED on load
  * (past `expires_at`), so the app boots into the token-REFRESH path rather
  * than using the access token directly. Paired with `deleteUser`, this

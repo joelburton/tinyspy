@@ -23,10 +23,12 @@
   font-weight: 500;
 }
 
-/* The shared `.badge` paints no color, so the caller picks one. This takes the
- * page's link accent. */
+/* The shared `.badge` paints no color, so the caller picks one — one of the
+ * app's two flexible colors, which mean nothing and only have to differ from
+ * each other. Solo takes the same one Co-op takes; they never share a screen
+ * (Solo is the homepage's, the mode badges are the club page's). */
 /* @@ */ .soloBadge {
-  color: var(--chrome-badge-color);
+  color: var(--flex-color-1);
 }
 
 /* The page's outer stack: the header, then the card, one spacer apart. (ClubPage and

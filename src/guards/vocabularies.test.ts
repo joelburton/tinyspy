@@ -141,13 +141,31 @@ const VOCABULARIES: Vocabulary[] = [
   {
     name: 'border-radius',
     properties: ['border-radius'],
-    // `0` a square corner · `50%` a circle · `999px` a pill — shapes, not steps.
-    // (The pill gets a name when badges are settled in the homepage area; until then it
-    // is spelled out here rather than pretended into the scale.)
+    // `0` a square corner · `50%` a circle — shapes, not steps, and neither is
+    // a rounding anyone chose.
+    //
+    // `999px` USED to be listed here too, as "a pill", waiting on the homepage
+    // area to settle badges. Settled 2026-08-22, and the premise was wrong both
+    // ways round: the feedback pill is a rounded RECTANGLE and never wanted
+    // 999px, while the badge is the lozenge and now does. So the shape earned
+    // `--radius-round` and the literal comes off this list — otherwise the
+    // token is a suggestion, and a token nobody is made to use is the one that
+    // rots (`--radius-md` did exactly that for months).
+    //
     // `inherit` and friends aren't values at all — they defer to somewhere else,
     // which is the opposite of writing a literal.
-    allowed: /^(0|50%|999px|inherit|initial|unset|revert)$/,
+    allowed: /^(0|50%|inherit|initial|unset|revert)$/,
     pending: {
+      // The two `999px` writers left in `common/`, each a shape question its
+      // own area answers rather than a rounding: a counter chip and a round
+      // icon button. Both may want `50%` instead — they are square boxes, and
+      // `50%` says circle without leaning on a number the browser clamps.
+      'src/common/components/chat/ChatBubble.module.css': ['999px'],
+      'src/common/components/buttons/ShuffleButton.module.css': ['999px'],
+      // Deliberate, and the reason is at the declaration: the pill's thick left
+      // accent bar would curve into a crescent on round ends. This is the
+      // sprint's first real bespoke-BY-INTENT value, and §18 has the open item
+      // about giving those somewhere better to live than a pending row.
       'src/common/components/feedback/GenericFeedbackPill.module.css': ['0.5rem'],
       'src/common/components/game/entry/GuessKeyboard.module.css': ['4px'],
       'src/common/components/game/FilterSelect.module.css': ['4px'],
@@ -157,8 +175,9 @@ const VOCABULARIES: Vocabulary[] = [
     },
     fix:
       'Use `--radius-sm` / `-md` / `-lg`, chosen by what the thing IS — a card ' +
-      'takes lg, a panel md, a chip sm (docs/deferred.md). A value that is not ' +
-      'one of them is a question for Joel, not a rounding.',
+      'takes lg, a panel md, a chip sm (docs/deferred.md) — or `--radius-round` ' +
+      'for a shape whose ends are fully capped (a badge, a counter chip). A ' +
+      'value that is not one of them is a question for Joel, not a rounding.',
   },
   {
     /**

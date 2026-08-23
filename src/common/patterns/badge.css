@@ -14,14 +14,19 @@
 
 /* THE SHAPE, and it paints no color — the same split `.button` makes. The
    border is `currentColor`, so a caller sets `color` alone and the outline
-   follows it. That is what lets one class carry a teal mode pill, a purple
-   one and a gray Solo badge without knowing about any of them.
+   follows it. That is what lets one class carry a teal mode badge, a purple
+   one and the Solo badge without knowing about any of them.
 
    Small, outlined, and never filled: a badge sits inside a row that already
    has a hover tint and a title, so a fill would out-shout the thing it is
-   labeling. `--radius-sm`, not a full 999px round — the fully-round shape
-   belongs to the feedback pill, and the two should not be confusable
-   (docs/ui.md → Feedback pill).
+   labeling.
+
+   `--radius-round` — the ends are semicircles and the middle is flat, so a
+   badge reads as a lozenge. That is what separates it by SHAPE from the
+   feedback pill, which is a rounded RECTANGLE (`GenericFeedbackPill`, and
+   deliberately: its thick left accent bar would curve into a crescent on
+   round ends). Two roles, two shapes — a badge says what KIND of thing this
+   is, a pill reports how something went.
 
    NOT uppercase. `text-transform` here would render "Co-op" as "CO-OP" and
    silently overrule the spelling `MODE_LABEL` sets (docs/ui.md → Mode pills:
@@ -34,7 +39,7 @@
   line-height: 1.4;
   padding: 0.05rem 0.4rem;
   border: 1px solid currentColor;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-round);
   /* The badge rides beside text of a different size (a club name, a game
      title), so it centers on the line box rather than sitting on the
      baseline. */

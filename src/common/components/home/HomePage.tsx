@@ -7,6 +7,9 @@ import { navigate } from '../../lib/routing/router'
 import { cls } from '../../lib/util/cls'
 import { useSwallowTab } from '../../hooks/input/useSwallowTab'
 import { db as commonDb } from '../../db'
+import { faultMessage } from '../../lib/game/serverError'
+import { presentFault } from '../../lib/fault/faultStore'
+import { logStamp } from '../../lib/supabase/realtimeDiag'
 import { useProfile } from '../../hooks/session/useProfile'
 import { useRealtimeRefetch } from '../../hooks/realtime/useRealtimeRefetch'
 import { Dot } from '../text/Dot'
@@ -33,20 +36,15 @@ type Props = {
  *
  * Pure shell content: who you are, the clubs you belong to
  * (including your own solo space), and a path to create a new
- * one. Per-gametype "Start X" affordances live on each club's
- * own page — once the user knows where their clubs are, "Start
- * connections" only makes sense inside a specific club, so this
- * page doesn't carry those buttons.
+ * one.
  *
- * Solo clubs (handle = `=<username>`) used to be hidden from
- * this list and surfaced as a separate "Play solo" section.
- * Now they're listed alongside regular clubs, marked by a
- * "Solo" BADGE on the row (the shared `.badge` — a one-word
- * label saying what KIND of thing this is, small and outlined,
- * never the fully-round feedback pill), and always sorted to
- * the top. The user's solo club is the default landing spot
- * for play-alone, and being a regular row in the clubs list
- * makes it discoverable without learning a separate UI shape.
+ * Solo clubs (handle = `=<username>`) are listed alongside
+ * regular clubs, marked by a "Solo" BADGE on the row (the
+ * shared `.badge` — a one-word label saying what KIND of thing
+ * this is), and always sorted to the top. The user's solo club is
+ * the default landing spot for play-alone, and being a regular
+ * row in the clubs list makes it discoverable without learning
+ * a separate UI shape.
  *
  * Clubs RLS does the visibility filtering: the
  * `.from('clubs').select` below returns only the clubs the
@@ -58,6 +56,12 @@ export function HomePage({ session }: Props) {
   const profile = useProfile(session)
   const username = profile?.username ?? null
   const [clubs, setClubs] = useState<ClubListEntry[]>([])
+  // Three states, because an empty list means something different in each and
+  // only one of them is a normal moment. `loading` is the moment before the
+  // first fetch answers; `failed` is a fetch that errored; `loaded` is an
+  // answer we believe. Rendering an empty list without knowing which of these
+  // we are in is what let this page tell people they had joined no clubs.
+  const [load, setLoad] = useState<'loading' | 'loaded' | 'failed'>('loading')
 
   // Load every club the caller is a member of (incl. their solo club),
   // newest-first; the render layer partitions solo vs regular and puts
@@ -83,11 +87,31 @@ export function HomePage({ session }: Props) {
         .select('handle, name')
         .order('created_at', { ascending: false })
       if (!mounted()) return
+      // Both arms below are FAULTS, not empty states, and the reason is a site
+      // invariant: `common.claim_username` materializes a solo club atomically
+      // with the profile, so a signed-in user always has at least that one. No
+      // clubs therefore means the load failed or the solo club is gone from the
+      // database — their account is broken either way, and the app has one way
+      // to say broken (docs/ui.md → Faults: a blocking modal, not a pill).
+      //
+      // Fired on EVERY load, not once per mount (Joel, 2026-08-22). The list
+      // refetches on realtime membership events, so a persistent outage will
+      // re-fire — which is correct here: nothing about this state improves by
+      // being mentioned once.
       if (error) {
-        console.error('failed to load clubs', error)
+        const msg = faultMessage(error, 'clubs')
+        presentFault({ text: msg.text, diagnostics: msg.diagnostics })
+        setLoad('failed')
         return
       }
       setClubs(data ?? [])
+      setLoad('loaded')
+      if ((data ?? []).length === 0) {
+        presentFault({
+          text: "Something's wrong with your account — you should always have at least your own solo club.",
+          diagnostics: `clubs — key=no-clubs detail="loaded 0 clubs; every profile has a solo club" — ${logStamp()}`,
+        })
+      }
     },
   })
 
@@ -178,18 +202,8 @@ export function HomePage({ session }: Props) {
     <div className={styles.frame}>
       {/* PAGE chrome, not card content — the same strip ClubPage and GamePage
           carry: square site logo hard against the page's top-left, thin rule
-          beneath, the card below it. It sat INSIDE the card at first, which
-          made it read as part of the page's content rather than as the app's
-          chrome, and indented it to the card's 2rem padding so it lined up with
-          nothing else in the app.
-
-          Home had no menu at all until the account items moved off the fixed
-          top-right chip. An even earlier attempt hung it off the WORDMARK,
-          which reads badly (a hero image isn't a control, and the disclosure
-          chevron had nowhere to sit on 400px of artwork). The wordmark is
-          artwork again; the menu holds only the account submenu today, and the
-          point of the header is that Help and anything else non-user now have
-          somewhere to live. */}
+          beneath, the card below it. A sibling of the card rather than a child,
+          so it aligns to the PAGE and not to the card's 2rem padding. */}
       <PageHeader>
         <Menu
           ref={menuRef}
@@ -209,13 +223,8 @@ export function HomePage({ session }: Props) {
             "Player identity = a colored disc"). Home is where that's worth
             re-stating: it's the last thing you see before entering a club,
             and inside a game the disc is how you find yourself on the board.
-            Hence the name first and the greeting second — "● joel —
-            welcome!" puts the identity where the eye lands, where "Welcome,
-            joel" buried it behind a salutation.
-
-            The email that used to sit under this is gone: it's what they
-            just typed to get here, so telling them is filler, and an address
-            is the least club-like way to say who someone is. */}
+            Hence the name first and the greeting second: "● joel — welcome!"
+            puts the identity where the eye lands. */}
         <h1 className={styles.greeting}>
           {username ? (
             <>
@@ -246,12 +255,17 @@ export function HomePage({ session }: Props) {
             </Link>
           </header>
           {clubs.length === 0 ? (
-            // Defensive: claim_username materializes a solo club
-            // atomically with the profile, so a signed-in claimed
-            // user always has at least their solo club here. A fetch
-            // failure or RLS regression shouldn't render a blank
-            // list silently.
-            <p className="muted">You haven't joined a club yet.</p>
+            // The fault modal carries the news; this line is what the page is
+            // left saying behind it, and its only job is to be TRUE. Empty
+            // while loading rather than absent, so the answer doesn't push the
+            // list down when it arrives.
+            <p className="muted">
+              {load === 'failed'
+                ? "Your clubs couldn't be loaded."
+                : load === 'loaded'
+                  ? 'No clubs found for your account.'
+                  : ' '}
+            </p>
           ) : (
             <ul
               ref={listRef}
@@ -293,12 +307,6 @@ export function HomePage({ session }: Props) {
                     to={`/c/${c.handle}`}
                     className={cls('item-row', i === kbCursor && 'kb-cursor')}
                   >
-                    {/* Name + (for a solo club) its badge, and nothing else. The
-                        row used to end with the club's `/c/<handle>` URL — the
-                        same thing ClubPage dropped from its own body: it's what
-                        the browser's address bar will say the moment you click,
-                        and a monospace URL is a developer's view of a venue the
-                        friends know by name. */}
                     <span className={styles.clubName}>{c.name}</span>
                     {c.handle.startsWith('=') && (
                       <span className={cls('badge', styles.soloBadge)}>Solo</span>
