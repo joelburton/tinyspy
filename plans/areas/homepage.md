@@ -5,9 +5,10 @@ The first area of the CSS sprint's step 7. The process is
 holds everything else.
 
 **Status: RESUMED, and a second subject added.** Thirty-nine findings,
-twenty-seven resolved (F1, F2, F4, F5, F6, F6.1, F7, F8, F9, F10, F11, F14, F15,
-F16, F17, F18, F19, F20, F22, F23, F24, F25, F28, F29, F32, F36, F37) — where
-"resolved" includes the ones FOLDED into a later finding rather than fixed.
+THIRTY resolved (F1, F2, F4, F5, F6, F6.1, F7, F8, F9, F10, F11, F14, F15,
+F16, F17, F18, F19, F20, F22, F23, F24, F25, F28, F29, F32, F33, F34, F35, F36,
+F37) — where "resolved" includes the ones FOLDED into a later finding rather
+than fixed.
 
 Shipped so far: the two dead-reference fixes, the class guard, the vocabularies,
 the font-weight rule, the z- ladder, the greeting's word space, the comment/doc
@@ -1241,7 +1242,26 @@ Both are the naming rule the repo already writes down (`docs/naming.md`,
 `code-conventions.md` → self-describing names): a name states the concept, and a
 concept is what the thing is FOR, not what it looks like.
 
-> resolution:
+> **resolution (Joel, 2026-08-23): both halves are answered, in two other
+> findings, and the answers are different in kind.**
+>
+> **`card` was too vague, and now has a definition** — F37 (`card-only-page`):
+> a card is a card in Bootstrap's sense, a bordered section of a page like a
+> post-it note, and the app has few of them. HomePage's body is one; ClubPage
+> has none. It implies no slot to fill, and — F35.1 (`card-is-white`) — it
+> carries the app's default white background but **no width**, which is what
+> F30 (`pagemain-widths`) inherits. The four jobs it was doing split up: page
+> bodies become pageMain, the five headerless screens become CardOnlyPages, and
+> the transient states become F39 (`loading-and-errors`).
+>
+> **`frame` was not vague but TAKEN**, and it loses the argument rather than the
+> meaning: `frame` keeps meaning "a rectangle drawn around a board", and the
+> page-level element that borrowed the word gets its own name in F33
+> (`wrapper-name`).
+>
+> The lesson the finding was really about — that the audit inherited someone
+> else's flag on `frame` and never put the same question to `card` — needs no
+> resolution, only remembering.
 
 **F33 · `wrapper-name` · The page element's name — a proposal, deferred by Joel.** *"We'll
 discuss this when we dive in."* Written down now so the proposal is on the
@@ -1270,7 +1290,33 @@ exactly the confusion this rename exists to end. They would want a name that
 says what they are — and F35 says that name has to describe the JOB, which for
 those two is "a dev page that needs the room".
 
-> resolution:
+> **resolution (Joel, 2026-08-23): the proposal above is NOT what we do.
+> `.page` is `<body>`, and the wrapper keeps existing under a name that says
+> exactly what it holds.**
+>
+> **`page` means `<body>`, tip to tail** — the HTML element, the thing
+> `--page-bg-color` paints. Which settles a rule beyond this class: *"everything
+> called `.page-*` must be about the page itself, not be a default-for-app."*
+> That is what disqualified `--page-surface-color` and the rest (plan §6.6 →
+> Backgrounds), and it disqualifies `.page` as a name for a div inside the body.
+>
+> **The wrapper stays, as `.pageHeaderAndMainArea`.** The case for deleting it
+> was real — of the four things it does, `width: 100%` exists only because the
+> page centers a content-sized child, the viewport bound is the page's own
+> business, and only the stacking is genuinely about the pair. But dissolving it
+> means the page carries per-route rules, which React cannot write on `<body>`;
+> it needs a `data-page` attribute set from outside the tree. Joel: *"if 'b'
+> costs nothing, just keep it"* — and it costs nothing. On the name: *"it's a
+> highly-specific thing, not easily explained, and rarely used"*, which is what
+> a long unglamorous name is for.
+>
+> **`.page-fill` is withdrawn with the rest of the proposal.** The bound is the
+> page's, so "a page that fills" versus "a page bounded by its content" is a
+> per-route difference, not a modifier on a wrapper — and `bg` is the word for a
+> page's background, not `fill`.
+>
+> What is left for F26 (`three-wrappers`) is the only question this does not
+> answer: whether the three copies become one class.
 
 > resolution:
 
@@ -1284,7 +1330,16 @@ those two is "a dev page that needs the room".
   `100svh`, and the difference is the whole mobile-Safari reason `base.css`
   documents at length.
 
-> resolution:
+> **resolution (Joel, 2026-08-23: *"very low risk. just do"*): both fixed.**
+> `ClubPage.module.css`'s header comment now says the height is 100svh minus
+> twice `--page-padding-y`, and names `base.css` as where that lives; `ui.md`
+> spells the expression out and says why it is `svh`. A third stale line went
+> with them — the same comment described the page as having lost a `.card`
+> wrapping it once had, which is F17's archaeology in another file: it now just
+> says there is no card on this page.
+>
+> The class is still called `.frame` here. Renaming it is F26
+> (`three-wrappers`) and F33 (`wrapper-name`), not a comment fix.
 
 ### Loading and errors
 

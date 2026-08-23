@@ -370,7 +370,7 @@ Game-by-game and page-by-page, not a global `body { overflow: hidden }` bomb. Pa
 
 Today this principle binds on:
 
-- **ClubPage** — fits the viewport via `height: calc(100vh - body padding)`; the "Your games" list is a fixed-size frame with internal scroll. See [ClubPage header](#clubpage-header) below.
+- **ClubPage** — fits the viewport via `height: calc(100svh - 2 * var(--page-padding-y))`; the "Your games" list is a fixed-size frame with internal scroll. (`svh`, not `vh` — see the reason on `body` in `base.css`.) See [ClubPage header](#clubpage-header) below.
 - **HomePage** — same bound, but as a **`max-height`** rather than a `height`, and the distinction is worth copying for any centered-card page. Home's body is a `.card` sized to its content, so a fixed height would stretch it to the full viewport and strand a two-club list at the top of a tall empty box. A max-height leaves the ordinary case looking exactly as it did and only binds when the clubs would otherwise scroll the page — at which point the club list scrolls instead. Getting there needs the whole ancestor chain to relay the bound (`.frame` → `.card` → the section → the `<ul>`, each a flex column with `min-height: 0`); the fixed furniture above the list takes `flex-shrink: 0`, or the wordmark — a `width: 100%` `<img>` — absorbs the squeeze by getting shorter.
 
 Future targets:

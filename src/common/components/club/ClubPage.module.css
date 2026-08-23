@@ -3,16 +3,15 @@
 /* ClubPage layout + component-scoped styles.
  *
  * Per docs/ui.md → "Page-height fits the viewport", the page
- * fills the viewport vertically and doesn't scroll. The body's
- * 2rem padding (in theme.css) means we subtract 4rem from 100svh
- * to compute the frame's height. The header is auto-sized; the
- * two-column body takes the rest. The right column's games-list
- * frame absorbs growth via overflow-y: auto.
+ * fills the viewport vertically and doesn't scroll: the height
+ * below is 100svh minus twice `--page-padding-y`, the body's own
+ * vertical padding (common/base.css). The header is auto-sized;
+ * the two-column body takes the rest. The right column's
+ * games-list frame absorbs growth via overflow-y: auto.
  *
- * Below those, the previous "whole page is one .card" wrapping
- * has gone away — the only `.card`-style chrome left is the
- * gamesList frame (visible border + radius around the scroll
- * region) and the per-game ClubGameCard items inside it.
+ * There is no `.card` on this page. The only card-style chrome is
+ * the gamesList frame (a border + radius around the scroll region)
+ * and the per-game ClubGameCard items inside it.
  */
 
 /* @@ */ .frame {
