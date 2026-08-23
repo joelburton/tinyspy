@@ -944,243 +944,249 @@ export function ClubPage({ handle, session }: Props) {
         />
       </PageHeader>
 
-      {/* Club title — a full-width row spanning both body columns.
-          The "Club:" / "Solo Club:" prefix says what kind of venue
-          this page is (solo = the '='-prefixed one-member club). */}
-      <div className={cls('pageMain', styles.clubNameBlock)}>
-        <h1 className={styles.clubName}>
-          {soloClub ? 'Solo Club: ' : 'Club: '}
-          {club.name}
-        </h1>
-      </div>
-
-      {/* Mobile-only view switcher (phones + portrait tablets). On
-          desktop this bar is display:none and both columns show side
-          by side; below the breakpoint only the selected column
-          renders, so the page still fits the viewport without
-          scrolling. Labels are kept short + count-free — the section
-          headings (which carried the count) are hidden on mobile.
-
-          These are two toggle BUTTONS (`aria-pressed`), NOT an ARIA tabs
-          pattern. `role="tab"` would promise the full tabs keyboard model —
-          a single tab-stop with arrow-key navigation between tabs, plus
-          `aria-controls`/`role="tabpanel"` wiring — which we don't implement
-          (this is a touch-first two-way switch; you tap it). `aria-pressed`
-          is the honest shape: two independent toggle buttons whose pressed
-          state says which view is showing. `role="group"` + a label ties
-          them together for assistive tech without over-claiming behavior. */}
-      <div className={cls('segmented', 'pageMain', styles.tabs)} role="group" aria-label="Show new game or your games">
-        <button
-          type="button"
-          aria-pressed={mobileTab === 'new'}
-          className={styles.tab}
-          onClick={() => setMobileTab('new')}
-        >
-          New game
-        </button>
-        <button
-          type="button"
-          aria-pressed={mobileTab === 'completed'}
-          className={styles.tab}
-          onClick={() => setMobileTab('completed')}
-        >
-          Your games
-        </button>
-      </div>
-
-      {/* Mobile-only filter row. On desktop each filter lives at the right of
-          its column's heading (below); on mobile those headings are gone —
-          the tab bar names the view — so the filter for the SHOWING tab goes
-          directly under the tabs, where the heading would have been.
-
-          Both filters are therefore in the tree twice, one instance hidden by
-          the breakpoint. The alternative — a single instance moved by CSS —
-          isn't available: the desktop home is inside a column, the mobile one
-          is a sibling of the tab bar, and no CSS relocates an element across
-          containers. The components are stateless (all state lives here), so
-          the two instances can't disagree.
-
-          The ROW ITSELF is conditional, not just its contents: a solo club has
-          no mode filter (see ModeFilter), and an empty row would still take the
-          .frame's 1rem gap — a mystery band of space under the tabs. */}
-      {!(mobileTab === 'new' && soloClub) && (
-        <div className={cls('pageMain', styles.mobileFilters)}>
-          {mobileTab === 'new' ? (
-            <ModeFilter value={effectiveMode} onChange={setModeFilter} soloClub={soloClub} />
-          ) : (
-            <GametypeFilter
-              value={selectedGametype}
-              options={gametypeOptions}
-              onChange={setGametypeFilter}
-            />
-          )}
+      {/* THE PAGE'S MAIN — one element around everything below the header, and
+          the only place this page's content well is declared. Inside it are four
+          stacked blocks: the club's name, the mobile tab bar, the mobile filter
+          row, and the two columns that take the rest of the height. */}
+      <main className={cls('pageMain', 'pageMain-fills', styles.main)}>
+        {/* Club title — a full-width row spanning both body columns.
+            The "Club:" / "Solo Club:" prefix says what kind of venue
+            this page is (solo = the '='-prefixed one-member club). */}
+        <div className={styles.clubNameBlock}>
+          <h1 className={styles.clubName}>
+            {soloClub ? 'Solo Club: ' : 'Club: '}
+            {club.name}
+          </h1>
         </div>
-      )}
 
-      {/* Two-column body that takes the rest of the viewport height
-          (per docs/ui.md → "Page-height fits the viewport"). Left
-          column holds the active game card + start-game buttons;
-          right column is the "Other games" list as a fixed-size
-          frame with internal overflow-y: auto. The `data-tab` attr
-          drives the mobile single-column view (see the CSS); it's
-          inert on desktop where both columns are always shown. */}
-      <main className={cls('pageMain', styles.columns)} data-tab={mobileTab}>
-        <section className={styles.left}>
-          {activeGame && (
-            <div>
-              <h3>Join the active game</h3>
-              {/* The prominent callout — UNCHANGED by the current game also
-                  being listed on the right. `variant="standalone"` is what
-                  keeps it a bordered, larger-titled card; the copy of it in
-                  "Your games" takes the default row register. */}
-              <ClubGameCard
-                gameId={activeGame.gameId}
-                gametype={activeGame.gametype}
-                title={activeGame.title}
-                statusLabel={activeGame.statusLabel}
-                lastActiveAt={activeGame.lastActiveAt}
-                state="active"
-                variant="standalone"
-                soloClub={soloClub}
-                onDelete={() => handleDelete(activeGame.gameId, true)}
-              />
-            </div>
-          )}
+        {/* Mobile-only view switcher (phones + portrait tablets). On
+            desktop this bar is display:none and both columns show side
+            by side; below the breakpoint only the selected column
+            renders, so the page still fits the viewport without
+            scrolling. Labels are kept short + count-free — the section
+            headings (which carried the count) are hidden on mobile.
 
-          <div className={styles.startBlock}>
-            {/* Heading + its filter, one row. The whole row is hidden on
-                mobile (the tab bar names the view and the mobile filter row
-                above carries the control). */}
-            <div className={cls('heading-with-controls', styles.headingRow)}>
-              <h3>Start a new game</h3>
-              <ModeFilter value={effectiveMode} onChange={setModeFilter} soloClub={soloClub} />
-            </div>
-            {/* The scrolling card: the heading above stays put; only the
-                button list inside this frame scrolls (mirrors the right
-                column's heading + gamesList split). Also one of the page's
-                two KEYBOARD tab stops (see the kb-nav block above): the
-                container takes focus, arrows move the cursor, Enter starts. */}
-            <div
-              ref={startListRef}
-              className={cls('item-list', styles.startList)}
-              tabIndex={0}
-              role="group"
-              aria-label="Start a new game"
-              onKeyDown={listKeyDown('start')}
-              onFocus={(e) => {
-                if (e.target === e.currentTarget) setFocusedList('start')
-              }}
-              // Don't blank the cursor while the setup dialog is up. Beyond
-              // being pointless (the list isn't interactive behind a modal),
-              // this state update used to land BETWEEN the mousedown and the
-              // click of the dialog's own buttons — focus leaves this container
-              // the moment you press one — and the re-render it caused dropped
-              // that in-flight click, so Cancel did nothing. closeSetup() hands
-              // focus back here when the dialog goes away.
-              onBlur={(e) => {
-                if (e.target === e.currentTarget && !activeSetup)
-                  setFocusedList((f) => (f === 'start' ? null : f))
-              }}
-            >
-              {/* visibleStartable = the registry filtered by the club's
-                  allowed-gametype m2m AND by the mode filter, in display order
-                  (see the kb-nav block); StartGameButtons handles the rendering, in-flight
-                  state, and disabled-for-doesn't-fit tooltip. ClubPage stays
-                  game-agnostic; the RPC call lives inside the manifest.
-                  Add boggle later and (assuming the m2m is populated for
-                  this club) a button appears here automatically. */}
-              {/* Unlike the games list, THIS one a filter really can empty: a
-                  club enrolled in only coop gametypes, filtered to Compete.
-                  Say so rather than showing a blank card. */}
-              {visibleStartable.length === 0 ? (
-                <p className={cls('muted', 'item-list-empty')}>
-                  {effectiveMode === 'all'
-                    ? 'No games available in this club.'
-                    : `No ${MODE_LABEL[effectiveMode]} games in this club.`}
-                </p>
-              ) : (
-                <StartGameButtons
-                  games={visibleStartable}
-                  memberCount={members.length}
-                  onStartSetup={handleStartSetup}
-                  soloClub={soloClub}
-                  cursor={startKbCursor}
-                  onCursorTo={setStartCursor}
-                />
-              )}
-            </div>
-            {startError && <p className="error">{startError}</p>}
-          </div>
-        </section>
-
-        <section className={styles.right}>
-          {/* "Your games" = every game this club has, the current one
-              included — current / shelved / finished being a flag on the row
-              rather than three sections (docs/states.md). The count is of
-              what's SHOWING, so it agrees with the list under a filter. */}
-          <div className={cls('heading-with-controls', styles.headingRow)}>
-            <h3>Your games ({visibleGames.length})</h3>
-            <GametypeFilter
-              value={selectedGametype}
-              options={gametypeOptions}
-              onChange={setGametypeFilter}
-            />
-          </div>
-          {/* Fixed-size frame with internal scroll. The frame has
-              flex: 1 inside the column, which has its own flex: 1
-              inside the body, which is bounded by the .frame's
-              calc(100vh - body padding) height. Each step of the
-              flex chain needs min-height: 0 so overflow-y: auto
-              actually kicks in. */}
-          {/* The page's other KEYBOARD tab stop — same contract as the
-              start list: focus the container, arrows move, Enter opens. */}
-          <div
-            ref={gamesListRef}
-            className={cls('item-list', styles.gamesList)}
-            tabIndex={0}
-            role="group"
-            aria-label="Your games"
-            onKeyDown={listKeyDown('games')}
-            onFocus={(e) => {
-              if (e.target === e.currentTarget) setFocusedList('games')
-            }}
-            onBlur={(e) => {
-              if (e.target === e.currentTarget)
-                setFocusedList((f) => (f === 'games' ? null : f))
-            }}
+            These are two toggle BUTTONS (`aria-pressed`), NOT an ARIA tabs
+            pattern. `role="tab"` would promise the full tabs keyboard model —
+            a single tab-stop with arrow-key navigation between tabs, plus
+            `aria-controls`/`role="tabpanel"` wiring — which we don't implement
+            (this is a touch-first two-way switch; you tap it). `aria-pressed`
+            is the honest shape: two independent toggle buttons whose pressed
+            state says which view is showing. `role="group"` + a label ties
+            them together for assistive tech without over-claiming behavior. */}
+        <div className={cls('segmented', styles.tabs)} role="group" aria-label="Show new game or your games">
+          <button
+            type="button"
+            aria-pressed={mobileTab === 'new'}
+            className={styles.tab}
+            onClick={() => setMobileTab('new')}
           >
-            {/* No "nothing matches that filter" case here: the dropdown only
-                offers families that ARE in the list, so a selection can't
-                empty it (and a selection that goes stale falls back to
-                'all' — see selectedGametype). */}
-            {visibleGames.length === 0 ? (
-              <p className={cls('muted', 'item-list-empty')}>No games yet.</p>
+            New game
+          </button>
+          <button
+            type="button"
+            aria-pressed={mobileTab === 'completed'}
+            className={styles.tab}
+            onClick={() => setMobileTab('completed')}
+          >
+            Your games
+          </button>
+        </div>
+
+        {/* Mobile-only filter row. On desktop each filter lives at the right of
+            its column's heading (below); on mobile those headings are gone —
+            the tab bar names the view — so the filter for the SHOWING tab goes
+            directly under the tabs, where the heading would have been.
+
+            Both filters are therefore in the tree twice, one instance hidden by
+            the breakpoint. The alternative — a single instance moved by CSS —
+            isn't available: the desktop home is inside a column, the mobile one
+            is a sibling of the tab bar, and no CSS relocates an element across
+            containers. The components are stateless (all state lives here), so
+            the two instances can't disagree.
+
+            The ROW ITSELF is conditional, not just its contents: a solo club has
+            no mode filter (see ModeFilter), and an empty row would still take the
+            .frame's 1rem gap — a mystery band of space under the tabs. */}
+        {!(mobileTab === 'new' && soloClub) && (
+          <div className={styles.mobileFilters}>
+            {mobileTab === 'new' ? (
+              <ModeFilter value={effectiveMode} onChange={setModeFilter} soloClub={soloClub} />
             ) : (
-              visibleGames.map((g, i) => (
-                <ClubGameCard
-                  key={g.gameId}
-                  gameId={g.gameId}
-                  gametype={g.gametype}
-                  title={g.title}
-                  statusLabel={g.statusLabel}
-                  lastActiveAt={g.lastActiveAt}
-                  // The current game is a row like any other here — only its
-                  // orange flag (from state='active') sets it apart.
-                  state={gameState(g)}
-                  soloClub={soloClub}
-                  // Deleting the CURRENT game has to move its viewers out
-                  // first, so the flag that drives that is per-row now.
-                  onDelete={() => handleDelete(g.gameId, g.gameId === activeGameId)}
-                  kbCursor={i === gamesKbCursor}
-                  // Clicking a card selects it too, so mouse and keyboard agree
-                  // on "the selected game" (this list navigates away on click,
-                  // so it mostly matters on the way back).
-                  onCursorTo={() => setGamesCursor(i)}
-                />
-              ))
+              <GametypeFilter
+                value={selectedGametype}
+                options={gametypeOptions}
+                onChange={setGametypeFilter}
+              />
             )}
           </div>
-        </section>
+        )}
+
+        {/* Two-column body that takes the rest of the viewport height
+            (per docs/ui.md → "Page-height fits the viewport"). Left
+            column holds the active game card + start-game buttons;
+            right column is the "Other games" list as a fixed-size
+            frame with internal overflow-y: auto. The `data-tab` attr
+            drives the mobile single-column view (see the CSS); it's
+            inert on desktop where both columns are always shown. */}
+        <div className={styles.columns} data-tab={mobileTab}>
+          <section className={styles.left}>
+            {activeGame && (
+              <div>
+                <h3>Join the active game</h3>
+                {/* The prominent callout — UNCHANGED by the current game also
+                    being listed on the right. `variant="standalone"` is what
+                    keeps it a bordered, larger-titled card; the copy of it in
+                    "Your games" takes the default row register. */}
+                <ClubGameCard
+                  gameId={activeGame.gameId}
+                  gametype={activeGame.gametype}
+                  title={activeGame.title}
+                  statusLabel={activeGame.statusLabel}
+                  lastActiveAt={activeGame.lastActiveAt}
+                  state="active"
+                  variant="standalone"
+                  soloClub={soloClub}
+                  onDelete={() => handleDelete(activeGame.gameId, true)}
+                />
+              </div>
+            )}
+
+            <div className={styles.startBlock}>
+              {/* Heading + its filter, one row. The whole row is hidden on
+                  mobile (the tab bar names the view and the mobile filter row
+                  above carries the control). */}
+              <div className={cls('heading-with-controls', styles.headingRow)}>
+                <h3>Start a new game</h3>
+                <ModeFilter value={effectiveMode} onChange={setModeFilter} soloClub={soloClub} />
+              </div>
+              {/* The scrolling card: the heading above stays put; only the
+                  button list inside this frame scrolls (mirrors the right
+                  column's heading + gamesList split). Also one of the page's
+                  two KEYBOARD tab stops (see the kb-nav block above): the
+                  container takes focus, arrows move the cursor, Enter starts. */}
+              <div
+                ref={startListRef}
+                className={cls('item-list', styles.startList)}
+                tabIndex={0}
+                role="group"
+                aria-label="Start a new game"
+                onKeyDown={listKeyDown('start')}
+                onFocus={(e) => {
+                  if (e.target === e.currentTarget) setFocusedList('start')
+                }}
+                // Don't blank the cursor while the setup dialog is up. Beyond
+                // being pointless (the list isn't interactive behind a modal),
+                // this state update used to land BETWEEN the mousedown and the
+                // click of the dialog's own buttons — focus leaves this container
+                // the moment you press one — and the re-render it caused dropped
+                // that in-flight click, so Cancel did nothing. closeSetup() hands
+                // focus back here when the dialog goes away.
+                onBlur={(e) => {
+                  if (e.target === e.currentTarget && !activeSetup)
+                    setFocusedList((f) => (f === 'start' ? null : f))
+                }}
+              >
+                {/* visibleStartable = the registry filtered by the club's
+                    allowed-gametype m2m AND by the mode filter, in display order
+                    (see the kb-nav block); StartGameButtons handles the rendering, in-flight
+                    state, and disabled-for-doesn't-fit tooltip. ClubPage stays
+                    game-agnostic; the RPC call lives inside the manifest.
+                    Add boggle later and (assuming the m2m is populated for
+                    this club) a button appears here automatically. */}
+                {/* Unlike the games list, THIS one a filter really can empty: a
+                    club enrolled in only coop gametypes, filtered to Compete.
+                    Say so rather than showing a blank card. */}
+                {visibleStartable.length === 0 ? (
+                  <p className={cls('muted', 'item-list-empty')}>
+                    {effectiveMode === 'all'
+                      ? 'No games available in this club.'
+                      : `No ${MODE_LABEL[effectiveMode]} games in this club.`}
+                  </p>
+                ) : (
+                  <StartGameButtons
+                    games={visibleStartable}
+                    memberCount={members.length}
+                    onStartSetup={handleStartSetup}
+                    soloClub={soloClub}
+                    cursor={startKbCursor}
+                    onCursorTo={setStartCursor}
+                  />
+                )}
+              </div>
+              {startError && <p className="error">{startError}</p>}
+            </div>
+          </section>
+
+          <section className={styles.right}>
+            {/* "Your games" = every game this club has, the current one
+                included — current / shelved / finished being a flag on the row
+                rather than three sections (docs/states.md). The count is of
+                what's SHOWING, so it agrees with the list under a filter. */}
+            <div className={cls('heading-with-controls', styles.headingRow)}>
+              <h3>Your games ({visibleGames.length})</h3>
+              <GametypeFilter
+                value={selectedGametype}
+                options={gametypeOptions}
+                onChange={setGametypeFilter}
+              />
+            </div>
+            {/* Fixed-size frame with internal scroll. The frame has
+                flex: 1 inside the column, which has its own flex: 1
+                inside the body, which is bounded by the .frame's
+                calc(100vh - body padding) height. Each step of the
+                flex chain needs min-height: 0 so overflow-y: auto
+                actually kicks in. */}
+            {/* The page's other KEYBOARD tab stop — same contract as the
+                start list: focus the container, arrows move, Enter opens. */}
+            <div
+              ref={gamesListRef}
+              className={cls('item-list', styles.gamesList)}
+              tabIndex={0}
+              role="group"
+              aria-label="Your games"
+              onKeyDown={listKeyDown('games')}
+              onFocus={(e) => {
+                if (e.target === e.currentTarget) setFocusedList('games')
+              }}
+              onBlur={(e) => {
+                if (e.target === e.currentTarget)
+                  setFocusedList((f) => (f === 'games' ? null : f))
+              }}
+            >
+              {/* No "nothing matches that filter" case here: the dropdown only
+                  offers families that ARE in the list, so a selection can't
+                  empty it (and a selection that goes stale falls back to
+                  'all' — see selectedGametype). */}
+              {visibleGames.length === 0 ? (
+                <p className={cls('muted', 'item-list-empty')}>No games yet.</p>
+              ) : (
+                visibleGames.map((g, i) => (
+                  <ClubGameCard
+                    key={g.gameId}
+                    gameId={g.gameId}
+                    gametype={g.gametype}
+                    title={g.title}
+                    statusLabel={g.statusLabel}
+                    lastActiveAt={g.lastActiveAt}
+                    // The current game is a row like any other here — only its
+                    // orange flag (from state='active') sets it apart.
+                    state={gameState(g)}
+                    soloClub={soloClub}
+                    // Deleting the CURRENT game has to move its viewers out
+                    // first, so the flag that drives that is per-row now.
+                    onDelete={() => handleDelete(g.gameId, g.gameId === activeGameId)}
+                    kbCursor={i === gamesKbCursor}
+                    // Clicking a card selects it too, so mouse and keyboard agree
+                    // on "the selected game" (this list navigates away on click,
+                    // so it mostly matters on the way back).
+                    onCursorTo={() => setGamesCursor(i)}
+                  />
+                ))
+              )}
+            </div>
+          </section>
+        </div>
       </main>
 
       {/* The chat-bubble toggle lives in the header (<ChatBubble>

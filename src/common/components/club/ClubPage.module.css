@@ -25,20 +25,24 @@
   --pageMain-width: 62.5rem;
 }
 
-/* This page's pageMain is FOUR siblings, not one — the club name, the mobile
- * tab bar, the mobile filter row and the two-column body all sit in the same
- * centered well. Each takes the shared `.pageMain` (width, centering,
- * min-height: 0) and adds only what is its own. Making them one element is
- * club-page work; sharing the well is not.
- *
- * The two-column body is the one that FILLS, and it cannot use
- * `.pageMain-fills`: that hands down a flex COLUMN, and this is the app's one
- * place that hands height down through a row. */
+/* The page's `<main>` supplies the well (the shared `.pageMain`) and the flex
+ * column that fills it (`.pageMain-fills`). All it adds is the space between
+ * its four stacked blocks. */
+/* @@ */ .main {
+  gap: var(--spacer-2);
+}
+
+/* The two-column body, which takes whatever height the blocks above it leave.
+ * `min-height: 0` is what lets each column's list scroll rather than the column
+ * growing to fit; `flex-direction: row` is why this cannot be `.pageMain-fills`
+ * itself — that hands height down through a COLUMN, and this is the app's one
+ * place that hands it down through a row. */
 /* @@ */ .columns {
   flex: 1;
   display: flex;
   flex-direction: row;
   gap: 1rem;
+  min-height: 0;
 }
 
 /* The two columns. Each takes half the width and has a DEFINITE height —
