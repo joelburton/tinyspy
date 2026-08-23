@@ -9,10 +9,14 @@
 }
 
 /* Scaled up against the h1 — at the disc's em-relative default it reads as a
- * speck here. `--dot-size` is the shared knob (Dot.module.css). */
+ * speck here. `--dot-size` is the shared knob (Dot.module.css).
+ *
+ * No margin: the gap to the username is a word space, written in the markup
+ * (HomePage.tsx). This is one line of type rather than two areas of a layout,
+ * so the font's own space is the right measure — and it tracks the h1 without
+ * anyone naming a number. */
 /* @@ */ .greetingDot {
 /* @@ */   --dot-size: 0.7em;
-  margin-right: 0.45em;
 }
 
 /* @@ */ .clubName {

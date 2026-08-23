@@ -220,7 +220,9 @@ export function HomePage({ session }: Props) {
           {username ? (
             <>
               <Dot color={profile?.color} className={styles.greetingDot} />
-              {username} — welcome!
+              {/* A non-breaking space, not a CSS margin: the disc sits IN this
+                  line of type, so the gap it wants is the font's word space. */}
+              &nbsp;{username} — welcome!
             </>
           ) : (
             'Welcome!'

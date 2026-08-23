@@ -267,10 +267,6 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/components/game/RankBar.module.css': ['8px', '0.5rem'],
       'src/common/components/game/Stats.module.css': ['8px', '12px', '2px', '0.25rem'],
       'src/common/components/game/StrikeMarks.module.css': ['0.3rem', '0.4rem'],
-      // The row this whole mechanism was reshaped for: the homepage's gap
-      // converted to `--spacer-2` and is now PROTECTED, while F7's em-relative
-      // disc gap is still open and still excused. One file, two fates.
-      'src/common/components/home/HomePage.module.css': ['0.45em'],
       'src/common/components/palette/PalettePage.module.css': ['1rem', '0.75rem', '2.5rem', '0.25rem', '0.5rem', '0.35rem', '0.15rem'],
       'src/common/components/panels/FloatingPanel.module.css': ['0.5rem'],
       'src/common/components/panels/GameScratchpad.module.css': ['0.4rem', '0.5rem'],

@@ -1124,7 +1124,7 @@ vocabulary; invent it if we ever need it.
 
   The granularity was wrong, and the homepage proved it the day it landed.
   `HomePage.module.css` converted `.frame`'s gap to `--spacer-2` and stayed on
-  the pending list, because F7's `0.45em` on the greeting disc is still open —
+  the pending list, because F7's `0.45em` on the greeting disc was still open —
   so the conversion we had just made was **unprotected**: writing `1rem` back
   would have been silent. A partially converted file is the NORMAL case, not
   the exception, and "what survives is what a test asserts" is this document's
@@ -1140,6 +1140,49 @@ vocabulary; invent it if we ever need it.
   filenames and starts being an inventory of what is left.
 - **What `css-philosophy.md` becomes** when this ships. It is reasoning about
   decided design — neither work-in-flight nor current-state. Joel wants it kept.
+
+- **Should there be an EM vocabulary, and is it one vocabulary or two?** Raised
+  in the homepage area (F7, where a disc's gap to its username was em on
+  purpose — it tracks the h1). The eight are rem or unitless; the one em
+  vocabulary we already have is `letter-spacing`, and nobody thought that odd,
+  because a ratio to the type is a perfectly good thing to name.
+
+  Measured across `src/` while F7 was open, and the inventory FORKS:
+
+  - **em spacing *between* things — two values.** `HomePage`'s `0.45em`
+    (now gone, F7) and `button.css`'s `.icon-button { gap: 0.4em }`, the
+    icon-to-label gutter. Two numbers that almost certainly want to be one.
+  - **em *sizing to* the type — about ten, and growing.** `--dot-size` at
+    `0.6` / `0.65` / `0.7em` across four files, `--filter-select-dot: 0.65em`,
+    EntryBox's caret `height: 1.15em`, `StrikeMarks` at `1.05em`,
+    `NextPuzzleField`'s `min-height: 1.4em`.
+
+  The second family is the one with a real spread, and none of it is visible to
+  a spacer guard — they are widths, heights and custom properties, not `gap` or
+  `margin`. So the question is not only "do we want an em ramp" but "is *size
+  relative to the type* its own vocabulary". Two data points is too few to
+  decide on; this gets re-asked when a later area adds to either list.
+
+- **A guard has to tell bespoke-BY-INTENT from bespoke-by-laziness** (Joel,
+  2026-08-22). The vocabularies exist to answer two questions — *"are we going
+  crazy-stupid with bespoke numbers?"* and *"before I make up a value, should I
+  check whether it fits a vocabulary?"* — and neither one requires bespoke to be
+  rare. Boards especially are almost always bespoke, and that is correct.
+
+  Today `vocabularies.test.ts` knows two states: converted, and `pending`.
+  `pending` means *nobody has looked yet*, which is exactly what a deliberate
+  bespoke value is not — so a value someone decided has nowhere to live but a
+  row that lies about it, and the guard's only other move is to push the value
+  onto a ramp it does not belong on. That is the pressure to avoid: a guard
+  should never make bespoke the expensive choice.
+
+  What is missing is a third state, marked AT THE DECLARATION with its reason,
+  which the guard reads and COUNTS rather than fails on. §7's a/b/c rule already
+  says this in prose and `list.css:129` already writes the annotation by hand
+  (`.item-row`'s padding, "tuned to the box, not taken from a ramp") — nothing
+  reads it, so nothing can answer the first question. Due before the first
+  gameboard area, since that is where the count either stays legible or stops
+  meaning anything.
 
 ## 19. The midnight spike — moved out
 

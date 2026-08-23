@@ -4,9 +4,10 @@ The first area of the CSS sprint's step 7. The process is
 [css-system-2.md](../css-system-2.md) §21; the plan holds the order, this file
 holds everything else.
 
-**Status: audited, and PAUSED for scaffolding.** Twenty-two findings, eight
-resolved (F1, F2, F4, F5, F6, F6.1, F8, F22). Shipped: the two fixes, the class
-guard, the vocabularies, the font-weight rule and the z- ladder.
+**Status: audited, scaffolding done, RESUMED.** Twenty-two findings, nine
+resolved (F1, F2, F4, F5, F6, F6.1, F7, F8, F22). Shipped: the two fixes, the
+class guard, the vocabularies, the font-weight rule, the z- ladder and the
+greeting's word space.
 
 **The pause is Joel's call (2026-08-22), and the reason generalizes:** the first
 area pays for the toolkit every later area will use. F5 and F22 are not homepage
@@ -310,7 +311,30 @@ reason written in the file. `0.7em` also has a second reader — `Menu.module.cs
 sets exactly the same `--dot-size` — which is the only place two dot sizes in the
 app agree.
 
-> resolution:
+> **resolution (Joel, 2026-08-22): F7.3 — the margin becomes a word space, and
+> F7 is CLOSED.** `margin-right: 0.45em` is gone; the JSX writes `&nbsp;` before
+> the username. A space is em-relative and font-relative for free, so it tracks
+> the h1 exactly as the margin did, with no token, no vocabulary arm and no
+> guard exception — and `HomePage.module.css` leaves the spacer pending list
+> entirely, since `0.45em` was the only value on its row.
+>
+> It suits what the vocabulary is for. §6.6 defines "spacer" as the space
+> BETWEEN things; disc-to-username is one line of type, and a word gap takes the
+> font's word space.
+>
+> **It is a real visual change, measured in Roboto Flex at the h1's 1.5rem:
+> 10.8px → 6px** (a space is exactly `0.25em`; two would give 12px). Joel looked
+> at the running app: *"a nbsp look fine"*.
+>
+> `--dot-size: 0.7em` is untouched, and was never in scope — it is a custom
+> property, and the spacer guard reads `gap` and `margin*` only. F5's table
+> already had it as a contract slot rather than a decision.
+>
+> **Two things this raised are NOT homepage work and went to the plan's §18**,
+> on Joel's instruction: whether there should be an em vocabulary (with the
+> measured inventory, which forks into em-spacing and em-sizing), and that a
+> guard must distinguish bespoke-by-intent from bespoke-by-laziness rather than
+> making bespoke expensive.
 
 **F8 · `font-weight` is not one of the eight, and the app writes six values.**
 Counted across `src/`: `600` ×54, `700` ×40, `500` ×14, `800` ×9, `400` ×3,
@@ -635,9 +659,11 @@ Written before any change, so the diff against it is the signal (§21).
   **Half wrong, and the wrong half is the useful one: `HomePage.module.css` IS
   on the spacer pending list**, because F7 is open. Its gap converted; its
   `0.45em` did not, and a file leaves the list only when it stops offending
-  entirely. So this area cannot clear its own row until F7 is answered — which
-  is the prediction earning its keep, since the plan to write the row off was
-  made before anyone noticed the two numbers had different fates.
+  entirely. So this area could not clear its own row until F7 was answered —
+  which is the prediction earning its keep, since the plan to write the row off
+  was made before anyone noticed the two numbers had different fates. **F7 then
+  answered it by deleting the value rather than converting it**, and the row is
+  now gone.
 - **Actual suite movement**: 1960 → **1968 in 201 files**. One new `it` per
   vocabulary entry: spacer, font-weight, font-size, line-height, opacity,
   letter-spacing, transition-duration, border-width. No test's assertions
