@@ -115,6 +115,38 @@ const VOCABULARIES: Vocabulary[] = [
       'one of them is a question for Joel, not a rounding.',
   },
   {
+    /**
+     * The vocabulary we did not have to invent, and the only entry here with
+     * no tokens behind it: CSS already ships one, `100` … `900`. Those are the
+     * numbers the property takes, so a token would do nothing but rename them.
+     *
+     * What the sprint gets is the RULE — a font-weight is a multiple of 100 —
+     * and a weight that isn't is a bug. `650` renders as `700` in most
+     * families anyway, so what it really records is a moment of tuning
+     * against one typeface at one size.
+     *
+     * `root: '.'` because this is not a per-game decision. A game's board is
+     * tuned to that game; how many distinct weights of text the app owns is a
+     * question about the app, and being tuned buys no freedom over it.
+     */
+    name: 'font-weight',
+    properties: ['font-weight'],
+    // The keywords defer to somewhere else rather than choosing a value,
+    // which is the opposite of writing a literal.
+    allowed: /^([1-9]00|normal|bold|lighter|bolder|inherit|initial|unset|revert)$/,
+    root: '.',
+    pending: [
+      // letterboxed's two `650`s — the whole cost of the rule, and they are
+      // fixed by the `letterboxed` area's audit, not swept now.
+      'src/letterboxed/components/Board.module.css',
+      'src/letterboxed/components/PlayArea.module.css',
+    ],
+    fix:
+      'A font-weight is a multiple of 100 — that is the scale CSS itself ' +
+      'defines, and we add nothing to it. A value between two steps is tuned ' +
+      'to one typeface at one size and usually renders as its neighbor anyway.',
+  },
+  {
     name: 'spacer',
     // Gap and margin, in every spelling each has. PADDING IS DELIBERATELY
     // ABSENT — plans/css-system-2.md §6.6: whether the room inside a box
