@@ -1,45 +1,57 @@
 // cs-unmet
 
-import { ActionButton } from './ActionButton'
+import { BareIconButton } from './BareIconButton'
+import styles from './PauseButton.module.css'
 
 type Props = {
+  /** Is the game paused right now — from either source? */
   paused: boolean
+  /** Is that pause a MANUAL one (someone pressed this button)? A presence
+   *  pause — we're waiting on a player who left — is not clearable from here. */
+  manual: boolean
   onPause: () => void
+  onUnpause: () => void
 }
 
 /**
- * The pause affordance in the GamePage header. Click fires manual pause via
- * `onPause` (wired to `sendManualPause` from `useCommonGame` at the GamePage
- * level).
+ * The pause affordance in the GamePage header: ONE button with two faces.
  *
- * Disabled when the game is already paused — the resume affordance lives on
- * `<PauseOverlay>`, not in the header. This is deliberate: we want a
- * single-purpose "pause now" icon, not a toggle, so the header stays
- * semantically simple.
+ *   playing            two bars — press to pause
+ *   manually paused    a triangle — press to resume
+ *   presence-paused    a triangle, dimmed and inert
  *
- * Always present, even on untimed games. Manual pause is universal: "moth is
- * making tea" doesn't depend on whether there's a clock to freeze. Per
- * docs/ui.md → GamePage header.
+ * The third state is the one worth reading twice. When the game is paused
+ * because someone left, the button still shows the resume face, because that IS
+ * the state of the game — but it is disabled, because you cannot clear that
+ * pause: the player we are waiting on has to come back, or someone shelves the
+ * game from the overlay. A control that looked pressable and did nothing would
+ * be worse than one that says "not yours to undo".
  *
- * It is an `ActionButton` like every other purpose button, in the QUIET tone —
- * pausing is a real thing you can do, but it is never the thing we are pointing
- * you at. It was hand-rolled with its own stylesheet until 2026-08-18, for no
- * reason its comments ever gave; the module said it wanted "a visible
- * rounded-rect border so the glyph reads as a proper pause BUTTON", and then
- * drew that border in a PAGE token (`--page-surface-border-color`) far too faint
- * to deliver it.
+ * Resuming from here needs no permission check — `PauseOverlay` already
+ * documents that any connected player may resume, with no privileged
+ * "original pauser".
+ *
+ * NOT RENDERED once the game is over (GamePage decides). `useCommonGame` forces
+ * `paused` false at `ended_at`, so a pause button on a finished game could only
+ * ever look live and do nothing — and hiding it hands the phone header back
+ * ~38px at exactly the moment there is nothing to pause. The page switch stays
+ * flush right through the change: it is the last child of a slot the left side
+ * grows into.
+ *
+ * A `<BareIconButton>` rather than a toned one: it is a mark in the header, not
+ * an action being offered (docs/ui.md → the button taxonomy). The resume face
+ * is green — see the module.
  */
-export function PauseButton({ paused, onPause }: Props) {
-  const label = paused ? 'Game paused' : 'Pause game'
+export function PauseButton({ paused, manual, onPause, onUnpause }: Props) {
+  const resumable = paused && manual
   return (
-    <ActionButton
-      icon={PauseGlyph}
+    <BareIconButton
+      icon={paused ? PlayGlyph : PauseGlyph}
       iconSize={20}
-      label={label}
-      iconOnly
-      tone="quiet"
-      onClick={onPause}
-      disabled={paused}
+      label={paused ? (manual ? 'Resume game' : 'Waiting for a player') : 'Pause game'}
+      className={resumable ? styles.resume : undefined}
+      disabled={paused && !manual}
+      onClick={resumable ? onUnpause : onPause}
     />
   )
 }
@@ -52,6 +64,18 @@ function PauseGlyph({ size }: { size?: number | string }) {
     <svg width={size} height={size} viewBox="0 0 20 20" aria-hidden="true">
       <rect x="5" y="4" width="3.5" height="12" rx="1" fill="currentColor" />
       <rect x="11.5" y="4" width="3.5" height="12" rx="1" fill="currentColor" />
+    </svg>
+  )
+}
+
+/** Its partner: the solid play triangle, drawn to the same optical weight and
+ *  in the same 20-unit box, so the two faces swap without the button's contents
+ *  changing size. Inline for the same reason as the bars — lucide's `Play` is
+ *  an outline. */
+function PlayGlyph({ size }: { size?: number | string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 20 20" aria-hidden="true">
+      <path d="M6 4l10 6-10 6z" fill="currentColor" />
     </svg>
   )
 }

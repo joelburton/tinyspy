@@ -41,3 +41,10 @@
   color: var(--page-text-color);
   padding: 0.25rem 0.5rem;
 }
+
+/* A STOPPED clock — the digits are not moving. Paused, or the game is over.
+ * Red, so the frozen state is legible from the number itself rather than from
+ * whatever else is on screen. */
+/* @@ */ .timerStopped {
+  color: var(--timer-stopped-color);
+}

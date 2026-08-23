@@ -758,6 +758,16 @@
 /* @@ */   --flex-color-1:  #00695c;  /* teal 800 */
 /* @@ */   --flex-color-2:  #6a1b9a;  /* purple 800 */
 
+  /* ══ TIMER ══════════════════════════════════════════════════════
+     The game clock in the header when it is NOT running: paused, or the
+     game is over. Red says "these digits are not moving" — a fact about the
+     clock, not a judgment about why it stopped.
+
+     A COPY of the destructive red rather than a reference to it: they are
+     the same today and are not the same decision. That family is about what
+     a BUTTON will do to you; this is about what the game is doing. */
+/* @@ */   --timer-stopped-color:          #b71c1c;
+
   /* ══ TOAST ══════════════════════════════════════════════════════
      A toast's left stripe — the whole of a toast's color; the message
      text carries the meaning. info and error are ALIASES: a toast is

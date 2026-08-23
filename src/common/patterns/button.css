@@ -139,6 +139,49 @@
   gap: 0.4em;
 }
 
+/* A BARE icon control: the glyph in body ink, no border, no fill, and a soft
+   background on hover. It reads as a MARK on the page rather than as a button
+   — which is what the things in the page header are: you press them, but they
+   are not offering you an action the way a Submit or a Delete is.
+
+   The chat and scratchpad bubbles are already exactly this, each with its own
+   copy of the rule; whether they move onto this class is a later question
+   (plans/areas/homepage.md → the header subject).
+
+   Sized by its own padding rather than a fixed box, so it hugs its glyph and
+   costs the header as little width as possible — the strip is tightest on a
+   phone, which is where these matter most.
+
+   NOT a tone. There is no family here and no `secondary` beneath it: an ink
+   glyph is the whole treatment, which is why this sits outside the five
+   families rather than inside them as a sixth. */
+/* @@ */ .bare-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.3rem;
+  border: none;
+  background: transparent;
+  color: var(--page-text-color);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition:
+    background var(--transition-duration-paint) ease,
+    color var(--transition-duration-paint) ease;
+}
+
+/* @@ */ .bare-icon-button:hover:not(:disabled) {
+  background: var(--page-surface-border-color);
+}
+
+/* Inert rather than absent: a presence-paused game shows the resume glyph so
+   the state is legible, and dims it because YOU cannot clear that pause — the
+   player we are waiting on has to come back. */
+/* @@ */ .bare-icon-button:disabled {
+  cursor: default;
+  opacity: var(--chrome-disabled-opacity);
+}
+
 /* Icon-ONLY rectangular button: keeps `.button`'s (or `secondary`'s) fill +
    border, but is a FIXED square box (not padding hugging the icon). Its
    `padding: 0` beats `.button`'s on source order — same weight, later in the

@@ -441,6 +441,12 @@
 /* @@ */   --flex-color-1:  #4db6ac;
 /* @@ */   --flex-color-2:  #ce93d8;
 
+  /* ══ TIMER ══════════════════════════════════════════════════════
+     A stopped clock. The daylight red is too dark to read here, so this
+     lifts the same way the destructive family does — and, as there, it is a
+     copy rather than a reference. */
+/* @@ */   --timer-stopped-color:          #e05252;
+
   /* ══ TOAST ══════════════════════════════════════════════════════ */
 /* @@ */   --toast-info-stripe-color:     var(--button-normal-primary-color);
 /* @@ */   --toast-success-stripe-color:  #66bb6a;

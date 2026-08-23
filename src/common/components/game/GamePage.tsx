@@ -42,6 +42,7 @@ import { TriggerWithChevron } from '../panels/TriggerWithChevron'
 import { PauseBoundary } from './PauseBoundary'
 import { PauseButton } from '../buttons/PauseButton'
 import { InfoSwitchButton } from './InfoSwitchButton'
+import { cls } from '../../lib/util/cls'
 import { PageHeader } from '../chrome/PageHeader'
 import { StatusSlot } from './StatusSlot'
 import { SuspendConfirmDialog } from './SuspendConfirmDialog'
@@ -449,9 +450,21 @@ export function GamePage({
   // escape; undefined hides that button.
   const endGameFn = manifest.endGame
 
-  const showTimer = commonGame.setup.timer?.kind === 'countup'
-    || commonGame.setup.timer?.kind === 'countdown'
   const gameOver = commonGame.ended_at !== null
+  // A COUNT-UP clock survives the end of the game and a COUNTDOWN does not, and
+  // the difference is what each one is for. A countdown is a budget: once the
+  // game is over it can only read 0:00, which says nothing anyone needs. A
+  // count-up is the answer to "how long did that take?", which is exactly the
+  // sort of thing you want to see once you are done — `useGameTimer` stops
+  // ticking at `is_terminal`, so it freezes on the final figure.
+  const timerKind = commonGame.setup.timer?.kind
+  const showTimer =
+    timerKind === 'countup' || (timerKind === 'countdown' && !gameOver)
+  // The clock is STOPPED whenever it is not counting — paused, or the game is
+  // over (`useGameTimer` keys `running` off `is_terminal`). Both go red: red
+  // says "these digits are not moving", which is a fact about the clock rather
+  // than a judgment about why.
+  const timerStopped = paused || gameOver
   const HelpComponent = manifest.help
 
   // The whole menu is owned by the current PlayArea (via setGameSections /
@@ -491,15 +504,29 @@ export function GamePage({
                 !isMobile`), and stay in place on desktop where there's room. */}
             {(!isMobile || infoOpen) && (
               <>
-                <PauseButton paused={paused} onPause={sendManualPause} />
-                {showTimer && !gameOver && (
-                  <span className={styles.timer}>
+                {/* Gone once the game is over: `paused` is forced false at
+                    `ended_at`, so a pause button there could only look live and
+                    do nothing. */}
+                {!gameOver && (
+                  <PauseButton
+                    paused={paused}
+                    manual={manuallyPausedBy !== null}
+                    onPause={sendManualPause}
+                    onUnpause={sendManualUnpause}
+                  />
+                )}
+                {showTimer && (
+                  <span className={cls(styles.timer, timerStopped && styles.timerStopped)}>
                     {formatTimerSeconds(timer.displaySeconds)}
                   </span>
                 )}
               </>
             )}
-            <InfoSwitchButton open={infoOpen} />
+            {/* Mobile only: on desktop the info column is always on screen, so
+                the switch would be a control with no destination. This used to
+                be a `display: none` in the button's own stylesheet; it is a
+                render decision, and `isMobile` is already in hand here. */}
+            {isMobile && <InfoSwitchButton open={infoOpen} />}
           </>
         }
       >
