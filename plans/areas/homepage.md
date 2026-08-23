@@ -1362,8 +1362,6 @@ those two is "a dev page that needs the room".
 > What is left for F26 (`three-wrappers`) is the only question this does not
 > answer: whether the three copies become one class.
 
-> resolution:
-
 **F34 · `stale-height-records` · Two stale records about page height**, both found while measuring:
 
 - `ClubPage.module.css`'s frame comment says *"The body's 2rem padding (in
