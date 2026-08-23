@@ -947,7 +947,7 @@ export function ClubPage({ handle, session }: Props) {
       {/* Club title — a full-width row spanning both body columns.
           The "Club:" / "Solo Club:" prefix says what kind of venue
           this page is (solo = the '='-prefixed one-member club). */}
-      <div className={styles.clubNameBlock}>
+      <div className={cls('pageMain', styles.clubNameBlock)}>
         <h1 className={styles.clubName}>
           {soloClub ? 'Solo Club: ' : 'Club: '}
           {club.name}
@@ -969,7 +969,7 @@ export function ClubPage({ handle, session }: Props) {
           is the honest shape: two independent toggle buttons whose pressed
           state says which view is showing. `role="group"` + a label ties
           them together for assistive tech without over-claiming behavior. */}
-      <div className={cls('segmented', styles.tabs)} role="group" aria-label="Show new game or your games">
+      <div className={cls('segmented', 'pageMain', styles.tabs)} role="group" aria-label="Show new game or your games">
         <button
           type="button"
           aria-pressed={mobileTab === 'new'}
@@ -1004,7 +1004,7 @@ export function ClubPage({ handle, session }: Props) {
           no mode filter (see ModeFilter), and an empty row would still take the
           .frame's 1rem gap — a mystery band of space under the tabs. */}
       {!(mobileTab === 'new' && soloClub) && (
-        <div className={styles.mobileFilters}>
+        <div className={cls('pageMain', styles.mobileFilters)}>
           {mobileTab === 'new' ? (
             <ModeFilter value={effectiveMode} onChange={setModeFilter} soloClub={soloClub} />
           ) : (
@@ -1024,7 +1024,7 @@ export function ClubPage({ handle, session }: Props) {
           frame with internal overflow-y: auto. The `data-tab` attr
           drives the mobile single-column view (see the CSS); it's
           inert on desktop where both columns are always shown. */}
-      <main className={styles.columns} data-tab={mobileTab}>
+      <main className={cls('pageMain', styles.columns)} data-tab={mobileTab}>
         <section className={styles.left}>
           {activeGame && (
             <div>
