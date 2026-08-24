@@ -678,7 +678,7 @@ plus justified's per-game half.)
 
 | area | |
 |---|---|
-| `club-page` | **The page shell.** *A page is an optional header above a centered, width-bounded body, and the body is either a card or a layout.* Verified on all six non-game pages: five are a 480px `.card`, ClubPage is a 1000px centered region that is NOT a card. A COMPONENT, like the header. GamePage is out of scope |
+| `simple-page` | **The page shell.** *A page is an optional header above a centered, width-bounded body, and the body is either a card or a layout.* Verified on all six non-game pages: five are a 480px `.card`, ClubPage is a 1000px centered region that is NOT a card. A COMPONENT, like the header. GamePage is out of scope. **Moved off `club-page` 2026-08-24**: the evidence is the card-only pages, and ClubPage is the exception the shell has to accommodate rather than the case it is designed from |
 | `club-page` | **The viewport-fit chain**, which the shell owns. `min-height: 0` appears 48× in 24 files doing TWO jobs: 17 sites are the chain (the **bound** — `max-height` on a centered card, `height` on a full-bleed page, only two sites; the **relay** — a flex column carrying it down; the **scroller**), and 31 are a flex/grid item allowed to shrink below its content, which is board geometry and stays. Eleven of the relays are steps 9–10 anyway. The relay still has no good name |
 | `club-page` | **`.frame` → `.page`.** It is the page's outer stack, not anything header-specific; all three pages declare nearly the same rule and only the bound differs. The word is taken: `frame` means "a rectangle around a board" in four places. Rename when the bound is settled, so the element is touched once |
 | `club-page` | **`<ModePill>` is a BADGE and should be renamed** — 27 references across `src/` and `e2e/`, plus `ui.md`'s "Mode pills" heading. Its module already reads the shared `.badge` and holds nothing but the two colors, so this is a name, not a conversion. **The rule it carries is general (Joel, 2026-08-22): "pill" means the FEEDBACK pill and nothing else** — the fully-round-ended lozenge is a badge, and the app has other loose uses (`ui.md`'s "chat unread pill", `base.css`'s "hint pills" in the `--radius-sm` comment). Fix each where its area comes up |
@@ -909,13 +909,36 @@ in their head. **The list grows**: every dependency that surfaces as `cs-found`
 is a candidate area, and one gets scheduled when the audit it would produce is
 too big to carry inside the area that found it (§21).
 
-| area | what it is |
-|---|---|
-| `homepage` | **OPEN, and paused for scaffolding.** The rehearsal for the full toolkit: patterns + vocabulary + the page shell, plus a **React pass** — the duplication is not only in the CSS. Audited; fourteen findings still open; the vocabularies and the z- ladder came out of it and are built (`plans/areas/homepage.md`) |
-| `dialogs-and-forms` | The first real win — many near-identical instances. (The font question that used to be parked here was answered early — §22.) |
-| `club-page` | Build **the page shell** (§7): an optional header above a centered, width-bounded body. Absorbs the punted viewport-fit chain, the `.frame` rename, `<ModePill>` reading the shared `.badge`, and the leftovers listed in "Why 6 stopped" |
-| `shared-game-chrome` | `common/components/game/` — 258 rules, and every game sits on it. Also: the **contract-slot guard**, checked per mount point (§9, §10) |
-| per game, one area each | CSS pass then tile-feedback pass, back to back. `psychicnum` first, as the control |
+**Resequenced 2026-08-24** — `simple-page` is new, and `club-page` moves behind
+it. Both changes come from the same discovery: the homepage cannot finish
+without `dialogs-and-forms`, and **the page shell was filed under the wrong
+area**.
+
+| # | area | what it is |
+|---|---|---|
+| 1 | `homepage` | **PAUSED 2026-08-24, two findings open and both waiting on area 2.** The rehearsal for the full toolkit: patterns + vocabulary + the page shell, plus a **React pass** — the duplication was not only in the CSS. F44 (`action-button-text-only`) is a `dialogs-and-forms` question, and F36 (`createclub-modal`) needs that area built before CreateClubPage can stop being a page. F21 (`homepage-no-vitest`) is deliberately LAST: there is no point pinning the page's shape, or `<SelectionList>`'s, while either can still move (`plans/areas/homepage.md`) |
+| 2 | `dialogs-and-forms` | The first real win — many near-identical instances. It also holds the question the homepage could not answer: **are a form's buttons really different from action buttons?** Seven hand-written Cancels say the taxonomy has a hole (F44). (The font question once parked here was answered early — §22.) |
+| 3 | `simple-page` | **NEW.** The pages that are not home, club or game: `LoginScreen`, `ClaimHandleScreen`, `ErrorPage`, `Loading` — and `CreateClubPage` until F36 takes it. **The roster's test is "does `App` render it directly?"**, which is better than "is it routable": it catches `ErrorPage` and `Loading`, both of which stand in for a page AND appear inside one (`ClubPage:719`, `:726`, `PlayAreaErrorBoundary:47`) — which is exactly what the shell decision has to cover |
+| 4 | `club-page` | Absorbs the punted viewport-fit chain, the `.frame` rename, `<ModePill>` reading the shared `.badge`, and the leftovers listed in "Why 6 stopped" |
+| 5 | `shared-game-chrome` | `common/components/game/` — 258 rules, and every game sits on it. Also: the **contract-slot guard**, checked per mount point (§9, §10) |
+| 6 | per game, one area each | CSS pass then tile-feedback pass, back to back. `psychicnum` first, as the control |
+
+**The page shell moves to `simple-page`.** It was filed under `club-page`, but
+its own evidence is five card-only pages with ClubPage as the lone exception —
+so it is a simple-page question that merely happened to be noticed on the club
+page. Deciding it where its instances are leaves `club-page` only having to
+explain why it is the exception, which is a far smaller question than deciding
+the shell and the exception together.
+
+`simple-page` also has its type already named and waiting: F37
+(`card-only-page`) settled that a **CardOnlyPage** is "a page that renders no
+header and whose pageMain happens to be a card", produced by an area with
+nothing to apply it to.
+
+**Out of the sprint entirely, and not on any roster:** `/palette` and `/font`.
+They are instruments — one renders the color families (and keeps reserved
+tokens alive for the guard), the other compares typefaces — and their audience
+is Joel. There is no user to make them consistent for.
 
 ### How a value gets converted (Joel, 2026-08-21)
 
