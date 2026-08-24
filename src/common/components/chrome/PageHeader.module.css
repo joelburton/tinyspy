@@ -66,3 +66,11 @@
   gap: 0.375rem;
   flex-shrink: 0;
 }
+
+/* ⚠️ TEMPORARY — REMOVE. A hairline around every item in both slots, so the
+   gaps between them can be seen for what they are. `outline`, not `border`, so
+   nothing moves: an outline is drawn outside the box and takes no layout. */
+.left > *,
+.right > * {
+  outline: 1px solid red;
+}

@@ -1163,6 +1163,27 @@ vocabulary; invent it if we ever need it.
   136 distinct literals — median 2 per file, max 8, 27 files with exactly one.
   The list roughly doubles in WIDTH, not in length, and stops being a list of
   filenames and starts being an inventory of what is left.
+- **Should `:hover` be gated to pointer devices, app-wide?** DEFERRED (Joel,
+  2026-08-24) — raised by the header's button work, not decided there.
+
+  A touch device applies `:hover` when you tap and leaves it applied until you
+  tap elsewhere, so on a phone a tapped row or button stays in its hover look
+  indefinitely. The app has never used `@media (hover: hover)`: every hover in
+  it fires on touch — list rows, menu items, the segmented control, every
+  `.button`, the header's marks.
+
+  The model that makes it a decision rather than a workaround: **hover is a
+  state only a pointer can be in** — "I am over this and have not committed" —
+  and a finger has no such state, it is either off or pressing. Which is why the
+  answer pairs with the other half: gate `:hover` to `(hover: hover)`, and give
+  touch its own feedback with `:active`, which the app currently has almost
+  nowhere.
+
+  The header's marks are where this first bites, because their background would
+  carry both hover and press. If it is right there it is right everywhere, and
+  the sweep is large — so the header may take it as a local rule first and the
+  app follows later, or not at all. Not decided.
+
 - **What `css-philosophy.md` becomes** when this ships. It is reasoning about
   decided design — neither work-in-flight nor current-state. Joel wants it kept.
 

@@ -39,7 +39,10 @@
   font-variant-numeric: tabular-nums;
   font-weight: 600;
   color: var(--page-text-color);
-  padding: 0.25rem 0.5rem;
+  /* No side padding: the clock is TEXT on the strip, not a control, so the
+     slot's gap is the whole space around it. Padding here only pushed the
+     buttons either side of it further away than the marks in the left slot. */
+  padding: 0.25rem 0;
 }
 
 /* A STOPPED clock — the digits are not moving. Paused, or the game is over.
