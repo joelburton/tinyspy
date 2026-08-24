@@ -2,7 +2,7 @@
 
 import type { CSSProperties } from 'react'
 import { setChatOpen, useChatOpen } from '../../lib/chat/chatOpenStore'
-import { PageHeaderButton } from '../chrome/PageHeaderButton'
+import { PageHeaderButton } from './PageHeaderButton'
 import { IconChat } from '../icons'
 import { useChatUnread } from '../../lib/chat/chatUnread'
 import styles from './ChatButton.module.css'

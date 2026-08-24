@@ -637,7 +637,7 @@ what still governs; how each was discovered is not kept.
 | `.heading-with-controls` | `patterns/heading.css` | a heading plus the control that acts on what is BELOW it. Owns the row, never the type. The `gap` is a MINIMUM (only bites when full); `min-width: 0` decides who gives, without saying how |
 | `.item-list` · `.item-row` · `.item-list-empty` | `patterns/list.css` | the hairline is the LIST's, not the row's — on the row it needs a `:last-child` rule that breaks the moment the row is wrapped. The ELEMENT FOLLOWS THE BEHAVIOR: `<a>` when the row navigates (middle-click is real), `<button>` otherwise |
 | `.segmented` | `patterns/segmented.css` | joined, not a row of buttons — the shape says the options are exclusive. Segments are NOT `.button`s: a button's own border and radius dismantle a segmented control. The chosen one reads `aria-pressed`, which the markup already carries |
-| `<PageHeader>` | `components/chrome/` | a COMPONENT — two slots are structure. Both slots always render. The height is a CONTRACT (`--page-header-height`), read by the component and by `--game-header-bottom` |
+| `<PageHeader>` | `components/page-header/` | a COMPONENT — two slots are structure. Both slots always render. The height is a CONTRACT (`--page-header-height`), read by the component and by `--game-header-bottom` |
 | `h1`–`h4` | `base.css` | four levels, and the LEVEL is the decision — a heading takes no class to be the right size. The sizes are for non-game pages; the info column steps down deliberately |
 | the `:global()` guard | `guards/cssTokens.test.ts` | a module styles its own elements: a `:global()` subject needs a local ancestor, or it restyles every surface |
 | the allowlist guard | `guards/vocabularies.test.ts` | the shrinking-list mechanism every vocabulary plugs into |
@@ -1630,7 +1630,7 @@ menu's home.
 
 Both are on the rename roster (Open item 4); no file has moved.
 
-**`components/chrome/` becomes `components/page-header/`, and everything about
+**`components/page-header/` becomes `components/page-header/`, and everything about
 the header goes in it** (Joel, 2026-08-24). `chrome/` holds only the three
 `PageHeader*` files today, so the folder was already the header's and merely
 named for a category it was the sole member of. If we later need a home for

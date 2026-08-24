@@ -28,8 +28,11 @@ Read the folder comment and match the file's **job**, not its shape. Some rules
 that fall out of the taxonomy and have bitten us before:
 
 - **Furniture that every page carries and no page owns** (the top strip) →
-  `components/chrome/`. It isn't home's, club's or game's just because all three
-  render it — filing it under any one of them is what let three copies drift.
+  `components/page-header/`. It isn't home's, club's or game's just because all
+  three render it — filing it under any one of them is what let three copies
+  drift. **A button that lives in the strip goes here too**, even when what it
+  opens lives elsewhere: `ChatButton` and `ScratchpadButton` are header marks,
+  not parts of chat or of the scratchpad.
 - A **reusable form control** (a labeled input/select/radio) → `components/fields/`,
   even if today it's only used by the setup dialog. Fields are general; the setup
   dialog is one consumer.
@@ -46,8 +49,11 @@ that fall out of the taxonomy and have bitten us before:
 
 ```
 components/
-  chrome/        # furniture every page carries, belonging to no one page
-      PageHeader
+  page-header/   # everything about the top strip — furniture every page carries,
+                 #   belonging to no one page, including the marks that open a
+                 #   floating panel from it
+      PageHeader, PageHeaderButton, PageHeaderMenu, PageHeaderStatusSlot,
+      PageHeaderPlayersStrip, ChatButton, ScratchpadButton
   auth/          # pre-app screens — sign in, claim a handle
       LoginScreen, ClaimHandleScreen
   home/          # the landing page after login (your clubs)
@@ -57,8 +63,8 @@ components/
       ModeFilter, GametypeFilter
   account/       # your own menu + profile editing
       UserMenu, EditProfileDialog, ColorChoiceList
-  chat/          # the club chat panel
-      ChatButton, ChatBody, FloatingChat
+  chat/          # the club chat floating panel (its header mark is in page-header/)
+      ChatBody, FloatingChat
   setup/         # the start-a-game dialog (collect per-game options → create)
       SetupGameDialog, SetupDisclosure
   fields/        # reusable form controls (any form, not just setup)
@@ -66,7 +72,7 @@ components/
       CoopStyleField, NextPuzzleField
   game/          # a live game's shell + the chrome around the play surface
       GamePage, PauseBoundary, PauseOverlay, SuspendConfirmDialog,
-      PageHeaderStatusSlot, PageHeaderPlayersStrip, OpponentStrip, ModePill, StrikeMarks, GameInvitations
+      OpponentStrip, ModePill, StrikeMarks, GameInvitations
     entry/       # the in-game typed-move input — the word box + its row
         EntryBox, EntryRow
     terminal/    # what shows when a game ENDS
@@ -77,7 +83,7 @@ components/
       DefinitionPopover, DefinitionView, WordLookupDialog
   panels/        # generic floating/popup chrome (the draggable shell, the dropdown menu)
                  #   + the shared scratchpad panel/bubble that ride on it
-      FloatingPanel, Menu, GameScratchpad, ScratchpadButton
+      FloatingPanel, Menu, GameScratchpad
   feedback/      # the near-input validity pill ("not a word", "too short")
       GenericFeedbackPill
   toasts/        # the bottom-right announcement stack (a generic primitive)

@@ -1066,7 +1066,7 @@ paint. It deliberately doesn't read the token, so the two can part company.
 Home, club and game all carry the same strip: the menu trigger hard against the
 page's top-left (the body's own padding is the only margin), a thin rule
 beneath, and whatever else that page needs on the line. It is the shared
-[`<PageHeader>`](../src/common/components/chrome/PageHeader.tsx) — a **component
+[`<PageHeader>`](../src/common/components/page-header/PageHeader.tsx) — a **component
 rather than a class**, because the two slots are structure, and three pages each
 assembling the same skeleton by hand is how they drifted apart before.
 
@@ -1151,7 +1151,7 @@ from a stated size rather than a second guess at the browser's.
 
 `<h1>`–`<h6>` are **headings**; the strip at the top of the page is a **header**
 (`<header>`) and is the shared
-[`<PageHeader>`](../src/common/components/chrome/PageHeader.tsx). Different
+[`<PageHeader>`](../src/common/components/page-header/PageHeader.tsx). Different
 words for different things.
 
 `.heading-with-controls` in

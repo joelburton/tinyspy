@@ -2,7 +2,7 @@
 
 import { setScratchpadOpen, useScratchpadOpen } from '../../lib/scratchpad/scratchpadOpenStore'
 import { IconScratchpad } from '../icons'
-import { PageHeaderButton } from '../chrome/PageHeaderButton'
+import { PageHeaderButton } from './PageHeaderButton'
 
 /**
  * The scratchpad-panel toggle in the game header (rendered only for games

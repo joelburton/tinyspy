@@ -75,7 +75,7 @@ Two subjects were added later, each bringing its own files:
 | added | file | |
 |---|---|---|
 | 2026-08-22, basic page structure | `src/common/base.css` | its page-level half |
-| 2026-08-23, the page header | `src/common/components/chrome/PageHeader.tsx` + `.module.css` | |
+| 2026-08-23, the page header | `src/common/components/page-header/PageHeader.tsx` + `.module.css` | |
 | " | ~~`src/common/components/panels/MenuTrigger.tsx` + `.module.css`~~ | the trigger's standard content — **deleted by F12**; the logo is a `<Menu>` prop and the chevron is `IconMenuChevron` |
 
 `ClubPage` and `GamePage` were read as EVIDENCE for both, and are neither
@@ -1686,7 +1686,7 @@ visible here. *"I won't entirely sign off on everything now, since the homepage
 is missing lots of things that got into the slots, so we'll probably re-open in
 the clubpage, where we see more stuff."*
 
-**The files:** `components/chrome/PageHeader.tsx` + `.module.css`, and
+**The files:** `components/page-header/PageHeader.tsx` + `.module.css`, and
 `components/panels/MenuTrigger.tsx` + `.module.css`.
 
 **What the audit CONFIRMED, so it does not become a finding:**
@@ -2032,9 +2032,9 @@ becomes its own area is Joel's call.
 - `components/panels/Menu.tsx`
 - `components/panels/Menu.module.css`
 - ~~`components/panels/MenuTrigger.tsx`~~ · ~~`.module.css`~~ — deleted by F12
-- `components/chrome/PageHeaderMenu.tsx` — added by F12
-- `components/chrome/PageHeader.tsx`
-- `components/chrome/PageHeader.module.css`
+- `components/page-header/PageHeaderMenu.tsx` — added by F12
+- `components/page-header/PageHeader.tsx`
+- `components/page-header/PageHeader.module.css`
 
 **Stylesheets, reached through the global class names the page writes**
 

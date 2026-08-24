@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { PageHeaderButton } from '../chrome/PageHeaderButton'
+import { PageHeaderButton } from '../page-header/PageHeaderButton'
 import { IconInfoPanelClose, IconInfoPanelOpen } from '../icons'
 import { setInfoSheetOpen } from '../../lib/game/infoSheetStore'
 

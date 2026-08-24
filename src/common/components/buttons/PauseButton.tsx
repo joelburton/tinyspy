@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { PageHeaderButton } from '../chrome/PageHeaderButton'
+import { PageHeaderButton } from '../page-header/PageHeaderButton'
 import styles from './PauseButton.module.css'
 
 type Props = {
