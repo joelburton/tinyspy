@@ -1,7 +1,7 @@
 /* cs-unmet */
 
 /* The resume face, and the only thing this button adds to the shared
-   `.bare-icon-button`.
+   `<PageHeaderButton>`.
  *
  * GREEN, because a play triangle is a go signal and the app already has that
  * green: `success` is the family for a confirming yes. `primary` rather than

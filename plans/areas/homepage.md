@@ -4,16 +4,16 @@ The first area of the CSS sprint's step 7. The process is
 [css-system-2.md](../css-system-2.md) §21; the plan holds the order, this file
 holds everything else.
 
-**Status: RESUMED; three subjects.** Forty-three findings, THIRTY-SIX
+**Status: RESUMED; three subjects.** Forty-four findings, THIRTY-SIX
 resolved (F1, F2, F4, F5, F6, F6.1, F7, F8, F9, F10, F11, F14, F15,
 F16, F17, F18, F19, F20, F22, F23, F24, F25, F26, F27, F28, F29, F30, F31, F32,
 F33, F34, F35, F36, F37, F39, F40) — where "resolved" includes the ones FOLDED
 into a later finding rather than fixed.
 
-**Seven open: F3 (`home-keyboard-spec`), F12 (`page-header-trio`), F21
+**Eight open: F3 (`home-keyboard-spec`), F12 (`page-header-trio`), F21
 (`homepage-no-vitest`), F38 (`selection-lists`), F41 (`header-literals`),
-F42 (`chevron-outside-the-icon-set`), F43 (`unequal-mark-separation`).**
-F3 belongs to F38.
+F42 (`chevron-outside-the-icon-set`), F43 (`unequal-mark-separation`),
+F44 (`action-button-text-only`).** F3 belongs to F38.
 
 Shipped so far: the two dead-reference fixes, the class guard, the vocabularies,
 the font-weight rule, the z- ladder, the greeting's word space, the comment/doc
@@ -54,7 +54,7 @@ records the date he says he has.
 
 ## Findings
 
-**Numbered `F1` … `F43`, and sub-numbered `F6.1` where one finding grows its own
+**Numbered `F1` … `F44`, and sub-numbered `F6.1` where one finding grows its own
 list** (Joel, 2026-08-22). The prefix is the point: an hour into an area, "2" is
 whatever list was last on screen and `F2` is only ever this finding. Refer to
 them by their F-number everywhere — in this file, in conversation, in a commit
@@ -1684,6 +1684,53 @@ The comment in the file already computes the answer in prose — *"the visible
 separation is about 0.925rem, not 0.375rem"* — which is correct arithmetic
 today and is the kind of derived number that rots the moment a mark's padding
 changes.
+
+> resolution:
+
+**F44 · `action-button-text-only` · An action button cannot be text, so the
+app's plainest buttons are all written by hand.** Raised 2026-08-24 while
+working out what "+ New club" becomes when `CreateClubPage` turns into a modal
+(F36 `createclub-modal`).
+
+**`<ActionButton>` requires a glyph.** `icon` and `label` are both non-optional
+on it; what IS optional is one level up, in `PurposeButtonProps` — `label?`,
+`iconOnly?`, `tooltip?` — because each purpose wrapper supplies its own
+defaults. So the component has an `iconOnly` and no `labelOnly`: there is no way
+to render one as text with no mark.
+
+**Which is why the plainest buttons in the app are outside it.** 21 of the 23
+files in `components/buttons/` go through `ActionButton`; the exceptions are
+`ShuffleButton` (the board's round pill) and `PauseButton` (now a
+`PageHeaderButton`). But a Cancel is written by hand seven times —
+
+```tsx
+<button type="button" className="button secondary" onClick={onCancel}>Cancel</button>
+```
+
+— in `ConfirmDialog`, `SetupGameDialog`, `EditClubDialog`, `EditProfileDialog`,
+`ClaimHandleScreen`, `CreateClubPage` and scrabble's `BlankPicker`. Plus
+HomePage's "+ New club", which is the same markup on a `<Link>`, and whose `+`
+is a typed character rather than a glyph.
+
+`ActionButton`'s docstring frames this as a taxonomy decision — *"the cancels
+don't come through here at all; they are dialog buttons wearing the bare
+`secondary` class"* — but it reads more like a description of the constraint
+than an argument for it. **The component cannot express a text-only button, so
+they went elsewhere, and seven copies of one line is the shape this sprint keeps
+finding.**
+
+**What the finding asks for:** make the idea consistent — an action button may
+be icon + text, icon only, or **text only** — and bring the plain ones inside.
+Two things fall out of that, both small and both decisions rather than typing:
+
+1. `icon` becomes optional, and a glyph-less button's shape gets checked —
+   `.icon-button`'s `gap: 0.4em` between an absent icon and a label should be
+   harmless, but "should be" is not measured.
+2. It gives `tone="quiet"` its first caller. Nothing passes it today: every
+   quiet-colored control in the app reaches quiet through the theme's
+   `--button-slot-secondary-*` defaults instead, by three different routes — a
+   bare `<button>`, a `<Link>` wearing the classes, and (until today) an
+   `ActionButton`.
 
 > resolution:
 

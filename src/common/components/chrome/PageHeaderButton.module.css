@@ -1,0 +1,67 @@
+/* cs-unmet */
+
+/* The page header's marks — see PageHeaderButton.tsx.
+ *
+ * A MODULE rather than a global class, and that is the point: one component
+ * renders this, so nothing else can wear the look by sprinkling a class name
+ * on. Anything that wants it renders the component. */
+
+/* @@ */ .button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.3rem;
+  /* RESERVED, not added on open. The border below is how these say "the panel
+     I toggle is open", and a border that appears would move the glyph a pixel
+     — docs/ui.md → Layout stability. */
+  border: var(--border-width-line) solid transparent;
+  background: transparent;
+  color: var(--page-text-color);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  /* The anchor for `badge` — a count pinned to the corner (chat's unread). */
+  position: relative;
+  transition:
+    background var(--transition-duration-paint) ease,
+    border-color var(--transition-duration-paint) ease;
+}
+
+/* OPEN — the panel this toggles is showing. A BORDER, so it does not compete
+   with the background, which is saying something else entirely (below).
+   Written against both attributes because the consumers are honestly
+   different: a chat or scratchpad bubble is a pressed toggle, the page switch
+   discloses a panel. */
+/* @@ */ .button[aria-pressed='true'],
+/* @@ */ .button[aria-expanded='true'] {
+  border-color: var(--page-text-color);
+}
+
+/* HOVER — a pointer is over this and has not committed. Gated to devices that
+   HAVE a pointer: a touch device applies :hover on tap and leaves it applied
+   until you tap elsewhere, so on a phone this would be a light gray that never
+   goes away. A finger has no hover state — it is off, or it is pressing.
+   (Whether the whole app should do this is plans/css-system-2.md §18, open.)
+
+   QUIET's washes, both here and pressed. These are quiet buttons in every
+   respect except that the glyph is body ink rather than quiet gray, because a
+   header mark has to stay legible at a glance where a Cancel does not. */
+@media (hover: hover) {
+/* @@ */   .button:hover:not(:disabled) {
+    background: var(--button-quiet-secondary-hover-color);
+  }
+}
+
+/* PRESSING — right now, under a mouse button or a thumb. The one piece of
+   feedback a phone can actually get, and darker than hover so the two read as
+   degrees of the same thing. */
+/* @@ */ .button:active:not(:disabled) {
+  background: var(--button-quiet-secondary-press-color);
+}
+
+/* Inert rather than absent: a presence-paused game shows the resume glyph so
+   the state is legible, and dims it because YOU cannot clear that pause — the
+   player we are waiting on has to come back. */
+/* @@ */ .button:disabled {
+  cursor: default;
+  opacity: var(--chrome-disabled-opacity);
+}

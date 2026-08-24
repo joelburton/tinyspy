@@ -6,14 +6,9 @@
  * affordance, different file.
  */
 
-/* The shape, the hover, the press and the open border are all the shared
- * `.bare-icon-button` (common/patterns/button.css). What is left here is the
- * two things only this bubble has. */
-
-/* @@ */ .bubble {
-  /* Anchor for the unread count pill. */
-  position: relative;
-}
+/* Everything about the button itself is `<PageHeaderButton>`, including the
+ * anchor the count pill positions against. What is left here is the one thing
+ * only this bubble does. */
 
 /* UNREAD: the speech bubble FILLS with the profile color of whoever wrote the
  * message you have not read, while its outline stays body ink.

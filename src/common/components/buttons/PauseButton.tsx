@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { BareIconButton } from './BareIconButton'
+import { PageHeaderButton } from '../chrome/PageHeaderButton'
 import styles from './PauseButton.module.css'
 
 type Props = {
@@ -47,14 +47,14 @@ type Props = {
  * flush right through the change: it is the last child of a slot the left side
  * grows into.
  *
- * A `<BareIconButton>` rather than a toned one: it is a mark in the header, not
+ * A `<PageHeaderButton>` rather than a toned one: it is a mark in the header, not
  * an action being offered (docs/ui.md → the button taxonomy). The resume face
  * is green — see the module.
  */
 export function PauseButton({ paused, manual, onPause, onUnpause }: Props) {
   const resumable = paused && manual
   return (
-    <BareIconButton
+    <PageHeaderButton
       icon={paused ? PlayGlyph : PauseGlyph}
       iconSize={20}
       label={paused ? (manual ? 'Resume game' : 'Waiting for a player') : 'Pause game'}
