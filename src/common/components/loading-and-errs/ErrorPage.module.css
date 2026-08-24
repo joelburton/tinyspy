@@ -19,7 +19,8 @@
    That size and the diagnostics size below are NOT on the font-size ramp, and
    that is the point — they are FaultDialog's, to the digit. Matching the modal
    is the whole design, so converting one side alone would break it. Both files
-   sit on the guard's pending list and convert together at `dialogs-and-forms`. */
+   sit on the guard's pending list and convert together at `simple-page`, which
+   is the area that owns this page. */
 /* @@ */ .heading {
   color: var(--chrome-fault-color);
   font-weight: 700;

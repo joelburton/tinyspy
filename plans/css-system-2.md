@@ -370,7 +370,7 @@ standard everywhere *including* inside the most-tuned board. The three levels
 answer "how much may this vary"; the vocabulary answers "what may never vary".
 
 The area order already obeys this, which is some evidence the model is real
-rather than invented: `homepage`, `dialogs-and-forms` and `club-page` are locked
+rather than invented: `homepage`, `floating-panels` and `club-page` are locked
 surfaces, `shared-game-chrome` is justified's shared half, and the per-game areas
 are tuned plus justified's per-game half.
 
@@ -687,15 +687,15 @@ plus justified's per-game half.)
 | `club-page` | ~~`ClubGameCard`'s `.wrapper` / `.card` names~~ — **done 2026-08-24 by F38.** `.wrapper` is gone (the SelectionList row is the row), `ClubGameRow` carries no `.card`, and the standalone callout's box is `.standalone`. Kept as a line only so the row's disappearance isn't read as an oversight |
 | `club-page` | The club page's filters render TWICE, desktop and mobile, each hidden in the other mode. A markup decision before a CSS one |
 | `club-page` | The two-column fold: `.columns` stacks at `--mobile` and `data-tab` hides one side. GamePage answers the same question with the InfoSheet |
-| `dialogs-and-forms` | **`FloatingPanel`'s titlebar wears the HOVER gray at rest.** `.header` is `--page-surface-hover-color` (`#f0f0f0`) permanently — chat, the scratchpad and every dialog built on the panel. Joel, 2026-08-22: titlebars not being white *"makes sense"*, but it is only the hover gray by accident and **the two must not be coupled**; the titlebar wants its own token, at whatever value, so a hover-color change cannot move it |
-| `dialogs-and-forms` | **A dialog riding the popover tier.** crosswords' `NumberJumpDialog` is a `position: fixed` modal with its own scrim taking `--z-index-popover`, not `--z-index-panel` — so a menu could open over it. It has always painted this way; converting it named the tier without asking whether it is the right one |
+| `floating-panels` | **`FloatingPanel`'s titlebar wears the HOVER gray at rest.** `.header` is `--page-surface-hover-color` (`#f0f0f0`) permanently — chat, the scratchpad and every dialog built on the panel. Joel, 2026-08-22: titlebars not being white *"makes sense"*, but it is only the hover gray by accident and **the two must not be coupled**; the titlebar wants its own token, at whatever value, so a hover-color change cannot move it |
+| ~~here~~ → `crosswords` | ~~**A dialog riding the popover tier.**~~ **MOVED 2026-08-24** to the `crosswords` row below, where the tier change can be seen by the area that owns the game. Kept as a line so its disappearance is not read as an oversight |
 | `shared-game-chrome` | **The two drag ghosts disagree** — bananagrams 1000, scrabble 100, and `dragGhost.module.css` says the split is unintended. Both are `position: fixed`, so they are two tiers apart against everything else: scrabble's paints BELOW an open dialog, bananagrams's above. Nobody drags mid-dialog, which is why it has never shown. Neither takes a token until they agree |
-| `dialogs-and-forms` | `CelebrationDialog`'s `.title` is an `<h2>` at `1.5rem` — h1's size, where h2 is `1.25rem`. May be earned; should be a decision |
-| `dialogs-and-forms` | `CelebrationDialog`'s `.button:focus-visible` re-declares the shared ring. Nothing about that dialog should change a button's ring |
-| `dialogs-and-forms` + `shared-game-chrome` | **Nine `.body` classes want real names.** All nine mean "a panel's content area, as opposed to its header": `FloatingPanel`, `GameScratchpad`, `SetupSection`, `CelebrationDialog`, `DeviceBlockNotice`, `FaultDialog`, `DefinitionView`, crosswords' `ExplainDialog`. ClubPage's tenth became `.columns` |
+| `the first game area` | `CelebrationDialog`'s `.title` is an `<h2>` at `1.5rem` — h1's size, where h2 is `1.25rem`. May be earned; should be a decision |
+| `the first game area` | `CelebrationDialog`'s `.button:focus-visible` re-declares the shared ring. Nothing about that dialog should change a button's ring |
+| `floating-panels` + `shared-game-chrome` | **Nine `.body` classes want real names.** All nine mean "a floating panel's content area, as opposed to its titlebar": `FloatingPanel`, `GameScratchpad`, `SetupSection`, `CelebrationDialog`, `DeviceBlockNotice`, `FaultDialog`, `DefinitionView`, crosswords' `ExplainDialog`. ClubPage's tenth became `.columns` |
 | `shared-game-chrome` | `FilterSelect`'s club-page override INVERTS: the component states the roomy default, the info column tightens it. Today the club page undoes six of its seven decisions one at a time |
 | `shared-game-chrome` | `<TurnLog>`'s `headerAction` is optional in name only — all eleven call sites pass it, so the bare-`<h3>` arm is dead. Make it required |
-| `crosswords` | **`NumberJumpDialog` is a blocking modal that isn't built as one** (`plans/areas/dialogs-and-forms.md` → F15 `numberjump-tier`). A hand-rolled `position: fixed` box with its own scrim, riding `--z-index-popover`, so a menu can open over it. `<BlockingModal>` now exists and is what it wants — the shell brings the backdrop, the focus trap, immovability and content-fit height. Punted here rather than converted in `dialogs-and-forms` (Joel, 2026-08-24) because the conversion MOVES ITS TIER, and a behavior change to a game's modal should be seen by the area that owns the game |
+| `crosswords` | **`NumberJumpDialog` is a blocking modal that isn't built as one** (`plans/areas/floating-panels.md` → F15 `numberjump-tier`). A hand-rolled `position: fixed` box with its own scrim, riding `--z-index-popover`, so a menu can open over it. `<BlockingModal>` now exists and is what it wants — the shell brings the backdrop, the focus trap, immovability and content-fit height. Punted here rather than converted in `floating-panels` (Joel, 2026-08-24) because the conversion MOVES ITS TIER, and a behavior change to a game's modal should be seen by the area that owns the game |
 | `crosswords` | **The header's marks are not evenly separated, and the CSS says they are** (`plans/areas/homepage.md` → F43 `unequal-mark-separation`). One `gap: 0.375rem` for the whole slot, then each mark adds its own padding INSIDE its box — the menu trigger `0.25rem`, the chat bubble `PageHeaderButton`'s `0.3rem` plus `.bubble`'s own, the status slot none — so every visible separation differs and none of them is the declared number. Owned here because this is the page where EVERY mark can be on the strip at once; home has one and the club page three. `--spacer` cannot claim `0.375rem` until this settles what the separation should be |
 | `scrabble` | **The AI suggest-a-move box is the fifth SelectionList site and did not fit.** It is five frameless text lines pinned to `5 × 1.35rem`, whose own comment says a growable height would shift the setup disclosure and the Moves log below it — so the frame, the surface and the row padding would all arrive as a visible redesign, roughly doubling the box. Three options, written up in `plans/selection-lists.md`: leave it bespoke (as crosswords' clue lists are), give `<SelectionList>` a frameless compact form, or redesign the box and redo the height arithmetic. Closed out of the `homepage` area 2026-08-24 |
 | `scrabble` | **`BlankPicker`'s overlay at `z-index: 50`** — a full-screen `position: fixed` modal parked BELOW the panel tier, so an open chat or menu paints over it. Long-recorded as the ladder's known anomaly; it wants a look, not a reflex bump |
@@ -713,8 +713,8 @@ plus justified's per-game half.)
 | **crosswords** | its setup chooser is drifted on three values (`6px` not `--radius-md`, its own hover and rule colors) — unintended, per Joel |
 | **account** | `ColorChoiceList.swatchActive` draws the cursor ring to mean "the color you CHOSE" — deliberately not converted, since tying a selected state to a keyboard decision marries them forever. Whether "selected" should look like "the cursor is here" is its own question |
 | **when it has a consumer** | the two-line density variant of `.item-row` |
-| `dialogs-and-forms` | **Five setup forms set `font-family: monospace`** — spellingbee, wordwheel, boggle, letterboxed, wordiply — all on the field that previews letters or a board. One decision written five times by five hands, and none of them wrote down why. Do NOT change them piecemeal (Joel, 2026-08-22): decide once, here, whether a letters preview wants a mono face at all now that the app has a real one |
-| `dialogs-and-forms` | **`GameScratchpad` is monospace** (`ui-monospace, 'SF Mono', …`). Plausibly right — it is a notepad — but it is the same unexamined choice as the setup forms, so it gets asked at the same time |
+| `forms` | **Five setup forms set `font-family: monospace`** — spellingbee, wordwheel, boggle, letterboxed, wordiply — all on the field that previews letters or a board. One decision written five times by five hands, and none of them wrote down why. Do NOT change them piecemeal (Joel, 2026-08-22): decide once, here, whether a letters preview wants a mono face at all now that the app has a real one |
+| `floating-panels` | **`GameScratchpad` is monospace** (`ui-monospace, 'SF Mono', …`). Plausibly right — it is a notepad — but it is the same unexamined choice as the setup forms, so it gets asked at the same time |
 | `waffle` | **`SolutionReveal` sets monospace twice**, so the revealed grid's letters line up in a column. The alignment need is real; whether monospace is how to meet it is not obvious now that the app font's digits are tabular and its width dial can hold a column |
 | `codenamesduet` | **`Board.module.css` sets `ui-monospace, Menlo, monospace`** on the board. The most consequential of the mono uses, because it is a play surface rather than a form |
 | `the area that takes `/palette`` | `PalettePage` sets monospace for token values and formulas. The one mono use with an obvious reason — a hex is a code-shaped thing — recorded so the sweep does not treat it as an oversight |
@@ -912,17 +912,18 @@ too big to carry inside the area that found it (§21).
 
 **Resequenced 2026-08-24** — `simple-page` is new, and `club-page` moves behind
 it. Both changes come from the same discovery: the homepage cannot finish
-without `dialogs-and-forms`, and **the page shell was filed under the wrong
+without the areas below it, and **the page shell was filed under the wrong
 area**.
 
 | # | area | what it is |
 |---|---|---|
-| 1 | `homepage` | **PAUSED 2026-08-24, two findings open and both waiting on area 2.** The rehearsal for the full toolkit: patterns + vocabulary + the page shell, plus a **React pass** — the duplication was not only in the CSS. F44 (`action-button-text-only`) is a `dialogs-and-forms` question, and F36 (`createclub-modal`) needs that area built before CreateClubPage can stop being a page. F21 (`homepage-no-vitest`) is deliberately LAST: there is no point pinning the page's shape, or `<SelectionList>`'s, while either can still move (`plans/areas/homepage.md`) |
-| 2 | `dialogs-and-forms` | The first real win — many near-identical instances. It also holds the question the homepage could not answer: **are a form's buttons really different from action buttons?** Seven hand-written Cancels say the taxonomy has a hole (F44). (The font question once parked here was answered early — §22.) |
-| 3 | `simple-page` | **NEW.** The pages that are not home, club or game: `LoginScreen`, `ClaimHandleScreen`, `ErrorPage`, `Loading` — and `CreateClubPage` until F36 takes it. **The roster's test is "does `App` render it directly?"**, which is better than "is it routable": it catches `ErrorPage` and `Loading`, both of which stand in for a page AND appear inside one (`ClubPage:719`, `:726`, `PlayAreaErrorBoundary:47`) — which is exactly what the shell decision has to cover |
-| 4 | `club-page` | Absorbs the punted viewport-fit chain, the `.frame` rename, `<ModePill>` reading the shared `.badge`, and the leftovers listed in "Why 6 stopped" |
-| 5 | `shared-game-chrome` | `common/components/game/` — 258 rules, and every game sits on it. Also: the **contract-slot guard**, checked per mount point (§9, §10) |
-| 6 | per game, one area each | CSS pass then tile-feedback pass, back to back. `psychicnum` first, as the control |
+| 1 | `homepage` | **PAUSED 2026-08-24, two findings open and both waiting on area 2.** The rehearsal for the full toolkit: patterns + vocabulary + the page shell, plus a **React pass** — the duplication was not only in the CSS. F44 (`action-button-text-only`) is a `forms` question, and F36 (`createclub-modal`) needs `SetupGameDialog`'s area (`club-page`) before CreateClubPage can stop being a page. F21 (`homepage-no-vitest`) is deliberately LAST: there is no point pinning the page's shape, or `<SelectionList>`'s, while either can still move (`plans/areas/homepage.md`) |
+| 2 | `floating-panels` | **OPEN, seven findings resolved.** The machinery and shared look of every window-like thing that floats over the page — the shell, the blocking modal, the confirmation and the acknowledgment, the drag hook, the focus trap. **Not the instances**, and since 2026-08-24 **not the forms either** (`plans/areas/floating-panels.md`) |
+| 3 | `forms` | **NEW 2026-08-24, split out of the area above.** The design language of forms: the shared field components, the setup scaffolding, and **the question the homepage could not answer — are a form's buttons really different from action buttons?** Seven hand-written Cancels say the taxonomy has a hole (F44). Split because a floating panel and a form share a container and nothing else; keeping them together meant one area holding two vocabularies |
+| 4 | `simple-page` | **NEW.** The pages that are not home, club or game: `LoginScreen`, `ClaimHandleScreen`, `ErrorPage`, `Loading` — and `CreateClubPage` until F36 takes it. **The roster's test is "does `App` render it directly?"**, which is better than "is it routable": it catches `ErrorPage` and `Loading`, both of which stand in for a page AND appear inside one (`ClubPage:719`, `:726`, `PlayAreaErrorBoundary:47`) — which is exactly what the shell decision has to cover |
+| 5 | `club-page` | Absorbs the punted viewport-fit chain, the `.frame` rename, `<ModePill>` reading the shared `.badge`, and the leftovers listed in "Why 6 stopped" |
+| 6 | `shared-game-chrome` | `common/components/game/` — 258 rules, and every game sits on it. Also: the **contract-slot guard**, checked per mount point (§9, §10) |
+| 7 | per game, one area each | CSS pass then tile-feedback pass, back to back. `psychicnum` first, as the control |
 
 **The page shell moves to `simple-page`.** It was filed under `club-page`, but
 its own evidence is five card-only pages with ClubPage as the lone exception —
@@ -1863,7 +1864,7 @@ and that file's stamp already says so.
 ## 22. The font — decided 2026-08-22
 
 **We ship `Roboto Flex`.** §18 had "should we LOAD a font?" open and §13 pinned
-it to the `dialogs-and-forms` area; it was answered early because the tile
+it to what is now the `forms` area; it was answered early because the tile
 problem below turned out to be a live bug rather than a preference.
 
 **The point is NOT that the system font is bad.** Joel designs on macOS, so the

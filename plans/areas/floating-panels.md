@@ -1,77 +1,83 @@
-# Area: dialogs-and-forms
+# Area: floating-panels
 
 The second area of the CSS sprint's step 7. The process is
 [css-system-2.md](../css-system-2.md) §21; the plan holds the order, this file
 holds everything else.
 
-**Opened 2026-08-24.**
+**Opened 2026-08-24 as `dialogs-and-forms`; SPLIT the same day.** The forms half
+became its own area, [forms](../css-system-2.md) (§7 → The areas, in order,
+position 3), which runs directly after this one. A floating panel and a form
+share a container and nothing else — the same area holding both meant one file
+carrying two vocabularies, and the name had stopped being true besides. "Dialog"
+also went, because a dialog is one FAMILY of floating panel (§20) and this area
+covers all five.
 
 **Scope, set by Joel when the area opened:** this area is **the machinery and
-the shared look**, not an audit of every form and dialog in the app.
+the shared look**, not an audit of every panel in the app.
 
-> "if we rename the react component for a prop setup form, we would consider
-> forward-fixing that in the specific setup forms. But this area isn't a global
-> audit of forms + dialogs, rather the machinery and shared look and features of
-> them."
+> "this area isn't a global audit of forms + dialogs, rather the machinery and
+> shared look and features of them."
 
 So the instances — `EditProfileDialog`, `EditClubDialog`, `FaultDialog`,
-`WordEditDialog`, the sixteen game `SetupForm`s, crosswords' three, scrabble's
-`BlankPicker` — are **consumers**. A rename or signature change here
-forward-fixes them in the same commit (§21's compile-break rule) and **their
-stamps do not move**. If one of them turns out to be the only evidence for a
-shared question, it gets surfaced and asked about, not audited.
+`WordEditDialog`, `GameScratchpad`, `HelpPanel`, `FloatingChat`, crosswords'
+three, scrabble's `BlankPicker` — are **consumers**. A rename or signature
+change here forward-fixes them in the same commit (§21's compile-break rule) and
+**their stamps do not move**. If one of them turns out to be the only evidence
+for a shared question, it gets surfaced and asked about, not audited.
+
+**Fifteen findings: seven RESOLVED (F1–F7), three MOVED to `forms` (F8, F9,
+F13), two PUNTED (F14 → the first game area, F15 → crosswords), and three OPEN
+— F10 `fault-tier`, F11 `titlebar-hover-gray`, F12 `nine-body-classes`.**
 
 **Every heading says its status**, the convention `plans/areas/homepage.md`
 arrived at: a heading with **no status prefix means OPEN**.
 
-## The roster — 27 files
+## The roster — 14 files
 
-Agreed 2026-08-24 before anything was read.
+Agreed 2026-08-24 before anything was read; **cut to the machinery when the
+forms half split off.**
 
-**The panel machinery (8)**
+**The shell and the drag** — what every floating panel is made of:
 
 ```
 src/common/components/floating-panels/FloatingPanel.tsx
 src/common/components/floating-panels/FloatingPanel.module.css
-src/common/components/floating-panels/ConfirmationBlockingModal.tsx
-src/common/components/floating-panels/modalActions.module.css
-src/common/hooks/ui/useConfirmation.tsx
 src/common/hooks/ui/useDraggablePanel.ts
 src/common/hooks/ui/useDraggablePanel.test.ts
 src/common/hooks/ui/useFocusTrap.ts
 ```
 
-**The shared form vocabulary (16)**
+**The blocking family** — the one family that is fully built here, because it is
+the one that was hand-assembled at every site:
 
 ```
-src/common/components/fields/CoopStyleField.tsx   + .module.css + .test.tsx
-src/common/components/fields/DifficultyField.tsx  + .test.tsx
-src/common/components/fields/NextPuzzleField.tsx  + .module.css
-src/common/components/fields/RadioRow.tsx
-src/common/components/fields/SelectField.tsx      + .module.css
-src/common/components/fields/TimerField.tsx       + .module.css
-src/common/components/fields/setupForm.module.css
-src/common/components/setup/SetupSection.tsx      + .module.css
-src/common/components/setup/SetupDisclosure.tsx
+src/common/components/floating-panels/BlockingModal.tsx              (new)
+src/common/components/floating-panels/ConfirmationBlockingModal.tsx
+src/common/components/floating-panels/AcknowledgeBlockingModal.tsx   (new)
+src/common/components/floating-panels/modalActions.module.css
+src/common/hooks/ui/useConfirmation.tsx
+src/common/hooks/ui/useAcknowledge.tsx                               (new)
 ```
 
-**F44's implementation site (3)**
+**Read as evidence, not yet claimed** — `FloatingPanel` imports all three, and
+each has consumers outside this area (`usePhone` and `useVisualViewport` reach
+into games; `useCoarsePointer` into `DeviceBlockNotice`). Listed so the next
+session doesn't rediscover them, NOT stamped:
 
 ```
-src/common/components/buttons/ActionButton.tsx + .module.css + .test.tsx
+src/common/hooks/ui/useCoarsePointer.ts
+src/common/hooks/ui/usePhone.ts
+src/common/hooks/ui/useVisualViewport.ts
 ```
-
-**Added by the work (3, all new):** `floating-panels/BlockingModal.tsx`,
-`floating-panels/AcknowledgeBlockingModal.tsx`, `hooks/ui/useAcknowledge.tsx`.
 
 **Deliberately NOT on the roster**, each with the reason:
 
 | | why |
 |---|---|
-| `SetupGameDialog` + `.module.css` | Joel, 2026-08-24: addressed at `club-page`, "since that's where they first appear". Which also means **F36 (`createclub-modal`) has no modal to land on here**, so `homepage` stays paused past this area |
+| the 16 `fields/` + `setup/` files, and `ActionButton` ×3 | **moved to the `forms` area** on the 2026-08-24 split |
+| `SetupGameDialog` + `.module.css` | Joel: addressed at `club-page`, "since that's where they first appear". Which also means **F36 (`createclub-modal`) has no modal to land on here**, so `homepage` stays paused past this area |
 | `CelebrationDialog`, `SuspendConfirmDialog` | punted to the first game area |
-| `ClaimHandleScreen` | `simple-page`'s; F44's answer reaches it there |
-| `Menu`, `GameScratchpad`, `HelpPanel`, `FloatingChat`, `DefinitionPopover`, `ClubHelp`, the per-game `Help.tsx` | floating panels, but none is a dialog or a form |
+| every other floating panel — `Menu` (not one), `GameScratchpad`, `HelpPanel`, `FloatingChat`, `ClubHelp`, `DefinitionPopover`, the per-game `Help.tsx` | instances; this area builds what they sit on |
 
 ---
 
@@ -222,29 +228,6 @@ the FLOOR is choosing the height, not the fit. The floor is inherited from
 panel shut; a blocking modal cannot be resized, so it may not want one at all.
 Nothing looks wrong today. Noted rather than changed.
 
-## F8 · `confirm-buttons-are-raw` · The confirmation's buttons bypass the tone system
-
-Both are `<button className="button primary">` / `"button secondary"`, not
-`<ActionButton>`. Meanwhile `ButtonTone` describes `destructive` as "End /
-Concede" and `quiet` as "a dialog's Cancel" — and no dialog uses either, while
-`END_GAME_CONFIRM` and `RESTART_CONFIRM` are exactly the destructive cases.
-
-Joel, 2026-08-24: *"we're tackling floating panels before form buttons — so
-leave them as raw, and we'll decide later on whether they become something
-else."* Folded into **F9**.
-
-## F9 · `action-button-text-only` · Are a form's buttons really different from action buttons?
-
-Inherited from `homepage` as F44 and still the area's headline question.
-`<ActionButton>` requires a glyph, so it has an `iconOnly` and no `labelOnly` —
-and **a Cancel is hand-written seven times**: `ConfirmationBlockingModal`,
-`SetupGameDialog`, `EditClubDialog`, `EditProfileDialog`, `ClaimHandleScreen`,
-`CreateClubPage`, scrabble's `BlankPicker`. `WordEditDialog:306` is an eighth
-site but a **Delete**, and a separate decision.
-
-Two knock-ons: making `icon` optional needs `.icon-button`'s `gap: 0.4em`
-MEASURED with no icon, and it would give `tone="quiet"` its first caller.
-
 ## F10 · `fault-tier` · The fault rides the shared default, so an open chat covers it
 
 It is a `modal-fault`, a rung above blocking, precisely so an error stays
@@ -266,15 +249,6 @@ All nine mean "a floating panel's content area, as opposed to its titlebar":
 `DeviceBlockNotice`, `FaultDialog`, `DefinitionView`, crosswords'
 `ExplainDialog`. Shared with `shared-game-chrome`.
 
-## F13 · `setup-form-monospace` · Five setup forms set `font-family: monospace`
-
-spellingbee, wordwheel, boggle, letterboxed, wordiply — all on the field that
-previews letters or a board, one decision written five times by five hands, none
-of them writing down why. **Do NOT change them piecemeal** (Joel, 2026-08-22):
-decide once, here, whether a letters preview wants a mono face at all now that
-the app has a real one. `GameScratchpad` is monospace for the same unexamined
-reason and gets asked at the same time.
-
 ## PUNTED · F14 · `helppanel-got-it` · Help is classed a companion but its button ends it
 
 §20 calls `HelpPanel` a companion and describes it as "keep-open, no Save,
@@ -295,6 +269,31 @@ loudest candidate for `<BlockingModal>`. Punted to **crosswords** (Joel,
 area should see. **Owed: a note in the crosswords roster.**
 
 ---
+
+## MOVED · F8 · `confirm-buttons-are-raw` · The confirmation's buttons bypass the tone system
+
+Both are `<button className="button primary">` / `"button secondary"`, not
+`<ActionButton>`, while `ButtonTone` describes `destructive` as "End / Concede"
+and `quiet` as "a dialog's Cancel" — and no floating panel uses either.
+
+Joel, 2026-08-24: *"we're tackling floating panels before form buttons — so
+leave them as raw, and we'll decide later on whether they become something
+else."* **→ the `forms` area**, folded into F9. The numbers stay here so they are
+never reused.
+
+## MOVED · F9 · `action-button-text-only` · Are a form's buttons really different from action buttons?
+
+Inherited from `homepage` as F44 and the reason `forms` exists as an area.
+`<ActionButton>` requires a glyph, so it has an `iconOnly` and no `labelOnly` —
+and a Cancel is hand-written seven times, one of them in this area's
+`ConfirmationBlockingModal`. **→ the `forms` area.**
+
+## MOVED · F13 · `setup-form-monospace` · Five setup forms set `font-family: monospace`
+
+spellingbee, wordwheel, boggle, letterboxed, wordiply, all on the field that
+previews letters or a board. **→ the `forms` area.** `GameScratchpad`'s
+monospace stays HERE — it is the same unexamined choice, but it is a floating
+panel's, and the two no longer have to be asked in one sitting.
 
 ## Predicted test breaks
 

@@ -3,8 +3,11 @@
 /* The `#` jump-to-number popup. A lightweight centered-near-top modal that
  * takes the POPOVER tier rather than the panel one — above board content,
  * below the floating chat, matching Menu/DefinitionPopover. That a dialog
- * rides the popover tier is recorded as a question for the dialogs-and-forms area, not changed
- * here (plans/css-system-2.md §7 → Carried forward). */
+ * rides the popover tier is recorded as a question for the CROSSWORDS area,
+ * not changed here (plans/css-system-2.md §7 → Carried forward). It is also a
+ * blocking modal built by hand: `<BlockingModal>` now exists and is what it
+ * wants, but converting it MOVES its tier, which is why this area gets to see
+ * it (plans/areas/floating-panels.md → F15 `numberjump-tier`). */
 /* @@ */ .backdrop {
   position: fixed;
   inset: 0;

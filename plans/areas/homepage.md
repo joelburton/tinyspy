@@ -5,7 +5,7 @@ The first area of the CSS sprint's step 7. The process is
 holds everything else.
 
 **Status: PAUSED 2026-08-24, both remaining findings blocked on
-`dialogs-and-forms`.** The area is otherwise done: what is left is your audit
+`forms`.** The area is otherwise done: what is left is your audit
 and any tidying it turns up.
 
 - **F44 (`action-button-text-only`)** is that area's question — seven
@@ -18,7 +18,7 @@ and any tidying it turns up.
   same holds for `<SelectionList>`, which may yet earn a frameless variant for
   scrabble and whose "select" kind has one consumer.
 
-The order from here is `dialogs-and-forms` → `simple-page` → `club-page`
+The order from here is `floating-panels` → `forms` → `simple-page` → `club-page`
 (plan §7 → The areas, in order), and this area reopens to close F21 once the
 first of those lands.
 
@@ -1665,7 +1665,7 @@ polite. But this is a fault, and not at all transient."*).
 >   exact matches and converted silently; its two FONT SIZES are FaultDialog's
 >   to the digit and stay bespoke with the reason in the file — matching the
 >   modal is the design, so converting one side alone would break it. Both files
->   convert together at `dialogs-and-forms`.
+>   convert together at `simple-page`.
 > - `PlayAreaErrorBoundary.test.tsx` went red on the old copy, which is the test
 >   earning its keep. It now asserts the red "Error", the thrown message, the
 >   `key=render-crashed` diagnostics, AND both ways out — with a note saying why
