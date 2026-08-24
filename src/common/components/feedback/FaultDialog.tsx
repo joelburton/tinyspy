@@ -20,7 +20,7 @@ import styles from './FaultDialog.module.css'
  *      SQLSTATE, HTTP status, DETAIL, raw text, timestamp), the SAME string
  *      the `[db]` console line carries (one builder — serverError.ts).
  *
- * A true modal on the ConfirmDialog machinery: `backdrop` dims and blocks
+ * A true modal on the ConfirmationBlockingModal machinery: `backdrop` dims and blocks
  * every pointer action underneath, focus is trapped, the game key-capture
  * hooks bail inside `[data-floating-panel]`, and FloatingPanel owns Esc.
  * Backdrop click deliberately does NOT dismiss — see-and-acknowledge, the

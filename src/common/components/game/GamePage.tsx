@@ -27,7 +27,7 @@ import { setInfoSheetOpen, useInfoSheetOpen } from '../../lib/game/infoSheetStor
 import { useClubPresence } from '../../hooks/realtime/useClubPresence'
 import { useClubSetupPresence } from '../../hooks/realtime/useClubSetupPresence'
 import { useCommonGame } from '../../hooks/game/useCommonGame'
-import { useConfirmDialog, END_GAME_CONFIRM, NEW_GAME_CONFIRM } from '../../hooks/ui/useConfirmDialog'
+import { useConfirmation, END_GAME_CONFIRM, NEW_GAME_CONFIRM } from '../../hooks/ui/useConfirmation'
 import { formatTimerSeconds } from '../../hooks/game/useGameTimer'
 import { useClubRoster } from '../../hooks/club/useClubRoster'
 import { useChatFeedback } from '../../hooks/chat/useChatFeedback'
@@ -185,7 +185,7 @@ export function GamePage({
 
   // The shared confirm modal (the pause overlay's End game asks through it;
   // per-game PlayAreas own their own instances for their End buttons).
-  const { confirm: confirmAction, confirmDialog } = useConfirmDialog()
+  const { confirm: confirmAction, confirmationModal } = useConfirmation()
 
   // Open/closed state for the suspend-confirm modal (fired from
   // the menu's "Back to club" item for non-terminal games).
@@ -675,7 +675,7 @@ export function GamePage({
       )}
 
       {/* The pause overlay's End-game confirm (see onEndGame above). */}
-      {confirmDialog}
+      {confirmationModal}
     </div>
   )
 }

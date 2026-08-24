@@ -15,7 +15,7 @@ import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
-import { useConfirmDialog, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
+import { useConfirmation, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmation'
 import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
 import { solvedByMe, useSolutionReveal } from '../../common/hooks/game/useSolutionReveal'
 import { useSingleFlight } from '../../common/hooks/ui/useSingleFlight'
@@ -91,7 +91,7 @@ export function PlayArea({
 
   // The shared end-game confirm modal (replaces window.confirm — a true
   // modal: backdrop-blocked board, dialog-owned keyboard).
-  const { confirm: confirmAction, confirmDialog } = useConfirmDialog()
+  const { confirm: confirmAction, confirmationModal } = useConfirmation()
 
   // ─── Coop-win celebration ──────────────────────────────
   // Confetti at the MOMENT the team finds the third secret (the winning guess
@@ -676,7 +676,7 @@ export function PlayArea({
           onClose={celebration.close}
         />
       )}
-      {confirmDialog}
+      {confirmationModal}
     </div>
   )
 }

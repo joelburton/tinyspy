@@ -29,7 +29,7 @@ import { CelebrationDialog } from '../../common/components/game/CelebrationDialo
 import { chainAt, describeAt } from '../lib/history'
 import { setupRows } from '../lib/setupSummary'
 import { helpPillText } from '../lib/help'
-import { useConfirmDialog, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
+import { useConfirmation, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmation'
 import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
 import { useSolutionReveal } from '../../common/hooks/game/useSolutionReveal'
 import { useSingleFlight } from '../../common/hooks/ui/useSingleFlight'
@@ -93,7 +93,7 @@ export function PlayArea(ctx: GamePageCtx) {
   )
 
   const infoSheet = useInfoSheet()
-  const { confirm: confirmAction, confirmDialog } = useConfirmDialog()
+  const { confirm: confirmAction, confirmationModal } = useConfirmation()
   const { localFeedback, showLocalFeedback, clearLocalFeedback } = useLocalFeedback()
 
   const leaderboard = useMemo(
@@ -655,7 +655,7 @@ export function PlayArea(ctx: GamePageCtx) {
       {celebration.show && (
         <CelebrationDialog title="All twelve! 🐍" onClose={celebration.close} />
       )}
-      {confirmDialog}
+      {confirmationModal}
     </div>
   )
 }

@@ -243,15 +243,15 @@ The four games without a clear win keep asking: **letterboxed** (a win is any co
 ### Confirm modals — never `window.confirm`
 
 In-game confirmations go through the shared
-[`<ConfirmDialog>`](../src/common/components/floating-panels/ConfirmDialog.tsx) — a
+[`<ConfirmationBlockingModal>`](../src/common/components/floating-panels/ConfirmationBlockingModal.tsx) — a
 true MODAL on the FloatingPanel shell: `backdrop` blocks every pointer action
 on the board underneath, focus is trapped, the confirm button autoFocuses
 (Enter confirms), Esc cancels, and the game key-captures bail inside
 `[data-floating-panel]`. The confirm button always **names the act** ("End
 game", "Suspend") — never a bare "OK". For the imperative form handlers want,
-[`useConfirmDialog`](../src/common/hooks/ui/useConfirmDialog.tsx) is
+[`useConfirmation`](../src/common/hooks/ui/useConfirmation.tsx) is
 `window.confirm` with a promise: `if (!(await confirm({...}))) return`, plus a
-`{confirmDialog}` node to render.
+`{confirmationModal}` node to render.
 
 Three standing users:
 
@@ -276,7 +276,7 @@ Three standing users:
   [states.md → Leaving the game page](states.md#leaving-the-game-page--terminal-vs-non-terminal)):
   terminal → direct navigation, no dialog, no broadcast; solo mid-game →
   suspend immediately, no dialog; multiplayer mid-game → the
-  `SuspendConfirmDialog` (a wrapper over ConfirmDialog).
+  `SuspendConfirmDialog` (a wrapper over ConfirmationBlockingModal).
 
 One `window.confirm` is left — **concede** — and it migrates when it's next
 touched. The others have gone as their features were worked: replay mid-game
@@ -313,7 +313,7 @@ Three categories:
 **1. Real forms** — things a player *fills out*. The setup dialog (including
 crosswords' date / series / upload tab), the profile form, claim-a-username, the
 get-magic-link and login-with-code forms, and the confirm dialogs
-(`ConfirmDialog`, `SuspendConfirmDialog`, `FaultDialog` — nobody "fills them
+(`ConfirmationBlockingModal`, `SuspendConfirmDialog`, `FaultDialog` — nobody "fills them
 out", but the panel owns the keyboard and its buttons need visible focus).
 
 These may use Tab between elements, native `<select>`s, focus rings, and take
@@ -861,7 +861,7 @@ Same principle, applied to components.
   - **HomePage gained a header for this** — the square site logo hard against the page's top-left opening the page menu, thin rule beneath, the same strip ClubPage and GamePage carry (measured: the trigger lands at the same x/y as ClubPage's). It is PAGE chrome, outside home's centered `.card`: a first version put it inside, where it inherited the card's 2rem padding and border and so read as content, lining up with nothing else in the app. It had no menu at all before, which made home the one authenticated screen with no route to Profile or Log out once the fixed chip went away. A first attempt hung the menu off the **wordmark**; that reads badly (a hero image isn't a control, and the disclosure chevron had nowhere to sit on a 400px-wide PNG), so the wordmark went back to being artwork. The header is also where a future Help or other non-user item goes — home has nowhere else to put one.
 - **`useAppShortcuts` takes `{ chat: false }`** for a page with no chat panel mounted. Chat is club-scoped, so on HomePage `/` would flip the shared open flag and show nothing — a key that silently does nothing is worse than one that isn't bound, because the next person debugging it starts from "chat is broken" rather than "chat isn't here". Unbound, `/` is left to the browser's find-in-page. `?` and `~` are page-independent and stay on.
 - `<EditProfileDialog>` — the Edit-profile popup, a `<FloatingPanel>` (not a route) so the page underneath stays mounted and live. Mounted at App level and opened from the account submenu of whichever page menu is on screen — so the flag crosses subtrees and lives in a tiny store ([`editProfileStore`](../src/common/lib/account/editProfileStore.ts)) rather than in App's own state. It stays mounted high in the tree deliberately: react-rnd positions a `<FloatingPanel>` from its static flow position, so mounting it inside a page's flex column lands it far from where you expect (see the FloatingPanel gotcha below). Today it edits one field — **player color**, via `<ColorChoiceList>` (below), defaulting to the current color. Saves via `common.update_profile_color`, then `setProfileColor` updates the shared profile store so the menu dot repaints at once. Username is shown but immutable in v1. Dialog buttons follow the [Dialog buttons](#dialog-buttons) convention.
-- `<FloatingPanel>` — the shared draggable / resizable / closeable popover (react-rnd) behind `<EditProfileDialog>`, `<ConfirmDialog>`, `<SetupGameDialog>`, the help panels, and codenamesduet's AI clue-suggestion dialog. **Gotcha worth knowing: react-rnd positions the panel from its element's *static flow position*** — a panel mounted deep inside a flex column inherits that column's offset, so it can render far from where you expect. codenamesduet's clue-suggestion dialog first mounted ~180px *below* the viewport because it sat deep in the board column. **Mount a `<FloatingPanel>` high in the tree** — at the PlayArea `.layout` level or App level — never nested inside the play surface. The codenamesduet e2e guard (`e2e/codenamesduet.e2e.ts`) asserts the suggestion panel renders fully on-screen, pinning this.
+- `<FloatingPanel>` — the shared draggable / resizable / closeable popover (react-rnd) behind `<EditProfileDialog>`, `<ConfirmationBlockingModal>`, `<SetupGameDialog>`, the help panels, and codenamesduet's AI clue-suggestion dialog. **Gotcha worth knowing: react-rnd positions the panel from its element's *static flow position*** — a panel mounted deep inside a flex column inherits that column's offset, so it can render far from where you expect. codenamesduet's clue-suggestion dialog first mounted ~180px *below* the viewport because it sat deep in the board column. **Mount a `<FloatingPanel>` high in the tree** — at the PlayArea `.layout` level or App level — never nested inside the play surface. The codenamesduet e2e guard (`e2e/codenamesduet.e2e.ts`) asserts the suggestion panel renders fully on-screen, pinning this.
 - `<ColorChoiceList>` — the shared player-color picker: the 8-entry palette (`MEMBER_COLORS`) as a grid of swatches, each its actual color circle + capitalized name, the selected one ringed. Controlled (`value` / `onChange`). Used by both `<EditProfileDialog>` and the first-run `<ClaimHandleScreen>` (where it sits beside the username field, pre-selected from a deterministic FE hash of the username — `defaultColorFor` — so a new player isn't picking from a blank slate; the chosen color is sent to `claim_username`).
 - `.card`, `.muted`, `.error`, `.link-button`, `.actions` are universal utility classes in `common/theme.css`.
 

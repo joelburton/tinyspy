@@ -37,7 +37,7 @@ test.describe('connections replay + new game', () => {
     await page.getByRole('button', { name: 'Submit' }).click()
     await expect(page.getByText('No guesses yet.')).toBeHidden({ timeout: 10000 })
 
-    // Mid-game restart is confirmed through the styled ConfirmDialog (it wipes
+    // Mid-game restart is confirmed through the styled ConfirmationBlockingModal (it wipes
     // the group's progress) — the browser alert went away 2026-08-03, so the
     // dialog is a real button in the page.
     await page.getByRole('button', { name: 'Game menu' }).click()
@@ -80,7 +80,7 @@ test.describe('connections replay + new game', () => {
   //
   // So the server half is pgTAP's — tests/strands/next_puzzle_test.sql drives
   // the archive down to one puzzle inside a rolled-back transaction and pins
-  // `no-unplayed-puzzle|` — and the FE half (a one-button `<ConfirmDialog>`,
+  // `no-unplayed-puzzle|` — and the FE half (a one-button `<ConfirmationBlockingModal>`,
   // `cancelLabel: null`, no navigation) is the same three lines in both games'
   // PlayAreas. What IS still reachable, and covered above, is the thing that
   // actually happens every time: New game lands on a DIFFERENT puzzle.

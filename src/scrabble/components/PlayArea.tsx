@@ -12,7 +12,7 @@ import { CelebrationDialog } from '../../common/components/game/CelebrationDialo
 import { useCelebration } from '../../common/hooks/game/useCelebration'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
-import { useConfirmDialog, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
+import { useConfirmation, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmation'
 import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
@@ -110,7 +110,7 @@ export function PlayArea({
 
   // The shared end-game confirm modal (replaces window.confirm — a true
   // modal: backdrop-blocked board, dialog-owned keyboard).
-  const { confirm: confirmAction, confirmDialog } = useConfirmDialog()
+  const { confirm: confirmAction, confirmationModal } = useConfirmation()
   // Sticky is a DEFAULT, not an override: hand-built {tone, text} pills omit
   // `mode` and get it stamped; a classified message keeps the mode the
   // classifier chose — a fault's `manual` must not be downgraded to sticky
@@ -639,7 +639,7 @@ export function PlayArea({
       {celebration.show && (
         <CelebrationDialog title="You win! 🎉" onClose={celebration.close} />
       )}
-      {confirmDialog}
+      {confirmationModal}
     </div>
   )
 }

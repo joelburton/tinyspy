@@ -31,7 +31,7 @@ test.describe('waffle replay board', () => {
     // Replay → the turn log clears (and the board resets to the scramble).
     await page.getByRole('button', { name: 'Game menu' }).click()
     await page.getByRole('menuitem', { name: 'Restart' }).click()
-    // The styled ConfirmDialog (mid-game restart wipes the group's progress).
+    // The styled ConfirmationBlockingModal (mid-game restart wipes the group's progress).
     await page.getByRole('button', { name: 'Restart', exact: true }).click()
     await expect(page.getByText('#1', { exact: true })).toHaveCount(0, { timeout: 8000 })
   })

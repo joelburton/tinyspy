@@ -16,7 +16,7 @@ import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
-import { useConfirmDialog, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
+import { useConfirmation, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmation'
 import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
 import { solvedByMe, useSolutionReveal } from '../../common/hooks/game/useSolutionReveal'
 import { useSingleFlight } from '../../common/hooks/ui/useSingleFlight'
@@ -93,7 +93,7 @@ export function PlayArea({
 
   // The shared end-game confirm modal (replaces window.confirm — a true
   // modal: backdrop-blocked board, dialog-owned keyboard).
-  const { confirm: confirmAction, confirmDialog } = useConfirmDialog()
+  const { confirm: confirmAction, confirmationModal } = useConfirmation()
 
   // The own-move local feedback pill (soft reject / RPC error), shown in the
   // fixed-height slot between the board and the keyboard. Sticky (localPill): cleared
@@ -597,7 +597,7 @@ export function PlayArea({
           action-row outcome line, and a coop solve gets the celebration
           instead. */}
       {celebration.show && <CelebrationDialog title="Solved! 🎉" onClose={celebration.close} />}
-      {confirmDialog}
+      {confirmationModal}
     </div>
   )
 }

@@ -21,7 +21,7 @@ import { useDismissLocalFeedbackOnKey } from '../../common/hooks/feedback/useDis
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
-import { useConfirmDialog, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
+import { useConfirmation, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmation'
 import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
 import { useTurnStartFlash } from '../../common/hooks/game/useTurnStartFlash'
 import { solvedByMe, useSolutionReveal } from '../../common/hooks/game/useSolutionReveal'
@@ -121,7 +121,7 @@ export function PlayArea({
 
   // The shared end-game confirm modal (replaces window.confirm — a true
   // modal: backdrop-blocked board, dialog-owned keyboard).
-  const { confirm: confirmAction, confirmDialog } = useConfirmDialog()
+  const { confirm: confirmAction, confirmationModal } = useConfirmation()
 
   // ─── Coop-win celebration ──────────────────────────────
   // Confetti at the MOMENT the group solves it — the winning swap flips
@@ -697,7 +697,7 @@ export function PlayArea({
           pill + the outcome line in the action row, with Restart right there),
           and a coop solve gets the celebration instead. */}
       {celebration.show && <CelebrationDialog title="Solved it! 🧇" onClose={celebration.close} />}
-      {confirmDialog}
+      {confirmationModal}
     </div>
   )
 }

@@ -83,7 +83,7 @@ components/
       DefinitionPopover, DefinitionView, WordLookupDialog
   floating-panels/ # the shared shell for every window-like thing that floats over
                  #   the page, + the panels that ride on it
-      FloatingPanel, ConfirmDialog, GameScratchpad
+      FloatingPanel, ConfirmationBlockingModal, GameScratchpad
   menu/          # the one menu (it contains different things on different pages)
       Menu
   feedback/      # the near-input validity pill ("not a word", "too short")

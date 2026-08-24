@@ -219,7 +219,7 @@ The **New game** button in the terminal action row + the matching menu item: a F
 
 ### `codenamesduet.end_game(target_game uuid) → void`
 
-The friends' explicit "we're done" button — the **End game** header-menu item (coop-only; declared by codenamesduet's PlayArea via `ctx.menu.setGameSections` + `buildGameMenu`; click → the shared confirm dialog (`END_GAME_CONFIRM` via `useConfirmDialog`, never `window.confirm`) → `db.rpc('end_game', ...)`, disabled when terminal) and the info-column `<EndGameButton>`, both firing the same handler. codenamesduet has plenty of *automatic* terminals (won / lost_*), so this is purely the escape hatch for abandoning an in-progress game early.
+The friends' explicit "we're done" button — the **End game** header-menu item (coop-only; declared by codenamesduet's PlayArea via `ctx.menu.setGameSections` + `buildGameMenu`; click → the shared confirm dialog (`END_GAME_CONFIRM` via `useConfirmation`, never `window.confirm`) → `db.rpc('end_game', ...)`, disabled when terminal) and the info-column `<EndGameButton>`, both firing the same handler. codenamesduet has plenty of *automatic* terminals (won / lost_*), so this is purely the escape hatch for abandoning an in-progress game early.
 
 Same shape as `submit_timeout` — accepts both active states (`playing` / `sudden_death`), same `require_game_player` gate, same idempotency (a second call raises `P0001 'game is not in progress'`, swallowed by the FE). Differences: it writes `play_state = 'ended'` with `status->>'outcome' = 'manual'`, and every player's `common.game_players.result = {won: false}` (cooperative game: nobody wins a manually-stopped game — agreeing to stop is a valid outcome, not a loss).
 

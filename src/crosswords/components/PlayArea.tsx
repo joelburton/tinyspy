@@ -18,7 +18,7 @@ import { LocalTerminalRow } from '../../common/components/game/terminal/LocalTer
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { useSolutionReveal } from '../../common/hooks/game/useSolutionReveal'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
-import { useConfirmDialog, END_GAME_CONFIRM, NEW_GAME_CONFIRM, RESTART_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
+import { useConfirmation, END_GAME_CONFIRM, NEW_GAME_CONFIRM, RESTART_CONFIRM } from '../../common/hooks/ui/useConfirmation'
 import { useSingleFlight } from '../../common/hooks/ui/useSingleFlight'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
@@ -102,7 +102,7 @@ export function PlayArea(ctx: GamePageCtx) {
 
   // The shared end-game confirm modal (replaces window.confirm — a true
   // modal: backdrop-blocked board, dialog-owned keyboard).
-  const { confirm: confirmAction, confirmDialog } = useConfirmDialog()
+  const { confirm: confirmAction, confirmationModal } = useConfirmation()
 
   // ─── Coop-win celebration ──────────────────────────────
   // Confetti at the MOMENT the team completes the grid — the last correct cell
@@ -1089,7 +1089,7 @@ export function PlayArea(ctx: GamePageCtx) {
           onClose={celebration.close}
         />
       )}
-      {confirmDialog}
+      {confirmationModal}
     </div>
   )
 }

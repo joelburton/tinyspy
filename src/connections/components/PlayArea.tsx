@@ -14,7 +14,7 @@ import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
 import { useTurnStartFlash } from '../../common/hooks/game/useTurnStartFlash'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
-import { useConfirmDialog, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
+import { useConfirmation, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmation'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
 import { memberById } from '../../common/lib/game/peers'
@@ -157,7 +157,7 @@ export function PlayArea({
 
   // The shared end-game confirm modal (replaces window.confirm — a true
   // modal: backdrop-blocked board, dialog-owned keyboard).
-  const { confirm: confirmAction, confirmDialog } = useConfirmDialog()
+  const { confirm: confirmAction, confirmationModal } = useConfirmation()
 
   // ─── Coop-win celebration ──────────────────────────────
   // Confetti at the MOMENT the team clears the fourth category (the winning
@@ -705,7 +705,7 @@ export function PlayArea({
           onClose={celebration.close}
         />
       )}
-      {confirmDialog}
+      {confirmationModal}
     </div>
   )
 }

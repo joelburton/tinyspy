@@ -1620,7 +1620,7 @@ given a specific meaning.
 
 - **`components/panels/` → `components/floating-panels/`** — kebab, matching
   `loading-and-errs`, the repo's only other multi-word folder. It now holds only
-  floating panels: the shell, `ConfirmDialog`, `GameScratchpad`, `modalActions`.
+  floating panels: the shell, `ConfirmationBlockingModal`, `GameScratchpad`, `modalActions`.
 - **`Menu` → `components/menu/`**, top-level beside it, because it uses none of
   the shell's machinery and has no business under a floating-panel folder.
   **Singular on purpose** (Joel, 2026-08-24): *"that the gamepage / clubpage /
@@ -1642,7 +1642,7 @@ Consumer docstrings that still say "panel" loosely get fixed as each area is
 audited, not in a sweep.
 
 **Measured: "Dialog" currently names four different families**, which is the
-best argument for the above. `ConfirmDialog` and `FaultDialog` are
+best argument for the above. `ConfirmationBlockingModal` and `FaultDialog` are
 `z-modal-blocking` and `z-modal-fault` — the two strictest things in the app,
 and the only two components that pass `draggable={false}`. `SetupGameDialog`,
 `EditProfileDialog` and `EditClubDialog` are `z-modal-normal`. `NoteDialog` and

@@ -16,7 +16,7 @@ import { useDismissLocalFeedbackOnKey } from '../../common/hooks/feedback/useDis
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
-import { useConfirmDialog, END_GAME_CONFIRM, NEW_GAME_CONFIRM, RESTART_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
+import { useConfirmation, END_GAME_CONFIRM, NEW_GAME_CONFIRM, RESTART_CONFIRM } from '../../common/hooks/ui/useConfirmation'
 import { useSingleFlight } from '../../common/hooks/ui/useSingleFlight'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { buildDuetPrintModel } from '../pdf/model'
@@ -275,7 +275,7 @@ export function PlayArea({
 
   // The shared end-game confirm modal (replaces window.confirm — a true
   // modal: backdrop-blocked board, dialog-owned keyboard).
-  const { confirm: confirmAction, confirmDialog } = useConfirmDialog()
+  const { confirm: confirmAction, confirmationModal } = useConfirmation()
   // `gameOver` mirrors common.games.is_terminal — derived early so
   // we can pass `revealPeer` into useBoard. `playState` carries the
   // gametype-specific value ('playing', 'sudden_death', 'won', ...)
@@ -699,7 +699,7 @@ export function PlayArea({
           onClose={celebration.close}
         />
       )}
-      {confirmDialog}
+      {confirmationModal}
     </div>
   )
 }

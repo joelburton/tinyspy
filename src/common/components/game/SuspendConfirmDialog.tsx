@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { ConfirmDialog } from '../floating-panels/ConfirmDialog'
+import { ConfirmationBlockingModal } from '../floating-panels/ConfirmationBlockingModal'
 
 type Props = {
   /** The game's user-facing title, woven into the modal copy
@@ -24,7 +24,7 @@ type Props = {
  * this dialog entirely for a SOLO game (nobody to surprise) and for
  * a terminal game (direct navigation, no broadcast).
  *
- * A thin wrapper over the shared `<ConfirmDialog>`, which supplies
+ * A thin wrapper over the shared `<ConfirmationBlockingModal>`, which supplies
  * the modal behavior: a pointer-blocking backdrop (no background
  * board actions), trapped focus, autoFocused confirm (Enter),
  * Esc-to-cancel, and the game key-captures bailing inside
@@ -32,7 +32,7 @@ type Props = {
  */
 export function SuspendConfirmDialog({ title, onSuspend, onCancel }: Props) {
   return (
-    <ConfirmDialog
+    <ConfirmationBlockingModal
       title="Suspend this game?"
       message={
         <>

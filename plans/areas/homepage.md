@@ -1843,7 +1843,7 @@ files in `components/buttons/` go through `ActionButton`; the exceptions are
 <button type="button" className="button secondary" onClick={onCancel}>Cancel</button>
 ```
 
-— in `ConfirmDialog`, `SetupGameDialog`, `EditClubDialog`, `EditProfileDialog`,
+— in `ConfirmationBlockingModal`, `SetupGameDialog`, `EditClubDialog`, `EditProfileDialog`,
 `ClaimHandleScreen`, `CreateClubPage` and scrabble's `BlankPicker`. Plus
 HomePage's "+ New club", which is the same markup on a `<Link>`, and whose `+`
 is a typed character rather than a glyph.

@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { useCallback, useState, type ReactNode } from 'react'
-import { ConfirmDialog } from '../../components/floating-panels/ConfirmDialog'
+import { ConfirmationBlockingModal } from '../../components/floating-panels/ConfirmationBlockingModal'
 
 export type ConfirmOptions = {
   title: string
@@ -69,15 +69,15 @@ export const RESTART_CONFIRM: ConfirmOptions = {
 }
 
 /**
- * `window.confirm`, but the styled `<ConfirmDialog>` modal — the drop-in for
- * game action handlers:
+ * `window.confirm`, but the styled `<ConfirmationBlockingModal>` — the drop-in
+ * for game action handlers:
  *
- *     const { confirm, confirmDialog } = useConfirmDialog()
+ *     const { confirm, confirmationModal } = useConfirmation()
  *     const handleEndGame = async () => {
  *       if (!(await confirm({ title: 'End this game?', … }))) return
  *       …the RPC…
  *     }
- *     // and render {confirmDialog} anywhere in the tree
+ *     // and render {confirmationModal} anywhere in the tree
  *
  * The promise resolves true on confirm, false on Cancel/Esc/✕. `confirm`'s
  * identity is stable, so it's safe in useCallback deps. A second confirm()
@@ -86,9 +86,9 @@ export const RESTART_CONFIRM: ConfirmOptions = {
  * component unmounts mid-question the promise never settles; callers are
  * fire-and-forget async handlers, so nothing leaks or retries.
  */
-export function useConfirmDialog(): {
+export function useConfirmation(): {
   confirm: (opts: ConfirmOptions) => Promise<boolean>
-  confirmDialog: ReactNode
+  confirmationModal: ReactNode
 } {
   const [pending, setPending] = useState<Pending | null>(null)
 
@@ -110,8 +110,8 @@ export function useConfirmDialog(): {
     })
   }
 
-  const confirmDialog = pending ? (
-    <ConfirmDialog
+  const confirmationModal = pending ? (
+    <ConfirmationBlockingModal
       title={pending.title}
       message={pending.message}
       confirmLabel={pending.confirmLabel}
@@ -121,5 +121,5 @@ export function useConfirmDialog(): {
     />
   ) : null
 
-  return { confirm, confirmDialog }
+  return { confirm, confirmationModal }
 }

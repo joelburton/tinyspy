@@ -135,7 +135,7 @@ describe('restart', () => {
     const { result, rpc, confirm, onRestarted } = setup({ isTerminal: false })
     act(() => result.current.restart())
     await flush()
-    // The styled ConfirmDialog, not window.confirm — Restart migrated off the
+    // The styled ConfirmationBlockingModal, not window.confirm — Restart migrated off the
     // browser alert when it became reachable in all thirteen games.
     expect(confirm).toHaveBeenCalledTimes(1)
     expect(confirm.mock.calls[0][0]).toMatchObject({ confirmLabel: 'Restart' })

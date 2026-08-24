@@ -14,7 +14,7 @@ import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
 import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
 import { useSingleFlight } from '../../common/hooks/ui/useSingleFlight'
-import { useConfirmDialog, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
+import { useConfirmation, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmation'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
@@ -91,7 +91,7 @@ export function PlayArea(ctx: GamePageCtx) {
   const viewer = useHistoryViewer<number>()
 
   const infoSheet = useInfoSheet()
-  const { confirm: confirmAction, confirmDialog } = useConfirmDialog()
+  const { confirm: confirmAction, confirmationModal } = useConfirmation()
   const { localFeedback, showLocalFeedback, clearLocalFeedback } = useLocalFeedback()
 
   const actionsRef = useRef<{
@@ -612,7 +612,7 @@ export function PlayArea(ctx: GamePageCtx) {
         />
       </InfoSheet>
 
-      {confirmDialog}
+      {confirmationModal}
     </div>
   )
 }

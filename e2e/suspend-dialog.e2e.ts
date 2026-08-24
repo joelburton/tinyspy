@@ -23,7 +23,7 @@ import { signIn } from './helpers/session'
  *     word games' window key-capture eating Enter/Tab — useGlobalKeyHandler
  *     and crosswords' own useGridKeyboard bail inside [data-floating-panel]).
  *
- *   - End-game: ALWAYS the shared ConfirmDialog (never window.confirm),
+ *   - End-game: ALWAYS the shared ConfirmationBlockingModal (never window.confirm),
  *     even solo/coop — ending is terminal for the whole group.
  *
  * Boggle is used for the keyboard tests precisely because it HAS a window

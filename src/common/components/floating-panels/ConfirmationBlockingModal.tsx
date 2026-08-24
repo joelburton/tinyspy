@@ -6,7 +6,7 @@ import { useFocusTrap } from '../../hooks/ui/useFocusTrap'
 import actionRow from './modalActions.module.css'
 
 type Props = {
-  /** The panel-header question, e.g. "End this game?". */
+  /** The titlebar question, e.g. "End this game?". */
   title: string
   /** The body copy — what happens if they confirm. */
   message: ReactNode
@@ -24,21 +24,26 @@ type Props = {
 }
 
 /**
- * The shared small confirm MODAL — the styled replacement for
- * `window.confirm` on in-game decisions (ending a game, suspending it).
+ * The shared confirmation — the styled replacement for `window.confirm` on
+ * in-game decisions (ending a game, suspending it).
  *
- * A true modal, not a floating dialog: `backdrop` blocks every pointer
- * action on the board underneath (click-through was the native-confirm
- * era's bug), and the keyboard is owned outright — focus is trapped in the
- * panel, the confirm button `autoFocus`es so Enter confirms, FloatingPanel
- * owns Esc (cancel), and the game key-capture hooks already bail inside
- * `[data-floating-panel]`. Not draggable/resizable — a one-second decision,
- * same posture as SuspendConfirmDialog (which is now a wrapper over this).
+ * **A blocking modal** (plans/css-system-2.md §20), which is the strictest
+ * category the app has: the world stops and nothing underneath is live.
+ * `backdrop` blocks every pointer action on the board (click-through was the
+ * native-confirm era's bug), and the keyboard is owned outright — focus is
+ * trapped, the confirm button `autoFocus`es so Enter confirms, FloatingPanel
+ * owns Esc (cancel), and the game key-capture hooks bail inside
+ * `[data-floating-panel]`.
+ *
+ * **Not draggable, and that is the category's visible signal**: if you can drag
+ * a floating panel you can leave it for later, and if you cannot, you deal with
+ * it now. It is one of only two components that pass `draggable={false}`, the
+ * other being the fault modal. `SuspendConfirmDialog` wraps this one.
  *
  * For the imperative `await confirm(...)` form games use in their action
- * handlers, see `useConfirmDialog`.
+ * handlers, see `useConfirmation`.
  */
-export function ConfirmDialog({
+export function ConfirmationBlockingModal({
   title,
   message,
   confirmLabel,

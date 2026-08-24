@@ -4,7 +4,7 @@ import { actionName } from '../../lib/game/callRpc'
 import type { GenericFeedbackMsg } from '../../lib/games'
 import { failureMessage } from '../../lib/game/serverError'
 import { useCallback, useRef } from 'react'
-import { END_GAME_CONFIRM, RESTART_CONFIRM, type ConfirmOptions } from '../ui/useConfirmDialog'
+import { END_GAME_CONFIRM, RESTART_CONFIRM, type ConfirmOptions } from '../ui/useConfirmation'
 
 /** The shared game-menu actions this hook owns, as fire-and-forget handlers.
  *  A game wires these into its own `actionsRef` alongside any game-specific
@@ -75,7 +75,7 @@ export function useStandardGameActions({
   isTerminal: boolean
   /** Compete: I've conceded (so I can't concede again). Always false in coop. */
   myConceded: boolean
-  /** The styled end-game confirm (a game's `useConfirmDialog().confirm`). */
+  /** The styled end-game confirm (a game's `useConfirmation().confirm`). */
   confirm: (opts: ConfirmOptions) => Promise<boolean>
 
   /** The game's local-feedback sink. Receives the full classified message so

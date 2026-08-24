@@ -8,7 +8,7 @@ import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { setupRows } from '../lib/setupSummary'
 import { invokeStartGameEdgeFn } from '../../common/lib/game/manifestRpcs'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
-import { useConfirmDialog, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
+import { useConfirmation, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmation'
 import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { CelebrationDialog } from '../../common/components/game/CelebrationDialog'
@@ -71,7 +71,7 @@ export function PlayArea(ctx: GamePageCtx) {
 
   // The shared end-game confirm modal (replaces window.confirm — a true
   // modal: backdrop-blocked board, dialog-owned keyboard).
-  const { confirm: confirmAction, confirmDialog } = useConfirmDialog()
+  const { confirm: confirmAction, confirmationModal } = useConfirmation()
 
   // ─── Coop-target celebration ───────────────────────────
   // boggle's only unambiguous win: a COOP team crossing the score target
@@ -543,7 +543,7 @@ export function PlayArea(ctx: GamePageCtx) {
           onClose={celebration.close}
         />
       )}
-      {confirmDialog}
+      {confirmationModal}
     </div>
   )
 }

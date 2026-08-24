@@ -85,7 +85,7 @@ test.describe('stackdown replay + new game', () => {
     await page.getByRole('button', { name: /hint/i }).click()
     await expect(page.getByText('No words yet.')).toBeHidden({ timeout: 10000 })
 
-    // Mid-game restart is confirmed through the styled ConfirmDialog (it wipes
+    // Mid-game restart is confirmed through the styled ConfirmationBlockingModal (it wipes
     // the group's progress) — the browser alert went away 2026-08-03, so the
     // dialog is a real button in the page.
     await page.getByRole('button', { name: 'Game menu' }).click()

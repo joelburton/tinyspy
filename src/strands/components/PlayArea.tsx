@@ -15,7 +15,7 @@ import { outOfRacePill, stickyPill, terminalPill } from '../../common/lib/game/l
 import { waitingTurnPill } from '../../common/components/game/turnCopy'
 import { memberById } from '../../common/lib/game/peers'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
-import { NEW_GAME_CONFIRM, useConfirmDialog } from '../../common/hooks/ui/useConfirmDialog'
+import { NEW_GAME_CONFIRM, useConfirmation } from '../../common/hooks/ui/useConfirmation'
 import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
 import { solvedByMe, useSolutionReveal } from '../../common/hooks/game/useSolutionReveal'
 import { useSingleFlight } from '../../common/hooks/ui/useSingleFlight'
@@ -191,7 +191,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // slot then, so a stale own-move pill must not be able to replace it.
   const { localFeedback, showLocalFeedback, clearLocalFeedback } =
     useLocalFeedback({ locked: isTerminal })
-  const { confirm: confirmAction, confirmDialog } = useConfirmDialog()
+  const { confirm: confirmAction, confirmationModal } = useConfirmation()
   const infoSheet = useInfoSheet()
 
   const strandsSetup = setup as unknown as StrandsSetup
@@ -827,7 +827,7 @@ export function PlayArea(ctx: GamePageCtx) {
         />
       </InfoSheet>
 
-      {confirmDialog}
+      {confirmationModal}
       {celebration.show && (
         <CelebrationDialog
           title={isCompete ? 'You win!' : 'You found them all!'}

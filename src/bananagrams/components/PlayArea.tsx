@@ -37,7 +37,7 @@ import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
 import shared from '../../common/components/game/PlayArea.module.css'
 import '../theme.css' // bananagrams tokens + the global drag-cursor rule
 import { useSwallowTab } from '../../common/hooks/input/useSwallowTab'
-import { useConfirmDialog, NEW_GAME_CONFIRM, END_GAME_CONFIRM, RESTART_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
+import { useConfirmation, NEW_GAME_CONFIRM, END_GAME_CONFIRM, RESTART_CONFIRM } from '../../common/hooks/ui/useConfirmation'
 import { useSingleFlight } from '../../common/hooks/ui/useSingleFlight'
 
 /**
@@ -266,8 +266,8 @@ export function PlayArea(ctx: GamePageCtx) {
   // game-invitation toast.
   //
   // Shared confirm modal — used by the new-game question below and by Restart
-  // (mid-game). Render {confirmDialog} in the tree, as the other games do.
-  const { confirm: confirmAction, confirmDialog } = useConfirmDialog()
+  // (mid-game). Render {confirmationModal} in the tree, as the other games do.
+  const { confirm: confirmAction, confirmationModal } = useConfirmation()
 
   // ─── End game — the whole table stops, with no result for anyone ────────
   // The twin of Concede, and deliberately not the same thing: conceding is a
@@ -636,7 +636,7 @@ export function PlayArea(ctx: GamePageCtx) {
       {celebration.show && (
         <CelebrationDialog title="Bananas! 🍌" body="You went out first." onClose={celebration.close} />
       )}
-      {confirmDialog}
+      {confirmationModal}
     </>
   )
 }

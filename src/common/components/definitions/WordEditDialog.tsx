@@ -4,7 +4,7 @@ import { formFailureText } from '../../lib/game/serverError'
 import { useEffect, useState, type FormEvent } from 'react'
 import { db as commonDb } from '../../db'
 import { setWordEdit, type WordEditRequest } from '../../lib/definitions/wordEditStore'
-import { useConfirmDialog } from '../../hooks/ui/useConfirmDialog'
+import { useConfirmation } from '../../hooks/ui/useConfirmation'
 import { FloatingPanel } from '../floating-panels/FloatingPanel'
 import styles from './WordEditDialog.module.css'
 import { cls } from '../../lib/util/cls'
@@ -73,7 +73,7 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
   const [initial, setInitial] = useState<Fields | null>(editing ? null : EMPTY)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  const { confirm: confirmAction, confirmDialog } = useConfirmDialog()
+  const { confirm: confirmAction, confirmationModal } = useConfirmation()
 
   // Edit mode: prefill from a fresh read of the row (the popover's cached
   // definition may be stale, and the form needs every column anyway).
@@ -315,7 +315,7 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
           </button>
         </div>
       </form>
-      {confirmDialog}
+      {confirmationModal}
     </FloatingPanel>
   )
 }

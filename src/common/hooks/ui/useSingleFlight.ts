@@ -33,7 +33,7 @@ import { useCallback, useRef, useState } from 'react'
  *
  * The gate closes on the FIRST call, before the wrapped action's own confirm
  * dialog resolves. That's deliberate: our confirm is the async styled modal
- * (`useConfirmDialog`), not a thread-blocking `window.confirm`, so a second
+ * (`useConfirmation`), not a thread-blocking `window.confirm`, so a second
  * trigger can absolutely arrive while it's open — and stacking two "start a new
  * game?" modals is its own small bug. Canceling still clears the gate.
  *

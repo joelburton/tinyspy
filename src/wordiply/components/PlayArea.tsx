@@ -22,7 +22,7 @@ import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { setupRows } from '../lib/setupSummary'
 import { invokeStartGameEdgeFn } from '../../common/lib/game/manifestRpcs'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
-import { useConfirmDialog, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
+import { useConfirmation, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmation'
 import { buildWordiplyPrintModel } from '../pdf/model'
 import { printWordiplyPdf } from '../pdf/printWordiplyPdf'
 import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
@@ -96,7 +96,7 @@ export function PlayArea(ctx: GamePageCtx) {
   )
 
   const infoSheet = useInfoSheet()
-  const { confirm: confirmAction, confirmDialog } = useConfirmDialog()
+  const { confirm: confirmAction, confirmationModal } = useConfirmation()
 
   const actionsRef = useRef<{
     endGame: () => void
@@ -464,7 +464,7 @@ export function PlayArea(ctx: GamePageCtx) {
           shown in the below-board pill (BoardCol) + the info column (score bar,
           letters, reveal), so a modal would just interrupt. wordiply has no win
           state, so there's no celebration either. */}
-      {confirmDialog}
+      {confirmationModal}
     </div>
   )
 }
