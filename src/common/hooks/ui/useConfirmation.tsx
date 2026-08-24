@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited
 
 import { useCallback, useState, type ReactNode } from 'react'
 import { ConfirmationBlockingModal } from '../../components/floating-panels/ConfirmationBlockingModal'
@@ -7,9 +7,11 @@ export type ConfirmOptions = {
   title: string
   message: ReactNode
   confirmLabel: string
-  /** Omit for "Cancel"; pass **null** for a one-button NOTICE (no question to
-   *  answer — connections' "no unplayed puzzles left" uses this). */
-  cancelLabel?: string | null
+  /** Omit for "Cancel". There is no "no cancel" — a box with one way out is
+   *  not a question, and it has its own hook (`useAcknowledge`). */
+  cancelLabel?: string
+  /** Which button is filled AND fires on Enter; see the component. */
+  primaryButton?: 'confirm' | 'cancel'
 }
 
 type Pending = ConfirmOptions & { resolve: (confirmed: boolean) => void }
@@ -116,6 +118,7 @@ export function useConfirmation(): {
       message={pending.message}
       confirmLabel={pending.confirmLabel}
       cancelLabel={pending.cancelLabel}
+      primaryButton={pending.primaryButton}
       onConfirm={() => settle(true)}
       onCancel={() => settle(false)}
     />

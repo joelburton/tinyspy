@@ -15,6 +15,7 @@ import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
 import { useTurnStartFlash } from '../../common/hooks/game/useTurnStartFlash'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
 import { useConfirmation, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmation'
+import { useAcknowledge } from '../../common/hooks/ui/useAcknowledge'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
 import { memberById } from '../../common/lib/game/peers'
@@ -158,6 +159,7 @@ export function PlayArea({
   // The shared end-game confirm modal (replaces window.confirm — a true
   // modal: backdrop-blocked board, dialog-owned keyboard).
   const { confirm: confirmAction, confirmationModal } = useConfirmation()
+  const { acknowledge, acknowledgeModal } = useAcknowledge()
 
   // ─── Coop-win celebration ──────────────────────────────
   // Confetti at the MOMENT the team clears the fourth category (the winning
@@ -365,13 +367,12 @@ export function PlayArea({
       return
     }
     if (!preview?.[0]) {
-      await confirmAction({
+      await acknowledge({
         title: 'No more puzzles',
         message:
           'Everyone playing has already done every puzzle we have. Import more with '
           + '`gmake g-connections-puzzles`, or pick a date in the setup dialog to replay one.',
-        confirmLabel: 'Got it',
-        cancelLabel: null, // a notice, not a question
+        okLabel: 'Got it',
       })
       return
     }
@@ -397,7 +398,7 @@ export function PlayArea({
       return
     }
     goToGame(`connections_${gameMode}`, (data as { id: string }).id)
-  }, [gameMode, clubHandle, setup, players, goToGame, showLocalFeedback, confirmAction, isTerminal])
+  }, [gameMode, clubHandle, setup, players, goToGame, showLocalFeedback, confirmAction, acknowledge, isTerminal])
 
   // Single-flight guard. New game has THREE triggers (the terminal button, the
   // game-menu item, and the global `+` shortcut), and `common.create_game` is
@@ -706,6 +707,7 @@ export function PlayArea({
         />
       )}
       {confirmationModal}
+      {acknowledgeModal}
     </div>
   )
 }

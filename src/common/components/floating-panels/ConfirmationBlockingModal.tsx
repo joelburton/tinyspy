@@ -1,9 +1,7 @@
-// cs-unmet
+// cs-audited
 
-import { useRef, type ReactNode } from 'react'
-import { FloatingPanel } from './FloatingPanel'
-import { useFocusTrap } from '../../hooks/ui/useFocusTrap'
-import actionRow from './modalActions.module.css'
+import { type ReactNode } from 'react'
+import { BlockingModal } from './BlockingModal'
 
 type Props = {
   /** The titlebar question, e.g. "End this game?". */
@@ -13,32 +11,37 @@ type Props = {
   /** The confirm button's label ("End game", "Suspend"). Deliberately never
    *  a bare "OK" — the button should name the act. */
   confirmLabel: string
-  /** The dismiss button's label. Defaults to "Cancel"; pass **null** to omit
-   *  the button entirely, which turns this into a one-button NOTICE ("here's
-   *  why nothing happened") rather than a question. Esc / the header ✕ still
-   *  dismiss, and both still route through `onCancel`. */
-  cancelLabel?: string | null
+  /** The dismiss button's label. Defaults to "Cancel". */
+  cancelLabel?: string
   onConfirm: () => void
-  /** Called on Cancel, Esc, or the header ✕. */
+  /** Called on Cancel, Esc, or the titlebar ✕. */
   onCancel: () => void
+  /**
+   * Which button is PRIMARY — filled, and the one Enter fires. The two are one
+   * decision, never two (Joel, 2026-08-24): a filled button that Enter doesn't
+   * press, or an Enter target that doesn't look like one, is a trap.
+   *
+   * Defaults to `'confirm'`, which is right when confirming is the thing you
+   * came to do. `'cancel'` is for a question where the safe answer should be
+   * the reflex one.
+   */
+  primaryButton?: 'confirm' | 'cancel'
 }
 
 /**
  * The shared confirmation — the styled replacement for `window.confirm` on
- * in-game decisions (ending a game, suspending it).
+ * in-game decisions (ending a game, suspending it, restarting it).
  *
- * **A blocking modal** (plans/css-system-2.md §20), which is the strictest
- * category the app has: the world stops and nothing underneath is live.
- * `backdrop` blocks every pointer action on the board (click-through was the
- * native-confirm era's bug), and the keyboard is owned outright — focus is
- * trapped, the confirm button `autoFocus`es so Enter confirms, FloatingPanel
- * owns Esc (cancel), and the game key-capture hooks bail inside
- * `[data-floating-panel]`.
+ * **The shape is baked and there is no slot**, unlike the `<BlockingModal>` it
+ * renders into: a confirmation is always a question, a body, and exactly two
+ * buttons in a row. Every caller passing its own footer would be sixteen
+ * chances for the pair to disagree about order, weight or wording.
  *
- * **Not draggable, and that is the category's visible signal**: if you can drag
- * a floating panel you can leave it for later, and if you cannot, you deal with
- * it now. It is one of only two components that pass `draggable={false}`, the
- * other being the fault modal. `SuspendConfirmDialog` wraps this one.
+ * A **question**, which is the whole of what separates it from its sibling: if
+ * there is nothing to answer — one button, one way out — that is an
+ * `<AcknowledgeBlockingModal>`, not a confirmation with the Cancel removed.
+ * (It used to be exactly that: `cancelLabel: null`, a second act smuggled
+ * through a flag.)
  *
  * For the imperative `await confirm(...)` form games use in their action
  * handlers, see `useConfirmation`.
@@ -50,36 +53,36 @@ export function ConfirmationBlockingModal({
   cancelLabel = 'Cancel',
   onConfirm,
   onCancel,
+  primaryButton = 'confirm',
 }: Props) {
-  // Cycle Tab within the panel (the anchor lets the hook find the enclosing
-  // panel shell).
-  const anchorRef = useRef<HTMLDivElement>(null)
-  useFocusTrap(anchorRef)
+  const confirmIsPrimary = primaryButton === 'confirm'
 
   return (
-    <FloatingPanel
+    <BlockingModal
       title={title}
       onClose={onCancel}
-      draggable={false}
-      resizable={false}
-      backdrop
-      defaultSize={{ width: 420, height: 240 }}
-      minWidth={320}
-      minHeight={200}
-    >
-      <div ref={anchorRef}>
-        <p>{message}</p>
-        <div className={actionRow.modalActions}>
-          {cancelLabel !== null && (
-            <button type="button" className="button secondary" onClick={onCancel}>
-              {cancelLabel}
-            </button>
-          )}
-          <button type="button" className="button primary" onClick={onConfirm} autoFocus>
+      actions={
+        <>
+          <button
+            type="button"
+            className={`button ${confirmIsPrimary ? 'secondary' : 'primary'}`}
+            onClick={onCancel}
+            autoFocus={!confirmIsPrimary}
+          >
+            {cancelLabel}
+          </button>
+          <button
+            type="button"
+            className={`button ${confirmIsPrimary ? 'primary' : 'secondary'}`}
+            onClick={onConfirm}
+            autoFocus={confirmIsPrimary}
+          >
             {confirmLabel}
           </button>
-        </div>
-      </div>
-    </FloatingPanel>
+        </>
+      }
+    >
+      <p>{message}</p>
+    </BlockingModal>
   )
 }

@@ -1,10 +1,7 @@
 // cs-unmet
 
-import { useRef } from 'react'
-import { FloatingPanel } from '../floating-panels/FloatingPanel'
-import { useFocusTrap } from '../../hooks/ui/useFocusTrap'
+import { BlockingModal } from '../floating-panels/BlockingModal'
 import { dismissFault, presentFault, useCurrentFault } from '../../lib/fault/faultStore'
-import actionRow from '../floating-panels/modalActions.module.css'
 import styles from './FaultDialog.module.css'
 
 /**
@@ -20,44 +17,43 @@ import styles from './FaultDialog.module.css'
  *      SQLSTATE, HTTP status, DETAIL, raw text, timestamp), the SAME string
  *      the `[db]` console line carries (one builder — serverError.ts).
  *
- * A true modal on the ConfirmationBlockingModal machinery: `backdrop` dims and blocks
- * every pointer action underneath, focus is trapped, the game key-capture
- * hooks bail inside `[data-floating-panel]`, and FloatingPanel owns Esc.
- * Backdrop click deliberately does NOT dismiss — see-and-acknowledge, the
- * same contract as the manual pill mode this replaces. Close + Esc only.
+ * **A `<BlockingModal>`**, so it inherits the whole category: the world stops,
+ * nothing underneath is live, focus is trapped, and it cannot be dragged aside.
+ * Backdrop click deliberately does NOT dismiss — see-and-acknowledge, the same
+ * contract as the manual pill mode this replaces. Close + Esc only.
+ *
+ * It is a `modal-fault`, one tier ABOVE a blocking modal, because an error must
+ * be readable mid-question (§20). That rank is not yet expressed: it rides the
+ * shared default today, which is the reason an open chat can cover it. The tier
+ * moves when the ladder does, rung by rung, not here.
  *
  * One fault at a time; dismissing reveals the next queued one (cap 5,
  * overflow silently dropped from the UI — faultStore.ts).
  */
 export function FaultDialog() {
   const fault = useCurrentFault()
-  const anchorRef = useRef<HTMLDivElement>(null)
-  useFocusTrap(anchorRef)
 
   if (!fault) return null
 
   return (
-    <FloatingPanel
+    <BlockingModal
       title="Error"
       onClose={dismissFault}
-      draggable={false}
-      resizable={false}
-      backdrop
-      defaultSize={{ width: 460, height: 280 }}
-      minWidth={320}
-      minHeight={200}
+      // 40px wider than the category default, which is what it has always been
+      // and which nothing explains — a diagnostics line is long. Unconverted.
+      width={460}
+      actions={
+        <button type="button" className="button primary" onClick={dismissFault} autoFocus>
+          Close
+        </button>
+      }
     >
-      <div ref={anchorRef} className={styles.body}>
+      <div className={styles.body}>
         <p className={styles.heading}>Error</p>
         <p className={styles.message}>{fault.text}</p>
         {fault.diagnostics && <p className={styles.diagnostics}>{fault.diagnostics}</p>}
-        <div className={actionRow.modalActions}>
-          <button type="button" className="button primary" onClick={dismissFault} autoFocus>
-            Close
-          </button>
-        </div>
       </div>
-    </FloatingPanel>
+    </BlockingModal>
   )
 }
 

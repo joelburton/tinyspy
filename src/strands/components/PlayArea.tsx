@@ -16,6 +16,7 @@ import { waitingTurnPill } from '../../common/components/game/turnCopy'
 import { memberById } from '../../common/lib/game/peers'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { NEW_GAME_CONFIRM, useConfirmation } from '../../common/hooks/ui/useConfirmation'
+import { useAcknowledge } from '../../common/hooks/ui/useAcknowledge'
 import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
 import { solvedByMe, useSolutionReveal } from '../../common/hooks/game/useSolutionReveal'
 import { useSingleFlight } from '../../common/hooks/ui/useSingleFlight'
@@ -192,6 +193,7 @@ export function PlayArea(ctx: GamePageCtx) {
   const { localFeedback, showLocalFeedback, clearLocalFeedback } =
     useLocalFeedback({ locked: isTerminal })
   const { confirm: confirmAction, confirmationModal } = useConfirmation()
+  const { acknowledge, acknowledgeModal } = useAcknowledge()
   const infoSheet = useInfoSheet()
 
   const strandsSetup = setup as unknown as StrandsSetup
@@ -471,8 +473,8 @@ export function PlayArea(ctx: GamePageCtx) {
    * pacing) forward unchanged — the setup they already chose.
    *
    * At the end of the archive there is nothing to advance to, and this says so
-   * as a one-button NOTICE rather than a question with no meaningful answer
-   * (the `cancelLabel: null` shape connections uses for the same situation).
+   * with `useAcknowledge` rather than a question with no meaningful answer —
+   * the same dead end connections has.
    *
    * New game stays a per-game handler everywhere — useStandardGameActions
    * deliberately doesn't own it, because exactly this kind of per-game choice
@@ -507,13 +509,11 @@ export function PlayArea(ctx: GamePageCtx) {
     }
     const next = preview?.[0] ?? null
     if (!next) {
-      await confirmAction({
+      await acknowledge({
         title: 'No unplayed puzzle',
         message:
           'Everyone playing has already done every puzzle we have. Run '
           + '`gmake g-strands-fetch` to pick up new ones.',
-        confirmLabel: 'OK',
-        cancelLabel: null,
       })
       return
     }
@@ -828,6 +828,7 @@ export function PlayArea(ctx: GamePageCtx) {
       </InfoSheet>
 
       {confirmationModal}
+      {acknowledgeModal}
       {celebration.show && (
         <CelebrationDialog
           title={isCompete ? 'You win!' : 'You found them all!'}
