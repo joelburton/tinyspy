@@ -4,20 +4,21 @@ The first area of the CSS sprint's step 7. The process is
 [css-system-2.md](../css-system-2.md) §21; the plan holds the order, this file
 holds everything else.
 
-**Status: RESUMED; three subjects.** Forty-four findings, FORTY
-resolved (F1, F2, F3, F4, F5, F6, F6.1, F7, F8, F9, F10, F11, F14, F15,
+**Status: RESUMED; three subjects.** Forty-four findings, FORTY-TWO
+resolved (F1, F2, F3, F4, F5, F6, F6.1, F7, F8, F9, F10, F11, F12, F14, F15,
 F16, F17, F18, F19, F20, F22, F23, F24, F25, F26, F27, F28, F29, F30, F31, F32,
-F33, F34, F35, F36, F37, F38, F39, F40, F41, F43) — where "resolved" includes
+F33, F34, F35, F36, F37, F38, F39, F40, F41, F42, F43) — where "resolved" includes
 the ones FOLDED into a later finding, or MOVED to the area that can settle them,
 rather than fixed here.
 
-**Four open: F12 (`page-header-trio`), F21 (`homepage-no-vitest`), F42
-(`chevron-outside-the-icon-set`), F44 (`action-button-text-only`).**
+**Two open: F21 (`homepage-no-vitest`) and F44 (`action-button-text-only`).**
 
 Closed 2026-08-24: **F3** (`home-keyboard-spec`), when F38 dissolved its
 blocking question rather than answering it; **F38** (`selection-lists`), whose
-one unfitting site left for `scrabble`; and **F41** (`header-literals`), three
-values converted and the fourth kept bespoke with its reason.
+one unfitting site left for `scrabble`; **F41** (`header-literals`), three
+values converted and the fourth kept bespoke with its reason; and **F12 +
+F42** together, which is what made F42 free — folding the logo into `<Menu>`
+deleted the file that held the hand-inlined chevron.
 
 **F43 leaves this area** (Joel, 2026-08-24) and is on §7's carried-forward
 checklist against `crosswords` — the page where every header mark can appear at
@@ -49,7 +50,7 @@ Two subjects were added later, each bringing its own files:
 |---|---|---|
 | 2026-08-22, basic page structure | `src/common/base.css` | its page-level half |
 | 2026-08-23, the page header | `src/common/components/chrome/PageHeader.tsx` + `.module.css` | |
-| " | `src/common/components/panels/MenuTrigger.tsx` + `.module.css` | the trigger's standard content |
+| " | ~~`src/common/components/panels/MenuTrigger.tsx` + `.module.css`~~ | the trigger's standard content — **deleted by F12**; the logo is a `<Menu>` prop and the chevron is `IconMenuChevron` |
 
 `ClubPage` and `GamePage` were read as EVIDENCE for both, and are neither
 `cs-found` nor `cs-audited` by that — see §21's note on what "found" means.
@@ -560,7 +561,34 @@ logo, the sections and the label:
 promotes on the second. Whether the chevron-wrapped logo becomes a prop on
 `<Menu>` or its own component is the design question.
 
-> resolution:
+> **resolution: `<PageHeaderMenu>` (2026-08-24), and it took the ref with it.**
+> The design question is answered BOTH ways, because the block held two
+> different duplications:
+>
+> - **The chevron-wrapped logo is a prop on `<Menu>`.** No caller was choosing
+>   that wrapper — it is what a header menu IS — and the `trigger` slot's only
+>   non-logo users were three tests passing `"☰"`. Generality with no production
+>   reader is a flaw, not headroom. It also closes a hole: a fourth caller could
+>   have passed a bare logo with no chevron and nothing would have noticed.
+>   `MenuTrigger` is deleted and its row moves into `Menu.module.css`.
+> - **The `?` wiring is a store, not a ref.** Each page declared a
+>   `useRef<MenuHandle>`, passed it down, and handed
+>   `() => ref.current?.open()` to `useAppShortcuts` — four lines, three times,
+>   for one app-level key. `<PageHeaderMenu>` owns the ref and registers itself
+>   in `common/lib/menu/pageMenuStore`; **`useAppShortcuts` loses its first
+>   parameter**, which is the real measure of the change.
+>
+> A component could not own the ref privately, which is what forced the store:
+> `useAppShortcuts` takes the opener as an argument AND returns the lookup
+> dialog the page must render, so the page could only get the opener back out
+> through a ref by another name.
+>
+> **A missing menu stays a no-op.** GamePage drops its menu while paused, and
+> `?` then found `ref.current === null`; it now finds nothing registered. Same
+> behavior, and now covered by a test that says so.
+>
+> NOT folded into `<PageHeader>`, which takes children: the club page and a game
+> put their own marks beside the menu, and a game fills the `right` slot too.
 
 **F13 · `frame-to-clubpage` · `.frame` — already carried forward to the `club-page` area**, recorded
 here only so the homepage's shape is on file when that area opens. Home's is the
@@ -1708,7 +1736,32 @@ Its size is also the only hard-coded pixel dimension in the header
 (`width="10" height="10"`), where everything else in the strip is either a
 token or an em.
 
-> resolution:
+> **resolution: `IconMenuChevron` (2026-08-24), done with F12 in one change.**
+> It is `ChevronDown` in `components/icons`, next to `IconBack`'s `ChevronLeft`
+> — the same family, and a chevron points at the list about to appear. The
+> registry's comment says why an affordance mark belongs in a set otherwise full
+> of button icons: the alternative was the app's one hand-inlined `<svg>`, in a
+> file whose job is layout.
+>
+> **Doing it with F12 is what made it free.** F12 folded the logo into `<Menu>`,
+> so `MenuTrigger` — the file that held the SVG — stopped existing; the chevron
+> had to go somewhere, and the icon set is where.
+>
+> **The size is an em now**, `.chevron { width: 0.65em; height: 0.65em }`, so
+> the mark tracks the type beside it instead of being the strip's one pixel
+> dimension — and it now scales with a browser font-size the old `width="10"`
+> ignored.
+>
+> **Nothing visible changed, to within 0.4px**, which is worth recording because
+> swapping a hand-drawn glyph for a library one usually does change something:
+>
+> - the PATH is identical in proportion — `M4 6l4 4 4-4` on a 16 viewBox and
+>   Lucide's `m6 9 6 6 6-6` on 24 both normalize to x 0.25→0.75, y 0.375→0.625;
+> - `strokeWidth={3}` is an IDENTITY, not a tuned number: 3/24 == 2/16;
+> - round caps and joins both ways — the old SVG set them, Lucide defaults to
+>   them;
+> - the size goes 10px → 10.4px, because `base.css:768` gives buttons
+>   `font: inherit` so `0.65em` resolves against 1rem.
 
 **F43 · `unequal-mark-separation` · The marks in the left slot are not evenly
 spaced, and the CSS says they are.** The slot sets one `gap: 0.375rem` for
@@ -1946,8 +1999,8 @@ becomes its own area is Joel's call.
 - `components/branding/PuzpuzpuzLogo.module.css`
 - `components/panels/Menu.tsx`
 - `components/panels/Menu.module.css`
-- `components/panels/MenuTrigger.tsx`
-- `components/panels/MenuTrigger.module.css`
+- ~~`components/panels/MenuTrigger.tsx`~~ · ~~`.module.css`~~ — deleted by F12
+- `components/chrome/PageHeaderMenu.tsx` — added by F12
 - `components/chrome/PageHeader.tsx`
 - `components/chrome/PageHeader.module.css`
 

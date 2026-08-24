@@ -1,6 +1,6 @@
 // cs-partial
 
-import { useCallback, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { Link } from '../../lib/routing/Link'
 import { navigate } from '../../lib/routing/router'
@@ -16,9 +16,8 @@ import { useRealtimeRefetch } from '../../hooks/realtime/useRealtimeRefetch'
 import { Dot } from '../text/Dot'
 import { PuzpuzpuzWordmark } from '../branding/PuzpuzpuzWordmark'
 import { PuzpuzpuzLogo } from '../branding/PuzpuzpuzLogo'
-import { Menu, type MenuHandle } from '../panels/Menu'
 import { PageHeader } from '../chrome/PageHeader'
-import { MenuTrigger } from '../panels/MenuTrigger'
+import { PageHeaderMenu } from '../chrome/PageHeaderMenu'
 import { useAccountMenuSection } from '../../hooks/account/useAccountMenuSection'
 import { useAppShortcuts } from '../../hooks/input/useAppShortcuts'
 import styles from './HomePage.module.css'
@@ -142,11 +141,7 @@ export function HomePage({ session }: Props) {
   // `?` opens the menu and `~` opens word-lookup, as on every other real page.
   // `chat: false` — chat is club-scoped and no panel is mounted here, so binding
   // `/` would swallow the key and show nothing (see the hook).
-  const menuRef = useRef<MenuHandle>(null)
-  const lookupDialog = useAppShortcuts(
-    useCallback(() => menuRef.current?.open(), []),
-    { chat: false },
-  )
+  const lookupDialog = useAppShortcuts({ chat: false })
 
   return (
     <div className="pageHeaderAndMainArea">
@@ -155,15 +150,10 @@ export function HomePage({ session }: Props) {
           beneath, the card below it. A sibling of the card rather than a child,
           so it aligns to the PAGE and not to the card's 2rem padding. */}
       <PageHeader>
-        <Menu
-          ref={menuRef}
-          trigger={
-            <MenuTrigger>
-              <PuzpuzpuzLogo />
-            </MenuTrigger>
-          }
+        <PageHeaderMenu
+          logo={<PuzpuzpuzLogo />}
           sections={[accountSection]}
-          triggerLabel="Main menu"
+          label="Main menu"
         />
       </PageHeader>
       <div className={cls('card', 'pageMain', 'pageMain-fills', styles.card)}>

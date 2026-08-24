@@ -47,7 +47,7 @@ function renderMenu(
   return render(
     <>
       <Menu
-        trigger="☰"
+        logo="☰"
         sections={sections}
         triggerLabel={opts.triggerLabel ?? 'Test menu'}
         returnFocusOnClose={opts.returnFocusOnClose}
@@ -400,7 +400,7 @@ describe('Menu — sections + dividers', () => {
     const user = userEvent.setup()
     render(
       <Menu
-        trigger="☰"
+        logo="☰"
         triggerLabel="Test menu"
         sections={[
           { items: [{ id: 'a', label: 'Alpha', onClick: () => {} }] },
@@ -417,7 +417,7 @@ describe('Menu — sections + dividers', () => {
     const user = userEvent.setup()
     render(
       <Menu
-        trigger="☰"
+        logo="☰"
         triggerLabel="Test menu"
         sections={[
           { items: [] },
@@ -434,7 +434,7 @@ describe('Menu — sections + dividers', () => {
     const user = userEvent.setup()
     render(
       <Menu
-        trigger="☰"
+        logo="☰"
         triggerLabel="Test menu"
         sections={[
           { items: [{ id: 'a', label: 'Alpha', onClick: () => {} }] },
@@ -451,7 +451,7 @@ describe('Menu — sections + dividers', () => {
     const user = userEvent.setup()
     render(
       <Menu
-        trigger="☰"
+        logo="☰"
         triggerLabel="Test menu"
         sections={[
           // A header-only section (no items) — the crosswords puzzle-info block.

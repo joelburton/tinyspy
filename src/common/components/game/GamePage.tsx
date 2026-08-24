@@ -37,13 +37,12 @@ import { FloatingChat } from '../chat/FloatingChat'
 import { ScratchpadButton } from '../panels/ScratchpadButton'
 import { GameScratchpad } from '../panels/GameScratchpad'
 import { GameLogo } from '../branding/GameLogo'
-import { Menu, type MenuHandle } from '../panels/Menu'
-import { MenuTrigger } from '../panels/MenuTrigger'
 import { PauseBoundary } from './PauseBoundary'
 import { PauseButton } from '../buttons/PauseButton'
 import { InfoSwitchButton } from './InfoSwitchButton'
 import { cls } from '../../lib/util/cls'
 import { PageHeader } from '../chrome/PageHeader'
+import { PageHeaderMenu } from '../chrome/PageHeaderMenu'
 import { PageHeaderStatusSlot } from './PageHeaderStatusSlot'
 import { SuspendConfirmDialog } from './SuspendConfirmDialog'
 import { Loading } from '../loading-and-errs/Loading'
@@ -252,8 +251,7 @@ export function GamePage({
   // App-chrome keyboard shortcuts: "/" opens chat, "?" opens this menu,
   // "~" opens the word-lookup dialog (the hook owns + returns that
   // dialog; we render it below).
-  const menuRef = useRef<MenuHandle>(null)
-  const lookupDialog = useAppShortcuts(useCallback(() => menuRef.current?.open(), []))
+  const lookupDialog = useAppShortcuts()
   const accountSection = useAccountMenuSection(session)
 
   // Which mobile page is showing (see infoSheetStore for why it's a store and
@@ -530,15 +528,10 @@ export function GamePage({
           </>
         }
       >
-        <Menu
-          ref={menuRef}
-          trigger={
-            <MenuTrigger>
-              <GameLogo gametype={gametype} />
-            </MenuTrigger>
-          }
+        <PageHeaderMenu
+          logo={<GameLogo gametype={gametype} />}
           sections={sections}
-          triggerLabel="Game menu"
+          label="Game menu"
           // The game menu sits over boards that read window keydowns for play
           // (crosswords' cursor). A focused trigger would swallow those keys /
           // reopen the menu, so let focus fall back to the board on close.

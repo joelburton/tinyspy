@@ -30,9 +30,8 @@ import { EditClubDialog } from './EditClubDialog'
 import { GametypeFilter, type GametypeOption } from './GametypeFilter'
 import { ModeFilter } from './ModeFilter'
 import { MODE_FILTER_VALUES, type ModeFilterValue } from './modeFilterOptions'
-import { Menu, type MenuHandle } from '../panels/Menu'
 import { PageHeader } from '../chrome/PageHeader'
-import { MenuTrigger } from '../panels/MenuTrigger'
+import { PageHeaderMenu } from '../chrome/PageHeaderMenu'
 import { PuzpuzpuzLogo } from '../branding/PuzpuzpuzLogo'
 import { SetupGameDialog } from '../setup/SetupGameDialog'
 import { StartGameRow } from './StartGameRow'
@@ -177,8 +176,7 @@ export function ClubPage({ handle, session }: Props) {
   // menu, "~" opens the word-lookup dialog (the hook owns + returns that
   // dialog; we render it below). Same hook the GamePage uses. Declared
   // above the loading early returns so the hook order stays stable.
-  const menuRef = useRef<MenuHandle>(null)
-  const lookupDialog = useAppShortcuts(useCallback(() => menuRef.current?.open(), []))
+  const lookupDialog = useAppShortcuts()
   const accountSection = useAccountMenuSection(session)
 
   const presentUserIds = useMemo(
@@ -845,16 +843,7 @@ export function ClubPage({ handle, session }: Props) {
   return (
     <div className={cls('pageHeaderAndMainArea', styles.frame)}>
       <PageHeader>
-        <Menu
-          ref={menuRef}
-          trigger={
-            <MenuTrigger>
-              <PuzpuzpuzLogo />
-            </MenuTrigger>
-          }
-          sections={menuSections}
-          triggerLabel="Club menu"
-        />
+        <PageHeaderMenu logo={<PuzpuzpuzLogo />} sections={menuSections} label="Club menu" />
         <ChatButton />
         {/* PageHeaderStatusSlot's `players` prop is a Member[] under the
             hood; here we feed it the club's member roster (the

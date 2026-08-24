@@ -4,6 +4,10 @@ import { act, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { isNonGameField, useAppShortcuts } from './useAppShortcuts'
 import { getChatOpen, setChatOpen } from '../../lib/chat/chatOpenStore'
+import { registerPageMenu } from '../../lib/menu/pageMenuStore'
+
+/** Releases whatever page menu the current test registered — see afterEach. */
+let releaseMenu: (() => void) | undefined
 
 function press(key: string, target: EventTarget) {
   target.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }))
@@ -40,11 +44,18 @@ describe('useAppShortcuts', () => {
   afterEach(() => {
     document.body.innerHTML = ''
     setChatOpen(false)
+    // The page-menu slot is module-level, so a registration left behind would
+    // answer the NEXT test's `?`.
+    releaseMenu?.()
+    releaseMenu = undefined
   })
 
   it('"/" opens chat and "?" opens the menu when nothing/board is focused', () => {
+    // `?` reaches the page's menu through the store a <PageHeaderMenu>
+    // registers with, not through an argument — so the test registers one.
     const openMenu = vi.fn()
-    renderHook(() => useAppShortcuts(openMenu))
+    releaseMenu = registerPageMenu(openMenu)
+    renderHook(() => useAppShortcuts())
 
     press('/', document.body)
     expect(getChatOpen()).toBe(true)
@@ -53,8 +64,16 @@ describe('useAppShortcuts', () => {
     expect(openMenu).toHaveBeenCalledTimes(1)
   })
 
+  it('"?" with no menu registered does nothing', () => {
+    // GamePage drops its menu while the game is paused, so this is the live
+    // case, not a hypothetical: the shortcut has to be a no-op rather than a
+    // crash (plans/areas/homepage.md → F12).
+    renderHook(() => useAppShortcuts())
+    expect(() => press('?', document.body)).not.toThrow()
+  })
+
   it('"~" returns the word-lookup dialog node (idle → open)', () => {
-    const { result } = renderHook(() => useAppShortcuts(vi.fn()))
+    const { result } = renderHook(() => useAppShortcuts())
 
     // Idle: nothing rendered.
     expect(result.current).toBeNull()
@@ -67,7 +86,8 @@ describe('useAppShortcuts', () => {
 
   it('fires while a GAME input is focused (data-game-input)', () => {
     const openMenu = vi.fn()
-    renderHook(() => useAppShortcuts(openMenu))
+    releaseMenu = registerPageMenu(openMenu)
+    renderHook(() => useAppShortcuts())
 
     const gameInput = document.createElement('input')
     gameInput.setAttribute('data-game-input', '')
@@ -78,7 +98,7 @@ describe('useAppShortcuts', () => {
   })
 
   it('⌥` toggles the anagram dialog — matched by CODE, surviving the mac dead key', () => {
-    const { result } = renderHook(() => useAppShortcuts(vi.fn()))
+    const { result } = renderHook(() => useAppShortcuts())
     expect(result.current).toBeNull()
 
     // On macOS ⌥` is the accent composer, so e.key arrives as 'Dead' — the
@@ -95,7 +115,7 @@ describe('useAppShortcuts', () => {
   })
 
   it('a bare backquote (no alt) is not the anagram chord', () => {
-    const { result } = renderHook(() => useAppShortcuts(vi.fn()))
+    const { result } = renderHook(() => useAppShortcuts())
     act(() => {
       document.body.dispatchEvent(
         new KeyboardEvent('keydown', { key: '`', code: 'Backquote', bubbles: true }),
@@ -106,7 +126,8 @@ describe('useAppShortcuts', () => {
 
   it('does NOT fire while a non-game field is focused (setup input, chat box)', () => {
     const openMenu = vi.fn()
-    const { result } = renderHook(() => useAppShortcuts(openMenu))
+    releaseMenu = registerPageMenu(openMenu)
+    const { result } = renderHook(() => useAppShortcuts())
 
     const input = document.createElement('input')
     document.body.append(input)

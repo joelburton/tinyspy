@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { AnagramDialog } from '../../components/definitions/AnagramDialog'
 import { WordLookupDialog } from '../../components/definitions/WordLookupDialog'
 import { setChatOpen } from '../../lib/chat/chatOpenStore'
+import { openPageMenu } from '../../lib/menu/pageMenuStore'
 
 /**
  * App-level keyboard shortcuts available on any page that has the chat
@@ -11,8 +12,10 @@ import { setChatOpen } from '../../lib/chat/chatOpenStore'
  * as opposed to auth / setup screens):
  *
  *   - `/` opens chat (and focuses its input). Already-open stays open.
- *   - `?` opens the logo menu (via the `openMenu` the caller wires to
- *     its `<Menu ref>`).
+ *   - `?` opens the page's header menu. No caller wires this up: whatever
+ *     `<PageHeaderMenu>` is mounted registers itself in `pageMenuStore`, and a
+ *     page with none (or a game whose menu is gone during a pause) simply gets
+ *     nothing. Each page used to thread a `useRef<MenuHandle>` here by hand.
  *   - `~` opens the free-form "look up a word" dialog. Unlike the other
  *     two, this shortcut owns its whole feature: the hook holds the
  *     open/closed state and RETURNS the dialog node for the caller to
@@ -49,22 +52,13 @@ import { setChatOpen } from '../../lib/chat/chatOpenStore'
  * broken" rather than "chat isn't here". `?` and `~` are page-independent and
  * stay on.
  *
- * @param openMenu  Called on `?` — the caller wires this to its `<Menu>`.
  * @param opts.chat Bind `/` to open chat. Default true; pass false on a page
  *                  with no chat panel.
  * @returns The word-lookup dialog node (or null when closed). Render it
  *          somewhere in the page tree.
  */
-export function useAppShortcuts(
-  openMenu: () => void,
-  opts: { chat?: boolean } = {},
-): ReactNode {
+export function useAppShortcuts(opts: { chat?: boolean } = {}): ReactNode {
   const chatEnabled = opts.chat ?? true
-  // Keep the latest openMenu in a ref so the listener registers once.
-  const openMenuRef = useRef(openMenu)
-  useEffect(() => {
-    openMenuRef.current = openMenu
-  })
 
   // The `~` lookup dialog's open/closed state lives here so the dialog
   // can be owned + rendered centrally for every page (see docstring).
@@ -110,7 +104,7 @@ export function useAppShortcuts(
           if (input instanceof HTMLElement) input.focus()
         })
       } else if (e.key === '?') {
-        openMenuRef.current()
+        openPageMenu()
       } else {
         setLookupOpen(true)
       }

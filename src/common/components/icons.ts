@@ -104,6 +104,14 @@ export {
   // WORD ("< Club" / "< Home") rather than to swap the glyph, so the shortcut
   // mnemonic survives the disambiguation.
   ChevronLeft as IconBack,
+  // The little "this opens a menu" chevron beside a page-header logo. It is an
+  // AFFORDANCE MARK rather than an icon in the button sense — nothing labels it
+  // and nothing acts on it alone — but it belongs here anyway, because the
+  // alternative was the one glyph in the app hand-inlined as raw <svg>, living
+  // in a layout component (plans/areas/homepage.md → F42
+  // `chevron-outside-the-icon-set`). Same family as IconBack: a chevron points,
+  // and this one points at the list that is about to appear.
+  ChevronDown as IconMenuChevron,
   // Print to PDF. The one glyph here with NO button — print is a menu-only
   // action — but the menu's legend earns it anyway: a printer is instantly
   // scannable in a list of words, and if a print button ever appears it has

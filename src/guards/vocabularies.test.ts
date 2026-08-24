@@ -302,7 +302,6 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/components/panels/GameScratchpad.module.css': ['0.4rem', '0.5rem'],
       'src/common/components/panels/Menu.module.css': ['1.5rem', '0.3rem', '0.1rem', '-1px', '-1rem'],
       'src/common/components/panels/modalActions.module.css': ['0.75rem', '1.5rem'],
-      'src/common/components/panels/MenuTrigger.module.css': ['0.1rem'],
       'src/common/components/setup/SetupGameDialog.module.css': ['0.75rem', '1.5rem', '1rem', '0.5rem', '0.4rem'],
       'src/common/components/text/RichMessage.module.css': ['0.25rem'],
       'src/common/components/toasts/Toast.module.css': ['0.7rem'],

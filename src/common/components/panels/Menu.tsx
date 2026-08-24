@@ -15,6 +15,7 @@ import { cls } from '../../lib/util/cls'
 import { Dot } from '../text/Dot'
 import { isSubmenu, type MenuItem, type MenuSection, type MenuSubmenu } from '../../lib/games'
 import { useIsMobile } from '../../hooks/ui/useIsMobile'
+import { IconMenuChevron } from '../icons'
 import styles from './Menu.module.css'
 
 /**
@@ -47,12 +48,14 @@ type OpenSubmenu = {
 export type MenuHandle = { open: () => void }
 
 type Props = {
-  /** The clickable element that opens the menu. Wrapped by
-   *  `<Menu>` in a `<button>` with the menu ARIA attributes;
-   *  the trigger element itself should be visually descriptive
-   *  (an icon, a logo) — Menu adds nothing visual around it
-   *  besides hover/focus state on the wrapping button. */
-  trigger: ReactNode
+  /** The identity element the menu hangs off — an app or game logo. Menu wraps
+   *  it in a `<button>` with the menu ARIA attributes and snugs the little
+   *  down-chevron up against its right; the chevron is the "this opens a menu"
+   *  affordance and is NOT optional, which is the point of taking the logo
+   *  rather than a whole trigger. Every caller passed the identical wrapper
+   *  before (plans/areas/homepage.md → F12), and a fourth could have forgotten
+   *  it with nothing to notice. */
+  logo: ReactNode
   /** Ordered list of sections rendered in the dropdown. Empty
    *  sections drop out; dividers appear between non-empty
    *  sections (no leading or trailing divider). */
@@ -115,7 +118,7 @@ type Props = {
  * chat stays available for "what does this option do?" Q&A).
  */
 export const Menu = forwardRef<MenuHandle, Props>(function Menu({
-  trigger,
+  logo,
   sections,
   triggerLabel = 'Menu',
   triggerClassName,
@@ -567,7 +570,17 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
         onClick={() => (open ? closeMenu() : openMenu())}
         onKeyDown={onTriggerKeyDown}
       >
-        {trigger}
+        {/* The gap is deliberately tiny — the chevron hugs the logo so the pair
+            reads as ONE clickable unit rather than two marks. */}
+        <span className={styles.triggerRow}>
+          {logo}
+          {/* 3, not the set's default 2, and it is an IDENTITY rather than a
+              tuned number: the hand-drawn chevron this replaced was stroke 2 on
+              a 16 viewBox and Lucide draws on 24, so 3/24 == 2/16. Same
+              relative weight, same glyph — that path normalizes to exactly the
+              old one's coordinates. */}
+          <IconMenuChevron className={styles.chevron} strokeWidth={3} aria-hidden />
+        </span>
       </button>
     )
   }
