@@ -74,10 +74,14 @@ type ActionButtonProps = PurposeButtonProps & {
  * that supply `icon` / `label` / `tone` / `iconSize`; this owns everything they
  * have in common, so a new purpose button is a one-liner and they can't drift.
  *
- * This sits alongside ShuffleButton / PauseButton / BackToClubButton (which are
- * already purpose-buttons) and extends that pattern to the labeled action
- * buttons. The look comes from the shared global classes (`icon-button`,
- * `secondary`, `icon-only` — see theme.css), composed here once.
+ * The look comes from the shared global classes (`icon-button`, `secondary`,
+ * `icon-only` — see theme.css), composed here once.
+ *
+ * Two shared buttons are deliberately NOT built on this, and neither is a
+ * counter-example to the pattern: `ShuffleButton` is the board's round pill, a
+ * fixed-size circular shape with its own chrome, and `PauseButton` is a
+ * `<PageHeaderButton>`, which is the header's own family. `BackToClubButton`
+ * and `ZoomFitButton` DO come through here.
  */
 export function ActionButton({
   icon: Icon,

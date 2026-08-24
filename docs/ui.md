@@ -1638,8 +1638,9 @@ Club" / "< Home") over swapping the glyph, so the mnemonic survives.
   instantly on leave/blur/press/scroll). `ActionButton` wires
   `tooltip ?? label` automatically — every purpose button has a tooltip by
   default, and a caller passes `tooltip` to say something richer than the
-  label; ShuffleButton / PauseButton / BackToClubButton carry theirs
-  directly. The attribute is usable on ANY element as other spots want
+  label. `ShuffleButton` writes its own `data-tooltip`, being outside
+  `ActionButton` entirely; `PauseButton` takes its from `<PageHeaderButton>`,
+  which wires `tooltip ?? label` the same way. The attribute is usable on ANY element as other spots want
   tooltips later. The host measures and **clamps the bubble to the
   viewport** — above the anchor by default, flipped below near the top edge
   (no per-button placement flags), x pinned inside the edges — and the body
@@ -1656,9 +1657,10 @@ Club" / "< Home") over swapping the glyph, so the mnemonic survives.
   is `cls('button', 'icon-button', styles.someModifier)` (or `cls('button',
   'secondary', 'icon-button', …)`). It's pure shape — fill/border come from
   `.button` (and `secondary` if it's the outline), width from a per-button
-  modifier (`.inputButton`'s `min-width`, `.helperButton`'s flex-grow). **Not** for icon-only pills (`ShuffleButton`,
-  `PauseButton`) — those are a separate round, fixed-size, label-less shape that
-  styles itself.
+  modifier (`.inputButton`'s `min-width`, `.helperButton`'s flex-grow). **Not** for `ShuffleButton`, the board's round pill — a
+  separate fixed-size circular shape that styles itself, and the only one of
+  its kind: the header's marks are `<PageHeaderButton>`s and `ZoomFitButton` is
+  an ordinary `icon-only` square.
 - **Decided picks worth noting:** **Submit-a-move = `Triangle`, pointing UP.**
   A move-submit "sends" the move up to the other players (our boards put YOU at
   the bottom, others above — codenamesduet's keycards literally so), and pointing
@@ -1685,8 +1687,10 @@ action-row *button*, never a GamePage-menu item. The roster of semantic buttons:
 `SubmitButton` · `SubmitWithScore` · `DeleteButton` · `ClearButton` ·
 `HintButton` · `RevealButton` · `AIButton` · `EndGameButton` ·
 `ConcedeGameButton` · `EndTurnButton` · `PassButton` · `ExchangeButton` ·
-`PeelButton` · plus the label-less pills `ShuffleButton` / `PauseButton` /
-`BackToClubButton` / `ZoomFitButton`. Still on their old glyphs / pending: the
+`PeelButton` · `ZoomFitButton` (icon-only, an ordinary square) ·
+`BackToClubButton` (which carries a text label). Outside the roster: the board's
+round pill `ShuffleButton`, and `PauseButton`, which is a
+`<PageHeaderButton>` — neither is an `ActionButton`. Still on their old glyphs / pending: the
 chat bubble, the `×` close, and the `✓`/`✗` marks.
 
 **Two axes + natural width.** A semantic button composes from `ActionButton`'s two

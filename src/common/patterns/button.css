@@ -143,8 +143,9 @@
 
    For a labelless rectangular button — same chrome as its labeled siblings, just
    square because there's no text — add the `icon-only` modifier below. Still NOT
-   for the round icon pills (ShuffleButton, PauseButton): those are a separate,
-   fixed-size circular shape that style themselves. */
+   for `ShuffleButton`, the board's round pill: a separate fixed-size circular
+   shape that styles itself. It is the ONLY one — the header's marks are
+   `PageHeaderButton`s and `ZoomFitButton` is an ordinary `icon-only`. */
 /* @@ */ .icon-button {
   display: inline-flex;
   align-items: center;
