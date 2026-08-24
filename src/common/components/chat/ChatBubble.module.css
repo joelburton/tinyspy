@@ -6,27 +6,29 @@
  * affordance, different file.
  */
 
-/* @@ */ .bubble {
-  /* A square icon button, not a pill. The bare <button> is neutral, so this
-   * only has to say what it IS. */
-  padding: 0.3rem;
-  margin: 0;
-  cursor: pointer;
-  color: var(--page-text-color);
+/* The shape, the hover, the press and the open border are all the shared
+ * `.bare-icon-button` (common/patterns/button.css). What is left here is the
+ * two things only this bubble has. */
 
+/* @@ */ .bubble {
   /* Anchor for the unread count pill. */
   position: relative;
-
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-md);
-
-  transition: background 100ms ease, color 100ms ease;
 }
 
-/* @@ */ .bubble:hover {
-  background: var(--page-surface-border-color);
+/* UNREAD: the speech bubble FILLS with the profile color of whoever wrote the
+ * message you have not read, while its outline stays body ink.
+ *
+ * The fill and the outline are separate channels on purpose. Who wrote to you
+ * and whether the panel is open are unrelated facts, and the button's
+ * background is already spoken for by hover and press — so the identity color
+ * goes INSIDE the glyph, where nothing else is using the space. The dark
+ * outline doubles as the ring `<Dot>` has to draw for itself: it is what lets a
+ * light member color (yellow) read against the page.
+ *
+ * `fill` on the SVG beats lucide's own `fill="none"` attribute. No unread, no
+ * custom property, and the fallback keeps the glyph hollow. */
+/* @@ */ .bubble svg {
+  fill: var(--chat-unread-color, none);
 }
 
 /* Unread count, top-left. Black (NOT red — red is a valid player

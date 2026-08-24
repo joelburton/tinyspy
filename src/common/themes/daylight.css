@@ -97,15 +97,22 @@
      (outline) — those are the class names — while the family says what
      kind of action it is. Any family × either treatment.
 
-     Six cells each, all six always:
+     Eight cells each, all eight always:
 
        base             the anchor. Chosen. Never painted.
        primary          the filled button's background = base
        primary-hover    base at oklab lightness −0.05 — a small step
+       primary-press    base at −0.10 — the same step, again
        primary-ink      the label on the filled button
        secondary        base at oklab lightness −0.115 — the outline's
                         border AND its label, one value
        secondary-hover  base at 8% over the card — the outline's hover
+       secondary-press  base at 16% — the wash, twice
+
+     PRESS IS HOVER TAKEN FURTHER, in whichever direction that family's
+     hover already moved, so the two read as degrees of one thing rather
+     than as two effects. It is also the only feedback a touch device can
+     get: hover needs a pointer and a thumb has none.
 
      THE CENTRAL CORRECTION, worth not losing: primary-hover and
      secondary are SEPARATE steps down from base. They were one value
@@ -130,9 +137,11 @@
 /* @@ */   --button-normal-base-color:                #1976d2;
 /* @@ */   --button-normal-primary-color:             var(--button-normal-base-color);
 /* @@ */   --button-normal-primary-hover-color:       oklch(from var(--button-normal-base-color) calc(l - 0.05) c h);
+/* @@ */   --button-normal-primary-press-color:       oklch(from var(--button-normal-base-color) calc(l - 0.10) c h);
 /* @@ */   --button-normal-primary-ink-color:         #ffffff;
 /* @@ */   --button-normal-secondary-color:           oklch(from var(--button-normal-base-color) calc(l - 0.115) c h);
 /* @@ */   --button-normal-secondary-hover-color:     color-mix(in oklab, var(--button-normal-base-color) 8%, var(--page-surface-color));
+/* @@ */   --button-normal-secondary-press-color:     color-mix(in oklab, var(--button-normal-base-color) 16%, var(--page-surface-color));
 
   /* SUCCESS — a confirming YES. RESERVED: nothing reads it today, and
      it is written today for the reason the whole file is written this
@@ -143,9 +152,11 @@
 /* @@ */   --button-success-base-color:               #2e7d32;
 /* @@ */   --button-success-primary-color:            var(--button-success-base-color);
 /* @@ */   --button-success-primary-hover-color:      oklch(from var(--button-success-base-color) calc(l - 0.05) c h);
+/* @@ */   --button-success-primary-press-color:      oklch(from var(--button-success-base-color) calc(l - 0.10) c h);
 /* @@ */   --button-success-primary-ink-color:        #ffffff;
 /* @@ */   --button-success-secondary-color:          oklch(from var(--button-success-base-color) calc(l - 0.115) c h);
 /* @@ */   --button-success-secondary-hover-color:    color-mix(in oklab, var(--button-success-base-color) 8%, var(--page-surface-color));
+/* @@ */   --button-success-secondary-press-color:    color-mix(in oklab, var(--button-success-base-color) 16%, var(--page-surface-color));
 
   /* DESTRUCTIVE — irreversible.
      This DELIBERATELY collides with the game-loss red: it sits 0.037
@@ -163,9 +174,11 @@
 /* @@ */   --button-destructive-base-color:           #b71c1c;
 /* @@ */   --button-destructive-primary-color:        var(--button-destructive-base-color);
 /* @@ */   --button-destructive-primary-hover-color:  oklch(from var(--button-destructive-base-color) calc(l - 0.05) c h);
+/* @@ */   --button-destructive-primary-press-color:  oklch(from var(--button-destructive-base-color) calc(l - 0.10) c h);
 /* @@ */   --button-destructive-primary-ink-color:    #ffffff;
 /* @@ */   --button-destructive-secondary-color:      oklch(from var(--button-destructive-base-color) calc(l - 0.115) c h);
 /* @@ */   --button-destructive-secondary-hover-color:color-mix(in oklab, var(--button-destructive-base-color) 8%, var(--page-surface-color));
+/* @@ */   --button-destructive-secondary-press-color: color-mix(in oklab, var(--button-destructive-base-color) 16%, var(--page-surface-color));
 
   /* CAUTION — consequential, not destructive. NOT the outcome orange:
      `outcomes-warning` sits at oklab hue 69.6°, a true bright orange;
@@ -179,9 +192,11 @@
 /* @@ */   --button-caution-base-color:               #d56417;
 /* @@ */   --button-caution-primary-color:            var(--button-caution-base-color);
 /* @@ */   --button-caution-primary-hover-color:      oklch(from var(--button-caution-base-color) calc(l - 0.05) c h);
+/* @@ */   --button-caution-primary-press-color:      oklch(from var(--button-caution-base-color) calc(l - 0.10) c h);
 /* @@ */   --button-caution-primary-ink-color:        #ffffff;
 /* @@ */   --button-caution-secondary-color:          oklch(from var(--button-caution-base-color) calc(l - 0.115) c h);
 /* @@ */   --button-caution-secondary-hover-color:    color-mix(in oklab, var(--button-caution-base-color) 8%, var(--page-surface-color));
+/* @@ */   --button-caution-secondary-press-color:    color-mix(in oklab, var(--button-caution-base-color) 16%, var(--page-surface-color));
 
   /* QUIET — active, but not the thing we are pointing you at. Named
      for its VOLUME rather than its purpose, because "cancel" made
@@ -192,13 +207,20 @@
      dialog Cancel that made quiet famous wants the outline because
      SECONDARY is the right treatment there, which says nothing about
      whether a quiet button can be filled. It can.
-     (White on #737373 measures 4.74:1 — better than normal's 4.60.) */
-/* @@ */   --button-quiet-base-color:                 #737373;
+
+     Material Gray 800, the same ramp normal (Blue 700), success (Green
+     800) and destructive (Red 900) are picked from. DARK for a gray:
+     quiet's outline label is this taken down another step, and it has
+     to stay readable sitting on quiet's own wash while pressed. White
+     on it measures 10.02:1. */
+/* @@ */   --button-quiet-base-color:                 #424242;
 /* @@ */   --button-quiet-primary-color:              var(--button-quiet-base-color);
 /* @@ */   --button-quiet-primary-hover-color:        oklch(from var(--button-quiet-base-color) calc(l - 0.05) c h);
+/* @@ */   --button-quiet-primary-press-color:        oklch(from var(--button-quiet-base-color) calc(l - 0.10) c h);
 /* @@ */   --button-quiet-primary-ink-color:          #ffffff;
 /* @@ */   --button-quiet-secondary-color:            oklch(from var(--button-quiet-base-color) calc(l - 0.115) c h);
 /* @@ */   --button-quiet-secondary-hover-color:      color-mix(in oklab, var(--button-quiet-base-color) 8%, var(--page-surface-color));
+/* @@ */   --button-quiet-secondary-press-color:      color-mix(in oklab, var(--button-quiet-base-color) 16%, var(--page-surface-color));
 
   /* The two TREATMENT SLOTS — contract slots, not design decisions.
      `.primary` and `.secondary` must paint without knowing their
@@ -216,9 +238,11 @@
      bare `.secondary` — a dialog's Cancel — should be). */
 /* @@ */   --button-slot-primary-color:               var(--button-normal-primary-color);
 /* @@ */   --button-slot-primary-hover-color:         var(--button-normal-primary-hover-color);
+/* @@ */   --button-slot-primary-press-color:         var(--button-normal-primary-press-color);
 /* @@ */   --button-slot-primary-ink-color:           var(--button-normal-primary-ink-color);
 /* @@ */   --button-slot-secondary-color:             var(--button-quiet-secondary-color);
 /* @@ */   --button-slot-secondary-hover-color:       var(--button-quiet-secondary-hover-color);
+/* @@ */   --button-slot-secondary-press-color:       var(--button-quiet-secondary-press-color);
 
   /* ══ OUTCOMES ═══════════════════════════════════════════════════
      How a move or a game went. Seven families:

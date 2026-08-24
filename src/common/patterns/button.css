@@ -83,6 +83,14 @@
   border-color: var(--button-slot-primary-hover-color);
 }
 
+/* PRESSING — a second step in the same direction hover took, so the two read as
+   degrees of one thing. It is also the only feedback a phone gets: hover needs
+   a pointer, a thumb has none. */
+/* @@ */ .primary:active:not(:disabled) {
+  background: var(--button-slot-primary-press-color);
+  border-color: var(--button-slot-primary-press-color);
+}
+
 /* SECONDARY — the outline treatment. Its family defaults to `quiet` (the way out
    of a dialog), which is what every bare `.secondary` in the app is; a toned
    button re-sets the slots on its own element instead (ActionButton.module.css).
@@ -116,6 +124,11 @@
    match a secondary button at all, so there is nothing left to undo. */
 /* @@ */ .secondary:hover:not(:disabled) {
   background: var(--button-slot-secondary-hover-color);
+}
+
+/* PRESSING — the wash taken twice as far. See `.primary:active`. */
+/* @@ */ .secondary:active:not(:disabled) {
+  background: var(--button-slot-secondary-press-color);
 }
 
 /* The icon-and-label button look: a Lucide icon + a text label on one centered
@@ -152,26 +165,57 @@
    costs the header as little width as possible — the strip is tightest on a
    phone, which is where these matter most.
 
-   NOT a tone. There is no family here and no `secondary` beneath it: an ink
-   glyph is the whole treatment, which is why this sits outside the five
-   families rather than inside them as a sixth. */
+   NOT a tone, but it borrows one. There is no family here and no `secondary`
+   beneath it — an ink glyph is the whole treatment, which is why this sits
+   outside the five families rather than inside them as a sixth. What it takes
+   from `quiet` is only the two BACKGROUNDS, hover and press: these are quiet
+   buttons in every respect except that the glyph is body ink rather than quiet
+   gray, because a header mark has to stay legible at a glance where a Cancel
+   does not. */
 /* @@ */ .bare-icon-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   padding: 0.3rem;
-  border: none;
+  /* RESERVED, not added on open. The border below is how these say "the panel
+     I toggle is open", and a border that appears would move the glyph a pixel
+     — docs/ui.md → Layout stability. */
+  border: 1px solid transparent;
   background: transparent;
   color: var(--page-text-color);
   border-radius: var(--radius-md);
   cursor: pointer;
   transition:
     background var(--transition-duration-paint) ease,
-    color var(--transition-duration-paint) ease;
+    border-color var(--transition-duration-paint) ease;
 }
 
-/* @@ */ .bare-icon-button:hover:not(:disabled) {
-  background: var(--page-surface-border-color);
+/* OPEN — the panel this toggles is showing. A BORDER, so it does not compete
+   with the background, which is saying something else entirely (below).
+   Written against both attributes because the three consumers are honestly
+   different: a chat or scratchpad bubble is a pressed toggle, the page switch
+   discloses a panel. */
+/* @@ */ .bare-icon-button[aria-pressed='true'],
+/* @@ */ .bare-icon-button[aria-expanded='true'] {
+  border-color: var(--page-text-color);
+}
+
+/* HOVER — a pointer is over this and has not committed. Gated to devices that
+   HAVE a pointer: a touch device applies :hover on tap and leaves it applied
+   until you tap elsewhere, so on a phone this would be a light gray that never
+   goes away. A finger has no hover state — it is off, or it is pressing.
+   (Whether the whole app should do this is §18, open.) */
+@media (hover: hover) {
+/* @@ */   .bare-icon-button:hover:not(:disabled) {
+    background: var(--button-quiet-secondary-hover-color);
+  }
+}
+
+/* PRESSING — right now, under a mouse button or a thumb. The one piece of
+   feedback a phone can actually get, and darker than hover so the two read as
+   degrees of the same thing. */
+/* @@ */ .bare-icon-button:active:not(:disabled) {
+  background: var(--button-quiet-secondary-press-color);
 }
 
 /* Inert rather than absent: a presence-paused game shows the resume glyph so

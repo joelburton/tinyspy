@@ -105,16 +105,20 @@
 /* @@ */   --button-normal-base-color:                #42a5f5;
 /* @@ */   --button-normal-primary-color:             var(--button-normal-base-color);
 /* @@ */   --button-normal-primary-hover-color:       oklch(from var(--button-normal-base-color) calc(l + 0.05) c h);
+/* @@ */   --button-normal-primary-press-color:       oklch(from var(--button-normal-base-color) calc(l + 0.10) c h);
 /* @@ */   --button-normal-primary-ink-color:         #0a1621;
 /* @@ */   --button-normal-secondary-color:           oklch(from var(--button-normal-base-color) calc(l + 0.115) c h);
 /* @@ */   --button-normal-secondary-hover-color:     color-mix(in oklab, var(--button-normal-base-color) 8%, var(--page-surface-color));
+/* @@ */   --button-normal-secondary-press-color:     color-mix(in oklab, var(--button-normal-base-color) 16%, var(--page-surface-color));
 
 /* @@ */   --button-success-base-color:               #66bb6a;
 /* @@ */   --button-success-primary-color:            var(--button-success-base-color);
 /* @@ */   --button-success-primary-hover-color:      oklch(from var(--button-success-base-color) calc(l + 0.05) c h);
+/* @@ */   --button-success-primary-press-color:      oklch(from var(--button-success-base-color) calc(l + 0.10) c h);
 /* @@ */   --button-success-primary-ink-color:        #0c1a0d;
 /* @@ */   --button-success-secondary-color:          oklch(from var(--button-success-base-color) calc(l + 0.115) c h);
 /* @@ */   --button-success-secondary-hover-color:    color-mix(in oklab, var(--button-success-base-color) 8%, var(--page-surface-color));
+/* @@ */   --button-success-secondary-press-color:    color-mix(in oklab, var(--button-success-base-color) 16%, var(--page-surface-color));
 
   /* DESTRUCTIVE — and here is a real dark-mode problem, recorded
      rather than solved: daylight's destructive is a DARK red, which is
@@ -126,9 +130,11 @@
 /* @@ */   --button-destructive-base-color:           #e05252;
 /* @@ */   --button-destructive-primary-color:        var(--button-destructive-base-color);
 /* @@ */   --button-destructive-primary-hover-color:  oklch(from var(--button-destructive-base-color) calc(l + 0.05) c h);
+/* @@ */   --button-destructive-primary-press-color:  oklch(from var(--button-destructive-base-color) calc(l + 0.10) c h);
 /* @@ */   --button-destructive-primary-ink-color:    #1e0a0a;
 /* @@ */   --button-destructive-secondary-color:      oklch(from var(--button-destructive-base-color) calc(l + 0.115) c h);
 /* @@ */   --button-destructive-secondary-hover-color: color-mix(in oklab, var(--button-destructive-base-color) 8%, var(--page-surface-color));
+/* @@ */   --button-destructive-secondary-press-color: color-mix(in oklab, var(--button-destructive-base-color) 16%, var(--page-surface-color));
 
   /* CAUTION — the same hue rotation daylight makes (a third of the way
      from orange to red, so it reads as caution rather than
@@ -136,16 +142,20 @@
 /* @@ */   --button-caution-base-color:               #e2843c;
 /* @@ */   --button-caution-primary-color:            var(--button-caution-base-color);
 /* @@ */   --button-caution-primary-hover-color:      oklch(from var(--button-caution-base-color) calc(l + 0.05) c h);
+/* @@ */   --button-caution-primary-press-color:      oklch(from var(--button-caution-base-color) calc(l + 0.10) c h);
 /* @@ */   --button-caution-primary-ink-color:        #1e1006;
 /* @@ */   --button-caution-secondary-color:          oklch(from var(--button-caution-base-color) calc(l + 0.115) c h);
 /* @@ */   --button-caution-secondary-hover-color:    color-mix(in oklab, var(--button-caution-base-color) 8%, var(--page-surface-color));
+/* @@ */   --button-caution-secondary-press-color:    color-mix(in oklab, var(--button-caution-base-color) 16%, var(--page-surface-color));
 
 /* @@ */   --button-quiet-base-color:                 #8d8d8d;
 /* @@ */   --button-quiet-primary-color:              var(--button-quiet-base-color);
 /* @@ */   --button-quiet-primary-hover-color:        oklch(from var(--button-quiet-base-color) calc(l + 0.05) c h);
+/* @@ */   --button-quiet-primary-press-color:        oklch(from var(--button-quiet-base-color) calc(l + 0.10) c h);
 /* @@ */   --button-quiet-primary-ink-color:          #141414;
 /* @@ */   --button-quiet-secondary-color:            oklch(from var(--button-quiet-base-color) calc(l + 0.115) c h);
 /* @@ */   --button-quiet-secondary-hover-color:      color-mix(in oklab, var(--button-quiet-base-color) 8%, var(--page-surface-color));
+/* @@ */   --button-quiet-secondary-press-color:      color-mix(in oklab, var(--button-quiet-base-color) 16%, var(--page-surface-color));
 
   /* The treatment slots, defaulted exactly as daylight defaults them.
      Identical lines in both themes, which is the correct outcome: a
@@ -153,9 +163,11 @@
      about which family fills it. */
 /* @@ */   --button-slot-primary-color:               var(--button-normal-primary-color);
 /* @@ */   --button-slot-primary-hover-color:         var(--button-normal-primary-hover-color);
+/* @@ */   --button-slot-primary-press-color:         var(--button-normal-primary-press-color);
 /* @@ */   --button-slot-primary-ink-color:           var(--button-normal-primary-ink-color);
 /* @@ */   --button-slot-secondary-color:             var(--button-quiet-secondary-color);
 /* @@ */   --button-slot-secondary-hover-color:       var(--button-quiet-secondary-hover-color);
+/* @@ */   --button-slot-secondary-press-color:       var(--button-quiet-secondary-press-color);
 
   /* ══ OUTCOMES ═══════════════════════════════════════════════════
      The seven families, same variants, and the two tiers that flip:
