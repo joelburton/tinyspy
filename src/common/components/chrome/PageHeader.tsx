@@ -5,7 +5,7 @@ import styles from './PageHeader.module.css'
 
 type Props = {
   /** The LEFT slot: the menu trigger, and whatever travels with it —
-   *  a `<ChatBubble>`, a `<StatusSlot>`. Every page has this. */
+   *  a `<ChatButton>`, a `<PageHeaderStatusSlot>`. Every page has this. */
   children: ReactNode
   /** The RIGHT slot. Home and club pass nothing; the slot still renders,
    *  so all three pages have one shape and adding something later is

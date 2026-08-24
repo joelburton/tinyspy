@@ -2,14 +2,14 @@
 
 import type { GenericFeedbackMsg, Member } from '../../lib/games'
 import { GenericFeedbackPill } from '../feedback/GenericFeedbackPill'
-import { PlayersStrip } from './PlayersStrip'
-import styles from './StatusSlot.module.css'
+import { PageHeaderPlayersStrip } from './PageHeaderPlayersStrip'
+import styles from './PageHeaderStatusSlot.module.css'
 
 type Props = {
   players: Member[]
   globalFeedback: GenericFeedbackMsg | null
   onCloseGlobalFeedback: () => void
-  /** Forwarded to PlayersStrip — when set, absent members render
+  /** Forwarded to PageHeaderPlayersStrip — when set, absent members render
    *  dimmed. The club page passes its live presence set; the in-game
    *  header omits it. */
   presentUserIds?: Set<string>
@@ -18,7 +18,7 @@ type Props = {
 /**
  * The middle cell of the GamePage header. Two states:
  *
- *  - **default**: `<PlayersStrip>` — colored usernames, the
+ *  - **default**: `<PageHeaderPlayersStrip>` — colored usernames, the
  *    "who's playing and what color is who" reminder.
  *  - **feedback**: `<GenericFeedbackPill>` — the active feedback
  *    message, replacing the strip while it's showing. Three
@@ -34,7 +34,7 @@ type Props = {
  * Callers who want feedback to drop on pause must `clear()`
  * explicitly.
  */
-export function StatusSlot({
+export function PageHeaderStatusSlot({
   players,
   globalFeedback,
   onCloseGlobalFeedback,
@@ -45,7 +45,7 @@ export function StatusSlot({
       {globalFeedback ? (
         <GenericFeedbackPill msg={globalFeedback} onClose={onCloseGlobalFeedback} />
       ) : (
-        <PlayersStrip players={players} presentUserIds={presentUserIds} />
+        <PageHeaderPlayersStrip players={players} presentUserIds={presentUserIds} />
       )}
     </div>
   )

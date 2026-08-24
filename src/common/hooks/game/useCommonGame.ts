@@ -162,7 +162,7 @@ export function useCommonGame(
   /** User ids currently on the game's realtime channel. Paired with
    *  `activePlayers` to tell present (filled dot) from absent (hollow
    *  gray ring) in the pause overlay — same present/away split the
-   *  club-page `PlayersStrip` draws. */
+   *  club-page `PageHeaderPlayersStrip` draws. */
   presentUserIds: Set<string>
   manuallyPausedBy: Member | null
   sendManualPause: () => void

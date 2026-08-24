@@ -41,7 +41,7 @@ Two subjects were added later, each bringing its own files:
 |---|---|---|
 | 2026-08-22, basic page structure | `src/common/base.css` | its page-level half |
 | 2026-08-23, the page header | `src/common/components/chrome/PageHeader.tsx` + `.module.css` | |
-| " | `src/common/components/panels/TriggerWithChevron.tsx` + `.module.css` | the trigger's standard content |
+| " | `src/common/components/panels/MenuTrigger.tsx` + `.module.css` | the trigger's standard content |
 
 `ClubPage` and `GamePage` were read as EVIDENCE for both, and are neither
 `cs-found` nor `cs-audited` by that — see §21's note on what "found" means.
@@ -373,7 +373,7 @@ app agree.
 **F8 · `font-weight-multiples-of-100` · `font-weight` is not one of the eight, and the app writes six values.**
 Counted across `src/`: `600` ×54, `700` ×40, `500` ×14, `800` ×9, `400` ×3,
 `650` ×2. The `650`s are both letterboxed. `500` is the "slightly-emphasized
-name" weight and it is shared — `.clubName` here, plus `Menu`, `PlayersStrip`,
+name" weight and it is shared — `.clubName` here, plus `Menu`, `PageHeaderPlayersStrip`,
 `RankBar`, `Stats`, `ActorMention`, `GenericFeedbackPill`, `TooltipHost`,
 `button.css`.
 
@@ -450,7 +450,7 @@ badge-vs-pill shape question is answerable here.
 >   that for months. Verified by planting a literal `999px` in `badge.css`:
 >   red, with the right message, and green again on restore.
 > - The two `999px` writers left in `common/` go on `pending` rather than being
->   swept: `ChatBubble`'s counter chip and `ShuffleButton`. Both are square
+>   swept: `ChatButton`'s counter chip and `ShuffleButton`. Both are square
 >   boxes that may want `50%` instead, which is their own areas' call.
 >   letterboxed's two are a game's own surface and the vocabulary does not look
 >   there.
@@ -535,7 +535,7 @@ logo, the sections and the label:
 
 ```tsx
 <PageHeader>
-  <Menu ref={menuRef} trigger={<TriggerWithChevron><Logo /></TriggerWithChevron>}
+  <Menu ref={menuRef} trigger={<MenuTrigger><Logo /></MenuTrigger>}
         sections={…} triggerLabel="…" />
 ```
 
@@ -1598,7 +1598,7 @@ is missing lots of things that got into the slots, so we'll probably re-open in
 the clubpage, where we see more stuff."*
 
 **The files:** `components/chrome/PageHeader.tsx` + `.module.css`, and
-`components/panels/TriggerWithChevron.tsx` + `.module.css`.
+`components/panels/MenuTrigger.tsx` + `.module.css`.
 
 **What the audit CONFIRMED, so it does not become a finding:**
 
@@ -1657,7 +1657,7 @@ pending rows for this file today.
 > resolution:
 
 **F42 · `chevron-outside-the-icon-set` · The menu chevron is a hand-inlined SVG
-in a component that is not an icon.** `TriggerWithChevron.tsx` declares its own
+in a component that is not an icon.** `MenuTrigger.tsx` declares its own
 10×10 `<svg>` with a `<path>`, while the app has `components/icons` — which
 ClubPage imports from by name (`IconBack`, `IconHelp`). So there is one icon
 living outside the icon set, in a file whose job is layout.
@@ -1866,8 +1866,8 @@ becomes its own area is Joel's call.
 - `components/branding/PuzpuzpuzLogo.module.css`
 - `components/panels/Menu.tsx`
 - `components/panels/Menu.module.css`
-- `components/panels/TriggerWithChevron.tsx`
-- `components/panels/TriggerWithChevron.module.css`
+- `components/panels/MenuTrigger.tsx`
+- `components/panels/MenuTrigger.module.css`
 - `components/chrome/PageHeader.tsx`
 - `components/chrome/PageHeader.module.css`
 

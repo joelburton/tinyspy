@@ -32,19 +32,19 @@ import { formatTimerSeconds } from '../../hooks/game/useGameTimer'
 import { useClubRoster } from '../../hooks/club/useClubRoster'
 import { useChatFeedback } from '../../hooks/chat/useChatFeedback'
 import { navigate } from '../../lib/routing/router'
-import { ChatBubble } from '../chat/ChatBubble'
+import { ChatButton } from '../chat/ChatButton'
 import { FloatingChat } from '../chat/FloatingChat'
-import { ScratchpadBubble } from '../panels/ScratchpadBubble'
+import { ScratchpadButton } from '../panels/ScratchpadButton'
 import { GameScratchpad } from '../panels/GameScratchpad'
 import { GameLogo } from '../branding/GameLogo'
 import { Menu, type MenuHandle } from '../panels/Menu'
-import { TriggerWithChevron } from '../panels/TriggerWithChevron'
+import { MenuTrigger } from '../panels/MenuTrigger'
 import { PauseBoundary } from './PauseBoundary'
 import { PauseButton } from '../buttons/PauseButton'
 import { InfoSwitchButton } from './InfoSwitchButton'
 import { cls } from '../../lib/util/cls'
 import { PageHeader } from '../chrome/PageHeader'
-import { StatusSlot } from './StatusSlot'
+import { PageHeaderStatusSlot } from './PageHeaderStatusSlot'
 import { SuspendConfirmDialog } from './SuspendConfirmDialog'
 import { Loading } from '../loading-and-errs/Loading'
 import { ErrorPage } from '../loading-and-errs/ErrorPage'
@@ -97,8 +97,8 @@ type Props = {
  *
  * Header layout is layout-static per docs/ui.md → Layout
  * stability — the four chrome elements + the timer slot don't
- * reflow as state changes. The middle `<StatusSlot>` swaps
- * between `<PlayersStrip>` (default) and `<GenericFeedbackPill>` (when
+ * reflow as state changes. The middle `<PageHeaderStatusSlot>` swaps
+ * between `<PageHeaderPlayersStrip>` (default) and `<GenericFeedbackPill>` (when
  * the per-gametype PlayArea has called `ctx.globalFeedback.show()`)
  * at fixed slot height so neighbors don't move.
  *
@@ -195,7 +195,7 @@ export function GamePage({
   // menu's "Help" item.
   const [helpOpen, setHelpOpen] = useState(false)
   // The currently-active feedback message, or null when the
-  // StatusSlot should show its default (`<PlayersStrip>`).
+  // PageHeaderStatusSlot should show its default (`<PageHeaderPlayersStrip>`).
   const [globalFeedback, setGlobalFeedback] = useState<GenericFeedbackMsg | null>(null)
   // The current PlayArea's ENTIRE header menu, pushed via
   // `ctx.menu.setGameSections`. Each game owns its whole menu (Help +
@@ -533,9 +533,9 @@ export function GamePage({
         <Menu
           ref={menuRef}
           trigger={
-            <TriggerWithChevron>
+            <MenuTrigger>
               <GameLogo gametype={gametype} />
-            </TriggerWithChevron>
+            </MenuTrigger>
           }
           sections={sections}
           triggerLabel="Game menu"
@@ -550,10 +550,10 @@ export function GamePage({
         {!infoOpen && (
           <>
             <div className={styles.panelToggles}>
-              <ChatBubble />
-              {manifest.scratchpad?.enabled && <ScratchpadBubble />}
+              <ChatButton />
+              {manifest.scratchpad?.enabled && <ScratchpadButton />}
             </div>
-            <StatusSlot
+            <PageHeaderStatusSlot
               players={players}
               globalFeedback={globalFeedback}
               onCloseGlobalFeedback={globalFeedbackClear}
@@ -624,9 +624,9 @@ export function GamePage({
           useClubRoster), not just this game's `players` — so a message from a
           club member who ISN'T in this game still resolves to their handle +
           color instead of a '?'. (`players` remains the right data for the
-          PlayersStrip / peer-game feedback, which are about THIS game.)
+          PageHeaderPlayersStrip / peer-game feedback, which are about THIS game.)
 
-          The closed-state toggle is the header's <ChatBubble> (above);
+          The closed-state toggle is the header's <ChatButton> (above);
           FloatingChat renders the panel itself, and nothing at all while
           closed. */}
       <FloatingChat

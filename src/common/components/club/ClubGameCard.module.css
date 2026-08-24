@@ -149,7 +149,7 @@
  *
  * Literal corner-triangle shape — distinct from a colored circle,
  * which would compete with the player/member colored-dot
- * vocabulary used elsewhere (PlayersStrip, ClubPage member list).
+ * vocabulary used elsewhere (PageHeaderPlayersStrip, ClubPage member list).
  * "Flag in the corner of a card" is its own visual register; no
  * room for someone to read this as "the yellow player is in
  * this game."

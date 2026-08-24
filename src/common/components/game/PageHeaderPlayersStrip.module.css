@@ -2,7 +2,7 @@
 
 /* Colored-username row. Inline flow with middle-dot separators
  * between entries; truncates with ellipsis if the entire strip
- * overflows the available width (the parent <StatusSlot> sets
+ * overflows the available width (the parent <PageHeaderStatusSlot> sets
  * `min-width: 0` to allow shrinking past the intrinsic width).
  *
  * Same height contract as the GenericFeedbackPill — see

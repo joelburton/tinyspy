@@ -1,7 +1,7 @@
 /* cs-unmet */
 
 /* The shared feedback pill — header (global) and below-board (local). Same
- * height as PlayersStrip so the header swap doesn't reflow (docs/ui.md → "Layout
+ * height as PageHeaderPlayersStrip so the header swap doesn't reflow (docs/ui.md → "Layout
  * stability").
  *
  * The TONE color is the WHOLE border: the left side is a thick bar (like the
@@ -40,7 +40,7 @@
   text-overflow: ellipsis;
 }
 
-/* Leading identity disc — the shared <Dot>, sized to match the PlayersStrip
+/* Leading identity disc — the shared <Dot>, sized to match the PageHeaderPlayersStrip
  * dot so the two read as the same convention. The pill's `gap` spaces it from
  * the text. */
 /* @@ */ .dot {

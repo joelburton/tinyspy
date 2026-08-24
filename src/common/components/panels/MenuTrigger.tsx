@@ -1,18 +1,19 @@
 // cs-found
 
 import type { ReactNode } from 'react'
-import styles from './TriggerWithChevron.module.css'
+import styles from './MenuTrigger.module.css'
 
 /**
- * Standard content for a `<Menu>` trigger: the caller's identity element
- * (a game/app logo, the home wordmark) with the little
- * down-chevron snugged up tight to its right — the "this opens a menu"
- * affordance, shared so every menu trigger reads the same way.
+ * What a `<Menu>`'s trigger holds: the caller's identity element — a game or app
+ * logo — with the little down-chevron snugged up tight to its right. The chevron
+ * is the "this opens a menu" affordance, shared so every trigger reads the same
+ * way.
  *
- * Purely presentational: the wrapping `<Menu>` trigger button owns the
- * click/ARIA behavior; this is just the row inside it.
+ * Three consumers, all of them the page header's menu: HomePage, ClubPage,
+ * GamePage. Purely presentational — the wrapping `<Menu>` trigger button owns
+ * the click and the ARIA; this is the row inside it.
  */
-export function TriggerWithChevron({ children }: { children: ReactNode }) {
+export function MenuTrigger({ children }: { children: ReactNode }) {
   return (
     <span className={styles.row}>
       {children}

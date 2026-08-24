@@ -266,7 +266,7 @@ in that row, and a sub-16px select would trigger the iOS focus-zoom trap
 
 ### Player strip — dots only on mobile
 
-[`PlayersStrip`](../src/common/components/game/PlayersStrip.tsx) (the header's
+[`PageHeaderPlayersStrip`](../src/common/components/game/PageHeaderPlayersStrip.tsx) (the header's
 "who's playing, what color is who" row, shared by the club page and every game
 page) shows a colored dot + username per player. Usernames are variable-length
 and can be long handles; on a narrow header they overflow and scroll the page.

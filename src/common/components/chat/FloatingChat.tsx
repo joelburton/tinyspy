@@ -25,7 +25,7 @@ type Props = {
  * The always-on chat panel. Renders as one of two shapes:
  *
  *   - **Closed**: nothing. What you click to open chat is the
- *     header's `<ChatBubble>`, which is ordinary page content, not
+ *     header's `<ChatButton>`, which is ordinary page content, not
  *     a layer — this component stays mounted to keep the unread
  *     badge and the `!` detector alive.
  *   - **Open**: a floating, draggable, resizable panel at
@@ -79,7 +79,7 @@ export function FloatingChat({
   selfId,
 }: Props) {
   // Open/closed state lives in the shared chatOpenStore so the
-  // GamePage header's `<ChatBubble>` can flip the same flag from
+  // GamePage header's `<ChatButton>` can flip the same flag from
   // outside this component tree. localStorage persistence is
   // owned by the store too — no per-instance mirror needed here.
   const open = useChatOpen()
@@ -124,7 +124,7 @@ export function FloatingChat({
   // presumed read — advance the per-club bookmark to the newest
   // message and clear the badge. While CLOSED, publish the count +
   // latest-sender color for the messages past the bookmark (no
-  // bookmark ⇒ the whole backlog). `<ChatBubble>` reads the result.
+  // bookmark ⇒ the whole backlog). `<ChatButton>` reads the result.
   useEffect(function trackUnread() {
     if (loading) return
     const newest = messages.length > 0 ? messages[messages.length - 1] : null
@@ -139,7 +139,7 @@ export function FloatingChat({
   }, [messages, open, loading, selfId, members, clubHandle])
 
   // Closed shape — nothing. The affordance that opens chat is the
-  // header's `<ChatBubble>`, on both pages that mount this; it flips
+  // header's `<ChatButton>`, on both pages that mount this; it flips
   // the same shared flag from outside this component tree. The
   // effects above still run while closed, which is the point of
   // rendering null rather than not mounting: the unread badge and

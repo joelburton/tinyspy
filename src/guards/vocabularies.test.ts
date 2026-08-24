@@ -160,7 +160,7 @@ const VOCABULARIES: Vocabulary[] = [
       // own area answers rather than a rounding: a counter chip and a round
       // icon button. Both may want `50%` instead — they are square boxes, and
       // `50%` says circle without leaning on a number the browser clamps.
-      'src/common/components/chat/ChatBubble.module.css': ['999px'],
+      'src/common/components/chat/ChatButton.module.css': ['999px'],
       'src/common/components/buttons/ShuffleButton.module.css': ['999px'],
       // Deliberate, and the reason is at the declaration: the pill's thick left
       // accent bar would curve into a crescent on round ends. This is the
@@ -282,7 +282,7 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/components/game/OpponentStrip.module.css': ['0.25rem', '0.3rem', '0.6rem', '0.35rem'],
       'src/common/components/game/PauseOverlay.module.css': ['0.5rem', '0.75rem', '0.4rem', '1rem'],
       'src/common/components/game/PlayArea.module.css': ['0.75rem', '1rem', '0.3rem', '0.5rem'],
-      'src/common/components/game/PlayersStrip.module.css': ['1.25rem', '0.4rem', '0.6rem'],
+      'src/common/components/game/PageHeaderPlayersStrip.module.css': ['1.25rem', '0.4rem', '0.6rem'],
       'src/common/components/game/RankBar.module.css': ['8px', '0.5rem'],
       'src/common/components/game/Stats.module.css': ['8px', '12px', '2px', '0.25rem'],
       'src/common/components/game/StrikeMarks.module.css': ['0.3rem', '0.4rem'],
@@ -291,7 +291,7 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/components/panels/GameScratchpad.module.css': ['0.4rem', '0.5rem'],
       'src/common/components/panels/Menu.module.css': ['1.5rem', '0.3rem', '0.1rem', '-1px', '-1rem'],
       'src/common/components/panels/modalActions.module.css': ['0.75rem', '1.5rem'],
-      'src/common/components/panels/TriggerWithChevron.module.css': ['0.1rem'],
+      'src/common/components/panels/MenuTrigger.module.css': ['0.1rem'],
       'src/common/components/setup/SetupGameDialog.module.css': ['0.75rem', '1.5rem', '1rem', '0.5rem', '0.4rem'],
       'src/common/components/text/RichMessage.module.css': ['0.25rem'],
       'src/common/components/toasts/Toast.module.css': ['0.7rem'],
@@ -320,7 +320,7 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/components/auth/ClaimHandleScreen.module.css': ['0.9rem'],
       'src/common/components/buttons/ShuffleButton.module.css': ['32px'],
       'src/common/components/chat/ChatBody.module.css': ['0.9rem', 'max(16px,', '1em)'],
-      'src/common/components/chat/ChatBubble.module.css': ['0.7rem'],
+      'src/common/components/chat/ChatButton.module.css': ['0.7rem'],
       'src/common/components/club/clubFilters.module.css': ['0.8rem', 'max(16px,', '1em)', '0.9rem'],
       'src/common/components/club/ClubGameCard.module.css': ['1rem', '0.85rem', '1.25rem', '1.1rem'],
       'src/common/components/club/CreateClubPage.module.css': ['0.8rem'],
@@ -375,7 +375,7 @@ const VOCABULARIES: Vocabulary[] = [
     pending: {
       'src/common/components/buttons/ShuffleButton.module.css': ['1'],
       'src/common/components/chat/ChatBody.module.css': ['1.35'],
-      'src/common/components/chat/ChatBubble.module.css': ['1.1rem'],
+      'src/common/components/chat/ChatButton.module.css': ['1.1rem'],
       'src/common/components/club/ClubGameCard.module.css': ['1.2', '1.25', '1'],
       'src/common/components/club/CreateClubPage.module.css': ['1.4'],
       'src/common/components/club/EditClubDialog.module.css': ['1.25'],

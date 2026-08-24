@@ -133,7 +133,7 @@ The shared `WordList` (used by both spellingbee and boggle) now leads each row w
 
 ## Feedback channels (local vs group)
 
-The channel-qualified feedback split shipped — **local** feedback is `useLocalFeedback` (a near-input `<GenericFeedbackPill>`, validity tones, never a player color) and **group/peer** feedback is `useGlobalFeedback` → the header `<StatusSlot>` (the actor's color disc), two separate channels so neither clobbers the other. The naming convention (`Global`/`Local`/`Generic`, never bare "feedback") lives in [code-conventions.md](code-conventions.md).
+The channel-qualified feedback split shipped — **local** feedback is `useLocalFeedback` (a near-input `<GenericFeedbackPill>`, validity tones, never a player color) and **group/peer** feedback is `useGlobalFeedback` → the header `<PageHeaderStatusSlot>` (the actor's color disc), two separate channels so neither clobbers the other. The naming convention (`Global`/`Local`/`Generic`, never bare "feedback") lives in [code-conventions.md](code-conventions.md).
 
 - **One follow-up remains:** unify the *turn-outcome* vocabulary across games — deliberately deferred. Concretely, the two channels name the same idea differently: `TurnOutcome` (TurnLog) is `good` / `bad` / `partial` / `neutral`, while the feedback pill's tone vocabulary uses `near` for what the log calls `partial` (connections maps its one-away to `partial`; the pill calls that tone `near`).
 

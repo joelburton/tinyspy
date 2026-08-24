@@ -19,7 +19,7 @@ type Props = {
 /**
  * The per-game scratchpad floating panel — rendered at the GamePage level
  * (outside PauseBoundary, so it survives pause and shows at terminal) for
- * games whose manifest opts in. The header `<ScratchpadBubble>` toggles it
+ * games whose manifest opts in. The header `<ScratchpadButton>` toggles it
  * via the shared open-state store; geometry persists per-game.
  *
  * The hook runs even while the panel is closed (background body sync + lock),

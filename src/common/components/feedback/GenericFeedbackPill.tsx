@@ -13,7 +13,7 @@ type Props = {
 /**
  * The shared feedback pill — the "what just happened" display. It serves BOTH
  * feedback areas (docs/ui.md → Feedback pill): the GLOBAL one (the header
- * `<StatusSlot>`, via `ctx.globalFeedback.show()`, left-justified, for peer/opponent
+ * `<PageHeaderStatusSlot>`, via `ctx.globalFeedback.show()`, left-justified, for peer/opponent
  * messages) and the LOCAL one (a below-board slot a game renders directly,
  * centered, for the player's own move). See docs/ui.md → "Feedback pill" for the
  * full API contract.

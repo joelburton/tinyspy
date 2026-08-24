@@ -388,7 +388,7 @@ The decision rule is mechanical: "does this game's per-row state name specific s
 Concrete examples in the tree today:
 - Shared: `<GamePage>`, `<PauseBoundary>`, `<FloatingChat>`, `<TimerField>`, `<ClubGameCard>`, `<StartGameButtons>`, `<SuspendConfirmDialog>`, `useCommonGame`, `useGameTimer`, `useHistoryViewer`.
 - Same name, per-game body: `PlayArea` (every game), `BoardCol` / `InfoCol` (every standard two-column game — see the decomposition note below), `SetupForm` (every game), `Help` (every game), `useGame` (every game), `GameTurnLog` (all eight turn-log games; its "whose turns?" header dropdown is the shared [`useTurnLogPlayerPicker`](../src/common/hooks/game/useTurnLogPlayerPicker.tsx) — **every** turn-log game carries it, on one vocabulary, and it brings the filter, the `#N`-handle gate and the honest RLS-hidden empty line with it; see [playarea.md → Whose turns?](playarea.md#whose-turns--the-shared-player-picker) — the turn-log component was unified on this name, retiring stackdown's `FoundWords` and scrabble's `PlayLog`), `lib/history` (the six games with a turn-history viewer — scrabble is the exception, its replay is `boardUpToSeq` in `lib/play.ts`).
-- Extracted-to-common after recurrence: `TerminalActionRow`, `ChatBubble`, `PlayersStrip`, `StatusSlot`, `Menu`, `PauseButton`, `GameLogo`, `PuzpuzpuzLogo` — each used by multiple call sites with the per-game variability flowing through props.
+- Extracted-to-common after recurrence: `TerminalActionRow`, `ChatButton`, `PageHeaderPlayersStrip`, `PageHeaderStatusSlot`, `Menu`, `PauseButton`, `GameLogo`, `PuzpuzpuzLogo` — each used by multiple call sites with the per-game variability flowing through props.
 
 #### PlayArea decomposition — `BoardCol` / `InfoCol`
 
@@ -509,7 +509,7 @@ Six rules that are otherwise only discoverable by reading the code:
 | `--z-index-infoSheet` | 40 | the info column as a full-bleed page, below `--mobile` |
 | `--z-index-panel` | **500** | `FloatingPanel`'s default — the setup dialog, confirms, Help. Its backdrop paints at `calc(… - 1)` |
 | `--z-index-popover` | 1500 | `Menu` (its flyout at `calc(… + 1)`), `FilterSelect`, the definition popover, crosswords' number-jump |
-| `--z-index-chatPanel` | 10000 | deliberately above dialogs: you can chat with a setup dialog open. What opens chat is the header's `<ChatBubble>` — ordinary page content, not a layer |
+| `--z-index-chatPanel` | 10000 | deliberately above dialogs: you can chat with a setup dialog open. What opens chat is the header's `<ChatButton>` — ordinary page content, not a layer |
 | `--z-index-scratchpad` | 10000 | the same rank for the same reason, named separately because it is a separate decision |
 | `--z-index-celebration` | 10001 | one beat, above everything except… |
 | `--z-index-toast` / `--z-index-tooltip` | 12000 | …these, which nothing ever covers |

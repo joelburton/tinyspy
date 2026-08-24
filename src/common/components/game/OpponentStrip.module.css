@@ -60,7 +60,7 @@
 
 /* The player's identity disc — the shared <Dot> (fill + paired border ring),
  * sized for this small strip. The leading "this player" marker, matching the
- * header PlayersStrip's dots (docs/ui.md → Player identity = a colored disc). */
+ * header PageHeaderPlayersStrip's dots (docs/ui.md → Player identity = a colored disc). */
 /* @@ */ .dot {
 /* @@ */   --dot-size: 0.6rem;
 }

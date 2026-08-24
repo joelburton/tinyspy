@@ -13,7 +13,7 @@ import { PageHeaderButton } from '../chrome/PageHeaderButton'
  * the panel is open — `aria-pressed` is what that keys on, so the state is said
  * once, in the markup, and drawn from there.
  */
-export function ScratchpadBubble() {
+export function ScratchpadButton() {
   const open = useScratchpadOpen()
   return (
     <PageHeaderButton

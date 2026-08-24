@@ -38,7 +38,7 @@
 }
 
 /* The left slot. `flex: 1` so it claims all the room the right slot doesn't —
-   that's the space a <StatusSlot> has to render a feedback pill or the players
+   that's the space a <PageHeaderStatusSlot> has to render a feedback pill or the players
    strip into. `min-width: 0` lets that content ellipsize instead of forcing the
    strip wider.
 

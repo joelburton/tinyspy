@@ -427,7 +427,7 @@
 /* @@ */   --z-index-popover:       1500;   /* Menu, FilterSelect, the definition popover */
 /* @@ */   --z-index-chatPanel:     10000;  /* deliberately ABOVE the panel tier: you can chat
                                       with a setup dialog open. What OPENS chat is the
-                                      header's <ChatBubble>, ordinary page content — so
+                                      header's <ChatButton>, ordinary page content — so
                                       this tier has exactly one consumer, the panel. */
 /* @@ */   --z-index-scratchpad:    10000;  /* the same rank for the same reason, and a separate
                                       name because it is a separate decision */

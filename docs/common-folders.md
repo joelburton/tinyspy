@@ -58,7 +58,7 @@ components/
   account/       # your own menu + profile editing
       UserMenu, EditProfileDialog, ColorChoiceList
   chat/          # the club chat panel
-      ChatBubble, ChatBody, FloatingChat
+      ChatButton, ChatBody, FloatingChat
   setup/         # the start-a-game dialog (collect per-game options → create)
       SetupGameDialog, SetupDisclosure
   fields/        # reusable form controls (any form, not just setup)
@@ -66,7 +66,7 @@ components/
       CoopStyleField, NextPuzzleField
   game/          # a live game's shell + the chrome around the play surface
       GamePage, PauseBoundary, PauseOverlay, SuspendConfirmDialog,
-      StatusSlot, PlayersStrip, OpponentStrip, ModePill, StrikeMarks, GameInvitations
+      PageHeaderStatusSlot, PageHeaderPlayersStrip, OpponentStrip, ModePill, StrikeMarks, GameInvitations
     entry/       # the in-game typed-move input — the word box + its row
         EntryBox, EntryRow
     terminal/    # what shows when a game ENDS
@@ -77,7 +77,7 @@ components/
       DefinitionPopover, DefinitionView, WordLookupDialog
   panels/        # generic floating/popup chrome (the draggable shell, the dropdown menu)
                  #   + the shared scratchpad panel/bubble that ride on it
-      FloatingPanel, Menu, GameScratchpad, ScratchpadBubble
+      FloatingPanel, Menu, GameScratchpad, ScratchpadButton
   feedback/      # the near-input validity pill ("not a word", "too short")
       GenericFeedbackPill
   toasts/        # the bottom-right announcement stack (a generic primitive)

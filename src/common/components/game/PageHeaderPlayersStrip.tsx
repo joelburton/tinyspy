@@ -2,7 +2,7 @@
 
 import type { Member } from '../../lib/games'
 import { Dot } from '../text/Dot'
-import styles from './PlayersStrip.module.css'
+import styles from './PageHeaderPlayersStrip.module.css'
 
 type Props = {
   players: Member[]
@@ -15,7 +15,7 @@ type Props = {
 }
 
 /**
- * The default content of `<StatusSlot>` in the GamePage header (and
+ * The default content of `<PageHeaderStatusSlot>` in the GamePage header (and
  * the club-page header): a row of player usernames in black, each
  * prefixed by a dot in that player's profile color.
  *
@@ -39,7 +39,7 @@ type Props = {
  * shrinks during a future mobile pass), the strip will need a
  * different shape. Deferred until those constraints actually bite.
  */
-export function PlayersStrip({ players, presentUserIds }: Props) {
+export function PageHeaderPlayersStrip({ players, presentUserIds }: Props) {
   return (
     <div className={styles.strip}>
       {players.map((p) => {

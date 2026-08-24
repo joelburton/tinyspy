@@ -52,7 +52,7 @@ type Props = {
  * team, not just the missing — so a waiting player sees who's already
  * here (their color dot) alongside who we're still waiting on (a hollow
  * gray ring). Names stay black; the dot alone carries presence, the
- * same identity-disc grammar as the club-page `PlayersStrip`.
+ * same identity-disc grammar as the club-page `PageHeaderPlayersStrip`.
  *
  * Paused ≠ suspended. Paused is the transient gameplay-pause
  * state — same UX as a video player's pause: clock stops, no

@@ -106,8 +106,8 @@ export type GamePageCtx = {
    *  slot — peer/opponent news, per the feedback naming convention in
    *  docs/code-conventions.md). The PlayArea calls
    *  `globalFeedback.show({...})` to surface transient or persistent
-   *  feedback in the `<StatusSlot>` (replacing the default
-   *  `<PlayersStrip>` while active); `globalFeedback.clear()` empties
+   *  feedback in the `<PageHeaderStatusSlot>` (replacing the default
+   *  `<PageHeaderPlayersStrip>` while active); `globalFeedback.clear()` empties
    *  the slot. See docs/ui.md → Feedback pill for the API + dismiss-mode
    *  semantics. The functions' identities are stable across renders, so
    *  they're safe to put in dep arrays. */
@@ -631,7 +631,7 @@ export type GameManifest = {
    * feature) players can jot in during play. Absent = no scratchpad (most
    * games). `perPlayerInCompete` gives each compete player a PRIVATE pad
    * (a shared pad would leak solving progress); coop always shares one pad.
-   * GamePage renders the `<ScratchpadBubble>` + `<GameScratchpad>` when set.
+   * GamePage renders the `<ScratchpadButton>` + `<GameScratchpad>` when set.
    */
   scratchpad?: { enabled: boolean; perPlayerInCompete?: boolean }
 

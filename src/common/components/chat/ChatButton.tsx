@@ -5,7 +5,7 @@ import { setChatOpen, useChatOpen } from '../../lib/chat/chatOpenStore'
 import { PageHeaderButton } from '../chrome/PageHeaderButton'
 import { IconChat } from '../icons'
 import { useChatUnread } from '../../lib/chat/chatUnread'
-import styles from './ChatBubble.module.css'
+import styles from './ChatButton.module.css'
 
 /**
  * The chat-panel toggle in the club + game headers. Click toggles the
@@ -21,7 +21,7 @@ import styles from './ChatBubble.module.css'
  * "Layout stability." The bubble's position in the header is
  * fixed; the panel pops open / closes elsewhere.
  */
-export function ChatBubble() {
+export function ChatButton() {
   const open = useChatOpen()
   const { count, color } = useChatUnread()
   const showBadge = !open && count > 0

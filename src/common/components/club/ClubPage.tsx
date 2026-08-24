@@ -20,7 +20,7 @@ import { useClubSetupPresence } from '../../hooks/realtime/useClubSetupPresence'
 import { Loading } from '../loading-and-errs/Loading'
 import { ErrorPage } from '../loading-and-errs/ErrorPage'
 import { logStamp } from '../../lib/supabase/realtimeDiag'
-import { ChatBubble } from '../chat/ChatBubble'
+import { ChatButton } from '../chat/ChatButton'
 import { FloatingChat } from '../chat/FloatingChat'
 import { ClubGameCard } from './ClubGameCard'
 import { ClubHelp } from './ClubHelp'
@@ -30,11 +30,11 @@ import { ModeFilter } from './ModeFilter'
 import { MODE_FILTER_VALUES, type ModeFilterValue } from './modeFilterOptions'
 import { Menu, type MenuHandle } from '../panels/Menu'
 import { PageHeader } from '../chrome/PageHeader'
-import { TriggerWithChevron } from '../panels/TriggerWithChevron'
+import { MenuTrigger } from '../panels/MenuTrigger'
 import { PuzpuzpuzLogo } from '../branding/PuzpuzpuzLogo'
 import { SetupGameDialog } from '../setup/SetupGameDialog'
 import { StartGameButtons } from './StartGameButtons'
-import { StatusSlot } from '../game/StatusSlot'
+import { PageHeaderStatusSlot } from '../game/PageHeaderStatusSlot'
 import { games } from '../../../games'
 import type {
   CommonGameListRow,
@@ -321,8 +321,8 @@ export function ClubPage({ handle, session }: Props) {
   // dialog, the component is mounted iff this is true.
   const [editing, setEditing] = useState(false)
   // The currently-active feedback pill shown in the header's
-  // <StatusSlot>, or null when the slot should show the default
-  // <PlayersStrip>. Local-only — ClubPage doesn't expose a
+  // <PageHeaderStatusSlot>, or null when the slot should show the default
+  // <PageHeaderPlayersStrip>. Local-only — ClubPage doesn't expose a
   // ctx.globalFeedback API the way GamePage does, because there's no
   // render-prop child here. Concrete uses today: the
   // "<title> deleted" toast in handleDelete, and the "coming soon"
@@ -341,7 +341,7 @@ export function ClubPage({ handle, session }: Props) {
     return () => clearTimeout(t)
   }, [globalFeedback])
 
-  // Stable identity for the StatusSlot's onCloseGlobalFeedback prop
+  // Stable identity for the PageHeaderStatusSlot's onCloseGlobalFeedback prop
   // so passing it into props doesn't restage downstream effects.
   const clearGlobalFeedback = useCallback(() => setGlobalFeedback(null), [])
 
@@ -922,21 +922,21 @@ export function ClubPage({ handle, session }: Props) {
         <Menu
           ref={menuRef}
           trigger={
-            <TriggerWithChevron>
+            <MenuTrigger>
               <PuzpuzpuzLogo />
-            </TriggerWithChevron>
+            </MenuTrigger>
           }
           sections={menuSections}
           triggerLabel="Club menu"
         />
-        <ChatBubble />
-        {/* StatusSlot's `players` prop is a Member[] under the
+        <ChatButton />
+        {/* PageHeaderStatusSlot's `players` prop is a Member[] under the
             hood; here we feed it the club's member roster (the
             naming.md rule keeps the variable named `members` in
             club context even though the component prop reads
-            `players`). PlayersStrip renders the same colored-dot
+            `players`). PageHeaderPlayersStrip renders the same colored-dot
             + colored-name shape either way. */}
-        <StatusSlot
+        <PageHeaderStatusSlot
           players={members}
           globalFeedback={globalFeedback}
           onCloseGlobalFeedback={clearGlobalFeedback}
@@ -1189,7 +1189,7 @@ export function ClubPage({ handle, session }: Props) {
         </div>
       </main>
 
-      {/* The chat-bubble toggle lives in the header (<ChatBubble>
+      {/* The chat-bubble toggle lives in the header (<ChatButton>
           above); FloatingChat renders the panel itself, and nothing
           at all while closed. */}
       <FloatingChat

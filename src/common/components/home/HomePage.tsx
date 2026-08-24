@@ -17,7 +17,7 @@ import { PuzpuzpuzWordmark } from '../branding/PuzpuzpuzWordmark'
 import { PuzpuzpuzLogo } from '../branding/PuzpuzpuzLogo'
 import { Menu, type MenuHandle } from '../panels/Menu'
 import { PageHeader } from '../chrome/PageHeader'
-import { TriggerWithChevron } from '../panels/TriggerWithChevron'
+import { MenuTrigger } from '../panels/MenuTrigger'
 import { useAccountMenuSection } from '../../hooks/account/useAccountMenuSection'
 import { useAppShortcuts } from '../../hooks/input/useAppShortcuts'
 import styles from './HomePage.module.css'
@@ -199,9 +199,9 @@ export function HomePage({ session }: Props) {
         <Menu
           ref={menuRef}
           trigger={
-            <TriggerWithChevron>
+            <MenuTrigger>
               <PuzpuzpuzLogo />
-            </TriggerWithChevron>
+            </MenuTrigger>
           }
           sections={[accountSection]}
           triggerLabel="Main menu"

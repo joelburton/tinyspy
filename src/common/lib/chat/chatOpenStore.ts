@@ -9,7 +9,7 @@ import { useSyncExternalStore } from 'react'
  *
  *   - The bottom-right circular button on ClubPage (still owned
  *     by `<FloatingChat>` in its "closed" branch).
- *   - The `<ChatBubble>` in the GamePage header.
+ *   - The `<ChatButton>` in the GamePage header.
  *
  * Both need to flip the same flag, and `<FloatingChat>` needs to
  * read it to decide whether to render the panel. The previous

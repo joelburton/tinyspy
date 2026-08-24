@@ -9,7 +9,7 @@ import type { ClubMessage } from '../../hooks/chat/useClubChat'
  * The chat-unread indicator's shared state + logic.
  *
  * `<FloatingChat>` owns the message stream + the open/closed state, so
- * it computes "unread" and publishes it here; `<ChatBubble>` (a
+ * it computes "unread" and publishes it here; `<ChatButton>` (a
  * sibling in the header, not in FloatingChat's tree) reads it to fill
  * its background with the latest unread sender's color + show a red
  * count pill. Same lifted-state shape as `chatOpenStore`.
@@ -32,7 +32,7 @@ export type ChatUnread = {
 
 const NONE: ChatUnread = { count: 0, color: null }
 
-// ─── the pub-sub store (publish from FloatingChat, read by ChatBubble) ──
+// ─── the pub-sub store (publish from FloatingChat, read by ChatButton) ──
 let value: ChatUnread = NONE
 const listeners = new Set<() => void>()
 
