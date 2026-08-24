@@ -4,18 +4,24 @@ The first area of the CSS sprint's step 7. The process is
 [css-system-2.md](../css-system-2.md) §21; the plan holds the order, this file
 holds everything else.
 
-**Status: RESUMED; three subjects.** Forty-four findings, THIRTY-SEVEN
+**Status: RESUMED; three subjects.** Forty-four findings, FORTY
 resolved (F1, F2, F3, F4, F5, F6, F6.1, F7, F8, F9, F10, F11, F14, F15,
 F16, F17, F18, F19, F20, F22, F23, F24, F25, F26, F27, F28, F29, F30, F31, F32,
-F33, F34, F35, F36, F37, F39, F40) — where "resolved" includes the ones FOLDED
-into a later finding rather than fixed.
+F33, F34, F35, F36, F37, F38, F39, F40, F41, F43) — where "resolved" includes
+the ones FOLDED into a later finding, or MOVED to the area that can settle them,
+rather than fixed here.
 
-**Seven open: F12 (`page-header-trio`), F21 (`homepage-no-vitest`), F38
-(`selection-lists`), F41 (`header-literals`), F42
-(`chevron-outside-the-icon-set`), F43 (`unequal-mark-separation`), F44
-(`action-button-text-only`).** F3 (`home-keyboard-spec`) closed 2026-08-24 when
-F38 dissolved its blocking question; F38 itself is down to one open site
-(scrabble's suggested moves) and one decision for Joel.
+**Four open: F12 (`page-header-trio`), F21 (`homepage-no-vitest`), F42
+(`chevron-outside-the-icon-set`), F44 (`action-button-text-only`).**
+
+Closed 2026-08-24: **F3** (`home-keyboard-spec`), when F38 dissolved its
+blocking question rather than answering it; **F38** (`selection-lists`), whose
+one unfitting site left for `scrabble`; and **F41** (`header-literals`), three
+values converted and the fourth kept bespoke with its reason.
+
+**F43 leaves this area** (Joel, 2026-08-24) and is on §7's carried-forward
+checklist against `crosswords` — the page where every header mark can appear at
+once. The homepage has ONE, so it has no separation to judge.
 
 Shipped so far: the two dead-reference fixes, the class guard, the vocabularies,
 the font-weight rule, the z- ladder, the greeting's word space, the comment/doc
@@ -1677,7 +1683,20 @@ that is not on the ramp**, and it is the gap between the marks in the left slot,
 which F43 (`unequal-mark-separation`) is about. All five are on the guard's
 pending rows for this file today.
 
-> resolution:
+> **resolution: converted, and the fifth stays bespoke (Joel, 2026-08-24).**
+> `gap: 1rem` → `--spacer-2`, `padding-bottom: 0.5rem` → `--spacer-4`, and the
+> rule's `1px` → `--border-width-line`. The finding's fourth exact match —
+> "`.right`'s `gap: 0.5rem`" — no longer exists: both slots read `0.375rem`
+> today, so there were three conversions, not four.
+>
+> **`0.375rem` stays a literal by decision, not by omission**, and the file now
+> says why: it is the mark gap, and the number you SEE is that gap plus each
+> mark's own padding, so no ramp step is right for a number nobody looks at.
+> It keeps its pending row with that reason attached. If a second site ever
+> wants the value, it earns a ramp step then.
+>
+> What it can't settle is what the separation SHOULD be — that is F43
+> (`unequal-mark-separation`), and it needs a page with more than one mark.
 
 **F42 · `chevron-outside-the-icon-set` · The menu chevron is a hand-inlined SVG
 in a component that is not an icon.** `MenuTrigger.tsx` declares its own
@@ -1700,15 +1719,24 @@ bubble, about 10.8px between the chat bubble and the status slot.
 
 Measured on the club page (three marks): box-to-box gaps of 6px and 5px, the
 second being the fractional `0.3rem` rounding. The homepage cannot show this at
-all — it has ONE mark — which is exactly the reason Joel expects to reopen the
-header at `club-page`.
+all — it has ONE mark — which is exactly why it cannot settle this.
 
 The comment in the file already computes the answer in prose — *"the visible
 separation is about 0.925rem, not 0.375rem"* — which is correct arithmetic
 today and is the kind of derived number that rots the moment a mark's padding
 changes.
 
-> resolution:
+> **resolution: MOVED to the `crosswords` area (Joel, 2026-08-24)**, on §7's
+> carried-forward checklist. Not deferred for want of time: this needs a page
+> where **every** header mark is on the strip at once, and crosswords is that
+> page. The homepage has one mark and the club page three, so neither can see
+> the full set of unequal gaps, let alone judge what they should be.
+>
+> Two things go with it. The file's prose arithmetic has already been replaced
+> (F41) with a statement of the RELATIONSHIP — gap plus each mark's own padding
+> — because the number it quoted had gone stale exactly as predicted, the chat
+> bubble having moved to `PageHeaderButton`. And `0.375rem` stays bespoke until
+> this lands, since a ramp step cannot be chosen for a number nobody looks at.
 
 **F44 · `action-button-text-only` · An action button cannot be text, so the
 app's plainest buttons are all written by hand.** Raised 2026-08-24 while
@@ -1864,7 +1892,7 @@ row's `<a>` or its `<li>`; today the ring is on one and the scroll ref is on the
 other, which is the sort of thing a component exists to stop being a per-page
 accident.
 
-> **resolution: BUILT for four of five sites (2026-08-24). The spec is
+> **resolution: DONE for this area (2026-08-24). The spec is
 > [selection-lists.md](../selection-lists.md)** — its own plan file, because the
 > sites live in four different areas and the component outlives this one.
 >
@@ -1877,6 +1905,10 @@ accident.
 >
 > Also folded in and now done: F11 (`list-cursor-written-twice`), F15
 > (`focus-on-every-refetch`), F24 (`empty-list-keeps-box`).
+>
+> **The scrabble site leaves this area** (Joel, 2026-08-24) and is on §7's
+> carried-forward checklist against `scrabble`, with its three options. Nothing
+> about it is a homepage question.
 >
 > Two things settled here are worth carrying even if the build slips:
 >

@@ -248,7 +248,11 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/components/branding/PuzpuzpuzWordmark.module.css': ['1.5rem'],
       'src/common/components/buttons/SubmitWithScore.module.css': ['0.5rem'],
       'src/common/components/chat/ChatBody.module.css': ['0.4rem', '0.3rem'],
-      'src/common/components/chrome/PageHeader.module.css': ['1rem', '0.375rem'],
+      // 0.375rem is BESPOKE by decision (Joel, 2026-08-24), not unconverted: it
+      // is the mark gap, and the number you see is that plus each mark's own
+      // padding — see the file, and F43 (`unequal-mark-separation`). If a second
+      // site ever wants it, it earns a ramp step then.
+      'src/common/components/chrome/PageHeader.module.css': ['0.375rem'],
       'src/common/components/club/ClubGameCard.module.css': ['0.6rem', '0.4rem', '0.5rem'],
       'src/common/components/club/ClubGameRow.module.css': ['0.4rem', '0.5rem'],
       'src/common/components/club/ClubPage.module.css': ['1rem', '1.25rem'],
@@ -514,7 +518,6 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/components/account/ColorChoiceList.module.css': ['1px'],
       'src/common/components/buttons/ShuffleButton.module.css': ['1px'],
       'src/common/components/chat/ChatBody.module.css': ['1px'],
-      'src/common/components/chrome/PageHeader.module.css': ['1px'],
       'src/common/components/club/clubFilters.module.css': ['1px'],
       'src/common/components/club/EditClubDialog.module.css': ['1px'],
       'src/common/components/definitions/AnagramDialog.module.css': ['1px'],
