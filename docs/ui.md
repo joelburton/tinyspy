@@ -1049,13 +1049,13 @@ against rather than from taste:
 | `-1px` | the element has **its own border** to sit just inside | inputs, selects, the color swatch |
 | `+2px` | the element has **clear space** around it | a standalone button, the menu trigger |
 
-**The keyboard cursor is the same meaning by a different mechanism.** On the
-homepage's clubs and the club page's two lists, the *container* is the tab stop
-and holds real focus; arrows move a cursor through the rows, and `.kb-cursor`
-marks which row Enter would open. No element is focused, so no pseudo-class can
-say it — the page toggles the class. A menu does the same job with real focus,
-moving it item to item programmatically. Both mean "the keyboard is pointing
-here", so both wear the same ring.
+**The keyboard cursor is the same meaning by a different mechanism.** In a
+[SelectionList](#selection-lists) the *container* is the tab stop and holds real
+focus; arrows move a cursor through the rows, and the component's own `.cursor`
+marks which row Enter would act on. No element is focused, so no pseudo-class
+can say it. A menu does the same job with real focus, moving it item to item
+programmatically. Both mean "the keyboard is pointing here", so both wear the
+same ring.
 
 **It is not a selected state.** `ColorChoiceList`'s active swatch draws the same
 ring to mark the color you have *chosen* — a different meaning wearing the same
@@ -1109,7 +1109,7 @@ its co-op/compete/all filter, crosswords' puzzle-source picker. The shared
 - **The segments are not `.button`s.** `.button` gives every element its own
   border and radius, which doesn't restyle a segmented control, it dismantles
   it. The frame owns the border and the rounding; a segment owns only its fill —
-  the same division `.item-list` makes with its rows.
+  the same division a SelectionList makes with its rows.
 - **Its children are its segments**, no class per option. A caller wanting
   full-width segments (the mobile tab bar) sets `flex: 1` on them from its own
   module.
@@ -1192,12 +1192,23 @@ Converted so far: the homepage. Still to come: the club page's two, and
 `infoPanel.headerRow` (the turn log + word list) — where the turn log's dead
 `headerAction` branch goes at the same time.
 
-## Lists of things you can go into
+## Selection lists
 
-The homepage's clubs, a club's games, the games you can start, a chooser in a
-setup dialog — all the same shape, and it's the shared `.item-list` /
-`.item-row` pattern in
-[`patterns/list.css`](../src/common/patterns/list.css).
+**A SelectionList is a list you move a cursor through and choose from** — the
+homepage's clubs, a club's games, the games you can start, the crossword
+library. It is a component,
+[`<SelectionList>`](../src/common/components/lists/SelectionList.tsx), not a set
+of classes: the paint is a handful of rules, and what was actually duplicated
+was the behavior.
+
+The name is deliberate. "List" alone also means a plain bulleted list of text,
+which is most of what the word points at in this repo (every game's Help panel).
+And the line that decides membership is **you pick exactly one thing** — not "a
+column of rows", which is what `Menu`, `FilterSelect`, the setup dialog's player
+checkboxes, `ColorChoiceList` and connections' `HintList` all look like from the
+outside without being one.
+
+### The shape
 
 - **One framed panel, rows abutting inside it**, with a hairline between them —
   not a stack of separately-tinted tiles. The frame is what says "this is a
@@ -1205,39 +1216,88 @@ setup dialog — all the same shape, and it's the shared `.item-list` /
 - **The frame owns no padding.** The rows carry all of it, so the space above
   the first row equals the space between any two, and each row's rule and hover
   tint run the panel's full width instead of floating inside an inset.
-- **The hairline belongs to the list, not the row** — `.item-list >
-  *:not(:last-child)`. On the row it needs a `:last-child` rule to suppress the
-  final line, and that rule breaks as soon as the row is wrapped in an `<li>`,
-  because then the row is never its parent's last child.
+- **The hairline belongs to the list, not the row.** On the row it needs a
+  `:last-child` rule to suppress the final line, and that rule breaks the moment
+  a row is wrapped.
+- **The list hugs its rows** unless a caller passes `fills`. Whether a list
+  should absorb its parent's free space is a fact about the layout around it.
 - **Keyboard focus recolors the frame's border** rather than drawing a ring: a
   ring outside a scrolling panel reads as a second frame. Which *row* the cursor
-  is on is marked separately by the caller.
-- **The element follows the behavior.** A row that navigates to a URL is an
-  `<a>` — the whole row being the anchor is what makes middle-click and
-  cmd-click "open in new tab" work, which a `<button>` can't fake. Anything else
-  is a `<button>`, and it's an "accidental" button: the neutral element, never
-  `.button`. Today's six lists vary between `<a>`, `<button>` and `<li>` mostly
-  by accident; the rule is what they converge on as each converts.
+  is on is a separate mark.
+- **A row is a plain `<div>`.** Not an anchor, not a button — so it isn't
+  focusable and isn't independently activatable, which makes the container the
+  only way in: one tab stop, one thing holding the keyboard. The cost is
+  cmd-click "open in new tab", which is worth little when you play one game and
+  view one club at a time.
 - **A game's status on a row is a corner flag, not a bar** — see
-  `ClubGameCard`'s `.openFlag`. It is deliberately more prominent than an
-  outcome bar and is a different thing entirely; don't reach for the turn-log
-  bar vocabulary here.
+  `ClubGameRow`'s `.openFlag`. It is deliberately more prominent than an outcome
+  bar and is a different thing entirely; don't reach for the turn-log bar
+  vocabulary here.
 
-**An empty list gets a message inside the frame** — `.item-list-empty`, paired
-with `muted`. It's the one thing in there that isn't a self-padding row, so it
-supplies the inset the frame deliberately doesn't. A list may instead be
-replaced wholesale by a sentence *outside* the frame — what the homepage does
-with "You haven't joined a club yet." — which is a different choice: no empty
-box at all.
+**The frame is always drawn, and every no-rows state goes inside it** — the
+`empty` prop, paired with `muted`. Nothing having landed yet, nothing matching a
+filter, and the fetch having failed are all the same shape on screen: the list
+is there and it has nothing in it. Replacing the whole list with a sentence
+would make the page's furniture come and go with its contents, and it costs the
+answer a place to appear without moving anything. The message is the one thing
+in the frame that isn't a self-padding row, so it supplies the inset the frame
+deliberately doesn't.
+
+### The keyboard
+
+The container holds focus; the rows never do.
+
+| key | "do now" | "select" |
+|---|---|---|
+| ↑ ↓ | move the cursor, clamped, no wrap | same |
+| Enter | activate | make this the selection |
+| Space | **nothing** | make this the selection |
+| Home / End | jump to first / last | same |
+| PageUp / PageDown | move by one visible page | same |
+
+- **Nothing does the native thing.** The focused element *is* the scroll box, so
+  Space and the four page keys would otherwise scroll it out from under the
+  cursor. All six are trapped, and a page is measured rather than guessed.
+- **Space does nothing in a "do now" list** because moving a cursor must not
+  consent to an action.
+- **The cursor lands on disabled rows** and Enter no-ops there. Skipping would
+  put the cursor index and the row index out of step, and leaves nowhere to go
+  when every row is disabled.
+- **The ring shows whenever the container has focus** — it doesn't wait for a
+  first arrow the way a board tile's cursor does. A tile shares its box with the
+  game's own colors; a row has no competing color, so an always-on ring costs
+  nothing.
+- **Tab belongs to the page, never to the list.** The club page's Tab toggles
+  between its two lists; the homepage swallows Tab outright; inside a dialog Tab
+  walks the fields. All the component guarantees is that a list is exactly one
+  tab stop.
+
+### The two kinds, and the two marks
+
+**"Do now"** — choosing does the thing immediately (`onActivate`): you land on
+the club, the setup dialog opens. There is no persistent mark, because you have
+left.
+
+**"Select"** — choosing records a decision you act on later (`selected` +
+`onSelect`), and must not submit the dialog it sits in. The chosen row keeps a
+mark, and the cursor starts on it.
+
+The two marks ride different CSS properties, which is what lets both show at
+once: the **cursor** is an `outline` in `--chrome-cursor-color`, the
+**selection** an inset `box-shadow` in `--tile-selected-edge-color` — the same
+black edge a selected game piece wears, for the reason `base.css` gives beside
+that token: selection goes on the edge so the background stays free for state
+and attention. It is a shadow rather than a border because a row has no resting
+border to thicken, and adding one would reflow.
 
 **The menu is not one of these.** It looks the same and isn't: a menu is a set
 of *actions* you pick from and it closes; a list is a set of *places* that stay
-put. So the menu keeps menu names and doesn't compose `.item-row` — a menu isn't
-a kind of item list, it resembles one. If the two turn out to share code, the
-shared thing gets its own name and both read it.
+put. If the two turn out to share code, the shared thing gets its own name and
+both read it.
 
-Converted so far: the homepage's clubs list. Still to come: clubpage's games +
-start-a-game lists, and crosswords' setup puzzle chooser.
+Converted: the homepage's clubs, the club page's two lists, crosswords' setup
+library picker. Still bespoke by decision: crosswords' clue lists (revisit at
+that area) and scrabble's suggested-moves box.
 
 ## Mode pills
 

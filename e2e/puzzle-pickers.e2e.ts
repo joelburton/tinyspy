@@ -3,6 +3,7 @@
 import { test, expect, type Page } from '@playwright/test'
 import { createClubWithMembers } from './helpers/fixtures'
 import { signIn } from './helpers/session'
+import { startGameRow } from './helpers/clubPage'
 
 /**
  * The three date-anchored games' setup dialogs, after the 2026-08-13 rework.
@@ -54,7 +55,7 @@ test.describe('puzzle pickers', () => {
     const page = await ctx.newPage()
     await page.goto(`/c/${club.handle}`)
 
-    await page.getByRole('button', { name: /PaulPath/ }).first().click()
+    await startGameRow(page, /PaulPath/).click()
     const first = nextUpLine(page)
     await expect(first).toBeVisible({ timeout: 15000 })
     const firstText = (await first.textContent())!
@@ -65,7 +66,7 @@ test.describe('puzzle pickers', () => {
 
     // Re-open: the club has now played that one, so the offer must move on.
     await page.goto(`/c/${club.handle}`)
-    await page.getByRole('button', { name: /PaulPath/ }).first().click()
+    await startGameRow(page, /PaulPath/).click()
     const second = nextUpLine(page)
     await expect(second).toBeVisible({ timeout: 15000 })
     expect(await second.textContent()).not.toBe(firstText)
@@ -80,7 +81,7 @@ test.describe('puzzle pickers', () => {
     const page = await ctx.newPage()
     await page.goto(`/c/${club.handle}`)
 
-    await page.getByRole('button', { name: /WordKnit/ }).first().click()
+    await startGameRow(page, /WordKnit/).click()
     await expect(nextUpLine(page)).toBeVisible({ timeout: 15000 })
 
     await page.getByRole('button', { name: /^Start WordKnit/ }).click()
@@ -100,7 +101,7 @@ test.describe('puzzle pickers', () => {
     const page = await ctx.newPage()
     await page.goto(`/c/${club.handle}`)
 
-    await page.getByRole('button', { name: /CrossPlay/ }).first().click()
+    await startGameRow(page, /CrossPlay/).click()
     await page.getByRole('button', { name: 'NYT', exact: true }).click()
 
     const line = page.locator('p[class*="nextDate"]').first()
@@ -144,7 +145,7 @@ test.describe('puzzle pickers', () => {
     await page.goto(`/c/${club.handle}`)
 
     const open = async () => {
-      await page.getByRole('button', { name: /PaulPath/ }).first().click()
+      await startGameRow(page, /PaulPath/).click()
       await expect(nextUpLine(page)).toBeVisible({ timeout: 15000 })
     }
     // 2025-06-15's clue is the fixtures' own reference puzzle; asserting on the

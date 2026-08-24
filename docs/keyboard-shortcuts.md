@@ -95,11 +95,17 @@ and holding `+` would otherwise start dozens of games.
 
 | where | key | what it does |
 |---|---|---|
-| Home (club list) | `↑` `↓` | Move the cursor ring through clubs (clamped, no wrap). The list is focused on arrival, so no first Tab is needed. |
-| Home | `Enter` | Open the club under the ring. |
-| Home | `Tab` | Swallowed — arrows plus Enter are the whole keyboard story here. |
-| Club page | `↑` `↓` / `Enter` | Same cursor-ring navigation in the start-a-game list and the games list. |
-| Club page | `Tab` | Toggles between the two lists (overlays keep their native Tab). |
+Both pages navigate by `<SelectionList>` (docs/ui.md → Selection lists), so the
+keys are the same on each; only how many lists there are differs.
+
+| where | key | what it does |
+|---|---|---|
+| Either page | `↑` `↓` | Move the cursor ring through the rows (clamped, no wrap). The first list is focused on arrival, so no first Tab is needed. |
+| Either page | `Enter` | Open / start what the ring is on. A row that can't be chosen (a game the club's member count doesn't fit) takes the ring but declines Enter. |
+| Either page | `Home` `End` | Jump to the first / last row. |
+| Either page | `PageUp` `PageDown` | Move by one visible page, measured from the list's own height. |
+| Either page | `Space` | **Nothing** — moving a cursor must not consent to an action. It is caught all the same, so it can't scroll the list out from under the ring. |
+| Either page | `Tab` | Moves to the page's next list — cycling the club page's two, always landing on the one list at home. This is also the way BACK after clicking some blank part of the page, which blurs the list. Overlays keep their native Tab. |
 | Club page | `⇧<` | Back to home — the twin of the play area's `⇧<`. |
 | Create club | `Esc` | Back to home. |
 

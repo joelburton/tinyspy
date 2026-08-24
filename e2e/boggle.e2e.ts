@@ -4,6 +4,7 @@ import { test, expect } from '@playwright/test'
 import { createSoloClub, createBoggleGame } from './helpers/fixtures'
 import { signIn } from './helpers/session'
 import { settled } from './helpers/ready'
+import { startGameRow } from './helpers/clubPage'
 
 /**
  * Smoke test for the MothCubes (boggle) play loop on screen: the board renders,
@@ -181,7 +182,7 @@ test.describe('boggle custom board', () => {
 
     // Open the MothCubes coop setup dialog (coop is the enabled button in a
     // solo club; compete needs a second player).
-    await page.getByRole('button', { name: /MothCubes/ }).first().click()
+    await startGameRow(page, /MothCubes/).click()
 
     // The custom board lives behind a collapsed disclosure — expand it, then
     // type the tiles exactly as a recap would print them.

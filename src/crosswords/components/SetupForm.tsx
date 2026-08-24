@@ -8,6 +8,7 @@ import { db } from '../db'
 import type { CrosswordsSetup } from '../lib/setup'
 import { GUARDIAN_SERIES } from '../lib/setup'
 import { importCrosswordFile } from '../lib/importFile'
+import { SelectionList } from '../../common/components/lists/SelectionList'
 import styles from './SetupForm.module.css'
 // The game's tokens, again. PlayArea side-effect-imports this too, but the
 // setup form is its OWN lazy chunk that renders in the club's start-game
@@ -400,31 +401,43 @@ export function SetupForm({ clubHandle, players, value, onChange }: SetupBodyPro
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
-          <div className={styles.list}>
-            {filtered === null ? (
-              <div className={styles.empty}>Loading puzzles…</div>
-            ) : filtered.length === 0 ? (
-              <div className={styles.empty}>
-                {/* The empty library reads as a plain fact, NOT as the import
-                    command that fills it: this is a player-facing dialog and
-                    the fix is Joel's to run, not theirs. A shell command here
-                    tells a friend on production to do something they can't. */}
-                {puzzles && puzzles.length === 0
-                  ? 'No puzzles found.'
-                  : 'No puzzles match that filter.'}
-              </div>
-            ) : (
-              filtered.map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  className={cls(
-                    styles.item,
-                    statusClass(p.status),
-                    s.puzzle_id === p.id && styles.selected,
-                  )}
-                  onClick={() => onChange({ ...s, puzzle_id: p.id })}
-                >
+          {/* The list's box is FIXED height, not a max-height — it holds its
+              size while filtering shrinks the results, and it's the height the
+              other two tabs inherit through the .tabStack overlay. That is a
+              fact about this dialog, so the wrapper owns it and the list simply
+              fills it. */}
+          <div className={styles.listBox}>
+            <SelectionList
+              items={filtered ?? []}
+              rowKey={(p) => p.id}
+              label="Puzzle library"
+              fills
+              // A "select" list, not a "do now" one: Enter and Space record the
+              // choice and must NOT submit the dialog around them
+              // (plans/selection-lists.md).
+              selected={s.puzzle_id ?? null}
+              onSelect={(p) => onChange({ ...s, puzzle_id: p.id })}
+              // No autoFocus: the dialog focuses its own first field, and a
+              // list that grabbed focus from inside a tab would fight it.
+              empty={
+                filtered === null
+                  ? 'Loading puzzles…'
+                  : // The empty library reads as a plain fact, NOT as the
+                    // import command that fills it: this is a player-facing
+                    // dialog and the fix is Joel's to run, not theirs. A shell
+                    // command here tells a friend on production to do
+                    // something they can't.
+                    puzzles && puzzles.length === 0
+                    ? 'No puzzles found.'
+                    : 'No puzzles match that filter.'
+              }
+              renderRow={(p) => (
+                <>
+                  {/* "Has THIS club played it?" — see .stripe. */}
+                  <span
+                    className={cls(styles.stripe, statusClass(p.status))}
+                    aria-hidden="true"
+                  />
                   {/* Title + author only. The grid size used to sit at the
                       right, but it isn't something you pick a puzzle BY, and
                       as the row's second column it fought the title for the
@@ -433,9 +446,9 @@ export function SetupForm({ clubHandle, players, value, onChange }: SetupBodyPro
                     {p.title}
                     {p.author ? ` · ${p.author}` : ''}
                   </span>
-                </button>
-              ))
-            )}
+                </>
+              )}
+            />
           </div>
         </div>
       </div>

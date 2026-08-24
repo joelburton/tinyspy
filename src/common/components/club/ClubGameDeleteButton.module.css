@@ -1,0 +1,81 @@
+/* cs-audited */
+
+/* The delete affordance in a game entry's top-right corner. Two visual states,
+ * driven by `deleteButtonActive`: the quiet × until you go looking for it, and
+ * a loud destructive pill once you have pressed it — loud on purpose, so a
+ * misclicked × is obvious. The 4-second auto-revert lives in the component and
+ * keeps the loud state from sticking around.
+ *
+ * It absolute-positions against WHATEVER CONTAINS IT — a SelectionList row, or
+ * the standalone callout's box. Both supply the positioning context; neither is
+ * named here, which is what lets one affordance serve both. */
+
+/* @@ */ .deleteButton {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.4rem;
+  /* The corner-icon look: its own quiet surface, not a `.button`. */
+  background: var(--page-surface-color);
+  border: var(--border-width-line) solid var(--page-surface-border-color);
+  color: var(--page-text-muted-color);
+  padding: 0;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: var(--radius-md);
+  font-size: 1.1rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 120ms ease, background 120ms ease,
+              color 120ms ease, border-color 120ms ease,
+              width 160ms ease;
+}
+
+/* Revealed by the entry AROUND it — hovered, or holding focus somewhere inside.
+ *
+ * Written as a parent selector rather than by naming that entry's class,
+ * because the two entries that use this live in different modules and one of
+ * them (the list row) belongs to SelectionList, whose class this has no
+ * business knowing. `:hover > .deleteButton` says exactly what is true: our own
+ * parent, whatever it is, is hovered. */
+:hover > .deleteButton,
+/* @@ */ :focus-within > .deleteButton {
+  opacity: 1;
+}
+
+/* @@ */ .deleteButton:hover:not(:disabled) {
+  background: var(--page-surface-hover-color);
+  color: var(--page-text-color);
+  border-color: var(--field-strong-edge-color);
+}
+
+/* Confirming or deleting: a destructive pill, always visible regardless of
+ * hover.
+ *
+ * It used to fill itself with the LOST outcome's wash and edge — an outcome
+ * palette on a control, for a button where nobody has lost anything. It is now
+ * the plain destructive treatment every other irreversible control wears: the
+ * tone on the text and the border, no fill (docs/ui.md → The color system). */
+/* @@ */ .deleteButtonActive {
+  opacity: 1;
+  width: auto;
+  padding: 0.3rem 0.7rem;
+  background: transparent;
+  /* The SECONDARY value, not the primary: this is an outline — border and label
+     on a transparent ground — and `-secondary-color` is the one taken down far
+     enough to read as small text on white. Using the primary here was the fill
+     value doing an ink's job, which is the confusion the two names exist to
+     prevent. */
+  color: var(--button-destructive-secondary-color);
+  border-color: var(--button-destructive-secondary-color);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* @@ */ .deleteButtonActive:hover:not(:disabled) {
+  background: var(--button-destructive-secondary-hover-color);
+  color: var(--button-destructive-primary-color);
+  border-color: var(--button-destructive-primary-color);
+}

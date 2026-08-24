@@ -4,16 +4,18 @@ The first area of the CSS sprint's step 7. The process is
 [css-system-2.md](../css-system-2.md) §21; the plan holds the order, this file
 holds everything else.
 
-**Status: RESUMED; three subjects.** Forty-four findings, THIRTY-SIX
-resolved (F1, F2, F4, F5, F6, F6.1, F7, F8, F9, F10, F11, F14, F15,
+**Status: RESUMED; three subjects.** Forty-four findings, THIRTY-SEVEN
+resolved (F1, F2, F3, F4, F5, F6, F6.1, F7, F8, F9, F10, F11, F14, F15,
 F16, F17, F18, F19, F20, F22, F23, F24, F25, F26, F27, F28, F29, F30, F31, F32,
 F33, F34, F35, F36, F37, F39, F40) — where "resolved" includes the ones FOLDED
 into a later finding rather than fixed.
 
-**Eight open: F3 (`home-keyboard-spec`), F12 (`page-header-trio`), F21
-(`homepage-no-vitest`), F38 (`selection-lists`), F41 (`header-literals`),
-F42 (`chevron-outside-the-icon-set`), F43 (`unequal-mark-separation`),
-F44 (`action-button-text-only`).** F3 belongs to F38.
+**Seven open: F12 (`page-header-trio`), F21 (`homepage-no-vitest`), F38
+(`selection-lists`), F41 (`header-literals`), F42
+(`chevron-outside-the-icon-set`), F43 (`unequal-mark-separation`), F44
+(`action-button-text-only`).** F3 (`home-keyboard-spec`) closed 2026-08-24 when
+F38 dissolved its blocking question; F38 itself is down to one open site
+(scrabble's suggested moves) and one decision for Joel.
 
 Shipped so far: the two dead-reference fixes, the class guard, the vocabularies,
 the font-weight rule, the z- ladder, the greeting's word space, the comment/doc
@@ -109,7 +111,15 @@ today is the `Solo` badge and nothing else.
 > The block still opens with "used to be hidden … Now they're", which is F17's
 > archaeology and F17's call — left alone.
 
-**F3 · `home-keyboard-spec` · `e2e/home-keyboard.e2e.ts` has been failing since 2026-08-21.** It locates
+**F3 · `home-keyboard-spec` · RESOLVED 2026-08-24 by F38 (`selection-lists`).**
+The blocking question — whether the ring rides the row's `<a>` or its `<li>` —
+is dissolved: a SelectionList row is a plain `<div>`, so there is one element
+and nothing to disagree about. The spec is rewritten and green, and now also
+covers Home/End and "Space does nothing".
+
+The original finding follows.
+
+**`e2e/home-keyboard.e2e.ts` had been failing since 2026-08-21.** It locates
 rows with `[class*="_clubItem"]`. `.clubItem` was deleted in `89122fc7` ("the
 homepage stops describing a button and a list, and just uses them") — the commit
 that made the list `.item-list` / `.item-row` — and that commit did not touch the
@@ -874,6 +884,19 @@ Three things to carry into that sitting:
 > the WORK folds into F38 (SelectionLists), 2026-08-22.** An empty list still
 > showing its frame is something a SelectionList does, not something three pages
 > each remember to do. The three notes above survive as requirements on it.
+>
+> **Done 2026-08-24, on the second pass.** F38's first pass shipped the frame
+> but left the homepage's `clubs.length === 0 ?` branch standing, so the page
+> still replaced its list with a bare sentence — note 1 above, missed. Joel
+> caught it. All three notes are now satisfied: the two sentences moved inside
+> as the `empty` prop (and the loading blank with them, so all three no-rows
+> states are one shape), the container is a `<div>` so the `<p>` is valid
+> markup, and `list.css` is deleted rather than needing its comment amended.
+>
+> The heading of this finding is worth reading literally: "the homepage is the
+> one place that doesn't" describes what SHIPPED, never what was wanted. It
+> reads as a rule if you skim it, which is how the exception got carried
+> forward into F38's plan as though it were the decision.
 
 ### Layers
 
@@ -1831,7 +1854,9 @@ place, pointing here):
   row under the cursor, the ring hides unless the container proper holds focus,
   `scrollIntoView({ block: 'nearest' })`.
 - **F15** — when the list takes focus on arrival, and what it takes focus on.
-- **F24** — an empty list keeps its box and puts the message inside it.
+- **F24** — an empty list keeps its box and puts the message inside it. (The
+  homepage's replace-the-whole-list exception was closed 2026-08-24: the frame
+  is always drawn, everywhere.)
 
 **And F3 is not folded, but its blocking question is now this one's.** The red
 spec cannot be rewritten until someone says whether the cursor ring rides the
@@ -1839,10 +1864,19 @@ row's `<a>` or its `<li>`; today the ring is on one and the scroll ref is on the
 other, which is the sort of thing a component exists to stop being a per-page
 accident.
 
-> **resolution: DESIGNED, not built (2026-08-24). The spec is
+> **resolution: BUILT for four of five sites (2026-08-24). The spec is
 > [selection-lists.md](../selection-lists.md)** — its own plan file, because the
-> five sites live in four different areas and the component outlives this one.
-> F38 stays open until they convert.
+> sites live in four different areas and the component outlives this one.
+>
+> `<SelectionList>` ships in `common/components/lists/`; the homepage's clubs,
+> ClubPage's two lists and crosswords' library picker all go through it, and
+> `patterns/list.css` is deleted. **F38 stays open on scrabble's suggested-moves
+> box**, which turned out not to fit — a frameless five-line list pinned to a
+> fixed height, where the frame and the row padding would both arrive as a
+> visible redesign. Three options are written up in the plan; the call is Joel's.
+>
+> Also folded in and now done: F11 (`list-cursor-written-twice`), F15
+> (`focus-on-every-refetch`), F24 (`empty-list-keeps-box`).
 >
 > Two things settled here are worth carrying even if the build slips:
 >

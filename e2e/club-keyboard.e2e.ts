@@ -42,7 +42,7 @@ test.describe('club page keyboard nav', () => {
     // buttons; ArrowUp past the top clamps (no wrap).
     const ringed = () =>
       page.evaluate(() => {
-        const els = [...document.querySelectorAll('button, a')]
+        const els = [...document.querySelectorAll('[class*="_row_"]')]
         const hit = els.find((el) => getComputedStyle(el).outlineWidth === '2px')
         return hit?.textContent ?? null
       })
@@ -76,18 +76,25 @@ test.describe('club page keyboard nav', () => {
     // Tab to the games list; Enter opens the game under the cursor. "Your
     // games" lists ALL the club's games — the current one included, as an
     // ordinary row — so any of the three is a legitimate destination; what
-    // matters is that Enter opens the row the RING is on. Read that row's own
-    // link target first, then assert we landed there.
+    // matters is that Enter opens the row the RING is on.
+    //
+    // The row has no href to read any more: a SelectionList row is an inert
+    // <div> and the list navigates on activation (plans/selection-lists.md).
+    // So identify the ringed row by its TITLE and check we land on that game.
     await page.keyboard.press('Tab') // start list
     await page.keyboard.press('Tab') // games list
     expect(await focusedLabel()).toBe('Your games')
-    const ringedHref = await page.evaluate(
-      () => document.querySelector('[class*="_kbCursor_"] a')?.getAttribute('href') ?? null,
+    const ringedTitle = await page.evaluate(
+      () =>
+        [...document.querySelectorAll('[aria-label="Your games"] [class*="_row_"]')]
+          .find((el) => getComputedStyle(el).outlineWidth === '2px')
+          ?.textContent ?? null,
     )
-    expect(ringedHref).toMatch(/^\/g\/waffle_coop\//)
-    expect([g1.id, g2.id, g3.id].some((id) => ringedHref!.includes(id))).toBe(true)
+    expect(ringedTitle).not.toBeNull()
     await page.keyboard.press('Enter')
-    await expect(page).toHaveURL(new RegExp(`${ringedHref}$`), { timeout: 10000 })
+    await expect(page).toHaveURL(/\/g\/waffle_coop\//, { timeout: 10000 })
+    const landedOn = page.url().split('/').pop()!
+    expect([g1.id, g2.id, g3.id]).toContain(landedOn)
   })
 
   test('a mouse click on a start button leaves no focus ring and keeps the cursor', async ({
@@ -122,7 +129,7 @@ test.describe('club page keyboard nav', () => {
     // tab stop, and a focused button would blank the cursor while painting a
     // second, look-alike ring that Enter doesn't act on.
     const cancel = page.getByRole('button', { name: /^cancel$/i })
-    await page.locator('[class*="_button_"]').first().click()
+    await page.locator('[aria-label="Start a new game"] [class*="_row_"]').first().click()
     await expect(cancel).toBeVisible({ timeout: 5000 })
     expect(await listFocused()).toBe(true)
     expect(await rings()).toEqual(['-2px'])
@@ -151,11 +158,11 @@ test.describe('club page keyboard nav', () => {
     await page.goto(`/c/${club.handle}`)
     await expect(page.getByText('Start a new game')).toBeVisible({ timeout: 15000 })
 
-    const buttons = page.locator('[class*="_button_"]')
+    const buttons = page.locator('[aria-label="Start a new game"] [class*="_row_"]')
     /** Index of the start button wearing the cursor ring, or -1. */
     const ringed = () =>
       page.evaluate(() =>
-        [...document.querySelectorAll('[class*="_button_"]')].findIndex(
+        [...document.querySelectorAll('[aria-label="Start a new game"] [class*="_row_"]')].findIndex(
           (el) => getComputedStyle(el).outlineWidth === '2px',
         ),
       )

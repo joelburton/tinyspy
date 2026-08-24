@@ -3,6 +3,7 @@
 import { test, expect } from '@playwright/test'
 import { createClubWithMembers } from './helpers/fixtures'
 import { signIn } from './helpers/session'
+import { startGameRow } from './helpers/clubPage'
 
 /**
  * The shared coop-pacing setup field (CoopStyleField) as it renders in a real
@@ -21,7 +22,7 @@ test.describe('coop setup — pacing field', () => {
     await page.goto(`/c/${club.handle}`)
 
     // Open the WordNerd COOP setup dialog (coop is the first WordNerd button).
-    await page.getByRole('button', { name: /WordNerd/ }).first().click()
+    await startGameRow(page, /WordNerd/).click()
 
     // The Co-op disclosure is present, collapsed, showing the current value.
     const coopSummary = page.getByText('Co-op: free-for-all')

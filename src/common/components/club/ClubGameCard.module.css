@@ -1,63 +1,37 @@
 /* cs-unmet */
 
-/* One entry per game on ClubPage.
+/* The club's CURRENT game, called out above the start list — the one game entry
+ * on ClubPage that belongs to no list, and so the one that has to draw its own
+ * box.
  *
- * Layout: mirrors StartGameButtons — the gametype's logo on the left, then
- * the algorithmic title (with the mode pill) over a muted status ·
- * started-at line.
+ * The border is what makes it prominent, and it is a dark NEUTRAL rather than
+ * the accent blue: since the keyboard list-nav arrived, blue means "the cursor
+ * is here / Enter acts on this", and this callout is in neither list. Borrowing
+ * that color would be a lie about what the box does.
  *
- * TWO AXES, deliberately independent (they used to be one, which is why the
- * active game could only be shown one way):
- *
- *   - **`variant`** = which visual register — where this instance is being
- *     rendered. `row` IS a row of the shared `.item-list` and takes its look
- *     from there, including the packed padding the club page sets for both its
- *     lists (a club with a long history showed barely half its games).
- *     `standalone` is the active-game callout above the start list: it belongs
- *     to no list, so it draws its own full card chrome, a step larger, being a
- *     single call to action with nothing to be dense against.
- *   - **`state`** = the game's standing (active / suspended / completed),
- *     which drives ONLY the corner flag — orange for the current game,
- *     yellow for a shelved one, none for a finished one. It carries no type
- *     or color treatment of its own: see the flag note further down.
- *
- * The active game is rendered TWICE — once as the standalone callout, once as
- * an ordinary row in "Your games" (where it keeps its orange flag, so the row
- * that's live is still findable at a glance).
- *
- * .wrapper sits outside the Link so the hover-revealed delete affordance can
- * absolute-position over the corner without fighting the Link's click target.
+ * The face inside mirrors <ClubGameRow>'s, a step larger. That duplication is
+ * known and left for the club-page area (plans/selection-lists.md).
  */
 
-/* @@ */ .wrapper {
+/* @@ */ .standalone {
   position: relative;
-  /* THE HOVER LIVES HERE, not on the card, because the wrapper is what the
-   * list treats as a row: the shared `.item-list` draws the hairline between
-   * its own children, so the tint has to cover the same box or the line under
-   * the hovered row stays untinted. The wrapper exists at all because the
-   * delete button must sit OUTSIDE the <Link> — inside, clicking it would
-   * navigate. */
-  transition: background-color 100ms ease;
-}
-
-/* @@ */ .wrapper:hover {
-  background: var(--page-surface-hover-color);
-}
-
-/* The visible row. Its LOOK is the shared `.item-row` (padding and gap come
- * from ClubPage, whose two lists are packed); this adds only what the corner
- * flag needs — a positioning context and the overflow that clips the triangle
- * to the frame's rounded corner. It paints no surface of its own: the wrapper
- * above carries the tint so the hairline tints with it. */
-/* @@ */ .card {
-  position: relative;
+  border: var(--border-width-line-thick) solid var(--page-text-color);
+  border-radius: var(--radius-md);
+  /* Even on all four sides, at the list rows' horizontal inset — so its logo and
+   * text start on the same vertical line as every row below it, and the box is
+   * no taller than its contents need. The border and the larger title are what
+   * make it prominent; padding was just making it bulky. */
+  padding: 0.9rem;
+  /* Clips the corner flag's outer corners to the box's own rounding. */
   overflow: hidden;
 }
 
-/* The Link wrapper around clickable cards. Strips link styles so
- * the card itself is the affordance; the whole surface clicks. */
+/* The Link fills the box, so the whole surface clicks. Strips link styling: the
+ * box itself is the affordance. */
 /* @@ */ .link {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
   text-decoration: none;
   color: inherit;
 }
@@ -65,14 +39,10 @@
 /* @@ */ .content {
   display: flex;
   flex-direction: column;
-  /* No gap: the two lines' own line-heights are the leading (see the start
-   * rows — a gap here separated a title from its OWN status line more than
-   * the hairline separates one game from the next). */
   flex: 1;
   min-width: 0;
 }
 
-/* Title + mode pill on one row. */
 /* @@ */ .titleRow {
   display: flex;
   align-items: center;
@@ -80,20 +50,16 @@
   flex-wrap: wrap;
 }
 
-/* The algorithmic title — the largest text in a row. Same size, weight and
- * leading as a start-list row's title (StartGameButtons/.title), so the two
- * panels' rows are the same object seen twice; only .active scales it up.
- * word-break since some gametypes generate long titles. */
+/* A step up from a row's 1rem, not a headline. At 1.5rem the algorithmic titles
+ * that run long — connections' three words, scrabble's opening three — wrapped
+ * to a second line and shoved the callout's own height around. */
 /* @@ */ .gameTitle {
   font-weight: 600;
-  font-size: 1rem;
+  font-size: 1.25rem;
   line-height: 1.2;
   word-break: break-word;
 }
 
-/* The subtle second line — same small muted register as the start
- * buttons' description: the status on the left, the started-at date
- * right-justified. */
 /* @@ */ .meta {
   display: flex;
   justify-content: space-between;
@@ -105,64 +71,15 @@
   line-height: 1.25;
 }
 
-/* Right-justified even if the status is short or the line wraps. */
 /* @@ */ .startedAt {
   margin-left: auto;
   white-space: nowrap;
 }
 
-/* The standalone active-game callout above the start list. Thick border for
- * prominence — but NOT the accent blue: since the keyboard list-nav arrived,
- * a blue ring means "the keyboard cursor is here / Enter acts on this", and
- * this callout isn't in either list. A dark neutral border keeps the
- * prominence without lying about that. */
-/* @@ */ .standalone {
-  border: 2px solid var(--page-text-color);
-  border-radius: var(--radius-md);
-  /* Even on all four sides, at the rows' horizontal inset — so its logo +
-   * text start on the same vertical line as every row in the two lists below
-   * it, and the box is no taller than its contents need. The border and the
-   * larger title are what make it prominent; padding was just making it
-   * bulky. */
-  padding: 0.9rem;
-}
-
-/* A step up from a row's 1rem, not a headline. At 1.5rem the algorithmic
- * titles that run long — connections' three words, scrabble's opening
- * three — wrapped to a second line and shoved the callout's own height
- * around; it's prominent enough from its border and its position. */
-/* @@ */ .standalone .gameTitle {
-  font-size: 1.25rem;
-}
-
-/* No state carries a type treatment of its own — no fade for a finished
- * game, no larger title for a live one. The corner flag is the whole signal
- * (orange = the current game, yellow = shelved, none = done), and every extra
- * channel saying the same thing only cost the two panels their shared rhythm:
- * a list whose rows are three different heights reads as noise, not
- * hierarchy. */
-
-/* Top-right corner flag indicating "this game is open."
- * Rendered for state='suspended' (yellow) and state='active'
- * (orange) — absent for completed. Geometry is shared; only the
- * fill color differs by state via the modifier classes below.
- *
- * Literal corner-triangle shape — distinct from a colored circle,
- * which would compete with the player/member colored-dot
- * vocabulary used elsewhere (PageHeaderPlayersStrip, ClubPage member list).
- * "Flag in the corner of a card" is its own visual register; no
- * room for someone to read this as "the yellow player is in
- * this game."
- *
- * Geometry: 24px × 24px box at top:0 right:0, clip-path filling
- * the upper-right triangle. The card has `overflow: hidden`, so
- * the triangle's outer corners get clipped to the card's rounded
- * radius automatically — no special-casing.
- *
- * The delete affordance lives OUTSIDE the card (sibling in
- * wrapper), so on hover it sits above the card and naturally
- * covers this corner — no z-index gymnastics needed. */
-/* @@ */ .openFlag {
+/* The orange corner flag. Only one state reaches this component — it renders
+ * the CURRENT game and nothing else — so unlike the row's flag there is no
+ * geometry-plus-modifier split to make. */
+/* @@ */ .openFlagActive {
   position: absolute;
   top: 0;
   right: 0;
@@ -170,105 +87,5 @@
   height: 24px;
   clip-path: polygon(0 0, 100% 0, 100% 100%);
   pointer-events: none;
-}
-
-/* Suspended flag: yellow. "Still open for play, we'll come back
- * to this." Color from --gamelist-suspended-color — the
- * semantic "in flight, not done" token. */
-/* @@ */ .openFlagSuspended {
-  background: var(--gamelist-suspended-color);
-}
-
-/* Active flag: saturated orange. "This is THE one to join right
- * now" — deliberately more forceful than the suspended yellow
- * so a glance at a list reads "current game" before "the other
- * still-open ones." Color from --gamelist-current-color. */
-/* @@ */ .openFlagActive {
   background: var(--gamelist-current-color);
 }
-
-/* ─── Delete affordance ──────────────────────────────────────
- *
- * Lives in the top-right corner of the card. Two visual states
- * driven by the `deleteButtonActive` modifier class:
- *
- *   - **idle** — small × icon, hidden by default; revealed on
- *     wrapper-hover or keyboard focus-within. Background is
- *     transparent so it doesn't compete with the card's content
- *     until the user goes looking for it.
- *   - **active** (confirming or deleting) — expanded pill with
- *     red border and warning copy, always visible. The state
- *     change is loud on purpose so a misclicked × is obvious;
- *     the auto-revert in the component keeps the loud state
- *     from sticking around if the user doesn't follow through.
- *
- * It is a `dismiss` (docs/ui.md → the fourteen kinds), so it takes the neutral
- * <button> and NOT `.button` — the corner affordance reads as a quiet × on its
- * own surface until the user commits to it.
- */
-
-/* @@ */ .deleteButton {
-  position: absolute;
-  top: 0.4rem;
-  right: 0.4rem;
-  /* The corner-icon look: its own quiet surface, not a `.button`. */
-  background: var(--page-surface-color);
-  border: 1px solid var(--page-surface-border-color);
-  color: var(--page-text-muted-color);
-  padding: 0;
-  width: 1.6rem;
-  height: 1.6rem;
-  border-radius: var(--radius-md);
-  font-size: 1.1rem;
-  line-height: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  /* Hidden by default; revealed on wrapper hover/focus. */
-  opacity: 0;
-  transition: opacity 120ms ease, background 120ms ease,
-              color 120ms ease, border-color 120ms ease,
-              width 160ms ease;
-}
-
-/* Reveal on hover (mouse) or focus-within (keyboard). */
-.wrapper:hover .deleteButton,
-/* @@ */ .wrapper:focus-within .deleteButton {
-  opacity: 1;
-}
-
-/* @@ */ .deleteButton:hover:not(:disabled) {
-  background: var(--page-surface-hover-color);
-  color: var(--page-text-color);
-  border-color: var(--field-strong-edge-color);
-}
-
-/* Active (confirming or deleting): a full-width destructive pill, always visible
- * regardless of wrapper-hover.
- *
- * It used to fill itself with the LOST outcome's wash and edge — an outcome
- * palette on a control, for a button where nobody has lost anything. It is now
- * the plain destructive treatment every other irreversible control wears: the
- * tone on the text and the border, no fill (docs/ui.md → The color system). */
-/* @@ */ .deleteButtonActive {
-  opacity: 1;
-  width: auto;
-  padding: 0.3rem 0.7rem;
-  background: transparent;
-  /* The SECONDARY value, not the primary: this is an outline — border and label
-     on a transparent ground — and `-secondary-color` is the one taken down far
-     enough to read as small text on white. Using the primary here was the fill
-     value doing an ink's job, which is the confusion the two names exist to
-     prevent. */
-  color: var(--button-destructive-secondary-color);
-  border-color: var(--button-destructive-secondary-color);
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-/* @@ */ .deleteButtonActive:hover:not(:disabled) {
-  background: var(--button-destructive-secondary-hover-color);
-  color: var(--button-destructive-primary-color);
-  border-color: var(--button-destructive-primary-color);
-}
-

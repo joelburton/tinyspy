@@ -4,6 +4,7 @@ import { test, expect } from '@playwright/test'
 import { createSoloClub, createLetterboxedGame } from './helpers/fixtures'
 import { signIn } from './helpers/session'
 import { boardReady } from './helpers/ready'
+import { startGameRow } from './helpers/clubPage'
 
 /**
  * Smoke test for letterboxed (SnakeBox), covering the two input paths the game
@@ -523,7 +524,7 @@ test.describe('letterboxed custom board', () => {
     await signIn(rollCtx, rollClub.members[0].session)
     const rollPage = await rollCtx.newPage()
     await rollPage.goto(`/c/${rollClub.handle}`)
-    await rollPage.getByRole('button', { name: /SnakeBox/ }).first().click()
+    await startGameRow(rollPage, /SnakeBox/).click()
     await rollPage.getByRole('button', { name: /^Start SnakeBox/ }).click()
     await boardReady(rollPage, rollPage.locator('svg text').first(), 20000)
     await expect(rollPage.locator('svg text')).toHaveCount(12)
@@ -536,7 +537,7 @@ test.describe('letterboxed custom board', () => {
     await signIn(typeCtx, typeClub.members[0].session)
     const page = await typeCtx.newPage()
     await page.goto(`/c/${typeClub.handle}`)
-    await page.getByRole('button', { name: /SnakeBox/ }).first().click()
+    await startGameRow(page, /SnakeBox/).click()
     await page.getByText('Board (optional)').click()
     // Typed WITH separators, the way the app writes it everywhere — the field
     // keeps them and `cleanSides` strips them, which is the behavior here.
@@ -576,7 +577,7 @@ test.describe('letterboxed custom board', () => {
     const page = await ctx.newPage()
     await page.goto(`/c/${club.handle}`)
 
-    await page.getByRole('button', { name: /SnakeBox/ }).first().click()
+    await startGameRow(page, /SnakeBox/).click()
     await page.getByText('Board (optional)').click()
     await page.getByRole('textbox', { name: 'Custom board' }).fill('BFG-JKP-QVW-XYZ')
     await page.getByRole('button', { name: /^Start SnakeBox/ }).click()

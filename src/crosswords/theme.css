@@ -22,10 +22,13 @@
   /* Clue-list rows + the active-clue readout. These are a cool slate family
      rather than the app's neutral grays, and that is DELIBERATE — see
      docs/games/crosswords.md → "The clue-list grays". Named here (rather than
-     left as literals in three modules) so the palette is findable and the
-     cssTokens guard covers them; the values are unchanged. */
+     left as literals in two modules) so the palette is findable and the
+     cssTokens guard covers them; the values are unchanged.
+
+     The row RULE that used to sit here went with the setup picker: that list
+     is a <SelectionList> now and its hairline is the shared one. The clue
+     lists keep their own hover, being deliberately not SelectionLists. */
 /* @@ */   --crosswords-row-hover: #f1f5f9;
-/* @@ */   --crosswords-row-rule: #eef2f6;
 /* @@ */   --crosswords-clue-num: #475569;
 /* @@ */   --crosswords-clue-label: #444;
   /* The rebus (multi-letter) input's warm background — an "you're typing

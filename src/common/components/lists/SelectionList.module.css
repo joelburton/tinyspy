@@ -1,0 +1,167 @@
+/* cs-audited */
+
+/* ============================================================
+ * SelectionList.module.css — the list you move a cursor through and
+ * choose from.
+ *
+ * Your clubs on the homepage, a club's games, the games you can start,
+ * the crossword library, scrabble's suggested moves. One framed panel
+ * with the rows abutting inside it and a hairline between them — not a
+ * stack of separately-tinted tiles. The frame is what says "this is a
+ * list", so a row draws no fill and no border of its own; a second
+ * container would compete with the first.
+ *
+ * A MODULE, not a global pattern, so nothing can wear this look without
+ * rendering the component — the same rule PageHeaderButton follows. That
+ * is also why `fills` and the packed density are props: a page used to
+ * reach in and restyle `.item-row` from outside, and this shuts that door.
+ *
+ * plans/selection-lists.md
+ * ============================================================ */
+
+/* ---------- The frame ---------- */
+
+/* NO padding, deliberately. The rows carry all of it, so the space above the
+   first row equals the space between any two, and each row's rule and hover
+   tint run the full width of the panel instead of floating inside an inset.
+
+   NOT `flex: 1` — see `.fills`. The list sizes to its content and only
+   shrinks: three clubs get three rows, not a panel padded out to fill its
+   parent. It scrolls only once an ancestor's height actually bites, which is
+   what keeps the page itself from scrolling (docs/ui.md → "Page-height fits
+   the viewport").
+
+   The border is a step darker than `--page-surface-border-color`: these frames
+   are the page's main structure, and they carry a heavier line than a card. */
+/* @@ */ .list {
+  display: flex;
+  flex-direction: column;
+  background: var(--page-surface-color);
+  border: var(--border-width-line) solid var(--field-edge-color);
+  border-radius: var(--radius-lg);
+  /* The rows' square corners would otherwise poke past the frame's rounding at
+     the top and bottom. `hidden` on x pairs with the y-axis scroll — plain
+     `overflow: hidden` would CLIP a long list instead of letting it scroll. */
+  overflow-x: hidden;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* Absorb the parent's free space instead of hugging the rows. A caller opts in,
+   because whether a list should grow is a fact about the layout AROUND it —
+   the club page's two panels want it, the homepage's clubs do not. Named for
+   the job, the way `.pageMain-fills` is. */
+/* @@ */ .fills {
+  flex: 1;
+}
+
+/* THE HAIRLINE IS THE LIST'S, NOT THE ROW'S. Put on the row, it needs a
+   `:last-child` rule to suppress the final line (the frame's own border
+   already closes the block) — and that rule breaks the moment the row is
+   wrapped, because then the row is never its parent's last child. Stated as a
+   property of the list it holds however the rows are nested, and there is
+   nothing to suppress. */
+/* @@ */ .list > *:not(:last-child) {
+  border-bottom: var(--border-width-line) solid var(--field-edge-color);
+}
+
+/* Keyboard focus moves the FRAME's border to the cursor color rather than
+   drawing a ring around it — a ring outside a scrolling panel reads as a
+   second frame. Which row the cursor is on is marked separately, by `.cursor`. */
+.list:focus,
+/* @@ */ .list:focus-visible {
+  outline: none;
+  border-color: var(--chrome-cursor-color);
+}
+
+/* The message shown when there is nothing in the list — "No games yet.", "No
+   puzzles match that filter.", and the busy moment before an answer arrives
+   ("Loading puzzles…"). It sits INSIDE the frame, so it is the one thing in
+   there that isn't a self-padding row and has to supply the inset the frame
+   deliberately doesn't. Not a row: no hairline, no hover, nothing to click.
+
+   Pair it with `muted` — the message is an absence, not a value. */
+/* @@ */ .empty {
+  padding: 1rem;
+}
+
+/* ---------- The row ---------- */
+
+/* A PLAIN DIV, and that is the point. The row is not focusable and not
+   independently activatable, so the list container is the only way in — one tab
+   stop, one thing holding the keyboard, no second focus ring to explain. An
+   anchor would buy cmd-click "open in new tab", which is worth little when you
+   play one game and view one club at a time, and would cost the invariant.
+   Hence `cursor: pointer` said out loud: a div does not come with it. */
+/* @@ */ .row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  cursor: pointer;
+  /* The positioning context for whatever the caller renders inside — a corner
+     flag, a hover-revealed delete affordance. Those want the ROW's corners, not
+     the corners of some box inset by its padding, so the anchor has to be here. */
+  position: relative;
+  /* Tuned to the box, not taken from a ramp (plans/css-system-2.md §7). */
+  padding: 0.5rem 0.9rem;
+  color: var(--page-text-color);
+  text-align: left;
+  transition: background-color var(--transition-duration-paint) ease;
+}
+
+/* @@ */ .row:hover {
+  background: var(--page-surface-hover-color);
+}
+
+/* The second density, and the only one. The club page's rows each carry two
+   lines of text, which pays for taking a little of the vertical back — a fact
+   about that page rather than about either row's contents, which is why it is a
+   prop here instead of a page reaching in with a descendant selector. */
+/* @@ */ .packed .row {
+  padding: 0.4rem 0.9rem;
+  gap: 0.85rem;
+}
+
+/* A row you cannot choose. The cursor still LANDS here — skipping would put the
+   cursor index and the row index out of step, and leaves nowhere to go when
+   every row is disabled — so this only has to say "pressing Enter will do
+   nothing", which is the app's one disabled treatment. */
+/* @@ */ .disabled {
+  cursor: default;
+  opacity: var(--chrome-disabled-opacity);
+}
+
+/* @@ */ .disabled:hover {
+  background: transparent;
+}
+
+/* ---------- The two marks ---------- */
+
+/* WHERE THE KEYBOARD IS. Distinct from `:focus-visible` in mechanism, identical
+   in meaning: the container holds the real focus, arrows move a cursor through
+   the rows, and this marks which one Enter would act on. Because no element is
+   focused, no pseudo-class can express it.
+
+   Inset, because these rows abut inside a frame — an outside ring would overlap
+   its neighbor and get clipped at the first and last. */
+/* @@ */ .cursor {
+  outline: var(--chrome-cursor-ring);
+  outline-offset: -2px;
+}
+
+/* WHAT IS CHOSEN — the "select" kind only, where choosing records a decision
+   you act on later rather than doing something now.
+ *
+ * The same mark a game piece wears: a black edge, `--tile-selected-edge-color`.
+ * Reusing the tile's vocabulary rather than inventing a list-only one, and for
+ * the reason base.css gives beside that token — selection goes on the EDGE so
+ * the background stays free for state and attention, which have nowhere else to
+ * go. A row full of content has exactly that problem.
+ *
+ * An inset box-shadow rather than a border, because a row has no resting border
+ * to thicken the way a tile does; adding one would shove the content in and
+ * reflow. It is also a different property from `.cursor`'s outline, which is
+ * what lets both marks show at once on the same row. */
+/* @@ */ .selected {
+  box-shadow: inset 0 0 0 2px var(--tile-selected-edge-color);
+}

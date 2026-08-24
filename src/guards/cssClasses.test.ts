@@ -332,16 +332,7 @@ describe('a class name resolves — the global side', () => {
  * Leading and trailing underscores come off first: the built name is
  * `_<local>_<hash>`, so a spec pinning a whole segment writes `_button_`.
  */
-const E2E_PENDING: string[] = [
-  // plans/areas/homepage.md → F3. `[class*="_clubItem"]` has matched nothing
-  // since 2026-08-21; the spec is red for that reason and its rewrite is an
-  // open finding. Delete this line when F3 lands.
-  'e2e/home-keyboard.e2e.ts',
-  // `[class*="_kbCursor_"] a` — the same rename, one page over: the cursor row
-  // now takes the GLOBAL `.kb-cursor`, so the query returns null and the href
-  // assertion under it fails. Found by this guard. → the `club-page` area.
-  'e2e/club-keyboard.e2e.ts',
-]
+const E2E_PENDING: string[] = []
 
 describe('a class name resolves — the e2e side', () => {
   it('every [class*="…"] selector can match a class that exists', () => {

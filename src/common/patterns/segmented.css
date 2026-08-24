@@ -32,9 +32,9 @@
   overflow: hidden;
 }
 
-/* Its CHILDREN are its segments — no class needed on each one, the same way
-   `.item-list` addresses its own rows. A caller that wants full-width segments
-   (the mobile tab bar) sets `flex: 1` on them from its own module. */
+/* Its CHILDREN are its segments — no class needed on each one. A caller that
+   wants full-width segments (the mobile tab bar) sets `flex: 1` on them from
+   its own module. */
 /* @@ */ .segmented > * {
   padding: 0.25rem 0.7rem;
   font-size: 0.8rem;

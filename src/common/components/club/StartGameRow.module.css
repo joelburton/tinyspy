@@ -1,0 +1,44 @@
+/* cs-audited */
+
+/* The contents of one startable gametype's row in ClubPage's "Start a new game"
+ * list. The box, the hover, the cursor ring, the click and the disabled
+ * treatment all belong to <SelectionList>; this is only the arrangement.
+ *
+ * Deliberately the same two-column shape <ClubGameRow> uses, so the page's two
+ * panels read as the same object seen twice. */
+
+/* Stacked title + meta to the right of the logo. `flex: 1` so the stack absorbs
+ * the available width; `min-width: 0` lets the meta line truncate if a
+ * shortDescription ever runs long. */
+/* @@ */ .content {
+  display: flex;
+  flex-direction: column;
+  /* No gap — the two lines' own line-heights are the whole leading. A gap on
+   * top of them separated a title from its OWN description more than the
+   * hairline separates one game from the next. */
+  flex: 1;
+  min-width: 0;
+}
+
+/* Name + mode pill on one line above the meta. */
+/* @@ */ .titleRow {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* @@ */ .gametypeName {
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--page-text-color);
+  line-height: 1.2;
+}
+
+/* The subtle second line: short description · player count. Muted, so the
+ * prominent first line stays each row's visual anchor. */
+/* @@ */ .meta {
+  color: var(--page-text-muted-color);
+  font-size: 0.85rem;
+  line-height: 1.25;
+}

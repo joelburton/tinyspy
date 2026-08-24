@@ -1,0 +1,98 @@
+/* cs-audited */
+
+/* The contents of one game's row in ClubPage's "Your games" list.
+ *
+ * The box, the hover tint, the hairline, the cursor ring and the click all
+ * belong to <SelectionList>; nothing here paints a surface or draws an edge.
+ * What's left is the two-column arrangement — logo, then a stacked title +
+ * meta line — which mirrors a start-a-game row so the page's two lists read as
+ * the same object seen twice.
+ *
+ * NO STATE CARRIES A TYPE TREATMENT. No fade for a finished game, no larger
+ * title for a live one: the corner flag is the whole signal, and every extra
+ * channel saying the same thing only cost the two panels their shared rhythm.
+ * A list whose rows are three different heights reads as noise, not hierarchy.
+ */
+
+/* @@ */ .content {
+  display: flex;
+  flex-direction: column;
+  /* No gap: the two lines' own line-heights are the leading. A gap here
+   * separated a title from its OWN status line more than the hairline separates
+   * one game from the next. */
+  flex: 1;
+  min-width: 0;
+}
+
+/* Title + mode pill on one line. */
+/* @@ */ .titleRow {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+/* The algorithmic title — the largest text in a row, and the same size, weight
+ * and leading a start-list row's title takes. `word-break` because some
+ * gametypes generate long ones. */
+/* @@ */ .gameTitle {
+  font-weight: 600;
+  font-size: 1rem;
+  line-height: 1.2;
+  word-break: break-word;
+}
+
+/* The second line: status on the left, last-played right-justified. Same small
+ * muted register as a start row's description. */
+/* @@ */ .meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  font-size: 0.85rem;
+  color: var(--page-text-muted-color);
+  line-height: 1.25;
+}
+
+/* Right-justified even when the status is short or the line wraps. */
+/* @@ */ .startedAt {
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+/* ─── The corner flag ────────────────────────────────────────
+ *
+ * "This game is still open." Rendered for `suspended` (yellow) and `active`
+ * (orange), absent when the game is done. Geometry is shared; only the fill
+ * differs.
+ *
+ * A 24px box pinned to the row's top-right with a clip-path filling the
+ * upper-right triangle. It positions against the SelectionList row, which
+ * supplies the positioning context — the flag wants the row's true corner, not
+ * one inset by its padding.
+ *
+ * The delete affordance sits above it in source order, so on hover it simply
+ * covers this corner; no z-index needed. */
+/* @@ */ .openFlag {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 24px;
+  height: 24px;
+  clip-path: polygon(0 0, 100% 0, 100% 100%);
+  pointer-events: none;
+}
+
+/* "Still open for play, we'll come back to this." The semantic in-flight-not-
+ * done token. */
+/* @@ */ .openFlagSuspended {
+  background: var(--gamelist-suspended-color);
+}
+
+/* "This is THE one to join right now" — deliberately more forceful than the
+ * suspended yellow, so a glance reads "current game" before "the other still-
+ * open ones". */
+/* @@ */ .openFlagActive {
+  background: var(--gamelist-current-color);
+}

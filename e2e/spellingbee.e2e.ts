@@ -4,6 +4,7 @@ import { test, expect } from '@playwright/test'
 import { createSoloClub, createSpellingbeeGame } from './helpers/fixtures'
 import { signIn } from './helpers/session'
 import { boardReady } from './helpers/ready'
+import { startGameRow } from './helpers/clubPage'
 
 /**
  * Smoke test for the FreeBee (spellingbee) play loop on screen, after the
@@ -90,7 +91,7 @@ test.describe('spellingbee custom letters', () => {
 
     // Open the FreeBee coop setup dialog (coop is the enabled button in a solo
     // club; compete needs a second player).
-    await page.getByRole('button', { name: /FreeBee/ }).first().click()
+    await startGameRow(page, /FreeBee/).click()
 
     // Custom letters live behind a collapsed disclosure — expand it, then enter
     // our own letters: center A + the six others C H I R O T.

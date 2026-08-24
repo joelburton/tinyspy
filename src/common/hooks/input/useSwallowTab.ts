@@ -31,9 +31,12 @@ import { useGlobalKeyHandler } from './useGlobalKeyHandler'
  * Call it once per surface. Games built on `useCaptureKeys` (boggle,
  * spellingbee, wordle, wordwheel, wordiply, psychicnum) already get this from
  * that hook and don't need it; crosswords deliberately keeps Tab as clue
- * navigation. Callers today: the five window-key games' PlayAreas, and
- * `HomePage` (whose club list is arrow-driven — see docs/keyboard-shortcuts.md
- * → "Club page and home page").
+ * navigation. Callers today: the five window-key games' PlayAreas.
+ *
+ * **A page with a `<SelectionList>` wants `useTabToLists` instead.** Swallowing
+ * Tab there is a trap: click any blank part of the page and the list blurs,
+ * taking its cursor with it, and no key is left that can hand the keyboard
+ * back. That is exactly what the homepage did until 2026-08-24.
  */
 export function useSwallowTab(): void {
   useGlobalKeyHandler((e: KeyboardEvent) => {

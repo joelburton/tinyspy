@@ -1,107 +1,46 @@
 // cs-unmet
 
-import { useEffect, useState } from 'react'
 import { games } from '../../../games'
 import { Link } from '../../lib/routing/Link'
-import { cls } from '../../lib/util/cls'
 import { friendlyDate } from '../../lib/util/friendlyDate'
 import { GameLogo } from '../branding/GameLogo'
 import { ModePill } from '../game/ModePill'
+import { ClubGameDeleteButton } from './ClubGameDeleteButton'
 import styles from './ClubGameCard.module.css'
-
-type State = 'active' | 'suspended' | 'completed'
 
 type Props = {
   /** The id of this game (drives the routing target). */
   gameId: string
-  /** The gametype — drives both the routing target and the
-   *  gametype's header label. */
+  /** The gametype — drives both the routing target and the logo. */
   gametype: string
-  /** Algorithmic per-game title from `common.games.title`.
-   *  Optional because the lookup map may not have populated by
-   *  first render. */
+  /** Algorithmic per-game title from `common.games.title`. Optional because the
+   *  lookup map may not have populated by first render. */
   title?: string
-  /** Gametype-rendered status string, e.g. "13/16 agents" or
-   *  "lost (assassin)". Produced by the manifest's `labelFor`. */
+  /** Gametype-rendered status string, produced by the manifest's `labelFor`. */
   statusLabel: string
-  /** `common.games.last_active_at`, ISO — the last status/progress write
-   *  (or end time), a "last played" proxy. Rendered via friendlyDate. */
+  /** `common.games.last_active_at`, ISO. Rendered via friendlyDate. */
   lastActiveAt: string
-  /** Where in the lifecycle this game sits. Drives exactly one thing: the
-   *  corner flag (orange = the club's current game, yellow = shelved but
-   *  still open, none = finished). NOT the size or color of anything else —
-   *  see the CSS's two-axes note. */
-  state: State
-  /** Which visual register to render in — INDEPENDENT of `state`:
-   *
-   *    - `'row'` (default) — a dense list row, the shape used inside both of
-   *      ClubPage's panels.
-   *    - `'standalone'` — the bordered active-game callout above the start
-   *      list, which is the only instance rendered outside a list.
-   *
-   *  The current game appears as BOTH: the callout, and an ordinary row in
-   *  "Your games" carrying its orange flag. */
-  variant?: 'row' | 'standalone'
-  /** Called when the user confirms the delete affordance. The
-   *  parent (ClubPage) is responsible for the actual mechanics:
-   *  for the active game, broadcasting a `suspend` event so peers
-   *  navigate to the club page before the row vanishes; for any
-   *  game, calling the `common.delete_game` RPC. Optional — when
-   *  omitted, the delete button doesn't render at all (the card
-   *  stays read-only). */
+  /** Called when the user confirms the delete affordance. ClubPage owns the
+   *  mechanics. Omit and the callout is read-only. */
   onDelete?: () => Promise<void> | void
-  /** Whether this card's club is a solo club (handle starts with '=').
-   *  Forwarded to <ModePill> so the "Co-op" pill is suppressed there. */
+  /** Whether this club is a solo club. Forwarded to <ModePill>. */
   soloClub: boolean
-  /** ClubPage's keyboard list-nav cursor sits on this card (the ring
-   *  marking which game Enter would open). Also keeps the card scrolled
-   *  into the list frame's view. */
-  kbCursor?: boolean
-  /** Move the club's keyboard cursor onto this card — called on click, so the
-   *  mouse and the keyboard agree on "the selected game". */
-  onCursorTo?: () => void
 }
 
 /**
- * One game's entry on ClubPage — the shared shape for the active-game
- * callout and for every row of the "Your games" list.
+ * The club's CURRENT game, called out above the start list — the one game entry
+ * on the page that belongs to no list.
  *
- * Mirrors the StartGameButtons cards (logo + stacked content) so the
- * played-games list reads as their sibling. One component, three states.
- * The fields:
+ * It is not a SelectionList of one (Joel, 2026-08-24). It wears a face close to
+ * `<ClubGameRow>`'s and is deliberately a step larger: a bordered box with a
+ * bigger title, being a single call to action with nothing to be dense against.
+ * The current game also appears as an ordinary row down in "Your games", flying
+ * its orange flag there — this is the second, louder place it shows up, not a
+ * variant of the first.
  *
- *   - **Gametype logo** — the `<GameLogo>` on the left (was a text
- *     label), identifying the game like the start buttons do.
- *   - **Title** — the algorithmic per-game title from
- *     `common.games.title`. The card's biggest text.
- *   - **Status label** — the gametype's own free-form text,
- *     produced by `manifest.labelFor`.
- *   - **Last-active** date (last play / end time), smaller / muted.
- *
- * `state` varies only the corner flag; `variant` varies the register (dense
- * row vs bordered callout). The two are independent, which is what lets the
- * current game show up in the list looking like every other row while still
- * flying its orange flag.
- *
- * All three are clickable. Each game's PlayArea already handles
- * the terminal play_state as a "view the final state" mode — no
- * special review-page is needed; the same component renders both
- * the live and the post-game shape.
- *
- * **Delete affordance.** Two-step interaction:
- *   - hover (or keyboard focus) reveals a small × button at the
- *     top-right of the card
- *   - click it once → button expands into a red "Confirm delete?"
- *     pill, always visible, with an auto-revert to idle after
- *     4 seconds of no further action (safety: a misclicked × can
- *     be ignored, no explicit Cancel required)
- *   - click again → onDelete() fires, the button shows
- *     "Deleting…" while the parent does its mechanics
- *
- * The delete button sits OUTSIDE the Link so we don't have to
- * fight click-propagation. The card becomes a wrapper `<div
- * position: relative>` with the Link inside it and the button
- * absolute-positioned in the corner.
+ * **The duplication between this and `<ClubGameRow>` is known and left.**
+ * Whether the two should share an inner shape is a club-page question, and that
+ * area has not opened (plans/selection-lists.md).
  */
 export function ClubGameCard({
   gameId,
@@ -109,138 +48,32 @@ export function ClubGameCard({
   title,
   statusLabel,
   lastActiveAt,
-  state,
-  variant = 'row',
   onDelete,
   soloClub,
-  kbCursor = false,
-  onCursorTo,
 }: Props) {
   const manifest = games.find((g) => g.gametype === gametype)
-  // Friendly relative date — see friendlyDate.ts. Doesn't tick;
-  // re-renders when ClubPage refetches via realtime, which is
-  // frequent enough for a glance-at game list.
   const dateLabel = friendlyDate(lastActiveAt)
-  const [deleteState, setDeleteState] = useState<
-    'idle' | 'confirming' | 'deleting'
-  >('idle')
-
-  // Auto-revert from confirming → idle after a beat so a
-  // misclicked × doesn't require an explicit cancel. Cleared on
-  // unmount or transition to deleting (the parent's RPC call
-  // takes over the affordance at that point).
-  useEffect(function autoRevertConfirmingState() {
-    if (deleteState !== 'confirming') return
-    const t = setTimeout(() => setDeleteState('idle'), 4000)
-    return () => clearTimeout(t)
-  }, [deleteState])
-
-  async function handleDeleteClick() {
-    if (deleteState === 'idle') {
-      setDeleteState('confirming')
-      return
-    }
-    if (deleteState === 'confirming') {
-      setDeleteState('deleting')
-      try {
-        await onDelete?.()
-        // No setDeleteState('idle') on success — the parent will
-        // unmount this card via the realtime postgres-changes
-        // refetch. If for some reason it doesn't, the next
-        // render of a same-id card starts fresh in 'idle'
-        // (state is component-scoped, not gameId-scoped).
-      } catch {
-        // Parent's responsibility to surface the error; here we
-        // just back the affordance out so the user can retry.
-        setDeleteState('idle')
-      }
-    }
-  }
 
   return (
-    <div
-      className={styles.wrapper}
-      // Clicking IS selecting. On the wrapper (not the <Link>) so a click
-      // anywhere on the card counts, including the delete affordance — it's
-      // still this card either way.
-      onClick={onCursorTo}
-      // Keep the keyboard cursor's card in the scrolled frame's view.
-      ref={kbCursor ? (el) => el?.scrollIntoView({ block: 'nearest' }) : undefined}
-    >
+    <div className={styles.standalone}>
       <Link to={`/g/${gametype}/${gameId}`} className={styles.link}>
-        <div
-          className={cls(
-            styles.card,
-            // A `row` IS a row of the shared `.item-list` and takes its look
-            // from there; a `standalone` is the active-game callout above the
-            // lists, belongs to none, and draws its own box.
-            variant === 'row' ? 'item-row' : styles.standalone,
-            kbCursor && 'kb-cursor',
-          )}
-        >
-          {state === 'suspended' && (
-            // Yellow corner-flag triangle: "still open for play."
-            // See the openFlag base class in CSS for the geometry
-            // story (clip-path + card overflow:hidden = clean
-            // rounded-corner clipping). aria-hidden because the
-            // gametype row + status label already convey state
-            // to screen readers.
-            <span
-              className={cls(styles.openFlag, styles.openFlagSuspended)}
-              aria-hidden="true"
-            />
-          )}
-          {state === 'active' && (
-            // Orange corner-flag triangle: "this is THE current
-            // game — join now." Same shape as the suspended flag
-            // but a more forceful color so the eye lands on this
-            // card first when scanning the page.
-            <span
-              className={cls(styles.openFlag, styles.openFlagActive)}
-              aria-hidden="true"
-            />
-          )}
-          {/* Logo + content, mirroring the StartGameButtons rows: the
-              gametype logo on the left, the algorithmic title + a muted
-              status/date line on the right. */}
-          <GameLogo gametype={gametype} />
-          <div className={styles.content}>
-            <div className={styles.titleRow}>
-              {title && <span className={styles.gameTitle}>{title}</span>}
-              {manifest && (
-                <ModePill mode={manifest.mode} soloClub={soloClub} aiOpponent={manifest.aiOpponent} />
-              )}
-            </div>
-            <div className={styles.meta}>
-              <span>{statusLabel}</span>
-              <span className={styles.startedAt}>{dateLabel}</span>
-            </div>
+        {/* Orange corner flag: "this is THE current game — join now." */}
+        <span className={styles.openFlagActive} aria-hidden="true" />
+        <GameLogo gametype={gametype} />
+        <div className={styles.content}>
+          <div className={styles.titleRow}>
+            {title && <span className={styles.gameTitle}>{title}</span>}
+            {manifest && (
+              <ModePill mode={manifest.mode} soloClub={soloClub} aiOpponent={manifest.aiOpponent} />
+            )}
+          </div>
+          <div className={styles.meta}>
+            <span>{statusLabel}</span>
+            <span className={styles.startedAt}>{dateLabel}</span>
           </div>
         </div>
       </Link>
-
-      {onDelete && (
-        <button
-          type="button"
-          className={cls(
-            styles.deleteButton,
-            deleteState !== 'idle' && styles.deleteButtonActive,
-          )}
-          onClick={handleDeleteClick}
-          disabled={deleteState === 'deleting'}
-          aria-label={
-            deleteState === 'idle'
-              ? 'Delete game'
-              : deleteState === 'confirming'
-                ? 'Confirm delete game'
-                : 'Deleting game'
-          }
-        >
-          {deleteState === 'idle' && '×'}
-          {deleteState === 'confirming' && 'Confirm delete?'}
-          {deleteState === 'deleting' && 'Deleting…'}
-        </button>
-      )}
+      {onDelete && <ClubGameDeleteButton onDelete={onDelete} />}
     </div>
   )
 }

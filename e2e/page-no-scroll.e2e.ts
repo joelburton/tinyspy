@@ -3,6 +3,7 @@
 import { test, expect, type Page, type Locator } from '@playwright/test'
 import { createClubWithMembers, renameClub } from './helpers/fixtures'
 import { signIn } from './helpers/session'
+import { startGameRow } from './helpers/clubPage'
 
 /**
  * "The page never scrolls" is a HARD layout invariant for this app: every
@@ -63,7 +64,7 @@ test.describe('page never scrolls', () => {
       [15, 15], // top-left
     ]
     for (const [cx, cy] of corners) {
-      await page.getByRole('button', { name: /RackAttack/ }).first().click()
+      await startGameRow(page, /RackAttack/).click()
       const header = page.locator('header').filter({ hasText: 'Start RackAttack' })
       await expect(header).toBeVisible({ timeout: 15_000 })
       await dragHeaderTo(page, header, cx, cy)

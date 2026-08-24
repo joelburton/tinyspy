@@ -55,68 +55,50 @@
   font-style: italic;
 }
 
-/* The library list: FIXED height of exactly eight rows (plus its own border),
- * not a max-height — it holds its size while filtering shrinks the results,
- * and it's the height the other two tabs inherit via the .tabStack overlay.
- * `--row-h` is the one knob; each .item is pinned to it. */
-/* @@ */ .list {
-/* @@ */   --row-h: 2.4rem;
-  height: calc(8 * var(--row-h) + 2px);
-  overflow-y: auto;
-  border: 1px solid var(--page-surface-border-color);
-  border-radius: 6px;
+/* The library list's BOX. A fixed height of roughly eight rows, not a
+ * max-height — it holds its size while filtering shrinks the results, and it's
+ * the height the other two tabs inherit through the .tabStack overlay. The
+ * <SelectionList> inside `fills` it and does the scrolling; this only says how
+ * tall the block is, which is a fact about the dialog rather than about lists. */
+/* @@ */ .listBox {
   display: flex;
   flex-direction: column;
-}
-
-/* @@ */ .item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex: 0 0 var(--row-h);
-  gap: 0.75rem;
-  padding: 0 0.6rem;
-  cursor: pointer;
-  color: var(--page-text-color);
-  text-align: left;
-  border-bottom: 1px solid var(--crosswords-row-rule);
-  /* The club-history stripe (see .status* below). Declared on the BASE row so
-   * all four states — including "never played" — occupy the same 4px: the bar
-   * can never change a row's metrics, and nothing shifts when the statuses
-   * land with the list. */
-  border-left: 4px solid var(--gamelist-unplayed-color);
-  font: inherit;
-}
-/* @@ */ .item:last-child { border-bottom: none; }
-/* @@ */ .item:hover { background: var(--crosswords-row-hover); }
-.selected,
-/* @@ */ .selected:hover {
-  background: var(--crosswords-in-word);
+  height: 19.5rem;
 }
 
 /* ─── Club-history stripe ─────────────────────────────────────
  *
  * "Has THIS club played this puzzle?", from crosswords.library_for_club.
  * The colors are the shared --gamelist-* tokens — the same vocabulary the club
- * page's cards use, since a puzzle row and a game card are answering the same
+ * page's rows use, since a puzzle row and a game row are answering the same
  * question, rather than a private palette the picker invents.
  *
- * Only the COLOR varies, never the width — that's what keeps the stripe
- * from reflowing the list. */
-/* @@ */ .statusSolved  { border-left-color: var(--gamelist-won-color); }
+ * Pinned to the row's left edge rather than drawn as its border, so ONLY the
+ * color can ever vary: a border would let a future state change the width and
+ * reflow the whole list, and every row — "never played" included — has to
+ * occupy the same 4px or the rows shift when the statuses land. */
+/* @@ */ .stripe {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--gamelist-unplayed-color);
+}
+
+/* @@ */ .statusSolved  { background: var(--gamelist-won-color); }
 /* Yellow covers both "a game is live" and "a game was ended manually" — the
  * RPC folds them into one bucket. Same tone the club page uses for "still
  * open, we'll come back to it". */
-/* @@ */ .statusPlaying { border-left-color: var(--gamelist-suspended-color); }
-/* @@ */ .statusLost    { border-left-color: var(--gamelist-lost-color); }
+/* @@ */ .statusPlaying { background: var(--gamelist-suspended-color); }
+/* @@ */ .statusLost    { background: var(--gamelist-lost-color); }
 /* Neither transparent nor the strong neutral: near-white keeps the stripe
  * honest about its width while leaving all the signal to the three played
  * states. Most of a library is unplayed, and a mid-gray stripe on every one
  * of those rows would read as noise competing with the real colors. */
-/* @@ */ .statusUnplayed { border-left-color: var(--gamelist-unplayed-color); }
+/* @@ */ .statusUnplayed { background: var(--gamelist-unplayed-color); }
 
-/* One line per row (rows are fixed-height): a long title ellipsizes instead
- * of wrapping. */
+/* One line per row: a long title ellipsizes instead of wrapping. */
 /* @@ */ .itemTitle {
   font-weight: 600;
   white-space: nowrap;
@@ -126,12 +108,6 @@
    * to shrink below its content. Without this, `text-overflow: ellipsis` never
    * engages — the title just pushes the row (and the dialog) wider instead. */
   min-width: 0;
-}
-
-/* @@ */ .empty {
-  padding: 1rem;
-  text-align: center;
-  color: var(--page-text-muted-color);
 }
 
 /* Upload tab: a hidden native file input + a dropzone that is also a button

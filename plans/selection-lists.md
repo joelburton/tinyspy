@@ -19,8 +19,8 @@ not this.
 
 It is a **React component, not a CSS pattern**, because the duplicated part is
 behavior. The paint is four rules; the behavior is a cursor, a focus contract,
-six keys, a live-clamping index and a scroll-into-view, currently written out by
-hand at three call sites:
+six keys, a live-clamping index and a scroll-into-view, which before this pass
+was written out by hand at three call sites:
 
 | written three times | where |
 |---|---|
@@ -28,9 +28,9 @@ hand at three call sites:
 | `scrollIntoView({ block: 'nearest' })` | `HomePage.tsx:294` · `StartGameButtons.tsx:94` · `ClubGameCard.tsx:168` |
 | the cursor index threaded down as a prop | `ClubPage.tsx:1112` (`cursor=`) · `ClubPage.tsx:1179` (`kbCursor=`) |
 
-And once, for one list, the same predicate is written twice — `playerCountFits`
-decides the paint at `StartGameButtons.tsx:87` and decides again whether Enter
-acts at `ClubPage.tsx:852`.
+And once, for one list, the same predicate was written twice — `playerCountFits`
+decided the paint in `StartGameButtons` and decided again whether Enter acts in
+`ClubPage`.
 
 **This is why the component cannot take opaque children.** Given assembled React
 elements it can count them but not see inside one, so the ring, the ref, the
@@ -39,16 +39,37 @@ we are removing. It takes an items array and renders the row wrapper itself.
 
 ## The roster — five sites
 
-| site | file | kind |
+| site | kind | status |
 |---|---|---|
-| the homepage's clubs | `HomePage.tsx:261` | do now |
-| ClubPage — start a new game | `ClubPage.tsx:1068` | do now |
-| ClubPage — your games | `ClubPage.tsx:1142` | do now |
-| scrabble — the AI's suggested moves | `scrabble/components/InfoCol.tsx:308` | do now |
-| crosswords — the setup library picker | `crosswords/components/SetupForm.tsx:403` | select |
+| the homepage's clubs | do now | **converted** |
+| ClubPage — start a new game | do now | **converted** |
+| ClubPage — your games | do now | **converted** |
+| crosswords — the setup library picker | select | **converted** |
+| scrabble — the AI's suggested moves | do now | **NOT converted — see below** |
 
-The first three are on the shared `.item-list` today. The last two are bespoke
-and have no keyboard at all.
+### Scrabble's suggested moves does not fit, and needs a decision
+
+It was on the roster and it should not have been. The box is a bare list of five
+text lines with **no frame, no surface, no hairlines and no hover** — and it is
+pinned to a fixed height, `5 rows × 1.35rem = 6.75rem`, whose comment says in
+so many words that a growable height would shift the setup disclosure and the
+Moves log below it.
+
+A SelectionList row is ~2.4rem with its padding, so five of them are ~12rem.
+Converting doubles the box and reflows the column, which is the one thing that
+rule forbids. And the frame, the surface and the hairlines would arrive with it
+— a visible redesign of a game's info column, in a game whose CSS area has not
+run.
+
+So it is left alone, and the choice is Joel's:
+
+1. **Leave it bespoke**, like crosswords' clue lists — it is a list of five
+   readouts you can click, and the family resemblance may be all there is.
+2. **Give SelectionList a frameless, compact form** — a real new variant, not a
+   density, since "no frame" contradicts *the frame is what says this is a
+   list*.
+3. **Redesign the box** to wear the frame, and re-do the height arithmetic. That
+   is a scrabble-area decision.
 
 ### What is NOT one, and why
 
@@ -63,7 +84,7 @@ not "a column of rows", which is what it looked like from the outside.
 | `ColorChoiceList` | there is no cursor. The ring **is** the value — a persistent selection with no transient cursor beside it |
 | connections' `HintList` | a button per row, not a choice among rows |
 | crosswords' `ClueLists` | very close, and staying bespoke to crosswords. Revisit at that area |
-| `Menu` | actions that close, not places that stay. Looks alike, is not alike (`list.css` already said so) |
+| `Menu` | actions that close, not places that stay. Looks alike, is not alike |
 | `SelectField` | the same job handed to a native `<select>` on purpose |
 | every readout | `WordList`, `TurnLog`, chat, `PauseOverlay`'s roster, `RankBar`, `ChainStrip`, `GuessBoard`, board rows, Help's `<ul>`s |
 
@@ -75,8 +96,7 @@ mode and none should be invented.
 The kinds differ in **what activation means**, and in nothing else.
 
 **do now** — four of the five. Choosing does the thing immediately: you land on
-the club, the setup dialog opens, the game opens, the suggested move stages on the
-board. `Enter` activates. There is no persistent mark, because you have left.
+the club, the setup dialog opens, the game opens. `Enter` activates. There is no persistent mark, because you have left.
 
 **select** — the crossword picker, alone. Choosing records a choice you will act
 on later, and **must not submit the dialog it sits in**. `Enter` and `Space` both
@@ -119,8 +139,9 @@ Four of these earn a sentence:
 - **`selected` / `onSelect`, not `value` / `onChange`.** The latter reads as a
   form control, and this deliberately is not one.
 
-**A busy state is just `empty` with different text** — "Loading puzzles…",
-"Thinking…". No extra prop.
+**Every no-rows state is `empty` with different text** — nothing yet, nothing
+matching the filter, the fetch failed, "Loading puzzles…". No extra prop, and no
+caller decides whether to render the list at all: the frame is always there.
 
 **The crossword picker's filter box stays outside the component.** It filters
 `items` before they are handed in, which keeps the component about the list.
@@ -145,12 +166,17 @@ below is handled on the container.
   scroll box today, so Space and the four page keys scroll it. All six are
   trapped. A page is measured — the container's `clientHeight` over the first
   row's `offsetHeight` — rather than a constant.
-- **Tab belongs to the page.** ClubPage's Tab toggles between its two lists;
-  the homepage swallows Tab outright; inside a dialog Tab must walk the fields.
-  That is a relationship *between* lists, and the component owns only what
-  happens within one. What it does guarantee is that a list is **exactly one tab
-  stop** — today the crossword picker's rows are bare `<button>`s, so every
-  puzzle in the library is its own stop.
+- **Tab belongs to the page**, through the shared `useTabToLists(refs)`: it
+  cycles the page's lists, so the club page's two toggle and the homepage's one
+  always wins. That is a relationship *between* lists, which is why it is not
+  the component's. What the component guarantees is that a list is **exactly one
+  tab stop** — before this, the crossword picker's rows were bare `<button>`s,
+  so every puzzle in the library was its own stop.
+
+  **Swallowing Tab on a page with a list is a trap**, and the homepage was in
+  it: click any blank part of the page, the list blurs and takes its cursor
+  with it, and no key is left that can hand the keyboard back. `useSwallowTab`
+  is now only for surfaces with no list at all — the five window-key games.
 
 ### The cursor
 
@@ -250,10 +276,12 @@ Every new declaration carries `/* @@ */` (css-system-2.md).
 
 **All five sites convert now**, not one area at a time.
 
-**No `cs-` stamps come from this work** — not on crosswords, scrabble, or
-ClubPage. None of them has fallen into an area yet, and F38 is forward-fixing
-rather than auditing. §21's stamps say what has been *reached and audited*, and
-this does neither.
+**No existing file is promoted by this work** — not crosswords, not scrabble,
+not ClubPage. None of them has fallen into an area yet, and F38 is forward-fixing
+rather than auditing, which is neither of the things a stamp claims.
+
+**New files are `cs-audited`** (Joel, 2026-08-24). A file born inside an open
+area was never un-reached, and the audit for it is this plan.
 
 ## The specs
 
@@ -263,19 +291,51 @@ Both were red before this work and both are rewritten by it:
   question, whether the ring rides the row's `<a>` or its `<li>`, is **dissolved**:
   there is one element and it is a div. The `href` read at line 76 goes with the
   anchor.
-- **`e2e/club-keyboard.e2e.ts:85`** reads `[class*="_kbCursor_"] a` — both halves
-  of that selector stop existing.
+- **`e2e/club-keyboard.e2e.ts:85`** read `[class*="_kbCursor_"] a` — both halves
+  of that selector stopped existing. It identifies the ringed row by its text
+  now, and asserts the game it lands on.
+- **`e2e/club-filters.e2e.ts`** was collateral: it reached the rows through
+  `_startList_` / `_gamesList_` / `_wrapper_`, all three of which are gone.
+
+All three were red before this work. All three are green now, along with the
+five specs that reach a start row through the new helper.
 
 ## Findings folded in
 
 - **F11 (`list-cursor-written-twice`)** — the whole Keyboard section above.
 - **F15 (`focus-on-every-refetch`)** — "Focus on arrival".
-- **F24 (`empty-list-keeps-box`)** — `empty` renders inside the frame. The
-  homepage is the one place that replaces the whole list instead, and keeps
-  doing that.
+- **F24 (`empty-list-keeps-box`)** — `empty` renders inside the frame, and the
+  frame is always drawn. The homepage used to be an exception, replacing the
+  whole list with a sentence; Joel closed that on 2026-08-24, so nothing-yet,
+  nothing-matching and the-fetch-failed are now one shape everywhere.
 - **F3 (`home-keyboard-spec`)** is not folded, but its blocker is gone.
+
+## What the build added that the design didn't foresee
+
+Four things, each written up where it lives:
+
+- **`frozen`** — a caller says "something above me owns the keyboard". While
+  frozen the list ignores keys AND keeps its cursor when focus leaves. The
+  second half is load-bearing: a setup dialog autofocuses a field, and reading
+  that as "the user left the list" both loses the ring behind the modal and
+  re-renders at the moment the dialog's own buttons are being clicked — which
+  used to swallow the click and make Cancel do nothing.
+- **`rowTitle`** — the native tooltip that says why a disabled row does nothing.
+  It belongs on the row element, which only the component renders.
+- **`position: relative` on the row** — a corner flag and a hover-revealed
+  delete × want the ROW's corners, not those of a box inset by its padding.
+- **The delete × had to stop propagating.** A row's own click activates it now,
+  so without that, pressing × opened the game you were deleting. It also became
+  its own component (`ClubGameDeleteButton`) rather than being written twice,
+  and it finds its container with `:hover > .deleteButton` rather than naming a
+  class that belongs to another module.
+
+**A row is no longer a `<button>`, so `getByRole('button', { name: /Brand/ })`
+cannot reach one.** Ten e2e call sites across five specs did exactly that; they
+now go through `e2e/helpers/clubPage.ts` — `startGameRow(page, /Brand/)` — so
+the next change to the row's markup is one edit rather than ten.
 
 ## Open
 
-Nothing. Every question raised in the 2026-08-24 design conversation is
-answered above.
+Only the scrabble question above. Everything raised in the 2026-08-24 design
+conversation is answered.

@@ -64,8 +64,8 @@ test.describe('club page list filters', () => {
     const modeButton = (name: string) =>
       headings.getByRole('button', { name, exact: true })
     const select = headings.getByLabel('Filter your games by game')
-    const startButtons = page.locator('[class*="_startList_"] [class*="_button_"]')
-    const gameCards = page.locator('[class*="_gamesList_"] [class*="_wrapper_"]')
+    const startButtons = page.locator('[aria-label="Start a new game"] [class*="_row_"]')
+    const gameCards = page.locator('[aria-label="Your games"] [class*="_row_"]')
 
     // ─── Mode filter ────────────────────────────────────────────────────
     const allStart = await startButtons.count()
@@ -78,7 +78,7 @@ test.describe('club page list filters', () => {
     expect(coopOnly).toBeLessThan(allStart)
     // Every remaining start button is a co-op one...
     await expect(
-      page.locator('[class*="_startList_"]').getByText('Compete', { exact: true }),
+      page.locator('[aria-label="Start a new game"]').getByText('Compete', { exact: true }),
     ).toHaveCount(0)
     // ...and the OTHER column is untouched — each filter owns one list.
     await expect(gameCards).toHaveCount(4)
@@ -192,7 +192,7 @@ test.describe('club page list filters', () => {
     await expect(page.getByRole('group', { name: 'Filter games by mode' })).toHaveCount(0)
     // ...and the solo club's whole startable set is listed, unfiltered.
     await expect(
-      page.locator('[class*="_startList_"] [class*="_button_"]'),
+      page.locator('[aria-label="Start a new game"] [class*="_row_"]'),
     ).not.toHaveCount(0)
 
     await ctx.close()

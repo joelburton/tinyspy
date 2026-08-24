@@ -29,22 +29,12 @@
  * situation calls for. Only the abutting case gets a class, because it is the
  * one applied as a class rather than as a `:focus-visible` rule — see below. */
 
-/* THE KEYBOARD CURSOR — the ring on the row a focused LIST is pointing at.
+/* THE KEYBOARD CURSOR — the ring on the row a focused list is pointing at —
+ * used to live here as `.kb-cursor`. It is now `<SelectionList>`'s own
+ * `.cursor` (common/components/lists/), because only that component can put it
+ * on a row, and a global class let three pages each remember to.
  *
- * Distinct from `:focus-visible` in mechanism, identical in meaning. The list
- * container is the tab stop and holds the real focus; arrows move a cursor
- * through the rows and this marks which one Enter would open. Because no
- * element is focused, no pseudo-class can express it — the page toggles this
- * class instead. (A menu does the same job with real focus, moving it item to
- * item programmatically; both are "the keyboard is here".)
- *
- * Inset, because these rows always abut inside a frame.
- *
- * ⚠️ NOT A SELECTED STATE. This says where the keyboard is, not what is
- * chosen. `ColorChoiceList.swatchActive` draws the same ring to mark the color
- * you have picked — that is a different meaning wearing the same paint, and it
- * deliberately does not read this. */
-/* @@ */ .kb-cursor {
-  outline: var(--chrome-cursor-ring);
-  outline-offset: -2px;
-}
+ * ⚠️ A CURSOR IS NOT A SELECTED STATE. `ColorChoiceList.swatchActive` draws
+ * this same ring to mark the color you have PICKED — a different meaning
+ * wearing the same paint. It is not a SelectionList (there is no cursor there;
+ * the ring is the value), so nothing has brought the two into line. */

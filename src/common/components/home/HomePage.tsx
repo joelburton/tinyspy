@@ -1,11 +1,12 @@
 // cs-partial
 
-import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { Link } from '../../lib/routing/Link'
 import { navigate } from '../../lib/routing/router'
+import { SelectionList } from '../lists/SelectionList'
 import { cls } from '../../lib/util/cls'
-import { useSwallowTab } from '../../hooks/input/useSwallowTab'
+import { useTabToLists } from '../../hooks/input/useTabToLists'
 import { db as commonDb } from '../../db'
 import { faultMessage } from '../../lib/game/serverError'
 import { presentFault } from '../../lib/fault/faultStore'
@@ -123,17 +124,19 @@ export function HomePage({ session }: Props) {
   })
 
   // ─── Keyboard navigation ─────────────────────────────────────────────────
-  // The same shape ClubPage uses for its two lists: the LIST holds focus, and
-  // Up/Down move a cursor ring through the rows with Enter opening the one
-  // under it. The rows stay ordinary links, so clicking is unchanged.
+  // The cursor, the ring, Enter, and focus-on-arrival all live in
+  // <SelectionList> — see plans/selection-lists.md.
   //
-  // Tab does NOTHING on this page (useSwallowTab). Arrows + Enter are the whole
-  // keyboard story, and native Tab only led away from it — onto the header menu
-  // and then out into the browser's URL bar. The trade-off is deliberate: the
-  // "+ New club" link is no longer keyboard-reachable from here. An open
-  // <Menu> is unaffected — it stopPropagation()s its own keys, so Tab still
-  // closes it.
-  useSwallowTab()
+  // What stays here is the page's half: where Tab goes. Native Tab only led
+  // away from the keyboard story — onto the header menu and then out into the
+  // browser's URL bar — so it is caught and pointed at the one list instead.
+  // That is also the way BACK: click any blank part of the page and the list
+  // blurs, and without this there would be no key left that could return the
+  // keyboard to it. The "+ New club" link stays keyboard-unreachable from here,
+  // which is the same trade-off swallowing Tab made. An open <Menu> is
+  // unaffected — it stopPropagation()s its own keys, so Tab still closes it.
+  const clubsRef = useRef<HTMLDivElement>(null)
+  useTabToLists([clubsRef])
 
   const accountSection = useAccountMenuSection(session)
 
@@ -144,49 +147,6 @@ export function HomePage({ session }: Props) {
   const lookupDialog = useAppShortcuts(
     useCallback(() => menuRef.current?.open(), []),
     { chat: false },
-  )
-
-  const listRef = useRef<HTMLUListElement>(null)
-  const [cursor, setCursor] = useState(0)
-  // Tracked on the container proper (not a bubbled child focus) so tabbing on
-  // to a row's link doesn't leave a stale ring pointing somewhere else.
-  const [listFocused, setListFocused] = useState(false)
-
-  // The row the ring is ON: clamped to the live list length (it can shrink
-  // under us — the club list is realtime), and hidden entirely unless the
-  // container holds focus. -1 = no ring.
-  const kbCursor =
-    listFocused && clubs.length > 0 ? Math.min(cursor, clubs.length - 1) : -1
-
-  function onListKeyDown(e: KeyboardEvent) {
-    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-      e.preventDefault() // don't ALSO scroll the page
-      const delta = e.key === 'ArrowDown' ? 1 : -1
-      // Clamp to the ends — deliberately no wrap-around, matching ClubPage.
-      setCursor((c) =>
-        Math.max(0, Math.min(clubs.length - 1, Math.min(c, clubs.length - 1) + delta)),
-      )
-    } else if (e.key === 'Enter') {
-      e.preventDefault()
-      const club = clubs[Math.min(cursor, clubs.length - 1)]
-      if (club) navigate(`/c/${club.handle}`)
-    }
-  }
-
-  // Focus the list on arrival so arrows work without a first Tab — the same
-  // welcome ClubPage gives its start list. Waits for the clubs to land (the
-  // list doesn't exist before that) and yields to anything already focused.
-  // preventScroll: the list is near the top anyway and a focus-scroll would
-  // just jitter the page.
-  useEffect(
-    function focusListOnLoad() {
-      if (clubs.length === 0) return
-      const el = listRef.current
-      const idle =
-        document.activeElement === null || document.activeElement === document.body
-      if (el && idle) el.focus({ preventScroll: true })
-    },
-    [clubs.length],
   )
 
   return (
@@ -245,68 +205,37 @@ export function HomePage({ session }: Props) {
               + New club
             </Link>
           </header>
-          {clubs.length === 0 ? (
-            // The fault modal carries the news; this line is what the page is
-            // left saying behind it, and its only job is to be TRUE. Empty
-            // while loading rather than absent, so the answer doesn't push the
-            // list down when it arrives.
-            <p className="muted">
-              {load === 'failed'
+          <SelectionList
+            ref={clubsRef}
+            items={clubs}
+            rowKey={(c) => c.handle}
+            label="Your clubs"
+            // Arrows work on arrival, without a first Tab — which is just as
+            // well, since Tab does nothing on this page (useSwallowTab). An
+            // empty list never takes focus, so this stays inert until the clubs
+            // land.
+            autoFocus
+            onActivate={(c) => navigate(`/c/${c.handle}`)}
+            // All three no-rows states go INSIDE the frame, which is drawn
+            // whether or not there is anything in it (docs/ui.md → Selection
+            // lists). The failure line is what the page is left saying behind
+            // the fault modal that carries the real news, and its only job is
+            // to be TRUE — hence a blank rather than a claim while the answer
+            // is still in flight.
+            empty={
+              load === 'failed'
                 ? "Your clubs couldn't be loaded."
                 : load === 'loaded'
                   ? 'No clubs found for your account.'
-                  : ' '}
-            </p>
-          ) : (
-            <ul
-              ref={listRef}
-              className="item-list"
-              tabIndex={0}
-              role="group"
-              aria-label="Your clubs"
-              onKeyDown={onListKeyDown}
-              onFocus={(e) => {
-                if (e.target === e.currentTarget) setListFocused(true)
-              }}
-              onBlur={(e) => {
-                if (e.target === e.currentTarget) setListFocused(false)
-              }}
-            >
-              {clubs.map((c, i) => (
-                // Clicking IS selecting, so the mouse and the keyboard agree on
-                // "the selected club". On the <li> because <Link> owns its own
-                // onClick for routing; the row's click bubbles here first. This
-                // list navigates away on click, so it's the same symmetry
-                // ClubPage's game list has rather than something you'd notice
-                // here today.
-                <li
-                  key={c.handle}
-                  onClick={() => setCursor(i)}
-                  // Keep the ring in view now that the list scrolls — the
-                  // shared `.item-list` supplies the `overflow-y: auto`, and it
-                  // bites once `.frame`'s max-height stops the clubs growing
-                  // the page. Without this, Up/Down walks the cursor out of the
-                  // box, since the focus is on the LIST and never moves to the
-                  // row the browser would otherwise scroll to. The same ref
-                  // callback ClubPage's two lists use, on the <li> rather than
-                  // the row itself because <Link> forwards only anchor attrs.
-                  ref={
-                    i === kbCursor ? (el) => el?.scrollIntoView({ block: 'nearest' }) : undefined
-                  }
-                >
-                  <Link
-                    to={`/c/${c.handle}`}
-                    className={cls('item-row', i === kbCursor && 'kb-cursor')}
-                  >
-                    <span className={styles.clubName}>{c.name}</span>
-                    {c.is_solo && (
-                      <span className={cls('badge', styles.soloBadge)}>Solo</span>
-                    )}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
+                  : '\u00a0'
+            }
+            renderRow={(c) => (
+              <>
+                <span className={styles.clubName}>{c.name}</span>
+                {c.is_solo && <span className={cls('badge', styles.soloBadge)}>Solo</span>}
+              </>
+            )}
+          />
         </section>
       </div>
       {/* The "~" word-lookup dialog (owned by useAppShortcuts). Null when shut. */}

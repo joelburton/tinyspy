@@ -9,6 +9,7 @@ import {
 } from './helpers/fixtures'
 import { signIn } from './helpers/session'
 import { settled } from './helpers/ready'
+import { startGameRow } from './helpers/clubPage'
 
 /**
  * Smoke test for the CrossPlay (crosswords) coop play loop on screen: the
@@ -444,7 +445,7 @@ test.describe('crosswords play loop', () => {
 
     // Open the CrossPlay coop setup dialog (coop is the first, enabled button;
     // compete is disabled in a solo club).
-    await page.getByRole('button', { name: /CrossPlay/ }).first().click()
+    await startGameRow(page, /CrossPlay/).click()
 
     // Switch to the Upload tab and choose a fixture .puz (the hidden input
     // accepts setInputFiles even though it's not visible).
