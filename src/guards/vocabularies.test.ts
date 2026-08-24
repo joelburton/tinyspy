@@ -578,7 +578,7 @@ const VOCABULARIES: Vocabulary[] = [
     },
     fix:
       'Page-level layers read a token from base.css → THE Z- LAYERS, which is ' +
-      'the ladder being migrated to (`--z-workspace`, `--z-modal-normal`, …); ' +
+      'the ladder being migrated to (`--z-companion`, `--z-modal-normal`, …); ' +
       'the `--z-index-*` block above it is the one being retired, a rung at a ' +
       'time, as each component\'s area is audited. A tier on neither is a ' +
       'question for Joel: inventing a number between two named ones is how a ' +

@@ -1284,7 +1284,7 @@ reading it, and the answer to "when did we decide this?" is "here, unless it is
 under Open."
 
 These are the words to use in conversation, in docs, in component names and in
-CSS class names — not only for stacking. A `dialog`, a `workspace` and a
+CSS class names — not only for stacking. A `dialog`, a `companion` and a
 `modal-normal` are now specific things, where before the conversation they were
 loose talk.
 
@@ -1329,7 +1329,7 @@ relationships. These do:
 | `z-board-question` | A box over one square of the board, showing or taking something for that square        | 1100 | crosswords' rebus entry; its read-only peek |
 | `z-ghost` | A piece in transit, following the pointer between two places on its own board          | 1200 | dragging a scrabble rack tile; a bananagrams hand tile |
 | `z-infocol` | The readouts and controls beside the board — a page of its own on a phone              | 1300 | the turn log; the found-word list |
-| `z-workspace` | A thinking-space you open and keep open, and move where you want it                    | 2000 | the scratchpad; crosswords' setter-note |
+| `z-companion` | Something you keep nearby while you play — open it, keep it open, move it where you want | 2000 | the scratchpad; crosswords' setter-note |
 | `z-dialog` | A question that can wait. No dim, movable, reopens where you left it                   | 2100 | the anagram finder; edit-word |
 | `z-modal-normal` | A question worth thinking or talking about. Dims to focus you; chat stays reachable | 2200 | setup; edit profile; the celebration |
 | `z-pause-gate` | Everything below it is gone while the game is paused. **A render gate, not a z-index** | 3000 | a player drops off the call; the Pause button |
@@ -1350,10 +1350,17 @@ most of the disambiguation** — it says "layer" out loud, so a layer may safely
 reuse a component's word (`z-toast` beside `toast`). Only two names needed
 changing because they were wrong even with the prefix:
 
-- **`z-workspace`**, not `z-panel`. `FloatingPanel` is the shell for chat,
+- **`z-companion`**, not `z-panel`. `FloatingPanel` is the shell for chat,
   dialogs, modals, confirmations and faults — six layers — so naming one layer
-  after it would be a lie the prefix can't fix. "workspace" appears zero times
-  in the repo and is nearly Joel's own phrase for the category.
+  after it would be a lie the prefix can't fix.
+
+  **It was `z-workspace` until 2026-08-24, and the rename is Joel's**: *"'workspace'
+  implies a kind of 'you can write here', but very few of these allow that.
+  'companion' suggests something you keep nearby without the implication of
+  editing."* The original word was picked off the scratchpad, which is the one
+  member you type into; help, a setter's note and a clue explainer are all
+  read-only, and chat is the only other one you write in. **Reading is the
+  common case and the name should say so.**
 - **`z-modal-normal` · `z-modal-blocking` · `z-modal-fault`** — Joel's call, over
   a proposal to drop the shared stem. The stem is load-bearing precisely BECAUSE
   the three are not adjacent: `z-modal-normal` sits below chat while the other
@@ -1415,7 +1422,7 @@ fine, but in docs and in conversation they are four different things.
 | `modal-fault` | yes | yes | **no** | no |
 
 **Buttons.** A dialog is very likely to carry a **Save** / **OK** / **Start** —
-it has an answer to give, and the button is how it ends. A workspace is very
+it has an answer to give, and the button is how it ends. A companion is very
 unlikely to: there is nothing to answer, so it closes by its X. Measured: the scratchpad,
 the setter-note and the clue-explainer have no buttons at all; edit-word has
 Save, setup has Start, confirmations have their confirm/cancel pair.
@@ -1506,13 +1513,14 @@ boards became sealed.
 | `CluePanel` (codenamesduet) | `z-modal-normal` | it demands attention — "here's the answer you asked for". Dim is right |
 | `CelebrationDialog` | `z-modal-normal` | it looks like one, it already dims, and you can still chat |
 | scrabble's center-letter picker | `z-modal-normal` | the board goes inert, which is the point; chat stays |
-| `HelpPanel` | `z-workspace`, **plus the satellite rule** | keep-open, no Save, X-to-close. Its resting home is the workspace layer; when something above that summons it, it sits just above its summoner |
-| `FloatingChat` → **`ChatWorkspace`** | **workspace**, living at `z-chat` | it matches the workspace test on every axis — resizable, remembers its rect, no dim, no Save, X-to-close, meant to be kept open. Only its layer differs. The current name says `FloatingPanel`, the shell it shares with five other families, which is the thing the rule above exists to stop; `ChatWorkspace` also slots in beside `ChatBody` and `ChatButton` |
+| `HelpPanel` | `z-companion`, **plus the satellite rule** | keep-open, no Save, X-to-close. Its resting home is the companion layer; when something above that summons it, it sits just above its summoner |
+| `FloatingChat` | **companion**, living at `z-chat` | it matches the companion test on every axis — resizable, remembers its rect, no dim, no Save, X-to-close, meant to be kept open. Only its layer differs. **It does NOT take the family word** (Joel, 2026-08-24): *"the chat panel will not get a 'companion' name; it sits in a different layer and simply calling it something like `Chat` suffices."* The rule below — a component about one family takes that family's name — earns its exception here, because a name saying `companion` would point at a layer this one deliberately does not live on |
 
-**⚠️ `ChatWorkspace` must NOT be moved to `z-workspace`** — the name will invite
-exactly that. The reason it sits at `z-chat` is the most-discussed rule in this
+**⚠️ Chat must NOT be moved to `z-companion`** — being classed as a companion
+will invite exactly that, which is half of why its name stays clear of the word.
+The reason it sits at `z-chat` is the most-discussed rule in this
 whole section: the conversation has to stay reachable over every dim below it,
-and chat is the one workspace that can OPEN ITSELF (a `!` message force-opens it
+and chat is the one companion that can OPEN ITSELF (a `!` message force-opens it
 for every recipient), so a self-opening panel materializing under a setup modal
 would be worse than not opening at all. That belongs in the component's
 docstring, not only here.
@@ -1544,13 +1552,13 @@ misread is a real bug).
 
 ### One list of names, for both the things and the layers
 
-The families and the layers share a name on purpose. A `workspace` is a kind of
-thing; `z-workspace` is where that kind of thing lives — and inventing a second
+The families and the layers share a name on purpose. A `companion` is a kind of
+thing; `z-companion` is where that kind of thing lives — and inventing a second
 vocabulary for the second axis would mean every future conversation has to say
 which list it means, forever, to buy correctness in two components.
 
 So: **a layer is where its family lives unless a component states otherwise.**
-Two components state otherwise, both written down: `ChatWorkspace` (permanent,
+Two components state otherwise, both written down: `FloatingChat` (permanent,
 at `z-chat`) and `HelpPanel` (conditional, just above whatever summoned it).
 That is the same move the satellites make — the scrim and the dropdown were
 never given names either, just described relative to something that had one.
@@ -1560,24 +1568,98 @@ That means the component's docstring, not only this document.
 
 ### The vocabulary is for code too, not just for layers
 
-The conversation's real product is that `workspace`, `dialog` and `modal` now
+The conversation's real product is that `companion`, `dialog` and `modal` now
 mean something tight. So they get used everywhere (Joel, 2026-08-22):
 
 - **A React component entirely about one family takes that family's name.** A
   component shared ACROSS families keeps a generic one — `FloatingPanel` is the
   shell for chat, dialogs, all three modals, and faults, so naming it after any
-  one of them would be the lie `z-workspace` exists to avoid.
+  one of them would be the lie `z-companion` exists to avoid.
 - **A CSS class names what it styles, not what it happens to be attached to.**
   `.floatingPanel` means "this changes every panel in the app"; `.dialog` means
   "this changes three components you can name". The class name states the blast
   radius.
+
+### "Floating panel" is the umbrella; "panel" alone is banned
+
+Settled 2026-08-24. The five families above — companion, dialog, and the three
+modals — need a word for what they have in common, because they share one shell
+and a pile of behavior with it. That word is **floating panel**, in full, always.
+
+**What a floating panel is:** a window-like thing that floats over the page. Its
+own rect, out of the document's flow; a header bar carrying a title and a ✕; its
+own surface and shadow; dismissible. Everything `FloatingPanel` provides.
+
+**The name and the component are the same words on purpose.** Normally that would
+be the collision this section refuses for `modal` — a family word that is also a
+member. It is safe here because the category is *defined as* the things built on
+that shell, so the two have the same extension. `FloatingPanel` describes the
+implementation, whose whole subject is the floating-ness, and that is why it
+keeps its name (Joel, 2026-08-24).
+
+**"Panel" on its own means nothing and is banned** — in prose, in docs, in
+conversation, and in any component name. A module-scoped CSS class may still use
+it, because a local `.panel` states its own blast radius.
+
+**"Draggable panel"** is the prose name for the subset you can drag, which is
+every floating panel except `modal-blocking` and `modal-fault`. `useDraggablePanel`
+is the hook, and it is a good name for the same reason `FloatingPanel` is.
+
+**The evidence, from the conversation that produced this rule:** Claude called
+connections' `HintList` a "panel" while cataloguing the dialog-like things. It is
+a readout sitting in the info column's flow — no rect of its own, no titlebar, no
+✕, nothing to dismiss. **"Floating panel" would have blocked the mistake and
+"panel" invited it**, which is the whole argument in one example. The same test
+excludes tooltips (not window-like) and menus (not window-like, and they already
+have a sharp name).
+
+The precedent is `card`, which was exactly this kind of loose word until it was
+given a specific meaning.
+
+**The folders, decided 2026-08-24.** `components/panels/` becomes
+**`components/floating-panels/`** — kebab, matching `loading-and-errs`, the
+repo's only other multi-word folder. `Menu` moves out to **`components/menu/`**,
+top-level beside it, because it uses none of the shell's machinery and has no
+business under a floating-panel folder.
+
+**`menu/` is singular on purpose** (Joel, 2026-08-24): *"that the gamepage /
+clubpage / homepage actually use different menus doesn't matter. From the
+high-level perspective: there's one menu, it contains different things."* So it
+is not the plural shape-folder that `buttons/` and `lists/` are — it is the one
+menu's home.
+
+Both are on the rename roster (Open item 4); no file has moved.
+
+**`components/chrome/` becomes `components/page-header/`, and everything about
+the header goes in it** (Joel, 2026-08-24). `chrome/` holds only the three
+`PageHeader*` files today, so the folder was already the header's and merely
+named for a category it was the sole member of. If we later need a home for
+general chrome, we re-create it then.
+
+What lands there:
+
+- the three already in `chrome/` — `PageHeader`, `PageHeaderButton`,
+  `PageHeaderMenu`;
+- `PageHeaderPlayersStrip` and `PageHeaderStatusSlot`, today in `game/` under the
+  same prefix;
+- **`ChatButton` and `ScratchpadButton`.** Neither is a floating panel; each is a
+  header mark that OPENS one, and that is where they render — `ChatButton` in
+  ClubPage's and GamePage's header strips, `ScratchpadButton` in GamePage's, for
+  the games whose manifest opts in. Filing them by what they open was the
+  accident of the old folder.
+
+Implicated component names, same roster, NOT decided here: `HelpPanel` (72
+references), `CluePanel` (19), `infoPanel.module.css` (22).
+
+Consumer docstrings that still say "panel" loosely get fixed as each area is
+audited, not in a sweep.
 
 **Measured: "Dialog" currently names four different families**, which is the
 best argument for the above. `ConfirmDialog` and `FaultDialog` are
 `z-modal-blocking` and `z-modal-fault` — the two strictest things in the app,
 and the only two components that pass `draggable={false}`. `SetupGameDialog`,
 `EditProfileDialog` and `EditClubDialog` are `z-modal-normal`. `NoteDialog` and
-`ExplainDialog` are **workspaces** — no dim, resizable, and they remember their
+`ExplainDialog` are **companions** — no dim, resizable, and they remember their
 rect. Only `AnagramDialog`, `WordLookupDialog` and `WordEditDialog` are actually
 dialogs.
 
@@ -1589,7 +1671,7 @@ same argument sixteen times.
 
 ### Open
 
-1. **The multiple-movable-things strategy**, for the workspace layer and the
+1. **The multiple-movable-things strategy**, for the companion layer and the
    dialog layer both: (a) a strict order, (b) opened order, (c) raise on
    interaction. Needed sooner than it looked — crosswords can plausibly have the
    note, the explainer and the anagram finder open at once. NB: (a) is in force

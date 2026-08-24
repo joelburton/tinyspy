@@ -211,7 +211,7 @@ describe('CSS custom-property tokens', () => {
     '--z-board-question',
     '--z-ghost',
     '--z-infocol',
-    '--z-workspace',
+    '--z-companion',
     '--z-dialog',
     '--z-modal-normal',
     '--z-chat',

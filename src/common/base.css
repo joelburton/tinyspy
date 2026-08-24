@@ -438,14 +438,14 @@
   /* ── THE Z- LAYERS ─────────────────────────────────────────────
      The ladder above, re-thought as a vocabulary rather than as a
      list of numbers that arrived one at a time. It is
-     plans/css-system-2.md §20, and it is the ONE list — a `workspace`
-     is a kind of thing, and `z-workspace` is where that kind of thing
+     plans/css-system-2.md §20, and it is the ONE list — a `companion`
+     is a kind of thing, and `z-companion` is where that kind of thing
      lives.
 
      THE TWO LADDERS COEXIST ON PURPOSE, and this one is the target.
      A component moves to it when its area is audited, never in a
      sweep: moving one alone would rank it against neighbors that have
-     not moved, which is how a menu ends up under a panel. So the
+     not moved, which is how a menu ends up under a floating panel. So the
      block above empties rung by rung, and the day it is empty this
      comment loses its first paragraph.
 
@@ -495,8 +495,11 @@
                                           on desktop too, where nothing overlaps:
                                           sitting beside rather than over is a fact
                                           about the viewport, not about the kind */
-/* @@ */   --z-workspace:       2000;  /* a thinking-space you open, keep open, and
-                                          move where you want it */
+/* @@ */   --z-companion:       2000;  /* something you keep NEARBY while you play:
+                                          open it, keep it open, move it where you
+                                          want it. Reading is the common case (help,
+                                          a setter's note); writing is the exception
+                                          (the scratchpad) */
 /* @@ */   --z-dialog:          2100;  /* a question that can wait. No dim, movable,
                                           reopens where you left it */
 /* @@ */   --z-modal-normal:    2200;  /* a question worth thinking or talking about.
@@ -513,7 +516,7 @@
                                           any z-index could. */
 /* @@ */   --z-chat:            3100;  /* over every dim below it, because talking is
                                           what the app is for — and chat is the one
-                                          workspace that can OPEN ITSELF, so it must
+                                          companion that can OPEN ITSELF, so it must
                                           never materialize under something */
 /* @@ */   --z-toast:           4000;  /* an announcement you must see wherever you
                                           are and whatever you are doing */
