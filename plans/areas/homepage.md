@@ -1839,7 +1839,21 @@ row's `<a>` or its `<li>`; today the ring is on one and the scroll ref is on the
 other, which is the sort of thing a component exists to stop being a per-page
 accident.
 
-> resolution:
+> **resolution: DESIGNED, not built (2026-08-24). The spec is
+> [selection-lists.md](../selection-lists.md)** — its own plan file, because the
+> five sites live in four different areas and the component outlives this one.
+> F38 stays open until they convert.
+>
+> Two things settled here are worth carrying even if the build slips:
+>
+> - **F3's blocking question is dissolved.** The row is a `<div>` — no `<a>`, no
+>   `<button>`, no `<li>` — so there is no element for the ring and the scroll
+>   ref to disagree about. `e2e/home-keyboard.e2e.ts` can be rewritten whenever
+>   someone gets to it.
+> - **The line is "you pick exactly one thing", not "a column of rows".** That
+>   is what put `Menu`, `FilterSelect`, `ColorChoiceList`, the players roster and
+>   connections' `HintList` outside a roster they all resembled — and CreateClubPage
+>   turns out not to have a list at all, contrary to the note above.
 
 ## Dependencies — found, listed, and LEFT
 
