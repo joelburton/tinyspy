@@ -33,10 +33,14 @@ import { useGlobalKeyHandler } from './useGlobalKeyHandler'
  * that hook and don't need it; crosswords deliberately keeps Tab as clue
  * navigation. Callers today: the five window-key games' PlayAreas.
  *
- * **A page with a `<SelectionList>` wants `useTabToLists` instead.** Swallowing
- * Tab there is a trap: click any blank part of the page and the list blurs,
- * taking its cursor with it, and no key is left that can hand the keyboard
- * back. That is exactly what the homepage did until 2026-08-24.
+ * **A surface with anywhere for Tab to GO wants `useTabRing` instead.**
+ * Swallowing Tab on a page that has a list is a trap: click any blank part of
+ * it and the list blurs, taking its cursor with it, and no key is left that can
+ * hand the keyboard back. That is exactly what the homepage did until
+ * 2026-08-24.
+ *
+ * This hook is really `useTabRing([])` — an empty ring — written before rings
+ * existed, and it goes when the games declare theirs (plans/tab-rings.md).
  */
 export function useSwallowTab(): void {
   useGlobalKeyHandler((e: KeyboardEvent) => {

@@ -4,6 +4,11 @@
 durable parts fold into [docs/keyboard-shortcuts.md](../docs/keyboard-shortcuts.md)
 and [docs/ui.md](../docs/ui.md) as each surface converts.
 
+**Status: the mechanism is BUILT** (`common/hooks/input/useTabRing.ts`) and two
+surfaces declare rings — the homepage's one list and the club page's two.
+Everything else still answers Tab its own way and converts as its area comes up;
+the table below is the map of what is left.
+
 ## The rule, in one line
 
 **Tab moves within a ring of stops this surface declared, and never leaves it.**
@@ -34,7 +39,7 @@ option it looks like. Native Tab has no notion of *within*.
 
 | surface | Tab today | |
 |---|---|---|
-| homepage · club page | cycles the SelectionLists (`useTabToLists`) | ring |
+| homepage · club page | **converted** — `useTabRing`, one stop and two | ring |
 | stackdown · bananagrams · waffle · connections · scrabble | nothing (`useSwallowTab`) | empty ring |
 | boggle · spellingbee · wordle · wordwheel · wordiply · psychicnum | nothing (`useCaptureKeys`' Tab clause) | empty ring |
 | strands · setgame | nothing, inline in their own key handlers | empty ring |
@@ -45,7 +50,8 @@ option it looks like. Native Tab has no notion of *within*.
 
 Five of the eight are the same statement written four different ways ("this
 surface has no ring") plus one written by hand for one form. That is the
-duplication this removes.
+duplication this removes — and `useSwallowTab` is now documented as what it
+actually is, `useTabRing([])` written before rings existed.
 
 ### The leaks
 
@@ -141,18 +147,22 @@ Two things in it are wrong for the general case and do not survive:
 - **Its members being lists.** A stop is an element; that the homepage's happens
   to be a SelectionList is a fact about the homepage.
 
-### Where a ring is declared — an implementation note, not an open question
+### Where a ring is declared — a mount-ordered stack, not a context
 
-Two shapes are possible. A **hook** each surface calls, with the system keeping
-a stack; or a **React context** an overlay provides, where anything rendered
-inside it is in that ring.
+**Built 2026-08-24 as a module-level stack**, and the reasoning that pointed at
+a React context was wrong for a reason worth recording: the thing that has to
+decide *which ring is innermost* is a **window listener**, and a window listener
+sits in no subtree. Context nesting expresses innermost beautifully to
+components; it cannot reach the one place the answer is needed.
 
-The second gets innermost-wins for free, because context nesting already *is*
-the nesting the rule wants — a dialog rendered inside a page is inside the
-page's provider, so "which ring is innermost" needs no stack discipline of its
-own. A flat registry has to maintain that ordering by hand, which is the same
-class of thing as the selector guard being deleted above. So: context, unless
-building it turns up a reason not to.
+Mount order carries the same information, and React maintains it for free — a
+page mounts, a dialog opens over it and pushes later, so the innermost ring is
+simply the last one on the stack. That is not the hand-maintained ordering the
+earlier objection was about; nobody writes it down.
+
+Every ring attaches its own listener and every ring hears every Tab; only the
+one on top of the stack answers. So there is no listener lifecycle to manage
+either.
 
 ## Crosswords stays out, and it costs nothing
 

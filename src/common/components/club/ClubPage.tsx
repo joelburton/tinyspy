@@ -11,7 +11,7 @@ import { navigate } from '../../lib/routing/router'
 import { channelDedupSuffix } from '../../lib/supabase/channelDedup'
 import { onPostgresAttached } from '../../lib/supabase/postgresAttached'
 import { useAppShortcuts, isNonGameField } from '../../hooks/input/useAppShortcuts'
-import { useTabToLists } from '../../hooks/input/useTabToLists'
+import { useTabRing } from '../../hooks/input/useTabRing'
 import { useAccountMenuSection } from '../../hooks/account/useAccountMenuSection'
 import { useStickyChoice } from '../../hooks/ui/useStickyChoice'
 import { IconBack, IconHelp } from '../icons'
@@ -359,10 +359,12 @@ export function ClubPage({ handle, session }: Props) {
   // the global shortcuts (/, ?, ~) are untouched.
   const startListRef = useRef<HTMLDivElement | null>(null)
   const gamesListRef = useRef<HTMLDivElement | null>(null)
-  // Tab cycles the two, skipping whichever the mobile one-column layout has
-  // hidden, and lands on the start list from anywhere else — which is also how
-  // the keyboard comes back after a click on some blank part of the page.
-  useTabToLists([startListRef, gamesListRef])
+  // This page's TAB RING is its two lists, in this order — skipping whichever
+  // the mobile one-column layout has hidden, and entered at the start list from
+  // anywhere else, which is how the keyboard comes back after a click on some
+  // blank part of the page (plans/tab-rings.md). Nothing else on the page is in
+  // it: not the header marks, not the filters, not a row's delete affordance.
+  useTabRing([startListRef, gamesListRef])
 
 
   // The startable games in DISPLAY order — alphabetical by brand (registry

@@ -6,7 +6,7 @@ import { Link } from '../../lib/routing/Link'
 import { navigate } from '../../lib/routing/router'
 import { SelectionList } from '../lists/SelectionList'
 import { cls } from '../../lib/util/cls'
-import { useTabToLists } from '../../hooks/input/useTabToLists'
+import { useTabRing } from '../../hooks/input/useTabRing'
 import { db as commonDb } from '../../db'
 import { faultMessage } from '../../lib/game/serverError'
 import { presentFault } from '../../lib/fault/faultStore'
@@ -127,16 +127,15 @@ export function HomePage({ session }: Props) {
   // The cursor, the ring, Enter, and focus-on-arrival all live in
   // <SelectionList> — see plans/selection-lists.md.
   //
-  // What stays here is the page's half: where Tab goes. Native Tab only led
-  // away from the keyboard story — onto the header menu and then out into the
-  // browser's URL bar — so it is caught and pointed at the one list instead.
-  // That is also the way BACK: click any blank part of the page and the list
-  // blurs, and without this there would be no key left that could return the
-  // keyboard to it. The "+ New club" link stays keyboard-unreachable from here,
-  // which is the same trade-off swallowing Tab made. An open <Menu> is
-  // unaffected — it stopPropagation()s its own keys, so Tab still closes it.
+  // What stays here is the page's half: this page's TAB RING is exactly one
+  // stop, the clubs list (plans/tab-rings.md). Everything else — the header
+  // menu, "+ New club" — is unreachable by Tab because it simply isn't in the
+  // ring, not because anything was marked unfocusable. The ring is also the way
+  // BACK: click any blank part of the page and the list blurs, and without it
+  // there would be no key left that could return the keyboard. An open <Menu>
+  // is unaffected — it stopPropagation()s its own keys, so Tab still closes it.
   const clubsRef = useRef<HTMLDivElement>(null)
-  useTabToLists([clubsRef])
+  useTabRing([clubsRef])
 
   const accountSection = useAccountMenuSection(session)
 
