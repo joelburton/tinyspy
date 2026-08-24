@@ -25,9 +25,13 @@ change here forward-fixes them in the same commit (§21's compile-break rule) an
 **their stamps do not move**. If one of them turns out to be the only evidence
 for a shared question, it gets surfaced and asked about, not audited.
 
-**Fifteen findings: seven RESOLVED (F1–F7), three MOVED to `forms` (F8, F9,
-F13), two PUNTED (F14 → the first game area, F15 → crosswords), and three OPEN
-— F10 `fault-tier`, F11 `titlebar-hover-gray`, F12 `nine-body-classes`.**
+**Twenty-four findings.** Seven RESOLVED (F1–F7), three MOVED to `forms` (F8,
+F9, F13), two PUNTED (F14 → the first game area, F15 → crosswords), **twelve
+OPEN** — F10, F11, F12 from the work, and **F16–F24 from the audit below**.
+
+**F16 (`esc-closes-every-panel`) is the only live bug**, and it is measured: one
+Escape closes every open panel, so dismissing Help throws away the setup form
+under it.
 
 **Every heading says its status**, the convention `plans/areas/homepage.md`
 arrived at: a heading with **no status prefix means OPEN**.
@@ -294,6 +298,146 @@ spellingbee, wordwheel, boggle, letterboxed, wordiply, all on the field that
 previews letters or a board. **→ the `forms` area.** `GameScratchpad`'s
 monospace stays HERE — it is the same unexamined choice, but it is a floating
 panel's, and the two no longer have to be asked in one sitting.
+
+---
+
+# The audit — 2026-08-24
+
+All 14 roster files read. F1–F15 came out of the *work*; these came out of the
+*reading*, and they start at F16 so no number is ever reused.
+
+## F16 · `esc-closes-every-panel` · One Escape closes every open floating panel, not the top one
+
+**CONFIRMED by measurement**, and it is the worst thing in this area.
+
+Each open `FloatingPanel` installs its **own window-level** `keydown` listener
+(`FloatingPanel.tsx:151`). Two panels open means two listeners, and Escape fires
+both. Driven for real — open a game's setup, open Help from its footer `?`, press
+Escape once:
+
+```
+PANELS after setup opens:  1
+PANELS after help opens:   2
+PANELS after ONE Escape:   0
+```
+
+So closing Help throws away the setup form under it. §20 says Help-over-setup
+"works today by accident, via DOM render order" — the stacking does; the
+dismissal does not.
+
+Only two panels escape it, and by opting out of Escape entirely
+(`closeOnEsc={false}`): chat and the scratchpad. Every other panel is exposed,
+including the blocking modals — a fault over a confirmation is the same shape.
+
+Fixing it means Escape belongs to the **topmost** panel, which means the app
+needs to know which panel is topmost — a stack. That is also what §20's Open 1
+(the multiple-movable-things strategy) needs, so the two should be looked at
+together.
+
+## F17 · `backdrop-without-trap` · Three dimmed forms let Tab walk out behind them
+
+`useFocusTrap` now has exactly **one** caller: `BlockingModal`. But `backdrop` is
+passed by five components, and the other three — `SetupGameDialog`,
+`EditProfileDialog`, `EditClubDialog` — do **not** trap. So the page is dimmed
+and declared inert, and Tab leaves anyway, which is precisely the leak the hook
+was written to stop.
+
+The question is whether **`backdrop` should imply the trap.** They are the same
+claim said twice: a scrim says "everything below is inert", and an untrapped
+scrim makes that false for the keyboard. If they always travel together, one of
+them should stop being a separate decision.
+
+Related, and the reason this was not just fixed: `FloatingPanel` currently has no
+opinion about focus at all, and giving it one touches every panel including the
+non-modal ones, which must NOT trap (chat, the scratchpad — you would never get
+back to the game).
+
+## F18 · `three-scrims-by-construction` · Three scrim values, assigned by how each panel was built
+
+§20 predicted this exactly — "currently assigned by how a thing was BUILT rather
+than by what it means" — and the measurement is worse than the prediction:
+
+| surface | family | scrim |
+|---|---|---|
+| every `FloatingPanel` with `backdrop` | normal **and** blocking **and** fault | `--scrim-light-color`, 40% |
+| `CelebrationDialog` | modal-normal | `--scrim-color`, 45% |
+| scrabble's `BlankPicker` | modal-normal | `--scrim-color`, 45% |
+| crosswords' `NumberJumpDialog` | modal-blocking | `--crosswords-dialog-scrim-color`, **25%** |
+
+So the shell paints one scrim for all three families, the two hand-rolled
+*normals* take the dark one, the one hand-rolled *blocking* takes a third value a
+game invented, and §20's intended split — light for normal, dark for
+blocking/fault — is not expressed anywhere.
+
+The two shared tokens are 40% and 45%, "a difference nobody can see" (§20), and
+**whether they earn their keep at all is §20's Open 2**: immovability may already
+signal the category, in which case the answer is one scrim, not two or three.
+
+## F19 · `backdrop-doc-says-only-setup` · The prop's docstring names one caller and there are five
+
+`Props.backdrop` and `.backdrop` in the stylesheet both say *"Only Setup uses
+this today"*. Five components pass it. Worse than stale: the docstring justifies
+the prop with a Setup-specific argument — *"you can't set up two games at once"*
+— on a prop that now carries the whole blocking category. Whoever reads it next
+learns the wrong rule.
+
+## F20 · `dead-names-in-docstrings` · Three docstrings name things that do not exist
+
+- `FloatingPanel.tsx:96` lists **`HintModal`** among the modals. There is no such
+  component — connections' hint became an info-column readout (`HintList`), which
+  is the same file whose misnaming produced F2.
+- `FloatingPanel.module.css:5` says *"the future scratchpad"*. It shipped.
+- `useDraggablePanel.ts:33` says *"(FloatingChat, future Scratchpad, etc.)"*.
+  Same.
+
+## F21 · `focus-trap-doc-stale` · `useFocusTrap`'s scope note now contradicts the code
+
+It says the trap is *"opt-in per modal (call it from the dialog body), NOT baked
+into every `<FloatingPanel>`"*. It is now baked into `BlockingModal`. Small on
+its own, but it is exactly the note someone would read before deciding F17, and
+it currently argues against the thing F17 is asking about.
+
+## F22 · `shell-literals` · The two shared stylesheets are unconverted
+
+`FloatingPanel.module.css`: header `padding: 0.3rem 0.7rem` and `gap: 0.5rem`;
+`.title` `0.9rem` / `600`; `.closeButton` `1.4rem` square, `font-size: 1rem`,
+`line-height: 1`; `.body` `padding: 0.4rem 0.5rem`; `border: 1px`.
+`modalActions.module.css`: `gap: 0.75rem`, `margin-top: 1.5rem`,
+`min-width: 6rem`.
+
+Some already sit on `vocabularies.test.ts`'s pending rows (`0.5rem`, `0.9rem`,
+`1rem`, `1`, `1px`, `0.75rem`, `1.5rem`); **the rest are on no row at all**,
+which is worth knowing — the guard shrinks BY VALUE, so an unlisted literal in a
+listed file already fails. These two files convert together with F11's titlebar
+token, since that edit lands in the same rule.
+
+## F23 · `viewport-margins-unchosen` · Five numbers about "how close to the edge"
+
+`edgePadding = 8` · `SOFT_MIN_VISIBLE = 60` · the fit's cap at
+`window.innerHeight - 16` · its floor at `Math.max(8, …)` · `FloatingPanel`'s
+`minWidth: 240` / `minHeight: 200` defaults, against `BlockingModal`'s 320/200.
+
+Each is defensible alone; together they are one question — how much of a panel
+must stay reachable, and how much air does it keep at the viewport edge — asked
+five times by four hands. **F7 left `minHeight: 200` noted for this reason**: it,
+not the content fit, is choosing the height of both blocking modals today.
+
+## F24 · `closebutton-copies-a-deleted-component` · A cross-component coupling maintained by prose
+
+`.closeButton`'s comment says *"The hover treatment matches the ClubGameCard
+delete button's idle state."* `ClubGameCard` was split into `ClubGameRow` plus a
+standalone callout by the homepage area's F38, and the delete button became
+`ClubGameDeleteButton`. So the sentence points at a component that no longer
+exists in that shape, and the coupling it describes has nothing keeping it true.
+Either the two share a class or they are independent; a comment is neither.
+
+---
+
+**Audit scoreboard: nine new findings, F16–F24, all OPEN.** F16
+(`esc-closes-every-panel`) is the only one that is a live bug rather than a
+question, and F16 + F17 + F18 are all really the same question — *what does a
+floating panel claim about the thing underneath it, and does anything enforce
+that claim?*
 
 ## Predicted test breaks
 
