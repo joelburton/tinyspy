@@ -184,7 +184,7 @@ converted; they were the only compile breaks, exactly as predicted.
 interrupting for — the player pressed New game and nothing happened, so
 something has to say why, and be seen rather than glanced at.
 
-## PARTLY RESOLVED · F7 · `two-modal-sizes` · Two hand-written sizes, 420×240 and 460×280
+## RESOLVED · F7 · `two-modal-sizes` · Two hand-written sizes, 420×240 and 460×280
 
 Nothing in either file said why. The plausible reason is that the fault carries
 three paragraphs where a confirmation carries one.
@@ -204,10 +204,23 @@ so `BlockingModal` sets `fitContent` and neither number survives.
 The third row was planted to prove the fit GROWS rather than sitting on the
 floor. It does.
 
-**STILL OPEN: the width.** 420 is now the category default and the fault passes
-460 to preserve its paint. Nothing explains the 40px. Also unexamined:
-`minHeight: 200` is what both modals now sit at (their content is ~165px), so
-the floor — not the fit — is choosing the height in the common case.
+**The width is 420, and it is not a prop** (Joel, 2026-08-24): *"pick one of
+420 or 460; I'm sure that is difference without distinction."* Two hands, no
+decision — so the category gets ONE width, and a modal that needed to be wider
+than its siblings would be claiming something about itself that isn't true. The
+fault, the only 460, came down to 420 and re-measured clean:
+
+| | box | overflow | button inside |
+|---|---|---|---|
+| fault, short | 420 × 200 | none | yes |
+| fault, 40× repeated message | 420 × 552 | none | yes |
+
+**One thing left unexamined, and it is small:** `minHeight: 200` is what both
+modals actually sit at, since their content is ~165px — so in the ordinary case
+the FLOOR is choosing the height, not the fit. The floor is inherited from
+`FloatingPanel`'s resizable-panel defaults, where a minimum stops you dragging a
+panel shut; a blocking modal cannot be resized, so it may not want one at all.
+Nothing looks wrong today. Noted rather than changed.
 
 ## F8 · `confirm-buttons-are-raw` · The confirmation's buttons bypass the tone system
 

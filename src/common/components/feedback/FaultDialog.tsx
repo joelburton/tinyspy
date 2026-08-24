@@ -39,9 +39,6 @@ export function FaultDialog() {
     <BlockingModal
       title="Error"
       onClose={dismissFault}
-      // 40px wider than the category default, which is what it has always been
-      // and which nothing explains — a diagnostics line is long. Unconverted.
-      width={460}
       actions={
         <button type="button" className="button primary" onClick={dismissFault} autoFocus>
           Close

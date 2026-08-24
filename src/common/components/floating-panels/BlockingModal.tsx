@@ -15,16 +15,6 @@ type Props = {
   children: ReactNode
   /** The footer row. Pass the buttons; the row and its layout are ours. */
   actions: ReactNode
-  /**
-   * How wide, in px. **Height is not a prop** — `fitContent` handles it, since
-   * a modal is as tall as its message. Width has no such answer: nothing in the
-   * content says how long a line should be, so somebody has to choose.
-   *
-   * 420 is the confirmation's long-standing number and now the category's
-   * default. The fault passes 460, which is the only other value the app has
-   * ever used here and which nothing written down explains.
-   */
-  width?: number
   /** Stacking tier, as a token string. **Deliberately not defaulted to
    *  `--z-modal-blocking`**: the two ladders coexist and a component moves rung
    *  by rung (plans/css-system-2.md §20 → Open 3), so leaving this unset keeps
@@ -53,8 +43,13 @@ type Props = {
  *     would be lying about its own category.
  *   - **`fitContent`** — §20's resize test: the content knows the HEIGHT here
  *     (a modal is as tall as its message), so nobody should be picking that
- *     number. It replaces the two hand-written ones, 240 and 280. Width is a
- *     different question and stays a prop — see it.
+ *     number. It replaces the two hand-written ones, 240 and 280.
+ *   - **420 wide, and it is not a prop.** `fitContent` governs height only, so
+ *     somebody still has to choose a width — but the category should be ONE
+ *     width. The app had two, 420 and 460, and the 40px between them was a
+ *     difference without a distinction (Joel, 2026-08-24): two hands, no
+ *     decision. A modal that needs to be wider than its siblings would be
+ *     saying something about itself that is not true.
  *   - **focus trapped** — the keyboard is owned outright, or "nothing
  *     underneath is live" stops being true the moment you press Tab.
  *
@@ -69,7 +64,6 @@ export function BlockingModal({
   onClose,
   children,
   actions,
-  width = 420,
   zIndex,
 }: Props) {
   // The trap works on the enclosing `[data-floating-panel]`, so it needs an
@@ -86,7 +80,7 @@ export function BlockingModal({
       backdrop
       fitContent
       // The height is a first-paint seed only; `fitContent` grows past it.
-      defaultSize={{ width, height: 240 }}
+      defaultSize={{ width: 420, height: 240 }}
       minWidth={320}
       minHeight={200}
       zIndex={zIndex}
