@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { ConfirmDialog } from '../panels/ConfirmDialog'
+import { ConfirmDialog } from '../floating-panels/ConfirmDialog'
 
 type Props = {
   /** The game's user-facing title, woven into the modal copy

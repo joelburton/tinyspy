@@ -243,7 +243,7 @@ The four games without a clear win keep asking: **letterboxed** (a win is any co
 ### Confirm modals — never `window.confirm`
 
 In-game confirmations go through the shared
-[`<ConfirmDialog>`](../src/common/components/panels/ConfirmDialog.tsx) — a
+[`<ConfirmDialog>`](../src/common/components/floating-panels/ConfirmDialog.tsx) — a
 true MODAL on the FloatingPanel shell: `backdrop` blocks every pointer action
 on the board underneath, focus is trapped, the confirm button autoFocuses
 (Enter confirms), Esc cancels, and the game key-captures bail inside
@@ -1556,7 +1556,7 @@ use. The disc and the glyph SHARE that slot: an account row names a person, an
 action names a deed, and no row is both. Which rows get one: everything with a
 button glyph, plus Print — a printer is instantly scannable in a list of words,
 and if a print button ever appears it has already been taught. Pinned by
-[`Menu.test.tsx`](../src/common/components/panels/Menu.test.tsx).
+[`Menu.test.tsx`](../src/common/components/menu/Menu.test.tsx).
 
 **Four glyphs are self-evident and are exempt.** Not every icon-only button
 needs a menu row: some glyphs are read correctly by anyone who has used a

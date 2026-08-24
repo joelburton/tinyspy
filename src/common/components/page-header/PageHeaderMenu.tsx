@@ -1,7 +1,7 @@
 // cs-audited
 
 import { useEffect, useRef, type ReactNode } from 'react'
-import { Menu, type MenuHandle } from '../panels/Menu'
+import { Menu, type MenuHandle } from '../menu/Menu'
 import { registerPageMenu } from '../../lib/menu/pageMenuStore'
 import type { MenuSection } from '../../lib/games'
 

@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { useCallback, useState, type ReactNode } from 'react'
-import { ConfirmDialog } from '../../components/panels/ConfirmDialog'
+import { ConfirmDialog } from '../../components/floating-panels/ConfirmDialog'
 
 export type ConfirmOptions = {
   title: string

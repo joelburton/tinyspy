@@ -9,7 +9,7 @@ import {
   setChatLastSeen,
   setChatUnread,
 } from '../../lib/chat/chatUnread'
-import { FloatingPanel } from '../panels/FloatingPanel'
+import { FloatingPanel } from '../floating-panels/FloatingPanel'
 import { ChatBody } from './ChatBody'
 
 import type { Member } from '../../lib/games'

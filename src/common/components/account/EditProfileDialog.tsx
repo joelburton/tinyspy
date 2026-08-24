@@ -6,8 +6,8 @@ import type { Session } from '@supabase/supabase-js'
 import { db as commonDb } from '../../db'
 import { useProfile, setProfileColor } from '../../hooks/session/useProfile'
 import { ColorChoiceList } from './ColorChoiceList'
-import { FloatingPanel } from '../panels/FloatingPanel'
-import actionRow from '../panels/modalActions.module.css'
+import { FloatingPanel } from '../floating-panels/FloatingPanel'
+import actionRow from '../floating-panels/modalActions.module.css'
 import styles from './EditProfileDialog.module.css'
 
 type Props = {

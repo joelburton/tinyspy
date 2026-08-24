@@ -10,8 +10,8 @@ to each other.
 ## Principles
 
 - **Organized by feature-DOMAIN** (club, game, chat, setup, definitions, …),
-  with a few **cross-cutting UI-primitive** folders (buttons, panels, feedback,
-  toasts, fields, text) for things used across domains.
+  with a few **cross-cutting UI-primitive** folders (buttons, floating-panels,
+  feedback, toasts, fields, text) for things used across domains.
 - **The same domain name recurs across the three layers.** `definitions/`,
   `chat/`, and `toast(s)/` appear in `components/`, `hooks/`, and/or `lib/`. That
   echo is deliberate — you find everything about a concept by its name in each
@@ -81,9 +81,11 @@ components/
         TurnLog, WordList, TurnLogActor, ActorTag
   definitions/   # click-a-word dictionary lookup
       DefinitionPopover, DefinitionView, WordLookupDialog
-  panels/        # generic floating/popup chrome (the draggable shell, the dropdown menu)
-                 #   + the shared scratchpad panel/bubble that ride on it
-      FloatingPanel, Menu, GameScratchpad
+  floating-panels/ # the shared shell for every window-like thing that floats over
+                 #   the page, + the panels that ride on it
+      FloatingPanel, ConfirmDialog, GameScratchpad
+  menu/          # the one menu (it contains different things on different pages)
+      Menu
   feedback/      # the near-input validity pill ("not a word", "too short")
       GenericFeedbackPill
   toasts/        # the bottom-right announcement stack (a generic primitive)

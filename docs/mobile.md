@@ -338,7 +338,7 @@ resolves to 4px on a phone vs 16/8px on tablet + desktop.
 
 ### Panels on touch — full-screen sheets + the close-button fix
 
-Realizes [decision 1](#decisions--directions). Every [`FloatingPanel`](../src/common/components/panels/FloatingPanel.tsx)
+Realizes [decision 1](#decisions--directions). Every [`FloatingPanel`](../src/common/components/floating-panels/FloatingPanel.tsx)
 (chat, scratchpad, Setup, Help, the modals) now adapts to touch:
 
 - **Non-draggable + non-resizable on any coarse pointer.** A new
@@ -351,7 +351,7 @@ Realizes [decision 1](#decisions--directions). Every [`FloatingPanel`](../src/co
   close button's `onClick` never fired. No drag binding → the X works. One hook
   fixes it for every panel at once.
 - **Full-screen sheet on phones.** Below `--phone`, a CSS override in
-  [`FloatingPanel.module.css`](../src/common/components/panels/FloatingPanel.module.css)
+  [`FloatingPanel.module.css`](../src/common/components/floating-panels/FloatingPanel.module.css)
   cancels react-rnd's inline position/size (`!important` — only that beats an
   inline style) so the panel fills the viewport instead of floating. Insets use
   `env(safe-area-inset-*)` so the header clears a notch / status bar in

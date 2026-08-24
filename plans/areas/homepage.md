@@ -76,7 +76,7 @@ Two subjects were added later, each bringing its own files:
 |---|---|---|
 | 2026-08-22, basic page structure | `src/common/base.css` | its page-level half |
 | 2026-08-23, the page header | `src/common/components/page-header/PageHeader.tsx` + `.module.css` | |
-| " | ~~`src/common/components/panels/MenuTrigger.tsx` + `.module.css`~~ | the trigger's standard content — **deleted by F12**; the logo is a `<Menu>` prop and the chevron is `IconMenuChevron` |
+| " | ~~`src/common/components/menu/MenuTrigger.tsx` + `.module.css`~~ | the trigger's standard content — **deleted by F12**; the logo is a `<Menu>` prop and the chevron is `IconMenuChevron` |
 
 `ClubPage` and `GamePage` were read as EVIDENCE for both, and are neither
 `cs-found` nor `cs-audited` by that — see §21's note on what "found" means.
@@ -1687,7 +1687,7 @@ is missing lots of things that got into the slots, so we'll probably re-open in
 the clubpage, where we see more stuff."*
 
 **The files:** `components/page-header/PageHeader.tsx` + `.module.css`, and
-`components/panels/MenuTrigger.tsx` + `.module.css`.
+`components/menu/MenuTrigger.tsx` + `.module.css`.
 
 **What the audit CONFIRMED, so it does not become a finding:**
 
@@ -2029,9 +2029,9 @@ becomes its own area is Joel's call.
 - `components/branding/PuzpuzpuzWordmark.module.css`
 - `components/branding/PuzpuzpuzLogo.tsx`
 - `components/branding/PuzpuzpuzLogo.module.css`
-- `components/panels/Menu.tsx`
-- `components/panels/Menu.module.css`
-- ~~`components/panels/MenuTrigger.tsx`~~ · ~~`.module.css`~~ — deleted by F12
+- `components/menu/Menu.tsx`
+- `components/menu/Menu.module.css`
+- ~~`components/menu/MenuTrigger.tsx`~~ · ~~`.module.css`~~ — deleted by F12
 - `components/page-header/PageHeaderMenu.tsx` — added by F12
 - `components/page-header/PageHeader.tsx`
 - `components/page-header/PageHeader.module.css`

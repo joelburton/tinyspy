@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { FloatingPanel } from '../../common/components/panels/FloatingPanel'
+import { FloatingPanel } from '../../common/components/floating-panels/FloatingPanel'
 import styles from './NoteDialog.module.css'
 
 type Props = {

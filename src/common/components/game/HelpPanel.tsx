@@ -1,7 +1,7 @@
 // cs-unmet
 
 import type { ReactNode } from 'react'
-import { FloatingPanel } from '../panels/FloatingPanel'
+import { FloatingPanel } from '../floating-panels/FloatingPanel'
 import styles from './HelpPanel.module.css'
 
 type Props = {

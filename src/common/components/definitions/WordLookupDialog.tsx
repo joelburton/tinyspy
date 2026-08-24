@@ -2,7 +2,7 @@
 
 import { useRef, useState, type FormEvent } from 'react'
 import { DefinitionView } from './DefinitionView'
-import { FloatingPanel } from '../panels/FloatingPanel'
+import { FloatingPanel } from '../floating-panels/FloatingPanel'
 import styles from './WordLookupDialog.module.css'
 import { cls } from '../../lib/util/cls'
 

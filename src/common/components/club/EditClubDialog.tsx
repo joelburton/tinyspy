@@ -4,9 +4,9 @@ import { formFailureText } from '../../lib/game/serverError'
 import { useState } from 'react'
 import { db as commonDb } from '../../db'
 import { games } from '../../../games'
-import { FloatingPanel } from '../panels/FloatingPanel'
+import { FloatingPanel } from '../floating-panels/FloatingPanel'
 import { ModePill } from '../game/ModePill'
-import actionRow from '../panels/modalActions.module.css'
+import actionRow from '../floating-panels/modalActions.module.css'
 import styles from './EditClubDialog.module.css'
 
 type Props = {

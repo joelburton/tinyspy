@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { Fragment, type ReactNode } from 'react'
-import { FloatingPanel } from '../../common/components/panels/FloatingPanel'
+import { FloatingPanel } from '../../common/components/floating-panels/FloatingPanel'
 import styles from './ExplainDialog.module.css'
 
 /** The dialog's state — mirrors crossplay's ExplainPopover states, minus the

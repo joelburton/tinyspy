@@ -5,7 +5,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { db as commonDb } from '../../db'
 import { setWordEdit, type WordEditRequest } from '../../lib/definitions/wordEditStore'
 import { useConfirmDialog } from '../../hooks/ui/useConfirmDialog'
-import { FloatingPanel } from '../panels/FloatingPanel'
+import { FloatingPanel } from '../floating-panels/FloatingPanel'
 import styles from './WordEditDialog.module.css'
 import { cls } from '../../lib/util/cls'
 

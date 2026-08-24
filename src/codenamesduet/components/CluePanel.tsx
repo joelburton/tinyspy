@@ -6,7 +6,7 @@ import { useRef, useState, type KeyboardEvent, type RefObject, type SubmitEvent 
 import { callEdgeFn } from '../../common/lib/supabase/callEdgeFn'
 import { cls } from '../../common/lib/util/cls'
 import { ActorDot, ActorTag } from '../../common/components/game/lists/ActorMention'
-import { FloatingPanel } from '../../common/components/panels/FloatingPanel'
+import { FloatingPanel } from '../../common/components/floating-panels/FloatingPanel'
 import { SubmitButton } from '../../common/components/buttons/SubmitButton'
 import { AIButton } from '../../common/components/buttons/AIButton'
 import { EndTurnButton } from '../../common/components/buttons/EndTurnButton'

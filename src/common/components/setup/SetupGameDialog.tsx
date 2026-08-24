@@ -3,7 +3,7 @@
 import { formFailureText } from '../../lib/game/serverError'
 import { Suspense, useState } from 'react'
 import { MODE_LABEL, type GameManifest, type Member, type RichMessage as RichMessageType } from '../../lib/games'
-import { FloatingPanel } from '../panels/FloatingPanel'
+import { FloatingPanel } from '../floating-panels/FloatingPanel'
 import { HelpButton } from '../buttons/HelpButton'
 import { RichMessage } from '../text/RichMessage'
 import { Dot } from '../text/Dot'

@@ -1,10 +1,10 @@
 // cs-unmet
 
 import { useRef } from 'react'
-import { FloatingPanel } from '../panels/FloatingPanel'
+import { FloatingPanel } from '../floating-panels/FloatingPanel'
 import { useFocusTrap } from '../../hooks/ui/useFocusTrap'
 import { dismissFault, presentFault, useCurrentFault } from '../../lib/fault/faultStore'
-import actionRow from '../panels/modalActions.module.css'
+import actionRow from '../floating-panels/modalActions.module.css'
 import styles from './FaultDialog.module.css'
 
 /**

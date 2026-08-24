@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { FloatingPanel } from '../panels/FloatingPanel'
+import { FloatingPanel } from '../floating-panels/FloatingPanel'
 
 type Props = {
   onClose: () => void

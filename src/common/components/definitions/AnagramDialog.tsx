@@ -5,7 +5,7 @@ import { failureText } from '../../lib/game/serverError'
 import { useState, type FormEvent } from 'react'
 import { db as commonDb } from '../../db'
 import { useDefinePopover } from '../../hooks/definitions/useDefinePopover'
-import { FloatingPanel } from '../panels/FloatingPanel'
+import { FloatingPanel } from '../floating-panels/FloatingPanel'
 import styles from './AnagramDialog.module.css'
 import { cls } from '../../lib/util/cls'
 

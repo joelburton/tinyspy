@@ -1616,40 +1616,27 @@ have a sharp name).
 The precedent is `card`, which was exactly this kind of loose word until it was
 given a specific meaning.
 
-**The folders, decided 2026-08-24.** `components/panels/` becomes
-**`components/floating-panels/`** — kebab, matching `loading-and-errs`, the
-repo's only other multi-word folder. `Menu` moves out to **`components/menu/`**,
-top-level beside it, because it uses none of the shell's machinery and has no
-business under a floating-panel folder.
+**The folders — decided and SHIPPED 2026-08-24.**
 
-**`menu/` is singular on purpose** (Joel, 2026-08-24): *"that the gamepage /
-clubpage / homepage actually use different menus doesn't matter. From the
-high-level perspective: there's one menu, it contains different things."* So it
-is not the plural shape-folder that `buttons/` and `lists/` are — it is the one
-menu's home.
+- **`components/panels/` → `components/floating-panels/`** — kebab, matching
+  `loading-and-errs`, the repo's only other multi-word folder. It now holds only
+  floating panels: the shell, `ConfirmDialog`, `GameScratchpad`, `modalActions`.
+- **`Menu` → `components/menu/`**, top-level beside it, because it uses none of
+  the shell's machinery and has no business under a floating-panel folder.
+  **Singular on purpose** (Joel, 2026-08-24): *"that the gamepage / clubpage /
+  homepage actually use different menus doesn't matter. From the high-level
+  perspective: there's one menu, it contains different things."* So it is not the
+  plural shape-folder that `buttons/` and `lists/` are — it is the one menu's home.
+- **`components/chrome/` → `components/page-header/`**, taking everything about
+  the strip. `chrome/` held only the three `PageHeader*` files, so it was already
+  the header's folder and merely named for a category it was the sole member of.
+  It gains `PageHeaderPlayersStrip` and `PageHeaderStatusSlot` (from `game/`) and
+  **`ChatButton` + `ScratchpadButton`** — neither is a floating panel; each is a
+  header mark that OPENS one, and filing them by their target is what put a
+  button in `panels/`. If general chrome needs a home later, we re-create it then.
 
-Both are on the rename roster (Open item 4); no file has moved.
-
-**`components/page-header/` becomes `components/page-header/`, and everything about
-the header goes in it** (Joel, 2026-08-24). `chrome/` holds only the three
-`PageHeader*` files today, so the folder was already the header's and merely
-named for a category it was the sole member of. If we later need a home for
-general chrome, we re-create it then.
-
-What lands there:
-
-- the three already in `chrome/` — `PageHeader`, `PageHeaderButton`,
-  `PageHeaderMenu`;
-- `PageHeaderPlayersStrip` and `PageHeaderStatusSlot`, today in `game/` under the
-  same prefix;
-- **`ChatButton` and `ScratchpadButton`.** Neither is a floating panel; each is a
-  header mark that OPENS one, and that is where they render — `ChatButton` in
-  ClubPage's and GamePage's header strips, `ScratchpadButton` in GamePage's, for
-  the games whose manifest opts in. Filing them by what they open was the
-  accident of the old folder.
-
-Implicated component names, same roster, NOT decided here: `HelpPanel` (72
-references), `CluePanel` (19), `infoPanel.module.css` (22).
+Implicated component names, on the rename roster (Open item 4), NOT decided here:
+`HelpPanel` (72 references), `CluePanel` (19), `infoPanel.module.css` (22).
 
 Consumer docstrings that still say "panel" loosely get fixed as each area is
 audited, not in a sweep.
