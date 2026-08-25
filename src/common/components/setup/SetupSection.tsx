@@ -30,7 +30,7 @@ export function SetupSection({
   return (
     <details className={styles.section} open={defaultOpen || undefined}>
       <summary className={styles.summary}>{label}</summary>
-      <div className={styles.body}>{children}</div>
+      <div className={styles.sectionContent}>{children}</div>
     </details>
   )
 }

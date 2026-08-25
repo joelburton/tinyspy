@@ -134,7 +134,7 @@ export function CelebrationBlockingModal({
           ))}
         </div>
         <h2 className={styles.title}>{title}</h2>
-        <p className={styles.body}>{body}</p>
+        <p className={styles.subline}>{body}</p>
       </div>
     </BlockingModal>
   )

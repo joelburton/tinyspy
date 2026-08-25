@@ -265,7 +265,7 @@ export function SetupGameModal({
           the cursor. Reserving the slot is the same no-reflow move the setup
           hint below makes; the remaining growth is small and lands downward
           (FloatingPanel anchors the header rather than re-centering). */}
-      <Suspense fallback={<p className={cls('muted', styles.bodyReserve)}>Loading options…</p>}>
+      <Suspense fallback={<p className={cls('muted', styles.optionsReserve)}>Loading options…</p>}>
         <SetupBody
           members={members}
           brand={manifest.name}

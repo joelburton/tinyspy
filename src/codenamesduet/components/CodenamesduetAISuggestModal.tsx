@@ -78,7 +78,7 @@ export function CodenamesduetAISuggestModal({
 }: CluePanelProps) {
   if (inSuddenDeath) {
     return (
-      <div className={cls(styles.cluePanel, styles.suddenDeath)}>
+      <div className={cls(styles.suggestion, styles.suddenDeath)}>
         <strong>Sudden death.</strong> No more clues — any non-green reveal loses.
       </div>
     )
@@ -86,7 +86,7 @@ export function CodenamesduetAISuggestModal({
 
   if (isGuessPhase && currentClue) {
     return (
-      <div className={styles.cluePanel}>
+      <div className={styles.suggestion}>
         {/* No "Your clue:" label — the bold WORD · N beside the Pass button is
             self-evidently the clue, and the row is tight on a phone. */}
         <ClueDisplay clue={currentClue} />
@@ -106,7 +106,7 @@ export function CodenamesduetAISuggestModal({
     )
   }
   return (
-    <div className={styles.cluePanel}>
+    <div className={styles.suggestion}>
       <PeerWaiting peer={peer} action="give a clue" />
     </div>
   )

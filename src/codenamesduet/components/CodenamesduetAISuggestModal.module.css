@@ -13,7 +13,7 @@
  * (docs/ui.md → "Layout stability"). The clue-giver's guess-phase line ("Your
  * clue: WORD · N  Waiting for X to guess…") is the longest, and stays on one row
  * on a desktop-width board. */
-/* @@ */ .cluePanel {
+/* @@ */ .suggestion {
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -24,7 +24,7 @@
 
 /* Sudden death is the one state that still carries its own visual — a tinted
  * background + accent border — to drive the "things just got real" beat. */
-/* @@ */ .cluePanel.suddenDeath {
+/* @@ */ .suggestion.suddenDeath {
   border: 1px solid var(--codenamesduet-assassin);
   background: var(--codenamesduet-assassin-soft);
   border-radius: var(--radius-md);

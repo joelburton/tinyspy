@@ -74,7 +74,7 @@
   color: var(--page-text-color);
 }
 
-/* @@ */ .body {
+/* @@ */ .subline {
   margin: 0 0 1.4rem;
   color: var(--page-text-muted-color);
 }

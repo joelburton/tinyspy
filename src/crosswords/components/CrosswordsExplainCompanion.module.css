@@ -2,7 +2,7 @@
 
 /* The AI clue-explanation body. pre-wrap keeps the model's line breaks between
  * the Definition / Wordplay / Indicators lines. */
-/* @@ */ .body {
+/* @@ */ .explanation {
   margin: 0;
   white-space: pre-wrap;
   overflow-wrap: anywhere;

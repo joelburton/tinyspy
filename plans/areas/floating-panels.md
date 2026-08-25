@@ -25,7 +25,7 @@ change here forward-fixes them in the same commit (§21's compile-break rule) an
 **their stamps do not move**. If one of them turns out to be the only evidence
 for a shared question, it gets surfaced and asked about, not audited.
 
-**Twenty-eight findings.** Thirteen RESOLVED (F1–F7, F16, F17, F18, F19, F21,
+**Twenty-eight findings.** Fourteen RESOLVED (F1–F7, F16, F17, F18, F19, F21,
 F25, F28), three MOVED to `forms` (F8, F9, F13), two PUNTED (F14 → the first
 game area, F15 → crosswords), **nine OPEN** — F10, F11, F12, F20, F22, F23, F24,
 F26, F27.
@@ -268,12 +268,53 @@ scratchpad and every modal. Joel, 2026-08-22: titlebars not being white *"makes
 sense"*, but it is the hover gray by ACCIDENT and **the two must not be
 coupled**. It wants its own token, at whatever value.
 
-## F12 · `nine-body-classes` · Nine `.body` classes want real names
+## RESOLVED · F12 · `nine-body-classes` · Nine `.body` classes, and they were not one thing
 
-All nine mean "a floating panel's content area, as opposed to its titlebar":
-`FloatingPanel`, `GameScratchpadCompanion`, `SetupSection`, `CelebrationBlockingModal`,
-`DeviceBlockNotice`, `FaultModal`, `DefinitionView`, crosswords'
-`CrosswordsExplainCompanion`. Shared with `shared-game-chrome`.
+Recorded as *"all nine mean a floating panel's content area, as opposed to its
+titlebar"* — so the fix looked like a rename to one better word. Reading them
+says otherwise. They were **three concepts wearing one word**, plus a fourth
+that has nothing to do with panels:
+
+- **the shell's content region** — `FloatingPanel`. The one place the word is
+  true, and the thing the others were borrowing.
+- **a layout stack inside a panel** — `GameScratchpadCompanion`, `FaultModal`.
+- **body COPY, a paragraph of prose** — `CelebrationBlockingModal`,
+  `DeviceBlockNotice`, `DefinitionView`, `CrosswordsExplainCompanion`. These
+  read as containers and are text.
+- **a disclosure section's content** — `SetupSection`, which would mean the same
+  on a page with no panel anywhere.
+
+**The recorded finding got it wrong itself, and that is the evidence**: a name
+that made three concepts look like one fooled the audit written to catch exactly
+that.
+
+**Resolved by splitting, not renaming** (Joel, 2026-08-25):
+
+| file | was | now |
+|---|---|---|
+| `FloatingPanel` | `.body` | `.body` — kept |
+| `GameScratchpadCompanion` | `.body` | `.notepad` |
+| `FaultModal` | `.body` | `.report` |
+| `CrosswordsExplainCompanion` | `.body` | `.explanation` |
+| `CelebrationBlockingModal` | `.body` | `.subline` |
+| `DeviceBlockNotice` | `.body` | `.reason` |
+| `DefinitionView` | `.body` | `.definition` |
+| `SetupSection` | `.body` | `.sectionContent` |
+| `SetupGameModal` | `.bodyReserve` | `.optionsReserve` |
+| `CodenamesduetAISuggestModal` | `.cluePanel` | `.suggestion` |
+
+The last two are the strays folded in: a fifth sense of "body" (a lazy-load
+height reserve) and a class named after a component that no longer exists.
+
+**The collision that proves the point cost a compile error on the way.**
+`GameScratchpadCompanion.tsx` had `styles.body` and `sp.body` — a class and the
+scratchpad's TEXT CONTENT — four lines apart, so a `\.body\b` rename hit both
+and `tsc` caught `sp.notepad`. Two things called body in one file, meaning
+completely different things, is the whole finding in miniature.
+
+**Not renamed, and deliberately:** the celebration's `body` PROP and the
+scratchpad's `sp.body` field. Those are component and store APIs; F12 is about
+classes.
 
 ## PUNTED · F14 · `helppanel-got-it` · Help is classed a companion but its button ends it
 

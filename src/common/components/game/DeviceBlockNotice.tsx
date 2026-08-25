@@ -36,7 +36,7 @@ export function DeviceBlockNotice({ title, children, onBackToClub }: Props) {
     <div className={styles.wrap}>
       <div className={styles.card}>
         <h2 className={styles.title}>{title}</h2>
-        <p className={styles.body}>{children}</p>
+        <p className={styles.reason}>{children}</p>
         <BackToClubButton onClick={onBackToClub} variant="primary" />
       </div>
     </div>

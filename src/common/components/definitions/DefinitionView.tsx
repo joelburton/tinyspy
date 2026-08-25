@@ -65,7 +65,7 @@ export function DefinitionView({ word, onNavigate }: Props) {
         <div className={styles.status}>No definition found.</div>
       )}
       {!loading && !error && result?.def != null && (
-        <p className={styles.body}>
+        <p className={styles.definition}>
           {parseDefinition(result.def, result.source).map((part, i) =>
             part.kind === 'ref'
               ? (

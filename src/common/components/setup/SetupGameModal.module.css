@@ -103,7 +103,7 @@
  * async data lands), and over-reserving would make every SHORT form open too
  * tall and visibly shrink — the same jump, inverted. The residual growth is a
  * fraction of the old one and now lands downward from a fixed header. */
-/* @@ */ .bodyReserve {
+/* @@ */ .optionsReserve {
   display: block;
   min-height: 15rem;
 }

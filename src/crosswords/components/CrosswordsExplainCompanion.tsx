@@ -36,7 +36,7 @@ export function CrosswordsExplainCompanion({ clueLabel, state, onClose }: Props)
     >
       {state.kind === 'loading' && <p className={styles.status}>Asking the AI…</p>}
       {state.kind === 'error' && <p className={styles.error}>{state.message}</p>}
-      {state.kind === 'ok' && <div className={styles.body}>{renderExplanation(state.explanation)}</div>}
+      {state.kind === 'ok' && <div className={styles.explanation}>{renderExplanation(state.explanation)}</div>}
     </FloatingPanel>
   )
 }

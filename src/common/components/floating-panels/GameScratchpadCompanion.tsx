@@ -51,7 +51,7 @@ export function GameScratchpadCompanion({ gameId, ownerId, myId, username, isTer
       minWidth={240}
       minHeight={200}
     >
-      <div className={styles.body}>
+      <div className={styles.notepad}>
         <div className={styles.lockBar}>
           <span>{status}</span>
           {sp.canTakeOver && (

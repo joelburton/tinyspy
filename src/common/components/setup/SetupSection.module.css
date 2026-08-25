@@ -31,6 +31,6 @@
 
 /* The revealed controls. Top padding is 0 because the summary already spaces it;
  * the rest matches `.fieldset`'s inner padding. */
-/* @@ */ .body {
+/* @@ */ .sectionContent {
   padding: 0.25rem 1rem 0.85rem;
 }
