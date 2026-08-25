@@ -1,7 +1,6 @@
 // cs-audited
 
 import { useEffect } from 'react'
-import type { PanelFamily } from '../../components/floating-panels/FloatingPanel'
 
 /**
  * How each family answers Escape. `'close'` dismisses; `'swallow'` consumes the
@@ -10,24 +9,40 @@ import type { PanelFamily } from '../../components/floating-panels/FloatingPanel
 export type EscapePolicy = 'close' | 'swallow'
 
 /**
- * Where each family sits for the purposes of "which panel is on top". Same
- * order as the z- ladder, and deliberately the FAMILY's order rather than the
- * painted one: chat lives at `z-chat`, above every modal, but it is classed a
- * companion — so with a setup modal open, Escape closes the setup, not the
- * conversation you have been keeping open all game (Joel, 2026-08-24).
+ * Resolve a tier expression — `'var(--z-modal-normal)'` — to the number the
+ * ladder gives it.
+ *
+ * **Reading the real value is the point.** A hand-written rank table lived here
+ * first, and it was a second copy of an order that already exists in
+ * `base.css`: it disagreed with the ladder the moment Help got a rung of its
+ * own, ranking BELOW the setup dialog it paints above. Escape order and paint
+ * order are the same order, with exactly one stated exception (chat, below), so
+ * there is no reason for a second list.
+ *
+ * Cached because these never change — no theme moves a z- layer. Falls back to
+ * 0 outside a browser (jsdom returns nothing for a custom property), where
+ * every panel ties and mount order decides, which is a sane degradation for a
+ * key nothing headless presses.
  */
-const RANK: Record<PanelFamily, number> = {
-  companion: 0,
-  dialog: 1,
-  'modal-normal': 2,
-  'modal-blocking': 3,
-  'modal-fault': 4,
+const rankCache = new Map<string, number>()
+function rankOf(tier: string): number {
+  const hit = rankCache.get(tier)
+  if (hit !== undefined) return hit
+  const token = tier.match(/--[\w-]+/)?.[0]
+  const raw = token
+    ? getComputedStyle(document.documentElement).getPropertyValue(token)
+    : ''
+  const n = Number.parseInt(raw, 10)
+  const rank = Number.isNaN(n) ? 0 : n
+  rankCache.set(tier, rank)
+  return rank
 }
 
 type Entry = {
   /** Matches the panel shell's `data-floating-panel` value. */
   id: string
-  family: PanelFamily
+  /** The tier this panel ranks at for Escape — usually the one it paints at. */
+  tier: string
   escape: EscapePolicy
   onClose: () => void
   /** Mount order, so ties break by later-mounted-wins. */
@@ -40,13 +55,15 @@ const open: Entry[] = []
 let seqCounter = 0
 let listening = false
 
-/** The panel Escape belongs to when focus is not inside any of them: highest
- *  family rank, later mount breaking a tie. */
+/** The panel Escape belongs to when focus is not inside any of them: the
+ *  highest tier, later mount breaking a tie. */
 function topmost(): Entry | undefined {
   return open.reduce<Entry | undefined>((best, e) => {
     if (!best) return e
-    if (RANK[e.family] > RANK[best.family]) return e
-    if (RANK[e.family] === RANK[best.family] && e.seq > best.seq) return e
+    const a = rankOf(e.tier)
+    const b = rankOf(best.tier)
+    if (a > b) return e
+    if (a === b && e.seq > best.seq) return e
     return best
   }, undefined)
 }
@@ -77,8 +94,12 @@ function onKeyDown(e: KeyboardEvent) {
  *      above it. If that panel swallows Escape, nothing happens — it does not
  *      fall through to the panel below, which would be the most confusing
  *      outcome available.
- *   2. Focus is not in any panel → Escape acts on the top one, ranked by
- *      FAMILY (see `RANK`), later-mounted breaking ties.
+ *   2. Focus is not in any panel → Escape acts on the top one, **ranked by the
+ *      tier it sits at** — the same order it paints in — with later-mounted
+ *      breaking ties. Exactly one component ranks somewhere other than where it
+ *      paints: chat, which lives above every modal so a conversation stays
+ *      reachable, but ranks at its family so a modal you just opened takes
+ *      Escape first (Joel, 2026-08-24).
  *
  * **Why this is one module-level listener and not one per panel.** It used to be
  * per-panel, and two open panels meant two listeners, so a single Escape fired
@@ -93,12 +114,12 @@ function onKeyDown(e: KeyboardEvent) {
  */
 export function usePanelEscape(
   id: string,
-  family: PanelFamily,
+  tier: string,
   escape: EscapePolicy,
   onClose: () => void,
 ): void {
   useEffect(() => {
-    const entry: Entry = { id, family, escape, onClose, seq: seqCounter++ }
+    const entry: Entry = { id, tier, escape, onClose, seq: seqCounter++ }
     open.push(entry)
     if (!listening) {
       window.addEventListener('keydown', onKeyDown)
@@ -112,5 +133,5 @@ export function usePanelEscape(
         listening = false
       }
     }
-  }, [id, family, escape, onClose])
+  }, [id, tier, escape, onClose])
 }

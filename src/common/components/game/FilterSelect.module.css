@@ -93,7 +93,12 @@
   position: absolute;
   top: calc(100% + 2px);
   right: 0;
-  z-index: var(--z-index-popover);
+  /* A SATELLITE — the only one left. It has to beat whatever CONTAINS it (an
+     info column today, a form tomorrow), which as a rung would mean outranking
+     a blocking modal, absurd for a filter. So it reads its host's tier, and a
+     host that isn't the page sets `--z-host` on itself; `.infoCol` does.
+     plans/css-system-2.md §20 → the satellites. */
+  z-index: calc(var(--z-host, var(--z-page)) + 1);
   min-width: 100%;
   width: max-content;
   max-width: 14rem;

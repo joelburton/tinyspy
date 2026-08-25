@@ -500,28 +500,49 @@ Six rules that are otherwise only discoverable by reading the code:
 5. **Click-to-define words are pointer-only** — no `tabIndex`, no `role="button"`, no focus style. The reasoning is in [`utilities.css`](../src/common/utilities.css)'s `.definable` block. A word that genuinely needs keyboard reach gets a real `<button>`.
 6. **`_variant` suffixes** name the classes behind a `` styles[`base_${key}`] `` lookup: `.outcome_won`, `.day_lost`, `.barInner_good`, `.viewedTile_oneAway`, `.guessWord_G`. Base name, underscore, the key's value. The underscore is what marks a class as *dynamically* selected — grep it to find every class that isn't referenced literally anywhere.
 
-#### The z-index ladder
+#### The z- layers
 
-**The ladder is named, and it lives in [`base.css`](../src/common/base.css) → "The Z-INDEX LADDER".** Read a token; never write a page-level number. This is a stacking *order*, not a scale — its failure mode is a visible bug (a menu behind a backdrop), which is why the tiers carry names and not `--z-index-1…5`: nothing about "3" says whether it beats the chat panel.
+**The layers are named, and they live in [`base.css`](../src/common/base.css) → "THE Z- LAYERS".** Read a token; never write a page-level number. This is a stacking *order*, not a scale — its failure mode is a visible bug (a menu behind a scrim), which is why the layers carry names and not `--z-index-1…5`: nothing about "3" says whether it beats chat.
+
+**`--z-<layer>`, not `--z-index-<layer>`**: the token IS the layer, and that is the point of the split. `--radius-md` feeds `border-radius` and `--shadow-panel` feeds `box-shadow` — a token named for the property that consumes it was the odd one out. It also lets a layer that needs no z-index sit in the list without claiming a mechanism it doesn't use, which is exactly what `z-pause-gate` is.
 
 | token | value | what |
 |---|---|---|
-| `--z-index-infoSheet` | 40 | the info column as a full-bleed page, below `--mobile` |
-| `--z-index-panel` | **500** | `FloatingPanel`'s default — the setup dialog, confirms, Help. Its backdrop paints at `calc(… - 1)` |
-| `--z-index-popover` | 1500 | `Menu` (its flyout at `calc(… + 1)`), `FilterSelect`, the definition popover, crosswords' number-jump |
-| `--z-index-chatPanel` | 10000 | deliberately above dialogs: you can chat with a setup dialog open. What opens chat is the header's `<ChatButton>` — ordinary page content, not a layer |
-| `--z-index-scratchpad` | 10000 | the same rank for the same reason, named separately because it is a separate decision |
-| `--z-index-celebration` | 10001 | one beat, above everything except… |
-| `--z-index-toast` / `--z-index-tooltip` | 12000 | …these, which nothing ever covers |
+| `--z-page` | 0 | the page itself. Nothing here is ever deliberately drawn over anything else |
+| `--z-board` | 1000 (–1099) | the play surface and the pieces on it, including pieces stacked on other pieces. **Not read yet** — a board's own stacking is still local 0–5, and this token gaining a reader is the signal that boards became sealed |
+| `--z-board-question` | 1100 | a box over ONE square, taking or showing something for it: crosswords' rebus entry. **Not read yet** |
+| `--z-ghost` | 1200 | a piece in transit, following the pointer. **Not read yet** |
+| `--z-infocol` | 1300 | the readouts beside the board — and a layer on desktop too, where nothing overlaps: sitting beside rather than over is a fact about the viewport, not about the kind of thing it is |
+| `--z-companion` | 2000 | something you keep NEARBY while you play: the scratchpad, a setter's note, a clue explainer |
+| `--z-dialog` | 2100 | a question that can wait. No dim, movable, opens where you left it |
+| `--z-modal-normal` | 2200 | a question worth thinking or talking about. Dims to focus you; chat stays reachable, which is not a leak — a normal modal never claimed the world stopped |
+| `--z-help` | 2300 | **Help states otherwise.** It is a companion by every test, but it is summoned FROM things — including the setup modal — and the rules must never open behind the form you pressed "?" in |
+| *`z-pause-gate`* | *3000* | a LAYER WITH NO Z-INDEX, so it is a comment rather than a token. `PauseBoundary` unmounts the play surface rather than covering it |
+| `--z-chat` | 3100 | **Chat states otherwise.** Classed a companion, but the conversation must stay reachable over every dim below it — and chat is the one panel that can OPEN ITSELF (a `!` message force-opens it), so it must never materialize underneath something |
+| `--z-menu` | 3200 | the header menu. There is exactly one, rendered only by `<PageHeaderMenu>`, which is why it is a rung and not a satellite |
+| `--z-toast` | 4000 | an announcement you must see wherever you are and whatever you are doing |
+| `--z-modal-blocking` | 5000 | the world stops. Answer it now; nothing underneath is live |
+| `--z-modal-fault` | 5100 | as blocking, but strictly above it — an error must be readable mid-question |
+| `--z-tooltip` | 9000 | the very top, safely: you cannot hover or click what a modal has made inert. The definition popover is here too — a tooltip with different styling |
 
-**What is NOT on the ladder** is layering inside a component's own stacking context — a ring over a tile, a floating shuffle on its board, the keyboard cursor. Those compete only with their siblings and stay small local numbers. The app has a clean gap: everything local is ≤ 10, everything page-level is ≥ 40.
+**The ordering rule, which is the sentence to keep: shorter-lived or more important sits higher.** The numbers encode relationships — a thousand is a different world, a hundred is a layer within one, ten would be a tweak of a layer (nothing uses one yet; the step exists so that when something does, it says so).
+
+**A floating panel does not read these directly — its FAMILY does.** `<FloatingPanel family="dialog">` resolves `var(--z-dialog)` from the family name, so there is no list of tiers in TypeScript to drift from this one. The two components that state otherwise are the two above, each with the reason written in its own file.
+
+**What is NOT a rung.** Things that attach to a layer instead of occupying one, which is what keeps the list short:
+
+- **a scrim** sits one BELOW its owner (`FloatingPanel` paints it at `calc(… - 1)`);
+- **a `<FilterSelect>` dropdown** sits just ABOVE its host, `z-index: calc(var(--z-host, var(--z-page)) + 1)`. A host that isn't the page sets `--z-host` on itself, and exactly one does today: `.infoCol`, as a **custom property only** — giving it a `z-index` or a `position` would make it a stacking context or a containing block and move where a dropdown anchors;
+- **a tooltip** goes to the absolute top and needs no host at all.
+
+**What is NOT on the ladder** is layering inside a component's own stacking context — a ring over a tile, a floating shuffle on its board, the keyboard cursor. Those compete only with their siblings and stay small local numbers. The app has a clean gap: everything local is ≤ 10, everything page-level is ≥ 1000.
 
 **The rule is guarded**, by `guards/vocabularies.test.ts`, and in two halves:
 
-- **In CSS, across all of `src/` — boards included.** This is the one vocabulary where tuned surfaces are *not* exempt: a board's radius is a game's decision, but a board's rank against the chat panel is a whole-app decision that merely happens to be written in a game's file. Values 0–10 stay legal as local layering; anything above must read a token.
-- **In TypeScript.** `<FloatingPanel>`'s `zIndex` prop is typed `string` and takes `var(--z-index-chatPanel)`, so the order has one home rather than a CSS list and a TS list free to disagree. A numeric literal fails the guard. A *computed* z-index is still fine — stackdown stacks its tile pile with `zIndex: t.z`, which is per-tile data, not a tier.
+- **In CSS, across all of `src/` — boards included.** This is the one vocabulary where tuned surfaces are *not* exempt: a board's radius is a game's decision, but a board's rank against chat is a whole-app decision that merely happens to be written in a game's file. Values 0–10 stay legal as local layering; anything above must read a token.
+- **In TypeScript.** `<FloatingPanel>`'s `zIndex` prop is typed `string` and takes `var(--z-chat)`, so the order has one home rather than a CSS list and a TS list free to disagree. A numeric literal fails the guard. A *computed* z-index is still fine — stackdown stacks its tile pile with `zIndex: t.z`, which is per-tile data, not a tier.
 
-**Three values are deliberately still literals**, each with a step that owns it (see [css-system-2.md](../plans/css-system-2.md) § Carried forward): the two drag ghosts, which disagree at 1000 (bananagrams) and 100 (scrabble); and scrabble's `BlankPicker` overlay at 50, a full-screen `position: fixed` modal parked *below* the panel tier, so an open chat or menu paints over it. Naming them would bless arrangements nobody has decided on. They sit on the guard's pending list until then.
+**Three values are deliberately still literals**, each with an area that owns it (see [css-system-2.md](../plans/css-system-2.md) § Carried forward): the two drag ghosts, which disagree at 1000 (bananagrams) and 100 (scrabble); and scrabble's `BlankPicker` overlay at 50, a full-screen `position: fixed` modal parked *below* the panel tier, so an open chat or menu paints over it. Naming them would bless arrangements nobody has decided on. They sit on the guard's pending list until then.
 
 #### Duplication and drift that are deliberate
 

@@ -39,6 +39,11 @@ export function HelpPanel({
   return (
     <FloatingPanel
       family="companion"
+      // Help STATES OTHERWISE, the way chat does: a companion by every test, but
+      // summoned from things — including the setup modal — so it takes the top
+      // of the floating-window world rather than the companion rung. Without
+      // this the rules open BEHIND the form you pressed "?" in.
+      zIndex="var(--z-help)"
       persistKey={HELP_RECT_KEY}
       title={`How to play ${brand}`}
       onClose={onClose}

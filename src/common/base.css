@@ -393,69 +393,57 @@
 /* @@ */   --mark-notYourTurn-dim-color:  rgb(0 0 0 / 12%);
 /* @@ */   --mark-gameOver-dim-color:     rgb(0 0 0 / 12%);
 
-  /* ── The Z-INDEX LADDER ────────────────────────────────────────
+  /* ── THE Z- LAYERS ────────────────────────────────────────────
      Every page-level layer, low to high. Not a scale — a stacking
      ORDER, so unlike a radius or a duration the failure mode is a
-     visible bug (a menu painting behind a backdrop) rather than drift.
-     That is why these are named buckets and not `--z-index-1…5`:
-     nothing about "3" says whether it beats the chat panel.
+     visible bug (a menu painting behind a scrim) rather than drift.
+     That is why these are named for what they ARE: nothing about "3"
+     says whether it beats chat.
+
+     **THE OLD `--z-index-*` LADDER IS GONE** (2026-08-25). It ran
+     alongside this one while components migrated a rung at a time, and
+     it is empty now that every reader has moved — which is the
+     condition plans/css-system-2.md §20 set for it to disappear. Eight
+     tokens, thirteen declarations, eleven files.
+
+     `--z-<layer>`, not `--z-index-<layer>`. The token IS the layer, and
+     that is the whole point of the split: `--radius-md` feeds
+     `border-radius` and `--shadow-panel` feeds `box-shadow`, so a token
+     named for its property was the odd one out. It also lets a layer
+     that needs no z-index sit in the list without claiming a mechanism
+     it doesn't use, which is exactly what `z-pause-gate` is.
+
+     A FLOATING PANEL DOESN'T READ THESE DIRECTLY — its FAMILY does.
+     `<FloatingPanel family="dialog">` resolves `var(--z-dialog)` from
+     the family name, so there is no list of tiers in TypeScript to
+     drift from this one. Two components state otherwise and say why in
+     their own files: chat at `--z-chat`, Help at `--z-help`.
 
      WHAT BELONGS HERE is anything that leaves its box — `position:
      fixed`, or absolute against the page. Those join the root stacking
      context and genuinely compete with each other.
 
      WHAT DOES NOT is layering INSIDE a component's own stacking
-     context: a ring over a tile, a floating shuffle over its board,
-     the keyboard cursor. Those compete only with their siblings, and
-     the numbers are small and local by nature. The app has a clean gap
-     — everything local is ≤ 10, everything page-level is ≥ 40 — which
+     context: a ring over a tile, a floating shuffle over its board, the
+     keyboard cursor. Those compete only with their siblings, and the
+     numbers are small and local by nature. The app has a clean gap —
+     everything local is ≤ 10, everything page-level is ≥ 1000 — which
      is what lets `guards/vocabularies.test.ts` draw the line at 10 and
      require a token above it, across `src/` INCLUDING the boards. A
-     board's radius is tuned to its game; a board's rank against the
-     chat panel is a whole-app question that merely happens to be
-     written in a game's file.
+     board's radius is tuned to its game; a board's rank against chat is
+     a whole-app question that merely happens to be written in a game's
+     file.
 
-     The values are spread wide on purpose: room to insert a layer
-     without renumbering its neighbors.
+     WHAT IS NOT A RUNG. Things that attach to a layer instead of
+     occupying one, which is what keeps this list short: a scrim sits
+     one BELOW its owner; a `<FilterSelect>` dropdown sits just ABOVE
+     its host, reading `--z-host` from whatever contains it (only
+     `.infoCol` declares one today); and a tooltip — and the definition
+     popover, which is a tooltip with different styling — goes to the
+     very top, safely, because you cannot hover or click what a modal
+     has made inert.
 
-     Read from TypeScript too — `<FloatingPanel zIndex="var(--z-index-
-     chatPanel)">` — so this file is the single home for the order, not
-     a copy of a list of numbers kept somewhere else. */
-/* @@ */   --z-index-infoSheet:     40;     /* the info column as a full-bleed page, below --mobile */
-/* @@ */   --z-index-panel:         500;    /* <FloatingPanel>'s default: setup, confirms, Help */
-/* @@ */   --z-index-popover:       1500;   /* Menu, FilterSelect, the definition popover */
-/* @@ */   --z-index-chatPanel:     10000;  /* deliberately ABOVE the panel tier: you can chat
-                                      with a setup dialog open. What OPENS chat is the
-                                      header's <ChatButton>, ordinary page content — so
-                                      this tier has exactly one consumer, the panel. */
-/* @@ */   --z-index-scratchpad:    10000;  /* the same rank for the same reason, and a separate
-                                      name because it is a separate decision */
-/* @@ */   --z-index-toast:         12000;  /* …these two, which nothing ever covers */
-/* @@ */   --z-index-tooltip:       12000;
-
-  /* ── THE Z- LAYERS ─────────────────────────────────────────────
-     The ladder above, re-thought as a vocabulary rather than as a
-     list of numbers that arrived one at a time. It is
-     plans/css-system-2.md §20, and it is the ONE list — a `companion`
-     is a kind of thing, and `z-companion` is where that kind of thing
-     lives.
-
-     THE TWO LADDERS COEXIST ON PURPOSE, and this one is the target.
-     A component moves to it when its area is audited, never in a
-     sweep: moving one alone would rank it against neighbors that have
-     not moved, which is how a menu ends up under a floating panel. So the
-     block above empties rung by rung, and the day it is empty this
-     comment loses its first paragraph.
-
-     `--z-<layer>`, not `--z-index-<layer>`. The token IS the layer,
-     and the layer name is the whole point of the split — `--radius-md`
-     feeds `border-radius` and `--shadow-panel` feeds `box-shadow`, so
-     a token named for its property was the odd one out. It also lets a
-     layer that needs no z-index sit in the list without claiming a
-     mechanism it doesn't use, which is exactly what `z-pause-gate` is.
-
-     THE NUMBERS ENCODE RELATIONSHIPS, which is why they are not the
-     ones above:
+     THE NUMBERS ENCODE RELATIONSHIPS:
 
        a thousand   a different world — the play surface, the floating
                     windows, the always-available system, an
@@ -468,15 +456,7 @@
                     something does, it says so
 
      And the ordering rule, which is the sentence to keep: SHORTER-
-     LIVED OR MORE IMPORTANT SITS HIGHER.
-
-     WHAT IS NOT A RUNG. Four things attach to a layer instead of
-     occupying one, and keeping them off the ladder is what keeps it
-     short: a scrim sits one BELOW its owner; a dropdown or menu sits
-     just ABOVE its host, whatever that host turns out to be; Help sits
-     just above whoever summoned it; and a tooltip goes to the very
-     top, safely, because you cannot hover what a modal has made
-     inert. */
+     LIVED OR MORE IMPORTANT SITS HIGHER. */
 /* @@ */   --z-page:            0;     /* the page itself. Nothing here is ever
                                           deliberately drawn over anything else */
 /* @@ */   --z-board:           1000;  /* the play surface and the pieces on it. OWNS
@@ -504,6 +484,17 @@
                                           Dims to focus you — and chat stays
                                           reachable, which is not a leak: a normal
                                           modal never claimed the world stopped */
+/* @@ */   --z-help:            2300;  /* HELP STATES OTHERWISE, the way chat does. It is a
+                                          COMPANION — no dim, keep-open, X-to-close — but it
+                                          is summoned FROM things, including the setup modal
+                                          at 2200, and the rules must never open behind the
+                                          form you pressed "?" in. So it sits at the top of
+                                          the floating-window world instead of at
+                                          --z-companion.
+                                          ⚠️ DO NOT "tidy" this down to --z-companion. That
+                                          is the whole bug it exists to prevent, and it used
+                                          to work only by accident: nothing passed a tier, so
+                                          Help TIED with setup and won on DOM order. */
 /*         --z-pause-gate:      3000      A LAYER WITH NO Z-INDEX, so it is a comment
                                           rather than a token. Everything below it is
                                           GONE while the game is paused — a render
@@ -516,6 +507,15 @@
                                           what the app is for — and chat is the one
                                           companion that can OPEN ITSELF, so it must
                                           never materialize under something */
+/* @@ */   --z-menu:            3200;  /* the header menu — the app's own always-available
+                                          affordance, beside the pause gate and chat. There
+                                          is exactly ONE menu (rendered only by
+                                          <PageHeaderMenu>), so it is a rung and not a
+                                          satellite: we know precisely where it appears.
+                                          Above the board and the info column, because it
+                                          drops down over them; above the windows you left
+                                          lying around, because it is the shortest-lived
+                                          thing on screen and you just asked for it. */
 /* @@ */   --z-toast:           4000;  /* an announcement you must see wherever you
                                           are and whatever you are doing */
 /* @@ */   --z-modal-blocking:  5000;  /* the world stops. Answer it now; nothing

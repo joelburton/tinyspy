@@ -479,6 +479,43 @@ question, and F16 + F17 + F18 are all really the same question — *what does a
 floating panel claim about the thing underneath it, and does anything enforce
 that claim?*
 
+## Escape ranks by TIER, and chat is the one exception (2026-08-25)
+
+The first version of `usePanelEscape` carried its own five-entry rank table
+keyed by FAMILY. It was a second copy of an order that already exists in
+`base.css`, and it disagreed with it the moment Help got a rung: Help paints at
+`--z-help` (2300), above the setup modal at 2200, but its FAMILY is companion —
+so it ranked **bottom**. With focus outside both panels, one Escape would have
+closed the form underneath and left the rules hanging over nothing.
+
+**So the rank is the tier, read from the ladder** (`getComputedStyle` on
+`:root`, cached — no theme moves a z- layer). One list, one direction, bigger is
+higher.
+
+**Chat states otherwise, and it is the only thing that does.** It paints at
+`--z-chat` (3100) so a conversation stays reachable over every dim below it, and
+ranks at its family (2000) so a modal you just opened takes Escape first
+(Joel, 2026-08-24). One prop, `escapeRank="family"`, one caller.
+
+### Two traps this spec fell into, and the planting that found them
+
+`e2e/panel-escape.e2e.ts` passed against a deliberately broken build twice
+before it was right:
+
+1. **Clicking outside a modal does not move focus.** The scrim
+   `preventDefault()`s its own mousedown ON PURPOSE, so a click cannot blur the
+   panel's focused control — which means a test that clicks the page and thinks
+   it has reached the "what's on TOP" branch is still in the "what you're IN"
+   branch, and any ranking passes. It has to blur programmatically.
+2. **The pairing has to be one the ranking can get wrong.** Chat against a
+   BLOCKING modal proves nothing: family (2000) and paint (3100) both lose to
+   5000. The two orderings disagree in exactly one place — chat against a
+   `modal-normal` at 2200 — and that is the pairing the test now uses.
+
+Verified by planting both wrong implementations. Ranking everything by family
+fails the Help case and nothing else; ranking everything by paint fails the chat
+case and nothing else.
+
 ---
 
 # The plan, agreed 2026-08-24

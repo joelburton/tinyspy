@@ -153,7 +153,11 @@ export function FloatingChat({
       title="Chat"
       onClose={() => setChatOpen(false)}
       persistKey="puzpuzpuz:chat:rect"
-      zIndex="var(--z-index-chatPanel)"
+      zIndex="var(--z-chat)"
+      // Paints above every modal, RANKS at its family — see the prop. Without
+      // this, Escape with a setup dialog open would close the conversation
+      // rather than the form.
+      escapeRank="family"
       defaultPosition="center"
       defaultSize={{ width: 340, height: 460 }}
       minWidth={260}

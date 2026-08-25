@@ -202,23 +202,16 @@ describe('CSS custom-property tokens', () => {
     '--page-text-label-color',
     '--page-text-strong-color',
 
-    // The z- ladder (base.css → THE Z- LAYERS). `--z-page` is off the list:
-    // `body` reads it, which is how the page's own layer got said out loud.
-    // The rest arrive as their components' areas are audited — a rung moves
-    // one component at a time, because moving one alone would rank it against
-    // neighbors still on the old ladder.
+    // The z- ladder (base.css → THE Z- LAYERS). Almost all of it is LIVE now —
+    // the floating panels resolve their tier from their family, and the menu,
+    // toasts, tooltips, the definition popover and the info sheet all read a
+    // rung directly. What is left is the BOARD's three, which arrive when the
+    // games convert: a board's own stacking is still local 0–5 today, and
+    // `--z-board` graduating to a reader is the signal that boards became
+    // sealed.
     '--z-board',
     '--z-board-question',
     '--z-ghost',
-    '--z-infocol',
-    '--z-companion',
-    '--z-dialog',
-    '--z-modal-normal',
-    '--z-chat',
-    '--z-toast',
-    '--z-modal-blocking',
-    '--z-modal-fault',
-    '--z-tooltip',
   ]
 
   /**

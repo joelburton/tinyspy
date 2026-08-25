@@ -88,13 +88,28 @@ const FAMILY: Record<
      * behind it.
      */
     shape: 'window' | 'card'
+    /**
+     * The family's layer, written out in full.
+     *
+     * **Not interpolated** (`var(--z-${family})`), which is what this looked
+     * like first. That version made the dead-token guard blind to the whole
+     * ladder: a dynamically-built `var()` name is captured as its prefix and
+     * vouches for every token extending it, so `--z-board` and `--z-ghost` —
+     * which nothing reads until the boards convert — would have read as alive
+     * forever. Spelling each one out keeps every reference exact.
+     *
+     * It is still not a table of TIERS in TypeScript, which is the thing §20
+     * bans: the code carries the NAME, `base.css` carries every VALUE, and
+     * those cannot drift apart.
+     */
+    layer: string
   }
 > = {
-  companion:        { scrim: null,    draggable: true,  trapsFocus: false, escape: 'close',   remembersRect: true,  shape: 'window' },
-  dialog:           { scrim: null,    draggable: true,  trapsFocus: false, escape: 'close',   remembersRect: true,  shape: 'window' },
-  'modal-normal':   { scrim: 'light', draggable: true,  trapsFocus: true,  escape: 'close',   remembersRect: false, shape: 'window' },
-  'modal-blocking': { scrim: 'dark',  draggable: false, trapsFocus: true,  escape: 'close',   remembersRect: false, shape: 'card' },
-  'modal-fault':    { scrim: 'dark',  draggable: false, trapsFocus: true,  escape: 'swallow', remembersRect: false, shape: 'card' },
+  companion:        { scrim: null,    draggable: true,  trapsFocus: false, escape: 'close',   remembersRect: true,  shape: 'window', layer: 'var(--z-companion)' },
+  dialog:           { scrim: null,    draggable: true,  trapsFocus: false, escape: 'close',   remembersRect: true,  shape: 'window', layer: 'var(--z-dialog)' },
+  'modal-normal':   { scrim: 'light', draggable: true,  trapsFocus: true,  escape: 'close',   remembersRect: false, shape: 'window', layer: 'var(--z-modal-normal)' },
+  'modal-blocking': { scrim: 'dark',  draggable: false, trapsFocus: true,  escape: 'close',   remembersRect: false, shape: 'card',   layer: 'var(--z-modal-blocking)' },
+  'modal-fault':    { scrim: 'dark',  draggable: false, trapsFocus: true,  escape: 'swallow', remembersRect: false, shape: 'card',   layer: 'var(--z-modal-fault)' },
 }
 
 type Props = {
@@ -145,16 +160,44 @@ type Props = {
    *  Incompatible with `persistKey` (a saved height would fight the
    *  fit), so only the ephemeral, non-persisted panels honor it. */
   fitContent?: boolean
-  /** Stacking tier, as a token from the ladder in `base.css` — chat
-   *  passes `var(--z-index-chatPanel)` so it sits above every modal
-   *  regardless of open order. Defaults to the panel tier.
+  /**
+   * Stacking tier, as a token string.
    *
-   *  A STRING, not a number, because the ladder's one home is CSS: a
-   *  numeric default here would be a second copy of the order, free to
-   *  disagree with the tokens. The backdrop's `- 1` survives the change
-   *  as `calc()`. `guards/vocabularies.test.ts` fails on a numeric
-   *  literal passed to this prop. */
+   * **Defaults to the FAMILY'S OWN LAYER** — `var(--z-companion)`,
+   * `var(--z-dialog)`, `var(--z-modal-normal)`, and so on — which is §20's rule
+   * that *a layer is where its family lives unless a component states
+   * otherwise*. There is no table of tiers in TypeScript: the code carries the
+   * family NAME and `base.css` carries every value, so the two cannot drift.
+   *
+   * **Two components state otherwise**, both for the same reason and both with
+   * the reason written where someone might undo it: `FloatingChat` passes
+   * `var(--z-chat)` (a conversation must stay reachable over every dim below
+   * it, and it can open ITSELF), and `HelpPanel` passes `var(--z-help)` (the
+   * rules are summoned FROM things, including the setup modal, and must never
+   * open behind the form you pressed "?" in).
+   *
+   * A STRING, not a number, because the ladder's one home is CSS: a numeric
+   * default here would be a second copy of the order, free to disagree with the
+   * tokens. The scrim's `- 1` survives as `calc()`.
+   * `guards/vocabularies.test.ts` fails on a numeric literal passed to this
+   * prop. */
   zIndex?: string
+  /**
+   * Rank at the FAMILY's layer for Escape, rather than at the tier this panel
+   * actually paints on.
+   *
+   * **Chat is the only caller and the only reason this exists.** It paints
+   * above every modal — a conversation has to stay reachable over every dim
+   * below it — but if it also RANKED there, Escape with a setup dialog open
+   * would close the chat you have kept open all game instead of the form you
+   * just opened. So it paints high and ranks low (Joel, 2026-08-24).
+   *
+   * Nothing else should reach for this. Help paints above the setup modal AND
+   * ranks above it, which is correct and needs no prop: Escape closes the
+   * rules, leaving the form you opened them for.
+   */
+  escapeRank?: 'family'
+  
   /**
    * Force a CARD family to take the full-page phone sheet anyway, for one whose
    * content outgrows a card.
@@ -209,13 +252,15 @@ type Props = {
  * panel body and close button are NOT drag handles — clicking the
  * X reliably closes; selecting text in the body reliably selects.
  *
- * Stacking: z-index is the only mechanism, and every tier is a token from
- * base.css's ladder. The scrim, when present, paints one below at `calc(… - 1)`.
+ * Stacking: z-index is the only mechanism, every tier is a token from
+ * base.css's ladder, and the FAMILY picks it. The scrim, when present, paints
+ * one below at `calc(… - 1)`.
  */
 export function FloatingPanel({
   family,
   title,
   phone,
+  escapeRank,
   onClose,
   defaultPosition = 'center',
   defaultSize = { width: 480, height: 360 },
@@ -223,12 +268,13 @@ export function FloatingPanel({
   minWidth = 240,
   minHeight = 200,
   persistKey,
-  zIndex = 'var(--z-index-panel)',
+  zIndex,
   fitContent = false,
   reserveKeyboard = false,
   children,
 }: Props) {
   const claims = FAMILY[family]
+  const tier = zIndex ?? claims.layer
   // On a touch device (coarse pointer) every panel is forced
   // non-draggable and non-resizable — dragging/resizing a floating
   // box is a mouse affordance, and (crucially) removing the drag
@@ -247,7 +293,12 @@ export function FloatingPanel({
   // maps focus back to a registered panel; it is stamped on the shell as
   // `data-floating-panel`, which the game key-capture hooks already look for.
   const panelId = useId()
-  usePanelEscape(panelId, family, claims.escape, onClose)
+  usePanelEscape(
+    panelId,
+    escapeRank === 'family' ? claims.layer : tier,
+    claims.escape,
+    onClose,
+  )
 
   // Header acts as the drag handle when draggable. react-rnd
   // identifies it by class name; the .header / .dragHandle
@@ -259,7 +310,7 @@ export function FloatingPanel({
       {claims.scrim && (
         <div
           className={claims.scrim === 'dark' ? styles.scrimDark : styles.scrimLight}
-          style={{ zIndex: `calc(${zIndex} - 1)` }}
+          style={{ zIndex: `calc(${tier} - 1)` }}
           aria-hidden="true"
           // No onClick — backdrop click is intentionally a no-op
           // (see Props.backdrop docstring). preventDefault on mousedown so the
@@ -286,7 +337,7 @@ export function FloatingPanel({
         minWidth={minWidth}
         minHeight={minHeight}
         persistKey={claims.remembersRect ? persistKey : undefined}
-        zIndex={zIndex}
+        zIndex={tier}
         fitContent={fitContent}
         reserveKeyboard={reserveKeyboard}
       >

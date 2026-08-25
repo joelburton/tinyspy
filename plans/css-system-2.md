@@ -1290,10 +1290,12 @@ CSS class names — not only for stacking. A `dialog`, a `companion` and a
 `modal-normal` are now specific things, where before the conversation they were
 loose talk.
 
-**⚠️ NONE OF IT IS BUILT.** What ships today is step 6c's ladder — `base.css` →
-"The Z-INDEX LADDER" and `code-conventions.md` — which uses DIFFERENT names and
-DIFFERENT numbers, because it was written before this vocabulary existed. 6c
-acted on none of this and moved no pixel. Reconciling the two is Open item 3.
+**✅ BUILT 2026-08-25**, in the `floating-panels` area. The old `--z-index-*`
+ladder is deleted — every reader moved, which is the condition Open item 3 set —
+and `base.css` → "THE Z- LAYERS" plus `code-conventions.md` now describe this
+vocabulary and only this one. Two rungs were added while building it that this
+section did not anticipate: **`--z-help` (2300)** and **`--z-menu` (3200)**; both
+are recorded below.
 
 ### Why "z-", and why not "z-index"
 

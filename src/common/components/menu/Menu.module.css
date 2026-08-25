@@ -70,7 +70,7 @@
   position: absolute;
   top: calc(100% + 0.35rem);
   left: 0;
-  z-index: var(--z-index-popover);
+  z-index: var(--z-menu);
   /* Size to the WIDEST item on one line, so labels like "Print answer key (PDF)"
    * don't wrap. The popover is absolutely positioned inside the narrow
    * inline-block `.menu`, so plain shrink-to-fit would clamp to that tiny
@@ -228,7 +228,7 @@
  * the whole point, so it derives rather than restating the tier's number. */
 /* @@ */ .flyout {
   position: fixed;
-  z-index: calc(var(--z-index-popover) + 1);
+  z-index: calc(var(--z-menu) + 1);
   width: max-content;
   min-width: 10rem;
   max-width: calc(100vw - 2 * var(--page-padding-x));

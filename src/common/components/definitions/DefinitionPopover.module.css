@@ -6,7 +6,14 @@
 
 /* @@ */ .card {
   position: fixed;
-  z-index: var(--z-index-popover); /* same tier as Menu's popover — above content, below chat */
+  /* The TOOLTIP layer, not a satellite. This is a readout you asked for by
+     clicking a word: it blocks nothing, the next click dismisses it, and it can
+     never need to cover something that has made the page inert — the same
+     argument that puts tooltips at the top. Which also means its ten mount
+     sites (every GameTurnLog, several InfoCols, WordList, waffle's
+     SolutionReveal) never have to declare a host. It is a tooltip with
+     different styling (Joel, 2026-08-25). */
+  z-index: var(--z-tooltip);
   background: var(--page-surface-color);
   border: 1px solid var(--page-surface-border-color);
   border-radius: var(--radius-md);

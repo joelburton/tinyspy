@@ -18,6 +18,20 @@ import { startGameRow } from './helpers/clubPage'
  *
  * So each case here opens TWO panels. That is the whole point; a one-panel
  * assertion would pass against the bug.
+ *
+ * ⚠️ TWO TRAPS, both of which made an earlier version of this file pass against
+ * a deliberately broken build:
+ *
+ *   1. **Clicking outside a modal does NOT move focus.** A scrim
+ *      `preventDefault()`s its own mousedown on purpose, so the click cannot
+ *      blur the panel's focused control. A test that clicks the page and thinks
+ *      it has reached the "what's on TOP" branch is still in the "what you're
+ *      IN" branch. Blur programmatically instead.
+ *   2. **The pairing has to be one the ranking can get WRONG.** Chat ranks at
+ *      its family (2000) rather than where it paints (3100) — but against a
+ *      blocking modal at 5000 both answers agree, so that pairing proves
+ *      nothing. It has to be paired with a `modal-normal` at 2200, which is
+ *      the only place the two orderings disagree.
  */
 test.describe('escape and the panel stack', () => {
   const panels = (page: Page) => page.locator('[data-floating-panel]')
@@ -36,6 +50,11 @@ test.describe('escape and the panel stack', () => {
     await panels(page).getByRole('button', { name: /^\?$|help/i }).first().click()
     await expect(panels(page)).toHaveCount(2)
 
+    // Drop focus OUT of every panel, which is the only way to reach the
+    // "what's on TOP" branch (see trap 1 above). Help paints at --z-help (2300)
+    // above setup's --z-modal-normal (2200) and RANKS there too, so it is the
+    // one that goes — while the form you opened the rules FOR survives.
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur())
     await page.keyboard.press('Escape')
     // The regression: this used to go to zero.
     await expect(panels(page)).toHaveCount(1)
@@ -45,33 +64,35 @@ test.describe('escape and the panel stack', () => {
     await expect(panels(page)).toHaveCount(0)
   })
 
-  test('chat is ranked by its FAMILY, so a modal takes Escape first', async ({ browser }) => {
+  test('chat is ranked by its FAMILY, so a modal-normal takes Escape first', async ({
+    browser,
+  }) => {
     const club = await createClubWithMembers(['ada', 'bea'])
-    const game = await createBoggleGame(club)
     const ctx = await browser.newContext()
     await signIn(ctx, club.members[0].session)
     const page = await ctx.newPage()
 
-    await page.goto(`/g/${game.gametype}/${game.id}`)
-    // Park chat off the middle so it isn't covering the controls we click. Its
-    // persisted rect is the supported way to do that.
+    await page.goto(`/c/${club.handle}`)
+    // Park chat in a corner via its persisted rect — the supported way — so it
+    // isn't covering the row this test has to click.
     await page.evaluate(() =>
       localStorage.setItem(
         'puzpuzpuz:chat:rect',
-        JSON.stringify({ x: 8, y: 380, width: 280, height: 220 }),
+        JSON.stringify({ x: 8, y: 420, width: 260, height: 200 }),
       ),
     )
     await page.reload()
     await page.getByRole('button', { name: /^Open chat/ }).first().click()
     await expect(panels(page)).toHaveCount(1)
-    await page.getByRole('button', { name: 'End game' }).first().click()
+    await startGameRow(page, /MothCubes|Boggle/i).click()
     await expect(panels(page)).toHaveCount(2)
 
-    // Focus outside both panels, so the TOP one answers rather than the one
-    // focus is in. Chat PAINTS above every modal (it lives at the chat tier) but
-    // is CLASSED a companion — and Escape ranks by family, so the confirmation
-    // wins and the conversation you have kept open all game survives.
-    await page.locator('body').click({ position: { x: 3, y: 3 } })
+    // THE discriminating pairing: chat PAINTS at --z-chat (3100), above setup's
+    // --z-modal-normal (2200), but RANKS at its family (2000) — so ranking by
+    // paint and ranking by family give opposite answers here, and only here.
+    // The form you just opened takes Escape; the conversation you have kept
+    // open all game survives.
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur())
     await page.keyboard.press('Escape')
     await expect(panels(page)).toHaveCount(1)
     expect((await titles(page)).join()).toMatch(/Chat/i)

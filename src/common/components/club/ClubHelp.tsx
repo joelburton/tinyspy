@@ -20,6 +20,9 @@ export function ClubHelp({ onClose }: Props) {
   return (
     <FloatingPanel
       family="companion"
+      // The same rung the game guides take — this is help, and help sits above
+      // the windows (see HelpPanel).
+      zIndex="var(--z-help)"
       persistKey={HELP_RECT_KEY}
       title="About clubs"
       onClose={onClose}
