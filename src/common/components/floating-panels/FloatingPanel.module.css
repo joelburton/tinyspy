@@ -70,7 +70,7 @@
      panel's vertical budget. */
   padding: 0.3rem 0.7rem;
   border-bottom: 1px solid var(--page-surface-border-color);
-  background: var(--page-surface-hover-color);
+  background: var(--floatingPanel-titlebar-color);
   user-select: none;
   flex-shrink: 0;
 }

@@ -25,7 +25,7 @@ change here forward-fixes them in the same commit (§21's compile-break rule) an
 **their stamps do not move**. If one of them turns out to be the only evidence
 for a shared question, it gets surfaced and asked about, not audited.
 
-**Twenty-eight findings.** Fourteen RESOLVED (F1–F7, F16, F17, F18, F19, F21,
+**Twenty-eight findings.** Fifteen RESOLVED (F1–F7, F16, F17, F18, F19, F21,
 F25, F28), three MOVED to `forms` (F8, F9, F13), two PUNTED (F14 → the first
 game area, F15 → crosswords), **nine OPEN** — F10, F11, F12, F20, F22, F23, F24,
 F26, F27.
@@ -261,12 +261,26 @@ readable mid-question. `BlockingModal` takes `zIndex` and **deliberately does
 not default it**, so no pixel moved: moving one component alone ranks it against
 neighbors that have not moved. This is §20 Open item 3's rung-by-rung migration.
 
-## F11 · `titlebar-hover-gray` · `FloatingPanel`'s titlebar wears the HOVER gray at rest
+## RESOLVED · F11 · `titlebar-hover-gray` · The titlebar wore the HOVER gray at rest
 
-`.header` is `--page-surface-hover-color` (`#f0f0f0`) permanently — chat, the
-scratchpad and every modal. Joel, 2026-08-22: titlebars not being white *"makes
-sense"*, but it is the hover gray by ACCIDENT and **the two must not be
-coupled**. It wants its own token, at whatever value.
+`.header` read `--page-surface-hover-color` (`#f0f0f0`) permanently — every
+floating panel's titlebar and every hover in the app were one decision by
+accident, so nudging the hover would have moved every panel header with it.
+Joel, 2026-08-22: titlebars not being white *"makes sense"*, but the two must
+not be coupled.
+
+**Resolved 2026-08-25 with `--floatingPanel-titlebar-color`**, its own token in
+both themes, **starting at the value it inherited** (`#f0f0f0` daylight,
+`#3a4459` midnight) — Joel: *"can default to same value."* Nothing repaints;
+the point is that they can now diverge. Measured after the change:
+`rgb(240, 240, 240)`, unchanged.
+
+Its bucket follows `--pageHeader-border-color`, the existing one-token bucket
+for the page's own strip.
+
+**Only the titlebar moved.** The other two readers in this area are real hovers
+and correctly still read the hover token: `.closeButton:hover`, and the
+scratchpad's `.takeOver:hover`.
 
 ## RESOLVED · F12 · `nine-body-classes` · Nine `.body` classes, and they were not one thing
 

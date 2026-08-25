@@ -47,6 +47,16 @@
   /* The line under the pageHeader. No pageHeader, no line. */
 /* @@ */   --pageHeader-border-color:      #8a8a8a;
 
+  /* A floating panel's TITLEBAR at rest. Its own token, and that is the whole
+     point: it was `--page-surface-hover-color` for months, which made the
+     titlebar's gray and every hover in the app one decision by accident — nudge
+     the hover and every panel header moved with it. Joel, 2026-08-22: titlebars
+     not being white "makes sense", but the two must not be coupled.
+
+     It STARTS at the same value it inherited, so nothing repaints today; the
+     point is that they can now diverge. */
+/* @@ */   --floatingPanel-titlebar-color: #f0f0f0;
+
   /* THE OTHER TWO TEXT GRAYS. The four together are one of the eight
      vocabularies (plans/css-system-2.md §6.6) and the only one that is
      color, which is why it is here and the other seven are constants
