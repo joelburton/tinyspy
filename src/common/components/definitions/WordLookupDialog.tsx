@@ -39,6 +39,8 @@ export function WordLookupDialog({ onClose }: Props) {
 
   return (
     <FloatingPanel
+      family="dialog"
+      persistKey="puzpuzpuz:wordLookup:rect"
       title="Look up a word"
       onClose={onClose}
       defaultSize={{ width: 360, height: 280 }}

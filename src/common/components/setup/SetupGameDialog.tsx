@@ -215,9 +215,9 @@ export function SetupGameDialog({
   return (
     <>
     <FloatingPanel
+      family="modal-normal"
       title={`Start ${manifest.name}${modeSuffix}`}
       onClose={onCancel}
-      backdrop
       resizable={false}
       // Grow to fit the setup options on open (capped to the viewport, past
       // which the body scrolls) — a game with many options must open tall

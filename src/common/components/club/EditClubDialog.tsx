@@ -92,9 +92,9 @@ export function EditClubDialog({
 
   return (
     <FloatingPanel
+      family="modal-normal"
       title={`Edit ${clubName}`}
       onClose={onCancel}
-      backdrop
       resizable={false}
       defaultSize={{ width: 440, height: 520 }}
       minWidth={320}

@@ -26,6 +26,7 @@ type Props = {
 export function ExplainDialog({ clueLabel, state, onClose }: Props) {
   return (
     <FloatingPanel
+      family="companion"
       title={`Explain ${clueLabel}`}
       onClose={onClose}
       defaultSize={{ width: 520, height: 380 }}

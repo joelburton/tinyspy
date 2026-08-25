@@ -1,4 +1,4 @@
-/* cs-unmet */
+/* cs-audited */
 
 /* Shared visuals for every floating panel — the modals, the
  * always-on FloatingChat, the future scratchpad. The header
@@ -180,12 +180,29 @@
  * (see FloatingPanel.tsx), so the sheet ends exactly at the keyboard's top edge.
  * No CSS rule is needed here; this note marks where the old static reserve was. */
 
-/* Backdrop layer — fixed-position dim that catches pointer
- * events on the page underneath but doesn't catch anything
- * happening above its z-index (chat at 10000 is unaffected).
- * Only Setup uses this today. */
-/* @@ */ .backdrop {
+/* ── Scrims ────────────────────────────────────────────────────────────────
+ * The dim a modal paints over the page. It catches pointer events on
+ * everything underneath, and nothing above its own z-index (chat is
+ * deliberately unaffected — a modal-normal never claimed the world stopped).
+ *
+ * TWO shades, and WHICH ONE IS THE FAMILY'S CHOICE, not the component's
+ * (FloatingPanel.tsx → FAMILY). Before that, every panel on this shell painted
+ * the light one while the two hand-rolled modal-NORMALS elsewhere painted the
+ * dark one — the shade tracked how each was built rather than what it meant.
+ *
+ * The VALUES are still the pair they have always been, 40% and 45%, which is a
+ * difference nobody can see. plans/css-system-2.md §20 wants roughly 35% and
+ * 55%; that is a separate decision, to be made looking at a real board. */
+/* @@ */ .scrimLight,
+/* @@ */ .scrimDark {
   position: fixed;
   inset: 0;
+}
+/* A question worth thinking about — the board stays readable under it. */
+/* @@ */ .scrimLight {
   background: var(--scrim-light-color);
+}
+/* The world stops. Also the fault, one tier up. */
+/* @@ */ .scrimDark {
+  background: var(--scrim-color);
 }

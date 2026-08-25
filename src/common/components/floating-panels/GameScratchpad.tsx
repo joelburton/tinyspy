@@ -42,10 +42,10 @@ export function GameScratchpad({ gameId, ownerId, myId, username, isTerminal }: 
 
   return (
     <FloatingPanel
+      family="companion"
       title="Scratchpad"
       onClose={() => setScratchpadOpen(false)}
       persistKey={`puzpuzpuz:scratchpad:${gameId}`}
-      closeOnEsc={false}
       zIndex="var(--z-index-scratchpad)"
       defaultPosition="center"
       defaultSize={{ width: 320, height: 360 }}

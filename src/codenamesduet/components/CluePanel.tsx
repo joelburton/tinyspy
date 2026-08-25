@@ -370,6 +370,7 @@ export function ClueSuggestionModal({
   console.log('[ClueHint] ClueSuggestionModal rendering — status:', state.status)
   return (
     <FloatingPanel
+      family="modal-normal"
       title="Clue suggestion"
       onClose={onClose}
       defaultSize={{ width: 360, height: 240 }}

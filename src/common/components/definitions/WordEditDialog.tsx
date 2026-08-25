@@ -198,6 +198,8 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
 
   return (
     <FloatingPanel
+      family="dialog"
+      persistKey="puzpuzpuz:wordEdit:rect"
       title={editing ? `Edit "${request.word.toUpperCase()}"` : 'Add word'}
       onClose={() => setWordEdit(null)}
       defaultSize={{ width: 380, height: 500 }}

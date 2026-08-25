@@ -149,6 +149,7 @@ export function FloatingChat({
   // Open shape — the floating panel.
   return (
     <FloatingPanel
+      family="companion"
       title="Chat"
       onClose={() => setChatOpen(false)}
       persistKey="puzpuzpuz:chat:rect"

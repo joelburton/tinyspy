@@ -38,6 +38,7 @@ export function HelpPanel({
 }: Props) {
   return (
     <FloatingPanel
+      family="companion"
       title={`How to play ${brand}`}
       onClose={onClose}
       defaultSize={size}

@@ -54,6 +54,8 @@ export function AnagramDialog({ onClose }: { onClose: () => void }) {
 
   return (
     <FloatingPanel
+      family="dialog"
+      persistKey="puzpuzpuz:anagram:rect"
       title="Anagrams"
       onClose={onClose}
       defaultSize={{ width: 360, height: 440 }}

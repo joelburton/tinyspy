@@ -19,6 +19,7 @@ type Props = {
 export function ClubHelp({ onClose }: Props) {
   return (
     <FloatingPanel
+      family="companion"
       title="About clubs"
       onClose={onClose}
       defaultSize={{ width: 420, height: 260 }}

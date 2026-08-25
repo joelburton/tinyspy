@@ -1,7 +1,7 @@
 // cs-audited
 
 import { useRef, type ReactNode } from 'react'
-import { FloatingPanel } from './FloatingPanel'
+import { FloatingPanel, type PanelFamily } from './FloatingPanel'
 import { useFocusTrap } from '../../hooks/ui/useFocusTrap'
 import actionRow from './modalActions.module.css'
 
@@ -15,12 +15,16 @@ type Props = {
   children: ReactNode
   /** The footer row. Pass the buttons; the row and its layout are ours. */
   actions: ReactNode
-  /** Stacking tier, as a token string. **Deliberately not defaulted to
-   *  `--z-modal-blocking`**: the two ladders coexist and a component moves rung
-   *  by rung (plans/css-system-2.md §20 → Open 3), so leaving this unset keeps
-   *  today's paint exactly. Passing one would move this modal alone, which is
-   *  how a thing ends up ranked against neighbors that have not moved. */
-  zIndex?: string
+  /**
+   * Which of the two blocking families this is. Both stop the world; the fault
+   * sits strictly above, because an error must be readable mid-question — and
+   * it SWALLOWS Escape, where a confirmation accepts it.
+   *
+   * Narrowed to the two on purpose: a `modal-normal` keeps its drag, and
+   * handing that value to this component would produce a movable "blocking"
+   * modal, which is the one thing the category cannot be.
+   */
+  family?: Extract<PanelFamily, 'modal-blocking' | 'modal-fault'>
 }
 
 /**
@@ -64,7 +68,7 @@ export function BlockingModal({
   onClose,
   children,
   actions,
-  zIndex,
+  family = 'modal-blocking',
 }: Props) {
   // The trap works on the enclosing `[data-floating-panel]`, so it needs an
   // anchor rendered inside the shell — this body div is it.
@@ -73,17 +77,15 @@ export function BlockingModal({
 
   return (
     <FloatingPanel
+      family={family}
       title={title}
       onClose={onClose}
-      draggable={false}
       resizable={false}
-      backdrop
       fitContent
       // The height is a first-paint seed only; `fitContent` grows past it.
       defaultSize={{ width: 420, height: 240 }}
       minWidth={320}
       minHeight={200}
-      zIndex={zIndex}
     >
       <div ref={bodyRef}>
         {children}

@@ -37,6 +37,7 @@ export function FaultDialog() {
 
   return (
     <BlockingModal
+      family="modal-fault"
       title="Error"
       onClose={dismissFault}
       actions={

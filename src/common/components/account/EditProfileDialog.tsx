@@ -63,9 +63,9 @@ export function EditProfileDialog({ session, onSaved, onCancel }: Props) {
 
   return (
     <FloatingPanel
+      family="modal-normal"
       title="Edit profile"
       onClose={onCancel}
-      backdrop
       resizable={false}
       defaultSize={{ width: 380, height: 460 }}
       minWidth={320}

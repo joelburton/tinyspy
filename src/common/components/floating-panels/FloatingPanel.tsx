@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited
 
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { Rnd } from 'react-rnd'
@@ -10,11 +10,80 @@ import {
 import { useCoarsePointer } from '../../hooks/ui/useCoarsePointer'
 import { usePhone } from '../../hooks/ui/usePhone'
 import { useVisualViewport } from '../../hooks/ui/useVisualViewport'
+import { useFocusTrap } from '../../hooks/ui/useFocusTrap'
 import styles from './FloatingPanel.module.css'
 // (Below: a 'hard'/'soft' literal is passed to clampToViewport
 // per-call. See the ClampMode type in useDraggablePanel.)
 
+/**
+ * Which KIND of floating panel this is (plans/css-system-2.md §20).
+ *
+ * The five families are the app's vocabulary for what a panel claims about the
+ * page underneath it, and declaring one is how a panel gets held to that claim
+ * — before this prop existed the claim lived in a document and the code
+ * disagreed with it in four measurable ways (a modal-normal with no scrim,
+ * three dialogs that forgot the rect they are defined by, three dimmed forms
+ * that let Tab walk out behind them, and a scrim shade that tracked how each
+ * panel was BUILT rather than what it meant).
+ *
+ *   - `companion`  something you keep NEARBY while you play — open it, keep it
+ *                  open, move it where you want. Chat, the scratchpad, Help, a
+ *                  setter's note. Reading is the common case; writing (the
+ *                  scratchpad) is the exception, which is why it is not called
+ *                  a workspace.
+ *   - `dialog`     a question that can WAIT. No dim, movable, and it opens
+ *                  where you left it.
+ *   - `modal-normal`   a question worth thinking or talking about. Dims to
+ *                  focus you — but chat stays reachable, which is not a leak: a
+ *                  normal modal never claimed the world stopped.
+ *   - `modal-blocking` the world stops. Answer it now; nothing underneath is
+ *                  live.
+ *   - `modal-fault`    as blocking, but strictly above it — an error must be
+ *                  readable mid-question.
+ */
+export type PanelFamily =
+  | 'companion'
+  | 'dialog'
+  | 'modal-normal'
+  | 'modal-blocking'
+  | 'modal-fault'
+
+/** What each family claims, in one place. Everything here USED to be a prop
+ *  each caller passed, which is how the claims and the code drifted apart. */
+const FAMILY: Record<
+  PanelFamily,
+  {
+    /** Dims the page — and "dim" means everything below is INERT. */
+    scrim: null | 'light' | 'dark'
+    /** Immovability IS the signal: if you can drag it you can leave it for
+     *  later; if you cannot, you deal with it now. */
+    draggable: boolean
+    /** The trap FOLLOWS THE SCRIM. A backdrop already blocks the pointer, so a
+     *  modal that did not trap would hand a keyboard user Tab access to
+     *  controls they cannot click. Trapping restricts nothing that was usable. */
+    trapsFocus: boolean
+    /** `'close'` — Escape dismisses it. `'swallow'` — Escape is consumed and
+     *  NOTHING closes, not even the panel below (closing a fault by accident is
+     *  a real problem, and closing the thing under it would be worse). */
+    escape: 'close' | 'swallow'
+    /** Whether this family opens WHERE YOU LEFT IT. Movable-and-remembers is
+     *  the rule for the two patient families; a modal is a fresh task each
+     *  time, so it centers even though you can move it (Joel, 2026-08-24). */
+    remembersRect: boolean
+  }
+> = {
+  companion:        { scrim: null,   draggable: true,  trapsFocus: false, escape: 'close',   remembersRect: true },
+  dialog:           { scrim: null,   draggable: true,  trapsFocus: false, escape: 'close',   remembersRect: true },
+  'modal-normal':   { scrim: 'light', draggable: true,  trapsFocus: true,  escape: 'close',   remembersRect: false },
+  'modal-blocking': { scrim: 'dark',  draggable: false, trapsFocus: true,  escape: 'close',   remembersRect: false },
+  'modal-fault':    { scrim: 'dark',  draggable: false, trapsFocus: true,  escape: 'swallow', remembersRect: false },
+}
+
 type Props = {
+  /** What KIND of panel this is — see `PanelFamily`. Required: there is no
+   *  sensible default, and a silent one is how the app ended up with a
+   *  modal-normal that never dimmed. */
+  family: PanelFamily
   /** Header bar label. The header is the drag handle when
    *  draggable; the title is always visible. */
   title: string
@@ -30,10 +99,6 @@ type Props = {
   /** Initial size on the first mount. Subsequent mounts use the
    *  persisted rect (if `persistKey` is set). */
   defaultSize?: { width: number; height: number }
-  /** When true, the panel can be dragged by its header. Default
-   *  true. SuspendConfirmDialog opts out for the "small modal"
-   *  feel. */
-  draggable?: boolean
   /** When true, the panel can be resized by its corners/edges.
    *  Default true. Modals with natural dimensions (Setup, Hint)
    *  opt out. */
@@ -42,23 +107,15 @@ type Props = {
    *  for chat-sized panels; modals typically tighten them. */
   minWidth?: number
   minHeight?: number
-  /** When true, dismiss the panel on ESC. Default true. Chat /
-   *  scratchpad set false — they're closed only via the X. */
-  closeOnEsc?: boolean
-  /** When true, render a fixed-position dimming layer below the
-   *  panel that blocks pointer events on everything except the
-   *  panel itself (and other panels at higher z-index, like the
-   *  always-on-top chat). Default false. Only Setup uses this
-   *  today — "you can't set up two games at once" — so the
-   *  visual dim signals focused-task and the click-block prevents
-   *  accidental Start clicks underneath. Clicking the backdrop
-   *  does NOT close the panel; mid-setup state is too easy to
-   *  lose to a stray click. */
-  backdrop?: boolean
-  /** localStorage key under which to persist position + size.
-   *  When set, the panel restores its rect on mount and writes
-   *  back on every drag/resize. When omitted, the panel uses
-   *  `defaultPosition` / `defaultSize` afresh on each mount. */
+  /** localStorage key under which to persist position + size. The FAMILY says
+   *  whether a panel opens where you left it; this says under what key, because
+   *  that is per-instance (the scratchpad's is per-game). Required by the two
+   *  families that remember, ignored by the three that don't.
+   *
+   *  Restoring is safe on a smaller screen than the one it was saved on: the
+   *  rect is hard-clamped into the current viewport on mount, and the STORED
+   *  value is deliberately left alone so reconnecting the big monitor puts the
+   *  panel back where you left it there. */
   persistKey?: string
   /** When true, the panel GROWS on open to fit its natural content
    *  height (capped to the viewport, past which the body scrolls),
@@ -92,46 +149,53 @@ type Props = {
 }
 
 /**
- * Shared shell for every floating panel — modals (SetupGameDialog,
- * Help, HintModal, SuspendConfirmDialog, ConfirmationBlockingModal), the always-on
- * FloatingChat, and the per-game scratchpad. One header
- * pattern, one drag implementation (react-rnd), one ESC behavior,
- * one optional backdrop, one z-index axis.
+ * Shared shell for every FLOATING PANEL — the window-like things that float
+ * over the page: chat, the scratchpad, Help, the word dialogs, setup, and the
+ * three modals. One header pattern, one drag implementation (react-rnd), one
+ * Escape behavior, one scrim, one z-index axis.
  *
- * Why a single shell rather than separate Modal + FloatingPanel
- * components: the per-panel decisions (draggable, resizable,
- * backdrop, persistence, ESC) are all orthogonal props, and
- * forking the shell into two reads as "Modal vs not" while in
- * truth every panel is a floating panel under the hood. The
- * single component keeps the choice surface visible.
+ * **A panel declares its FAMILY and the shell enforces what follows** — the
+ * scrim and its shade, whether it can be dragged, whether focus is trapped,
+ * what Escape does, and whether it opens where you left it. Those were five
+ * separate props once, which meant five chances for a panel to claim one thing
+ * and do another; they all now come from one word. See `PanelFamily`.
+ *
+ * Three questions remain genuinely independent, and stay props:
+ *
+ *   - **who knows the SIZE** — `resizable` / `fitContent`. Orthogonal to
+ *     family: chat (the user knows) and Help (the content knows) are both
+ *     companions.
+ *   - **under what KEY a remembered rect is stored** — `persistKey`.
+ *   - **the geometry seeds** — `defaultSize`, `minWidth`/`minHeight`.
+ *
+ * Why a single shell rather than separate Modal + FloatingPanel components:
+ * every panel is a floating panel under the hood, and forking the shell would
+ * read as "Modal vs not" — a split the family word already makes, better.
  *
  * Drag handle: when draggable, the header bar carries the
  * `dragHandle` class and react-rnd binds drag events there. The
  * panel body and close button are NOT drag handles — clicking the
  * X reliably closes; selecting text in the body reliably selects.
  *
- * Stacking: z-index is the only mechanism, and every tier is a token
- * from base.css's ladder. Default `--z-index-panel` (the modal tier);
- * FloatingChat passes `--z-index-chatPanel` to sit above modals. The
- * backdrop, when present, paints one below at `calc(… - 1)`.
+ * Stacking: z-index is the only mechanism, and every tier is a token from
+ * base.css's ladder. The scrim, when present, paints one below at `calc(… - 1)`.
  */
 export function FloatingPanel({
+  family,
   title,
   onClose,
   defaultPosition = 'center',
   defaultSize = { width: 480, height: 360 },
-  draggable = true,
   resizable = true,
   minWidth = 240,
   minHeight = 200,
-  closeOnEsc = true,
-  backdrop = false,
   persistKey,
   zIndex = 'var(--z-index-panel)',
   fitContent = false,
   reserveKeyboard = false,
   children,
 }: Props) {
+  const claims = FAMILY[family]
   // On a touch device (coarse pointer) every panel is forced
   // non-draggable and non-resizable — dragging/resizing a floating
   // box is a mouse affordance, and (crucially) removing the drag
@@ -142,23 +206,30 @@ export function FloatingPanel({
   // is handled in CSS (@media (--phone)); tablets keep the centered
   // rect, just pinned in place. See docs/mobile.md → "Panels on touch".
   const coarse = useCoarsePointer()
-  const effectiveDraggable = draggable && !coarse
+  const effectiveDraggable = claims.draggable && !coarse
   const effectiveResizable = resizable && !coarse
 
-  // ESC handler. Window-level so it works regardless of where
-  // focus lives inside the panel body. Skipped when closeOnEsc
-  // is false (chat / scratchpad).
+  // ESC handler. Window-level so it works regardless of where focus lives
+  // inside the panel body. A fault SWALLOWS the key instead — it consumes it
+  // and closes nothing, because dismissing an error by reflex is a real
+  // problem, and closing the panel UNDER it would be worse.
+  //
+  // ⚠️ STILL PER-PANEL, and that is a known bug: every open panel installs its
+  // own listener, so one Escape closes them ALL — dismissing Help throws away
+  // the setup form beneath it. The fix needs a panel stack so Escape can go to
+  // the one you are IN, else the one on TOP
+  // (plans/areas/floating-panels.md → F16). Family already carries the policy;
+  // only the dispatch is wrong.
+  const swallowsEscape = claims.escape === 'swallow'
   useEffect(function installEscapeHandler() {
-    if (!closeOnEsc) return
     function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') {
-        e.preventDefault()
-        onClose()
-      }
+      if (e.key !== 'Escape') return
+      e.preventDefault()
+      if (!swallowsEscape) onClose()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [closeOnEsc, onClose])
+  }, [swallowsEscape, onClose])
 
   // Header acts as the drag handle when draggable. react-rnd
   // identifies it by class name; the .header / .dragHandle
@@ -167,9 +238,9 @@ export function FloatingPanel({
 
   return (
     <>
-      {backdrop && (
+      {claims.scrim && (
         <div
-          className={styles.backdrop}
+          className={claims.scrim === 'dark' ? styles.scrimDark : styles.scrimLight}
           style={{ zIndex: `calc(${zIndex} - 1)` }}
           aria-hidden="true"
           // No onClick — backdrop click is intentionally a no-op
@@ -182,6 +253,7 @@ export function FloatingPanel({
         />
       )}
       <FloatingPanelBody
+        trapsFocus={claims.trapsFocus}
         title={title}
         onClose={onClose}
         defaultPosition={defaultPosition}
@@ -190,7 +262,7 @@ export function FloatingPanel({
         resizable={effectiveResizable}
         minWidth={minWidth}
         minHeight={minHeight}
-        persistKey={persistKey}
+        persistKey={claims.remembersRect ? persistKey : undefined}
         zIndex={zIndex}
         fitContent={fitContent}
         reserveKeyboard={reserveKeyboard}
@@ -205,6 +277,7 @@ export function FloatingPanel({
 // on `persistKey` without conditionally calling hooks at the
 // outer call site (rules-of-hooks).
 function FloatingPanelBody({
+  trapsFocus,
   title,
   onClose,
   defaultPosition,
@@ -219,6 +292,7 @@ function FloatingPanelBody({
   reserveKeyboard,
   children,
 }: {
+  trapsFocus: boolean
   title: string
   onClose: () => void
   defaultPosition: { x: number; y: number } | 'center'
@@ -238,6 +312,7 @@ function FloatingPanelBody({
     // content-fit — so `fitContent` doesn't apply here (see the prop docstring).
     return (
       <PersistedPanel
+        trapsFocus={trapsFocus}
         title={title}
         onClose={onClose}
         defaultPosition={defaultPosition}
@@ -256,6 +331,7 @@ function FloatingPanelBody({
   }
   return (
     <EphemeralPanel
+      trapsFocus={trapsFocus}
       title={title}
       onClose={onClose}
       defaultPosition={defaultPosition}
@@ -276,6 +352,7 @@ function FloatingPanelBody({
 // Variant with persistence — uses the shared useDraggablePanel
 // hook to restore + save the rect.
 function PersistedPanel({
+  trapsFocus,
   title,
   onClose,
   defaultPosition,
@@ -289,6 +366,7 @@ function PersistedPanel({
   reserveKeyboard,
   children,
 }: {
+  trapsFocus: boolean
   title: string
   onClose: () => void
   defaultPosition: { x: number; y: number } | 'center'
@@ -311,6 +389,7 @@ function PersistedPanel({
   })
   return (
     <PanelRnd
+      trapsFocus={trapsFocus}
       title={title}
       onClose={onClose}
       rect={rect}
@@ -331,6 +410,7 @@ function PersistedPanel({
 // reset on every mount. Used by modals where "remember position
 // across opens" would be surprising.
 function EphemeralPanel({
+  trapsFocus,
   title,
   onClose,
   defaultPosition,
@@ -344,6 +424,7 @@ function EphemeralPanel({
   reserveKeyboard,
   children,
 }: {
+  trapsFocus: boolean
   title: string
   onClose: () => void
   defaultPosition: { x: number; y: number } | 'center'
@@ -376,6 +457,7 @@ function EphemeralPanel({
     setRectState(clampToViewport(next, minWidth, minHeight, 8, 'soft'))
   return (
     <PanelRnd
+      trapsFocus={trapsFocus}
       title={title}
       onClose={onClose}
       rect={rect}
@@ -398,6 +480,7 @@ function EphemeralPanel({
 // state, so the `rect` / `setRect` pair is the same shape in
 // both cases.
 function PanelRnd({
+  trapsFocus,
   title,
   onClose,
   rect,
@@ -411,6 +494,7 @@ function PanelRnd({
   reserveKeyboard = false,
   children,
 }: {
+  trapsFocus: boolean
   title: string
   onClose: () => void
   rect: PanelRect
@@ -448,6 +532,13 @@ function PanelRnd({
   // refs so the observer is installed once (no reconnect churn per fit).
   const bodyRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
+
+  // Cycle Tab within the panel, for the families whose scrim claims the page
+  // below is inert. The hook walks up to the enclosing `[data-floating-panel]`,
+  // which is the shell below — so the trap includes the titlebar's ✕ as well as
+  // the body's own controls. Inert for the families that don't trap.
+  const shellRef = useRef<HTMLDivElement>(null)
+  useFocusTrap(trapsFocus ? shellRef : NO_TRAP)
   // (No "has the user moved it?" flag: the fit anchors the panel's top wherever
   // it currently is, so a dragged panel keeps its position for free.)
   // Latest rect/setRect kept in refs so the observer below installs ONCE (its
@@ -567,7 +658,7 @@ function PanelRnd({
             here": the game's window-level key capture (useGlobalKeyHandler) bails
             for events whose focus is inside it, so Enter activates a modal button
             and Tab moves between its controls instead of being swallowed. */}
-        <div className={styles.shell} data-floating-panel>
+        <div className={styles.shell} data-floating-panel ref={shellRef}>
           <header
             className={`${styles.header} ${draggable ? styles.dragHandle : ''}`}
           >
@@ -592,6 +683,11 @@ function PanelRnd({
     </div>
   )
 }
+
+/** A ref that never points at anything, so `useFocusTrap` finds no panel and
+ *  installs nothing — the hook stays unconditionally called (rules of hooks)
+ *  while the trap itself is conditional. */
+const NO_TRAP = { current: null }
 
 /** Translate the user's `defaultPosition` choice (centered, or
  *  explicit) plus `defaultSize` into a concrete rect. The center

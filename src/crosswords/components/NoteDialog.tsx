@@ -22,6 +22,7 @@ type Props = {
 export function NoteDialog({ title, note, onClose }: Props) {
   return (
     <FloatingPanel
+      family="companion"
       title={title || 'Puzzle note'}
       onClose={onClose}
       defaultSize={{ width: 520, height: 360 }}
