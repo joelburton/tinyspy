@@ -71,13 +71,30 @@ const FAMILY: Record<
      *  the rule for the two patient families; a modal is a fresh task each
      *  time, so it centers even though you can move it (Joel, 2026-08-24). */
     remembersRect: boolean
+    /**
+     * A WINDOW or a CARD — the second split, and it follows from the first.
+     *
+     * **The titlebar IS the drag handle** (`dragHandleClassName` names the
+     * header and nothing else carries the class), so a family that can never be
+     * dragged has no use for one: its only remaining job is a title the body
+     * shows better and bigger, and its ✕ is a third way out duplicating a button
+     * already on screen. `FaultDialog` used to print "Error" in both places,
+     * four lines apart, and nobody noticed — a titlebar reads as chrome rather
+     * than as content.
+     *
+     * `'window'` — titlebar with a ✕, and a full-page sheet on a phone.
+     * `'card'` — no titlebar; the title is a heading the leaf renders; stays a
+     * card at every size, so the thing the question is ABOUT is still visible
+     * behind it.
+     */
+    shape: 'window' | 'card'
   }
 > = {
-  companion:        { scrim: null,   draggable: true,  trapsFocus: false, escape: 'close',   remembersRect: true },
-  dialog:           { scrim: null,   draggable: true,  trapsFocus: false, escape: 'close',   remembersRect: true },
-  'modal-normal':   { scrim: 'light', draggable: true,  trapsFocus: true,  escape: 'close',   remembersRect: false },
-  'modal-blocking': { scrim: 'dark',  draggable: false, trapsFocus: true,  escape: 'close',   remembersRect: false },
-  'modal-fault':    { scrim: 'dark',  draggable: false, trapsFocus: true,  escape: 'swallow', remembersRect: false },
+  companion:        { scrim: null,    draggable: true,  trapsFocus: false, escape: 'close',   remembersRect: true,  shape: 'window' },
+  dialog:           { scrim: null,    draggable: true,  trapsFocus: false, escape: 'close',   remembersRect: true,  shape: 'window' },
+  'modal-normal':   { scrim: 'light', draggable: true,  trapsFocus: true,  escape: 'close',   remembersRect: false, shape: 'window' },
+  'modal-blocking': { scrim: 'dark',  draggable: false, trapsFocus: true,  escape: 'close',   remembersRect: false, shape: 'card' },
+  'modal-fault':    { scrim: 'dark',  draggable: false, trapsFocus: true,  escape: 'swallow', remembersRect: false, shape: 'card' },
 }
 
 type Props = {
@@ -85,9 +102,10 @@ type Props = {
    *  sensible default, and a silent one is how the app ended up with a
    *  modal-normal that never dimmed. */
   family: PanelFamily
-  /** Header bar label. The header is the drag handle when
-   *  draggable; the title is always visible. */
-  title: string
+  /** Titlebar label, for the WINDOW families — it doubles as the drag handle.
+   *  A CARD family has no titlebar, so it renders its own heading in the body
+   *  and passes nothing here. */
+  title?: string
   /** Called when the user dismisses the panel (X click in the
    *  header, optional ESC). Backdrop click does NOT dismiss —
    *  even when `backdrop` is set the click is consumed silently. */
@@ -137,6 +155,19 @@ type Props = {
    *  as `calc()`. `guards/vocabularies.test.ts` fails on a numeric
    *  literal passed to this prop. */
   zIndex?: string
+  /**
+   * Force a CARD family to take the full-page phone sheet anyway, for one whose
+   * content outgrows a card.
+   *
+   * **Expected to have no callers**, and that is measured rather than hoped:
+   * `fitContent` caps at the viewport and lets the body scroll, so a card
+   * degrades into a sheet by itself exactly when the content earns one — a
+   * 30×-repeated fault message grew to 647px at a phone's height without
+   * overflowing. The one unknown is scrabble's `BlankPicker` (26 letter buttons
+   * at ~390px), still hand-rolled. **If that converts cleanly, delete this
+   * prop** rather than keep it as decoration.
+   */
+  phone?: 'sheet'
   /** When true, a full-screen phone sheet stays clear of the
    *  on-screen keyboard: it's sized to the measured visual viewport
    *  (which shrinks by the keyboard), so a panel with a text input
@@ -184,6 +215,7 @@ type Props = {
 export function FloatingPanel({
   family,
   title,
+  phone,
   onClose,
   defaultPosition = 'center',
   defaultSize = { width: 480, height: 360 },
@@ -241,6 +273,10 @@ export function FloatingPanel({
       <FloatingPanelBody
         panelId={panelId}
         trapsFocus={claims.trapsFocus}
+        // A card stays a card on a phone unless it says otherwise; a window is
+        // always the sheet.
+        shape={claims.shape}
+        phoneSheet={claims.shape === 'window' || phone === 'sheet'}
         title={title}
         onClose={onClose}
         defaultPosition={defaultPosition}
@@ -266,6 +302,8 @@ export function FloatingPanel({
 function FloatingPanelBody({
   panelId,
   trapsFocus,
+  shape,
+  phoneSheet,
   title,
   onClose,
   defaultPosition,
@@ -282,7 +320,9 @@ function FloatingPanelBody({
 }: {
   panelId: string
   trapsFocus: boolean
-  title: string
+  shape: 'window' | 'card'
+  phoneSheet: boolean
+  title: string | undefined
   onClose: () => void
   defaultPosition: { x: number; y: number } | 'center'
   defaultSize: { width: number; height: number }
@@ -303,6 +343,8 @@ function FloatingPanelBody({
       <PersistedPanel
         panelId={panelId}
         trapsFocus={trapsFocus}
+        shape={shape}
+        phoneSheet={phoneSheet}
         title={title}
         onClose={onClose}
         defaultPosition={defaultPosition}
@@ -323,6 +365,8 @@ function FloatingPanelBody({
     <EphemeralPanel
       panelId={panelId}
       trapsFocus={trapsFocus}
+      shape={shape}
+      phoneSheet={phoneSheet}
       title={title}
       onClose={onClose}
       defaultPosition={defaultPosition}
@@ -345,6 +389,8 @@ function FloatingPanelBody({
 function PersistedPanel({
   panelId,
   trapsFocus,
+  shape,
+  phoneSheet,
   title,
   onClose,
   defaultPosition,
@@ -360,7 +406,9 @@ function PersistedPanel({
 }: {
   panelId: string
   trapsFocus: boolean
-  title: string
+  shape: 'window' | 'card'
+  phoneSheet: boolean
+  title: string | undefined
   onClose: () => void
   defaultPosition: { x: number; y: number } | 'center'
   defaultSize: { width: number; height: number }
@@ -384,6 +432,8 @@ function PersistedPanel({
     <PanelRnd
       panelId={panelId}
       trapsFocus={trapsFocus}
+      shape={shape}
+      phoneSheet={phoneSheet}
       title={title}
       onClose={onClose}
       rect={rect}
@@ -406,6 +456,8 @@ function PersistedPanel({
 function EphemeralPanel({
   panelId,
   trapsFocus,
+  shape,
+  phoneSheet,
   title,
   onClose,
   defaultPosition,
@@ -421,7 +473,9 @@ function EphemeralPanel({
 }: {
   panelId: string
   trapsFocus: boolean
-  title: string
+  shape: 'window' | 'card'
+  phoneSheet: boolean
+  title: string | undefined
   onClose: () => void
   defaultPosition: { x: number; y: number } | 'center'
   defaultSize: { width: number; height: number }
@@ -455,6 +509,8 @@ function EphemeralPanel({
     <PanelRnd
       panelId={panelId}
       trapsFocus={trapsFocus}
+      shape={shape}
+      phoneSheet={phoneSheet}
       title={title}
       onClose={onClose}
       rect={rect}
@@ -479,6 +535,8 @@ function EphemeralPanel({
 function PanelRnd({
   panelId,
   trapsFocus,
+  shape,
+  phoneSheet,
   title,
   onClose,
   rect,
@@ -494,7 +552,9 @@ function PanelRnd({
 }: {
   panelId: string
   trapsFocus: boolean
-  title: string
+  shape: 'window' | 'card'
+  phoneSheet: boolean
+  title: string | undefined
   onClose: () => void
   rect: PanelRect
   setRect: (next: PanelRect) => void
@@ -600,6 +660,9 @@ function PanelRnd({
     // on for the panel (see the CSS), so the page beneath stays clickable.
     <div
       className={styles.clipLayer}
+      // The phone sheet's geometry is CSS, keyed off this: a WINDOW fills the
+      // viewport, a CARD stays a card at every size (see the module).
+      data-phone={phoneSheet ? 'sheet' : 'card'}
       style={
         clampToKeyboard
           ? // Pin the layer to the visible region (above the keyboard). `top`
@@ -660,20 +723,33 @@ function PanelRnd({
             Its VALUE is the panel's id, which is how `usePanelEscape` maps focus
             back to a registered panel; the selector is unaffected, since
             `[data-floating-panel]` matches with or without a value. */}
-        <div className={styles.shell} data-floating-panel={panelId} ref={shellRef}>
-          <header
-            className={`${styles.header} ${draggable ? styles.dragHandle : ''}`}
-          >
-            <span className={styles.title}>{title}</span>
-            <button
-              type="button"
-              className={styles.closeButton}
-              onClick={onClose}
-              aria-label="Close"
+        <div
+          className={styles.shell}
+          data-floating-panel={panelId}
+          // WINDOW or CARD — the module reads it for the body padding, since a
+          // card's content starts at the top edge with no titlebar above it.
+          data-shape={shape}
+          ref={shellRef}
+        >
+          {/* No titlebar for a CARD family. The header IS the drag handle, so a
+              panel that can never be dragged has no use for one — its title is a
+              heading the leaf renders in the body, and its ✕ would be a third
+              way out duplicating a button already on screen. */}
+          {title !== undefined && (
+            <header
+              className={`${styles.header} ${draggable ? styles.dragHandle : ''}`}
             >
-              ×
-            </button>
-          </header>
+              <span className={styles.title}>{title}</span>
+              <button
+                type="button"
+                className={styles.closeButton}
+                onClick={onClose}
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </header>
+          )}
           {/* When fitting, the content is wrapped so its natural height can be
               measured independent of the body's pinned box (see the fit effect).
               Other panels render children directly — no structural change. */}

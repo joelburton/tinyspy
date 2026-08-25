@@ -1,44 +1,32 @@
-/* cs-unmet */
+/* cs-audited */
 
-/* Celebratory modal — a centered confetti card over a dimmed backdrop.
-   Distinct from the plain FloatingPanel dialogs (Help, the confirms):
-   this one's whole job is the festive moment. */
+/* Celebratory modal — confetti over the shared card. Its whole job is the
+   festive moment, and what is left in this file is only that: the scrim, the
+   surface, the radius, the shadow and the centering all come from
+   `<BlockingModal>` now, which is why the `.backdrop` and `.card` rules that
+   used to open this file are gone.
 
-/* @@ */ .backdrop {
-  position: fixed;
-  inset: 0;
-  background: var(--scrim-color);
-  /* Above the panel tier and the chat panel, so the celebration is never
-     occluded (base.css → the z-index ladder). */
-  z-index: var(--z-index-celebration);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* @@ */ .card {
-  position: relative;
-  background: var(--page-surface-color);
-  color: var(--page-text-color);
-  border-radius: var(--radius-lg);
-  padding: 2rem 2rem 1.5rem;
-  min-width: 280px;
-  max-width: min(90vw, 420px);
-  box-shadow: var(--shadow-dialog);
-  text-align: center;
-  /* Subtle scale-up on mount so the box doesn't just appear; pairs with
-     the confetti pieces dropping in. */
-  animation: cardIn 0.35s cubic-bezier(0.18, 1.15, 0.45, 1) both;
-}
-
-/* @@ */ @keyframes cardIn {
-  from { transform: scale(0.85); opacity: 0; }
-  to   { transform: scale(1);    opacity: 1; }
-}
+   ⚠️ ONE THING WAS LOST in that move, deliberately and not silently: the card
+   used to scale up on mount (`cardIn`, 0.85 → 1). It cannot ride the content
+   instead, because `transform` does not change layout height — `fitContent`
+   would size the shell to the finished content while the content grew into it,
+   so the box would sit still with its contents inflating inside. Making the
+   SHELL animate would give every blocking modal a scale-up, including the
+   confirms, which is a decision nobody has made. The confetti's own entrance —
+   the part that reads as celebration — is untouched. */
 
 /* Confetti row above the title. Each emoji bounces in with a small stagger
    (animationDelay set inline) plus a continuous JUMP — the per-piece stagger
    turns the shared keyframes into a rolling wave across the row. */
+/* Centering, plus the one thing this card needs that the others don't: HEADROOM.
+   The confetti pieces jump ABOVE their own box (`.piece`'s `pieceJump` lifts
+   0.4em, and `pieceIn` drops in from 1.6em higher still), so the card family's
+   1rem would clip the top of the arc. This adds half a rem to reach 1.5rem. */
+/* @@ */ .content {
+  text-align: center;
+  padding-top: 0.5rem;
+}
+
 /* @@ */ .confetti {
   display: flex;
   justify-content: center;
@@ -91,11 +79,10 @@
   color: var(--page-text-muted-color);
 }
 
-/* @@ */ .actions {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
+/* `.actions` is gone: the button row is `<BlockingModal>`'s `actions` slot now,
+   which right-aligns them in a row where this stacked them in a column. That is
+   a visible change and the intended one — a celebration is not special enough to
+   arrange its buttons differently from every other card (Joel, 2026-08-25). */
 
 /* Both buttons are the shared `button primary` / `button secondary` (theme.css).
    This module hand-rolled the pair — a white surface button plus its own blue

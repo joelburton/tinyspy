@@ -4,12 +4,18 @@ import { useRef, type ReactNode } from 'react'
 import { FloatingPanel, type PanelFamily } from './FloatingPanel'
 import { useFocusTrap } from '../../hooks/ui/useFocusTrap'
 import actionRow from './modalActions.module.css'
+import styles from './BlockingModal.module.css'
 
 type Props = {
-  /** The titlebar line — usually the question or the headline. */
-  title: string
-  /** Esc and the titlebar ✕. Whether a footer button also routes here is the
-   *  leaf's business. The backdrop deliberately does NOT: see-and-acknowledge. */
+  /** The headline — usually the question. Rendered as an `<h2>` at the top of
+   *  the body, NOT in a titlebar: a card family has none, because the titlebar
+   *  is the drag handle and this can never be dragged. Optional for a leaf that
+   *  wants to render its own (the fault's is red — that colour IS the shape
+   *  test, "a box popped up, the app broke"). */
+  title?: string
+  /** Escape. A card has no ✕, so a footer button must also route here — the
+   *  fault's Close is the only exit it has. The scrim deliberately does NOT:
+   *  see-and-acknowledge. */
   onClose: () => void
   /** The body — whatever this modal is about. */
   children: ReactNode
@@ -78,16 +84,22 @@ export function BlockingModal({
   return (
     <FloatingPanel
       family={family}
-      title={title}
       onClose={onClose}
       resizable={false}
       fitContent
       // The height is a first-paint seed only; `fitContent` grows past it.
       defaultSize={{ width: 420, height: 240 }}
       minWidth={320}
-      minHeight={200}
+      // NO HEIGHT FLOOR. A minimum exists so a RESIZABLE panel can't be dragged
+      // shut; a card can't be resized, so a floor is only the shell overruling
+      // the content — and it did: the shell's default 200 held this box 81px
+      // taller than what was in it, which is a band of empty white under the
+      // buttons. The content knows the height here, which is the whole reason
+      // `fitContent` is on.
+      minHeight={0}
     >
       <div ref={bodyRef}>
+        {title !== undefined && <h2 className={styles.title}>{title}</h2>}
         {children}
         <div className={actionRow.modalActions}>{actions}</div>
       </div>

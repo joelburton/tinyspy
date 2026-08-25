@@ -135,27 +135,57 @@
   display: flex;
   flex-direction: column;
   overflow: auto;
-  /* Small body padding — modals add their own as needed via
-     their own *.module.css. */
+  /* Small body padding — a WINDOW's content starts under a titlebar, which is
+     already a band of space above it, so the body itself stays tight. A panel
+     wanting more says so in its own module. */
   padding: 0.4rem 0.5rem;
 }
 
-/* ── Phones: full-screen sheet ──────────────────────────────────────────────
- * On a phone a floating, draggable card is the wrong shape — the panel becomes
- * a full-viewport sheet instead (docs/mobile.md → "Panels on touch"). The panel
- * is already non-draggable + non-resizable on any coarse pointer (forced in
+/* A CARD has NO titlebar, so its content starts hard against the top edge and
+   the tight body padding reads as cramped — the question would sit 8px from the
+   left of the box. Roomier, but only a little: a card is a small box holding a
+   sentence and two buttons, and 1.5rem made it read as a poster.
+
+   Padding is deliberately NOT on the spacer ramp yet (base.css → SPACER: "a
+   distance INSIDE a box is padding, and padding is parked"), so this is a
+   literal on purpose rather than an unconverted one. */
+/* @@ */ [data-shape='card'] .body {
+  padding: 1rem;
+}
+
+/* ── Phones: a WINDOW becomes a sheet, a CARD stays a card ──────────────────
+ * On a phone a floating, draggable window is the wrong shape — it becomes a
+ * full-viewport sheet instead (docs/mobile.md → "Panels on touch"). The panel is
+ * already non-draggable + non-resizable on any coarse pointer (forced in
  * FloatingPanel.tsx), so its geometry can't be moved; here we just override
  * react-rnd's inline position/size to fill the visible viewport. Tablets are
- * deliberately excluded — they keep the centered-modal rect (roomy enough), just
+ * deliberately excluded — they keep the centered rect (roomy enough), just
  * pinned in place. The `!important`s are required: react-rnd inlines
  * transform/width/height on the .rnd element, and only !important beats an
  * inline style.
  *
+ * **Only for `[data-phone='sheet']`**, which is the WINDOW families — the ones
+ * you move, holding content you scroll. A CARD (the two blocking families) stays
+ * a card at every size: a two-line question has nothing to fill a phone with,
+ * and replacing the board with a sheet deletes the very thing the question is
+ * about.
+ *
+ * **A card needs no rule here at all.** Its width is a fixed number (420) that
+ * would overflow a narrow phone, but `clampToViewport` already caps width and
+ * height to the viewport on mount, and `fitContent` caps the height again — so
+ * the geometry is handled in JS before CSS sees it. A CSS width override would
+ * also have to fight react-rnd's inline `transform: translate(x, y)`, which is
+ * how it positions; clamping the rect instead leaves that alone.
+ *
  * Insets use env(safe-area-inset-*) so the header clears a notch / status bar in
  * standalone (home-screen) PWA mode; on devices without safe areas the env()
- * values resolve to 0 and the sheet is edge-to-edge. */
+ * values resolve to 0 and the sheet is edge-to-edge.
+ *
+ * A sheet covers its own scrim, so the dim is only visible in the safe-area
+ * strips — which is the better of the two outcomes anyway: a dimmed frame rather
+ * than a live-looking page peeking out at the notch. */
 @media (--phone) {
-/* @@ */   .rnd {
+/* @@ */   [data-phone='sheet'] .rnd {
     position: absolute !important;
     inset:
       env(safe-area-inset-top) env(safe-area-inset-right)
@@ -166,9 +196,10 @@
     height: auto !important;
     transform: none !important;
   }
-  /* Edge-to-edge: drop the floating card's rounded corners so it reads as a
-     sheet, not a card cropped at the screen edge. */
-/* @@ */   .shell {
+  /* Edge-to-edge: drop the floating window's rounded corners so it reads as a
+     sheet, not a card cropped at the screen edge. A card keeps its radius —
+     it is still a card. */
+/* @@ */   [data-phone='sheet'] .shell {
     border-radius: 0;
   }
 }

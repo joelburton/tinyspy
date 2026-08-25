@@ -229,12 +229,29 @@ fault, the only 460, came down to 420 and re-measured clean:
 | fault, short | 420 × 200 | none | yes |
 | fault, 40× repeated message | 420 × 552 | none | yes |
 
-**One thing left unexamined, and it is small:** `minHeight: 200` is what both
-modals actually sit at, since their content is ~165px — so in the ordinary case
-the FLOOR is choosing the height, not the fit. The floor is inherited from
-`FloatingPanel`'s resizable-panel defaults, where a minimum stops you dragging a
-panel shut; a blocking modal cannot be resized, so it may not want one at all.
-Nothing looks wrong today. Noted rather than changed.
+**The `minHeight: 200` floor turned out to matter, and Joel saw it before the
+measurement did.** It was noted here as "small" and "nothing looks wrong today";
+removing the titlebar in step 3 made it a visible band of empty white under the
+buttons. Measured: a confirmation's content is **117px** inside a body of
+**198px** — 81px of nothing.
+
+A minimum exists so a RESIZABLE panel cannot be dragged shut. A card cannot be
+resized, so a floor is only the shell overruling the content — and the content is
+what knows the height here, which is the whole reason `fitContent` is on. So
+`<BlockingModal>` passes `minHeight={0}`:
+
+| | before | after |
+|---|---|---|
+| confirmation | 420 × 200 | 420 × **132** |
+| fault, short | 420 × 200 | 420 × **158** |
+| fault, 40× repeated | 420 × 552 | 420 × 519 |
+
+The 13px that remains in each is the body's own padding, not slack.
+
+**The general case is F23 (`viewport-margins-unchosen`)** and is NOT settled
+here: `SetupGameDialog` also passes `resizable={false}` with `fitContent` and a
+`minHeight: 300`, so it has the same floor overruling the same fit. That is
+`club-page`'s surface, so it is described rather than changed.
 
 ## F10 · `fault-tier` · The fault rides the shared default, so an open chat covers it
 

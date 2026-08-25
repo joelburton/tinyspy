@@ -1,6 +1,7 @@
-// cs-unmet
+// cs-audited
 
 import { useEffect, useRef } from 'react'
+import { BlockingModal } from '../floating-panels/BlockingModal'
 import styles from './CelebrationDialog.module.css'
 import { cls } from '../../lib/util/cls'
 
@@ -25,9 +26,17 @@ type Props = {
 }
 
 /**
- * A generic celebratory modal — confetti glyphs that bounce in over a
- * scale-up card, plus an optional jingle. Ported from crossplay's
- * `SolvedDialog`, themed to this repo's tokens and made game-agnostic.
+ * A generic celebratory modal — confetti glyphs that bounce in, plus an
+ * optional jingle. Ported from crossplay's `SolvedDialog`, themed to this
+ * repo's tokens and made game-agnostic.
+ *
+ * **A `modal-blocking` on the shared `<BlockingModal>`** since 2026-08-25. It
+ * was hand-rolled — its own scrim, its own card, its own Escape handler — and
+ * §20 warned against unifying it because `FloatingPanel` became a full-screen
+ * sheet on a phone and this must stay a small card. That objection is gone: a
+ * card family stays a card at every size, and gets no titlebar either, which
+ * suits a celebration better than a gray strip with a ✕ would
+ * (plans/areas/floating-panels.md → "a panel is a WINDOW or a CARD").
  *
  * The shared "you won!" celebration, and the ONLY modal a terminal game pops:
  * every game carries its verdict in-page (the below-board pill + the
@@ -68,36 +77,23 @@ export function CelebrationDialog({
       }
     }
 
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') {
-        e.stopPropagation()
-        onClose()
-      }
-    }
-    window.addEventListener('keydown', onKey, true)
+    // No Escape handler of its own — `usePanelEscape` owns the key for every
+    // floating panel now, so a celebration over anything else dismisses only
+    // itself.
     return () => {
-      window.removeEventListener('keydown', onKey, true)
       // Stop the jingle if the dialog is dismissed early.
       if (audio) {
         audio.pause()
         audio.currentTime = 0
       }
     }
-  }, [onClose, playSound])
+  }, [playSound])
 
   return (
-    <div className={styles.backdrop}>
-      <div className={styles.card} role="dialog" aria-label={title}>
-        <div className={styles.confetti} aria-hidden>
-          {CONFETTI.map((g, i) => (
-            <span key={i} className={styles.piece} style={{ animationDelay: `${i * 0.12}s` }}>
-              {g}
-            </span>
-          ))}
-        </div>
-        <h2 className={styles.title}>{title}</h2>
-        <p className={styles.body}>{body}</p>
-        <div className={styles.actions}>
+    <BlockingModal
+      onClose={onClose}
+      actions={
+        <>
           {primary && (
             <button
               type="button"
@@ -122,8 +118,24 @@ export function CelebrationDialog({
           >
             Nice!
           </button>
+        </>
+      }
+    >
+      {/* The title is rendered HERE rather than passed to `<BlockingModal>`,
+          because the confetti has to come above it — and because this h2 is
+          still at h1's size, which is a live question (plans/css-system-2.md §7)
+          and not something a structural move should quietly settle. */}
+      <div className={styles.content} role="dialog" aria-label={title}>
+        <div className={styles.confetti} aria-hidden>
+          {CONFETTI.map((g, i) => (
+            <span key={i} className={styles.piece} style={{ animationDelay: `${i * 0.12}s` }}>
+              {g}
+            </span>
+          ))}
         </div>
+        <h2 className={styles.title}>{title}</h2>
+        <p className={styles.body}>{body}</p>
       </div>
-    </div>
+    </BlockingModal>
   )
 }

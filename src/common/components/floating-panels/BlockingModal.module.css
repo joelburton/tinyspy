@@ -1,0 +1,15 @@
+/* cs-audited */
+
+/* The blocking modal's own title.
+ *
+ * A CARD family has no titlebar (FloatingPanel.tsx → FAMILY.shape), so the
+ * title lives in the body where a question belongs — as an `<h2>`, taking the
+ * element's own 1.25rem from base.css rather than inventing a size. Only the
+ * spacing is stated here: the shell's body padding is sized for content that
+ * follows a titlebar, and this is now the first thing in the box. */
+/* @@ */ .title {
+  /* h2's own `margin-block: 1.25rem` would push the question away from the top
+     edge of a small card. It is the heading OF the card, not a heading within
+     a document, so it sits close. */
+  margin: 0 0 var(--spacer-2);
+}
