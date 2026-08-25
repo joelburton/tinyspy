@@ -25,9 +25,14 @@ change here forward-fixes them in the same commit (§21's compile-break rule) an
 **their stamps do not move**. If one of them turns out to be the only evidence
 for a shared question, it gets surfaced and asked about, not audited.
 
-**Twenty-four findings.** Seven RESOLVED (F1–F7), three MOVED to `forms` (F8,
-F9, F13), two PUNTED (F14 → the first game area, F15 → crosswords), **twelve
-OPEN** — F10, F11, F12 from the work, and **F16–F24 from the audit below**.
+**Twenty-seven findings.** Seven RESOLVED (F1–F7), three MOVED to `forms` (F8,
+F9, F13), two PUNTED (F14 → the first game area, F15 → crosswords), **fifteen
+OPEN** — F10, F11, F12 from the work, F16–F24 from the audit, and F25–F27 raised
+after it.
+
+**A plan for eight of them is agreed** — see "The plan, agreed 2026-08-24" below.
+F16/F17/F18 turned out to be one question, and the answer is that a panel
+declares its FAMILY and the shell enforces what follows.
 
 **F16 (`esc-closes-every-panel`) is the only live bug**, and it is measured: one
 Escape closes every open panel, so dismissing Help throws away the setup form
@@ -438,6 +443,158 @@ Either the two share a class or they are independent; a comment is neither.
 question, and F16 + F17 + F18 are all really the same question — *what does a
 floating panel claim about the thing underneath it, and does anything enforce
 that claim?*
+
+---
+
+# The plan, agreed 2026-08-24
+
+F16, F17 and F18 turned out to be one question — *what does a floating panel
+claim about the thing underneath it, and does anything enforce the claim?* — and
+the answer is that **the panel declares its FAMILY and the shell enforces
+everything that follows from it.** Joel took this over the cheaper alternatives
+knowing it implies a forward sweep of every consumer: *"if this involves a
+forward-sweep, that alone shouldn't block us from considering C."*
+
+## What `family` drives, and what it deliberately does not
+
+**Derived — these stop being props:** the scrim (present? which shade) ·
+draggable · the focus trap · Escape · centered-fresh vs restored-where-you-left-it.
+
+**Stays a prop, on purpose:**
+
+- **`persistKey`** — the family says *remember your rect*; the key is per-instance.
+- **`resizable` / `fitContent`** — §20's resize test is *who knows the size*, and
+  that is orthogonal: chat (the user knows) and Help (the content knows) are both
+  companions.
+- `title`, `onClose`, `defaultSize`, `minWidth`/`minHeight`, `reserveKeyboard`.
+
+Three independent questions instead of eight loose props: **family = what this
+panel claims about the page beneath it; sizing = who decides how big; layer =
+the family's, via the ladder.**
+
+## The decisions behind it
+
+**The trap follows the scrim** (F17). A `backdrop` already blocks the pointer on
+everything below, so a modal that does not trap hands a keyboard user Tab access
+to controls they cannot click — focus on a dimmed, inert button. Trapping
+restricts nothing that was usable; it makes the keyboard agree with the mouse.
+So **modal-normal, modal-blocking and modal-fault trap; companion and dialog do
+not** — they never dim, the page behind them is live, and you must be able to
+leave. Chat survives this: it sits above the scrim so it stays clickable, and
+`useFocusTrap` listens on its own panel's subtree, so a Tab inside chat never
+reaches a modal's handler.
+
+**Two scrims, assigned by family** (F18, Joel): *"I may like having the blocking
+modals have a darker scrim, so let's leave room for that."* The VALUES stay as
+they are for now (40% / 45%) — §20 wants roughly 35% / 55%, and that wants
+looking at on a real board.
+
+**Movable, but modals still center** (F175). "If it's movable we remember where
+it was" collided with `SetupGameDialog`'s written *"No persistKey — each open
+lands centered"*, and Joel settled it: **companions and dialogs remember;
+modal-normals are movable and do not.** A modal is a fresh task each time.
+
+**Escape: what you're IN, else what's on TOP.**
+
+1. Focus inside panel P → Escape acts on P, and stops there.
+2. Focus nowhere in a panel → Escape closes the top panel, ranking chat as its
+   FAMILY (companion) rather than its layer.
+
+**The fault SWALLOWS Escape** — consumes the key, closes nothing, and nothing
+below it moves, because closing a fault by accident is a real problem. Ties break
+by later-mounted-wins. **`closeOnEsc={false}` stops being a taste knob**: chat's
+and the scratchpad's opt-outs are bugs by this rule (F25).
+
+**The celebration joins the shell** once the shell can say *stay a card on a
+phone*. The objection was never that it is the wrong family — it is that
+`FloatingPanel` becomes a full-screen sheet at `@media (--phone)` while
+`CelebrationDialog` is `max-width: min(90vw, 420px)` with **no media query at
+all** (verified: zero `@media` in that file). That is a missing capability in the
+shell, not a property of the celebration. Joel: *"'stay a card' is something that
+FloatingPanel should offer as a possibility on phones, though almost all will be
+full-page."*
+
+## The ladder lands here too
+
+Measured before deciding, and it is far smaller than it reads: **8 tokens, 13
+declarations, 11 files** — ten in `common/`, one in crosswords. Everything else
+writing `z-index` in `common/` is 0–5, which §20 defines as local layering rather
+than a tier.
+
+| token | value | readers |
+|---|---|---|
+| `--z-index-infoSheet` | 40 | `InfoSheet` |
+| `--z-index-panel` | 500 | `FloatingPanel` (default), `FloatingChat` |
+| `--z-index-popover` | 1500 | `Menu` ×2, `FilterSelect`, `DefinitionPopover`, crosswords' `NumberJumpDialog` |
+| `--z-index-chatPanel` | 10000 | `FloatingChat`, the backdrop's `calc` |
+| `--z-index-scratchpad` | 10000 | `GameScratchpad` |
+| `--z-index-celebration` | 10001 | `CelebrationDialog` |
+| `--z-index-toast` | 12000 | `ToastHost` |
+| `--z-index-tooltip` | 12000 | `TooltipHost` |
+
+**Zero drift is the point** (Joel, on 169): there is **no table in TypeScript**.
+The shell writes `var(--z-<family>)`, so the code carries the NAME and `base.css`
+carries every VALUE. The `zIndex` prop is deleted.
+
+It fixes three known problems on the way: **F10** (blocking 5000 / fault 5100
+land above chat 3100, so an open chat stops covering an error), the celebration
+coming down off 10001, and toast/tooltip un-tying at 12000.
+
+**`NumberJumpDialog`'s TIER moves here; its STRUCTURE stays crosswords'.** The
+tier move is a bug fix and it cannot be left behind on a retired token; converting
+it onto `<BlockingModal>` is the visible change its own area should see (F15).
+
+**Scratchpad vs chat**: they tie at 10000 today and DOM order decides. The ladder
+separates them — chat 3100 over companion 2000 — which is consistent with chat
+being the one panel that can open itself.
+
+## The order, and what each step closes
+
+| | what | closes |
+|---|---|---|
+| 1 | **`family` on `FloatingPanel`** — five values; `backdrop`, `draggable`, `closeOnEsc` and the hand-called trap all go. ~14 call sites | F17, F18, F19 |
+| 2 | **The Escape policy** + a spec pinning Help-over-setup | F16, F21, F25 |
+| 3 | **The phone "stay a card" trait**, then `CelebrationDialog` onto the shell | part of F20 |
+| 4 | **The rungs** — 8 tokens → the new ladder, 11 files, `zIndex` deleted | F10 |
+| 5 | **The satellites** — homepage's F22.1 contract slot for `Menu`, `FilterSelect`, `DefinitionPopover` | — |
+| 6 | **F26** — ephemeral panels re-clamp, and the two paths agree about overwriting | F26 |
+
+**Two visible changes to expect in the diff**, both intended: blocking and fault
+scrims darken 40% → 45%, and the celebration stops painting over chat.
+
+## F25 · `esc-opt-outs-are-bugs` · Two panels opted out of Escape
+
+`FloatingChat` and `GameScratchpad` pass `closeOnEsc={false}`. Joel, 2026-08-24:
+*"it is a bug that scratchpad doesn't handle escape (other things might not
+handle them now); all floating panels should handle esc-to-close, following the
+rule we just confirmed about the 'focus-or-top'."* Both opt-outs go; the fault's
+swallow is the only exception left.
+
+## F26 · `ephemeral-panels-dont-reclamp` · The panels that persist are protected; the ones that don't, aren't
+
+`useDraggablePanel` hard-clamps on mount AND re-clamps on every window resize, so
+the four persisting panels can never come back off-screen. **Verified** by
+planting a rect saved as if on a 2560×1440 monitor and loading at 900×700: the
+panel lands at x 552, y 232 — exactly `min(2000, 900−340−8)`, `min(1200,
+700−460−8)` — fully on screen.
+
+**And the stored rect is left unchanged, which is right**: plug the monitor back
+in and the panel returns to where you left it there. The clamp corrects the
+display, not the memory.
+
+`EphemeralPanel` — every non-persisting panel, so every modal — hard-clamps **on
+mount only**. No resize listener. Drag one toward an edge, shrink the window, and
+nothing pulls it back. The protection is on the panels that need it least.
+
+The window-resize path also DOES overwrite storage, so resizing on a laptop
+destroys the big-monitor position that reopening carefully preserves. The two
+paths should agree, and the mount behavior is the better one.
+
+## F27 · `cluepanel-clue-for-what` · `CluePanel` names neither its game nor its job
+
+Joel, 2026-08-24: *"'CluePanel' is a terrible name: CLUE FOR WHAT?"* It is
+codenamesduet's AI clue **suggester**, and it is a `modal-normal`. On §20's
+rename roster (Open item 4) with the rest — no name proposed here.
 
 ## Predicted test breaks
 
