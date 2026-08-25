@@ -591,6 +591,25 @@ mono printer flattens the outcome bar's green and red to one gray.
 
 ## 7. Deferred
 
+- **`tile-gone` shows the FAULT modal, and it should be a pill.** Seen live
+  2026-08-24, Joel and moth clearing the same word at the same moment. The RPC
+  raises `tile-gone|` (`supabase/sql/stackdown.sql`, "a submitted tile has
+  already been cleared") and **that key has no `ERROR_COPY` entry** — and an
+  unregistered key renders as a fault (`serverError.ts`: no entry → `kind:
+  'fault'`). So an ordinary race between two people playing fast produces the
+  red "something broke" modal plus a raw `submit-word|tile-gone|…` string.
+
+  **setgame already solved exactly this**, and its comment is the argument:
+  `'cards-gone': { text: () => 'Someone got there first', tone: 'noted' }` —
+  *"Registered because an unregistered key renders as a FAULT, and this is not
+  one: it is the expected outcome of two people being fast at the same moment,
+  and the player did nothing wrong."* Two friends racing for a word is the
+  co-op case working, not a failure.
+
+  Worth checking the same way round while in there: `stackdown.sql` raises
+  `bad-word-length|` and a not-exposed case nearby, and neither has been checked
+  against the table either.
+
 - **The word flash only fires for half the players.** A teammate's rejected word
   flashes their letters red (`onPeerWord` → the `lost` tone); your OWN invalid
   word gets the "Not a word" pill and nothing on the board. Spotted 2026-08-18

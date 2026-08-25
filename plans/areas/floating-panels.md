@@ -25,18 +25,17 @@ change here forward-fixes them in the same commit (§21's compile-break rule) an
 **their stamps do not move**. If one of them turns out to be the only evidence
 for a shared question, it gets surfaced and asked about, not audited.
 
-**Twenty-seven findings.** Seven RESOLVED (F1–F7), three MOVED to `forms` (F8,
-F9, F13), two PUNTED (F14 → the first game area, F15 → crosswords), **fifteen
-OPEN** — F10, F11, F12 from the work, F16–F24 from the audit, and F25–F27 raised
-after it.
+**Twenty-eight findings.** Thirteen RESOLVED (F1–F7, F16, F17, F18, F19, F21,
+F25, F28), three MOVED to `forms` (F8, F9, F13), two PUNTED (F14 → the first
+game area, F15 → crosswords), **nine OPEN** — F10, F11, F12, F20, F22, F23, F24,
+F26, F27.
 
 **A plan for eight of them is agreed** — see "The plan, agreed 2026-08-24" below.
 F16/F17/F18 turned out to be one question, and the answer is that a panel
 declares its FAMILY and the shell enforces what follows.
 
-**F16 (`esc-closes-every-panel`) is the only live bug**, and it is measured: one
-Escape closes every open panel, so dismissing Help throws away the setup form
-under it.
+Steps 1 and 2 of the plan are done. **F16 (`esc-closes-every-panel`) — the one
+live bug — is fixed and pinned** by `e2e/panel-escape.e2e.ts`.
 
 **Every heading says its status**, the convention `plans/areas/homepage.md`
 arrived at: a heading with **no status prefix means OPEN**.
@@ -311,7 +310,7 @@ panel's, and the two no longer have to be asked in one sitting.
 All 14 roster files read. F1–F15 came out of the *work*; these came out of the
 *reading*, and they start at F16 so no number is ever reused.
 
-## F16 · `esc-closes-every-panel` · One Escape closes every open floating panel, not the top one
+## RESOLVED · F16 · `esc-closes-every-panel` · One Escape closes every open floating panel, not the top one
 
 **CONFIRMED by measurement**, and it is the worst thing in this area.
 
@@ -334,10 +333,26 @@ Only two panels escape it, and by opting out of Escape entirely
 (`closeOnEsc={false}`): chat and the scratchpad. Every other panel is exposed,
 including the blocking modals — a fault over a confirmation is the same shape.
 
-Fixing it means Escape belongs to the **topmost** panel, which means the app
-needs to know which panel is topmost — a stack. That is also what §20's Open 1
-(the multiple-movable-things strategy) needs, so the two should be looked at
-together.
+**Fixed 2026-08-24 by `usePanelEscape`** — ONE module-level listener with a
+registry of open panels, replacing one listener per panel. **What you're IN,
+else what's on TOP**: focus inside a panel routes Escape to that panel and stops
+there (a swallow does NOT fall through to the panel below, which would be the
+most confusing outcome available); otherwise it goes to the highest FAMILY rank,
+later-mounted breaking ties. Each panel is matched by focus through
+`data-floating-panel`, which now carries the panel's id as its value — the
+selector is unaffected, since `[data-floating-panel]` matches with or without one.
+
+Measured, and pinned by `e2e/panel-escape.e2e.ts` — every case opens TWO panels,
+because a one-panel assertion passes against the bug:
+
+| | before | after |
+|---|---|---|
+| Help over setup, one Escape | 2 → **0**, the form gone | 2 → **1**, the form survives |
+| chat + a confirmation, focus outside both | — | the confirmation closes, **chat survives** |
+| a fault with chat open | — | Escape closes **nothing**, both remain |
+
+The registry also answers "which movable thing is on top", which §20's Open 1
+needs for the same reason.
 
 ## F17 · `backdrop-without-trap` · Three dimmed forms let Tab walk out behind them
 
@@ -395,12 +410,15 @@ learns the wrong rule.
 - `useDraggablePanel.ts:33` says *"(FloatingChat, future Scratchpad, etc.)"*.
   Same.
 
-## F21 · `focus-trap-doc-stale` · `useFocusTrap`'s scope note now contradicts the code
+## RESOLVED · F21 · `focus-trap-doc-stale` · `useFocusTrap`'s scope note now contradicts the code
 
-It says the trap is *"opt-in per modal (call it from the dialog body), NOT baked
-into every `<FloatingPanel>`"*. It is now baked into `BlockingModal`. Small on
-its own, but it is exactly the note someone would read before deciding F17, and
-it currently argues against the thing F17 is asking about.
+It said the trap was *"opt-in per modal (call it from the dialog body), NOT
+baked into every `<FloatingPanel>`"* — the note someone would have read before
+deciding F17, arguing against the answer F17 arrived at. **Rewritten**: the
+shell calls it, for the families that dim, because the trap FOLLOWS THE SCRIM.
+It also now records why chat is unaffected by a modal's trap while sitting above
+it — the listener is on the modal's own subtree, so a Tab inside chat never
+reaches it.
 
 ## F22 · `shell-literals` · The two shared stylesheets are unconverted
 
@@ -562,7 +580,7 @@ being the one panel that can open itself.
 **Two visible changes to expect in the diff**, both intended: blocking and fault
 scrims darken 40% → 45%, and the celebration stops painting over chat.
 
-## F25 · `esc-opt-outs-are-bugs` · Two panels opted out of Escape
+## RESOLVED · F25 · `esc-opt-outs-are-bugs` · Two panels opted out of Escape
 
 `FloatingChat` and `GameScratchpad` pass `closeOnEsc={false}`. Joel, 2026-08-24:
 *"it is a bug that scratchpad doesn't handle escape (other things might not

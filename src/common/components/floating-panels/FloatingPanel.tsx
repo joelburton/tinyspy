@@ -1,6 +1,6 @@
 // cs-audited
 
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { Rnd } from 'react-rnd'
 import {
   clampToViewport,
@@ -11,6 +11,7 @@ import { useCoarsePointer } from '../../hooks/ui/useCoarsePointer'
 import { usePhone } from '../../hooks/ui/usePhone'
 import { useVisualViewport } from '../../hooks/ui/useVisualViewport'
 import { useFocusTrap } from '../../hooks/ui/useFocusTrap'
+import { usePanelEscape } from '../../hooks/ui/usePanelEscape'
 import styles from './FloatingPanel.module.css'
 // (Below: a 'hard'/'soft' literal is passed to clampToViewport
 // per-call. See the ClampMode type in useDraggablePanel.)
@@ -209,27 +210,12 @@ export function FloatingPanel({
   const effectiveDraggable = claims.draggable && !coarse
   const effectiveResizable = resizable && !coarse
 
-  // ESC handler. Window-level so it works regardless of where focus lives
-  // inside the panel body. A fault SWALLOWS the key instead — it consumes it
-  // and closes nothing, because dismissing an error by reflex is a real
-  // problem, and closing the panel UNDER it would be worse.
-  //
-  // ⚠️ STILL PER-PANEL, and that is a known bug: every open panel installs its
-  // own listener, so one Escape closes them ALL — dismissing Help throws away
-  // the setup form beneath it. The fix needs a panel stack so Escape can go to
-  // the one you are IN, else the one on TOP
-  // (plans/areas/floating-panels.md → F16). Family already carries the policy;
-  // only the dispatch is wrong.
-  const swallowsEscape = claims.escape === 'swallow'
-  useEffect(function installEscapeHandler() {
-    function onKey(e: KeyboardEvent) {
-      if (e.key !== 'Escape') return
-      e.preventDefault()
-      if (!swallowsEscape) onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [swallowsEscape, onClose])
+  // Escape: what you're IN, else what's on TOP. One listener for the whole app
+  // rather than one per panel — see `usePanelEscape`. The id is how the handler
+  // maps focus back to a registered panel; it is stamped on the shell as
+  // `data-floating-panel`, which the game key-capture hooks already look for.
+  const panelId = useId()
+  usePanelEscape(panelId, family, claims.escape, onClose)
 
   // Header acts as the drag handle when draggable. react-rnd
   // identifies it by class name; the .header / .dragHandle
@@ -253,6 +239,7 @@ export function FloatingPanel({
         />
       )}
       <FloatingPanelBody
+        panelId={panelId}
         trapsFocus={claims.trapsFocus}
         title={title}
         onClose={onClose}
@@ -277,6 +264,7 @@ export function FloatingPanel({
 // on `persistKey` without conditionally calling hooks at the
 // outer call site (rules-of-hooks).
 function FloatingPanelBody({
+  panelId,
   trapsFocus,
   title,
   onClose,
@@ -292,6 +280,7 @@ function FloatingPanelBody({
   reserveKeyboard,
   children,
 }: {
+  panelId: string
   trapsFocus: boolean
   title: string
   onClose: () => void
@@ -312,6 +301,7 @@ function FloatingPanelBody({
     // content-fit — so `fitContent` doesn't apply here (see the prop docstring).
     return (
       <PersistedPanel
+        panelId={panelId}
         trapsFocus={trapsFocus}
         title={title}
         onClose={onClose}
@@ -331,6 +321,7 @@ function FloatingPanelBody({
   }
   return (
     <EphemeralPanel
+      panelId={panelId}
       trapsFocus={trapsFocus}
       title={title}
       onClose={onClose}
@@ -352,6 +343,7 @@ function FloatingPanelBody({
 // Variant with persistence — uses the shared useDraggablePanel
 // hook to restore + save the rect.
 function PersistedPanel({
+  panelId,
   trapsFocus,
   title,
   onClose,
@@ -366,6 +358,7 @@ function PersistedPanel({
   reserveKeyboard,
   children,
 }: {
+  panelId: string
   trapsFocus: boolean
   title: string
   onClose: () => void
@@ -389,6 +382,7 @@ function PersistedPanel({
   })
   return (
     <PanelRnd
+      panelId={panelId}
       trapsFocus={trapsFocus}
       title={title}
       onClose={onClose}
@@ -410,6 +404,7 @@ function PersistedPanel({
 // reset on every mount. Used by modals where "remember position
 // across opens" would be surprising.
 function EphemeralPanel({
+  panelId,
   trapsFocus,
   title,
   onClose,
@@ -424,6 +419,7 @@ function EphemeralPanel({
   reserveKeyboard,
   children,
 }: {
+  panelId: string
   trapsFocus: boolean
   title: string
   onClose: () => void
@@ -457,6 +453,7 @@ function EphemeralPanel({
     setRectState(clampToViewport(next, minWidth, minHeight, 8, 'soft'))
   return (
     <PanelRnd
+      panelId={panelId}
       trapsFocus={trapsFocus}
       title={title}
       onClose={onClose}
@@ -480,6 +477,7 @@ function EphemeralPanel({
 // state, so the `rect` / `setRect` pair is the same shape in
 // both cases.
 function PanelRnd({
+  panelId,
   trapsFocus,
   title,
   onClose,
@@ -494,6 +492,7 @@ function PanelRnd({
   reserveKeyboard = false,
   children,
 }: {
+  panelId: string
   trapsFocus: boolean
   title: string
   onClose: () => void
@@ -657,8 +656,11 @@ function PanelRnd({
         {/* `data-floating-panel` marks this subtree as "a panel owns the keyboard
             here": the game's window-level key capture (useGlobalKeyHandler) bails
             for events whose focus is inside it, so Enter activates a modal button
-            and Tab moves between its controls instead of being swallowed. */}
-        <div className={styles.shell} data-floating-panel ref={shellRef}>
+            and Tab moves between its controls instead of being swallowed.
+            Its VALUE is the panel's id, which is how `usePanelEscape` maps focus
+            back to a registered panel; the selector is unaffected, since
+            `[data-floating-panel]` matches with or without a value. */}
+        <div className={styles.shell} data-floating-panel={panelId} ref={shellRef}>
           <header
             className={`${styles.header} ${draggable ? styles.dragHandle : ''}`}
           >

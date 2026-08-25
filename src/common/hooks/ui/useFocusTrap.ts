@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited
 
 import { useEffect, type RefObject } from 'react'
 
@@ -14,14 +14,21 @@ import { useEffect, type RefObject } from 'react'
  * the boundary. Pass a ref to any element the dialog renders inside that panel;
  * the hook walks up to the panel on mount.
  *
- * Scope note: this is opt-in per modal (call it from the dialog body), NOT baked
- * into every `<FloatingPanel>` — the always-on chat / scratchpad are non-modal and
- * must NOT trap focus (you'd never Tab back out to the game). Only true modals
- * (a suspend confirm, Setup, …) want it.
+ * **Who calls it: `<FloatingPanel>`, for the families that DIM.** It used to be
+ * opt-in per modal, which is how three dimmed forms ended up letting Tab walk
+ * out behind them (plans/areas/floating-panels.md → F17
+ * `backdrop-without-trap`). The trap now FOLLOWS THE SCRIM, because they are the
+ * same claim said twice: a scrim already blocks the pointer on everything below,
+ * so an untrapped one hands a keyboard user Tab access to controls they cannot
+ * click. Companions and dialogs never dim and never trap — the page behind them
+ * is live and you must be able to leave.
  *
- * Esc-to-close and initial focus stay where they already live (FloatingPanel's Esc
- * handler; the dialog's `autoFocus` on its primary button) — this hook only owns
- * the wrap-around.
+ * Chat is unaffected by a modal's trap even while sitting above it: the listener
+ * is on the modal's OWN panel subtree, so a Tab pressed inside chat never
+ * reaches it. The modal owns the keyboard; chat stays reachable by pointer.
+ *
+ * Escape and initial focus live elsewhere — `usePanelEscape` and the leaf's
+ * `autoFocus` on its primary button. This hook only owns the wrap-around.
  */
 export function useFocusTrap(anchorRef: RefObject<HTMLElement | null>): void {
   useEffect(() => {
