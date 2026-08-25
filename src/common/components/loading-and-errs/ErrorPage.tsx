@@ -34,7 +34,7 @@ type Props = {
  * It wears the modal's look on purpose — the red "Error", the message, the
  * small separate diagnostics line — so the two read as the same event in two
  * containers rather than as two different kinds of trouble. See
- * `FaultDialog.module.css`, which this mirrors.
+ * `FaultModal.module.css`, which this mirrors.
  *
  * Every one of these carries the SAME way out, because the five it replaced had
  * three different ones and one had none at all.

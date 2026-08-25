@@ -219,7 +219,7 @@ The UI bar for "leaving" depends on play state — three shapes (GamePage's `req
 
 - **Non-terminal, SOLO**. Also no confirm — Back-to-club suspends immediately. Suspending isn't dangerous by itself (the game shelves into the club list, resumable); the confirm exists to warn about dragging PEERS off the game, and a solo game has none to surprise.
 
-- **Non-terminal, MULTIPLAYER**. The suspend-confirm MODAL (a real modal: backdrop-blocked board, dialog-owned keyboard — `SuspendConfirmDialog`, a wrapper over the shared `ConfirmationBlockingModal`). On accept, ALL viewing members (not just the leaver) move to the club page and the game stops being current.
+- **Non-terminal, MULTIPLAYER**. The suspend-confirm MODAL (a real modal: backdrop-blocked board, dialog-owned keyboard — `SuspendConfirmationBlockingModal`, a wrapper over the shared `ConfirmationBlockingModal`). On accept, ALL viewing members (not just the leaver) move to the club page and the game stops being current.
 
 The asymmetry: the confirm is about the *social* surprise, not the act. Suspending loses nothing; what needs a beat of consideration is yanking the rest of the group off the puzzle mid-flight.
 

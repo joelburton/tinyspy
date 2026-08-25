@@ -8,7 +8,7 @@ For terminology and the architectural backdrop see [`naming.md`](naming.md). For
 
 The explanation bar in this codebase is higher than the average TypeScript project — see [`../CLAUDE.md → Educational priority`](../CLAUDE.md#educational-priority--clarity-over-brevity) for the prior. What that looks like in practice:
 
-- **Docstrings on every exported function, component, hook, and RPC.** Explain what it does, why it exists, and any non-obvious constraints. The codenamesduet RPCs in [`supabase/sql/codenamesduet.sql`](../supabase/sql/codenamesduet.sql) and components like [`src/codenamesduet/components/CluePanel.tsx`](../src/codenamesduet/components/CluePanel.tsx) are the model — generous prose, examples, references to related pieces.
+- **Docstrings on every exported function, component, hook, and RPC.** Explain what it does, why it exists, and any non-obvious constraints. The codenamesduet RPCs in [`supabase/sql/codenamesduet.sql`](../supabase/sql/codenamesduet.sql) and components like [`src/codenamesduet/components/CodenamesduetAISuggestModal.tsx`](../src/codenamesduet/components/CodenamesduetAISuggestModal.tsx) are the model — generous prose, examples, references to related pieces.
 - **Code comments where the WHY isn't obvious.** Design decisions, subtle invariants, non-obvious trade-offs ("we refetch on SUBSCRIBED because broadcasts can be missed during reconnect"), workarounds for specific platform behavior.
 - **Names describe role, not implementation.** `isClueGiver` not `playerA`. See [`naming.md`](naming.md) for the terminology lexicon.
 - **Prefer one clear path over a clever one.** A few extra lines of straightforward code beat a tight expression that requires the reader to pause.
@@ -288,9 +288,9 @@ Roles, not implementations:
 |---|---|---|
 | The route-level shell every game mounts inside (header / pause / chat) | `GamePage` | shared (`common/components/`) |
 | The gametype-specific play surface, mounted inside `<GamePage>` at the route level via the manifest's lazy `PlayArea` field | `PlayArea` | per-game |
-| The gametype-specific setup form mounted inside the common `SetupGameDialog` | `SetupForm` | per-game |
+| The gametype-specific setup form mounted inside the common `SetupGameModal` | `SetupForm` | per-game |
 | End-of-game info-column row | `TerminalActionRow` | shared (`common/components/game/terminal/`); per-game callers pass the `TerminalCopy` their `buildOver()` returns + any extra terminal actions as children |
-| Reused chat surface | `FloatingChat` | shared, mounted once by `GamePage` |
+| Reused chat surface | `Chat` | shared, mounted once by `GamePage` |
 | Auth gate | `LoginScreen` | shared |
 
 A game's main screen is `PlayArea.tsx` whether it has a literal grid (codenamesduet) or just a text input (psychicnum). The role is "the place where the gametype-specific play happens"; cross-cutting chrome (title, timer, Pause, Back-to-club, pause overlay, chat) belongs to `<GamePage>`, not to the per-game PlayArea.
@@ -386,7 +386,7 @@ When porting a new game, the per-game `useGame` hook's shape depends on whether 
 The decision rule is mechanical: "does this game's per-row state name specific seats?" If yes, fixed-seat template; if no, open template. Don't mix — an N-player game that fetches its own roster duplicates work `useCommonGame` already did; a fixed-seat game that reads from `GamePageCtx` would have to wait for the upstream load before its own data makes sense.
 
 Concrete examples in the tree today:
-- Shared: `<GamePage>`, `<PauseBoundary>`, `<FloatingChat>`, `<TimerField>`, `<ClubGameCard>`, `<StartGameButtons>`, `<SuspendConfirmDialog>`, `useCommonGame`, `useGameTimer`, `useHistoryViewer`.
+- Shared: `<GamePage>`, `<PauseBoundary>`, `<Chat>`, `<TimerField>`, `<ClubGameCard>`, `<StartGameButtons>`, `<SuspendConfirmationBlockingModal>`, `useCommonGame`, `useGameTimer`, `useHistoryViewer`.
 - Same name, per-game body: `PlayArea` (every game), `BoardCol` / `InfoCol` (every standard two-column game — see the decomposition note below), `SetupForm` (every game), `Help` (every game), `useGame` (every game), `GameTurnLog` (all eight turn-log games; its "whose turns?" header dropdown is the shared [`useTurnLogPlayerPicker`](../src/common/hooks/game/useTurnLogPlayerPicker.tsx) — **every** turn-log game carries it, on one vocabulary, and it brings the filter, the `#N`-handle gate and the honest RLS-hidden empty line with it; see [playarea.md → Whose turns?](playarea.md#whose-turns--the-shared-player-picker) — the turn-log component was unified on this name, retiring stackdown's `FoundWords` and scrabble's `PlayLog`), `lib/history` (the six games with a turn-history viewer — scrabble is the exception, its replay is `boardUpToSeq` in `lib/play.ts`).
 - Extracted-to-common after recurrence: `TerminalActionRow`, `ChatButton`, `PageHeaderPlayersStrip`, `PageHeaderStatusSlot`, `Menu`, `PauseButton`, `GameLogo`, `PuzpuzpuzLogo` — each used by multiple call sites with the per-game variability flowing through props.
 
@@ -542,7 +542,7 @@ Six rules that are otherwise only discoverable by reading the code:
 - **In CSS, across all of `src/` — boards included.** This is the one vocabulary where tuned surfaces are *not* exempt: a board's radius is a game's decision, but a board's rank against chat is a whole-app decision that merely happens to be written in a game's file. Values 0–10 stay legal as local layering; anything above must read a token.
 - **In TypeScript.** `<FloatingPanel>`'s `zIndex` prop is typed `string` and takes `var(--z-chat)`, so the order has one home rather than a CSS list and a TS list free to disagree. A numeric literal fails the guard. A *computed* z-index is still fine — stackdown stacks its tile pile with `zIndex: t.z`, which is per-tile data, not a tier.
 
-**Three values are deliberately still literals**, each with an area that owns it (see [css-system-2.md](../plans/css-system-2.md) § Carried forward): the two drag ghosts, which disagree at 1000 (bananagrams) and 100 (scrabble); and scrabble's `BlankPicker` overlay at 50, a full-screen `position: fixed` modal parked *below* the panel tier, so an open chat or menu paints over it. Naming them would bless arrangements nobody has decided on. They sit on the guard's pending list until then.
+**Three values are deliberately still literals**, each with an area that owns it (see [css-system-2.md](../plans/css-system-2.md) § Carried forward): the two drag ghosts, which disagree at 1000 (bananagrams) and 100 (scrabble); and scrabble's `ScrabbleBlankPickerBlockingModal` overlay at 50, a full-screen `position: fixed` modal parked *below* the panel tier, so an open chat or menu paints over it. Naming them would bless arrangements nobody has decided on. They sit on the guard's pending list until then.
 
 #### Duplication and drift that are deliberate
 
@@ -674,7 +674,7 @@ Where to use which:
 
 | Context | Type | Variable name | Examples |
 |---|---|---|---|
-| Club listing, chat, setup forms | `Member` | `members` | `ClubPage` roster, `ChatBody.members`, `SetupBodyProps.members`, `FloatingChat.members` |
+| Club listing, chat, setup forms | `Member` | `members` | `ClubPage` roster, `ChatBody.members`, `SetupBodyProps.members`, `Chat.members` |
 | Inside a game | game's `Player` | `players` | `useCommonGame().players`, `GamePageCtx.players`, `<PlayArea>` ctx, `<GameTurnLog players={...} />`, `computePause(presentUserIds, players)` |
 
 The one variable to be aware of: **`useCommonGame` returns `players: Member[]`** — the type is `Member` (it's the identity layer, not a per-game shape), but the field is named `players` because every consumer is in game context. Per-game components re-type as their own `Player[]` if they need the enrichment (codenamesduet's seat); otherwise the rename happens at the variable-name level only.

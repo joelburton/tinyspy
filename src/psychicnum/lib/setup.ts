@@ -49,7 +49,7 @@ export type PsychicnumSetup = CoopTurnSetup & {
 }
 
 /**
- * Initial setup the manifest hands the SetupGameDialog wrapper
+ * Initial setup the manifest hands the SetupGameModal wrapper
  * as `defaults`. A 10-word board at the Familiar band (3) is a
  * gentle baseline; the timer defaults to a count-down — a "casual
  * game with stakes" the players can dial up or down (or off).

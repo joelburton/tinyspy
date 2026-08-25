@@ -66,14 +66,14 @@ type Props = {
  * Why chat outranks the panel tier: it needs to sit above the four
  * modals (Setup / HowToPlay / Hint / SuspendConfirm, all at
  * `--z-index-panel`) so the "ask the partner what timer to pick" use
- * case works while SetupGameDialog is open. Setup's backdrop paints
+ * case works while SetupGameModal is open. Setup's backdrop paints
  * one below its own panel, so chat clears both.
  *
  * Lifecycle: mounted once per page (ClubPage and GamePage each
  * render an instance). localStorage glue makes the open/closed
  * state and the rect continuous across remounts.
  */
-export function FloatingChat({
+export function Chat({
   clubHandle,
   members,
   selfId,

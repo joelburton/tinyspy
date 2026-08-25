@@ -33,9 +33,9 @@ import { useClubRoster } from '../../hooks/club/useClubRoster'
 import { useChatFeedback } from '../../hooks/chat/useChatFeedback'
 import { navigate } from '../../lib/routing/router'
 import { ChatButton } from '../page-header/ChatButton'
-import { FloatingChat } from '../chat/FloatingChat'
+import { Chat } from '../chat/Chat'
 import { ScratchpadButton } from '../page-header/ScratchpadButton'
-import { GameScratchpad } from '../floating-panels/GameScratchpad'
+import { GameScratchpadCompanion } from '../floating-panels/GameScratchpadCompanion'
 import { GameLogo } from '../branding/GameLogo'
 import { PauseBoundary } from './PauseBoundary'
 import { PauseButton } from '../buttons/PauseButton'
@@ -44,7 +44,7 @@ import { cls } from '../../lib/util/cls'
 import { PageHeader } from '../page-header/PageHeader'
 import { PageHeaderMenu } from '../page-header/PageHeaderMenu'
 import { PageHeaderStatusSlot } from '../page-header/PageHeaderStatusSlot'
-import { SuspendConfirmDialog } from './SuspendConfirmDialog'
+import { SuspendConfirmationBlockingModal } from './SuspendConfirmationBlockingModal'
 import { Loading } from '../loading-and-errs/Loading'
 import { ErrorPage } from '../loading-and-errs/ErrorPage'
 import { logStamp } from '../../lib/supabase/realtimeDiag'
@@ -92,7 +92,7 @@ type Props = {
  *     │     ├── if !paused → children({players, timer, feedback, menu, ...})
  *     │     └── if  paused → <PauseOverlay/>
  *     ├── Help modal  (when menu's Help item is active)
- *     └── FloatingChat  (z-index 10000, above everything else)
+ *     └── Chat  (z-index 10000, above everything else)
  *
  * Header layout is layout-static per docs/ui.md → Layout
  * stability — the four chrome elements + the timer slot don't
@@ -126,7 +126,7 @@ type Props = {
  * that should *survive* a pause must live above the boundary
  * (useCommonGame, the feedback + menu state here) or in the DB.
  *
- * FloatingChat is rendered OUTSIDE PauseBoundary so it stays
+ * Chat is rendered OUTSIDE PauseBoundary so it stays
  * available mid-pause ("waiting for Bea, anyone want to chat?").
  *
  * Game-end auto-unpauses: `useCommonGame.paused` short-circuits
@@ -620,9 +620,9 @@ export function GamePage({
           PageHeaderPlayersStrip / peer-game feedback, which are about THIS game.)
 
           The closed-state toggle is the header's <ChatButton> (above);
-          FloatingChat renders the panel itself, and nothing at all while
+          Chat renders the panel itself, and nothing at all while
           closed. */}
-      <FloatingChat
+      <Chat
         clubHandle={commonGame.club_handle}
         members={clubMembers}
         selfId={session.user.id}
@@ -632,7 +632,7 @@ export function GamePage({
           (survives pause + shows at terminal). Compete gets a private pad per
           player when perPlayerInCompete; coop shares one. */}
       {manifest.scratchpad?.enabled && (
-        <GameScratchpad
+        <GameScratchpadCompanion
           gameId={gameId}
           ownerId={
             manifest.scratchpad.perPlayerInCompete && manifest.mode === 'compete'
@@ -662,7 +662,7 @@ export function GamePage({
       {lookupDialog}
 
       {confirmingSuspend && (
-        <SuspendConfirmDialog
+        <SuspendConfirmationBlockingModal
           title={commonGame.title}
           onCancel={() => setConfirmingSuspend(false)}
           onSuspend={() => {

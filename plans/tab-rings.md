@@ -43,7 +43,7 @@ option it looks like. Native Tab has no notion of *within*.
 | stackdown · bananagrams · waffle · connections · scrabble | nothing (`useSwallowTab`) | empty ring |
 | boggle · spellingbee · wordle · wordwheel · wordiply · psychicnum | nothing (`useCaptureKeys`' Tab clause) | empty ring |
 | strands · setgame | nothing, inline in their own key handlers | empty ring |
-| codenamesduet's clue form | count input ⇄ word input (`CluePanel.trapTab`) | ring, hand-built |
+| codenamesduet's clue form | count input ⇄ word input (`CodenamesduetAISuggestModal.trapTab`) | ring, hand-built |
 | any floating panel · setup / confirm dialogs | native — **leaks to the URL bar** | broken |
 | chat box · scratchpad | hands the keyboard back to the game | ring transition |
 | crosswords | next / previous clue — **a game move** | genuine exception |
@@ -112,7 +112,7 @@ A form's fields are its ring's stops. Then tabbing between them IS the ring
 cycling, there is no yield, and the invariant holds without an exception:
 **every focusable thing belongs to exactly one ring, and Tab is never native.**
 
-The precedent agrees — `CluePanel.trapTab` does not yield to its two inputs, it
+The precedent agrees — `CodenamesduetAISuggestModal.trapTab` does not yield to its two inputs, it
 is their ring.
 
 (Today's code does yield: `useGlobalKeyHandler` bails for INPUT / TEXTAREA /
@@ -198,7 +198,7 @@ leaking until their areas open, and that is the same bargain every other
 cross-cutting vocabulary in this sprint took.
 
 **Forms get their ring when the forms area comes up**, and they have a working
-precedent rather than a blank page: `CluePanel.trapTab` is already a two-member
+precedent rather than a blank page: `CodenamesduetAISuggestModal.trapTab` is already a two-member
 ring on a real form.
 
 ## Open
@@ -210,7 +210,7 @@ answered:
   scratchpad is a panel you leave with the mouse for now. **Escape is discussed
   at the crosswords area**, where the scratchpad surfaces — and the fact to
   bring to it is that chat closes on Escape and the scratchpad does not
-  (`GameScratchpad.tsx:48` passes `closeOnEsc={false}`; chat takes
+  (`GameScratchpadCompanion.tsx:48` passes `closeOnEsc={false}`; chat takes
   `FloatingPanel`'s default of `true`). Both `docs/keyboard-shortcuts.md:90` and
   a comment in `e2e/club-keyboard.e2e.ts` currently claim otherwise, and the
   spec passes only because it clicks the ✕ and never presses Escape.

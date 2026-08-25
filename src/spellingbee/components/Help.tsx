@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { HelpPanel } from '../../common/components/game/HelpPanel'
+import { GameHelpCompanion } from '../../common/components/game/GameHelpCompanion'
 
 type Props = {
   onClose: () => void
@@ -14,12 +14,12 @@ type Props = {
  *
  * Phase 3 copy: the rules-of-the-game in 4 short bullets, plus
  * a footnote on the rank ladder (which the UI doesn't render
- * yet — that's Phase 4). Renders into the shared `<HelpPanel>`
+ * yet — that's Phase 4). Renders into the shared `<GameHelpCompanion>`
  * scaffold every game uses.
  */
 export function Help({ onClose, brand }: Props) {
   return (
-    <HelpPanel
+    <GameHelpCompanion
       brand={brand}
       onClose={onClose}
       size={{ width: 460, height: 420 }}
@@ -51,6 +51,6 @@ export function Help({ onClose, brand }: Props) {
         Enter to submit, and Space (or the ⟲ button) to shuffle
         the outer letters.
       </p>
-    </HelpPanel>
+    </GameHelpCompanion>
   )
 }

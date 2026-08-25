@@ -8,7 +8,7 @@ import { useProfile, setProfileColor } from '../../hooks/session/useProfile'
 import { ColorChoiceList } from './ColorChoiceList'
 import { FloatingPanel } from '../floating-panels/FloatingPanel'
 import actionRow from '../floating-panels/modalActions.module.css'
-import styles from './EditProfileDialog.module.css'
+import styles from './EditProfileModal.module.css'
 
 type Props = {
   session: Session
@@ -33,7 +33,7 @@ type Props = {
  * Lifecycle mirrors the other dialogs: App conditionally renders us —
  * mounting opens, unmounting closes; we hold no "is open" state.
  */
-export function EditProfileDialog({ session, onSaved, onCancel }: Props) {
+export function EditProfileModal({ session, onSaved, onCancel }: Props) {
   const profile = useProfile(session)
   // The picked color, or — until the user picks — the current one
   // (so the dialog opens with the current color preselected). Null only

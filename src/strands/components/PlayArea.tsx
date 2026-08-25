@@ -7,7 +7,7 @@ import { cls } from '../../common/lib/util/cls'
 import { setupRows } from '../lib/setupSummary'
 import type { GamePageCtx, GamePlayer } from '../../common/lib/games'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
-import { CelebrationDialog } from '../../common/components/game/CelebrationDialog'
+import { CelebrationBlockingModal } from '../../common/components/game/CelebrationBlockingModal'
 import { useCelebration } from '../../common/hooks/game/useCelebration'
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
 import { useFlash } from '../../common/hooks/ui/useFlash'
@@ -830,7 +830,7 @@ export function PlayArea(ctx: GamePageCtx) {
       {confirmationModal}
       {acknowledgeModal}
       {celebration.show && (
-        <CelebrationDialog
+        <CelebrationBlockingModal
           title={isCompete ? 'You win!' : 'You found them all!'}
           body={
             isCompete

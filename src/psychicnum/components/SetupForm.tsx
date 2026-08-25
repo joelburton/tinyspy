@@ -17,7 +17,7 @@ import styles from '../../common/components/fields/setupForm.module.css'
 
 /**
  * psychicnum's per-game setup form, rendered inside the common
- * `SetupGameDialog`. Choices for the players:
+ * `SetupGameModal`. Choices for the players:
  *
  *   - **Guesses** — guess budget, one of {3, 5, 7, 9}.
  *   - **Words on the board** — how many words (5..20); three are secret.

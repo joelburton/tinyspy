@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { HelpPanel } from '../../common/components/game/HelpPanel'
+import { GameHelpCompanion } from '../../common/components/game/GameHelpCompanion'
 
 /**
  * crosswords' help / rules modal — opened from the "Help" item in the
@@ -9,7 +9,7 @@ import { HelpPanel } from '../../common/components/game/HelpPanel'
  */
 export function Help({ onClose, brand }: { onClose: () => void; brand: string }) {
   return (
-    <HelpPanel
+    <GameHelpCompanion
       brand={brand}
       onClose={onClose}
       size={{ width: 480, height: 480 }}
@@ -47,6 +47,6 @@ export function Help({ onClose, brand }: { onClose: () => void; brand: string })
         grid; the first to finish it correctly wins.
       </p>
       <p>Keyboard required — there's no on-screen keyboard.</p>
-    </HelpPanel>
+    </GameHelpCompanion>
   )
 }

@@ -13,7 +13,7 @@ import { EndTurnButton } from '../../common/components/buttons/EndTurnButton'
 import { usePhone } from '../../common/hooks/ui/usePhone'
 import { db } from '../db'
 import type { Player } from '../hooks/useGame'
-import styles from './CluePanel.module.css'
+import styles from './CodenamesduetAISuggestModal.module.css'
 
 type Clue = { word: string; count: number }
 
@@ -66,7 +66,7 @@ type CluePanelProps = {
  * than rendered inline; the AI suggestion's reasoning opens in its own floating
  * panel (see ClueForm) — neither grows the row.
  */
-export function CluePanel({
+export function CodenamesduetAISuggestModal({
   gameId,
   isClueGiver,
   isGuessPhase,

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 
 /**
- * One-shot celebration state — pops `<CelebrationDialog>` at the MOMENT of a
+ * One-shot celebration state — pops `<CelebrationBlockingModal>` at the MOMENT of a
  * win, and only then.
  *
  * Three rules:
@@ -32,7 +32,7 @@ import { useState } from 'react'
  *
  *     const { show, close } = useCelebration(mode === 'coop' && playState === 'won')
  *     ...
- *     {show && <CelebrationDialog onClose={close} />}
+ *     {show && <CelebrationBlockingModal onClose={close} />}
  */
 export function useCelebration(won: boolean): {
   show: boolean

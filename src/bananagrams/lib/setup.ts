@@ -70,7 +70,7 @@ export type BananagramsSetup = {
 /** The full Bananagrams bag — the hard cap on `bunch_size`. */
 export const BANANAGRAMS_BUNCH_MAX = 144
 
-/** Initial setup the manifest hands the SetupGameDialog wrapper as
+/** Initial setup the manifest hands the SetupGameModal wrapper as
  *  `defaults`. Full 144-tile bag, no word check (the classic game). */
 export const DEFAULT_BANANAGRAMS_SETUP: BananagramsSetup = {
   hand_size: 15,

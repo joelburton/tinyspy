@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import { BlockingModal } from '../floating-panels/BlockingModal'
-import styles from './CelebrationDialog.module.css'
+import styles from './CelebrationBlockingModal.module.css'
 import { cls } from '../../lib/util/cls'
 
 // Festive glyphs the keyframes animate in. Mixed sizes/rotations (via the
@@ -51,7 +51,7 @@ type Props = {
  * implement media playback at all, so any failure is swallowed and the
  * visual celebration still happens.
  */
-export function CelebrationDialog({
+export function CelebrationBlockingModal({
   title = 'Congratulations!',
   body = 'You solved the puzzle.',
   onClose,

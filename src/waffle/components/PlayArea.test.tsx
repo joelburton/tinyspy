@@ -384,7 +384,7 @@ describe('waffle PlayArea — icon-only action rows', () => {
  * Terminal flow. No modal carries the verdict: it's in-page, the action row
  * gains a Restart button (the
  * menu's replay-board, unconfirmed at terminal), and a coop solve pops the
- * CelebrationDialog — but ONLY at the moment of the win (the playState flip),
+ * CelebrationBlockingModal — but ONLY at the moment of the win (the playState flip),
  * never when mounting an already-won game.
  */
 describe('waffle PlayArea — terminal flow', () => {

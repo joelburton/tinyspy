@@ -62,7 +62,7 @@ export function usePeerCursors(
   myId: string,
   myColor: string,
   /** Called when a teammate broadcasts "open the note" (crossplay's showNotes).
-   *  PlayArea wires this to open its NoteDialog. Read via a ref so a changing
+   *  PlayArea wires this to open its CrosswordsNoteCompanion. Read via a ref so a changing
    *  callback identity doesn't re-subscribe the channel. */
   onPeerShowNote?: () => void,
 ): PeerCursorsApi {

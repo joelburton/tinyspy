@@ -15,7 +15,7 @@ import type { Member } from '../../lib/games'
 type Props = {
   clubHandle: string
   members: Member[]
-  /** Messages + loading lifted from FloatingChat (which subscribes
+  /** Messages + loading lifted from Chat (which subscribes
    *  via useClubChat at its level so the force-open detector for
    *  important messages can run even while the panel is closed). */
   messages: ClubMessage[]
@@ -25,7 +25,7 @@ type Props = {
 /**
  * The chat conversation itself — message list + input form.
  * Pure rendering plus the send-message form; doesn't subscribe
- * to the message stream itself (its parent FloatingChat does).
+ * to the message stream itself (its parent Chat does).
  *
  * Looks up each message's sender in the `members` prop (loaded
  * once by the parent), keeping render cheap and avoiding the
@@ -38,7 +38,7 @@ type Props = {
  *
  * **Important-message convention.** A message whose content
  * starts with `!` is rendered with its leading `!` stripped and
- * the content bolded (font-weight: 700). FloatingChat handles
+ * the content bolded (font-weight: 700). Chat handles
  * the matching "force open" behavior; here we just deal with
  * display.
  */

@@ -31,7 +31,7 @@ export type ConnectionsSetup = CoopTurnSetup & {
 }
 
 /**
- * Initial setup the manifest hands the SetupGameDialog wrapper as `defaults`.
+ * Initial setup the manifest hands the SetupGameModal wrapper as `defaults`.
  *
  * NO `puzzleId` KEY AT ALL — not `''`. The server reads an ABSENT puzzleId as
  * "you choose"; an empty string is present-but-unparseable and would fail the

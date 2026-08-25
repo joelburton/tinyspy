@@ -12,13 +12,13 @@ import { PlayAreaSlotLog, PlayAreaReadyLog } from './common/components/game/Play
 import { HomePage } from './common/components/home/HomePage'
 import { FontPage } from './common/components/font/FontPage'
 import { PalettePage } from './common/components/palette/PalettePage'
-import { EditProfileDialog } from './common/components/account/EditProfileDialog'
+import { EditProfileModal } from './common/components/account/EditProfileModal'
 import { useEditProfileOpen, setEditProfileOpen } from './common/lib/account/editProfileStore'
 import { WordEditDialog } from './common/components/definitions/WordEditDialog'
 import { useWordEdit } from './common/lib/definitions/wordEditStore'
 import { GameInvitations } from './common/components/game/GameInvitations'
 import { ToastHost } from './common/components/toasts/ToastHost'
-import { FaultDialog } from './common/components/feedback/FaultDialog'
+import { FaultModal } from './common/components/feedback/FaultModal'
 import { Loading } from './common/components/loading-and-errs/Loading'
 import { ErrorPage } from './common/components/loading-and-errs/ErrorPage'
 import { logStamp } from './common/lib/supabase/realtimeDiag'
@@ -86,7 +86,7 @@ export default function App() {
   // flag therefore has to cross subtrees, hence the store rather than useState.
   const editingProfile = useEditProfileOpen()
   // The word-edit dialog (editors only — its openers are gated) mounts at the
-  // App level like EditProfileDialog, and for the same FloatingPanel-offset
+  // App level like EditProfileModal, and for the same FloatingPanel-offset
   // reason. Keyed by the request so switching words remounts fresh state.
   const wordEdit = useWordEdit()
 
@@ -195,7 +195,7 @@ export default function App() {
     <>
       {page}
       {editingProfile && (
-        <EditProfileDialog
+        <EditProfileModal
           session={session}
           onSaved={() => setEditProfileOpen(false)}
           onCancel={() => setEditProfileOpen(false)}
@@ -218,7 +218,7 @@ export default function App() {
       {/* The ONE fault-modal host (docs/ui.md → Faults): every sink routes
           fault-classified failures into the shared fault store; this renders
           them one at a time as a blocking modal. */}
-      <FaultDialog />
+      <FaultModal />
       {/* The styled-tooltip renderer for every `data-tooltip` element
           (buttons' hover bubbles) — one delegated host, viewport-clamped. */}
       <TooltipHost />

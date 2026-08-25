@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { HelpPanel } from '../../common/components/game/HelpPanel'
+import { GameHelpCompanion } from '../../common/components/game/GameHelpCompanion'
 
 type Props = {
   onClose: () => void
@@ -23,7 +23,7 @@ type Props = {
  */
 export function Help({ onClose, brand }: Props) {
   return (
-    <HelpPanel brand={brand} onClose={onClose} size={{ width: 440, height: 360 }}>
+    <GameHelpCompanion brand={brand} onClose={onClose} size={{ width: 440, height: 360 }}>
       <p>
         <strong>Find four hidden groups of four.</strong> The 16 tiles on
         the board belong to four secret categories. Pick four tiles
@@ -52,6 +52,6 @@ export function Help({ onClose, brand }: Props) {
         framed in their color.
       </p>
 
-    </HelpPanel>
+    </GameHelpCompanion>
   )
 }

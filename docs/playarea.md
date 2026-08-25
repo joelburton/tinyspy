@@ -856,7 +856,7 @@ adding a viewer to a new game:
   `seq`, not log position); the snapshot (`src/codenamesduet/lib/history.ts`) folds the
   guess log onto the fixed board (global `revealed_as` + per-seat `neutral_a/b`) and
   rings that turn's own cells. A two-input game — its `BoardCol` owns the **guess** RPC
-  (the guess is a board click; `CluePanel` keeps the clue RPCs).
+  (the guess is a board click; `CodenamesduetAISuggestModal` keeps the clue RPCs).
 - **waffle** — keyed by **log position**; `highlight` = a viewed swap's neutral cell ring.
 - **setgame** — keyed by **log position**, and the one viewer that is a pure
   **lookup**: the event row carries `board_after`, so `lib/history.ts` reads the

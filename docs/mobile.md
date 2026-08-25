@@ -185,7 +185,7 @@ portrait.
    forced: `base.css` floors `input, textarea` at `max(16px, 1em)`, but any
    class that sets its own `font-size` out-ranks an element rule, so the
    override has to sit beside the declaration that caused it. Five sites do it
-   today — `ChatBody`, `GameScratchpad`, `WordLookupDialog`, `AnagramDialog`,
+   today — `ChatBody`, `GameScratchpadCompanion`, `WordLookupDialog`, `AnagramDialog`,
    and `FilterSelect`'s club-page trigger. **`max(16px, 1em)`, never a bare
    `16px`**: the `1em` resolves to the inherited size, so it raises anything
    under the floor and never shrinks a field that was already bigger.

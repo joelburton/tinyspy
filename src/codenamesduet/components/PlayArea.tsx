@@ -9,7 +9,7 @@ import type { GenericFeedbackApi, GenericFeedbackMsg, GenericFeedbackTone, GameP
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import { cls } from '../../common/lib/util/cls'
 import { db } from '../db'
-import { CelebrationDialog } from '../../common/components/game/CelebrationDialog'
+import { CelebrationBlockingModal } from '../../common/components/game/CelebrationBlockingModal'
 import { useCelebration } from '../../common/hooks/game/useCelebration'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { useDismissLocalFeedbackOnKey } from '../../common/hooks/feedback/useDismissLocalFeedbackOnKey'
@@ -32,7 +32,7 @@ import { useClues } from '../hooks/useClues'
 import { derivePhase, type GameStatus, type Seat } from '../lib/phase'
 import { turnSnapshot } from '../lib/history'
 import type { CodenamesduetSetup } from '../lib/setup'
-import { ClueSuggestionModal, type SuggestState } from './CluePanel'
+import { ClueSuggestionModal, type SuggestState } from './CodenamesduetAISuggestModal'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
 import { StateLine } from './StateLine'
@@ -44,7 +44,7 @@ import '../theme.css'  // codenamesduet-specific color tokens (lazy-loaded with 
  * codenamesduet's play surface — two-column viewport-bound composition:
  *
  *   - **Board column** (left, flex) — the 5×5 Board, with the fixed-height
- *     `belowBoard` slot under it (the CluePanel during play, a local
+ *     `belowBoard` slot under it (the CodenamesduetAISuggestModal during play, a local
  *     `<GenericFeedbackPill>` for an own-action error or the terminal verdict).
  *   - **Info column** (fixed-width):
  *       - Status: "{greenFound}/15 agents · {turn-1}/{turns} turns spent"
@@ -61,12 +61,12 @@ import '../theme.css'  // codenamesduet-specific color tokens (lazy-loaded with 
  * string, same moment — would only cost a dismiss. So it's two in-page
  * surfaces plus one celebration:
  *
- *   1. The below-board slot swaps the CluePanel for a permanent
+ *   1. The below-board slot swaps the CodenamesduetAISuggestModal for a permanent
  *      outcome-colored pill carrying `over.verdict`, and the info-column
  *      action row swaps the End button for a bold `over.message` line + a
  *      compact Back-to-club button (wired to `ctx.goToClub`). Both persist
  *      until the user navigates away.
- *   2. A **win** — and only a win — also pops `<CelebrationDialog>`, at the
+ *   2. A **win** — and only a win — also pops `<CelebrationBlockingModal>`, at the
  *      MOMENT the 15th agent is contacted. `useCelebration` deliberately never
  *      fires on mount, so opening an already-won game is quiet review, not a
  *      re-run of the moment.
@@ -143,7 +143,7 @@ function buildOver(playState: string): TerminalCopy {
  *
  * The one exception is **sudden death** — a standing danger warning, not a peer
  * action — which stays here in `error` tone (and is also shown, persistently, in
- * full, below the board via the CluePanel notice, which has room for it).
+ * full, below the board via the CodenamesduetAISuggestModal notice, which has room for it).
  *
  * Self-contained so it can be called unconditionally before PlayArea's loading
  * early-return.
@@ -693,7 +693,7 @@ export function PlayArea({
           in-page by the below-board pill + the info-column outcome line, and a
           win gets the celebration instead — once, at the moment it happens. */}
       {celebration.show && (
-        <CelebrationDialog
+        <CelebrationBlockingModal
           title="You win! 🎉"
           body="All 15 agents contacted."
           onClose={celebration.close}

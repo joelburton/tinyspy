@@ -45,7 +45,7 @@ import { openPageMenu } from '../../lib/menu/pageMenuStore'
  * FloatingPanel closes on Escape).
  *
  * **`chat: false`** turns the `/` binding off, for a page that has no chat
- * panel mounted. Chat is club-scoped (`<FloatingChat>` lives on ClubPage and
+ * panel mounted. Chat is club-scoped (`<Chat>` lives on ClubPage and
  * GamePage), so on HomePage the shortcut would flip the shared open flag and
  * produce nothing visible — a key that silently does nothing is worse than one
  * that isn't bound, because the next person debugging it starts from "chat is

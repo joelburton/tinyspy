@@ -1,6 +1,6 @@
 /* cs-unmet */
 
-/* The fault modal's three lines (FaultDialog.tsx; docs/ui.md → Faults).
+/* The fault modal's three lines (FaultModal.tsx; docs/ui.md → Faults).
    The panel shell + backdrop come from FloatingPanel; only the body is ours. */
 
 /* @@ */ .body {

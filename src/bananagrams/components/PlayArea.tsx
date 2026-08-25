@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useMemo } from 'react'
 import { IconNewGame, IconPrint, IconRestart } from '../../common/components/icons'
 import type { GamePageCtx, GenericFeedbackMsg } from '../../common/lib/games'
 import { timerLabel } from '../../common/lib/game/timerLabel'
-import { CelebrationDialog } from '../../common/components/game/CelebrationDialog'
+import { CelebrationBlockingModal } from '../../common/components/game/CelebrationBlockingModal'
 import { useCelebration } from '../../common/hooks/game/useCelebration'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { CONCEDE_CONFIRM } from '../../common/hooks/game/useStandardGameActions'
@@ -59,7 +59,7 @@ import { useSingleFlight } from '../../common/hooks/ui/useSingleFlight'
  * Win flow: `peel` (enabled only when the hand is empty) either deals everyone a
  * tile or — when the bunch can't refill the ACTIVE table — goes out and wins.
  * The `is_terminal` flip arrives over `useCommonGame`'s realtime; the winner gets
- * a `<CelebrationDialog>`, everyone else the below-board verdict pill.
+ * a `<CelebrationBlockingModal>`, everyone else the below-board verdict pill.
  *
  * Concede: bananagrams is compete, so conceding is a real loss — but it only
  * drops YOU out (`bananagrams.concede`); the others keep racing. A conceded
@@ -634,7 +634,7 @@ export function PlayArea(ctx: GamePageCtx) {
           the celebration instead — bananagrams is compete-only, so there's no
           coop win to pop it for (see useCelebration above). */}
       {celebration.show && (
-        <CelebrationDialog title="Bananas! 🍌" body="You went out first." onClose={celebration.close} />
+        <CelebrationBlockingModal title="Bananas! 🍌" body="You went out first." onClose={celebration.close} />
       )}
       {confirmationModal}
     </>

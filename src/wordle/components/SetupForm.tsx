@@ -11,7 +11,7 @@ import { answerMaxBand, GUESS_OPTIONS, type WordleSetup } from '../lib/setup'
 import form from '../../common/components/fields/setupForm.module.css'
 
 /**
- * wordle's setup form, rendered inside the common SetupGameDialog.
+ * wordle's setup form, rendered inside the common SetupGameModal.
  *
  *   - **Guesses** — the budget (5–8; 6 is classic Wordle). In coop it's
  *     shared by the team; in compete it's each player's own.

@@ -2,7 +2,7 @@
 
 import { BlockingModal } from '../floating-panels/BlockingModal'
 import { dismissFault, presentFault, useCurrentFault } from '../../lib/fault/faultStore'
-import styles from './FaultDialog.module.css'
+import styles from './FaultModal.module.css'
 
 /**
  * The FAULT modal — the one host for every fault in the app, mounted once in
@@ -30,7 +30,7 @@ import styles from './FaultDialog.module.css'
  * One fault at a time; dismissing reveals the next queued one (cap 5,
  * overflow silently dropped from the UI — faultStore.ts).
  */
-export function FaultDialog() {
+export function FaultModal() {
   const fault = useCurrentFault()
 
   if (!fault) return null

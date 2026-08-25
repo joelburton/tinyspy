@@ -30,7 +30,7 @@ type PanelOpts = {
 
 /**
  * Persisted geometry + viewport clamping for a floating panel
- * (FloatingChat, future Scratchpad, etc.).
+ * (Chat, future Scratchpad, etc.).
  *
  * State lives in React for fast re-renders during a drag/resize,
  * AND is mirrored to localStorage so closing + reopening (or

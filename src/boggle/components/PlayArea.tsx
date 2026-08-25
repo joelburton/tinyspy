@@ -11,7 +11,7 @@ import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
 import { useConfirmation, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmation'
 import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
-import { CelebrationDialog } from '../../common/components/game/CelebrationDialog'
+import { CelebrationBlockingModal } from '../../common/components/game/CelebrationBlockingModal'
 import { useCelebration } from '../../common/hooks/game/useCelebration'
 import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback'
 import { outOfRacePill } from '../../common/lib/game/localPills'
@@ -537,7 +537,7 @@ export function PlayArea(ctx: GamePageCtx) {
           win — the only unambiguous win boggle has — gets the celebration
           instead, once, at the moment the team crosses. */}
       {celebration.show && (
-        <CelebrationDialog
+        <CelebrationBlockingModal
           title="Target reached! 🎉"
           body={`${myCount} words, ${myScore} points.`}
           onClose={celebration.close}

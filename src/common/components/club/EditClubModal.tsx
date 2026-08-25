@@ -7,7 +7,7 @@ import { games } from '../../../games'
 import { FloatingPanel } from '../floating-panels/FloatingPanel'
 import { ModePill } from '../game/ModePill'
 import actionRow from '../floating-panels/modalActions.module.css'
-import styles from './EditClubDialog.module.css'
+import styles from './EditClubModal.module.css'
 
 type Props = {
   /** Club being edited. */
@@ -42,10 +42,10 @@ type Props = {
  * likewise applies no solo filter; that filter only shapes the
  * *default* enrollment at club creation.
  *
- * Lifecycle mirrors SetupGameDialog: ClubPage conditionally renders
+ * Lifecycle mirrors SetupGameModal: ClubPage conditionally renders
  * us — mounting opens, unmounting closes. We hold no "is open" state.
  */
-export function EditClubDialog({
+export function EditClubModal({
   clubHandle, clubName, allowedGametypes, onSaved, onCancel,
 }: Props) {
   // Local working copy of the enrolled set — toggled by the

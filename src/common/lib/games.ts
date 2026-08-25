@@ -11,7 +11,7 @@ import type { CallError } from './game/serverError'
  * FE-facing labels for a gametype's interaction `mode`. The DB, code,
  * and gametype strings all spell it `coop`; the UI says "Co-op".
  * Compete reads the same either way. Lives here (not in ModePill) so
- * non-component callers — e.g. SetupGameDialog's title — can use the
+ * non-component callers — e.g. SetupGameModal's title — can use the
  * words without importing a component, and so `react-refresh` stays
  * happy about ModePill exporting only its component.
  */
@@ -80,7 +80,7 @@ export type GamePageCtx = {
    *  ignore it. */
   currentTurnUserId: string | null
   /** The game's setup blob from `common.games.setup` — the
-   *  choices the SetupGameDialog collected at start. Typed as
+   *  choices the SetupGameModal collected at start. Typed as
    *  `Record<string, unknown>` here because each gametype's
    *  shape is different; per-game PlayAreas cast to their own
    *  setup type (`as CodenamesduetSetup`, `as ConnectionsSetup`, etc.)
@@ -195,7 +195,7 @@ export type GenericFeedbackMsg = {
    * authored by hand, it's what's left when no copy exists for what came back.
    */
   fault?: true
-  /** Fault-only: the diagnostics line for the fault modal (FaultDialog) —
+  /** Fault-only: the diagnostics line for the fault modal (FaultModal) —
    *  the same k=v bits the `[db]` console line carries, built by ONE shared
    *  builder in serverError.ts so screen and log can't drift. Never set by
    *  hand; the classifier's fault/transport branches attach it. */
@@ -450,7 +450,7 @@ export type RichMessage = Array<string | { player: Member }>
 
 /**
  * Props the per-game setup-form body receives from the common
- * `SetupGameDialog` wrapper. **Controlled**: state lives in the
+ * `SetupGameModal` wrapper. **Controlled**: state lives in the
  * wrapper, the body renders `value` and signals edits via
  * `onChange`.
  *
@@ -463,7 +463,7 @@ export type RichMessage = Array<string | { player: Member }>
 export type SetupBodyProps = {
   members: Member[]
   /** This gametype's user-facing brand name (the manifest's `name`),
-   *  forwarded by SetupGameDialog so a setup form's own copy reads the
+   *  forwarded by SetupGameModal so a setup form's own copy reads the
    *  brand from the single branding source rather than hardcoding it
    *  (e.g. connections's "Pick a <brand> puzzle"). Most forms ignore it. */
   brand: string
@@ -631,7 +631,7 @@ export type GameManifest = {
    * feature) players can jot in during play. Absent = no scratchpad (most
    * games). `perPlayerInCompete` gives each compete player a PRIVATE pad
    * (a shared pad would leak solving progress); coop always shares one pad.
-   * GamePage renders the `<ScratchpadButton>` + `<GameScratchpad>` when set.
+   * GamePage renders the `<ScratchpadButton>` + `<GameScratchpadCompanion>` when set.
    */
   scratchpad?: { enabled: boolean; perPlayerInCompete?: boolean }
 
@@ -681,7 +681,7 @@ export type GameManifest = {
    *
    * Returns `{ id }` on success or `{ error }`, which the dialog
    * routes through the server-error classifier before a player
-   * reads it (SetupGameDialog): a CallError is the STRUCTURED
+   * reads it (SetupGameModal): a CallError is the STRUCTURED
    * failure (message + SQLSTATE + the answered marker — direct
    * RPC and edge-fn paths both produce it; no manifest flattens
    * to a string, which would cost the code AND misfile coded
@@ -690,7 +690,7 @@ export type GameManifest = {
    * boundary — the FE-collected setup is not trusted.
    *
    * Lives on the manifest so common code (ClubPage,
-   * SetupGameDialog) can iterate `games` without importing from
+   * SetupGameModal) can iterate `games` without importing from
    * a game folder, preserving the import-direction rules.
    */
   startGameInClub: (

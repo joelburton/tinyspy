@@ -501,7 +501,7 @@ codenamesduet use; see [docs/ui.md → PlayArea layout](../playarea.md#playarea-
 (see [ui.md → Terminal results](../ui.md#terminal-results--the-moment-vs-the-record)).
 No modal carries the verdict: it's in-page (the below-board terminal pill + the
 action-row outcome line), and the terminal action row offers Restart right
-there. Instead, a **coop solve** pops the shared **`CelebrationDialog`**
+there. Instead, a **coop solve** pops the shared **`CelebrationBlockingModal`**
 (confetti + jingle) via the `useCelebration` hook — **only at the moment of the
 win** (the `playState → 'won'` flip lands on every connected client via the
 realtime refetch, so the group celebrates together); opening an already-won

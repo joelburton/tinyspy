@@ -9,7 +9,7 @@ import { terminalPill, outOfRacePill } from '../../common/lib/game/localPills'
 import { waitingTurnPill } from '../../common/components/game/turnCopy'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
-import { CelebrationDialog } from '../../common/components/game/CelebrationDialog'
+import { CelebrationBlockingModal } from '../../common/components/game/CelebrationBlockingModal'
 import { useCelebration } from '../../common/hooks/game/useCelebration'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { buildWafflePrintModel } from '../pdf/model'
@@ -696,7 +696,7 @@ export function PlayArea({
           where this treatment started): it's carried in-page (the below-board
           pill + the outcome line in the action row, with Restart right there),
           and a coop solve gets the celebration instead. */}
-      {celebration.show && <CelebrationDialog title="Solved it! 🧇" onClose={celebration.close} />}
+      {celebration.show && <CelebrationBlockingModal title="Solved it! 🧇" onClose={celebration.close} />}
       {confirmationModal}
     </div>
   )

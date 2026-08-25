@@ -5,7 +5,7 @@ import { useSyncExternalStore, type ReactNode } from 'react'
 /**
  * The fault-modal store — the toastStore pattern (a module singleton via
  * `useSyncExternalStore`) holding a FIFO queue of FAULTS for the single
- * `<FaultDialog>` host mounted in App.tsx.
+ * `<FaultModal>` host mounted in App.tsx.
  *
  * A fault is a failure nobody planned for (docs/ui.md → Faults): it renders
  * as a blocking MODAL, not a pill — room to be read, impossible to miss, and

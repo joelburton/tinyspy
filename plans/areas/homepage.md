@@ -214,7 +214,7 @@ Four checks, in the shape `cssTokens.test.ts` already uses:
 >
 > - `strands/HintBar.tsx` reads `styles.hint`; the module defines `.hintReady`
 >   and no `.hint`, so the Hint button's base class has been `undefined`;
-> - `codenamesduet/CluePanel.module.css` `.clueLabel`, `setgame/PlayArea.module.
+> - `codenamesduet/CodenamesduetAISuggestModal.module.css` `.clueLabel`, `setgame/PlayArea.module.
 >   css` `.breakdown` + three siblings, and `stackdown/WordEntry.module.css`
 >   `.good` / `.bad` are defined and read by nothing;
 > - **`e2e/club-keyboard.e2e.ts` is red for the same reason F3 is** —
@@ -684,10 +684,10 @@ resolved to nothing, silently.
 > **resolution: nothing to build — verified, not assumed.** Two halves, both
 > checked by reading the code rather than by trusting the mount:
 >
-> - **The host renders on `/`.** `<FaultDialog />` sits in `App.tsx` after the
+> - **The host renders on `/`.** `<FaultModal />` sits in `App.tsx` after the
 >   auth + claim-handle gates and outside the route switch, so it is on every
 >   real page.
-> - **Its styling is not in a lazy chunk.** `FaultDialog.module.css` reads
+> - **Its styling is not in a lazy chunk.** `FaultModal.module.css` reads
 >   exactly two tokens, `--chrome-fault-color` and `--page-text-muted-color`,
 >   and both are declared in `themes/daylight.css`, which `loadTheme()` imports
 >   eagerly at startup — the theme chain is global, unlike a game's brand
@@ -704,7 +704,7 @@ resolved to nothing, silently.
 > **`e2e/faults.e2e.ts`**, named for the fault modal rather than for this page,
 > two cases:
 >
-> 1. **The wiring**, via `window.pupfault()` — the console trigger `FaultDialog`
+> 1. **The wiring**, via `window.pupfault()` — the console trigger `FaultModal`
 >    installs, since a real fault is a bug or a dead network and there is no
 >    honest UI path to one on demand. Asserts no modal BEFORE (a modal that were
 >    always up would pass everything after it), then the canned text and its
@@ -718,7 +718,7 @@ resolved to nothing, silently.
 >    diagnostics, and — behind the dismissed modal — that the page says "No
 >    clubs found for your account." and never the old sentence.
 >
-> **Both were verified by planting.** Rendering `<FaultDialog>` conditionally
+> **Both were verified by planting.** Rendering `<FaultModal>` conditionally
 > false in `App.tsx` reddens BOTH cases, which is what proves the browser half
 > rather than the store half; disabling the zero-clubs `presentFault` reddens
 > only the second. Restored, and green after.
@@ -792,7 +792,7 @@ second name for one list.
 > `gmake db-seed ENV=local`.
 >
 > **Left for their own areas, and Joel agrees it should not stay that way:**
-> `ClubPage.tsx:115` and `SetupGameDialog.tsx:208` still test
+> `ClubPage.tsx:115` and `SetupGameModal.tsx:208` still test
 > `handle.startsWith('=')`, and `common.sql` + the setgame migration write
 > `like '=%'` in SQL. *"Fine for now, but we should get '=' stuff out of FE
 > when we get to them."* Filed on the plan's carried-forward list.
@@ -1662,7 +1662,7 @@ polite. But this is a fault, and not at all transient."*).
 >
 > - `vocabularies.test.ts` failed the new CSS file immediately, which is the
 >   "a new file has no row at all" property doing its job. Its two spacers were
->   exact matches and converted silently; its two FONT SIZES are FaultDialog's
+>   exact matches and converted silently; its two FONT SIZES are FaultModal's
 >   to the digit and stay bespoke with the reason in the file — matching the
 >   modal is the design, so converting one side alone would break it. Both files
 >   convert together at `simple-page`.
@@ -1843,8 +1843,8 @@ files in `components/buttons/` go through `ActionButton`; the exceptions are
 <button type="button" className="button secondary" onClick={onCancel}>Cancel</button>
 ```
 
-— in `ConfirmationBlockingModal`, `SetupGameDialog`, `EditClubDialog`, `EditProfileDialog`,
-`ClaimHandleScreen`, `CreateClubPage` and scrabble's `BlankPicker`. Plus
+— in `ConfirmationBlockingModal`, `SetupGameModal`, `EditClubModal`, `EditProfileModal`,
+`ClaimHandleScreen`, `CreateClubPage` and scrabble's `ScrabbleBlankPickerBlockingModal`. Plus
 HomePage's "+ New club", which is the same markup on a `<Link>`, and whose `+`
 is a typed character rather than a glyph.
 
@@ -1884,8 +1884,8 @@ are."*).
 
 The evidence agrees. It is already dialog-sized — an `h1`, one input, one
 textarea, an error line, Cancel + Create — which is SMALLER than
-`EditClubDialog`, and that dialog is its exact sibling: create and edit of the
-same object. `SetupGameDialog` and `EditProfileDialog` are the same shape again.
+`EditClubModal`, and that dialog is its exact sibling: create and edit of the
+same object. `SetupGameModal` and `EditProfileModal` are the same shape again.
 
 The argument that convinced, though, is not consistency. The act is **add to
 this list**: a modal keeps the club list behind it, where the page makes you

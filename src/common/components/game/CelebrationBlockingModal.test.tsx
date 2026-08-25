@@ -2,7 +2,7 @@
 
 import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { CelebrationDialog } from './CelebrationDialog'
+import { CelebrationBlockingModal } from './CelebrationBlockingModal'
 
 /**
  * The dialog is mostly presentational + an Esc handler. We keep sound off in
@@ -10,9 +10,9 @@ import { CelebrationDialog } from './CelebrationDialog'
  * consumer relies on: default/overridden copy renders, Esc and the close
  * button dismiss, and the optional primary action fires.
  */
-describe('CelebrationDialog', () => {
+describe('CelebrationBlockingModal', () => {
   it('renders default copy', () => {
-    render(<CelebrationDialog onClose={() => {}} playSound={false} />)
+    render(<CelebrationBlockingModal onClose={() => {}} playSound={false} />)
     expect(screen.getByText('Congratulations!')).toBeInTheDocument()
     expect(screen.getByText('You solved the puzzle.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Nice!' })).toBeInTheDocument()
@@ -20,7 +20,7 @@ describe('CelebrationDialog', () => {
 
   it('renders overridden title/body', () => {
     render(
-      <CelebrationDialog title="You won the race!" body="First to finish." onClose={() => {}} playSound={false} />,
+      <CelebrationBlockingModal title="You won the race!" body="First to finish." onClose={() => {}} playSound={false} />,
     )
     expect(screen.getByText('You won the race!')).toBeInTheDocument()
     expect(screen.getByText('First to finish.')).toBeInTheDocument()
@@ -28,7 +28,7 @@ describe('CelebrationDialog', () => {
 
   it('closes on Escape and on the close button', () => {
     const onClose = vi.fn()
-    render(<CelebrationDialog onClose={onClose} playSound={false} />)
+    render(<CelebrationBlockingModal onClose={onClose} playSound={false} />)
     fireEvent.keyDown(window, { key: 'Escape' })
     expect(onClose).toHaveBeenCalledTimes(1)
     fireEvent.click(screen.getByRole('button', { name: 'Nice!' }))
@@ -38,7 +38,7 @@ describe('CelebrationDialog', () => {
   it('renders and fires the optional primary action', () => {
     const onPrimary = vi.fn()
     render(
-      <CelebrationDialog
+      <CelebrationBlockingModal
         onClose={() => {}}
         primary={{ label: 'Play again', onClick: onPrimary }}
         playSound={false}

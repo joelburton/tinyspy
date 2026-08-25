@@ -42,7 +42,7 @@ export function setEditProfileOpen(next: boolean): void {
 }
 
 /** Subscribe to the dialog's open state. App uses this to decide whether to
- *  mount `<EditProfileDialog>`. */
+ *  mount `<EditProfileModal>`. */
 export function useEditProfileOpen(): boolean {
   return useSyncExternalStore(subscribe, getSnapshot)
 }

@@ -606,11 +606,11 @@ The top ten, in the order they should be built:
 
 | # | pattern | what it is | read in | lives |
 |---|---|---|---|---|
-| 1 | **Field** | a label with its control, and the explanatory line under it | `SelectField.field/.label` · `WordEditDialog.field` · `EditProfileDialog.field/.label` · `setupForm` | component + module |
-| 2 | **Choice row** / **choice group** | a radio or checkbox with its label, inline; and a wrapping row of them | `setupForm.radio/.radioRow/.checkRow` · `TimerField.radio/.timerRow` (verbatim copy) · `EditClubDialog.gameRow` · `WordEditDialog.check` | component + module |
+| 1 | **Field** | a label with its control, and the explanatory line under it | `SelectField.field/.label` · `WordEditDialog.field` · `EditProfileModal.field/.label` · `setupForm` | component + module |
+| 2 | **Choice row** / **choice group** | a radio or checkbox with its label, inline; and a wrapping row of them | `setupForm.radio/.radioRow/.checkRow` · `TimerField.radio/.timerRow` (verbatim copy) · `EditClubModal.gameRow` · `WordEditDialog.check` | component + module |
 | 3 | **Text input** | the typed-in field: fill, edge, radius, padding, the 16px touch floor that stops iOS zooming | `WordLookupDialog.input` · `AnagramDialog.input` (byte-identical) · `WordEditDialog.field input` · `TimerField.timerInput` | element rule + one class |
 | 4 | **List** / **list row** | a stack of rows, divided, one hover, last divider suppressed | `HomePage.clubsList/.clubItem` · `ClubGameCard.row` · `AnagramDialog.list/.row` · `WordList` · crosswords' setup chooser — **not the menu**, see below | shared module |
-| 5 | **Section** | a bordered group under a heading | `setupForm.fieldset` · `SetupSection.section/.summary` · `EditClubDialog.games/.gamesLegend` · `infoPanel.box/.heading` | component + module |
+| 5 | **Section** | a bordered group under a heading | `setupForm.fieldset` · `SetupSection.section/.summary` · `EditClubModal.games/.gamesLegend` · `infoPanel.box/.heading` | component + module |
 | 6 | **Section header** | a heading with its action opposite | `HomePage.sectionHeader` · `infoPanel.headerRow` · `Menu.header/.headerTitle/.headerLine` | shared module |
 | 7 | **Overlay surface** | a surface floating above the page — surface, edge, radius, shadow | `Menu.popover` + `.flyout` · `Toast.toast` · `FloatingPanel.shell` · `DefinitionPopover` | shared module |
 | 8 | **Scroll region** | the box that scrolls inside a fixed parent: `flex: 1 1 auto` + `min-height: 0` + `overflow-y: auto` | 48 × `min-height: 0`, 22 × `overflow-y: auto` | utility |
@@ -682,7 +682,7 @@ plus justified's per-game half.)
 | `club-page` | **The viewport-fit chain**, which the shell owns. `min-height: 0` appears 48× in 24 files doing TWO jobs: 17 sites are the chain (the **bound** — `max-height` on a centered card, `height` on a full-bleed page, only two sites; the **relay** — a flex column carrying it down; the **scroller**), and 31 are a flex/grid item allowed to shrink below its content, which is board geometry and stays. Eleven of the relays are steps 9–10 anyway. The relay still has no good name |
 | `club-page` | **`.frame` → `.page`.** It is the page's outer stack, not anything header-specific; all three pages declare nearly the same rule and only the bound differs. The word is taken: `frame` means "a rectangle around a board" in four places. Rename when the bound is settled, so the element is touched once |
 | `club-page` | **`<ModePill>` is a BADGE and should be renamed** — 27 references across `src/` and `e2e/`, plus `ui.md`'s "Mode pills" heading. Its module already reads the shared `.badge` and holds nothing but the two colors, so this is a name, not a conversion. **The rule it carries is general (Joel, 2026-08-22): "pill" means the FEEDBACK pill and nothing else** — the fully-round-ended lozenge is a badge, and the app has other loose uses (`ui.md`'s "chat unread pill", `base.css`'s "hint pills" in the `--radius-sm` comment). Fix each where its area comes up |
-| `club-page` | **The `=` solo-handle convention is still tested in the FE** — `ClubPage.tsx:115` (`soloClub`) and `SetupGameDialog.tsx:208` (`modeSuffix`). `common.clubs.is_solo` now carries it (a generated column, `plans/areas/homepage.md` → F25), and the homepage reads that instead. Joel, 2026-08-22: *"fine for now, but we should get '=' stuff out of FE when we get to them."* The two SQL sites (`common.sql`, the setgame migration) write `like '=%'` and can take the column too |
+| `club-page` | **The `=` solo-handle convention is still tested in the FE** — `ClubPage.tsx:115` (`soloClub`) and `SetupGameModal.tsx:208` (`modeSuffix`). `common.clubs.is_solo` now carries it (a generated column, `plans/areas/homepage.md` → F25), and the homepage reads that instead. Joel, 2026-08-22: *"fine for now, but we should get '=' stuff out of FE when we get to them."* The two SQL sites (`common.sql`, the setgame migration) write `like '=%'` and can take the column too |
 | `club-page` | **The two-line row** — `.content` / a name line / a muted meta line, now in THREE files: `StartGameRow`, `ClubGameRow` and the standalone `ClubGameCard`. The pattern should name the SLOTS; each component keeps its own name for what goes in one (`.gameTitle`, `.gametypeName`). The third copy is new and known: F38 split `ClubGameCard` and deliberately left the standalone callout's inner shape alone rather than pre-empt this area |
 | `club-page` | ~~`ClubGameCard`'s `.wrapper` / `.card` names~~ — **done 2026-08-24 by F38.** `.wrapper` is gone (the SelectionList row is the row), `ClubGameRow` carries no `.card`, and the standalone callout's box is `.standalone`. Kept as a line only so the row's disappearance isn't read as an oversight |
 | `club-page` | The club page's filters render TWICE, desktop and mobile, each hidden in the other mode. A markup decision before a CSS one |
@@ -690,20 +690,20 @@ plus justified's per-game half.)
 | `floating-panels` | **`FloatingPanel`'s titlebar wears the HOVER gray at rest.** `.header` is `--page-surface-hover-color` (`#f0f0f0`) permanently — chat, the scratchpad and every dialog built on the panel. Joel, 2026-08-22: titlebars not being white *"makes sense"*, but it is only the hover gray by accident and **the two must not be coupled**; the titlebar wants its own token, at whatever value, so a hover-color change cannot move it |
 | ~~here~~ → `crosswords` | ~~**A dialog riding the popover tier.**~~ **MOVED 2026-08-24** to the `crosswords` row below, where the tier change can be seen by the area that owns the game. Kept as a line so its disappearance is not read as an oversight |
 | `shared-game-chrome` | **The two drag ghosts disagree** — bananagrams 1000, scrabble 100, and `dragGhost.module.css` says the split is unintended. Both are `position: fixed`, so they are two tiers apart against everything else: scrabble's paints BELOW an open dialog, bananagrams's above. Nobody drags mid-dialog, which is why it has never shown. Neither takes a token until they agree |
-| `the first game area` | `CelebrationDialog`'s `.title` is an `<h2>` at `1.5rem` — h1's size, where h2 is `1.25rem`. May be earned; should be a decision |
-| `the first game area` | `CelebrationDialog`'s `.button:focus-visible` re-declares the shared ring. Nothing about that dialog should change a button's ring |
-| `floating-panels` + `shared-game-chrome` | **Nine `.body` classes want real names.** All nine mean "a floating panel's content area, as opposed to its titlebar": `FloatingPanel`, `GameScratchpad`, `SetupSection`, `CelebrationDialog`, `DeviceBlockNotice`, `FaultDialog`, `DefinitionView`, crosswords' `ExplainDialog`. ClubPage's tenth became `.columns` |
+| `the first game area` | `CelebrationBlockingModal`'s `.title` is an `<h2>` at `1.5rem` — h1's size, where h2 is `1.25rem`. May be earned; should be a decision |
+| `the first game area` | `CelebrationBlockingModal`'s `.button:focus-visible` re-declares the shared ring. Nothing about that dialog should change a button's ring |
+| `floating-panels` + `shared-game-chrome` | **Nine `.body` classes want real names.** All nine mean "a floating panel's content area, as opposed to its titlebar": `FloatingPanel`, `GameScratchpadCompanion`, `SetupSection`, `CelebrationBlockingModal`, `DeviceBlockNotice`, `FaultModal`, `DefinitionView`, crosswords' `CrosswordsExplainCompanion`. ClubPage's tenth became `.columns` |
 | `shared-game-chrome` | `FilterSelect`'s club-page override INVERTS: the component states the roomy default, the info column tightens it. Today the club page undoes six of its seven decisions one at a time |
 | `shared-game-chrome` | `<TurnLog>`'s `headerAction` is optional in name only — all eleven call sites pass it, so the bare-`<h3>` arm is dead. Make it required |
-| `crosswords` | **`NumberJumpDialog` is a blocking modal that isn't built as one** (`plans/areas/floating-panels.md` → F15 `numberjump-tier`). A hand-rolled `position: fixed` box with its own scrim, riding `--z-index-popover`, so a menu can open over it. `<BlockingModal>` now exists and is what it wants — the shell brings the backdrop, the focus trap, immovability and content-fit height. Punted here rather than converted in `floating-panels` (Joel, 2026-08-24) because the conversion MOVES ITS TIER, and a behavior change to a game's modal should be seen by the area that owns the game |
+| `crosswords` | **`CrosswordsNumberJumpBlockingModal` is a blocking modal that isn't built as one** (`plans/areas/floating-panels.md` → F15 `numberjump-tier`). A hand-rolled `position: fixed` box with its own scrim, riding `--z-index-popover`, so a menu can open over it. `<BlockingModal>` now exists and is what it wants — the shell brings the backdrop, the focus trap, immovability and content-fit height. Punted here rather than converted in `floating-panels` (Joel, 2026-08-24) because the conversion MOVES ITS TIER, and a behavior change to a game's modal should be seen by the area that owns the game |
 | `crosswords` | **The header's marks are not evenly separated, and the CSS says they are** (`plans/areas/homepage.md` → F43 `unequal-mark-separation`). One `gap: 0.375rem` for the whole slot, then each mark adds its own padding INSIDE its box — the menu trigger `0.25rem`, the chat bubble `PageHeaderButton`'s `0.3rem` plus `.bubble`'s own, the status slot none — so every visible separation differs and none of them is the declared number. Owned here because this is the page where EVERY mark can be on the strip at once; home has one and the club page three. `--spacer` cannot claim `0.375rem` until this settles what the separation should be |
 | `scrabble` | **The AI suggest-a-move box is the fifth SelectionList site and did not fit.** It is five frameless text lines pinned to `5 × 1.35rem`, whose own comment says a growable height would shift the setup disclosure and the Moves log below it — so the frame, the surface and the row padding would all arrive as a visible redesign, roughly doubling the box. Three options, written up in `plans/selection-lists.md`: leave it bespoke (as crosswords' clue lists are), give `<SelectionList>` a frameless compact form, or redesign the box and redo the height arithmetic. Closed out of the `homepage` area 2026-08-24 |
-| `scrabble` | **`BlankPicker`'s overlay at `z-index: 50`** — a full-screen `position: fixed` modal parked BELOW the panel tier, so an open chat or menu paints over it. Long-recorded as the ladder's known anomaly; it wants a look, not a reflex bump |
+| `scrabble` | **`ScrabbleBlankPickerBlockingModal`'s overlay at `z-index: 50`** — a full-screen `position: fixed` modal parked BELOW the panel tier, so an open chat or menu paints over it. Long-recorded as the ladder's known anomaly; it wants a look, not a reflex bump |
 | **each surface** | **Ten consumer modules style `<Dot>` as a bare `.dot`.** The qualified form already exists in half the app (`greetingDot`, `playerDot`, `rosterDot`, `actorDot`, `itemDot`, `bonusDot`) |
 | **shuffle games** | `<ShuffleButton>` should never take focus at all — game stuff doesn't. Its `:focus { outline: none }` says a click leaves no ring, then `:focus-visible` puts one back for a keyboard that has ⌥Z. The fix is removing the tab stop, not restyling the ring |
 | **the area that takes `base.css`** | **Six chrome shadow levels nobody chose.** They were preserved from what the component modules already held and given names, which is what made them look like a system. Measured 2026-08-22: five of the six have exactly ONE reader (`popover` alone has four: Menu ×2, FilterSelect, DefinitionPopover), so §7's own rule — a value with one reader belongs in its class as a number — disqualifies most of them; three share a geometry (`0 8px 24px`) and differ only in opacity (18 / 12 / 8%); and they are not a ladder — `toast` is the TOPMOST z-layer and blurs 16 where `dialog` blurs 48. The names also lead with the KIND where §5's grammar is bucket-first, and `notice` invents a category for a single component called `DeviceBlockNotice` (global, it would be `--deviceBlockNotice-shadow`). Decide the count and the names there |
 | **strands** | **`HintBar.tsx` reads `styles.hint`** and the module defines `.hintReady` and no `.hint` — the Hint button's base class resolves to `undefined` and `cls()` drops it. Found by `cssClasses.test.ts`, whose `MEMBER_PENDING` holds it until then |
-| **codenamesduet** | **`CluePanel.module.css` `.clueLabel` is read by nothing.** Same guard, `DEAD_CLASS_PENDING` |
+| **codenamesduet** | **`CodenamesduetAISuggestModal.module.css` `.clueLabel` is read by nothing.** Same guard, `DEAD_CLASS_PENDING` |
 | **setgame** | **`PlayArea.module.css` `.breakdown` + `breakdownLabel` / `-List` / `-Count` are read by nothing** — the per-player breakdown they styled was replaced. Same guard |
 | **stackdown** | **`WordEntry.module.css` `.good` / `.bad` are read by nothing** — the slots take their colors elsewhere now. Same guard |
 | **club-page** | **`e2e/club-filters.e2e.ts` is RED too** — two specs, both looking for `[class*="_startList_"] [class*="_button_"]` and finding nothing. `.startList` is fine; **`_button_` is gone because the button sprint moved buttons onto the GLOBAL `.button`**, which carries no module hash for a spec to match. Rewrite it in the same sitting as `club-keyboard.e2e.ts` — three specs, two renames, one page. Found 2026-08-22 by the first full e2e run after the font switch, which is also how we know the font broke nothing: 214 passed, and none of the 7 failures was about type. **`cssClasses.test.ts` cannot catch this one** and says so in its own docstring: it substring-matches each needle separately, so `startList` resolves and *some* class somewhere contains "button". Seeing it would mean understanding that the two are NESTED and that `.button` is global — real work, not obviously worth it |
@@ -714,7 +714,7 @@ plus justified's per-game half.)
 | **account** | `ColorChoiceList.swatchActive` draws the cursor ring to mean "the color you CHOSE" — deliberately not converted, since tying a selected state to a keyboard decision marries them forever. Whether "selected" should look like "the cursor is here" is its own question |
 | **when it has a consumer** | the two-line density variant of `.item-row` |
 | `forms` | **Five setup forms set `font-family: monospace`** — spellingbee, wordwheel, boggle, letterboxed, wordiply — all on the field that previews letters or a board. One decision written five times by five hands, and none of them wrote down why. Do NOT change them piecemeal (Joel, 2026-08-22): decide once, here, whether a letters preview wants a mono face at all now that the app has a real one |
-| `floating-panels` | **`GameScratchpad` is monospace** (`ui-monospace, 'SF Mono', …`). Plausibly right — it is a notepad — but it is the same unexamined choice as the setup forms, so it gets asked at the same time |
+| `floating-panels` | **`GameScratchpadCompanion` is monospace** (`ui-monospace, 'SF Mono', …`). Plausibly right — it is a notepad — but it is the same unexamined choice as the setup forms, so it gets asked at the same time |
 | `waffle` | **`SolutionReveal` sets monospace twice**, so the revealed grid's letters line up in a column. The alignment need is real; whether monospace is how to meet it is not obvious now that the app font's digits are tabular and its width dial can hold a column |
 | `codenamesduet` | **`Board.module.css` sets `ui-monospace, Menlo, monospace`** on the board. The most consequential of the mono uses, because it is a play surface rather than a form |
 | `the area that takes `/palette`` | `PalettePage` sets monospace for token values and formulas. The one mono use with an obvious reason — a hex is a code-shaped thing — recorded so the sweep does not treat it as an oversight |
@@ -917,7 +917,7 @@ area**.
 
 | # | area | what it is |
 |---|---|---|
-| 1 | `homepage` | **PAUSED 2026-08-24, two findings open and both waiting on area 2.** The rehearsal for the full toolkit: patterns + vocabulary + the page shell, plus a **React pass** — the duplication was not only in the CSS. F44 (`action-button-text-only`) is a `forms` question, and F36 (`createclub-modal`) needs `SetupGameDialog`'s area (`club-page`) before CreateClubPage can stop being a page. F21 (`homepage-no-vitest`) is deliberately LAST: there is no point pinning the page's shape, or `<SelectionList>`'s, while either can still move (`plans/areas/homepage.md`) |
+| 1 | `homepage` | **PAUSED 2026-08-24, two findings open and both waiting on area 2.** The rehearsal for the full toolkit: patterns + vocabulary + the page shell, plus a **React pass** — the duplication was not only in the CSS. F44 (`action-button-text-only`) is a `forms` question, and F36 (`createclub-modal`) needs `SetupGameModal`'s area (`club-page`) before CreateClubPage can stop being a page. F21 (`homepage-no-vitest`) is deliberately LAST: there is no point pinning the page's shape, or `<SelectionList>`'s, while either can still move (`plans/areas/homepage.md`) |
 | 2 | `floating-panels` | **OPEN, seven findings resolved.** The machinery and shared look of every window-like thing that floats over the page — the shell, the blocking modal, the confirmation and the acknowledgment, the drag hook, the focus trap. **Not the instances**, and since 2026-08-24 **not the forms either** (`plans/areas/floating-panels.md`) |
 | 3 | `forms` | **NEW 2026-08-24, split out of the area above.** The design language of forms: the shared field components, the setup scaffolding, and **the question the homepage could not answer — are a form's buttons really different from action buttons?** Seven hand-written Cancels say the taxonomy has a hole (F44). Split because a floating panel and a form share a container and nothing else; keeping them together meant one area holding two vocabularies |
 | 4 | `simple-page` | **NEW.** The pages that are not home, club or game: `LoginScreen`, `ClaimHandleScreen`, `ErrorPage`, `Loading` — and `CreateClubPage` until F36 takes it. **The roster's test is "does `App` render it directly?"**, which is better than "is it routable": it catches `ErrorPage` and `Loading`, both of which stand in for a page AND appear inside one (`ClubPage:719`, `:726`, `PlayAreaErrorBoundary:47`) — which is exactly what the shell decision has to cover |
@@ -997,7 +997,7 @@ this step:
 | record against | what |
 |---|---|
 | `shared-game-chrome` | The two drag ghosts disagree — bananagrams 1000, scrabble 100 — and `dragGhost.module.css` says the split is unintended. Two tiers apart, so naming them cannot paper over it |
-| `scrabble` | `BlankPicker`'s full-screen overlay at `z-index: 50`, below the 500 panel tier. Already the known anomaly in the ladder doc; it wants a look, not a reflex bump |
+| `scrabble` | `ScrabbleBlankPickerBlockingModal`'s full-screen overlay at `z-index: 50`, below the 500 panel tier. Already the known anomaly in the ladder doc; it wants a look, not a reflex bump |
 | `club-page` | The ladder doc files the account `Menu` under in-board controls (10–100) and again under popovers (1500). It ships at 1500; the doc's first row is the stale one |
 
 ### Why 6 stopped, and what the reorder buys
@@ -1401,7 +1401,7 @@ ladder short:
   page; from the setup modal's footer "?" it is that modal. Classing it as a
   rung fails both ways: `z-modal-blocking` would dim and inert the form you
   opened the rules FOR, and `z-modal-normal` ties with setup and dims it too.
-  Today it works by accident — `HelpPanel` passes no tier, so it ties with setup
+  It USED to work by accident — Help passed no tier, so it tied with setup
   at the shipped `--z-index-panel` default and wins on DOM order.
 - **A tooltip goes to the absolute top**, because it cannot know its host and
   never blocks anything. **Joel's argument for why that is safe:** you cannot
@@ -1474,7 +1474,7 @@ All verified 2026-08-21, and none of it was changed.
 | **Nothing creates a stacking context around a board** — `.boardCol` is `position: relative` with no z-index, and `isolation` appears nowhere in `src/` | the "board" layer is a convention, not a seal: tile numbers race the whole app. Harmless today only because every board's numbers are small. Joel's ruling: assume the invariant *nothing in a layer with a range ever enters another layer* holds, and treat how as an implementation detail |
 | **Nothing raises anything within a tier** | two panels at one tier stack by DOM render order — fixed by component order, not by which you opened. So a strict order is in force today that nobody chose and nobody can see |
 | **`draggable={false}` is passed by exactly two components** — confirmations and faults | the three-way dim/drag split above is ALREADY encoded in the affordances. Only the tier is wrong |
-| ~~**`FloatingChat`'s bottom-right launcher does not render at all**~~ **FIXED 2026-08-22** | Both call sites passed `hideClosedButton`, so the closed branch returned null and `.openButton` was dead CSS — carrying the z-index 6c had converted into a `calc(… - 1)`, a derivation given to a rule nothing renders. Removed: the branch, the always-true prop, and the module stylesheet (45 lines, all of it that button). The dead-token guard then caught `--shadow-floating`, which only that rule read, so it went too. Chat opens from the header `<ChatButton>` — ordinary page content, not a layer |
+| ~~**`Chat`'s bottom-right launcher does not render at all**~~ **FIXED 2026-08-22** | Both call sites passed `hideClosedButton`, so the closed branch returned null and `.openButton` was dead CSS — carrying the z-index 6c had converted into a `calc(… - 1)`, a derivation given to a rule nothing renders. Removed: the branch, the always-true prop, and the module stylesheet (45 lines, all of it that button). The dead-token guard then caught `--shadow-floating`, which only that rule read, so it went too. Chat opens from the header `<ChatButton>` — ordinary page content, not a layer |
 
 ### The tokens
 
@@ -1514,11 +1514,11 @@ boards became sealed.
 
 | component | family | why |
 |---|---|---|
-| `CluePanel` (codenamesduet) | `z-modal-normal` | it demands attention — "here's the answer you asked for". Dim is right |
-| `CelebrationDialog` | `z-modal-normal` | it looks like one, it already dims, and you can still chat |
+| `CodenamesduetAISuggestModal` (codenamesduet) | `z-modal-normal` | it demands attention — "here's the answer you asked for". Dim is right |
+| `CelebrationBlockingModal` | `z-modal-normal` | it looks like one, it already dims, and you can still chat |
 | scrabble's center-letter picker | `z-modal-normal` | the board goes inert, which is the point; chat stays |
-| `HelpPanel` | `z-companion`, **plus the satellite rule** | keep-open, no Save, X-to-close. Its resting home is the companion layer; when something above that summons it, it sits just above its summoner |
-| `FloatingChat` | **companion**, living at `z-chat` | it matches the companion test on every axis — resizable, remembers its rect, no dim, no Save, X-to-close, meant to be kept open. Only its layer differs. **It does NOT take the family word** (Joel, 2026-08-24): *"the chat panel will not get a 'companion' name; it sits in a different layer and simply calling it something like `Chat` suffices."* The rule below — a component about one family takes that family's name — earns its exception here, because a name saying `companion` would point at a layer this one deliberately does not live on |
+| `GameHelpCompanion` | **`z-help` (2300)** — superseded 2026-08-25 | keep-open, no Save, X-to-close. Its resting home is the companion layer; when something above that summons it, it sits just above its summoner |
+| `Chat` | **companion**, living at `z-chat` | it matches the companion test on every axis — resizable, remembers its rect, no dim, no Save, X-to-close, meant to be kept open. Only its layer differs. **It does NOT take the family word** (Joel, 2026-08-24): *"the chat panel will not get a 'companion' name; it sits in a different layer and simply calling it something like `Chat` suffices."* The rule below — a component about one family takes that family's name — earns its exception here, because a name saying `companion` would point at a layer this one deliberately does not live on |
 
 **⚠️ Chat must NOT be moved to `z-companion`** — being classed as a companion
 will invite exactly that, which is half of why its name stays clear of the word.
@@ -1562,8 +1562,10 @@ vocabulary for the second axis would mean every future conversation has to say
 which list it means, forever, to buy correctness in two components.
 
 So: **a layer is where its family lives unless a component states otherwise.**
-Two components state otherwise, both written down: `FloatingChat` (permanent,
-at `z-chat`) and `HelpPanel` (conditional, just above whatever summoned it).
+Two components state otherwise, both written down: `Chat` (permanent,
+at `z-chat`) and `GameHelpCompanion` (permanent, at `z-help` — it was written here as
+CONDITIONAL, "just above whoever summoned it", and that could not be delivered:
+the setup modal renders Help as a SIBLING, so `--z-host` never reaches it).
 That is the same move the satellites make — the scrim and the dropdown were
 never given names either, just described relative to something that had one.
 
@@ -1624,7 +1626,7 @@ given a specific meaning.
 
 - **`components/panels/` → `components/floating-panels/`** — kebab, matching
   `loading-and-errs`, the repo's only other multi-word folder. It now holds only
-  floating panels: the shell, `ConfirmationBlockingModal`, `GameScratchpad`, `modalActions`.
+  floating panels: the shell, `ConfirmationBlockingModal`, `GameScratchpadCompanion`, `modalActions`.
 - **`Menu` → `components/menu/`**, top-level beside it, because it uses none of
   the shell's machinery and has no business under a floating-panel folder.
   **Singular on purpose** (Joel, 2026-08-24): *"that the gamepage / clubpage /
@@ -1640,17 +1642,17 @@ given a specific meaning.
   button in `panels/`. If general chrome needs a home later, we re-create it then.
 
 Implicated component names, on the rename roster (Open item 4), NOT decided here:
-`HelpPanel` (72 references), `CluePanel` (19), `infoPanel.module.css` (22).
+`infoPanel.module.css` (22) — the last one left, and `shared-game-chrome`'s.
 
 Consumer docstrings that still say "panel" loosely get fixed as each area is
 audited, not in a sweep.
 
 **Measured: "Dialog" currently names four different families**, which is the
-best argument for the above. `ConfirmationBlockingModal` and `FaultDialog` are
+best argument for the above. `ConfirmationBlockingModal` and `FaultModal` are
 `z-modal-blocking` and `z-modal-fault` — the two strictest things in the app,
-and the only two components that pass `draggable={false}`. `SetupGameDialog`,
-`EditProfileDialog` and `EditClubDialog` are `z-modal-normal`. `NoteDialog` and
-`ExplainDialog` are **companions** — no dim, resizable, and they remember their
+and the only two components that pass `draggable={false}`. `SetupGameModal`,
+`EditProfileModal` and `EditClubModal` are `z-modal-normal`. `CrosswordsNoteCompanion` and
+`CrosswordsExplainCompanion` are **companions** — no dim, resizable, and they remember their
 rect. Only `AnagramDialog`, `WordLookupDialog` and `WordEditDialog` are actually
 dialogs.
 
@@ -1679,8 +1681,52 @@ same argument sixteen times.
    component alone would rank it against neighbors that have not moved, which is
    how a menu ends up under a panel — so the order is the constraint, not the
    values.
-4. **The component roster**, every `FloatingPanel` consumer with its family and
-   its new name, settled in one pass before any rename lands.
+4. ~~**The component roster**~~ — **SETTLED 2026-08-25.** Every family is
+   declared in code (the `family` prop), and the names are agreed below. What is
+   left is executing them, which is its own step for the reason this item always
+   gave: doing it per-area leaves one word meaning different things in the repo
+   for weeks.
+
+   **Companions** — the family word is the suffix:
+
+   | from | to |
+   |---|---|
+   | crosswords `NoteDialog` | `CrosswordsNoteCompanion` |
+   | crosswords `ExplainDialog` | `CrosswordsExplainCompanion` |
+   | `HelpPanel` | `GameHelpCompanion` |
+   | `ClubHelp` | `ClubHelpCompanion` |
+   | `FloatingChat` | **`Chat`** — the ONE companion without the family word, and it is a stated exception rather than an oversight: the name would point at `z-companion`, the one layer it deliberately does not live on |
+   | `GameScratchpad` | `GameScratchpadCompanion` |
+
+   **Dialogs** — all three already correct, and the only names in the app that
+   were: `AnagramDialog`, `WordLookupDialog`, `WordEditDialog`.
+
+   **modal-normal** — `normal` is UNMARKED, so the suffix is plain `Modal`:
+
+   | from | to |
+   |---|---|
+   | `SetupGameDialog` | `SetupGameModal` |
+   | `EditProfileDialog` | `EditProfileModal` |
+   | `EditClubDialog` | `EditClubModal` |
+   | codenamesduet `CluePanel` | `CodenamesduetAISuggestModal` — F27 (`cluepanel-clue-for-what`): the old name said neither its game nor its job. `Codenamesduet`, not `Codenames`, per docs/naming.md's no-mid-caps rule |
+
+   **modal-blocking / modal-fault** — MARKED, so the member word rides along:
+
+   | from | to |
+   |---|---|
+   | ~~`ConfirmDialog`~~ | ~~`ConfirmationBlockingModal`~~ ✅ shipped |
+   | ~~`useConfirmDialog`~~ | ~~`useConfirmation`~~ ✅ shipped |
+   | `CelebrationDialog` | `CelebrationBlockingModal` |
+   | `SuspendConfirmDialog` | `SuspendConfirmationBlockingModal` |
+   | `FaultDialog` | **`FaultModal`** — strictly the grammar wants `FaultFaultModal`, which is pointless (Joel). `Fault` names the member; nothing else can be read into it |
+   | crosswords `NumberJumpDialog` | `CrosswordsNumberJumpBlockingModal` |
+   | scrabble `BlankPicker` | `ScrabbleBlankPickerBlockingModal` — the name is settled even though the component has not moved onto the shell yet |
+
+   **The machinery keeps its names** (§7 → "Floating panel is the umbrella"):
+   `FloatingPanel`, `useDraggablePanel`, `BlockingModal`, `Menu`.
+
+   **Not in scope:** `infoPanel.module.css` still carries "Panel" as a kind. A
+   filename rather than a component, and `shared-game-chrome`'s.
 
 ## 21. The area process — stamps, areas, and what "broken" means
 

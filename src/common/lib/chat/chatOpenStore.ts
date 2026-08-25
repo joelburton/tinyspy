@@ -3,15 +3,15 @@
 import { useSyncExternalStore } from 'react'
 
 /**
- * Shared open/closed state for the FloatingChat panel.
+ * Shared open/closed state for the Chat panel.
  *
  * The chat toggle now lives in two distinct UI surfaces:
  *
  *   - The bottom-right circular button on ClubPage (still owned
- *     by `<FloatingChat>` in its "closed" branch).
+ *     by `<Chat>` in its "closed" branch).
  *   - The `<ChatButton>` in the GamePage header.
  *
- * Both need to flip the same flag, and `<FloatingChat>` needs to
+ * Both need to flip the same flag, and `<Chat>` needs to
  * read it to decide whether to render the panel. The previous
  * "each instance reads/writes localStorage on its own" pattern
  * doesn't propagate within a single tab — clicking the header

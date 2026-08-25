@@ -1,18 +1,18 @@
 // cs-unmet
 
-import { HelpPanel } from '../../common/components/game/HelpPanel'
+import { GameHelpCompanion } from '../../common/components/game/GameHelpCompanion'
 
 /**
  * boggle's help / rules modal — opened from the "Help" item in the GamePage
  * menu. Implements the `help: ComponentType<{ onClose }>` contract on
- * GameManifest. The frame (panel + title + Got-it) is the shared `<HelpPanel>`;
+ * GameManifest. The frame (panel + title + Got-it) is the shared `<GameHelpCompanion>`;
  * this is just the rules copy. (Previously boggle rendered a bare `<div>` with
  * no FloatingPanel, so its Help looked unlike every other game's — the shared
  * frame fixes that.)
  */
 export function Help({ onClose, brand }: { onClose: () => void; brand: string }) {
   return (
-    <HelpPanel
+    <GameHelpCompanion
       brand={brand}
       onClose={onClose}
       size={{ width: 480, height: 480 }}
@@ -45,6 +45,6 @@ export function Help({ onClose, brand }: { onClose: () => void; brand: string })
         stay upright) so it faces whoever’s reading — it’s just your view, nobody
         else’s.
       </p>
-    </HelpPanel>
+    </GameHelpCompanion>
   )
 }

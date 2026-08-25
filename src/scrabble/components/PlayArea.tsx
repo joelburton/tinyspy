@@ -8,7 +8,7 @@ import { cls } from '../../common/lib/util/cls'
 import { outOfRacePill, terminalPill } from '../../common/lib/game/localPills'
 import { waitingTurnPill } from '../../common/components/game/turnCopy'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
-import { CelebrationDialog } from '../../common/components/game/CelebrationDialog'
+import { CelebrationBlockingModal } from '../../common/components/game/CelebrationBlockingModal'
 import { useCelebration } from '../../common/hooks/game/useCelebration'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
@@ -637,7 +637,7 @@ export function PlayArea({
           in-page by the commit-slot pill + the info-column outcome line. Only a COMPETE
           win celebrates — coop has no win to celebrate (see useCelebration above). */}
       {celebration.show && (
-        <CelebrationDialog title="You win! 🎉" onClose={celebration.close} />
+        <CelebrationBlockingModal title="You win! 🎉" onClose={celebration.close} />
       )}
       {confirmationModal}
     </div>

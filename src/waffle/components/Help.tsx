@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { HelpPanel } from '../../common/components/game/HelpPanel'
+import { GameHelpCompanion } from '../../common/components/game/GameHelpCompanion'
 
 type Props = {
   onClose: () => void
@@ -14,7 +14,7 @@ type Props = {
  */
 export function Help({ onClose, brand }: Props) {
   return (
-    <HelpPanel brand={brand} onClose={onClose} size={{ width: 460, height: 360 }}>
+    <GameHelpCompanion brand={brand} onClose={onClose} size={{ width: 460, height: 360 }}>
       <p>
         <strong>Unscramble the waffle.</strong> The grid spells six
         five-letter words — three across, three down — but the letters
@@ -36,6 +36,6 @@ export function Help({ onClose, brand }: Props) {
         swaps wins.
       </p>
 
-    </HelpPanel>
+    </GameHelpCompanion>
   )
 }

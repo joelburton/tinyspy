@@ -5,7 +5,7 @@
   flex-direction: column;
   gap: 0.6rem;
   min-width: 22rem;
-  /* No max-width: the dialog is a FIXED 480px (SetupGameDialog's
+  /* No max-width: the dialog is a FIXED 480px (SetupGameModal's
    * `defaultSize`), so the body should FILL it. Capping the form narrower just
    * leaves dead space down the right-hand side. What keeps a long row from
    * overflowing that fixed width is the title truncating — see .itemTitle and

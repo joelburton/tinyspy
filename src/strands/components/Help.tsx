@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { HelpPanel } from '../../common/components/game/HelpPanel'
+import { GameHelpCompanion } from '../../common/components/game/GameHelpCompanion'
 
 type Props = {
   onClose: () => void
@@ -13,7 +13,7 @@ type Props = {
  */
 export function Help({ onClose, brand }: Props) {
   return (
-    <HelpPanel
+    <GameHelpCompanion
       brand={brand}
       onClose={onClose}
       size={{ width: 460, height: 460 }}
@@ -56,6 +56,6 @@ export function Help({ onClose, brand }: Props) {
         The clue at the top of the info column is the theme, not a spoiler — it's there
         from the start.
       </p>
-    </HelpPanel>
+    </GameHelpCompanion>
   )
 }

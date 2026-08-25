@@ -8,7 +8,7 @@ import { buildWordlePrintModel } from '../pdf/model'
 import { printWordlePdf } from '../pdf/printWordlePdf'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { setupRows } from '../lib/setupSummary'
-import { CelebrationDialog } from '../../common/components/game/CelebrationDialog'
+import { CelebrationBlockingModal } from '../../common/components/game/CelebrationBlockingModal'
 import { useCelebration } from '../../common/hooks/game/useCelebration'
 import { useTurnStartFlash } from '../../common/hooks/game/useTurnStartFlash'
 import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback'
@@ -596,7 +596,7 @@ export function PlayArea({
           Terminal results): it's in-page, on the below-board pill + the
           action-row outcome line, and a coop solve gets the celebration
           instead. */}
-      {celebration.show && <CelebrationDialog title="Solved! 🎉" onClose={celebration.close} />}
+      {celebration.show && <CelebrationBlockingModal title="Solved! 🎉" onClose={celebration.close} />}
       {confirmationModal}
     </div>
   )

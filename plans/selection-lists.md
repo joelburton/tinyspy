@@ -80,7 +80,7 @@ not "a column of rows", which is what it looked like from the outside.
 |---|---|
 | ClubPage's standalone current-game card | not a list at all. It may borrow `ClubGameRow`'s look; that is the club-page area's call |
 | `FilterSelect`'s popover | similar in small ways, not the same idea. It also deliberately takes no focus, which is the opposite contract |
-| SetupGameDialog's Players roster | check-many, not pick-one |
+| SetupGameModal's Players roster | check-many, not pick-one |
 | `ColorChoiceList` | there is no cursor. The ring **is** the value — a persistent selection with no transient cursor beside it |
 | connections' `HintList` | a button per row, not a choice among rows |
 | crosswords' `ClueLists` | very close, and staying bespoke to crosswords. Revisit at that area |
@@ -103,7 +103,7 @@ on later, and **must not submit the dialog it sits in**. `Enter` and `Space` bot
 mean "make this the selection". The chosen row keeps a mark.
 
 > The dialog cannot currently be submitted by Enter from anywhere —
-> `SetupGameDialog` is not a `<form>`, both footer buttons are `type="button"`,
+> `SetupGameModal` is not a `<form>`, both footer buttons are `type="button"`,
 > and there is no dialog-level Enter handler. So this is a constraint on what we
 > build, not a bug standing today.
 

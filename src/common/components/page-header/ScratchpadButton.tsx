@@ -7,7 +7,7 @@ import { PageHeaderButton } from './PageHeaderButton'
 /**
  * The scratchpad-panel toggle in the game header (rendered only for games
  * whose manifest opts in). Click toggles the panel via the shared
- * scratchpadOpenStore — both this bubble and `<GameScratchpad>` subscribe.
+ * scratchpadOpenStore — both this bubble and `<GameScratchpadCompanion>` subscribe.
  *
  * All of its chrome is `<PageHeaderButton>`, including the border it wears while
  * the panel is open — `aria-pressed` is what that keys on, so the state is said

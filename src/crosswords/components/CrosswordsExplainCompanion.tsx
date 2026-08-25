@@ -2,7 +2,7 @@
 
 import { Fragment, type ReactNode } from 'react'
 import { FloatingPanel } from '../../common/components/floating-panels/FloatingPanel'
-import styles from './ExplainDialog.module.css'
+import styles from './CrosswordsExplainCompanion.module.css'
 
 /** The dialog's state — mirrors crossplay's ExplainPopover states, minus the
  *  scratchpad (native thinking is never returned to the client). */
@@ -23,7 +23,7 @@ type Props = {
  * plain prose with `**bold**` labels (Definition / Wordplay / Indicators),
  * rendered without `dangerouslySetInnerHTML`.
  */
-export function ExplainDialog({ clueLabel, state, onClose }: Props) {
+export function CrosswordsExplainCompanion({ clueLabel, state, onClose }: Props) {
   return (
     <FloatingPanel
       family="companion"

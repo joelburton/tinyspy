@@ -2,7 +2,7 @@
 
 /*
  * Shared setup-form scaffold — the layout every game's per-game
- * `SetupForm` (rendered inside `SetupGameDialog`) draws its fieldsets and
+ * `SetupForm` (rendered inside `SetupGameModal`) draws its fieldsets and
  * radio rows from. Each `<game>/components/SetupForm.tsx` imports THIS module
  * for `.setup` / `.fieldset` / `.radioRow` / `.radio` / `.checkRow`; only
  * genuinely game-specific bits (bananagrams's bag-size input, wordle's
@@ -16,7 +16,7 @@
  * The values here are the majority shape (the codenamesduet / psychicnum / bananagrams
  * / connections cluster that four forms already shared byte-for-byte).
  *
- * The forms sit inside `SetupGameDialog`'s content area and inherit its
+ * The forms sit inside `SetupGameModal`'s content area and inherit its
  * padding; these rules only shape the fieldsets + radio rows within.
  */
 

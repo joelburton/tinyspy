@@ -78,7 +78,7 @@ const FAMILY: Record<
      * header and nothing else carries the class), so a family that can never be
      * dragged has no use for one: its only remaining job is a title the body
      * shows better and bigger, and its ✕ is a third way out duplicating a button
-     * already on screen. `FaultDialog` used to print "Error" in both places,
+     * already on screen. `FaultModal` used to print "Error" in both places,
      * four lines apart, and nobody noticed — a titlebar reads as chrome rather
      * than as content.
      *
@@ -170,9 +170,9 @@ type Props = {
    * family NAME and `base.css` carries every value, so the two cannot drift.
    *
    * **Two components state otherwise**, both for the same reason and both with
-   * the reason written where someone might undo it: `FloatingChat` passes
+   * the reason written where someone might undo it: `Chat` passes
    * `var(--z-chat)` (a conversation must stay reachable over every dim below
-   * it, and it can open ITSELF), and `HelpPanel` passes `var(--z-help)` (the
+   * it, and it can open ITSELF), and `GameHelpCompanion` passes `var(--z-help)` (the
    * rules are summoned FROM things, including the setup modal, and must never
    * open behind the form you pressed "?" in).
    *
@@ -206,7 +206,7 @@ type Props = {
    * `fitContent` caps at the viewport and lets the body scroll, so a card
    * degrades into a sheet by itself exactly when the content earns one — a
    * 30×-repeated fault message grew to 647px at a phone's height without
-   * overflowing. The one unknown is scrabble's `BlankPicker` (26 letter buttons
+   * overflowing. The one unknown is scrabble's `ScrabbleBlankPickerBlockingModal` (26 letter buttons
    * at ~390px), still hand-rolled. **If that converts cleanly, delete this
    * prop** rather than keep it as decoration.
    */
@@ -685,7 +685,7 @@ function PanelRnd({
         height: target,
         // ANCHOR THE TOP — don't re-center. A fit can land well after the panel
         // is on screen and under a cursor (a lazily-imported body arriving ~300ms
-        // in — see SetupGameDialog), and re-centering a growing panel slides
+        // in — see SetupGameModal), and re-centering a growing panel slides
         // everything in it upward by half the growth: buttons move out from
         // under the pointer mid-click. Growing downward from a fixed header is
         // the "don't move what someone is looking at" behavior. The panel's

@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react'
 import { FloatingPanel, HELP_RECT_KEY } from '../floating-panels/FloatingPanel'
-import styles from './HelpPanel.module.css'
+import styles from './GameHelpCompanion.module.css'
 
 type Props = {
   /** The game's user-facing brand — the title reads "How to play {brand}". */
@@ -29,7 +29,7 @@ type Props = {
  * game. Centralizing the frame kills that drift by construction. ui.md documents
  * Help as part of the uniform frame; this makes it so.
  */
-export function HelpPanel({
+export function GameHelpCompanion({
   brand,
   onClose,
   size = { width: 460, height: 400 },

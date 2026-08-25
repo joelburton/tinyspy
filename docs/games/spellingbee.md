@@ -72,7 +72,7 @@ In addition to the cross-cutting terms in [`naming.md`](../naming.md):
 | **Timer modes** (none / countup / countdown) + countdown-expiry termination | shipped | Via shared `<TimerField>` + `useGameTimer` |
 | **Manual end-game** (menu item; confirms then writes terminal) | shipped | Per-game menu item; outcome = `'manual'` |
 | **Pause-on-disconnect + manual pause** | shipped (via common) | Free from the common shell |
-| **Chat** (incl. `!`-prefix force-open) | shipped (via common) | In `FloatingChat` |
+| **Chat** (incl. `!`-prefix force-open) | shipped (via common) | In `Chat` |
 | **Reveal the missed wordlist on game end** | shipped | Client-side `(required ∪ bonus) − found` at `isTerminal` — both lists ship from game start. Missed **bonus** words are revealed too (that vocabulary is half the post-game read); skipped on a board whose `legal` band equals `required`, where bonus means only the words the clean filter removed |
 | **In-page terminal verdict** (below-board pill + info-column outcome line) | shipped | Terse verdict copy leading with the outcome word: `Won: "Genius" 47/50 points` / `Lost: ran out of time` / `Ended: Solid 12/50 points` |
 | **Diverse board-builder** (rare-letter weighting, ING dampening, previous-board overlap cap) | shipped | The only builder; "default" strategy dropped |
@@ -338,7 +338,7 @@ src/spellingbee/
                           boggle/connections). Wires the common useGlobalFeedback to the header slot
                           for peer/opponent events. buildOver branches mode → terminal verdict
                           copy (a TerminalCopy the pill + the info-column row share), and pops the
-                          shared CelebrationDialog on a coop win via useCelebration.
+                          shared CelebrationBlockingModal on a coop win via useCelebration.
     BoardCol.tsx          The board column: the honeycomb <Letters> + a floating Shuffle over its
                           top-right + the below-board <EntryRow> (the typed-word input + capture
                           keyboard, whose <EntryBox> renders the per-character illegal-letter dim
@@ -424,7 +424,7 @@ src/spellingbee/
                           the common component. In compete the foundWords input is already
                           caller-only (RLS hides peers' rows mid-game).
     SetupForm.tsx         The setup dialog body (lazy-loaded inside the common
-                          SetupGameDialog wrapper). Reads `mode` from SetupBodyProps
+                          SetupGameModal wrapper). Reads `mode` from SetupBodyProps
                           (fed by the sibling-manifest's GameManifest.mode). Coop:
                           short paragraph + shared <TimerField>. Compete: adds a
                           target-rank dropdown (Good..Genius, default Amazing) above
@@ -490,7 +490,7 @@ src/spellingbee/
 
 ### Routes & shell
 
-Standard PuzPuzPuz route: `/g/spellingbee_coop/<gameId>` or `/g/spellingbee_compete/<gameId>` (the gametype URL segment is the sibling-manifest's full string, not the `baseGametype`). Mounted by `App.tsx` via `<GamePage>` with `spellingbee`'s shared `PlayArea` as the render-prop child. `GamePage` owns the cross-cutting chrome (header / timer / pause overlay / chat / Back-to-club / common menu items). `PlayArea` owns everything per-game, including the terminal copy (`buildOver`) and the coop-win `<CelebrationDialog>` — same pattern as connections / psychicnum / codenamesduet, since the verdict copy needs game-specific context.
+Standard PuzPuzPuz route: `/g/spellingbee_coop/<gameId>` or `/g/spellingbee_compete/<gameId>` (the gametype URL segment is the sibling-manifest's full string, not the `baseGametype`). Mounted by `App.tsx` via `<GamePage>` with `spellingbee`'s shared `PlayArea` as the render-prop child. `GamePage` owns the cross-cutting chrome (header / timer / pause overlay / chat / Back-to-club / common menu items). `PlayArea` owns everything per-game, including the terminal copy (`buildOver`) and the coop-win `<CelebrationBlockingModal>` — same pattern as connections / psychicnum / codenamesduet, since the verdict copy needs game-specific context.
 
 ### State flow for one submission
 
@@ -509,7 +509,7 @@ spellingbee builds its whole header menu via `ctx.menu.setGameSections` + the sh
 ### Terminal experience
 
 When `isTerminal` flips true:
-1. A **coop win** pops the shared `<CelebrationDialog>` via `useCelebration` — only at the moment of the win, never on opening an already-won game. Nothing else pops: the verdict is carried in-page ([ui.md → Terminal results](../ui.md#terminal-results--the-moment-vs-the-record)).
+1. A **coop win** pops the shared `<CelebrationBlockingModal>` via `useCelebration` — only at the moment of the win, never on opening an already-won game. Nothing else pops: the verdict is carried in-page ([ui.md → Terminal results](../ui.md#terminal-results--the-moment-vs-the-record)).
 2. The below-board slot swaps the input row for a **permanent fill `<FeedbackPill>`** (outcome-colored) carrying the terse `verdict` (`Won: "Genius" 47/50 points`). Per the v3 rule, the terminal state shows in BOTH places — this local pill *and* the info-column `<TerminalActionRow>`'s bold `message` line + compact Back-to-club button (the Back-to-club button is in the action row, not the below-board slot).
 3. The input row's Delete + Submit buttons disable; the floating Shuffle stays clickable.
 4. `game.requiredWords` is already present (both word lists ship from game start — see [The word lists ship to the FE](#the-word-lists-ship-to-the-fe-not-hidden)); the terminal reveal is the client-side `(required ∪ bonus) − found`, no refetch needed.

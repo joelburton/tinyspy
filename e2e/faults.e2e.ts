@@ -17,7 +17,7 @@ const closeButton = (page: Page) => page.locator('button.primary', { hasText: 'C
  *
  * This is about faults, not about the homepage; the homepage is only where we
  * happen to hit one (plans/areas/homepage.md → F14, F23). Everything about the
- * wiring reads as fine — `<FaultDialog>` is mounted in App.tsx outside the
+ * wiring reads as fine — `<FaultModal>` is mounted in App.tsx outside the
  * route switch, and the two tokens it paints with live in the eagerly-loaded
  * theme rather than a lazy chunk — but "reads as fine" is precisely what a
  * silent CSS or mounting failure also looks like. A shell page has twice been
@@ -28,7 +28,7 @@ const closeButton = (page: Page) => page.locator('button.primary', { hasText: 'C
  */
 
 /**
- * The wiring itself, via the console trigger `FaultDialog` installs for exactly
+ * The wiring itself, via the console trigger `FaultModal` installs for exactly
  * this purpose. A real fault is a bug or a dead network, so there is no honest
  * UI path to one on demand.
  */

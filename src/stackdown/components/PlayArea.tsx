@@ -23,7 +23,7 @@ import { useStandardGameActions } from '../../common/hooks/game/useStandardGameA
 import { solvedByMe, useSolutionReveal } from '../../common/hooks/game/useSolutionReveal'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { terminalPill, outOfRacePill } from '../../common/lib/game/localPills'
-import { CelebrationDialog } from '../../common/components/game/CelebrationDialog'
+import { CelebrationBlockingModal } from '../../common/components/game/CelebrationBlockingModal'
 import { useCelebration } from '../../common/hooks/game/useCelebration'
 import { db } from '../db'
 import { turnSnapshot } from '../lib/history'
@@ -692,7 +692,7 @@ export function PlayArea({
           in-page by the below-board pill + the info-column outcome line, and a coop
           clear gets the celebration instead — once, when it happens. */}
       {celebration.show && (
-        <CelebrationDialog
+        <CelebrationBlockingModal
           title="Stack cleared! 🎉"
           body="All six words found."
           onClose={celebration.close}

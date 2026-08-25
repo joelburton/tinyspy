@@ -2,7 +2,7 @@
 
 /* codenamesduet's board-column bits. The board itself is <Board> (its own
  * module); this file styles only the below-board move-input REGION under it — the
- * slot that swaps between the CluePanel, an own-action / terminal pill, and (while
+ * slot that swaps between the CodenamesduetAISuggestModal, an own-action / terminal pill, and (while
  * viewing history) the banner overlay. The scaffold (.boardCol / .moveAreaOrLocal-
  * Feedback / .localFeedback) is the shared common/components/game/PlayArea.module.css. */
 
@@ -10,14 +10,14 @@
  * (`shared.moveAreaOrLocalFeedback`) keeps its place as a `.boardCol` child. It
  * raises the swap box's reserved height to `3rem` (via the shared var) to clear
  * codenamesduet's clue-form controls — taller than a single button/entry — so the
- * top-anchored board never shifts as the CluePanel ↔ pill swap (docs/ui.md →
+ * top-anchored board never shifts as the CodenamesduetAISuggestModal ↔ pill swap (docs/ui.md →
  * "Layout stability"). Every state's content fits within it. */
 /* @@ */ .belowBoard {
   display: contents;
 /* @@ */   --swap-box-min-height: 3rem;
 }
 
-/* codenamesduet's move controls: the CluePanel (clue form / clue display + Pass /
+/* codenamesduet's move controls: the CodenamesduetAISuggestModal (clue form / clue display + Pass /
  * waiting copy). `display: contents` — a naming wrapper; the panel keeps its place
  * inside the swap box, and a local/terminal pill takes its spot. */
 /* @@ */ .moveArea {

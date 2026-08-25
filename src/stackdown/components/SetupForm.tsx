@@ -9,7 +9,7 @@ import type { StackdownSetup } from '../lib/setup'
 import styles from '../../common/components/fields/setupForm.module.css'
 
 /**
- * stackdown's setup form, rendered inside the common SetupGameDialog.
+ * stackdown's setup form, rendered inside the common SetupGameModal.
  * A random board is dealt from the pre-generated library, filtered to the
  * chosen word-difficulty `band`. Two knobs: the `DifficultyField` (bands
  * 1..2 — that's what the board library holds) and the shared `TimerField`.

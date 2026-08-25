@@ -25,7 +25,7 @@ import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
 import { useCelebration } from '../../common/hooks/game/useCelebration'
-import { CelebrationDialog } from '../../common/components/game/CelebrationDialog'
+import { CelebrationBlockingModal } from '../../common/components/game/CelebrationBlockingModal'
 import { chainAt, describeAt } from '../lib/history'
 import { setupRows } from '../lib/setupSummary'
 import { helpPillText } from '../lib/help'
@@ -653,7 +653,7 @@ export function PlayArea(ctx: GamePageCtx) {
           for whoever got there first. useCelebration never pops on mount, so
           reopening a finished game doesn't re-celebrate. */}
       {celebration.show && (
-        <CelebrationDialog title="All twelve! 🐍" onClose={celebration.close} />
+        <CelebrationBlockingModal title="All twelve! 🐍" onClose={celebration.close} />
       )}
       {confirmationModal}
     </div>

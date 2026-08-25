@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { HelpPanel } from '../../common/components/game/HelpPanel'
+import { GameHelpCompanion } from '../../common/components/game/GameHelpCompanion'
 
 type Props = {
   onClose: () => void
@@ -13,7 +13,7 @@ type Props = {
  */
 export function Help({ onClose, brand }: Props) {
   return (
-    <HelpPanel
+    <GameHelpCompanion
       brand={brand}
       onClose={onClose}
       size={{ width: 460, height: 440 }}
@@ -53,6 +53,6 @@ export function Help({ onClose, brand }: Props) {
         count (then, if timed, the faster finish). Just type, and press Enter
         to submit.
       </p>
-    </HelpPanel>
+    </GameHelpCompanion>
   )
 }

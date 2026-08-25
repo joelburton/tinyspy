@@ -18,7 +18,7 @@ import styles from './SetupForm.module.css'
 
 /**
  * bananagrams's per-game setup form, rendered inside the common
- * `SetupGameDialog`. Choices:
+ * `SetupGameModal`. Choices:
  *
  *   - **Starter tiles** — how many tiles each player is dealt, one
  *     of {15, 21}. 21 is the Bananagrams default; 15 is a quicker

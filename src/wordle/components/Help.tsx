@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { HelpPanel } from '../../common/components/game/HelpPanel'
+import { GameHelpCompanion } from '../../common/components/game/GameHelpCompanion'
 
 type Props = {
   onClose: () => void
@@ -11,11 +11,11 @@ type Props = {
  * wordle's help / rules modal — opened from the "Help" item in the
  * GamePage menu. Implements the `help: ComponentType<{ onClose }>`
  * contract on GameManifest. The frame (panel + title + Got-it) is the
- * shared `<HelpPanel>`; this is just the rules copy.
+ * shared `<GameHelpCompanion>`; this is just the rules copy.
  */
 export function Help({ onClose, brand }: Props) {
   return (
-    <HelpPanel brand={brand} onClose={onClose} size={{ width: 460, height: 380 }}>
+    <GameHelpCompanion brand={brand} onClose={onClose} size={{ width: 460, height: 380 }}>
       <p>
         <strong>Guess the hidden 5-letter word.</strong> Type a word and
         press Enter; each letter is colored as feedback:
@@ -40,6 +40,6 @@ export function Help({ onClose, brand }: Props) {
         go to whoever got there first).
       </p>
 
-    </HelpPanel>
+    </GameHelpCompanion>
   )
 }

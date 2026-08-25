@@ -8,7 +8,7 @@ import { HelpButton } from '../buttons/HelpButton'
 import { RichMessage } from '../text/RichMessage'
 import { Dot } from '../text/Dot'
 import { cls } from '../../lib/util/cls'
-import styles from './SetupGameDialog.module.css'
+import styles from './SetupGameModal.module.css'
 
 type Props = {
   /**
@@ -85,7 +85,7 @@ type Props = {
  * sneak around it" the wrong trade; we accept the minor
  * accidental-creation possibility.
  */
-export function SetupGameDialog({
+export function SetupGameModal({
   manifest, members, selfId, clubHandle, savedDefault, onStarted, onCancel,
 }: Props) {
   // Seed setup from the manifest's defaults merged UNDER the

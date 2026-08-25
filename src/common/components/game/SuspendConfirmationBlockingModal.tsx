@@ -30,7 +30,7 @@ type Props = {
  * Esc-to-cancel, and the game key-captures bailing inside
  * `[data-floating-panel]`.
  */
-export function SuspendConfirmDialog({ title, onSuspend, onCancel }: Props) {
+export function SuspendConfirmationBlockingModal({ title, onSuspend, onCancel }: Props) {
   return (
     <ConfirmationBlockingModal
       title="Suspend this game?"

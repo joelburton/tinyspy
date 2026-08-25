@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { HelpPanel } from '../../common/components/game/HelpPanel'
+import { GameHelpCompanion } from '../../common/components/game/GameHelpCompanion'
 import styles from './Help.module.css'
 
 type Props = {
@@ -13,7 +13,7 @@ type Props = {
  * the GamePage menu. Implements the common
  * `help: ComponentType<{ onClose }>` contract on `GameManifest`.
  *
- * Renders into the shared `<HelpPanel>` (the FloatingPanel frame + title +
+ * Renders into the shared `<GameHelpCompanion>` (the FloatingPanel frame + title +
  * Got-it): draggable + resizable so a user can shrink it into a corner while
  * reading the chat or watching the board, no backdrop so other UI stays
  * interactable.
@@ -24,7 +24,7 @@ type Props = {
  */
 export function Help({ onClose, brand }: Props) {
   return (
-    <HelpPanel
+    <GameHelpCompanion
       brand={brand}
       onClose={onClose}
       size={{ width: 480, height: 540 }}
@@ -62,6 +62,6 @@ export function Help({ onClose, brand }: Props) {
         any wrong reveal loses the game.
       </p>
 
-    </HelpPanel>
+    </GameHelpCompanion>
   )
 }

@@ -12,7 +12,7 @@ import styles from '../../common/components/fields/setupForm.module.css'
 
 /**
  * codenamesduet's per-game setup form, rendered inside the common
- * `SetupGameDialog`. Two choices for the players:
+ * `SetupGameModal`. Two choices for the players:
  *
  *   - **Turns** — starting turn count, one of {9, 10, 11}
  *     (matches the Duet rulebook's mission counts). 9 is the

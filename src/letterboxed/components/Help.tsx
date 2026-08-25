@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { HelpPanel } from '../../common/components/game/HelpPanel'
+import { GameHelpCompanion } from '../../common/components/game/GameHelpCompanion'
 
 type Props = {
   onClose: () => void
@@ -13,7 +13,7 @@ type Props = {
  */
 export function Help({ onClose, brand }: Props) {
   return (
-    <HelpPanel
+    <GameHelpCompanion
       brand={brand}
       onClose={onClose}
       size={{ width: 470, height: 470 }}
@@ -52,6 +52,6 @@ export function Help({ onClose, brand }: Props) {
         Every board can be solved in two words. Whether you find those two is
         another matter.
       </p>
-    </HelpPanel>
+    </GameHelpCompanion>
   )
 }

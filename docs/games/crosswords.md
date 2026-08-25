@@ -374,7 +374,7 @@ sizing).
   race"; a countdown expiring reads "Lost: out of time" in coop and "Out of
   time — no winner" in compete, the roster's shared phrasing, keyed off
   `status.outcome === 'timeout'`). A **coop solve** pops the shared
-  `<CelebrationDialog>` via `useCelebration(playState === 'won')` — coop-only by
+  `<CelebrationBlockingModal>` via `useCelebration(playState === 'won')` — coop-only by
   the states vocabulary (compete writes `won_compete`), at the moment of the
   flip, never on opening an already-solved game. The board is **not**
   auto-revealed at game end: the blanks stay blank until THIS viewer picks the
@@ -431,7 +431,7 @@ sizing).
   persisted (§5), leaving nothing to re-send. Picking the next puzzle is the
   only sane "another one". Mechanically it navigates to
   `/c/<handle>?new=<gametype>`; ClubPage reads that param once at mount and
-  opens `SetupGameDialog` on it **after** its fetch settles (the dialog seeds
+  opens `SetupGameModal` on it **after** its fetch settles (the dialog seeds
   its form from `savedDefault` + `members` with a lazy initializer and never
   re-seeds, so opening early would lose the club's last-played setup), then
   strips the param on cancel/start. Also a **game-menu item**, which is the
@@ -474,7 +474,7 @@ rebuses** is a display-only toggle (persisted per browser) that shows multi-char
 rebus fills as just their first letter; **Download as .ipuz** emits the current
 board — template + fills + the answer grid (fetched via the `export_solution` RPC,
 which relaxes the shielding on demand) — via the ported `writeIpuz`, re-uploadable
-to continue; **Show note** (`NoteDialog`) also
+to continue; **Show note** (`CrosswordsNoteCompanion`) also
 broadcasts a `showNotes` event in coop so teammates open it together;
 **Restart** is the destructive "start over" — `replay_board`, confirmed through
 the styled modal mid-game, straight through at terminal. It replaced **Clear
@@ -656,7 +656,7 @@ Anthropic prompt, modernized to this repo's edge-function pattern (mirrors
   function returns 409 → "Solve this clue correctly first"). Safe in compete too.
 - **Flow.** FE → `crosswords-explain-clue` edge fn → `reveal_solved_word`
   (answer + note) → Claude (system prompt + `{clue, enumeration, answer, note}`)
-  → `{ explanation }` → `ExplainDialog` (on `FloatingPanel`, renders the
+  → `{ explanation }` → `CrosswordsExplainCompanion` (on `FloatingPanel`, renders the
   `**bold**` Definition/Wordplay/Indicators prose).
 - **Enumeration** (`lib/enumeration.ts`) is derived on the FE from the word's
   cryptic edge marks — `(7)`, `(4,3)`, `(3-2)` — mirroring crossplay.

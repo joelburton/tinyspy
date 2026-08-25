@@ -30,7 +30,7 @@ type Props = {
  *
  * The name is the prominent first line, the description the subtle second, so a
  * column of these reads as "options to consider" rather than "actions to take"
- * — the actual primary action (Start) lives inside the SetupGameDialog one
+ * — the actual primary action (Start) lives inside the SetupGameModal one
  * click later.
  */
 export function StartGameRow({ game, soloClub }: Props) {

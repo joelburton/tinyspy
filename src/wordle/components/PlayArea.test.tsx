@@ -256,7 +256,7 @@ describe('wordle PlayArea — icon-only action rows', () => {
 
 /**
  * Terminal flow (the waffle treatment — docs/ui.md → Terminal results). No
- * modal carries the verdict; a coop solve pops the CelebrationDialog at
+ * modal carries the verdict; a coop solve pops the CelebrationBlockingModal at
  * the MOMENT of the win (the playState flip), never on mounting an
  * already-won game. And the word stays HIDDEN at every terminal, win
  * included, until THIS viewer asks for it — a local, reversible display

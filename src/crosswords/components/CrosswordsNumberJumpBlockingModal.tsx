@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { useEffect, useRef, useState } from 'react'
-import styles from './NumberJumpDialog.module.css'
+import styles from './CrosswordsNumberJumpBlockingModal.module.css'
 
 type Props = {
   /** Jump the cursor to the cell numbered `n`. Returns true on success; false
@@ -11,13 +11,13 @@ type Props = {
 }
 
 /**
- * Small modal opened by `#` (ported from crossplay's NumberJumpDialog). Type a
+ * Small modal opened by `#` (ported from crossplay's CrosswordsNumberJumpBlockingModal). Type a
  * clue number, Enter to jump the cursor to that numbered cell. Esc /
  * click-outside / blank-Enter cancels. An invalid number shows an inline error
  * and keeps focus in the input. While it's open, PlayArea suspends the board
  * keyboard so digits land here, not on the grid.
  */
-export function NumberJumpDialog({ onSubmit, onClose }: Props) {
+export function CrosswordsNumberJumpBlockingModal({ onSubmit, onClose }: Props) {
   const [value, setValue] = useState('')
   const [error, setError] = useState(false)
   const inputRef = useRef<HTMLInputElement | null>(null)

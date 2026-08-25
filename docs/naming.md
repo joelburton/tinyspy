@@ -127,7 +127,7 @@ For the database row specifically (regardless of context), `profile` is the name
 
 ### player
 
-A member who's in a specific game — i.e. someone in `common.game_players` for that game id. Always a club member; not always *every* club member, because the `SetupGameDialog` player picker lets a subset of the club start a game. (The creator is locked in — they can't deselect their own checkbox, since whoever starts a game must play it.)
+A member who's in a specific game — i.e. someone in `common.game_players` for that game id. Always a club member; not always *every* club member, because the `SetupGameModal` player picker lets a subset of the club start a game. (The creator is locked in — they can't deselect their own checkbox, since whoever starts a game must play it.)
 
 **Same shape as a member, different vocabulary.** In TypeScript this lands as one canonical `Member` type in `src/common/lib/games.ts` plus a per-game `Player` alias in each game's hook file:
 
@@ -138,7 +138,7 @@ Every game declares the alias even when it's a pure re-export, because cross-gam
 
 **Variable naming follows context, not type:**
 
-- Inside club-context code (ClubPage's roster, ChatBody's name resolution, SetupGameDialog's pickers): variable name is `members`, type is `Member[]`.
+- Inside club-context code (ClubPage's roster, ChatBody's name resolution, SetupGameModal's pickers): variable name is `members`, type is `Member[]`.
 - Inside game-context code (useCommonGame's return, GamePageCtx, PlayArea props, per-game GameTurnLog props): variable name is `players`, type is `Player[]`.
 
 So `useCommonGame` returns `players: Member[]` — the type is `Member` (the identity layer is shared) but the variable says `players` because we're in a game context. See [`code-conventions.md` → Member vs Player](code-conventions.md#member-vs-player--one-type-context-driven-variable-names) for the implementation rules.
@@ -172,9 +172,9 @@ Concretely:
 |---|---|---|
 | `<StartGameButtons onStartSetup={...} />` | startSetup | The row of buttons on ClubPage. Click → open dialog. |
 | `ClubPage.handleStartSetup` | startSetup | Sets `pendingSetup` so the dialog mounts. |
-| `SetupGameDialog.handleStartGame` | startGame | Click-handler for the dialog's commit button. |
+| `SetupGameModal.handleStartGame` | startGame | Click-handler for the dialog's commit button. |
 | `manifest.startGameInClub` | startGame | The RPC-firing function. Always actually creates a game. |
-| `SetupGameDialog.onStarted(gameId)` | startGame done | Past tense; fires after `startGameInClub` returns success. |
+| `SetupGameModal.onStarted(gameId)` | startGame done | Past tense; fires after `startGameInClub` returns success. |
 
 UI labels stay "Start X" everywhere — users intuitively understand the two-click pattern as "open the form, confirm the form." The distinction lives in the code, where ambiguity costs reader cycles.
 
@@ -318,7 +318,7 @@ Names that recur across gametypes and MUST be identical when the underlying conc
 | `TurnSnapshot` / `turnSnapshot` | The turn-history replay shape (type `TurnSnapshot`) and its pure builder (`turnSnapshot(rows, index)`) in each game's `lib/history.ts`, consumed by the shared `useHistoryViewer` to render a past turn on the board. Identical across the games with a board-replay viewer. (scrabble is the documented exception — its replay is `boardUpToSeq` in `lib/play.ts`.) |
 | `<table>_select` | The SELECT RLS policy naming pattern — `games_select`, `guesses_select`. Other policy directions follow the same pattern (`<table>_insert` etc.) if/when we ever add them. |
 | `SetupMember` | The TS type for a club member in a setup-flow context. From `src/common/lib/games.ts`. |
-| `useGameTimer`, `PauseBoundary`, `PauseOverlay`, `computePause`, `FloatingChat` | Common hooks / components / helpers. Every game that uses one consumes it under this exact import — there is no per-game variant. |
+| `useGameTimer`, `PauseBoundary`, `PauseOverlay`, `computePause`, `Chat` | Common hooks / components / helpers. Every game that uses one consumes it under this exact import — there is no per-game variant. |
 
 ## Watch list of generic words
 

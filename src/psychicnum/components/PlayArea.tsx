@@ -7,7 +7,7 @@ import { IconHideSolution, IconHint, IconNewGame, IconPrint, IconRestart, IconRe
 import { cls } from '../../common/lib/util/cls'
 import type { GamePageCtx } from '../../common/lib/games'
 import type { PsychicnumSetup } from '../lib/setup'
-import { CelebrationDialog } from '../../common/components/game/CelebrationDialog'
+import { CelebrationBlockingModal } from '../../common/components/game/CelebrationBlockingModal'
 import { useCelebration } from '../../common/hooks/game/useCelebration'
 import { useTurnStartFlash } from '../../common/hooks/game/useTurnStartFlash'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
@@ -670,7 +670,7 @@ export function PlayArea({
           in-page by the below-board pill + the info-column outcome line, and a
           coop win gets the celebration instead — once, when it happens. */}
       {celebration.show && (
-        <CelebrationDialog
+        <CelebrationBlockingModal
           title="You win! 🎉"
           body="All three secret words found."
           onClose={celebration.close}

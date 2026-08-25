@@ -19,7 +19,7 @@ import local from './SetupForm.module.css'
  * difficulty; and wordiply isn't a race-to-rank, so no target-rank picker),
  * and the shared `<TimerField>`.
  *
- * Controlled component: state lives in the wrapping `SetupGameDialog`; this
+ * Controlled component: state lives in the wrapping `SetupGameModal`; this
  * body renders `value` and signals via `onChange`.
  */
 export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {

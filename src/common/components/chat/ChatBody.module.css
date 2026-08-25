@@ -50,7 +50,7 @@
 /* "Important" message content — set when the original message
  * started with `!`. The marker char is stripped for display
  * (see ChatBody.tsx) and the content text gets a heavier weight
- * so it stands out in the log. FloatingChat handles the
+ * so it stands out in the log. Chat handles the
  * matching "auto-open for everyone" behavior. */
 /* @@ */ .importantContent {
   font-weight: 700;

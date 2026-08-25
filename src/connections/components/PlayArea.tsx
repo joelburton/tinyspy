@@ -6,7 +6,7 @@ import { IconHint, IconNewGame, IconPrint, IconRestart } from '../../common/comp
 import { cls } from '../../common/lib/util/cls'
 import type { GamePageCtx } from '../../common/lib/games'
 import { colorByUserIdMap } from '../../common/lib/color/memberColor'
-import { CelebrationDialog } from '../../common/components/game/CelebrationDialog'
+import { CelebrationBlockingModal } from '../../common/components/game/CelebrationBlockingModal'
 import { useCelebration } from '../../common/hooks/game/useCelebration'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { useDismissLocalFeedbackOnKey } from '../../common/hooks/feedback/useDismissLocalFeedbackOnKey'
@@ -700,7 +700,7 @@ export function PlayArea({
           in-page by the below-board pill + the info-column outcome line,
           and a coop solve gets the celebration instead — once, when it happens. */}
       {celebration.show && (
-        <CelebrationDialog
+        <CelebrationBlockingModal
           title="You win! 🎉"
           body="All four categories found."
           onClose={celebration.close}

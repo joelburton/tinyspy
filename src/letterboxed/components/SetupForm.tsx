@@ -22,7 +22,7 @@ import local from './SetupForm.module.css'
  * plain: a lower word limit is harder, while a higher dictionary band is
  * EASIER (more legal words means more escape routes off an awkward tail).
  *
- * Controlled component: state lives in the wrapping `SetupGameDialog`; this
+ * Controlled component: state lives in the wrapping `SetupGameModal`; this
  * body renders `value` and signals via `onChange`.
  */
 export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {

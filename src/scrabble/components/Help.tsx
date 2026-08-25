@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { HelpPanel } from '../../common/components/game/HelpPanel'
+import { GameHelpCompanion } from '../../common/components/game/GameHelpCompanion'
 
 type Props = {
   onClose: () => void
@@ -13,7 +13,7 @@ type Props = {
  */
 export function Help({ onClose, brand }: Props) {
   return (
-    <HelpPanel
+    <GameHelpCompanion
       brand={brand}
       onClose={onClose}
       size={{ width: 500, height: 460 }}
@@ -59,6 +59,6 @@ export function Help({ onClose, brand }: Props) {
         Click any word in the move log to see its definition, or press{' '}
         <strong>~</strong> to look up any word.
       </p>
-    </HelpPanel>
+    </GameHelpCompanion>
   )
 }

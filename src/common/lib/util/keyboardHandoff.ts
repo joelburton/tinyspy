@@ -22,7 +22,7 @@ import type { KeyboardEvent } from 'react'
  * keyboard-reachable — a deliberate escape hatch, not an oversight.
  *
  * Used by the two panels you type into while a game is running: the club chat
- * box (`ChatBody`) and the game scratchpad (`GameScratchpad`). Coming back the
+ * box (`ChatBody`) and the game scratchpad (`GameScratchpadCompanion`). Coming back the
  * other way is `useAppShortcuts` — `/` focuses the chat entry from anywhere.
  *
  * @example

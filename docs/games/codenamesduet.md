@@ -300,7 +300,7 @@ src/codenamesduet/
                           `.boardCol` / `.infoCol`). **Decomposed** into a `BoardCol`
                           (the Board + the clue move-zone; owns the **guess**
                           `submit_guess` RPC — the guess is a board click, so it stays
-                          with the board's input engine, while CluePanel keeps the clue
+                          with the board's input engine, while CodenamesduetAISuggestModal keeps the clue
                           RPCs) and an `InfoCol` (the shared readouts + GameTurnLog).
                           PlayArea loads via the three hooks, derives phase, and owns the
                           cross-column bits: the below-board local `<FeedbackPill>` (both
@@ -314,14 +314,14 @@ src/codenamesduet/
                           clicking a log `#N` hands Board the `lib/history.ts` board
                           for that turn (its own cells ringed) with input frozen until
                           you leave (a keystroke / click / ✕).
-                          Pops the shared `<CelebrationDialog>` on a win (only) and renders
+                          Pops the shared `<CelebrationBlockingModal>` on a win (only) and renders
                           the AI `<ClueSuggestionPanel>` at the `.layout` level (a
                           floating panel must mount high — see ui.md → Components).
                           Mounted by <GamePage> as its render-prop child;
                           cross-cutting chrome (logo, chat-bubble, players strip,
                           pause, timer, suspend-confirm, the global UserMenu) lives
                           on <GamePage> / App.
-    BoardCol.tsx          The board column: Board + the below-board CluePanel move-zone.
+    BoardCol.tsx          The board column: Board + the below-board CodenamesduetAISuggestModal move-zone.
                           Owns the guess dispatch (a tile click → `submit_guess`) and takes
                           the board to render — the live denormalized board OR a `lib/history`
                           snapshot — plus `readOnly` while viewing a past turn.
@@ -356,7 +356,7 @@ src/codenamesduet/
                           (repeat(5, 1fr)); word auto-fits via container queries.
                           See Board tile colors below.
     Board.module.css
-    CluePanel.tsx         The below-board move-zone — rendered into PlayArea's
+    CodenamesduetAISuggestModal.tsx         The below-board move-zone — rendered into PlayArea's
                           `.inputRow` slot (NOT the info column). ONE horizontal
                           line per state: the clue FORM (count + word `<input>` +
                           Submit + "AI") for the giver; the active clue +
@@ -370,8 +370,8 @@ src/codenamesduet/
                           level); errors surface in that dialog or the local flash,
                           never as a second row (the slot is fixed-height — the
                           board must not reflow).
-    CluePanel.module.css
-    CluePanel.test.tsx    Pins the data-game-input tag on both clue inputs
+    CodenamesduetAISuggestModal.module.css
+    CodenamesduetAISuggestModal.test.tsx    Pins the data-game-input tag on both clue inputs
                           (count + word) so the global / ? ~ shortcuts still
                           fire while typing a clue.
     GameTurnLog.tsx       Turn-by-turn replay in the shared <TurnLog> panel.
@@ -397,7 +397,7 @@ src/codenamesduet/
                           misaddress it.
     GameTurnLog.module.css
     GameTurnLog.test.tsx
-    SetupForm.tsx         The setup form mounted in the common SetupGameDialog.
+    SetupForm.tsx         The setup form mounted in the common SetupGameModal.
     Help.tsx              Per-game rules modal — opened from the common "Help"
                           item in the GamePage menu. Receives { onClose }.
                           Implements the manifest's required
@@ -447,7 +447,7 @@ src/codenamesduet/
 
 **Terminal state.** **No modal carries the verdict** ([ui.md → Terminal results](../ui.md#terminal-results--the-moment-vs-the-record)): a dialog would duplicate the below-board pill exactly — same verdict string, same moment — so it would only cost a dismiss. The result lives in-page, the shared way: the below-board slot swaps the clue UI for a permanent outcome-colored pill carrying the per-status verdict — "You win!" / "Lost: assassin" / "Lost: out of turns" / "Lost: out of time" / "Game ended" (terse, so the fixed-height slot doesn't wrap on a phone) — and the info-column action row swaps the End button for a bold outcome-colored line ("You won!" / "Assassin revealed" / …) + a compact back-to-club button ([ui.md → Info-column readouts](../playarea.md#info-column-readouts)).
 
-A **win** additionally pops the shared `<CelebrationDialog>` (title "You win! 🎉"), driven by `useCelebration(playState === 'won')` — once, at the moment the 15th agent is contacted, on both clients via the realtime refetch. It deliberately never fires on mount, so opening an already-won game is quiet review. Losses and the manual end pop nothing.
+A **win** additionally pops the shared `<CelebrationBlockingModal>` (title "You win! 🎉"), driven by `useCelebration(playState === 'won')` — once, at the moment the 15th agent is contacted, on both clients via the realtime refetch. It deliberately never fires on mount, so opening an already-won game is quiet review. Losses and the manual end pop nothing.
 
 ### Board tile colors
 
@@ -459,7 +459,7 @@ The **never-selected** (unrevealed) cell is a **deliberate exception** to the pr
 
 codenamesduet follows the shared [local-vs-group feedback split](../ui.md#feedback-pill). Your **own** action's result is a local `<FeedbackPill>` (centered, in the below-board slot via the shared `.localFeedback`) — error-only here (a rejected guess / clue, or an end-game error), since a successful guess shows on the board + turn log instead; the terminal verdict shows there too as a permanent (fill) pill. The GamePage **header pill** reports what the **other** player is doing — "● moth writing clue", "● moth guessing", "● moth waiting for clue", "● moth waiting for you" — *sticky*, *neutral*-toned, with a **leading** player-color disc. The copy is deliberately **telegraphic** (no verb): the header pill shares its row with the logo + chat bubble, so on a 390px phone it fits ~26 characters and silently ellipsises the rest (the `dot` + `variant: 'outline'` pill). These are *peer status*, not your to-do list: the board itself tells you when it's your move. (Header pill = leading disc; the turn-log's `<ActorTag>` puts the disc *after* the name — a deliberate placement difference.)
 
-**Sudden death** is the one feedback shown in both channels at once: an error-toned, sticky header pill **and** a persistent tinted notice in the below-board CluePanel slot (`.suddenDeath`), with the info-column help leading with a red **SUDDEN DEATH:** before the explanation. It deliberately does **not** frame the whole board in red — that would shrink the `flex: 1` board ([ui.md → Layout stability](../ui.md#layout-stability)); the redundant signals carry it instead.
+**Sudden death** is the one feedback shown in both channels at once: an error-toned, sticky header pill **and** a persistent tinted notice in the below-board CodenamesduetAISuggestModal slot (`.suddenDeath`), with the info-column help leading with a red **SUDDEN DEATH:** before the explanation. It deliberately does **not** frame the whole board in red — that would shrink the `flex: 1` board ([ui.md → Layout stability](../ui.md#layout-stability)); the redundant signals carry it instead.
 
 ### Hooks: realtime patterns
 
@@ -542,12 +542,12 @@ The test produces a deterministic array via `array_agg(... order by a_label, b_l
 | `src/codenamesduet/hooks/useBoard.test.ts` | The board hook's data flow — initial fetch, realtime append, refetch on resubscribe. |
 | `src/codenamesduet/components/GameTurnLog.test.tsx` | Per-turn grouping (each turn = two `<tr>`s), oldest-first chronological order, within-turn guess sort by `guessed_at`, the guess-line state ("(clue given)" while the turn is the current live one vs "(no guesses)" once it has ended, or the game is over), and the shared player picker (Team + both handles, defaulting to Team; picking a player narrows to the turns they CLUED). |
 | `src/codenamesduet/components/PlayArea.test.tsx` | The synchronous `guessInFlight` guard — a second tile click while a guess is in flight fires no second `submit_guess` (the pending-tile disable is async, so it misses a same-tick double-tap, and only disables the one clicked tile) — plus tile input gating: clickable on my guess turn, blocked at terminal. |
-| `src/codenamesduet/components/CluePanel.test.tsx` | The two-kinds-of-text-input contract: both clue inputs (count + word) carry `data-game-input`, so the global `/ ? ~` shortcuts still fire while typing a clue. (`isNonGameField`'s logic is covered in `useAppShortcuts.test.ts`; this pins that the actual inputs carry the tag.) |
+| `src/codenamesduet/components/CodenamesduetAISuggestModal.test.tsx` | The two-kinds-of-text-input contract: both clue inputs (count + word) carry `data-game-input`, so the global `/ ? ~` shortcuts still fire while typing a clue. (`isNonGameField`'s logic is covered in `useAppShortcuts.test.ts`; this pins that the actual inputs carry the tag.) |
 
 **Plus four Playwright e2e specs** — each a deliberate, narrow exception to the "e2e = realtime/presence only" charter, guarding real-browser behavior jsdom can't see:
 
 - [`e2e/codenamesduet.e2e.ts`](../../e2e/codenamesduet.e2e.ts) — guards a real **layout** property jsdom can't see (`getBoundingClientRect` is all zeros there): the below-board slot is fixed-height, so the `flex: 1` board must not change height as the slot cycles through its states (clue form → waiting → own-action flash → clue + Pass). It also asserts the AI suggestion `<FloatingPanel>` renders fully on-screen — the regression guard for the react-rnd static-position gotcha (see [ui.md → Components](../ui.md#components)).
-- [`e2e/codenamesduet-clueform.e2e.ts`](../../e2e/codenamesduet-clueform.e2e.ts) — the clue form keeps Tab to itself: `trapTab` in CluePanel makes Tab and Shift+Tab toggle between the two clue inputs (count + word) and nowhere else — without it, Tab walks off onto the turn-log `#N` handles, page links, and the browser tab bar. Native Tab traversal is a real-browser behavior jsdom can't simulate.
+- [`e2e/codenamesduet-clueform.e2e.ts`](../../e2e/codenamesduet-clueform.e2e.ts) — the clue form keeps Tab to itself: `trapTab` in CodenamesduetAISuggestModal makes Tab and Shift+Tab toggle between the two clue inputs (count + word) and nowhere else — without it, Tab walks off onto the turn-log `#N` handles, page links, and the browser tab bar. Native Tab traversal is a real-browser behavior jsdom can't simulate.
 - [`e2e/codenamesduet-history.e2e.ts`](../../e2e/codenamesduet-history.e2e.ts) — the turn-history viewer: clicking a turn-log row replays that turn's board (the reveal state after that turn's guesses, the yellow history frame, the turn's own cells ringed, the description banner overlaying the below-board slot) — and pins the invariant the decomposition rides on: the board must **not** reflow when the viewer opens (the banner overlays the fixed-height slot; it doesn't grow it).
 - [`e2e/codenamesduet-mobile.e2e.ts`](../../e2e/codenamesduet-mobile.e2e.ts) — the phone layout: the board stays full-size and the page scrolls (the clue-giver needs the board's key-card colors while composing in the keyboard-raising clue input, so the board is deliberately not shrunk or clamped), the page doesn't scroll at rest, the info column is the collapsed off-canvas sheet, and the below-board action buttons go icon-only.
 

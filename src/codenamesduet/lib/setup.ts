@@ -51,7 +51,7 @@ export type CodenamesduetSetup = {
 }
 
 /**
- * Initial setup the manifest hands the SetupGameDialog wrapper
+ * Initial setup the manifest hands the SetupGameModal wrapper
  * as `defaults`. `first_clue_giver_user_id` starts empty — the
  * defaults are evaluated at module-load time, before any club
  * is known, so a real user-id can't be filled in until the body

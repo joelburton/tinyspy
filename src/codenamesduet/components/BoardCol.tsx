@@ -15,22 +15,22 @@ import type { Player } from '../hooks/useGame'
 import type { KeyLabel } from '../lib/labels'
 import type { Seat } from '../lib/phase'
 import { Board } from './Board'
-import { CluePanel, type SuggestState } from './CluePanel'
+import { CodenamesduetAISuggestModal, type SuggestState } from './CodenamesduetAISuggestModal'
 import shared from '../../common/components/game/PlayArea.module.css'
 import history from '../../common/components/game/lists/historyViewer.module.css'
 import styles from './BoardCol.module.css'
 
 /**
  * codenamesduet's board column — the 5×5 `Board` plus the fixed-height
- * below-board slot under it (the turn-viewer banner, the CluePanel during play, or a
+ * below-board slot under it (the turn-viewer banner, the CodenamesduetAISuggestModal during play, or a
  * local `<GenericFeedbackPill>` for an own-action error / the terminal verdict).
  *
  * This is codenamesduet's **input engine**, and it's a two-input game: guessing is a
- * board click (a tile → `submit_guess`) and cluing is the below-board `CluePanel`
+ * board click (a tile → `submit_guess`) and cluing is the below-board `CodenamesduetAISuggestModal`
  * form (which owns `submit_clue` / `pass_turn` / the AI suggest itself). So this
  * column owns the **guess** RPC directly — the guess has no deep entangled state (the
  * reveal arrives via realtime), but keeping the `pendingPos` + in-flight guard beside
- * the board it gates is the natural home — while `CluePanel` keeps the clue RPCs.
+ * the board it gates is the natural home — while `CodenamesduetAISuggestModal` keeps the clue RPCs.
  * Like the other games' BoardCol it does NOT own the game state: PlayArea hands it
  * **the board to render** (live OR a historical snapshot) + `viewing`, which is what
  * makes the turn-history viewer a drop-in. Feedback lifts to PlayArea (its `onError`
@@ -197,11 +197,11 @@ export function BoardCol({
             - own-action error → a transient (outline, error) pill for a beat (a
               rejected guess / failed End — the LOCAL half of the feedback split;
               turn-state changes go to the header pill);
-            - else → the CluePanel (clue form / clue display + Pass / waiting). */}
+            - else → the CodenamesduetAISuggestModal (clue form / clue display + Pass / waiting). */}
       <div className={styles.belowBoard}>
         <div className={cls(shared.moveAreaOrLocalFeedback, viewing && history.bannerHost)}>
           {/* Turn-viewer banner — while inspecting a past turn it overlays this
-              below-board slot (the CluePanel / pill stays mounted underneath, so an
+              below-board slot (the CodenamesduetAISuggestModal / pill stays mounted underneath, so an
               in-progress clue survives). Opaque surface + yellow border = the shared
               "viewing history" marker; the description names the turn. Click anywhere
               (intrinsic to the viewer) / the ✕ returns to live. */}
@@ -232,7 +232,7 @@ export function BoardCol({
             </div>
           ) : (
             <div className={styles.moveArea}>
-              <CluePanel
+              <CodenamesduetAISuggestModal
                 gameId={gameId}
                 isClueGiver={isClueGiver}
                 isGuessPhase={isGuessPhase}

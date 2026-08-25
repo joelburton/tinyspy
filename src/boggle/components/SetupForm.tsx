@@ -42,7 +42,7 @@ const CONSTRAINT_ROWS: ReadonlyArray<{ label: string; min: NumKey; max: NumKey }
  * Picks: dice set, required-word difficulty (shared DifficultyField), scoring
  * ladder, minimum word length, optional Board constraints (a collapsible min/max
  * grid like wsboggle's), and the shared TimerField. Controlled component —
- * state lives in SetupGameDialog; `create_game` re-validates server-side.
+ * state lives in SetupGameModal; `create_game` re-validates server-side.
  */
 export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
   const s = value as BoggleSetup

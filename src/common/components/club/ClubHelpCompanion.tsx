@@ -16,12 +16,12 @@ type Props = {
  * start games together; there isn't much to explain yet, so this is a couple of
  * orienting sentences. Flesh it out when clubs grow features (invites, roles).
  */
-export function ClubHelp({ onClose }: Props) {
+export function ClubHelpCompanion({ onClose }: Props) {
   return (
     <FloatingPanel
       family="companion"
       // The same rung the game guides take — this is help, and help sits above
-      // the windows (see HelpPanel).
+      // the windows (see GameHelpCompanion).
       zIndex="var(--z-help)"
       persistKey={HELP_RECT_KEY}
       title="About clubs"

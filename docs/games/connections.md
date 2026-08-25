@@ -69,7 +69,7 @@ In scope today:
 - Per-player local-shuffle button
 - Hint list (reveal-on-demand, rendered **inline in the info column**: one row per category, each gated behind a "Reveal" button that surfaces that category's first tile when clicked; client-side and per-player, never broadcast or persisted; toggled by the **Hints button** in the info-column action row)
 - Pause-on-disconnect overlay via Presence
-- Common chat (the floating, draggable, resizable `<FloatingChat>` panel)
+- Common chat (the floating, draggable, resizable `<Chat>` panel)
 
 Deliberately deferred:
 - Scratchpad (the connections repo's collaborative-editor takeover-lock thing) — the scratchpad now ships as a common opt-in feature (`GameManifest.scratchpad`, used by crosswords); connections simply hasn't opted in
@@ -146,7 +146,7 @@ Anything not listed here is identical across modes. The shape mirrors [`psychicn
 | **`submit_timeout` terminal**              | `play_state='lost'`, outcome `timeout`                      | `play_state='lost_compete'`, outcome `timeout`                       |
 | **FE opponent visibility**                 | N/A (everyone's on the same team)                           | OpponentStrip showing per-player mistake counts; no peer guesses, no peer matched-counts |
 | **FE GameTurnLog**                        | Every guess with username attribution                       | Only caller's guesses (RLS filters server-side)                      |
-| **Terminal verdict** (below-board pill; no modal) | "You win!" / "Lost: out of mistakes" / "Lost: out of time" (team) — a solve also pops the `<CelebrationDialog>` | "Won: the race" / "Beaten to the punch" / "Lost: out of mistakes" (a self-eliminated loser when someone else won) / "Everyone eliminated" / "Out of time — no winner" (no celebration — see Terminal state) |
+| **Terminal verdict** (below-board pill; no modal) | "You win!" / "Lost: out of mistakes" / "Lost: out of time" (team) — a solve also pops the `<CelebrationBlockingModal>` | "Won: the race" / "Beaten to the punch" / "Lost: out of mistakes" (a self-eliminated loser when someone else won) / "Everyone eliminated" / "Out of time — no winner" (no celebration — see Terminal state) |
 
 The shape that's the same in both modes:
 - The `connections.games` table (modulo the `mode` value).
@@ -424,7 +424,7 @@ result lives in-page: the below-board slot swaps the commit row for a permanent
 outcome-colored pill carrying `over.verdict`, and the info-column action row swaps
 its buttons for the bold `over.message` line + a back-to-club button.
 
-A **coop solve** additionally pops the shared `<CelebrationDialog>` ("You win! 🎉"),
+A **coop solve** additionally pops the shared `<CelebrationBlockingModal>` ("You win! 🎉"),
 driven by `useCelebration(playState === 'won')` — once, at the moment the fourth
 category falls, on every client via the realtime refetch; it never fires on mount,
 so opening an already-solved game is quiet review.

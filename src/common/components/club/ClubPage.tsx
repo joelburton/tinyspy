@@ -22,18 +22,18 @@ import { Loading } from '../loading-and-errs/Loading'
 import { ErrorPage } from '../loading-and-errs/ErrorPage'
 import { logStamp } from '../../lib/supabase/realtimeDiag'
 import { ChatButton } from '../page-header/ChatButton'
-import { FloatingChat } from '../chat/FloatingChat'
+import { Chat } from '../chat/Chat'
 import { ClubGameCard } from './ClubGameCard'
 import { ClubGameRow } from './ClubGameRow'
-import { ClubHelp } from './ClubHelp'
-import { EditClubDialog } from './EditClubDialog'
+import { ClubHelpCompanion } from './ClubHelpCompanion'
+import { EditClubModal } from './EditClubModal'
 import { GametypeFilter, type GametypeOption } from './GametypeFilter'
 import { ModeFilter } from './ModeFilter'
 import { MODE_FILTER_VALUES, type ModeFilterValue } from './modeFilterOptions'
 import { PageHeader } from '../page-header/PageHeader'
 import { PageHeaderMenu } from '../page-header/PageHeaderMenu'
 import { PuzpuzpuzLogo } from '../branding/PuzpuzpuzLogo'
-import { SetupGameDialog } from '../setup/SetupGameDialog'
+import { SetupGameModal } from '../setup/SetupGameModal'
 import { StartGameRow } from './StartGameRow'
 import { SelectionList } from '../lists/SelectionList'
 import { PageHeaderStatusSlot } from '../page-header/PageHeaderStatusSlot'
@@ -238,14 +238,14 @@ export function ClubPage({ handle, session }: Props) {
   // common.clubs_gametypes. Seeded at club-creation (every gametype
   // for friend clubs; the solo-playable subset for solo clubs) and
   // editable via the "Edit club" dialog (set_club_gametypes). We gate
-  // the Start-button rendering on this set; the EditClubDialog hands
+  // the Start-button rendering on this set; the EditClubModal hands
   // back the new set on save so the buttons update without a refetch.
   const [allowedGametypes, setAllowedGametypes] = useState<Set<string>>(new Set())
   // Saved setup defaults per gametype, also from clubs_gametypes.
   // NULL when the friends haven't started a game of that gametype
   // yet — the dialog falls through to the manifest's static
   // defaults in that case. Sourced from the same query that
-  // populates allowedGametypes; passed to SetupGameDialog as
+  // populates allowedGametypes; passed to SetupGameModal as
   // `savedDefault` so the form pre-fills with what the friends
   // played last time. See common.create_game's saved_default arg
   // for the write side and docs/code-conventions.md (TBD) for
@@ -267,7 +267,7 @@ export function ClubPage({ handle, session }: Props) {
   // dialog on that gametype so they can pick the NEXT puzzle.
   //
   // Read ONCE at mount (the value is a navigation intent, not live state), and
-  // honored only after the club fetch settles: SetupGameDialog seeds its form
+  // honored only after the club fetch settles: SetupGameModal seeds its form
   // from `savedDefault` + `members` with a lazy initializer and never re-seeds,
   // so opening it early would strip the club's last-played setup and show an
   // empty player list.
@@ -514,7 +514,7 @@ export function ClubPage({ handle, session }: Props) {
    * Click handler for the per-gametype "Start X" buttons. Opens
    * the setup dialog — does NOT actually create the game; that
    * happens when the user clicks Start inside the dialog and
-   * SetupGameDialog calls `manifest.startGameInClub`.
+   * SetupGameModal calls `manifest.startGameInClub`.
    *
    * Two distinct phases that both got called "start" before the
    * rename: this is `startSetup` (the first one); the dialog's
@@ -577,7 +577,7 @@ export function ClubPage({ handle, session }: Props) {
       }
 
       // Fetch the m2m rows for this club — drives which Start
-      // buttons render AND seeds the SetupGameDialog with the
+      // buttons render AND seeds the SetupGameModal with the
       // friends' last-played setup per gametype. The intersection
       // with the FE registry (computed at render time) naturally
       // hides gametypes the DB knows about but this FE bundle
@@ -1074,9 +1074,9 @@ export function ClubPage({ handle, session }: Props) {
       </main>
 
       {/* The chat-bubble toggle lives in the header (<ChatButton>
-          above); FloatingChat renders the panel itself, and nothing
+          above); Chat renders the panel itself, and nothing
           at all while closed. */}
-      <FloatingChat
+      <Chat
         clubHandle={club.handle}
         members={members}
         selfId={selfId}
@@ -1088,10 +1088,10 @@ export function ClubPage({ handle, session }: Props) {
 
       {/* The club Help modal — opened from the menu's "Help" item (or `?`,
           which opens the menu). Parity with each game's Help on GamePage. */}
-      {helpOpen && <ClubHelp onClose={() => setHelpOpen(false)} />}
+      {helpOpen && <ClubHelpCompanion onClose={() => setHelpOpen(false)} />}
 
       {activeSetup && (
-        <SetupGameDialog
+        <SetupGameModal
           manifest={activeSetup}
           members={members}
           selfId={selfId}
@@ -1111,7 +1111,7 @@ export function ClubPage({ handle, session }: Props) {
       )}
 
       {editing && (
-        <EditClubDialog
+        <EditClubModal
           clubHandle={club.handle}
           clubName={club.name}
           allowedGametypes={allowedGametypes}

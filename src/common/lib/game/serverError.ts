@@ -158,7 +158,7 @@ export function classifyFailure(error: CallError): Failure {
 /**
  * Everything we know about a fault, as ONE line of `k=v` bits — the shared
  * builder behind BOTH audiences: the `[db]` console line and the fault
- * modal's small diagnostics text (FaultDialog line 3). One builder so the
+ * modal's small diagnostics text (FaultModal line 3). One builder so the
  * screen and the log can never drift.
  */
 function faultBits(error: CallError, shown: string): string {
@@ -283,7 +283,7 @@ export function formFailureText(error: CallError, action: string): string | null
 
 /**
  * The failure's TEXT, for the genuinely string-shaped sinks: form error lines
- * (SetupGameDialog, the account/club dialogs, WordEditDialog) and panel
+ * (SetupGameModal, the account/club dialogs, WordEditDialog) and panel
  * message areas (scrabble's suggest box). The words are identical to
  * `failureMessage`'s; what a string sink can't carry is the fault STYLING —
  * which is fine for a form, whose red line IS its fault look. Every

@@ -385,7 +385,7 @@ compete "Won: cleared it first" vs a loss naming the winner with their identity
 dot ("● moth cleared it first"), while the no-winner endings ("Out of time — no
 winner" / "Nobody cleared it") drop the `Lost:` prefix — nobody was beaten, the
 stack just outlasted everyone. A **coop clear** pops the shared
-`<CelebrationDialog>` via `useCelebration(playState === 'won')` — at the moment
+`<CelebrationBlockingModal>` via `useCelebration(playState === 'won')` — at the moment
 of the flip, never on opening an already-won game; a compete win stays in the
 pill.
 

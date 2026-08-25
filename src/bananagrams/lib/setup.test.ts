@@ -9,7 +9,7 @@ import {
 } from './setup'
 
 /**
- * `bunchSizeError` is the gate the SetupGameDialog runs (via the manifest's
+ * `bunchSizeError` is the gate the SetupGameModal runs (via the manifest's
  * `validate`) to disable Start until the chosen bunch can deal everyone a
  * starter hand. It mirrors `bananagrams.create_game`'s server-side checks.
  */

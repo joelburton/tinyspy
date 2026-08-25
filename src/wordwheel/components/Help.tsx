@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { HelpPanel } from '../../common/components/game/HelpPanel'
+import { GameHelpCompanion } from '../../common/components/game/GameHelpCompanion'
 
 type Props = {
   onClose: () => void
@@ -10,11 +10,11 @@ type Props = {
 /**
  * wordwheel's help / rules modal — opened from the "Help" item in the GamePage
  * menu. Implements the common `help: ComponentType<{ onClose }>` contract on
- * `GameManifest`. Renders into the shared `<HelpPanel>` scaffold every game uses.
+ * `GameManifest`. Renders into the shared `<GameHelpCompanion>` scaffold every game uses.
  */
 export function Help({ onClose, brand }: Props) {
   return (
-    <HelpPanel
+    <GameHelpCompanion
       brand={brand}
       onClose={onClose}
       size={{ width: 460, height: 440 }}
@@ -49,6 +49,6 @@ export function Help({ onClose, brand }: Props) {
         Click the letters or just type. Use Backspace to delete, Enter to submit,
         and Space (or the ⟲ button) to shuffle the outer letters.
       </p>
-    </HelpPanel>
+    </GameHelpCompanion>
   )
 }

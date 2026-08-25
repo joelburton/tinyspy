@@ -49,7 +49,7 @@ const NO_TARGET = -1
  * Good drop out because a target rank below Solid is a no-race.
  *
  * Controlled component pattern: state lives in the wrapping
- * `SetupGameDialog`, this body renders `value` and signals via
+ * `SetupGameModal`, this body renders `value` and signals via
  * `onChange`. The `value as SpellingbeeSetup` cast at the top is the
  * boundary between the manifest's `unknown` setup type and
  * spellingbee's narrow shape.

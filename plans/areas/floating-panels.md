@@ -18,9 +18,9 @@ the shared look**, not an audit of every panel in the app.
 > "this area isn't a global audit of forms + dialogs, rather the machinery and
 > shared look and features of them."
 
-So the instances — `EditProfileDialog`, `EditClubDialog`, `FaultDialog`,
-`WordEditDialog`, `GameScratchpad`, `HelpPanel`, `FloatingChat`, crosswords'
-three, scrabble's `BlankPicker` — are **consumers**. A rename or signature
+So the instances — `EditProfileModal`, `EditClubModal`, `FaultModal`,
+`WordEditDialog`, `GameScratchpadCompanion`, `GameHelpCompanion`, `Chat`, crosswords'
+three, scrabble's `ScrabbleBlankPickerBlockingModal` — are **consumers**. A rename or signature
 change here forward-fixes them in the same commit (§21's compile-break rule) and
 **their stamps do not move**. If one of them turns out to be the only evidence
 for a shared question, it gets surfaced and asked about, not audited.
@@ -83,9 +83,9 @@ src/common/hooks/ui/useVisualViewport.ts
 | | why |
 |---|---|
 | the 16 `fields/` + `setup/` files, and `ActionButton` ×3 | **moved to the `forms` area** on the 2026-08-24 split |
-| `SetupGameDialog` + `.module.css` | Joel: addressed at `club-page`, "since that's where they first appear". Which also means **F36 (`createclub-modal`) has no modal to land on here**, so `homepage` stays paused past this area |
-| `CelebrationDialog`, `SuspendConfirmDialog` | punted to the first game area |
-| every other floating panel — `Menu` (not one), `GameScratchpad`, `HelpPanel`, `FloatingChat`, `ClubHelp`, `DefinitionPopover`, the per-game `Help.tsx` | instances; this area builds what they sit on |
+| `SetupGameModal` + `.module.css` | Joel: addressed at `club-page`, "since that's where they first appear". Which also means **F36 (`createclub-modal`) has no modal to land on here**, so `homepage` stays paused past this area |
+| `CelebrationBlockingModal`, `SuspendConfirmationBlockingModal` | punted to the first game area |
+| every other floating panel — `Menu` (not one), `GameScratchpadCompanion`, `GameHelpCompanion`, `Chat`, `ClubHelpCompanion`, `DefinitionPopover`, the per-game `Help.tsx` | instances; this area builds what they sit on |
 
 ---
 
@@ -152,14 +152,15 @@ a call site with its props visible, and the misread that matters is
 blocking-vs-normal.
 
 **The rest of the roster is §20's Open item 4**, deliberately not done one
-rename at a time: `HelpPanel`, `CluePanel`, `infoPanel.module.css`,
-`SuspendConfirmDialog`, `NoteDialog`, `ExplainDialog`, `AnagramDialog`,
-`WordLookupDialog`, `WordEditDialog`, `EditProfileDialog`, `EditClubDialog`,
-`NumberJumpDialog`.
+rename at a time. **The roster was settled and executed on 2026-08-25** — every
+name in this list moved except the three that were already right
+(`AnagramDialog`, `WordLookupDialog`, `WordEditDialog`, the only correctly-named
+dialogs in the app) and `infoPanel.module.css`, which is a filename and
+`shared-game-chrome`'s.
 
 ## RESOLVED · F5 · `blocking-hand-assembled` · The strictest category was four props and a hook call, copied
 
-`ConfirmDialog` and `FaultDialog` each wrote out `draggable={false}`,
+`ConfirmDialog` and `FaultModal` each wrote out `draggable={false}`,
 `resizable={false}`, `backdrop`, a size, a `useFocusTrap` call, and a footer
 `<div>` with the shared class. Four things that had to agree and nothing making
 them.
@@ -249,7 +250,7 @@ what knows the height here, which is the whole reason `fitContent` is on. So
 The 13px that remains in each is the body's own padding, not slack.
 
 **The general case is F23 (`viewport-margins-unchosen`)** and is NOT settled
-here: `SetupGameDialog` also passes `resizable={false}` with `fitContent` and a
+here: `SetupGameModal` also passes `resizable={false}` with `fitContent` and a
 `minHeight: 300`, so it has the same floor overruling the same fit. That is
 `club-page`'s surface, so it is described rather than changed.
 
@@ -270,13 +271,13 @@ coupled**. It wants its own token, at whatever value.
 ## F12 · `nine-body-classes` · Nine `.body` classes want real names
 
 All nine mean "a floating panel's content area, as opposed to its titlebar":
-`FloatingPanel`, `GameScratchpad`, `SetupSection`, `CelebrationDialog`,
-`DeviceBlockNotice`, `FaultDialog`, `DefinitionView`, crosswords'
-`ExplainDialog`. Shared with `shared-game-chrome`.
+`FloatingPanel`, `GameScratchpadCompanion`, `SetupSection`, `CelebrationBlockingModal`,
+`DeviceBlockNotice`, `FaultModal`, `DefinitionView`, crosswords'
+`CrosswordsExplainCompanion`. Shared with `shared-game-chrome`.
 
 ## PUNTED · F14 · `helppanel-got-it` · Help is classed a companion but its button ends it
 
-§20 calls `HelpPanel` a companion and describes it as "keep-open, no Save,
+§20 calls `GameHelpCompanion` a companion and describes it as "keep-open, no Save,
 X-to-close" — but the code has a **"Got it" that closes it**, and §20's own
 sharper test is *"does the button END the thing"*. By that test Help is a
 dialog. The measurement §20 cites (scratchpad, setter-note, clue-explainer have
@@ -287,7 +288,7 @@ companion."* → the first game area.
 
 ## PUNTED · F15 · `numberjump-tier` · A blocking modal riding the popover tier
 
-crosswords' `NumberJumpDialog` is a hand-rolled `position: fixed` modal with its
+crosswords' `CrosswordsNumberJumpBlockingModal` is a hand-rolled `position: fixed` modal with its
 own scrim at `--z-index-popover`, so a menu can open over it. It is also the
 loudest candidate for `<BlockingModal>`. Punted to **crosswords** (Joel,
 2026-08-24) — converting it moves its tier, which is a behavior change that
@@ -316,7 +317,7 @@ and a Cancel is hand-written seven times, one of them in this area's
 ## MOVED · F13 · `setup-form-monospace` · Five setup forms set `font-family: monospace`
 
 spellingbee, wordwheel, boggle, letterboxed, wordiply, all on the field that
-previews letters or a board. **→ the `forms` area.** `GameScratchpad`'s
+previews letters or a board. **→ the `forms` area.** `GameScratchpadCompanion`'s
 monospace stays HERE — it is the same unexamined choice, but it is a floating
 panel's, and the two no longer have to be asked in one sitting.
 
@@ -374,8 +375,8 @@ needs for the same reason.
 ## F17 · `backdrop-without-trap` · Three dimmed forms let Tab walk out behind them
 
 `useFocusTrap` now has exactly **one** caller: `BlockingModal`. But `backdrop` is
-passed by five components, and the other three — `SetupGameDialog`,
-`EditProfileDialog`, `EditClubDialog` — do **not** trap. So the page is dimmed
+passed by five components, and the other three — `SetupGameModal`,
+`EditProfileModal`, `EditClubModal` — do **not** trap. So the page is dimmed
 and declared inert, and Tab leaves anyway, which is precisely the leak the hook
 was written to stop.
 
@@ -397,9 +398,9 @@ than by what it means" — and the measurement is worse than the prediction:
 | surface | family | scrim |
 |---|---|---|
 | every `FloatingPanel` with `backdrop` | normal **and** blocking **and** fault | `--scrim-light-color`, 40% |
-| `CelebrationDialog` | modal-normal | `--scrim-color`, 45% |
-| scrabble's `BlankPicker` | modal-normal | `--scrim-color`, 45% |
-| crosswords' `NumberJumpDialog` | modal-blocking | `--crosswords-dialog-scrim-color`, **25%** |
+| `CelebrationBlockingModal` | modal-normal | `--scrim-color`, 45% |
+| scrabble's `ScrabbleBlankPickerBlockingModal` | modal-normal | `--scrim-color`, 45% |
+| crosswords' `CrosswordsNumberJumpBlockingModal` | modal-blocking | `--crosswords-dialog-scrim-color`, **25%** |
 
 So the shell paints one scrim for all three families, the two hand-rolled
 *normals* take the dark one, the one hand-rolled *blocking* takes a third value a
@@ -424,8 +425,8 @@ learns the wrong rule.
   component — connections' hint became an info-column readout (`HintList`), which
   is the same file whose misnaming produced F2.
 - `FloatingPanel.module.css:5` says *"the future scratchpad"*. It shipped.
-- `useDraggablePanel.ts:33` says *"(FloatingChat, future Scratchpad, etc.)"*.
-  Same.
+- `useDraggablePanel.ts:33` said *"(FloatingChat, future Scratchpad, etc.)"*.
+  Same. (The component is `Chat` now, and the scratchpad shipped long ago.)
 
 ## RESOLVED · F21 · `focus-trap-doc-stale` · `useFocusTrap`'s scope note now contradicts the code
 
@@ -562,7 +563,7 @@ they are for now (40% / 45%) — §20 wants roughly 35% / 55%, and that wants
 looking at on a real board.
 
 **Movable, but modals still center** (F175). "If it's movable we remember where
-it was" collided with `SetupGameDialog`'s written *"No persistKey — each open
+it was" collided with `SetupGameModal`'s written *"No persistKey — each open
 lands centered"*, and Joel settled it: **companions and dialogs remember;
 modal-normals are movable and do not.** A modal is a fresh task each time.
 
@@ -580,7 +581,7 @@ and the scratchpad's opt-outs are bugs by this rule (F25).
 **The celebration joins the shell** once the shell can say *stay a card on a
 phone*. The objection was never that it is the wrong family — it is that
 `FloatingPanel` becomes a full-screen sheet at `@media (--phone)` while
-`CelebrationDialog` is `max-width: min(90vw, 420px)` with **no media query at
+`CelebrationBlockingModal` is `max-width: min(90vw, 420px)` with **no media query at
 all** (verified: zero `@media` in that file). That is a missing capability in the
 shell, not a property of the celebration. Joel: *"'stay a card' is something that
 FloatingPanel should offer as a possibility on phones, though almost all will be
@@ -596,11 +597,11 @@ than a tier.
 | token | value | readers |
 |---|---|---|
 | `--z-index-infoSheet` | 40 | `InfoSheet` |
-| `--z-index-panel` | 500 | `FloatingPanel` (default), `FloatingChat` |
-| `--z-index-popover` | 1500 | `Menu` ×2, `FilterSelect`, `DefinitionPopover`, crosswords' `NumberJumpDialog` |
-| `--z-index-chatPanel` | 10000 | `FloatingChat`, the backdrop's `calc` |
-| `--z-index-scratchpad` | 10000 | `GameScratchpad` |
-| `--z-index-celebration` | 10001 | `CelebrationDialog` |
+| `--z-index-panel` | 500 | `FloatingPanel` (default), `Chat` |
+| `--z-index-popover` | 1500 | `Menu` ×2, `FilterSelect`, `DefinitionPopover`, crosswords' `CrosswordsNumberJumpBlockingModal` |
+| `--z-index-chatPanel` | 10000 | `Chat`, the backdrop's `calc` |
+| `--z-index-scratchpad` | 10000 | `GameScratchpadCompanion` |
+| `--z-index-celebration` | 10001 | `CelebrationBlockingModal` |
 | `--z-index-toast` | 12000 | `ToastHost` |
 | `--z-index-tooltip` | 12000 | `TooltipHost` |
 
@@ -612,7 +613,7 @@ It fixes three known problems on the way: **F10** (blocking 5000 / fault 5100
 land above chat 3100, so an open chat stops covering an error), the celebration
 coming down off 10001, and toast/tooltip un-tying at 12000.
 
-**`NumberJumpDialog`'s TIER moves here; its STRUCTURE stays crosswords'.** The
+**`CrosswordsNumberJumpBlockingModal`'s TIER moves here; its STRUCTURE stays crosswords'.** The
 tier move is a bug fix and it cannot be left behind on a retired token; converting
 it onto `<BlockingModal>` is the visible change its own area should see (F15).
 
@@ -626,7 +627,7 @@ being the one panel that can open itself.
 |---|---|---|
 | 1 | **`family` on `FloatingPanel`** — five values; `backdrop`, `draggable`, `closeOnEsc` and the hand-called trap all go. ~14 call sites | F17, F18, F19 |
 | 2 | **The Escape policy** + a spec pinning Help-over-setup | F16, F21, F25 |
-| 3 | **WINDOW vs CARD** — the titlebar and the phone shape derive from family too; `CelebrationDialog` reclassified to `modal-blocking` and moved onto the shell. Designed 2026-08-25, see below | part of F20 |
+| 3 | **WINDOW vs CARD** — the titlebar and the phone shape derive from family too; `CelebrationBlockingModal` reclassified to `modal-blocking` and moved onto the shell. Designed 2026-08-25, see below | part of F20 |
 | 4 | **The rungs** — 8 tokens → the new ladder, 11 files, `zIndex` deleted | F10 |
 | 5 | **The satellites** — homepage's F22.1 contract slot for `Menu`, `FilterSelect`, `DefinitionPopover` | — |
 | 6 | **F26** — ephemeral panels re-clamp, and the two paths agree about overwriting | F26 |
@@ -667,7 +668,7 @@ passes it (see below).
 
 So for a family that can never be dragged, the header's only remaining job is
 showing a title, which the body does better and bigger — and the ✕ becomes a
-THIRD way out duplicating a button already on screen. **`FaultDialog` proves
+THIRD way out duplicating a button already on screen. **`FaultModal` proves
 it**: it renders `title="Error"` and `<p className={styles.heading}>Error</p>`
 four lines apart, and nobody noticed, because a titlebar reads as chrome rather
 than as content. That duplicate disappears for free.
@@ -699,14 +700,14 @@ fault, 30× repeated   420 × 647    no scroll — it simply grew
 A longer fault caps at 828 with an internal scroll, which is a sheet but for the
 scrim showing at the edges. **The card never breaks.**
 
-The one member that cannot be measured yet is scrabble's `BlankPicker` — 26
+The one member that cannot be measured yet is scrabble's `ScrabbleBlankPickerBlockingModal` — 26
 letter buttons at ~390px — because it is still hand-rolled. That is what the
 override is for, and if scrabble comes out fine the override should be deleted
 rather than kept as decoration.
 
 ### The decisions this settles
 
-- **`CelebrationDialog` becomes `modal-blocking`** (Joel, 2026-08-25),
+- **`CelebrationBlockingModal` becomes `modal-blocking`** (Joel, 2026-08-25),
   superseding §20's families table, which put it at `modal-normal` because "it
   looks like one, it already dims, and you can still chat". Under the split it
   is plainly a card you dismiss rather than a window you move, and reclassifying
@@ -731,14 +732,14 @@ shell's `--shadow-panel` (`0 8px 24px / 12%`) where it used `--shadow-dialog`
 body content. If the flatter shadow reads wrong, that is **CAT A's setting to
 change**, not the celebration's.
 
-Also collected on the way: `CelebrationDialog`'s two §7 rows — the `<h2>` at
+Also collected on the way: `CelebrationBlockingModal`'s two §7 rows — the `<h2>` at
 h1's size, and the `:focus-visible` that re-declares the shared ring — land here
 rather than waiting for the first game area, since the component is being opened
 anyway.
 
 ## RESOLVED · F25 · `esc-opt-outs-are-bugs` · Two panels opted out of Escape
 
-`FloatingChat` and `GameScratchpad` pass `closeOnEsc={false}`. Joel, 2026-08-24:
+`Chat` and `GameScratchpadCompanion` pass `closeOnEsc={false}`. Joel, 2026-08-24:
 *"it is a bug that scratchpad doesn't handle escape (other things might not
 handle them now); all floating panels should handle esc-to-close, following the
 rule we just confirmed about the 'focus-or-top'."* Both opt-outs go; the fault's
@@ -766,7 +767,7 @@ paths should agree, and the mount behavior is the better one.
 
 ## RESOLVED · F28 · `help-rect-per-game` · Help is a companion, so it remembers — but sixteen games size it differently
 
-`HelpPanel` and `ClubHelp` declare `companion`, so the family says they open
+`GameHelpCompanion` and `ClubHelpCompanion` declare `companion`, so the family says they open
 where you left them; neither passed a `persistKey`, so neither did. Help is the
 awkward case because it is shared by sixteen games with different `defaultSize`s,
 and one remembered rect overrides all of them.
@@ -778,9 +779,9 @@ recorded where the key is declared**: a remembered rect carries a SIZE too, so
 after the first drag a game's own `defaultSize` stops applying; those seeds only
 ever fire on a fresh browser.
 
-## F27 · `cluepanel-clue-for-what` · `CluePanel` names neither its game nor its job
+## F27 · `cluepanel-clue-for-what` · `CodenamesduetAISuggestModal` names neither its game nor its job
 
-Joel, 2026-08-24: *"'CluePanel' is a terrible name: CLUE FOR WHAT?"* It is
+Joel, 2026-08-24: *"'CodenamesduetAISuggestModal' is a terrible name: CLUE FOR WHAT?"* It is
 codenamesduet's AI clue **suggester**, and it is a `modal-normal`. On §20's
 rename roster (Open item 4) with the rest — no name proposed here.
 

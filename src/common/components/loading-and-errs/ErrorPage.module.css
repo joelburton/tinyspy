@@ -1,7 +1,7 @@
 /* cs-unmet */
 
 /* The fault modal's three lines, as a PAGE. Deliberately the same values as
-   FaultDialog.module.css — if one of them changes, both should. */
+   FaultModal.module.css — if one of them changes, both should. */
 
 /* @@ */ .page {
   display: flex;
@@ -17,7 +17,7 @@
    "Error" over one sentence reads as shouting.
 
    That size and the diagnostics size below are NOT on the font-size ramp, and
-   that is the point — they are FaultDialog's, to the digit. Matching the modal
+   that is the point — they are FaultModal's, to the digit. Matching the modal
    is the whole design, so converting one side alone would break it. Both files
    sit on the guard's pending list and convert together at `simple-page`, which
    is the area that owns this page. */

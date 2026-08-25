@@ -5,7 +5,7 @@ import { callRpc } from '../../common/lib/game/callRpc'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { IconHideSolution, IconNewGame, IconPrint, IconRestart, IconReveal, IconScratchpad } from '../../common/components/icons'
 import type { GamePageCtx, Member } from '../../common/lib/games'
-import { CelebrationDialog } from '../../common/components/game/CelebrationDialog'
+import { CelebrationBlockingModal } from '../../common/components/game/CelebrationBlockingModal'
 import { useCelebration } from '../../common/hooks/game/useCelebration'
 import { GenericFeedbackPill } from '../../common/components/feedback/GenericFeedbackPill'
 import { BackToClubButton } from '../../common/components/buttons/BackToClubButton'
@@ -50,9 +50,9 @@ import { cellKey, useCells } from '../hooks/useCells'
 import { usePeerCursors } from '../hooks/usePeerCursors'
 import { useGridKeyboard, type GridKeyboard } from '../hooks/useGridKeyboard'
 import { Grid, type RebusPostCommit } from './Grid'
-import { NumberJumpDialog } from './NumberJumpDialog'
-import { NoteDialog } from './NoteDialog'
-import { ExplainDialog, type ExplainState } from './ExplainDialog'
+import { CrosswordsNumberJumpBlockingModal } from './CrosswordsNumberJumpBlockingModal'
+import { CrosswordsNoteCompanion } from './CrosswordsNoteCompanion'
+import { CrosswordsExplainCompanion, type ExplainState } from './CrosswordsExplainCompanion'
 import { enumerationFor } from '../lib/enumeration'
 import { callEdgeFn } from '../../common/lib/supabase/callEdgeFn'
 import { ClueLists } from './ClueLists'
@@ -1054,7 +1054,7 @@ export function PlayArea(ctx: GamePageCtx) {
       </div>
 
       {numberJumpOpen && (
-        <NumberJumpDialog
+        <CrosswordsNumberJumpBlockingModal
           onSubmit={(n) => {
             if (!grid) return false
             const pos = findCellByNumber(grid, n)
@@ -1068,7 +1068,7 @@ export function PlayArea(ctx: GamePageCtx) {
       )}
 
       {noteOpen && game.meta.note && (
-        <NoteDialog
+        <CrosswordsNoteCompanion
           title={game.meta.title || 'Puzzle note'}
           note={game.meta.note}
           onClose={() => setNoteOpen(false)}
@@ -1076,14 +1076,14 @@ export function PlayArea(ctx: GamePageCtx) {
       )}
 
       {explain && (
-        <ExplainDialog clueLabel={explainLabel} state={explain} onClose={() => setExplain(null)} />
+        <CrosswordsExplainCompanion clueLabel={explainLabel} state={explain} onClose={() => setExplain(null)} />
       )}
 
       {/* No modal for the verdict (docs/ui.md → Terminal results): it's carried
           in-page by the pill in the active-clue slot + the info-column line, and
           a coop solve gets the celebration instead — once, when it happens. */}
       {celebration.show && (
-        <CelebrationDialog
+        <CelebrationBlockingModal
           title="Solved! 🎉"
           body="The grid is complete."
           onClose={celebration.close}

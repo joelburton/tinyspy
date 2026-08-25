@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef , type ReactNode } from 'react'
 import { IconNewGame, IconPrint, IconRestart } from '../../common/components/icons'
 import { cls } from '../../common/lib/util/cls'
-import { CelebrationDialog } from '../../common/components/game/CelebrationDialog'
+import { CelebrationBlockingModal } from '../../common/components/game/CelebrationBlockingModal'
 import { useCelebration } from '../../common/hooks/game/useCelebration'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import type { GamePageCtx, Member } from '../../common/lib/games'
@@ -629,7 +629,7 @@ export function PlayArea(ctx: GamePageCtx) {
           A coop WIN — only possible when the team set a target rank — gets the
           celebration instead, once, at the moment they cross. */}
       {celebration.show && (
-        <CelebrationDialog
+        <CelebrationBlockingModal
           title="You win! 🎉"
           body={`Reached "${RANKS[wordwheelSetup.target_rank ?? 6]}" — ${foundWordsScore}/${game.required_words_score} points.`}
           onClose={celebration.close}
@@ -643,7 +643,7 @@ export function PlayArea(ctx: GamePageCtx) {
 /**
  * The terminal copy: `verdict` + `tone` drive the permanent below-board pill,
  * `message` + `tone` the short bold line in the info-column action row. No modal
- * carries the verdict — a coop WIN pops `<CelebrationDialog>` and everything
+ * carries the verdict — a coop WIN pops `<CelebrationBlockingModal>` and everything
  * else lives in-page.
  *
  * Verdicts lead with the OUTCOME WORD — "Won:" / "Lost:" / "Ended:" — so the

@@ -1,6 +1,6 @@
 // cs-unmet
 
-import styles from './BlankPicker.module.css'
+import styles from './ScrabbleBlankPickerBlockingModal.module.css'
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')
 
@@ -11,7 +11,7 @@ const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')
  * never let it change. Pick a letter → the tentative tile becomes that
  * letter (still scoring 0).
  */
-export function BlankPicker({
+export function ScrabbleBlankPickerBlockingModal({
   onPick,
   onCancel,
 }: {

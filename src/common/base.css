@@ -708,7 +708,7 @@
  *
  *   h1   the PAGE's title            "Create a club", the club's name, the
  *                                    home greeting, every error screen
- *   h2   a DIALOG or notice title    CelebrationDialog, DeviceBlockNotice
+ *   h2   a DIALOG or notice title    CelebrationBlockingModal, DeviceBlockNotice
  *   h3   a SECTION heading           "Your clubs", "Start a new game",
  *                                    the info column's panels, Help prose
  *   h4   a SUBSECTION inside prose   letterboxed's Help

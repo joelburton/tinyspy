@@ -487,7 +487,7 @@ carries the verdict** ([ui.md → Terminal results](../ui.md#terminal-results--t
 target, coop is a neutral shared hunt and compete picks the highest score;
 **with** one (`setup.win_percent`), reaching the score bar is a real win
 (`status.outcome === 'target'`) — and a **coop** target win pops the shared
-`<CelebrationDialog>` ("Target reached! 🎉"), once, at the moment it happens.
+`<CelebrationBlockingModal>` ("Target reached! 🎉"), once, at the moment it happens.
 That gate reads `status.mode` + `status.outcome`, both off the common row GamePage
 waits for — deliberately not boggle's own `game.mode`, which arrives later and
 would pop confetti at someone opening a finished game.

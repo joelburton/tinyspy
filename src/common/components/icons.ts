@@ -127,7 +127,7 @@ export {
   // FEATHER's `message-circle`, i.e. a frozen copy of Lucide's own ancestor
   // from before this app used Lucide at all. Harmless until the menu started
   // teaching glyphs — a legend that shows a different bubble than the header
-  // does is worse than no legend — so ChatButton and FloatingChat now render
+  // does is worse than no legend — so ChatButton and Chat now render
   // this, and Lucide's redrawn (rounder, chunkier-tailed) version is what you
   // see in both places.
   MessageCircle as IconChat,

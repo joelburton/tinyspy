@@ -4,7 +4,7 @@ import { FloatingPanel } from './FloatingPanel'
 import { setScratchpadOpen, useScratchpadOpen } from '../../lib/scratchpad/scratchpadOpenStore'
 import { useScratchpad } from '../../hooks/scratchpad/useScratchpad'
 import { handOffKeyboardOnTab } from '../../lib/util/keyboardHandoff'
-import styles from './GameScratchpad.module.css'
+import styles from './GameScratchpadCompanion.module.css'
 
 type Props = {
   gameId: string
@@ -25,7 +25,7 @@ type Props = {
  * The hook runs even while the panel is closed (background body sync + lock),
  * mirroring how chat keeps syncing when collapsed.
  */
-export function GameScratchpad({ gameId, ownerId, myId, username, isTerminal }: Props) {
+export function GameScratchpadCompanion({ gameId, ownerId, myId, username, isTerminal }: Props) {
   const open = useScratchpadOpen()
   const sp = useScratchpad(gameId, ownerId, myId, username, isTerminal)
 

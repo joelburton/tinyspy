@@ -1,7 +1,7 @@
 /* cs-audited */
 
 /* Shared visuals for every floating panel — the modals, the
- * always-on FloatingChat, the future scratchpad. The header
+ * always-on Chat, the future scratchpad. The header
  * pattern (title + X), the body padding, the shadow, the
  * rounded corners all live here so panels look consistent.
  *

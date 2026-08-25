@@ -59,19 +59,19 @@ components/
   home/          # the landing page after login (your clubs)
       HomePage
   club/          # the club "room": its page + everything shown on it
-      ClubPage, CreateClubPage, ClubGameCard, ClubHelp, EditClubDialog, StartGameButtons,
+      ClubPage, CreateClubPage, ClubGameCard, ClubHelpCompanion, EditClubModal, StartGameButtons,
       ModeFilter, GametypeFilter
   account/       # your own menu + profile editing
-      UserMenu, EditProfileDialog, ColorChoiceList
+      UserMenu, EditProfileModal, ColorChoiceList
   chat/          # the club chat floating panel (its header mark is in page-header/)
-      ChatBody, FloatingChat
+      ChatBody, Chat
   setup/         # the start-a-game dialog (collect per-game options → create)
-      SetupGameDialog, SetupDisclosure
+      SetupGameModal, SetupDisclosure
   fields/        # reusable form controls (any form, not just setup)
       DifficultyField, TimerField, SelectField, RadioRow,
       CoopStyleField, NextPuzzleField
   game/          # a live game's shell + the chrome around the play surface
-      GamePage, PauseBoundary, PauseOverlay, SuspendConfirmDialog,
+      GamePage, PauseBoundary, PauseOverlay, SuspendConfirmationBlockingModal,
       OpponentStrip, ModePill, StrikeMarks, GameInvitations
     entry/       # the in-game typed-move input — the word box + its row
         EntryBox, EntryRow
@@ -83,7 +83,7 @@ components/
       DefinitionPopover, DefinitionView, WordLookupDialog
   floating-panels/ # the shared shell for every window-like thing that floats over
                  #   the page, + the panels that ride on it
-      FloatingPanel, ConfirmationBlockingModal, GameScratchpad
+      FloatingPanel, ConfirmationBlockingModal, GameScratchpadCompanion
   menu/          # the one menu (it contains different things on different pages)
       Menu
   feedback/      # the near-input validity pill ("not a word", "too short")

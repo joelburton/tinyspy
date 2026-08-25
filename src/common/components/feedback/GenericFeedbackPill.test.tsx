@@ -95,5 +95,5 @@ describe('GenericFeedbackPill — tap to dismiss', () => {
 })
 
 /* The fault describe block retired 2026-08-13: faults never reach this
- * component any more — the sinks route them to the fault MODAL (FaultDialog;
+ * component any more — the sinks route them to the fault MODAL (FaultModal;
  * docs/ui.md → Faults), guarded by faultStore.test.ts's routing tests. */
