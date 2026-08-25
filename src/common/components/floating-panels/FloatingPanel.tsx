@@ -684,6 +684,18 @@ function PanelRnd({
   )
 }
 
+/**
+ * The ONE key every help panel persists its rect under — the game guides and
+ * the club's "About clubs" alike (Joel, 2026-08-24: *"help dialogs can share a
+ * key; that's fine. They should remember the location."*).
+ *
+ * Shared rather than per-surface because help is one habit, not sixteen: park
+ * it where you like reading it and every guide opens there. The cost is that
+ * the remembered rect carries a SIZE too, so after the first drag a game's own
+ * `defaultSize` stops applying — those seeds only ever fire on a fresh browser.
+ */
+export const HELP_RECT_KEY = 'puzpuzpuz:help:rect'
+
 /** A ref that never points at anything, so `useFocusTrap` finds no panel and
  *  installs nothing — the hook stays unconditionally called (rules of hooks)
  *  while the trap itself is conditional. */

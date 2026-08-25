@@ -590,6 +590,20 @@ The window-resize path also DOES overwrite storage, so resizing on a laptop
 destroys the big-monitor position that reopening carefully preserves. The two
 paths should agree, and the mount behavior is the better one.
 
+## RESOLVED · F28 · `help-rect-per-game` · Help is a companion, so it remembers — but sixteen games size it differently
+
+`HelpPanel` and `ClubHelp` declare `companion`, so the family says they open
+where you left them; neither passed a `persistKey`, so neither did. Help is the
+awkward case because it is shared by sixteen games with different `defaultSize`s,
+and one remembered rect overrides all of them.
+
+**Settled** (Joel, 2026-08-24): *"help dialogs can share a key; that's fine. They
+should remember the location."* One `HELP_RECT_KEY` for the game guides and the
+club's "About clubs" alike — help is one habit, not sixteen. **The consequence,
+recorded where the key is declared**: a remembered rect carries a SIZE too, so
+after the first drag a game's own `defaultSize` stops applying; those seeds only
+ever fire on a fresh browser.
+
 ## F27 · `cluepanel-clue-for-what` · `CluePanel` names neither its game nor its job
 
 Joel, 2026-08-24: *"'CluePanel' is a terrible name: CLUE FOR WHAT?"* It is

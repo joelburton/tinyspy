@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { FloatingPanel } from '../floating-panels/FloatingPanel'
+import { FloatingPanel, HELP_RECT_KEY } from '../floating-panels/FloatingPanel'
 
 type Props = {
   onClose: () => void
@@ -20,6 +20,7 @@ export function ClubHelp({ onClose }: Props) {
   return (
     <FloatingPanel
       family="companion"
+      persistKey={HELP_RECT_KEY}
       title="About clubs"
       onClose={onClose}
       defaultSize={{ width: 420, height: 260 }}

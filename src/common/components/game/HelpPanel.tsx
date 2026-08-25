@@ -1,7 +1,7 @@
 // cs-unmet
 
 import type { ReactNode } from 'react'
-import { FloatingPanel } from '../floating-panels/FloatingPanel'
+import { FloatingPanel, HELP_RECT_KEY } from '../floating-panels/FloatingPanel'
 import styles from './HelpPanel.module.css'
 
 type Props = {
@@ -39,6 +39,7 @@ export function HelpPanel({
   return (
     <FloatingPanel
       family="companion"
+      persistKey={HELP_RECT_KEY}
       title={`How to play ${brand}`}
       onClose={onClose}
       defaultSize={size}
