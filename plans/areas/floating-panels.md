@@ -572,13 +572,115 @@ being the one panel that can open itself.
 |---|---|---|
 | 1 | **`family` on `FloatingPanel`** — five values; `backdrop`, `draggable`, `closeOnEsc` and the hand-called trap all go. ~14 call sites | F17, F18, F19 |
 | 2 | **The Escape policy** + a spec pinning Help-over-setup | F16, F21, F25 |
-| 3 | **The phone "stay a card" trait**, then `CelebrationDialog` onto the shell | part of F20 |
+| 3 | **WINDOW vs CARD** — the titlebar and the phone shape derive from family too; `CelebrationDialog` reclassified to `modal-blocking` and moved onto the shell. Designed 2026-08-25, see below | part of F20 |
 | 4 | **The rungs** — 8 tokens → the new ladder, 11 files, `zIndex` deleted | F10 |
 | 5 | **The satellites** — homepage's F22.1 contract slot for `Menu`, `FilterSelect`, `DefinitionPopover` | — |
 | 6 | **F26** — ephemeral panels re-clamp, and the two paths agree about overwriting | F26 |
 
 **Two visible changes to expect in the diff**, both intended: blocking and fault
 scrims darken 40% → 45%, and the celebration stops painting over chat.
+
+## Step 3, designed 2026-08-25: a panel is a WINDOW or a CARD
+
+Step 3 started as "add a stay-a-card trait for the celebration" and turned into
+a second thing family derives, which is why it grew a section of its own.
+
+**The question that produced it** (Joel): *"are there things that are floating
+panels that might want the same behavior? Something with just a quick 'confirm'
+message, and for which the full-screen and title bar might be useless?"* There
+are five, and they are already a family.
+
+### The split
+
+|  | **CARD** — you ANSWER it | **WINDOW** — you MOVE it |
+|---|---|---|
+| families | `modal-blocking`, `modal-fault` | `companion`, `dialog`, `modal-normal` |
+| drag | never, on any device | desktop yes; phone no (already forced) |
+| titlebar + ✕ | **none** — the title is a heading in the body | yes, on both |
+| on a phone | stays a card | full-page sheet, square corners |
+| the way out | a button, or Escape | the ✕, or Escape |
+| scrim | dark (45%) | none for companion/dialog, **light (40%) for modal-normal — unchanged** |
+
+**Everything in it derives from the family.** There is one override —
+`phone: 'sheet'` — for a card member that outgrows a card, and today nothing
+passes it (see below).
+
+### Why the titlebar goes, and why it is a derivation rather than a taste
+
+**The titlebar IS the drag handle** — not conceptually, literally:
+`dragHandleClassName={draggable ? styles.dragHandle : undefined}`, and
+`.dragHandle` is only ever applied to the `<header>`. No titlebar, no drag.
+
+So for a family that can never be dragged, the header's only remaining job is
+showing a title, which the body does better and bigger — and the ✕ becomes a
+THIRD way out duplicating a button already on screen. **`FaultDialog` proves
+it**: it renders `title="Error"` and `<p className={styles.heading}>Error</p>`
+four lines apart, and nobody noticed, because a titlebar reads as chrome rather
+than as content. That duplicate disappears for free.
+
+**The phone side falls out of the same split, and its second reason is the
+stronger one.** On a coarse pointer every panel is forced non-draggable, so a
+full-screen sheet has no dismiss affordance except the titlebar ✕ — chat and
+Help have no Cancel to fall back on. The families that go full-screen are
+exactly the families that need the ✕ there. A card always has a button.
+
+**And a card preserves the context the question is about** (Joel): a
+confirmation is *about* something, and "End this game?" means less with the game
+replaced by a full-screen sheet. Same for a fault — "couldn't save your word"
+reads differently when the word is still visible in the entry box.
+
+### Measured: no card member needs the override
+
+`fitContent` caps at `window.innerHeight − 16` and lets the body scroll past it,
+so **a card degrades into a sheet on its own exactly when the content earns
+one.** At 560×844 — just above the `--phone` breakpoint of 34rem, so card
+geometry at a phone's height:
+
+```
+confirmation          420 × 200    no scroll
+fault, short          420 × 200    no scroll
+fault, 30× repeated   420 × 647    no scroll — it simply grew
+```
+
+A longer fault caps at 828 with an internal scroll, which is a sheet but for the
+scrim showing at the edges. **The card never breaks.**
+
+The one member that cannot be measured yet is scrabble's `BlankPicker` — 26
+letter buttons at ~390px — because it is still hand-rolled. That is what the
+override is for, and if scrabble comes out fine the override should be deleted
+rather than kept as decoration.
+
+### The decisions this settles
+
+- **`CelebrationDialog` becomes `modal-blocking`** (Joel, 2026-08-25),
+  superseding §20's families table, which put it at `modal-normal` because "it
+  looks like one, it already dims, and you can still chat". Under the split it
+  is plainly a card you dismiss rather than a window you move, and reclassifying
+  costs nothing where a `card`/`window` axis orthogonal to family would be a
+  whole second thing to declare. **It gets no bespoke traits**: no titlebar and
+  card-on-phone both fall out of the family. Joel: *"there's nothing special
+  about celebrationmodal."*
+- **§20's ⚠️ "the celebration must NOT be unified onto FloatingPanel" is
+  answered, not ignored.** Its objection was the phone sheet; the split removes
+  that, and the titlebar objection it never raised goes with it.
+- **One body padding for the shell**, card and window alike. A panel wanting more
+  overrides it in its own module, which is already the convention — so the
+  celebration keeps its `2rem` the way every panel keeps its own.
+- **The scrim does not move.** Assigned by family in step 1 and unchanged here;
+  the values are still open and are to be judged on a real board.
+
+### What is left over, and it is small
+
+Two visible residues on the celebration, neither special to it: it takes the
+shell's `--shadow-panel` (`0 8px 24px / 12%`) where it used `--shadow-dialog`
+(`0 12px 48px / 35%`), and its `cardIn` scale-up moves from the card onto the
+body content. If the flatter shadow reads wrong, that is **CAT A's setting to
+change**, not the celebration's.
+
+Also collected on the way: `CelebrationDialog`'s two §7 rows — the `<h2>` at
+h1's size, and the `:focus-visible` that re-declares the shared ring — land here
+rather than waiting for the first game area, since the component is being opened
+anyway.
 
 ## RESOLVED · F25 · `esc-opt-outs-are-bugs` · Two panels opted out of Escape
 
