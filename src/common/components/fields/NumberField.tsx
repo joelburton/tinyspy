@@ -1,11 +1,14 @@
 // cs-fixed
 
+import field from './field.module.css'
 import styles from './NumberField.module.css'
 
 type Props = {
   /** The `name` on the underlying input. */
   name: string
-  /** The accessible name — the label is usually the section summary above it. */
+  /** The caption above the box. DRAWN, like every other field's — it wasn't at
+   *  first, and three number boxes shipped with no captions at all because the
+   *  label went only to `aria-label` (Joel spotted it on screen, 2026-08-26). */
   label: string
   /** The current value. `NaN` shows an empty box, which is what a half-typed
    *  number looks like: the caller decides whether that blocks Start. */
@@ -14,7 +17,8 @@ type Props = {
   min?: number
   max?: number
   step?: number
-  /** How wide, in characters of the largest value it can hold. `3` fits 144. */
+  /** How wide, in characters of the largest value it can hold. `3` fits 144.
+   *  The box adds room for its padding and its spinner arrows on top. */
   chars: number
   disabled?: boolean
 }
@@ -49,22 +53,26 @@ export function NumberField({
   disabled,
 }: Props) {
   return (
-    <input
-      type="number"
-      name={name}
-      aria-label={label}
-      inputMode="numeric"
-      min={min}
-      max={max}
-      step={step}
-      disabled={disabled}
-      value={Number.isFinite(value) ? value : ''}
-      onChange={(e) => onChange(e.target.valueAsNumber)}
-      className={styles.input}
-      // Sized from the largest value it holds rather than a hand-picked rem —
-      // the same `ch` sizing <ManualBoardField> uses. The spinner arrows need
-      // room of their own, hence the constant.
-      style={{ width: `calc(${chars}ch + 2.6rem)` }}
-    />
+    <label className={field.field}>
+      <span className={field.label}>{label}</span>
+      <input
+        type="number"
+        name={name}
+        inputMode="numeric"
+        min={min}
+        max={max}
+        step={step}
+        disabled={disabled}
+        value={Number.isFinite(value) ? value : ''}
+        onChange={(e) => onChange(e.target.valueAsNumber)}
+        className={styles.input}
+        // Sized from the largest value it holds rather than a hand-picked rem —
+        // the same `ch` sizing <ManualBoardField> uses. The constant is the
+        // box's own furniture: 1.8rem of padding plus the spinner arrows.
+        // MEASURED, after 2.6rem shipped and clipped a single digit — it left
+        // 50px of content box for 54px of content.
+        style={{ width: `calc(${chars}ch + 3.4rem)` }}
+      />
+    </label>
   )
 }

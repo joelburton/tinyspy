@@ -8,6 +8,9 @@ import { useConfirmation } from '../../hooks/ui/useConfirmation'
 import { FloatingPanel } from '../floating-panels/FloatingPanel'
 import styles from './WordEditDialog.module.css'
 import { StandardButton } from '../buttons/StandardButton'
+import { TextField } from '../fields/TextField'
+import { NumberField } from '../fields/NumberField'
+import { CheckboxField } from '../fields/CheckboxField'
 
 /**
  * The dictionary-curation form — edit an existing word, or add one (the
@@ -56,6 +59,15 @@ const EMPTY: Fields = {
 }
 
 const DIALECTS = ['american', 'british', 'canadian', 'australian'] as const
+
+/** The three small numbers that share a row. A table, not three near-identical
+ *  blocks — they differ only in name, caption and range, and writing that three
+ *  times is how the caption and the range drift apart. */
+const NUMBER_FIELDS = [
+  { key: 'difficulty', label: 'Band (1–6)', min: 1, max: 6 },
+  { key: 'crude', label: 'Crude (0–2)', min: 0, max: 2 },
+  { key: 'slur', label: 'Slur (0–2)', min: 0, max: 2 },
+] as const
 
 /** The wire value for a field: numbers as numbers, empty strings as null
  *  (clearing a definition/hint), booleans as-is. */
@@ -211,99 +223,77 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
     >
       <form onSubmit={onSubmit} className={styles.form}>
         {!editing && (
-          <label className={styles.field}>
-            Word
-            <input
-              autoFocus
-              type="text"
-              value={word}
-              onChange={(e) => setWord(e.target.value.replace(/[^A-Za-z]/g, ''))}
-              aria-label="New word"
-            />
-          </label>
+          <TextField
+            label="Word"
+            value={word}
+            onChange={(v) => setWord(v.replace(/[^A-Za-z]/g, ''))}
+            autoFocus
+          />
         )}
-        <label className={styles.field}>
-          Definition
-          <textarea
-            rows={2}
-            value={fields.definition}
-            onChange={(e) => set('definition', e.target.value)}
-            disabled={initial === null}
-          />
-        </label>
-        <label className={styles.field}>
-          Hint
-          <input
-            type="text"
-            value={fields.hint}
-            onChange={(e) => set('hint', e.target.value)}
-            disabled={initial === null}
-          />
-        </label>
+        <TextField
+          label="Definition"
+          value={fields.definition}
+          onChange={(v) => set('definition', v)}
+          disabled={initial === null}
+          multiline
+          rows={2}
+        />
+        <TextField
+          label="Hint"
+          value={fields.hint}
+          onChange={(v) => set('hint', v)}
+          disabled={initial === null}
+        />
+        {/* Three small numbers on one row, not three rows. Each is a
+            <NumberField> in a <label>-less wrapper because the caption belongs
+            to the field; the row only decides they share a line. The values are
+            kept as STRINGS in `fields` (the patch is diffed against the loaded
+            row as text), so each converts at the boundary — an emptied box is
+            NaN, which stores as '' rather than the string "NaN". */}
         <div className={styles.numbers}>
-          <label className={styles.field}>
-            Band (1–6)
-            <input
-              type="number" min={1} max={6}
-              value={fields.difficulty}
-              onChange={(e) => set('difficulty', e.target.value)}
-              disabled={initial === null}
-              aria-label="Band"
-            />
-          </label>
-          <label className={styles.field}>
-            Crude (0–2)
-            <input
-              type="number" min={0} max={2}
-              value={fields.crude}
-              onChange={(e) => set('crude', e.target.value)}
-              disabled={initial === null}
-              aria-label="Crude"
-            />
-          </label>
-          <label className={styles.field}>
-            Slur (0–2)
-            <input
-              type="number" min={0} max={2}
-              value={fields.slur}
-              onChange={(e) => set('slur', e.target.value)}
-              disabled={initial === null}
-              aria-label="Slur"
-            />
-          </label>
-        </div>
-        <div className={styles.checks}>
-          <label className={styles.check}>
-            <input
-              type="checkbox"
-              checked={fields.slang}
-              onChange={(e) => set('slang', e.target.checked)}
+          {NUMBER_FIELDS.map(({ key, label, min, max }) => (
+            <NumberField
+              key={key}
+              name={key}
+              label={label}
+              min={min}
+              max={max}
+              chars={1}
+              value={Number(fields[key])}
+              onChange={(n) => set(key, Number.isNaN(n) ? '' : String(n))}
               disabled={initial === null}
             />
-            slang
-          </label>
-          {DIALECTS.map((d) => (
-            <label key={d} className={styles.check}>
-              <input
-                type="checkbox"
-                checked={fields[d]}
-                onChange={(e) => set(d, e.target.checked)}
-                disabled={initial === null}
-              />
-              {d}
-            </label>
           ))}
         </div>
-        <label className={styles.field}>
-          Note
-          <textarea
-            rows={2}
-            placeholder="a quick aside for the wordlist process…"
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            aria-label="Curation note"
-          />
-        </label>
+        <div className={styles.checks}>
+          <CheckboxField
+            name="slang"
+            checked={fields.slang}
+            onChange={(on) => set('slang', on)}
+            disabled={initial === null}
+          >
+            slang
+          </CheckboxField>
+          {DIALECTS.map((d) => (
+            <CheckboxField
+              key={d}
+              name={d}
+              checked={fields[d]}
+              onChange={(on) => set(d, on)}
+              disabled={initial === null}
+            >
+              {d}
+            </CheckboxField>
+          ))}
+        </div>
+        <TextField
+          label="Note"
+          value={note}
+          onChange={setNote}
+          placeholder="a quick aside for the wordlist process…"
+          multiline
+          rows={2}
+        />
         {error && <p className={styles.error}>{error}</p>}
         <div className={styles.actions}>
           {editing && (

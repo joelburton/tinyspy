@@ -1,42 +1,7 @@
 /* cs-fixed */
 
-/*
- * A labelled text box (see TextField.tsx).
- *
- * ONE SET OF VALUES, where four files had four. `ClaimHandleScreen`,
- * `CreateClubPage` and `EditProfileModal` were byte-identical apart from the
- * label, and `WordEditDialog` ran its own smaller scale — see the note at the
- * bottom.
- */
-/* @@ */ .field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  /* The reset that lets a <fieldset> wear this class and line up with the
-     <label>s around it — <ColorField> is the one that needs it. */
-  border: none;
-  margin: 0;
-  padding: 0;
-  min-width: 0;
-}
-
-/*
- * The caption. The three callers disagreed — 600 weight at inherited size, 600
- * at 0.9rem in muted grey, and no weight at all — and none of those was a
- * choice anyone recorded. This matches `<SelectField>`'s label, which is the
- * field vocabulary's existing answer to the same question.
- *
- * NOT muted, deliberately (docs/ui.md — muting is asked about, never defaulted
- * to). One of the three greyed its caption and the other two didn't; full
- * strength is the safe direction to unify on, because it changes nothing about
- * what a reader can make out.
- */
-/* @@ */ .label {
-  font-weight: 600;
-  font-size: 0.9rem;
-  padding: 0;
-}
-
+/* A labelled text box (see TextField.tsx). The column and the caption are the
+ * shared `field.module.css`; only the control is this file's. */
 /* Fill the field. The control's own chrome — border, radius, padding — is
    base.css's `input, textarea` rule; only the width is this field's business. */
 /* @@ */ .control {

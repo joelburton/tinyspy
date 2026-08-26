@@ -1,7 +1,7 @@
 // cs-fixed
 
 import { ColorChoiceList } from '../account/ColorChoiceList'
-import styles from './ColorField.module.css'
+import styles from './field.module.css'
 
 type Props = {
   /** The caption. Defaults to "Player color", which is what both callers say. */

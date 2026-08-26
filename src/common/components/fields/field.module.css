@@ -1,0 +1,42 @@
+/* cs-fixed */
+
+/*
+ * THE SHAPE EVERY FIELD SHARES — a caption over its control.
+ *
+ * One file, imported by `<TextField>`, `<NumberField>`, `<ReadOnlyField>` and
+ * `<ColorField>`, because writing it four times is precisely the finding these
+ * components exist to close (plans/areas/forms.md → F34): four files had
+ * declared it and disagreed on the numbers, three of them byte-identical.
+ *
+ * I wrote it three times AGAIN in the first pass at those components, on
+ * 2026-08-26, which is the same mistake one layer along and worth leaving the
+ * note for: a shared component does not make a shape shared. The shape has to
+ * live somewhere too.
+ */
+/* @@ */ .field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  /* The reset that lets a <fieldset> wear this and line up with the <label>s
+     around it — <ColorField> is the one that needs it. */
+  border: none;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+/*
+ * The caption. Callers disagreed — 600 weight at inherited size, 600 at 0.9rem
+ * in muted grey, no weight at all, and WordEditDialog's 0.8rem muted — and none
+ * of those was a recorded choice. This matches `<SelectField>`'s label, the
+ * field vocabulary's existing answer to the same question.
+ *
+ * NOT muted, deliberately (docs/ui.md — muting is asked about, never defaulted
+ * to). Two of the callers greyed their captions and three didn't; full strength
+ * is the safe direction to unify on.
+ */
+/* @@ */ .label {
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 0;
+}

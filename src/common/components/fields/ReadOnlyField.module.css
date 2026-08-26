@@ -3,18 +3,6 @@
 /* A caption over a value you cannot change (see ReadOnlyField.tsx). The column
  * and the caption are the shared field's, so it lines up with the editable
  * fields beside it; only the value's own size is stated here. */
-/* @@ */ .field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-
-/* @@ */ .label {
-  font-weight: 600;
-  font-size: 0.9rem;
-  padding: 0;
-}
-
 /* Bigger than the caption above it, because THIS is the thing you came to
  * read — the caption only says what it is. */
 /* @@ */ .value {

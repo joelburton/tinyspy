@@ -44,16 +44,24 @@ beforeEach(() => {
   mockMaybeSingle.mockResolvedValue({ data: ROW, error: null })
 })
 
+/**
+ * NAMES CHANGED ON 2026-08-26, and the change was a fix. These fields wore an
+ * `aria-label` that CONTRADICTED their visible caption — the box captioned
+ * "Band (1–6)" was named "Band", the one captioned "Word" was named "New word",
+ * and the "Note" box was named "Curation note". Converting the dialog to the
+ * shared field components (plans/areas/forms.md → F34) made the accessible name
+ * the caption, so what a test finds and what a reader sees are the same string.
+ */
 describe('WordEditDialog', () => {
   it('edit mode: Save sends ONLY the changed fields, with the note', async () => {
     const user = userEvent.setup()
     render(<WordEditDialog request={{ mode: 'edit', word: 'acre' }} />)
-    const band = await screen.findByLabelText('Band')
+    const band = await screen.findByLabelText('Band (1–6)')
     await waitFor(() => expect(band).toHaveValue(2))
 
     await user.clear(band)
     await user.type(band, '5')
-    await user.type(screen.getByLabelText('Curation note'), 'too easy at 2')
+    await user.type(screen.getByLabelText('Note'), 'too easy at 2')
     await user.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() =>
@@ -68,8 +76,8 @@ describe('WordEditDialog', () => {
   it('add mode: sends the word plus the full field set', async () => {
     const user = userEvent.setup()
     render(<WordEditDialog request={{ mode: 'add' }} />)
-    await user.type(screen.getByLabelText('New word'), 'zqnew')
-    const band = screen.getByLabelText('Band')
+    await user.type(screen.getByLabelText('Word'), 'zqnew')
+    const band = screen.getByLabelText('Band (1–6)')
     await user.clear(band)
     await user.type(band, '3')
     await user.click(screen.getByRole('button', { name: 'Save' }))
@@ -88,7 +96,7 @@ describe('WordEditDialog', () => {
     mockRpc.mockResolvedValue({ error: { message: 'not-word-editor|', code: '42501' } })
     const user = userEvent.setup()
     render(<WordEditDialog request={{ mode: 'edit', word: 'acre' }} />)
-    const band = await screen.findByLabelText('Band')
+    const band = await screen.findByLabelText('Band (1–6)')
     await waitFor(() => expect(band).toHaveValue(2))
     await user.clear(band)
     await user.type(band, '5')

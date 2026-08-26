@@ -1,6 +1,7 @@
 // cs-fixed
 
 import type { ReactNode } from 'react'
+import field from './field.module.css'
 import styles from './TextField.module.css'
 
 type Props = {
@@ -74,8 +75,8 @@ export function TextField({
   }
 
   return (
-    <label className={styles.field}>
-      <span className={styles.label}>{label}</span>
+    <label className={field.field}>
+      <span className={field.label}>{label}</span>
       {multiline ? <textarea rows={rows} {...shared} /> : <input type="text" {...shared} />}
       {children}
     </label>

@@ -12,53 +12,23 @@
   overflow-y: auto;
 }
 
-/* @@ */ .field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  font-size: 0.8rem;
-  color: var(--page-text-muted-color);
-}
-
-.field input,
-/* @@ */ .field textarea {
-  padding: 0.35rem 0.5rem;
-  font-size: 0.9rem;
-  font-family: inherit;
-  color: var(--page-text-color);
-  background: var(--page-surface-color);
-  border: 1px solid var(--page-surface-border-color);
-  border-radius: var(--radius-md);
-}
-
-.field input:focus,
-/* @@ */ .field textarea:focus {
-  outline: var(--chrome-cursor-ring);
-  outline-offset: -1px;
-}
-
-/* Band / crude / slur on one row — three small numbers, not three rows. */
+/* Band / crude / slur on one row — three small numbers, not three rows.
+ *
+ * The row used to stretch each field to an equal share (`.numbers .field
+ * { flex: 1 1 0 }`); it doesn't need to now, because <NumberField> sizes itself
+ * from the widest value it can hold, and one digit is one digit. */
 /* @@ */ .numbers {
   display: flex;
   gap: 0.5rem;
 }
 
-/* @@ */ .numbers .field {
-  flex: 1 1 0;
-}
-
+/* Slang + the four dialects, STACKED (Joel, 2026-08-26). They wrapped into a
+   ragged two-line block that read as one run-on sentence — five separate
+   yes/no answers, each about a different thing, are a list. */
 /* @@ */ .checks {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem 0.9rem;
-}
-
-/* @@ */ .check {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-size: 0.85rem;
-  color: var(--page-text-color);
+  flex-direction: column;
+  gap: 0.35rem;
 }
 
 /* @@ */ .error {
