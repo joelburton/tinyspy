@@ -173,6 +173,8 @@ A **toast** is a bottom-right **announcement** — a *different surface* from th
 
 One shared store + one host: any code calls `showToast(spec)` / `dismissToast(id)` (`lib/toast/toastStore.ts`), and the single `<ToastHost>` (`components/toasts/`, portaled to `<body>`, mounted once in `App.tsx`) renders the stack. The host is capped to the viewport and scrolls internally, so a flood of toasts never scrolls the *page* (the [page-never-scrolls](#page-height-fits-the-viewport) invariant). Consumers today: game invitations (`useGameInvitations`, now headless) and the "…is setting up a new … game" club heads-up (`useClubSetupPresence`). See [common-folders.md](common-folders.md) for the file homes.
 
+**Testing the look:** every real toast needs a real event behind it — an invitation arriving, a friend starting a game — so `window.puptoast()` (registered by `toastStore`) pops a canned one from the browser console, `puptoast('hey')` for your own words, `puptoast('hey', 'error')` for a tone. It always carries both exits, and logs which one you took: the action button closes without firing `onClose`, the ✕ fires it. The twin of `window.pupfault()` above.
+
 ### Terminal results — the moment vs the record
 
 Game-end UI splits along one line: **the moment** (a win worth marking, which happens once and then is gone) and **the record** (what the page says about a finished game, every time anyone opens it). The record lives **in-page**; the moment is the only thing that gets a modal.

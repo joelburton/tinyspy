@@ -98,3 +98,31 @@ export function dismissToast(id: string): void {
 export function useToasts(): Toast[] {
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
 }
+
+/**
+ * Dev/test trigger: pop a toast from the browser console — `puptoast()` for a
+ * canned one, `puptoast('hey')` for your own words, `puptoast('hey', 'error')`
+ * to check a tone. The twin of `window.pupfault()` (see `FaultModal.tsx`), and
+ * for the same reason: every real toast needs a real event behind it — an
+ * invitation arriving, a game ending — so there's no honest UI path to one on
+ * demand, and the card's look can't be checked without waiting for one.
+ *
+ * **It always carries an action button and the X**, because those are the two
+ * things worth looking at: the action closes the toast without firing
+ * `onClose`, the X fires it and then closes. `onClose` logs, so the console
+ * says which path you took.
+ */
+declare global {
+  interface Window {
+    puptoast?: (message?: string, tone?: ToastTone) => string
+  }
+}
+if (typeof window !== 'undefined') {
+  window.puptoast = (message?: string, tone?: ToastTone) =>
+    showToast({
+      message: message ?? 'A hand-triggered test toast (window.puptoast).',
+      tone: tone ?? 'info',
+      action: { label: 'Got it', onClick: () => console.log('puptoast: action') },
+      onClose: () => console.log('puptoast: dismissed'),
+    })
+}
