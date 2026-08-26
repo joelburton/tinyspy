@@ -1,6 +1,6 @@
 // cs-audited
 
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { formatTimerSeconds } from '../../hooks/game/useGameTimer'
 import { timerLabel } from '../../lib/game/timerLabel'
 import { RadioRow } from '../fields/RadioRow'
@@ -18,6 +18,8 @@ const MIN_COUNTDOWN_SECONDS = 1
 const MAX_COUNTDOWN_SECONDS = 60 * 60
 
 type Props = {
+  /** What this section is about, under the summary. */
+  help?: ReactNode
   value: TimerMode
   onChange: (next: TimerMode) => void
 }
@@ -47,7 +49,7 @@ type Props = {
  * setup forms wrap it in their own `<div>` (alongside other
  * fields) — this file doesn't impose layout outside the fieldset.
  */
-export function SetupTimerSection({ value, onChange }: Props) {
+export function SetupTimerSection({ value, onChange, help }: Props) {
   // Local text state for the MM:SS input. Initialized from the
   // current setup when countdown, otherwise a sensible default.
   // The text and the setup can diverge briefly while the user
@@ -87,7 +89,7 @@ export function SetupTimerSection({ value, onChange }: Props) {
   return (
     // Collapsed by default; the summary carries the current setting (e.g.
     // "Timer: none", "Timer: 2:30 countdown"), so it's readable without opening.
-    <SetupSection label={`Timer: ${timerLabel(value)}`}>
+    <SetupSection label={`Timer: ${timerLabel(value)}`} help={help}>
       <RadioRow
         name="timerKind"
         value={value.kind}

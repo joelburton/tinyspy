@@ -11,7 +11,6 @@ import type { WordwheelSetup } from '../lib/setup'
 import { ManualBoardField } from '../../common/components/fields/ManualBoardField'
 import { groupTiles } from '../../common/components/fields/groupTiles'
 import { CheckboxField } from '../../common/components/fields/CheckboxField'
-import section from '../../common/components/setup/SetupSection.module.css'
 
 /** Normalize a letter input: lowercase, drop anything but a–z, cap the length.
  *  Keeps state canonical (lowercase, letters-only) so validation + the edge
@@ -151,11 +150,14 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
       {/* "Dictionaries" — the required/legal word bands, behind a disclosure whose
           summary shows the current bands (e.g. "Dictionaries: 3 (Familiar) / 5
           (Obscure)"). */}
-      <SetupSection label={dictLabel}>
-        <p className={section.help}>
-          Required words are the goal; legal words also score but aren't
-          required. Both are length-agnostic (examples just show the band).
-        </p>
+      {/* The help stays the SECTION's rather than splitting into two field
+          sentences the way boggle's did: its last clause — "both are
+          length-agnostic" — is about the pair, and would have to be said twice
+          or dropped. */}
+      <SetupSection
+        label={dictLabel}
+        help="Required words are the goal; legal words also score but aren't required. Both are length-agnostic (examples just show the band)."
+      >
         <DictBandField
           label="Required words"
           length={null}

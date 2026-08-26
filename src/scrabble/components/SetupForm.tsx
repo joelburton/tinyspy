@@ -9,7 +9,6 @@ import { SetupSection } from '../../common/components/setup/SetupSection'
 import { difficultyValue } from '../../common/lib/game/difficulty'
 import type { SetupBodyProps } from '../../common/lib/games'
 import { AI_BAND, AI_LEVELS, AI_LEVEL_LABEL, type AiLevel, type ScrabbleSetup } from '../lib/setup'
-import section from '../../common/components/setup/SetupSection.module.css'
 
 /**
  * scrabble's setup form. Shared by both modes:
@@ -72,8 +71,22 @@ export function SetupForm({ value, onChange, mode, players, playerCount }: Setup
       </SetupSection>
 
       {/* AI opponents — compete only (coop is one shared rack, no per-seat AI). */}
+      {/* The help stays the SECTION's: it reports the COMBINED choice — count and
+          level together — and then reaches out of this section entirely, to the
+          dictionaries above. No single field owns either half. */}
       {mode === 'compete' && (
-        <SetupSection label={aiLabel}>
+        <SetupSection
+          label={aiLabel}
+          help={
+            s.ai_count > 0 ? (
+              <>
+                {playerCount} human + {s.ai_count} AI. A {AI_LEVEL_LABEL[s.ai_level]} AI plays
+                from the “{aiBandName}” dictionary, so both dictionaries above must be at least
+                that wide.
+              </>
+            ) : undefined
+          }
+        >
           <RadioRow<number>
             name="ai_count"
             prefix="Add AI players:"
@@ -87,23 +100,17 @@ export function SetupForm({ value, onChange, mode, players, playerCount }: Setup
             onChange={(ai_count) => onChange({ ...s, ai_count })}
           />
           {s.ai_count > 0 && (
-            <>
-              <SelectField
-                label="Skill"
-                value={s.ai_level}
-                onChange={(v) => onChange({ ...s, ai_level: v as AiLevel })}
-              >
-                {AI_LEVELS.map((lv) => (
-                  <option key={lv} value={lv}>
-                    {AI_LEVEL_LABEL[lv]}
-                  </option>
-                ))}
-              </SelectField>
-              <p className={section.help}>
-                {playerCount} human + {s.ai_count} AI. A {AI_LEVEL_LABEL[s.ai_level]} AI plays from the
-                “{aiBandName}” dictionary, so both dictionaries above must be at least that wide.
-              </p>
-            </>
+            <SelectField
+              label="Skill"
+              value={s.ai_level}
+              onChange={(v) => onChange({ ...s, ai_level: v as AiLevel })}
+            >
+              {AI_LEVELS.map((lv) => (
+                <option key={lv} value={lv}>
+                  {AI_LEVEL_LABEL[lv]}
+                </option>
+              ))}
+            </SelectField>
           )}
         </SetupSection>
       )}

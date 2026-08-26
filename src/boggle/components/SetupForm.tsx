@@ -15,7 +15,6 @@ import { DICE_SETS, DICE_BY_NAME } from '../lib/dice'
 import styles from './SetupForm.module.css'
 import { ManualBoardField } from '../../common/components/fields/ManualBoardField'
 import { groupTiles } from '../../common/components/fields/groupTiles'
-import section from '../../common/components/setup/SetupSection.module.css'
 
 // Ladder labels + order ported verbatim from wsboggle (NewSoloGamePage.tsx).
 const SCORING_LADDERS: ReadonlyArray<{ name: LadderName; label: string }> = [
@@ -151,15 +150,9 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
           current bands (e.g. "Dictionaries: 3 (Familiar) / 5 (Obscure)"), matching
           spellingbee's section of the same name. */}
       <SetupSection label={dictLabel}>
-        <p className={section.help}>
-          <strong>Required words</strong> are what the board is built around and
-          what the end-of-game reveal lists. <strong>Legal words</strong> set how
-          obscure a non-required word can be and still score as a bonus — these
-          filter on difficulty only (any spelling/dialect counts), so a higher
-          band rewards digging up rarer finds.
-        </p>
         <DictBandField
           label="Required words"
+          help="What the board is built around, and what the end-of-game reveal lists."
           length={null}
           minBand={1}
           maxBand={6}
@@ -170,6 +163,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
         />
         <DictBandField
           label="Legal (bonus) words"
+          help="How obscure a non-required word can be and still score as a bonus. These filter on difficulty only (any spelling or dialect counts), so a higher band rewards digging up rarer finds."
           length={null}
           minBand={s.band}
           maxBand={6}

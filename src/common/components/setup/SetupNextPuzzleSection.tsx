@@ -1,6 +1,6 @@
 // cs-audited
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { SetupSection } from './SetupSection'
 import styles from './SetupNextPuzzleSection.module.css'
 import { DateField } from '../fields/DateField'
@@ -12,6 +12,8 @@ import { DateField } from '../fields/DateField'
 export type NextPuzzle = { id: string; puzzle_date: string; label: string } | null
 
 type Props = {
+  /** What this section is about, under the summary. */
+  help?: ReactNode
   /** The gametype's user-facing brand, for the exhausted copy. */
   brand: string
   /** The selected players' user ids. The preview is scoped to exactly the
@@ -56,7 +58,14 @@ type Props = {
  * The label slot keeps a fixed height across every state (loading, a puzzle,
  * exhausted, no-puzzle-that-day) so the sections below never jump.
  */
-export function SetupNextPuzzleSection({ brand, seenBy, load, loadByDate, onPick }: Props) {
+export function SetupNextPuzzleSection({
+  brand,
+  seenBy,
+  load,
+  loadByDate,
+  onPick,
+  help,
+}: Props) {
   // The derived answer STAMPED WITH the player set it was fetched for, rather
   // than a bare row plus a loading flag. Toggling a player has to blank the
   // line (the old answer may no longer be right), and clearing it by calling
@@ -146,7 +155,7 @@ export function SetupNextPuzzleSection({ brand, seenBy, load, loadByDate, onPick
         : `Puzzle: ${derived.label}`
 
   return (
-    <SetupSection label={summary} defaultOpen={nothingToPlay}>
+    <SetupSection label={summary} help={help} defaultOpen={nothingToPlay}>
       <p className={styles.next}>{line}</p>
       <DateField
         // No caption: the section's summary IS the caption, and the box is the

@@ -1,6 +1,6 @@
 // cs-audited
 
-import { useEffect } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { RadioRow } from '../fields/RadioRow'
 import { SelectField } from '../fields/SelectField'
 import { SetupSection } from './SetupSection'
@@ -32,6 +32,8 @@ export type CoopTurnSetup = {
 }
 
 type Props = {
+  /** What this section is about, under the summary. */
+  help?: ReactNode
   /** The manifest mode of the sibling being set up. The field is
    *  coop-only — it renders nothing for compete (which has no shared
    *  budget to collide on, and where scrabble owns its own turns). */
@@ -79,6 +81,7 @@ export function SetupCoopStyleSection({
   coopStyle,
   firstTurnUserId,
   onChange,
+  help,
 }: Props) {
   const isTurns = coopStyle === 'turns'
   // Coop-only, and pointless for a lone player — a one-person rotation.
@@ -109,7 +112,7 @@ export function SetupCoopStyleSection({
   return (
     // Collapsed by default; the summary carries the current setting so
     // it's readable without opening (matches SetupTimerSection's disclosure).
-    <SetupSection label={`Co-op: ${summaryValue}`}>
+    <SetupSection label={`Co-op: ${summaryValue}`} help={help}>
       <div className={styles.controls}>
         <RadioRow
           name="coopStyle"
