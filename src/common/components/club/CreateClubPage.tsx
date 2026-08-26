@@ -217,11 +217,8 @@ export function CreateClubPage({ session: _session }: Props) {
             maxLength={CLUB_NAME_MAX}
             autoFocus
             required
-          >
-            <span className="muted">
-              Up to {CLUB_NAME_MAX} characters — it headlines the club page.
-            </span>
-          </TextField>
+            entryHelp={`Up to ${CLUB_NAME_MAX} characters — it headlines the club page.`}
+          />
 
           <TextField
             label="Other members' usernames"
@@ -231,11 +228,8 @@ export function CreateClubPage({ session: _session }: Props) {
             placeholder="alice, bob"
             multiline
             rows={2}
-          >
-            <span className="muted">
-              Comma or space separated. You're added automatically.
-            </span>
-          </TextField>
+            entryHelp="Comma or space separated. You're added automatically."
+          />
 
           {error && <p className="error">{error}</p>}
 

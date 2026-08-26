@@ -1,6 +1,7 @@
 // cs-fixed
 
-import field from './field.module.css'
+import type { ReactNode } from 'react'
+import { Field } from './Field'
 import styles from './NumberField.module.css'
 
 type Props = {
@@ -21,6 +22,10 @@ type Props = {
    *  The box adds room for its padding and its spinner arrows on top. */
   chars: number
   disabled?: boolean
+  /** How to type it, under the box. */
+  entryHelp?: ReactNode
+  /** What's wrong with what's there. Rings the box and says why. */
+  error?: string | null
 }
 
 /**
@@ -51,28 +56,33 @@ export function NumberField({
   step = 1,
   chars,
   disabled,
+  entryHelp,
+  error,
 }: Props) {
   return (
-    <label className={field.field}>
-      <span className={field.label}>{label}</span>
-      <input
-        type="number"
-        name={name}
-        inputMode="numeric"
-        min={min}
-        max={max}
-        step={step}
-        disabled={disabled}
-        value={Number.isFinite(value) ? value : ''}
-        onChange={(e) => onChange(e.target.valueAsNumber)}
-        className={styles.input}
-        // Sized from the largest value it holds rather than a hand-picked rem —
-        // the same `ch` sizing <ManualBoardField> uses. The constant is the
-        // box's own furniture: 1.8rem of padding plus the spinner arrows.
-        // MEASURED, after 2.6rem shipped and clipped a single digit — it left
-        // 50px of content box for 54px of content.
-        style={{ width: `calc(${chars}ch + 3.4rem)` }}
-      />
-    </label>
+    <Field label={label} entryHelp={entryHelp} error={error}>
+      {(id) => (
+        <input
+          id={id}
+          type="number"
+          name={name}
+          inputMode="numeric"
+          min={min}
+          max={max}
+          step={step}
+          disabled={disabled}
+          value={Number.isFinite(value) ? value : ''}
+          onChange={(e) => onChange(e.target.valueAsNumber)}
+          className={styles.input}
+          // Sized from the largest value it holds rather than a hand-picked
+          // rem — the same `ch` sizing <ManualBoardField> uses. The constant is
+          // the box's own furniture: 1.8rem of padding plus the spinner arrows.
+          // MEASURED, after 2.6rem shipped and clipped a single digit — it left
+          // 50px of content box for 54px of content.
+          style={{ width: `calc(${chars}ch + 3.4rem)` }}
+          aria-invalid={error ? true : undefined}
+        />
+      )}
+    </Field>
   )
 }

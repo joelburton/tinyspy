@@ -219,7 +219,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
           eight other letters. Repeats are fine — each tile is one use.
         </p>
         <ManualBoardField
-          label="Custom letters"
+          ariaLabel="Custom letters"
           value={customEntry}
           onChange={(raw) => {
             const { center, letters } = splitCustomLetters(raw)

@@ -279,7 +279,6 @@ const VOCABULARIES: Vocabulary[] = [
       // now in one place instead of four — the debt travelled and shrank.
       'src/common/components/fields/field.module.css': ['0.4rem'],
       'src/common/components/fields/DateField.module.css': ['0.5rem'],
-      'src/common/components/fields/SelectField.module.css': ['0.35rem'],
       'src/common/components/fields/setupForm.module.css': ['1rem', '0.25rem', '0.75rem', '0.4rem'],
       'src/common/components/fields/TimerField.module.css': ['0.3rem'],
       'src/common/components/game/CelebrationBlockingModal.module.css': ['0.3rem', '0.4rem', '0.2rem', '1.4rem'],
@@ -337,7 +336,6 @@ const VOCABULARIES: Vocabulary[] = [
     allowed: /^(\d*\.?\d+(em|%)|inherit|initial|unset|revert)$/,
     pending: {
       'src/common/base.css': ['1.5rem', '1.25rem', '1.15rem', '1rem', 'max(16px,', '1em)'],
-      'src/common/components/auth/ClaimHandleScreen.module.css': ['0.9rem'],
       'src/common/components/buttons/ShuffleButton.module.css': ['32px'],
       'src/common/components/chat/ChatBody.module.css': ['0.9rem', 'max(16px,', '1em)'],
       'src/common/components/page-header/ChatButton.module.css': ['0.7rem'],
@@ -348,7 +346,7 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/components/club/CreateClubPage.module.css': ['0.8rem'],
       'src/common/components/club/EditClubModal.module.css': ['0.8rem', '0.85rem'],
       'src/common/components/club/StartGameRow.module.css': ['1rem', '0.85rem'],
-      'src/common/components/definitions/AnagramDialog.module.css': ['0.95rem', '0.75rem', '0.85rem', '0.8rem'],
+      'src/common/components/definitions/AnagramDialog.module.css': ['0.95rem', '0.85rem', '0.8rem'],
       'src/common/components/definitions/DefinitionView.module.css': ['1.05rem', '0.92rem', '0.9rem', '0.72rem', '0.8rem'],
       'src/common/components/definitions/WordEditDialog.module.css': ['0.85rem'],
       'src/common/components/feedback/FaultModal.module.css': ['1.1rem', '0.78rem'],
@@ -357,7 +355,6 @@ const VOCABULARIES: Vocabulary[] = [
       // They convert together or not at all.
       'src/common/components/loading-and-errs/ErrorPage.module.css': ['1.1rem', '0.78rem'],
       'src/common/components/feedback/GenericFeedbackPill.module.css': ['1.1rem'],
-      'src/common/components/fields/SelectField.module.css': ['0.9rem'],
       'src/common/components/fields/field.module.css': ['0.9rem'],
       'src/common/components/fields/ReadOnlyField.module.css': ['1.05rem'],
       'src/common/components/game/CelebrationBlockingModal.module.css': ['2.4rem', '1.5rem'],
@@ -378,7 +375,7 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/components/floating-panels/GameScratchpadCompanion.module.css': ['0.85rem', '0.8rem', '0.9rem', 'max(16px,', '1em)'],
       'src/common/components/menu/Menu.module.css': ['0.95rem', '0.82rem', '1rem'],
       'src/common/components/setup/SetupGameModal.module.css': ['0.85rem'],
-      'src/common/components/fields/PlayersField.module.css': ['0.8rem', '0.85rem'],
+      'src/common/components/fields/PlayersField.module.css': ['0.85rem'],
       'src/common/components/toasts/Toast.module.css': ['1.2rem'],
       'src/common/components/tooltips/TooltipHost.module.css': ['0.75rem'],
       'src/common/patterns/badge.css': ['0.7rem'],
@@ -471,7 +468,6 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/components/game/RankBar.module.css': ['0.04em'],
       'src/common/components/game/Stats.module.css': ['0.06em'],
       'src/common/components/palette/PalettePage.module.css': ['0.03em'],
-      'src/common/components/fields/PlayersField.module.css': ['0.03em'],
     },
     fix:
       'Use `--letter-spacing-label` (a small uppercase label) or `-wide` ' +

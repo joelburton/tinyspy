@@ -1,7 +1,7 @@
 // cs-fixed
 
 import type { ReactNode } from 'react'
-import field from './field.module.css'
+import { Field } from './Field'
 import styles from './ReadOnlyField.module.css'
 
 type Props = {
@@ -35,9 +35,8 @@ type Props = {
  */
 export function ReadOnlyField({ label, children }: Props) {
   return (
-    <div className={field.field}>
-      <span className={field.label}>{label}</span>
+    <Field label={label}>
       <span className={styles.value}>{children}</span>
-    </div>
+    </Field>
   )
 }

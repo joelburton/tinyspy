@@ -40,3 +40,50 @@
   font-size: 0.9rem;
   padding: 0;
 }
+
+/*
+ * ENTRY HELP — how to type this thing, sitting under the control.
+ *
+ * A different job from a section's help text, which explains what a SETTING
+ * means and leads the section (`setupForm.module.css` → `.helpText`). This is
+ * advice about the entry itself — "3–15 characters, must start with a letter",
+ * "abc float · ABC pinned in place · ? any letter" — so it belongs to the field
+ * and sits where you are looking when you need it.
+ *
+ * The anagram finder is what made the distinction visible: its syntax legend was
+ * a paragraph BELOW the Find button, three elements away from the box it
+ * describes.
+ */
+/* @@ */ .entryHelp {
+  color: var(--page-text-muted-color);
+  font-size: 0.9rem;
+}
+
+/*
+ * WHAT'S WRONG WITH WHAT YOU TYPED, under the control and in the fault color.
+ *
+ * Beside the outline below, not instead of it: the ring says WHICH field and
+ * the line says WHY, and a ring with no sentence leaves you hunting.
+ *
+ * NOT how a setup form reports errors (Joel, 2026-08-26) — those collect at the
+ * bottom of the dialog, next to the Start they gate, and that stays. This is for
+ * a form where the error belongs to one entry.
+ */
+/* @@ */ .error {
+  color: var(--chrome-fault-color);
+  font-size: 0.9rem;
+}
+
+/*
+ * The invalid ring, on whatever control the field holds.
+ *
+ * Written once here rather than per field component, so a field that grows an
+ * error state gets the ring by setting `aria-invalid` and nothing else. The
+ * attribute is the state — the same thing `<TimerField>`'s MM:SS box has always
+ * keyed on, rather than a class the styling and the markup have to keep in
+ * step.
+ */
+/* @@ */ .field :is(input, textarea, select)[aria-invalid='true'] {
+  outline: var(--border-width-line-thick) solid var(--chrome-fault-color);
+  outline-offset: -1px;
+}

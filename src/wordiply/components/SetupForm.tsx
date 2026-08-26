@@ -88,7 +88,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
           words to make a puzzle.
         </p>
         <ManualBoardField
-          label="Custom starter"
+          ariaLabel="Custom starter"
           value={customBase}
           onChange={(raw) => onChange({ ...s, custom_base: cleanBase(raw) || undefined })}
           placeholder="MOTH"

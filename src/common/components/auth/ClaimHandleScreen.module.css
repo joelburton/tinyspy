@@ -7,12 +7,6 @@
   margin-top: 1.5rem;
 }
 
-/* The username rules — on its own line under the input (tone comes from
- * the `muted` / `error` utility class applied alongside). */
-/* @@ */ .help {
-  font-size: 0.9rem;
-}
-
 /* Accept + "Not you? Sign out" share one row, right-justified, macOS
  * order: Sign out (secondary) on the left, Accept (default) rightmost.
  * See docs/ui.md → Dialog buttons. */

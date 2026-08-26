@@ -1,8 +1,7 @@
 // cs-fixed
 
 import type { ReactNode } from 'react'
-import { cls } from '../../lib/util/cls'
-import field from './field.module.css'
+import { Field } from './Field'
 import styles from './TextField.module.css'
 
 type Props = {
@@ -28,12 +27,17 @@ type Props = {
   multiline?: boolean
   /** Textarea height, in rows. Ignored for a single-line field. */
   rows?: number
-  /** Anything that belongs UNDER the control and inside the field — the muted
-   *  rule line ("3–15 characters…"), a validation hint. Left as children rather
-   *  than named `help`, because two of the three callers style theirs by state
-   *  (muted when valid, error when not) and a `help` prop would have to grow a
-   *  tone before it was worth the name. */
-  children?: ReactNode
+  /** HOW TO TYPE IT — advice about the entry, under the control. Not a
+   *  section's help text, which explains what a setting means and leads the
+   *  section; this is "3–15 characters, must start with a letter". */
+  entryHelp?: ReactNode
+  /** WHAT'S WRONG with what's there now. Rings the control in the fault color
+   *  and says why underneath. `null` for nothing wrong.
+   *
+   *  A setup form does NOT use this — its errors collect at the bottom, beside
+   *  the Start they gate (Joel, 2026-08-26). This is for a form where the
+   *  problem belongs to one entry. */
+  error?: string | null
   placeholder?: string
   maxLength?: number
   required?: boolean
@@ -75,11 +79,12 @@ type Props = {
 export function TextField({
   label,
   ariaLabel,
+  entryHelp,
+  error,
   value,
   onChange,
   multiline,
   rows,
-  children,
   placeholder,
   maxLength,
   required,
@@ -95,6 +100,7 @@ export function TextField({
   const shared = {
     className: styles.control,
     'aria-label': label === undefined ? ariaLabel : undefined,
+    'aria-invalid': error ? true : undefined,
     value,
     onChange: (e: { target: { value: string } }) => onChange(e.target.value),
     placeholder,
@@ -109,10 +115,14 @@ export function TextField({
   }
 
   return (
-    <label className={cls(field.field, className)}>
-      {label !== undefined && <span className={field.label}>{label}</span>}
-      {multiline ? <textarea rows={rows} {...shared} /> : <input type={type} {...shared} />}
-      {children}
-    </label>
+    <Field label={label} entryHelp={entryHelp} error={error} className={className}>
+      {(id) =>
+        multiline ? (
+          <textarea id={id} rows={rows} {...shared} />
+        ) : (
+          <input id={id} type={type} {...shared} />
+        )
+      }
+    </Field>
   )
 }

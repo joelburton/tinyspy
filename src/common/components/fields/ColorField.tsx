@@ -1,7 +1,7 @@
 // cs-fixed
 
 import { ColorChoiceList } from '../account/ColorChoiceList'
-import styles from './field.module.css'
+import { Field } from './Field'
 
 type Props = {
   /** The caption. Defaults to "Player color", which is what both callers say. */
@@ -28,9 +28,10 @@ type Props = {
  */
 export function ColorField({ label = 'Player color', value, onChange, disabled }: Props) {
   return (
-    <fieldset className={styles.field}>
-      <legend className={styles.label}>{label}</legend>
+    // `group`: the control is a SET of swatches, so the caption is a <legend>
+    // heading them rather than a label pointing at one.
+    <Field label={label} group>
       <ColorChoiceList value={value} onChange={onChange} disabled={disabled} />
-    </fieldset>
+    </Field>
   )
 }

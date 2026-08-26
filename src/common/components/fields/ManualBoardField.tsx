@@ -1,6 +1,8 @@
 // cs-fixed
 
+import type { ReactNode } from 'react'
 import { cls } from '../../lib/util/cls'
+import { Field } from './Field'
 import { groupTiles } from './groupTiles'
 import styles from './ManualBoardField.module.css'
 
@@ -20,8 +22,13 @@ type Props = {
    *  hand-picked rem widths these fields used to carry; `full` is boggle, whose
    *  content is a whole grid. */
   chars: number | 'full'
-  /** The accessible name — "Custom letters", "Custom board". */
-  label: string
+  /** The caption above the box. Every field can have one; today's five callers
+   *  don't pass it, because each sits in a `<SetupSection>` whose summary is
+   *  already the caption ("Custom letters: A-CHIROT"). The prop exists so the
+   *  next one doesn't have to reinvent the row. */
+  label?: ReactNode
+  /** The name, for when there is no caption — which is all five callers today. */
+  ariaLabel?: string
   /**
    * Draw the entry uppercase. Default true.
    *
@@ -36,6 +43,10 @@ type Props = {
   /** Cap the keystrokes. Omit where length is checked by the validator instead
    *  (boggle counts tiles, not characters). */
   maxLength?: number
+  /** How to type it, under the box. */
+  entryHelp?: ReactNode
+  /** What's wrong with what's there. Rings the box and says why. */
+  error?: string | null
   /**
    * Where the dashes fall — the sizes of each group of TILES, in order.
    * `[1, 6]` is freebee's centre-plus-six, `[3, 3, 3, 3]` is letterboxed's four
@@ -91,6 +102,9 @@ export function ManualBoardField({
   placeholder,
   chars,
   label,
+  ariaLabel,
+  entryHelp,
+  error,
   uppercase = true,
   maxLength,
   groups,
@@ -103,29 +117,36 @@ export function ManualBoardField({
   const shown = groups ? groupTiles(tiles(value), groups) : value
 
   return (
-    <input
-      type="text"
-      // A board is not prose: none of the browser's helpfulness applies, and
-      // autocapitalize in particular would fight boggle's case rule on a phone.
-      autoComplete="off"
-      autoCapitalize="none"
-      autoCorrect="off"
-      spellCheck={false}
-      maxLength={maxLength}
-      value={shown}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      aria-label={label}
-      className={cls(styles.input, uppercase && styles.upper)}
-      // Sized from what it holds rather than a hand-picked rem: `ch` is the
-      // width of a `0` in the current font, and the field is monospace, so
-      // `chars` is literally how many characters fit. The tracking adds 0.2em
-      // per character, and the dashes are characters too.
-      style={
-        chars === 'full'
-          ? { width: '100%' }
-          : { width: `calc(${chars}ch + ${chars} * 0.2em + 1.8rem)` }
-      }
-    />
+    <Field label={label} entryHelp={entryHelp} error={error}>
+      {(id) => (
+        <input
+          id={id}
+          type="text"
+          // A board is not prose: none of the browser's helpfulness applies,
+          // and autocapitalize in particular would fight boggle's case rule on
+          // a phone.
+          autoComplete="off"
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
+          maxLength={maxLength}
+          value={shown}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          aria-label={label === undefined ? ariaLabel : undefined}
+          aria-invalid={error ? true : undefined}
+          className={cls(styles.input, uppercase && styles.upper)}
+          // Sized from what it holds rather than a hand-picked rem: `ch` is
+          // the width of a `0` in the current font, and the field is monospace,
+          // so `chars` is literally how many characters fit. The tracking adds
+          // 0.2em per character, and the dashes are characters too.
+          style={
+            chars === 'full'
+              ? { width: '100%' }
+              : { width: `calc(${chars}ch + ${chars} * 0.2em + 1.8rem)` }
+          }
+        />
+      )}
+    </Field>
   )
 }

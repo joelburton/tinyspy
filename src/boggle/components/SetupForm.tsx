@@ -130,7 +130,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
           <strong>?</strong> for a blank.
         </p>
         <ManualBoardField
-          label="Custom board"
+          ariaLabel="Custom board"
           value={customBoard}
           onChange={(raw) =>
             onChange({

@@ -1,6 +1,7 @@
 // cs-audited
 
 import type { ReactNode } from 'react'
+import { Field } from './Field'
 import styles from './SelectField.module.css'
 
 type Props = {
@@ -16,6 +17,10 @@ type Props = {
   disabled?: boolean
   /** Optional `name` on the underlying `<select>`. */
   name?: string
+  /** How to type it, under the control. */
+  entryHelp?: ReactNode
+  /** What's wrong with what's there. Rings the control and says why. */
+  error?: string | null
   /** The `<option>` elements. */
   children: ReactNode
 }
@@ -32,24 +37,31 @@ type Props = {
  * setup selects (boggle dice/ladder, wordle guesses, psychicnum word-count)
  * compose it with their own `<option>`s.
  */
-export function SelectField({ label, value, onChange, disabled, name, children }: Props) {
-  const select = (
-    <select
-      className={styles.select}
-      name={name}
-      value={value}
-      disabled={disabled}
-      onChange={(e) => onChange(e.target.value)}
-    >
-      {children}
-    </select>
-  )
-
-  if (!label) return select
+export function SelectField({
+  label,
+  value,
+  onChange,
+  disabled,
+  name,
+  entryHelp,
+  error,
+  children,
+}: Props) {
   return (
-    <label className={styles.field}>
-      <span className={styles.label}>{label}</span>
-      {select}
-    </label>
+    <Field label={label} entryHelp={entryHelp} error={error}>
+      {(id) => (
+        <select
+          id={id}
+          className={styles.select}
+          name={name}
+          value={value}
+          disabled={disabled}
+          aria-invalid={error ? true : undefined}
+          onChange={(e) => onChange(e.target.value)}
+        >
+          {children}
+        </select>
+      )}
+    </Field>
   )
 }

@@ -138,7 +138,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
           it however you have it written.
         </p>
         <ManualBoardField
-          label="Custom board"
+          ariaLabel="Custom board"
           value={typedSides}
           onChange={(raw) => {
             setTypedSides(raw)

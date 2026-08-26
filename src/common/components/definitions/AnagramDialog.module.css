@@ -1,7 +1,7 @@
 /* cs-unmet */
 
 /* Body of the ⌥` anagram finder. The FloatingPanel shell provides the
- * surface/header/drag; this styles the search row, the terse syntax hint,
+ * surface/header/drag; this styles the search row,
  * and the scrolling result list. The search row + input + button rules
  * mirror WordLookupDialog.module.css — same family, same look. */
 
@@ -51,13 +51,6 @@
      press right now. `default` says "this isn't a button", which is the message
      a spent GAME PIECE sends — see common/.../PlayArea.module.css `.tile`. */
   cursor: not-allowed;
-}
-
-/* The syntax line — instructional chrome, not content, so muted. */
-/* @@ */ .hint {
-  margin: 0;
-  font-size: 0.75rem;
-  color: var(--page-text-muted-color);
 }
 
 /* @@ */ .error {

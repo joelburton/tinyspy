@@ -34,13 +34,22 @@ export function AnagramDialog({ onClose }: { onClose: () => void }) {
   // null = nothing searched yet (no result area at all).
   const [results, setResults] = useState<Result[] | null>(null)
   const [error, setError] = useState<string | null>(null)
+  // What is wrong with the ENTRY, as against a failure from the RPC: it belongs
+  // to the box, so it rings the box and says why underneath it.
+  const [entryError, setEntryError] = useState<string | null>(null)
   const [searching, setSearching] = useState(false)
   const { define: openDefine, popover } = useDefinePopover()
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
     const letters = query.trim()
-    if (letters.length < 2) return
+    if (letters.length < 2) {
+      // It used to `return` here — the Find button enabled, pressed, and
+      // nothing whatever happening. The refusal is right; the silence was not.
+      setEntryError('Two letters or more — a single letter only rearranges into itself.')
+      return
+    }
+    setEntryError(null)
     setSearching(true)
     setError(null)
     const res = await commonDb.rpc('anagrams', { letters })
@@ -79,8 +88,17 @@ export function AnagramDialog({ onClose }: { onClose: () => void }) {
             value={query}
             // Case carries meaning (pins), so keep it as typed; everything
             // that isn't a letter or '?' is dropped on entry.
-            onChange={(v) => setQuery(v.replace(/[^A-Za-z?]/g, '').slice(0, 15))}
+            onChange={(v) => {
+              setQuery(v.replace(/[^A-Za-z?]/g, '').slice(0, 15))
+              // Typing is the answer to the complaint; clear it as they act.
+              setEntryError(null)
+            }}
             placeholder="letters…"
+            // The syntax legend, moved INTO the field. It used to be a
+            // paragraph below the Find button — three elements from the box it
+            // describes, and read after you had already typed.
+            entryHelp="abc float · ABC pinned in place · ? any letter"
+            error={entryError}
           />
           <StandardButton
             name="Find"
@@ -90,8 +108,6 @@ export function AnagramDialog({ onClose }: { onClose: () => void }) {
             disabled={searching}
           />
         </form>
-        {/* The syntax, tersely. */}
-        <p className={styles.hint}>abc float · ABC pinned in place · ? any letter</p>
         {error && <p className={styles.error}>{error}</p>}
         {results && !error && (
           <>

@@ -1,6 +1,7 @@
 // cs-fixed
 
 import { Dot } from '../text/Dot'
+import { Field } from './Field'
 import type { Member } from '../../lib/games'
 import styles from './PlayersField.module.css'
 
@@ -55,8 +56,10 @@ export function PlayersField({
   hint,
 }: Props) {
   return (
-    <fieldset className={styles.players}>
-      <legend className={styles.legend}>Players</legend>
+    // `group`: the control is a SET of checkboxes, so the caption heads them as
+    // a <legend> rather than pointing at one. The bordered box is this field's
+    // own — see the module — but the caption and the column are everyone's.
+    <Field label="Players" group className={styles.players}>
       {members.map((m) => {
         const isSelf = m.user_id === selfId
         return (
@@ -81,6 +84,6 @@ export function PlayersField({
         )
       })}
       {hint && <p className={styles.hint}>{hint}</p>}
-    </fieldset>
+    </Field>
   )
 }

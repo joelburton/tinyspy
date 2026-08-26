@@ -77,6 +77,11 @@ function suggestedHandleFromEmail(email: string | null | undefined): string {
   return HANDLE_REGEX.test(normalized) ? normalized : ''
 }
 
+/** The handle rules, said once — they are the entry help while they hold and
+ *  the error the moment they don't. */
+const RULES =
+  '3–15 characters: lowercase letters, digits, and hyphens. Must start with a letter.'
+
 export function ClaimHandleScreen({ onClaimed, email }: Props) {
   // Pre-fill with the email-derived suggestion as an editable default.
   const [desired, setDesired] = useState(() => suggestedHandleFromEmail(email))
@@ -176,12 +181,13 @@ export function ClaimHandleScreen({ onClaimed, email }: Props) {
             // Hard stop at the CHECK's ceiling — a handle you can't submit
             // shouldn't be typeable in the first place.
             maxLength={15}
-          >
-            <span className={cls(styles.help, localValid ? 'muted' : 'error')}>
-              3–15 characters: lowercase letters, digits, and hyphens. Must
-              start with a letter.
-            </span>
-          </TextField>
+            // The rules are entry help while they hold and the error when they
+            // don't — same sentence either way, because breaking them is
+            // exactly what it warns against. It used to toggle a class between
+            // `muted` and `error` by hand; the field rings the box now too.
+            entryHelp={localValid ? RULES : undefined}
+            error={localValid ? null : RULES}
+          />
 
           <ColorField value={selected} onChange={setSelected} disabled={busy} />
 

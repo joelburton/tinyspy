@@ -198,7 +198,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
           six other letters. No S, and all seven must be different.
         </p>
         <ManualBoardField
-          label="Custom letters"
+          ariaLabel="Custom letters"
           value={customEntry}
           onChange={(raw) => {
             const { center, letters } = splitCustomLetters(raw)
