@@ -24,6 +24,11 @@ This area's own findings therefore start at **F30**, so no number in this file i
 ambiguous and an inherited finding is recognizable on sight (≤ F13 came from
 elsewhere; ≥ F30 was raised here).
 
+**Nineteen findings. FOUR RESOLVED** — F8, F9 (the button work), F38, F40 —
+**fifteen open:** F13, F30–F37, F39, F41–F46. F43–F46 were raised by the button
+work rather than by the audit, which is expected: §21 says a finding is not
+required to have come from the audit, and takes the next free number.
+
 ## The roster — 20 files
 
 Agreed 2026-08-25 before anything was read. All paths under `src/common/`.
@@ -107,14 +112,14 @@ actually there:
    per-file allowlist of unconverted literals, and five of the area's files are
    named in it. That list IS the debt, enumerated.
 
-## MOVED-IN · F8 · `confirm-buttons-are-raw` · The confirmation's buttons bypass the tone system
+## RESOLVED · F8 · `confirm-buttons-are-raw` · The confirmation's buttons bypass the tone system
 
 From `floating-panels`. `ConfirmationBlockingModal`'s pair are
 `<button className="button primary">` / `"button secondary"`, not
 `<ActionButton>`. Joel, 2026-08-24: *"leave them as raw, and we'll decide later
 on whether they become something else."* **Folded into F9** — same decision.
 
-## MOVED-IN · F9 · `action-button-text-only` · Are a form's buttons really different from action buttons?
+## RESOLVED · F9 · `action-button-text-only` · Are a form's buttons really different from action buttons?
 
 From `floating-panels`, inherited there from `homepage` as F44. **This is the
 reason the area exists.**
@@ -488,22 +493,33 @@ So this was only ever five pointers to repoint. The comments' SUBSTANCE was
 correct all along: all five are about inputs — the radio padding override, the
 select's sizing — and an input genuinely is covered by that rule.
 
-## F39 · `actionbutton-says-action` · The tone docstring still uses the name that was retired
+## F39 · `wrapper-tones-are-fiction` · Seven purpose buttons document tones that have never existed
 
-`ButtonTone` is `'quiet' | 'normal' | 'caution' | 'destructive' | 'success'` and
-the default parameter reads `tone = 'normal'`, but its docstring says
-*"`action` = blue"* (`ActionButton.tsx:14`) and a second block says *"The DEFAULT
-tone is `action`"* (`:21`). `ActionButton.module.css:35` records the rename and
-its reason: *"`normal` was called `action` until 2026-08-20 … `action` is also
-one of the fourteen BUTTON KINDS, so the word was naming a purpose in one
-taxonomy and a color in another."* The docs kept the collision the rename
-removed.
+**Re-slugged 2026-08-25, not silently** (§21 allows it when the subject genuinely
+changes). It was `actionbutton-says-action`, and that subject is gone:
+`ActionButton`'s stale docstring and the orphaned `/** */` block went with the
+file. The problem did not go with it — and it is larger than the original
+finding said.
 
-Same block, second defect: **`ActionButton.tsx:20–27` is a `/** */` doc comment
-attached to nothing** — a blank line separates it from the next `/** */`, which
-documents `PurposeButtonProps`. It reads as that type's docs and isn't.
+`ButtonTone` is, and has only ever been, five words: `quiet · normal · caution ·
+destructive · success`. Seven wrapper docstrings name something else:
 
-## F40 · `tone-quiet-claims-cancel` · The tone vocabulary reserves a slot for a button that never arrives
+| tone named | files | what the code actually passes |
+|---|---|---|
+| `info` | `ExchangeButton` · `NewGameButton` · `RestartButton` · `SharePreviewButton` | `normal` |
+| `error` | `EndGameButton` · `RevealButton` | `destructive` |
+| `action` | `BackToClubButton` | `normal` |
+
+`info` and `error` are the OUTCOME palette's words — which is the confusion the
+bucket split exists to prevent: *"a control saying 'this is irreversible' is a
+different question from a game saying 'you lost', even where the two hexes agree
+today."* A docstring that calls a button's red the `error` red teaches exactly
+the coupling the tokens were separated to deny.
+
+`action` is the retired name, and it retired because it collided with one of the
+fourteen KINDS. Mechanical fix, no decision attached.
+
+## RESOLVED · F40 · `tone-quiet-claims-cancel` · The tone vocabulary reserves a slot for a button that never arrives
 
 `ButtonTone`'s docstring: *"`quiet` = gray (a dialog's Cancel)"*. `button.css`
 on `.secondary`: *"Its family defaults to `quiet` (the way out of a dialog)"*.
@@ -581,3 +597,98 @@ role and label, not by class — so a rename here is cheap and a MARKUP change
   exists (or should) and a stylesheet that re-declares it anyway. If they resolve
   together, two whole game stylesheets (spellingbee's and wordwheel's) and one
   shared one (`CoopStyleField.module.css`) are deleted rather than edited.
+
+## F43 · `line-height-3-orphaned` · A vocabulary step with no consumer left
+
+**Raised by this area's own work, and the guard is red on it.**
+`src/guards/cssTokens.test.ts` → "every defined token is referenced (no dead
+tokens)" now fails on `--line-height-3` (`base.css:159`).
+
+Measured at the commit before: it had **exactly one consumer in the whole repo**
+— `ClubGameDeleteButton.module.css:27`, hand-tightening the line-height of the
+corner delete button — and `<StandardButton>` absorbed that when the button
+started declaring its own type. So the step was one edit from dead before we
+touched it.
+
+**Why it was left red rather than fixed.** The standard button takes
+`line-height: normal`, chosen after measuring: `1` shaves 2px off every button in
+the app. And no ramp step fits — `normal` computes to about 1.12 for this face,
+between steps 2 and 3. So the honest choices are to delete the step or to find it
+a real home, and **deleting a step from a declared vocabulary is not this area's
+call**. Inventing a consumer to make the guard green is the thing
+[[verify-guards-by-planting]] exists to forbid.
+
+## F44 · `field-tokens-on-buttons` · Two authors independently painted a button out of a form field
+
+`crosswords/components/Controls.module.css .btn` (three uses — the pencil/pen
+toggles and the clear-scope control) and
+`floating-panels/GameScratchpadCompanion.module.css .takeOver`. Neither shares a
+line of code with the other, and they agree on every paint decision:
+
+| | `.btn` | `.takeOver` |
+|---|---|---|
+| border | `1px solid var(--field-edge-color)` | `1px solid var(--field-edge-color)` |
+| background | `var(--field-fill-color)` | `var(--field-fill-color)` |
+| color | `var(--page-text-color)` | `var(--page-text-color)` |
+| radius | `6px` literal | `6px` literal |
+| size | `--iconButton-size` square, `padding: 0` | `padding: 0.15rem 0.5rem` |
+
+**Two things are wrong and they are different.** The literal `6px` IS
+`--radius-md` (`base.css:85`) — plain unconverted debt, and the same literal F37
+finds in crosswords' `.search` and `.dropzone`. The tokens are the more
+interesting half: `--field-*` is a form FIELD's edge and fill, and these are
+buttons. The two vocabularies happen to sit close in light mode, which is
+precisely why nobody noticed; they are separate names because they answer
+different questions and are free to diverge.
+
+`.btn` is the sharper case — it sizes itself with `--iconButton-size`, so it is
+literally the standard button's icon-only box wearing a field's paint.
+
+`GameScratchpadCompanion` was already flagged for this in docs/ui.md as *"one
+case genuinely unsettled … could reasonably be `button secondary` in the quiet
+tone"*, deferred to "next time the scratchpad is open". This is that time for the
+decision, even if the edits land in two other areas.
+
+## F45 · `four-dismiss-glyphs` · The ✕ problem `TitlebarCloseButton` solved, surviving at four more sites
+
+**NOT a conversion this area performs** (Joel, 2026-08-25): *"x-to-close buttons
+aren't normal buttons — we don't put borders on them and we may not decide that
+they have the same hover/is-clicked look. We can handle those when we meet
+them."* Filed because the CENSUS belongs here, and because the shape of the
+problem is already documented as solved.
+
+`TitlebarCloseButton`'s own docstring states the case for existing: *"`InfoSheet`
+shipped `✕` (U+2715) against this `×` (U+00D7) with its own hand-written
+aria-label, and a class can only make two different characters look alike."* Two
+floating panels use it. Four other dismiss-shaped controls do not, and they
+reproduce the exact defect:
+
+| site | glyph | name | box |
+|---|---|---|---|
+| `Toast .close` | `×` U+00D7 | "Dismiss" | `padding: 0.15rem 0.35rem`, 1.2rem |
+| `GenericFeedbackPill .close` | `×` U+00D7 | "Dismiss" | 1.1rem square, no padding |
+| `historyViewer .bannerExit` (8 games) | **`✕` U+2715** | "Exit viewing" | `padding: 0.15rem 0.35rem`, 1rem, `--radius-sm` |
+| letterboxed `.chainRemove` | `<IconRemove>` | "Take back WORD" | `all: unset`, 2.1rem, `999px` |
+
+**Two different characters, one Lucide component, and four sizes** — the same
+mix, at eight times the spread, since `bannerExit` ships in eight games.
+
+**`.chainRemove` is probably not one of them**, and that is worth saying rather
+than assuming: it means "take back the last word", which is an UNDO, not a
+close. It sits in the group only by shape. Whoever picks this up should decide
+whether the family is "dismiss" or "small glyph button", because the answer
+changes whether letterboxed is in it.
+
+## F46 · `ui-doc-describes-deleted-classes` · docs/ui.md documents a component and five classes that no longer exist
+
+`docs/ui.md` names `ActionButton` 6 times, `` `.button` `` 12, `icon-only` 12,
+`icon-button` 3, `button-small` 3, and `patterns/button.css` once — all of them
+deleted on 2026-08-25. The button taxonomy, the iconography section and the
+semantic-button roster all describe the old arrangement.
+
+**Not a defect to fix now.** The sprint distributes into `docs/` at the END
+(§13), and rewriting a doc that the remaining nine findings will move again is
+work done twice. Filed so the rewrite is a known, sized piece of the sprint's
+docs step rather than a discovery — and so nobody reads that section in the
+meantime and believes it.
+
