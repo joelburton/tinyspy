@@ -22,7 +22,7 @@ type Props = {
 
 /**
  * The shared styled `<select>` for game setup forms. A native `<select>` isn't
- * covered by theme.css's `input, textarea, button` rule, so each form used to
+ * covered by base.css's `input, textarea` rule, so each form used to
  * restyle its own — and they drifted into three looks (a custom-chevron one, a
  * native-arrow one, and an unstyled one). This is the single canonical control:
  * app control sizing + a custom chevron (`appearance: none`), matching the

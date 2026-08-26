@@ -461,22 +461,32 @@ WEEKDAY. But the fixed-height preview line and the date override are the same
 mechanism, and its own comment says so: *"the same shape connections and strands
 carry"*.
 
-## F38 · `theme-css-pointers-rotted` · Nine comments point at a stylesheet that no longer holds the rule
+## RESOLVED · F38 · `theme-css-pointers-rotted` · Comments pointed at a stylesheet that no longer holds the rule
 
-Nine comments across five roster files send the reader to `theme.css` for rules
-that moved when the stylesheet split:
+Nine comments named `theme.css` for rules that moved when the stylesheet split.
+**Four died with `ActionButton.tsx`** (they pointed at the button classes, now in
+`StandardButton.module.css`); the remaining five were in `fields/` and are fixed
+here. They were wrong twice:
 
-- the `input, textarea, button` padding `0.6rem 0.9rem` now lives at
-  **`common/base.css:780`** — named by `setupForm.module.css:63`,
-  `TimerField.module.css:30`, `SelectField.module.css:4` and `:20`,
-  `SelectField.tsx:25`
-- `icon-button` / `icon-only` / `secondary` / the slot defaults now live in
-  **`patterns/button.css`** and **`themes/daylight.css`** — named by
-  `ActionButton.tsx:12`, `:25`, `:78`, `:113`
+- **Wrong file, and misleadingly so.** `theme.css` still exists — SIXTEEN of
+  them, one per game — so a reader follows the pointer to a real stylesheet,
+  searches for `input`, finds nothing, and assumes they have misread something.
+  Checked all sixteen: none contains the rule. It is `base.css:777`.
+- **The quoted selector said `input, textarea, button`.** It is `input,
+  textarea`. `button` left that rule when chrome became opt-in.
 
-**The pointer is not dead, it is wrong**: `theme.css` still exists — sixteen of
-them, one per game — so a reader follows it to a real file that doesn't contain
-what the comment promised. Mechanical fix, no design question.
+**The `button` half is NOT a defect to chase downstream** (Joel, 2026-08-25).
+An unstyled `<button>` having no standard look is the correct arrangement, and
+`.standardButton` declaring its own padding is right *because* the element does
+not hand one down: *"it would be bad if instead we set that on all
+button-elements, and .standardButton inherited. it couples these things when
+there would be no reason to do so."* The neutral reset and the standard button's
+look have to be able to move independently — and the accidental kinds (a list
+row, a chat bubble, a `.link-button`) depend on the element staying bare.
+
+So this was only ever five pointers to repoint. The comments' SUBSTANCE was
+correct all along: all five are about inputs — the radio padding override, the
+select's sizing — and an input genuinely is covered by that rule.
 
 ## F39 · `actionbutton-says-action` · The tone docstring still uses the name that was retired
 

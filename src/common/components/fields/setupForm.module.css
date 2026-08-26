@@ -60,8 +60,8 @@
 
 /* @@ */ .radio input {
   margin: 0;
-  /* Override theme.css's input padding (`0.6rem 0.9rem`) — that sizes text
-   * inputs, not radios. */
+  /* Override base.css's input padding (`0.6rem 0.9rem`, base.css:777) — that
+   * sizes text inputs, not radios. */
   padding: 0;
 }
 
