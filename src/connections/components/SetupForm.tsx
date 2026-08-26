@@ -1,8 +1,8 @@
 // cs-unmet
 
-import { TimerField } from '../../common/components/fields/TimerField'
-import { CoopStyleField } from '../../common/components/fields/CoopStyleField'
-import { NextPuzzleField } from '../../common/components/fields/NextPuzzleField'
+import { SetupTimerSection } from '../../common/components/setup/SetupTimerSection'
+import { SetupCoopStyleSection } from '../../common/components/setup/SetupCoopStyleSection'
+import { SetupNextPuzzleSection } from '../../common/components/setup/SetupNextPuzzleSection'
 import type { SetupBodyProps } from '../../common/lib/games'
 import { db } from '../db'
 import type { ConnectionsSetup } from '../lib/setup'
@@ -17,7 +17,7 @@ import type { ConnectionsSetup } from '../lib/setup'
  *     because the date never meant anything here — the archive is a queue,
  *     and the only question the old calendar was asked was "one we haven't
  *     done." Crosswords keeps its calendar, where the date genuinely matters.
- *   - **Timer** — the shared `<TimerField>` (None / Up / Down with MM:SS).
+ *   - **Timer** — the shared `<SetupTimerSection>` (None / Up / Down with MM:SS).
  *
  * Plus the shared coop-pacing field.
  *
@@ -40,7 +40,7 @@ export function SetupForm({ brand, mode, players, value, onChange }: SetupBodyPr
     <>
       {/* Coop pacing — first, right below the dialog's player picker.
           Self-gates to nothing for compete / solo. */}
-      <CoopStyleField
+      <SetupCoopStyleSection
         mode={mode}
         players={players}
         coopStyle={s.coop_style ?? 'free-for-all'}
@@ -50,14 +50,14 @@ export function SetupForm({ brand, mode, players, value, onChange }: SetupBodyPr
         }
       />
 
-      <NextPuzzleField
+      <SetupNextPuzzleSection
         brand={brand}
         seenBy={players.map((p) => p.user_id)}
         load={async (seenBy) => {
           const { data } = await db.rpc('next_puzzle_for_club', { seen_by: seenBy })
           // Both RPCs return 0 or 1 rows. Zero from this one means the archive
           // is spent for these players; zero from the by-date one means no
-          // puzzle that day. NextPuzzleField renders each as its own state.
+          // puzzle that day. SetupNextPuzzleSection renders each as its own state.
           return data?.[0] ?? null
         }}
         loadByDate={async (date) => {
@@ -73,7 +73,7 @@ export function SetupForm({ brand, mode, players, value, onChange }: SetupBodyPr
         }}
       />
 
-      <TimerField value={s.timer} onChange={(timer) => onChange({ ...s, timer })} />
+      <SetupTimerSection value={s.timer} onChange={(timer) => onChange({ ...s, timer })} />
     </>
   )
 }

@@ -69,7 +69,7 @@ In addition to the cross-cutting terms in [`naming.md`](../naming.md):
 | **Pangram detection + bonus + visual marker** | shipped | |
 | **Rank ladder + rank-bar UI with hover tooltips** | shipped | |
 | **Found-words list** (column-major grid, fixed height, horizontal scroll past 3 columns; found words in their finder's color, missed required words gray, pangram bold, bonus bullet, recently-found underline) | shipped | |
-| **Timer modes** (none / countup / countdown) + countdown-expiry termination | shipped | Via shared `<TimerField>` + `useGameTimer` |
+| **Timer modes** (none / countup / countdown) + countdown-expiry termination | shipped | Via shared `<SetupTimerSection>` + `useGameTimer` |
 | **Manual end-game** (menu item; confirms then writes terminal) | shipped | Per-game menu item; outcome = `'manual'` |
 | **Pause-on-disconnect + manual pause** | shipped (via common) | Free from the common shell |
 | **Chat** (incl. `!`-prefix force-open) | shipped (via common) | In `Chat` |
@@ -426,7 +426,7 @@ src/spellingbee/
     SetupForm.tsx         The setup dialog body (lazy-loaded inside the common
                           SetupGameModal wrapper). Reads `mode` from SetupBodyProps
                           (fed by the sibling-manifest's GameManifest.mode). Coop:
-                          short paragraph + shared <TimerField>. Compete: adds a
+                          short paragraph + shared <SetupTimerSection>. Compete: adds a
                           target-rank dropdown (Good..Genius, default Amazing) above
                           the timer. Both modes: a "Word difficulty" fieldset with
                           two shared <DictBandField>s (Required words: band 1..6;

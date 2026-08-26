@@ -452,7 +452,7 @@ Folder `src/wordiply/`, mirroring `src/wordwheel/`. Two manifests, one schema, o
   `_finish_compete`"**).
 - **`components/SetupForm.tsx`** — one `<DictBandField>` ("Dictionary") + a
   **"Starter (optional)"** `<SetupSection>` (the player-chosen base — §5b; its summary
-  carries the value, e.g. `Starter: MOTH`) + `<TimerField>` + the shared `<CoopStyleField>`
+  carries the value, e.g. `Starter: MOTH`) + `<SetupTimerSection>` + the shared `<SetupCoopStyleSection>`
   (the coop free-for-all vs turn-by-turn picker, which also seeds `first_turn_user_id`).
   No rank picker, no base band. The field is labeled **Starter**, not "base": the schema
   says `base` but every player-facing string in this game says starter.
@@ -673,7 +673,7 @@ Mid-game compete needs no filter: RLS means you only *have* your own rows.
 
 - **Shell / lifecycle:** `<GamePage>`, `useCommonGame`, the manifest/registry + sibling
   pattern, `common.concede` / `end_game` / timers / presence-pause (inherited).
-- **Setup:** `<SetupGameModal>`, `<SetupSection>`, `<DictBandField>`, `<TimerField>`.
+- **Setup:** `<SetupGameModal>`, `<SetupSection>`, `<DictBandField>`, `<SetupTimerSection>`.
 - **Entry + submit:** the shared **`common/…/entry/GuessKeyboard`** (the Wordle-style on-screen
   keyboard, shared with wordle) for touch input + **`useCaptureKeys`** for physical keys, both
   driving the same `word`. Submit reuses **`useWordSubmit`** (shipped-list, trusting-commit)

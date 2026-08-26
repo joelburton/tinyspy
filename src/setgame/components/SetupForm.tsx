@@ -1,7 +1,7 @@
 // cs-unmet
 
-import { TimerField } from '../../common/components/fields/TimerField'
-import { CoopStyleField } from '../../common/components/fields/CoopStyleField'
+import { SetupTimerSection } from '../../common/components/setup/SetupTimerSection'
+import { SetupCoopStyleSection } from '../../common/components/setup/SetupCoopStyleSection'
 import { RadioRow } from '../../common/components/fields/RadioRow'
 import { SetupSection } from '../../common/components/setup/SetupSection'
 import type { SetupBodyProps } from '../../common/lib/games'
@@ -30,7 +30,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
     <>
       {/* Coop pacing — first, right below the dialog's player picker.
           Self-gates to nothing for compete / solo. */}
-      <CoopStyleField
+      <SetupCoopStyleSection
         mode={mode}
         players={players}
         coopStyle={s.coop_style ?? 'free-for-all'}
@@ -69,7 +69,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
         />
       </SetupSection>
 
-      <TimerField
+      <SetupTimerSection
         value={s.timer}
         onChange={(timer) => onChange({ ...s, timer })}
       />

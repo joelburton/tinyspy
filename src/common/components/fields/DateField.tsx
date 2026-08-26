@@ -26,7 +26,7 @@ type Props = {
 /**
  * A DATE a player picks — always an override, never the main event.
  *
- * One caller today, `<NextPuzzleField>`, and named for the same reason
+ * One caller today, `<SetupNextPuzzleSection>`, and named for the same reason
  * `<NumberField>` is: the raw `<input>` left standing is the one the next
  * setting copies. crosswords has two more of these and will want this when its
  * area comes.

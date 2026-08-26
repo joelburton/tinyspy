@@ -1,6 +1,6 @@
 // cs-unmet
 
-import type { CoopStyle, CoopTurnSetup } from '../../components/fields/CoopStyleField'
+import type { CoopStyle, CoopTurnSetup } from '../../components/setup/SetupCoopStyleSection'
 import type { Member, TimerMode } from '../games'
 import { timerLabel } from './timerLabel'
 
@@ -96,7 +96,7 @@ export function rosterRow(players: Member[]): SetupRow {
 
 /**
  * Co-op pacing, for the games that offer it (everything with a
- * `<CoopStyleField>`). Returns NOTHING when the field wouldn't have rendered —
+ * `<SetupCoopStyleSection>`). Returns NOTHING when the field wouldn't have rendered —
  * compete, or a solo club — because a control that didn't apply produces no
  * row.
  *

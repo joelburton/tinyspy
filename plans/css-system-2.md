@@ -607,15 +607,15 @@ The top ten, in the order they should be built:
 | # | pattern | what it is | read in | lives |
 |---|---|---|---|---|
 | 1 | **Field** | a label with its control, and the explanatory line under it | `SelectField.field/.label` · `WordEditDialog.field` · `EditProfileModal.field/.label` · `setupForm` | component + module |
-| 2 | **Choice row** / **choice group** | a radio or checkbox with its label, inline; and a wrapping row of them | `setupForm.radio/.radioRow/.checkRow` · `TimerField.radio/.timerRow` (verbatim copy) · `EditClubModal.gameRow` · `WordEditDialog.check` | component + module |
-| 3 | **Text input** | the typed-in field: fill, edge, radius, padding, the 16px touch floor that stops iOS zooming | `WordLookupDialog.input` · `AnagramDialog.input` (byte-identical) · `WordEditDialog.field input` · `TimerField.timerInput` | element rule + one class |
+| 2 | **Choice row** / **choice group** | a radio or checkbox with its label, inline; and a wrapping row of them | `setupForm.radio/.radioRow/.checkRow` · `SetupTimerSection.radio/.timerRow` (verbatim copy) · `EditClubModal.gameRow` · `WordEditDialog.check` | component + module |
+| 3 | **Text input** | the typed-in field: fill, edge, radius, padding, the 16px touch floor that stops iOS zooming | `WordLookupDialog.input` · `AnagramDialog.input` (byte-identical) · `WordEditDialog.field input` · `SetupTimerSection.timerInput` | element rule + one class |
 | 4 | **List** / **list row** | a stack of rows, divided, one hover, last divider suppressed | `HomePage.clubsList/.clubItem` · `ClubGameCard.row` · `AnagramDialog.list/.row` · `WordList` · crosswords' setup chooser — **not the menu**, see below | shared module |
 | 5 | **Section** | a bordered group under a heading | `setupForm.fieldset` · `SetupSection.section/.summary` · `EditClubModal.games/.gamesLegend` · `infoPanel.box/.heading` | component + module |
 | 6 | **Section header** | a heading with its action opposite | `HomePage.sectionHeader` · `infoPanel.headerRow` · `Menu.header/.headerTitle/.headerLine` | shared module |
 | 7 | **Overlay surface** | a surface floating above the page — surface, edge, radius, shadow | `Menu.popover` + `.flyout` · `Toast.toast` · `FloatingPanel.shell` · `DefinitionPopover` | shared module |
 | 8 | **Scroll region** | the box that scrolls inside a fixed parent: `flex: 1 1 auto` + `min-height: 0` + `overflow-y: auto` | 48 × `min-height: 0`, 22 × `overflow-y: auto` | utility |
 | 9 | **Focus ring** | 13 sites, all `2px solid var(--chrome-cursor-color)`, at three offsets (−1px, −2px, +2px) | `Menu` ×2 · `SelectField` · 3 dialogs · `HomePage.kbCursor` · `ClubGameCard.kbCursor` | utility |
-| 10 | **Disabled control** | 11 × `cursor: not-allowed`, opacity spread over 0.45 / 0.5 / 0.55 / 0.6 | `Menu.itemDisabled` · `SelectField` · `TimerField` · `AnagramDialog` · `WordEditDialog` | utility |
+| 10 | **Disabled control** | 11 × `cursor: not-allowed`, opacity spread over 0.45 / 0.5 / 0.55 / 0.6 | `Menu.itemDisabled` · `SelectField` · `SetupTimerSection` · `AnagramDialog` · `WordEditDialog` | utility |
 
 Below the line, real but smaller: the **action row** (`.modalActions`, plus a
 second pinned-to-bottom variant in `WordEditDialog.actions`), the **badge**
@@ -1232,7 +1232,7 @@ vocabulary; invent it if we ever need it.
   - **em *sizing to* the type — about ten, and growing.** `--dot-size` at
     `0.6` / `0.65` / `0.7em` across four files, `--filter-select-dot: 0.65em`,
     EntryBox's caret `height: 1.15em`, `StrikeMarks` at `1.05em`,
-    `NextPuzzleField`'s `min-height: 1.4em`.
+    `SetupNextPuzzleSection`'s `min-height: 1.4em`.
 
   The second family is the one with a real spread, and none of it is visible to
   a spacer guard — they are widths, heights and custom properties, not `gap` or

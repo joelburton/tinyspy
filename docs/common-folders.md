@@ -68,8 +68,8 @@ components/
   setup/         # the start-a-game dialog (collect per-game options → create)
       SetupGameModal, SetupDisclosure
   fields/        # reusable form controls (any form, not just setup)
-      DictBandField, TimerField, SelectField, RadioRow,
-      CoopStyleField, NextPuzzleField
+      DictBandField, SetupTimerSection, SelectField, RadioRow,
+      SetupCoopStyleSection, SetupNextPuzzleSection
   game/          # a live game's shell + the chrome around the play surface
       GamePage, PauseBoundary, PauseOverlay, SuspendConfirmationBlockingModal,
       OpponentStrip, ModePill, StrikeMarks, GameInvitations

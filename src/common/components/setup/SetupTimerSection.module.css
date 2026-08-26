@@ -1,7 +1,7 @@
 /* cs-audited */
 
 /*
- * The MM:SS box inside <TimerField>'s "Down" option, and nothing else.
+ * The MM:SS box inside <SetupTimerSection>'s "Down" option, and nothing else.
  *
  * The bordered box and its header come from the <SetupSection> that wraps the
  * field; the radio row and each radio come from <RadioRow>. Until 2026-08-26

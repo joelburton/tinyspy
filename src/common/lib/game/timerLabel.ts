@@ -7,7 +7,7 @@ import type { TimerMode } from '../games'
  * during-game "Setup options" recap — `none`, `count-up`, or `2:30 countdown`.
  * Every gametype renders it as `<li>Timer: {timerLabel(setup.timer)}</li>`, so
  * the value stands alone after the "Timer:" label (hence `none`, not `no
- * timer`). The timer CHOOSER is a separate component, `<TimerField>`; this just
+ * timer`). The timer CHOOSER is a separate component, `<SetupTimerSection>`; this just
  * formats what it produced.
  *
  * Shared because all 9 timer-bearing PlayAreas held a byte-identical copy of

@@ -6,7 +6,7 @@ import { signIn } from './helpers/session'
 import { startGameRow } from './helpers/clubPage'
 
 /**
- * The shared coop-pacing setup field (CoopStyleField) as it renders in a real
+ * The shared coop-pacing setup field (SetupCoopStyleSection) as it renders in a real
  * setup dialog: it's the FIRST section (right below the dialog's player picker),
  * the "Co-op style" radio (free-for-all / turns) sits above a spaced "First
  * player" DROPDOWN that only appears once turns is chosen. Driven on WordNerd

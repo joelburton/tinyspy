@@ -2,8 +2,8 @@
 
 import { DictBandField } from '../../common/components/fields/DictBandField'
 import { RadioRow } from '../../common/components/fields/RadioRow'
-import { TimerField } from '../../common/components/fields/TimerField'
-import { CoopStyleField } from '../../common/components/fields/CoopStyleField'
+import { SetupTimerSection } from '../../common/components/setup/SetupTimerSection'
+import { SetupCoopStyleSection } from '../../common/components/setup/SetupCoopStyleSection'
 import { SetupSection } from '../../common/components/setup/SetupSection'
 import { difficultyValue } from '../../common/lib/game/difficulty'
 import type { SetupBodyProps } from '../../common/lib/games'
@@ -18,7 +18,7 @@ import { EXTRA_SWAP_OPTIONS, type WaffleSetup } from '../lib/setup'
  *   - **Swap budget** — how many *extra* swaps beyond the puzzle's
  *     par you get. Fewer = harder. `max_swaps = par + extra_swaps`.
  *
- * Plus the shared `TimerField`.
+ * Plus the shared `SetupTimerSection`.
  *
  * Controlled component (state lives in the wrapper); the single
  * `value as WaffleSetup` cast is the boundary between the manifest's
@@ -41,7 +41,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
     <>
       {/* Coop pacing — first, right below the dialog's player picker.
           Self-gates to nothing for compete / solo. */}
-      <CoopStyleField
+      <SetupCoopStyleSection
         mode={mode}
         players={players}
         coopStyle={s.coop_style ?? 'free-for-all'}
@@ -76,7 +76,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
           onChange={(extra_swaps) => onChange({ ...s, extra_swaps })}
         />
       </SetupSection>
-      <TimerField
+      <SetupTimerSection
         value={s.timer}
         onChange={(timer) => onChange({ ...s, timer })}
       />

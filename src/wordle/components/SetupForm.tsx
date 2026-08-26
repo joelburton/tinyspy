@@ -2,8 +2,8 @@
 
 import { DictBandField } from '../../common/components/fields/DictBandField'
 import { SelectField } from '../../common/components/fields/SelectField'
-import { TimerField } from '../../common/components/fields/TimerField'
-import { CoopStyleField } from '../../common/components/fields/CoopStyleField'
+import { SetupTimerSection } from '../../common/components/setup/SetupTimerSection'
+import { SetupCoopStyleSection } from '../../common/components/setup/SetupCoopStyleSection'
 import { SetupSection } from '../../common/components/setup/SetupSection'
 import { difficultyValue } from '../../common/lib/game/difficulty'
 import type { SetupBodyProps } from '../../common/lib/games'
@@ -20,7 +20,7 @@ import { answerMaxBand, GUESS_OPTIONS, type WordleSetup } from '../lib/setup'
  *     the answer's hardest are disabled (you must be able to guess any answer);
  *     the manifest's `validate` gates Start on the same rule.
  *
- * Plus the shared `TimerField`. Controlled component (state lives in the
+ * Plus the shared `SetupTimerSection`. Controlled component (state lives in the
  * wrapper); shared by both manifests (mode doesn't change the form).
  */
 export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
@@ -38,7 +38,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
     <>
       {/* Coop pacing — first, right below the dialog's player picker.
           Self-gates to nothing for compete / solo. */}
-      <CoopStyleField
+      <SetupCoopStyleSection
         mode={mode}
         players={players}
         coopStyle={s.coop_style ?? 'free-for-all'}
@@ -80,7 +80,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
           onChange={(legal_guess) => onChange({ ...s, legal_guess })}
         />
       </SetupSection>
-      <TimerField
+      <SetupTimerSection
         value={s.timer}
         onChange={(timer) => onChange({ ...s, timer })}
       />

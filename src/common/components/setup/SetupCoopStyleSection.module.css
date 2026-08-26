@@ -1,7 +1,7 @@
 /* cs-audited */
 
 /*
- * CoopStyleField layout — stacks the two controls (the free-for-all/turns
+ * SetupCoopStyleSection layout — stacks the two controls (the free-for-all/turns
  * radio and the "First player" dropdown) in a column with the same 1rem rhythm
  * the setup form uses between its sections, so the first-player picker reads as
  * a distinct step below the style choice rather than crowding against it.

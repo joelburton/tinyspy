@@ -2,7 +2,7 @@
 
 import { DictBandField } from '../../common/components/fields/DictBandField'
 import { SelectField } from '../../common/components/fields/SelectField'
-import { TimerField } from '../../common/components/fields/TimerField'
+import { SetupTimerSection } from '../../common/components/setup/SetupTimerSection'
 import { SetupSection } from '../../common/components/setup/SetupSection'
 import { difficultyValue } from '../../common/lib/game/difficulty'
 import type { SetupBodyProps } from '../../common/lib/games'
@@ -60,7 +60,7 @@ const NO_TARGET = -1
  * player clicked), so this body never renders a mode radio.
  *
  * Coop: a short paragraph, an OPTIONAL win-rank picker ("None" by default —
- * the open-ended hunt), and the shared `<TimerField>`. "None" is stored as an
+ * the open-ended hunt), and the shared `<SetupTimerSection>`. "None" is stored as an
  * absent `target_rank`, not a sentinel: the RPC treats absent and null the same
  * and the FE reads `target_rank === undefined` as "no win condition".
  *
@@ -196,7 +196,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
         />
       </SetupSection>
 
-      <TimerField
+      <SetupTimerSection
         value={s.timer}
         onChange={(timer) => onChange({ ...s, timer })}
       />

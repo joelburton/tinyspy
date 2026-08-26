@@ -523,7 +523,7 @@ src/connections/
                           revealed ranks) — never broadcast or persisted; the revealed set
                           survives hide/show and clears when the play surface unmounts.
     HintList.module.css
-    SetupForm.tsx         The shared NextPuzzleField (a read-only "next up" line) + the
+    SetupForm.tsx         The shared SetupNextPuzzleSection (a read-only "next up" line) + the
                           timer-mode field. No fetching of its own. Formerly: a date picker +
                           calendar with a mode-scoped club_game_status overlay, defaulting
                           to the club's saved-default puzzle (last one started), stepping
@@ -590,7 +590,7 @@ reader with it, and the 2026-08-18 palette sweep deleted it outright — the
 "active" family it belonged to turned out not to be an outcome at all, and its
 one live value is now `--gamelist-suspended-color`.
 
-What connections shows instead is `common/components/fields/NextPuzzleField.tsx`,
+What connections shows instead is `common/components/setup/SetupNextPuzzleSection.tsx`,
 shared with strands: the read-only "next up" line, the date override, and a
 fixed-height slot so the sections below can't jump when the RPC lands.
 
@@ -635,7 +635,7 @@ Pause is common machinery — the presence/manual trigger sources, the overlay, 
 
 The additive server-authoritative tick model (`common.timers.ticks`, `tick_timer`, `useGameTimer`, the idempotent `submit_timeout`) is common machinery, documented once in [common.md → Idle accounting](../common.md#idle-accounting-timer-state-preservation). connections's specifics:
 
-- The timer is a **per-game setup choice** (the shared `<TimerField>`: None / Up / Down radio + MM:SS for countdown, 1s–60min), stored on `common.games.setup.timer` and validated in `create_game`. **Default: no timer** (`DEFAULT_CONNECTIONS_SETUP` seeds `timer: { kind: 'none' }`; the 10-minute countdown is only the pgTAP helper's default — see Tests below).
+- The timer is a **per-game setup choice** (the shared `<SetupTimerSection>`: None / Up / Down radio + MM:SS for countdown, 1s–60min), stored on `common.games.setup.timer` and validated in `create_game`. **Default: no timer** (`DEFAULT_CONNECTIONS_SETUP` seeds `timer: { kind: 'none' }`; the 10-minute countdown is only the pgTAP helper's default — see Tests below).
 - On countdown expiry the FE fires `connections.submit_timeout`, flipping play_state to the mode-appropriate terminal value — `lost` in coop, `lost_compete` in compete.
 
 ### Code-splitting
@@ -689,7 +689,7 @@ The broadcast / presence *behavior* itself (selection events merging across peer
   case he is probably describing is the OVERRIDE: type a date the archive
   doesn't have and the field says *"No Connections puzzle for 2026-08-11."* and
   stops, where it could offer the next date that does have one. Confirm which
-  before building. Raised while converting `<NextPuzzleField>` to a
+  before building. Raised while converting `<SetupNextPuzzleSection>` to a
   `<SetupSection>` in the CSS sprint's `forms` area, and deliberately **not**
   done there.
 

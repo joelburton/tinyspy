@@ -107,7 +107,7 @@
  *
  * Written once here rather than per field component, so a field that grows an
  * error state gets the ring by setting `aria-invalid` and nothing else. The
- * attribute is the state — the same thing `<TimerField>`'s MM:SS box has always
+ * attribute is the state — the same thing `<SetupTimerSection>`'s MM:SS box has always
  * keyed on, rather than a class the styling and the markup have to keep in
  * step.
  */

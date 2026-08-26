@@ -38,12 +38,12 @@ Agreed 2026-08-25 before anything was read. All paths under `src/common/`.
 **The shared field vocabulary (13)**
 
 ```
-components/fields/CoopStyleField.tsx      components/fields/CoopStyleField.module.css
-components/fields/CoopStyleField.test.tsx components/fields/DictBandField.tsx
-components/fields/DictBandField.test.tsx components/fields/NextPuzzleField.tsx
-components/fields/NextPuzzleField.module.css components/fields/RadioRow.tsx
+components/setup/SetupCoopStyleSection.tsx      components/setup/SetupCoopStyleSection.module.css
+components/setup/SetupCoopStyleSection.test.tsx components/fields/DictBandField.tsx
+components/fields/DictBandField.test.tsx components/setup/SetupNextPuzzleSection.tsx
+components/setup/SetupNextPuzzleSection.module.css components/fields/RadioRow.tsx
 components/fields/SelectField.tsx         components/fields/SelectField.module.css
-components/fields/TimerField.tsx          components/fields/TimerField.module.css
+components/setup/SetupTimerSection.tsx          components/setup/SetupTimerSection.module.css
 components/fields/setupForm.module.css
 ```
 
@@ -84,8 +84,8 @@ Stamped `cs-found` by this area's reading; whether each becomes an area is
 Joel's call.
 
 ```
-hooks/game/useGameTimer.ts   (formatTimerSeconds — TimerField)
-lib/game/timerLabel.ts       (the disclosure summary — TimerField)
+hooks/game/useGameTimer.ts   (formatTimerSeconds — SetupTimerSection)
+lib/game/timerLabel.ts       (the disclosure summary — SetupTimerSection)
 lib/game/difficulty.ts       (DIFFICULTY_LABELS + samples — DictBandField)
 components/icons.ts          (the glyph registry — the button machinery)
 ```
@@ -106,7 +106,7 @@ actually there:
    declared once instead of two-to-four times", which is invisible when it lands.
 2. *"we're underutilizing React components where those would bring together more
    than a set of raw CSS classes"* — **confirmed, and the sharpest case is inside
-   the area itself**: `<TimerField>` hand-writes the radio group that
+   the area itself**: `<SetupTimerSection>` hand-writes the radio group that
    `<RadioRow>` exists to render (F30). The four letter-inputs (F31) and the
    fixed-height puzzle line (F37) are the same shape one layer out.
 3. *"a lot of bespoke values and differences-without-distinction"* — **confirmed,
@@ -313,13 +313,13 @@ call, so the guard is left red rather than a fake consumer invented for it.
 
 `<RadioRow>` exists to render exactly this markup, and **adoption is otherwise
 complete**: measured across `src/`, there is not one `type="radio"` outside
-`components/fields/`. The single hold-out is `TimerField.tsx:91–129`, which
+`components/fields/`. The single hold-out is `SetupTimerSection.tsx:91–129`, which
 hand-writes the None / Up / Down triple.
 
-It pays for that with a duplicate stylesheet. `TimerField.module.css` vs
+It pays for that with a duplicate stylesheet. `SetupTimerSection.module.css` vs
 `setupForm.module.css`:
 
-| rule | setupForm | TimerField | differs by |
+| rule | setupForm | SetupTimerSection | differs by |
 |---|---|---|---|
 | the row | `.radioRow` — flex, wrap, gap 1rem | `.timerRow` — flex, wrap, gap 1rem, **`align-items: center`** | one declaration |
 | the option | `.radio` — inline-flex, center, gap .4rem, pointer | `.radio` — identical | **nothing** |
@@ -424,8 +424,8 @@ setup form's `.fieldset` chrome)". Measured, it doesn't match:
 | collapsible | no | yes, closed by default, summary carries the live value |
 
 Usage is lopsided and mixed: **15 files use `<SetupSection>`** (13 games plus
-`TimerField` and `CoopStyleField`), while **4 use the raw `.fieldset`**
-(codenamesduet, spellingbee, wordwheel, and `NextPuzzleField`). Several forms use
+`SetupTimerSection` and `SetupCoopStyleSection`), while **4 use the raw `.fieldset`**
+(codenamesduet, spellingbee, wordwheel, and `SetupNextPuzzleSection`). Several forms use
 both.
 
 The question is not which values win — it's whether a setup form has ONE box
@@ -436,13 +436,13 @@ click target and the legend isn't.
 ## F36 · `stack-repeated` · A flex column with a gap is the most-repeated shape in the area
 
 `display: flex; flex-direction: column; gap: 1rem` is declared three times —
-`setupForm.module.css .setup`, `CoopStyleField.module.css .controls`, and
-crosswords' own `.setup` — and `CoopStyleField`'s comment justifies its copy by
+`setupForm.module.css .setup`, `SetupCoopStyleSection.module.css .controls`, and
+crosswords' own `.setup` — and `SetupCoopStyleSection`'s comment justifies its copy by
 pointing at the original (*"the same 1rem rhythm the setup form uses"*). Near
 misses at other gaps: bananagrams `.dictRow` (0.6rem), spellingbee/wordwheel
 `.field` (0.3rem), `SelectField .field` (0.35rem).
 
-`CoopStyleField.module.css` is a 13-line file whose entire content is one such
+`SetupCoopStyleSection.module.css` is a 13-line file whose entire content is one such
 stack. **§7's "not patterns, though they look like it" may well cover this** —
 check it before proposing a `.stack`; the answer may be that the shared `.setup`
 should simply be reachable, not that a new utility is owed.
@@ -460,11 +460,11 @@ does not touch other games' code.
 The short version, kept so the shared findings have their sibling to point at:
 two raw `<select>`s (the app's last outside `fields/`), a `.search` class that
 re-declares the field chrome and disagrees on all four of radius, border token,
-padding and size, a `.nextDate` that is `<NextPuzzleField>`'s `.next` re-typed,
+padding and size, a `.nextDate` that is `<SetupNextPuzzleSection>`'s `.next` re-typed,
 and two unconverted radius literals.
 
 **What travels with it as a warning:** crosswords has a REAL reason not to use
-`<NextPuzzleField>` — its archive is a catalogue, not a queue, so it picks a
+`<SetupNextPuzzleSection>` — its archive is a catalogue, not a queue, so it picks a
 weekday rather than "the next one nobody has played". Only the fixed-height line
 and the date override are the same mechanism. A fix that folds the whole field in
 would be wrong.
@@ -547,7 +547,7 @@ built, documented, and unused.
 | markup | `<button>`s in a frame | native `<input type=radio>` in `<label>`s |
 | chosen state | `aria-pressed="true"` → filled in the normal family | `:checked` |
 | shape | joined, one shared border, ends clipped by `overflow: hidden` | separate options, `gap: 1rem` |
-| sites | club page's mobile tabs + its coop/compete/all filter, crosswords' source picker | 8 setup forms + `CoopStyleField` |
+| sites | club page's mobile tabs + its coop/compete/all filter, crosswords' source picker | 8 setup forms + `SetupCoopStyleSection` |
 
 Both files argue their own shape well (segmented's comment: *"Separate buttons
 with a gap read as independent toggles you could press several of — which is

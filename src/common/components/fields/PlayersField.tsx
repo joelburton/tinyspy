@@ -1,5 +1,6 @@
 // cs-fixed
 
+import type { ReactNode } from 'react'
 import { Dot } from '../text/Dot'
 import { Field } from './Field'
 import type { Member } from '../../lib/games'
@@ -17,6 +18,12 @@ type Props = {
    *  it also has to hand the SELECTED players to the game's own setup body (the
    *  turn-order "First player" picker lists only who will actually play). */
   onToggle: (userId: string) => void
+  /** What the setting is about, between the caption and the control. */
+  help?: ReactNode
+  /** How to give it, under the control. */
+  entryHelp?: ReactNode
+  /** What's wrong with what's there. */
+  error?: string | null
   /** Disable every row while the create RPC is in flight. */
   busy?: boolean
   /** The count complaint, when there is one: "Pick at least 2 players." The
@@ -39,7 +46,7 @@ type Props = {
  *
  * A component rather than markup inside `SetupGameModal` because a players
  * picker is a FIELD, and every other field a setup form has is one of these —
- * `<TimerField>`, `<DictBandField>`, `<CoopStyleField>`. It lived inline for
+ * `<SetupTimerSection>`, `<DictBandField>`, `<SetupCoopStyleSection>`. It lived inline for
  * as long as it had exactly one caller, which is how the setup form's other
  * shapes drifted too.
  *
@@ -54,12 +61,22 @@ export function PlayersField({
   onToggle,
   busy,
   hint,
+  help,
+  entryHelp,
+  error,
 }: Props) {
   return (
     // `group`: the control is a SET of checkboxes, so the caption heads them as
     // a <legend> rather than pointing at one. The bordered box is this field's
     // own — see the module — but the caption and the column are everyone's.
-    <Field label="Players" group className={styles.players}>
+    <Field
+      label="Players"
+      group
+      className={styles.players}
+      help={help}
+      entryHelp={entryHelp}
+      error={error}
+    >
       {members.map((m) => {
         const isSelf = m.user_id === selfId
         return (

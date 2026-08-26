@@ -681,7 +681,7 @@ board rotation) — never shared, never persisted, doesn't pause.
   below-board feedback channel [both columns write it], the coop `useSharedMove`
   transport, the terminal copy + the compete-win `CelebrationBlockingModal`, and the
   board-viewer state), `SetupForm`
-  (`<CoopStyleField>` [coop pacing + first turn], two `<DictBandField>`s,
+  (`<SetupCoopStyleSection>` [coop pacing + first turn], two `<DictBandField>`s,
   the AI opponent count/level controls [compete], + timer), `Help`.
 
 **Tentative placement is local state** (and private in coop until commit — per the

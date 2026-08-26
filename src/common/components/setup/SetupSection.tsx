@@ -13,7 +13,7 @@ import styles from './SetupSection.module.css'
  * Distinct from the info-column `<SetupDisclosure>` (the "Setup options" recap
  * shown WHILE playing): this one wraps a single editable field in the setup
  * dialog, and its summary carries that field's live value. Used by the shared
- * `<TimerField>` and by per-game setup forms (e.g. spellingbee's Dictionaries +
+ * `<SetupTimerSection>` and by per-game setup forms (e.g. spellingbee's Dictionaries +
  * Custom letters).
  */
 export function SetupSection({
@@ -28,7 +28,7 @@ export function SetupSection({
    * value, so opening is for changing.
    *
    * **It can go false again, and that must not slam the section shut**
-   * (2026-08-25). `<NextPuzzleField>` sets this from "there is nothing to
+   * (2026-08-25). `<SetupNextPuzzleSection>` sets this from "there is nothing to
    * play", which flips back the moment you type a date that has one — and the
    * date box you are typing into is INSIDE the section. Forcing it closed
    * yanked the control out from under the cursor mid-edit, which an e2e spec

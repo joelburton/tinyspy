@@ -101,7 +101,7 @@ See [`common.md → Deferred / open`](common.md#deferred--open) for more detail 
   |---|---|---|
   | `0.45` | `.shuffle:disabled` | `common/components/buttons/ShuffleButton.module.css` |
   | `0.5` | `.button:disabled` | `common/components/club/StartGameButtons.module.css` |
-  | `0.5` | `.timerInput:disabled` | `common/components/fields/TimerField.module.css` |
+  | `0.5` | `.timerInput:disabled` | `common/components/setup/SetupTimerSection.module.css` |
   | `0.5` | `.btn:disabled` | `crosswords/components/Controls.module.css` |
   | `0.55` | `.select:disabled` | `common/components/fields/SelectField.module.css` |
   | `0.6` | `.button:disabled` | `common/components/definitions/AnagramDialog.module.css` |

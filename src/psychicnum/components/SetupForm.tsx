@@ -1,7 +1,7 @@
 // cs-unmet
 
-import { TimerField } from '../../common/components/fields/TimerField'
-import { CoopStyleField } from '../../common/components/fields/CoopStyleField'
+import { SetupTimerSection } from '../../common/components/setup/SetupTimerSection'
+import { SetupCoopStyleSection } from '../../common/components/setup/SetupCoopStyleSection'
 import { DictBandField } from '../../common/components/fields/DictBandField'
 import { SelectField } from '../../common/components/fields/SelectField'
 import { RadioRow } from '../../common/components/fields/RadioRow'
@@ -22,7 +22,7 @@ import {
  *   - **Words on the board** — how many words (5..20); three are secret.
  *   - **Word difficulty** — the dictionary band the board is drawn from
  *     (the shared `<DictBandField>`).
- *   - **Timer** — the shared `<TimerField>`.
+ *   - **Timer** — the shared `<SetupTimerSection>`.
  *
  * No member-aware UI (every guess is interchangeable; no seats),
  * no auto-seeding logic — the manifest's defaults already cover
@@ -56,7 +56,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
       {/* Coop pacing — free-for-all (default) vs turn-by-turn — first, right
           below the dialog's player picker. Self-gates to nothing for
           compete / solo, so it's dropped in unconditionally. */}
-      <CoopStyleField
+      <SetupCoopStyleSection
         mode={mode}
         players={players}
         coopStyle={s.coop_style ?? 'free-for-all'}
@@ -108,7 +108,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
           onChange={(difficulty) => onChange({ ...s, difficulty })}
         />
       </SetupSection>
-      <TimerField
+      <SetupTimerSection
         value={s.timer}
         onChange={(timer) => onChange({ ...s, timer })}
       />

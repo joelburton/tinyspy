@@ -3,10 +3,10 @@
 import { useState } from 'react'
 import { formatTimerSeconds } from '../../hooks/game/useGameTimer'
 import { timerLabel } from '../../lib/game/timerLabel'
-import { RadioRow } from './RadioRow'
-import { SetupSection } from '../setup/SetupSection'
+import { RadioRow } from '../fields/RadioRow'
+import { SetupSection } from './SetupSection'
 import type { TimerMode } from '../../lib/games'
-import styles from './TimerField.module.css'
+import styles from './SetupTimerSection.module.css'
 
 /**
  * Bounds for the count-down picker — kept in lockstep with the
@@ -47,7 +47,7 @@ type Props = {
  * setup forms wrap it in their own `<div>` (alongside other
  * fields) — this file doesn't impose layout outside the fieldset.
  */
-export function TimerField({ value, onChange }: Props) {
+export function SetupTimerSection({ value, onChange }: Props) {
   // Local text state for the MM:SS input. Initialized from the
   // current setup when countdown, otherwise a sensible default.
   // The text and the setup can diverge briefly while the user
@@ -139,7 +139,7 @@ export function TimerField({ value, onChange }: Props) {
  * "5:3" — that's 5 minutes 3 seconds vs. 5 minutes 30 seconds).
  *
  * Exported as a private helper of this component; not for outside
- * use. The TimerField's onChange already gives callers the parsed
+ * use. The SetupTimerSection's onChange already gives callers the parsed
  * `seconds` value when it's valid.
  */
 function parseMmSs(text: string): number | null {

@@ -20,8 +20,12 @@ type Props = {
    *  says what it does needs no second heading. The prop exists so this field
    *  has the same shape as the rest (Joel, 2026-08-26). */
   label?: ReactNode
-  /** What the setting is about, between the caption and the row. */
+  /** What the setting is about, between the caption and the control. */
   help?: ReactNode
+  /** How to give it, under the control. */
+  entryHelp?: ReactNode
+  /** What's wrong with what's there. */
+  error?: string | null
   /** Where the row sits in ITS OWN parent — EditClubModal's gametype rows carry
    *  a hairline and their own padding. Placement is the caller's, always. */
   className?: string
@@ -58,13 +62,15 @@ export function CheckboxField({
   disabled,
   label,
   help,
+  entryHelp,
+  error,
   className,
 }: Props) {
   return (
     // Children as a NODE, not a function: the row is its own <label> wrapping
     // the box, so nothing here wants the id — and `Field` reads that and makes
     // the caption a plain element rather than a second, nesting <label>.
-    <Field label={label} help={help} className={className}>
+    <Field label={label} help={help} entryHelp={entryHelp} error={error} className={className}>
       <label className={styles.row}>
         <input
           type="checkbox"

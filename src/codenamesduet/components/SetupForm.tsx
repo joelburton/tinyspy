@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { RadioRow } from '../../common/components/fields/RadioRow'
-import { TimerField } from '../../common/components/fields/TimerField'
+import { SetupTimerSection } from '../../common/components/setup/SetupTimerSection'
 import type { SetupBodyProps } from '../../common/lib/games'
 import {
   TURN_OPTIONS,
@@ -81,7 +81,7 @@ export function SetupForm({ members, value, onChange }: SetupBodyProps) {
         />
       </SetupSection>
 
-      <TimerField
+      <SetupTimerSection
         value={s.timer}
         onChange={(timer) => onChange({ ...s, timer })}
       />

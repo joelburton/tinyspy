@@ -489,11 +489,11 @@ codenamesduet use; see [docs/ui.md → PlayArea layout](../playarea.md#playarea-
   below the board; the header pill carries **peer** news (compete: an opponent
   solved or ran out of swaps; coop needs none — the swap log shows every move).
 - `SetupForm` and `Help` round it out. The form (shared by both modes) offers
-  four knobs: the `CoopStyleField` first (the opt-in turn-by-turn coop pacing +
+  four knobs: the `SetupCoopStyleSection` first (the opt-in turn-by-turn coop pacing +
   its first-turn picker — self-gates to nothing for compete / solo), a
   word-difficulty `DictBandField` (which vocabulary band the six words come
   from, 1–6), the extra-swaps `RadioRow` (the budget knob — fewer is harder),
-  and the shared `TimerField`. The two disclosure sections carry their current
+  and the shared `SetupTimerSection`. The two disclosure sections carry their current
   values in their summaries ("Dictionary: Familiar", "Swap budget: Tight +3")
   so the form reads without opening anything.
 

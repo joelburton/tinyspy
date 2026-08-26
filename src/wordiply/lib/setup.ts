@@ -1,7 +1,7 @@
 // cs-unmet
 
 import type { TimerMode } from '../../common/lib/games'
-import type { CoopTurnSetup } from '../../common/components/fields/CoopStyleField'
+import type { CoopTurnSetup } from '../../common/components/setup/SetupCoopStyleSection'
 
 /**
  * wordiply's per-game setup — collected by the start-game dialog,

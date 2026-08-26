@@ -2,7 +2,7 @@
 
 import { DictBandField } from '../../common/components/fields/DictBandField'
 import { RadioRow } from '../../common/components/fields/RadioRow'
-import { TimerField } from '../../common/components/fields/TimerField'
+import { SetupTimerSection } from '../../common/components/setup/SetupTimerSection'
 import { SetupSection } from '../../common/components/setup/SetupSection'
 import { difficultyValue } from '../../common/lib/game/difficulty'
 import type { SetupBodyProps } from '../../common/lib/games'
@@ -41,7 +41,7 @@ import { CheckboxField } from '../../common/components/fields/CheckboxField'
  *     words are a separate, thinner vocabulary). The bands define what counts
  *     as a real word for the check AND the upcoming opt-in "check board"
  *     helper, so they show regardless of the check mode.
- *   - **Timer** — the shared `TimerField` (none / count-up / countdown
+ *   - **Timer** — the shared `SetupTimerSection` (none / count-up / countdown
  *     MM:SS). A countdown that runs out ends the race as a loss for
  *     everyone (`bananagrams.submit_timeout`).
  *
@@ -136,7 +136,7 @@ export function SetupForm({ value, onChange, playerCount }: SetupBodyProps) {
         </div>
       </SetupSection>
 
-      <TimerField
+      <SetupTimerSection
         value={s.timer}
         onChange={(timer) => onChange({ ...s, timer })}
       />

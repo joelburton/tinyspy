@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { SetupBodyProps } from '../../common/lib/games'
-import { TimerField } from '../../common/components/fields/TimerField'
+import { SetupTimerSection } from '../../common/components/setup/SetupTimerSection'
 import { cls } from '../../common/lib/util/cls'
 import { db } from '../db'
 import type { CrosswordsSetup } from '../lib/setup'
@@ -458,7 +458,7 @@ export function SetupForm({ clubHandle, players, value, onChange }: SetupBodyPro
           which ends the table: coop → `lost`, compete → `lost_compete`, both
           stamped `outcome: 'timeout'` so buildOver can say "Out of time"
           rather than the concede wording those states otherwise carry. */}
-      <TimerField value={s.timer} onChange={(timer) => onChange({ ...s, timer })} />
+      <SetupTimerSection value={s.timer} onChange={(timer) => onChange({ ...s, timer })} />
     </div>
   )
 }

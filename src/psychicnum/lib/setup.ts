@@ -1,7 +1,7 @@
 // cs-unmet
 
 import type { TimerMode } from '../../common/lib/games'
-import type { CoopTurnSetup } from '../../common/components/fields/CoopStyleField'
+import type { CoopTurnSetup } from '../../common/components/setup/SetupCoopStyleSection'
 
 /**
  * psychicnum's per-game setup — the choices collected by the

@@ -307,8 +307,8 @@ The start-game dialog collects these options from the players before `create_gam
 - **`guesses`**: total guess budget shared across all club members, one of `{3, 5, 7, 9}`. 7 is the default.
 - **`word_count`**: how many words on the board, 5..20 (default 10). Three of them are secret.
 - **`difficulty`**: dictionary band 1..6 (Universal..Expert, default 3), a `common.words.difficulty` value — the board is sampled at `difficulty ≤ this`. Rendered by the shared `<DictBandField>`.
-- **`timer`**: timer mode — `none`, `countup`, or `countdown` with a player-chosen MM:SS duration. Rendered by the shared `<TimerField>`, validated server-side by `common.require_valid_timer`. See [Timer](#timer-server-authoritative-ticks) below.
-- **`coop_style`** (coop): `'free-for-all'` (the default) or `'turns'` — the common opt-in turn-by-turn pacing, rendered by the shared `<CoopStyleField>`. Picking `'turns'` adds **`first_turn_user_id`** (who goes first — must be one of the players; `create_game` rejects anyone else).
+- **`timer`**: timer mode — `none`, `countup`, or `countdown` with a player-chosen MM:SS duration. Rendered by the shared `<SetupTimerSection>`, validated server-side by `common.require_valid_timer`. See [Timer](#timer-server-authoritative-ticks) below.
+- **`coop_style`** (coop): `'free-for-all'` (the default) or `'turns'` — the common opt-in turn-by-turn pacing, rendered by the shared `<SetupCoopStyleSection>`. Picking `'turns'` adds **`first_turn_user_id`** (who goes first — must be one of the players; `create_game` rejects anyone else).
 
 Shape stored on `common.games.setup` (jsonb): `{ "guesses": 3|5|7|9, "word_count": 5..20, "difficulty": 1..6, "timer": {…}, "coop_style": "free-for-all"|"turns" }` — plus `"first_turn_user_id"` when turns. The mutable `guesses_remaining` counter is initialized from `setup.guesses` at create-game time; the blob persists the original choices on the common header for end-of-game review. The saved club default (`common.create_game`'s last arg) is the same blob minus **only** `first_turn_user_id` — who goes first is a per-game pick, not a club preference, while the `coop_style` toggle itself round-trips so a club that likes turns keeps it.
 
@@ -316,7 +316,7 @@ The FE side: `src/psychicnum/lib/setup.ts` (the `PsychicnumSetup` type) and `src
 
 ## Timer (server-authoritative ticks)
 
-Standard `<TimerField>` + `useGameTimer` setup — see [`common.md → Idle accounting`](../common.md#idle-accounting-timer-state-preservation) for the design rationale and drift bounds. Psychic-num-specific: countdown expiry calls `psychicnum.submit_timeout`, which flips `play_state` to `lost` (coop) / `lost_compete` (compete).
+Standard `<SetupTimerSection>` + `useGameTimer` setup — see [`common.md → Idle accounting`](../common.md#idle-accounting-timer-state-preservation) for the design rationale and drift bounds. Psychic-num-specific: countdown expiry calls `psychicnum.submit_timeout`, which flips `play_state` to `lost` (coop) / `lost_compete` (compete).
 
 ## Pause-on-disconnect
 

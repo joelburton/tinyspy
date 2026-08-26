@@ -1,8 +1,8 @@
 // cs-unmet
 
 import { DictBandField } from '../../common/components/fields/DictBandField'
-import { TimerField } from '../../common/components/fields/TimerField'
-import { CoopStyleField } from '../../common/components/fields/CoopStyleField'
+import { SetupTimerSection } from '../../common/components/setup/SetupTimerSection'
+import { SetupCoopStyleSection } from '../../common/components/setup/SetupCoopStyleSection'
 import { SetupSection } from '../../common/components/setup/SetupSection'
 import type { SetupBodyProps } from '../../common/lib/games'
 import { cleanBase, type WordiplySetup } from '../lib/setup'
@@ -17,7 +17,7 @@ import { ManualBoardField } from '../../common/components/fields/ManualBoardFiel
  * It's deliberately minimal: a mode paragraph, one dictionary-difficulty
  * band (the base is a letter-combination, not a word, so there's no base
  * difficulty; and wordiply isn't a race-to-rank, so no target-rank picker),
- * and the shared `<TimerField>`.
+ * and the shared `<SetupTimerSection>`.
  *
  * Controlled component: state lives in the wrapping `SetupGameModal`; this
  * body renders `value` and signals via `onChange`.
@@ -36,7 +36,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
     <>
       {/* Coop pacing — first, right below the dialog's player picker.
           Self-gates to nothing for compete / solo. */}
-      <CoopStyleField
+      <SetupCoopStyleSection
         mode={mode}
         players={players}
         coopStyle={s.coop_style ?? 'free-for-all'}
@@ -79,7 +79,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
         />
       </SetupSection>
 
-      <TimerField value={s.timer} onChange={(timer) => onChange({ ...s, timer })} />
+      <SetupTimerSection value={s.timer} onChange={(timer) => onChange({ ...s, timer })} />
     </>
   )
 }

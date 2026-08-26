@@ -3,16 +3,16 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import { CoopStyleField } from './CoopStyleField'
+import { SetupCoopStyleSection } from './SetupCoopStyleSection'
 import type { Member } from '../../lib/games'
 
 const ada: Member = { user_id: 'ada', username: 'ada', color: 'red' }
 const bea: Member = { user_id: 'bea', username: 'bea', color: 'blue' }
 
-describe('CoopStyleField', () => {
+describe('SetupCoopStyleSection', () => {
   it('renders nothing for compete', () => {
     const { container } = render(
-      <CoopStyleField
+      <SetupCoopStyleSection
         mode="compete"
         players={[ada, bea]}
         coopStyle="free-for-all"
@@ -25,7 +25,7 @@ describe('CoopStyleField', () => {
 
   it('renders nothing for a solo roster (1 player)', () => {
     const { container } = render(
-      <CoopStyleField
+      <SetupCoopStyleSection
         mode="coop"
         players={[ada]}
         coopStyle="free-for-all"
@@ -38,7 +38,7 @@ describe('CoopStyleField', () => {
 
   it('shows the style radios; the first-player picker only appears for turns', () => {
     const { rerender } = render(
-      <CoopStyleField
+      <SetupCoopStyleSection
         mode="coop"
         players={[ada, bea]}
         coopStyle="free-for-all"
@@ -54,7 +54,7 @@ describe('CoopStyleField', () => {
 
     // Turns: the first-player dropdown appears, one <option> per selected player.
     rerender(
-      <CoopStyleField
+      <SetupCoopStyleSection
         mode="coop"
         players={[ada, bea]}
         coopStyle="turns"
@@ -69,7 +69,7 @@ describe('CoopStyleField', () => {
 
   it('bakes the live value into the disclosure summary', () => {
     const { rerender } = render(
-      <CoopStyleField
+      <SetupCoopStyleSection
         mode="coop"
         players={[ada, bea]}
         coopStyle="free-for-all"
@@ -79,7 +79,7 @@ describe('CoopStyleField', () => {
     )
     expect(screen.getByText('Co-op: free-for-all')).toBeInTheDocument()
     rerender(
-      <CoopStyleField
+      <SetupCoopStyleSection
         mode="coop"
         players={[ada, bea]}
         coopStyle="turns"
@@ -93,7 +93,7 @@ describe('CoopStyleField', () => {
   it('emits both keys when the style changes', async () => {
     const onChange = vi.fn()
     render(
-      <CoopStyleField
+      <SetupCoopStyleSection
         mode="coop"
         players={[ada, bea]}
         coopStyle="free-for-all"
@@ -108,7 +108,7 @@ describe('CoopStyleField', () => {
   it('seeds the first player to players[0] when turns is on and none is chosen', () => {
     const onChange = vi.fn()
     render(
-      <CoopStyleField
+      <SetupCoopStyleSection
         mode="coop"
         players={[ada, bea]}
         coopStyle="turns"
@@ -125,7 +125,7 @@ describe('CoopStyleField', () => {
     // ada was the first player but has been unchecked; the roster is now
     // bea + cade. The seed effect re-picks the first still-selected player.
     render(
-      <CoopStyleField
+      <SetupCoopStyleSection
         mode="coop"
         players={[bea, { user_id: 'cade', username: 'cade', color: 'green' }]}
         coopStyle="turns"

@@ -2,7 +2,7 @@
 
 import { DictBandField } from '../../common/components/fields/DictBandField'
 import { SelectField } from '../../common/components/fields/SelectField'
-import { TimerField } from '../../common/components/fields/TimerField'
+import { SetupTimerSection } from '../../common/components/setup/SetupTimerSection'
 import { SetupSection } from '../../common/components/setup/SetupSection'
 import { difficultyValue } from '../../common/lib/game/difficulty'
 import type { SetupBodyProps } from '../../common/lib/games'
@@ -61,7 +61,7 @@ const NO_TARGET = -1
  * level (coop or compete — picked by which Start button the
  * player clicked), so this body never renders a mode radio.
  *
- * Coop: a short paragraph + the shared `<TimerField>`. That's it.
+ * Coop: a short paragraph + the shared `<SetupTimerSection>`. That's it.
  *
  * Compete: adds a target-rank picker. The default seed comes
  * from the compete manifest's `setupForm.defaults.target_rank`
@@ -216,7 +216,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
         />
       </SetupSection>
 
-      <TimerField
+      <SetupTimerSection
         value={s.timer}
         onChange={(timer) => onChange({ ...s, timer })}
       />

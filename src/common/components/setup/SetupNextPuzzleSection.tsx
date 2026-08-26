@@ -1,9 +1,9 @@
 // cs-audited
 
 import { useEffect, useState } from 'react'
-import { SetupSection } from '../setup/SetupSection'
-import styles from './NextPuzzleField.module.css'
-import { DateField } from './DateField'
+import { SetupSection } from './SetupSection'
+import styles from './SetupNextPuzzleSection.module.css'
+import { DateField } from '../fields/DateField'
 
 /** A row from either of a game's two puzzle-choosing RPCs — they share a
  *  shape on purpose, so this field renders whichever it asked without
@@ -56,7 +56,7 @@ type Props = {
  * The label slot keeps a fixed height across every state (loading, a puzzle,
  * exhausted, no-puzzle-that-day) so the sections below never jump.
  */
-export function NextPuzzleField({ brand, seenBy, load, loadByDate, onPick }: Props) {
+export function SetupNextPuzzleSection({ brand, seenBy, load, loadByDate, onPick }: Props) {
   // The derived answer STAMPED WITH the player set it was fetched for, rather
   // than a bare row plus a loading flag. Toggling a player has to blank the
   // line (the old answer may no longer be right), and clearing it by calling

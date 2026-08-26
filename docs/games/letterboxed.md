@@ -211,7 +211,7 @@ Undo is the escape, and its pricing is the mode design:
   it.
 
 No deadlock risk: chain length decreases monotonically under undo, and turn-coop
-never runs solo (`CoopStyleField` hides for one player).
+never runs solo (`SetupCoopStyleSection` hides for one player).
 
 **There is no clear-chain button in the FE**, in either mode — the RPC exists as
 part of the rulebook, but the only undo surface is the **× on the chain strip's

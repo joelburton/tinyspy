@@ -3,7 +3,7 @@
 import { DictBandField } from '../../common/components/fields/DictBandField'
 import { RadioRow } from '../../common/components/fields/RadioRow'
 import { SelectField } from '../../common/components/fields/SelectField'
-import { TimerField } from '../../common/components/fields/TimerField'
+import { SetupTimerSection } from '../../common/components/setup/SetupTimerSection'
 import { SetupSection } from '../../common/components/setup/SetupSection'
 import { difficultyValue } from '../../common/lib/game/difficulty'
 import type { SetupBodyProps } from '../../common/lib/games'
@@ -43,7 +43,7 @@ const CONSTRAINT_ROWS: ReadonlyArray<{ label: string; min: NumKey; max: NumKey }
  * Start button you clicked), so there's no mode radio — just mode-flavored copy.
  * Picks: dice set, required-word difficulty (form DictBandField), scoring
  * ladder, minimum word length, optional Board constraints (a collapsible min/max
- * grid like wsboggle's), and the form TimerField. Controlled component —
+ * grid like wsboggle's), and the form SetupTimerSection. Controlled component —
  * state lives in SetupGameModal; `create_game` re-validates server-side.
  */
 export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
@@ -233,7 +233,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
         </div>
       </SetupSection>
 
-      <TimerField value={s.timer} onChange={(timer) => onChange({ ...s, timer })} />
+      <SetupTimerSection value={s.timer} onChange={(timer) => onChange({ ...s, timer })} />
     </>
   )
 }

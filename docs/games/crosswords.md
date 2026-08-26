@@ -125,7 +125,7 @@ plain RPCs — no edge function needed. The one exception is
 | `clear_board(target_game)` | Destructive "start over" (crossplay parity): blanks every fillable cell on the caller's grid (the shared grid in coop, own in compete) and drops its `pencil` / `wrong` / `revealed` flags + cryptic edge marks. Givens live on the template, so they're preserved; the answer is untouched. Guards: membership, `play_state = playing`, not conceded. No solve check (clearing only removes fills). FE surfaces it as a **confirmed** game-menu item. |
 | `end_game(target_game)` | Coop mutual give-up → neutral `ended` (`outcome: 'manual'`). Terminal unshields the solution (`games_state`), but the FE only shows it on demand — the "Reveal board" menu item (§7 → Terminal). |
 | `library_for_club(target_club)` — **`security invoker`** | Backs the setup form's Library picker: every library puzzle (id, title, author, width, height) plus a per-club **`status`** — `solved` / `playing` / `lost` / `unplayed` — so each row can carry a club-history color bar. Sorted **alphabetically by title** (case-insensitive, `created_at desc` breaking ties) — the picker is a list you scan by name, where import order was an accident of how the files landed. Invoker is load-bearing twice over: the `puzzles` **column grant** is what hides `solution`, and `common.games`'s club-member RLS is what stops one club's history showing in another's picker (a non-member just sees an all-`unplayed` library). Status **precedence** is solved → playing → lost, so one win makes a puzzle permanently green and `ended` shares the yellow bucket with `playing`. **Mode-agnostic** by design — a coop solve colors the compete dialog too. Why a function where connections uses a view (`connections.club_game_status`): the join to `play_state` is cross-schema *and* has to be OUTER, and the club is an input to it — a view exposing `club_handle` from the games side is inner by construction and would drop exactly the unplayed rows the picker exists to show. |
-| `concede` / `submit_timeout` | Standard. The setup form offers the shared `<TimerField>` like every other game; a countdown expiring takes the whole table down (coop → `lost`, compete → `lost_compete`), stamped `outcome: 'timeout'` so the verdict reads "Out of time" rather than the concede wording those same states otherwise carry. |
+| `concede` / `submit_timeout` | Standard. The setup form offers the shared `<SetupTimerSection>` like every other game; a countdown expiring takes the whole table down (coop → `lost`, compete → `lost_compete`), stamped `outcome: 'timeout'` so the verdict reads "Out of time" rather than the concede wording those same states otherwise carry. |
 
 ## 5. Puzzle sourcing
 
@@ -542,7 +542,7 @@ This is the **canonical deferred register** for crosswords — distilled from th
     `border: 1px solid var(--page-surface-border-color)` where every other field
     uses `--field-edge-color`, `padding: 0.4rem 0.6rem` against `<SelectField>`'s
     `0.6rem 0.9rem`, and `font-size: 0.95rem` against inherited.
-  - **`.nextDate` is `<NextPuzzleField>`'s `.next` re-typed** — same
+  - **`.nextDate` is `<SetupNextPuzzleSection>`'s `.next` re-typed** — same
     `--page-text-color`, same `min-height: 1.4em`, same stated reason (don't let
     the timer below jump when the RPC lands). The date-override input beside it
     is hand-rolled too, and this file's own comment says it is *"the same shape
@@ -550,7 +550,7 @@ This is the **canonical deferred register** for crosswords — distilled from th
   - **`.dropzone` carries `border-radius: 8px`**, a second unconverted literal.
 
   **What is NOT drift, and must survive any fix:** crosswords has a real reason
-  not to use `<NextPuzzleField>` — its archive is a catalogue, not a queue (a
+  not to use `<SetupNextPuzzleSection>` — its archive is a catalogue, not a queue (a
   Monday puzzle and a Saturday one are different animals), so it picks a WEEKDAY
   where connections and strands ask for "the next one nobody has played". The
   fixed-height preview line and the date override are the same mechanism; the

@@ -1,8 +1,8 @@
 // cs-unmet
 
 import { DictBandField } from '../../common/components/fields/DictBandField'
-import { TimerField } from '../../common/components/fields/TimerField'
-import { CoopStyleField } from '../../common/components/fields/CoopStyleField'
+import { SetupTimerSection } from '../../common/components/setup/SetupTimerSection'
+import { SetupCoopStyleSection } from '../../common/components/setup/SetupCoopStyleSection'
 import { RadioRow } from '../../common/components/fields/RadioRow'
 import { SelectField } from '../../common/components/fields/SelectField'
 import { SetupSection } from '../../common/components/setup/SetupSection'
@@ -43,7 +43,7 @@ export function SetupForm({ value, onChange, mode, players, playerCount }: Setup
       {/* Coop pacing — free-for-all (default) vs turn-by-turn — first, right
           below the dialog's player picker. Self-gates to nothing for
           compete / solo. */}
-      <CoopStyleField
+      <SetupCoopStyleSection
         mode={mode}
         players={players}
         coopStyle={s.coop_style ?? 'free-for-all'}
@@ -108,7 +108,7 @@ export function SetupForm({ value, onChange, mode, players, playerCount }: Setup
         </SetupSection>
       )}
 
-      <TimerField value={s.timer} onChange={(timer) => onChange({ ...s, timer })} />
+      <SetupTimerSection value={s.timer} onChange={(timer) => onChange({ ...s, timer })} />
     </>
   )
 }

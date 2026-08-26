@@ -42,7 +42,7 @@ minimum length.
   the score constraint, and per-word points.
 - **Minimum word length.** 3 / 4 / 5, default 3. A guess shorter than this is
   rejected.
-- **Timer.** The shared `TimerField` (none / count-up / count-down MM:SS),
+- **Timer.** The shared `SetupTimerSection` (none / count-up / count-down MM:SS),
   default none; a countdown lets the player pick the duration.
 - **Win target (`win_percent`).** An optional score bar: a dropdown of
   **None / 50 / 55 / … / 100 %**, default None. When set, the game is WON the
@@ -614,8 +614,8 @@ allowlist.
   All 15 other games conform.
 
 - **The "Board constraints" grid is the last hand-rolled field in any setup
-  form.** Every field type a setup form has is a shared component — `TimerField`,
-  `DictBandField`, `SelectField`, `RadioRow`, `CoopStyleField`,
+  form.** Every field type a setup form has is a shared component — `SetupTimerSection`,
+  `DictBandField`, `SelectField`, `RadioRow`, `SetupCoopStyleSection`,
   `ManualBoardField`, and now `NumberField`, `CheckboxField` and `DateField`.
   This grid is the one exception: six raw `<input type="number">`s laid out 3×2
   (Words / Score / Longest, each min and max) with column heads and a local

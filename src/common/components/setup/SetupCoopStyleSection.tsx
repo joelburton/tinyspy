@@ -1,11 +1,11 @@
 // cs-audited
 
 import { useEffect } from 'react'
-import { RadioRow } from './RadioRow'
-import { SelectField } from './SelectField'
-import { SetupSection } from '../setup/SetupSection'
+import { RadioRow } from '../fields/RadioRow'
+import { SelectField } from '../fields/SelectField'
+import { SetupSection } from './SetupSection'
 import type { Member } from '../../lib/games'
-import styles from './CoopStyleField.module.css'
+import styles from './SetupCoopStyleSection.module.css'
 
 /**
  * The two ways a coop game can be paced. `'free-for-all'` (the
@@ -61,7 +61,7 @@ type Props = {
  *   - **solo (1 selected player)** → renders nothing (a rotation of one
  *     is a no-op; the server's _require_turn always passes anyway).
  *
- * Follows TimerField's shape: a collapsed `<SetupSection>` whose
+ * Follows SetupTimerSection's shape: a collapsed `<SetupSection>` whose
  * summary carries the live value ("Co-op: free-for-all",
  * "Co-op: turns (ada first)"), so the setting reads at a glance
  * without expanding. Inside, two labeled radio rows — "Co-op style"
@@ -73,7 +73,7 @@ type Props = {
  * whenever turns is on and the current choice isn't among the selected
  * players (initial empty, or the chosen player got unchecked).
  */
-export function CoopStyleField({
+export function SetupCoopStyleSection({
   mode,
   players,
   coopStyle,
@@ -108,7 +108,7 @@ export function CoopStyleField({
 
   return (
     // Collapsed by default; the summary carries the current setting so
-    // it's readable without opening (matches TimerField's disclosure).
+    // it's readable without opening (matches SetupTimerSection's disclosure).
     <SetupSection label={`Co-op: ${summaryValue}`}>
       <div className={styles.controls}>
         <RadioRow

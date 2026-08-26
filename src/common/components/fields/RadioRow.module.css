@@ -6,7 +6,7 @@
  * These lived in `setupForm.module.css` — a stylesheet fifteen forms imported —
  * back when every form hand-wrote its own radio markup around them. Nothing but
  * this component has read them since `<RadioRow>` was written, and
- * `<TimerField>` stopped being the exception on 2026-08-26 (F30
+ * `<SetupTimerSection>` stopped being the exception on 2026-08-26 (F30
  * `timerfield-hand-radios`), so they came here with the markup they belong to.
  */
 /* @@ */ .radioRow {

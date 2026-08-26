@@ -1,10 +1,10 @@
 // cs-unmet
 
-import { CoopStyleField } from '../../common/components/fields/CoopStyleField'
+import { SetupCoopStyleSection } from '../../common/components/setup/SetupCoopStyleSection'
 import { DictBandField } from '../../common/components/fields/DictBandField'
 import { SelectField } from '../../common/components/fields/SelectField'
-import { TimerField } from '../../common/components/fields/TimerField'
-import { NextPuzzleField } from '../../common/components/fields/NextPuzzleField'
+import { SetupTimerSection } from '../../common/components/setup/SetupTimerSection'
+import { SetupNextPuzzleSection } from '../../common/components/setup/SetupNextPuzzleSection'
 import { SetupSection } from '../../common/components/setup/SetupSection'
 import { difficultyValue } from '../../common/lib/game/difficulty'
 import type { SetupBodyProps } from '../../common/lib/games'
@@ -25,14 +25,14 @@ import type { StrandsSetup } from '../lib/setup'
  *   - **Hint dictionary** — the band a word must reach to earn a hint point.
  *   - **Words per hint** / **Shortest word**.
  *
- * Plus the shared TimerField and CoopStyleField.
+ * Plus the shared SetupTimerSection and SetupCoopStyleSection.
  */
 export function SetupForm({ brand, mode, players, value, onChange }: SetupBodyProps) {
   const s = value as StrandsSetup
 
   return (
     <>
-      <CoopStyleField
+      <SetupCoopStyleSection
         mode={mode}
         players={players}
         coopStyle={s.coop_style ?? 'free-for-all'}
@@ -42,14 +42,14 @@ export function SetupForm({ brand, mode, players, value, onChange }: SetupBodyPr
         }
       />
 
-      <NextPuzzleField
+      <SetupNextPuzzleSection
         brand={brand}
         seenBy={players.map((p) => p.user_id)}
         load={async (seenBy) => {
           const { data } = await db.rpc('next_puzzle_for_club', { seen_by: seenBy })
           // Both RPCs return 0 or 1 rows. Zero from this one means the archive
           // is spent for these players; zero from the by-date one means no
-          // puzzle that day. NextPuzzleField renders each as its own state.
+          // puzzle that day. SetupNextPuzzleSection renders each as its own state.
           return data?.[0] ?? null
         }}
         loadByDate={async (date) => {
@@ -109,7 +109,7 @@ export function SetupForm({ brand, mode, players, value, onChange }: SetupBodyPr
         </SelectField>
       </SetupSection>
 
-      <TimerField value={s.timer} onChange={(timer) => onChange({ ...s, timer })} />
+      <SetupTimerSection value={s.timer} onChange={(timer) => onChange({ ...s, timer })} />
     </>
   )
 }

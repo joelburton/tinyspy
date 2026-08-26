@@ -19,8 +19,12 @@ type Props<T extends string | number> = {
   prefix?: ReactNode
   /** A caption above the row, in the position every other field's sits. */
   label?: ReactNode
-  /** What the setting is about, between the caption and the row. */
+  /** What the setting is about, between the caption and the control. */
   help?: ReactNode
+  /** How to give it, under the control. */
+  entryHelp?: ReactNode
+  /** What's wrong with what's there. */
+  error?: string | null
   /** Where the field sits in ITS OWN parent. */
   className?: string
 }
@@ -43,13 +47,15 @@ export function RadioRow<T extends string | number>({
   prefix,
   label,
   help,
+  entryHelp,
+  error,
   className,
 }: Props<T>) {
   return (
     // Children as a NODE: each option is its own <label> around its radio, so
     // no id is wanted here and `Field` keeps the caption a plain element rather
     // than a <label> pointing at one member of a group.
-    <Field label={label} help={help} className={className}>
+    <Field label={label} help={help} entryHelp={entryHelp} error={error} className={className}>
       <div className={styles.radioRow}>
         {prefix != null && <span>{prefix}</span>}
         {options.map((opt) => (

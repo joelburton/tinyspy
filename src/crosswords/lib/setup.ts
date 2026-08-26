@@ -9,7 +9,7 @@ import type { ImportedBoard } from './importFile'
  * The setup blob the dialog collects and `crosswords.create_game` /
  * `crosswords-import-nyt` / `crosswords-import-guardian` validate. `mode` is
  * NOT here — it's a top-level manifest/RPC arg (the sibling-pair split).
- * `timer` is the shared `<TimerField>`'s value, like every other game's setup;
+ * `timer` is the shared `<SetupTimerSection>`'s value, like every other game's setup;
  * a countdown expiring routes to `crosswords.submit_timeout`.
  *
  * Four ways to source the puzzle:

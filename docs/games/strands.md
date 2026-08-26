@@ -296,7 +296,7 @@ was up. That was first patched by printing the clue under the date input, then
 solved properly by removing the choice: `strands.next_puzzle_for_club(seen_by)`
 hands back the earliest puzzle none of the *selected players* has played, in
 **any club**, and `SetupForm` renders the shared
-`common/components/fields/NextPuzzleField` — one read-only line, `date: clue`.
+`common/components/setup/SetupNextPuzzleSection` — one read-only line, `date: clue`.
 
 The clue survives as that line's label, which is where it belonged: it is how a
 person recognizes a strands puzzle (it is the game's own title, and on screen

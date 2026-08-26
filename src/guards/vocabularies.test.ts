@@ -269,7 +269,7 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/components/definitions/WordLookupDialog.module.css': ['0.6rem', '0.4rem'],
       'src/common/components/feedback/FaultModal.module.css': ['0.5rem'],
       'src/common/components/feedback/GenericFeedbackPill.module.css': ['0.5rem'],
-      'src/common/components/fields/CoopStyleField.module.css': ['1rem'],
+      'src/common/components/setup/SetupCoopStyleSection.module.css': ['1rem'],
       // The gap under a checkbox row and under a date override — both moved
       // out of files already on this list, at the same values. The debt
       // travelled with the markup; it did not grow.
@@ -283,7 +283,7 @@ const VOCABULARIES: Vocabulary[] = [
       // travelled to the component that draws the rule, and none of them grew.
       'src/common/components/fields/RadioRow.module.css': ['1rem', '0.4rem'],
       'src/common/components/setup/SetupSection.module.css': ['0.25rem', '0.75rem'],
-      'src/common/components/fields/TimerField.module.css': ['0.3rem'],
+      'src/common/components/setup/SetupTimerSection.module.css': ['0.3rem'],
       'src/common/components/game/CelebrationBlockingModal.module.css': ['0.3rem', '0.4rem', '0.2rem', '1.4rem'],
       'src/common/components/game/DeviceBlockNotice.module.css': ['1rem'],
       'src/common/components/game/entry/EntryBox.module.css': ['1px'],
@@ -411,7 +411,7 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/components/club/StartGameRow.module.css': ['1.2', '1.25'],
       'src/common/components/definitions/DefinitionView.module.css': ['1.45'],
       'src/common/components/feedback/GenericFeedbackPill.module.css': ['1'],
-      'src/common/components/fields/NextPuzzleField.module.css': ['1.4'],
+      'src/common/components/setup/SetupNextPuzzleSection.module.css': ['1.4'],
       'src/common/components/game/CelebrationBlockingModal.module.css': ['1'],
       'src/common/components/game/DeviceBlockNotice.module.css': ['1.5'],
       'src/common/components/game/lists/historyViewer.module.css': ['1'],
@@ -440,7 +440,7 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/components/definitions/WordEditDialog.module.css': ['0.6'],
       'src/common/components/feedback/GenericFeedbackPill.module.css': ['0.7'],
       'src/common/components/fields/SelectField.module.css': ['0.55'],
-      'src/common/components/fields/TimerField.module.css': ['0.5'],
+      'src/common/components/setup/SetupTimerSection.module.css': ['0.5'],
       'src/common/components/game/entry/GuessKeyboard.module.css': ['0.6'],
       'src/common/components/game/FilterSelect.module.css': ['0.7'],
       'src/common/components/game/OpponentStrip.module.css': ['0.5'],
