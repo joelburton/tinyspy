@@ -10,7 +10,6 @@ import { RANKS } from '../../common/lib/game/rankLadder'
 import type { SpellingbeeSetup } from '../lib/setup'
 import { ManualBoardField } from '../../common/components/fields/ManualBoardField'
 import { groupTiles } from '../../common/components/fields/groupTiles'
-import section from '../../common/components/setup/SetupSection.module.css'
 
 /** Normalize a letter input: lowercase, drop anything but a–z, cap the length.
  *  Keeps state canonical (lowercase, letters-only) so validation + the edge
@@ -151,15 +150,12 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
           summary shows the current bands (e.g. "Dictionaries: 3 (Familiar) / 5
           (Obscure)"). */}
       <SetupSection label={dictLabel}>
-        <p className={section.help}>
-          Required words are the goal; legal words also score but aren't
-          required. Both are length-agnostic (examples just show the band).
-        </p>
         <DictBandField
           label="Required words"
           length={null}
           minBand={1}
           maxBand={6}
+          help="Dictionary used to make list of required words on board."
           value={s.required}
           onChange={(required) => onChange({ ...s, required })}
         />
@@ -168,6 +164,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
           length={null}
           minBand={s.required}
           maxBand={6}
+          help="Dictionary used to make list of legal words on board."
           value={s.legal}
           onChange={(legal) => onChange({ ...s, legal })}
         />
