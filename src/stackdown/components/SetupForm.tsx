@@ -6,7 +6,6 @@ import { SetupSection } from '../../common/components/setup/SetupSection'
 import { difficultyValue } from '../../common/lib/game/difficulty'
 import type { SetupBodyProps } from '../../common/lib/games'
 import type { StackdownSetup } from '../lib/setup'
-import form from '../../common/components/fields/setupForm.module.css'
 
 /**
  * stackdown's setup form, rendered inside the common SetupGameModal.
@@ -25,11 +24,7 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
   const dictLabel = `Dictionary: ${difficultyValue(s.band)}`
 
   return (
-    <div className={form.setup}>
-      <p className={form.helpText}>
-        A random tile-stack is dealt when the game starts. Clear it by
-        spelling words off the exposed tiles.
-      </p>
+    <>
       <SetupSection label={dictLabel}>
         <DictBandField
           help="Band 1 is the common everyday words; band 2 uses the next tier of less-common ones."
@@ -45,6 +40,6 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
         value={s.timer}
         onChange={(timer) => onChange({ ...s, timer })}
       />
-    </div>
+    </>
   )
 }

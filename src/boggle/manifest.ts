@@ -133,6 +133,8 @@ export const boggleCoopGame: GameManifest = {
   numberOfPlayers: [1, 8],
   PlayArea: playAreaLoader,
   setupForm: {
+    intro:
+      'Everyone hunts the same board together and the team’s finds pile up into one score.',
     Component: setupFormLoader,
     defaults: DEFAULT_BOGGLE_SETUP_COOP,
     validate: (setup) => boggleSetupError(setup as BoggleSetup),
@@ -156,6 +158,8 @@ export const boggleCompeteGame: GameManifest = {
   numberOfPlayers: [2, 8],
   PlayArea: playAreaLoader,
   setupForm: {
+    intro:
+      'Everyone races the same board independently — most points wins. You see each other’s word counts, not the words themselves, until the game ends.',
     Component: setupFormLoader,
     defaults: DEFAULT_BOGGLE_SETUP_COMPETE,
     validate: (setup) => boggleSetupError(setup as BoggleSetup),

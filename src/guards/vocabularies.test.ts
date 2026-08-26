@@ -279,7 +279,10 @@ const VOCABULARIES: Vocabulary[] = [
       // now in one place instead of four — the debt travelled and shrank.
       'src/common/components/fields/field.module.css': ['0.4rem'],
       'src/common/components/fields/DateField.module.css': ['0.5rem'],
-      'src/common/components/fields/setupForm.module.css': ['1rem', '0.25rem', '0.75rem', '0.4rem'],
+      // setupForm.module.css was deleted on 2026-08-26; each of its values
+      // travelled to the component that draws the rule, and none of them grew.
+      'src/common/components/fields/RadioRow.module.css': ['1rem', '0.4rem'],
+      'src/common/components/setup/SetupSection.module.css': ['0.25rem', '0.75rem'],
       'src/common/components/fields/TimerField.module.css': ['0.3rem'],
       'src/common/components/game/CelebrationBlockingModal.module.css': ['0.3rem', '0.4rem', '0.2rem', '1.4rem'],
       'src/common/components/game/DeviceBlockNotice.module.css': ['1rem'],
@@ -311,7 +314,7 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/components/palette/PalettePage.module.css': ['1rem', '0.75rem', '2.5rem', '0.25rem', '0.5rem', '0.35rem', '0.15rem'],
       'src/common/components/floating-panels/GameScratchpadCompanion.module.css': ['0.4rem', '0.5rem'],
       'src/common/components/menu/Menu.module.css': ['1.5rem', '0.3rem', '0.1rem', '-1px', '-1rem'],
-      'src/common/components/setup/SetupGameModal.module.css': ['0.75rem', '1.5rem', '0.4rem'],
+      'src/common/components/setup/SetupGameModal.module.css': ['0.75rem', '1.5rem', '0.4rem', '1rem'],
       // Moved out of SetupGameModal.module.css with <PlayersField> on 2026-08-25.
       // Same values, new file — the debt travelled, it did not grow.
       'src/common/components/fields/PlayersField.module.css': ['1rem', '0.5rem', '0.4rem'],
@@ -374,7 +377,7 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/components/palette/PalettePage.module.css': ['0.85rem', '0.8rem', '0.95rem'],
       'src/common/components/floating-panels/GameScratchpadCompanion.module.css': ['0.85rem', '0.8rem', '0.9rem', 'max(16px,', '1em)'],
       'src/common/components/menu/Menu.module.css': ['0.95rem', '0.82rem', '1rem'],
-      'src/common/components/setup/SetupGameModal.module.css': ['0.85rem'],
+      'src/common/components/setup/SetupGameModal.module.css': ['0.85rem', '0.9rem'],
       'src/common/components/fields/PlayersField.module.css': ['0.85rem'],
       'src/common/components/toasts/Toast.module.css': ['1.2rem'],
       'src/common/components/tooltips/TooltipHost.module.css': ['0.75rem'],
@@ -385,7 +388,7 @@ const VOCABULARIES: Vocabulary[] = [
       // what it is, at the SAME values — a rename must not move a pixel. So its
       // 0.9rem is `.muted`'s 0.9rem, listed here, and the two convert together
       // or not at all (the ramp has 1 / 0.85 / 0.75 and no step for it).
-      'src/common/components/fields/setupForm.module.css': ['0.9rem'],
+      'src/common/components/setup/SetupSection.module.css': ['0.9rem'],
     },
     fix:
       'Use `--font-size-1` … `-3` (1 · 0.85 · 0.75rem), -1 being the biggest. ' +

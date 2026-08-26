@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react'
 import { Field } from './Field'
-import styles from './setupForm.module.css'
+import styles from './RadioRow.module.css'
 
 type Option<T> = { value: T; label: ReactNode }
 
@@ -29,7 +29,7 @@ type Props<T extends string | number> = {
  * A horizontal group of radio options for game setup forms — the
  * `<div class="radioRow">{options.map(<label class="radio"><input radio/>…)}</div>`
  * block every setup form was re-authoring. The `.radioRow` / `.radio` styling is
- * the shared one in setupForm.module.css; this owns the markup + a11y wiring.
+ * this component's own, alongside the markup it belongs to.
  *
  * Callers map their own options to `{ value, label }` — which absorbs the
  * per-form wrinkles (waffle's `(+N)` suffix as a `label` node, codenamesduet's

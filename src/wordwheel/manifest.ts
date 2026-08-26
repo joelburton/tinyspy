@@ -116,6 +116,8 @@ export const wordwheelCoopGame: GameManifest = {
   PlayArea: playAreaLoader,
 
   setupForm: {
+    intro:
+      'Everyone in the club types words into the same wheel and the team racks up the score together.',
     Component: setupFormLoader,
     defaults: DEFAULT_WORDWHEEL_SETUP_COOP,
     validate: (setup) => wordwheelSetupError(setup as WordwheelSetup),
@@ -176,6 +178,8 @@ export const wordwheelCompeteGame: GameManifest = {
   PlayArea: playAreaLoader,
 
   setupForm: {
+    intro:
+      'Each player works the same wheel independently. First to the target rank wins; the rest of the time you only see each other\'s rank, not the words you found.',
     Component: setupFormLoader,
     defaults: DEFAULT_WORDWHEEL_SETUP_COMPETE,
     validate: (setup) => wordwheelSetupError(setup as WordwheelSetup),

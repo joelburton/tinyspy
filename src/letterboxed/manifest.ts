@@ -164,6 +164,8 @@ export const letterboxedCoopGame: GameManifest = {
   PlayArea: playAreaLoader,
 
   setupForm: {
+    intro:
+      'One shared chain. Each word starts with the last letter of the one before it, and no word may use two letters from the same side. Together, touch all twelve letters.',
     Component: setupFormLoader,
     defaults: DEFAULT_LETTERBOXED_SETUP_COOP,
     validate: (setup) => letterboxedSetupError(setup as LetterboxedSetup),
@@ -194,6 +196,8 @@ export const letterboxedCompeteGame: GameManifest = {
   PlayArea: playAreaLoader,
 
   setupForm: {
+    intro:
+      'Same twelve letters, a private chain each. First to touch all twelve within the word limit wins; until then you only see how far the others have got, not their words.',
     Component: setupFormLoader,
     defaults: DEFAULT_LETTERBOXED_SETUP_COMPETE,
     validate: (setup) => letterboxedSetupError(setup as LetterboxedSetup),

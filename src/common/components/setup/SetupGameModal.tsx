@@ -228,6 +228,15 @@ export function SetupGameModal({
       defaultSize={{ width: 480, height: 520 }}
       minWidth={320}
     >
+      {/* WHAT THIS GAME IS, first — above the picker and the form both.
+          It used to live inside each game's SetupForm, which meant it rendered
+          BELOW the player picker: an introduction under the thing it
+          introduces. It is manifest copy now (games.ts → GameSetupForm.intro),
+          so the modal decides where it goes. */}
+      {manifest.setupForm.intro && (
+        <p className={styles.intro}>{manifest.setupForm.intro}</p>
+      )}
+
       {showPicker && (
         <PlayersField
           members={members}
@@ -248,16 +257,18 @@ export function SetupGameModal({
           hint below makes; the remaining growth is small and lands downward
           (FloatingPanel anchors the header rather than re-centering). */}
       <Suspense fallback={<p className={cls('muted', styles.optionsReserve)}>Loading options…</p>}>
-        <SetupBody
-          members={members}
-          brand={manifest.name}
-          clubHandle={clubHandle}
-          mode={manifest.mode}
-          playerCount={playerCount}
-          players={selectedPlayers}
-          value={setup}
-          onChange={setSetup}
-        />
+        <div className={styles.formBody}>
+          <SetupBody
+            members={members}
+            brand={manifest.name}
+            clubHandle={clubHandle}
+            mode={manifest.mode}
+            playerCount={playerCount}
+            players={selectedPlayers}
+            value={setup}
+            onChange={setSetup}
+          />
+        </div>
       </Suspense>
       {/* Setup-level guard (e.g. bag too small): blocks Start with a
           fix-this hint, same register as the player-count hint. The line ALWAYS

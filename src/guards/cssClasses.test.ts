@@ -404,6 +404,13 @@ describe('a class name resolves — the e2e side', () => {
  * vocabulary, which did not: ship the check with the name.
  */
 describe('a CSS-module import is named for where it comes from', () => {
+  // The second check here was "the shared setup stylesheet is imported as
+  // `form`". It went on 2026-08-26 WITH ITS SUBJECT: setupForm.module.css was
+  // deleted once every rule in it had moved to the component that draws it —
+  // the radio row to <RadioRow>, the help text to <Field> and <SetupSection>,
+  // the form's column to <SetupGameModal>. A guard whose subject no longer
+  // exists is not a guard; the rule it enforced is now unenforceable because it
+  // is unbreakable.
   /** Same-directory imports only — `./X.module.css`. A basename match is not
    *  enough: every game's `PlayArea.tsx` imports BOTH its own `./PlayArea.module.css`
    *  as `styles` and `common/components/game/PlayArea.module.css` as `shared`,
@@ -440,25 +447,4 @@ describe('a CSS-module import is named for where it comes from', () => {
     ).toEqual([])
   })
 
-  /**
-   * And the shared setup stylesheet is `form`, everywhere. Named specifically
-   * rather than by some general "shared modules get a subject name" rule,
-   * because there is exactly one such sheet with many consumers and inventing a
-   * category for it would be a layer with one member.
-   */
-  it('the shared setup stylesheet is imported as `form`', () => {
-    const offenders: string[] = []
-    for (const f of CODE_FILES) {
-      for (const m of readFileSync(f, 'utf8').matchAll(
-        /^import (\w+) from '[^']*fields\/setupForm\.module\.css'$/gm,
-      )) {
-        if (m[1] !== 'form') offenders.push(`${rel(f)}  imports it as \`${m[1]}\``)
-      }
-    }
-    expect(
-      offenders,
-      `setupForm.module.css is \`form\` at all 15 call sites. It had three names ` +
-        `and that is how a shared class got read as a local one:\n${offenders.join('\n')}`,
-    ).toEqual([])
-  })
 })

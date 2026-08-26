@@ -7,7 +7,6 @@ import { SetupSection } from '../../common/components/setup/SetupSection'
 import type { SetupBodyProps } from '../../common/lib/games'
 import type { DeckKind } from '../lib/cards'
 import { paletteOf, type Palette, type SetgameSetup } from '../lib/setup'
-import form from '../../common/components/fields/setupForm.module.css'
 
 import '../theme.css'
 
@@ -28,7 +27,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
   const s = value as SetgameSetup
 
   return (
-    <div className={form.setup}>
+    <>
       {/* Coop pacing — first, right below the dialog's player picker.
           Self-gates to nothing for compete / solo. */}
       <CoopStyleField
@@ -41,20 +40,6 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
         }
       />
 
-      {mode === 'coop' ? (
-        <p className={form.helpText}>
-          One table, everyone hunting together. Claim three cards where each of
-          number, color, shading and shape is either all the same or all
-          different. You win by clearing the deck — that means no sets left to
-          find, not using up every card.
-        </p>
-      ) : (
-        <p className={form.helpText}>
-          Same table, same deck, everyone racing. A set you claim is gone for
-          the others, and the most sets when the deck runs dry wins. Ties are
-          ties — nobody is separated on speed.
-        </p>
-      )}
 
       <SetupSection label={s.deck === 'junior' ? 'Deck: Junior' : 'Deck: Full'}>
         <RadioRow<DeckKind>
@@ -88,6 +73,6 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
         value={s.timer}
         onChange={(timer) => onChange({ ...s, timer })}
       />
-    </div>
+    </>
   )
 }

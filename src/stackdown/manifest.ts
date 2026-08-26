@@ -129,6 +129,8 @@ export const stackdownCoopGame: GameManifest = {
   PlayArea: playAreaLoader,
 
   setupForm: {
+    intro:
+      'A random tile-stack is dealt when the game starts. Clear it by spelling words off the exposed tiles.',
     Component: setupFormLoader,
     defaults: DEFAULT_STACKDOWN_SETUP,
   },
@@ -158,6 +160,8 @@ export const stackdownCompeteGame: GameManifest = {
   PlayArea: playAreaLoader,
 
   setupForm: {
+    intro:
+      'A random tile-stack is dealt when the game starts. Clear it by spelling words off the exposed tiles.',
     Component: setupFormLoader,
     defaults: DEFAULT_STACKDOWN_SETUP,
   },

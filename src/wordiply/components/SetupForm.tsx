@@ -6,7 +6,6 @@ import { CoopStyleField } from '../../common/components/fields/CoopStyleField'
 import { SetupSection } from '../../common/components/setup/SetupSection'
 import type { SetupBodyProps } from '../../common/lib/games'
 import { cleanBase, type WordiplySetup } from '../lib/setup'
-import form from '../../common/components/fields/setupForm.module.css'
 import { difficultyValue } from '../../common/lib/game/difficulty'
 import { ManualBoardField } from '../../common/components/fields/ManualBoardField'
 
@@ -34,7 +33,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
     : 'Starter (optional)'
 
   return (
-    <div className={form.setup}>
+    <>
       {/* Coop pacing — first, right below the dialog's player picker.
           Self-gates to nothing for compete / solo. */}
       <CoopStyleField
@@ -46,19 +45,6 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
           onChange({ ...s, coop_style: coopStyle, first_turn_user_id: firstTurnUserId })
         }
       />
-      {mode === 'coop' ? (
-        <p className={form.helpText}>
-          Everyone in the club shares five guesses. Each guess must contain
-          the starter and be longer than it; together you're hunting the
-          longest word.
-        </p>
-      ) : (
-        <p className={form.helpText}>
-          Each player gets their own five guesses off the same starter. The
-          longest word wins; until the end you only see how many guesses each
-          other has spent, not the words.
-        </p>
-      )}
 
       <SetupSection label={`Dictionary: ${difficultyValue(s.difficulty)}`}>
         <DictBandField
@@ -94,6 +80,6 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
       </SetupSection>
 
       <TimerField value={s.timer} onChange={(timer) => onChange({ ...s, timer })} />
-    </div>
+    </>
   )
 }

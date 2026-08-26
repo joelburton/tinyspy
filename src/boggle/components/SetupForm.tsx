@@ -12,10 +12,10 @@ import { WIN_PERCENT_OPTIONS, type BoggleSetup } from '../lib/setup'
 import { capBoard, cleanCustomBoard, readTiles, twoLetterList } from '../lib/customBoard'
 import type { LadderName } from '../lib/solver'
 import { DICE_SETS, DICE_BY_NAME } from '../lib/dice'
-import form from '../../common/components/fields/setupForm.module.css'
 import styles from './SetupForm.module.css'
 import { ManualBoardField } from '../../common/components/fields/ManualBoardField'
 import { groupTiles } from '../../common/components/fields/groupTiles'
+import section from '../../common/components/setup/SetupSection.module.css'
 
 // Ladder labels + order ported verbatim from wsboggle (NewSoloGamePage.tsx).
 const SCORING_LADDERS: ReadonlyArray<{ name: LadderName; label: string }> = [
@@ -80,12 +80,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
   const winLabel = `Win at: ${s.win_percent === null ? 'None' : `${s.win_percent}%`}`
 
   return (
-    <div className={form.setup}>
-      <p className={form.helpText}>
-        {mode === 'compete'
-          ? 'Everyone races the same board independently — most points wins. You see each other’s word counts, not the words themselves, until the game ends.'
-          : 'Everyone hunts the same board together and the team’s finds pile up into one score.'}
-      </p>
+    <>
 
       {/* "Dice set" — the summary names the chosen set (e.g. "Dice set: 4×4
           Revised"); expand to change it. */}
@@ -156,7 +151,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
           current bands (e.g. "Dictionaries: 3 (Familiar) / 5 (Obscure)"), matching
           spellingbee's section of the same name. */}
       <SetupSection label={dictLabel}>
-        <p className={form.helpText}>
+        <p className={section.help}>
           <strong>Required words</strong> are what the board is built around and
           what the end-of-game reveal lists. <strong>Legal words</strong> set how
           obscure a non-required word can be and still score as a bonus — these
@@ -239,7 +234,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
       </SetupSection>
 
       <TimerField value={s.timer} onChange={(timer) => onChange({ ...s, timer })} />
-    </div>
+    </>
   )
 }
 

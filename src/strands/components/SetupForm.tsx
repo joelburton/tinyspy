@@ -10,7 +10,6 @@ import { difficultyValue } from '../../common/lib/game/difficulty'
 import type { SetupBodyProps } from '../../common/lib/games'
 import { db } from '../db'
 import type { StrandsSetup } from '../lib/setup'
-import form from '../../common/components/fields/setupForm.module.css'
 
 /**
  * strands' setup form.
@@ -32,7 +31,7 @@ export function SetupForm({ brand, mode, players, value, onChange }: SetupBodyPr
   const s = value as StrandsSetup
 
   return (
-    <div className={form.setup}>
+    <>
       <CoopStyleField
         mode={mode}
         players={players}
@@ -111,6 +110,6 @@ export function SetupForm({ brand, mode, players, value, onChange }: SetupBodyPr
       </SetupSection>
 
       <TimerField value={s.timer} onChange={(timer) => onChange({ ...s, timer })} />
-    </div>
+    </>
   )
 }

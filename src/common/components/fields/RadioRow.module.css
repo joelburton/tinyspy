@@ -1,0 +1,32 @@
+/* cs-fixed */
+
+/*
+ * A horizontal group of radio options (see RadioRow.tsx).
+ *
+ * These lived in `setupForm.module.css` — a stylesheet fifteen forms imported —
+ * back when every form hand-wrote its own radio markup around them. Nothing but
+ * this component has read them since `<RadioRow>` was written, and
+ * `<TimerField>` stopped being the exception on 2026-08-26 (F30
+ * `timerfield-hand-radios`), so they came here with the markup they belong to.
+ */
+/* @@ */ .radioRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+/* A radio sits inline with its label; the input loses its default vertical
+ * drift via the flex alignment. */
+/* @@ */ .radio {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+}
+
+/* @@ */ .radio input {
+  margin: 0;
+  /* Override base.css's input padding (`0.6rem 0.9rem`, base.css:777) — that
+   * sizes text inputs, not radios. */
+  padding: 0;
+}

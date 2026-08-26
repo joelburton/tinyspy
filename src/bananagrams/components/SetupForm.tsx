@@ -13,7 +13,6 @@ import {
   tilesNeeded,
   type BananagramsSetup,
 } from '../lib/setup'
-import form from '../../common/components/fields/setupForm.module.css'
 import styles from './SetupForm.module.css'
 import { NumberField } from '../../common/components/fields/NumberField'
 import { CheckboxField } from '../../common/components/fields/CheckboxField'
@@ -66,7 +65,7 @@ export function SetupForm({ value, onChange, playerCount }: SetupBodyProps) {
     `Dictionaries: 2-letter ${difficultyValue(s.dict_2)} / ${difficultyValue(s.dict_3plus)}`
 
   return (
-    <div className={form.setup}>
+    <>
       <SetupSection label={handLabel}>
         <RadioRow
           name="hand_size"
@@ -141,6 +140,6 @@ export function SetupForm({ value, onChange, playerCount }: SetupBodyProps) {
         value={s.timer}
         onChange={(timer) => onChange({ ...s, timer })}
       />
-    </div>
+    </>
   )
 }

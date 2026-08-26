@@ -507,6 +507,29 @@ export type GameSetupForm = {
   Component: ComponentType<SetupBodyProps>
   defaults: unknown
   /**
+   * The sentence at the top of the setup dialog, above everything — what this
+   * game is, in this mode. "Everyone in the club types words into the same
+   * honeycomb and the team racks up the score together."
+   *
+   * **On the manifest rather than in the form, because of WHERE it goes.**
+   * `<SetupGameModal>` draws the player picker and then the game's form, so an
+   * intro written inside the form lands under the picker — below the thing it
+   * is meant to introduce. From here the modal can put it first.
+   *
+   * **A plain string, not a function of mode**, because a manifest is already
+   * per-mode: `spellingbeeCoopGame` and `spellingbeeCompeteGame` are separate
+   * objects. All thirteen of these were a coop/compete pair of fixed sentences,
+   * written as two branches of a ternary or as two copies of the form; none
+   * read live setup state. So the branch was the sibling-manifest pattern
+   * spelled out by hand, and it goes.
+   *
+   * Optional: a game with nothing to say leaves it off. It sits beside
+   * `shortDescription`'s job one size up — that is the Start button's ~30
+   * characters, this is the dialog's full sentence — so an edit to one is
+   * visibly an edit that should touch the other.
+   */
+  intro?: string
+  /**
    * Optional cross-field guard the dialog runs to gate the Start
    * button. Returns a human-readable reason the current `setup` can't
    * start (shown under the form, Start disabled) or `null` when it's

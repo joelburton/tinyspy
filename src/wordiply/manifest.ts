@@ -153,6 +153,8 @@ export const wordiplyCoopGame: GameManifest = {
   PlayArea: playAreaLoader,
 
   setupForm: {
+    intro:
+      'Everyone in the club shares five guesses. Each guess must contain the starter and be longer than it; together you\'re hunting the longest word.',
     Component: setupFormLoader,
     defaults: DEFAULT_WORDIPLY_SETUP_COOP,
     validate: (setup) => wordiplySetupError(setup as WordiplySetup),
@@ -183,6 +185,8 @@ export const wordiplyCompeteGame: GameManifest = {
   PlayArea: playAreaLoader,
 
   setupForm: {
+    intro:
+      'Each player gets their own five guesses off the same starter. The longest word wins; until the end you only see how many guesses each other has spent, not the words.',
     Component: setupFormLoader,
     defaults: DEFAULT_WORDIPLY_SETUP_COMPETE,
     validate: (setup) => wordiplySetupError(setup as WordiplySetup),

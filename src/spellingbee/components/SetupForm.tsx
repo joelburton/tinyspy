@@ -8,9 +8,9 @@ import { difficultyValue } from '../../common/lib/game/difficulty'
 import type { SetupBodyProps } from '../../common/lib/games'
 import { RANKS } from '../../common/lib/game/rankLadder'
 import type { SpellingbeeSetup } from '../lib/setup'
-import form from '../../common/components/fields/setupForm.module.css'
 import { ManualBoardField } from '../../common/components/fields/ManualBoardField'
 import { groupTiles } from '../../common/components/fields/groupTiles'
+import section from '../../common/components/setup/SetupSection.module.css'
 
 /** Normalize a letter input: lowercase, drop anything but a–z, cap the length.
  *  Keeps state canonical (lowercase, letters-only) so validation + the edge
@@ -102,19 +102,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
   const customEntry = `${s.custom_center ?? ''}${s.custom_letters ?? ''}`
 
   return (
-    <div className={form.setup}>
-      {mode === 'coop' ? (
-        <p className={form.helpText}>
-          Everyone in the club types words into the same honeycomb
-          and the team racks up the score together.
-        </p>
-      ) : (
-        <p className={form.helpText}>
-          Each player works the same honeycomb independently. First
-          to the target rank wins; the rest of the time you only
-          see each other's rank, not the words you found.
-        </p>
-      )}
+    <>
 
       {mode === 'compete' ? (
         <SetupSection label={`Target rank: ${targetRankLabel}`}>
@@ -163,7 +151,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
           summary shows the current bands (e.g. "Dictionaries: 3 (Familiar) / 5
           (Obscure)"). */}
       <SetupSection label={dictLabel}>
-        <p className={form.helpText}>
+        <p className={section.help}>
           Required words are the goal; legal words also score but aren't
           required. Both are length-agnostic (examples just show the band).
         </p>
@@ -215,6 +203,6 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
         value={s.timer}
         onChange={(timer) => onChange({ ...s, timer })}
       />
-    </div>
+    </>
   )
 }

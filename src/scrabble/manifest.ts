@@ -117,7 +117,12 @@ export const scrabbleCoopGame: GameManifest = {
   // Solo or coop up to 4. Must agree with require_player_count_max(4).
   numberOfPlayers: [1, 4],
   PlayArea: playAreaLoader,
-  setupForm: { Component: setupFormLoader, defaults: DEFAULT_SCRABBLE_SETUP },
+  setupForm: {
+    Component: setupFormLoader,
+    defaults: DEFAULT_SCRABBLE_SETUP,
+    intro:
+      'Build words on the board from your rack of tiles. A word is accepted if it\'s in the dictionary at the difficulty you pick for its length.',
+  },
   startGameInClub: startGameInClubFactory('coop', BRAND),
   labelFor: labelFor('coop'),
   submitTimeout,
@@ -143,7 +148,13 @@ export const scrabbleCompeteGame: GameManifest = {
   PlayArea: playAreaLoader,
   // `validate` blocks Start when an AI is present and the dictionary is too
   // narrow for its level, or the head-count doesn't fit (docs/scrabble-ai-strength.md).
-  setupForm: { Component: setupFormLoader, defaults: DEFAULT_SCRABBLE_SETUP, validate: validateScrabbleSetup },
+  setupForm: {
+    Component: setupFormLoader,
+    defaults: DEFAULT_SCRABBLE_SETUP,
+    validate: validateScrabbleSetup,
+    intro:
+      'Build words on the board from your rack of tiles. A word is accepted if it\'s in the dictionary at the difficulty you pick for its length.',
+  },
   startGameInClub: startGameInClubFactory('compete', BRAND),
   labelFor: labelFor('compete'),
   submitTimeout,

@@ -11,7 +11,6 @@ import type { SetupBodyProps } from '../../common/lib/games'
 import { PAR } from '../lib/board'
 import { cleanSides, formatSides } from '../lib/customBoard'
 import type { LetterboxedSetup } from '../lib/setup'
-import form from '../../common/components/fields/setupForm.module.css'
 import { ManualBoardField } from '../../common/components/fields/ManualBoardField'
 import { SIDE_SIZE } from '../lib/board'
 
@@ -57,7 +56,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
     s.extra_words === 0 ? `par — ${PAR} exactly` : `par + ${s.extra_words}`
 
   return (
-    <div className={form.setup}>
+    <>
       {/* Coop pacing — first, right below the dialog's player picker.
           Self-gates to nothing for compete / solo. Turn-by-turn suits this
           game unusually well: the chain hands off on its own. */}
@@ -71,19 +70,6 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
         }
       />
 
-      {mode === 'coop' ? (
-        <p className={form.helpText}>
-          One shared chain. Each word starts with the last letter of the one
-          before it, and no word may use two letters from the same side.
-          Together, touch all twelve letters.
-        </p>
-      ) : (
-        <p className={form.helpText}>
-          Same twelve letters, a private chain each. First to touch all twelve
-          within the word limit wins; until then you only see how far the
-          others have got, not their words.
-        </p>
-      )}
 
       {/* Difficulty is expressed against PAR, not as a bare word count: every
           board is solvable in two, so "5 words" means nothing on its own while
@@ -151,6 +137,6 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
       </SetupSection>
 
       <TimerField value={s.timer} onChange={(timer) => onChange({ ...s, timer })} />
-    </div>
+    </>
   )
 }

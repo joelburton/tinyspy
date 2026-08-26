@@ -9,7 +9,7 @@ import { SetupSection } from '../../common/components/setup/SetupSection'
 import { difficultyValue } from '../../common/lib/game/difficulty'
 import type { SetupBodyProps } from '../../common/lib/games'
 import { AI_BAND, AI_LEVELS, AI_LEVEL_LABEL, type AiLevel, type ScrabbleSetup } from '../lib/setup'
-import form from '../../common/components/fields/setupForm.module.css'
+import section from '../../common/components/setup/SetupSection.module.css'
 
 /**
  * scrabble's setup form. Shared by both modes:
@@ -39,7 +39,7 @@ export function SetupForm({ value, onChange, mode, players, playerCount }: Setup
   const aiBandName = difficultyValue(AI_BAND[s.ai_level])
 
   return (
-    <div className={form.setup}>
+    <>
       {/* Coop pacing — free-for-all (default) vs turn-by-turn — first, right
           below the dialog's player picker. Self-gates to nothing for
           compete / solo. */}
@@ -52,10 +52,6 @@ export function SetupForm({ value, onChange, mode, players, playerCount }: Setup
           onChange({ ...s, coop_style: coopStyle, first_turn_user_id: firstTurnUserId })
         }
       />
-      <p className={form.helpText}>
-        Build words on the board from your rack of tiles. A word is accepted if
-        it's in the dictionary at the difficulty you pick for its length.
-      </p>
       <SetupSection label={dictLabel}>
         <DictBandField
           label="2-letter words"
@@ -103,7 +99,7 @@ export function SetupForm({ value, onChange, mode, players, playerCount }: Setup
                   </option>
                 ))}
               </SelectField>
-              <p className={form.helpText}>
+              <p className={section.help}>
                 {playerCount} human + {s.ai_count} AI. A {AI_LEVEL_LABEL[s.ai_level]} AI plays from the
                 “{aiBandName}” dictionary, so both dictionaries above must be at least that wide.
               </p>
@@ -113,6 +109,6 @@ export function SetupForm({ value, onChange, mode, players, playerCount }: Setup
       )}
 
       <TimerField value={s.timer} onChange={(timer) => onChange({ ...s, timer })} />
-    </div>
+    </>
   )
 }

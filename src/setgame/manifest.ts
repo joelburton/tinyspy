@@ -168,6 +168,8 @@ export const setgameCoopGame: GameManifest = {
   PlayArea: playAreaLoader,
 
   setupForm: {
+    intro:
+      'One table, everyone hunting together. Claim three cards where each of number, color, shading and shape is either all the same or all different. You win by clearing the deck — that means no sets left to find, not using up every card.',
     Component: setupFormLoader,
     defaults: DEFAULT_SETGAME_SETUP_COOP,
     validate: (setup) => setgameSetupError(setup as SetgameSetup),
@@ -198,6 +200,8 @@ export const setgameCompeteGame: GameManifest = {
   PlayArea: playAreaLoader,
 
   setupForm: {
+    intro:
+      'Same table, same deck, everyone racing. A set you claim is gone for the others, and the most sets when the deck runs dry wins. Ties are ties — nobody is separated on speed.',
     Component: setupFormLoader,
     defaults: DEFAULT_SETGAME_SETUP_COMPETE,
     validate: (setup) => setgameSetupError(setup as SetgameSetup),

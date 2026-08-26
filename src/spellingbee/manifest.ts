@@ -115,6 +115,8 @@ export const spellingbeeCoopGame: GameManifest = {
   PlayArea: playAreaLoader,
 
   setupForm: {
+    intro:
+      'Everyone in the club types words into the same honeycomb and the team racks up the score together.',
     Component: setupFormLoader,
     defaults: DEFAULT_SPELLINGBEE_SETUP_COOP,
     validate: (setup) => spellingbeeSetupError(setup as SpellingbeeSetup),
@@ -175,6 +177,8 @@ export const spellingbeeCompeteGame: GameManifest = {
   PlayArea: playAreaLoader,
 
   setupForm: {
+    intro:
+      'Each player works the same honeycomb independently. First to the target rank wins; the rest of the time you only see each other\'s rank, not the words you found.',
     Component: setupFormLoader,
     defaults: DEFAULT_SPELLINGBEE_SETUP_COMPETE,
     validate: (setup) => spellingbeeSetupError(setup as SpellingbeeSetup),

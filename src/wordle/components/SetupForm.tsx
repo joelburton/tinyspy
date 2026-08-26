@@ -8,7 +8,6 @@ import { SetupSection } from '../../common/components/setup/SetupSection'
 import { difficultyValue } from '../../common/lib/game/difficulty'
 import type { SetupBodyProps } from '../../common/lib/games'
 import { answerMaxBand, GUESS_OPTIONS, type WordleSetup } from '../lib/setup'
-import form from '../../common/components/fields/setupForm.module.css'
 
 /**
  * wordle's setup form, rendered inside the common SetupGameModal.
@@ -36,7 +35,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
   const dictLabel = `Dictionaries: ${answerValue} / ${difficultyValue(s.legal_guess)}`
 
   return (
-    <div className={form.setup}>
+    <>
       {/* Coop pacing — first, right below the dialog's player picker.
           Self-gates to nothing for compete / solo. */}
       <CoopStyleField
@@ -85,6 +84,6 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
         value={s.timer}
         onChange={(timer) => onChange({ ...s, timer })}
       />
-    </div>
+    </>
   )
 }

@@ -13,7 +13,6 @@ import {
   WORD_COUNT_OPTIONS,
   type PsychicnumSetup,
 } from '../lib/setup'
-import form from '../../common/components/fields/setupForm.module.css'
 
 /**
  * psychicnum's per-game setup form, rendered inside the common
@@ -53,7 +52,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
   const dictLabel = `Dictionary: ${difficultyValue(s.difficulty)}`
 
   return (
-    <div className={form.setup}>
+    <>
       {/* Coop pacing — free-for-all (default) vs turn-by-turn — first, right
           below the dialog's player picker. Self-gates to nothing for
           compete / solo, so it's dropped in unconditionally. */}
@@ -113,6 +112,6 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
         value={s.timer}
         onChange={(timer) => onChange({ ...s, timer })}
       />
-    </div>
+    </>
   )
 }

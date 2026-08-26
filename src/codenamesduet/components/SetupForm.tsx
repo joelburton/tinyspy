@@ -8,7 +8,6 @@ import {
   TURN_OPTIONS,
   type CodenamesduetSetup,
 } from '../lib/setup'
-import form from '../../common/components/fields/setupForm.module.css'
 import { SetupSection } from '../../common/components/setup/SetupSection'
 
 /**
@@ -61,7 +60,7 @@ export function SetupForm({ members, value, onChange }: SetupBodyProps) {
     members.find((m) => m.user_id === s.first_clue_giver_user_id)?.username ?? '—'
 
   return (
-    <div className={form.setup}>
+    <>
       <SetupSection label={`Turns: ${s.turns}`}>
         <RadioRow
           help="The standard game is 9. Pick 10 or 11 for an easier warm-up (matches the rulebook's mission difficulties)."
@@ -86,6 +85,6 @@ export function SetupForm({ members, value, onChange }: SetupBodyProps) {
         value={s.timer}
         onChange={(timer) => onChange({ ...s, timer })}
       />
-    </div>
+    </>
   )
 }
