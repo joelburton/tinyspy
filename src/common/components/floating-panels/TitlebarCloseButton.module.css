@@ -1,0 +1,18 @@
+/* cs-audited */
+
+/* @@ */ .close {
+  /* SIZED BY THE BAR, by re-setting the token `.icon-only` reads rather than
+     out-cascading it. `.icon-only` is a fixed square of `--iconButton-size`
+     (2.05rem), which is nearly the whole 2rem titlebar; re-setting the property
+     on this element makes the class pick up the new value with no specificity
+     fight. Same discipline as the button tones and the tiles
+     (code-conventions.md → state classes win by re-setting tokens).
+
+     0.7 is what the ✕ already measured — 1.4rem of a 2rem bar. */
+  --iconButton-size: calc(var(--floatingPanel-titlebar-height) * 0.7);
+  /* NO BORDER. A quiet secondary outlines itself; a titlebar's dismiss is
+     furniture rather than a control being offered. What this actually removes is
+     the HOVER outline — the resting border was already transparent. */
+  border-color: transparent;
+  flex-shrink: 0;
+}

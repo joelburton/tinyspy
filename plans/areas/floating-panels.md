@@ -25,7 +25,7 @@ change here forward-fixes them in the same commit (§21's compile-break rule) an
 **their stamps do not move**. If one of them turns out to be the only evidence
 for a shared question, it gets surfaced and asked about, not audited.
 
-**Twenty-eight findings.** Twenty-two RESOLVED (F1–F7, F16, F17, F18, F19, F21,
+**Twenty-nine findings.** Twenty-three RESOLVED (F1–F7, F16, F17, F18, F19, F21,
 F25, F28), three MOVED to `forms` (F8, F9, F13), two PUNTED (F14 → the first
 game area, F15 → crosswords), **nine OPEN** — F10, F11, F12, F20, F22, F23, F24,
 F26, F27.
@@ -909,6 +909,57 @@ anyway.
 handle them now); all floating panels should handle esc-to-close, following the
 rule we just confirmed about the 'focus-or-top'."* Both opt-outs go; the fault's
 swallow is the only exception left.
+
+## RESOLVED · F29 · `x-means-close` · Three ✕s, doing two different jobs and two different glyphs
+
+Came out of F24, and turned out to be the bigger finding.
+
+**The app had three close-ish ✕s** and they were not one thing:
+
+| where | glyph | what it actually did |
+|---|---|---|
+| `FloatingPanel`'s titlebar | `×` U+00D7 | dismiss this floating panel — the real one, rendered once for all fourteen |
+| `ClubGameDeleteButton` | `×` U+00D7 | **delete a game, irreversibly** |
+| `InfoSheet` | `✕` U+2715 | nothing — `display: none` in every state |
+
+**The delete was the problem** (Joel, 2026-08-25): *"'x' normally means 'close
+this thing'; deleting a game is a subtly different act than closing a dialog."*
+And it was worse than a wrong glyph: the button was a neutral gray corner icon
+that only turned red once you had already pressed it, so the one signal saying
+"this destroys something" arrived after the click that needed it.
+
+**Now a `<TrashButton>`** — a purpose button on `ActionButton`, `Trash2` from
+lucide, destructive by default. `ClubGameDeleteButton` renders it and keeps only
+what is genuinely local: the corner position, the hover reveal, the two-step
+state. `iconOnly` IS the shape change, so the same button grows a label beside
+the same glyph rather than a pill replacing it.
+
+**The titlebar ✕ became a real quiet button.** It hand-wrote a muted ink, a
+`--page-surface-hover-color` background and a `--field-edge-color` border — a
+form FIELD's edge on a button, which is the least defensible of the three. Now
+`button secondary icon-button icon-only`, where a bare `.secondary` IS the quiet
+family, with **no border** (Joel: *"it doesn't get a border"*). What actually
+changed on screen is the HOVER outline, which used to appear and no longer does —
+the rest border was already transparent.
+
+**Its size is re-set, not out-cascaded** — and that answers "why does `icon-only`
+fix the size?" It reads `--iconButton-size`, so the element re-sets that token to
+`calc(titlebar × 0.7)` and the class picks up the new value. Same discipline as
+the button tones and the tiles (`code-conventions.md` → state classes win by
+re-setting tokens). No wart, and no need to skip `icon-only`.
+
+**`InfoSheet`'s was deleted**, not fixed. It was `display: none` in every state,
+kept "for any future context that has no header" — a context that does not
+exist — and it carried the second glyph nobody could see and therefore nobody
+would ever fix. Escape still closes the sheet.
+
+**No shared close class was added**, and the check is why: there is only ONE live
+✕ in the app now, because the shell renders it once for every floating panel. A
+global class would have exactly one caller.
+
+**Scope:** this reached two other areas' files. `ClubGameDeleteButton` is
+`club-page`'s, `InfoSheet` is `shared-game-chrome`'s; both were done at Joel's
+direction.
 
 ## F26 · `ephemeral-panels-dont-reclamp` · The panels that persist are protected; the ones that don't, aren't
 

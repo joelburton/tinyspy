@@ -59,14 +59,6 @@ export function InfoSheet({ open, onClose, children }: Props) {
       aria-modal={open ? true : undefined}
       aria-label={open ? 'Game info' : undefined}
     >
-      <button
-        type="button"
-        className={styles.close}
-        onClick={onClose}
-        aria-label="Close game info"
-      >
-        ✕
-      </button>
       {children}
     </div>
   )

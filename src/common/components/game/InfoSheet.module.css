@@ -5,14 +5,9 @@
  * it byte-for-byte (psychicnum / wordle / codenamesduet). See InfoSheet.tsx. */
 
 /* Desktop: `display: contents` — the wrapper generates no box, so the child (a
- * game's InfoCol) is the flex child of `.layout` exactly as before, and the
- * close button is hidden. */
+ * game's InfoCol) is the flex child of `.layout` exactly as before. */
 /* @@ */ .wrap {
   display: contents;
-}
-
-/* @@ */ .close {
-  display: none;
 }
 
 @media (--mobile) {
@@ -75,7 +70,7 @@
    * `min-height: 0` is the load-bearing one: without it a flex item's implicit
    * `min-height: auto` refuses to shrink under its content, so the log would push
    * the sheet tall again even inside a flex column. */
-/* @@ */   .wrap > :not(.close) {
+/* @@ */   .wrap > * {
     flex: 1 1 auto;
     min-height: 0;
   }
@@ -85,9 +80,14 @@
     visibility: visible;
   }
 
-  /* The ✕ stays hidden even on mobile now: the header's switch button is the
-   * one way between the two pages, in one fixed place. A second dismiss in the
-   * sheet's corner is exactly the two-affordances-in-two-places split that made
-   * this fussy to begin with. Kept in the DOM (not deleted) because the sheet
-   * still needs an in-panel close for any future context that has no header. */
+  /* There is no ✕. The header's switch button is the one way between the two
+   * pages, in one fixed place — a second dismiss in the sheet's corner is the
+   * two-affordances-in-two-places split that made this fussy to begin with.
+   *
+   * It used to be kept in the DOM, `display: none` in every state, "because the
+   * sheet still needs an in-panel close for any future context that has no
+   * header". DELETED 2026-08-25: that context does not exist, the button was
+   * unreachable in all of them, and it carried a SECOND close glyph (`✕`,
+   * U+2715) against the floating panels' `×` (U+00D7) — drift that nobody could
+   * see and therefore nobody would fix. Escape still closes the sheet. */
 }

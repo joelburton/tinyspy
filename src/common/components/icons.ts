@@ -73,6 +73,11 @@ export {
   // IconShuffle's single rotate glyph (reorder my OWN tiles, no server trade).
   ArrowLeftRight as IconExchange,
   Delete as IconDelete, // delete the last typed character (the backspace key glyph)
+  // DESTROY a thing, as opposed to dismissing one. `Trash2` is the lidded can
+  // with the lines; `Trash` is the plain one. Deliberately NOT a ✕ — an ✕ means
+  // "close this", and a game row's delete used to wear one, which made an
+  // irreversible act look like a dismiss (Joel, 2026-08-25).
+  Trash2 as IconTrash,
   RotateCw as IconShuffle, // reshuffle my own tiles for a fresh look
   // bananagrams' "Peel" — draw a fresh round of tiles (or, when the bunch is
   // dry, go out and win). The banana glyph is on-the-nose for the Bananagrams
@@ -180,6 +185,16 @@ export {
   // the purpose is different — one marks a verdict, the other is an action.
   // As an SVG it is centered by its own box; the × TEXT glyph is not.
   X as IconRemove,
+  // DISMISS this floating panel — the titlebar ✕. A third alias of the same
+  // lucide glyph, for the same reason the two above are separate: one marks a
+  // verdict, one removes an item, this one closes a surface.
+  //
+  // It replaces a TEXT `×` (U+00D7), which is how the app came to have two
+  // different close characters — InfoSheet hand-wrote `✕` (U+2715) and nobody
+  // could see the difference because that button was never shown. A glyph that
+  // is not in this registry is a glyph that drifts. The note above applies here
+  // too: as an SVG it is centered by its own box, where the text × is not.
+  X as IconClose,
   // The mobile page switch (GamePage header). A right-hand panel opening /
   // closing IS the gesture — the info column slides in from the right — so the
   // pair says what a bare chevron couldn't: which panel, and which way.

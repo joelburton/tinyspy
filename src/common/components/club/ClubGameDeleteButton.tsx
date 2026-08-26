@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { cls } from '../../lib/util/cls'
+import { TrashButton } from '../buttons/TrashButton'
 import styles from './ClubGameDeleteButton.module.css'
 
 type Props = {
@@ -12,19 +13,23 @@ type Props = {
 }
 
 /**
- * The hover-revealed × in a game entry's top-right corner, and the two-step
- * confirmation behind it.
+ * The hover-revealed trash can in a game entry's top-right corner, and the
+ * two-step confirmation behind it.
  *
- *   - **idle** — a small ×, invisible until the entry around it is hovered or
+ *   - **idle** — a small trash can, invisible until the entry around it is
+ *     hovered or
  *     holds focus, so it doesn't compete with the entry's content until you go
  *     looking for it.
- *   - **confirming** — expands into a red "Confirm delete?" pill, always
+ *   - **confirming** — expands into a "Confirm delete?" pill, always
  *     visible, auto-reverting after 4 seconds. A misclicked × can simply be
  *     ignored; there is no Cancel to find.
  *   - **deleting** — "Deleting…" while the caller does its work.
  *
- * It is a `dismiss` (docs/ui.md → the fourteen kinds), so it takes the neutral
- * `<button>` and NOT `.button`.
+ * **A DESTRUCTIVE button in every state** (Joel, 2026-08-25). It used to be a
+ * neutral gray corner icon that only turned red once you had already pressed it
+ * — so the one affordance that says "this deletes something" arrived after the
+ * click that needed it. Now the tone is the same at rest, on hover and while
+ * confirming; only the SHAPE changes, from a square ✕ to a labelled pill.
  *
  * **It stops the click from propagating**, which is load-bearing now that a
  * game row is a `<SelectionList>` row: the row's own click activates it, so
@@ -61,27 +66,33 @@ export function ClubGameDeleteButton({ onDelete }: Props) {
     }
   }
 
+  const label =
+    state === 'idle'
+      ? 'Delete game'
+      : state === 'confirming'
+        ? 'Confirm delete?'
+        : 'Deleting…'
+
   return (
-    <button
-      type="button"
-      className={cls(styles.deleteButton, state !== 'idle' && styles.deleteButtonActive)}
+    // A real `<TrashButton>`, not a hand-rolled button wearing borrowed classes.
+    // Its tone, its glyph and its focus-suppression are the shared ones — this
+    // file is left holding only what is genuinely its own: where the button
+    // sits, when it is visible, and the two-step state.
+    //
+    // `iconOnly` IS the shape change. At rest it is a trash can in a fixed
+    // square; once you press it the same button grows a label beside the same
+    // glyph, so the thing that expands is visibly the thing you clicked rather
+    // than a pill that replaced it.
+    <TrashButton
+      label={label}
+      iconOnly={state === 'idle'}
+      className={cls(
+        'button-small',
+        styles.deleteButton,
+        state !== 'idle' && styles.deleteButtonActive,
+      )}
       onClick={handleClick}
-      // A pointer press must not move focus here either: the list container is
-      // the tab stop and owns the cursor, and a button that takes focus on click
-      // blanks the ring and leaves a stray one behind. `click` still fires.
-      onMouseDown={(e) => e.preventDefault()}
       disabled={state === 'deleting'}
-      aria-label={
-        state === 'idle'
-          ? 'Delete game'
-          : state === 'confirming'
-            ? 'Confirm delete game'
-            : 'Deleting game'
-      }
-    >
-      {state === 'idle' && '×'}
-      {state === 'confirming' && 'Confirm delete?'}
-      {state === 'deleting' && 'Deleting…'}
-    </button>
+    />
   )
 }
