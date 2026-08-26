@@ -560,7 +560,7 @@ It was also ambiguous against the app's PAGE header (`components/page-header/`,
 went with it: calling it a header inside a panel is the same ambiguity in HTML.
 Joel: *"so much more obvious; I wouldn't have needed to ask."*
 
-## PARTLY RESOLVED · F23 · `viewport-margins-unchosen` · Five numbers answering one question
+## CLOSED · F23 · `viewport-margins-unchosen` · Five numbers answering one question
 
 It turned out to be **three** questions, and only one of them was a problem.
 
@@ -604,8 +604,11 @@ Eleven floating panels, twelve distinct numbers, every one picked by eye:
     EditProfileModal            320×340    BlockingModal            320×0
     FloatingPanel default       240×200    GameHelpCompanion        per-game
 
-Joel, 2026-08-25: *"ignore for now; as we get to these individually in areas, we
-can figure out."* Widths cluster at 240/260/280/300/320 — five values for one
+**CLOSED HERE 2026-08-25, moved to §7's carried-forward checklist** against
+"each surface, as its area comes up", with the seven pairs listed and the RULE
+to apply — the number comes from what the body needs, not from what looked about
+right. Joel: *"ignore for now; as we get to these individually in areas, we can
+figure out."* Widths cluster at 240/260/280/300/320 — five values for one
 idea — but the numbers are also the one thing a RESIZABLE panel genuinely
 differs on: chat can go narrow, a form cannot.
 
@@ -995,7 +998,7 @@ recorded where the key is declared**: a remembered rect carries a SIZE too, so
 after the first drag a game's own `defaultSize` stops applying; those seeds only
 ever fire on a fresh browser.
 
-## PARTLY RESOLVED · F27 · `cluepanel-clue-for-what` · `CluePanel` names neither its game nor its job
+## CLOSED · F27 · `cluepanel-clue-for-what` · `CluePanel` names neither its game nor its job
 
 Joel, 2026-08-24: *"'CluePanel' is a terrible name: CLUE FOR WHAT?"*
 
@@ -1020,10 +1023,11 @@ the family rollout had briefly given it one. It also is not asking anything — 
 modal-normal is a question worth thinking about; this is information you
 requested and act on the board with.
 
-**STILL OPEN: the strip's own name.** Joel: *"change it back to CluePanel; we'll
-consider a better name when we work on it."* It is codenamesduet's, and it is
-not a floating panel, so neither `Panel` nor `Modal` belongs in whatever it
-becomes.
+**CLOSED HERE 2026-08-25, moved to codenamesduet.** The strip's own name is
+still owed — Joel: *"change it back to CluePanel; we'll consider a better name
+when we work on it"* — and it is on §7's carried-forward checklist against
+`codenamesduet`, which is where an item with a future owning area goes. It is not
+a floating panel, so neither `Panel` nor `Modal` belongs in whatever it becomes.
 
 **The general lesson is filed against its own audit** (§7 → carried forward):
 four other files export more than one component, so "the filename is the
