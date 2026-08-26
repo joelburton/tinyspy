@@ -6,27 +6,4 @@
   gap: 1.25rem;
 }
 
-/* A labeled field. Used for both the (read-only) username block and
- * the color <fieldset> — the fieldset reset keeps them visually aligned. */
-/* @@ */ .field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  border: none;
-  margin: 0;
-  padding: 0;
-  min-width: 0;
-}
-
-/* @@ */ .label {
-  font-weight: 600;
-  font-size: 0.9rem;
-  color: var(--page-text-muted-color);
-  padding: 0;
-}
-
-/* @@ */ .username {
-  font-size: 1.05rem;
-}
-
 /* Save / Cancel action row is the shared modalActions.module.css. */

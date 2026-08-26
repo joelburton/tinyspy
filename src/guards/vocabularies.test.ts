@@ -243,8 +243,8 @@ const VOCABULARIES: Vocabulary[] = [
       // vocabulary is fully in force.
       'src/common/base.css': ['1rem', '1.25rem', '1.15rem', '0.75rem'],
       'src/common/components/account/ColorChoiceList.module.css': ['0.5rem'],
-      'src/common/components/account/EditProfileModal.module.css': ['1.25rem', '0.4rem'],
-      'src/common/components/auth/ClaimHandleScreen.module.css': ['1.25rem', '1.5rem', '0.4rem', '0.75rem', '0.5rem'],
+      'src/common/components/account/EditProfileModal.module.css': ['1.25rem'],
+      'src/common/components/auth/ClaimHandleScreen.module.css': ['1.25rem', '1.5rem', '0.75rem', '0.5rem'],
       'src/common/components/branding/PuzpuzpuzWordmark.module.css': ['1.5rem'],
       'src/common/components/buttons/SubmitWithScore.module.css': ['0.5rem'],
       'src/common/components/chat/ChatBody.module.css': ['0.4rem', '0.3rem'],
@@ -274,6 +274,12 @@ const VOCABULARIES: Vocabulary[] = [
       // out of files already on this list, at the same values. The debt
       // travelled with the markup; it did not grow.
       'src/common/components/fields/CheckboxField.module.css': ['0.5rem'],
+      // The three field components carved out of ClaimHandleScreen,
+      // CreateClubPage and EditProfileModal on 2026-08-26. Same values,
+      // now in one place instead of four — the debt travelled and shrank.
+      'src/common/components/fields/TextField.module.css': ['0.4rem'],
+      'src/common/components/fields/ReadOnlyField.module.css': ['0.4rem'],
+      'src/common/components/fields/ColorField.module.css': ['0.4rem'],
       'src/common/components/fields/DateField.module.css': ['0.5rem'],
       'src/common/components/fields/SelectField.module.css': ['0.35rem'],
       'src/common/components/fields/setupForm.module.css': ['1rem', '0.25rem', '0.75rem', '0.4rem'],
@@ -333,7 +339,6 @@ const VOCABULARIES: Vocabulary[] = [
     allowed: /^(\d*\.?\d+(em|%)|inherit|initial|unset|revert)$/,
     pending: {
       'src/common/base.css': ['1.5rem', '1.25rem', '1.15rem', '1rem', 'max(16px,', '1em)'],
-      'src/common/components/account/EditProfileModal.module.css': ['0.9rem', '1.05rem'],
       'src/common/components/auth/ClaimHandleScreen.module.css': ['0.9rem'],
       'src/common/components/buttons/ShuffleButton.module.css': ['32px'],
       'src/common/components/chat/ChatBody.module.css': ['0.9rem', 'max(16px,', '1em)'],
@@ -356,6 +361,9 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/components/loading-and-errs/ErrorPage.module.css': ['1.1rem', '0.78rem'],
       'src/common/components/feedback/GenericFeedbackPill.module.css': ['1.1rem'],
       'src/common/components/fields/SelectField.module.css': ['0.9rem'],
+      'src/common/components/fields/TextField.module.css': ['0.9rem'],
+      'src/common/components/fields/ReadOnlyField.module.css': ['0.9rem', '1.05rem'],
+      'src/common/components/fields/ColorField.module.css': ['0.9rem'],
       'src/common/components/game/CelebrationBlockingModal.module.css': ['2.4rem', '1.5rem'],
       'src/common/components/game/DeviceBlockNotice.module.css': ['1.25rem'],
       'src/common/components/game/entry/GuessKeyboard.module.css': ['1.2rem', '0.85rem'],
@@ -397,11 +405,12 @@ const VOCABULARIES: Vocabulary[] = [
     allowed: /^(normal|inherit|initial|unset|revert)$/,
     pending: {
       'src/common/components/buttons/ShuffleButton.module.css': ['1'],
+      // The textarea's leading, moved up from CreateClubPage with <TextField>.
+      'src/common/components/fields/TextField.module.css': ['1.4'],
       'src/common/components/chat/ChatBody.module.css': ['1.35'],
       'src/common/components/page-header/ChatButton.module.css': ['1.1rem'],
       'src/common/components/club/ClubGameCard.module.css': ['1.2', '1.25'],
       'src/common/components/club/ClubGameRow.module.css': ['1.2', '1.25'],
-      'src/common/components/club/CreateClubPage.module.css': ['1.4'],
       'src/common/components/club/EditClubModal.module.css': ['1.25'],
       'src/common/components/club/StartGameRow.module.css': ['1.2', '1.25'],
       'src/common/components/definitions/DefinitionView.module.css': ['1.45'],

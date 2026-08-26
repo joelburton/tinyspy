@@ -1,0 +1,21 @@
+/* cs-fixed */
+
+/* The player-color picker's wrapper (see ColorField.tsx) — the same column and
+ * caption every other field has, plus the <fieldset> reset that stops a browser
+ * default border and padding from breaking the alignment with the <label>
+ * fields beside it. */
+/* @@ */ .field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  border: none;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+/* @@ */ .label {
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 0;
+}

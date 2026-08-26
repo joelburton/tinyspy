@@ -7,28 +7,6 @@
   margin-top: 1.5rem;
 }
 
-/* A field: label over its control, with the help text on its own line
- * below. Used for both the username <label> and the color <fieldset>
- * (the fieldset reset keeps them aligned). */
-/* @@ */ .field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  border: none;
-  margin: 0;
-  padding: 0;
-  min-width: 0;
-}
-
-/* @@ */ .field input {
-  width: 100%;
-}
-
-/* @@ */ .label {
-  font-weight: 600;
-  padding: 0;
-}
-
 /* The username rules — on its own line under the input (tone comes from
  * the `muted` / `error` utility class applied alongside). */
 /* @@ */ .help {

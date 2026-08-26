@@ -10,19 +10,6 @@
   margin-top: 1.5rem;
 }
 
-/* One field: label text on its own line, control below, optional muted
- * helper under that. */
-/* @@ */ .field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-
-.field input,
-/* @@ */ .field textarea {
-  width: 100%;
-}
-
 /* The label text + its discreet handle hint share one line, sitting
  * above the control. */
 /* @@ */ .labelRow {
@@ -37,14 +24,6 @@
   font-size: 0.8rem;
   font-weight: 400;
   color: var(--page-text-muted-color);
-}
-
-/* Multi-line members input — vertical resize only (horizontal resize
- * would break out of the card). */
-/* @@ */ .textarea {
-  resize: vertical;
-  min-height: 3.5rem;
-  line-height: 1.4;
 }
 
 /* Primary + Cancel share one row (Cancel is a real button now, not a

@@ -5,12 +5,13 @@ import { useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { db as commonDb } from '../../db'
 import { useProfile, setProfileColor } from '../../hooks/session/useProfile'
-import { ColorChoiceList } from './ColorChoiceList'
 import { FloatingPanel } from '../floating-panels/FloatingPanel'
 import actionRow from '../floating-panels/modalActions.module.css'
 import styles from './EditProfileModal.module.css'
 import { StandardButton } from '../buttons/StandardButton'
 import { CancelButton } from '../buttons/CancelButton'
+import { ReadOnlyField } from '../fields/ReadOnlyField'
+import { ColorField } from '../fields/ColorField'
 
 type Props = {
   session: Session
@@ -76,15 +77,9 @@ export function EditProfileModal({ session, onSaved, onCancel }: Props) {
       defaultSize={{ width: 380, height: 460 }}
     >
       <div className={styles.content}>
-        <div className={styles.field}>
-          <span className={styles.label}>Username</span>
-          <span className={styles.username}>{profile?.username ?? '…'}</span>
-        </div>
+        <ReadOnlyField label="Username">{profile?.username ?? '…'}</ReadOnlyField>
 
-        <fieldset className={styles.field}>
-          <legend className={styles.label}>Player color</legend>
-          <ColorChoiceList value={selected} onChange={setPicked} disabled={busy} />
-        </fieldset>
+        <ColorField value={selected} onChange={setPicked} disabled={busy} />
 
         {error && <p className="error">{error}</p>}
 

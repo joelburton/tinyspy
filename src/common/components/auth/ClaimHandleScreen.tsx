@@ -6,10 +6,11 @@ import { db as commonDb } from '../../db'
 import { supabase } from '../../lib/supabase/supabase'
 import { cls } from '../../lib/util/cls'
 import { defaultColorFor } from '../../lib/color/memberColor'
-import { ColorChoiceList } from '../account/ColorChoiceList'
 import styles from './ClaimHandleScreen.module.css'
 import { StandardButton } from '../buttons/StandardButton'
 import { CancelButton } from '../buttons/CancelButton'
+import { TextField } from '../fields/TextField'
+import { ColorField } from '../fields/ColorField'
 
 type Props = {
   /** Re-probe the profile table after the claim_username RPC
@@ -165,29 +166,24 @@ export function ClaimHandleScreen({ onClaimed, email }: Props) {
         </p>
 
         <form onSubmit={onSubmit} className={styles.form}>
-          <label className={styles.field}>
-            <span className={styles.label}>Username</span>
-            <input
-              type="text"
-              value={desired}
-              onChange={(e) => setDesired(e.target.value)}
-              disabled={busy}
-              autoFocus
-              required
-              // Hard stop at the CHECK's ceiling — a handle you can't submit
-              // shouldn't be typeable in the first place.
-              maxLength={15}
-            />
+          <TextField
+            label="Username"
+            value={desired}
+            onChange={setDesired}
+            disabled={busy}
+            autoFocus
+            required
+            // Hard stop at the CHECK's ceiling — a handle you can't submit
+            // shouldn't be typeable in the first place.
+            maxLength={15}
+          >
             <span className={cls(styles.help, localValid ? 'muted' : 'error')}>
               3–15 characters: lowercase letters, digits, and hyphens. Must
               start with a letter.
             </span>
-          </label>
+          </TextField>
 
-          <fieldset className={styles.field}>
-            <legend className={styles.label}>Player color</legend>
-            <ColorChoiceList value={selected} onChange={setSelected} disabled={busy} />
-          </fieldset>
+          <ColorField value={selected} onChange={setSelected} disabled={busy} />
 
           {error && <p className="error">{error}</p>}
 
