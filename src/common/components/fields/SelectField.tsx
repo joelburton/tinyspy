@@ -38,6 +38,17 @@ type Props = {
  * `DictBandField` is "a SelectField over the difficulty bands"; the other
  * setup selects (boggle dice/ladder, wordle guesses, psychicnum word-count)
  * compose it with their own `<option>`s.
+ *
+ * WHICH CONTROL — two axes, and this is the bottom-left of them.
+ *
+ *   WHAT IT DOES picks the family. This one SETS A VALUE the game reads
+ *   later, same as `<RadioRow>`. A menu that changes what you are LOOKING at
+ *   is `<FilterSelect>`, which deliberately never takes focus.
+ *
+ *   HOW MANY OPTIONS picks the shape. A list long enough that showing every
+ *   choice would sprawl is this; a short one shows them all as `<RadioRow>`.
+ *   The co-op section holds both and says why: style is two options, so it is
+ *   a radio row, while first-player is however many players there are.
  */
 export function SelectField({
   label,

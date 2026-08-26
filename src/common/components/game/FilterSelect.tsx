@@ -51,6 +51,19 @@ export type FilterOption = {
  * why this is a plain button + list rather than a keyboard-navigable listbox.
  *
  * Pointer-driven only — closes on outside pointerdown or Escape.
+ *
+ * WHICH CONTROL — two axes, and this is the bottom-right of them.
+ *
+ *   WHAT IT DOES picks the family. This one FILTERS A VIEW: it changes what
+ *   you are looking at and records no answer. A menu whose value the game
+ *   reads later is `<SelectField>` — which is a real form control, takes
+ *   focus, and wears a focus ring, all of which this one refuses above.
+ *
+ *   HOW MANY OPTIONS picks the shape. A list long enough to want collapsing
+ *   is this; a short one shows every choice at once as `.segmented`. The club
+ *   page runs both side by side — its gametype filter is a menu because it
+ *   has one entry per game family, its mode filter is segments because it has
+ *   three.
  */
 export function FilterSelect({
   value,

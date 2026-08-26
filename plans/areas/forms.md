@@ -24,10 +24,10 @@ This area's own findings therefore start at **F30**, so no number in this file i
 ambiguous and an inherited finding is recognizable on sight (≤ F13 came from
 elsewhere; ≥ F30 was raised here).
 
-**Twenty findings. FOURTEEN RESOLVED** — F8, F9, F13, F30, F31, F33, F34, F35,
-F38, F39, F40, F42, F43, F47 — **three CLOSED and moved out** (F32 → the FreeBee
-pair, F37 → crosswords, F44 → crosswords + floating-panels) — **three open:**
-F36, F41, and the two parked, F45 and F46.
+**Twenty findings. FIFTEEN RESOLVED** — F8, F9, F13, F30, F31, F33, F34, F35,
+F38, F39, F40, F41, F42, F43, F47 — **three CLOSED and moved out** (F32 → the
+FreeBee pair, F37 → crosswords, F44 → crosswords + floating-panels) — **one
+open**, F36 — and **two parked** for the sprint's docs step, F45 and F46.
 
 F43–F47 came from the work rather than the audit, which is expected: §21 says a
 finding is not required to have come from the audit and takes the next free
@@ -748,26 +748,59 @@ the token side**, and it is the strongest evidence that F9's answer is "yes, one
 family" rather than "no, two": the machinery for a text-only quiet button is
 built, documented, and unused.
 
-## F41 · `segmented-and-radiorow` · Two answers to "a few options, exactly one chosen"
+## RESOLVED · F41 · `segmented-and-radiorow` · Two answers to "a few options, exactly one chosen"
 
-`patterns/segmented.css` and `<RadioRow>` solve the same problem differently:
+**Resolved 2026-08-26 by Joel's rule, which turned out to be two axes rather
+than one.** `patterns/segmented.css` and `<RadioRow>` looked like rival answers
+to the same question. They aren't: they sit in different cells of a grid whose
+fourth cell was already occupied and unnamed.
 
-| | `.segmented` | `<RadioRow>` |
+|  | **few** — show every choice | **many** — collapse into a menu |
 |---|---|---|
-| markup | `<button>`s in a frame | native `<input type=radio>` in `<label>`s |
-| chosen state | `aria-pressed="true"` → filled in the normal family | `:checked` |
-| shape | joined, one shared border, ends clipped by `overflow: hidden` | separate options, `gap: 1rem` |
-| sites | club page's mobile tabs + its coop/compete/all filter, crosswords' source picker | 8 setup forms + `SetupCoopStyleSection` |
+| **sets a value** — the game reads it later | `<RadioRow>` · 12 sites | `<SelectField>` · 15 sites + every `<DictBandField>` |
+| **switches the view** — tabs or a filter | `.segmented` · 3 sites | `<FilterSelect>` · 4 sites |
 
-Both files argue their own shape well (segmented's comment: *"Separate buttons
-with a gap read as independent toggles you could press several of — which is
-exactly what these aren't"* — which, read straight, is an argument against
-`RadioRow`'s spacing). Neither says when to reach for which, and **crosswords'
-setup form uses the segmented control** — so the line is not "segments are for
-the club page".
+**WHAT IT DOES picks the row. HOW MANY OPTIONS picks the column.** Joel:
+*"radiorow is useful on forms to let someone pick one of a set of choices, used
+later... segmented act like tabs; it changes the thing below it."* And on the
+column: *"we could make the all/co-op/compete a drop-down; i don't because it's
+a short list, it saves opening a menu to pick a choice when all are shown."*
 
-The answer may well be "radios inside a form, segments for filtering a view".
-That is a one-sentence rule the area can write; today it isn't written anywhere.
+**Checked at all 15 sites, and there are no crossovers.** Every `<RadioRow>`
+writes a key the RPC consumes — hand size, word check, min word length, turns,
+first clue-giver, guesses, AI count, deck, palette, extra swaps, co-op style,
+timer kind. All three `.segmented` change the content below them.
+
+**The exception this finding was filed on doesn't exist.** I wrote that
+crosswords' setup form using segments meant the line couldn't be "segments are
+for the club page" — true, but the line was never about WHICH PAGE. Crosswords'
+puzzle-source picker is a tab bar by the rule, and its own markup already says
+so: `.tabStack` / `.tabBody` / `.tabHidden`, all four bodies mounted, inactive
+ones hidden. It is the rule's best example, not its counterexample.
+
+**Two things worth recording because I nearly wrote them wrong:**
+
+- **"Nothing stores the choice" is FALSE** for the view row. `ModeFilter`
+  persists through `useStickyChoice`. The distinction is not storage, it is
+  whether the choice is an ANSWER — the game reads `hand_size`; nothing reads
+  which tab you were on but the tab bar.
+- **Revealing a follow-up is not switching a view.** Three radio rows change
+  what is below them: "turns" reveals the first-player dropdown, `ai_count > 0`
+  reveals Skill, the timer's "Down" enables its MM:SS box. Read literally,
+  "changes the thing below it" would sweep those into the segmented family.
+  A further question that exists only for one answer is not an alternative view
+  of the same job.
+
+**Where it's written:** a short "WHICH CONTROL" block in each of the four,
+naming that file's cell and pointing at its two neighbors, so whichever one you
+open answers the question. The census stays here — a docstring shouldn't carry
+site counts that rot. It goes to `docs/ui.md` at the sprint's docs step, which
+is also where F46 (`ui-doc-describes-deleted-classes`) gets settled.
+
+**One observation, not a proposal.** The club page shows both columns of the
+grid at once — `ModeFilter` segmented, `GametypeFilter` a menu, side by side
+doing the same job in two shapes. That is what the count rule asks for, and it
+probably reads as drift to anyone who doesn't know the rule.
 
 ## RESOLVED · F42 · `local-module-alias-drift` · The shared setup stylesheet was imported under four names
 

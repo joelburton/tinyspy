@@ -7,6 +7,18 @@
  * tabs, its co-op / compete / all filter, crosswords' puzzle-source
  * picker.
  *
+ * WHICH CONTROL — two axes, and this is the top-right of them.
+ *
+ *   WHAT IT DOES picks the family. This one acts like TABS: it changes the
+ *   content below it, swapping the view or filtering it. Nothing reads the
+ *   choice as an answer — which is not the same as nothing storing it, since
+ *   ModeFilter persists through `useStickyChoice` so your view survives a
+ *   reload. A control whose value the GAME reads later is `<RadioRow>`.
+ *
+ *   HOW MANY OPTIONS picks the shape. Few enough to show at once is this;
+ *   a long list collapses into `<FilterSelect>`'s menu, which is why the
+ *   club page's mode filter is segmented and its gametype filter isn't.
+ *
  * One pattern, one file (plans/css-system-2.md §7).
  * ============================================================ */
 
