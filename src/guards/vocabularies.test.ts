@@ -263,7 +263,6 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/components/club/CreateClubPage.module.css': ['1.25rem', '1.5rem', '0.4rem', '0.75rem', '0.5rem'],
       'src/common/components/club/EditClubModal.module.css': ['0.5rem'],
       'src/common/components/club/StartGameRow.module.css': ['0.4rem'],
-      'src/common/components/definitions/AnagramDialog.module.css': ['0.5rem', '0.4rem'],
       'src/common/components/definitions/DefinitionView.module.css': ['0.3rem', '0.15rem', '0.1rem'],
       'src/common/components/definitions/WordEditDialog.module.css': ['0.55rem', '0.5rem', '0.35rem'],
       'src/common/components/definitions/WordLookupDialog.module.css': ['0.6rem', '0.4rem'],
@@ -348,7 +347,6 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/components/club/CreateClubPage.module.css': ['0.8rem'],
       'src/common/components/club/EditClubModal.module.css': ['0.8rem', '0.85rem'],
       'src/common/components/club/StartGameRow.module.css': ['1rem', '0.85rem'],
-      'src/common/components/definitions/AnagramDialog.module.css': ['0.95rem', '0.85rem', '0.8rem'],
       'src/common/components/definitions/DefinitionView.module.css': ['1.05rem', '0.92rem', '0.9rem', '0.72rem', '0.8rem'],
       'src/common/components/definitions/WordEditDialog.module.css': ['0.85rem'],
       'src/common/components/feedback/FaultModal.module.css': ['1.1rem', '0.78rem'],
@@ -432,7 +430,6 @@ const VOCABULARIES: Vocabulary[] = [
     allowed: /^(0|1|inherit|initial|unset|revert)$/,
     pending: {
       'src/common/components/buttons/ShuffleButton.module.css': ['0.45'],
-      'src/common/components/definitions/AnagramDialog.module.css': ['0.6'],
       'src/common/components/definitions/WordEditDialog.module.css': ['0.6'],
       'src/common/components/fields/SelectField.module.css': ['0.55'],
       'src/common/components/setup/SetupTimerSection.module.css': ['0.5'],

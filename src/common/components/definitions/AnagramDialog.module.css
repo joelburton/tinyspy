@@ -8,8 +8,7 @@
 /* @@ */ .content {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  height: 100%;
+  gap: var(--spacer-4);
   /* The scroll box below needs a bounded flex parent, or IT wins and the
    * panel grows instead (the InfoSheet flex-column lesson). */
   min-height: 0;
@@ -17,7 +16,7 @@
 
 /* @@ */ .form {
   display: flex;
-  gap: 0.4rem;
+  gap: var(--spacer-4);
 }
 
 /* WHERE THE SEARCH BOX SITS, and nothing else: it shares a row with its button
@@ -34,21 +33,9 @@
   flex: 0 0 auto;
 }
 
-/* @@ */ .button:hover {
-  background: var(--button-normal-primary-hover-color);
-}
-
-/* @@ */ .button:disabled {
-  opacity: 0.6;
-  /* not-allowed, not default: this is still a control, it just won't take the
-     press right now. `default` says "this isn't a button", which is the message
-     a spent GAME PIECE sends — see common/.../PlayArea.module.css `.tile`. */
-  cursor: not-allowed;
-}
-
 /* @@ */ .error {
   margin: 0;
-  font-size: 0.85rem;
+  font-size: var(--font-size-2);
   color: var(--chrome-fault-color);
 }
 
@@ -57,7 +44,7 @@
 /* @@ */ .count {
   margin: 0;
   text-align: right;
-  font-size: 0.8rem;
+  font-size: var(--font-size-3);
   color: var(--page-text-muted-color);
 }
 
@@ -103,19 +90,18 @@
 }
 
 /* A fixed height rather than one that falls out of the type, so the list above
-   has a number to multiply. Roomy for 0.95rem text — a row is chrome around one
-   short word, and nothing in it can wrap. */
+   has a number to multiply. A row is chrome around one short word, and nothing
+   in it can wrap. */
 /* @@ */ .row {
   display: flex;
   align-items: baseline;
-  gap: 0.5rem;
+  gap: var(--spacer-4);
   height: var(--anagramRow-height);
   padding: 0.15rem 0.25rem;
 }
 
-
 /* @@ */ .word {
-  font-size: 0.95rem;
+  font-size: var(--font-size-1);
   color: var(--page-text-color);
   cursor: pointer;
 }
@@ -128,7 +114,7 @@
   flex: 0 0 auto;
   width: 1rem;
   text-align: right;
-  font-size: 0.8rem;
+  font-size: var(--font-size-3);
   color: var(--page-text-muted-color);
   font-variant-numeric: tabular-nums;
 }
