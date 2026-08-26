@@ -1,6 +1,7 @@
 // cs-unmet
 
 import { useEffect, useRef, useState } from 'react'
+  import { createPortal } from 'react-dom'
 import { DefinitionView } from './DefinitionView'
 import styles from './DefinitionPopover.module.css'
 
@@ -27,6 +28,15 @@ const GAP = 6
  * Position is fixed (viewport coordinates) rather than absolute,
  * because the click target lives in a scrollable word list — fixed
  * keeps the card put relative to where the word currently is on screen.
+ *
+ * **PORTALLED TO `<body>`, and `position: fixed` is exactly why.** A CSS
+ * `transform` on any ancestor makes THAT element the containing block for a
+ * fixed-position descendant, so the card's viewport coordinates would be
+ * re-based onto the ancestor's origin. react-rnd positions every floating panel
+ * with a transform, so a definable word inside one (the anagram and word-lookup
+ * dialogs) put this card out by the panel's own offset — and further out the
+ * further you dragged the panel. The portal is the same reason `<TooltipHost>`
+ * and `<ToastHost>` are mounted at App level.
  */
 export function DefinitionPopover({ initialWord, anchorRect, onClose }: Props) {
   const [word, setWord] = useState(initialWord)
@@ -74,7 +84,7 @@ export function DefinitionPopover({ initialWord, anchorRect, onClose }: Props) {
     : { bottom: window.innerHeight - anchorRect.top + GAP }
   const maxHeight = placeBelow ? spaceBelow : spaceAbove
 
-  return (
+  return createPortal(
     <div
       ref={cardRef}
       className={styles.card}
@@ -86,6 +96,7 @@ export function DefinitionPopover({ initialWord, anchorRect, onClose }: Props) {
       onClick={onClose}
     >
       <DefinitionView word={word} onNavigate={setWord} />
-    </div>
+    </div>,
+    document.body,
   )
 }

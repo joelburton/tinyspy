@@ -1,5 +1,6 @@
 // cs-unmet
 
+import { cls } from '../../lib/util/cls'
 import { actionName } from '../../lib/game/callRpc'
 import { failureText } from '../../lib/game/serverError'
 import { useState, type FormEvent } from 'react'
@@ -54,6 +55,9 @@ export function AnagramDialog({ onClose }: { onClose: () => void }) {
     setEntryError(null)
     setSearching(true)
     setError(null)
+    // The previous answer STAYS on screen while the next one is fetched. Clearing
+    // it would collapse the list and shrink the dialog for the length of the
+    // round trip, then grow it again — a lot of flash for nothing.
     const res = await commonDb.rpc('anagrams', { letters })
     setSearching(false)
     if (res.error) {
@@ -110,7 +114,7 @@ export function AnagramDialog({ onClose }: { onClose: () => void }) {
           />
         </form>
         <FailureLine>{error}</FailureLine>
-        {results && !error && (
+        {results && (
           <SimpleScrollableList
             rows={7}
             empty="No words."
@@ -127,7 +131,7 @@ export function AnagramDialog({ onClose }: { onClose: () => void }) {
                     reads as a column rather than as part of the word. */}
                 <span className={styles.band}>{r.difficulty}</span>
                 <span
-                  className={styles.word}
+                  className={cls('definable', styles.word)}
                   onClick={(e) => openDefine(r.word, e.currentTarget)}
                   title="Click to define"
                   data-word={r.word}

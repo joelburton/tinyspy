@@ -14,8 +14,9 @@
   gap: var(--spacer-4);
 }
 
+/* A <form> is already a flex column (base.css); this only tightens the gap
+   between the box and the button. */
 /* @@ */ .form {
-  display: flex;
   gap: var(--spacer-4);
 }
 
@@ -28,10 +29,11 @@
   padding-inline: var(--spacer-5);
 }
 
+/* Just the TYPE. The click affordance is the shared `.definable`
+   (common/utilities.css), which every other definable word in the app wears. */
 /* @@ */ .word {
   font-size: var(--font-size-1);
   color: var(--page-text-color);
-  cursor: pointer;
 }
 
 /* The leading band number. A FIXED-WIDTH gutter, so every word starts at the
