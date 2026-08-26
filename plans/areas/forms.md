@@ -24,9 +24,9 @@ This area's own findings therefore start at **F30**, so no number in this file i
 ambiguous and an inherited finding is recognizable on sight (≤ F13 came from
 elsewhere; ≥ F30 was raised here).
 
-**Nineteen findings. FOUR RESOLVED** — F8, F9 (the button work), F38, F40 — **one
-CLOSED and moved out** (F32 → the FreeBee pair) — **fourteen open:** F13, F30,
-F31, F33–F37, F39, F41–F46. F43–F46 were raised by the button
+**Nineteen findings. FOUR RESOLVED** — F8, F9 (the button work), F38, F40 — **two
+CLOSED and moved out** (F32 → the FreeBee pair, F37 → crosswords) — **thirteen
+open:** F13, F30, F31, F33–F36, F39, F41–F46. F43–F46 were raised by the button
 work rather than by the audit, which is expected: §21 says a finding is not
 required to have come from the audit, and takes the next free number.
 
@@ -446,30 +446,31 @@ stack. **§7's "not patterns, though they look like it" may well cover this** �
 check it before proposing a `.stack`; the answer may be that the shared `.setup`
 should simply be reachable, not that a new utility is owed.
 
-## F37 · `crosswords-rolls-its-own-field` · A third copy of the puzzle picker, and a control that re-declares the field chrome
+## CLOSED · F37 · `crosswords-rolls-its-own-field` · A third copy of the puzzle picker, and a control that re-declares the field chrome
 
-crosswords' `SetupForm` is the one form that opts out of the shared vocabulary,
-and it is worth stating precisely because the DECISION is this area's even though
-the EDIT lands in crosswords':
+**Moved to crosswords on 2026-08-25** (Joel) — the full entry, with the measured
+drift, is `docs/games/crosswords.md` § 9 → Deferred features.
 
-- **Two raw `<select>`s** (`SetupForm.tsx:326`, `:378`) — the only ones left in
-  the app outside `fields/`. Both wear a local `.search` class instead of
-  `<SelectField>`.
-- **`.search` re-declares the field chrome, and drifts on every axis**:
-  `border-radius: 6px` (a literal — `--radius-md` IS `6px`, base.css:85),
-  `border: 1px solid var(--page-surface-border-color)` where every other field
-  uses `--field-edge-color`, `padding: 0.4rem 0.6rem` vs `SelectField`'s
-  `0.6rem 0.9rem`, `font-size: 0.95rem` vs inherited.
-- **`.nextDate` is `NextPuzzleField`'s `.next`**: same `--page-text-color`, same
-  `min-height: 1.4em`, same stated reason (don't let the timer below jump when
-  the RPC lands). crosswords also hand-rolls the date-override input beside it.
-- **`.dropzone` carries `border-radius: 8px`**, a second unconverted literal.
+It closes here for the reason it was flagged here: crosswords is the one form
+that opts out of the shared vocabulary, so the DECISION belonged to the area that
+owns the vocabulary — but every edit lands in that game's files, and this area
+does not touch other games' code.
 
-crosswords has a real reason not to use `<NextPuzzleField>` — its archive is a
-catalogue, not a queue (a Monday puzzle and a Saturday one differ), so it picks a
-WEEKDAY. But the fixed-height preview line and the date override are the same
-mechanism, and its own comment says so: *"the same shape connections and strands
-carry"*.
+The short version, kept so the shared findings have their sibling to point at:
+two raw `<select>`s (the app's last outside `fields/`), a `.search` class that
+re-declares the field chrome and disagrees on all four of radius, border token,
+padding and size, a `.nextDate` that is `<NextPuzzleField>`'s `.next` re-typed,
+and two unconverted radius literals.
+
+**What travels with it as a warning:** crosswords has a REAL reason not to use
+`<NextPuzzleField>` — its archive is a catalogue, not a queue, so it picks a
+weekday rather than "the next one nobody has played". Only the fixed-height line
+and the date override are the same mechanism. A fix that folds the whole field in
+would be wrong.
+
+**Still open here:** F44 (`field-tokens-on-buttons`) covers that game's
+`Controls.module.css .btn` — same raw `6px`, plus a form field's tokens on a
+button — because that one is a question about BUTTONS, which is this area's.
 
 ## RESOLVED · F38 · `theme-css-pointers-rotted` · Comments pointed at a stylesheet that no longer holds the rule
 

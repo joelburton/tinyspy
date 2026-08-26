@@ -529,6 +529,37 @@ This is the **canonical deferred register** for crosswords — distilled from th
 (now-retired) build plan + the 2026-07-05 / -07-06 review docs.
 
 ### Deferred features
+- **The setup form opts out of the shared field vocabulary.** Every other game's
+  `SetupForm` builds from `common/components/fields/`; crosswords hand-rolls its
+  controls, and they have drifted on every axis. Moved here from the CSS sprint's
+  `forms` area on 2026-08-25 (it was F37, `crosswords-rolls-its-own-field`) —
+  the DECISION is the shared vocabulary's, but every edit lands in this game.
+  - **Two raw `<select>`s** (`SetupForm.tsx:326`, `:378`) — the only ones left in
+    the app outside `common/components/fields/`. Both wear a local `.search`
+    class instead of `<SelectField>`.
+  - **`.search` re-declares the field chrome and disagrees with it four ways**:
+    `border-radius: 6px` (a literal — `--radius-md` IS `6px`, `base.css:85`),
+    `border: 1px solid var(--page-surface-border-color)` where every other field
+    uses `--field-edge-color`, `padding: 0.4rem 0.6rem` against `<SelectField>`'s
+    `0.6rem 0.9rem`, and `font-size: 0.95rem` against inherited.
+  - **`.nextDate` is `<NextPuzzleField>`'s `.next` re-typed** — same
+    `--page-text-color`, same `min-height: 1.4em`, same stated reason (don't let
+    the timer below jump when the RPC lands). The date-override input beside it
+    is hand-rolled too, and this file's own comment says it is *"the same shape
+    connections and strands carry"*.
+  - **`.dropzone` carries `border-radius: 8px`**, a second unconverted literal.
+
+  **What is NOT drift, and must survive any fix:** crosswords has a real reason
+  not to use `<NextPuzzleField>` — its archive is a catalogue, not a queue (a
+  Monday puzzle and a Saturday one are different animals), so it picks a WEEKDAY
+  where connections and strands ask for "the next one nobody has played". The
+  fixed-height preview line and the date override are the same mechanism; the
+  thing above them is not.
+
+  Related, and still open in `plans/areas/forms.md`: F44
+  (`field-tokens-on-buttons`) covers this game's `Controls.module.css .btn`,
+  which paints a button with a form field's tokens and carries the same raw
+  `6px`.
 - **First-visit help auto-open** — crossplay opened Help on first board
   load (dismissal remembered per browser); the rebus chords (⇧Enter / ⇧Space) are
   otherwise undiscoverable. Not ported — `?` / the menu open Help on demand. Could
