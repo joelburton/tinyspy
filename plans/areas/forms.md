@@ -1,0 +1,421 @@
+# Area: forms
+
+The third area of the CSS sprint's step 7. The process is
+[css-system-2.md](../css-system-2.md) §21; the plan holds the order, this file
+holds everything else.
+
+**Opened 2026-08-25**, split out of `floating-panels` on 2026-08-24. **Scope,
+set by Joel when the roster was agreed:**
+
+> "this area is about fixing the machinery of forms (field types,
+> forms-in-general) and the same things for buttons (stuff common, not
+> bespoke-buttons in other areas)."
+
+So the sixteen game `SetupForm`s, the seven Cancel sites, and every wrapper
+button are **consumers**. They were read as EVIDENCE and **their stamps did not
+move** (§21 — a file opened as evidence is not "found").
+
+**Every heading says its status**; a heading with **no status prefix means
+OPEN**.
+
+**Numbering.** Three findings arrived from `floating-panels` carrying their
+numbers (**F8**, **F9**, **F13**) — they are never renumbered and never reused.
+This area's own findings therefore start at **F30**, so no number in this file is
+ambiguous and an inherited finding is recognizable on sight (≤ F13 came from
+elsewhere; ≥ F30 was raised here).
+
+## The roster — 20 files
+
+Agreed 2026-08-25 before anything was read. All paths under `src/common/`.
+
+**The shared field vocabulary (13)**
+
+```
+components/fields/CoopStyleField.tsx      components/fields/CoopStyleField.module.css
+components/fields/CoopStyleField.test.tsx components/fields/DifficultyField.tsx
+components/fields/DifficultyField.test.tsx components/fields/NextPuzzleField.tsx
+components/fields/NextPuzzleField.module.css components/fields/RadioRow.tsx
+components/fields/SelectField.tsx         components/fields/SelectField.module.css
+components/fields/TimerField.tsx          components/fields/TimerField.module.css
+components/fields/setupForm.module.css
+```
+
+**The setup scaffolding (2)**
+
+```
+components/setup/SetupSection.tsx         components/setup/SetupSection.module.css
+```
+
+**The button machinery (5)**
+
+```
+components/buttons/ActionButton.tsx       components/buttons/ActionButton.module.css
+components/buttons/ActionButton.test.tsx  patterns/button.css
+patterns/segmented.css
+```
+
+### What was excluded, and why
+
+| excluded | goes to |
+|---|---|
+| `setup/SetupGameModal.tsx` + `.module.css` | **`club-page`** (Joel, 2026-08-25) — a container that happens to hold a form; the machinery is in the fields inside it. Also unblocks homepage F36 (`createclub-modal`) |
+| `setup/SetupDisclosure.tsx` | **`shared-game-chrome`** — it is not a form. It is the info-column "Setup options" recap shown WHILE PLAYING, and it imports `game/PlayArea.module.css`. Only its name links it to setup; its own docstring distinguishes it from `SetupSection` |
+| the 16 game `SetupForm`s | consumers; each game's own area. F13 and F31 are decided once, here |
+| the ~24 wrapper buttons (`SubmitButton`, `PassButton`, `HintButton`, …) | each a two-line `ActionButton` wrapper supplying a glyph + tone. Whatever `ActionButton` decides propagates for free |
+| `PauseButton`, `ShuffleButton`, `SubmitWithScore` (+ modules) | the three that carry their own CSS and don't route through `ActionButton`; game chrome |
+| the seven hand-written Cancels' hosts | each their own area's — but **F9 sets the rule for all seven** |
+| `EditProfileModal`, `EditClubModal`, `ColorChoiceList` | instances; `account` / `club-page` |
+| `ClaimHandleScreen`, `LoginScreen` | `simple-page` |
+
+### Dependencies — listed, not audited (§21)
+
+Stamped `cs-found` by this area's reading; whether each becomes an area is
+Joel's call.
+
+```
+hooks/game/useGameTimer.ts   (formatTimerSeconds — TimerField)
+lib/game/timerLabel.ts       (the disclosure summary — TimerField)
+lib/game/difficulty.ts       (DIFFICULTY_LABELS + samples — DifficultyField)
+components/icons.ts          (the glyph registry — the button machinery)
+```
+
+Already `cs-found` before this area: `lib/util/cls.ts`, `base.css`,
+`themes/daylight.css`, `patterns/focus-ring.css`.
+
+---
+
+# The audit — 2026-08-25
+
+All 20 roster files read. Joel's three going-in guesses, checked against what is
+actually there:
+
+1. *"forms look decent; I don't expect many changes to how they look or feel"* —
+   **agreed, and the audit is deliberately shaped around it.** Nothing below
+   proposes a new look. F31, F32, F34 and F36 are all "the same appearance,
+   declared once instead of two-to-four times", which is invisible when it lands.
+2. *"we're underutilizing React components where those would bring together more
+   than a set of raw CSS classes"* — **confirmed, and the sharpest case is inside
+   the area itself**: `<TimerField>` hand-writes the radio group that
+   `<RadioRow>` exists to render (F30). The four letter-inputs (F31) and the
+   fixed-height puzzle line (F37) are the same shape one layer out.
+3. *"a lot of bespoke values and differences-without-distinction"* — **confirmed,
+   and it is already written down**: `src/guards/vocabularies.test.ts` carries a
+   per-file allowlist of unconverted literals, and five of the area's files are
+   named in it. That list IS the debt, enumerated.
+
+## MOVED-IN · F8 · `confirm-buttons-are-raw` · The confirmation's buttons bypass the tone system
+
+From `floating-panels`. `ConfirmationBlockingModal`'s pair are
+`<button className="button primary">` / `"button secondary"`, not
+`<ActionButton>`. Joel, 2026-08-24: *"leave them as raw, and we'll decide later
+on whether they become something else."* **Folded into F9** — same decision.
+
+## MOVED-IN · F9 · `action-button-text-only` · Are a form's buttons really different from action buttons?
+
+From `floating-panels`, inherited there from `homepage` as F44. **This is the
+reason the area exists.**
+
+**An action button MAY have a label, an icon, or both** (Joel, 2026-08-25 —
+stated repeatedly before today). Nothing in `docs/ui.md` says otherwise: the
+taxonomy defines `action` as "a purpose button (Submit, Hint, Reveal, End game,
+Peel)" with no mention of a glyph, and the roster notes `BackToClubButton`
+"carries a text label".
+
+**The implementation is what forbids it, in one line.** `ActionButton.tsx:57`
+declares `icon` non-optional and `:130` renders it unconditionally, so there is
+an `iconOnly` flag and no way to say the opposite. **This is the DEFECT F9
+names, not a property of action buttons** — a distinction that got lost as the
+finding was restated from `homepage` F44 → `floating-panels` F9 → here, each hop
+keeping the sentence and shedding the framing.
+
+Because a Cancel cannot be expressed, it is hand-written. **Seven sites,
+measured:**
+
+```
+club/CreateClubPage.tsx:243              account/EditProfileModal.tsx:92
+club/EditClubModal.tsx:129               auth/ClaimHandleScreen.tsx:199
+setup/SetupGameModal.tsx:300             scrabble/ScrabbleBlankPickerBlockingModal.tsx:37
+floating-panels/ConfirmationBlockingModal.tsx (F8)
+```
+
+Their commit partners are eight more `className="button primary"` sites. See
+**F40** — the tone vocabulary already reserved a slot for exactly this button.
+
+## MOVED-IN · F13 · `setup-form-monospace` · Five setup forms set `font-family: monospace`
+
+From `floating-panels`. **Superseded in substance by F31**: the finding as
+written ("five forms set monospace") describes a symptom. The five are not five
+independent choices — four of them are one unnamed field type, and the fifth is
+a deliberate exception. Resolve F31 and F13 goes with it.
+
+---
+
+## F30 · `timerfield-hand-radios` · The one hand-written radio group left in the app is inside the area
+
+`<RadioRow>` exists to render exactly this markup, and **adoption is otherwise
+complete**: measured across `src/`, there is not one `type="radio"` outside
+`components/fields/`. The single hold-out is `TimerField.tsx:91–129`, which
+hand-writes the None / Up / Down triple.
+
+It pays for that with a duplicate stylesheet. `TimerField.module.css` vs
+`setupForm.module.css`:
+
+| rule | setupForm | TimerField | differs by |
+|---|---|---|---|
+| the row | `.radioRow` — flex, wrap, gap 1rem | `.timerRow` — flex, wrap, gap 1rem, **`align-items: center`** | one declaration |
+| the option | `.radio` — inline-flex, center, gap .4rem, pointer | `.radio` — identical | **nothing** |
+| the input reset | `.radio input` — margin 0, padding 0 | `.radio input[type='radio']` — identical + a tighter selector | **nothing** |
+
+The reason it can't just call `<RadioRow>` today is real and worth naming: the
+Down option's label CONTAINS the MM:SS input, which `RadioRow`'s
+`{ value, label }` shape can't express — `label` is a `ReactNode`, but the input
+must sit *inside* the `<label>` element, not beside it. So this is a genuine
+question about `RadioRow`'s API, not an oversight. **The two candidate answers:**
+let an option carry trailing content inside its label, or let `RadioRow` take
+`children` rendered after the last option.
+
+## F31 · `letter-input-unnamed` · The same field type, declared four times under four names
+
+This is F13's real answer. Four games each define a "type the letters you'll see
+on the board" input, and the four declarations are the same four lines:
+
+```
+text-transform: uppercase;  letter-spacing: 0.2em;
+font-family: monospace;     text-align: center;
+```
+
+| game | class | width | anything else different |
+|---|---|---|---|
+| spellingbee | `.letterInput` | (unset; `.centerInput` 3.5rem / `.outerInput` 10rem) | no |
+| wordwheel | `.letterInput` | (same two) | no |
+| wordiply | `.baseInput` | 6rem | no |
+| letterboxed | `.sidesInput` | 17rem | no |
+
+Width is the ONLY axis anyone actually chose on, and each width has a stated
+reason (four letters max; twelve letters plus separators). **boggle's
+`.boardInput` is the fifth and the only real difference** — full width, tighter
+tracking, and deliberately NOT uppercase, because `Qu` is one tile and `QU` is
+two. Its comment says so.
+
+So: one field type with a width prop, and one documented exception. The
+component is missing, and every comment in the four files already gestures at
+it — wordiply's says "Matched to spellingbee's `.letterInput`", letterboxed's
+names both siblings.
+
+## F32 · `freebee-twins-byte-identical` · Two stylesheets that differ in two comment words
+
+`spellingbee/components/SetupForm.module.css` and
+`wordwheel/components/SetupForm.module.css` are 42 lines each, six rules each.
+`diff` reports **two changed lines, both inside comments**: "spellingbee-local"
+vs "wordwheel-local", and "read like the honeycomb" vs "read like the wheel".
+Every value is identical.
+
+That is the sibling-pair relationship (wordwheel is a spellingbee fork) showing
+up as copied CSS. F31's component absorbs `.letterInput` / `.centerInput` /
+`.outerInput`; F34 absorbs `.field` + `.field > span`; what would be left is
+`.customRow`, a flex row with a gap — which is F36. **Resolve F31, F34 and F36
+and both files disappear entirely.**
+
+## F33 · `placeholder-copied` · A placeholder treatment lifted wholesale, and the file says so
+
+boggle's `.boardInput::placeholder` and letterboxed's `.sidesInput::placeholder`
+are the same three declarations (`--field-placeholder-ink-color`, italic,
+`letter-spacing: normal`). letterboxed's comment states the provenance outright:
+*"Lifted wholesale from boggle's `.boardInput::placeholder`, which met the same
+problem first."*
+
+Both files also state the trigger precisely — a placeholder in the same mono
+face, tracking and case as real input can be mistaken for a board someone
+already typed — which is a property of **the field type in F31**, not of either
+game. And boggle's comment names the exit: *"If placeholders ever get a global
+treatment, this rule folds into it."* This area is that moment.
+
+## F34 · `label-above-control` · Three copies of "a small bold label above a control", differing by a hair
+
+| where | gap | label size | weight |
+|---|---|---|---|
+| `SelectField.module.css` `.field` / `.label` | 0.35rem | 0.9rem | 600 |
+| spellingbee `.field` / `.field > span` | 0.3rem | 0.85rem | 600 |
+| wordwheel `.field` / `.field > span` | 0.3rem | 0.85rem | 600 |
+
+Nobody chose 0.3 over 0.35, or 0.85 over 0.9 — and `SelectField` already OWNS
+this shape as a component (`label` prop → `<span class="label">` above the
+control). The two games hand-roll it because their control is a text input and
+`SelectField` only wraps a `<select>`.
+
+Note both numbers are in the `vocabularies.test.ts` allowlist
+(`SelectField.module.css: ['0.35rem']`, and `['0.9rem']` in the font-size list),
+so the guard is already carrying them as known debt.
+
+## F35 · `two-box-chromes` · `.fieldset` and `<SetupSection>` claim to match and don't
+
+Two boxes do the same job — a bordered, titled group of setup controls — and
+`SetupSection.module.css`'s comment says it is "a bordered box (matching the
+setup form's `.fieldset` chrome)". Measured, it doesn't match:
+
+| | `.fieldset` (setupForm) | `<SetupSection>` |
+|---|---|---|
+| border / radius | 1px `--page-surface-border-color`, `--radius-md` | identical |
+| title | `legend`, weight 600, padding `0 0.25rem` | `summary`, weight 600, padding `0.6rem 0.75rem` |
+| body padding | `0.75rem 1rem 1rem` | `0.25rem 1rem 0.85rem` |
+| collapsible | no | yes, closed by default, summary carries the live value |
+
+Usage is lopsided and mixed: **15 files use `<SetupSection>`** (13 games plus
+`TimerField` and `CoopStyleField`), while **4 use the raw `.fieldset`**
+(codenamesduet, spellingbee, wordwheel, and `NextPuzzleField`). Several forms use
+both.
+
+The question is not which values win — it's whether a setup form has ONE box
+type with a collapsible variant, or genuinely two. If it's one, the padding
+difference is the only thing to reconcile, and it exists because the summary is a
+click target and the legend isn't.
+
+## F36 · `stack-repeated` · A flex column with a gap is the most-repeated shape in the area
+
+`display: flex; flex-direction: column; gap: 1rem` is declared three times —
+`setupForm.module.css .setup`, `CoopStyleField.module.css .controls`, and
+crosswords' own `.setup` — and `CoopStyleField`'s comment justifies its copy by
+pointing at the original (*"the same 1rem rhythm the setup form uses"*). Near
+misses at other gaps: bananagrams `.dictRow` (0.6rem), spellingbee/wordwheel
+`.field` (0.3rem), `SelectField .field` (0.35rem).
+
+`CoopStyleField.module.css` is a 13-line file whose entire content is one such
+stack. **§7's "not patterns, though they look like it" may well cover this** —
+check it before proposing a `.stack`; the answer may be that the shared `.setup`
+should simply be reachable, not that a new utility is owed.
+
+## F37 · `crosswords-rolls-its-own-field` · A third copy of the puzzle picker, and a control that re-declares the field chrome
+
+crosswords' `SetupForm` is the one form that opts out of the shared vocabulary,
+and it is worth stating precisely because the DECISION is this area's even though
+the EDIT lands in crosswords':
+
+- **Two raw `<select>`s** (`SetupForm.tsx:326`, `:378`) — the only ones left in
+  the app outside `fields/`. Both wear a local `.search` class instead of
+  `<SelectField>`.
+- **`.search` re-declares the field chrome, and drifts on every axis**:
+  `border-radius: 6px` (a literal — `--radius-md` IS `6px`, base.css:85),
+  `border: 1px solid var(--page-surface-border-color)` where every other field
+  uses `--field-edge-color`, `padding: 0.4rem 0.6rem` vs `SelectField`'s
+  `0.6rem 0.9rem`, `font-size: 0.95rem` vs inherited.
+- **`.nextDate` is `NextPuzzleField`'s `.next`**: same `--page-text-color`, same
+  `min-height: 1.4em`, same stated reason (don't let the timer below jump when
+  the RPC lands). crosswords also hand-rolls the date-override input beside it.
+- **`.dropzone` carries `border-radius: 8px`**, a second unconverted literal.
+
+crosswords has a real reason not to use `<NextPuzzleField>` — its archive is a
+catalogue, not a queue (a Monday puzzle and a Saturday one differ), so it picks a
+WEEKDAY. But the fixed-height preview line and the date override are the same
+mechanism, and its own comment says so: *"the same shape connections and strands
+carry"*.
+
+## F38 · `theme-css-pointers-rotted` · Nine comments point at a stylesheet that no longer holds the rule
+
+Nine comments across five roster files send the reader to `theme.css` for rules
+that moved when the stylesheet split:
+
+- the `input, textarea, button` padding `0.6rem 0.9rem` now lives at
+  **`common/base.css:780`** — named by `setupForm.module.css:63`,
+  `TimerField.module.css:30`, `SelectField.module.css:4` and `:20`,
+  `SelectField.tsx:25`
+- `icon-button` / `icon-only` / `secondary` / the slot defaults now live in
+  **`patterns/button.css`** and **`themes/daylight.css`** — named by
+  `ActionButton.tsx:12`, `:25`, `:78`, `:113`
+
+**The pointer is not dead, it is wrong**: `theme.css` still exists — sixteen of
+them, one per game — so a reader follows it to a real file that doesn't contain
+what the comment promised. Mechanical fix, no design question.
+
+## F39 · `actionbutton-says-action` · The tone docstring still uses the name that was retired
+
+`ButtonTone` is `'quiet' | 'normal' | 'caution' | 'destructive' | 'success'` and
+the default parameter reads `tone = 'normal'`, but its docstring says
+*"`action` = blue"* (`ActionButton.tsx:14`) and a second block says *"The DEFAULT
+tone is `action`"* (`:21`). `ActionButton.module.css:35` records the rename and
+its reason: *"`normal` was called `action` until 2026-08-20 … `action` is also
+one of the fourteen BUTTON KINDS, so the word was naming a purpose in one
+taxonomy and a color in another."* The docs kept the collision the rename
+removed.
+
+Same block, second defect: **`ActionButton.tsx:20–27` is a `/** */` doc comment
+attached to nothing** — a blank line separates it from the next `/** */`, which
+documents `PurposeButtonProps`. It reads as that type's docs and isn't.
+
+## F40 · `tone-quiet-claims-cancel` · The tone vocabulary reserves a slot for a button that never arrives
+
+`ButtonTone`'s docstring: *"`quiet` = gray (a dialog's Cancel)"*. `button.css`
+on `.secondary`: *"Its family defaults to `quiet` (the way out of a dialog)"*.
+`ActionButton.tsx:23`: *"The cancels don't come through here at all."*
+
+All three are accurate, together they say the vocabulary was designed with the
+form button in mind and the form button went elsewhere. **This is F9 seen from
+the token side**, and it is the strongest evidence that F9's answer is "yes, one
+family" rather than "no, two": the machinery for a text-only quiet button is
+built, documented, and unused.
+
+## F41 · `segmented-and-radiorow` · Two answers to "a few options, exactly one chosen"
+
+`patterns/segmented.css` and `<RadioRow>` solve the same problem differently:
+
+| | `.segmented` | `<RadioRow>` |
+|---|---|---|
+| markup | `<button>`s in a frame | native `<input type=radio>` in `<label>`s |
+| chosen state | `aria-pressed="true"` → filled in the normal family | `:checked` |
+| shape | joined, one shared border, ends clipped by `overflow: hidden` | separate options, `gap: 1rem` |
+| sites | club page's mobile tabs + its coop/compete/all filter, crosswords' source picker | 8 setup forms + `CoopStyleField` |
+
+Both files argue their own shape well (segmented's comment: *"Separate buttons
+with a gap read as independent toggles you could press several of — which is
+exactly what these aren't"* — which, read straight, is an argument against
+`RadioRow`'s spacing). Neither says when to reach for which, and **crosswords'
+setup form uses the segmented control** — so the line is not "segments are for
+the club page".
+
+The answer may well be "radios inside a form, segments for filtering a view".
+That is a one-sentence rule the area can write; today it isn't written anywhere.
+
+## F42 · `local-module-alias-drift` · The shared setup stylesheet is imported under four names
+
+Measured across the 15 importing files: **`styles` ×11**, **`form` ×3**
+(bananagrams, wordle, strands), **`shared` ×1** (boggle). A game's own module
+then takes whichever name is left — `local` in wordwheel, `styles` where there is
+no shared import. So `styles.checkRow` means the shared class in one file and a
+local one in the next.
+
+Cosmetic, and listed only because it defeats the obvious grep: searching for
+`form.fieldset` finds three of the seven `.fieldset` sites.
+
+---
+
+## Predicted test breaks (§21 — predict, write them down, leave them)
+
+Nothing has been changed yet, so this is the watch-list rather than a prediction
+of damage. The specs that pin this area's current shape:
+
+| spec | what it pins | how it breaks |
+|---|---|---|
+| `src/guards/vocabularies.test.ts` | the per-file allowlist of unconverted literals — five roster files are named (lines 268–272, 348, 422–423, 522–523, 539) | **any** value converted here must DELETE its allowlist entry, or the guard fails on an entry that no longer matches |
+| `src/guards/csStamps.test.ts` | every file has one of the seven stamps | a NEW file (the F31 component, the F9 button) fails until stamped |
+| `src/common/components/buttons/ActionButton.test.tsx` | the tooltip contract (`data-tooltip` defaults to label; no native `title`; `iconOnly` keeps `aria-label`) | F9 adding a label-only form button must keep the contract or extend the spec |
+| `src/common/components/fields/CoopStyleField.test.tsx` | renders nothing for compete/solo; the re-seed effect | F30's `RadioRow` API change touches this component's markup |
+| `src/common/components/fields/DifficultyField.test.tsx` | all six bands listed as `N: Label: SAMPLES`, out-of-range disabled | only if `SelectField`'s option rendering moves |
+| `src/guards/setupRows.test.ts` | every game's setup recap — **not this area's markup**, but it is the other place a setup field's existence is asserted | adding/removing a setup FIELD (none proposed) |
+
+**No e2e spec references this area's components or classes** (measured across
+`e2e/` for `SetupSection`, `setupForm`, `RadioRow`, `SelectField`, `TimerField`,
+`ActionButton`, `letterInput`, `checkRow`). The setup dialog is driven in e2e by
+role and label, not by class — so a rename here is cheap and a MARKUP change
+(F30's `<label>` nesting) is the one to watch.
+
+## Notes
+
+- **`vitest` CSS modules are proxies**: `css: false` fabricates any class name
+  asked for, so a render test can never prove a class EXISTS. Anything F31/F34
+  consolidate needs a static guard, not a render assertion.
+- Every CSS rule in all 20 files still carries `/* @@ */`. Per §15 that means
+  **undecided until Joel removes it** — the audit read them, it did not bless
+  them.
+- **F30, F31, F32, F34, F36 are one shape seen five times**: a component that
+  exists (or should) and a stylesheet that re-declares it anyway. If they resolve
+  together, two whole game stylesheets (spellingbee's and wordwheel's) and one
+  shared one (`CoopStyleField.module.css`) are deleted rather than edited.

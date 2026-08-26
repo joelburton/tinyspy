@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited
 
 import { useState } from 'react'
 import { formatTimerSeconds } from '../../hooks/game/useGameTimer'

@@ -25,10 +25,10 @@ change here forward-fixes them in the same commit (§21's compile-break rule) an
 **their stamps do not move**. If one of them turns out to be the only evidence
 for a shared question, it gets surfaced and asked about, not audited.
 
-**Twenty-nine findings.** Twenty-six RESOLVED (F1–F7, F16, F17, F18, F19, F21,
+**Thirty findings.** Twenty-six RESOLVED (F1–F7, F16, F17, F18, F19, F21,
 F25, F28), three MOVED to `forms` (F8, F9, F13), two PUNTED (F14 → the first
 game area, F15 → crosswords), **nine OPEN** — F10, F11, F12, F20, F22, F23, F24,
-F26, F27.
+F26, F27 — plus **F30**, filed 2026-08-25 from a bug report.
 
 **A plan for eight of them is agreed** — see "The plan, agreed 2026-08-24" below.
 F16/F17/F18 turned out to be one question, and the answer is that a panel
@@ -1092,3 +1092,12 @@ built by scanning filenames attach the wrong name.
   failure being the standing `scripts/subset-font.py` stamp.
 - **`e2e/suspend-dialog.e2e.ts` 6/6** after the shell change, including *Tab
   cycles within the dialog and does not escape*, Enter confirms, Esc cancels.
+
+## F30 · `wordedit-scrolls-and-underfits` · `WordEditDialog` scrolls when it shouldn't and isn't tall enough
+
+Reported by Joel, 2026-08-25, on a screen with plenty of vertical room: the
+edit-word dialog **scrolls when nothing about the viewport requires it**, and it
+is **not sized right for fit-content — it isn't tall enough.**
+
+Not investigated. Filed on report so it isn't lost; the diagnosis belongs to
+whoever picks it up.

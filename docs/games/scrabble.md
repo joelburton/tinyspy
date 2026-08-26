@@ -973,3 +973,17 @@ no *strategic* exchange — the AI only swaps when it has no legal play at all.
 global peer-news header ("AI 1 played COATS (+18)"); an AI seat's score shows in
 a compact strip in the info column. pgTAP: `ai_players_test.sql`; e2e:
 `scrabble-ai-player.e2e.ts` (a human-vs-AI game against the real edge function).
+
+## Deferred
+
+**`<SubmitWithScore>` doesn't fit the shared button shape.** It composes
+`cls('button', 'primary', styles.button)` and its own module supplies
+`justify-content: space-between; width: 5.5rem` — a fixed-width button with the
+label pushed left and the live score pushed right. Every other shared button is
+the centered icon-and-label shape, so this is the one genuine variance case in
+the roster, and the shared `Button` component can't express it today.
+
+Deferred to scrabble's own CSS-sprint area (2026-08-25) rather than decided in
+the `forms` area: the question is what this button should look like, which is a
+scrabble question, and the answer may be a shared prop or may be that scrabble
+keeps a shape of its own.
