@@ -23,6 +23,9 @@ type PanelOpts = {
   minHeight: number
   /** Overrides `VIEWPORT_EDGE_MARGIN`. Nothing passes one. */
   edgeMargin?: number
+  /** Re-centre on a viewport change rather than nudging inside — see
+   *  `useReclampOnResize`. */
+  recenterOnResize: boolean
 }
 
 /**
@@ -55,6 +58,7 @@ export function useDraggablePanel({
   minWidth,
   minHeight,
   edgeMargin = VIEWPORT_EDGE_MARGIN,
+  recenterOnResize,
 }: PanelOpts) {
   const [rect, setRectState] = useState<PanelRect>(() => {
     const stored = readRect(persistKey)
@@ -90,37 +94,115 @@ export function useDraggablePanel({
     [persistKey, minWidth, minHeight, edgeMargin],
   )
 
-  // Window-resize re-clamp: if the user shrinks the browser to a
-  // size where the panel no longer fits, slide it inward.
-  useEffect(function reclampOnWindowResize() {
-    function onResize() {
-      const reclamped = clampToViewport(
-        rectRef.current,
-        minWidth,
-        minHeight,
-        edgeMargin,
-      )
-      // Skip the write if nothing changed — keeps storage quiet
-      // during ordinary resizes where the panel already fits.
-      if (
-        reclamped.x === rectRef.current.x &&
-        reclamped.y === rectRef.current.y &&
-        reclamped.width === rectRef.current.width &&
-        reclamped.height === rectRef.current.height
-      ) {
-        return
-      }
-      setRectState(reclamped)
-      writeRect(persistKey, reclamped)
-    }
-    window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
-  }, [persistKey, minWidth, minHeight, edgeMargin])
+  // A shrunk window slides this panel inward, and writes the correction back.
+  // Recording it is not important either way (Joel, 2026-08-25) — the panel just
+  // has to stay reachable — so this keeps the write it already did.
+  useReclampOnResize(rect, minWidth, minHeight, edgeMargin, recenterOnResize, (reclamped) => {
+    setRectState(reclamped)
+    writeRect(persistKey, reclamped)
+  })
 
   return { rect, setRect }
 }
 
 // ─── pure helpers (exported for the test) ────────────────────
+
+/**
+ * Keep a floating panel reachable when the VIEWPORT changes under it — the
+ * window shrinks, a tablet rotates — by hard-clamping it back inside.
+ *
+ * Shared, because it used to belong to the persisted panels alone and that put
+ * the protection on the ones that needed it least: chat and the scratchpad
+ * remember their rect and were watched, while every dialog and modal clamped
+ * once on mount and then stopped listening. Drag a modal toward an edge — which
+ * the soft clamp lets you do on purpose — shrink the window, and nothing pulled
+ * it back (plans/areas/floating-panels.md → F26).
+ *
+ * `onReclamp` is what differs: a persisted panel stores the correction, an
+ * ephemeral one only holds it in state. It is called ONLY when the rect actually
+ * moves, so an ordinary resize where the panel already fits stays quiet — no
+ * re-render, and no storage write.
+ *
+ * This never fights a deliberate drag: a user's move goes through the SOFT
+ * clamp, which is allowed to leave the panel half off-screen, and this only ever
+ * runs on a viewport event.
+ */
+export function useReclampOnResize(
+  rect: PanelRect,
+  minWidth: number,
+  minHeight: number,
+  edgeMargin: number,
+  /**
+   * RE-CENTER instead of merely pulling back inside.
+   *
+   * **The rule: re-centre unless the panel REMEMBERS where you put it.** Which
+   * is `!remembersRect || !draggable` — a panel that forgets your position had
+   * none worth preserving, and a panel you cannot drag never had one at all.
+   *
+   * Clamping instead is visibly wrong for those: a confirmation whose whole
+   * identity is "centred" ended up flush against the right margin, because
+   * `defaultPosition: 'center'` is resolved into concrete x/y once at mount and
+   * nothing afterwards remembers it was ever an intent.
+   *
+   * **`modal-normal` is in the set even though you CAN drag one** (Joel,
+   * 2026-08-25): they always open centred and never save a position, so *"the
+   * players think 'these start at the center' — which is true — and therefore
+   * should re-center on viewport resize."* Shoving one aside is a transient act
+   * to see something behind it, not a placement.
+   *
+   * The `!draggable` clause is what covers a COARSE POINTER, where every panel
+   * is forced non-draggable: a tablet rotation re-centres chat, because the rect
+   * it restored was chosen in some desktop session and is not an intent on that
+   * device.
+   *
+   * Only the POSITION is recomputed. The size is left alone: a `fitContent`
+   * panel's height is its content's answer, not the viewport's.
+   */
+  recenter: boolean,
+  onReclamp: (next: PanelRect) => void,
+): void {
+  // The latest rect in a ref, so the listener installs once and still reads
+  // current values — the same reason `useDraggablePanel` keeps one.
+  const rectRef = useRef(rect)
+  useEffect(() => {
+    rectRef.current = rect
+  }, [rect])
+
+  const onReclampRef = useRef(onReclamp)
+  useEffect(() => {
+    onReclampRef.current = onReclamp
+  })
+
+  useEffect(() => {
+    function onResize() {
+      const now = rectRef.current
+      const wanted = recenter ? centerInViewport(now) : now
+      const reclamped = clampToViewport(wanted, minWidth, minHeight, edgeMargin)
+      if (
+        reclamped.x === now.x &&
+        reclamped.y === now.y &&
+        reclamped.width === now.width &&
+        reclamped.height === now.height
+      ) {
+        return
+      }
+      onReclampRef.current(reclamped)
+    }
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [minWidth, minHeight, edgeMargin, recenter])
+}
+
+/** A rect's own size, centred in the current viewport. Size untouched. */
+function centerInViewport(rect: PanelRect): PanelRect {
+  const vw = typeof window !== 'undefined' ? window.innerWidth : rect.width
+  const vh = typeof window !== 'undefined' ? window.innerHeight : rect.height
+  return {
+    ...rect,
+    x: Math.max(0, Math.round((vw - rect.width) / 2)),
+    y: Math.max(0, Math.round((vh - rect.height) / 2)),
+  }
+}
 
 /** Two clamp modes — see `clampToViewport` doc. */
 export type ClampMode = 'hard' | 'soft'

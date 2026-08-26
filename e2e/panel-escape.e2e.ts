@@ -35,7 +35,12 @@ import { startGameRow } from './helpers/clubPage'
  */
 test.describe('escape and the panel stack', () => {
   const panels = (page: Page) => page.locator('[data-floating-panel]')
-  const titles = (page: Page) => page.locator('[data-floating-panel] header').allInnerTexts()
+  // The title SPAN, not the titlebar and not a tag name. This read
+  // `[data-floating-panel] header` until the titlebar stopped being a `<header>`
+  // (there is no drag handle to be a header FOR on a card family), at which
+  // point it silently matched nothing and both assertions compared against "".
+  const titles = (page: Page) =>
+    page.locator('[data-floating-panel] span[class*="_title_"]').allInnerTexts()
 
   test('Help over setup: one Escape closes Help and leaves the form', async ({ browser }) => {
     const club = await createClubWithMembers(['ada', 'bea'])

@@ -5,6 +5,7 @@ import { Rnd } from 'react-rnd'
 import {
   clampToViewport,
   useDraggablePanel,
+  useReclampOnResize,
   VIEWPORT_EDGE_MARGIN,
   type PanelRect,
 } from '../../hooks/ui/useDraggablePanel'
@@ -309,6 +310,10 @@ export function FloatingPanel({
   const coarse = useCoarsePointer()
   const effectiveDraggable = claims.draggable && !coarse
   const effectiveResizable = resizable && !coarse
+  // A viewport change RE-CENTRES this panel unless it remembers where you put
+  // it. See `useReclampOnResize` for why a modal-normal is in the set despite
+  // being draggable, and why the second clause matters on a touch device.
+  const recenterOnResize = !claims.remembersRect || !effectiveDraggable
 
   // Escape: what you're IN, else what's on TOP. One listener for the whole app
   // rather than one per panel — see `usePanelEscape`. The id is how the handler
@@ -343,6 +348,7 @@ export function FloatingPanel({
         />
       )}
       <FloatingPanelBody
+        recenterOnResize={recenterOnResize}
         panelId={panelId}
         trapsFocus={claims.trapsFocus}
         // A card stays a card on a phone unless it says otherwise; a window is
@@ -372,6 +378,7 @@ export function FloatingPanel({
 // on `persistKey` without conditionally calling hooks at the
 // outer call site (rules-of-hooks).
 function FloatingPanelBody({
+  recenterOnResize,
   panelId,
   trapsFocus,
   shape,
@@ -390,6 +397,7 @@ function FloatingPanelBody({
   reserveKeyboard,
   children,
 }: {
+  recenterOnResize: boolean
   panelId: string
   trapsFocus: boolean
   shape: 'window' | 'card'
@@ -418,6 +426,7 @@ function FloatingPanelBody({
     // never anyone's choice and the fit simply wins.
     return (
       <PersistedPanel
+        recenterOnResize={recenterOnResize}
         panelId={panelId}
         trapsFocus={trapsFocus}
         shape={shape}
@@ -441,6 +450,7 @@ function FloatingPanelBody({
   }
   return (
     <EphemeralPanel
+      recenterOnResize={recenterOnResize}
       panelId={panelId}
       trapsFocus={trapsFocus}
       shape={shape}
@@ -465,6 +475,7 @@ function FloatingPanelBody({
 // Variant with persistence — uses the shared useDraggablePanel
 // hook to restore + save the rect.
 function PersistedPanel({
+  recenterOnResize,
   panelId,
   trapsFocus,
   shape,
@@ -483,6 +494,7 @@ function PersistedPanel({
   reserveKeyboard,
   children,
 }: {
+  recenterOnResize: boolean
   panelId: string
   trapsFocus: boolean
   shape: 'window' | 'card'
@@ -507,6 +519,7 @@ function PersistedPanel({
     defaultRect: seed,
     minWidth,
     minHeight,
+    recenterOnResize,
   })
   return (
     <PanelRnd
@@ -535,6 +548,7 @@ function PersistedPanel({
 // reset on every mount. Used by modals where "remember position
 // across opens" would be surprising.
 function EphemeralPanel({
+  recenterOnResize,
   panelId,
   trapsFocus,
   shape,
@@ -552,6 +566,7 @@ function EphemeralPanel({
   reserveKeyboard,
   children,
 }: {
+  recenterOnResize: boolean
   panelId: string
   trapsFocus: boolean
   shape: 'window' | 'card'
@@ -586,6 +601,18 @@ function EphemeralPanel({
   )
   const setRect = (next: PanelRect) =>
     setRectState(clampToViewport(next, minWidth, minHeight, VIEWPORT_EDGE_MARGIN, 'soft'))
+  // Stay reachable when the viewport changes under it. This panel remembers
+  // nothing, so there is nothing to write — but "it clamped once on mount" is
+  // not the same as "it is on screen", and a modal dragged toward an edge before
+  // the window shrank used to be unrecoverable (F26).
+  useReclampOnResize(
+    rect,
+    minWidth,
+    minHeight,
+    VIEWPORT_EDGE_MARGIN,
+    recenterOnResize,
+    setRectState,
+  )
   return (
     <PanelRnd
       panelId={panelId}

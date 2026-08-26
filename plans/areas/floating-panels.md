@@ -25,7 +25,7 @@ change here forward-fixes them in the same commit (§21's compile-break rule) an
 **their stamps do not move**. If one of them turns out to be the only evidence
 for a shared question, it gets surfaced and asked about, not audited.
 
-**Twenty-nine findings.** Twenty-three RESOLVED (F1–F7, F16, F17, F18, F19, F21,
+**Twenty-nine findings.** Twenty-six RESOLVED (F1–F7, F16, F17, F18, F19, F21,
 F25, F28), three MOVED to `forms` (F8, F9, F13), two PUNTED (F14 → the first
 game area, F15 → crosswords), **nine OPEN** — F10, F11, F12, F20, F22, F23, F24,
 F26, F27.
@@ -964,25 +964,75 @@ global class would have exactly one caller.
 `club-page`'s, `InfoSheet` is `shared-game-chrome`'s; both were done at Joel's
 direction.
 
-## F26 · `ephemeral-panels-dont-reclamp` · The panels that persist are protected; the ones that don't, aren't
+## RESOLVED · F26 · `ephemeral-panels-dont-reclamp` · The floating panels that persist were protected; the ones that don't, weren't
 
 `useDraggablePanel` hard-clamps on mount AND re-clamps on every window resize, so
-the four persisting panels can never come back off-screen. **Verified** by
-planting a rect saved as if on a 2560×1440 monitor and loading at 900×700: the
-panel lands at x 552, y 232 — exactly `min(2000, 900−340−8)`, `min(1200,
-700−460−8)` — fully on screen.
+the seven floating panels that persist a rect could never come back off-screen.
+`EphemeralPanel` — every dialog and every modal — clamped **on mount only**, with
+no resize listener at all. The protection sat on the panels that needed it least.
 
-**And the stored rect is left unchanged, which is right**: plug the monitor back
-in and the panel returns to where you left it there. The clamp corrects the
-display, not the memory.
+**Resolved 2026-08-25** by lifting that listener into a shared
+`useReclampOnResize`, which both paths now call. Only `onReclamp` differs: a
+persisted panel stores the correction, an ephemeral one just holds it in state.
+It fires only when the rect actually moves, so an ordinary resize where the panel
+already fits stays quiet — no re-render, no storage write.
 
-`EphemeralPanel` — every non-persisting panel, so every modal — hard-clamps **on
-mount only**. No resize listener. Drag one toward an edge, shrink the window, and
-nothing pulls it back. The protection is on the panels that need it least.
+**The goals it was built to** (Joel, 2026-08-25):
 
-The window-resize path also DOES overwrite storage, so resizing on a laptop
-destroys the big-monitor position that reopening carefully preserves. The two
-paths should agree, and the mount behavior is the better one.
+> *"We shouldn't hide floating panels on viewport resize. We need to listen and
+> move them as needed."* · *"We do not need to remember anything more than 'where
+> was this the last time?'… whichever is easier is fine."* · *"But, obviously, IF
+> I then move/resize, it should remember the new location."*
+
+The middle one cancelled half the fix I had proposed: the two paths disagree
+about whether a viewport correction is written back, and it does not matter, so
+the persisted path keeps the write it already did. The third is untouched — a
+user's drag goes through the SOFT clamp, which is allowed to park a panel half
+off-screen, and the viewport re-clamp is a different call.
+
+**Pinned by `e2e/panel-viewport.e2e.ts`, and verified by planting.** With the
+listener removed, a confirmation on a 1200px viewport shrunk to 600 keeps
+`x = 390` and its right edge lands at **810** — 210px of a modal you cannot
+reach. With it, 172 and 592.
+
+**It also did not need to be dragged anywhere**, which is the part the finding
+missed: a CENTRED panel is off-screen the moment the window is narrower than the
+panel. "It clamped once on mount" was never the same claim as "it is on screen".
+
+**And that exposed a second half, which Joel caught by asking whether I had made
+a claim and not done the work.** Pulling a panel back inside is not the same as
+putting it back where it belongs: the confirmation landed at `x = 172` on a 600px
+viewport — flush against the right margin — where centred is 90. The cause is
+that `defaultPosition: 'center'` is resolved into concrete x/y ONCE at mount, and
+nothing afterwards remembers the position was an intent rather than a choice.
+
+**The rule, in two passes.** Joel first: *"if it's not draggable and we resize,
+we should re-calc its position"* — better than the version I proposed, which
+listed the two card families, because it states the REASON rather than the
+members. Then he widened it, and the wider one is the keeper:
+
+> **Re-centre unless the panel REMEMBERS where you put it** — `!remembersRect ||
+> !draggable`.
+
+**`modal-normal` is in the set even though you CAN drag one** (Joel): they always
+open centred and never save a position, so *"the players think 'these start at
+the center' — which is true — and therefore should re-center on viewport
+resize."* Shoving one aside is a transient act to see something behind it, not a
+placement. That is a field the family table already had, so the rule needed no
+new information.
+
+The `!draggable` clause is what still covers a COARSE POINTER, where every panel
+is forced non-draggable: a tablet rotation re-centres chat, because the rect it
+restored was chosen in some desktop session and is not an intent on that device.
+
+Only the POSITION is recomputed; the size is left alone, because a `fitContent`
+panel's height is its content's answer rather than the viewport's. Measured:
+
+| | before resize | after |
+|---|---|---|
+| blocking modal, 1200 → 600 | 390 (centred) | **90** (centred) — was 172, flush right |
+| setup dialog, DRAGGED to 560, 1200 → 1000 | 560 | **260** (centred) |
+| chat, dragged, resize it still fits in | 670, 250 | **670, 250** — untouched |
 
 ## RESOLVED · F28 · `help-rect-per-game` · Help is a companion, so it remembers — but sixteen games size it differently
 
