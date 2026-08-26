@@ -16,6 +16,19 @@ import { SimpleScrollableList } from '../lists/SimpleScrollableList'
 type Result = { word: string; difficulty: number }
 
 /**
+ * HOW LONG A PATTERN MAY BE — a mirror of `common.anagrams`, which rejects
+ * anything outside `^[A-Za-z?]{2,15}$` with `bad-anagram-input`.
+ *
+ * Stated as one object because the two ends are enforced differently and would
+ * otherwise sit apart as bare numbers: the ceiling caps the field so an
+ * unsendable pattern cannot be typed, and the floor answers on submit with a
+ * sentence, because "two letters or more" is a thing worth being told rather
+ * than silently prevented. Both read from here, so they cannot drift from each
+ * other — and if the SQL's range moves, this is the one place the FE says it.
+ */
+const PATTERN_LENGTH = { min: 2, max: 15 } as const
+
+/**
  * The ⌥` anagram finder — WordLookupDialog's sibling: same FloatingPanel
  * chrome, same type-and-Enter shape, but the answer is a LIST, not a
  * definition. Backed by `common.anagrams` (see sql/common.sql for the whole
@@ -46,7 +59,7 @@ export function AnagramDialog({ onClose }: { onClose: () => void }) {
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
     const letters = query.trim()
-    if (letters.length < 2) {
+    if (letters.length < PATTERN_LENGTH.min) {
       // The refusal needs a REASON on screen. A bare `return` here would leave
       // the Find button enabled, pressed, and nothing whatever happening.
       setEntryError('Two letters or more — a single letter only rearranges into itself.')
@@ -93,8 +106,11 @@ export function AnagramDialog({ onClose }: { onClose: () => void }) {
             value={query}
             // Case carries meaning (pins), so keep it as typed; everything
             // that isn't a letter or '?' is dropped on entry.
+            maxLength={PATTERN_LENGTH.max}
             onChange={(v) => {
-              setQuery(v.replace(/[^A-Za-z?]/g, '').slice(0, 15))
+              // Only the character filter here; the LENGTH is `maxLength`'s,
+              // stated on the field rather than enforced in the handler.
+              setQuery(v.replace(/[^A-Za-z?]/g, ''))
               // Typing is the answer to the complaint; clear it as they act.
               setEntryError(null)
             }}
