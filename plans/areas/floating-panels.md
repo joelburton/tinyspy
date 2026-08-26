@@ -475,14 +475,22 @@ the prop with a Setup-specific argument — *"you can't set up two games at once
 — on a prop that now carries the whole blocking category. Whoever reads it next
 learns the wrong rule.
 
-## F20 · `dead-names-in-docstrings` · Three docstrings name things that do not exist
+## RESOLVED · F20 · `dead-names-in-docstrings` · Three docstrings named things that do not exist
 
-- `FloatingPanel.tsx:96` lists **`HintModal`** among the modals. There is no such
-  component — connections' hint became an info-column readout (`HintList`), which
-  is the same file whose misnaming produced F2.
-- `FloatingPanel.module.css:5` says *"the future scratchpad"*. It shipped.
-- `useDraggablePanel.ts:33` said *"(FloatingChat, future Scratchpad, etc.)"*.
-  Same. (The component is `Chat` now, and the scratchpad shipped long ago.)
+- `FloatingPanel.tsx` listed **`HintModal`** among the modals. No such component
+  — connections' hint became an info-column readout, which is the same file whose
+  misnaming produced F2. **Gone with the step-1 rewrite.**
+- `FloatingPanel.module.css` said *"the modals, the always-on Chat, the future
+  scratchpad"*. The scratchpad shipped long ago, and by now the sentence could
+  name the families instead of guessing at a cast list: the companions, the
+  dialogs and all three modal families.
+- `useDraggablePanel.ts` said *"(Chat, future Scratchpad, etc.)"*. Same, and it
+  can now say something true and useful rather than "etc.": the six companions
+  remember position AND size, the three dialogs remember only a position,
+  because they cannot be resized.
+
+Both rewritten 2026-08-25 rather than patched — a list of examples goes stale
+every time the roster moves, where a statement about the FAMILIES does not.
 
 ## RESOLVED · F21 · `focus-trap-doc-stale` · `useFocusTrap`'s scope note now contradicts the code
 

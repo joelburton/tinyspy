@@ -1,9 +1,9 @@
 /* cs-audited */
 
-/* Shared visuals for every floating panel — the modals, the
- * always-on Chat, the future scratchpad. The header
- * pattern (title + X), the body padding, the shadow, the
- * rounded corners all live here so panels look consistent.
+/* Shared visuals for every floating panel — the companions, the dialogs and all
+ * three modal families. The titlebar (title + ✕), the body padding, the shadow
+ * and the rounded corners live here, so every floating panel looks like one
+ * thing.
  *
  * Layout structure (per ../connections' pattern):
  *

@@ -26,8 +26,10 @@ type PanelOpts = {
 }
 
 /**
- * Persisted geometry + viewport clamping for a floating panel
- * (Chat, future Scratchpad, etc.).
+ * Persisted geometry + viewport clamping for a floating panel — the six
+ * COMPANIONS, which remember both where you put them and how big you made them,
+ * and the three DIALOGS, which remember only a position because they cannot be
+ * resized (plans/css-system-2.md §20).
  *
  * State lives in React for fast re-renders during a drag/resize,
  * AND is mirrored to localStorage so closing + reopening (or
