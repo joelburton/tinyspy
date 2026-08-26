@@ -10,7 +10,9 @@ type Props = {
   /** The caption above the box. DRAWN, like every other field's — it wasn't at
    *  first, and three number boxes shipped with no captions at all because the
    *  label went only to `aria-label` (Joel spotted it on screen, 2026-08-26). */
-  label: string
+  label?: ReactNode
+  /** The name, for when there is no caption. */
+  ariaLabel?: string
   /** The current value. `NaN` shows an empty box, which is what a half-typed
    *  number looks like: the caller decides whether that blocks Start. */
   value: number
@@ -51,6 +53,7 @@ type Props = {
 export function NumberField({
   name,
   label,
+  ariaLabel,
   value,
   onChange,
   min,
@@ -69,6 +72,7 @@ export function NumberField({
           id={id}
           type="number"
           name={name}
+          aria-label={label === undefined ? ariaLabel : undefined}
           inputMode="numeric"
           min={min}
           max={max}

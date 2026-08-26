@@ -314,10 +314,10 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/components/palette/PalettePage.module.css': ['1rem', '0.75rem', '2.5rem', '0.25rem', '0.5rem', '0.35rem', '0.15rem'],
       'src/common/components/floating-panels/GameScratchpadCompanion.module.css': ['0.4rem', '0.5rem'],
       'src/common/components/menu/Menu.module.css': ['1.5rem', '0.3rem', '0.1rem', '-1px', '-1rem'],
-      'src/common/components/setup/SetupGameModal.module.css': ['0.75rem', '1.5rem', '0.4rem', '1rem'],
+      'src/common/components/setup/SetupGameModal.module.css': ['0.75rem', '1.5rem', '0.4rem', '1rem', '0.3rem'],
       // Moved out of SetupGameModal.module.css with <PlayersField> on 2026-08-25.
       // Same values, new file — the debt travelled, it did not grow.
-      'src/common/components/fields/PlayersField.module.css': ['1rem', '0.5rem', '0.4rem'],
+      'src/common/components/fields/PlayersField.module.css': ['0.5rem', '0.4rem'],
       'src/common/components/text/RichMessage.module.css': ['0.25rem'],
       'src/common/components/toasts/Toast.module.css': ['0.7rem'],
       'src/common/components/toasts/ToastHost.module.css': ['0.6rem'],
@@ -556,7 +556,6 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/components/palette/PalettePage.module.css': ['1px'],
       'src/common/components/floating-panels/GameScratchpadCompanion.module.css': ['1px'],
       'src/common/components/menu/Menu.module.css': ['1px'],
-      'src/common/components/fields/PlayersField.module.css': ['1px'],
       'src/common/components/setup/SetupSection.module.css': ['1px'],
       'src/common/components/text/Dot.module.css': ['1px'],
       'src/common/components/toasts/Toast.module.css': ['1px', '4px'],

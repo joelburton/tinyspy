@@ -149,7 +149,19 @@ export function SetupNextPuzzleSection({ brand, seenBy, load, loadByDate, onPick
     <SetupSection label={summary} defaultOpen={nothingToPlay}>
       <p className={styles.next}>{line}</p>
       <DateField
-        help={<>The next {brand} puzzle nobody playing has seen — including games any of you played in another club. Or pick a date to play that one instead, even if you&rsquo;ve played it before.</>} label="Puzzle date" value={date} onChange={(next) => void chooseDate(next)} />
+        // No caption: the section's summary IS the caption, and the box is the
+        // only control in it. Named for the tests and the tooltip instead.
+        ariaLabel="Puzzle date"
+        help={
+          <>
+            The next {brand} puzzle nobody playing has seen — including games any of you
+            played in another club. Or pick a date to play that one instead, even if
+            you&rsquo;ve played it before.
+          </>
+        }
+        value={date}
+        onChange={(next) => void chooseDate(next)}
+      />
     </SetupSection>
   )
 }

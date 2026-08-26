@@ -1,33 +1,13 @@
 /* cs-fixed */
 
 /*
- * The player picker (see PlayersField.tsx) — a checkbox list of club members
- * above the game-specific setup body.
+ * The player picker's rows (see PlayersField.tsx).
  *
- * Moved here from SetupGameModal.module.css on 2026-08-25, with the component.
- * The values are unchanged; only the class names lost their `player` prefix,
- * which the module already supplies (`styles.row`, not `styles.playerRow`).
- *
- * THE ONE BORDERED BOX LEFT IN A SETUP FORM. Every other group is a
- * `<SetupSection>` disclosure, and the shared `.fieldset` this used to resemble
- * is deleted — so these rules are this field's own.
- *
- * The BORDER is all that is left of them. The caption and the column are
- * `<Field>`'s, as every other field's are (Joel, 2026-08-26: *"we want
- * consistency between fields — we're trying to collapse difference where
- * reasonable"*). This file used to argue for a quieter, smaller, uppercase
- * legend on the grounds that an always-open box's caption labels something you
- * can already see — which stopped being a distinction once every field's
- * caption did. If it should read differently after all, it is three
- * declarations on `.players legend` here, not a second caption vocabulary.
+ * The BOX is gone as of 2026-08-26 — border, padding, margin. It was here
+ * because this field had to be open when the dialog opens and nothing in the
+ * section vocabulary could do that; `<SetupSection alwaysOpen>` can, so the
+ * chrome is the shared one and this file is left with the rows.
  */
-/* @@ */ .players {
-  margin: 0 0 1rem;
-  padding: 0.6rem 0.75rem;
-  border: 1px solid var(--page-surface-border-color);
-  border-radius: var(--radius-md);
-}
-
 /* @@ */ .row {
   display: flex;
   align-items: center;

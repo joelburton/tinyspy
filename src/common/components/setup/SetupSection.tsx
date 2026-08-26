@@ -21,8 +21,9 @@ export function SetupSection({
   defaultOpen = false,
   children,
 }: {
-  /** The summary text — the field's name plus its current value. */
-  label: string
+  /** The summary text — the field's name plus its current value. Optional,
+   *  like a field's caption. */
+  label?: ReactNode
   /**
    * Open it without being asked. Default closed — the summary already shows the
    * value, so opening is for changing.
@@ -41,7 +42,7 @@ export function SetupSection({
   const [opened, setOpened] = useState(defaultOpen)
 
   return (
-    // `opened || defaultOpen` is what makes the prop a DEFAULT rather than a
+    // `opened || defaultOpen` is what makes that prop a DEFAULT rather than a
     // controlled value: a later `true` still opens the section (the reason to
     // open often arrives after mount, on an RPC), while a later `false` only
     // lets it close if the user had not opened it themselves. Without the

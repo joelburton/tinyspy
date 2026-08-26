@@ -5,8 +5,8 @@ import { Field } from './Field'
 import styles from './ReadOnlyField.module.css'
 
 type Props = {
-  /** The caption above the value. */
-  label: ReactNode
+  /** The caption above the value. Optional, like every field's. */
+  label?: ReactNode
   /** What the field is about, between the caption and the value. */
   help?: ReactNode
   /** How the value gets set, since you can't set it here — "chosen when you

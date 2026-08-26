@@ -7,7 +7,9 @@ import { FloatingPanel } from '../floating-panels/FloatingPanel'
 import { HelpButton } from '../buttons/HelpButton'
 import { RichMessage } from '../text/RichMessage'
 import { cls } from '../../lib/util/cls'
+import { Dot } from '../text/Dot'
 import { PlayersField } from '../fields/PlayersField'
+import { SetupSection } from './SetupSection'
 import styles from './SetupGameModal.module.css'
 import { StandardButton } from '../buttons/StandardButton'
 import { CancelButton } from '../buttons/CancelButton'
@@ -228,48 +230,71 @@ export function SetupGameModal({
       defaultSize={{ width: 480, height: 520 }}
       minWidth={320}
     >
-      {/* WHAT THIS GAME IS, first — above the picker and the form both.
-          It used to live inside each game's SetupForm, which meant it rendered
-          BELOW the player picker: an introduction under the thing it
-          introduces. It is manifest copy now (games.ts → GameSetupForm.intro),
-          so the modal decides where it goes. */}
-      {manifest.setupForm.intro && (
-        <p className={styles.intro}>{manifest.setupForm.intro}</p>
-      )}
+      <div className={styles.body}>
+        {/* WHAT THIS GAME IS, first — above the picker and the form both.
+            It used to live inside each game's SetupForm, which meant it rendered
+            BELOW the player picker: an introduction under the thing it
+            introduces. It is manifest copy now (games.ts → GameSetupForm.intro),
+            so the modal decides where it goes. */}
+        {manifest.setupForm.intro && (
+          <p className={styles.intro}>{manifest.setupForm.intro}</p>
+        )}
 
-      {showPicker && (
-        <PlayersField
-          members={members}
-          selfId={selfId}
-          selectedIds={selectedIds}
-          onToggle={togglePlayer}
-          busy={busy}
-          hint={playerHint}
-        />
-      )}
+        {/* An ordinary section, open to start. Its summary is the players
+            themselves — the dots of whoever is checked, self included, who
+            cannot be unchecked. Every other section's summary carries its live
+            value ("Timer: none"); this one's value is WHO, and a row of colors
+            says that faster than a list of names would. */}
+        {showPicker && (
+          <SetupSection
+            defaultOpen
+            label={ <>
+              <span>Players: &nbsp;</span>
+              <span className={styles.playerDots}>
+                {selectedPlayers.map((m) => (
+                  <Dot key={m.user_id} color={m.color} className={styles.playerDot} />
+                ))}
+              </span>
+              </>
+            }
+          >
+            <PlayersField
+              members={members}
+              selfId={selfId}
+              selectedIds={selectedIds}
+              onToggle={togglePlayer}
+              busy={busy}
+              hint={playerHint}
+            />
+          </SetupSection>
+        )}
 
-      {/* The fallback RESERVES most of a setup body's height rather than being
-          the one bare line it reads as. The panel is `fitContent`: it measures
-          whatever is mounted, so a one-line fallback made it fit to that —
-          collapsing to its 300px floor, then leaping ~370px when the real form
-          arrived ~300ms later, with the footer buttons sailing out from under
-          the cursor. Reserving the slot is the same no-reflow move the setup
-          hint below makes; the remaining growth is small and lands downward
-          (FloatingPanel anchors the header rather than re-centering). */}
-      <Suspense fallback={<p className={cls('muted', styles.optionsReserve)}>Loading options…</p>}>
-        <div className={styles.formBody}>
-          <SetupBody
-            members={members}
-            brand={manifest.name}
-            clubHandle={clubHandle}
-            mode={manifest.mode}
-            playerCount={playerCount}
-            players={selectedPlayers}
-            value={setup}
-            onChange={setSetup}
-          />
-        </div>
-      </Suspense>
+        {/* The fallback RESERVES most of a setup body's height rather than being
+              the one bare line it reads as. The panel is `fitContent`: it measures
+            whatever is mounted, so a one-line fallback made it fit to that —
+            collapsing to its 300px floor, then leaping ~370px when the real form
+            arrived ~300ms later, with the footer buttons sailing out from under
+            the cursor. Reserving the slot is the same no-reflow move the setup
+            hint below makes; the remaining growth is small and lands downward
+            (FloatingPanel anchors the header rather than re-centering). */}
+        <Suspense
+          fallback={<p className={cls('muted', styles.optionsReserve)}>Loading options…</p>}
+        >
+          <div className={styles.formBody}>
+            <SetupBody
+              members={members}
+              brand={manifest.name}
+              clubHandle={clubHandle}
+              mode={manifest.mode}
+              playerCount={playerCount}
+              players={selectedPlayers}
+              value={setup}
+              onChange={setSetup}
+            />
+          </div>
+        </Suspense>
+      </div>
+
       {/* Setup-level guard (e.g. bag too small): blocks Start with a
           fix-this hint, same register as the player-count hint. The line ALWAYS
           renders (a non-breaking space when the setup is valid) so it holds one

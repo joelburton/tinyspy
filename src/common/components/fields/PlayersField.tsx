@@ -24,6 +24,9 @@ type Props = {
   entryHelp?: ReactNode
   /** What's wrong with what's there. */
   error?: string | null
+  /** A caption above the rows. Optional like every field's — and not passed
+   *  today, because the section around it already says "Players". */
+  label?: ReactNode
   /** Disable every row while the create RPC is in flight. */
   busy?: boolean
   /** The count complaint, when there is one: "Pick at least 2 players." The
@@ -36,13 +39,16 @@ type Props = {
  * WHO IS PLAYING — a checkbox list of the club's members, all checked by
  * default, sitting above the game-specific setup body.
  *
- * **The one field that is not inside a `<SetupSection>`** (Joel, 2026-08-25).
- * Everything else in a setup form collapses behind a disclosure whose summary
- * carries the current value; this one stays open, because it is not a setting
- * you occasionally revisit — it is who the game is FOR, and it changes what the
- * rest of the form can even offer. It is also the only place a `<fieldset>` is
- * doing the job the element exists for: several related controls under one
- * caption, rather than a single control wearing a group's clothing.
+ * **An ordinary field, in an ordinary section.** It spent a day as the one
+ * field outside the section vocabulary — a bordered box of its own, because it
+ * must be visible when the dialog opens: who is playing changes what the rest
+ * of the form can even offer. `defaultOpen` buys that with no exception at all
+ * (Joel, 2026-08-26), so the border, the caption and the padding are the ones
+ * every other setting gets, and this file is left holding only the rows.
+ *
+ * The section's summary is the players' DOTS rather than a word — its live
+ * value, the way every other summary carries one, and drawn by the modal
+ * because the modal owns the selection.
  *
  * A component rather than markup inside `SetupGameModal` because a players
  * picker is a FIELD, and every other field a setup form has is one of these —
@@ -61,22 +67,17 @@ export function PlayersField({
   onToggle,
   busy,
   hint,
+  label,
   help,
   entryHelp,
   error,
 }: Props) {
   return (
-    // `group`: the control is a SET of checkboxes, so the caption heads them as
-    // a <legend> rather than pointing at one. The bordered box is this field's
-    // own — see the module — but the caption and the column are everyone's.
-    <Field
-      label="Players"
-      group
-      className={styles.players}
-      help={help}
-      entryHelp={entryHelp}
-      error={error}
-    >
+    // `group`: the control is a SET of checkboxes, so a caption would head them
+    // as a <legend> rather than point at one. No box of its own any more — the
+    // <SetupSection> around it draws that, the same one every other setting
+    // gets.
+    <Field label={label} group help={help} entryHelp={entryHelp} error={error}>
       {members.map((m) => {
         const isSelf = m.user_id === selfId
         return (

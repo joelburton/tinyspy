@@ -5,8 +5,10 @@ import { Field } from './Field'
 import styles from './DateField.module.css'
 
 type Props = {
-  /** The accessible name — "Puzzle date". */
-  label: string
+  /** The caption above the box. Optional, like every field's. */
+  label?: ReactNode
+  /** The name, for when there is no caption — "Puzzle date". */
+  ariaLabel?: string
   /** `YYYY-MM-DD`, or `''` for no date. Kept as the RAW string so the box stays
    *  controlled even for a date that resolves to nothing. */
   value: string
@@ -39,6 +41,7 @@ type Props = {
  */
 export function DateField({
   label,
+  ariaLabel,
   value,
   onChange,
   min,
@@ -54,6 +57,7 @@ export function DateField({
         <input
           id={id}
           type="date"
+          aria-label={label === undefined ? ariaLabel : undefined}
           value={value}
           min={min}
           max={max}
