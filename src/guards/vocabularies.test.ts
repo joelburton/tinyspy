@@ -533,7 +533,6 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/components/chat/ChatBody.module.css': ['1px'],
       'src/common/components/club/clubFilters.module.css': ['1px'],
       'src/common/components/club/EditClubModal.module.css': ['1px'],
-      'src/common/components/definitions/AnagramDialog.module.css': ['1px'],
       'src/common/components/definitions/DefinitionPopover.module.css': ['1px'],
       'src/common/components/feedback/GenericFeedbackPill.module.css': ['2px', '0.4rem'],
       'src/common/components/fields/SelectField.module.css': ['1px'],

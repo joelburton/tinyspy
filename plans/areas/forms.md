@@ -307,13 +307,25 @@ class is ever wanted, the name is sitting there unused (Joel, 2026-08-25).
 - **`SubmitWithScore` is scrabble's to decide** — filed in
   `docs/games/scrabble.md` → Deferred, and deliberately not carried here.
 
-## One decision owed
+## The dead-token guard is expected to be red, and that is a ruling
 
-**`--line-height-3` is now a dead token and the guard says so.** Measured: it had
-exactly ONE consumer in the whole repo — the club delete button's hand-tightened
-`line-height` — and the component absorbed it. So the third ramp step either goes,
-or needs a home. Deleting a step from a declared vocabulary is not this area's
-call, so the guard is left red rather than a fake consumer invented for it.
+**`--line-height-3` stays** (Joel, 2026-08-26). It has no consumer — its one
+reader, the club delete button's hand-tightened `line-height`, was absorbed by
+`<StandardButton>` — and the dead-token guard says so on every run.
+
+**We are not quieting it, and not exempting the token either.** *"Just ignore
+failing tests for guards until later. We're rolling out a bunch of new things,
+so of course there will be unused tokens. Finding them is a cleanup step."*
+
+A sprint that lands whole vocabularies before converting the surfaces that read
+them WILL leave steps unread for a while; a guard that goes red on exactly that
+is doing its job, and the answer is a sweep at the end rather than an exemption
+per token as each one appears. So: **read the dead-token failure as a running
+count of the cleanup owed, not as breakage.**
+
+What that means for reporting test runs in this sprint: the honest baseline is
+"1991 of 1993, both known" — `scripts/subset-font.py`'s deliberate missing stamp
+and this. Neither is a regression, and neither gets fixed here.
 
 ---
 
@@ -615,26 +627,60 @@ form's column to `<SetupGameModal>` — along with sixteen imports and the guard
 check that policed how they were named. That check went WITH ITS SUBJECT: a
 guard whose subject no longer exists is not a guard.
 
-## Predicted test breaks (§21 — predict them, write them down, LEAVE them)
+## The e2e run — 221 passed, 9 failed, and only ONE was this area's
 
-**No e2e has been run against any of this**, deliberately (Joel, 2026-08-26:
-ask before running any e2e; mid-area red carries no information). The specs
-below are where I would expect breakage, and the diff against this list is what
-says whether something broke that shouldn't have:
+Run 2026-08-26 (9.8m) with Joel's standing rule attached: *"there are a lot of
+things I haven't reviewed or blessed, so 'fixing the test' would just effectively
+bless those things. What we're interested in here is actual breakage."*
 
-| spec | why |
-|---|---|
-| every game's setup e2e | the dialog's structure changed: intro first, players in a section, fields relabelled |
-| `coop-setup.e2e.ts` | `<SetupCoopStyleSection>`'s markup and its section |
-| `puzzle-pickers.e2e.ts` | already updated once for the disclosure; the date box is `<DateField>` now |
-| `auth.e2e.ts` / `claim-handle.e2e.ts` | LoginScreen's two boxes gained captions; the handle field's rules line is `entryHelp`/`error` |
-| `club-*.e2e.ts` | EditClubModal's gametype checkboxes |
-| `anagram-finder.e2e.ts` · `word-edit.e2e.ts` | converted dialogs — the second's names changed, and its UNIT tests were updated |
-| `tap-targets.e2e.ts` | field and control sizes moved |
+**The prediction was wrong in the useful direction.** The table here expected
+every game's setup e2e to break — the dialog's structure changed under all
+sixteen. None did. What broke was narrower and more interesting.
 
-Unit tests are green throughout: **1991 of 1993**, the two failures being
-`scripts/subset-font.py`'s deliberate missing stamp and F43's dead
-`--line-height-3`.
+### One real bug, and it was not a stale assertion
+
+**`letterboxed` custom board.** `<ManualBoardField>` inserted separators without
+ignoring them on the way back in, so every render re-grouped its own output.
+Typing `BICAEMYUKLRF` gave `BIC-A` → `BIC--AE` → `BIC---A-EM` → …, broken from
+the FIFTH letter for any caller that stores what the field hands it — which is
+the ordinary way to write a controlled input, and what letterboxed does. The
+field's own docstring already claimed the fixed behavior (*"a pasted board with
+its own separators comes out looking like every other one"*); it was never
+implemented. Fixed, plus `ManualBoardField.test.tsx` — four tests, PLANTED:
+reverting the fix fails exactly the two that describe the bug.
+
+### Four that predate this area, traced to the commit
+
+| spec | cause | filed |
+|---|---|---|
+| `page-no-scroll` × 2 | locates a panel by `locator('header')`; the titlebar became a `<div>` in `a61092ae` | floating-panels **F32 (`titlebar-is-not-a-header`)** |
+| `anagram-finder` | asserts the list scrolls in a *fixed* panel; `30377b99` gave the word dialogs `fitContent`, so the panel grows instead | floating-panels **F33 (`word-dialogs-grow-instead-of-scrolling`)** |
+| `wordle-keyboard` | reads `--ink-on-dark-color`, deleted in `8e546cae`; the assertion compares the page's default ink against the key's correct white | `docs/games/wordle.md` → Deferred |
+
+### Three punted to the games that own the decision (Joel, 2026-08-26)
+
+`boggle` × 2 (the recap's dash separator) → `docs/games/boggle.md`;
+`spellingbee` custom letters (two boxes became one) → `docs/games/spellingbee.md`.
+Both changes are right; both are visible UI decisions that belong in front of
+Joel during those games' own passes rather than certified by a spec edit from the
+area that made them.
+
+### The one spec this area did change
+
+`word-edit`, and only because the rule changed: **an `aria-label` exists for
+tests to find something, and is junk otherwise** (Joel, 2026-08-26). That dialog
+carried five that CONTRADICTED their visible captions — the box reading "Note"
+was named "Curation note", the one reading "Word" was named "New word". The
+captions are the accessible names now, so the spec asks for what is on screen.
+Only one line actually had to move: Playwright's `getByLabel` matches a
+SUBSTRING, so `'Band'` still finds `"Band (1–6)"` while `'Curation note'` finds
+nothing in `"Note"`. The `Word` lookups took `{ exact: true }` — the `~` lookup
+dialog is still open behind the add dialog, and a loose `'Word'` would find its
+"Word to look up" box and trip strict mode.
+
+**Unit tests: 1995 of 1997**, the two being `scripts/subset-font.py`'s deliberate
+missing stamp and the dead-token guard, which is expected to be red for the rest
+of the sprint (see above).
 
 ---
 

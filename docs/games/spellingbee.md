@@ -602,6 +602,15 @@ language + helpers live in [docs/pdf.md](../pdf.md).
 
 ## Deferred
 
+- **The custom-letters e2e fills two boxes that are now one.**
+  `spellingbee.e2e.ts` → "spellingbee custom letters" (line 99) fills
+  `Center letter` then `Six other letters`; the form takes `A-CHIROT` in a single
+  `<ManualBoardField>` and splits on the hyphen, which is the form the section's
+  own summary has always printed. The spec times out waiting for a box that no
+  longer exists. **Left red on purpose** (Joel, 2026-08-26): the single-box shape
+  is a real UI change and belongs in front of him during spellingbee's own pass,
+  not certified by a spec edit from the `forms` area that made it.
+
 **The two setup stylesheets are the same file.** `spellingbee/components/SetupForm.module.css`
 and `wordwheel/components/SetupForm.module.css` are 42 lines each, six rules each,
 and `diff` reports **two changed lines, both inside comments** —

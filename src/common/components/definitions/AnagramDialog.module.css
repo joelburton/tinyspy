@@ -59,32 +59,67 @@
   color: var(--chrome-fault-color);
 }
 
+/* The tally under the list — right-aligned to the frame's edge, so it reads as
+   a footnote to the answer rather than a heading over it. */
 /* @@ */ .count {
   margin: 0;
+  text-align: right;
   font-size: 0.8rem;
   color: var(--page-text-muted-color);
 }
 
-/* The result list: the one flexible child, scrolling INSIDE the panel —
- * min-height: 0 is what lets flex actually bound it (without it the list
- * pushes the panel taller and nothing scrolls). */
+/*
+ * THE RESULT LIST IS THE ONLY THING THAT SCROLLS, and it is capped at TEN ROWS.
+ *
+ * Two rules doing one job. The panel is `fitContent` (it sizes to what is
+ * inside), so an uncapped list has nothing to scroll against — the PANEL grows
+ * instead, and `s???t` returns 1361 words, which is a dialog taller than the
+ * screen. Capping the list gives the fit something bounded to fit, so the panel
+ * settles at a readable size and the overflow lands where it belongs.
+ *
+ * THE COUNT IS STATED AS A COUNT, not as a height that works out to one:
+ * `--anagramRow-height` sizes `.row` below and is multiplied here, so how many
+ * rows show is the multiplier in the calc and nothing else. Changing the row's
+ * type or padding moves the cap with it, and a partial last row — which reads as
+ * the list being cut off rather than scrollable — cannot creep in.
+ *
+ * `flex: 0 1 auto` — it takes its own height up to the cap rather than
+ * stretching to fill. `1 1 auto` would make it claim the slack in a panel that
+ * has none to give.
+ */
 /* @@ */ .list {
-  flex: 1 1 auto;
-  min-height: 0;
+  --anagramRow-height: 1.4rem;
+  --anagramList-pad: 0.15rem;
+  flex: 0 1 auto;
+  /* The chrome is IN the sum, because `box-sizing: border-box` means the cap
+     covers the padding and the border too — take them out and the LAST row is
+     the one that gets clipped. */
+  max-height: calc(
+    7 * var(--anagramRow-height) + 2 * var(--anagramList-pad) + 2 * var(--border-width-line-thick)
+  );
   overflow-y: auto;
   margin: 0;
-  padding: 0.15rem 0 0;
+  padding: var(--anagramList-pad);
   list-style: none;
-  border-top: 1px solid var(--page-surface-border-color);
+  /* THE FRAME, so a list that runs past its bottom edge looks like a thing with
+     a bottom edge. Same 2px + `--radius-md` as the info panel's scroll box
+     (common/components/game/infoPanel.module.css → `.box`) — the app already had
+     one answer for "a list you scroll inside", and this is it. */
+  border: var(--border-width-line-thick) solid var(--page-divider-color);
+  border-radius: var(--radius-md);
 }
 
+/* A fixed height rather than one that falls out of the type, so the list above
+   has a number to multiply. Roomy for 0.95rem text — a row is chrome around one
+   short word, and nothing in it can wrap. */
 /* @@ */ .row {
   display: flex;
   align-items: baseline;
-  justify-content: space-between;
   gap: 0.5rem;
+  height: var(--anagramRow-height);
   padding: 0.15rem 0.25rem;
 }
+
 
 /* @@ */ .word {
   font-size: 0.95rem;
@@ -92,9 +127,14 @@
   cursor: pointer;
 }
 
-/* The band number — context beside the word, muted BY REQUEST (the spec
+/* The leading band number. A FIXED-WIDTH gutter, so every word starts at the
+ * same x — a ragged left edge is what makes a numbered list read as noise — and
+ * right-aligned within it, the way a line number is. Muted by request (the spec
  * asked for it muted; not the don't-default-to-muted case). */
 /* @@ */ .band {
+  flex: 0 0 auto;
+  width: 1rem;
+  text-align: right;
   font-size: 0.8rem;
   color: var(--page-text-muted-color);
   font-variant-numeric: tabular-nums;

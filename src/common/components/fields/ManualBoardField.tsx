@@ -111,9 +111,16 @@ export function ManualBoardField({
 }: Props) {
   // What's shown: the letters regrouped, with the dashes in the right places.
   // Derived rather than stored, so there is one truth — the caller never holds
-  // a half-formatted string, and a pasted board with its own separators comes
-  // out looking like every other one.
-  const shown = groups ? groupTiles(tiles(value), groups) : value
+  // a half-formatted string.
+  //
+  // THE FIELD OWNS THE SEPARATORS IN BOTH DIRECTIONS, which is why the value is
+  // stripped of them before it is tiled. Inserting them without ignoring them
+  // means each render re-groups its own output, and the dashes multiply: a
+  // caller that stores what it is handed goes B → BIC-A → BIC--AE → BIC---A-EM
+  // from the fifth letter on. Stripping is also what lets a board be PASTED in
+  // any written form — spaced, dashed or run together — and come out looking
+  // like every other one.
+  const shown = groups ? groupTiles(tiles(value.replace(/[-\s]/g, '')), groups) : value
 
   return (
     <Field label={label} help={help} entryHelp={entryHelp} error={error}>

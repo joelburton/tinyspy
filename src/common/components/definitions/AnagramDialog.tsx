@@ -111,14 +111,13 @@ export function AnagramDialog({ onClose }: { onClose: () => void }) {
         {error && <p className={styles.error}>{error}</p>}
         {results && !error && (
           <>
-            <p className={styles.count}>
-              {results.length === 0
-                ? 'No words.'
-                : `${results.length} word${results.length === 1 ? '' : 's'}`}
-            </p>
             <ul className={styles.list}>
               {results.map((r) => (
                 <li key={r.word} className={styles.row}>
+                  {/* The difficulty band LEADS the row — a fixed-width gutter, so
+                      the words start on one line down the list and the number
+                      reads as a column rather than as part of the word. */}
+                  <span className={styles.band}>{r.difficulty}</span>
                   <span
                     className={styles.word}
                     onClick={(e) => openDefine(r.word, e.currentTarget)}
@@ -127,11 +126,17 @@ export function AnagramDialog({ onClose }: { onClose: () => void }) {
                   >
                     {r.word.toUpperCase()}
                   </span>
-                  {/* The difficulty band, muted — context, not content. */}
-                  <span className={styles.band}>{r.difficulty}</span>
                 </li>
               ))}
             </ul>
+            {/* The tally sits UNDER the list it counts, right-aligned to the
+                frame's edge: a footnote to the answer rather than a heading
+                over it. */}
+            <p className={styles.count}>
+              {results.length === 0
+                ? 'No words.'
+                : `${results.length} word${results.length === 1 ? '' : 's'}`}
+            </p>
           </>
         )}
       </div>

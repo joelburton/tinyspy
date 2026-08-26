@@ -147,6 +147,15 @@ and the model refuses to emit it before terminal regardless.
 
 ## Deferred
 
+- **`wordle-keyboard.e2e.ts` reads a token that no longer exists.** Line 162 does
+  `token('--ink-on-dark-color')` for the ink a JUDGED key wears; that token was
+  deleted in `8e546cae` (the theme.css chain work), so it resolves to nothing and
+  the assertion compares the page's default near-black against the key's actual
+  white — "yellow key at rest" fails while the keyboard is painted correctly.
+  **The spec is wrong, not the keyboard.** Whoever fixes it should name the token
+  the keycap actually reads rather than re-deriving one. Found by the first e2e
+  run of the CSS sprint's `forms` area (2026-08-26); it predates that area.
+
 - **Stop HIDING the keyboard at terminal; dim it instead.** Reversed 2026-08-17
   after losing a real game (to FAVOR): `<GuessKeyboard>`'s `gameOver` prop
   currently sets `visibility: hidden`, which reserves the space but takes the

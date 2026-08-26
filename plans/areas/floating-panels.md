@@ -1127,3 +1127,40 @@ different. (That half stayed with crosswords: `docs/games/crosswords.md` § 9.)
 It is reachable now. Since 2026-08-25 `<StandardButton>` takes a label, an icon,
 or both, and has a `small` variant — the two things this control needed and could
 not ask for.
+
+## F32 · `titlebar-is-not-a-header` · Two `page-no-scroll` specs look for an element this area renamed away
+
+`e2e/page-no-scroll.e2e.ts` locates a panel by `page.locator('header')` — the
+setup dialog at line 69, the chat panel at line 88 — and a floating panel's
+titlebar is `<div className={styles.titlebar}>`. It stopped being a `<header>`
+in **`a61092ae`** ("the titlebar is one number, and `.header` becomes
+`.titlebar`"), which is this area's commit.
+
+**Both specs have been red since then**, found by the first e2e run of the
+`forms` area (2026-08-26) and traced back rather than fixed there: the element is
+this area's to name, so the assertion is this area's to correct.
+
+What they guard is not cosmetic — a panel dragged off-viewport must not extend
+the document (the page-never-scrolls invariant) — so the specs matter and are
+currently protecting nothing. Whoever picks it up should decide whether the
+titlebar wants to BE a `<header>` again (it is a header, semantically) or
+whether the specs should locate it by its class.
+
+## F33 · `word-dialogs-grow-instead-of-scrolling` · `fitContent` beat the anagram list's scroll box
+
+`e2e/anagram-finder.e2e.ts` asserts *"the LIST must scroll inside the **fixed**
+panel (not grow it)"*. The panel is no longer fixed: **`30377b99`** extended
+`fitContent` to the three word dialogs, on the reasoning that *"the stored height
+was never anyone's choice and the fit simply wins"* — and `fitContent` caps at
+the viewport and lets the body scroll, so the panel grows to its content instead.
+With 11 results it shows all 11 and `.list` never overflows.
+
+**The spec is red for a real reason, and the design question is this area's:**
+should a word dialog grow to fit any result list? At 11 words it reads well. At
+200 it is a panel the height of the viewport, which is what the scroll box was
+for. Decide that first; the assertion follows from the answer.
+
+Found by the first e2e run of the `forms` area (2026-08-26). That area converted
+the dialog's input to `<TextField>`, which is why it was suspected first — but
+`fitContent` predates the conversion and no field change can cause or prevent a
+panel that sizes to its content.

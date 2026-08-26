@@ -594,6 +594,16 @@ allowlist.
 
 ## 11. Deferred
 
+- **Two e2e specs assert the recap's OLD separator.** `boggle.e2e.ts` → "boggle
+  play loop" (line 52) and "boggle custom board" (line 203) both wait for
+  `Letters: CATS AREA TILE NEST` — spaces. `formatBoard` joins rows with DASHES
+  now (`CATS-AREA-TILE-NEST`), so the recap and the setup field agree on one
+  written form and a board reads back the way you would paste it. **The change is
+  right and the specs are simply behind it**; they were left red on purpose
+  (Joel, 2026-08-26: punted to boggle's own pass rather than fixed from the CSS
+  sprint's `forms` area, where the dashes landed). Fixing them is two string
+  literals.
+
 - **"Board constraints" is the one setup summary that doesn't say what's set.**
   Every `<SetupSection>` in the app carries its live value in the summary —
   `Timer: none`, `Dictionary: 3 (Familiar)`, `Turns: 9` — so a player reads the

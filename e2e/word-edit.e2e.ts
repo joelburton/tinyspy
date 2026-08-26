@@ -63,7 +63,7 @@ test('an editor edits + adds a word; the journal records both; a non-editor sees
   const band = page.getByLabel('Band')
   await expect(band).toHaveValue('1')
   await band.fill('5')
-  await page.getByLabel('Curation note').fill('e2e: way too obscure for band 1')
+  await page.getByLabel('Note', { exact: true }).fill('e2e: way too obscure for band 1')
   await page.getByRole('button', { name: 'Save' }).click()
   await expect(band).toHaveCount(0) // dialog closed = saved
 
@@ -84,10 +84,13 @@ test('an editor edits + adds a word; the journal records both; a non-editor sees
   await page.getByRole('button', { name: 'Club menu' }).click()
   await page.getByRole('menuitem', { name: editor.username }).click()
   await page.getByRole('menuitem', { name: 'Add word' }).click()
-  await page.getByLabel('New word').fill(newWord)
+  // `exact`: the ~ lookup dialog is still open behind this one, and getByLabel
+  // matches a SUBSTRING by default — a loose 'Word' would also find its "Word to
+  // look up" box and trip strict mode.
+  await page.getByLabel('Word', { exact: true }).fill(newWord)
   await page.getByLabel('Band').fill('3')
   await page.getByRole('button', { name: 'Save' }).click()
-  await expect(page.getByLabel('New word')).toHaveCount(0)
+  await expect(page.getByLabel('Word', { exact: true })).toHaveCount(0)
   expect(
     sql(`select difficulty || '|' || len from common.words where word = '${newWord}'`),
   ).toBe(`3|${newWord.length}`)
