@@ -24,12 +24,14 @@ This area's own findings therefore start at **F30**, so no number in this file i
 ambiguous and an inherited finding is recognizable on sight (≤ F13 came from
 elsewhere; ≥ F30 was raised here).
 
-**Nineteen findings. SEVEN RESOLVED** — F8, F9 (the button work), F38, F39, F40,
-F42, F43 — **three CLOSED and moved out** (F32 → the FreeBee pair, F37 →
-crosswords, F44 → crosswords + floating-panels) — **ten open:** F13, F30, F31,
-F33, F34, F35, F36, F41, F45, F46. F43–F46 were raised by the button
-work rather than by the audit, which is expected: §21 says a finding is not
-required to have come from the audit, and takes the next free number.
+**Twenty findings. THIRTEEN RESOLVED** — F8, F9, F13, F30, F31, F33, F34, F35,
+F38, F39, F40, F42, F43 — **three CLOSED and moved out** (F32 → the FreeBee
+pair, F37 → crosswords, F44 → crosswords + floating-panels) — **four open:** F36,
+F41, F45, F46, plus **F47**, raised 2026-08-26 by the work itself.
+
+F43–F47 came from the work rather than the audit, which is expected: §21 says a
+finding is not required to have come from the audit and takes the next free
+number.
 
 ## The roster — 20 files
 
@@ -152,7 +154,13 @@ floating-panels/ConfirmationBlockingModal.tsx (F8)
 Their commit partners are eight more `className="button primary"` sites. See
 **F40** — the tone vocabulary already reserved a slot for exactly this button.
 
-## MOVED-IN · F13 · `setup-form-monospace` · Five setup forms set `font-family: monospace`
+## RESOLVED · F13 · `setup-form-monospace` · Five setup forms set `font-family: monospace`
+
+**Resolved with F31 (`letter-input-unnamed`), exactly as predicted.** The
+finding described a symptom: four of the five were one unnamed field type and
+the fifth was a deliberate exception. `<ManualBoardField>` owns the treatment
+now, and boggle's `uppercase={false}` is the exception, stated as a prop.
+
 
 From `floating-panels`. **Superseded in substance by F31**: the finding as
 written ("five forms set monospace") describes a symptom. The five are not five
@@ -309,7 +317,25 @@ call, so the guard is left red rather than a fake consumer invented for it.
 
 ---
 
-## F30 · `timerfield-hand-radios` · The one hand-written radio group left in the app is inside the area
+## RESOLVED · F30 · `timerfield-hand-radios` · The one hand-written radio group left in the app was inside the area
+
+**Resolved 2026-08-26.** `<TimerField>` — now `<SetupTimerSection>` — calls
+`<RadioRow>`, with the MM:SS box as the Down option's label. Its module lost
+`.timerRow`, `.radio` and `.radio input`.
+
+**I filed it with a blocker that did not exist**, and that is the part worth
+keeping. I wrote that `RadioRow`'s `{ value, label }` shape could not express
+the Down option because the box must sit INSIDE the `<label>`. It does sit
+inside — that is exactly where `RadioRow` renders `opt.label`, and `label` is a
+ReactNode. Then I said the leftover `align-items: center` was a styling
+decision; measured, it changes nothing, because each `.radio` is an inline-flex
+that centres its own contents (10.59px from the row top either way). Both
+mistakes were the same one: seeing a declaration in one file and not the other,
+and writing it up as a difference without asking whether it did anything.
+
+Five tests went in with it — nothing had rendered `TimerField`, or any setup
+form, so everything done in this area until then was checked by `tsc` alone.
+
 
 `<RadioRow>` exists to render exactly this markup, and **adoption is otherwise
 complete**: measured across `src/`, there is not one `type="radio"` outside
@@ -333,7 +359,26 @@ question about `RadioRow`'s API, not an oversight. **The two candidate answers:*
 let an option carry trailing content inside its label, or let `RadioRow` take
 `children` rendered after the last option.
 
-## F31 · `letter-input-unnamed` · The same field type, declared four times under four names
+## RESOLVED · F31 · `letter-input-unnamed` · The same field type, declared four times under four names
+
+**Resolved 2026-08-26 by `<ManualBoardField>`**, and it took F13 and F33 with
+it. Four stylesheets were deleted outright — spellingbee's and wordwheel's
+(which is what F32's move to the FreeBee pair was waiting for), wordiply's and
+letterboxed's — and boggle's kept only its constraints grid.
+
+Two things the component settled beyond the CSS:
+
+- **spellingbee and wordwheel take ONE field**, `A-CHIROT`, where they had a
+  1-character box beside a 6-character one. The setup KEYS did not change:
+  `custom_center` and `custom_letters` stay separate because `create_game`
+  validates them, and the form splits on entry.
+- **The field owns the dashes** (Joel, 2026-08-26), which is what let an earlier
+  `echo` callback go. Type `ABQU` into a 4-wide boggle board and the dash lands
+  a tile early, because `QU` read as two tiles where `Qu` would be one — the
+  miscount is visible in the box itself. `boggle`'s written board form gained
+  dashes to match, and `parseCustomBoard` now walks the same `readTiles` split
+  the field groups by, so the reading shown and the reading used cannot diverge.
+
 
 This is F13's real answer. Four games each define a "type the letters you'll see
 on the board" input, and the four declarations are the same four lines:
@@ -379,7 +424,16 @@ F34 (`label-above-control`) owns `.field` / `.field > span`, and F36
 (`stack-repeated`) owns what is left, `.customRow`. Resolve those three and the
 pair's entry becomes a deletion rather than a decision.
 
-## F33 · `placeholder-copied` · A placeholder treatment lifted wholesale, and the file says so
+## RESOLVED · F33 · `placeholder-copied` · A placeholder treatment lifted wholesale, and the file said so
+
+**Resolved with F31.** boggle's rule and letterboxed's copy of it are one rule
+inside `<ManualBoardField>`, which is the exit boggle's own comment named: *"If
+placeholders ever get a global treatment, this rule folds into it."*
+
+One change of substance: the placeholder keeps the field's LETTER-SPACING (Joel,
+2026-08-26), where both copies had dropped it on the theory that a third axis of
+difference helped. It differs on colour and slant alone now.
+
 
 boggle's `.boardInput::placeholder` and letterboxed's `.sidesInput::placeholder`
 are the same three declarations (`--field-placeholder-ink-color`, italic,
@@ -393,7 +447,34 @@ already typed — which is a property of **the field type in F31**, not of eithe
 game. And boggle's comment names the exit: *"If placeholders ever get a global
 treatment, this rule folds into it."* This area is that moment.
 
-## F34 · `label-above-control` · Three copies of "a small bold label above a control", differing by a hair
+## RESOLVED · F34 · `label-above-control` · Copies of "a caption above a control", differing by a hair
+
+**Resolved 2026-08-26 by `<Field>`**, after resolving twice by accident and
+coming back.
+
+It was three copies at 0.3 / 0.35rem. Two died with spellingbee's and
+wordwheel's stylesheets — but the SHAPE did not go away, it turned out to live
+in four more files in three other areas, three of them byte-identical
+(`gap: 0.4rem; border: none; margin: 0; padding: 0; min-width: 0`). So the app's
+most common field had no component: `<ManualBoardField>` is a SPECIALISED text
+field, and its existence is why the absence went unnoticed.
+
+**Then I wrote it a third time.** Building `<TextField>`, `<ReadOnlyField>` and
+`<ColorField>` in one sitting, I declared `.field` and `.label` in all three —
+the same finding one layer along. `field.module.css` holds the shape now.
+
+**And a fourth**: five components still laid out the caption in MARKUP even with
+the CSS shared, and only one could show help or an error at all. Joel: *"that's
+a lot of repetition and chances for this to drift — should have a Field
+component that lays out the label/input/entryHelp/error?"* `<Field>` does, and
+its render prop is the load-bearing part: it generates the id and hands it to
+the control, so no component writes the association itself. That association had
+just been got wrong — a wrapping `<label>` absorbed the help and the error into
+the control's accessible name.
+
+**The lesson the four rounds teach**: a shared stylesheet is not a shared shape,
+and a shared component is not one either until the SHAPE lives somewhere too.
+
 
 | where | gap | label size | weight |
 |---|---|---|---|
@@ -410,7 +491,32 @@ Note both numbers are in the `vocabularies.test.ts` allowlist
 (`SelectField.module.css: ['0.35rem']`, and `['0.9rem']` in the font-size list),
 so the guard is already carrying them as known debt.
 
-## F35 · `two-box-chromes` · `.fieldset` and `<SetupSection>` claim to match and don't
+## RESOLVED · F35 · `two-box-chromes` · `.fieldset` and `<SetupSection>` claimed to match and did not
+
+**Resolved 2026-08-26, and the answer was neither box's values.** Joel's
+ruling: everything is a `<SetupSection>`, and its summary states the value, so a
+player reads the whole form without opening anything.
+
+Nine boxes converted, `.fieldset` and its legend were deleted, and letterboxed
+and wordiply lost a THIRD shape nobody had noticed — two controls in no box at
+all. `<NextPuzzleField>` converted too, its summary carrying the puzzle, which
+is the point of a preview being allowed behind a disclosure.
+
+Two bugs of mine fell out of it and are worth keeping:
+
+- `picked === null` meant BOTH "still looking" and "no puzzle that day", so for
+  the instant between typing a date and the answer arriving the field claimed
+  there was nothing there.
+- **`SetupSection`'s `defaultOpen` was not a default.** `open={defaultOpen ||
+  undefined}` hands React the attribute, so every re-render re-imposed it and a
+  flip back to false SLAMMED THE SECTION SHUT — with the date box you were
+  typing into inside it. It seeds a `useState` and reads `opened || defaultOpen`
+  now.
+
+**boggle's "Board constraints" is the one summary that still doesn't say what is
+set**, filed in `docs/games/boggle.md`: it heads a 3×2 matrix where every other
+summary describes one value.
+
 
 Two boxes do the same job — a bordered, titled group of setup controls — and
 `SetupSection.module.css`'s comment says it is "a bordered box (matching the
@@ -433,19 +539,123 @@ type with a collapsible variant, or genuinely two. If it's one, the padding
 difference is the only thing to reconcile, and it exists because the summary is a
 click target and the legend isn't.
 
+# What shipped — the field vocabulary, 2026-08-26
+
+The button half is above. This is the other half, and it ended somewhere the
+audit did not predict: not "these five findings are fixed" but **a setup form is
+now a list of components with their words as props.**
+
+## Eleven fields, one shape
+
+`<Field>` lays out **caption → `help` → control → `entryHelp` → `error`**, and
+every field renders its control inside it. Five components — `<TextField>`,
+`<NumberField>`, `<ReadOnlyField>`, `<ColorField>`, `<PlayersField>` — did not
+exist when the area opened; the app's most common field type had no component at
+all.
+
+| | |
+|---|---|
+| `<TextField>` | a caption over an input, or a textarea with `multiline` |
+| `<NumberField>` | a number, sized in characters of its largest value |
+| `<SelectField>` · `<DictBandField>` | a dropdown; the band picker is one over the six bands |
+| `<DateField>` | a date, always an override |
+| `<ManualBoardField>` | type the board yourself — five games, one component |
+| `<CheckboxField>` · `<RadioRow>` | one setting, or one of a set |
+| `<ColorField>` · `<PlayersField>` | a GROUP: swatches, and who is playing |
+| `<ReadOnlyField>` | a caption over a value you cannot change |
+
+**`label` is optional on all of them**, because a field inside a section whose
+summary already names it needs no second caption. Where there is no caption the
+control is named by `ariaLabel` — eight sites, every one deliberate, and its
+only live consumer is the test selectors (screen readers are out of scope and a
+field has no tooltip).
+
+**Two text slots, because they are two jobs.** `help` says what the setting IS;
+`entryHelp` says how to GIVE it. Both, when both — losing the instructions the
+moment you make a mistake takes them away exactly when they matter.
+
+**Errors ring the control and say why**, via `aria-invalid`, which is the
+attribute `<TimerField>`'s MM:SS box had always keyed on: state in the DOM
+rather than a class the markup and the styling must keep in step. **A setup form
+does not use it** — its errors collect at the bottom beside the Start they gate
+(Joel), and both the prop's docstring and the CSS say so. Joel, 2026-08-26:
+*"one day we'll try to move errors in setup closer to the field; not in scope
+now."*
+
+## Everything else is a section
+
+`<SetupSection>` is the only box a setup form has. `.fieldset` is deleted, and
+three components that were never fields are named for what they are —
+`<SetupTimerSection>`, `<SetupCoopStyleSection>`, `<SetupNextPuzzleSection>` —
+and live in `components/setup/`. **Their missing text props were the type system
+saying the names were wrong**: `entryHelp` and `error` are about A CONTROL, and
+each of these owns several.
+
+The player picker is an ordinary section now, `defaultOpen`, its summary a row
+of the players' dots. It had spent a day as the one field outside the vocabulary
+— a bordered box of its own — and an `alwaysOpen` prop written for it was
+deleted the same day when `defaultOpen` turned out to be enough.
+
+## 43 hand-written paragraphs became 3
+
+| | then | now |
+|---|---|---|
+| a field's help | 26 hand-written `<p>` | `help` props |
+| a game's intro | 13, inside each form, rendering BELOW the player picker | `GameSetupForm.intro`, drawn first by the modal |
+| a section's help | 4 | 3 — F47 |
+
+The intro move deleted twelve `{mode === 'coop' ? … : …}` branches with it: a
+manifest is already per-mode, so each states its own sentence.
+
+## And the shared stylesheet ended
+
+`setupForm.module.css` is deleted. Every rule went to the component that draws
+it — the radio row to `<RadioRow>`, the help text to `<SetupSection>`, the
+form's column to `<SetupGameModal>` — along with sixteen imports and the guard
+check that policed how they were named. That check went WITH ITS SUBJECT: a
+guard whose subject no longer exists is not a guard.
+
+## Predicted test breaks (§21 — predict them, write them down, LEAVE them)
+
+**No e2e has been run against any of this**, deliberately (Joel, 2026-08-26:
+ask before running any e2e; mid-area red carries no information). The specs
+below are where I would expect breakage, and the diff against this list is what
+says whether something broke that shouldn't have:
+
+| spec | why |
+|---|---|
+| every game's setup e2e | the dialog's structure changed: intro first, players in a section, fields relabelled |
+| `coop-setup.e2e.ts` | `<SetupCoopStyleSection>`'s markup and its section |
+| `puzzle-pickers.e2e.ts` | already updated once for the disclosure; the date box is `<DateField>` now |
+| `auth.e2e.ts` / `claim-handle.e2e.ts` | LoginScreen's two boxes gained captions; the handle field's rules line is `entryHelp`/`error` |
+| `club-*.e2e.ts` | EditClubModal's gametype checkboxes |
+| `anagram-finder.e2e.ts` · `word-edit.e2e.ts` | converted dialogs — the second's names changed, and its UNIT tests were updated |
+| `tap-targets.e2e.ts` | field and control sizes moved |
+
+Unit tests are green throughout: **1991 of 1993**, the two failures being
+`scripts/subset-font.py`'s deliberate missing stamp and F43's dead
+`--line-height-3`.
+
+---
+
 ## F36 · `stack-repeated` · A flex column with a gap is the most-repeated shape in the area
 
-`display: flex; flex-direction: column; gap: 1rem` is declared three times —
-`setupForm.module.css .setup`, `SetupCoopStyleSection.module.css .controls`, and
-crosswords' own `.setup` — and `SetupCoopStyleSection`'s comment justifies its copy by
-pointing at the original (*"the same 1rem rhythm the setup form uses"*). Near
-misses at other gaps: bananagrams `.dictRow` (0.6rem), spellingbee/wordwheel
-`.field` (0.3rem), `SelectField .field` (0.35rem).
+**The measurement inverted the finding.** I filed it as "declared three times".
+Counted app-wide, `display: flex; flex-direction: column; gap:` appears at about
+**80 sites** — which is strong evidence for §7's *"not patterns, though they look
+like it"*. A stacked column with a gap is not a pattern; it is what CSS looks
+like.
 
-`SetupCoopStyleSection.module.css` is a 13-line file whose entire content is one such
-stack. **§7's "not patterns, though they look like it" may well cover this** —
-check it before proposing a `.stack`; the answer may be that the shared `.setup`
-should simply be reachable, not that a new utility is owed.
+**Inside the area it is now down to three, and two of them are deliberate**:
+`<Field>`'s own column (`gap: 0.4rem`), and the setup dialog's two — `.body`
+holding intro / picker / form and `.formBody` holding the fields. Those two came
+from FIXING a bug: each piece of the dialog used to space itself, and when the
+player picker lost its box the hole appeared under it.
+
+**So what is actually left is one file.**
+`SetupCoopStyleSection.module.css` is thirteen lines whose entire content is one
+such stack, justified in its own comment by pointing at the setup form's rhythm.
+Either it uses the shared column or the file goes.
 
 ## CLOSED · F37 · `crosswords-rolls-its-own-field` · A third copy of the puzzle picker, and a control that re-declares the field chrome
 
@@ -666,16 +876,40 @@ close. It sits in the group only by shape. Whoever picks this up should decide
 whether the family is "dismiss" or "small glyph button", because the answer
 changes whether letterboxed is in it.
 
-## F46 · `ui-doc-describes-deleted-classes` · docs/ui.md documents a component and five classes that no longer exist
+## F46 · `ui-doc-describes-deleted-classes` · docs/ui.md documents components and classes that no longer exist
 
-`docs/ui.md` names `ActionButton` 6 times, `` `.button` `` 12, `icon-only` 12,
-`icon-button` 3, `button-small` 3, and `patterns/button.css` once — all of them
-deleted on 2026-08-25. The button taxonomy, the iconography section and the
-semantic-button roster all describe the old arrangement.
+**Parked for the sprint's docs step, and it has grown.** When filed it named
+`ActionButton`, `` `.button` ``, `.icon-button`, `.icon-only`, `.button-small`
+and `patterns/button.css`. Since then the same doc has also been overtaken by
+`DifficultyField` (now `DictBandField`), `.checkRow`, `.fieldset`,
+`setupForm.module.css`, freebee's two-input custom-letters layout, and the
+player picker's bordered box.
 
-**Not a defect to fix now.** The sprint distributes into `docs/` at the END
-(§13), and rewriting a doc that the remaining nine findings will move again is
-work done twice. Filed so the rewrite is a known, sized piece of the sprint's
-docs step rather than a discovery — and so nobody reads that section in the
-meantime and believes it.
+Still not a defect to fix now: the sprint distributes into `docs/` at the END
+(§13), and rewriting a section the remaining findings will move again is work
+done twice. Filed so the rewrite is a known, sized piece of that step — and so
+nobody reads those sections meanwhile and believes them.
 
+## F47 · `section-help-has-no-prop` · A section's help is still hand-written, and three sections cannot forward one
+
+Every FIELD's words are props now (F34): caption, `help`, `entryHelp`, `error`.
+A SECTION's are not.
+
+**Three hand-written paragraphs are left** — boggle's and wordwheel's
+"Dictionaries" and scrabble's AI pair — each describing a PAIR of fields, so
+attaching one to a single field would be a lie. They wear
+`SetupSection.module.css`'s `.help`, which is the right class in the wrong
+shape: a class, where every neighbouring sentence is a prop.
+
+Joel has already shown the other half of the answer: `fce15c72` split
+spellingbee's identical paragraph into two field-level `help` props, which is
+what a section describing two fields usually turns out to want. So the question
+is which of these three are really two sections, and which genuinely head a
+group.
+
+**And it blocks something concrete.** `<SetupTimerSection>`,
+`<SetupCoopStyleSection>` and `<SetupNextPuzzleSection>` each render a
+`<SetupSection>` around other fields and take NO text props at all — correctly,
+since `entryHelp` and `error` belong to a control and each owns several. `help`
+is the one they should take and cannot, because there is nothing to forward it
+to.
