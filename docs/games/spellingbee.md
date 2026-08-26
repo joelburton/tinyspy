@@ -602,7 +602,26 @@ language + helpers live in [docs/pdf.md](../pdf.md).
 
 ## Deferred
 
-Nothing spellingbee-specific outstanding. Two shared items touch this game:
+**The two setup stylesheets are the same file.** `spellingbee/components/SetupForm.module.css`
+and `wordwheel/components/SetupForm.module.css` are 42 lines each, six rules each,
+and `diff` reports **two changed lines, both inside comments** —
+"spellingbee-local" vs "wordwheel-local", and "read like the honeycomb" vs "read
+like the wheel". Every value is identical.
+
+That is the sibling-pair relationship showing up as copied CSS, and most of it
+belongs to a component nobody has written: `.letterInput` / `.centerInput` /
+`.outerInput` are one unnamed field type shared with wordiply and letterboxed,
+and `.field` / `.field > span` are a third copy of "a small bold label above a
+control" that `<SelectField>` already owns. What would be left is `.customRow`, a
+flex row with a gap.
+
+Moved here from the CSS sprint's `forms` area on 2026-08-25 (it was F32,
+`freebee-twins-byte-identical`) — the shared field vocabulary is that area's, but
+deleting these two files is the pair's own work. The related shared findings, if
+you want the evidence: `plans/areas/forms.md` F31 (`letter-input-unnamed`), F34
+(`label-above-control`), F36 (`stack-repeated`).
+
+Two shared items also touch this game:
 
 - The **`Letters.module.css` / `Wheel.module.css` fold** with wordwheel — full entry in [`wordwheel.md → Deferred`](wordwheel.md#deferred) (wordwheel is the fork, and owns the pair's shared-vs-not ledger).
 - The **`WordList` marker vocabulary + filter dropdown** (◐, ⦻, the per-player select) — the work is in `common/`, so it stays in [`deferred.md → Wordlist markers`](../deferred.md#wordlist-markers-spellingbee--boggle).

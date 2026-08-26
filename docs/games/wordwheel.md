@@ -472,6 +472,11 @@ border. See [docs/pdf.md](../pdf.md).
 
 ## Deferred
 
+- **The two `SetupForm.module.css` files are byte-identical apart from two comment
+  words** — full entry in [`spellingbee.md → Deferred`](spellingbee.md#deferred),
+  filed there on 2026-08-25. Listed here because this file owns the pair's
+  shared-vs-not ledger.
+
 - **`Letters.module.css` / `Wheel.module.css` are deliberately NOT folded**
   (2026-07-31, the CSS audit's §2.1). The rest of the fork pair's CSS is shared
   with spellingbee (this doc, [Frontend](#frontend)) — but these two remain

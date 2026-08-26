@@ -24,8 +24,9 @@ This area's own findings therefore start at **F30**, so no number in this file i
 ambiguous and an inherited finding is recognizable on sight (≤ F13 came from
 elsewhere; ≥ F30 was raised here).
 
-**Nineteen findings. FOUR RESOLVED** — F8, F9 (the button work), F38, F40 —
-**fifteen open:** F13, F30–F37, F39, F41–F46. F43–F46 were raised by the button
+**Nineteen findings. FOUR RESOLVED** — F8, F9 (the button work), F38, F40 — **one
+CLOSED and moved out** (F32 → the FreeBee pair) — **fourteen open:** F13, F30,
+F31, F33–F37, F39, F41–F46. F43–F46 were raised by the button
 work rather than by the audit, which is expected: §21 says a finding is not
 required to have come from the audit, and takes the next free number.
 
@@ -359,19 +360,23 @@ component is missing, and every comment in the four files already gestures at
 it — wordiply's says "Matched to spellingbee's `.letterInput`", letterboxed's
 names both siblings.
 
-## F32 · `freebee-twins-byte-identical` · Two stylesheets that differ in two comment words
+## CLOSED · F32 · `freebee-twins-byte-identical` · Two stylesheets that differ in two comment words
 
-`spellingbee/components/SetupForm.module.css` and
-`wordwheel/components/SetupForm.module.css` are 42 lines each, six rules each.
-`diff` reports **two changed lines, both inside comments**: "spellingbee-local"
-vs "wordwheel-local", and "read like the honeycomb" vs "read like the wheel".
-Every value is identical.
+**Moved to the FreeBee pair on 2026-08-25** (Joel) — the full entry is now
+`docs/games/spellingbee.md` → Deferred, with a pointer from
+`docs/games/wordwheel.md` → Deferred, which owns the pair's shared-vs-not ledger.
 
-That is the sibling-pair relationship (wordwheel is a spellingbee fork) showing
-up as copied CSS. F31's component absorbs `.letterInput` / `.centerInput` /
-`.outerInput`; F34 absorbs `.field` + `.field > span`; what would be left is
-`.customRow`, a flex row with a gap — which is F36. **Resolve F31, F34 and F36
-and both files disappear entirely.**
+The measurement, kept here because the shared findings cite it: the two files are
+42 lines and six rules each, and `diff` reports two changed lines, both inside
+comments ("spellingbee-local" / "wordwheel-local", "read like the honeycomb" /
+"read like the wheel"). Every value is identical.
+
+**It closes here because deleting those two files is the pair's own work, not the
+shared vocabulary's.** What is IN them still belongs to this area: F31
+(`letter-input-unnamed`) owns `.letterInput` / `.centerInput` / `.outerInput`,
+F34 (`label-above-control`) owns `.field` / `.field > span`, and F36
+(`stack-repeated`) owns what is left, `.customRow`. Resolve those three and the
+pair's entry becomes a deletion rather than a decision.
 
 ## F33 · `placeholder-copied` · A placeholder treatment lifted wholesale, and the file says so
 
