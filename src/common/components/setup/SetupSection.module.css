@@ -33,7 +33,7 @@
  * the rest matches `.fieldset`'s inner padding. */
 /* @@ */ .sectionContent {
   padding: 0.25rem 1rem 0.85rem;
-  /* TWO FIELDS IN A ROW NEED AIR BETWEEN THEM (Joel, 2026-08-26). Until the
+  /* TWO FIELDS IN A ROW NEED AIR BETWEEN THEM. Until the
      fields became components each brought its own margins, and when they
      stopped, "Required words" sat flush on "Legal (bonus) words" — two
      caption/help/control stacks reading as one run-on block.

@@ -18,7 +18,7 @@ type Props = {
    *  Separate from `children`, which is the text beside the box — and optional,
    *  because no caller passes one today: a checkbox whose inline text already
    *  says what it does needs no second heading. The prop exists so this field
-   *  has the same shape as the rest (Joel, 2026-08-26). */
+   *  has the same shape as the rest. */
   label?: ReactNode
   /** What the setting is about, between the caption and the control. */
   help?: ReactNode
@@ -36,16 +36,12 @@ type Props = {
  *
  * The one field whose caption sits BESIDE the control rather than above it, so
  * it wears `<Field>` for the wrapper and keeps its own inline row inside. With
- * no `label` and no `help` — which is every caller today — that renders exactly
- * as it did before the wrapper existed.
+ * no `label` and no `help` — which is every caller today — the wrapper adds
+ * nothing visible.
  *
- * The last field type in a setup form whose vocabulary was a CSS class instead
- * of a component. `.checkRow` has been shared in `setupForm.module.css` for a
- * while, and the comment there says why: bananagrams and wordwheel had
- * byte-identical private copies, one of which carried a note saying it mirrored
- * the other — *"the standing signal to make the match structural rather than
- * remembered"*. The class was made structural and the MARKUP was not, so both
- * games kept re-authoring the same six lines around it.
+ * A COMPONENT rather than a shared class, because the six lines of markup around
+ * the box are the part that gets re-typed. A class makes two copies of that
+ * markup agree on their paint; only a component stops there being two.
  *
  * A radio group is `<RadioRow>`, a dropdown is `<SelectField>`, a number is
  * `<NumberField>`. This is the box.

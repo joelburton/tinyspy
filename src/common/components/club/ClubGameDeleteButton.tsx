@@ -25,7 +25,7 @@ type Props = {
  *     ignored; there is no Cancel to find.
  *   - **deleting** — "Deleting…" while the caller does its work.
  *
- * **A DESTRUCTIVE button in every state** (Joel, 2026-08-25): the same tone at
+ * **A DESTRUCTIVE button in every state**: the same tone at
  * rest, on hover and while confirming, so the affordance that says "this
  * deletes something" is there BEFORE the click rather than after it. Only the
  * SHAPE changes, from a square trash can to a labelled pill.

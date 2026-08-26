@@ -10,9 +10,9 @@ type Props = {
   /** What the field is about, between the caption and the value. */
   help?: ReactNode
   /** How the value gets set, since you can't set it here — "chosen when you
-   *  claimed your handle". Same slot every other field has (Joel, 2026-08-26:
-   *  it takes the same props), and it reads as the note under a value rather
-   *  than as typing advice, because there is no typing to advise. */
+   *  claimed your handle". The same slot every other field has — it takes the
+   *  same props — and here it reads as a note under a value rather than typing
+   *  advice, because there is no typing to advise. */
   entryHelp?: ReactNode
   /** What's wrong — a value that couldn't be loaded, say. Rings nothing, since
    *  there is no control to ring, but the sentence still belongs to the field. */
@@ -25,7 +25,7 @@ type Props = {
  * A CAPTION OVER A VALUE YOU CANNOT CHANGE — your username on the profile
  * modal, and whatever earns one later.
  *
- * **A field, because a field needn't be editable** (Joel, 2026-08-26). It sits
+ * **A field, because a field needn't be editable**. It sits
  * in a form, in the same column as the fields around it, wearing the same
  * caption — so it belongs to the vocabulary even though nothing about it takes
  * input.

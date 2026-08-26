@@ -40,7 +40,7 @@ type Props = {
  * outside the allowed range LISTED but disabled — a constraint you can see
  * beats one that silently hides its options.
  *
- * **`DictBandField`, not `DifficultyField`** (Joel, 2026-08-26): what a player
+ * **`DictBandField`, not `DifficultyField`**: what a player
  * picks here is which slice of the word list the game draws from, and "band" is
  * the word every summary already uses — `Dictionary: 3 (Familiar)`. "Difficulty"
  * named the CONSEQUENCE, and named it ambiguously, since several of these games

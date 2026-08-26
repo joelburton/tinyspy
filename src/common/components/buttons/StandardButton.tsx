@@ -33,7 +33,7 @@ export type ButtonIcon = ComponentType<{ size?: number | string; 'aria-hidden'?:
  * axis stays reachable at every call site.
  *
  * **`undefined` means "not supplied, use the default"; `null` means "don't"**
- * (Joel, 2026-08-25). `<RestartButton />` and `<RestartButton icon={undefined} />`
+ *. `<RestartButton />` and `<RestartButton icon={undefined} />`
  * are the same button; `<RestartButton icon={null} />` is that button with no
  * glyph. The two only differ where a default exists, which is to say inside a
  * purpose button — on a bare `<StandardButton>` both simply mean "nothing here".
@@ -113,7 +113,7 @@ export type PurposeButtonProps = Omit<StandardButtonProps, 'name'> & { name?: st
  * A STANDARD BUTTON — the app's ordinary button, and the only general button
  * component there is.
  *
- * ONE button, not a family (Joel, 2026-08-25): an info-column action, a form's
+ * ONE button, not a family: an info-column action, a form's
  * Cancel and a dialog's acknowledgment are this control wearing different
  * tones. Every axis is optional — a button with no glyph, no label, or neither
  * is still this one — so there is never a reason to hand-write a `<button>` to

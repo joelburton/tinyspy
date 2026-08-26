@@ -24,7 +24,7 @@ type Props = {
  * dialog says about its own last action, next to the thing you pressed.
  *
  * **It renders nothing when there is nothing to say, so it reflows** — a
- * failure appearing pushes what is under it down (Joel, 2026-08-26). A surface
+ * failure appearing pushes what is under it down. A surface
  * that wants a reserved line holds it open itself; the setup dialog does, so a
  * message can never change the dialog's height mid-edit.
  */

@@ -188,8 +188,7 @@ export function HomePage({ session }: Props) {
               the outline treatment says it isn't the obvious action.
 
               A LINK WEARING THE BUTTON'S OWN CLASSES, which is a
-              stopgap and is written as one. A link is not a button
-              (Joel, 2026-08-25), and this stops being one at F36
+              stopgap and is written as one. A link is not a button, and this stops being one at F36
               (`createclub-modal`), when creating a club becomes a modal
               and this becomes a real `<StandardButton>`. Until then it
               borrows the module directly — there is no global button

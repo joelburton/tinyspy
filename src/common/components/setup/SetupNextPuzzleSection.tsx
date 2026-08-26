@@ -133,8 +133,7 @@ export function SetupNextPuzzleSection({
 
   // Nothing to play — the archive is used up, or the date you typed has no
   // puzzle. Both are messages you have to SEE, so the disclosure opens itself
-  // rather than hiding the one thing that matters behind a summary (Joel,
-  // 2026-08-25, ruling on the exhausted case; the empty date is the same shape).
+  // rather than hiding the one thing that matters behind a summary.
   const nothingToPlay = date ? picked === null : derived === null
 
   // THE SUMMARY IS THE PUZZLE, which is why this field is a disclosure at all:

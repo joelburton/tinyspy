@@ -43,7 +43,7 @@ type Props = {
  * field outside the section vocabulary — a bordered box of its own, because it
  * must be visible when the dialog opens: who is playing changes what the rest
  * of the form can even offer. `defaultOpen` buys that with no exception at all
- * (Joel, 2026-08-26), so the border, the caption and the padding are the ones
+ *, so the border, the caption and the padding are the ones
  * every other setting gets, and this file is left holding only the rows.
  *
  * The section's summary is the players' DOTS rather than a word — its live

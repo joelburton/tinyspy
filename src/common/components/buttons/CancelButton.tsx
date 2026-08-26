@@ -9,7 +9,7 @@ import { StandardButton, type PurposeButtonProps } from './StandardButton'
  * family: always the word "Cancel", always quiet, always the outline, never a
  * glyph. Its commit partner deliberately does NOT get one — that button is Save
  * here, Start there, Create, Send, Reload, so its name is different at every
- * site and there is nothing to package (Joel, 2026-08-25).
+ * site and there is nothing to package.
  *
  * It is a `quiet` `<StandardButton>` and nothing more: the tone vocabulary
  * names this exact control — `quiet` is documented as "a dialog's Cancel", and

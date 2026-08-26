@@ -6,15 +6,14 @@
  * A STANDARD BUTTON is the app's ordinary button: an info-column action
  * (Submit, Hint, End game), a form's commit or cancel, a dialog's
  * acknowledgment. One treatment for all of them, which is the decision this
- * file exists to hold (Joel, 2026-08-25): an info-column action and a form's
+ * file exists to hold: an info-column action and a form's
  * Cancel are one control wearing different tones.
  *
  * NOT standard buttons, and none of them come through here: a game piece
  * (`.tile`), a keycap (`.key`), a segmented choice (patterns/segmented.css), a
  * page-header mark (`<PageHeaderButton>`), the board's round `ShuffleButton`,
- * and the ✕ dismiss glyphs — which are deliberately borderless and may not
- * even share the hover (Joel, 2026-08-25: *"we can handle those when we meet
- * them, but I wouldn't consider them normal buttons"*).
+ * and the ✕ dismiss glyphs — deliberately borderless, and they may not end up
+ * sharing the hover either.
  *
  * WHY THIS IS A MODULE AND NOT A PATTERN. §7's table puts "a pattern with
  * structure or behavior" in *a React component + its module*, and the boundary
@@ -103,7 +102,7 @@
    its neighbor" is already said by the tone, and this says only that the
    control is secondary in SIZE to what it sits beside.
 
-   MOST OF THE SHRINK IS PADDING (Joel, 2026-08-25). The type comes down a
+   MOST OF THE SHRINK IS PADDING. The type comes down a
    little and the glyph follows it automatically via the `em` above; the
    padding comes down by a third. The extra weight is part of the size rather
    than a separate choice — 0.85em in a muted gray goes thin, and 500 is what

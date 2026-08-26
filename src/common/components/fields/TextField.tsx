@@ -9,7 +9,7 @@ type Props = {
    * The caption above the control. A ReactNode, because CreateClubPage's
    * carries a live hint beside the word ("Club name (becomes handle: jb)").
    *
-   * **Omit it for no caption row at all** (Joel, 2026-08-26). Some fields ARE
+   * **Omit it for no caption row at all**. Some fields ARE
    * the surface — a search box in a lookup dialog, where a caption above one
    * input in a one-input panel says nothing the title has not. Those pass
    * `ariaLabel` instead, so the control still has a name.
@@ -36,7 +36,7 @@ type Props = {
    *  and says why underneath. `null` for nothing wrong.
    *
    *  A setup form does NOT use this — its errors collect at the bottom, beside
-   *  the Start they gate (Joel, 2026-08-26). This is for a form where the
+   *  the Start they gate. This is for a form where the
    *  problem belongs to one entry. */
   error?: string | null
   placeholder?: string

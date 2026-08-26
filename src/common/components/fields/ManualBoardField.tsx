@@ -59,7 +59,7 @@ type Props = {
    * alone and get them back the same way. Typing a dash yourself is harmless —
    * it is stripped and re-inserted where it belongs.
    *
-   * This is why the echo went (Joel, 2026-08-26). The dashes show the reading
+   * This is why the echo went. The dashes show the reading
    * directly: type `ABQU` into a 4-wide boggle board and the dash lands a tile
    * early, because `QU` was read as two tiles and `Qu` would have been one.
    */
@@ -90,8 +90,7 @@ type Props = {
  * string was built on: read a board you liked off the info column or the
  * printout, paste it into a friend's dialog, get the same puzzle.
  *
- * The name says "board" and wordiply's starter is not one; kept anyway (Joel,
- * 2026-08-26) because the alternative names for "the letters you'll be playing
+ * The name says "board" and wordiply's starter is not one; kept anyway because the alternative names for "the letters you'll be playing
  * with" are worse, and four of the five genuinely are boards.
  */
 export function ManualBoardField({

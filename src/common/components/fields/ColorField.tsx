@@ -21,12 +21,10 @@ type Props = {
 /**
  * PICK YOUR COLOR — the swatch list with its caption above it.
  *
- * Two callers, `EditProfileModal` and `ClaimHandleScreen`, and they had written
- * the identical wrapper: a `<fieldset className={styles.field}>` with a
- * `<legend className={styles.label}>Player color</legend>` around
- * `<ColorChoiceList>`, in two different areas' files. Byte-identical
- * duplication across areas is the signature this area keeps finding, and it is
- * why the wrapper — not just the list — is the component.
+ * THE WRAPPER IS THE COMPONENT, not just the list. `<ColorChoiceList>` draws the
+ * swatches; the caption, the `<fieldset>` and the field chrome around them are
+ * the same at both call sites (`EditProfileModal`, `ClaimHandleScreen`), and a
+ * shared list with a hand-written wrapper leaves the wrapper to drift.
  *
  * **A `<fieldset>`, not a `<label>`**, because the control is a GROUP of
  * swatches rather than one input, and that is the element's actual job. The

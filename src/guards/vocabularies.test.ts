@@ -271,11 +271,11 @@ const VOCABULARIES: Vocabulary[] = [
       // travelled with the markup; it did not grow.
       'src/common/components/fields/CheckboxField.module.css': ['0.5rem'],
       // The three field components carved out of ClaimHandleScreen,
-      // CreateClubPage and EditProfileModal on 2026-08-26. Same values,
+      // CreateClubPage and EditProfileModal. Same values,
       // now in one place instead of four — the debt travelled and shrank.
       'src/common/components/fields/field.module.css': ['0.4rem'],
       'src/common/components/fields/DateField.module.css': ['0.5rem'],
-      // setupForm.module.css was deleted on 2026-08-26; each of its values
+      // setupForm.module.css is gone; each of its values
       // travelled to the component that draws the rule, and none of them grew.
       'src/common/components/fields/RadioRow.module.css': ['1rem', '0.4rem'],
       'src/common/components/setup/SetupSection.module.css': ['0.75rem'],
@@ -311,7 +311,7 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/components/floating-panels/GameScratchpadCompanion.module.css': ['0.4rem', '0.5rem'],
       'src/common/components/menu/Menu.module.css': ['1.5rem', '0.3rem', '0.1rem', '-1px', '-1rem'],
       'src/common/components/setup/SetupGameModal.module.css': ['0.75rem', '1.5rem', '0.4rem', '1rem', '0.3rem'],
-      // Moved out of SetupGameModal.module.css with <PlayersField> on 2026-08-25.
+      // Lives with <PlayersField>, which draws the rows these size.
       // Same values, new file — the debt travelled, it did not grow.
       'src/common/components/fields/PlayersField.module.css': ['0.5rem', '0.4rem'],
       'src/common/components/text/RichMessage.module.css': ['0.25rem'],

@@ -33,7 +33,7 @@ type Props = {
    *  (via `aria-invalid`, which the control sets) and says why underneath.
    *
    *  A setup form does NOT use this — its errors collect at the bottom, beside
-   *  the Start they gate (Joel, 2026-08-26). This is for a form where the
+   *  the Start they gate. This is for a form where the
    *  problem belongs to one entry. */
   error?: string | null
   /** A GROUP of controls rather than one — a swatch list, a checkbox list. It
@@ -68,7 +68,7 @@ type Props = {
  * different shape rather than a variant: its caption sits BESIDE the box, not
  * above. Bending `Field` to cover that would make it the thing it replaced.
  *
- * Two others nearly stayed out and shouldn't have (Joel, 2026-08-26).
+ * Two others nearly stayed out and shouldn't have.
  * `<ManualBoardField>` has no caption at TODAY'S five call sites — but "no
  * caller passes one" is not "the field can't have one", and building it unable
  * to means the next caller reinvents the row. `<PlayersField>` wanted a

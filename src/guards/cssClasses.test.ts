@@ -400,17 +400,10 @@ describe('a class name resolves — the e2e side', () => {
  *
  * Two rules, and both already held nearly everywhere before they were written
  * down. They are GUARDED rather than merely documented because that is the whole
- * difference between `--radius-md`, which rotted for months, and the colour
- * vocabulary, which did not: ship the check with the name.
+ * difference between a name that rots and one that holds: ship the check with
+ * the name.
  */
 describe('a CSS-module import is named for where it comes from', () => {
-  // The second check here was "the shared setup stylesheet is imported as
-  // `form`". It went on 2026-08-26 WITH ITS SUBJECT: setupForm.module.css was
-  // deleted once every rule in it had moved to the component that draws it —
-  // the radio row to <RadioRow>, the help text to <Field> and <SetupSection>,
-  // the form's column to <SetupGameModal>. A guard whose subject no longer
-  // exists is not a guard; the rule it enforced is now unenforceable because it
-  // is unbreakable.
   /** Same-directory imports only — `./X.module.css`. A basename match is not
    *  enough: every game's `PlayArea.tsx` imports BOTH its own `./PlayArea.module.css`
    *  as `styles` and `common/components/game/PlayArea.module.css` as `shared`,

@@ -333,12 +333,11 @@ describe('button shape and treatment are separate', () => {
   })
 
   /**
-   * The markup half, inverted by the move to a component. There is no longer a
-   * global `.button` class for a call site to compose — `<StandardButton>` emits
-   * the shape class and its treatment together, from a typed `weight` that has
-   * no unmarked default. So the thing worth pinning is that the escape hatch
-   * stayed shut: nothing outside the button's own folder writes those class
-   * names by hand.
+   * The markup half. There is no global `.button` class for a call site to
+   * compose — `<StandardButton>` emits the shape class and its treatment
+   * together, from a typed `weight` with no unmarked default. So the thing
+   * worth pinning is that the escape hatch stays shut: nothing outside the
+   * button's own folder writes those class names by hand.
    *
    * `SubmitWithScore` is the one exception and is named here rather than
    * silently allowed — it wants the standard chrome with a different internal

@@ -16,7 +16,7 @@ import styles from './CloseButton.module.css'
  * this*; `<TrashButton>` is the one that means *destroy this*.
  *
  * **NO BORDER.** A quiet secondary outlines itself, and a dismiss is furniture
- * rather than a control being offered (Joel, 2026-08-25) — so the module clears
+ * rather than a control being offered — so the module clears
  * the hover outline. The hover WASH stays: that is the affordance.
  *
  * **Sized in `em`, so it fits whatever it sits in** — a toast's comes out
