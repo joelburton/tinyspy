@@ -24,9 +24,10 @@ This area's own findings therefore start at **F30**, so no number in this file i
 ambiguous and an inherited finding is recognizable on sight (≤ F13 came from
 elsewhere; ≥ F30 was raised here).
 
-**Nineteen findings. FOUR RESOLVED** — F8, F9 (the button work), F38, F40 — **two
-CLOSED and moved out** (F32 → the FreeBee pair, F37 → crosswords) — **thirteen
-open:** F13, F30, F31, F33–F36, F39, F41–F46. F43–F46 were raised by the button
+**Nineteen findings. FIVE RESOLVED** — F8, F9 (the button work), F38, F40, F43 —
+**three CLOSED and moved out** (F32 → the FreeBee pair, F37 → crosswords, F44 →
+crosswords + floating-panels) — **eleven open:** F13, F30, F31, F33–F36, F39,
+F41, F42, F45, F46. F43–F46 were raised by the button
 work rather than by the audit, which is expected: §21 says a finding is not
 required to have come from the audit, and takes the next free number.
 
@@ -604,56 +605,52 @@ role and label, not by class — so a rename here is cheap and a MARKUP change
   together, two whole game stylesheets (spellingbee's and wordwheel's) and one
   shared one (`CoopStyleField.module.css`) are deleted rather than edited.
 
-## F43 · `line-height-3-orphaned` · A vocabulary step with no consumer left
+## RESOLVED · F43 · `line-height-3-orphaned` · A vocabulary step with no consumer left
 
-**Raised by this area's own work, and the guard is red on it.**
-`src/guards/cssTokens.test.ts` → "every defined token is referenced (no dead
-tokens)" now fails on `--line-height-3` (`base.css:159`).
+**Not a problem** (Joel, 2026-08-25): *"we are not going to delete
+`--line-height-3` or give it an artificial home. who cares that it's currently
+unused, midsprint. not me."*
 
-Measured at the commit before: it had **exactly one consumer in the whole repo**
-— `ClubGameDeleteButton.module.css:27`, hand-tightening the line-height of the
-corner delete button — and `<StandardButton>` absorbed that when the button
-started declaring its own type. So the step was one edit from dead before we
-touched it.
+So the finding is answered, and the answer is that its premise was wrong. A
+declared vocabulary step is not the same kind of thing as a stray token somebody
+forgot to delete — the ramp is meant to be complete, and "nothing happens to read
+step 3 this week" is a fact about this week. That is the same argument the guard
+already accepts for a reserved cell in a colour family.
 
-**Why it was left red rather than fixed.** The standard button takes
-`line-height: normal`, chosen after measuring: `1` shaves 2px off every button in
-the app. And no ramp step fits — `normal` computes to about 1.12 for this face,
-between steps 2 and 3. So the honest choices are to delete the step or to find it
-a real home, and **deleting a step from a declared vocabulary is not this area's
-call**. Inventing a consumer to make the guard green is the thing
-[[verify-guards-by-planting]] exists to forbid.
+The history, for whoever reads the token later: it had exactly ONE consumer in
+the repo — `ClubGameDeleteButton.module.css`, hand-tightening the corner delete
+button's line-height — and `<StandardButton>` absorbed that on 2026-08-25 when
+the button started declaring its own type.
 
-## F44 · `field-tokens-on-buttons` · Two authors independently painted a button out of a form field
+**Left over:** `src/guards/cssTokens.test.ts` → "every defined token is
+referenced (no dead tokens)" is RED on it, and stays red. The guard has a
+mechanism for a reserved COLOUR cell (`palette.ts` reads every one) and none for
+a reserved ramp step. Teaching it that a declared ramp step is reserved rather
+than dead would be a change to a guard's premise, which is not something to do
+off the back of a finding — **open question, not this finding's business.**
 
-`crosswords/components/Controls.module.css .btn` (three uses — the pencil/pen
-toggles and the clear-scope control) and
-`floating-panels/GameScratchpadCompanion.module.css .takeOver`. Neither shares a
-line of code with the other, and they agree on every paint decision:
+## CLOSED · F44 · `field-tokens-on-buttons` · Two authors independently painted a button out of a form field
 
-| | `.btn` | `.takeOver` |
-|---|---|---|
-| border | `1px solid var(--field-edge-color)` | `1px solid var(--field-edge-color)` |
-| background | `var(--field-fill-color)` | `var(--field-fill-color)` |
-| color | `var(--page-text-color)` | `var(--page-text-color)` |
-| radius | `6px` literal | `6px` literal |
-| size | `--iconButton-size` square, `padding: 0` | `padding: 0.15rem 0.5rem` |
+**Moved out on 2026-08-25** (Joel: *"it's about that area"*). The finding named
+two sites in two different areas, so it closes here and travels as two entries:
 
-**Two things are wrong and they are different.** The literal `6px` IS
-`--radius-md` (`base.css:85`) — plain unconverted debt, and the same literal F37
-finds in crosswords' `.search` and `.dropzone`. The tokens are the more
-interesting half: `--field-*` is a form FIELD's edge and fill, and these are
-buttons. The two vocabularies happen to sit close in light mode, which is
-precisely why nobody noticed; they are separate names because they answer
-different questions and are free to diverge.
+| site | went to |
+|---|---|
+| `crosswords/components/Controls.module.css .btn` (3 uses) | `docs/games/crosswords.md` § 9 → Deferred features, beside F37 |
+| `floating-panels/GameScratchpadCompanion.module.css .takeOver` | `plans/areas/floating-panels.md` → **F31**, that area being open |
 
-`.btn` is the sharper case — it sizes itself with `--iconButton-size`, so it is
-literally the standard button's icon-only box wearing a field's paint.
+**The scratchpad half did not go to crosswords**, because it isn't crosswords' —
+it is a shared floating panel in `common/`, and `docs/ui.md` already flags it as
+*"one case genuinely unsettled … could reasonably be `button secondary` in the
+quiet tone"*, deferred to "next time the scratchpad is open".
 
-`GameScratchpadCompanion` was already flagged for this in docs/ui.md as *"one
-case genuinely unsettled … could reasonably be `button secondary` in the quiet
-tone"*, deferred to "next time the scratchpad is open". This is that time for the
-decision, even if the edits land in two other areas.
+The observation that made it one finding is worth keeping in both: two authors
+who shared no code reached the same non-standard answer — `1px solid
+var(--field-edge-color)`, `var(--field-fill-color)`, `var(--page-text-color)`,
+`border-radius: 6px` — which says the shared button was not reachable, not that
+either of them wanted something different. `--field-*` is a form FIELD's edge and
+fill; these are buttons. The two vocabularies sit close in light mode, which is
+exactly why nobody noticed.
 
 ## F45 · `four-dismiss-glyphs` · The ✕ problem `TitlebarCloseButton` solved, surviving at four more sites
 

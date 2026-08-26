@@ -556,10 +556,26 @@ This is the **canonical deferred register** for crosswords — distilled from th
   fixed-height preview line and the date override are the same mechanism; the
   thing above them is not.
 
-  Related, and still open in `plans/areas/forms.md`: F44
-  (`field-tokens-on-buttons`) covers this game's `Controls.module.css .btn`,
-  which paints a button with a form field's tokens and carries the same raw
-  `6px`.
+- **`Controls.module.css .btn` paints a button out of a form field.** The
+  pencil/pen toggles and the clear-scope control (3 uses) are drawn with
+  `background: var(--field-fill-color)`, `border: 1px solid var(--field-edge-color)`
+  and `border-radius: 6px` — a form FIELD's edge and fill on a control that is a
+  button, plus the same unconverted literal as `.search` above (`--radius-md` IS
+  `6px`, `base.css:85`). It also sizes itself with `--iconButton-size`, so it is
+  literally the standard button's icon-only box wearing a field's paint.
+
+  Moved here from the CSS sprint's `forms` area on 2026-08-25 (it was F44,
+  `field-tokens-on-buttons`). What made it a finding: `GameScratchpadCompanion`'s
+  `.takeOver` — written by a different hand, sharing no code — reached the SAME
+  four decisions, which says the shared button was not reachable rather than that
+  either author wanted something else. That half went to
+  `plans/areas/floating-panels.md` → F31.
+
+  The two vocabularies sit close in light mode, which is why this survived: they
+  are separate names because they answer different questions and are free to
+  diverge. Decide whether this wants `<StandardButton small>` or a look of its
+  own — `<StandardButton>` can now express a label, an icon, or both, which it
+  could not when the drift happened.
 - **First-visit help auto-open** — crossplay opened Help on first board
   load (dismissal remembered per browser); the rebus chords (⇧Enter / ⇧Space) are
   otherwise undiscoverable. Not ported — `?` / the menu open Help on demand. Could

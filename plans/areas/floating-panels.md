@@ -25,10 +25,11 @@ change here forward-fixes them in the same commit (§21's compile-break rule) an
 **their stamps do not move**. If one of them turns out to be the only evidence
 for a shared question, it gets surfaced and asked about, not audited.
 
-**Thirty findings.** Twenty-six RESOLVED (F1–F7, F16, F17, F18, F19, F21,
+**Thirty-one findings.** Twenty-six RESOLVED (F1–F7, F16, F17, F18, F19, F21,
 F25, F28), three MOVED to `forms` (F8, F9, F13), two PUNTED (F14 → the first
 game area, F15 → crosswords), **nine OPEN** — F10, F11, F12, F20, F22, F23, F24,
-F26, F27 — plus **F30**, filed 2026-08-25 from a bug report.
+F26, F27 — plus two filed on 2026-08-25 and also open: **F30** from a bug report,
+and **F31** moved IN from `forms`.
 
 **A plan for eight of them is agreed** — see "The plan, agreed 2026-08-24" below.
 F16/F17/F18 turned out to be one question, and the answer is that a panel
@@ -1101,3 +1102,28 @@ is **not sized right for fit-content — it isn't tall enough.**
 
 Not investigated. Filed on report so it isn't lost; the diagnosis belongs to
 whoever picks it up.
+
+## F31 · `takeover-wears-a-field` · The scratchpad's "take over" is a button painted as a form field
+
+Moved in from `forms` on 2026-08-25 (it was that area's F44,
+`field-tokens-on-buttons`), because this panel is this area's.
+
+`GameScratchpadCompanion.module.css .takeOver` draws itself with
+`border: 1px solid var(--field-edge-color)`, `background: var(--field-fill-color)`,
+`color: var(--page-text-color)` and `border-radius: 6px` — a form FIELD's edge
+and fill on a control that is a button, and a literal where `--radius-md` IS
+`6px` (`base.css:85`).
+
+**Already flagged once, and this is the evidence that closes the argument.**
+docs/ui.md calls it *"one case genuinely unsettled … a small inline text button,
+currently a white fill with a gray border, which could reasonably be
+`button secondary` in the quiet tone"*, and defers it to "next time the
+scratchpad is open". What is new: crosswords' `Controls.module.css .btn`, written
+by a different hand and sharing no code with this, reached the SAME four
+decisions. Two independent authors landing on the same non-standard answer says
+the shared button was not reachable — not that either of them wanted something
+different. (That half stayed with crosswords: `docs/games/crosswords.md` § 9.)
+
+It is reachable now. Since 2026-08-25 `<StandardButton>` takes a label, an icon,
+or both, and has a `small` variant — the two things this control needed and could
+not ask for.
