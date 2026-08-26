@@ -27,9 +27,9 @@ type Result = { word: string; difficulty: number }
  *
  * Results are the server's order (difficulty band, then alphabetical) with
  * the band number muted beside each word — and each word is click-to-define
- * via the shared popover, like every other word the app shows. The list
- * scrolls inside the fixed panel (flex column + min-height:0 on the scroll
- * box — the InfoSheet lesson; without it the PANEL would grow instead).
+ * via the shared popover, like every other word the app shows. The list shows
+ * seven rows and scrolls past that (`<SimpleScrollableList>`), so a query
+ * matching 1361 words and one matching 14 open the same size.
  */
 export function AnagramDialog({ onClose }: { onClose: () => void }) {
   const [query, setQuery] = useState('')
@@ -80,8 +80,8 @@ export function AnagramDialog({ onClose }: { onClose: () => void }) {
       <div className={styles.content}>
         <form onSubmit={onSubmit} className={styles.form}>
           <TextField
-            // No caption: this box IS the panel, and the titlebar above it
-            // already says "Anagram finder".
+            // No caption: this box IS the dialog, and the titlebar above it
+            // already says "Anagrams".
             ariaLabel="Letters to anagram"
             // Autofocus so the player can type immediately after the
             // shortcut opens the dialog.
