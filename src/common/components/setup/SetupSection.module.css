@@ -33,6 +33,18 @@
  * the rest matches `.fieldset`'s inner padding. */
 /* @@ */ .sectionContent {
   padding: 0.25rem 1rem 0.85rem;
+  /* TWO FIELDS IN A ROW NEED AIR BETWEEN THEM (Joel, 2026-08-26). Until the
+     fields became components each brought its own margins, and when they
+     stopped, "Required words" sat flush on "Legal (bonus) words" — two
+     caption/help/control stacks reading as one run-on block.
+   
+     0.75rem is the middle step of three, and the three are the point: 0.4rem
+     inside a field (caption to help to control), 0.75rem between fields in a
+     section, 1rem between sections. A field holds together more tightly than a
+     section does, and a section more tightly than the form. */
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
 /*
@@ -51,5 +63,8 @@
 /* @@ */ .help {
   color: var(--page-text-muted-color);
   font-size: 0.9rem;
-  margin: 0.25rem 0 0.75rem;
+  /* No margin: the column above spaces it, the way it spaces everything else in
+     the section. It carried its own until 2026-08-26, back when it was a
+     hand-written <p> with nothing around it to do the job. */
+  margin: 0;
 }

@@ -282,7 +282,7 @@ const VOCABULARIES: Vocabulary[] = [
       // setupForm.module.css was deleted on 2026-08-26; each of its values
       // travelled to the component that draws the rule, and none of them grew.
       'src/common/components/fields/RadioRow.module.css': ['1rem', '0.4rem'],
-      'src/common/components/setup/SetupSection.module.css': ['0.25rem', '0.75rem'],
+      'src/common/components/setup/SetupSection.module.css': ['0.75rem'],
       'src/common/components/setup/SetupTimerSection.module.css': ['0.3rem'],
       'src/common/components/game/CelebrationBlockingModal.module.css': ['0.3rem', '0.4rem', '0.2rem', '1.4rem'],
       'src/common/components/game/DeviceBlockNotice.module.css': ['1rem'],
