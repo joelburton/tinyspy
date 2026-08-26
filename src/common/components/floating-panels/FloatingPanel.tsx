@@ -300,10 +300,9 @@ export function FloatingPanel({
     onClose,
   )
 
-  // Header acts as the drag handle when draggable. react-rnd
-  // identifies it by class name; the .header / .dragHandle
-  // distinction is just so the header can render a cursor: move
-  // affordance when draggable but not when not.
+  // The TITLEBAR acts as the drag handle when draggable. react-rnd identifies it
+  // by class name; the `.titlebar` / `.dragHandle` split is just so the bar can
+  // show a `cursor: move` affordance when draggable and not when not.
 
   return (
     <>
@@ -787,8 +786,8 @@ function PanelRnd({
               heading the leaf renders in the body, and its ✕ would be a third
               way out duplicating a button already on screen. */}
           {title !== undefined && (
-            <header
-              className={`${styles.header} ${draggable ? styles.dragHandle : ''}`}
+            <div
+              className={`${styles.titlebar} ${draggable ? styles.dragHandle : ''}`}
             >
               <span className={styles.title}>{title}</span>
               <button
@@ -799,7 +798,7 @@ function PanelRnd({
               >
                 ×
               </button>
-            </header>
+            </div>
           )}
           {/* When fitting, the content is wrapped so its natural height can be
               measured independent of the body's pinned box (see the fit effect).

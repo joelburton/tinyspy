@@ -9,7 +9,7 @@
  *
  *   <Rnd className=".rnd">                  // positioning only
  *     <div className=".shell">              // 100%/100% flex column wrapper
- *       <header className=".header">...     // flex-shrink: 0
+ *       <div className=".titlebar">...        // flex-shrink: 0
  *       <div className=".body">...          // flex: 1 1 auto, scrolls if needed
  *     </div>
  *   </Rnd>
@@ -51,7 +51,7 @@
   width: 100%;
   height: 100%;
   background: var(--page-surface-color);
-  border: 1px solid var(--page-surface-border-color);
+  border: var(--border-width-line) solid var(--page-surface-border-color);
   border-radius: var(--radius-lg);
   /* Elevation shadow so the panel reads as "above the page"
      against the off-white --page-bg-color. */
@@ -61,15 +61,18 @@
   overflow: hidden;
 }
 
-/* @@ */ .header {
+/* @@ */ .titlebar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
-  /* Compact padding so the header doesn't claim much of the
-     panel's vertical budget. */
-  padding: 0.3rem 0.7rem;
-  border-bottom: 1px solid var(--page-surface-border-color);
+  gap: var(--spacer-4);
+  /* ONE number sizes the strip: `--floatingPanel-titlebar-height`. The vertical
+     padding that used to set this height is gone — `align-items: center` does
+     the centering, so stating the height directly says what was previously only
+     implied by 0.3rem + a 1.4rem ✕. */
+  height: var(--floatingPanel-titlebar-height);
+  padding-inline: 0.7rem;
+  border-bottom: var(--border-width-line) solid var(--page-surface-border-color);
   background: var(--floatingPanel-titlebar-color);
   user-select: none;
   flex-shrink: 0;
@@ -84,7 +87,11 @@
 
 /* @@ */ .title {
   font-weight: 600;
-  font-size: 0.9rem;
+  /* Derived from the bar, not from the type ramp: this is the ONE label whose
+     size is a function of the strip it sits in, and 0.45 is what it already
+     measured (0.9rem of 2rem). A global token for two readers in one file would
+     be clutter (Joel, 2026-08-25). */
+  font-size: calc(var(--floatingPanel-titlebar-height) * 0.45);
   /* Truncate long titles rather than blowing out the header
      width — the close button must stay reachable. */
   overflow: hidden;
@@ -96,13 +103,19 @@
  * it reserves the hover border's 1px so nothing shifts when it lights up. The
  * hover treatment matches the ClubGameCard delete button's idle state. */
 /* @@ */ .closeButton {
-  border: 1px solid transparent;
+  border: var(--border-width-line) solid transparent;
   color: var(--page-text-muted-color);
-  width: 1.4rem;
-  height: 1.4rem;
+  /* Also derived from the bar — 0.7 of it, which is what it already measured
+     (1.4rem of 2rem). The ✕ is the strip's tallest child, so tying the two
+     stops the bar and its button from drifting apart. */
+  width: calc(var(--floatingPanel-titlebar-height) * 0.7);
+  height: calc(var(--floatingPanel-titlebar-height) * 0.7);
   border-radius: var(--radius-md);
-  font-size: 1rem;
-  line-height: 1;
+  /* The GLYPH is the bar's too, not the type ramp's — a ✕ drawn in a titlebar
+     scales with the titlebar and with nothing else. 0.5 is what it already
+     measured (1rem of 2rem). */
+  font-size: calc(var(--floatingPanel-titlebar-height) * 0.5);
+  line-height: var(--line-height-3);
   display: flex;
   align-items: center;
   justify-content: center;

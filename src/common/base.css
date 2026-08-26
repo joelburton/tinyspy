@@ -578,6 +578,16 @@
      together; change the trigger and this is the one number to update. */
 /* @@ */   --page-header-height: 2.5rem;
 
+  /* A FLOATING PANEL's titlebar height, and the one number that sizes the strip.
+     The title's type and the ✕ derive from it rather than carrying tokens of
+     their own — a global `--titlebar-font-size` would be clutter for two
+     readers in one file (Joel, 2026-08-25). The ratios are in
+     FloatingPanel.module.css beside the rules that use them.
+
+     2rem is what the strip already measured: 0.3rem of padding either side of a
+     1.4rem ✕. Nothing repaints; the arithmetic just stops being implicit. */
+/* @@ */   --floatingPanel-titlebar-height: 2rem;
+
   /* Type + the page's own ink, which every element inherits.
      The fallbacks are what shows while the file is in flight, and on the one
      visit where it never arrives. RESTING WIDTH IS 100% for now: this face

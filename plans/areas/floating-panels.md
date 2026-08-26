@@ -25,7 +25,7 @@ change here forward-fixes them in the same commit (§21's compile-break rule) an
 **their stamps do not move**. If one of them turns out to be the only evidence
 for a shared question, it gets surfaced and asked about, not audited.
 
-**Twenty-eight findings.** Fifteen RESOLVED (F1–F7, F16, F17, F18, F19, F21,
+**Twenty-eight findings.** Sixteen RESOLVED (F1–F7, F16, F17, F18, F19, F21,
 F25, F28), three MOVED to `forms` (F8, F9, F13), two PUNTED (F14 → the first
 game area, F15 → crosswords), **nine OPEN** — F10, F11, F12, F20, F22, F23, F24,
 F26, F27.
@@ -493,19 +493,63 @@ It also now records why chat is unaffected by a modal's trap while sitting above
 it — the listener is on the modal's own subtree, so a Tab inside chat never
 reaches it.
 
-## F22 · `shell-literals` · The two shared stylesheets are unconverted
+## RESOLVED · F22 · `shell-literals` · The two shared stylesheets were unconverted
 
-`FloatingPanel.module.css`: header `padding: 0.3rem 0.7rem` and `gap: 0.5rem`;
-`.title` `0.9rem` / `600`; `.closeButton` `1.4rem` square, `font-size: 1rem`,
-`line-height: 1`; `.body` `padding: 0.4rem 0.5rem`; `border: 1px`.
-`modalActions.module.css`: `gap: 0.75rem`, `margin-top: 1.5rem`,
-`min-width: 6rem`.
+Recorded as "some of their literals are on NO allowlist row at all, which
+already fails". **That was wrong** — the suite was green, and every literal was
+on a row. They were EXCUSED, not converted, which is a smaller claim.
 
-Some already sit on `vocabularies.test.ts`'s pending rows (`0.5rem`, `0.9rem`,
-`1rem`, `1`, `1px`, `0.75rem`, `1.5rem`); **the rest are on no row at all**,
-which is worth knowing — the guard shrinks BY VALUE, so an unlisted literal in a
-listed file already fails. These two files convert together with F11's titlebar
-token, since that edit lands in the same rule.
+Sorting the nine by what the sprint's own conversion rule says:
+
+**Six were exact vocabulary matches, so they converted silently** — nobody chose
+the literal over the token:
+
+| | was | now |
+|---|---|---|
+| `.titlebar` | `gap: 0.5rem` | `--spacer-4` |
+| `.titlebar`, `.shell`, `.closeButton` | `1px` borders | `--border-width-line` |
+| `.closeButton` | `line-height: 1` | `--line-height-3` — its FIRST reader, so it came off `DECLARED_AHEAD` |
+| `.modalActions` | `gap: 0.75rem` | `--spacer-3` |
+| `.modalActions` | `margin-top: 1.5rem` | `--spacer-1` |
+
+**Three paddings are PARKED, not debt.** `base.css` says so: *"padding is
+deliberately not on this ramp yet… the guard checks gap and margin only."*
+`.titlebar`'s horizontal, `.body`'s, and the card's stay literals until an area
+decides whether padding earns a ramp.
+
+**The titlebar's own numbers became ONE number** (Joel, 2026-08-25): *"pick a
+height for the titlebar; the title-text and close-button derive from that."*
+`--floatingPanel-titlebar-height: 2rem` in `base.css`, and the two readers take
+ratios rather than tokens of their own — a global `--titlebar-font-size` would be
+clutter for two rules in one file:
+
+    .title       font-size  × 0.45   (0.9rem, what it measured)
+    .closeButton width/height × 0.7  (1.4rem)
+    .closeButton font-size  × 0.5    (1rem) — the ✕ glyph scales with the BAR,
+                                      not with the type ramp
+
+The vertical padding that used to CREATE the height is gone; `align-items:
+center` was already doing the centering, so the height is now stated instead of
+implied.
+
+**Measured, and one pixel did move.** The ✕ (22.39px), both font sizes (16px,
+14.4px), the gap (8px) and the action row (12px / 24px / 96px) are all
+identical. The titlebar itself went **33px → 32px**: it used to be
+`0.3rem × 2 + 1.4rem` PLUS a 1px bottom border, and `height: 2rem` under
+`box-sizing: border-box` includes that border. The token now means *the strip is
+2rem tall, border included*, which is the cleaner definition — but it is a
+change, not a no-op.
+
+**`min-width: 6rem` stays bespoke**, with its reason in the file: there is no
+vocabulary for a control's minimum width, and whether one is owed is the `forms`
+area's question (Joel, 2026-08-25).
+
+**And `.header` became `.titlebar`** — the last place in the area still using the
+old word, while the token, the docs and the CARD/WINDOW split all said titlebar.
+It was also ambiguous against the app's PAGE header (`components/page-header/`,
+`--page-header-height`), which is a different thing entirely. The `<header>` tag
+went with it: calling it a header inside a panel is the same ambiguity in HTML.
+Joel: *"so much more obvious; I wouldn't have needed to ask."*
 
 ## F23 · `viewport-margins-unchosen` · Five numbers about "how close to the edge"
 

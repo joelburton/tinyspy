@@ -20,13 +20,17 @@
 /* @@ */ .modalActions {
   display: flex;
   justify-content: flex-end;
-  gap: 0.75rem;
-  margin-top: 1.5rem;
+  gap: var(--spacer-3);
+  margin-top: var(--spacer-1);
 }
 
 /* A floor width so a lone "Got it" / "Close" button doesn't read as cramped,
  * and a Cancel/Save pair sit at matched widths. Floor only — wider buttons
- * (a long "Back to club") keep their natural width. */
+ * (a long "Back to club") keep their natural width.
+ *
+ * Bespoke on purpose: there is no vocabulary for a control's minimum width, and
+ * whether one is owed is the `forms` area's question, not this one
+ * (Joel, 2026-08-25). */
 /* @@ */ .modalActions button {
   min-width: 6rem;
 }
