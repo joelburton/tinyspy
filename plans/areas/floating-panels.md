@@ -25,7 +25,7 @@ change here forward-fixes them in the same commit (§21's compile-break rule) an
 **their stamps do not move**. If one of them turns out to be the only evidence
 for a shared question, it gets surfaced and asked about, not audited.
 
-**Twenty-eight findings.** Sixteen RESOLVED (F1–F7, F16, F17, F18, F19, F21,
+**Twenty-eight findings.** Twenty RESOLVED (F1–F7, F16, F17, F18, F19, F21,
 F25, F28), three MOVED to `forms` (F8, F9, F13), two PUNTED (F14 → the first
 game area, F15 → crosswords), **nine OPEN** — F10, F11, F12, F20, F22, F23, F24,
 F26, F27.
@@ -254,12 +254,13 @@ here: `SetupGameModal` also passes `resizable={false}` with `fitContent` and a
 `minHeight: 300`, so it has the same floor overruling the same fit. That is
 `club-page`'s surface, so it is described rather than changed.
 
-## F10 · `fault-tier` · The fault rides the shared default, so an open chat covers it
+## RESOLVED · F10 · `fault-tier` · The fault rode the shared default, so an open chat covered it
 
 It is a `modal-fault`, a rung above blocking, precisely so an error stays
-readable mid-question. `BlockingModal` takes `zIndex` and **deliberately does
-not default it**, so no pixel moved: moving one component alone ranks it against
-neighbors that have not moved. This is §20 Open item 3's rung-by-rung migration.
+readable mid-question. **RESOLVED 2026-08-25 when the ladder landed.** Measured in the browser: chat
+paints at 3100 and the fault at 5100, so an open conversation no longer covers an
+error. It could not be fixed alone — moving one component ranks it against
+neighbors that have not moved — which is why it waited for the whole ladder.
 
 ## RESOLVED · F11 · `titlebar-hover-gray` · The titlebar wore the HOVER gray at rest
 
@@ -427,7 +428,7 @@ because a one-panel assertion passes against the bug:
 The registry also answers "which movable thing is on top", which §20's Open 1
 needs for the same reason.
 
-## F17 · `backdrop-without-trap` · Three dimmed forms let Tab walk out behind them
+## RESOLVED · F17 · `backdrop-without-trap` · Three dimmed forms let Tab walk out behind them
 
 `useFocusTrap` now has exactly **one** caller: `BlockingModal`. But `backdrop` is
 passed by five components, and the other three — `SetupGameModal`,
@@ -445,7 +446,7 @@ opinion about focus at all, and giving it one touches every panel including the
 non-modal ones, which must NOT trap (chat, the scratchpad — you would never get
 back to the game).
 
-## F18 · `three-scrims-by-construction` · Three scrim values, assigned by how each panel was built
+## RESOLVED · F18 · `three-scrims-by-construction` · Three scrim values, assigned by how each floating panel was built
 
 §20 predicted this exactly — "currently assigned by how a thing was BUILT rather
 than by what it means" — and the measurement is worse than the prediction:
@@ -466,7 +467,7 @@ The two shared tokens are 40% and 45%, "a difference nobody can see" (§20), and
 **whether they earn their keep at all is §20's Open 2**: immovability may already
 signal the category, in which case the answer is one scrim, not two or three.
 
-## F19 · `backdrop-doc-says-only-setup` · The prop's docstring names one caller and there are five
+## RESOLVED · F19 · `backdrop-doc-says-only-setup` · The prop's docstring named one caller of five
 
 `Props.backdrop` and `.backdrop` in the stylesheet both say *"Only Setup uses
 this today"*. Five components pass it. Worse than stale: the docstring justifies
@@ -786,7 +787,7 @@ being the one panel that can open itself.
 **Two visible changes to expect in the diff**, both intended: blocking and fault
 scrims darken 40% → 45%, and the celebration stops painting over chat.
 
-## Step 3, designed 2026-08-25: a panel is a WINDOW or a CARD
+## Step 3, designed 2026-08-25: a floating panel is a WINDOW or a CARD
 
 Step 3 started as "add a stay-a-card trait for the celebration" and turned into
 a second thing family derives, which is why it grew a section of its own.
@@ -930,11 +931,40 @@ recorded where the key is declared**: a remembered rect carries a SIZE too, so
 after the first drag a game's own `defaultSize` stops applying; those seeds only
 ever fire on a fresh browser.
 
-## F27 · `cluepanel-clue-for-what` · `CodenamesduetAISuggestModal` names neither its game nor its job
+## PARTLY RESOLVED · F27 · `cluepanel-clue-for-what` · `CluePanel` names neither its game nor its job
 
-Joel, 2026-08-24: *"'CodenamesduetAISuggestModal' is a terrible name: CLUE FOR WHAT?"* It is
-codenamesduet's AI clue **suggester**, and it is a `modal-normal`. On §20's
-rename roster (Open item 4) with the rest — no name proposed here.
+Joel, 2026-08-24: *"'CluePanel' is a terrible name: CLUE FOR WHAT?"*
+
+**And the answer I gave was wrong, which is the more important half.** I said it
+was codenamesduet's AI clue suggester. It is not: `CluePanel.tsx` held **two**
+components — the below-board clue strip (the giver's form, the guesser's clue
+display, the Pass button) and, separately, the AI suggestion floating panel. The
+strip is not a floating panel at all.
+
+That error propagated: the rename sweep shipped `CodenamesduetAISuggestModal`
+onto a component that is not AI, not a suggester and not a modal. **Reverted
+2026-08-25** — `CluePanel` is `CluePanel` again, including the `.cluePanel` class
+the F12 pass had renamed to `.suggestion`, which was wrong twice over (it styles
+the strip, and it was one character from the real `.suggestionBody`).
+
+**The AI panel is now named and reclassified**:
+`CodenamesduetAISuggestCompanion`, in its own file with its own module — a
+COMPANION, not a modal (Joel, 2026-08-25): *"on a small screen you want to see
+the board to understand the advice; you should be able to drag it to cover the
+infoCol area and resize it to see the board."* A scrim denies exactly that, and
+the family rollout had briefly given it one. It also is not asking anything — a
+modal-normal is a question worth thinking about; this is information you
+requested and act on the board with.
+
+**STILL OPEN: the strip's own name.** Joel: *"change it back to CluePanel; we'll
+consider a better name when we work on it."* It is codenamesduet's, and it is
+not a floating panel, so neither `Panel` nor `Modal` belongs in whatever it
+becomes.
+
+**The general lesson is filed against its own audit** (§7 → carried forward):
+four other files export more than one component, so "the filename is the
+component" is false in four more places, and that is precisely what let a table
+built by scanning filenames attach the wrong name.
 
 ## Predicted test breaks
 

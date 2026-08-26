@@ -11,14 +11,14 @@
  */
 import { render } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { CodenamesduetAISuggestModal } from './CodenamesduetAISuggestModal'
+import { CluePanel } from './CluePanel'
 
 vi.mock('../db', () => ({ db: { rpc: vi.fn() } }))
 
-describe('codenamesduet CodenamesduetAISuggestModal — input tagging', () => {
+describe('codenamesduet CluePanel — input tagging', () => {
   it('marks both clue inputs (# and word) data-game-input', () => {
     const { container } = render(
-      <CodenamesduetAISuggestModal
+      <CluePanel
         gameId="g1"
         isClueGiver
         isGuessPhase={false}

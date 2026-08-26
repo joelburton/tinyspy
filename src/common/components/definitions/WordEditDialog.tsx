@@ -202,6 +202,10 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
       persistKey="puzpuzpuz:wordEdit:rect"
       title={editing ? `Edit "${request.word.toUpperCase()}"` : 'Add word'}
       onClose={() => setWordEdit(null)}
+      // Height is the content's — the number below is only the first-paint seed.
+      // Safe alongside `persistKey` because this panel cannot be resized, so a
+      // stored height was never anyone's choice for the fit to fight (F23 → C).
+      fitContent
       defaultSize={{ width: 380, height: 500 }}
       resizable={false}
     >

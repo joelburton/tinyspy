@@ -138,9 +138,28 @@ type Props = {
    *  Default true. Modals with natural dimensions (Setup, Hint)
    *  opt out. */
   resizable?: boolean
-  /** Lower bounds on size when resizable. Defaults are sensible
-   *  for chat-sized panels; modals typically tighten them. */
+  /** The narrowest this panel may be. Also floors the viewport clamp, so it is
+   *  the one dimension that still bites a panel nobody can resize — nothing
+   *  fits-to-WIDTH, so a width floor overrules nothing. */
   minWidth?: number
+  /**
+   * **"You can't drag this shut."** Meaningful only alongside `resizable`, and
+   * **0 by default**.
+   *
+   * It used to default to 200 and floor the viewport clamp for EVERY panel,
+   * including the ones whose whole height is their content — which is how a
+   * confirmation ended up 81px taller than what was in it, a band of empty
+   * white under the buttons. A floating panel holding one line of text should
+   * be one line tall (Joel, 2026-08-25); a floor there is the shell overruling
+   * the content for nobody's benefit, since no one can shrink it anyway.
+   *
+   * **Where it IS legitimate, the number comes from the BODY.** A `min-height`
+   * on chat's message list in CSS cannot stop the drag — the list keeps its
+   * height and the body scrolls, so you get a stubby panel with a scrollbar
+   * instead of a floor. react-rnd only stops for a number. So the mechanism is
+   * panel-level and the justification is not: "the titlebar, the composer and
+   * four messages", not "300 felt about right".
+   */
   minHeight?: number
   /** localStorage key under which to persist position + size. The FAMILY says
    *  whether a panel opens where you left it; this says under what key, because
@@ -158,8 +177,9 @@ type Props = {
    *  becomes just the first-paint seed. For content-sized modals
    *  whose height varies with what's inside — the Setup dialog, where
    *  a game with many options must open tall enough to show them all.
-   *  Incompatible with `persistKey` (a saved height would fight the
-   *  fit), so only the ephemeral, non-persisted panels honor it. */
+   *  Safe alongside `persistKey` when the panel is NOT resizable: a stored
+   *  height only fights the fit if the user chose it, and nobody can choose a
+   *  height they cannot drag. */
   fitContent?: boolean
   /**
    * Stacking tier, as a token string.
@@ -267,7 +287,7 @@ export function FloatingPanel({
   defaultSize = { width: 480, height: 360 },
   resizable = true,
   minWidth = 240,
-  minHeight = 200,
+  minHeight = 0,
   persistKey,
   zIndex,
   fitContent = false,
@@ -388,8 +408,13 @@ function FloatingPanelBody({
   children: ReactNode
 }) {
   if (persistKey) {
-    // A persisted panel restores a saved height, which would fight the
-    // content-fit — so `fitContent` doesn't apply here (see the prop docstring).
+    // `fitContent` IS forwarded here, and the old comment said it could not be:
+    // "a persisted panel restores a saved height, which would fight the fit".
+    // That is true only when the user CHOSE the height — i.e. only when the
+    // panel is resizable. Measured 2026-08-25: every panel that persists AND
+    // resizes is a companion, and none of them asks to fit; the three that
+    // persist and DON'T resize are the word dialogs, where the stored height was
+    // never anyone's choice and the fit simply wins.
     return (
       <PersistedPanel
         panelId={panelId}
@@ -406,6 +431,7 @@ function FloatingPanelBody({
         minHeight={minHeight}
         persistKey={persistKey}
         zIndex={zIndex}
+        fitContent={fitContent}
         reserveKeyboard={reserveKeyboard}
       >
         {children}
@@ -442,6 +468,7 @@ function PersistedPanel({
   trapsFocus,
   shape,
   phoneSheet,
+  fitContent,
   title,
   onClose,
   defaultPosition,
@@ -469,6 +496,7 @@ function PersistedPanel({
   minHeight: number
   persistKey: string
   zIndex: string
+  fitContent: boolean
   reserveKeyboard: boolean
   children: ReactNode
 }) {
@@ -491,6 +519,7 @@ function PersistedPanel({
       setRect={setRect}
       draggable={draggable}
       resizable={resizable}
+      fitContent={fitContent}
       minWidth={minWidth}
       minHeight={minHeight}
       zIndex={zIndex}

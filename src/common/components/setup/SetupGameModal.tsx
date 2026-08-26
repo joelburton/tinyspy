@@ -225,7 +225,6 @@ export function SetupGameModal({
       fitContent
       defaultSize={{ width: 480, height: 520 }}
       minWidth={320}
-      minHeight={300}
     >
       {showPicker && (
         <fieldset className={styles.players}>

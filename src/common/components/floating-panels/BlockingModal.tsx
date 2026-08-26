@@ -90,13 +90,9 @@ export function BlockingModal({
       // The height is a first-paint seed only; `fitContent` grows past it.
       defaultSize={{ width: 420, height: 240 }}
       minWidth={320}
-      // NO HEIGHT FLOOR. A minimum exists so a RESIZABLE panel can't be dragged
-      // shut; a card can't be resized, so a floor is only the shell overruling
-      // the content — and it did: the shell's default 200 held this box 81px
-      // taller than what was in it, which is a band of empty white under the
-      // buttons. The content knows the height here, which is the whole reason
-      // `fitContent` is on.
-      minHeight={0}
+      // No height floor — and none is passed, because the shell no longer has
+      // one to opt out of. This is the panel that proved the point: the old
+      // default of 200 held it 81px taller than its own content.
     >
       <div ref={bodyRef}>
         {title !== undefined && <h2 className={styles.title}>{title}</h2>}

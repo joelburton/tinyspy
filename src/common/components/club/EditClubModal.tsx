@@ -96,9 +96,11 @@ export function EditClubModal({
       title={`Edit ${clubName}`}
       onClose={onCancel}
       resizable={false}
+      // Height is the content's: the number below is only the first-paint
+      // seed, and `fitContent` grows past it. Before this, the height was a
+      // fixed pixel count nobody derived (F23 → C).
+      fitContent
       defaultSize={{ width: 440, height: 520 }}
-      minWidth={320}
-      minHeight={300}
     >
       <fieldset className={styles.games}>
         <legend className={styles.gamesLegend}>Games played in this club</legend>

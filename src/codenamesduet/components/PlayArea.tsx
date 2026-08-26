@@ -32,7 +32,8 @@ import { useClues } from '../hooks/useClues'
 import { derivePhase, type GameStatus, type Seat } from '../lib/phase'
 import { turnSnapshot } from '../lib/history'
 import type { CodenamesduetSetup } from '../lib/setup'
-import { ClueSuggestionModal, type SuggestState } from './CodenamesduetAISuggestModal'
+import { CodenamesduetAISuggestCompanion } from './CodenamesduetAISuggestCompanion'
+import { type SuggestState } from './CluePanel'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
 import { StateLine } from './StateLine'
@@ -44,7 +45,7 @@ import '../theme.css'  // codenamesduet-specific color tokens (lazy-loaded with 
  * codenamesduet's play surface — two-column viewport-bound composition:
  *
  *   - **Board column** (left, flex) — the 5×5 Board, with the fixed-height
- *     `belowBoard` slot under it (the CodenamesduetAISuggestModal during play, a local
+ *     `belowBoard` slot under it (the CluePanel during play, a local
  *     `<GenericFeedbackPill>` for an own-action error or the terminal verdict).
  *   - **Info column** (fixed-width):
  *       - Status: "{greenFound}/15 agents · {turn-1}/{turns} turns spent"
@@ -61,7 +62,7 @@ import '../theme.css'  // codenamesduet-specific color tokens (lazy-loaded with 
  * string, same moment — would only cost a dismiss. So it's two in-page
  * surfaces plus one celebration:
  *
- *   1. The below-board slot swaps the CodenamesduetAISuggestModal for a permanent
+ *   1. The below-board slot swaps the CluePanel for a permanent
  *      outcome-colored pill carrying `over.verdict`, and the info-column
  *      action row swaps the End button for a bold `over.message` line + a
  *      compact Back-to-club button (wired to `ctx.goToClub`). Both persist
@@ -143,7 +144,7 @@ function buildOver(playState: string): TerminalCopy {
  *
  * The one exception is **sudden death** — a standing danger warning, not a peer
  * action — which stays here in `error` tone (and is also shown, persistently, in
- * full, below the board via the CodenamesduetAISuggestModal notice, which has room for it).
+ * full, below the board via the CluePanel notice, which has room for it).
  *
  * Self-contained so it can be called unconditionally before PlayArea's loading
  * early-return.
@@ -352,7 +353,7 @@ export function PlayArea({
   // (Click-anywhere-to-exit is intrinsic to useHistoryViewer now — no per-game wiring.)
 
   // The AI clue-suggestion dialog. State lives HERE (not in the deep ClueForm)
-  // so the <ClueSuggestionModal> renders at the `.layout` level — a panel
+  // so the <CodenamesduetAISuggestCompanion> renders at the `.layout` level — a panel
   // rendered deep in the flex-column board lands off-screen (react-rnd positions
   // from the static flow position). ClueForm drives it via onSuggestionChange.
   const [clueSuggestion, setClueSuggestion] = useState<SuggestState | null>(null)
@@ -683,7 +684,7 @@ export function PlayArea({
           (a flex row), like the other dialogs — so react-rnd places it on-screen.
           (Deep inside the flex-column board column it lands below the viewport.) */}
       {clueSuggestion && (
-        <ClueSuggestionModal
+        <CodenamesduetAISuggestCompanion
           state={clueSuggestion}
           onClose={() => setClueSuggestion(null)}
         />

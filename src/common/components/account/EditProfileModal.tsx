@@ -67,9 +67,11 @@ export function EditProfileModal({ session, onSaved, onCancel }: Props) {
       title="Edit profile"
       onClose={onCancel}
       resizable={false}
+      // Height is the content's: the number below is only the first-paint
+      // seed, and `fitContent` grows past it. Before this, the height was a
+      // fixed pixel count nobody derived (F23 → C).
+      fitContent
       defaultSize={{ width: 380, height: 460 }}
-      minWidth={320}
-      minHeight={340}
     >
       <div className={styles.content}>
         <div className={styles.field}>

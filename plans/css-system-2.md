@@ -699,6 +699,7 @@ plus justified's per-game half.)
 | `crosswords` | **The header's marks are not evenly separated, and the CSS says they are** (`plans/areas/homepage.md` → F43 `unequal-mark-separation`). One `gap: 0.375rem` for the whole slot, then each mark adds its own padding INSIDE its box — the menu trigger `0.25rem`, the chat bubble `PageHeaderButton`'s `0.3rem` plus `.bubble`'s own, the status slot none — so every visible separation differs and none of them is the declared number. Owned here because this is the page where EVERY mark can be on the strip at once; home has one and the club page three. `--spacer` cannot claim `0.375rem` until this settles what the separation should be |
 | `scrabble` | **The AI suggest-a-move box is the fifth SelectionList site and did not fit.** It is five frameless text lines pinned to `5 × 1.35rem`, whose own comment says a growable height would shift the setup disclosure and the Moves log below it — so the frame, the surface and the row padding would all arrive as a visible redesign, roughly doubling the box. Three options, written up in `plans/selection-lists.md`: leave it bespoke (as crosswords' clue lists are), give `<SelectionList>` a frameless compact form, or redesign the box and redo the height arithmetic. Closed out of the `homepage` area 2026-08-24 |
 | `scrabble` | **`ScrabbleBlankPickerBlockingModal`'s overlay at `z-index: 50`** — a full-screen `position: fixed` modal parked BELOW the panel tier, so an open chat or menu paints over it. Long-recorded as the ladder's known anomaly; it wants a look, not a reflex bump |
+| **an audit of its own** | **Four files export MORE THAN ONE component**, so "the filename is the component" — the rule that files and components share a name — is false in four places: `common/components/game/lists/TurnLog.tsx` (`TurnLog`, `TurnLogBar`, `TurnLogNumber`), `common/components/game/lists/ActorMention.tsx` (`ActorTag`, `ActorDot`), `common/components/game/PlayAreaMountLog.tsx` (`PlayAreaSlotLog`, `PlayAreaReadyLog`), and `setgame/components/Card.tsx` (`Card`, `CardDefs`). **This is not cosmetic — it is how a rename went wrong.** `CluePanel.tsx` held the below-board clue strip AND the AI suggestion panel; a table built by scanning files for `<FloatingPanel>` and labelling rows by basename attached the wrong name, F27 inherited it, and the rename sweep acted on it — putting `CodenamesduetAISuggestModal` on a component that is not AI, not a suggester and not a modal. Found 2026-08-25 while answering "aren't the filenames the same as the component names?"; that file is split, the other four are not. Three of them are `shared-game-chrome`'s, and `TurnLog`'s three look like a real family rather than an accident, which is why this wants an audit rather than a sweep |
 | **each surface** | **Ten consumer modules style `<Dot>` as a bare `.dot`.** The qualified form already exists in half the app (`greetingDot`, `playerDot`, `rosterDot`, `actorDot`, `itemDot`, `bonusDot`) |
 | **shuffle games** | `<ShuffleButton>` should never take focus at all — game stuff doesn't. Its `:focus { outline: none }` says a click leaves no ring, then `:focus-visible` puts one back for a keyboard that has ⌥Z. The fix is removing the tab stop, not restyling the ring |
 | **the area that takes `base.css`** | **Six chrome shadow levels nobody chose.** They were preserved from what the component modules already held and given names, which is what made them look like a system. Measured 2026-08-22: five of the six have exactly ONE reader (`popover` alone has four: Menu ×2, FilterSelect, DefinitionPopover), so §7's own rule — a value with one reader belongs in its class as a number — disqualifies most of them; three share a geometry (`0 8px 24px`) and differ only in opacity (18 / 12 / 8%); and they are not a ladder — `toast` is the TOPMOST z-layer and blurs 16 where `dialog` blurs 48. The names also lead with the KIND where §5's grammar is bucket-first, and `notice` invents a category for a single component called `DeviceBlockNotice` (global, it would be `--deviceBlockNotice-shadow`). Decide the count and the names there |
@@ -1458,8 +1459,32 @@ the world stopped.
 resizable; a form is as tall as its fields (setup already does this with
 `fitContent`). *The user knows* → resizable; how much scratchpad, how much chat
 history, how many anagram results is a question only the person can answer.
-Predicts the current code exactly: chat, the scratchpad and the crossword notes
-are the only three resizable things in the app.
+
+**Two of the families answer it by RULE, and two answer it case by case** (Joel,
+2026-08-25). This replaces the old claim here that "chat, the scratchpad and the
+crossword notes are the only three resizable things in the app", which was
+measured wrong — it is six, and it is the whole companion family:
+
+| family | resizable | remembers x/y + size |
+|---|---|---|
+| `companion` | **always — a rule.** Every one of them genuinely benefits from being sized in both axes | **yes, both**, and in ONE localStorage entry: `useDraggablePanel` writes the whole rect under a single key. Where you put it and how big you made it are both your answers |
+| `modal-blocking` · `modal-fault` | **never — a rule.** Locked, and always centered | **no.** Nothing to remember: it cannot move and it cannot be sized |
+| `dialog` | **case by case.** All three of ours are `fitContent`, so there is nothing to resize — but that is a fact about these three, NOT a property of the family. A dialog that wanted resizing would be fine | x/y yes (it is what "opens where you left it" means); size only if it ever resizes |
+| `modal-normal` | **case by case**, for the same reason: all of ours fit their content today, so resizing would be pointless. Not a hard rule | no — a modal is a fresh task each time and opens centered |
+
+The distinction matters because it says which of these is a bug when it changes.
+A resizable blocking modal is broken; a resizable dialog is just a dialog nobody
+has needed to resize yet.
+
+**The one floating panel that was on the wrong side of this is fixed**:
+codenamesduet's AI clue suggestion was filed `modal-normal` — the only resizable
+one, and the only floating panel in the app whose size was neither chosen nor
+derived. It is a
+COMPANION (2026-08-25): you need the board to judge the advice, so a scrim is
+exactly wrong, and the giver drags it over the info column and sizes it to see
+the board. Being short-lived does not make something a modal — Help is a
+companion too, and what makes one is that the page beneath stays LIVE and you
+place the thing yourself.
 
 ### Measured: where the code disagrees with the model
 

@@ -6,14 +6,13 @@ import { useRef, useState, type KeyboardEvent, type RefObject, type SubmitEvent 
 import { callEdgeFn } from '../../common/lib/supabase/callEdgeFn'
 import { cls } from '../../common/lib/util/cls'
 import { ActorDot, ActorTag } from '../../common/components/game/lists/ActorMention'
-import { FloatingPanel } from '../../common/components/floating-panels/FloatingPanel'
 import { SubmitButton } from '../../common/components/buttons/SubmitButton'
 import { AIButton } from '../../common/components/buttons/AIButton'
 import { EndTurnButton } from '../../common/components/buttons/EndTurnButton'
 import { usePhone } from '../../common/hooks/ui/usePhone'
 import { db } from '../db'
 import type { Player } from '../hooks/useGame'
-import styles from './CodenamesduetAISuggestModal.module.css'
+import styles from './CluePanel.module.css'
 
 type Clue = { word: string; count: number }
 
@@ -38,7 +37,7 @@ type CluePanelProps = {
    *  look (lib/game/serverError.ts) — a string sink would flatten it to a pill. */
   onError: (msg: GenericFeedbackMsg) => void
   /** Open / update / close the AI clue-suggestion dialog. PlayArea owns the
-   *  state and renders the <ClueSuggestionModal> HIGH in the tree: the board
+   *  state and renders the <CodenamesduetAISuggestCompanion> HIGH in the tree: the board
    *  column is a flex column, and <FloatingPanel> (react-rnd) positions from its
    *  static flow position, so a panel rendered deep in the column lands
    *  off-screen. Rendered up at the `.layout` level it sits where its
@@ -66,7 +65,7 @@ type CluePanelProps = {
  * than rendered inline; the AI suggestion's reasoning opens in its own floating
  * panel (see ClueForm) — neither grows the row.
  */
-export function CodenamesduetAISuggestModal({
+export function CluePanel({
   gameId,
   isClueGiver,
   isGuessPhase,
@@ -78,7 +77,7 @@ export function CodenamesduetAISuggestModal({
 }: CluePanelProps) {
   if (inSuddenDeath) {
     return (
-      <div className={cls(styles.suggestion, styles.suddenDeath)}>
+      <div className={cls(styles.cluePanel, styles.suddenDeath)}>
         <strong>Sudden death.</strong> No more clues — any non-green reveal loses.
       </div>
     )
@@ -86,7 +85,7 @@ export function CodenamesduetAISuggestModal({
 
   if (isGuessPhase && currentClue) {
     return (
-      <div className={styles.suggestion}>
+      <div className={styles.cluePanel}>
         {/* No "Your clue:" label — the bold WORD · N beside the Pass button is
             self-evidently the clue, and the row is tight on a phone. */}
         <ClueDisplay clue={currentClue} />
@@ -106,7 +105,7 @@ export function CodenamesduetAISuggestModal({
     )
   }
   return (
-    <div className={styles.suggestion}>
+    <div className={styles.cluePanel}>
       <PeerWaiting peer={peer} action="give a clue" />
     </div>
   )
@@ -346,54 +345,6 @@ function ClueForm({
         />
       </div>
     </form>
-  )
-}
-
-/**
- * The AI clue suggestion, in a draggable/resizable <FloatingPanel> the clue-giver
- * dismisses when done. It's the requester's OWN helper output (not a peer event)
- * and the reasoning is often long — so a panel, not the header pill. Opens
- * straight away while Claude thinks (`loading`), so the few-second wait is
- * obvious; then shows the picked clue + reasoning (`ready`, also filled into the
- * form inputs) or the API error message (`error`). Plain <FloatingPanel>, like
- * connections' HintModal — but PlayArea renders it HIGH in the tree (at the
- * `.layout` flex-row level) so react-rnd positions it
- * on-screen; rendered deep in the flex-column board it lands below the viewport.
- */
-export function ClueSuggestionModal({
-  state,
-  onClose,
-}: {
-  state: SuggestState
-  onClose: () => void
-}) {
-  console.log('[ClueHint] ClueSuggestionModal rendering — status:', state.status)
-  return (
-    <FloatingPanel
-      family="modal-normal"
-      title="Clue suggestion"
-      onClose={onClose}
-      defaultSize={{ width: 360, height: 240 }}
-      minWidth={240}
-      minHeight={140}
-    >
-      <div className={styles.suggestionBody}>
-        {state.status === 'loading' && (
-          <p className={styles.suggestionLoading}>Asking Claude for a clue…</p>
-        )}
-        {state.status === 'error' && (
-          <p className={styles.suggestionError}>{state.message}</p>
-        )}
-        {state.status === 'ready' && (
-          <>
-            <div className={styles.suggestionClue}>
-              <strong>{state.word}</strong> · {state.count}
-            </div>
-            <p className={styles.suggestionReasoning}>{state.reasoning}</p>
-          </>
-        )}
-      </div>
-    </FloatingPanel>
   )
 }
 

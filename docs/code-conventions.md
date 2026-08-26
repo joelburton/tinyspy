@@ -8,7 +8,7 @@ For terminology and the architectural backdrop see [`naming.md`](naming.md). For
 
 The explanation bar in this codebase is higher than the average TypeScript project — see [`../CLAUDE.md → Educational priority`](../CLAUDE.md#educational-priority--clarity-over-brevity) for the prior. What that looks like in practice:
 
-- **Docstrings on every exported function, component, hook, and RPC.** Explain what it does, why it exists, and any non-obvious constraints. The codenamesduet RPCs in [`supabase/sql/codenamesduet.sql`](../supabase/sql/codenamesduet.sql) and components like [`src/codenamesduet/components/CodenamesduetAISuggestModal.tsx`](../src/codenamesduet/components/CodenamesduetAISuggestModal.tsx) are the model — generous prose, examples, references to related pieces.
+- **Docstrings on every exported function, component, hook, and RPC.** Explain what it does, why it exists, and any non-obvious constraints. The codenamesduet RPCs in [`supabase/sql/codenamesduet.sql`](../supabase/sql/codenamesduet.sql) and components like [`src/codenamesduet/components/CluePanel.tsx`](../src/codenamesduet/components/CluePanel.tsx) are the model — generous prose, examples, references to related pieces.
 - **Code comments where the WHY isn't obvious.** Design decisions, subtle invariants, non-obvious trade-offs ("we refetch on SUBSCRIBED because broadcasts can be missed during reconnect"), workarounds for specific platform behavior.
 - **Names describe role, not implementation.** `isClueGiver` not `playerA`. See [`naming.md`](naming.md) for the terminology lexicon.
 - **Prefer one clear path over a clever one.** A few extra lines of straightforward code beat a tight expression that requires the reader to pause.

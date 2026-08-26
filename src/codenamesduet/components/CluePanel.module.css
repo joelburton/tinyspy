@@ -1,6 +1,6 @@
 /* cs-unmet */
 
-/* The CodenamesduetAISuggestModal renders inside PlayArea's below-board `.belowBoard` slot, which
+/* The CluePanel renders inside PlayArea's below-board `.belowBoard` slot, which
  * reserves a single control-row's height + vertical-centers its child (so
  * swapping clue states doesn't shift the board). The slot is board-wide, so each
  * state lays its pieces out on ONE horizontal line rather than stacking them.
@@ -13,7 +13,7 @@
  * (docs/ui.md → "Layout stability"). The clue-giver's guess-phase line ("Your
  * clue: WORD · N  Waiting for X to guess…") is the longest, and stays on one row
  * on a desktop-width board. */
-/* @@ */ .suggestion {
+/* @@ */ .cluePanel {
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -24,7 +24,7 @@
 
 /* Sudden death is the one state that still carries its own visual — a tinted
  * background + accent border — to drive the "things just got real" beat. */
-/* @@ */ .suggestion.suddenDeath {
+/* @@ */ .cluePanel.suddenDeath {
   border: 1px solid var(--codenamesduet-assassin);
   background: var(--codenamesduet-assassin-soft);
   border-radius: var(--radius-md);
@@ -99,39 +99,10 @@
   white-space: nowrap;
 }
 
-/* The AI suggestion panel body (inside a <FloatingPanel>): the picked clue,
+/* MOVED to CodenamesduetAISuggestCompanion.module.css: the picked clue,
  * then the reasoning. The panel scrolls (FloatingPanel's .body) when the
  * reasoning is long. */
-/* @@ */ .suggestionBody {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  padding: 0.3rem;
-}
-
-/* @@ */ .suggestionClue {
-  font-size: 1.3rem;
-}
-
-/* @@ */ .suggestionReasoning {
-  margin: 0;
-  line-height: 1.5;
-  color: var(--page-text-color);
-  /* The edge function appends an "Agents: X, Y" paragraph to the reasoning after
-   * a blank line; pre-line preserves that newline so it renders as its own line
-   * (default `normal` would collapse it into a space). */
-  white-space: pre-line;
-}
 
 /* "Asking Claude…" while the edge function runs. */
-/* @@ */ .suggestionLoading {
-  margin: 0;
-  color: var(--page-text-muted-color);
-}
 
 /* The API error message, shown in the dialog (not the local flash bar). */
-/* @@ */ .suggestionError {
-  margin: 0;
-  line-height: 1.5;
-  color: var(--chrome-fault-color);
-}

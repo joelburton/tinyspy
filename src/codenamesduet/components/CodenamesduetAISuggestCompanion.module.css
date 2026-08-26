@@ -1,0 +1,39 @@
+/* cs-audited */
+
+/* The AI clue suggestion's body — the picked clue, its reasoning, the waiting
+   line and the error. Lifted out of CluePanel.module.css on 2026-08-25, with
+   the component: the two had been sharing a file because the SUGGESTER and the
+   below-board CLUE STRIP were both in CluePanel.tsx, which is what let a rename
+   put an AI name on the clue form. */
+
+/* @@ */ .suggestionBody {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.3rem;
+}
+
+/* @@ */ .suggestionLoading {
+  margin: 0;
+  color: var(--page-text-muted-color);
+}
+
+/* @@ */ .suggestionError {
+  margin: 0;
+  line-height: 1.5;
+  color: var(--chrome-fault-color);
+}
+
+/* @@ */ .suggestionClue {
+  font-size: 1.3rem;
+}
+
+/* @@ */ .suggestionReasoning {
+  margin: 0;
+  line-height: 1.5;
+  color: var(--page-text-color);
+  /* The edge function appends an "Agents: X, Y" paragraph to the reasoning after
+   * a blank line; pre-line preserves that newline so it renders as its own line
+   * (default `normal` would collapse it into a space). */
+  white-space: pre-line;
+}

@@ -58,6 +58,10 @@ export function AnagramDialog({ onClose }: { onClose: () => void }) {
       persistKey="puzpuzpuz:anagram:rect"
       title="Anagrams"
       onClose={onClose}
+      // Height is the content's — the number below is only the first-paint seed.
+      // Safe alongside `persistKey` because this panel cannot be resized, so a
+      // stored height was never anyone's choice for the fit to fight (F23 → C).
+      fitContent
       defaultSize={{ width: 360, height: 440 }}
       resizable={false}
     >
