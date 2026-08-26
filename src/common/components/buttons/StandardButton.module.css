@@ -132,6 +132,18 @@
   padding: 0;
 }
 
+/* FILL THE ROW — for a button that IS its row rather than one control beside
+   others. Compounded with `.standardButton` for the same reason `.iconOnly` is:
+   it must beat the base rule on weight, not on which file a bundler loads last.
+
+   It says nothing about `justify-content`, so the label stays centered — a
+   stretched button with a left-hugging label reads as a mistake. And it does not
+   fight `.iconOnly`: that one is a fixed square by definition, and asking for
+   both is asking for two different widths. */
+/* @@ */ .standardButton.fullWidth {
+  width: 100%;
+}
+
 /* A small icon-only button re-points the size token rather than introducing a
    second one. 1.6rem is the value the club page's delete button had been
    setting by hand for exactly this case, so `small` now supplies what that

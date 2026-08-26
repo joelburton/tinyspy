@@ -1,0 +1,12 @@
+/* cs-unmet */
+
+/*
+ * The one red line a surface says about its own last action (see
+ * FailureLine.tsx). No margin of its own — the column it sits in does the
+ * spacing, so a surface can put it anywhere without fighting a margin.
+ */
+/* @@ */ .failureLine {
+  margin: 0;
+  font-size: var(--font-size-2);
+  color: var(--chrome-fault-color);
+}

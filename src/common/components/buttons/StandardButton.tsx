@@ -83,6 +83,13 @@ export type StandardButtonProps = ComponentPropsWithRef<'button'> & {
   tone?: ButtonTone
   /** Tighter padding, smaller type, and a glyph that follows both. */
   small?: boolean
+  /** FILL THE WIDTH the button is given, instead of hugging its label.
+   *
+   *  For a button that is the whole content of its row rather than one control
+   *  beside others — a stacked pair in a small card, where two hugging buttons
+   *  of different label lengths read as ragged. Meaningless on an icon-only
+   *  button, which is a fixed square by definition. */
+  fullWidth?: boolean
   /** Per-glyph size multiplier, for the Lucide glyphs that read denser or
    *  looser than the rest at the same nominal size (the trash can wants 1.2, a
    *  titlebar ✕ wants 0.85). A multiplier rather than a pixel count, so it
@@ -129,6 +136,7 @@ export function StandardButton({
   weight = 'secondary',
   tone = 'normal',
   small,
+  fullWidth,
   iconScale,
   className,
   style,
@@ -159,6 +167,7 @@ export function StandardButton({
         // painted a quiet primary action-blue.
         styles[tone],
         small && styles.small,
+        fullWidth && styles.fullWidth,
         drawn === null && styles.iconOnly,
         className,
       )}

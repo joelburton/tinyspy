@@ -1,17 +1,17 @@
 /* cs-unmet */
 
 /* Body of the ⌥` anagram finder. The FloatingPanel shell provides the
- * surface/header/drag; this styles the search row,
- * and the scrolling result list. The search row + input + button rules
- * mirror WordLookupDialog.module.css — same family, same look. */
+ * surface, the titlebar and the drag; the field, the button, the failure line
+ * and the result list are all shared components. What is left here is the
+ * column they sit in and how one result row is laid out. */
 
+/* The dialog's parts, stacked. The gap is stated here rather than shared: how
+   far apart a floating panel's parts sit is a fact about that panel, and a
+   finder you drive from the keyboard packs tighter than a form you fill in. */
 /* @@ */ .content {
   display: flex;
   flex-direction: column;
   gap: var(--spacer-4);
-  /* The scroll box below needs a bounded flex parent, or IT wins and the
-   * panel grows instead (the InfoSheet flex-column lesson). */
-  min-height: 0;
 }
 
 /* @@ */ .form {
@@ -19,85 +19,13 @@
   gap: var(--spacer-4);
 }
 
-/* WHERE THE SEARCH BOX SITS, and nothing else: it shares a row with its button
-   and has to take the slack. This is `<TextField>`'s `className`, which lands on
-   the FIELD, so it must be placement only — what an input LOOKS like is
-   base.css's to say, in one place. */
-/* @@ */ .input {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-/* Layout only — the chrome is `<StandardButton>`'s. */
-/* @@ */ .button {
-  flex: 0 0 auto;
-}
-
-/* @@ */ .error {
-  margin: 0;
-  font-size: var(--font-size-2);
-  color: var(--chrome-fault-color);
-}
-
-/* The tally under the list — right-aligned to the frame's edge, so it reads as
-   a footnote to the answer rather than a heading over it. */
-/* @@ */ .count {
-  margin: 0;
-  text-align: right;
-  font-size: var(--font-size-3);
-  color: var(--page-text-muted-color);
-}
-
-/*
- * THE RESULT LIST IS THE ONLY THING THAT SCROLLS, and it is capped at TEN ROWS.
- *
- * Two rules doing one job. The panel is `fitContent` (it sizes to what is
- * inside), so an uncapped list has nothing to scroll against — the PANEL grows
- * instead, and `s???t` returns 1361 words, which is a dialog taller than the
- * screen. Capping the list gives the fit something bounded to fit, so the panel
- * settles at a readable size and the overflow lands where it belongs.
- *
- * THE COUNT IS STATED AS A COUNT, not as a height that works out to one:
- * `--anagramRow-height` sizes `.row` below and is multiplied here, so how many
- * rows show is the multiplier in the calc and nothing else. Changing the row's
- * type or padding moves the cap with it, and a partial last row — which reads as
- * the list being cut off rather than scrollable — cannot creep in.
- *
- * `flex: 0 1 auto` — it takes its own height up to the cap rather than
- * stretching to fill. `1 1 auto` would make it claim the slack in a panel that
- * has none to give.
- */
-/* @@ */ .list {
-  --anagramRow-height: 1.4rem;
-  --anagramList-pad: 0.15rem;
-  flex: 0 1 auto;
-  /* The chrome is IN the sum, because `box-sizing: border-box` means the cap
-     covers the padding and the border too — take them out and the LAST row is
-     the one that gets clipped. */
-  max-height: calc(
-    7 * var(--anagramRow-height) + 2 * var(--anagramList-pad) + 2 * var(--border-width-line-thick)
-  );
-  overflow-y: auto;
-  margin: 0;
-  padding: var(--anagramList-pad);
-  list-style: none;
-  /* THE FRAME, so a list that runs past its bottom edge looks like a thing with
-     a bottom edge. Same 2px + `--radius-md` as the info panel's scroll box
-     (common/components/game/infoPanel.module.css → `.box`) — the app already had
-     one answer for "a list you scroll inside", and this is it. */
-  border: var(--border-width-line-thick) solid var(--page-divider-color);
-  border-radius: var(--radius-md);
-}
-
-/* A fixed height rather than one that falls out of the type, so the list above
-   has a number to multiply. A row is chrome around one short word, and nothing
-   in it can wrap. */
+/* One result. The HEIGHT is <SimpleScrollableList>'s, so the rows and its
+   row-count cap cannot disagree; this only says how the two parts sit. */
 /* @@ */ .row {
   display: flex;
   align-items: baseline;
   gap: var(--spacer-4);
-  height: var(--anagramRow-height);
-  padding: 0.15rem 0.25rem;
+  padding-inline: var(--spacer-5);
 }
 
 /* @@ */ .word {
@@ -108,8 +36,7 @@
 
 /* The leading band number. A FIXED-WIDTH gutter, so every word starts at the
  * same x — a ragged left edge is what makes a numbered list read as noise — and
- * right-aligned within it, the way a line number is. Muted by request (the spec
- * asked for it muted; not the don't-default-to-muted case). */
+ * right-aligned within it, the way a line number is. */
 /* @@ */ .band {
   flex: 0 0 auto;
   width: 1rem;

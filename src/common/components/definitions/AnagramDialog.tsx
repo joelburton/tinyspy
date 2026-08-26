@@ -9,6 +9,8 @@ import { FloatingPanel } from '../floating-panels/FloatingPanel'
 import styles from './AnagramDialog.module.css'
 import { StandardButton } from '../buttons/StandardButton'
 import { TextField } from '../fields/TextField'
+import { FailureLine } from '../feedback/FailureLine'
+import { SimpleScrollableList } from '../lists/SimpleScrollableList'
 
 type Result = { word: string; difficulty: number }
 
@@ -84,7 +86,6 @@ export function AnagramDialog({ onClose }: { onClose: () => void }) {
             // Autofocus so the player can type immediately after the
             // shortcut opens the dialog.
             autoFocus
-            className={styles.input}
             value={query}
             // Case carries meaning (pins), so keep it as typed; everything
             // that isn't a letter or '?' is dropped on entry.
@@ -104,40 +105,38 @@ export function AnagramDialog({ onClose }: { onClose: () => void }) {
             name="Find"
             type="submit"
             weight="primary"
-            className={styles.button}
+            fullWidth
             disabled={searching}
           />
         </form>
-        {error && <p className={styles.error}>{error}</p>}
+        <FailureLine>{error}</FailureLine>
         {results && !error && (
-          <>
-            <ul className={styles.list}>
-              {results.map((r) => (
-                <li key={r.word} className={styles.row}>
-                  {/* The difficulty band LEADS the row — a fixed-width gutter, so
-                      the words start on one line down the list and the number
-                      reads as a column rather than as part of the word. */}
-                  <span className={styles.band}>{r.difficulty}</span>
-                  <span
-                    className={styles.word}
-                    onClick={(e) => openDefine(r.word, e.currentTarget)}
-                    title="Click to define"
-                    data-word={r.word}
-                  >
-                    {r.word.toUpperCase()}
-                  </span>
-                </li>
-              ))}
-            </ul>
-            {/* The tally sits UNDER the list it counts, right-aligned to the
-                frame's edge: a footnote to the answer rather than a heading
-                over it. */}
-            <p className={styles.count}>
-              {results.length === 0
-                ? 'No words.'
-                : `${results.length} word${results.length === 1 ? '' : 's'}`}
-            </p>
-          </>
+          <SimpleScrollableList
+            rows={7}
+            empty="No words."
+            count={
+              results.length === 0
+                ? undefined
+                : `${results.length} word${results.length === 1 ? '' : 's'}`
+            }
+          >
+            {results.map((r) => (
+              <li key={r.word} className={styles.row}>
+                {/* The difficulty band LEADS the row — a fixed-width gutter, so
+                    the words start on one line down the list and the number
+                    reads as a column rather than as part of the word. */}
+                <span className={styles.band}>{r.difficulty}</span>
+                <span
+                  className={styles.word}
+                  onClick={(e) => openDefine(r.word, e.currentTarget)}
+                  title="Click to define"
+                  data-word={r.word}
+                >
+                  {r.word.toUpperCase()}
+                </span>
+              </li>
+            ))}
+          </SimpleScrollableList>
         )}
       </div>
       {popover}
