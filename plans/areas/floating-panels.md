@@ -25,7 +25,7 @@ change here forward-fixes them in the same commit (§21's compile-break rule) an
 **their stamps do not move**. If one of them turns out to be the only evidence
 for a shared question, it gets surfaced and asked about, not audited.
 
-**Twenty-eight findings.** Twenty RESOLVED (F1–F7, F16, F17, F18, F19, F21,
+**Twenty-eight findings.** Twenty-two RESOLVED (F1–F7, F16, F17, F18, F19, F21,
 F25, F28), three MOVED to `forms` (F8, F9, F13), two PUNTED (F14 → the first
 game area, F15 → crosswords), **nine OPEN** — F10, F11, F12, F20, F22, F23, F24,
 F26, F27.
@@ -623,22 +623,27 @@ Every one is well clear of 300, and the 13px is body padding rather than slack.
 The floor is dead code, not a live bug — it WOULD overrule the fit for a shorter
 setup, and there isn't one.
 
-## F24 · `closebutton-copies-a-deleted-component` · A cross-component coupling maintained by prose
+## RESOLVED · F24 · `closebutton-copies-a-deleted-component` · A cross-component coupling maintained by prose
 
-`.closeButton`'s comment says *"The hover treatment matches the ClubGameCard
-delete button's idle state."* `ClubGameCard` was split into `ClubGameRow` plus a
-standalone callout by the homepage area's F38, and the delete button became
-`ClubGameDeleteButton`. So the sentence points at a component that no longer
-exists in that shape, and the coupling it describes has nothing keeping it true.
-Either the two share a class or they are independent; a comment is neither.
+`.closeButton`'s comment said *"the hover treatment matches the ClubGameCard
+delete button's idle state"*. Checking it turned up **three errors, not one**:
 
----
+| | `.closeButton:hover` | the delete button |
+|---|---|---|
+| background | `--page-surface-hover-color` | same — but on its **hover**, not its idle |
+| color | `--page-text-color` | same, also on hover |
+| border-color | `--field-edge-color` | **`--field-strong-edge-color`** — different |
 
-**Audit scoreboard: nine new findings, F16–F24, all OPEN.** F16
-(`esc-closes-every-panel`) is the only one that is a live bug rather than a
-question, and F16 + F17 + F18 are all really the same question — *what does a
-floating panel claim about the thing underneath it, and does anything enforce
-that claim?*
+So it named a component the homepage area had dissolved (into
+`ClubGameDeleteButton`), named the wrong STATE, and asserted a match that was
+never quite true.
+
+**Resolved by letting the resemblance be a resemblance.** Two quiet icon buttons
+lighting up the same way is a house style, not a dependency — and a comment is
+the one mechanism that can neither enforce it nor survive it changing, which is
+what this finding is really about. If they should genuinely move together they
+want a shared class, and that is a question for whoever owns both: this file is
+`floating-panels`, `ClubGameDeleteButton` is `club-page`'s.
 
 ## Escape ranks by TIER, and chat is the one exception (2026-08-25)
 

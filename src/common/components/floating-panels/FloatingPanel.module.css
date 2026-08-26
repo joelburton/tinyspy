@@ -99,9 +99,20 @@
   white-space: nowrap;
 }
 
-/* The close X — a quiet square icon. The transparent border is deliberate:
- * it reserves the hover border's 1px so nothing shifts when it lights up. The
- * hover treatment matches the ClubGameCard delete button's idle state. */
+/* The close ✕ — a quiet square icon. The transparent border is deliberate: it
+ * reserves the hover border's width, so nothing shifts when it lights up.
+ *
+ * It used to claim "the hover treatment matches the ClubGameCard delete button's
+ * idle state", which was wrong three ways at once: that component was dissolved
+ * into `ClubGameDeleteButton`, the treatment it resembles is that button's HOVER
+ * rather than its idle, and even then the two differ — this takes
+ * `--field-edge-color` where that takes `--field-strong-edge-color`.
+ *
+ * So the resemblance is left as a resemblance. Two quiet icon buttons lighting
+ * up the same way is a house style, not a dependency, and a COMMENT is the one
+ * mechanism that can neither enforce it nor survive it changing. If they should
+ * genuinely move together they want a shared class, and that is a question for
+ * whoever owns both — this file is `floating-panels`, that one is `club-page`. */
 /* @@ */ .closeButton {
   border: var(--border-width-line) solid transparent;
   color: var(--page-text-muted-color);
