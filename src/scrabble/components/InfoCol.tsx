@@ -253,30 +253,30 @@ export function InfoCol({
             conceded" terminal look once I've dropped out (others race on); at
             terminal the bold outcome line + a compact back-to-club button. */}
         {over ? (
-          <TerminalActionRow over={over} onBackToClub={onBackToClub} iconOnly>
+          <TerminalActionRow over={over} onBackToClub={onBackToClub} backLabel={null}>
             {/* Stay-here options left of the leave option (Club): deal this table
                 again, or spin up the next game. */}
-            <RestartButton iconOnly onClick={onRestart} />
-            <NewGameButton iconOnly onClick={onNewGame} disabled={startingNewGame} />
+            <RestartButton label={null} onClick={onRestart} />
+            <NewGameButton label={null} onClick={onNewGame} disabled={startingNewGame} />
           </TerminalActionRow>
         ) : isCompete && myConceded ? (
           <LocalTerminalRow label="You conceded">
-            <ConcedeGameButton iconOnly className={shared.helperButton} disabled />
+            <ConcedeGameButton label={null} className={shared.helperButton} disabled />
           </LocalTerminalRow>
         ) : (
           <div className={shared.infoActions}>
             {isCompete ? (
-              <ConcedeGameButton iconOnly className={shared.helperButton} onClick={onConcede} />
+              <ConcedeGameButton label={null} className={shared.helperButton} onClick={onConcede} />
             ) : (
               <>
-                <EndGameButton iconOnly className={shared.helperButton} onClick={onEndGame} />
+                <EndGameButton label={null} className={shared.helperButton} onClick={onEndGame} />
                 {/* Suggest-a-move (coop) — the AI hint lives with the other
                     action buttons; its results render in the reserved box
                     below the help text. */}
                 {suggest && (
                   <AIButton
-                    iconOnly
-                    label="Suggest"
+                    label={null}
+                    name="Suggest"
                     className={shared.helperButton}
                     disabled={!canSuggest || suggest.status === 'loading'}
                     onClick={onSuggest}

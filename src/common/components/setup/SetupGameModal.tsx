@@ -9,6 +9,8 @@ import { RichMessage } from '../text/RichMessage'
 import { Dot } from '../text/Dot'
 import { cls } from '../../lib/util/cls'
 import styles from './SetupGameModal.module.css'
+import { StandardButton } from '../buttons/StandardButton'
+import { CancelButton } from '../buttons/CancelButton'
 
 type Props = {
   /**
@@ -295,39 +297,35 @@ export function SetupGameModal({
       <div className={styles.footer}>
         <HelpButton onClick={() => setShowHelp(true)} disabled={busy} />
         <div className={styles.footerActions}>
-          <button
-            type="button"
-            className="button secondary"
-            onClick={onCancel}
-            disabled={busy}
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            className="button primary"
+          <CancelButton onClick={onCancel} disabled={busy} />
+          <StandardButton
+            name={busy ? 'Starting…' : 'Start'}
+            weight="primary"
             onClick={handleStartGame}
             disabled={busy || !countOk || setupError !== null}
             autoFocus
-          >
-            {/* On a phone the button is just "Start" — "Start PsychicNum · Co-op"
-                doesn't fit beside Cancel at 390px. The detail is dropped in CSS
-                rather than by a `usePhone()` branch: it's presentation, and the
-                dialog TITLE right above still names the game + mode, so nothing
-                is actually lost. */}
-            {busy ? (
-              'Starting…'
-            ) : (
-              <>
-                Start
-                <span className={styles.startDetail}>
-                  {' '}
-                  {manifest.name}
-                  {modeSuffix}
-                </span>
-              </>
-            )}
-          </button>
+            // On a phone the button is just "Start" — "Start PsychicNum · Co-op"
+            // doesn't fit beside Cancel at 390px. The detail is dropped in CSS
+            // rather than by a `usePhone()` branch: it's presentation, and the
+            // dialog TITLE right above still names the game + mode, so nothing
+            // is actually lost. Hence a NODE for what is drawn while `name`
+            // stays the plain word — the span is a rendering detail, not a
+            // second name for the button.
+            label={
+              busy ? (
+                'Starting…'
+              ) : (
+                <>
+                  Start
+                  <span className={styles.startDetail}>
+                    {' '}
+                    {manifest.name}
+                    {modeSuffix}
+                  </span>
+                </>
+              )
+            }
+          />
         </div>
       </div>
     </FloatingPanel>

@@ -1003,18 +1003,18 @@ export function PlayArea(ctx: GamePageCtx) {
               {isTerminal ? (
                 <div className={styles.actions}>
                   <RevealButton
-                    label="Reveal solution"
-                    revealedLabel="Hide solution"
+                    name="Reveal solution"
+                    revealedName="Hide solution"
                     revealed={solutionShown}
-                    iconOnly
+                    label={null}
                     // Icon-only, so both faces occupy the same fixed box: the
                     // strip cannot change width under a click, and this layout
                     // is precise.
                     onClick={toggleSolution}
                   />
-                  <RestartButton iconOnly onClick={() => void handleRestart()} />
-                  <NewGameButton iconOnly onClick={handleNewGame} disabled={startingNewGame} />
-                  <BackToClubButton onClick={goToClub} variant="primary" compact iconOnly />
+                  <RestartButton label={null} onClick={() => void handleRestart()} />
+                  <NewGameButton label={null} onClick={handleNewGame} disabled={startingNewGame} />
+                  <BackToClubButton onClick={goToClub} variant="primary" compact label={null} />
                 </div>
               ) : myConceded ? (
                 <LocalTerminalRow label="You conceded">
@@ -1023,8 +1023,8 @@ export function PlayArea(ctx: GamePageCtx) {
                       is_terminal), so a player who dropped out can't spoil a
                       live race — and the row keeps its shape for when the last
                       solver finishes. */}
-                  <RevealButton iconOnly disabled tooltip="Can't reveal until all end" />
-                  <ConcedeGameButton iconOnly disabled />
+                  <RevealButton label={null} disabled tooltip="Can't reveal until all end" />
+                  <ConcedeGameButton label={null} disabled />
                 </LocalTerminalRow>
               ) : (
                 <div className={styles.toolRow}>
@@ -1041,9 +1041,9 @@ export function PlayArea(ctx: GamePageCtx) {
                   >
                     {isPlayable &&
                       (mode === 'compete' ? (
-                        <ConcedeGameButton iconOnly onClick={() => void handleConcede()} />
+                        <ConcedeGameButton label={null} onClick={() => void handleConcede()} />
                       ) : (
-                        <EndGameButton iconOnly onClick={() => void handleEndGame()} />
+                        <EndGameButton label={null} onClick={() => void handleEndGame()} />
                       ))}
                   </Controls>
                 </div>

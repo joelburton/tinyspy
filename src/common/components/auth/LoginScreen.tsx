@@ -4,6 +4,7 @@ import { useState, type SubmitEvent } from 'react'
 import { supabase } from '../../lib/supabase/supabase'
 import { PuzpuzpuzWordmark } from '../branding/PuzpuzpuzWordmark'
 import { cls } from '../../lib/util/cls'
+import { StandardButton } from '../buttons/StandardButton'
 
 /**
  * Magic-link sign-in flow with two verification paths.
@@ -141,21 +142,20 @@ export function LoginScreen() {
               required
             />
           )}
-          <button
-            type="submit"
-            className="button primary"
-            disabled={
-              busy || !email || (action === 'verify-code' && !code.trim())
+          <StandardButton
+            name={
+              action === 'send-link'
+                ? status === 'sending'
+                  ? 'Sending…'
+                  : 'Send magic link'
+                : status === 'verifying'
+                  ? 'Verifying…'
+                  : 'Verify code'
             }
-          >
-            {action === 'send-link'
-              ? status === 'sending'
-                ? 'Sending…'
-                : 'Send magic link'
-              : status === 'verifying'
-                ? 'Verifying…'
-                : 'Verify code'}
-          </button>
+            type="submit"
+            weight="primary"
+            disabled={busy || !email || (action === 'verify-code' && !code.trim())}
+          />
           <p>
             <button
               type="button"

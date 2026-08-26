@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { IconHint } from '../icons'
-import { ActionButton, type PurposeButtonProps } from './ActionButton'
+import { StandardButton, type PurposeButtonProps } from './StandardButton'
 
 /**
  * Get-a-hint button — asks for a clue. The **`warning`** tone (dark amber, the
@@ -9,6 +9,6 @@ import { ActionButton, type PurposeButtonProps } from './ActionButton'
  * not good-or-bad" action, distinct from the destructive red End. Default label
  * "Hint".
  */
-export function HintButton({ label = 'Hint', ...rest }: PurposeButtonProps) {
-  return <ActionButton icon={IconHint} label={label} tone="caution" {...rest} />
+export function HintButton({ name = 'Hint', icon = IconHint, tone = 'caution', ...rest }: PurposeButtonProps) {
+  return <StandardButton name={name} icon={icon} tone={tone} {...rest} />
 }

@@ -1,0 +1,288 @@
+/* cs-fixed */
+
+/* ============================================================
+ * StandardButton.module.css — the whole look of a standard button.
+ *
+ * A STANDARD BUTTON is the app's ordinary button: an info-column action
+ * (Submit, Hint, End game), a form's commit or cancel, a dialog's
+ * acknowledgment. One treatment for all of them, which is the decision this
+ * file exists to hold (Joel, 2026-08-25): what used to be an "action button"
+ * and what used to be a hand-written `className="button secondary"` are the
+ * same thing and always were.
+ *
+ * NOT standard buttons, and none of them come through here: a game piece
+ * (`.tile`), a keycap (`.key`), a segmented choice (patterns/segmented.css), a
+ * page-header mark (`<PageHeaderButton>`), the board's round `ShuffleButton`,
+ * and the ✕ dismiss glyphs — which are deliberately borderless and may not
+ * even share the hover (Joel, 2026-08-25: *"we can handle those when we meet
+ * them, but I wouldn't consider them normal buttons"*).
+ *
+ * WHY THIS IS A MODULE AND NOT A PATTERN. It was `patterns/button.css`, a
+ * global stylesheet whose classes every call site composed by hand. §7's table
+ * puts "a pattern with structure or behavior" in *a React component + its
+ * module*, and the boundary rule under it says a shared stylesheet with many
+ * consumers and no component is a component waiting to be written. Once
+ * `<StandardButton>` exists, nobody writes these class names, so they stop
+ * being public and come home. `ActionButton.module.css`'s tone classes came
+ * with them — one component, one stylesheet.
+ *
+ * FLAT — color only, no motion, no shadow. Not conservatism: it is the
+ * load-bearing half of "depth belongs to game pieces, not chrome". If a
+ * control could lift, nothing would separate it from a piece, and "a control
+ * that looks like a tile is a bug" would stop being a rule anyone could
+ * enforce. The one exception is placement, not kind: a control FLOATING over a
+ * board keeps its shadow, because it has a board to cast onto.
+ * ============================================================ */
+
+/* THE SHAPE, and it paints no color at all — `.primary` and `.secondary` below
+   are the two TREATMENTS and paint everything. So a button is always
+   `standardButton primary` or `standardButton secondary`, never the shape
+   alone, which would be a shape with no color and look it. The component
+   guarantees that: `weight` is a required-with-a-default prop, so there is no
+   unmarked state to forget.
+
+   THE TYPE IS THE BUTTON'S OWN, not the container's. `base.css` gives the bare
+   <button> element `font: inherit`, which is right for the accidental kinds —
+   a `.link-button` or a list row IS the surrounding prose and should go bold
+   inside bold text. A standard button is not prose, so it takes back
+   everything except the SIZE (Joel, 2026-08-25: *"a button happening in a
+   paragraph of bold text shouldn't get bold"*). It was also incoherent as it
+   stood: the old `.button-small` declared `font-weight: 500` while its
+   full-size sibling inherited whatever was around it.
+
+   `font-size: 1em` is a no-op declaration and is written anyway. It says out
+   loud that a standard button tracks its container's size — an info-column
+   button is 0.95rem because the column is — and it makes `.small`'s `0.85em`
+   below read as the same kind of statement rather than an exception. */
+/* @@ */ .standardButton {
+  font-size: 1em;
+  font-weight: 400;
+  /* `normal` — the FONT's own line box, not a ratio. Declared rather than
+     inherited for the same reason the weight is: a button inside a 1.5-leaded
+     paragraph is not a paragraph. It is not a ramp step on purpose — the ramp's
+     values are for setting PROSE, and every one of them is wrong for a control
+     that holds a single centered line. Measured: `1` would shave 2px off every
+     button in the app, which is a change nobody asked for. */
+  line-height: normal;
+  /* Width and style only — the COLOR is the treatment's, below. Split into
+     longhands rather than `border: 1px solid transparent` so this rule really
+     does declare no color, which is what src/guards/cssTokens.test.ts checks. */
+  border-width: var(--border-width-line);
+  border-style: solid;
+  border-radius: var(--radius-md);
+  padding: 0.4rem 0.65rem;
+  /* The icon-and-label shape, formerly the separate `.icon-button` class that
+     every call site had to remember to compose. A standard button is ALWAYS
+     this shape — one centered line, glyph then label — so it is stated once
+     here and cannot be left off. The gap is `em` so it tracks the label. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4em;
+  text-decoration: none;
+}
+
+/* THE GLYPH IS SIZED FROM THE TEXT, not in pixels. It used to be an `iconSize`
+   prop handed to Lucide (18 by default, 22 / 16 / 15 at four sites), which
+   meant the glyph could not track a button that changed size — a small button
+   kept a full-size icon and the ratio drifted. `em` locks the ratio to the
+   label at every size (Joel, 2026-08-25: *"I don't see that we'd want to move
+   them independently... they should stay related"*), and 1.15em reproduces
+   today's proportions: 18px against 16px text is 1.125, and against the info
+   column's 0.95rem it is 1.18.
+
+   Per-glyph tuning survives as a MULTIPLIER (`iconScale`), because some Lucide
+   glyphs read denser than others — and a multiplier is strictly better than
+   the pixel count it replaces, since it stays correct when the button changes
+   size. CSS beats the width/height attributes Lucide writes, so no prop is
+   passed to the icon at all. */
+/* @@ */ .standardButton > svg {
+  width: calc(1.15em * var(--standardButton-icon-scale, 1));
+  height: calc(1.15em * var(--standardButton-icon-scale, 1));
+  /* A glyph must never be squeezed by a flex row that runs out of room; it is
+     the one part of the button with a fixed aspect. */
+  flex: none;
+}
+
+/* SMALLER — same tone, same treatment, less of it. Not a kind: "quieter than
+   its neighbor" is already said by the tone, and this says only that the
+   control is secondary in SIZE to what it sits beside.
+
+   MOST OF THE SHRINK IS PADDING (Joel, 2026-08-25). The type comes down a
+   little and the glyph follows it automatically via the `em` above; the
+   padding comes down by a third. The extra weight is part of the size rather
+   than a separate choice — 0.85em in a muted gray goes thin, and 500 is what
+   holds the label together down there. */
+/* @@ */ .standardButton.small {
+  font-size: 0.85em;
+  font-weight: 500;
+  padding: 0.25rem 0.5rem;
+}
+
+/* NO LABEL DRAWN — a fixed square holding just the glyph.
+ *
+ * THE FIXED BOX IS THE POINT: it decouples glyph size from button size, so
+ * `iconScale` can tune a dense glyph up without moving the footprint and a row
+ * of icon buttons stays aligned.
+ *
+ * IT MUST ALSO WIN THE PADDING, and this is where the old arrangement broke.
+ * `.icon-only` and `.button-small` were two global classes composed by hand;
+ * `.button-small` was declared 17 lines later at equal specificity, so ITS
+ * padding won while `.icon-only`'s fixed box stayed — leaving a 25.6px box with
+ * 19.2px of horizontal padding and about 6px for an 18px glyph. That is the
+ * club page's crushed trash can. Here both selectors carry `.standardButton`
+ * and this one is compounded further, so it wins on weight rather than on the
+ * order two files happen to load in. */
+/* @@ */ .standardButton.iconOnly {
+  width: var(--iconButton-size);
+  height: var(--iconButton-size);
+  padding: 0;
+}
+
+/* A small icon-only button re-points the size token rather than introducing a
+   second one. 1.6rem is the value the club page's delete button had been
+   setting by hand for exactly this case, so `small` now supplies what that
+   override existed to supply. */
+/* @@ */ .standardButton.small.iconOnly {
+  --iconButton-size: 1.6rem;
+}
+
+/* ============================================================
+ * The two TREATMENTS.
+ * ============================================================ */
+
+/* PRIMARY — the filled treatment. */
+/* @@ */ .primary {
+  background: var(--button-slot-primary-color);
+  border-color: var(--button-slot-primary-color);
+  color: var(--button-slot-primary-ink-color);
+}
+
+/* The hover the bare element could never safely have. Safe here precisely
+   because it is opt-in: only something that asked to be a button can get it. */
+/* @@ */ .primary:hover:not(:disabled) {
+  background: var(--button-slot-primary-hover-color);
+  border-color: var(--button-slot-primary-hover-color);
+}
+
+/* PRESSING — a second step in the same direction hover took, so the two read as
+   degrees of one thing. It is also the only feedback a phone gets: hover needs
+   a pointer, a thumb has none. */
+/* @@ */ .primary:active:not(:disabled) {
+  background: var(--button-slot-primary-press-color);
+  border-color: var(--button-slot-primary-press-color);
+}
+
+/* SECONDARY — the outline treatment. Its family defaults to `quiet` (the way
+   out of a dialog); a toned button re-sets the slots on its own element below.
+
+   Tokens rather than hard-coded colors so the family can be swapped without
+   out-cascading this rule — the same re-set-the-token discipline the tiles use.
+
+   ONE token paints both the border and the label, deliberately. */
+/* @@ */ .secondary {
+  background: transparent;
+  border-color: var(--button-slot-secondary-color);
+  color: var(--button-slot-secondary-color);
+}
+
+/* Hover changes the BACKGROUND and nothing else, to a faint wash of the
+   button's OWN family — where this used to be one gray for every family. A tint
+   of itself reads as the button getting more engaged; gray reads as it going
+   duller, which is the wrong direction for a hover. 8% over white is enough:
+   what the eye catches is white becoming a color at all, not how much color. */
+/* @@ */ .secondary:hover:not(:disabled) {
+  background: var(--button-slot-secondary-hover-color);
+}
+
+/* PRESSING — the wash taken twice as far. See `.primary:active`. */
+/* @@ */ .secondary:active:not(:disabled) {
+  background: var(--button-slot-secondary-press-color);
+}
+
+/* ============================================================
+ * The five TONES, in BOTH treatments.
+ *
+ * A toned button re-sets the slot tokens `.primary` and `.secondary` read, on
+ * its own element, so the filled background (primary) or the border + label
+ * (secondary) — and the glyph, via `currentColor` — take the tone. We re-set
+ * tokens rather than out-cascade those rules, so this wins regardless of
+ * declaration order — the same discipline the tiles use (docs/ui.md →
+ * Interactive tile states).
+ *
+ * `-secondary-color` is NOT `-primary-color`. They are different values on
+ * purpose: the primary is what a filled button is painted with, the secondary
+ * is that color taken down far enough to carry small text on white. Orange is
+ * the case that settles it — a fillable orange can't be read as type, and a
+ * readable orange can't be used as a fill (themes/daylight.css → BUTTON).
+ *
+ * The tones are the BUTTON bucket's, not the outcome palette's: a control
+ * saying "this is irreversible" is a different question from a game saying
+ * "you lost", even where the two hexes agree today.
+ *
+ * ALL FIVE families get a class, including the two nothing calls for. `quiet`
+ * is the default for a bare `.secondary`, so a quiet SECONDARY would work
+ * without one — but the default primary slots are normal's, so a quiet button
+ * that asked for `primary` used to come out blue. `success` has no caller at
+ * all today. Both are here for the same reason the token grid is rectangular: a
+ * family that only half-exists is what the completeness rule exists to
+ * prevent, and the missing half is always found by the button that needed it,
+ * two years later, by someone reasoning differently.
+ * ============================================================ */
+
+/* @@ */ .caution {
+/* @@ */   --button-slot-primary-color: var(--button-caution-primary-color);
+/* @@ */   --button-slot-primary-hover-color: var(--button-caution-primary-hover-color);
+/* @@ */   --button-slot-primary-press-color: var(--button-caution-primary-press-color);
+/* @@ */   --button-slot-primary-ink-color: var(--button-caution-primary-ink-color);
+/* @@ */   --button-slot-secondary-color: var(--button-caution-secondary-color);
+/* @@ */   --button-slot-secondary-hover-color: var(--button-caution-secondary-hover-color);
+/* @@ */   --button-slot-secondary-press-color: var(--button-caution-secondary-press-color);
+}
+
+/* @@ */ .destructive {
+/* @@ */   --button-slot-primary-color: var(--button-destructive-primary-color);
+/* @@ */   --button-slot-primary-hover-color: var(--button-destructive-primary-hover-color);
+/* @@ */   --button-slot-primary-press-color: var(--button-destructive-primary-press-color);
+/* @@ */   --button-slot-primary-ink-color: var(--button-destructive-primary-ink-color);
+/* @@ */   --button-slot-secondary-color: var(--button-destructive-secondary-color);
+/* @@ */   --button-slot-secondary-hover-color: var(--button-destructive-secondary-hover-color);
+/* @@ */   --button-slot-secondary-press-color: var(--button-destructive-secondary-press-color);
+}
+
+/* @@ */ .normal {
+/* @@ */   --button-slot-primary-color: var(--button-normal-primary-color);
+/* @@ */   --button-slot-primary-hover-color: var(--button-normal-primary-hover-color);
+/* @@ */   --button-slot-primary-press-color: var(--button-normal-primary-press-color);
+/* @@ */   --button-slot-primary-ink-color: var(--button-normal-primary-ink-color);
+/* @@ */   --button-slot-secondary-color: var(--button-normal-secondary-color);
+/* @@ */   --button-slot-secondary-hover-color: var(--button-normal-secondary-hover-color);
+/* @@ */   --button-slot-secondary-press-color: var(--button-normal-secondary-press-color);
+}
+
+/* Also the DEFAULT in themes/daylight.css (a bare `.secondary` is quiet).
+   Declared anyway, so `tone="quiet"` behaves like every other tone rather than
+   relying on the slots happening to be unset — which is exactly what broke the
+   primary pair. */
+/* @@ */ .quiet {
+/* @@ */   --button-slot-primary-color: var(--button-quiet-primary-color);
+/* @@ */   --button-slot-primary-hover-color: var(--button-quiet-primary-hover-color);
+/* @@ */   --button-slot-primary-press-color: var(--button-quiet-primary-press-color);
+/* @@ */   --button-slot-primary-ink-color: var(--button-quiet-primary-ink-color);
+/* @@ */   --button-slot-secondary-color: var(--button-quiet-secondary-color);
+/* @@ */   --button-slot-secondary-hover-color: var(--button-quiet-secondary-hover-color);
+/* @@ */   --button-slot-secondary-press-color: var(--button-quiet-secondary-press-color);
+}
+
+/* A confirming YES. RESERVED — nothing asks for it today, and it is wired now
+   so that the day something does, it inherits a family picked with its siblings
+   rather than one derived beside the button that wanted it. */
+/* @@ */ .success {
+/* @@ */   --button-slot-primary-color: var(--button-success-primary-color);
+/* @@ */   --button-slot-primary-hover-color: var(--button-success-primary-hover-color);
+/* @@ */   --button-slot-primary-press-color: var(--button-success-primary-press-color);
+/* @@ */   --button-slot-primary-ink-color: var(--button-success-primary-ink-color);
+/* @@ */   --button-slot-secondary-color: var(--button-success-secondary-color);
+/* @@ */   --button-slot-secondary-hover-color: var(--button-success-secondary-hover-color);
+/* @@ */   --button-slot-secondary-press-color: var(--button-success-secondary-press-color);
+}

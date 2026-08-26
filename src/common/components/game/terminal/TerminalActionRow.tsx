@@ -14,9 +14,10 @@ type Props = {
    *  the Back-to-Club button (i.e. to its left). Waffle's Restart is the first
    *  user; most games pass nothing. */
   children?: ReactNode
-  /** Render the Back-to-Club as an icon-only square (waffle's icon-only
-   *  action-row experiment) instead of the default compact "‹ Club". */
-  iconOnly?: boolean
+  /** What the Back-to-Club button DRAWS. Omit it for the default compact
+   *  "‹ Club"; pass `null` for the icon-only square (waffle's icon-only
+   *  action-row experiment). The button is called "Back to club" either way. */
+  backLabel?: string | null
 }
 
 /**
@@ -29,12 +30,12 @@ type Props = {
  * differ per game (plain action buttons vs a compete game's "you conceded"
  * sub-state), so each game keeps its own `over ? <TerminalActionRow/> : (…)`.
  */
-export function TerminalActionRow({ over, onBackToClub, children, iconOnly }: Props) {
+export function TerminalActionRow({ over, onBackToClub, children, backLabel }: Props) {
   return (
     <div className={cls(shared.infoActions, shared.terminalActions)}>
       <span className={cls(shared.outcome, shared[`outcome_${over.tone}`])}>{over.message}</span>
       {children}
-      <BackToClubButton onClick={onBackToClub} variant="primary" compact iconOnly={iconOnly} />
+      <BackToClubButton onClick={onBackToClub} variant="primary" compact label={backLabel} />
     </div>
   )
 }

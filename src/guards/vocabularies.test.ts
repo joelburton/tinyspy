@@ -253,6 +253,10 @@ const VOCABULARIES: Vocabulary[] = [
       // padding — see the file, and F43 (`unequal-mark-separation`). If a second
       // site ever wants it, it earns a ramp step then.
       'src/common/components/page-header/PageHeader.module.css': ['0.375rem'],
+      // The icon-and-label gap is `em` BY DESIGN, not unconverted: it tracks the
+      // button's own text so the glyph, the label and the space between them stay
+      // one proportion at every size. A ramp step in rem could not do that.
+      'src/common/components/buttons/StandardButton.module.css': ['0.4em'],
       'src/common/components/club/ClubGameCard.module.css': ['0.6rem', '0.4rem', '0.5rem'],
       'src/common/components/club/ClubGameRow.module.css': ['0.4rem', '0.5rem'],
       'src/common/components/club/ClubPage.module.css': ['1rem', '1.25rem'],
@@ -304,8 +308,7 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/components/text/RichMessage.module.css': ['0.25rem'],
       'src/common/components/toasts/Toast.module.css': ['0.7rem'],
       'src/common/components/toasts/ToastHost.module.css': ['0.6rem'],
-      'src/common/patterns/button.css': ['0.4em'],
-      'src/common/patterns/heading.css': ['0.5rem'],
+            'src/common/patterns/heading.css': ['0.5rem'],
       'src/common/utilities.css': ['1rem', '1.5rem'],
     },
     fix:
@@ -367,8 +370,7 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/components/toasts/Toast.module.css': ['1.2rem'],
       'src/common/components/tooltips/TooltipHost.module.css': ['0.75rem'],
       'src/common/patterns/badge.css': ['0.7rem'],
-      'src/common/patterns/button.css': ['0.8rem'],
-      'src/common/patterns/segmented.css': ['0.8rem'],
+            'src/common/patterns/segmented.css': ['0.8rem'],
       'src/common/utilities.css': ['0.9rem', '0.85rem'],
     },
     fix:
@@ -540,8 +542,7 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/components/text/Dot.module.css': ['1px'],
       'src/common/components/toasts/Toast.module.css': ['1px', '4px'],
       'src/common/patterns/badge.css': ['1px'],
-      'src/common/patterns/button.css': ['1px'],
-      'src/common/patterns/segmented.css': ['1px'],
+            'src/common/patterns/segmented.css': ['1px'],
       'src/common/utilities.css': ['1px'],
     },
     fix:

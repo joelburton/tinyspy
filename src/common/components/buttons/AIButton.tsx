@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { IconAI } from '../icons'
-import { ActionButton, type PurposeButtonProps } from './ActionButton'
+import { StandardButton, type PurposeButtonProps } from './StandardButton'
 
 /**
  * "Use AI" button — invokes an AI-powered helper (e.g. codenamesduet's Claude
@@ -15,6 +15,6 @@ import { ActionButton, type PurposeButtonProps } from './ActionButton'
  * get distinct glyphs + labels even though they share the amber tone. Default
  * label "AI".
  */
-export function AIButton({ label = 'AI', ...rest }: PurposeButtonProps) {
-  return <ActionButton icon={IconAI} label={label} tone="caution" {...rest} />
+export function AIButton({ name = 'AI', icon = IconAI, tone = 'caution', ...rest }: PurposeButtonProps) {
+  return <StandardButton name={name} icon={icon} tone={tone} {...rest} />
 }

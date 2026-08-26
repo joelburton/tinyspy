@@ -176,7 +176,7 @@ export function PlayerBoard({
               SERVER enforces words, not whether you may ask). */}
           {!isTerminal && !isConceded && (
             <WordCheckButton
-              iconOnly
+              label={null}
               className={shared.helperButton}
               disabled={arena.checking}
               onClick={() => void arena.doWordCheck()}

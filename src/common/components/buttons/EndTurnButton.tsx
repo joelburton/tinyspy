@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { IconEndTurn } from '../icons'
-import { ActionButton, type PurposeButtonProps } from './ActionButton'
+import { StandardButton, type PurposeButtonProps } from './StandardButton'
 
 /**
  * End-the-turn button — voluntarily stops your turn without making (another)
@@ -15,6 +15,11 @@ import { ActionButton, type PurposeButtonProps } from './ActionButton'
  * only the current turn. codenamesduet's "Pass & end turn" is the first user;
  * default label "End turn".
  */
-export function EndTurnButton({ label = 'End turn', ...rest }: PurposeButtonProps) {
-  return <ActionButton icon={IconEndTurn} label={label} weight="primary" {...rest} />
+export function EndTurnButton({
+  name = 'End turn',
+  icon = IconEndTurn,
+  weight = 'primary',
+  ...rest
+}: PurposeButtonProps) {
+  return <StandardButton name={name} icon={icon} weight={weight} {...rest} />
 }

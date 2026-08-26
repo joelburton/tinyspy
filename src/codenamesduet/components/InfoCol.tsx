@@ -163,20 +163,20 @@ export function InfoCol({
         {/* Action row. Playing: End. Terminal: the bold, outcome-colored result line +
             a compact back-to-club button (the shared swap). */}
         {over ? (
-          <TerminalActionRow over={over} onBackToClub={onBackToClub} iconOnly>
+          <TerminalActionRow over={over} onBackToClub={onBackToClub} backLabel={null}>
             {/* Stay-here options, left of the leave option (Club): open the
                 partner's key card (the post-mortem, once you've talked through
                 what you'd have played next), run the same board back, or deal a
                 fresh one. */}
             <RevealButton
-              iconOnly
-              label="Reveal partner's key"
-              revealedLabel="Hide partner's key"
+              label={null}
+              name="Reveal partner's key"
+              revealedName="Hide partner's key"
               revealed={peerKeyShown}
               onClick={onReveal}
             />
-            <RestartButton iconOnly onClick={onRestart} />
-            <NewGameButton iconOnly onClick={onNewGame} disabled={startingNewGame} />
+            <RestartButton label={null} onClick={onRestart} />
+            <NewGameButton label={null} onClick={onNewGame} disabled={startingNewGame} />
           </TerminalActionRow>
         ) : (
           <div className={shared.infoActions}>
@@ -185,7 +185,7 @@ export function InfoCol({
                 mutual stop), not Concede. It reads distinctly from this game's "Pass &
                 end turn" below the board (a different component + glyph), so it keeps
                 the same plain "End" as every other v3 game. */}
-            <EndGameButton iconOnly onClick={onEndGame} className={shared.helperButton} />
+            <EndGameButton label={null} onClick={onEndGame} className={shared.helperButton} />
           </div>
         )}
 

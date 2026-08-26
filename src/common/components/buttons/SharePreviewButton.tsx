@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { IconShare } from '../icons'
-import { ActionButton, type PurposeButtonProps } from './ActionButton'
+import { StandardButton, type PurposeButtonProps } from './StandardButton'
 
 /**
  * Share-a-move button — broadcasts your in-progress (staged) board to your coop
@@ -11,6 +11,12 @@ import { ActionButton, type PurposeButtonProps } from './ActionButton'
  * Swap button beside it. **Icon-only** by default (the share glyph reads on its
  * own); `label` is the aria-label + tooltip. Default label "Show move".
  */
-export function SharePreviewButton({ label = 'Show move', ...rest }: PurposeButtonProps) {
-  return <ActionButton icon={IconShare} label={label} tone="normal" iconOnly {...rest} />
+export function SharePreviewButton({
+  name = 'Show move',
+  icon = IconShare,
+  tone = 'normal',
+  label = null,
+  ...rest
+}: PurposeButtonProps) {
+  return <StandardButton name={name} icon={icon} tone={tone} label={label} {...rest} />
 }

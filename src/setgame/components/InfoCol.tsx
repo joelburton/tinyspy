@@ -143,13 +143,13 @@ export function InfoCol({
         )}
 
         {over ? (
-          <TerminalActionRow over={over} onBackToClub={onBackToClub} iconOnly>
-            <RestartButton iconOnly onClick={onRestart} />
-            <NewGameButton iconOnly onClick={onNewGame} disabled={startingNewGame} />
+          <TerminalActionRow over={over} onBackToClub={onBackToClub} backLabel={null}>
+            <RestartButton label={null} onClick={onRestart} />
+            <NewGameButton label={null} onClick={onNewGame} disabled={startingNewGame} />
           </TerminalActionRow>
         ) : isLocallyDone ? (
           <LocalTerminalRow label="You conceded">
-            <ConcedeGameButton iconOnly className={shared.helperButton} disabled />
+            <ConcedeGameButton label={null} className={shared.helperButton} disabled />
           </LocalTerminalRow>
         ) : (
           <div className={shared.infoActions}>
@@ -163,18 +163,18 @@ export function InfoCol({
                 it is asked. (The ban itself is the priced-help rule: free
                 generative help decides a race.) */}
             <HintButton
-              iconOnly
+              label={null}
               className={shared.helperButton}
               onClick={onHint}
               disabled={isCompete || !canHint}
-              label={hintLabel(isCompete)}
+              name={hintLabel(isCompete)}
             />
             {isCompete ? (
-              <ConcedeGameButton iconOnly className={shared.helperButton} onClick={onConcede} />
+              <ConcedeGameButton label={null} className={shared.helperButton} onClick={onConcede} />
             ) : (
-              <EndGameButton iconOnly className={shared.helperButton} onClick={onEndGame} />
+              <EndGameButton label={null} className={shared.helperButton} onClick={onEndGame} />
             )}
-            <BackToClubButton iconOnly onClick={onRequestBackToClub} />
+            <BackToClubButton label={null} onClick={onRequestBackToClub} />
           </div>
         )}
 

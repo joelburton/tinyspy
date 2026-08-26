@@ -2,6 +2,7 @@
 
 import { type ReactNode } from 'react'
 import { BlockingModal } from './BlockingModal'
+import { StandardButton } from '../buttons/StandardButton'
 
 type Props = {
   /** The titlebar headline, e.g. "No more puzzles". */
@@ -43,9 +44,7 @@ export function AcknowledgeBlockingModal({
       title={title}
       onClose={onAcknowledge}
       actions={
-        <button type="button" className="button primary" onClick={onAcknowledge} autoFocus>
-          {okLabel}
-        </button>
+        <StandardButton name={okLabel} weight="primary" onClick={onAcknowledge} autoFocus />
       }
     >
       <p>{message}</p>

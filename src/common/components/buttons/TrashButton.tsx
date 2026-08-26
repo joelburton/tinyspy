@@ -1,7 +1,7 @@
 // cs-audited
 
 import { IconTrash } from '../icons'
-import { ActionButton, type PurposeButtonProps } from './ActionButton'
+import { StandardButton, type PurposeButtonProps } from './StandardButton'
 
 /**
  * DESTROY this thing — a game, and whatever else earns one later.
@@ -16,6 +16,11 @@ import { ActionButton, type PurposeButtonProps } from './ActionButton'
  * a trash can means *destroy this*, and the two acts are only a pixel apart on
  * screen while being nothing alike in consequence.
  */
-export function TrashButton({ label = 'Delete', ...rest }: PurposeButtonProps) {
-  return <ActionButton icon={IconTrash} label={label} tone="destructive" {...rest} />
+export function TrashButton({
+  name = 'Delete',
+  icon = IconTrash,
+  tone = 'destructive',
+  ...rest
+}: PurposeButtonProps) {
+  return <StandardButton name={name} icon={icon} tone={tone} {...rest} />
 }

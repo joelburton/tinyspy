@@ -7,7 +7,7 @@ import { setWordEdit, type WordEditRequest } from '../../lib/definitions/wordEdi
 import { useConfirmation } from '../../hooks/ui/useConfirmation'
 import { FloatingPanel } from '../floating-panels/FloatingPanel'
 import styles from './WordEditDialog.module.css'
-import { cls } from '../../lib/util/cls'
+import { StandardButton } from '../buttons/StandardButton'
 
 /**
  * The dictionary-curation form — edit an existing word, or add one (the
@@ -307,18 +307,21 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
         {error && <p className={styles.error}>{error}</p>}
         <div className={styles.actions}>
           {editing && (
-            <button
-              type="button"
-              className={cls('button', 'secondary', styles.deleteButton)}
+            <StandardButton
+              name="Delete"
+              tone="destructive"
+              className={styles.deleteButton}
               onClick={() => void onDelete()}
               disabled={busy || initial === null}
-            >
-              Delete
-            </button>
+            />
           )}
-          <button type="submit" className={cls('button', 'primary', styles.saveButton)} disabled={busy || initial === null}>
-            Save
-          </button>
+          <StandardButton
+            name="Save"
+            type="submit"
+            weight="primary"
+            className={styles.saveButton}
+            disabled={busy || initial === null}
+          />
         </div>
       </form>
       {confirmationModal}

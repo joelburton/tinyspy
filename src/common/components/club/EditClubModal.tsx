@@ -8,6 +8,8 @@ import { FloatingPanel } from '../floating-panels/FloatingPanel'
 import { ModePill } from '../game/ModePill'
 import actionRow from '../floating-panels/modalActions.module.css'
 import styles from './EditClubModal.module.css'
+import { StandardButton } from '../buttons/StandardButton'
+import { CancelButton } from '../buttons/CancelButton'
 
 type Props = {
   /** Club being edited. */
@@ -124,17 +126,14 @@ export function EditClubModal({
 
       {error && <p className="error">{error}</p>}
       <div className={actionRow.modalActions}>
-        <button
-          type="button"
-          className="button secondary"
-          onClick={onCancel}
+        <CancelButton onClick={onCancel} disabled={busy} />
+        <StandardButton
+          name={busy ? 'Saving…' : 'Save'}
+          weight="primary"
+          onClick={handleSave}
           disabled={busy}
-        >
-          Cancel
-        </button>
-        <button type="button" className="button primary" onClick={handleSave} disabled={busy} autoFocus>
-          {busy ? 'Saving…' : 'Save'}
-        </button>
+          autoFocus
+        />
       </div>
     </FloatingPanel>
   )

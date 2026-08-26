@@ -6,6 +6,7 @@ import { Dot } from '../text/Dot'
 import { BackToClubButton } from '../buttons/BackToClubButton'
 import { EndGameButton } from '../buttons/EndGameButton'
 import styles from './PauseOverlay.module.css'
+import { StandardButton } from '../buttons/StandardButton'
 
 type Props = {
   /** The full presence-pause roster — every player we're waiting on
@@ -124,12 +125,10 @@ export function PauseOverlay({
         {(onResume && manuallyPausedBy) || onReturnToClub || onEndGame ? (
           <div className={styles.actions}>
             {onResume && manuallyPausedBy && (
-              <button type="button" className="button primary" onClick={onResume}>
-                Resume
-              </button>
+              <StandardButton name="Resume" weight="primary" onClick={onResume} />
             )}
             {onReturnToClub && (
-              <BackToClubButton onClick={onReturnToClub} label="Suspend and return to club" />
+              <BackToClubButton onClick={onReturnToClub} name="Suspend and return to club" />
             )}
             {onEndGame && <EndGameButton onClick={onEndGame} />}
           </div>

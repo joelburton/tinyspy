@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { IconWordCheck } from '../icons'
-import { ActionButton, type PurposeButtonProps } from './ActionButton'
+import { StandardButton, type PurposeButtonProps } from './StandardButton'
 
 /**
  * Check-my-own-work button — asks the server whether the board in front of you
@@ -19,6 +19,11 @@ import { ActionButton, type PurposeButtonProps } from './ActionButton'
  * setup: the setup option governs when the SERVER enforces words, not whether
  * you may ask about your own board.
  */
-export function WordCheckButton({ label = 'Check words', ...rest }: PurposeButtonProps) {
-  return <ActionButton icon={IconWordCheck} label={label} tone="normal" {...rest} />
+export function WordCheckButton({
+  name = 'Check words',
+  icon = IconWordCheck,
+  tone = 'normal',
+  ...rest
+}: PurposeButtonProps) {
+  return <StandardButton name={name} icon={icon} tone={tone} {...rest} />
 }

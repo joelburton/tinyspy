@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react'
 import { BlockingModal } from '../floating-panels/BlockingModal'
 import styles from './CelebrationBlockingModal.module.css'
-import { cls } from '../../lib/util/cls'
+import { StandardButton } from '../buttons/StandardButton'
 
 // Festive glyphs the keyframes animate in. Mixed sizes/rotations (via the
 // per-piece stagger) keep the cluster feeling chaotic rather than tidy.
@@ -95,14 +95,12 @@ export function CelebrationBlockingModal({
       actions={
         <>
           {primary && (
-            <button
-              type="button"
+            <StandardButton
+              name={primary.label}
               ref={focusRef}
-              className={cls('button', 'primary', styles.button, styles.primary)}
+              weight="primary"
               onClick={primary.onClick}
-            >
-              {primary.label}
-            </button>
+            />
           )}
           {/* "Nice!" is the DISMISS when there's an action beside it, and the
               ACTION when it's alone — so the dialog always has exactly one
@@ -110,14 +108,12 @@ export function CelebrationBlockingModal({
               (docs/ui.md → Dialog buttons): the thing you're being offered is
               filled, the way out is the outline. A celebration with only a
               gray outline button undersells itself. */}
-          <button
-            type="button"
+          <StandardButton
+            name="Nice!"
             ref={primary ? undefined : focusRef}
-            className={cls('button', primary ? 'secondary' : 'primary', styles.button)}
+            weight={primary ? 'secondary' : 'primary'}
             onClick={onClose}
-          >
-            Nice!
-          </button>
+          />
         </>
       }
     >

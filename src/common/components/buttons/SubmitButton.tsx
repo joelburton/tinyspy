@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { IconSubmit } from '../icons'
-import { ActionButton, type PurposeButtonProps } from './ActionButton'
+import { StandardButton, type PurposeButtonProps } from './StandardButton'
 
 /**
  * Submit-a-move button — the up-pointing triangle (the canonical "send my move"
@@ -12,6 +12,11 @@ import { ActionButton, type PurposeButtonProps } from './ActionButton'
  * state that swaps the label to "Submitting…" and auto-disables), it lands HERE
  * — the file already exists and every call site already routes through it.
  */
-export function SubmitButton({ label = 'Submit', ...rest }: PurposeButtonProps) {
-  return <ActionButton icon={IconSubmit} label={label} weight="primary" {...rest} />
+export function SubmitButton({
+  name = 'Submit',
+  icon = IconSubmit,
+  weight = 'primary',
+  ...rest
+}: PurposeButtonProps) {
+  return <StandardButton name={name} icon={icon} weight={weight} {...rest} />
 }

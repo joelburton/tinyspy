@@ -294,28 +294,28 @@ describe('CSS custom-property tokens', () => {
  * anything.
  */
 describe('button shape and treatment are separate', () => {
-  const BUTTON_CSS = join(SRC, 'common/patterns/button.css')
+  const BUTTON_CSS = join(SRC, 'common/components/buttons/StandardButton.module.css')
 
-  /** The declarations of a top-level rule in button.css, by exact selector. */
+  /** The declarations of a top-level rule in the module, by exact selector. */
   const ruleBody = (selector: string) => {
     const css = stripComments(readFileSync(BUTTON_CSS, 'utf8'))
     const m = new RegExp(`(^|\\})\\s*${selector.replace(/[.]/g, '\\.')}\\s*\\{([^}]*)\\}`, 'm').exec(css)
-    expect(m, `button.css has no \`${selector}\` rule`).not.toBeNull()
+    expect(m, `StandardButton.module.css has no \`${selector}\` rule`).not.toBeNull()
     return m![2]
   }
 
   const PAINT = /(^|;)\s*(background|color|border-color)\s*:/
 
-  it('.button paints nothing — no background, color or border-color', () => {
-    const body = ruleBody('.button')
+  it('.standardButton paints nothing — no background, color or border-color', () => {
+    const body = ruleBody('.standardButton')
     const paints = body
       .split(';')
       .map((d) => d.trim())
       .filter((d) => PAINT.test(`;${d}`))
     expect(
       paints,
-      `\`.button\` is the SHAPE only. Color belongs to \`.primary\` / \`.secondary\`, ` +
-        `or an unmarked \`.button\` silently means one of them:\n${paints.join('\n')}`,
+      `\`.standardButton\` is the SHAPE only. Color belongs to \`.primary\` / ` +
+        `\`.secondary\`, or an unmarked button silently means one of them:\n${paints.join('\n')}`,
     ).toEqual([])
   })
 
@@ -333,29 +333,37 @@ describe('button shape and treatment are separate', () => {
   })
 
   /**
-   * The markup half. `ActionButton` composes the class from its typed `weight`
-   * (`'primary' | 'secondary'`), so the treatment is named by a variable rather
-   * than a literal — accepted here, and better than a literal: add a third
-   * weight and it arrives needing a class rather than defaulting into one.
+   * The markup half, inverted by the move to a component. There is no longer a
+   * global `.button` class for a call site to compose — `<StandardButton>` emits
+   * the shape class and its treatment together, from a typed `weight` that has
+   * no unmarked default. So the thing worth pinning is that the escape hatch
+   * stayed shut: nothing outside the button's own folder writes those class
+   * names by hand.
+   *
+   * `SubmitWithScore` is the one exception and is named here rather than
+   * silently allowed — it wants the standard chrome with a different internal
+   * layout, and what to do about that is scrabble's to decide
+   * (docs/games/scrabble.md → Deferred).
    */
-  it('every button carrying `.button` also names its treatment', () => {
+  it('nobody re-implements the button by hand-composing its classes', () => {
+    const ALLOWED = ['common/components/buttons/']
     const offenders: string[] = []
     for (const f of walk(SRC, ['.tsx']).filter((f) => !f.endsWith('.test.tsx'))) {
+      if (ALLOWED.some((a) => rel(f).includes(a))) continue
       const src = stripComments(readFileSync(f, 'utf8'))
       for (const m of src.matchAll(/className=(\{(?:[^{}]|\{[^{}]*\})*\}|"[^"]*")/g)) {
         const expr = m[1]
-        // the `button` CLASS — a bare token in a string, not `type="button"`
-        // and not a `styles.button` module class.
-        if (!/['"`](?:[\w- ]*\s)?button(?:\s[\w- ]*)?['"`]/.test(expr)) continue
-        if (/\bprimary\b|\bsecondary\b|\bweight\b/.test(expr)) continue
+        // A bare `button` / `primary` / `secondary` token in a class STRING —
+        // not `type="button"`, and not a `styles.x` module class.
+        if (!/['"`](?:[\w- ]*\s)?(?:button|primary|secondary)(?:\s[\w- ]*)?['"`]/.test(expr)) continue
         const line = src.slice(0, m.index).split('\n').length
         offenders.push(`${rel(f)}:${line}  ${expr.replace(/\s+/g, ' ').slice(0, 80)}`)
       }
     }
     expect(
       offenders,
-      `A \`.button\` with no treatment is a shape with no color. Add \`primary\` ` +
-        `(filled) or \`secondary\` (outline):\n${offenders.join('\n')}`,
+      `These compose a button's classes by hand. Render \`<StandardButton>\` (or a ` +
+        `purpose button) instead — the classes are its module's now:\n${offenders.join('\n')}`,
     ).toEqual([])
   })
 })

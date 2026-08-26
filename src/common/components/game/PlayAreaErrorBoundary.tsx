@@ -3,6 +3,7 @@
 import { Component, type ReactNode } from 'react'
 import { ErrorPage } from '../loading-and-errs/ErrorPage'
 import { logStamp } from '../../lib/supabase/realtimeDiag'
+import { StandardButton } from '../buttons/StandardButton'
 
 /**
  * Error boundary around the play surface — the only boundary in the app.
@@ -48,9 +49,7 @@ export class PlayAreaErrorBoundary extends Component<
         message={this.state.error.message}
         diagnostics={`play area — key=render-crashed detail="${this.state.error.name}" — ${logStamp()}`}
         action={
-          <button type="button" className="button primary" onClick={() => window.location.reload()}>
-            Reload
-          </button>
+          <StandardButton name="Reload" weight="primary" onClick={() => window.location.reload()} />
         }
       />
     )

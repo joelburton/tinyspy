@@ -50,11 +50,14 @@ test.describe('codenamesduet mobile', () => {
     expect(m.sw).toBeLessThanOrEqual(m.iw + 1)
     expect(m.sh).toBeLessThanOrEqual(m.ih + 1)
 
-    // The below-board action buttons are icon-only on a phone (label → aria-label,
-    // `icon-only` class, no visible text).
+    // The below-board action buttons are icon-only on a phone: still NAMED (which
+    // is how getByRole finds them, and what the tooltip says), but drawing no
+    // text. Asserted as the absence of text rather than the presence of a class —
+    // the class moved into a CSS module and is hashed at build time, so a name
+    // pattern would pin the bundler's output instead of the behavior.
     // exact: true — loose names collide with board tiles ("AI" ⊂ "CHAIN"/"HAIR").
-    await expect(page.getByRole('button', { name: 'Submit', exact: true })).toHaveClass(/icon-only/)
-    await expect(page.getByRole('button', { name: 'AI', exact: true })).toHaveClass(/icon-only/)
+    await expect(page.getByRole('button', { name: 'Submit', exact: true })).toHaveText('')
+    await expect(page.getByRole('button', { name: 'AI', exact: true })).toHaveText('')
 
     // Feedback drops the player NAME to just the identity dot on a phone (the
     // ActorDot/ActorTag `show="auto"` behavior). The header pill's peer name is in

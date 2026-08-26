@@ -1,6 +1,7 @@
 // cs-unmet
 
 import styles from './ScrabbleBlankPickerBlockingModal.module.css'
+import { CancelButton } from '../../common/components/buttons/CancelButton'
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')
 
@@ -34,9 +35,7 @@ export function ScrabbleBlankPickerBlockingModal({
             </button>
           ))}
         </div>
-        <button type="button" className="button secondary" onClick={onCancel}>
-          Cancel
-        </button>
+        <CancelButton onClick={onCancel} />
       </div>
     </div>
   )

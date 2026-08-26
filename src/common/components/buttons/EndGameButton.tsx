@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { IconEnd } from '../icons'
-import { ActionButton, type PurposeButtonProps } from './ActionButton'
+import { StandardButton, type PurposeButtonProps } from './StandardButton'
 
 /**
  * End-the-game button — the manual "we're done" stop for solo / coop. The
@@ -21,6 +21,11 @@ import { ActionButton, type PurposeButtonProps } from './ActionButton'
  * everywhere this is used) will move INTO this component later — which is exactly
  * why it's its own file from the start.
  */
-export function EndGameButton({ label = 'End game', ...rest }: PurposeButtonProps) {
-  return <ActionButton icon={IconEnd} label={label} tone="destructive" {...rest} />
+export function EndGameButton({
+  name = 'End game',
+  icon = IconEnd,
+  tone = 'destructive',
+  ...rest
+}: PurposeButtonProps) {
+  return <StandardButton name={name} icon={icon} tone={tone} {...rest} />
 }

@@ -182,33 +182,33 @@ export function InfoCol({
             nothing autoreveals — a finished board keeps its unfound words until
             the players ask. PLAYING: End + back-to-club. */}
         {over ? (
-          <TerminalActionRow over={over} onBackToClub={onBackToClub} iconOnly>
+          <TerminalActionRow over={over} onBackToClub={onBackToClub} backLabel={null}>
             <RevealButton
-              iconOnly
-              label="Reveal answer"
-              revealedLabel="Hide answer"
+              label={null}
+              name="Reveal answer"
+              revealedName="Hide answer"
               revealed={solutionShown}
               alreadyShown={solutionAlreadyShown}
               onClick={onReveal}
             />
-            <RestartButton iconOnly onClick={onRestart} />
-            <NewGameButton iconOnly onClick={onNewGame} disabled={startingNewGame} />
+            <RestartButton label={null} onClick={onRestart} />
+            <NewGameButton label={null} onClick={onNewGame} disabled={startingNewGame} />
           </TerminalActionRow>
         ) : isLocallyDone ? (
           /* Compete, my race over while the others play on: the terminal LOOK
              (a status line + a disabled action), so the frozen board has an
              explanation beside it. */
           <LocalTerminalRow label={iSolved ? 'You solved it — waiting' : 'You conceded'}>
-            <ConcedeGameButton iconOnly className={shared.helperButton} disabled />
+            <ConcedeGameButton label={null} className={shared.helperButton} disabled />
           </LocalTerminalRow>
         ) : (
           <div className={shared.infoActions}>
             {isCompete ? (
-              <ConcedeGameButton iconOnly className={shared.helperButton} onClick={onConcede} />
+              <ConcedeGameButton label={null} className={shared.helperButton} onClick={onConcede} />
             ) : (
-              <EndGameButton iconOnly className={shared.helperButton} onClick={onEndGame} />
+              <EndGameButton label={null} className={shared.helperButton} onClick={onEndGame} />
             )}
-            <BackToClubButton iconOnly onClick={onBackToClub} />
+            <BackToClubButton label={null} onClick={onBackToClub} />
           </div>
         )}
 

@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react'
 import { FloatingPanel, HELP_RECT_KEY } from '../floating-panels/FloatingPanel'
 import styles from './GameHelpCompanion.module.css'
+import { StandardButton } from '../buttons/StandardButton'
 
 type Props = {
   /** The game's user-facing brand — the title reads "How to play {brand}". */
@@ -53,9 +54,7 @@ export function GameHelpCompanion({
     >
       {children}
       <div className={styles.gotItRow}>
-        <button type="button" className="button primary" autoFocus onClick={onClose}>
-          Got it
-        </button>
+        <StandardButton name="Got it" weight="primary" autoFocus onClick={onClose} />
       </div>
     </FloatingPanel>
   )

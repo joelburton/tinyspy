@@ -3,6 +3,7 @@
 import type { ButtonHTMLAttributes } from 'react'
 import { IconSubmit } from '../icons'
 import { cls } from '../../lib/util/cls'
+import sb from './StandardButton.module.css'
 import styles from './SubmitWithScore.module.css'
 
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -33,11 +34,20 @@ export function SubmitWithScore({ score, className, ...rest }: Props) {
     <button
       type="button"
       aria-label="Submit"
-      className={cls('button', 'primary', styles.button, className)}
+      // It borrows `<StandardButton>`'s OWN classes rather than composing global
+      // ones, because there are no global ones any more — the standard button's
+      // look lives in its module. This is the one control in the app that wants
+      // that look with a different internal layout, so it reaches next door for
+      // the chrome and supplies its own row.
+      //
+      // That reach is the reason this is filed as scrabble's to decide
+      // (docs/games/scrabble.md → Deferred): the answer may be a shared prop, or
+      // may be that scrabble keeps a shape of its own.
+      className={cls(sb.standardButton, sb.primary, sb.normal, styles.button, className)}
       onMouseDown={(e) => e.preventDefault()}
       {...rest}
     >
-      <IconSubmit size={18} aria-hidden />
+      <IconSubmit aria-hidden />
       <span className={styles.score}>{score === null ? '—' : `+${score}`}</span>
     </button>
   )

@@ -144,9 +144,9 @@ export function InfoCol({
   // Icon-only (the canonical action-row treatment): the styled tooltip carries
   // the label.
   const endButton = isCompete ? (
-    <ConcedeGameButton iconOnly onClick={onConcede} className={shared.helperButton} disabled={myConceded} />
+    <ConcedeGameButton label={null} onClick={onConcede} className={shared.helperButton} disabled={myConceded} />
   ) : (
-    <EndGameButton iconOnly onClick={onEndGame} className={shared.helperButton} />
+    <EndGameButton label={null} onClick={onEndGame} className={shared.helperButton} />
   )
 
   // Turn-order: is it my turn (or a free-for-all game, pointer null)? Only used
@@ -204,21 +204,21 @@ export function InfoCol({
             LOOK (a bold status line + the action on the right) so the state change
             reads loudly, not as a silently-swapped help line. */}
         {over ? (
-          <TerminalActionRow over={over} onBackToClub={onBackToClub} iconOnly>
+          <TerminalActionRow over={over} onBackToClub={onBackToClub} backLabel={null}>
             {/* Stay-here options left of the leave option (Club): hunt this board
                 again, or deal a new one. */}
             {/* Reveal first: it acts on THIS finished board. Restart / New game
                 are both "move on", and they leave. */}
             <RevealButton
-              iconOnly
-              label="Reveal secrets"
-              revealedLabel="Hide secrets"
+              label={null}
+              name="Reveal secrets"
+              revealedName="Hide secrets"
               revealed={secretsShown}
               alreadyShown={secretsAlreadyShown}
               onClick={onReveal}
             />
-            <RestartButton iconOnly onClick={onRestart} />
-            <NewGameButton iconOnly onClick={onNewGame} disabled={startingNewGame} />
+            <RestartButton label={null} onClick={onRestart} />
+            <NewGameButton label={null} onClick={onNewGame} disabled={startingNewGame} />
           </TerminalActionRow>
         ) : canGuess ? (
           <div className={shared.infoActions}>
@@ -228,8 +228,8 @@ export function InfoCol({
                 lightbulb-vs-bare-eye glyph is what separates them. The boxed-eye
                 RevealButton is a different thing entirely (the whole solution,
                 terminal only) and never appears in this row. */}
-            <HintButton iconOnly onClick={onHint} disabled={hinting} className={shared.helperButton} />
-            <SpoilerButton iconOnly onClick={onSpoiler} disabled={spoiling} className={shared.helperButton} />
+            <HintButton label={null} onClick={onHint} disabled={hinting} className={shared.helperButton} />
+            <SpoilerButton label={null} onClick={onSpoiler} disabled={spoiling} className={shared.helperButton} />
             {endButton}
           </div>
         ) : (
@@ -240,7 +240,7 @@ export function InfoCol({
                 a player who dropped out can't spoil a live race. Present
                 rather than absent so the row doesn't change shape when the
                 last racer finishes — the button is simply enabled then. */}
-            <RevealButton iconOnly disabled tooltip="Can't reveal until all end" />
+            <RevealButton label={null} disabled tooltip="Can't reveal until all end" />
             {endButton}
           </LocalTerminalRow>
         )}

@@ -21,6 +21,7 @@ import { PageHeaderMenu } from '../page-header/PageHeaderMenu'
 import { useAccountMenuSection } from '../../hooks/account/useAccountMenuSection'
 import { useAppShortcuts } from '../../hooks/input/useAppShortcuts'
 import styles from './HomePage.module.css'
+import button from '../buttons/StandardButton.module.css'
 
 type ClubListEntry = {
   handle: string
@@ -185,12 +186,21 @@ export function HomePage({ session }: Props) {
               the uncommon path (most users land here, click into an
               existing club, go play) — which is the `quiet` tone, and
               the outline treatment says it isn't the obvious action.
-              Nothing about it is special, so it has no class of its
-              own: quiet + outline + small, and `.button` covers the
-              rest whether it's a <button> or a link. */}
+
+              A LINK WEARING THE BUTTON'S OWN CLASSES, which is a
+              stopgap and is written as one. A link is not a button
+              (Joel, 2026-08-25), and this stops being one at F36
+              (`createclub-modal`), when creating a club becomes a modal
+              and this becomes a real `<StandardButton>`. Until then it
+              borrows the module directly — there is no global button
+              class left to compose, and an unstyled text link here
+              would be a visible regression on an audited page. */}
           <header className="heading-with-controls">
             <h3>Your clubs</h3>
-            <Link to="/c/new" className={cls('button', 'secondary', 'button-small')}>
+            <Link
+              to="/c/new"
+              className={cls(button.standardButton, button.secondary, button.quiet, button.small)}
+            >
               + New club
             </Link>
           </header>

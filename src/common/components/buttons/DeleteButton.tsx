@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { IconDelete } from '../icons'
-import { ActionButton, type PurposeButtonProps } from './ActionButton'
+import { StandardButton, type PurposeButtonProps } from './StandardButton'
 
 /**
  * Delete / backspace button — removes the last typed character. The `IconDelete`
@@ -10,8 +10,14 @@ import { ActionButton, type PurposeButtonProps } from './ActionButton'
  * same size as its neighbours regardless. Secondary weight. Default label
  * "Delete".
  */
-export function DeleteButton({ label = 'Delete', ...rest }: PurposeButtonProps) {
-  return (
-    <ActionButton icon={IconDelete} label={label} iconSize={22} {...rest} />
-  )
+export function DeleteButton({
+  name = 'Delete',
+  icon = IconDelete,
+  // The delete glyph reads denser and smaller than most, so it is bumped for
+  // every consumer here, once. A multiplier rather than a pixel size: it stays
+  // right if the button is `small`, where the old fixed 22 did not.
+  iconScale = 1.2,
+  ...rest
+}: PurposeButtonProps) {
+  return <StandardButton name={name} icon={icon} iconScale={iconScale} {...rest} />
 }

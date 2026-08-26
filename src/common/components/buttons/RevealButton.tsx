@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { IconHideSolution, IconReveal } from '../icons'
-import { ActionButton, type PurposeButtonProps } from './ActionButton'
+import { StandardButton, type PurposeButtonProps } from './StandardButton'
 
 /**
  * Reveal-the-solution button — uncovers the WHOLE hidden answer of a finished
@@ -36,29 +36,27 @@ import { ActionButton, type PurposeButtonProps } from './ActionButton'
 export function RevealButton({
   revealed = false,
   alreadyShown = false,
-  label = 'Reveal',
-  revealedLabel = 'Hide',
+  name = 'Reveal',
+  revealedName = 'Hide',
+  icon,
+  tone = 'destructive',
   disabled,
-  tooltip,
   ...rest
 }: PurposeButtonProps & {
-  /** Is the solution on screen right now? Swaps glyph + label to the hide face. */
+  /** Is the solution on screen right now? Swaps glyph + name to the hide face. */
   revealed?: boolean
   /** Is it on screen because this player SOLVED it, rather than by their own
    *  press? Renders the inert "Solution already shown" face. */
   alreadyShown?: boolean
-  /** The label for the hide face; `label` names the reveal face. */
-  revealedLabel?: string
+  /** What the hide face is called; `name` names the reveal face. */
+  revealedName?: string
 }) {
-  // One string for both faces of "inert": it's the icon-only button's
-  // accessible name AND its hover bubble, so they can't say different things.
-  const shownLabel = alreadyShown
-    ? 'Solution already shown'
-    : revealed
-      ? revealedLabel
-      : label
+  // One string for all three faces: it is what the button is called, which is
+  // also what an icon-only one announces and what its bubble says, so they
+  // cannot drift apart.
+  const shownName = alreadyShown ? 'Solution already shown' : revealed ? revealedName : name
   return (
-    <ActionButton
+    <StandardButton
       // The inert face keeps the VIEW glyph, not EyeOff. Both readings are
       // technically true — you can't hide what the win put there, and you can't
       // show what's already shown — but a player who never pressed Reveal has
@@ -66,14 +64,13 @@ export function RevealButton({
       // reads as a state they don't recognize. The plain eye, grayed, says the
       // thing they'd expect: showing the solution isn't available, because it's
       // already here.
-      icon={revealed && !alreadyShown ? IconHideSolution : IconReveal}
-      label={shownLabel}
-      tone="destructive"
+      name={shownName}
+      icon={icon ?? (revealed && !alreadyShown ? IconHideSolution : IconReveal)}
+      tone={tone}
       // Present but inert, never absent — the row must not change shape between
       // a solved game and a lost one (docs/ui.md → Layout stability), and "there
       // is nothing to do here" beats a control that vanished.
       disabled={disabled ?? alreadyShown}
-      tooltip={tooltip}
       {...rest}
     />
   )

@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { IconPeel } from '../icons'
-import { ActionButton, type PurposeButtonProps } from './ActionButton'
+import { StandardButton, type PurposeButtonProps } from './StandardButton'
 
 /**
  * bananagrams' "Peel" — the game's PRIMARY move: draw a fresh round of tiles
@@ -16,6 +16,11 @@ import { ActionButton, type PurposeButtonProps } from './ActionButton'
  * `<button className="...">`). Default label "Peel"; the game passes a fuller
  * label ("Peel! 🍌" / "Place all your tiles") to reflect the enabled state.
  */
-export function PeelButton({ label = 'Peel', ...rest }: PurposeButtonProps) {
-  return <ActionButton icon={IconPeel} label={label} weight="primary" {...rest} />
+export function PeelButton({
+  name = 'Peel',
+  icon = IconPeel,
+  weight = 'primary',
+  ...rest
+}: PurposeButtonProps) {
+  return <StandardButton name={name} icon={icon} weight={weight} {...rest} />
 }

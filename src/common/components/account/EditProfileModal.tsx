@@ -9,6 +9,8 @@ import { ColorChoiceList } from './ColorChoiceList'
 import { FloatingPanel } from '../floating-panels/FloatingPanel'
 import actionRow from '../floating-panels/modalActions.module.css'
 import styles from './EditProfileModal.module.css'
+import { StandardButton } from '../buttons/StandardButton'
+import { CancelButton } from '../buttons/CancelButton'
 
 type Props = {
   session: Session
@@ -87,23 +89,14 @@ export function EditProfileModal({ session, onSaved, onCancel }: Props) {
         {error && <p className="error">{error}</p>}
 
         <div className={actionRow.modalActions}>
-          <button
-            type="button"
-            className="button secondary"
-            onClick={onCancel}
-            disabled={busy}
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            className="button primary"
+          <CancelButton onClick={onCancel} disabled={busy} />
+          <StandardButton
+            name={busy ? 'Saving…' : 'Save'}
+            weight="primary"
             onClick={handleSave}
             disabled={busy || !selected}
             autoFocus
-          >
-            {busy ? 'Saving…' : 'Save'}
-          </button>
+          />
         </div>
       </div>
     </FloatingPanel>

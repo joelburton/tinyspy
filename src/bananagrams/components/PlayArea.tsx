@@ -594,8 +594,8 @@ export function PlayArea(ctx: GamePageCtx) {
   // "you're out" row keeps Club alone — the race is still running, so offering
   // to start a different game there would be a distraction.
   const infoActions = over ? (
-    <TerminalActionRow over={over} onBackToClub={ctx.goToClub} iconOnly>
-      <NewGameButton iconOnly onClick={handleNewGame} disabled={startingNewGame} />
+    <TerminalActionRow over={over} onBackToClub={ctx.goToClub} backLabel={null}>
+      <NewGameButton label={null} onClick={handleNewGame} disabled={startingNewGame} />
     </TerminalActionRow>
   ) : isConceded ? (
     // No Concede button to carry: bananagrams' conceded row is the status line
@@ -606,8 +606,8 @@ export function PlayArea(ctx: GamePageCtx) {
     // Concede drops just you (a loss, and the others race on). End sits first
     // because it's the gentler of the two.
     <>
-      <EndGameButton iconOnly onClick={() => void handleEndGame()} className={shared.helperButton} />
-      <ConcedeGameButton iconOnly onClick={() => void handleConcede()} className={shared.helperButton} />
+      <EndGameButton label={null} onClick={() => void handleEndGame()} className={shared.helperButton} />
+      <ConcedeGameButton label={null} onClick={() => void handleConcede()} className={shared.helperButton} />
     </>
   )
 

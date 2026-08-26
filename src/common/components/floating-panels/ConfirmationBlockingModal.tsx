@@ -2,6 +2,8 @@
 
 import { type ReactNode } from 'react'
 import { BlockingModal } from './BlockingModal'
+import { StandardButton } from '../buttons/StandardButton'
+import { CancelButton } from '../buttons/CancelButton'
 
 type Props = {
   /** The titlebar question, e.g. "End this game?". */
@@ -63,22 +65,18 @@ export function ConfirmationBlockingModal({
       onClose={onCancel}
       actions={
         <>
-          <button
-            type="button"
-            className={`button ${confirmIsPrimary ? 'secondary' : 'primary'}`}
+          <CancelButton
+            name={cancelLabel}
+            weight={confirmIsPrimary ? 'secondary' : 'primary'}
             onClick={onCancel}
             autoFocus={!confirmIsPrimary}
-          >
-            {cancelLabel}
-          </button>
-          <button
-            type="button"
-            className={`button ${confirmIsPrimary ? 'primary' : 'secondary'}`}
+          />
+          <StandardButton
+            name={confirmLabel}
+            weight={confirmIsPrimary ? 'primary' : 'secondary'}
             onClick={onConfirm}
             autoFocus={confirmIsPrimary}
-          >
-            {confirmLabel}
-          </button>
+          />
         </>
       }
     >

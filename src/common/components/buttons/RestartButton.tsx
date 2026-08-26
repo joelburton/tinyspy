@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { IconRestart } from '../icons'
-import { ActionButton, type PurposeButtonProps } from './ActionButton'
+import { StandardButton, type PurposeButtonProps } from './StandardButton'
 
 /**
  * Restart-the-board button — start THIS board over from scratch (same
@@ -11,6 +11,11 @@ import { ActionButton, type PurposeButtonProps } from './ActionButton'
  * it. Label is always **"Restart"**; waffle's terminal action row is the first
  * user.
  */
-export function RestartButton({ label = 'Restart', ...rest }: PurposeButtonProps) {
-  return <ActionButton icon={IconRestart} label={label} tone="normal" {...rest} />
+export function RestartButton({
+  name = 'Restart',
+  icon = IconRestart,
+  tone = 'normal',
+  ...rest
+}: PurposeButtonProps) {
+  return <StandardButton name={name} icon={icon} tone={tone} {...rest} />
 }

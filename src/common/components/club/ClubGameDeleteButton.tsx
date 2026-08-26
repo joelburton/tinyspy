@@ -66,7 +66,7 @@ export function ClubGameDeleteButton({ onDelete }: Props) {
     }
   }
 
-  const label =
+  const name =
     state === 'idle'
       ? 'Delete game'
       : state === 'confirming'
@@ -79,18 +79,21 @@ export function ClubGameDeleteButton({ onDelete }: Props) {
     // file is left holding only what is genuinely its own: where the button
     // sits, when it is visible, and the two-step state.
     //
-    // `iconOnly` IS the shape change. At rest it is a trash can in a fixed
-    // square; once you press it the same button grows a label beside the same
-    // glyph, so the thing that expands is visibly the thing you clicked rather
-    // than a pill that replaced it.
+    // DRAWING THE LABEL IS THE SHAPE CHANGE. At rest the label is suppressed and
+    // it is a trash can in a fixed square; once you press it the same button
+    // draws its name beside the same glyph, so the thing that expands is visibly
+    // the thing you clicked rather than a pill that replaced it.
+    //
+    // `small` is a prop now, and it brings the whole small button with it: the
+    // tighter padding, the smaller type, a glyph that follows them both, and the
+    // 1.6rem icon-only box this file used to set by hand. The crushed trash can
+    // came from `.button-small` and `.icon-only` being two loose classes whose
+    // padding fought on declaration order — there is nothing left here to fight.
     <TrashButton
-      label={label}
-      iconOnly={state === 'idle'}
-      className={cls(
-        'button-small',
-        styles.deleteButton,
-        state !== 'idle' && styles.deleteButtonActive,
-      )}
+      name={name}
+      label={state === 'idle' ? null : undefined}
+      small
+      className={cls(styles.deleteButton, state !== 'idle' && styles.deleteButtonActive)}
       onClick={handleClick}
       disabled={state === 'deleting'}
     />

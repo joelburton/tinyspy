@@ -3,6 +3,7 @@
 import { cls } from '../../lib/util/cls'
 import { dismissToast, type Toast as ToastModel } from '../../lib/toast/toastStore'
 import styles from './Toast.module.css'
+import { StandardButton } from '../buttons/StandardButton'
 
 /**
  * One announcement card in the bottom-right toast stack (`<ToastHost>`). Dumb +
@@ -37,9 +38,12 @@ export function Toast({ toast }: { toast: ToastModel }) {
       )}
       <div className={styles.message}>{message}</div>
       {action && (
-        <button type="button" className={cls('button', 'primary', styles.action)} onClick={act}>
-          {action.label}
-        </button>
+        <StandardButton
+          name={action.label}
+          weight="primary"
+          className={styles.action}
+          onClick={act}
+        />
       )}
     </div>
   )

@@ -84,26 +84,13 @@
    a visible change and the intended one — a celebration is not special enough to
    arrange its buttons differently from every other card (Joel, 2026-08-25). */
 
-/* Both buttons are the shared `button primary` / `button secondary` (theme.css).
-   This module hand-rolled the pair — a white surface button plus its own blue
-   fill and hover — which is one dialog inventing a treatment the app already
-   has. The only thing left here is the roomier padding, because a celebration's
-   buttons are the whole content of a small dialog rather than one control in a
-   row, and a heavier label on the action you're being offered. */
-/* @@ */ .button {
-  padding: 0.55rem 1rem;
-}
+/* THE CELEBRATION'S BUTTONS ARE JUST BUTTONS (Joel, 2026-08-25). This module
+   used to give them roomier padding and a heavier label on the primary, on the
+   grounds that a win is a bigger moment — and it also kept a private copy of the
+   shared focus ring, flagged here since 2026-08-21 as something that shouldn't
+   exist. All three are gone: they are `<StandardButton>`s now and take the
+   standard treatment, ring included.
 
-/* @@ */ .primary {
-  font-weight: 600;
-}
-
-/* ⚠️ THIS SHOULDN'T BE HERE (Joel, 2026-08-21): a celebration's buttons are
-   buttons, and nothing about being in this dialog should make their focus ring
-   differ from the one a form's buttons get. It's a local copy of the shared
-   ring, and the shared version should own it. Fix when the dialogs get their
-   area (plans/css-system-2.md §13), not here. */
-/* @@ */ .button:focus-visible {
-  outline: var(--chrome-cursor-ring);
-  outline-offset: 2px;
-}
+   Visible consequence, accepted when the rule was set: this dialog's buttons are
+   smaller than they were. If a chunkier button is ever wanted it becomes a prop
+   on the standard button, not a local rule here. */

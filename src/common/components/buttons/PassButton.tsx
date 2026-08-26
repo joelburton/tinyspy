@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { IconEndTurn } from '../icons'
-import { ActionButton, type PurposeButtonProps } from './ActionButton'
+import { StandardButton, type PurposeButtonProps } from './StandardButton'
 
 /**
  * Pass / skip your turn, **de-emphasized** — the end-turn octagon at the default
@@ -15,6 +15,6 @@ import { ActionButton, type PurposeButtonProps } from './ActionButton'
  * as separate components so each reads consistently wherever it's used. Default
  * label "Pass".
  */
-export function PassButton({ label = 'Pass', ...rest }: PurposeButtonProps) {
-  return <ActionButton icon={IconEndTurn} label={label} tone="caution" {...rest} />
+export function PassButton({ name = 'Pass', icon = IconEndTurn, tone = 'caution', ...rest }: PurposeButtonProps) {
+  return <StandardButton name={name} icon={icon} tone={tone} {...rest} />
 }

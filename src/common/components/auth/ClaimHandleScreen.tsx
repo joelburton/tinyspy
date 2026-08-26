@@ -8,6 +8,8 @@ import { cls } from '../../lib/util/cls'
 import { defaultColorFor } from '../../lib/color/memberColor'
 import { ColorChoiceList } from '../account/ColorChoiceList'
 import styles from './ClaimHandleScreen.module.css'
+import { StandardButton } from '../buttons/StandardButton'
+import { CancelButton } from '../buttons/CancelButton'
 
 type Props = {
   /** Re-probe the profile table after the claim_username RPC
@@ -194,17 +196,17 @@ export function ClaimHandleScreen({ onClaimed, email }: Props) {
               rest of the app's chrome isn't mounted behind the needsClaim
               gate). Sits beside Accept now, styled as a real button. */}
           <div className={styles.buttonRow}>
-            <button
-              type="button"
-              className="button secondary"
+            <CancelButton
+              name="Not you? Sign out"
               disabled={busy}
               onClick={() => void handleSignOut()}
-            >
-              Not you? Sign out
-            </button>
-            <button type="submit" className="button primary" disabled={busy || !HANDLE_REGEX.test(desired)}>
-              {busy ? 'Setting up…' : 'Accept'}
-            </button>
+            />
+            <StandardButton
+              name={busy ? 'Setting up…' : 'Accept'}
+              type="submit"
+              weight="primary"
+              disabled={busy || !HANDLE_REGEX.test(desired)}
+            />
           </div>
         </form>
       </div>

@@ -7,6 +7,8 @@ import { db as commonDb } from '../../db'
 import { navigate } from '../../lib/routing/router'
 import styles from './CreateClubPage.module.css'
 import { cls } from '../../lib/util/cls'
+import { StandardButton } from '../buttons/StandardButton'
+import { CancelButton } from '../buttons/CancelButton'
 
 type Props = {
   session: Session
@@ -238,17 +240,13 @@ export function CreateClubPage({ session: _session }: Props) {
           {error && <p className="error">{error}</p>}
 
           <div className={styles.buttonRow}>
-            <button
-              type="button"
-              className="button secondary"
-              onClick={() => navigate('/')}
+            <CancelButton onClick={() => navigate('/')} disabled={busy} />
+            <StandardButton
+              name={busy ? 'Creating…' : 'Create club'}
+              type="submit"
+              weight="primary"
               disabled={busy}
-            >
-              Cancel
-            </button>
-            <button type="submit" className="button primary" disabled={busy}>
-              {busy ? 'Creating…' : 'Create club'}
-            </button>
+            />
           </div>
         </form>
       </div>

@@ -54,6 +54,10 @@ components/buttons/ActionButton.test.tsx  patterns/button.css
 patterns/segmented.css
 ```
 
+The first four are gone as of 2026-08-25 — see "What shipped" below. They are
+listed as they were when the roster was agreed, because the roster is a record of
+what was read, not of what currently exists.
+
 ### What was excluded, and why
 
 | excluded | goes to |
@@ -147,6 +151,154 @@ From `floating-panels`. **Superseded in substance by F31**: the finding as
 written ("five forms set monospace") describes a symptom. The five are not five
 independent choices — four of them are one unnamed field type, and the fifth is
 a deliberate exception. Resolve F31 and F13 goes with it.
+
+---
+
+# What shipped — `<StandardButton>`, 2026-08-25
+
+**F9's answer is "one component", and the distinction it removes was never
+real.** Joel: *"should we decide that ActionButton just means 'normal button'?
+… is there a reason, semantically or practically, to consider 'action button'
+separate from 'normal button'?"* There wasn't. `action` was already one of the
+fourteen KINDS in docs/ui.md, so the component had been named after its first
+customer while implementing the machinery for all of them — the same collision
+the `action` → `normal` tone rename removed in August, still standing one layer
+up. The 27 sites that hand-wrote `className="button secondary"` were not
+choosing a different button; they were reaching for this one and finding a
+required `icon` prop in the way.
+
+**The name is `StandardButton`** (Joel, 2026-08-25). Not `Button` — this
+codebase has 89 raw `<button>` elements, and a component differing from the
+element by one capital is a real misreading hazard. Not "normal button" either:
+`normal` is a tone.
+
+## The six axes
+
+`tone` · `weight` · `icon` · `label` · `tooltip` · `small`.
+
+**`undefined` = "use the default"; `null` = "don't."** So `<RestartButton />`
+and `<RestartButton icon={undefined} />` are the same button, and
+`<RestartButton icon={null} />` is that button with no glyph. The two only
+differ where a default exists, which is inside a purpose button. `small` is a
+boolean and needs no `null`: `false` already plays that part — and it is NOT
+`size="normal"`, because `normal` is a tone and 95% of buttons would have to
+type a word that says nothing.
+
+**A button has three text-ish roles, and they are three props now.** This was
+the gap that stopped the build mid-way: `label={null}` had to mean "draw
+nothing" without the button ceasing to BE anything, since 146 call sites draw no
+text and 457 test selectors (170 unit, 287 e2e) find buttons by name.
+
+| prop | role |
+|---|---|
+| `name` | what the button IS — identity. The one thing a purpose button always supplies |
+| `label` | what is DRAWN. Defaults to `name`; `null` draws nothing (this replaces `iconOnly`) |
+| `tooltip` | the bubble. Defaults to the name **only when the name isn't drawn** — a bubble reading "Cancel" over a button reading "Cancel" is noise |
+
+`name` shadows the DOM `name` attribute deliberately; measured first — no button
+in the app uses native form submission with a named button.
+
+**Purpose buttons supply defaults as DEFAULT PARAMETERS, not by spreading over
+them**, which is what makes `undefined` behave: a default parameter treats an
+explicitly-passed `undefined` like an omitted prop, and a JSX spread does not.
+Joel's requirement was that a subclass stay overridable on every axis
+individually — and it wasn't: `PurposeButtonProps` declared only `label`,
+`iconOnly` and `tooltip`, so `<RestartButton tone="caution" />` was a typecheck
+error. Three of the four axes were unreachable.
+
+## `small` is a prop, and it fixes a live bug
+
+The old `.button-small` and `.icon-only` were two global classes composed by
+hand, and `.button-small` was declared 17 lines later at equal specificity — so
+**its padding beat `.icon-only`'s `padding: 0` while the fixed box stayed.**
+Measured on the club page's delete button, before and after:
+
+| | box | glyph | padding |
+|---|---|---|---|
+| before | 25.6 × 25.6 | **4.4 × 18** | `4px 9.6px` |
+| after | 25.6 × 25.6 | 15.6 × 15.6 | `0` |
+
+The trash can was not scaled down, it was **crushed to a 4px sliver**. Same
+footprint now, a glyph that fills it. `ClubGameDeleteButton` loses its
+`'button-small'` string, its `--iconButton-size: 1.6rem` override (which is
+exactly what `small` supplies) and a `padding: revert-layer` that existed only to
+undo the fight.
+
+**Most of the shrink is padding** (Joel's instruction), and the glyph follows the
+text: `iconSize` in pixels became `1.15em` in CSS, with per-glyph tuning as an
+`iconScale` MULTIPLIER. A multiplier stays right when the button changes size;
+`iconSize={22}` did not, and would have recreated the crushed glyph somewhere
+new.
+
+## The type is the button's own
+
+`base.css` gives the bare `<button>` `font: inherit`, which is right for the
+accidental kinds — a `.link-button` or a list row IS the surrounding prose. A
+standard button is not, so it takes back weight and line-height (Joel: *"a button
+happening in a paragraph of bold text shouldn't get bold"*). It was incoherent
+as it stood: `.button-small` declared `font-weight: 500` while its full-size
+sibling inherited whatever was around it.
+
+Size still inherits, written as `font-size: 1em` — an info-column button is
+0.95rem because the column is, and `.small`'s `0.85em` then reads as the same
+kind of statement rather than an exception.
+
+**`line-height: normal`, not a ramp step, and measured before choosing.** `1`
+would shave 2px off every button in the app (32.78px → 30.78px). That is an
+unrequested change, and it broke a marginal e2e assertion on first try.
+
+## The pattern retired rather than moved
+
+`patterns/button.css` is **deleted**, not renamed. §7's table puts "a pattern
+with structure or behavior" in *a React component + its module*, and the rule
+under it says a shared stylesheet with many consumers and no component is a
+component waiting to be written. `ActionButton.module.css` folded in too: one
+component, one stylesheet. The five modifier classes (`.primary`/`.secondary`,
+`.icon-button`, `.icon-only`, `.button-small`) stopped being public, which is
+what kills the declaration-order fragility — every selector now carries
+`.standardButton` and wins on weight.
+
+`.button` is FREED, not reused. If a looser "reads as a button in a general way"
+class is ever wanted, the name is sitting there unused (Joel, 2026-08-25).
+
+## What this resolved, and what it didn't
+
+- **RESOLVED F9** (`action-button-text-only`) and **F8**
+  (`confirm-buttons-are-raw`) — `<CancelButton>` exists; all seven hand-written
+  Cancels and their eight commit partners are `<StandardButton>`s.
+- **RESOLVED F40** (`tone-quiet-claims-cancel`) — the `quiet` tone finally has
+  the caller its own documentation described.
+- **RESOLVED F39** (`actionbutton-says-action`) for the base; the wrappers'
+  docstrings still carry stale tone names (`RestartButton` says "info",
+  `RevealButton` says "error"; neither is a tone). **Still open.**
+- **Untouched: F13, F30–F38, F41, F42.** This was the button half of the area.
+
+## Rulings taken along the way (Joel, 2026-08-25)
+
+- `Toast`'s action, `WordEditDialog`'s Save + Delete, `WordLookupDialog`'s and
+  `AnagramDialog`'s submits are all standard buttons. The Delete's hand-set
+  `--button-slot-secondary-*` pair is now `tone="destructive"`.
+- **The celebration is not special.** Its roomier padding, its heavier primary
+  label and its private copy of the focus ring are all gone. *"If we need chunky
+  buttons, we'd make a chunky prop, not put it on this button."* Visible
+  consequence, accepted: that dialog's buttons are smaller than they were.
+- **A link is not a button.** HomePage's "+ New club" `<Link>` is ignored as a
+  design question — it becomes a real button at homepage F36
+  (`createclub-modal`), when creating a club becomes a modal. Until then it
+  borrows the module directly, written in the file as the stopgap it is.
+- **✕ dismiss glyphs are not standard buttons** and are out of scope: *"we don't
+  put borders on them and we may not decide that they have the same
+  hover/is-clicked look."*
+- **`SubmitWithScore` is scrabble's to decide** — filed in
+  `docs/games/scrabble.md` → Deferred, and deliberately not carried here.
+
+## One decision owed
+
+**`--line-height-3` is now a dead token and the guard says so.** Measured: it had
+exactly ONE consumer in the whole repo — the club delete button's hand-tightened
+`line-height` — and the component absorbed it. So the third ramp step either goes,
+or needs a home. Deleting a step from a declared vocabulary is not this area's
+call, so the guard is left red rather than a fake consumer invented for it.
 
 ---
 

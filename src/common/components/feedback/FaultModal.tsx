@@ -3,6 +3,7 @@
 import { BlockingModal } from '../floating-panels/BlockingModal'
 import { dismissFault, presentFault, useCurrentFault } from '../../lib/fault/faultStore'
 import styles from './FaultModal.module.css'
+import { StandardButton } from '../buttons/StandardButton'
 
 /**
  * The FAULT modal — the one host for every fault in the app, mounted once in
@@ -40,9 +41,7 @@ export function FaultModal() {
       family="modal-fault"
       onClose={dismissFault}
       actions={
-        <button type="button" className="button primary" onClick={dismissFault} autoFocus>
-          Close
-        </button>
+        <StandardButton name="Close" weight="primary" onClick={dismissFault} autoFocus />
       }
     >
       <div className={styles.report}>

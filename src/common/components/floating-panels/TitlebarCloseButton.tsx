@@ -1,7 +1,7 @@
 // cs-audited
 
 import { IconClose } from '../icons'
-import { ActionButton, type PurposeButtonProps } from '../buttons/ActionButton'
+import { StandardButton, type PurposeButtonProps } from '../buttons/StandardButton'
 import styles from './TitlebarCloseButton.module.css'
 import { cls } from '../../lib/util/cls'
 
@@ -27,18 +27,26 @@ import { cls } from '../../lib/util/cls'
  * **Sized by the bar it sits in**, via the module — see there for how, and why
  * that needs no specificity fight.
  */
-export function TitlebarCloseButton({ className, ...rest }: PurposeButtonProps) {
+export function TitlebarCloseButton({
+  name = 'Close',
+  icon = IconClose,
+  label = null,
+  tone = 'quiet',
+  // Lighter than the default against the icon-only box, which this module
+  // shrinks to 0.7 of the titlebar: at full weight the ✕ fills a 22px box wall
+  // to wall. The purpose button owns its glyph scale (the pattern DeleteButton
+  // set), so every titlebar gets the same one.
+  iconScale = 0.85,
+  className,
+  ...rest
+}: PurposeButtonProps) {
   return (
-    <ActionButton
-      icon={IconClose}
-      label="Close"
-      iconOnly
-      tone="quiet"
-      // 15 against `.icon-only`'s box, which this module shrinks to 0.7 of the
-      // titlebar: the default 18 fills a 22px box wall to wall. The purpose
-      // button owns its glyph size (the pattern DeleteButton set), so every
-      // titlebar gets the same one.
-      iconSize={15}
+    <StandardButton
+      name={name}
+      icon={icon}
+      label={label}
+      tone={tone}
+      iconScale={iconScale}
       className={cls(styles.close, className)}
       {...rest}
     />

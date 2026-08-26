@@ -161,12 +161,12 @@ export function InfoCol({
   const endButton = isCompete ? (
     <ConcedeGameButton
       onClick={onConcede}
-      iconOnly
+      label={null}
       className={shared.helperButton}
       disabled={myConceded}
     />
   ) : (
-    <EndGameButton onClick={onEndGame} iconOnly className={shared.helperButton} />
+    <EndGameButton onClick={onEndGame} label={null} className={shared.helperButton} />
   )
 
   return (
@@ -213,19 +213,19 @@ export function InfoCol({
             "Waiting for others" + Concede. Playing: just End/Concede (wordle has no
             hint/reveal). */}
         {over ? (
-          <TerminalActionRow over={over} onBackToClub={onBackToClub} iconOnly>
+          <TerminalActionRow over={over} onBackToClub={onBackToClub} backLabel={null}>
             {/* Stay-here options left of the leave option (Club): restart this
                 word, see the answer, or spin up the next game. */}
-            <RestartButton iconOnly onClick={onRestart} />
+            <RestartButton label={null} onClick={onRestart} />
             <RevealButton
-              iconOnly
-              label="Reveal answer"
-              revealedLabel="Hide answer"
+              label={null}
+              name="Reveal answer"
+              revealedName="Hide answer"
               revealed={answerShown}
               alreadyShown={answerAlreadyShown}
               onClick={onRevealAnswer}
             />
-            <NewGameButton iconOnly onClick={onNewGame} disabled={startingNewGame} />
+            <NewGameButton label={null} onClick={onNewGame} disabled={startingNewGame} />
           </TerminalActionRow>
         ) : isLocallyDone ? (
           <LocalTerminalRow label={myConceded ? 'You conceded' : 'Waiting for others'}>
@@ -236,13 +236,13 @@ export function InfoCol({
                 dropped out can't spoil a live race. Present rather than absent
                 so the row doesn't change shape when the last racer finishes;
                 the button is simply enabled then. */}
-            <RevealButton iconOnly disabled tooltip="Can't reveal until all end" />
+            <RevealButton label={null} disabled tooltip="Can't reveal until all end" />
             {endButton}
           </LocalTerminalRow>
         ) : (
           <div className={shared.infoActions}>
             {endButton}
-            <BackToClubButton iconOnly onClick={onRequestBackToClub} />
+            <BackToClubButton label={null} onClick={onRequestBackToClub} />
           </div>
         )}
 

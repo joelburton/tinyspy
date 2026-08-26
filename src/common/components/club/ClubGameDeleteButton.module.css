@@ -14,17 +14,11 @@
   position: absolute;
   top: 0.4rem;
   right: 0.4rem;
-  /* The destructive tone is `<TrashButton>`'s, not this file's — it comes down
-     as ActionButton's own tone class. This module is left with only what is
-     genuinely local: the corner position, the reveal, and the fixed square. */
-  /* A fixed square while it is a ✕. `.button-small`'s padding would let the box
-     follow the glyph, and a corner affordance wants a stable footprint — the
-     confirming state below is where it is allowed to grow. */
-  /* A fixed square while it is a trash can — `.button-small`'s padding would let
-     the box follow the glyph, and a corner affordance wants a stable footprint.
-     The confirming state below is where it is allowed to grow. */
-  --iconButton-size: 1.6rem;
-  line-height: var(--line-height-3);
+  /* The tone, the size and the fixed square are all `<TrashButton small>`'s now.
+     This module is left with only what is genuinely local: the corner position
+     and the reveal. It used to set `--iconButton-size: 1.6rem` itself — that is
+     exactly what `small` supplies, which is how we know the prop landed on the
+     right value. */
   opacity: 0;
   transition: opacity 120ms ease, background 120ms ease,
               color 120ms ease, border-color 120ms ease,
@@ -52,10 +46,11 @@
  * tone on the text and the border, no fill (docs/ui.md → The color system). */
 /* @@ */ .deleteButtonActive {
   opacity: 1;
-  /* Grows into a labelled pill; `.button-small` supplies the padding and the
-     type, so only the release from the fixed square is stated here. */
-  width: auto;
-  padding: revert-layer;
+  /* It used to say `width: auto; padding: revert-layer` here, to climb back out
+     of the fixed icon-only square. Neither is needed now: drawing the label is
+     what makes it a pill, and a button with a label never gets the square in the
+     first place — `<StandardButton>` applies that class only when nothing is
+     drawn. `revert-layer` in particular was a hazard worth losing. */
   /* The SECONDARY value, not the primary: this is an outline — border and label
      on a transparent ground — and `-secondary-color` is the one taken down far
      enough to read as small text on white. Using the primary here was the fill

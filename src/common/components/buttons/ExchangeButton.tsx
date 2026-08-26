@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { IconExchange } from '../icons'
-import { ActionButton, type PurposeButtonProps } from './ActionButton'
+import { StandardButton, type PurposeButtonProps } from './StandardButton'
 
 /**
  * Swap-tiles button — return some rack tiles to the bag and draw replacements
@@ -16,6 +16,11 @@ import { ActionButton, type PurposeButtonProps } from './ActionButton'
  * row next to Submit — but Submit stays the filled-accent primary, so Swap takes
  * the lighter outline+tone weight.
  */
-export function ExchangeButton({ label = 'Swap', ...rest }: PurposeButtonProps) {
-  return <ActionButton icon={IconExchange} label={label} tone="normal" {...rest} />
+export function ExchangeButton({
+  name = 'Swap',
+  icon = IconExchange,
+  tone = 'normal',
+  ...rest
+}: PurposeButtonProps) {
+  return <StandardButton name={name} icon={icon} tone={tone} {...rest} />
 }

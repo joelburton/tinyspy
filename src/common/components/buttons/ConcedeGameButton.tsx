@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { IconConcede } from '../icons'
-import { ActionButton, type PurposeButtonProps } from './ActionButton'
+import { StandardButton, type PurposeButtonProps } from './StandardButton'
 
 /**
  * Concede-the-game button — drop out of a **compete** race (2+ players).
@@ -16,6 +16,11 @@ import { ActionButton, type PurposeButtonProps } from './ActionButton'
  * crossed-out stop sign. They still share the `error` red: both are irreversible.
  * Default label "Concede".
  */
-export function ConcedeGameButton({ label = 'Concede', ...rest }: PurposeButtonProps) {
-  return <ActionButton icon={IconConcede} label={label} tone="destructive" {...rest} />
+export function ConcedeGameButton({
+  name = 'Concede',
+  icon = IconConcede,
+  tone = 'destructive',
+  ...rest
+}: PurposeButtonProps) {
+  return <StandardButton name={name} icon={icon} tone={tone} {...rest} />
 }

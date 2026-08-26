@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { IconSpoiler } from '../icons'
-import { ActionButton, type PurposeButtonProps } from './ActionButton'
+import { StandardButton, type PurposeButtonProps } from './StandardButton'
 
 /**
  * Give-me-this-one button — hands over a single hidden item **while the game is
@@ -15,6 +15,11 @@ import { ActionButton, type PurposeButtonProps } from './ActionButton'
  * `RevealButton`, which is the whole solution at game-over and wears red; see
  * the icon registry for the pair.
  */
-export function SpoilerButton({ label = 'Spoiler', ...rest }: PurposeButtonProps) {
-  return <ActionButton icon={IconSpoiler} label={label} tone="caution" {...rest} />
+export function SpoilerButton({
+  name = 'Spoiler',
+  icon = IconSpoiler,
+  tone = 'caution',
+  ...rest
+}: PurposeButtonProps) {
+  return <StandardButton name={name} icon={icon} tone={tone} {...rest} />
 }

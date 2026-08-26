@@ -83,11 +83,11 @@ export function Controls({
 }) {
   return (
     <div className={styles.controls}>
-      <ClearButton iconOnly label="Recall" disabled={!hasTentative} onClick={onRecall} />
+      <ClearButton label={null} name="Recall" disabled={!hasTentative} onClick={onRecall} />
       {/* Show a move to teammates (coop, ≥2 players). On the left with Recall so a
           pill in the commit slot never hides it; enabled only with tiles staged. */}
       {canShare && (
-        <SharePreviewButton label="Show move to team" disabled={!hasTentative} onClick={onShare} />
+        <SharePreviewButton name="Show move to team" disabled={!hasTentative} onClick={onShare} />
       )}
 
       <div
@@ -101,7 +101,7 @@ export function Controls({
         ) : (
           <div className={styles.commitButtons}>
             <ExchangeButton
-              iconOnly
+              label={null}
               disabled={!canCommit || hasTentative || selectedCount === 0 || !canExchange}
               onClick={onExchange}
               title={
@@ -115,7 +115,7 @@ export function Controls({
             {/* Pass — the de-emphasized end-turn octagon (icon-only, secondary +
                 warning) since it isn't the main move here. Compete only. */}
             {isCompete && (
-              <PassButton iconOnly disabled={!canCommit || hasTentative} onClick={onPass} />
+              <PassButton label={null} disabled={!canCommit || hasTentative} onClick={onPass} />
             )}
             <SubmitWithScore score={submitScore} disabled={!canSubmit || submitting} onClick={onSubmit} />
           </div>

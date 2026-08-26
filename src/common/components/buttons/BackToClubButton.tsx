@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { IconBack } from '../icons'
-import { ActionButton, type PurposeButtonProps } from './ActionButton'
+import { StandardButton, type PurposeButtonProps } from './StandardButton'
 
 type Props = PurposeButtonProps & {
   onClick: () => void
@@ -30,24 +30,31 @@ type Props = PurposeButtonProps & {
  * beside blue buttons.
  */
 export function BackToClubButton({
+  name = 'Back to club',
+  icon = IconBack,
+  tone = 'normal',
+  // The chevron is a touch lighter than the default: it is a direction mark
+  // rather than an object, and at full size it out-weighed its own label.
+  iconScale = 0.9,
   variant = 'secondary',
   compact,
   label,
   ...rest
 }: Props) {
   return (
-    <ActionButton
-      icon={IconBack}
-      iconSize={16}
-      label={label ?? (compact ? 'Club' : 'Back to club')}
-      tooltip={label ?? 'Back to club'}
+    <StandardButton
+      name={name}
+      icon={icon}
+      tone={tone}
+      iconScale={iconScale}
       weight={variant}
-      tone="normal"
-      // The VISIBLE text may be "Club" (compact) or nothing at all (iconOnly),
-      // but the control is always announced in full. ActionButton only sets an
-      // aria-label for the icon-only case, so `compact` needs this said here —
-      // spread after ActionButton's own, so this wins.
-      aria-label={label ?? 'Back to club'}
+      // `compact` shortens what is DRAWN, never what the button is called.
+      label={label ?? (compact ? 'Club' : undefined)}
+      // The visible text may be "Club", or nothing at all — but the control is
+      // always announced in full, and e2e finds it by that name. StandardButton
+      // only sets an aria-label when nothing is drawn, so the compact case says
+      // it here; spread after its own, so this wins.
+      aria-label={name}
       {...rest}
     />
   )

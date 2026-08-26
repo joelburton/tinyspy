@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { IconNewGame } from '../icons'
-import { ActionButton, type PurposeButtonProps } from './ActionButton'
+import { StandardButton, type PurposeButtonProps } from './StandardButton'
 
 /**
  * Start-a-fresh-game button — a follow-up game with the same setup but a new
@@ -10,6 +10,11 @@ import { ActionButton, type PurposeButtonProps } from './ActionButton'
  * action, not a destructive end. Label is always **"New game"**; waffle's
  * terminal action row is the first user.
  */
-export function NewGameButton({ label = 'New game', ...rest }: PurposeButtonProps) {
-  return <ActionButton icon={IconNewGame} label={label} tone="normal" {...rest} />
+export function NewGameButton({
+  name = 'New game',
+  icon = IconNewGame,
+  tone = 'normal',
+  ...rest
+}: PurposeButtonProps) {
+  return <StandardButton name={name} icon={icon} tone={tone} {...rest} />
 }

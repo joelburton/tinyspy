@@ -9,7 +9,11 @@ import { signIn } from './helpers/session'
  * accessible name, so a role query matches both. `.primary` is the shared
  * global button class (patterns/button.css); the panel's × has none.
  */
-const closeButton = (page: Page) => page.locator('button.primary', { hasText: 'Close' })
+// By ROLE + NAME, not by class. It used to select `button.primary` — a global
+// class that stopped existing when the button became a component and its
+// treatment moved into a CSS module (hashed at build time). The accessible name
+// is the stable handle, and it is what `<StandardButton name>` guarantees.
+const closeButton = (page: Page) => page.getByRole('button', { name: 'Close', exact: true })
 
 /**
  * The fault MODAL, in a real browser — that a fault raised anywhere in the app

@@ -446,14 +446,14 @@ export function BoardCol({
                 <ClearButton
                   onClick={sendClear}
                   disabled={unionTiles.length === 0}
-                  iconOnly={phone}
+                  label={phone ? null : undefined}
                   className={styles.inputButton}
                 />
                 <SubmitButton
-                  label={submitting ? 'Submitting…' : 'Submit'}
+                  name={submitting ? 'Submitting…' : 'Submit'}
                   onClick={handleSubmit}
                   disabled={!canSubmit}
-                  iconOnly={phone}
+                  label={phone ? null : undefined}
                   className={styles.inputButton}
                 />
               </div>
