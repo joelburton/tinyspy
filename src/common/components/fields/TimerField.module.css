@@ -1,36 +1,21 @@
 /* cs-audited */
 
-/* Shared styles for the <TimerField> component used by every
- * gametype's setup form. The bordered box + header now come from the
- * shared <SetupSection> disclosure that wraps this; these rules only
- * shape the timer row (radios + MM:SS input) inside it.
+/*
+ * The MM:SS box inside <TimerField>'s "Down" option, and nothing else.
+ *
+ * The bordered box and its header come from the <SetupSection> that wraps the
+ * field; the radio row and each radio come from <RadioRow>. Until 2026-08-26
+ * this file also carried `.timerRow`, `.radio` and `.radio input` — three rules
+ * restating what `setupForm.module.css` already said, because the field
+ * hand-wrote the radio group instead of calling the component built to render
+ * one (plans/areas/forms.md → F30 `timerfield-hand-radios`).
+ *
+ * `.timerRow` differed from `.radioRow` by a single `align-items: center`, and
+ * that was MEASURED before deleting rather than assumed: it changed nothing.
+ * Each `.radio` is itself an inline-flex that centres its own contents, so the
+ * radio and its text land at the same place either way — 10.59px from the row's
+ * top, with or without it. A pure duplicate wearing a second name.
  */
-
-/* Radios + the inline MM:SS input side by side. flex-wrap for
- * narrow screens. */
-/* @@ */ .timerRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  align-items: center;
-}
-
-/* Each radio is a label wrapping the input + its text. The Down
- * radio's label additionally contains the MM:SS text input so the
- * gap value accommodates it. */
-/* @@ */ .radio {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  cursor: pointer;
-}
-
-/* @@ */ .radio input[type='radio'] {
-  margin: 0;
-  /* Override base.css's input padding (`0.6rem 0.9rem`, base.css:777)
-   * — that sizes text inputs, not radios. */
-  padding: 0;
-}
 
 /* The MM:SS text input inside the Down radio's label. Fixed
  * width sized for "MM:SS"; tabular-nums so digits don't shift

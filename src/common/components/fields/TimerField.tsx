@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { formatTimerSeconds } from '../../hooks/game/useGameTimer'
 import { timerLabel } from '../../lib/game/timerLabel'
+import { RadioRow } from './RadioRow'
 import { SetupSection } from '../setup/SetupSection'
 import type { TimerMode } from '../../lib/games'
 import styles from './TimerField.module.css'
@@ -87,47 +88,41 @@ export function TimerField({ value, onChange }: Props) {
     // Collapsed by default; the summary carries the current setting (e.g.
     // "Timer: none", "Timer: 2:30 countdown"), so it's readable without opening.
     <SetupSection label={`Timer: ${timerLabel(value)}`}>
-      <div className={styles.timerRow}>
-        <label className={styles.radio}>
-          <input
-            type="radio"
-            name="timerKind"
-            checked={value.kind === 'none'}
-            onChange={() => setKind('none')}
-          />
-          None
-        </label>
-        <label className={styles.radio}>
-          <input
-            type="radio"
-            name="timerKind"
-            checked={value.kind === 'countup'}
-            onChange={() => setKind('countup')}
-          />
-          Up
-        </label>
-        <label className={styles.radio}>
-          <input
-            type="radio"
-            name="timerKind"
-            checked={downSelected}
-            onChange={() => setKind('countdown')}
-          />
-          Down:
-          <input
-            type="text"
-            className={styles.timerInput}
-            value={timerText}
-            onChange={(e) => setTimerTextAndUpdate(e.target.value)}
-            disabled={!downSelected}
-            placeholder="MM:SS"
-            inputMode="numeric"
-            maxLength={5}
-            aria-label="Countdown duration in MM:SS"
-            aria-invalid={downSelected && !textValid}
-          />
-        </label>
-      </div>
+      <RadioRow
+        name="timerKind"
+        value={value.kind}
+        onChange={setKind}
+        options={[
+          { value: 'none', label: 'None' },
+          { value: 'countup', label: 'Up' },
+          {
+            value: 'countdown',
+            // THE MM:SS BOX LIVES INSIDE THE DOWN OPTION'S LABEL, which is why
+            // this was the app's last hand-written radio group — and why it
+            // needn't have been. `label` is a ReactNode and <RadioRow> renders
+            // it INSIDE the `<label>`, immediately after the radio, so nesting
+            // the input is what the shape already supports. Clicking the box
+            // therefore picks Down, which is the behavior we had and wanted.
+            label: (
+              <>
+                Down:
+                <input
+                  type="text"
+                  className={styles.timerInput}
+                  value={timerText}
+                  onChange={(e) => setTimerTextAndUpdate(e.target.value)}
+                  disabled={!downSelected}
+                  placeholder="MM:SS"
+                  inputMode="numeric"
+                  maxLength={5}
+                  aria-label="Countdown duration in MM:SS"
+                  aria-invalid={downSelected && !textValid}
+                />
+              </>
+            ),
+          },
+        ]}
+      />
       {downSelected && !textValid && (
         <p className="error">Enter MM:SS between 0:01 and 60:00.</p>
       )}

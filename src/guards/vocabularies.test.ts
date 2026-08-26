@@ -277,7 +277,7 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/components/fields/DateField.module.css': ['0.5rem'],
       'src/common/components/fields/SelectField.module.css': ['0.35rem'],
       'src/common/components/fields/setupForm.module.css': ['1rem', '0.25rem', '0.75rem', '0.4rem'],
-      'src/common/components/fields/TimerField.module.css': ['1rem', '0.4rem', '0.3rem'],
+      'src/common/components/fields/TimerField.module.css': ['0.3rem'],
       'src/common/components/game/CelebrationBlockingModal.module.css': ['0.3rem', '0.4rem', '0.2rem', '1.4rem'],
       'src/common/components/game/DeviceBlockNotice.module.css': ['1rem'],
       'src/common/components/game/entry/EntryBox.module.css': ['1px'],
