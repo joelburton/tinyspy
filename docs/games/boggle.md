@@ -613,6 +613,25 @@ allowlist.
   (Joel: everything in a `<SetupSection>`, and its summary carries the value).
   All 15 other games conform.
 
+- **The "Board constraints" grid is the last hand-rolled field in any setup
+  form.** Every field type a setup form has is a shared component — `TimerField`,
+  `DifficultyField`, `SelectField`, `RadioRow`, `CoopStyleField`,
+  `ManualBoardField`, and now `NumberField`, `CheckboxField` and `DateField`.
+  This grid is the one exception: six raw `<input type="number">`s laid out 3×2
+  (Words / Score / Longest, each min and max) with column heads and a local
+  `Row` helper, wearing `.grid` / `.colHead` / `.rowLabel` / `.numInput` from
+  boggle's own module.
+
+  **Left here on purpose, not overlooked** (Joel, 2026-08-26). Six numbers in a
+  labelled matrix is a GRID, not six independent fields — `<NumberField>` exists
+  and would fit each cell, but wrapping each cell in it does not answer the
+  question this thing actually poses, which is what a min/max matrix should look
+  like when only boggle has one. Whoever takes it decides that first; the cells
+  are the easy part.
+
+  Raised 2026-08-26 in the CSS sprint's `forms` area, while writing the three
+  components above.
+
 - **Compete classic dupes-cancel** scoring as an opt-in — moved to [`deferred.md → Far future`](../deferred.md#far-future) (2026-08-03): the open question is whether we want the rule at all, not how to build it.
 
 ## 12. Won't do

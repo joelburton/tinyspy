@@ -270,9 +270,13 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/components/feedback/FaultModal.module.css': ['0.5rem'],
       'src/common/components/feedback/GenericFeedbackPill.module.css': ['0.5rem'],
       'src/common/components/fields/CoopStyleField.module.css': ['1rem'],
-      'src/common/components/fields/NextPuzzleField.module.css': ['0.5rem'],
+      // The gap under a checkbox row and under a date override — both moved
+      // out of files already on this list, at the same values. The debt
+      // travelled with the markup; it did not grow.
+      'src/common/components/fields/CheckboxField.module.css': ['0.5rem'],
+      'src/common/components/fields/DateField.module.css': ['0.5rem'],
       'src/common/components/fields/SelectField.module.css': ['0.35rem'],
-      'src/common/components/fields/setupForm.module.css': ['1rem', '0.25rem', '0.75rem', '0.4rem', '0.5rem'],
+      'src/common/components/fields/setupForm.module.css': ['1rem', '0.25rem', '0.75rem', '0.4rem'],
       'src/common/components/fields/TimerField.module.css': ['1rem', '0.4rem', '0.3rem'],
       'src/common/components/game/CelebrationBlockingModal.module.css': ['0.3rem', '0.4rem', '0.2rem', '1.4rem'],
       'src/common/components/game/DeviceBlockNotice.module.css': ['1rem'],

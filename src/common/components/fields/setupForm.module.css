@@ -4,7 +4,7 @@
  * Shared setup-form scaffold — the layout every game's per-game
  * `SetupForm` (rendered inside `SetupGameModal`) draws its fieldsets and
  * radio rows from. Each `<game>/components/SetupForm.tsx` imports THIS module
- * for `.setup` / `.radioRow` / `.radio` / `.checkRow` / `.helpText`; only
+ * for `.setup` / `.radioRow` / `.radio` / `.helpText`; only
  * genuinely game-specific bits (bananagrams's bag-size input, wordle's
  * answer-source `<select>`) stay in a game-local module.
  *
@@ -23,7 +23,7 @@
  * its own — and the binding is how a reader knows which they are looking at: a
  * file's OWN module is `styles`, and this one is `form`. It had three names
  * (`styles` in eleven files, `form` in three, `shared` in one) while the game's
- * own module took whatever was left, so `styles.checkRow` meant a SHARED class
+ * own module took whatever was left, so `styles.radioRow` meant a SHARED class
  * in one file and a local one in the next. Guarded by
  * `src/guards/cssClasses.test.ts`, because a convention that is only written
  * down is the kind that rotted `--radius-md`.
@@ -91,18 +91,3 @@
   padding: 0;
 }
 
-/* A single checkbox inline with its label — the toggle shape, as `.radio` is the
- * radio shape. Used by bananagrams ("check if board is legal to win") and
- * wordwheel ("unique letters only"); the two had byte-identical private copies,
- * and wordwheel's even carried a comment saying it mirrored bananagrams's, which
- * is the standing signal to make the match structural rather than remembered. */
-/* @@ */ .checkRow {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  cursor: pointer;
-}
-
-/* @@ */ .checkRow input {
-  margin: 0;
-}

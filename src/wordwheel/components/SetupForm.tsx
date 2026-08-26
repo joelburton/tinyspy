@@ -11,6 +11,7 @@ import type { WordwheelSetup } from '../lib/setup'
 import form from '../../common/components/fields/setupForm.module.css'
 import { ManualBoardField } from '../../common/components/fields/ManualBoardField'
 import { groupTiles } from '../../common/components/fields/groupTiles'
+import { CheckboxField } from '../../common/components/fields/CheckboxField'
 
 /** Normalize a letter input: lowercase, drop anything but a–z, cap the length.
  *  Keeps state canonical (lowercase, letters-only) so validation + the edge
@@ -191,15 +192,13 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
           custom letters are set (those letters stand as the player chose them).
           The summary shows the active constraint or "(optional)" when none. */}
       <SetupSection label={constraintsLabel}>
-        <label className={form.checkRow}>
-          <input
-            type="checkbox"
-            name="unique_letters"
-            checked={s.unique_letters ?? false}
-            onChange={(e) => onChange({ ...s, unique_letters: e.target.checked || undefined })}
-          />
+        <CheckboxField
+          name="unique_letters"
+          checked={s.unique_letters ?? false}
+          onChange={(on) => onChange({ ...s, unique_letters: on || undefined })}
+        >
           Unique letters only
-        </label>
+        </CheckboxField>
         <p className={form.helpText}>
           Pick only boards whose nine tiles are all different letters — no wheel
           with a doubled tile. Applies to random boards; a custom board keeps the

@@ -15,6 +15,8 @@ import {
 } from '../lib/setup'
 import form from '../../common/components/fields/setupForm.module.css'
 import styles from './SetupForm.module.css'
+import { NumberField } from '../../common/components/fields/NumberField'
+import { CheckboxField } from '../../common/components/fields/CheckboxField'
 
 /**
  * bananagrams's per-game setup form, rendered inside the common
@@ -80,28 +82,25 @@ export function SetupForm({ value, onChange, playerCount }: SetupBodyProps) {
           This game deals {needed} ({playerCount} player
           {playerCount === 1 ? '' : 's'} × {s.hand_size}).
         </p>
-        <input
-          className={styles.bagInput}
-          type="number"
+        <NumberField
           name="bunch_size"
+          label="Bunch size"
           min={1}
           max={BANANAGRAMS_BUNCH_MAX}
-          step={1}
-          value={Number.isFinite(s.bunch_size) ? s.bunch_size : ''}
-          onChange={(e) => onChange({ ...s, bunch_size: e.target.valueAsNumber })}
+          chars={3}
+          value={s.bunch_size}
+          onChange={(bunch_size) => onChange({ ...s, bunch_size })}
         />
       </SetupSection>
 
       <SetupSection label={dumpLabel}>
-        <label className={form.checkRow}>
-          <input
-            type="checkbox"
-            name="dump_to_bag"
-            checked={s.dump_to_bag}
-            onChange={(e) => onChange({ ...s, dump_to_bag: e.target.checked })}
-          />
+        <CheckboxField
+          name="dump_to_bag"
+          checked={s.dump_to_bag}
+          onChange={(dump_to_bag) => onChange({ ...s, dump_to_bag })}
+        >
           Return dumped tiles to the bag (out of play)
-        </label>
+        </CheckboxField>
         <p className={form.helpText}>
           By default a dumped tile goes back to the bunch. With this, it goes to the bag. You still draw three either way.
         </p>

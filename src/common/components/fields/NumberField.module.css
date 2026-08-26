@@ -1,0 +1,9 @@
+/* cs-fixed */
+
+/* A number a player picks (see NumberField.tsx). It takes base.css's control
+ * chrome — border, radius, padding — like every other text-ish input; the only
+ * thing stated here is that digits read better right-aligned, so a two- and a
+ * three-digit value line up at the units column. */
+/* @@ */ .input {
+  text-align: right;
+}

@@ -1,0 +1,23 @@
+/* cs-fixed */
+
+/*
+ * A single on/off setting (see CheckboxField.tsx) — the box inline with what it
+ * means, the whole row clickable.
+ *
+ * Moved here from `setupForm.module.css`'s `.checkRow` on 2026-08-26, with the
+ * component, and the values are unchanged. It was shared as a CLASS because
+ * bananagrams and wordwheel had byte-identical private copies; sharing the
+ * markup too is what that was always pointing at.
+ */
+/* @@ */ .row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+/* Override base.css's input padding (`0.6rem 0.9rem`, base.css:777) — that
+ * sizes text inputs, not a checkbox. */
+/* @@ */ .row input {
+  margin: 0;
+}

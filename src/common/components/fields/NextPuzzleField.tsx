@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { SetupSection } from '../setup/SetupSection'
 import styles from './NextPuzzleField.module.css'
 import form from './setupForm.module.css'
+import { DateField } from './DateField'
 
 /** A row from either of a game's two puzzle-choosing RPCs — they share a
  *  shape on purpose, so this field renders whichever it asked without
@@ -153,13 +154,7 @@ export function NextPuzzleField({ brand, seenBy, load, loadByDate, onPick }: Pro
         you&rsquo;ve played it before.
       </p>
       <p className={styles.next}>{line}</p>
-      <input
-        type="date"
-        aria-label="Puzzle date"
-        className={styles.date}
-        value={date}
-        onChange={(e) => void chooseDate(e.target.value)}
-      />
+      <DateField label="Puzzle date" value={date} onChange={(next) => void chooseDate(next)} />
     </SetupSection>
   )
 }
