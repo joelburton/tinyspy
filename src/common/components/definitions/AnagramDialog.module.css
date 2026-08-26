@@ -22,21 +22,14 @@
 
 /* WHERE THE SEARCH BOX SITS, and nothing else: it shares a row with its button
    and has to take the slack. This is `<TextField>`'s `className`, which lands on
-   the FIELD — so it must be placement only.
-   
-   It used to carry a full control chrome as well — padding, font-size, colour,
-   background, border, radius — a second definition of what an input looks like,
-   beside base.css's. That went on 2026-08-26 with the conversion: the two
-   dialogs' copies were byte-identical, which is how you know neither was a
-   choice. */
+   the FIELD, so it must be placement only — what an input LOOKS like is
+   base.css's to say, in one place. */
 /* @@ */ .input {
   flex: 1 1 auto;
   min-width: 0;
 }
 
-/* Layout only. The chrome is the shared `button primary` (theme.css) — this used
-   to re-declare the action fill, its border, the radius and its own hover, which
-   is the same duplication the button sweep removed everywhere else. */
+/* Layout only — the chrome is `<StandardButton>`'s. */
 /* @@ */ .button {
   flex: 0 0 auto;
 }
