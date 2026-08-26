@@ -12,40 +12,6 @@
   margin-top: 0.75rem;
 }
 
-/* The optional custom-board input — one line holding the whole board, so it
- * takes the full width and sets its rows in mono to line up under each other.
- *
- * Deliberately NOT `text-transform: uppercase` (freebee's letter inputs are):
- * boggle's two-letter tiles are recognized by their case — `Qu` is one tile,
- * `QU` is two (lib/customBoard.ts → The mixed-case rule) — so a field that
- * displayed everything uppercase would show a different board than the one it
- * holds. */
-/* @@ */ .boardInput {
-  width: 100%;
-  font-family: monospace;
-  letter-spacing: 0.12em;
-}
-
-/* The placeholder has to read as an EXAMPLE, not as a board someone already
-   typed — and this field's placeholder is uniquely able to be mistaken for one,
-   since it's a full grid of letters in the same mono face as real input. The
-   browser default is a gray close enough to the text gray that it looked like
-   entered content.
- *
- * So it differs on three axes at once, not just tone: much lighter (a mix of
- * the muted gray into the field's own white, so it stays palette-derived rather
- * than a new literal), italic, and without the tile letter-spacing — no board is
- * ever slanted or tight, so the shape alone says "example".
- *
- * Deliberate divergence from the app's other inputs, which leave `::placeholder`
- * to the browser: their hints are prose ("Search…") that could never be read as
- * data. If placeholders ever get a global treatment, this rule folds into it. */
-/* @@ */ .boardInput::placeholder {
-  color: var(--field-placeholder-ink-color);
-  font-style: italic;
-  letter-spacing: normal;
-}
-
 /* The "Board constraints" min/max grid. */
 /* @@ */ .grid {
   display: grid;

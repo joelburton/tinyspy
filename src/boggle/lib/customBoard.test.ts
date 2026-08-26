@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest'
 import { DICE_SETS } from './dice'
 import { mulberry32, rollBoard } from './generate'
-import { cleanCustomBoard, formatBoard, parseCustomBoard } from './customBoard'
+import { capBoard, cleanCustomBoard, formatBoard, parseCustomBoard, readTiles } from './customBoard'
 
 /**
  * The custom-board round trip. The feature's whole promise is "read the letters
@@ -43,12 +43,14 @@ describe('formatBoard / parseCustomBoard round trip', () => {
 })
 
 describe('formatBoard', () => {
-  it('reads top-to-bottom, left-to-right, one space per row', () => {
-    expect(formatBoard('ABCDEFGHIJKLMNOP', 4)).toBe('ABCD EFGH IJKL MNOP')
+  it('reads top-to-bottom, left-to-right, one DASH per row', () => {
+    // Dashed since 2026-08-26, matching what <ManualBoardField> draws as you
+    // type and what letterboxed already wrote its four sides in.
+    expect(formatBoard('ABCDEFGHIJKLMNOP', 4)).toBe('ABCD-EFGH-IJKL-MNOP')
   })
 
   it('writes the two-letter tiles and the blank as a player sees them', () => {
-    expect(formatBoard('AB1D0FGH123456IJ', 4)).toBe('ABQuD ?FGH QuInThEr HeAnIJ')
+    expect(formatBoard('AB1D0FGH123456IJ', 4)).toBe('ABQuD-?FGH-QuInThEr-HeAnIJ')
   })
 })
 
@@ -119,11 +121,54 @@ describe('parseCustomBoard', () => {
 })
 
 describe('cleanCustomBoard', () => {
-  it('keeps letters, spaces and ?, drops the rest', () => {
-    expect(cleanCustomBoard('ABQu-D! EFGH_ 1234 ?')).toBe('ABQuD EFGH  ?')
+  it('keeps letters and ?, drops everything else — separators included', () => {
+    // Separators are the FIELD's to draw now, counted in tiles, so a player
+    // never has to type one and whatever they do type is normalized away.
+    expect(cleanCustomBoard('ABQu-D! EFGH_ 1234 ?')).toBe('ABQuDEFGH?')
   })
 
   it('caps the length', () => {
     expect(cleanCustomBoard('A'.repeat(300))).toHaveLength(128)
+  })
+})
+
+/**
+ * `readTiles` is the split BOTH the echo and the parser walk, which is what
+ * keeps the reading a player is shown identical to the one that reaches the
+ * board.
+ */
+describe('readTiles', () => {
+  it('is tolerant — an unreadable character comes back as itself', () => {
+    // The echo can then show it in place; deciding it is an ERROR is
+    // parseCustomBoard's job, and it still says so.
+    expect(readTiles('A3B')).toEqual(['A', '3', 'B'])
+    expect(parseCustomBoardErr('A3B', 4)).toContain('"3" isn\'t a tile')
+  })
+})
+
+/**
+ * The cap has to count TILES, which is the whole reason it exists as a function
+ * rather than a `maxLength` on the input.
+ */
+describe('capBoard', () => {
+  it('lets a full board through untouched', () => {
+    expect(capBoard('ABCDEFGHIJKLMNOP', 4)).toBe('ABCDEFGHIJKLMNOP')
+  })
+
+  it('stops at the last tile a board can hold', () => {
+    expect(capBoard('ABCDEFGHIJKLMNOPQRS', 4)).toBe('ABCDEFGHIJKLMNOP')
+  })
+
+  it('counts Qu as ONE tile, so a board of digraphs is not cut short', () => {
+    // Sixteen Qu tiles is 32 characters and a legal 4×4. A character cap would
+    // have bitten this in half at the eighth tile.
+    const allQu = 'Qu'.repeat(16)
+    expect(capBoard(allQu, 4)).toBe(allQu)
+    expect(capBoard(allQu + 'Qu', 4)).toBe(allQu)
+  })
+
+  it('never splits a two-letter tile', () => {
+    // 15 singles then a Qu is exactly 16 tiles; a 17th must not leave a bare Q.
+    expect(capBoard('ABCDEFGHIJKLMNOQuZ', 4)).toBe('ABCDEFGHIJKLMNOQu')
   })
 })

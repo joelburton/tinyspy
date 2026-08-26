@@ -448,6 +448,11 @@ const VOCABULARIES: Vocabulary[] = [
     properties: ['letter-spacing'],
     allowed: /^(normal|inherit|initial|unset|revert)$/,
     pending: {
+      // The board tracking, and the ONE value five games had already agreed
+      // on before <ManualBoardField> existed — spellingbee, wordwheel,
+      // wordiply and letterboxed all wrote 0.2em. Unconverted, not
+      // unconsidered: it is what makes typed letters read like tiles.
+      'src/common/components/fields/ManualBoardField.module.css': ['0.2em'],
       'src/common/components/club/EditClubModal.module.css': ['0.03em'],
       'src/common/components/definitions/DefinitionView.module.css': ['0.01em'],
       'src/common/components/game/entry/EntryBox.module.css': ['0.05em'],

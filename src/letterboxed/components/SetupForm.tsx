@@ -12,7 +12,8 @@ import { PAR } from '../lib/board'
 import { cleanSides, formatSides } from '../lib/customBoard'
 import type { LetterboxedSetup } from '../lib/setup'
 import form from '../../common/components/fields/setupForm.module.css'
-import styles from './SetupForm.module.css'
+import { ManualBoardField } from '../../common/components/fields/ManualBoardField'
+import { SIDE_SIZE } from '../lib/board'
 
 /**
  * letterboxed's per-game setup form. Mode is locked at the gametype level
@@ -136,19 +137,20 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
           clockwise from the top-left corner. Separators are ignored, so paste
           it however you have it written.
         </p>
-        <input
-          type="text"
-          autoComplete="off"
-          autoCapitalize="none"
-          spellCheck={false}
+        <ManualBoardField
+          label="Custom board"
           value={typedSides}
-          onChange={(e) => {
-            setTypedSides(e.target.value)
-            onChange({ ...s, custom_sides: cleanSides(e.target.value) || undefined })
+          onChange={(raw) => {
+            setTypedSides(raw)
+            onChange({ ...s, custom_sides: cleanSides(raw) || undefined })
           }}
-          className={styles.sidesInput}
           placeholder="ABC-DEF-GHI-JKL"
-          aria-label="Custom board"
+          chars={15}
+          // Four sides of three, which is exactly what `formatSides` prints in
+          // the recap and the summary. The field used to show the letters
+          // unbroken while everything else showed them grouped; now the thing
+          // you type and the thing you read back are the same string.
+          groups={[SIDE_SIZE, SIDE_SIZE, SIDE_SIZE, SIDE_SIZE]}
         />
       </SetupSection>
 

@@ -22,10 +22,11 @@ import { faceToDisplay } from './dice.ts'
  * what `faceToDisplay` renders — `Qu`, `?`.
  *
  * ── Written form ────────────────────────────────────────────────────────────
- * Rows, top to bottom, separated by a space, read like English:
+ * Rows, top to bottom, separated by a dash — the same shape letterboxed writes
+ * its four sides in, and the same one the setup field draws as you type:
  *
- *     ABCD EFGH IJKL MNOP          a plain 4×4
- *     ABQuD EFGH IJKL MNO?         with a Qu tile and a blank
+ *     ABCD-EFGH-IJKL-MNOP          a plain 4×4
+ *     ABQuD-EFGH-IJKL-MNO?         with a Qu tile and a blank
  *
  * ── The mixed-case rule ─────────────────────────────────────────────────────
  * A two-letter tile is recognized ONLY when written the way it prints: a capital
@@ -64,15 +65,30 @@ export const MAX_CUSTOM_BOARD_LEN = 128
 /**
  * Strip what can never be part of a board, and cap the length — the keystroke-
  * level clean the setup field applies, NOT validation. It deliberately keeps
- * case (the mixed-case rule above depends on it) and keeps spaces (they're how
- * rows stay readable), so what a player typed is what they see.
+ * CASE, because the mixed-case rule above depends on it.
+ *
+ * Separators go, and that changed on 2026-08-26: the field used to keep the
+ * spaces a player typed, on the grounds that they were how rows stayed
+ * readable. `<ManualBoardField>` now inserts the row dashes itself, counted in
+ * tiles — so a separator is presentation the field supplies, not data anyone
+ * has to type. Paste a board spaced, dashed or run together and it comes back
+ * looking like every other one.
  */
 export function cleanCustomBoard(raw: string): string {
-  return raw.replace(/[^A-Za-z? ]/g, '').slice(0, MAX_CUSTOM_BOARD_LEN)
+  return raw.replace(/[^A-Za-z?]/g, '').slice(0, MAX_CUSTOM_BOARD_LEN)
 }
 
-/** A board string as ROWS of written tiles — `"ABQuD EFGH IJKL MNOP"`. This is
- *  what the recap prints and what the setup field takes back. */
+/**
+ * A board string as ROWS of written tiles — `"ABQuD-EFGH-IJKL-MNOP"`. This is
+ * what the recap prints and what the setup field takes back.
+ *
+ * DASHES since 2026-08-26, where this used to join rows with spaces. The setup
+ * field now groups the board into rows as you type it, and a recap that
+ * separated them differently would be a second written form of the same thing —
+ * against the whole point, which is that you read a board off the info column
+ * or the printout and paste it straight back. letterboxed already wrote its
+ * four sides `ABC-DEF-GHI-JKL`; boggle now matches it.
+ */
 export function formatBoard(board: string, n: number): string {
   const rows: string[] = []
   for (let y = 0; y < n; y++) {
@@ -80,7 +96,7 @@ export function formatBoard(board: string, n: number): string {
     for (let x = 0; x < n; x++) row += faceToDisplay(board[y * n + x])
     rows.push(row)
   }
-  return rows.join(' ')
+  return rows.join('-')
 }
 
 /**
@@ -106,32 +122,21 @@ export type CustomBoardResult =
  */
 export function parseCustomBoard(text: string, n: number): CustomBoardResult {
   const faces: string[] = []
-  // Whitespace is purely presentational — rows may be spaced, run together, or
-  // wrapped however a paste happened to arrive.
-  const s = text.replace(/\s+/g, '')
-  for (let i = 0; i < s.length; ) {
-    // A two-character tile, but only spelled as it prints (see the mixed-case
-    // rule above): capital then lowercase.
-    const pair = s.slice(i, i + 2)
-    const paired = pair.length === 2 && FACE_BY_DISPLAY.get(pair)
-    if (paired) {
-      faces.push(paired)
-      i += 2
+  // Walks the SAME split the setup field echoes back, so the reading a player is
+  // shown and the reading that reaches the board can't disagree. Whitespace is
+  // purely presentational and `readTiles` drops it — rows may be spaced, run
+  // together, or wrapped however a paste happened to arrive.
+  for (const tile of readTiles(text)) {
+    const known = FACE_BY_DISPLAY.get(tile) // a digraph, or '?' — the blank
+    if (known) {
+      faces.push(known)
       continue
     }
-    const ch = s[i]
-    const single = FACE_BY_DISPLAY.get(ch) // '?' — the blank tile
-    if (single) {
-      faces.push(single)
-      i += 1
+    if (tile.length === 1 && /[A-Za-z]/.test(tile)) {
+      faces.push(tile.toUpperCase())
       continue
     }
-    if (/[A-Za-z]/.test(ch)) {
-      faces.push(ch.toUpperCase())
-      i += 1
-      continue
-    }
-    return { ok: false, error: `"${ch}" isn't a tile — use letters, ${twoLetterList()} or ?.` }
+    return { ok: false, error: `"${tile}" isn't a tile — use letters, ${twoLetterList()} or ?.` }
   }
 
   if (faces.length !== n * n) {
@@ -141,6 +146,51 @@ export function parseCustomBoard(text: string, n: number): CustomBoardResult {
     }
   }
   return { ok: true, board: faces.join('') }
+}
+
+/**
+ * Keep at most the tiles a board of this size can hold.
+ *
+ * `maxLength` cannot express this: it counts CHARACTERS, and a `Qu` tile is two
+ * of them — so a 4×4 board is 16 characters of ordinary letters but could be 32
+ * with a full grid of digraphs. Counting tiles is the only cap that means "a
+ * full board".
+ *
+ * Applied at the keystroke, so the field simply stops accepting rather than
+ * letting a player type past the end and then telling them off for it.
+ */
+export function capBoard(text: string, n: number): string {
+  const tiles = readTiles(text)
+  return tiles.length <= n * n ? text : tiles.slice(0, n * n).join('')
+}
+
+/**
+ * The tiles a typed board reads as, in written form — `['A', 'Qu', 'B', '?']`.
+ *
+ * Split out of `parseCustomBoard` so the echo and the parse cannot disagree
+ * about what a tile is; the parser now walks this instead of re-scanning the
+ * string. It is deliberately TOLERANT — anything it can't read comes back as
+ * itself, so the echo can show a bad character in place rather than vanishing,
+ * and `parseCustomBoard` is left to decide that it's an error.
+ */
+export function readTiles(text: string): string[] {
+  const tiles: string[] = []
+  // Separators are presentation, wherever they came from — a paste, an old
+  // space-separated recap, or the dashes the field itself draws.
+  const s = text.replace(/[\s-]+/g, '')
+  for (let i = 0; i < s.length; ) {
+    // A two-character tile, but only spelled as it prints (see the mixed-case
+    // rule above): capital then lowercase.
+    const pair = s.slice(i, i + 2)
+    if (pair.length === 2 && FACE_BY_DISPLAY.has(pair)) {
+      tiles.push(pair)
+      i += 2
+      continue
+    }
+    tiles.push(s[i])
+    i += 1
+  }
+  return tiles
 }
 
 /** `Qu, In, Th, Er, He or An` — built from the same table, for the error above

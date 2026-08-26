@@ -5,18 +5,40 @@ import { SelectField } from '../../common/components/fields/SelectField'
 import { TimerField } from '../../common/components/fields/TimerField'
 import { SetupSection } from '../../common/components/setup/SetupSection'
 import { difficultyValue } from '../../common/lib/game/difficulty'
-import { cls } from '../../common/lib/util/cls'
 import type { SetupBodyProps } from '../../common/lib/games'
 import { RANKS } from '../../common/lib/game/rankLadder'
 import type { SpellingbeeSetup } from '../lib/setup'
 import form from '../../common/components/fields/setupForm.module.css'
-import styles from './SetupForm.module.css'
+import { ManualBoardField } from '../../common/components/fields/ManualBoardField'
+import { groupTiles } from '../../common/components/fields/groupTiles'
 
 /** Normalize a letter input: lowercase, drop anything but a–z, cap the length.
  *  Keeps state canonical (lowercase, letters-only) so validation + the edge
  *  function agree; the UI uppercases via CSS for the honeycomb look. */
 const cleanLetters = (raw: string, max: number) =>
   raw.toLowerCase().replace(/[^a-z]/g, '').slice(0, max)
+
+/**
+ * Split the one typed field into the two setup keys.
+ *
+ * THE HYPHEN IS OPTIONAL. `A-CHIROT` and `ACHIROT` mean the same thing — the
+ * first letter is the centre and the rest are the outer ring — because the
+ * hyphen is punctuation in a display form, not data. `cleanLetters` drops it
+ * either way; this just decides where the cut falls, which is always after the
+ * first letter.
+ *
+ * The KEYS do not change. `custom_center` and `custom_letters` stay separate in
+ * the setup blob, because `create_game` validates them server-side and
+ * `customLettersError` already pins the rules. Only the input shape moved.
+ */
+function splitCustomLetters(raw: string): { center?: string; letters?: string } {
+  const letters = cleanLetters(raw, 1 + 6)
+  return {
+    center: letters.slice(0, 1) || undefined,
+    letters: letters.slice(1) || undefined,
+  }
+}
+
 
 /**
  * Allowed target-rank choices, shared by both modes' pickers. The full
@@ -61,15 +83,23 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
   const dictLabel = `Dictionaries: ${difficultyValue(s.required)} / ${difficultyValue(s.legal)}`
   const customCenter = (s.custom_center ?? '').toUpperCase()
   const customOuter = (s.custom_letters ?? '').toUpperCase()
+  // The summary is grouped by the SAME function the field uses, not by a
+  // hand-written hyphen that happens to agree with it today.
+  const customShown = groupTiles([...customCenter, ...customOuter], [1, 6])
   const customLabel =
     customCenter && customOuter
-      ? `Custom letters: ${customCenter}-${customOuter}`
+      ? `Custom letters: ${customShown}`
       : 'Custom letters (optional)'
 
   // What the two target-rank summaries say. `target_rank` is an index into
   // RANKS, and its ABSENCE is the coop "None" — the key is deleted rather than
   // set to a sentinel, so the summary reads the same absence.
   const targetRankLabel = s.target_rank === undefined ? 'None' : RANKS[s.target_rank]
+
+  // The one field's text, rebuilt from the two keys it writes. Undashed: the
+  // field owns the hyphen and puts it back after the centre letter, so typing
+  // it, omitting it or pasting it all mean the same thing.
+  const customEntry = `${s.custom_center ?? ''}${s.custom_letters ?? ''}`
 
   return (
     <div className={form.setup}>
@@ -167,40 +197,21 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
           Leave blank for a random board, or set your own: a center letter plus
           six other letters. No S, and all seven must be different.
         </p>
-        <div className={styles.customRow}>
-          <label className={styles.field}>
-            <span>Center</span>
-            <input
-              type="text"
-              autoComplete="off"
-              autoCapitalize="none"
-              spellCheck={false}
-              maxLength={1}
-              value={s.custom_center ?? ''}
-              onChange={(e) =>
-                onChange({ ...s, custom_center: cleanLetters(e.target.value, 1) || undefined })
-              }
-              className={cls(styles.letterInput, styles.centerInput)}
-              aria-label="Center letter"
-            />
-          </label>
-          <label className={styles.field}>
-            <span>Other letters</span>
-            <input
-              type="text"
-              autoComplete="off"
-              autoCapitalize="none"
-              spellCheck={false}
-              maxLength={6}
-              value={s.custom_letters ?? ''}
-              onChange={(e) =>
-                onChange({ ...s, custom_letters: cleanLetters(e.target.value, 6) || undefined })
-              }
-              className={cls(styles.letterInput, styles.outerInput)}
-              aria-label="Six other letters"
-            />
-          </label>
-        </div>
+        <ManualBoardField
+          label="Custom letters"
+          value={customEntry}
+          onChange={(raw) => {
+            const { center, letters } = splitCustomLetters(raw)
+            onChange({ ...s, custom_center: center, custom_letters: letters })
+          }}
+          placeholder="A-CHIROT"
+          chars={8}
+          maxLength={8}
+          // The centre, then the ring — so the hyphen the summary has always
+          // printed appears as you type it, and "which one is the centre?" is
+          // answered on screen rather than in the help text.
+          groups={[1, 6]}
+        />
       </SetupSection>
 
       <TimerField

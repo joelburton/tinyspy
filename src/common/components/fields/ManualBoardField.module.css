@@ -1,0 +1,47 @@
+/* cs-fixed */
+
+/*
+ * The manual-board input (see ManualBoardField.tsx).
+ *
+ * WHAT YOU TYPE IS WHAT YOU'LL SEE, and every rule here serves that. The letters
+ * you enter are the letters that will be on the board, the wheel or the
+ * honeycomb, so the field sets them the way the board will: monospace, tracked
+ * out, centered. Five games each wrote these four declarations under a different
+ * class name — `.letterInput`, `.baseInput`, `.sidesInput`, `.boardInput` — and
+ * width was the only thing any of them actually chose (F31).
+ */
+/* @@ */ .input {
+  font-family: monospace;
+  letter-spacing: 0.2em;
+  text-align: center;
+}
+
+/* UPPERCASE IS A DISPLAY TRANSFORM, and only four of the five games take it.
+   The stored value keeps whatever case the caller's cleaner gives it —
+   spellingbee keeps lowercase so its validation and its edge function agree.
+   Harmless there because case carries no meaning; boggle opts out, because for
+   boggle it would be a lie. See the component. */
+/* @@ */ .upper {
+  text-transform: uppercase;
+}
+
+/*
+ * THE PLACEHOLDER IS AN EXAMPLE, and it has to be unmistakably one.
+ *
+ * It is the only placeholder in the app that can be misread as data: it is a
+ * board, in the same face, tracking and case as real input, and the browser's
+ * default placeholder grey sits close enough to the text grey that a player
+ * could hit Start believing they had pasted something. boggle met this first
+ * and letterboxed copied its rule wholesale (F33); it is one rule now.
+ *
+ * Both of those files also dropped the tracking, on the theory that a third
+ * axis of difference helped. Joel overruled that on 2026-08-26: the tracking is
+ * IDENTICAL to real input, and the placeholder differs on colour and slant
+ * alone. Italic is the strong signal; matching the tracking means the example
+ * shows the true width of what you are about to type.
+ */
+/* @@ */ .input::placeholder {
+  color: var(--field-placeholder-ink-color);
+  font-style: italic;
+}
+

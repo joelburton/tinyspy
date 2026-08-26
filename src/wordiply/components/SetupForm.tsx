@@ -7,8 +7,8 @@ import { SetupSection } from '../../common/components/setup/SetupSection'
 import type { SetupBodyProps } from '../../common/lib/games'
 import { cleanBase, type WordiplySetup } from '../lib/setup'
 import form from '../../common/components/fields/setupForm.module.css'
-import styles from './SetupForm.module.css'
 import { difficultyValue } from '../../common/lib/game/difficulty'
+import { ManualBoardField } from '../../common/components/fields/ManualBoardField'
 
 /**
  * wordiply's per-game setup form. Mode is locked at the gametype level
@@ -87,18 +87,13 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
           every guess must contain. Very short starters usually match too many
           words to make a puzzle.
         </p>
-        <input
-          type="text"
-          autoComplete="off"
-          autoCapitalize="none"
-          spellCheck={false}
-          maxLength={4}
+        <ManualBoardField
+          label="Custom starter"
           value={customBase}
-          onChange={(e) =>
-            onChange({ ...s, custom_base: cleanBase(e.target.value) || undefined })
-          }
-          className={styles.baseInput}
-          aria-label="Custom starter"
+          onChange={(raw) => onChange({ ...s, custom_base: cleanBase(raw) || undefined })}
+          placeholder="MOTH"
+          chars={4}
+          maxLength={4}
         />
       </SetupSection>
 

@@ -9,11 +9,13 @@ import { difficultyValue } from '../../common/lib/game/difficulty'
 import type { SetupBodyProps } from '../../common/lib/games'
 import type { BoardConstraints } from '../lib/generate'
 import { WIN_PERCENT_OPTIONS, type BoggleSetup } from '../lib/setup'
-import { cleanCustomBoard, twoLetterList } from '../lib/customBoard'
+import { capBoard, cleanCustomBoard, readTiles, twoLetterList } from '../lib/customBoard'
 import type { LadderName } from '../lib/solver'
 import { DICE_SETS, DICE_BY_NAME } from '../lib/dice'
 import form from '../../common/components/fields/setupForm.module.css'
 import styles from './SetupForm.module.css'
+import { ManualBoardField } from '../../common/components/fields/ManualBoardField'
+import { groupTiles } from '../../common/components/fields/groupTiles'
 
 // Ladder labels + order ported verbatim from wsboggle (NewSoloGamePage.tsx).
 const SCORING_LADDERS: ReadonlyArray<{ name: LadderName; label: string }> = [
@@ -64,8 +66,12 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
   // says so (lib/setup.ts → customBoardError).
   const diceSet = DICE_BY_NAME[s.dice_set]
   const customBoard = s.custom_board ?? ''
-  const customBoardLabel = customBoard.trim()
-    ? `Custom board: ${customBoard.trim()}`
+  // The rows the chosen dice set implies — the field groups by these, and so
+  // does the summary, from the same function. A summary that did its own
+  // arithmetic could disagree with the box right under it.
+  const boardRows = diceSet ? Array.from({ length: diceSet.n }, () => diceSet.n) : []
+  const customBoardLabel = customBoard
+    ? `Custom board: ${groupTiles(readTiles(customBoard), boardRows)}`
     : 'Custom board (optional)'
   const dictLabel = `Dictionaries: ${difficultyValue(s.band)} / ${difficultyValue(s.legal_band)}`
   const ladderLabel =
@@ -87,7 +93,15 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
         <SelectField
           label="Dice set"
           value={s.dice_set}
-          onChange={(dice_set) => onChange({ ...s, dice_set })}
+          // CHANGING THE DICE SET CLEARS THE CUSTOM BOARD. The set fixes the
+          // side length, so a board typed for one is the wrong SIZE for another
+          // — 16 tiles against a 5×5's 25 — and the Start gate would refuse it
+          // with a count error about a board the player didn't just type.
+          // Dropping it puts them back on the normal path (roll one) instead of
+          // handing them a puzzle to solve. It also can't lose much: a set
+          // change is a decision about what kind of board you want, and a
+          // custom board is the answer to that question.
+          onChange={(dice_set) => onChange({ ...s, dice_set, custom_board: undefined })}
         >
           {DICE_SETS.map((d) => (
             <option key={d.name} value={d.name}>
@@ -98,7 +112,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
       </SetupSection>
 
       {/* Optional custom board, behind a disclosure whose summary shows the typed
-          tiles (e.g. "Custom board: ABCD EFGH IJKL MNOP") or "(optional)" when
+          tiles (e.g. "Custom board: ABCD-EFGH-IJKL-MNOP") or "(optional)" when
           blank. Blank → a rolled board (the normal path); fill it to play exactly
           these tiles — which is how you hand a friend a board you liked, read
           straight off its info column or its printout.
@@ -115,18 +129,31 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
           Write a two-letter tile the way it prints — {twoLetterList()} — and{' '}
           <strong>?</strong> for a blank.
         </p>
-        <input
-          type="text"
-          autoComplete="off"
-          autoCapitalize="none"
-          spellCheck={false}
+        <ManualBoardField
+          label="Custom board"
           value={customBoard}
-          onChange={(e) =>
-            onChange({ ...s, custom_board: cleanCustomBoard(e.target.value) || undefined })
+          onChange={(raw) =>
+            onChange({
+              ...s,
+              // Capped in TILES, not characters — a `Qu` is one tile and two
+              // characters, so `maxLength` could not say "a full board".
+              custom_board: (diceSet
+                ? capBoard(cleanCustomBoard(raw), diceSet.n)
+                : cleanCustomBoard(raw)) || undefined,
+            })
           }
-          className={styles.boardInput}
           placeholder={diceSet ? exampleBoard(diceSet.n) : ''}
-          aria-label="Custom board"
+          chars="full"
+          // THE ONE GAME THAT KEEPS ITS CASE. `Qu` is one tile and `QU` is a Q
+          // beside a U — both are real boards — so uppercasing the display would
+          // show a different board than the field holds, and contradict the
+          // recap and the printout, which both write `Qu`.
+          uppercase={false}
+          // Dashes between ROWS, counted in TILES — so `Qu` is one and the dash
+          // lands where the row really ends. Type `ABQU` into a 4-wide board and
+          // the dash arrives a tile early, which is the miscount made visible.
+          groups={diceSet ? boardRows : undefined}
+          tiles={readTiles}
         />
       </SetupSection>
 
@@ -237,7 +264,9 @@ function exampleBoard(n: number): string {
     for (let x = 0; x < n; x++) row += String.fromCharCode(65 + ((y * n + x) % 26))
     rows.push(row)
   }
-  return rows.join(' ')
+  // Dashed, because the field dashes: a placeholder is an EXAMPLE of what you
+  // are about to type, and one written differently teaches the wrong shape.
+  return rows.join('-')
 }
 
 function Row({
