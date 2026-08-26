@@ -3,16 +3,16 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import { DifficultyField } from './DifficultyField'
+import { DictBandField } from './DictBandField'
 
-describe('DifficultyField', () => {
+describe('DictBandField', () => {
   it('lists all six bands as "N: Label: SAMPLES" and disables out-of-range', () => {
     render(
-      <DifficultyField
+      <DictBandField
         label="Difficulty"
         length={5}
-        minDifficulty={2}
-        maxDifficulty={4}
+        minBand={2}
+        maxBand={4}
         value={3}
         onChange={() => {}}
       />,
@@ -30,11 +30,11 @@ describe('DifficultyField', () => {
   it('reports the chosen band as a number', async () => {
     const onChange = vi.fn()
     render(
-      <DifficultyField
+      <DictBandField
         label="Difficulty"
         length={2}
-        minDifficulty={1}
-        maxDifficulty={6}
+        minBand={1}
+        maxBand={6}
         value={1}
         onChange={onChange}
       />,
@@ -45,14 +45,14 @@ describe('DifficultyField', () => {
 
   it('shows length-appropriate samples (2-letter set)', () => {
     render(
-      <DifficultyField length={2} minDifficulty={1} maxDifficulty={6} value={1} onChange={() => {}} />,
+      <DictBandField length={2} minBand={1} maxBand={6} value={1} onChange={() => {}} />,
     )
     expect(screen.getAllByRole('option')[1]).toHaveTextContent('2: Common: AX EX OW BI YO')
   })
 
   it('drops the 2-letter words for the "3+" length', () => {
     render(
-      <DifficultyField length="3+" minDifficulty={1} maxDifficulty={6} value={1} onChange={() => {}} />,
+      <DictBandField length="3+" minBand={1} maxBand={6} value={1} onChange={() => {}} />,
     )
     // Band 1 open is "OX CAT MILK HAPPY JUMP"; the 3+ set drops OX.
     const band1 = screen.getAllByRole('option')[0]
@@ -62,11 +62,11 @@ describe('DifficultyField', () => {
 
   it('prepends an always-enabled extra option (wordle "0: Wordle")', () => {
     render(
-      <DifficultyField
+      <DictBandField
         label="Answer source"
         length={5}
-        minDifficulty={1}
-        maxDifficulty={6}
+        minBand={1}
+        maxBand={6}
         value={0}
         onChange={() => {}}
         extraLowOption={{ value: 0, label: 'Wordle' }}
@@ -80,10 +80,10 @@ describe('DifficultyField', () => {
 
   it('disables the whole control when asked (stackdown is locked to band 1)', () => {
     render(
-      <DifficultyField
+      <DictBandField
         length={5}
-        minDifficulty={1}
-        maxDifficulty={1}
+        minBand={1}
+        maxBand={1}
         value={1}
         onChange={() => {}}
         disabled

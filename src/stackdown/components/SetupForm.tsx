@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { DifficultyField } from '../../common/components/fields/DifficultyField'
+import { DictBandField } from '../../common/components/fields/DictBandField'
 import { TimerField } from '../../common/components/fields/TimerField'
 import { SetupSection } from '../../common/components/setup/SetupSection'
 import { difficultyValue } from '../../common/lib/game/difficulty'
@@ -11,7 +11,7 @@ import form from '../../common/components/fields/setupForm.module.css'
 /**
  * stackdown's setup form, rendered inside the common SetupGameModal.
  * A random board is dealt from the pre-generated library, filtered to the
- * chosen word-difficulty `band`. Two knobs: the `DifficultyField` (bands
+ * chosen word-difficulty `band`. Two knobs: the `DictBandField` (bands
  * 1..2 — that's what the board library holds) and the shared `TimerField`.
  * Controlled component (state lives in the wrapper); shared by both
  * manifests (mode doesn't change the form).
@@ -31,11 +31,11 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
         spelling words off the exposed tiles.
       </p>
       <SetupSection label={dictLabel}>
-        <DifficultyField
+        <DictBandField
           label="Word difficulty"
           length={5}
-          minDifficulty={1}
-          maxDifficulty={2}
+          minBand={1}
+          maxBand={2}
           value={s.band}
           onChange={(band) => onChange({ ...s, band })}
         />

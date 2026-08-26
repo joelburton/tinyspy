@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { CoopStyleField } from '../../common/components/fields/CoopStyleField'
-import { DifficultyField } from '../../common/components/fields/DifficultyField'
+import { DictBandField } from '../../common/components/fields/DictBandField'
 import { SelectField } from '../../common/components/fields/SelectField'
 import { TimerField } from '../../common/components/fields/TimerField'
 import { NextPuzzleField } from '../../common/components/fields/NextPuzzleField'
@@ -75,13 +75,13 @@ export function SetupForm({ brand, mode, players, value, onChange }: SetupBodyPr
           How obscure a word may be and still earn a hint. A wider dictionary makes the
           game <strong>easier</strong> — more words count, so hints come faster.
         </p>
-        <DifficultyField
+        <DictBandField
           label="Hint dictionary"
           // '3+' — strands' hint words have no fixed length (min_word_length is
           // its own knob), so the field samples from the general word list.
           length="3+"
-          minDifficulty={1}
-          maxDifficulty={6}
+          minBand={1}
+          maxBand={6}
           value={s.band}
           onChange={(band) => onChange({ ...s, band })}
         />

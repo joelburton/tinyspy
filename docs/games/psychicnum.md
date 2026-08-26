@@ -35,7 +35,7 @@ Both siblings share the same display `name` — the brand, `PsychicNum`, read fr
   - **Hint** (`request_hint`): shows the *clue* for an unfound secret (`common.words.hint` — a category/near-synonym nudge). Many words have no clue, so it falls back to the literal "No hint available". The clue (not the word) is what's logged, so a hint never leaks the answer.
   - **Spoiler** (`request_reveal`): shows the *answer* — an unfound secret word itself. The toy "hint that's really the answer." The FE button is the amber bare-eye `SpoilerButton`; the red boxed-eye `RevealButton` is a different thing (the whole board's secrets, terminal only). The RPC keeps its `request_reveal` name — only the player-facing vocabulary moved.
   - Both are also **menu rows** ("Hint" / "Spoiler"), grayed in step with the buttons — the menu is where the lightbulb and the bare eye get named ([ui.md → the menu is the legend](../ui.md#button-iconography)). The two handlers are hoisted into `actionsRef` so the row and the button fire the same one.
-- Setup form collects: **guess budget** (one of 3/5/7/9), **words on the board** (`word_count`, 5–20), **word difficulty** (the shared `<DifficultyField>` band), **timer** (none/countup/countdown, MM:SS for countdown).
+- Setup form collects: **guess budget** (one of 3/5/7/9), **words on the board** (`word_count`, 5–20), **word difficulty** (the shared `<DictBandField>` band), **timer** (none/countup/countdown, MM:SS for countdown).
 - The mode (coop vs compete) is **NOT** a setup field — it's locked at the gametype level, picked by which Start button the player clicks. See [The sibling-manifest pattern](#the-sibling-manifest-pattern) above.
 
 ### Coop gameplay
@@ -306,7 +306,7 @@ The start-game dialog collects these options from the players before `create_gam
 
 - **`guesses`**: total guess budget shared across all club members, one of `{3, 5, 7, 9}`. 7 is the default.
 - **`word_count`**: how many words on the board, 5..20 (default 10). Three of them are secret.
-- **`difficulty`**: dictionary band 1..6 (Universal..Expert, default 3), a `common.words.difficulty` value — the board is sampled at `difficulty ≤ this`. Rendered by the shared `<DifficultyField>`.
+- **`difficulty`**: dictionary band 1..6 (Universal..Expert, default 3), a `common.words.difficulty` value — the board is sampled at `difficulty ≤ this`. Rendered by the shared `<DictBandField>`.
 - **`timer`**: timer mode — `none`, `countup`, or `countdown` with a player-chosen MM:SS duration. Rendered by the shared `<TimerField>`, validated server-side by `common.require_valid_timer`. See [Timer](#timer-server-authoritative-ticks) below.
 - **`coop_style`** (coop): `'free-for-all'` (the default) or `'turns'` — the common opt-in turn-by-turn pacing, rendered by the shared `<CoopStyleField>`. Picking `'turns'` adds **`first_turn_user_id`** (who goes first — must be one of the players; `create_game` rejects anyone else).
 

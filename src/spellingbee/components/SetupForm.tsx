@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { DifficultyField } from '../../common/components/fields/DifficultyField'
+import { DictBandField } from '../../common/components/fields/DictBandField'
 import { SelectField } from '../../common/components/fields/SelectField'
 import { TimerField } from '../../common/components/fields/TimerField'
 import { SetupSection } from '../../common/components/setup/SetupSection'
@@ -167,19 +167,19 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
           Required words are the goal; legal words also score but aren't
           required. Both are length-agnostic (examples just show the band).
         </p>
-        <DifficultyField
+        <DictBandField
           label="Required words"
           length={null}
-          minDifficulty={1}
-          maxDifficulty={6}
+          minBand={1}
+          maxBand={6}
           value={s.required}
           onChange={(required) => onChange({ ...s, required })}
         />
-        <DifficultyField
+        <DictBandField
           label="Legal (bonus) words"
           length={null}
-          minDifficulty={s.required}
-          maxDifficulty={6}
+          minBand={s.required}
+          maxBand={6}
           value={s.legal}
           onChange={(legal) => onChange({ ...s, legal })}
         />

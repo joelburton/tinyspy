@@ -513,8 +513,8 @@ dedups the accepted words.
 
 **Setup form.** Dice set · an optional **Custom board** (the tiles, typed — see
 [§4 → Custom board](#custom-board-player-typed-tiles)) · required difficulty (the
-shared `DifficultyField`, full `universal…expert` list) · legal/bonus difficulty
-(a second `DifficultyField` whose minimum tracks the required band) · scoring
+shared `DictBandField`, full `universal…expert` list) · legal/bonus difficulty
+(a second `DictBandField` whose minimum tracks the required band) · scoring
 ladder · minimum word length · an optional collapsible **Board constraints**
 min/max grid (words / score / longest) · timer. Mode-aware copy (coop vs
 compete). Start is gated by `boggleSetupError` = the cross-field band rules, then
@@ -615,7 +615,7 @@ allowlist.
 
 - **The "Board constraints" grid is the last hand-rolled field in any setup
   form.** Every field type a setup form has is a shared component — `TimerField`,
-  `DifficultyField`, `SelectField`, `RadioRow`, `CoopStyleField`,
+  `DictBandField`, `SelectField`, `RadioRow`, `CoopStyleField`,
   `ManualBoardField`, and now `NumberField`, `CheckboxField` and `DateField`.
   This grid is the one exception: six raw `<input type="number">`s laid out 3×2
   (Words / Score / Longest, each min and max) with column heads and a local

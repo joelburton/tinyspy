@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { DifficultyField } from '../../common/components/fields/DifficultyField'
+import { DictBandField } from '../../common/components/fields/DictBandField'
 import { RadioRow } from '../../common/components/fields/RadioRow'
 import { TimerField } from '../../common/components/fields/TimerField'
 import { SetupSection } from '../../common/components/setup/SetupSection'
@@ -37,7 +37,7 @@ import { CheckboxField } from '../../common/components/fields/CheckboxField'
  *     At win / Every peel). *Every peel* (strict) refuses a peel whose board
  *     has an invalid word. (Board geography — one connected grid — is always
  *     required to win, so it's not a knob.)
- *   - **Dictionaries** — two always-shown DifficultyField pickers (one for
+ *   - **Dictionaries** — two always-shown DictBandField pickers (one for
  *     2-letter words, band 2..6; one for longer words, 1..6, since 2-letter
  *     words are a separate, thinner vocabulary). The bands define what counts
  *     as a real word for the check AND the upcoming opt-in "check board"
@@ -124,19 +124,19 @@ export function SetupForm({ value, onChange, playerCount }: SetupBodyProps) {
             check is off. 2-letter words are a separate, thinner
             vocabulary, so they get their own band. */}
         <div className={styles.dictRow}>
-          <DifficultyField
+          <DictBandField
             label="2-letter words"
             length={2}
-            minDifficulty={2}
-            maxDifficulty={6}
+            minBand={2}
+            maxBand={6}
             value={s.dict_2}
             onChange={(dict_2) => onChange({ ...s, dict_2 })}
           />
-          <DifficultyField
+          <DictBandField
             label="Longer words (3+)"
             length="3+"
-            minDifficulty={1}
-            maxDifficulty={6}
+            minBand={1}
+            maxBand={6}
             value={s.dict_3plus}
             onChange={(dict_3plus) => onChange({ ...s, dict_3plus })}
           />

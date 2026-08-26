@@ -17,7 +17,7 @@ export type WaffleSetup = CoopTurnSetup & {
    * drawn from: a tier-N puzzle uses words of band ≤ N with its hardest
    * word at exactly N. The board is generated on demand for the chosen
    * band (the `waffle-build-board` edge function). The dialog offers the
-   * full 1–6 via the shared `DifficultyField`.
+   * full 1–6 via the shared `DictBandField`.
    */
   difficulty: number
   /**

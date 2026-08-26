@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { DifficultyField } from '../../common/components/fields/DifficultyField'
+import { DictBandField } from '../../common/components/fields/DictBandField'
 import { TimerField } from '../../common/components/fields/TimerField'
 import { CoopStyleField } from '../../common/components/fields/CoopStyleField'
 import { SetupSection } from '../../common/components/setup/SetupSection'
@@ -61,10 +61,10 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
       )}
 
       <SetupSection label={`Dictionary: ${difficultyValue(s.difficulty)}`}>
-        <DifficultyField
+        <DictBandField
           length={null}
-          minDifficulty={1}
-          maxDifficulty={6}
+          minBand={1}
+          maxBand={6}
           value={s.difficulty}
           onChange={(difficulty) => onChange({ ...s, difficulty })}
         />

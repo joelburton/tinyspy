@@ -39,8 +39,8 @@ Agreed 2026-08-25 before anything was read. All paths under `src/common/`.
 
 ```
 components/fields/CoopStyleField.tsx      components/fields/CoopStyleField.module.css
-components/fields/CoopStyleField.test.tsx components/fields/DifficultyField.tsx
-components/fields/DifficultyField.test.tsx components/fields/NextPuzzleField.tsx
+components/fields/CoopStyleField.test.tsx components/fields/DictBandField.tsx
+components/fields/DictBandField.test.tsx components/fields/NextPuzzleField.tsx
 components/fields/NextPuzzleField.module.css components/fields/RadioRow.tsx
 components/fields/SelectField.tsx         components/fields/SelectField.module.css
 components/fields/TimerField.tsx          components/fields/TimerField.module.css
@@ -86,7 +86,7 @@ Joel's call.
 ```
 hooks/game/useGameTimer.ts   (formatTimerSeconds — TimerField)
 lib/game/timerLabel.ts       (the disclosure summary — TimerField)
-lib/game/difficulty.ts       (DIFFICULTY_LABELS + samples — DifficultyField)
+lib/game/difficulty.ts       (DIFFICULTY_LABELS + samples — DictBandField)
 components/icons.ts          (the glyph registry — the button machinery)
 ```
 

@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { DifficultyField } from '../../common/components/fields/DifficultyField'
+import { DictBandField } from '../../common/components/fields/DictBandField'
 import { RadioRow } from '../../common/components/fields/RadioRow'
 import { SelectField } from '../../common/components/fields/SelectField'
 import { TimerField } from '../../common/components/fields/TimerField'
@@ -41,7 +41,7 @@ const CONSTRAINT_ROWS: ReadonlyArray<{ label: string; min: NumKey; max: NumKey }
 /**
  * boggle's per-game setup form. Mode is locked at the gametype level (which
  * Start button you clicked), so there's no mode radio — just mode-flavored copy.
- * Picks: dice set, required-word difficulty (form DifficultyField), scoring
+ * Picks: dice set, required-word difficulty (form DictBandField), scoring
  * ladder, minimum word length, optional Board constraints (a collapsible min/max
  * grid like wsboggle's), and the form TimerField. Controlled component —
  * state lives in SetupGameModal; `create_game` re-validates server-side.
@@ -168,21 +168,21 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
           filter on difficulty only (any spelling/dialect counts), so a higher
           band rewards digging up rarer finds.
         </p>
-        <DifficultyField
+        <DictBandField
           label="Required words"
           length={null}
-          minDifficulty={1}
-          maxDifficulty={6}
+          minBand={1}
+          maxBand={6}
           value={s.band}
           // The legal band can never sit below the required band (every required
           // word is also legal) — pull it up with the required band when needed.
           onChange={(band) => onChange({ ...s, band, legal_band: Math.max(band, s.legal_band) })}
         />
-        <DifficultyField
+        <DictBandField
           label="Legal (bonus) words"
           length={null}
-          minDifficulty={s.band}
-          maxDifficulty={6}
+          minBand={s.band}
+          maxBand={6}
           value={s.legal_band}
           onChange={(legal_band) => onChange({ ...s, legal_band })}
         />

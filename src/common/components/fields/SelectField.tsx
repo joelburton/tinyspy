@@ -28,7 +28,7 @@ type Props = {
  * app control sizing + a custom chevron (`appearance: none`), matching the
  * chunky text inputs / buttons around it.
  *
- * `DifficultyField` is "a SelectField over the difficulty bands"; the other
+ * `DictBandField` is "a SelectField over the difficulty bands"; the other
  * setup selects (boggle dice/ladder, wordle guesses, psychicnum word-count)
  * compose it with their own `<option>`s.
  */

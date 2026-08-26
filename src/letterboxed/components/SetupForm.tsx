@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { useState } from 'react'
-import { DifficultyField } from '../../common/components/fields/DifficultyField'
+import { DictBandField } from '../../common/components/fields/DictBandField'
 import { SelectField } from '../../common/components/fields/SelectField'
 import { TimerField } from '../../common/components/fields/TimerField'
 import { CoopStyleField } from '../../common/components/fields/CoopStyleField'
@@ -107,10 +107,10 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
       <SetupSection label={`Dictionary: ${difficultyValue(s.legal_band)}`}>
         {/* Higher = easier here, unlike most games' difficulty bands. */}
         <p className={form.helpText}>A higher band accepts more words.</p>
-        <DifficultyField
+        <DictBandField
           length={null}
-          minDifficulty={1}
-          maxDifficulty={6}
+          minBand={1}
+          maxBand={6}
           value={s.legal_band}
           onChange={(legal_band) => onChange({ ...s, legal_band })}
         />

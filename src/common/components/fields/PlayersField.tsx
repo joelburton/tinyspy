@@ -38,7 +38,7 @@ type Props = {
  *
  * A component rather than markup inside `SetupGameModal` because a players
  * picker is a FIELD, and every other field a setup form has is one of these —
- * `<TimerField>`, `<DifficultyField>`, `<CoopStyleField>`. It lived inline for
+ * `<TimerField>`, `<DictBandField>`, `<CoopStyleField>`. It lived inline for
  * as long as it had exactly one caller, which is how the setup form's other
  * shapes drifted too.
  *

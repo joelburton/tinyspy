@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { DifficultyField } from '../../common/components/fields/DifficultyField'
+import { DictBandField } from '../../common/components/fields/DictBandField'
 import { RadioRow } from '../../common/components/fields/RadioRow'
 import { TimerField } from '../../common/components/fields/TimerField'
 import { CoopStyleField } from '../../common/components/fields/CoopStyleField'
@@ -15,7 +15,7 @@ import form from '../../common/components/fields/setupForm.module.css'
  * Two choices plus the timer:
  *
  *   - **Word difficulty** — which vocabulary band (1..6) the six 5-letter
- *     words are drawn from (sets `difficulty`), via the shared DifficultyField.
+ *     words are drawn from (sets `difficulty`), via the shared DictBandField.
  *   - **Swap budget** — how many *extra* swaps beyond the puzzle's
  *     par you get. Fewer = harder. `max_swaps = par + extra_swaps`.
  *
@@ -53,10 +53,10 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
       />
       <SetupSection label={dictLabel}>
         <p className={form.helpText}>Which vocabulary the puzzle's words come from.</p>
-        <DifficultyField
+        <DictBandField
           length={5}
-          minDifficulty={1}
-          maxDifficulty={6}
+          minBand={1}
+          maxBand={6}
           value={s.difficulty}
           onChange={(difficulty) => onChange({ ...s, difficulty })}
         />

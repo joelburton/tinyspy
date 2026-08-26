@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { DifficultyField } from '../../common/components/fields/DifficultyField'
+import { DictBandField } from '../../common/components/fields/DictBandField'
 import { SelectField } from '../../common/components/fields/SelectField'
 import { TimerField } from '../../common/components/fields/TimerField'
 import { CoopStyleField } from '../../common/components/fields/CoopStyleField'
@@ -63,20 +63,20 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
         </SelectField>
       </SetupSection>
       <SetupSection label={dictLabel}>
-        <DifficultyField
+        <DictBandField
           label="Answer source"
           length={5}
           extraLowOption={{ value: 0, label: 'Wordle' }}
-          minDifficulty={1}
-          maxDifficulty={6}
+          minBand={1}
+          maxBand={6}
           value={s.answer_source}
           onChange={(answer_source) => onChange({ ...s, answer_source })}
         />
-        <DifficultyField
+        <DictBandField
           label="Legal guesses"
           length={5}
-          minDifficulty={answerMaxBand(s)}
-          maxDifficulty={6}
+          minBand={answerMaxBand(s)}
+          maxBand={6}
           value={s.legal_guess}
           onChange={(legal_guess) => onChange({ ...s, legal_guess })}
         />

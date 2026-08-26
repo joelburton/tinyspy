@@ -189,7 +189,7 @@ everything reveals post-terminal. **Coop** shows the shared board to all members
   par_swaps}`) built by the `waffle-build-board` edge function. Validates
   `require_club_member`, `require_player_count_max`, `require_valid_timer`; validates
   `setup.extra_swaps` (0..15, default 5) and `setup.difficulty` (band **1–6**,
-  default 2 — the dialog's `DifficultyField` offers the same full 1–6 range);
+  default 2 — the dialog's `DictBandField` offers the same full 1–6 range);
   sanity-checks the board structure (25-char strings, holes at the four
   interior cells, scramble is a rearrangement of the solution); stores it on
   `waffle.games`; sets `max_swaps = par_swaps + setup.extra_swaps`; seeds the
@@ -491,7 +491,7 @@ codenamesduet use; see [docs/ui.md → PlayArea layout](../playarea.md#playarea-
 - `SetupForm` and `Help` round it out. The form (shared by both modes) offers
   four knobs: the `CoopStyleField` first (the opt-in turn-by-turn coop pacing +
   its first-turn picker — self-gates to nothing for compete / solo), a
-  word-difficulty `DifficultyField` (which vocabulary band the six words come
+  word-difficulty `DictBandField` (which vocabulary band the six words come
   from, 1–6), the extra-swaps `RadioRow` (the budget knob — fewer is harder),
   and the shared `TimerField`. The two disclosure sections carry their current
   values in their summaries ("Dictionary: Familiar", "Swap budget: Tight +3")

@@ -6,7 +6,7 @@
  * to a player roughly how obscure each band feels. They're illustrative only —
  * NOT a validated word list (a game may not even accept words this short).
  *
- * `DifficultyField` renders these. A game passes the word length its dictionary
+ * `DictBandField` renders these. A game passes the word length its dictionary
  * cares about (a 2-letter dictionary shows 2-letter samples). Kept as plain
  * literal arrays on purpose — nothing clever.
  */

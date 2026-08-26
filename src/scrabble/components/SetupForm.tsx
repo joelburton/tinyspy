@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { DifficultyField } from '../../common/components/fields/DifficultyField'
+import { DictBandField } from '../../common/components/fields/DictBandField'
 import { TimerField } from '../../common/components/fields/TimerField'
 import { CoopStyleField } from '../../common/components/fields/CoopStyleField'
 import { RadioRow } from '../../common/components/fields/RadioRow'
@@ -57,19 +57,19 @@ export function SetupForm({ value, onChange, mode, players, playerCount }: Setup
         it's in the dictionary at the difficulty you pick for its length.
       </p>
       <SetupSection label={dictLabel}>
-        <DifficultyField
+        <DictBandField
           label="2-letter words"
           length={2}
-          minDifficulty={1}
-          maxDifficulty={6}
+          minBand={1}
+          maxBand={6}
           value={s.dict_2}
           onChange={(dict_2) => onChange({ ...s, dict_2 })}
         />
-        <DifficultyField
+        <DictBandField
           label="Longer words (3+)"
           length="3+"
-          minDifficulty={1}
-          maxDifficulty={6}
+          minBand={1}
+          maxBand={6}
           value={s.dict_3plus}
           onChange={(dict_3plus) => onChange({ ...s, dict_3plus })}
         />

@@ -2,7 +2,7 @@
 
 import { TimerField } from '../../common/components/fields/TimerField'
 import { CoopStyleField } from '../../common/components/fields/CoopStyleField'
-import { DifficultyField } from '../../common/components/fields/DifficultyField'
+import { DictBandField } from '../../common/components/fields/DictBandField'
 import { SelectField } from '../../common/components/fields/SelectField'
 import { RadioRow } from '../../common/components/fields/RadioRow'
 import { SetupSection } from '../../common/components/setup/SetupSection'
@@ -22,7 +22,7 @@ import form from '../../common/components/fields/setupForm.module.css'
  *   - **Guesses** — guess budget, one of {3, 5, 7, 9}.
  *   - **Words on the board** — how many words (5..20); three are secret.
  *   - **Word difficulty** — the dictionary band the board is drawn from
- *     (the shared `<DifficultyField>`).
+ *     (the shared `<DictBandField>`).
  *   - **Timer** — the shared `<TimerField>`.
  *
  * No member-aware UI (every guess is interchangeable; no seats),
@@ -107,10 +107,10 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
         <p className={form.helpText}>
           How obscure the board words can get.
         </p>
-        <DifficultyField
+        <DictBandField
           length={null}
-          minDifficulty={1}
-          maxDifficulty={6}
+          minBand={1}
+          maxBand={6}
           value={s.difficulty}
           onChange={(difficulty) => onChange({ ...s, difficulty })}
         />

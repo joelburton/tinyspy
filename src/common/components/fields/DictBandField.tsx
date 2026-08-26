@@ -11,36 +11,43 @@ type Props = {
   /** Which sample-word set to show — the word length this dictionary cares
    *  about (so the examples match the game). */
   length: WordLength
-  /** Selectable band range. Bands outside `[minDifficulty, maxDifficulty]` are
-   *  still LISTED but disabled, so a constraint (e.g. "legal ≥ required") is
-   *  visible rather than hidden. */
-  minDifficulty: number
-  maxDifficulty: number
+  /** Selectable band range. Bands outside `[minBand, maxBand]` are still
+   *  LISTED but disabled, so a constraint (e.g. "legal ≥ required") is visible
+   *  rather than hidden. */
+  minBand: number
+  maxBand: number
   value: number
   onChange: (band: number) => void
   /** Disable the whole control (e.g. stackdown is locked to band 1). */
   disabled?: boolean
   /** An always-enabled option rendered ABOVE band 1 — for a source that sits
-   *  outside the 1..6 difficulty scale. wordle uses `{ value: 0, label:
-   *  'Wordle' }` for the curated NYT answer list. */
+   *  outside the 1..6 band scale. wordle uses `{ value: 0, label: 'Wordle' }`
+   *  for the curated NYT answer list. */
   extraLowOption?: { value: number; label: string }
 }
 
 /**
- * Shared vocabulary-difficulty dropdown for game setup. Always lists all six
- * bands as `"2: Common: AX EX OW BI YO"` — number, label, and a few sample
- * words (from `length`, so a 2-letter dictionary shows 2-letter examples).
- * Bands outside the allowed range render disabled.
+ * WHICH DICTIONARY — the shared band picker for game setup. Lists all six bands
+ * as `"2: Common: AX EX OW BI YO"` (number, name, and a few sample words drawn
+ * from `length`, so a 2-letter dictionary shows 2-letter examples), with bands
+ * outside the allowed range LISTED but disabled — a constraint you can see
+ * beats one that silently hides its options.
  *
- * The band is a `common.words.difficulty` value; each game's RPC does the
- * actual word filtering. See [difficulty.ts](../lib/difficulty.ts) for the
- * bands + samples.
+ * **`DictBandField`, not `DifficultyField`** (Joel, 2026-08-26): what a player
+ * picks here is which slice of the word list the game draws from, and "band" is
+ * the word every summary already uses — `Dictionary: 3 (Familiar)`. "Difficulty"
+ * named the CONSEQUENCE, and named it ambiguously, since several of these games
+ * have a separate difficulty knob that has nothing to do with vocabulary.
+ *
+ * The band is a `common.words.difficulty` value and the column keeps that name —
+ * it is the DB's word, and each game's RPC does the actual filtering. See
+ * `lib/game/difficulty.ts` for the bands and their samples.
  */
-export function DifficultyField({
+export function DictBandField({
   label,
   length,
-  minDifficulty,
-  maxDifficulty,
+  minBand,
+  maxBand,
   value,
   onChange,
   disabled,
@@ -66,7 +73,7 @@ export function DifficultyField({
           <option
             key={band}
             value={band}
-            disabled={band < minDifficulty || band > maxDifficulty}
+            disabled={band < minBand || band > maxBand}
           >
             {band}: {bandLabel}: {examples}
           </option>

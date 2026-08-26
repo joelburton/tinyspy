@@ -429,7 +429,7 @@ src/spellingbee/
                           short paragraph + shared <TimerField>. Compete: adds a
                           target-rank dropdown (Good..Genius, default Amazing) above
                           the timer. Both modes: a "Word difficulty" fieldset with
-                          two shared <DifficultyField>s (Required words: band 1..6;
+                          two shared <DictBandField>s (Required words: band 1..6;
                           Legal/bonus words: band required..6), then a "Custom
                           letters (optional)" fieldset (center + six other letters;
                           blank = random board). The manifest's `validate:
@@ -582,7 +582,7 @@ Standard — spellingbee's `PlayArea`, `setupForm.Component`, and `help` all shi
 |---|---|
 | Everything server-side — schema, column grants, RLS, the `games_state` view, `candidate_words`, the RPCs (`create_game` / `submit_word` / `submit_timeout` / `end_game`), `_rank_idx`, the `submit_timeout` Realtime-touch, the `mode` column + mode-aware RLS, and the `spellingbee_coop`/`spellingbee_compete` gametype rows | [`supabase/migrations/20260617000000_spellingbee.sql`](../../supabase/migrations/20260617000000_spellingbee.sql) |
 | Compete-specific FE rendering (OpponentStrip, mode-aware buildOver) | [`src/spellingbee/components/PlayArea.tsx`](../../src/spellingbee/components/PlayArea.tsx) |
-| Target-rank picker + word-difficulty (required/legal band) fields + custom-letters fields in the setup dialog | [`src/spellingbee/components/SetupForm.tsx`](../../src/spellingbee/components/SetupForm.tsx); the shared dropdown is [`src/common/components/fields/DifficultyField.tsx`](../../src/common/components/fields/DifficultyField.tsx); the combined Start gate (`legal ≥ required` + custom-letter rules) is `spellingbeeSetupError` in [`src/spellingbee/lib/setup.ts`](../../src/spellingbee/lib/setup.ts) |
+| Target-rank picker + word-difficulty (required/legal band) fields + custom-letters fields in the setup dialog | [`src/spellingbee/components/SetupForm.tsx`](../../src/spellingbee/components/SetupForm.tsx); the shared dropdown is [`src/common/components/fields/DictBandField.tsx`](../../src/common/components/fields/DictBandField.tsx); the combined Start gate (`legal ≥ required` + custom-letter rules) is `spellingbeeSetupError` in [`src/spellingbee/lib/setup.ts`](../../src/spellingbee/lib/setup.ts) |
 | How the word list is populated | `common.words` via [`supabase/scripts/import-words.ts`](../../supabase/scripts/import-words.ts) (read live from `~/src/gamelist/words.tsv`) — see [common.md](../common.md#the-word-list-commonwords) |
 | How the pangram seed pool is built | [`supabase/scripts/import-spellingbee-pangrams.ts`](../../supabase/scripts/import-spellingbee-pangrams.ts) (derives `spellingbee.pangrams` from `common.words`) |
 | The board-builder edge function | [`supabase/functions/spellingbee-build-board/index.ts`](../../supabase/functions/spellingbee-build-board/index.ts) |
