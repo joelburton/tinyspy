@@ -8,7 +8,7 @@ import { SetupSection } from '../../common/components/setup/SetupSection'
 import { difficultyValue } from '../../common/lib/game/difficulty'
 import type { SetupBodyProps } from '../../common/lib/games'
 import { EXTRA_SWAP_OPTIONS, type WaffleSetup } from '../lib/setup'
-import styles from '../../common/components/fields/setupForm.module.css'
+import form from '../../common/components/fields/setupForm.module.css'
 
 /**
  * waffle's setup form, rendered inside the common SetupGameModal.
@@ -39,7 +39,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
   const swapLabel = `Swap budget: ${swapGloss} +${s.extra_swaps}`
 
   return (
-    <div className={styles.setup}>
+    <div className={form.setup}>
       {/* Coop pacing — first, right below the dialog's player picker.
           Self-gates to nothing for compete / solo. */}
       <CoopStyleField

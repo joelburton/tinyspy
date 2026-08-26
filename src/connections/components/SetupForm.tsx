@@ -6,7 +6,7 @@ import { NextPuzzleField } from '../../common/components/fields/NextPuzzleField'
 import type { SetupBodyProps } from '../../common/lib/games'
 import { db } from '../db'
 import type { ConnectionsSetup } from '../lib/setup'
-import styles from '../../common/components/fields/setupForm.module.css'
+import form from '../../common/components/fields/setupForm.module.css'
 
 /**
  * connections's per-game setup form. Two choices — and the puzzle is no
@@ -38,7 +38,7 @@ export function SetupForm({ brand, mode, players, value, onChange }: SetupBodyPr
   const s = value as ConnectionsSetup
 
   return (
-    <div className={styles.setup}>
+    <div className={form.setup}>
       {/* Coop pacing — first, right below the dialog's player picker.
           Self-gates to nothing for compete / solo. */}
       <CoopStyleField

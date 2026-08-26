@@ -10,8 +10,8 @@ import type { SetupBodyProps } from '../../common/lib/games'
 import { PAR } from '../lib/board'
 import { cleanSides, formatSides } from '../lib/customBoard'
 import type { LetterboxedSetup } from '../lib/setup'
-import styles from '../../common/components/fields/setupForm.module.css'
-import local from './SetupForm.module.css'
+import form from '../../common/components/fields/setupForm.module.css'
+import styles from './SetupForm.module.css'
 
 /**
  * letterboxed's per-game setup form. Mode is locked at the gametype level
@@ -52,7 +52,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
     : 'Board (optional)'
 
   return (
-    <div className={styles.setup}>
+    <div className={form.setup}>
       {/* Coop pacing — first, right below the dialog's player picker.
           Self-gates to nothing for compete / solo. Turn-by-turn suits this
           game unusually well: the chain hands off on its own. */}
@@ -138,7 +138,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
             setTypedSides(e.target.value)
             onChange({ ...s, custom_sides: cleanSides(e.target.value) || undefined })
           }}
-          className={local.sidesInput}
+          className={styles.sidesInput}
           placeholder="ABC-DEF-GHI-JKL"
           aria-label="Custom board"
         />

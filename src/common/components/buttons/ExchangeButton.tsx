@@ -5,8 +5,9 @@ import { StandardButton, type PurposeButtonProps } from './StandardButton'
 
 /**
  * Swap-tiles button — return some rack tiles to the bag and draw replacements
- * (scrabble's exchange). The two-way-arrows glyph at **`info`** tone (the accent
- * color, "no valence — just a different action"): swapping isn't good or bad and
+ * (scrabble's exchange). The two-way-arrows glyph at **`normal`** tone (the
+ * accent color, no valence — just a different thing to do): swapping isn't good
+ * or bad and
  * isn't the primary move, so it reads as a distinct secondary commit alongside
  * the primary Submit. Default label **"Swap"**.
  *

@@ -22,8 +22,8 @@ type Props = PurposeButtonProps & {
  * `aria-hidden` inside `ActionButton`, so a screen reader just announces "Back
  * to club".
  *
- * It wears the ACTION tone in both weights. Going back to the club is a thing
- * you do — it is not a cancel — and it is already the filled action blue at
+ * It wears the **`normal`** tone in both weights. Going back to the club is a
+ * thing you do — it is not a cancel — and it is already the filled blue at
  * terminal, so anything else would make one control two colors depending on the
  * phase. It rendered a raw `<button className="secondary">` until 2026-08-18,
  * which is how it ended up quiet-gray mid-game while sitting in an action row

@@ -9,8 +9,8 @@ import { cls } from '../../common/lib/util/cls'
 import type { SetupBodyProps } from '../../common/lib/games'
 import { RANKS } from '../../common/lib/game/rankLadder'
 import type { WordwheelSetup } from '../lib/setup'
-import styles from '../../common/components/fields/setupForm.module.css'
-import local from './SetupForm.module.css'
+import form from '../../common/components/fields/setupForm.module.css'
+import styles from './SetupForm.module.css'
 
 /** Normalize a letter input: lowercase, drop anything but a–z, cap the length.
  *  Keeps state canonical (lowercase, letters-only) so validation + the edge
@@ -67,7 +67,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
     : 'Board constraints (optional)'
 
   return (
-    <div className={styles.setup}>
+    <div className={form.setup}>
       {mode === 'coop' ? (
         <p className="muted">
           Everyone in the club types words into the same wheel
@@ -82,7 +82,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
       )}
 
       {mode === 'compete' ? (
-        <fieldset className={styles.fieldset}>
+        <fieldset className={form.fieldset}>
           <legend>Target rank — first to reach it wins</legend>
           <SelectField
             name="target_rank"
@@ -97,7 +97,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
           </SelectField>
         </fieldset>
       ) : (
-        <fieldset className={styles.fieldset}>
+        <fieldset className={form.fieldset}>
           <legend>Win at — reach it together and you win</legend>
           <SelectField
             name="target_rank"
@@ -158,7 +158,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
           custom letters are set (those letters stand as the player chose them).
           The summary shows the active constraint or "(optional)" when none. */}
       <SetupSection label={constraintsLabel}>
-        <label className={styles.checkRow}>
+        <label className={form.checkRow}>
           <input
             type="checkbox"
             name="unique_letters"
@@ -186,8 +186,8 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
           Leave blank for a random board, or set your own: a center letter plus
           eight other letters. Repeats are fine — each tile is one use.
         </p>
-        <div className={local.customRow}>
-          <label className={local.field}>
+        <div className={styles.customRow}>
+          <label className={styles.field}>
             <span>Center</span>
             <input
               type="text"
@@ -199,11 +199,11 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
               onChange={(e) =>
                 onChange({ ...s, custom_center: cleanLetters(e.target.value, 1) || undefined })
               }
-              className={cls(local.letterInput, local.centerInput)}
+              className={cls(styles.letterInput, styles.centerInput)}
               aria-label="Center letter"
             />
           </label>
-          <label className={local.field}>
+          <label className={styles.field}>
             <span>Other letters</span>
             <input
               type="text"
@@ -215,7 +215,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
               onChange={(e) =>
                 onChange({ ...s, custom_letters: cleanLetters(e.target.value, 8) || undefined })
               }
-              className={cls(local.letterInput, local.outerInput)}
+              className={cls(styles.letterInput, styles.outerInput)}
               aria-label="Eight other letters"
             />
           </label>

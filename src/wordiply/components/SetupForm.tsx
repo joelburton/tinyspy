@@ -6,8 +6,8 @@ import { CoopStyleField } from '../../common/components/fields/CoopStyleField'
 import { SetupSection } from '../../common/components/setup/SetupSection'
 import type { SetupBodyProps } from '../../common/lib/games'
 import { cleanBase, type WordiplySetup } from '../lib/setup'
-import styles from '../../common/components/fields/setupForm.module.css'
-import local from './SetupForm.module.css'
+import form from '../../common/components/fields/setupForm.module.css'
+import styles from './SetupForm.module.css'
 
 /**
  * wordiply's per-game setup form. Mode is locked at the gametype level
@@ -33,7 +33,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
     : 'Starter (optional)'
 
   return (
-    <div className={styles.setup}>
+    <div className={form.setup}>
       {/* Coop pacing — first, right below the dialog's player picker.
           Self-gates to nothing for compete / solo. */}
       <CoopStyleField
@@ -95,7 +95,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
           onChange={(e) =>
             onChange({ ...s, custom_base: cleanBase(e.target.value) || undefined })
           }
-          className={local.baseInput}
+          className={styles.baseInput}
           aria-label="Custom starter"
         />
       </SetupSection>

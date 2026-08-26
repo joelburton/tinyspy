@@ -6,7 +6,7 @@ import { SetupSection } from '../../common/components/setup/SetupSection'
 import { difficultyValue } from '../../common/lib/game/difficulty'
 import type { SetupBodyProps } from '../../common/lib/games'
 import type { StackdownSetup } from '../lib/setup'
-import styles from '../../common/components/fields/setupForm.module.css'
+import form from '../../common/components/fields/setupForm.module.css'
 
 /**
  * stackdown's setup form, rendered inside the common SetupGameModal.
@@ -25,7 +25,7 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
   const dictLabel = `Dictionary: ${difficultyValue(s.band)}`
 
   return (
-    <div className={styles.setup}>
+    <div className={form.setup}>
       <p className="muted">
         A random tile-stack is dealt when the game starts. Clear it by
         spelling words off the exposed tiles.

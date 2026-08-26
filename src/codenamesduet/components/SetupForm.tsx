@@ -8,7 +8,7 @@ import {
   TURN_OPTIONS,
   type CodenamesduetSetup,
 } from '../lib/setup'
-import styles from '../../common/components/fields/setupForm.module.css'
+import form from '../../common/components/fields/setupForm.module.css'
 
 /**
  * codenamesduet's per-game setup form, rendered inside the common
@@ -55,8 +55,8 @@ export function SetupForm({ members, value, onChange }: SetupBodyProps) {
   }, [s, members, onChange])
 
   return (
-    <div className={styles.setup}>
-      <fieldset className={styles.fieldset}>
+    <div className={form.setup}>
+      <fieldset className={form.fieldset}>
         <legend>Number of turns</legend>
         <p className="muted">
           The standard game is 9. Pick 10 or 11 for an easier
@@ -70,7 +70,7 @@ export function SetupForm({ members, value, onChange }: SetupBodyProps) {
         />
       </fieldset>
 
-      <fieldset className={styles.fieldset}>
+      <fieldset className={form.fieldset}>
         <legend>Who gives the first clue?</legend>
         <p className="muted">
           The first clue-giver is seated as A; the other player

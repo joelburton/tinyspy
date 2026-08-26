@@ -24,10 +24,10 @@ This area's own findings therefore start at **F30**, so no number in this file i
 ambiguous and an inherited finding is recognizable on sight (≤ F13 came from
 elsewhere; ≥ F30 was raised here).
 
-**Nineteen findings. FIVE RESOLVED** — F8, F9 (the button work), F38, F40, F43 —
-**three CLOSED and moved out** (F32 → the FreeBee pair, F37 → crosswords, F44 →
-crosswords + floating-panels) — **eleven open:** F13, F30, F31, F33–F36, F39,
-F41, F42, F45, F46. F43–F46 were raised by the button
+**Nineteen findings. SEVEN RESOLVED** — F8, F9 (the button work), F38, F39, F40,
+F42, F43 — **three CLOSED and moved out** (F32 → the FreeBee pair, F37 →
+crosswords, F44 → crosswords + floating-panels) — **ten open:** F13, F30, F31,
+F33, F34, F35, F36, F41, F45, F46. F43–F46 were raised by the button
 work rather than by the audit, which is expected: §21 says a finding is not
 required to have come from the audit, and takes the next free number.
 
@@ -500,31 +500,31 @@ So this was only ever five pointers to repoint. The comments' SUBSTANCE was
 correct all along: all five are about inputs — the radio padding override, the
 select's sizing — and an input genuinely is covered by that rule.
 
-## F39 · `wrapper-tones-are-fiction` · Seven purpose buttons document tones that have never existed
+## RESOLVED · F39 · `wrapper-tones-are-fiction` · Seven purpose buttons documented tones that have never existed
 
 **Re-slugged 2026-08-25, not silently** (§21 allows it when the subject genuinely
-changes). It was `actionbutton-says-action`, and that subject is gone:
-`ActionButton`'s stale docstring and the orphaned `/** */` block went with the
-file. The problem did not go with it — and it is larger than the original
-finding said.
+changes). It was `actionbutton-says-action`; that subject went with the file.
 
 `ButtonTone` is, and has only ever been, five words: `quiet · normal · caution ·
-destructive · success`. Seven wrapper docstrings name something else:
+destructive · success`. Seven wrapper docstrings named something else, and all
+seven now say what the code passes:
 
-| tone named | files | what the code actually passes |
+| documented | files | fixed to |
 |---|---|---|
 | `info` | `ExchangeButton` · `NewGameButton` · `RestartButton` · `SharePreviewButton` | `normal` |
 | `error` | `EndGameButton` · `RevealButton` | `destructive` |
 | `action` | `BackToClubButton` | `normal` |
 
-`info` and `error` are the OUTCOME palette's words — which is the confusion the
-bucket split exists to prevent: *"a control saying 'this is irreversible' is a
-different question from a game saying 'you lost', even where the two hexes agree
-today."* A docstring that calls a button's red the `error` red teaches exactly
-the coupling the tokens were separated to deny.
+**Why it mattered more than a typo.** `info` and `error` are the OUTCOME
+palette's words, and the buckets were split precisely so that *"a control saying
+'this is irreversible' is a different question from a game saying 'you lost',
+even where the two hexes agree today."* A docstring calling a button's red the
+`error` red teaches the coupling the tokens exist to deny. `action` is the
+retired name, retired because it collided with one of the fourteen KINDS.
 
-`action` is the retired name, and it retired because it collided with one of the
-fourteen KINDS. Mechanical fix, no decision attached.
+Checked after: no word outside the five appears as a tone in `buttons/`, and the
+tones the wrappers actually pass are `normal` ×7, `destructive` ×4, `caution` ×3,
+`quiet` ×1.
 
 ## RESOLVED · F40 · `tone-quiet-claims-cancel` · The tone vocabulary reserves a slot for a button that never arrives
 
@@ -559,51 +559,35 @@ the club page".
 The answer may well be "radios inside a form, segments for filtering a view".
 That is a one-sentence rule the area can write; today it isn't written anywhere.
 
-## F42 · `local-module-alias-drift` · The shared setup stylesheet is imported under four names
+## RESOLVED · F42 · `local-module-alias-drift` · The shared setup stylesheet was imported under four names
 
-Measured across the 15 importing files: **`styles` ×11**, **`form` ×3**
-(bananagrams, wordle, strands), **`shared` ×1** (boggle). A game's own module
-then takes whichever name is left — `local` in wordwheel, `styles` where there is
-no shared import. So `styles.checkRow` means the shared class in one file and a
-local one in the next.
+Measured across the 15 importing files: **`styles` ×11, `form` ×3, `shared` ×1** —
+and the game's own module then took whichever word was left, `local` in four
+files. So `styles.checkRow` meant the SHARED class in one file and a local one in
+the next.
 
-Cosmetic, and listed only because it defeats the obvious grep: searching for
-`form.fieldset` finds three of the seven `.fieldset` sites.
+**The rule, which already held in 171 of 178 places before anyone wrote it
+down:** a module named after the importing file is that file's OWN and is
+`styles`; anything else is somebody else's and is named for what it IS.
+`setupForm.module.css` is `form`, at all 15 sites.
 
----
+Twelve files changed. The four that had it inverted — wordiply, wordwheel,
+letterboxed, spellingbee — were the ones using `styles` for the shared sheet and
+`local` for their own.
 
-## Predicted test breaks (§21 — predict, write them down, leave them)
+**Guarded, not just documented** (`src/guards/cssClasses.test.ts`), which is the
+point: this is exactly the kind of convention that rotted `--radius-md` while the
+guarded colour vocabulary held. Two checks, both PLANTED to prove they
+discriminate — renaming wordle's `form` to `shared`, and wordwheel's own module
+back to `local`, each failed the right one.
 
-Nothing has been changed yet, so this is the watch-list rather than a prediction
-of damage. The specs that pin this area's current shape:
-
-| spec | what it pins | how it breaks |
-|---|---|---|
-| `src/guards/vocabularies.test.ts` | the per-file allowlist of unconverted literals — five roster files are named (lines 268–272, 348, 422–423, 522–523, 539) | **any** value converted here must DELETE its allowlist entry, or the guard fails on an entry that no longer matches |
-| `src/guards/csStamps.test.ts` | every file has one of the seven stamps | a NEW file (the F31 component, the F9 button) fails until stamped |
-| `src/common/components/buttons/ActionButton.test.tsx` | the tooltip contract (`data-tooltip` defaults to label; no native `title`; `iconOnly` keeps `aria-label`) | F9 adding a label-only form button must keep the contract or extend the spec |
-| `src/common/components/fields/CoopStyleField.test.tsx` | renders nothing for compete/solo; the re-seed effect | F30's `RadioRow` API change touches this component's markup |
-| `src/common/components/fields/DifficultyField.test.tsx` | all six bands listed as `N: Label: SAMPLES`, out-of-range disabled | only if `SelectField`'s option rendering moves |
-| `src/guards/setupRows.test.ts` | every game's setup recap — **not this area's markup**, but it is the other place a setup field's existence is asserted | adding/removing a setup FIELD (none proposed) |
-
-**No e2e spec references this area's components or classes** (measured across
-`e2e/` for `SetupSection`, `setupForm`, `RadioRow`, `SelectField`, `TimerField`,
-`ActionButton`, `letterInput`, `checkRow`). The setup dialog is driven in e2e by
-role and label, not by class — so a rename here is cheap and a MARKUP change
-(F30's `<label>` nesting) is the one to watch.
-
-## Notes
-
-- **`vitest` CSS modules are proxies**: `css: false` fabricates any class name
-  asked for, so a render test can never prove a class EXISTS. Anything F31/F34
-  consolidate needs a static guard, not a render assertion.
-- Every CSS rule in all 20 files still carries `/* @@ */`. Per §15 that means
-  **undecided until Joel removes it** — the audit read them, it did not bless
-  them.
-- **F30, F31, F32, F34, F36 are one shape seen five times**: a component that
-  exists (or should) and a stylesheet that re-declares it anyway. If they resolve
-  together, two whole game stylesheets (spellingbee's and wordwheel's) and one
-  shared one (`CoopStyleField.module.css`) are deleted rather than edited.
+The narrowing that took two tries is worth recording. "Nobody else's module is
+`styles`" is FALSE and the guard said so: `HandCard` imports
+`PlayerBoard.module.css` as `styles` and there is nothing to confuse it with —
+the ambiguity needs two sheets. And "own" has to mean same-DIRECTORY, not same
+basename: every game's `PlayArea.tsx` imports both its own `./PlayArea.module.css`
+as `styles` and `common/components/game/PlayArea.module.css` as `shared`, which
+is the convention working.
 
 ## RESOLVED · F43 · `line-height-3-orphaned` · A vocabulary step with no consumer left
 

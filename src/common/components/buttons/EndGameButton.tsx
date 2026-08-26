@@ -5,8 +5,8 @@ import { StandardButton, type PurposeButtonProps } from './StandardButton'
 
 /**
  * End-the-game button — the manual "we're done" stop for solo / coop. The
- * **`error`** tone (dark red, the same red as an `error` feedback pill) marks it
- * as the destructive action in the row, and the glyph is the crossed-out stop
+ * **`destructive`** tone (dark red) marks it as the irreversible action in the
+ * row, and the glyph is the crossed-out stop
  * sign (`IconEnd`), not the flag it used to share with Concede — bananagrams
  * shows both buttons at once, and two red flags read as one act repeated.
  *

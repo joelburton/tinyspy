@@ -12,7 +12,7 @@ import { WIN_PERCENT_OPTIONS, type BoggleSetup } from '../lib/setup'
 import { cleanCustomBoard, twoLetterList } from '../lib/customBoard'
 import type { LadderName } from '../lib/solver'
 import { DICE_SETS, DICE_BY_NAME } from '../lib/dice'
-import shared from '../../common/components/fields/setupForm.module.css'
+import form from '../../common/components/fields/setupForm.module.css'
 import styles from './SetupForm.module.css'
 
 // Ladder labels + order ported verbatim from wsboggle (NewSoloGamePage.tsx).
@@ -39,9 +39,9 @@ const CONSTRAINT_ROWS: ReadonlyArray<{ label: string; min: NumKey; max: NumKey }
 /**
  * boggle's per-game setup form. Mode is locked at the gametype level (which
  * Start button you clicked), so there's no mode radio — just mode-flavored copy.
- * Picks: dice set, required-word difficulty (shared DifficultyField), scoring
+ * Picks: dice set, required-word difficulty (form DifficultyField), scoring
  * ladder, minimum word length, optional Board constraints (a collapsible min/max
- * grid like wsboggle's), and the shared TimerField. Controlled component —
+ * grid like wsboggle's), and the form TimerField. Controlled component —
  * state lives in SetupGameModal; `create_game` re-validates server-side.
  */
 export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
@@ -74,7 +74,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
   const winLabel = `Win at: ${s.win_percent === null ? 'None' : `${s.win_percent}%`}`
 
   return (
-    <div className={shared.setup}>
+    <div className={form.setup}>
       <p className="muted">
         {mode === 'compete'
           ? 'Everyone races the same board independently — most points wins. You see each other’s word counts, not the words themselves, until the game ends.'

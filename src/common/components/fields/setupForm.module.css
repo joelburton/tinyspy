@@ -18,6 +18,15 @@
  *
  * The forms sit inside `SetupGameModal`'s content area and inherit its
  * padding; these rules only shape the fieldsets + radio rows within.
+ *
+ * **IMPORT IT AS `form`.** Every consumer holds two stylesheets — this one and
+ * its own — and the binding is how a reader knows which they are looking at: a
+ * file's OWN module is `styles`, and this one is `form`. It had three names
+ * (`styles` in eleven files, `form` in three, `shared` in one) while the game's
+ * own module took whatever was left, so `styles.checkRow` meant a SHARED class
+ * in one file and a local one in the next. Guarded by
+ * `src/guards/cssClasses.test.ts`, because a convention that is only written
+ * down is the kind that rotted `--radius-md`.
  */
 
 /* @@ */ .setup {

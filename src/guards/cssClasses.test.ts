@@ -388,3 +388,77 @@ describe('a class name resolves — the e2e side', () => {
     ).toEqual([])
   })
 })
+
+/**
+ * Guard: what a CSS-module import is CALLED says where it came from.
+ *
+ * A file that imports two stylesheets has to name them apart, and every author
+ * picked differently. The shared setup stylesheet was `styles` in eleven files,
+ * `form` in three and `shared` in one, while the game's own module took whichever
+ * word was left — so `styles.checkRow` meant the SHARED class in one file and a
+ * local one in the next (plans/areas/forms.md → F42).
+ *
+ * Two rules, and both already held nearly everywhere before they were written
+ * down. They are GUARDED rather than merely documented because that is the whole
+ * difference between `--radius-md`, which rotted for months, and the colour
+ * vocabulary, which did not: ship the check with the name.
+ */
+describe('a CSS-module import is named for where it comes from', () => {
+  /** Same-directory imports only — `./X.module.css`. A basename match is not
+   *  enough: every game's `PlayArea.tsx` imports BOTH its own `./PlayArea.module.css`
+   *  as `styles` and `common/components/game/PlayArea.module.css` as `shared`,
+   *  which is the convention working, not breaking it. */
+  const IMPORT = /^import (\w+) from '\.\/([A-Za-z]+)\.module\.css'$/gm
+
+  /**
+   * A module named after the importing file is that file's OWN, and is always
+   * `styles`. This is the one that caught F42: four setup forms called the
+   * SHARED sheet `styles` and their own `local`, which inverts what every other
+   * file in the repo means by the word.
+   *
+   * Importing somebody else's module as `styles` is fine when it is the only one
+   * a file imports — `HandCard` reads `PlayerBoard.module.css` and there is
+   * nothing to confuse it with. The ambiguity needs two sheets to exist.
+   */
+  it("a file's OWN module is imported as `styles`", () => {
+    const offenders: string[] = []
+    for (const f of CODE_FILES) {
+      const base = f.split('/').pop()!.replace(/\.tsx?$/, '')
+      for (const m of readFileSync(f, 'utf8').matchAll(IMPORT)) {
+        const [, binding, sheet] = m
+        if (sheet === base && binding !== 'styles') {
+          offenders.push(
+            `${rel(f)}  imports its OWN ${sheet}.module.css as \`${binding}\` — call it \`styles\``,
+          )
+        }
+      }
+    }
+    expect(
+      offenders,
+      `\`styles\` means "this file's own classes" in 171 other files. A file that ` +
+        `uses it for something else makes every reader check:\n${offenders.join('\n')}`,
+    ).toEqual([])
+  })
+
+  /**
+   * And the shared setup stylesheet is `form`, everywhere. Named specifically
+   * rather than by some general "shared modules get a subject name" rule,
+   * because there is exactly one such sheet with many consumers and inventing a
+   * category for it would be a layer with one member.
+   */
+  it('the shared setup stylesheet is imported as `form`', () => {
+    const offenders: string[] = []
+    for (const f of CODE_FILES) {
+      for (const m of readFileSync(f, 'utf8').matchAll(
+        /^import (\w+) from '[^']*fields\/setupForm\.module\.css'$/gm,
+      )) {
+        if (m[1] !== 'form') offenders.push(`${rel(f)}  imports it as \`${m[1]}\``)
+      }
+    }
+    expect(
+      offenders,
+      `setupForm.module.css is \`form\` at all 15 call sites. It had three names ` +
+        `and that is how a shared class got read as a local one:\n${offenders.join('\n')}`,
+    ).toEqual([])
+  })
+})

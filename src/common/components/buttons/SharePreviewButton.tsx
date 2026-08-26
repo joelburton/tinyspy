@@ -6,8 +6,8 @@ import { StandardButton, type PurposeButtonProps } from './StandardButton'
 /**
  * Share-a-move button — broadcasts your in-progress (staged) board to your coop
  * teammates, who see it in a read-only preview (scrabble's "show a move"). The
- * **`info`** tone (blue outline, secondary weight — NOT the filled primary): it's
- * a helpful side action, not the main move, and shares the info tone with the
+ * **`normal`** tone (blue outline, secondary weight — NOT the filled primary):
+ * it's a helpful side action, not the main move, and shares the tone with the
  * Swap button beside it. **Icon-only** by default (the share glyph reads on its
  * own); `label` is the aria-label + tooltip. Default label "Show move".
  */
