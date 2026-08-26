@@ -49,8 +49,8 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
         }
       />
       <SetupSection label={guessesLabel}>
-        <p className={form.helpText}>How many guesses you get (6 is classic).</p>
         <SelectField
+          help="How many guesses you get (6 is classic)."
           name="max_guesses"
           value={s.max_guesses}
           onChange={(v) => onChange({ ...s, max_guesses: Number(v) })}

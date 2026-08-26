@@ -63,11 +63,8 @@ export function SetupForm({ members, value, onChange }: SetupBodyProps) {
   return (
     <div className={form.setup}>
       <SetupSection label={`Turns: ${s.turns}`}>
-        <p className={form.helpText}>
-          The standard game is 9. Pick 10 or 11 for an easier
-          warm-up (matches the rulebook's mission difficulties).
-        </p>
         <RadioRow
+          help="The standard game is 9. Pick 10 or 11 for an easier warm-up (matches the rulebook's mission difficulties)."
           name="turns"
           options={TURN_OPTIONS.map((t) => ({ value: t, label: t }))}
           value={s.turns}
@@ -76,11 +73,8 @@ export function SetupForm({ members, value, onChange }: SetupBodyProps) {
       </SetupSection>
 
       <SetupSection label={`First clue: ${firstClueGiverName}`}>
-        <p className={form.helpText}>
-          The first clue-giver is seated as A; the other player
-          opens as the guesser.
-        </p>
         <RadioRow
+          help="The first clue-giver is seated as A; the other player opens as the guesser."
           name="firstClueGiver"
           options={members.map((m) => ({ value: m.user_id, label: m.username }))}
           value={s.first_clue_giver_user_id}

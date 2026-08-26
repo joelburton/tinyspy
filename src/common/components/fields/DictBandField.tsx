@@ -1,6 +1,7 @@
 // cs-audited
 
 import { DIFFICULTY_LABELS, sampleWordsFor, type WordLength } from '../../lib/game/difficulty'
+import type { ReactNode } from 'react'
 import { SelectField } from './SelectField'
 
 type Props = {
@@ -20,6 +21,12 @@ type Props = {
   onChange: (band: number) => void
   /** Disable the whole control (e.g. stackdown is locked to band 1). */
   disabled?: boolean
+  /** What the setting is about, between the caption and the control. */
+  help?: ReactNode
+  /** How to type it, under the control. */
+  entryHelp?: ReactNode
+  /** What's wrong with what's there. */
+  error?: string | null
   /** An always-enabled option rendered ABOVE band 1 — for a source that sits
    *  outside the 1..6 band scale. wordle uses `{ value: 0, label: 'Wordle' }`
    *  for the curated NYT answer list. */
@@ -52,11 +59,17 @@ export function DictBandField({
   onChange,
   disabled,
   extraLowOption,
+  help,
+  entryHelp,
+  error,
 }: Props) {
   const samples = sampleWordsFor(length)
   return (
     <SelectField
       label={label}
+      help={help}
+      entryHelp={entryHelp}
+      error={error}
       value={value}
       disabled={disabled}
       onChange={(v) => onChange(Number(v))}

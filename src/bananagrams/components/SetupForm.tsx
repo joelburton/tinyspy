@@ -77,12 +77,8 @@ export function SetupForm({ value, onChange, playerCount }: SetupBodyProps) {
       </SetupSection>
 
       <SetupSection label={bunchLabel}>
-        <p className={form.helpText}>
-          The full bag is {BANANAGRAMS_BUNCH_MAX}.
-          This game deals {needed} ({playerCount} player
-          {playerCount === 1 ? '' : 's'} × {s.hand_size}).
-        </p>
         <NumberField
+          help={<>The full bag is {BANANAGRAMS_BUNCH_MAX}. This game deals {needed} ({playerCount} player {playerCount === 1 ? '' : 's'} × {s.hand_size}).</>}
           name="bunch_size"
           label="Bunch size"
           min={1}
@@ -95,15 +91,13 @@ export function SetupForm({ value, onChange, playerCount }: SetupBodyProps) {
 
       <SetupSection label={dumpLabel}>
         <CheckboxField
+          help="By default a dumped tile goes back to the bunch. With this, it goes to the bag. You still draw three either way."
           name="dump_to_bag"
           checked={s.dump_to_bag}
           onChange={(dump_to_bag) => onChange({ ...s, dump_to_bag })}
         >
           Return dumped tiles to the bag (out of play)
         </CheckboxField>
-        <p className={form.helpText}>
-          By default a dumped tile goes back to the bunch. With this, it goes to the bag. You still draw three either way.
-        </p>
       </SetupSection>
 
       <SetupSection label={checkLabel}>

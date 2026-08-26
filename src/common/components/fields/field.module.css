@@ -42,6 +42,34 @@
 }
 
 /*
+ * HELP — what this field is about, under the caption and above the control.
+ *
+ * It was `.helpText` in `setupForm.module.css`, written by hand as a
+ * `<p className={form.helpText}>` at 43 sites. It is a `help` prop now, which
+ * is what lets a setup form read as a list of fields and their words rather
+ * than a list of fields and the paragraphs someone remembered to put beside
+ * them.
+ */
+/* @@ */ .help {
+  color: var(--page-text-muted-color);
+  font-size: 0.9rem;
+}
+
+/*
+ * HELP — what this field is about, under the caption and above the control.
+ *
+ * It was `.helpText` in `setupForm.module.css`, written out by hand as a
+ * `<p className={form.helpText}>` at 43 sites. It is a `help` prop now, which
+ * is what lets a setup form read as a list of fields and their words rather
+ * than a list of fields and the paragraphs someone remembered to put beside
+ * them.
+ */
+/* @@ */ .help {
+  color: var(--page-text-muted-color);
+  font-size: 0.9rem;
+}
+
+/*
  * ENTRY HELP — how to type this thing, sitting under the control.
  *
  * A different job from a section's help text, which explains what a SETTING

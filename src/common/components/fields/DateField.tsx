@@ -1,5 +1,7 @@
 // cs-fixed
 
+import type { ReactNode } from 'react'
+import { Field } from './Field'
 import styles from './DateField.module.css'
 
 type Props = {
@@ -13,6 +15,12 @@ type Props = {
   min?: string
   max?: string
   disabled?: boolean
+  /** What the setting is about, between the caption and the box. */
+  help?: ReactNode
+  /** How to type it, under the box. */
+  entryHelp?: ReactNode
+  /** What's wrong with what's there. Rings the box and says why. */
+  error?: string | null
 }
 
 /**
@@ -29,17 +37,32 @@ type Props = {
  * a date input sized to its own content is a smaller target than a full-width
  * box, which is the right weight for something you rarely touch.
  */
-export function DateField({ label, value, onChange, min, max, disabled }: Props) {
+export function DateField({
+  label,
+  value,
+  onChange,
+  min,
+  max,
+  disabled,
+  help,
+  entryHelp,
+  error,
+}: Props) {
   return (
-    <input
-      type="date"
-      aria-label={label}
-      value={value}
-      min={min}
-      max={max}
-      disabled={disabled}
-      onChange={(e) => onChange(e.target.value)}
-      className={styles.input}
-    />
+    <Field label={label} help={help} entryHelp={entryHelp} error={error}>
+      {(id) => (
+        <input
+          id={id}
+          type="date"
+          value={value}
+          min={min}
+          max={max}
+          disabled={disabled}
+          onChange={(e) => onChange(e.target.value)}
+          className={styles.input}
+          aria-invalid={error ? true : undefined}
+        />
+      )}
+    </Field>
   )
 }

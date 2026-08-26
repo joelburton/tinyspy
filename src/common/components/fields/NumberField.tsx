@@ -22,6 +22,8 @@ type Props = {
    *  The box adds room for its padding and its spinner arrows on top. */
   chars: number
   disabled?: boolean
+  /** What the setting is about, between the caption and the box. */
+  help?: ReactNode
   /** How to type it, under the box. */
   entryHelp?: ReactNode
   /** What's wrong with what's there. Rings the box and says why. */
@@ -56,11 +58,12 @@ export function NumberField({
   step = 1,
   chars,
   disabled,
+  help,
   entryHelp,
   error,
 }: Props) {
   return (
-    <Field label={label} entryHelp={entryHelp} error={error}>
+    <Field label={label} help={help} entryHelp={entryHelp} error={error}>
       {(id) => (
         <input
           id={id}

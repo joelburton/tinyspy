@@ -82,12 +82,8 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
           input stores `undefined` so the edge function sees it as absent →
           random. */}
       <SetupSection label={customBaseLabel}>
-        <p className={form.helpText}>
-          Leave blank for a random starter, or set your own: 2–4 letters that
-          every guess must contain. Very short starters usually match too many
-          words to make a puzzle.
-        </p>
         <ManualBoardField
+          help="Leave blank for a random starter, or set your own: 2–4 letters that every guess must contain. Very short starters usually match too many words to make a puzzle."
           ariaLabel="Custom starter"
           value={customBase}
           onChange={(raw) => onChange({ ...s, custom_base: cleanBase(raw) || undefined })}

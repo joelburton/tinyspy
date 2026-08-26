@@ -1,6 +1,7 @@
 // cs-audited
 
 import type { ReactNode } from 'react'
+import { Field } from './Field'
 import styles from './setupForm.module.css'
 
 type Option<T> = { value: T; label: ReactNode }
@@ -16,6 +17,12 @@ type Props<T extends string | number> = {
   /** Optional leading text inside the row, before the options
    *  (boggle: "Minimum word length:"). */
   prefix?: ReactNode
+  /** A caption above the row, in the position every other field's sits. */
+  label?: ReactNode
+  /** What the setting is about, between the caption and the row. */
+  help?: ReactNode
+  /** Where the field sits in ITS OWN parent. */
+  className?: string
 }
 
 /**
@@ -34,21 +41,29 @@ export function RadioRow<T extends string | number>({
   value,
   onChange,
   prefix,
+  label,
+  help,
+  className,
 }: Props<T>) {
   return (
-    <div className={styles.radioRow}>
-      {prefix != null && <span>{prefix}</span>}
-      {options.map((opt) => (
-        <label key={String(opt.value)} className={styles.radio}>
-          <input
-            type="radio"
-            name={name}
-            checked={value === opt.value}
-            onChange={() => onChange(opt.value)}
-          />
-          {opt.label}
-        </label>
-      ))}
-    </div>
+    // Children as a NODE: each option is its own <label> around its radio, so
+    // no id is wanted here and `Field` keeps the caption a plain element rather
+    // than a <label> pointing at one member of a group.
+    <Field label={label} help={help} className={className}>
+      <div className={styles.radioRow}>
+        {prefix != null && <span>{prefix}</span>}
+        {options.map((opt) => (
+          <label key={String(opt.value)} className={styles.radio}>
+            <input
+              type="radio"
+              name={name}
+              checked={value === opt.value}
+              onChange={() => onChange(opt.value)}
+            />
+            {opt.label}
+          </label>
+        ))}
+      </div>
+    </Field>
   )
 }

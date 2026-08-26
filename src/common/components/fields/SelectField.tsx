@@ -17,6 +17,8 @@ type Props = {
   disabled?: boolean
   /** Optional `name` on the underlying `<select>`. */
   name?: string
+  /** What the setting is about, between the caption and the control. */
+  help?: ReactNode
   /** How to type it, under the control. */
   entryHelp?: ReactNode
   /** What's wrong with what's there. Rings the control and says why. */
@@ -43,12 +45,13 @@ export function SelectField({
   onChange,
   disabled,
   name,
+  help,
   entryHelp,
   error,
   children,
 }: Props) {
   return (
-    <Field label={label} entryHelp={entryHelp} error={error}>
+    <Field label={label} help={help} entryHelp={entryHelp} error={error}>
       {(id) => (
         <select
           id={id}

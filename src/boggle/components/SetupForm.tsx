@@ -123,13 +123,8 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
           unreadable board blocks it with an inline reason. Cleared input stores
           `undefined` so the edge function sees it as absent → roll. */}
       <SetupSection label={customBoardLabel}>
-        <p className={form.helpText}>
-          Leave blank to roll a random board, or type one: every tile, rows top to
-          bottom{diceSet ? ` (${diceSet.n * diceSet.n} of them for a ${diceSet.desc})` : ''}.
-          Write a two-letter tile the way it prints — {twoLetterList()} — and{' '}
-          <strong>?</strong> for a blank.
-        </p>
         <ManualBoardField
+          help={<>Leave blank to roll a random board, or type one: every tile, rows top to bottom{diceSet ? ` (${diceSet.n * diceSet.n} of them for a ${diceSet.desc})` : ''}. Write a two-letter tile the way it prints — {twoLetterList()} — and{' '} <strong>?</strong> for a blank.</>}
           ariaLabel="Custom board"
           value={customBoard}
           onChange={(raw) =>
@@ -216,12 +211,8 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
 
       {/* "Winning" — the summary shows the current target (e.g. "Win at: 70%"). */}
       <SetupSection label={winLabel}>
-        <p className={form.helpText}>
-          Win by reaching this share of the required-words score
-          {mode === 'compete' ? ' (first player there wins)' : ' (the team wins together)'}
-          , or <strong>None</strong> to play until you End (or the timer runs out).
-        </p>
         <SelectField
+          help={<>Win by reaching this share of the required-words score {mode === 'compete' ? ' (first player there wins)' : ' (the team wins together)'} , or <strong>None</strong> to play until you End (or the timer runs out).</>}
           label="Win at"
           value={s.win_percent === null ? 'none' : String(s.win_percent)}
           onChange={(v) => onChange({ ...s, win_percent: v === 'none' ? null : Number(v) })}

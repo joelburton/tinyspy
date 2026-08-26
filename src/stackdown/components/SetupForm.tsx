@@ -32,6 +32,7 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
       </p>
       <SetupSection label={dictLabel}>
         <DictBandField
+          help="Band 1 is the common everyday words; band 2 uses the next tier of less-common ones."
           label="Word difficulty"
           length={5}
           minBand={1}
@@ -39,10 +40,6 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
           value={s.band}
           onChange={(band) => onChange({ ...s, band })}
         />
-        <p className={form.helpText}>
-          Band 1 is the common everyday words; band 2 uses the next tier
-          of less-common ones.
-        </p>
       </SetupSection>
       <TimerField
         value={s.timer}

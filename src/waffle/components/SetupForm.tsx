@@ -52,8 +52,8 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
         }
       />
       <SetupSection label={dictLabel}>
-        <p className={form.helpText}>Which vocabulary the puzzle's words come from.</p>
         <DictBandField
+          help="Which vocabulary the puzzle's words come from."
           length={5}
           minBand={1}
           maxBand={6}
@@ -62,10 +62,8 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
         />
       </SetupSection>
       <SetupSection label={swapLabel}>
-        <p className={form.helpText}>
-          Extra swaps beyond the puzzle's minimum — fewer is harder.
-        </p>
         <RadioRow
+          help="Extra swaps beyond the puzzle's minimum — fewer is harder."
           name="extra_swaps"
           options={EXTRA_SWAP_OPTIONS.map((opt) => ({
             value: opt.value,

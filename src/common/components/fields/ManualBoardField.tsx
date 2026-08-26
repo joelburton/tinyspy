@@ -43,6 +43,8 @@ type Props = {
   /** Cap the keystrokes. Omit where length is checked by the validator instead
    *  (boggle counts tiles, not characters). */
   maxLength?: number
+  /** What the setting is about, between the caption and the box. */
+  help?: ReactNode
   /** How to type it, under the box. */
   entryHelp?: ReactNode
   /** What's wrong with what's there. Rings the box and says why. */
@@ -103,6 +105,7 @@ export function ManualBoardField({
   chars,
   label,
   ariaLabel,
+  help,
   entryHelp,
   error,
   uppercase = true,
@@ -117,7 +120,7 @@ export function ManualBoardField({
   const shown = groups ? groupTiles(tiles(value), groups) : value
 
   return (
-    <Field label={label} entryHelp={entryHelp} error={error}>
+    <Field label={label} help={help} entryHelp={entryHelp} error={error}>
       {(id) => (
         <input
           id={id}

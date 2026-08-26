@@ -27,9 +27,10 @@ type Props = {
   multiline?: boolean
   /** Textarea height, in rows. Ignored for a single-line field. */
   rows?: number
-  /** HOW TO TYPE IT — advice about the entry, under the control. Not a
-   *  section's help text, which explains what a setting means and leads the
-   *  section; this is "3–15 characters, must start with a letter". */
+  /** What the setting is about, between the caption and the control. */
+  help?: ReactNode
+  /** HOW TO TYPE IT — advice about the entry, under the control. Where `help`
+   *  says what the setting is, this says how to give it. */
   entryHelp?: ReactNode
   /** WHAT'S WRONG with what's there now. Rings the control in the fault color
    *  and says why underneath. `null` for nothing wrong.
@@ -79,6 +80,7 @@ type Props = {
 export function TextField({
   label,
   ariaLabel,
+  help,
   entryHelp,
   error,
   value,
@@ -115,7 +117,7 @@ export function TextField({
   }
 
   return (
-    <Field label={label} entryHelp={entryHelp} error={error} className={className}>
+    <Field label={label} help={help} entryHelp={entryHelp} error={error} className={className}>
       {(id) =>
         multiline ? (
           <textarea id={id} rows={rows} {...shared} />

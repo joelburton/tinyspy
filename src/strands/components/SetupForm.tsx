@@ -71,11 +71,8 @@ export function SetupForm({ brand, mode, players, value, onChange }: SetupBodyPr
             the OPPOSITE of waffle's tier, where a higher band is a harder
             board. Here a wider dictionary means more words qualify, so hints
             arrive sooner. */}
-        <p className={form.helpText}>
-          How obscure a word may be and still earn a hint. A wider dictionary makes the
-          game <strong>easier</strong> — more words count, so hints come faster.
-        </p>
         <DictBandField
+          help={<>How obscure a word may be and still earn a hint. A wider dictionary makes the game <strong>easier</strong> — more words count, so hints come faster.</>}
           label="Hint dictionary"
           // '3+' — strands' hint words have no fixed length (min_word_length is
           // its own knob), so the field samples from the general word list.
@@ -88,8 +85,8 @@ export function SetupForm({ brand, mode, players, value, onChange }: SetupBodyPr
       </SetupSection>
 
       <SetupSection label={`Words per hint: ${s.hint_cost}`}>
-        <p className={form.helpText}>How many valid non-theme words buy one hint (3 is standard).</p>
         <SelectField
+          help="How many valid non-theme words buy one hint (3 is standard)."
           label="Words per hint"
           value={String(s.hint_cost)}
           onChange={(v) => onChange({ ...s, hint_cost: Number(v) })}
@@ -101,10 +98,8 @@ export function SetupForm({ brand, mode, players, value, onChange }: SetupBodyPr
       </SetupSection>
 
       <SetupSection label={`Shortest word: ${s.min_word_length}`}>
-        <p className={form.helpText}>
-          The shortest word that can earn a hint. Theme words always count, however short.
-        </p>
         <SelectField
+          help="The shortest word that can earn a hint. Theme words always count, however short."
           label="Shortest word"
           value={String(s.min_word_length)}
           onChange={(v) => onChange({ ...s, min_word_length: Number(v) })}

@@ -89,8 +89,8 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
           board is solvable in two, so "5 words" means nothing on its own while
           "par + 3" says exactly how much room you are giving yourself. */}
       <SetupSection label={`Word limit: ${wordLimitLabel}`}>
-        <p className={form.helpText}>Every board can be solved in {PAR}.</p>
         <SelectField
+          help={<>Every board can be solved in {PAR}.</>}
         value={s.extra_words}
         onChange={(v) => onChange({ ...s, extra_words: Number(v) })}
       >
@@ -106,8 +106,8 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
 
       <SetupSection label={`Dictionary: ${difficultyValue(s.legal_band)}`}>
         {/* Higher = easier here, unlike most games' difficulty bands. */}
-        <p className={form.helpText}>A higher band accepts more words.</p>
         <DictBandField
+          help="A higher band accepts more words."
           length={null}
           minBand={1}
           maxBand={6}
@@ -132,12 +132,8 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
           the server's reason. Cleared input stores `undefined` so the edge
           function sees it as absent → roll. */}
       <SetupSection label={customSidesLabel}>
-        <p className={form.helpText}>
-          Leave blank to roll a random board, or type one: all twelve letters,
-          clockwise from the top-left corner. Separators are ignored, so paste
-          it however you have it written.
-        </p>
         <ManualBoardField
+          help="Leave blank to roll a random board, or type one: all twelve letters, clockwise from the top-left corner. Separators are ignored, so paste it however you have it written."
           ariaLabel="Custom board"
           value={typedSides}
           onChange={(raw) => {

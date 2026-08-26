@@ -193,11 +193,8 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
           entry blocks Start with an inline reason. Cleared inputs store `undefined`
           so the edge function sees them as absent → random. */}
       <SetupSection label={customLabel}>
-        <p className={form.helpText}>
-          Leave blank for a random board, or set your own: a center letter plus
-          six other letters. No S, and all seven must be different.
-        </p>
         <ManualBoardField
+          help="Leave blank for a random board, or set your own: a center letter plus six other letters. No S, and all seven must be different."
           ariaLabel="Custom letters"
           value={customEntry}
           onChange={(raw) => {

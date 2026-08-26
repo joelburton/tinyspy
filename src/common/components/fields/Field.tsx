@@ -12,9 +12,23 @@ type Props = {
    *  search box in a one-input panel where the titlebar already says what you
    *  are searching. Those name their control with `aria-label` instead. */
   label?: ReactNode
-  /** HOW TO TYPE IT — advice about the entry, under the control. Not a
-   *  section's help text, which explains what a setting MEANS and leads the
-   *  section; this is "3–15 characters, must start with a letter". */
+  /**
+   * WHAT THIS FIELD IS ABOUT — a sentence under the caption and above the
+   * control. "Return dumped tiles to the bag instead of the bunch."
+   *
+   * Distinct from `entryHelp`, which is about the TYPING rather than the
+   * setting: this says what the thing does, that says how to enter it. Two
+   * sentences with different jobs, so two slots, and neither has to guess where
+   * the other went.
+   *
+   * A ReactNode because 4 of the app's 43 carry a `<strong>` and 6 more an
+   * interpolated value — measured, after "they contain HTML" was offered as a
+   * reason this couldn't be a prop and turned out to be wrong.
+   */
+  help?: ReactNode
+  /** HOW TO TYPE IT — advice about the entry, under the control. Where `help`
+   *  says what the setting is, this says how to give it: "3–15 characters, must
+   *  start with a letter", "abc float · ABC pinned in place". */
   entryHelp?: ReactNode
   /** WHAT'S WRONG with what's there now. Rings the control in the fault color
    *  (via `aria-invalid`, which the control sets) and says why underneath.
@@ -64,21 +78,27 @@ type Props = {
  * reason to lay out its own. *"We want consistency between fields — we're
  * trying to collapse difference where reasonable."*
  */
-export function Field({ label, entryHelp, error, group, className, children }: Props) {
+export function Field({ label, help, entryHelp, error, group, className, children }: Props) {
   const id = useId()
-  const control = typeof children === 'function' ? children(id) : children
+  // Whether the caller TOOK the id is what decides how the caption points at
+  // the control — see below.
+  const wearsId = typeof children === 'function'
+  const control = wearsId ? children(id) : children
   const Wrapper = group ? 'fieldset' : 'div'
-  const Caption = group ? 'legend' : 'label'
+  // A <legend> heads a group. A <label htmlFor> names the one control that took
+  // the id. And when nobody took it, a plain <span>: the control labels ITSELF
+  // — a checkbox's text sits in its own <label>, and a second label would both
+  // nest (invalid) and join its name onto the first.
+  const Caption = group ? 'legend' : wearsId ? 'label' : 'span'
 
   return (
     <Wrapper className={cls(styles.field, className)}>
       {label !== undefined && (
-        // `htmlFor` only for the single-control case: a <legend> names the
-        // group it heads, and pointing it at one member would be a lie.
-        <Caption className={styles.label} {...(group ? {} : { htmlFor: id })}>
+        <Caption className={styles.label} {...(group || !wearsId ? {} : { htmlFor: id })}>
           {label}
         </Caption>
       )}
+      {help !== undefined && <span className={styles.help}>{help}</span>}
       {control}
       {entryHelp !== undefined && <span className={styles.entryHelp}>{entryHelp}</span>}
       {/* Both, when both — the help says how to type it and the error says what

@@ -193,17 +193,13 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
           The summary shows the active constraint or "(optional)" when none. */}
       <SetupSection label={constraintsLabel}>
         <CheckboxField
+          help="Pick only boards whose nine tiles are all different letters — no wheel with a doubled tile. Applies to random boards; a custom board keeps the letters you enter below."
           name="unique_letters"
           checked={s.unique_letters ?? false}
           onChange={(on) => onChange({ ...s, unique_letters: on || undefined })}
         >
           Unique letters only
         </CheckboxField>
-        <p className={form.helpText}>
-          Pick only boards whose nine tiles are all different letters — no wheel
-          with a doubled tile. Applies to random boards; a custom board keeps the
-          letters you enter below.
-        </p>
       </SetupSection>
 
       {/* Optional custom letters, behind a disclosure whose summary shows the
@@ -214,11 +210,8 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
           entry blocks Start with an inline reason. Cleared inputs store `undefined`
           so the edge function sees them as absent → random. */}
       <SetupSection label={customLabel}>
-        <p className={form.helpText}>
-          Leave blank for a random board, or set your own: a center letter plus
-          eight other letters. Repeats are fine — each tile is one use.
-        </p>
         <ManualBoardField
+          help="Leave blank for a random board, or set your own: a center letter plus eight other letters. Repeats are fine — each tile is one use."
           ariaLabel="Custom letters"
           value={customEntry}
           onChange={(raw) => {
