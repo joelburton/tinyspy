@@ -5,6 +5,7 @@ import { Rnd } from 'react-rnd'
 import {
   clampToViewport,
   useDraggablePanel,
+  VIEWPORT_EDGE_MARGIN,
   type PanelRect,
 } from '../../hooks/ui/useDraggablePanel'
 import { useCoarsePointer } from '../../hooks/ui/useCoarsePointer'
@@ -549,12 +550,12 @@ function EphemeralPanel({
       resolveDefaultRect(defaultPosition, defaultSize),
       minWidth,
       minHeight,
-      8,
+      VIEWPORT_EDGE_MARGIN,
       'hard',
     ),
   )
   const setRect = (next: PanelRect) =>
-    setRectState(clampToViewport(next, minWidth, minHeight, 8, 'soft'))
+    setRectState(clampToViewport(next, minWidth, minHeight, VIEWPORT_EDGE_MARGIN, 'soft'))
   return (
     <PanelRnd
       panelId={panelId}
@@ -677,7 +678,9 @@ function PanelRnd({
       // no matter the current height → converges in one step (grow OR shrink).
       const chromeAboveBody = r.height - body.clientHeight
       const desired = Math.ceil(chromeAboveBody + bodyPadV + content.offsetHeight)
-      const target = Math.min(desired, window.innerHeight - 16)
+      // Capped to the viewport with the shared gutter top AND bottom — the
+      // literal here used to be 16, twice the clamp's 8, with nothing saying so.
+      const target = Math.min(desired, window.innerHeight - VIEWPORT_EDGE_MARGIN * 2)
       if (Math.abs(target - r.height) <= 1) return // already fits (or capped) — don't loop
       setRectRef.current({
         ...r,
@@ -691,8 +694,11 @@ function PanelRnd({
         // OPENING position is still centered (`defaultPosition: 'center'`), so
         // this only governs later re-fits. The one exception is overflow: if
         // growing would push the panel past the bottom edge, ride it up just
-        // enough to fit (never above the 8px top margin).
-        y: Math.max(8, Math.min(r.y, window.innerHeight - target - 8)),
+        // enough to fit (never above the shared top margin).
+        y: Math.max(
+          VIEWPORT_EDGE_MARGIN,
+          Math.min(r.y, window.innerHeight - target - VIEWPORT_EDGE_MARGIN),
+        ),
       })
     }
     fit()

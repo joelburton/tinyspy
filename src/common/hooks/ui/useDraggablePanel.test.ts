@@ -93,7 +93,7 @@ describe('clampToViewport', () => {
 })
 
 describe('clampToViewport (soft mode)', () => {
-  // SOFT_MIN_VISIBLE = 60 in the implementation. Soft mode lets
+  // MIN_VISIBLE_WHEN_PARKED = 60 in the implementation. Soft mode lets
   // the panel extend past the viewport edges as long as 60px
   // stays visible, with the additional rule that y can't be
   // negative (header stays reachable).

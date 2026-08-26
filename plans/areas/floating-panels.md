@@ -551,16 +551,68 @@ It was also ambiguous against the app's PAGE header (`components/page-header/`,
 went with it: calling it a header inside a panel is the same ambiguity in HTML.
 Joel: *"so much more obvious; I wouldn't have needed to ask."*
 
-## F23 · `viewport-margins-unchosen` · Five numbers about "how close to the edge"
+## PARTLY RESOLVED · F23 · `viewport-margins-unchosen` · Five numbers answering one question
 
-`edgePadding = 8` · `SOFT_MIN_VISIBLE = 60` · the fit's cap at
-`window.innerHeight - 16` · its floor at `Math.max(8, …)` · `FloatingPanel`'s
-`minWidth: 240` / `minHeight: 200` defaults, against `BlockingModal`'s 320/200.
+It turned out to be **three** questions, and only one of them was a problem.
 
-Each is defensible alone; together they are one question — how much of a panel
-must stay reachable, and how much air does it keep at the viewport edge — asked
-five times by four hands. **F7 left `minHeight: 200` noted for this reason**: it,
-not the content fit, is choosing the height of both blocking modals today.
+### A · The edge margin — DONE
+
+One idea written three times, once doubled:
+
+    useDraggablePanel   edgePadding = 8
+    FloatingPanel fit   Math.min(desired, innerHeight - 16)     ← 2 × 8, unstated
+    FloatingPanel fit   Math.max(8, … innerHeight - target - 8)
+
+All three mean *the gutter a floating panel keeps at every viewport edge when
+THE APP places it* — on mount, on window resize, and when a card grows. **Not**
+when you place it: a drag may park a panel half off-screen on purpose, which is
+(B). The `16` was only correct because it was twice the `8`, and nothing said so,
+so changing one would have desynced the other in silence.
+
+Now `VIEWPORT_EDGE_MARGIN`, exported, with five readers and no literals left.
+
+**And `edgePadding` was misnamed by the app's own vocabulary** — `base.css` draws
+the line explicitly: padding is space INSIDE a box, a margin is space BETWEEN
+things, and this is between the panel and the viewport edge. Renamed
+`edgeMargin`; nothing passes one.
+
+### B · `SOFT_MIN_VISIBLE` → `MIN_VISIBLE_WHEN_PARKED` — DONE
+
+How much of a floating panel stays on screen when you park it partly off the
+edge, so you can grab it back. The value is fine and always was; the NAME was
+opaque, because "soft" names the clamp MODE and means nothing until you know
+there are two clamps. "Parked" is the word the docstring already used for the
+gesture, so the constant and the prose finally agree (Joel, 2026-08-25).
+
+### C · Minimum panel size — OPEN, and deliberately left
+
+Eleven floating panels, twelve distinct numbers, every one picked by eye:
+
+    CodenamesduetAISuggestModal 240×140    ClubHelpCompanion        280×180
+    CrosswordsNoteCompanion     300×200    Chat                     260×240
+    CrosswordsExplainCompanion  320×220    GameScratchpadCompanion  240×200
+    SetupGameModal              320×300    EditClubModal            320×300
+    EditProfileModal            320×340    BlockingModal            320×0
+    FloatingPanel default       240×200    GameHelpCompanion        per-game
+
+Joel, 2026-08-25: *"ignore for now; as we get to these individually in areas, we
+can figure out."* Widths cluster at 240/260/280/300/320 — five values for one
+idea — but the numbers are also the one thing a RESIZABLE panel genuinely
+differs on: chat can go narrow, a form cannot.
+
+**And I was wrong that `SetupGameModal`'s `minHeight: 300` bites**, which I had
+said twice. Measured across the four shortest setups in the app:
+
+| | panel | content | slack |
+|---|---|---|---|
+| TinySpy | 535px | 488px | 13px |
+| WordNerd | 438px | 391px | 13px |
+| StackDown | 404px | 357px | 13px |
+| SyrupSwap | 438px | 391px | 13px |
+
+Every one is well clear of 300, and the 13px is body padding rather than slack.
+The floor is dead code, not a live bug — it WOULD overrule the fit for a shorter
+setup, and there isn't one.
 
 ## F24 · `closebutton-copies-a-deleted-component` · A cross-component coupling maintained by prose
 

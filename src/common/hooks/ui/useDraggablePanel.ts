@@ -21,11 +21,8 @@ type PanelOpts = {
   /** Lower bound; panels can't be dragged or resized below this. */
   minWidth: number
   minHeight: number
-  /** Padding kept clear at every viewport edge so the panel can't
-   *  vanish off-screen via a stored rect that's older than the
-   *  current window dimensions (e.g. user resized the browser
-   *  smaller, reloaded). Default 8px matches `../connections`. */
-  edgePadding?: number
+  /** Overrides `VIEWPORT_EDGE_MARGIN`. Nothing passes one. */
+  edgeMargin?: number
 }
 
 /**
@@ -40,7 +37,7 @@ type PanelOpts = {
  *
  * Viewport clamping: on mount and on every window resize, the
  * stored rect is clamped so the panel sits fully on-screen with
- * `edgePadding`-pixel margins. If the user shrank the browser
+ * `edgeMargin`-pixel margins. If the user shrank the browser
  * between sessions, the panel slides inward rather than landing
  * off-screen.
  *
@@ -55,12 +52,12 @@ export function useDraggablePanel({
   defaultRect,
   minWidth,
   minHeight,
-  edgePadding = 8,
+  edgeMargin = VIEWPORT_EDGE_MARGIN,
 }: PanelOpts) {
   const [rect, setRectState] = useState<PanelRect>(() => {
     const stored = readRect(persistKey)
     const seed = stored ?? defaultRect
-    return clampToViewport(seed, minWidth, minHeight, edgePadding)
+    return clampToViewport(seed, minWidth, minHeight, edgeMargin)
   })
 
   // Keep a ref to the latest rect so the resize listener can clamp
@@ -82,13 +79,13 @@ export function useDraggablePanel({
         next,
         minWidth,
         minHeight,
-        edgePadding,
+        edgeMargin,
         'soft',
       )
       setRectState(clamped)
       writeRect(persistKey, clamped)
     },
-    [persistKey, minWidth, minHeight, edgePadding],
+    [persistKey, minWidth, minHeight, edgeMargin],
   )
 
   // Window-resize re-clamp: if the user shrinks the browser to a
@@ -99,7 +96,7 @@ export function useDraggablePanel({
         rectRef.current,
         minWidth,
         minHeight,
-        edgePadding,
+        edgeMargin,
       )
       // Skip the write if nothing changed — keeps storage quiet
       // during ordinary resizes where the panel already fits.
@@ -116,7 +113,7 @@ export function useDraggablePanel({
     }
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
-  }, [persistKey, minWidth, minHeight, edgePadding])
+  }, [persistKey, minWidth, minHeight, edgeMargin])
 
   return { rect, setRect }
 }
@@ -126,15 +123,35 @@ export function useDraggablePanel({
 /** Two clamp modes — see `clampToViewport` doc. */
 export type ClampMode = 'hard' | 'soft'
 
-/** Soft-mode minimum visible pixels on each axis. Anything below
- *  this would risk leaving the user with nothing to grab. */
-const SOFT_MIN_VISIBLE = 60
+/**
+ * The gutter a floating panel keeps at every viewport edge when **the app**
+ * places it — on mount, on window resize, and when a card grows to fit its
+ * content. Not when YOU place it: a drag may park a panel half off-screen on
+ * purpose, and that case is `MIN_VISIBLE_WHEN_PARKED` below.
+ *
+ * Exported because the content fit in `FloatingPanel` needs the same gutter,
+ * and used to hard-code it — as `8` for the top edge and `16` for the height
+ * cap, the second being twice the first with nothing anywhere saying so. Change
+ * this and both follow.
+ */
+export const VIEWPORT_EDGE_MARGIN = 8
+
+/**
+ * How much of a floating panel stays on screen when you PARK it partly off the
+ * edge — enough to grab it back. The top edge additionally can't go negative,
+ * so the titlebar is always reachable.
+ *
+ * Was `SOFT_MIN_VISIBLE`, which named the clamp MODE rather than the thing:
+ * "soft" means nothing until you know there are two clamps, where "parked" is
+ * already the word the docstring below uses for the gesture.
+ */
+const MIN_VISIBLE_WHEN_PARKED = 60
 
 /**
  * Clamp a rect against the current viewport. Two modes:
  *
  *   - `'hard'` (default) — panel must fit FULLY inside the
- *     viewport, with `edgePadding` clearance on every side.
+ *     viewport, with `edgeMargin` clearance on every side.
  *     Used on mount + window-resize: when the user comes back
  *     from a bigger monitor or shrinks the window, the panel
  *     snaps in so it's visible.
@@ -156,33 +173,33 @@ export function clampToViewport(
   rect: PanelRect,
   minWidth: number,
   minHeight: number,
-  edgePadding: number,
+  edgeMargin: number,
   mode: ClampMode = 'hard',
 ): PanelRect {
   const vw = typeof window !== 'undefined' ? window.innerWidth : rect.width
   const vh = typeof window !== 'undefined' ? window.innerHeight : rect.height
-  const maxWidth = Math.max(minWidth, vw - edgePadding * 2)
-  const maxHeight = Math.max(minHeight, vh - edgePadding * 2)
+  const maxWidth = Math.max(minWidth, vw - edgeMargin * 2)
+  const maxHeight = Math.max(minHeight, vh - edgeMargin * 2)
   const width = Math.max(minWidth, Math.min(rect.width, maxWidth))
   const height = Math.max(minHeight, Math.min(rect.height, maxHeight))
 
   if (mode === 'soft') {
-    // Soft: at least SOFT_MIN_VISIBLE px stays visible on each
+    // Soft: at least MIN_VISIBLE_WHEN_PARKED px stays visible on each
     // axis. Top edge can't go negative (header stays in view);
     // left/right/bottom can.
-    const minX = SOFT_MIN_VISIBLE - width
-    const maxX = vw - SOFT_MIN_VISIBLE
-    const maxY = Math.max(0, vh - SOFT_MIN_VISIBLE)
+    const minX = MIN_VISIBLE_WHEN_PARKED - width
+    const maxX = vw - MIN_VISIBLE_WHEN_PARKED
+    const maxY = Math.max(0, vh - MIN_VISIBLE_WHEN_PARKED)
     const x = Math.max(minX, Math.min(rect.x, maxX))
     const y = Math.max(0, Math.min(rect.y, maxY))
     return { x, y, width, height }
   }
 
   // Hard mode — panel fully inside the viewport.
-  const maxX = Math.max(edgePadding, vw - width - edgePadding)
-  const maxY = Math.max(edgePadding, vh - height - edgePadding)
-  const x = Math.max(edgePadding, Math.min(rect.x, maxX))
-  const y = Math.max(edgePadding, Math.min(rect.y, maxY))
+  const maxX = Math.max(edgeMargin, vw - width - edgeMargin)
+  const maxY = Math.max(edgeMargin, vh - height - edgeMargin)
+  const x = Math.max(edgeMargin, Math.min(rect.x, maxX))
+  const y = Math.max(edgeMargin, Math.min(rect.y, maxY))
   return { x, y, width, height }
 }
 
