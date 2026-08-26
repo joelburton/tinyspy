@@ -24,10 +24,10 @@ This area's own findings therefore start at **F30**, so no number in this file i
 ambiguous and an inherited finding is recognizable on sight (≤ F13 came from
 elsewhere; ≥ F30 was raised here).
 
-**Twenty findings. THIRTEEN RESOLVED** — F8, F9, F13, F30, F31, F33, F34, F35,
-F38, F39, F40, F42, F43 — **three CLOSED and moved out** (F32 → the FreeBee
-pair, F37 → crosswords, F44 → crosswords + floating-panels) — **four open:** F36,
-F41, F45, F46, plus **F47**, raised 2026-08-26 by the work itself.
+**Twenty findings. FOURTEEN RESOLVED** — F8, F9, F13, F30, F31, F33, F34, F35,
+F38, F39, F40, F42, F43, F47 — **three CLOSED and moved out** (F32 → the FreeBee
+pair, F37 → crosswords, F44 → crosswords + floating-panels) — **three open:**
+F36, F41, and the two parked, F45 and F46.
 
 F43–F47 came from the work rather than the audit, which is expected: §21 says a
 finding is not required to have come from the audit and takes the next free
@@ -890,26 +890,33 @@ Still not a defect to fix now: the sprint distributes into `docs/` at the END
 done twice. Filed so the rewrite is a known, sized piece of that step — and so
 nobody reads those sections meanwhile and believes them.
 
-## F47 · `section-help-has-no-prop` · A section's help is still hand-written, and three sections cannot forward one
+## RESOLVED · F47 · `section-help-has-no-prop` · A section's help was hand-written, and three sections could not forward one
 
-Every FIELD's words are props now (F34): caption, `help`, `entryHelp`, `error`.
-A SECTION's are not.
+**Resolved 2026-08-26.** `<SetupSection>` takes `help` — under the summary,
+above the controls — and `<SetupTimerSection>`, `<SetupCoopStyleSection>` and
+`<SetupNextPuzzleSection>` all forward one, so the three sections have
+compatible interfaces.
 
-**Three hand-written paragraphs are left** — boggle's and wordwheel's
-"Dictionaries" and scrabble's AI pair — each describing a PAIR of fields, so
-attaching one to a single field would be a lie. They wear
-`SetupSection.module.css`'s `.help`, which is the right class in the wrong
-shape: a class, where every neighbouring sentence is a prop.
+**The three remaining paragraphs split two ways, and the tell was the same each
+time: does a clause belong to the PAIR, or to a FIELD?**
 
-Joel has already shown the other half of the answer: `fce15c72` split
-spellingbee's identical paragraph into two field-level `help` props, which is
-what a section describing two fields usually turns out to want. So the question
-is which of these three are really two sections, and which genuinely head a
-group.
+- **boggle's became two field helps.** It was two bolded halves, one per band —
+  and the `<strong>`s existed ONLY to tell those halves apart inside one
+  paragraph. The field captions do that now, so the markup went with the split.
+- **wordwheel's stayed the section's**, and it is superficially the same
+  paragraph. Its last clause is *"both are length-agnostic (examples just show
+  the band)"*, which is about the pair: split it and that sentence has to be
+  said twice or dropped.
+- **scrabble's stayed too.** It reports the COMBINED choice — count and level
+  together — then reaches out of the section entirely, to the dictionaries
+  above. Neither half is any one field's.
 
-**And it blocks something concrete.** `<SetupTimerSection>`,
-`<SetupCoopStyleSection>` and `<SetupNextPuzzleSection>` each render a
-`<SetupSection>` around other fields and take NO text props at all — correctly,
-since `entryHelp` and `error` belong to a control and each owns several. `help`
-is the one they should take and cannot, because there is nothing to forward it
-to.
+So: **zero hand-written help paragraphs, and no `<p>` at all in any setup form
+outside crosswords.** A game's `SetupForm.tsx` is components and props.
+
+**And it surfaced the gap it left behind.** With every field's margins gone, two
+fields in a section sat flush — Joel saw "Required words" running into "Legal
+(bonus) words". `.sectionContent` is a gapped column now, which settled a rhythm
+the area had never stated: **0.4rem inside a field, 0.75rem between fields in a
+section, 1rem between sections.** A field holds together more tightly than a
+section, and a section more tightly than the form.
