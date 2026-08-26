@@ -9,7 +9,7 @@ import {
   setChatLastSeen,
   setChatUnread,
 } from '../../lib/chat/chatUnread'
-import { FloatingPanel } from '../floating-panels/FloatingPanel'
+import { Companion } from '../floating-panels/Companion'
 import { ChatBody } from './ChatBody'
 
 import type { Member } from '../../lib/games'
@@ -148,8 +148,7 @@ export function Chat({
 
   // Open shape — the floating panel.
   return (
-    <FloatingPanel
-      family="companion"
+    <Companion
       title="Chat"
       onClose={() => setChatOpen(false)}
       persistKey="puzpuzpuz:chat:rect"
@@ -173,7 +172,7 @@ export function Chat({
         messages={messages}
         loading={loading}
       />
-    </FloatingPanel>
+    </Companion>
   )
 }
 

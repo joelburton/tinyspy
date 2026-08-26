@@ -133,7 +133,7 @@ const FAMILY: Record<
   'modal-fault':    { density: 'loose', scrim: 'dark',  draggable: false, trapsFocus: true,  escape: 'swallow', remembersRect: false, shape: 'card',   layer: 'var(--z-modal-fault)' },
 }
 
-type Props = {
+export type FloatingPanelProps = {
   /** What KIND of panel this is — see `PanelFamily`. Required: there is no
    *  sensible default, and a silent one is how the app ended up with a
    *  modal-normal that never dimmed. */
@@ -318,7 +318,7 @@ export function FloatingPanel({
   fitContent = false,
   reserveKeyboard = false,
   children,
-}: Props) {
+}: FloatingPanelProps) {
   const claims = FAMILY[family]
   // The family's answer unless the panel argues otherwise.
   const resolvedDensity = density ?? claims.density

@@ -3,7 +3,7 @@
 import { formFailureText } from '../../lib/game/serverError'
 import { Suspense, useState } from 'react'
 import { MODE_LABEL, type GameManifest, type Member, type RichMessage as RichMessageType } from '../../lib/games'
-import { FloatingPanel } from '../floating-panels/FloatingPanel'
+import { NormalModal } from '../floating-panels/NormalModal'
 import { HelpButton } from '../buttons/HelpButton'
 import { RichMessage } from '../text/RichMessage'
 import { cls } from '../../lib/util/cls'
@@ -52,7 +52,7 @@ type Props = {
 
 /**
  * Floating modal for collecting per-game setup options before
- * `create_game` fires. Wraps the shared `<FloatingPanel>` shell
+ * `create_game` fires. Wraps the shared `<NormalModal>` shell
  * (header + close X + ESC handling + react-rnd drag) with
  * Setup-specific config:
  *
@@ -218,8 +218,7 @@ export function SetupGameModal({
 
   return (
     <>
-    <FloatingPanel
-      family="modal-normal"
+    <NormalModal
       title={`Start ${manifest.name}${modeSuffix}`}
       onClose={onCancel}
       resizable={false}
@@ -345,7 +344,7 @@ export function SetupGameModal({
           />
         </div>
       </div>
-    </FloatingPanel>
+    </NormalModal>
 
     {/* The game's Help, mounted as its OWN FloatingPanel above this dialog (which
         stays open behind it). Lazy — Suspense guards the chunk fetch. */}

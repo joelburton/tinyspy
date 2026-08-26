@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { FloatingPanel } from './FloatingPanel'
+import { Companion } from './Companion'
 import { setScratchpadOpen, useScratchpadOpen } from '../../lib/scratchpad/scratchpadOpenStore'
 import { useScratchpad } from '../../hooks/scratchpad/useScratchpad'
 import { handOffKeyboardOnTab } from '../../lib/util/keyboardHandoff'
@@ -41,8 +41,7 @@ export function GameScratchpadCompanion({ gameId, ownerId, myId, username, isTer
         : 'Private to you.'
 
   return (
-    <FloatingPanel
-      family="companion"
+    <Companion
       title="Scratchpad"
       onClose={() => setScratchpadOpen(false)}
       persistKey={`puzpuzpuz:scratchpad:${gameId}`}
@@ -73,6 +72,6 @@ export function GameScratchpadCompanion({ gameId, ownerId, myId, username, isTer
           aria-label="Scratchpad"
         />
       </div>
-    </FloatingPanel>
+    </Companion>
   )
 }

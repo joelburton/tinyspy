@@ -1,7 +1,8 @@
 // cs-unmet
 
 import type { ReactNode } from 'react'
-import { FloatingPanel, HELP_RECT_KEY } from '../floating-panels/FloatingPanel'
+import { Companion } from '../floating-panels/Companion'
+import { HELP_RECT_KEY } from '../floating-panels/FloatingPanel'
 import styles from './GameHelpCompanion.module.css'
 import { StandardButton } from '../buttons/StandardButton'
 
@@ -38,8 +39,7 @@ export function GameHelpCompanion({
   children,
 }: Props) {
   return (
-    <FloatingPanel
-      family="companion"
+    <Companion
       // Loose, against the companion default: this is a page to READ, and
       // text packed tight against the window edge is harder to read.
       density="loose"
@@ -59,6 +59,6 @@ export function GameHelpCompanion({
       <div className={styles.gotItRow}>
         <StandardButton name="Got it" weight="primary" autoFocus onClick={onClose} />
       </div>
-    </FloatingPanel>
+    </Companion>
   )
 }

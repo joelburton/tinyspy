@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from 'react'
 import { StandardForm } from '../fields/StandardForm'
 import { DefinitionView } from './DefinitionView'
-import { FloatingPanel } from '../floating-panels/FloatingPanel'
+import { Dialog } from '../floating-panels/Dialog'
 import styles from './WordLookupDialog.module.css'
 import { StandardButton } from '../buttons/StandardButton'
 import { TextField } from '../fields/TextField'
@@ -39,8 +39,7 @@ export function WordLookupDialog({ onClose }: Props) {
   }
 
   return (
-    <FloatingPanel
-      family="dialog"
+    <Dialog
       persistKey="puzpuzpuz:wordLookup:rect"
       title="Look up a word"
       onClose={onClose}
@@ -67,6 +66,6 @@ export function WordLookupDialog({ onClose }: Props) {
         <StandardButton name="Define" type="submit" weight="primary" className={styles.button} />
       </StandardForm>
       <DefinitionView word={word} onNavigate={navigate} />
-    </FloatingPanel>
+    </Dialog>
   )
 }

@@ -7,7 +7,7 @@ import { failureText } from '../../lib/game/serverError'
 import { useState, type FormEvent } from 'react'
 import { db as commonDb } from '../../db'
 import { useDefinePopover } from '../../hooks/definitions/useDefinePopover'
-import { FloatingPanel } from '../floating-panels/FloatingPanel'
+import { Dialog } from '../floating-panels/Dialog'
 import styles from './AnagramDialog.module.css'
 import { StandardButton } from '../buttons/StandardButton'
 import { TextField } from '../fields/TextField'
@@ -83,8 +83,7 @@ export function AnagramDialog({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <FloatingPanel
-      family="dialog"
+    <Dialog
       persistKey="puzpuzpuz:anagram:rect"
       title="Anagrams"
       onClose={onClose}
@@ -159,6 +158,6 @@ export function AnagramDialog({ onClose }: { onClose: () => void }) {
         </SimpleScrollableList>
       )}
       {popover}
-    </FloatingPanel>
+    </Dialog>
   )
 }

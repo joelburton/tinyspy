@@ -4,7 +4,7 @@ import { formFailureText } from '../../lib/game/serverError'
 import { useState } from 'react'
 import { db as commonDb } from '../../db'
 import { games } from '../../../games'
-import { FloatingPanel } from '../floating-panels/FloatingPanel'
+import { NormalModal } from '../floating-panels/NormalModal'
 import { ModePill } from '../game/ModePill'
 import actionRow from '../floating-panels/modalActions.module.css'
 import styles from './EditClubModal.module.css'
@@ -94,8 +94,7 @@ export function EditClubModal({
   }
 
   return (
-    <FloatingPanel
-      family="modal-normal"
+    <NormalModal
       title={`Edit ${clubName}`}
       onClose={onCancel}
       resizable={false}
@@ -137,6 +136,6 @@ export function EditClubModal({
           autoFocus
         />
       </div>
-    </FloatingPanel>
+    </NormalModal>
   )
 }

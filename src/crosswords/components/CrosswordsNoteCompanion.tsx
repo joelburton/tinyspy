@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { FloatingPanel } from '../../common/components/floating-panels/FloatingPanel'
+import { Companion } from '../../common/components/floating-panels/Companion'
 import styles from './CrosswordsNoteCompanion.module.css'
 
 type Props = {
@@ -21,8 +21,7 @@ type Props = {
  */
 export function CrosswordsNoteCompanion({ title, note, onClose }: Props) {
   return (
-    <FloatingPanel
-      family="companion"
+    <Companion
       title={title || 'Puzzle note'}
       onClose={onClose}
       defaultSize={{ width: 520, height: 360 }}
@@ -32,6 +31,6 @@ export function CrosswordsNoteCompanion({ title, note, onClose }: Props) {
     >
       {/* pre-wrap preserves the note's own line breaks + spacing. */}
       <p className={styles.note}>{note}</p>
-    </FloatingPanel>
+    </Companion>
   )
 }

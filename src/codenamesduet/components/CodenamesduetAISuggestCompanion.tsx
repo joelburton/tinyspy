@@ -1,6 +1,6 @@
 // cs-audited
 
-import { FloatingPanel } from '../../common/components/floating-panels/FloatingPanel'
+import { Companion } from '../../common/components/floating-panels/Companion'
 import type { SuggestState } from './CluePanel'
 import styles from './CodenamesduetAISuggestCompanion.module.css'
 
@@ -37,8 +37,7 @@ export function CodenamesduetAISuggestCompanion({
 }) {
   console.log('[ClueHint] CodenamesduetAISuggestCompanion rendering — status:', state.status)
   return (
-    <FloatingPanel
-      family="companion"
+    <Companion
       // Companions remember where you put them, and this one earns it: the giver
       // parks it over the info column, in the same place, every turn.
       persistKey="codenamesduet:aiSuggest:rect"
@@ -62,6 +61,6 @@ export function CodenamesduetAISuggestCompanion({
           <p className={styles.suggestionReasoning}>{state.reasoning}</p>
         </>
       )}
-    </FloatingPanel>
+    </Companion>
   )
 }

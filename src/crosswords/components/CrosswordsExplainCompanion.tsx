@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { Fragment, type ReactNode } from 'react'
-import { FloatingPanel } from '../../common/components/floating-panels/FloatingPanel'
+import { Companion } from '../../common/components/floating-panels/Companion'
 import styles from './CrosswordsExplainCompanion.module.css'
 
 /** The dialog's state — mirrors crossplay's ExplainPopover states, minus the
@@ -25,8 +25,7 @@ type Props = {
  */
 export function CrosswordsExplainCompanion({ clueLabel, state, onClose }: Props) {
   return (
-    <FloatingPanel
-      family="companion"
+    <Companion
       title={`Explain ${clueLabel}`}
       onClose={onClose}
       defaultSize={{ width: 520, height: 380 }}
@@ -37,7 +36,7 @@ export function CrosswordsExplainCompanion({ clueLabel, state, onClose }: Props)
       {state.kind === 'loading' && <p className={styles.status}>Asking the AI…</p>}
       {state.kind === 'error' && <p className={styles.error}>{state.message}</p>}
       {state.kind === 'ok' && <div className={styles.explanation}>{renderExplanation(state.explanation)}</div>}
-    </FloatingPanel>
+    </Companion>
   )
 }
 

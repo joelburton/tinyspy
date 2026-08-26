@@ -1,6 +1,7 @@
 // cs-unmet
 
-import { FloatingPanel, HELP_RECT_KEY } from '../floating-panels/FloatingPanel'
+import { Companion } from '../floating-panels/Companion'
+import { HELP_RECT_KEY } from '../floating-panels/FloatingPanel'
 import styles from './ClubHelpCompanion.module.css'
 
 type Props = {
@@ -19,8 +20,7 @@ type Props = {
  */
 export function ClubHelpCompanion({ onClose }: Props) {
   return (
-    <FloatingPanel
-      family="companion"
+    <Companion
       // Loose, against the companion default: this is a page to READ, and
       // text packed tight against the window edge is harder to read.
       density="loose"
@@ -46,6 +46,6 @@ export function ClubHelpCompanion({ onClose }: Props) {
           with <kbd>~</kbd>.
         </p>
       </div>
-    </FloatingPanel>
+    </Companion>
   )
 }

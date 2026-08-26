@@ -5,7 +5,7 @@ import { useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { db as commonDb } from '../../db'
 import { useProfile, setProfileColor } from '../../hooks/session/useProfile'
-import { FloatingPanel } from '../floating-panels/FloatingPanel'
+import { NormalModal } from '../floating-panels/NormalModal'
 import actionRow from '../floating-panels/modalActions.module.css'
 import { StandardButton } from '../buttons/StandardButton'
 import { CancelButton } from '../buttons/CancelButton'
@@ -64,8 +64,7 @@ export function EditProfileModal({ session, onSaved, onCancel }: Props) {
   }
 
   return (
-    <FloatingPanel
-      family="modal-normal"
+    <NormalModal
       title="Edit profile"
       onClose={onCancel}
       resizable={false}
@@ -91,6 +90,6 @@ export function EditProfileModal({ session, onSaved, onCancel }: Props) {
           autoFocus
         />
       </div>
-    </FloatingPanel>
+    </NormalModal>
   )
 }

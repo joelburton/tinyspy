@@ -6,7 +6,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { db as commonDb } from '../../db'
 import { setWordEdit, type WordEditRequest } from '../../lib/definitions/wordEditStore'
 import { useConfirmation } from '../../hooks/ui/useConfirmation'
-import { FloatingPanel } from '../floating-panels/FloatingPanel'
+import { Dialog } from '../floating-panels/Dialog'
 import styles from './WordEditDialog.module.css'
 import { StandardButton } from '../buttons/StandardButton'
 import { TextField } from '../fields/TextField'
@@ -210,8 +210,7 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
   }
 
   return (
-    <FloatingPanel
-      family="dialog"
+    <Dialog
       persistKey="puzpuzpuz:wordEdit:rect"
       title={editing ? `Edit "${request.word.toUpperCase()}"` : 'Add word'}
       onClose={() => setWordEdit(null)}
@@ -316,6 +315,6 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
         </div>
       </StandardForm>
       {confirmationModal}
-    </FloatingPanel>
+    </Dialog>
   )
 }
