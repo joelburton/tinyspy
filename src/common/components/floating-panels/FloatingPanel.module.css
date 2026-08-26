@@ -85,6 +85,19 @@
   cursor: move;
 }
 
+/* The titlebar's dismiss — the shared `<CloseButton>`, sized by the BAR rather
+   than by the text around it. `--iconButton-size` is the token `.iconOnly`
+   reads for its square, so re-setting the property here re-sizes the button
+   with no specificity fight. Stated as a fraction of the strip, like `.title`
+   just below and for the same reason: one number sizes the whole titlebar.
+
+   DESCENDANT ON PURPOSE. One class here would tie with the shared module's own
+   `.close`, leaving bundle order to decide which size wins. Two classes says
+   "the close inside a titlebar" and settles it. */
+/* @@ */ .titlebar .close {
+  --iconButton-size: calc(var(--floatingPanel-titlebar-height) * 0.7);
+}
+
 /* @@ */ .title {
   font-weight: 600;
   /* Derived from the bar, not from the type ramp: this is the ONE label whose
@@ -98,12 +111,6 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
-/* The close ✕ lives in `TitlebarCloseButton` — component, module and all. It is
-   a component rather than a class here because what drifted was the GLYPH and
-   the label, which a class cannot own: `InfoSheet` shipped a different ✕ with
-   its own aria-label, and nobody could see it because that button was never
-   rendered (plans/areas/floating-panels.md → F29). */
 
 /* @@ */ .body {
   /* Body is both:

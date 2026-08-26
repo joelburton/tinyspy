@@ -118,8 +118,10 @@ export type PurposeButtonProps = Omit<StandardButtonProps, 'name'> & { name?: st
  * global classes any more, because there are none left to compose.
  *
  * The families that are NOT this: a game piece, a keycap, a segmented choice, a
- * page-header mark, the board's round `ShuffleButton`, and the ✕ dismiss
- * glyphs.
+ * page-header mark, and the board's round `ShuffleButton`.
+ *
+ * A ✕ dismiss IS this button — a glyph, no label, no border — packaged as
+ * `<CloseButton>`.
  */
 export function StandardButton({
   name,

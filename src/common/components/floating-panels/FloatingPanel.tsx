@@ -14,7 +14,7 @@ import { usePhone } from '../../hooks/ui/usePhone'
 import { useVisualViewport } from '../../hooks/ui/useVisualViewport'
 import { useFocusTrap } from '../../hooks/ui/useFocusTrap'
 import { usePanelEscape } from '../../hooks/ui/usePanelEscape'
-import { TitlebarCloseButton } from './TitlebarCloseButton'
+import { CloseButton } from '../buttons/CloseButton'
 import styles from './FloatingPanel.module.css'
 // (Below: a 'hard'/'soft' literal is passed to clampToViewport
 // per-call. See the ClampMode type in useDraggablePanel.)
@@ -853,7 +853,7 @@ function PanelRnd({
               className={`${styles.titlebar} ${draggable ? styles.dragHandle : ''}`}
             >
               <span className={styles.title}>{title}</span>
-              <TitlebarCloseButton onClick={onClose} />
+              <CloseButton className={styles.close} onClick={onClose} />
             </div>
           )}
           {/* When fitting, the content is wrapped so its natural height can be

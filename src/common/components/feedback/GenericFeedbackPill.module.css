@@ -48,22 +48,24 @@
 /* @@ */   --dot-border-width: 2px;
 }
 
-/* @@ */ .close {
-  /* A tight × glyph button. */
-  margin: 0;
-  cursor: pointer;
-  color: inherit;
-  font-size: 1.1rem;
-  line-height: 1;
-  width: 1.1rem;
-  height: 1.1rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
+/* The shared `<CloseButton>` draws the glyph, the box and the hover. THE INK IS
+   THE PILL'S: a pill is toned — border and text carry won/lost/near — and its
+   dismiss takes that tone rather than the button's quiet gray.
 
-/* @@ */ .close:hover {
-  opacity: 0.7;
+   Two details, both load-bearing:
+
+   `currentColor` RE-POINTS THE SLOT rather than out-cascading `color`. The
+   button's ink comes from `.secondary { color: var(--button-slot-secondary-color) }`,
+   so setting the slot is how to change it without fighting that rule
+   (code-conventions.md → state classes win by re-setting tokens). In a `color`
+   declaration `currentColor` means the inherited value, so this says "take the
+   pill's ink" without naming a tone — which matters, because there are seven.
+
+   DESCENDANT ON PURPOSE. One class here would tie with `.quiet`'s own slot rule
+   in the shared module, leaving bundle order to pick the winner. Two classes
+   says "inside a pill" and settles it. */
+/* @@ */ .pill .close {
+  --button-slot-secondary-color: currentColor;
 }
 
 /* Tone variants. Each colors the WHOLE border (all four sides; the left is just

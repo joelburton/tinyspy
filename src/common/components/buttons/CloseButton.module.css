@@ -1,0 +1,24 @@
+/* cs-fixed */
+
+/*
+ * The shared dismiss glyph (see CloseButton.tsx). Nothing here is about a
+ * particular surface — that is what keeps it shared.
+ */
+/* @@ */ .close {
+  /* SIZED IN em, so the box tracks the text it sits among rather than a number
+     picked per site. `--iconButton-size` is the token `.iconOnly` reads for its
+     square (2.05rem app-wide); re-setting the property makes that class pick up
+     the new value with no specificity fight (code-conventions.md → state
+     classes win by re-setting tokens), the same move `small` makes at 1.6rem.
+
+     A surface needing a specific box re-points the token again in its own
+     class, at TWO classes so the cascade is decided by intent rather than by
+     bundle order — `.titlebar .close` sizes against the bar. */
+  --iconButton-size: 1.4em;
+  /* NO BORDER — a dismiss is furniture, not a control being offered. This
+     clears the HOVER outline; the resting border is already transparent. */
+  border-color: transparent;
+  /* Never squeezed by the row it sits in: these live at the end of a flex line
+     (a titlebar, a pill) whose text can be long. */
+  flex-shrink: 0;
+}

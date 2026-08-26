@@ -24,10 +24,10 @@ This area's own findings therefore start at **F30**, so no number in this file i
 ambiguous and an inherited finding is recognizable on sight (≤ F13 came from
 elsewhere; ≥ F30 was raised here).
 
-**Twenty findings. SIXTEEN RESOLVED** — F8, F9, F13, F30, F31, F33, F34, F35,
-F36, F38, F39, F40, F41, F42, F43, F47 — **three CLOSED and moved out** (F32 →
-the FreeBee pair, F37 → crosswords, F44 → crosswords + floating-panels) — and
-**two parked** for the sprint's docs step, F45 and F46. **Nothing is open.**
+**Twenty findings. SEVENTEEN RESOLVED** — F8, F9, F13, F30, F31, F33, F34, F35,
+F36, F38, F39, F40, F41, F42, F43, F45, F47 — **three CLOSED and moved out**
+(F32 → the FreeBee pair, F37 → crosswords, F44 → crosswords + floating-panels)
+— and **one parked** for the sprint's docs step, F46.
 
 F43–F47 came from the work rather than the audit, which is expected: §21 says a
 finding is not required to have come from the audit and takes the next free
@@ -899,35 +899,61 @@ either of them wanted something different. `--field-*` is a form FIELD's edge an
 fill; these are buttons. The two vocabularies sit close in light mode, which is
 exactly why nobody noticed.
 
-## F45 · `four-dismiss-glyphs` · The ✕ problem `TitlebarCloseButton` solved, surviving at four more sites
+## RESOLVED · F45 · `four-dismiss-glyphs` · The ✕ problem `TitlebarCloseButton` solved, surviving at nine more sites
 
-**NOT a conversion this area performs** (Joel, 2026-08-25): *"x-to-close buttons
+**Filed as a census, not a conversion** (Joel, 2026-08-25): *"x-to-close buttons
 aren't normal buttons — we don't put borders on them and we may not decide that
 they have the same hover/is-clicked look. We can handle those when we meet
-them."* Filed because the CENSUS belongs here, and because the shape of the
-problem is already documented as solved.
+them."* Then we met them, and the census is what made the answer obvious.
 
-`TitlebarCloseButton`'s own docstring states the case for existing: *"`InfoSheet`
-shipped `✕` (U+2715) against this `×` (U+00D7) with its own hand-written
-aria-label, and a class can only make two different characters look alike."* Two
-floating panels use it. Four other dismiss-shaped controls do not, and they
-reproduce the exact defect:
+**Ten hand-written dismiss controls, three glyphs, four boxes:**
 
-| site | glyph | name | box |
+| where | glyph | box | count |
 |---|---|---|---|
-| `Toast .close` | `×` U+00D7 | "Dismiss" | `padding: 0.15rem 0.35rem`, 1.2rem |
-| `GenericFeedbackPill .close` | `×` U+00D7 | "Dismiss" | 1.1rem square, no padding |
-| `historyViewer .bannerExit` (8 games) | **`✕` U+2715** | "Exit viewing" | `padding: 0.15rem 0.35rem`, 1rem, `--radius-sm` |
-| letterboxed `.chainRemove` | `<IconRemove>` | "Take back WORD" | `all: unset`, 2.1rem, `999px` |
+| floating-panel titlebar | Lucide `IconClose` | 0.7 × bar height, hover wash | 1 |
+| history-viewer banner exit | `✕` U+2715 | `padding: .15rem .35rem`, 1rem, `--radius-sm` | **8** |
+| `Toast .close` | `×` U+00D7 | absolute, 1.2rem, muted→full ink on hover | 1 |
+| `GenericFeedbackPill .close` | `×` U+00D7 | 1.1rem square, `opacity: .7` on hover | 1 |
 
-**Two different characters, one Lucide component, and four sizes** — the same
-mix, at eight times the spread, since `bannerExit` ships in eight games.
+**And the app already had a rule for the character**, in `TrashButton`: *"`×` is
+deliberately not this button's glyph. An ✕ means *close this*."* Written down —
+and then written as `×` at two of the ten sites.
 
-**`.chainRemove` is probably not one of them**, and that is worth saying rather
-than assuming: it means "take back the last word", which is an UNDO, not a
-close. It sits in the group only by shape. Whoever picks this up should decide
-whether the family is "dismiss" or "small glyph button", because the answer
-changes whether letterboxed is in it.
+**`TitlebarCloseButton` was never coupled to a titlebar.** That is what made the
+answer cheap: strip its two titlebar-specific lines — the bar-relative size and
+the border kill — and what's left (Lucide glyph, quiet tone, `iconScale`, hover
+wash) is what a dismiss looks like anywhere. So it became
+`common/components/buttons/CloseButton.tsx` and the component `TitlebarCloseButton`
+was **deleted**, not renamed: after the extraction its whole body was
+`<CloseButton className={styles.close} />`, and a file for that isn't worth
+keeping. `FloatingPanel.module.css .close` holds the one line that is genuinely
+the bar's.
+
+**Sized in `em`, which was the blocker Joel named.** The mechanism already
+existed — `.iconOnly` reads `--iconButton-size`, and re-pointing it is the
+supported ask (`small` does exactly this at 1.6rem). The shared default is
+`1.4em`, which is what the titlebar's ✕ already measured (0.7 of a 2rem bar) —
+the value the one converted site had reached by hand, not a new opinion.
+
+**What each site keeps is PLACEMENT**, the same split as `<Field>`'s `className`:
+the toast pins its own to the corner, the titlebar sizes its own to the bar. One
+exception, deliberate: the pill re-states `color: inherit`, because a pill is
+TONED and the shared button paints from the quiet family — a gray ✕ on a colored
+pill would be wrong.
+
+**Two of ten converted; eight FILED, not swept** — `docs/deferred.md` → Common /
+architecture. The banner exits live in eight games' `BoardCol.tsx`, each of which
+has its own CSS pass scheduled, and this area doesn't touch other games' code.
+
+**`.chainRemove` stayed out**, which is the question this finding raised and
+answered: it means "take back the last word" — an *undo* — and is in the group
+only by shape. That decides the family's name: **dismiss**, not "small glyph
+button".
+
+**One thing to look at rather than argue about:** the shared hover is a WASH
+(a background tint of the button's own family), where the toast used ink and the
+pill used opacity. On a toned surface a quiet wash may read as a smudge. Not
+guessable from the CSS.
 
 ## F46 · `ui-doc-describes-deleted-classes` · docs/ui.md documents components and classes that no longer exist
 

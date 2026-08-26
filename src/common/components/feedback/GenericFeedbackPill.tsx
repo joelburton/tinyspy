@@ -3,6 +3,7 @@
 import { cls } from '../../lib/util/cls'
 import type { GenericFeedbackMsg } from '../../lib/games'
 import { Dot } from '../text/Dot'
+import { CloseButton } from '../buttons/CloseButton'
 import styles from './GenericFeedbackPill.module.css'
 
 type Props = {
@@ -81,14 +82,7 @@ export function GenericFeedbackPill({ msg, onClose }: Props) {
       {msg.dot !== undefined && <Dot color={msg.dot} className={styles.dot} />}
       <span className={styles.text}>{msg.text}</span>
       {kind === 'manual' && (
-        <button
-          type="button"
-          className={styles.close}
-          onClick={onClose}
-          aria-label="Dismiss"
-        >
-          ×
-        </button>
+        <CloseButton name="Dismiss" className={styles.close} onClick={onClose} />
       )}
     </div>
   )

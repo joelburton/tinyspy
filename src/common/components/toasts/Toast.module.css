@@ -40,16 +40,12 @@
   align-self: flex-end;
 }
 
+/* PLACEMENT ONLY — the glyph, the box, the tone and the hover are the shared
+   `<CloseButton>`'s. All a toast decides is WHERE its dismiss sits: out of the
+   text flow, in the corner, rather than in the message row. `.message` reserves
+   the width it takes. */
 /* @@ */ .close {
   position: absolute;
   top: 0.25rem;
   right: 0.4rem;
-  color: var(--page-text-muted-color);
-  font-size: 1.2rem;
-  line-height: 1;
-  padding: 0.15rem 0.35rem;
-  cursor: pointer;
-}
-/* @@ */ .close:hover {
-  color: var(--page-text-color);
 }
