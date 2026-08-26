@@ -10,6 +10,7 @@ import actionRow from '../floating-panels/modalActions.module.css'
 import styles from './EditClubModal.module.css'
 import { StandardButton } from '../buttons/StandardButton'
 import { CancelButton } from '../buttons/CancelButton'
+import { CheckboxField } from '../fields/CheckboxField'
 
 type Props = {
   /** Club being edited. */
@@ -107,20 +108,21 @@ export function EditClubModal({
       <fieldset className={styles.games}>
         <legend className={styles.gamesLegend}>Games played in this club</legend>
         {sorted.map((g) => (
-          <label key={g.gametype} className={styles.gameRow}>
-            <input
-              type="checkbox"
-              checked={checked.has(g.gametype)}
-              onChange={() => toggle(g.gametype)}
-              disabled={busy}
-            />
+          <CheckboxField
+            key={g.gametype}
+            name={g.gametype}
+            checked={checked.has(g.gametype)}
+            onChange={() => toggle(g.gametype)}
+            disabled={busy}
+            className={styles.gameRow}
+          >
             <span className={styles.gameText}>
               <span className={styles.gameName}>
                 {g.name} <ModePill mode={g.mode} />
               </span>
               <span className={styles.gameDesc}>{g.shortDescription}</span>
             </span>
-          </label>
+          </CheckboxField>
         ))}
       </fieldset>
 

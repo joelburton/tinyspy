@@ -8,6 +8,7 @@ import { useDefinePopover } from '../../hooks/definitions/useDefinePopover'
 import { FloatingPanel } from '../floating-panels/FloatingPanel'
 import styles from './AnagramDialog.module.css'
 import { StandardButton } from '../buttons/StandardButton'
+import { TextField } from '../fields/TextField'
 
 type Result = { word: string; difficulty: number }
 
@@ -67,18 +68,19 @@ export function AnagramDialog({ onClose }: { onClose: () => void }) {
     >
       <div className={styles.content}>
         <form onSubmit={onSubmit} className={styles.form}>
-          <input
+          <TextField
+            // No caption: this box IS the panel, and the titlebar above it
+            // already says "Anagram finder".
+            ariaLabel="Letters to anagram"
             // Autofocus so the player can type immediately after the
             // shortcut opens the dialog.
             autoFocus
-            type="text"
             className={styles.input}
             value={query}
             // Case carries meaning (pins), so keep it as typed; everything
             // that isn't a letter or '?' is dropped on entry.
-            onChange={(e) => setQuery(e.target.value.replace(/[^A-Za-z?]/g, '').slice(0, 15))}
+            onChange={(v) => setQuery(v.replace(/[^A-Za-z?]/g, '').slice(0, 15))}
             placeholder="letters…"
-            aria-label="Letters to anagram"
           />
           <StandardButton
             name="Find"

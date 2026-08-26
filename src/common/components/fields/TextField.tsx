@@ -1,13 +1,26 @@
 // cs-fixed
 
 import type { ReactNode } from 'react'
+import { cls } from '../../lib/util/cls'
 import field from './field.module.css'
 import styles from './TextField.module.css'
 
 type Props = {
-  /** The caption above the control. A ReactNode, because CreateClubPage's
-   *  carries a live hint beside the word ("Club name (becomes handle: jb)"). */
-  label: ReactNode
+  /**
+   * The caption above the control. A ReactNode, because CreateClubPage's
+   * carries a live hint beside the word ("Club name (becomes handle: jb)").
+   *
+   * **Omit it for no caption row at all** (Joel, 2026-08-26). Some fields ARE
+   * the surface — a search box in a lookup dialog, where a caption above one
+   * input in a one-input panel says nothing the title has not. Those pass
+   * `ariaLabel` instead, so the control still has a name.
+   */
+  label?: ReactNode
+  /** The accessible name when there is no caption. Exactly one of `label` and
+   *  `ariaLabel` is expected: a caption names the control by wrapping it, and
+   *  this names it when nothing is drawn. It is a plain string because a name
+   *  is text, where a caption can be markup. */
+  ariaLabel?: string
   value: string
   onChange: (value: string) => void
   /** A textarea instead of a one-line input. Same field, more room — not a
@@ -27,6 +40,17 @@ type Props = {
   autoFocus?: boolean
   disabled?: boolean
   name?: string
+  /** `email` gets the right keyboard on a phone and the browser's own check.
+   *  Everything else is text; a number is `<NumberField>`. */
+  type?: 'text' | 'email'
+  /** Phone-keyboard and autofill hints — the sign-in code wants a numeric pad
+   *  and the one-time-code autofill. */
+  inputMode?: 'numeric'
+  pattern?: string
+  autoComplete?: string
+  /** Where the field sits in ITS OWN parent — a search box shares a flex row
+   *  with its button and has to grow. Placement is the caller's, always. */
+  className?: string
 }
 
 /**
@@ -50,6 +74,7 @@ type Props = {
  */
 export function TextField({
   label,
+  ariaLabel,
   value,
   onChange,
   multiline,
@@ -61,9 +86,15 @@ export function TextField({
   autoFocus,
   disabled,
   name,
+  type = 'text',
+  inputMode,
+  pattern,
+  autoComplete,
+  className,
 }: Props) {
   const shared = {
     className: styles.control,
+    'aria-label': label === undefined ? ariaLabel : undefined,
     value,
     onChange: (e: { target: { value: string } }) => onChange(e.target.value),
     placeholder,
@@ -72,12 +103,15 @@ export function TextField({
     autoFocus,
     disabled,
     name,
+    inputMode,
+    pattern,
+    autoComplete,
   }
 
   return (
-    <label className={field.field}>
-      <span className={field.label}>{label}</span>
-      {multiline ? <textarea rows={rows} {...shared} /> : <input type="text" {...shared} />}
+    <label className={cls(field.field, className)}>
+      {label !== undefined && <span className={field.label}>{label}</span>}
+      {multiline ? <textarea rows={rows} {...shared} /> : <input type={type} {...shared} />}
       {children}
     </label>
   )

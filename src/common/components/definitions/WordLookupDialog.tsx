@@ -1,10 +1,11 @@
 // cs-unmet
 
-import { useRef, useState, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import { DefinitionView } from './DefinitionView'
 import { FloatingPanel } from '../floating-panels/FloatingPanel'
 import styles from './WordLookupDialog.module.css'
 import { StandardButton } from '../buttons/StandardButton'
+import { TextField } from '../fields/TextField'
 
 type Props = {
   onClose: () => void
@@ -24,7 +25,6 @@ type Props = {
 export function WordLookupDialog({ onClose }: Props) {
   const [query, setQuery] = useState('')
   const [word, setWord] = useState<string | null>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
 
   function onSubmit(e: FormEvent) {
     e.preventDefault()
@@ -52,17 +52,17 @@ export function WordLookupDialog({ onClose }: Props) {
     >
       <div className={styles.content}>
         <form onSubmit={onSubmit} className={styles.form}>
-          <input
-            ref={inputRef}
+          <TextField
+            // No caption: this box IS the panel, and the titlebar says what it
+            // looks up.
+            ariaLabel="Word to look up"
             // Autofocus so the player can type immediately after the
             // shortcut opens the dialog.
             autoFocus
-            type="text"
             className={styles.input}
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={setQuery}
             placeholder="a word…"
-            aria-label="Word to look up"
           />
           <StandardButton name="Define" type="submit" weight="primary" className={styles.button} />
         </form>

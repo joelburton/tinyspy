@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase/supabase'
 import { PuzpuzpuzWordmark } from '../branding/PuzpuzpuzWordmark'
 import { cls } from '../../lib/util/cls'
 import { StandardButton } from '../buttons/StandardButton'
+import { TextField } from '../fields/TextField'
 
 /**
  * Magic-link sign-in flow with two verification paths.
@@ -121,23 +122,27 @@ export function LoginScreen() {
         )}
 
         <form onSubmit={onSubmit}>
-          <input
+          {/* CAPTIONED, where both boxes used to be named by placeholder alone
+              — which vanishes the moment you type, on the first screen anyone
+              sees. */}
+          <TextField
+            label="Email"
             type="email"
             required
             placeholder="you@example.com"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={setEmail}
             disabled={busy}
           />
           {action === 'verify-code' && (
-            <input
-              type="text"
+            <TextField
+              label="Sign-in code"
               inputMode="numeric"
               pattern="[0-9]*"
               autoComplete="one-time-code"
-              placeholder="Sign-in code"
+              placeholder="123456"
               value={code}
-              onChange={(e) => setCode(e.target.value)}
+              onChange={setCode}
               disabled={busy}
               required
             />

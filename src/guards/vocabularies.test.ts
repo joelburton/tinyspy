@@ -348,10 +348,9 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/components/club/CreateClubPage.module.css': ['0.8rem'],
       'src/common/components/club/EditClubModal.module.css': ['0.8rem', '0.85rem'],
       'src/common/components/club/StartGameRow.module.css': ['1rem', '0.85rem'],
-      'src/common/components/definitions/AnagramDialog.module.css': ['0.95rem', 'max(16px,', '1em)', '0.75rem', '0.85rem', '0.8rem'],
+      'src/common/components/definitions/AnagramDialog.module.css': ['0.95rem', '0.75rem', '0.85rem', '0.8rem'],
       'src/common/components/definitions/DefinitionView.module.css': ['1.05rem', '0.92rem', '0.9rem', '0.72rem', '0.8rem'],
       'src/common/components/definitions/WordEditDialog.module.css': ['0.85rem'],
-      'src/common/components/definitions/WordLookupDialog.module.css': ['0.95rem', 'max(16px,', '1em)'],
       'src/common/components/feedback/FaultModal.module.css': ['1.1rem', '0.78rem'],
       // ErrorPage is FaultModal's twin as a PAGE (F39 `loading-and-errors`);
       // its two sizes are copied to the digit so the two read as one event.
@@ -542,7 +541,6 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/components/club/EditClubModal.module.css': ['1px'],
       'src/common/components/definitions/AnagramDialog.module.css': ['1px'],
       'src/common/components/definitions/DefinitionPopover.module.css': ['1px'],
-      'src/common/components/definitions/WordLookupDialog.module.css': ['1px'],
       'src/common/components/feedback/GenericFeedbackPill.module.css': ['2px', '0.4rem'],
       'src/common/components/fields/SelectField.module.css': ['1px'],
       'src/common/components/game/DeviceBlockNotice.module.css': ['1px'],

@@ -20,28 +20,18 @@
   gap: 0.4rem;
 }
 
+/* WHERE THE SEARCH BOX SITS, and nothing else: it shares a row with its button
+   and has to take the slack. This is `<TextField>`'s `className`, which lands on
+   the FIELD — so it must be placement only.
+   
+   It used to carry a full control chrome as well — padding, font-size, colour,
+   background, border, radius — a second definition of what an input looks like,
+   beside base.css's. That went on 2026-08-26 with the conversion: the two
+   dialogs' copies were byte-identical, which is how you know neither was a
+   choice. */
 /* @@ */ .input {
   flex: 1 1 auto;
   min-width: 0;
-  padding: 0.4rem 0.55rem;
-  font-size: 0.95rem;
-  color: var(--page-text-color);
-  background: var(--page-surface-color);
-  border: 1px solid var(--page-surface-border-color);
-  border-radius: var(--radius-md);
-}
-
-/* iOS focus-zoom floor (docs/mobile.md → Decisions #3) — same rule as the
- * word-lookup input: under 16px a phone zooms in on focus and stays there. */
-@media (--touch) {
-/* @@ */   .input {
-    font-size: max(16px, 1em);
-  }
-}
-
-/* @@ */ .input:focus {
-  outline: var(--chrome-cursor-ring);
-  outline-offset: -1px;
 }
 
 /* Layout only. The chrome is the shared `button primary` (theme.css) — this used

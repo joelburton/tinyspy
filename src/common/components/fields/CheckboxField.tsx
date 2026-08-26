@@ -1,6 +1,7 @@
 // cs-fixed
 
 import type { ReactNode } from 'react'
+import { cls } from '../../lib/util/cls'
 import styles from './CheckboxField.module.css'
 
 type Props = {
@@ -13,6 +14,9 @@ type Props = {
    *  row is the click target, so this is inside the `<label>`. */
   children: ReactNode
   disabled?: boolean
+  /** Where the row sits in ITS OWN parent — EditClubModal's gametype rows carry
+   *  a hairline and their own padding. Placement is the caller's, always. */
+  className?: string
 }
 
 /**
@@ -33,9 +37,9 @@ type Props = {
  * or an interpolated value in them and a string would force the next one that
  * does into hand-writing the row again — which is how we got here.
  */
-export function CheckboxField({ name, checked, onChange, children, disabled }: Props) {
+export function CheckboxField({ name, checked, onChange, children, disabled, className }: Props) {
   return (
-    <label className={styles.row}>
+    <label className={cls(styles.row, className)}>
       <input
         type="checkbox"
         name={name}
