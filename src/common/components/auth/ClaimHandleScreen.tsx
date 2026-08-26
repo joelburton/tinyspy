@@ -1,6 +1,7 @@
 // cs-unmet
 
 import { formFailureText } from '../../lib/game/serverError'
+import { StandardForm } from '../fields/StandardForm'
 import { useState, type SubmitEvent } from 'react'
 import { db as commonDb } from '../../db'
 import { supabase } from '../../lib/supabase/supabase'
@@ -170,7 +171,7 @@ export function ClaimHandleScreen({ onClaimed, email }: Props) {
           Your username is your permanent handle — pick one you&rsquo;ll be happy with. Your color can be changed later.
         </p>
 
-        <form onSubmit={onSubmit} className={styles.form}>
+        <StandardForm onSubmit={onSubmit}>
           <TextField
             label="Username"
             value={desired}
@@ -209,7 +210,7 @@ export function ClaimHandleScreen({ onClaimed, email }: Props) {
               disabled={busy || !HANDLE_REGEX.test(desired)}
             />
           </div>
-        </form>
+        </StandardForm>
       </div>
     </div>
   )

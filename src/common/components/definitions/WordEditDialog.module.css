@@ -1,17 +1,5 @@
 /* cs-unmet */
 
-/* The word-edit form, inside the FloatingPanel shell. Input chrome mirrors
- * the definitions-family dialogs (WordLookup/Anagram); the layout is a plain
- * stacked form — this is a curator's power tool, not player chrome. */
-
-/* @@ */ .form {
-  display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
-  height: 100%;
-  overflow-y: auto;
-}
-
 /* Band / crude / slur on one row — three small numbers, not three rows.
  *
  * No flex share to hand out: <NumberField> sizes itself from the widest value

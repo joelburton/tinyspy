@@ -1,6 +1,7 @@
 // cs-unmet
 
 import { useState, type FormEvent } from 'react'
+import { StandardForm } from '../fields/StandardForm'
 import { DefinitionView } from './DefinitionView'
 import { FloatingPanel } from '../floating-panels/FloatingPanel'
 import styles from './WordLookupDialog.module.css'
@@ -50,24 +51,22 @@ export function WordLookupDialog({ onClose }: Props) {
       defaultSize={{ width: 360, height: 280 }}
       resizable={false}
     >
-      <div className={styles.content}>
-        <form onSubmit={onSubmit} className={styles.form}>
-          <TextField
-            // No caption: this box IS the panel, and the titlebar says what it
-            // looks up.
-            ariaLabel="Word to look up"
-            // Autofocus so the player can type immediately after the
-            // shortcut opens the dialog.
-            autoFocus
-            className={styles.input}
-            value={query}
-            onChange={setQuery}
-            placeholder="a word…"
-          />
-          <StandardButton name="Define" type="submit" weight="primary" className={styles.button} />
-        </form>
-        <DefinitionView word={word} onNavigate={navigate} />
-      </div>
+      <StandardForm onSubmit={onSubmit}>
+        <TextField
+          // No caption: this box IS the panel, and the titlebar says what it
+          // looks up.
+          ariaLabel="Word to look up"
+          // Autofocus so the player can type immediately after the
+          // shortcut opens the dialog.
+          autoFocus
+          className={styles.input}
+          value={query}
+          onChange={setQuery}
+          placeholder="a word…"
+        />
+        <StandardButton name="Define" type="submit" weight="primary" className={styles.button} />
+      </StandardForm>
+      <DefinitionView word={word} onNavigate={navigate} />
     </FloatingPanel>
   )
 }

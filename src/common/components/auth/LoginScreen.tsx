@@ -1,6 +1,7 @@
 // cs-unmet
 
 import { useState, type SubmitEvent } from 'react'
+import { StandardForm } from '../fields/StandardForm'
 import { supabase } from '../../lib/supabase/supabase'
 import { PuzpuzpuzWordmark } from '../branding/PuzpuzpuzWordmark'
 import { cls } from '../../lib/util/cls'
@@ -121,7 +122,7 @@ export function LoginScreen() {
           </p>
         )}
 
-        <form onSubmit={onSubmit}>
+        <StandardForm onSubmit={onSubmit}>
           {/* CAPTIONED, not named by placeholder alone: a placeholder vanishes
               the moment you type, on the first screen anyone sees. */}
           <TextField
@@ -172,7 +173,7 @@ export function LoginScreen() {
                 : 'Send me a magic link instead'}
             </button>
           </p>
-        </form>
+        </StandardForm>
 
         {error && <p className="error">{error}</p>}
 

@@ -241,10 +241,9 @@ const VOCABULARIES: Vocabulary[] = [
       // guard's side: an area converts a value and deletes it from its row, the
       // row goes when the file is clean, and the day the object is empty the
       // vocabulary is fully in force.
-      'src/common/base.css': ['1rem', '1.25rem', '1.15rem', '0.75rem'],
+      'src/common/base.css': ['1rem', '1.25rem', '1.15rem'],
       'src/common/components/account/ColorChoiceList.module.css': ['0.5rem'],
-      'src/common/components/account/EditProfileModal.module.css': ['1.25rem'],
-      'src/common/components/auth/ClaimHandleScreen.module.css': ['1.25rem', '1.5rem', '0.75rem', '0.5rem'],
+      'src/common/components/auth/ClaimHandleScreen.module.css': ['0.75rem', '0.5rem'],
       'src/common/components/branding/PuzpuzpuzWordmark.module.css': ['1.5rem'],
       'src/common/components/buttons/SubmitWithScore.module.css': ['0.5rem'],
       'src/common/components/chat/ChatBody.module.css': ['0.4rem', '0.3rem'],
@@ -260,12 +259,11 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/components/club/ClubGameCard.module.css': ['0.6rem', '0.4rem', '0.5rem'],
       'src/common/components/club/ClubGameRow.module.css': ['0.4rem', '0.5rem'],
       'src/common/components/club/ClubPage.module.css': ['1rem', '1.25rem'],
-      'src/common/components/club/CreateClubPage.module.css': ['1.25rem', '1.5rem', '0.4rem', '0.75rem', '0.5rem'],
+      'src/common/components/club/CreateClubPage.module.css': ['0.4rem', '0.75rem', '0.5rem'],
       'src/common/components/club/EditClubModal.module.css': ['0.5rem'],
       'src/common/components/club/StartGameRow.module.css': ['0.4rem'],
       'src/common/components/definitions/DefinitionView.module.css': ['0.3rem', '0.15rem', '0.1rem'],
-      'src/common/components/definitions/WordEditDialog.module.css': ['0.55rem', '0.5rem', '0.35rem'],
-      'src/common/components/definitions/WordLookupDialog.module.css': ['0.6rem', '0.4rem'],
+      'src/common/components/definitions/WordEditDialog.module.css': ['0.5rem', '0.35rem'],
       'src/common/components/feedback/FaultModal.module.css': ['0.5rem'],
       'src/common/components/feedback/GenericFeedbackPill.module.css': ['0.5rem'],
       // The gap under a checkbox row and under a date override — both moved

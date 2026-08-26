@@ -7,7 +7,6 @@ import { db as commonDb } from '../../db'
 import { useProfile, setProfileColor } from '../../hooks/session/useProfile'
 import { FloatingPanel } from '../floating-panels/FloatingPanel'
 import actionRow from '../floating-panels/modalActions.module.css'
-import styles from './EditProfileModal.module.css'
 import { StandardButton } from '../buttons/StandardButton'
 import { CancelButton } from '../buttons/CancelButton'
 import { ReadOnlyField } from '../fields/ReadOnlyField'
@@ -76,23 +75,21 @@ export function EditProfileModal({ session, onSaved, onCancel }: Props) {
       fitContent
       defaultSize={{ width: 380, height: 460 }}
     >
-      <div className={styles.content}>
-        <ReadOnlyField label="Username">{profile?.username ?? '…'}</ReadOnlyField>
+      <ReadOnlyField label="Username">{profile?.username ?? '…'}</ReadOnlyField>
 
-        <ColorField value={selected} onChange={setPicked} disabled={busy} />
+      <ColorField value={selected} onChange={setPicked} disabled={busy} />
 
-        {error && <p className="error">{error}</p>}
+      {error && <p className="error">{error}</p>}
 
-        <div className={actionRow.modalActions}>
-          <CancelButton onClick={onCancel} disabled={busy} />
-          <StandardButton
-            name={busy ? 'Saving…' : 'Save'}
-            weight="primary"
-            onClick={handleSave}
-            disabled={busy || !selected}
-            autoFocus
-          />
-        </div>
+      <div className={actionRow.modalActions}>
+        <CancelButton onClick={onCancel} disabled={busy} />
+        <StandardButton
+          name={busy ? 'Saving…' : 'Save'}
+          weight="primary"
+          onClick={handleSave}
+          disabled={busy || !selected}
+          autoFocus
+        />
       </div>
     </FloatingPanel>
   )

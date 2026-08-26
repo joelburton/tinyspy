@@ -1,8 +1,7 @@
 // cs-audited
 
-import { useRef, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { FloatingPanel, type PanelFamily } from './FloatingPanel'
-import { useFocusTrap } from '../../hooks/ui/useFocusTrap'
 import actionRow from './modalActions.module.css'
 import styles from './BlockingModal.module.css'
 
@@ -39,7 +38,7 @@ type Props = {
  * and you answer it now.
  *
  * It exists because the category was hand-assembled at every site — four
- * `FloatingPanel` props, a `useFocusTrap` call, and a footer `<div>` carrying
+ * `FloatingPanel` props and a footer `<div>` carrying
  * the shared class, written out separately by the confirmation and the fault.
  * Four things that had to agree, and nothing making them.
  *
@@ -78,8 +77,6 @@ export function BlockingModal({
 }: Props) {
   // The trap works on the enclosing `[data-floating-panel]`, so it needs an
   // anchor rendered inside the shell — this body div is it.
-  const bodyRef = useRef<HTMLDivElement>(null)
-  useFocusTrap(bodyRef)
 
   return (
     <FloatingPanel
@@ -94,11 +91,9 @@ export function BlockingModal({
       // one to opt out of. This is the panel that proved the point: the old
       // default of 200 held it 81px taller than its own content.
     >
-      <div ref={bodyRef}>
-        {title !== undefined && <h2 className={styles.title}>{title}</h2>}
-        {children}
-        <div className={actionRow.modalActions}>{actions}</div>
-      </div>
+      {title !== undefined && <h2 className={styles.title}>{title}</h2>}
+      {children}
+      <div className={actionRow.modalActions}>{actions}</div>
     </FloatingPanel>
   )
 }

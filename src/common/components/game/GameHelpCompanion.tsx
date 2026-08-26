@@ -40,6 +40,9 @@ export function GameHelpCompanion({
   return (
     <FloatingPanel
       family="companion"
+      // Loose, against the companion default: this is a page to READ, and
+      // text packed tight against the window edge is harder to read.
+      density="loose"
       // Help STATES OTHERWISE, the way chat does: a companion by every test, but
       // summoned from things — including the setup modal — so it takes the top
       // of the floating-window world rather than the companion rung. Without

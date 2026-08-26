@@ -1,6 +1,7 @@
 // cs-unmet
 
 import { formFailureText } from '../../lib/game/serverError'
+import { StandardForm } from '../fields/StandardForm'
 import { useEffect, useState, type FormEvent } from 'react'
 import { db as commonDb } from '../../db'
 import { setWordEdit, type WordEditRequest } from '../../lib/definitions/wordEditStore'
@@ -221,7 +222,7 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
       defaultSize={{ width: 380, height: 500 }}
       resizable={false}
     >
-      <form onSubmit={onSubmit} className={styles.form}>
+      <StandardForm onSubmit={onSubmit}>
         {!editing && (
           <TextField
             label="Word"
@@ -313,7 +314,7 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
             disabled={busy || initial === null}
           />
         </div>
-      </form>
+      </StandardForm>
       {confirmationModal}
     </FloatingPanel>
   )

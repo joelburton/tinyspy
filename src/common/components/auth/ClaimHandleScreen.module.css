@@ -1,12 +1,3 @@
-/* cs-unmet */
-
-/* @@ */ .form {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-  margin-top: 1.5rem;
-}
-
 /* Accept + "Not you? Sign out" share one row, right-justified, macOS
  * order: Sign out (secondary) on the left, Accept (default) rightmost.
  * See docs/ui.md → Dialog buttons. */

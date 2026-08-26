@@ -1,9 +1,0 @@
-/* cs-unmet */
-
-/* @@ */ .content {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-}
-
-/* Save / Cancel action row is the shared modalActions.module.css. */

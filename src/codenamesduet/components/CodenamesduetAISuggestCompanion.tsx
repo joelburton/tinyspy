@@ -48,22 +48,20 @@ export function CodenamesduetAISuggestCompanion({
       minWidth={240}
       minHeight={140}
     >
-      <div className={styles.suggestionBody}>
-        {state.status === 'loading' && (
-          <p className={styles.suggestionLoading}>Asking Claude for a clue…</p>
-        )}
-        {state.status === 'error' && (
-          <p className={styles.suggestionError}>{state.message}</p>
-        )}
-        {state.status === 'ready' && (
-          <>
-            <div className={styles.suggestionClue}>
-              <strong>{state.word}</strong> · {state.count}
-            </div>
-            <p className={styles.suggestionReasoning}>{state.reasoning}</p>
-          </>
-        )}
-      </div>
+      {state.status === 'loading' && (
+        <p className={styles.suggestionLoading}>Asking Claude for a clue…</p>
+      )}
+      {state.status === 'error' && (
+        <p className={styles.suggestionError}>{state.message}</p>
+      )}
+      {state.status === 'ready' && (
+        <>
+          <div className={styles.suggestionClue}>
+            <strong>{state.word}</strong> · {state.count}
+          </div>
+          <p className={styles.suggestionReasoning}>{state.reasoning}</p>
+        </>
+      )}
     </FloatingPanel>
   )
 }

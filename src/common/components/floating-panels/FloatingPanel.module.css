@@ -138,6 +138,48 @@
   padding: 0.4rem 0.5rem;
 }
 
+/*
+ * THE CONTENT COLUMN — the panel's parts, stacked, and the ONE place they are
+ * spaced. A leaf passes parts as children and draws no container of its own;
+ * where several elements are one part (a run of prose), that part gets a
+ * wrapper named for what it holds.
+ *
+ * It sizes to its parts by default, which is what `fitContent` measures — a
+ * column that stretched would report the body's height back to the fit and the
+ * panel could never shrink.
+ */
+/* @@ */ .content {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  /* THE PARTS ARE NOT SQUEEZED to fit the body — the body scrolls instead. As a
+     shrinkable flex item this column would collapse to whatever height the body
+     currently has, which for a FITTING panel is circular: the fit measures this
+     column, so a collapsed column keeps the panel small and the column collapsed.
+     `.contentFills` below restores shrinking for the panels that fill. */
+  flex-shrink: 0;
+}
+
+/* FILLS THE BODY — for the panels whose content is meant to, and only those.
+   The chat transcript and the scratchpad's textarea grow to the panel; they can
+   only do that if the column between them and the body grows too. Not for a
+   fitting panel, whose whole mechanism is measuring what its parts NATURALLY
+   come to. */
+/* @@ */ .contentFills {
+  flex: 1;
+}
+
+/* The two densities. A finder you drive from the keyboard wants its parts
+   close; a form you fill in wants room. Everything BELOW this level — the gap
+   between a form's fields, the gap inside a field — belongs to the component
+   that owns it. */
+/* @@ */ .tight {
+  gap: var(--spacer-4);
+}
+/* @@ */ .loose {
+  gap: var(--spacer-2);
+}
+
 /* A CARD has NO titlebar, so its content starts hard against the top edge and
    the tight body padding reads as cramped — the question would sit 8px from the
    left of the box. Roomier, but only a little: a card is a small box holding a

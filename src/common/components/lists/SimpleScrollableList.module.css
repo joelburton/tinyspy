@@ -20,6 +20,12 @@
       var(--border-width-line)
   );
   overflow-y: auto;
+  /* NOTHING MAY SQUEEZE IT. A scroll container's automatic minimum size is 0,
+     so in a flex column — which a floating panel's content is — this would
+     shrink away to its own padding rather than push the column past its parent.
+     `max-height` above is the only thing that bounds it; when the column really
+     has no room, the surrounding body scrolls. */
+  flex-shrink: 0;
   margin: 0;
   padding: var(--simpleList-pad);
   list-style: none;

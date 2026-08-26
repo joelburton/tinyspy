@@ -13,6 +13,7 @@ import { useCoarsePointer } from '../../hooks/ui/useCoarsePointer'
 import { usePhone } from '../../hooks/ui/usePhone'
 import { useVisualViewport } from '../../hooks/ui/useVisualViewport'
 import { useFocusTrap } from '../../hooks/ui/useFocusTrap'
+import { cls } from '../../lib/util/cls'
 import { usePanelEscape } from '../../hooks/ui/usePanelEscape'
 import { CloseButton } from '../buttons/CloseButton'
 import styles from './FloatingPanel.module.css'
@@ -45,6 +46,18 @@ import styles from './FloatingPanel.module.css'
  *   - `modal-fault`    as blocking, but strictly above it — an error must be
  *                  readable mid-question.
  */
+/**
+ * How far apart a floating panel's PARTS sit — the field row from the failure
+ * line from the results, in the panel's own content column.
+ *
+ * Two values, because there are two kinds of floating panel and they read
+ * differently: a finder you drive from the keyboard wants its parts close, a
+ * form you fill in wants room. Anything a panel needs BELOW this level — the gap
+ * between a form's fields, the gap inside a field — belongs to the component
+ * that owns it, not here.
+ */
+export type PanelDensity = 'tight' | 'loose'
+
 export type PanelFamily =
   | 'companion'
   | 'dialog'
@@ -59,6 +72,11 @@ const FAMILY: Record<
   {
     /** Dims the page — and "dim" means everything below is INERT. */
     scrim: null | 'light' | 'dark'
+    /** How far apart the panel's parts sit, unless the panel says otherwise.
+     *  The two patient families hold answers you read or search; a modal holds a
+     *  form you fill in. A panel whose content argues the other way overrides it
+     *  — the help guides are companions and pass `loose`, being pages to read. */
+    density: PanelDensity
     /** Immovability IS the signal: if you can drag it you can leave it for
      *  later; if you cannot, you deal with it now. */
     draggable: boolean
@@ -108,11 +126,11 @@ const FAMILY: Record<
     layer: string
   }
 > = {
-  companion:        { scrim: null,    draggable: true,  trapsFocus: false, escape: 'close',   remembersRect: true,  shape: 'window', layer: 'var(--z-companion)' },
-  dialog:           { scrim: null,    draggable: true,  trapsFocus: false, escape: 'close',   remembersRect: true,  shape: 'window', layer: 'var(--z-dialog)' },
-  'modal-normal':   { scrim: 'light', draggable: true,  trapsFocus: true,  escape: 'close',   remembersRect: false, shape: 'window', layer: 'var(--z-modal-normal)' },
-  'modal-blocking': { scrim: 'dark',  draggable: false, trapsFocus: true,  escape: 'close',   remembersRect: false, shape: 'card',   layer: 'var(--z-modal-blocking)' },
-  'modal-fault':    { scrim: 'dark',  draggable: false, trapsFocus: true,  escape: 'swallow', remembersRect: false, shape: 'card',   layer: 'var(--z-modal-fault)' },
+  companion:        { density: 'tight', scrim: null,    draggable: true,  trapsFocus: false, escape: 'close',   remembersRect: true,  shape: 'window', layer: 'var(--z-companion)' },
+  dialog:           { density: 'tight', scrim: null,    draggable: true,  trapsFocus: false, escape: 'close',   remembersRect: true,  shape: 'window', layer: 'var(--z-dialog)' },
+  'modal-normal':   { density: 'loose', scrim: 'light', draggable: true,  trapsFocus: true,  escape: 'close',   remembersRect: false, shape: 'window', layer: 'var(--z-modal-normal)' },
+  'modal-blocking': { density: 'loose', scrim: 'dark',  draggable: false, trapsFocus: true,  escape: 'close',   remembersRect: false, shape: 'card',   layer: 'var(--z-modal-blocking)' },
+  'modal-fault':    { density: 'loose', scrim: 'dark',  draggable: false, trapsFocus: true,  escape: 'swallow', remembersRect: false, shape: 'card',   layer: 'var(--z-modal-fault)' },
 }
 
 type Props = {
@@ -120,6 +138,10 @@ type Props = {
    *  sensible default, and a silent one is how the app ended up with a
    *  modal-normal that never dimmed. */
   family: PanelFamily
+  /** Override the family's default spacing between the panel's parts. The help
+   *  guides are the case: companions by family, but pages to read, so they ask
+   *  for `loose`. */
+  density?: PanelDensity
   /** Titlebar label, for the WINDOW families — it doubles as the drag handle.
    *  A CARD family has no titlebar, so it renders its own heading in the body
    *  and passes nothing here. */
@@ -286,6 +308,7 @@ export function FloatingPanel({
   escapeRank,
   onClose,
   defaultPosition = 'center',
+  density,
   defaultSize = { width: 480, height: 360 },
   resizable = true,
   minWidth = 240,
@@ -297,6 +320,8 @@ export function FloatingPanel({
   children,
 }: Props) {
   const claims = FAMILY[family]
+  // The family's answer unless the panel argues otherwise.
+  const resolvedDensity = density ?? claims.density
   const tier = zIndex ?? claims.layer
   // On a touch device (coarse pointer) every panel is forced
   // non-draggable and non-resizable — dragging/resizing a floating
@@ -366,6 +391,7 @@ export function FloatingPanel({
         persistKey={claims.remembersRect ? persistKey : undefined}
         zIndex={tier}
         fitContent={fitContent}
+        density={resolvedDensity}
         reserveKeyboard={reserveKeyboard}
       >
         {children}
@@ -394,6 +420,7 @@ function FloatingPanelBody({
   persistKey,
   zIndex,
   fitContent,
+  density,
   reserveKeyboard,
   children,
 }: {
@@ -413,6 +440,7 @@ function FloatingPanelBody({
   persistKey: string | undefined
   zIndex: string
   fitContent: boolean
+  density: PanelDensity | undefined
   reserveKeyboard: boolean
   children: ReactNode
 }) {
@@ -442,6 +470,7 @@ function FloatingPanelBody({
         persistKey={persistKey}
         zIndex={zIndex}
         fitContent={fitContent}
+        density={density}
         reserveKeyboard={reserveKeyboard}
       >
         {children}
@@ -465,6 +494,7 @@ function FloatingPanelBody({
       minHeight={minHeight}
       zIndex={zIndex}
       fitContent={fitContent}
+      density={density}
       reserveKeyboard={reserveKeyboard}
     >
       {children}
@@ -481,6 +511,7 @@ function PersistedPanel({
   shape,
   phoneSheet,
   fitContent,
+  density,
   title,
   onClose,
   defaultPosition,
@@ -510,6 +541,7 @@ function PersistedPanel({
   persistKey: string
   zIndex: string
   fitContent: boolean
+  density: PanelDensity | undefined
   reserveKeyboard: boolean
   children: ReactNode
 }) {
@@ -534,6 +566,7 @@ function PersistedPanel({
       draggable={draggable}
       resizable={resizable}
       fitContent={fitContent}
+      density={density}
       minWidth={minWidth}
       minHeight={minHeight}
       zIndex={zIndex}
@@ -563,6 +596,7 @@ function EphemeralPanel({
   minHeight,
   zIndex,
   fitContent,
+  density,
   reserveKeyboard,
   children,
 }: {
@@ -581,6 +615,7 @@ function EphemeralPanel({
   minHeight: number
   zIndex: string
   fitContent: boolean
+  density: PanelDensity | undefined
   reserveKeyboard: boolean
   children: ReactNode
 }) {
@@ -629,6 +664,7 @@ function EphemeralPanel({
       minHeight={minHeight}
       zIndex={zIndex}
       fitContent={fitContent}
+      density={density}
       reserveKeyboard={reserveKeyboard}
     >
       {children}
@@ -655,6 +691,7 @@ function PanelRnd({
   minHeight,
   zIndex,
   fitContent = false,
+  density,
   reserveKeyboard = false,
   children,
 }: {
@@ -672,6 +709,7 @@ function PanelRnd({
   minHeight: number
   zIndex: string
   fitContent?: boolean
+  density: PanelDensity | undefined
   reserveKeyboard?: boolean
   children: ReactNode
 }) {
@@ -856,11 +894,24 @@ function PanelRnd({
               <CloseButton className={styles.close} onClick={onClose} />
             </div>
           )}
-          {/* When fitting, the content is wrapped so its natural height can be
-              measured independent of the body's pinned box (see the fit effect).
-              Other panels render children directly — no structural change. */}
+          {/* ONE content wrapper, always — the panel's parts are its children,
+              and this is the only element that spaces them. Unconditional for
+              two reasons: the fit effect measures its natural height
+              independent of the body's pinned box, and a wrapper that appeared
+              only when fitting would mean the density gap applied to some
+              panels and not others. It is transparent to the flex chain
+              (`.content`), so a child that fills the body still does. */}
           <div className={styles.body} ref={bodyRef}>
-            {fitContent ? <div ref={contentRef}>{children}</div> : children}
+            <div
+              ref={contentRef}
+              className={cls(
+                styles.content,
+                density === 'loose' ? styles.loose : styles.tight,
+                !fitContent && styles.contentFills,
+              )}
+            >
+              {children}
+            </div>
           </div>
         </div>
       </Rnd>

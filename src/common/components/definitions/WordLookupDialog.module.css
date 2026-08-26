@@ -1,21 +1,3 @@
-/* cs-unmet */
-
-/* Body of the "look up any word" dialog. The FloatingPanel shell
- * provides the surface/header/drag; this styles the search row +
- * the result area beneath it. */
-
-/* @@ */ .content {
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-  height: 100%;
-}
-
-/* @@ */ .form {
-  display: flex;
-  gap: 0.4rem;
-}
-
 /* WHERE THE SEARCH BOX SITS, and nothing else: it shares a row with its button
    and has to take the slack. This is `<TextField>`'s `className`, which lands on
    the FIELD — so it must be placement only.

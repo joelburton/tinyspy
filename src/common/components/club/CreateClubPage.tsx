@@ -1,6 +1,7 @@
 // cs-unmet
 
 import { failureText } from '../../lib/game/serverError'
+import { StandardForm } from '../fields/StandardForm'
 import { useEffect, useState, type SubmitEvent } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { db as commonDb } from '../../db'
@@ -190,7 +191,7 @@ export function CreateClubPage({ session: _session }: Props) {
           in this club will be visible to all members.
         </p>
 
-        <form onSubmit={onSubmit} className={styles.form}>
+        <StandardForm onSubmit={onSubmit}>
           {/* maxLength mirrors the CHECK on common.clubs.name — the same
               belt-and-braces the handle field uses (ClaimHandleScreen). The
               server is the authority; this just means you can't type a name
@@ -242,7 +243,7 @@ export function CreateClubPage({ session: _session }: Props) {
               disabled={busy}
             />
           </div>
-        </form>
+        </StandardForm>
       </div>
     </div>
   )

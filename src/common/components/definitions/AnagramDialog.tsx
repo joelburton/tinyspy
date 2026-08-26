@@ -1,6 +1,7 @@
 // cs-unmet
 
 import { cls } from '../../lib/util/cls'
+import { StandardForm } from '../fields/StandardForm'
 import { actionName } from '../../lib/game/callRpc'
 import { failureText } from '../../lib/game/serverError'
 import { useState, type FormEvent } from 'react'
@@ -94,71 +95,69 @@ export function AnagramDialog({ onClose }: { onClose: () => void }) {
       defaultSize={{ width: 360, height: 440 }}
       resizable={false}
     >
-      <div className={styles.content}>
-        <form onSubmit={onSubmit} className={styles.form}>
-          <TextField
-            // No caption: this box IS the dialog, and the titlebar above it
-            // already says "Anagrams".
-            ariaLabel="Letters to anagram"
-            // Autofocus so the player can type immediately after the
-            // shortcut opens the dialog.
-            autoFocus
-            value={query}
-            // Case carries meaning (pins), so keep it as typed; everything
-            // that isn't a letter or '?' is dropped on entry.
-            maxLength={PATTERN_LENGTH.max}
-            onChange={(v) => {
-              // Only the character filter here; the LENGTH is `maxLength`'s,
-              // stated on the field rather than enforced in the handler.
-              setQuery(v.replace(/[^A-Za-z?]/g, ''))
-              // Typing is the answer to the complaint; clear it as they act.
-              setEntryError(null)
-            }}
-            placeholder="letters…"
-            // The syntax legend belongs to the BOX, so it sits under the box —
-            // not in a paragraph below the Find button, three elements from the
-            // thing it describes and read after you have already typed.
-            entryHelp="abc float · ABC pinned in place · ? any letter"
-            error={entryError}
-          />
-          <StandardButton
-            name="Find"
-            type="submit"
-            weight="primary"
-            fullWidth
-            disabled={searching}
-          />
-        </form>
-        <FailureLine>{error}</FailureLine>
-        {results && (
-          <SimpleScrollableList
-            rows={7}
-            empty="No words."
-            count={
-              results.length === 0
-                ? undefined
-                : `${results.length} word${results.length === 1 ? '' : 's'}`
-            }
-          >
-            {results.map((r) => (
-              <li key={r.word} className={styles.row}>
-                {/* The difficulty band LEADS the row — a fixed-width gutter, so
-                    the words start on one line down the list and the number
-                    reads as a column rather than as part of the word. */}
-                <span className={styles.band}>{r.difficulty}</span>
-                <span
-                  className={cls('definable', styles.word)}
-                  onClick={(e) => openDefine(r.word, e.currentTarget)}
-                  title="Click to define"
-                  data-word={r.word}
-                >
-                  {r.word.toUpperCase()}
-                </span>
-              </li>
-            ))}
-          </SimpleScrollableList>
-        )}
-      </div>
+      <StandardForm onSubmit={onSubmit}>
+        <TextField
+          // No caption: this box IS the dialog, and the titlebar above it
+          // already says "Anagrams".
+          ariaLabel="Letters to anagram"
+          // Autofocus so the player can type immediately after the
+          // shortcut opens the dialog.
+          autoFocus
+          value={query}
+          // Case carries meaning (pins), so keep it as typed; everything
+          // that isn't a letter or '?' is dropped on entry.
+          maxLength={PATTERN_LENGTH.max}
+          onChange={(v) => {
+            // Only the character filter here; the LENGTH is `maxLength`'s,
+            // stated on the field rather than enforced in the handler.
+            setQuery(v.replace(/[^A-Za-z?]/g, ''))
+            // Typing is the answer to the complaint; clear it as they act.
+            setEntryError(null)
+          }}
+          placeholder="letters…"
+          // The syntax legend belongs to the BOX, so it sits under the box —
+          // not in a paragraph below the Find button, three elements from the
+          // thing it describes and read after you have already typed.
+          entryHelp="abc float · ABC pinned in place · ? any letter"
+          error={entryError}
+        />
+        <StandardButton
+          name="Find"
+          type="submit"
+          weight="primary"
+          fullWidth
+          disabled={searching}
+        />
+      </StandardForm>
+      <FailureLine>{error}</FailureLine>
+      {results && (
+        <SimpleScrollableList
+          rows={7}
+          empty="No words."
+          count={
+            results.length === 0
+              ? undefined
+              : `${results.length} word${results.length === 1 ? '' : 's'}`
+          }
+        >
+          {results.map((r) => (
+            <li key={r.word} className={styles.resultRow}>
+              {/* The difficulty band LEADS the row — a fixed-width gutter, so
+                  the words start on one line down the list and the number
+                  reads as a column rather than as part of the word. */}
+              <span className={styles.resultBand}>{r.difficulty}</span>
+              <span
+                className={cls('definable', styles.resultWord)}
+                onClick={(e) => openDefine(r.word, e.currentTarget)}
+                title="Click to define"
+                data-word={r.word}
+              >
+                {r.word.toUpperCase()}
+              </span>
+            </li>
+          ))}
+        </SimpleScrollableList>
+      )}
       {popover}
     </FloatingPanel>
   )

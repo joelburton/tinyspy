@@ -1,0 +1,20 @@
+/* cs-unmet */
+
+/*
+ * The club explainer — several paragraphs that are ONE part of the floating
+ * panel, so they are wrapped rather than passed as siblings. Left as siblings,
+ * the panel's content column would space them as if each paragraph were a part
+ * in its own right, on top of the margins prose already has.
+ *
+ * The rhythm is stated rather than left to the browser's `1em`: same distance,
+ * said out loud, so a change to the type does not silently move it.
+ */
+/* @@ */ .instructionsBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacer-2);
+}
+
+/* @@ */ .instructionsBlock p {
+  margin: 0;
+}

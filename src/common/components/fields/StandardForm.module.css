@@ -1,0 +1,17 @@
+/* cs-unmet */
+
+/*
+ * A form that looks like a form (see StandardForm.tsx) — its fields stacked,
+ * one gap between them.
+ *
+ * ONE gap, not a tight and a loose one. How far apart a floating panel's PARTS
+ * sit differs by panel (`<FloatingPanel density>`); how far apart a form's
+ * FIELDS sit does not — it is the same middle step of the rhythm that
+ * `<SetupSection>` puts between its own fields, and a form is the same kind of
+ * list of things to fill in wherever it appears.
+ */
+/* @@ */ .standardForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacer-3);
+}

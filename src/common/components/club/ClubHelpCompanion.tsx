@@ -1,6 +1,7 @@
 // cs-unmet
 
 import { FloatingPanel, HELP_RECT_KEY } from '../floating-panels/FloatingPanel'
+import styles from './ClubHelpCompanion.module.css'
 
 type Props = {
   onClose: () => void
@@ -20,6 +21,9 @@ export function ClubHelpCompanion({ onClose }: Props) {
   return (
     <FloatingPanel
       family="companion"
+      // Loose, against the companion default: this is a page to READ, and
+      // text packed tight against the window edge is harder to read.
+      density="loose"
       // The same rung the game guides take — this is help, and help sits above
       // the windows (see GameHelpCompanion).
       zIndex="var(--z-help)"
@@ -30,16 +34,18 @@ export function ClubHelpCompanion({ onClose }: Props) {
       minWidth={280}
       minHeight={180}
     >
-      <p>
-        A <strong>club</strong> is a named group of friends who play games
-        together — your shared space between games, where the chat thread lives
-        and where you start a new game for everyone.
-      </p>
-      <p>
-        Pick a game to start one, or open the chat with <kbd>/</kbd>. This help is
-        available anywhere with <kbd>?</kbd>, and you can look up a word with{' '}
-        <kbd>~</kbd>.
-      </p>
+      <div className={styles.instructionsBlock}>
+        <p>
+          A <strong>club</strong> is a named group of friends who play games
+          together — your shared space between games, where the chat thread lives
+          and where you start a new game for everyone.
+        </p>
+        <p>
+          Pick a game to start one, or open the chat with <kbd>/</kbd>. This help
+          is available anywhere with <kbd>?</kbd>, and you can look up a word
+          with <kbd>~</kbd>.
+        </p>
+      </div>
     </FloatingPanel>
   )
 }
