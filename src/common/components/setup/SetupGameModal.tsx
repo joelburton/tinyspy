@@ -6,8 +6,8 @@ import { MODE_LABEL, type GameManifest, type Member, type RichMessage as RichMes
 import { FloatingPanel } from '../floating-panels/FloatingPanel'
 import { HelpButton } from '../buttons/HelpButton'
 import { RichMessage } from '../text/RichMessage'
-import { Dot } from '../text/Dot'
 import { cls } from '../../lib/util/cls'
+import { PlayersField } from '../fields/PlayersField'
 import styles from './SetupGameModal.module.css'
 import { StandardButton } from '../buttons/StandardButton'
 import { CancelButton } from '../buttons/CancelButton'
@@ -229,33 +229,14 @@ export function SetupGameModal({
       minWidth={320}
     >
       {showPicker && (
-        <fieldset className={styles.players}>
-          <legend className={styles.playersLegend}>Players</legend>
-          {members.map((m) => {
-            const isSelf = m.user_id === selfId
-            return (
-              <label
-                key={m.user_id}
-                className={styles.playerRow}
-                title={isSelf ? "You're always a player" : undefined}
-              >
-                <input
-                  type="checkbox"
-                  checked={selectedIds.has(m.user_id)}
-                  onChange={() => togglePlayer(m.user_id)}
-                  // The creator can't deselect themselves.
-                  disabled={busy || isSelf}
-                />
-                <Dot color={m.color} className={styles.playerDot} />
-                <span>
-                  {m.username}
-                  {isSelf && <span className={styles.playerSelf}> (you)</span>}
-                </span>
-              </label>
-            )
-          })}
-          {playerHint && <p className={styles.playerHint}>{playerHint}</p>}
-        </fieldset>
+        <PlayersField
+          members={members}
+          selfId={selfId}
+          selectedIds={selectedIds}
+          onToggle={togglePlayer}
+          busy={busy}
+          hint={playerHint}
+        />
       )}
 
       {/* The fallback RESERVES most of a setup body's height rather than being

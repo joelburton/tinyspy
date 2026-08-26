@@ -75,7 +75,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
 
   return (
     <div className={form.setup}>
-      <p className="muted">
+      <p className={form.helpText}>
         {mode === 'compete'
           ? 'Everyone races the same board independently — most points wins. You see each other’s word counts, not the words themselves, until the game ends.'
           : 'Everyone hunts the same board together and the team’s finds pile up into one score.'}
@@ -109,7 +109,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
           unreadable board blocks it with an inline reason. Cleared input stores
           `undefined` so the edge function sees it as absent → roll. */}
       <SetupSection label={customBoardLabel}>
-        <p className="muted">
+        <p className={form.helpText}>
           Leave blank to roll a random board, or type one: every tile, rows top to
           bottom{diceSet ? ` (${diceSet.n * diceSet.n} of them for a ${diceSet.desc})` : ''}.
           Write a two-letter tile the way it prints — {twoLetterList()} — and{' '}
@@ -134,7 +134,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
           current bands (e.g. "Dictionaries: 3 (Familiar) / 5 (Obscure)"), matching
           spellingbee's section of the same name. */}
       <SetupSection label={dictLabel}>
-        <p className="muted">
+        <p className={form.helpText}>
           <strong>Required words</strong> are what the board is built around and
           what the end-of-game reveal lists. <strong>Legal words</strong> set how
           obscure a non-required word can be and still score as a bonus — these
@@ -189,7 +189,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
 
       {/* "Winning" — the summary shows the current target (e.g. "Win at: 70%"). */}
       <SetupSection label={winLabel}>
-        <p className="muted">
+        <p className={form.helpText}>
           Win by reaching this share of the required-words score
           {mode === 'compete' ? ' (first player there wins)' : ' (the team wins together)'}
           , or <strong>None</strong> to play until you End (or the timer runs out).

@@ -71,7 +71,7 @@ export function SetupForm({ brand, mode, players, value, onChange }: SetupBodyPr
             the OPPOSITE of waffle's tier, where a higher band is a harder
             board. Here a wider dictionary means more words qualify, so hints
             arrive sooner. */}
-        <p className="muted">
+        <p className={form.helpText}>
           How obscure a word may be and still earn a hint. A wider dictionary makes the
           game <strong>easier</strong> — more words count, so hints come faster.
         </p>
@@ -88,7 +88,7 @@ export function SetupForm({ brand, mode, players, value, onChange }: SetupBodyPr
       </SetupSection>
 
       <SetupSection label={`Words per hint: ${s.hint_cost}`}>
-        <p className="muted">How many valid non-theme words buy one hint (3 is standard).</p>
+        <p className={form.helpText}>How many valid non-theme words buy one hint (3 is standard).</p>
         <SelectField
           label="Words per hint"
           value={String(s.hint_cost)}
@@ -101,7 +101,7 @@ export function SetupForm({ brand, mode, players, value, onChange }: SetupBodyPr
       </SetupSection>
 
       <SetupSection label={`Shortest word: ${s.min_word_length}`}>
-        <p className="muted">
+        <p className={form.helpText}>
           The shortest word that can earn a hint. Theme words always count, however short.
         </p>
         <SelectField

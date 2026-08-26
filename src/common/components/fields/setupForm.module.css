@@ -4,7 +4,7 @@
  * Shared setup-form scaffold — the layout every game's per-game
  * `SetupForm` (rendered inside `SetupGameModal`) draws its fieldsets and
  * radio rows from. Each `<game>/components/SetupForm.tsx` imports THIS module
- * for `.setup` / `.fieldset` / `.radioRow` / `.radio` / `.checkRow`; only
+ * for `.setup` / `.radioRow` / `.radio` / `.checkRow` / `.helpText`; only
  * genuinely game-specific bits (bananagrams's bag-size input, wordle's
  * answer-source `<select>`) stay in a game-local module.
  *
@@ -35,21 +35,38 @@
   gap: 1rem;
 }
 
-/* @@ */ .fieldset {
-  border: 1px solid var(--page-surface-border-color);
-  border-radius: var(--radius-md);
-  padding: 0.75rem 1rem 1rem;
-  margin: 0;
-}
+/*
+ * A setup field's HELP TEXT — the sentence or two explaining what a setting
+ * does, either leading a section ("The standard game is 9…") or annotating the
+ * control above it. 25 of the 35 setup sections carry one, so it is closer to
+ * part of the shape than to an occasional extra.
+ *
+ * It replaces the global `.muted` at these sites, and the values are the same
+ * ones — nothing looks different. `muted` says only "this is grey and small",
+ * which is a description of the paint rather than of the job: the same class was
+ * doing loading lines, an empty chat, and a caption under a checkbox. A setting's
+ * explanation is a thing a setup form HAS, and naming it means a later decision
+ * about how help reads can be made in one place instead of grepped for by colour.
+ *
+ * Spacing is deliberately not stated here yet. Inside a `.fieldset` the rule
+ * above supplies it and inside a `<SetupSection>` the browser default does; F35
+ * is about to delete the fieldset entirely, and reconciling the two is that
+ * finding's job, not this rename's.
+ */
+/* @@ */ .helpText {
+  color: var(--page-text-muted-color);
+  font-size: 0.9rem;
+  /* THE CLASS OWNS ITS SPACING, which is the point of naming it. A help
+     paragraph used to be spaced by whichever box it happened to land in — the
+     `.fieldset` rule gave it `0.25rem 0 0.75rem`, and inside a `<SetupSection>`
+     nothing did, so it took the browser's `1em 0` (about 14px at this size).
+     Nobody chose that difference.
 
-/* @@ */ .fieldset legend {
-  font-weight: 600;
-  padding: 0 0.25rem;
-}
-
-/* An intro paragraph placed directly under the legend (`<p class="muted">`). */
-/* @@ */ .fieldset > p {
-  margin: 0.25rem 0 0.75rem 0;
+     These numbers because they are the ones somebody picked; the browser's were
+     a default nobody looked at. Help text tightens by about 10px above wherever
+     it was in a section, and that is wanted (Joel, 2026-08-25): *"the
+     different-spacing-in-different forms is probably meaningless junk"*. */
+  margin: 0.25rem 0 0.75rem;
 }
 
 /* @@ */ .radioRow {

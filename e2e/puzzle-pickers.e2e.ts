@@ -30,7 +30,32 @@ import { startGameRow } from './helpers/clubPage'
  */
 
 /**
- * The "next up" line inside whichever setup dialog is open.
+ * The puzzle field's DISCLOSURE. It was a `<fieldset>` until 2026-08-25, when
+ * every setup field became a `<SetupSection>` (plans/areas/forms.md → F35), so
+ * the answer now lives in the summary — `Puzzle: 2025-06-15: Here's to him!` —
+ * and the body holds only the date override.
+ */
+function puzzleSection(page: Page) {
+  return page
+    .locator('details', { has: page.locator('summary', { hasText: /^Puzzle:/ }) })
+    .first()
+}
+
+/**
+ * Open it. Closed by default like every other setup section — EXCEPT when there
+ * is nothing to play (the archive is used up, or the typed date has no puzzle),
+ * where it opens itself so the message can't hide behind a summary. So this
+ * checks before clicking rather than toggling blind, which would close it.
+ */
+async function openPuzzle(page: Page) {
+  const section = puzzleSection(page)
+  await expect(section).toBeVisible({ timeout: 15000 })
+  const isOpen = await section.evaluate((el) => (el as HTMLDetailsElement).open)
+  if (!isOpen) await section.locator('summary').click()
+}
+
+/**
+ * The "next up" line inside the opened disclosure.
  *
  * Matched by ELEMENT, not by text shape. The line has four states — waiting,
  * a puzzle, "everyone has played everything", "no puzzle for that date" — and
@@ -39,10 +64,7 @@ import { startGameRow } from './helpers/clubPage'
  * message. (It did, while this was being written.)
  */
 function nextUpLine(page: Page) {
-  return page
-    .locator('fieldset', { has: page.getByText('Puzzle', { exact: true }) })
-    .locator('p[class*="next"]')
-    .first()
+  return puzzleSection(page).locator('p[class*="next"]').first()
 }
 
 test.describe('puzzle pickers', () => {
@@ -56,6 +78,7 @@ test.describe('puzzle pickers', () => {
     await page.goto(`/c/${club.handle}`)
 
     await startGameRow(page, /PaulPath/).click()
+    await openPuzzle(page)
     const first = nextUpLine(page)
     await expect(first).toBeVisible({ timeout: 15000 })
     const firstText = (await first.textContent())!
@@ -67,6 +90,7 @@ test.describe('puzzle pickers', () => {
     // Re-open: the club has now played that one, so the offer must move on.
     await page.goto(`/c/${club.handle}`)
     await startGameRow(page, /PaulPath/).click()
+    await openPuzzle(page)
     const second = nextUpLine(page)
     await expect(second).toBeVisible({ timeout: 15000 })
     expect(await second.textContent()).not.toBe(firstText)
@@ -82,6 +106,7 @@ test.describe('puzzle pickers', () => {
     await page.goto(`/c/${club.handle}`)
 
     await startGameRow(page, /WordKnit/).click()
+    await openPuzzle(page)
     await expect(nextUpLine(page)).toBeVisible({ timeout: 15000 })
 
     await page.getByRole('button', { name: /^Start WordKnit/ }).click()
@@ -146,6 +171,7 @@ test.describe('puzzle pickers', () => {
 
     const open = async () => {
       await startGameRow(page, /PaulPath/).click()
+      await openPuzzle(page)
       await expect(nextUpLine(page)).toBeVisible({ timeout: 15000 })
     }
     // 2025-06-15's clue is the fixtures' own reference puzzle; asserting on the

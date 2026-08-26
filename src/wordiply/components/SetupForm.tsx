@@ -8,6 +8,7 @@ import type { SetupBodyProps } from '../../common/lib/games'
 import { cleanBase, type WordiplySetup } from '../lib/setup'
 import form from '../../common/components/fields/setupForm.module.css'
 import styles from './SetupForm.module.css'
+import { difficultyValue } from '../../common/lib/game/difficulty'
 
 /**
  * wordiply's per-game setup form. Mode is locked at the gametype level
@@ -46,27 +47,28 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
         }
       />
       {mode === 'coop' ? (
-        <p className="muted">
+        <p className={form.helpText}>
           Everyone in the club shares five guesses. Each guess must contain
           the starter and be longer than it; together you're hunting the
           longest word.
         </p>
       ) : (
-        <p className="muted">
+        <p className={form.helpText}>
           Each player gets their own five guesses off the same starter. The
           longest word wins; until the end you only see how many guesses each
           other has spent, not the words.
         </p>
       )}
 
-      <DifficultyField
-        label="Dictionary"
-        length={null}
-        minDifficulty={1}
-        maxDifficulty={6}
-        value={s.difficulty}
-        onChange={(difficulty) => onChange({ ...s, difficulty })}
-      />
+      <SetupSection label={`Dictionary: ${difficultyValue(s.difficulty)}`}>
+        <DifficultyField
+          length={null}
+          minDifficulty={1}
+          maxDifficulty={6}
+          value={s.difficulty}
+          onChange={(difficulty) => onChange({ ...s, difficulty })}
+        />
+      </SetupSection>
 
       {/* Optional custom starter, behind a disclosure whose summary shows the
           chosen letters (e.g. "Starter: MOTH") or "(optional)" when blank.
@@ -80,7 +82,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
           input stores `undefined` so the edge function sees it as absent →
           random. */}
       <SetupSection label={customBaseLabel}>
-        <p className="muted">
+        <p className={form.helpText}>
           Leave blank for a random starter, or set your own: 2–4 letters that
           every guess must contain. Very short starters usually match too many
           words to make a puzzle.

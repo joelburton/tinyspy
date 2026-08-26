@@ -49,7 +49,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
         }
       />
       <SetupSection label={guessesLabel}>
-        <p className="muted">How many guesses you get (6 is classic).</p>
+        <p className={form.helpText}>How many guesses you get (6 is classic).</p>
         <SelectField
           name="max_guesses"
           value={s.max_guesses}

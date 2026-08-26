@@ -1,0 +1,60 @@
+/* cs-fixed */
+
+/*
+ * The player picker (see PlayersField.tsx) — a checkbox list of club members
+ * above the game-specific setup body.
+ *
+ * Moved here from SetupGameModal.module.css on 2026-08-25, with the component.
+ * The values are unchanged; only the class names lost their `player` prefix,
+ * which the module already supplies (`styles.row`, not `styles.playerRow`).
+ *
+ * THE ONE BORDERED BOX LEFT IN A SETUP FORM. Every other group is a
+ * `<SetupSection>` disclosure, and the shared `.fieldset` this used to resemble
+ * is deleted — so these rules are no longer "the fieldset chrome, again", they
+ * are this field's own, and are free to move without dragging anything with
+ * them.
+ */
+/* @@ */ .players {
+  margin: 0 0 1rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--page-surface-border-color);
+  border-radius: var(--radius-md);
+}
+
+/* Quieter and smaller than a section's summary, deliberately: this box is
+   always open, so its caption is a label on something you can already see
+   rather than the only clue to what is inside. */
+/* @@ */ .legend {
+  padding: 0 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--page-text-muted-color);
+}
+
+/* @@ */ .row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.2rem 0;
+  cursor: pointer;
+}
+
+/* The shared <Dot>, sized for the picker rows. */
+/* @@ */ .dot {
+/* @@ */   --dot-size: 0.7rem;
+}
+
+/* @@ */ .self {
+  color: var(--page-text-muted-color);
+  font-size: 0.85em;
+}
+
+/* "Pick at least 2 players." — a count complaint, so it wears the fault color
+   rather than the help text's grey: it is the reason Start is disabled. */
+/* @@ */ .hint {
+  margin: 0.4rem 0 0;
+  font-size: 0.85rem;
+  color: var(--chrome-fault-color);
+}

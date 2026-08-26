@@ -66,15 +66,20 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
       ? `Custom letters: ${customCenter}-${customOuter}`
       : 'Custom letters (optional)'
 
+  // What the two target-rank summaries say. `target_rank` is an index into
+  // RANKS, and its ABSENCE is the coop "None" — the key is deleted rather than
+  // set to a sentinel, so the summary reads the same absence.
+  const targetRankLabel = s.target_rank === undefined ? 'None' : RANKS[s.target_rank]
+
   return (
     <div className={form.setup}>
       {mode === 'coop' ? (
-        <p className="muted">
+        <p className={form.helpText}>
           Everyone in the club types words into the same honeycomb
           and the team racks up the score together.
         </p>
       ) : (
-        <p className="muted">
+        <p className={form.helpText}>
           Each player works the same honeycomb independently. First
           to the target rank wins; the rest of the time you only
           see each other's rank, not the words you found.
@@ -82,8 +87,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
       )}
 
       {mode === 'compete' ? (
-        <fieldset className={form.fieldset}>
-          <legend>Target rank — first to reach it wins</legend>
+        <SetupSection label={`Target rank: ${targetRankLabel}`}>
           <SelectField
             name="target_rank"
             value={s.target_rank ?? NO_TARGET}
@@ -95,10 +99,9 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
               </option>
             ))}
           </SelectField>
-        </fieldset>
+        </SetupSection>
       ) : (
-        <fieldset className={form.fieldset}>
-          <legend>Win at — reach it together and you win</legend>
+        <SetupSection label={`Win at: ${targetRankLabel}`}>
           <SelectField
             name="target_rank"
             value={s.target_rank ?? NO_TARGET}
@@ -123,14 +126,14 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
               </option>
             ))}
           </SelectField>
-        </fieldset>
+        </SetupSection>
       )}
 
       {/* "Dictionaries" — the required/legal word bands, behind a disclosure whose
           summary shows the current bands (e.g. "Dictionaries: 3 (Familiar) / 5
           (Obscure)"). */}
       <SetupSection label={dictLabel}>
-        <p className="muted">
+        <p className={form.helpText}>
           Required words are the goal; legal words also score but aren't
           required. Both are length-agnostic (examples just show the band).
         </p>
@@ -160,7 +163,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
           entry blocks Start with an inline reason. Cleared inputs store `undefined`
           so the edge function sees them as absent → random. */}
       <SetupSection label={customLabel}>
-        <p className="muted">
+        <p className={form.helpText}>
           Leave blank for a random board, or set your own: a center letter plus
           six other letters. No S, and all seven must be different.
         </p>

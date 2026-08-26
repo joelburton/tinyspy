@@ -594,6 +594,25 @@ allowlist.
 
 ## 11. Deferred
 
+- **"Board constraints" is the one setup summary that doesn't say what's set.**
+  Every `<SetupSection>` in the app carries its live value in the summary —
+  `Timer: none`, `Dictionary: 3 (Familiar)`, `Turns: 9` — so a player reads the
+  whole form without opening anything. boggle's constraints section is labelled
+  with the bare name, so the only way to learn whether a min/max is set is to
+  expand it.
+
+  Left to boggle because it is the hardest one to phrase, not because it is
+  unimportant: it holds a 3×2 grid (Words / Score / Longest, each min and max),
+  any subset of which may be filled, and the other summaries all describe a
+  single value. The nearest precedent is its sibling — wordwheel writes
+  `Board constraints: unique letters only`, falling back to
+  `Board constraints (optional)` when none is set — so the shape exists, and
+  what's missing is a phrasing that survives six possible numbers.
+
+  Raised 2026-08-25 in the CSS sprint's `forms` area, where the rule was set
+  (Joel: everything in a `<SetupSection>`, and its summary carries the value).
+  All 15 other games conform.
+
 - **Compete classic dupes-cancel** scoring as an opt-in — moved to [`deferred.md → Far future`](../deferred.md#far-future) (2026-08-03): the open question is whether we want the rule at all, not how to build it.
 
 ## 12. Won't do

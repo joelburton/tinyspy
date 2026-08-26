@@ -304,7 +304,10 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/components/palette/PalettePage.module.css': ['1rem', '0.75rem', '2.5rem', '0.25rem', '0.5rem', '0.35rem', '0.15rem'],
       'src/common/components/floating-panels/GameScratchpadCompanion.module.css': ['0.4rem', '0.5rem'],
       'src/common/components/menu/Menu.module.css': ['1.5rem', '0.3rem', '0.1rem', '-1px', '-1rem'],
-      'src/common/components/setup/SetupGameModal.module.css': ['0.75rem', '1.5rem', '1rem', '0.5rem', '0.4rem'],
+      'src/common/components/setup/SetupGameModal.module.css': ['0.75rem', '1.5rem', '0.4rem'],
+      // Moved out of SetupGameModal.module.css with <PlayersField> on 2026-08-25.
+      // Same values, new file — the debt travelled, it did not grow.
+      'src/common/components/fields/PlayersField.module.css': ['1rem', '0.5rem', '0.4rem'],
       'src/common/components/text/RichMessage.module.css': ['0.25rem'],
       'src/common/components/toasts/Toast.module.css': ['0.7rem'],
       'src/common/components/toasts/ToastHost.module.css': ['0.6rem'],
@@ -366,12 +369,18 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/components/palette/PalettePage.module.css': ['0.85rem', '0.8rem', '0.95rem'],
       'src/common/components/floating-panels/GameScratchpadCompanion.module.css': ['0.85rem', '0.8rem', '0.9rem', 'max(16px,', '1em)'],
       'src/common/components/menu/Menu.module.css': ['0.95rem', '0.82rem', '1rem'],
-      'src/common/components/setup/SetupGameModal.module.css': ['0.8rem', '0.85rem'],
+      'src/common/components/setup/SetupGameModal.module.css': ['0.85rem'],
+      'src/common/components/fields/PlayersField.module.css': ['0.8rem', '0.85rem'],
       'src/common/components/toasts/Toast.module.css': ['1.2rem'],
       'src/common/components/tooltips/TooltipHost.module.css': ['0.75rem'],
       'src/common/patterns/badge.css': ['0.7rem'],
             'src/common/patterns/segmented.css': ['0.8rem'],
       'src/common/utilities.css': ['0.9rem', '0.85rem'],
+      // `.helpText` is the global `.muted` carved out under a name that says
+      // what it is, at the SAME values — a rename must not move a pixel. So its
+      // 0.9rem is `.muted`'s 0.9rem, listed here, and the two convert together
+      // or not at all (the ramp has 1 / 0.85 / 0.75 and no step for it).
+      'src/common/components/fields/setupForm.module.css': ['0.9rem'],
     },
     fix:
       'Use `--font-size-1` … `-3` (1 · 0.85 · 0.75rem), -1 being the biggest. ' +
@@ -448,7 +457,7 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/components/game/RankBar.module.css': ['0.04em'],
       'src/common/components/game/Stats.module.css': ['0.06em'],
       'src/common/components/palette/PalettePage.module.css': ['0.03em'],
-      'src/common/components/setup/SetupGameModal.module.css': ['0.03em'],
+      'src/common/components/fields/PlayersField.module.css': ['0.03em'],
     },
     fix:
       'Use `--letter-spacing-label` (a small uppercase label) or `-wide` ' +
@@ -522,7 +531,6 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/components/definitions/WordLookupDialog.module.css': ['1px'],
       'src/common/components/feedback/GenericFeedbackPill.module.css': ['2px', '0.4rem'],
       'src/common/components/fields/SelectField.module.css': ['1px'],
-      'src/common/components/fields/setupForm.module.css': ['1px'],
       'src/common/components/game/DeviceBlockNotice.module.css': ['1px'],
       'src/common/components/game/entry/GuessKeyboard.module.css': ['1px'],
       'src/common/components/game/FilterSelect.module.css': ['1px'],
@@ -537,7 +545,7 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/components/palette/PalettePage.module.css': ['1px'],
       'src/common/components/floating-panels/GameScratchpadCompanion.module.css': ['1px'],
       'src/common/components/menu/Menu.module.css': ['1px'],
-      'src/common/components/setup/SetupGameModal.module.css': ['1px'],
+      'src/common/components/fields/PlayersField.module.css': ['1px'],
       'src/common/components/setup/SetupSection.module.css': ['1px'],
       'src/common/components/text/Dot.module.css': ['1px'],
       'src/common/components/toasts/Toast.module.css': ['1px', '4px'],

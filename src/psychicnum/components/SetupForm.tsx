@@ -74,7 +74,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
             in lock-step); in compete each player gets this many
             independently. The number-on-the-radio carries the
             same meaning either way. */}
-        <p className="muted">
+        <p className={form.helpText}>
           How many guesses each player starts with.
         </p>
         <RadioRow
@@ -87,7 +87,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
       <SetupSection label={wordsLabel}>
         {/* The board shows this many words; three of them are the hidden
             secrets, so a bigger board is more haystack. Same in both modes. */}
-        <p className="muted">
+        <p className={form.helpText}>
           {s.word_count} words on the board — find the 3 secrets among them.
         </p>
         <SelectField
@@ -104,7 +104,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
       <SetupSection label={dictLabel}>
         {/* Dictionary band: board words are drawn from common.words at
             difficulty ≤ this (harder bands add more obscure words). */}
-        <p className="muted">
+        <p className={form.helpText}>
           How obscure the board words can get.
         </p>
         <DifficultyField

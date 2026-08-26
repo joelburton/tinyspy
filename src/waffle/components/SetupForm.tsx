@@ -52,7 +52,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
         }
       />
       <SetupSection label={dictLabel}>
-        <p className="muted">Which vocabulary the puzzle's words come from.</p>
+        <p className={form.helpText}>Which vocabulary the puzzle's words come from.</p>
         <DifficultyField
           length={5}
           minDifficulty={1}
@@ -62,7 +62,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
         />
       </SetupSection>
       <SetupSection label={swapLabel}>
-        <p className="muted">
+        <p className={form.helpText}>
           Extra swaps beyond the puzzle's minimum — fewer is harder.
         </p>
         <RadioRow

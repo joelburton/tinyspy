@@ -9,6 +9,7 @@ import {
   type CodenamesduetSetup,
 } from '../lib/setup'
 import form from '../../common/components/fields/setupForm.module.css'
+import { SetupSection } from '../../common/components/setup/SetupSection'
 
 /**
  * codenamesduet's per-game setup form, rendered inside the common
@@ -54,11 +55,15 @@ export function SetupForm({ members, value, onChange }: SetupBodyProps) {
     }
   }, [s, members, onChange])
 
+  // The summary says WHO, not which uuid. The `?? '—'` covers the first render
+  // before the seeding effect above has picked a default; no user sees it.
+  const firstClueGiverName =
+    members.find((m) => m.user_id === s.first_clue_giver_user_id)?.username ?? '—'
+
   return (
     <div className={form.setup}>
-      <fieldset className={form.fieldset}>
-        <legend>Number of turns</legend>
-        <p className="muted">
+      <SetupSection label={`Turns: ${s.turns}`}>
+        <p className={form.helpText}>
           The standard game is 9. Pick 10 or 11 for an easier
           warm-up (matches the rulebook's mission difficulties).
         </p>
@@ -68,11 +73,10 @@ export function SetupForm({ members, value, onChange }: SetupBodyProps) {
           value={s.turns}
           onChange={(turns) => onChange({ ...s, turns })}
         />
-      </fieldset>
+      </SetupSection>
 
-      <fieldset className={form.fieldset}>
-        <legend>Who gives the first clue?</legend>
-        <p className="muted">
+      <SetupSection label={`First clue: ${firstClueGiverName}`}>
+        <p className={form.helpText}>
           The first clue-giver is seated as A; the other player
           opens as the guesser.
         </p>
@@ -82,7 +86,7 @@ export function SetupForm({ members, value, onChange }: SetupBodyProps) {
           value={s.first_clue_giver_user_id}
           onChange={(id) => onChange({ ...s, first_clue_giver_user_id: id })}
         />
-      </fieldset>
+      </SetupSection>
 
       <TimerField
         value={s.timer}

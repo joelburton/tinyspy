@@ -75,7 +75,7 @@ export function SetupForm({ value, onChange, playerCount }: SetupBodyProps) {
       </SetupSection>
 
       <SetupSection label={bunchLabel}>
-        <p className="muted">
+        <p className={form.helpText}>
           The full bag is {BANANAGRAMS_BUNCH_MAX}.
           This game deals {needed} ({playerCount} player
           {playerCount === 1 ? '' : 's'} × {s.hand_size}).
@@ -102,7 +102,7 @@ export function SetupForm({ value, onChange, playerCount }: SetupBodyProps) {
           />
           Return dumped tiles to the bag (out of play)
         </label>
-        <p className="muted">
+        <p className={form.helpText}>
           By default a dumped tile goes back to the bunch. With this, it goes to the bag. You still draw three either way.
         </p>
       </SetupSection>

@@ -26,7 +26,7 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
 
   return (
     <div className={form.setup}>
-      <p className="muted">
+      <p className={form.helpText}>
         A random tile-stack is dealt when the game starts. Clear it by
         spelling words off the exposed tiles.
       </p>
@@ -39,7 +39,7 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
           value={s.band}
           onChange={(band) => onChange({ ...s, band })}
         />
-        <p className="muted">
+        <p className={form.helpText}>
           Band 1 is the common everyday words; band 2 uses the next tier
           of less-common ones.
         </p>

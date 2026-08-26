@@ -1,6 +1,7 @@
 // cs-audited
 
 import { useEffect, useState } from 'react'
+import { SetupSection } from '../setup/SetupSection'
 import styles from './NextPuzzleField.module.css'
 import form from './setupForm.module.css'
 
@@ -65,8 +66,14 @@ export function NextPuzzleField({ brand, seenBy, load, loadByDate, onPick }: Pro
   const [fetched, setFetched] = useState<{ key: string; row: NextPuzzle } | null>(null)
   // The override: the raw date string (so the input stays controlled even for
   // a date with no puzzle) and what it resolved to.
+  //
+  // `undefined` is LOOKING, `null` is "no puzzle that day" — the same
+  // three-state shape `fetched` uses above, and for the same reason. Collapsing
+  // them to one `null` made "we haven't asked yet" indistinguishable from "we
+  // asked and there is nothing", which read as an error for the instant between
+  // typing a date and the answer coming back.
   const [date, setDate] = useState('')
-  const [picked, setPicked] = useState<NextPuzzle>(null)
+  const [picked, setPicked] = useState<NextPuzzle | undefined>(null)
 
   // `seenBy` is a fresh array on every parent render, so the effect keys on
   // its joined contents; keying on the array itself would re-fetch forever.
@@ -97,6 +104,7 @@ export function NextPuzzleField({ brand, seenBy, load, loadByDate, onPick }: Pro
       onPick(undefined) // back to "the server chooses"
       return
     }
+    setPicked(undefined) // looking — not "nothing there"
     const row = await loadByDate(next)
     setPicked(row)
     onPick(row?.id)
@@ -104,19 +112,42 @@ export function NextPuzzleField({ brand, seenBy, load, loadByDate, onPick }: Pro
 
   // What the line says. A chosen date wins; otherwise the derived answer.
   const line = date
-    ? picked
-      ? picked.label
-      : `No ${brand} puzzle for ${date}.`
+    ? picked === undefined
+      ? ' '
+      : picked
+        ? picked.label
+        : `No ${brand} puzzle for ${date}.`
     : derived === undefined
       ? ' '
       : derived === null
         ? `Everyone here has already played every ${brand} puzzle.`
         : derived.label
 
+  // Nothing to play — the archive is used up, or the date you typed has no
+  // puzzle. Both are messages you have to SEE, so the disclosure opens itself
+  // rather than hiding the one thing that matters behind a summary (Joel,
+  // 2026-08-25, ruling on the exhausted case; the empty date is the same shape).
+  const nothingToPlay = date ? picked === null : derived === null
+
+  // THE SUMMARY IS THE PUZZLE, which is why this field is a disclosure at all:
+  // the label already answers "what will Start play?", so the body only has to
+  // hold the override. `label` is `YYYY-MM-DD: <clue or two words>` — the date
+  // leads, and the fingerprint after it is what tells two puzzles apart.
+  const summary = date
+    ? picked === undefined
+      ? 'Puzzle: (loading; please wait)'
+      : picked
+        ? `Puzzle: ${picked.label}`
+        : `Puzzle: nothing on ${date}`
+    : derived === undefined
+      ? 'Puzzle: (loading; please wait)'
+      : derived === null
+        ? 'Puzzle: none left'
+        : `Puzzle: ${derived.label}`
+
   return (
-    <fieldset className={form.fieldset}>
-      <legend>Puzzle</legend>
-      <p className="muted">
+    <SetupSection label={summary} defaultOpen={nothingToPlay}>
+      <p className={form.helpText}>
         The next {brand} puzzle nobody playing has seen — including games any of you
         played in another club. Or pick a date to play that one instead, even if
         you&rsquo;ve played it before.
@@ -129,6 +160,6 @@ export function NextPuzzleField({ brand, seenBy, load, loadByDate, onPick }: Pro
         value={date}
         onChange={(e) => void chooseDate(e.target.value)}
       />
-    </fieldset>
+    </SetupSection>
   )
 }

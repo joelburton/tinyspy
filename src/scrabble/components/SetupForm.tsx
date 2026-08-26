@@ -52,7 +52,7 @@ export function SetupForm({ value, onChange, mode, players, playerCount }: Setup
           onChange({ ...s, coop_style: coopStyle, first_turn_user_id: firstTurnUserId })
         }
       />
-      <p className="muted">
+      <p className={form.helpText}>
         Build words on the board from your rack of tiles. A word is accepted if
         it's in the dictionary at the difficulty you pick for its length.
       </p>
@@ -103,7 +103,7 @@ export function SetupForm({ value, onChange, mode, players, playerCount }: Setup
                   </option>
                 ))}
               </SelectField>
-              <p className="muted">
+              <p className={form.helpText}>
                 {playerCount} human + {s.ai_count} AI. A {AI_LEVEL_LABEL[s.ai_level]} AI plays from the
                 “{aiBandName}” dictionary, so both dictionaries above must be at least that wide.
               </p>

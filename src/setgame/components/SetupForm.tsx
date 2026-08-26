@@ -42,14 +42,14 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
       />
 
       {mode === 'coop' ? (
-        <p className="muted">
+        <p className={form.helpText}>
           One table, everyone hunting together. Claim three cards where each of
           number, color, shading and shape is either all the same or all
           different. You win by clearing the deck — that means no sets left to
           find, not using up every card.
         </p>
       ) : (
-        <p className="muted">
+        <p className={form.helpText}>
           Same table, same deck, everyone racing. A set you claim is gone for
           the others, and the most sets when the deck runs dry wins. Ties are
           ties — nobody is separated on speed.
@@ -57,7 +57,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
       )}
 
       <SetupSection label={s.deck === 'junior' ? 'Deck: Junior' : 'Deck: Full'}>
-        <p className="muted">
+        <p className={form.helpText}>
           The full deck is all four attributes, 81 cards, twelve face-up.
           Junior drops shading — every card is solid — leaving 27 cards dealt
           nine at a time. Fewer things to hold in your head, and a real
@@ -77,7 +77,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
       <SetupSection
         label={paletteOf(s) === 'colorblind' ? 'Colors: Colorblind-safe' : 'Colors: Traditional'}
       >
-        <p className="muted">
+        <p className={form.helpText}>
           Traditional is Set's own red, green and purple. The colorblind-safe
           set swaps in blue, orange and magenta, which stay apart for red-green
           color blindness — worth knowing that two cards can differ ONLY by
