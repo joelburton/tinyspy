@@ -21,9 +21,8 @@ type Props = {
    * sentences with different jobs, so two slots, and neither has to guess where
    * the other went.
    *
-   * A ReactNode because 4 of the app's 43 carry a `<strong>` and 6 more an
-   * interpolated value — measured, after "they contain HTML" was offered as a
-   * reason this couldn't be a prop and turned out to be wrong.
+   * A ReactNode, not a string: 4 of the app's 43 carry a `<strong>` and 6 more
+   * an interpolated value.
    */
   help?: ReactNode
   /** HOW TO TYPE IT — advice about the entry, under the control. Where `help`
@@ -47,11 +46,11 @@ type Props = {
    * The control.
    *
    * **A function, for the single-control case, and that is the point.** `Field`
-   * generates the id and hands it over, so the caption/control association
-   * cannot be got wrong — which it was, on 2026-08-26, when a wrapping
-   * `<label>` swallowed the help and the error into the control's accessible
-   * name ("Word Letters only. Two letters or more.") and a test found nothing.
-   * A component cannot repeat that mistake if it never writes the id itself.
+   * generates the id and hands it over, so no component writes the
+   * caption/control association itself and none can get it wrong. The mistake
+   * it forecloses is a wrapping `<label>`, which takes its accessible name from
+   * its whole text content — swallowing the help and the error into it ("Word
+   * Letters only. Two letters or more.") where no test would see.
    */
   children: ReactNode | ((id: string) => ReactNode)
 }
@@ -59,12 +58,11 @@ type Props = {
 /**
  * THE SHAPE EVERY FIELD HAS — caption, control, entry help, error, stacked.
  *
- * Written once because it had been written five times. `field.module.css`
- * already shared the CSS, and each component still laid out the markup itself,
- * which is the finding this area keeps re-finding one layer along
- * (plans/areas/forms.md → F34 `label-above-control`): a shared stylesheet is
- * not a shared shape. Only `<TextField>` could show entry help or an error at
- * all; now every field can, by forwarding two props.
+ * Written once, because a shared stylesheet is not a shared shape:
+ * `field.module.css` can hold the CSS while each component still lays out its
+ * own markup, and then only the field that happened to need an error can show
+ * one. Here every field gets all four slots by forwarding two props
+ * (plans/areas/forms.md → F34 `label-above-control`).
  *
  * **`<CheckboxField>` is the one field that doesn't use it**, and it is a
  * different shape rather than a variant: its caption sits BESIDE the box, not

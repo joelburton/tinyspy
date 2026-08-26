@@ -28,12 +28,14 @@ type Props = {
 }
 
 /**
- * The shared styled `<select>` for game setup forms. A native `<select>` isn't
- * covered by base.css's `input, textarea` rule, so each form used to
- * restyle its own — and they drifted into three looks (a custom-chevron one, a
- * native-arrow one, and an unstyled one). This is the single canonical control:
- * app control sizing + a custom chevron (`appearance: none`), matching the
- * chunky text inputs / buttons around it.
+ * The shared styled `<select>` for game setup forms — app control sizing plus a
+ * custom chevron (`appearance: none`), matching the chunky text inputs and
+ * buttons around it.
+ *
+ * **It has to be a component.** A native `<select>` is NOT covered by base.css's
+ * `input, textarea` rule, so a form that reaches for a raw one gets an unstyled
+ * control and restyles it by hand — which is three different looks as soon as
+ * there are three forms.
  *
  * `DictBandField` is "a SelectField over the difficulty bands"; the other
  * setup selects (boggle dice/ladder, wordle guesses, psychicnum word-count)

@@ -3,11 +3,8 @@
 /*
  * A horizontal group of radio options (see RadioRow.tsx).
  *
- * These lived in `setupForm.module.css` — a stylesheet fifteen forms imported —
- * back when every form hand-wrote its own radio markup around them. Nothing but
- * this component has read them since `<RadioRow>` was written, and
- * `<SetupTimerSection>` stopped being the exception on 2026-08-26 (F30
- * `timerfield-hand-radios`), so they came here with the markup they belong to.
+ * The rules sit with the markup they draw. Nothing else in the app writes a
+ * radio, so nothing else reads these.
  */
 /* @@ */ .radioRow {
   display: flex;

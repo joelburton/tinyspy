@@ -40,17 +40,15 @@
 /* Confirming or deleting: a destructive pill, always visible regardless of
  * hover.
  *
- * It used to fill itself with the LOST outcome's wash and edge — an outcome
- * palette on a control, for a button where nobody has lost anything. It is now
- * the plain destructive treatment every other irreversible control wears: the
- * tone on the text and the border, no fill (docs/ui.md → The color system). */
+ * The plain destructive treatment every other irreversible control wears — the
+ * tone on the text and the border, no fill. NOT the LOST outcome's wash: an
+ * outcome palette belongs to a game saying "you lost", not to a control
+ * (docs/ui.md → The color system). */
 /* @@ */ .deleteButtonActive {
   opacity: 1;
-  /* It used to say `width: auto; padding: revert-layer` here, to climb back out
-     of the fixed icon-only square. Neither is needed now: drawing the label is
-     what makes it a pill, and a button with a label never gets the square in the
-     first place — `<StandardButton>` applies that class only when nothing is
-     drawn. `revert-layer` in particular was a hazard worth losing. */
+  /* Nothing here has to escape the icon-only square: `<StandardButton>` applies
+     that class only when no label is drawn, so drawing the label is itself what
+     makes this a pill. */
   /* The SECONDARY value, not the primary: this is an outline — border and label
      on a transparent ground — and `-secondary-color` is the one taken down far
      enough to read as small text on white. Using the primary here was the fill

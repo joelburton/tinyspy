@@ -25,11 +25,10 @@ type Props = {
  *     ignored; there is no Cancel to find.
  *   - **deleting** — "Deleting…" while the caller does its work.
  *
- * **A DESTRUCTIVE button in every state** (Joel, 2026-08-25). It used to be a
- * neutral gray corner icon that only turned red once you had already pressed it
- * — so the one affordance that says "this deletes something" arrived after the
- * click that needed it. Now the tone is the same at rest, on hover and while
- * confirming; only the SHAPE changes, from a square ✕ to a labelled pill.
+ * **A DESTRUCTIVE button in every state** (Joel, 2026-08-25): the same tone at
+ * rest, on hover and while confirming, so the affordance that says "this
+ * deletes something" is there BEFORE the click rather than after it. Only the
+ * SHAPE changes, from a square trash can to a labelled pill.
  *
  * **It stops the click from propagating**, which is load-bearing now that a
  * game row is a `<SelectionList>` row: the row's own click activates it, so
@@ -84,11 +83,10 @@ export function ClubGameDeleteButton({ onDelete }: Props) {
     // draws its name beside the same glyph, so the thing that expands is visibly
     // the thing you clicked rather than a pill that replaced it.
     //
-    // `small` is a prop now, and it brings the whole small button with it: the
-    // tighter padding, the smaller type, a glyph that follows them both, and the
-    // 1.6rem icon-only box this file used to set by hand. The crushed trash can
-    // came from `.button-small` and `.icon-only` being two loose classes whose
-    // padding fought on declaration order — there is nothing left here to fight.
+    // `small` brings the whole small button with it: tighter padding, smaller
+    // type, a glyph that follows them both, and the 1.6rem icon-only box. One
+    // prop rather than two loose classes whose padding fought on declaration
+    // order — which is what crushes a trash can into a sliver.
     <TrashButton
       name={name}
       label={state === 'idle' ? null : undefined}

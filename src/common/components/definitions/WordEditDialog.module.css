@@ -14,9 +14,8 @@
 
 /* Band / crude / slur on one row — three small numbers, not three rows.
  *
- * The row used to stretch each field to an equal share (`.numbers .field
- * { flex: 1 1 0 }`); it doesn't need to now, because <NumberField> sizes itself
- * from the widest value it can hold, and one digit is one digit. */
+ * No flex share to hand out: <NumberField> sizes itself from the widest value
+ * it can hold, and one digit is one digit. */
 /* @@ */ .numbers {
   display: flex;
   gap: 0.5rem;

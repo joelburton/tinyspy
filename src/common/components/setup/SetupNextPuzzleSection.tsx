@@ -37,8 +37,7 @@ type Props = {
  * THE DEFAULT IS NO CHOICE. Both games' archives are QUEUES, not catalogues —
  * the date carries none of the meaning a crossword's does (a Monday crossword
  * and a Saturday one are different animals; connections #900 and #901 are
- * not), so the only question the old calendar was ever asked was "give us one
- * we haven't done". The server answers exactly that, excluding anything any
+ * not), so the only question worth asking is "give us one we haven't done". The server answers exactly that, excluding anything any
  * SELECTED PLAYER has played in ANY club, so it can't be a repeat for anyone
  * at the table. Leave the date box empty and that is what you get.
  *
@@ -68,7 +67,7 @@ export function SetupNextPuzzleSection({
 }: Props) {
   // The derived answer STAMPED WITH the player set it was fetched for, rather
   // than a bare row plus a loading flag. Toggling a player has to blank the
-  // line (the old answer may no longer be right), and clearing it by calling
+  // line (a stale answer may not be right any more), and clearing it by calling
   // setState at the top of the effect is exactly the sync-setState-in-an-effect
   // the lint rule forbids. Keeping the key alongside the value lets "we're
   // waiting" be DERIVED — stale stamp, no answer yet.

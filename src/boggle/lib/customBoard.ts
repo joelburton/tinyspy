@@ -67,12 +67,10 @@ export const MAX_CUSTOM_BOARD_LEN = 128
  * level clean the setup field applies, NOT validation. It deliberately keeps
  * CASE, because the mixed-case rule above depends on it.
  *
- * Separators go, and that changed on 2026-08-26: the field used to keep the
- * spaces a player typed, on the grounds that they were how rows stayed
- * readable. `<ManualBoardField>` now inserts the row dashes itself, counted in
- * tiles — so a separator is presentation the field supplies, not data anyone
- * has to type. Paste a board spaced, dashed or run together and it comes back
- * looking like every other one.
+ * SEPARATORS GO, all of them. `<ManualBoardField>` inserts the row dashes
+ * itself, counted in tiles, so a separator is presentation the field supplies
+ * rather than data anyone types. Paste a board spaced, dashed or run together
+ * and it comes back looking like every other one.
  */
 export function cleanCustomBoard(raw: string): string {
   return raw.replace(/[^A-Za-z?]/g, '').slice(0, MAX_CUSTOM_BOARD_LEN)
@@ -82,12 +80,10 @@ export function cleanCustomBoard(raw: string): string {
  * A board string as ROWS of written tiles — `"ABQuD-EFGH-IJKL-MNOP"`. This is
  * what the recap prints and what the setup field takes back.
  *
- * DASHES since 2026-08-26, where this used to join rows with spaces. The setup
- * field now groups the board into rows as you type it, and a recap that
- * separated them differently would be a second written form of the same thing —
- * against the whole point, which is that you read a board off the info column
- * or the printout and paste it straight back. letterboxed already wrote its
- * four sides `ABC-DEF-GHI-JKL`; boggle now matches it.
+ * DASHES, matching what the setup field draws as you type and what letterboxed
+ * writes its four sides in. A recap that separated rows differently would be a
+ * second written form of the same thing, against the whole point: you read a
+ * board off the info column or the printout and paste it straight back.
  */
 export function formatBoard(board: string, n: number): string {
   const rows: string[] = []

@@ -14,8 +14,8 @@ export function DeleteButton({
   name = 'Delete',
   icon = IconDelete,
   // The delete glyph reads denser and smaller than most, so it is bumped for
-  // every consumer here, once. A multiplier rather than a pixel size: it stays
-  // right if the button is `small`, where the old fixed 22 did not.
+  // every consumer here, once. A multiplier rather than a pixel size, so it
+  // stays right when the button is `small`.
   iconScale = 1.2,
   ...rest
 }: PurposeButtonProps) {

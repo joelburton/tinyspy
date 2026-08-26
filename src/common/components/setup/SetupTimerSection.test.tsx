@@ -3,16 +3,13 @@
 /**
  * `<SetupTimerSection>`'s behavior, pinned because nothing pinned it.
  *
- * No test rendered this field — or any setup form — before 2026-08-26, so a
- * conversion could only be checked by `tsc`, which has nothing to say about
- * whether clicking "Down" still enables the box beside it. That gap is why this
- * file exists; it went in with F30 (`timerfield-hand-radios`), which replaced
- * the field's hand-written radio group with the shared `<RadioRow>`.
+ * `tsc` has nothing to say about whether clicking "Down" still enables the box
+ * beside it, which is the whole behavior of this field — so it is asserted here.
  *
- * **The MM:SS box lives INSIDE the Down option's label**, which is the one
- * structural thing worth asserting: it is what made this the last hand-written
- * radio group in the app, and it turned out `<RadioRow>` had always supported it
- * (`label` is a ReactNode, rendered inside the `<label>` after the radio).
+ * **The MM:SS box lives INSIDE the Down option's label**, the one structural
+ * thing worth pinning: `<RadioRow>` takes a ReactNode `label` and renders it
+ * inside the `<label>` after the radio, so clicking the box picks Down. Nest it
+ * anywhere else and that stops being true.
  *
  * What is deliberately NOT asserted: any class name. `vite.config.ts` sets
  * `css: false` for vitest, so a CSS module fabricates whatever name it is asked

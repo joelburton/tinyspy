@@ -50,11 +50,11 @@ type Props = {
  * value, the way every other summary carries one, and drawn by the modal
  * because the modal owns the selection.
  *
- * A component rather than markup inside `SetupGameModal` because a players
- * picker is a FIELD, and every other field a setup form has is one of these —
- * `<SetupTimerSection>`, `<DictBandField>`, `<SetupCoopStyleSection>`. It lived inline for
- * as long as it had exactly one caller, which is how the setup form's other
- * shapes drifted too.
+ * A component rather than markup inside `SetupGameModal`, because a players
+ * picker is a FIELD and every other field a setup form has is one of these —
+ * `<SetupTimerSection>`, `<DictBandField>`, `<SetupCoopStyleSection>`. Having
+ * exactly one caller is not a reason to leave a shape inline — that is how a
+ * setup form's shapes drift apart.
  *
  * It owns no state. The parent holds the selection because it needs it anyway:
  * to gate Start on the count, and to pass the chosen players down to the game's
@@ -73,10 +73,9 @@ export function PlayersField({
   error,
 }: Props) {
   return (
-    // `group`: the control is a SET of checkboxes, so a caption would head them
-    // as a <legend> rather than point at one. No box of its own any more — the
-    // <SetupSection> around it draws that, the same one every other setting
-    // gets.
+    // `group`: the control is a SET of checkboxes, so a caption heads them as a
+    // <legend> rather than pointing at one. No box of its own — the
+    // <SetupSection> around it draws that.
     <Field label={label} group help={help} entryHelp={entryHelp} error={error}>
       {members.map((m) => {
         const isSelf = m.user_id === selfId

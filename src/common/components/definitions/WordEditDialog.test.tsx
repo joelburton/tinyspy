@@ -45,12 +45,10 @@ beforeEach(() => {
 })
 
 /**
- * NAMES CHANGED ON 2026-08-26, and the change was a fix. These fields wore an
- * `aria-label` that CONTRADICTED their visible caption — the box captioned
- * "Band (1–6)" was named "Band", the one captioned "Word" was named "New word",
- * and the "Note" box was named "Curation note". Converting the dialog to the
- * shared field components (plans/areas/forms.md → F34) made the accessible name
- * the caption, so what a test finds and what a reader sees are the same string.
+ * Fields are found by their VISIBLE CAPTION — "Band (1–6)", "Word", "Note" —
+ * because the shared field components make the caption the accessible name.
+ * What a test looks for and what a reader sees are the same string, so a
+ * caption edit that a person would notice fails here too.
  */
 describe('WordEditDialog', () => {
   it('edit mode: Save sends ONLY the changed fields, with the note', async () => {

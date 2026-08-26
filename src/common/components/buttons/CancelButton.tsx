@@ -11,13 +11,9 @@ import { StandardButton, type PurposeButtonProps } from './StandardButton'
  * here, Start there, Create, Send, Reload, so its name is different at every
  * site and there is nothing to package (Joel, 2026-08-25).
  *
- * **This is the button F9 was about.** It was hand-written at seven sites as
- * `<button className="button secondary">Cancel</button>`, not because anyone
- * wanted a different button but because `ActionButton` required a glyph and a
- * Cancel has none. The tone vocabulary had been describing this control the
- * whole time — `quiet` is documented as "a dialog's Cancel" and a bare outline
- * has always defaulted to it — so nothing here is new paint. It is the same
- * button, finally reachable.
+ * It is a `quiet` `<StandardButton>` and nothing more: the tone vocabulary
+ * names this exact control — `quiet` is documented as "a dialog's Cancel", and
+ * a bare outline defaults to it. No new paint, just the packaging.
  *
  * Inside a `<form>`, pass `type="button"`: it is not the submit.
  */

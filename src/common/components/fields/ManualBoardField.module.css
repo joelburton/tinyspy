@@ -34,11 +34,10 @@
  * could hit Start believing they had pasted something. boggle met this first
  * and letterboxed copied its rule wholesale (F33); it is one rule now.
  *
- * Both of those files also dropped the tracking, on the theory that a third
- * axis of difference helped. Joel overruled that on 2026-08-26: the tracking is
- * IDENTICAL to real input, and the placeholder differs on colour and slant
- * alone. Italic is the strong signal; matching the tracking means the example
- * shows the true width of what you are about to type.
+ * THE TRACKING IS IDENTICAL to real input; the placeholder differs on color and
+ * slant alone (Joel, 2026-08-26). Italic is the strong signal, and matching the
+ * tracking means the example shows the true width of what you are about to
+ * type. Loosening it as a third axis of difference would cost that.
  */
 /* @@ */ .input::placeholder {
   color: var(--field-placeholder-ink-color);

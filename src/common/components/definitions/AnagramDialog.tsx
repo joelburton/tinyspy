@@ -44,8 +44,8 @@ export function AnagramDialog({ onClose }: { onClose: () => void }) {
     e.preventDefault()
     const letters = query.trim()
     if (letters.length < 2) {
-      // It used to `return` here — the Find button enabled, pressed, and
-      // nothing whatever happening. The refusal is right; the silence was not.
+      // The refusal needs a REASON on screen. A bare `return` here would leave
+      // the Find button enabled, pressed, and nothing whatever happening.
       setEntryError('Two letters or more — a single letter only rearranges into itself.')
       return
     }
@@ -94,9 +94,9 @@ export function AnagramDialog({ onClose }: { onClose: () => void }) {
               setEntryError(null)
             }}
             placeholder="letters…"
-            // The syntax legend, moved INTO the field. It used to be a
-            // paragraph below the Find button — three elements from the box it
-            // describes, and read after you had already typed.
+            // The syntax legend belongs to the BOX, so it sits under the box —
+            // not in a paragraph below the Find button, three elements from the
+            // thing it describes and read after you have already typed.
             entryHelp="abc float · ABC pinned in place · ? any letter"
             error={entryError}
           />

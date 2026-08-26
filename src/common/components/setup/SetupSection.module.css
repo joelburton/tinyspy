@@ -50,11 +50,10 @@
 /*
  * HELP FOR THE WHOLE SECTION — a sentence about a GROUP of fields, not one.
  *
- * The four left in the app all head a pair: boggle's, spellingbee's and
- * wordwheel's "Dictionaries" (a required band and a legal one) and scrabble's AI
- * pair. Every other help sentence became a field's `help` prop on 2026-08-26,
- * and these could not, because attaching a sentence about two fields to one of
- * them would be a lie.
+ * The three in the app all head a pair: spellingbee's and wordwheel's
+ * "Dictionaries" (a required band and a legal one) and scrabble's AI pair. A
+ * sentence about ONE field belongs to that field's `help` — attaching a
+ * sentence about two of them to one would be a lie.
  *
  * Same values as `<Field>`'s `.help`, which is the same sentence one level down.
  * It carries its own margin where that one doesn't, because this is a bare <p>

@@ -128,10 +128,9 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
           }}
           placeholder="ABC-DEF-GHI-JKL"
           chars={15}
-          // Four sides of three, which is exactly what `formatSides` prints in
-          // the recap and the summary. The field used to show the letters
-          // unbroken while everything else showed them grouped; now the thing
-          // you type and the thing you read back are the same string.
+          // Four sides of three, exactly what `formatSides` prints in the
+          // recap and the summary — so the thing you type and the thing you
+          // read back are the same string.
           groups={[SIDE_SIZE, SIDE_SIZE, SIDE_SIZE, SIDE_SIZE]}
         />
       </SetupSection>

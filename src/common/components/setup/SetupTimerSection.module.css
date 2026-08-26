@@ -4,11 +4,8 @@
  * The MM:SS box inside <SetupTimerSection>'s "Down" option, and nothing else.
  *
  * The bordered box and its header come from the <SetupSection> that wraps the
- * field; the radio row and each radio come from <RadioRow>. Until 2026-08-26
- * this file also carried `.timerRow`, `.radio` and `.radio input` — three rules
- * restating what `setupForm.module.css` already said, because the field
- * hand-wrote the radio group instead of calling the component built to render
- * one (plans/areas/forms.md → F30 `timerfield-hand-radios`).
+ * field; the radio row and each radio come from <RadioRow>. Nothing about the
+ * group is restated here — only the box that sits inside one option.
  *
  * `.timerRow` differed from `.radioRow` by a single `align-items: center`, and
  * that was MEASURED before deleting rather than assumed: it changed nothing.

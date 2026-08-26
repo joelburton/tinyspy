@@ -122,9 +122,8 @@ export function LoginScreen() {
         )}
 
         <form onSubmit={onSubmit}>
-          {/* CAPTIONED, where both boxes used to be named by placeholder alone
-              — which vanishes the moment you type, on the first screen anyone
-              sees. */}
+          {/* CAPTIONED, not named by placeholder alone: a placeholder vanishes
+              the moment you type, on the first screen anyone sees. */}
           <TextField
             label="Email"
             type="email"

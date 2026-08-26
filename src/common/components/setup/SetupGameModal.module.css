@@ -76,12 +76,10 @@
 /*
  * THE FORM'S COLUMN — the game's fields, stacked.
  *
- * The MODAL draws it, where until 2026-08-26 every game's SetupForm opened with
- * its own `<div className={form.setup}>` — fifteen copies of one rule, in a
- * stylesheet fifteen forms had to import to get it. A form is a list of fields;
- * how that list is stacked is the dialog's business, not each game's, and a game
- * that forgot the wrapper got a subtly different dialog with nothing to catch
- * it.
+ * THE MODAL DRAWS IT, not each game's SetupForm. A form is a list of fields;
+ * how that list is stacked is the dialog's business, and a game that had to
+ * remember a wrapper of its own could forget it and get a subtly different
+ * dialog with nothing to catch that.
  */
 /* @@ */ .formBody {
   display: flex;
@@ -93,11 +91,9 @@
  * THE DIALOG'S OWN COLUMN — the intro, the player picker and the game's form,
  * evenly spaced.
  *
- * One gap, where each piece used to space ITSELF: the intro carried a bottom
- * margin and the player picker carried one too, until the picker became an
- * ordinary section and lost its box. The result was a section with no room
- * under it, which is the failure mode of every "each element spaces itself"
- * arrangement — remove one and the hole is somewhere else's fault.
+ * ONE GAP, rather than each piece carrying a margin of its own. That is the
+ * failure mode of every "each element spaces itself" arrangement: remove one
+ * element's margin and the hole opens somewhere else, whose fault it isn't.
  */
 /* @@ */ .body {
   display: flex;

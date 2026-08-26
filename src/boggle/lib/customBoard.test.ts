@@ -44,8 +44,8 @@ describe('formatBoard / parseCustomBoard round trip', () => {
 
 describe('formatBoard', () => {
   it('reads top-to-bottom, left-to-right, one DASH per row', () => {
-    // Dashed since 2026-08-26, matching what <ManualBoardField> draws as you
-    // type and what letterboxed already wrote its four sides in.
+    // Matches what <ManualBoardField> draws as you type, so a board reads back
+    // in the form you would paste it.
     expect(formatBoard('ABCDEFGHIJKLMNOP', 4)).toBe('ABCD-EFGH-IJKL-MNOP')
   })
 

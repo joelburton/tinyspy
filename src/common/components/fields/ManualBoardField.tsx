@@ -18,8 +18,8 @@ type Props = {
    *  `ABC-DEF-GHI-JKL`. It teaches the format, which is the whole reason this
    *  field can be a single box with no sub-labels. */
   placeholder: string
-  /** How wide, in characters of the expected content. Replaces the five
-   *  hand-picked rem widths these fields used to carry; `full` is boggle, whose
+  /** How wide, in characters of the expected content — so a field states what
+   *  it holds rather than a hand-picked rem width. `full` is boggle, whose
    *  content is a whole grid. */
   chars: number | 'full'
   /** The caption above the box. Every field can have one; today's five callers
@@ -78,19 +78,15 @@ type Props = {
  * TYPE THE BOARD YOURSELF — the shared field for entering a game's starting
  * letters by hand, instead of letting the server roll them.
  *
- * Five games have this and every one of them hand-rolled it: spellingbee and
- * wordwheel (a centre letter plus the outer ones), wordiply (the starter word),
- * letterboxed (the four sides), boggle (the whole grid). Four of the five
- * declared the identical four CSS rules under four different class names, two
- * had copied each other's placeholder rule outright, and one pair's stylesheets
- * differed only in two comment words. It was the one field type in a setup form
- * that never got named (plans/areas/forms.md → F31, F33).
+ * Five games want it: spellingbee and wordwheel (a center letter plus the outer
+ * ones), wordiply (the starter word), letterboxed (the four sides), boggle (the
+ * whole grid). One field type, named once (plans/areas/forms.md → F31, F33).
  *
  * **It is one `<input type="text">`**, deliberately, even where the value has
- * parts. spellingbee used to show a 1-character box beside a 6-character one;
- * it now takes `A-CHIROT` in a single field and splits on the hyphen, which is
- * the form its own summary has always printed — so the field accepts exactly
- * what the form shows you. That round-trip is the same principle boggle's board
+ * parts. spellingbee takes `A-CHIROT` in a single box and splits on the hyphen
+ * rather than offering a 1-character box beside a 6-character one — the single
+ * box is the form the summary prints, so the field accepts exactly what the
+ * form shows you. That round-trip is the same principle boggle's board
  * string was built on: read a board you liked off the info column or the
  * printout, paste it into a friend's dialog, get the same puzzle.
  *

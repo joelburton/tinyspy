@@ -31,9 +31,9 @@ export function SetupSection({
    * the same place.
    *
    * **For a group, and only a group.** A sentence about ONE field belongs to
-   * that field, where the reader's eye already is — most of the app's help
-   * moved there on 2026-08-26. This is for what no single field owns: "both are
-   * length-agnostic", said of a required band and a legal one.
+   * that field's own `help`, where the reader's eye already is. This is for what
+   * no single field owns: "both are length-agnostic", said of a required band
+   * and a legal one.
    */
   help?: ReactNode
   /**

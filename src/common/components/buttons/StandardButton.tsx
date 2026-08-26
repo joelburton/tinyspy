@@ -58,7 +58,7 @@ export type StandardButtonProps = ComponentPropsWithRef<'button'> & {
   name: string
   /** WHAT IS DRAWN. Defaults to `name`; pass a different string to deviate
    *  ("Start over" on a Restart), or `null` to draw no text at all — which is
-   *  the icon-only button, and replaces the old `iconOnly` flag.
+   *  what makes it an icon-only button.
    *
    *  A ReactNode, because the drawn label is CONTENT while `name` is identity:
    *  the setup dialog's Start wraps part of its own text in a span the phone
@@ -66,8 +66,7 @@ export type StandardButtonProps = ComponentPropsWithRef<'button'> & {
    *  detail, not a second name. */
   label?: ReactNode | null
   /** THE GLYPH. Defaults to the purpose button's; `null` draws none. A standard
-   *  button may carry a label, an icon, or both — there is no requirement for
-   *  either, and never was. */
+   *  button may carry a label, an icon, or both — neither is required. */
   icon?: ButtonIcon | null
   /** The styled hover bubble (`data-tooltip`, rendered by TooltipHost — the
    *  fast replacement for the native `title`, which some browsers delay past
@@ -107,15 +106,14 @@ export type PurposeButtonProps = Omit<StandardButtonProps, 'name'> & { name?: st
  * A STANDARD BUTTON — the app's ordinary button, and the only general button
  * component there is.
  *
- * It was `ActionButton`, which was named after the first thing that used it and
- * then quietly grew to mean all of them. Two names for one thing is what this
- * replaces (Joel, 2026-08-25): an info-column action and a form's Cancel are
- * the same control wearing different tones, and the 27 sites that hand-wrote
- * `className="button secondary"` were not choosing a different button — they
- * were reaching for this one and finding a required `icon` prop in the way.
+ * ONE button, not a family (Joel, 2026-08-25): an info-column action, a form's
+ * Cancel and a dialog's acknowledgment are this control wearing different
+ * tones. Every axis is optional — a button with no glyph, no label, or neither
+ * is still this one — so there is never a reason to hand-write a `<button>` to
+ * escape a required prop.
  *
- * Everything a standard button looks like lives in its module; nothing composes
- * global classes any more, because there are none left to compose.
+ * Everything a standard button looks like lives in its module. There are no
+ * global button classes to compose.
  *
  * The families that are NOT this: a game piece, a keycap, a segmented choice, a
  * page-header mark, and the board's round `ShuffleButton`.

@@ -34,11 +34,11 @@ export function SubmitWithScore({ score, className, ...rest }: Props) {
     <button
       type="button"
       aria-label="Submit"
-      // It borrows `<StandardButton>`'s OWN classes rather than composing global
-      // ones, because there are no global ones any more — the standard button's
-      // look lives in its module. This is the one control in the app that wants
-      // that look with a different internal layout, so it reaches next door for
-      // the chrome and supplies its own row.
+      // It borrows `<StandardButton>`'s OWN classes: the standard button's look
+      // lives in its module, and there are no global button classes to compose.
+      // This is the one control in the app that wants that look with a
+      // different internal layout, so it reaches next door for the chrome and
+      // supplies its own row.
       //
       // That reach is the reason this is filed as scrabble's to decide
       // (docs/games/scrabble.md → Deferred): the answer may be a shared prop, or

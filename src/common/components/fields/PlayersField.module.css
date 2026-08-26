@@ -3,10 +3,8 @@
 /*
  * The player picker's rows (see PlayersField.tsx).
  *
- * The BOX is gone as of 2026-08-26 — border, padding, margin. It was here
- * because this field had to be open when the dialog opens and nothing in the
- * section vocabulary could do that; `<SetupSection alwaysOpen>` can, so the
- * chrome is the shared one and this file is left with the rows.
+ * NO CHROME HERE — the `<SetupSection>` around it draws the box, the same one
+ * every other setting gets. This file holds only the rows.
  */
 /* @@ */ .row {
   display: flex;

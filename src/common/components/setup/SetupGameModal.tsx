@@ -167,8 +167,8 @@ export function SetupGameModal({
    * `manifest.startGameInClub`, which fires the RPC that
    * actually writes the new `common.games` row.
    *
-   * Named `handleStartGame` (not `handleStart`) to disambiguate
-   * the two phases that both used to be called "start":
+   * Named `handleStartGame` (not `handleStart`) because two
+   * phases could both be called "start":
    *
    *   - **startSetup**: ClubPage's `handleStartSetup` opens
    *     this dialog. Game doesn't exist yet.

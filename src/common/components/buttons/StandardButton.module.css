@@ -6,9 +6,8 @@
  * A STANDARD BUTTON is the app's ordinary button: an info-column action
  * (Submit, Hint, End game), a form's commit or cancel, a dialog's
  * acknowledgment. One treatment for all of them, which is the decision this
- * file exists to hold (Joel, 2026-08-25): what used to be an "action button"
- * and what used to be a hand-written `className="button secondary"` are the
- * same thing and always were.
+ * file exists to hold (Joel, 2026-08-25): an info-column action and a form's
+ * Cancel are one control wearing different tones.
  *
  * NOT standard buttons, and none of them come through here: a game piece
  * (`.tile`), a keycap (`.key`), a segmented choice (patterns/segmented.css), a
@@ -17,12 +16,11 @@
  * even share the hover (Joel, 2026-08-25: *"we can handle those when we meet
  * them, but I wouldn't consider them normal buttons"*).
  *
- * WHY THIS IS A MODULE AND NOT A PATTERN. It was `patterns/button.css`, a
- * global stylesheet whose classes every call site composed by hand. §7's table
- * puts "a pattern with structure or behavior" in *a React component + its
- * module*, and the boundary rule under it says a shared stylesheet with many
- * consumers and no component is a component waiting to be written. Once
- * `<StandardButton>` exists, nobody writes these class names, so they stop
+ * WHY THIS IS A MODULE AND NOT A PATTERN. §7's table puts "a pattern with
+ * structure or behavior" in *a React component + its module*, and the boundary
+ * rule under it says a shared stylesheet with many consumers and no component is
+ * a component waiting to be written. `<StandardButton>` is that component, so
+ * nobody writes these class names by hand and they stop
  * being public and come home. `ActionButton.module.css`'s tone classes came
  * with them — one component, one stylesheet.
  *
@@ -71,10 +69,9 @@
   border-style: solid;
   border-radius: var(--radius-md);
   padding: 0.4rem 0.65rem;
-  /* The icon-and-label shape, formerly the separate `.icon-button` class that
-     every call site had to remember to compose. A standard button is ALWAYS
-     this shape — one centered line, glyph then label — so it is stated once
-     here and cannot be left off. The gap is `em` so it tracks the label. */
+  /* The icon-and-label shape. A standard button is ALWAYS this — one centered
+     line, glyph then label — so it is stated once here and cannot be left off
+     by a call site. The gap is `em` so it tracks the label. */
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -82,11 +79,9 @@
   text-decoration: none;
 }
 
-/* THE GLYPH IS SIZED FROM THE TEXT, not in pixels. It used to be an `iconSize`
-   prop handed to Lucide (18 by default, 22 / 16 / 15 at four sites), which
-   meant the glyph could not track a button that changed size — a small button
-   kept a full-size icon and the ratio drifted. `em` locks the ratio to the
-   label at every size (Joel, 2026-08-25: *"I don't see that we'd want to move
+/* THE GLYPH IS SIZED FROM THE TEXT, not in pixels. A pixel size cannot track a
+   button that changes size — a small button would keep a full-size glyph — so
+   `em` locks the ratio to the label at every size (Joel, 2026-08-25: *"I don't see that we'd want to move
    them independently... they should stay related"*), and 1.15em reproduces
    today's proportions: 18px against 16px text is 1.125, and against the info
    column's 0.95rem it is 1.18.
@@ -125,14 +120,12 @@
  * `iconScale` can tune a dense glyph up without moving the footprint and a row
  * of icon buttons stays aligned.
  *
- * IT MUST ALSO WIN THE PADDING, and this is where the old arrangement broke.
- * `.icon-only` and `.button-small` were two global classes composed by hand;
- * `.button-small` was declared 17 lines later at equal specificity, so ITS
- * padding won while `.icon-only`'s fixed box stayed — leaving a 25.6px box with
- * 19.2px of horizontal padding and about 6px for an 18px glyph. That is the
- * club page's crushed trash can. Here both selectors carry `.standardButton`
- * and this one is compounded further, so it wins on weight rather than on the
- * order two files happen to load in. */
+ * IT MUST ALSO WIN THE PADDING, and that is why this selector is compounded
+ * rather than left to declaration order. A fixed box that keeps a padded
+ * button's padding is a crushed glyph: 19.2px of horizontal padding inside a
+ * 25.6px box leaves about 6px for an 18px icon. Both selectors here carry
+ * `.standardButton` and this one carries it twice, so it wins on weight, not on
+ * which rule a bundler happened to put last. */
 /* @@ */ .standardButton.iconOnly {
   width: var(--iconButton-size);
   height: var(--iconButton-size);
@@ -222,9 +215,9 @@
  *
  * ALL FIVE families get a class, including the two nothing calls for. `quiet`
  * is the default for a bare `.secondary`, so a quiet SECONDARY would work
- * without one — but the default primary slots are normal's, so a quiet button
- * that asked for `primary` used to come out blue. `success` has no caller at
- * all today. Both are here for the same reason the token grid is rectangular: a
+ * without one — but the default PRIMARY slots are normal's, so without this
+ * class a quiet button asking for `primary` comes out blue. `success` has no
+ * caller at all today. Both are here for the same reason the token grid is rectangular: a
  * family that only half-exists is what the completeness rule exists to
  * prevent, and the missing half is always found by the button that needed it,
  * two years later, by someone reasoning differently.

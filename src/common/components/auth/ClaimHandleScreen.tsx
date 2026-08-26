@@ -89,11 +89,11 @@ export function ClaimHandleScreen({ onClaimed, email }: Props) {
   // hash, so two people rarely start on the same color) and then owned entirely
   // by the player.
   //
-  // It deliberately does NOT track the username field. It used to — `picked ??
-  // defaultColorFor(desired)` — and the selection then hopped from swatch to
-  // swatch on every keystroke, which reads as the form fighting you: you're
-  // typing in one control and watching a different one flicker. A default is
-  // worth having; a default that keeps re-deciding while you type isn't.
+  // It deliberately does NOT track the username field. Deriving it live (say
+  // `picked ?? defaultColorFor(desired)`) makes the selection hop from swatch to
+  // swatch on every keystroke — you type in one control and watch another
+  // flicker. A default is worth having; one that keeps re-deciding while you
+  // type isn't.
   const [selected, setSelected] = useState(() =>
     defaultColorFor(suggestedHandleFromEmail(email)),
   )
@@ -182,9 +182,8 @@ export function ClaimHandleScreen({ onClaimed, email }: Props) {
             // shouldn't be typeable in the first place.
             maxLength={15}
             // The rules are entry help while they hold and the error when they
-            // don't — same sentence either way, because breaking them is
-            // exactly what it warns against. It used to toggle a class between
-            // `muted` and `error` by hand; the field rings the box now too.
+            // don't — same sentence either way, because breaking them is exactly
+            // what it warns against. The field also rings the box.
             entryHelp={localValid ? RULES : undefined}
             error={localValid ? null : RULES}
           />
