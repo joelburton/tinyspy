@@ -24,10 +24,10 @@ This area's own findings therefore start at **F30**, so no number in this file i
 ambiguous and an inherited finding is recognizable on sight (≤ F13 came from
 elsewhere; ≥ F30 was raised here).
 
-**Twenty findings. FIFTEEN RESOLVED** — F8, F9, F13, F30, F31, F33, F34, F35,
-F38, F39, F40, F41, F42, F43, F47 — **three CLOSED and moved out** (F32 → the
-FreeBee pair, F37 → crosswords, F44 → crosswords + floating-panels) — **one
-open**, F36 — and **two parked** for the sprint's docs step, F45 and F46.
+**Twenty findings. SIXTEEN RESOLVED** — F8, F9, F13, F30, F31, F33, F34, F35,
+F36, F38, F39, F40, F41, F42, F43, F47 — **three CLOSED and moved out** (F32 →
+the FreeBee pair, F37 → crosswords, F44 → crosswords + floating-panels) — and
+**two parked** for the sprint's docs step, F45 and F46. **Nothing is open.**
 
 F43–F47 came from the work rather than the audit, which is expected: §21 says a
 finding is not required to have come from the audit and takes the next free
@@ -638,24 +638,44 @@ Unit tests are green throughout: **1991 of 1993**, the two failures being
 
 ---
 
-## F36 · `stack-repeated` · A flex column with a gap is the most-repeated shape in the area
+## RESOLVED · F36 · `stack-repeated` · A flex column with a gap is the most-repeated shape in the area
 
-**The measurement inverted the finding.** I filed it as "declared three times".
-Counted app-wide, `display: flex; flex-direction: column; gap:` appears at about
-**80 sites** — which is strong evidence for §7's *"not patterns, though they look
-like it"*. A stacked column with a gap is not a pattern; it is what CSS looks
-like.
+**The measurement inverted the finding when it was filed.** I wrote it as
+"declared three times". Counted app-wide, `display: flex; flex-direction:
+column; gap:` appears at about **80 sites** — strong evidence for §7's *"not
+patterns, though they look like it"*. A stacked column with a gap is not a
+pattern; it is what CSS looks like.
 
-**Inside the area it is now down to three, and two of them are deliberate**:
-`<Field>`'s own column (`gap: 0.4rem`), and the setup dialog's two — `.body`
-holding intro / picker / form and `.formBody` holding the fields. Those two came
-from FIXING a bug: each piece of the dialog used to space itself, and when the
-player picker lost its box the hole appeared under it.
+**Resolved 2026-08-26 by deleting the one file that was left.**
+`SetupCoopStyleSection.module.css` was thirteen lines holding a single
+`.controls` stack, wrapping the style radio and the first-player dropdown in a
+column nested inside `.sectionContent` — which is itself a gapped column since
+the spacing fix earlier today. So the wrapper had stopped doing anything except
+override the gap.
 
-**So what is actually left is one file.**
-`SetupCoopStyleSection.module.css` is thirteen lines whose entire content is one
-such stack, justified in its own comment by pointing at the setup form's rhythm.
-Either it uses the shared column or the file goes.
+**And it overrode it to the wrong step, which is the part worth keeping.** Its
+own comment justified `gap: 1rem` as *"the same 1rem rhythm the setup form uses
+between its sections"* — the BETWEEN-SECTIONS step, applied between two fields
+INSIDE one section. Written before the rhythm existed, it borrowed the only
+number it could see. The two controls now sit at 0.75rem like every other pair
+of fields, so the section reads the same as the sections around it.
+
+**What's left is three stacks, and they are the three steps — one file each:**
+
+| file | gap | what it spaces |
+|---|---|---|
+| `field.module.css` | `0.4rem` | caption → help → control, inside one field |
+| `SetupSection.module.css` | `0.75rem` | field → field, inside one section |
+| `SetupGameModal.module.css` | `1rem` | section → section, and the dialog's own column |
+
+That is the finding landing somewhere better than it started: not "three copies
+of a stack" but three declarations of a rhythm, each owned by the thing whose
+spacing it is. A fourth copy is now visible as a fourth number, which is how the
+`.controls` one was caught.
+
+**`<SetupCoopStyleSection>` draws no layout at all now** — no stylesheet, no
+wrapper element, just two fields in a section. That is the shape the area was
+after: a component contributes controls, and the section spaces them.
 
 ## CLOSED · F37 · `crosswords-rolls-its-own-field` · A third copy of the puzzle picker, and a control that re-declares the field chrome
 

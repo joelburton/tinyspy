@@ -5,7 +5,6 @@ import { RadioRow } from '../fields/RadioRow'
 import { SelectField } from '../fields/SelectField'
 import { SetupSection } from './SetupSection'
 import type { Member } from '../../lib/games'
-import styles from './SetupCoopStyleSection.module.css'
 
 /**
  * The two ways a coop game can be paced. `'free-for-all'` (the
@@ -113,35 +112,34 @@ export function SetupCoopStyleSection({
     // Collapsed by default; the summary carries the current setting so
     // it's readable without opening (matches SetupTimerSection's disclosure).
     <SetupSection label={`Co-op: ${summaryValue}`} help={help}>
-      <div className={styles.controls}>
-        <RadioRow
-          name="coopStyle"
-          prefix="Co-op style"
-          options={[
-            { value: 'free-for-all', label: 'free-for-all' },
-            { value: 'turns', label: 'turns' },
-          ]}
-          value={coopStyle}
-          onChange={(next) => onChange({ coopStyle: next, firstTurnUserId })}
-        />
-        {isTurns && (
-          // A dropdown (not a radio row): a game can have many players, and a
-          // long radio row would sprawl. The label sits above it, spaced from
-          // the style choice above by the `.controls` column gap.
-          <SelectField
-            label="First player"
-            name="firstTurn"
-            value={firstTurnUserId}
-            onChange={(id) => onChange({ coopStyle, firstTurnUserId: id })}
-          >
-            {players.map((p) => (
-              <option key={p.user_id} value={p.user_id}>
-                {p.username}
-              </option>
-            ))}
-          </SelectField>
-        )}
-      </div>
+      <RadioRow
+        name="coopStyle"
+        prefix="Co-op style"
+        options={[
+          { value: 'free-for-all', label: 'free-for-all' },
+          { value: 'turns', label: 'turns' },
+        ]}
+        value={coopStyle}
+        onChange={(next) => onChange({ coopStyle: next, firstTurnUserId })}
+      />
+      {isTurns && (
+        // A dropdown (not a radio row): a game can have many players, and a
+        // long radio row would sprawl — the count axis in <RadioRow>'s "which
+        // control" note. The section's own column gaps it from the style
+        // choice above; this component draws no layout of its own.
+        <SelectField
+          label="First player"
+          name="firstTurn"
+          value={firstTurnUserId}
+          onChange={(id) => onChange({ coopStyle, firstTurnUserId: id })}
+        >
+          {players.map((p) => (
+            <option key={p.user_id} value={p.user_id}>
+              {p.username}
+            </option>
+          ))}
+        </SelectField>
+      )}
     </SetupSection>
   )
 }

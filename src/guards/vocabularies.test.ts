@@ -269,7 +269,6 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/components/definitions/WordLookupDialog.module.css': ['0.6rem', '0.4rem'],
       'src/common/components/feedback/FaultModal.module.css': ['0.5rem'],
       'src/common/components/feedback/GenericFeedbackPill.module.css': ['0.5rem'],
-      'src/common/components/setup/SetupCoopStyleSection.module.css': ['1rem'],
       // The gap under a checkbox row and under a date override — both moved
       // out of files already on this list, at the same values. The debt
       // travelled with the markup; it did not grow.
