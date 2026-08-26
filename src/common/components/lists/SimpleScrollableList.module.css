@@ -5,18 +5,18 @@
  * SimpleScrollableList.tsx).
  *
  * The height is stated in ROWS, so the list owns the row height and the cap
- * cannot disagree with the rows it caps. `--simpleList-rows` comes from the
- * component; a caller wanting taller rows re-points `--simpleList-row-height`.
+ * cannot disagree with the rows it caps. `--simpleScrollableList-rows` comes from the
+ * component; a caller wanting taller rows re-points `--simpleScrollableList-row-height`.
  */
-/* @@ */ .list {
-  --simpleList-row-height: 1.4rem;
-  --simpleList-pad: 0.15rem;
+/* @@ */ .scrollBox {
+  --simpleScrollableList-row-height: 1.4rem;
+  --simpleScrollableList-pad: 0.15rem;
   /* Shrinks to its rows and stops at the cap: max-height alone does both, so
      there is no flex negotiation to get wrong. The padding and border are IN
      the sum, because `box-sizing: border-box` means the cap covers them —
      leave them out and the last row is the one that gets clipped. */
   max-height: calc(
-    var(--simpleList-rows) * var(--simpleList-row-height) + 2 * var(--simpleList-pad) + 2 *
+    var(--simpleScrollableList-rows) * var(--simpleScrollableList-row-height) + 2 * var(--simpleScrollableList-pad) + 2 *
       var(--border-width-line)
   );
   overflow-y: auto;
@@ -27,7 +27,7 @@
      has no room, the surrounding body scrolls. */
   flex-shrink: 0;
   margin: 0;
-  padding: var(--simpleList-pad);
+  padding: var(--simpleScrollableList-pad);
   list-style: none;
   /* A CARD's edge, not a page divider's: this is a small box inside a surface,
      which is the lighter of the two lines the palette draws. */
@@ -35,24 +35,24 @@
   border-radius: var(--radius-md);
 }
 
-/* THE LIST OWNS THE ROW HEIGHT. Stated here rather than left to each caller's
-   type, so `--simpleList-rows` means what it says and a partial last row — which
+/* THE BOX OWNS THE ROW HEIGHT. Stated here rather than left to each caller's
+   type, so `--simpleScrollableList-rows` means what it says and a partial last row — which
    reads as the list being cut off rather than scrollable — cannot appear. */
-/* @@ */ .list > * {
-  height: var(--simpleList-row-height);
+/* @@ */ .scrollBox > * {
+  height: var(--simpleScrollableList-row-height);
 }
 
 /* Nothing found. Inside the frame, because an empty list is still a list and a
    message floating under an empty box reads as a failure instead. */
-/* @@ */ .empty {
-  height: var(--simpleList-row-height);
+/* @@ */ .emptyRow {
+  height: var(--simpleScrollableList-row-height);
   padding-inline: var(--spacer-5);
   color: var(--page-text-muted-color);
 }
 
 /* The tally under the frame, right-aligned to its edge — a footnote to the
    answer rather than a heading over it. */
-/* @@ */ .count {
+/* @@ */ .countLine {
   margin: 0;
   text-align: right;
   font-size: var(--font-size-3);

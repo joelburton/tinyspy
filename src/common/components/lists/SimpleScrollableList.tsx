@@ -34,7 +34,7 @@ type Props = {
  * `min-height` zeroed, and every one of those is a chance to be subtly wrong.
  *
  * **The height is stated in rows**, and the list owns what a row is
- * (`--simpleList-row-height`), so the cap and the rows cannot drift apart and
+ * (`--simpleScrollableList-row-height`), so the cap and the rows cannot drift apart and
  * you never see a half row at the bottom.
  */
 export function SimpleScrollableList({ children, rows, empty, count, className }: Props) {
@@ -42,12 +42,12 @@ export function SimpleScrollableList({ children, rows, empty, count, className }
   return (
     <>
       <ul
-        className={cls(styles.list, className)}
-        style={{ ['--simpleList-rows' as string]: rows }}
+        className={cls(styles.scrollBox, className)}
+        style={{ ['--simpleScrollableList-rows' as string]: rows }}
       >
-        {isEmpty && empty !== undefined ? <li className={styles.empty}>{empty}</li> : children}
+        {isEmpty && empty !== undefined ? <li className={styles.emptyRow}>{empty}</li> : children}
       </ul>
-      {count !== undefined && <p className={styles.count}>{count}</p>}
+      {count !== undefined && <p className={styles.countLine}>{count}</p>}
     </>
   )
 }
