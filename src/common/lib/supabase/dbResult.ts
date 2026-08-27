@@ -74,14 +74,21 @@ export type Envelope<T = unknown> =
       /**
        * Which FIELD a `validation` is about, from the raise's `COLUMN`.
        *
-       * A form puts the message under that field and turns it red; absent, it
-       * lands on the form's bottom line. Always exactly one field, because a
-       * raise stops at the first failure — which makes server validation
-       * incremental the way a form already is, and never wrong about whose
-       * fault it is.
+       *     'letters'   the message belongs under that field
+       *     '_'         deliberately not about one field — the form's own line
+       *     absent      the raise didn't say; a SQL-side guard catches it
        *
-       * The form plumbing that reads this isn't built yet
-       * (plans/error-system.md → Field-level validation).
+       * `_` is a real value, not a stand-in for nothing: an author who decides
+       * a validation isn't about one field says so, and that reads differently
+       * from having forgotten. It is also the form-level key in the form's
+       * error object, so the same string serves SQL, the envelope and the form
+       * (plans/areas/forms.md → F48).
+       *
+       * Always exactly one field, because a raise stops at the first failure —
+       * which makes server validation incremental the way a form already is,
+       * and never wrong about whose fault it is.
+       *
+       * The form plumbing that reads this isn't built yet.
        */
       field?: string
       meta?: Record<string, unknown>
@@ -164,53 +171,13 @@ function faultDiagnostics(where: string, bits: Record<string, unknown>): string 
 }
 
 /**
- * **Report a database failure**, from the seam. Called by `dbFetch` for the
- * three things a call site has no opinion about: the fetch never completed, the
- * response was a raw Postgres error, or the body was one of our declared
- * faults.
- *
- * Three steps, which is why it is a REPORT rather than a show: it picks the
- * words for the kind of failure this is, builds the `k=v` diagnostics line, and
- * only then hands both to `showFaultModal` for the modal. It also writes the
- * `[db] … FAULT` console line, so the screen and the log always say the same
- * thing.
- *
- * Returns nothing — by the time the caller resumes, the news is delivered.
- */
-export function reportDbFault(args: {
-  where: string
-  kind: 'offline' | 'unreachable' | 'raw' | 'declared'
-  error?: DbError
-  envelope?: Envelope
-  extra?: Record<string, unknown>
-}): void {
-  const { where, kind, error, envelope, extra } = args
-
-  const text =
-    kind === 'offline' ? ENVIRONMENTAL.offline
-      : kind === 'unreachable' ? ENVIRONMENTAL.unreachable
-        : kind === 'declared' ? (envelope?.message ?? 'Something went wrong.')
-          : (RAW_FAULT_TEXT[error?.code ?? ''] ?? error?.message ?? 'Something went wrong.')
-
-  const diagnostics = faultDiagnostics(where, {
-    kind,
-    dbcode: envelope?.dbcode ?? error?.code,
-    detail: envelope?.detail ?? error?.details ?? undefined,
-    hint: error?.hint ?? undefined,
-    ...extra,
-  })
-
-  console.error(`[db] ${logStamp()} FAULT on ${where}: ${text} (${diagnostics})`)
-  showFaultModal({ text, diagnostics })
-}
-
-/**
  * **Build an envelope for a failure the database didn't envelope itself** — a
- * raw Postgres error, or a request that never completed.
+ * raw Postgres error, or a reply no caller can read.
  *
  * Always `severity: fault`, because by construction nobody authored it. The
- * seam has already presented and logged it; this exists so the call site still
- * receives the one shape rather than a special case.
+ * words are chosen HERE rather than when the fault is reported, so everything
+ * downstream has an envelope and nothing downstream has to know what sort of
+ * failure produced it.
  */
 export function faultEnvelope(error: DbError, fallback: string, extra?: string): Envelope<never> {
   // Postgres's HINT is folded into `detail` rather than dropped. Our own raises
@@ -223,7 +190,7 @@ export function faultEnvelope(error: DbError, fallback: string, extra?: string):
   return {
     type: 'not-ok',
     severity: 'fault',
-    message: error?.message ?? fallback,
+    message: RAW_FAULT_TEXT[error?.code ?? ''] ?? error?.message ?? fallback,
     // Absent keys rather than keys holding `undefined`, so an envelope we build
     // has the same shape as one from SQL — which strips its nulls
     // (`jsonb_strip_nulls`). Otherwise the two would compare unequal over
@@ -231,6 +198,45 @@ export function faultEnvelope(error: DbError, fallback: string, extra?: string):
     ...(error?.code ? { dbcode: error.code } : {}),
     ...(detail ? { detail } : {}),
   }
+}
+
+/**
+ * The envelope for a request that never completed — the one failure where the
+ * server never spoke, so no author could have written for it.
+ *
+ * Which of the two sentences applies is decided here, at the point of failure,
+ * for the same reason as above: downstream sees an envelope, not a taxonomy.
+ */
+export function environmentalEnvelope(offline: boolean, extra?: string): Envelope<never> {
+  return {
+    type: 'not-ok',
+    severity: 'fault',
+    message: offline ? ENVIRONMENTAL.offline : ENVIRONMENTAL.unreachable,
+    ...(extra ? { detail: extra } : {}),
+  }
+}
+
+/**
+ * **Report a database failure**: write the `[db]` line, then put the modal up.
+ *
+ * It decides nothing. Whoever built the envelope already chose the words —
+ * `faultEnvelope` for a raw Postgres error, `environmentalEnvelope` for a
+ * request that never completed, the RPC's own author for a declared fault — so
+ * there is one path here and no taxonomy of failure kinds to keep in step with
+ * the envelope's own.
+ *
+ * Returns nothing: by the time the caller resumes, the news is delivered.
+ */
+export function reportDbFault(where: string, envelope: Envelope, extra?: Record<string, unknown>): void {
+  const text = envelope.type === 'not-ok' ? envelope.message : 'Something went wrong.'
+  const diagnostics = faultDiagnostics(where, {
+    severity: envelope.type === 'not-ok' ? envelope.severity : undefined,
+    dbcode: envelope.dbcode,
+    detail: envelope.detail,
+    ...extra,
+  })
+  console.error(`[db] ${logStamp()} FAULT on ${where}: ${text} (${diagnostics})`)
+  showFaultModal({ text, diagnostics })
 }
 
 /**
@@ -283,16 +289,19 @@ export async function runRpc<T>(call: PromiseLike<{ data: unknown; error: DbErro
   // becomes a fault in the same shape as any other.
   if (!isEnvelope(body)) {
     const rawBody = `rawBody: ${JSON.stringify(body)?.slice(0, 120)}`
-    reportDbFault({
-      where: 'rpc',
-      kind: 'raw',
-      error: { message: 'The server answered with an unreadable result.' },
-      extra: { rawBody },
-    })
+    const unreadable = faultEnvelope(null, 'The server answered with an unreadable result.', rawBody)
+    reportDbFault('rpc', unreadable)
     // No `dbcode` to carry — the call SUCCEEDED (a 200 with an unreadable
     // body), so there is no Postgres error. What we do know is the body, and
     // it goes into `detail` rather than living only in the console line.
-    return faultEnvelope(null, 'The server answered with an unreadable result.', rawBody)
+    return unreadable
+  }
+  // A DECLARED fault arrives HTTP 200 with an envelope, so `dbFetch` never sees
+  // it — its seam only inspects a non-2xx body. Reporting it here is what makes
+  // `severity: 'fault'` mean the same thing however the fault arose: the modal
+  // is up and the `[db]` line is written before the caller resumes.
+  if (body.type === 'not-ok' && body.severity === 'fault') {
+    reportDbFault('rpc', body)
   }
   return body as Envelope<T>
 }

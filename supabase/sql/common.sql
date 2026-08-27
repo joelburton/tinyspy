@@ -58,6 +58,19 @@ grant usage on schema common to authenticated;
 -- would be lost on a RAW error — it doesn't need to survive that trip, because
 -- the handler converts the raise to jsonb before any response is built.
 --
+-- **Every validation states its column, and '_' means "not one field".**
+--
+--   column = 'letters'   the message belongs under that field
+--   column = '_'         deliberately not about one field — the form's own line
+--   (no column)          an oversight; the guard in serverErrorKeys.test.ts fails it
+--
+-- The marker exists because `get stacked diagnostics` cannot return null for
+-- COLUMN — an absent one arrives as ''. Without '_', "the author decided this
+-- isn't about a field" and "the author forgot" would be the same value, and
+-- neither the guard nor a reader could tell them apart. '_' also travels
+-- unchanged all the way to the form's error object as its form-level key
+-- (plans/areas/forms.md → F48), so one string serves all three layers.
+--
 -- `when others` rather than `when sqlstate …` because WHEN SQLSTATE accepts
 -- only a literal code — no patterns, no variables. Anything not ours is
 -- re-raised untouched and reaches the client in Postgres's own shape, which is
@@ -107,9 +120,13 @@ as $$
     -- the message under that field and turns it red; absent, it lands on the
     -- form's bottom line. A raise stops at the first failure, so a validation
     -- is always about exactly one field.
-    'field',    field,
+    -- `nullif` because COLUMN and DETAIL arrive as '' when absent, and
+    -- jsonb_strip_nulls only removes nulls: without this every envelope would
+    -- carry empty `field` and `detail` keys as noise. '_' is a real value and
+    -- survives.
+    'field',    nullif(field, ''),
     'dbcode',   sqlstate_code,
-    'detail',   detail));
+    'detail',   nullif(detail, '')));
 $$;
 
 revoke execute on function common.ok_envelope(jsonb, text, text, jsonb) from public;
@@ -2184,7 +2201,8 @@ declare
   v_msg text; v_detail text; v_hint text; v_code text; v_col text;
 begin
   -- PN001. The player typed this, so it is theirs to fix — a validation, shown
-  -- on the dialog's own error line. The MESSAGE is what they read.
+  -- on the dialog's own error line. The MESSAGE is what they read, and COLUMN
+  -- says which field it belongs under.
   if letters is null or letters !~ '^[A-Za-z?]{2,15}$' then
     raise exception '2–15 letters, or ?'
       using errcode = 'PN001', hint = 'validation', column = 'letters',

@@ -92,6 +92,57 @@ describe('server-error keys', () => {
     expect(prose, 'a raise whose message is not a `key|detail|`').toEqual([])
   })
 
+  // ── The converted raises (plans/error-system.md) ──────────
+  //
+  // These grow as the key-shaped population above shrinks. They exist because a
+  // raise's ERRCODE, HINT and COLUMN are three unchecked strings in SQL, and
+  // getting one wrong fails where nobody looks: a typo'd errcode isn't caught
+  // by the handler and bubbles as a RAW fault wearing a plausible Postgres
+  // code, and a missing COLUMN gives a validation nowhere to land.
+  it('every validation says which field it is about', () => {
+    // '_' means "deliberately not one field". A MISSING column is what this
+    // catches, and it has to be caught at the SOURCE: `get stacked diagnostics`
+    // returns '' for an absent COLUMN, so at runtime "the author said no field"
+    // and "the author forgot" are the same value.
+    const offenders: string[] = []
+    for (const file of readdirSync(SQL_DIR).filter((f) => f.endsWith('.sql'))) {
+      const sql = readFileSync(join(SQL_DIR, file), 'utf8')
+      for (const m of sql.matchAll(/raise exception\s+'((?:[^']|'')*)'((?:[^;']|'[^']*')*);/g)) {
+        if (!/hint\s*=\s*'validation'/.test(m[2])) continue
+        if (!/column\s*=\s*'[^']*'/.test(m[2])) offenders.push(`${file}: ${m[1]}`)
+      }
+    }
+    expect(
+      offenders,
+      "a validation with no `column =` — name the field, or '_' for none",
+    ).toEqual([])
+  })
+
+  it('a validation names a real parameter of the function raising it', () => {
+    // The convention that makes the frontend half free: COLUMN names the RPC's
+    // own parameter, which the frontend already knows because it passes it. A
+    // column naming anything else would address an input that doesn't exist,
+    // and the message would vanish.
+    const offenders: string[] = []
+    for (const file of readdirSync(SQL_DIR).filter((f) => f.endsWith('.sql'))) {
+      const sql = readFileSync(join(SQL_DIR, file), 'utf8')
+      // Split on function headers so each raise is judged against ITS OWN
+      // signature rather than the file's whole vocabulary.
+      for (const fn of sql.split(/(?=create or replace function\s)/i)) {
+        const header = fn.match(/create or replace function\s+([a-z_]+\.[a-z_0-9]+)\s*\(([^)]*)\)/i)
+        if (!header) continue
+        const params = new Set(
+          header[2].split(',').map((p) => p.trim().split(/\s+/)[0]).filter(Boolean),
+        )
+        for (const m of fn.matchAll(/column\s*=\s*'([^']*)'/g)) {
+          if (m[1] === '_' || params.has(m[1])) continue
+          offenders.push(`${file}: ${header[1]} raises column='${m[1]}' — not a parameter (${[...params].join(', ')})`)
+        }
+      }
+    }
+    expect(offenders, 'a column that names no parameter of its function').toEqual([])
+  })
+
   it('every ERROR_COPY entry answers a key some file actually raises', () => {
     // Dead copy is worse than no copy: it reads as a considered decision and
     // nothing ever proves it wrong.

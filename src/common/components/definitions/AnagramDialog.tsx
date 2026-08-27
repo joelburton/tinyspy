@@ -73,20 +73,15 @@ export function AnagramDialog({ onClose }: { onClose: () => void }) {
     // round trip, then grow it again — a lot of flash for nothing.
     const res = await runRpc<Result[]>(commonDb.rpc('anagrams', { letters }))
     setSearching(false)
-    // A rejection the player can act on — the letters were malformed — puts the
-    // server's own sentence on the dialog's error line. A fault never arrives
-    // here: it was presented as a modal before this resolved, and all that is
-    // left to do is stop showing a stale answer.
     if (res.type !== 'ok') {
       setResults(null)
-      // Show whatever the server said, EXCEPT a fault — those are already on
-      // screen as a modal, and repeating them here would say it twice.
-      // Excluding rather than listing matters: `validation` (fix your letters)
-      // and `error` (a service we depend on didn't answer) are both the
-      // server's words for the player, and this dialog has one place to put
-      // words. Naming only the severities we expect would silently drop the
-      // rest.
-      setError(res.severity === 'fault' ? null : res.message)
+      // EVERYTHING goes on the line, faults included, so there is no severity
+      // test here. A fault has already interrupted with a modal — but once that
+      // is dismissed the line is the only thing left saying the search is still
+      // broken, and without it the dialog sits blank with no results and no
+      // explanation. The modal is an ADDITIONAL channel for a fault, not an
+      // alternative to this one.
+      setError(res.message)
       return
     }
     setResults(res.data)

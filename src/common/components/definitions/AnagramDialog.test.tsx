@@ -106,8 +106,10 @@ describe('AnagramDialog', () => {
     )
   })
 
-  // A fault is already a modal; repeating it on the line would say it twice.
-  it('stays silent for a fault, which is already on screen', async () => {
+  // A fault shows on the line TOO — the modal interrupts, the line persists.
+  // Without it, dismissing the modal leaves the dialog blank: no results, no
+  // explanation, no sign anything went wrong.
+  it('shows a fault on the line as well, so the state stays legible', async () => {
     const user = userEvent.setup()
     render(<AnagramDialog onClose={vi.fn()} />)
     mockRpc.mockResolvedValue({
@@ -115,7 +117,8 @@ describe('AnagramDialog', () => {
       error: null,
     })
     await user.type(screen.getByLabelText('Letters to anagram'), 'acer{Enter}')
-    await waitFor(() => expect(screen.queryByText('No words.')).not.toBeInTheDocument())
-    expect(screen.queryByText('That table is gone')).not.toBeInTheDocument()
+    await waitFor(() =>
+      expect(screen.getByText('That table is gone')).toBeInTheDocument(),
+    )
   })
 })

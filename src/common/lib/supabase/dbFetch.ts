@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { logStamp } from './realtimeDiag'
-import { isOurDbCode, reportDbFault, type DbError } from './dbResult'
+import { environmentalEnvelope, faultEnvelope, isOurDbCode, reportDbFault, type DbError } from './dbResult'
 
 /**
  * The `fetch` every Supabase call goes through — the ONE place a request that
@@ -118,7 +118,11 @@ export const dbFetch: typeof fetch = async (input, init) => {
         try {
           const body = (await res.clone().json()) as DbError
           if (!isOurDbCode(body?.code)) {
-            reportDbFault({ where: label(input, init), kind: 'raw', error: body, extra: { status: res.status } })
+            reportDbFault(
+              label(input, init),
+              faultEnvelope(body, 'The server refused the request.'),
+              { status: res.status },
+            )
           }
         } catch {
           // A non-JSON error body is itself the anomaly; the warn line above
@@ -155,10 +159,9 @@ export const dbFetch: typeof fetch = async (input, init) => {
     // component unmounting, a superseded fetch), so nobody is owed a modal.
     if (name !== 'AbortError' && seamSpeaksFor(input, init)) {
       const offline = typeof navigator !== 'undefined' && navigator.onLine === false
-      reportDbFault({
-        where: label(input, init),
-        kind: offline ? 'offline' : 'unreachable',
-        extra: { ms: Math.round(ms), thrown: `${name}: ${message}` },
+      reportDbFault(label(input, init), environmentalEnvelope(offline), {
+        ms: Math.round(ms),
+        thrown: `${name}: ${message}`,
       })
     }
 

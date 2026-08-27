@@ -1,7 +1,9 @@
 // cs-unmet
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { isEnvelope, isOurDbCode, reportDbFault, readRows, runRpc } from './dbResult'
+import {
+  environmentalEnvelope, faultEnvelope, isEnvelope, isOurDbCode, reportDbFault, readRows, runRpc,
+} from './dbResult'
 import { clearFaultsForTest, peekFaultsForTest } from '../fault/faultStore'
 
 /**
@@ -145,10 +147,16 @@ describe('runRpc — one shape, always', () => {
   // A declared fault passes through UNCHANGED, like any other envelope. The
   // modal is already up; what keeps a call site from rendering it is that it
   // bails on anything that isn't `ok`, not that we hid it.
-  it('passes a declared fault through unchanged', async () => {
+  it('passes a declared fault through unchanged, and reports it', async () => {
     const envelope = { type: 'not-ok', severity: 'fault', message: 'Broken', dbcode: 'PN500' }
     const r = await runRpc(Promise.resolve({ data: envelope, error: null }))
     expect(r).toEqual(envelope)
+    // It arrives HTTP 200, so the seam never saw it — without this the modal
+    // would never appear and `severity: 'fault'` would mean two different
+    // things depending on how the fault arose.
+    const [fault] = peekFaultsForTest()
+    expect(fault.text).toBe('Broken')
+    expect(fault.diagnostics).toContain('dbcode=PN500')
   })
 
   it('builds a fault envelope when the reply is not an envelope at all', async () => {
@@ -196,7 +204,7 @@ describe('runRpc — one shape, always', () => {
 
 describe('reportDbFault', () => {
   it('words an offline failure itself, naming no action', () => {
-    reportDbFault({ where: 'GET /rest/v1/clubs', kind: 'offline' })
+    reportDbFault('GET /rest/v1/clubs', environmentalEnvelope(true))
     const [fault] = peekFaultsForTest()
     expect(fault.text).toBe('You appear to be offline. Please refresh and try again.')
     // It must NOT claim the call did or didn't land — the link can die on the
@@ -205,34 +213,32 @@ describe('reportDbFault', () => {
   })
 
   it('puts the call in the diagnostics rather than the sentence', () => {
-    reportDbFault({ where: 'POST /rest/v1/rpc/submit_guess', kind: 'unreachable' })
+    reportDbFault('POST /rest/v1/rpc/submit_guess', environmentalEnvelope(false))
     const [fault] = peekFaultsForTest()
     expect(fault.diagnostics).toContain('POST /rest/v1/rpc/submit_guess')
     expect(fault.text).not.toContain('submit_guess')
   })
 
   it('shows a raw fault its own text, since nobody wrote one for it', () => {
-    reportDbFault({
-      where: 'POST /rest/v1/rpc/submit_guess',
-      kind: 'raw',
-      error: { code: '23514', message: 'violates check constraint "players_guesses_remaining_check"' },
-    })
+    reportDbFault(
+      'POST /rest/v1/rpc/submit_guess',
+      faultEnvelope(
+        { code: '23514', message: 'violates check constraint "players_guesses_remaining_check"' },
+        'unused',
+      ),
+    )
     const [fault] = peekFaultsForTest()
     expect(fault.text).toContain('players_guesses_remaining_check')
     expect(fault.diagnostics).toContain('dbcode=23514')
   })
 
   it('shows a declared fault the sentence its author wrote', () => {
-    reportDbFault({
-      where: 'POST /rest/v1/rpc/submit_guess',
-      kind: 'declared',
-      envelope: {
-        type: 'not-ok',
-        severity: 'fault',
-        message: 'That word is not on the board',
-        dbcode: 'PN500',
-        detail: 'guess absent from games.words',
-      },
+    reportDbFault('POST /rest/v1/rpc/submit_guess', {
+      type: 'not-ok',
+      severity: 'fault',
+      message: 'That word is not on the board',
+      dbcode: 'PN500',
+      detail: 'guess absent from games.words',
     })
     const [fault] = peekFaultsForTest()
     expect(fault.text).toBe('That word is not on the board')
