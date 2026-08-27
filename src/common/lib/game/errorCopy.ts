@@ -70,18 +70,11 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   // needs far more copy than a game does: for a club name, a username or a
   // chat message the server is the FIRST validator, not a second one. There's
   // no local check to lose a race with — these fire on ordinary use.
-  'club-name-too-long': { text: (d) => `Club name: max ${d[0]} characters` },
-  'club-name-not-alnum': { text: () => 'Club name needs a letter or digit' },
-  'club-name-start': { text: () => 'Club name must start with a letter' },
   // The detail is the HANDLE's minimum, not the name's: a two-letter name is a
   // fine name and an illegal handle.
-  'club-name-too-short': { text: (d) => `Club name: at least ${d[0]} characters` },
   // The detail is the derived HANDLE, not the name typed — two different names
   // can slugify onto one handle, and naming it is what makes the collision
   // make sense ("Friday Night" and "friday night" are both `friday-night`).
-  'club-name-taken': { text: (d) => `Club name taken (handle “${d[0]}”)` },
-  'club-too-small': { text: () => 'A club needs at least 2 members' },
-  'unknown-usernames': { text: (d) => `No such user: ${d[0]}` },
   'empty-message': { text: () => 'Nothing to send' },
   'message-too-long': { text: (d) => `Too long: max ${d[0]} characters` },
   'bad-username': { text: () => '3–15 chars: a–z, 0–9, -, starting with a letter' },

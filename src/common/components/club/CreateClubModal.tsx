@@ -1,9 +1,9 @@
 // cs-unmet
 
-import { expectedTextOrFault } from '../../lib/game/serverError'
 import { StandardForm } from '../fields/StandardForm'
 import { useState, type SubmitEvent } from 'react'
 import { db as commonDb } from '../../db'
+import { runRpc } from '../../lib/supabase/dbResult'
 import { NormalModal } from '../floating-panels/NormalModal'
 import actionRow from '../floating-panels/modalActions.module.css'
 import styles from './CreateClubModal.module.css'
@@ -134,24 +134,28 @@ export function CreateClubModal({ onCreated, onCancel }: Props) {
       .filter((s) => s.length > 0)
 
     setBusy(true)
-    // create_club returns `text` (just the handle) now — the .single()
-    // gives us a string in `data` after the schema regen.
-    const { data, error } = await commonDb
-      .rpc('create_club', {
+    const res = await runRpc<{ handle: string }>(
+      commonDb.rpc('create_club', {
         club_name: trimmed,
         member_usernames: usernames,
-      })
-      .single()
+      }),
+    )
     setBusy(false)
 
-    if (error || !data) {
-      // `create_club` raises a key for every rule it enforces, so each of them
-      // arrives here as words from ERROR_COPY.
-      setError(expectedTextOrFault(error, 'create club'))
+    if (res.type !== 'ok') {
+      // Everything the server said goes on the line. The three validations —
+      // a name already taken, a username that doesn't exist, a club of one —
+      // are the ones a player can act on; a fault has also raised a modal, and
+      // the line is what remains once that is dismissed.
+      //
+      // `res.field` says which input each validation is about
+      // (`club_name` / `member_usernames`). Nothing reads it yet: the form
+      // plumbing is plans/areas/forms.md → F48.
+      setError(res.message)
       return
     }
     // Don't bother clearing `busy` — onCreated navigates away and unmounts us.
-    onCreated(data)
+    onCreated(res.data.handle)
   }
 
   return (
@@ -196,6 +200,7 @@ export function CreateClubModal({ onCreated, onCancel }: Props) {
               )}
             </span>
           }
+          name="club_name"
           value={name}
           onChange={setName}
           disabled={busy}
@@ -207,6 +212,7 @@ export function CreateClubModal({ onCreated, onCancel }: Props) {
         />
 
         <TextField
+          name="member_usernames"
           label="Other members' usernames"
           value={usernamesInput}
           onChange={setUsernamesInput}

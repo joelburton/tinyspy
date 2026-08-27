@@ -519,7 +519,11 @@ declare
 begin
   caller_id := auth.uid();
   if caller_id is null then
-    raise exception 'not-authenticated|' using errcode = '42501',
+    -- PN002. A session can expire mid-form, so this is reachable — but there
+    -- is nothing to fix in the form, and the modal is where the player is told
+    -- what to do about it.
+    raise exception 'Signed out; try refresh'
+      using errcode = 'PN002', hint = 'fault', column = '_',
       detail = 'auth.uid() is null';
   end if;
 
@@ -921,7 +925,11 @@ declare
 begin
   caller_id := auth.uid();
   if caller_id is null then
-    raise exception 'not-authenticated|' using errcode = '42501',
+    -- PN002. A session can expire mid-form, so this is reachable — but there
+    -- is nothing to fix in the form, and the modal is where the player is told
+    -- what to do about it.
+    raise exception 'Signed out; try refresh'
+      using errcode = 'PN002', hint = 'fault', column = '_',
       detail = 'auth.uid() is null';
   end if;
 
@@ -1710,11 +1718,12 @@ grant execute on function common.delete_game(uuid) to authenticated;
 -- Members can edit the set afterward from the club-settings UI
 -- (common.set_club_gametypes), including opting INTO the opt-outs.
 
+drop function if exists common.create_club(text, text[]);
 create or replace function common.create_club(
   club_name text,
   member_usernames text[]
 )
-returns text
+returns jsonb
 language plpgsql
 security definer
 set search_path = common, public, extensions
@@ -1724,45 +1733,47 @@ declare
   new_handle text;
   resolved_ids uuid[];
   unknown_names text[];
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text;
 begin
   caller_id := auth.uid();
   if caller_id is null then
-    raise exception 'not-authenticated|' using errcode = '42501',
+    -- PN002. A session can expire mid-form, so this is reachable — but there
+    -- is nothing to fix in the form, and the modal is where the player is told
+    -- what to do about it.
+    raise exception 'Signed out; try refresh'
+      using errcode = 'PN002', hint = 'fault', column = '_',
       detail = 'auth.uid() is null';
   end if;
 
-  -- Length first, and as a clean P0001 like the two name errors below: the
-  -- table's own CHECK would raise 23514, which CreateClubPage renders verbatim
-  -- ("new row for relation \"clubs\" violates check constraint …").
+  -- PN003. The form's `maxLength` makes this unreachable, so its message is
+  -- written for whoever reads the fault, not for a player fixing a name. The
+  -- raise still earns its place over the table's own CHECK: a named condition
+  -- with a written reason and a code pointing at one line beats a 23514.
   if char_length(club_name) > 20 then
-    raise exception 'club-name-too-long|20|'
-      using errcode = 'P0001',
+    raise exception 'A club name over 20 characters reached the server'
+      using errcode = 'PN003', hint = 'fault', column = '_',
       detail = 'club name length cap';
   end if;
 
   new_handle := common.slugify_club_name(club_name);
+  -- PN004. Prevented by the form's `handleError`; see PN003 on the wording.
   if length(new_handle) = 0 then
-    raise exception 'club-name-not-alnum|'
-      using errcode = 'P0001',
+    raise exception 'A club name with no letter or digit reached the server'
+      using errcode = 'PN004', hint = 'fault', column = '_',
       detail = 'club name needs at least one alphanumeric';
   end if;
-  -- The handle CHECK regex requires a leading letter. Surface a
-  -- clean P0001 instead of letting the constraint raise 23514,
-  -- so the FE's inline error reads as a name problem ("add a
-  -- letter") rather than a database error.
+  -- PN005. The handle CHECK regex requires a leading letter; the form checks
+  -- the same rule first, so reaching this is a bug.
   if new_handle !~ '^[a-z]' then
-    raise exception 'club-name-start|'
-      using errcode = 'P0001',
+    raise exception 'A handle not starting with a letter reached the server'
+      using errcode = 'PN005', hint = 'fault', column = '_',
       detail = 'club name must begin with a letter';
   end if;
-  -- The handle CHECK's other half: 3–30 characters. The ceiling is covered by
-  -- the 20-char name cap above, but nothing covered the floor, so a two-letter
-  -- name ("Jo") walked past every check here and died on the constraint with a
-  -- raw 23514. The number is the HANDLE's minimum, which is what the message
-  -- has to talk about — a two-letter name is fine, it just can't be a handle.
+  -- PN006. The handle CHECK's other half: 3–30 characters. The form checks the
+  -- floor too, so this is a bug rather than a name problem.
   if length(new_handle) < 3 then
-    raise exception 'club-name-too-short|3|'
-      using errcode = 'P0001',
+    raise exception 'A handle under 3 characters reached the server'
+      using errcode = 'PN006', hint = 'fault', column = '_',
       detail = 'derived handle needs at least 3 characters';
   end if;
 
@@ -1781,9 +1792,11 @@ begin
   from unnest(member_usernames) as u
   left join common.profiles p on p.username = u;
 
+  -- PN007. The form cannot know who exists, so this is a real validation, and
+  -- it belongs under the usernames box.
   if array_length(unknown_names, 1) > 0 then
-    raise exception 'unknown-usernames|%|', array_to_string(unknown_names, ', ')
-      using errcode = 'P0002',
+    raise exception 'No such user: %', array_to_string(unknown_names, ', ')
+      using errcode = 'PN007', hint = 'validation', column = 'member_usernames',
       detail = 'no profile matches these usernames';
   end if;
 
@@ -1792,24 +1805,29 @@ begin
     resolved_ids := resolved_ids || caller_id;
   end if;
 
+  -- PN008. The form could check this — the only unknown is whether the caller
+  -- is already in the list — but it doesn't today, so it stays reachable.
   if coalesce(array_length(resolved_ids, 1), 0) < 2 then
-    raise exception 'club-too-small|2|'
-      using errcode = 'P0001',
+    raise exception 'A club needs at least 2 members'
+      using errcode = 'PN008', hint = 'validation', column = 'member_usernames',
       detail = 'a club needs the creator plus one';
   end if;
 
-  -- The PK on clubs.handle does collision enforcement. Catch it and re-raise
-  -- as a key, like every other rejection above: a bare unique_violation would
-  -- reach the FE as SQLSTATE 23505 and nothing else, forcing the create-club
-  -- form to test a Postgres error code to decide what to say. The key carries
-  -- the colliding handle, because that is what actually collided — two
-  -- different names can slugify to one handle.
+  -- PN009. The PK on clubs.handle is the referee: a pre-check `select` cannot
+  -- close this race, since two callers can both see the handle free. Catching
+  -- the collision and re-raising is what turns a bare 23505 into words — and it
+  -- is a VALIDATION, because picking another name is exactly what fixes it. The
+  -- message carries the colliding HANDLE, since two different names can
+  -- slugify to one.
+  --
+  -- Raising from inside this handler propagates to the function's own handler
+  -- below, like any other raise.
   begin
     insert into common.clubs (handle, name, created_by)
     values (new_handle, club_name, caller_id);
   exception when unique_violation then
-    raise exception 'club-name-taken|%|', new_handle
-      using errcode = 'P0001',
+    raise exception 'Club name taken (handle “%”)', new_handle
+      using errcode = 'PN009', hint = 'validation', column = 'club_name',
       detail = 'a club already holds this handle';
   end;
 
@@ -1827,7 +1845,15 @@ begin
   select new_handle, gametype
     from common.default_gametypes_for_club(new_handle);
 
-  return new_handle;
+  return common.ok_envelope(data => jsonb_build_object('handle', new_handle));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 
@@ -1984,7 +2010,11 @@ declare
 begin
   caller_id := auth.uid();
   if caller_id is null then
-    raise exception 'not-authenticated|' using errcode = '42501',
+    -- PN002. A session can expire mid-form, so this is reachable — but there
+    -- is nothing to fix in the form, and the modal is where the player is told
+    -- what to do about it.
+    raise exception 'Signed out; try refresh'
+      using errcode = 'PN002', hint = 'fault', column = '_',
       detail = 'auth.uid() is null';
   end if;
 
@@ -2057,7 +2087,11 @@ declare
 begin
   caller_id := auth.uid();
   if caller_id is null then
-    raise exception 'not-authenticated|' using errcode = '42501',
+    -- PN002. A session can expire mid-form, so this is reachable — but there
+    -- is nothing to fix in the form, and the modal is where the player is told
+    -- what to do about it.
+    raise exception 'Signed out; try refresh'
+      using errcode = 'PN002', hint = 'fault', column = '_',
       detail = 'auth.uid() is null';
   end if;
 
