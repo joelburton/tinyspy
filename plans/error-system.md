@@ -60,23 +60,25 @@ Three things this buys, in order of importance:
 3. **Metadata gets a home**, and it's additive — SQL can start dropping
    breadcrumbs in without a single frontend change.
 
-### The discriminator describes state, not the game's verdict
+### The discriminator is not the game's verdict
 
-The existing ad-hoc `result` values conflate two different axes:
+The existing ad-hoc `result` values mix two different things:
 
-- `duplicate` (word already played) — **nothing was written**; the call refused.
-- `incorrect` (a wrong guess) — **the guess was written**; the *game* said no.
+- `duplicate` (word already played) — the call refused it.
+- `incorrect` (a wrong guess) — the guess was recorded; the *game* said no.
 
 Both are `result` values today, and the frontend can't tell them apart
 structurally — it has to know, per game, which words mean which. So the
-discriminator answers only the question the plumbing asks — *did state change
-as requested?* — and everything game-specific moves into the payload. "Won",
-"bonus", "correct" stop being call outcomes and become what they actually are:
-facts about game state riding along.
+discriminator says only what the plumbing needs (see "The four outcomes"
+below), and everything game-specific moves into the payload as `verdict`.
+"Won", "bonus", "correct" stop being call outcomes and become what they
+actually are: facts about game state riding along.
 
-An open question: whether an idempotent no-change outcome (the second click,
-the race you lost) deserves its own discriminator value or is just a flag in
-the payload.
+This also dissolves what looked like a separate question — whether an
+idempotent no-change outcome (a second click, a race you lost) needs its own
+discriminator value. It doesn't: the server processed the call fine, so it's
+`ok`, and "nothing changed" is a verdict like any other. `connections.sql:713`
+is the live instance, where a unique-index race currently returns silently.
 
 ### Helpers raise; RPCs catch at their own boundary
 
@@ -164,22 +166,129 @@ two different wordings. Both turn out to be small:
   against `common.words` at all, so there is no server-side "not a word" to
   disagree with the frontend's.
 
-### The server states the kind; the frontend picks the surface
+### The four outcomes
 
-The author knows what sort of thing happened — a bug, an ordinary rejection, a
-validation failure — so the raise says so. This removes the safe-default
-problem: today, forgetting to write copy for a key silently classifies it, and
-under the new scheme nothing defaults.
+The vocabulary is about **what the player can do next**, not about what the
+database did. An earlier draft split on "did a row get written", which is a SQL
+fact the frontend never asks about.
 
-But **kind is not surface.** The server doesn't know which button was pressed.
-`create_game` is the live counter-example: the setup form calls it, and so does
-the in-game "New game" button, and those deliberately render differently — the
-form shows a red line, the in-game button always shows the fault look, because
-setup already built a game once so anything coming back is an outage rather
-than play.
+| | means | the player's move | surface | console |
+|---|---|---|---|---|
+| **validation-error** | the values you sent can't work, and we had to ask the server to find out | fix the input, try again | form's red line | `console.debug` |
+| **error** | your move couldn't be accepted — circumstances beat you | nothing to fix; carry on | pill | `console.warn` |
+| **fault** | a bug | nothing | modal / fault page | `console.error` |
+| **ok** | I processed your move; `verdict` says what came of it | keep playing | pill, or nothing | `console.debug` |
 
-So the server states the kind, and the frontend maps **kind + call site →
-surface**.
+**`ok` is the residual** — not a validation-error, not an error, not a fault.
+The server deliberately does *not* distinguish "that was a good move" from
+"that was a bad move": a word already on the board, a guess you already made,
+a game that has ended are all things the server processed successfully. What
+came of it is `verdict`, which only the game's own handler reads.
+
+**Only `fault` has no envelope.** The other three arrive as one, so the
+envelope's discriminator is three-valued.
+
+The console column is what makes §2's third symptom affordable: with `ok` at
+`debug`, the shared wrapper can log *every* call without drowning anything, and
+the browser's own level filter is the volume control — no custom verbose flag.
+`console.error` is already the fault level today (`serverError.ts`, `dbFetch`,
+`channelTeardown`), and `dbFetch` already uses `warn` for notable-but-not-fatal.
+
+### "The frontend should have caught this" means fault
+
+If the frontend prevents an action and the server sees it anyway, that's a bug
+in our software, not an invalid move — even when it reads like an ordinary
+rejection. Most server raises re-validate something the frontend already
+checked, so this reclassifies a great many of them.
+
+What it does to psychicnum's `submit_guess`, whose ten raise sites are 8 pills
+and 2 faults today:
+
+| raise | today | after |
+|---|---|---|
+| `game-not-found` | fault | fault |
+| `not-on-board` | fault | fault — the FE disables non-board tiles |
+| `not-a-player` | pill | fault — the FE knows the roster |
+| `you-conceded` | pill | fault — the FE knows you conceded |
+| `no-guesses-left` | pill | fault — the FE knows your budget |
+| `not-authenticated` | pill | fault — the player needs the modal's info to know what to do |
+| `game-not-in-play` | pill | error — a peer ended it while you were in flight |
+| `not-your-turn` | pill | error — see the rule below |
+| `already-guessed` | pill | error — see the rule below |
+
+Roughly a near-inversion: 3 errors and 7 faults.
+
+**The kindest-plausible-reading rule.** When a raise can be either a race or a
+bug, classify it as the gentler one. The costs are asymmetric: a pill shown for
+a real bug is a missed report, while a fault modal shown for bad timing tells a
+player the app is broken when they clicked a moment late. The second is worse.
+That's why `not-your-turn` and `already-guessed` are errors — the frontend does
+disable both, but the turn can pass and a coop teammate can take your word
+while your call is in flight.
+
+The missed report is why **errors are logged too**, at `warn`. That reverses
+today's rule in `serverError.ts` ("Expected rejections are NOT logged"), which
+would otherwise make a misclassified bug completely silent. Tagging the line by
+level keeps faults from being buried among them.
+
+**Classification can depend on mode, and the server knows the mode.**
+`already-guessed` is scoped by mode in the SQL itself — `and (g.mode = 'coop'
+or user_id = caller_id)`. In compete only your own guesses count and the
+frontend knows them all, so reaching it is a bug; in coop a teammate can take
+the word first, so it's a race. Same raise site, two classifications, and
+`g.mode` is in hand right there.
+
+That voids the argument in `serverError.ts` for why the frontend had to be the
+classifier — *"whether a player can reach a given raise depends on whether the
+FRONTEND checks the same rule first, and that changes"*. It assumed the server
+couldn't know. It can.
+
+### The tone rides along, from the vocabulary that already exists
+
+The outcome alone isn't enough: two `error`s can read very differently on
+screen — a lost race is news, a move that cost you the game is a defeat. So the
+author also picks a **tone** at the raise, from the seven values already in
+`GenericFeedbackTone` — `won`, `lost`, `near`, `warning`, `neutral`, `error`,
+`noted` — which are already shared with the board and tile vocabulary.
+
+A tightening falls out: **nothing inside an envelope ever carries the tone
+`error`.** That tone means "a real failure, not a bad move", and real failures
+are faults now, which have no envelope. So the tone `error` belongs to the
+fault route exclusively, and the envelope's tones are the five outcome families
+plus `noted`. That is the line `games.ts:163` says isn't drawn yet — *"most
+server rejections currently take `error` by default, and about twenty take
+`info`. Both are known wrong"* — and it gets drawn by route rather than by
+judgment.
+
+**Watch the word `error` doing two jobs here.** It is an *outcome* ("your move
+couldn't be accepted") and separately a *tone* ("this is a failure, not a bad
+move"), on two different axes. The combination `{outcome: error, tone: error}`
+never occurs, so nothing is ambiguous in practice — but the collision is a
+naming problem, filed in §4.
+
+**Kind is still not surface.** The server doesn't know which button was
+pressed. `create_game` is the live counter-example: the setup form calls it and
+so does the in-game "New game" button, and those deliberately render
+differently — the form shows a red line, the in-game button always shows the
+fault look, because setup already built a game once so anything coming back is
+an outage rather than play. So the server states kind and tone; the frontend
+maps **kind + call site → surface**.
+
+### Multi-row query RPCs convert too, if the frontend calls them
+
+Split by consumer. **FE-facing ones convert** —
+`common.anagrams`, `crosswords.library_for_club`, and the
+`next_puzzle_for_club` / `puzzle_for_date` pairs. The rule is structural
+("FE-facing ⇒ envelope"), not "converts if it can reject": five of the six
+are pure reads today, but `common.anagrams` already raises
+`bad-anagram-input` — whose copy is a real user-facing line — and a
+conditional rule would silently turn the next such validation into a fault.
+Converting also closes a hole unique to this shape: a `returns table`
+function that falls off the end yields **zero rows, silently**, and zero rows
+is a legitimate answer, so nothing can tell "no matches" from "never ran".
+The cost is the generated row types, traded knowingly. **Edge-function-fed
+ones stay as they are** (`candidate_words`, `pick_seed`, `matching_words`,
+and the rest) — different consumer, no fault surface, Deno reads rows fine.
 
 ### What survives on the frontend
 
@@ -204,45 +313,33 @@ them.
 
 ## 4. Still open
 
-- **How a deliberate rejection is told from a fault inside the catch block.**
-  The message's key shape (`already-guessed|`) works and needs no edits to
-  existing raises; a dedicated SQLSTATE is sturdier but means touching every
-  raise. Undecided.
-- **The exact envelope keys and the discriminator vocabulary.** Deliberately
-  not settled here.
-- **Whether the idempotent no-change case earns its own discriminator value.**
-- **Multi-row query RPCs.** Split by consumer. **FE-facing ones convert** —
-  `common.anagrams`, `crosswords.library_for_club`, and the
-  `next_puzzle_for_club` / `puzzle_for_date` pairs. The rule is structural
-  ("FE-facing ⇒ envelope"), not "converts if it can reject": five of the six
-  are pure reads today, but `common.anagrams` already raises
-  `bad-anagram-input` — whose copy is a real user-facing line — and a
-  conditional rule would silently turn the next such validation into a fault.
-  Converting also closes a hole unique to this shape: a `returns table`
-  function that falls off the end yields **zero rows, silently**, and zero rows
-  is a legitimate answer, so nothing can tell "no matches" from "never ran".
-  The cost is the generated row types, traded knowingly. **Edge-function-fed
-  ones stay as they are** (`candidate_words`, `pick_seed`, `matching_words`,
-  and the rest) — different consumer, no fault surface, Deno reads rows fine.
-- **Sequencing.** Per-game, one at a time, the way the CSS sprint works — the
-  envelope spec'd once up front, then games converted individually.
-- **The pgTAP cost — it isn't de-JSON.** Of 2,379 assertions, 1,683 (71%) read
-  table state and never touch a return value, so they're untouched. The JSON
-  handling is concentrated in ~347 temp-table setup lines, which all converge
-  on one shape: `create temp table g as select (x.create_game(…)->>'id')::uuid
-  as id` — and every downstream `(select id from g)` stays as it is. The
-  `::uuid` cast is mandatory (`->>` yields text) and forgetting it is the thing
-  that will bite.
+**Settled since the first draft**, recorded here because the reasoning matters:
+the catch block discriminates by **SQLSTATE**, not by the message. An early
+draft proposed matching the message's key shape (`already-guessed|`) on the
+grounds that it needed no edits — but once the MESSAGE became player-facing
+prose there is no key shape left to match, and the prose migration visits all
+442 raise sites anyway, so adding an `errcode` in the same edit is free. Using
+`when sqlstate <…>` rather than `when others` also means a fault never enters
+the handler at all: no re-raise, no filter that could be wrong.
 
-  **The real cost is that `throws_ok` stops being the right verb.** 366
-  assertions currently pin a SQLSTATE plus an exact key — `'P0001',
-  'not-your-turn|'` — against a call that will no longer throw. Both halves
-  change: the verb becomes an equality check on the envelope, the expected
-  value becomes prose. That's the single largest chunk of work in this plan,
-  bigger than the RPCs. A `pg_temp` helper (`pg_temp.rejects(sql, text, desc)`)
-  absorbs the JSON so no individual test does de-JSON and the conversion is a
-  one-line swap per assertion — the suite already leans on `pg_temp` helpers
-  everywhere.
+Genuinely open:
+
+- **The names.** The envelope's keys, the SQLSTATE letters, and whether `ok` is
+  the right word for the residual outcome. Deliberately unsettled. One known
+  collision to resolve: **`error` is both an outcome and a tone**, on different
+  axes — `{outcome: error, tone: error}` never occurs, so it's unambiguous in
+  practice, but one of the two wants a different word.
+- **Whether the tone rides in its own SQLSTATE per value, or in `HINT`.**
+  SQLSTATE-per-tone fails loudly — a typo'd code isn't caught, so it bubbles as
+  a fault — while a typo'd `HINT` string yields a bogus tone quietly. `HINT`
+  reads better at the raise site. Either way it wants a guard test pinning the
+  code↔tone table.
+- **Transient contention.** A deadlock (`40P01`) or serialization failure
+  (`40001`) is neither a bug nor a broken server, and the right answer is
+  usually a silent retry rather than a fault. It's the one member of the
+  no-envelope class where "fault" is wrong. Vanishingly rare here —
+  `submit_guess` takes a single `FOR UPDATE` on the game row, so concurrent
+  submits queue rather than deadlock — and deliberately deferred.
 
 ---
 
@@ -281,12 +378,13 @@ begin
 
   … build the board, insert the game, seat the players …
 
-  return { result: ok, data: { id: new_id } };
+  return { outcome: ok, data: { id: new_id } };
 
-exception when <a deliberate rejection> then
-  -- One block. It has never heard of any specific key: the message and the
-  -- kind ride out of the raise itself. Anything else keeps bubbling.
-  return { result: rejected, kind: <from the raise>,
+exception when <any deliberate outcome code> then
+  -- One block. It has never heard of any specific condition: the message, the
+  -- outcome and the tone all ride out of the raise itself. A fault's code
+  -- isn't in this list, so a fault never even enters here.
+  return { outcome: <from the sqlstate>, tone: <from the sqlstate>,
            text: <the message>, detail: <the DETAIL, for the console> };
 end $$;
 ```
@@ -295,27 +393,27 @@ What crosses the wire:
 
 | case | envelope |
 |---|---|
-| success | `{ result: ok, data: { id: "…uuid…" } }` |
-| too few players | `{ result: rejected, kind: validation, text: "A game needs at least two players" }` |
-| bad setup value | `{ result: rejected, kind: validation, text: "Pick how many guesses each player gets" }` |
+| success | `{ outcome: ok, data: { id: "…uuid…" } }` |
+| too few players | `{ outcome: validation-error, text: "A game needs at least two players" }` |
+| bad setup value | `{ outcome: validation-error, text: "Pick how many guesses each player gets" }` |
 | a check constraint blew up | *(nothing returns — the exception bubbles as a fault)* |
 
 **The setup form** (`SetupGameModal`) reads it as:
 
 ```
-if result is ok        → onStarted(data.id)
-if kind is validation  → red line in the form, text as-is
-if kind is fault       → fault modal
-if no reply at all     → environmental table ("Offline", "Server; try refresh")
+outcome ok               → onStarted(data.id)
+outcome validation-error → red line in the form, text as-is
+no envelope at all       → fault modal, or the environmental table when the
+                           server never spoke ("Offline", "Server; try refresh")
 ```
 
 **The in-game "New game" button** (`PlayArea`) calls the *same* RPC and maps
-the same envelope differently — setup already built a game once, so a rejection
-here is an outage, not play:
+the same envelope differently — setup already built a game once, so anything
+other than success here is an outage, not play:
 
 ```
-if result is ok        → swap to the new game
-anything else          → fault look, whatever the kind says
+outcome ok               → swap to the new game
+anything else            → fault look, whatever the outcome says
 ```
 
 Same server answer, two presentations. That's the kind-vs-surface split: the
@@ -348,24 +446,30 @@ begin
       using errcode = <fault>, detail = 'guess absent from games.words';
   end if;
 
+  -- The FE knows your budget, so reaching this is a bug, not a bad move.
   if caller_remaining <= 0 then
     raise exception 'No guesses left'
-      using errcode = <rejection>, detail = 'budget spent';
+      using errcode = <fault>, detail = 'budget spent';
   end if;
 
+  -- Coop only: a teammate can take the word while your call is in flight.
+  -- In compete the FE knows every guess that counts, so the same condition
+  -- is a bug. `g.mode` is right here, so the raise can say which.
   if <already guessed in scope> then
     raise exception 'Already guessed'
-      using errcode = <rejection>, detail = 'word already in the guess log';
+      using errcode = case when g.mode = 'coop' then <error/warning> else <fault> end,
+            detail = 'word already in the guess log';
   end if;
 
   … write the guess row, adjust budgets and counts …
 
-  return { result: ok,
+  return { outcome: ok,
            data: { verdict: <hit or miss>, found_all: <bool> },
            meta: { guesses_remaining: caller_remaining } };
 
-exception when <a deliberate rejection> then
-  return { result: rejected, kind: <from the raise>, text: <the message>, … };
+exception when <any deliberate outcome code> then
+  return { outcome: <from the sqlstate>, tone: <from the sqlstate>,
+           text: <the message> };
 end $$;
 ```
 
@@ -373,20 +477,22 @@ What crosses the wire:
 
 | case | envelope |
 |---|---|
-| a hit | `{ result: ok, data: { verdict: hit }, meta: { guesses_remaining: 4 } }` |
-| a miss | `{ result: ok, data: { verdict: miss }, meta: { guesses_remaining: 4 } }` |
-| out of budget | `{ result: rejected, kind: rejection, text: "No guesses left" }` |
-| word already guessed | `{ result: rejected, kind: rejection, text: "Already guessed" }` |
-| word not on the board | *(bubbles as a fault — the frontend disables those tiles, so reaching this means something is broken)* |
+| a hit | `{ outcome: ok, data: { verdict: hit }, meta: { guesses_remaining: 4 } }` |
+| a miss | `{ outcome: ok, data: { verdict: miss }, meta: { guesses_remaining: 4 } }` |
+| game ended mid-flight | `{ outcome: error, tone: noted, text: "Game over" }` |
+| already guessed (coop) | `{ outcome: error, tone: warning, text: "Already guessed" }` |
+| already guessed (compete) | *(bubbles as a fault — the FE knows your own guesses)* |
+| out of budget | *(bubbles as a fault — the FE knows your budget)* |
+| word not on the board | *(bubbles as a fault — the FE disables those tiles)* |
 
 **The board** (`BoardCol`) reads it as:
 
 ```
-if result is ok        → pill from data.verdict — green "Correct" / red "Incorrect"
-                         (terminal transitions still arrive via realtime, not here)
-if kind is rejection   → ordinary pill, text as-is
-if kind is fault       → fault modal
-if no reply at all     → environmental table
+outcome ok      → pill from data.verdict — green "Correct" / red "Incorrect"
+                  (terminal transitions still arrive via realtime, not here)
+outcome error   → ordinary pill, text as-is, in the tone the server sent
+no envelope     → fault modal, or the environmental table if the server
+                  never spoke
 ```
 
 Three things to notice in this example:
@@ -442,3 +548,21 @@ messages into the raises with a kind → add the catch block → convert that
 game's pgTAP (including swapping `throws_ok` for the rejection helper) → run
 `supabase/tests/<game>` → fix. When the last game lands, `ERROR_COPY` drops to
 the environmental entries and the old `serverError.ts` machinery goes.
+
+**The pgTAP cost — it isn't de-JSON.** Of 2,379 assertions, 1,683 (71%) read
+table state and never touch a return value, so they're untouched. The JSON
+handling is concentrated in ~347 temp-table setup lines, which all converge
+on one shape: `create temp table g as select (x.create_game(…)->>'id')::uuid
+as id` — and every downstream `(select id from g)` stays as it is. The
+`::uuid` cast is mandatory (`->>` yields text) and forgetting it is the thing
+that will bite.
+
+**The real cost is that `throws_ok` stops being the right verb.** 366
+assertions currently pin a SQLSTATE plus an exact key — `'P0001',
+'not-your-turn|'` — against a call that will no longer throw. Both halves
+change: the verb becomes an equality check on the envelope, the expected
+value becomes prose. That's the single largest chunk of work in this plan,
+bigger than the RPCs. A `pg_temp` helper (`pg_temp.rejects(sql, text, desc)`)
+absorbs the JSON so no individual test does de-JSON and the conversion is a
+one-line swap per assertion — the suite already leans on `pg_temp` helpers
+everywhere.
