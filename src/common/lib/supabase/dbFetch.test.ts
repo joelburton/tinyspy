@@ -15,6 +15,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { dbFetch } from './dbFetch'
+import { clearFaultsForTest, peekFaultsForTest } from '../fault/faultStore'
 
 const realFetch = globalThis.fetch
 
@@ -100,5 +101,82 @@ describe('dbFetch — requests that DID reach the server', () => {
     )))
     const res = await dbFetch('https://x.supabase.co/rest/v1/rpc/submit_word', { method: 'POST' })
     expect((await res.json()).message).toBe('BITCH cannot be played on this board')
+  })
+})
+
+/**
+ * The FAULT SEAM (plans/error-system.md → "Faults and environmental failures
+ * are presented centrally").
+ *
+ * These pin the rule that makes every converted call site simpler: a call site
+ * never has to ask "did we hear back at all?", never words a network problem,
+ * and never calls presentFault. If this seam stops presenting, nothing else in
+ * the app notices — the failure would be silent, which is why it is tested here
+ * rather than left to a call site's own test.
+ */
+describe('dbFetch — the fault seam', () => {
+  beforeEach(() => {
+    clearFaultsForTest()
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    vi.spyOn(console, 'debug').mockImplementation(() => {})
+  })
+
+  it('presents an environmental fault when the request never completed', async () => {
+    stubFetch(() => Promise.reject(new TypeError('Load failed')))
+    await expect(dbFetch('https://x.test/rest/v1/clubs')).rejects.toThrow()
+    const [fault] = peekFaultsForTest()
+    expect(fault.text).toMatch(/refresh and try again/i)
+    expect(fault.diagnostics).toContain('/rest/v1/clubs')
+  })
+
+  // An abort is US cancelling our own request — a component unmounting, a
+  // superseded fetch. Nobody is owed a modal for that, and one would appear on
+  // ordinary navigation.
+  it('says nothing when WE aborted the request', async () => {
+    const abort = new DOMException('The operation was aborted.', 'AbortError')
+    stubFetch(() => Promise.reject(abort))
+    await expect(dbFetch('https://x.test/rest/v1/clubs')).rejects.toThrow()
+    expect(peekFaultsForTest()).toHaveLength(0)
+  })
+
+  // Auth is deliberately outside the seam: a 400 from /auth/v1/ is usually a
+  // user-facing condition the sign-in screen already handles (expired link, bad
+  // OTP), and a blocking modal would be wrong.
+  it('leaves auth alone', async () => {
+    stubFetch(() => Promise.reject(new TypeError('Load failed')))
+    await expect(dbFetch('https://x.test/auth/v1/token')).rejects.toThrow()
+    expect(peekFaultsForTest()).toHaveLength(0)
+  })
+
+  it('presents a raw fault for a Postgres error nobody authored', async () => {
+    stubFetch(() =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({ code: '23514', message: 'violates check constraint "guesses_check"' }),
+          { status: 400 },
+        ),
+      ),
+    )
+    await dbFetch('https://x.test/rest/v1/rpc/submit_guess', { method: 'POST' })
+    const [fault] = peekFaultsForTest()
+    expect(fault.text).toContain('guesses_check')
+    expect(fault.diagnostics).toContain('dbcode=23514')
+  })
+
+  // Reading the body must not consume it — every caller downstream still needs
+  // the stream. This is the whole reason for `clone()`.
+  it('leaves the response body readable by the caller', async () => {
+    stubFetch(() =>
+      Promise.resolve(new Response(JSON.stringify({ code: '23514', message: 'boom' }), { status: 400 })),
+    )
+    const res = await dbFetch('https://x.test/rest/v1/rpc/submit_guess', { method: 'POST' })
+    await expect(res.json()).resolves.toEqual({ code: '23514', message: 'boom' })
+  })
+
+  it('stays quiet on success', async () => {
+    stubFetch(() => Promise.resolve(new Response('[]', { status: 200 })))
+    await dbFetch('https://x.test/rest/v1/clubs')
+    expect(peekFaultsForTest()).toHaveLength(0)
   })
 })

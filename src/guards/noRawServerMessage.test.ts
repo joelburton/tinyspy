@@ -41,6 +41,12 @@ const ALLOWED = new Map<string, string>([
   // The classifier itself, and the wrapper that feeds it.
   ['src/common/lib/game/serverError.ts', 'defines the classification'],
   ['src/common/lib/game/callRpc.ts', 'documents the rule in a comment'],
+  // Reads `.message` for exactly one case: a RAW FAULT — a Postgres error
+  // nobody wrote a sentence for. Showing its own text is the deliberate design
+  // there, because the alternative is "something went wrong" with the diagnosis
+  // thrown away. Anything we authored arrives as an envelope and is read from
+  // `message` on that, not here.
+  ['src/common/lib/supabase/dbResult.ts', "shows a raw fault's own text, since nobody wrote one for it"],
   // Reads the message to build a CallError for the classifier — the opposite of
   // rendering it.
   ['src/common/hooks/game/useWordSubmit.ts', 'normalizes a thrown rejection into a CallError'],

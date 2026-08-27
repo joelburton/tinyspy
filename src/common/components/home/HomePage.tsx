@@ -7,8 +7,8 @@ import { SelectionList } from '../lists/SelectionList'
 import { cls } from '../../lib/util/cls'
 import { useTabRing } from '../../hooks/input/useTabRing'
 import { db as commonDb } from '../../db'
-import { faultMessage } from '../../lib/game/serverError'
 import { presentFault } from '../../lib/fault/faultStore'
+import { readRows } from '../../lib/supabase/dbResult'
 import { logStamp } from '../../lib/supabase/realtimeDiag'
 import { useProfile } from '../../hooks/session/useProfile'
 import { useRealtimeRefetch } from '../../hooks/realtime/useRealtimeRefetch'
@@ -92,35 +92,44 @@ export function HomePage({ session }: Props) {
     channelPrefix: 'home-clubs',
     id: session.user.id,
     load: async ({ mounted }) => {
-      const { data, error } = await commonDb
-        .from('clubs')
-        .select('handle, name, is_solo')
-        .order('is_solo', { ascending: false })
-        .order('created_at', { ascending: false })
+      const result = await readRows(
+        commonDb
+          .from('clubs')
+          .select('handle, name, is_solo')
+          .order('is_solo', { ascending: false })
+          .order('created_at', { ascending: false }),
+      )
       if (!mounted()) return
-      // Both arms below are FAULTS, not empty states, and the reason is a site
-      // invariant: `common.claim_username` materializes a solo club atomically
-      // with the profile, so a signed-in user always has at least that one. No
-      // clubs therefore means the load failed or the solo club is gone from the
-      // database — their account is broken either way, and the app has one way
+      // A FAILED LOAD needs nothing here. The fault modal is already on screen
+      // and the `[db]` line is already written — the seam did both before this
+      // resumed (plans/error-system.md). What is left is the bail-out: record
+      // that the load failed so the muted line under the list can say something
+      // true. No classifying, no wording, no presentFault.
+      if (result.type !== 'ok') {
+        setLoad('failed')
+        return
+      }
+      setClubs(result.data)
+      setLoad('loaded')
+      // ZERO ROWS is a fault, and it's ours to raise, because it is a site
+      // invariant the server has no opinion about: `common.claim_username`
+      // materializes a solo club atomically with the profile, so a signed-in
+      // user always has at least that one. An empty list means the solo club is
+      // gone from the database — the account is broken, and the app has one way
       // to say broken (docs/ui.md → Faults: a blocking modal, not a pill).
+      //
+      // This is the general rule, not a special case: zero rows is a legitimate
+      // protocol answer, so only the caller can know it's impossible here — and
+      // whoever detects a condition writes its words.
       //
       // Fired on EVERY load, not once per mount (Joel, 2026-08-22). The list
       // refetches on realtime membership events, so a persistent outage will
       // re-fire — which is correct here: nothing about this state improves by
       // being mentioned once.
-      if (error) {
-        const msg = faultMessage(error, 'clubs')
-        presentFault({ text: msg.text, diagnostics: msg.diagnostics })
-        setLoad('failed')
-        return
-      }
-      setClubs(data ?? [])
-      setLoad('loaded')
-      if ((data ?? []).length === 0) {
+      if (result.data.length === 0) {
         presentFault({
           text: "Something's wrong with your account — you should always have at least your own solo club.",
-          diagnostics: `clubs — key=no-clubs detail="loaded 0 clubs; every profile has a solo club" — ${logStamp()}`,
+          diagnostics: `clubs — no-clubs detail="loaded 0 clubs; every profile has a solo club" — ${logStamp()}`,
         })
       }
     },
