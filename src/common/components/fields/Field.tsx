@@ -34,11 +34,7 @@ type Props = {
    *
    *  A setup form does NOT use this — its errors collect at the bottom, beside
    *  the Start they gate. This is for a form where the
-   *  problem belongs to one entry.
-   *
-   *  Resolved by the field COMPONENT, not here: it owns the control, and the
-   *  same value has to set the control's `aria-invalid` — which is what draws
-   *  the ring. See `useFieldError`. */
+   *  problem belongs to one entry. */
   error?: string | null
   /** A GROUP of controls rather than one — a swatch list, a checkbox list. It
    *  renders `<fieldset>` / `<legend>`, which is the element's actual job, and

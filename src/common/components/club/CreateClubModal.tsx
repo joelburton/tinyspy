@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { StandardForm } from '../fields/StandardForm'
-import { FORM_ERROR_KEYNAME, useFormValues, type FormErrors } from '../fields/formState'
+import { FORM_ERROR_KEYNAME, type FormErrors } from '../fields/formState'
 import { useState } from 'react'
 import { db as commonDb } from '../../db'
 import { runRpc } from '../../lib/supabase/dbResult'
@@ -113,26 +113,6 @@ type Values = { club_name: string; member_usernames: string }
 
 const EMPTY: Values = { club_name: '', member_usernames: '' }
 
-/**
- * The derived URL handle, beside the "Club name" caption, so the validation —
- * which is really about the handle, not the name — reads sensibly ("JB!" → "jb",
- * too short).
- *
- * A component rather than an expression because the value it reads belongs to
- * the form now. That is the whole cost of the form owning its state, and it
- * buys a self-contained piece of UI in exchange for an inline ternary.
- */
-function LiveClubNameFromFormValue() {
-  const { club_name } = useFormValues<Values>()
-  if (!club_name.trim()) return null
-  const slug = slugify(club_name)
-  return (
-    <span className={styles.handleHint}>
-      {slug ? `(becomes handle: ${slug})` : '(empty)'}
-    </span>
-  )
-}
-
 export function CreateClubModal({ onCreated, onCancel }: Props) {
   const [errors, setErrors] = useState<FormErrors>({})
   const [busy, setBusy] = useState(false)
@@ -206,50 +186,70 @@ export function CreateClubModal({ onCreated, onCancel }: Props) {
           either field submit — implicit submission needs the submit button in
           the form, and typing a club name and pressing Enter is the fast path
           this dialog is for. */}
-      <StandardForm initialValues={EMPTY} errors={errors} onSubmit={onSubmit}>
-        {/* maxLength mirrors the CHECK on common.clubs.name — the same
-            belt-and-braces the handle field uses (ClaimHandleScreen). The
-            server is the authority; this just means you can't type a name
-            only to be told no. */}
-        <TextField
-          name="club_name"
-          label={
-            <span className={styles.labelRow}>
-              Club name
-              <LiveClubNameFromFormValue />
-            </span>
-          }
-          disabled={busy}
-          placeholder="Joel and Leah"
-          maxLength={CLUB_NAME_MAX}
-          autoFocus
-          required
-          entryHelp={`Up to ${CLUB_NAME_MAX} characters — it headlines the club page.`}
-        />
+      <StandardForm initialValues={EMPTY} onSubmit={onSubmit}>
+        {({ values, set }) => (
+          <>
+            {/* maxLength mirrors the CHECK on common.clubs.name — the same
+                belt-and-braces the handle field uses (ClaimHandleScreen). The
+                server is the authority; this just means you can't type a name
+                only to be told no. */}
+            <TextField
+              name="club_name"
+              label={
+                <span className={styles.labelRow}>
+                  Club name
+                  {/* The derived URL handle, so the validation — which is
+                      really about the handle, not the name — reads sensibly.
+                      Hidden until something is typed; "(empty)" when the name
+                      has no slug-able characters at all (e.g. "!!!"). */}
+                  {values.club_name.trim() && (
+                    <span className={styles.handleHint}>
+                      {slugify(values.club_name)
+                        ? `(becomes handle: ${slugify(values.club_name)})`
+                        : '(empty)'}
+                    </span>
+                  )}
+                </span>
+              }
+              value={values.club_name}
+              onChange={(v) => set('club_name', v)}
+              error={errors.club_name}
+              disabled={busy}
+              placeholder="Joel and Leah"
+              maxLength={CLUB_NAME_MAX}
+              autoFocus
+              required
+              entryHelp={`Up to ${CLUB_NAME_MAX} characters — it headlines the club page.`}
+            />
 
-        <TextField
-          name="member_usernames"
-          label="Other members' usernames"
-          disabled={busy}
-          placeholder="alice, bob"
-          multiline
-          rows={2}
-          entryHelp="Comma or space separated. You're added automatically."
-        />
+            <TextField
+              name="member_usernames"
+              label="Other members' usernames"
+              value={values.member_usernames}
+              onChange={(v) => set('member_usernames', v)}
+              error={errors.member_usernames}
+              disabled={busy}
+              placeholder="alice, bob"
+              multiline
+              rows={2}
+              entryHelp="Comma or space separated. You're added automatically."
+            />
 
-        {/* The form's own line, for a message that named no field. Each
-            field's own message renders under that field, not here. */}
-        <FailureLine>{errors[FORM_ERROR_KEYNAME]}</FailureLine>
+            {/* The form's own line, for a message that named no field. Each
+                field's own message renders under that field, not here. */}
+            <FailureLine>{errors[FORM_ERROR_KEYNAME]}</FailureLine>
 
-        <div className={actionRow.modalActions}>
-          <CancelButton onClick={onCancel} disabled={busy} />
-          <StandardButton
-            name={busy ? 'Creating…' : 'Create club'}
-            type="submit"
-            weight="primary"
-            disabled={busy}
-          />
-        </div>
+            <div className={actionRow.modalActions}>
+              <CancelButton onClick={onCancel} disabled={busy} />
+              <StandardButton
+                name={busy ? 'Creating…' : 'Create club'}
+                type="submit"
+                weight="primary"
+                disabled={busy}
+              />
+            </div>
+          </>
+        )}
       </StandardForm>
     </NormalModal>
   )
