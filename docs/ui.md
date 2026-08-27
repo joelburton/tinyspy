@@ -152,7 +152,7 @@ where they are.* Mechanics:
   anything and `GenericFeedbackPill` has no fault branch (guarded by
   `faultStore.test.ts` — a fault can never reach a slot). The reserved
   below-board slot simply never shows one.
-- **Form/panel surfaces** use `formFailureText`: an expected rejection
+- **Form/panel surfaces** use `expectedTextOrFault`: an expected rejection
   returns its sentence for the surface's own red line (the setup dialog's
   validation, the club-name rules, the AI panels' "the model declined —
   try again"); a fault pops the modal and the surface resets. The two page

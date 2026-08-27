@@ -21,7 +21,7 @@ finding left.** `floating-panels` and `forms` both landed, which is what the
 `simple-page` and `club-page` are still ahead (plan §7 → The areas, in order),
 and `simple-page`'s roster lost `CreateClubPage` when F36 took it.
 
-**Three subjects.** Forty-four findings, FORTY-THREE
+**Three subjects, plus the 2026-08-26 dependency audit (F45–F55).** Fifty-five findings, FORTY-THREE
 resolved (F1, F2, F3, F4, F5, F6, F6.1, F7, F8, F9, F10, F11, F12, F14, F15,
 F16, F17, F18, F19, F20, F22, F23, F24, F25, F26, F27, F28, F29, F30, F31, F32,
 F33, F34, F35, F36, F37, F38, F39, F40, F41, F42, F43, F44) — where "resolved" includes
@@ -34,9 +34,11 @@ grep, and its resolutions sit twenty to forty lines below the line that names
 the finding. Twice in one day a heading was mistaken for the current state —
 F24's cost a wrong empty-state shipped to the homepage, F33's cost a wrong
 answer about what was still deferred. A heading with no status prefix now means
-OPEN, and there is one.
+OPEN, and there are eleven.
 
-**One open: F21 (`homepage-no-vitest`).**
+**Eleven open: F21 (`homepage-no-vitest`), and F45–F54 — the 2026-08-26 audit of
+the dependency lib + hooks, which is its own section below. F55 was the one of
+those eleven against an OWN file, and it is fixed.**
 
 Closed 2026-08-24: **F3** (`home-keyboard-spec`), when F38 dissolved its
 blocking question rather than answering it; **F38** (`selection-lists`), whose
@@ -68,6 +70,26 @@ Agreed with Joel 2026-08-22 when the area opened, then stamped `cs-audited`:
 | `src/common/components/home/HomePage.tsx` | 313 lines, of which ~120 are comment |
 | `src/common/components/home/HomePage.module.css` | 71 lines, 8 rules, 4 raw values |
 | `e2e/home-keyboard.e2e.ts` | the page's only test — and it is red (F3) |
+
+**Re-agreed 2026-08-26**, when the area reopened onto a great deal of new common
+machinery. Two membership calls, both Joel's:
+
+- **`CreateClubModal.tsx` + `.module.css` are OWN FILES**, not dependencies —
+  the area built them (F36), so the area reads them. This supersedes the line
+  filing them under Dependencies in the F36 commit.
+- **`e2e/faults.e2e.ts` is NOT in this area**, though the area wrote it (F23).
+  It is named for the fault modal on purpose, and its own docstring says so:
+  *"this is about faults, not about the homepage"*.
+
+So the own-file list is five:
+
+| file | |
+|---|---|
+| `src/common/components/home/HomePage.tsx` | 245 lines |
+| `src/common/components/home/HomePage.module.css` | 6 rules |
+| `e2e/home-keyboard.e2e.ts` | green since F3 closed |
+| `src/common/components/club/CreateClubModal.tsx` | added 2026-08-26 by F36 |
+| `src/common/components/club/CreateClubModal.module.css` | " |
 
 Two subjects were added later, each bringing its own files:
 
@@ -2076,56 +2098,70 @@ accident.
 
 ## Dependencies — found, listed, and LEFT
 
-Reached by reading the three files above and stamped `cs-found`. §21: being found
-is not a claim on attention; none of these is audited here, and whether any
-becomes its own area is Joel's call.
+**Re-derived from scratch 2026-08-26** (Joel: *"we already had an audit for
+homepage area, but we've built a lot of common machinery now. list the files
+that would be found for this area (do this fresh)"*), by tracing the own files'
+imports and the global class names they write, one level. **33 files, against 21
+on the 2026-08-22 list** — 11 lib + hooks, 13 component files, 7 stylesheets
+(the themes row is two), 2 e2e helpers. `CreateClubModal`'s two are not counted
+here; they are own files.
 
-**React**, all under `src/common/`
+§21: being found is not a claim on attention; none of these is audited here, and
+whether any becomes its own area is Joel's call. **Stamps did not move** — every
+file here stays `cs-unmet` under the 2026-08-26 reset, which makes finding one
+a listing rather than a claim.
 
-- `lib/routing/Link.tsx`
-- `lib/routing/router.ts`
-- `lib/util/cls.ts`
-- `db.ts`
-- `hooks/session/useProfile.ts`
-- `hooks/realtime/useRealtimeRefetch.ts`
-- `hooks/input/useSwallowTab.ts`
-- `hooks/input/useAppShortcuts.tsx`
-- `hooks/account/useAccountMenuSection.ts`
-- `components/text/Dot.tsx`
-- `components/text/Dot.module.css`
-- `components/branding/PuzpuzpuzWordmark.tsx`
-- `components/branding/PuzpuzpuzWordmark.module.css`
-- `components/branding/PuzpuzpuzLogo.tsx`
-- `components/branding/PuzpuzpuzLogo.module.css`
-- `components/menu/Menu.tsx`
-- `components/menu/Menu.module.css`
-- ~~`components/menu/MenuTrigger.tsx`~~ · ~~`.module.css`~~ — deleted by F12
-- `components/page-header/PageHeaderMenu.tsx` — added by F12
-- `components/club/CreateClubModal.tsx` + `.module.css` — added by F36. Home
-  renders it, so it is a dependency in the §21 sense; **its stamp stayed
-  `cs-unmet`** rather than moving to `cs-found`, under the 2026-08-26 reset that
-  makes every file unmet until its own audit is redone. Its area is whichever
-  one takes the normal modals, beside `EditClubModal` and `SetupGameModal`
-- `components/page-header/PageHeader.tsx`
-- `components/page-header/PageHeader.module.css`
+**The 33, one line each.**
 
-**Stylesheets, reached through the global class names the page writes**
+1. `src/common/lib/routing/router.ts`
+2. `src/common/lib/util/cls.ts`
+3. `src/common/db.ts`
+4. `src/common/lib/game/serverError.ts` — `faultMessage`
+5. `src/common/lib/fault/faultStore.ts` — `presentFault`
+6. `src/common/lib/supabase/realtimeDiag.ts` — `logStamp`
+7. `src/common/hooks/session/useProfile.ts`
+8. `src/common/hooks/realtime/useRealtimeRefetch.ts`
+9. `src/common/hooks/input/useTabRing.ts`
+10. `src/common/hooks/input/useAppShortcuts.tsx`
+11. `src/common/hooks/account/useAccountMenuSection.ts`
+12. `src/common/components/lists/SelectionList.tsx`
+13. `src/common/components/lists/SelectionList.module.css`
+14. `src/common/components/buttons/StandardButton.tsx`
+15. `src/common/components/buttons/StandardButton.module.css`
+16. `src/common/components/page-header/PageHeader.tsx`
+17. `src/common/components/page-header/PageHeader.module.css`
+18. `src/common/components/page-header/PageHeaderMenu.tsx` — `Menu` is second level, behind it
+19. `src/common/components/text/Dot.tsx`
+20. `src/common/components/text/Dot.module.css`
+21. `src/common/components/branding/PuzpuzpuzWordmark.tsx`
+22. `src/common/components/branding/PuzpuzpuzWordmark.module.css`
+23. `src/common/components/branding/PuzpuzpuzLogo.tsx`
+24. `src/common/components/branding/PuzpuzpuzLogo.module.css`
+25. `src/common/utilities.css` — `.card`
+26. `src/common/patterns/page.css` — `.pageHeaderAndMainArea`, `.pageMain`, `.pageMain-fills`
+27. `src/common/patterns/badge.css` — `.badge`
+28. `src/common/patterns/heading.css` — `.heading-with-controls`
+29. `src/common/base.css` — `h1` / `h3`, `--page-padding-y`, the vocabularies
+30. `src/common/themes/daylight.css` — `--flex-color-1` (F10 — was `--chrome-badge-color`)
+31. `src/common/themes/midnight.css` — the same token's midnight value
+32. `e2e/helpers/fixtures.ts` — `createClubWithMembers`
+33. `e2e/helpers/session.ts` — `signIn`
 
-| file | what the page takes from it |
+**Seven files LEFT the list**, and each names the machinery that replaced it —
+which is the measure of what the areas below this one built:
+
+| gone | why |
 |---|---|
-| `common/utilities.css` | `.card`, `.muted` |
-| `common/patterns/list.css` | `.item-list`, `.item-row` |
-| `common/patterns/button.css` | `.button`, `.secondary`, `.button-small` |
-| `common/patterns/badge.css` | `.badge` |
-| `common/patterns/heading.css` | `.heading-with-controls` |
-| `common/patterns/focus-ring.css` | `.kb-cursor` |
-| `common/base.css` | `h1` / `h3`, `--page-padding-y` |
-| `common/themes/daylight.css` · `midnight.css` | `--flex-color-1` (F10 — was `--chrome-badge-color`) |
+| `lib/routing/Link.tsx` | the page writes no link at all now; F36 took the last one |
+| `hooks/input/useSwallowTab.ts` | `useTabRing` |
+| `components/menu/MenuTrigger.tsx` + `.module.css` | deleted by F12 |
+| `components/menu/Menu.tsx` + `.module.css` | still reached, but second level, behind `PageHeaderMenu` |
+| `patterns/list.css` | deleted by F38 — `<SelectionList>` |
+| `patterns/button.css` | deleted by `forms` — `StandardButton.module.css` |
+| `patterns/focus-ring.css` (`.kb-cursor`) | `<SelectionList>` writes it; the page does not |
 
-**e2e**
-
-- `e2e/helpers/fixtures.ts` — `createClubWithMembers`
-- `e2e/helpers/session.ts` — `signIn`
+`.muted` also left `utilities.css`'s row: the page's three no-rows sentences are
+`<SelectionList>`'s `empty` prop now, not a `<p>` the page paints.
 
 Two dependencies are worth a sentence each, and neither is a finding against
 them:
@@ -2138,6 +2174,189 @@ them:
 - **`homeTitle.png` is a raster master** — 840px, drop shadow and hand-drawn
   outlines that don't survive a trace, opaque near-white ground. Step 11 already
   records that the wordmark's near-whites fail on a dark page.
+
+## Audit — dependency files 1–11 (lib + hooks)
+
+Joel, 2026-08-26: *"audit 1-11"* — the lib-and-hooks half of the found list,
+read in full. **These take this area's numbering** (F45 …) rather than starting
+their own: they are findings against this area's reading, which is what an
+F-number addresses. §21's "dependencies are listed, not audited" is a DEFAULT
+about attention, not a prohibition — an area may be told to audit one.
+
+Eleven files, 1,394 lines. Eleven findings. **F55 is fixed** (it was the only
+one against a file this area owns); the other ten belong to the areas that own
+their files and are recorded here, not acted on.
+
+**F45 · `logstamp-in-realtimediag` · `logStamp()` is app-wide and lives in the
+realtime diagnostics module.** It is the `HH:MM:SS.mmm` format for THREE console
+families (`[rt]`, `[db]`, `[ui]`) and for the fault modal's on-screen
+diagnostics line. Measured — nine readers: `App.tsx`, `ClubPage`, `HomePage`,
+`GamePage`, `PlayAreaErrorBoundary`, `PlayAreaMountLog`, `lib/game/serverError`,
+`lib/supabase/dbFetch`, and `realtimeDiag` itself. Two of the nine are realtime.
+So the homepage imports a realtime-diagnostics module in order to timestamp a
+fault about an empty club list. The other three exports there (`rtLog`,
+`rtVerbose`, `instrumentChannel`) are genuinely realtime's.
+
+> resolution:
+
+**F46 · `orphaned-docstrings` · Two docstrings sit above the wrong function, in
+two different files — and both have the same tell: two docstrings stacked with
+nothing between them.**
+
+- `lib/game/serverError.ts:140-157` — "Narrate a FAULT to the console under
+  `[db]`" describes `logFault`, which is at line 186. It sits above `faultBits`
+  (164), which carries its own docstring immediately below it. So the file's
+  longest explanation of the logging rule ("Expected rejections are NOT logged")
+  is attached to the string builder, and `logFault` reads as undocumented.
+- `hooks/session/useProfile.ts:90-95` — "Reflect a just-saved color across every
+  consumer in the tab" describes `setProfileColor` (107). It sits above
+  `useCurrentProfile` (103), which also has its own docstring below it.
+
+Neither is a stale comment; both are correct prose one function too early.
+
+> resolution:
+
+**F47 · `cls-thirty-lines` · The number arguing for hand-rolling `cls` is off by
+seven times.** `lib/util/cls.ts` says clsx/classnames are "overkill for the
+handful of conditional class composition sites we have — and we'd rather not add
+a dependency for ~30 lines of usage". Measured: **203 call sites across 116
+files.** The DECISION still looks right — the whole file is 5 lines of code and
+the app has no dependency to track — but "a handful" is now the wrong reason for
+it, and it is the kind of number a reader checks.
+
+> resolution:
+
+**F48 · `router-query-params` · The router says query parsing is "not needed
+yet"; three places parse it.** `lib/routing/router.ts:37` lists it under "What's
+NOT here". Today: `themes/loadTheme.ts:44` reads `?theme=`, `ClubPage.tsx:275`
+reads `?new=`, and `ClubPage.tsx:302` STRIPS the query with `navigate(pathname,
+true)` once it has read it. And `usePath()` returns `window.location.pathname`
+alone, so a component that cares about the query cannot subscribe to it —
+ClubPage reads `window.location.search` directly instead. Whether the router
+should carry the query is a decision; the docstring asserting nobody needs it is
+just false.
+
+> resolution:
+
+**F49 · `profile-load-failure-silent` · A failed profile fetch is silent, and
+F14 already ruled on exactly this shape.** `useProfile.ts:63-70` console.errors
+and returns; the page then greets you "Welcome!" with no name and the account
+menu row says "Account", indefinitely. F14 made the homepage's other
+identity-shaped failure — zero clubs — a FAULT, on the site-invariant argument
+that `claim_username` materializes a solo club atomically with the profile. The
+profile row is the OTHER half of that same atomic write, so the same argument
+reaches it: if it isn't there, or can't be read, the account is broken and the
+app has one way to say so. The two paths disagree today.
+
+Worth keeping when this is decided: the failed load clears `loadedFor`, so a
+later mount retries. That is deliberate and documented, and it means the fault
+would fire per retry rather than once — which is the behavior F14 chose anyway
+(*"their account is hopelessly fucked. showing it every time is simplest"*).
+
+> resolution:
+
+**F50 · `offsetparent-fixed` · `useTabRing`'s on-screen test is false for a
+`position: fixed` stop.** `onScreen()` is `el.offsetParent !== null`, which is
+what makes a hidden stop stop being a stop (the club page's mobile column) — but
+per CSSOM `offsetParent` is ALSO null for a fixed-position element. Children of
+a fixed element are fine (their offsetParent is that element), so this is narrow:
+it bites only when the STOP ITSELF is fixed. Two candidates on the tab-rings
+roster are: `Menu`'s popup and the mobile `InfoSheet`, both `position: fixed` in
+their own modules. Latent today — the only two callers are `HomePage` and
+`ClubPage`, neither fixed — and it fails SILENTLY (a ring whose stops all read as
+off-screen consumes Tab and moves nothing), which is the part that makes it
+worth writing down now.
+
+> resolution:
+
+**F51 · `ring-vs-trap` · `CreateClubModal` depends on a guard marked
+TRANSITIONAL, and nothing pins it.** While the modal is open the innermost ring
+is still the HOMEPAGE's, because a panel declares none. Tab inside the modal
+works only because `useTabRing.ts:91` bails when the event target is inside
+`[data-floating-panel]`. Traced: `useFocusTrap` listens on the panel and the ring
+on `window`, so the panel's listener runs first and the event still reaches the
+ring — if that bail went away, every Tab inside the modal would also move focus
+to the clubs list behind the scrim, not just the two wrap-around presses. The
+comment at that line says the guard "goes when the panels and dialogs declare
+rings of their own" (plans/tab-rings.md → The leaks). So the modal built today
+owes a ring at that moment, and no test says so.
+
+> resolution:
+
+**F52 · `four-of-eleven-untested` · Four of the eleven have no test at all**:
+`realtimeDiag.ts`, `useProfile.ts`, `useTabRing.ts`, `useAccountMenuSection.ts`.
+(`cls.ts` has no test of its own but is exercised by two suites and both CSS
+guards.)
+
+**`useTabRing` is the one worth arguing about.** It is the mechanism
+plans/tab-rings.md was written to produce, it is load-bearing on both pages that
+use it, and every behavior it claims is jsdom-shaped: innermost wins, an empty
+ring consumes Tab rather than ignoring it, Shift+Tab enters at the far end after
+a stray click, a modified chord is left to the browser. F50 and F51 are both
+things a test would have pinned.
+
+> resolution:
+
+**F53 · `useappshortcuts-doc-says-two-pages` · The hook's docstring names two
+pages and then documents the flag that exists for the third.** It opens
+"available on any page that has the chat companion + the logo menu (ClubPage and
+GamePage — the 'real' pages, as opposed to auth / setup screens)", and twelve
+lines later explains `chat: false`, which exists FOR HomePage and is why the
+homepage has `?` and `~`. Three pages call it. The first sentence predates the
+flag and contradicts the paragraph below it.
+
+> resolution:
+
+**F54 · `account-menu-archaeology` · `useAccountMenuSection`'s docstring spends
+its second paragraph on what the code used to be.** "These used to be a separate
+`<UserMenu>` pinned to the top-right … that fixed chip forced
+`GamePage.module.css`'s header to carry `margin-right: 2rem` …" — and the third
+paragraph refers to "the separation `docs/ui.md` records for the OLD UserMenu".
+This is F17's rule (Joel: *"all these examples are junk; remove"*) applied to a
+file F17 did not reach: a comment explains the code that is THERE. What survives
+the trim is the live reason — the row is a submenu because account items are a
+different mental model from "things you can do to this game" — which stands on
+its own without the removed control.
+
+`docs/ui.md` carries the same paragraph and is step 12's business, not this
+finding's.
+
+> resolution:
+
+**F55 · `createclub-fault-to-form-line` · DONE 2026-08-26 — built · Found while reading `serverError.ts`,
+and it is against an OWN file: `CreateClubModal` routes a fault to the form's
+red line, where its sibling pops the modal.** `CreateClubModal.tsx:157` calls
+`failureText`, which returns words and nothing else; `EditClubModal` calls
+`expectedTextOrFault`, which presents the fault MODAL and returns null. So a dead
+connection while creating a club prints "create club: Server; try refresh" into
+the form, and the same failure while editing one raises a fault. `serverError.ts`
+is explicit that `expectedTextOrFault` is the form/panel helper and that the
+string-shaped `failureText` is for sinks that cannot carry the fault look.
+
+Not introduced by F36 — the page did this before the modal did. `ClubPage:545`
+and `:562` (load club / load members) have the same shape and are `club-page`'s.
+
+> **resolution: fixed — `expectedTextOrFault`** (Joel, 2026-08-26: *"failing to
+> create a club should be a 'fault': faults should pop up the fault modal.
+> change to this."*).
+>
+> One import and one call. `setError(expectedTextOrFault(error, 'create club'))`
+> takes both outcomes: a string for an expected rejection, and `null` once the
+> fault has gone to the modal — which clears the form's line, so the form says
+> nothing behind the thing carrying the news. That is the reset `serverError.ts`
+> describes at the helper's declaration.
+>
+> **THE TWO CODE ARMS ABOVE IT ARE UNCHANGED, and that is the boundary worth
+> stating**: `23505` (name taken) and `23514` (the handle CHECK backstop) still
+> write their sentences into the form, as does the local `handleError` check
+> before the call. Those are answers a player acts on by picking another name —
+> Joel's standing rule is that validation and answers stay in-form — so they are
+> not failures in the sense this finding is about. If a taken name should pop
+> the modal too, that is a different call and one word changes it.
+>
+> Everything else now behaves exactly as `EditClubModal` already did: dead
+> connection, unknown key, a raise nobody wrote copy for. Suite unchanged at
+> 1996 of 1997.
 
 ## Predicted test breaks
 

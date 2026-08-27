@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { failureMessage, formFailureText } from '../../common/lib/game/serverError'
+import { failureMessage, expectedTextOrFault } from '../../common/lib/game/serverError'
 import { callRpc } from '../../common/lib/game/callRpc'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { IconHideSolution, IconNewGame, IconPrint, IconRestart, IconReveal, IconScratchpad } from '../../common/components/icons'
@@ -471,7 +471,7 @@ export function PlayArea(ctx: GamePageCtx) {
       // ai-explain-declined / ai-truncated, the model RAN — stays in the
       // explain dialog as its sentence; a fault pops the modal and closes the
       // dialog (there is nothing to show in it).
-      const text = formFailureText(res.error, 'explain')
+      const text = expectedTextOrFault(res.error, 'explain')
       setExplain(text ? { kind: 'error', message: text } : null)
       return
     }
@@ -481,7 +481,7 @@ export function PlayArea(ctx: GamePageCtx) {
       return
     }
     if (!payload?.explanation) {
-      const text = formFailureText(
+      const text = expectedTextOrFault(
         { message: payload?.error ?? 'no explanation in the response', answered: true },
         'explain',
       )

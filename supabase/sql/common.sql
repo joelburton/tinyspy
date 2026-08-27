@@ -1645,6 +1645,16 @@ begin
       using errcode = 'P0001',
       detail = 'club name must begin with a letter';
   end if;
+  -- The handle CHECK's other half: 3–30 characters. The ceiling is covered by
+  -- the 20-char name cap above, but nothing covered the floor, so a two-letter
+  -- name ("Jo") walked past every check here and died on the constraint with a
+  -- raw 23514. The number is the HANDLE's minimum, which is what the message
+  -- has to talk about — a two-letter name is fine, it just can't be a handle.
+  if length(new_handle) < 3 then
+    raise exception 'club-name-too-short|3|'
+      using errcode = 'P0001',
+      detail = 'derived handle needs at least 3 characters';
+  end if;
 
   -- Resolve usernames → user_ids; collect any that didn't map.
   --
@@ -1678,11 +1688,20 @@ begin
       detail = 'a club needs the creator plus one';
   end if;
 
-  -- The PK on clubs.handle does collision enforcement; we let
-  -- the exception propagate so the caller gets SQLSTATE 23505
-  -- (unique_violation), surfaced by the FE as "that name is taken."
-  insert into common.clubs (handle, name, created_by)
-  values (new_handle, club_name, caller_id);
+  -- The PK on clubs.handle does collision enforcement. Catch it and re-raise
+  -- as a key, like every other rejection above: a bare unique_violation would
+  -- reach the FE as SQLSTATE 23505 and nothing else, forcing the create-club
+  -- form to test a Postgres error code to decide what to say. The key carries
+  -- the colliding handle, because that is what actually collided — two
+  -- different names can slugify to one handle.
+  begin
+    insert into common.clubs (handle, name, created_by)
+    values (new_handle, club_name, caller_id);
+  exception when unique_violation then
+    raise exception 'club-name-taken|%|', new_handle
+      using errcode = 'P0001',
+      detail = 'a club already holds this handle';
+  end;
 
   insert into common.clubs_members (club_handle, user_id)
   select new_handle, member_id from unnest(resolved_ids) as member_id;

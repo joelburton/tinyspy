@@ -34,7 +34,7 @@ begin;
 
 set search_path = common, public, extensions;
 
-select plan(26);
+select plan(27);
 
 -- Cast: ada/bea/cade are the three in-club personas this test
 -- uses (creating clubs, being members, exercising the handle-
@@ -99,6 +99,17 @@ select throws_ok(
 select lives_ok(
   $$ select common.create_club('Twenty Chars Exactly', array['bea']) $$,
   'create_club: exactly 20 characters is accepted'
+);
+
+-- The handle floor (3). Its ceiling is covered by the 20-char name cap, but
+-- nothing covered the floor: a two-letter name passed every check in the RPC
+-- and died on the table's CHECK with a raw 23514, which the create-club form
+-- had a branch to translate. The raise is what makes that branch unnecessary.
+select throws_ok(
+  $$ select common.create_club('Jo', array['bea']) $$,
+  'P0001',
+  'club-name-too-short|3|',
+  'create_club: a name whose handle is under 3 characters is rejected'
 );
 
 select throws_ok(
@@ -184,16 +195,19 @@ select ok(
 -- Block 5: handle collision
 -- ============================================================
 -- cade attempts to create a club whose name slugifies to the same
--- handle as bea's 'Friday Night' → 'friday-night'. Unique constraint
--- raises SQLSTATE 23505 (unique_violation).
+-- handle as bea's 'Friday Night' → 'friday-night'. The PK's
+-- unique_violation is caught and re-raised as a key, so the FE reads
+-- words out of ERROR_COPY rather than testing for SQLSTATE 23505.
+-- The detail is the HANDLE that collided, which is the part a differently
+-- spelled name shares.
 
 select pg_temp.as_user('cade3333-3333-3333-3333-333333333333');
 
 select throws_ok(
   $$ select common.create_club('friday night', array['ada','bea']) $$,
-  '23505',
-  null,
-  'create_club: handle collision raises unique_violation'
+  'P0001',
+  'club-name-taken|friday-night|',
+  'create_club: handle collision raises club-name-taken with the handle'
 );
 
 -- ============================================================

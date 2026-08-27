@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { faultMessage, formFailureText } from '../../common/lib/game/serverError'
+import { faultMessage, expectedTextOrFault } from '../../common/lib/game/serverError'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { IconNewGame, IconPrint, IconRestart } from '../../common/components/icons'
 import type { GenericFeedbackMsg, GamePageCtx, Member } from '../../common/lib/games'
@@ -309,7 +309,7 @@ export function PlayArea({
       // Split by surface rule (docs/ui.md → Faults): an EXPECTED answer (the
       // ai-* keys with copy) stays on the panel's red line; a fault pops the
       // modal and the panel resets to idle.
-      const text = formFailureText(res.error, 'suggest')
+      const text = expectedTextOrFault(res.error, 'suggest')
       setSuggest(text ? { status: 'error', message: text } : { status: 'idle' })
       return
     }
@@ -318,7 +318,7 @@ export function PlayArea({
       // A 200 whose body isn't the contract is a fault too — through the
       // classifier (answered: a 2xx arrived), which logs the [db] line and
       // pops the modal.
-      const text = formFailureText(
+      const text = expectedTextOrFault(
         { message: payload?.error ?? 'suggest returned an unexpected body', answered: true },
         'suggest',
       )

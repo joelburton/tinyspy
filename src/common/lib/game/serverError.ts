@@ -263,16 +263,23 @@ export function faultMessage(error: CallError, action: string): GenericFeedbackM
 }
 
 /**
- * The failure for a FORM or PANEL surface: an EXPECTED rejection returns its
- * text for the surface's own red line (validation and answers stay in-form —
- * Joel's rule); a fault/transport presents the fault MODAL and returns null,
- * so the surface shows nothing and resets itself. One call, both outcomes:
+ * **The text for an EXPECTED rejection — or, for anything else, a FAULT
+ * MODAL and `null`.** The name is the documentation: both outcomes are in it,
+ * because the second one is a side effect a call site would otherwise have to
+ * be told about in a comment.
  *
- *     const text = formFailureText(error, 'club')
- *     if (text) setError(text)          // validation — the form's line
- *     else …reset local state…          // fault — the modal has it
+ * An expected rejection is a rule the player can act on — the name is taken,
+ * the club needs two members — and its words belong on the surface's own red
+ * line (validation and answers stay in-form). A fault or a transport failure is
+ * neither, so it goes where every fault goes, and `null` comes back: nothing
+ * for the line, because the modal already has the news.
+ *
+ *     setError(expectedTextOrFault(error, 'club'))
+ *
+ * That single line is the whole idiom — `null` clears the line for free. Test
+ * the result only when a fault also has local state to unwind.
  */
-export function formFailureText(error: CallError, action: string): string | null {
+export function expectedTextOrFault(error: CallError, action: string): string | null {
   const msg = failureMessage(error, action)
   if (msg.fault) {
     presentFault({ text: msg.text, diagnostics: msg.diagnostics })

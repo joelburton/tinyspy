@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { failureText } from '../../lib/game/serverError'
+import { expectedTextOrFault } from '../../lib/game/serverError'
 import { StandardForm } from '../fields/StandardForm'
 import { useState, type SubmitEvent } from 'react'
 import { db as commonDb } from '../../db'
@@ -44,8 +44,13 @@ function slugify(name: string): string {
  * Validate the handle a name would slugify to, against `common.clubs`'
  * CHECK (`^=?[a-z][a-z0-9-]{2,29}$`): start with a letter, then 2–29
  * more url-safe chars (3–30 total). Returns a friendly message, or null
- * if the handle is valid. Without this, a too-short name (e.g. "Jo")
- * surfaces the raw Postgres constraint name instead of guidance.
+ * if the handle is valid.
+ *
+ * A LOCAL PRE-EMPT, not the only guard: `create_club` raises a key for each of
+ * these rules, so a name that gets here anyway comes back with words rather
+ * than a constraint name. What this buys is an answer without a round trip,
+ * and a message that can name the derived handle — the server sees a handle
+ * and never knows which name produced it.
  */
 function handleError(slug: string): string | null {
   if (/^[a-z][a-z0-9-]{2,29}$/.test(slug)) return null
@@ -140,22 +145,9 @@ export function CreateClubModal({ onCreated, onCancel }: Props) {
     setBusy(false)
 
     if (error || !data) {
-      const code = (error as { code?: string } | null)?.code
-      // 23505 = unique_violation on the clubs.handle PK. Surface it as
-      // a friendly "name is taken" instead of the raw "duplicate key"
-      // text.
-      if (code === '23505') {
-        setError(
-          `That name is taken (handle "${previewSlug}" exists in this database). Pick a different name.`,
-        )
-      } else if (code === '23514') {
-        // check_violation — the handle CHECK (or similar). handleError
-        // catches the common cases above, but this is the backstop so a
-        // raw constraint name never reaches the user.
-        setError('That club name can’t be used — please try a different one.')
-      } else {
-        setError(failureText(error, 'create club'))
-      }
+      // `create_club` raises a key for every rule it enforces, so each of them
+      // arrives here as words from ERROR_COPY.
+      setError(expectedTextOrFault(error, 'create club'))
       return
     }
     // Don't bother clearing `busy` — onCreated navigates away and unmounts us.

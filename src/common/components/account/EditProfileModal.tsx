@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { formFailureText } from '../../lib/game/serverError'
+import { expectedTextOrFault } from '../../lib/game/serverError'
 import { useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { db as commonDb } from '../../db'
@@ -56,7 +56,7 @@ export function EditProfileModal({ session, onSaved, onCancel }: Props) {
       setBusy(false)
       // Split by surface rule: validation ("That username is taken") stays on
       // the form's line; a fault pops the modal and the line stays empty.
-      setError(formFailureText(rpcError, 'profile'))
+      setError(expectedTextOrFault(rpcError, 'profile'))
       return
     }
     setProfileColor(selected) // live-update the menu dot + any reader

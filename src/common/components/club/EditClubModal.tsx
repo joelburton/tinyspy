@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { formFailureText } from '../../lib/game/serverError'
+import { expectedTextOrFault } from '../../lib/game/serverError'
 import { useState } from 'react'
 import { db as commonDb } from '../../db'
 import { games } from '../../../games'
@@ -86,7 +86,7 @@ export function EditClubModal({
       setBusy(false)
       // Split by surface rule: the club-name rules' keys show their ERROR_COPY
       // sentences on the form's line; a fault pops the modal.
-      setError(formFailureText(rpcError, 'club'))
+      setError(expectedTextOrFault(rpcError, 'club'))
       return
     }
     // Don't bother clearing `busy` — onSaved unmounts us.

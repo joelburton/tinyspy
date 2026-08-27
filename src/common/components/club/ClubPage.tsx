@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { failureText, formFailureText } from '../../lib/game/serverError'
+import { failureText, expectedTextOrFault } from '../../lib/game/serverError'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { db as commonDb } from '../../db'
@@ -491,7 +491,7 @@ export function ClubPage({ handle, session }: Props) {
     if (error) {
       // Split by surface rule: an expected rejection stays on the list's error
       // line; a fault pops the modal (the line stays empty).
-      setStartError(formFailureText(error, 'delete game'))
+      setStartError(expectedTextOrFault(error, 'delete game'))
       throw error  // bubble to the card so it returns from 'deleting' to 'idle'
     }
     // Surface a transient toast in the header's status slot so

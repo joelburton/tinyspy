@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { formFailureText } from '../../lib/game/serverError'
+import { expectedTextOrFault } from '../../lib/game/serverError'
 import { StandardForm } from '../fields/StandardForm'
 import { useState, type SubmitEvent } from 'react'
 import { db as commonDb } from '../../db'
@@ -134,7 +134,7 @@ export function ClaimHandleScreen({ onClaimed, email }: Props) {
       } else {
         // Split by surface rule: username-claimed| / bad-username| show their
         // ERROR_COPY sentences on the form's line; a fault pops the modal.
-        setError(formFailureText(rpcError, 'username'))
+        setError(expectedTextOrFault(rpcError, 'username'))
       }
       return
     }

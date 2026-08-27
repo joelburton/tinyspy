@@ -386,7 +386,7 @@ board**. The rejections are lopsided by length: short bases fail for being too g
 
   Two keys rather than one because the fixes differ — too many wants a *longer* starter, too
   few a *different* one. Both carry copy in `errorCopy.ts` and land on the **setup dialog's
-  own error line** (`formFailureText` → `failureMessage` → `ERROR_COPY`), not the below-board
+  own error line** (`expectedTextOrFault` → `failureMessage` → `ERROR_COPY`), not the below-board
   pill and not the fault modal.
 - **A malformed base is checked FIRST**, before any dictionary query, and returns
   `bad-custom-base` — no copy, so it faults. Without that guard `m` matches most of the

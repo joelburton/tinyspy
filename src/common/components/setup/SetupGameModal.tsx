@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { formFailureText } from '../../lib/game/serverError'
+import { expectedTextOrFault } from '../../lib/game/serverError'
 import { Suspense, useState } from 'react'
 import { MODE_LABEL, type GameManifest, type Member, type RichMessage as RichMessageType } from '../../lib/games'
 import { NormalModal } from '../floating-panels/NormalModal'
@@ -196,7 +196,7 @@ export function SetupGameModal({
       setError(
         Array.isArray(result.error)
           ? result.error
-          : formFailureText(result.error, 'new game'),
+          : expectedTextOrFault(result.error, 'new game'),
       )
       return
     }
