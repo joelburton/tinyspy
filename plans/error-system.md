@@ -1123,7 +1123,7 @@ select pg_temp.envelope_is(
 
 ## 7. The conversion roster
 
-**139 entries. 12 done, 5 edge functions deferred, 122 to go.** Cross them off
+**139 entries. 13 done, 5 edge functions deferred, 121 to go.** Cross them off
 here as they land.
 
 An entry is one RPC or one table read **per area**, so the same name in two
@@ -1161,7 +1161,8 @@ identifier — a shape nothing has exercised yet.
 
 #### Auth
 
-- [ ] `claim_username` · RPC
+- [x] `claim_username` · RPC — PN017 is the sprint's first caught UNIQUE-as-referee
+  after create_club's; PN018 is the first `dbcode` a call site branches on
 - [ ] `profiles` · read (2 call sites)
 
 #### Common

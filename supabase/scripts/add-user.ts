@@ -246,7 +246,12 @@ async function main() {
     const claimed = await asThem
       .schema('common')
       .rpc('claim_username', { desired: HANDLE, chosen_color: color })
+    // The RPC answers with the result envelope (plans/error-system.md), so a
+    // REFUSAL arrives HTTP 200 with `error` null — checking only `error` here
+    // would report success for a taken username.
+    const env = claimed.data as { type?: string; message?: string } | null
     if (claimed.error) throw new Error(`claim_username: ${claimed.error.message}`)
+    if (env?.type !== 'ok') throw new Error(`claim_username: ${env?.message ?? 'unreadable reply'}`)
   } catch (err) {
     const reason = err instanceof Error ? err.message : String(err)
     // claim_username is one plpgsql function, so it's all-or-nothing: a

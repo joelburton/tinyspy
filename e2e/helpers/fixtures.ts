@@ -76,7 +76,14 @@ async function createMembers(names: string[]): Promise<E2EMember[]> {
     const claimed = await asUser(session.access_token)
       .schema('common')
       .rpc('claim_username', { desired: username, chosen_color: 'blue' })
+    // An envelope, so a refusal comes back HTTP 200 with `error` null — see
+    // plans/error-system.md. Checking `error` alone would let a fixture build a
+    // member who has no profile.
+    const env = claimed.data as { type?: string; message?: string } | null
     if (claimed.error) throw new Error(`claim_username(${username}): ${claimed.error.message}`)
+    if (env?.type !== 'ok') {
+      throw new Error(`claim_username(${username}): ${env?.message ?? 'unreadable reply'}`)
+    }
 
     members.push({ username, userId: session.user.id, session })
   }

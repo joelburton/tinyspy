@@ -358,9 +358,11 @@ already handles those once the profile exists.
 
 All RPCs in `common` are `security definer` and granted only to the `authenticated` role.
 
-### `common.claim_username(desired text, chosen_color text) → text`
+### `common.claim_username(desired text, chosen_color text) → jsonb`
 
-Atomically creates this caller's profile (with the chosen player color — required, palette-validated; no server-side default), solo club (`=<username>`), solo-club membership, and clubs_gametypes seeds. Called once per user on first sign-in via `<ClaimHandleScreen>`. Returns the claimed username. Reject reasons in [Username claim flow](#username-claim-flow) above.
+Atomically creates this caller's profile (with the chosen player color — required, palette-validated; no server-side default), solo club (`=<username>`), solo-club membership, and clubs_gametypes seeds. Called once per user on first sign-in via `<ClaimHandleScreen>`. Returns the result envelope (`plans/error-system.md`) with `data.username`.
+
+Its outcomes: **PN017 validation** — that username is taken, the one thing here a player can act on and the one the form cannot know, caught from the UNIQUE constraint that referees the race. **PN016 error** — this profile already has a username (a second tab, a double submit). **PN013/PN014/PN015 faults** — not signed in, a username the screen's own regex would have refused, a color outside the palette; the last two are unreachable from the app, so their messages are written for whoever reads the fault. **PN018 fault** — the `auth.users` row behind the JWT is gone (a stale token after a `db:reset`); `<ClaimHandleScreen>` reads that code and signs the user out, the one place a call site branches on a `dbcode`, and it does so to pick a recovery rather than a severity.
 
 ### `common.create_club(club_name text, member_usernames text[]) → text`
 

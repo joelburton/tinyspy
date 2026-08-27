@@ -35,6 +35,9 @@ set search_path = common, public, extensions;
 
 select plan(20);
 
+-- The envelope assertions only; setup.psql is skipped for the reason above.
+\ir ../_shared/envelope.psql
+
 -- pg_temp.as_user lives in _shared/setup.psql, but we're skipping
 -- it. Inline a minimal copy so each subtest can switch sessions.
 create function pg_temp.as_user(uid uuid) returns void
@@ -83,11 +86,10 @@ select is(
 select set_config('request.jwt.claims', '', true);
 select set_config('role', 'postgres', true);
 
-select throws_ok(
-  $$ select common.claim_username('fia', 'blue') $$,
-  '42501',
-  'not-authenticated|',
-  'claim_username: unauthenticated raises 42501'
+select pg_temp.envelope_is(
+  common.claim_username('fia', 'blue'),
+  '{"type": "not-ok", "severity": "fault", "dbcode": "PN013", "message": "Signed out; try refresh"}'::jsonb,
+  'claim_username: no auth.uid() is a fault'
 );
 
 -- ============================================================
@@ -97,60 +99,53 @@ select throws_ok(
 select pg_temp.as_user('f1a66666-6666-6666-6666-666666666666');
 
 -- Too short (must be 3+ chars)
-select throws_ok(
-  $$ select common.claim_username('ab', 'blue') $$,
-  'P0001',
-  'bad-username|',
+select pg_temp.envelope_is(
+  common.claim_username('ab', 'blue'),
+  '{"type": "not-ok", "severity": "fault", "dbcode": "PN014", "message": "A username in the wrong format reached the server"}'::jsonb,
   'claim_username: 2-char username rejected'
 );
 
 -- Starts with digit (must start with letter)
-select throws_ok(
-  $$ select common.claim_username('1abc', 'blue') $$,
-  'P0001',
-  'bad-username|',
+select pg_temp.envelope_is(
+  common.claim_username('1abc', 'blue'),
+  '{"type": "not-ok", "severity": "fault", "dbcode": "PN014", "message": "A username in the wrong format reached the server"}'::jsonb,
   'claim_username: leading digit rejected'
 );
 
 -- Uppercase letters
-select throws_ok(
-  $$ select common.claim_username('Joel', 'blue') $$,
-  'P0001',
-  'bad-username|',
+select pg_temp.envelope_is(
+  common.claim_username('Joel', 'blue'),
+  '{"type": "not-ok", "severity": "fault", "dbcode": "PN014", "message": "A username in the wrong format reached the server"}'::jsonb,
   'claim_username: uppercase letters rejected'
 );
 
 -- Dot (only a-z, 0-9, - are allowed)
-select throws_ok(
-  $$ select common.claim_username('joel.smith', 'blue') $$,
-  'P0001',
-  'bad-username|',
+select pg_temp.envelope_is(
+  common.claim_username('joel.smith', 'blue'),
+  '{"type": "not-ok", "severity": "fault", "dbcode": "PN014", "message": "A username in the wrong format reached the server"}'::jsonb,
   'claim_username: dot rejected'
 );
 
 -- 16 chars (1 over the cap)
-select throws_ok(
-  $$ select common.claim_username('aaaaaaaaaaaaaaaa', 'blue') $$,
-  'P0001',
-  'bad-username|',
+select pg_temp.envelope_is(
+  common.claim_username('aaaaaaaaaaaaaaaa', 'blue'),
+  '{"type": "not-ok", "severity": "fault", "dbcode": "PN014", "message": "A username in the wrong format reached the server"}'::jsonb,
   'claim_username: 16-char username rejected'
 );
 
 -- Leading = (reserved for solo-club prefix; the regex on
 -- profiles.username doesn't allow it)
-select throws_ok(
-  $$ select common.claim_username('=joel', 'blue') $$,
-  'P0001',
-  'bad-username|',
+select pg_temp.envelope_is(
+  common.claim_username('=joel', 'blue'),
+  '{"type": "not-ok", "severity": "fault", "dbcode": "PN014", "message": "A username in the wrong format reached the server"}'::jsonb,
   'claim_username: leading = rejected'
 );
 
 -- Off-palette color: the username is fine and fia hasn't claimed yet,
 -- so the color check is what rejects it (and nothing is inserted).
-select throws_ok(
-  $$ select common.claim_username('fia', 'chartreuse') $$,
-  'P0001',
-  'bad-color|chartreuse|',
+select pg_temp.envelope_is(
+  common.claim_username('fia', 'chartreuse'),
+  '{"type": "not-ok", "severity": "fault", "dbcode": "PN015", "message": "A color outside the palette reached the server"}'::jsonb,
   'claim_username: off-palette color rejected'
 );
 
@@ -166,9 +161,10 @@ select is(
 -- (3) Happy path — fia claims their handle
 -- ============================================================
 
-select lives_ok(
-  $$ select common.claim_username('fia', 'blue') $$,
-  'claim_username: valid claim succeeds'
+select pg_temp.envelope_is(
+  common.claim_username('fia', 'blue'),
+  '{"type": "ok", "data": {"username": "fia"}}'::jsonb,
+  'claim_username: valid claim succeeds, and hands back the name'
 );
 
 select is(
@@ -227,10 +223,10 @@ select is(
 -- clean P0001 so the FE can distinguish "you already claimed"
 -- from "someone else has that username."
 
-select throws_ok(
-  $$ select common.claim_username('fianewname', 'blue') $$,
-  'P0001',
-  'username-claimed|',
+select pg_temp.envelope_is(
+  common.claim_username('fianewname', 'blue'),
+  '{"type": "not-ok", "severity": "error", "dbcode": "PN016",
+    "message": "You already have a username"}'::jsonb,
   'claim_username: same user can''t claim twice'
 );
 
@@ -251,12 +247,15 @@ values
 
 select pg_temp.as_user('9a999999-9999-9999-9999-999999999999');
 
--- 23505 from the profiles.username UNIQUE constraint.
-select throws_ok(
-  $$ select common.claim_username('fia', 'blue') $$,
-  '23505',
-  null,
-  'claim_username: collision on username raises 23505'
+-- The profiles.username UNIQUE constraint is the referee — a pre-check
+-- `select` could not close the race — and its 23505 is caught and given words.
+-- The one outcome here a player can act on, so it is the one validation, and it
+-- names the field the claim form binds to.
+select pg_temp.envelope_is(
+  common.claim_username('fia', 'blue'),
+  '{"type": "not-ok", "severity": "validation", "dbcode": "PN017",
+    "field": "desired", "message": "That username is taken"}'::jsonb,
+  'claim_username: a taken username is a validation, on the field that caused it'
 );
 
 -- ============================================================

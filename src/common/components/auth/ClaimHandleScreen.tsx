@@ -1,9 +1,9 @@
 // cs-unmet
 
-import { expectedTextOrFault } from '../../lib/game/serverError'
 import { StandardForm } from '../fields/StandardForm'
 import { useState, type SubmitEvent } from 'react'
 import { db as commonDb } from '../../db'
+import { runRpc } from '../../lib/supabase/dbResult'
 import { supabase } from '../../lib/supabase/supabase'
 import { cls } from '../../lib/util/cls'
 import { defaultColorFor } from '../../lib/color/memberColor'
@@ -115,27 +115,20 @@ export function ClaimHandleScreen({ onClaimed, email }: Props) {
     }
 
     setBusy(true)
-    const { error: rpcError } = await commonDb.rpc('claim_username', {
-      desired,
-      chosen_color: selected,
-    })
+    const res = await runRpc(
+      commonDb.rpc('claim_username', { desired, chosen_color: selected }),
+    )
     setBusy(false)
 
-    if (rpcError) {
-      // PostgREST surfaces SQLSTATE on `.code`. Map to friendly copy.
-      const code = (rpcError as { code?: string }).code
-      if (code === '23505') {
-        setError('That username is taken — try another.')
-      } else if (code === '23503') {
-        // auth.users row vanished while a stale JWT lingered (a
-        // db:reset edge case). Reset back to LoginScreen.
-        setError('Your session expired — signing you out.')
-        await supabase.auth.signOut()
-      } else {
-        // Split by surface rule: username-claimed| / bad-username| show their
-        // ERROR_COPY sentences on the form's line; a fault pops the modal.
-        setError(expectedTextOrFault(rpcError, 'username'))
-      }
+    if (res.type !== 'ok') {
+      // Every answer goes on the form's line. A fault has already raised the
+      // modal, and the line is what remains once that is dismissed.
+      setError(res.message)
+      // PN018 is the one outcome with something to DO: the auth.users row
+      // behind this JWT is gone (a stale token after a db:reset, a deleted
+      // account), so there is no recovering the session. Reading the code here
+      // picks a RECOVERY, not a severity — the server already said fault.
+      if (res.dbcode === 'PN018') await supabase.auth.signOut()
       return
     }
 

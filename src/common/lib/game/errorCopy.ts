@@ -76,8 +76,6 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   // make sense ("Friday Night" and "friday night" are both `friday-night`).
   'empty-message': { text: () => 'Nothing to send' },
   'message-too-long': { text: (d) => `Too long: max ${d[0]} characters` },
-  'bad-username': { text: () => '3–15 chars: a–z, 0–9, -, starting with a letter' },
-  'username-claimed': { text: () => 'That username is taken' },
 
   // Dictionary curation. Editors-only, but an editor is still a player who
   // deserves a sentence rather than a key.

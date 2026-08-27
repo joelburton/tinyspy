@@ -2055,71 +2055,96 @@ grant execute on function common.send_message(text, text) to authenticated;
 --      The member can still add them later from the club-settings UI
 --      (common.set_club_gametypes) if they want them listed.
 --
--- Returns the claimed username on success.
+-- Outcomes:
+--   - ok               data.username is the claimed name
+--   - not-ok/validation  PN017 — that username is taken. The ONE thing here a
+--                      player can act on, and the one the form cannot know.
+--   - not-ok/error     PN016 — this profile already has a username
+--   - not-ok/fault     PN013 not signed in · PN014 bad username format ·
+--                      PN015 off-palette color · PN018 the auth.users row is
+--                      gone. The first three are unreachable from the app: the
+--                      screen checks the same regex before it submits and only
+--                      offers the eight palette swatches, so their messages are
+--                      written for whoever reads the fault.
 --
--- Reject reasons:
---   - 42501  not authenticated (no auth.uid())
---   - P0001  username format invalid (doesn't match the regex)
---   - 23505  username taken (profile insert collision) OR
---            solo-club handle taken (impossible if profile
---            insert succeeded — same uniqueness scope)
---   - 23503  auth.users row gone (the FK from profiles.user_id;
---            edge case from a stale JWT after a db:reset)
---   - P0001  profile already claimed (the user_id PK rejects a
---            second claim; surfaced as a clean message instead
---            of letting 23505 propagate)
---
--- The CHECK on profiles.username would catch a bad regex too,
--- but the explicit P0001 reads cleaner in error display. Belt-
--- and-braces.
+-- The CHECK on profiles.username would catch a bad regex too; the explicit
+-- raise earns its place by naming the condition and pointing at one line.
 
+drop function if exists common.claim_username(text, text);
 create or replace function common.claim_username(desired text, chosen_color text)
-returns text
+returns jsonb
 language plpgsql
 security definer
 set search_path = common, public, extensions
 as $$
 declare
   caller_id uuid;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text;
 begin
   caller_id := auth.uid();
+  -- PN013. Unreachable through PostgREST, which refuses a call to `common`
+  -- before the body runs when there is no JWT — kept because the function is
+  -- also called by supabase/scripts/add-user.ts, where it is the honest answer.
   if caller_id is null then
-    raise exception 'not-authenticated|' using errcode = '42501',
+    raise exception 'Signed out; try refresh'
+      using errcode = 'PN013', hint = 'fault', column = '_',
       detail = 'auth.uid() is null';
   end if;
 
-  -- Clean P0001 if the requested handle doesn't match the regex.
-  -- (The profiles CHECK would raise 23514 from the same input;
-  -- this just gives the FE a friendlier error string.)
+  -- PN014. The claim screen tests the SAME regex before it submits, so this is
+  -- a bug rather than a name problem.
   if desired !~ '^[a-z][a-z0-9-]{2,14}$' then
-    raise exception 'bad-username|'
-      using errcode = 'P0001',
+    raise exception 'A username in the wrong format reached the server'
+      using errcode = 'PN014', hint = 'fault', column = '_',
       detail = 'username must match ^[a-z][a-z0-9-]{2,14}$';
   end if;
 
-  -- Block double-claim explicitly — without this, the same user
-  -- re-calling would raise 23505 from the user_id PK and the FE
-  -- couldn't distinguish "this user already claimed" from "this
-  -- username is taken by someone else."
+  -- PN016. A second tab, or a double submit: the screen is only reached when
+  -- the frontend saw no profile, and by now there is one. Nothing is broken and
+  -- nothing is lost — but it is odd enough to say in red rather than to wave
+  -- through as an `ok`, which would also claim the name they just typed is
+  -- theirs when it may not be.
+  --
+  -- Checked explicitly so it stays distinguishable from PN017: without it the
+  -- user_id PK would raise the same 23505 as a username collision.
   if exists (select 1 from common.profiles where user_id = caller_id) then
-    raise exception 'username-claimed|' using errcode = 'P0001',
+    raise exception 'You already have a username'
+      using errcode = 'PN016', hint = 'error', column = '_',
       detail = 'this profile already has a username';
   end if;
 
-  -- The player picks their color on the claim form (the FE defaults it
-  -- to a simple hash of the username — see defaultColorFor — but they
-  -- can change it). The DB just requires a valid one; there's no
-  -- server-side default. Friendly P0001 over the raw CHECK. (Direct SQL
-  -- inserts, e.g. the test personas, still supply their own color —
-  -- common.color_for_username remains for that deterministic seeding.)
+  -- PN015. The picker offers the eight palette swatches and nothing else. (The
+  -- DB requires a color and has no default; direct SQL inserts such as the test
+  -- personas supply their own via common.color_for_username.)
   if chosen_color not in
        ('red', 'orange', 'yellow', 'green', 'brown', 'blue', 'purple', 'pink') then
-    raise exception 'bad-color|%|', chosen_color using errcode = 'P0001',
-      detail = 'color must be one of the member palette';
+    raise exception 'A color outside the palette reached the server'
+      using errcode = 'PN015', hint = 'fault', column = '_',
+      detail = format('color %L is not in the member palette', chosen_color);
   end if;
 
-  insert into common.profiles (user_id, username, color)
-  values (caller_id, desired, chosen_color);
+  -- The two conditions the constraints are the referee for, caught here and
+  -- given words. A pre-check `select` could not close the username race anyway:
+  -- two callers can both see the name free.
+  begin
+    insert into common.profiles (user_id, username, color)
+    values (caller_id, desired, chosen_color);
+  exception
+    -- PN017. The real validation, and the only outcome here a player can do
+    -- something about — the form cannot know what other people have taken.
+    when unique_violation then
+      raise exception 'That username is taken'
+        using errcode = 'PN017', hint = 'validation', column = 'desired',
+        detail = 'a profile already holds this username';
+    -- PN018. profiles.user_id references auth.users, so this means the row
+    -- behind the caller's JWT is gone — a stale token after a db:reset, or a
+    -- deleted account. The claim screen reads this code and signs them out;
+    -- there is nothing else to do with a token whose user no longer exists.
+    when foreign_key_violation then
+      raise exception 'Your session expired — signing you out.'
+        using errcode = 'PN018', hint = 'fault', column = '_',
+        detail = 'no auth.users row for auth.uid()';
+  end;
 
   insert into common.clubs (handle, name, created_by)
   values ('=' || desired, desired, caller_id);
@@ -2131,7 +2156,15 @@ begin
   select '=' || desired, gametype
     from common.default_gametypes_for_club('=' || desired);
 
-  return desired;
+  return common.ok_envelope(data => jsonb_build_object('username', desired));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 
