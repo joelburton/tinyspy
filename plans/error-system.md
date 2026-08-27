@@ -890,10 +890,32 @@ that will bite.
 
 **The real cost is that `throws_ok` stops being the right verb.** 366
 assertions currently pin a SQLSTATE plus an exact key — `'P0001',
-'not-your-turn|'` — against a call that will no longer throw. Both halves
-change: the verb becomes an equality check on the envelope, the expected
-value becomes prose. That's the single largest chunk of work in this plan,
-bigger than the RPCs. A `pg_temp` helper (`pg_temp.rejects(sql, text, desc)`)
-absorbs the JSON so no individual test does de-JSON and the conversion is a
-one-line swap per assertion — the suite already leans on `pg_temp` helpers
-everywhere.
+'not-your-turn|'` — against a call that will no longer throw. That's the single
+largest chunk of work in this plan, bigger than the RPCs themselves.
+
+And it really is nearly all of them: the 366 break down as 174 `P0001`, 72
+`42501`, 6 `P0002` and the rest keyed directly, and **every one of those codes
+is one we raise**, so every one becomes a returned envelope. `throws_ok`
+survives only where a test deliberately provokes something we did not author.
+
+**What replaces it: a `pg_temp` helper asserting jsonb containment.**
+
+```sql
+select pg_temp.envelope_is(
+  psychicnum.submit_guess(gid, 'zdelta'),
+  '{"type":"ok","outcome":"warning","message":"Already guessed"}'::jsonb,
+  'a repeat guess is refused');
+```
+
+- **Containment, not equality.** `meta` is explicitly the additive slot — SQL
+  is meant to be able to drop breadcrumbs into it without a frontend change —
+  so an exact-match assertion would break every test the first time someone
+  used it. Containment also lets a test ignore `dbcode` and `data` when they
+  aren't the subject.
+- **A helper rather than bare `ok(… @> …)`**, because `ok()` reports only
+  false. The helper diffs expected against actual so a red test names the field
+  that differed, which over 366 assertions is the difference between a
+  conversion and an archaeology project.
+- It lives in `supabase/tests/_shared/`, where the suite's other `pg_temp`
+  helpers already are, and it is **built and proven against one game before the
+  sweep** — the same plant-a-failure rule the SQL guard gets.
