@@ -9,9 +9,12 @@ import { useSyncExternalStore, type ReactNode } from 'react'
  *
  * A fault is a failure nobody planned for (docs/ui.md → Faults): it renders
  * as a blocking MODAL, not a pill — room to be read, impossible to miss, and
- * "did a box pop up?" is answerable down a phone line. Every sink routes
- * `fault: true` messages here instead of into its slot (useLocalFeedback /
- * the GamePage global slot), so no game wires anything.
+ * "did a box pop up?" is answerable down a phone line.
+ *
+ * Nothing decides here. `reportDbFault` (lib/supabase/dbResult.ts) picks the
+ * words and writes the `[db]` line, then calls `showFaultModal`; the older
+ * `fault: true` sinks (useLocalFeedback / the GamePage global slot) route here
+ * the same way, so no game wires anything.
  *
  * Queue semantics (Joel's rulings, 2026-08-13 — docs/ui.md → Faults):
  *   - Each fault is its OWN modal; strictly one visible; dismissing shows the
@@ -22,7 +25,9 @@ import { useSyncExternalStore, type ReactNode } from 'react'
  */
 
 export type FaultEntry = {
-  /** The player-facing message — the classifier's words (copy or raw key). */
+  /** The player-facing message. For a fault we declared, the sentence its
+   *  author wrote at the raise; for a raw one, Postgres's own text; for an
+   *  environmental failure, the frontend's sentence. */
   text: ReactNode
   /** The k=v diagnostics line (serverError.ts faultBits — same content as
    *  the `[db]` log line). Absent only for hand-triggered test faults. */
@@ -38,16 +43,19 @@ function emit(): void {
   for (const l of listeners) l()
 }
 
-/** Queue a fault for the modal. Drops it (UI-only — the [db] line already
- *  fired) when the queue is full. */
-export function presentFault(fault: FaultEntry): void {
+/** Put a fault on screen: queue it for the modal, and nothing else. It decides
+ *  nothing and logs nothing — a caller that needs the words chosen and the
+ *  `[db]` line written wants `reportDbFault` (lib/supabase/dbResult.ts), which
+ *  does both and then calls this. Drops the fault (UI-only — the `[db]` line
+ *  already fired) when the queue is full. */
+export function showFaultModal(fault: FaultEntry): void {
   if (queue.length >= QUEUE_CAP) return
   queue = [...queue, fault]
   emit()
 }
 
 /** Dismiss the visible fault; the next queued one (if any) appears. */
-export function dismissFault(): void {
+export function dismissFaultModal(): void {
   queue = queue.slice(1)
   emit()
 }

@@ -6,6 +6,7 @@ import type { LucideIcon } from 'lucide-react'
 // Type-only and circular-safe: serverError.ts imports GenericFeedbackMsg from
 // this file; both imports are erased at runtime.
 import type { CallError } from './game/serverError'
+import type { GenericFeedbackTone } from './outcomes'
 
 /**
  * FE-facing labels for a gametype's interaction `mode`. The DB, code,
@@ -140,39 +141,6 @@ export type GamePageCtx = {
   menu: MenuApi
 }
 
-/**
- * Tone variants the feedback pill renders. See docs/ui.md → Feedback pill.
- *
- * **The first five are the OUTCOME families**, named identically on purpose: a
- * pill reporting a won game and a board showing one say the same thing, and the
- * two spellings this list used to have (`success` / `error` for won / lost) hid
- * that behind a rename buried in a CSS rule.
- *
- * The last two are the pill saying something rather than adjudicating something,
- * which is why no board has them:
- *
- *   error — a real failure, not a bad move: a lost connection, a service that
- *           didn't answer, a server key nobody wrote words for. Angrier red than
- *           `lost`, which is the whole reason it is its own tone.
- *   noted — a turn that COUNTS without being a verdict, and news that isn't a
- *           result at all: "Leah invited you", "everyone here has played every
- *           puzzle". Was `info` until the tone was promoted to an outcome
- *           family, which is what made this vocabulary EXACTLY the outcome
- *           vocabulary with nothing left over.
- *
- * The line between `lost`, `warning` and `error` is not yet drawn where it
- * should be — most server rejections currently take `error` by default, and
- * about twenty take `info`. Both are known wrong and deliberately not fixed
- * here; see plans/error-copy-sprint.md, which is where that work lives.
- */
-export type GenericFeedbackTone =
-  | 'won'
-  | 'lost'
-  | 'near'
-  | 'warning'
-  | 'neutral'
-  | 'error'
-  | 'noted'
 
 /** A single feedback message. The `dismiss` mode picks how it
  *  leaves the screen. See docs/ui.md → "Dismiss modes" for the

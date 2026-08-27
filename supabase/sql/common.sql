@@ -22,6 +22,84 @@
 -- expose tables and RPCs under it.
 grant usage on schema common to authenticated;
 
+-- ============================================================
+-- The result envelope — what every RPC hands back
+-- ============================================================
+--
+-- See plans/error-system.md. Every FE-facing RPC returns jsonb of one shape,
+-- so a caller reads `type` first and `severity`/`outcome` second, and nothing
+-- ever has to be inferred from a return value's absence.
+--
+-- Each RPC carries its own outcomes as RAISES, and one handler at the bottom
+-- turns them into the envelope. The SQLSTATE says which branch:
+--
+--   PA###   this raise becomes `type: ok`      — HINT carries the `outcome`
+--   PN###   this raise becomes `type: not-ok`  — HINT carries the `severity`
+--
+-- The digits encode nothing. They are a unique id per RAISE SITE, allocated
+-- max+1 within the class and NEVER reused, so a code in a bug report leads to
+-- exactly one line of SQL. `P0` is PL/pgSQL's own class, which is why ours are
+-- PA/PN and why nothing from Postgres can be mistaken for ours.
+--
+-- The handler every RPC carries, verbatim:
+--
+--   exception when others then
+--     get stacked diagnostics
+--       v_msg = message_text, v_detail = pg_exception_detail,
+--       v_hint = pg_exception_hint, v_code = returned_sqlstate;
+--     if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+--     return common.raised_envelope(v_code, v_msg, v_hint, v_detail);
+--
+-- `when others` rather than `when sqlstate …` because WHEN SQLSTATE accepts
+-- only a literal code — no patterns, no variables. Anything not ours is
+-- re-raised untouched and reaches the client in Postgres's own shape, which is
+-- how the frontend tells a fault WE declared from one nobody anticipated.
+
+-- A successful result. `data` is the payload the caller asked for; `outcome`
+-- is how it reads on screen (the GenericFeedbackTone vocabulary minus `error`,
+-- which belongs to the not-ok branch); `message` is optional because plenty of
+-- results have nothing to say.
+create or replace function common.ok_envelope(
+  data jsonb default null,
+  outcome text default null,
+  message text default null,
+  meta jsonb default null
+)
+returns jsonb
+language sql
+immutable
+as $$
+  select jsonb_strip_nulls(jsonb_build_object(
+    'type', 'ok', 'data', data, 'outcome', outcome,
+    'message', message, 'meta', meta));
+$$;
+
+-- The envelope for a raise we authored. Called only from an exception handler,
+-- with the four values `get stacked diagnostics` just produced.
+create or replace function common.raised_envelope(
+  sqlstate_code text,
+  message text,
+  hint text,
+  detail text default null
+)
+returns jsonb
+language sql
+immutable
+as $$
+  select jsonb_strip_nulls(jsonb_build_object(
+    'type',     case when substr(sqlstate_code, 2, 1) = 'A' then 'ok' else 'not-ok' end,
+    -- HINT carries the refinement, and which vocabulary it is drawn from
+    -- depends on the branch. The two are disjoint, so one field is unambiguous.
+    'outcome',  case when substr(sqlstate_code, 2, 1) = 'A' then hint end,
+    'severity', case when substr(sqlstate_code, 2, 1) = 'A' then null else hint end,
+    'message',  message,
+    'dbcode',   sqlstate_code,
+    'detail',   detail));
+$$;
+
+revoke execute on function common.ok_envelope(jsonb, text, text, jsonb) from public;
+revoke execute on function common.raised_envelope(text, text, text, text) from public;
+
 -- Which gametypes a freshly-created club should be enrolled in
 -- (i.e. which Start buttons it should offer). Two filters:
 --   - `default_enroll` — the registry's off-by-default flag (psychicnum,
@@ -2066,8 +2144,13 @@ revoke execute on function common._anagram_fits(text, text, int[], int) from pub
 -- SECURITY DEFINER (house pattern): the internal _anagram_fits helper is
 -- revoked from callers, so an invoker-rights version 403s the moment an
 -- authenticated player's call reaches it.
+-- DROP first: `create or replace` cannot change a function's return type, and
+-- this one moved from `returns table` to the jsonb envelope. Every conversion
+-- in this sprint needs the same line, and `if exists` keeps the file
+-- re-appliable in full on every deploy.
+drop function if exists common.anagrams(text);
 create or replace function common.anagrams(letters text)
-returns table (word text, difficulty smallint)
+returns jsonb
 language plpgsql
 stable
 security definer
@@ -2082,10 +2165,14 @@ declare
   i   int;
   c   text;
   idx int;
+  found   jsonb;
+  v_msg text; v_detail text; v_hint text; v_code text;
 begin
+  -- PN001. The player typed this, so it is theirs to fix — a validation, shown
+  -- on the dialog's own error line. The MESSAGE is what they read.
   if letters is null or letters !~ '^[A-Za-z?]{2,15}$' then
-    raise exception 'bad-anagram-input|'
-      using errcode = 'P0001',
+    raise exception '2–15 letters, or ?'
+      using errcode = 'PN001', hint = 'validation',
       detail = 'anagram input must be 2-15 letters or ?';
   end if;
   n := length(letters);
@@ -2110,14 +2197,30 @@ begin
     end if;
   end loop;
 
-  return query
-  select w.word, w.difficulty
-    from common.words w
-   where w.len = n
-     and w.word like pat
-     and bit_count((w.letter_mask & ~in_mask)::bit(64)) <= k
-     and common._anagram_fits(w.word, pat, floats, k)
-   order by w.difficulty, w.word;
+  -- Ordering is part of the contract (difficulty, then word), so the array is
+  -- built with `jsonb_agg(... order by ...)` rather than left to the planner.
+  select coalesce(jsonb_agg(jsonb_build_object('word', t.word, 'difficulty', t.difficulty)
+                            order by t.difficulty, t.word), '[]'::jsonb)
+    into found
+    from (
+      select w.word, w.difficulty
+        from common.words w
+       where w.len = n
+         and w.word like pat
+         and bit_count((w.letter_mask & ~in_mask)::bit(64)) <= k
+         and common._anagram_fits(w.word, pat, floats, k)
+    ) t;
+
+  -- No matches is an ANSWER, not a failure: the letters were well-formed and
+  -- the dictionary has nothing. The dialog says so itself.
+  return common.ok_envelope(data => found);
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail);
 end;
 $$;
 revoke execute on function common.anagrams(text) from public;

@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { logStamp } from './realtimeDiag'
-import { isOurCode, presentDbFault, type DbError } from './dbResult'
+import { isOurDbCode, reportDbFault, type DbError } from './dbResult'
 
 /**
  * The `fetch` every Supabase call goes through — the ONE place a request that
@@ -117,8 +117,8 @@ export const dbFetch: typeof fetch = async (input, init) => {
       if (seamSpeaksFor(input, init)) {
         try {
           const body = (await res.clone().json()) as DbError
-          if (!isOurCode(body?.code)) {
-            presentDbFault({ where: label(input, init), kind: 'raw', error: body, extra: { status: res.status } })
+          if (!isOurDbCode(body?.code)) {
+            reportDbFault({ where: label(input, init), kind: 'raw', error: body, extra: { status: res.status } })
           }
         } catch {
           // A non-JSON error body is itself the anomaly; the warn line above
@@ -155,7 +155,7 @@ export const dbFetch: typeof fetch = async (input, init) => {
     // component unmounting, a superseded fetch), so nobody is owed a modal.
     if (name !== 'AbortError' && seamSpeaksFor(input, init)) {
       const offline = typeof navigator !== 'undefined' && navigator.onLine === false
-      presentDbFault({
+      reportDbFault({
         where: label(input, init),
         kind: offline ? 'offline' : 'unreachable',
         extra: { ms: Math.round(ms), thrown: `${name}: ${message}` },

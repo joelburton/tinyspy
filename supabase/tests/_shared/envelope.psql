@@ -1,0 +1,53 @@
+-- cs-unmet
+
+-- ============================================================
+-- Envelope assertions — for RPCs that return the result envelope
+-- ============================================================
+--
+-- Loaded by any test whose subject returns one:
+--
+--   \ir ../_shared/envelope.psql
+--
+-- (`\ir`, not `\i` — see _shared/setup.psql for why.)
+--
+-- **Containment, not equality.** `meta` is the additive slot: SQL is meant to
+-- be able to drop breadcrumbs into a result without a frontend change, and an
+-- exact-match assertion would break every test the first time anyone did. So a
+-- test names the fields it is actually about and ignores the rest — `dbcode`
+-- and `detail` included, unless they ARE the subject.
+--
+--   select pg_temp.envelope_is(
+--     common.anagrams('ab1'),
+--     '{"type":"not-ok","severity":"validation","message":"2–15 letters, or ?"}'::jsonb,
+--     'digits are rejected');
+--
+-- pgTAP's own `ok(x @> y, …)` would do the same test, but reports only "false"
+-- when it fails. Over hundreds of assertions the difference between that and a
+-- line naming the field that differed is the difference between a conversion
+-- and an archaeology project — so this diffs on failure.
+
+create function pg_temp.envelope_is(actual jsonb, expected jsonb, description text)
+returns setof text
+language plpgsql
+as $$
+declare
+  missing text;
+begin
+  if actual @> expected then
+    return query select pass(description);
+    return;
+  end if;
+  -- Name every field that differed, with what was wanted and what arrived, so
+  -- a red test needs no second run to interpret.
+  select string_agg(
+           format('%s: want %s, got %s', e.key, e.value::text,
+                  coalesce((actual -> e.key)::text, '(absent)')),
+           E'\n        ')
+    into missing
+    from jsonb_each(expected) e
+   where actual -> e.key is distinct from e.value;
+
+  return query select fail(description);
+  return query select diag(E'      envelope mismatch\n        ' || missing);
+end;
+$$;

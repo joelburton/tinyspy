@@ -18,7 +18,7 @@ import { AnagramDialog } from './AnagramDialog'
 
 beforeEach(() => {
   mockRpc.mockReset()
-  mockRpc.mockResolvedValue({ data: [], error: null })
+  mockRpc.mockResolvedValue({ data: { type: 'ok', data: [] }, error: null })
 })
 
 describe('AnagramDialog', () => {
@@ -42,10 +42,13 @@ describe('AnagramDialog', () => {
 
   it('renders each word with its band muted beside it, and the count', async () => {
     mockRpc.mockResolvedValue({
-      data: [
-        { word: 'acer', difficulty: 4 },
-        { word: 'acre', difficulty: 1 },
-      ],
+      data: {
+        type: 'ok',
+        data: [
+          { word: 'acer', difficulty: 4 },
+          { word: 'acre', difficulty: 1 },
+        ],
+      },
       error: null,
     })
     const user = userEvent.setup()
@@ -65,9 +68,14 @@ describe('AnagramDialog', () => {
     await user.type(input, 'zzzz{Enter}')
     await waitFor(() => expect(screen.getByText('No words.')).toBeInTheDocument())
 
-    // The server raises a KEY now; the sentence below is TypeScript's
-    // (lib/game/errorCopy.ts), which is the point of the redesign.
-    mockRpc.mockResolvedValue({ data: null, error: { message: 'bad-anagram-input|', code: 'P0001' } })
+    // Malformed letters come back as a RESULT, not a thrown error — the RPC
+    // reached a decision and the player can act on it. `severity: validation`
+    // is why the sentence lands on the dialog's own line instead of a modal,
+    // and the sentence is the server's own words.
+    mockRpc.mockResolvedValue({
+      data: { type: 'not-ok', severity: 'validation', message: '2–15 letters, or ?', dbcode: 'PN001' },
+      error: null,
+    })
     await user.type(input, '{Enter}')
     await waitFor(() =>
       expect(screen.getByText('2–15 letters, or ?')).toBeInTheDocument(),

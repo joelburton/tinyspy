@@ -11,7 +11,7 @@
  */
 import { act, renderHook } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { clearFaultsForTest, dismissFault, presentFault, useCurrentFault } from './faultStore'
+import { clearFaultsForTest, dismissFaultModal, showFaultModal, useCurrentFault } from './faultStore'
 import { useLocalFeedback } from '../../hooks/feedback/useLocalFeedback'
 import { failureMessage } from '../game/serverError'
 
@@ -24,13 +24,13 @@ describe('faultStore', () => {
   it('queues FIFO and dismisses to the next', () => {
     const { result } = renderHook(() => useCurrentFault())
     act(() => {
-      presentFault({ text: 'one' })
-      presentFault({ text: 'two' })
+      showFaultModal({ text: 'one' })
+      showFaultModal({ text: 'two' })
     })
     expect(result.current?.text).toBe('one')
-    act(() => dismissFault())
+    act(() => dismissFaultModal())
     expect(result.current?.text).toBe('two')
-    act(() => dismissFault())
+    act(() => dismissFaultModal())
     expect(result.current).toBeNull()
   })
 
@@ -40,12 +40,12 @@ describe('faultStore', () => {
     // classifier logs before any routing.)
     const { result } = renderHook(() => useCurrentFault())
     act(() => {
-      for (let i = 1; i <= 8; i++) presentFault({ text: `f${i}` })
+      for (let i = 1; i <= 8; i++) showFaultModal({ text: `f${i}` })
     })
     const seen: unknown[] = []
     for (let i = 0; i < 6; i++) {
       seen.push(result.current?.text ?? null)
-      act(() => dismissFault())
+      act(() => dismissFaultModal())
     }
     expect(seen).toEqual(['f1', 'f2', 'f3', 'f4', 'f5', null])
   })

@@ -19,7 +19,7 @@ import type {
 } from '../../lib/games'
 import { END_OR_CONCEDE_IDS, NEW_GAME_ID } from '../../lib/game/gameMenu'
 import { failureMessage } from '../../lib/game/serverError'
-import { presentFault } from '../../lib/fault/faultStore'
+import { showFaultModal } from '../../lib/fault/faultStore'
 import { useAppShortcuts } from '../../hooks/input/useAppShortcuts'
 import { useAccountMenuSection } from '../../hooks/account/useAccountMenuSection'
 import { useIsMobile } from '../../hooks/ui/useIsMobile'
@@ -285,7 +285,7 @@ export function GamePage({
   // Faults) — one branch here covers every game's global sink.
   const globalFeedbackShow = useCallback((msg: GenericFeedbackMsg) => {
     if (msg.fault) {
-      presentFault({ text: msg.text, diagnostics: msg.diagnostics })
+      showFaultModal({ text: msg.text, diagnostics: msg.diagnostics })
       return
     }
     setGlobalFeedback(msg)

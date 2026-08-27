@@ -1,5 +1,7 @@
+// cs-unmet
+
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { isEnvelope, isOurCode, presentDbFault, readRows } from './dbResult'
+import { isEnvelope, isOurDbCode, reportDbFault, readRows, runRpc } from './dbResult'
 import { clearFaultsForTest, peekFaultsForTest } from '../fault/faultStore'
 
 /**
@@ -7,7 +9,7 @@ import { clearFaultsForTest, peekFaultsForTest } from '../fault/faultStore'
  *
  * Two of these are load-bearing for the whole design:
  *
- *   - `isOurCode` must accept ONLY our two classes. Every other SQLSTATE in
+ *   - `isOurDbCode` must accept ONLY our two classes. Every other SQLSTATE in
  *     existence is a raw fault, and a test that widened would quietly promote
  *     Postgres's own errors into outcomes we claim to have authored.
  *   - zero rows must be `ok`. An empty result is a correct protocol answer, and
@@ -20,28 +22,28 @@ beforeEach(() => {
   vi.spyOn(console, 'error').mockImplementation(() => {})
 })
 
-describe('isOurCode', () => {
+describe('isOurDbCode', () => {
   it('accepts our two classes', () => {
-    expect(isOurCode('PA000')).toBe(true)
-    expect(isOurCode('PN999')).toBe(true)
+    expect(isOurDbCode('PA000')).toBe(true)
+    expect(isOurDbCode('PN999')).toBe(true)
   })
 
   // The class carries the meaning, so a code from PL/pgSQL's own P0 class is
   // rejected on its second character alone.
   it("rejects PL/pgSQL's class and the privilege codes", () => {
-    expect(isOurCode('P0001')).toBe(false)
-    expect(isOurCode('P0002')).toBe(false)
-    expect(isOurCode('42501')).toBe(false)
+    expect(isOurDbCode('P0001')).toBe(false)
+    expect(isOurDbCode('P0002')).toBe(false)
+    expect(isOurDbCode('42501')).toBe(false)
   })
 
   it("rejects Postgres's own codes and malformed ones", () => {
-    expect(isOurCode('23514')).toBe(false) // check violation
-    expect(isOurCode('40P01')).toBe(false) // deadlock
-    expect(isOurCode('PA00')).toBe(false) // too short
-    expect(isOurCode('PA0000')).toBe(false) // too long
-    expect(isOurCode('pa001')).toBe(false) // lowercase
-    expect(isOurCode('PB001')).toBe(false) // not one of our classes
-    expect(isOurCode(undefined)).toBe(false)
+    expect(isOurDbCode('23514')).toBe(false) // check violation
+    expect(isOurDbCode('40P01')).toBe(false) // deadlock
+    expect(isOurDbCode('PA00')).toBe(false) // too short
+    expect(isOurDbCode('PA0000')).toBe(false) // too long
+    expect(isOurDbCode('pa001')).toBe(false) // lowercase
+    expect(isOurDbCode('PB001')).toBe(false) // not one of our classes
+    expect(isOurDbCode(undefined)).toBe(false)
   })
 })
 
@@ -79,22 +81,106 @@ describe('readRows', () => {
     expect(r).toEqual({ type: 'ok', data: [] })
   })
 
-  // `faulted` and not a message: the seam already presented and logged, so
-  // there is nothing for the call site to render.
-  it('reports an error as faulted, with nothing to say', async () => {
-    const r = await readRows(Promise.resolve({ data: null, error: { message: 'nope', code: '42501' } }))
-    expect(r).toEqual({ type: 'faulted' })
+  // A read that failed still comes back as an ENVELOPE — the database didn't
+  // give us one, so we build it, carrying what we know.
+  it('builds a fault envelope from a read error', async () => {
+    const r = await readRows(
+      Promise.resolve({ data: null, error: { message: 'nope', code: '42501', details: 'why' } }),
+    )
+    expect(r).toEqual({
+      type: 'not-ok', severity: 'fault', message: 'nope', dbcode: '42501', detail: 'why',
+    })
   })
 
-  it('reports a thrown rejection as faulted', async () => {
+  it('builds one from a thrown rejection too', async () => {
     const r = await readRows(Promise.reject(new TypeError('Load failed')))
-    expect(r).toEqual({ type: 'faulted' })
+    expect(r).toMatchObject({ type: 'not-ok', severity: 'fault', message: 'Load failed' })
   })
 })
 
-describe('presentDbFault', () => {
+// Nothing is stripped between the wire and the caller: the plan's rule is that
+// one shape travels all the way through rather than each layer deciding which
+// fields the next one deserves.
+describe('runRpc — one shape, always', () => {
+  it('keeps dbcode and detail on an ok result', async () => {
+    const r = await runRpc<{ n: number }>(
+      Promise.resolve({
+        data: { type: 'ok', data: { n: 1 }, outcome: 'warning', dbcode: 'PA004', detail: 'why' },
+        error: null,
+      }),
+    )
+    expect(r).toEqual({
+      type: 'ok', data: { n: 1 }, outcome: 'warning', dbcode: 'PA004', detail: 'why',
+    })
+  })
+
+  it('keeps them on a not-ok result too', async () => {
+    const r = await runRpc(
+      Promise.resolve({
+        data: { type: 'not-ok', severity: 'validation', message: 'Nope', dbcode: 'PN001', detail: 'why' },
+        error: null,
+      }),
+    )
+    expect(r).toEqual({
+      type: 'not-ok', severity: 'validation', message: 'Nope', dbcode: 'PN001', detail: 'why',
+    })
+  })
+
+  // A declared fault passes through UNCHANGED, like any other envelope. The
+  // modal is already up; what keeps a call site from rendering it is that it
+  // bails on anything that isn't `ok`, not that we hid it.
+  it('passes a declared fault through unchanged', async () => {
+    const envelope = { type: 'not-ok', severity: 'fault', message: 'Broken', dbcode: 'PN500' }
+    const r = await runRpc(Promise.resolve({ data: envelope, error: null }))
+    expect(r).toEqual(envelope)
+  })
+
+  it('builds a fault envelope when the reply is not an envelope at all', async () => {
+    const r = await runRpc(Promise.resolve({ data: 'won', error: null }))
+    expect(r).toMatchObject({ type: 'not-ok', severity: 'fault' })
+    // No dbcode: the call SUCCEEDED, so there is no Postgres error to carry.
+    // The unreadable body is the only evidence there is, so it must survive.
+    expect(r).not.toHaveProperty('dbcode')
+    expect((r as { detail?: string }).detail).toBe('rawBody: "won"')
+    expect(peekFaultsForTest()).toHaveLength(1)
+  })
+
+  // Postgres's HINT is the most useful field in many raw faults, and the
+  // envelope has one debugging slot — so it is folded in, not dropped.
+  it("keeps Postgres's hint alongside the detail on a raw fault", async () => {
+    const r = await runRpc(
+      Promise.resolve({
+        data: null,
+        error: {
+          message: 'permission denied for table clubs',
+          code: '42501',
+          details: null,
+          hint: 'Grant the required privileges to the current role',
+        },
+      }),
+    )
+    expect(r).toMatchObject({
+      type: 'not-ok',
+      severity: 'fault',
+      dbcode: '42501',
+      detail: 'Grant the required privileges to the current role',
+    })
+  })
+
+  it('joins detail and hint when both arrive', async () => {
+    const r = await runRpc(
+      Promise.resolve({
+        data: null,
+        error: { message: 'boom', code: '23514', details: 'Failing row contains (…)', hint: 'try less' },
+      }),
+    )
+    expect((r as { detail?: string }).detail).toBe('Failing row contains (…) — try less')
+  })
+})
+
+describe('reportDbFault', () => {
   it('words an offline failure itself, naming no action', () => {
-    presentDbFault({ where: 'GET /rest/v1/clubs', kind: 'offline' })
+    reportDbFault({ where: 'GET /rest/v1/clubs', kind: 'offline' })
     const [fault] = peekFaultsForTest()
     expect(fault.text).toBe('You appear to be offline. Please refresh and try again.')
     // It must NOT claim the call did or didn't land — the link can die on the
@@ -103,14 +189,14 @@ describe('presentDbFault', () => {
   })
 
   it('puts the call in the diagnostics rather than the sentence', () => {
-    presentDbFault({ where: 'POST /rest/v1/rpc/submit_guess', kind: 'unreachable' })
+    reportDbFault({ where: 'POST /rest/v1/rpc/submit_guess', kind: 'unreachable' })
     const [fault] = peekFaultsForTest()
     expect(fault.diagnostics).toContain('POST /rest/v1/rpc/submit_guess')
     expect(fault.text).not.toContain('submit_guess')
   })
 
   it('shows a raw fault its own text, since nobody wrote one for it', () => {
-    presentDbFault({
+    reportDbFault({
       where: 'POST /rest/v1/rpc/submit_guess',
       kind: 'raw',
       error: { code: '23514', message: 'violates check constraint "players_guesses_remaining_check"' },
@@ -121,7 +207,7 @@ describe('presentDbFault', () => {
   })
 
   it('shows a declared fault the sentence its author wrote', () => {
-    presentDbFault({
+    reportDbFault({
       where: 'POST /rest/v1/rpc/submit_guess',
       kind: 'declared',
       envelope: {

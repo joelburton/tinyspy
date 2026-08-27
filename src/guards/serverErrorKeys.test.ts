@@ -68,14 +68,25 @@ function raisedKeys(): Map<string, Set<string>> {
 
 describe('server-error keys', () => {
   it('every raise is key-shaped — no prose survives in any SQL file', () => {
-    // The migration's completion condition, kept as a guard: a new `raise
-    // exception 'something went wrong'` would put a developer's sentence in
-    // front of a player again.
+    // Guards the raises this system still owns: a new `raise exception
+    // 'something went wrong'` would put a developer's sentence in front of a
+    // player with no copy table to catch it.
+    //
+    // A raise carrying a PA/PN errcode is EXEMPT, because prose is exactly what
+    // it is supposed to hold — the author writes the player's sentence at the
+    // raise (plans/error-system.md). This assertion therefore shrinks as
+    // conversion proceeds, and its job is done when it has nothing left to
+    // check.
     const prose: string[] = []
     for (const file of readdirSync(SQL_DIR).filter((f) => f.endsWith('.sql'))) {
       const sql = readFileSync(join(SQL_DIR, file), 'utf8')
       for (const m of sql.matchAll(/raise exception\s+'((?:[^']|'')*)'/g)) {
-        if (!/^[a-z][a-z0-9]*(-[a-z0-9]+)*\|/.test(m[1])) prose.push(`${file}: ${m[1]}`)
+        if (/^[a-z][a-z0-9]*(-[a-z0-9]+)*\|/.test(m[1])) continue
+        // The errcode sits a line or two below the message, so look ahead a
+        // little rather than at the matched line alone.
+        const after = sql.slice(m.index ?? 0, (m.index ?? 0) + 220)
+        if (/errcode\s*=\s*'P[AN][0-9]{3}'/.test(after)) continue
+        prose.push(`${file}: ${m[1]}`)
       }
     }
     expect(prose, 'a raise whose message is not a `key|detail|`').toEqual([])

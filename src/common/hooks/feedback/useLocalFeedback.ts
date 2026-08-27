@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { presentFault } from '../../lib/fault/faultStore'
+import { showFaultModal } from '../../lib/fault/faultStore'
 import type { GenericFeedbackMsg } from '../../lib/games'
 
 /** Default auto-clear duration for a `timed` local-feedback message whose own
@@ -76,7 +76,7 @@ export function useLocalFeedback({ locked = false }: LocalFeedbackOptions = {}):
     // (docs/ui.md → Faults). One branch here covers every below-board slot in
     // the app — no game wires anything.
     if (msg.fault) {
-      presentFault({ text: msg.text, diagnostics: msg.diagnostics })
+      showFaultModal({ text: msg.text, diagnostics: msg.diagnostics })
       return
     }
     setLocalFeedback(msg)

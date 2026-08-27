@@ -1,4 +1,7 @@
-import { presentFault } from '../fault/faultStore'
+// cs-unmet
+
+import { showFaultModal } from '../fault/faultStore'
+import type { Outcome } from '../outcomes'
 import { logStamp } from './realtimeDiag'
 
 /**
@@ -9,72 +12,69 @@ import { logStamp } from './realtimeDiag'
  * either reaches a decision and says what it was, or something is broken, and
  * a call site should never have to work out which.
  *
- * ─── What a call site sees ───────────────────────────────────
- * Exactly three things, and it has an opinion about all three:
+ * ─── One shape, always ───────────────────────────────────────
+ * Everything the frontend receives is an ENVELOPE. The database returns one;
+ * when it couldn't — a raw Postgres error, a request that never completed, a
+ * direct table read — we build one in the same shape. There is no second type
+ * and no special arm for failure.
  *
- *     ok               use the data
- *     validation       show `message` on the form's own error line
- *     error            show `message` in a pill; wait and retry
+ * A call site reads `type` first:
  *
- * It never sees a fault. Faults — ours, Postgres's, and the network's — are
- * presented centrally (see `presentDbFault` below, called from `dbFetch`), so
+ *     ok                    use `data`
+ *     not-ok / validation   show `message` on the form's own error line
+ *     not-ok / error        show `message` in a pill; wait and retry
+ *     not-ok / fault        nothing to do — the modal is already up
+ *
+ * Faults are presented centrally (`reportDbFault`, called from `dbFetch`), so
  * no call site classifies a failure, words a network problem, or reaches for
- * `presentFault` itself. What remains at a call site is a bail-out: notice you
- * didn't get data so you can clear a `busy` flag or unwind an optimistic write.
+ * `showFaultModal` itself. Most callers never test `severity` at all: they bail
+ * on anything that isn't `ok`, and only a form that shows validation text needs
+ * to look closer.
  */
 
 // ─────────────────────────────────────────────────────────────
 // The shapes
 // ─────────────────────────────────────────────────────────────
 
-/** How an `ok` result reads on screen. This is `GenericFeedbackTone` minus
- *  `error`: a real failure is a `not-ok` now and carries a `severity` instead,
- *  so `error` can never be an outcome. That is the line games.ts says isn't
- *  drawn yet, drawn structurally rather than by judgment. */
-export type Outcome = 'won' | 'lost' | 'near' | 'warning' | 'neutral' | 'noted'
 
-/** How bad a `not-ok` is. `fault` never reaches a call site — it is presented
- *  centrally — so a caller only ever branches on the other two. */
+/** How bad a `not-ok` is. A `fault` still arrives — one shape, always — but the
+ *  modal is already up by then, so a call site has nothing to render for it. */
 export type Severity = 'fault' | 'validation' | 'error'
 
 /**
- * **What the database returns** — the JSONB an RPC hands back.
+ * **The envelope** — the one shape everything travels in.
  *
- * Only an RPC produces one. A direct table read never does; `readRows` below
- * synthesizes the *call-site shape* for reads so every caller branches alike,
- * but no database returned it. Keep the two words apart: the ENVELOPE comes off
- * the wire, the CALL-SITE SHAPE is what a caller sees.
+ * An RPC returns it. When the database did NOT give us one — a raw Postgres
+ * error, a request that never completed, a direct table read — we construct one
+ * in the same shape, so a call site has a single thing to read no matter what
+ * happened. There is no second type and no special arm: if it reached the
+ * frontend, it is an envelope.
  */
-export type Envelope = {
-  type: 'ok' | 'not-ok'
-  /** Required on `not-ok`; optional on `ok`, because plenty of results have
-   *  nothing to say — a concede, an ordinary accepted move whose pill is built
-   *  from `outcome` and `data`. */
-  message?: string
-  /** The additive slot. SQL can start leaving breadcrumbs here with no frontend
-   *  change, which is why test assertions use containment, not equality. */
-  meta?: Record<string, unknown>
-  /** The SQLSTATE, when the outcome came from a raise. Named `dbcode` because
-   *  "code" is too broad a word for one specific thing. A plain success that
-   *  never raised has none. */
-  dbcode?: string
-  /** PL/pgSQL's DETAIL — the debugging line, never shown to a player. It rides
-   *  along rather than being stripped: one shape all the way through is simpler
-   *  than deciding per-field who deserves what. */
-  detail?: string
-  outcome?: Outcome
-  data?: unknown
-  severity?: Severity
-}
-
-/** What a call site branches on. `fault` is absent by construction: it was
- *  presented centrally before the caller resumed. */
-export type DbResult<T> =
-  | { type: 'ok'; data: T; outcome?: Outcome; message?: string; meta?: Record<string, unknown> }
-  | { type: 'not-ok'; severity: 'validation' | 'error'; message: string }
-  /** The call failed and a fault modal is already on screen. Nothing to render;
-   *  unwind local state and return. */
-  | { type: 'faulted' }
+export type Envelope<T = unknown> =
+  | {
+      type: 'ok'
+      /** The payload. */
+      data: T
+      /** How it reads on screen. */
+      outcome?: Outcome
+      /** Optional here, because plenty of results have nothing to say. */
+      message?: string
+      /** The additive slot: SQL can leave breadcrumbs with no frontend change. */
+      meta?: Record<string, unknown>
+      /** The SQLSTATE, when the outcome came from a raise. Named `dbcode`
+       *  because "code" is too broad for one specific thing. */
+      dbcode?: string
+      /** PL/pgSQL's DETAIL — the debugging line, never shown to a player. */
+      detail?: string
+    }
+  | {
+      type: 'not-ok'
+      severity: Severity
+      message: string
+      meta?: Record<string, unknown>
+      dbcode?: string
+      detail?: string
+    }
 
 // ─────────────────────────────────────────────────────────────
 // The environmental messages
@@ -127,7 +127,7 @@ const RAW_FAULT_TEXT: Record<string, string> = {}
  *  Note the class is what carries the meaning, not the digits. `P0` is
  *  PL/pgSQL's own class, which is why ours are `PA`/`PN` and why a code from
  *  anywhere else can never be mistaken for one of ours. */
-export function isOurCode(code: string | undefined | null): boolean {
+export function isOurDbCode(code: string | undefined | null): boolean {
   return !!code && /^P[AN][0-9]{3}$/.test(code)
 }
 
@@ -151,14 +151,20 @@ function faultDiagnostics(where: string, bits: Record<string, unknown>): string 
 }
 
 /**
- * **Present a fault, from the seam.** Called by `dbFetch` for the three things
- * a call site has no opinion about: the fetch never completed, the response was
- * a raw Postgres error, or the body was one of our declared faults.
+ * **Report a database failure**, from the seam. Called by `dbFetch` for the
+ * three things a call site has no opinion about: the fetch never completed, the
+ * response was a raw Postgres error, or the body was one of our declared
+ * faults.
  *
- * Logs at `console.error` and puts the modal up. Returns nothing — by the time
- * the caller resumes, the news has already been delivered.
+ * Three steps, which is why it is a REPORT rather than a show: it picks the
+ * words for the kind of failure this is, builds the `k=v` diagnostics line, and
+ * only then hands both to `showFaultModal` for the modal. It also writes the
+ * `[db] … FAULT` console line, so the screen and the log always say the same
+ * thing.
+ *
+ * Returns nothing — by the time the caller resumes, the news is delivered.
  */
-export function presentDbFault(args: {
+export function reportDbFault(args: {
   where: string
   kind: 'offline' | 'unreachable' | 'raw' | 'declared'
   error?: DbError
@@ -182,7 +188,36 @@ export function presentDbFault(args: {
   })
 
   console.error(`[db] ${logStamp()} FAULT on ${where}: ${text} (${diagnostics})`)
-  presentFault({ text, diagnostics })
+  showFaultModal({ text, diagnostics })
+}
+
+/**
+ * **Build an envelope for a failure the database didn't envelope itself** — a
+ * raw Postgres error, or a request that never completed.
+ *
+ * Always `severity: fault`, because by construction nobody authored it. The
+ * seam has already presented and logged it; this exists so the call site still
+ * receives the one shape rather than a special case.
+ */
+export function faultEnvelope(error: DbError, fallback: string, extra?: string): Envelope<never> {
+  // Postgres's HINT is folded into `detail` rather than dropped. Our own raises
+  // use HINT as an inter-function channel and never forward it — but a RAW
+  // fault's hint is Postgres talking, and it is frequently the most useful
+  // thing in the whole error ("Grant the required privileges to the current
+  // role with: …"). The envelope has one debugging field, so it goes there.
+  const parts = [error?.details, error?.hint, extra].filter(Boolean)
+  const detail = parts.length ? parts.join(' — ') : undefined
+  return {
+    type: 'not-ok',
+    severity: 'fault',
+    message: error?.message ?? fallback,
+    // Absent keys rather than keys holding `undefined`, so an envelope we build
+    // has the same shape as one from SQL — which strips its nulls
+    // (`jsonb_strip_nulls`). Otherwise the two would compare unequal over
+    // fields neither of them has.
+    ...(error?.code ? { dbcode: error.code } : {}),
+    ...(detail ? { detail } : {}),
+  }
 }
 
 /**
@@ -207,38 +242,87 @@ export function isEnvelope(body: unknown): body is Envelope {
 type QueryLike<T> = PromiseLike<{ data: T | null; error: DbError }>
 
 /**
- * **Run a direct table read and hand back the call-site shape.**
+ * **Run an RPC and hand back its envelope.**
  *
- * A read is not an RPC and gets no envelope: an RPC has an authored judgment to
- * report and a read does not. Its only outcomes are rows, an error, or silence,
- * and none of those need a person to have written anything. So this synthesizes
- * the shape instead, and every call site — read or RPC — branches alike.
+ * The RPC's own envelope passes through untouched. When there isn't one — the
+ * call errored, never completed, or answered with something unreadable — one is
+ * built in the same shape, so a caller has a single thing to read either way.
+ *
+ *     const r = await runRpc<Word[]>(db.rpc('anagrams', { letters }))
+ *     if (r.type !== 'ok') {
+ *       setError(r.severity === 'validation' ? r.message : null)
+ *       return
+ *     }
+ *     setResults(r.data)
+ */
+export async function runRpc<T>(call: PromiseLike<{ data: unknown; error: DbError }>): Promise<Envelope<T>> {
+  let settled: { data: unknown; error: DbError }
+  try {
+    settled = await call
+  } catch (thrown) {
+    return faultEnvelope(thrown as DbError, 'The request never reached the server.')
+  }
+  if (settled.error) return faultEnvelope(settled.error, 'The server refused the request.')
+  const body = settled.data
+  // A reply that isn't an envelope means the RPC answered with something no
+  // caller can read — an unconverted shape, or a null from a branch that never
+  // decided. Neither is actionable, and both are bugs rather than play, so it
+  // becomes a fault in the same shape as any other.
+  if (!isEnvelope(body)) {
+    const rawBody = `rawBody: ${JSON.stringify(body)?.slice(0, 120)}`
+    reportDbFault({
+      where: 'rpc',
+      kind: 'raw',
+      error: { message: 'The server answered with an unreadable result.' },
+      extra: { rawBody },
+    })
+    // No `dbcode` to carry — the call SUCCEEDED (a 200 with an unreadable
+    // body), so there is no Postgres error. What we do know is the body, and
+    // it goes into `detail` rather than living only in the console line.
+    return faultEnvelope(null, 'The server answered with an unreadable result.', rawBody)
+  }
+  return body as Envelope<T>
+}
+
+/**
+ * **Run a direct table read and hand back an envelope.**
+ *
+ * A read never produces one of its own — an envelope carries an authored
+ * judgment about a move, and a read has no move to judge. Its only outcomes are
+ * rows, an error, or silence, and none of those needs a person to have written
+ * anything. So one is built here, in the same shape as an RPC's, and every call
+ * site branches alike whatever it called.
  *
  * **Zero rows is `ok`, deliberately.** At the protocol level an empty result is
- * a correct answer, and the server has no opinion about whether your read
- * *should* have found something. Only the caller knows that, so an invariant
- * like "every profile has a solo club" is a check at the call site with its
- * sentence written there.
+ * a correct answer, and the database has no opinion about whether your read
+ * *should* have found something. Only the caller knows that. So an invariant
+ * like "every profile has a solo club" stays a check at the call site, with its
+ * sentence written there — the same rule as the RPC side, with the frontend as
+ * author because the frontend is what knows the invariant.
  *
- * The failure arm is `faulted` and nothing else: a read cannot produce a
- * validation error or a wait-and-retry, and the modal is already up by the time
- * this returns, because `dbFetch` presented it at the seam.
+ * A failure is always `severity: fault` and never anything else: a read can't
+ * produce a validation error (nothing was submitted to validate) or a
+ * wait-and-retry. By then the modal is already up, because `dbFetch` presented
+ * it at the seam — so a call site's only job is to stop showing a stale answer.
  *
  *     const r = await readRows(db.from('clubs').select('handle, name'))
  *     if (r.type !== 'ok') { setLoad('failed'); return }
  *     setClubs(r.data)
+ *
+ * `Row` is inferred from the query builder, so the rows stay typed even though
+ * the envelope's `data` is generic.
  */
-export async function readRows<Row>(query: QueryLike<Row[]>): Promise<DbResult<Row[]>> {
+export async function readRows<Row>(query: QueryLike<Row[]>): Promise<Envelope<Row[]>> {
   let settled: { data: Row[] | null; error: DbError }
   try {
     settled = await query
-  } catch {
+  } catch (thrown) {
     // A rejected fetch: `dbFetch` already logged it and put the modal up, and
     // then re-threw. postgrest-js normally converts that into an `error`, but
     // catching here means a throw from any layer lands in the same place.
-    return { type: 'faulted' }
+    return faultEnvelope(thrown as DbError, 'The request never reached the server.')
   }
-  if (settled.error) return { type: 'faulted' }
+  if (settled.error) return faultEnvelope(settled.error, 'The read failed.')
   // `null` collapses to `[]`: PostgREST returns null rather than an empty array
   // in some shapes, and "no rows" is one answer, not two.
   return { type: 'ok', data: settled.data ?? [] }

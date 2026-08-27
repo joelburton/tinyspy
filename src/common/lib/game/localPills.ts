@@ -1,7 +1,8 @@
 // cs-unmet
 
 import type { ReactNode } from 'react'
-import type { GenericFeedbackMsg, GenericFeedbackTone } from '../games'
+import type { GenericFeedbackTone } from '../outcomes'
+import type { GenericFeedbackMsg } from '../games'
 
 /**
  * The below-board local-pill builders — one home for the three

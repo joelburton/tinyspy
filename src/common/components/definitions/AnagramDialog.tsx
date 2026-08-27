@@ -2,10 +2,9 @@
 
 import { cls } from '../../lib/util/cls'
 import { StandardForm } from '../fields/StandardForm'
-import { actionName } from '../../lib/game/callRpc'
-import { failureText } from '../../lib/game/serverError'
 import { useState, type FormEvent } from 'react'
 import { db as commonDb } from '../../db'
+import { runRpc } from '../../lib/supabase/dbResult'
 import { useDefinePopover } from '../../hooks/definitions/useDefinePopover'
 import { Dialog } from '../floating-panels/Dialog'
 import styles from './AnagramDialog.module.css'
@@ -72,14 +71,21 @@ export function AnagramDialog({ onClose }: { onClose: () => void }) {
     // The previous answer STAYS on screen while the next one is fetched. Clearing
     // it would collapse the list and shrink the dialog for the length of the
     // round trip, then grow it again — a lot of flash for nothing.
-    const res = await commonDb.rpc('anagrams', { letters })
+    const res = await runRpc<Result[]>(commonDb.rpc('anagrams', { letters }))
     setSearching(false)
-    if (res.error) {
+    // A rejection the player can act on — the letters were malformed — puts the
+    // server's own sentence on the dialog's error line. A fault never arrives
+    // here: it was presented as a modal before this resolved, and all that is
+    // left to do is stop showing a stale answer.
+    if (res.type !== 'ok') {
       setResults(null)
-      setError(failureText(res.error, actionName('anagrams')))
+      // `validation` is the only failure with anything to say here — the letters
+      // were malformed and the server's sentence tells the player how. A fault
+      // has already been shown as a modal, so the line stays empty.
+      setError(res.severity === 'validation' ? res.message : null)
       return
     }
-    setResults((res.data ?? []) as Result[])
+    setResults(res.data)
   }
 
   return (

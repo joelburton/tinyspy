@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { BlockingModal } from '../floating-panels/BlockingModal'
-import { dismissFault, presentFault, useCurrentFault } from '../../lib/fault/faultStore'
+import { dismissFaultModal, showFaultModal, useCurrentFault } from '../../lib/fault/faultStore'
 import styles from './FaultModal.module.css'
 import { StandardButton } from '../buttons/StandardButton'
 
@@ -39,9 +39,9 @@ export function FaultModal() {
   return (
     <BlockingModal
       family="modal-fault"
-      onClose={dismissFault}
+      onClose={dismissFaultModal}
       actions={
-        <StandardButton name="Close" weight="primary" onClick={dismissFault} autoFocus />
+        <StandardButton name="Close" weight="primary" onClick={dismissFaultModal} autoFocus />
       }
     >
       <div className={styles.report}>
@@ -67,7 +67,7 @@ declare global {
 }
 if (typeof window !== 'undefined') {
   window.pupfault = (text?: string, diagnostics?: string) =>
-    presentFault({
+    showFaultModal({
       text: text ?? 'word|unplayable-board|EXAMPLE|',
       diagnostics:
         diagnostics ??

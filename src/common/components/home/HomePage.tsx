@@ -7,7 +7,7 @@ import { SelectionList } from '../lists/SelectionList'
 import { cls } from '../../lib/util/cls'
 import { useTabRing } from '../../hooks/input/useTabRing'
 import { db as commonDb } from '../../db'
-import { presentFault } from '../../lib/fault/faultStore'
+import { showFaultModal } from '../../lib/fault/faultStore'
 import { readRows } from '../../lib/supabase/dbResult'
 import { logStamp } from '../../lib/supabase/realtimeDiag'
 import { useProfile } from '../../hooks/session/useProfile'
@@ -104,7 +104,7 @@ export function HomePage({ session }: Props) {
       // and the `[db]` line is already written — the seam did both before this
       // resumed (plans/error-system.md). What is left is the bail-out: record
       // that the load failed so the muted line under the list can say something
-      // true. No classifying, no wording, no presentFault.
+      // true. No classifying, no wording, no showFaultModal.
       if (result.type !== 'ok') {
         setLoad('failed')
         return
@@ -127,7 +127,7 @@ export function HomePage({ session }: Props) {
       // re-fire — which is correct here: nothing about this state improves by
       // being mentioned once.
       if (result.data.length === 0) {
-        presentFault({
+        showFaultModal({
           text: "Something's wrong with your account — you should always have at least your own solo club.",
           diagnostics: `clubs — no-clubs detail="loaded 0 clubs; every profile has a solo club" — ${logStamp()}`,
         })

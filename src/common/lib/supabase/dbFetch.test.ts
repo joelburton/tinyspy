@@ -110,7 +110,7 @@ describe('dbFetch — requests that DID reach the server', () => {
  *
  * These pin the rule that makes every converted call site simpler: a call site
  * never has to ask "did we hear back at all?", never words a network problem,
- * and never calls presentFault. If this seam stops presenting, nothing else in
+ * and never calls showFaultModal. If this seam stops presenting, nothing else in
  * the app notices — the failure would be silent, which is why it is tested here
  * rather than left to a call site's own test.
  */

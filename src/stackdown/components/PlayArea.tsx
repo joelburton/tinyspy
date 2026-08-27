@@ -5,12 +5,8 @@ import { actionName } from '../../common/lib/game/callRpc'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { IconHideSolution, IconHint, IconNewGame, IconPrint, IconRestart, IconReveal, IconSpoiler } from '../../common/components/icons'
 import { cls } from '../../common/lib/util/cls'
-import type {
-  GenericFeedbackMsg,
-  GenericFeedbackTone,
-  GamePageCtx,
-  Member,
-} from '../../common/lib/games'
+import type { GenericFeedbackMsg, GamePageCtx, Member } from '../../common/lib/games'
+import type { GenericFeedbackTone } from '../../common/lib/outcomes'
 import { useSwallowTab } from '../../common/hooks/input/useSwallowTab'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { buildStackdownPrintModel } from '../pdf/model'

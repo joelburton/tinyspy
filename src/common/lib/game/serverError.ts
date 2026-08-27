@@ -1,7 +1,7 @@
 // cs-unmet
 
 import type { GenericFeedbackMsg } from '../games'
-import { presentFault } from '../fault/faultStore'
+import { showFaultModal } from '../fault/faultStore'
 import { logStamp } from '../supabase/realtimeDiag'
 import { ERROR_COPY } from './errorCopy'
 
@@ -282,7 +282,7 @@ export function faultMessage(error: CallError, action: string): GenericFeedbackM
 export function expectedTextOrFault(error: CallError, action: string): string | null {
   const msg = failureMessage(error, action)
   if (msg.fault) {
-    presentFault({ text: msg.text, diagnostics: msg.diagnostics })
+    showFaultModal({ text: msg.text, diagnostics: msg.diagnostics })
     return null
   }
   return typeof msg.text === 'string' ? msg.text : String(msg.text)

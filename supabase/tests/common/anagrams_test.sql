@@ -23,7 +23,21 @@ begin;
 
 set search_path = common, public, extensions;
 
+\ir ../_shared/envelope.psql
+
 select plan(10);
+
+-- The words from a result, in the order the RPC returned them. Ordering is part
+-- of the contract (difficulty, then word), so `with ordinality` preserves it
+-- rather than letting the aggregate re-order.
+create function pg_temp.anagram_words(letters text)
+returns text[]
+language sql
+as $$
+  select array_agg(e ->> 'word' order by ord)
+    from jsonb_array_elements(common.anagrams(letters) -> 'data')
+         with ordinality t(e, ord);
+$$;
 
 insert into common.words
   (word, difficulty, american, british, canadian, australian, len, crude, slur, slang)
@@ -36,69 +50,72 @@ values
   ('bzqxa', 1, true, true, true, true, 5, 0, 0, false);
 
 -- ── Floating letters: a scramble finds every arrangement, in band order ──
-select results_eq(
-  $$ select word from common.anagrams('xqzb') $$,
+select is(
+  pg_temp.anagram_words('xqzb'),
   array['bzqx', 'bzxq', 'zbqx'],
   'a lowercase scramble finds all anagrams, ordered difficulty then word'
 );
 
 -- ── Pins: an UPPERCASE letter fixes its position ──
-select results_eq(
-  $$ select word from common.anagrams('Bzqx') $$,
+select is(
+  pg_temp.anagram_words('Bzqx'),
   array['bzqx', 'bzxq'],
   'a pinned first letter keeps b-first words and drops zbqx'
 );
 
-select results_eq(
-  $$ select word from common.anagrams('BZXQ') $$,
+select is(
+  pg_temp.anagram_words('BZXQ'),
   array['bzxq'],
   'an all-uppercase pattern degenerates to an exact-word check'
 );
 
 -- ── Wildcards: '?' floats and pays any one letter — including a duplicate ──
-select results_eq(
-  $$ select word from common.anagrams('?zqx') $$,
+select is(
+  pg_temp.anagram_words('?zqx'),
   array['bzqx', 'zzqx', 'bzxq', 'zbqx'],
   'a wildcard pays any letter (b for three words, the second z for zzqx)'
 );
 
 -- ── Multisets: a doubled letter needs a double (or a wildcard) to pay it ──
-select results_eq(
-  $$ select word from common.anagrams('zqxz') $$,
+select is(
+  pg_temp.anagram_words('zqxz'),
   array['zzqx'],
   'a doubled input letter matches only the doubled word'
 );
 
-select results_eq(
-  $$ select word from common.anagrams('Zzqx') $$,
+select is(
+  pg_temp.anagram_words('Zzqx'),
   array['zzqx'],
   'a pinned copy plus a floating copy of the same letter both count'
 );
 
 -- ── Length is exact ──
-select results_eq(
-  $$ select word from common.anagrams('abqxz') $$,
+select is(
+  pg_temp.anagram_words('abqxz'),
   array['bzqxa'],
   'five letters match only five-letter words — the len-4 fixtures are out'
 );
 
 -- ── The unfiltered ruling: crude/slur/slang words appear ──
-select results_eq(
-  $$ select word from common.anagrams('ebqx') $$,
+select is(
+  pg_temp.anagram_words('ebqx'),
   array['qxbe'],
   'no content filter: a slur=2/crude=2/slang word still lists (ruled 2026-08-07)'
 );
 
 -- ── Input validation ──
-select throws_ok(
-  $$ select * from common.anagrams('ab1') $$,
-  'P0001', 'bad-anagram-input|',
+-- A rejection the PLAYER can fix does not throw: it comes back as an envelope
+-- on the ok path, with `severity: validation` so the dialog knows to put the
+-- message on its own error line rather than in a fault modal.
+select pg_temp.envelope_is(
+  common.anagrams('ab1'),
+  '{"type": "not-ok", "severity": "validation", "message": "2–15 letters, or ?"}'::jsonb,
   'digits are rejected'
 );
 
-select throws_ok(
-  $$ select * from common.anagrams('a') $$,
-  'P0001', 'bad-anagram-input|',
+select pg_temp.envelope_is(
+  common.anagrams('a'),
+  '{"type": "not-ok", "severity": "validation", "message": "2–15 letters, or ?"}'::jsonb,
   'a single letter is rejected'
 );
 
