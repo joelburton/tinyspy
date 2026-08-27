@@ -1045,3 +1045,95 @@ fields in a section sat flush — Joel saw "Required words" running into "Legal
 the area had never stated: **0.4rem inside a field, 0.75rem between fields in a
 section, 1rem between sections.** A field holds together more tightly than a
 section, and a section more tightly than the form.
+
+---
+
+## F48 · `form-state-and-field-errors` · A form is one keyed object, and errors are too
+
+**Raised 2026-08-27, from the error sprint** ([error-system.md](../error-system.md)),
+which needs a server-side validation to land **under the field it is about**
+rather than on the form's bottom line. Tracing the plumbing found the missing
+piece is not in the error system at all — it is that a form has no consistent
+idea of what its fields are called.
+
+**The rulings (Joel, 2026-08-27):**
+
+> "we should make all forms use a single object piece of state, keyed by name…
+> that forces fields to have names, which is good… this should make the
+> form-error design be easy: an object, keyed-by-name, with one key for
+> not-a-field-specific-error."
+
+### The four pieces
+
+1. **`name` is required on every field component**, and forwarded to `<Field>`.
+   It already exists and already means the same thing — *"the `name` on the
+   underlying input"* — on `TextField`, `NumberField`, `SelectField`,
+   `CheckboxField` and `RadioRow`. Six have none: `ColorField`, `DateField`,
+   `PlayersField`, `ManualBoardField`, `ReadOnlyField`, and `DictBandField`
+   (which is a preset wrapping `SelectField`, so it only threads the prop
+   through). **`ReadOnlyField` gets one too** — Joel: *"a read-only field can be
+   invalid… plus, perhaps the server wants to set an error on the read-only
+   field. who are we to argue?"* Its signature already carries `label`, `help`,
+   `entryHelp` and `error`; only `name` is missing.
+
+2. **A form's values are ONE object keyed by name.** The sixteen setup forms are
+   already halfway there — they read and write keys inside `SetupGameModal`'s
+   `setup` object — so for them the key exists in the state and in the
+   `onChange` but not on the component. The six dialog forms hold a `useState`
+   per field (`CreateClubModal`'s `name` / `usernamesInput`) and are the real
+   conversion.
+
+3. **Errors are one object keyed by name, plus one key for the form-level
+   message.** That key must be one a field cannot be named, since `name` is
+   about to be required and free-form. Fields read `errors[name]`; the form
+   renders the form-level entry on its bottom line.
+
+   This shape does something a single message could not: **client-side
+   validation can flag several fields at once**, while a server raise gives
+   exactly one. Both write into the same object.
+
+4. **`<Field>` does the matching, once.** Ten of the eleven field components
+   render through it and it already owns the caption / control / error stack, so
+   the lookup lives there rather than in eleven places.
+
+### What the error system contributes
+
+A `not-ok` envelope carries `severity: 'validation'` and an optional `field`,
+taken from the raise's `COLUMN`
+([error-system.md](../error-system.md) → Field-level validation). So the form's
+handler writes **one entry**: `errors[field]` when `field` is set, the
+form-level key when it isn't.
+
+**The name matching is free if `COLUMN` names the RPC's parameter.**
+`common.anagrams(letters text)` raising `column = 'letters'`, an input named
+`letters`, and `db.rpc('anagrams', { letters })` are then all one string derived
+from the function signature — nothing invented on either side for the other to
+guess.
+
+### Size, and why it is its own pass
+
+**94 field instances, 72 without a name**, across every game's setup form:
+
+| field | uses | missing `name` |
+|---|---|---|
+| `DictBandField` | 20 | 20 |
+| `SelectField` | 18 | 12 |
+| `RadioRow` | 17 | 8 |
+| `TextField` | 14 | 14 |
+| `ManualBoardField` | 7 | 7 |
+| `NumberField` | 6 | 4 |
+| others | 12 | 7 |
+
+The names are not invented — a setup field's natural name is the key it already
+binds to (`difficulty`, `word_count`, `band`) — but it is a sweep across sixteen
+games, and **none of it blocks the RPC conversions**. Until it lands, a server
+validation shows on the form's bottom line, which is where it shows today.
+
+**Verification is the forms' own vitest tests**, not a runtime fallback — Joel:
+*"field names change rarely; we can find out if errors work in the vitest tests
+for the forms, which is arguably better anyway."* A runtime "show unclaimed
+messages at the bottom" fallback was considered and rejected as overkill.
+
+**One guard is worth having** on the SQL half: `column = 'x'` must name a
+parameter of the function raising it, which is statically checkable in the same
+vitest guard that checks the `PA`/`PN` codes.

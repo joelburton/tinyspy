@@ -71,6 +71,19 @@ export type Envelope<T = unknown> =
       type: 'not-ok'
       severity: Severity
       message: string
+      /**
+       * Which FIELD a `validation` is about, from the raise's `COLUMN`.
+       *
+       * A form puts the message under that field and turns it red; absent, it
+       * lands on the form's bottom line. Always exactly one field, because a
+       * raise stops at the first failure — which makes server validation
+       * incremental the way a form already is, and never wrong about whose
+       * fault it is.
+       *
+       * The form plumbing that reads this isn't built yet
+       * (plans/error-system.md → Field-level validation).
+       */
+      field?: string
       meta?: Record<string, unknown>
       dbcode?: string
       detail?: string

@@ -46,9 +46,17 @@ grant usage on schema common to authenticated;
 --   exception when others then
 --     get stacked diagnostics
 --       v_msg = message_text, v_detail = pg_exception_detail,
---       v_hint = pg_exception_hint, v_code = returned_sqlstate;
+--       v_hint = pg_exception_hint, v_code = returned_sqlstate,
+--       v_col = column_name;
 --     if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
---     return common.raised_envelope(v_code, v_msg, v_hint, v_detail);
+--     return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
+--
+-- COLUMN is the fifth channel, and it says WHICH FIELD a validation is about.
+-- The other four are spoken for (message/detail/errcode/hint), and packing two
+-- values into one of them would rebuild the delimited mini-format this design
+-- removed. PostgREST relays only {code, message, details, hint}, so COLUMN
+-- would be lost on a RAW error — it doesn't need to survive that trip, because
+-- the handler converts the raise to jsonb before any response is built.
 --
 -- `when others` rather than `when sqlstate …` because WHEN SQLSTATE accepts
 -- only a literal code — no patterns, no variables. Anything not ours is
@@ -75,12 +83,14 @@ as $$
 $$;
 
 -- The envelope for a raise we authored. Called only from an exception handler,
--- with the four values `get stacked diagnostics` just produced.
+-- with the values `get stacked diagnostics` just produced.
+drop function if exists common.raised_envelope(text, text, text, text);
 create or replace function common.raised_envelope(
   sqlstate_code text,
   message text,
   hint text,
-  detail text default null
+  detail text default null,
+  field text default null
 )
 returns jsonb
 language sql
@@ -93,12 +103,17 @@ as $$
     'outcome',  case when substr(sqlstate_code, 2, 1) = 'A' then hint end,
     'severity', case when substr(sqlstate_code, 2, 1) = 'A' then null else hint end,
     'message',  message,
+    -- Which FIELD a validation is about, from the raise's COLUMN. A form puts
+    -- the message under that field and turns it red; absent, it lands on the
+    -- form's bottom line. A raise stops at the first failure, so a validation
+    -- is always about exactly one field.
+    'field',    field,
     'dbcode',   sqlstate_code,
     'detail',   detail));
 $$;
 
 revoke execute on function common.ok_envelope(jsonb, text, text, jsonb) from public;
-revoke execute on function common.raised_envelope(text, text, text, text) from public;
+revoke execute on function common.raised_envelope(text, text, text, text, text) from public;
 
 -- Which gametypes a freshly-created club should be enrolled in
 -- (i.e. which Start buttons it should offer). Two filters:
@@ -2166,13 +2181,13 @@ declare
   c   text;
   idx int;
   found   jsonb;
-  v_msg text; v_detail text; v_hint text; v_code text;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text;
 begin
   -- PN001. The player typed this, so it is theirs to fix — a validation, shown
   -- on the dialog's own error line. The MESSAGE is what they read.
   if letters is null or letters !~ '^[A-Za-z?]{2,15}$' then
     raise exception '2–15 letters, or ?'
-      using errcode = 'PN001', hint = 'validation',
+      using errcode = 'PN001', hint = 'validation', column = 'letters',
       detail = 'anagram input must be 2-15 letters or ?';
   end if;
   n := length(letters);
@@ -2218,9 +2233,10 @@ begin
 exception when others then
   get stacked diagnostics
     v_msg = message_text, v_detail = pg_exception_detail,
-    v_hint = pg_exception_hint, v_code = returned_sqlstate;
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail);
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 revoke execute on function common.anagrams(text) from public;

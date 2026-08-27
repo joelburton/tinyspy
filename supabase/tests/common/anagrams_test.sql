@@ -25,7 +25,7 @@ set search_path = common, public, extensions;
 
 \ir ../_shared/envelope.psql
 
-select plan(10);
+select plan(11);
 
 -- The words from a result, in the order the RPC returned them. Ordering is part
 -- of the contract (difficulty, then word), so `with ordinality` preserves it
@@ -111,6 +111,15 @@ select pg_temp.envelope_is(
   common.anagrams('ab1'),
   '{"type": "not-ok", "severity": "validation", "message": "2–15 letters, or ?"}'::jsonb,
   'digits are rejected'
+);
+
+-- The raise's COLUMN names the field the message belongs under. Pinned here
+-- because nothing renders it yet — the form plumbing comes later — so a
+-- dropped `column =` on the raise would otherwise go unnoticed.
+select pg_temp.envelope_is(
+  common.anagrams('ab1'),
+  '{"field": "letters"}'::jsonb,
+  'a validation names the field it is about'
 );
 
 select pg_temp.envelope_is(

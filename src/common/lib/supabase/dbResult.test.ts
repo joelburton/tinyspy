@@ -114,6 +114,22 @@ describe('runRpc — one shape, always', () => {
     })
   })
 
+  // `field` names which input a validation is about. Nothing renders it yet —
+  // the form plumbing is designed but unbuilt — so this pins that the value
+  // survives the trip rather than being dropped in a layer on the way.
+  it('carries the field a validation is about', async () => {
+    const r = await runRpc(
+      Promise.resolve({
+        data: {
+          type: 'not-ok', severity: 'validation', field: 'letters',
+          message: '2–15 letters, or ?', dbcode: 'PN001',
+        },
+        error: null,
+      }),
+    )
+    expect(r).toMatchObject({ severity: 'validation', field: 'letters' })
+  })
+
   it('keeps them on a not-ok result too', async () => {
     const r = await runRpc(
       Promise.resolve({

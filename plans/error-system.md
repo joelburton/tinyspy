@@ -712,9 +712,16 @@ jsonb before any response is built. The channel only has to reach
 1. The handler gains one diagnostics item, `v_col = column_name`, passed
    through to `raised_envelope`.
 2. The envelope gains one optional key on the `not-ok` arm: `field`.
-3. `StandardForm` reads it — `field` set and matching an input's name routes
-   `message` to that field's `error` prop; `field` absent falls back to the
-   form's bottom line, which is today's behavior.
+3. The form routes it. **Not `StandardForm`** — that is a bare `<form>` with a
+   class and no state. The frontend half is
+   [areas/forms.md → F48](areas/forms.md) `form-state-and-field-errors`: a
+   form's values become one object keyed by field name, its errors become
+   another, and `<Field>` — which ten of the eleven field components already
+   render through — reads `errors[name]`. The envelope contributes one entry:
+   `errors[field]`, or the form-level key when `field` is absent.
+
+   Until F48 lands, a validation shows on the form's bottom line, which is
+   where it shows today. Nothing here blocks converting RPCs.
 
 **One accepted limitation: a validation is about exactly one field.** A raise
 stops at the first failure, so the server cannot report several at once. A form
