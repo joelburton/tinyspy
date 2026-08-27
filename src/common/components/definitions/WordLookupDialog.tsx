@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { useState, type FormEvent } from 'react'
+import { useState } from 'react'
 import { StandardForm } from '../fields/StandardForm'
 import { DefinitionView } from './DefinitionView'
 import { Dialog } from '../floating-panels/Dialog'
@@ -27,8 +27,7 @@ export function WordLookupDialog({ onClose }: Props) {
   const [query, setQuery] = useState('')
   const [word, setWord] = useState<string | null>(null)
 
-  function onSubmit(e: FormEvent) {
-    e.preventDefault()
+  function onSubmit() {
     const w = query.trim().toLowerCase()
     if (w) setWord(w)
   }

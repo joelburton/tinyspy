@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { StandardForm } from '../fields/StandardForm'
-import { useState, type SubmitEvent } from 'react'
+import { useState } from 'react'
 import { db as commonDb } from '../../db'
 import { runRpc } from '../../lib/supabase/dbResult'
 import { supabase } from '../../lib/supabase/supabase'
@@ -105,8 +105,7 @@ export function ClaimHandleScreen({ onClaimed, email }: Props) {
   // (don't badger the user before they've typed anything).
   const localValid = desired.length === 0 || HANDLE_REGEX.test(desired)
 
-  async function onSubmit(e: SubmitEvent<HTMLFormElement>) {
-    e.preventDefault()
+  async function onSubmit() {
     setError(null)
 
     if (!HANDLE_REGEX.test(desired)) {

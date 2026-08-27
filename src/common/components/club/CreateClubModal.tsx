@@ -1,7 +1,8 @@
 // cs-unmet
 
 import { StandardForm } from '../fields/StandardForm'
-import { useState, type SubmitEvent } from 'react'
+import { FORM_ERROR, useFormValues, type FormErrors } from '../fields/formState'
+import { useState } from 'react'
 import { db as commonDb } from '../../db'
 import { runRpc } from '../../lib/supabase/dbResult'
 import { NormalModal } from '../floating-panels/NormalModal'
@@ -100,36 +101,60 @@ const CLUB_NAME_MAX = 20
  * Lifecycle mirrors the other normal modals: the opener conditionally renders
  * us — mounting opens, unmounting closes. We hold no "is open" state.
  */
+/**
+ * What the form holds, keyed by the name each value is SENT AS.
+ *
+ * The keys are `common.create_club`'s own parameters, which is what makes the
+ * round trip need no translation: the input is named `club_name`, the RPC
+ * argument is `club_name`, and PN009 raises `column = 'club_name'`, so the
+ * server's answer lands under the box that caused it.
+ */
+type Values = { club_name: string; member_usernames: string }
+
+const EMPTY: Values = { club_name: '', member_usernames: '' }
+
+/**
+ * The derived URL handle, beside the "Club name" caption, so the validation —
+ * which is really about the handle, not the name — reads sensibly ("JB!" → "jb",
+ * too short).
+ *
+ * A component rather than an expression because the value it reads belongs to
+ * the form now. That is the whole cost of the form owning its state, and it
+ * buys a self-contained piece of UI in exchange for an inline ternary.
+ */
+function HandleHint() {
+  const { club_name } = useFormValues<Values>()
+  if (!club_name.trim()) return null
+  const slug = slugify(club_name)
+  return (
+    <span className={styles.handleHint}>
+      {slug ? `(becomes handle: ${slug})` : '(empty)'}
+    </span>
+  )
+}
+
 export function CreateClubModal({ onCreated, onCancel }: Props) {
-  const [name, setName] = useState('')
-  const [usernamesInput, setUsernamesInput] = useState('')
+  const [errors, setErrors] = useState<FormErrors>({})
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
 
-  // The handle the current name would slugify to. Shown discreetly in
-  // the "Club name" label so the validation (which is really about the
-  // handle, not the name) makes sense — e.g. "JB!" → handle "jb", too
-  // short. slugify already trims, so this matches slugify(name.trim()).
-  const previewSlug = slugify(name)
+  async function onSubmit(values: Values) {
+    setErrors({})
 
-  async function onSubmit(e: SubmitEvent<HTMLFormElement>) {
-    e.preventDefault()
-    setError(null)
-
-    const trimmed = name.trim()
+    const trimmed = values.club_name.trim()
     if (!trimmed) {
-      setError('Please give the club a name.')
+      setErrors({ club_name: 'Please give the club a name.' })
       return
     }
     // Validate the derived handle before hitting the server so a
     // too-short / non-letter-leading name gets guidance, not the raw
-    // clubs_handle CHECK violation.
-    const slugErr = handleError(previewSlug)
+    // clubs_handle CHECK violation. Same object as the server's answers —
+    // whoever noticed the problem writes into one place.
+    const slugErr = handleError(slugify(trimmed))
     if (slugErr) {
-      setError(slugErr)
+      setErrors({ club_name: slugErr })
       return
     }
-    const usernames = usernamesInput
+    const usernames = values.member_usernames
       .split(/[\s,]+/)
       .map((s) => s.trim())
       .filter((s) => s.length > 0)
@@ -144,15 +169,15 @@ export function CreateClubModal({ onCreated, onCancel }: Props) {
     setBusy(false)
 
     if (res.type !== 'ok') {
-      // Everything the server said goes on the line. The three validations —
-      // a name already taken, a username that doesn't exist, a club of one —
-      // are the ones a player can act on; a fault has also raised a modal, and
-      // the line is what remains once that is dismissed.
+      // ONE entry, under the field the server named. Its three validations
+      // each say which input they are about — PN009 `club_name`, PN007 and
+      // PN008 `member_usernames` — so the message appears beneath that box and
+      // rings it, rather than on a line at the bottom that makes you work out
+      // which of the two it meant.
       //
-      // `res.field` says which input each validation is about
-      // (`club_name` / `member_usernames`). Nothing reads it yet: the form
-      // plumbing is plans/areas/forms.md → F48.
-      setError(res.message)
+      // A fault says `_` and lands on the form's own line; it has also already
+      // raised the modal, and the line is what remains once that is dismissed.
+      setErrors({ [res.field ?? FORM_ERROR]: res.message })
       return
     }
     // Don't bother clearing `busy` — onCreated navigates away and unmounts us.
@@ -181,29 +206,19 @@ export function CreateClubModal({ onCreated, onCancel }: Props) {
           either field submit — implicit submission needs the submit button in
           the form, and typing a club name and pressing Enter is the fast path
           this dialog is for. */}
-      <StandardForm onSubmit={onSubmit}>
+      <StandardForm initialValues={EMPTY} errors={errors} onSubmit={onSubmit}>
         {/* maxLength mirrors the CHECK on common.clubs.name — the same
             belt-and-braces the handle field uses (ClaimHandleScreen). The
             server is the authority; this just means you can't type a name
             only to be told no. */}
         <TextField
+          name="club_name"
           label={
             <span className={styles.labelRow}>
               Club name
-              {/* Discreet preview of the derived URL handle, so the
-                  handle-based validation reads sensibly ("JB!" → "jb").
-                  Hidden when the name is blank; "(empty)" when the name
-                  has no slug-able characters at all (e.g. "!!!"). */}
-              {name.trim() && (
-                <span className={styles.handleHint}>
-                  {previewSlug ? `(becomes handle: ${previewSlug})` : '(empty)'}
-                </span>
-              )}
+              <HandleHint />
             </span>
           }
-          name="club_name"
-          value={name}
-          onChange={setName}
           disabled={busy}
           placeholder="Joel and Leah"
           maxLength={CLUB_NAME_MAX}
@@ -215,8 +230,6 @@ export function CreateClubModal({ onCreated, onCancel }: Props) {
         <TextField
           name="member_usernames"
           label="Other members' usernames"
-          value={usernamesInput}
-          onChange={setUsernamesInput}
           disabled={busy}
           placeholder="alice, bob"
           multiline
@@ -224,7 +237,9 @@ export function CreateClubModal({ onCreated, onCancel }: Props) {
           entryHelp="Comma or space separated. You're added automatically."
         />
 
-        <FailureLine>{error}</FailureLine>
+        {/* The form's own line, for a message that named no field. Each
+            field's own message renders under that field, not here. */}
+        <FailureLine>{errors[FORM_ERROR]}</FailureLine>
 
         <div className={actionRow.modalActions}>
           <CancelButton onClick={onCancel} disabled={busy} />

@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react'
 import { Field } from './Field'
+import { useFormField } from './formState'
 import styles from './TextField.module.css'
 
 type Props = {
@@ -20,8 +21,11 @@ type Props = {
    *  this names it when nothing is drawn. It is a plain string because a name
    *  is text, where a caption can be markup. */
   ariaLabel?: string
-  value: string
-  onChange: (value: string) => void
+  /** Omitted inside a `<StandardForm>`: the field reads its own value by
+   *  `name`. Given explicitly it wins, which is what keeps the fields usable
+   *  from a setup body, where there is no form. */
+  value?: string
+  onChange?: (value: string) => void
   /** A textarea instead of a one-line input. Same field, more room — not a
    *  different kind, which is why it's a prop and not a second component. */
   multiline?: boolean
@@ -99,12 +103,23 @@ export function TextField({
   autoComplete,
   className,
 }: Props) {
+  // Inside a `<StandardForm>` the field is the form's: it reads what it holds
+  // and writes back by `name`. Explicit props still win, so the same component
+  // serves a setup body, which has no form around it.
+  //
+  // The error is resolved HERE rather than in `<Field>` because it also has to
+  // reach the control's `aria-invalid`, which is what draws the ring — `<Field>`
+  // renders beside the control and cannot set it.
+  const form = useFormField(name)
+  const shown = error ?? form.error
+  const shownValue = value ?? (typeof form.value === 'string' ? form.value : '')
+  const change = onChange ?? form.setValue
   const shared = {
     className: styles.control,
     'aria-label': label === undefined ? ariaLabel : undefined,
-    'aria-invalid': error ? true : undefined,
-    value,
-    onChange: (e: { target: { value: string } }) => onChange(e.target.value),
+    'aria-invalid': shown ? true : undefined,
+    value: shownValue,
+    onChange: (e: { target: { value: string } }) => change(e.target.value),
     placeholder,
     maxLength,
     required,
@@ -117,7 +132,7 @@ export function TextField({
   }
 
   return (
-    <Field label={label} help={help} entryHelp={entryHelp} error={error} className={className}>
+    <Field label={label} help={help} entryHelp={entryHelp} error={shown} className={className}>
       {(id) =>
         multiline ? (
           <textarea id={id} rows={rows} {...shared} />

@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { StandardForm } from '../fields/StandardForm'
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState } from 'react'
 import { db as commonDb } from '../../db'
 import { readRows, runRpc } from '../../lib/supabase/dbResult'
 import { setWordEdit, type WordEditRequest } from '../../lib/definitions/wordEditStore'
@@ -143,8 +143,7 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
     setFields((f) => ({ ...f, [key]: v }))
   }
 
-  async function onSubmit(e: FormEvent) {
-    e.preventDefault()
+  async function onSubmit() {
     if (busy || initial === null) return
     setError(null)
 

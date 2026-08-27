@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { useState, type SubmitEvent } from 'react'
+import { useState } from 'react'
 import { StandardForm } from '../fields/StandardForm'
 import { supabase } from '../../lib/supabase/supabase'
 import { PuzpuzpuzWordmark } from '../branding/PuzpuzpuzWordmark'
@@ -57,8 +57,7 @@ export function LoginScreen() {
 
   const busy = status === 'sending' || status === 'verifying'
 
-  async function onSubmit(e: SubmitEvent<HTMLFormElement>) {
-    e.preventDefault()
+  async function onSubmit() {
     setError(null)
 
     if (action === 'send-link') {

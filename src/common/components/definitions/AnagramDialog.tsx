@@ -2,7 +2,7 @@
 
 import { cls } from '../../lib/util/cls'
 import { StandardForm } from '../fields/StandardForm'
-import { useState, type FormEvent } from 'react'
+import { useState } from 'react'
 import { db as commonDb } from '../../db'
 import { runRpc } from '../../lib/supabase/dbResult'
 import { useDefinePopover } from '../../hooks/definitions/useDefinePopover'
@@ -56,8 +56,7 @@ export function AnagramDialog({ onClose }: { onClose: () => void }) {
   const [searching, setSearching] = useState(false)
   const { define: openDefine, popover } = useDefinePopover()
 
-  async function onSubmit(e: FormEvent) {
-    e.preventDefault()
+  async function onSubmit() {
     const letters = query.trim()
     if (letters.length < PATTERN_LENGTH.min) {
       // The refusal needs a REASON on screen. A bare `return` here would leave
