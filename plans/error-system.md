@@ -246,12 +246,87 @@ early `return` would not.
 |---|---|---|
 | MESSAGE | the player-facing sentence | the player |
 | DETAIL | the debugging line | the `[db]` log and the fault modal's diagnostics |
-| ERRCODE | `ok`, or which `not-ok` severity | the catch block |
-| HINT | the `outcome` for an `ok` — `warning`, `noted`, … | the catch block only |
+| ERRCODE | that this is ours, and which branch — see "The SQLSTATE scheme" | the catch block |
+| HINT | the refinement: `outcome` when it's an `ok`, `severity` when it's a `not-ok` | the catch block only |
 
 HINT is purely **inter-function**: the catch block consumes it to build the
 envelope and does not forward it. (It does reach the frontend on a raw fault,
-where PostgREST relays it, but nothing we author travels that way.)
+where PostgREST relays it, but nothing we author travels that way.) The two
+branches are disjoint, so one field carrying two different vocabularies is
+unambiguous — and the guard pins both.
+
+### The SQLSTATE scheme
+
+Every raise we author carries a code of our own. Postgres accepts any five
+characters from `0-9A-Z`; the first two are the *class*, and its own table uses
+only these:
+
+```
+00 01 02 03 08 09 0A 0B 0F 0L 0P 0Z 20 21 22 23 24 25 26 27 28 2B 2D 2F
+34 38 39 3B 3D 3F 40 42 44 53 54 55 57 58 72 F0 HV P0 XX
+```
+
+`P0` is taken — that's PL/pgSQL's own (`P0001` raise_exception, `P0002`
+no_data_found, …). `PA` and `PN` are free, so:
+
+```
+P A 0 4 2               P N 5 0 7
+│ │ └─┴─┴── unique id, 000–999
+│ └──────── A = this raise becomes `type: ok`
+│           N = this raise becomes `type: not-ok`
+└────────── P = ours
+```
+
+- **Ownership test**, and the reason the handler can be `when others`:
+  `code ~ '^P[AN][0-9]{3}$'`. Anything else is re-raised and becomes a raw fault.
+- **Branch test**: one character, `substr(code,2,1)`.
+- **The digits encode nothing.** No families, no categories, no ranges to
+  remember. They are a unique ID and only that: a code in a bug report leads to
+  exactly one line of SQL.
+- **Unique per raise site**, not per condition. That distinction matters here —
+  `game-not-found` is raised **88 times** and `game-not-in-play` **57**, across
+  186 distinct conditions and 442 sites. Per-condition numbering would send you
+  to 88 lines; per-site sends you to one. The cost is that a single condition
+  wears many codes, so "find every game-not-found" is a grep on the message
+  prose rather than on the code.
+- **We never reuse a Postgres code**, even where one fits semantically. If a
+  condition resembles `unique_violation`, it still gets a `PN###` of its own —
+  so "did we raise this, or did the database?" is answered by the prefix alone,
+  with nothing to disambiguate.
+
+442 sites today against 2,000 slots, and the two classes grow at very different
+rates without competing for room.
+
+**The guard.** A vitest test over `supabase/sql/`, in the shape
+`src/guards/serverErrorKeys.test.ts` already uses (`readFileSync`, no database).
+It asserts:
+
+1. Every raise carries an errcode matching `^P[AN][0-9]{3}$` — **the shape
+   check matters most**, because a malformed errcode does not fail. Postgres
+   also accepts a *condition name* there, so `ABC`, `abcde`, or `PU00-` are
+   silently looked up as names and come back as `42704 undefined_object`. A
+   typo doesn't produce obvious garbage; it produces a plausible Postgres code
+   that lands on the raw-fault route looking genuine.
+2. Every code appears exactly once across the whole app.
+3. Every `PA` raise has a HINT drawn from the `outcome` vocabulary; every `PN`
+   raise has a HINT drawn from `fault | validation | error`.
+4. That the `outcome` vocabulary equals `GenericFeedbackTone` minus `error` —
+   the SQL↔TypeScript link, which is the assertion that actually rots if left
+   unguarded.
+
+Two things it implies, and one it can't do:
+
+- **Errcodes stay bare literals.** `errcode = case when g.mode = 'coop' then …`
+  is legal SQL and would blind the guard exactly where the interesting
+  classification lives. A condition that classifies differently per mode gets
+  written as two raises in an `if/else`. All 442 raises use literal errcodes
+  today, so nothing changes to adopt this.
+- **Plant a failure before trusting it.** `--radius-md` was named but unguarded
+  and rotted for months while the guarded color tokens didn't; a guard that
+  can't fail is worse than none.
+- **It can check that a severity is well-formed, never that it is right.**
+  Whether `no-guesses-left` is really a fault is the author's judgment, and no
+  test can second-guess it.
 
 **`not-ok` sends no tone.** Severity is enough — a fault is a modal, a
 validation is the form's red line, an error is a wait-and-retry pill. There is
@@ -416,20 +491,20 @@ draft proposed matching the message's key shape (`already-guessed|`) on the
 grounds that it needed no edits — but once the MESSAGE became player-facing
 prose there is no key shape left to match, and the prose migration visits all
 442 raise sites anyway, so adding an `errcode` in the same edit is free. Using
-`when sqlstate <…>` rather than `when others` also means a fault never enters
-the handler at all: no re-raise, no filter that could be wrong.
+(An earlier draft said the handler could be `when sqlstate <…>`, so a raw fault
+would never enter it. That's wrong: `WHEN SQLSTATE` accepts only a literal
+five-character code — no patterns, no variables — so the handler is `when
+others`, reads the code, and `raise;`s anything that isn't ours. Verified: a
+planted `1/0` comes back out as `22012`, message and context intact. The
+consequence is that the ownership test is load-bearing rather than decorative.)
 
 Genuinely open:
 
-- **The names.** The SQLSTATE letters, and the exact spelling of the envelope's
-  keys. `type: ok | not-ok` is settled: `not-ok` is deliberately empty of
-  meaning so it says only "look at `severity`", where a word with content
-  (`problem`, `error`) would invite the reader to wonder how it differs from
-  `severity: error`.
-- **A guard test pinning the ERRCODE and HINT vocabularies.** Both are strings
-  in SQL that nothing type-checks. A typo'd errcode isn't caught by the handler
-  so it bubbles as a raw fault — loud, and survivable. A typo'd HINT yields a
-  bogus `outcome` quietly, which is the one that needs the guard.
+- **The exact spelling of the envelope's keys.** `type: ok | not-ok` is
+  settled — `not-ok` is deliberately empty of meaning so it says only "look at
+  `severity`", where a word with content (`problem`, `error`) would invite the
+  reader to wonder how it differs from `severity: error`. The rest of the key
+  names are not settled. (The SQLSTATE letters are: see "The SQLSTATE scheme".)
 - **Transient contention.** A deadlock (`40P01`) or serialization failure
   (`40001`) is neither a bug nor a broken server, and the right answer is
   usually a silent retry rather than a fault. It's the one member of the
@@ -476,14 +551,17 @@ begin
 
   return { type: ok, outcome: neutral, data: { id: new_id } };
 
-exception when <any code we authored> then
-  -- One block. It has never heard of any specific condition: the message, the
-  -- severity and the outcome all ride out of the raise itself, pulled back
-  -- with `get stacked diagnostics`. A code we did NOT author isn't in this
-  -- list, so it never enters here and bubbles in Postgres's own shape.
-  return { type: not-ok, severity: <from the sqlstate>,
-           message: <the raise's MESSAGE>, code: <the sqlstate>,
-           detail: <the raise's DETAIL, for the console> };
+exception when others then
+  -- One block. It has never heard of any specific condition: it tests the code
+  -- for OUR prefix, re-raises anything else, then reads one character to pick
+  -- the branch. Message, severity and outcome all ride out of the raise itself.
+  get stacked diagnostics <msg, detail, hint, code>;
+  if code !~ '^P[AN][0-9]{3}$' then raise; end if;   -- not ours → raw fault
+  if substr(code,2,1) = 'A' then
+    return { type: ok, outcome: <the HINT>, message: <the MESSAGE> };
+  end if;
+  return { type: not-ok, severity: <the HINT>,
+           message: <the MESSAGE>, code: code, detail: <the DETAIL> };
 end $$;
 ```
 
@@ -565,16 +643,15 @@ begin
            data: { verdict: <hit or miss>, found_all: <bool> },
            meta: { guesses_remaining: caller_remaining } };
 
--- One block, for every authored condition in the function. It reads the
--- SQLSTATE to decide which branch it is building, and for an `ok` reads HINT
--- for the outcome. It has never heard of any specific condition.
-exception when <any code we authored> then
+-- The same block every RPC carries, verbatim.
+exception when others then
   get stacked diagnostics <msg, detail, hint, code>;
-  if <the code says ok> then
-    return { type: ok, outcome: <the hint>, message: <the MESSAGE> };
+  if code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  if substr(code,2,1) = 'A' then
+    return { type: ok, outcome: <the HINT>, message: <the MESSAGE> };
   end if;
-  return { type: not-ok, severity: <from the sqlstate>,
-           message: <the MESSAGE>, code: <the sqlstate>, detail: <the DETAIL> };
+  return { type: not-ok, severity: <the HINT>,
+           message: <the MESSAGE>, code: code, detail: <the DETAIL> };
 end $$;
 ```
 
