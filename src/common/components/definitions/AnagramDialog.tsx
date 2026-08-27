@@ -79,10 +79,14 @@ export function AnagramDialog({ onClose }: { onClose: () => void }) {
     // left to do is stop showing a stale answer.
     if (res.type !== 'ok') {
       setResults(null)
-      // `validation` is the only failure with anything to say here — the letters
-      // were malformed and the server's sentence tells the player how. A fault
-      // has already been shown as a modal, so the line stays empty.
-      setError(res.severity === 'validation' ? res.message : null)
+      // Show whatever the server said, EXCEPT a fault — those are already on
+      // screen as a modal, and repeating them here would say it twice.
+      // Excluding rather than listing matters: `validation` (fix your letters)
+      // and `error` (a service we depend on didn't answer) are both the
+      // server's words for the player, and this dialog has one place to put
+      // words. Naming only the severities we expect would silently drop the
+      // rest.
+      setError(res.severity === 'fault' ? null : res.message)
       return
     }
     setResults(res.data)

@@ -81,4 +81,41 @@ describe('AnagramDialog', () => {
       expect(screen.getByText('2–15 letters, or ?')).toBeInTheDocument(),
     )
   })
+
+  // `error` — a service we depend on didn't answer — is the server's words for
+  // the player just as much as a validation is, and this dialog has one place
+  // to put words. Testing a severity the RPC cannot raise TODAY on purpose: the
+  // next dialog copied from this one will raise it, and a version that named
+  // only `validation` would drop it silently.
+  it('shows an error-severity message too, not only a validation', async () => {
+    const user = userEvent.setup()
+    render(<AnagramDialog onClose={vi.fn()} />)
+    mockRpc.mockResolvedValue({
+      data: {
+        type: 'not-ok',
+        severity: 'error',
+        message: "Dictionary service couldn't be reached — try again later",
+      },
+      error: null,
+    })
+    await user.type(screen.getByLabelText('Letters to anagram'), 'acer{Enter}')
+    await waitFor(() =>
+      expect(
+        screen.getByText("Dictionary service couldn't be reached — try again later"),
+      ).toBeInTheDocument(),
+    )
+  })
+
+  // A fault is already a modal; repeating it on the line would say it twice.
+  it('stays silent for a fault, which is already on screen', async () => {
+    const user = userEvent.setup()
+    render(<AnagramDialog onClose={vi.fn()} />)
+    mockRpc.mockResolvedValue({
+      data: { type: 'not-ok', severity: 'fault', message: 'That table is gone', dbcode: 'PN900' },
+      error: null,
+    })
+    await user.type(screen.getByLabelText('Letters to anagram'), 'acer{Enter}')
+    await waitFor(() => expect(screen.queryByText('No words.')).not.toBeInTheDocument())
+    expect(screen.queryByText('That table is gone')).not.toBeInTheDocument()
+  })
 })

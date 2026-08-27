@@ -675,6 +675,55 @@ Genuinely open:
   `submit_guess` takes a single `FOR UPDATE` on the game row, so concurrent
   submits queue rather than deadlock — and deliberately deferred.
 
+### Field-level validation — designed, not built
+
+A `validation` currently lands on a form's bottom line. It should be able to
+land **under the field it is about**, with that field turned red — the same
+place a client-side check already puts its message, via the field's existing
+`error` prop.
+
+**The channel is `COLUMN`.** The raise's other options are spoken for —
+MESSAGE is the player's sentence, DETAIL the debugging line, ERRCODE the branch,
+HINT the severity — but PL/pgSQL's `RAISE` also takes `COLUMN`, `CONSTRAINT`
+and `TABLE`, and `COLUMN` means almost exactly "which field". Verified to
+survive to the handler:
+
+```sql
+raise exception '2–15 letters, or ?'
+  using errcode = 'PN001', hint = 'validation', column = 'letters',
+        detail = 'anagram input must be 2-15 letters or ?';
+```
+```
+code=PN001  msg=2–15 letters, or ?  hint=validation  column=letters
+```
+
+Packing it into HINT alongside the severity was the alternative, and it is the
+wrong one: two values in one string rebuilds the `key|detail|` mini-format this
+design deleted.
+
+**What makes it work:** PostgREST relays only `{code, message, details, hint}`,
+so `COLUMN` would be lost on a raw error. It doesn't need to survive that trip —
+the RPC's own handler catches the raise *inside* the function and converts it to
+jsonb before any response is built. The channel only has to reach
+`get stacked diagnostics`.
+
+**The pieces, when it gets built:**
+
+1. The handler gains one diagnostics item, `v_col = column_name`, passed
+   through to `raised_envelope`.
+2. The envelope gains one optional key on the `not-ok` arm: `field`.
+3. `StandardForm` reads it — `field` set and matching an input's name routes
+   `message` to that field's `error` prop; `field` absent falls back to the
+   form's bottom line, which is today's behavior.
+
+**One accepted limitation: a validation is about exactly one field.** A raise
+stops at the first failure, so the server cannot report several at once. A form
+wanting every bad field together would need the RPC to collect them and
+`return` an envelope rather than raise — a different shape. The limitation has
+a redeeming property: it makes server validation incremental in the same way a
+form is — fix the field it names, resubmit, it names the next — and it never
+lies about which field is at fault.
+
 ---
 
 ## 5. Worked example — psychicnum
