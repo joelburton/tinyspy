@@ -325,6 +325,19 @@ P A 0 4 2               P N 5 0 7
 442 sites today against 2,000 slots, and the two classes grow at very different
 rates without competing for room.
 
+**Allocating a number.** `max + 1` for that class, **never filling gaps**. A
+reused number means an old bug report — "it said PA003" — later points at a
+different condition, and gaps cost nothing against 1,000 slots per class. The
+regex is the whole allocator:
+
+```sh
+grep -rhoE '\bP[AN][0-9]{3}\b' supabase/sql | sort -u   # everything in use
+```
+
+The guard below prints the next free number of each class as part of its
+output, so the same regex serves both the test and a by-hand check. It enforces
+shape and uniqueness, **not contiguity** — gaps are expected.
+
 **The guard.** A vitest test over `supabase/sql/`, in the shape
 `src/guards/serverErrorKeys.test.ts` already uses (`readFileSync`, no database).
 It asserts:
