@@ -18,6 +18,7 @@ begin;
 
 set search_path = common, public, extensions;
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 
 select plan(17);
 
@@ -32,9 +33,10 @@ values
 
 -- ── The gate: a non-editor is refused, and can't read the journal ──
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select throws_ok(
-  $$ select common.update_word('zqedita', '{"difficulty": 3}'::jsonb) $$,
-  '42501', 'not-word-editor|',
+select pg_temp.envelope_is(
+  common.update_word('zqedita', '{"difficulty": 3}'::jsonb),
+  '{"type": "not-ok", "severity": "fault", "dbcode": "PN019",
+    "message": "You can''t edit the dictionary"}'::jsonb,
   'a non-editor cannot update a word'
 );
 select is(
@@ -45,9 +47,10 @@ select is(
 
 -- ── update: live apply + journal ──
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select lives_ok(
-  $$ select common.update_word('zqedita', '{"difficulty": 5, "slang": true}'::jsonb,
-                               'saw this in wordle; way too obscure') $$,
+select pg_temp.envelope_is(
+  common.update_word('zqedita', '{"difficulty": 5, "slang": true}'::jsonb,
+                     'saw this in wordle; way too obscure'),
+  '{"type": "ok"}'::jsonb,
   'an editor patches a word'
 );
 select is(
@@ -72,19 +75,22 @@ select is(
 );
 
 -- ── validation ──
-select throws_ok(
-  $$ select common.update_word('zqedita', '{"wordle": true}'::jsonb) $$,
-  'P0001', 'bad-word-field|wordle|',
+select pg_temp.envelope_is(
+  common.update_word('zqedita', '{"wordle": true}'::jsonb),
+  '{"type": "not-ok", "severity": "fault", "dbcode": "PN020",
+    "message": "A field outside the editable set reached the server: wordle"}'::jsonb,
   'only the editable column set is patchable'
 );
-select throws_ok(
-  $$ select common.update_word('zqedita', '{"difficulty": 7}'::jsonb) $$,
-  'P0001', 'bad-difficulty|',
+select pg_temp.envelope_is(
+  common.update_word('zqedita', '{"difficulty": 7}'::jsonb),
+  '{"type": "not-ok", "severity": "fault", "dbcode": "PN021",
+    "message": "A difficulty outside 1-6 reached the server"}'::jsonb,
   'a typo band is a clean rejection'
 );
-select throws_ok(
-  $$ select common.update_word('zqnope', '{"difficulty": 3}'::jsonb) $$,
-  'P0002', 'no-such-word|zqnope|',
+select pg_temp.envelope_is(
+  common.update_word('zqnope', '{"difficulty": 3}'::jsonb),
+  '{"type": "not-ok", "severity": "error", "dbcode": "PN025",
+    "message": "No such word: zqnope"}'::jsonb,
   'patching a missing word says so'
 );
 
@@ -123,19 +129,22 @@ select is(
   'add|true|zqeditnew',
   'the journal records the add with the full inserted row'
 );
-select throws_ok(
-  $$ select common.add_word('zqeditnew', '{"difficulty": 1}'::jsonb) $$,
-  'P0001', 'word-exists|zqeditnew|',
+select pg_temp.envelope_is(
+  common.add_word('zqeditnew', '{"difficulty": 1}'::jsonb),
+  '{"type": "not-ok", "severity": "validation", "dbcode": "PN029",
+    "field": "new_word", "message": "Already in the dictionary: zqeditnew"}'::jsonb,
   'a duplicate add is rejected'
 );
-select throws_ok(
-  $$ select common.add_word('Zq1', '{"difficulty": 1}'::jsonb) $$,
-  'P0001', 'bad-word|',
+select pg_temp.envelope_is(
+  common.add_word('Zq1', '{"difficulty": 1}'::jsonb),
+  '{"type": "not-ok", "severity": "validation", "dbcode": "PN027",
+    "field": "new_word", "message": "A word is 1-45 lowercase letters"}'::jsonb,
   'a malformed word is rejected'
 );
-select throws_ok(
-  $$ select common.add_word('zqblank', '{"slang": true}'::jsonb) $$,
-  'P0001', 'missing-difficulty|',
+select pg_temp.envelope_is(
+  common.add_word('zqblank', '{"slang": true}'::jsonb),
+  '{"type": "not-ok", "severity": "validation", "dbcode": "PN028",
+    "field": "fields", "message": "Pick a difficulty"}'::jsonb,
   'a new word must state its band'
 );
 

@@ -11,14 +11,17 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { mockRpc, mockMaybeSingle } = vi.hoisted(() => ({
+const { mockRpc, mockWordRows } = vi.hoisted(() => ({
   mockRpc: vi.fn(),
-  mockMaybeSingle: vi.fn(),
+  mockWordRows: vi.fn(),
 }))
 vi.mock('../../db', () => ({
   db: {
     rpc: mockRpc,
-    from: () => ({ select: () => ({ eq: () => ({ maybeSingle: mockMaybeSingle }) }) }),
+    // `eq()` IS the terminal: the load awaits the query directly now, since
+    // zero rows is a real answer (another editor deleted the word) rather
+    // than something to ask PostgREST to turn into an error.
+    from: () => ({ select: () => ({ eq: mockWordRows }) }),
   },
 }))
 
@@ -39,9 +42,10 @@ const ROW = {
 
 beforeEach(() => {
   mockRpc.mockReset()
-  mockRpc.mockResolvedValue({ error: null })
-  mockMaybeSingle.mockReset()
-  mockMaybeSingle.mockResolvedValue({ data: ROW, error: null })
+  // The RPCs answer with the result envelope, so a refusal arrives HTTP 200.
+  mockRpc.mockResolvedValue({ data: { type: 'ok' }, error: null })
+  mockWordRows.mockReset()
+  mockWordRows.mockResolvedValue({ data: [ROW], error: null })
 })
 
 /**
@@ -91,7 +95,15 @@ describe('WordEditDialog', () => {
     // (An out-of-range number never even submits — the native min/max
     // constraint blocks the form — so the server rejection is exercised
     // with an in-range value and a mocked refusal.)
-    mockRpc.mockResolvedValue({ error: { message: 'not-word-editor|', code: '42501' } })
+    mockRpc.mockResolvedValue({
+      data: {
+        type: 'not-ok',
+        severity: 'fault',
+        dbcode: 'PN019',
+        message: "You can't edit the dictionary",
+      },
+      error: null,
+    })
     const user = userEvent.setup()
     render(<WordEditDialog request={{ mode: 'edit', word: 'acre' }} />)
     const band = await screen.findByLabelText('Band (1–6)')

@@ -1123,7 +1123,7 @@ select pg_temp.envelope_is(
 
 ## 7. The conversion roster
 
-**139 entries. 14 done, 5 edge functions deferred, 120 to go.** Cross them off
+**139 entries. 18 done, 5 edge functions deferred, 116 to go.** Cross them off
 here as they land.
 
 An entry is one RPC or one table read **per area**, so the same name in two
@@ -1168,10 +1168,11 @@ identifier — a shape nothing has exercised yet.
 
 #### Common
 
-- [ ] `add_word` · RPC
+- [x] `add_word` · RPC — with update_word, delete_word and their two private
+  helpers, which share every raise an editor actually hits
 - [x] `anagrams` · RPC
 - [ ] `concede` · RPC — cross-cutting, see above
-- [ ] `delete_word` · RPC
+- [x] `delete_word` · RPC
 - [ ] `end_game` · RPC — cross-cutting, see above
 - [ ] `replay_board` · RPC — cross-cutting, see above
 - [ ] `send_message` · RPC
@@ -1182,7 +1183,7 @@ identifier — a shape nothing has exercised yet.
 - [x] `unset_current_view` · RPC — `useCommonGame`'s last-viewer-leave; ONE SQL
   definition serves both areas, so it converted with the club page's
 - [ ] `update_profile_color` · RPC
-- [ ] `update_word` · RPC
+- [x] `update_word` · RPC
 - [x] `clubs` · read (2 call sites)
 - [ ] `clubs_members` · read
 - [ ] `found_words` · read
@@ -1193,7 +1194,7 @@ identifier — a shape nothing has exercised yet.
 - [ ] `messages` · read
 - [ ] `profiles` · read (4 call sites)
 - [ ] `timers` · read
-- [ ] `words` · read
+- [x] `words` · read — the same dialog's load
 - [ ] `common-define` · edge fn — deferred
 
 #### bananagrams

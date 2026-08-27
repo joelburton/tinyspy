@@ -77,14 +77,6 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   'empty-message': { text: () => 'Nothing to send' },
   'message-too-long': { text: (d) => `Too long: max ${d[0]} characters` },
 
-  // Dictionary curation. Editors-only, but an editor is still a player who
-  // deserves a sentence rather than a key.
-  'not-word-editor': { text: () => "You can't edit the dictionary" },
-  'no-such-word': { text: (d) => `No such word: ${d[0]}` },
-  'word-exists': { text: (d) => `Already in the dictionary: ${d[0]}` },
-  'no-word-change': { text: () => 'Nothing changed' },
-  'bad-word': { text: () => 'A word is 1–45 lowercase letters' },
-  'missing-difficulty': { text: () => 'Pick a difficulty' },
   // Click-to-define's external dictionary API failing (down / rate-limited /
   // unreachable from the edge worker) — a wait-it-out answer, shown in the
   // definition popover's red line. Edge-fn-raised (common-define); the HTTP

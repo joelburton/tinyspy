@@ -1,9 +1,9 @@
 // cs-unmet
 
-import { expectedTextOrFault } from '../../lib/game/serverError'
 import { StandardForm } from '../fields/StandardForm'
 import { useEffect, useState, type FormEvent } from 'react'
 import { db as commonDb } from '../../db'
+import { readRows, runRpc } from '../../lib/supabase/dbResult'
 import { setWordEdit, type WordEditRequest } from '../../lib/definitions/wordEditStore'
 import { useConfirmation } from '../../hooks/ui/useConfirmation'
 import { Dialog } from '../floating-panels/Dialog'
@@ -94,26 +94,26 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
     if (!editing) return
     let mounted = true
     void (async () => {
-      const { data, error: err } = await commonDb
-        .from('words')
-        .select('definition, hint, difficulty, crude, slur, slang, american, british, canadian, australian')
-        .eq('word', request.word)
-        .maybeSingle()
+      const res = await readRows(
+        commonDb
+          .from('words')
+          .select('definition, hint, difficulty, crude, slur, slang, american, british, canadian, australian')
+          .eq('word', request.word),
+      )
       if (!mounted) return
-      if (err) {
-        // A load failure is a fault (nothing an editor typed can cause it) —
-        // expectedTextOrFault pops the modal and the form line stays empty.
-        setError(expectedTextOrFault(err, 'dictionary'))
+      if (res.type !== 'ok') {
+        // A load failure is a fault — nothing an editor typed can cause it —
+        // and `dbFetch` has already raised the modal. The line says which load.
+        setError('Could not load this word.')
         return
       }
+      const data = res.data[0]
       if (!data) {
         // A successful query that found no row is an ANSWER, not a failure —
         // another editor deleted the word between the popover and this Edit
-        // click. Domain copy, no classifier, no [db] log. (Feeding the null
-        // error to the classifier used to misfile this as transport:
-        // "dictionary: Server; try refresh" over a word that just isn't there.)
-        // Same words as ERROR_COPY's server-raised `no-such-word` entry — one
-        // fact, one sentence, whichever side states it.
+        // click. Zero rows is `ok`, so only this call site can say what it
+        // means here. Same words as the server's own PN025/PN026 — one fact,
+        // one sentence, whichever side states it.
         setError(`No such word: ${request.word}`)
         return
       }
@@ -164,22 +164,24 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
     // The generated Json type wants a Json-shaped object; the payload is one
     // by construction (strings / numbers / booleans / null).
     const jsonPayload = payload as import('../../../types/db').Json
-    const res = editing
-      ? await commonDb.rpc('update_word', {
-          target_word: request.mode === 'edit' ? request.word : '',
-          patch: jsonPayload,
-          note: note.trim() || undefined,
-        })
-      : await commonDb.rpc('add_word', {
-          new_word: word.trim().toLowerCase(),
-          fields: jsonPayload,
-          note: note.trim() || undefined,
-        })
+    const res = await runRpc(
+      editing
+        ? commonDb.rpc('update_word', {
+            target_word: request.mode === 'edit' ? request.word : '',
+            patch: jsonPayload,
+            note: note.trim() || undefined,
+          })
+        : commonDb.rpc('add_word', {
+            new_word: word.trim().toLowerCase(),
+            fields: jsonPayload,
+            note: note.trim() || undefined,
+          }),
+    )
     setBusy(false)
-    if (res.error) {
-      // Validation (word-exists, bad-word, …) stays on the form's line; a
-      // fault pops the modal.
-      setError(expectedTextOrFault(res.error, 'dictionary'))
+    if (res.type !== 'ok') {
+      // Everything the server said goes on the form's line. A fault has already
+      // raised the modal, and the line is what remains once it is dismissed.
+      setError(res.message)
       return
     }
     setWordEdit(null)
@@ -197,13 +199,15 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
       return
     }
     setBusy(true)
-    const res = await commonDb.rpc('delete_word', {
-      target_word: request.word,
-      note: note.trim() || undefined,
-    })
+    const res = await runRpc(
+      commonDb.rpc('delete_word', {
+        target_word: request.word,
+        note: note.trim() || undefined,
+      }),
+    )
     setBusy(false)
-    if (res.error) {
-      setError(expectedTextOrFault(res.error, 'dictionary'))
+    if (res.type !== 'ok') {
+      setError(res.message)
       return
     }
     setWordEdit(null)

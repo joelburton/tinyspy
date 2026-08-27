@@ -2429,8 +2429,11 @@ begin
    where p.user_id = auth.uid()
      and p.can_edit_words;
   if not found then
-    raise exception 'not-word-editor|'
-      using errcode = '42501',
+    -- PN019. A fault: the Edit affordance only draws for a profile whose
+    -- can_edit_words is true (DefinitionView), so reaching this means either a
+    -- revoked flag mid-session or a hand-rolled call.
+    raise exception 'You can''t edit the dictionary'
+      using errcode = 'PN019', hint = 'fault', column = '_',
       detail = 'profiles.can_edit_words is false';
   end if;
 end;
@@ -2452,21 +2455,27 @@ begin
   for k in select jsonb_object_keys(fields) loop
     if k not in ('definition', 'hint', 'difficulty', 'crude', 'slur', 'slang',
                  'american', 'british', 'canadian', 'australian') then
-      raise exception 'bad-word-field|%|', k using errcode = 'P0001',
-      detail = 'field is not in the editable allow-list';
+      -- PN020-PN023 are all faults: the dialog builds this object from its own
+      -- named controls, so an unknown key or an out-of-range number is our bug.
+      raise exception 'A field outside the editable set reached the server: %', k
+        using errcode = 'PN020', hint = 'fault', column = '_',
+        detail = 'field is not in the editable allow-list';
     end if;
   end loop;
   if fields ? 'difficulty'
      and (fields->>'difficulty')::int not between 1 and 6 then
-    raise exception 'bad-difficulty|' using errcode = 'P0001',
+    raise exception 'A difficulty outside 1-6 reached the server'
+      using errcode = 'PN021', hint = 'fault', column = '_',
       detail = 'words.difficulty is 1-6';
   end if;
   if fields ? 'crude' and (fields->>'crude')::int not between 0 and 2 then
-    raise exception 'bad-crude|' using errcode = 'P0001',
+    raise exception 'A crude rating outside 0-2 reached the server'
+      using errcode = 'PN022', hint = 'fault', column = '_',
       detail = 'words.crude is 0-2';
   end if;
   if fields ? 'slur' and (fields->>'slur')::int not between 0 and 2 then
-    raise exception 'bad-slur|' using errcode = 'P0001',
+    raise exception 'A slur rating outside 0-2 reached the server'
+      using errcode = 'PN023', hint = 'fault', column = '_',
       detail = 'words.slur is 0-2';
   end if;
 end;
@@ -2476,12 +2485,13 @@ revoke execute on function common._validate_word_fields(jsonb) from public;
 -- Patch an existing word. `patch` holds ONLY the changed fields (that's
 -- what the journal's `new` records); a key present with a null value
 -- clears the column (definition/hint).
+drop function if exists common.update_word(text, jsonb, text);
 create or replace function common.update_word(
   target_word text,
   patch jsonb,
   note text default null
 )
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = common, public, extensions
@@ -2489,17 +2499,26 @@ as $$
 declare
   ed  record;
   w   common.words%rowtype;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text;
 begin
   select * into ed from common._require_word_editor();
   perform common._validate_word_fields(patch);
   if patch = '{}'::jsonb then
-    raise exception 'no-word-change|' using errcode = 'P0001',
+    -- PN024. Reachable: the dialog closes itself when nothing changed AND
+    -- there is no note, so this is the note-only save. A validation — change
+    -- something or cancel — and it names the patch it came in on.
+    raise exception 'Nothing changed'
+      using errcode = 'PN024', hint = 'validation', column = 'patch',
       detail = 'the edit was a no-op';
   end if;
 
   select * into w from common.words where word = lower(target_word) for update;
+  -- PN025. Another editor deleted it while this dialog was open. Nothing broke
+  -- and nothing is lost, but it is unusual enough to say in red — the same
+  -- reading delete_game's already-deleted gets.
   if not found then
-    raise exception 'no-such-word|%|', target_word using errcode = 'P0002',
+    raise exception 'No such word: %', target_word
+      using errcode = 'PN025', hint = 'error', column = '_',
       detail = 'word absent from common.words';
   end if;
 
@@ -2520,6 +2539,16 @@ begin
 
   insert into common.words_edits (word, kind, old, new, note, edited_by, edited_by_username)
   values (w.word, 'update', to_jsonb(w), patch, note, ed.editor_id, ed.editor_username);
+
+  return common.ok_envelope();
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 revoke execute on function common.update_word(text, jsonb, text) from public;
@@ -2534,11 +2563,12 @@ grant execute on function common.update_word(text, jsonb, text) to authenticated
 -- path and the upstream export. (Soft edge: words.root_word is a plain
 -- text pointer, so deleting a lemma leaves inflections naming a word that
 -- no longer exists — a dangling STRING, harmless.)
+drop function if exists common.delete_word(text, text);
 create or replace function common.delete_word(
   target_word text,
   note text default null
 )
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = common, public, extensions
@@ -2546,11 +2576,15 @@ as $$
 declare
   ed record;
   w  common.words%rowtype;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text;
 begin
   select * into ed from common._require_word_editor();
   select * into w from common.words where word = lower(target_word) for update;
   if not found then
-    raise exception 'no-such-word|%|', target_word using errcode = 'P0002',
+    -- PN026. The same condition as PN025 at its own site: one code per raise,
+    -- so a code in a report leads to one line rather than to two.
+    raise exception 'No such word: %', target_word
+      using errcode = 'PN026', hint = 'error', column = '_',
       detail = 'word absent from common.words';
   end if;
 
@@ -2558,6 +2592,16 @@ begin
 
   insert into common.words_edits (word, kind, old, new, note, edited_by, edited_by_username)
   values (w.word, 'delete', to_jsonb(w), null, note, ed.editor_id, ed.editor_username);
+
+  return common.ok_envelope();
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 revoke execute on function common.delete_word(text, text) from public;
@@ -2566,12 +2610,13 @@ grant execute on function common.delete_word(text, text) to authenticated;
 -- Add a word. `fields` uses the same editable set; difficulty is required
 -- (there is no sensible default band), everything else defaults to the
 -- import's defaults. len derives, letter_mask generates.
+drop function if exists common.add_word(text, jsonb, text);
 create or replace function common.add_word(
   new_word text,
   fields jsonb,
   note text default null
 )
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = common, public, extensions
@@ -2579,6 +2624,7 @@ as $$
 declare
   ed record;
   w  common.words%rowtype;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text;
 begin
   select * into ed from common._require_word_editor();
   perform common._validate_word_fields(fields);
@@ -2587,15 +2633,24 @@ begin
   -- 1..45 matches the dictionary's real range ('a' to the 45-letter lung
   -- disease); lowercase a-z only, like every imported word.
   if new_word !~ '^[a-z]{1,45}$' then
-    raise exception 'bad-word|' using errcode = 'P0001',
+    -- PN027. The add form takes the new word as free text and checks nothing,
+    -- so this is a real validation about the box they typed in.
+    raise exception 'A word is 1-45 lowercase letters'
+      using errcode = 'PN027', hint = 'validation', column = 'new_word',
       detail = 'new word must be 1-45 lowercase letters';
   end if;
   if not fields ? 'difficulty' then
-    raise exception 'missing-difficulty|' using errcode = 'P0001',
+    -- PN028. There is no sensible default band, so the server is the first to
+    -- ask. `fields` is the parameter it arrived in; the difficulty control
+    -- inside it is where the message belongs once forms route by field.
+    raise exception 'Pick a difficulty'
+      using errcode = 'PN028', hint = 'validation', column = 'fields',
       detail = 'add_word needs a difficulty';
   end if;
   if exists (select 1 from common.words cw where cw.word = new_word) then
-    raise exception 'word-exists|%|', new_word using errcode = 'P0001',
+    -- PN029. The form cannot know what the dictionary holds.
+    raise exception 'Already in the dictionary: %', new_word
+      using errcode = 'PN029', hint = 'validation', column = 'new_word',
       detail = 'word already present in common.words';
   end if;
 
@@ -2620,6 +2675,16 @@ begin
 
   insert into common.words_edits (word, kind, old, new, note, edited_by, edited_by_username)
   values (w.word, 'add', null, to_jsonb(w), note, ed.editor_id, ed.editor_username);
+
+  return common.ok_envelope();
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 revoke execute on function common.add_word(text, jsonb, text) from public;
