@@ -33,9 +33,10 @@ begin;
 
 set search_path = common, public, extensions;
 
-select plan(45);
+select plan(46);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 
 -- Set JWT claims (so auth.uid() returns a real uuid) WITHOUT
 -- switching role away from postgres — keeps execute privilege on
@@ -631,9 +632,15 @@ select is(
   'precondition: target game has 2 game_players rows before delete'
 );
 
--- Delete as ada (club member).
+-- Delete as ada (club member). An ordinary success is a BARE envelope: the
+-- club page already knows the game's title and composes its own toast, so
+-- there is nothing for the server to say.
 select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
-select common.delete_game(current_setting('test.created_game_id')::uuid);
+select pg_temp.envelope_is(
+  common.delete_game(current_setting('test.created_game_id')::uuid),
+  '{"type": "ok"}'::jsonb,
+  'delete_game: a member deleting a real game gets a plain ok'
+);
 
 reset role;
 select set_config('request.jwt.claims', '', true);
@@ -656,8 +663,14 @@ select is(
 -- delete_game — authorization + bad input
 -- ============================================================
 -- Non-member rejected (RLS-equivalent gate via require_club_member);
--- unknown game raises the same P0002 every other game-id-or-die
--- RPC uses.
+-- an unknown game is an `ok`, because a delete that finds nothing to
+-- delete has produced the outcome the caller asked for.
+--
+-- The non-member case still THROWS, and deliberately so: it comes from
+-- common.require_club_member, a shared helper that converts as its own
+-- unit (plans/error-system.md → §6). Its 42501 fails delete_game's
+-- ownership test and is re-raised untouched, which is exactly what a raw
+-- fault looks like — the right severity in the meantime.
 
 select pg_temp.as_jwt_only('dee44444-4444-4444-4444-444444444444');
 select throws_ok(
@@ -671,11 +684,11 @@ select throws_ok(
 );
 
 select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
-select throws_ok(
-  $$ select common.delete_game('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'::uuid) $$,
-  'P0002',
-  'game-not-found|',
-  'delete_game: unknown game raises P0002'
+select pg_temp.envelope_is(
+  common.delete_game('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'::uuid),
+  '{"type": "ok", "outcome": "noted", "dbcode": "PA001",
+    "message": "That game was already deleted"}'::jsonb,
+  'delete_game: an already-gone game is ok/noted, not a fault'
 );
 
 -- ============================================================

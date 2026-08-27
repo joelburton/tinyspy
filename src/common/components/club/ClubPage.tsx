@@ -1,6 +1,7 @@
 // cs-unmet
 
-import { failureText, expectedTextOrFault } from '../../lib/game/serverError'
+import { failureText } from '../../lib/game/serverError'
+import { runRpc } from '../../lib/supabase/dbResult'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { db as commonDb } from '../../db'
@@ -487,22 +488,30 @@ export function ClubPage({ handle, session }: Props) {
       if (subscribed) await new Promise((r) => setTimeout(r, 150))
     }
 
-    const { error } = await commonDb.rpc('delete_game', { target_game: gameId })
-    if (error) {
-      // Split by surface rule: an expected rejection stays on the list's error
-      // line; a fault pops the modal (the line stays empty).
-      setStartError(expectedTextOrFault(error, 'delete game'))
-      throw error  // bubble to the card so it returns from 'deleting' to 'idle'
+    const res = await runRpc(commonDb.rpc('delete_game', { target_game: gameId }))
+    if (res.type !== 'ok') {
+      // Whatever the server said goes on the list's error line. A fault has
+      // already put the modal up centrally, and the line is what remains once
+      // that is dismissed — this call site classifies nothing.
+      setStartError(res.message)
+      // Bubble so the card returns from 'deleting' to 'idle'. The Error is
+      // purely that signal: the words are already on screen.
+      throw new Error(res.message)
     }
     // Surface a transient toast in the header's status slot so
     // the user sees an explicit "yes, that worked" beat. Look up
     // the title BEFORE the postgres-changes refetch sweeps the
     // row out of allGames; the value is captured by the closure
     // and survives the rerender.
+    //
+    // The server speaks only when it knows something we don't — "That game was
+    // already deleted", which arrives `ok` because a delete that finds nothing
+    // to delete is the outcome you asked for, not a failure. Ordinary success
+    // is a bare envelope, and the title is ours to compose.
     const deleted = allGames.find((g) => g.gameId === gameId)
     setGlobalFeedback({
-      tone: 'neutral',
-      text: `${deleted?.title ?? 'Game'} deleted`,
+      tone: res.outcome ?? 'neutral',
+      text: res.message ?? `${deleted?.title ?? 'Game'} deleted`,
       mode: { kind: 'timed' },
     })
     // No explicit list refresh — the postgres-changes

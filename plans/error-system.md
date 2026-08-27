@@ -1076,7 +1076,7 @@ select pg_temp.envelope_is(
 
 ## 7. The conversion roster
 
-**139 entries. 3 done, 5 edge functions deferred, 131 to go.** Cross them off
+**139 entries. 4 done, 5 edge functions deferred, 130 to go.** Cross them off
 here as they land.
 
 An entry is one RPC or one table read **per area**, so the same name in two
@@ -1103,7 +1103,7 @@ identifier — a shape nothing has exercised yet.
 #### Club page
 
 - [x] `create_club` · RPC
-- [ ] `delete_game` · RPC
+- [x] `delete_game` · RPC — the first `PA`, and the first `ok` from a raise
 - [ ] `set_club_gametypes` · RPC
 - [ ] `unset_current_view` · RPC
 - [ ] `clubs` · read
