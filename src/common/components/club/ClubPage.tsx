@@ -672,22 +672,32 @@ export function ClubPage({ handle, session }: Props) {
       // pure `labelFor`. Games whose gametype isn't in this FE's
       // registry are silently skipped (the same forward-compat
       // posture used for Start buttons).
-      const { data } = await commonDb
-        .from('games')
-        .select(
-          'id, gametype, title, play_state, is_terminal, status, setup, last_active_at, is_current_view',
-        )
-        .eq('club_handle', clubHandle)
-        .order('last_active_at', { ascending: false })
-        // Explicit bound so a long-lived club can't drift into PostgREST's
-        // silent `max_rows` truncation. Overflow past 200 is DELIBERATE — the
-        // list shows everything it gets, and descending order means the drop
-        // is the oldest games (nobody scrolls a club's full lifetime history;
-        // the current game is always recently-active, so it's never cut).
-        .limit(200)
+      const res = await readRows(
+        commonDb
+          .from('games')
+          .select(
+            'id, gametype, title, play_state, is_terminal, status, setup, last_active_at, is_current_view',
+          )
+          .eq('club_handle', clubHandle)
+          .order('last_active_at', { ascending: false })
+          // Explicit bound so a long-lived club can't drift into PostgREST's
+          // silent `max_rows` truncation. Overflow past 200 is DELIBERATE — the
+          // list shows everything it gets, and descending order means the drop
+          // is the oldest games (nobody scrolls a club's full lifetime history;
+          // the current game is always recently-active, so it's never cut).
+          .limit(200),
+      )
       if (!mounted || myGen !== generation) return
+      // A failure here leaves the page ALONE — no error state, no cleared list.
+      // Unlike the four loads above, this one re-runs on every realtime event,
+      // so a failure is a refresh that didn't land rather than a page that
+      // can't render: the list already on screen is the best answer we have,
+      // and the next event will try again. Writing `[]` would replace it with
+      // "this club has no games", which is a worse answer than a stale one.
+      // `dbFetch` has already logged it and put the modal up.
+      if (res.type !== 'ok') return
 
-      const rows = data ?? []
+      const rows = res.data
       let currentId: string | null = null
       const listed: ListedGame[] = []
       for (const r of rows) {
