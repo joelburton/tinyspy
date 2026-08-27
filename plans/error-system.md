@@ -189,14 +189,23 @@ The vocabulary is about **what the player can do next**, not about what the
 database did. An earlier draft split on "did a row get written", which is a SQL
 fact the frontend never asks about.
 
+**"Envelope" means what the database returns** — the JSONB an RPC hands back.
+Only an RPC produces one. A direct table read never does; the frontend
+synthesizes something envelope-shaped for reads so every call site branches
+alike, but no database returned it. Keep the two apart when talking about this:
+the **envelope** comes off the wire, the **call-site shape** is what a caller
+sees.
+
 The discriminator is two-level, matching how a caller actually branches — first
 "did it work", then "how bad":
 
 ```
 {
-  type:    ok | not-ok,
-  message: "Already guessed",
-  meta:    { … }
+  type:     ok | not-ok,
+  message:  "Already guessed",   -- required on not-ok, optional on ok
+  meta:     { … },
+  dbcode:   'PA042',             -- the SQLSTATE, when the outcome came from a raise
+  detail:   'word already in the guess log',
 }
 ```
 
@@ -207,13 +216,32 @@ The discriminator is two-level, matching how a caller actually branches — firs
   data:    { … whatever the game needs … }
 ```
 
-`not-ok` adds how bad it is and what broke:
+`not-ok` adds how bad it is:
 
 ```
-  severity: fault | validation | error,
-  code:     'PU00x',            -- the SQLSTATE, when there is one
-  detail:   'guess absent from games.words'
+  severity: fault | validation | error
 ```
+
+Four notes on the fields:
+
+- **`message` is optional on `ok`.** Plenty of results have nothing to say —
+  `concede`, `end_game`, an ordinary accepted move whose pill is built from
+  `outcome` and `data`.
+- **The game's own fields nest under `data`** rather than sitting as siblings
+  of `outcome`, so a game wanting a field called `message` or `meta` can't
+  shadow the envelope.
+- **`dbcode`, not `code`.** "Code" is too broad a word for a field that means
+  one specific thing: the Postgres SQLSTATE. And it is **not** exclusive to
+  `not-ok` — because an `ok` outcome can come out of a raise (see below), those
+  carry a SQLSTATE too, and keeping it is useful when debugging. A plain
+  success that never raised has no `dbcode` at all.
+- **`dbcode` and `detail` sit at the top level**, since both come from the
+  raise and either branch can be raised.
+
+**The frontend receives everything in the envelope**, `dbcode` and `detail`
+included. The seam logs them and the fault modal's diagnostics use them; a call
+site has no use for either, but nothing is stripped on the way — one shape, all
+the way through, is simpler than deciding per-field who deserves what.
 
 **`type` is deliberately empty of meaning.** `not-ok` says only "look at
 `severity`". A word with content — `problem`, `error` — invites the reader to
@@ -615,7 +643,7 @@ exception when others then
     return { type: ok, outcome: <the HINT>, message: <the MESSAGE> };
   end if;
   return { type: not-ok, severity: <the HINT>,
-           message: <the MESSAGE>, code: code, detail: <the DETAIL> };
+           message: <the MESSAGE>, dbcode: code, detail: <the DETAIL> };
 end $$;
 ```
 
@@ -624,7 +652,7 @@ What crosses the wire:
 | case | envelope |
 |---|---|
 | success | `{ type: ok, data: { id: "…uuid…" } }` |
-| too few players | `{ type: not-ok, severity: validation, message: "A game needs at least two players" }` |
+| too few players | `{ type: not-ok, severity: validation, message: "A game needs at least two players", dbcode: "PN301" }` |
 | bad setup value | `{ type: not-ok, severity: validation, message: "Pick how many guesses each player gets" }` |
 | a check constraint blew up | *(nothing returns — the exception bubbles as a fault)* |
 
@@ -705,7 +733,7 @@ exception when others then
     return { type: ok, outcome: <the HINT>, message: <the MESSAGE> };
   end if;
   return { type: not-ok, severity: <the HINT>,
-           message: <the MESSAGE>, code: code, detail: <the DETAIL> };
+           message: <the MESSAGE>, dbcode: code, detail: <the DETAIL> };
 end $$;
 ```
 
