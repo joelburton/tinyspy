@@ -61,7 +61,6 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   'game-not-in-play': { text: () => 'Game over', tone: 'noted' },
   'you-conceded': { text: () => 'Already conceded', tone: 'noted' },
   'not-a-player': { text: () => "You're not in this game" },
-  'not-club-member': { text: () => "You're not in this club" },
   // A session that expired under a page left open overnight — the one fault
   // here with a real remedy, so it names it.
   'not-authenticated': { text: () => 'Signed out; try refresh' },

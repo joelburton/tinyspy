@@ -501,9 +501,16 @@ revoke execute on function common.color_for_username(text) from public;
 -- Returns the caller's user_id — the calling RPC typically
 -- needs it for downstream inserts.
 --
--- Raises (both 42501):
---   - 'must be authenticated'      when auth.uid() is null
---   - 'not a member of this club'  when not in common.clubs_members
+-- Raises (both faults):
+--   - PN011  not signed in
+--   - PN012  signed in, but not a member of this club
+--
+-- Both are FAULTS rather than validations: every surface that can
+-- reach this already knows the answer. You are on a club page you
+-- navigated to from a list of your own clubs, so a non-member
+-- reaching the server means the frontend let you press something
+-- it should not have — and a lapsed session needs the modal's
+-- instruction, not a line on a form.
 --
 -- security definer so the membership lookup bypasses RLS, the
 -- same way is_club_member does.
@@ -519,7 +526,8 @@ declare
 begin
   caller_id := auth.uid();
   if caller_id is null then
-    raise exception 'not-authenticated|' using errcode = '42501',
+    raise exception 'Signed out; try refresh'
+      using errcode = 'PN011', hint = 'fault', column = '_',
       detail = 'auth.uid() is null';
   end if;
 
@@ -527,7 +535,8 @@ begin
     select 1 from common.clubs_members
     where club_handle = target_club and user_id = caller_id
   ) then
-    raise exception 'not-club-member|' using errcode = '42501',
+    raise exception 'You are not a member of this club'
+      using errcode = 'PN012', hint = 'fault', column = '_',
       detail = 'caller is not in common.club_members for this club';
   end if;
 
@@ -709,7 +718,7 @@ revoke execute on function common.require_compete(text) from public;
 -- helper just enforces "all listed players are club members."
 --
 -- Raises:
---   - 42501  'must be authenticated' / 'not a member of this club'
+--   - PN011 / PN012 via require_club_member
 --                                          (via require_club_member)
 --   - P0001  'player_user_ids must not be empty'
 --   - P0001  'player_user_ids contains non-members: X, Y'
@@ -1535,7 +1544,7 @@ grant execute on function common.set_current_view(uuid) to authenticated;
 -- Outcomes:
 --   - ok           the flag is false (or already was)
 --   - ok / noted   PA001 — the game itself is gone
---   - a RAW fault  42501 from require_club_member, unconverted
+--   - not-ok/fault PN011 / PN012, from require_club_member
 
 drop function if exists common.unset_current_view(uuid);
 create or replace function common.unset_current_view(target_game uuid)
@@ -1679,9 +1688,8 @@ grant execute on function common.tick_timer(uuid) to authenticated;
 -- Outcomes:
 --   - ok               the row (and its subtree) is gone
 --   - not-ok / error   PN010 — it was already gone
---   - a RAW fault      42501 from require_club_member, which is not
---                      converted yet; not authenticated / not a member
---                      both arrive in Postgres's own shape
+--   - not-ok/fault     PN011 / PN012, from require_club_member — not
+--                      signed in, or not a member of this club
 
 drop function if exists common.delete_game(uuid);
 create or replace function common.delete_game(target_game uuid)
@@ -1708,8 +1716,7 @@ begin
       detail = 'no common.games row for target_game';
   end if;
 
-  -- Unconverted shared helper: its 42501 fails the ownership test below and is
-  -- re-raised, reaching the client as a raw fault.
+  -- Raises PN011 / PN012, which the handler below turns into a fault envelope.
   perform common.require_club_member(target_club);
 
   delete from common.games where id = target_game;
@@ -1927,13 +1934,11 @@ grant execute on function common.create_club(text, text[]) to authenticated;
 --
 -- Outcomes:
 --   - ok           the set is now exactly `gametypes`
---   - a RAW fault  42501 from require_club_member (unconverted), or
---                  the FK above
+--   - not-ok/fault PN011 / PN012, from require_club_member
+--   - a RAW fault  the FK above
 --
--- It authors no outcome of its own, so the handler below currently
--- catches nothing. It is here because require_club_member converts
--- later: the moment its raise carries a PN code, an unhandled one
--- would leave this function as a raw fault wearing our own code.
+-- It authors no outcome of its own; what the handler below catches is
+-- require_club_member's PN011 / PN012.
 drop function if exists common.set_club_gametypes(text, text[]);
 create or replace function common.set_club_gametypes(
   target_club text,
@@ -1950,7 +1955,7 @@ declare
   wanted text[] := coalesce(gametypes, array[]::text[]);
   v_msg text; v_detail text; v_hint text; v_code text; v_col text;
 begin
-  -- Auth + membership gate (raises 42501 on either failure).
+  -- Auth + membership gate (raises PN011 / PN012 on either failure).
   perform common.require_club_member(target_club);
 
   -- Delete-by-difference rather than truncate-and-refill so an
@@ -2003,8 +2008,9 @@ declare
   caller_id uuid;
   trimmed text := trim(content);
 begin
-  -- Auth + membership gate. Raises 42501 on either fail with the
-  -- canonical messages — see common.require_club_member.
+  -- Auth + membership gate. Raises PN011 / PN012 — see
+  -- common.require_club_member. send_message has no handler yet, so these
+  -- reach the client raw until it converts.
   caller_id := common.require_club_member(target_club);
 
   if length(trimmed) = 0 then

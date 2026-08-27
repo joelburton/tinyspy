@@ -2,7 +2,7 @@
 
 import { Component, type ReactNode } from 'react'
 import { ErrorPage } from '../loading-and-errs/ErrorPage'
-import { logStamp } from '../../lib/supabase/realtimeDiag'
+import { diagnosticsLine } from '../../lib/supabase/dbResult'
 import { StandardButton } from '../buttons/StandardButton'
 
 /**
@@ -47,7 +47,11 @@ export class PlayAreaErrorBoundary extends Component<
     return (
       <ErrorPage
         message={this.state.error.message}
-        diagnostics={`play area — key=render-crashed detail="${this.state.error.name}" — ${logStamp()}`}
+        diagnostics={diagnosticsLine('FAULT', {
+          call: 'render play area',
+          severity: 'fault',
+          detail: `${this.state.error.name}: ${this.state.error.message}`,
+        })}
         action={
           <StandardButton name="Reload" weight="primary" onClick={() => window.location.reload()} />
         }

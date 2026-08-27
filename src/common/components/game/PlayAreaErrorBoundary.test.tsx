@@ -44,7 +44,9 @@ describe('PlayAreaErrorBoundary', () => {
     )
     expect(screen.getByText('Error')).toBeInTheDocument()
     expect(screen.getByText('chunk went missing')).toBeInTheDocument()
-    expect(screen.getByText(/key=render-crashed/)).toBeInTheDocument()
+    // The shared diagnostics line, naming what crashed rather than a key.
+    expect(screen.getByText(/FAULT \| render play area/)).toBeInTheDocument()
+    expect(screen.getByText(/detail="Error: chunk went missing"/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Reload' })).toBeInTheDocument()
     expect(screen.getByText('← Back home')).toBeInTheDocument()
   })

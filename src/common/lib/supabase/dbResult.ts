@@ -160,14 +160,120 @@ export type DbError = {
   hint?: string | null
 } | null | undefined
 
-/** The k=v diagnostics line — the same string the `[db]` console line carries
- *  and the fault modal's third line shows. One builder so the screen and the
- *  log can never drift. */
-function faultDiagnostics(where: string, bits: Record<string, unknown>): string {
-  const parts = Object.entries(bits)
-    .filter(([, v]) => v !== undefined && v !== null && v !== '')
-    .map(([k, v]) => `${k}=${typeof v === 'string' && v.includes(' ') ? `"${v}"` : v}`)
-  return `${where} — ${parts.join(' ')} — ${logStamp()}`
+// ─────────────────────────────────────────────────────────────
+// The `[db]` line
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * What a `[db]` line is ABOUT, and how loudly. One word, five values, and it
+ * decides the console method as well as the label — so a line's level and its
+ * severity can never disagree.
+ *
+ *     FAULT       a bug     → console.error
+ *     ERROR       an outage → console.warn
+ *     SLOW        a call over the threshold that still worked → console.warn
+ *     VALIDATION  the values you sent → console.debug
+ *     OK          it worked → console.debug
+ *
+ * The three quiet levels are why every call can be logged without drowning
+ * anything: the browser's own level filter is the volume control.
+ */
+export type LogLevel = 'FAULT' | 'ERROR' | 'SLOW' | 'VALIDATION' | 'OK'
+
+const LEVEL_METHOD: Record<LogLevel, 'error' | 'warn' | 'debug'> = {
+  FAULT: 'error', ERROR: 'warn', SLOW: 'warn', VALIDATION: 'debug', OK: 'debug',
+}
+
+/**
+ * Everything a `[db]` line can carry. **Every field prints, every time**, empty
+ * after the `=` when there is nothing to say — so the same fact is always in the
+ * same position whether you are reading one line or scanning fifty, and a blank
+ * is itself information (no `dbcode` means nothing raised; no `status` means the
+ * server never answered).
+ */
+export type DiagFields = {
+  /** `METHOD /path`. The one field that is never blank. */
+  call: string
+  severity?: Severity
+  outcome?: string
+  dbcode?: string
+  status?: number
+  /** Round-trip milliseconds. Known where the fetch happens, not after it. */
+  ms?: number
+  /** The raise's COLUMN, on a validation. */
+  field?: string
+  /** The debugging line: the raise's DETAIL, Postgres's details + hint, or the
+   *  thrown JS error. Never shown to a player. */
+  detail?: string
+}
+
+const v = (x: unknown) => (x === undefined || x === null ? '' : String(x))
+/** Free text, quoted — and its own quotes escaped, since Postgres routinely
+ *  hands back a hint like `Perhaps you meant "clubs.name"` and an unescaped one
+ *  makes the line unparseable exactly where it is most worth parsing. */
+const q = (x: unknown) =>
+  x === undefined || x === null || x === '' ? '' : `"${String(x).replace(/"/g, '\\"')}"`
+
+/**
+ * **The diagnostics line** — every field, in a fixed order, empty after the `=`
+ * when there is nothing to say. The same fact is always in the same position,
+ * and a blank is itself information: no `dbcode` means nothing raised, no
+ * `status` means the server never answered.
+ *
+ * Pure, so a surface can build one during render — an `<ErrorPage>` showing a
+ * failure that was already logged where it happened.
+ */
+export function diagnosticsLine(level: LogLevel, f: DiagFields): string {
+  return [
+    logStamp(),
+    level,
+    f.call,
+    `severity=${v(f.severity)}`,
+    `outcome=${v(f.outcome)}`,
+    `dbcode=${v(f.dbcode)}`,
+    `status=${v(f.status)}`,
+    `ms=${v(f.ms)}`,
+    `field=${v(f.field)}`,
+    `detail=${q(f.detail)}`,
+  ].join(' | ')
+}
+
+/**
+ * **A call took too long.** The one `[db]` line that is about the REQUEST rather
+ * than about an answer — it says how long, and nothing about what came back.
+ *
+ * It carries fewer fields than every other line, on purpose. The fixed list is a
+ * promise that a blank means something: no `dbcode` means nothing raised, no
+ * `status` means nothing answered. This line is written before the body is read,
+ * so it can keep neither — printing `dbcode=` would say the response carried no
+ * code, when the truth is that nobody looked. Omitted beats empty.
+ */
+export function logSlow(f: { call: string; ms?: number; detail?: string }): void {
+  console[LEVEL_METHOD.SLOW](
+    `[db] ${[logStamp(), 'SLOW', f.call, `ms=${v(f.ms)}`, `detail=${q(f.detail)}`].join(' | ')}`,
+  )
+}
+
+/**
+ * **Write one `[db]` line, and hand back its diagnostics half.**
+ *
+ * The console gets the whole line; the returned string is the same thing minus
+ * the trailing `msg=`, which is what the fault modal and `<ErrorPage>` show
+ * under the message — no point printing the message twice on a surface that
+ * already leads with it.
+ *
+ * Built ONCE and shared, so the screen and the log carry the same timestamp as
+ * well as the same fields. Two `logStamp()` calls would drift immediately.
+ *
+ * `[db]` is its own console channel, beside `[rt]` (realtime) and `[ui]`, so
+ * filtering to it gives every database call and nothing else.
+ */
+export function logDb(level: LogLevel, f: DiagFields, message?: string): string {
+  const diagnostics = diagnosticsLine(level, f)
+  console[LEVEL_METHOD[level]](
+    `[db] ${diagnostics}${message === undefined ? '' : ` | msg=${q(message)}`}`,
+  )
+  return diagnostics
 }
 
 /**
@@ -216,6 +322,40 @@ export function environmentalEnvelope(offline: boolean, extra?: string): Envelop
   }
 }
 
+/** What the LAYER THAT MADE THE REQUEST knows and the envelope cannot: which
+ *  call it was, what the server answered, how long it took. `ms` matters more
+ *  than it looks — an instant reject is a dead connection and a 30-second one is
+ *  a timeout on a live connection, and they arrive with the same message. */
+export type Transport = { call: string; status?: number; ms?: number }
+
+/** The `[db]` fields for an envelope, merged with what the transport knows. */
+function envelopeFields(t: Transport, envelope: Envelope): DiagFields {
+  return {
+    ...t,
+    severity: envelope.type === 'not-ok' ? envelope.severity : undefined,
+    outcome: envelope.type === 'ok' ? envelope.outcome : undefined,
+    dbcode: envelope.dbcode,
+    field: envelope.type === 'not-ok' ? envelope.field : undefined,
+    detail: envelope.detail,
+  }
+}
+
+/**
+ * **Log an outcome that is NOT a fault** — a validation, a wait-and-retry error,
+ * or an `ok` carrying words.
+ *
+ * The `error` half is the one that matters. `serverError.ts`'s rule was
+ * "expected rejections are NOT logged", which makes a MISCLASSIFIED bug
+ * completely silent: if "already deleted" starts firing on every click because
+ * something is broken, nothing anywhere says so. Logging it at `warn` costs one
+ * line and keeps that visible without putting a modal in anyone's way.
+ */
+export function logDbOutcome(t: Transport, envelope: Envelope): void {
+  const level: LogLevel =
+    envelope.type === 'ok' ? 'OK' : envelope.severity === 'error' ? 'ERROR' : 'VALIDATION'
+  logDb(level, envelopeFields(t, envelope), envelope.message)
+}
+
 /**
  * **Report a database failure**: write the `[db]` line, then put the modal up.
  *
@@ -227,15 +367,9 @@ export function environmentalEnvelope(offline: boolean, extra?: string): Envelop
  *
  * Returns nothing: by the time the caller resumes, the news is delivered.
  */
-export function reportDbFault(where: string, envelope: Envelope, extra?: Record<string, unknown>): void {
+export function reportDbFault(t: Transport, envelope: Envelope): void {
   const text = envelope.type === 'not-ok' ? envelope.message : 'Something went wrong.'
-  const diagnostics = faultDiagnostics(where, {
-    severity: envelope.type === 'not-ok' ? envelope.severity : undefined,
-    dbcode: envelope.dbcode,
-    detail: envelope.detail,
-    ...extra,
-  })
-  console.error(`[db] ${logStamp()} FAULT on ${where}: ${text} (${diagnostics})`)
+  const diagnostics = logDb('FAULT', envelopeFields(t, envelope), text)
   showFaultModal({ text, diagnostics })
 }
 
@@ -261,6 +395,28 @@ export function isEnvelope(body: unknown): body is Envelope {
 type QueryLike<T> = PromiseLike<{ data: T | null; error: DbError }>
 
 /**
+ * **`METHOD /path` for a query builder** — the same identifier `dbFetch` puts on
+ * every line it writes, so a fault reads the same wherever it was reported.
+ *
+ * A builder carries the request it is going to make (`POST`, `/rest/v1/rpc/…`)
+ * from the moment it is constructed, which is why nothing here has to be told
+ * the RPC's name or the table's. That matters most for the faults we DECLARE:
+ * they arrive HTTP 200, so `dbFetch` never sees them, and without this they
+ * would be the only faults in the app that could not say which call they came
+ * from — the ones we authored and wrote sentences for.
+ *
+ * Defensive because `url` and `method` are `protected` on postgrest-js's
+ * builder: they are there at runtime and have been for every version we have
+ * used, but a rename upstream should cost a vaguer log line, not a crash.
+ */
+function callLabel(call: unknown, fallback: string): string {
+  const c = call as { url?: unknown; method?: unknown }
+  if (!(c?.url instanceof URL)) return fallback
+  const method = typeof c.method === 'string' ? c.method : 'GET'
+  return `${method} ${c.url.pathname}`
+}
+
+/**
  * **Run an RPC and hand back its envelope.**
  *
  * The RPC's own envelope passes through untouched. When there isn't one — the
@@ -275,12 +431,18 @@ type QueryLike<T> = PromiseLike<{ data: T | null; error: DbError }>
  *     setResults(r.data)
  */
 export async function runRpc<T>(call: PromiseLike<{ data: unknown; error: DbError }>): Promise<Envelope<T>> {
+  // Timed here because `dbFetch` stays quiet on an RPC's 2xx — the answer
+  // inside it is this function's to read, and one line per call beats a `OK`
+  // sitting above a `FAULT` about the same request. So this line carries the
+  // duration as well as the meaning.
+  const started = performance.now()
   let settled: { data: unknown; error: DbError }
   try {
     settled = await call
   } catch (thrown) {
     return faultEnvelope(thrown as DbError, 'The request never reached the server.')
   }
+  const t = { call: callLabel(call, 'rpc'), status: 200, ms: Math.round(performance.now() - started) }
   if (settled.error) return faultEnvelope(settled.error, 'The server refused the request.')
   const body = settled.data
   // A reply that isn't an envelope means the RPC answered with something no
@@ -290,18 +452,22 @@ export async function runRpc<T>(call: PromiseLike<{ data: unknown; error: DbErro
   if (!isEnvelope(body)) {
     const rawBody = `rawBody: ${JSON.stringify(body)?.slice(0, 120)}`
     const unreadable = faultEnvelope(null, 'The server answered with an unreadable result.', rawBody)
-    reportDbFault('rpc', unreadable)
+    reportDbFault(t, unreadable)
     // No `dbcode` to carry — the call SUCCEEDED (a 200 with an unreadable
     // body), so there is no Postgres error. What we do know is the body, and
     // it goes into `detail` rather than living only in the console line.
     return unreadable
   }
-  // A DECLARED fault arrives HTTP 200 with an envelope, so `dbFetch` never sees
-  // it — its seam only inspects a non-2xx body. Reporting it here is what makes
-  // `severity: 'fault'` mean the same thing however the fault arose: the modal
-  // is up and the `[db]` line is written before the caller resumes.
+  // Everything the RPC decided arrives HTTP 200, so `dbFetch` — which only
+  // inspects a non-2xx body — has already written its line and moved on. This
+  // is where the MEANING gets its own, at the level the severity names.
+  //
+  // A declared fault also gets the modal here, which is what makes
+  // `severity: 'fault'` mean the same thing however the fault arose.
   if (body.type === 'not-ok' && body.severity === 'fault') {
-    reportDbFault('rpc', body)
+    reportDbFault(t, body)
+  } else {
+    logDbOutcome(t, body)
   }
   return body as Envelope<T>
 }
@@ -325,7 +491,7 @@ export async function runRpc<T>(call: PromiseLike<{ data: unknown; error: DbErro
  * A failure is always `severity: fault` and never anything else: a read can't
  * produce a validation error (nothing was submitted to validate) or a
  * wait-and-retry. By then the modal is already up, because `dbFetch` presented
- * it at the seam — so a call site's only job is to stop showing a stale answer.
+ * it in `dbFetch` — so a call site's only job is to stop showing a stale answer.
  *
  *     const r = await readRows(db.from('clubs').select('handle, name'))
  *     if (r.type !== 'ok') { setLoad('failed'); return }

@@ -40,8 +40,8 @@ select throws_ok(
              'bea22222-2222-2222-2222-222222222222'::uuid],
        'coop'
      ) $$,
-  '42501',
-  'not-authenticated|',
+  'PN011',
+  'Signed out; try refresh',
   'unauthenticated create_game is rejected'
 );
 
@@ -73,8 +73,8 @@ select throws_ok(
              'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
     (select handle from club)
   ),
-  '42501',
-  'not-club-member|',
+  'PN012',
+  'You are not a member of this club',
   'non-member create_game is rejected'
 );
 

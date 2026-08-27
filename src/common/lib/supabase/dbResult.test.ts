@@ -1,8 +1,10 @@
 // cs-unmet
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { PostgrestClient } from '@supabase/postgrest-js'
 import {
-  environmentalEnvelope, faultEnvelope, isEnvelope, isOurDbCode, reportDbFault, readRows, runRpc,
+  diagnosticsLine, environmentalEnvelope, faultEnvelope, isEnvelope, isOurDbCode, logDb, logSlow,
+  reportDbFault, readRows, runRpc,
 } from './dbResult'
 import { clearFaultsForTest, peekFaultsForTest } from '../fault/faultStore'
 
@@ -159,6 +161,39 @@ describe('runRpc — one shape, always', () => {
     expect(fault.diagnostics).toContain('dbcode=PN500')
   })
 
+  // A declared fault is the ONLY kind `dbFetch` never sees — it arrives HTTP
+  // 200 — so if `runRpc` can't name the call, it is the one fault in the app
+  // that can't say where it came from. The name is not passed in: postgrest-js
+  // builds every call around a `url`, and reading it keeps the line identical
+  // to the seam's with nothing to maintain.
+  //
+  // PINNED because `url` and `method` are `protected` upstream. If a version
+  // bump renames either, this goes red instead of the diagnostics quietly
+  // degrading to "rpc" everywhere.
+  it('names the call in a declared fault, taken from the builder', async () => {
+    // A REAL PostgrestClient, because the whole assertion is about postgrest-js's
+    // internals. A hand-made object with a `url` on it would pass whatever
+    // upstream did.
+    const client = new PostgrestClient('http://local/rest/v1', {
+      fetch: (() =>
+        Promise.resolve(
+          new Response(
+            JSON.stringify({ type: 'not-ok', severity: 'fault', message: 'Broken', dbcode: 'PN500' }),
+            { headers: { 'content-type': 'application/json' } },
+          ),
+        )) as never,
+    })
+    await runRpc(client.schema('common').rpc('create_club', { club_name: 'x' }))
+    const [fault] = peekFaultsForTest()
+    expect(fault.diagnostics).toContain('POST /rest/v1/rpc/create_club')
+  })
+
+  it('falls back to a bare label when the builder has no url', async () => {
+    const envelope = { type: 'not-ok', severity: 'fault', message: 'Broken', dbcode: 'PN500' }
+    await runRpc(Promise.resolve({ data: envelope, error: null }))
+    expect(peekFaultsForTest()[0].diagnostics).toContain('| rpc |')
+  })
+
   it('builds a fault envelope when the reply is not an envelope at all', async () => {
     const r = await runRpc(Promise.resolve({ data: 'won', error: null }))
     expect(r).toMatchObject({ type: 'not-ok', severity: 'fault' })
@@ -202,9 +237,55 @@ describe('runRpc — one shape, always', () => {
   })
 })
 
+describe('the [db] line', () => {
+  // Every field prints every time, so the same fact is always in the same
+  // position — a blank is information (no dbcode = nothing raised; no status =
+  // the server never answered).
+  it('emits every field in a fixed order, blank when unknown', () => {
+    expect(diagnosticsLine('SLOW', { call: 'GET /rest/v1/games', status: 200, ms: 5210 })).toMatch(
+      /^\d\d:\d\d:\d\d\.\d\d\d \| SLOW \| GET \/rest\/v1\/games \| severity= \| outcome= \| dbcode= \| status=200 \| ms=5210 \| field= \| detail=$/,
+    )
+  })
+
+  // A blank field is a promise that we LOOKED and there was nothing. A line
+  // written before the body was read can't keep it, so it omits those fields
+  // instead of printing them empty.
+  it('omits the answer fields on the slow line', () => {
+    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    logSlow({ call: 'POST /rest/v1/rpc/delete_game', ms: 5210, detail: 'online=true' })
+    const line = spy.mock.calls[0][0] as string
+    expect(line).toBe(
+      line.replace(/\| (severity|outcome|dbcode|status|field)=/g, '| SHOULD-NOT-BE-HERE='),
+    )
+    expect(line).toContain('| SLOW | POST /rest/v1/rpc/delete_game | ms=5210 |')
+    // Restored so the next test's spy starts empty — `vi.spyOn` on an
+    // already-spied method hands back THIS spy, calls and all.
+    spy.mockRestore()
+  })
+
+  // Postgres hands back hints like `Perhaps you meant "clubs.name"`, and an
+  // unescaped quote breaks the line exactly where it is most worth reading.
+  it('escapes quotes inside free text', () => {
+    const line = diagnosticsLine('FAULT', {
+      call: 'GET /rest/v1/clubs',
+      detail: 'Perhaps you meant "clubs.name".',
+    })
+    expect(line).toContain('detail="Perhaps you meant \\"clubs.name\\"."')
+  })
+
+  // The modal and <ErrorPage> lead with the message, so repeating it under
+  // them would say the same thing twice.
+  it('logs the message but leaves it out of the diagnostics', () => {
+    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const diagnostics = logDb('ERROR', { call: 'POST /rest/v1/rpc/delete_game' }, 'Already deleted')
+    expect(spy.mock.calls[0][0]).toContain('msg="Already deleted"')
+    expect(diagnostics).not.toContain('msg=')
+  })
+})
+
 describe('reportDbFault', () => {
   it('words an offline failure itself, naming no action', () => {
-    reportDbFault('GET /rest/v1/clubs', environmentalEnvelope(true))
+    reportDbFault({ call: 'GET /rest/v1/clubs' }, environmentalEnvelope(true))
     const [fault] = peekFaultsForTest()
     expect(fault.text).toBe('You appear to be offline. Please refresh and try again.')
     // It must NOT claim the call did or didn't land — the link can die on the
@@ -213,7 +294,7 @@ describe('reportDbFault', () => {
   })
 
   it('puts the call in the diagnostics rather than the sentence', () => {
-    reportDbFault('POST /rest/v1/rpc/submit_guess', environmentalEnvelope(false))
+    reportDbFault({ call: 'POST /rest/v1/rpc/submit_guess' }, environmentalEnvelope(false))
     const [fault] = peekFaultsForTest()
     expect(fault.diagnostics).toContain('POST /rest/v1/rpc/submit_guess')
     expect(fault.text).not.toContain('submit_guess')
@@ -221,7 +302,7 @@ describe('reportDbFault', () => {
 
   it('shows a raw fault its own text, since nobody wrote one for it', () => {
     reportDbFault(
-      'POST /rest/v1/rpc/submit_guess',
+      { call: 'POST /rest/v1/rpc/submit_guess' },
       faultEnvelope(
         { code: '23514', message: 'violates check constraint "players_guesses_remaining_check"' },
         'unused',
@@ -233,7 +314,7 @@ describe('reportDbFault', () => {
   })
 
   it('shows a declared fault the sentence its author wrote', () => {
-    reportDbFault('POST /rest/v1/rpc/submit_guess', {
+    reportDbFault({ call: 'POST /rest/v1/rpc/submit_guess' }, {
       type: 'not-ok',
       severity: 'fault',
       message: 'That word is not on the board',

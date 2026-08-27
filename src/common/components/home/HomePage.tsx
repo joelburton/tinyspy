@@ -8,8 +8,7 @@ import { cls } from '../../lib/util/cls'
 import { useTabRing } from '../../hooks/input/useTabRing'
 import { db as commonDb } from '../../db'
 import { showFaultModal } from '../../lib/fault/faultStore'
-import { readRows } from '../../lib/supabase/dbResult'
-import { logStamp } from '../../lib/supabase/realtimeDiag'
+import { diagnosticsLine, readRows } from '../../lib/supabase/dbResult'
 import { useProfile } from '../../hooks/session/useProfile'
 import { useRealtimeRefetch } from '../../hooks/realtime/useRealtimeRefetch'
 import { Dot } from '../text/Dot'
@@ -101,7 +100,7 @@ export function HomePage({ session }: Props) {
       )
       if (!mounted()) return
       // A FAILED LOAD needs nothing here. The fault modal is already on screen
-      // and the `[db]` line is already written — the seam did both before this
+      // and the `[db]` line is already written — `dbFetch` did both before this
       // resumed (plans/error-system.md). What is left is the bail-out: record
       // that the load failed so the muted line under the list can say something
       // true. No classifying, no wording, no showFaultModal.
@@ -129,7 +128,12 @@ export function HomePage({ session }: Props) {
       if (result.data.length === 0) {
         showFaultModal({
           text: "Something's wrong with your account — you should always have at least your own solo club.",
-          diagnostics: `clubs — no-clubs detail="loaded 0 clubs; every profile has a solo club" — ${logStamp()}`,
+          diagnostics: diagnosticsLine('FAULT', {
+            call: 'GET /rest/v1/clubs',
+            severity: 'fault',
+            status: 200,
+            detail: 'rows=0; every profile has a solo club',
+          }),
         })
       }
     },

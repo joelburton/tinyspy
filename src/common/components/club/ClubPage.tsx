@@ -1,7 +1,6 @@
 // cs-unmet
 
-import { failureText } from '../../lib/game/serverError'
-import { runRpc } from '../../lib/supabase/dbResult'
+import { diagnosticsLine, readRows, runRpc } from '../../lib/supabase/dbResult'
 import { showToast } from '../../lib/toast/toastStore'
 import { DEFAULT_TOAST_MS } from '../toasts/Toast'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -23,7 +22,6 @@ import { useClubPresence } from '../../hooks/realtime/useClubPresence'
 import { useClubSetupPresence } from '../../hooks/realtime/useClubSetupPresence'
 import { Loading } from '../loading-and-errs/Loading'
 import { ErrorPage } from '../loading-and-errs/ErrorPage'
-import { logStamp } from '../../lib/supabase/realtimeDiag'
 import { ChatButton } from '../page-header/ChatButton'
 import { Chat } from '../chat/Chat'
 import { ClubGameCard } from './ClubGameCard'
@@ -125,7 +123,13 @@ export function ClubPage({ handle, session }: Props) {
   const [allGames, setAllGames] = useState<ListedGame[]>([])
   const [activeGameId, setActiveGameId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  /**
+   * Why the page can't render, when it can't: the sentence, and the diagnostics
+   * line built at the moment the load failed — so it names the query that failed
+   * rather than the page, and carries the failure's own timestamp instead of the
+   * render's.
+   */
+  const [failure, setFailure] = useState<{ text: string; diagnostics: string } | null>(null)
   // Whether the club Help modal is mounted — toggled by the menu's "Help" item
   // (the club-page counterpart to each game's Help modal on GamePage).
   const [helpOpen, setHelpOpen] = useState(false)
@@ -533,47 +537,73 @@ export function ClubPage({ handle, session }: Props) {
   useEffect(function loadClubAndRoster() {
     let mounted = true
 
+    // `dbFetch` has already logged each of these and put the modal up; this line
+    // is what the page shows behind it, naming the read that failed.
+    const diag = (table: string) =>
+      diagnosticsLine('FAULT', {
+        call: `GET /rest/v1/${table}`, severity: 'fault', detail: `handle=${handle}`,
+      })
+
     async function load() {
-      const { data: clubData, error: clubError } = await commonDb
-        .from('clubs')
-        .select('handle, name')
-        .eq('handle', handle)
-        .maybeSingle()
+      // EVERY failure below is the same shape: `dbFetch` has already logged it
+      // and put the fault modal up, so all that is left is to stop loading and
+      // leave a page behind the modal that says something true. A page that
+      // failed to load has nothing to render, so its own error state IS the
+      // right surface for that (docs/ui.md → Faults) — not a second modal.
+      const clubRes = await readRows(
+        commonDb.from('clubs').select('handle, name').eq('handle', handle),
+      )
       if (!mounted) return
-      // The two LOAD failures below stay as PAGE content (not the modal): a
-      // page that failed to load has nothing to render behind a modal, so its
-      // own error state IS the right surface (docs/ui.md → Faults).
-      if (clubError) {
-        setError(failureText(clubError, 'load club'))
+      if (clubRes.type !== 'ok') {
+        setFailure({ text: 'Could not load this club.', diagnostics: diag('clubs') })
         setLoading(false)
         return
       }
+      // ZERO ROWS is the caller's to interpret, and here it isn't a failure at
+      // all: `handle` is the PK, and RLS hides clubs you don't belong to, so no
+      // row means one of two things a member can't tell apart — and the sentence
+      // says both.
+      const clubData = clubRes.data[0]
       if (!clubData) {
-        setError('Club not found, or you are not a member.')
+        // Not a failure of anything — RLS answers "not yours" and "no such club"
+        // the same way, with zero rows — so the line says OK and states the fact.
+        setFailure({
+          text: 'Club not found, or you are not a member.',
+          diagnostics: diagnosticsLine('OK', {
+            call: 'GET /rest/v1/clubs', status: 200, detail: `rows=0 handle=${handle}`,
+          }),
+        })
         setLoading(false)
         return
       }
       setClub(clubData)
 
-      const { data: membersData, error: membersError } = await commonDb
-        .from('clubs_members')
-        .select('user_id')
-        .eq('club_handle', clubData.handle)
+      const membersRes = await readRows(
+        commonDb.from('clubs_members').select('user_id').eq('club_handle', clubData.handle),
+      )
       if (!mounted) return
-      if (membersError) {
-        setError(failureText(membersError, 'load members'))
+      if (membersRes.type !== 'ok') {
+        setFailure({ text: 'Could not load this club’s members.', diagnostics: diag('clubs_members') })
         setLoading(false)
         return
       }
-      const userIds = (membersData ?? []).map((m) => m.user_id)
+      const userIds = membersRes.data.map((m) => m.user_id)
 
       if (userIds.length > 0) {
-        const { data: profilesData } = await commonDb
-          .from('profiles')
-          .select('user_id, username, color')
-          .in('user_id', userIds)
+        const profilesRes = await readRows(
+          commonDb.from('profiles').select('user_id, username, color').in('user_id', userIds),
+        )
         if (!mounted) return
-        setMembers((profilesData ?? []) as Member[])
+        // Bails now, where it used to drop the error and render a memberless
+        // club. Every member is a presence light, a player-count bound and a
+        // name in the chat, so a club page without them is wrong rather than
+        // reduced.
+        if (profilesRes.type !== 'ok') {
+          setFailure({ text: 'Could not load this club’s members.', diagnostics: diag('profiles') })
+          setLoading(false)
+          return
+        }
+        setMembers(profilesRes.data as Member[])
       } else {
         setMembers([])
       }
@@ -584,12 +614,22 @@ export function ClubPage({ handle, session }: Props) {
       // with the FE registry (computed at render time) naturally
       // hides gametypes the DB knows about but this FE bundle
       // doesn't.
-      const { data: kindsData } = await commonDb
-        .from('clubs_gametypes')
-        .select('gametype, default_setup')
-        .eq('club_handle', clubData.handle)
+      const kindsRes = await readRows(
+        commonDb
+          .from('clubs_gametypes')
+          .select('gametype, default_setup')
+          .eq('club_handle', clubData.handle),
+      )
       if (!mounted) return
-      const rows = kindsData ?? []
+      // Also bails now. Without these rows the page draws no Start buttons at
+      // all, which reads as "this club plays nothing" — a wrong answer wearing
+      // the look of a real one.
+      if (kindsRes.type !== 'ok') {
+        setFailure({ text: 'Could not load this club’s games.', diagnostics: diag('clubs_gametypes') })
+        setLoading(false)
+        return
+      }
+      const rows = kindsRes.data
       setAllowedGametypes(new Set(rows.map((k) => k.gametype)))
       setSavedDefaults(
         new Map(
@@ -720,14 +760,17 @@ export function ClubPage({ handle, session }: Props) {
 
   if (loading) return <Loading />
   // The club did not load, so there is no page to put a modal over — the
-  // failure IS the route (F39 `loading-and-errors`). `error` already carries
-  // the classifier's words via `failureText`; the line below adds the handle,
-  // which is the one thing a reader needs that the message cannot know.
-  if (error || !club) {
+  // failure IS the route (F39 `loading-and-errors`). The sentence is for the
+  // player and the condition is for whoever reads it back; the handle is the
+  // one thing neither of them can know.
+  if (failure || !club) {
     return (
       <ErrorPage
-        message={error ?? 'Unknown error.'}
-        diagnostics={`club — key=club-load-failed detail="${handle}" — ${logStamp()}`}
+        message={failure?.text ?? 'Unknown error.'}
+        diagnostics={
+          failure?.diagnostics
+          ?? diagnosticsLine('FAULT', { call: 'GET /rest/v1/clubs', severity: 'fault', detail: `handle=${handle}; no failure recorded` })
+        }
       />
     )
   }

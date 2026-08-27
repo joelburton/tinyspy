@@ -38,8 +38,8 @@ select throws_ok(
        '{"hand_size": 21, "bunch_size": 144, "timer": {"kind": "none"}}'::jsonb,
        array['ada11111-1111-1111-1111-111111111111'::uuid]
      ) $$,
-  '42501',
-  'not-authenticated|',
+  'PN011',
+  'Signed out; try refresh',
   'unauthenticated create_game is rejected'
 );
 

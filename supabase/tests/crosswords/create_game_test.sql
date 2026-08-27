@@ -180,7 +180,7 @@ select throws_ok(
   format('select crosswords.create_game(%L, %s, array[%L]::uuid[], %L)',
          :'club_handle', quote_literal(pg_temp.xw_setup(:'pz_id')),
          'dee44444-4444-4444-4444-444444444444', 'coop'),
-  '42501', null, 'non-member cannot create a game in the club');
+  'PN012', null, 'non-member cannot create a game in the club');
 reset role;
 
 -- ── Setup-strip backstop (finding 1.1) ───────────────────────────────

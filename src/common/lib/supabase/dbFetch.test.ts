@@ -62,8 +62,11 @@ describe('dbFetch — a request that never reached the server', () => {
     const line = spy.mock.calls[0][0] as string
     expect(line).toContain('[db]')
     expect(line).toContain('POST /rest/v1/rpc/submit_word')
-    expect(line).toContain('FAILED: TypeError: Load failed')
-    expect(line).toMatch(/\d+ms online=/)
+    expect(line).toContain('FAULT')
+    // The thrown error is the DETAIL: nothing answered, so there is no
+    // server-supplied one to compete with it.
+    expect(line).toContain('detail="TypeError: Load failed online=')
+    expect(line).toMatch(/ms=\d+/)
   })
 
   it('never puts credentials in the log — path only, never the query string', async () => {
@@ -85,11 +88,32 @@ describe('dbFetch — requests that DID reach the server', () => {
     expect(warn).not.toHaveBeenCalled()
   })
 
+  // An RPC's 2xx says only that the request arrived. What it MEANT is in the
+  // body, which `runRpc` reads and logs for itself — so a line here would claim
+  // success directly above one calling the same call a fault.
+  it('says nothing about an RPC that returned 200', async () => {
+    const debug = vi.spyOn(console, 'debug').mockImplementation(() => {})
+    stubFetch(() => Promise.resolve(new Response('{}', { status: 200 })))
+    await dbFetch('https://x.supabase.co/rest/v1/rpc/delete_game', { method: 'POST' })
+    expect(debug).not.toHaveBeenCalled()
+  })
+
+  // A read has no such second layer, so the seam's line is the only one it gets.
+  it('still narrates a read that returned 200', async () => {
+    const debug = vi.spyOn(console, 'debug').mockImplementation(() => {})
+    stubFetch(() => Promise.resolve(new Response('[]', { status: 200 })))
+    await dbFetch('https://x.supabase.co/rest/v1/clubs')
+    expect(debug.mock.calls[0][0]).toContain('| OK | GET /rest/v1/clubs')
+  })
+
   it('narrates a failing STATUS too — "said no" and "never arrived" are one investigation', async () => {
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    // On a seam path the status rides in the FAULT line the seam writes, at
+    // `error`: one line per failed call, not a warn and then an error.
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {})
     stubFetch(() => Promise.resolve(new Response('{}', { status: 400 })))
     await dbFetch('https://x.supabase.co/rest/v1/rpc/submit_word', { method: 'POST' })
-    expect(warn.mock.calls[0][0]).toContain('→ 400')
+    expect(err.mock.calls[0][0]).toContain('status=400')
+    expect(err.mock.calls[0][0]).toContain('POST /rest/v1/rpc/submit_word')
   })
 
   it('does NOT append advice to a server rejection — the move was really refused', async () => {
@@ -105,16 +129,16 @@ describe('dbFetch — requests that DID reach the server', () => {
 })
 
 /**
- * The FAULT SEAM (plans/error-system.md → "Faults and environmental failures
+ * PRESENTING FAULTS (plans/error-system.md → "Faults and environmental failures
  * are presented centrally").
  *
  * These pin the rule that makes every converted call site simpler: a call site
  * never has to ask "did we hear back at all?", never words a network problem,
- * and never calls showFaultModal. If this seam stops presenting, nothing else in
+ * and never calls showFaultModal. If `dbFetch` stops presenting, nothing else in
  * the app notices — the failure would be silent, which is why it is tested here
  * rather than left to a call site's own test.
  */
-describe('dbFetch — the fault seam', () => {
+describe('dbFetch — presenting faults', () => {
   beforeEach(() => {
     clearFaultsForTest()
     vi.spyOn(console, 'error').mockImplementation(() => {})
@@ -162,6 +186,22 @@ describe('dbFetch — the fault seam', () => {
     const [fault] = peekFaultsForTest()
     expect(fault.text).toContain('guesses_check')
     expect(fault.diagnostics).toContain('dbcode=23514')
+  })
+
+  // The failure most worth showing, and the one that was silent longest: a
+  // gateway's HTML error page or an empty body on a PostgREST call means the
+  // stack is broken, not that a move was refused. There is no code and no
+  // message to read, but the call, the status and the time are what the modal
+  // needs anyway.
+  it('presents a fault even when the error body is not JSON', async () => {
+    stubFetch(() =>
+      Promise.resolve(new Response('<html>502 Bad Gateway</html>', { status: 502 })),
+    )
+    await dbFetch('https://x.test/rest/v1/rpc/submit_guess', { method: 'POST' })
+    const [fault] = peekFaultsForTest()
+    expect(fault.text).toBe('The server refused the request.')
+    expect(fault.diagnostics).toContain('status=502')
+    expect(fault.diagnostics).toContain('dbcode=')
   })
 
   // Reading the body must not consume it — every caller downstream still needs

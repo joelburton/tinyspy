@@ -20,7 +20,7 @@ import { ToastHost } from './common/components/toasts/ToastHost'
 import { FaultModal } from './common/components/feedback/FaultModal'
 import { Loading } from './common/components/loading-and-errs/Loading'
 import { ErrorPage } from './common/components/loading-and-errs/ErrorPage'
-import { logStamp } from './common/lib/supabase/realtimeDiag'
+import { diagnosticsLine } from './common/lib/supabase/dbResult'
 import { TooltipHost } from './common/components/tooltips/TooltipHost'
 import { useRealtimeReconnect } from './common/hooks/realtime/useRealtimeReconnect'
 import { useBacktickEscape } from './common/hooks/input/useBacktickEscape'
@@ -145,7 +145,11 @@ export default function App() {
                 wrong, or the game was removed from the app.
               </>
             }
-            diagnostics={`route — key=unknown-gametype detail="${gametype}" — ${logStamp()}`}
+            diagnostics={diagnosticsLine('FAULT', {
+              call: `GET /g/${gametype}`,
+              severity: 'fault',
+              detail: 'no manifest registered for this gametype',
+            })}
           />
         )
       } else {

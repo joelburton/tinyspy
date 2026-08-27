@@ -11,7 +11,7 @@
 --      with the coop shape {mode,base,max_word_length,guesses_used:0}.
 --   2. Compete happy path: mode='compete'; compete-shape status seeded
 --      (leaderboard with per-player guesses_used:0). NO target_rank.
---   3. Auth: dee (outsider) rejected with 42501.
+--   3. Auth: dee (outsider) rejected.
 --   4. mode arg validation: invalid value;
 --      setup.target_rank rejected; compete with <2 players.
 --   5. Difficulty band validation: below 1 / above 6 rejected.
@@ -181,7 +181,7 @@ select throws_ok(
                                   pg_temp.wordiply_board()) $$,
     (select handle from club)
   ),
-  '42501',
+  'PN012',
   null,
   'dee (non-member) cannot create a wordiply game'
 );

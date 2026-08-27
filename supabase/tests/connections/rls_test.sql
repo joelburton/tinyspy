@@ -103,8 +103,8 @@ select throws_ok(
     $$ select connections.create_game(%L, pg_temp.connections_setup(%L::uuid), array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
     (select handle from club), (select id from puzzle)
   ),
-  '42501',
-  'not-club-member|',
+  'PN012',
+  'You are not a member of this club',
   'dee cannot call create_game on a club she is outside'
 );
 

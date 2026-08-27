@@ -265,7 +265,7 @@ Four notes on the fields:
   raise and either branch can be raised.
 
 **The frontend receives everything in the envelope**, `dbcode` and `detail`
-included. The seam logs them and the fault modal's diagnostics use them; a call
+included. `dbFetch` logs them and the fault modal's diagnostics use them; a call
 site has no use for either, but nothing is stripped on the way — one shape, all
 the way through, is simpler than deciding per-field who deserves what.
 
@@ -337,6 +337,12 @@ P A 0 4 2               P N 5 0 7
 - **The digits encode nothing.** No families, no categories, no ranges to
   remember. They are a unique ID and only that: a code in a bug report leads to
   exactly one line of SQL.
+- **A helper's code is shared by all its callers, and that is fine** (Joel,
+  2026-08-27). `common.require_club_member` raises `PN012` whether it was
+  reached through `delete_game` or `send_message`, so the code answers *what
+  happened* and not *which call*. The call is answered by the diagnostics line,
+  which carries `POST /rest/v1/rpc/delete_game` from the request path — so both
+  facts are present, each from the layer that knows it.
 - **Unique per raise site**, not per condition. That distinction matters here —
   `game-not-found` is raised **88 times** and `game-not-in-play` **57**, across
   186 distinct conditions and 442 sites. Per-condition numbering would send you
@@ -418,6 +424,29 @@ Every current member says so —
 Notably all of those are raised by edge functions, which this plan defers. Most
 RPC conversions will produce only `ok`, `fault`, and `validation`; psychicnum's
 `submit_guess` produces no `error` at all.
+
+### The `[db]` line
+
+One format, one builder, for the console AND for the diagnostics under a fault
+modal or an `<ErrorPage>` — the second is the first minus the trailing `msg=`,
+since those surfaces already lead with the message. **Every field prints every
+time**, empty after the `=` when there is nothing to say, so a fact is always in
+the same position and a blank is itself information: no `dbcode` means nothing
+raised, no `status` means the server never answered.
+
+```
+[db] 05:41:12.204 | FAULT | POST /rest/v1/rpc/delete_game | severity=fault | outcome= | dbcode=PN012 | status=200 | ms= | field=_ | detail="caller is not in common.club_members for this club" | msg="You are not a member of this club"
+```
+
+The level is the first word and picks the console method, so a line's level and
+its severity cannot disagree: `FAULT` → `error`, `ERROR`/`SLOW` → `warn`,
+`VALIDATION`/`OK` → `debug`. `SLOW` and `OK` are `dbFetch` narrating
+transport; the other three are an envelope's own meaning.
+
+`call` is never blank — `label()` in `dbFetch`, `callLabel()` in `runRpc`, and
+the query it made at a call site that authored its own failure. That retires
+the hand-written lines (`key=render-crashed` and its four siblings), which
+carried an invented condition name and no `severity` or `dbcode` at all.
 
 The console column is what makes §2's second symptom affordable: with `ok` at
 `debug`, the shared wrapper can log *every* call without drowning anything, and
@@ -604,7 +633,7 @@ instead of migrating into the new file.
 
 ### Faults and environmental failures are presented centrally
 
-**There is already one seam every Supabase call passes through.** `dbFetch` is
+**There is already one function every Supabase call passes through.** `dbFetch` is
 installed as the client's `global.fetch` (`supabase.ts:84`), so PostgREST
 requests, table reads, edge functions and auth all go through it. Today it only
 logs — a non-2xx status, a slow success, a rejected fetch — because it never
@@ -613,7 +642,7 @@ reads the body.
 Have it read the body (`res.clone().json()` leaves the caller's stream intact),
 and it can own all three of the outcomes a call site has no opinion about:
 
-| at the seam | action |
+| what `dbFetch` sees | action |
 |---|---|
 | the fetch rejected | environmental — the words live here, in one place |
 | the response is a raw Postgres error | raw fault |
@@ -635,7 +664,7 @@ Two things fall out, and they're the point:
   solved by deleting the side effect rather than by naming it carefully.
 - **The `action` parameter disappears.** Every call passes one today
   (`failureMessage(error, 'guess')`) because a shared helper "cannot know which
-  button reached it". At the fetch seam we have the request path —
+  button reached it". In `dbFetch` we have the request path —
   `POST /rest/v1/rpc/submit_guess` — which is more accurate than a hand-written
   word and needs no maintenance.
 
@@ -651,7 +680,7 @@ composition (85 `.select()`, 69 `.eq()`, 31 `.single()`, 21 `.order()`).
 Converting them to RPCs would mean hand-writing ~93 query shapes and discarding
 the one thing PostgREST is good at. Instead the frontend normalizes them into
 the same call-site shape: rows (**zero included**) are `ok`, an error is a
-fault the seam has already presented. An invariant like "every profile has a
+fault `dbFetch` has already presented. An invariant like "every profile has a
 solo club" is checked at the call site with its sentence written there — the
 same rule as the RPC side, with the frontend as author because the frontend is
 what knows the invariant. `HomePage.tsx:120` is the built example.
@@ -941,7 +970,7 @@ Three pieces, built once, complete:
 ownership test does the format detection for free.** An unconverted raise
 carries `P0001`, whose second character is `0`, so it fails
 `^P[AN][0-9]{3}$` and is simply "not ours" — a raw fault. There is no
-two-format seam and no transitional branch to delete later.
+two-format boundary and no transitional branch to delete later.
 
 **Where the new machinery lives.** One new file under
 `src/common/lib/supabase/`, holding the envelope types, the classifier, the
@@ -953,7 +982,7 @@ avoid. Under `lib/supabase/` it sits beside `dbFetch`, which is what it is
 about, and `lib/game/` is left as a clean deletion set.
 
 **`dbFetch` is the one edit to an existing file** — a hook calling into the new
-module, not logic. Everything the seam does lives in the new file.
+module, not logic. Everything it does lives in the new file.
 
 **The message table is new and small, not an addition to `ERROR_COPY`.** That
 table is big, messy, and deleted wholesale at the end; growing it now would be
@@ -997,7 +1026,15 @@ Within a game, RPCs can go one at a time; direct queries convert independently
 of any game.
 
 **The shared helpers are their own conversion**, and they take
-`supabase/tests/common/` with them. `common.require_game_player`,
+`supabase/tests/common/` with them. **`common.require_club_member` is done**
+(PN011 not signed in, PN012 not a member) — pulled forward because three
+converted club-page RPCs were emitting its `42501`, which is a code we
+authored and therefore had to be one of ours. Converting it re-pointed 23
+pgTAP assertions across 15 files, and it is the reason `dbFetch` now reports
+a raw `PA`/`PN` instead of skipping it: an unconverted RPC calling a
+converted helper leaks our code with no handler to catch it, and that is a
+missing handler rather than nothing. `require_game_player`, `_require_turn`
+and `require_valid_timer` are still on the old keys. `common.require_game_player`,
 `_require_turn`, `require_valid_timer` and their dozen siblings are called from
 everywhere, so there's no way to do them per-game; and their tests —
 `helpers_test.sql`, `games_test.sql`, `turn_order_test.sql`, and the other 15
@@ -1008,7 +1045,7 @@ corpses to find later, and a forward-sweep converting every caller at once is
 the boil-the-ocean approach this avoids.
 
 **Unconverted games are knowingly broken throughout**, and more visibly than an
-earlier draft of this section claimed. Their raises carry `P0001`, so the seam
+earlier draft of this section claimed. Their raises carry `P0001`, so `dbFetch`
 files them as raw faults and every routine rejection — "Not your turn" — pops a
 fault modal. That makes an unconverted game unpleasant to play, which is
 accepted: nothing is deployed until the whole sprint lands, and there is no
@@ -1086,7 +1123,7 @@ select pg_temp.envelope_is(
 
 ## 7. The conversion roster
 
-**139 entries. 7 done, 5 edge functions deferred, 127 to go.** Cross them off
+**139 entries. 11 done, 5 edge functions deferred, 123 to go.** Cross them off
 here as they land.
 
 An entry is one RPC or one table read **per area**, so the same name in two
@@ -1116,11 +1153,11 @@ identifier — a shape nothing has exercised yet.
 - [x] `delete_game` · RPC — and its feedback moved to toasts (see below)
 - [x] `set_club_gametypes` · RPC — no outcomes of its own; envelope + handler only
 - [x] `unset_current_view` · RPC — the club page's presence heal
-- [ ] `clubs` · read
-- [ ] `clubs_gametypes` · read
-- [ ] `clubs_members` · read
+- [x] `clubs` · read
+- [x] `clubs_gametypes` · read
+- [x] `clubs_members` · read
 - [ ] `games` · read
-- [ ] `profiles` · read
+- [x] `profiles` · read
 
 #### Auth
 

@@ -51,8 +51,8 @@ select set_config('role', 'postgres', true);
 
 select throws_ok(
   format($q$ select common.send_message(%L, 'hi') $q$, (select handle from club)),
-  '42501',
-  'not-authenticated|',
+  'PN011',
+  'Signed out; try refresh',
   'send_message: not authenticated raises 42501'
 );
 
@@ -60,8 +60,8 @@ select throws_ok(
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select throws_ok(
   format($q$ select common.send_message(%L, 'sneaking in') $q$, (select handle from club)),
-  '42501',
-  'not-club-member|',
+  'PN012',
+  'You are not a member of this club',
   'send_message: non-member is rejected'
 );
 

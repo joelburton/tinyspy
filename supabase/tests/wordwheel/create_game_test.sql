@@ -12,7 +12,7 @@
 --   2. Compete happy path: separate game with mode='compete'
 --      + target_rank=4; mode column + gametype string match;
 --      compete-shape status seeded (target_rank + empty leaderboard).
---   3. Auth + membership: dee (outsider) rejected with 42501.
+--   3. Auth + membership: dee (outsider) rejected.
 --   4. mode arg validation: invalid value;
 --      compete with <2 players; target_rank required iff compete;
 --      target_rank range.
@@ -190,7 +190,7 @@ select throws_ok(
                                    pg_temp.wordwheel_board()) $$,
     (select handle from club)
   ),
-  '42501',
+  'PN012',
   null,
   'dee (non-member) cannot create a wordwheel game'
 );

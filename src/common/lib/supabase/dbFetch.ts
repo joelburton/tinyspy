@@ -1,7 +1,8 @@
 // cs-unmet
 
-import { logStamp } from './realtimeDiag'
-import { environmentalEnvelope, faultEnvelope, isOurDbCode, reportDbFault, type DbError } from './dbResult'
+import {
+  environmentalEnvelope, faultEnvelope, logDb, logSlow, reportDbFault, type DbError,
+} from './dbResult'
 
 /**
  * The `fetch` every Supabase call goes through — the ONE place a request that
@@ -20,7 +21,7 @@ import { environmentalEnvelope, faultEnvelope, isOurDbCode, reportDbFault, type 
  * The facts that DO distinguish those cases are ambient rather than in the
  * error, so this is where they get captured — see `context()`.
  *
- * One seam covers everything the client does — PostgREST, edge functions,
+ * One function covers everything the client does — PostgREST, edge functions,
  * auth — because they all share this fetch.
  *
  * ─── What it does NOT do ─────────────────────────────────────
@@ -39,18 +40,17 @@ import { environmentalEnvelope, faultEnvelope, isOurDbCode, reportDbFault, type 
 const SLOW_MS = 4000
 
 
-/** Everything about the moment a request failed, past the error itself. Each
- *  field answers a question the raw message can't:
- *    - `ms`      instant reject = a dead connection; 30s+ = a timeout on a live
- *                one. Completely different problems, same message.
+/** The device's own state at the moment of the call, which answers questions
+ *  the error message can't:
  *    - `online`  false ends the investigation — the device knew it was offline.
  *    - `hidden`  a request issued while the tab is backgrounded is the iOS
  *                suspend case, where the connection dies under us.
- */
-function context(ms: number): string {
+ *  Duration is NOT here: `ms` is a field of its own now (instant reject = a dead
+ *  connection, 30s+ = a timeout on a live one — same message, different bug). */
+function context(): string {
   const online = typeof navigator !== 'undefined' ? navigator.onLine : true
   const hidden = typeof document !== 'undefined' && document.visibilityState === 'hidden'
-  return `${Math.round(ms)}ms online=${online}${hidden ? ' hidden' : ''}`
+  return `online=${online}${hidden ? ' hidden' : ''}`
 }
 
 /** The request's identity, with no credentials in it. A Supabase URL carries
@@ -72,22 +72,35 @@ function label(input: RequestInfo | URL, init?: RequestInit): string {
 }
 
 /**
- * Is this a path the fault seam speaks for?
+ * Is this one of SUPABASE'S OWN endpoints, rather than ours?
  *
- * PostgREST and edge functions, yes — those are the calls the new server-result
- * system covers. **Auth is deliberately excluded**: a 400 from `/auth/v1/` is
- * usually a user-facing condition the sign-in screen already handles (an
- * expired link, a bad OTP), and turning those into blocking fault modals would
- * be wrong. Auth keeps the plain log line it has always had.
+ * Everything here is Supabase, so the line is not the vendor — it is whose
+ * semantics are on the other end. `/rest/v1/` and `/functions/v1/` reach OUR
+ * schema and OUR code, and their failures are the server-result system's
+ * subject. `/auth/v1/` is the platform's own service: a 400 there is usually a
+ * user-facing condition the sign-in screen already handles (an expired link, a
+ * bad OTP), and turning those into blocking fault modals would be wrong.
+ *
+ * **A failure here is logged but never presented** — it gets its `[db]` line
+ * and no modal.
+ *
+ * It is the complement of an allowlist, so anything unrecognized is `true` too:
+ * a storage call if we ever add one, or a URL `label()` could not parse. That
+ * is the conservative default — no modal for a call we cannot identify.
  */
-function seamSpeaksFor(input: RequestInfo | URL, init?: RequestInit): boolean {
+function isSupabaseInternal(input: RequestInfo | URL, init?: RequestInit): boolean {
   const path = label(input, init).split(' ')[1] ?? ''
-  return path.startsWith('/rest/v1/') || path.startsWith('/functions/v1/')
+  return !(path.startsWith('/rest/v1/') || path.startsWith('/functions/v1/'))
+}
+
+/** Is this a call to an RPC — the one shape whose 2xx body carries an answer
+ *  that something downstream (`runRpc`) reads and logs for itself? */
+function isRpc(input: RequestInfo | URL, init?: RequestInit): boolean {
+  return (label(input, init).split(' ')[1] ?? '').startsWith('/rest/v1/rpc/')
 }
 
 /**
- * `fetch` with a `[db]` console trail, and **the seam where faults are
- * presented** (plans/error-system.md → "Faults and environmental failures are
+ * `fetch` with a `[db]` console trail, and **where faults are presented** (plans/error-system.md → "Faults and environmental failures are
  * presented centrally").
  *
  * The tag is its own channel, beside `[rt]` (realtime) and `[ui]` (the browser
@@ -102,71 +115,115 @@ function seamSpeaksFor(input: RequestInfo | URL, init?: RequestInit): boolean {
  */
 export const dbFetch: typeof fetch = async (input, init) => {
   const started = performance.now()
+  // The fetch's two outcomes, held rather than branched on, so the narration
+  // below is one flat sequence instead of a success arm and a catch arm that
+  // each have to remember to log.
+  let res: Response | null = null
+  let thrown: unknown = null
   try {
-    const res = await fetch(input, init)
-    const ms = performance.now() - started
-    // A failing STATUS is the server answering, so it isn't this module's
-    // subject — but it is worth a line, because "the RPC said no" and "the RPC
-    // never arrived" are the two halves of the same investigation.
-    if (!res.ok) {
-      console.warn(`[db] ${logStamp()} ${label(input, init)} → ${res.status} (${context(ms)})`)
-      // A non-2xx from PostgREST is Postgres's own error shape — a RAW FAULT,
-      // by definition something nobody wrote a line of SQL for. Our own
-      // declared outcomes are not here: they come back 200 with an envelope.
-      // `clone()` so the caller's stream is untouched.
-      if (seamSpeaksFor(input, init)) {
-        try {
-          const body = (await res.clone().json()) as DbError
-          if (!isOurDbCode(body?.code)) {
-            reportDbFault(
-              label(input, init),
-              faultEnvelope(body, 'The server refused the request.'),
-              { status: res.status },
-            )
-          }
-        } catch {
-          // A non-JSON error body is itself the anomaly; the warn line above
-          // already carries the status, and there is nothing to classify.
-        }
-      }
-    } else if (ms > SLOW_MS) {
-      console.warn(`[db] ${logStamp()} ${label(input, init)} slow (${context(ms)})`)
-    } else {
-      // Every successful call gets a line, at `debug` so it never drowns the
-      // warns and errors. The browser's own level filter is the volume control
-      // — no verbose flag of ours. The BODY is deliberately not parsed here:
-      // until RPCs return envelopes there is nothing in it worth the cost.
-      console.debug(`[db] ${logStamp()} ${label(input, init)} → ${res.status} (${context(ms)})`)
-    }
-    return res
+    res = await fetch(input, init)
   } catch (err) {
-    const ms = performance.now() - started
-    // Read name/message off the THROWN VALUE rather than narrowing with
-    // `instanceof Error`: an abort arrives as a DOMException, which does not
-    // reliably satisfy that check, and converting it to a fresh Error would
-    // drop the very name the abort branch below tests for. Anything without a
-    // name is treated as an ordinary failure.
-    const raw = err as { name?: string; message?: string; code?: string } | null
-    const name = raw?.name ?? 'Error'
-    const message = raw?.message ?? String(err)
-    console.error(`[db] ${logStamp()} ${label(input, init)} FAILED: ${name}: ${message} (${context(ms)})`)
+    thrown = err
+  }
+  const ms = Math.round(performance.now() - started)
+  const call = label(input, init)
 
-    // ENVIRONMENTAL: the request never completed, so the server never spoke and
-    // no author could have written for this. The seam owns the sentence, which
-    // is why no call site needs an `if` for "did we hear back at all?".
-    //
-    // An abort is NOT one of these — it is us cancelling our own request (a
-    // component unmounting, a superseded fetch), so nobody is owed a modal.
-    if (name !== 'AbortError' && seamSpeaksFor(input, init)) {
+  // EVERY path through this block writes exactly one `[db]` line and then leaves
+  // by the bottom, where the result is returned or the error re-thrown. The
+  // label is what buys that: each case is a guard that narrates and breaks, so
+  // the cases read in order and none of them can fall into the next.
+  narrate: {
+    if (!res) {
+      // Nothing answered. Read name/message off the THROWN VALUE rather than
+      // narrowing with `instanceof Error`: an abort arrives as a DOMException,
+      // which does not reliably satisfy that check, and converting it to a fresh
+      // Error would drop the very name the abort test below needs.
+      const raw = thrown as { name?: string; message?: string } | null
+      const name = raw?.name ?? 'Error'
+      const message = raw?.message ?? String(thrown)
+      // The thrown error IS the detail here — there is no server-supplied one to
+      // compete with it — and `status` stays blank because nothing answered.
+      const fields = { call, ms, detail: `${name}: ${message} ${context()}` }
+
+      // An ABORT is not an environmental failure: it is us cancelling our own
+      // request (a component unmounting, a superseded fetch), so nobody is owed
+      // a modal. It still gets a line — an abort storm is worth seeing. Neither
+      // is a call to Supabase's own endpoints, which the sign-in screen owns.
+      if (name === 'AbortError' || isSupabaseInternal(input, init)) {
+        logDb('FAULT', fields)
+        break narrate
+      }
+
+      // ENVIRONMENTAL: the server never spoke, so no author could have written
+      // for this. This function owns the sentence, which is why no call site needs an
+      // `if` for "did we hear back at all?".
       const offline = typeof navigator !== 'undefined' && navigator.onLine === false
-      reportDbFault(label(input, init), environmentalEnvelope(offline), {
-        ms: Math.round(ms),
-        thrown: `${name}: ${message}`,
-      })
+      reportDbFault(fields, { ...environmentalEnvelope(offline), detail: fields.detail })
+      break narrate
     }
 
-    // Re-throw UNTOUCHED. The error object itself is never reworded here —
-    // this function presents and logs; it does not edit what callers receive.
-    throw err
+    const fields = { call, status: res.status, ms, detail: context() }
+
+    if (res.ok) {
+      // A slow SUCCESS is the same clue about a flaky link that a failure is, so
+      // it is the one success worth raising to `warn` — and worth saying even
+      // about a call something else will speak for.
+      if (ms > SLOW_MS) {
+        // The request's own line: it says how long the call took, and nothing
+        // about what came back, because the body has not been read.
+        logSlow({ call, ms, detail: context() })
+        break narrate
+      }
+      // An RPC's 2xx says only that the request arrived; the answer inside it is
+      // `runRpc`'s to read and to log, and it may well be a fault. Saying `OK`
+      // here would put a line claiming success directly above one contradicting
+      // it, so this function stays quiet and lets the layer that knows speak.
+      //
+      // The cost, until the conversion finishes: an RPC called WITHOUT `runRpc`
+      // — the raw `db.rpc()` sites — logs nothing on success.
+      //
+      // A read has no such layer, so its line is this one. The body is not
+      // parsed for it: rows are not worth the cost, and there is no envelope.
+      if (!isRpc(input, init)) logDb('OK', fields)
+      break narrate
+    }
+
+    // Supabase's own endpoints are never presented, so nothing downstream will
+    // report this one. The line is the whole record of it.
+    if (isSupabaseInternal(input, init)) {
+      logDb('FAULT', fields)
+      break narrate
+    }
+
+    // A non-2xx from PostgREST is Postgres's own error shape — a RAW FAULT, by
+    // definition something nobody wrote a line of SQL for. `clone()` so the
+    // caller's stream is untouched.
+    //
+    // A PA/PN code HERE is a third thing, and always a bug of ours: our own
+    // codes are meant to arrive HTTP 200 inside an envelope, so one in the raw
+    // shape means the RPC that raised it has no handler to catch it — during the
+    // conversion, an unconverted RPC calling a converted helper. The line says
+    // so by carrying one of our codes beside a 4xx status, which no
+    // correctly-handled call can produce.
+    //
+    // Parse if we can, present either way. A body that ISN'T JSON — a gateway's
+    // HTML error page, an empty response — leaves us with no code and no
+    // message, but it is the failure most worth showing: a Kong 502 on a
+    // PostgREST call means the stack is broken, not that a move was refused.
+    // The fields we do have (the call, the status, the time) are the ones the
+    // modal needs, and `faultEnvelope(null, …)` is that shape.
+    let body: DbError = null
+    try {
+      body = (await res.clone().json()) as DbError
+    } catch {
+      // Deliberately empty: `body` stays null and the report below carries the
+      // fallback sentence.
+    }
+    reportDbFault(fields, faultEnvelope(body, 'The server refused the request.'))
   }
+
+  // Re-thrown UNTOUCHED. The error object itself is never reworded here — this
+  // function presents and logs; it does not edit what callers receive.
+  if (!res) throw thrown
+  return res
 }

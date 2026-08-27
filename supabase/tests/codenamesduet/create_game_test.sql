@@ -74,8 +74,8 @@ select throws_ok(
     $q$ select codenamesduet.create_game(%L, pg_temp.codenamesduet_setup(), pg_temp.codenamesduet_players()) $q$,
     (select handle from club2)
   ),
-  '42501',
-  'not-authenticated|',
+  'PN011',
+  'Signed out; try refresh',
   'create_game: not authenticated raises 42501'
 );
 
@@ -87,8 +87,8 @@ select throws_ok(
     $q$ select codenamesduet.create_game(%L, pg_temp.codenamesduet_setup(), pg_temp.codenamesduet_players()) $q$,
     (select handle from club2)
   ),
-  '42501',
-  'not-club-member|',
+  'PN012',
+  'You are not a member of this club',
   'create_game: non-member is rejected'
 );
 

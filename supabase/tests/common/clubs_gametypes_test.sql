@@ -266,16 +266,14 @@ select is(
 -- ============================================================
 -- (17) A non-member cannot edit the club's gametypes
 -- ============================================================
--- Same membership gate as every other club RPC (require_club_member).
--- Still THROWS: the helper converts as its own unit
--- (plans/error-system.md → §6), so its 42501 fails this function's
--- ownership test and is re-raised untouched.
+-- Same membership gate as every other club RPC (require_club_member),
+-- whose raise this function's handler catches like any other.
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
-select throws_ok(
-  $$ select common.set_club_gametypes((select handle from club), array['codenamesduet']) $$,
-  '42501',
-  NULL,
-  'set_club_gametypes: a non-member is rejected (42501)'
+select pg_temp.envelope_is(
+  common.set_club_gametypes((select handle from club), array['codenamesduet']),
+  '{"type": "not-ok", "severity": "fault", "dbcode": "PN012",
+    "message": "You are not a member of this club"}'::jsonb,
+  'set_club_gametypes: a non-member gets a declared fault'
 );
 
 -- ============================================================

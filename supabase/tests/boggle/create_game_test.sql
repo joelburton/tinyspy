@@ -129,7 +129,7 @@ select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select throws_ok(
   $$ select boggle.create_game((select handle from club), pg_temp.boggle_setup(),
        array['dee44444-4444-4444-4444-444444444444'::uuid], 'coop', pg_temp.boggle_board()) $$,
-  '42501', null, 'non-member is rejected with 42501');
+  'PN012', null, 'non-member is rejected');
 
 select * from finish();
 rollback;

@@ -145,8 +145,8 @@ select is(
 select pg_temp.as_jwt_only('dee44444-4444-4444-4444-444444444444');
 select throws_ok(
   format($$ select common.tick_timer(%L::uuid) $$, (select id from g)),
-  '42501',
-  'not-club-member|',
+  'PN012',
+  'You are not a member of this club',
   'tick_timer: non-member is rejected'
 );
 

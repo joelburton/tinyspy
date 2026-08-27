@@ -47,7 +47,7 @@ import { PageHeaderStatusSlot } from '../page-header/PageHeaderStatusSlot'
 import { SuspendConfirmationBlockingModal } from './SuspendConfirmationBlockingModal'
 import { Loading } from '../loading-and-errs/Loading'
 import { ErrorPage } from '../loading-and-errs/ErrorPage'
-import { logStamp } from '../../lib/supabase/realtimeDiag'
+import { diagnosticsLine } from '../../lib/supabase/dbResult'
 import type { GameManifest } from '../../lib/games'
 import styles from './GamePage.module.css'
 
@@ -438,7 +438,11 @@ export function GamePage({
     return (
       <ErrorPage
         message="There's no game here. It may have been deleted, or the link you followed might be wrong or out of date."
-        diagnostics={`game — key=game-not-found detail="${gametype}/${gameId}" — ${logStamp()}`}
+        diagnostics={diagnosticsLine('OK', {
+          call: 'GET /rest/v1/games',
+          status: 200,
+          detail: `rows=0 gametype=${gametype} game=${gameId}`,
+        })}
       />
     )
   }

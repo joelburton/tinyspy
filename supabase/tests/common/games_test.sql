@@ -135,8 +135,8 @@ select throws_ok(
        'test-title', '{}'::jsonb, null) $$,
     (select handle from club)
   ),
-  '42501',
-  'not-club-member|',
+  'PN012',
+  'You are not a member of this club',
   'create_game: non-member caller is rejected (via require_club_member)'
 );
 
@@ -454,18 +454,15 @@ select throws_ok(
     $$ select common.set_current_view(%L::uuid) $$,
     current_setting('test.second_game_id')::uuid
   ),
-  '42501',
-  'not-club-member|',
+  'PN012',
+  'You are not a member of this club',
   'set_current_view: non-member is rejected'
 );
-select throws_ok(
-  format(
-    $$ select common.unset_current_view(%L::uuid) $$,
-    current_setting('test.second_game_id')::uuid
-  ),
-  '42501',
-  'not-club-member|',
-  'unset_current_view: non-member is rejected'
+select pg_temp.envelope_is(
+  common.unset_current_view(current_setting('test.second_game_id')::uuid),
+  '{"type": "not-ok", "severity": "fault", "dbcode": "PN012",
+    "message": "You are not a member of this club"}'::jsonb,
+  'unset_current_view: a non-member gets a declared fault'
 );
 
 -- Unknown game raises P0002 (matches end_game's vocabulary).
@@ -683,14 +680,11 @@ select is(
 -- ownership test and is re-raised untouched.
 
 select pg_temp.as_jwt_only('dee44444-4444-4444-4444-444444444444');
-select throws_ok(
-  format(
-    $$ select common.delete_game(%L::uuid) $$,
-    current_setting('test.second_game_id')::uuid
-  ),
-  '42501',
-  'not-club-member|',
-  'delete_game: non-member is rejected'
+select pg_temp.envelope_is(
+  common.delete_game(current_setting('test.second_game_id')::uuid),
+  '{"type": "not-ok", "severity": "fault", "dbcode": "PN012",
+    "message": "You are not a member of this club"}'::jsonb,
+  'delete_game: a non-member gets a declared fault'
 );
 
 select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');

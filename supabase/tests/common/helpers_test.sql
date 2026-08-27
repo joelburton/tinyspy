@@ -73,8 +73,8 @@ select throws_ok(
     $$ select common.require_club_member(%L) $$,
     (select handle from club)
   ),
-  '42501',
-  'not-authenticated|',
+  'PN011',
+  'Signed out; try refresh',
   'require_club_member: null auth.uid() raises 42501'
 );
 
@@ -85,8 +85,8 @@ select throws_ok(
     $$ select common.require_club_member(%L) $$,
     (select handle from club)
   ),
-  '42501',
-  'not-club-member|',
+  'PN012',
+  'You are not a member of this club',
   'require_club_member: non-member raises 42501'
 );
 
