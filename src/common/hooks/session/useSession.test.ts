@@ -27,10 +27,10 @@ import { renderHook, waitFor, act } from '@testing-library/react'
 import type { Session } from '@supabase/supabase-js'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { mockOnAuthStateChange, mockSignOut, mockMaybeSingle, mockGetUser } = vi.hoisted(() => ({
+const { mockOnAuthStateChange, mockSignOut, mockProfileRows, mockGetUser } = vi.hoisted(() => ({
   mockOnAuthStateChange: vi.fn(),
   mockSignOut: vi.fn(),
-  mockMaybeSingle: vi.fn(),
+  mockProfileRows: vi.fn(),
   mockGetUser: vi.fn(),
 }))
 
@@ -42,15 +42,15 @@ vi.mock('../../lib/supabase/supabase', () => ({
       getUser: mockGetUser,
     },
     // The hook's query is `supabase.schema('common').from('profiles')
-    //   .select('user_id').eq('user_id', X).maybeSingle()` — we collapse
-    // the whole chain (including schema()) to its terminal mock so we
-    // don't have to model each intermediate method's return value.
+    //   .select('user_id').eq('user_id', X)` — we collapse the whole chain
+    // (including schema()) to its terminal mock so we don't have to model
+    // each intermediate method's return value. `eq()` IS the terminal now:
+    // the query is awaited directly, since zero rows is a real answer here
+    // rather than something to ask PostgREST to turn into an error.
     schema: () => ({
       from: () => ({
         select: () => ({
-          eq: () => ({
-            maybeSingle: mockMaybeSingle,
-          }),
+          eq: mockProfileRows,
         }),
       }),
     }),
@@ -73,7 +73,7 @@ beforeEach(() => {
     return { data: { subscription: { unsubscribe: vi.fn() } } }
   })
   mockSignOut.mockResolvedValue({ error: null })
-  mockMaybeSingle.mockResolvedValue({ data: { user_id: fakeSession.user.id }, error: null })
+  mockProfileRows.mockResolvedValue({ data: [{ user_id: fakeSession.user.id }], error: null })
   // Default: getUser confirms the stored session is valid. The
   // tests that exercise the "JWT outlived the user" path override
   // this with mockGetUser.mockResolvedValueOnce({...}).
@@ -113,7 +113,7 @@ describe('useSession', () => {
     // The "fresh sign-in" path: user just authenticated via magic
     // link, no profiles row materialized yet. The hook should NOT
     // sign them out — App.tsx routes to ClaimHandleScreen.
-    mockMaybeSingle.mockResolvedValueOnce({ data: null, error: null })
+    mockProfileRows.mockResolvedValueOnce({ data: [], error: null })
 
     const { result } = renderHook(() => useSession())
     await act(async () => {
@@ -133,7 +133,7 @@ describe('useSession', () => {
     // with an explicit "profile already claimed" if they already have
     // one. Silence the warn so the run is clean.
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    mockMaybeSingle.mockResolvedValueOnce({ data: null, error: { message: 'network blip' } })
+    mockProfileRows.mockResolvedValueOnce({ data: null, error: { message: 'network blip' } })
 
     const { result } = renderHook(() => useSession())
     await act(async () => {
@@ -174,7 +174,7 @@ describe('useSession', () => {
     expect(result.current.needsClaim).toBe(false)
     // We never reached the profile probe — the auth check
     // short-circuited.
-    expect(mockMaybeSingle).not.toHaveBeenCalled()
+    expect(mockProfileRows).not.toHaveBeenCalled()
     warnSpy.mockRestore()
   })
 
@@ -227,7 +227,7 @@ describe('useSession', () => {
     expect(mockSignOut).toHaveBeenCalledTimes(1)
     expect(result.current.session).toBeNull()
     expect(result.current.needsClaim).toBe(false)
-    expect(mockMaybeSingle).not.toHaveBeenCalled()
+    expect(mockProfileRows).not.toHaveBeenCalled()
     warnSpy.mockRestore()
   })
 
@@ -264,6 +264,6 @@ describe('useSession', () => {
     expect(result.current.session).toBeNull()
     expect(result.current.needsClaim).toBe(false)
     // The SIGNED_OUT branch short-circuits before the verify query.
-    expect(mockMaybeSingle).not.toHaveBeenCalled()
+    expect(mockProfileRows).not.toHaveBeenCalled()
   })
 })

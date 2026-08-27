@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../../lib/supabase/supabase'
 import { db } from '../../db'
+import { readRows } from '../../lib/supabase/dbResult'
 
 /**
  * Source of truth for "is there a logged-in user, and have they
@@ -125,29 +126,29 @@ export function useSession() {
         return
       }
 
-      const { data, error } = await db
-        .from('profiles')
-        .select('user_id')
-        .eq('user_id', next.user.id)
-        .maybeSingle()
+      const res = await readRows(
+        db.from('profiles').select('user_id').eq('user_id', next.user.id),
+      )
       if (!mountedRef.value) return
-      if (error) {
-        // Network/RLS hiccup — assume the session is valid AND
-        // unclaimed. The user lands on ClaimHandleScreen; if they
-        // already have a profile, the eventual claim_username call
-        // will fail with the explicit "profile already claimed"
-        // error and the FE can recover by re-probing.
+      if (res.type !== 'ok') {
+        // A failed probe assumes the session is valid AND unclaimed, so the
+        // user lands on ClaimHandleScreen. That is over-permissive and always
+        // has been (flagged in the 2026-06-16 review): the honest answer is
+        // "we don't know", and there is no screen for it.
         //
-        // Fragile: same over-permissive read as the previous
-        // implementation. See docs/code-review-2026-06-16.md §1.3.
-        console.warn('profile probe failed', error)
+        // `dbFetch` has already logged this and put the modal up, so what is
+        // left is only the guess about where to send them.
         setSession(next)
         setHasProfile(false)
         setLoading(false)
         return
       }
+      // ZERO ROWS is the answer this probe exists to get: no profile means the
+      // user has not claimed a username yet. It is not a failure, which is why
+      // the read no longer asks PostgREST for a single row — that would make
+      // the ordinary first-sign-in case an error.
       setSession(next)
-      setHasProfile(data !== null)
+      setHasProfile(res.data.length > 0)
       setLoading(false)
     },
     [],
