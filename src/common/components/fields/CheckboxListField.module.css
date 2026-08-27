@@ -1,0 +1,42 @@
+/* cs-unmet */
+
+/*
+ * A LIST OF ON/OFF OPTIONS (see CheckboxListField.tsx) — the box around them,
+ * and how one option sits inside it.
+ *
+ * The rows are the list's look rather than each caller's: a hairline of padding
+ * between options and a box top-aligned with its text is what a list of
+ * choices IS, and leaving it to the caller is what let EditClubModal grow its
+ * own `.gameRow` next to a shared `<CheckboxField>`.
+ */
+
+/* The bordered box the options sit in. */
+/* @@ */ .list {
+  padding: 0.6rem 0.75rem;
+  border: var(--border-width-line) solid var(--page-surface-border-color);
+  border-radius: var(--radius-md);
+}
+
+/* One option. `align-items: flex-start` rather than `center` because an option
+   can be two lines — the box belongs beside the FIRST of them, not centred
+   against both. */
+/* @@ */ .row {
+  align-items: flex-start;
+  padding: 0.35rem 0;
+}
+
+/* The label and its description, stacked to the right of the box. */
+/* @@ */ .text {
+  display: flex;
+  flex-direction: column;
+  line-height: var(--line-height-2);
+}
+
+/* @@ */ .label {
+  font-weight: 600;
+}
+
+/* @@ */ .description {
+  font-size: var(--font-size-2);
+  color: var(--page-text-muted-color);
+}

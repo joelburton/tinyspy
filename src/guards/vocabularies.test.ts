@@ -263,7 +263,6 @@ const VOCABULARIES: Vocabulary[] = [
       // `modalActions` row now that this is a modal (F36). The label/hint gap
       // is what remains.
       'src/common/components/club/CreateClubModal.module.css': ['0.4rem'],
-      'src/common/components/club/EditClubModal.module.css': ['0.5rem'],
       'src/common/components/club/StartGameRow.module.css': ['0.4rem'],
       'src/common/components/definitions/DefinitionView.module.css': ['0.3rem', '0.15rem', '0.1rem'],
       'src/common/components/definitions/WordEditDialog.module.css': ['0.5rem', '0.35rem'],
@@ -346,7 +345,6 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/components/club/ClubGameDeleteButton.module.css': ['0.85rem'],
       'src/common/components/club/ClubGameRow.module.css': ['1rem', '0.85rem'],
       'src/common/components/club/CreateClubModal.module.css': ['0.8rem'],
-      'src/common/components/club/EditClubModal.module.css': ['0.8rem', '0.85rem'],
       'src/common/components/club/StartGameRow.module.css': ['1rem', '0.85rem'],
       'src/common/components/definitions/DefinitionView.module.css': ['1.05rem', '0.92rem', '0.9rem', '0.72rem', '0.8rem'],
       'src/common/components/definitions/WordEditDialog.module.css': ['0.85rem'],
@@ -403,7 +401,6 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/components/page-header/ChatButton.module.css': ['1.1rem'],
       'src/common/components/club/ClubGameCard.module.css': ['1.2', '1.25'],
       'src/common/components/club/ClubGameRow.module.css': ['1.2', '1.25'],
-      'src/common/components/club/EditClubModal.module.css': ['1.25'],
       'src/common/components/club/StartGameRow.module.css': ['1.2', '1.25'],
       'src/common/components/definitions/DefinitionView.module.css': ['1.45'],
       'src/common/components/setup/SetupNextPuzzleSection.module.css': ['1.4'],
@@ -455,7 +452,6 @@ const VOCABULARIES: Vocabulary[] = [
       // wordiply and letterboxed all wrote 0.2em. Unconverted, not
       // unconsidered: it is what makes typed letters read like tiles.
       'src/common/components/fields/ManualBoardField.module.css': ['0.2em'],
-      'src/common/components/club/EditClubModal.module.css': ['0.03em'],
       'src/common/components/definitions/DefinitionView.module.css': ['0.01em'],
       'src/common/components/game/entry/EntryBox.module.css': ['0.05em'],
       'src/common/components/game/lists/WordList.module.css': ['0.02em'],
@@ -530,7 +526,6 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/components/buttons/ShuffleButton.module.css': ['1px'],
       'src/common/components/chat/ChatBody.module.css': ['1px'],
       'src/common/components/club/clubFilters.module.css': ['1px'],
-      'src/common/components/club/EditClubModal.module.css': ['1px'],
       'src/common/components/definitions/DefinitionPopover.module.css': ['1px'],
       'src/common/components/feedback/GenericFeedbackPill.module.css': ['2px', '0.4rem'],
       'src/common/components/fields/SelectField.module.css': ['1px'],
