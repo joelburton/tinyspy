@@ -1,4 +1,4 @@
-// cs-audited
+// cs-unmet
 
 import type { GameManifest } from '../../lib/games'
 import { playerCountShort } from '../../lib/games'

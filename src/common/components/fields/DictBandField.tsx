@@ -1,4 +1,4 @@
-// cs-audited
+// cs-unmet
 
 import { DIFFICULTY_LABELS, sampleWordsFor, type WordLength } from '../../lib/game/difficulty'
 import type { ReactNode } from 'react'
