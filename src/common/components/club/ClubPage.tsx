@@ -218,16 +218,20 @@ export function ClubPage({ handle, session }: Props) {
     // unattended game.
     const timer = setTimeout(() => {
       healedRef.current = activeGameId
-      void commonDb
-        .rpc('unset_current_view', { target_game: activeGameId })
-        .then((res) => {
-          if (res.error) {
-            console.error('heal unset_current_view failed', res.error)
-          }
-          // No manual refetch — the is_current_view UPDATE flows back
-          // through the club-games postgres-changes subscription,
-          // which re-runs loadGames and clears activeGameId.
-        })
+      void runRpc(
+        commonDb.rpc('unset_current_view', { target_game: activeGameId }),
+      ).then((res) => {
+        // Logged, not surfaced: nobody asked for this, so there is nobody to
+        // tell. A fault has already put the modal up centrally; this line is
+        // what says which call it was. A game deleted inside the 2.5s window
+        // comes back `ok` and is not a failure at all.
+        if (res.type !== 'ok') {
+          console.error('heal unset_current_view failed', res.message)
+        }
+        // No manual refetch — the is_current_view UPDATE flows back
+        // through the club-games postgres-changes subscription,
+        // which re-runs loadGames and clears activeGameId.
+      })
     }, 2500)
     return () => clearTimeout(timer)
   }, [activeGameId, presence])

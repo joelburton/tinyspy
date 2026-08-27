@@ -7,6 +7,7 @@ import { navigate } from '../../lib/routing/router'
 import { supabase } from '../../lib/supabase/supabase'
 import { channelLeaving, releaseChannel } from '../../lib/supabase/channelTeardown'
 import { onPostgresAttached } from '../../lib/supabase/postgresAttached'
+import { runRpc } from '../../lib/supabase/dbResult'
 import { rtLog } from '../../lib/supabase/realtimeDiag'
 import { computePause } from '../../lib/game/pause'
 import type { GamePlayer, Member, TimerMode } from '../../lib/games'
@@ -492,20 +493,21 @@ export function useCommonGame(
       rtLog(room, `leaving (lastViewer=${iAmLastOrUnknown})`)
       if (iAmLastOrUnknown) {
         // Fragile, same shape as set_current_view above: errors
-        // logged-and-swallowed. The RPC is idempotent (its
-        // `is_current_view = true` guard absorbs no-ops). A
+        // logged, not surfaced. The RPC is idempotent (its
+        // `is_current_view = true` guard absorbs no-ops), and a
+        // game deleted out from under us comes back `ok`. A
         // persistent failure leaves the club's pointer stuck on
         // a stale game — recoverable by the next set_current_view
         // (its vacate-others step clears stragglers), but the gap
         // until then is silent. Same friends-alpha tradeoff as
         // above; revisit alongside that one.
-        commonDb
-          .rpc('unset_current_view', { target_game: gameId })
-          .then((res) => {
-            if (res.error) {
-              console.error('unset_current_view failed', res.error)
-            }
-          })
+        void runRpc(
+          commonDb.rpc('unset_current_view', { target_game: gameId }),
+        ).then((res) => {
+          if (res.type !== 'ok') {
+            console.error('unset_current_view failed', res.message)
+          }
+        })
       }
 
       const ch = channelRef.current

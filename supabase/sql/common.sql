@@ -1531,19 +1531,36 @@ grant execute on function common.set_current_view(uuid) to authenticated;
 -- Auth: same club_member gate as set_current_view — symmetry
 -- matters and "you can flip your club's current pointer if
 -- you're a member" is the right granularity.
+--
+-- Outcomes:
+--   - ok           the flag is false (or already was)
+--   - ok / noted   PA001 — the game itself is gone
+--   - a RAW fault  42501 from require_club_member, unconverted
 
+drop function if exists common.unset_current_view(uuid);
 create or replace function common.unset_current_view(target_game uuid)
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = common, public, extensions
 as $$
 declare
   target_club text;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text;
 begin
   select club_handle into target_club from common.games where id = target_game;
+  -- PA001 — the same shape as the idempotence below, one level up: this
+  -- function's job is "leave no current-view pointer on that game", and a
+  -- deleted game has none. Both callers race a delete by construction — the
+  -- club page's heal fires 2.5s after noticing an abandoned pointer, and a
+  -- peer's unmount fires as the deleting tab is already 150ms from its DELETE.
+  --
+  -- Unlike delete_game's already-deleted, which is an `error` because a person
+  -- pressed a button and gets an answer, nothing here is anybody's action:
+  -- both call sites are housekeeping that only logs.
   if target_club is null then
-    raise exception 'game-not-found|' using errcode = 'P0002',
+    raise exception 'That game is gone'
+      using errcode = 'PA001', hint = 'noted',
       detail = 'no common.games row for target_game';
   end if;
 
@@ -1556,6 +1573,16 @@ begin
      set is_current_view = false
    where id = target_game
      and is_current_view = true;
+
+  return common.ok_envelope();
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 

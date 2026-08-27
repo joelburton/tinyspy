@@ -192,7 +192,12 @@ beforeEach(() => {
   mockChannel.mockImplementation(() => buildChannel())
   mockRemoveChannel.mockClear()
   mockRpc.mockReset()
-  mockRpc.mockResolvedValue({ error: null })
+  // An ENVELOPE, because `unset_current_view` returns one now and `runRpc`
+  // treats an unreadable body as a fault — a bare `{ error: null }` would put
+  // a fault modal up on the happy path and nothing here would notice.
+  // `set_current_view` is unconverted and only reads `.error`, so one default
+  // serves both.
+  mockRpc.mockResolvedValue({ data: { type: 'ok' }, error: null })
   mockNavigate.mockClear()
 
   // Default DB chain — tests can override per-table behavior by

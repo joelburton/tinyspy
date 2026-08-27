@@ -1086,7 +1086,7 @@ select pg_temp.envelope_is(
 
 ## 7. The conversion roster
 
-**139 entries. 5 done, 5 edge functions deferred, 129 to go.** Cross them off
+**139 entries. 7 done, 5 edge functions deferred, 127 to go.** Cross them off
 here as they land.
 
 An entry is one RPC or one table read **per area**, so the same name in two
@@ -1115,7 +1115,7 @@ identifier — a shape nothing has exercised yet.
 - [x] `create_club` · RPC
 - [x] `delete_game` · RPC — and its feedback moved to toasts (see below)
 - [x] `set_club_gametypes` · RPC — no outcomes of its own; envelope + handler only
-- [ ] `unset_current_view` · RPC
+- [x] `unset_current_view` · RPC — the club page's presence heal
 - [ ] `clubs` · read
 - [ ] `clubs_gametypes` · read
 - [ ] `clubs_members` · read
@@ -1140,7 +1140,8 @@ identifier — a shape nothing has exercised yet.
 - [ ] `set_scratchpad` · RPC
 - [ ] `start_game` · RPC
 - [ ] `tick_timer` · RPC
-- [ ] `unset_current_view` · RPC
+- [x] `unset_current_view` · RPC — `useCommonGame`'s last-viewer-leave; ONE SQL
+  definition serves both areas, so it converted with the club page's
 - [ ] `update_profile_color` · RPC
 - [ ] `update_word` · RPC
 - [x] `clubs` · read (2 call sites)

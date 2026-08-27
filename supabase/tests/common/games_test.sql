@@ -33,7 +33,7 @@ begin;
 
 set search_path = common, public, extensions;
 
-select plan(46);
+select plan(48);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -431,7 +431,11 @@ select is(
 -- unset_current_view clears the target's flag. Idempotent on
 -- the `is_current_view = true` guard.
 select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
-select common.unset_current_view(current_setting('test.created_game_id')::uuid);
+select pg_temp.envelope_is(
+  common.unset_current_view(current_setting('test.created_game_id')::uuid),
+  '{"type": "ok"}'::jsonb,
+  'unset_current_view: clearing a real pointer is a plain ok'
+);
 
 reset role;
 select set_config('request.jwt.claims', '', true);
@@ -471,6 +475,16 @@ select throws_ok(
   'P0002',
   'game-not-found|',
   'set_current_view: unknown game raises P0002'
+);
+
+-- Its converted twin answers the same case as an `ok`: leaving no pointer on a
+-- game that no longer exists is the job done, and both callers race a delete by
+-- construction.
+select pg_temp.envelope_is(
+  common.unset_current_view('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'::uuid),
+  '{"type": "ok", "outcome": "noted", "dbcode": "PA001",
+    "message": "That game is gone"}'::jsonb,
+  'unset_current_view: a deleted game is ok/noted, not a fault'
 );
 
 -- Restore the precondition for the partial-unique-index test
