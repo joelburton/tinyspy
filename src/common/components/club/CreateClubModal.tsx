@@ -5,6 +5,7 @@ import { useState, type SubmitEvent } from 'react'
 import { db as commonDb } from '../../db'
 import { runRpc } from '../../lib/supabase/dbResult'
 import { NormalModal } from '../floating-panels/NormalModal'
+import { FailureLine } from '../feedback/FailureLine'
 import actionRow from '../floating-panels/modalActions.module.css'
 import styles from './CreateClubModal.module.css'
 import { StandardButton } from '../buttons/StandardButton'
@@ -223,7 +224,7 @@ export function CreateClubModal({ onCreated, onCancel }: Props) {
           entryHelp="Comma or space separated. You're added automatically."
         />
 
-        {error && <p className="error">{error}</p>}
+        <FailureLine>{error}</FailureLine>
 
         <div className={actionRow.modalActions}>
           <CancelButton onClick={onCancel} disabled={busy} />

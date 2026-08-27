@@ -37,6 +37,7 @@ select plan(18);
 -- what claim_username does at first sign-in).
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 
 -- ============================================================
 -- (1)–(2) common.gametypes registry: today.s gametypes are present
@@ -223,10 +224,11 @@ update common.clubs_gametypes
 -- psychicnum_coop, proving default_enroll = false means off-by-default,
 -- not banned: a club that wants the toy can opt in.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select lives_ok(
-  $$ select common.set_club_gametypes(
-       (select handle from club),
-       array['codenamesduet', 'connections_coop', 'psychicnum_coop', 'spellingbee_coop']) $$,
+select pg_temp.envelope_is(
+  common.set_club_gametypes(
+    (select handle from club),
+    array['codenamesduet', 'connections_coop', 'psychicnum_coop', 'spellingbee_coop']),
+  '{"type": "ok"}'::jsonb,
   'set_club_gametypes: a member can replace the club''s gametype set (incl. opting into an off-by-default game)'
 );
 
@@ -249,8 +251,9 @@ select is(
 -- ============================================================
 -- (15)-(16) An empty list clears every enrollment
 -- ============================================================
-select lives_ok(
-  $$ select common.set_club_gametypes((select handle from club), array[]::text[]) $$,
+select pg_temp.envelope_is(
+  common.set_club_gametypes((select handle from club), array[]::text[]),
+  '{"type": "ok"}'::jsonb,
   'set_club_gametypes: an empty list is accepted'
 );
 select is(
@@ -264,6 +267,9 @@ select is(
 -- (17) A non-member cannot edit the club's gametypes
 -- ============================================================
 -- Same membership gate as every other club RPC (require_club_member).
+-- Still THROWS: the helper converts as its own unit
+-- (plans/error-system.md → §6), so its 42501 fails this function's
+-- ownership test and is re-raised untouched.
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select throws_ok(
   $$ select common.set_club_gametypes((select handle from club), array['codenamesduet']) $$,

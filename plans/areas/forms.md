@@ -1137,3 +1137,18 @@ messages at the bottom" fallback was considered and rejected as overkill.
 **One guard is worth having** on the SQL half: `column = 'x'` must name a
 parameter of the function raising it, which is statically checkable in the same
 vitest guard that checks the `PA`/`PN` codes.
+
+### The bottom line itself: six sites still hand-write it
+
+The form-level message has a component — `<FailureLine>` — and six surfaces
+don't use it, writing `<p className="error">` against the `.error` utility
+instead: `ChatBody`, `LoginScreen`, `ClaimHandleScreen`, `EditProfileModal`,
+and, with literal text rather than a state variable, `SetupTimerSection` and
+`SetupGameModal`. The two club modals converted with their RPCs
+(2026-08-27); **the remaining six convert here, in this area** (Joel).
+
+Each needs its parent's spacing checked rather than a blind swap: `.error`
+carries `margin-top: 1rem` while `.failureLine` is `margin: 0` and leaves the
+gap to the column it sits in, and `.failureLine` also sets
+`var(--font-size-2)` where `.error` inherits. The two setup sites may want a
+reserved line rather than a reflowing one.

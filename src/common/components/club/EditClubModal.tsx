@@ -1,10 +1,11 @@
 // cs-unmet
 
-import { expectedTextOrFault } from '../../lib/game/serverError'
 import { useState } from 'react'
 import { db as commonDb } from '../../db'
+import { runRpc } from '../../lib/supabase/dbResult'
 import { games } from '../../../games'
 import { NormalModal } from '../floating-panels/NormalModal'
+import { FailureLine } from '../feedback/FailureLine'
 import { ModePill } from '../game/ModePill'
 import actionRow from '../floating-panels/modalActions.module.css'
 import styles from './EditClubModal.module.css'
@@ -78,15 +79,17 @@ export function EditClubModal({
   async function handleSave() {
     setBusy(true)
     setError(null)
-    const { error: rpcError } = await commonDb.rpc('set_club_gametypes', {
-      target_club: clubHandle,
-      gametypes: Array.from(checked),
-    })
-    if (rpcError) {
+    const res = await runRpc(
+      commonDb.rpc('set_club_gametypes', {
+        target_club: clubHandle,
+        gametypes: Array.from(checked),
+      }),
+    )
+    if (res.type !== 'ok') {
       setBusy(false)
-      // Split by surface rule: the club-name rules' keys show their ERROR_COPY
-      // sentences on the form's line; a fault pops the modal.
-      setError(expectedTextOrFault(rpcError, 'club'))
+      // A fault has already raised the modal; the line is what remains once
+      // that is dismissed.
+      setError(res.message)
       return
     }
     // Don't bother clearing `busy` — onSaved unmounts us.
@@ -125,7 +128,7 @@ export function EditClubModal({
         ))}
       </fieldset>
 
-      {error && <p className="error">{error}</p>}
+      <FailureLine>{error}</FailureLine>
       <div className={actionRow.modalActions}>
         <CancelButton onClick={onCancel} disabled={busy} />
         <StandardButton

@@ -1893,12 +1893,26 @@ grant execute on function common.create_club(text, text[]) to authenticated;
 -- the *default* enrollment at club creation, not later hand-editing.
 --
 -- The FK on clubs_gametypes.gametype means an unknown gametype in
--- the list raises 23503; the FE only ever sends registered ones.
+-- the list raises 23503, reaching the client as a raw fault. Left
+-- that way deliberately: it is a shape guard against a client
+-- sending something outside the registry, and Postgres names the
+-- constraint and the offending value better than a sentence would.
+--
+-- Outcomes:
+--   - ok           the set is now exactly `gametypes`
+--   - a RAW fault  42501 from require_club_member (unconverted), or
+--                  the FK above
+--
+-- It authors no outcome of its own, so the handler below currently
+-- catches nothing. It is here because require_club_member converts
+-- later: the moment its raise carries a PN code, an unhandled one
+-- would leave this function as a raw fault wearing our own code.
+drop function if exists common.set_club_gametypes(text, text[]);
 create or replace function common.set_club_gametypes(
   target_club text,
   gametypes text[]
 )
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = common, public, extensions
@@ -1907,6 +1921,7 @@ declare
   -- Null-coalesced so an explicit "play nothing" (empty array) and
   -- a NULL argument behave the same: clear every enrollment.
   wanted text[] := coalesce(gametypes, array[]::text[]);
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text;
 begin
   -- Auth + membership gate (raises 42501 on either failure).
   perform common.require_club_member(target_club);
@@ -1926,6 +1941,17 @@ begin
   select target_club, g
     from unnest(wanted) as g
   on conflict do nothing;
+
+  -- No message: the dialog closes on success and says nothing.
+  return common.ok_envelope();
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 

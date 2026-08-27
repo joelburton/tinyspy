@@ -379,7 +379,7 @@ The caller is auto-added if not in `member_usernames` — a UI that lets the cre
 
 ### `common.set_club_gametypes(target_club text, gametypes text[])`
 
-Replaces a club's `clubs_gametypes` set with exactly the passed list — the write side of the "Edit club" dialog. Any club member may call it (friends, not an admin hierarchy); reject reasons: not authenticated / not a member (`42501`), unknown gametype in the list (`23503`, FK). Deletes by difference rather than truncate-and-refill, so an unchanged row keeps its `default_setup`; an empty (or NULL) list clears every enrollment. Applies **no** solo-club `min_players` filter — that only shapes the default enrollment at creation; a member may list a two-player game in a solo club, it just won't be startable.
+Replaces a club's `clubs_gametypes` set with exactly the passed list — the write side of the "Edit club" dialog. Any club member may call it (friends, not an admin hierarchy). Returns the result envelope (`plans/error-system.md`), and authors no failure of its own: not authenticated / not a member (`42501`) and an unknown gametype in the list (`23503`, FK) both arrive as raw faults. Deletes by difference rather than truncate-and-refill, so an unchanged row keeps its `default_setup`; an empty (or NULL) list clears every enrollment. Applies **no** solo-club `min_players` filter — that only shapes the default enrollment at creation; a member may list a two-player game in a solo club, it just won't be startable.
 
 ### `common.send_message(target_club text, content text)`
 
