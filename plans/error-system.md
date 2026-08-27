@@ -203,6 +203,18 @@ The vocabulary is about **what the player can do next**, not about what the
 database did. An earlier draft split on "did a row get written", which is a SQL
 fact the frontend never asks about.
 
+**A note on wording: nothing new in this system says "copy" for message text.**
+In the literary world it's the right word; among programmers "copy" means
+*duplicate*, so a `*_COPY` table or a `hintCopy` variable reads as a copy OF
+something. New identifiers, tables and prose here say **text** or **message**.
+
+This is scoped to the new system, deliberately. The existing population —
+`TerminalCopy`/`terminalCopy` (135 uses), `endedCopy` (35), `withCopy` (20),
+`turnCopy` (13), `hintCopy` (3), and ~285 bare uses in comments — is a separate
+job for later, and it wants a line in `docs/naming.md` rather than in a sprint
+plan that gets deleted. `ERROR_COPY` and `errorCopy.ts` keep their names either
+way: they are deleted wholesale at the end, and renaming a corpse is churn.
+
 **"Envelope" means what the database returns** — the JSONB an RPC hands back.
 Only an RPC produces one. A direct table read never does; the frontend
 synthesizes something envelope-shaped for reads so every call site branches
@@ -508,7 +520,7 @@ Split by consumer. **FE-facing ones convert** —
 `next_puzzle_for_club` / `puzzle_for_date` pairs. The rule is structural
 ("FE-facing ⇒ envelope"), not "converts if it can reject": five of the six
 are pure reads today, but `common.anagrams` already raises
-`bad-anagram-input` — whose copy is a real user-facing line — and a
+`bad-anagram-input` — whose message is a real user-facing line — and a
 conditional rule would silently turn the next such validation into a fault.
 Converting also closes a hole unique to this shape: a `returns table`
 function that falls off the end yields **zero rows, silently**, and zero rows
@@ -538,15 +550,15 @@ author writes rejection text at the raise. The frontend writes the
 environmental strings. Nothing in between needs a lookup table to reconcile
 them.
 
-### The environmental copy
+### The environmental messages
 
 Strictly environmental means **the fetch never completed**, and there are only
 two distinguishable causes: `navigator.onLine` was false, or it wasn't. That is
 the two strings `classifyFailure` carries today. `PGRST202` and a dead
 edge-function container are *not* in this half — they arrive as real HTTP
-responses with codes, so they are raw faults that may earn nicer copy.
+responses with codes, so they are raw faults that may earn nicer messages.
 
-**The sentences are generic and name no action.** Today's copy is
+**The sentences are generic and name no action.** Today's text is
 action-prefixed (`guess: Offline; try again`), and an earlier draft proposed
 deriving the action from the request path to keep that. It was dropped for a
 correctness reason, not a simplicity one: **an environmental failure cannot
@@ -837,7 +849,7 @@ Three things to notice in this example:
    `data.verdict` plus realtime, because it was describing the game's answer,
    not whether the call did what was asked.
 3. **`not-on-board` is marked a fault by its author**, not by whether someone
-   remembered to write copy for it. That's the safe-default problem going away.
+   remembered to write words for it. That's the safe-default problem going away.
 
 ---
 
@@ -856,7 +868,7 @@ Three pieces, built once, complete:
    failures, raw faults, and declared faults — all three, from day one.
 2. **`callRpc` returns the envelope** instead of `null`. That's what makes it
    usable at more than the 12 of 99 sites it reaches today.
-3. **The environmental copy** — the frontend's own small set of sentences, for
+3. **The environmental messages** — the frontend's own small set of sentences, for
    the failures where the server never spoke.
 
 **The engine needs no knowledge of the old system, because the SQLSTATE
@@ -867,7 +879,7 @@ two-format seam and no transitional branch to delete later.
 
 **Where the new machinery lives.** One new file under
 `src/common/lib/supabase/`, holding the envelope types, the classifier, the
-small copy table, and the wrapper that replaces `callRpc`. The location is
+small message table, and the wrapper that replaces `callRpc`. The location is
 chosen for the old/new split: `lib/game/` is where the machinery being deleted
 lives (`errorCopy.ts`, `serverError.ts`, `callRpc.ts`), so putting the new file
 there would re-create the "is this new or old?" question this is meant to
@@ -877,7 +889,7 @@ about, and `lib/game/` is left as a clean deletion set.
 **`dbFetch` is the one edit to an existing file** — a hook calling into the new
 module, not logic. Everything the seam does lives in the new file.
 
-**The copy table is new and small, not an addition to `ERROR_COPY`.** That
+**The message table is new and small, not an addition to `ERROR_COPY`.** That
 table is big, messy, and deleted wholesale at the end; growing it now would be
 work thrown away and would blur which entries belong to which system. The new
 one has two halves:
@@ -888,7 +900,7 @@ one has two halves:
 - **Raw faults we want to word better** — and this half should stay nearly
   empty, by a principle rather than by discipline: **if a raw fault deserves
   nice words, that is a signal it should have been a declared fault instead.**
-  Anything we can anticipate well enough to write copy for, we can anticipate
+  Anything we can anticipate well enough to write a message for, we can anticipate
   well enough to raise with a `PN` code and a sentence at the site. So each
   entry here is a small admission, and the only permanent ones are what we
   structurally cannot declare — an RLS `42501`, a deadlock, a violation of a
