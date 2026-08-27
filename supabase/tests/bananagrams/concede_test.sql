@@ -28,7 +28,7 @@ select plan(14);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
-select common.create_club('test club', array['ada', 'bea']) as handle;
+select pg_temp.create_club('test club', array['ada', 'bea']) as handle;
 
 -- 2-player game. bunch = 144 − 42 = 102.
 create temp table g1 on commit drop as

@@ -10,7 +10,7 @@ select plan(17);
 select pg_temp.xw_insert_puzzle('h-2x2', pg_temp.xw_meta_2x2(), pg_temp.xw_sol_2x2()) as pz_id \gset
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select common.create_club('XW Club', array['ada', 'bea', 'cade']) as club_handle \gset
+select pg_temp.create_club('XW Club', array['ada', 'bea', 'cade']) as club_handle \gset
 
 -- Three games off the same puzzle: coop (solve fully), coop (pencil solve),
 -- compete (first-correct-wins). Answers: (0,0)C (0,1)A (1,0)T (1,1)S.

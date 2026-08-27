@@ -39,7 +39,7 @@ select plan(23);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
-select common.create_club('Compete club',
+select pg_temp.create_club('Compete club',
   array['ada','bea','cade']) as handle;
 
 create temp table g on commit drop as

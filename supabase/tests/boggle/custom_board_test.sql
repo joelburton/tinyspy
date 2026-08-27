@@ -32,7 +32,7 @@ select plan(6);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
-select common.create_club('Custom Board', array['ada','bea']) as handle;
+select pg_temp.create_club('Custom Board', array['ada','bea']) as handle;
 
 -- A custom setup = the default coop setup + the typed board. The string is the
 -- WRITTEN form (what the recap prints and the dialog takes back); the RPC only

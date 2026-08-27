@@ -10,7 +10,7 @@ select plan(9);
 select pg_temp.xw_insert_puzzle('h-2x2', pg_temp.xw_meta_2x2(), pg_temp.xw_sol_2x2()) as pz_id \gset
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select common.create_club('XW Club', array['ada', 'bea', 'cade']) as club_handle \gset
+select pg_temp.create_club('XW Club', array['ada', 'bea', 'cade']) as club_handle \gset
 
 select id as gc_id from crosswords.create_game(
   :'club_handle', pg_temp.xw_setup(:'pz_id'),

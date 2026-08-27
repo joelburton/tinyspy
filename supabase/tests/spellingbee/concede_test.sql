@@ -23,7 +23,7 @@ select plan(6);
 -- ─── A 3-player compete game (ada, bea, cade) ───
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
-select common.create_club('Bee concede', array['ada', 'bea', 'cade']) as handle;
+select pg_temp.create_club('Bee concede', array['ada', 'bea', 'cade']) as handle;
 create temp table g on commit drop as
 select * from spellingbee.create_game(
   (select handle from club),

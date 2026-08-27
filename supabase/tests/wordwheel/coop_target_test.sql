@@ -37,7 +37,7 @@ select plan(12);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
-select common.create_club('Coop target', array['ada','bea']) as handle;
+select pg_temp.create_club('Coop target', array['ada','bea']) as handle;
 
 create temp table g on commit drop as
 select * from wordwheel.create_game(
@@ -127,7 +127,7 @@ select throws_ok(
 -- ============================================================
 
 create temp table club2 on commit drop as
-select common.create_club('Coop timeout', array['ada','bea']) as handle;
+select pg_temp.create_club('Coop timeout', array['ada','bea']) as handle;
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
@@ -152,7 +152,7 @@ select is(
 -- ============================================================
 
 create temp table club3 on commit drop as
-select common.create_club('Coop no target', array['ada','bea']) as handle;
+select pg_temp.create_club('Coop no target', array['ada','bea']) as handle;
 
 create temp table g3 on commit drop as
 select * from wordwheel.create_game(
@@ -177,7 +177,7 @@ select is(
 -- Choosing to stop isn't losing; only the clock running out is.
 
 create temp table club4 on commit drop as
-select common.create_club('Coop manual', array['ada','bea']) as handle;
+select pg_temp.create_club('Coop manual', array['ada','bea']) as handle;
 
 create temp table g4 on commit drop as
 select * from wordwheel.create_game(

@@ -16,7 +16,7 @@ select pg_temp.xw_insert_puzzle(
   pg_temp.xw_sol_2x2()) as pzn_id \gset
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select common.create_club('XW Club', array['ada', 'bea', 'cade']) as club_handle \gset
+select pg_temp.create_club('XW Club', array['ada', 'bea', 'cade']) as club_handle \gset
 
 -- Coop game (ada + bea share one grid), a compete game, and a given game.
 select id as gc_id from crosswords.create_game(

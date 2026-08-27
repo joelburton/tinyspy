@@ -27,7 +27,7 @@ select plan(4);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
-select common.create_club('Waffle secret', array['ada', 'bea']) as handle;
+select pg_temp.create_club('Waffle secret', array['ada', 'bea']) as handle;
 
 -- A coop game and a compete game on the same deterministic board.
 create temp table gc on commit drop as

@@ -44,7 +44,7 @@ select plan(47);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
-select common.create_club('Ada Bea Cade', array['ada','bea','cade']) as handle;
+select pg_temp.create_club('Ada Bea Cade', array['ada','bea','cade']) as handle;
 
 create temp table g on commit drop as
 select * from wordwheel.create_game(
@@ -491,7 +491,7 @@ select throws_ok(
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table dup_g on commit drop as
 select * from wordwheel.create_game(
-  (select common.create_club('Dup gameplay', array['ada','bea']) as handle),
+  (select pg_temp.create_club('Dup gameplay', array['ada','bea']) as handle),
   pg_temp.wordwheel_setup(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],

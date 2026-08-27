@@ -22,7 +22,7 @@ select plan(27);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
-select common.create_club('Waffle vs', array['ada', 'bea']) as handle;
+select pg_temp.create_club('Waffle vs', array['ada', 'bea']) as handle;
 create temp table g on commit drop as
 select * from waffle.create_game(
   (select handle from club), pg_temp.waffle_setup(5),   -- max_swaps = par(1)+5 = 6

@@ -18,7 +18,7 @@ select plan(9);
 -- player; dee is outside the club.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table cl on commit drop as
-  select common.create_club('RLS club', array['ada', 'bea', 'cade']) as handle;
+  select pg_temp.create_club('RLS club', array['ada', 'bea', 'cade']) as handle;
 create temp table g on commit drop as
   select id from scrabble.create_game((select handle from cl),
     '{"dict_2": 6, "dict_3plus": 6, "timer": {"kind": "none"}}'::jsonb,

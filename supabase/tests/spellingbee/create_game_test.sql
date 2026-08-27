@@ -39,7 +39,7 @@ select plan(34);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
-select common.create_club('Ada and Bea', array['ada','bea']) as handle;
+select pg_temp.create_club('Ada and Bea', array['ada','bea']) as handle;
 
 -- ============================================================
 -- (1) Coop happy path: every base assertion fires
@@ -131,7 +131,7 @@ select is(
 -- testable but tangential here).
 
 create temp table compete_club on commit drop as
-select common.create_club('Compete club', array['ada','bea','cade']) as handle;
+select pg_temp.create_club('Compete club', array['ada','bea','cade']) as handle;
 
 create temp table g_compete on commit drop as
 select * from spellingbee.create_game(
@@ -319,7 +319,7 @@ select throws_ok(
 select isnt(
   (
     select id from spellingbee.create_game(
-      (select common.create_club('Required one', array['ada','bea']) as handle),
+      (select pg_temp.create_club('Required one', array['ada','bea']) as handle),
       pg_temp.spellingbee_setup() || '{"required": 1}'::jsonb,
       array['ada11111-1111-1111-1111-111111111111'::uuid,
             'bea22222-2222-2222-2222-222222222222'::uuid],
@@ -377,7 +377,7 @@ select throws_ok(
 select isnt(
   (
     select id from spellingbee.create_game(
-      (select common.create_club('Bands ok', array['ada','bea']) as handle),
+      (select pg_temp.create_club('Bands ok', array['ada','bea']) as handle),
       pg_temp.spellingbee_setup() || '{"required": 4, "legal": 6}'::jsonb,
       array['ada11111-1111-1111-1111-111111111111'::uuid,
             'bea22222-2222-2222-2222-222222222222'::uuid],

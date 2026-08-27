@@ -30,7 +30,7 @@ select plan(7);
 -- ── Coop: reveal from an in-progress game → answer board + neutral terminal ──
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club1 on commit drop as
-select common.create_club('Waffle rv1', array['ada', 'bea']) as handle;
+select pg_temp.create_club('Waffle rv1', array['ada', 'bea']) as handle;
 create temp table g1 on commit drop as
 select * from waffle.create_game(
   (select handle from club1), pg_temp.waffle_setup(5),

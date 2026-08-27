@@ -26,7 +26,7 @@ select plan(10);
 -- ─── A 2-player compete game (ada + bea) ───
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
-select common.create_club('Wordle concede', array['ada', 'bea']) as handle;
+select pg_temp.create_club('Wordle concede', array['ada', 'bea']) as handle;
 create temp table g on commit drop as
 select * from wordle.create_game(
   (select handle from club), pg_temp.wordle_setup(6),

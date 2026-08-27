@@ -16,7 +16,7 @@ select plan(21);
 -- ── Game 1: validation + lock-step + win ────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club1 on commit drop as
-select common.create_club('Waffle g1', array['ada', 'bea']) as handle;
+select pg_temp.create_club('Waffle g1', array['ada', 'bea']) as handle;
 create temp table g1 on commit drop as
 select * from waffle.create_game(
   (select handle from club1), pg_temp.waffle_setup(5),
@@ -133,7 +133,7 @@ select is(
 -- ── Game 2: lose on a tight budget ──────────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club2 on commit drop as
-select common.create_club('Waffle g2', array['ada', 'bea']) as handle;
+select pg_temp.create_club('Waffle g2', array['ada', 'bea']) as handle;
 create temp table g2 on commit drop as
 select * from waffle.create_game(
   (select handle from club2), pg_temp.waffle_setup(0),   -- max_swaps = par(1)+0 = 1

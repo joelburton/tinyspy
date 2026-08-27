@@ -34,6 +34,8 @@ begin;
 
 set search_path = common, public, extensions;
 
+\ir ../_shared/envelope.psql
+
 select plan(27);
 
 -- Cast: ada/bea/cade are the three in-club personas this test
@@ -70,34 +72,41 @@ select is(common.slugify_club_name('!!!'), '',
 select set_config('request.jwt.claims', '', true)
      , set_config('role', 'postgres', true) where false;
 
-select throws_ok(
-  $$ select common.create_club('Some Club', array['ada','bea']) $$,
-  '42501',
-  'not-authenticated|',
-  'create_club: not authenticated raises 42501'
+-- A session that expired mid-form is REACHABLE, so it comes back as a result
+-- rather than an exception — but as a `fault`, because nothing in the form
+-- fixes it and the modal is where the player is told to refresh.
+select pg_temp.envelope_is(
+  common.create_club('Some Club', array['ada','bea']),
+  '{"type": "not-ok", "severity": "fault", "field": "_", "message": "Signed out; try refresh"}'::jsonb,
+  'create_club: not authenticated is a fault'
 );
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
-select throws_ok(
-  $$ select common.create_club('!!!', array['bea']) $$,
-  'P0001',
-  'club-name-not-alnum|',
-  'create_club: name with no alphanumerics is rejected'
+-- The next four are FAULTS, not validations: the form's `handleError` and
+-- `maxLength` catch every one of them before the call, so reaching the server
+-- with such a name means something is broken. Their messages say so — they are
+-- written for whoever reads the fault modal, not for a player fixing a name.
+select pg_temp.envelope_is(
+  common.create_club('!!!', array['bea']),
+  '{"type": "not-ok", "severity": "fault", "field": "_", "dbcode": "PN004"}'::jsonb,
+  'create_club: a name with no alphanumerics is a fault'
 );
 
 -- The name ceiling (20). Rejected as a clean P0001 rather than the table's own
 -- 23514, because CreateClubPage renders the message verbatim. It also keeps the
 -- DERIVED HANDLE legal: slugify truncates at 40 but the handle check allows 30,
 -- so a ~31-40 character name used to die on that constraint instead.
-select throws_ok(
-  $$ select common.create_club('The Wednesday Night Word Game Society', array['bea']) $$,
-  'P0001',
-  'club-name-too-long|20|',
-  'create_club: a name over 20 characters is rejected'
+select pg_temp.envelope_is(
+  common.create_club('The Wednesday Night Word Game Society', array['bea']),
+  '{"type": "not-ok", "severity": "fault", "dbcode": "PN003"}'::jsonb,
+  'create_club: a name over 20 characters is a fault'
 );
-select lives_ok(
-  $$ select common.create_club('Twenty Chars Exactly', array['bea']) $$,
+-- The boundary is still a boundary: 20 exactly is accepted, and `type: ok` is
+-- now what "accepted" looks like.
+select pg_temp.envelope_is(
+  common.create_club('Twenty Chars Exactly', array['bea']),
+  '{"type": "ok"}'::jsonb,
   'create_club: exactly 20 characters is accepted'
 );
 
@@ -105,61 +114,65 @@ select lives_ok(
 -- nothing covered the floor: a two-letter name passed every check in the RPC
 -- and died on the table's CHECK with a raw 23514, which the create-club form
 -- had a branch to translate. The raise is what makes that branch unnecessary.
-select throws_ok(
-  $$ select common.create_club('Jo', array['bea']) $$,
-  'P0001',
-  'club-name-too-short|3|',
-  'create_club: a name whose handle is under 3 characters is rejected'
+select pg_temp.envelope_is(
+  common.create_club('Jo', array['bea']),
+  '{"type": "not-ok", "severity": "fault", "dbcode": "PN006"}'::jsonb,
+  'create_club: a handle under 3 characters is a fault'
 );
 
-select throws_ok(
-  $$ select common.create_club('Some Club', array['nonesuch']) $$,
-  'P0002',
-  'unknown-usernames|nonesuch|',
-  'create_club: unknown username is rejected with the offending name'
+-- The next three are VALIDATIONS — the form cannot know who exists, cannot
+-- know whether the caller is already in the list, and cannot win the race for a
+-- handle. Each names the input it belongs under, which is what `field` is for.
+select pg_temp.envelope_is(
+  common.create_club('Some Club', array['nonesuch']),
+  '{"type": "not-ok", "severity": "validation", "field": "member_usernames",
+    "message": "No such user: nonesuch"}'::jsonb,
+  'create_club: an unknown username is a validation, naming the offender'
 );
 
 -- Just the caller in the list, no other members → < 2 → rejected.
 -- (The caller is auto-added if missing, but membership still needs
 -- to be >= 2 after that.)
-select throws_ok(
-  $$ select common.create_club('Just Me', array['ada']) $$,
-  'P0001',
-  'club-too-small|2|',
-  'create_club: lone-caller membership is rejected'
+select pg_temp.envelope_is(
+  common.create_club('Just Me', array['ada']),
+  '{"type": "not-ok", "severity": "validation", "field": "member_usernames",
+    "message": "A club needs at least 2 members"}'::jsonb,
+  'create_club: lone-caller membership is a validation'
 );
 
 -- Empty member list → caller alone is added → still < 2 → rejected.
-select throws_ok(
-  $$ select common.create_club('Empty Members', array[]::text[]) $$,
-  'P0001',
-  'club-too-small|2|',
-  'create_club: empty member list is rejected'
+select pg_temp.envelope_is(
+  common.create_club('Empty Members', array[]::text[]),
+  '{"type": "not-ok", "severity": "validation", "field": "member_usernames"}'::jsonb,
+  'create_club: an empty member list is a validation'
 );
 
 -- ============================================================
 -- Block 3: create_club happy path
 -- ============================================================
 
+-- The SUBJECT of this file, so it calls the real function and reads the
+-- envelope. (Everywhere else in the suite, a club is setup — those go through
+-- `pg_temp.create_club`, which unwraps the handle in one place.)
 create temp table created_club on commit drop as
-select common.create_club('Joel and Leah', array['ada','bea','cade']) as handle;
+select common.create_club('Joel and Leah', array['ada','bea','cade']) as envelope;
 
-select is(
-  (select count(*) from created_club),
-  1::bigint,
-  'create_club: returns exactly one (id, handle) row'
+select pg_temp.envelope_is(
+  (select envelope from created_club),
+  '{"type": "ok"}'::jsonb,
+  'create_club: a successful create is an ok envelope'
 );
 
 select is(
-  (select handle from created_club),
+  (select envelope -> 'data' ->> 'handle' from created_club),
   'joel-and-leah',
-  'create_club: returned handle is the slugified name'
+  'create_club: the handle it returns is the slugified name'
 );
 
 -- All three listed users are members.
 select is(
   (select count(*) from common.clubs_members
-    where club_handle = (select handle from created_club)),
+    where club_handle = (select envelope -> 'data' ->> 'handle' from created_club)),
   3::bigint,
   'create_club: all three listed members were added'
 );
@@ -173,7 +186,7 @@ select is(
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 
 create temp table bobs_club on commit drop as
-select common.create_club('Friday Night', array['ada','cade']) as handle;
+select pg_temp.create_club('Friday Night', array['ada','cade']) as handle;
 
 select is(
   (select count(*) from common.clubs_members
@@ -194,20 +207,23 @@ select ok(
 -- ============================================================
 -- Block 5: handle collision
 -- ============================================================
--- cade attempts to create a club whose name slugifies to the same
--- handle as bea's 'Friday Night' → 'friday-night'. The PK's
--- unique_violation is caught and re-raised as a key, so the FE reads
--- words out of ERROR_COPY rather than testing for SQLSTATE 23505.
--- The detail is the HANDLE that collided, which is the part a differently
--- spelled name shares.
+-- cade attempts to create a club whose name slugifies to the same handle as
+-- bea's 'Friday Night' → 'friday-night'. The PK is the referee — a pre-check
+-- `select` cannot close this race, since two callers can both see the handle
+-- free — so its unique_violation is caught and re-raised, which propagates out
+-- of that inner handler to the function's own.
+--
+-- It is a VALIDATION, on `club_name`: picking another name is exactly what
+-- fixes it. The message carries the HANDLE that collided, which is the part
+-- two differently spelled names share.
 
 select pg_temp.as_user('cade3333-3333-3333-3333-333333333333');
 
-select throws_ok(
-  $$ select common.create_club('friday night', array['ada','bea']) $$,
-  'P0001',
-  'club-name-taken|friday-night|',
-  'create_club: handle collision raises club-name-taken with the handle'
+select pg_temp.envelope_is(
+  common.create_club('friday night', array['ada','bea']),
+  '{"type": "not-ok", "severity": "validation", "field": "club_name",
+    "dbcode": "PN009", "message": "Club name taken (handle “friday-night”)"}'::jsonb,
+  'create_club: a handle collision is a validation naming the handle'
 );
 
 -- ============================================================

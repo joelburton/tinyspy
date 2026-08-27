@@ -17,7 +17,7 @@ select plan(6);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
-select common.create_club('Boggle Club', array['ada', 'bea', 'cade']) as handle;
+select pg_temp.create_club('Boggle Club', array['ada', 'bea', 'cade']) as handle;
 
 -- ── Coop: everyone in the club sees every find ────────────
 create temp table g on commit drop as

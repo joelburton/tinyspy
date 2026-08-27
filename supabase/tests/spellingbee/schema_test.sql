@@ -80,7 +80,7 @@ select is(
 -- conditional-exposure case.
 
 create temp table club on commit drop as
-select common.create_club('Ada and Bea', array['ada','bea']) as handle;
+select pg_temp.create_club('Ada and Bea', array['ada','bea']) as handle;
 
 -- Switch to postgres to insert into spellingbee tables directly
 -- (no INSERT grant exists on authenticated; this is the test-

@@ -14,7 +14,7 @@ select plan(8);
 -- ── Coop timeout → lost ─────────────────────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club1 on commit drop as
-select common.create_club('Wordle t1', array['ada', 'bea']) as handle;
+select pg_temp.create_club('Wordle t1', array['ada', 'bea']) as handle;
 create temp table g1 on commit drop as
 select * from wordle.create_game(
   (select handle from club1), pg_temp.wordle_setup(6),
@@ -40,7 +40,7 @@ select throws_ok(
 -- ── Manual end (end_game) → neutral 'ended' ─────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club2 on commit drop as
-select common.create_club('Wordle t2', array['ada', 'bea']) as handle;
+select pg_temp.create_club('Wordle t2', array['ada', 'bea']) as handle;
 create temp table g2 on commit drop as
 select * from wordle.create_game(
   (select handle from club2), pg_temp.wordle_setup(6),

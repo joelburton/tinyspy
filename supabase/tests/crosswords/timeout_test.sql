@@ -38,7 +38,7 @@ select pg_temp.xw_insert_puzzle('h-2x2', pg_temp.xw_meta_2x2(), pg_temp.xw_sol_2
 
 -- Club: ada, bea, cade are members; dee is the outsider (a non-player).
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select common.create_club('XW Club', array['ada', 'bea', 'cade']) as club_handle \gset
+select pg_temp.create_club('XW Club', array['ada', 'bea', 'cade']) as club_handle \gset
 
 -- Three games off the one puzzle: a coop to time out, a compete to time out,
 -- and a coop we'll SOLVE first and then try to time out.

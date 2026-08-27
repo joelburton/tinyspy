@@ -47,7 +47,7 @@ select plan(27);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
-select common.create_club('compete-club',
+select pg_temp.create_club('compete-club',
   array['ada','bea','cade']) as handle;
 
 create temp table puzzle on commit drop as

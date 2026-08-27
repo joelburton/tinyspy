@@ -26,7 +26,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 -- (bea is a member but not a player — a club needs two members, a coop game
 -- is fine with one player.)
-select common.create_club('Malformed club', array['ada','bea']) as handle;
+select pg_temp.create_club('Malformed club', array['ada','bea']) as handle;
 create temp table fix on commit drop as select pg_temp.strands_puzzle() as puzzle_id;
 
 create temp table g on commit drop as

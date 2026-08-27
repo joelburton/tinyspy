@@ -27,7 +27,7 @@ select plan(14);
 -- ── Coop: clear the whole stack, then replay → fully reset ──
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club1 on commit drop as
-select common.create_club('Stackdown rp1', array['ada', 'bea']) as handle;
+select pg_temp.create_club('Stackdown rp1', array['ada', 'bea']) as handle;
 create temp table g1 on commit drop as
 select * from stackdown.create_game(
   (select handle from club1),
@@ -98,7 +98,7 @@ select is(
 -- ── Compete: a concede-terminal game replays clean too ──────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club2 on commit drop as
-select common.create_club('Stackdown rp2', array['ada', 'bea']) as handle;
+select pg_temp.create_club('Stackdown rp2', array['ada', 'bea']) as handle;
 create temp table g2 on commit drop as
 select * from stackdown.create_game(
   (select handle from club2),

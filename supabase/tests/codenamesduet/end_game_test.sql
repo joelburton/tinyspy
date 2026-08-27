@@ -34,7 +34,7 @@ select plan(8);
 -- outside the club / not playing the game.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
-select common.create_club('Ada and Bea', array['ada','bea']) as handle;
+select pg_temp.create_club('Ada and Bea', array['ada','bea']) as handle;
 
 -- ============================================================
 -- (1) Happy path: playing → ended via end_game

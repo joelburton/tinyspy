@@ -18,7 +18,7 @@ select plan(15);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
-select common.create_club('Wordle vs', array['ada', 'bea']) as handle;
+select pg_temp.create_club('Wordle vs', array['ada', 'bea']) as handle;
 create temp table g on commit drop as
 select * from wordle.create_game(
   (select handle from club), pg_temp.wordle_setup(6),

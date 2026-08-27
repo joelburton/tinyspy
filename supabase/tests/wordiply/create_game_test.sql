@@ -36,7 +36,7 @@ select plan(30);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
-select common.create_club('Ada and Bea', array['ada','bea']) as handle;
+select pg_temp.create_club('Ada and Bea', array['ada','bea']) as handle;
 
 -- ============================================================
 -- (1) Coop happy path
@@ -125,7 +125,7 @@ select is(
 -- ============================================================
 
 create temp table compete_club on commit drop as
-select common.create_club('Compete club', array['ada','bea','cade']) as handle;
+select pg_temp.create_club('Compete club', array['ada','bea','cade']) as handle;
 
 create temp table g_compete on commit drop as
 select * from wordiply.create_game(

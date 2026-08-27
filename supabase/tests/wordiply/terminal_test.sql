@@ -30,7 +30,7 @@ select plan(19);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
-select common.create_club('Ada Bea Cade', array['ada','bea','cade']) as handle;
+select pg_temp.create_club('Ada Bea Cade', array['ada','bea','cade']) as handle;
 
 -- ============================================================
 -- (1) Coop end_game → ended/manual + team scores

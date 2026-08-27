@@ -17,7 +17,7 @@ select plan(18);
 -- ─── Coop ────────────────────────────────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table cc on commit drop as
-  select common.create_club('Rack coop', array['ada', 'bea']) as handle;
+  select pg_temp.create_club('Rack coop', array['ada', 'bea']) as handle;
 create temp table gc on commit drop as
   select * from scrabble.create_game(
     (select handle from cc),
@@ -64,7 +64,7 @@ select is(
 -- ─── Compete ─────────────────────────────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table cp on commit drop as
-  select common.create_club('Rack compete', array['ada', 'bea']) as handle;
+  select pg_temp.create_club('Rack compete', array['ada', 'bea']) as handle;
 create temp table gp on commit drop as
   select * from scrabble.create_game(
     (select handle from cp),

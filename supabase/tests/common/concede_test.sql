@@ -46,7 +46,7 @@ $$;
 -- 3-member club so we can watch two players drop out before the third.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
-select common.create_club('test club', array['ada', 'bea', 'cade']) as handle;
+select pg_temp.create_club('test club', array['ada', 'bea', 'cade']) as handle;
 
 reset role;
 select set_config('request.jwt.claims', '', true);

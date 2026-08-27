@@ -53,8 +53,8 @@ select pg_temp.xw_insert_puzzle('lfc-compete',   pg_temp.xw_meta_2x2(), pg_temp.
 select pg_temp.xw_insert_puzzle('lfc-otherclub', pg_temp.xw_meta_2x2(), pg_temp.xw_sol_2x2()) as pz_other     \gset
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select common.create_club('XW Library A', array['ada', 'bea']) as club_a \gset
-select common.create_club('XW Library B', array['ada', 'bea']) as club_b \gset
+select pg_temp.create_club('XW Library A', array['ada', 'bea']) as club_a \gset
+select pg_temp.create_club('XW Library B', array['ada', 'bea']) as club_b \gset
 
 -- A coop game per scenario in club A. `xw_new_game` keeps the noise down —
 -- every one of these is "ada + bea, coop, on this puzzle, in this club".

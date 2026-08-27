@@ -84,7 +84,7 @@ select is(
 -- terminal to exercise the conditional-exposure case.
 
 create temp table club on commit drop as
-select common.create_club('Ada and Bea', array['ada','bea']) as handle;
+select pg_temp.create_club('Ada and Bea', array['ada','bea']) as handle;
 
 reset role;
 

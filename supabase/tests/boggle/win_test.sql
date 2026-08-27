@@ -18,7 +18,7 @@ select plan(24);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
-select common.create_club('Boggle Win', array['ada', 'bea']) as handle;
+select pg_temp.create_club('Boggle Win', array['ada', 'bea']) as handle;
 
 -- ── (1) create_game validates win_percent ────────────────────
 create temp table gw on commit drop as

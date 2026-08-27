@@ -130,7 +130,7 @@ select is(
 -- game on the books — and she'd be pushed to day 3 for a game she was never
 -- part of and knows nothing about.
 create temp table shared on commit drop as
-select common.create_club('ada and cade', array['ada','cade']) as handle;
+select pg_temp.create_club('ada and cade', array['ada','cade']) as handle;
 grant select on shared to public;
 
 create temp table g2 on commit drop as

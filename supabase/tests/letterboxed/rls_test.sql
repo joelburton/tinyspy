@@ -26,7 +26,7 @@ select plan(6);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
-select common.create_club('RLS club', array['ada','bea','cade']) as handle;
+select pg_temp.create_club('RLS club', array['ada','bea','cade']) as handle;
 
 -- ── (1) Coop: the whole club reads the shared log ───────────
 create temp table gco on commit drop as

@@ -519,11 +519,7 @@ declare
 begin
   caller_id := auth.uid();
   if caller_id is null then
-    -- PN002. A session can expire mid-form, so this is reachable — but there
-    -- is nothing to fix in the form, and the modal is where the player is told
-    -- what to do about it.
-    raise exception 'Signed out; try refresh'
-      using errcode = 'PN002', hint = 'fault', column = '_',
+    raise exception 'not-authenticated|' using errcode = '42501',
       detail = 'auth.uid() is null';
   end if;
 
@@ -925,11 +921,7 @@ declare
 begin
   caller_id := auth.uid();
   if caller_id is null then
-    -- PN002. A session can expire mid-form, so this is reachable — but there
-    -- is nothing to fix in the form, and the modal is where the player is told
-    -- what to do about it.
-    raise exception 'Signed out; try refresh'
-      using errcode = 'PN002', hint = 'fault', column = '_',
+    raise exception 'not-authenticated|' using errcode = '42501',
       detail = 'auth.uid() is null';
   end if;
 
@@ -2010,11 +2002,7 @@ declare
 begin
   caller_id := auth.uid();
   if caller_id is null then
-    -- PN002. A session can expire mid-form, so this is reachable — but there
-    -- is nothing to fix in the form, and the modal is where the player is told
-    -- what to do about it.
-    raise exception 'Signed out; try refresh'
-      using errcode = 'PN002', hint = 'fault', column = '_',
+    raise exception 'not-authenticated|' using errcode = '42501',
       detail = 'auth.uid() is null';
   end if;
 
@@ -2087,11 +2075,7 @@ declare
 begin
   caller_id := auth.uid();
   if caller_id is null then
-    -- PN002. A session can expire mid-form, so this is reachable — but there
-    -- is nothing to fix in the form, and the modal is where the player is told
-    -- what to do about it.
-    raise exception 'Signed out; try refresh'
-      using errcode = 'PN002', hint = 'fault', column = '_',
+    raise exception 'not-authenticated|' using errcode = '42501',
       detail = 'auth.uid() is null';
   end if;
 

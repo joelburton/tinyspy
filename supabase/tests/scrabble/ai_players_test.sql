@@ -24,7 +24,7 @@ select plan(24);
 -- A compete game: ada (human, seat 0) + one best AI (seat 1), full dictionary.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table cl on commit drop as
-  select common.create_club('AI scrabble', array['ada', 'bea']) as handle;
+  select pg_temp.create_club('AI scrabble', array['ada', 'bea']) as handle;
 create temp table gai on commit drop as
   select id from scrabble.create_game((select handle from cl),
     '{"dict_2": 6, "dict_3plus": 6, "ai_count": 1, "ai_level": "best", "timer": {"kind": "none"}}'::jsonb,

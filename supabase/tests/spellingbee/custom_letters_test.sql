@@ -29,7 +29,7 @@ select plan(6);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
-select common.create_club('Custom Letters', array['ada','bea']) as handle;
+select pg_temp.create_club('Custom Letters', array['ada','bea']) as handle;
 
 -- A custom setup = default coop setup + the player's letters (abcdfg + e).
 create temp table cset on commit drop as

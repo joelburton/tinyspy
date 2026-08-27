@@ -88,7 +88,7 @@ select is(
 -- 2 + 3. A custom board is accepted, titled, and not saved as a default
 -- ============================================================
 create temp table club on commit drop as
-select common.create_club('LB custom', array['ada', 'bea']) as handle;
+select pg_temp.create_club('LB custom', array['ada', 'bea']) as handle;
 
 -- The typed board IS the fixture board's sides, which is the case that matters:
 -- a board the game itself produced, read off the screen and typed back in.
@@ -147,7 +147,7 @@ select is(
 -- A fresh club: common.games' is_current_view index allows one live game per
 -- club, so each scenario below gets its own room.
 create temp table club2 on commit drop as
-select common.create_club('LB mismatch', array['ada', 'bea']) as handle;
+select pg_temp.create_club('LB mismatch', array['ada', 'bea']) as handle;
 
 select throws_ok(
   format(
@@ -182,7 +182,7 @@ as $$
 $$;
 
 create temp table club3 on commit drop as
-select common.create_club('LB thin custom', array['ada', 'bea']) as handle;
+select pg_temp.create_club('LB thin custom', array['ada', 'bea']) as handle;
 
 select lives_ok(
   format(
@@ -199,7 +199,7 @@ select lives_ok(
 );
 
 create temp table club4 on commit drop as
-select common.create_club('LB thin rolled', array['ada', 'bea']) as handle;
+select pg_temp.create_club('LB thin rolled', array['ada', 'bea']) as handle;
 
 select throws_ok(
   format(

@@ -173,3 +173,30 @@ begin
   perform set_config('role', 'authenticated', true);
 end;
 $$;
+
+-- ============================================================
+-- pg_temp.create_club — a club, for tests that just need one
+-- ============================================================
+--
+-- `common.create_club` returns the result envelope
+-- (plans/error-system.md), so its handle now lives at
+-- `->'data'->>'handle'`. Nearly every test file in the suite
+-- creates a club as SETUP and cares only about the handle:
+--
+--   create temp table club on commit drop as
+--   select pg_temp.create_club('Some Club', array['ada','bea']) as handle;
+--
+-- Unwrapping in one place rather than at 185 call sites keeps
+-- those lines reading the way they always did, and means the
+-- next change to the envelope's shape is one edit here.
+--
+-- Tests whose SUBJECT is create_club — its rejections, its
+-- envelope — call `common.create_club` directly and assert on
+-- what comes back. This is for the ones that just need a club
+-- to exist.
+create function pg_temp.create_club(club_name text, member_usernames text[])
+returns text
+language sql
+as $$
+  select common.create_club(club_name, member_usernames) -> 'data' ->> 'handle';
+$$;

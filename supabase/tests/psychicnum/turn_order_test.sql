@@ -34,7 +34,7 @@ select plan(16);
 -- so he exercises the "first_turn_user_id must be a player" guard.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
-select common.create_club('test club', array['ada','bea','cade']) as handle;
+select pg_temp.create_club('test club', array['ada','bea','cade']) as handle;
 
 -- ============================================================
 -- TURN GAME — ada first, ada + bea rotate

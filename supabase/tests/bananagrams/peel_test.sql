@@ -24,7 +24,7 @@ select plan(16);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
-select common.create_club('test club', array['ada', 'bea']) as handle;
+select pg_temp.create_club('test club', array['ada', 'bea']) as handle;
 
 -- ─── Game 1: 2 players, hand_size 21. bunch = 144 − 42 = 102, needed = 2 ───
 create temp table g1 on commit drop as
@@ -167,7 +167,7 @@ select throws_ok(
 -- roster (3). hand_size 21 × 3 = 63 dealt; bunch = 144 − 63 = 81.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table trio on commit drop as
-select common.create_club('trio', array['ada', 'bea', 'cade']) as handle;
+select pg_temp.create_club('trio', array['ada', 'bea', 'cade']) as handle;
 
 create temp table g3 on commit drop as
 select * from bananagrams.create_game(

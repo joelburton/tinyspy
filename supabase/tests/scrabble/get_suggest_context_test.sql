@@ -18,7 +18,7 @@ select plan(9);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table cl on commit drop as
-  select common.create_club('Suggest', array['ada', 'bea']) as handle;
+  select pg_temp.create_club('Suggest', array['ada', 'bea']) as handle;
 
 create temp table gco on commit drop as
   select id from scrabble.create_game((select handle from cl),

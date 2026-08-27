@@ -15,7 +15,7 @@ select pg_temp.xw_insert_puzzle('h-given', pg_temp.xw_meta_given(), pg_temp.xw_s
 
 -- A three-member club (ada, bea, cade), created as ada.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select common.create_club('XW Club', array['ada', 'bea', 'cade']) as club_handle \gset
+select pg_temp.create_club('XW Club', array['ada', 'bea', 'cade']) as club_handle \gset
 
 -- ── Coop happy path ──────────────────────────────────────────────────
 select id as gc_id

@@ -29,7 +29,7 @@ select plan(13);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
-select common.create_club('Forfeit club', array['ada','bea','cade']) as handle;
+select pg_temp.create_club('Forfeit club', array['ada','bea','cade']) as handle;
 create temp table fix on commit drop as select pg_temp.strands_puzzle() as puzzle_id;
 select pg_temp.strands_hint_words();
 

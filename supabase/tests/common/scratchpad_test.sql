@@ -10,7 +10,7 @@ select plan(12);
 -- is inserted directly (the scratchpad is a common feature; no game schema
 -- needed) — crosswords_coop is just a registered gametype to satisfy the FK.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select common.create_club('SP Club', array['ada', 'bea', 'cade']) as club_handle \gset
+select pg_temp.create_club('SP Club', array['ada', 'bea', 'cade']) as club_handle \gset
 reset role;
 
 insert into common.games (club_handle, gametype, created_by, title, setup)

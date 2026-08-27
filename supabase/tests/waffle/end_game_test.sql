@@ -23,7 +23,7 @@ select plan(11);
 -- ── Coop: manual end → ended, no winner ─────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club1 on commit drop as
-select common.create_club('Waffle eg1', array['ada', 'bea']) as handle;
+select pg_temp.create_club('Waffle eg1', array['ada', 'bea']) as handle;
 create temp table g1 on commit drop as
 select * from waffle.create_game(
   (select handle from club1), pg_temp.waffle_setup(5),
@@ -64,7 +64,7 @@ select throws_ok(
 -- ── Compete: manual end → ended, no winner ──────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club2 on commit drop as
-select common.create_club('Waffle eg2', array['ada', 'bea']) as handle;
+select pg_temp.create_club('Waffle eg2', array['ada', 'bea']) as handle;
 create temp table g2 on commit drop as
 select * from waffle.create_game(
   (select handle from club2), pg_temp.waffle_setup(5),
@@ -108,7 +108,7 @@ select throws_ok(
 -- already-terminal P0001 above.)
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club3 on commit drop as
-select common.create_club('Waffle eg3', array['ada', 'bea']) as handle;
+select pg_temp.create_club('Waffle eg3', array['ada', 'bea']) as handle;
 create temp table g3 on commit drop as
 select * from waffle.create_game(
   (select handle from club3), pg_temp.waffle_setup(5),
