@@ -855,7 +855,7 @@ Same principle, applied to components.
 **The chrome is shared.** Cards, banners, chat, login, the home page, the club page — these look the same regardless of which game is mounted. Current realization:
 
 - `Chat`, `PauseBoundary`, `PauseOverlay`, `SuspendConfirmationBlockingModal`, `SetupTimerSection`, `ClubGameCard`, `StartGameButtons` are shared. The route-level `<GamePage>` mounts the cross-cutting ones (chat, pause, suspend confirm, timer in header) so every game inherits them.
-- `LoginScreen`, `HomePage`, `ClubPage`, `CreateClubPage` are shell-level, game-agnostic.
+- `LoginScreen`, `HomePage`, `ClubPage` are shell-level, game-agnostic.
 - **The account submenu** ([`useAccountMenuSection`](../src/common/hooks/account/useAccountMenuSection.ts)) is the last section of every page's own menu — GamePage's, ClubPage's, and HomePage's. One row labeled with the **username**, opening **Profile** and **Log out**.
   - **It used to be a `<UserMenu>`**: a fixed profile-color dot pinned to the viewport's top-right on every authenticated screen. That chip forced the GamePage header to carry `margin-right: 2rem` of permanently reserved width for it to overlap — dead space at every viewport, and exactly the width the mobile game header needs for feedback. Folding the items into the menu that was already there reclaimed all of it and **removed** a control rather than adding one.
   - **Still user-focused only.** It carries no club- or game-specific items; the two mental models stay separate, now by *nesting* rather than by a second menu. Correspondingly, a game menu never puts game actions inside it.

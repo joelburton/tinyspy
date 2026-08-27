@@ -4,28 +4,27 @@ The first area of the CSS sprint's step 7. The process is
 [css-system-2.md](../css-system-2.md) §21; the plan holds the order, this file
 holds everything else.
 
-**Status: PAUSED 2026-08-24, both remaining findings blocked on
-`forms`.** The area is otherwise done: what is left is your audit
-and any tidying it turns up.
+**Status: REOPENED 2026-08-26 — F36 and F44 are closed, and F21 is the only
+finding left.** `floating-panels` and `forms` both landed, which is what the
+2026-08-24 pause was waiting for:
 
-- **F44 (`action-button-text-only`)** is that area's question — seven
-  hand-written Cancels say the button taxonomy has a hole, and "are a form's
-  buttons really different from action buttons?" is not a homepage matter.
-- **F36 (`createclub-modal`)** needs the modal built before CreateClubPage can
-  stop being a page.
+- **F44 (`action-button-text-only`)** was answered by `forms` — `icon` is
+  optional on `<StandardButton>`, and the seven hand-written Cancels are one
+  `<CancelButton>`.
+- **F36 (`createclub-modal`)** is built: `CreateClubModal` is a `<NormalModal>`
+  HomePage mounts, `/c/new` is gone, and "+ New club" is a real button.
 - **F21 (`homepage-no-vitest`) is deliberately LAST**, not carried: there is no
-  point pinning the page's shape while F44 and F36 can still move it — and the
+  point pinning the page's shape while anything else can still move it — and the
   same holds for `<SelectionList>`, which may yet earn a frameless variant for
   scrabble and whose "select" kind has one consumer.
 
-The order from here is `floating-panels` → `forms` → `simple-page` → `club-page`
-(plan §7 → The areas, in order), and this area reopens to close F21 once the
-first of those lands.
+`simple-page` and `club-page` are still ahead (plan §7 → The areas, in order),
+and `simple-page`'s roster lost `CreateClubPage` when F36 took it.
 
-**Three subjects.** Forty-four findings, FORTY-TWO
+**Three subjects.** Forty-four findings, FORTY-THREE
 resolved (F1, F2, F3, F4, F5, F6, F6.1, F7, F8, F9, F10, F11, F12, F14, F15,
 F16, F17, F18, F19, F20, F22, F23, F24, F25, F26, F27, F28, F29, F30, F31, F32,
-F33, F34, F35, F36, F37, F38, F39, F40, F41, F42, F43) — where "resolved" includes
+F33, F34, F35, F36, F37, F38, F39, F40, F41, F42, F43, F44) — where "resolved" includes
 the ones FOLDED into a later finding, or MOVED to the area that can settle them,
 rather than fixed here. The sub-findings (F5.1, F6.1, F22.1, F35.1) carry their
 own status in their headings and are not counted above.
@@ -35,9 +34,9 @@ grep, and its resolutions sit twenty to forty lines below the line that names
 the finding. Twice in one day a heading was mistaken for the current state —
 F24's cost a wrong empty-state shipped to the homepage, F33's cost a wrong
 answer about what was still deferred. A heading with no status prefix now means
-OPEN, and there are two.
+OPEN, and there is one.
 
-**Two open: F21 (`homepage-no-vitest`) and F44 (`action-button-text-only`).**
+**One open: F21 (`homepage-no-vitest`).**
 
 Closed 2026-08-24: **F3** (`home-keyboard-spec`), when F38 dissolved its
 blocking question rather than answering it; **F38** (`selection-lists`), whose
@@ -1823,7 +1822,8 @@ changes.
 > bubble having moved to `PageHeaderButton`. And `0.375rem` stays bespoke until
 > this lands, since a ramp step cannot be chosen for a number nobody looks at.
 
-**F44 · `action-button-text-only` · An action button cannot be text, so the
+**F44 · `action-button-text-only` · DONE 2026-08-26 — answered by the `forms`
+area, and its last instance converted here · An action button cannot be text, so the
 app's plainest buttons are all written by hand.** Raised 2026-08-24 while
 working out what "+ New club" becomes when `CreateClubPage` turns into a modal
 (F36 `createclub-modal`).
@@ -1868,7 +1868,21 @@ Two things fall out of that, both small and both decisions rather than typing:
    bare `<button>`, a `<Link>` wearing the classes, and (until today) an
    `ActionButton`.
 
-> resolution:
+> **resolution: the `forms` area answered it, and F36 spent the answer.** Both
+> halves the finding asked for shipped there without this file being touched:
+> `<ActionButton>` is gone, replaced by `<StandardButton>`, whose `icon` is
+> optional — so an action button may now be icon + text, icon only, **or text
+> only** — and the seven hand-written Cancels are one `<CancelButton>`. Grepped
+> 2026-08-26: `className="button secondary"` appears nowhere in `src/` outside a
+> comment.
+>
+> **Its last live instance was this page's**, and F36 converted it: "+ New club"
+> is a `<StandardButton weight="secondary" tone="quiet" small>` now, which also
+> gives `tone="quiet"` the first caller point 2 was waiting for.
+>
+> Point 1's measurement is owed by whoever wants it: a glyph-less button's
+> `gap: 0.4em` between an absent icon and a label is presumed harmless and was
+> not measured.
 
 ### The three names this area produced
 
@@ -1876,7 +1890,7 @@ Each of these came out of the page-structure audit rather than out of the
 homepage, and each is a THING to build rather than a line to change. They keep
 this area's numbering (§ "Findings") because they were found here.
 
-**F36 · `createclub-modal` · DECIDED, NOT BUILT — CreateClubPage is still a page · CreateClubPage should be a modal, not a page** (Joel, 2026-08-22:
+**F36 · `createclub-modal` · DONE 2026-08-26 — built · CreateClubPage should be a modal, not a page** (Joel, 2026-08-22:
 *"CreateClubPage is a separate page, and that's probably pure-history: it was
 one of the very first things we ever wrote in the app, and had thought out none
 of the UI. I argue that it should be a modal — just like Setup and EditProfile
@@ -1901,7 +1915,61 @@ Nothing blocks it. `/c/new` rotting is fine. The one design question is where th
 trigger lives if a club is ever created from somewhere other than home; today
 home is the only entry, so it can be home's modal until that changes.
 
-> resolution: *(agreed, not built — "we'll do that one soon")*
+> **resolution: built 2026-08-26 — `CreateClubModal`, and the route is gone.**
+>
+> `CreateClubPage.tsx` → `club/CreateClubModal.tsx`, a `<NormalModal>` mounted
+> by HomePage exactly as ClubPage mounts `EditClubModal`: the opener holds a
+> `creating` flag, the dialog holds no open/shut state of its own.
+>
+> **The shell absorbed four things the page had written by hand**, which is the
+> measure of the change rather than the modal itself:
+>
+> - the page wrappers (`pageHeaderAndMainArea` + `cls('card','pageMain')`) and
+>   the `<h1>`, which is the panel's `title` now;
+> - **eleven lines of window-level Escape handling**, whose own comment said it
+>   existed only because "this is a routed PAGE, so it wires its own". The
+>   `modal-normal` family closes on Escape and traps focus, both from the FAMILY
+>   table;
+> - `.buttonRow` and its `min-width: 6rem` twin — the same two rules
+>   `modalActions.module.css` already holds. The module keeps only `.labelRow`
+>   and `.handleHint`, the handle preview nothing else has;
+> - the `session` prop, taken so App could pass it uniformly to every
+>   page-level component, and carrying an `eslint-disable` to stay unused. The
+>   RPC reads `auth.uid()`; the prop and the disable both go.
+>
+> **The action row stays INSIDE the form** (where the page had it), because
+> implicit submission needs the submit button in the form — typing a name and
+> pressing Enter is the fast path this dialog is for.
+>
+> **On success it goes into the new club** (Joel, 2026-08-26), which is what you
+> made it for. The panel reports and the opener navigates — `onCreated(handle)`
+> / `onCancel`, the shape `SetupGameModal` and `EditClubModal` already use.
+>
+> **"+ New club" stops being a `<Link>` wearing button classes** and becomes a
+> real `<StandardButton weight="secondary" tone="quiet" small>`, which is
+> exactly what the stopgap comment on it said would happen here. **The typed `+`
+> stays** (Joel, 2026-08-26: *"keep typed-plus for now"*) — `icon` is available
+> and deliberately unused.
+>
+> **`/c/new` is gone from `App.tsx`**, and with it the outer `if` the route
+> needed: the club match is now the first branch. A stale `/c/new` link falls
+> into `/^\/c\/([^/]+)\/?$/` and asks ClubPage for a club called "new" — rot
+> with an error screen rather than a bounce home. Left alone deliberately
+> (Joel, 2026-08-26); it is `club-page`'s to answer if it is anyone's.
+>
+> **Three docs carried a fact that stopped being true**, so they were corrected
+> with the change rather than at step 12 — this moves no decision, it deletes a
+> route that no longer exists: `docs/common.md`'s route table (the `/c/new` row),
+> `docs/common-folders.md`'s `club/` listing, and `docs/ui.md`'s shell-level
+> page list.
+>
+> **The guard's rows followed the rename**, which is the half that would have
+> rotted silently: `vocabularies.test.ts` had `CreateClubPage.module.css` on
+> both the spacer and font-size pending lists. The spacer row also SHRANK —
+> `0.75rem` and `0.5rem` left with `.buttonRow`, leaving `0.4rem`.
+>
+> Suite unchanged at **1996 of 1997**, the one failure being the dead-token
+> guard that is expected to stay red for the sprint.
 
 **F37 · `card-only-page` · DONE — the type is a NAME, not a thing to build · `CardOnlyPage` — a page whose whole body is one card** (Joel,
 2026-08-22: *"a page that is 'just a card' (LoginPage): let's call that a
@@ -2033,6 +2101,11 @@ becomes its own area is Joel's call.
 - `components/menu/Menu.module.css`
 - ~~`components/menu/MenuTrigger.tsx`~~ · ~~`.module.css`~~ — deleted by F12
 - `components/page-header/PageHeaderMenu.tsx` — added by F12
+- `components/club/CreateClubModal.tsx` + `.module.css` — added by F36. Home
+  renders it, so it is a dependency in the §21 sense; **its stamp stayed
+  `cs-unmet`** rather than moving to `cs-found`, under the 2026-08-26 reset that
+  makes every file unmet until its own audit is redone. Its area is whichever
+  one takes the normal modals, beside `EditClubModal` and `SetupGameModal`
 - `components/page-header/PageHeader.tsx`
 - `components/page-header/PageHeader.module.css`
 

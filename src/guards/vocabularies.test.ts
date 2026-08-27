@@ -259,7 +259,10 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/components/club/ClubGameCard.module.css': ['0.6rem', '0.4rem', '0.5rem'],
       'src/common/components/club/ClubGameRow.module.css': ['0.4rem', '0.5rem'],
       'src/common/components/club/ClubPage.module.css': ['1rem', '1.25rem'],
-      'src/common/components/club/CreateClubPage.module.css': ['0.4rem', '0.75rem', '0.5rem'],
+      // Two of its three literals left with `.buttonRow`, which is the shared
+      // `modalActions` row now that this is a modal (F36). The label/hint gap
+      // is what remains.
+      'src/common/components/club/CreateClubModal.module.css': ['0.4rem'],
       'src/common/components/club/EditClubModal.module.css': ['0.5rem'],
       'src/common/components/club/StartGameRow.module.css': ['0.4rem'],
       'src/common/components/definitions/DefinitionView.module.css': ['0.3rem', '0.15rem', '0.1rem'],
@@ -271,7 +274,7 @@ const VOCABULARIES: Vocabulary[] = [
       // travelled with the markup; it did not grow.
       'src/common/components/fields/CheckboxField.module.css': ['0.5rem'],
       // The three field components carved out of ClaimHandleScreen,
-      // CreateClubPage and EditProfileModal. Same values,
+      // CreateClubModal and EditProfileModal. Same values,
       // now in one place instead of four — the debt travelled and shrank.
       'src/common/components/fields/field.module.css': ['0.4rem'],
       'src/common/components/fields/DateField.module.css': ['0.5rem'],
@@ -342,7 +345,7 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/components/club/ClubGameCard.module.css': ['1.25rem', '0.85rem'],
       'src/common/components/club/ClubGameDeleteButton.module.css': ['0.85rem'],
       'src/common/components/club/ClubGameRow.module.css': ['1rem', '0.85rem'],
-      'src/common/components/club/CreateClubPage.module.css': ['0.8rem'],
+      'src/common/components/club/CreateClubModal.module.css': ['0.8rem'],
       'src/common/components/club/EditClubModal.module.css': ['0.8rem', '0.85rem'],
       'src/common/components/club/StartGameRow.module.css': ['1rem', '0.85rem'],
       'src/common/components/definitions/DefinitionView.module.css': ['1.05rem', '0.92rem', '0.9rem', '0.72rem', '0.8rem'],
@@ -394,7 +397,7 @@ const VOCABULARIES: Vocabulary[] = [
     allowed: /^(normal|inherit|initial|unset|revert)$/,
     pending: {
       'src/common/components/buttons/ShuffleButton.module.css': ['1'],
-      // The textarea's leading, moved up from CreateClubPage with <TextField>.
+      // The textarea's leading, moved up from CreateClubModal with <TextField>.
       'src/common/components/fields/TextField.module.css': ['1.4'],
       'src/common/components/chat/ChatBody.module.css': ['1.35'],
       'src/common/components/page-header/ChatButton.module.css': ['1.1rem'],

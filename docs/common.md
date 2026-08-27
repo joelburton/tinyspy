@@ -533,8 +533,7 @@ Routes the shell knows about:
 
 | URL | what mounts |
 |---|---|
-| `/` | `HomePage` — clubs list + create-club link |
-| `/c/new` | `CreateClubPage` |
+| `/` | `HomePage` — clubs list, and the button that opens `CreateClubModal` over it |
 | `/c/<handle>` | `ClubPage` |
 | `/g/<gametype>/<gameId>` | `<GamePage>` with the manifest's `PlayArea` (lazy-loaded chunk) as its render-prop child |
 | anything else | `HomePage` (forgiving fallback, not a 404) |

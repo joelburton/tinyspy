@@ -2,18 +2,20 @@
 
 import { failureText } from '../../lib/game/serverError'
 import { StandardForm } from '../fields/StandardForm'
-import { useEffect, useState, type SubmitEvent } from 'react'
-import type { Session } from '@supabase/supabase-js'
+import { useState, type SubmitEvent } from 'react'
 import { db as commonDb } from '../../db'
-import { navigate } from '../../lib/routing/router'
-import styles from './CreateClubPage.module.css'
-import { cls } from '../../lib/util/cls'
+import { NormalModal } from '../floating-panels/NormalModal'
+import actionRow from '../floating-panels/modalActions.module.css'
+import styles from './CreateClubModal.module.css'
 import { StandardButton } from '../buttons/StandardButton'
 import { CancelButton } from '../buttons/CancelButton'
 import { TextField } from '../fields/TextField'
 
 type Props = {
-  session: Session
+  /** The club exists — its handle, so the opener can go there. */
+  onCreated: (handle: string) => void
+  /** User dismissed without creating (Cancel / Esc / X). */
+  onCancel: () => void
 }
 
 /**
@@ -64,8 +66,12 @@ function handleError(slug: string): string | null {
 const CLUB_NAME_MAX = 20
 
 /**
- * Create-club form. POSTs to common.create_club; on success,
- * navigates to the new club's page.
+ * "Create a club" dialog. POSTs to `common.create_club` and hands the new
+ * club's handle back, so the opener can go there.
+ *
+ * The exact sibling of `<EditClubModal>` — create and edit of the same object,
+ * in the same shell — and it takes no `session`, because `create_club` reads
+ * `auth.uid()` on the server.
  *
  * The "Club name" field doubles as the handle source — we slugify
  * it live and show the preview ("/c/joels-crossword-club") as the
@@ -85,39 +91,14 @@ const CLUB_NAME_MAX = 20
  * selection (typeahead from common.profiles) lands when we have
  * enough users to make that worthwhile.
  *
- * Note: this form doesn't take `session` for anything yet — the
- * server-side RPC uses `auth.uid()` directly. The prop is here so
- * we have it if a future "this is who you are" affordance shows
- * up, and so the App.tsx routing block can pass it uniformly to
- * every page-level component. The next-line disable acknowledges
- * the intentional unused — this project's lint config doesn't
- * auto-exempt underscore-prefixed names.
+ * Lifecycle mirrors the other normal modals: the opener conditionally renders
+ * us — mounting opens, unmounting closes. We hold no "is open" state.
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function CreateClubPage({ session: _session }: Props) {
+export function CreateClubModal({ onCreated, onCancel }: Props) {
   const [name, setName] = useState('')
   const [usernamesInput, setUsernamesInput] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  // Escape cancels — the keyboard twin of the Cancel button. The page reads
-  // as a modal (a lone card over nothing), so Escape-to-dismiss is the
-  // expected key; this is what the FloatingPanel dialogs do natively, but
-  // this is a routed PAGE, so it wires its own. Window-level so it works
-  // from inside the form fields too (typed text is cheap to lose — same
-  // judgment as the Cancel button, which doesn't confirm). Inert while the
-  // create RPC is in flight, matching Cancel's disabled={busy}.
-  useEffect(
-    function escapeCancels() {
-      if (busy) return
-      const onKey = (e: KeyboardEvent) => {
-        if (e.key === 'Escape') navigate('/')
-      }
-      window.addEventListener('keydown', onKey)
-      return () => window.removeEventListener('keydown', onKey)
-    },
-    [busy],
-  )
 
   // The handle the current name would slugify to. Shown discreetly in
   // the "Club name" label so the validation (which is really about the
@@ -177,74 +158,85 @@ export function CreateClubPage({ session: _session }: Props) {
       }
       return
     }
-    navigate(`/c/${data}`)
+    // Don't bother clearing `busy` — onCreated navigates away and unmounts us.
+    onCreated(data)
   }
 
   return (
-    <div className="pageHeaderAndMainArea">
-      <div className={cls('card', 'pageMain')}>
-        <h1>Create a club</h1>
-        <p className="muted">
-          A club is a fixed group of friends who play games together.
-          Membership is set at creation and can't be changed later
-          (no invitations, no leaving). Chat and any in-progress games
-          in this club will be visible to all members.
-        </p>
+    <NormalModal
+      title="Create a club"
+      onClose={onCancel}
+      resizable={false}
+      // Height is the content's: the number below is only the first-paint seed,
+      // and `fitContent` grows past it — the error line and the handle preview
+      // both appear as you type. Width matches EditClubModal, its sibling.
+      fitContent
+      defaultSize={{ width: 440, height: 400 }}
+    >
+      <p className="muted">
+        A club is a fixed group of friends who play games together.
+        Membership is set at creation and can't be changed later
+        (no invitations, no leaving). Chat and any in-progress games
+        in this club will be visible to all members.
+      </p>
 
-        <StandardForm onSubmit={onSubmit}>
-          {/* maxLength mirrors the CHECK on common.clubs.name — the same
-              belt-and-braces the handle field uses (ClaimHandleScreen). The
-              server is the authority; this just means you can't type a name
-              only to be told no. */}
-          <TextField
-            label={
-              <span className={styles.labelRow}>
-                Club name
-                {/* Discreet preview of the derived URL handle, so the
-                    handle-based validation reads sensibly ("JB!" → "jb").
-                    Hidden when the name is blank; "(empty)" when the name
-                    has no slug-able characters at all (e.g. "!!!"). */}
-                {name.trim() && (
-                  <span className={styles.handleHint}>
-                    {previewSlug ? `(becomes handle: ${previewSlug})` : '(empty)'}
-                  </span>
-                )}
-              </span>
-            }
-            value={name}
-            onChange={setName}
+      {/* The action row sits INSIDE the form, which is what makes Enter in
+          either field submit — implicit submission needs the submit button in
+          the form, and typing a club name and pressing Enter is the fast path
+          this dialog is for. */}
+      <StandardForm onSubmit={onSubmit}>
+        {/* maxLength mirrors the CHECK on common.clubs.name — the same
+            belt-and-braces the handle field uses (ClaimHandleScreen). The
+            server is the authority; this just means you can't type a name
+            only to be told no. */}
+        <TextField
+          label={
+            <span className={styles.labelRow}>
+              Club name
+              {/* Discreet preview of the derived URL handle, so the
+                  handle-based validation reads sensibly ("JB!" → "jb").
+                  Hidden when the name is blank; "(empty)" when the name
+                  has no slug-able characters at all (e.g. "!!!"). */}
+              {name.trim() && (
+                <span className={styles.handleHint}>
+                  {previewSlug ? `(becomes handle: ${previewSlug})` : '(empty)'}
+                </span>
+              )}
+            </span>
+          }
+          value={name}
+          onChange={setName}
+          disabled={busy}
+          placeholder="Joel and Leah"
+          maxLength={CLUB_NAME_MAX}
+          autoFocus
+          required
+          entryHelp={`Up to ${CLUB_NAME_MAX} characters — it headlines the club page.`}
+        />
+
+        <TextField
+          label="Other members' usernames"
+          value={usernamesInput}
+          onChange={setUsernamesInput}
+          disabled={busy}
+          placeholder="alice, bob"
+          multiline
+          rows={2}
+          entryHelp="Comma or space separated. You're added automatically."
+        />
+
+        {error && <p className="error">{error}</p>}
+
+        <div className={actionRow.modalActions}>
+          <CancelButton onClick={onCancel} disabled={busy} />
+          <StandardButton
+            name={busy ? 'Creating…' : 'Create club'}
+            type="submit"
+            weight="primary"
             disabled={busy}
-            placeholder="Joel and Leah"
-            maxLength={CLUB_NAME_MAX}
-            autoFocus
-            required
-            entryHelp={`Up to ${CLUB_NAME_MAX} characters — it headlines the club page.`}
           />
-
-          <TextField
-            label="Other members' usernames"
-            value={usernamesInput}
-            onChange={setUsernamesInput}
-            disabled={busy}
-            placeholder="alice, bob"
-            multiline
-            rows={2}
-            entryHelp="Comma or space separated. You're added automatically."
-          />
-
-          {error && <p className="error">{error}</p>}
-
-          <div className={styles.buttonRow}>
-            <CancelButton onClick={() => navigate('/')} disabled={busy} />
-            <StandardButton
-              name={busy ? 'Creating…' : 'Create club'}
-              type="submit"
-              weight="primary"
-              disabled={busy}
-            />
-          </div>
-        </StandardForm>
-      </div>
-    </div>
+        </div>
+      </StandardForm>
+    </NormalModal>
   )
 }

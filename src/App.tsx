@@ -5,7 +5,6 @@ import { useSession } from './common/hooks/session/useSession'
 import { LoginScreen } from './common/components/auth/LoginScreen'
 import { ClaimHandleScreen } from './common/components/auth/ClaimHandleScreen'
 import { ClubPage } from './common/components/club/ClubPage'
-import { CreateClubPage } from './common/components/club/CreateClubPage'
 import { GamePage } from './common/components/game/GamePage'
 import { PlayAreaErrorBoundary } from './common/components/game/PlayAreaErrorBoundary'
 import { PlayAreaSlotLog, PlayAreaReadyLog } from './common/components/game/PlayAreaMountLog'
@@ -32,8 +31,8 @@ import { games } from './games'
  * Top-level shell. Owns the URL → component routing for all paths
  * the app understands:
  *
- *   /                          →  HomePage (your clubs + create-club link)
- *   /c/new                     →  CreateClubPage
+ *   /                          →  HomePage (your clubs, and the button that
+ *                                  opens <CreateClubModal> over them)
  *   /c/<handle>                →  ClubPage
  *   /g/<gametype>/<gameId>     →  <GamePage> wrapping the manifest's
  *                                  PlayArea via render-prop. Lazy-loaded.
@@ -111,83 +110,79 @@ export default function App() {
   // the last submenu of its own menu (see useAccountMenuSection), which is what
   // freed the 2rem the game header was reserving for that chip to overlap.
   let page
-  if (path === '/c/new') {
-    page = <CreateClubPage session={session} />
+  const clubMatch = path.match(/^\/c\/([^/]+)\/?$/)
+  if (clubMatch) {
+    // Keyed by handle (like GamePage's gameId key below) so a club→club
+    // navigation REMOUNTS — fresh subscriptions + a fresh chat-feedback
+    // seen-set, so the new club's chat backlog doesn't replay as pills.
+    page = <ClubPage key={clubMatch[1]} handle={clubMatch[1]} session={session} />
   } else {
-    const clubMatch = path.match(/^\/c\/([^/]+)\/?$/)
-    if (clubMatch) {
-      // Keyed by handle (like GamePage's gameId key below) so a club→club
-      // navigation REMOUNTS — fresh subscriptions + a fresh chat-feedback
-      // seen-set, so the new club's chat backlog doesn't replay as pills.
-      page = <ClubPage key={clubMatch[1]} handle={clubMatch[1]} session={session} />
-    } else {
-      // Game routes — GamePage shell + the manifest's PlayArea
-      // as a render-prop child. Path shape: /g/<gametype>/<gameId>.
-      // Anything else under /g/ falls through to HomePage (rather
-      // than rendering a broken game screen), matching the
-      // "be forgiving with URLs" stance.
-      // Gametype allows underscore so the sibling-manifest pair strings
-      // (connections_coop, connections_compete, psychicnum_coop, …) match.
-      // Without it, opening a sibling game silently falls through to
-      // the HomePage fallback below — the user lands back at their
-      // club list with no console error to explain why.
-      const gameMatch = path.match(/^\/g\/([a-z0-9_]+)\/([0-9a-f-]+)\/?$/i)
-      if (gameMatch) {
-        const [, gametype, gameId] = gameMatch
-        const game = games.find((g) => g.gametype === gametype)
-        if (!game) {
-          // A FAULT, not a polite empty state (Joel, 2026-08-23): every
-          // gametype in a URL came from a link this app wrote, so an
-          // unregistered one means the registry and the link disagree. There is
-          // no server error to classify, so the diagnostics line is written by
-          // hand, the same way the homepage's no-clubs fault writes its own.
-          page = (
-            <ErrorPage
-              message={
-                <>
-                  There's no game type called <code>{gametype}</code>. The link is
-                  wrong, or the game was removed from the app.
-                </>
-              }
-              diagnostics={`route — key=unknown-gametype detail="${gametype}" — ${logStamp()}`}
-            />
-          )
-        } else {
-          const PlayArea = game.PlayArea
-          page = (
-            <GamePage
-              key={gameId}
-              gameId={gameId}
-              session={session}
-              manifest={game}
-            >
-              {(ctx) => (
-                // The two mount-only console breadcrumbs for "blank play
-                // area" reports — slot handed over vs game code actually
-                // committed. See PlayAreaMountLog for how to read them.
-                <PlayAreaSlotLog
-                  gametype={gametype}
-                  gameId={gameId}
-                  playState={ctx.playState}
-                  isTerminal={ctx.isTerminal}
-                >
-                  <PlayAreaErrorBoundary>
-                    <Suspense fallback={<p>Loading game…</p>}>
-                      <PlayAreaReadyLog gametype={gametype} />
-                      <PlayArea {...ctx} />
-                    </Suspense>
-                  </PlayAreaErrorBoundary>
-                </PlayAreaSlotLog>
-              )}
-            </GamePage>
-          )
-        }
+    // Game routes — GamePage shell + the manifest's PlayArea
+    // as a render-prop child. Path shape: /g/<gametype>/<gameId>.
+    // Anything else under /g/ falls through to HomePage (rather
+    // than rendering a broken game screen), matching the
+    // "be forgiving with URLs" stance.
+    // Gametype allows underscore so the sibling-manifest pair strings
+    // (connections_coop, connections_compete, psychicnum_coop, …) match.
+    // Without it, opening a sibling game silently falls through to
+    // the HomePage fallback below — the user lands back at their
+    // club list with no console error to explain why.
+    const gameMatch = path.match(/^\/g\/([a-z0-9_]+)\/([0-9a-f-]+)\/?$/i)
+    if (gameMatch) {
+      const [, gametype, gameId] = gameMatch
+      const game = games.find((g) => g.gametype === gametype)
+      if (!game) {
+        // A FAULT, not a polite empty state (Joel, 2026-08-23): every
+        // gametype in a URL came from a link this app wrote, so an
+        // unregistered one means the registry and the link disagree. There is
+        // no server error to classify, so the diagnostics line is written by
+        // hand, the same way the homepage's no-clubs fault writes its own.
+        page = (
+          <ErrorPage
+            message={
+              <>
+                There's no game type called <code>{gametype}</code>. The link is
+                wrong, or the game was removed from the app.
+              </>
+            }
+            diagnostics={`route — key=unknown-gametype detail="${gametype}" — ${logStamp()}`}
+          />
+        )
       } else {
-        // Fallback (including the bare `/`): land on home. Better
-        // UX than a 404 for a typo'd URL; if it matters we add a
-        // real not-found screen later.
-        page = <HomePage session={session} />
+        const PlayArea = game.PlayArea
+        page = (
+          <GamePage
+            key={gameId}
+            gameId={gameId}
+            session={session}
+            manifest={game}
+          >
+            {(ctx) => (
+              // The two mount-only console breadcrumbs for "blank play
+              // area" reports — slot handed over vs game code actually
+              // committed. See PlayAreaMountLog for how to read them.
+              <PlayAreaSlotLog
+                gametype={gametype}
+                gameId={gameId}
+                playState={ctx.playState}
+                isTerminal={ctx.isTerminal}
+              >
+                <PlayAreaErrorBoundary>
+                  <Suspense fallback={<p>Loading game…</p>}>
+                    <PlayAreaReadyLog gametype={gametype} />
+                    <PlayArea {...ctx} />
+                  </Suspense>
+                </PlayAreaErrorBoundary>
+              </PlayAreaSlotLog>
+            )}
+          </GamePage>
+        )
       }
+    } else {
+      // Fallback (including the bare `/`): land on home. Better
+      // UX than a 404 for a typo'd URL; if it matters we add a
+      // real not-found screen later.
+      page = <HomePage session={session} />
     }
   }
 

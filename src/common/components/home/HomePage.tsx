@@ -2,7 +2,6 @@
 
 import { useRef, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import { Link } from '../../lib/routing/Link'
 import { navigate } from '../../lib/routing/router'
 import { SelectionList } from '../lists/SelectionList'
 import { cls } from '../../lib/util/cls'
@@ -20,8 +19,9 @@ import { PageHeader } from '../page-header/PageHeader'
 import { PageHeaderMenu } from '../page-header/PageHeaderMenu'
 import { useAccountMenuSection } from '../../hooks/account/useAccountMenuSection'
 import { useAppShortcuts } from '../../hooks/input/useAppShortcuts'
+import { StandardButton } from '../buttons/StandardButton'
+import { CreateClubModal } from '../club/CreateClubModal'
 import styles from './HomePage.module.css'
-import button from '../buttons/StandardButton.module.css'
 
 type ClubListEntry = {
   handle: string
@@ -40,8 +40,8 @@ type Props = {
  * The shell's `/` landing page.
  *
  * Pure shell content: who you are, the clubs you belong to
- * (including your own solo space), and a path to create a new
- * one.
+ * (including your own solo space), and the button that creates a
+ * new one — a modal over this page, so the list stays behind it.
  *
  * Solo clubs (handle = `=<username>`) are listed alongside
  * regular clubs, marked by a "Solo" BADGE on the row (the
@@ -67,6 +67,9 @@ export function HomePage({ session }: Props) {
   // answer we believe. Rendering an empty list without knowing which of these
   // we are in is what let this page tell people they had joined no clubs.
   const [load, setLoad] = useState<'loading' | 'loaded' | 'failed'>('loading')
+  // Is the create-club modal up? The dialog itself holds no such flag — it is
+  // mounted or it isn't (the pattern ClubPage uses for its two modals).
+  const [creating, setCreating] = useState(false)
 
   // Load every club the caller is a member of (incl. their solo club), IN
   // DISPLAY ORDER: solo clubs first, then newest-first within each group.
@@ -187,21 +190,18 @@ export function HomePage({ session }: Props) {
               existing club, go play) — which is the `quiet` tone, and
               the outline treatment says it isn't the obvious action.
 
-              A LINK WEARING THE BUTTON'S OWN CLASSES, which is a
-              stopgap and is written as one. A link is not a button, and this stops being one at F36
-              (`createclub-modal`), when creating a club becomes a modal
-              and this becomes a real `<StandardButton>`. Until then it
-              borrows the module directly — there is no global button
-              class left to compose, and an unstyled text link here
-              would be a visible regression on an audited page. */}
+              The `+` is a typed character, not a glyph: `icon` is available and
+              deliberately unused, because a plus sign IS the label here. */}
           <header className="heading-with-controls">
             <h3>Your clubs</h3>
-            <Link
-              to="/c/new"
-              className={cls(button.standardButton, button.secondary, button.quiet, button.small)}
-            >
-              + New club
-            </Link>
+            <StandardButton
+              name="New club"
+              label="+ New club"
+              weight="secondary"
+              tone="quiet"
+              small
+              onClick={() => setCreating(true)}
+            />
           </header>
           <SelectionList
             ref={clubsRef}
@@ -236,6 +236,17 @@ export function HomePage({ session }: Props) {
           />
         </section>
       </div>
+      {/* Creating a club is a modal, not a page (F36): the clubs list stays
+          behind it, because the act is ADD TO THIS LIST. Mounting opens it and
+          unmounting closes it — the modal holds no open/shut state of its own.
+          On success we go into the new club, which is what you made it for. */}
+      {creating && (
+        <CreateClubModal
+          onCreated={(handle) => navigate(`/c/${handle}`)}
+          onCancel={() => setCreating(false)}
+        />
+      )}
+
       {/* The "~" word-lookup dialog (owned by useAppShortcuts). Null when shut. */}
       {lookupDialog}
     </div>
