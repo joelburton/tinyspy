@@ -1043,3 +1043,235 @@ select pg_temp.envelope_is(
 - It lives in `supabase/tests/_shared/`, where the suite's other `pg_temp`
   helpers already are, and it is **built and proven against one game before the
   sweep** — the same plant-a-failure rule the SQL guard gets.
+
+---
+
+## 7. The conversion roster
+
+**139 entries. 3 done, 5 edge functions deferred, 131 to go.** Cross them off
+here as they land.
+
+An entry is one RPC or one table read **per area**, so the same name in two
+areas is two entries — each has its own call sites and converts separately.
+`clubs` is the live example: HomePage's read is done, ClubPage's is not.
+
+The order is Joel's: club page, auth, common, then the games.
+
+**Three names break the per-area rhythm.** `concede`, `end_game` and
+`replay_board` are each ONE frontend path (`useStandardGameActions`) over
+SIXTEEN SQL definitions, so converting the frontend converts every game at once
+and all sixteen SQL files must land together. Sequence them after the games, or
+accept a sixteen-file commit. They appear in several areas below, flagged.
+
+Everything else is self-contained. `create_game` appears sixteen times but each
+is a distinct function in its own schema, so it carries none of that cost — and
+the same is true of every game's reads (`games_state`, `players_state`, …).
+
+**`psychicnum` first among the games**, whatever its size: it is the
+deliberately-minimal toy, every one of its raises is already classified in §5,
+and its `submit_guess` is the first RPC returning a VERDICT rather than an
+identifier — a shape nothing has exercised yet.
+
+#### Club page
+
+- [x] `create_club` · RPC
+- [ ] `delete_game` · RPC
+- [ ] `set_club_gametypes` · RPC
+- [ ] `unset_current_view` · RPC
+- [ ] `clubs` · read
+- [ ] `clubs_gametypes` · read
+- [ ] `clubs_members` · read
+- [ ] `games` · read
+- [ ] `profiles` · read
+
+#### Auth
+
+- [ ] `claim_username` · RPC
+- [ ] `profiles` · read (2 call sites)
+
+#### Common
+
+- [ ] `add_word` · RPC
+- [x] `anagrams` · RPC
+- [ ] `concede` · RPC — cross-cutting, see above
+- [ ] `delete_word` · RPC
+- [ ] `end_game` · RPC — cross-cutting, see above
+- [ ] `replay_board` · RPC — cross-cutting, see above
+- [ ] `send_message` · RPC
+- [ ] `set_current_view` · RPC
+- [ ] `set_scratchpad` · RPC
+- [ ] `start_game` · RPC
+- [ ] `tick_timer` · RPC
+- [ ] `unset_current_view` · RPC
+- [ ] `update_profile_color` · RPC
+- [ ] `update_word` · RPC
+- [x] `clubs` · read (2 call sites)
+- [ ] `clubs_members` · read
+- [ ] `found_words` · read
+- [ ] `game_players` · read (2 call sites)
+- [ ] `game_scratchpads` · read
+- [ ] `games` · read (2 call sites)
+- [ ] `games_state` · read
+- [ ] `messages` · read
+- [ ] `profiles` · read (4 call sites)
+- [ ] `timers` · read
+- [ ] `words` · read
+- [ ] `common-define` · edge fn — deferred
+
+#### bananagrams
+
+- [ ] `check_board` · RPC
+- [ ] `concede` · RPC — cross-cutting, see above
+- [ ] `create_game` · RPC (3 call sites)
+- [ ] `dump` · RPC
+- [ ] `end_game` · RPC — cross-cutting, see above
+- [ ] `peel` · RPC
+- [ ] `replay_board` · RPC — cross-cutting, see above
+- [ ] `save_player_board` · RPC (3 call sites)
+- [ ] `player_boards` · read (3 call sites)
+- [ ] `progress` · read
+
+#### boggle
+
+- [ ] `end_game` · RPC — cross-cutting, see above
+- [ ] `submit_timeout` · RPC
+- [ ] `submit_word` · RPC (2 call sites)
+- [ ] `found_words` · read (2 call sites)
+- [ ] `games` · read (2 call sites)
+
+#### codenamesduet
+
+- [ ] `create_game` · RPC (2 call sites)
+- [ ] `pass_turn` · RPC
+- [ ] `submit_clue` · RPC (2 call sites)
+- [ ] `submit_guess` · RPC
+- [ ] `clues` · read
+- [ ] `games` · read (3 call sites)
+- [ ] `guesses` · read
+- [ ] `profiles` · read
+- [ ] `words` · read
+- [ ] `codenamesduet-suggest-clue` · edge fn — deferred
+
+#### connections
+
+- [ ] `create_game` · RPC (3 call sites)
+- [ ] `next_puzzle_for_club` · RPC (2 call sites)
+- [ ] `puzzle_for_date` · RPC
+- [ ] `submit_guess` · RPC
+- [ ] `games` · read (2 call sites)
+- [ ] `guesses` · read (2 call sites)
+- [ ] `players` · read
+
+#### crosswords
+
+- [ ] `create_game` · RPC
+- [ ] `export_solution` · RPC (2 call sites)
+- [ ] `library_for_club` · RPC
+- [ ] `next_nyt_date_for_club` · RPC
+- [ ] `set_cell` · RPC
+- [ ] `set_mark` · RPC
+- [ ] `cells` · read
+- [ ] `games` · read
+- [ ] `games_state` · read
+- [ ] `crosswords-explain-clue` · edge fn — deferred
+
+#### letterboxed
+
+- [ ] `log_help` · RPC
+- [ ] `submit_word` · RPC
+- [ ] `events` · read (2 call sites)
+- [ ] `games_state` · read (2 call sites)
+- [ ] `players_state` · read (2 call sites)
+
+#### psychicnum
+
+- [ ] `create_game` · RPC (2 call sites)
+- [ ] `submit_guess` · RPC (2 call sites)
+- [ ] `games` · read
+- [ ] `games_state` · read
+- [ ] `guesses` · read
+- [ ] `players` · read
+
+#### scrabble
+
+- [ ] `create_game` · RPC (2 call sites)
+- [ ] `exchange_tiles` · RPC
+- [ ] `pass_turn` · RPC
+- [ ] `play_word` · RPC
+- [ ] `games_state` · read (2 call sites)
+- [ ] `players_state` · read
+- [ ] `plays` · read
+- [ ] `scrabble-ai-move` · edge fn — deferred
+- [ ] `scrabble-suggest-move` · edge fn — deferred
+
+#### setgame
+
+- [ ] `create_game` · RPC (2 call sites)
+- [ ] `record_hint` · RPC
+- [ ] `submit_set` · RPC (2 call sites)
+- [ ] `events` · read
+- [ ] `games_state` · read (2 call sites)
+- [ ] `players` · read
+
+#### spellingbee
+
+- [ ] `submit_word` · RPC (2 call sites)
+- [ ] `found_words` · read
+- [ ] `games_state` · read
+
+#### stackdown
+
+- [ ] `create_game` · RPC (2 call sites)
+- [ ] `reveal_next_hint` · RPC
+- [ ] `reveal_next_word` · RPC
+- [ ] `submit_word` · RPC
+- [ ] `games` · read
+- [ ] `games_state` · read
+- [ ] `players` · read
+- [ ] `submissions` · read
+
+#### strands
+
+- [ ] `create_game` · RPC (2 call sites)
+- [ ] `next_puzzle_for_club` · RPC (2 call sites)
+- [ ] `puzzle_for_date` · RPC
+- [ ] `spend_hint` · RPC
+- [ ] `submit_path` · RPC (2 call sites)
+- [ ] `events` · read
+- [ ] `games_state` · read (2 call sites)
+- [ ] `players_state` · read
+
+#### waffle
+
+- [ ] `submit_swap` · RPC (2 call sites)
+- [ ] `games_state` · read (2 call sites)
+- [ ] `players_state` · read
+- [ ] `swaps` · read
+
+#### wordiply
+
+- [ ] `submit_guess` · RPC (3 call sites)
+- [ ] `games_state` · read (2 call sites)
+- [ ] `guesses` · read (2 call sites)
+
+#### wordle
+
+- [ ] `create_game` · RPC (2 call sites)
+- [ ] `submit_guess` · RPC (2 call sites)
+- [ ] `games_state` · read (2 call sites)
+- [ ] `guesses` · read
+- [ ] `players` · read
+
+#### wordwheel
+
+- [ ] `submit_word` · RPC (2 call sites)
+- [ ] `found_words` · read
+- [ ] `games_state` · read
+
+### Edge functions — deferred
+
+A second producer with a different mechanism: they return
+`json({ error: … }, 4xx)` rather than raising, so none of the SQL machinery
+reaches them. Nothing in the RPC conversions depends on them, and the board
+builders (not listed, since the frontend never calls them directly) are in the
+same position.
