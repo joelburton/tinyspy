@@ -226,11 +226,23 @@ them.
   and the rest) — different consumer, no fault surface, Deno reads rows fine.
 - **Sequencing.** Per-game, one at a time, the way the CSS sprint works — the
   envelope spec'd once up front, then games converted individually.
-- **The pgTAP cost.** `create_game` alone is called ~487 times across 168 test
-  files. Most of those need no change (~140 sit inside `throws_ok`/`lives_ok`
-  and discard the result), and the rest are temp-table setup lines that all
-  converge on one replacement shape — but `->>` returns text, so a `::uuid`
-  cast is mandatory and its absence is the thing that will bite. [XXX: let's talk about pgTAP & this move]
+- **The pgTAP cost — it isn't de-JSON.** Of 2,379 assertions, 1,683 (71%) read
+  table state and never touch a return value, so they're untouched. The JSON
+  handling is concentrated in ~347 temp-table setup lines, which all converge
+  on one shape: `create temp table g as select (x.create_game(…)->>'id')::uuid
+  as id` — and every downstream `(select id from g)` stays as it is. The
+  `::uuid` cast is mandatory (`->>` yields text) and forgetting it is the thing
+  that will bite.
+
+  **The real cost is that `throws_ok` stops being the right verb.** 366
+  assertions currently pin a SQLSTATE plus an exact key — `'P0001',
+  'not-your-turn|'` — against a call that will no longer throw. Both halves
+  change: the verb becomes an equality check on the envelope, the expected
+  value becomes prose. That's the single largest chunk of work in this plan,
+  bigger than the RPCs. A `pg_temp` helper (`pg_temp.rejects(sql, text, desc)`)
+  absorbs the JSON so no individual test does de-JSON and the conversion is a
+  one-line swap per assertion — the suite already leans on `pg_temp` helpers
+  everywhere.
 
 ---
 
