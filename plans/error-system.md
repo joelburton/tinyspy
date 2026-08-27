@@ -746,45 +746,69 @@ Three things to notice in this example:
 
 ## 6. Process
 
-**This is incremental, not a boil-the-ocean rewrite.** `ERROR_COPY` and the
-existing `serverError.ts` functions stay in place, working, for as long as any
-game still needs them. Games convert one at a time — and within a game, RPCs
-can convert one at a time. Nothing is deployed until it's all done, so a
-half-converted repo is fine.
+**Build the engine first, then convert one call at a time.** The engine is the
+part nothing else can proceed without; conversions are then a long tail of
+small, independent edits.
 
-**The shared helpers change first**, and they take `supabase/tests/common/`
-with them. The helpers (`common.require_game_player`, `_require_turn`,
-`require_valid_timer` and the dozen or so siblings) raise keys today and prose
-tomorrow, and they're called from everywhere, so there's no way to convert them
-per-game. Their tests — `helpers_test.sql`, `games_test.sql`,
-`turn_order_test.sql`, and the other 15 files under `tests/common/` — belong to
-no game, so nothing in the per-game rhythm would ever come back for them. They
-convert in that same first step.
+### Step 1 — the engine
 
-The alternatives were considered and rejected: renaming the helpers so old and
-new coexist just defers the work and leaves corpses to find later, and a
-forward-sweep converting every RPC's helper usage at once is the boil-the-ocean
-approach this avoids.
+Three pieces, built once, complete:
 
-**Unconverted games are knowingly broken in the meantime**, and the breakage is
-mild. An unconverted RPC has no catch block, so a helper's prose propagates as
-an exception; `parseServerKey` rejects it (prose doesn't end in `|`), `code` is
-set so it isn't transport, and it lands as a fault. The player sees
-`guess|Not your turn` in fault styling — the right words with the wrong look
-and a manual dismiss. Nothing is swallowed and nothing lies.
+1. **`dbFetch` reads the body and presents.** `res.clone().json()` leaves the
+   caller's stream intact. It logs every call, and it presents environmental
+   failures, raw faults, and declared faults — all three, from day one.
+2. **`callRpc` returns the envelope** instead of `null`. That's what makes it
+   usable at more than the 12 of 99 sites it reaches today.
+3. **The environmental copy** — the frontend's own small set of sentences, for
+   the failures where the server never spoke.
 
-**Don't run pgTAP until the game is converted.** Tests are per-game
-directories and `supabase test db --local` takes a path, so
-`supabase/tests/<game>` runs just that game. Convert the game's RPCs, convert
-its tests, then run them and fix what's actually wrong. Predicting the breaks
-in advance is work that duplicates what running the suite tells you, and it
-only pays off if you're still running the whole suite — which we aren't.
+**The engine needs no knowledge of the old system, because the SQLSTATE
+ownership test does the format detection for free.** An unconverted raise
+carries `P0001`, whose second character is `0`, so it fails
+`^P[AN][0-9]{3}$` and is simply "not ours" — a raw fault. There is no
+two-format seam and no transitional branch to delete later.
 
-**Per game, then, the loop is:** convert the RPCs to the envelope → move their
-messages into the raises with a kind → add the catch block → convert that
-game's pgTAP (including swapping `throws_ok` for the rejection helper) → run
-`supabase/tests/<game>` → fix. When the last game lands, `ERROR_COPY` drops to
-the environmental entries and the old `serverError.ts` machinery goes.
+### Step 2 — convert, one call at a time
+
+Each conversion moves one call from "not ours" to "ours". Per game:
+
+> convert the RPCs to the envelope → move their messages into the raises,
+> with a `PA`/`PN` code and a HINT → add the catch block → convert that game's
+> pgTAP (swapping `throws_ok` for the rejection helper) → run
+> `supabase/tests/<game>` → fix.
+
+Within a game, RPCs can go one at a time; direct queries convert independently
+of any game.
+
+**The shared helpers are their own conversion**, and they take
+`supabase/tests/common/` with them. `common.require_game_player`,
+`_require_turn`, `require_valid_timer` and their dozen siblings are called from
+everywhere, so there's no way to do them per-game; and their tests —
+`helpers_test.sql`, `games_test.sql`, `turn_order_test.sql`, and the other 15
+files under `tests/common/` — belong to no game, so nothing in the per-game
+rhythm would ever come back for them. Two rejected alternatives, for the
+record: renaming the helpers so old and new coexist defers the work and leaves
+corpses to find later, and a forward-sweep converting every caller at once is
+the boil-the-ocean approach this avoids.
+
+**Unconverted games are knowingly broken throughout**, and more visibly than an
+earlier draft of this section claimed. Their raises carry `P0001`, so the seam
+files them as raw faults and every routine rejection — "Not your turn" — pops a
+fault modal. That makes an unconverted game unpleasant to play, which is
+accepted: nothing is deployed until the whole sprint lands, and there is no
+play-testing of unconverted games in the meantime.
+
+**Don't run pgTAP until the game is converted.** Tests are per-game directories
+and `supabase test db --local` takes a path, so `supabase/tests/<game>` runs
+just that game. Convert, then run, then fix what's actually wrong. Predicting
+the breaks in advance duplicates what running the suite tells you, and only
+pays off if you're still running the whole suite — which we aren't.
+
+### Step 3 — the sweep-up
+
+When the last call converts: `ERROR_COPY` drops to the environmental entries,
+the old `serverError.ts` machinery goes, and `expectedTextOrFault` and the
+`action` parameter go with it.
 
 **The pgTAP cost — it isn't de-JSON.** Of 2,379 assertions, 1,683 (71%) read
 table state and never touch a return value, so they're untouched. The JSON
