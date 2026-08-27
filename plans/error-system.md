@@ -483,6 +483,60 @@ author writes rejection text at the raise. The frontend writes the
 environmental strings. Nothing in between needs a lookup table to reconcile
 them.
 
+### Faults and environmental failures are presented centrally
+
+**There is already one seam every Supabase call passes through.** `dbFetch` is
+installed as the client's `global.fetch` (`supabase.ts:84`), so PostgREST
+requests, table reads, edge functions and auth all go through it. Today it only
+logs — a non-2xx status, a slow success, a rejected fetch — because it never
+reads the body.
+
+Have it read the body (`res.clone().json()` leaves the caller's stream intact),
+and it can own all three of the outcomes a call site has no opinion about:
+
+| at the seam | action |
+|---|---|
+| the fetch rejected | environmental — the words live here, in one place |
+| the response is a raw Postgres error | raw fault |
+| the body says `{type: not-ok, severity: fault}` | declared fault |
+
+All three: log, then `presentFault()`, before the caller is resumed.
+
+**What reaches a call site is then only `ok`, `error`, or `validation`** — the
+three things it actually has an opinion about. It renders the words the server
+sent into its own pill or form line. It never classifies a failure, never
+words a network problem, and never calls `presentFault` itself.
+
+Two things fall out, and they're the point:
+
+- **The dual-purpose helpers go away.** `expectedTextOrFault` exists precisely
+  because a call site had to both obtain text *and* trigger a modal. Once the
+  modal has already happened centrally there is nothing left for it to do but
+  return a string, so it collapses into an ordinary accessor. The problem is
+  solved by deleting the side effect rather than by naming it carefully.
+- **The `action` parameter disappears.** Every call passes one today
+  (`failureMessage(error, 'guess')`) because a shared helper "cannot know which
+  button reached it". At the fetch seam we have the request path —
+  `POST /rest/v1/rpc/submit_guess` — which is more accurate than a hand-written
+  word and needs no maintenance.
+
+**The one `if` that stays** is a call site noticing it didn't get data, so it
+can clear its own `busy` flag or roll back an optimistic write. That's local
+state nothing else knows about — but it's a bail-out, not a decision, and it
+needs no error vocabulary at all.
+
+**Direct table reads live under the same rule.** They are not RPCs and get no
+envelope — an RPC has an authored judgment to report and a read does not, and
+93 of the ~192 call sites in `src/` are reads leaning hard on PostgREST
+composition (85 `.select()`, 69 `.eq()`, 31 `.single()`, 21 `.order()`).
+Converting them to RPCs would mean hand-writing ~93 query shapes and discarding
+the one thing PostgREST is good at. Instead the frontend normalizes them into
+the same call-site shape: rows (**zero included**) are `ok`, an error is a
+fault the seam has already presented. An invariant like "every profile has a
+solo club" is checked at the call site with its sentence written there — the
+same rule as the RPC side, with the frontend as author because the frontend is
+what knows the invariant. `HomePage.tsx:120` is the built example.
+
 ## 4. Still open
 
 **Settled since the first draft**, recorded here because the reasoning matters:
