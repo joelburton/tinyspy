@@ -5,7 +5,7 @@ The first area of the CSS sprint's step 7. The process is
 holds everything else.
 
 **Status: PAUSED 2026-08-26 behind the error/fault redesign**
-([error-copy-sprint.md](../error-copy-sprint.md)) — and the whole sprint with
+([error-system.md](../error-system.md)) — and the whole sprint with
 it (css-system-2.md's header). What is left here is F21
 (`homepage-no-vitest`), plus the ten dependency findings F45–F54, which belong
 to the areas that own those files.
@@ -672,7 +672,7 @@ none of it.
 >    'clubs')` then `presentFault(...)` — which also writes the `[db]` line the
 >    modal's diagnostics repeat. No new `ERROR_COPY` key: a transport failure
 >    already classifies as a fault, and the table is frozen behind
->    `plans/error-copy-sprint.md`.
+>    `plans/error-system.md`.
 > 2. **Zero rows after a SUCCESSFUL fetch** has no server error to classify, so
 >    it is a hand-raised `presentFault`, with a diagnostics line in the house
 >    shape (`clubs — key=no-clubs detail="…" — <stamp>`) built from the shared

@@ -1,3 +1,22 @@
+# DON'T READ THIS — VERY OUTDATED
+
+> **DON'T READ THIS — VERY OUTDATED.**
+>
+> Superseded in full on 2026-08-26 by
+> [error-system.md](error-system.md), which is the only spec for the
+> error/fault work.
+>
+> This plan was built on a premise that turned out to be false — that changing
+> a server error message would need a schema change and a migration. It
+> wouldn't: every raise lives in `supabase/sql/`, which is re-applied on every
+> deploy. Once that fell, so did most of the reason `ERROR_COPY` exists, and
+> refining its shape became work spent on a layer we're deleting.
+>
+> Kept only so its absence isn't mistaken for something lost. Open it if — and
+> only if — Joel says to.
+
+---
+
 # The error-copy sprint — A PLAN, to be built and deleted
 
 **This is a plan, not a description of the code.** It exists because the current

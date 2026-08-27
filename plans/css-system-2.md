@@ -50,7 +50,7 @@ findings F45–F54, which belong to the areas that own their files. Then §7 →
 "The areas, in order" from `simple-page`.
 
 **The work that pauses this one:**
-[plans/error-copy-sprint.md](error-copy-sprint.md).
+[plans/error-system.md](error-system.md).
 
 ---
 
