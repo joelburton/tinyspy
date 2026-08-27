@@ -505,8 +505,18 @@ The line gets drawn structurally rather than by judgment: `error` belongs to
 the `not-ok` branch as a severity, and everything on the `ok` branch picks from
 the outcome families. Nothing has to guess.
 
-**Severity is still not surface.** The server doesn't know which button was
-pressed. `create_game` is the live counter-example: the setup form calls it and
+**Severity is still not surface**, and `delete_game` is the first conversion to
+prove it in both directions. Its "That game was already deleted" is a `not-ok /
+error` — nothing bad happened, but two friends pressing the same button is
+unusual enough to be worth red — and the club page renders it as a **toast that
+waits to be dismissed**, while an ordinary success is a toast that self-clears.
+Neither reading is in the envelope: the server said `error`, and the page chose
+the corner because it has no local feedback area and the header slot is where
+*other people's* news goes (docs/ui.md → Toasts). Expect that question at every
+converted call site on a page without a local pill.
+
+The server doesn't know which button was
+pressed either. `create_game` is the live counter-example: the setup form calls it and
 so does the in-game "New game" button, and those deliberately render
 differently — the form shows a red line, the in-game button always shows the
 fault look, because setup already built a game once so anything coming back is
@@ -1103,7 +1113,7 @@ identifier — a shape nothing has exercised yet.
 #### Club page
 
 - [x] `create_club` · RPC
-- [x] `delete_game` · RPC — the first `PA`, and the first `ok` from a raise
+- [x] `delete_game` · RPC — and its feedback moved to toasts (see below)
 - [ ] `set_club_gametypes` · RPC
 - [ ] `unset_current_view` · RPC
 - [ ] `clubs` · read

@@ -1651,7 +1651,7 @@ grant execute on function common.tick_timer(uuid) to authenticated;
 --
 -- Outcomes:
 --   - ok               the row (and its subtree) is gone
---   - ok / noted       PA001 — it was already gone
+--   - not-ok / error   PN010 — it was already gone
 --   - a RAW fault      42501 from require_club_member, which is not
 --                      converted yet; not authenticated / not a member
 --                      both arrive in Postgres's own shape
@@ -1668,36 +1668,26 @@ declare
   v_msg text; v_detail text; v_hint text; v_code text; v_col text;
 begin
   select club_handle into target_club from common.games where id = target_game;
-  -- PA001 — an `ok`, and the first in the app. Deleting a game that is already
-  -- deleted is not a failure of any kind: it is the outcome the caller asked
-  -- for, and the two ways to arrive here are both timing rather than bugs — a
-  -- second click, or a friend who deleted the same game a moment earlier (the
-  -- club list is realtime, but the window between the DELETE and the sweep is
-  -- real). A fault modal for that would tell someone the app is broken when it
-  -- isn't; §3 of plans/error-system.md is explicit that an idempotent no-change
-  -- outcome stays `ok` with the news in `outcome`.
+  -- PN010 — reachable by a second click or by a friend deleting the same game
+  -- a moment earlier, so `error` rather than `fault`: the modal would claim a
+  -- bug where two people just pressed the same button. It is an error and not
+  -- an `ok` because it is unusual enough to be worth red.
   --
-  -- Contrast psychicnum's `game-not-found`, which IS a fault: you cannot play a
-  -- game that doesn't exist, but you can certainly finish deleting one.
-  --
-  -- Still a raise rather than an early `return`, so the shape of this function
-  -- matches every other converted RPC and the savepoint semantics hold.
+  -- A raise, not an early `return`, so every exit from this function goes
+  -- through the handler below.
   if target_club is null then
     raise exception 'That game was already deleted'
-      using errcode = 'PA001', hint = 'noted',
+      using errcode = 'PN010', hint = 'error', column = '_',
       detail = 'no common.games row for target_game';
   end if;
 
-  -- Unconverted shared helper: still raises 42501, which fails the ownership
-  -- test below and is re-raised as a raw fault. That is the right severity
-  -- anyway — the FE only draws the trash can on your own clubs' games — so
-  -- nothing here waits on the helper conversion.
+  -- Unconverted shared helper: its 42501 fails the ownership test below and is
+  -- re-raised, reaching the client as a raw fault.
   perform common.require_club_member(target_club);
 
   delete from common.games where id = target_game;
 
-  -- Nothing to say: the FE already knows the title (it looks it up before the
-  -- realtime DELETE sweeps the row) and composes "<title> deleted" itself.
+  -- No message: the FE knows the title and composes "<title> deleted" itself.
   return common.ok_envelope();
 
 exception when others then

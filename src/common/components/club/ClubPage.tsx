@@ -2,6 +2,8 @@
 
 import { failureText } from '../../lib/game/serverError'
 import { runRpc } from '../../lib/supabase/dbResult'
+import { showToast } from '../../lib/toast/toastStore'
+import { DEFAULT_TOAST_MS } from '../toasts/Toast'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { db as commonDb } from '../../db'
@@ -229,12 +231,6 @@ export function ClubPage({ handle, session }: Props) {
     }, 2500)
     return () => clearTimeout(timer)
   }, [activeGameId, presence])
-  // Shared error channel for club-page actions (delete-game today;
-  // future surfaces land here too rather than competing for
-  // screen space). Named for legacy reasons — once dominated by
-  // the no-setup-form direct-start path that's now excised; today
-  // it's a generic action error.
-  const [startError, setStartError] = useState<string | null>(null)
   // The set of gametypes this club is allowed to play, read from
   // common.clubs_gametypes. Seeded at club-creation (every gametype
   // for friend clubs; the solo-playable subset for solo clubs) and
@@ -430,14 +426,14 @@ export function ClubPage({ handle, session }: Props) {
    *
    * The card itself owns the confirm-flow state (idle → confirming
    * → deleting) and the auto-revert timeout; this function is
-   * called only when the user has already confirmed. We surface
-   * errors through `startError` since it's the existing
-   * club-page error channel and a separate `deleteError` slot
-   * would compete for the same screen real estate.
+   * called only when the user has already confirmed.
+   *
+   * Both answers are toasts — the club page has no local feedback
+   * area, and the header slot is for other people's news
+   * (docs/ui.md → Toasts).
    */
   async function handleDelete(gameId: string, isCurrent: boolean) {
     if (!club) return
-    setStartError(null)
 
     if (isCurrent) {
       // Open a temp channel matching the game's stable name and
@@ -490,29 +486,22 @@ export function ClubPage({ handle, session }: Props) {
 
     const res = await runRpc(commonDb.rpc('delete_game', { target_game: gameId }))
     if (res.type !== 'ok') {
-      // Whatever the server said goes on the list's error line. A fault has
-      // already put the modal up centrally, and the line is what remains once
-      // that is dismissed — this call site classifies nothing.
-      setStartError(res.message)
-      // Bubble so the card returns from 'deleting' to 'idle'. The Error is
-      // purely that signal: the words are already on screen.
+      // A fault has already raised the modal centrally, so a toast would say it
+      // twice. Anything else gets one, and with no `ms`: it waits to be
+      // dismissed.
+      if (res.severity !== 'fault') showToast({ message: res.message, tone: 'error' })
+      // The Error is only a signal to the card, which catches it and goes from
+      // 'deleting' back to 'idle'. The words are already on screen.
       throw new Error(res.message)
     }
-    // Surface a transient toast in the header's status slot so
-    // the user sees an explicit "yes, that worked" beat. Look up
-    // the title BEFORE the postgres-changes refetch sweeps the
-    // row out of allGames; the value is captured by the closure
-    // and survives the rerender.
-    //
-    // The server speaks only when it knows something we don't — "That game was
-    // already deleted", which arrives `ok` because a delete that finds nothing
-    // to delete is the outcome you asked for, not a failure. Ordinary success
-    // is a bare envelope, and the title is ours to compose.
+    // Look up the title BEFORE the postgres-changes refetch sweeps the row out
+    // of allGames; the value is captured by the closure and survives the
+    // rerender.
     const deleted = allGames.find((g) => g.gameId === gameId)
-    setGlobalFeedback({
-      tone: res.outcome ?? 'neutral',
-      text: res.message ?? `${deleted?.title ?? 'Game'} deleted`,
-      mode: { kind: 'timed' },
+    showToast({
+      message: `${deleted?.title ?? 'Game'} deleted`,
+      tone: 'success',
+      ms: DEFAULT_TOAST_MS,
     })
     // No explicit list refresh — the postgres-changes
     // subscription below fires DELETE on common.games and our
@@ -1022,7 +1011,6 @@ export function ClubPage({ handle, session }: Props) {
                 }
                 renderRow={(g) => <StartGameRow game={g} soloClub={soloClub} />}
               />
-              {startError && <p className="error">{startError}</p>}
             </div>
           </section>
 

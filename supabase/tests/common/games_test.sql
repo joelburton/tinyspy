@@ -632,9 +632,7 @@ select is(
   'precondition: target game has 2 game_players rows before delete'
 );
 
--- Delete as ada (club member). An ordinary success is a BARE envelope: the
--- club page already knows the game's title and composes its own toast, so
--- there is nothing for the server to say.
+-- Delete as ada (club member).
 select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   common.delete_game(current_setting('test.created_game_id')::uuid),
@@ -663,14 +661,12 @@ select is(
 -- delete_game — authorization + bad input
 -- ============================================================
 -- Non-member rejected (RLS-equivalent gate via require_club_member);
--- an unknown game is an `ok`, because a delete that finds nothing to
--- delete has produced the outcome the caller asked for.
+-- an unknown game comes back as a not-ok/error envelope.
 --
--- The non-member case still THROWS, and deliberately so: it comes from
--- common.require_club_member, a shared helper that converts as its own
--- unit (plans/error-system.md → §6). Its 42501 fails delete_game's
--- ownership test and is re-raised untouched, which is exactly what a raw
--- fault looks like — the right severity in the meantime.
+-- The non-member case still THROWS, and deliberately so: 42501 comes
+-- from common.require_club_member, a shared helper that converts as its
+-- own unit (plans/error-system.md → §6), so it fails delete_game's
+-- ownership test and is re-raised untouched.
 
 select pg_temp.as_jwt_only('dee44444-4444-4444-4444-444444444444');
 select throws_ok(
@@ -686,9 +682,9 @@ select throws_ok(
 select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   common.delete_game('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'::uuid),
-  '{"type": "ok", "outcome": "noted", "dbcode": "PA001",
+  '{"type": "not-ok", "severity": "error", "dbcode": "PN010",
     "message": "That game was already deleted"}'::jsonb,
-  'delete_game: an already-gone game is ok/noted, not a fault'
+  'delete_game: an already-gone game is an error, not a fault'
 );
 
 -- ============================================================

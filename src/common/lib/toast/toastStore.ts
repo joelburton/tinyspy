@@ -12,10 +12,9 @@ import { useSyncExternalStore, type ReactNode } from 'react'
  * included), they carry an X and an optional single action, and multiple ones
  * stack. See `Toast.tsx` (the card) + `ToastHost.tsx` (the fixed stack).
  *
- * Lifecycle: a toast persists until the user closes it (X) or acts on it — no
- * auto-timeout, because an announcement worth surfacing is worth keeping until
- * it's dealt with (the game invitation is the motivating case). A reactive
- * source (e.g. the invitation watcher) keeps a toast in sync by calling
+ * Lifecycle: a toast persists until the user closes it (X) or acts on it, unless
+ * it names an `ms` to self-clear after (`DEFAULT_TOAST_MS` is the usual one). A
+ * reactive source (e.g. the invitation watcher) keeps a toast in sync by calling
  * `showToast` with a STABLE `id` (idempotent replace) and `dismissToast` when
  * the underlying thing goes away.
  */
@@ -40,6 +39,9 @@ export type ToastSpec = {
   message: ReactNode
   /** Accent-stripe color; purely cosmetic. Default `info`. */
   tone?: ToastTone
+  /** Self-clear after this many milliseconds. Omitted, it waits for the X or
+   *  the action button. `DEFAULT_TOAST_MS` is the usual value. */
+  ms?: number
   /** An optional single action button (e.g. Join). */
   action?: ToastAction
   /** Side effect when the user CLOSES the toast (the X). Not fired by the
