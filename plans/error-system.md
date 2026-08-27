@@ -768,6 +768,35 @@ carries `P0001`, whose second character is `0`, so it fails
 `^P[AN][0-9]{3}$` and is simply "not ours" — a raw fault. There is no
 two-format seam and no transitional branch to delete later.
 
+**Where the new machinery lives.** One new file under
+`src/common/lib/supabase/`, holding the envelope types, the classifier, the
+small copy table, and the wrapper that replaces `callRpc`. The location is
+chosen for the old/new split: `lib/game/` is where the machinery being deleted
+lives (`errorCopy.ts`, `serverError.ts`, `callRpc.ts`), so putting the new file
+there would re-create the "is this new or old?" question this is meant to
+avoid. Under `lib/supabase/` it sits beside `dbFetch`, which is what it is
+about, and `lib/game/` is left as a clean deletion set.
+
+**`dbFetch` is the one edit to an existing file** — a hook calling into the new
+module, not logic. Everything the seam does lives in the new file.
+
+**The copy table is new and small, not an addition to `ERROR_COPY`.** That
+table is big, messy, and deleted wholesale at the end; growing it now would be
+work thrown away and would blur which entries belong to which system. The new
+one has two halves:
+
+- **Environmental** — permanent residents, because the server never spoke and
+  no author could have written for them: no network, a request that died in
+  transit, `PGRST202` after a reset, a dead edge-function container.
+- **Raw faults we want to word better** — and this half should stay nearly
+  empty, by a principle rather than by discipline: **if a raw fault deserves
+  nice words, that is a signal it should have been a declared fault instead.**
+  Anything we can anticipate well enough to write copy for, we can anticipate
+  well enough to raise with a `PN` code and a sentence at the site. So each
+  entry here is a small admission, and the only permanent ones are what we
+  structurally cannot declare — an RLS `42501`, a deadlock, a violation of a
+  constraint that lives in a migration rather than in our SQL.
+
 ### Step 2 — convert, one call at a time
 
 Each conversion moves one call from "not ours" to "ours". Per game:
