@@ -966,10 +966,22 @@ one has two halves:
 
 Each conversion moves one call from "not ours" to "ours". Per game:
 
-> convert the RPCs to the envelope → move their messages into the raises,
-> with a `PA`/`PN` code and a HINT → add the catch block → convert that game's
-> pgTAP (swapping `throws_ok` for the rejection helper) → run
-> `supabase/tests/<game>` → fix.
+> **drop the function** → convert it to the envelope → move its message into
+> the raise, with a `PA`/`PN` code, a HINT and a COLUMN → add the catch block →
+> convert that game's pgTAP (swapping `throws_ok` for `envelope_is`) → run it →
+> fix.
+
+**The drop comes first and is not optional.** `create or replace` cannot change
+a function's return type, and every conversion changes it:
+
+```
+ERROR:  cannot change return type of existing function
+```
+
+So each converted function is preceded by `drop function if exists
+common.thing(argtypes);` — with `if exists`, because `supabase/sql/` is
+re-applied in full on every deploy. Both conversions so far hit this, and the
+first one hid the error behind a `grep` filter and looked like it had worked.
 
 Within a game, RPCs can go one at a time; direct queries convert independently
 of any game.
@@ -992,11 +1004,27 @@ fault modal. That makes an unconverted game unpleasant to play, which is
 accepted: nothing is deployed until the whole sprint lands, and there is no
 play-testing of unconverted games in the meantime.
 
-**Don't run pgTAP until the game is converted.** Tests are per-game directories
-and `supabase test db --local` takes a path, so `supabase/tests/<game>` runs
-just that game. Convert, then run, then fix what's actually wrong. Predicting
-the breaks in advance duplicates what running the suite tells you, and only
-pays off if you're still running the whole suite — which we aren't.
+**Don't run pgTAP until the game is converted.** Convert, then run, then fix
+what's actually wrong. Predicting the breaks in advance duplicates what running
+the suite tells you, and only pays off if you're still running the whole suite
+— which we aren't.
+
+**How to run one file**, because the obvious way does not work:
+
+```sh
+psql "$DB_URL" -f supabase/tests/<game>/<file>_test.sql
+```
+
+`supabase test db --local supabase/tests/<game>` looks like it should work and
+does not: pointing it at a subdirectory mounts only that directory, so
+`\ir ../_shared/setup.psql` fails and EVERY test in it dies with "No plan found
+in TAP output" rather than a useful failure. The `psql` form runs on the host,
+where the relative path resolves — but pgTAP is installed by the container per
+run, so a local database needs it once:
+
+```sh
+psql "$DB_URL" -c "create extension if not exists pgtap with schema extensions;"
+```
 
 ### Step 3 — the sweep-up
 
