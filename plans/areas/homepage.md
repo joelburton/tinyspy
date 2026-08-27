@@ -4,8 +4,13 @@ The first area of the CSS sprint's step 7. The process is
 [css-system-2.md](../css-system-2.md) §21; the plan holds the order, this file
 holds everything else.
 
-**Status: REOPENED 2026-08-26 — F36 and F44 are closed, and F21 is the only
-finding left.** `floating-panels` and `forms` both landed, which is what the
+**Status: PAUSED 2026-08-26 behind the error/fault redesign**
+([error-copy-sprint.md](../error-copy-sprint.md)) — and the whole sprint with
+it (css-system-2.md's header). What is left here is F21
+(`homepage-no-vitest`), plus the ten dependency findings F45–F54, which belong
+to the areas that own those files.
+
+Before the pause: **F36 and F44 closed, and F55 fixed.** `floating-panels` and `forms` both landed, which is what the
 2026-08-24 pause was waiting for:
 
 - **F44 (`action-button-text-only`)** was answered by `forms` — `icon` is

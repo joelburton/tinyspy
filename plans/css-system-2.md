@@ -24,6 +24,36 @@ loses its story; how something was discovered is `css-philosophy.md`'s.
 
 ---
 
+## PAUSED 2026-08-26 — behind the error/fault redesign
+
+Joel: *"there's no point continuing this sprint before we fix the error/fault
+system. how could we really audit the site with a rotting fish head at the
+center."*
+
+**Nothing here is withdrawn; the sequence changed.** The next two areas are the
+error-heavy ones — `simple-page` is `ErrorPage`, `Loading` and
+`ClaimHandleScreen` (the last file holding SQLSTATE branches), and `club-page`
+owns the two page-load failures and the setup dialog's error line. Auditing
+those means auditing surfaces whose content model is about to change, while
+`ERROR_COPY` has been frozen the whole time and every area has worked around it.
+The homepage area alone produced four error findings and two fixes on the day
+this was called.
+
+It is also good timing rather than merely necessary: this sprint has already
+built the surfaces the error system renders into — `FailureLine`, `Field`,
+`StandardForm`, the floating-panel families, `ErrorPage` wearing the fault look
+— so the redesign targets real components instead of inventing them.
+
+**Where to resume:** [plans/areas/homepage.md](areas/homepage.md) — one finding
+open (F21 `homepage-no-vitest`, deliberately last) plus the ten dependency
+findings F45–F54, which belong to the areas that own their files. Then §7 →
+"The areas, in order" from `simple-page`.
+
+**The work that pauses this one:**
+[plans/error-copy-sprint.md](error-copy-sprint.md).
+
+---
+
 ## 0. What this sprint turned out to be
 
 It began as CSS. It is a **sweep, area by area — homepage, clubpage, then each

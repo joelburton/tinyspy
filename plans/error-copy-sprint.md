@@ -3,7 +3,14 @@
 **This is a plan, not a description of the code.** It exists because the current
 error-message design was found to be wrong in a way that can't be patched: not a
 list of miscategorized entries, but a shape that makes miscategorizing them the
-default. Nothing here is scheduled. When the work lands, whatever survives of it
+default.
+
+**SCHEDULED 2026-08-26, and the CSS sprint is paused behind it** (Joel: *"there's
+no point continuing this sprint before we fix the error/fault system. how could
+we really audit the site with a rotting fish head at the center."*). See
+[css-system-2.md](css-system-2.md)'s header for why the timing works out: the
+next two CSS areas are the error-heavy ones, and the CSS sprint has already
+built the surfaces this system renders into. When the work lands, whatever survives of it
 moves into [ui.md](../docs/ui.md) and [code-conventions.md](../docs/code-conventions.md) and this
 file goes away.
 
@@ -108,11 +115,103 @@ anything** — it renames, and adds one tone:
 - The 21 `info` entries were left exactly as they are, including the two called
   out above as dangerous. **They are known wrong and deliberately unfixed.**
 
+## The API surface is the other half of the problem (added 2026-08-26)
+
+The plan above is about the TABLE — which sentences exist and what tone they
+wear. Everything in this section is one layer up: the four functions
+`lib/game/serverError.ts` exports, and who picks between them. Found while
+fixing one create-club bug, which turned out to be the second instance of the
+same class in a day.
+
+### Four functions, two crossed axes, and nothing checks the answer
+
+|  | fault → the modal | fault → this surface |
+|---|---|---|
+| **returns a `GenericFeedbackMsg`** | `failureMessage` | `faultMessage` |
+| **returns a string** | `expectedTextOrFault` | `failureText` |
+
+A caller has to know its position on BOTH axes, no type expresses either, and
+the wrong pick is silent. Two live instances, found the same afternoon:
+
+- **create-club** called the string form, so a dead connection printed
+  "create club: Server; try refresh" into the form's red line while the same
+  failure in `EditClubModal` — one dialog away, same family — raised the fault
+  modal. Fixed 2026-08-26 (homepage F55).
+- **stackdown ×3** hands `failureText`'s words to `showLocalFeedback`, which is
+  a string-shaped PILL path — the thing `serverError.ts`'s own docstring
+  forbids in writing. A fault there paints an ordinary error pill and no modal.
+  NOT fixed; it belongs to stackdown's area or to this sprint.
+
+Three more are suspect and each is a real decision rather than a typo:
+`bananagrams/usePlayerBoard` (a fault becomes a check-board result),
+`ChatBody` and `AnagramDialog` (both panel surfaces, which `docs/ui.md` says
+use the expected/fault helper).
+
+### The second axis exists only because sinks disagree about their input type
+
+If every sink took `GenericFeedbackMsg`, the string column collapses and one
+function is left. The string variants are not a design; they are an
+accommodation for surfaces built before the message type existed.
+
+**The shape it wants to be**, as a starting point rather than a decision:
+
+1. `failureMessage(error, action)` is the only classifier anyone calls.
+2. Routing lives in the DISPLAY, not the call site. `<FailureLine>` (built by
+   the CSS sprint's `forms` area) takes the message instead of a `ReactNode`:
+   expected → render the words; fault → hand it to the modal and render
+   nothing. The pill hooks already work this way.
+3. The idiom everywhere becomes `setFailure(failureMessage(error, 'club'))`,
+   and no call site chooses a policy.
+4. `expectedTextOrFault` and `failureText` both delete. What is shared is a
+   private one-line `textOf(msg)`, not an exported function.
+5. **Presenting a fault must not happen during render** — the routing belongs
+   at the setter (a small `useSurfaceFailure()` returning `[node, setFailure]`),
+   not inside a component body.
+
+### The four surfaces any new design has to answer
+
+This is the acceptance test, and it is why "just use one function" is not
+already the answer:
+
+| surface | today | what it needs |
+|---|---|---|
+| a pill slot (a board, a game hook) | `failureMessage` | faults route themselves out of the slot — already works |
+| a form or panel line | `expectedTextOrFault` | words for an expected rejection, modal for anything else |
+| an action that cannot fail in play (in-game "New game") | `faultMessage` | always the fault look, even for a key with copy |
+| a page that IS the fault display (`ErrorPage`) | `failureText` | the classifier's words rendered in the fault's own language, diagnostics included, no modal — there is no page to put one over |
+
+The last row is the one that nearly got legislated away: `ClubPage`'s two load
+failures looked like a fault being swallowed, and are not. `HomePage` pops a
+modal because its list is still there to sit behind it; a club page that did not
+load HAS no page, so it becomes the fault surface itself (F39
+`loading-and-errors`). Two situations, one rule — not a disagreement.
+
+### The freeze is itself evidence
+
+`ERROR_COPY` has been closed to new entries since this file was written, and two
+changes on 2026-08-26 needed a key anyway (`club-name-taken`,
+`club-name-too-short`). Both were let through one at a time by hand. A table
+that has to be unblocked per-entry to let ordinary work proceed is a table whose
+shape is wrong, which is this file's thesis stated from the other end.
+
+### Keys the server still does not raise
+
+The FE reads a Postgres SQLSTATE in exactly one file now:
+`ClaimHandleScreen` (`23505`, `23503`), because `claim_username` lets its own
+constraint violations escape. `create_club`'s two were closed 2026-08-26 by
+catching the violation and raising `club-name-taken|<handle>|`, plus a missing
+floor check that made a raw `23514` reachable with a two-letter name. The same
+treatment finishes the job — and needs two more `ERROR_COPY` keys, which is why
+it waited for this sprint.
+
 ## Where to start
 
 1. Decide the shape first (the direction above), because the categories fall out
    of it. Recategorizing 74 entries inside the current design would be work
-   thrown away if the design changes.
+   thrown away if the design changes. **The table's shape and the API's shape
+   are one question, not two** — "he who hits the error describes it fully"
+   changes what a call site receives, which is what the four functions are
+   arguing about.
 2. Whatever the shape, the vocabulary needs settling: what distinguishes a
    refusal, a lost race, a validation failure, and a fault — and which of those
    a player should be able to tell apart at a glance.
