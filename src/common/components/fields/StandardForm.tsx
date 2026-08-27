@@ -47,7 +47,7 @@ export function StandardForm<V extends object>({
    *  by a form that still holds its own state in the component — the fields
    *  there pass `value`/`onChange` explicitly and never look here. */
   initialValues?: V
-  /** Keyed by field `name`; `FORM_ERROR` for the form's own line. */
+  /** Keyed by field `name`; `FORM_ERROR_KEYNAME` for the form's own line. */
   errors?: FormErrors
   /** Submitted, with what the fields hold. The default action is already
    *  prevented — a form's job here is to hand over values, not an event. A form

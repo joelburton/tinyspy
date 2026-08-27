@@ -2353,7 +2353,7 @@ and `:562` (load club / load members) have the same shape and are `club-page`'s.
 >
 > **THE TWO CODE ARMS ABOVE IT ARE UNCHANGED, and that is the boundary worth
 > stating**: `23505` (name taken) and `23514` (the handle CHECK backstop) still
-> write their sentences into the form, as does the local `handleError` check
+> write their sentences into the form, as does the local `getErrorTextForSlug` check
 > before the call. Those are answers a player acts on by picking another name —
 > Joel's standing rule is that validation and answers stay in-form — so they are
 > not failures in the sense this finding is about. If a taken name should pop

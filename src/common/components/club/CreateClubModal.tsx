@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { StandardForm } from '../fields/StandardForm'
-import { FORM_ERROR, useFormValues, type FormErrors } from '../fields/formState'
+import { FORM_ERROR_KEYNAME, useFormValues, type FormErrors } from '../fields/formState'
 import { useState } from 'react'
 import { db as commonDb } from '../../db'
 import { runRpc } from '../../lib/supabase/dbResult'
@@ -26,7 +26,7 @@ type Props = {
  * Mirrors `common.slugify_club_name` in the SQL baseline — same
  * shape (lowercase → strip non-alphanumeric → collapse to single
  * hyphens → trim ends → cap at 40 chars). Used to pre-validate the
- * derived handle on the FE (see `handleError`) and to name the handle
+ * derived handle on the FE (see `getErrorTextForSlug`) and to name the handle
  * in the "name is taken" message; the server runs the canonical
  * version before insert.
  *
@@ -54,7 +54,7 @@ function slugify(name: string): string {
  * and a message that can name the derived handle — the server sees a handle
  * and never knows which name produced it.
  */
-function handleError(slug: string): string | null {
+function getErrorTextForSlug(slug: string): string | null {
   if (/^[a-z][a-z0-9-]{2,29}$/.test(slug)) return null
   if (!slug) return 'Please use at least one letter or number in the name.'
   if (!/^[a-z]/.test(slug)) {
@@ -122,7 +122,7 @@ const EMPTY: Values = { club_name: '', member_usernames: '' }
  * the form now. That is the whole cost of the form owning its state, and it
  * buys a self-contained piece of UI in exchange for an inline ternary.
  */
-function HandleHint() {
+function LiveClubNameFromFormValue() {
   const { club_name } = useFormValues<Values>()
   if (!club_name.trim()) return null
   const slug = slugify(club_name)
@@ -149,7 +149,7 @@ export function CreateClubModal({ onCreated, onCancel }: Props) {
     // too-short / non-letter-leading name gets guidance, not the raw
     // clubs_handle CHECK violation. Same object as the server's answers —
     // whoever noticed the problem writes into one place.
-    const slugErr = handleError(slugify(trimmed))
+    const slugErr = getErrorTextForSlug(slugify(trimmed))
     if (slugErr) {
       setErrors({ club_name: slugErr })
       return
@@ -177,7 +177,7 @@ export function CreateClubModal({ onCreated, onCancel }: Props) {
       //
       // A fault says `_` and lands on the form's own line; it has also already
       // raised the modal, and the line is what remains once that is dismissed.
-      setErrors({ [res.field ?? FORM_ERROR]: res.message })
+      setErrors({ [res.field ?? FORM_ERROR_KEYNAME]: res.message })
       return
     }
     // Don't bother clearing `busy` — onCreated navigates away and unmounts us.
@@ -216,7 +216,7 @@ export function CreateClubModal({ onCreated, onCancel }: Props) {
           label={
             <span className={styles.labelRow}>
               Club name
-              <HandleHint />
+              <LiveClubNameFromFormValue />
             </span>
           }
           disabled={busy}
@@ -239,7 +239,7 @@ export function CreateClubModal({ onCreated, onCancel }: Props) {
 
         {/* The form's own line, for a message that named no field. Each
             field's own message renders under that field, not here. */}
-        <FailureLine>{errors[FORM_ERROR]}</FailureLine>
+        <FailureLine>{errors[FORM_ERROR_KEYNAME]}</FailureLine>
 
         <div className={actionRow.modalActions}>
           <CancelButton onClick={onCancel} disabled={busy} />

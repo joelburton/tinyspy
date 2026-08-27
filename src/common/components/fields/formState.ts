@@ -18,13 +18,8 @@ export type FormErrors = Record<string, string>
 
 /**
  * The key for a message that belongs to the FORM rather than to a field.
- *
- * `'_'` is the same marker SQL raises as its `COLUMN` when an author decides a
- * validation isn't about one input, so one string serves the raise, the
- * envelope and the form. No field can collide with it: a `name` is a real RPC
- * parameter name, and no parameter is called `_`.
  */
-export const FORM_ERROR = '_'
+export const FORM_ERROR_KEYNAME = '_'
 
 /**
  * **The form owns what is being typed into it**, and hands it down.
@@ -72,7 +67,7 @@ export function useFormField(name: string | undefined) {
  * a section that appears once a box is ticked.
  *
  * Reading them takes a component, which is the small price of the form owning
- * its own state: the parent writes `<HandleHint />` instead of an inline
+ * its own state: the parent writes a small component instead of an inline
  * ternary over a variable it was holding.
  */
 export function useFormValues<V>(): V {
