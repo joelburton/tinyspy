@@ -211,9 +211,19 @@ them.
 - **The exact envelope keys and the discriminator vocabulary.** Deliberately
   not settled here.
 - **Whether the idempotent no-change case earns its own discriminator value.**
-- **Multi-row query RPCs** (`common.anagrams`, the puzzle pickers, the
-  board-builder feed queries that edge functions call). Deferred — nothing in
-  this design depends on converting them. [XXX: but we need to have them return JSONB, right? that's how the whole things works?]
+- **Multi-row query RPCs.** Split by consumer. **FE-facing ones convert** —
+  `common.anagrams`, `crosswords.library_for_club`, and the
+  `next_puzzle_for_club` / `puzzle_for_date` pairs. The rule is structural
+  ("FE-facing ⇒ envelope"), not "converts if it can reject": five of the six
+  are pure reads today, but `common.anagrams` already raises
+  `bad-anagram-input` — whose copy is a real user-facing line — and a
+  conditional rule would silently turn the next such validation into a fault.
+  Converting also closes a hole unique to this shape: a `returns table`
+  function that falls off the end yields **zero rows, silently**, and zero rows
+  is a legitimate answer, so nothing can tell "no matches" from "never ran".
+  The cost is the generated row types, traded knowingly. **Edge-function-fed
+  ones stay as they are** (`candidate_words`, `pick_seed`, `matching_words`,
+  and the rest) — different consumer, no fault surface, Deno reads rows fine.
 - **Sequencing.** Per-game, one at a time, the way the CSS sprint works — the
   envelope spec'd once up front, then games converted individually.
 - **The pgTAP cost.** `create_game` alone is called ~487 times across 168 test
