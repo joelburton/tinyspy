@@ -110,6 +110,13 @@ So:
 | the **raw Postgres/PostgREST shape** (`{code, message, details, hint}`) | nobody anticipated it — constraint violation, missing function, deadlock, permission denied | always a fault |
 | **no reply at all** | environmental — offline, server down, dead edge container | always a fault |
 
+**Nomenclature: a "raw fault" is one that arrives in Postgres's own shape**, as
+opposed to a fault we declared, which arrives as an envelope with `severity:
+fault`. Both render the same to a player; they are completely different to
+debug, because a declared fault has a named condition and a written reason and
+a raw fault has neither. Use the term in code, comments, and conversation — the
+distinction is worth a word.
+
 An earlier draft made the fault test "is there an envelope", which put the
 faults we *did* anticipate on the same side as the ones nobody ever thought
 about. Those are different debugging situations: one has a named condition and
@@ -222,6 +229,34 @@ two levels exist to remove.
 | **fault** | a bug | nothing | modal / fault page | `console.error` |
 
 …and `ok` sits at `console.debug`.
+
+**An `ok` outcome can come out of a `raise`.** `already-guessed` is
+`{type: ok, outcome: warning}`, but in SQL it is a `raise` today and stays one:
+the catch block reads the SQLSTATE, sees that this condition is an `ok`, and
+builds a success envelope from the exception handler. It reads oddly the first
+time — an exception producing `type: ok` — but it buys two things worth the
+strangeness. Control flow at all 442 raise sites is untouched, so the "one
+catch block per RPC, not 442 edits" property survives; and the savepoint still
+rolls back anything the body wrote before the condition was noticed, which an
+early `return` would not.
+
+**The raise's four fields each get exactly one job:**
+
+| field | carries | audience |
+|---|---|---|
+| MESSAGE | the player-facing sentence | the player |
+| DETAIL | the debugging line | the `[db]` log and the fault modal's diagnostics |
+| ERRCODE | `ok`, or which `not-ok` severity | the catch block |
+| HINT | the `outcome` for an `ok` — `warning`, `noted`, … | the catch block only |
+
+HINT is purely **inter-function**: the catch block consumes it to build the
+envelope and does not forward it. (It does reach the frontend on a raw fault,
+where PostgREST relays it, but nothing we author travels that way.)
+
+**`not-ok` sends no tone.** Severity is enough — a fault is a modal, a
+validation is the form's red line, an error is a wait-and-retry pill. There is
+no per-message color decision left to make on that branch, which is why
+`outcome` lives only under `ok`.
 
 **`ok` is wider than "the move was good."** The server does not distinguish a
 good move from a bad one — a word already on the board, a guess you already
@@ -391,11 +426,10 @@ Genuinely open:
   meaning so it says only "look at `severity`", where a word with content
   (`problem`, `error`) would invite the reader to wonder how it differs from
   `severity: error`.
-- **Whether the tone rides in its own SQLSTATE per value, or in `HINT`.**
-  SQLSTATE-per-tone fails loudly — a typo'd code isn't caught, so it bubbles as
-  a fault — while a typo'd `HINT` string yields a bogus tone quietly. `HINT`
-  reads better at the raise site. Either way it wants a guard test pinning the
-  code↔tone table.
+- **A guard test pinning the ERRCODE and HINT vocabularies.** Both are strings
+  in SQL that nothing type-checks. A typo'd errcode isn't caught by the handler
+  so it bubbles as a raw fault — loud, and survivable. A typo'd HINT yields a
+  bogus `outcome` quietly, which is the one that needs the guard.
 - **Transient contention.** A deadlock (`40P01`) or serialization failure
   (`40001`) is neither a bug nor a broken server, and the right answer is
   usually a silent retry rather than a fault. It's the one member of the
@@ -517,12 +551,11 @@ begin
       using errcode = <fault>, detail = 'budget spent';
   end if;
 
-  -- Coop only: a teammate can take the word while your call is in flight.
-  -- In compete the FE knows every guess that counts, so the same condition
-  -- is a bug. `g.mode` is right here, so the raise can say which.
+  -- Still a raise, and still in the same place — but this one is an `ok`.
+  -- ERRCODE says so; HINT carries the outcome the pill should wear.
   if <already guessed in scope> then
     raise exception 'Already guessed'
-      using errcode = case when g.mode = 'coop' then <error/warning> else <fault> end,
+      using errcode = <ok>, hint = 'warning',
             detail = 'word already in the guess log';
   end if;
 
@@ -532,10 +565,16 @@ begin
            data: { verdict: <hit or miss>, found_all: <bool> },
            meta: { guesses_remaining: caller_remaining } };
 
+-- One block, for every authored condition in the function. It reads the
+-- SQLSTATE to decide which branch it is building, and for an `ok` reads HINT
+-- for the outcome. It has never heard of any specific condition.
 exception when <any code we authored> then
+  get stacked diagnostics <msg, detail, hint, code>;
+  if <the code says ok> then
+    return { type: ok, outcome: <the hint>, message: <the MESSAGE> };
+  end if;
   return { type: not-ok, severity: <from the sqlstate>,
-           message: <the raise's MESSAGE>, code: <the sqlstate>,
-           detail: <the raise's DETAIL> };
+           message: <the MESSAGE>, code: <the sqlstate>, detail: <the DETAIL> };
 end $$;
 ```
 
