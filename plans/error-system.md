@@ -24,9 +24,17 @@ of the RPC, who is looking straight at the condition that triggered them.
 
 Failures have a chokepoint and a shape: every failed call funnels through
 `serverError.ts`, and every raise looks like `key|detail|`. **Results have
-neither.** There is no shared RPC wrapper anywhere — every call site calls
-`db.rpc()` raw and destructures whatever comes back. The console proves it:
-`[db]` speaks on failure and is silent on success.
+neither**, and the proof is what happened to the one wrapper we do have.
+
+`callRpc.ts` wraps an RPC call, classifies the failure and names the action —
+but it reaches only **12 of 99 RPC call sites**, because it returns `null` on
+success. It *has* to: for a `returns void` RPC there is genuinely nothing to
+hand back, so a wrapper that worked for those could not also serve a call whose
+result the caller needs. One wrapper, usable only where the caller wants
+nothing. Every other site calls `db.rpc()` raw.
+
+The console shows the same asymmetry from the other side: `[db]` speaks on
+failure and is silent on success.
 
 That asymmetry is the actual problem, and three symptoms fall out of it:
 
@@ -37,6 +45,12 @@ That asymmetry is the actual problem, and three symptoms fall out of it:
   `text`, `int`, and `boolean`.
 - **There's nowhere to put metadata.** How many rows were searched, which
   branch ran, how long it took — no slot exists for any of it.
+
+Note what this means for the fix: giving every RPC an envelope does not
+*automatically* collapse the two classes of call site. It removes the reason
+they had to exist. `callRpc` still has to be rewritten to hand the envelope
+back, and the other 87 sites still have to be converted to it — per game,
+alongside the rest of that game's work.
 
 ## 3. The shape
 
@@ -523,6 +537,48 @@ two strings today.
 author writes rejection text at the raise. The frontend writes the
 environmental strings. Nothing in between needs a lookup table to reconcile
 them.
+
+### The environmental copy
+
+Strictly environmental means **the fetch never completed**, and there are only
+two distinguishable causes: `navigator.onLine` was false, or it wasn't. That is
+the two strings `classifyFailure` carries today. `PGRST202` and a dead
+edge-function container are *not* in this half — they arrive as real HTTP
+responses with codes, so they are raw faults that may earn nicer copy.
+
+**The sentences are generic and name no action.** Today's copy is
+action-prefixed (`guess: Offline; try again`), and an earlier draft proposed
+deriving the action from the request path to keep that. It was dropped for a
+correctness reason, not a simplicity one: **an environmental failure cannot
+tell you whether the move landed.** The connection can drop on the way *back*,
+after the write committed, so "Your guess didn't send" would be a confident
+false statement in exactly the moment a player most needs the truth.
+
+So: something like *"You appear to be offline. Please refresh and try again."*
+— and note that "refresh and try again" is the correct instruction precisely
+because refreshing reveals the real state before a retry can double-apply.
+
+**Which call it was goes in the diagnostics line, free.** `dbFetch`'s `label()`
+already builds the path for every call, and it is the identifier in all three
+shapes with no branching:
+
+```
+POST /rest/v1/rpc/submit_guess
+GET  /rest/v1/clubs
+POST /functions/v1/boggle-build-board
+```
+
+`label()` keeps only the pathname, because a Supabase URL carries the apikey
+and often a JWT in the query string and console output gets screenshotted into
+chat (`dbFetch.ts:69`). So a read shows *which table*, not *which query*. That
+is enough to find the call site, and widening it would put credentials in
+screenshots.
+
+**This deletes a loose end rather than creating one.** `ACTION` and
+`actionName()` in `callRpc.ts` — 21 entries mapping `submit_word` → "word",
+`replay_board` → "restart" — exist only so a pill could name the deed. Nothing
+in the new system reads them, so they go with the rest of the old machinery
+instead of migrating into the new file.
 
 ### Faults and environmental failures are presented centrally
 
