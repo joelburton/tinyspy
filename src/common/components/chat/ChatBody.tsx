@@ -1,9 +1,8 @@
 // cs-unmet
 
-import { actionName } from '../../lib/game/callRpc'
-import { failureText } from '../../lib/game/serverError'
 import { useEffect, useRef, useState, type SubmitEvent } from 'react'
 import { db as commonDb } from '../../db'
+import { runRpc } from '../../lib/supabase/dbResult'
 import { colorVarFor } from '../../lib/color/memberColor'
 import { linkify } from '../../lib/util/linkify'
 import { handOffKeyboardOnTab } from '../../lib/util/keyboardHandoff'
@@ -75,13 +74,15 @@ export function ChatBody({ clubHandle, members, messages, loading }: Props) {
     if (!trimmed) return
     setError(null)
     setBusy(true)
-    const { error } = await commonDb.rpc('send_message', {
-      target_club: clubHandle,
-      content: trimmed,
-    })
+    const res = await runRpc(
+      commonDb.rpc('send_message', { target_club: clubHandle, content: trimmed }),
+    )
     setBusy(false)
-    if (error) {
-      setError(failureText(error, actionName('send_message')))
+    if (res.type !== 'ok') {
+      // The 1000-char cap is the only one a player can act on, and the input
+      // carries no maxLength, so it is the server that says so. A fault has
+      // already raised the modal; this line is what remains after it.
+      setError(res.message)
       return
     }
     setInput('')

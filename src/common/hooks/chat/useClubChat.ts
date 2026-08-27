@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase/supabase'
 import { channelDedupSuffix } from '../../lib/supabase/channelDedup'
 import { onPostgresAttached } from '../../lib/supabase/postgresAttached'
 import { db as commonDb } from '../../db'
+import { readRows } from '../../lib/supabase/dbResult'
 import type { Database } from '../../../types/db'
 
 /**
@@ -96,16 +97,26 @@ export function useClubChat(clubHandle: string) {
     ).toISOString()
 
     async function load() {
-      const { data } = await commonDb
-        .from('messages')
-        .select('id, user_id, content, sent_at')
-        .eq('club_handle', clubHandle)
-        .gte('sent_at', cutoff)
-        .order('sent_at', { ascending: true })
+      const res = await readRows(
+        commonDb
+          .from('messages')
+          .select('id, user_id, content, sent_at')
+          .eq('club_handle', clubHandle)
+          .gte('sent_at', cutoff)
+          .order('sent_at', { ascending: true }),
+      )
       if (!mounted) return
+      // A failed load leaves the transcript alone — `dbFetch` has already said
+      // so, and this re-runs on every reconnect, so what is on screen is the
+      // best answer until the next one lands. `loading` still clears: the
+      // "Loading…" line would otherwise stay up forever.
+      if (res.type !== 'ok') {
+        setLoading(false)
+        return
+      }
       // Merge, don't replace: a refetch must not clobber messages appended via
       // INSERT while its query was in flight (see mergeSnapshot).
-      if (data) setMessages((prev) => mergeSnapshot(prev, data))
+      setMessages((prev) => mergeSnapshot(prev, res.data))
       setLoading(false)
     }
 

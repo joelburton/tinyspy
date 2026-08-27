@@ -25,6 +25,7 @@ begin;
 set search_path = common, public, extensions;
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 
 select plan(10);
 
@@ -49,36 +50,36 @@ select pg_temp.create_club('Ada and Bea', array['ada','bea']) as handle;
 select set_config('request.jwt.claims', '', true);
 select set_config('role', 'postgres', true);
 
-select throws_ok(
-  format($q$ select common.send_message(%L, 'hi') $q$, (select handle from club)),
-  'PN011',
-  'Signed out; try refresh',
-  'send_message: not authenticated raises 42501'
+select pg_temp.envelope_is(
+  common.send_message((select handle from club), 'hi'),
+  '{"type": "not-ok", "severity": "fault", "dbcode": "PN011",
+    "message": "Signed out; try refresh"}'::jsonb,
+  'send_message: not authenticated is a declared fault'
 );
 
 -- dee (a real user) is not in this club.
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
-select throws_ok(
-  format($q$ select common.send_message(%L, 'sneaking in') $q$, (select handle from club)),
-  'PN012',
-  'You are not a member of this club',
+select pg_temp.envelope_is(
+  common.send_message((select handle from club), 'sneaking in'),
+  '{"type": "not-ok", "severity": "fault", "dbcode": "PN012",
+    "message": "You are not a member of this club"}'::jsonb,
   'send_message: non-member is rejected'
 );
 
 -- ada IS a member, so she can be used for the empty/long checks.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
-select throws_ok(
-  format($q$ select common.send_message(%L, '   ') $q$, (select handle from club)),
-  'P0001',
-  'empty-message|',
+select pg_temp.envelope_is(
+  common.send_message((select handle from club), '   '),
+  '{"type": "not-ok", "severity": "fault", "dbcode": "PN030",
+    "message": "A blank message reached the server"}'::jsonb,
   'send_message: whitespace-only message is rejected'
 );
 
-select throws_ok(
-  format($q$ select common.send_message(%L, repeat('x', 1001)) $q$, (select handle from club)),
-  'P0001',
-  'message-too-long|1000|',
+select pg_temp.envelope_is(
+  common.send_message((select handle from club), repeat('x', 1001)),
+  '{"type": "not-ok", "severity": "validation", "dbcode": "PN031",
+    "field": "content", "message": "Too long: max 1000 characters"}'::jsonb,
   'send_message: over-1000-char message is rejected'
 );
 
@@ -86,8 +87,9 @@ select throws_ok(
 -- send_message happy path
 -- ============================================================
 
-select lives_ok(
-  format($q$ select common.send_message(%L, 'hello from ada') $q$, (select handle from club)),
+select pg_temp.envelope_is(
+  common.send_message((select handle from club), 'hello from ada'),
+  '{"type": "ok"}'::jsonb,
   'send_message: member can post a normal message'
 );
 

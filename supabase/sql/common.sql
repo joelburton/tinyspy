@@ -1998,8 +1998,9 @@ grant execute on function common.set_club_gametypes(text, text[]) to authenticat
 -- the club. Trimmed content must be 1–1000 chars (matches the
 -- check constraint on common.messages).
 
+drop function if exists common.send_message(text, text);
 create or replace function common.send_message(target_club text, content text)
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = common, public, extensions
@@ -2007,24 +2008,39 @@ as $$
 declare
   caller_id uuid;
   trimmed text := trim(content);
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text;
 begin
-  -- Auth + membership gate. Raises PN011 / PN012 — see
-  -- common.require_club_member. send_message has no handler yet, so these
-  -- reach the client raw until it converts.
+  -- Auth + membership gate: PN011 / PN012, caught by the handler below.
   caller_id := common.require_club_member(target_club);
 
+  -- PN030. The chat form returns early on an empty box, so this is a bug
+  -- rather than an empty message.
   if length(trimmed) = 0 then
-    raise exception 'empty-message|' using errcode = 'P0001',
+    raise exception 'A blank message reached the server'
+      using errcode = 'PN030', hint = 'fault', column = '_',
       detail = 'chat body was blank';
   end if;
 
+  -- PN031. Reachable by pasting: the input carries no maxLength, so the cap is
+  -- the server's to state. A validation about the box they typed in.
   if length(trimmed) > 1000 then
-    raise exception 'message-too-long|1000|' using errcode = 'P0001',
+    raise exception 'Too long: max 1000 characters'
+      using errcode = 'PN031', hint = 'validation', column = 'content',
       detail = 'chat body over the cap';
   end if;
 
   insert into common.messages (club_handle, user_id, content)
   values (target_club, caller_id, trimmed);
+
+  return common.ok_envelope();
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 

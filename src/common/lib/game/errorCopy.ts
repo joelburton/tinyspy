@@ -74,8 +74,6 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   // The detail is the derived HANDLE, not the name typed — two different names
   // can slugify onto one handle, and naming it is what makes the collision
   // make sense ("Friday Night" and "friday night" are both `friday-night`).
-  'empty-message': { text: () => 'Nothing to send' },
-  'message-too-long': { text: (d) => `Too long: max ${d[0]} characters` },
 
   // Click-to-define's external dictionary API failing (down / rate-limited /
   // unreachable from the edge worker) — a wait-it-out answer, shown in the

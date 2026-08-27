@@ -1123,7 +1123,7 @@ select pg_temp.envelope_is(
 
 ## 7. The conversion roster
 
-**139 entries. 18 done, 5 edge functions deferred, 116 to go.** Cross them off
+**139 entries. 20 done, 5 edge functions deferred, 114 to go.** Cross them off
 here as they land.
 
 An entry is one RPC or one table read **per area**, so the same name in two
@@ -1175,7 +1175,7 @@ identifier — a shape nothing has exercised yet.
 - [x] `delete_word` · RPC
 - [ ] `end_game` · RPC — cross-cutting, see above
 - [ ] `replay_board` · RPC — cross-cutting, see above
-- [ ] `send_message` · RPC
+- [x] `send_message` · RPC
 - [ ] `set_current_view` · RPC
 - [ ] `set_scratchpad` · RPC
 - [ ] `start_game` · RPC
@@ -1191,7 +1191,8 @@ identifier — a shape nothing has exercised yet.
 - [ ] `game_scratchpads` · read
 - [ ] `games` · read (2 call sites)
 - [ ] `games_state` · read
-- [ ] `messages` · read
+- [x] `messages` · read — the same chat, and a refetch: a failure leaves the
+  transcript alone
 - [ ] `profiles` · read (4 call sites)
 - [ ] `timers` · read
 - [x] `words` · read — the same dialog's load
