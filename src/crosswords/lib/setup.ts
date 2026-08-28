@@ -1,6 +1,6 @@
 // cs-unmet
 
-import type { TimerMode } from '../../common/lib/games'
+import type { SetupOf, TimerMode } from '../../common/lib/games'
 // Type-only so `setup.ts` (eagerly loaded via the manifest) doesn't pull the
 // parser + puzjs into the main bundle — those load lazily with the SetupForm.
 import type { ImportedBoard } from './importFile'
@@ -24,7 +24,7 @@ import type { ImportedBoard } from './importFile'
  *     `board` ({meta, solution}) client-side and passes it to `create_game`'s
  *     inline `board` arg (self-contained game, no `puzzles` row — like NYT).
  */
-export type CrosswordsSetup = {
+export type CrosswordsValues = {
   timer: TimerMode
   source: 'library' | 'nyt' | 'guardian' | 'upload'
   /** Library path. */
@@ -49,8 +49,17 @@ export type CrosswordsSetup = {
   board?: ImportedBoard
   /** Upload path: the source filename, for display in the form. */
   filename?: string
+  /** WHO IS PLAYING — a field like any other, and the only one that is not
+   *  part of the setup blob: `create_game` takes it as its own argument and
+   *  writes `common.game_players` rows from it. */
+  player_user_ids: Set<string>
 }
 
+
+/** What is SENT and STORED — every value the form collects except the players
+ *  (see `SetupOf`). This is the shape `common.games.setup` holds, and what
+ *  `setupSummary.ts` and `PlayArea` read back. */
+export type CrosswordsSetup = SetupOf<CrosswordsValues>
 /** Default setup: no timer, library source, nothing picked yet (the form's
  *  `validate` blocks Start until a puzzle / date is chosen). */
 export const CROSSWORDS_DEFAULTS: CrosswordsSetup = {

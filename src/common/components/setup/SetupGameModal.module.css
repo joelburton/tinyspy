@@ -1,32 +1,12 @@
 /* cs-unmet */
 
-/* Setup-specific styles. The chrome (surface, padding, backdrop,
- * drag-handle, close X) lives on <FloatingPanel>; this stylesheet owns
- * the per-game setup-body wrappers + the footer action row below. */
-
-/* Footer: the icon-only Help "?" pinned far-left, the Cancel/Start pair
- * right (macOS order). A dedicated row (not the shared modalActions) because
- * the icon-only Help button must NOT take modalActions' 6rem button floor;
- * `.footerActions` reproduces that floor for the two text buttons only. */
-/* @@ */ .footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  margin-top: 1.5rem;
-}
-
-/* @@ */ .footerActions {
-  display: flex;
-  gap: 0.75rem;
-}
-
-/* @@ */ .footerActions button {
-  min-width: 6rem;
-}
+/* The three rules that are the setup dialog's own. Everything else it needs is
+ * shared: the column is <StandardForm>'s, the buttons are the `modalActions`
+ * row, the red line is <FailureLine>, and the surface, padding, backdrop,
+ * drag-handle and close X are <FloatingPanel>'s. */
 
 /* The Start button's "<game> · <mode>" tail. Dropped on a phone, where the
- * footer has to fit Cancel + Start inside a ~320px dialog and the full label
+ * action row has to fit Cancel + Start inside a ~320px dialog and the full label
  * ("Start PsychicNum · Co-op") wraps or pushes Cancel off. The dialog title
  * carries the same words two inches above, so the short button reads fine.
  * `--phone`, not `--mobile`: a tablet has the room. */
@@ -36,30 +16,16 @@
   }
 }
 
-/* The setup-validation line below the form body — the same look as
- * <PlayersField>'s count hint, but it ALWAYS renders (nbsp when valid) so the
- * dialog's height doesn't change when a message appears; see the JSX comment at
- * the call site. TRULY fixed at one line: nowrap + ellipsis means even an
- * over-long message can't wrap and grow the dialog (validators should write
- * messages that fit; the call site sets `title` so a clipped one is hoverable). */
-/* @@ */ .setupHint {
-  margin: 0.4rem 0 0;
-  font-size: 0.85rem;
-  color: var(--chrome-fault-color);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* Height reserved by the lazy setup body's Suspense fallback, so the
- * `fitContent` panel doesn't size itself to a one-line placeholder and then
- * leap when the real form arrives (see the Suspense boundary's comment).
- * Deliberately a MIDDLE estimate, not the tallest form's height: it can't be
- * exact (each game's body differs, and the same body changes height as its
- * async data lands), and over-reserving would make every SHORT form open too
- * tall and visibly shrink — the same jump, inverted. The residual growth is a
- * fraction of the old one and now lands downward from a fixed header. */
-/* @@ */ .optionsReserve {
+/* Stands in for the game's options while its chunk loads, holding roughly the
+ * height they will want. The panel is `fitContent`, so it measures whatever is
+ * mounted: a one-line placeholder makes it open short and then leap when the
+ * real options arrive.
+ *
+ * Deliberately a MIDDLE estimate, not the tallest game's. It cannot be exact —
+ * every game's options differ, and the same ones change height as their async
+ * data lands — and over-reserving makes a SHORT game open too tall and visibly
+ * shrink, which is the same jump inverted. */
+/* @@ */ .optionsPlaceholder {
   display: block;
   min-height: 15rem;
 }
@@ -71,53 +37,4 @@
   margin: 0;
   color: var(--page-text-muted-color);
   font-size: 0.9rem;
-}
-
-/*
- * THE FORM'S COLUMN — the game's fields, stacked.
- *
- * THE MODAL DRAWS IT, not each game's SetupForm. A form is a list of fields;
- * how that list is stacked is the dialog's business, and a game that had to
- * remember a wrapper of its own could forget it and get a subtly different
- * dialog with nothing to catch that.
- */
-/* @@ */ .formBody {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-/*
- * THE DIALOG'S OWN COLUMN — the intro, the player picker and the game's form,
- * evenly spaced.
- *
- * ONE GAP, rather than each piece carrying a margin of its own. That is the
- * failure mode of every "each element spaces itself" arrangement: remove one
- * element's margin and the hole opens somewhere else, whose fault it isn't.
- */
-/* @@ */ .body {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-/*
- * The player picker's summary — the dots of whoever is playing, in the roster's
- * order.
- *
- * A summary carries its section's live value, and this section's value is WHO.
- * Names would wrap in a 480px dialog the moment a club has four of them; the
- * colors are the same identity every board, every turn log and every feedback
- * pill uses, so a player recognises themselves in the row without reading it.
- */
-/* @@ */ .playerDots {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-}
-
-/* Slightly larger than the picker rows' dots below: this one has to be legible
-   on its own, with no name beside it to lean on. */
-/* @@ */ .playerDot {
-/* @@ */   --dot-size: 0.8rem;
 }

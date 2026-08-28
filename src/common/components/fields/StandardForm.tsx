@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { useState, type ComponentPropsWithRef, type FormEvent, type ReactNode } from 'react'
+import { useCallback, useState, type ComponentPropsWithRef, type FormEvent, type ReactNode } from 'react'
 import { cls } from '../../lib/util/cls'
 import styles from './StandardForm.module.css'
 
@@ -67,9 +67,12 @@ export function StandardForm<V extends object>({
 }) {
   const [values, setValues] = useState<V>(initialValues)
 
-  function set<K extends keyof V>(name: K, value: V[K]) {
+  // Stable, because a caller may hold it across renders — codenamesduet's
+  // setup body lists it in an effect's deps. Only `setValues` is closed over,
+  // and that is stable already.
+  const set = useCallback(<K extends keyof V>(name: K, value: V[K]) => {
     setValues((prev) => ({ ...prev, [name]: value }))
-  }
+  }, [])
 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()

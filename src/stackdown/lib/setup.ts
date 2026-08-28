@@ -1,6 +1,6 @@
 // cs-unmet
 
-import type { TimerMode } from '../../common/lib/games'
+import type { SetupOf, TimerMode } from '../../common/lib/games'
 
 /**
  * stackdown's per-game setup — collected by the start-game dialog,
@@ -15,7 +15,7 @@ import type { TimerMode } from '../../common/lib/games'
  * Lives in `lib/` rather than `manifest.ts` so the SetupForm body can
  * import the type without dragging the manifest into its lazy chunk.
  */
-export type StackdownSetup = {
+export type StackdownValues = {
   /**
    * Timer mode. `none` / `countup` are purely informational; a
    * `countdown` ends the game when it expires (coop → everyone loses,
@@ -30,8 +30,17 @@ export type StackdownSetup = {
    * has boards for.
    */
   band: number
+  /** WHO IS PLAYING — a field like any other, and the only one that is not
+   *  part of the setup blob: `create_game` takes it as its own argument and
+   *  writes `common.game_players` rows from it. */
+  player_user_ids: Set<string>
 }
 
+
+/** What is SENT and STORED — every value the form collects except the players
+ *  (see `SetupOf`). This is the shape `common.games.setup` holds, and what
+ *  `setupSummary.ts` and `PlayArea` read back. */
+export type StackdownSetup = SetupOf<StackdownValues>
 /** Initial setup the manifest hands the dialog as `defaults`. */
 export const DEFAULT_STACKDOWN_SETUP: StackdownSetup = {
   timer: { kind: 'none' },

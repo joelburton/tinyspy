@@ -312,7 +312,9 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/components/palette/PalettePage.module.css': ['1rem', '0.75rem', '2.5rem', '0.25rem', '0.5rem', '0.35rem', '0.15rem'],
       'src/common/components/floating-panels/GameScratchpadCompanion.module.css': ['0.4rem', '0.5rem'],
       'src/common/components/menu/Menu.module.css': ['1.5rem', '0.3rem', '0.1rem', '-1px', '-1rem'],
-      'src/common/components/setup/SetupGameModal.module.css': ['0.75rem', '1.5rem', '0.4rem', '1rem', '0.3rem'],
+      // The picker's summary dots moved out of the modal with <PlayersSection>.
+      // Same value, new file — the debt travelled, it did not grow.
+      'src/common/components/setup/PlayersSection.module.css': ['0.3rem'],
       // Lives with <PlayersField>, which draws the rows these size.
       // Same values, new file — the debt travelled, it did not grow.
       'src/common/components/fields/PlayersField.module.css': ['0.5rem'],
@@ -371,7 +373,7 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/components/palette/PalettePage.module.css': ['0.85rem', '0.8rem', '0.95rem'],
       'src/common/components/floating-panels/GameScratchpadCompanion.module.css': ['0.85rem', '0.8rem', '0.9rem', 'max(16px,', '1em)'],
       'src/common/components/menu/Menu.module.css': ['0.95rem', '0.82rem', '1rem'],
-      'src/common/components/setup/SetupGameModal.module.css': ['0.85rem', '0.9rem'],
+      'src/common/components/setup/SetupGameModal.module.css': ['0.9rem'],
       'src/common/components/tooltips/TooltipHost.module.css': ['0.75rem'],
       'src/common/patterns/badge.css': ['0.7rem'],
             'src/common/patterns/segmented.css': ['0.8rem'],

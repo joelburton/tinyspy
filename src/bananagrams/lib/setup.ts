@@ -1,6 +1,6 @@
 // cs-unmet
 
-import type { TimerMode } from '../../common/lib/games'
+import type { SetupOf, TimerMode } from '../../common/lib/games'
 
 /**
  * bananagrams's per-game setup — the choices the start-game dialog
@@ -25,7 +25,7 @@ import type { TimerMode } from '../../common/lib/games'
  */
 export type WordCheck = 'off' | 'win' | 'strict'
 
-export type BananagramsSetup = {
+export type BananagramsValues = {
   /** How many tiles each player is dealt to start. 21 is the
    *  Bananagrams 2–4-player default; 15 is a quicker game. */
   hand_size: 15 | 21
@@ -65,8 +65,17 @@ export type BananagramsSetup = {
    *  (`bananagrams.submit_timeout`). Validated server-side by
    *  `common.require_valid_timer`. Defaults to `none` (opt-in pressure). */
   timer: TimerMode
+  /** WHO IS PLAYING — a field like any other, and the only one that is not
+   *  part of the setup blob: `create_game` takes it as its own argument and
+   *  writes `common.game_players` rows from it. */
+  player_user_ids: Set<string>
 }
 
+
+/** What is SENT and STORED — every value the form collects except the players
+ *  (see `SetupOf`). This is the shape `common.games.setup` holds, and what
+ *  `setupSummary.ts` and `PlayArea` read back. */
+export type BananagramsSetup = SetupOf<BananagramsValues>
 /** The full Bananagrams bag — the hard cap on `bunch_size`. */
 export const BANANAGRAMS_BUNCH_MAX = 144
 

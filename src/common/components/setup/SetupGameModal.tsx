@@ -2,14 +2,14 @@
 
 import { expectedTextOrFault } from '../../lib/game/serverError'
 import { Suspense, useState } from 'react'
-import { MODE_LABEL, type GameManifest, type Member, type RichMessage as RichMessageType } from '../../lib/games'
+import { MODE_LABEL, type GameManifest, type Member } from '../../lib/games'
 import { NormalModal } from '../floating-panels/NormalModal'
 import { HelpButton } from '../buttons/HelpButton'
-import { RichMessage } from '../text/RichMessage'
 import { cls } from '../../lib/util/cls'
-import { Dot } from '../text/Dot'
-import { PlayersField } from '../fields/PlayersField'
-import { SetupSection } from './SetupSection'
+import { StandardForm } from '../fields/StandardForm'
+import { FailureLine } from '../feedback/FailureLine'
+import { FORM_ERROR_KEYNAME, type FormErrors } from '../fields/formState'
+import actionRow from '../floating-panels/modalActions.module.css'
 import styles from './SetupGameModal.module.css'
 import { StandardButton } from '../buttons/StandardButton'
 import { CancelButton } from '../buttons/CancelButton'
@@ -75,11 +75,12 @@ type Props = {
  * we call `onCancel`, which is the parent's signal to stop
  * rendering us.
  *
- * Setup-value flow: the wrapper owns `setup` state (seeded from
- * `manifest.setupForm.defaults` merged under the club's saved
- * default). The body renders against it and reports changes via
- * `onChange`. On Start we hand the collected value to
- * `manifest.startGameInClub`. Server-side validation rejects
+ * Setup-value flow: it is a `<StandardForm>`, so the FORM owns the
+ * values — seeded from `manifest.setupForm.defaults` merged under
+ * the club's saved default, plus `player_user_ids`. The game's body
+ * renders against them and writes back with `set`. On submit the
+ * players are split off as their own RPC argument and the rest goes
+ * to `manifest.startGameInClub`. Server-side validation rejects
  * malformed payloads — see each game's `create_game` RPC.
  *
  * Cancel during a pending start: we don't try to abort the RPC.
@@ -102,50 +103,23 @@ export function SetupGameModal({
   // We don't re-seed on prop changes — the parent unmounts and
   // remounts us per game-start attempt, so each open starts
   // fresh by construction.
-  const [setup, setSetup] = useState<unknown>(() => ({
+  //
+  // `player_user_ids` joins them as a field like any other: every club member
+  // to start, and the creator unchecks anyone sitting this one out (the
+  // moth+joel game while leah's still en route). It is NOT part of the saved
+  // default — who plays is a per-game choice.
+  const initialValues = {
     ...(manifest.setupForm.defaults as Record<string, unknown>),
     ...((savedDefault ?? {}) as Record<string, unknown>),
-  }))
+    player_user_ids: new Set(members.map((m) => m.user_id)),
+  }
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | RichMessageType | null>(null)
+  // What is wrong, keyed by field name. The server contributes one entry per
+  // failed start; the cross-field guard below contributes the form-level one.
+  const [errors, setErrors] = useState<FormErrors>({})
   // The game's Help/rules, opened from the footer's HelpButton ON TOP of this
   // dialog (which stays open behind it) — read the rules, then keep setting up.
   const [showHelp, setShowHelp] = useState(false)
-
-  // Who's playing this game. Defaults to every club member; the
-  // creator unchecks anyone sitting this one out (the moth+joel
-  // game while leah's still en route). game_players already models
-  // a subset — this is just the UI that finally lets a human pick
-  // it. Lazy init once; `members` is the club roster, fixed for the
-  // dialog's lifetime.
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(
-    () => new Set(members.map((m) => m.user_id)),
-  )
-
-  // The picker only earns its keep with >1 member — a solo club has
-  // nothing to choose. Validate the count against the manifest's
-  // [min, max]; the server re-checks in create_game.
-  const showPlayersPicker = members.length > 1
-  const [minPlayers, maxPlayers] = manifest.numberOfPlayers
-  const playerCount = selectedIds.size
-  // The checked subset of the roster, in `members` order. Handed to the
-  // setup body so a control that must name the ACTUAL players (the
-  // turn-order "First player" picker) lists only who'll play — not the
-  // whole club. Recomputed each render as the picker toggles.
-  const selectedPlayers = members.filter((m) => selectedIds.has(m.user_id))
-  const countOk = playerCount >= minPlayers && playerCount <= maxPlayers
-  const playerCountError =
-    playerCount < minPlayers
-      ? `Pick at least ${minPlayers} player${minPlayers === 1 ? '' : 's'}.`
-      : playerCount > maxPlayers
-        ? `At most ${maxPlayers} players.`
-        : null
-
-  // Cross-field setup guard (optional per manifest). Couples the
-  // collected `setup` to the live `playerCount` — e.g. bananagrams's
-  // "the bag must hold playerCount × hand_size tiles". Non-null is a
-  // reason to keep Start disabled; the server re-checks in create_game.
-  const setupError = manifest.setupForm.validate?.(setup, playerCount) ?? null
 
   const SetupBody = manifest.setupForm.Component
 
@@ -164,27 +138,35 @@ export function SetupGameModal({
    *
    * See docs/naming.md → "start".
    */
-  async function handleStartGame() {
+  async function handleStartGame(values: Record<string, unknown>) {
     setBusy(true)
-    setError(null)
-    // The checked members become this game's players. (For a solo
-    // club the picker is hidden and the set is just the lone
-    // member.) The server validates the count + membership again.
-    const playerUserIds = Array.from(selectedIds)
-    const result = await manifest.startGameInClub(clubHandle, setup, playerUserIds)
+    setErrors({})
+    // THE ONE PLACE the form's shape and the wire's differ. The checked members
+    // become this game's players — their own RPC argument, and never part of
+    // the setup blob — and everything else IS the setup. (For a solo club the
+    // picker is hidden and the set is just the lone member.) The server
+    // validates the count + membership again.
+    const { player_user_ids, ...setup } = values
+    const result = await manifest.startGameInClub(
+      clubHandle,
+      setup,
+      Array.from(player_user_ids as Set<string>),
+    )
     if ('error' in result) {
       setBusy(false)
-      // Two shapes (see startGameInClub in games.ts). A RichMessage (array)
-      // is already frontend-authored; render as-is. Everything else is the
-      // STRUCTURED CallError, split by surface rule (docs/ui.md → Faults):
-      // a validation ANSWER ("no candidate words for band 3") stays on this
-      // form's red line; a fault/transport pops the fault MODAL — the dialog
-      // stays open behind it so the player can retry after dismissing.
-      setError(
-        Array.isArray(result.error)
-          ? result.error
-          : expectedTextOrFault(result.error, 'new game'),
-      )
+      // Split by surface rule (docs/ui.md → Faults): a validation ANSWER ("no
+      // candidate words for band 3") stays on this form's red line; a
+      // fault/transport pops the fault MODAL, and the dialog stays open behind
+      // it so the player can retry after dismissing.
+      //
+      // One key, because nothing tells us which field yet. When create_game
+      // returns the envelope its `field` names one and this becomes
+      // `errors[field] = message`.
+      const line = Array.isArray(result.error)
+        ? result.error.map((seg) => (typeof seg === 'string' ? seg : seg.player.username)).join('')
+        : expectedTextOrFault(result.error, 'new game')
+      // Null means it went to the fault modal instead, and this line stays empty.
+      setErrors(line === null ? {} : { [FORM_ERROR_KEYNAME]: line })
       return
     }
     // Don't bother clearing `busy` — we're about to unmount.
@@ -216,122 +198,103 @@ export function SetupGameModal({
       defaultSize={{ width: 480, height: 520 }}
       minWidth={320}
     >
-      <div className={styles.body}>
-        {/* WHAT THIS GAME IS, first — above the picker and the form both.
-            It used to live inside each game's SetupForm, which meant it rendered
-            BELOW the player picker: an introduction under the thing it
-            introduces. It is manifest copy now (games.ts → GameSetupForm.intro),
-            so the modal decides where it goes. */}
-        {manifest.setupForm.intro && (
-          <p className={styles.intro}>{manifest.setupForm.intro}</p>
-        )}
+      <StandardForm<Record<string, unknown>>
+        initialValues={initialValues}
+        onSubmit={handleStartGame}
+      >
+        {({ values, set }) => {
+          const players = values.player_user_ids as Set<string>
+          const [minPlayers, maxPlayers] = manifest.numberOfPlayers
+          const countOk = players.size >= minPlayers && players.size <= maxPlayers
+          // Cross-field setup guard (optional per manifest). Couples the collected
+          // values to the live headcount — e.g. bananagrams's "the bag must hold
+          // playerCount × hand_size tiles". Non-null is a reason to keep Start
+          // disabled; the server re-checks in create_game.
+          const setupError = manifest.setupForm.validate?.(values, players.size) ?? null
+          const allErrors = setupError
+            ? { ...errors, [FORM_ERROR_KEYNAME]: setupError }
+            : errors
+          return (
+            <>
+              {/* WHAT THIS GAME IS, first — above the form. It used to live inside
+                  each game's SetupForm, which meant it rendered BELOW the player
+                  picker: an introduction under the thing it introduces. It is
+                  manifest copy now (games.ts → GameSetupForm.intro), so the modal
+                  decides where it goes. */}
+              {manifest.setupForm.intro && (
+                <p className={styles.intro}>{manifest.setupForm.intro}</p>
+              )}
 
-        {/* An ordinary section, open to start. Its summary is the players
-            themselves — the dots of whoever is checked, self included, who
-            cannot be unchecked. Every other section's summary carries its live
-            value ("Timer: none"); this one's value is WHO, and a row of colors
-            says that faster than a list of names would. */}
-        {showPlayersPicker && (
-          <SetupSection
-            defaultOpen
-            label={ <>
-              <span>Players: &nbsp;</span>
-              <span className={styles.playerDots}>
-                {selectedPlayers.map((m) => (
-                  <Dot key={m.user_id} color={m.color} className={styles.playerDot} />
-                ))}
-              </span>
-              </>
-            }
-          >
-            <PlayersField
-              members={members}
-              selfId={selfId}
-              name="player_user_ids"
-              value={selectedIds}
-              onChange={setSelectedIds}
-              disabled={busy}
-              error={playerCountError}
-            />
-          </SetupSection>
-        )}
+              {/* The fallback RESERVES most of a setup body's height rather than being
+                    the one bare line it reads as. The panel is `fitContent`: it measures
+                  whatever is mounted, so a one-line fallback made it fit to that —
+                  collapsing to its 300px floor, then leaping ~370px when the real form
+                  arrived ~300ms later, with the footer buttons sailing out from under
+                  the cursor. Reserving the slot is the same no-reflow move the setup
+                  error line below reflows freely; this one cannot, because it is
+                  what the panel MEASURES. */}
+              <Suspense
+                fallback={<p className={cls('muted', styles.optionsPlaceholder)}>Loading options…</p>}
+              >
+                <SetupBody
+                  members={members}
+                  brand={manifest.name}
+                  clubHandle={clubHandle}
+                  mode={manifest.mode}
+                  selfId={selfId}
+                  numberOfPlayers={manifest.numberOfPlayers}
+                  values={values}
+                  set={set}
+                  errors={allErrors}
+                />
+              </Suspense>
 
-        {/* The fallback RESERVES most of a setup body's height rather than being
-              the one bare line it reads as. The panel is `fitContent`: it measures
-            whatever is mounted, so a one-line fallback made it fit to that —
-            collapsing to its 300px floor, then leaping ~370px when the real form
-            arrived ~300ms later, with the footer buttons sailing out from under
-            the cursor. Reserving the slot is the same no-reflow move the setup
-            hint below makes; the remaining growth is small and lands downward
-            (FloatingPanel anchors the header rather than re-centering). */}
-        <Suspense
-          fallback={<p className={cls('muted', styles.optionsReserve)}>Loading options…</p>}
-        >
-          <div className={styles.formBody}>
-            <SetupBody
-              members={members}
-              brand={manifest.name}
-              clubHandle={clubHandle}
-              mode={manifest.mode}
-              playerCount={playerCount}
-              players={selectedPlayers}
-              value={setup}
-              onChange={setSetup}
-            />
-          </div>
-        </Suspense>
-      </div>
-
-      {/* Setup-level guard (e.g. bag too small): blocks Start with a
-          fix-this hint, same register as the player-count hint. The line ALWAYS
-          renders (a non-breaking space when the setup is valid) so it holds one
-          line of height either way — a message appearing/clearing must not
-          grow/shrink the dialog (the no-reflow rule; messages are written to
-          fit one line). */}
-      <p className={styles.setupHint} title={setupError ?? undefined}>
-        {setupError ?? '\u00A0'}
-      </p>
-      {error && (
-        <p className="error">
-          <RichMessage message={error} />
-        </p>
-      )}
-      {/* Footer: the Help "?" on the far left, the Cancel/Start pair on the right
-          (macOS order). Help opens the rules on top without closing the dialog. */}
-      <div className={styles.footer}>
-        <HelpButton onClick={() => setShowHelp(true)} disabled={busy} />
-        <div className={styles.footerActions}>
-          <CancelButton onClick={onCancel} disabled={busy} />
-          <StandardButton
-            name={busy ? 'Starting…' : 'Start'}
-            weight="primary"
-            onClick={handleStartGame}
-            disabled={busy || !countOk || setupError !== null}
-            autoFocus
-            // On a phone the button is just "Start" — "Start PsychicNum · Co-op"
-            // doesn't fit beside Cancel at 390px. The detail is dropped in CSS
-            // rather than by a `usePhone()` branch: it's presentation, and the
-            // dialog TITLE right above still names the game + mode, so nothing
-            // is actually lost. Hence a NODE for what is drawn while `name`
-            // stays the plain word — the span is a rendering detail, not a
-            // second name for the button.
-            label={
-              busy ? (
-                'Starting…'
-              ) : (
-                <>
-                  Start
-                  <span className={styles.startDetail}>
-                    {' '}
-                    {manifest.name}
-                    {modeSuffix}
-                  </span>
-                </>
-              )
-            }
-          />
-        </div>
-      </div>
+              {/* The message that is about the form rather than any one field. A
+                  field's own error is drawn by the field. */}
+              <FailureLine>{allErrors[FORM_ERROR_KEYNAME]}</FailureLine>
+              {/* Help first, away from the pair — it opens the rules on top of this
+                  dialog, which stays open behind. Then Cancel and Start in macOS
+                  order. */}
+              <div className={actionRow.modalActions}>
+                <HelpButton
+                  className={actionRow.leading}
+                  onClick={() => setShowHelp(true)}
+                  disabled={busy}
+                />
+                <CancelButton onClick={onCancel} disabled={busy} />
+                <StandardButton
+                  name={busy ? 'Starting…' : 'Start'}
+                  weight="primary"
+                  type="submit"
+                  disabled={busy || !countOk || setupError !== null}
+                  autoFocus
+                  // On a phone the button is just "Start" — "Start PsychicNum · Co-op"
+                  // doesn't fit beside Cancel at 390px. The detail is dropped in CSS
+                  // rather than by a `usePhone()` branch: it's presentation, and the
+                  // dialog TITLE right above still names the game + mode, so nothing
+                  // is actually lost. Hence a NODE for what is drawn while `name`
+                  // stays the plain word — the span is a rendering detail, not a
+                  // second name for the button.
+                  label={
+                    busy ? (
+                      'Starting…'
+                    ) : (
+                      <>
+                        Start
+                        <span className={styles.startDetail}>
+                          {' '}
+                          {manifest.name}
+                          {modeSuffix}
+                        </span>
+                      </>
+                    )
+                  }
+                />
+              </div>
+            </>
+          )
+        }}
+      </StandardForm>
     </NormalModal>
 
     {/* The game's Help, mounted as its OWN FloatingPanel above this dialog (which

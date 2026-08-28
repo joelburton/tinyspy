@@ -7,6 +7,7 @@ import type { LucideIcon } from 'lucide-react'
 // this file; both imports are erased at runtime.
 import type { CallError } from './game/serverError'
 import type { GenericFeedbackTone } from './outcomes'
+import type { FormErrors } from '../components/fields/formState'
 
 /**
  * FE-facing labels for a gametype's interaction `mode`. The DB, code,
@@ -428,6 +429,27 @@ export type RichMessage = Array<string | { player: Member }>
  * setup component starts with `value as MySetup` at the top
  * and is fully typed inside.
  */
+/**
+ * WHAT THE FORM HOLDS, minus what the form alone needs — the setup blob a
+ * game's `create_game` is actually sent, and the shape stored on
+ * `common.games.setup` and `clubs_gametypes.default_setup`.
+ *
+ * `Values` is the primary type and `Setup` is derived from it, because the form
+ * is where every one of these values is decided. The only difference is the
+ * players: they are the RPC's own argument and become `common.game_players`
+ * rows, so they are never in the setup blob — which matters, because
+ * `<game>/lib/setupSummary.ts` and each `PlayArea` read that blob BACK as
+ * `<Game>Setup` and would otherwise be typed for a key that is never there.
+ */
+export type SetupOf<V> = Omit<V, 'player_user_ids'>
+
+/**
+ * Write one field of the form. The setup body casts the loose `set` it is given
+ * to this over its own values type, which is what makes `set('dificulty', 4)` a
+ * compile error rather than a control that silently does nothing.
+ */
+export type SetupSetter<V> = <K extends keyof V>(name: K, value: V[K]) => void
+
 export type SetupBodyProps = {
   members: Member[]
   /** This gametype's user-facing brand name (the manifest's `name`),
@@ -444,21 +466,33 @@ export type SetupBodyProps = {
    *  calendar overlay) can scope their reads to the right mode.
    *  Setup forms for single-mode games can ignore it. */
   mode: 'coop' | 'compete'
-  /** How many players are currently selected in the dialog's picker.
-   *  Live — it updates as the creator checks/unchecks members. Setup
-   *  forms whose options depend on the headcount read it (e.g.
-   *  bananagrams sizes its tile bag against `playerCount × hand_size`);
-   *  the rest ignore it. */
-  playerCount: number
-  /** The SELECTED players — the checked subset of `members`, live as
-   *  the creator toggles the picker (`playerCount === players.length`).
-   *  Distinct from `members` (the whole club roster): a setup control
-   *  that must name the actual roster reads this, e.g. the turn-order
-   *  "First player" picker, which may only list people who'll play.
-   *  The rest ignore it. */
-  players: Member[]
-  value: unknown
-  onChange: (next: unknown) => void
+  /** The creating user. Always a player — their row in the picker is
+   *  checked and locked, because you cannot start a game you are not in. */
+  selfId: string
+  /** The manifest's `[min, max]`. The body renders the picker, so it is
+   *  the body that must say "Pick at least 2 players." — the same bound
+   *  the modal gates Start on. */
+  numberOfPlayers: [number, number]
+  /**
+   * Everything the form holds, keyed by field `name` — the game's own
+   * `<Game>Values`, handed over as `unknown` because this contract is
+   * game-agnostic. The body casts it once, at the top.
+   */
+  values: unknown
+  /** Write one field. Loose for the same reason `values` is; cast to
+   *  `SetupSetter<GameValues>` alongside it, so the key names are checked. */
+  set: (name: string, value: unknown) => void
+  /**
+   * What is wrong with what is there, keyed by field `name`. A body passes each
+   * field its own — `error={errors.legal_band}` — and the modal renders
+   * `FORM_ERROR_KEYNAME` on the one line at the bottom.
+   *
+   * A server `validation` contributes one entry, from the envelope's `field`
+   * and `message`; a client-side check can contribute several at once. Same
+   * object either way, which is why a field's `name` matches the RPC parameter
+   * its value is sent as.
+   */
+  errors: FormErrors
 }
 
 /**

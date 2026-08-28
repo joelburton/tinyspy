@@ -1,6 +1,6 @@
 // cs-unmet
 
-import type { TimerMode } from '../../common/lib/games'
+import type { SetupOf, TimerMode } from '../../common/lib/games'
 import type { CoopTurnSetup } from '../../common/components/setup/SetupCoopStyleSection'
 
 /**
@@ -11,7 +11,7 @@ import type { CoopTurnSetup } from '../../common/components/setup/SetupCoopStyle
  * Lives in `lib/` rather than `manifest.ts` so the SetupForm body can import the
  * type without dragging the manifest into its lazy chunk.
  */
-export type StrandsSetup = CoopTurnSetup & {
+export type StrandsValues = CoopTurnSetup & {
   /** Which archived puzzle to play — OPTIONAL, because the dialog no longer
    *  collects it. Absence is how `create_game` is told to derive the next
    *  puzzle none of the selected players has played
@@ -45,8 +45,17 @@ export type StrandsSetup = CoopTurnSetup & {
   min_word_length: number
   /** `countdown` ends the game via `strands.submit_timeout`; the clock is a LOSS. */
   timer: TimerMode
+  /** WHO IS PLAYING — a field like any other, and the only one that is not
+   *  part of the setup blob: `create_game` takes it as its own argument and
+   *  writes `common.game_players` rows from it. */
+  player_user_ids: Set<string>
 }
 
+
+/** What is SENT and STORED — every value the form collects except the players
+ *  (see `SetupOf`). This is the shape `common.games.setup` holds, and what
+ *  `setupSummary.ts` and `PlayArea` read back. */
+export type StrandsSetup = SetupOf<StrandsValues>
 /** Band 5 matches the other word games' "legal" default: generous enough that
  *  hints are earnable without handing them out. */
 /* NO `puzzleId` KEY — not `''`. The server reads an ABSENT puzzleId as "you

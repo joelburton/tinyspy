@@ -1,15 +1,16 @@
 // cs-unmet
 
 import { SetupCoopStyleSection } from '../../common/components/setup/SetupCoopStyleSection'
+import { PlayersSection } from '../../common/components/setup/PlayersSection'
 import { DictBandField } from '../../common/components/fields/DictBandField'
 import { SelectField } from '../../common/components/fields/SelectField'
 import { SetupTimerSection } from '../../common/components/setup/SetupTimerSection'
 import { SetupNextPuzzleSection } from '../../common/components/setup/SetupNextPuzzleSection'
 import { SetupSection } from '../../common/components/setup/SetupSection'
 import { difficultyValue } from '../../common/lib/game/difficulty'
-import type { SetupBodyProps } from '../../common/lib/games'
+import type { SetupBodyProps, SetupSetter } from '../../common/lib/games'
 import { db } from '../db'
-import type { StrandsSetup } from '../lib/setup'
+import type { StrandsValues } from '../lib/setup'
 
 /**
  * strands' setup form.
@@ -27,18 +28,31 @@ import type { StrandsSetup } from '../lib/setup'
  *
  * Plus the shared SetupTimerSection and SetupCoopStyleSection.
  */
-export function SetupForm({ brand, mode, players, value, onChange }: SetupBodyProps) {
-  const s = value as StrandsSetup
+export function SetupForm({
+  brand, mode, members, selfId, numberOfPlayers, values, set: setValue,
+}: SetupBodyProps) {
+  const s = values as StrandsValues
+  const set = setValue as SetupSetter<StrandsValues>
+  // The checked subset of the roster, in `members` order — a control that
+  // must name the ACTUAL players lists only who'll play, not the whole club.
+  const players = members.filter((m) => s.player_user_ids.has(m.user_id))
 
   return (
     <>
+      <PlayersSection
+        members={members}
+        selfId={selfId}
+        numberOfPlayers={numberOfPlayers}
+        value={s.player_user_ids}
+        onChange={(next) => set('player_user_ids', next)}
+      />
       <SetupCoopStyleSection
         mode={mode}
         players={players}
         coopStyle={s.coop_style ?? 'free-for-all'}
         firstTurnUserId={s.first_turn_user_id ?? ''}
         onChange={({ coopStyle, firstTurnUserId }) =>
-          onChange({ ...s, coop_style: coopStyle, first_turn_user_id: firstTurnUserId })
+          { set('coop_style', coopStyle); set('first_turn_user_id', firstTurnUserId) }
         }
       />
 
@@ -58,11 +72,7 @@ export function SetupForm({ brand, mode, players, value, onChange }: SetupBodyPr
         }}
         // A chosen date rides in setup.puzzleId; cleared, the key is dropped
         // entirely — its ABSENCE is what tells create_game to choose.
-        onPick={(puzzleId) => {
-          const next = { ...s, puzzleId }
-          if (puzzleId === undefined) delete next.puzzleId
-          onChange(next)
-        }}
+        onPick={(puzzleId) => set('puzzleId', puzzleId)}
       />
 
       <SetupSection label={`Hint dictionary: ${difficultyValue(s.band)}`}>
@@ -80,7 +90,7 @@ export function SetupForm({ brand, mode, players, value, onChange }: SetupBodyPr
           minBand={1}
           maxBand={6}
           value={s.band}
-          onChange={(band) => onChange({ ...s, band })}
+          onChange={(band) => set('band', band)}
         />
       </SetupSection>
 
@@ -90,7 +100,7 @@ export function SetupForm({ brand, mode, players, value, onChange }: SetupBodyPr
           help="How many valid non-theme words buy one hint (3 is standard)."
           label="Words per hint"
           value={String(s.hint_cost)}
-          onChange={(v) => onChange({ ...s, hint_cost: Number(v) })}
+          onChange={(v) => set('hint_cost', Number(v))}
         >
           {[1, 2, 3, 4, 5].map((n) => (
             <option key={n} value={n}>{n}</option>
@@ -104,7 +114,7 @@ export function SetupForm({ brand, mode, players, value, onChange }: SetupBodyPr
           help="The shortest word that can earn a hint. Theme words always count, however short."
           label="Shortest word"
           value={String(s.min_word_length)}
-          onChange={(v) => onChange({ ...s, min_word_length: Number(v) })}
+          onChange={(v) => set('min_word_length', Number(v))}
         >
           {[3, 4, 5, 6].map((n) => (
             <option key={n} value={n}>{n} letters</option>
@@ -112,7 +122,7 @@ export function SetupForm({ brand, mode, players, value, onChange }: SetupBodyPr
         </SelectField>
       </SetupSection>
 
-      <SetupTimerSection value={s.timer} onChange={(timer) => onChange({ ...s, timer })} />
+      <SetupTimerSection value={s.timer} onChange={(timer) => set('timer', timer)} />
     </>
   )
 }

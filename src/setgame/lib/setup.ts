@@ -1,6 +1,6 @@
 // cs-unmet
 
-import type { TimerMode } from '../../common/lib/games'
+import type { SetupOf, TimerMode } from '../../common/lib/games'
 import type { CoopTurnSetup } from '../../common/components/setup/SetupCoopStyleSection'
 import type { DeckKind } from './cards'
 
@@ -30,7 +30,7 @@ import type { DeckKind } from './cards'
 /** Which pigments the three color values are painted with. */
 export type Palette = 'traditional' | 'colorblind'
 
-export type SetgameSetup = CoopTurnSetup & {
+export type SetgameValues = CoopTurnSetup & {
   timer: TimerMode
   /** Which deck to play with. */
   deck: DeckKind
@@ -48,8 +48,17 @@ export type SetgameSetup = CoopTurnSetup & {
    * answer is a profile preference rather than a second setup field.
    */
   palette: Palette
+  /** WHO IS PLAYING — a field like any other, and the only one that is not
+   *  part of the setup blob: `create_game` takes it as its own argument and
+   *  writes `common.game_players` rows from it. */
+  player_user_ids: Set<string>
 }
 
+
+/** What is SENT and STORED — every value the form collects except the players
+ *  (see `SetupOf`). This is the shape `common.games.setup` holds, and what
+ *  `setupSummary.ts` and `PlayArea` read back. */
+export type SetgameSetup = SetupOf<SetgameValues>
 /**
  * The palette a game is played with, defaulting to traditional.
  *

@@ -1,13 +1,14 @@
 // cs-unmet
 
 import { DictBandField } from '../../common/components/fields/DictBandField'
+import { PlayersSection } from '../../common/components/setup/PlayersSection'
 import { SelectField } from '../../common/components/fields/SelectField'
 import { SetupTimerSection } from '../../common/components/setup/SetupTimerSection'
 import { SetupCoopStyleSection } from '../../common/components/setup/SetupCoopStyleSection'
 import { SetupSection } from '../../common/components/setup/SetupSection'
 import { difficultyValue } from '../../common/lib/game/difficulty'
-import type { SetupBodyProps } from '../../common/lib/games'
-import { answerMaxBand, GUESS_OPTIONS, type WordleSetup } from '../lib/setup'
+import type { SetupBodyProps, SetupSetter } from '../../common/lib/games'
+import { answerMaxBand, GUESS_OPTIONS, type WordleValues } from '../lib/setup'
 
 /**
  * wordle's setup form, rendered inside the common SetupGameModal.
@@ -23,8 +24,14 @@ import { answerMaxBand, GUESS_OPTIONS, type WordleSetup } from '../lib/setup'
  * Plus the shared `SetupTimerSection`. Controlled component (state lives in the
  * wrapper); shared by both manifests (mode doesn't change the form).
  */
-export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
-  const s = value as WordleSetup
+export function SetupForm({
+  mode, members, selfId, numberOfPlayers, values, set: setValue,
+}: SetupBodyProps) {
+  const s = values as WordleValues
+  const set = setValue as SetupSetter<WordleValues>
+  // The checked subset of the roster, in `members` order — a control that
+  // must name the ACTUAL players lists only who'll play, not the whole club.
+  const players = members.filter((m) => s.player_user_ids.has(m.user_id))
 
   // Disclosure summaries carry the current values so each section reads without
   // opening (the boggle/scrabble/spellingbee pattern). Answer source 0 is the
@@ -36,6 +43,13 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
 
   return (
     <>
+      <PlayersSection
+        members={members}
+        selfId={selfId}
+        numberOfPlayers={numberOfPlayers}
+        value={s.player_user_ids}
+        onChange={(next) => set('player_user_ids', next)}
+      />
       {/* Coop pacing — first, right below the dialog's player picker.
           Self-gates to nothing for compete / solo. */}
       <SetupCoopStyleSection
@@ -44,7 +58,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
         coopStyle={s.coop_style ?? 'free-for-all'}
         firstTurnUserId={s.first_turn_user_id ?? ''}
         onChange={({ coopStyle, firstTurnUserId }) =>
-          onChange({ ...s, coop_style: coopStyle, first_turn_user_id: firstTurnUserId })
+          { set('coop_style', coopStyle); set('first_turn_user_id', firstTurnUserId) }
         }
       />
       <SetupSection label={guessesLabel}>
@@ -52,7 +66,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
           help="How many guesses you get (6 is classic)."
           name="max_guesses"
           value={s.max_guesses}
-          onChange={(v) => onChange({ ...s, max_guesses: Number(v) })}
+          onChange={(v) => set('max_guesses', Number(v))}
         >
           {GUESS_OPTIONS.map((n) => (
             <option key={n} value={n}>
@@ -70,7 +84,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
           minBand={1}
           maxBand={6}
           value={s.answer_source}
-          onChange={(answer_source) => onChange({ ...s, answer_source })}
+          onChange={(answer_source) => set('answer_source', answer_source)}
         />
         <DictBandField
           name="legal_guess"
@@ -79,12 +93,12 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
           minBand={answerMaxBand(s)}
           maxBand={6}
           value={s.legal_guess}
-          onChange={(legal_guess) => onChange({ ...s, legal_guess })}
+          onChange={(legal_guess) => set('legal_guess', legal_guess)}
         />
       </SetupSection>
       <SetupTimerSection
         value={s.timer}
-        onChange={(timer) => onChange({ ...s, timer })}
+        onChange={(timer) => set('timer', timer)}
       />
     </>
   )

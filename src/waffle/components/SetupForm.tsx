@@ -1,13 +1,14 @@
 // cs-unmet
 
 import { DictBandField } from '../../common/components/fields/DictBandField'
+import { PlayersSection } from '../../common/components/setup/PlayersSection'
 import { RadioRow } from '../../common/components/fields/RadioRow'
 import { SetupTimerSection } from '../../common/components/setup/SetupTimerSection'
 import { SetupCoopStyleSection } from '../../common/components/setup/SetupCoopStyleSection'
 import { SetupSection } from '../../common/components/setup/SetupSection'
 import { difficultyValue } from '../../common/lib/game/difficulty'
-import type { SetupBodyProps } from '../../common/lib/games'
-import { EXTRA_SWAP_OPTIONS, type WaffleSetup } from '../lib/setup'
+import type { SetupBodyProps, SetupSetter } from '../../common/lib/games'
+import { EXTRA_SWAP_OPTIONS, type WaffleValues } from '../lib/setup'
 
 /**
  * waffle's setup form, rendered inside the common SetupGameModal.
@@ -25,8 +26,14 @@ import { EXTRA_SWAP_OPTIONS, type WaffleSetup } from '../lib/setup'
  * `unknown` setup and waffle's shape. Shared by both manifests (mode
  * doesn't change the form).
  */
-export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
-  const s = value as WaffleSetup
+export function SetupForm({
+  mode, members, selfId, numberOfPlayers, values, set: setValue,
+}: SetupBodyProps) {
+  const s = values as WaffleValues
+  const set = setValue as SetupSetter<WaffleValues>
+  // The checked subset of the roster, in `members` order — a control that
+  // must name the ACTUAL players lists only who'll play, not the whole club.
+  const players = members.filter((m) => s.player_user_ids.has(m.user_id))
 
   // Disclosure summaries carry the current values so each section reads without
   // opening (the boggle/scrabble/spellingbee pattern). Singular "Dictionary" —
@@ -39,6 +46,13 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
 
   return (
     <>
+      <PlayersSection
+        members={members}
+        selfId={selfId}
+        numberOfPlayers={numberOfPlayers}
+        value={s.player_user_ids}
+        onChange={(next) => set('player_user_ids', next)}
+      />
       {/* Coop pacing — first, right below the dialog's player picker.
           Self-gates to nothing for compete / solo. */}
       <SetupCoopStyleSection
@@ -47,7 +61,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
         coopStyle={s.coop_style ?? 'free-for-all'}
         firstTurnUserId={s.first_turn_user_id ?? ''}
         onChange={({ coopStyle, firstTurnUserId }) =>
-          onChange({ ...s, coop_style: coopStyle, first_turn_user_id: firstTurnUserId })
+          { set('coop_style', coopStyle); set('first_turn_user_id', firstTurnUserId) }
         }
       />
       <SetupSection label={dictLabel}>
@@ -58,7 +72,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
           minBand={1}
           maxBand={6}
           value={s.difficulty}
-          onChange={(difficulty) => onChange({ ...s, difficulty })}
+          onChange={(difficulty) => set('difficulty', difficulty)}
         />
       </SetupSection>
       <SetupSection label={swapLabel}>
@@ -74,12 +88,12 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
             ),
           }))}
           value={s.extra_swaps}
-          onChange={(extra_swaps) => onChange({ ...s, extra_swaps })}
+          onChange={(extra_swaps) => set('extra_swaps', extra_swaps)}
         />
       </SetupSection>
       <SetupTimerSection
         value={s.timer}
-        onChange={(timer) => onChange({ ...s, timer })}
+        onChange={(timer) => set('timer', timer)}
       />
     </>
   )

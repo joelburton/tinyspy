@@ -1,6 +1,6 @@
 // cs-unmet
 
-import type { TimerMode } from '../../common/lib/games'
+import type { SetupOf, TimerMode } from '../../common/lib/games'
 import type { BoardConstraints } from './generate'
 import type { LadderName } from './solver'
 import { LADDERS } from './solver'
@@ -13,7 +13,7 @@ import { parseCustomBoard } from './customBoard'
  * `constraints` are the optional board-generation targets (min/max words, score,
  * longest word) measured against the required words.
  */
-export interface BoggleSetup {
+export interface BoggleValues {
   timer: TimerMode
   dice_set: string
   /** required-word difficulty band, 1 (universal) … 6 (expert) — the words the
@@ -51,8 +51,17 @@ export interface BoggleSetup {
    * default — a one-off, not a new baseline (see `boggle.create_game`).
    */
   custom_board?: string
+  /** WHO IS PLAYING — a field like any other, and the only one that is not
+   *  part of the setup blob: `create_game` takes it as its own argument and
+   *  writes `common.game_players` rows from it. */
+  player_user_ids: Set<string>
 }
 
+
+/** What is SENT and STORED — every value the form collects except the players
+ *  (see `SetupOf`). This is the shape `common.games.setup` holds, and what
+ *  `setupSummary.ts` and `PlayArea` read back. */
+export type BoggleSetup = SetupOf<BoggleValues>
 /** The `win_percent` dropdown options: None (null) + 50…100 by 5. */
 export const WIN_PERCENT_OPTIONS: ReadonlyArray<number | null> = [
   null, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100,

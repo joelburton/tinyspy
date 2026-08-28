@@ -1,6 +1,6 @@
 // cs-unmet
 
-import type { TimerMode } from '../../common/lib/games'
+import type { SetupOf, TimerMode } from '../../common/lib/games'
 import type { CoopTurnSetup } from '../../common/components/setup/SetupCoopStyleSection'
 
 /**
@@ -19,7 +19,7 @@ import type { CoopTurnSetup } from '../../common/components/setup/SetupCoopStyle
  * the manifest in (which would defeat the lazy-load — the form
  * would not split into its own chunk).
  */
-export type PsychicnumSetup = CoopTurnSetup & {
+export type PsychicnumValues = CoopTurnSetup & {
   /**
    * Starting guess budget — the shared pool every club member
    * draws from. 7 is the historical default; 3/5/9 are the
@@ -46,7 +46,16 @@ export type PsychicnumSetup = CoopTurnSetup & {
    * server-side by `common.require_valid_timer`.
    */
   timer: TimerMode
+  /** WHO IS PLAYING — a field like any other, and the only one that is not
+   *  part of the setup blob: `create_game` takes it as its own argument and
+   *  writes `common.game_players` rows from it. */
+  player_user_ids: Set<string>
 }
+
+/** What is SENT and STORED — every value the form collects except the players
+ *  (see `SetupOf`). This is the shape `common.games.setup` holds, and what
+ *  `setupSummary.ts` and `PlayArea` read back. */
+export type PsychicnumSetup = SetupOf<PsychicnumValues>
 
 /**
  * Initial setup the manifest hands the SetupGameModal wrapper

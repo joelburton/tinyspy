@@ -1,6 +1,6 @@
 // cs-unmet
 
-import type { TimerMode } from '../../common/lib/games'
+import type { SetupOf, TimerMode } from '../../common/lib/games'
 import type { CoopTurnSetup } from '../../common/components/setup/SetupCoopStyleSection'
 
 /**
@@ -11,7 +11,7 @@ import type { CoopTurnSetup } from '../../common/components/setup/SetupCoopStyle
  * Lives in `lib/` rather than `manifest.ts` so the SetupForm body can
  * import the type without dragging the manifest into its lazy chunk.
  */
-export type WaffleSetup = CoopTurnSetup & {
+export type WaffleValues = CoopTurnSetup & {
   /**
    * Vocabulary tier (1–6) — the recognizability band the six words are
    * drawn from: a tier-N puzzle uses words of band ≤ N with its hardest
@@ -32,8 +32,17 @@ export type WaffleSetup = CoopTurnSetup & {
    * `waffle.submit_timeout` RPC.
    */
   timer: TimerMode
+  /** WHO IS PLAYING — a field like any other, and the only one that is not
+   *  part of the setup blob: `create_game` takes it as its own argument and
+   *  writes `common.game_players` rows from it. */
+  player_user_ids: Set<string>
 }
 
+
+/** What is SENT and STORED — every value the form collects except the players
+ *  (see `SetupOf`). This is the shape `common.games.setup` holds, and what
+ *  `setupSummary.ts` and `PlayArea` read back. */
+export type WaffleSetup = SetupOf<WaffleValues>
 /** Initial setup the manifest hands the dialog as `defaults`. */
 export const DEFAULT_WAFFLE_SETUP: WaffleSetup = {
   difficulty: 2,

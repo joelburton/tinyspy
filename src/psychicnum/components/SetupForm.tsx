@@ -6,12 +6,13 @@ import { DictBandField } from '../../common/components/fields/DictBandField'
 import { SelectField } from '../../common/components/fields/SelectField'
 import { RadioRow } from '../../common/components/fields/RadioRow'
 import { SetupSection } from '../../common/components/setup/SetupSection'
+import { PlayersSection } from '../../common/components/setup/PlayersSection'
 import { difficultyValue } from '../../common/lib/game/difficulty'
-import type { SetupBodyProps } from '../../common/lib/games'
+import type { SetupBodyProps, SetupSetter } from '../../common/lib/games'
 import {
   GUESS_OPTIONS,
   WORD_COUNT_OPTIONS,
-  type PsychicnumSetup,
+  type PsychicnumValues,
 } from '../lib/setup'
 
 /**
@@ -41,8 +42,18 @@ import {
  * (`psychicnum/components/SetupForm.tsx`) disambiguates from the
  * other games' SetupForm components.
  */
-export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
-  const s = value as PsychicnumSetup
+export function SetupForm({
+  mode, members, selfId, numberOfPlayers, values, set: setValue, errors,
+}: SetupBodyProps) {
+  // The boundary between the manifest's game-agnostic `unknown` and
+  // psychicnum's own shape — one cast for what the form holds, one for how it
+  // is written, so a mistyped key is a compile error.
+  const s = values as PsychicnumValues
+  const set = setValue as SetupSetter<PsychicnumValues>
+  // The checked subset of the roster, in `members` order — a control that must
+  // name the ACTUAL players (the turn-order "First player" picker) lists only
+  // who'll play, not the whole club.
+  const players = members.filter((m) => s.player_user_ids.has(m.user_id))
 
   // Disclosure summaries carry the current values so each section reads without
   // opening (the boggle/scrabble/spellingbee pattern). Singular "Dictionary" —
@@ -53,6 +64,14 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
 
   return (
     <>
+      <PlayersSection
+        members={members}
+        selfId={selfId}
+        numberOfPlayers={numberOfPlayers}
+        error={errors.player_user_ids}
+        value={s.player_user_ids}
+        onChange={(next) => set('player_user_ids', next)}
+      />
       {/* Coop pacing — free-for-all (default) vs turn-by-turn — first, right
           below the dialog's player picker. Self-gates to nothing for
           compete / solo, so it's dropped in unconditionally. */}
@@ -61,9 +80,10 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
         players={players}
         coopStyle={s.coop_style ?? 'free-for-all'}
         firstTurnUserId={s.first_turn_user_id ?? ''}
-        onChange={({ coopStyle, firstTurnUserId }) =>
-          onChange({ ...s, coop_style: coopStyle, first_turn_user_id: firstTurnUserId })
-        }
+        onChange={({ coopStyle, firstTurnUserId }) => {
+          set('coop_style', coopStyle)
+          set('first_turn_user_id', firstTurnUserId)
+        }}
       />
       <SetupSection label={guessesLabel}>
         {/* Copy is mode-neutral on purpose — the same SetupForm
@@ -76,9 +96,10 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
         <RadioRow
           help="How many guesses each player starts with."
           name="guesses"
+          error={errors.guesses}
           options={GUESS_OPTIONS.map((n) => ({ value: n, label: n }))}
           value={s.guesses}
-          onChange={(guesses) => onChange({ ...s, guesses })}
+          onChange={(guesses) => set('guesses', guesses)}
         />
       </SetupSection>
       <SetupSection label={wordsLabel}>
@@ -86,9 +107,10 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
             secrets, so a bigger board is more haystack. Same in both modes. */}
         <SelectField
           name="word_count"
+          error={errors.word_count}
           help={<>{s.word_count} words on the board — find the 3 secrets among them.</>}
           value={s.word_count}
-          onChange={(v) => onChange({ ...s, word_count: Number(v) })}
+          onChange={(v) => set('word_count', Number(v))}
         >
           {WORD_COUNT_OPTIONS.map((n) => (
             <option key={n} value={n}>
@@ -102,17 +124,18 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
             difficulty ≤ this (harder bands add more obscure words). */}
         <DictBandField
           name="difficulty"
+          error={errors.difficulty}
           help="How obscure the board words can get."
           length={null}
           minBand={1}
           maxBand={6}
           value={s.difficulty}
-          onChange={(difficulty) => onChange({ ...s, difficulty })}
+          onChange={(difficulty) => set('difficulty', difficulty)}
         />
       </SetupSection>
       <SetupTimerSection
         value={s.timer}
-        onChange={(timer) => onChange({ ...s, timer })}
+        onChange={(timer) => set('timer', timer)}
       />
     </>
   )

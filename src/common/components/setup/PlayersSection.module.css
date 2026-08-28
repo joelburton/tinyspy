@@ -1,0 +1,22 @@
+/* cs-unmet */
+
+/*
+ * The player picker's summary — the dots of whoever is playing, in the roster's
+ * order.
+ *
+ * A summary carries its section's live value, and this section's value is WHO.
+ * Names would wrap in a 480px dialog the moment a club has four of them; the
+ * colors are the same identity every board, every turn log and every feedback
+ * pill uses, so a player recognises themselves in the row without reading it.
+ */
+/* @@ */ .playerDots {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+/* Slightly larger than the picker rows' dots: this one has to be legible on its
+   own, with no name beside it to lean on. */
+/* @@ */ .playerDot {
+/* @@ */   --dot-size: 0.8rem;
+}

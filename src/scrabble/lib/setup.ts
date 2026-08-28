@@ -1,6 +1,6 @@
 // cs-unmet
 
-import type { TimerMode } from '../../common/lib/games'
+import type { SetupOf, TimerMode } from '../../common/lib/games'
 import type { CoopTurnSetup } from '../../common/components/setup/SetupCoopStyleSection'
 import { difficultyValue } from '../../common/lib/game/difficulty'
 
@@ -16,7 +16,7 @@ import { difficultyValue } from '../../common/lib/game/difficulty'
  * mirror of policy's `LEVELS` vocabCaps, kept local so the setup chunk stays
  * light; the server re-derives it in create_game and remains the authority.
  */
-export type ScrabbleSetup = CoopTurnSetup & {
+export type ScrabbleValues = CoopTurnSetup & {
   /**
    * The dictionary bands that gate word acceptance, by word length (both
    * 1..6, `common.words.difficulty`). 2-letter words are a thin, separate
@@ -38,8 +38,17 @@ export type ScrabbleSetup = CoopTurnSetup & {
    */
   ai_count: number
   ai_level: AiLevel
+  /** WHO IS PLAYING — a field like any other, and the only one that is not
+   *  part of the setup blob: `create_game` takes it as its own argument and
+   *  writes `common.game_players` rows from it. */
+  player_user_ids: Set<string>
 }
 
+
+/** What is SENT and STORED — every value the form collects except the players
+ *  (see `SetupOf`). This is the shape `common.games.setup` holds, and what
+ *  `setupSummary.ts` and `PlayArea` read back. */
+export type ScrabbleSetup = SetupOf<ScrabbleValues>
 /** The five AI strength levels (policy.ts `LEVELS`), weakest → strongest. */
 export const AI_LEVELS = ['beginner', 'casual', 'intermediate', 'strong', 'best'] as const
 export type AiLevel = (typeof AI_LEVELS)[number]

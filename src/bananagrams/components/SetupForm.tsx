@@ -1,17 +1,18 @@
 // cs-unmet
 
 import { DictBandField } from '../../common/components/fields/DictBandField'
+import { PlayersSection } from '../../common/components/setup/PlayersSection'
 import { RadioRow } from '../../common/components/fields/RadioRow'
 import { SetupTimerSection } from '../../common/components/setup/SetupTimerSection'
 import { SetupSection } from '../../common/components/setup/SetupSection'
 import { difficultyValue } from '../../common/lib/game/difficulty'
-import type { SetupBodyProps } from '../../common/lib/games'
+import type { SetupBodyProps, SetupSetter } from '../../common/lib/games'
 import {
   HAND_SIZE_OPTIONS,
   WORD_CHECK_OPTIONS,
   BANANAGRAMS_BUNCH_MAX,
   tilesNeeded,
-  type BananagramsSetup,
+  type BananagramsValues,
 } from '../lib/setup'
 import styles from './SetupForm.module.css'
 import { NumberField } from '../../common/components/fields/NumberField'
@@ -49,9 +50,12 @@ import { CheckboxField } from '../../common/components/fields/CheckboxField'
  * and signal via `onChange`. The single cast at the top is the boundary
  * between the manifest's `unknown` setup and our narrow shape.
  */
-export function SetupForm({ value, onChange, playerCount }: SetupBodyProps) {
-  const s = value as BananagramsSetup
-  const needed = tilesNeeded(s, playerCount)
+export function SetupForm({
+  members, selfId, numberOfPlayers, values, set: setValue,
+}: SetupBodyProps) {
+  const s = values as BananagramsValues
+  const set = setValue as SetupSetter<BananagramsValues>
+  const needed = tilesNeeded(s, s.player_user_ids.size)
 
   // Disclosure summaries carry the current values so each section reads without
   // opening (the boggle/scrabble/spellingbee pattern).
@@ -66,25 +70,32 @@ export function SetupForm({ value, onChange, playerCount }: SetupBodyProps) {
 
   return (
     <>
+      <PlayersSection
+        members={members}
+        selfId={selfId}
+        numberOfPlayers={numberOfPlayers}
+        value={s.player_user_ids}
+        onChange={(next) => set('player_user_ids', next)}
+      />
       <SetupSection label={handLabel}>
         <RadioRow
           name="hand_size"
           options={HAND_SIZE_OPTIONS.map((n) => ({ value: n, label: n }))}
           value={s.hand_size}
-          onChange={(hand_size) => onChange({ ...s, hand_size })}
+          onChange={(hand_size) => set('hand_size', hand_size)}
         />
       </SetupSection>
 
       <SetupSection label={bunchLabel}>
         <NumberField
-          help={<>The full bag is {BANANAGRAMS_BUNCH_MAX}. This game deals {needed} ({playerCount} player {playerCount === 1 ? '' : 's'} × {s.hand_size}).</>}
+          help={<>The full bag is {BANANAGRAMS_BUNCH_MAX}. This game deals {needed} ({s.player_user_ids.size} player {s.player_user_ids.size === 1 ? '' : 's'} × {s.hand_size}).</>}
           name="bunch_size"
           label="Bunch size"
           min={1}
           max={BANANAGRAMS_BUNCH_MAX}
           chars={3}
           value={s.bunch_size}
-          onChange={(bunch_size) => onChange({ ...s, bunch_size })}
+          onChange={(bunch_size) => set('bunch_size', bunch_size)}
         />
       </SetupSection>
 
@@ -93,7 +104,7 @@ export function SetupForm({ value, onChange, playerCount }: SetupBodyProps) {
           help="By default a dumped tile goes back to the bunch. With this, it goes to the bag. You still draw three either way."
           name="dump_to_bag"
           value={s.dump_to_bag}
-          onChange={(dump_to_bag) => onChange({ ...s, dump_to_bag })}
+          onChange={(dump_to_bag) => set('dump_to_bag', dump_to_bag)}
         >
           Return dumped tiles to the bag (out of play)
         </CheckboxField>
@@ -105,7 +116,7 @@ export function SetupForm({ value, onChange, playerCount }: SetupBodyProps) {
           prefix="Words must be legal"
           options={WORD_CHECK_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
           value={s.word_check}
-          onChange={(word_check) => onChange({ ...s, word_check })}
+          onChange={(word_check) => set('word_check', word_check)}
         />
       </SetupSection>
 
@@ -124,7 +135,7 @@ export function SetupForm({ value, onChange, playerCount }: SetupBodyProps) {
             minBand={2}
             maxBand={6}
             value={s.dict_2}
-            onChange={(dict_2) => onChange({ ...s, dict_2 })}
+            onChange={(dict_2) => set('dict_2', dict_2)}
           />
           <DictBandField
             name="dict_3plus"
@@ -133,14 +144,14 @@ export function SetupForm({ value, onChange, playerCount }: SetupBodyProps) {
             minBand={1}
             maxBand={6}
             value={s.dict_3plus}
-            onChange={(dict_3plus) => onChange({ ...s, dict_3plus })}
+            onChange={(dict_3plus) => set('dict_3plus', dict_3plus)}
           />
         </div>
       </SetupSection>
 
       <SetupTimerSection
         value={s.timer}
-        onChange={(timer) => onChange({ ...s, timer })}
+        onChange={(timer) => set('timer', timer)}
       />
     </>
   )

@@ -1,6 +1,6 @@
 // cs-unmet
 
-import type { TimerMode } from '../../common/lib/games'
+import type { SetupOf, TimerMode } from '../../common/lib/games'
 
 /**
  * codenamesduet's per-game setup — the choices collected by the
@@ -19,7 +19,7 @@ import type { TimerMode } from '../../common/lib/games'
  * point — the manifest's setupForm field would prevent
  * code-splitting the form's chunk).
  */
-export type CodenamesduetSetup = {
+export type CodenamesduetValues = {
   /**
    * Starting turn count. Matches the Duet rulebook's
    * mission/campaign starting values for easier difficulties (9
@@ -48,8 +48,17 @@ export type CodenamesduetSetup = {
    * on top.
    */
   timer: TimerMode
+  /** WHO IS PLAYING — a field like any other, and the only one that is not
+   *  part of the setup blob: `create_game` takes it as its own argument and
+   *  writes `common.game_players` rows from it. */
+  player_user_ids: Set<string>
 }
 
+
+/** What is SENT and STORED — every value the form collects except the players
+ *  (see `SetupOf`). This is the shape `common.games.setup` holds, and what
+ *  `setupSummary.ts` and `PlayArea` read back. */
+export type CodenamesduetSetup = SetupOf<CodenamesduetValues>
 /**
  * Initial setup the manifest hands the SetupGameModal wrapper
  * as `defaults`. `first_clue_giver_user_id` starts empty — the

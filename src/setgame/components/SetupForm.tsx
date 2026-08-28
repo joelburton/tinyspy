@@ -1,12 +1,13 @@
 // cs-unmet
 
 import { SetupTimerSection } from '../../common/components/setup/SetupTimerSection'
+import { PlayersSection } from '../../common/components/setup/PlayersSection'
 import { SetupCoopStyleSection } from '../../common/components/setup/SetupCoopStyleSection'
 import { RadioRow } from '../../common/components/fields/RadioRow'
 import { SetupSection } from '../../common/components/setup/SetupSection'
-import type { SetupBodyProps } from '../../common/lib/games'
+import type { SetupBodyProps, SetupSetter } from '../../common/lib/games'
 import type { DeckKind } from '../lib/cards'
-import { paletteOf, type Palette, type SetgameSetup } from '../lib/setup'
+import { paletteOf, type Palette, type SetgameValues } from '../lib/setup'
 
 import '../theme.css'
 
@@ -23,11 +24,24 @@ import '../theme.css'
  * per lazy chunk, and the setup dialog is its own chunk. Without this the deck
  * preview's card colors are silently undefined.)
  */
-export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
-  const s = value as SetgameSetup
+export function SetupForm({
+  mode, members, selfId, numberOfPlayers, values, set: setValue,
+}: SetupBodyProps) {
+  const s = values as SetgameValues
+  const set = setValue as SetupSetter<SetgameValues>
+  // The checked subset of the roster, in `members` order — a control that
+  // must name the ACTUAL players lists only who'll play, not the whole club.
+  const players = members.filter((m) => s.player_user_ids.has(m.user_id))
 
   return (
     <>
+      <PlayersSection
+        members={members}
+        selfId={selfId}
+        numberOfPlayers={numberOfPlayers}
+        value={s.player_user_ids}
+        onChange={(next) => set('player_user_ids', next)}
+      />
       {/* Coop pacing — first, right below the dialog's player picker.
           Self-gates to nothing for compete / solo. */}
       <SetupCoopStyleSection
@@ -36,7 +50,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
         coopStyle={s.coop_style ?? 'free-for-all'}
         firstTurnUserId={s.first_turn_user_id ?? ''}
         onChange={({ coopStyle, firstTurnUserId }) =>
-          onChange({ ...s, coop_style: coopStyle, first_turn_user_id: firstTurnUserId })
+          { set('coop_style', coopStyle); set('first_turn_user_id', firstTurnUserId) }
         }
       />
 
@@ -46,7 +60,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
           help="The full deck is all four attributes, 81 cards, twelve face-up. Junior drops shading — every card is solid — leaving 27 cards dealt nine at a time. Fewer things to hold in your head, and a real starting point rather than a slower version of the same game."
           name="setgame-deck"
           value={s.deck}
-          onChange={(deck) => onChange({ ...s, deck })}
+          onChange={(deck) => set('deck', deck)}
           options={[
             { value: 'full', label: 'Full (81)' },
             { value: 'junior', label: 'Junior (27)' },
@@ -61,7 +75,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
           help="Traditional is Set's own red, green and purple. The colorblind-safe set swaps in blue, orange and magenta, which stay apart for red-green color blindness — worth knowing that two cards can differ ONLY by color here, so shape and shading can't rescue a pair you can't tell apart. It's one choice for the whole table."
           name="setgame-palette"
           value={paletteOf(s)}
-          onChange={(palette) => onChange({ ...s, palette })}
+          onChange={(palette) => set('palette', palette)}
           options={[
             { value: 'traditional', label: 'Traditional' },
             { value: 'colorblind', label: 'Colorblind-safe' },
@@ -71,7 +85,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
 
       <SetupTimerSection
         value={s.timer}
-        onChange={(timer) => onChange({ ...s, timer })}
+        onChange={(timer) => set('timer', timer)}
       />
     </>
   )

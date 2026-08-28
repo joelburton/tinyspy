@@ -1,13 +1,14 @@
 // cs-unmet
 
 import { DictBandField } from '../../common/components/fields/DictBandField'
+import { PlayersSection } from '../../common/components/setup/PlayersSection'
 import { SelectField } from '../../common/components/fields/SelectField'
 import { SetupTimerSection } from '../../common/components/setup/SetupTimerSection'
 import { SetupSection } from '../../common/components/setup/SetupSection'
 import { difficultyValue } from '../../common/lib/game/difficulty'
-import type { SetupBodyProps } from '../../common/lib/games'
+import type { SetupBodyProps, SetupSetter } from '../../common/lib/games'
 import { RANKS } from '../../common/lib/game/rankLadder'
-import type { SpellingbeeSetup } from '../lib/setup'
+import type { SpellingbeeValues } from '../lib/setup'
 import { ManualBoardField } from '../../common/components/fields/ManualBoardField'
 import { groupTiles } from '../../common/components/fields/groupTiles'
 
@@ -75,8 +76,11 @@ const NO_TARGET = -1
  * boundary between the manifest's `unknown` setup type and
  * spellingbee's narrow shape.
  */
-export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
-  const s = value as SpellingbeeSetup
+export function SetupForm({
+  mode, members, selfId, numberOfPlayers, values, set: setValue,
+}: SetupBodyProps) {
+  const s = values as SpellingbeeValues
+  const set = setValue as SetupSetter<SpellingbeeValues>
 
   // Disclosure summaries carry the current value so it reads without opening.
   const dictLabel = `Dictionaries: ${difficultyValue(s.required)} / ${difficultyValue(s.legal)}`
@@ -102,13 +106,20 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
 
   return (
     <>
+      <PlayersSection
+        members={members}
+        selfId={selfId}
+        numberOfPlayers={numberOfPlayers}
+        value={s.player_user_ids}
+        onChange={(next) => set('player_user_ids', next)}
+      />
 
       {mode === 'compete' ? (
         <SetupSection label={`Target rank: ${targetRankLabel}`}>
           <SelectField
             name="target_rank"
             value={s.target_rank ?? NO_TARGET}
-            onChange={(v) => onChange({ ...s, target_rank: Number(v) })}
+            onChange={(v) => set('target_rank', Number(v))}
           >
             {TARGET_RANK_CHOICES.map((idx) => (
               <option key={idx} value={idx}>
@@ -127,13 +138,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
             // the absence of a target, not a magic rank.
             onChange={(v) => {
               const choice = Number(v)
-              if (choice === NO_TARGET) {
-                const rest = { ...s }
-                delete rest.target_rank
-                onChange(rest)
-              } else {
-                onChange({ ...s, target_rank: choice })
-              }
+              set('target_rank', choice === NO_TARGET ? undefined : choice)
             }}
           >
             <option value={NO_TARGET}>None</option>
@@ -158,7 +163,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
           maxBand={6}
           help="Dictionary used to make list of required words on board."
           value={s.required}
-          onChange={(required) => onChange({ ...s, required })}
+          onChange={(required) => set('required', required)}
         />
         <DictBandField
           name="legal"
@@ -168,7 +173,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
           maxBand={6}
           help="Dictionary used to make list of legal words on board."
           value={s.legal}
-          onChange={(legal) => onChange({ ...s, legal })}
+          onChange={(legal) => set('legal', legal)}
         />
       </SetupSection>
 
@@ -186,7 +191,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
           value={customEntry}
           onChange={(raw) => {
             const { center, letters } = splitCustomLetters(raw)
-            onChange({ ...s, custom_center: center, custom_letters: letters })
+            { set('custom_center', center); set('custom_letters', letters) }
           }}
           placeholder="A-CHIROT"
           chars={8}
@@ -200,7 +205,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
 
       <SetupTimerSection
         value={s.timer}
-        onChange={(timer) => onChange({ ...s, timer })}
+        onChange={(timer) => set('timer', timer)}
       />
     </>
   )

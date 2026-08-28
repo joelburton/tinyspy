@@ -1,11 +1,12 @@
 // cs-unmet
 
 import { SetupTimerSection } from '../../common/components/setup/SetupTimerSection'
+import { PlayersSection } from '../../common/components/setup/PlayersSection'
 import { SetupCoopStyleSection } from '../../common/components/setup/SetupCoopStyleSection'
 import { SetupNextPuzzleSection } from '../../common/components/setup/SetupNextPuzzleSection'
-import type { SetupBodyProps } from '../../common/lib/games'
+import type { SetupBodyProps, SetupSetter } from '../../common/lib/games'
 import { db } from '../db'
-import type { ConnectionsSetup } from '../lib/setup'
+import type { ConnectionsValues } from '../lib/setup'
 
 /**
  * connections's per-game setup form. Two choices — and the puzzle is no
@@ -33,11 +34,24 @@ import type { ConnectionsSetup } from '../lib/setup'
  * fires from here: the dialog can't offer a puzzle that already has a game.
  * Resuming a half-finished game is the club page's job.
  */
-export function SetupForm({ brand, mode, players, value, onChange }: SetupBodyProps) {
-  const s = value as ConnectionsSetup
+export function SetupForm({
+  brand, mode, members, selfId, numberOfPlayers, values, set: setValue,
+}: SetupBodyProps) {
+  const s = values as ConnectionsValues
+  const set = setValue as SetupSetter<ConnectionsValues>
+  // The checked subset of the roster, in `members` order — a control that
+  // must name the ACTUAL players lists only who'll play, not the whole club.
+  const players = members.filter((m) => s.player_user_ids.has(m.user_id))
 
   return (
     <>
+      <PlayersSection
+        members={members}
+        selfId={selfId}
+        numberOfPlayers={numberOfPlayers}
+        value={s.player_user_ids}
+        onChange={(next) => set('player_user_ids', next)}
+      />
       {/* Coop pacing — first, right below the dialog's player picker.
           Self-gates to nothing for compete / solo. */}
       <SetupCoopStyleSection
@@ -46,7 +60,7 @@ export function SetupForm({ brand, mode, players, value, onChange }: SetupBodyPr
         coopStyle={s.coop_style ?? 'free-for-all'}
         firstTurnUserId={s.first_turn_user_id ?? ''}
         onChange={({ coopStyle, firstTurnUserId }) =>
-          onChange({ ...s, coop_style: coopStyle, first_turn_user_id: firstTurnUserId })
+          { set('coop_style', coopStyle); set('first_turn_user_id', firstTurnUserId) }
         }
       />
 
@@ -66,14 +80,10 @@ export function SetupForm({ brand, mode, players, value, onChange }: SetupBodyPr
         }}
         // A chosen date rides in setup.puzzleId; cleared, the key is dropped
         // entirely — its ABSENCE is what tells create_game to choose.
-        onPick={(puzzleId) => {
-          const next = { ...s, puzzleId }
-          if (puzzleId === undefined) delete next.puzzleId
-          onChange(next)
-        }}
+        onPick={(puzzleId) => set('puzzleId', puzzleId)}
       />
 
-      <SetupTimerSection value={s.timer} onChange={(timer) => onChange({ ...s, timer })} />
+      <SetupTimerSection value={s.timer} onChange={(timer) => set('timer', timer)} />
     </>
   )
 }

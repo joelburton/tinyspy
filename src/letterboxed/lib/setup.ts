@@ -1,6 +1,6 @@
 // cs-unmet
 
-import type { TimerMode } from '../../common/lib/games'
+import type { SetupOf, TimerMode } from '../../common/lib/games'
 import type { CoopTurnSetup } from '../../common/components/setup/SetupCoopStyleSection'
 import { parseSides } from './customBoard'
 
@@ -26,7 +26,7 @@ import { parseSides } from './customBoard'
  *
  * Plus `custom_sides` — an OPTIONAL player-chosen board (see below).
  */
-export type LetterboxedSetup = CoopTurnSetup & {
+export type LetterboxedValues = CoopTurnSetup & {
   timer: TimerMode
   /** Words allowed ABOVE par, 0..5. The cap is `PAR + extra_words`. */
   extra_words: number
@@ -63,8 +63,17 @@ export type LetterboxedSetup = CoopTurnSetup & {
    * otherwise every later Start would silently rebuild this same board.
    */
   custom_sides?: string
+  /** WHO IS PLAYING — a field like any other, and the only one that is not
+   *  part of the setup blob: `create_game` takes it as its own argument and
+   *  writes `common.game_players` rows from it. */
+  player_user_ids: Set<string>
 }
 
+
+/** What is SENT and STORED — every value the form collects except the players
+ *  (see `SetupOf`). This is the shape `common.games.setup` holds, and what
+ *  `setupSummary.ts` and `PlayArea` read back. */
+export type LetterboxedSetup = SetupOf<LetterboxedValues>
 /**
  * Why the optional custom board is invalid, or `null` if it's fine (including
  * the common "left blank" case → a random board). `parseSides` owns the

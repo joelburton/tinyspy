@@ -179,6 +179,11 @@ export function StandardButton({
       // The name has to reach the DOM somehow when it isn't drawn — it is what
       // the bubble says and what tests find the button by.
       aria-label={drawn === null ? name : undefined}
+      // A glyph with no words, said in the DOM so another stylesheet can ask.
+      // `modalActions` uses it to keep its text-button width floor off a lone
+      // icon; the class that draws it is hashed per module and unreachable
+      // from there.
+      data-icon-only={drawn === null ? '' : undefined}
       data-tooltip={bubble}
       // Suppress focus-steal on mouse click: the capture-input games
       // (spellingbee) read keystrokes off the window, so a clicked button must

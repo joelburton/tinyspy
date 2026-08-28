@@ -1,6 +1,6 @@
 // cs-unmet
 
-import type { TimerMode } from '../../common/lib/games'
+import type { SetupOf, TimerMode } from '../../common/lib/games'
 
 /**
  * wordwheel's per-game setup — collected by the start-game dialog,
@@ -45,7 +45,7 @@ import type { TimerMode } from '../../common/lib/games'
  *     the letters are NOT saved as the club's next default — a
  *     one-off, not a new baseline.
  */
-export type WordwheelSetup = {
+export type WordwheelValues = {
   timer: TimerMode
   /** Required in compete; optional in coop, where it's the team's win
    *  threshold (undefined = no win condition, the coop default). */
@@ -65,8 +65,17 @@ export type WordwheelSetup = {
    *  for a custom board, where the player's own letters stand as chosen. The
    *  edge function enforces it by filtering the pangram pool. */
   unique_letters?: boolean
+  /** WHO IS PLAYING — a field like any other, and the only one that is not
+   *  part of the setup blob: `create_game` takes it as its own argument and
+   *  writes `common.game_players` rows from it. */
+  player_user_ids: Set<string>
 }
 
+
+/** What is SENT and STORED — every value the form collects except the players
+ *  (see `SetupOf`). This is the shape `common.games.setup` holds, and what
+ *  `setupSummary.ts` and `PlayArea` read back. */
+export type WordwheelSetup = SetupOf<WordwheelValues>
 /**
  * Why the current `legal` band is too low to start, or `null`: the legal set
  * must contain the required set, so `legal >= required`. The dialog gates Start

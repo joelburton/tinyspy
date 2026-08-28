@@ -1,14 +1,15 @@
 // cs-unmet
 
 import { DictBandField } from '../../common/components/fields/DictBandField'
+import { PlayersSection } from '../../common/components/setup/PlayersSection'
 import { RadioRow } from '../../common/components/fields/RadioRow'
 import { SelectField } from '../../common/components/fields/SelectField'
 import { SetupTimerSection } from '../../common/components/setup/SetupTimerSection'
 import { SetupSection } from '../../common/components/setup/SetupSection'
 import { difficultyValue } from '../../common/lib/game/difficulty'
-import type { SetupBodyProps } from '../../common/lib/games'
+import type { SetupBodyProps, SetupSetter } from '../../common/lib/games'
 import type { BoardConstraints } from '../lib/generate'
-import { WIN_PERCENT_OPTIONS, type BoggleSetup } from '../lib/setup'
+import { WIN_PERCENT_OPTIONS, type BoggleValues } from '../lib/setup'
 import { capBoard, cleanCustomBoard, readTiles, twoLetterList } from '../lib/customBoard'
 import type { LadderName } from '../lib/solver'
 import { DICE_SETS, DICE_BY_NAME } from '../lib/dice'
@@ -45,8 +46,11 @@ const CONSTRAINT_ROWS: ReadonlyArray<{ label: string; min: NumKey; max: NumKey }
  * grid like wsboggle's), and the form SetupTimerSection. Controlled component —
  * state lives in SetupGameModal; `create_game` re-validates server-side.
  */
-export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
-  const s = value as BoggleSetup
+export function SetupForm({
+  mode, members, selfId, numberOfPlayers, values, set: setValue,
+}: SetupBodyProps) {
+  const s = values as BoggleValues
+  const set = setValue as SetupSetter<BoggleValues>
   const c: BoardConstraints = s.constraints ?? {}
 
   function setConstraint(key: NumKey, raw: string) {
@@ -54,7 +58,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
     const trimmed = raw.trim()
     if (trimmed === '') delete next[key]
     else next[key] = Math.max(0, Math.floor(Number(trimmed)))
-    onChange({ ...s, constraints: Object.keys(next).length ? next : undefined })
+    set('constraints', Object.keys(next).length ? next : undefined)
   }
 
   // Disclosure summaries carry the current value so each section reads without
@@ -80,6 +84,13 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
 
   return (
     <>
+      <PlayersSection
+        members={members}
+        selfId={selfId}
+        numberOfPlayers={numberOfPlayers}
+        value={s.player_user_ids}
+        onChange={(next) => set('player_user_ids', next)}
+      />
 
       {/* "Dice set" — the summary names the chosen set (e.g. "Dice set: 4×4
           Revised"); expand to change it. */}
@@ -96,7 +107,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
           // handing them a puzzle to solve. It also can't lose much: a set
           // change is a decision about what kind of board you want, and a
           // custom board is the answer to that question.
-          onChange={(dice_set) => onChange({ ...s, dice_set, custom_board: undefined })}
+          onChange={(dice_set) => { set('dice_set', dice_set); set('custom_board', undefined) }}
         >
           {DICE_SETS.map((d) => (
             <option key={d.name} value={d.name}>
@@ -123,14 +134,14 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
           name="custom_board"
           value={customBoard}
           onChange={(raw) =>
-            onChange({
-              ...s,
-              // Capped in TILES, not characters — a `Qu` is one tile and two
-              // characters, so `maxLength` could not say "a full board".
-              custom_board: (diceSet
+            // Capped in TILES, not characters — a `Qu` is one tile and two
+            // characters, so `maxLength` could not say "a full board".
+            set(
+              'custom_board',
+              (diceSet
                 ? capBoard(cleanCustomBoard(raw), diceSet.n)
                 : cleanCustomBoard(raw)) || undefined,
-            })
+            )
           }
           placeholder={diceSet ? exampleBoard(diceSet.n) : ''}
           chars="full"
@@ -161,7 +172,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
           value={s.band}
           // The legal band can never sit below the required band (every required
           // word is also legal) — pull it up with the required band when needed.
-          onChange={(band) => onChange({ ...s, band, legal_band: Math.max(band, s.legal_band) })}
+          onChange={(band) => { set('band', band); set('legal_band', Math.max(band, s.legal_band)) }}
         />
         <DictBandField
           name="legal_band"
@@ -171,7 +182,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
           minBand={s.band}
           maxBand={6}
           value={s.legal_band}
-          onChange={(legal_band) => onChange({ ...s, legal_band })}
+          onChange={(legal_band) => set('legal_band', legal_band)}
         />
       </SetupSection>
 
@@ -182,7 +193,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
           name="scoring_ladder"
           label="Ladder"
           value={s.scoring_ladder}
-          onChange={(ladder) => onChange({ ...s, scoring_ladder: ladder as LadderName })}
+          onChange={(ladder) => set('scoring_ladder', ladder as LadderName)}
         >
           {SCORING_LADDERS.map((l) => (
             <option key={l.name} value={l.name}>
@@ -197,7 +208,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
             prefix="Minimum word length:"
             options={MIN_WORD_LENGTHS.map((len) => ({ value: len, label: len }))}
             value={s.min_word_length}
-            onChange={(min_word_length) => onChange({ ...s, min_word_length })}
+            onChange={(min_word_length) => set('min_word_length', min_word_length)}
           />
         </div>
       </SetupSection>
@@ -209,7 +220,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
           help={<>Win by reaching this share of the required-words score {mode === 'compete' ? ' (first player there wins)' : ' (the team wins together)'} , or <strong>None</strong> to play until you End (or the timer runs out).</>}
           label="Win at"
           value={s.win_percent === null ? 'none' : String(s.win_percent)}
-          onChange={(v) => onChange({ ...s, win_percent: v === 'none' ? null : Number(v) })}
+          onChange={(v) => set('win_percent', v === 'none' ? null : Number(v))}
         >
           {WIN_PERCENT_OPTIONS.map((p) => (
             <option key={p ?? 'none'} value={p === null ? 'none' : String(p)}>
@@ -232,7 +243,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
         </div>
       </SetupSection>
 
-      <SetupTimerSection value={s.timer} onChange={(timer) => onChange({ ...s, timer })} />
+      <SetupTimerSection value={s.timer} onChange={(timer) => set('timer', timer)} />
     </>
   )
 }

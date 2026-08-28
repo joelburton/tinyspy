@@ -24,9 +24,8 @@ type Props = {
  * dialog says about its own last action, next to the thing you pressed.
  *
  * **It renders nothing when there is nothing to say, so it reflows** — a
- * failure appearing pushes what is under it down. A surface
- * that wants a reserved line holds it open itself; the setup dialog does, so a
- * message can never change the dialog's height mid-edit.
+ * failure appearing pushes what is under it down. A surface that wants the line
+ * held open regardless holds it open itself.
  */
 export function FailureLine({ children, className }: Props) {
   if (children === null || children === undefined || children === false) return null

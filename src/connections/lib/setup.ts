@@ -1,6 +1,6 @@
 // cs-unmet
 
-import type { TimerMode } from '../../common/lib/games'
+import type { SetupOf, TimerMode } from '../../common/lib/games'
 import type { CoopTurnSetup } from '../../common/components/setup/SetupCoopStyleSection'
 
 /**
@@ -25,11 +25,20 @@ import type { CoopTurnSetup } from '../../common/components/setup/SetupCoopStyle
  * accommodates new optional fields without schema churn — only
  * the RPC's shape validator changes.
  */
-export type ConnectionsSetup = CoopTurnSetup & {
+export type ConnectionsValues = CoopTurnSetup & {
   puzzleId?: string
   timer: TimerMode
+  /** WHO IS PLAYING — a field like any other, and the only one that is not
+   *  part of the setup blob: `create_game` takes it as its own argument and
+   *  writes `common.game_players` rows from it. */
+  player_user_ids: Set<string>
 }
 
+
+/** What is SENT and STORED — every value the form collects except the players
+ *  (see `SetupOf`). This is the shape `common.games.setup` holds, and what
+ *  `setupSummary.ts` and `PlayArea` read back. */
+export type ConnectionsSetup = SetupOf<ConnectionsValues>
 /**
  * Initial setup the manifest hands the SetupGameModal wrapper as `defaults`.
  *

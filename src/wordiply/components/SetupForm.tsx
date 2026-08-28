@@ -1,11 +1,12 @@
 // cs-unmet
 
 import { DictBandField } from '../../common/components/fields/DictBandField'
+import { PlayersSection } from '../../common/components/setup/PlayersSection'
 import { SetupTimerSection } from '../../common/components/setup/SetupTimerSection'
 import { SetupCoopStyleSection } from '../../common/components/setup/SetupCoopStyleSection'
 import { SetupSection } from '../../common/components/setup/SetupSection'
-import type { SetupBodyProps } from '../../common/lib/games'
-import { cleanBase, type WordiplySetup } from '../lib/setup'
+import type { SetupBodyProps, SetupSetter } from '../../common/lib/games'
+import { cleanBase, type WordiplyValues } from '../lib/setup'
 import { difficultyValue } from '../../common/lib/game/difficulty'
 import { ManualBoardField } from '../../common/components/fields/ManualBoardField'
 
@@ -22,8 +23,14 @@ import { ManualBoardField } from '../../common/components/fields/ManualBoardFiel
  * Controlled component: state lives in the wrapping `SetupGameModal`; this
  * body renders `value` and signals via `onChange`.
  */
-export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
-  const s = value as WordiplySetup
+export function SetupForm({
+  mode, members, selfId, numberOfPlayers, values, set: setValue,
+}: SetupBodyProps) {
+  const s = values as WordiplyValues
+  const set = setValue as SetupSetter<WordiplyValues>
+  // The checked subset of the roster, in `members` order — a control that
+  // must name the ACTUAL players lists only who'll play, not the whole club.
+  const players = members.filter((m) => s.player_user_ids.has(m.user_id))
 
   // The custom-starter section's summary carries its own value, so a closed
   // section still shows what's set (SetupSection's contract).
@@ -34,6 +41,13 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
 
   return (
     <>
+      <PlayersSection
+        members={members}
+        selfId={selfId}
+        numberOfPlayers={numberOfPlayers}
+        value={s.player_user_ids}
+        onChange={(next) => set('player_user_ids', next)}
+      />
       {/* Coop pacing — first, right below the dialog's player picker.
           Self-gates to nothing for compete / solo. */}
       <SetupCoopStyleSection
@@ -42,7 +56,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
         coopStyle={s.coop_style ?? 'free-for-all'}
         firstTurnUserId={s.first_turn_user_id ?? ''}
         onChange={({ coopStyle, firstTurnUserId }) =>
-          onChange({ ...s, coop_style: coopStyle, first_turn_user_id: firstTurnUserId })
+          { set('coop_style', coopStyle); set('first_turn_user_id', firstTurnUserId) }
         }
       />
 
@@ -53,7 +67,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
           minBand={1}
           maxBand={6}
           value={s.difficulty}
-          onChange={(difficulty) => onChange({ ...s, difficulty })}
+          onChange={(difficulty) => set('difficulty', difficulty)}
         />
       </SetupSection>
 
@@ -73,14 +87,14 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
           help="Leave blank for a random starter, or set your own: 2–4 letters that every guess must contain. Very short starters usually match too many words to make a puzzle."
           name="custom_base"
           value={customBase}
-          onChange={(raw) => onChange({ ...s, custom_base: cleanBase(raw) || undefined })}
+          onChange={(raw) => set('custom_base', cleanBase(raw) || undefined)}
           placeholder="MOTH"
           chars={4}
           maxLength={4}
         />
       </SetupSection>
 
-      <SetupTimerSection value={s.timer} onChange={(timer) => onChange({ ...s, timer })} />
+      <SetupTimerSection value={s.timer} onChange={(timer) => set('timer', timer)} />
     </>
   )
 }

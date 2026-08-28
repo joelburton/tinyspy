@@ -1,6 +1,6 @@
 // cs-unmet
 
-import type { TimerMode } from '../../common/lib/games'
+import type { SetupOf, TimerMode } from '../../common/lib/games'
 import type { CoopTurnSetup } from '../../common/components/setup/SetupCoopStyleSection'
 
 /**
@@ -21,7 +21,7 @@ import type { CoopTurnSetup } from '../../common/components/setup/SetupCoopStyle
  *   - `timer` — wall-clock mode (none / countup / countdown).
  *   - `custom_base` — an OPTIONAL player-chosen starter (see below).
  */
-export type WordiplySetup = CoopTurnSetup & {
+export type WordiplyValues = CoopTurnSetup & {
   timer: TimerMode
   /** Dictionary band for legal child words (1..6). */
   difficulty: number
@@ -47,8 +47,17 @@ export type WordiplySetup = CoopTurnSetup & {
    * handing the setup to `common.create_game`. A one-off, not a baseline.
    */
   custom_base?: string
+  /** WHO IS PLAYING — a field like any other, and the only one that is not
+   *  part of the setup blob: `create_game` takes it as its own argument and
+   *  writes `common.game_players` rows from it. */
+  player_user_ids: Set<string>
 }
 
+
+/** What is SENT and STORED — every value the form collects except the players
+ *  (see `SetupOf`). This is the shape `common.games.setup` holds, and what
+ *  `setupSummary.ts` and `PlayArea` read back. */
+export type WordiplySetup = SetupOf<WordiplyValues>
 /**
  * Normalize a typed starter the way the server will read it: trimmed,
  * lowercased, and stripped of anything that isn't an ASCII letter (so a

@@ -1,16 +1,17 @@
 // cs-unmet
 
 import { useState } from 'react'
+import { PlayersSection } from '../../common/components/setup/PlayersSection'
 import { DictBandField } from '../../common/components/fields/DictBandField'
 import { SelectField } from '../../common/components/fields/SelectField'
 import { SetupTimerSection } from '../../common/components/setup/SetupTimerSection'
 import { SetupCoopStyleSection } from '../../common/components/setup/SetupCoopStyleSection'
 import { SetupSection } from '../../common/components/setup/SetupSection'
 import { difficultyValue } from '../../common/lib/game/difficulty'
-import type { SetupBodyProps } from '../../common/lib/games'
+import type { SetupBodyProps, SetupSetter } from '../../common/lib/games'
 import { PAR } from '../lib/board'
 import { cleanSides, formatSides } from '../lib/customBoard'
-import type { LetterboxedSetup } from '../lib/setup'
+import type { LetterboxedValues } from '../lib/setup'
 import { ManualBoardField } from '../../common/components/fields/ManualBoardField'
 import { SIDE_SIZE } from '../lib/board'
 
@@ -26,8 +27,14 @@ import { SIDE_SIZE } from '../lib/board'
  * Controlled component: state lives in the wrapping `SetupGameModal`; this
  * body renders `value` and signals via `onChange`.
  */
-export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
-  const s = value as LetterboxedSetup
+export function SetupForm({
+  mode, members, selfId, numberOfPlayers, values, set: setValue,
+}: SetupBodyProps) {
+  const s = values as LetterboxedValues
+  const set = setValue as SetupSetter<LetterboxedValues>
+  // The checked subset of the roster, in `members` order — a control that
+  // must name the ACTUAL players lists only who'll play, not the whole club.
+  const players = members.filter((m) => s.player_user_ids.has(m.user_id))
 
   // WHAT YOU TYPED, kept separately from what gets stored. The field shows your
   // text verbatim — dashes, dots, spaces and all — because you should be able
@@ -57,6 +64,13 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
 
   return (
     <>
+      <PlayersSection
+        members={members}
+        selfId={selfId}
+        numberOfPlayers={numberOfPlayers}
+        value={s.player_user_ids}
+        onChange={(next) => set('player_user_ids', next)}
+      />
       {/* Coop pacing — first, right below the dialog's player picker.
           Self-gates to nothing for compete / solo. Turn-by-turn suits this
           game unusually well: the chain hands off on its own. */}
@@ -66,7 +80,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
         coopStyle={s.coop_style ?? 'free-for-all'}
         firstTurnUserId={s.first_turn_user_id ?? ''}
         onChange={({ coopStyle, firstTurnUserId }) =>
-          onChange({ ...s, coop_style: coopStyle, first_turn_user_id: firstTurnUserId })
+          { set('coop_style', coopStyle); set('first_turn_user_id', firstTurnUserId) }
         }
       />
 
@@ -79,7 +93,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
           name="extra_words"
           help={<>Every board can be solved in {PAR}.</>}
         value={s.extra_words}
-        onChange={(v) => onChange({ ...s, extra_words: Number(v) })}
+        onChange={(v) => set('extra_words', Number(v))}
       >
         {[0, 1, 2, 3, 4, 5].map((n) => (
           <option key={n} value={n}>
@@ -100,7 +114,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
           minBand={1}
           maxBand={6}
           value={s.legal_band}
-          onChange={(legal_band) => onChange({ ...s, legal_band })}
+          onChange={(legal_band) => set('legal_band', legal_band)}
         />
       </SetupSection>
 
@@ -126,7 +140,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
           value={typedSides}
           onChange={(raw) => {
             setTypedSides(raw)
-            onChange({ ...s, custom_sides: cleanSides(raw) || undefined })
+            set('custom_sides', cleanSides(raw) || undefined)
           }}
           placeholder="ABC-DEF-GHI-JKL"
           chars={15}
@@ -137,7 +151,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
         />
       </SetupSection>
 
-      <SetupTimerSection value={s.timer} onChange={(timer) => onChange({ ...s, timer })} />
+      <SetupTimerSection value={s.timer} onChange={(timer) => set('timer', timer)} />
     </>
   )
 }

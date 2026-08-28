@@ -1,12 +1,13 @@
 // cs-unmet
 
 import { useEffect } from 'react'
+import { PlayersSection } from '../../common/components/setup/PlayersSection'
 import { RadioRow } from '../../common/components/fields/RadioRow'
 import { SetupTimerSection } from '../../common/components/setup/SetupTimerSection'
-import type { SetupBodyProps } from '../../common/lib/games'
+import type { SetupBodyProps, SetupSetter } from '../../common/lib/games'
 import {
   TURN_OPTIONS,
-  type CodenamesduetSetup,
+  type CodenamesduetValues,
 } from '../lib/setup'
 import { SetupSection } from '../../common/components/setup/SetupSection'
 
@@ -41,8 +42,11 @@ import { SetupSection } from '../../common/components/setup/SetupSection'
  * (`codenamesduet/components/SetupForm.tsx`) disambiguates from the
  * other games' SetupForm components.
  */
-export function SetupForm({ members, value, onChange }: SetupBodyProps) {
-  const s = value as CodenamesduetSetup
+export function SetupForm({
+  members, selfId, numberOfPlayers, values, set: setValue,
+}: SetupBodyProps) {
+  const s = values as CodenamesduetValues
+  const set = setValue as SetupSetter<CodenamesduetValues>
 
   // Auto-pick the first member as first-clue-giver when the form
   // first sees a populated member list with an empty selection.
@@ -50,9 +54,9 @@ export function SetupForm({ members, value, onChange }: SetupBodyProps) {
   // false and this is a no-op — including on s-change reruns.
   useEffect(function seedFirstClueGiver() {
     if (s.first_clue_giver_user_id === '' && members.length > 0) {
-      onChange({ ...s, first_clue_giver_user_id: members[0].user_id })
+      set('first_clue_giver_user_id', members[0].user_id)
     }
-  }, [s, members, onChange])
+  }, [s, members, set])
 
   // The summary says WHO, not which uuid. The `?? '—'` covers the first render
   // before the seeding effect above has picked a default; no user sees it.
@@ -61,13 +65,20 @@ export function SetupForm({ members, value, onChange }: SetupBodyProps) {
 
   return (
     <>
+      <PlayersSection
+        members={members}
+        selfId={selfId}
+        numberOfPlayers={numberOfPlayers}
+        value={s.player_user_ids}
+        onChange={(next) => set('player_user_ids', next)}
+      />
       <SetupSection label={`Turns: ${s.turns}`}>
         <RadioRow
           help="The standard game is 9. Pick 10 or 11 for an easier warm-up (matches the rulebook's mission difficulties)."
           name="turns"
           options={TURN_OPTIONS.map((t) => ({ value: t, label: t }))}
           value={s.turns}
-          onChange={(turns) => onChange({ ...s, turns })}
+          onChange={(turns) => set('turns', turns)}
         />
       </SetupSection>
 
@@ -77,13 +88,13 @@ export function SetupForm({ members, value, onChange }: SetupBodyProps) {
           name="firstClueGiver"
           options={members.map((m) => ({ value: m.user_id, label: m.username }))}
           value={s.first_clue_giver_user_id}
-          onChange={(id) => onChange({ ...s, first_clue_giver_user_id: id })}
+          onChange={(id) => set('first_clue_giver_user_id', id)}
         />
       </SetupSection>
 
       <SetupTimerSection
         value={s.timer}
-        onChange={(timer) => onChange({ ...s, timer })}
+        onChange={(timer) => set('timer', timer)}
       />
     </>
   )

@@ -1,11 +1,12 @@
 // cs-unmet
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { SetupBodyProps } from '../../common/lib/games'
+import { PlayersSection } from '../../common/components/setup/PlayersSection'
+import type { SetupBodyProps, SetupSetter } from '../../common/lib/games'
 import { SetupTimerSection } from '../../common/components/setup/SetupTimerSection'
 import { cls } from '../../common/lib/util/cls'
 import { db } from '../db'
-import type { CrosswordsSetup } from '../lib/setup'
+import type { CrosswordsValues } from '../lib/setup'
 import { GUARDIAN_SERIES } from '../lib/setup'
 import { importCrosswordFile } from '../lib/importFile'
 import { SelectionList } from '../../common/components/lists/SelectionList'
@@ -104,8 +105,14 @@ function weekdayName(dow: number): string {
  * this club has already solved / started / lost that puzzle, which is what
  * makes "find the one we haven't done" a glance rather than a memory test.
  */
-export function SetupForm({ clubHandle, players, value, onChange }: SetupBodyProps) {
-  const s = value as CrosswordsSetup
+export function SetupForm({
+  clubHandle, members, selfId, numberOfPlayers, values, set: setValue,
+}: SetupBodyProps) {
+  const s = values as CrosswordsValues
+  const set = setValue as SetupSetter<CrosswordsValues>
+  // The checked subset of the roster, in `members` order — a control that
+  // must name the ACTUAL players lists only who'll play, not the whole club.
+  const players = members.filter((m) => s.player_user_ids.has(m.user_id))
   const [puzzles, setPuzzles] = useState<LibraryPuzzle[] | null>(null)
   const [query, setQuery] = useState('')
   // Upload tab state.
@@ -122,11 +129,11 @@ export function SetupForm({ clubHandle, players, value, onChange }: SetupBodyPro
     setUploadError(null)
     try {
       const board = await importCrosswordFile(file)
-      onChange({ ...s, source: 'upload', board, filename: file.name })
+      { set('source', 'upload'); set('board', board); set('filename', file.name) }
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : 'Could not read that file.')
       // Clear any previously-parsed board so Start stays blocked.
-      onChange({ ...s, source: 'upload', board: undefined, filename: file.name })
+      { set('source', 'upload'); set('board', undefined); set('filename', file.name) }
     } finally {
       setUploadBusy(false)
     }
@@ -206,6 +213,13 @@ export function SetupForm({ clubHandle, players, value, onChange }: SetupBodyPro
 
   return (
     <div className={styles.setup}>
+      <PlayersSection
+        members={members}
+        selfId={selfId}
+        numberOfPlayers={numberOfPlayers}
+        value={s.player_user_ids}
+        onChange={(next) => set('player_user_ids', next)}
+      />
       <div className="segmented" role="group" aria-label="Puzzle source">
         <button
           type="button"
@@ -214,7 +228,7 @@ export function SetupForm({ clubHandle, players, value, onChange }: SetupBodyPro
           // Drop any parsed upload board/filename when leaving the Upload tab so
           // a stale solution grid can't ride along in `setup` (belt-and-braces
           // with the unconditional strip in manifest + the create_game backstop).
-          onClick={() => onChange({ ...s, source: 'library', board: undefined, filename: undefined })}
+          onClick={() => { set('source', 'library'); set('board', undefined); set('filename', undefined) }}
         >
           Library
         </button>
@@ -227,7 +241,7 @@ export function SetupForm({ clubHandle, players, value, onChange }: SetupBodyPro
             // path REQUIRED a date; now the date box is the override and the
             // weekday is the normal path, so pre-filling it would leave every
             // club permanently overriding to today without meaning to.
-            onChange({ ...s, source: 'nyt', board: undefined, filename: undefined })
+            { set('source', 'nyt'); set('board', undefined); set('filename', undefined) }
           }
         >
           NYT
@@ -237,13 +251,7 @@ export function SetupForm({ clubHandle, players, value, onChange }: SetupBodyPro
           
           aria-pressed={source === 'guardian'}
           onClick={() =>
-            onChange({
-              ...s,
-              source: 'guardian',
-              series: s.series || GUARDIAN_SERIES[0]!.slug,
-              board: undefined,
-              filename: undefined,
-            })
+            { set('source', 'guardian'); set('series', s.series || GUARDIAN_SERIES[0]!.slug); set('board', undefined); set('filename', undefined) }
           }
         >
           Guardian
@@ -252,7 +260,7 @@ export function SetupForm({ clubHandle, players, value, onChange }: SetupBodyPro
           type="button"
           
           aria-pressed={source === 'upload'}
-          onClick={() => onChange({ ...s, source: 'upload' })}
+          onClick={() => set('source', 'upload')}
         >
           Upload
         </button>
@@ -331,7 +339,7 @@ export function SetupForm({ clubHandle, players, value, onChange }: SetupBodyPro
               // Choosing a weekday clears any date override: the two answer the
               // same question, and leaving a date set would make this control
               // silently inert.
-              onChange({ ...s, weekday: Number(e.target.value), date: undefined })
+              { set('weekday', Number(e.target.value)); set('date', undefined) }
             }
           >
             {WEEKDAYS.map((w) => (
@@ -365,7 +373,7 @@ export function SetupForm({ clubHandle, players, value, onChange }: SetupBodyPro
             min={NYT_EARLIEST}
             max={today}
             value={s.date ?? ''}
-            onChange={(e) => onChange({ ...s, date: e.target.value || undefined })}
+            onChange={(e) => set('date', e.target.value || undefined)}
           />
         </div>
 
@@ -379,7 +387,7 @@ export function SetupForm({ clubHandle, players, value, onChange }: SetupBodyPro
             className={styles.search}
             aria-label="Guardian series"
             value={selectedGuardian.slug}
-            onChange={(e) => onChange({ ...s, series: e.target.value })}
+            onChange={(e) => set('series', e.target.value)}
           >
             {GUARDIAN_SERIES.map((g) => (
               <option key={g.slug} value={g.slug}>
@@ -416,7 +424,7 @@ export function SetupForm({ clubHandle, players, value, onChange }: SetupBodyPro
               // choice and must NOT submit the dialog around them
               // (plans/selection-lists.md).
               selected={s.puzzle_id ?? null}
-              onSelect={(p) => onChange({ ...s, puzzle_id: p.id })}
+              onSelect={(p) => set('puzzle_id', p.id)}
               // No autoFocus: the dialog focuses its own first field, and a
               // list that grabbed focus from inside a tab would fight it.
               empty={
@@ -458,7 +466,7 @@ export function SetupForm({ clubHandle, players, value, onChange }: SetupBodyPro
           which ends the table: coop → `lost`, compete → `lost_compete`, both
           stamped `outcome: 'timeout'` so buildOver can say "Out of time"
           rather than the concede wording those states otherwise carry. */}
-      <SetupTimerSection value={s.timer} onChange={(timer) => onChange({ ...s, timer })} />
+      <SetupTimerSection value={s.timer} onChange={(timer) => set('timer', timer)} />
     </div>
   )
 }
