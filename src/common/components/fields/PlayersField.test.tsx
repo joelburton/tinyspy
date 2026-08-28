@@ -14,6 +14,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { PlayersField } from './PlayersField'
+import { expectFieldContract } from './fieldContract'
 import type { Member } from '../../lib/games'
 
 const MEMBERS = [
@@ -33,6 +34,11 @@ function draw(value: Set<string>, onChange = vi.fn()) {
   )
   return onChange
 }
+
+
+expectFieldContract((props) => (
+  render(<PlayersField members={MEMBERS} selfId="self" value={new Set(['self'])} onChange={() => {}} {...props} />)
+))
 
 describe('PlayersField', () => {
   it('reports the new set, not the row that was clicked', async () => {

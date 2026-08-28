@@ -4,6 +4,12 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { DictBandField } from './DictBandField'
+import { expectFieldContract } from './fieldContract'
+
+
+expectFieldContract((props) => (
+  render(<DictBandField value={1} onChange={() => {}} length={null} minBand={1} maxBand={6} {...props} />)
+))
 
 describe('DictBandField', () => {
   it('lists all six bands as "N: Label: SAMPLES" and disables out-of-range', () => {

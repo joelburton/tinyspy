@@ -42,6 +42,7 @@ export function ManualBoardField({
   placeholder,
   chars,
   label,
+  disabled,
   help,
   entryHelp,
   error,
@@ -78,6 +79,7 @@ export function ManualBoardField({
           autoCorrect="off"
           spellCheck={false}
           maxLength={maxLength}
+          disabled={disabled}
           value={shown}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}

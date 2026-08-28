@@ -51,6 +51,7 @@ export function RadioRow<T extends string | number>({
   help,
   entryHelp,
   error,
+  disabled,
   className,
 }: Props<T>) {
   return (
@@ -67,6 +68,7 @@ export function RadioRow<T extends string | number>({
               name={name}
               checked={value === opt.value}
               onChange={() => onChange(opt.value)}
+              disabled={disabled}
             />
             {opt.label}
           </label>

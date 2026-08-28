@@ -5,6 +5,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { ManualBoardField } from './ManualBoardField'
+import { expectFieldContract } from './fieldContract'
 
 /**
  * The field that writes a board down (see ManualBoardField.tsx). What is
@@ -36,6 +37,11 @@ function Harness({ groups }: { groups?: number[] }) {
     />
   )
 }
+
+
+expectFieldContract((props) => (
+  render(<ManualBoardField value="" onChange={() => {}} placeholder="ABC" chars={3} {...props} />)
+))
 
 describe('ManualBoardField separators', () => {
   it('groups as you type, without re-grouping its own dashes', async () => {
