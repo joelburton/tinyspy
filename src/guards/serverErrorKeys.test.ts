@@ -118,11 +118,17 @@ describe('server-error keys', () => {
     ).toEqual([])
   })
 
-  it('a validation names a real parameter of the function raising it', () => {
+  it('a validation names something the function is actually given', () => {
     // The convention that makes the frontend half free: COLUMN names the RPC's
     // own parameter, which the frontend already knows because it passes it. A
     // column naming anything else would address an input that doesn't exist,
     // and the message would vanish.
+    //
+    // OR A KEY IT READS OUT OF A JSONB PARAMETER. `create_game` takes the whole
+    // form as one `setup` argument, so `guesses` is not a parameter — but the
+    // function reads `setup->>'guesses'`, the form has a field of that name,
+    // and the message belongs under it. Requiring the read is what keeps this
+    // honest: a column naming a key nothing looks at is still caught.
     const offenders: string[] = []
     for (const file of readdirSync(SQL_DIR).filter((f) => f.endsWith('.sql'))) {
       const sql = readFileSync(join(SQL_DIR, file), 'utf8')
@@ -134,13 +140,21 @@ describe('server-error keys', () => {
         const params = new Set(
           header[2].split(',').map((p) => p.trim().split(/\s+/)[0]).filter(Boolean),
         )
+        // Keys pulled out of one of those parameters: `setup->>'guesses'`.
+        const named = new Set(params)
+        for (const r of fn.matchAll(/\b([a-z_]+)\s*->>?\s*'([^']+)'/g)) {
+          if (params.has(r[1]!)) named.add(r[2]!)
+        }
         for (const m of fn.matchAll(/column\s*=\s*'([^']*)'/g)) {
-          if (m[1] === '_' || params.has(m[1])) continue
-          offenders.push(`${file}: ${header[1]} raises column='${m[1]}' — not a parameter (${[...params].join(', ')})`)
+          if (m[1] === '_' || named.has(m[1]!)) continue
+          offenders.push(
+            `${file}: ${header[1]} raises column='${m[1]}' — not a parameter, ` +
+              `and not a key it reads out of one (${[...named].join(', ')})`,
+          )
         }
       }
     }
-    expect(offenders, 'a column that names no parameter of its function').toEqual([])
+    expect(offenders, 'a column naming an input the function never sees').toEqual([])
   })
 
   it('every ERROR_COPY entry answers a key some file actually raises', () => {

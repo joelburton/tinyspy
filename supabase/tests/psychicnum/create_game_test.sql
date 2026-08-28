@@ -21,9 +21,10 @@ begin;
 
 set search_path = psychicnum, common, public, extensions;
 
-select plan(28);
+select plan(30);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 
 -- ============================================================
 -- (1) Unauthenticated callers are rejected
@@ -32,17 +33,18 @@ select plan(28);
 select set_config('request.jwt.claims', '', true);
 select set_config('role', 'postgres', true);
 
-select throws_ok(
-  $$ select psychicnum.create_game(
-       'placeholder-club',
-       '{"guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
-       array['ada11111-1111-1111-1111-111111111111'::uuid,
-             'bea22222-2222-2222-2222-222222222222'::uuid],
-       'coop'
-     ) $$,
-  'PN011',
-  'Signed out; try refresh',
-  'unauthenticated create_game is rejected'
+-- Nothing THROWS out of this function any more: its handler turns every one of
+-- our own raises into an envelope, so even the signed-out gate comes back as a
+-- value. The severity is what says it is not the player's doing.
+select pg_temp.envelope_is(
+  psychicnum.create_game(
+    'placeholder-club',
+    '{"guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid,
+          'bea22222-2222-2222-2222-222222222222'::uuid],
+    'coop'),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN011"}'::jsonb,
+  'a signed-out caller is refused as a fault, not a validation'
 );
 
 -- ============================================================
@@ -66,16 +68,15 @@ select common.set_club_gametypes(
 -- dee is signed in but outside ada+bea's club.
 
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
-select throws_ok(
-  format(
-    $$ select psychicnum.create_game(%L, '{"guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
-       array['ada11111-1111-1111-1111-111111111111'::uuid,
-             'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
-    (select handle from club)
-  ),
-  'PN012',
-  'You are not a member of this club',
-  'non-member create_game is rejected'
+select pg_temp.envelope_is(
+  psychicnum.create_game(
+    (select handle from club),
+    '{"guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid,
+           'bea22222-2222-2222-2222-222222222222'::uuid],
+    'coop'),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN012"}'::jsonb,
+  'a non-member gets the membership gate, through this function''s own handler'
 );
 
 -- ============================================================
@@ -83,16 +84,15 @@ select throws_ok(
 -- ============================================================
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select throws_ok(
-  format(
-    $$ select psychicnum.create_game(%L, '{"guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
-       array['ada11111-1111-1111-1111-111111111111'::uuid,
-             'bea22222-2222-2222-2222-222222222222'::uuid], 'bogus') $$,
-    (select handle from club)
-  ),
-  'P0001',
-  'bad-mode|bogus|',
-  'mode validation rejects unknown values'
+select pg_temp.envelope_is(
+  psychicnum.create_game(
+    (select handle from club),
+    '{"guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid,
+           'bea22222-2222-2222-2222-222222222222'::uuid],
+    'bogus'),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN040"}'::jsonb,
+  'an unknown mode is a fault — no control offers one'
 );
 
 -- ============================================================
@@ -102,15 +102,14 @@ select throws_ok(
 -- the degenerate "race yourself" case the FE manifest hides
 -- (numberOfPlayers: [2, 6]) — server enforces it too.
 
-select throws_ok(
-  format(
-    $$ select psychicnum.create_game(%L, '{"guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
-       array['ada11111-1111-1111-1111-111111111111'::uuid], 'compete') $$,
-    (select handle from club)
-  ),
-  'P0001',
-  'too-few-players|',
-  'compete mode rejects 1-player arrays'
+select pg_temp.envelope_is(
+  psychicnum.create_game(
+    (select handle from club),
+    '{"guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid],
+    'compete'),
+  '{"type":"not-ok","severity":"validation","field":"player_user_ids","dbcode":"PN042"}'::jsonb,
+  'a solo race is refused, and the picker is what to fix'
 );
 
 -- ============================================================
@@ -120,82 +119,99 @@ select throws_ok(
 -- than is() — we don't capture the row, just that no exception
 -- raises.
 
-select lives_ok(
-  format(
-    $$ select psychicnum.create_game(%L, '{"guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
-       array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop') $$,
-    (select handle from club)
-  ),
-  'coop create_game accepts 1-player arrays'
+select pg_temp.envelope_is(
+  psychicnum.create_game(
+    (select handle from club),
+    '{"guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid],
+    'coop'),
+  '{"type":"ok"}'::jsonb,
+  'coop accepts a 1-player array — the solo club''s main use'
 );
 
 -- ============================================================
 -- (6) Setup-shape validation
 -- ============================================================
 
--- guesses out of range
-select throws_ok(
-  format(
-    $$ select psychicnum.create_game(%L, '{"guesses": 4, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
-       array['ada11111-1111-1111-1111-111111111111'::uuid,
-             'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
-    (select handle from club)
-  ),
-  'P0001',
-  'bad-guesses|4|',
-  'guesses out of range is rejected'
+-- Every one of these names the FIELD it is about, which is what carries the
+-- message to the right box on the setup form.
+select pg_temp.envelope_is(
+  psychicnum.create_game(
+    (select handle from club),
+    '{"guesses": 4, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid,
+           'bea22222-2222-2222-2222-222222222222'::uuid],
+    'coop'),
+  '{"type":"not-ok","severity":"validation","field":"guesses","dbcode":"PN044"}'::jsonb,
+  'guesses out of range names the guesses field'
 );
 
--- guesses missing
-select throws_ok(
-  format(
-    $$ select psychicnum.create_game(%L, '{}'::jsonb,
-       array['ada11111-1111-1111-1111-111111111111'::uuid,
-             'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
-    (select handle from club)
-  ),
-  'P0001',
-  'missing-guesses|',
-  'missing guesses is rejected'
+select pg_temp.envelope_is(
+  psychicnum.create_game(
+    (select handle from club),
+    '{}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid,
+           'bea22222-2222-2222-2222-222222222222'::uuid],
+    'coop'),
+  '{"type":"not-ok","severity":"validation","field":"guesses","dbcode":"PN043"}'::jsonb,
+  'missing guesses names the guesses field'
 );
 
--- word_count missing (board size is required)
-select throws_ok(
-  format(
-    $$ select psychicnum.create_game(%L, '{"guesses": 7, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
-       array['ada11111-1111-1111-1111-111111111111'::uuid,
-             'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
-    (select handle from club)
-  ),
-  'P0001',
-  'missing-word-count|',
-  'missing word_count is rejected'
+select pg_temp.envelope_is(
+  psychicnum.create_game(
+    (select handle from club),
+    '{"guesses": 7, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid,
+           'bea22222-2222-2222-2222-222222222222'::uuid],
+    'coop'),
+  '{"type":"not-ok","severity":"validation","field":"word_count","dbcode":"PN045"}'::jsonb,
+  'missing word_count names the word_count field'
 );
 
--- word_count out of range (must be 5..20)
-select throws_ok(
-  format(
-    $$ select psychicnum.create_game(%L, '{"guesses": 7, "word_count": 4, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
-       array['ada11111-1111-1111-1111-111111111111'::uuid,
-             'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
-    (select handle from club)
-  ),
-  'P0001',
-  'bad-word-count|4|',
-  'word_count out of range is rejected'
+select pg_temp.envelope_is(
+  psychicnum.create_game(
+    (select handle from club),
+    '{"guesses": 7, "word_count": 4, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid,
+           'bea22222-2222-2222-2222-222222222222'::uuid],
+    'coop'),
+  '{"type":"not-ok","severity":"validation","field":"word_count","dbcode":"PN046"}'::jsonb,
+  'word_count out of range names the word_count field'
 );
 
--- timer missing entirely (timer is required for every game)
-select throws_ok(
-  format(
-    $$ select psychicnum.create_game(%L, '{"guesses": 7, "word_count": 8, "difficulty": 3}'::jsonb,
-       array['ada11111-1111-1111-1111-111111111111'::uuid,
-             'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
-    (select handle from club)
-  ),
-  'P0001',
-  'missing-timer|',
-  'missing timer is rejected'
+-- A SHARED guard's raise (common.require_valid_timer), caught by this
+-- function's handler and named for the field the form actually draws.
+select pg_temp.envelope_is(
+  psychicnum.create_game(
+    (select handle from club),
+    '{"guesses": 7, "word_count": 8, "difficulty": 3}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid,
+           'bea22222-2222-2222-2222-222222222222'::uuid],
+    'coop'),
+  '{"type":"not-ok","severity":"validation","field":"timer","dbcode":"PN035"}'::jsonb,
+  'a missing timer names the timer field'
+);
+
+select pg_temp.envelope_is(
+  psychicnum.create_game(
+    (select handle from club),
+    '{"guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "countdown", "seconds": 99999}}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid,
+           'bea22222-2222-2222-2222-222222222222'::uuid],
+    'coop'),
+  '{"type":"not-ok","severity":"validation","field":"timer","dbcode":"PN039"}'::jsonb,
+  'an out-of-range countdown names the timer field too'
+);
+
+select pg_temp.envelope_is(
+  psychicnum.create_game(
+    (select handle from club),
+    '{"guesses": 7, "word_count": 8, "difficulty": 9, "timer": {"kind": "none"}}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid,
+           'bea22222-2222-2222-2222-222222222222'::uuid],
+    'coop'),
+  '{"type":"not-ok","severity":"validation","field":"difficulty","dbcode":"PN048"}'::jsonb,
+  'a band outside 1..6 names the difficulty field'
 );
 
 -- ============================================================
@@ -203,13 +219,12 @@ select throws_ok(
 -- ============================================================
 
 create temp table coop_game on commit drop as
-select * from psychicnum.create_game(
+select (psychicnum.create_game(
   (select handle from club),
   '{"guesses": 5, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
-  'coop'
-);
+  'coop')->'data'->>'id')::uuid as id;
 
 -- (7) Coop write produces a row with mode='coop'
 select is(
@@ -269,13 +284,12 @@ select throws_ok(
 -- ============================================================
 
 create temp table compete_game on commit drop as
-select * from psychicnum.create_game(
+select (psychicnum.create_game(
   (select handle from club),
   '{"guesses": 3, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
-  'compete'
-);
+  'compete')->'data'->>'id')::uuid as id;
 
 -- (12) Compete write produces a row with mode='compete'
 select is(
@@ -371,15 +385,15 @@ select is(
 -- shared found-count would leak how close an opponent is).
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table seeded_coop on commit drop as
-  select id from psychicnum.create_game((select handle from club),
+  select (psychicnum.create_game((select handle from club),
     '{"guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
-          'bea22222-2222-2222-2222-222222222222'::uuid], 'coop');
+          'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as id;
 create temp table seeded_cmp on commit drop as
-  select id from psychicnum.create_game((select handle from club),
+  select (psychicnum.create_game((select handle from club),
     '{"guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
-          'bea22222-2222-2222-2222-222222222222'::uuid], 'compete');
+          'bea22222-2222-2222-2222-222222222222'::uuid], 'compete')->'data'->>'id')::uuid as id;
 reset role;
 select is(
   (select status from common.games where id = (select id from seeded_coop)),

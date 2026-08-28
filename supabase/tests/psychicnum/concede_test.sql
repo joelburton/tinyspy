@@ -22,13 +22,13 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select pg_temp.create_club('Psychic concede', array['ada', 'bea']) as handle;
 create temp table g on commit drop as
-select psychicnum.create_game(
+select (psychicnum.create_game(
   (select handle from club),
   '{"guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'compete'
-) as id;
+)->'data'->>'id')::uuid as id;
 
 -- (1) ada concedes; bea still has budget → game continues.
 select lives_ok(
@@ -54,13 +54,13 @@ select is(
 -- (3) coop concede rejected.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table gc on commit drop as
-select psychicnum.create_game(
+select (psychicnum.create_game(
   (select handle from club),
   '{"guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop'
-) as id;
+)->'data'->>'id')::uuid as id;
 select throws_ok(
   format($$ select psychicnum.concede(%L) $$, (select id from gc)),
   'P0001', 'concede-not-in-coop|',

@@ -144,7 +144,7 @@ select is(
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   format($$
-    select psychicnum.create_game(
+    select (psychicnum.create_game(
       %L,
       ('{"guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"},'
        || '"coop_style": "turns",'

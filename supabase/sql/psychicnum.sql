@@ -165,19 +165,25 @@ revoke insert, update, delete on psychicnum.games_state from authenticated;
 -- manifest's numberOfPlayers range, also enforced here defensively).
 -- Coop allows 1..6.
 
+-- `create or replace` cannot change a function's return type, and this one
+-- became jsonb. `if exists` because this file is re-applied in full on every
+-- deploy, so the drop has to be a no-op the second time.
+drop function if exists psychicnum.create_game(text, jsonb, uuid[], text);
+
 create or replace function psychicnum.create_game(
   target_club text,
   setup jsonb,
   player_user_ids uuid[],
   mode text
 )
-returns table(id uuid)
+returns jsonb
 language plpgsql
 security definer
 set search_path = psychicnum, common, public, extensions
 as $$
 declare
   new_id uuid;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text;
   s_guesses int;
   s_word_count int;
   s_difficulty int;
@@ -196,8 +202,8 @@ begin
     -- button in 1-player clubs; this guard is the server-side
     -- catch.
     if coalesce(array_length(player_user_ids, 1), 0) < 2 then
-      raise exception 'too-few-players|'
-        using errcode = 'P0001',
+      raise exception 'A race needs at least two players'
+        using errcode = 'PN042', hint = 'validation', column = 'player_user_ids',
       detail = 'compete needs >= 2 players';
     end if;
   end if;
@@ -210,37 +216,40 @@ begin
 
   -- ─── Validate setup shape ────────────────────────────
   if (setup->>'guesses') is null then
-    raise exception 'missing-guesses|' using errcode = 'P0001',
+    raise exception 'Pick how many guesses each player gets'
+      using errcode = 'PN043', hint = 'validation', column = 'guesses',
       detail = 'setup.guesses absent';
   end if;
   s_guesses := (setup->>'guesses')::int;
   if s_guesses not in (3, 5, 7, 9) then
-    raise exception 'bad-guesses|%|', s_guesses
-      using errcode = 'P0001',
+    raise exception 'Guesses must be 3, 5, 7 or 9'
+      using errcode = 'PN044', hint = 'validation', column = 'guesses',
       detail = 'setup.guesses must be 3, 5, 7 or 9';
   end if;
 
   -- ─── Validate the board size (how many words) ──────────────
   if (setup->>'word_count') is null then
-    raise exception 'missing-word-count|' using errcode = 'P0001',
+    raise exception 'Pick how many words go on the board'
+      using errcode = 'PN045', hint = 'validation', column = 'word_count',
       detail = 'setup.word_count absent';
   end if;
   s_word_count := (setup->>'word_count')::int;
   if s_word_count < 5 or s_word_count > 20 then
-    raise exception 'bad-word-count|%|', s_word_count
-      using errcode = 'P0001',
+    raise exception 'The board holds 5 to 20 words'
+      using errcode = 'PN046', hint = 'validation', column = 'word_count',
       detail = 'setup.word_count must be 5..20';
   end if;
 
   -- ─── Validate the dictionary difficulty band ───────────────
   if (setup->>'difficulty') is null then
-    raise exception 'missing-band|' using errcode = 'P0001',
+    raise exception 'Pick how obscure the words can get'
+      using errcode = 'PN047', hint = 'validation', column = 'difficulty',
       detail = 'setup.difficulty absent';
   end if;
   s_difficulty := (setup->>'difficulty')::int;
   if s_difficulty < 1 or s_difficulty > 6 then
-    raise exception 'bad-band|%|', s_difficulty
-      using errcode = 'P0001',
+    raise exception 'Word difficulty runs from 1 to 6'
+      using errcode = 'PN048', hint = 'validation', column = 'difficulty',
       detail = 'setup.difficulty must be 1..6';
   end if;
 
@@ -268,7 +277,8 @@ begin
   if coalesce(array_length(s_words, 1), 0) < s_word_count then
     -- Effectively impossible (the band-1 clean set is large), but guard so a
     -- short board never silently ships.
-    raise exception 'too-few-words|' using errcode = 'P0001',
+    raise exception 'Not enough words at that difficulty for a board this size'
+      using errcode = 'PN049', hint = 'error', column = '_',
       detail = 'common.words has fewer clean words than word_count at that band';
   end if;
 
@@ -322,8 +332,8 @@ begin
   if mode = 'coop' and setup->>'coop_style' = 'turns' then
     first_turn := (setup->>'first_turn_user_id')::uuid;
     if first_turn is null or not (first_turn = any(player_user_ids)) then
-      raise exception 'bad-first-turn|'
-        using errcode = 'P0001',
+      raise exception 'The first player must be one of the players'
+        using errcode = 'PN050', hint = 'validation', column = 'first_turn_user_id',
       detail = 'setup.first_turn_user_id must be one of the players';
     end if;
     perform common._assign_turn_order(new_id, first_turn);
@@ -360,7 +370,18 @@ begin
     end
   );
 
-  return query select new_id;
+  return common.ok_envelope(jsonb_build_object('id', new_id));
+
+-- One block, and it has never heard of any specific condition: it reads the
+-- SQLSTATE, re-raises anything that isn't ours, and lets the raise itself carry
+-- the message, the kind and the field.
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 

@@ -1123,7 +1123,7 @@ select pg_temp.envelope_is(
 
 ## 7. The conversion roster
 
-**139 entries. 21 done, 5 edge functions deferred, 113 to go.** Cross them off
+**139 entries. 22 done, 5 edge functions deferred, 112 to go.** Cross them off
 here as they land.
 
 An entry is one RPC or one table read **per area**, so the same name in two
@@ -1265,7 +1265,13 @@ identifier — a shape nothing has exercised yet.
 
 #### psychicnum
 
-- [ ] `create_game` · RPC (2 call sites)
+- [x] `create_game` · RPC (2 call sites) — the first game. Took the three shared
+  guards with it (`require_valid_mode`, `require_player_count_max`,
+  `require_valid_timer`, PN035–PN041): psychicnum's handler re-raises anything
+  not `PN`/`PA`-coded, so an unconverted guard would have escaped it as a raw
+  fault in the game being converted. They are called by 15–17 files, so until
+  each of those converts, their failures wear the fault look elsewhere — right
+  words, wrong weight, and not worth a shim for an afternoon
 - [ ] `submit_guess` · RPC (2 call sites)
 - [ ] `games` · read
 - [ ] `games_state` · read

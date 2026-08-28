@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { lazy } from 'react'
-import { startEnvelope } from '../common/lib/game/manifestRpcs'
+import { runRpc } from '../common/lib/supabase/dbResult'
 import type { GameManifest } from '../common/lib/games'
 import { db } from './db'
 import { count, outcome, statusLine, tally, wonBy } from '../common/lib/game/statusLabel'
@@ -67,23 +67,17 @@ const setupFormLoader = lazy(() =>
 // Shared start-game caller. `mode` is the per-manifest constant
 // — the RPC routes on it to write the right gametype string +
 // per-mode end-game vocabulary.
-function startGameInClubFactory(mode: 'coop' | 'compete', brand: string) {
-  return async (
-    clubHandle: string,
-    setup: unknown,
-    playerUserIds: string[],
-  ) => {
-    const s = setup as PsychicnumSetup
-    const { data, error } = await db
-      .rpc('create_game', {
+function startGameInClubFactory(mode: 'coop' | 'compete') {
+  return (clubHandle: string, setup: unknown, playerUserIds: string[]) =>
+    // No `.single()`: the RPC returns the envelope itself, one jsonb value.
+    runRpc<{ id: string }>(
+      db.rpc('create_game', {
         target_club: clubHandle,
-        setup: s,
+        setup: setup as PsychicnumSetup,
         player_user_ids: playerUserIds,
         mode,
-      })
-      .single()
-    return startEnvelope(data, error, brand)
-  }
+      }),
+    )
 }
 
 // Shared per-row label for the ClubPage games list. Pure,
@@ -161,7 +155,7 @@ export const psychicnumCoopGame: GameManifest = {
     defaults: DEFAULT_PSYCHICNUM_SETUP,
   },
 
-  startGameInClub: startGameInClubFactory('coop', BRAND),
+  startGameInClub: startGameInClubFactory('coop'),
 
   labelFor: (row) => {
     const s = (row.status ?? {}) as StatusBlob
@@ -209,7 +203,7 @@ export const psychicnumCompeteGame: GameManifest = {
     defaults: DEFAULT_PSYCHICNUM_SETUP,
   },
 
-  startGameInClub: startGameInClubFactory('compete', BRAND),
+  startGameInClub: startGameInClubFactory('compete'),
 
   labelFor: (row) => {
     const s = (row.status ?? {}) as StatusBlob
