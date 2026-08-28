@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { StandardForm } from '../fields/StandardForm'
+import { FORM_ERROR_KEYNAME, type FormErrors } from '../fields/formState'
+import { FailureLine } from '../feedback/FailureLine'
 import { supabase } from '../../lib/supabase/supabase'
 import { PuzpuzpuzWordmark } from '../branding/PuzpuzpuzWordmark'
 import { cls } from '../../lib/util/cls'
@@ -46,19 +48,28 @@ import { TextField } from '../fields/TextField'
 // in prod — the friends type their own.
 const DEV_DEFAULT_EMAIL = import.meta.env.DEV ? 'joel@joelburton.com' : ''
 
+/** What the form holds. Neither is an RPC parameter — these go to
+ *  `supabase.auth`, which answers with a message and never names a field — so
+ *  its refusals land on the form's own line. */
+type Values = { email: string; code: string }
+
 export function LoginScreen() {
-  const [email, setEmail] = useState(DEV_DEFAULT_EMAIL)
-  const [code, setCode] = useState('')
+  // WHICH FORM this is, not something typed into it, so it stays here: the
+  // fields on screen change with it.
   const [action, setAction] = useState<'send-link' | 'verify-code'>('send-link')
   const [status, setStatus] = useState<
     'idle' | 'sending' | 'sent' | 'verifying' | 'error'
   >('idle')
-  const [error, setError] = useState<string | null>(null)
+  const [errors, setErrors] = useState<FormErrors>({})
+  // The address the mail actually WENT to, captured when it was sent. The
+  // confirmation names it, and reading the live field there would let it follow
+  // an edit — telling you a link went somewhere it didn't.
+  const [sentTo, setSentTo] = useState('')
 
   const busy = status === 'sending' || status === 'verifying'
 
-  async function onSubmit() {
-    setError(null)
+  async function onSubmit({ email, code }: Values) {
+    setErrors({})
 
     if (action === 'send-link') {
       setStatus('sending')
@@ -67,10 +78,11 @@ export function LoginScreen() {
         options: { emailRedirectTo: window.location.origin },
       })
       if (rpcError) {
-        setError(rpcError.message)
+        setErrors({ [FORM_ERROR_KEYNAME]: rpcError.message })
         setStatus('error')
         return
       }
+      setSentTo(email)
       setStatus('sent')
       // Auto-switch to code-entry. If the magic link works first,
       // useSession picks up SIGNED_IN and unmounts this screen; if not,
@@ -88,7 +100,7 @@ export function LoginScreen() {
       type: 'email',
     })
     if (rpcError) {
-      setError(rpcError.message)
+      setErrors({ [FORM_ERROR_KEYNAME]: rpcError.message })
       setStatus('error')
       return
     }
@@ -96,10 +108,12 @@ export function LoginScreen() {
     // and unmounts this screen. No further action needed here.
   }
 
-  function toggleAction() {
-    setError(null)
+  /** Swap which form this is. Clearing the code is the form's business now, so
+   *  the toggle takes the setter from inside it. */
+  function toggleAction(clearCode: () => void) {
+    setErrors({})
     setStatus('idle')
-    setCode('')
+    clearCode()
     setAction(action === 'send-link' ? 'verify-code' : 'send-link')
   }
 
@@ -110,7 +124,7 @@ export function LoginScreen() {
 
         {status === 'sent' ? (
           <p>
-            Sent a magic link and a sign-in code to <strong>{email}</strong>.
+            Sent a magic link and a sign-in code to <strong>{sentTo}</strong>.
             Click the link in the email, or enter the code below.
           </p>
         ) : (
@@ -121,60 +135,74 @@ export function LoginScreen() {
           </p>
         )}
 
-        <StandardForm onSubmit={onSubmit}>
-          {/* CAPTIONED, not named by placeholder alone: a placeholder vanishes
-              the moment you type, on the first screen anyone sees. */}
-          <TextField
-            label="Email"
-            type="email"
-            required
-            placeholder="you@example.com"
-            value={email}
-            onChange={setEmail}
-            disabled={busy}
-          />
-          {action === 'verify-code' && (
-            <TextField
-              label="Sign-in code"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              autoComplete="one-time-code"
-              placeholder="123456"
-              value={code}
-              onChange={setCode}
-              disabled={busy}
-              required
-            />
-          )}
-          <StandardButton
-            name={
-              action === 'send-link'
-                ? status === 'sending'
-                  ? 'Sending…'
-                  : 'Send magic link'
-                : status === 'verifying'
-                  ? 'Verifying…'
-                  : 'Verify code'
-            }
-            type="submit"
-            weight="primary"
-            disabled={busy || !email || (action === 'verify-code' && !code.trim())}
-          />
-          <p>
-            <button
-              type="button"
-              className="link-button"
-              onClick={toggleAction}
-              disabled={busy}
-            >
-              {action === 'send-link'
-                ? 'I have a code already'
-                : 'Send me a magic link instead'}
-            </button>
-          </p>
-        </StandardForm>
+        <StandardForm
+          initialValues={{ email: DEV_DEFAULT_EMAIL, code: '' } satisfies Values}
+          onSubmit={onSubmit}
+        >
+          {({ values, set }) => (
+            <>
+              {/* CAPTIONED, not named by placeholder alone: a placeholder
+                  vanishes the moment you type, on the first screen anyone
+                  sees. */}
+              <TextField
+                name="email"
+                label="Email"
+                type="email"
+                required
+                placeholder="you@example.com"
+                value={values.email}
+                onChange={(v) => set('email', v)}
+                disabled={busy}
+              />
+              {action === 'verify-code' && (
+                <TextField
+                  name="code"
+                  label="Sign-in code"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  autoComplete="one-time-code"
+                  placeholder="123456"
+                  value={values.code}
+                  onChange={(v) => set('code', v)}
+                  disabled={busy}
+                  required
+                />
+              )}
+              <StandardButton
+                name={
+                  action === 'send-link'
+                    ? status === 'sending'
+                      ? 'Sending…'
+                      : 'Send magic link'
+                    : status === 'verifying'
+                      ? 'Verifying…'
+                      : 'Verify code'
+                }
+                type="submit"
+                weight="primary"
+                disabled={
+                  busy || !values.email || (action === 'verify-code' && !values.code.trim())
+                }
+              />
+              <p>
+                <button
+                  type="button"
+                  className="link-button"
+                  onClick={() => toggleAction(() => set('code', ''))}
+                  disabled={busy}
+                >
+                  {action === 'send-link'
+                    ? 'I have a code already'
+                    : 'Send me a magic link instead'}
+                </button>
+              </p>
 
-        {error && <p className="error">{error}</p>}
+              {/* Auth answers with a message and never names a field, so every
+                  refusal here is the form's own. */}
+              <FailureLine>{errors[FORM_ERROR_KEYNAME]}</FailureLine>
+            </>
+          )}
+        </StandardForm>
 
         {status === 'sent' && import.meta.env.DEV && (
           <p className="muted">
