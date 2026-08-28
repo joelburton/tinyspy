@@ -224,8 +224,8 @@ select throws_ok(
     ) $q$,
     (select handle from club2)
   ),
-  'P0001',
-  'missing-timer|',
+  'PN035',
+  'A game with no timer setting reached the server',
   'create_game: missing setup.timer is rejected'
 );
 
@@ -243,8 +243,8 @@ select throws_ok(
     ) $q$,
     (select handle from club2)
   ),
-  'P0001',
-  'bad-timer-kind|fast|',
+  'PN037',
+  'A timer setting of ''fast'' reached the server',
   'create_game: bogus timer.kind is rejected'
 );
 
@@ -262,8 +262,8 @@ select throws_ok(
     ) $q$,
     (select handle from club2)
   ),
-  'P0001',
-  'missing-timer-seconds|',
+  'PN038',
+  'A countdown with no length reached the server',
   'create_game: countdown without seconds is rejected'
 );
 
@@ -281,8 +281,8 @@ select throws_ok(
     ) $q$,
     (select handle from club2)
   ),
-  'P0001',
-  'bad-timer-seconds|0|',
+  'PN039',
+  'A countdown of 0 seconds reached the server',
   'create_game: countdown with seconds=0 is rejected'
 );
 

@@ -150,8 +150,8 @@ select throws_ok(
     $$ select common.create_game(%L, 'connections_coop', array[]::uuid[], 'test-title', '{}'::jsonb, null) $$,
     (select handle from club)
   ),
-  'P0001',
-  'no-players|',
+  'PN059',
+  'A game with no players reached the server',
   'create_game: empty player_user_ids is rejected'
 );
 
@@ -168,8 +168,8 @@ select throws_ok(
        'test-title', '{}'::jsonb, null) $$,
     (select handle from club)
   ),
-  'P0001',
-  'players-not-in-club|dee44444-4444-4444-4444-444444444444|',
+  'PN060',
+  'Not in this club: dee44444-4444-4444-4444-444444444444',
   'create_game: rejects when a listed uid isn''t in clubs_members'
 );
 

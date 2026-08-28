@@ -207,8 +207,8 @@ select throws_ok(
        array['ada11111-1111-1111-1111-111111111111'::uuid]) $$,
     (select handle from club)
   ),
-  'P0001',
-  'missing-timer|',
+  'PN035',
+  'A game with no timer setting reached the server',
   'missing timer is rejected'
 );
 

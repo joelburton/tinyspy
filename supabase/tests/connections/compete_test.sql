@@ -65,8 +65,8 @@ select throws_ok(
                                     'sudden-death') $$,
     (select handle from club), (select id from puzzle)
   ),
-  'P0001',
-  'bad-mode|sudden-death|',
+  'PN040',
+  'A game mode of ''sudden-death'' reached the server',
   'create_game: invalid mode value is rejected'
 );
 

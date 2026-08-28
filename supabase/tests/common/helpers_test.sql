@@ -108,48 +108,48 @@ select set_config('request.jwt.claims', '', true);
 -- (4) Null timer object
 select throws_ok(
   $$ select common.require_valid_timer(null::jsonb) $$,
-  'P0001',
-  'missing-timer|',
+  'PN035',
+  'A game with no timer setting reached the server',
   'require_valid_timer: null raises setup.timer is required'
 );
 
 -- (5) Bogus timer.kind
 select throws_ok(
   $$ select common.require_valid_timer('{"kind":"fast"}'::jsonb) $$,
-  'P0001',
-  'bad-timer-kind|fast|',
+  'PN037',
+  'A timer setting of ''fast'' reached the server',
   'require_valid_timer: bogus kind raises with the value in the message'
 );
 
 -- (6) Missing timer.kind (empty object) → 'setup.timer.kind is required'
 select throws_ok(
   $$ select common.require_valid_timer('{}'::jsonb) $$,
-  'P0001',
-  'missing-timer-kind|',
+  'PN036',
+  'A timer with no setting reached the server',
   'require_valid_timer: missing kind raises with its own message'
 );
 
 -- (7) Countdown missing seconds
 select throws_ok(
   $$ select common.require_valid_timer('{"kind":"countdown"}'::jsonb) $$,
-  'P0001',
-  'missing-timer-seconds|',
+  'PN038',
+  'A countdown with no length reached the server',
   'require_valid_timer: countdown without seconds raises the right error'
 );
 
 -- (8) Countdown seconds=0 (below min)
 select throws_ok(
   $$ select common.require_valid_timer('{"kind":"countdown","seconds":0}'::jsonb) $$,
-  'P0001',
-  'bad-timer-seconds|0|',
+  'PN039',
+  'A countdown of 0 seconds reached the server',
   'require_valid_timer: countdown seconds=0 is rejected'
 );
 
 -- (9) Countdown seconds=3601 (above 60-min cap)
 select throws_ok(
   $$ select common.require_valid_timer('{"kind":"countdown","seconds":3601}'::jsonb) $$,
-  'P0001',
-  'bad-timer-seconds|3601|',
+  'PN039',
+  'A countdown of 3601 seconds reached the server',
   'require_valid_timer: countdown seconds=3601 is rejected'
 );
 

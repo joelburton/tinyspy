@@ -94,7 +94,7 @@ select is(
 select throws_ok(
   $$ select boggle.create_game((select handle from club), pg_temp.boggle_setup(),
        array['ada11111-1111-1111-1111-111111111111'::uuid], 'sideways', pg_temp.boggle_board()) $$,
-  'P0001', null, 'rejects an unknown mode');
+  'PN040', null, 'rejects an unknown mode');
 
 select throws_ok(
   $$ select boggle.create_game((select handle from club), pg_temp.boggle_setup(),

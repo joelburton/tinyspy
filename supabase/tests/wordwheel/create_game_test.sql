@@ -209,7 +209,7 @@ select throws_ok(
                                    pg_temp.wordwheel_board()) $$,
     (select handle from club)
   ),
-  'P0001',
+  'PN040',
   null,
   'rejects mode value not in {coop, compete}'
 );
@@ -491,7 +491,7 @@ select throws_ok(
                                    pg_temp.wordwheel_board()) $$,
     (select handle from club)
   ),
-  'P0001',
+  'PN041',
   null,
   'rejects player_user_ids with > 6 entries (max 6)'
 );

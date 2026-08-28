@@ -111,7 +111,7 @@ select throws_ok($$
           'dee44444-4444-4444-4444-444444444444'::uuid,
           'eda55555-5555-5555-5555-555555555555'::uuid],
     'coop')
-$$, 'P0001', null, 'more than 4 players is rejected');
+$$, 'PN041', null, 'more than 4 players is rejected');
 
 select * from finish();
 rollback;

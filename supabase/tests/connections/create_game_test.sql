@@ -137,8 +137,8 @@ select throws_ok(
     $$ select connections.create_game(%L, jsonb_build_object('puzzleId', %L::text), array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
     (select handle from club), (select id from puzzle)
   ),
-  'P0001',
-  'missing-timer|',
+  'PN035',
+  'A game with no timer setting reached the server',
   'create_game: missing setup.timer is rejected'
 );
 
@@ -148,8 +148,8 @@ select throws_ok(
     $$ select connections.create_game(%L, pg_temp.connections_setup(%L::uuid, '{"kind":"fast"}'::jsonb), array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
     (select handle from club), (select id from puzzle)
   ),
-  'P0001',
-  'bad-timer-kind|fast|',
+  'PN037',
+  'A timer setting of ''fast'' reached the server',
   'create_game: bogus timer.kind is rejected'
 );
 
@@ -159,8 +159,8 @@ select throws_ok(
     $$ select connections.create_game(%L, pg_temp.connections_setup(%L::uuid, '{"kind":"countdown"}'::jsonb), array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
     (select handle from club), (select id from puzzle)
   ),
-  'P0001',
-  'missing-timer-seconds|',
+  'PN038',
+  'A countdown with no length reached the server',
   'create_game: countdown without seconds is rejected'
 );
 
@@ -170,8 +170,8 @@ select throws_ok(
     $$ select connections.create_game(%L, pg_temp.connections_setup(%L::uuid, '{"kind":"countdown","seconds":0}'::jsonb), array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
     (select handle from club), (select id from puzzle)
   ),
-  'P0001',
-  'bad-timer-seconds|0|',
+  'PN039',
+  'A countdown of 0 seconds reached the server',
   'create_game: countdown with seconds=0 is rejected'
 );
 
@@ -181,8 +181,8 @@ select throws_ok(
     $$ select connections.create_game(%L, pg_temp.connections_setup(%L::uuid, '{"kind":"countdown","seconds":3601}'::jsonb), array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
     (select handle from club), (select id from puzzle)
   ),
-  'P0001',
-  'bad-timer-seconds|3601|',
+  'PN039',
+  'A countdown of 3601 seconds reached the server',
   'create_game: countdown over 60min is rejected'
 );
 
@@ -391,7 +391,7 @@ select throws_ok(
                                     ], 'coop') $$,
     (select handle from club), (select id from puzzle)
   ),
-  'P0001',
+  'PN041',
   null,
   'create_game: rejects player_user_ids with > 6 entries (max 6)'
 );
