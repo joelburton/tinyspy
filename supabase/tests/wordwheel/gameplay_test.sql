@@ -47,7 +47,7 @@ create temp table club on commit drop as
 select pg_temp.create_club('Ada Bea Cade', array['ada','bea','cade']) as handle;
 
 create temp table g on commit drop as
-select * from wordwheel.create_game(
+select (wordwheel.create_game(
   (select handle from club),
   pg_temp.wordwheel_setup(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
@@ -55,7 +55,7 @@ select * from wordwheel.create_game(
         'cade3333-3333-3333-3333-333333333333'::uuid],
   'coop',
   pg_temp.wordwheel_board()
-);
+)->'data'->>'id')::uuid as id;
 
 -- ============================================================
 -- (1) Coop happy path: ada submits 'bead' → accepted, 1pt
@@ -197,7 +197,7 @@ select throws_ok(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table compete_g on commit drop as
-select * from wordwheel.create_game(
+select (wordwheel.create_game(
   (select handle from club),
   pg_temp.wordwheel_setup() || '{"target_rank": 2}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
@@ -205,7 +205,7 @@ select * from wordwheel.create_game(
         'cade3333-3333-3333-3333-333333333333'::uuid],
   'compete',
   pg_temp.wordwheel_board()
-);
+)->'data'->>'id')::uuid as id;
 
 select is(
   wordwheel.submit_word((select id from compete_g), 'bead', 1, false, false)->>'result',
@@ -341,7 +341,7 @@ select is(
 reset role;
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table timeout_g on commit drop as
-select * from wordwheel.create_game(
+select (wordwheel.create_game(
   (select handle from club),
   pg_temp.wordwheel_setup() || '{"timer": {"kind": "countdown", "seconds": 60}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
@@ -349,7 +349,7 @@ select * from wordwheel.create_game(
         'cade3333-3333-3333-3333-333333333333'::uuid],
   'coop',
   pg_temp.wordwheel_board()
-);
+)->'data'->>'id')::uuid as id;
 
 -- One submission so the score isn't zero (proves the timeout captures state).
 select is(
@@ -401,7 +401,7 @@ select is(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table end_g on commit drop as
-select * from wordwheel.create_game(
+select (wordwheel.create_game(
   (select handle from club),
   pg_temp.wordwheel_setup(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
@@ -409,7 +409,7 @@ select * from wordwheel.create_game(
         'cade3333-3333-3333-3333-333333333333'::uuid],
   'coop',
   pg_temp.wordwheel_board()
-);
+)->'data'->>'id')::uuid as id;
 
 -- One required submission so end_game captures a real live aggregate.
 select is(
@@ -462,7 +462,7 @@ select throws_ok(
 -- one is terminal and would short-circuit on play_state).
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table auth_g on commit drop as
-select * from wordwheel.create_game(
+select (wordwheel.create_game(
   (select handle from club),
   pg_temp.wordwheel_setup(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
@@ -470,7 +470,7 @@ select * from wordwheel.create_game(
         'cade3333-3333-3333-3333-333333333333'::uuid],
   'coop',
   pg_temp.wordwheel_board()
-);
+)->'data'->>'id')::uuid as id;
 
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select throws_ok(
@@ -490,14 +490,14 @@ select throws_ok(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table dup_g on commit drop as
-select * from wordwheel.create_game(
+select (wordwheel.create_game(
   (select pg_temp.create_club('Dup gameplay', array['ada','bea']) as handle),
   pg_temp.wordwheel_setup(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop',
   pg_temp.wordwheel_dup_board()
-);
+)->'data'->>'id')::uuid as id;
 
 select is(
   (select wordwheel.submit_word((select id from dup_g), 'egged', 5, false, false) ->> 'result'),

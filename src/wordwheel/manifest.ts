@@ -4,7 +4,8 @@ import { lazy } from 'react'
 import type { GameManifest } from '../common/lib/games'
 import { db } from './db'
 import { outcome, statusLine, tally, wonBy } from '../common/lib/game/statusLabel'
-import { edgeStartEnvelope, makeRpcDispatcher, invokeStartGameEdgeFn } from '../common/lib/game/manifestRpcs'
+import { makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
+import { runEdgeFn } from '../common/lib/supabase/dbResult'
 import {
   DEFAULT_WORDWHEEL_SETUP_COMPETE,
   DEFAULT_WORDWHEEL_SETUP_COOP,
@@ -73,16 +74,17 @@ const setupFormLoader = lazy(() =>
  * FE), builds the board, and calls `wordwheel.create_game(target_club, setup,
  * players, mode, board)`. The shared helper owns the error-context unwrap.
  */
-function startGameInClubFactory(mode: 'coop' | 'compete', brand: string) {
-  return async (clubHandle: string, setup: unknown, playerUserIds: string[]) =>
-    edgeStartEnvelope(
-      await invokeStartGameEdgeFn(
-      'wordwheel-build-board',
-      { target_club: clubHandle, setup: setup as WordwheelSetup, player_user_ids: playerUserIds, mode },
-        brand,
-      ),
-      brand,
-    )
+function startGameInClubFactory(mode: 'coop' | 'compete') {
+  return (clubHandle: string, setup: unknown, playerUserIds: string[]) =>
+    // The wheel is chosen in Deno, so this goes through an edge function rather
+    // than straight to the RPC — but it comes back the same envelope a direct
+    // create_game returns, relayed untouched (see _shared/startGame.ts).
+    runEdgeFn<{ id: string }>('wordwheel-build-board', {
+      target_club: clubHandle,
+      setup: setup as WordwheelSetup,
+      player_user_ids: playerUserIds,
+      mode,
+    })
 }
 
 // Timeout + manual end — the shared one-arg RPC dispatchers (see
@@ -126,7 +128,7 @@ export const wordwheelCoopGame: GameManifest = {
     validate: (setup) => wordwheelSetupError(setup as WordwheelSetup),
   },
 
-  startGameInClub: startGameInClubFactory('coop', BRAND),
+  startGameInClub: startGameInClubFactory('coop'),
 
   labelFor: (row) => {
     const s = (row.status ?? {}) as StatusBlob
@@ -188,7 +190,7 @@ export const wordwheelCompeteGame: GameManifest = {
     validate: (setup) => wordwheelSetupError(setup as WordwheelSetup),
   },
 
-  startGameInClub: startGameInClubFactory('compete', BRAND),
+  startGameInClub: startGameInClubFactory('compete'),
 
   /**
    * Compete labels read from the status jsonb's target_rank +

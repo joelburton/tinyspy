@@ -32,14 +32,14 @@ create temp table club on commit drop as
 select pg_temp.create_club('Subset club', array['ada', 'bea', 'cade']) as handle;
 
 create temp table g on commit drop as
-select * from wordwheel.create_game(
+select (wordwheel.create_game(
   (select handle from club),
   pg_temp.wordwheel_setup(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop',
   pg_temp.wordwheel_board()
-);
+)->'data'->>'id')::uuid as id;
 
 -- Sanity: cade is NOT seated as a player.
 reset role;

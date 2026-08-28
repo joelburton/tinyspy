@@ -36,6 +36,7 @@ set search_path = wordwheel, common, public, extensions;
 select plan(35);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 -- ============================================================
@@ -51,14 +52,14 @@ select pg_temp.create_club('Ada and Bea', array['ada','bea']) as handle;
 -- ============================================================
 
 create temp table g on commit drop as
-select * from wordwheel.create_game(
+select (wordwheel.create_game(
   (select handle from club),
   pg_temp.wordwheel_setup(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop',
   pg_temp.wordwheel_board()
-);
+)->'data'->>'id')::uuid as id;
 
 select isnt(
   (select id from g), null,
@@ -135,7 +136,7 @@ create temp table compete_club on commit drop as
 select pg_temp.create_club('Compete club', array['ada','bea','cade']) as handle;
 
 create temp table g_compete on commit drop as
-select * from wordwheel.create_game(
+select (wordwheel.create_game(
   (select handle from compete_club),
   pg_temp.wordwheel_setup() || '{"target_rank": 4}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
@@ -143,7 +144,7 @@ select * from wordwheel.create_game(
         'cade3333-3333-3333-3333-333333333333'::uuid],
   'compete',
   pg_temp.wordwheel_board()
-);
+)->'data'->>'id')::uuid as id;
 
 select is(
   (select gametype from common.games where id = (select id from g_compete)),
@@ -182,18 +183,13 @@ select is(
 -- ============================================================
 
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
-select throws_ok(
-  format(
-    $$ select wordwheel.create_game(%L, pg_temp.wordwheel_setup(),
-                                   array['ada11111-1111-1111-1111-111111111111'::uuid],
-                                   'coop',
-                                   pg_temp.wordwheel_board()) $$,
-    (select handle from club)
-  ),
-  'PN012',
-  null,
-  'dee (non-member) cannot create a wordwheel game'
-);
+select pg_temp.envelope_is(
+  wordwheel.create_game((select handle from club), pg_temp.wordwheel_setup(),
+    array['ada11111-1111-1111-1111-111111111111'::uuid],
+    'coop',
+    pg_temp.wordwheel_board()),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN012"}'::jsonb,
+  'dee (non-member) cannot create a wordwheel game');
 
 -- ============================================================
 -- (13) mode arg: invalid value rejected
@@ -201,71 +197,55 @@ select throws_ok(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
-select throws_ok(
-  format(
-    $$ select wordwheel.create_game(%L, pg_temp.wordwheel_setup(),
-                                   array['ada11111-1111-1111-1111-111111111111'::uuid],
-                                   'solo',
-                                   pg_temp.wordwheel_board()) $$,
-    (select handle from club)
-  ),
-  'PN040',
-  null,
-  'rejects mode value not in {coop, compete}'
-);
+select pg_temp.envelope_is(
+  wordwheel.create_game((select handle from club), pg_temp.wordwheel_setup(),
+    array['ada11111-1111-1111-1111-111111111111'::uuid],
+    'solo',
+    pg_temp.wordwheel_board()),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN040",
+    "message":"A game mode of ''solo'' reached the server"}'::jsonb,
+  'rejects mode value not in {coop, compete}');
 
 
 -- ============================================================
 -- (15) Compete needs ≥2 players
 -- ============================================================
 
-select throws_ok(
-  format(
-    $$ select wordwheel.create_game(%L,
-                                   pg_temp.wordwheel_setup() || '{"target_rank": 3}'::jsonb,
-                                   array['ada11111-1111-1111-1111-111111111111'::uuid],
-                                   'compete',
-                                   pg_temp.wordwheel_board()) $$,
-    (select handle from club)
-  ),
-  'P0001',
-  'too-few-players|',
-  'compete with 1 player rejected'
-);
+select pg_temp.envelope_is(
+  wordwheel.create_game((select handle from club),
+    pg_temp.wordwheel_setup() || '{"target_rank": 3}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid],
+    'compete',
+    pg_temp.wordwheel_board()),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN178",
+    "message":"A race with fewer than two players reached the server"}'::jsonb,
+  'compete with 1 player rejected');
 
 -- ============================================================
 -- (16) target_rank required iff compete
 -- ============================================================
 
-select throws_ok(
-  format(
-    $$ select wordwheel.create_game(%L,
-                                   pg_temp.wordwheel_setup(),
-                                   array['ada11111-1111-1111-1111-111111111111'::uuid,
-                                         'bea22222-2222-2222-2222-222222222222'::uuid],
-                                   'compete',
-                                   pg_temp.wordwheel_board()) $$,
-    (select handle from club)
-  ),
-  'P0001',
-  'missing-target-rank|',
-  'compete without target_rank rejected'
-);
+select pg_temp.envelope_is(
+  wordwheel.create_game((select handle from club),
+    pg_temp.wordwheel_setup(),
+    array['ada11111-1111-1111-1111-111111111111'::uuid,
+          'bea22222-2222-2222-2222-222222222222'::uuid],
+    'compete',
+    pg_temp.wordwheel_board()),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN179",
+    "message":"A race with no target rank reached the server"}'::jsonb,
+  'compete without target_rank rejected');
 
-select throws_ok(
-  format(
-    $$ select wordwheel.create_game(%L,
-                                   pg_temp.wordwheel_setup() || '{"target_rank": 7}'::jsonb,
-                                   array['ada11111-1111-1111-1111-111111111111'::uuid,
-                                         'bea22222-2222-2222-2222-222222222222'::uuid],
-                                   'compete',
-                                   pg_temp.wordwheel_board()) $$,
-    (select handle from club)
-  ),
-  'P0001',
-  null,
-  'compete with target_rank > 6 rejected'
-);
+select pg_temp.envelope_is(
+  wordwheel.create_game((select handle from club),
+    pg_temp.wordwheel_setup() || '{"target_rank": 7}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid,
+          'bea22222-2222-2222-2222-222222222222'::uuid],
+    'compete',
+    pg_temp.wordwheel_board()),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN181",
+    "message":"A target rank of 7 reached the server"}'::jsonb,
+  'compete with target_rank > 6 rejected');
 
 -- coop MAY set target_rank: it's the team's win threshold (reach that rank
 -- together and wordwheel.submit_word ends the game as 'won'). Absent/null is the
@@ -301,91 +281,69 @@ select is(
 -- absent from pg_temp.wordwheel_setup(), so the happy paths above
 -- exercise the coalesced defaults; these assert the rejection edges.
 
-select throws_ok(
-  format(
-    $$ select wordwheel.create_game(%L,
-                                   pg_temp.wordwheel_setup() || '{"required": 0}'::jsonb,
-                                   array['ada11111-1111-1111-1111-111111111111'::uuid],
-                                   'coop',
-                                   pg_temp.wordwheel_board()) $$,
-    (select handle from club)
-  ),
-  'P0001',
-  null,
-  'rejects setup.required below 1 (band floor)'
-);
+select pg_temp.envelope_is(
+  wordwheel.create_game((select handle from club),
+    pg_temp.wordwheel_setup() || '{"required": 0}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid],
+    'coop',
+    pg_temp.wordwheel_board()),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN182",
+    "message":"A required difficulty of 0 reached the server"}'::jsonb,
+  'rejects setup.required below 1 (band floor)');
 
 -- required = 1 is the floor — accepted. Same fixture board (its
 -- required_words_count clears the ≥15 gate regardless of the band).
 select isnt(
-  (
-    select id from wordwheel.create_game(
+      (wordwheel.create_game(
       (select pg_temp.create_club('Required one', array['ada','bea']) as handle),
       pg_temp.wordwheel_setup() || '{"required": 1}'::jsonb,
       array['ada11111-1111-1111-1111-111111111111'::uuid,
             'bea22222-2222-2222-2222-222222222222'::uuid],
       'coop',
       pg_temp.wordwheel_board()
-    )
-  ),
+    )->'data'->>'id'),
   null,
   'accepts setup.required = 1 (the band floor)'
 );
 
-select throws_ok(
-  format(
-    $$ select wordwheel.create_game(%L,
-                                   pg_temp.wordwheel_setup() || '{"required": 7}'::jsonb,
-                                   array['ada11111-1111-1111-1111-111111111111'::uuid],
-                                   'coop',
-                                   pg_temp.wordwheel_board()) $$,
-    (select handle from club)
-  ),
-  'P0001',
-  null,
-  'rejects setup.required above 6 (band ceiling)'
-);
+select pg_temp.envelope_is(
+  wordwheel.create_game((select handle from club),
+    pg_temp.wordwheel_setup() || '{"required": 7}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid],
+    'coop',
+    pg_temp.wordwheel_board()),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN182",
+    "message":"A required difficulty of 7 reached the server"}'::jsonb,
+  'rejects setup.required above 6 (band ceiling)');
 
-select throws_ok(
-  format(
-    $$ select wordwheel.create_game(%L,
-                                   pg_temp.wordwheel_setup() || '{"required": 4, "legal": 3}'::jsonb,
-                                   array['ada11111-1111-1111-1111-111111111111'::uuid],
-                                   'coop',
-                                   pg_temp.wordwheel_board()) $$,
-    (select handle from club)
-  ),
-  'P0001',
-  null,
-  'rejects setup.legal below setup.required (legal must contain required)'
-);
+select pg_temp.envelope_is(
+  wordwheel.create_game((select handle from club),
+    pg_temp.wordwheel_setup() || '{"required": 4, "legal": 3}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid],
+    'coop',
+    pg_temp.wordwheel_board()),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN183"}'::jsonb,
+  'rejects setup.legal below setup.required (legal must contain required)');
 
-select throws_ok(
-  format(
-    $$ select wordwheel.create_game(%L,
-                                   pg_temp.wordwheel_setup() || '{"required": 2, "legal": 7}'::jsonb,
-                                   array['ada11111-1111-1111-1111-111111111111'::uuid],
-                                   'coop',
-                                   pg_temp.wordwheel_board()) $$,
-    (select handle from club)
-  ),
-  'P0001',
-  null,
-  'rejects setup.legal above 6 (band ceiling)'
-);
+select pg_temp.envelope_is(
+  wordwheel.create_game((select handle from club),
+    pg_temp.wordwheel_setup() || '{"required": 2, "legal": 7}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid],
+    'coop',
+    pg_temp.wordwheel_board()),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN183"}'::jsonb,
+  'rejects setup.legal above 6 (band ceiling)');
 
 -- Happy path with explicit non-default bands: required 4, legal 6.
 select isnt(
-  (
-    select id from wordwheel.create_game(
+      (wordwheel.create_game(
       (select pg_temp.create_club('Bands ok', array['ada','bea']) as handle),
       pg_temp.wordwheel_setup() || '{"required": 4, "legal": 6}'::jsonb,
       array['ada11111-1111-1111-1111-111111111111'::uuid,
             'bea22222-2222-2222-2222-222222222222'::uuid],
       'coop',
       pg_temp.wordwheel_board()
-    )
-  ),
+    )->'data'->>'id'),
   null,
   'accepts explicit required=4 / legal=6 (legal ≥ required, both in range)'
 );
@@ -398,14 +356,14 @@ select isnt(
 -- 'g' on two tiles AND carry an 'e' that duplicates the center — both were
 -- rejections under the old nine-distinct rule, both are ordinary boards now.
 create temp table dup_g on commit drop as
-select id from wordwheel.create_game(
+select (wordwheel.create_game(
   (select pg_temp.create_club('Dup letters ok', array['ada','bea']) as handle),
   pg_temp.wordwheel_setup(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop',
   pg_temp.wordwheel_dup_board()
-);
+)->'data'->>'id')::uuid as id;
 
 select isnt(
   (select id from dup_g),
@@ -420,18 +378,13 @@ select is(
   'duplicate-letter title: <CENTER>·<OUTER-SORTED> keeps both twins'
 );
 
-select throws_ok(
-  format(
-    $$ select wordwheel.create_game(%L, pg_temp.wordwheel_setup(),
-                                   array['ada11111-1111-1111-1111-111111111111'::uuid],
-                                   'coop',
-                                   pg_temp.wordwheel_board() || '{"outer_letters": "abcdfg"}'::jsonb) $$,
-    (select handle from club)
-  ),
-  'P0001',
-  null,
-  'rejects outer_letters with wrong length (not 8)'
-);
+select pg_temp.envelope_is(
+  wordwheel.create_game((select handle from club), pg_temp.wordwheel_setup(),
+    array['ada11111-1111-1111-1111-111111111111'::uuid],
+    'coop',
+    pg_temp.wordwheel_board() || '{"outer_letters": "abcdfg"}'::jsonb),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN184"}'::jsonb,
+  'rejects outer_letters with wrong length (not 8)');
 
 -- ============================================================
 -- (21) THE FORK: 's' is ALLOWED in outer_letters
@@ -444,57 +397,46 @@ select throws_ok(
 -- ≥15 count gate is what create_game enforces, and the fixture clears it).
 
 select isnt(
-  (
-    select id from wordwheel.create_game(
+      (wordwheel.create_game(
       (select pg_temp.create_club('Board with s', array['ada','bea']) as handle),
       pg_temp.wordwheel_setup(),
       array['ada11111-1111-1111-1111-111111111111'::uuid,
             'bea22222-2222-2222-2222-222222222222'::uuid],
       'coop',
       pg_temp.wordwheel_board() || '{"outer_letters": "sbcdfghi"}'::jsonb
-    )
-  ),
+    )->'data'->>'id'),
   null,
   'ACCEPTS outer_letters containing "s" (the wordwheel fork — tile-spending means no s-ban)'
 );
 
-select throws_ok(
-  format(
-    $$ select wordwheel.create_game(%L, pg_temp.wordwheel_setup(),
-                                   array['ada11111-1111-1111-1111-111111111111'::uuid],
-                                   'coop',
-                                   pg_temp.wordwheel_board() || '{"required_words_count": 14}'::jsonb) $$,
-    (select handle from club)
-  ),
-  'P0001',
-  null,
-  'rejects board.required_words_count < 15 (puzzle-quality gate — the wordwheel floor)'
-);
+select pg_temp.envelope_is(
+  wordwheel.create_game((select handle from club), pg_temp.wordwheel_setup(),
+    array['ada11111-1111-1111-1111-111111111111'::uuid],
+    'coop',
+    pg_temp.wordwheel_board() || '{"required_words_count": 14}'::jsonb),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN189",
+    "message":"The generated wheel had only 14 words to find"}'::jsonb,
+  'rejects board.required_words_count < 15 (puzzle-quality gate — the wordwheel floor)');
 
 -- ============================================================
 -- (23) Player-count upper bound (max 6)
 -- ============================================================
 
-select throws_ok(
-  format(
-    $$ select wordwheel.create_game(%L, pg_temp.wordwheel_setup(),
-                                   array[
-                                     'ada11111-1111-1111-1111-111111111111'::uuid,
-                                     'bea22222-2222-2222-2222-222222222222'::uuid,
-                                     gen_random_uuid(),
-                                     gen_random_uuid(),
-                                     gen_random_uuid(),
-                                     gen_random_uuid(),
-                                     gen_random_uuid()
-                                   ],
-                                   'coop',
-                                   pg_temp.wordwheel_board()) $$,
-    (select handle from club)
-  ),
-  'PN041',
-  null,
-  'rejects player_user_ids with > 6 entries (max 6)'
-);
+select pg_temp.envelope_is(
+  wordwheel.create_game((select handle from club), pg_temp.wordwheel_setup(),
+    array[
+      'ada11111-1111-1111-1111-111111111111'::uuid,
+      'bea22222-2222-2222-2222-222222222222'::uuid,
+      gen_random_uuid(),
+      gen_random_uuid(),
+      gen_random_uuid(),
+      gen_random_uuid(),
+      gen_random_uuid()
+    ],
+    'coop',
+    pg_temp.wordwheel_board()),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN041"}'::jsonb,
+  'rejects player_user_ids with > 6 entries (max 6)');
 
 -- ============================================================
 -- (24) Both gametype strings land on common.gametypes

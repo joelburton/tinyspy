@@ -30,6 +30,7 @@ set search_path = wordwheel, common, public, extensions;
 select plan(7);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -58,14 +59,14 @@ select jsonb_build_object(
 
 -- ── (1) Custom board with <15 required words is accepted ────
 create temp table g on commit drop as
-select * from wordwheel.create_game(
+select (wordwheel.create_game(
   (select handle from club),
   (select s from cset),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop',
   (select b from small)
-);
+)->'data'->>'id')::uuid as id;
 select isnt((select id from g), null,
   'custom board with only 3 required words is accepted (≥15 gate relaxed)');
 select is(
@@ -85,42 +86,44 @@ select is(
   'none', 'saved default still keeps the rest of the setup (timer)');
 
 -- ── (3) A RANDOM board with <15 words is still rejected ─────
-select throws_ok(
-  format(
-    $$ select wordwheel.create_game(%L,
-                                   pg_temp.wordwheel_setup(),
-                                   array['ada11111-1111-1111-1111-111111111111'::uuid,
-                                         'bea22222-2222-2222-2222-222222222222'::uuid],
-                                   'coop',
-                                   %L::jsonb) $$,
-    (select handle from club), (select b from small)
-  ),
-  'P0001', NULL,
+-- A FAULT: nobody typed this wheel. A random board short of the gate means the
+-- builder handed over something its own gate should have rejected, so there is
+-- no field to put it under and nothing for the player to change.
+select pg_temp.envelope_is(
+  wordwheel.create_game((select handle from club),
+    pg_temp.wordwheel_setup(),
+    array['ada11111-1111-1111-1111-111111111111'::uuid,
+          'bea22222-2222-2222-2222-222222222222'::uuid],
+    'coop',
+    (select b from small)::jsonb),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN189"}'::jsonb,
   'a NON-custom board with <15 required words is still rejected (gate holds)');
 
 -- ── (4) A custom board with ZERO required words is rejected ─
-select throws_ok(
-  format(
-    $$ select wordwheel.create_game(%L,
-                                   pg_temp.wordwheel_setup()
-                                     || '{"custom_letters":"abcdfghi","custom_center":"e"}'::jsonb,
-                                   array['ada11111-1111-1111-1111-111111111111'::uuid,
-                                         'bea22222-2222-2222-2222-222222222222'::uuid],
-                                   'coop',
-                                   jsonb_build_object(
-                                     'outer_letters','abcdfghi','center_letter','e',
-                                     'required_words_score',0,'required_words_count',0,
-                                     'required_words','[]'::jsonb,'bonus_words','[]'::jsonb)) $$,
-    (select handle from club)
-  ),
-  'P0001', NULL,
+-- A VALIDATION, and the only one wordwheel's create_game can make: the player
+-- typed this wheel, and whether it yields anything is the dictionary's answer
+-- rather than a shape the dialog already checks. Under the box they came from —
+-- the same place the edge function puts it when it gets there first.
+select pg_temp.envelope_is(
+  wordwheel.create_game((select handle from club),
+    pg_temp.wordwheel_setup()
+      || '{"custom_letters":"abcdfghi","custom_center":"e"}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid,
+          'bea22222-2222-2222-2222-222222222222'::uuid],
+    'coop',
+    jsonb_build_object(
+      'outer_letters','abcdfghi','center_letter','e',
+      'required_words_score',0,'required_words_count',0,
+      'required_words','[]'::jsonb,'bonus_words','[]'::jsonb)),
+  '{"type":"not-ok","severity":"validation","field":"custom_letters","dbcode":"PN188",
+    "message":"No words for those letters at that difficulty"}'::jsonb,
   'a custom board with ZERO required words is rejected (≥1 playability floor)');
 
 -- ── (5) DUPLICATE custom letters are accepted (multiset wheel) ─
 -- Outer 'abcdefgg' repeats 'g' AND carries an 'e' duplicating the center;
 -- the word list includes a repeat-letter word ('edge' spends both e-tiles).
 create temp table dupg on commit drop as
-select * from wordwheel.create_game(
+select (wordwheel.create_game(
   (select handle from club),
   pg_temp.wordwheel_setup()
     || '{"custom_letters":"abcdefgg","custom_center":"e"}'::jsonb,
@@ -134,7 +137,7 @@ select * from wordwheel.create_game(
       jsonb_build_object('word', 'edge', 'points', 1, 'is_pangram', false),
       jsonb_build_object('word', 'face', 'points', 1, 'is_pangram', false)),
     'bonus_words','[]'::jsonb)
-);
+)->'data'->>'id')::uuid as id;
 select isnt((select id from dupg), null,
   'custom board with duplicate letters (repeated outer + center twin) is accepted');
 

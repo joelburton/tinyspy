@@ -56,7 +56,7 @@ select pg_temp.create_club('Reveal club',
   array['ada','bea','cade']) as handle;
 
 create temp table g on commit drop as
-select * from wordwheel.create_game(
+select (wordwheel.create_game(
   (select handle from club),
   pg_temp.wordwheel_setup() || '{"target_rank": 2}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
@@ -64,7 +64,7 @@ select * from wordwheel.create_game(
         'cade3333-3333-3333-3333-333333333333'::uuid],
   'compete',
   pg_temp.wordwheel_board()
-);
+)->'data'->>'id')::uuid as id;
 
 -- ── Pre-win submissions ─────────────────────────────────────
 -- bea finds two words (bead = 1pt, beach = 5pt → 6pt total);

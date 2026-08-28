@@ -225,12 +225,14 @@ export function buildBoard(
 // valid. Keys, not sentences: the FE pre-validates the same rules in the setup
 // form, so reaching one of these means a broken client — they carry no copy
 // and render as faults (docs/supabase.md → Server errors).
-export function validateCustomLetters(center: string, letters: string): string | null {
-  if (!/^[a-z]$/.test(center)) {
-    return 'bad-custom-center|'
-  }
-  if (!/^[a-z]{8}$/.test(letters)) {
-    return 'bad-custom-letters|'
-  }
+/** Which of the two wheel rules broke. Named, not coded: this file knows
+ *  wordwheel's spelling rules and nothing about how a refusal is carried, so
+ *  the SQLSTATE and the severity are the caller's to attach — and keeping them
+ *  together there is what lets the code guard read both in one place. */
+export type LetterFault = 'center' | 'letters'
+
+export function validateCustomLetters(center: string, letters: string): LetterFault | null {
+  if (!/^[a-z]$/.test(center)) return 'center'
+  if (!/^[a-z]{8}$/.test(letters)) return 'letters'
   return null
 }

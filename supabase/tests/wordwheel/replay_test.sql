@@ -25,13 +25,13 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select pg_temp.create_club('Wheel replay', array['ada', 'bea']) as handle;
 create temp table g1 on commit drop as
-select * from wordwheel.create_game(
+select (wordwheel.create_game(
   (select handle from club), pg_temp.wordwheel_setup(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop',
   pg_temp.wordwheel_board()
-);
+)->'data'->>'id')::uuid as id;
 
 -- Two finds ('bead' from the fixture required list; the pangram) + a manual
 -- end → found rows, a non-zero status, and a terminal row: what replay undoes.
@@ -75,14 +75,14 @@ select is(
 -- ── Compete: the reset status carries the frozen target_rank ──
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
-select * from wordwheel.create_game(
+select (wordwheel.create_game(
   (select handle from club),
   pg_temp.wordwheel_setup() || '{"target_rank": 3}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'compete',
   pg_temp.wordwheel_board()
-);
+)->'data'->>'id')::uuid as id;
 select wordwheel.submit_word((select id from g2), 'bead', 1, false, false);
 select wordwheel.replay_board((select id from g2));
 reset role;
@@ -97,14 +97,14 @@ select is(
 -- status: lose it and a replayed game stops advertising what it's aiming at.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g3 on commit drop as
-select * from wordwheel.create_game(
+select (wordwheel.create_game(
   (select handle from club),
   pg_temp.wordwheel_setup() || '{"target_rank": 4}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop',
   pg_temp.wordwheel_board()
-);
+)->'data'->>'id')::uuid as id;
 select wordwheel.replay_board((select id from g3));
 reset role;
 select is(
@@ -119,13 +119,13 @@ select is(
 -- but only one of them survives a jsonb round trip unchanged — pin it.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g4 on commit drop as
-select * from wordwheel.create_game(
+select (wordwheel.create_game(
   (select handle from club),
   pg_temp.wordwheel_setup() || '{"target_rank": null}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid],
   'coop',
   pg_temp.wordwheel_board()
-);
+)->'data'->>'id')::uuid as id;
 select wordwheel.replay_board((select id from g4));
 reset role;
 select is(

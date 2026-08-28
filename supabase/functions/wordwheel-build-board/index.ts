@@ -84,7 +84,8 @@
 
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { type SupabaseClient } from 'jsr:@supabase/supabase-js@2'
-import { edgeInternal, json, preflight } from '../_shared/http.ts'
+import { preflight } from '../_shared/http.ts'
+import { crash, fault, validation } from '../_shared/envelope.ts'
 import { parseBuildBoardRequest, invokeCreateGame } from '../_shared/startGame.ts'
 import {
   type Board,
@@ -96,6 +97,7 @@ import {
   buildWeightedPool,
   letterMask,
   validateCustomLetters,
+  type LetterFault,
 } from './board.ts'
 
 // ───────────────────────────────────────────────────────────
@@ -276,6 +278,31 @@ async function fetchCandidateWords(
 // HTTP entry point
 // ───────────────────────────────────────────────────────────
 
+/**
+ * The two wheel rules, refused.
+ *
+ * Both are FAULTS though the letters are the player's: the setup dialog's own
+ * `customLettersError` gates Start on these exact rules, so reaching one means
+ * a broken client rather than a mistake to correct.
+ *
+ * Written out rather than looked up in a table, because the code and the
+ * severity have to sit together in the source: `src/guards/raiseCodes.test.ts`
+ * reads a `fault(` call to learn both at once, and a code hidden behind
+ * `TABLE[x].code` is a number it cannot see and so cannot stop being reused.
+ *
+ * Unlike spellingbee's three, there is no S rule and no distinctness rule —
+ * the wheel is a MULTISET, so 'ssssssss' is a legal set of outer letters.
+ */
+function letterFault(which: LetterFault): Response {
+  const unreadable = 'Those letters could not be read.'
+  switch (which) {
+    case 'center':
+      return fault('PN192', unreadable, 'wordwheel-build-board: center must be one lowercase letter')
+    case 'letters':
+      return fault('PN193', unreadable, 'wordwheel-build-board: outer must be eight lowercase letters')
+  }
+}
+
 serve(async (req) => {
   const pre = preflight(req)
   if (pre) return pre
@@ -308,9 +335,8 @@ serve(async (req) => {
       // rank ladder would be degenerate (Genius at 0 points).
       const err = validateCustomLetters(customCenter, customLetters)
       if (err) {
-        // `err` is an fe-error-key from board.ts (guard: APPROVED_EXPRESSIONS).
         console.log(`reject: custom letters invalid — ${err} (${customLetters}+${customCenter})`)
-        return json({ error: err }, 400)
+        return letterFault(err)
       }
       const mask = letterMask(customLetters + customCenter)
       const centerBit = 1n << BigInt(customCenter.charCodeAt(0) - 97)
@@ -320,11 +346,18 @@ serve(async (req) => {
         `custom board: ${customLetters}+${customCenter} → ${board.required_words_count} required words`,
       )
       if (board.required_words_count < 1) {
-        // The one player-reachable CUSTOM-letters rejection (the server is the
-        // first validator of this rule) — reuses SQL's key, so the dialog
-        // shows its ERROR_COPY sentence ("No words for those letters").
+        // The one player-reachable rejection on this path: the letters are the
+        // form's own input, and whether they yield anything is the dictionary's
+        // answer rather than a shape the dialog could have checked. Under the
+        // box they were typed into, and the same sentence create_game gives
+        // when it re-checks the rule.
         console.log(`reject: custom letters yield no required words at band ${requiredBand}`)
-        return json({ error: `no-required-words|${requiredBand}|` }, 400)
+        return validation(
+          'PN194',
+          'custom_letters',
+          'No words for those letters at that difficulty.',
+          `wordwheel-build-board: zero required words at band ${requiredBand}`,
+        )
       }
     } else {
       // ─── Random board: sample a pangram seed + center ────────────────────
@@ -337,9 +370,15 @@ serve(async (req) => {
       console.log(`fetched ${allPangrams.length} pangram seeds (difficulty <= ${requiredBand})`)
       if (allPangrams.length === 0) {
         // Player-reachable: a low required band can have zero nine-letter
-        // seeds. Carries copy (ERROR_COPY) — the dialog says so specifically.
+        // seeds at all. The sentence is Joel's, approved 2026-08-12, and moves
+        // here verbatim from ERROR_COPY.
         console.log('reject: no pangram seeds at this required band')
-        return json({ error: `no-pangram-seeds|${requiredBand}|` }, 500)
+        return validation(
+          'PN195',
+          'required',
+          `No pangram seeds at required difficulty ${requiredBand}`,
+          'wordwheel-build-board: the nine-letter seed pool is empty at that band',
+        )
       }
       // Board constraint: "unique letters only" keeps just the seeds whose nine
       // letters are all distinct (a seed's `letters` is the sorted 9-char
@@ -353,16 +392,28 @@ serve(async (req) => {
         console.log(`unique-letters constraint: ${constrained.length}/${allPangrams.length} seeds all-distinct`)
       }
       if (constrained.length === 0) {
-        // Player-reachable: the unique-letters option plus a low band can
-        // empty the pool. Carries copy (ERROR_COPY) with the remedy — here
-        // "higher difficulty" is the right direction (the pool grows with it).
+        // Player-reachable: the unique-letters option plus a low band can empty
+        // the pool. Under `unique_letters` rather than the band, because the
+        // option is what narrowed the pool and turning it off is one click —
+        // and the sentence names the other lever anyway. Joel's words, approved
+        // 2026-08-12; "higher difficulty" is the right direction here, since
+        // the seed pool GROWS with the band.
         console.log('reject: no all-distinct pangram seeds at this required band')
-        return json({ error: `no-unique-letter-boards|${requiredBand}|` }, 500)
+        return validation(
+          'PN196',
+          'unique_letters',
+          `No unique-letter boards at required difficulty ${requiredBand} — try a higher difficulty or turn off "unique letters only"`,
+          'wordwheel-build-board: no all-distinct pangram seeds at that band',
+        )
       }
       const eligible = applyOverlapCap(constrained, previousMask)
       if (eligible.length === 0) {
         console.log('reject: empty pangram pool after overlap cap')
-        return json({ error: 'overlap-cap-exhausted|' }, 500)
+        return fault(
+          'PN197',
+          'No puzzle could be built for this club right now.',
+          'wordwheel-build-board: pangram pool empty after the overlap cap',
+        )
       }
       const weighted = buildWeightedPool(eligible)
 
@@ -403,8 +454,17 @@ serve(async (req) => {
       }
 
       if (board === null) {
+        // The builder wants at least MIN_REQUIRED_WORDS_COUNT words at the
+        // REQUIRED band, so a narrow required band is what starves it — the one
+        // lever the player has, and the reason this is a validation rather than
+        // a modal that offers nothing to do.
         console.log(`reject: no seed/center cleared the ${MIN_REQUIRED_WORDS_COUNT}-word gate in ${MAX_SEED_ATTEMPTS} seeds`)
-        return json({ error: `quality-gate-failed|${MIN_REQUIRED_WORDS_COUNT}|` }, 500)
+        return validation(
+          'PN198',
+          'required',
+          'No puzzle could be built at that required difficulty. Try a wider one.',
+          `wordwheel-build-board: ${MAX_SEED_ATTEMPTS} seeds all under ${MIN_REQUIRED_WORDS_COUNT} words`,
+        )
       }
     }
     console.log(
@@ -421,6 +481,6 @@ serve(async (req) => {
     )
   } catch (e) {
     console.error('wordwheel-build-board threw:', e)
-    return edgeInternal(e)
+    return crash('wordwheel-build-board', e)
   }
 })

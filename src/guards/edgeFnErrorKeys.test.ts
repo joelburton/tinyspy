@@ -46,11 +46,6 @@ const APPROVED_EXPRESSIONS: Array<{ file: string; snippet: string; why: string }
     why: 'the create_game relay: the RPC message IS an fe-error-key (SQL raises them), passed verbatim with its SQLSTATE',
   },
   {
-    file: 'wordwheel-build-board/index.ts',
-    snippet: '{ error: err }',
-    why: "validateCustomLetters returns an fe-error-key (board.ts — bad-custom-*), pinned by board_test.ts",
-  },
-  {
     file: 'crosswords-import-nyt/index.ts',
     snippet: 'error: error.message, code: error.code',
     why: 'the create_game relay (the importers call it inline): the RPC message IS an fe-error-key, passed with its SQLSTATE',
