@@ -44,14 +44,14 @@ select pg_temp.create_club('Compete club', array['ada','bea']) as handle;
 -- spends 5 → the 10th total guess auto-terminates with ada the winner.
 
 create temp table g1 on commit drop as
-select * from wordiply.create_game(
+select (wordiply.create_game(
   (select handle from club),
   pg_temp.wordiply_setup(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'compete',
   pg_temp.wordiply_board()
-);
+)->'data'->>'id')::uuid as id;
 
 -- ada: longest 7.
 select wordiply.submit_guess((select id from g1), 'arxxxxx');  -- 7
@@ -109,14 +109,14 @@ select is(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
-select * from wordiply.create_game(
+select (wordiply.create_game(
   (select handle from club),
   pg_temp.wordiply_setup(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'compete',
   pg_temp.wordiply_board()
-);
+)->'data'->>'id')::uuid as id;
 
 -- ada: five 5-letter guesses → 25 letters, longest 5.
 select wordiply.submit_guess((select id from g2), 'arxxx');
@@ -151,14 +151,14 @@ select is(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g3 on commit drop as
-select * from wordiply.create_game(
+select (wordiply.create_game(
   (select handle from club),
   pg_temp.wordiply_setup_timed(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'compete',
   pg_temp.wordiply_board()
-);
+)->'data'->>'id')::uuid as id;
 
 -- ada: 5,4,4,4 (only four → not auto-terminal).
 select wordiply.submit_guess((select id from g3), 'arxxx');
@@ -202,14 +202,14 @@ select is(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g4 on commit drop as
-select * from wordiply.create_game(
+select (wordiply.create_game(
   (select handle from club),
   pg_temp.wordiply_setup(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'compete',
   pg_temp.wordiply_board()
-);
+)->'data'->>'id')::uuid as id;
 
 -- ada: 5,4,4,4,4.
 select wordiply.submit_guess((select id from g4), 'arxxx');
@@ -251,14 +251,14 @@ select is(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g5 on commit drop as
-select * from wordiply.create_game(
+select (wordiply.create_game(
   (select handle from club),
   pg_temp.wordiply_setup_timed(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'compete',
   pg_temp.wordiply_board()
-);
+)->'data'->>'id')::uuid as id;
 select wordiply.submit_guess((select id from g5), 'arxxxxx');  -- ada leads, longest 7
 select wordiply.submit_timeout((select id from g5));
 
@@ -278,11 +278,11 @@ select is(
 -- table had a reachable end (spend your five guesses) and reached none of it.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g6 on commit drop as
-  select id from wordiply.create_game((select handle from club),
+  select (wordiply.create_game((select handle from club),
     '{"timer": {"kind": "countdown", "seconds": 60}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
           'bea22222-2222-2222-2222-222222222222'::uuid],
-    'compete', pg_temp.wordiply_board());
+    'compete', pg_temp.wordiply_board())->'data'->>'id')::uuid as id;
 select wordiply.submit_timeout((select id from g6));
 reset role;
 select is((select play_state from common.games where id = (select id from g6)),
@@ -310,14 +310,14 @@ select is((select status->>'winner_user_id' from common.games where id = (select
 -- the reads below run as ada/bea — create it as postgres and they are denied.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g7 on commit drop as
-select * from wordiply.create_game(
+select (wordiply.create_game(
   (select handle from club),
   pg_temp.wordiply_setup(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'compete',
   pg_temp.wordiply_board()
-);
+)->'data'->>'id')::uuid as id;
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select wordiply.submit_guess((select id from g7), 'arzzzzz', false);  -- 7, NOT a word

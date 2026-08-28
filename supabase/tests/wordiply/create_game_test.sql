@@ -28,6 +28,7 @@ set search_path = wordiply, common, public, extensions;
 select plan(30);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 -- ============================================================
@@ -43,14 +44,14 @@ select pg_temp.create_club('Ada and Bea', array['ada','bea']) as handle;
 -- ============================================================
 
 create temp table g on commit drop as
-select * from wordiply.create_game(
+select (wordiply.create_game(
   (select handle from club),
   pg_temp.wordiply_setup(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop',
   pg_temp.wordiply_board()
-);
+)->'data'->>'id')::uuid as id;
 
 select isnt(
   (select id from g), null,
@@ -128,7 +129,7 @@ create temp table compete_club on commit drop as
 select pg_temp.create_club('Compete club', array['ada','bea','cade']) as handle;
 
 create temp table g_compete on commit drop as
-select * from wordiply.create_game(
+select (wordiply.create_game(
   (select handle from compete_club),
   pg_temp.wordiply_setup(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
@@ -136,7 +137,7 @@ select * from wordiply.create_game(
         'cade3333-3333-3333-3333-333333333333'::uuid],
   'compete',
   pg_temp.wordiply_board()
-);
+)->'data'->>'id')::uuid as id;
 
 select is(
   (select gametype from common.games where id = (select id from g_compete)),
@@ -173,16 +174,12 @@ select is(
 -- ============================================================
 
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
-select throws_ok(
-  format(
-    $$ select wordiply.create_game(%L, pg_temp.wordiply_setup(),
-                                  array['ada11111-1111-1111-1111-111111111111'::uuid],
-                                  'coop',
-                                  pg_temp.wordiply_board()) $$,
-    (select handle from club)
-  ),
-  'PN012',
-  null,
+select pg_temp.envelope_is(
+  wordiply.create_game((select handle from club), pg_temp.wordiply_setup(),
+    array['ada11111-1111-1111-1111-111111111111'::uuid],
+    'coop',
+    pg_temp.wordiply_board()),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN012"}'::jsonb,
   'dee (non-member) cannot create a wordiply game'
 );
 
@@ -192,43 +189,33 @@ select throws_ok(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
-select throws_ok(
-  format(
-    $$ select wordiply.create_game(%L, pg_temp.wordiply_setup(),
-                                  array['ada11111-1111-1111-1111-111111111111'::uuid],
-                                  'solo',
-                                  pg_temp.wordiply_board()) $$,
-    (select handle from club)
-  ),
-  'PN040',
-  null,
+select pg_temp.envelope_is(
+  wordiply.create_game((select handle from club), pg_temp.wordiply_setup(),
+    array['ada11111-1111-1111-1111-111111111111'::uuid],
+    'solo',
+    pg_temp.wordiply_board()),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN040"}'::jsonb,
   'rejects mode value not in {coop, compete}'
 );
 
-select throws_ok(
-  format(
-    $$ select wordiply.create_game(%L,
-                                  pg_temp.wordiply_setup() || '{"target_rank": 3}'::jsonb,
-                                  array['ada11111-1111-1111-1111-111111111111'::uuid],
-                                  'coop',
-                                  pg_temp.wordiply_board()) $$,
-    (select handle from club)
-  ),
-  'P0001',
-  'no-target-rank|',
+select pg_temp.envelope_is(
+  wordiply.create_game((select handle from club),
+    pg_temp.wordiply_setup() || '{"target_rank": 3}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid],
+    'coop',
+    pg_temp.wordiply_board()),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN123",
+    "message":"A game with a target rank reached the server"}'::jsonb,
   'rejects setup.target_rank (wordiply is not a race-to-rank)'
 );
 
-select throws_ok(
-  format(
-    $$ select wordiply.create_game(%L, pg_temp.wordiply_setup(),
-                                  array['ada11111-1111-1111-1111-111111111111'::uuid],
-                                  'compete',
-                                  pg_temp.wordiply_board()) $$,
-    (select handle from club)
-  ),
-  'P0001',
-  'too-few-players|',
+select pg_temp.envelope_is(
+  wordiply.create_game((select handle from club), pg_temp.wordiply_setup(),
+    array['ada11111-1111-1111-1111-111111111111'::uuid],
+    'compete',
+    pg_temp.wordiply_board()),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN122",
+    "message":"A race with fewer than two players reached the server"}'::jsonb,
   'compete with 1 player rejected'
 );
 
@@ -236,31 +223,25 @@ select throws_ok(
 -- (5) Difficulty band validation (1..6)
 -- ============================================================
 
-select throws_ok(
-  format(
-    $$ select wordiply.create_game(%L,
-                                  pg_temp.wordiply_setup() || '{"difficulty": 0}'::jsonb,
-                                  array['ada11111-1111-1111-1111-111111111111'::uuid],
-                                  'coop',
-                                  pg_temp.wordiply_board()) $$,
-    (select handle from club)
-  ),
-  'P0001',
-  null,
+select pg_temp.envelope_is(
+  wordiply.create_game((select handle from club),
+    pg_temp.wordiply_setup() || '{"difficulty": 0}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid],
+    'coop',
+    pg_temp.wordiply_board()),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN124",
+    "message":"A word difficulty of 0 reached the server"}'::jsonb,
   'rejects setup.difficulty below 1 (band floor)'
 );
 
-select throws_ok(
-  format(
-    $$ select wordiply.create_game(%L,
-                                  pg_temp.wordiply_setup() || '{"difficulty": 7}'::jsonb,
-                                  array['ada11111-1111-1111-1111-111111111111'::uuid],
-                                  'coop',
-                                  pg_temp.wordiply_board()) $$,
-    (select handle from club)
-  ),
-  'P0001',
-  null,
+select pg_temp.envelope_is(
+  wordiply.create_game((select handle from club),
+    pg_temp.wordiply_setup() || '{"difficulty": 7}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid],
+    'coop',
+    pg_temp.wordiply_board()),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN124",
+    "message":"A word difficulty of 7 reached the server"}'::jsonb,
   'rejects setup.difficulty above 6 (band ceiling)'
 );
 
@@ -269,58 +250,46 @@ select throws_ok(
 -- ============================================================
 
 -- base not 2–4 lowercase ASCII letters.
-select throws_ok(
-  format(
-    $$ select wordiply.create_game(%L, pg_temp.wordiply_setup(),
-                                  array['ada11111-1111-1111-1111-111111111111'::uuid],
-                                  'coop',
-                                  pg_temp.wordiply_board() || '{"base": "A"}'::jsonb) $$,
-    (select handle from club)
-  ),
-  'P0001',
-  null,
+select pg_temp.envelope_is(
+  wordiply.create_game((select handle from club), pg_temp.wordiply_setup(),
+    array['ada11111-1111-1111-1111-111111111111'::uuid],
+    'coop',
+    pg_temp.wordiply_board() || '{"base": "A"}'::jsonb),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN126",
+    "message":"The generated board came with a starter of ''A''"}'::jsonb,
   'rejects board.base that is not 2–4 lowercase ASCII letters'
 );
 
 -- max_word_length below base_len + 2 (base 'ar' → floor 4; 3 is too low).
-select throws_ok(
-  format(
-    $$ select wordiply.create_game(%L, pg_temp.wordiply_setup(),
-                                  array['ada11111-1111-1111-1111-111111111111'::uuid],
-                                  'coop',
-                                  pg_temp.wordiply_board() || '{"max_word_length": 3}'::jsonb) $$,
-    (select handle from club)
-  ),
-  'P0001',
-  null,
+select pg_temp.envelope_is(
+  wordiply.create_game((select handle from club), pg_temp.wordiply_setup(),
+    array['ada11111-1111-1111-1111-111111111111'::uuid],
+    'coop',
+    pg_temp.wordiply_board() || '{"max_word_length": 3}'::jsonb),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN128",
+    "message":"The generated board left no room to grow the starter (longest word 3)"}'::jsonb,
   'rejects board.max_word_length below base length + 2 (no headroom)'
 );
 
 -- empty longest_words.
-select throws_ok(
-  format(
-    $$ select wordiply.create_game(%L, pg_temp.wordiply_setup(),
-                                  array['ada11111-1111-1111-1111-111111111111'::uuid],
-                                  'coop',
-                                  pg_temp.wordiply_board() || '{"longest_words": []}'::jsonb) $$,
-    (select handle from club)
-  ),
-  'P0001',
-  'bad-longest-words|',
+select pg_temp.envelope_is(
+  wordiply.create_game((select handle from club), pg_temp.wordiply_setup(),
+    array['ada11111-1111-1111-1111-111111111111'::uuid],
+    'coop',
+    pg_temp.wordiply_board() || '{"longest_words": []}'::jsonb),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN129",
+    "message":"The generated board arrived with no target words"}'::jsonb,
   'rejects empty board.longest_words'
 );
 
 -- empty legal_words.
-select throws_ok(
-  format(
-    $$ select wordiply.create_game(%L, pg_temp.wordiply_setup(),
-                                  array['ada11111-1111-1111-1111-111111111111'::uuid],
-                                  'coop',
-                                  pg_temp.wordiply_board() || '{"legal_words": []}'::jsonb) $$,
-    (select handle from club)
-  ),
-  'P0001',
-  'bad-legal-words|',
+select pg_temp.envelope_is(
+  wordiply.create_game((select handle from club), pg_temp.wordiply_setup(),
+    array['ada11111-1111-1111-1111-111111111111'::uuid],
+    'coop',
+    pg_temp.wordiply_board() || '{"legal_words": []}'::jsonb),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN130",
+    "message":"The generated board arrived with no legal words"}'::jsonb,
   'rejects empty board.legal_words'
 );
 
@@ -328,24 +297,20 @@ select throws_ok(
 -- (7) Player-count upper bound (max 6)
 -- ============================================================
 
-select throws_ok(
-  format(
-    $$ select wordiply.create_game(%L, pg_temp.wordiply_setup(),
-                                  array[
-                                    'ada11111-1111-1111-1111-111111111111'::uuid,
-                                    'bea22222-2222-2222-2222-222222222222'::uuid,
-                                    gen_random_uuid(),
-                                    gen_random_uuid(),
-                                    gen_random_uuid(),
-                                    gen_random_uuid(),
-                                    gen_random_uuid()
-                                  ],
-                                  'coop',
-                                  pg_temp.wordiply_board()) $$,
-    (select handle from club)
-  ),
-  'PN041',
-  null,
+select pg_temp.envelope_is(
+  wordiply.create_game((select handle from club), pg_temp.wordiply_setup(),
+    array[
+      'ada11111-1111-1111-1111-111111111111'::uuid,
+      'bea22222-2222-2222-2222-222222222222'::uuid,
+      gen_random_uuid(),
+      gen_random_uuid(),
+      gen_random_uuid(),
+      gen_random_uuid(),
+      gen_random_uuid()
+    ],
+    'coop',
+    pg_temp.wordiply_board()),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN041"}'::jsonb,
   'rejects player_user_ids with > 6 entries (max 6)'
 );
 
@@ -360,46 +325,40 @@ select throws_ok(
 
 -- Shape: same rule as board.base. A malformed request fails before anything
 -- is created.
-select throws_ok(
-  format(
-    $$ select wordiply.create_game(%L,
-                                  pg_temp.wordiply_setup() || '{"custom_base": "a"}'::jsonb,
-                                  array['ada11111-1111-1111-1111-111111111111'::uuid],
-                                  'coop',
-                                  pg_temp.wordiply_board()) $$,
-    (select handle from club)
-  ),
-  'P0001',
-  'bad-custom-base|a|',
+select pg_temp.envelope_is(
+  wordiply.create_game((select handle from club),
+    pg_temp.wordiply_setup() || '{"custom_base": "a"}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid],
+    'coop',
+    pg_temp.wordiply_board()),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN125",
+    "message":"A starter of ''a'' reached the server"}'::jsonb,
   'rejects a setup.custom_base that is not 2–4 lowercase ASCII letters'
 );
 
 -- The cross-check. The fixture board's base is 'ar', so asking for 'moth' and
 -- being handed 'ar' is a builder that ignored the request — the ONE place that
 -- can catch it, since every downstream reader trusts board.base.
-select throws_ok(
-  format(
-    $$ select wordiply.create_game(%L,
-                                  pg_temp.wordiply_setup() || '{"custom_base": "moth"}'::jsonb,
-                                  array['ada11111-1111-1111-1111-111111111111'::uuid],
-                                  'coop',
-                                  pg_temp.wordiply_board()) $$,
-    (select handle from club)
-  ),
-  'P0001',
-  'base-mismatch|moth|ar|',
+select pg_temp.envelope_is(
+  wordiply.create_game((select handle from club),
+    pg_temp.wordiply_setup() || '{"custom_base": "moth"}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid],
+    'coop',
+    pg_temp.wordiply_board()),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN127",
+    "message":"You asked to start with ''moth'' and the generated board used ''ar''"}'::jsonb,
   'rejects a board whose base is not the requested custom_base'
 );
 
 -- The happy path: asking for the base the board actually carries.
 create temp table gcustom on commit drop as
-select * from wordiply.create_game(
+select (wordiply.create_game(
   (select handle from club),
   pg_temp.wordiply_setup() || '{"custom_base": "ar"}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid],
   'coop',
   pg_temp.wordiply_board()
-);
+)->'data'->>'id')::uuid as id;
 
 select is(
   (select base from wordiply.games where id = (select id from gcustom)),

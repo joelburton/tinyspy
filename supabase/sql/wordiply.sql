@@ -277,6 +277,8 @@ grant execute on function wordiply.try_base(text, int, int, int, int) to authent
 -- Title formula: just "<BASE>" (uppercased) — e.g. "AR". Deliberately NOT
 -- "<BASE> · best <N>": the club-page title is visible before/during play, and
 -- the longest-word length is secret until terminal, so it must not leak here.
+drop function if exists wordiply.create_game(text, jsonb, uuid[], text, jsonb);
+
 create or replace function wordiply.create_game(
   target_club text,
   setup jsonb,
@@ -284,13 +286,14 @@ create or replace function wordiply.create_game(
   mode text,
   board jsonb
 )
-returns table(id uuid)
+returns jsonb
 language plpgsql
 security definer
 set search_path = wordiply, common, public, extensions
 as $$
 declare
   new_id uuid;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text;
   s_difficulty int;
   s_custom_base text;
   b_base text;
@@ -307,8 +310,8 @@ begin
   perform common.require_valid_mode(mode);
   if mode = 'compete' then
     if coalesce(array_length(player_user_ids, 1), 0) < 2 then
-      raise exception 'too-few-players|'
-        using errcode = 'P0001',
+      raise exception 'A race with fewer than two players reached the server'
+        using errcode = 'PN122', hint = 'fault', column = '_',
       detail = 'compete needs >= 2 players';
     end if;
   end if;
@@ -316,16 +319,16 @@ begin
 
   -- ─── Reject deprecated / inapplicable setup fields ───────
   if setup ? 'target_rank' then
-    raise exception 'no-target-rank|'
-      using errcode = 'P0001',
+    raise exception 'A game with a target rank reached the server'
+      using errcode = 'PN123', hint = 'fault', column = '_',
       detail = 'wordiply has no target_rank; the setup carried one';
   end if;
 
   -- ─── Validate the dictionary band ────────────────────────
   s_difficulty := coalesce((setup->>'difficulty')::int, 5);
   if s_difficulty < 1 or s_difficulty > 6 then
-    raise exception 'bad-band|%|', s_difficulty
-      using errcode = 'P0001',
+    raise exception 'A word difficulty of % reached the server', s_difficulty
+      using errcode = 'PN124', hint = 'fault', column = '_',
       detail = 'setup.difficulty must be 1..6';
   end if;
 
@@ -339,16 +342,17 @@ begin
   -- docs/games/wordiply.md.
   s_custom_base := nullif(lower(trim(setup->>'custom_base')), '');
   if s_custom_base is not null and s_custom_base !~ '^[a-z]{2,4}$' then
-    raise exception 'bad-custom-base|%|', s_custom_base
-      using errcode = 'P0001',
+    raise exception 'A starter of ''%'' reached the server', s_custom_base
+      using errcode = 'PN125', hint = 'fault', column = '_',
       detail = 'setup.custom_base must be 2-4 lowercase ASCII letters';
   end if;
 
   -- ─── Board structure validation ──────────────────────────
   b_base := board->>'base';
   if b_base is null or b_base !~ '^[a-z]{2,4}$' then
-    raise exception 'bad-base|%|',
-      coalesce(b_base, 'null') using errcode = 'P0001',
+    raise exception 'The generated board came with a starter of ''%''',
+      coalesce(b_base, 'null')
+      using errcode = 'PN126', hint = 'fault', column = '_',
       detail = 'board.base must be 2-4 lowercase ASCII letters';
   end if;
   b_base_len := char_length(b_base);
@@ -359,8 +363,9 @@ begin
   -- board.base, and the player would simply be handed a different game than
   -- the one they set up.
   if s_custom_base is not null and b_base <> s_custom_base then
-    raise exception 'base-mismatch|%|%|', s_custom_base, b_base
-      using errcode = 'P0001',
+    raise exception 'You asked to start with ''%'' and the generated board used ''%''',
+      s_custom_base, b_base
+      using errcode = 'PN127', hint = 'fault', column = '_',
       detail = 'board.base does not match the requested setup.custom_base';
   end if;
 
@@ -369,21 +374,22 @@ begin
   -- or there's nothing to reach for. (The edge fn targets +3; this is the
   -- looser server floor a misbehaving builder can't sneak past.)
   if b_max_word_length is null or b_max_word_length < b_base_len + 2 then
-    raise exception 'bad-max-word-length|%|',
-      coalesce(b_max_word_length::text, 'null') using errcode = 'P0001',
+    raise exception 'The generated board left no room to grow the starter (longest word %)',
+      coalesce(b_max_word_length::text, 'none')
+      using errcode = 'PN128', hint = 'fault', column = '_',
       detail = 'max_word_length must be >= base length + 2';
   end if;
 
   if jsonb_typeof(board->'longest_words') <> 'array'
      or jsonb_array_length(board->'longest_words') < 1 then
-    raise exception 'bad-longest-words|'
-      using errcode = 'P0001',
+    raise exception 'The generated board arrived with no target words'
+      using errcode = 'PN129', hint = 'fault', column = '_',
       detail = 'board.longest_words must be a non-empty jsonb array';
   end if;
   if jsonb_typeof(board->'legal_words') <> 'array'
      or jsonb_array_length(board->'legal_words') < 1 then
-    raise exception 'bad-legal-words|'
-      using errcode = 'P0001',
+    raise exception 'The generated board arrived with no legal words'
+      using errcode = 'PN130', hint = 'fault', column = '_',
       detail = 'board.legal_words must be a non-empty jsonb array';
   end if;
 
@@ -413,8 +419,8 @@ begin
   if mode = 'coop' and setup->>'coop_style' = 'turns' then
     first_turn := (setup->>'first_turn_user_id')::uuid;
     if first_turn is null or not (first_turn = any(player_user_ids)) then
-      raise exception 'bad-first-turn|'
-        using errcode = 'P0001',
+      raise exception 'A first player who is not in the game reached the server'
+        using errcode = 'PN131', hint = 'fault', column = '_',
       detail = 'setup.first_turn_user_id must be one of the players';
     end if;
     perform common._assign_turn_order(new_id, first_turn);
@@ -457,7 +463,17 @@ begin
   end if;
   perform common.update_state(new_id, 'playing', init_status);
 
-  return query select new_id;
+  return common.ok_envelope(jsonb_build_object('id', new_id));
+
+-- The boundary. It reads the SQLSTATE, re-raises anything that isn't ours, and
+-- lets the raise itself carry the message, the kind and the field.
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 

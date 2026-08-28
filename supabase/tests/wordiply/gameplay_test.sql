@@ -47,7 +47,7 @@ create temp table club on commit drop as
 select pg_temp.create_club('Ada Bea Cade', array['ada','bea','cade']) as handle;
 
 create temp table g on commit drop as
-select * from wordiply.create_game(
+select (wordiply.create_game(
   (select handle from club),
   pg_temp.wordiply_setup(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
@@ -55,7 +55,7 @@ select * from wordiply.create_game(
         'cade3333-3333-3333-3333-333333333333'::uuid],
   'coop',
   pg_temp.wordiply_board()
-);
+)->'data'->>'id')::uuid as id;
 
 -- ============================================================
 -- (1) Coop happy path: ada submits 'arxxxxx' (7 letters, contains 'ar')
@@ -193,7 +193,7 @@ select throws_ok(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table cg on commit drop as
-select * from wordiply.create_game(
+select (wordiply.create_game(
   (select handle from club),
   pg_temp.wordiply_setup(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
@@ -201,7 +201,7 @@ select * from wordiply.create_game(
         'cade3333-3333-3333-3333-333333333333'::uuid],
   'compete',
   pg_temp.wordiply_board()
-);
+)->'data'->>'id')::uuid as id;
 
 -- ada concedes, then tries to submit.
 select wordiply.concede((select id from cg));
@@ -244,14 +244,14 @@ select is(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table term_g on commit drop as
-select * from wordiply.create_game(
+select (wordiply.create_game(
   (select handle from club),
   pg_temp.wordiply_setup(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop',
   pg_temp.wordiply_board()
-);
+)->'data'->>'id')::uuid as id;
 
 -- Four shared guesses (ada), longest 7 → length_score 100.
 select wordiply.submit_guess((select id from term_g), 'arxxxxx');  -- 7
@@ -301,7 +301,7 @@ select is(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table rls_g on commit drop as
-select * from wordiply.create_game(
+select (wordiply.create_game(
   (select handle from club),
   pg_temp.wordiply_setup(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
@@ -309,7 +309,7 @@ select * from wordiply.create_game(
         'cade3333-3333-3333-3333-333333333333'::uuid],
   'compete',
   pg_temp.wordiply_board()
-);
+)->'data'->>'id')::uuid as id;
 
 select wordiply.submit_guess((select id from rls_g), 'arxx');
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
@@ -339,14 +339,14 @@ select is(
 -- is terminal now, so build a fresh coop game and cross-read.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table coop_rls on commit drop as
-select * from wordiply.create_game(
+select (wordiply.create_game(
   (select handle from club),
   pg_temp.wordiply_setup(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop',
   pg_temp.wordiply_board()
-);
+)->'data'->>'id')::uuid as id;
 select wordiply.submit_guess((select id from coop_rls), 'arxx');
 
 -- bea sees ada's guess mid-game (coop is shared).

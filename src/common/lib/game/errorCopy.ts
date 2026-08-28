@@ -231,8 +231,6 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   // Two keys rather than one because the fixes differ: too many words wants a
   // LONGER starter, too few wants a DIFFERENT one. The dialog's slot is
   // single-line, so both stay captions.
-  'base-too-common': { text: (d) => `${d[0]?.toUpperCase()} matches too many words` },
-  'base-too-narrow': { text: (d) => `No long enough word contains ${d[0]?.toUpperCase()}` },
 
   // ── setgame ──
   // Its board is CONTENDED — one table, everyone claiming off it — so this is

@@ -58,22 +58,19 @@
  *     setup: jsonb,                 // { difficulty?, timer }, NO mode field
  *     player_user_ids: uuid[],
  *     mode: 'coop' | 'compete' }
- *   → { id: uuid }  (200)
- *   → { error: fe-error-key, code?: SQLSTATE }  (400/401/403/500)
+ *   → a result envelope, ALWAYS 200 (_shared/envelope.ts)
  *
- * Errors are fe-error-keys (`key|detail|` — docs/supabase.md → Server errors;
- * guarded by src/guards/edgeFnErrorKeys.test.ts): the FE owns every player-facing
- * word. Two are player-REACHABLE, and only on the custom path — you can type
- * ING (base-too-common) or YAKS (base-too-narrow) — so both carry copy in
- * errorCopy.ts and land on the setup dialog's own error line. The rest
- * (wordiply-build-failed / edge-internal) are "impossible without a broken
- * pipeline" — no copy; they render as faults. A create_game raise relays
- * verbatim with its SQLSTATE (invokeCreateGame).
+ * The status says whether this function ran; the envelope says what it decided.
+ * Two refusals are player-REACHABLE, and only on the custom path — you can type
+ * ING (too common) or YAKS (too narrow) — so both are validations that land
+ * under `custom_base`, the box the letters were typed into. The rest are
+ * "impossible without a broken pipeline" and render as faults.
  */
 
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { type SupabaseClient } from 'jsr:@supabase/supabase-js@2'
-import { edgeInternal, json, preflight } from '../_shared/http.ts'
+import { preflight } from '../_shared/http.ts'
+import { crash, fault, validation } from '../_shared/envelope.ts'
 import { parseBuildBoardRequest, invokeCreateGame } from '../_shared/startGame.ts'
 
 // ───────────────────────────────────────────────────────────
@@ -268,25 +265,33 @@ serve(async (req) => {
       // Shape FIRST. Without this a malformed base still runs the dictionary
       // query, and 'm' — which matches most of the language — comes back as
       // "matches too many words", advising a longer starter for what is really
-      // a broken request. The frontend's customBaseError already blocks this,
-      // so reaching it means a broken client: same key create_game raises, and
-      // deliberately NO copy in errorCopy.ts, so it renders as a fault.
+      // a broken request. The frontend's `customBaseError` already blocks this,
+      // so reaching it means a broken client — a fault, not a sentence to put
+      // beside the control, which is telling the truth already.
       if (!/^[a-z]{2,4}$/.test(customBase)) {
         console.log(`reject: custom base ${customBase} is not 2-4 letters`)
-        return json({ error: `bad-custom-base|${customBase}|` }, 400)
+        return fault(
+          'PN132',
+          `A starter of '${customBase}' reached the server.`,
+          'wordiply-build-board: custom_base must be 2-4 lowercase ASCII letters',
+        )
       }
       const bits = await tryBase(
         supabase, customBase, difficulty, CUSTOM_CHILD_MIN, CUSTOM_CHILD_MAX,
       )
       if (!bits) {
         // Rejected — say which way, since the two have different fixes. Both
-        // are player-REACHABLE (you can type ING), so both carry copy in
-        // errorCopy.ts and land on the setup dialog's own line, not a fault.
+        // are player-REACHABLE (you can type ING), and the field is the one the
+        // player typed into, so both land under the starter box rather than
+        // raising a modal that offers nothing to do.
         const children = await countMatchingWords(supabase, customBase, difficulty)
+        const shown = customBase.toUpperCase()
         console.log(`reject: custom base ${customBase} has ${children} children`)
         return children > CUSTOM_CHILD_MAX
-          ? json({ error: `base-too-common|${customBase}|` }, 400)
-          : json({ error: `base-too-narrow|${customBase}|` }, 400)
+          ? validation('PN133', 'custom_base', `${shown} matches too many words.`,
+              `wordiply-build-board: ${children} children, max ${CUSTOM_CHILD_MAX}`)
+          : validation('PN134', 'custom_base', `No long enough word contains ${shown}.`,
+              `wordiply-build-board: ${children} children`)
       }
       board = {
         base: customBase,
@@ -321,8 +326,13 @@ serve(async (req) => {
       if (board === null) {
         console.log(`reject: no candidate base cleared the gate in ${candidates.length} tries`)
         // Every candidate base failed the max-children gate — a generation dead
-        // end, not a player-reachable state. Key only, no copy; it faults.
-        return json({ error: 'wordiply-build-failed|' }, 500)
+        // end, not a player-reachable state, so nothing here is the player's to
+        // fix and no field is the place to say it.
+        return fault(
+          'PN135',
+          'No starter could be found for this game.',
+          `wordiply-build-board: ${candidates.length} candidate bases all failed the gate`,
+        )
       }
     }
     console.log(
@@ -338,6 +348,6 @@ serve(async (req) => {
     )
   } catch (e) {
     console.error('wordiply-build-board threw:', e)
-    return edgeInternal(e)
+    return crash('wordiply-build-board', e)
   }
 })

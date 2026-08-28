@@ -37,14 +37,14 @@ select pg_temp.create_club('Ada Bea Cade', array['ada','bea','cade']) as handle;
 -- ============================================================
 
 create temp table end_g on commit drop as
-select * from wordiply.create_game(
+select (wordiply.create_game(
   (select handle from club),
   pg_temp.wordiply_setup(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop',
   pg_temp.wordiply_board()
-);
+)->'data'->>'id')::uuid as id;
 
 -- Two guesses (longest 7) so end_game captures a real live aggregate.
 select wordiply.submit_guess((select id from end_g), 'arxxxxx');  -- 7
@@ -98,14 +98,14 @@ select throws_ok(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table to_g on commit drop as
-select * from wordiply.create_game(
+select (wordiply.create_game(
   (select handle from club),
   pg_temp.wordiply_setup_timed(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop',
   pg_temp.wordiply_board()
-);
+)->'data'->>'id')::uuid as id;
 select wordiply.submit_guess((select id from to_g), 'arxxx');   -- 5
 select wordiply.submit_timeout((select id from to_g));
 
@@ -163,14 +163,14 @@ select is(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table con_g on commit drop as
-select * from wordiply.create_game(
+select (wordiply.create_game(
   (select handle from club),
   pg_temp.wordiply_setup(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'compete',
   pg_temp.wordiply_board()
-);
+)->'data'->>'id')::uuid as id;
 
 -- ada concedes → flagged, game continues (bea still races).
 select wordiply.concede((select id from con_g));
@@ -213,14 +213,14 @@ select is(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table done_g on commit drop as
-select * from wordiply.create_game(
+select (wordiply.create_game(
   (select handle from club),
   pg_temp.wordiply_setup(),                 -- untimed
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'compete',
   pg_temp.wordiply_board()
-);
+)->'data'->>'id')::uuid as id;
 
 -- ada spends all 5 guesses (distinct, each contains 'ar', longest 7 → 100%).
 select wordiply.submit_guess((select id from done_g), 'arxxxxx');  -- 7

@@ -1124,7 +1124,7 @@ select pg_temp.envelope_is(
 
 ## 7. The conversion roster
 
-**146 entries. 31 done, 5 edge functions deferred, 110 to go.** Cross them off
+**146 entries. 32 done, 5 edge functions deferred, 109 to go.** Cross them off
 here as they land.
 
 An entry is one RPC or one table read **per area**, so the same name in two
@@ -1342,7 +1342,7 @@ identifier — a shape nothing has exercised yet.
 
 #### wordiply
 
-- [ ] `create_game` · RPC, reached through `wordiply-build-board`
+- [x] `create_game` · RPC, reached through `wordiply-build-board`
 - [ ] `submit_guess` · RPC (3 call sites)
 - [ ] `games_state` · read (2 call sites)
 - [ ] `guesses` · read (2 call sites)

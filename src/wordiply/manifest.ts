@@ -4,7 +4,8 @@ import { lazy } from 'react'
 import type { GameManifest } from '../common/lib/games'
 import { db } from './db'
 import { count, outcome, statusLine, wonBy } from '../common/lib/game/statusLabel'
-import { edgeStartEnvelope, makeRpcDispatcher, invokeStartGameEdgeFn } from '../common/lib/game/manifestRpcs'
+import { makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
+import { runEdgeFn } from '../common/lib/supabase/dbResult'
 import {
   DEFAULT_WORDIPLY_SETUP_COMPETE,
   DEFAULT_WORDIPLY_SETUP_COOP,
@@ -56,16 +57,17 @@ const setupFormLoader = lazy(() =>
  * the edge function, which builds the board and calls
  * `wordiply.create_game(target_club, setup, players, mode, board)`.
  */
-function startGameInClubFactory(mode: 'coop' | 'compete', brand: string) {
-  return async (clubHandle: string, setup: unknown, playerUserIds: string[]) =>
-    edgeStartEnvelope(
-      await invokeStartGameEdgeFn(
-      'wordiply-build-board',
-      { target_club: clubHandle, setup: setup as WordiplySetup, player_user_ids: playerUserIds, mode },
-        brand,
-      ),
-      brand,
-    )
+function startGameInClubFactory(mode: 'coop' | 'compete') {
+  return (clubHandle: string, setup: unknown, playerUserIds: string[]) =>
+    // The starter is chosen in Deno, so this goes through an edge function
+    // rather than straight to the RPC — but it comes back the same envelope a
+    // direct create_game returns, relayed untouched (see _shared/startGame.ts).
+    runEdgeFn<{ id: string }>('wordiply-build-board', {
+      target_club: clubHandle,
+      setup: setup as WordiplySetup,
+      player_user_ids: playerUserIds,
+      mode,
+    })
 }
 
 // Timeout + manual end — the shared one-arg RPC dispatchers. submit_timeout
@@ -163,7 +165,7 @@ export const wordiplyCoopGame: GameManifest = {
     validate: (setup) => wordiplySetupError(setup as WordiplySetup),
   },
 
-  startGameInClub: startGameInClubFactory('coop', BRAND),
+  startGameInClub: startGameInClubFactory('coop'),
 
   labelFor: (row) => coopLabel(row),
 
@@ -195,7 +197,7 @@ export const wordiplyCompeteGame: GameManifest = {
     validate: (setup) => wordiplySetupError(setup as WordiplySetup),
   },
 
-  startGameInClub: startGameInClubFactory('compete', BRAND),
+  startGameInClub: startGameInClubFactory('compete'),
 
   labelFor: (row) => competeLabel(row),
 

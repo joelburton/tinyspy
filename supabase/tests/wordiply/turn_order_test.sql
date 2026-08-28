@@ -24,9 +24,10 @@
 begin;
 set search_path = wordiply, common, public, extensions;
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(15);
+select plan(16);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -34,7 +35,7 @@ select pg_temp.create_club('Wordiply turns', array['ada', 'bea']) as handle;
 
 -- ── TURN GAME — ada first ──
 create temp table g on commit drop as
-select * from wordiply.create_game(
+select (wordiply.create_game(
   (select handle from club),
   pg_temp.wordiply_setup()
     || jsonb_build_object(
@@ -44,7 +45,7 @@ select * from wordiply.create_game(
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop',
   pg_temp.wordiply_board()
-);
+)->'data'->>'id')::uuid as id;
 
 -- (1) Pointer seated on ada.
 reset role;
@@ -142,13 +143,13 @@ select is(
 -- ── FREE-FOR-ALL (no coop_style) — pointer null, ungated ──
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table ffa on commit drop as
-select * from wordiply.create_game(
+select (wordiply.create_game(
   (select handle from club), pg_temp.wordiply_setup(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop',
   pg_temp.wordiply_board()
-);
+)->'data'->>'id')::uuid as id;
 reset role;
 select is(
   (select current_turn_user_id from common.games where id = (select id from ffa)),
@@ -180,6 +181,27 @@ select is(
   (select current_turn_user_id from common.games where id = (select id from g)),
   'ada11111-1111-1111-1111-111111111111'::uuid,
   'turns: replay rewinds the turn to the first-seated player'
+);
+
+-- ── A first player who isn't playing ────────────────────────
+-- The setup dialog only ever offers the players already checked, so this can
+-- only arrive from something broken — a fault, on the form rather than on the
+-- picker, because no control the player can see is wrong.
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select pg_temp.envelope_is(
+  wordiply.create_game(
+    (select handle from club),
+    pg_temp.wordiply_setup()
+      || jsonb_build_object(
+           'coop_style', 'turns',
+           'first_turn_user_id', 'cec33333-3333-3333-3333-333333333333'::text),
+    array['ada11111-1111-1111-1111-111111111111'::uuid,
+          'bea22222-2222-2222-2222-222222222222'::uuid],
+    'coop',
+    pg_temp.wordiply_board()),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN131",
+    "message":"A first player who is not in the game reached the server"}'::jsonb,
+  'turns: a first player who is not in the game is refused'
 );
 
 select * from finish();

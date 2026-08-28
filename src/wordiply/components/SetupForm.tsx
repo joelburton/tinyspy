@@ -46,6 +46,7 @@ export function SetupForm({
         selfId={selfId}
         numberOfPlayers={numberOfPlayers}
         value={s.player_user_ids}
+        error={errors.player_user_ids}
         onChange={(next) => set('player_user_ids', next)}
       />
       {/* Coop pacing — first, right below the dialog's player picker.
@@ -68,6 +69,7 @@ export function SetupForm({
           minBand={1}
           maxBand={6}
           value={s.difficulty}
+          error={errors.difficulty}
           onChange={(difficulty) => set('difficulty', difficulty)}
         />
       </SetupSection>
@@ -80,14 +82,14 @@ export function SetupForm({
           Start is gated on `customBaseError` (via the manifest's validate), but
           only on SHAPE: whether the letters yield a board is the edge
           function's call, so an unusable starter fails at Start with the
-          server's reason — the same deal boggle's constraints get. Cleared
-          input stores `undefined` so the edge function sees it as absent →
-          random. */}
+          server's own sentence, under this box. Cleared input stores
+          `undefined` so the edge function sees it as absent → random. */}
       <SetupSection label={customBaseLabel}>
         <ManualBoardField
           help="Leave blank for a random starter, or set your own: 2–4 letters that every guess must contain. Very short starters usually match too many words to make a puzzle."
           name="custom_base"
           value={customBase}
+          error={errors.custom_base}
           onChange={(raw) => set('custom_base', cleanBase(raw) || undefined)}
           placeholder="MOTH"
           chars={4}

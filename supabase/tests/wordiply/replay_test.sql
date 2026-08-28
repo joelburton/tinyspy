@@ -40,13 +40,13 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select pg_temp.create_club('Wire replay', array['ada', 'bea']) as handle;
 create temp table g1 on commit drop as
-select * from wordiply.create_game(
+select (wordiply.create_game(
   (select handle from club), pg_temp.wordiply_setup(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop',
   pg_temp.wordiply_board()
-);
+)->'data'->>'id')::uuid as id;
 
 -- Two guesses (7 and 5 letters) + a manual end → guess rows, a non-zero
 -- status, and a terminal row: exactly what replay undoes.
@@ -97,14 +97,14 @@ select is(
 -- ── Compete: the rebuilt status carries a zeroed leaderboard ──
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
-select * from wordiply.create_game(
+select (wordiply.create_game(
   (select handle from club),
   pg_temp.wordiply_setup(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'compete',
   pg_temp.wordiply_board()
-);
+)->'data'->>'id')::uuid as id;
 select wordiply.submit_guess((select id from g2), 'arxxxxx');
 select wordiply.replay_board((select id from g2));
 reset role;
