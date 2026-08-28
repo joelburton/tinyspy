@@ -18,17 +18,10 @@
   gap: 0.35rem;
 }
 
-/* @@ */ .actions {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.5rem;
-  margin-top: auto; /* pin the buttons to the panel's bottom edge */
-}
-
-/* The right-hand PAIR starts here: pushing Cancel over leaves Delete alone at
-   the left edge and keeps Cancel and Save together, one gap apart. */
-/* @@ */ .cancelButton {
-  margin-left: auto;
+/* The one thing the shared `modalActions` row does not do: sit at the BOTTOM of
+   this panel however short the form above it is. */
+/* @@ */ .pinBottom {
+  margin-top: auto;
 }
 
 /* @@ */ .saveButton:hover {

@@ -9,6 +9,8 @@ import { readRows, runRpc } from '../../lib/supabase/dbResult'
 import { setWordEdit, type WordEditRequest } from '../../lib/definitions/wordEditStore'
 import { useConfirmation } from '../../hooks/ui/useConfirmation'
 import { Dialog } from '../floating-panels/Dialog'
+import { cls } from '../../lib/util/cls'
+import actionRow from '../floating-panels/modalActions.module.css'
 import styles from './WordEditDialog.module.css'
 import { StandardButton } from '../buttons/StandardButton'
 import { CancelButton } from '../buttons/CancelButton'
@@ -346,21 +348,19 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
                 rows={2}
               />
               <FailureLine>{errors[FORM_ERROR_KEYNAME]}</FailureLine>
-              {/* Delete sits alone on the left, away from the pair you reach
-                  for on the way out — Cancel and Save travel together on the
-                  right, as they do in every other dialog. */}
-              <div className={styles.actions}>
+              {/* Delete is the LEADING action — alone on the left, away from the
+                  pair you reach for on the way out. */}
+              <div className={cls(actionRow.modalActions, styles.pinBottom)}>
                 {editing && (
                   <StandardButton
                     name="Delete"
                     tone="destructive"
-                    className={styles.deleteButton}
+                    className={cls(styles.deleteButton, actionRow.leading)}
                     onClick={() => void onDelete(values.note)}
                     disabled={busy}
                   />
                 )}
                 <CancelButton
-                  className={styles.cancelButton}
                   onClick={() => setWordEdit(null)}
                   disabled={busy}
                 />
