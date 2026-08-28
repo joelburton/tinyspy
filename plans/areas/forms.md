@@ -1513,6 +1513,25 @@ caught it:
   each one outside `fields/` actually CALLS the contract, since having a test
   file and being held to the family's terms are different things.
 
+**A picker must TAKE FOCUS**, and this was the second thing that looked like a
+shared-system bug and was not. Joel: *"when the puzzlesource blocking modal is
+up, pressing escape closes that AND the puzzle setupGame modal."*
+
+`usePanelEscape` answers Escape with "the panel focus is IN, else the topmost"
+— one listener, one panel closed, exactly as designed. But you open a picker by
+CLICKING a source button, and that button lives in the setup dialog, so focus is
+still there: Escape resolves to the setup dialog, closes it, and the picker goes
+with it, because a field inside that dialog is what renders it. Two panels, one
+key, and neither component is at fault.
+
+`useFocusTrap` says so outright — *"initial focus lives elsewhere: the leaf's
+`autoFocus` on its primary button"* — and both shared blocking modals do exactly
+that. The pickers could not: `SelectionList`'s `autoFocus` yields to anything
+already focused, which is right for a list on a page and wrong inside a modal
+that owns the keyboard. Each picker focuses on mount now — the LIST, not Cancel,
+so the arrows work the moment it opens; the upload picker focuses its drop
+target.
+
 **Two e2e files were rewritten and NOT RUN.** `puzzle-pickers.e2e.ts`'s
 crosswords test drove the tabs in detail — a `<select>` for the weekday, a
 `p[class*="nextDate"]` state line — and none of that exists now; it reads the

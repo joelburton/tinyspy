@@ -1,5 +1,6 @@
 // cs-unmet
 
+import { useEffect, useRef } from 'react'
 import { BlockingModal } from '../../../common/components/floating-panels/BlockingModal'
 import { CancelButton } from '../../../common/components/buttons/CancelButton'
 import { SelectionList } from '../../../common/components/lists/SelectionList'
@@ -26,6 +27,22 @@ type Props = {
  * the series IS the choice, and Enter on it starts a game.
  */
 export function GuardianPickerBlockingModal({ onPick, onClose }: Props) {
+  // TAKE FOCUS, explicitly rather than through `SelectionList`'s `autoFocus`.
+  //
+  // That flag yields to anything already focused, which is right for a list on a
+  // page and wrong here: you arrived by CLICKING a source button, so that button
+  // holds focus — and it lives in the setup dialog, not in this modal. Escape is
+  // answered by "the panel focus is in, else the topmost"
+  // (`usePanelEscape`), so leaving focus behind means one Escape closes the
+  // SETUP dialog, and this picker disappears with it because a field inside that
+  // dialog is what renders it. Both gone, from one key.
+  //
+  // The list rather than Cancel, so the arrows work the moment it opens.
+  const listRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    listRef.current?.focus({ preventScroll: true })
+  }, [])
+
   return (
     <BlockingModal
       title="Guardian"
@@ -43,7 +60,7 @@ export function GuardianPickerBlockingModal({ onPick, onClose }: Props) {
             items={GUARDIAN_SERIES}
             rowKey={(g) => g.slug}
             label="Guardian series"
-            autoFocus
+            ref={listRef}
             density="packed"
             onActivate={(g) => onPick(g.slug)}
             empty={null}

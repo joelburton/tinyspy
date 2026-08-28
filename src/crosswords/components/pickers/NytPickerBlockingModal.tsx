@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { BlockingModal } from '../../../common/components/floating-panels/BlockingModal'
 import { CancelButton } from '../../../common/components/buttons/CancelButton'
 import { SelectionList } from '../../../common/components/lists/SelectionList'
@@ -38,6 +38,22 @@ type Props = {
 export function NytPickerBlockingModal({ onPick, onClose }: Props) {
   const [date, setDate] = useState('')
 
+  // TAKE FOCUS, explicitly rather than through `SelectionList`'s `autoFocus`.
+  //
+  // That flag yields to anything already focused, which is right for a list on a
+  // page and wrong here: you arrived by CLICKING a source button, so that button
+  // holds focus — and it lives in the setup dialog, not in this modal. Escape is
+  // answered by "the panel focus is in, else the topmost"
+  // (`usePanelEscape`), so leaving focus behind means one Escape closes the
+  // SETUP dialog, and this picker disappears with it because a field inside that
+  // dialog is what renders it. Both gone, from one key.
+  //
+  // The list rather than Cancel, so the arrows work the moment it opens.
+  const listRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    listRef.current?.focus({ preventScroll: true })
+  }, [])
+
   return (
     <BlockingModal
       title="New York Times"
@@ -54,7 +70,7 @@ export function NytPickerBlockingModal({ onPick, onClose }: Props) {
             items={WEEKDAYS}
             rowKey={(w) => String(w.dow)}
             label="Weekday"
-            autoFocus
+            ref={listRef}
             density="packed"
             // Choosing a weekday sends NO date: the two answer the same
             // question, and carrying one along would leave this control

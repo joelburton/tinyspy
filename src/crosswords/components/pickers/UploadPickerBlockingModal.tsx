@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { BlockingModal } from '../../../common/components/floating-panels/BlockingModal'
 import { CancelButton } from '../../../common/components/buttons/CancelButton'
 import { cls } from '../../../common/lib/util/cls'
@@ -38,6 +38,19 @@ export function UploadPickerBlockingModal({ onPick, onClose }: Props) {
   const [dragOver, setDragOver] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // TAKE FOCUS. You arrived by clicking a source button, and that button is in
+  // the SETUP dialog — so without this, focus is still there and Escape is
+  // answered by that panel (`usePanelEscape`: the panel focus is in, else the
+  // topmost). It would close the setup dialog, and this modal would go with it,
+  // since a field inside that dialog is what renders it.
+  //
+  // The drop target rather than Cancel: it is what you came to use, and it is a
+  // button, so Enter opens the file chooser.
+  const dropRef = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    dropRef.current?.focus({ preventScroll: true })
+  }, [])
+
   async function handleFile(file: File | undefined) {
     if (!file) return
     setBusy(true)
@@ -70,6 +83,7 @@ export function UploadPickerBlockingModal({ onPick, onClose }: Props) {
         />
         <button
           type="button"
+          ref={dropRef}
           className={cls(styles.dropzone, dragOver && styles.dropOver)}
           onClick={() => fileInputRef.current?.click()}
           onDragOver={(e) => {

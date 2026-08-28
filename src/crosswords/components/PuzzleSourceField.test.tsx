@@ -24,6 +24,10 @@ import { errorUnder } from '../../common/components/fields/errorUnder'
 import { expectFieldContract } from '../../common/components/fields/fieldContract'
 import type { PuzzleChoice } from '../lib/setup'
 
+// jsdom doesn't implement scrollIntoView, and SelectionList keeps its cursor
+// row in view with it — reached now that a picker takes focus on open.
+Element.prototype.scrollIntoView = vi.fn()
+
 const { mockRpc } = vi.hoisted(() => ({ mockRpc: vi.fn() }))
 vi.mock('../db', () => ({ db: { rpc: mockRpc } }))
 
@@ -178,6 +182,26 @@ describe('the field', () => {
     const picker = screen.getByRole('group', { name: 'Guardian series' })
     expect(picker).toBeInTheDocument()
     expect(container.contains(picker)).toBe(false)
+  })
+
+  it('moves focus INTO the picker, or Escape closes the setup dialog instead', async () => {
+    // The bug this exists for: you open a picker by CLICKING a source button, so
+    // that button holds focus — and it lives in the setup dialog, not the modal.
+    // Escape is answered by "the panel focus is in, else the topmost"
+    // (`usePanelEscape`), so focus left behind means one Escape closes the SETUP
+    // dialog, and the picker vanishes with it, because a field inside that
+    // dialog is what renders it. Two panels, one key, both gone.
+    //
+    // `SelectionList`'s own `autoFocus` cannot do this: it yields to anything
+    // already focused, which is right for a list on a page and wrong inside a
+    // modal that owns the keyboard.
+    const user = userEvent.setup()
+    draw()
+
+    await user.click(screen.getByRole('button', { name: 'Guardian' }))
+
+    const picker = screen.getByRole('group', { name: 'Guardian series' })
+    expect(picker.contains(document.activeElement)).toBe(true)
   })
 
   it('only asks which date a weekday resolves to when that is the question', () => {

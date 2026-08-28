@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { BlockingModal } from '../../../common/components/floating-panels/BlockingModal'
 import { CancelButton } from '../../../common/components/buttons/CancelButton'
 import { SelectionList } from '../../../common/components/lists/SelectionList'
@@ -95,6 +95,22 @@ export function LibraryPickerBlockingModal({ clubHandle, onPick, onClose }: Prop
     }
   }, [clubHandle])
 
+  // TAKE FOCUS, explicitly rather than through `SelectionList`'s `autoFocus`.
+  //
+  // That flag yields to anything already focused, which is right for a list on a
+  // page and wrong here: you arrived by CLICKING a source button, so that button
+  // holds focus — and it lives in the setup dialog, not in this modal. Escape is
+  // answered by "the panel focus is in, else the topmost"
+  // (`usePanelEscape`), so leaving focus behind means one Escape closes the
+  // SETUP dialog, and this picker disappears with it because a field inside that
+  // dialog is what renders it. Both gone, from one key.
+  //
+  // The list rather than Cancel, so the arrows work the moment it opens.
+  const listRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    listRef.current?.focus({ preventScroll: true })
+  }, [])
+
   const filtered = useMemo(() => {
     if (!puzzles) return null
     const q = query.trim().toLowerCase()
@@ -121,11 +137,7 @@ export function LibraryPickerBlockingModal({ clubHandle, onPick, onClose }: Prop
             rowKey={(p) => p.id}
             label="Puzzle library"
             fills
-            // The list is the only thing here to operate, and nothing above it
-            // wants the first keypress — so it takes focus and the arrows work
-            // without a Tab first. Inside the setup dialog it could not, because
-            // that dialog focuses its own first field.
-            autoFocus
+            ref={listRef}
             onActivate={onPick}
             empty={
               filtered === null
