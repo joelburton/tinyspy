@@ -22,14 +22,14 @@ create temp table club on commit drop as
 select pg_temp.create_club('Waffle coop', array['ada', 'bea']) as handle;
 
 create temp table g on commit drop as
-select * from waffle.create_game(
+select (waffle.create_game(
   (select handle from club),
   pg_temp.waffle_setup(5),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop',
   pg_temp.waffle_board()
-);
+)->'data'->>'id')::uuid as id;
 
 reset role;
 

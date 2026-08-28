@@ -25,6 +25,10 @@ import { EXTRA_SWAP_OPTIONS, type WaffleValues } from '../lib/setup'
  * `value as WaffleSetup` cast is the boundary between the manifest's
  * `unknown` setup and waffle's shape. Shared by both manifests (mode
  * doesn't change the form).
+ *
+ * `difficulty` is the one field here a refusal can actually land on: whether a
+ * board EXISTS at a given band is the single thing this form cannot rule out
+ * from its own values, and waffle-build-board says so under that name.
  */
 export function SetupForm({
   mode, members, selfId, numberOfPlayers, values, set: setValue, errors,
@@ -51,6 +55,7 @@ export function SetupForm({
         selfId={selfId}
         numberOfPlayers={numberOfPlayers}
         value={s.player_user_ids}
+        error={errors.player_user_ids}
         onChange={(next) => set('player_user_ids', next)}
       />
       {/* Coop pacing — first, right below the dialog's player picker.
@@ -73,6 +78,7 @@ export function SetupForm({
           minBand={1}
           maxBand={6}
           value={s.difficulty}
+          error={errors.difficulty}
           onChange={(difficulty) => set('difficulty', difficulty)}
         />
       </SetupSection>
@@ -80,6 +86,7 @@ export function SetupForm({
         <RadioRow
           help="Extra swaps beyond the puzzle's minimum — fewer is harder."
           name="extra_swaps"
+          error={errors.extra_swaps}
           options={EXTRA_SWAP_OPTIONS.map((opt) => ({
             value: opt.value,
             label: (

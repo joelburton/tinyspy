@@ -1,0 +1,58 @@
+// cs-unmet
+
+/**
+ * THE ENVELOPE, WRITTEN IN DENO — the same result shape `common.ok_envelope`
+ * and `common.raised_envelope` build in SQL (plans/error-system.md), for the
+ * refusals an edge function decides on its own.
+ *
+ * Everything here answers **200**, faults included, and that is the whole point.
+ * The HTTP status says whether the function RAN — not what it decided. A
+ * function that answers 400 for "that difficulty has no buildable board" is
+ * making the status carry two unrelated jobs, and the frontend then can't tell
+ * a refusal it should show under a field from a container that never woke up.
+ * `runEdgeFn` reads the envelope for the verdict and the status for nothing but
+ * "did this reach the function at all".
+ *
+ * The three strings a refusal carries are spelled `dbcode` / `severity` /
+ * `field` here where SQL spells them `errcode` / `hint` / `column`. Same
+ * sequence of numbers, though — `src/guards/raiseCodes.test.ts` reads both
+ * sources together so a code allocated in Deno can't collide with a raise.
+ */
+
+import { json } from './http.ts'
+
+/** The function answered, and here is what the caller asked for. */
+export const ok = <T>(data: T): Response => json({ type: 'ok', data })
+
+/**
+ * A refusal the PLAYER caused and can fix, routed to the field it is about —
+ * the form puts the sentence under that control and turns it red.
+ *
+ * For a board-builder that means the narrow class the setup form cannot rule
+ * out from the values alone: whether a board actually EXISTS at the chosen
+ * settings. Anything the form's own controls already constrain is a fault, not
+ * this — if the form prevents it and it arrives anyway, something is broken.
+ */
+export const validation = (dbcode: string, field: string, message: string, detail?: string): Response =>
+  json({ type: 'not-ok', severity: 'validation', field, message, dbcode, ...(detail ? { detail } : {}) })
+
+/**
+ * A refusal nothing the player did explains: a value the form cannot produce, a
+ * response shape that shouldn't exist, an environment that isn't there. Raises
+ * the fault modal, and `detail` is the line the console audience reads.
+ */
+export const fault = (dbcode: string, message: string, detail?: string): Response =>
+  json({ type: 'not-ok', severity: 'fault', message, dbcode, ...(detail ? { detail } : {}) })
+
+/**
+ * The catch-all: an exception nobody expected, wrapped so even a crash comes
+ * back envelope-shaped rather than as a bare 500 the frontend can only guess at.
+ * The raw message rides as the detail — it is for the log, and showing it
+ * verbatim in the fault modal is right, because it announces "bug".
+ */
+export const crash = (fnName: string, e: unknown): Response =>
+  fault(
+    'PN111',
+    'Something went wrong building the game.',
+    `${fnName}: ${String(e instanceof Error ? e.message : e)}`,
+  )

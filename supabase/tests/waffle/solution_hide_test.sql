@@ -31,19 +31,19 @@ select pg_temp.create_club('Waffle secret', array['ada', 'bea']) as handle;
 
 -- A coop game and a compete game on the same deterministic board.
 create temp table gc on commit drop as
-select * from waffle.create_game(
+select (waffle.create_game(
   (select handle from club), pg_temp.waffle_setup(5),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop',
-  pg_temp.waffle_board());   -- solution 'abcdef.g.hijklmn.o.pqrstu', 1 swap away
+  pg_temp.waffle_board())->'data'->>'id')::uuid as id;   -- solution 'abcdef.g.hijklmn.o.pqrstu', 1 swap away
 create temp table gp on commit drop as
-select * from waffle.create_game(
+select (waffle.create_game(
   (select handle from club), pg_temp.waffle_setup(5),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'compete',
-  pg_temp.waffle_board());
+  pg_temp.waffle_board())->'data'->>'id')::uuid as id;
 
 -- (1) The raw column is not selectable by an authenticated player (either mode).
 select throws_ok(

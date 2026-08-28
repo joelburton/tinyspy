@@ -15,6 +15,7 @@
 
 import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@2'
 import { json } from './http.ts'
+import { fault } from './envelope.ts'
 import type { Database } from '../../../src/types/db.ts'
 
 /**
@@ -75,26 +76,30 @@ export async function parseBuildBoardRequest(
   const playerUserIds = body.player_user_ids
   const mode = body.mode
 
+  // All four gates are FAULTS on the form as a whole. The setup dialog composes
+  // every one of these fields itself — there is no control a player can put a
+  // missing club or a mode of "banana" into — so if one arrives wrong, the
+  // frontend is broken and no field of the form is the place to say so.
   if (!targetClub || typeof targetClub !== 'string') {
     console.log(`${fnName} reject: missing target_club; body keys =`, Object.keys(body))
-    return json({ error: 'bad-request|target_club|' }, 400)
+    return fault('PN112', 'A game with no club reached the server.', `${fnName}: target_club`)
   }
   if (!setup || typeof setup !== 'object') {
     console.log(`${fnName} reject: missing/invalid setup`)
-    return json({ error: 'bad-request|setup|' }, 400)
+    return fault('PN113', 'A game with no settings reached the server.', `${fnName}: setup`)
   }
   if (mode !== 'coop' && mode !== 'compete') {
     console.log(`${fnName} reject: invalid mode "${mode}"`)
-    return json({ error: 'bad-request|mode|' }, 400)
+    return fault('PN114', `A game of kind '${mode}' reached the server.`, `${fnName}: mode`)
   }
   if (!Array.isArray(playerUserIds) || playerUserIds.length === 0) {
     console.log(`${fnName} reject: missing player_user_ids`)
-    return json({ error: 'bad-request|player_user_ids|' }, 400)
+    return fault('PN115', 'A game with no players reached the server.', `${fnName}: player_user_ids`)
   }
   const authHeader = req.headers.get('Authorization')
   if (!authHeader) {
     console.log(`${fnName} reject: no Authorization header`)
-    return json({ error: 'not-authenticated|' }, 401)
+    return fault('PN116', 'You are not signed in.', `${fnName}: no Authorization header`)
   }
 
   console.log(`${fnName} accepted: target_club=${targetClub}, players=${playerUserIds.length}`)
@@ -110,18 +115,20 @@ export async function parseBuildBoardRequest(
 
 /**
  * The create_game handoff a board-builder ends with: call `<schema>.create_game`
- * over PostgREST (as the caller) and map its result to the function's HTTP
- * response — an RPC error → 400, a missing row → 500, else `{ id }`. The board
- * payload is game-specific, passed straight through in `args.board`.
+ * over PostgREST (as the caller) and hand back what it said. The board payload
+ * is game-specific, passed straight through in `args.board`.
  *
- * The relayed error is the RPC's fe-error-key VERBATIM, plus its SQLSTATE as
- * `code` — restoring what functions-js strips in transit, so the FE classifies
- * a relayed raise exactly like a direct RPC failure (docs/supabase.md →
- * Server errors; docs/supabase.md → Server errors). The words a player reads
- * are the FE's, never this relay's.
+ * A converted `create_game` RETURNS its envelope rather than raising one, so the
+ * happy path and every refusal arrive down the same `data` channel and this
+ * relay does not read them. It forwards the envelope untouched, which is what
+ * lets a raise written in SQL reach the player with its own words and its own
+ * field — nothing in the two hops between rewrites it.
  *
- * Pass `fnName` to emit the tagged diagnostic logs (RPC error / no-row / success
- * id); omit it for a silent handoff.
+ * That leaves `error` meaning only what it should: the RPC never ran. A missing
+ * function, a revoked grant, PostgREST unreachable. None of those are things the
+ * envelope can describe, so they are the one case this builds a fault of its own.
+ *
+ * Pass `fnName` to emit the tagged diagnostic logs; omit it for a silent handoff.
  */
 export async function invokeCreateGame(
   supabase: SupabaseClient,
@@ -137,14 +144,15 @@ export async function invokeCreateGame(
 ): Promise<Response> {
   const { data, error } = await supabase.schema(schema).rpc('create_game', args)
   if (error) {
-    if (fnName) console.log(`${fnName} create_game RPC error:`, error.message)
-    return json({ error: error.message, code: error.code }, 400)
+    if (fnName) console.log(`${fnName} create_game did not run:`, error.message)
+    return fault('PN117', 'The game could not be created.', `${fnName}: ${error.message} (${error.code})`)
   }
-  const rows = (data as Array<{ id: string }> | null) ?? []
-  if (rows.length === 0) {
-    if (fnName) console.log(`${fnName} reject: create_game returned no row`)
-    return json({ error: 'edge-internal|create_game returned no row|' }, 500)
+  // A converted create_game always returns one; anything else means this
+  // function is calling a version of the RPC that predates the envelope.
+  if (!data || typeof data !== 'object' || !('type' in data)) {
+    if (fnName) console.log(`${fnName} reject: create_game returned no envelope`)
+    return fault('PN118', 'The game could not be created.', `${fnName}: create_game returned ${JSON.stringify(data)}`)
   }
-  if (fnName) console.log(`${fnName} success: id=${rows[0].id}`)
-  return json({ id: rows[0].id })
+  if (fnName) console.log(`${fnName} create_game said:`, JSON.stringify(data))
+  return json(data)
 }

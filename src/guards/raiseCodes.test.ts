@@ -61,19 +61,27 @@ function raises(): Raise[] {
       found.push({ file, code: m[1]!, hint: hint ? hint[1]! : null })
     }
   }
-  // Deno: the code is `dbcode` and the hint is `severity` / `outcome`, because
-  // an edge function writes the envelope directly rather than raising into one.
+  // Deno, two spellings. `_shared/envelope.ts` builds a refusal through a
+  // helper NAMED for its severity, which is where the hint comes from — a
+  // `fault(` call cannot be a validation, so there is no second string to
+  // mistype and no way to omit it. A literal envelope object spells it out
+  // instead, as `dbcode` + `severity`.
+  //
+  // Both are read, because a code allocated either way has to be visible to the
+  // reuse check. It is not hypothetical: the first eleven Deno codes were
+  // written as helper arguments while this only knew the object form, and the
+  // guard cheerfully reported the next number to allocate as one already taken.
   for (const path of fnFiles(FN_DIR)) {
     const ts = readFileSync(path, 'utf8')
+    const file = path.slice(path.indexOf('functions/'))
+    for (const m of ts.matchAll(/\b(fault|validation)\(\s*\n?\s*'([^']*)'/g)) {
+      found.push({ file, code: m[2]!, hint: m[1]! })
+    }
     for (const m of ts.matchAll(/dbcode:\s*'([^']*)'([\s\S]{0,200})/g)) {
       const near = m[2]!.match(/(?:severity|outcome):\s*'([^']*)'/)
       const before = ts.slice(Math.max(0, m.index! - 200), m.index!)
       const back = before.match(/(?:severity|outcome):\s*'([^']*)'/)
-      found.push({
-        file: path.slice(path.indexOf('functions/')),
-        code: m[1]!,
-        hint: near ? near[1]! : back ? back[1]! : null,
-      })
+      found.push({ file, code: m[1]!, hint: near ? near[1]! : back ? back[1]! : null })
     }
   }
   return found

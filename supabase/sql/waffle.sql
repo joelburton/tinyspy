@@ -432,6 +432,8 @@ grant select on waffle.players_state to authenticated;
 -- don't re-derive par in SQL — that's why generation is an edge
 -- function); we sanity-check structure. The game title starts as a
 -- placeholder and is rewritten from play (see waffle._sync_title).
+drop function if exists waffle.create_game(text, jsonb, uuid[], text, jsonb);
+
 create or replace function waffle.create_game(
   target_club     text,
   setup           jsonb,
@@ -439,13 +441,14 @@ create or replace function waffle.create_game(
   mode            text,
   board           jsonb
 )
-returns table(id uuid)
+returns jsonb
 language plpgsql
 security definer
 set search_path = waffle, common, public, extensions
 as $$
 declare
   new_id       uuid;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text;
   s_extra      int;
   s_difficulty int;
   b_solution   text;
@@ -464,8 +467,8 @@ begin
   -- ─── Validate setup.extra_swaps (the swap-budget knob) ───
   s_extra := coalesce((setup->>'extra_swaps')::int, 5);
   if s_extra < 0 or s_extra > 15 then
-    raise exception 'bad-extra-swaps|%|', s_extra
-      using errcode = 'P0001',
+    raise exception 'A swap budget of % reached the server', s_extra
+      using errcode = 'PN104', hint = 'fault', column = '_',
       detail = 'setup.extra_swaps must be 0..15';
   end if;
 
@@ -476,8 +479,8 @@ begin
   -- DB change since boards are generated on demand per band.
   s_difficulty := coalesce((setup->>'difficulty')::int, 2);
   if s_difficulty not between 1 and 6 then
-    raise exception 'bad-band|%|', s_difficulty
-      using errcode = 'P0001',
+    raise exception 'A word difficulty of % reached the server', s_difficulty
+      using errcode = 'PN105', hint = 'fault', column = '_',
       detail = 'setup.difficulty must be 1..6';
   end if;
 
@@ -489,20 +492,20 @@ begin
   b_par      := (board->>'par_swaps')::int;
   if b_solution is null or length(b_solution) <> 25
      or b_scramble is null or length(b_scramble) <> 25 then
-    raise exception 'bad-board|'
-      using errcode = 'P0001',
+    raise exception 'The generated board was not a pair of 25-square grids'
+      using errcode = 'PN106', hint = 'fault', column = '_',
       detail = 'solution and scramble must both be 25-char strings';
   end if;
   if b_par is null or b_par < 1 then
-    raise exception 'bad-par-swaps|%|', b_par
-      using errcode = 'P0001',
+    raise exception 'The generated board arrived with a par of %', b_par
+      using errcode = 'PN107', hint = 'fault', column = '_',
       detail = 'board.par_swaps must be a positive int';
   end if;
   -- Holes ('.') at the four interior cells (1-based 7, 9, 17, 19).
   if substr(b_solution, 7, 1) <> '.' or substr(b_solution, 9, 1) <> '.'
      or substr(b_solution, 17, 1) <> '.' or substr(b_solution, 19, 1) <> '.' then
-    raise exception 'bad-board-holes|'
-      using errcode = 'P0001',
+    raise exception 'The generated board had its holes in the wrong squares'
+      using errcode = 'PN108', hint = 'fault', column = '_',
       detail = 'board.solution holes must sit at 7/9/17/19';
   end if;
   -- Integrity: the scramble is a rearrangement of the solution (same
@@ -512,8 +515,8 @@ begin
      is distinct from
      (select array_agg(c order by c)
         from regexp_split_to_table(b_scramble, '') c) then
-    raise exception 'scramble-mismatch|'
-      using errcode = 'P0001',
+    raise exception 'The generated board could not be solved by swapping'
+      using errcode = 'PN109', hint = 'fault', column = '_',
       detail = 'scramble must be a permutation of solution';
   end if;
 
@@ -539,8 +542,8 @@ begin
   if mode = 'coop' and setup->>'coop_style' = 'turns' then
     first_turn := (setup->>'first_turn_user_id')::uuid;
     if first_turn is null or not (first_turn = any(player_user_ids)) then
-      raise exception 'bad-first-turn|'
-        using errcode = 'P0001',
+      raise exception 'A first player who is not in the game reached the server'
+        using errcode = 'PN110', hint = 'fault', column = '_',
       detail = 'setup.first_turn_user_id must be one of the players';
     end if;
     perform common._assign_turn_order(new_id, first_turn);
@@ -570,7 +573,17 @@ begin
          end
   );
 
-  return query select new_id;
+  return common.ok_envelope(jsonb_build_object('id', new_id));
+
+-- The boundary. It reads the SQLSTATE, re-raises anything that isn't ours, and
+-- lets the raise itself carry the message, the kind and the field.
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 

@@ -421,9 +421,10 @@ Every current member says so —
 - `nyt-fetch` / `guardian-fetch` — "couldn't be reached — try again later"
 - `ai-clue-declined`, `ai-truncated`, `ai-malformed` — "try again"
 
-Notably all of those are raised by edge functions, which this plan defers. Most
-RPC conversions will produce only `ok`, `fault`, and `validation`; psychicnum's
-`submit_guess` produces no `error` at all.
+Notably all of those are raised by edge functions. The board builders among
+them are converted here (see "Edge functions" in §7); the rest are deferred.
+Most RPC conversions will produce only `ok`, `fault`, and `validation`;
+psychicnum's `submit_guess` produces no `error` at all.
 
 ### The `[db]` line
 
@@ -1123,7 +1124,7 @@ select pg_temp.envelope_is(
 
 ## 7. The conversion roster
 
-**139 entries. 30 done, 5 edge functions deferred, 104 to go.** Cross them off
+**146 entries. 31 done, 5 edge functions deferred, 110 to go.** Cross them off
 here as they land.
 
 An entry is one RPC or one table read **per area**, so the same name in two
@@ -1213,6 +1214,7 @@ identifier — a shape nothing has exercised yet.
 
 #### boggle
 
+- [ ] `create_game` · RPC, reached through `boggle-build-board`
 - [ ] `end_game` · RPC — cross-cutting, see above
 - [ ] `submit_timeout` · RPC
 - [ ] `submit_word` · RPC (2 call sites)
@@ -1244,6 +1246,7 @@ identifier — a shape nothing has exercised yet.
 
 #### crosswords
 
+- [ ] `create_game` · RPC, reached through `crosswords-import-nyt / -guardian`
 - [ ] `create_game` · RPC
 - [ ] `export_solution` · RPC (2 call sites)
 - [ ] `library_for_club` · RPC
@@ -1257,6 +1260,7 @@ identifier — a shape nothing has exercised yet.
 
 #### letterboxed
 
+- [ ] `create_game` · RPC, reached through `letterboxed-build-board`
 - [ ] `log_help` · RPC
 - [ ] `submit_word` · RPC
 - [ ] `events` · read (2 call sites)
@@ -1301,6 +1305,7 @@ identifier — a shape nothing has exercised yet.
 
 #### spellingbee
 
+- [ ] `create_game` · RPC, reached through `spellingbee-build-board`
 - [ ] `submit_word` · RPC (2 call sites)
 - [ ] `found_words` · read
 - [ ] `games_state` · read
@@ -1329,6 +1334,7 @@ identifier — a shape nothing has exercised yet.
 
 #### waffle
 
+- [x] `create_game` · RPC, reached through `waffle-build-board`
 - [ ] `submit_swap` · RPC (2 call sites)
 - [ ] `games_state` · read (2 call sites)
 - [ ] `players_state` · read
@@ -1336,6 +1342,7 @@ identifier — a shape nothing has exercised yet.
 
 #### wordiply
 
+- [ ] `create_game` · RPC, reached through `wordiply-build-board`
 - [ ] `submit_guess` · RPC (3 call sites)
 - [ ] `games_state` · read (2 call sites)
 - [ ] `guesses` · read (2 call sites)
@@ -1350,14 +1357,52 @@ identifier — a shape nothing has exercised yet.
 
 #### wordwheel
 
+- [ ] `create_game` · RPC, reached through `wordwheel-build-board`
 - [ ] `submit_word` · RPC (2 call sites)
 - [ ] `found_words` · read
 - [ ] `games_state` · read
 
-### Edge functions — deferred
+### Edge functions
 
 A second producer with a different mechanism: they return
 `json({ error: … }, 4xx)` rather than raising, so none of the SQL machinery
-reaches them. Nothing in the RPC conversions depends on them, and the board
-builders (not listed, since the frontend never calls them directly) are in the
-same position.
+reaches them.
+
+**The seven board builders are NOT deferred.** They are how seven games start a
+game — the setup dialog calls the function, the function calls that game's
+`create_game` — so deferring them would mean deferring seven `create_game`
+conversions, which is most of what §7 has left. They are listed with their games.
+
+**200 whenever the function answered**, faults included. The status says whether
+the function RAN; the envelope says what it decided. A function that answers 400
+for "that difficulty has no buildable board" makes the status carry two
+unrelated jobs, and the frontend then cannot tell a refusal that belongs under a
+field from a container that never woke up. `runEdgeFn` reads the envelope for
+the verdict and the status for nothing but "did this reach the function at all".
+
+The pieces, all shared:
+
+- **`_shared/envelope.ts`** — `ok` / `validation` / `fault` / `crash`, the Deno
+  twins of `common.ok_envelope` and `common.raised_envelope`. The severity is
+  the FUNCTION NAME, so unlike SQL's `hint` there is no second string to
+  mistype: `deno check` owns it.
+- **`_shared/startGame.ts`** — `invokeCreateGame` forwards the RPC's envelope
+  **untouched**, which is what lets a raise written in SQL reach the player with
+  its own words and its own field. `error` then means only "the RPC never ran".
+  `parseBuildBoardRequest`'s four gates are faults on the form: the setup dialog
+  composes every one of those fields itself.
+- **`runEdgeFn`** in `dbResult.ts` — the twin of `runRpc`, and the only place a
+  declared fault arriving 200 gets reported, since `dbFetch`'s seam only reads a
+  non-2xx body.
+- **`raiseCodes`** reads `supabase/functions/**/*.ts` too. One sequence, two
+  spellings.
+
+Because those are shared, converting the first board builder converts the
+handoff for all seven — the other six are red until they land. That is the
+chosen sequencing, not an accident.
+
+**Still deferred:** the five that answer a question rather than start a game
+(`common-define`, `codenamesduet-suggest-clue`, `crosswords-explain-clue`,
+`scrabble-ai-move`, `scrabble-suggest-move`). Whether every edge function should
+return an envelope is a separate question, worth deciding once these seven have
+shown what it costs.

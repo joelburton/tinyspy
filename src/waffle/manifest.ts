@@ -4,7 +4,8 @@ import { lazy } from 'react'
 import type { CommonGameListRow, GameManifest } from '../common/lib/games'
 import { db } from './db'
 import { count, dictLabel, outcome, setupNum, statusLine, wonBy } from '../common/lib/game/statusLabel'
-import { edgeStartEnvelope, makeRpcDispatcher, invokeStartGameEdgeFn } from '../common/lib/game/manifestRpcs'
+import { makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
+import { runEdgeFn } from '../common/lib/supabase/dbResult'
 import { DEFAULT_WAFFLE_SETUP, type WaffleSetup } from './lib/setup'
 import logoUrl from './logo.svg?url'
 
@@ -41,16 +42,17 @@ const setupFormLoader = lazy(() =>
  * players, mode, board)`. `mode` is forwarded top-level; the shared helper owns
  * the error-context unwrap.
  */
-function startGameInClubFactory(mode: 'coop' | 'compete', brand: string) {
-  return async (clubHandle: string, setup: unknown, playerUserIds: string[]) =>
-    edgeStartEnvelope(
-      await invokeStartGameEdgeFn(
-      'waffle-build-board',
-      { target_club: clubHandle, setup: setup as WaffleSetup, player_user_ids: playerUserIds, mode },
-        brand,
-      ),
-      brand,
-    )
+function startGameInClubFactory(mode: 'coop' | 'compete') {
+  return (clubHandle: string, setup: unknown, playerUserIds: string[]) =>
+    // The board is generated in Deno, so this goes through an edge function
+    // rather than straight to the RPC — but it comes back the same envelope a
+    // direct create_game returns, relayed untouched (see _shared/startGame.ts).
+    runEdgeFn<{ id: string }>('waffle-build-board', {
+      target_club: clubHandle,
+      setup: setup as WaffleSetup,
+      player_user_ids: playerUserIds,
+      mode,
+    })
 }
 
 // Timeout + manual end — the shared one-arg RPC dispatchers (see
@@ -147,7 +149,7 @@ export const waffleCoopGame: GameManifest = {
     defaults: DEFAULT_WAFFLE_SETUP,
   },
 
-  startGameInClub: startGameInClubFactory('coop', BRAND),
+  startGameInClub: startGameInClubFactory('coop'),
 
   labelFor: labelFor('coop'),
 
@@ -178,7 +180,7 @@ export const waffleCompeteGame: GameManifest = {
     defaults: DEFAULT_WAFFLE_SETUP,
   },
 
-  startGameInClub: startGameInClubFactory('compete', BRAND),
+  startGameInClub: startGameInClubFactory('compete'),
 
   labelFor: labelFor('compete'),
 

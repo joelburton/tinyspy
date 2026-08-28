@@ -18,13 +18,13 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club1 on commit drop as
 select pg_temp.create_club('Waffle g1', array['ada', 'bea']) as handle;
 create temp table g1 on commit drop as
-select * from waffle.create_game(
+select (waffle.create_game(
   (select handle from club1), pg_temp.waffle_setup(5),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop',
   pg_temp.waffle_board()
-);
+)->'data'->>'id')::uuid as id;
 
 -- Validation (as ada, a player). These raise before any mutation.
 select throws_ok(
@@ -135,13 +135,13 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club2 on commit drop as
 select pg_temp.create_club('Waffle g2', array['ada', 'bea']) as handle;
 create temp table g2 on commit drop as
-select * from waffle.create_game(
+select (waffle.create_game(
   (select handle from club2), pg_temp.waffle_setup(0),   -- max_swaps = par(1)+0 = 1
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop',
   pg_temp.waffle_board()
-);
+)->'data'->>'id')::uuid as id;
 
 -- One non-solving swap exhausts the 1-swap budget.
 create temp table lose on commit drop as
