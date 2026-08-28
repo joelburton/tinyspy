@@ -10,7 +10,8 @@ type Props = {
    *
    *  Omit it for no caption row at all — some fields ARE the surface, like a
    *  search box in a one-input panel where the titlebar already says what you
-   *  are searching. Those name their control with `aria-label` instead. */
+   *  are searching. Those are still found by their `name`, which every field
+   *  carries whether or not it draws a caption. */
   label?: ReactNode
   /**
    * WHAT THIS FIELD IS ABOUT — a sentence under the caption and above the
@@ -32,9 +33,9 @@ type Props = {
   /** WHAT'S WRONG with what's there now. Rings the control in the fault color
    *  (via `aria-invalid`, which the control sets) and says why underneath.
    *
-   *  A setup form does NOT use this — its errors collect at the bottom, beside
-   *  the Start they gate. This is for a form where the
-   *  problem belongs to one entry. */
+   *  For the problem that belongs to ONE entry. The message about the form as a
+   *  whole goes on its `<FailureLine>` instead — that is the split the form's
+   *  errors object spells out, one key per field plus one for the form. */
   error?: string | null
   /** A GROUP of controls rather than one — a swatch list, a checkbox list. It
    *  renders `<fieldset>` / `<legend>`, which is the element's actual job, and
