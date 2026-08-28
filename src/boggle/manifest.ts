@@ -4,7 +4,8 @@ import { lazy } from 'react'
 import type { GameManifest } from '../common/lib/games'
 import { db } from './db'
 import { count, outcome, setupNum, statusLine, wonBy } from '../common/lib/game/statusLabel'
-import { edgeStartEnvelope, makeRpcDispatcher, invokeStartGameEdgeFn } from '../common/lib/game/manifestRpcs'
+import { makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
+import { runEdgeFn } from '../common/lib/supabase/dbResult'
 import {
   DEFAULT_BOGGLE_SETUP_COMPETE,
   DEFAULT_BOGGLE_SETUP_COOP,
@@ -36,16 +37,17 @@ const setupFormLoader = lazy(() =>
 
 /** Shared start-game caller — invokes the board-builder edge function (the
  *  shared helper owns the error-context unwrap). */
-function startGameInClubFactory(mode: 'coop' | 'compete', brand: string) {
-  return async (clubHandle: string, setup: unknown, playerUserIds: string[]) =>
-    edgeStartEnvelope(
-      await invokeStartGameEdgeFn(
-      'boggle-build-board',
-      { target_club: clubHandle, setup: setup as BoggleSetup, player_user_ids: playerUserIds, mode },
-        brand,
-      ),
-      brand,
-    )
+function startGameInClubFactory(mode: 'coop' | 'compete') {
+  return (clubHandle: string, setup: unknown, playerUserIds: string[]) =>
+    // The board is rolled in Deno, so this goes through an edge function rather
+    // than straight to the RPC — but it comes back the same envelope a direct
+    // create_game returns, relayed untouched (see _shared/startGame.ts).
+    runEdgeFn<{ id: string }>('boggle-build-board', {
+      target_club: clubHandle,
+      setup: setup as BoggleSetup,
+      player_user_ids: playerUserIds,
+      mode,
+    })
 }
 
 // Timeout (mode-aware + idempotent server-side) + manual end — the shared
@@ -142,7 +144,7 @@ export const boggleCoopGame: GameManifest = {
     defaults: DEFAULT_BOGGLE_SETUP_COOP,
     validate: (setup) => boggleSetupError(setup as BoggleSetup),
   },
-  startGameInClub: startGameInClubFactory('coop', BRAND),
+  startGameInClub: startGameInClubFactory('coop'),
   labelFor: (row) => coopLabel(row),
   submitTimeout,
   endGame,
@@ -167,7 +169,7 @@ export const boggleCompeteGame: GameManifest = {
     defaults: DEFAULT_BOGGLE_SETUP_COMPETE,
     validate: (setup) => boggleSetupError(setup as BoggleSetup),
   },
-  startGameInClub: startGameInClubFactory('compete', BRAND),
+  startGameInClub: startGameInClubFactory('compete'),
   labelFor: (row) => competeLabel(row),
   submitTimeout,
   endGame,

@@ -1124,7 +1124,7 @@ select pg_temp.envelope_is(
 
 ## 7. The conversion roster
 
-**146 entries. 32 done, 5 edge functions deferred, 109 to go.** Cross them off
+**146 entries. 33 done, 5 edge functions deferred, 108 to go.** Cross them off
 here as they land.
 
 An entry is one RPC or one table read **per area**, so the same name in two
@@ -1214,7 +1214,7 @@ identifier — a shape nothing has exercised yet.
 
 #### boggle
 
-- [ ] `create_game` · RPC, reached through `boggle-build-board`
+- [x] `create_game` · RPC, reached through `boggle-build-board`
 - [ ] `end_game` · RPC — cross-cutting, see above
 - [ ] `submit_timeout` · RPC
 - [ ] `submit_word` · RPC (2 call sites)

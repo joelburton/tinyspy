@@ -28,6 +28,7 @@ set search_path = boggle, common, public, extensions;
 select plan(6);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -43,14 +44,14 @@ select pg_temp.boggle_setup()
 
 -- ── (1) A custom board is accepted ──────────────────────────
 create temp table g on commit drop as
-select * from boggle.create_game(
+select (boggle.create_game(
   (select handle from club),
   (select s from cset),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop',
   pg_temp.boggle_board()
-);
+)->'data'->>'id')::uuid as id;
 select isnt((select id from g), null, 'a custom board is accepted');
 select is(
   (select board from boggle.games where id = (select id from g)),
@@ -69,25 +70,26 @@ select is(
   '4', 'saved default still keeps the rest of the setup (dice set)');
 
 -- ── (3) A custom board with ZERO required words is rejected ─
-select throws_ok(
-  format(
-    $$ select boggle.create_game(%L,
-                                 pg_temp.boggle_setup()
-                                   || '{"custom_board":"CATR SEXO TMPL NGDB"}'::jsonb,
-                                 array['ada11111-1111-1111-1111-111111111111'::uuid,
-                                       'bea22222-2222-2222-2222-222222222222'::uuid],
-                                 'coop',
-                                 pg_temp.boggle_board()
-                                   || '{"required_words":[],"required_words_count":0,
-                                        "required_words_score":0}'::jsonb) $$,
-    (select handle from club)
-  ),
-  'P0001', NULL,
+-- The one refusal here a player can reach and act on: they typed the board, and
+-- whether those letters yield anything at that band is the dictionary's answer,
+-- not the form's. So it is a VALIDATION, under the box they typed into — the
+-- only non-fault in boggle's create_game.
+select pg_temp.envelope_is(
+  boggle.create_game((select handle from club),
+    pg_temp.boggle_setup() || '{"custom_board":"CATR SEXO TMPL NGDB"}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid,
+          'bea22222-2222-2222-2222-222222222222'::uuid],
+    'coop',
+    pg_temp.boggle_board()
+      || '{"required_words":[],"required_words_count":0,
+           "required_words_score":0}'::jsonb),
+  '{"type":"not-ok","severity":"validation","field":"custom_board","dbcode":"PN147",
+    "message":"No words for those letters at that difficulty"}'::jsonb,
   'a custom board with ZERO required words is rejected (win_percent floor)');
 
 -- ── (4) The floor is custom-only — a rolled board is untouched ─
 select isnt(
-  (select id from boggle.create_game(
+  (boggle.create_game(
      (select handle from club),
      pg_temp.boggle_setup(),
      array['ada11111-1111-1111-1111-111111111111'::uuid,
@@ -95,7 +97,7 @@ select isnt(
      'coop',
      pg_temp.boggle_board()
        || '{"required_words":[],"required_words_count":0,
-            "required_words_score":0}'::jsonb)),
+            "required_words_score":0}'::jsonb)->'data'->>'id'),
   null, 'a ROLLED board with no required words is still accepted (floor is custom-only)');
 
 select * from finish();

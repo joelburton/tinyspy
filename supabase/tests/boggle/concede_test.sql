@@ -22,13 +22,13 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select pg_temp.create_club('Boggle concede', array['ada', 'bea']) as handle;
 create temp table g on commit drop as
-select * from boggle.create_game(
+select (boggle.create_game(
   (select handle from club), pg_temp.boggle_setup(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'compete',
   pg_temp.boggle_board()
-);
+)->'data'->>'id')::uuid as id;
 
 -- (1) ada concedes; bea still races → game continues.
 select lives_ok(
@@ -54,13 +54,13 @@ select is(
 -- (3) coop concede rejected.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table gc on commit drop as
-select * from boggle.create_game(
+select (boggle.create_game(
   (select handle from club), pg_temp.boggle_setup(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop',
   pg_temp.boggle_board()
-);
+)->'data'->>'id')::uuid as id;
 select throws_ok(
   format($$ select boggle.concede(%L) $$, (select id from gc)),
   'P0001', 'concede-not-in-coop|',

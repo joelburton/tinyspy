@@ -29,16 +29,15 @@
  *   { target_club, mode, player_user_ids,
  *     setup: { timer, dice_set, band, legal_band, min_word_length, scoring_ladder,
  *              win_percent, constraints, custom_board? } }
- *   → { id }   ·   → { error: fe-error-key, code?: SQLSTATE } (400/401/422/500)
+ *   → a result envelope, ALWAYS 200 (_shared/envelope.ts)
  *
- * Errors are fe-error-keys (`key|detail|` — docs/supabase.md → Server errors;
- * guarded by src/guards/edgeFnErrorKeys.test.ts): the FE owns every player-facing
- * word. Two are player-reachable and carry ERROR_COPY: `no-board-fits|`
- * (unsatisfiable constraint pickers) and `no-required-words|<band>|` (a custom
- * board with nothing to find — SQL's key reused, as freebee does). The rest
- * (bad-method / bad-band / bad-request / bad-custom-board / edge-internal) are
- * "impossible without an FE bug" — no copy, they render as faults. A create_game
- * raise relays with its SQLSTATE.
+ * The status says whether this function ran; the envelope says what it decided.
+ * Two refusals are player-reachable, and they are the two that ask the
+ * DICTIONARY a question the form cannot answer from its own values: a typed
+ * board with nothing to find (under `custom_board`) and a constraint set no
+ * roll satisfies (on the form's line, because it is about the pickers together
+ * and no one of them is the wrong one). Everything else is a value the setup
+ * dialog has no control capable of producing, and renders as a fault.
  *
  * Secrets / env: SUPABASE_URL + SUPABASE_ANON_KEY (auto-injected). The caller's
  * JWT carries every authorization signal: common.words + the bundled dict are
@@ -57,7 +56,8 @@ import {
 } from '../../../src/boggle/lib/solver.ts'
 import { parseCustomBoard } from '../../../src/boggle/lib/customBoard.ts'
 import { requiredTrie, legalTrie } from './dict.ts'
-import { edgeInternal, json, preflight } from '../_shared/http.ts'
+import { preflight } from '../_shared/http.ts'
+import { crash, fault, validation } from '../_shared/envelope.ts'
 import { parseBuildBoardRequest, invokeCreateGame } from '../_shared/startGame.ts'
 
 interface BoggleSetup {
@@ -81,7 +81,8 @@ interface BoggleSetup {
 serve(async (req: Request): Promise<Response> => {
   const pre = preflight(req)
   if (pre) return pre
-  if (req.method !== 'POST') return json({ error: 'bad-method|' }, 405)
+  if (req.method !== 'POST')
+    return fault('PN148', 'The game could not be created.', `boggle-build-board: ${req.method}, not POST`)
 
   try {
     const parsed = await parseBuildBoardRequest(req, 'boggle-build-board')
@@ -92,16 +93,17 @@ serve(async (req: Request): Promise<Response> => {
     const set = DICE_BY_NAME[setup.dice_set ?? '4']
     if (!set) {
       console.log(`boggle-build-board reject: unknown dice_set ${setup.dice_set}`)
-      return json({ error: 'bad-request|dice_set|' }, 400)
+      return fault('PN149', 'A game with no dice set reached the server.', 'boggle-build-board: dice_set')
     }
     const band = setup.band ?? 3
-    if (band < 1 || band > 6) return json({ error: `bad-band|${band}|` }, 400)
+    if (band < 1 || band > 6)
+      return fault('PN150', `A required difficulty of ${band} reached the server.`, 'boggle-build-board: band must be 1..6')
     // The bonus (legal) band — the difficulty ceiling for the extra words a player
     // may discover beyond the required set. Must be at least `band` (required
     // words are legal too) and at most 6. create_game re-validates.
     const legalBand = setup.legal_band ?? band
     if (legalBand < band || legalBand > 6) {
-      return json({ error: `bad-band|${legalBand}|` }, 400)
+      return fault('PN151', `A legal-word difficulty of ${legalBand} reached the server.`, 'boggle-build-board: legal_band')
     }
     // Validate the ladder here (the trust boundary): it comes from untyped JSON
     // and flows straight into the solver's scoring, which would crash on an
@@ -109,7 +111,7 @@ serve(async (req: Request): Promise<Response> => {
     const ladder = setup.scoring_ladder ?? 'basic'
     if (!(ladder in LADDERS)) {
       console.log(`boggle-build-board reject: unknown scoring_ladder ${ladder}`)
-      return json({ error: 'bad-request|scoring_ladder|' }, 400)
+      return fault('PN152', 'A game with no scoring ladder reached the server.', 'boggle-build-board: scoring_ladder')
     }
 
     // ─── Generate the board (cached band trie + synchronous solve loop) ─────
@@ -133,24 +135,30 @@ serve(async (req: Request): Promise<Response> => {
       const parsed = parseCustomBoard(customText, set.n)
       if (!parsed.ok) {
         // Impossible without an FE bug — the dialog blocks Start on this exact
-        // check — so it's a fault, no copy. `parsed.error` is a player-facing
-        // sentence, deliberately NOT relayed: the FE owns the wording, and the
-        // detail slot exists for diagnostics.
+        // check — so it's a fault. `parsed.error` is a player-facing sentence
+        // and rides as the detail rather than the message: the dialog is
+        // already saying it under the box, and repeating it in a modal would
+        // present a broken client as something the player got wrong.
         console.log(`boggle-build-board reject: custom board unreadable — ${parsed.error}`)
-        return json({ error: 'bad-custom-board|' }, 400)
+        return fault('PN153', 'The typed board could not be read.', `boggle-build-board: ${parsed.error}`)
       }
       const requiredWords = listWords(trie, parseBoard(parsed.board), {
         minWordLength: constraints.minWordLength,
         ladder: constraints.ladder,
       })
-      // The one custom-board rejection a player can actually reach, so it
-      // reuses the key that carries ERROR_COPY ("No words for those letters" —
-      // freebee's, for the same situation). It matters beyond emptiness: a
-      // `win_percent` target is a share of the required-words SCORE, so a board
-      // with none makes the threshold 0 and the first bonus word wins.
+      // The one custom-board rejection a player can actually reach, so it is a
+      // validation, under the box the letters were typed into. It matters
+      // beyond emptiness: a `win_percent` target is a share of the
+      // required-words SCORE, so a board with none makes the threshold 0 and
+      // the first bonus word wins.
       if (requiredWords.length < 1) {
         console.log(`boggle-build-board reject: custom board has no words at band ${band}`)
-        return json({ error: `no-required-words|${band}|` }, 422)
+        return validation(
+          'PN154',
+          'custom_board',
+          'No words for those letters at that difficulty.',
+          `boggle-build-board: zero required words at band ${band}`,
+        )
       }
       board = {
         board: parsed.board,
@@ -166,9 +174,19 @@ serve(async (req: Request): Promise<Response> => {
       // unsatisfiable constraint returns null → 422 instead of killing the worker.
       const rolled = generateBoard(trie, set, constraints, seed, 200_000, 1000)
       // Player-reachable: the constraint pickers are the form's own input and
-      // an unsatisfiable combination is a real answer. Carries ERROR_COPY
-      // ("No board met those constraints — please relax them.").
-      if (!rolled) return json({ error: 'no-board-fits|' }, 422)
+      // an unsatisfiable combination is a real answer. On the FORM's line
+      // rather than under a field, and that is not a shortcut — the refusal is
+      // about the pickers TOGETHER, and no one of them is the wrong one. Ringing
+      // whichever we guessed would send the player to change a setting that is
+      // fine on its own.
+      if (!rolled) {
+        return validation(
+          'PN155',
+          '_',
+          'No board met those constraints — please relax them.',
+          `boggle-build-board: generator exhausted its attempts`,
+        )
+      }
       board = rolled
     }
 
@@ -205,6 +223,6 @@ serve(async (req: Request): Promise<Response> => {
     )
   } catch (e) {
     console.error('boggle-build-board threw:', e)
-    return edgeInternal(e)
+    return crash('boggle-build-board', e)
   }
 })

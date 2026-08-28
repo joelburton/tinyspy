@@ -21,12 +21,12 @@ select pg_temp.create_club('Boggle Club', array['ada', 'bea', 'cade']) as handle
 
 -- ── Coop: everyone in the club sees every find ────────────
 create temp table g on commit drop as
-select * from boggle.create_game(
+select (boggle.create_game(
   (select handle from club), pg_temp.boggle_setup(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid,
         'cade3333-3333-3333-3333-333333333333'::uuid],
-  'coop', pg_temp.boggle_board());
+  'coop', pg_temp.boggle_board())->'data'->>'id')::uuid as id;
 select boggle.submit_word((select id from g), 'cat', 1, false);
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select boggle.submit_word((select id from g), 'car', 1, false);
@@ -44,11 +44,11 @@ select is((select count(*) from boggle.games where id = (select id from g)),
 -- ── Compete: own-only mid-game, all at terminal ───────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table cg on commit drop as
-select * from boggle.create_game(
+select (boggle.create_game(
   (select handle from club), pg_temp.boggle_setup(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
-  'compete', pg_temp.boggle_board());
+  'compete', pg_temp.boggle_board())->'data'->>'id')::uuid as id;
 select boggle.submit_word((select id from cg), 'cat', 1, false);
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select boggle.submit_word((select id from cg), 'car', 1, false);

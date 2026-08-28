@@ -24,12 +24,12 @@ create temp table club on commit drop as
 select pg_temp.create_club('Boggle Club', array['ada', 'bea', 'cade']) as handle;
 
 create temp table g on commit drop as
-select * from boggle.create_game(
+select (boggle.create_game(
   (select handle from club), pg_temp.boggle_setup(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid,
         'cade3333-3333-3333-3333-333333333333'::uuid],
-  'coop', pg_temp.boggle_board());
+  'coop', pg_temp.boggle_board())->'data'->>'id')::uuid as id;
 
 -- ── (1) coop required happy path ──────────────────────────
 create temp table cat_ret on commit drop as
@@ -79,11 +79,11 @@ select is(boggle.submit_word((select id from g), 'arc', 1, false)->>'result', 'g
 
 -- ── (6) compete dedup: per-player, not per-team ───────────
 create temp table cg on commit drop as
-select * from boggle.create_game(
+select (boggle.create_game(
   (select handle from club), pg_temp.boggle_setup(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
-  'compete', pg_temp.boggle_board());
+  'compete', pg_temp.boggle_board())->'data'->>'id')::uuid as id;
 select is(boggle.submit_word((select id from cg), 'cat', 1, false)->>'result', 'accepted',
   'compete: ada finds cat');
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
@@ -95,11 +95,11 @@ select is(boggle.submit_word((select id from cg), 'cat', 1, false)->>'result', '
 -- ── (7) submit_timeout → terminal, idempotent ─────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table tg on commit drop as
-select * from boggle.create_game(
+select (boggle.create_game(
   (select handle from club), pg_temp.boggle_setup(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
-  'coop', pg_temp.boggle_board());
+  'coop', pg_temp.boggle_board())->'data'->>'id')::uuid as id;
 select lives_ok($$ select boggle.submit_timeout((select id from tg)) $$, 'submit_timeout ends the game');
 reset role; select set_config('request.jwt.claims', '', true);
 select is((select status->>'outcome' from common.games where id = (select id from tg)), 'timeout',

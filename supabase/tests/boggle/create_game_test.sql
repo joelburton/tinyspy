@@ -13,6 +13,7 @@ set search_path = boggle, common, public, extensions;
 select plan(18);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 -- ── Coop happy path ───────────────────────────────────────
@@ -21,14 +22,14 @@ create temp table club on commit drop as
 select pg_temp.create_club('Boggle Club', array['ada', 'bea', 'cade']) as handle;
 
 create temp table g on commit drop as
-select * from boggle.create_game(
+select (boggle.create_game(
   (select handle from club),
   pg_temp.boggle_setup(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop',
   pg_temp.boggle_board()
-);
+)->'data'->>'id')::uuid as id;
 
 select isnt((select id from g), null, 'create_game (coop) returns an id');
 select is(
@@ -61,28 +62,28 @@ select is(
 -- A multiface die is stored as a digit (1 = Qu) but a player sees two letters
 -- on the tile, so the title expands it — see src/boggle/lib/dice.ts.
 create temp table qg on commit drop as
-select * from boggle.create_game(
+select (boggle.create_game(
   (select handle from club),
   pg_temp.boggle_setup(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop',
   pg_temp.boggle_board() || jsonb_build_object('board', '1ATRSEXOTMPLNGDB')
-);
+)->'data'->>'id')::uuid as id;
 select is(
   (select title from common.games where id = (select id from qg)), '4×4 QuATR',
   'title expands a multiface die to the faces on the tile');
 
 -- ── Compete happy path ────────────────────────────────────
 create temp table cg on commit drop as
-select * from boggle.create_game(
+select (boggle.create_game(
   (select handle from club),
   pg_temp.boggle_setup(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'compete',
   pg_temp.boggle_board()
-);
+)->'data'->>'id')::uuid as id;
 select is(
   (select mode from boggle.games where id = (select id from cg)), 'compete',
   'create_game (compete) sets mode compete');
@@ -91,45 +92,56 @@ select is(
   'compete status seeded with leaderboard');
 
 -- ── Validation guards ─────────────────────────────────────
-select throws_ok(
-  $$ select boggle.create_game((select handle from club), pg_temp.boggle_setup(),
-       array['ada11111-1111-1111-1111-111111111111'::uuid], 'sideways', pg_temp.boggle_board()) $$,
-  'PN040', null, 'rejects an unknown mode');
+select pg_temp.envelope_is(
+  boggle.create_game((select handle from club), pg_temp.boggle_setup(),
+    array['ada11111-1111-1111-1111-111111111111'::uuid], 'sideways', pg_temp.boggle_board()),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN040",
+    "message":"A game mode of ''sideways'' reached the server"}'::jsonb,
+  'rejects an unknown mode');
 
-select throws_ok(
-  $$ select boggle.create_game((select handle from club), pg_temp.boggle_setup(),
-       array['ada11111-1111-1111-1111-111111111111'::uuid], 'compete', pg_temp.boggle_board()) $$,
-  'P0001', null, 'compete with 1 player is rejected');
+select pg_temp.envelope_is(
+  boggle.create_game((select handle from club), pg_temp.boggle_setup(),
+    array['ada11111-1111-1111-1111-111111111111'::uuid], 'compete', pg_temp.boggle_board()),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN136",
+    "message":"A race with fewer than two players reached the server"}'::jsonb,
+  'compete with 1 player is rejected');
 
-select throws_ok(
-  $$ select boggle.create_game((select handle from club),
-       pg_temp.boggle_setup() || '{"band": 9}'::jsonb,
-       array['ada11111-1111-1111-1111-111111111111'::uuid,'bea22222-2222-2222-2222-222222222222'::uuid],
-       'coop', pg_temp.boggle_board()) $$,
-  'P0001', null, 'rejects band out of range');
+select pg_temp.envelope_is(
+  boggle.create_game((select handle from club),
+    pg_temp.boggle_setup() || '{"band": 9}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid,'bea22222-2222-2222-2222-222222222222'::uuid],
+    'coop', pg_temp.boggle_board()),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN138",
+    "message":"A required difficulty of ''9'' reached the server"}'::jsonb,
+  'rejects band out of range');
 
 -- legal_band must sit between the required band and 6. Default band is 3, so a
 -- legal_band of 2 is below it and must be rejected.
-select throws_ok(
-  $$ select boggle.create_game((select handle from club),
-       pg_temp.boggle_setup() || '{"legal_band": 2}'::jsonb,
-       array['ada11111-1111-1111-1111-111111111111'::uuid,'bea22222-2222-2222-2222-222222222222'::uuid],
-       'coop', pg_temp.boggle_board()) $$,
-  'P0001', null, 'rejects legal_band below the required band');
+select pg_temp.envelope_is(
+  boggle.create_game((select handle from club),
+    pg_temp.boggle_setup() || '{"legal_band": 2}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid,'bea22222-2222-2222-2222-222222222222'::uuid],
+    'coop', pg_temp.boggle_board()),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN139",
+    "message":"A legal-word difficulty of ''2'' reached the server"}'::jsonb,
+  'rejects legal_band below the required band');
 
-select throws_ok(
-  $$ select boggle.create_game((select handle from club),
-       pg_temp.boggle_setup() || '{"scoring_ladder": "wacky"}'::jsonb,
-       array['ada11111-1111-1111-1111-111111111111'::uuid,'bea22222-2222-2222-2222-222222222222'::uuid],
-       'coop', pg_temp.boggle_board()) $$,
-  'P0001', null, 'rejects an unknown scoring_ladder');
+select pg_temp.envelope_is(
+  boggle.create_game((select handle from club),
+    pg_temp.boggle_setup() || '{"scoring_ladder": "wacky"}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid,'bea22222-2222-2222-2222-222222222222'::uuid],
+    'coop', pg_temp.boggle_board()),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN140",
+    "message":"A scoring ladder of ''wacky'' reached the server"}'::jsonb,
+  'rejects an unknown scoring_ladder');
 
 -- Non-member (dee) cannot create in this club.
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
-select throws_ok(
-  $$ select boggle.create_game((select handle from club), pg_temp.boggle_setup(),
-       array['dee44444-4444-4444-4444-444444444444'::uuid], 'coop', pg_temp.boggle_board()) $$,
-  'PN012', null, 'non-member is rejected');
+select pg_temp.envelope_is(
+  boggle.create_game((select handle from club), pg_temp.boggle_setup(),
+    array['dee44444-4444-4444-4444-444444444444'::uuid], 'coop', pg_temp.boggle_board()),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN012"}'::jsonb,
+  'non-member is rejected');
 
 select * from finish();
 rollback;

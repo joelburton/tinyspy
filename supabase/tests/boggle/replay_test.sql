@@ -22,13 +22,13 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select pg_temp.create_club('Boggle replay', array['ada', 'bea']) as handle;
 create temp table g1 on commit drop as
-select * from boggle.create_game(
+select (boggle.create_game(
   (select handle from club), pg_temp.boggle_setup(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop',
   pg_temp.boggle_board()
-);
+)->'data'->>'id')::uuid as id;
 
 -- A find + a manual end → a found row, a non-zero status, a terminal row:
 -- the state a replay must undo.
@@ -68,13 +68,13 @@ select is(
 -- ── Compete: the reset status carries the fresh empty leaderboard ──
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
-select * from boggle.create_game(
+select (boggle.create_game(
   (select handle from club), pg_temp.boggle_setup(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'compete',
   pg_temp.boggle_board()
-);
+)->'data'->>'id')::uuid as id;
 select boggle.submit_word((select id from g2), 'cat', 1, false);
 select boggle.replay_board((select id from g2));
 reset role;

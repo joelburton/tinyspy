@@ -57,6 +57,8 @@ create policy found_words_select on boggle.found_words
 -- ============================================================
 -- create_game — called by the boggle-build-board edge function.
 -- ============================================================
+drop function if exists boggle.create_game(text, jsonb, uuid[], text, jsonb);
+
 create or replace function boggle.create_game(
   target_club text,
   setup jsonb,
@@ -64,13 +66,14 @@ create or replace function boggle.create_game(
   mode text,
   board jsonb
 )
-returns table(id uuid)
+returns jsonb
 language plpgsql
 security definer
 set search_path = boggle, common, public, extensions
 as $$
 declare
   new_id uuid;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text;
   game_title text;
   effective_gametype text;
   s_min_word_length int;
@@ -92,7 +95,8 @@ begin
   -- ─── Mode + player-count ─────────────────────────────────
   perform common.require_valid_mode(mode);
   if mode = 'compete' and coalesce(array_length(player_user_ids, 1), 0) < 2 then
-    raise exception 'too-few-players|' using errcode = 'P0001',
+    raise exception 'A race with fewer than two players reached the server'
+      using errcode = 'PN136', hint = 'fault', column = '_',
       detail = 'compete needs >= 2 players';
   end if;
   perform common.require_player_count_max(player_user_ids, 8);
@@ -102,14 +106,15 @@ begin
 
   s_min_word_length := coalesce((setup->>'min_word_length')::int, 3);
   if s_min_word_length < 3 or s_min_word_length > 9 then
-    raise exception 'bad-min-word-length|%|', s_min_word_length
-      using errcode = 'P0001',
+    raise exception 'A minimum word length of % reached the server', s_min_word_length
+      using errcode = 'PN137', hint = 'fault', column = '_',
       detail = 'setup.min_word_length must be 3..9';
   end if;
 
   s_band := (setup->>'band')::int;
   if s_band is null or s_band < 1 or s_band > 6 then
-    raise exception 'bad-band|%|', setup->>'band' using errcode = 'P0001',
+    raise exception 'A required difficulty of ''%'' reached the server', setup->>'band'
+      using errcode = 'PN138', hint = 'fault', column = '_',
       detail = 'setup.band must be 1..6';
   end if;
 
@@ -118,20 +123,21 @@ begin
   -- (every required word is, by definition, also legal) and at most 6.
   s_legal_band := (setup->>'legal_band')::int;
   if s_legal_band is null or s_legal_band < s_band or s_legal_band > 6 then
-    raise exception 'bad-legal-band|%|', setup->>'legal_band'
-      using errcode = 'P0001',
+    raise exception 'A legal-word difficulty of ''%'' reached the server', setup->>'legal_band'
+      using errcode = 'PN139', hint = 'fault', column = '_',
       detail = 'setup.legal_band must be between band and 6';
   end if;
 
   s_ladder := setup->>'scoring_ladder';
   if s_ladder is null or s_ladder not in ('flat', 'basic', 'fib', 'big') then
-    raise exception 'bad-scoring-ladder|%|', s_ladder
-      using errcode = 'P0001',
+    raise exception 'A scoring ladder of ''%'' reached the server', s_ladder
+      using errcode = 'PN140', hint = 'fault', column = '_',
       detail = 'scoring_ladder must be flat, basic, fib or big';
   end if;
 
   if coalesce(setup->>'dice_set', '') = '' then
-    raise exception 'missing-dice-set|' using errcode = 'P0001',
+    raise exception 'A game with no dice set reached the server'
+      using errcode = 'PN141', hint = 'fault', column = '_',
       detail = 'setup.dice_set absent';
   end if;
 
@@ -140,8 +146,8 @@ begin
   s_win_percent := (setup->>'win_percent')::int;   -- NULL when absent or JSON null
   if s_win_percent is not null
      and (s_win_percent < 50 or s_win_percent > 100 or s_win_percent % 5 <> 0) then
-    raise exception 'bad-win-percent|%|', s_win_percent
-      using errcode = 'P0001',
+    raise exception 'A win target of % reached the server', s_win_percent
+      using errcode = 'PN142', hint = 'fault', column = '_',
       detail = 'win_percent must be 50..100 in steps of 5, or null';
   end if;
 
@@ -149,21 +155,25 @@ begin
   b_board := board->>'board';
   b_n := (board->>'n')::int;
   if b_board is null or b_n is null or b_n < 4 or b_n > 6 then
-    raise exception 'bad-board|' using errcode = 'P0001',
+    raise exception 'The generated board was unreadable'
+      using errcode = 'PN143', hint = 'fault', column = '_',
       detail = 'board.board / board.n missing or malformed';
   end if;
   if length(b_board) <> b_n * b_n then
-    raise exception 'bad-board-length|%|%|', length(b_board), b_n * b_n using errcode = 'P0001',
+    raise exception 'The generated board had % tiles where % were wanted', length(b_board), b_n * b_n
+      using errcode = 'PN144', hint = 'fault', column = '_',
       detail = 'board length must be n squared';
   end if;
   if jsonb_typeof(board->'required_words') <> 'array' then
-    raise exception 'bad-required-words|' using errcode = 'P0001',
+    raise exception 'The generated board arrived with no word list'
+      using errcode = 'PN145', hint = 'fault', column = '_',
       detail = 'board.required_words must be a jsonb array';
   end if;
   -- bonus_words is optional (empty when legal_band == band); if present it must
   -- be an array of the same { word, points } shape.
   if board ? 'bonus_words' and jsonb_typeof(board->'bonus_words') <> 'array' then
-    raise exception 'bad-bonus-words|' using errcode = 'P0001',
+    raise exception 'The generated board arrived with a malformed bonus list'
+      using errcode = 'PN146', hint = 'fault', column = '_',
       detail = 'board.bonus_words must be a jsonb array';
   end if;
   b_required_count := (board->>'required_words_count')::int;
@@ -178,7 +188,8 @@ begin
   -- constraints, which are the player's to set — including none.)
   is_custom_board := coalesce(setup->>'custom_board', '') <> '';
   if is_custom_board and coalesce(b_required_count, 0) < 1 then
-    raise exception 'no-required-words|%|', s_band using errcode = 'P0001',
+    raise exception 'No words for those letters at that difficulty'
+      using errcode = 'PN147', hint = 'validation', column = 'custom_board',
       detail = 'the typed board produces no words at that band';
   end if;
 
@@ -234,7 +245,17 @@ begin
     ));
   end if;
 
-  return query select new_id;
+  return common.ok_envelope(jsonb_build_object('id', new_id));
+
+-- The boundary. It reads the SQLSTATE, re-raises anything that isn't ours, and
+-- lets the raise itself carry the message, the kind and the field.
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 
