@@ -293,7 +293,7 @@ grant execute on function connections.puzzle_for_date(date) to authenticated;
 --
 -- Setup shape:
 --   {
---     "puzzleId": "<uuid>",         -- references connections.puzzles(id)
+--     "puzzle_id": "<uuid>",         -- references connections.puzzles(id)
 --     "timer": (
 --         { "kind": "none" }
 --       | { "kind": "countup" }
@@ -306,19 +306,25 @@ grant execute on function connections.puzzle_for_date(date) to authenticated;
 -- A puzzle is hard to remember by date alone; the tiles ground it
 -- in something memorable ("oh, that one with BUCKS and HAIL").
 
+-- `create or replace` cannot change a function's return type, and this one
+-- became jsonb. `if exists` because this file is re-applied in full on every
+-- deploy, so the drop has to be a no-op the second time.
+drop function if exists connections.create_game(text, jsonb, uuid[], text);
+
 create or replace function connections.create_game(
   target_club text,
   setup jsonb,
   player_user_ids uuid[],
   mode text
 )
-returns table(id uuid)
+returns jsonb
 language plpgsql
 security definer
 set search_path = connections, common, public, extensions
 as $$
 declare
   new_id uuid;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text;
   s_puzzle_id uuid;
   puzzle_row connections.puzzles%rowtype;
   board_categories jsonb;
@@ -338,8 +344,8 @@ begin
     -- compete Start button in 1-player clubs; this guard is the
     -- server-side catch. Matches psychicnum's pattern.
     if coalesce(array_length(player_user_ids, 1), 0) < 2 then
-      raise exception 'too-few-players|'
-        using errcode = 'P0001',
+      raise exception 'A race with fewer than two players reached the server'
+        using errcode = 'PN061', hint = 'fault', column = '_',
       detail = 'compete needs >= 2 players';
     end if;
   end if;
@@ -363,20 +369,24 @@ begin
   -- the assertions are about THAT puzzle's categories. A server that always
   -- chose would make those tests assert against whatever the fixture club
   -- happened not to have played.
-  if (setup->>'puzzleId') is null then
+  if (setup->>'puzzle_id') is null then
     select n.id into s_puzzle_id
       from connections.next_puzzle_for_club(player_user_ids) n;
     if s_puzzle_id is null then
-      raise exception 'no-unplayed-puzzle|' using errcode = 'P0001',
+      -- It names the PICKER, not the puzzle box: the archive is exhausted
+      -- for THESE players, so unchecking someone is what brings a puzzle
+      -- back. Picking a date plays one again, which is a different wish.
+      raise exception 'Everyone here has played every puzzle'
+        using errcode = 'PN062', hint = 'validation', column = 'player_user_ids',
         detail = 'every imported puzzle has been played by one of these players';
     end if;
   else
     begin
-      s_puzzle_id := (setup->>'puzzleId')::uuid;
+      s_puzzle_id := (setup->>'puzzle_id')::uuid;
     exception when invalid_text_representation then
-      raise exception 'bad-puzzle-id|'
-        using errcode = 'P0001',
-        detail = 'setup.puzzleId is not a uuid';
+      raise exception 'A puzzle reference the server cannot read arrived'
+        using errcode = 'PN063', hint = 'fault', column = '_',
+        detail = 'setup.puzzle_id is not a uuid';
     end;
   end if;
 
@@ -391,7 +401,11 @@ begin
   select * into puzzle_row from connections.puzzles
    where connections.puzzles.id = s_puzzle_id;
   if not found then
-    raise exception 'no-puzzle|' using errcode = 'P0002',
+    -- The id came from this server moments ago, so reaching here means the
+    -- puzzle was retired between picking it and pressing Start. Clearing the
+    -- date is the fix, which is the box it names.
+    raise exception 'That puzzle is no longer available'
+      using errcode = 'PN065', hint = 'validation', column = 'puzzle_id',
       detail = 'no connections.puzzles row for that id; run the puzzle import';
   end if;
 
@@ -432,7 +446,7 @@ begin
   -- setup) + game_players, returns the canonical id we'll use
   -- below.
   --
-  -- Saved-default arg. `puzzleId` used to ride along, as the anchor for a
+  -- Saved-default arg. `puzzle_id` used to ride along, as the anchor for a
   -- "play the next puzzle in chronological order" UX that hadn't been built
   -- yet. next_puzzle_for_club IS that UX, and it derives the answer fresh
   -- every time — so a remembered puzzle is now worse than useless: it would
@@ -444,7 +458,7 @@ begin
     setup,
     -- Also strips first_turn_user_id (a per-game "who goes first" pick, not
     -- a per-club preference; the coop_style toggle rides).
-    setup - 'first_turn_user_id' - 'puzzleId'
+    setup - 'first_turn_user_id' - 'puzzle_id'
   );
 
   -- Opt-in turn-by-turn coop: when setup.coop_style='turns', seat the common
@@ -453,8 +467,8 @@ begin
   if mode = 'coop' and setup->>'coop_style' = 'turns' then
     first_turn := (setup->>'first_turn_user_id')::uuid;
     if first_turn is null or not (first_turn = any(player_user_ids)) then
-      raise exception 'bad-first-turn|'
-        using errcode = 'P0001',
+      raise exception 'A first player who is not in the game reached the server'
+        using errcode = 'PN064', hint = 'fault', column = '_',
       detail = 'setup.first_turn_user_id must be one of the players';
     end if;
     perform common._assign_turn_order(new_id, first_turn);
@@ -498,7 +512,18 @@ begin
     end
   );
 
-  return query select new_id;
+  return common.ok_envelope(jsonb_build_object('id', new_id));
+
+-- One block, and it has never heard of any specific condition: it reads the
+-- SQLSTATE, re-raises anything that isn't ours, and lets the raise itself carry
+-- the message, the kind and the field.
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 

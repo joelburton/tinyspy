@@ -70,7 +70,6 @@ const NOT_A_ROW: Record<string, string> = {
   custom_base: 'a board-generation override; the base it set is the title + the board itself',
   // Puzzle-identity plumbing: the recap shows ONE "Puzzle" row built from these.
   puzzle_id: 'folded into the single Puzzle row',
-  puzzleId: 'folded into the single Puzzle row',
   date: 'folded into the single Puzzle row',
   series: 'folded into the single Puzzle row',
   source: 'folded into the single Puzzle row',

@@ -204,7 +204,7 @@ select throws_ok(
   ),
   'P0001',
   'no-unplayed-puzzle|',
-  'and create_game with no puzzleId raises no-unplayed-puzzle| rather than crashing'
+  'and create_game with no puzzle_id raises no-unplayed-puzzle| rather than crashing'
 );
 
 select * from finish();

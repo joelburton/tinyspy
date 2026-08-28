@@ -29,6 +29,7 @@ set search_path = psychicnum, common, public, extensions;
 select plan(16);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 
 -- 3-member club: cade is a member but NOT a player in the games below,
 -- so he exercises the "first_turn_user_id must be a player" guard.
@@ -41,7 +42,7 @@ select pg_temp.create_club('test club', array['ada','bea','cade']) as handle;
 -- ============================================================
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table turn_g on commit drop as
-select * from psychicnum.create_game(
+select (psychicnum.create_game(
   (select handle from club),
   ('{"guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"},'
    || '"coop_style": "turns",'
@@ -49,7 +50,7 @@ select * from psychicnum.create_game(
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop'
-);
+)->'data'->>'id')::uuid as id;
 reset role;
 update psychicnum.games
    set words = array['zalpha','zbravo','zcharlie','zdelta','zecho','zfoxtrot','zgolf','zhotel'],
@@ -142,20 +143,20 @@ select is(
 -- (9) create_game rejects a first_turn_user_id that isn't a player
 -- ============================================================
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select throws_ok(
-  format($$
-    select (psychicnum.create_game(
-      %L,
-      ('{"guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"},'
-       || '"coop_style": "turns",'
-       || '"first_turn_user_id": "cade3333-3333-3333-3333-333333333333"}')::jsonb,
-      array['ada11111-1111-1111-1111-111111111111'::uuid,
-            'bea22222-2222-2222-2222-222222222222'::uuid],
-      'coop'
-    )
-  $$, (select handle from club)),
-  'P0001', 'bad-first-turn|',
-  'turns: create_game rejects a first player who is not in the game'
+-- A FAULT, not a validation: the picker only offers players who are in the
+-- game, so a first player who is not one cannot be chosen — arriving means
+-- something other than the form sent it.
+select pg_temp.envelope_is(
+  psychicnum.create_game(
+    (select handle from club),
+    ('{"guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"},'
+     || '"coop_style": "turns",'
+     || '"first_turn_user_id": "cade3333-3333-3333-3333-333333333333"}')::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid,
+          'bea22222-2222-2222-2222-222222222222'::uuid],
+    'coop'),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN050"}'::jsonb,
+  'turns: a first player who is not in the game is refused'
 );
 
 -- ============================================================
@@ -163,13 +164,13 @@ select throws_ok(
 -- ============================================================
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table ffa_g on commit drop as
-select * from psychicnum.create_game(
+select (psychicnum.create_game(
   (select handle from club),
   '{"guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop'
-);
+)->'data'->>'id')::uuid as id;
 reset role;
 update psychicnum.games
    set words = array['zalpha','zbravo','zcharlie','zdelta','zecho','zfoxtrot','zgolf','zhotel'],
@@ -195,14 +196,14 @@ select is(
 -- ============================================================
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table solo_g on commit drop as
-select * from psychicnum.create_game(
+select (psychicnum.create_game(
   (select handle from club),
   ('{"guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"},'
    || '"coop_style": "turns",'
    || '"first_turn_user_id": "ada11111-1111-1111-1111-111111111111"}')::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid],
   'coop'
-);
+)->'data'->>'id')::uuid as id;
 reset role;
 update psychicnum.games
    set words = array['zalpha','zbravo','zcharlie','zdelta','zecho','zfoxtrot','zgolf','zhotel'],

@@ -32,12 +32,11 @@ select pg_temp.create_club('Conn rp', array['ada','bea']) as handle;
 create temp table puzzle on commit drop as
 select pg_temp.connections_puzzle() as id;
 create temp table g1 on commit drop as
-select * from connections.create_game(
+select (connections.create_game(
   (select handle from club),
   pg_temp.connections_setup((select id from puzzle)),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
-        'bea22222-2222-2222-2222-222222222222'::uuid], 'coop'
-);
+        'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as id;
 
 -- One correct category, then four wrong → out of mistakes → coop loss. That
 -- leaves five guess rows, a matched category, mistake_count 4 and a terminal
@@ -93,12 +92,11 @@ select is(
 -- ── Compete: a conceded-terminal game replays clean ─────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
-select * from connections.create_game(
+select (connections.create_game(
   (select handle from club),
   pg_temp.connections_setup((select id from puzzle)),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
-        'bea22222-2222-2222-2222-222222222222'::uuid], 'compete'
-);
+        'bea22222-2222-2222-2222-222222222222'::uuid], 'compete')->'data'->>'id')::uuid as id;
 select connections.concede((select id from g2));
 reset role;
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');

@@ -45,11 +45,10 @@ select pg_temp.create_club('Ada and Bea', array['ada','bea']) as handle;
 create temp table puzzle on commit drop as
 select pg_temp.connections_puzzle() as id;
 create temp table g on commit drop as
-select * from connections.create_game(
+select (connections.create_game(
   (select handle from club),
   pg_temp.connections_setup((select id from puzzle)),
-  array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop'
-);
+  array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as id;
 
 -- ============================================================
 -- (1) Wrong tile count is rejected
@@ -258,11 +257,10 @@ select is(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
-select * from connections.create_game(
+select (connections.create_game(
   (select handle from club),
   pg_temp.connections_setup((select id from puzzle)),
-  array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop'
-);
+  array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as id;
 
 -- Four wrong guesses with distinct tile sets so they pass the
 -- "exactly 4 tiles" payload check. (Tile membership / dup check
@@ -323,11 +321,10 @@ select is(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g3 on commit drop as
-select * from connections.create_game(
+select (connections.create_game(
   (select handle from club),
   pg_temp.connections_setup((select id from puzzle)),
-  array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop'
-);
+  array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as id;
 
 -- Happy path: playing → submit_timeout → lost.
 select lives_ok(

@@ -33,7 +33,7 @@ select (wordle.create_game(
   (select handle from club), pg_temp.wordle_setup(5),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
-  'coop');
+  'coop')->'data'->>'id')::uuid as id;
 
 -- ── A manual end: over for everyone, but the answer stays covered ──
 select wordle.end_game((select id from g1));
@@ -67,7 +67,7 @@ create temp table g2 on commit drop as
 select (wordle.create_game(
   (select handle from club), pg_temp.wordle_setup(5),
   array['ada11111-1111-1111-1111-111111111111'::uuid],
-  'coop');
+  'coop')->'data'->>'id')::uuid as id;
 reset role;
 -- The target, read as postgres (the column is grant-hidden from players).
 select set_config(

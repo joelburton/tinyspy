@@ -968,7 +968,7 @@ export async function createConnectionsGame(
     .schema('connections')
     .rpc('create_game', {
       target_club: club.handle,
-      setup: { puzzleId: puzzle.data.id, timer: { kind: 'none' } },
+      setup: { puzzle_id: puzzle.data.id, timer: { kind: 'none' } },
       player_user_ids: playerUserIds,
       mode,
     })
@@ -982,13 +982,13 @@ async function createConnectionsGameFrom(
   club: E2EClub,
   mode: 'coop' | 'compete',
   playerUserIds: string[],
-  puzzleId: string,
+  puzzle_id: string,
 ): Promise<{ id: string; gametype: string }> {
   const res = await asUser(club.members[0].session.access_token)
     .schema('connections')
     .rpc('create_game', {
       target_club: club.handle,
-      setup: { puzzleId, timer: { kind: 'none' } },
+      setup: { puzzle_id: puzzleId, timer: { kind: 'none' } },
       player_user_ids: playerUserIds,
       mode,
     })
@@ -1314,7 +1314,7 @@ export async function createStrandsGame(
     .rpc('create_game', {
       target_club: club.handle,
       setup: {
-        puzzleId: row.id,
+        puzzle_id: row.id,
         band: 5,
         hint_cost: 3,
         min_word_length: 4,

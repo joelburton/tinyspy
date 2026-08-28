@@ -22,6 +22,16 @@ set search_path = connections, common, public, extensions;
 select plan(11);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
+
+-- `throws_ok` takes a SQL STRING, because the call had to be deferred until the
+-- assertion ran. An envelope is a VALUE, and these calls build their SQL with
+-- `format` (the club handle and the puzzle id are only known at run time), so
+-- this runs one and hands back what it returned.
+create function pg_temp.envelope_of(sql text) returns jsonb as $envfn$
+declare result jsonb;
+begin execute sql into result; return result; end;
+$envfn$ language plpgsql;
 \ir setup.psql
 
 -- ============================================================
@@ -34,11 +44,10 @@ select pg_temp.create_club('Ada and Bea', array['ada','bea']) as handle;
 create temp table puzzle on commit drop as
 select pg_temp.connections_puzzle() as id;
 create temp table g on commit drop as
-select * from connections.create_game(
+select (connections.create_game(
   (select handle from club),
   pg_temp.connections_setup((select id from puzzle)),
-  array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop'
-);
+  array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as id;
 
 -- A wrong guess so there's a row in connections.guesses for dee
 -- not to see.
@@ -98,15 +107,13 @@ select throws_ok(
   'dee cannot call submit_guess on a game she didn''t play (via require_game_player)'
 );
 
-select throws_ok(
-  format(
+select pg_temp.envelope_is(
+  pg_temp.envelope_of(format(
     $$ select connections.create_game(%L, pg_temp.connections_setup(%L::uuid), array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
     (select handle from club), (select id from puzzle)
-  ),
-  'PN012',
-  'You are not a member of this club',
-  'dee cannot call create_game on a club she is outside'
-);
+  )),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN012"}'::jsonb,
+  'dee cannot call create_game on a club she is outside');
 
 -- ============================================================
 -- Direct INSERT to connections tables is blocked at the grant layer
@@ -137,12 +144,11 @@ select throws_ok(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table cg on commit drop as
-select * from connections.create_game(
+select (connections.create_game(
   (select handle from club),
   pg_temp.connections_setup((select id from puzzle)),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
-        'bea22222-2222-2222-2222-222222222222'::uuid], 'compete'
-);
+        'bea22222-2222-2222-2222-222222222222'::uuid], 'compete')->'data'->>'id')::uuid as id;
 
 -- One guess each, so there IS an opponent row to hide (or not).
 select connections.submit_guess(

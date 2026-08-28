@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { SetupSection } from './SetupSection'
 import styles from './SetupNextPuzzleSection.module.css'
 import { DateField } from '../fields/DateField'
+import type { FormErrors } from '../fields/formState'
 
 /** A row from either of a game's two puzzle-choosing RPCs — they share a
  *  shape on purpose, so this field renders whichever it asked without
@@ -26,8 +27,12 @@ type Props = {
   /** Calls the game's `puzzle_for_date` — the override. */
   loadByDate: (date: string) => Promise<NextPuzzle>
   /** Reports the override: a puzzle id to play THAT one, or undefined to go
-   *  back to letting the server choose. Written into `setup.puzzleId`. */
+   *  back to letting the server choose. Written into `setup.puzzle_id`. */
   onPick: (puzzleId: string | undefined) => void
+  /** The form's errors. This section reads the key for the field it draws —
+   *  `puzzle_id`, which is what `create_game` names when the puzzle behind a
+   *  chosen date has been retired since it was picked. */
+  errors: FormErrors
 }
 
 /**
@@ -49,7 +54,7 @@ type Props = {
  * about at work", and for replaying a good one together.
  *
  * The derived line is a PREVIEW, not an input: with the box empty, `setup`
- * carries no `puzzleId` at all and `create_game` derives the puzzle again at
+ * carries no `puzzle_id` at all and `create_game` derives the puzzle again at
  * Start from the same function and player list. So a peer starting that very
  * puzzle while the dialog sits open costs nothing — you get the genuinely-next
  * one. Pick a date and the id IS sent, because then you meant that one.
@@ -64,6 +69,7 @@ export function SetupNextPuzzleSection({
   loadByDate,
   onPick,
   help,
+  errors,
 }: Props) {
   // The derived answer STAMPED WITH the player set it was fetched for, rather
   // than a bare row plus a loading flag. Toggling a player has to blank the
@@ -156,9 +162,15 @@ export function SetupNextPuzzleSection({
     <SetupSection label={summary} help={help} defaultOpen={nothingToPlay}>
       <p className={styles.next}>{line}</p>
       <DateField
-        // No caption: the section's summary IS the caption, and the box is the
-        // only control in it. The name is how a test finds it.
-        name="puzzle_date"
+        // Named for the SETTING, not the control: the field's question is
+        // "which puzzle?", and a date is how you address one. That is also the
+        // setup key it writes, so a raise saying `column = 'puzzle_id'` reaches
+        // this box — the same one string through SQL, the form and the RPC.
+        //
+        // No caption: the section's summary IS the caption ("Puzzle: 2026-08-20:
+        // soup, spoon"), and this is the only control under it.
+        name="puzzle_id"
+        error={errors.puzzle_id}
         help={
           <>
             The next {brand} puzzle nobody playing has seen — including games any of you

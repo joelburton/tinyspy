@@ -18,7 +18,7 @@
  * half-finished game is the club page's job.
  *
  * What's left to pin is that starting a game passes the setup through
- * untouched, `puzzleId` included when one IS supplied (the fixtures rely on
+ * untouched, `puzzle_id` included when one IS supplied (the fixtures rely on
  * that) and absent when it isn't (which is how the server is told to choose).
  */
 
@@ -59,7 +59,7 @@ import { connectionsCoopGame } from './manifest'
 
 beforeEach(() => {
   rpcCalls.length = 0
-  rpcResult.current = { data: { id: 'new-game' }, error: null }
+  rpcResult.current = { data: { type: 'ok', data: { id: 'new-game' } }, error: null }
 })
 
 describe('connectionsCoopGame.startGameInClub', () => {
@@ -73,19 +73,19 @@ describe('connectionsCoopGame.startGameInClub', () => {
     expect(rpcCalls[0]!.args.player_user_ids).toEqual(['cade-id'])
   })
 
-  it('sends NO puzzleId when the setup carries none — that is how the server is told to choose', async () => {
+  it('sends NO puzzle_id when the setup carries none — that is how the server is told to choose', async () => {
     await connectionsCoopGame.startGameInClub('pals', { timer: { kind: 'none' } }, ['cade-id'])
     const setup = rpcCalls[0]!.args.setup as Record<string, unknown>
-    expect('puzzleId' in setup).toBe(false)
+    expect('puzzle_id' in setup).toBe(false)
   })
 
-  it('passes an explicit puzzleId straight through when one IS given', async () => {
+  it('passes an explicit puzzle_id straight through when one IS given', async () => {
     // Not a path the dialog takes, but create_game still honors it and the
     // test fixtures depend on that staying true.
-    await connectionsCoopGame.startGameInClub('pals', { puzzleId: 'p1', timer: { kind: 'none' } }, [
+    await connectionsCoopGame.startGameInClub('pals', { puzzle_id: 'p1', timer: { kind: 'none' } }, [
       'cade-id',
     ])
-    expect((rpcCalls[0]!.args.setup as Record<string, unknown>).puzzleId).toBe('p1')
+    expect((rpcCalls[0]!.args.setup as Record<string, unknown>).puzzle_id).toBe('p1')
   })
 
   it('surfaces a create_game failure as a not-ok envelope rather than an id', async () => {

@@ -390,7 +390,7 @@ grant execute on function strands.puzzle_for_date(date) to authenticated;
 -- strands.create_game — start a new game in a club
 -- ============================================================
 -- Setup shape (server-validated):
---   { puzzleId: uuid,            -- which archived puzzle (the date picker)
+--   { puzzle_id: uuid,            -- which archived puzzle (the date picker)
 --     band: 1..6,                -- dictionary ceiling for HINT words
 --     hint_cost: 1..10,          -- valid words per hint (NYT plays 3)
 --     min_word_length: 3..8,     -- shortest word that can earn a point
@@ -447,7 +447,7 @@ begin
   -- puzzle (its theme words and paths are what the assertions are about).
   -- See connections.create_game for the full reasoning; the two games do
   -- this identically on purpose.
-  if (setup->>'puzzleId') is null then
+  if (setup->>'puzzle_id') is null then
     select n.id into s_puzzle_id
       from strands.next_puzzle_for_club(player_user_ids) n;
     if s_puzzle_id is null then
@@ -456,10 +456,10 @@ begin
     end if;
   else
     begin
-      s_puzzle_id := (setup->>'puzzleId')::uuid;
+      s_puzzle_id := (setup->>'puzzle_id')::uuid;
     exception when invalid_text_representation then
       raise exception 'bad-puzzle-id|' using errcode = 'P0001',
-        detail = 'setup.puzzleId is not a uuid';
+        detail = 'setup.puzzle_id is not a uuid';
     end;
   end if;
 
@@ -509,7 +509,7 @@ begin
     -- saved_default strips the per-GAME picks: which puzzle (a date you choose
     -- each time, not a standing preference) and who opens a turn game. The
     -- knobs and coop_style ride, since those are how this club likes to play.
-    setup - 'puzzleId' - 'first_turn_user_id'
+    setup - 'puzzle_id' - 'first_turn_user_id'
   );
 
   -- Opt-in turn-by-turn COOP. Compete never rotates — everyone races at once —

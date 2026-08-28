@@ -55,13 +55,13 @@ select pg_temp.create_club('test club', array['ada','bea']) as handle;
 -- ============================================================
 
 create temp table coop_g on commit drop as
-select * from psychicnum.create_game(
+select (psychicnum.create_game(
   (select handle from club),
   '{"guesses": 5, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop'
-);
+)->'data'->>'id')::uuid as id;
 reset role;
 update psychicnum.games
    set words = array['zalpha','zbravo','zcharlie','zdelta','zecho','zfoxtrot','zgolf','zhotel'],
@@ -213,13 +213,13 @@ select throws_ok(
 -- ============================================================
 
 create temp table coop_loss on commit drop as
-select * from psychicnum.create_game(
+select (psychicnum.create_game(
   (select handle from club),
   '{"guesses": 3, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop'
-);
+)->'data'->>'id')::uuid as id;
 reset role;
 update psychicnum.games
    set words = array['zalpha','zbravo','zcharlie','zdelta','zecho','zfoxtrot','zgolf','zhotel'],
@@ -263,13 +263,13 @@ select is(
 -- the reads below run as ada — create it as postgres and they're denied.)
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table coop_loss_hit on commit drop as
-select * from psychicnum.create_game(
+select (psychicnum.create_game(
   (select handle from club),
   '{"guesses": 3, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop'
-);
+)->'data'->>'id')::uuid as id;
 reset role;
 update psychicnum.games
    set words = array['zalpha','zbravo','zcharlie','zdelta','zecho','zfoxtrot','zgolf','zhotel'],
@@ -308,13 +308,13 @@ select is(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table comp_g on commit drop as
-select * from psychicnum.create_game(
+select (psychicnum.create_game(
   (select handle from club),
   '{"guesses": 3, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'compete'
-);
+)->'data'->>'id')::uuid as id;
 reset role;
 update psychicnum.games
    set words = array['zalpha','zbravo','zcharlie','zdelta','zecho','zfoxtrot','zgolf','zhotel'],
@@ -384,13 +384,13 @@ select throws_ok(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table comp_loss on commit drop as
-select * from psychicnum.create_game(
+select (psychicnum.create_game(
   (select handle from club),
   '{"guesses": 3, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'compete'
-);
+)->'data'->>'id')::uuid as id;
 reset role;
 update psychicnum.games
    set words = array['zalpha','zbravo','zcharlie','zdelta','zecho','zfoxtrot','zgolf','zhotel'],
@@ -456,13 +456,13 @@ create temp table hinted on commit drop as
     ) s;
 
 create temp table hint_g on commit drop as
-select * from psychicnum.create_game(
+select (psychicnum.create_game(
   (select handle from club),
   '{"guesses": 5, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop'
-);
+)->'data'->>'id')::uuid as id;
 reset role;
 -- Board = the 5 hinted words; secrets = the first 3 (all have clues).
 update psychicnum.games
@@ -485,13 +485,13 @@ select ok(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table coop_to on commit drop as
-select * from psychicnum.create_game(
+select (psychicnum.create_game(
   (select handle from club),
   '{"guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "countdown", "seconds": 60}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop'
-);
+)->'data'->>'id')::uuid as id;
 
 select lives_ok(
   format($$ select psychicnum.submit_timeout(%L::uuid) $$, (select id from coop_to)),

@@ -135,7 +135,7 @@ create table connections.puzzles (
 --
 -- (Setup lives on common.games.setup — the canonical home for the
 -- frozen-at-create-time player choices. connections's setup today is
--- just `{ "puzzleId": ..., "timer": ... }`. Server-side validated
+-- just `{ "puzzle_id": ..., "timer": ... }`. Server-side validated
 -- in create_game.)
 --
 -- connections.games.id is FK'd to common.games(id) — the canonical

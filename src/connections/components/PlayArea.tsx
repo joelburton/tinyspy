@@ -335,7 +335,7 @@ export function PlayArea({
   // per game, so "New game" can't just re-roll — it has to move on to a
   // puzzle nobody here has done. That rule now lives in ONE place, the server
   // (`connections.next_puzzle_for_club`, reached by simply omitting
-  // `puzzleId`), which is the same thing the setup dialog previews. It used
+  // `puzzle_id`), which is the same thing the setup dialog previews. It used
   // to be two FE reads plus a pure `nextUnplayedPuzzle` helper, and the two
   // paths could disagree: that rule was per-club and per-MODE and walked
   // forward from the current puzzle, so a coop game didn't use up the compete
@@ -377,11 +377,11 @@ export function PlayArea({
       return
     }
 
-    // `puzzleId` is deliberately ABSENT: that is how create_game is told to
+    // `puzzle_id` is deliberately ABSENT: that is how create_game is told to
     // choose. Carrying THIS game's setup forward would otherwise re-start the
     // very puzzle we just finished.
     const carried = { ...(setup as unknown as ConnectionsSetup) }
-    delete carried.puzzleId
+    delete carried.puzzle_id
     const { data, error } = await db
       .rpc('create_game', {
         target_club: clubHandle,

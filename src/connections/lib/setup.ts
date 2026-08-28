@@ -9,7 +9,7 @@ import type { CoopTurnSetup } from '../../common/components/setup/SetupCoopStyle
  * validated server-side in `connections.create_game`.
  *
  * Two fields today:
- *   - `puzzleId` — the `connections.puzzles` row the game is sourced from,
+ *   - `puzzle_id` — the `connections.puzzles` row the game is sourced from,
  *     and OPTIONAL because the dialog no longer collects it: absence is how
  *     `create_game` is told to derive the next puzzle none of the selected
  *     players has played (`connections.next_puzzle_for_club`). It stays in
@@ -26,7 +26,7 @@ import type { CoopTurnSetup } from '../../common/components/setup/SetupCoopStyle
  * the RPC's shape validator changes.
  */
 export type ConnectionsValues = CoopTurnSetup & {
-  puzzleId?: string
+  puzzle_id?: string
   timer: TimerMode
   /** WHO IS PLAYING — a field like any other, and the only one that is not
    *  part of the setup blob: `create_game` takes it as its own argument and
@@ -42,7 +42,7 @@ export type ConnectionsSetup = SetupOf<ConnectionsValues>
 /**
  * Initial setup the manifest hands the SetupGameModal wrapper as `defaults`.
  *
- * NO `puzzleId` KEY AT ALL — not `''`. The server reads an ABSENT puzzleId as
+ * NO `puzzle_id` KEY AT ALL — not `''`. The server reads an ABSENT puzzle_id as
  * "you choose"; an empty string is present-but-unparseable and would fail the
  * uuid cast with `bad-puzzle-id|` instead. It used to be `''` because the
  * defaults are evaluated at module-load time, before any puzzle list had been

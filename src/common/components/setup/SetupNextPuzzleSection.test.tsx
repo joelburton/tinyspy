@@ -11,7 +11,7 @@
  *
  * The other rule worth holding is what an override says to the parent.
  * Clearing the date does not send an empty string — it sends `undefined`, and
- * the ABSENCE of `setup.puzzleId` is what tells `create_game` to choose for
+ * the ABSENCE of `setup.puzzle_id` is what tells `create_game` to choose for
  * itself. An empty string would be a puzzle id nothing matches.
  */
 import { render, screen, waitFor } from '@testing-library/react'
@@ -34,11 +34,12 @@ function draw(seenBy = ['self', 'moth']) {
       load={load}
       loadByDate={loadByDate}
       onPick={onPick}
+      errors={{}}
     />,
   )
 }
 
-const dateBox = () => document.querySelector('[name="puzzle_date"]') as HTMLInputElement
+const dateBox = () => document.querySelector('[name="puzzle_id"]') as HTMLInputElement
 const type = (value: string) => fireEvent.change(dateBox(), { target: { value } })
 
 beforeEach(() => {
@@ -83,6 +84,7 @@ describe('SetupNextPuzzleSection — what it says Start will play', () => {
         load={load}
         loadByDate={loadByDate}
         onPick={onPick}
+      errors={{}}
       />,
     )
     await waitFor(() => expect(load).toHaveBeenCalledTimes(1))
@@ -94,6 +96,7 @@ describe('SetupNextPuzzleSection — what it says Start will play', () => {
         load={load}
         loadByDate={loadByDate}
         onPick={onPick}
+      errors={{}}
       />,
     )
     await waitFor(() => expect(load).toHaveBeenCalledTimes(2))
@@ -103,7 +106,7 @@ describe('SetupNextPuzzleSection — what it says Start will play', () => {
   it('does not re-ask when the same player set arrives as a new array', async () => {
     // `seenBy` is a fresh array on every parent render; keying on the array
     // itself would fetch forever.
-    const props = { brand: 'Connections', load, loadByDate, onPick }
+    const props = { brand: 'Connections', load, loadByDate, onPick, errors: {} }
     const { rerender } = render(<SetupNextPuzzleSection {...props} seenBy={['self']} />)
     await waitFor(() => expect(load).toHaveBeenCalledTimes(1))
 
@@ -136,7 +139,7 @@ describe('SetupNextPuzzleSection — the date override', () => {
   })
 
   it('hands back UNDEFINED when you clear the date, not an empty id', async () => {
-    // Absence is the instruction: `create_game` reads a missing `puzzleId` as
+    // Absence is the instruction: `create_game` reads a missing `puzzle_id` as
     // "you choose". An empty string would be an id that matches nothing.
     draw()
     await waitFor(() => expect(load).toHaveBeenCalled())

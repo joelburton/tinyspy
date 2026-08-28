@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { lazy } from 'react'
-import { startEnvelope } from '../common/lib/game/manifestRpcs'
+import { runRpc } from '../common/lib/supabase/dbResult'
 import type { GameManifest } from '../common/lib/games'
 import { db } from './db'
 import { count, outcome, statusLine, tally, wonBy } from '../common/lib/game/statusLabel'
@@ -84,10 +84,7 @@ const setupFormLoader = lazy(() =>
 // server hands out the earliest puzzle none of the selected players has
 // played. Resuming a half-finished game is the club page's job.
 //
-// `brand` is the manifest's own `name` (passed in from BRAND below) so
-// the user-facing error reads the brand from the single branding source
-// — there is no hardcoded brand string anywhere but `name`/BRAND.
-function startGameInClubFactory(mode: 'coop' | 'compete', brand: string) {
+function startGameInClubFactory(mode: 'coop' | 'compete') {
   return async (
     clubHandle: string,
     setup: unknown,
@@ -101,17 +98,17 @@ function startGameInClubFactory(mode: 'coop' | 'compete', brand: string) {
     // you into an existing game's player list; resuming a half-finished game
     // is the club page's job now.
     //
-    // `setup` rides through untouched, and its `puzzleId` is ABSENT — that is
+    // `setup` rides through untouched, and its `puzzle_id` is ABSENT — that is
     // how create_game is told to derive the puzzle.
-    const { data, error } = await db
-      .rpc('create_game', {
+    // No `.single()`: the RPC returns the envelope itself, one jsonb value.
+    return runRpc<{ id: string }>(
+      db.rpc('create_game', {
         target_club: clubHandle,
         setup: setup as ConnectionsSetup,
         player_user_ids: playerUserIds,
         mode,
-      })
-      .single()
-    return startEnvelope(data, error, brand)
+      }),
+    )
   }
 }
 
@@ -163,7 +160,7 @@ export const connectionsCoopGame: GameManifest = {
     defaults: DEFAULT_CONNECTIONS_SETUP,
   },
 
-  startGameInClub: startGameInClubFactory('coop', BRAND),
+  startGameInClub: startGameInClubFactory('coop'),
 
   labelFor: (row) => {
     const s = (row.status ?? {}) as StatusBlob
@@ -217,7 +214,7 @@ export const connectionsCompeteGame: GameManifest = {
     defaults: DEFAULT_CONNECTIONS_SETUP,
   },
 
-  startGameInClub: startGameInClubFactory('compete', BRAND),
+  startGameInClub: startGameInClubFactory('compete'),
 
   // Compete listing labels are intentionally numeric-free — the
   // "opponents see mistakes only" decision means we don't surface

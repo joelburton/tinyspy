@@ -25,13 +25,12 @@ select pg_temp.create_club('Conn concede', array['ada', 'bea']) as handle;
 create temp table puzzle on commit drop as
 select pg_temp.connections_puzzle() as id;
 create temp table g on commit drop as
-select * from connections.create_game(
+select (connections.create_game(
   (select handle from club),
   pg_temp.connections_setup((select id from puzzle)),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
-  'compete'
-);
+  'compete')->'data'->>'id')::uuid as id;
 
 -- (1) ada concedes; bea is still alive → game continues.
 select lives_ok(
@@ -57,13 +56,12 @@ select is(
 -- (3) coop concede rejected.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table gc on commit drop as
-select * from connections.create_game(
+select (connections.create_game(
   (select handle from club),
   pg_temp.connections_setup((select id from puzzle)),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
-  'coop'
-);
+  'coop')->'data'->>'id')::uuid as id;
 select throws_ok(
   format($$ select connections.concede(%L) $$, (select id from gc)),
   'P0001', 'concede-not-in-coop|',

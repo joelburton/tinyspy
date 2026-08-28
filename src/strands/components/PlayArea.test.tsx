@@ -113,7 +113,7 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     timer: { displaySeconds: 0, expired: false },
     isMyTurn: true,
     currentTurnUserId: null,
-    setup: { puzzleId: 'p1', hint_cost: 3, timer: { kind: 'none' } },
+    setup: { puzzle_id: 'p1', hint_cost: 3, timer: { kind: 'none' } },
     status: null,
     globalFeedback: { show: vi.fn(), clear: vi.fn() },
     goToClub: vi.fn(),

@@ -23,7 +23,7 @@ select (stackdown.create_game(
   (select handle from club), '{"timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
-  'coop');
+  'coop')->'data'->>'id')::uuid as id;
 select stackdown.end_game((select id from g1));
 
 reset role;
@@ -51,7 +51,7 @@ select (stackdown.create_game(
   (select handle from club), '{"timer": {"kind": "countdown", "seconds": 300}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
-  'coop');
+  'coop')->'data'->>'id')::uuid as id;
 select stackdown.submit_timeout((select id from g2));
 
 reset role;

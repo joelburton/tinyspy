@@ -1152,3 +1152,75 @@ carries `margin-top: 1rem` while `.failureLine` is `margin: 0` and leaves the
 gap to the column it sits in, and `.failureLine` also sets
 `var(--font-size-2)` where `.error` inherits. The two setup sites may want a
 reserved line rather than a reflowing one.
+
+## F49 · `setup-sections-become-fields` · A setup form is sections wrapping fields, and nothing else
+
+**Raised 2026-08-28, from the error sprint.** Converting `create_game` game by
+game kept running into the same shape: `setup/` holds four components that are
+neither a field nor a plain wrapper, and each takes an ad-hoc slice of the
+props a field would.
+
+| | props it takes | `label` | `entryHelp` | `disabled` |
+|---|---|---|---|---|
+| `SetupTimerSection` | `help value onChange errors` | computed | — | — |
+| `SetupCoopStyleSection` | `help mode players coopStyle firstTurnUserId onChange errors` | computed + one baked in | — | — |
+| `SetupNextPuzzleSection` | `help brand seenBy load loadByDate onPick errors` | computed | — | — |
+| `PlayersSection` | `members selfId value onChange numberOfPlayers error disabled` | computed (dots) | — | yes |
+
+All four swallow `label` and compute their own caption; none takes `entryHelp`;
+three cannot be disabled. `help` means two different things — the SECTION's
+sentence in the timer, and in the next-puzzle section the section's while its
+inner `<DateField>` carries a second, hardcoded one.
+
+**The target (Joel, 2026-08-28):**
+
+> "keep SetupSection, which is a light visual wrapper that has a summary that
+> can be changed when the form value changes (perhaps by having Field
+> subclasses take a callback for 'update summary', which the section uses to
+> show the summary). And the specific sections … should disappear and become
+> Field subclasses, and when the setupForm wants to put things in a setup, they
+> do it the same way other parts do: put a SetupSection in the setupForm with
+> the Field subclass in it."
+
+So every setup body reads one way — sections wrapping fields — and `setup/`
+holds `SetupSection` and nothing else of this kind.
+
+### What the summary callback is actually for
+
+A summary is usually derivable from the value — `Timer: none`, `Guesses: 7` —
+and a pure `summaryFor(value)` beside each field would serve those. What it will
+not serve is the puzzle field, whose summary is `2026-08-20: soup, spoon`: that
+string does not exist until something fetches it, and the only component holding
+it is the field that asked. So the field has to TELL the section, and that is
+the case the callback is for.
+
+**A fetching field is therefore not an obstacle to this design — it is the case
+that motivates it.** "No field does I/O" describes the twelve that exist today;
+it is not a property worth defending, and `load` / `loadByDate` are already
+injected props, so the field would ask the question without knowing who answers.
+
+The open question is the DIRECTION of the write. A child calling `onSummary` is
+the shape recorded in [[project_no_setstate_in_effect]] — a prop callback evades
+the lint rule and loops — but the fix recorded there ("parent derives instead")
+is unavailable precisely because the parent cannot derive this one. Two
+mechanisms that settle:
+
+- **guard on change** — send only when the text differs from the last, so it
+  settles after one pass; the loop comes from calling unconditionally;
+- **a slot rather than a callback** — `<SetupSection>` renders a `summary` slot
+  and the field fills both, so no parent state exists to loop.
+
+### The one component that does not collapse
+
+**`SetupCoopStyleSection` draws TWO fields** — `coop_style` and
+`first_turn_user_id`, separate setup keys with different lifetimes (one
+round-trips into the club's saved default, the other is stripped by
+`create_game`). It has no single value to be a field around. Either it stays a
+group, or the reveal-the-first-player conditional moves into each body — which
+Joel has already called leakage.
+
+`PlayersSection` collapses cleanly and is the obvious first conversion: already
+one field (`player_user_ids`) plus a section.
+
+**Not scheduled.** Raised while the error sprint was mid-roster; it touches all
+sixteen setup bodies, so it waits for its own pass.

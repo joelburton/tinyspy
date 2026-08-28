@@ -49,22 +49,20 @@ create temp table puzzle on commit drop as
 select pg_temp.connections_puzzle() as id;
 
 create temp table g_coop on commit drop as
-select * from connections.create_game(
+select (connections.create_game(
   (select handle from club),
   pg_temp.connections_setup((select id from puzzle)),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
-  'coop'
-);
+  'coop')->'data'->>'id')::uuid as id;
 
 create temp table g_compete on commit drop as
-select * from connections.create_game(
+select (connections.create_game(
   (select handle from club),
   pg_temp.connections_setup((select id from puzzle)),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
-  'compete'
-);
+  'compete')->'data'->>'id')::uuid as id;
 
 -- ============================================================
 -- (1)–(5) coop end_game: neutral terminal, no winner
@@ -168,13 +166,12 @@ select is(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g_auth on commit drop as
-select * from connections.create_game(
+select (connections.create_game(
   (select handle from club),
   pg_temp.connections_setup((select id from puzzle)),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
-  'coop'
-);
+  'coop')->'data'->>'id')::uuid as id;
 
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select throws_ok(

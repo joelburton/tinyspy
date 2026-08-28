@@ -575,15 +575,15 @@ select common.create_game(
   'connections_coop',
   array['ada11111-1111-1111-1111-111111111111'::uuid],
   'third',
-  '{"timer": {"kind": "none"}, "puzzleId": "marker-1"}'::jsonb,
-  '{"timer": {"kind": "none"}, "puzzleId": "marker-1"}'::jsonb
+  '{"timer": {"kind": "none"}, "puzzle_id": "marker-1"}'::jsonb,
+  '{"timer": {"kind": "none"}, "puzzle_id": "marker-1"}'::jsonb
 );
 
 reset role;
 select set_config('request.jwt.claims', '', true);
 
 select is(
-  (select default_setup->>'puzzleId' from common.clubs_gametypes
+  (select default_setup->>'puzzle_id' from common.clubs_gametypes
     where club_handle = (select handle from club) and gametype = 'connections_coop'),
   'marker-1',
   'saved defaults: a non-null default_setup writes to clubs_gametypes.default_setup'
@@ -599,15 +599,15 @@ select common.create_game(
   'connections_coop',
   array['ada11111-1111-1111-1111-111111111111'::uuid],
   'fourth',
-  '{"timer": {"kind": "none"}, "puzzleId": "marker-2"}'::jsonb,
-  '{"timer": {"kind": "none"}, "puzzleId": "marker-2"}'::jsonb
+  '{"timer": {"kind": "none"}, "puzzle_id": "marker-2"}'::jsonb,
+  '{"timer": {"kind": "none"}, "puzzle_id": "marker-2"}'::jsonb
 );
 
 reset role;
 select set_config('request.jwt.claims', '', true);
 
 select is(
-  (select default_setup->>'puzzleId' from common.clubs_gametypes
+  (select default_setup->>'puzzle_id' from common.clubs_gametypes
     where club_handle = (select handle from club) and gametype = 'connections_coop'),
   'marker-2',
   'saved defaults: a subsequent non-null default_setup overwrites the row'

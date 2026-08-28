@@ -11,7 +11,7 @@
 -- Coverage:
 --   - rejection: not authenticated
 --   - rejection: caller is not a member of the target club
---   - rejection: bad setup.puzzleId shapes (missing, bad uuid,
+--   - rejection: bad setup.puzzle_id shapes (missing, bad uuid,
 --     not-found)
 --   - rejection: bad setup.timer shapes (missing, bad kind,
 --     missing seconds, out-of-range seconds)
@@ -35,6 +35,16 @@ set search_path = connections, common, public, extensions;
 select plan(29);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
+
+-- `throws_ok` takes a SQL STRING, because the call had to be deferred until the
+-- assertion ran. An envelope is a VALUE, and these calls build their SQL with
+-- `format` (the club handle and the puzzle id are only known at run time), so
+-- this runs one and hands back what it returned.
+create function pg_temp.envelope_of(sql text) returns jsonb as $envfn$
+declare result jsonb;
+begin execute sql into result; return result; end;
+$envfn$ language plpgsql;
 \ir setup.psql
 
 -- ============================================================
@@ -55,14 +65,13 @@ select pg_temp.connections_puzzle() as id;
 select set_config('request.jwt.claims', '', true);
 select set_config('role', 'postgres', true);
 
-select throws_ok(
-  format(
+select pg_temp.envelope_is(
+  pg_temp.envelope_of(format(
     $$ select connections.create_game(%L, pg_temp.connections_setup(%L::uuid), array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
     (select handle from club), (select id from puzzle)
-  ),
-  'PN011',
-  'Signed out; try refresh',
-  'create_game: not authenticated raises 42501'
+  )),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN011"}'::jsonb,
+  'create_game: a signed-out caller is refused as a fault'
 );
 
 -- ============================================================
@@ -71,23 +80,21 @@ select throws_ok(
 -- dee is signed in but outside ada+bea's club.
 
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
-select throws_ok(
-  format(
+select pg_temp.envelope_is(
+  pg_temp.envelope_of(format(
     $$ select connections.create_game(%L, pg_temp.connections_setup(%L::uuid), array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
     (select handle from club), (select id from puzzle)
-  ),
-  'PN012',
-  'You are not a member of this club',
-  'create_game: non-member is rejected'
-);
+  )),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN012"}'::jsonb,
+  'create_game: non-member is rejected');
 
 -- ============================================================
--- Setup-shape validation — puzzleId
+-- Setup-shape validation — puzzle_id
 -- ============================================================
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
--- A MISSING puzzleId is no longer an error — it is the normal case. The setup
+-- A MISSING puzzle_id is no longer an error — it is the normal case. The setup
 -- dialog lost its date picker, so the server derives the next puzzle none of
 -- the players being seated has played (connections.next_puzzle_for_club). An
 -- explicit id still wins, which is what every other test in this file relies
@@ -97,30 +104,26 @@ select lives_ok(
     $$ select connections.create_game(%L, jsonb_build_object('timer', jsonb_build_object('kind', 'none')), array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
     (select handle from club)
   ),
-  'create_game: an ABSENT setup.puzzleId means "you choose" — the server derives one'
+  'create_game: an ABSENT setup.puzzle_id means "you choose" — the server derives one'
 );
 
--- puzzleId is not a uuid
-select throws_ok(
-  format(
-    $$ select connections.create_game(%L, jsonb_build_object('puzzleId', 'not-a-uuid', 'timer', jsonb_build_object('kind', 'none')), array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
+-- puzzle_id is not a uuid
+select pg_temp.envelope_is(
+  pg_temp.envelope_of(format(
+    $$ select connections.create_game(%L, jsonb_build_object('puzzle_id', 'not-a-uuid', 'timer', jsonb_build_object('kind', 'none')), array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
     (select handle from club)
-  ),
-  'P0001',
-  'bad-puzzle-id|',
-  'create_game: malformed puzzleId is rejected'
-);
+  )),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN063"}'::jsonb,
+  'create_game: malformed puzzle_id is rejected');
 
--- puzzleId is a valid uuid but no puzzle has it
-select throws_ok(
-  format(
+-- puzzle_id is a valid uuid but no puzzle has it
+select pg_temp.envelope_is(
+  pg_temp.envelope_of(format(
     $$ select connections.create_game(%L, pg_temp.connections_setup('00000000-0000-0000-0000-000000000000'::uuid), array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
     (select handle from club)
-  ),
-  'P0002',
-  'no-puzzle|',
-  'create_game: unknown puzzleId is rejected'
-);
+  )),
+  '{"type":"not-ok","severity":"validation","field":"puzzle_id","dbcode":"PN065"}'::jsonb,
+  'create_game: unknown puzzle_id is rejected');
 
 -- ============================================================
 -- Setup-shape validation — timer
@@ -131,60 +134,50 @@ select throws_ok(
 -- server-side gating per the friends-trust-model principle:
 -- validate shape, trust contents.
 
--- timer field missing entirely (puzzleId present)
-select throws_ok(
-  format(
-    $$ select connections.create_game(%L, jsonb_build_object('puzzleId', %L::text), array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
+-- timer field missing entirely (puzzle_id present)
+select pg_temp.envelope_is(
+  pg_temp.envelope_of(format(
+    $$ select connections.create_game(%L, jsonb_build_object('puzzle_id', %L::text), array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
     (select handle from club), (select id from puzzle)
-  ),
-  'PN035',
-  'A game with no timer setting reached the server',
-  'create_game: missing setup.timer is rejected'
-);
+  )),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN035"}'::jsonb,
+  'create_game: missing setup.timer is rejected');
 
 -- timer.kind is bogus
-select throws_ok(
-  format(
+select pg_temp.envelope_is(
+  pg_temp.envelope_of(format(
     $$ select connections.create_game(%L, pg_temp.connections_setup(%L::uuid, '{"kind":"fast"}'::jsonb), array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
     (select handle from club), (select id from puzzle)
-  ),
-  'PN037',
-  'A timer setting of ''fast'' reached the server',
-  'create_game: bogus timer.kind is rejected'
-);
+  )),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN037"}'::jsonb,
+  'create_game: bogus timer.kind is rejected');
 
 -- countdown without seconds
-select throws_ok(
-  format(
+select pg_temp.envelope_is(
+  pg_temp.envelope_of(format(
     $$ select connections.create_game(%L, pg_temp.connections_setup(%L::uuid, '{"kind":"countdown"}'::jsonb), array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
     (select handle from club), (select id from puzzle)
-  ),
-  'PN038',
-  'A countdown with no length reached the server',
-  'create_game: countdown without seconds is rejected'
-);
+  )),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN038"}'::jsonb,
+  'create_game: countdown without seconds is rejected');
 
 -- countdown with 0 seconds (below min)
-select throws_ok(
-  format(
+select pg_temp.envelope_is(
+  pg_temp.envelope_of(format(
     $$ select connections.create_game(%L, pg_temp.connections_setup(%L::uuid, '{"kind":"countdown","seconds":0}'::jsonb), array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
     (select handle from club), (select id from puzzle)
-  ),
-  'PN039',
-  'A countdown of 0 seconds reached the server',
-  'create_game: countdown with seconds=0 is rejected'
-);
+  )),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN039"}'::jsonb,
+  'create_game: countdown with seconds=0 is rejected');
 
 -- countdown with 3601 seconds (above max — Joel's 60-min cap)
-select throws_ok(
-  format(
+select pg_temp.envelope_is(
+  pg_temp.envelope_of(format(
     $$ select connections.create_game(%L, pg_temp.connections_setup(%L::uuid, '{"kind":"countdown","seconds":3601}'::jsonb), array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
     (select handle from club), (select id from puzzle)
-  ),
-  'PN039',
-  'A countdown of 3601 seconds reached the server',
-  'create_game: countdown over 60min is rejected'
-);
+  )),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN039"}'::jsonb,
+  'create_game: countdown over 60min is rejected');
 
 -- 'none' is accepted (no seconds needed). lives_ok creates a real
 -- game; the partial unique index would reject a second
@@ -213,11 +206,10 @@ select lives_ok(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table created on commit drop as
-select * from connections.create_game(
+select (connections.create_game(
   (select handle from club),
   pg_temp.connections_setup((select id from puzzle)),
-  array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop'
-);
+  array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as id;
 
 select is(
   (select count(*) from created),
@@ -288,7 +280,7 @@ select is(
 -- Saved-defaults auto-save in clubs_gametypes
 -- ============================================================
 -- connections saves the knobs that ARE per-club preferences (the timer), and
--- deliberately not `puzzleId`. It used to save it, as the anchor for a
+-- deliberately not `puzzle_id`. It used to save it, as the anchor for a
 -- planned "play the next puzzle in chronological order" UX;
 -- connections.next_puzzle_for_club is that UX and derives the answer fresh
 -- every time, so a remembered id would only re-pin an already-played puzzle
@@ -296,10 +288,10 @@ select is(
 -- dialog, so an older client's saved value can't ride back in.
 
 select is(
-  (select default_setup->>'puzzleId' from common.clubs_gametypes
+  (select default_setup->>'puzzle_id' from common.clubs_gametypes
     where club_handle = (select handle from club) and gametype = 'connections_coop'),
   null,
-  'saved defaults: puzzleId is NOT remembered — the next puzzle is derived, not recalled'
+  'saved defaults: puzzle_id is NOT remembered — the next puzzle is derived, not recalled'
 );
 
 select is(
@@ -335,7 +327,7 @@ select is(
 select is(
   (select setup from common.games where id = (select id from created)),
   jsonb_build_object(
-    'puzzleId', (select id from puzzle)::text,
+    'puzzle_id', (select id from puzzle)::text,
     'timer', jsonb_build_object('kind', 'countdown', 'seconds', 600)
   ),
   'create_game: common.games.setup persists the passed-in jsonb'
@@ -377,8 +369,8 @@ select is(
 -- check fires before the membership check, so 5 random UUIDs
 -- alongside 2 real ones (total = 7) is enough to trip it.
 
-select throws_ok(
-  format(
+select pg_temp.envelope_is(
+  pg_temp.envelope_of(format(
     $$ select connections.create_game(%L, pg_temp.connections_setup(%L::uuid),
                                     array[
                                       'ada11111-1111-1111-1111-111111111111'::uuid,
@@ -390,11 +382,9 @@ select throws_ok(
                                       gen_random_uuid()
                                     ], 'coop') $$,
     (select handle from club), (select id from puzzle)
-  ),
-  'PN041',
-  null,
-  'create_game: rejects player_user_ids with > 6 entries (max 6)'
-);
+  )),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN041"}'::jsonb,
+  'create_game: rejects player_user_ids with > 6 entries (max 6)');
 
 -- ============================================================
 -- Status is SEEDED at create (not left NULL until the first guess)
@@ -405,15 +395,15 @@ select throws_ok(
 -- nothing either. The point is that `status` is never NULL.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table seeded_coop on commit drop as
-  select id from connections.create_game((select handle from club),
+  select (connections.create_game((select handle from club),
     pg_temp.connections_setup((select id from puzzle)),
     array['ada11111-1111-1111-1111-111111111111'::uuid,
-          'bea22222-2222-2222-2222-222222222222'::uuid], 'coop');
+          'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as id;
 create temp table seeded_cmp on commit drop as
-  select id from connections.create_game((select handle from club),
+  select (connections.create_game((select handle from club),
     pg_temp.connections_setup((select id from puzzle)),
     array['ada11111-1111-1111-1111-111111111111'::uuid,
-          'bea22222-2222-2222-2222-222222222222'::uuid], 'compete');
+          'bea22222-2222-2222-2222-222222222222'::uuid], 'compete')->'data'->>'id')::uuid as id;
 reset role;
 select is(
   (select status from common.games where id = (select id from seeded_coop)),

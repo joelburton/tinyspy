@@ -484,7 +484,7 @@ export function PlayArea(ctx: GamePageCtx) {
     if (!game) return
 
     // WHICH puzzle is the server's call (`strands.next_puzzle_for_club`,
-    // reached below by omitting `puzzleId`) — the same rule, in the same
+    // reached below by omitting `puzzle_id`) — the same rule, in the same
     // place, that the setup dialog previews. This used to be two FE reads
     // plus a pure `nextUnplayedPuzzle` helper whose rule was per-club, per
     // MODE, and relative to the current puzzle; the server's is per-PLAYER
@@ -528,13 +528,13 @@ export function PlayArea(ctx: GamePageCtx) {
     // The current MODE rides along — a finished compete race's "New game" is
     // the next race, not a quiet switch to coop.
     //
-    // `puzzleId` is deliberately ABSENT rather than set to the previewed id:
+    // `puzzle_id` is deliberately ABSENT rather than set to the previewed id:
     // absence is how create_game is told to choose, so the puzzle we actually
     // start is decided at create time, after any peer's game has landed.
     // Carrying THIS game's setup forward with its id would re-start the very
     // puzzle we just finished.
     const carried = { ...strandsSetup }
-    delete carried.puzzleId
+    delete carried.puzzle_id
     const { data, error } = await db
       .rpc('create_game', {
         target_club: clubHandle,

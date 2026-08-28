@@ -25,7 +25,7 @@
 -- ─── connections_puzzle ────────────────────────────────────
 -- Insert a deterministic test puzzle and return its id. Every
 -- connections test calls this before create_game; the returned id
--- becomes the `puzzleId` field on the setup payload.
+-- becomes the `puzzle_id` field on the setup payload.
 --
 -- The source_id (`TEST-FIXTURE`) and date (`1900-01-01`) are
 -- chosen to never collide with real NYT data — NYT Connections
@@ -87,7 +87,7 @@ $$;
 --   connections_setup(puzzle_id, '{"kind":"none"}'::jsonb)
 --   connections_setup(puzzle_id, '{"kind":"countup"}'::jsonb)
 --
--- Tests that need a setup MISSING a field (no puzzleId, no
+-- Tests that need a setup MISSING a field (no puzzle_id, no
 -- timer) skip the helper and build jsonb_build_object inline so
 -- the test reads as "what malformed shape am I testing."
 create function pg_temp.connections_setup(
@@ -99,7 +99,7 @@ create function pg_temp.connections_setup(
 ) returns jsonb
 language sql as $$
   select jsonb_build_object(
-    'puzzleId', puzzle_id,
+    'puzzle_id', puzzle_id,
     'timer', timer
   );
 $$;

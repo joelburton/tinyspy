@@ -88,7 +88,7 @@ create temp table g1 on commit drop as
 select (wordle.create_game(
   (select handle from club),
   '{"max_guesses": 6, "answer_source": 1, "legal_guess": 6, "timer": {"kind": "none"}}'::jsonb,
-  array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop');
+  array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop')->'data'->>'id')::uuid as id;
 reset role;
 select set_config('request.jwt.claims', '', true);
 select is(

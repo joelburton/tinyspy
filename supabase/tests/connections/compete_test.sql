@@ -37,6 +37,16 @@ set search_path = connections, common, public, extensions;
 select plan(27);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
+
+-- `throws_ok` takes a SQL STRING, because the call had to be deferred until the
+-- assertion ran. An envelope is a VALUE, and these calls build their SQL with
+-- `format` (the club handle and the puzzle id are only known at run time), so
+-- this runs one and hands back what it returned.
+create function pg_temp.envelope_of(sql text) returns jsonb as $envfn$
+declare result jsonb;
+begin execute sql into result; return result; end;
+$envfn$ language plpgsql;
 \ir setup.psql
 
 -- ============================================================
@@ -57,18 +67,16 @@ select pg_temp.connections_puzzle() as id;
 -- (1) Invalid mode rejected
 -- ============================================================
 
-select throws_ok(
-  format(
+select pg_temp.envelope_is(
+  pg_temp.envelope_of(format(
     $$ select connections.create_game(%L, pg_temp.connections_setup(%L::uuid),
                                     array['ada11111-1111-1111-1111-111111111111'::uuid,
                                           'bea22222-2222-2222-2222-222222222222'::uuid],
                                     'sudden-death') $$,
     (select handle from club), (select id from puzzle)
-  ),
-  'PN040',
-  'A game mode of ''sudden-death'' reached the server',
-  'create_game: invalid mode value is rejected'
-);
+  )),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN040"}'::jsonb,
+  'create_game: invalid mode value is rejected');
 
 -- ============================================================
 -- (2) Compete with <2 players rejected
@@ -76,17 +84,15 @@ select throws_ok(
 -- The FE manifest's numberOfPlayers: [2, 6] hides the Start
 -- button in 1-player clubs; this is the server-side catch.
 
-select throws_ok(
-  format(
+select pg_temp.envelope_is(
+  pg_temp.envelope_of(format(
     $$ select connections.create_game(%L, pg_temp.connections_setup(%L::uuid),
                                     array['ada11111-1111-1111-1111-111111111111'::uuid],
                                     'compete') $$,
     (select handle from club), (select id from puzzle)
-  ),
-  'P0001',
-  'too-few-players|',
-  'create_game: compete with 1 player is rejected'
-);
+  )),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN061"}'::jsonb,
+  'create_game: compete with 1 player is rejected');
 
 -- ============================================================
 -- (3)–(5) Happy compete path
@@ -96,14 +102,13 @@ select throws_ok(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g on commit drop as
-select * from connections.create_game(
+select (connections.create_game(
   (select handle from club),
   pg_temp.connections_setup((select id from puzzle)),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid,
         'cade3333-3333-3333-3333-333333333333'::uuid],
-  'compete'
-);
+  'compete')->'data'->>'id')::uuid as id;
 
 reset role;
 select is(
@@ -275,13 +280,12 @@ select throws_ok(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
-select * from connections.create_game(
+select (connections.create_game(
   (select handle from club),
   pg_temp.connections_setup((select id from puzzle)),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
-  'compete'
-);
+  'compete')->'data'->>'id')::uuid as id;
 
 -- Bea: 4 wrong guesses → eliminated.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
@@ -363,13 +367,12 @@ select is(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g3 on commit drop as
-select * from connections.create_game(
+select (connections.create_game(
   (select handle from club),
   pg_temp.connections_setup((select id from puzzle)),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
-  'compete'
-);
+  'compete')->'data'->>'id')::uuid as id;
 
 select connections.submit_timeout((select id from g3));
 
@@ -406,14 +409,13 @@ select throws_ok(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g4 on commit drop as
-select * from connections.create_game(
+select (connections.create_game(
   (select handle from club),
   pg_temp.connections_setup((select id from puzzle)),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid,
         'cade3333-3333-3333-3333-333333333333'::uuid],
-  'compete'
-);
+  'compete')->'data'->>'id')::uuid as id;
 
 select connections.submit_guess((select id from g4),
   array['ALPHA','BANANA','CASTLE','DAGGER']::text[], 'wrong', null);

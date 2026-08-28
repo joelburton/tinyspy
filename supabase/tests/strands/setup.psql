@@ -122,7 +122,7 @@ create function pg_temp.strands_setup(
 ) returns jsonb
 language sql immutable as $$
   select jsonb_build_object(
-    'puzzleId', p_puzzle,
+    'puzzle_id', p_puzzle,
     'band', p_band,
     'hint_cost', p_hint_cost,
     'min_word_length', p_min_len,

@@ -26,7 +26,7 @@ import type { ConnectionsValues } from '../lib/setup'
  * and a month-grid `<Calendar>` colored from `connections.club_game_status`,
  * plus `resolveDefaultPuzzle` — a pure helper that seeded the dialog with the
  * club's saved default and stepped one day forward if they'd finished it.
- * The server's derivation subsumes all of it, and `setup.puzzleId` is no
+ * The server's derivation subsumes all of it, and `setup.puzzle_id` is no
  * longer sent at all (create_game strips it from the club's saved default
  * too, so an older client's remembered pick can't override the derivation).
  *
@@ -49,6 +49,7 @@ export function SetupForm({
         members={members}
         selfId={selfId}
         numberOfPlayers={numberOfPlayers}
+        error={errors.player_user_ids}
         value={s.player_user_ids}
         onChange={(next) => set('player_user_ids', next)}
       />
@@ -66,6 +67,7 @@ export function SetupForm({
       />
 
       <SetupNextPuzzleSection
+        errors={errors}
         brand={brand}
         seenBy={players.map((p) => p.user_id)}
         load={async (seenBy) => {
@@ -79,9 +81,9 @@ export function SetupForm({
           const { data } = await db.rpc('puzzle_for_date', { target_date: date })
           return data?.[0] ?? null
         }}
-        // A chosen date rides in setup.puzzleId; cleared, the key is dropped
+        // A chosen date rides in setup.puzzle_id; cleared, the key is dropped
         // entirely — its ABSENCE is what tells create_game to choose.
-        onPick={(puzzleId) => set('puzzleId', puzzleId)}
+        onPick={(puzzleId) => set('puzzle_id', puzzleId)}
       />
 
       <SetupTimerSection errors={errors} value={s.timer} onChange={(timer) => set('timer', timer)} />

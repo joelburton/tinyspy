@@ -23,7 +23,7 @@ select (stackdown.create_game(
   (select handle from club), '{"timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
-  'coop');
+  'coop')->'data'->>'id')::uuid as id;
 
 -- ── Unreachable tiles (tile 21 is covered at the start) ─────────────
 select throws_ok(

@@ -18,7 +18,7 @@ export type StrandsValues = CoopTurnSetup & {
    *  (`strands.next_puzzle_for_club`). It stays in the type because the RPC
    *  still honors an explicit id, which is what the pgTAP and e2e fixtures
    *  pin their assertions to. */
-  puzzleId?: string
+  puzzle_id?: string
   /**
    * Dictionary ceiling for HINT words (1..6).
    *
@@ -58,7 +58,7 @@ export type StrandsValues = CoopTurnSetup & {
 export type StrandsSetup = SetupOf<StrandsValues>
 /** Band 5 matches the other word games' "legal" default: generous enough that
  *  hints are earnable without handing them out. */
-/* NO `puzzleId` KEY — not `''`. The server reads an ABSENT puzzleId as "you
+/* NO `puzzle_id` KEY — not `''`. The server reads an ABSENT puzzle_id as "you
  * choose"; an empty string is present-but-unparseable and would fail the uuid
  * cast with `bad-puzzle-id|` instead. */
 export const DEFAULT_STRANDS_SETUP_COOP: StrandsSetup = {

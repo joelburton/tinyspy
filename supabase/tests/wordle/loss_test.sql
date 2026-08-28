@@ -37,14 +37,14 @@ select (wordle.create_game(
   (select handle from club), pg_temp.wordle_setup(5),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
-  'coop');
+  'coop')->'data'->>'id')::uuid as id;
 
 create temp table g_comp on commit drop as
 select (wordle.create_game(
   (select handle from club), pg_temp.wordle_setup(5),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
-  'compete');
+  'compete')->'data'->>'id')::uuid as id;
 
 -- Five distinct valid guess words that miss BOTH games' targets, read as
 -- the superuser (the targets are hidden columns).

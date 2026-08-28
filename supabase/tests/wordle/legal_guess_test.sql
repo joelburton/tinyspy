@@ -23,7 +23,7 @@ create temp table g2 on commit drop as
 select (wordle.create_game(
   '=ada',
   '{"max_guesses": 6, "answer_source": 0, "legal_guess": 2, "timer": {"kind": "none"}}'::jsonb,
-  array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop');
+  array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop')->'data'->>'id')::uuid as id;
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
   wordle.submit_guess((select id from g2), 'moxie')->>'result',
@@ -36,7 +36,7 @@ create temp table g6 on commit drop as
 select (wordle.create_game(
   '=ada',
   '{"max_guesses": 6, "answer_source": 0, "legal_guess": 6, "timer": {"kind": "none"}}'::jsonb,
-  array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop');
+  array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop')->'data'->>'id')::uuid as id;
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
   wordle.submit_guess((select id from g6), 'moxie')->>'result',

@@ -32,13 +32,13 @@ select pg_temp.create_club('Psychic rp', array['ada','bea']) as handle;
 
 -- ── Coop: lose on budget, then replay → fully reset ─────────
 create temp table g1 on commit drop as
-select * from psychicnum.create_game(
+select (psychicnum.create_game(
   (select handle from club),
   '{"guesses": 3, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop'
-);
+)->'data'->>'id')::uuid as id;
 reset role;
 update psychicnum.games
    set words = array['zalpha','zbravo','zcharlie','zdelta','zecho','zfoxtrot','zgolf','zhotel'],
@@ -89,13 +89,13 @@ select is((select ticks from common.timers where game_id = (select id from g1)),
 -- ── Compete: status sums the per-player budgets ─────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
-select * from psychicnum.create_game(
+select (psychicnum.create_game(
   (select handle from club),
   '{"guesses": 3, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'compete'
-);
+)->'data'->>'id')::uuid as id;
 reset role;
 update psychicnum.games
    set words = array['zalpha','zbravo','zcharlie','zdelta','zecho','zfoxtrot','zgolf','zhotel'],
@@ -123,7 +123,7 @@ select is(
 -- ── Turn-order coop rewinds to the first-seated player ──────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g3 on commit drop as
-select * from psychicnum.create_game(
+select (psychicnum.create_game(
   (select handle from club),
   jsonb_build_object('guesses', 3, 'word_count', 8, 'difficulty', 3,
                      'timer', jsonb_build_object('kind', 'none'),
@@ -132,7 +132,7 @@ select * from psychicnum.create_game(
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop'
-);
+)->'data'->>'id')::uuid as id;
 reset role;
 update psychicnum.games
    set words = array['zalpha','zbravo','zcharlie','zdelta','zecho','zfoxtrot','zgolf','zhotel'],

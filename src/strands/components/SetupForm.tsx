@@ -43,6 +43,7 @@ export function SetupForm({
         members={members}
         selfId={selfId}
         numberOfPlayers={numberOfPlayers}
+        error={errors.player_user_ids}
         value={s.player_user_ids}
         onChange={(next) => set('player_user_ids', next)}
       />
@@ -58,6 +59,7 @@ export function SetupForm({
       />
 
       <SetupNextPuzzleSection
+        errors={errors}
         brand={brand}
         seenBy={players.map((p) => p.user_id)}
         load={async (seenBy) => {
@@ -71,9 +73,9 @@ export function SetupForm({
           const { data } = await db.rpc('puzzle_for_date', { target_date: date })
           return data?.[0] ?? null
         }}
-        // A chosen date rides in setup.puzzleId; cleared, the key is dropped
+        // A chosen date rides in setup.puzzle_id; cleared, the key is dropped
         // entirely — its ABSENCE is what tells create_game to choose.
-        onPick={(puzzleId) => set('puzzleId', puzzleId)}
+        onPick={(puzzleId) => set('puzzle_id', puzzleId)}
       />
 
       <SetupSection label={`Hint dictionary: ${difficultyValue(s.band)}`}>
