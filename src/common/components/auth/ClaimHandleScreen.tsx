@@ -1,6 +1,8 @@
 // cs-unmet
 
 import { StandardForm } from '../fields/StandardForm'
+import { FORM_ERROR_KEYNAME, type FormErrors } from '../fields/formState'
+import { FailureLine } from '../feedback/FailureLine'
 import { useState } from 'react'
 import { db as commonDb } from '../../db'
 import { runRpc } from '../../lib/supabase/dbResult'
@@ -83,46 +85,49 @@ function suggestedHandleFromEmail(email: string | null | undefined): string {
 const RULES =
   '3–15 characters: lowercase letters, digits, and hyphens. Must start with a letter.'
 
+/**
+ * What the form holds, keyed by the name each value is SENT AS — both are
+ * `common.claim_username`'s own parameters, so PN017's `column = 'desired'`
+ * lands on the username box with nothing to translate.
+ */
+type Values = { desired: string; chosen_color: string }
+
 export function ClaimHandleScreen({ onClaimed, email }: Props) {
-  // Pre-fill with the email-derived suggestion as an editable default.
-  const [desired, setDesired] = useState(() => suggestedHandleFromEmail(email))
-  // The selected color. Seeded ONCE from the suggested handle (a deterministic
-  // hash, so two people rarely start on the same color) and then owned entirely
-  // by the player.
-  //
-  // It deliberately does NOT track the username field. Deriving it live (say
-  // `picked ?? defaultColorFor(desired)`) makes the selection hop from swatch to
-  // swatch on every keystroke — you type in one control and watch another
-  // flicker. A default is worth having; one that keeps re-deciding while you
-  // type isn't.
-  const [selected, setSelected] = useState(() =>
-    defaultColorFor(suggestedHandleFromEmail(email)),
-  )
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [errors, setErrors] = useState<FormErrors>({})
 
-  // FE-side regex check, shown as you type. Empty string → no hint
-  // (don't badger the user before they've typed anything).
-  const localValid = desired.length === 0 || HANDLE_REGEX.test(desired)
+  // Pre-filled with the email-derived suggestion as an editable default, and
+  // the color seeded from a deterministic hash of it (so two people rarely
+  // start on the same one).
+  //
+  // The color deliberately does NOT track the username field. Deriving it live
+  // (say `picked ?? defaultColorFor(desired)`) makes the selection hop from
+  // swatch to swatch on every keystroke — you type in one control and watch
+  // another flicker. A default is worth having; one that keeps re-deciding
+  // while you type isn't. `initialValues` is read at mount, which is exactly
+  // that rule expressed once rather than per field.
+  const suggested = suggestedHandleFromEmail(email)
 
-  async function onSubmit() {
-    setError(null)
+  async function onSubmit({ desired, chosen_color }: Values) {
+    setErrors({})
 
     if (!HANDLE_REGEX.test(desired)) {
-      setError('Username must be 3–15 chars, lowercase letters/digits/hyphens, starting with a letter.')
+      setErrors({ desired: RULES })
       return
     }
 
     setBusy(true)
     const res = await runRpc(
-      commonDb.rpc('claim_username', { desired, chosen_color: selected }),
+      commonDb.rpc('claim_username', { desired, chosen_color }),
     )
     setBusy(false)
 
     if (res.type !== 'ok') {
-      // Every answer goes on the form's line. A fault has already raised the
-      // modal, and the line is what remains once that is dismissed.
-      setError(res.message)
+      // ONE entry, under the field the server named. PN017 — the username is
+      // taken — says `desired`, and it is the only thing here a player can act
+      // on. Everything else says `_` and lands on the form's own line; those
+      // have already raised the modal, and the line is what remains after it.
+      setErrors({ [res.field ?? FORM_ERROR_KEYNAME]: res.message })
       // PN018 is the one outcome with something to DO: the auth.users row
       // behind this JWT is gone (a stale token after a db:reset, a deleted
       // account), so there is no recovering the session. Reading the code here
@@ -163,45 +168,70 @@ export function ClaimHandleScreen({ onClaimed, email }: Props) {
           Your username is your permanent handle — pick one you&rsquo;ll be happy with. Your color can be changed later.
         </p>
 
-        <StandardForm onSubmit={onSubmit}>
-          <TextField
-            label="Username"
-            value={desired}
-            onChange={setDesired}
-            disabled={busy}
-            autoFocus
-            required
-            // Hard stop at the CHECK's ceiling — a handle you can't submit
-            // shouldn't be typeable in the first place.
-            maxLength={15}
-            // The rules are entry help while they hold and the error when they
-            // don't — same sentence either way, because breaking them is exactly
-            // what it warns against. The field also rings the box.
-            entryHelp={localValid ? RULES : undefined}
-            error={localValid ? null : RULES}
-          />
+        <StandardForm
+          initialValues={
+            { desired: suggested, chosen_color: defaultColorFor(suggested) } satisfies Values
+          }
+          onSubmit={onSubmit}
+        >
+          {({ values, set }) => {
+            // Checked as you type, so it isn't in the errors object: that holds
+            // what a SUBMIT produced, and this is recomputed every render.
+            // Empty string counts as valid — don't badger someone who hasn't
+            // typed anything yet.
+            const localValid = values.desired.length === 0 || HANDLE_REGEX.test(values.desired)
+            return (
+              <>
+                <TextField
+                  name="desired"
+                  label="Username"
+                  value={values.desired}
+                  onChange={(v) => set('desired', v)}
+                  disabled={busy}
+                  autoFocus
+                  required
+                  // Hard stop at the CHECK's ceiling — a handle you can't submit
+                  // shouldn't be typeable in the first place.
+                  maxLength={15}
+                  // The rules are entry help while they hold and the error when
+                  // they don't — same sentence either way, because breaking them
+                  // is exactly what it warns against. The field also rings the
+                  // box. While they hold, the box shows what the SERVER said
+                  // about this field, which is where "that username is taken"
+                  // lands.
+                  entryHelp={localValid ? RULES : undefined}
+                  error={localValid ? errors.desired : RULES}
+                />
 
-          <ColorField value={selected} onChange={setSelected} disabled={busy} />
+                <ColorField
+                  value={values.chosen_color}
+                  onChange={(v) => set('chosen_color', v)}
+                  error={errors.chosen_color}
+                  disabled={busy}
+                />
 
-          {error && <p className="error">{error}</p>}
+                <FailureLine>{errors[FORM_ERROR_KEYNAME]}</FailureLine>
 
-          {/* Always-available escape (a user can land here on a stale
-              session and not want — or be able — to claim anything; the
-              rest of the app's chrome isn't mounted behind the needsClaim
-              gate). Sits beside Accept now, styled as a real button. */}
-          <div className={styles.buttonRow}>
-            <CancelButton
-              name="Not you? Sign out"
-              disabled={busy}
-              onClick={() => void handleSignOut()}
-            />
-            <StandardButton
-              name={busy ? 'Setting up…' : 'Accept'}
-              type="submit"
-              weight="primary"
-              disabled={busy || !HANDLE_REGEX.test(desired)}
-            />
-          </div>
+                {/* Always-available escape (a user can land here on a stale
+                    session and not want — or be able — to claim anything; the
+                    rest of the app's chrome isn't mounted behind the needsClaim
+                    gate). Sits beside Accept now, styled as a real button. */}
+                <div className={styles.buttonRow}>
+                  <CancelButton
+                    name="Not you? Sign out"
+                    disabled={busy}
+                    onClick={() => void handleSignOut()}
+                  />
+                  <StandardButton
+                    name={busy ? 'Setting up…' : 'Accept'}
+                    type="submit"
+                    weight="primary"
+                    disabled={busy || !HANDLE_REGEX.test(values.desired)}
+                  />
+                </div>
+              </>
+            )
+          }}
         </StandardForm>
       </div>
     </div>

@@ -31,6 +31,54 @@ function stubLocation() {
   return assign
 }
 
+/** The field's own error slot: the last `<span>` in the same field wrapper as
+ *  the named control. Found through the CONTROL, so this tests the ROUTING — a
+ *  page-wide text match would pass wherever the message landed. */
+function errorUnder(name: string): string | null {
+  const control = document.querySelector(`[name="${name}"]`)
+  const spans = control?.closest('div')?.querySelectorAll('span')
+  return spans?.length ? (spans[spans.length - 1].textContent ?? null) : null
+}
+
+describe('ClaimHandleScreen — a taken username lands on the username box', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+    // `restoreAllMocks` restores SPIES; it does not reset a `vi.fn()`, so
+    // without this the call below is still in the history when the next
+    // describe asserts the RPC was never reached.
+    mockRpc.mockReset()
+  })
+
+  // PN017 is the one thing this RPC refuses that a player can act on, and it
+  // says which input it is about. Before the form held its values by name there
+  // was nowhere for that to go, and the message sat on a line at the bottom
+  // beside a color picker it had nothing to do with.
+  it('shows the server message under the field the server named', async () => {
+    mockRpc.mockResolvedValue({
+      data: {
+        type: 'not-ok',
+        severity: 'validation',
+        dbcode: 'PN017',
+        field: 'desired',
+        message: 'That username is taken',
+      },
+      error: null,
+    })
+    const user = userEvent.setup()
+    render(<ClaimHandleScreen onClaimed={vi.fn()} email="zoe@test.local" />)
+
+    const box = screen.getByRole('textbox', { name: /Username/ })
+    await user.clear(box)
+    await user.type(box, 'zoe')
+    await user.click(screen.getByRole('button', { name: 'Accept' }))
+
+    await waitFor(() => expect(errorUnder('desired')).toBe('That username is taken'))
+    // …and rings it. `aria-invalid` is what draws the ring, so this is the
+    // assertion that the field LOOKS wrong rather than merely says so.
+    expect(box).toHaveAttribute('aria-invalid', 'true')
+  })
+})
+
 describe('ClaimHandleScreen', () => {
   afterEach(() => {
     Object.defineProperty(window, 'location', {
