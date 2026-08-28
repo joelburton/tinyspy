@@ -7,7 +7,6 @@ import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import type { GamePageCtx } from '../../common/lib/games'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { outOfRacePill, stickyPill } from '../../common/lib/game/localPills'
-import { faultMessage } from '../../common/lib/game/serverError'
 import { waitingTurnPill } from '../../common/components/game/turnCopy'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
@@ -20,7 +19,7 @@ import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { callRpc } from '../../common/lib/game/callRpc'
-import { invokeStartGameEdgeFn } from '../../common/lib/game/manifestRpcs'
+import { runEdgeFn } from '../../common/lib/supabase/dbResult'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
@@ -369,21 +368,21 @@ export function PlayArea(ctx: GamePageCtx) {
     // the club page). Confirm so an accidental `+` doesn't read as a loss.
     if (!isTerminal && !(await confirmAction(NEW_GAME_CONFIRM))) return
     if (!gameMode) return
-    const res = await invokeStartGameEdgeFn(
+    const res = await runEdgeFn<{ id: string }>(
       'letterboxed-build-board',
       { target_club: clubHandle, setup, player_user_ids: players.map((p) => p.user_id), mode: gameMode },
-      brand,
     )
-    if ('error' in res) {
-      // New game is a FAULT SURFACE (serverError.ts → faultMessage): this setup
-      // already built a game once, so anything that comes back is a bug or an
-      // outage — never a pill. Copy supplies the words when it has them; the
-      // real message survives otherwise (res.error is a classifiable CallError).
-      showLocalFeedback(faultMessage(res.error, 'new game'))
+    if (res.type !== 'ok') {
+      // THE SAME ENVELOPE, READ DIFFERENTLY. On the setup form a validation is
+      // an answer — fix the field and press Start again. Here there is no field
+      // and no form: this setup already built a game once, so whatever comes
+      // back is a bug or an outage, and it wears the fault look whatever the
+      // server called it. `runEdgeFn` has already logged it under `[db]`.
+      showLocalFeedback({ tone: 'error', fault: true, text: res.message, mode: { kind: 'manual' } })
       return
     }
-    goToGame(`letterboxed_${gameMode}`, res.id)
-  }, [gameMode, clubHandle, setup, players, brand, goToGame, showLocalFeedback, confirmAction, isTerminal])
+    goToGame(`letterboxed_${gameMode}`, res.data.id)
+  }, [gameMode, clubHandle, setup, players, goToGame, showLocalFeedback, confirmAction, isTerminal])
 
   // Single-flight: "New game" has three triggers (terminal button, menu item,
   // the global `+`) and create_game is NOT idempotent — guarding the handler

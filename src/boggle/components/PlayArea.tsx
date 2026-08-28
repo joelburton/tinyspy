@@ -6,7 +6,7 @@ import { cls } from '../../common/lib/util/cls'
 import type { GamePageCtx, GamePlayer } from '../../common/lib/games'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { setupRows } from '../lib/setupSummary'
-import { invokeStartGameEdgeFn } from '../../common/lib/game/manifestRpcs'
+import { runEdgeFn } from '../../common/lib/supabase/dbResult'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
 import { useConfirmation, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmation'
 import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
@@ -15,7 +15,6 @@ import { CelebrationBlockingModal } from '../../common/components/game/Celebrati
 import { useCelebration } from '../../common/hooks/game/useCelebration'
 import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback'
 import { outOfRacePill } from '../../common/lib/game/localPills'
-import { faultMessage } from '../../common/lib/game/serverError'
 import { memberById } from '../../common/lib/game/peers'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import { useWordSubmit, wordWithBonusDot, type WordEntry } from '../../common/hooks/game/useWordSubmit'
@@ -326,7 +325,7 @@ export function PlayArea(ctx: GamePageCtx) {
     // copy says shelved, not ended. At terminal there's nothing to interrupt.
     if (!isTerminal && !(await confirmAction(NEW_GAME_CONFIRM))) return
     if (!gameMode) return // menu exists pre-load, but there's no mode to copy yet
-    const res = await invokeStartGameEdgeFn(
+    const res = await runEdgeFn<{ id: string }>(
       'boggle-build-board',
       {
         target_club: clubHandle,
@@ -334,18 +333,18 @@ export function PlayArea(ctx: GamePageCtx) {
         player_user_ids: players.map((p) => p.user_id),
         mode: gameMode,
       },
-      brand,
     )
-    if ('error' in res) {
-      // New game is a FAULT SURFACE (serverError.ts → faultMessage): this setup
-      // already built a game once, so anything that comes back is a bug or an
-      // outage — never a pill. Copy supplies the words when it has them; the
-      // real message survives otherwise (res.error is a classifiable CallError).
-      showLocalFeedback(faultMessage(res.error, 'new game'))
+    if (res.type !== 'ok') {
+      // THE SAME ENVELOPE, READ DIFFERENTLY. On the setup form a validation is
+      // an answer — fix the field and press Start again. Here there is no field
+      // and no form: this setup already built a game once, so whatever comes
+      // back is a bug or an outage, and it wears the fault look whatever the
+      // server called it. `runEdgeFn` has already logged it under `[db]`.
+      showLocalFeedback({ tone: 'error', fault: true, text: res.message, mode: { kind: 'manual' } })
       return
     }
-    goToGame(`boggle_${gameMode}`, res.id)
-  }, [gameMode, clubHandle, setup, players, brand, goToGame, showLocalFeedback, confirmAction, isTerminal])
+    goToGame(`boggle_${gameMode}`, res.data.id)
+  }, [gameMode, clubHandle, setup, players, goToGame, showLocalFeedback, confirmAction, isTerminal])
 
   // Single-flight guard. New game has THREE triggers (the terminal button, the
   // game-menu item, and the global `+` shortcut), and `common.create_game` is

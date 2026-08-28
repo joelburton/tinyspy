@@ -31,7 +31,7 @@ vi.mock('../hooks/useGame', () => ({
   useGame: () => ({ ...h.result, validGuesses: h.result.guesses.filter((g) => g.valid) }),
 }))
 vi.mock('../db', () => ({ db: { rpc: vi.fn().mockResolvedValue({ error: null }) } }))
-vi.mock('../../common/lib/game/manifestRpcs', () => ({ invokeStartGameEdgeFn: vi.fn() }))
+vi.mock('../../common/lib/supabase/dbResult', () => ({ runEdgeFn: vi.fn() }))
 
 /** A loaded game on base 'ar', longest possible 'hangars' (7). */
 function loadedGame(over: Partial<WordiplyGame> = {}): WordiplyGame {

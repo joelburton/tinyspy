@@ -24,7 +24,7 @@ import { gp } from '../../common/test/gamePlayers'
 import type { WaffleGame, WafflePlayerState, SwapRow } from '../hooks/useGame'
 import { db } from '../db'
 import { db as commonDb } from '../../common/db'
-import { invokeStartGameEdgeFn } from '../../common/lib/game/manifestRpcs'
+import { callEdgeFn } from '../../common/lib/supabase/callEdgeFn'
 import { PlayArea } from './PlayArea'
 import { clearFaultsForTest, peekFaultsForTest } from '../../common/lib/fault/faultStore'
 
@@ -46,11 +46,16 @@ vi.mock('../db', () => ({ db: { rpc: vi.fn() } }))
 vi.mock('../../common/db', () => ({ db: { rpc: vi.fn() } }))
 // PlayArea's "New game" calls the start-game edge function directly (the same
 // helper the manifest uses); mocked so no edge runtime is needed.
-vi.mock('../../common/lib/game/manifestRpcs', () => ({ invokeStartGameEdgeFn: vi.fn() }))
+// The TRANSPORT, not the seam. This used to mock `invokeStartGameEdgeFn` — the
+// helper PlayArea called — so when that helper's replacement started returning a
+// different shape, the test kept passing against a helper nothing used any more.
+// Mocking one layer down runs the real `runEdgeFn`, which is what reads the
+// envelope and raises the fault.
+vi.mock('../../common/lib/supabase/callEdgeFn', () => ({ callEdgeFn: vi.fn() }))
 
 const rpc = db.rpc as unknown as ReturnType<typeof vi.fn>
 const commonRpc = commonDb.rpc as unknown as ReturnType<typeof vi.fn>
-const startEdgeFn = invokeStartGameEdgeFn as unknown as ReturnType<typeof vi.fn>
+const startEdgeFn = callEdgeFn as unknown as ReturnType<typeof vi.fn>
 
 // A 25-char board (holes at 6/8/16/18); the exact letters don't matter for these
 // mount-level tests — holes render as gaps regardless of what sits there.
@@ -242,7 +247,7 @@ describe('waffle PlayArea — new game (menu)', () => {
 
   it('starts a fresh game with this game\'s setup + roster + mode, then navigates', async () => {
     const user = userEvent.setup()
-    startEdgeFn.mockResolvedValue({ id: 'fresh-game-id' })
+    startEdgeFn.mockResolvedValue({ error: null, data: { type: 'ok', data: { id: 'fresh-game-id' } } })
     h.result = loaded(coopGame, [me, moth])
     const ctx = makeCtx({ players: twoMembers })
     render(<PlayArea {...ctx} />)
@@ -262,35 +267,51 @@ describe('waffle PlayArea — new game (menu)', () => {
           player_user_ids: ['u1', 'u2'],
           mode: 'coop',
         },
-        'SyrupSwap',
       ),
     )
     await waitFor(() => expect(ctx.goToGame).toHaveBeenCalledWith('waffle_coop', 'fresh-game-id'))
   })
 
-  it('surfaces an edge-function error as a FAULT carrying the real message (no navigation)', async () => {
+  it('shows a refusal in the server\'s own words, wearing the fault look, and does not navigate', async () => {
     const user = userEvent.setup()
-    // New game is a FAULT SURFACE (serverError.ts → faultMessage), and
-    // `invokeStartGameEdgeFn` now returns a classifiable CallError. The
-    // `answered` marker is what keeps the function's real answer on screen —
-    // as the bare-red fault `new game|…` — instead of the transport line's
-    // "Server; try refresh", which must never replace a server's answer.
+    // THE SAME ENVELOPE, READ DIFFERENTLY. On the setup form "no board could be
+    // built at that difficulty" is a validation you answer by changing a field.
+    // Here there is no field and no form — this setup already built a game once
+    // — so whatever comes back is a bug or an outage and wears the fault look
+    // whatever the server called it. The words are the server's either way; the
+    // frontend no longer rebuilds a sentence from a key.
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
-    startEdgeFn.mockResolvedValue({ error: { message: 'no words for that band', answered: true } })
-    h.result = loaded(coopGame)
-    const ctx = makeCtx()
+    startEdgeFn.mockResolvedValue({
+      error: null,
+      data: {
+        type: 'not-ok',
+        severity: 'fault',
+        message: 'No board could be built at that difficulty.',
+        dbcode: 'PN121',
+      },
+    })
+    // A live two-player game, like the happy-path test above: the below-board
+    // pill has a precedence chain (terminal verdict → out-of-race → whose-turn
+    // → this), so a game that is over or waiting would hide the message being
+    // asserted and pass for the wrong reason.
+    h.result = loaded(coopGame, [me, moth])
+    const ctx = makeCtx({ players: twoMembers })
     render(<PlayArea {...ctx} />)
 
     act(() => menuItems(ctx).find((i) => i.id === 'new-game')!.onClick())
     await user.click(await screen.findByRole('button', { name: 'Start new game' }))
-    // Faults route to the MODAL queue now, never a slot (docs/ui.md → Faults).
+
+    // Faults route to the MODAL queue, never a slot (docs/ui.md → Faults), and
+    // the words are the SERVER's — the frontend no longer rebuilds a sentence
+    // from a key.
     await waitFor(() =>
-      expect(peekFaultsForTest().map((f) => f.text)).toContain('new game|no words for that band'),
+      expect(peekFaultsForTest().map((f) => f.text)).toContain(
+        'No board could be built at that difficulty.',
+      ),
     )
-    expect(screen.queryByText('new game|no words for that band')).toBeNull()
     expect(ctx.goToGame).not.toHaveBeenCalled()
-    // Faults leave a [db] trail; expected pills don't. This one must.
-    expect(consoleSpy.mock.calls.some((c) => String(c[0]).includes('FAULT on new game'))).toBe(true)
+    // A fault leaves a [db] trail; an expected pill doesn't. This one must.
+    expect(consoleSpy.mock.calls.some((c) => String(c[0]).includes('FAULT'))).toBe(true)
     consoleSpy.mockRestore()
   })
 })
@@ -370,7 +391,7 @@ describe('waffle PlayArea — icon-only action rows', () => {
   })
 
   it('terminal "New game" button starts the follow-up game', async () => {
-    startEdgeFn.mockResolvedValue({ id: 'next-game-id' })
+    startEdgeFn.mockResolvedValue({ error: null, data: { type: 'ok', data: { id: 'next-game-id' } } })
     const user = userEvent.setup()
     h.result = loaded({ ...coopGame, solution: FIXTURE_SOLUTION })
     const ctx = makeCtx({ isTerminal: true, playState: 'lost' })

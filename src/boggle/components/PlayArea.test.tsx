@@ -22,7 +22,7 @@ import type { GamePageCtx } from '../../common/lib/games'
 import { gp } from '../../common/test/gamePlayers'
 import type { BoggleGame, FoundWordRow } from '../hooks/useGame'
 import { db } from '../db'
-import { invokeStartGameEdgeFn } from '../../common/lib/game/manifestRpcs'
+import { runEdgeFn } from '../../common/lib/supabase/dbResult'
 import { PlayArea } from './PlayArea'
 
 // Feedback `text` is now a ReactNode (an <ActorDot> widget + sentence) rather
@@ -42,10 +42,10 @@ vi.mock('../hooks/useGame', () => ({ useGame: () => h.result }))
 vi.mock('../db', () => ({ db: { rpc: vi.fn() } }))
 // PlayArea's "New game" calls the start-game edge function directly (the same
 // helper the manifest uses); mocked so no edge runtime is needed.
-vi.mock('../../common/lib/game/manifestRpcs', () => ({ invokeStartGameEdgeFn: vi.fn() }))
+vi.mock('../../common/lib/supabase/dbResult', () => ({ runEdgeFn: vi.fn() }))
 
 const rpc = db.rpc as unknown as ReturnType<typeof vi.fn>
-const startEdgeFn = invokeStartGameEdgeFn as unknown as ReturnType<typeof vi.fn>
+const startEdgeFn = runEdgeFn as unknown as ReturnType<typeof vi.fn>
 
 /** A loaded 4×4 game header; override the mode + required list per test. */
 function loadedGame(over: Partial<BoggleGame> = {}): BoggleGame {
@@ -242,7 +242,7 @@ describe('boggle PlayArea — icon-only action rows', () => {
   })
 
   it('terminal "New game" starts a fresh game with this setup/roster/mode', async () => {
-    startEdgeFn.mockResolvedValue({ id: 'fresh-game-id' })
+    startEdgeFn.mockResolvedValue({ type: 'ok', data: { id: 'fresh-game-id' } })
     const user = userEvent.setup()
     const ctx = makeCtx({ isTerminal: true, playState: 'ended' })
     render(<PlayArea {...ctx} />)
@@ -256,7 +256,6 @@ describe('boggle PlayArea — icon-only action rows', () => {
           player_user_ids: ['u1'],
           mode: 'coop',
         },
-        'MothCubes',
       ),
     )
     await waitFor(() =>
