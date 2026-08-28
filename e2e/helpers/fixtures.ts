@@ -988,7 +988,7 @@ async function createConnectionsGameFrom(
     .schema('connections')
     .rpc('create_game', {
       target_club: club.handle,
-      setup: { puzzle_id: puzzleId, timer: { kind: 'none' } },
+      setup: { puzzle_id, timer: { kind: 'none' } },
       player_user_ids: playerUserIds,
       mode,
     })

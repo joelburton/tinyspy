@@ -52,7 +52,7 @@ const ALLOWED = new Map<string, string>([
   ['src/common/hooks/game/useWordSubmit.ts', 'normalizes a thrown rejection into a CallError'],
   ['src/common/lib/supabase/callEdgeFn.ts', 'builds the classifiable CallError off a functions-js failure'],
   // Not server errors at all.
-  ['src/crosswords/components/SetupForm.tsx', 'a FileReader failure reading a local .ipuz'],
+  ['src/crosswords/components/pickers/UploadPickerBlockingModal.tsx', 'a FileReader failure reading a local .ipuz'],
   // GoTrue auth errors are the AUTH SERVICE's own user-facing text ("Token has
   // expired or is invalid") — not our DB speaking, no fe-error-keys, and its
   // sentences are written for end users. The form line shows them as-is.

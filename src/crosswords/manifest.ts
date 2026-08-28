@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { lazy } from 'react'
-import { FORM_ERROR_KEYNAME, type FormErrors } from '../common/components/fields/formState'
+import type { FormErrors } from '../common/components/fields/formState'
 import type { GameManifest } from '../common/lib/games'
 import {
   edgeStartEnvelope,
@@ -91,24 +91,33 @@ function startGameInClubFactory(mode: 'coop' | 'compete', brand: string) {
 const submitTimeout = makeRpcDispatcher(db, 'submit_timeout')
 const endGame = makeRpcDispatcher(db, 'end_game')
 
-/** Start is blocked until a puzzle is chosen (library) / a weekday or date is
- *  set (NYT) / a file is parsed (upload). */
-const form = (message: string): FormErrors => ({ [FORM_ERROR_KEYNAME]: message })
+/**
+ * Start is blocked until a puzzle is chosen (library) / a weekday or date is
+ * set (NYT) / a file is parsed (upload).
+ *
+ * **All four land on `puzzle_source`**, which is the whole of what F50
+ * (`puzzle-source-picks-in-a-dialog`) bought: they used to go to the form's
+ * bottom line, because the four sources were tabs and no control carried a
+ * `name` for the errors object to key on. Now there is one field, its button
+ * row is always on screen whichever source you chose, and the message rings it.
+ *
+ * They ARE all one field's message, not four fields' — "you have not picked a
+ * puzzle" is the same complaint however you were going to pick one.
+ */
+const puzzle = (message: string): FormErrors => ({ puzzle_source: message })
 
 const validate = (setup: unknown): FormErrors => {
   const s = setup as CrosswordsSetup
   // NYT takes either: a weekday (the normal path — the server resolves it to
   // the most recent unplayed date) or an explicit date (the override). The
-  // form always has a weekday, so this only fires for a client that cleared it.
-  // On the form's own line, not under a field. crosswords' setup form is the
-  // one that has not had its pass — none of its controls carry a `name` yet —
-  // so there is nothing for these to land under. They move when it converts.
+  // picker always sets one of them, so this only fires for a client that
+  // cleared both.
   if (s.source === 'nyt') {
-    return s.date || typeof s.weekday === 'number' ? {} : form('Pick a weekday or a date.')
+    return s.date || typeof s.weekday === 'number' ? {} : puzzle('Pick a weekday or a date.')
   }
-  if (s.source === 'guardian') return s.series ? {} : form('Pick a Guardian series.')
-  if (s.source === 'upload') return s.board ? {} : form('Choose a .puz or .ipuz file.')
-  return s.puzzle_id ? {} : form('Pick a puzzle to start.')
+  if (s.source === 'guardian') return s.series ? {} : puzzle('Pick a Guardian series.')
+  if (s.source === 'upload') return s.board ? {} : puzzle('Choose a .puz or .ipuz file.')
+  return s.puzzle_id ? {} : puzzle('Pick a puzzle to start.')
 }
 
 type StatusBlob = Record<string, unknown>

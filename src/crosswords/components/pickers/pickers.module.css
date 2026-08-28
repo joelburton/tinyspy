@@ -1,0 +1,169 @@
+/* cs-unmet */
+
+/* The four puzzle pickers (plans/areas/forms.md → F50
+ * `puzzle-source-picks-in-a-dialog`). Every rule here moved out of
+ * SetupForm.module.css unchanged when the four tab bodies became four
+ * dialogs — the tabs' own machinery (.tabStack / .tabBody / .tabHidden) is
+ * what went, since a dialog is only ever showing one source.
+ *
+ * One stylesheet for four components because they are one CATEGORY: each is a
+ * card holding a list or a drop target, and the two that hold lists must agree
+ * on how tall that box is or the pickers pop between sizes as you try them. */
+
+/* @@ */ .body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-height: 0;
+}
+
+/* The lead line each picker opens with — REAL help text, so full
+ * --page-text-color and never muted: the understatement comes from size /
+ * italic / placement, not dimming.
+ *
+ * The Guardian series' character hints used to have a rule of their own here,
+ * because one hint sat under the <select> describing whichever row was chosen.
+ * As a list every row carries its own, so they are `.rowNote` like the NYT
+ * weekday notes — the same job, and now visibly the same thing. */
+/* @@ */ .lead {
+  margin: 0 0 0.75rem;
+}
+
+/* @@ */ .search {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--page-surface-border-color);
+  border-radius: 6px;
+  font-size: 0.95rem;
+}
+
+/* A list picker's BOX. A fixed height of roughly eight rows, not a max-height —
+ * it holds its size while filtering shrinks the results, so the card does not
+ * grow and shrink under the cursor as you type. The <SelectionList> inside
+ * `fills` it and does the scrolling; this only says how tall the block is,
+ * which is a fact about the picker rather than about lists. */
+/* @@ */ .listBox {
+  display: flex;
+  flex-direction: column;
+  height: 19.5rem;
+}
+
+/* The weekday and series lists are short and fixed, so they hug their rows
+ * rather than reserving the library's eight. */
+/* @@ */ .shortListBox {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ─── Club-history stripe ─────────────────────────────────────
+ *
+ * "Has THIS club played this puzzle?", from crosswords.library_for_club.
+ * The colors are the shared --gamelist-* tokens — the same vocabulary the club
+ * page's rows use, since a puzzle row and a game row are answering the same
+ * question, rather than a private palette the picker invents.
+ *
+ * Pinned to the row's left edge rather than drawn as its border, so ONLY the
+ * color can ever vary: a border would let a future state change the width and
+ * reflow the whole list, and every row — "never played" included — has to
+ * occupy the same 4px or the rows shift when the statuses land. */
+/* @@ */ .stripe {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--gamelist-unplayed-color);
+}
+
+/* @@ */ .statusSolved  { background: var(--gamelist-won-color); }
+/* Yellow covers both "a game is live" and "a game was ended manually" — the
+ * RPC folds them into one bucket. Same tone the club page uses for "still
+ * open, we'll come back to it". */
+/* @@ */ .statusPlaying { background: var(--gamelist-suspended-color); }
+/* @@ */ .statusLost    { background: var(--gamelist-lost-color); }
+/* Neither transparent nor the strong neutral: near-white keeps the stripe
+ * honest about its width while leaving all the signal to the three played
+ * states. Most of a library is unplayed, and a mid-gray stripe on every one
+ * of those rows would read as noise competing with the real colors. */
+/* @@ */ .statusUnplayed { background: var(--gamelist-unplayed-color); }
+
+/* One line per row: a long title ellipsizes instead of wrapping. */
+/* @@ */ .itemTitle {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  /* Load-bearing: a flex item defaults to `min-width: auto`, i.e. it refuses
+   * to shrink below its content. Without this, `text-overflow: ellipsis` never
+   * engages — the title just pushes the row (and the card) wider instead. */
+  min-width: 0;
+}
+
+/* The weekday and series rows carry a second, quieter line: what that choice
+ * is LIKE. It is the whole reason these are lists rather than a <select> — a
+ * dropdown can show a difficulty note only on the row you are already on. */
+/* @@ */ .rowNote {
+  color: var(--page-text-muted-color);
+  font-size: 0.85rem;
+}
+
+/* Upload: a hidden native file input + a dropzone that is also a button
+ * (click opens the file chooser; drag-drop drops onto it). */
+/* @@ */ .fileInput {
+  display: none;
+}
+/* @@ */ .dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  min-height: 8rem;
+  flex: 1;
+  padding: 1rem;
+  font: inherit;
+  text-align: center;
+  color: var(--page-text-color);
+  background: var(--field-fill-color);
+  border: 2px dashed var(--field-edge-color);
+  border-radius: 8px;
+  cursor: pointer;
+}
+/* @@ */ .dropzone:hover {
+  border-color: var(--page-text-color);
+}
+/* Active drag-over state — highlight the target. */
+/* @@ */ .dropOver {
+  border-color: var(--page-text-color);
+  background: var(--crosswords-in-word);
+}
+/* @@ */ .dropTitle {
+  font-weight: 600;
+}
+/* @@ */ .dropMeta {
+  color: var(--page-text-muted-color);
+  font-size: 0.85rem;
+}
+/* @@ */ .uploadError {
+  color: var(--chrome-fault-color);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+/*
+ * The line introducing the NYT picker's date override.
+ *
+ * Full-strength text, not muted: it is an instruction, and the override is a
+ * real second way in rather than a footnote to the weekday list above it.
+ *
+ * It used to be this picker's one line of STATE — which date the chosen weekday
+ * would fetch — and the min-height existed so the box below could not jump when
+ * that lookup landed. The lookup moved to the field (it depends on the player
+ * set), so the line is static now and the min-height is what keeps it the same
+ * height as the sentence it replaced.
+ */
+/* @@ */ .overrideLabel {
+  color: var(--page-text-color);
+  line-height: 1.4;
+  min-height: 1.4em;
+  margin: 0.5rem 0;
+}

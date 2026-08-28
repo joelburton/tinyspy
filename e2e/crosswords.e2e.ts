@@ -432,9 +432,9 @@ test.describe('crosswords play loop', () => {
     await expect(p2.getByRole('menuitem', { name: 'Explain cryptic clue' })).toBeEnabled()
   })
 
-  // Upload flow: the setup form's "Upload" tab parses a .puz/.ipuz
-  // client-side and starts a self-contained game (inline board, no puzzles
-  // row). Drives the real setup dialog end to end.
+  // Upload flow: the upload PICKER parses a .puz/.ipuz client-side and starts a
+  // self-contained game (inline board, no puzzles row). Drives the real setup
+  // dialog end to end.
   test('upload: a .puz file creates a game via the setup form', async ({ browser }) => {
     const club = await createSoloClub('xwup')
     const [alice] = club.members
@@ -447,20 +447,24 @@ test.describe('crosswords play loop', () => {
     // compete is disabled in a solo club).
     await startGameRow(page, /CrossPlay/).click()
 
-    // Switch to the Upload tab and choose a fixture .puz (the hidden input
+    // Open the upload picker and choose a fixture .puz (the hidden input
     // accepts setInputFiles even though it's not visible).
-    // `exact` so this pins the TAB and can't drift onto some future button whose
-    // name merely contains "Upload" (Playwright's `name` is substring-matched).
-    // The tab was called "Upload file" until e8acc5c8 shortened it to fit a
-    // phone; the rename left this locator waiting 45s for a button that no
-    // longer existed, which reads as a hang rather than a rename.
+    // `exact` so this pins the SOURCE BUTTON and can't drift onto some future
+    // button whose name merely contains "Upload" (Playwright's `name` is
+    // substring-matched). It was called "Upload file" until e8acc5c8 shortened
+    // it to fit a phone; the rename left this locator waiting 45s for a button
+    // that no longer existed, which reads as a hang rather than a rename.
     await page.getByRole('button', { name: 'Upload', exact: true }).click()
     await page
       .locator('input[type="file"]')
       .setInputFiles('supabase/scripts/crosswords/fixtures/sunday-sample.puz')
 
-    // The dropzone shows the parsed puzzle once it's ready.
-    await expect(page.getByText(/click to replace/)).toBeVisible({ timeout: 10000 })
+    // A parse CLOSES the picker (F50 `puzzle-source-picks-in-a-dialog`), and
+    // the setup form's caption names both the puzzle and the file it came from
+    // — the only account of either once the picker has gone.
+    await expect(page.getByText(/^Puzzle: .*sunday-sample\.puz$/)).toBeVisible({
+      timeout: 10000,
+    })
 
     // Start → land on the game with a rendered grid.
     await page.getByRole('button', { name: /^Start CrossPlay/ }).click()

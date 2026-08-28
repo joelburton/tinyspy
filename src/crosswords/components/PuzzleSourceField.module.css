@@ -1,0 +1,9 @@
+/* cs-unmet */
+
+/* The four source buttons sit in the app's shared `.segmented` group, so the
+ * only thing this field states is how that group meets the caption above it —
+ * <Field> renders a <legend> for a group, and a legend's own box does not
+ * inherit the field's stack gap. */
+/* @@ */ .sources {
+  margin-top: 0.25rem;
+}

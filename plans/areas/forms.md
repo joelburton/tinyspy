@@ -1276,3 +1276,227 @@ one field (`player_user_ids`) plus a section.
 
 **Not scheduled.** Raised while the error sprint was mid-roster; it touches all
 sixteen setup bodies, so it waits for its own pass.
+
+---
+
+## F50 · `puzzle-source-picks-in-a-dialog` · Four ways to get a puzzle, four dialogs
+
+**Raised 2026-08-28 by Joel**, while crosswords was the last game left in the
+error sprint's `create_game` roster and the only one still unable to put a
+setup message under a field.
+
+> "the setup form is challenging because of the tab between the various puzzle
+> sources… Validation for a puzzle source can be hidden when on a different tab
+> [and] the form gets really complex because of needing to handle several ways
+> to get puzzles *and* all of the UI which is hidden 2/3rd of the time."
+
+### The problem, stated exactly
+
+`src/crosswords/components/SetupForm.tsx` is **472 lines** and holds four
+puzzle-source bodies at once — library, NYT, Guardian, upload — behind a
+segmented control writing `setup.source`.
+
+**All four stay MOUNTED**, stacked in one grid cell with the inactive three
+`visibility: hidden` (`.tabStack`), so the block is always as tall as the
+tallest (the library's 8-row list) and switching tabs never resizes the dialog.
+That is a real problem solved a real way, and it is also why the file is what
+it is: four `useState`s that belong to one tab each, four `onClick` handlers
+that clear `board` + `filename` on the way out, and two `useEffect` fetches.
+
+**The structural fault is the hidden one.** A refusal about a source is
+attached to controls that may not be on screen — the setup dialog can be told
+"that board needs dictionary 5" while showing the library list. Nothing in the
+error system can fix that from the outside: it is what a tab model permits.
+
+It is also why crosswords is the one game whose `validate` still returns
+`'_'`. None of its controls carry a `name`, so there is nothing for a message
+to land under (see [F48](#f48--form-state-and-field-errors--a-form-is-one-keyed-object-and-errors-are-too) → the setup
+dialog's own half).
+
+### The design (Joel's)
+
+**One field, `puzzle_source`: four buttons.** Pressing one opens a
+modal-blocking dialog specific to that source. Its whole job is to let the
+player choose — or cancel — and hand back what starting a game with that puzzle
+needs.
+
+**Choosing CLOSES it.** No "Use this puzzle" footer button, because that would
+make the common path two presses where it is one today. Clicking a library row
+picks and dismisses; so does Enter on it. Joel, 2026-08-28:
+
+> "our SelectionList is always better when we can use RETURN to mean 'do the
+> thing' (so you can arrow + press return to choose and close, just like
+> clicking)"
+
+`SelectionList` already has exactly these two modes as a discriminated union:
+`selected` / `onSelect` (Enter records a choice) versus `onActivate` (Enter does
+the thing). The library picker is on the first arm today **because** Start lives
+in the dialog around it. Inside its own dialog it moves to the second, which is
+the arm the component was built for. No component change — the other arm of a
+union that already exists.
+
+### Why this shape and not the others
+
+| | fixes the 472 lines | fixes hidden validation |
+|---|---|---|
+| extract each tab body into a component, keep tabs | yes | **no** |
+| source becomes a field, render only the ACTIVE body | yes | **no** — the error still hangs off a body that may not be shown |
+| **four dialogs** | yes | **yes** — what is validated and what is on screen are the same thing |
+| a wizard: the setup dialog BECOMES the picker | yes | yes, but hides players + timer while picking |
+
+**Nesting is already proven here**: `SetupGameModal:298` opens Help on top of
+itself and stays open behind it.
+
+### What the field's value is
+
+**No change to `setup`'s keys and none to `create_game`.** Each dialog writes
+the keys its source already writes — `puzzle_id` · `date` + `weekday` ·
+`series` · `board` + `filename` — through the same `set()` the form uses now.
+
+What the FIELD shows is a **sentence**, built from whichever keys are set.
+`Puzzle:` because `SetupNextPuzzleSection` already uses exactly that word for
+connections and strands — the same idea, so the same prefix.
+
+| state | summary |
+|---|---|
+| nothing chosen | `Puzzle: choose one` |
+| library | `Puzzle: Bee Season · Patrick Berry` |
+| NYT by weekday | `Puzzle: NYT Monday · 2026-08-24` |
+| NYT, that weekday used up | `Puzzle: NYT Monday · none left` |
+| NYT by explicit date | `Puzzle: NYT 2026-08-24` |
+| Guardian | `Puzzle: Guardian Quiptic` |
+| upload | `Puzzle: Bee Season · moth.puz` |
+
+**That summary is load-bearing, not decorative**, and it is the one thing this
+design can get wrong. The NYT picker's entire value is the resolved date — which
+Monday you will actually get, or that Mondays are used up. Once that lives
+inside a dialog you have closed, the summary is the only place it exists. A
+summary reading "NYT" would lose the thing the player opened the picker for.
+
+**Upload names the puzzle AND the file** (Joel, 2026-08-28: *"both"*). It can,
+because the file is parsed at DROP, not at Start — `importCrosswordFile` runs in
+`handleFile` and `setup.board` holds the whole grid from that moment, which is
+also why a bad file is refused there rather than at Start. So the title is known
+by the time the picker closes. Both halves earn their place: the title is what
+the puzzle IS, and the filename is what you would check to know you grabbed the
+right one — a `.puz` title is often absent or machine-written ("NY Times, Mon,
+Aug 24, 2026") while the filename is the thing you recognize. A file whose meta
+carries no title falls back to the filename alone.
+
+Two facts are deliberately dropped, both because they are guidance for CHOOSING
+and so belong where you choose: the NYT "back to 1993-11-21" tail on the
+used-up line, and the Guardian series' character hint ("each clue is wordplay +
+a definition"). The dialogs still say them in full.
+
+### The pieces
+
+1. **`PuzzleSourceField`** — four buttons, `name="puzzle_source"`, its value the
+   sentence above, wearing `error={errors.puzzle_source}`. This is what closes
+   the crosswords half of F48: a server validation naming `puzzle_source` draws
+   beside the buttons, visible whichever source was used.
+2. **Four dialogs**, one file and one test each:
+   `LibraryPickerDialog` (owns `library_for_club` + the filter box),
+   `NytPickerDialog` (the weekday choice and the date override),
+   `GuardianPickerDialog` (the series list),
+   `UploadPuzzleDialog` (owns the drop zone, `importCrosswordFile`, and the
+   three upload `useState`s).
+
+   **`next_nyt_date_for_club` stays in the FIELD, not the dialog** — the
+   resolved date depends on `seen_by`, the player set, which lives in the setup
+   form. Unchecking someone after picking NYT Monday changes which Monday you
+   get, and a date computed once inside a closed dialog would be quietly wrong.
+   So the dialog chooses a weekday and the field asks what that weekday resolves
+   to, re-asking when the player set changes — which is what
+   `SetupNextPuzzleSection` already does for connections and strands, including
+   the three-state handling that keeps "still asking" from reading as "none
+   left".
+3. **The setup form shrinks** to the players picker, `PuzzleSourceField`, and
+   the timer.
+
+### What it deletes
+
+- `.tabStack` / `.tabBody` / `.tabHidden` and the always-mounted stack
+- the four `onClick`s that clear `board` + `filename` when leaving a tab —
+  cancelling is a real affordance now, rather than a silent side effect of
+  pressing a different tab
+- `uploadBusy` / `uploadError` / `dragOver` / `query` from the setup form
+- both `useEffect` fetches, into the dialogs that need them
+
+### Accepted losses
+
+- **The library list's scroll position** across a round trip. A dialog that
+  unmounts loses it; today `.tabStack` preserves it deliberately.
+- **The dialog's fixed height.** The `.listBox` height exists so the three tabs
+  agree; with one field and no stack, the setup dialog is as tall as its own
+  content and the pickers size themselves.
+
+### Sequence
+
+Crosswords' `create_game` is the last entry in the error sprint's board-builder
+run, and it is BLOCKED on this: converting it without this would leave its
+messages on the form line, which is where they already are, so there would be
+nothing to show for it. Do F50 first, then convert `create_game` against a form
+that has a field to route to.
+
+### BUILT 2026-08-28
+
+`SetupForm.tsx` went from **472 lines to 66** — the players picker,
+`PuzzleSourceField`, and the timer. What it grew instead is four picker
+components with a test each, which is the trade the finding argued for.
+
+Named for what they ARE. Joel, mid-build: *"the pickers are going to be blocking
+modals, not dialogs. putting 'Dialog' in their name is a mistake."* `dialog` is
+a different `FloatingPanel` family — draggable, no scrim — so the four are
+`*BlockingModal`, matching `CelebrationBlockingModal` and this game's own
+`CrosswordsNumberJumpBlockingModal`.
+
+Three things the build settled that the design did not:
+
+- **No new setup key for the library title.** The caption needs a puzzle's NAME
+  and only its id is in `setup` — but `create_game` strips `puzzle_id` from the
+  club's saved default (`setup - 'puzzle_id' - 'date'`), so a reopened dialog
+  never arrives holding a puzzle whose title would have to be looked up. It is
+  chosen and shown within one lifetime of the field, which is local state.
+- **The Guardian hint stopped being its own thing.** One hint used to sit under
+  the `<select>`, describing whichever row was chosen; as a list every row
+  carries its own, so they are `.rowNote` like the NYT weekday notes. The
+  dead-class guard is what pointed this out.
+- **`summarize` and the weekday table left the component files** — `lib/
+  puzzleSummary.ts` and `lib/nytDays.ts`. Fast refresh only works when a file
+  exports components alone, which is the compiler making the same point about
+  where data belongs.
+
+**A picker must be PORTALED, and that is the one thing here that had to be
+found by looking.** It read as the layer system failing — the screen dimmed and
+nothing appeared on top. But `--z-modal-blocking` (5000) is correctly above
+`--z-modal-normal` (2200); a z-index only ranks a node against its siblings
+inside the nearest stacking context, and the setup panel makes one, because it
+is draggable and react-rnd inlines a `transform` on it. A picker rendered as a
+child is pinned inside the setup dialog's own 2200 and paints underneath it,
+while its scrim — fixed-position and full-viewport — dims the screen perfectly
+well.
+
+`SetupGameModal` sidesteps this for the game's Help by rendering it as a SIBLING
+of the panel rather than a child. A FIELD cannot: it is several levels inside
+the form. So it leaves the tree with `createPortal`, which is safe here because
+the game's tokens are on `:root` and still resolve from the body.
+
+**Open question this raises, not answered:** should `BlockingModal` portal
+ITSELF? The category's whole claim is "nothing underneath is live", which is
+false whenever one is opened from inside any draggable panel — a trap the next
+person will fall into exactly as this did. It is a change to a shared shell with
+six existing consumers, all currently working because they happen to be mounted
+at the top level, so it wants its own decision.
+
+**Two e2e files were rewritten and NOT RUN.** `puzzle-pickers.e2e.ts`'s
+crosswords test drove the tabs in detail — a `<select>` for the weekday, a
+`p[class*="nextDate"]` state line — and none of that exists now; it reads the
+caption instead, and gained a cancel test for the affordance the tabs never had.
+`crosswords.e2e.ts`'s upload test waited on "click to replace" inside the
+dropzone, which cannot appear now that a parse closes the picker.
+
+Related: [F48](#f48--form-state-and-field-errors--a-form-is-one-keyed-object-and-errors-are-too) (the errors object and the
+`data-field` stamps), [F49](#f49--setup-sections-become-fields--a-setup-form-is-sections-wrapping-fields-and-nothing-else) (a fetching
+field is still a field — these four dialogs are that argument at full size),
+and `plans/selection-lists.md` (the crosswords library row, which moves from
+`select` to `activate`).

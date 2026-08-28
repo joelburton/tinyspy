@@ -1,21 +1,22 @@
 // cs-unmet
 
 /**
- * crosswords' Start gate — one check per puzzle source.
+ * crosswords' Start gate — one check per puzzle source, all four on the SAME
+ * field.
  *
- * **These are the only setup messages in the roster still on the form's own
- * line**, and deliberately: crosswords' setup form is the one that has not had
- * its pass, so none of its controls carry a `name` for an error to land under.
- * They are keyed `_` rather than guessed at, which keeps them honest — a key
- * naming a field that does not exist would draw nothing at all, and the player
- * would be refused with no message anywhere.
+ * They were on the form's bottom line until F50
+ * (`puzzle-source-picks-in-a-dialog`), because the four sources were tabs and
+ * no control carried a `name` for the errors object to key on. This file was
+ * written asserting `'_'` explicitly so it would go red the moment that
+ * changed, which is what happened — the reminder worked.
  *
- * The assertions name `_` explicitly for the same reason: when the form
- * converts, this file goes red, which is the reminder to move them.
+ * One field for all four is not a shortcut. "You have not picked a puzzle" is
+ * the same complaint however you were going to pick one, and the button row it
+ * rings is on screen whichever source is chosen — which is the property the
+ * tabs could not have.
  */
 import { describe, expect, it } from 'vitest'
 import { crosswordsCoopGame } from '../manifest'
-import { FORM_ERROR_KEYNAME } from '../../common/components/fields/formState'
 
 const validate = crosswordsCoopGame.setupForm.validate!
 const check = (setup: Record<string, unknown>) => validate(setup, 1)
@@ -29,9 +30,9 @@ describe('crosswords setup — the NYT source', () => {
     expect(check({ source: 'nyt', date: '2026-08-27' })).toEqual({})
   })
 
-  it('refuses neither, on the form line', () => {
+  it('refuses neither, under the puzzle field', () => {
     expect(check({ source: 'nyt' })).toEqual({
-      [FORM_ERROR_KEYNAME]: 'Pick a weekday or a date.',
+      puzzle_source: 'Pick a weekday or a date.',
     })
   })
 })
@@ -40,21 +41,21 @@ describe('crosswords setup — the other sources', () => {
   it('needs a Guardian series', () => {
     expect(check({ source: 'guardian', series: 'quiptic' })).toEqual({})
     expect(check({ source: 'guardian' })).toEqual({
-      [FORM_ERROR_KEYNAME]: 'Pick a Guardian series.',
+      puzzle_source: 'Pick a Guardian series.',
     })
   })
 
   it('needs an uploaded file', () => {
     expect(check({ source: 'upload', board: { grid: [] } })).toEqual({})
     expect(check({ source: 'upload' })).toEqual({
-      [FORM_ERROR_KEYNAME]: 'Choose a .puz or .ipuz file.',
+      puzzle_source: 'Choose a .puz or .ipuz file.',
     })
   })
 
   it('needs a picked puzzle for anything else', () => {
     expect(check({ source: 'library', puzzle_id: 'p1' })).toEqual({})
     expect(check({ source: 'library' })).toEqual({
-      [FORM_ERROR_KEYNAME]: 'Pick a puzzle to start.',
+      puzzle_source: 'Pick a puzzle to start.',
     })
   })
 })

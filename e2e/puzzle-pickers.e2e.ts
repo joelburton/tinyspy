@@ -115,11 +115,17 @@ test.describe('puzzle pickers', () => {
     await ctx.close()
   })
 
-  test('crosswords: the NYT tab picks by weekday, with a date override', async ({ browser }) => {
+  test('crosswords: the NYT picker picks by weekday, with a date override', async ({ browser }) => {
     // crosswords is the game where the date carries real meaning — an NYT
     // crossword's DAY is its difficulty — so it picks a weekday rather than
     // being handed the next unplayed puzzle outright. The server turns that
     // into the most recent date of that weekday nobody playing has done.
+    //
+    // The four sources are four blocking modals now, not tabs
+    // (plans/areas/forms.md → F50 `puzzle-source-picks-in-a-dialog`), so the
+    // resolved date is read off the setup form's CAPTION rather than a line
+    // inside the source's body: once the picker closes, the caption is the only
+    // place that answer exists.
     const club = await createClubWithMembers(['erin', 'finn'])
     const ctx = await browser.newContext()
     await signIn(ctx, club.members[0].session)
@@ -127,32 +133,62 @@ test.describe('puzzle pickers', () => {
     await page.goto(`/c/${club.handle}`)
 
     await startGameRow(page, /CrossPlay/).click()
+
+    // Nothing chosen yet — and the caption says so rather than implying a
+    // default the player did not pick.
+    const caption = page.getByText(/^Puzzle: /)
+    await expect(caption).toHaveText('Puzzle: choose one')
+
+    // Choosing CLOSES the picker: one press, the same as the tab it replaces.
     await page.getByRole('button', { name: 'NYT', exact: true }).click()
-
-    const line = page.locator('p[class*="nextDate"]').first()
-    await expect(line).toBeVisible({ timeout: 15000 })
-
-    // Monday by default, and the line names a real date rather than a title —
-    // an NYT daily isn't stored anywhere until it's fetched, so there is
-    // nothing to name it by.
-    await expect(line).toContainText(/^Next Monday: \d{4}-\d{2}-\d{2}$/, { timeout: 10000 })
+    await page.getByText('Monday', { exact: true }).click()
+    await expect(caption).toHaveText(/^Puzzle: NYT Monday · \d{4}-\d{2}-\d{2}$/, {
+      timeout: 15000,
+    })
 
     // The weekday drives the answer.
-    await page.getByLabel('Weekday').selectOption('6')
-    await expect(line).toContainText(/^Next Saturday: \d{4}-\d{2}-\d{2}$/, { timeout: 10000 })
+    await page.getByRole('button', { name: 'NYT', exact: true }).click()
+    await page.getByText('Saturday', { exact: true }).click()
+    await expect(caption).toHaveText(/^Puzzle: NYT Saturday · \d{4}-\d{2}-\d{2}$/, {
+      timeout: 15000,
+    })
 
-    // The date box overrides it...
-    await page.getByLabel('Puzzle date').fill('2019-03-14')
-    await expect(line).toContainText('Playing 2019-03-14', { timeout: 10000 })
-
-    // ...and choosing a weekday takes the choice back, clearing the box rather
-    // than leaving a control that silently does nothing.
-    await page.getByLabel('Weekday').selectOption('3')
-    await expect(line).toContainText(/^Next Wednesday: /, { timeout: 10000 })
-    expect(await page.getByLabel('Puzzle date').inputValue()).toBe('')
-
-    // The override's floor is enforced by the input too.
+    // The date box overrides it, and Return means the same there as on a row.
+    await page.getByRole('button', { name: 'NYT', exact: true }).click()
     await expect(page.getByLabel('Puzzle date')).toHaveAttribute('min', '2015-01-01')
+    await page.getByLabel('Puzzle date').fill('2019-03-14')
+    await page.getByLabel('Puzzle date').press('Enter')
+    await expect(caption).toHaveText('Puzzle: NYT 2019-03-14')
+
+    // ...and choosing a weekday takes the choice back, rather than leaving a
+    // control that silently does nothing.
+    await page.getByRole('button', { name: 'NYT', exact: true }).click()
+    await page.getByText('Wednesday', { exact: true }).click()
+    await expect(caption).toHaveText(/^Puzzle: NYT Wednesday · /, { timeout: 15000 })
+
+    await ctx.close()
+  })
+
+  test('crosswords: a picker can be cancelled without choosing', async ({ browser }) => {
+    // The affordance the tabs did not have. Leaving a source used to be a side
+    // effect of pressing a different tab, which also cleared what you had
+    // already chosen; backing out of a picker now leaves the choice alone.
+    const club = await createClubWithMembers(['erin', 'finn'])
+    const ctx = await browser.newContext()
+    await signIn(ctx, club.members[0].session)
+    const page = await ctx.newPage()
+    await page.goto(`/c/${club.handle}`)
+
+    await startGameRow(page, /CrossPlay/).click()
+    const caption = page.getByText(/^Puzzle: /)
+
+    await page.getByRole('button', { name: 'Guardian', exact: true }).click()
+    await page.getByText('Quiptic', { exact: true }).click()
+    await expect(caption).toHaveText('Puzzle: Guardian Quiptic')
+
+    await page.getByRole('button', { name: 'NYT', exact: true }).click()
+    await page.getByRole('button', { name: 'Cancel' }).click()
+    await expect(caption).toHaveText('Puzzle: Guardian Quiptic')
 
     await ctx.close()
   })
