@@ -151,6 +151,14 @@ as $$
     'detail',   nullif(detail, ''));
 $$;
 
+-- Both builders run wherever an RPC does, and not every RPC is `security
+-- definer` — `connections.puzzle_for_date` filters nothing, so it has no reason
+-- to be. A plain function runs as the CALLER, who must therefore be able to
+-- call these. They are pure and take no arguments they do not return, so there
+-- is nothing to protect.
+grant execute on function common.ok_envelope(jsonb, text, text, jsonb) to authenticated;
+grant execute on function common.raised_envelope(text, text, text, text, text) to authenticated;
+
 revoke execute on function common.ok_envelope(jsonb, text, text, jsonb) from public;
 revoke execute on function common.raised_envelope(text, text, text, text, text) from public;
 

@@ -185,38 +185,61 @@ grant select on connections.club_game_status to authenticated;
 --
 -- Returns 0 rows when everyone here has played everything — create_game
 -- turns that into `no-unplayed-puzzle|`, and the dialog says so up front.
+-- **Returns the envelope, and `data` is ONE puzzle or null.** It used to be
+-- `returns table(...)` and every caller wrote `data?.[0] ?? null` to get back to
+-- the same thing — a shape that says "some rows" for a function that answers a
+-- question with one answer.
+--
+-- The empty case is `outcome: 'warning'`. Nothing failed and nobody erred: these
+-- players have simply done every puzzle we have. `warning` is the tone that says
+-- so without claiming a fault, and it leaves both callers free to keep their own
+-- words — the setup form's "none left", the new-game path's longer sentence
+-- naming the import command.
+--
+-- No handler, because there is nothing to catch: this raises nothing. A raw
+-- Postgres error still reaches `runRpc` as an error and becomes a fault there.
+drop function if exists connections.next_puzzle_for_club(uuid[]);
+
 create or replace function connections.next_puzzle_for_club(seen_by uuid[])
-returns table(id uuid, puzzle_date date, label text)
+returns jsonb
 language sql
 stable
 security definer
 set search_path = connections, common, public, extensions
 as $$
-  select p.id,
-         p.puzzle_date,
-         -- What the dialog shows as "next up". The date leads (it is the
-         -- puzzle's name, even if nobody picks by it), then the two
-         -- alphabetically-first tiles as a human-readable fingerprint —
-         -- enough to tell two puzzles apart, and no more of a spoiler than
-         -- the sixteen you see a second later.
-         p.puzzle_date::text || ': ' || coalesce(
-           (select string_agg(t.tile, ', ' order by t.tile)
-              from (select jsonb_array_elements_text(c -> 'tiles') as tile
-                      from jsonb_array_elements(p.categories) c
-                     order by 1
-                     limit 2) t),
-           '?')
-    from connections.puzzles p
-   where p.puzzle_date is not null
-     and not exists (
-           select 1
-             from connections.games g
-             join common.game_players gp on gp.game_id = g.id
-            where g.puzzle_date = p.puzzle_date
-              and gp.user_id = any(seen_by)
-         )
-   order by p.puzzle_date
-   limit 1;
+  select common.ok_envelope(found, case when found is null then 'warning' end)
+    from (
+      select (
+        select jsonb_build_object(
+                 'id', p.id,
+                 'puzzle_date', p.puzzle_date,
+                 -- What the dialog shows as "next up". The date leads (it is the
+                 -- puzzle's name, even if nobody picks by it), then the two
+                 -- alphabetically-first tiles as a human-readable fingerprint —
+                 -- enough to tell two puzzles apart, and no more of a spoiler
+                 -- than the sixteen you see a second later.
+                 'label',
+                 p.puzzle_date::text || ': ' || coalesce(
+                   (select string_agg(t.tile, ', ' order by t.tile)
+                      from (select jsonb_array_elements_text(c -> 'tiles') as tile
+                                      from jsonb_array_elements(p.categories) c
+                                     order by 1
+                                     limit 2) t),
+                   '?')
+               )
+          from connections.puzzles p
+         where p.puzzle_date is not null
+           and not exists (
+                 select 1
+                   from connections.games g
+                   join common.game_players gp on gp.game_id = g.id
+                  where g.puzzle_date = p.puzzle_date
+                    and gp.user_id = any(seen_by)
+               )
+         order by p.puzzle_date
+         limit 1
+      ) as found
+    ) s;
 $$;
 
 revoke execute on function connections.next_puzzle_for_club(uuid[]) from public;
@@ -242,25 +265,42 @@ grant execute on function connections.next_puzzle_for_club(uuid[]) to authentica
 -- Same return shape as next_puzzle_for_club so the shared setup field can
 -- render either without caring which it asked. Zero rows = no puzzle that
 -- day, which the dialog says out loud rather than silently ignoring.
+-- The override's twin of the above, and the same shape for the same reasons.
+-- `puzzle_date` is unique, so this is one puzzle or none; empty means no puzzle
+-- was published that day, which is again a `warning` rather than a failure.
+drop function if exists connections.puzzle_for_date(date);
+
 create or replace function connections.puzzle_for_date(target_date date)
-returns table(id uuid, puzzle_date date, label text)
+returns jsonb
 language sql
 stable
 set search_path = connections, common, public, extensions
 as $$
-  select p.id,
-         p.puzzle_date,
-         p.puzzle_date::text || ': ' || coalesce(
-           (select string_agg(t.tile, ', ' order by t.tile)
-              from (select jsonb_array_elements_text(c -> 'tiles') as tile
-                      from jsonb_array_elements(p.categories) c
-                     order by 1
-                     limit 2) t),
-           '?')
-    from connections.puzzles p
-   where p.puzzle_date = target_date;
+  select common.ok_envelope(found, case when found is null then 'warning' end)
+    from (
+      select (
+        select jsonb_build_object(
+                 'id', p.id,
+                 'puzzle_date', p.puzzle_date,
+                 'label',
+                 p.puzzle_date::text || ': ' || coalesce(
+                   (select string_agg(t.tile, ', ' order by t.tile)
+                      from (select jsonb_array_elements_text(c -> 'tiles') as tile
+                                      from jsonb_array_elements(p.categories) c
+                                     order by 1
+                                     limit 2) t),
+                   '?')
+               )
+          from connections.puzzles p
+         where p.puzzle_date = target_date
+      ) as found
+    ) s;
 $$;
 
+-- `security invoker` (the default), unlike its twin — it filters nothing, so it
+-- needs no elevated view of other clubs' games. That makes the grant below
+-- load-bearing: running as the caller, it needs `common.ok_envelope` to be
+-- callable by `authenticated`, which is granted where the builder is defined.
 revoke execute on function connections.puzzle_for_date(date) from public;
 grant execute on function connections.puzzle_for_date(date) to authenticated;
 
@@ -370,8 +410,11 @@ begin
   -- chose would make those tests assert against whatever the fixture club
   -- happened not to have played.
   if (setup->>'puzzle_id') is null then
-    select n.id into s_puzzle_id
-      from connections.next_puzzle_for_club(player_user_ids) n;
+    -- Reading the ENVELOPE's `data`, because that is what the function returns
+    -- now. `data` is one puzzle or null, and null is the exhausted case the
+    -- next branch names — so this pulls the id straight out rather than
+    -- selecting from a row set.
+    s_puzzle_id := (connections.next_puzzle_for_club(player_user_ids) -> 'data' ->> 'id')::uuid;
     if s_puzzle_id is null then
       -- It names the PICKER, not the puzzle box: the archive is exhausted
       -- for THESE players, so unchecking someone is what brings a puzzle

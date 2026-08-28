@@ -1,6 +1,7 @@
 // cs-unmet
 
 import { faultMessage } from '../../common/lib/game/serverError'
+import { runRpc } from '../../common/lib/supabase/dbResult'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { IconHint, IconNewGame, IconPrint, IconRestart } from '../../common/components/icons'
 import { cls } from '../../common/lib/util/cls'
@@ -360,13 +361,16 @@ export function PlayArea({
     // failure of this click. Same shape strands uses. The answer is advisory —
     // the create below derives it again, so a peer taking that puzzle in the
     // gap costs nothing.
-    const { data: preview, error: lookupError } = await db
-      .rpc('next_puzzle_for_club', { seen_by: players.map((p) => p.user_id) })
-    if (lookupError) {
-      showLocalFeedback(faultMessage(lookupError, 'new game'))
-      return
-    }
-    if (!preview?.[0]) {
+    const preview = await runRpc<{ id: string } | null>(
+      db.rpc('next_puzzle_for_club', { seen_by: players.map((p) => p.user_id) }),
+    )
+    // A failure is already on screen as a fault modal (`runRpc` reported it), so
+    // there is nothing to say here — just don't go on to create a game.
+    if (preview.type !== 'ok') return
+    // `data: null` with `outcome: 'warning'` is the archive being spent. The
+    // RPC says which case it is; the SENTENCE is this surface's, because only
+    // here does "there are no more" come with somewhere to go next.
+    if (preview.data === null) {
       await acknowledge({
         title: 'No more puzzles',
         message:

@@ -1,9 +1,13 @@
 // cs-unmet
 
 import { SetupTimerSection } from '../../common/components/setup/SetupTimerSection'
+import { runRpc } from '../../common/lib/supabase/dbResult'
 import { PlayersSection } from '../../common/components/setup/PlayersSection'
 import { SetupCoopStyleSection } from '../../common/components/setup/SetupCoopStyleSection'
-import { SetupNextPuzzleSection } from '../../common/components/setup/SetupNextPuzzleSection'
+import {
+  SetupNextPuzzleSection,
+  type NextPuzzle,
+} from '../../common/components/setup/SetupNextPuzzleSection'
 import type { SetupBodyProps, SetupSetter } from '../../common/lib/games'
 import { db } from '../db'
 import type { ConnectionsValues } from '../lib/setup'
@@ -70,16 +74,22 @@ export function SetupForm({
         errors={errors}
         brand={brand}
         seenBy={players.map((p) => p.user_id)}
+        // Both RPCs answer with ONE puzzle or null — `data: null` carrying
+        // `outcome: 'warning'`, which is the server saying "nothing failed, there
+        // just isn't one". The section has its own words for each case (the
+        // archive is spent / no puzzle that day), so the outcome is not read
+        // here; what matters is that null is a value rather than an absence.
+        //
+        // A failure collapses to null too, and deliberately: `runRpc` has already
+        // put the fault modal up, so the section's job is only to stop showing a
+        // stale answer.
         load={async (seenBy) => {
-          const { data } = await db.rpc('next_puzzle_for_club', { seen_by: seenBy })
-          // Both RPCs return 0 or 1 rows. Zero from this one means the archive
-          // is spent for these players; zero from the by-date one means no
-          // puzzle that day. SetupNextPuzzleSection renders each as its own state.
-          return data?.[0] ?? null
+          const r = await runRpc<NextPuzzle>(db.rpc('next_puzzle_for_club', { seen_by: seenBy }))
+          return r.type === 'ok' ? r.data : null
         }}
         loadByDate={async (date) => {
-          const { data } = await db.rpc('puzzle_for_date', { target_date: date })
-          return data?.[0] ?? null
+          const r = await runRpc<NextPuzzle>(db.rpc('puzzle_for_date', { target_date: date }))
+          return r.type === 'ok' ? r.data : null
         }}
         // A chosen date rides in setup.puzzle_id; cleared, the key is dropped
         // entirely — its ABSENCE is what tells create_game to choose.
