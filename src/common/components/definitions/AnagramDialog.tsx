@@ -2,6 +2,7 @@
 
 import { cls } from '../../lib/util/cls'
 import { StandardForm } from '../fields/StandardForm'
+import { FORM_ERROR_KEYNAME, type FormErrors } from '../fields/formState'
 import { useState } from 'react'
 import { db as commonDb } from '../../db'
 import { runRpc } from '../../lib/supabase/dbResult'
@@ -45,42 +46,48 @@ const PATTERN_LENGTH = { min: 2, max: 15 } as const
  * seven rows and scrolls past that (`<SimpleScrollableList>`), so a query
  * matching 1361 words and one matching 14 open the same size.
  */
+/** What the form holds, keyed by the name it is SENT AS — `letters` is
+ *  `common.anagrams`' own parameter, so PN001's `column = 'letters'` lands on
+ *  the box rather than on a line below the Find button. */
+type Values = { letters: string }
+
 export function AnagramDialog({ onClose }: { onClose: () => void }) {
-  const [query, setQuery] = useState('')
   // null = nothing searched yet (no result area at all).
   const [results, setResults] = useState<Result[] | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  // What is wrong with the ENTRY, as against a failure from the RPC: it belongs
-  // to the box, so it rings the box and says why underneath it.
-  const [entryError, setEntryError] = useState<string | null>(null)
+  // One object, where this dialog used to keep two: what was wrong with the
+  // ENTRY rang the box, and a failure from the RPC went on the line below. Both
+  // are still true — they are `errors.letters` and the form-level key — but
+  // which one a message gets is now the message's own business rather than a
+  // decision at each call site.
+  const [errors, setErrors] = useState<FormErrors>({})
   const [searching, setSearching] = useState(false)
   const { define: openDefine, popover } = useDefinePopover()
 
-  async function onSubmit() {
-    const letters = query.trim()
-    if (letters.length < PATTERN_LENGTH.min) {
+  async function onSubmit({ letters }: Values) {
+    const trimmed = letters.trim()
+    if (trimmed.length < PATTERN_LENGTH.min) {
       // The refusal needs a REASON on screen. A bare `return` here would leave
       // the Find button enabled, pressed, and nothing whatever happening.
-      setEntryError('Two letters or more — a single letter only rearranges into itself.')
+      setErrors({
+        letters: 'Two letters or more — a single letter only rearranges into itself.',
+      })
       return
     }
-    setEntryError(null)
+    setErrors({})
     setSearching(true)
-    setError(null)
     // The previous answer STAYS on screen while the next one is fetched. Clearing
     // it would collapse the list and shrink the dialog for the length of the
     // round trip, then grow it again — a lot of flash for nothing.
-    const res = await runRpc<Result[]>(commonDb.rpc('anagrams', { letters }))
+    const res = await runRpc<Result[]>(commonDb.rpc('anagrams', { letters: trimmed }))
     setSearching(false)
     if (res.type !== 'ok') {
       setResults(null)
-      // EVERYTHING goes on the line, faults included, so there is no severity
-      // test here. A fault has already interrupted with a modal — but once that
-      // is dismissed the line is the only thing left saying the search is still
-      // broken, and without it the dialog sits blank with no results and no
-      // explanation. The modal is an ADDITIONAL channel for a fault, not an
-      // alternative to this one.
-      setError(res.message)
+      // No severity test: the message goes where the SERVER said it belongs.
+      // PN001 — "2–15 letters, or ?" — says `letters`, so it rings the box it
+      // is about; a fault says `_` and lands on the line below. A fault has
+      // already interrupted with a modal, and once that is dismissed the line
+      // is the only thing left saying the search is still broken.
+      setErrors({ [res.field ?? FORM_ERROR_KEYNAME]: res.message })
       return
     }
     setResults(res.data)
@@ -98,41 +105,48 @@ export function AnagramDialog({ onClose }: { onClose: () => void }) {
       defaultSize={{ width: 360, height: 440 }}
       resizable={false}
     >
-      <StandardForm onSubmit={onSubmit}>
-        <TextField
-          // No caption: this box IS the dialog, and the titlebar above it
-          // already says "Anagrams".
-          ariaLabel="Letters to anagram"
-          // Autofocus so the player can type immediately after the
-          // shortcut opens the dialog.
-          autoFocus
-          value={query}
-          // Case carries meaning (pins), so keep it as typed; everything
-          // that isn't a letter or '?' is dropped on entry.
-          maxLength={PATTERN_LENGTH.max}
-          onChange={(v) => {
-            // Only the character filter here; the LENGTH is `maxLength`'s,
-            // stated on the field rather than enforced in the handler.
-            setQuery(v.replace(/[^A-Za-z?]/g, ''))
-            // Typing is the answer to the complaint; clear it as they act.
-            setEntryError(null)
-          }}
-          placeholder="letters…"
-          // The syntax legend belongs to the BOX, so it sits under the box —
-          // not in a paragraph below the Find button, three elements from the
-          // thing it describes and read after you have already typed.
-          entryHelp="abc float · ABC pinned in place · ? any letter"
-          error={entryError}
-        />
-        <StandardButton
-          name="Find"
-          type="submit"
-          weight="primary"
-          fullWidth
-          disabled={searching}
-        />
+      <StandardForm initialValues={{ letters: '' } satisfies Values} onSubmit={onSubmit}>
+        {({ values, set }) => (
+          <>
+            <TextField
+              name="letters"
+              // No caption: this box IS the dialog, and the titlebar above it
+              // already says "Anagrams".
+              ariaLabel="Letters to anagram"
+              // Autofocus so the player can type immediately after the
+              // shortcut opens the dialog.
+              autoFocus
+              value={values.letters}
+              // Case carries meaning (pins), so keep it as typed; everything
+              // that isn't a letter or '?' is dropped on entry.
+              maxLength={PATTERN_LENGTH.max}
+              onChange={(v) => {
+                // Only the character filter here; the LENGTH is `maxLength`'s,
+                // stated on the field rather than enforced in the handler.
+                set('letters', v.replace(/[^A-Za-z?]/g, ''))
+                // Typing is the answer to the complaint about the box; clear it
+                // as they act. The form-level line stays — a dead server is not
+                // answered by typing.
+                setErrors((prev) => ({ ...prev, letters: '' }))
+              }}
+              placeholder="letters…"
+              // The syntax legend belongs to the BOX, so it sits under the box —
+              // not in a paragraph below the Find button, three elements from the
+              // thing it describes and read after you have already typed.
+              entryHelp="abc float · ABC pinned in place · ? any letter"
+              error={errors.letters}
+            />
+            <StandardButton
+              name="Find"
+              type="submit"
+              weight="primary"
+              fullWidth
+              disabled={searching}
+            />
+          </>
+        )}
       </StandardForm>
-      <FailureLine>{error}</FailureLine>
+      <FailureLine>{errors[FORM_ERROR_KEYNAME]}</FailureLine>
       {results && (
         <SimpleScrollableList
           rows={7}

@@ -70,16 +70,32 @@ describe('AnagramDialog', () => {
 
     // Malformed letters come back as a RESULT, not a thrown error — the RPC
     // reached a decision and the player can act on it. `severity: validation`
-    // is why the sentence lands on the dialog's own line instead of a modal,
-    // and the sentence is the server's own words.
+    // is why the sentence appears in the dialog rather than as a modal, and the
+    // sentence is the server's own words.
+    //
+    // `field` is what the real raise sends (PN001 raises `column = 'letters'`),
+    // and it is the half that decides WHERE: under the box it is about, ringing
+    // it. Omitting it here — as this fixture used to — made the test pass
+    // whether or not the routing worked.
     mockRpc.mockResolvedValue({
-      data: { type: 'not-ok', severity: 'validation', message: '2–15 letters, or ?', dbcode: 'PN001' },
+      data: {
+        type: 'not-ok',
+        severity: 'validation',
+        message: '2–15 letters, or ?',
+        dbcode: 'PN001',
+        field: 'letters',
+      },
       error: null,
     })
     await user.type(input, '{Enter}')
     await waitFor(() =>
       expect(screen.getByText('2–15 letters, or ?')).toBeInTheDocument(),
     )
+    // Under the BOX, not on the dialog's line: found through the control, so a
+    // message that landed anywhere else fails here.
+    const field = input.closest('div')
+    expect(field?.textContent).toContain('2–15 letters, or ?')
+    expect(input).toHaveAttribute('aria-invalid', 'true')
   })
 
   // `error` — a service we depend on didn't answer — is the server's words for
