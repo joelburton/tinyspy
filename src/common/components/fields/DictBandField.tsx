@@ -8,6 +8,10 @@ type Props = {
   /** Optional field label, e.g. "Required words" — rendered above the select.
    *  Omit it when the surrounding form already supplies one (a fieldset legend);
    *  pass it for the inline two-dropdown layouts. */
+  /** The `name` on the underlying control, and the field's key in the form's
+   *  values and errors. It matches the RPC parameter the value is sent as —
+   *  see `FormErrors`. */
+  name?: string
   label?: string
   /** Which sample-word set to show — the word length this dictionary cares
    *  about (so the examples match the game). */
@@ -51,6 +55,7 @@ type Props = {
  * `lib/game/difficulty.ts` for the bands and their samples.
  */
 export function DictBandField({
+  name,
   label,
   length,
   minBand,
@@ -66,6 +71,7 @@ export function DictBandField({
   const samples = sampleWordsFor(length)
   return (
     <SelectField
+      name={name}
       label={label}
       help={help}
       entryHelp={entryHelp}

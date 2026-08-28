@@ -11,6 +11,10 @@ type Props = {
   ariaLabel?: string
   /** `YYYY-MM-DD`, or `''` for no date. Kept as the RAW string so the box stays
    *  controlled even for a date that resolves to nothing. */
+  /** The `name` on the underlying control, and the field's key in the form's
+   *  values and errors. It matches the RPC parameter the value is sent as —
+   *  see `FormErrors`. */
+  name?: string
   value: string
   onChange: (value: string) => void
   /** Bounds, same format. crosswords' archive starts somewhere. */
@@ -40,6 +44,7 @@ type Props = {
  * box, which is the right weight for something you rarely touch.
  */
 export function DateField({
+  name,
   label,
   ariaLabel,
   value,
@@ -55,6 +60,7 @@ export function DateField({
     <Field label={label} help={help} entryHelp={entryHelp} error={error}>
       {(id) => (
         <input
+          name={name}
           id={id}
           type="date"
           aria-label={label === undefined ? ariaLabel : undefined}

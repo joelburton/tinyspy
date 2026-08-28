@@ -1,9 +1,12 @@
 // cs-unmet
 
-import { expectedTextOrFault } from '../../lib/game/serverError'
 import { useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { db as commonDb } from '../../db'
+import { runRpc } from '../../lib/supabase/dbResult'
+import { StandardForm } from '../fields/StandardForm'
+import { FORM_ERROR_KEYNAME, type FormErrors } from '../fields/formState'
+import { FailureLine } from '../feedback/FailureLine'
 import { useProfile, setProfileColor } from '../../hooks/session/useProfile'
 import { NormalModal } from '../floating-panels/NormalModal'
 import actionRow from '../floating-panels/modalActions.module.css'
@@ -35,31 +38,28 @@ type Props = {
  * Lifecycle mirrors the other dialogs: App conditionally renders us —
  * mounting opens, unmounting closes; we hold no "is open" state.
  */
+/** What the form holds, keyed by the name it is SENT AS — `new_color` is
+ *  `common.update_profile_color`'s own parameter. */
+type Values = { new_color: string }
+
 export function EditProfileModal({ session, onSaved, onCancel }: Props) {
   const profile = useProfile(session)
-  // The picked color, or — until the user picks — the current one
-  // (so the dialog opens with the current color preselected). Null only
-  // in the brief window before the profile store resolves.
-  const [picked, setPicked] = useState<string | null>(null)
-  const selected = picked ?? profile?.color ?? null
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [errors, setErrors] = useState<FormErrors>({})
 
-  async function handleSave() {
-    if (!selected) return
+  async function onSubmit({ new_color }: Values) {
     setBusy(true)
-    setError(null)
-    const { error: rpcError } = await commonDb.rpc('update_profile_color', {
-      new_color: selected,
-    })
-    if (rpcError) {
+    setErrors({})
+    const res = await runRpc(commonDb.rpc('update_profile_color', { new_color }))
+    if (res.type !== 'ok') {
       setBusy(false)
-      // Split by surface rule: validation ("That username is taken") stays on
-      // the form's line; a fault pops the modal and the line stays empty.
-      setError(expectedTextOrFault(rpcError, 'profile'))
+      // Every outcome here is a fault — the picker offers eight swatches and
+      // nothing else — so this line is what remains once the modal is
+      // dismissed rather than the primary way anyone hears about it.
+      setErrors({ [res.field ?? FORM_ERROR_KEYNAME]: res.message })
       return
     }
-    setProfileColor(selected) // live-update the menu dot + any reader
+    setProfileColor(new_color) // live-update the menu dot + any reader
     onSaved()
   }
 
@@ -74,22 +74,47 @@ export function EditProfileModal({ session, onSaved, onCancel }: Props) {
       fitContent
       defaultSize={{ width: 380, height: 460 }}
     >
-      <ReadOnlyField label="Username">{profile?.username ?? '…'}</ReadOnlyField>
+      {/* NOT RENDERED until the profile is in hand, which is what the dialog
+          used to spell as `picked ?? profile?.color ?? null` plus a Save
+          disabled on the null. `initialValues` is read once at mount, so the
+          swatch that starts selected is the color you actually have. */}
+      {profile === null ? (
+        <p className="muted">Loading…</p>
+      ) : (
+        <StandardForm
+          initialValues={{ new_color: profile.color } satisfies Values}
+          onSubmit={onSubmit}
+        >
+          {({ values, set }) => (
+            <>
+              <ReadOnlyField name="username" label="Username">
+                {profile.username}
+              </ReadOnlyField>
 
-      <ColorField value={selected} onChange={setPicked} disabled={busy} />
+              <ColorField
+                name="new_color"
+                value={values.new_color}
+                onChange={(v) => set('new_color', v)}
+                error={errors.new_color}
+                disabled={busy}
+              />
 
-      {error && <p className="error">{error}</p>}
+              <FailureLine>{errors[FORM_ERROR_KEYNAME]}</FailureLine>
 
-      <div className={actionRow.modalActions}>
-        <CancelButton onClick={onCancel} disabled={busy} />
-        <StandardButton
-          name={busy ? 'Saving…' : 'Save'}
-          weight="primary"
-          onClick={handleSave}
-          disabled={busy || !selected}
-          autoFocus
-        />
-      </div>
+              <div className={actionRow.modalActions}>
+                <CancelButton onClick={onCancel} disabled={busy} />
+                <StandardButton
+                  name={busy ? 'Saving…' : 'Save'}
+                  type="submit"
+                  weight="primary"
+                  disabled={busy}
+                  autoFocus
+                />
+              </div>
+            </>
+          )}
+        </StandardForm>
+      )}
     </NormalModal>
   )
 }

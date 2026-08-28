@@ -18,6 +18,10 @@ type Props = {
    *  there is no control to ring, but the sentence still belongs to the field. */
   error?: string | null
   /** What it says. Not editable, and not pretending to be. */
+  /** The field's key in the form's values and errors, matching the RPC
+   *  parameter the value is sent as (see `FormErrors`). Identity only here:
+   *  this field has no single input for a `name` attribute to sit on. */
+  name?: string
   children: ReactNode
 }
 
@@ -43,10 +47,12 @@ type Props = {
  * but not edit, an invite link say — that IS `<TextField readOnly>`, and both
  * names stay honest.
  */
-export function ReadOnlyField({ label, help, entryHelp, error, children }: Props) {
+export function ReadOnlyField({ label, name, help, entryHelp, error, children }: Props) {
   return (
     <Field label={label} help={help} entryHelp={entryHelp} error={error}>
-      <span className={styles.value}>{children}</span>
+      <span className={styles.value} data-field={name}>
+        {children}
+      </span>
     </Field>
   )
 }

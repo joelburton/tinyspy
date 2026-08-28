@@ -13,6 +13,11 @@ type Props = {
   entryHelp?: ReactNode
   /** What's wrong with what's there. */
   error?: string | null
+  /** The field's key in the form's values and errors, matching the RPC
+   *  parameter the value is sent as (see `FormErrors`). Identity only: the
+   *  swatches are `<button type="button">`, and `name` on a button means
+   *  "submitted with the form", which these never are. */
+  name?: string
   value: string | null
   onChange: (color: string) => void
   disabled?: boolean
@@ -33,6 +38,7 @@ type Props = {
  */
 export function ColorField({
   label = 'Player color',
+  name,
   value,
   onChange,
   disabled,
@@ -44,7 +50,11 @@ export function ColorField({
     // `group`: the control is a SET of swatches, so the caption is a <legend>
     // heading them rather than a label pointing at one.
     <Field label={label} group help={help} entryHelp={entryHelp} error={error}>
-      <ColorChoiceList value={value} onChange={onChange} disabled={disabled} />
+      {/* `data-field` rather than a name attribute — see the prop. It is what
+          lets a test find this field the way it finds any other. */}
+      <div data-field={name}>
+        <ColorChoiceList value={value} onChange={onChange} disabled={disabled} />
+      </div>
     </Field>
   )
 }

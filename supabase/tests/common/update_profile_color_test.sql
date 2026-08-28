@@ -16,13 +16,15 @@ begin;
 set search_path = common, public, extensions;
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 
 select plan(8);
 
 -- ── Happy path: ada changes her own color ──────────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select lives_ok(
-  $$ select common.update_profile_color('purple') $$,
+select pg_temp.envelope_is(
+  common.update_profile_color('purple'),
+  '{"type": "ok"}'::jsonb,
   'a player can set their own color');
 select is(
   (select color from common.profiles
@@ -41,9 +43,12 @@ select is(
 
 -- ── Off-palette color → friendly P0001, no change ──────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select throws_ok(
-  $$ select common.update_profile_color('chartreuse') $$,
-  'P0001', 'bad-color|chartreuse|',
+-- A fault, not a validation: the picker offers the eight palette swatches and
+-- nothing else, so an off-palette value means a broken client.
+select pg_temp.envelope_is(
+  common.update_profile_color('chartreuse'),
+  '{"type": "not-ok", "severity": "fault", "dbcode": "PN033",
+    "message": "A color outside the palette reached the server: chartreuse"}'::jsonb,
   'an off-palette color is rejected');
 select is(
   (select color from common.profiles

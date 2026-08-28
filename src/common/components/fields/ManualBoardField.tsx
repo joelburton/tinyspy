@@ -9,6 +9,10 @@ import styles from './ManualBoardField.module.css'
 type Props = {
   /** The text as typed. Controlled — the caller owns it, and stores whatever
    *  shape its own setup blob wants. */
+  /** The `name` on the underlying control, and the field's key in the form's
+   *  values and errors. It matches the RPC parameter the value is sent as —
+   *  see `FormErrors`. */
+  name?: string
   value: string
   /** Fired with the RAW keystroke result. The caller cleans it (each game's
    *  rules differ: spellingbee lowercases and truncates, boggle keeps case and
@@ -94,6 +98,7 @@ type Props = {
  * with" are worse, and four of the five genuinely are boards.
  */
 export function ManualBoardField({
+  name,
   value,
   onChange,
   placeholder,
@@ -125,6 +130,7 @@ export function ManualBoardField({
     <Field label={label} help={help} entryHelp={entryHelp} error={error}>
       {(id) => (
         <input
+          name={name}
           id={id}
           type="text"
           // A board is not prose: none of the browser's helpfulness applies,

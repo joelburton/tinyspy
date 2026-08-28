@@ -8,6 +8,11 @@ import styles from './PlayersField.module.css'
 
 type Props = {
   /** The club roster, in the order it should be listed. */
+  /** The field's key in the form's values and errors, matching the RPC
+   *  parameter the value is sent as (see `FormErrors`). A GROUP of controls, so
+   *  each one's own `name` is composed from it — there is no single input for
+   *  the field's name to sit on. */
+  name?: string
   members: Member[]
   /** The creating user. Always a player — their row is checked and disabled,
    *  because you cannot start a game you are not in. */
@@ -61,6 +66,7 @@ type Props = {
  * own form.
  */
 export function PlayersField({
+  name,
   members,
   selfId,
   selectedIds,
@@ -86,6 +92,7 @@ export function PlayersField({
             title={isSelf ? "You're always a player" : undefined}
           >
             <input
+              name={name === undefined ? undefined : `${name}.${m.user_id}`}
               type="checkbox"
               checked={selectedIds.has(m.user_id)}
               onChange={() => onToggle(m.user_id)}

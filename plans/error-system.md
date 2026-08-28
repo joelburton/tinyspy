@@ -1123,7 +1123,7 @@ select pg_temp.envelope_is(
 
 ## 7. The conversion roster
 
-**139 entries. 20 done, 5 edge functions deferred, 114 to go.** Cross them off
+**139 entries. 21 done, 5 edge functions deferred, 113 to go.** Cross them off
 here as they land.
 
 An entry is one RPC or one table read **per area**, so the same name in two
@@ -1182,7 +1182,7 @@ identifier — a shape nothing has exercised yet.
 - [ ] `tick_timer` · RPC
 - [x] `unset_current_view` · RPC — `useCommonGame`'s last-viewer-leave; ONE SQL
   definition serves both areas, so it converted with the club page's
-- [ ] `update_profile_color` · RPC
+- [x] `update_profile_color` · RPC — with EditProfileModal, as one unit
 - [x] `update_word` · RPC
 - [x] `clubs` · read (2 call sites)
 - [ ] `clubs_members` · read

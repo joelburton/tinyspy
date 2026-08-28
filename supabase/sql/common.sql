@@ -2195,35 +2195,58 @@ grant execute on function common.claim_username(text, text) to authenticated;
 -- own row), so there's no UPDATE policy on common.profiles — this RPC
 -- is the single write path, like every other mutation in the app. The
 -- FE surface is the "Edit profile" dialog off the user menu.
+-- Outcomes: `ok`, or one of three faults. Nothing here is a validation — the
+-- picker offers the eight palette swatches and nothing else, so every way this
+-- can refuse is a bug or a dead session rather than a choice a player made.
+drop function if exists common.update_profile_color(text);
 create or replace function common.update_profile_color(new_color text)
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = common, public, extensions
 as $$
 declare
   caller_id uuid;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text;
 begin
   caller_id := auth.uid();
+  -- PN032. Unreachable through PostgREST, which refuses a call to `common`
+  -- before the body runs when there is no JWT.
   if caller_id is null then
-    raise exception 'not-authenticated|' using errcode = '42501',
+    raise exception 'Signed out; try refresh'
+      using errcode = 'PN032', hint = 'fault', column = '_',
       detail = 'auth.uid() is null';
   end if;
 
-  -- Friendly P0001 instead of the raw 23514 the CHECK would raise. The
-  -- list must match the CHECK on common.profiles.color (and the FE's
-  -- MEMBER_COLORS in memberColor.ts).
+  -- PN033. The list must match the CHECK on common.profiles.color and the FE's
+  -- MEMBER_COLORS. A named condition beats the raw 23514: the code points at
+  -- one line, and the message says which value arrived.
   if new_color not in
        ('red', 'orange', 'yellow', 'green', 'brown', 'blue', 'purple', 'pink') then
-    raise exception 'bad-color|%|', new_color using errcode = 'P0001',
+    raise exception 'A color outside the palette reached the server: %', new_color
+      using errcode = 'PN033', hint = 'fault', column = '_',
       detail = 'color must be one of the member palette';
   end if;
 
   update common.profiles set color = new_color where user_id = caller_id;
+  -- PN034. The profile row behind this JWT is gone — a db:reset under a live
+  -- tab, or a deleted account. The same condition claim_username reports as
+  -- PN018, and what `useProfile` raises for itself when its read finds no row.
   if not found then
-    raise exception 'no-profile|' using errcode = 'P0001',
+    raise exception 'Your profile is no longer on the server. Please refresh.'
+      using errcode = 'PN034', hint = 'fault', column = '_',
       detail = 'no profiles row for the caller';
   end if;
+
+  return common.ok_envelope();
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 
