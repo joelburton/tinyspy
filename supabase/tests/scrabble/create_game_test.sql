@@ -10,6 +10,15 @@
 begin;
 set search_path = scrabble, common, public, extensions;
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
+
+-- `throws_ok` took a SQL STRING because the call had to be deferred; an
+-- envelope is a VALUE, and these build their SQL with `format` (the club
+-- handle is only known at run time). This runs one and returns what it gave.
+create function pg_temp.envelope_of(sql text) returns jsonb as $envfn$
+declare result jsonb;
+begin execute sql into result; return result; end;
+$envfn$ language plpgsql;
 \ir setup.psql
 
 select plan(18);
@@ -19,12 +28,12 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table cc on commit drop as
   select pg_temp.create_club('Rack coop', array['ada', 'bea']) as handle;
 create temp table gc on commit drop as
-  select * from scrabble.create_game(
+  select (scrabble.create_game(
     (select handle from cc),
     '{"dict_2": 3, "dict_3plus": 3, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
           'bea22222-2222-2222-2222-222222222222'::uuid],
-    'coop');
+    'coop')->'data'->>'id')::uuid as id;
 reset role;
 
 select is(
@@ -66,12 +75,12 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table cp on commit drop as
   select pg_temp.create_club('Rack compete', array['ada', 'bea']) as handle;
 create temp table gp on commit drop as
-  select * from scrabble.create_game(
+  select (scrabble.create_game(
     (select handle from cp),
     '{"dict_2": 6, "dict_3plus": 6, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
           'bea22222-2222-2222-2222-222222222222'::uuid],
-    'compete');
+    'compete')->'data'->>'id')::uuid as id;
 reset role;
 
 select is(
@@ -93,15 +102,18 @@ select ok(
 
 -- ─── Player-count floors ─────────────────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select throws_ok($$
+select pg_temp.envelope_is(
+  pg_temp.envelope_of($$
   select scrabble.create_game(
     (select handle from cp),
     '{"dict_2": 3, "dict_3plus": 3}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid],
-    'compete')
-$$, 'P0001', null, 'compete rejects a single player');
+    'compete')$$),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN084"}'::jsonb,
+  'compete rejects a single player');
 
-select throws_ok($$
+select pg_temp.envelope_is(
+  pg_temp.envelope_of($$
   select scrabble.create_game(
     (select handle from cp),
     '{"dict_2": 3, "dict_3plus": 3}'::jsonb,
@@ -110,8 +122,9 @@ select throws_ok($$
           'cade3333-3333-3333-3333-333333333333'::uuid,
           'dee44444-4444-4444-4444-444444444444'::uuid,
           'eda55555-5555-5555-5555-555555555555'::uuid],
-    'coop')
-$$, 'PN041', null, 'more than 4 players is rejected');
+    'coop')$$),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN041"}'::jsonb,
+  'more than 4 players is rejected');
 
 select * from finish();
 rollback;

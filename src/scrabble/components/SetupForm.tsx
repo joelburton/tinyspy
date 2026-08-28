@@ -50,6 +50,7 @@ export function SetupForm({
         members={members}
         selfId={selfId}
         numberOfPlayers={numberOfPlayers}
+        error={errors.player_user_ids}
         value={s.player_user_ids}
         onChange={(next) => set('player_user_ids', next)}
       />
@@ -69,6 +70,7 @@ export function SetupForm({
       <SetupSection label={dictLabel}>
         <DictBandField
           name="dict_2"
+          error={errors.dict_2}
           label="2-letter words"
           length={2}
           minBand={1}
@@ -78,6 +80,7 @@ export function SetupForm({
         />
         <DictBandField
           name="dict_3plus"
+          error={errors.dict_3plus}
           label="Longer words (3+)"
           length="3+"
           minBand={1}
@@ -106,6 +109,7 @@ export function SetupForm({
         >
           <RadioRow<number>
             name="ai_count"
+            error={errors.ai_count}
             prefix="Add AI players:"
             options={[
               { value: 0, label: 'None' },
@@ -119,6 +123,7 @@ export function SetupForm({
           {s.ai_count > 0 && (
             <SelectField
               name="ai_level"
+              error={errors.ai_level}
               label="Skill"
               value={s.ai_level}
               onChange={(v) => set('ai_level', v as AiLevel)}

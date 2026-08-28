@@ -17,6 +17,15 @@
 begin;
 set search_path = scrabble, common, public, extensions;
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
+
+-- `throws_ok` took a SQL STRING because the call had to be deferred; an
+-- envelope is a VALUE, and these build their SQL with `format` (the club
+-- handle is only known at run time). This runs one and returns what it gave.
+create function pg_temp.envelope_of(sql text) returns jsonb as $envfn$
+declare result jsonb;
+begin execute sql into result; return result; end;
+$envfn$ language plpgsql;
 \ir setup.psql
 
 select plan(24);
@@ -26,9 +35,9 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table cl on commit drop as
   select pg_temp.create_club('AI scrabble', array['ada', 'bea']) as handle;
 create temp table gai on commit drop as
-  select id from scrabble.create_game((select handle from cl),
+  select (scrabble.create_game((select handle from cl),
     '{"dict_2": 6, "dict_3plus": 6, "ai_count": 1, "ai_level": "best", "timer": {"kind": "none"}}'::jsonb,
-    array['ada11111-1111-1111-1111-111111111111'::uuid], 'compete');
+    array['ada11111-1111-1111-1111-111111111111'::uuid], 'compete')->'data'->>'id')::uuid as id;
 reset role;
 
 -- ─── Seating ──────────────────────────────────────────────
@@ -43,21 +52,24 @@ select is((select ai_level from scrabble.players where game_id = (select id from
 
 -- ─── create_game validation ───────────────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select throws_ok(
-  format($$ select scrabble.create_game(%L,
+select pg_temp.envelope_is(
+  pg_temp.envelope_of(format($$ select scrabble.create_game(%L,
     '{"dict_2": 3, "dict_3plus": 3, "ai_count": 1, "ai_level": "best", "timer": {"kind": "none"}}'::jsonb,
-    array['ada11111-1111-1111-1111-111111111111'::uuid], 'compete') $$, (select handle from cl)),
-  'P0001', NULL, 'a best AI needs the full dictionary (bands < 6 rejected)');
-select throws_ok(
-  format($$ select scrabble.create_game(%L,
+    array['ada11111-1111-1111-1111-111111111111'::uuid], 'compete')$$, (select handle from cl))),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN083"}'::jsonb,
+  'a best AI needs the full dictionary (bands < 6 rejected)');
+select pg_temp.envelope_is(
+  pg_temp.envelope_of(format($$ select scrabble.create_game(%L,
     '{"dict_2": 6, "dict_3plus": 6, "ai_count": 4, "ai_level": "best", "timer": {"kind": "none"}}'::jsonb,
-    array['ada11111-1111-1111-1111-111111111111'::uuid], 'compete') $$, (select handle from cl)),
-  'P0001', NULL, 'ai_count > 3 is rejected');
-select throws_ok(
-  format($$ select scrabble.create_game(%L,
+    array['ada11111-1111-1111-1111-111111111111'::uuid], 'compete')$$, (select handle from cl))),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN080"}'::jsonb,
+  'ai_count > 3 is rejected');
+select pg_temp.envelope_is(
+  pg_temp.envelope_of(format($$ select scrabble.create_game(%L,
     '{"dict_2": 6, "dict_3plus": 6, "ai_count": 1, "ai_level": "best", "timer": {"kind": "none"}}'::jsonb,
-    array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop') $$, (select handle from cl)),
-  'P0001', NULL, 'AI players are rejected in coop');
+    array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop')$$, (select handle from cl))),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN081"}'::jsonb,
+  'AI players are rejected in coop');
 reset role;
 
 -- ─── get_ai_context ───────────────────────────────────────
@@ -121,9 +133,9 @@ select is((select current_seat from scrabble.games where id = (select id from ga
 -- ─── _finish crowns an AI winner ──────────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table gwin on commit drop as
-  select id from scrabble.create_game((select handle from cl),
+  select (scrabble.create_game((select handle from cl),
     '{"dict_2": 6, "dict_3plus": 6, "ai_count": 1, "ai_level": "best", "timer": {"kind": "none"}}'::jsonb,
-    array['ada11111-1111-1111-1111-111111111111'::uuid], 'compete');
+    array['ada11111-1111-1111-1111-111111111111'::uuid], 'compete')->'data'->>'id')::uuid as id;
 reset role;
 -- Empty racks (no leftover subtraction); AI leads.
 update scrabble.players set rack = '{}', score = 10

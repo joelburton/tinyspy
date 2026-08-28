@@ -21,10 +21,10 @@ create temp table cl on commit drop as
   select pg_temp.create_club('Suggest', array['ada', 'bea']) as handle;
 
 create temp table gco on commit drop as
-  select id from scrabble.create_game((select handle from cl),
+  select (scrabble.create_game((select handle from cl),
     '{"dict_2": 2, "dict_3plus": 5, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
-          'bea22222-2222-2222-2222-222222222222'::uuid], 'coop');
+          'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as id;
 reset role;
 select pg_temp.sc_coop((select id from gco), array['A','B','C','D','E','F','?'],
   array['H','I','J']);
@@ -39,10 +39,10 @@ reset role;
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table gcp on commit drop as
-  select id from scrabble.create_game((select handle from cl),
+  select (scrabble.create_game((select handle from cl),
     '{"dict_2": 2, "dict_3plus": 5, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
-          'bea22222-2222-2222-2222-222222222222'::uuid], 'compete');
+          'bea22222-2222-2222-2222-222222222222'::uuid], 'compete')->'data'->>'id')::uuid as id;
 select throws_ok($$
   select scrabble.get_suggest_context((select id from gcp))
 $$, 'P0001', 'suggest-not-in-compete|',

@@ -1,6 +1,7 @@
 // cs-unmet
 
-import { faultMessage, expectedTextOrFault } from '../../common/lib/game/serverError'
+import { expectedTextOrFault } from '../../common/lib/game/serverError'
+import { runRpc } from '../../common/lib/supabase/dbResult'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { IconNewGame, IconPrint, IconRestart } from '../../common/components/icons'
 import type { GenericFeedbackMsg, GamePageCtx, Member } from '../../common/lib/games'
@@ -452,23 +453,25 @@ export function PlayArea({
     // anyway so an accidental `+` doesn't read as "I just lost my game" — the
     // copy says shelved, not ended. At terminal there's nothing to interrupt.
     if (!isTerminal && !(await confirmAction(NEW_GAME_CONFIRM))) return
-    const { data, error } = await db
-      .rpc('create_game', {
+    const res = await runRpc<{ id: string }>(
+      db.rpc('create_game', {
         target_club: clubHandle,
         setup: setup as unknown as ScrabbleSetup,
         player_user_ids: players.map((p) => p.user_id),
         mode: gameMode,
-      })
-      .single()
-    if (error || !data) {
-      // New game is a FAULT SURFACE (serverError.ts → faultMessage): this
-      // setup already built a game once, so any failure here is a bug or an
-      // outage — never a pill. Straight to showMsg: the sticky-forcing
-      // wrapper would flatten the fault's manual-dismiss mode.
-      showMsg(faultMessage(error, 'new game'))
+      }),
+    )
+    if (res.type !== 'ok') {
+      // THE SAME ENVELOPE, READ DIFFERENTLY. On the setup form a validation is
+      // an answer — fix the field and press Start again. Here there is no field
+      // and no form: this setup already built a game once, so whatever comes
+      // back is a bug or an outage, and it wears the fault look whatever the
+      // server called it. Straight to showMsg: the sticky-forcing wrapper
+      // would flatten the fault's manual-dismiss mode.
+      showMsg({ tone: 'error', fault: true, text: res.message, mode: { kind: 'manual' } })
       return
     }
-    goToGame(`scrabble_${gameMode}`, (data as { id: string }).id)
+    goToGame(`scrabble_${gameMode}`, res.data.id)
   }, [gameMode, clubHandle, setup, players, goToGame, showMsg, confirmAction, isTerminal])
 
   // Single-flight guard. New game has THREE triggers (the terminal button, the

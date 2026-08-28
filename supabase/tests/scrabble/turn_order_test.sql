@@ -33,12 +33,12 @@ reset role;
 -- ── TURN GAME — ada first ──
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g on commit drop as
-  select id from scrabble.create_game((select handle from cl),
+  select (scrabble.create_game((select handle from cl),
     ('{"dict_2": 6, "dict_3plus": 6, "timer": {"kind": "none"},'
      || '"coop_style": "turns",'
      || '"first_turn_user_id": "ada11111-1111-1111-1111-111111111111"}')::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
-          'bea22222-2222-2222-2222-222222222222'::uuid], 'coop');
+          'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as id;
 reset role;
 -- Pin the shared rack + a 10-tile bag (no 'Z', so 'Z' is a guaranteed
 -- not-in-rack tile for the soft-reject case). Exchange needs bag ≥ 7.
@@ -103,10 +103,10 @@ select is(
 -- ── FREE-FOR-ALL coop (no coop_style) — pointer null, ungated ──
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table ffa on commit drop as
-  select id from scrabble.create_game((select handle from cl),
+  select (scrabble.create_game((select handle from cl),
     '{"dict_2": 6, "dict_3plus": 6, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
-          'bea22222-2222-2222-2222-222222222222'::uuid], 'coop');
+          'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as id;
 reset role;
 select pg_temp.sc_coop((select id from ffa), array['A','B','C','D','E','F','G'],
   array['H','I','J','K','L','M','N','O','P','Q']);

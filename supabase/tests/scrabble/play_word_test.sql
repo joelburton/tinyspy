@@ -21,10 +21,10 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table ca on commit drop as
   select pg_temp.create_club('Rackplay', array['ada', 'bea']) as handle;
 create temp table ga on commit drop as
-  select id from scrabble.create_game((select handle from ca),
+  select (scrabble.create_game((select handle from ca),
     '{"dict_2": 6, "dict_3plus": 6, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
-          'bea22222-2222-2222-2222-222222222222'::uuid], 'coop');
+          'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as id;
 reset role;
 -- Known rack + a 3-tile bag so the draw is deterministic.
 select pg_temp.sc_coop((select id from ga),
@@ -82,10 +82,10 @@ reset role;
 -- ─── Game B (coop) — dictionary reject + guards ──────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table gb on commit drop as
-  select id from scrabble.create_game((select handle from ca),
+  select (scrabble.create_game((select handle from ca),
     '{"dict_2": 6, "dict_3plus": 6, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
-          'bea22222-2222-2222-2222-222222222222'::uuid], 'coop');
+          'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as id;
 reset role;
 select pg_temp.sc_coop((select id from gb),
   array['Z','X','Q','J','A','E','I'], array['N','N','N']);
@@ -124,10 +124,10 @@ reset role;
 -- ─── Game C (compete) — turn gate + advance ──────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table gc on commit drop as
-  select id from scrabble.create_game((select handle from ca),
+  select (scrabble.create_game((select handle from ca),
     '{"dict_2": 6, "dict_3plus": 6, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
-          'bea22222-2222-2222-2222-222222222222'::uuid], 'compete');
+          'bea22222-2222-2222-2222-222222222222'::uuid], 'compete')->'data'->>'id')::uuid as id;
 reset role;
 select pg_temp.sc_turn((select id from gc), 'ada11111-1111-1111-1111-111111111111');
 select pg_temp.sc_rack((select id from gc), 'ada11111-1111-1111-1111-111111111111',
@@ -183,10 +183,10 @@ select is((select consecutive_passes from scrabble.games where id = (select id f
 -- cross-word rejects even when the main word is legal.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table gd on commit drop as
-  select id from scrabble.create_game((select handle from ca),
+  select (scrabble.create_game((select handle from ca),
     '{"dict_2": 6, "dict_3plus": 6, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
-          'bea22222-2222-2222-2222-222222222222'::uuid], 'coop');
+          'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as id;
 reset role;
 -- Rack holds a blank `?`; bag is a known 3 so the refill is deterministic.
 select pg_temp.sc_coop((select id from gd),

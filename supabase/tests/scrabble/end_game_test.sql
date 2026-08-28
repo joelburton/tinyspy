@@ -24,10 +24,10 @@ reset role;
 -- ─── Coop manual end forfeits leftover tiles ─────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table gm on commit drop as
-  select id from scrabble.create_game((select handle from cl),
+  select (scrabble.create_game((select handle from cl),
     '{"dict_2": 6, "dict_3plus": 6, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
-          'bea22222-2222-2222-2222-222222222222'::uuid], 'coop');
+          'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as id;
 reset role;
 -- Known team score + a leftover rack worth 11 (Q=10 + A=1).
 update scrabble.games set team_score = 5, shared_rack = array['Q','A']
@@ -67,10 +67,10 @@ reset role;
 -- ─── Timeout (coop) crowns a gentle score report ─────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table gt on commit drop as
-  select id from scrabble.create_game((select handle from cl),
+  select (scrabble.create_game((select handle from cl),
     '{"dict_2": 6, "dict_3plus": 6, "timer": {"kind": "countdown", "seconds": 60}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
-          'bea22222-2222-2222-2222-222222222222'::uuid], 'coop');
+          'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as id;
 reset role;
 update scrabble.games set team_score = 12, shared_rack = array['Q']  -- leftover 10
   where id = (select id from gt);

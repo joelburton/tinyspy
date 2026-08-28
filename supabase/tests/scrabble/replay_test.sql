@@ -30,10 +30,10 @@ reset role;
 -- ─── Coop: play a word, end, then replay ─────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g1 on commit drop as
-  select id from scrabble.create_game((select handle from cl),
+  select (scrabble.create_game((select handle from cl),
     '{"dict_2": 6, "dict_3plus": 6, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
-          'bea22222-2222-2222-2222-222222222222'::uuid], 'coop');
+          'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as id;
 reset role;
 
 -- Rig a known rack + play CAT through the center, then end the game: that
@@ -99,10 +99,10 @@ select is((select ticks from common.timers where game_id = (select id from g1)),
 -- ─── Compete: every seat re-dealt + scores zeroed ────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
-  select id from scrabble.create_game((select handle from cl),
+  select (scrabble.create_game((select handle from cl),
     '{"dict_2": 6, "dict_3plus": 6, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
-          'bea22222-2222-2222-2222-222222222222'::uuid], 'compete');
+          'bea22222-2222-2222-2222-222222222222'::uuid], 'compete')->'data'->>'id')::uuid as id;
 reset role;
 update scrabble.players set score = 42 where game_id = (select id from g2);
 
@@ -143,13 +143,13 @@ select is(
 -- ─── Coop turn-order rewinds to the first-seated player ──
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g3 on commit drop as
-  select id from scrabble.create_game((select handle from cl),
+  select (scrabble.create_game((select handle from cl),
     jsonb_build_object('dict_2', 6, 'dict_3plus', 6,
                        'timer', jsonb_build_object('kind', 'none'),
                        'coop_style', 'turns',
                        'first_turn_user_id', 'ada11111-1111-1111-1111-111111111111'),
     array['ada11111-1111-1111-1111-111111111111'::uuid,
-          'bea22222-2222-2222-2222-222222222222'::uuid], 'coop');
+          'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as id;
 reset role;
 -- Hand the turn to bea, then replay → it must come back to ada (turn_seat 0).
 select pg_temp.sc_turn((select id from g3), 'bea22222-2222-2222-2222-222222222222');

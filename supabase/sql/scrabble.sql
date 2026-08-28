@@ -526,19 +526,25 @@ revoke execute on function scrabble._finish(uuid, text, integer) from public;
 -- Builds + shuffles the 100-tile bag, deals 7-tile racks (per-player in
 -- compete, one shared rack in coop), picks a random first player (compete),
 -- and seeds an empty board.
+-- `create or replace` cannot change a function's return type, and this one
+-- became jsonb. `if exists` because this file is re-applied in full on every
+-- deploy, so the drop has to be a no-op the second time.
+drop function if exists scrabble.create_game(text, jsonb, uuid[], text);
+
 create or replace function scrabble.create_game(
   target_club     text,
   setup           jsonb,
   player_user_ids uuid[],
   mode            text
 )
-returns table(id uuid)
+returns jsonb
 language plpgsql
 security definer
 set search_path = scrabble, common, public, extensions
 as $$
 declare
   new_id        uuid;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text;
   s_dict_2      int;
   s_dict_3plus  int;
   v_bag         text[];
@@ -558,7 +564,8 @@ begin
   -- Up to 4 players; compete needs at least 2 (a 1-player race is degenerate).
   perform common.require_player_count_max(player_user_ids, 4);
   if array_length(player_user_ids, 1) is null then
-    raise exception 'no-players|' using errcode = 'P0001',
+    raise exception 'A game with no players reached the server'
+      using errcode = 'PN077', hint = 'fault', column = '_',
       detail = 'player_user_ids was empty';
   end if;
 
@@ -567,11 +574,13 @@ begin
   s_dict_2     := coalesce((setup->>'dict_2')::int, 3);
   s_dict_3plus := coalesce((setup->>'dict_3plus')::int, 3);
   if s_dict_2 < 1 or s_dict_2 > 6 then
-    raise exception 'bad-dict-2|%|', s_dict_2 using errcode = 'P0001',
+    raise exception 'A 2-letter dictionary of % reached the server', s_dict_2
+      using errcode = 'PN078', hint = 'fault', column = '_',
       detail = 'setup.dict_2 must be 1..6';
   end if;
   if s_dict_3plus < 1 or s_dict_3plus > 6 then
-    raise exception 'bad-dict-3plus|%|', s_dict_3plus using errcode = 'P0001',
+    raise exception 'A longer-word dictionary of % reached the server', s_dict_3plus
+      using errcode = 'PN079', hint = 'fault', column = '_',
       detail = 'setup.dict_3plus must be 1..6';
   end if;
 
@@ -580,11 +589,13 @@ begin
   -- common.game_players / profiles) and seated AFTER the humans.
   v_ai_count := coalesce((setup->>'ai_count')::int, 0);
   if v_ai_count < 0 or v_ai_count > 3 then
-    raise exception 'bad-ai-count|%|', v_ai_count using errcode = 'P0001',
+    raise exception 'An AI count of % reached the server', v_ai_count
+      using errcode = 'PN080', hint = 'fault', column = '_',
       detail = 'setup.ai_count must be 0..3';
   end if;
   if v_ai_count > 0 and mode <> 'compete' then
-    raise exception 'ai-not-in-coop|' using errcode = 'P0001',
+    raise exception 'An AI opponent in a co-op game reached the server'
+      using errcode = 'PN081', hint = 'fault', column = '_',
       detail = 'AI opponents seat only in compete';
   end if;
   if v_ai_count > 0 then
@@ -596,14 +607,19 @@ begin
                    when 'intermediate' then 4 when 'strong' then 6 when 'best' then 6
                    else null end;
     if v_ai_band is null then
-      raise exception 'bad-ai-level|%|', coalesce(v_ai_level, '(null)') using errcode = 'P0001',
+      raise exception 'An AI skill of ''%'' reached the server', coalesce(v_ai_level, '(null)')
+      using errcode = 'PN082', hint = 'fault', column = '_',
       detail = 'ai_level is not one of the known levels';
     end if;
     -- The game's dictionary must be at least as wide as the AI knows, else it
     -- can't play at its tuned strength (docs/scrabble-ai-strength.md band rule).
     if s_dict_2 < v_ai_band or s_dict_3plus < v_ai_band then
-      raise exception 'bad-dict-band|%|%|',
-        v_ai_band, v_ai_level using errcode = 'P0001',
+      -- A CROSS-FIELD rule the form already gates on (validateScrabbleSetup
+      -- blocks Start), so reaching it means something other than the form sent
+      -- the setup.
+      raise exception 'A % AI with the dictionary below band % reached the server',
+        v_ai_level, v_ai_band
+      using errcode = 'PN083', hint = 'fault', column = '_',
       detail = 'the dictionary bands must reach the AI''s band';
     end if;
   end if;
@@ -612,11 +628,13 @@ begin
   -- (humans + AI) is 2..4 in compete.
   v_total := array_length(player_user_ids, 1) + v_ai_count;
   if mode = 'compete' and v_total < 2 then
-    raise exception 'too-few-players|' using errcode = 'P0001',
+    raise exception 'A race with fewer than two seats reached the server'
+      using errcode = 'PN084', hint = 'fault', column = '_',
       detail = 'compete needs >= 2 seats including AI';
   end if;
   if v_total > 4 then
-    raise exception 'too-many-players|%|', v_total using errcode = 'P0001',
+    raise exception 'A game with % seats reached the server', v_total
+      using errcode = 'PN085', hint = 'fault', column = '_',
       detail = 'scrabble seats at most 4';
   end if;
 
@@ -680,8 +698,8 @@ begin
     if setup->>'coop_style' = 'turns' then
       first_turn := (setup->>'first_turn_user_id')::uuid;
       if first_turn is null or not (first_turn = any(player_user_ids)) then
-        raise exception 'bad-first-turn|'
-          using errcode = 'P0001',
+        raise exception 'A first player who is not in the game reached the server'
+          using errcode = 'PN086', hint = 'fault', column = '_',
       detail = 'setup.first_turn_user_id must be one of the players';
       end if;
       perform common._assign_turn_order(new_id, first_turn);
@@ -689,7 +707,18 @@ begin
   end if;
 
   perform common.update_state(new_id, 'playing', scrabble._status(new_id));
-  return query select new_id;
+  return common.ok_envelope(jsonb_build_object('id', new_id));
+
+-- One block, and it has never heard of any specific condition: it reads the
+-- SQLSTATE, re-raises anything that isn't ours, and lets the raise itself carry
+-- the message, the kind and the field.
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 

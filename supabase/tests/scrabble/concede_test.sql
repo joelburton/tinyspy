@@ -25,12 +25,12 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select pg_temp.create_club('Scrabble concede', array['ada', 'bea']) as handle;
 create temp table g on commit drop as
-select id from scrabble.create_game(
+select (scrabble.create_game(
   (select handle from club),
   '{"dict_2": 6, "dict_3plus": 6, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
-  'compete');
+  'compete')->'data'->>'id')::uuid as id;
 
 -- (1) ada concedes; bea still plays → game continues, and the current
 -- turn is bea (either ada was current and handed off, or bea already was).

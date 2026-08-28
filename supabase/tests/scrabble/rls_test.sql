@@ -20,10 +20,10 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table cl on commit drop as
   select pg_temp.create_club('RLS club', array['ada', 'bea', 'cade']) as handle;
 create temp table g on commit drop as
-  select id from scrabble.create_game((select handle from cl),
+  select (scrabble.create_game((select handle from cl),
     '{"dict_2": 6, "dict_3plus": 6, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
-          'bea22222-2222-2222-2222-222222222222'::uuid], 'compete');
+          'bea22222-2222-2222-2222-222222222222'::uuid], 'compete')->'data'->>'id')::uuid as id;
 reset role;
 
 -- ─── The bag is never selectable; its count is ───────────

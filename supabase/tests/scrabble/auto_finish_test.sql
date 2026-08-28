@@ -27,10 +27,10 @@ reset role;
 -- ─── Coop going-out ──────────────────────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table gco on commit drop as
-  select id from scrabble.create_game((select handle from cl),
+  select (scrabble.create_game((select handle from cl),
     '{"dict_2": 6, "dict_3plus": 6, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
-          'bea22222-2222-2222-2222-222222222222'::uuid], 'coop');
+          'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as id;
 reset role;
 select pg_temp.sc_coop((select id from gco), array['A','T'], '{}');  -- empty bag
 
@@ -58,10 +58,10 @@ select ok((select bool_and((result->>'won')::boolean is false) from common.game_
 -- ─── Compete going-out + the going-out bonus ─────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table gcp on commit drop as
-  select id from scrabble.create_game((select handle from cl),
+  select (scrabble.create_game((select handle from cl),
     '{"dict_2": 6, "dict_3plus": 6, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
-          'bea22222-2222-2222-2222-222222222222'::uuid], 'compete');
+          'bea22222-2222-2222-2222-222222222222'::uuid], 'compete')->'data'->>'id')::uuid as id;
 reset role;
 select pg_temp.sc_turn((select id from gcp), 'ada11111-1111-1111-1111-111111111111');
 select pg_temp.sc_rack((select id from gcp), 'ada11111-1111-1111-1111-111111111111', array['A','T']);
@@ -93,10 +93,10 @@ select is((select status->>'winner_username' from common.games where id = (selec
 -- ─── Compete blocked (everyone passed in a row) ──────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table gbl on commit drop as
-  select id from scrabble.create_game((select handle from cl),
+  select (scrabble.create_game((select handle from cl),
     '{"dict_2": 6, "dict_3plus": 6, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
-          'bea22222-2222-2222-2222-222222222222'::uuid], 'compete');
+          'bea22222-2222-2222-2222-222222222222'::uuid], 'compete')->'data'->>'id')::uuid as id;
 reset role;
 -- Two seats, so one pass is already banked and ada's is the last; known leftovers.
 update scrabble.games set consecutive_passes = 1 where id = (select id from gbl);
@@ -122,10 +122,10 @@ select is((select result->>'won' from common.game_players
 -- ─── Compete tie → co-winners ────────────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table gtie on commit drop as
-  select id from scrabble.create_game((select handle from cl),
+  select (scrabble.create_game((select handle from cl),
     '{"dict_2": 6, "dict_3plus": 6, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
-          'bea22222-2222-2222-2222-222222222222'::uuid], 'compete');
+          'bea22222-2222-2222-2222-222222222222'::uuid], 'compete')->'data'->>'id')::uuid as id;
 reset role;
 update scrabble.games set consecutive_passes = 1 where id = (select id from gtie);
 select pg_temp.sc_turn((select id from gtie), 'ada11111-1111-1111-1111-111111111111');

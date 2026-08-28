@@ -23,10 +23,10 @@ reset role;
 -- ─── Exchange: bag-≥7 gate ───────────────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table gco on commit drop as
-  select id from scrabble.create_game((select handle from cl),
+  select (scrabble.create_game((select handle from cl),
     '{"dict_2": 6, "dict_3plus": 6, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
-          'bea22222-2222-2222-2222-222222222222'::uuid], 'coop');
+          'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as id;
 reset role;
 select pg_temp.sc_coop((select id from gco), array['A','B','C','D','E','F','G'],
   array['H','I','J']);  -- only 3 in the bag
@@ -61,10 +61,10 @@ select is((select kind || ':' || tile_count from scrabble.plays
 -- ─── Pass (compete) advances the turn + pass streak ──────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table gcp on commit drop as
-  select id from scrabble.create_game((select handle from cl),
+  select (scrabble.create_game((select handle from cl),
     '{"dict_2": 6, "dict_3plus": 6, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
-          'bea22222-2222-2222-2222-222222222222'::uuid], 'compete');
+          'bea22222-2222-2222-2222-222222222222'::uuid], 'compete')->'data'->>'id')::uuid as id;
 reset role;
 select pg_temp.sc_turn((select id from gcp), 'ada11111-1111-1111-1111-111111111111');
 
@@ -95,10 +95,10 @@ select is((select status->>'outcome' from common.games where id = (select id fro
 -- the old 6-scoreless rule an exchange fed the same counter as a pass.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table gcx on commit drop as
-  select id from scrabble.create_game((select handle from cl),
+  select (scrabble.create_game((select handle from cl),
     '{"dict_2": 6, "dict_3plus": 6, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
-          'bea22222-2222-2222-2222-222222222222'::uuid], 'compete');
+          'bea22222-2222-2222-2222-222222222222'::uuid], 'compete')->'data'->>'id')::uuid as id;
 reset role;
 select pg_temp.sc_turn((select id from gcx), 'ada11111-1111-1111-1111-111111111111');
 select pg_temp.sc_rack((select id from gcx), 'bea22222-2222-2222-2222-222222222222',
@@ -127,10 +127,10 @@ $$, 'P0001', null, 'passing is rejected in coop (no turns)');
 -- assert CONSERVATION across rack+bag rather than its position).
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table gbk on commit drop as
-  select id from scrabble.create_game((select handle from cl),
+  select (scrabble.create_game((select handle from cl),
     '{"dict_2": 6, "dict_3plus": 6, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
-          'bea22222-2222-2222-2222-222222222222'::uuid], 'coop');
+          'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as id;
 reset role;
 select pg_temp.sc_coop((select id from gbk),
   array['?','A','B','C','D','E','F'], array['H','I','J','K','L','M','N']);
