@@ -1124,7 +1124,7 @@ select pg_temp.envelope_is(
 
 ## 7. The conversion roster
 
-**146 entries. 35 done, 5 edge functions deferred, 106 to go.** Cross them off
+**146 entries. 36 done, 5 edge functions deferred, 105 to go.** Cross them off
 here as they land.
 
 An entry is one RPC or one table read **per area**, so the same name in two
@@ -1260,7 +1260,7 @@ identifier — a shape nothing has exercised yet.
 
 #### letterboxed
 
-- [ ] `create_game` · RPC, reached through `letterboxed-build-board`
+- [x] `create_game` · RPC, reached through `letterboxed-build-board`
 - [ ] `log_help` · RPC
 - [ ] `submit_word` · RPC
 - [ ] `events` · read (2 call sites)
@@ -1400,6 +1400,11 @@ The pieces, all shared:
 Because those are shared, converting the first board builder converts the
 handoff for all seven — the other six are red until they land. That is the
 chosen sequencing, not an accident.
+
+**Six of the seven are done** (waffle, wordiply, boggle, spellingbee, wordwheel,
+letterboxed). Only crosswords is left, and it is last for its own reasons: its
+setup form is the un-converted layout exception, so none of its controls carry a
+`name` for a validation to land under.
 
 **Still deferred:** the five that answer a question rather than start a game
 (`common-define`, `codenamesduet-suggest-clue`, `crosswords-explain-clue`,

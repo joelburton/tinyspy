@@ -38,6 +38,7 @@ begin;
 set search_path = letterboxed, common, public, extensions;
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 select plan(11);
@@ -96,14 +97,14 @@ create temp table cset on commit drop as
 select pg_temp.lb_setup() || '{"custom_sides":"abcdefghijkl"}'::jsonb as s;
 
 create temp table g on commit drop as
-select * from letterboxed.create_game(
+select (letterboxed.create_game(
   (select handle from club),
   (select s from cset),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop',
   pg_temp.lb_board()
-);
+)->'data'->>'id')::uuid as id;
 
 select is(
   (select sides from letterboxed.games where id = (select id from g)),
@@ -149,19 +150,15 @@ select is(
 create temp table club2 on commit drop as
 select pg_temp.create_club('LB mismatch', array['ada', 'bea']) as handle;
 
-select throws_ok(
-  format(
-    $$ select letterboxed.create_game(%L,
-                                      pg_temp.lb_setup()
-                                        || '{"custom_sides":"lkjihgfedcba"}'::jsonb,
-                                      array['ada11111-1111-1111-1111-111111111111'::uuid,
-                                            'bea22222-2222-2222-2222-222222222222'::uuid],
-                                      'coop',
-                                      pg_temp.lb_board()) $$,
-    (select handle from club2)
-  ),
-  'P0001',
-  'custom-board-mismatch|lkjihgfedcba|abcdefghijkl|',
+select pg_temp.envelope_is(
+  letterboxed.create_game((select handle from club2),
+    pg_temp.lb_setup() || '{"custom_sides":"lkjihgfedcba"}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid,
+          'bea22222-2222-2222-2222-222222222222'::uuid],
+    'coop',
+    pg_temp.lb_board()),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN204",
+    "message":"You asked for ''lkjihgfedcba'' and the board built was ''abcdefghijkl''"}'::jsonb,
   'a board that is not the one typed is refused'
 );
 
@@ -184,35 +181,32 @@ $$;
 create temp table club3 on commit drop as
 select pg_temp.create_club('LB thin custom', array['ada', 'bea']) as handle;
 
-select lives_ok(
-  format(
-    $$ select letterboxed.create_game(%L,
-                                      pg_temp.lb_setup()
-                                        || '{"custom_sides":"abcdefghijkl"}'::jsonb,
-                                      array['ada11111-1111-1111-1111-111111111111'::uuid,
-                                            'bea22222-2222-2222-2222-222222222222'::uuid],
-                                      'coop',
-                                      pg_temp.lb_thin_board()) $$,
-    (select handle from club3)
-  ),
+-- `envelope_is`, not `lives_ok`. Nothing throws out of this function any more,
+-- so "it did not raise" stopped being evidence the moment it started RETURNING
+-- its refusals — the assertion has to read the answer.
+select pg_temp.envelope_is(
+  letterboxed.create_game((select handle from club3),
+    pg_temp.lb_setup() || '{"custom_sides":"abcdefghijkl"}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid,
+          'bea22222-2222-2222-2222-222222222222'::uuid],
+    'coop',
+    pg_temp.lb_thin_board()),
+  '{"type":"ok"}'::jsonb,
   'a thin CUSTOM board is allowed — you chose it'
 );
 
 create temp table club4 on commit drop as
 select pg_temp.create_club('LB thin rolled', array['ada', 'bea']) as handle;
 
-select throws_ok(
-  format(
-    $$ select letterboxed.create_game(%L,
-                                      pg_temp.lb_setup(),
-                                      array['ada11111-1111-1111-1111-111111111111'::uuid,
-                                            'bea22222-2222-2222-2222-222222222222'::uuid],
-                                      'coop',
-                                      pg_temp.lb_thin_board()) $$,
-    (select handle from club4)
-  ),
-  'P0001',
-  'too-few-playable-words|2|',
+select pg_temp.envelope_is(
+  letterboxed.create_game((select handle from club4),
+    pg_temp.lb_setup(),
+    array['ada11111-1111-1111-1111-111111111111'::uuid,
+          'bea22222-2222-2222-2222-222222222222'::uuid],
+    'coop',
+    pg_temp.lb_thin_board()),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN206",
+    "message":"The generated board had only 2 words to find"}'::jsonb,
   'the same thin board is still refused when nobody typed it'
 );
 

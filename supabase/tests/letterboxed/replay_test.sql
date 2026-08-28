@@ -29,14 +29,14 @@ select pg_temp.create_club('Replay club', array['ada','bea','cade']) as handle;
 -- A TURN game (ada first) so the pointer rewind is exercised too; cade is in
 -- the club but NOT in the game.
 create temp table g on commit drop as
-select * from letterboxed.create_game(
+select (letterboxed.create_game(
   (select handle from club),
   pg_temp.lb_setup_turns('ada11111-1111-1111-1111-111111111111'),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop',
   pg_temp.lb_board()
-);
+)->'data'->>'id')::uuid as id;
 
 -- Play it to the WIN, with a hint taken along the way (so every counter the
 -- replay must reset is genuinely non-zero first).

@@ -25,9 +25,10 @@ begin;
 
 set search_path = letterboxed, common, public, extensions;
 
-select plan(10);
+select plan(11);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -36,14 +37,14 @@ select pg_temp.create_club('Turns club', array['ada','bea']) as handle;
 
 -- ── The turn game — ada first ───────────────────────────────
 create temp table g on commit drop as
-select * from letterboxed.create_game(
+select (letterboxed.create_game(
   (select handle from club),
   pg_temp.lb_setup_turns('ada11111-1111-1111-1111-111111111111'),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop',
   pg_temp.lb_board()
-);
+)->'data'->>'id')::uuid as id;
 
 -- (1) Pointer seated on ada.
 reset role;
@@ -115,14 +116,14 @@ select throws_ok(
 
 -- ── (7) Free-for-all coop: no pointer, no gate ──────────────
 create temp table gf on commit drop as
-select * from letterboxed.create_game(
+select (letterboxed.create_game(
   (select handle from club),
   pg_temp.lb_setup(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop',
   pg_temp.lb_board()
-);
+)->'data'->>'id')::uuid as id;
 
 reset role;
 select is(
@@ -136,6 +137,24 @@ select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select lives_ok(
   format('select letterboxed.submit_word(%L, %L)', (select id from gf), 'adg'),
   'free-for-all: any player may move (the turn gate is inert)'
+);
+
+-- ── A first player who isn't playing ────────────────────────
+-- The setup dialog only ever offers the players already checked, so this can
+-- only arrive from something broken — a fault, on the form rather than on the
+-- picker, because no control the player can see is wrong.
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select pg_temp.envelope_is(
+  letterboxed.create_game(
+    (select handle from club),
+    pg_temp.lb_setup_turns('cec33333-3333-3333-3333-333333333333'),
+    array['ada11111-1111-1111-1111-111111111111'::uuid,
+          'bea22222-2222-2222-2222-222222222222'::uuid],
+    'coop',
+    pg_temp.lb_board()),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN211",
+    "message":"A first player who is not in the game reached the server"}'::jsonb,
+  'turns: a first player who is not in the game is refused'
 );
 
 select * from finish();

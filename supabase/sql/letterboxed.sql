@@ -628,6 +628,8 @@ drop function if exists letterboxed._end_game(uuid, text, jsonb, jsonb);
 -- seeded pair doesn't chain, doesn't cover the twelve, or isn't in the
 -- playable list, the players get a board with no guaranteed solution
 -- and no way to know it.
+drop function if exists letterboxed.create_game(text, jsonb, uuid[], text, jsonb);
+
 create or replace function letterboxed.create_game(
   target_club text,
   setup jsonb,
@@ -635,13 +637,14 @@ create or replace function letterboxed.create_game(
   mode text,
   board jsonb
 )
-returns table(id uuid)
+returns jsonb
 language plpgsql
 security definer
 set search_path = letterboxed, common, public, extensions
 as $$
 declare
   new_id uuid;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text;
   s_max_words int;
   s_extra_words int;
   s_legal_band int;
@@ -664,9 +667,9 @@ begin
     -- compete Start button in 1-player clubs; this is the server-side
     -- catch. Matches psychicnum + connections.
     if coalesce(array_length(player_user_ids, 1), 0) < 2 then
-      raise exception 'too-few-players|'
-        using errcode = 'P0001',
-      detail = 'compete needs >= 2 players';
+      raise exception 'A race with fewer than two players reached the server'
+        using errcode = 'PN199', hint = 'fault', column = '_',
+        detail = 'compete needs >= 2 players';
     end if;
   end if;
 
@@ -675,8 +678,8 @@ begin
   -- ─── Validate setup ──────────────────────────────────────
   s_extra_words := coalesce((setup->>'extra_words')::int, 3);
   if s_extra_words < 0 or s_extra_words > 5 then
-    raise exception 'bad-extra-words|%|', s_extra_words
-      using errcode = 'P0001',
+    raise exception 'A spare-word count of % reached the server', s_extra_words
+      using errcode = 'PN200', hint = 'fault', column = '_',
       detail = 'setup.extra_words must be 0..5';
   end if;
   -- PAR = 2 on every board this pipeline builds (see the header). Resolved
@@ -686,8 +689,8 @@ begin
 
   s_legal_band := coalesce((setup->>'legal_band')::int, 5);
   if s_legal_band < 1 or s_legal_band > 6 then
-    raise exception 'bad-legal-band|%|', s_legal_band
-      using errcode = 'P0001',
+    raise exception 'A dictionary of % reached the server', s_legal_band
+      using errcode = 'PN201', hint = 'fault', column = '_',
       detail = 'setup.legal_band must be 1..6';
   end if;
 
@@ -696,15 +699,15 @@ begin
   -- ─── Validate the board ──────────────────────────────────
   b_sides := board->>'sides';
   if b_sides is null or b_sides !~ '^[a-z]{12}$' then
-    raise exception 'bad-sides|%|',
-                    coalesce(b_sides, 'null')
-      using errcode = 'P0001',
+    raise exception 'A board of ''%'' reached the server',
+      coalesce(b_sides, 'nothing')
+      using errcode = 'PN202', hint = 'fault', column = '_',
       detail = 'board.sides must be 12 lowercase ASCII letters';
   end if;
   -- Letter Boxed never repeats a letter: the board is a SET of twelve.
   if (select count(distinct c) from regexp_split_to_table(b_sides, '') c) <> 12 then
-    raise exception 'repeated-side-letter|%|', b_sides
-      using errcode = 'P0001',
+    raise exception 'A board repeating a letter reached the server: ''%''', b_sides
+      using errcode = 'PN203', hint = 'fault', column = '_',
       detail = 'board.sides must be twelve DISTINCT letters';
   end if;
 
@@ -718,15 +721,15 @@ begin
   -- custom base.
   if setup->>'custom_sides' is not null
      and setup->>'custom_sides' <> b_sides then
-    raise exception 'custom-board-mismatch|%|%|',
-                    setup->>'custom_sides', b_sides
-      using errcode = 'P0001',
+    raise exception 'You asked for ''%'' and the board built was ''%''',
+      setup->>'custom_sides', b_sides
+      using errcode = 'PN204', hint = 'fault', column = '_',
       detail = 'board.sides must equal setup.custom_sides exactly';
   end if;
 
   if jsonb_typeof(board->'playable_words') <> 'array' then
-    raise exception 'bad-playable-words|'
-      using errcode = 'P0001',
+    raise exception 'The generated board arrived with no word list'
+      using errcode = 'PN205', hint = 'fault', column = '_',
       detail = 'board.playable_words must be a jsonb array';
   end if;
   b_words := board->'playable_words';
@@ -744,9 +747,9 @@ begin
   -- your business. Same relaxation spellingbee and wordiply make for
   -- their custom boards.
   if setup->>'custom_sides' is null and jsonb_array_length(b_words) < 150 then
-    raise exception 'too-few-playable-words|%|',
-                    jsonb_array_length(b_words)
-      using errcode = 'P0001',
+    raise exception 'The generated board had only % words to find',
+      jsonb_array_length(b_words)
+      using errcode = 'PN206', hint = 'fault', column = '_',
       detail = 'board.playable_words must hold >= 150; the edge function''s gate must agree';
   end if;
 
@@ -755,28 +758,28 @@ begin
   -- SOLVED, which is the promise the seed pipeline exists to keep.
   b_solution := array(select jsonb_array_elements_text(board->'solution'));
   if cardinality(b_solution) <> 2 then
-    raise exception 'bad-solution-length|'
-      using errcode = 'P0001',
+    raise exception 'The generated board came with the wrong number of solution words'
+      using errcode = 'PN207', hint = 'fault', column = '_',
       detail = 'board.solution must hold exactly 2 words';
   end if;
   sol_a := b_solution[1];
   sol_b := b_solution[2];
 
   if not (b_words ? sol_a) or not (b_words ? sol_b) then
-    raise exception 'solution-unplayable|'
-      using errcode = 'P0001',
+    raise exception 'The generated board''s solution uses words it does not allow'
+      using errcode = 'PN208', hint = 'fault', column = '_',
       detail = 'both solution words must appear in playable_words';
   end if;
   if right(sol_a, 1) <> left(sol_b, 1) then
-    raise exception 'solution-unchained|%|%|%|%|',
-                    sol_a, right(sol_a, 1), sol_b, left(sol_b, 1)
-      using errcode = 'P0001',
+    raise exception 'The generated board''s solution does not chain: ''%'' ends in % and ''%'' starts with %',
+      sol_a, right(sol_a, 1), sol_b, left(sol_b, 1)
+      using errcode = 'PN209', hint = 'fault', column = '_',
       detail = 'board.solution must chain: word_a''s last letter is word_b''s first';
   end if;
   if letterboxed._covered(b_solution) <> 12 then
-    raise exception 'solution-uncovered|%|',
-                    letterboxed._covered(b_solution)
-      using errcode = 'P0001',
+    raise exception 'The generated board''s solution covers only % of the twelve letters',
+      letterboxed._covered(b_solution)
+      using errcode = 'PN210', hint = 'fault', column = '_',
       detail = 'board.solution must cover all twelve letters';
   end if;
 
@@ -821,9 +824,9 @@ begin
   if mode = 'coop' and setup->>'coop_style' = 'turns' then
     first_turn := (setup->>'first_turn_user_id')::uuid;
     if first_turn is null or not (first_turn = any(player_user_ids)) then
-      raise exception 'bad-first-turn|'
-        using errcode = 'P0001',
-      detail = 'setup.first_turn_user_id must be one of the players';
+      raise exception 'A first player who is not in the game reached the server'
+        using errcode = 'PN211', hint = 'fault', column = '_',
+        detail = 'setup.first_turn_user_id must be one of the players';
     end if;
     perform common._assign_turn_order(new_id, first_turn);
   end if;
@@ -840,7 +843,24 @@ begin
 
   perform letterboxed._sync_status(new_id);
 
-  return query select new_id;
+  return common.ok_envelope(jsonb_build_object('id', new_id));
+
+-- The boundary. It reads the SQLSTATE, re-raises anything that isn't ours, and
+-- lets the raise itself carry the message, the kind and the field.
+--
+-- EVERY refusal above is a fault, which is unusual and worth saying: the two
+-- settings this RPC reads are bounded by their own controls, and everything
+-- else it checks is a board the player never composed. The one thing they can
+-- type — a custom board — has its shape gated by the dialog and its
+-- SOLVABILITY judged by the edge function, so by the time a board reaches here
+-- there is nothing left that is theirs to have got wrong.
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 

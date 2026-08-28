@@ -35,14 +35,14 @@ create temp table club on commit drop as
 select pg_temp.create_club('Ada and Bea', array['ada','bea']) as handle;
 
 create temp table ga on commit drop as
-select * from letterboxed.create_game(
+select (letterboxed.create_game(
   (select handle from club),
   pg_temp.lb_setup(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'compete',
   pg_temp.lb_board()
-);
+)->'data'->>'id')::uuid as id;
 
 -- ada covers eight of the twelve; bea only three. On coverage alone ada
 -- would win the timeout — the concede below is what must undo that.
@@ -125,14 +125,14 @@ select is(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table gb on commit drop as
-select * from letterboxed.create_game(
+select (letterboxed.create_game(
   (select handle from club),
   pg_temp.lb_setup(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'compete',
   pg_temp.lb_board()
-);
+)->'data'->>'id')::uuid as id;
 
 -- Both play the same word on their own chains: identical coverage AND
 -- word count, the exact tie submit_timeout refuses to break arbitrarily.

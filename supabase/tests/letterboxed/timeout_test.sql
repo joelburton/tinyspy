@@ -24,14 +24,14 @@ create temp table club on commit drop as
 select pg_temp.create_club('Timeout club', array['ada','bea']) as handle;
 
 create temp table g on commit drop as
-select * from letterboxed.create_game(
+select (letterboxed.create_game(
   (select handle from club),
   pg_temp.lb_setup_timed(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop',
   pg_temp.lb_board()
-);
+)->'data'->>'id')::uuid as id;
 
 -- Three letters covered when the clock runs out.
 select letterboxed.submit_word((select id from g), 'adg');

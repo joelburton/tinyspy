@@ -69,6 +69,7 @@ export function SetupForm({
         selfId={selfId}
         numberOfPlayers={numberOfPlayers}
         value={s.player_user_ids}
+        error={errors.player_user_ids}
         onChange={(next) => set('player_user_ids', next)}
       />
       {/* Coop pacing — first, right below the dialog's player picker.
@@ -92,6 +93,7 @@ export function SetupForm({
       <SetupSection label={`Word limit: ${wordLimitLabel}`}>
         <SelectField
           name="extra_words"
+          error={errors.extra_words}
           help={<>Every board can be solved in {PAR}.</>}
         value={s.extra_words}
         onChange={(v) => set('extra_words', Number(v))}
@@ -110,6 +112,7 @@ export function SetupForm({
         {/* Higher = easier here, unlike most games' difficulty bands. */}
         <DictBandField
           name="legal_band"
+          error={errors.legal_band}
           help="A higher band accepts more words."
           length={null}
           minBand={1}
@@ -138,6 +141,7 @@ export function SetupForm({
         <ManualBoardField
           help="Leave blank to roll a random board, or type one: all twelve letters, clockwise from the top-left corner. Separators are ignored, so paste it however you have it written."
           name="custom_sides"
+          error={errors.custom_sides}
           value={typedSides}
           onChange={(raw) => {
             setTypedSides(raw)

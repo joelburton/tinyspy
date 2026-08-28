@@ -40,14 +40,14 @@ create temp table club on commit drop as
 select pg_temp.create_club('Ada Bea Cade', array['ada','bea','cade']) as handle;
 
 create temp table g on commit drop as
-select * from letterboxed.create_game(
+select (letterboxed.create_game(
   (select handle from club),
   pg_temp.lb_setup(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop',
   pg_temp.lb_board()
-);
+)->'data'->>'id')::uuid as id;
 
 -- ── 1. The board landed as specified ────────────────────────
 select is(
@@ -221,14 +221,14 @@ select throws_ok(
 -- ============================================================
 
 create temp table gc on commit drop as
-select * from letterboxed.create_game(
+select (letterboxed.create_game(
   (select handle from club),
   pg_temp.lb_setup(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'compete',
   pg_temp.lb_board()
-);
+)->'data'->>'id')::uuid as id;
 
 select letterboxed.submit_word((select id from gc), 'adg');
 
@@ -269,13 +269,13 @@ select is(
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
 create temp table gt on commit drop as
-select * from letterboxed.create_game(
+select (letterboxed.create_game(
   (select handle from club),
   pg_temp.lb_setup() || jsonb_build_object('extra_words', 0),
   array['ada11111-1111-1111-1111-111111111111'::uuid],
   'coop',
   pg_temp.lb_board()
-);
+)->'data'->>'id')::uuid as id;
 
 select letterboxed.submit_word((select id from gt), 'adg');
 select letterboxed.submit_word((select id from gt), 'gjb');

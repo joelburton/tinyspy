@@ -4,7 +4,8 @@ import { lazy } from 'react'
 import type { GameManifest } from '../common/lib/games'
 import { db } from './db'
 import { count, outcome, statusLine, wonBy } from '../common/lib/game/statusLabel'
-import { edgeStartEnvelope, makeRpcDispatcher, invokeStartGameEdgeFn } from '../common/lib/game/manifestRpcs'
+import { makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
+import { runEdgeFn } from '../common/lib/supabase/dbResult'
 import {
   DEFAULT_LETTERBOXED_SETUP_COMPETE,
   DEFAULT_LETTERBOXED_SETUP_COOP,
@@ -52,21 +53,18 @@ const setupFormLoader = lazy(() =>
  * edge function, which samples a seed, partitions it into a board, and calls
  * `letterboxed.create_game(target_club, setup, players, mode, board)`.
  */
-function startGameInClubFactory(mode: 'coop' | 'compete', brand: string) {
-  return async (clubHandle: string, setup: unknown, playerUserIds: string[]) =>
-    edgeStartEnvelope(
-      await invokeStartGameEdgeFn(
-      'letterboxed-build-board',
-      {
-        target_club: clubHandle,
-        setup: setup as LetterboxedSetup,
-        player_user_ids: playerUserIds,
-        mode,
-      },
-        brand,
-      ),
-      brand,
-    )
+function startGameInClubFactory(mode: 'coop' | 'compete') {
+  return (clubHandle: string, setup: unknown, playerUserIds: string[]) =>
+    // The board is chosen in Deno — it needs the seed table — so this goes
+    // through an edge function rather than straight to the RPC, and comes back
+    // the same envelope a direct create_game returns, relayed untouched (see
+    // _shared/startGame.ts).
+    runEdgeFn<{ id: string }>('letterboxed-build-board', {
+      target_club: clubHandle,
+      setup: setup as LetterboxedSetup,
+      player_user_ids: playerUserIds,
+      mode,
+    })
 }
 
 // Timeout + manual end — the shared one-arg RPC dispatchers. submit_timeout is
@@ -174,7 +172,7 @@ export const letterboxedCoopGame: GameManifest = {
     validate: (setup) => letterboxedSetupError(setup as LetterboxedSetup),
   },
 
-  startGameInClub: startGameInClubFactory('coop', BRAND),
+  startGameInClub: startGameInClubFactory('coop'),
 
   labelFor: (row) => coopLabel(row),
 
@@ -206,7 +204,7 @@ export const letterboxedCompeteGame: GameManifest = {
     validate: (setup) => letterboxedSetupError(setup as LetterboxedSetup),
   },
 
-  startGameInClub: startGameInClubFactory('compete', BRAND),
+  startGameInClub: startGameInClubFactory('compete'),
 
   labelFor: (row) => competeLabel(row),
 

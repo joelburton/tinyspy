@@ -29,14 +29,14 @@ create temp table club on commit drop as
 select pg_temp.create_club('Race club', array['ada','bea']) as handle;
 
 create temp table g on commit drop as
-select * from letterboxed.create_game(
+select (letterboxed.create_game(
   (select handle from club),
   pg_temp.lb_setup(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'compete',
   pg_temp.lb_board()
-);
+)->'data'->>'id')::uuid as id;
 
 -- bea gets one word in; ada runs the two-word solution and wins.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');

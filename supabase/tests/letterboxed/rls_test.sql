@@ -30,14 +30,14 @@ select pg_temp.create_club('RLS club', array['ada','bea','cade']) as handle;
 
 -- ── (1) Coop: the whole club reads the shared log ───────────
 create temp table gco on commit drop as
-select * from letterboxed.create_game(
+select (letterboxed.create_game(
   (select handle from club),
   pg_temp.lb_setup(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop',
   pg_temp.lb_board()
-);
+)->'data'->>'id')::uuid as id;
 select letterboxed.submit_word((select id from gco), 'adg');
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
@@ -57,14 +57,14 @@ select is(
 -- ── (2) Compete mid-race: own rows only ─────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table gcp on commit drop as
-select * from letterboxed.create_game(
+select (letterboxed.create_game(
   (select handle from club),
   pg_temp.lb_setup(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'compete',
   pg_temp.lb_board()
-);
+)->'data'->>'id')::uuid as id;
 select letterboxed.submit_word((select id from gcp), 'adg');
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select letterboxed.submit_word((select id from gcp), 'adg');

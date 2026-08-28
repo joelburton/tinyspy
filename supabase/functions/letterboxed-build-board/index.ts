@@ -62,24 +62,21 @@
  *     setup: jsonb,             // {timer, max_words?, legal_band?, coop_style?…}
  *     player_user_ids: uuid[],
  *     mode: 'coop' | 'compete' }
- *   → { id: uuid }  (200)
- *   → { error: fe-error-key, code?: SQLSTATE }  (400/401/500)
+ *   → a result envelope, ALWAYS 200 (_shared/envelope.ts)
  *
- * Errors are fe-error-keys (`key|detail|` — docs/supabase.md → Server errors;
- * guarded by src/guards/edgeFnErrorKeys.test.ts): the FE owns every player-facing
- * word. THREE are player-reachable, and only on the custom path — you can
- * mistype a board (unknown-board / unverified-board) or set the dictionary
- * below what its solution needs (board-needs-band) — so all three carry copy
- * in errorCopy.ts and land on the setup dialog's own error line. The rest
- * (bad-band / bad-custom-board / board-attempts-exhausted / unsolvable-board /
- * edge-internal) are "impossible without an FE bug or a broken pipeline" — no
- * copy; they render as faults. A create_game raise relays verbatim with its
- * SQLSTATE (invokeCreateGame).
+ * The status says whether this function ran; the envelope says what it decided.
+ * Four refusals are player-reachable, and they are the ones that need the SEED
+ * TABLE to judge — which the frontend does not have, so its own gate stops at
+ * shape. Three are about a board you typed and land on that box or on the
+ * dictionary select; the fourth is a roll that never landed, and the dictionary
+ * is the only lever over a re-roll. Everything else is a value the setup dialog
+ * has no control capable of producing, and renders as a fault.
  */
 
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { type SupabaseClient } from 'jsr:@supabase/supabase-js@2'
-import { edgeInternal, json, preflight } from '../_shared/http.ts'
+import { preflight } from '../_shared/http.ts'
+import { crash, fault, validation } from '../_shared/envelope.ts'
 import { parseBuildBoardRequest, invokeCreateGame } from '../_shared/startGame.ts'
 import {
   BOARD_SIZE,
@@ -308,7 +305,8 @@ serve(async (req: Request) => {
   const legalBand = Number(setup.legal_band ?? 5)
   if (!Number.isInteger(legalBand) || legalBand < 1 || legalBand > 6) {
     console.log(`${FN} reject: bad legal_band ${setup.legal_band} (must be an integer 1..6)`)
-    return json({ error: `bad-band|${setup.legal_band}|` }, 400)
+    return fault('PN212', `A dictionary of ${setup.legal_band} reached the server.`,
+      `${FN}: legal_band must be an integer 1..6`)
   }
 
   // A typed board short-circuits the whole sample-and-re-roll loop: there is
@@ -323,8 +321,12 @@ serve(async (req: Request) => {
       // renders as a fault. Matches boggle's `bad-custom-board`.
       const parsed = parseSides(typedBoard)
       if (!parsed.ok) {
+        // `parsed.error` is a player-facing sentence and rides as the detail
+        // rather than the message: the dialog is already saying it under the
+        // box, and repeating it in a modal would present a broken client as
+        // something the player got wrong.
         console.log(`${FN} reject: custom board unreadable — ${parsed.error}`)
-        return json({ error: 'bad-custom-board|' }, 400)
+        return fault('PN213', 'The typed board could not be read.', `${FN}: ${parsed.error}`)
       }
       const built = await buildCustomBoard(supabase, parsed.sides, legalBand)
       // A rejection is the PLAYER's to see and act on (retype the board, raise
@@ -332,14 +334,32 @@ serve(async (req: Request) => {
       // board rides along as the detail on the two "check what you typed"
       // keys, so the dialog's caption can name it back.
       if ('reject' in built) {
+        // The three player-reachable refusals, and the only ones this function
+        // makes that are not faults. All three are about a board the player
+        // typed and the dialog CANNOT judge — proving a pair solvable in two
+        // needs the seed table, which the frontend does not have.
+        //
+        // Three sentences rather than one because the fixes differ, and the
+        // FIELD differs with them: two say "check what you typed" and land on
+        // the box, while the third names a number to raise the dictionary to
+        // and lands on that select instead. Joel's words, approved verbatim.
         const shown = parsed.sides.toUpperCase()
         switch (built.reject) {
           case 'unknown-board':
-            return json({ error: `unknown-board|${shown}|` }, 400)
+            // The sorted SET is what missed, so rearranging would not help —
+            // which is why this one says "the letters in", not "the board".
+            return validation('PN214', 'custom_sides',
+              `No known solution for the letters in ${shown}`,
+              `${FN}: the letter set is not in the seed table`)
           case 'unverified-board':
-            return json({ error: `unverified-board|${shown}|` }, 400)
+            // The letters were right, so this one is about the arrangement.
+            return validation('PN215', 'custom_sides',
+              `${shown} isn't solvable in two — check the sides`,
+              `${FN}: the letters are known but this partition is not verified`)
           case 'board-needs-band':
-            return json({ error: `board-needs-band|${built.band}|` }, 400)
+            return validation('PN216', 'legal_band',
+              `That board needs dictionary ${built.band} or higher`,
+              `${FN}: the pair is verified only at band ${built.band}`)
         }
       }
       board = built
@@ -351,12 +371,17 @@ serve(async (req: Request) => {
     }
   } catch (e) {
     console.log(`${FN} error:`, (e as Error).message)
-    return edgeInternal(e)
+    return crash(FN, e)
   }
 
   if (!board) {
+    // A ROLLED board, so nothing the player typed is wrong — but the
+    // dictionary decides which words count, and it is the only lever they have
+    // over a re-roll. Under that select rather than in a modal offering nothing.
     console.log(`${FN} reject: could not build a board in ${MAX_ATTEMPTS} attempts`)
-    return json({ error: `board-attempts-exhausted|${MAX_ATTEMPTS}|` }, 500)
+    return validation('PN217', 'legal_band',
+      'No board could be built with that dictionary. Try a wider one.',
+      `${FN}: ${MAX_ATTEMPTS} attempts all rejected`)
   }
 
   // Sanity: the invariant create_game will re-check anyway. Asserting it here
@@ -365,7 +390,8 @@ serve(async (req: Request) => {
   const covered = new Set(board.solution.join('')).size
   if (covered !== BOARD_SIZE) {
     console.log(`${FN} error: solution covers ${covered}/${BOARD_SIZE} letters`)
-    return json({ error: 'unsolvable-board|' }, 500)
+    return fault('PN218', 'The generated board could not be solved.',
+      `${FN}: solution covers ${covered}/${BOARD_SIZE} letters`)
   }
 
   return await invokeCreateGame(
