@@ -15,6 +15,7 @@ const { mockRpc } = vi.hoisted(() => ({ mockRpc: vi.fn() }))
 vi.mock('../../db', () => ({ db: { rpc: mockRpc } }))
 
 import { AnagramDialog } from './AnagramDialog'
+import { errorUnder } from '../fields/errorUnder'
 
 beforeEach(() => {
   mockRpc.mockReset()
@@ -136,5 +137,23 @@ describe('AnagramDialog', () => {
     await waitFor(() =>
       expect(screen.getByText('That table is gone')).toBeInTheDocument(),
     )
+  })
+})
+
+describe('AnagramDialog — the other arm of the routing', () => {
+  it("puts a fieldless message on the form's line, not under the box", async () => {
+    // `common.anagrams` names `letters` when it can. When it cannot — anything
+    // that is not about what you typed — the message belongs to the surface.
+    const message = 'The server said this exact thing.'
+    mockRpc.mockResolvedValue({
+      data: { type: 'not-ok', severity: 'validation', message },
+      error: null,
+    })
+    const user = userEvent.setup()
+    render(<AnagramDialog onClose={() => {}} />)
+    await user.type(screen.getByRole('textbox'), 'acer{Enter}')
+
+    await waitFor(() => expect(screen.getByText(message)).toBeInTheDocument())
+    expect(errorUnder('letters')).not.toBe(message)
   })
 })

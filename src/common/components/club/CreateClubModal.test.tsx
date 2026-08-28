@@ -22,17 +22,7 @@ const { mockRpc } = vi.hoisted(() => ({ mockRpc: vi.fn() }))
 vi.mock('../../db', () => ({ db: { rpc: mockRpc } }))
 
 import { CreateClubModal } from './CreateClubModal'
-
-/** The field's own error slot: the `<span>` inside the same `<div class=field>`
- *  as the named control. Finding it through the CONTROL is what makes this a
- *  test of the routing — a page-wide text match would pass wherever it landed. */
-function errorUnder(name: string): string | null {
-  const control = document.querySelector(`[name="${name}"]`)
-  const field = control?.closest('div')
-  const spans = field ? [...field.querySelectorAll('span')] : []
-  // The error is the last span in the field, after caption / help / entry help.
-  return spans.length ? (spans[spans.length - 1].textContent ?? null) : null
-}
+import { errorUnder } from '../fields/errorUnder'
 
 beforeEach(() => {
   mockRpc.mockReset()

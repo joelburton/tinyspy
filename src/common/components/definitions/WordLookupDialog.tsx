@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { StandardForm } from '../fields/StandardForm'
+import { FORM_ERROR_KEYNAME, type FormErrors } from '../fields/formState'
+import { FailureLine } from '../feedback/FailureLine'
 import { DefinitionView } from './DefinitionView'
 import { Dialog } from '../floating-panels/Dialog'
 import styles from './WordLookupDialog.module.css'
@@ -32,10 +34,21 @@ export function WordLookupDialog({ onClose }: Props) {
   /** The word being DEFINED, as against the one being typed. Clicking a related
    *  word in the definition sets both: you see what you are looking at. */
   const [word, setWord] = useState<string | null>(null)
+  // This form's OWN refusals — what it can say about the last press of Define.
+  // The lookup's failures are not among them: `<DefinitionView>` fetches and
+  // reports those itself, in the space where the definition would have been.
+  const [errors, setErrors] = useState<FormErrors>({})
 
   function onSubmit({ query }: Values) {
     const w = query.trim().toLowerCase()
-    if (w) setWord(w)
+    if (!w) {
+      // A refusal, said out loud. Submitting an empty box used to do nothing
+      // at all, which reads as a broken button rather than as an answer.
+      setErrors({ query: 'Type a word to look up.' })
+      return
+    }
+    setErrors({})
+    setWord(w)
   }
 
   return (
@@ -63,8 +76,10 @@ export function WordLookupDialog({ onClose }: Props) {
               className={styles.input}
               value={values.query}
               onChange={(v) => set('query', v)}
+              error={errors.query}
               placeholder="a word…"
             />
+            <FailureLine>{errors[FORM_ERROR_KEYNAME]}</FailureLine>
             <StandardButton name="Define" type="submit" weight="primary" className={styles.button} />
 
             {/* INSIDE the form, which it did not use to be. Following a related

@@ -287,6 +287,7 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
               )}
               <TextField
                 name="definition"
+                error={errors.definition}
                 label="Definition"
                 value={values.definition}
                 onChange={(v) => set('definition', v)}
@@ -295,6 +296,7 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
               />
               <TextField
                 name="hint"
+                error={errors.hint}
                 label="Hint"
                 value={values.hint}
                 onChange={(v) => set('hint', v)}
@@ -322,6 +324,7 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
               <div className={styles.checks}>
                 <CheckboxField
                   name="slang"
+                  error={errors.slang}
                   value={values.slang}
                   onChange={(on) => set('slang', on)}
                 >
@@ -340,6 +343,7 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
               </div>
               <TextField
                 name="note"
+                error={errors.note}
                 label="Note"
                 value={values.note}
                 onChange={(v) => set('note', v)}

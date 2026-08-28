@@ -29,6 +29,7 @@ vi.mock('../../db', () => ({
 }))
 
 import { WordEditDialog } from './WordEditDialog'
+import { errorUnder } from '../fields/errorUnder'
 
 const ROW = {
   definition: 'a gloss',
@@ -132,5 +133,63 @@ describe('WordEditDialog', () => {
     await waitFor(() =>
       expect(screen.getByText("You can't edit the dictionary")).toBeInTheDocument(),
     )
+  })
+})
+
+/**
+ * The routing, and the one place it cannot be honored.
+ *
+ * `add_word` takes the ten flags as ONE jsonb argument, so a validation about
+ * what is inside it can only name that argument — `column = 'fields'`, and
+ * there is no box called `fields`. Left alone the message would be written into
+ * an errors key nothing renders, and vanish. It goes on the form's line.
+ */
+const MESSAGE = 'The server said this exact thing.'
+
+async function addAndSave() {
+  const user = userEvent.setup()
+  render(<WordEditDialog request={{ mode: 'add' }} />)
+  await user.type(screen.getByLabelText('Word'), 'zqnew')
+  const band = screen.getByLabelText('Band (1–6)')
+  await user.clear(band)
+  await user.type(band, '3')
+  await user.click(screen.getByRole('button', { name: 'Save' }))
+  await waitFor(() => expect(mockRpc).toHaveBeenCalled())
+}
+
+describe('WordEditDialog — where a validation lands', () => {
+  it('puts a message naming a real box under THAT box', async () => {
+    mockRpc.mockResolvedValue({
+      data: { type: 'not-ok', severity: 'validation', field: 'definition', message: MESSAGE },
+      error: null,
+    })
+    await addAndSave()
+
+    await waitFor(() => expect(errorUnder('definition')).toBe(MESSAGE))
+  })
+
+  it("puts a message naming the jsonb argument on the form's line instead", async () => {
+    // There is no field called `fields`, and the raise cannot say which of the
+    // ten it meant. Routing it to the form is the honest answer; routing it to
+    // `errors.fields` would lose it silently.
+    mockRpc.mockResolvedValue({
+      data: { type: 'not-ok', severity: 'validation', field: 'fields', message: MESSAGE },
+      error: null,
+    })
+    await addAndSave()
+
+    await waitFor(() => expect(screen.getByText(MESSAGE)).toBeInTheDocument())
+    expect(errorUnder('definition')).not.toBe(MESSAGE)
+  })
+
+  it("puts a fieldless message on the form's line", async () => {
+    mockRpc.mockResolvedValue({
+      data: { type: 'not-ok', severity: 'validation', message: MESSAGE },
+      error: null,
+    })
+    await addAndSave()
+
+    await waitFor(() => expect(screen.getByText(MESSAGE)).toBeInTheDocument())
+    expect(errorUnder('definition')).not.toBe(MESSAGE)
   })
 })

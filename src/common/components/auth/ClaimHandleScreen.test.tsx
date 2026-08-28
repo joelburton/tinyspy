@@ -17,6 +17,7 @@ vi.mock('../../lib/supabase/supabase', () => ({
 vi.mock('../../db', () => ({ db: { rpc: mockRpc } }))
 
 import { ClaimHandleScreen } from './ClaimHandleScreen'
+import { errorUnder } from '../fields/errorUnder'
 
 // jsdom can't navigate, and `location.assign` is non-configurable (so it can't
 // be spied directly) — but the `location` property itself can be swapped for a
@@ -29,15 +30,6 @@ function stubLocation() {
     value: { assign, href: realLocation.href },
   })
   return assign
-}
-
-/** The field's own error slot: the last `<span>` in the same field wrapper as
- *  the named control. Found through the CONTROL, so this tests the ROUTING — a
- *  page-wide text match would pass wherever the message landed. */
-function errorUnder(name: string): string | null {
-  const control = document.querySelector(`[name="${name}"]`)
-  const spans = control?.closest('div')?.querySelectorAll('span')
-  return spans?.length ? (spans[spans.length - 1].textContent ?? null) : null
 }
 
 describe('ClaimHandleScreen — a taken username lands on the username box', () => {

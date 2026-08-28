@@ -87,7 +87,12 @@ export function EditProfileModal({ session, onSaved, onCancel }: Props) {
         >
           {({ values, set }) => (
             <>
-              <ReadOnlyField name="username" label="Username" value={profile.username} />
+              <ReadOnlyField
+                name="username"
+                label="Username"
+                value={profile.username}
+                error={errors.username}
+              />
 
               <ColorField
                 name="new_color"
