@@ -1,6 +1,7 @@
 // cs-unmet
 
 import type { SetupOf, TimerMode } from '../../common/lib/games'
+import type { FormErrors } from '../../common/components/fields/formState'
 import type { CoopTurnSetup } from '../../common/components/setup/SetupCoopStyleSection'
 
 /**
@@ -78,10 +79,16 @@ export function answerMaxBand(setup: WordleSetup): number {
  * answer's hardest band. The dialog gates Start on this (via the manifest's
  * `validate`); `create_game` re-checks server-side.
  */
-export function legalGuessError(setup: WordleSetup): string | null {
+export function legalGuessError(setup: WordleSetup): FormErrors {
   const min = answerMaxBand(setup)
   if (setup.legal_guess < min) {
-    return `Legal guesses must reach at least band ${min}, so every possible answer is itself a guessable word.`
+    // Under `legal_guess`, not `answer_source`, though moving EITHER can cause
+    // it: the legal band is the one the sentence asks you to raise, and its own
+    // select disables everything below the floor, so the other field has
+    // nothing wrong with it to ring.
+    return {
+      legal_guess: `Legal guesses must reach at least band ${min}, so every possible answer is itself a guessable word.`,
+    }
   }
-  return null
+  return {}
 }

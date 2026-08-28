@@ -1,6 +1,7 @@
 // cs-unmet
 
 import type { SetupOf, TimerMode } from '../../common/lib/games'
+import type { FormErrors } from '../../common/components/fields/formState'
 import type { CoopTurnSetup } from '../../common/components/setup/SetupCoopStyleSection'
 import type { DeckKind } from './cards'
 
@@ -78,14 +79,14 @@ export function paletteOf(setup: Partial<SetgameSetup> | null | undefined): Pale
  * (which the dialog shows while disabling Start) or `null` when the setup is
  * valid. `create_game` re-checks server-side.
  */
-export function setgameSetupError(setup: SetgameSetup): string | null {
+export function setgameSetupError(setup: SetgameSetup): FormErrors {
   if (setup.deck !== 'full' && setup.deck !== 'junior') {
-    return 'Pick a deck.'
+    return { deck: 'Pick a deck.' }
   }
   if (setup.palette !== 'traditional' && setup.palette !== 'colorblind') {
-    return 'Pick a color set.'
+    return { palette: 'Pick a color set.' }
   }
-  return null
+  return {}
 }
 
 /** Initial setup for the coop manifest: the full deck, no timer. */

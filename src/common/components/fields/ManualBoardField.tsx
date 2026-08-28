@@ -65,7 +65,7 @@ export function ManualBoardField({
   const shown = groups ? groupTiles(tiles(value.replace(/[-\s]/g, '')), groups) : value
 
   return (
-    <Field label={label} help={help} entryHelp={entryHelp} error={error}>
+    <Field label={label} help={help} entryHelp={entryHelp} error={error} name={name}>
       {(id) => (
         <input
           name={name}

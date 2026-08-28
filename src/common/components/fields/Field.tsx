@@ -37,6 +37,28 @@ type Props = {
    *  whole goes on its `<FailureLine>` instead — that is the split the form's
    *  errors object spells out, one key per field plus one for the form. */
   error?: string | null
+  /**
+   * THE FIELD'S NAME — the same string the control wears, the key its value is
+   * sent under, and the key its error is filed at.
+   *
+   * Stamped twice, on purpose. `data-field` goes on the WRAPPER, so the whole
+   * block — caption, help, control, entry help, error — is addressable as one
+   * field: a test scopes to it and asks what this field says, rather than
+   * searching the page and hoping only one thing matches. `data-field-error`
+   * goes on the error span, because inside that block the error and the entry
+   * help are both spans of prose and only the attribute tells them apart.
+   *
+   * Here rather than in each component, so no field can be the one that forgot.
+   * Two of them used to hand-place `data-field` on a control, which meant the
+   * other ten had nothing, and the wrapper — the part a caption assertion wants
+   * — had nothing anywhere.
+   *
+   * The failure all this is against is the one that LOOKS fine: a red sentence
+   * on screen, under a field, just not the field it is about. Reading the name
+   * off the markup proves identity; walking up from a control and guessing
+   * which span is the message only ever proved position.
+   */
+  name?: string
   /** A GROUP of controls rather than one — a swatch list, a checkbox list. It
    *  renders `<fieldset>` / `<legend>`, which is the element's actual job, and
    *  needs no id because there is no single control to point at. */
@@ -65,9 +87,12 @@ type Props = {
  * one. Here every field gets all four slots by forwarding two props
  * (plans/areas/forms.md → F34 `label-above-control`).
  *
- * **`<CheckboxField>` is the one field that doesn't use it**, and it is a
- * different shape rather than a variant: its caption sits BESIDE the box, not
- * above. Bending `Field` to cover that would make it the thing it replaced.
+ * **`<CheckboxField>` is the one whose caption sits BESIDE the box**, not above
+ * it, so it keeps its own inline row and wears this for the wrapper around it —
+ * the error slot, and the name every field is addressable by. Bending `Field`
+ * to lay out that row would make it the thing it replaced; leaving
+ * `CheckboxField` outside it entirely would make it the one field a form's
+ * errors cannot reach.
  *
  * Two others nearly stayed out and shouldn't have.
  * `<ManualBoardField>` has no caption at TODAY'S five call sites — but "no
@@ -77,7 +102,7 @@ type Props = {
  * reason to lay out its own. *"We want consistency between fields — we're
  * trying to collapse difference where reasonable."*
  */
-export function Field({ label, help, entryHelp, error, group, className, children }: Props) {
+export function Field({ label, help, entryHelp, error, name, group, className, children }: Props) {
   const id = useId()
   // Whether the caller TOOK the id is what decides how the caption points at
   // the control — see below.
@@ -91,7 +116,7 @@ export function Field({ label, help, entryHelp, error, group, className, childre
   const Caption = group ? 'legend' : wearsId ? 'label' : 'span'
 
   return (
-    <Wrapper className={cls(styles.field, className)}>
+    <Wrapper className={cls(styles.field, className)} data-field={name}>
       {label !== undefined && (
         <Caption className={styles.label} {...(group || !wearsId ? {} : { htmlFor: id })}>
           {label}
@@ -103,7 +128,11 @@ export function Field({ label, help, entryHelp, error, group, className, childre
       {/* Both, when both — the help says how to type it and the error says what
           is wrong with what is there. Losing the instructions the moment you
           make a mistake takes them away exactly when they matter. */}
-      {error && <span className={styles.error}>{error}</span>}
+      {error && (
+        <span className={styles.error} data-field-error={name ?? ''}>
+          {error}
+        </span>
+      )}
     </Wrapper>
   )
 }

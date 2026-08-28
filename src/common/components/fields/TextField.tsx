@@ -76,7 +76,7 @@ export function TextField({
   }
 
   return (
-    <Field label={label} help={help} entryHelp={entryHelp} error={error} className={className}>
+    <Field label={label} help={help} entryHelp={entryHelp} error={error} name={name} className={className}>
       {(id) =>
         multiline ? (
           <textarea id={id} rows={rows} {...shared} />

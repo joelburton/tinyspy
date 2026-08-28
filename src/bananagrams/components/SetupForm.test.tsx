@@ -54,8 +54,7 @@ function draw({ values = {}, errors = {} as FormErrors } = {}) {
 describe('bananagrams setup — what it offers', () => {
   it('offers exactly these settings, in this order', () => {
     expect(fieldNames(draw().container)).toEqual([
-      'player_user_ids.self',
-      'player_user_ids.moth',
+      'player_user_ids',
       'hand_size',
       'bunch_size',
       'dump_to_bag',
@@ -63,7 +62,6 @@ describe('bananagrams setup — what it offers', () => {
       'dict_2',
       'dict_3plus',
       'timer',
-      'timer.seconds',
     ])
   })
 

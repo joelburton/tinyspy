@@ -21,7 +21,8 @@ import { SetupGameModal } from './SetupGameModal'
 import { PlayersSection } from './PlayersSection'
 import { NumberField } from '../fields/NumberField'
 import type { GameManifest, Member, SetupBodyProps } from '../../lib/games'
-import { errorUnder } from '../fields/errorUnder'
+import { errorUnder, formError } from '../fields/errorUnder'
+import { FORM_ERROR_KEYNAME, type FormErrors } from '../fields/formState'
 
 const MESSAGE = 'The server said this exact thing.'
 
@@ -55,7 +56,7 @@ function Body({ values, set, members, selfId, numberOfPlayers, errors }: SetupBo
 }
 
 const startGameInClub = vi.fn()
-const validate = vi.fn<(setup: unknown, playerCount: number) => string | null>(() => null)
+const validate = vi.fn<(setup: unknown, playerCount: number) => FormErrors>(() => ({}))
 
 function manifest(over: Partial<GameManifest> = {}): GameManifest {
   return {
@@ -91,7 +92,7 @@ beforeEach(() => {
   startGameInClub.mockReset()
   startGameInClub.mockResolvedValue({ type: 'ok', data: { id: 'g1' } })
   validate.mockReset()
-  validate.mockReturnValue(null)
+  validate.mockReturnValue({})
 })
 
 describe('SetupGameModal — what it starts with', () => {
@@ -164,11 +165,31 @@ describe('SetupGameModal — the seam', () => {
 
 describe('SetupGameModal — when Start is refused', () => {
   it('is blocked while the cross-field guard has something to say', async () => {
-    validate.mockReturnValue('The bag is too small for that many players.')
+    validate.mockReturnValue({ guesses: 'The bag is too small for that many players.' })
     draw()
 
     await waitFor(() => expect(start()).toBeDisabled())
     expect(screen.getByText('The bag is too small for that many players.')).toBeInTheDocument()
+  })
+
+  it('puts the guard\'s message under the field it named, not on the form line', async () => {
+    // The whole reason `validate` returns an object. A game's own check and the
+    // server's `validation` answer the same question about the same control, so
+    // they land in the same place — which one noticed is not the player's
+    // business. Before this the frontend's half always went to the bottom line,
+    // even when the field that owned it was directly above.
+    validate.mockReturnValue({ guesses: 'Pick a smaller board.' })
+    draw()
+
+    await waitFor(() => expect(errorUnder('guesses')).toBe('Pick a smaller board.'))
+    expect(formError()).toBeNull()
+  })
+
+  it('still has a form line for what belongs to no field', async () => {
+    validate.mockReturnValue({ [FORM_ERROR_KEYNAME]: 'These settings do not go together.' })
+    draw()
+
+    await waitFor(() => expect(formError()).toBe('These settings do not go together.'))
   })
 
   it('is blocked while the player count is out of range', async () => {
@@ -184,7 +205,7 @@ describe('SetupGameModal — when Start is refused', () => {
   })
 
   it('never reaches the server while it is blocked', async () => {
-    validate.mockReturnValue('No.')
+    validate.mockReturnValue({ [FORM_ERROR_KEYNAME]: 'No.' })
     const user = userEvent.setup()
     draw()
     await waitFor(() => expect(start()).toBeDisabled())

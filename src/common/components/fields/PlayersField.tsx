@@ -72,7 +72,7 @@ export function PlayersField({
     // `group`: the control is a SET of checkboxes, so a caption heads them as a
     // <legend> rather than pointing at one. No box of its own — the
     // <SetupSection> around it draws that.
-    <Field label={label} group help={help} entryHelp={entryHelp} error={error} className={className}>
+    <Field label={label} group help={help} entryHelp={entryHelp} error={error} name={name} className={className}>
       {members.map((m) => {
         const isSelf = m.user_id === selfId
         return (

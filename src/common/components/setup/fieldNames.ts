@@ -13,19 +13,25 @@
  * the inventory: scrabble's Skill appears when there is an AI to be skilled,
  * and the first-player picker when co-op is played in turns.
  *
- * DISTINCT names, in first-appearance order. A radio group is one field wearing
- * one name across several inputs — `guesses` is four `<input type="radio">`s —
- * and listing it four times would be counting controls, which is not what a
- * setup form is a list of.
+ * Read off the FIELD BOXES — `<Field>` stamps each one `data-field` — not off
+ * the controls inside them. A field is one setting however many inputs it
+ * draws: `guesses` is four radios and `player_user_ids` is a checkbox per
+ * member, and counting controls would make the first appear four times and the
+ * second depend on how many friends are in the test's club.
  *
- * Composed names stay as written: a group's `player_user_ids.<uuid>`, the
- * countdown's `timer.seconds`. Collapsing those to their stem would hide the
- * difference between a field and its parts, and the second one is a real
- * control a test needs to find.
+ * So the composed names are gone, and both of them were parts rather than
+ * settings: `player_user_ids.<uuid>` is one checkbox per friend in the club,
+ * and `timer.seconds` is the MM:SS box that lives inside the timer's own radio
+ * row. Neither is a thing a game offers; `player_user_ids` and `timer` are, and
+ * each now appears exactly once however many controls it draws.
+ *
+ * A test that needs one of those parts still finds it by `name` — that is what
+ * the name is for. This list answers a narrower question: which SETTINGS does
+ * this game put in front of you.
  */
 export function fieldNames(container: HTMLElement): string[] {
-  const seen = Array.from(container.querySelectorAll('[name], [data-field]')).map(
-    (el) => el.getAttribute('name') ?? el.getAttribute('data-field')!,
+  const seen = Array.from(container.querySelectorAll('[data-field]')).map(
+    (el) => el.getAttribute('data-field')!,
   )
   return [...new Set(seen)]
 }

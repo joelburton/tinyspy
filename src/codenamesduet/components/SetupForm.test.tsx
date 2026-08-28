@@ -52,12 +52,10 @@ function draw({ values = {}, errors = {} as FormErrors } = {}) {
 describe('codenamesduet setup — what it offers', () => {
   it('offers exactly these settings, in this order', () => {
     expect(fieldNames(draw().container)).toEqual([
-      'player_user_ids.self',
-      'player_user_ids.moth',
+      'player_user_ids',
       'turns',
       'first_clue_giver_user_id',
       'timer',
-      'timer.seconds',
     ])
   })
 

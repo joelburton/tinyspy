@@ -1,6 +1,7 @@
 // cs-unmet
 
 import type { SetupOf, TimerMode } from '../../common/lib/games'
+import type { FormErrors } from '../../common/components/fields/formState'
 import type { CoopTurnSetup } from '../../common/components/setup/SetupCoopStyleSection'
 import { parseSides } from './customBoard'
 
@@ -80,11 +81,11 @@ export type LetterboxedSetup = SetupOf<LetterboxedValues>
  * reading; the edge function calls the same function server-side, so this is
  * the fail-fast rather than the authority.
  */
-export function customSidesError(setup: LetterboxedSetup): string | null {
+export function customSidesError(setup: LetterboxedSetup): FormErrors {
   const typed = setup.custom_sides ?? ''
-  if (!typed) return null // blank → a random board
+  if (!typed) return {} // blank → a random board
   const parsed = parseSides(typed)
-  return parsed.ok ? null : parsed.error
+  return parsed.ok ? {} : { custom_sides: parsed.error }
 }
 
 /**
@@ -92,12 +93,12 @@ export function customSidesError(setup: LetterboxedSetup): string | null {
  * (which the dialog shows while disabling Start) or `null` when the setup is
  * valid. `create_game` re-checks server-side.
  */
-export function letterboxedSetupError(setup: LetterboxedSetup): string | null {
+export function letterboxedSetupError(setup: LetterboxedSetup): FormErrors {
   if (setup.extra_words < 0 || setup.extra_words > 5) {
-    return 'Spare words must be between 0 and 5.'
+    return { extra_words: 'Spare words must be between 0 and 5.' }
   }
   if (setup.legal_band < 1 || setup.legal_band > 6) {
-    return 'Dictionary must be between 1 and 6.'
+    return { legal_band: 'Dictionary must be between 1 and 6.' }
   }
   return customSidesError(setup)
 }

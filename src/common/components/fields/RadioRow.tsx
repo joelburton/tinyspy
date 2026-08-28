@@ -58,7 +58,7 @@ export function RadioRow<T extends string | number>({
     // Children as a NODE: each option is its own <label> around its radio, so
     // no id is wanted here and `Field` keeps the caption a plain element rather
     // than a <label> pointing at one member of a group.
-    <Field label={label} help={help} entryHelp={entryHelp} error={error} className={className}>
+    <Field label={label} help={help} entryHelp={entryHelp} error={error} name={name} className={className}>
       <div className={styles.radioRow}>
         {prefix != null && <span>{prefix}</span>}
         {options.map((opt) => (

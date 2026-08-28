@@ -91,6 +91,20 @@ export function SetupTimerSection({ value, onChange, help, errors }: Props) {
   const downSelected = value.kind === 'countdown'
   const textValid = parseMmSs(timerText) !== null
 
+  // The typed MM:SS is checked HERE rather than by the manifest's `validate`,
+  // because the box holds text the setup never sees: an unparseable value
+  // simply doesn't call `onChange`, so `setup.timer` still carries the last
+  // good one and a cross-field guard reading it would find nothing wrong.
+  //
+  // It goes in the field's own error slot all the same. It is a message about
+  // the timer, and putting it anywhere else would make this the one setting
+  // whose complaint arrives somewhere different from every other setting's.
+  // It wins over `errors.timer` on the way past: this reflects what is in the
+  // box right now, while the form's copy is about whatever was last submitted.
+  const timerError = downSelected && !textValid
+    ? 'Enter MM:SS between 0:01 and 60:00.'
+    : errors.timer
+
   return (
     // Collapsed by default; the summary carries the current setting (e.g.
     // "Timer: none", "Timer: 2:30 countdown"), so it's readable without opening.
@@ -100,7 +114,7 @@ export function SetupTimerSection({ value, onChange, help, errors }: Props) {
         // one field holding one compound value, so a raise saying
         // `column = 'timer'` lands here.
         name="timer"
-        error={errors.timer}
+        error={timerError}
         value={value.kind}
         onChange={setKind}
         options={[
@@ -134,9 +148,6 @@ export function SetupTimerSection({ value, onChange, help, errors }: Props) {
           },
         ]}
       />
-      {downSelected && !textValid && (
-        <p className="error">Enter MM:SS between 0:01 and 60:00.</p>
-      )}
     </SetupSection>
   )
 }

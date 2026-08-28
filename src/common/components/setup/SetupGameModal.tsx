@@ -199,12 +199,17 @@ export function SetupGameModal({
           const countOk = players.size >= minPlayers && players.size <= maxPlayers
           // Cross-field setup guard (optional per manifest). Couples the collected
           // values to the live headcount — e.g. bananagrams's "the bag must hold
-          // playerCount × hand_size tiles". Non-null is a reason to keep Start
+          // playerCount × hand_size tiles". Any entry is a reason to keep Start
           // disabled; the server re-checks in create_game.
-          const setupError = manifest.setupForm.validate?.(values, players.size) ?? null
-          const allErrors = setupError
-            ? { ...errors, [FORM_ERROR_KEYNAME]: setupError }
-            : errors
+          //
+          // The two sources merge into ONE object because they answer the same
+          // question about the same fields — the frontend before the request,
+          // the server after. Which one noticed decides nothing about where the
+          // message appears; the KEY does. The frontend's win a collision: it
+          // reflects what is on screen right now, while `errors` is what the
+          // last submit came back with, about values that may since have changed.
+          const setupErrors = manifest.setupForm.validate?.(values, players.size) ?? {}
+          const allErrors = { ...errors, ...setupErrors }
           return (
             <>
               {/* WHAT THIS GAME IS, first — above the form. It used to live inside
@@ -257,7 +262,7 @@ export function SetupGameModal({
                   name={busy ? 'Starting…' : 'Start'}
                   weight="primary"
                   type="submit"
-                  disabled={busy || !countOk || setupError !== null}
+                  disabled={busy || !countOk || Object.keys(setupErrors).length > 0}
                   autoFocus
                   // On a phone the button is just "Start" — "Start PsychicNum · Co-op"
                   // doesn't fit beside Cancel at 390px. The detail is dropped in CSS

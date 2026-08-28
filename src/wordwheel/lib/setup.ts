@@ -1,6 +1,7 @@
 // cs-unmet
 
 import type { SetupOf, TimerMode } from '../../common/lib/games'
+import type { FormErrors } from '../../common/components/fields/formState'
 
 /**
  * wordwheel's per-game setup — collected by the start-game dialog,
@@ -81,12 +82,17 @@ export type WordwheelSetup = SetupOf<WordwheelValues>
  * must contain the required set, so `legal >= required`. The dialog gates Start
  * on this (via the manifest's `validate`); `create_game` re-checks server-side.
  */
-export function legalError(setup: WordwheelSetup): string | null {
+export function legalError(setup: WordwheelSetup): FormErrors {
   if (setup.legal < setup.required) {
-    return `Legal words must reach at least the required band (${setup.required}).`
+    return { legal: `Legal words must reach at least the required band (${setup.required}).` }
   }
-  return null
+  return {}
 }
+
+/** Every message `customLettersError` gives is about the ONE field the letters
+ *  are typed into — the form writes both `custom_center` and `custom_letters`
+ *  from a single box — so they all wear that key. */
+const bad = (message: string): FormErrors => ({ custom_letters: message })
 
 /**
  * Why the optional custom-letters override is invalid, or `null` if it's fine
@@ -101,18 +107,16 @@ export function legalError(setup: WordwheelSetup): string | null {
  * can't pluralize explosively. Case/whitespace are normalized here the same way
  * the SetupForm cleans its inputs.
  */
-export function customLettersError(setup: WordwheelSetup): string | null {
+export function customLettersError(setup: WordwheelSetup): FormErrors {
   const center = (setup.custom_center ?? '').trim().toLowerCase()
   const letters = (setup.custom_letters ?? '').trim().toLowerCase()
-  if (!center && !letters) return null // both blank → random board
+  if (!center && !letters) return {} // both blank → random board
   if (!center || !letters) {
-    // One line: the dialog's validation slot is single-line (nowrap+ellipsis);
-    // the section's own copy explains the leave-both-blank-for-random option.
-    return 'Enter a center letter AND eight other letters, or leave both blank.'
+    return bad('Enter a center letter AND eight other letters, or leave both blank.')
   }
-  if (!/^[a-z]$/.test(center)) return 'The center must be a single letter A–Z.'
-  if (!/^[a-z]{8}$/.test(letters)) return 'Enter exactly eight other letters (A–Z).'
-  return null
+  if (!/^[a-z]$/.test(center)) return bad('The center must be a single letter A–Z.')
+  if (!/^[a-z]{8}$/.test(letters)) return bad('Enter exactly eight other letters (A–Z).')
+  return {}
 }
 
 /**
@@ -120,8 +124,8 @@ export function customLettersError(setup: WordwheelSetup): string | null {
  * custom-letters rule, whichever fails first (the manifest's `validate` shows the
  * returned string and disables Start until it's `null`).
  */
-export function wordwheelSetupError(setup: WordwheelSetup): string | null {
-  return legalError(setup) ?? customLettersError(setup)
+export function wordwheelSetupError(setup: WordwheelSetup): FormErrors {
+  return { ...legalError(setup), ...customLettersError(setup) }
 }
 
 /**

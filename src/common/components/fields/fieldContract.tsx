@@ -18,6 +18,8 @@
  */
 import { describe, expect, it } from 'vitest'
 import type { RenderResult } from '@testing-library/react'
+import { within } from '@testing-library/react'
+import { errorUnder, fieldBox } from './errorUnder'
 
 /** The name every field under test is given. Fields that hold a GROUP of
  *  controls compose each one's from it (`tested_field.a`), so assertions match
@@ -58,24 +60,40 @@ export function expectFieldContract(
 ) {
   describe('the AllFieldProps contract', () => {
     it('puts its name into the DOM, so a test can find it without reading the copy', () => {
-      // Either on the control, composed onto each control of a group, or as
-      // `data-field` when the field draws no control at all. One string finds
-      // it in all three cases, which is what lets a server validation naming a
-      // column reach the box that wrote it.
+      // On the control — or composed onto each control of a group — which is
+      // what lets a server validation naming a column reach the box that wrote
+      // it. A field that draws no control at all (`<ReadOnlyField>`) is found
+      // by its wrapper, asserted next.
       const { container } = draw({ name: FIELD_NAME })
       expect(
         container.querySelector(`[name^="${FIELD_NAME}"], [data-field="${FIELD_NAME}"]`),
       ).toBeInTheDocument()
     })
 
-    it('draws its caption', () => {
-      const { getByText } = draw({ name: FIELD_NAME, label: FIELD_LABEL })
-      expect(getByText(FIELD_LABEL)).toBeInTheDocument()
+    it('wraps everything it draws in one box wearing its name', () => {
+      // `<Field>` stamps this, not the component, so no field can be the one
+      // that forgot — and a test can then ask what THIS field says instead of
+      // searching the whole page and hoping nothing else matches.
+      const { container } = draw({ name: FIELD_NAME, label: FIELD_LABEL })
+      const box = container.querySelector(`[data-field="${FIELD_NAME}"]`)
+      expect(box).toBeInTheDocument()
+      expect(controlsIn(container).every((c) => box!.contains(c))).toBe(true)
     })
 
-    it('draws its error', () => {
+    it('draws its caption, inside its own box', () => {
+      draw({ name: FIELD_NAME, label: FIELD_LABEL })
+      expect(within(fieldBox(FIELD_NAME)!).getByText(FIELD_LABEL)).toBeInTheDocument()
+    })
+
+    it('draws its error, under its own name', () => {
+      // Both halves, because drawing it is not the same as drawing it in the
+      // right place. `errorUnder` reads `data-field-error`, which `<Field>`
+      // stamps from the `name` this component forwards — so a component that
+      // takes `name`, hands it to its control and forgets to pass it on draws
+      // a perfectly good message that no form can prove belongs to this field.
       const { getByText } = draw({ name: FIELD_NAME, error: FIELD_ERROR })
       expect(getByText(FIELD_ERROR)).toBeInTheDocument()
+      expect(errorUnder(FIELD_NAME)).toBe(FIELD_ERROR)
     })
 
     it('says nothing when there is no error', () => {

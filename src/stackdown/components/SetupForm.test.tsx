@@ -47,11 +47,9 @@ function draw({ errors = {} as FormErrors, members = MEMBERS } = {}) {
 describe('stackdown setup — what it offers', () => {
   it('offers exactly these settings, in this order', () => {
     expect(fieldNames(draw().container)).toEqual([
-      'player_user_ids.self',
-      'player_user_ids.moth',
+      'player_user_ids',
       'band',
       'timer',
-      'timer.seconds',
     ])
   })
 

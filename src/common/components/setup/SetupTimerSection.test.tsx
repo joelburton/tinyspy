@@ -18,6 +18,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
+import { errorUnder } from '../fields/errorUnder'
 import { SetupTimerSection } from './SetupTimerSection'
 
 // Found by NAME, not by caption: the box has no visible label, and its name
@@ -105,6 +106,47 @@ describe('SetupTimerSection', () => {
     await user.type(box(), '2:')
     expect(onChange).not.toHaveBeenCalled()
     expect(box()).toHaveAttribute('aria-invalid', 'true')
-    expect(screen.getByText(/Enter MM:SS/)).toBeInTheDocument()
+    // UNDER THE TIMER FIELD, not merely on the page. This used to be a loose
+    // `<p className="error">` outside the errors object entirely — the words
+    // were right and no test could tell it was the one setting whose complaint
+    // arrived somewhere different from every other setting's.
+    expect(errorUnder('timer')).toMatch(/Enter MM:SS/)
+  })
+
+  it('shows the form\'s own message about the timer when the text is fine', async () => {
+    // The other writer into the same slot: a server `validation` naming
+    // `column = 'timer'`, or a game's own check. With nothing wrong in the box
+    // there is nothing to displace it.
+    const user = userEvent.setup()
+    render(
+      <SetupTimerSection
+        errors={{ timer: 'This game has no timer.' }}
+        value={{ kind: 'countdown', seconds: 600 }}
+        onChange={vi.fn()}
+      />,
+    )
+    await open(user)
+
+    expect(errorUnder('timer')).toBe('This game has no timer.')
+  })
+
+  it('lets the typed value win, because it is what is on screen now', async () => {
+    // The form's copy is about whatever was last submitted; the box holds what
+    // you are typing. Showing the stale one over a value you can see is wrong
+    // would send you to fix the wrong thing.
+    const user = userEvent.setup()
+    render(
+      <SetupTimerSection
+        errors={{ timer: 'This game has no timer.' }}
+        value={{ kind: 'countdown', seconds: 600 }}
+        onChange={vi.fn()}
+      />,
+    )
+    await open(user)
+
+    await user.clear(box())
+    await user.type(box(), '2:')
+
+    expect(errorUnder('timer')).toMatch(/Enter MM:SS/)
   })
 })

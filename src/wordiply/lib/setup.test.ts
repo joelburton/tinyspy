@@ -12,16 +12,24 @@ import {
 
 const base: WordiplySetup = DEFAULT_WORDIPLY_SETUP_COOP
 
+/** Both of wordiply's frontend refusals name the control they are about, so
+ *  the key is asserted with the words: a message under the wrong box reads as
+ *  correct on screen and is the failure this shape exists to stop. */
+const onBase = { custom_base: expect.any(String) }
+
 describe('wordiplySetupError', () => {
   it('accepts a difficulty within 1..6', () => {
-    expect(wordiplySetupError(base)).toBeNull()
-    expect(wordiplySetupError({ ...base, difficulty: 1 })).toBeNull()
-    expect(wordiplySetupError({ ...base, difficulty: 6 })).toBeNull()
+    expect(wordiplySetupError(base)).toEqual({})
+    expect(wordiplySetupError({ ...base, difficulty: 1 })).toEqual({})
+    expect(wordiplySetupError({ ...base, difficulty: 6 })).toEqual({})
   })
 
-  it('rejects a difficulty outside 1..6', () => {
-    expect(wordiplySetupError({ ...base, difficulty: 0 })).not.toBeNull()
-    expect(wordiplySetupError({ ...base, difficulty: 7 })).not.toBeNull()
+  it('rejects a difficulty outside 1..6, under Dictionary', () => {
+    for (const difficulty of [0, 7]) {
+      expect(wordiplySetupError({ ...base, difficulty })).toEqual({
+        difficulty: expect.any(String),
+      })
+    }
   })
 })
 
@@ -40,35 +48,35 @@ describe('cleanBase', () => {
 
 describe('customBaseError', () => {
   it('accepts blank — that is the random-starter default, not an error', () => {
-    expect(customBaseError(base)).toBeNull()
-    expect(customBaseError({ ...base, custom_base: '' })).toBeNull()
-    expect(customBaseError({ ...base, custom_base: '   ' })).toBeNull()
+    expect(customBaseError(base)).toEqual({})
+    expect(customBaseError({ ...base, custom_base: '' })).toEqual({})
+    expect(customBaseError({ ...base, custom_base: '   ' })).toEqual({})
   })
 
   it('accepts 2..4 letters, in any case or spacing', () => {
     for (const b of ['ar', 'owl', 'moth', 'MOTH', ' Moth ']) {
-      expect(customBaseError({ ...base, custom_base: b }), b).toBeNull()
+      expect(customBaseError({ ...base, custom_base: b }), b).toEqual({})
     }
   })
 
-  it('rejects a starter that cleans down to a single letter', () => {
-    expect(customBaseError({ ...base, custom_base: 'm' })).not.toBeNull()
+  it('rejects a starter that cleans down to a single letter, under the starter box', () => {
+    expect(customBaseError({ ...base, custom_base: 'm' })).toEqual(onBase)
     // Everything but the 'a' is stripped, leaving one letter — the rejection
     // has to follow the CLEANED value, not the raw one.
-    expect(customBaseError({ ...base, custom_base: 'a-!' })).not.toBeNull()
+    expect(customBaseError({ ...base, custom_base: 'a-!' })).toEqual(onBase)
   })
 
   it('does NOT judge whether the letters yield a board — that is the server call', () => {
     // ING matches 20k words and YAKS has one 6-letter child; both are rejected
     // at Start by the edge function, and both must pass the shape gate to get
     // there. A frontend that guessed here would guess wrong.
-    expect(customBaseError({ ...base, custom_base: 'ing' })).toBeNull()
-    expect(customBaseError({ ...base, custom_base: 'yaks' })).toBeNull()
+    expect(customBaseError({ ...base, custom_base: 'ing' })).toEqual({})
+    expect(customBaseError({ ...base, custom_base: 'yaks' })).toEqual({})
   })
 
   it('is part of the Start gate', () => {
-    expect(wordiplySetupError({ ...base, custom_base: 'm' })).not.toBeNull()
-    expect(wordiplySetupError({ ...base, custom_base: 'moth' })).toBeNull()
+    expect(wordiplySetupError({ ...base, custom_base: 'm' })).toEqual(onBase)
+    expect(wordiplySetupError({ ...base, custom_base: 'moth' })).toEqual({})
   })
 })
 

@@ -1,6 +1,7 @@
 // cs-unmet
 
 import type { SetupOf, TimerMode } from '../../common/lib/games'
+import type { FormErrors } from '../../common/components/fields/formState'
 
 /**
  * spellingbee's per-game setup — collected by the start-game dialog,
@@ -74,12 +75,17 @@ export type SpellingbeeSetup = SetupOf<SpellingbeeValues>
  * must contain the required set, so `legal >= required`. The dialog gates Start
  * on this (via the manifest's `validate`); `create_game` re-checks server-side.
  */
-export function legalError(setup: SpellingbeeSetup): string | null {
+export function legalError(setup: SpellingbeeSetup): FormErrors {
   if (setup.legal < setup.required) {
-    return `Legal words must reach at least the required band (${setup.required}).`
+    return { legal: `Legal words must reach at least the required band (${setup.required}).` }
   }
-  return null
+  return {}
 }
+
+/** Every message `customLettersError` gives is about the ONE field the letters
+ *  are typed into — the form writes both `custom_center` and `custom_letters`
+ *  from a single box — so they all wear that key. */
+const bad = (message: string): FormErrors => ({ custom_letters: message })
 
 /**
  * Why the optional custom-letters override is invalid, or `null` if it's fine
@@ -92,22 +98,20 @@ export function legalError(setup: SpellingbeeSetup): string | null {
  * would make trivial plurals of every word). Case/whitespace are normalized here
  * the same way the SetupForm cleans its inputs.
  */
-export function customLettersError(setup: SpellingbeeSetup): string | null {
+export function customLettersError(setup: SpellingbeeSetup): FormErrors {
   const center = (setup.custom_center ?? '').trim().toLowerCase()
   const letters = (setup.custom_letters ?? '').trim().toLowerCase()
-  if (!center && !letters) return null // both blank → random board
+  if (!center && !letters) return {} // both blank → random board
   if (!center || !letters) {
-    // One line: the dialog's validation slot is single-line (nowrap+ellipsis);
-    // the section's own copy explains the leave-both-blank-for-random option.
-    return 'Enter a center letter AND six other letters, or leave both blank.'
+    return bad('Enter a center letter AND six other letters, or leave both blank.')
   }
-  if (!/^[a-z]$/.test(center)) return 'The center must be a single letter A–Z.'
-  if (!/^[a-z]{6}$/.test(letters)) return 'Enter exactly six other letters (A–Z).'
+  if (!/^[a-z]$/.test(center)) return bad('The center must be a single letter A–Z.')
+  if (!/^[a-z]{6}$/.test(letters)) return bad('Enter exactly six other letters (A–Z).')
   if (center === 's' || letters.includes('s')) {
-    return "Spelling Bee never uses the letter S — pick different letters."
+    return bad("Spelling Bee never uses the letter S — pick different letters.")
   }
-  if (new Set(center + letters).size !== 7) return 'All seven letters must be different.'
-  return null
+  if (new Set(center + letters).size !== 7) return bad('All seven letters must be different.')
+  return {}
 }
 
 /**
@@ -115,8 +119,8 @@ export function customLettersError(setup: SpellingbeeSetup): string | null {
  * custom-letters rule, whichever fails first (the manifest's `validate` shows the
  * returned string and disables Start until it's `null`).
  */
-export function spellingbeeSetupError(setup: SpellingbeeSetup): string | null {
-  return legalError(setup) ?? customLettersError(setup)
+export function spellingbeeSetupError(setup: SpellingbeeSetup): FormErrors {
+  return { ...legalError(setup), ...customLettersError(setup) }
 }
 
 /**

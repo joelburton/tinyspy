@@ -63,12 +63,10 @@ function draw({
 describe('connections setup — what it offers', () => {
   it('offers exactly these settings, in this order', () => {
     expect(fieldNames(draw().container)).toEqual([
-      'player_user_ids.self',
-      'player_user_ids.moth',
+      'player_user_ids',
       'coop_style',
       'puzzle_id',
       'timer',
-      'timer.seconds',
     ])
   })
 

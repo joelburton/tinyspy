@@ -34,12 +34,8 @@ export function ColorField({
   return (
     // `group`: the control is a SET of swatches, so the caption is a <legend>
     // heading them rather than a label pointing at one.
-    <Field label={label} group help={help} entryHelp={entryHelp} error={error}>
-      {/* `data-field` rather than a name attribute — see the prop. It is what
-          lets a test find this field the way it finds any other. */}
-      <div data-field={name}>
-        <ColorChoiceList value={value} onChange={onChange} disabled={disabled} />
-      </div>
+    <Field label={label} group help={help} entryHelp={entryHelp} error={error} name={name}>
+      <ColorChoiceList value={value} onChange={onChange} disabled={disabled} />
     </Field>
   )
 }

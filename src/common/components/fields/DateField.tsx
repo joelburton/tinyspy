@@ -37,7 +37,7 @@ export function DateField({
   error,
 }: Props) {
   return (
-    <Field label={label} help={help} entryHelp={entryHelp} error={error}>
+    <Field label={label} help={help} entryHelp={entryHelp} error={error} name={name}>
       {(id) => (
         <input
           name={name}

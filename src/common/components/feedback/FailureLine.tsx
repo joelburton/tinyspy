@@ -26,8 +26,17 @@ type Props = {
  * **It renders nothing when there is nothing to say, so it reflows** — a
  * failure appearing pushes what is under it down. A surface that wants the line
  * held open regardless holds it open itself.
+ *
+ * Stamped `data-field-error="_"`, the key a form's errors object files a
+ * form-wide message under, because that is what this line IS. A field's error
+ * wears its own name (see `<Field>`), so one attribute answers "did this
+ * message land where it belongs" for both halves of the same object.
  */
 export function FailureLine({ children, className }: Props) {
   if (children === null || children === undefined || children === false) return null
-  return <p className={cls(styles.failureLine, className)}>{children}</p>
+  return (
+    <p className={cls(styles.failureLine, className)} data-field-error="_">
+      {children}
+    </p>
+  )
 }

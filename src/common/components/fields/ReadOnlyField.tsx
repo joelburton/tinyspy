@@ -31,10 +31,8 @@ type Props = AllFieldProps<ReactNode>
  */
 export function ReadOnlyField({ label, name, help, entryHelp, error, value }: Props) {
   return (
-    <Field label={label} help={help} entryHelp={entryHelp} error={error}>
-      <span className={styles.value} data-field={name}>
-        {value}
-      </span>
+    <Field label={label} help={help} entryHelp={entryHelp} error={error} name={name}>
+      <span className={styles.value}>{value}</span>
     </Field>
   )
 }

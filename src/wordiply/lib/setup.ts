@@ -1,6 +1,7 @@
 // cs-unmet
 
 import type { SetupOf, TimerMode } from '../../common/lib/games'
+import type { FormErrors } from '../../common/components/fields/formState'
 import type { CoopTurnSetup } from '../../common/components/setup/SetupCoopStyleSection'
 
 /**
@@ -85,11 +86,11 @@ export function cleanBase(raw: string): string {
  * One line: the dialog's validation slot is single-line (nowrap+ellipsis),
  * and the section's own copy explains the leave-blank-for-random option.
  */
-export function customBaseError(setup: WordiplySetup): string | null {
+export function customBaseError(setup: WordiplySetup): FormErrors {
   const base = cleanBase(setup.custom_base ?? '')
-  if (!base) return null // blank → a random starter
-  if (base.length < 2) return 'A starter needs at least 2 letters.'
-  return null
+  if (!base) return {} // blank → a random starter
+  if (base.length < 2) return { custom_base: 'A starter needs at least 2 letters.' }
+  return {}
 }
 
 /**
@@ -98,9 +99,9 @@ export function customBaseError(setup: WordiplySetup): string | null {
  * Returns the error string (which the dialog shows while disabling Start)
  * or `null` when the setup is valid. `create_game` re-checks server-side.
  */
-export function wordiplySetupError(setup: WordiplySetup): string | null {
+export function wordiplySetupError(setup: WordiplySetup): FormErrors {
   if (setup.difficulty < 1 || setup.difficulty > 6) {
-    return 'Difficulty must be between 1 and 6.'
+    return { difficulty: 'Difficulty must be between 1 and 6.' }
   }
   return customBaseError(setup)
 }

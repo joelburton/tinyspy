@@ -1,6 +1,7 @@
 // cs-unmet
 
 import { lazy } from 'react'
+import { FORM_ERROR_KEYNAME, type FormErrors } from '../common/components/fields/formState'
 import type { GameManifest } from '../common/lib/games'
 import {
   edgeStartEnvelope,
@@ -92,17 +93,22 @@ const endGame = makeRpcDispatcher(db, 'end_game')
 
 /** Start is blocked until a puzzle is chosen (library) / a weekday or date is
  *  set (NYT) / a file is parsed (upload). */
-const validate = (setup: unknown): string | null => {
+const form = (message: string): FormErrors => ({ [FORM_ERROR_KEYNAME]: message })
+
+const validate = (setup: unknown): FormErrors => {
   const s = setup as CrosswordsSetup
   // NYT takes either: a weekday (the normal path — the server resolves it to
   // the most recent unplayed date) or an explicit date (the override). The
   // form always has a weekday, so this only fires for a client that cleared it.
+  // On the form's own line, not under a field. crosswords' setup form is the
+  // one that has not had its pass — none of its controls carry a `name` yet —
+  // so there is nothing for these to land under. They move when it converts.
   if (s.source === 'nyt') {
-    return s.date || typeof s.weekday === 'number' ? null : 'Pick a weekday or a date.'
+    return s.date || typeof s.weekday === 'number' ? {} : form('Pick a weekday or a date.')
   }
-  if (s.source === 'guardian') return s.series ? null : 'Pick a Guardian series.'
-  if (s.source === 'upload') return s.board ? null : 'Choose a .puz or .ipuz file.'
-  return s.puzzle_id ? null : 'Pick a puzzle to start.'
+  if (s.source === 'guardian') return s.series ? {} : form('Pick a Guardian series.')
+  if (s.source === 'upload') return s.board ? {} : form('Choose a .puz or .ipuz file.')
+  return s.puzzle_id ? {} : form('Pick a puzzle to start.')
 }
 
 type StatusBlob = Record<string, unknown>

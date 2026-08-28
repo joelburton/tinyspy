@@ -1110,6 +1110,58 @@ form-level key when it isn't.
 from the function signature — nothing invented on either side for the other to
 guess.
 
+### The setup dialog's own half — DONE 2026-08-28
+
+The four dialog forms wrote field-keyed errors from the day they converted
+(`CreateClubModal`: *"Same object as the server's answers — whoever noticed the
+problem writes into one place"*). The **setup** dialog only did the server half.
+Its frontend check runs through `manifest.setupForm.validate`, which returned a
+bare `string | null` — no field name in it — so every game's own check landed on
+`'_'` however specific it was. wordle's *"Legal guesses must reach at least band
+5"* went to the bottom line while `<DictBandField name="legal_guess">` sat above
+it already wired to `errors.legal_guess`.
+
+`validate` now returns `FormErrors`, and the modal merges rather than inventing
+a key. Nine games plus crosswords, thirteen validator functions. Two things fell
+out of it:
+
+- **scrabble's dictionary rule flags two fields**, which is the shape's
+  advantage over a raise made concrete. Only the selects actually below the
+  band are rung.
+- **crosswords keeps `'_'` on purpose.** Its setup form is the un-converted
+  layout exception and none of its controls carry a `name` yet, so a key naming
+  a field that does not exist would draw nothing at all — a refusal with no
+  message anywhere, which is worse than the bottom line.
+
+**The name goes in the markup twice, both stamped by `<Field>`** (Joel, and his
+second point is the one that widened it):
+
+- **`data-field` on the WRAPPER** — the whole block, caption through error, is
+  one addressable field. A test scopes to it and asks what THIS field says,
+  rather than searching the page and hoping nothing else matches. Two components
+  used to hand-place this on a control, which left the other ten with nothing
+  and the wrapper — the part a caption assertion wants — with nothing anywhere.
+- **`data-field-error` on the error span** — inside that block the error and the
+  entry help are both spans of prose, and only the attribute tells them apart.
+  `<FailureLine>` stamps itself `'_'`, since that is the key it renders.
+
+`errorUnder(name)` and `fieldBox(name)` then read attributes instead of walking
+up from a control guessing which span is the message: identity, not position.
+And the form line is reachable at all, which it never was — it has no control to
+walk up from.
+
+**`fieldNames` reads the boxes now, not the controls**, which is what a setting
+actually is. `player_user_ids.<uuid>` (a checkbox per friend) and `timer.seconds`
+(the MM:SS box inside the timer's radio row) are parts, not settings; both left
+the inventories, and `player_user_ids` and `timer` each appear once however many
+controls they draw.
+
+The shared field contract asserts all of it, so a component that forgets goes
+red. Without it the tests were green through the whole defect: they handed a
+component an error and checked it drew, which tests the wiring and never the
+routing.
+
+
 ### Size, and why it is its own pass
 
 **94 field instances, 72 without a name**, across every game's setup form:

@@ -47,7 +47,7 @@ export function CheckboxField({
     // Children as a NODE, not a function: the row is its own <label> wrapping
     // the box, so nothing here wants the id — and `Field` reads that and makes
     // the caption a plain element rather than a second, nesting <label>.
-    <Field label={label} help={help} entryHelp={entryHelp} error={error} className={className}>
+    <Field label={label} help={help} entryHelp={entryHelp} error={error} name={name} className={className}>
       <label className={styles.row}>
         <input
           type="checkbox"

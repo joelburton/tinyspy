@@ -48,7 +48,7 @@ export function SelectField({
   children,
 }: Props) {
   return (
-    <Field label={label} help={help} entryHelp={entryHelp} error={error}>
+    <Field label={label} help={help} entryHelp={entryHelp} error={error} name={name}>
       {(id) => (
         <select
           id={id}

@@ -1,6 +1,7 @@
 // cs-unmet
 
 import type { SetupOf, TimerMode } from '../../common/lib/games'
+import type { FormErrors } from '../../common/components/fields/formState'
 
 /**
  * bananagrams's per-game setup — the choices the start-game dialog
@@ -120,19 +121,19 @@ export function tilesNeeded(setup: BananagramsSetup, playerCount: number): numbe
 export function bunchSizeError(
   setup: BananagramsSetup,
   playerCount: number,
-): string | null {
+): FormErrors {
   const { bunch_size } = setup
   if (!Number.isInteger(bunch_size) || bunch_size < 1) {
-    return 'Bunch size must be a whole number of at least 1.'
+    return { bunch_size: 'Bunch size must be a whole number of at least 1.' }
   }
   if (bunch_size > BANANAGRAMS_BUNCH_MAX) {
-    return `The bunch holds at most ${BANANAGRAMS_BUNCH_MAX} tiles.`
+    return { bunch_size: `The bunch holds at most ${BANANAGRAMS_BUNCH_MAX} tiles.` }
   }
   const needed = tilesNeeded(setup, playerCount)
   if (bunch_size < needed) {
-    // One line: the dialog's validation slot is single-line (nowrap+ellipsis),
-    // and the bunch section's own hint already spells out the players × hand math.
-    return `Bunch too small: needs ${needed} (${playerCount} × ${setup.hand_size}) — add tiles or lower hands.`
+    return {
+      bunch_size: `Bunch too small: needs ${needed} (${playerCount} × ${setup.hand_size}) — add tiles or lower hands.`,
+    }
   }
-  return null
+  return {}
 }

@@ -65,6 +65,7 @@ export function CheckboxListField({
       help={help}
       entryHelp={entryHelp}
       error={error}
+      name={name}
       group
       className={cls(styles.list, className)}
     >

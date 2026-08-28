@@ -1,6 +1,7 @@
 // cs-unmet
 
 import type { SetupOf, TimerMode } from '../../common/lib/games'
+import type { FormErrors } from '../../common/components/fields/formState'
 import type { CoopTurnSetup } from '../../common/components/setup/SetupCoopStyleSection'
 import { difficultyValue } from '../../common/lib/game/difficulty'
 
@@ -93,19 +94,30 @@ export const DEFAULT_SCRABBLE_SETUP: ScrabbleSetup = {
  *     auto-raise the dictionary (a silent change would be a trap) — we ask the
  *     player to raise it themselves (Joel's call).
  */
-export function validateScrabbleSetup(setup: unknown, playerCount: number): string | null {
+export function validateScrabbleSetup(setup: unknown, playerCount: number): FormErrors {
   const s = setup as ScrabbleSetup
   const ai = s.ai_count ?? 0
-  if (ai === 0) return null
+  if (ai === 0) return {}
   const total = playerCount + ai
-  if (total > 4) return `Too many players — ${playerCount} human + ${ai} AI is over the limit of 4.`
-  if (total < 2) return 'A compete game needs at least 2 players (humans + AI).'
+  // The headcount ones go on `ai_count`: the human count is the club roster's
+  // checkboxes, and the number you can actually change to fix this is the AI's.
+  if (total > 4) {
+    return { ai_count: `Too many players — ${playerCount} human + ${ai} AI is over the limit of 4.` }
+  }
+  if (total < 2) return { ai_count: 'A compete game needs at least 2 players (humans + AI).' }
   const band = AI_BAND[s.ai_level]
   if (s.dict_2 < band || s.dict_3plus < band) {
-    return (
+    // TWO fields at once — the case a server raise cannot express, because a
+    // raise stops at the first failure. Only the ones actually below the band
+    // are rung, so a setup with one dictionary already wide enough doesn't get
+    // a red box around the select that is fine.
+    const message =
       `A ${AI_LEVEL_LABEL[s.ai_level]} AI needs the dictionary at “${difficultyValue(band)}” or wider — ` +
       `raise both dictionaries to at least that before adding it.`
-    )
+    return {
+      ...(s.dict_2 < band ? { dict_2: message } : {}),
+      ...(s.dict_3plus < band ? { dict_3plus: message } : {}),
+    }
   }
-  return null
+  return {}
 }

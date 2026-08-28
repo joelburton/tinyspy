@@ -533,16 +533,34 @@ export type GameSetupForm = {
    */
   intro?: string
   /**
-   * Optional cross-field guard the dialog runs to gate the Start
-   * button. Returns a human-readable reason the current `setup` can't
-   * start (shown under the form, Start disabled) or `null` when it's
-   * valid. Gets `playerCount` because some constraints couple the
-   * setup to the headcount — bananagrams's "bag must hold
-   * `playerCount × hand_size` tiles" is the first. Pure + synchronous;
-   * the server re-validates in `create_game` regardless (this is UX,
-   * not the authority).
+   * Optional cross-field guard the dialog runs to gate the Start button.
+   * Returns the reasons the current `setup` can't start, **keyed by the field
+   * each one is about** — `'_'` for a reason that belongs to no single field.
+   * Empty means valid.
+   *
+   * The key is the whole point. It is the same `FormErrors` object a server
+   * `validation` writes one entry into, so a message about `legal_guess`
+   * appears under the Legal-guesses select whoever noticed it — the frontend
+   * before the request, or `create_game` after. Returning a bare sentence, as
+   * this used to, meant every frontend check landed on the form's bottom line
+   * even when the field that owned it was directly above.
+   *
+   * It also lets one check flag SEVERAL fields, which a server raise cannot:
+   * a raise stops at the first failure, and scrabble's "the AI needs a wider
+   * dictionary" is about two selects at once.
+   *
+   * Gets `playerCount` because some constraints couple the setup to the
+   * headcount — bananagrams's "bag must hold `playerCount × hand_size` tiles"
+   * is the first. Pure + synchronous; the server re-validates in `create_game`
+   * regardless (this is UX, not the authority).
+   *
+   * Lives beside the game's setup types rather than inside its `SetupForm`
+   * because the dialog needs the answer to gate a Start button the form does
+   * not render — a form that owned the check would have to report upward, and
+   * a child computing state for its parent is the loop `no-setState-in-effect`
+   * exists to prevent.
    */
-  validate?: (setup: unknown, playerCount: number) => string | null
+  validate?: (setup: unknown, playerCount: number) => FormErrors
 }
 
 /**

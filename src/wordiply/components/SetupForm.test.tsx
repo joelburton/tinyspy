@@ -61,13 +61,11 @@ describe('wordiply setup — what it offers', () => {
   it('offers exactly these settings, in this order', () => {
     const { container } = draw()
     expect(fieldNames(container)).toEqual([
-      'player_user_ids.self',
-      'player_user_ids.moth',
+      'player_user_ids',
       'coop_style',
       'difficulty',
       'custom_base',
       'timer',
-      'timer.seconds',
     ])
   })
 
@@ -84,7 +82,7 @@ describe('wordiply setup — what it offers', () => {
 
   it('drops the picker in a solo club, where there is nothing to choose', () => {
     const { container } = draw({ members: [MEMBERS[0]!] })
-    expect(fieldNames(container)).not.toContain('player_user_ids.self')
+    expect(fieldNames(container)).not.toContain('player_user_ids')
   })
 
   it('shows the chosen starter in the section summary, so a closed section still says it', () => {

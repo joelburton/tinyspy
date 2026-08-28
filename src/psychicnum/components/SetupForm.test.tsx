@@ -54,14 +54,12 @@ describe('psychicnum setup — what it offers', () => {
   it('offers exactly these settings, in this order', () => {
     const { container } = draw()
     expect(fieldNames(container)).toEqual([
-      'player_user_ids.self',
-      'player_user_ids.moth',
+      'player_user_ids',
       'coop_style',
       'guesses',
       'word_count',
       'difficulty',
       'timer',
-      'timer.seconds',
     ])
   })
 
@@ -78,7 +76,7 @@ describe('psychicnum setup — what it offers', () => {
 
   it('drops the picker in a solo club, where there is nothing to choose', () => {
     const { container } = draw({ members: [MEMBERS[0]!] })
-    expect(fieldNames(container)).not.toContain('player_user_ids.self')
+    expect(fieldNames(container)).not.toContain('player_user_ids')
   })
 })
 
