@@ -12,10 +12,11 @@ type Props = AllFieldProps<Set<string>> & {
   /** The creating user. Always a player — their row is checked and disabled,
    *  because you cannot start a game you are not in. */
   selfId: string
-  /** Fired with the member whose row was clicked. The parent owns the set —
-   *  it also has to hand the SELECTED players to the game's own setup body (the
-   *  turn-order "First player" picker lists only who will actually play). */
-  onChange: (userId: string) => void
+  /** Fired with WHO IS PLAYING NOW, like any other field reporting its new
+   *  value — not with the row that was clicked. The field has both the current
+   *  set and `selfId`, so it is the one place that can apply the toggle and the
+   *  can't-remove-yourself rule together. */
+  onChange: (next: Set<string>) => void
 }
 
 /**
@@ -56,6 +57,17 @@ export function PlayersField({
   error,
   className,
 }: Props) {
+  function toggle(userId: string) {
+    // The creator can't deselect themselves. Their checkbox is `disabled`
+    // below, so this is the same rule stated where the value is computed —
+    // both halves in one file, rather than agreeing by luck across two.
+    if (userId === selfId) return
+    const next = new Set(value)
+    if (next.has(userId)) next.delete(userId)
+    else next.add(userId)
+    onChange(next)
+  }
+
   return (
     // `group`: the control is a SET of checkboxes, so a caption heads them as a
     // <legend> rather than pointing at one. No box of its own — the
@@ -73,8 +85,7 @@ export function PlayersField({
               name={`${name}.${m.user_id}`}
               type="checkbox"
               checked={value.has(m.user_id)}
-              onChange={() => onChange(m.user_id)}
-              // The creator can't deselect themselves.
+              onChange={() => toggle(m.user_id)}
               disabled={disabled || isSelf}
             />
             <Dot color={m.color} className={styles.dot} />

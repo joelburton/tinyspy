@@ -122,23 +122,10 @@ export function SetupGameModal({
     () => new Set(members.map((m) => m.user_id)),
   )
 
-  function togglePlayer(userId: string) {
-    // The creator is always a player — you can't start a game you're
-    // not in. Their checkbox is also disabled below; this guards the
-    // state too.
-    if (userId === selfId) return
-    setSelectedIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(userId)) next.delete(userId)
-      else next.add(userId)
-      return next
-    })
-  }
-
   // The picker only earns its keep with >1 member — a solo club has
   // nothing to choose. Validate the count against the manifest's
   // [min, max]; the server re-checks in create_game.
-  const showPicker = members.length > 1
+  const showPlayersPicker = members.length > 1
   const [minPlayers, maxPlayers] = manifest.numberOfPlayers
   const playerCount = selectedIds.size
   // The checked subset of the roster, in `members` order. Handed to the
@@ -244,7 +231,7 @@ export function SetupGameModal({
             cannot be unchecked. Every other section's summary carries its live
             value ("Timer: none"); this one's value is WHO, and a row of colors
             says that faster than a list of names would. */}
-        {showPicker && (
+        {showPlayersPicker && (
           <SetupSection
             defaultOpen
             label={ <>
@@ -262,7 +249,7 @@ export function SetupGameModal({
               selfId={selfId}
               name="player_user_ids"
               value={selectedIds}
-              onChange={togglePlayer}
+              onChange={setSelectedIds}
               disabled={busy}
               error={playerCountError}
             />
