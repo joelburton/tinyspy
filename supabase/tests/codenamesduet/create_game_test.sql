@@ -45,6 +45,15 @@ select plan(35);
 -- (3-member) rejection. dee is the non-member outsider.
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
+
+-- `throws_ok` took a SQL STRING because the call had to be deferred; an
+-- envelope is a VALUE, and these build their SQL with `format`. This runs one
+-- and returns what it gave.
+create function pg_temp.envelope_of(sql text) returns jsonb as $envfn$
+declare result jsonb;
+begin execute sql into result; return result; end;
+$envfn$ language plpgsql;
 \ir setup.psql
 
 -- ada creates a 2-member club (ada+bea) and a 3-member club
@@ -69,26 +78,24 @@ select pg_temp.create_club('Trio', array['ada','bea','cade']) as handle;
 select set_config('request.jwt.claims', '', true);
 select set_config('role', 'postgres', true);
 
-select throws_ok(
-  format(
-    $q$ select codenamesduet.create_game(%L, pg_temp.codenamesduet_setup(), pg_temp.codenamesduet_players()) $q$,
+select pg_temp.envelope_is(
+  pg_temp.envelope_of(format(
+    $q$ select codenamesduet.create_game(%L, pg_temp.codenamesduet_setup(), pg_temp.codenamesduet_players())$q$,
     (select handle from club2)
-  ),
-  'PN011',
-  'Signed out; try refresh',
+  )),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN011"}'::jsonb,
   'create_game: not authenticated raises 42501'
 );
 
 -- cade is signed in but not a member of club2 (ada+bea only).
 select pg_temp.as_user('cade3333-3333-3333-3333-333333333333');
 
-select throws_ok(
-  format(
-    $q$ select codenamesduet.create_game(%L, pg_temp.codenamesduet_setup(), pg_temp.codenamesduet_players()) $q$,
+select pg_temp.envelope_is(
+  pg_temp.envelope_of(format(
+    $q$ select codenamesduet.create_game(%L, pg_temp.codenamesduet_setup(), pg_temp.codenamesduet_players())$q$,
     (select handle from club2)
-  ),
-  'PN012',
-  'You are not a member of this club',
+  )),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN012"}'::jsonb,
   'create_game: non-member is rejected'
 );
 
@@ -96,16 +103,15 @@ select throws_ok(
 -- Even from a 3-member club, listing 3 players is rejected.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
-select throws_ok(
-  format(
+select pg_temp.envelope_is(
+  pg_temp.envelope_of(format(
     $q$ select codenamesduet.create_game(%L, pg_temp.codenamesduet_setup(),
         array['ada11111-1111-1111-1111-111111111111'::uuid,
               'bea22222-2222-2222-2222-222222222222'::uuid,
-              'cade3333-3333-3333-3333-333333333333'::uuid]) $q$,
+              'cade3333-3333-3333-3333-333333333333'::uuid])$q$,
     (select handle from club3)
-  ),
-  'P0001',
-  'bad-player-count|3|',
+  )),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN091"}'::jsonb,
   'create_game: wrong-size player_user_ids is rejected with the actual count'
 );
 
@@ -116,8 +122,8 @@ select throws_ok(
 -- as ada throughout.
 
 -- turns out of range
-select throws_ok(
-  format(
+select pg_temp.envelope_is(
+  pg_temp.envelope_of(format(
     $q$ select codenamesduet.create_game(
       %L,
       jsonb_build_object(
@@ -125,49 +131,46 @@ select throws_ok(
         'first_clue_giver_user_id', 'ada11111-1111-1111-1111-111111111111'
       ),
       pg_temp.codenamesduet_players()
-    ) $q$,
+    )$q$,
     (select handle from club2)
-  ),
-  'P0001',
-  'bad-turns|7|',
+  )),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN088"}'::jsonb,
   'create_game: setup.turns outside {9,10,11} is rejected'
 );
 
 -- turns missing entirely
-select throws_ok(
-  format(
+select pg_temp.envelope_is(
+  pg_temp.envelope_of(format(
     $q$ select codenamesduet.create_game(
       %L,
       jsonb_build_object(
         'first_clue_giver_user_id', 'ada11111-1111-1111-1111-111111111111'
       ),
       pg_temp.codenamesduet_players()
-    ) $q$,
+    )$q$,
     (select handle from club2)
-  ),
-  'P0001',
-  'missing-turns|',
+  )),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN087"}'::jsonb,
   'create_game: missing setup.turns is rejected with its own message'
 );
 
 -- first_clue_giver_user_id missing entirely
-select throws_ok(
-  format(
+select pg_temp.envelope_is(
+  pg_temp.envelope_of(format(
     $q$ select codenamesduet.create_game(
       %L,
       jsonb_build_object('turns', 9),
       pg_temp.codenamesduet_players()
-    ) $q$,
+    )$q$,
     (select handle from club2)
-  ),
-  'P0001',
-  'missing-first-clue-giver|',
+  )),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN089"}'::jsonb,
   'create_game: missing first_clue_giver_user_id is rejected with its own message'
 );
 
 -- first_clue_giver_user_id not a uuid
-select throws_ok(
-  format(
+select pg_temp.envelope_is(
+  pg_temp.envelope_of(format(
     $q$ select codenamesduet.create_game(
       %L,
       jsonb_build_object(
@@ -175,11 +178,10 @@ select throws_ok(
         'first_clue_giver_user_id', 'not-a-uuid'
       ),
       pg_temp.codenamesduet_players()
-    ) $q$,
+    )$q$,
     (select handle from club2)
-  ),
-  'P0001',
-  'bad-first-clue-giver|',
+  )),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN090"}'::jsonb,
   'create_game: malformed first_clue_giver_user_id is rejected'
 );
 
@@ -187,17 +189,16 @@ select throws_ok(
 -- player_user_ids (dee is also not in club2, but the
 -- "must be one of player_user_ids" check fires first under the
 -- new validation order).
-select throws_ok(
-  format(
+select pg_temp.envelope_is(
+  pg_temp.envelope_of(format(
     $q$ select codenamesduet.create_game(
       %L,
       pg_temp.codenamesduet_setup(9, 'dee44444-4444-4444-4444-444444444444'::uuid),
       pg_temp.codenamesduet_players()
-    ) $q$,
+    )$q$,
     (select handle from club2)
-  ),
-  'P0001',
-  'bad-first-clue-giver|',
+  )),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN092"}'::jsonb,
   'create_game: first_clue_giver_user_id not in player_user_ids is rejected'
 );
 
@@ -212,8 +213,8 @@ select throws_ok(
 -- every branch of require_valid_timer."
 
 -- missing timer
-select throws_ok(
-  format(
+select pg_temp.envelope_is(
+  pg_temp.envelope_of(format(
     $q$ select codenamesduet.create_game(
       %L,
       jsonb_build_object(
@@ -221,17 +222,16 @@ select throws_ok(
         'first_clue_giver_user_id', 'ada11111-1111-1111-1111-111111111111'
       ),
       pg_temp.codenamesduet_players()
-    ) $q$,
+    )$q$,
     (select handle from club2)
-  ),
-  'PN035',
-  'A game with no timer setting reached the server',
+  )),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN035"}'::jsonb,
   'create_game: missing setup.timer is rejected'
 );
 
 -- bogus timer.kind
-select throws_ok(
-  format(
+select pg_temp.envelope_is(
+  pg_temp.envelope_of(format(
     $q$ select codenamesduet.create_game(
       %L,
       jsonb_build_object(
@@ -240,17 +240,16 @@ select throws_ok(
         'timer', jsonb_build_object('kind', 'fast')
       ),
       pg_temp.codenamesduet_players()
-    ) $q$,
+    )$q$,
     (select handle from club2)
-  ),
-  'PN037',
-  'A timer setting of ''fast'' reached the server',
+  )),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN037"}'::jsonb,
   'create_game: bogus timer.kind is rejected'
 );
 
 -- countdown without seconds
-select throws_ok(
-  format(
+select pg_temp.envelope_is(
+  pg_temp.envelope_of(format(
     $q$ select codenamesduet.create_game(
       %L,
       jsonb_build_object(
@@ -259,17 +258,16 @@ select throws_ok(
         'timer', jsonb_build_object('kind', 'countdown')
       ),
       pg_temp.codenamesduet_players()
-    ) $q$,
+    )$q$,
     (select handle from club2)
-  ),
-  'PN038',
-  'A countdown with no length reached the server',
+  )),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN038"}'::jsonb,
   'create_game: countdown without seconds is rejected'
 );
 
 -- countdown with out-of-range seconds
-select throws_ok(
-  format(
+select pg_temp.envelope_is(
+  pg_temp.envelope_of(format(
     $q$ select codenamesduet.create_game(
       %L,
       jsonb_build_object(
@@ -278,18 +276,17 @@ select throws_ok(
         'timer', jsonb_build_object('kind', 'countdown', 'seconds', 0)
       ),
       pg_temp.codenamesduet_players()
-    ) $q$,
+    )$q$,
     (select handle from club2)
-  ),
-  'PN039',
-  'A countdown of 0 seconds reached the server',
+  )),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN039"}'::jsonb,
   'create_game: countdown with seconds=0 is rejected'
 );
 
 -- countup is accepted (no seconds needed)
 select lives_ok(
   format(
-    $q$ select codenamesduet.create_game(
+    $q$ select (codenamesduet.create_game(
       %L,
       jsonb_build_object(
         'turns', 9,
@@ -297,7 +294,7 @@ select lives_ok(
         'timer', jsonb_build_object('kind', 'countup')
       ),
       pg_temp.codenamesduet_players()
-    ) $q$,
+    )->'data'->>'id')::uuid as id;$q$,
     (select handle from club2)
   ),
   'create_game: timer.kind=countup is accepted (no seconds needed)'
@@ -308,11 +305,11 @@ select lives_ok(
 -- ============================================================
 
 create temp table created on commit drop as
-select * from codenamesduet.create_game(
+select (codenamesduet.create_game(
   (select handle from club2),
   pg_temp.codenamesduet_setup(11),  -- turns=11, first_user=ada (default)
   pg_temp.codenamesduet_players()
-);
+)->'data'->>'id')::uuid as id;
 
 select is(
   (select count(*) from created),
@@ -467,11 +464,11 @@ select ok(
 -- clue-giver, bea lands in A and ada (the caller) lands in B.
 
 create temp table created2 on commit drop as
-select * from codenamesduet.create_game(
+select (codenamesduet.create_game(
   (select handle from club2),
   pg_temp.codenamesduet_setup(9, 'bea22222-2222-2222-2222-222222222222'::uuid),
   pg_temp.codenamesduet_players()
-);
+)->'data'->>'id')::uuid as id;
 
 select is(
   (select user_a_id from codenamesduet.games

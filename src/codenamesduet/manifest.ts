@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { lazy } from 'react'
-import { startEnvelope } from '../common/lib/game/manifestRpcs'
+import { runRpc } from '../common/lib/supabase/dbResult'
 import type { GameManifest } from '../common/lib/games'
 import { db } from './db'
 import { makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
@@ -86,15 +86,14 @@ export const codenamesduetGame: GameManifest = {
   // both ends of the boundary (this manifest's setupForm
   // Component is the only thing populating the wrapper's value).
   startGameInClub: async (clubHandle, setup, playerUserIds) => {
-    const s = setup as CodenamesduetSetup
-    const { data, error } = await db
-      .rpc('create_game', {
+    // No `.single()`: the RPC returns the envelope itself, one jsonb value.
+    return runRpc<{ id: string }>(
+      db.rpc('create_game', {
         target_club: clubHandle,
-        setup: s,
+        setup: setup as CodenamesduetSetup,
         player_user_ids: playerUserIds,
-      })
-      .single()
-    return startEnvelope(data, error, BRAND)
+      }),
+    )
   },
 
   // Render the per-row label from a common.games row. codenamesduet's

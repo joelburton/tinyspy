@@ -45,7 +45,7 @@ select pg_temp.create_club('test club', array['ada','bea']) as handle;
 -- Game 1: partner (seat B) is done → seat A keeps every clue
 -- ============================================================
 create temp table g1 on commit drop as
-select * from codenamesduet.create_game((select handle from club), pg_temp.codenamesduet_setup(), pg_temp.codenamesduet_players());
+select (codenamesduet.create_game((select handle from club), pg_temp.codenamesduet_setup(), pg_temp.codenamesduet_players())->'data'->>'id')::uuid as id;
 
 -- Contact all 9 of seat B's agents up front, so B has nothing left to
 -- be clued for. (Direct UPDATE — no RPC — so no win check fires; the
@@ -105,7 +105,7 @@ select is(
 -- ============================================================
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
-select * from codenamesduet.create_game((select handle from club), pg_temp.codenamesduet_setup(), pg_temp.codenamesduet_players());
+select (codenamesduet.create_game((select handle from club), pg_temp.codenamesduet_setup(), pg_temp.codenamesduet_players())->'data'->>'id')::uuid as id;
 
 -- Turn 1 (control): both seats still have agents, so the clue swaps
 -- A → B exactly like a normal turn end.

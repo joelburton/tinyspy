@@ -41,11 +41,11 @@ select pg_temp.create_club('Ada and Bea', array['ada','bea']) as handle;
 -- ============================================================
 
 create temp table g on commit drop as
-select * from codenamesduet.create_game(
+select (codenamesduet.create_game(
   (select handle from club),
   pg_temp.codenamesduet_setup(9),
   pg_temp.codenamesduet_players()
-);
+)->'data'->>'id')::uuid as id;
 
 select lives_ok(
   format(
@@ -118,11 +118,11 @@ select throws_ok(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
-select * from codenamesduet.create_game(
+select (codenamesduet.create_game(
   (select handle from club),
   pg_temp.codenamesduet_setup(9),
   pg_temp.codenamesduet_players()
-);
+)->'data'->>'id')::uuid as id;
 
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select throws_ok(

@@ -40,7 +40,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select pg_temp.create_club('test club', array['ada','bea']) as handle;
 create temp table g on commit drop as
-select * from codenamesduet.create_game((select handle from club), pg_temp.codenamesduet_setup(), pg_temp.codenamesduet_players());
+select (codenamesduet.create_game((select handle from club), pg_temp.codenamesduet_setup(), pg_temp.codenamesduet_players())->'data'->>'id')::uuid as id;
 
 -- ============================================================
 -- Turn 1: Ada gives a clue, Bea reveals all 9 of Ada's

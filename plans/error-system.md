@@ -1123,7 +1123,7 @@ select pg_temp.envelope_is(
 
 ## 7. The conversion roster
 
-**139 entries. 28 done, 5 edge functions deferred, 106 to go.** Cross them off
+**139 entries. 29 done, 5 edge functions deferred, 105 to go.** Cross them off
 here as they land.
 
 An entry is one RPC or one table read **per area**, so the same name in two
@@ -1221,7 +1221,7 @@ identifier — a shape nothing has exercised yet.
 
 #### codenamesduet
 
-- [ ] `create_game` · RPC (2 call sites)
+- [x] `create_game` · RPC (2 call sites)
 - [ ] `pass_turn` · RPC
 - [ ] `submit_clue` · RPC (2 call sites)
 - [ ] `submit_guess` · RPC

@@ -69,6 +69,7 @@ export function SetupForm({
         members={members}
         selfId={selfId}
         numberOfPlayers={numberOfPlayers}
+        error={errors.player_user_ids}
         value={s.player_user_ids}
         onChange={(next) => set('player_user_ids', next)}
       />
@@ -76,6 +77,7 @@ export function SetupForm({
         <RadioRow
           help="The standard game is 9. Pick 10 or 11 for an easier warm-up (matches the rulebook's mission difficulties)."
           name="turns"
+          error={errors.turns}
           options={TURN_OPTIONS.map((t) => ({ value: t, label: t }))}
           value={s.turns}
           onChange={(turns) => set('turns', turns)}
@@ -85,7 +87,8 @@ export function SetupForm({
       <SetupSection label={`First clue: ${firstClueGiverName}`}>
         <RadioRow
           help="The first clue-giver is seated as A; the other player opens as the guesser."
-          name="firstClueGiver"
+          name="first_clue_giver_user_id"
+          error={errors.first_clue_giver_user_id}
           options={members.map((m) => ({ value: m.user_id, label: m.username }))}
           value={s.first_clue_giver_user_id}
           onChange={(id) => set('first_clue_giver_user_id', id)}

@@ -34,8 +34,8 @@ create temp table club on commit drop as
 select pg_temp.create_club('Duet rp', array['ada', 'bea']) as handle;
 
 create temp table g1 on commit drop as
-select * from codenamesduet.create_game(
-  (select handle from club), pg_temp.codenamesduet_setup(), pg_temp.codenamesduet_players());
+select (codenamesduet.create_game(
+  (select handle from club), pg_temp.codenamesduet_setup(), pg_temp.codenamesduet_players())->'data'->>'id')::uuid as id;
 
 -- Snapshot the board + key cards: a restart must not touch either.
 create temp table before_state on commit drop as

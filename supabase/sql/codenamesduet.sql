@@ -196,18 +196,24 @@ revoke execute on function codenamesduet._end_turn(uuid) from public;
 -- advisory only — a curious client could fire any payload, and
 -- the server is the only thing protecting state correctness.
 
+-- `create or replace` cannot change a function's return type, and this one
+-- became jsonb. `if exists` because this file is re-applied in full on every
+-- deploy, so the drop has to be a no-op the second time.
+drop function if exists codenamesduet.create_game(text, jsonb, uuid[]);
+
 create or replace function codenamesduet.create_game(
   target_club text,
   setup jsonb,
   player_user_ids uuid[]
 )
-returns table(id uuid)
+returns jsonb
 language plpgsql
 security definer
 set search_path = codenamesduet, common, public, extensions
 as $$
 declare
   new_id uuid;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text;
   picked_words text[];
   tiles jsonb[];
   a_view text[];
@@ -226,26 +232,27 @@ begin
   -- NULL as the empty string and we'd raise "...must be 9, 10, or
   -- 11 (got )" — readable, but confusingly empty in the parens.
   if (setup->>'turns') is null then
-    raise exception 'missing-turns|' using errcode = 'P0001',
+    raise exception 'A game with no turn budget reached the server'
+      using errcode = 'PN087', hint = 'fault', column = '_',
       detail = 'setup.turns absent';
   end if;
   s_turns := (setup->>'turns')::int;
   if s_turns not in (9, 10, 11) then
-    raise exception 'bad-turns|%|', s_turns
-      using errcode = 'P0001',
+    raise exception 'A turn budget of % reached the server', s_turns
+      using errcode = 'PN088', hint = 'fault', column = '_',
       detail = 'setup.turns must be 9, 10 or 11';
   end if;
 
   if (setup->>'first_clue_giver_user_id') is null then
-    raise exception 'missing-first-clue-giver|'
-      using errcode = 'P0001',
+    raise exception 'A game with no first clue-giver reached the server'
+      using errcode = 'PN089', hint = 'fault', column = '_',
       detail = 'setup.first_clue_giver_user_id absent';
   end if;
   begin
     s_first := (setup->>'first_clue_giver_user_id')::uuid;
   exception when invalid_text_representation then
-    raise exception 'bad-first-clue-giver|'
-      using errcode = 'P0001',
+    raise exception 'A first clue-giver the server cannot read arrived'
+      using errcode = 'PN090', hint = 'fault', column = '_',
       detail = 'setup.first_clue_giver_user_id is not a uuid';
   end;
 
@@ -260,14 +267,14 @@ begin
   -- ─── Validate player_user_ids size + first-clue-giver ─
   -- codenamesduet is intrinsically 2-player.
   if array_length(player_user_ids, 1) <> 2 then
-    raise exception 'bad-player-count|%|',
+    raise exception 'A game with % players reached the server',
       coalesce(array_length(player_user_ids, 1), 0)
-      using errcode = 'P0001',
+      using errcode = 'PN091', hint = 'fault', column = '_',
       detail = 'codenamesduet is exactly 2 players';
   end if;
   if s_first <> player_user_ids[1] and s_first <> player_user_ids[2] then
-    raise exception 'bad-first-clue-giver|'
-      using errcode = 'P0001',
+    raise exception 'A first clue-giver who is not in the game reached the server'
+      using errcode = 'PN092', hint = 'fault', column = '_',
       detail = 'the first clue-giver must be one of the players';
   end if;
 
@@ -284,8 +291,12 @@ begin
   select array_agg(word) into picked_words
     from (select word from codenamesduet.word_pool order by random() limit 25) sub;
   if array_length(picked_words, 1) <> 25 then
-    raise exception 'too-few-words|'
-      using errcode = 'P0001',
+    -- An `error` on `_` rather than a validation: the word pool is a fixed
+    -- table, so no control the player can reach would change this. It is not
+    -- their doing and not their fix, but it IS a plain answer rather than a
+    -- broken client.
+    raise exception 'Not enough words on the server to build a board'
+      using errcode = 'PN093', hint = 'error', column = '_',
       detail = 'codenamesduet.word_pool has fewer than 25 rows; run the seed';
   end if;
 
@@ -390,7 +401,18 @@ begin
     values (new_id, i, picked_words[i+1]);
   end loop;
 
-  return query select new_id;
+  return common.ok_envelope(jsonb_build_object('id', new_id));
+
+-- One block, and it has never heard of any specific condition: it reads the
+-- SQLSTATE, re-raises anything that isn't ours, and lets the raise itself carry
+-- the message, the kind and the field.
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 

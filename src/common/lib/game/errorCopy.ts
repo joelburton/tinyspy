@@ -192,8 +192,6 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   // implementations of the same feature, recorded rather than smoothed over.
   'nothing-to-hint': { text: () => 'Nothing left to hint', tone: 'noted' },
   'nothing-to-spoil': { text: () => 'Nothing left to show', tone: 'noted' },
-  // A setup choice the dictionary can't satisfy: more words than that band has.
-  'too-few-words': { text: () => 'Not enough words at that difficulty' },
 
   // ── connections + strands (the dated archives) ──
   // Neither game lets you pick a puzzle any more: the server hands out the
