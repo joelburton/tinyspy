@@ -24,6 +24,28 @@ vi.mock('./supabase', () => ({ supabase: { functions: { invoke: mockInvoke } } }
  *     a failure would take that judgment away from the one place that has it.
  */
 
+/**
+ * An envelope with EVERY key — the nine that always travel — so an assertion
+ * below states the whole shape rather than a subset of it.
+ *
+ * That is the point of exact equality here: this file is where the shape IS the
+ * contract, and `toMatchObject` would pass an envelope that had quietly lost a
+ * key. Spelling the nulls out at each call site would bury the one or two
+ * fields a given test is actually about.
+ */
+const env = (partial: Record<string, unknown>) => ({
+  type: null,
+  data: null,
+  outcome: null,
+  severity: null,
+  message: null,
+  field: null,
+  meta: null,
+  dbcode: null,
+  detail: null,
+  ...partial,
+})
+
 beforeEach(() => {
   clearFaultsForTest()
   vi.spyOn(console, 'error').mockImplementation(() => {})
@@ -75,17 +97,17 @@ describe('isEnvelope', () => {
 describe('readRows', () => {
   it('hands back the rows on success', async () => {
     const r = await readRows(Promise.resolve({ data: [{ handle: 'a' }], error: null }))
-    expect(r).toEqual({ type: 'ok', data: [{ handle: 'a' }] })
+    expect(r).toEqual(env({ type: 'ok', data: [{ handle: 'a' }] }))
   })
 
   it('treats zero rows as ok, leaving the judgment to the caller', async () => {
     const r = await readRows(Promise.resolve({ data: [], error: null }))
-    expect(r).toEqual({ type: 'ok', data: [] })
+    expect(r).toEqual(env({ type: 'ok', data: [] }))
   })
 
   it('collapses a null payload to an empty array', async () => {
     const r = await readRows(Promise.resolve({ data: null, error: null }))
-    expect(r).toEqual({ type: 'ok', data: [] })
+    expect(r).toEqual(env({ type: 'ok', data: [] }))
   })
 
   // A read that failed still comes back as an ENVELOPE — the database didn't
@@ -94,9 +116,9 @@ describe('readRows', () => {
     const r = await readRows(
       Promise.resolve({ data: null, error: { message: 'nope', code: '42501', details: 'why' } }),
     )
-    expect(r).toEqual({
-      type: 'not-ok', severity: 'fault', message: 'nope', dbcode: '42501', detail: 'why',
-    })
+    expect(r).toEqual(
+      env({ type: 'not-ok', severity: 'fault', message: 'nope', dbcode: '42501', detail: 'why' }),
+    )
   })
 
   it('builds one from a thrown rejection too', async () => {
@@ -112,13 +134,13 @@ describe('runRpc — one shape, always', () => {
   it('keeps dbcode and detail on an ok result', async () => {
     const r = await runRpc<{ n: number }>(
       Promise.resolve({
-        data: { type: 'ok', data: { n: 1 }, outcome: 'warning', dbcode: 'PA004', detail: 'why' },
+        data: env({ type: 'ok', data: { n: 1 }, outcome: 'warning', dbcode: 'PA004', detail: 'why' }),
         error: null,
       }),
     )
-    expect(r).toEqual({
-      type: 'ok', data: { n: 1 }, outcome: 'warning', dbcode: 'PA004', detail: 'why',
-    })
+    expect(r).toEqual(
+      env({ type: 'ok', data: { n: 1 }, outcome: 'warning', dbcode: 'PA004', detail: 'why' }),
+    )
   })
 
   // `field` names which input a validation is about. Nothing renders it yet —
@@ -202,7 +224,10 @@ describe('runRpc — one shape, always', () => {
     expect(r).toMatchObject({ type: 'not-ok', severity: 'fault' })
     // No dbcode: the call SUCCEEDED, so there is no Postgres error to carry.
     // The unreadable body is the only evidence there is, so it must survive.
-    expect(r).not.toHaveProperty('dbcode')
+    // The key is PRESENT and null, like every other key on every envelope — the
+    // assertion is that it carries no CODE, not that it is missing. Absence
+    // stopped being a way to say anything when the builders stopped stripping.
+    expect((r as { dbcode: string | null }).dbcode).toBeNull()
     expect((r as { detail?: string }).detail).toBe('rawBody: "won"')
     expect(peekFaultsForTest()).toHaveLength(1)
   })
@@ -319,8 +344,12 @@ describe('reportDbFault', () => {
   it('shows a declared fault the sentence its author wrote', () => {
     reportDbFault({ call: 'POST /rest/v1/rpc/submit_guess' }, {
       type: 'not-ok',
+      data: null,
+      outcome: null,
       severity: 'fault',
       message: 'That word is not on the board',
+      field: null,
+      meta: null,
       dbcode: 'PN500',
       detail: 'guess absent from games.words',
     })
@@ -338,12 +367,9 @@ describe('runEdgeFn — the same shape, through Deno', () => {
   beforeEach(() => mockInvoke.mockReset())
 
   it('hands back an ok envelope', async () => {
-    mockInvoke.mockResolvedValue({
-      data: { type: 'ok', data: { id: 'g1' } },
-      error: null,
-    })
+    mockInvoke.mockResolvedValue({ data: env({ type: 'ok', data: { id: 'g1' } }), error: null })
     const r = await runEdgeFn<{ id: string }>('boggle-build-board', {})
-    expect(r).toEqual({ type: 'ok', data: { id: 'g1' } })
+    expect(r).toEqual(env({ type: 'ok', data: { id: 'g1' } }))
     expect(peekFaultsForTest()).toHaveLength(0)
   })
 

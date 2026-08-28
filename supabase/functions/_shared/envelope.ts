@@ -13,6 +13,20 @@
  * `runEdgeFn` reads the envelope for the verdict and the status for nothing but
  * "did this reach the function at all".
  *
+ * **Every builder is TYPED as `Envelope`, and writes all nine keys out.**
+ * Neither is decoration:
+ *
+ *   - The type comes from `src/common/lib/supabase/envelope.ts`, the same one
+ *     the frontend uses. Deno can reach that file because it holds a type and
+ *     nothing else; `dbResult.ts` would drag in the browser client.
+ *   - The keys are spelled out at each call rather than spread from a shared
+ *     `EMPTY` constant. A spread compiles forever: add a tenth key and every
+ *     builder here keeps working while silently omitting it — which is the
+ *     ambiguity required keys exist to prevent, since "considered and left
+ *     null" would again be indistinguishable from "never considered". Written
+ *     out, a new key is a compile error at each of these four and somebody has
+ *     to decide what it holds (Joel, 2026-08-28).
+ *
  * The three strings a refusal carries are spelled `dbcode` / `severity` /
  * `field` here where SQL spells them `errcode` / `hint` / `column`. Same
  * sequence of numbers, though — `src/guards/raiseCodes.test.ts` reads both
@@ -20,9 +34,21 @@
  */
 
 import { json } from './http.ts'
+import type { Envelope } from '../../../src/common/lib/supabase/envelope.ts'
 
 /** The function answered, and here is what the caller asked for. */
-export const ok = <T>(data: T): Response => json({ type: 'ok', data })
+export const ok = <T>(data: T): Response =>
+  json({
+    type: 'ok',
+    data,
+    outcome: null,
+    severity: null,
+    message: null,
+    field: null,
+    meta: null,
+    dbcode: null,
+    detail: null,
+  } satisfies Envelope<T>)
 
 /**
  * A refusal the PLAYER caused and can fix, routed to the field it is about —
@@ -33,8 +59,23 @@ export const ok = <T>(data: T): Response => json({ type: 'ok', data })
  * settings. Anything the form's own controls already constrain is a fault, not
  * this — if the form prevents it and it arrives anyway, something is broken.
  */
-export const validation = (dbcode: string, field: string, message: string, detail?: string): Response =>
-  json({ type: 'not-ok', severity: 'validation', field, message, dbcode, ...(detail ? { detail } : {}) })
+export const validation = (
+  dbcode: string,
+  field: string,
+  message: string,
+  detail?: string,
+): Response =>
+  json({
+    type: 'not-ok',
+    data: null,
+    outcome: null,
+    severity: 'validation',
+    message,
+    field,
+    meta: null,
+    dbcode,
+    detail: detail ?? null,
+  } satisfies Envelope)
 
 /**
  * A refusal nothing the player did explains: a value the form cannot produce, a
@@ -42,7 +83,17 @@ export const validation = (dbcode: string, field: string, message: string, detai
  * the fault modal, and `detail` is the line the console audience reads.
  */
 export const fault = (dbcode: string, message: string, detail?: string): Response =>
-  json({ type: 'not-ok', severity: 'fault', message, dbcode, ...(detail ? { detail } : {}) })
+  json({
+    type: 'not-ok',
+    data: null,
+    outcome: null,
+    severity: 'fault',
+    message,
+    field: null,
+    meta: null,
+    dbcode,
+    detail: detail ?? null,
+  } satisfies Envelope)
 
 /**
  * SOMETHING WE DEPEND ON DIDN'T ANSWER — an outside service down or refusing us.
@@ -54,7 +105,17 @@ export const fault = (dbcode: string, message: string, detail?: string): Respons
  * claim something is broken here.
  */
 export const environmental = (dbcode: string, message: string, detail?: string): Response =>
-  json({ type: 'not-ok', severity: 'error', message, dbcode, ...(detail ? { detail } : {}) })
+  json({
+    type: 'not-ok',
+    data: null,
+    outcome: null,
+    severity: 'error',
+    message,
+    field: null,
+    meta: null,
+    dbcode,
+    detail: detail ?? null,
+  } satisfies Envelope)
 
 /**
  * The catch-all: an exception nobody expected, wrapped so even a crash comes

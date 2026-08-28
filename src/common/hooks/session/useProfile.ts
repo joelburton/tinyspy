@@ -89,8 +89,13 @@ async function ensureLoaded(userId: string) {
         { call: 'GET /rest/v1/profiles', status: 200 },
         {
           type: 'not-ok',
+          data: null,
+          outcome: null,
           severity: 'fault',
           message: 'Your profile is no longer on the server. Please refresh.',
+          field: null,
+          meta: null,
+          dbcode: null,
           detail: `rows=0 for user_id=${userId}`,
         },
       )

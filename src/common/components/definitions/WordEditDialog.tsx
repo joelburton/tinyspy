@@ -106,8 +106,10 @@ type Values = Fields & { new_word: string; note: string }
  * workaround: a jsonb parameter is one parameter, and the raise cannot say which
  * of the ten it meant.
  */
-function formFieldFor(field: string | undefined): string {
-  if (field === undefined) return FORM_ERROR_KEYNAME
+function formFieldFor(field: string | null | undefined): string {
+  // An envelope's `field` is always PRESENT and null when the raise named no
+  // column, so null is the ordinary case here rather than the odd one.
+  if (field === undefined || field === null) return FORM_ERROR_KEYNAME
   return field === 'fields' || field === 'patch' || field === 'target_word'
     ? FORM_ERROR_KEYNAME
     : field

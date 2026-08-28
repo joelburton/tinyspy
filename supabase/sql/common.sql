@@ -80,6 +80,20 @@ grant usage on schema common to authenticated;
 -- is how it reads on screen (the GenericFeedbackTone vocabulary minus `error`,
 -- which belongs to the not-ok branch); `message` is optional because plenty of
 -- results have nothing to say.
+--
+-- **EVERY KEY IS PRESENT, null when it has no value.** This built
+-- `jsonb_strip_nulls(...)` first, to keep an envelope down to the keys it was
+-- actually using — which was the wrong trade twice over (Joel, 2026-08-28):
+--
+--   - *"an envelope has defined fields; it's not 'noise' to include them."*
+--     The shape is the contract. A key that vanishes when it is null is not a
+--     smaller envelope, it is a different one.
+--   - Callers pay for it. Every read becomes "this key might be missing", which
+--     is a second case to handle at each site for no gain.
+--
+-- It also cost the one distinction a lookup needs: `data` null and `data` absent
+-- became the same JSON, so an RPC could not say "there is no next puzzle" as a
+-- value. Now it can.
 create or replace function common.ok_envelope(
   data jsonb default null,
   outcome text default null,
@@ -90,9 +104,16 @@ returns jsonb
 language sql
 immutable
 as $$
-  select jsonb_strip_nulls(jsonb_build_object(
-    'type', 'ok', 'data', data, 'outcome', outcome,
-    'message', message, 'meta', meta));
+  select jsonb_build_object(
+    'type', 'ok',
+    'data', data,
+    'outcome', outcome,
+    'severity', null,
+    'message', message,
+    'field', null,
+    'meta', meta,
+    'dbcode', null,
+    'detail', null);
 $$;
 
 -- The envelope for a raise we authored. Called only from an exception handler,
@@ -109,8 +130,9 @@ returns jsonb
 language sql
 immutable
 as $$
-  select jsonb_strip_nulls(jsonb_build_object(
+  select jsonb_build_object(
     'type',     case when substr(sqlstate_code, 2, 1) = 'A' then 'ok' else 'not-ok' end,
+    'data',     null,
     -- HINT carries the refinement, and which vocabulary it is drawn from
     -- depends on the branch. The two are disjoint, so one field is unambiguous.
     'outcome',  case when substr(sqlstate_code, 2, 1) = 'A' then hint end,
@@ -120,13 +142,13 @@ as $$
     -- the message under that field and turns it red; absent, it lands on the
     -- form's bottom line. A raise stops at the first failure, so a validation
     -- is always about exactly one field.
-    -- `nullif` because COLUMN and DETAIL arrive as '' when absent, and
-    -- jsonb_strip_nulls only removes nulls: without this every envelope would
-    -- carry empty `field` and `detail` keys as noise. '_' is a real value and
-    -- survives.
+    -- `nullif` because COLUMN and DETAIL arrive as '' when absent: an empty
+    -- string is PL/pgSQL saying "the raise did not set this", and null is how
+    -- the envelope says the same thing. '_' is a real value and survives.
     'field',    nullif(field, ''),
+    'meta',     null,
     'dbcode',   sqlstate_code,
-    'detail',   nullif(detail, '')));
+    'detail',   nullif(detail, ''));
 $$;
 
 revoke execute on function common.ok_envelope(jsonb, text, text, jsonb) from public;

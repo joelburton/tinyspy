@@ -1203,7 +1203,7 @@ identifier — a shape nothing has exercised yet.
 
 - [ ] `check_board` · RPC
 - [ ] `concede` · RPC — cross-cutting, see above
-- [ ] `create_game` · RPC (3 call sites)
+- [x] `create_game` · RPC (3 call sites)
 - [ ] `dump` · RPC
 - [ ] `end_game` · RPC — cross-cutting, see above
 - [ ] `peel` · RPC

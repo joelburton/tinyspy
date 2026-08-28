@@ -2,8 +2,9 @@
 
 import { showFaultModal } from '../fault/faultStore'
 import { callEdgeFn } from './callEdgeFn'
-import type { Outcome } from '../outcomes'
 import { logStamp } from './realtimeDiag'
+import type { Envelope, Severity } from './envelope'
+export type { Envelope, Severity } from './envelope'
 
 /**
  * **The new server-result system.** Types, classification, the environmental
@@ -37,65 +38,6 @@ import { logStamp } from './realtimeDiag'
 // The shapes
 // ─────────────────────────────────────────────────────────────
 
-
-/** How bad a `not-ok` is. A `fault` still arrives — one shape, always — but the
- *  modal is already up by then, so a call site has nothing to render for it. */
-export type Severity = 'fault' | 'validation' | 'error'
-
-/**
- * **The envelope** — the one shape everything travels in.
- *
- * An RPC returns it. When the database did NOT give us one — a raw Postgres
- * error, a request that never completed, a direct table read — we construct one
- * in the same shape, so a call site has a single thing to read no matter what
- * happened. There is no second type and no special arm: if it reached the
- * frontend, it is an envelope.
- */
-export type Envelope<T = unknown> =
-  | {
-      type: 'ok'
-      /** The payload. */
-      data: T
-      /** How it reads on screen. */
-      outcome?: Outcome
-      /** Optional here, because plenty of results have nothing to say. */
-      message?: string
-      /** The additive slot: SQL can leave breadcrumbs with no frontend change. */
-      meta?: Record<string, unknown>
-      /** The SQLSTATE, when the outcome came from a raise. Named `dbcode`
-       *  because "code" is too broad for one specific thing. */
-      dbcode?: string
-      /** PL/pgSQL's DETAIL — the debugging line, never shown to a player. */
-      detail?: string
-    }
-  | {
-      type: 'not-ok'
-      severity: Severity
-      message: string
-      /**
-       * Which FIELD a `validation` is about, from the raise's `COLUMN`.
-       *
-       *     'letters'   the message belongs under that field
-       *     '_'         deliberately not about one field — the form's own line
-       *     absent      the raise didn't say; a SQL-side guard catches it
-       *
-       * `_` is a real value, not a stand-in for nothing: an author who decides
-       * a validation isn't about one field says so, and that reads differently
-       * from having forgotten. It is also the form-level key in the form's
-       * error object, so the same string serves SQL, the envelope and the form
-       * (plans/areas/forms.md → F48).
-       *
-       * Always exactly one field, because a raise stops at the first failure —
-       * which makes server validation incremental the way a form already is,
-       * and never wrong about whose fault it is.
-       *
-       * The form plumbing that reads this isn't built yet.
-       */
-      field?: string
-      meta?: Record<string, unknown>
-      dbcode?: string
-      detail?: string
-    }
 
 // ─────────────────────────────────────────────────────────────
 // The environmental messages
@@ -195,17 +137,20 @@ const LEVEL_METHOD: Record<LogLevel, 'error' | 'warn' | 'debug'> = {
 export type DiagFields = {
   /** `METHOD /path`. The one field that is never blank. */
   call: string
-  severity?: Severity
-  outcome?: string
-  dbcode?: string
+  // `| null` because an envelope's are always PRESENT and null when empty, and
+  // this reads them straight through. The formatter already treats the two
+  // alike (`v` returns '' for either), so this only lets the type say so.
+  severity?: Severity | null
+  outcome?: string | null
+  dbcode?: string | null
   status?: number
   /** Round-trip milliseconds. Known where the fetch happens, not after it. */
   ms?: number
   /** The raise's COLUMN, on a validation. */
-  field?: string
+  field?: string | null
   /** The debugging line: the raise's DETAIL, Postgres's details + hint, or the
    *  thrown JS error. Never shown to a player. */
-  detail?: string
+  detail?: string | null
 }
 
 const v = (x: unknown) => (x === undefined || x === null ? '' : String(x))
@@ -269,10 +214,12 @@ export function logSlow(f: { call: string; ms?: number; detail?: string }): void
  * `[db]` is its own console channel, beside `[rt]` (realtime) and `[ui]`, so
  * filtering to it gives every database call and nothing else.
  */
-export function logDb(level: LogLevel, f: DiagFields, message?: string): string {
+export function logDb(level: LogLevel, f: DiagFields, message?: string | null): string {
   const diagnostics = diagnosticsLine(level, f)
+  // `null` as well as `undefined`: an `ok` envelope always CARRIES a `message`
+  // key and it is usually null, so "nothing to say" arrives both ways.
   console[LEVEL_METHOD[level]](
-    `[db] ${diagnostics}${message === undefined ? '' : ` | msg=${q(message)}`}`,
+    `[db] ${diagnostics}${message === undefined || message === null ? '' : ` | msg=${q(message)}`}`,
   )
   return diagnostics
 }
@@ -294,16 +241,20 @@ export function faultEnvelope(error: DbError, fallback: string, extra?: string):
   // role with: …"). The envelope has one debugging field, so it goes there.
   const parts = [error?.details, error?.hint, extra].filter(Boolean)
   const detail = parts.length ? parts.join(' — ') : undefined
+  // EVERY KEY, null where there is nothing — the same nine an envelope from SQL
+  // carries. It used to omit them, to match a SQL builder that stripped its own
+  // nulls; neither does now, so that a caller never has to ask whether a key is
+  // present before asking what it holds (Joel, 2026-08-28).
   return {
     type: 'not-ok',
+    data: null,
+    outcome: null,
     severity: 'fault',
     message: RAW_FAULT_TEXT[error?.code ?? ''] ?? error?.message ?? fallback,
-    // Absent keys rather than keys holding `undefined`, so an envelope we build
-    // has the same shape as one from SQL — which strips its nulls
-    // (`jsonb_strip_nulls`). Otherwise the two would compare unequal over
-    // fields neither of them has.
-    ...(error?.code ? { dbcode: error.code } : {}),
-    ...(detail ? { detail } : {}),
+    field: null,
+    meta: null,
+    dbcode: error?.code ?? null,
+    detail: detail ?? null,
   }
 }
 
@@ -317,9 +268,14 @@ export function faultEnvelope(error: DbError, fallback: string, extra?: string):
 export function environmentalEnvelope(offline: boolean, extra?: string): Envelope<never> {
   return {
     type: 'not-ok',
+    data: null,
+    outcome: null,
     severity: 'fault',
     message: offline ? ENVIRONMENTAL.offline : ENVIRONMENTAL.unreachable,
-    ...(extra ? { detail: extra } : {}),
+    field: null,
+    meta: null,
+    dbcode: null,
+    detail: extra ?? null,
   }
 }
 
@@ -568,5 +524,15 @@ export async function readRows<Row>(query: QueryLike<Row[]>): Promise<Envelope<R
   if (settled.error) return faultEnvelope(settled.error, 'The read failed.')
   // `null` collapses to `[]`: PostgREST returns null rather than an empty array
   // in some shapes, and "no rows" is one answer, not two.
-  return { type: 'ok', data: settled.data ?? [] }
+  return {
+    type: 'ok',
+    data: settled.data ?? [],
+    outcome: null,
+    severity: null,
+    field: null,
+    message: null,
+    meta: null,
+    dbcode: null,
+    detail: null,
+  }
 }
