@@ -2,9 +2,10 @@
 
 begin;
 set search_path = crosswords, common, public, extensions;
-select plan(28);
+select plan(29);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 -- Puzzles are inserted as the superuser (authenticated has no INSERT grant
@@ -18,12 +19,11 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.create_club('XW Club', array['ada', 'bea', 'cade']) as club_handle \gset
 
 -- ── Coop happy path ──────────────────────────────────────────────────
-select id as gc_id
-  from crosswords.create_game(
+select (crosswords.create_game(
     :'club_handle', pg_temp.xw_setup(:'pz_id'),
     array['ada11111-1111-1111-1111-111111111111'::uuid,
           'bea22222-2222-2222-2222-222222222222'::uuid],
-    'coop') \gset
+    'coop')->'data'->>'id')::uuid as gc_id \gset
 reset role;
 
 select ok(
@@ -58,12 +58,11 @@ select is(
 
 -- ── Compete: one grid per player ─────────────────────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select id as gp_id
-  from crosswords.create_game(
+select (crosswords.create_game(
     :'club_handle', pg_temp.xw_setup(:'pz_id'),
     array['ada11111-1111-1111-1111-111111111111'::uuid,
           'bea22222-2222-2222-2222-222222222222'::uuid],
-    'compete') \gset
+    'compete')->'data'->>'id')::uuid as gp_id \gset
 reset role;
 
 select is(
@@ -78,11 +77,10 @@ select is(
 
 -- ── Given cells are excluded from the cells table ────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select id as gg_id
-  from crosswords.create_game(
+select (crosswords.create_game(
     :'club_handle', pg_temp.xw_setup(:'pzg_id'),
     array['ada11111-1111-1111-1111-111111111111'::uuid],
-    'coop') \gset
+    'coop')->'data'->>'id')::uuid as gg_id \gset
 reset role;
 
 select is(
@@ -92,10 +90,10 @@ select is(
 -- ── Inline board path (the NYT edge-function path — puzzle data passed
 --    straight in, NOT via a crosswords.puzzles row) ────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select id as gb_id from crosswords.create_game(
+select (crosswords.create_game(
   :'club_handle', '{"timer":{"kind":"none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop',
-  jsonb_build_object('meta', pg_temp.xw_meta_2x2(), 'solution', pg_temp.xw_sol_2x2())) \gset
+  jsonb_build_object('meta', pg_temp.xw_meta_2x2(), 'solution', pg_temp.xw_sol_2x2()))->'data'->>'id')::uuid as gb_id \gset
 reset role;
 
 select ok(
@@ -115,12 +113,12 @@ select is(
 -- `fill` in the template imports WITH that progress restored (crossplay's
 -- ipuz `saved` round-trip). Set (0,1)'s fill to 'a' on the 2x2 meta.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select id as gsav_id from crosswords.create_game(
+select (crosswords.create_game(
   :'club_handle', '{"timer":{"kind":"none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop',
   jsonb_build_object(
     'meta', jsonb_set(pg_temp.xw_meta_2x2(), '{cells,0,1,fill}', '"a"'),
-    'solution', pg_temp.xw_sol_2x2())) \gset
+    'solution', pg_temp.xw_sol_2x2()))->'data'->>'id')::uuid as gsav_id \gset
 reset role;
 select is(
   (select fill from crosswords.cells where game_id = :'gsav_id' and owner_id is null and row = 0 and col = 1),
@@ -135,14 +133,14 @@ select is(
 -- so they render on the board + PDFs (which read marks from the live cells,
 -- not the template). Drive an inline board whose (0,0) carries both marks.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select id as gmk_id from crosswords.create_game(
+select (crosswords.create_game(
   :'club_handle', '{"timer":{"kind":"none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop',
   jsonb_build_object(
     'meta', jsonb_set(
               jsonb_set(pg_temp.xw_meta_2x2(), '{cells,0,0,markRight}', '"break"'),
               '{cells,0,0,markBottom}', '"hyphen"'),
-    'solution', pg_temp.xw_sol_2x2())) \gset
+    'solution', pg_temp.xw_sol_2x2()))->'data'->>'id')::uuid as gmk_id \gset
 reset role;
 select is(
   (select mark_right from crosswords.cells
@@ -160,27 +158,56 @@ select is(
 -- ── Guards ───────────────────────────────────────────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
-select throws_ok(
-  format('select crosswords.create_game(%L, %s, array[%L]::uuid[], %L)',
-         :'club_handle', quote_literal(pg_temp.xw_setup(:'pz_id')),
-         'ada11111-1111-1111-1111-111111111111', 'compete'),
-  'P0001', null, 'compete with 1 player is rejected');
+select pg_temp.envelope_is(
+  crosswords.create_game(
+    :'club_handle', pg_temp.xw_setup(:'pz_id'),
+    array['ada11111-1111-1111-1111-111111111111'::uuid],
+    'compete'),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN219",
+    "message":"A race with fewer than two players reached the server"}'::jsonb,
+  'compete with 1 player is rejected');
 
-select throws_ok(
-  format('select crosswords.create_game(%L, %L::jsonb, array[%L]::uuid[], %L)',
-         :'club_handle', '{"timer":{"kind":"none"}}',
-         'ada11111-1111-1111-1111-111111111111', 'coop'),
-  'P0001', null, 'missing puzzle_id is rejected');
+select pg_temp.envelope_is(
+  crosswords.create_game(
+    :'club_handle', '{"timer":{"kind":"none"}}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid],
+    'coop'),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN221",
+    "message":"A game with no puzzle reached the server"}'::jsonb,
+  'missing puzzle_id is rejected');
+
+-- The ONE validation crosswords makes, and the last thing the error sprint's
+-- create_game run was waiting for: until the setup form became one field
+-- (plans/areas/forms.md → F50 `puzzle-source-picks-in-a-dialog`) there was no
+-- NAME for it to land under, so it would have shown on the dialog's bottom line
+-- exactly as it already did.
+--
+-- Player-reachable, barely: the library picker only offers rows that exist, so
+-- reaching this means the library changed under them. It says so and points at
+-- the field that picks a puzzle, because picking another is the whole fix.
+select pg_temp.envelope_is(
+  crosswords.create_game(
+    :'club_handle',
+    jsonb_build_object('timer', jsonb_build_object('kind', 'none'),
+                       'source', 'library',
+                       'puzzle_id', '99999999-9999-9999-9999-999999999999'),
+    array['ada11111-1111-1111-1111-111111111111'::uuid],
+    'coop'),
+  '{"type":"not-ok","severity":"validation","field":"source","dbcode":"PN222",
+    "message":"That puzzle is no longer in the library"}'::jsonb,
+  'a puzzle_id with no row is refused, under the field that picks one');
 
 reset role;
 
 -- Non-member cannot create in this club.
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
-select throws_ok(
-  format('select crosswords.create_game(%L, %s, array[%L]::uuid[], %L)',
-         :'club_handle', quote_literal(pg_temp.xw_setup(:'pz_id')),
-         'dee44444-4444-4444-4444-444444444444', 'coop'),
-  'PN012', null, 'non-member cannot create a game in the club');
+select pg_temp.envelope_is(
+  crosswords.create_game(
+    :'club_handle', pg_temp.xw_setup(:'pz_id'),
+    array['dee44444-4444-4444-4444-444444444444'::uuid],
+    'coop'),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN012"}'::jsonb,
+  'non-member cannot create a game in the club');
 reset role;
 
 -- ── Setup-strip backstop (finding 1.1) ───────────────────────────────
@@ -190,13 +217,13 @@ reset role;
 -- solution grid leaks + self-perpetuates. Drive a library create whose
 -- setup carries a bogus board and assert neither destination keeps it.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select id as gl_id from crosswords.create_game(
+select (crosswords.create_game(
   :'club_handle',
   pg_temp.xw_setup(:'pz_id')
     || jsonb_build_object(
          'board', jsonb_build_object('meta', '{}'::jsonb, 'solution', '["LEAK"]'::jsonb),
          'filename', 'secret.puz'),
-  array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop') \gset
+  array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop')->'data'->>'id')::uuid as gl_id \gset
 reset role;
 
 select ok(

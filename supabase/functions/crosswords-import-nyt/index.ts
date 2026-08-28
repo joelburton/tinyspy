@@ -50,7 +50,8 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { PNG } from 'npm:pngjs'
 import { Buffer } from 'node:buffer'
-import { edgeInternal, json, preflight } from '../_shared/http.ts'
+import { json, preflight } from '../_shared/http.ts'
+import { crash, environmental, fault, validation } from '../_shared/envelope.ts'
 import { callerClient } from '../_shared/startGame.ts'
 import type { Json } from '../../../src/types/db.ts'
 import { convertNytPuzzle, type NytPuzzleResponse } from '../../../src/crosswords/lib/nyt.ts'
@@ -176,7 +177,7 @@ serve(async (req) => {
   if (pre) return pre
 
   const authHeader = req.headers.get('Authorization')
-  if (!authHeader) return json({ error: 'not-authenticated|' }, 401)
+  if (!authHeader) return fault('PN223', 'You are not signed in.', 'crosswords-import-nyt: no Authorization header')
 
   let body: {
     target_club?: string
@@ -184,14 +185,18 @@ serve(async (req) => {
     player_user_ids?: string[]
     setup?: { timer?: Json; date?: string; weekday?: number }
   }
+  // Both gates are FAULTS on the form as a whole: the setup dialog composes
+  // every one of these fields itself, so a missing club or an unreadable body
+  // means the frontend is broken and no field of the form is the place to say so.
   try {
     body = await req.json()
   } catch {
-    return json({ error: 'bad-request|body|' }, 400)
+    return fault('PN224', 'The request could not be read.', 'crosswords-import-nyt: unparseable body')
   }
   const { target_club, mode, player_user_ids, setup } = body
   if (!target_club || !mode || !Array.isArray(player_user_ids)) {
-    return json({ error: 'bad-request|body|' }, 400)
+    return fault('PN225', 'A game with no club or players reached the server.',
+      'crosswords-import-nyt: target_club / mode / player_user_ids')
   }
 
   // ─── Which date ──────────────────────────────────────────
@@ -210,17 +215,30 @@ serve(async (req) => {
   if (!date) {
     const weekday = setup?.weekday
     if (typeof weekday !== 'number' || !Number.isInteger(weekday) || weekday < 0 || weekday > 6) {
-      return json({ error: 'bad-request|date|' }, 400)
+      return fault('PN226', `A weekday of '${String(weekday)}' reached the server.`,
+        'crosswords-import-nyt: setup.weekday must be an integer 0..6')
     }
     const { data: picked, error: pickErr } = await caller
       .schema('crosswords')
       .rpc('next_nyt_date_for_club', { seen_by: player_user_ids, dow: weekday })
-    if (pickErr) return json({ error: pickErr.message, code: pickErr.code }, 400)
-    if (!picked) return json({ error: `no-unplayed-weekday|${weekday}|` }, 422)
+    if (pickErr) {
+      return fault('PN227', 'The next puzzle could not be worked out.',
+        `crosswords-import-nyt: next_nyt_date_for_club: ${pickErr.message} (${pickErr.code})`)
+    }
+    // The weekday walk found nothing: this club's players have done every
+    // Monday (or whichever) back to the 2015 floor. Unreachable in practice —
+    // that is ~600 games of one weekday — but a real branch, and the fix is to
+    // pick a different day, so it lands on the field that picks one. Joel's
+    // words, approved 2026-08-12.
+    if (!picked) {
+      return validation('PN228', 'source', "You've played every one of those",
+        `crosswords-import-nyt: no unplayed puzzle for dow ${weekday}`)
+    }
     date = picked as unknown as string
   }
   if (!DATE_RE.test(date)) {
-    return json({ error: 'bad-request|date|' }, 400)
+    return fault('PN229', `A puzzle date of '${date}' reached the server.`,
+      'crosswords-import-nyt: date must be YYYY-MM-DD')
   }
 
   // 1–2. Fetch + convert. The puzzle data is NOT stored in crosswords.puzzles
@@ -254,10 +272,24 @@ serve(async (req) => {
     // the picked date); nyt-fetch's copy says try later; anything else — the
     // cookie-jar config problems included — is an edge-internal fault.
     console.log(`crosswords-import-nyt failed: ${(e as Error).message}`)
-    if (e instanceof NytAuthError) return json({ error: 'nyt-auth|' }, 401)
-    if (e instanceof NytNoPuzzleError) return json({ error: `nyt-no-puzzle|${date}|` }, 422)
-    if (e instanceof NytFetchError) return json({ error: 'nyt-fetch|' }, 502)
-    return edgeInternal(e)
+    // Three answers from OUTSIDE, and the middle one is the only one the player
+    // can act on — they chose the date. The other two are the service saying no,
+    // which is nobody's fault in either direction. All three keep Joel's words,
+    // approved 2026-08-12; the specific cause (HTTP status, bot challenge, bad
+    // JSON) stays in the function's serve log.
+    if (e instanceof NytAuthError) {
+      return environmental('PN230', 'NYT rejected the cookie — it may be expired',
+        'crosswords-import-nyt: NytAuthError')
+    }
+    if (e instanceof NytNoPuzzleError) {
+      return validation('PN231', 'source', `No NYT crossword published for ${date}`,
+        'crosswords-import-nyt: NytNoPuzzleError')
+    }
+    if (e instanceof NytFetchError) {
+      return environmental('PN232', "NYT couldn't be reached — try again later",
+        'crosswords-import-nyt: NytFetchError')
+    }
+    return crash('crosswords-import-nyt', e)
   }
 
   // 3. create_game AS THE CALLER (authority on membership + setup), with the
@@ -286,8 +318,17 @@ serve(async (req) => {
     mode,
     board,
   })
-  if (error) return json({ error: error.message, code: error.code }, 400)
-  const rows = (data as Array<{ id: string }> | null) ?? []
-  if (rows.length === 0) return json({ error: 'edge-internal|create_game returned no row|' }, 500)
-  return json({ id: rows[0].id })
+  // A converted create_game RETURNS its envelope rather than raising one, so
+  // this relays it untouched — which is what lets a raise written in SQL reach
+  // the player with its own words and its own field. `error` then means only
+  // that the RPC never ran.
+  if (error) {
+    return fault('PN233', 'The game could not be created.',
+      `crosswords-import-nyt: create_game did not run: ${error.message} (${error.code})`)
+  }
+  if (!data || typeof data !== 'object' || !('type' in data)) {
+    return fault('PN234', 'The game could not be created.',
+      `crosswords-import-nyt: create_game returned ${JSON.stringify(data)}`)
+  }
+  return json(data)
 })

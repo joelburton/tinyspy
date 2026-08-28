@@ -460,6 +460,8 @@ revoke execute on function crosswords._maybe_finish(uuid, uuid, text, uuid) from
 --     game with puzzle_id null; it does NOT add to the shared library.
 -- Either way we pre-insert one cells row per fillable NON-given cell (one
 -- shared grid for coop; one per player for compete).
+drop function if exists crosswords.create_game(text, jsonb, uuid[], text, jsonb);
+
 create or replace function crosswords.create_game(
   target_club text,
   setup jsonb,
@@ -467,12 +469,13 @@ create or replace function crosswords.create_game(
   mode text,
   board jsonb default null
 )
-returns table(id uuid)
+returns jsonb
 language plpgsql
 security definer
 set search_path = crosswords, common, public, extensions
 as $$
 declare
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text;
   new_id      uuid;
   v_puzzle_id uuid;
   v_meta      jsonb;
@@ -481,7 +484,8 @@ begin
   perform common.require_club_member(target_club);
   perform common.require_valid_mode(mode);
   if mode = 'compete' and coalesce(array_length(player_user_ids, 1), 0) < 2 then
-    raise exception 'too-few-players|' using errcode = 'P0001',
+    raise exception 'A race with fewer than two players reached the server'
+      using errcode = 'PN219', hint = 'fault', column = '_',
       detail = 'compete needs >= 2 players';
   end if;
   perform common.require_player_count_max(player_user_ids, 8);
@@ -498,8 +502,9 @@ begin
     v_meta := board -> 'meta';
     v_solution := board -> 'solution';
     if v_meta is null or v_solution is null then
-      raise exception 'bad-board|' using errcode = 'P0001',
-      detail = 'the board blob needs both meta and solution';
+      raise exception 'The puzzle file could not be read'
+        using errcode = 'PN220', hint = 'fault', column = '_',
+        detail = 'the board blob needs both meta and solution';
     end if;
     v_puzzle_id := null;
   else
@@ -507,14 +512,16 @@ begin
     -- `returns table(id uuid)` OUT column shadows an unqualified `id`.)
     v_puzzle_id := nullif(setup ->> 'puzzle_id', '')::uuid;
     if v_puzzle_id is null then
-      raise exception 'missing-puzzle-id|' using errcode = 'P0001',
-      detail = 'setup.puzzle_id absent';
+      raise exception 'A game with no puzzle reached the server'
+        using errcode = 'PN221', hint = 'fault', column = '_',
+        detail = 'setup.puzzle_id absent';
     end if;
     select p.meta, p.solution into v_meta, v_solution
       from crosswords.puzzles p where p.id = v_puzzle_id;
     if not found then
-      raise exception 'no-puzzle|%|', v_puzzle_id using errcode = 'P0001',
-      detail = 'no crosswords.puzzles row for that id; run the puzzle import';
+      raise exception 'That puzzle is no longer in the library'
+        using errcode = 'PN222', hint = 'validation', column = 'source',
+        detail = 'no crosswords.puzzles row for that id; run the puzzle import';
     end if;
   end if;
 
@@ -591,7 +598,22 @@ begin
     jsonb_build_object('mode', mode, 'title', coalesce(v_meta ->> 'title', 'Crossword'))
   );
 
-  return query select new_id;
+  return common.ok_envelope(jsonb_build_object('id', new_id));
+
+-- The boundary. It reads the SQLSTATE, re-raises anything that isn't ours, and
+-- lets the raise itself carry the message, the kind and the field.
+--
+-- The one validation here is the last thing the error sprint's create_game run
+-- had to wait for: crosswords had no FIELD to name until its setup form became
+-- one (plans/areas/forms.md → F50 `puzzle-source-picks-in-a-dialog`), so a
+-- message about a puzzle could only land on the dialog's bottom line.
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 revoke execute on function crosswords.create_game(text, jsonb, uuid[], text, jsonb) from public;

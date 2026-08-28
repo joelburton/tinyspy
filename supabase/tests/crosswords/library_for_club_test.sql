@@ -60,11 +60,11 @@ select pg_temp.create_club('XW Library B', array['ada', 'bea']) as club_b \gset
 -- every one of these is "ada + bea, coop, on this puzzle, in this club".
 create function pg_temp.xw_new_game(p_club text, p_puzzle uuid, p_mode text default 'coop')
 returns uuid language sql as $$
-  select id from crosswords.create_game(
+  select (crosswords.create_game(
     p_club, pg_temp.xw_setup(p_puzzle),
     array['ada11111-1111-1111-1111-111111111111'::uuid,
           'bea22222-2222-2222-2222-222222222222'::uuid],
-    p_mode);
+    p_mode)->'data'->>'id')::uuid;
 $$;
 
 select pg_temp.xw_new_game(:'club_a', :'pz_playing')  as g_playing  \gset

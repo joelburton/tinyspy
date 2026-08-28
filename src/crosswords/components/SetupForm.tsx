@@ -51,7 +51,7 @@ export function SetupForm({
         // and unchecking someone brings a puzzle back.
         seenBy={players.map((p) => p.user_id)}
         clubHandle={clubHandle}
-        error={errors.puzzle_source}
+        error={errors.source}
       />
 
       {/* Timer — the shared field every other game uses (None / Up / Down with

@@ -39,7 +39,8 @@
  */
 
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
-import { edgeInternal, json, preflight } from '../_shared/http.ts'
+import { json, preflight } from '../_shared/http.ts'
+import { crash, environmental, fault } from '../_shared/envelope.ts'
 import { callerClient } from '../_shared/startGame.ts'
 import type { Json } from '../../../src/types/db.ts'
 import { convertGuardianPuzzle, GuardianConvertError, type GuardianData } from '../../../src/crosswords/lib/guardian.ts'
@@ -127,7 +128,7 @@ serve(async (req) => {
   if (pre) return pre
 
   const authHeader = req.headers.get('Authorization')
-  if (!authHeader) return json({ error: 'not-authenticated|' }, 401)
+  if (!authHeader) return fault('PN235', 'You are not signed in.', 'crosswords-import-guardian: no Authorization header')
 
   let body: {
     target_club?: string
@@ -135,18 +136,24 @@ serve(async (req) => {
     player_user_ids?: string[]
     setup?: { timer?: Json; series?: string }
   }
+  // All three gates are FAULTS on the form as a whole: the picker offers a
+  // closed list of series and the dialog composes the rest, so anything wrong
+  // here means the frontend is broken rather than a choice to correct.
   try {
     body = await req.json()
   } catch {
-    return json({ error: 'bad-request|body|' }, 400)
+    return fault('PN236', 'The request could not be read.',
+      'crosswords-import-guardian: unparseable body')
   }
   const { target_club, mode, player_user_ids, setup } = body
   const series = setup?.series
   if (!target_club || !mode || !Array.isArray(player_user_ids)) {
-    return json({ error: 'bad-request|body|' }, 400)
+    return fault('PN237', 'A game with no club or players reached the server.',
+      'crosswords-import-guardian: target_club / mode / player_user_ids')
   }
   if (!series || !SERIES.has(series)) {
-    return json({ error: 'bad-request|series|' }, 400)
+    return fault('PN238', `A Guardian series of '${String(series)}' reached the server.`,
+      'crosswords-import-guardian: series is not in the allowlist')
   }
 
   // 1–2. Fetch + convert. NOT stored in crosswords.puzzles (that's the curated
@@ -162,13 +169,20 @@ serve(async (req) => {
     const data = await fetchLatestGuardian(series)
     board = convertGuardianPuzzle(data)
   } catch (e) {
-    // fe-error-keys out; the specific cause stays in the serve log.
-    // guardian-fetch carries ERROR_COPY (the Guardian is down / unreachable —
-    // try later); a conversion failure is a pipeline fault, copyless.
+    // The specific cause stays in the serve log. Unreachable is nobody's fault
+    // in either direction and reads as "try later" — Joel's words, approved
+    // 2026-08-12. A puzzle we fetched but could not convert is OURS: the
+    // Guardian answered and our converter did not cope.
     console.log(`crosswords-import-guardian failed: ${(e as Error).message}`)
-    if (e instanceof GuardianConvertError) return json({ error: 'guardian-convert|' }, 422)
-    if (e instanceof GuardianFetchError) return json({ error: 'guardian-fetch|' }, 502)
-    return edgeInternal(e)
+    if (e instanceof GuardianConvertError) {
+      return fault('PN239', 'That Guardian puzzle could not be read.',
+        'crosswords-import-guardian: GuardianConvertError')
+    }
+    if (e instanceof GuardianFetchError) {
+      return environmental('PN240', "The Guardian couldn't be reached — try again later",
+        'crosswords-import-guardian: GuardianFetchError')
+    }
+    return crash('crosswords-import-guardian', e)
   }
 
   // 3. create_game AS THE CALLER (authority on membership + setup), inline board.
@@ -180,8 +194,15 @@ serve(async (req) => {
     mode,
     board,
   })
-  if (error) return json({ error: error.message, code: error.code }, 400)
-  const rows = (data as Array<{ id: string }> | null) ?? []
-  if (rows.length === 0) return json({ error: 'edge-internal|create_game returned no row|' }, 500)
-  return json({ id: rows[0].id })
+  // Relayed untouched, so a raise written in SQL reaches the player with its own
+  // words and its own field. `error` then means only that the RPC never ran.
+  if (error) {
+    return fault('PN241', 'The game could not be created.',
+      `crosswords-import-guardian: create_game did not run: ${error.message} (${error.code})`)
+  }
+  if (!data || typeof data !== 'object' || !('type' in data)) {
+    return fault('PN242', 'The game could not be created.',
+      `crosswords-import-guardian: create_game returned ${JSON.stringify(data)}`)
+  }
+  return json(data)
 })

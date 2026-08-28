@@ -2,17 +2,22 @@
 
 /**
  * Shared manifest RPC dispatchers — the tiny, identical wrappers every game's
- * manifest hand-copied to turn a Supabase `db.rpc(...)` / edge-function invoke
- * into the `{ error?: string }` shape the GameManifest contract wants.
+ * manifest hand-copied to turn a Supabase `db.rpc(...)` into the
+ * `{ error?: string }` shape the GameManifest contract wants.
  *
- * These live here (not per-game) so the "collapse `{ data, error }` → `{ error?
- * }`" convention — and, more importantly, the *subtle* edge-function error
- * unwrap (see `invokeStartGameEdgeFn`) — exist exactly once.
+ * **What used to live here as well were three START-GAME adapters**, and they
+ * are gone because every `create_game` in the roster now returns the envelope
+ * itself: a manifest calls `runRpc` or `runEdgeFn` and gets the same shape
+ * either way. The adapters existed to make an unconverted RPC's `{ data, error }`
+ * LOOK like one, so that the frontend could be converted before all sixteen
+ * games were — a bridge with a stated end, and this is it.
+ *
+ * `submit_timeout` / `end_game` are what remain: both are still on the old
+ * shape, and both are ONE frontend path over sixteen SQL definitions
+ * (`useStandardGameActions`), so they convert together or not at all.
  */
 
-import { callEdgeFn } from '../supabase/callEdgeFn'
-import { failureMessage, type CallError } from './serverError'
-import type { Envelope } from '../supabase/dbResult'
+import { type CallError } from './serverError'
 
 /** The manifest contract's dispatcher result: an optional STRUCTURED error
  *  (message + SQLSTATE), ready for the classifier — flattening to a string
@@ -65,81 +70,5 @@ export type StartGameBody = {
   mode: 'coop' | 'compete'
 }
 
-/**
- * Invoke a `<game>-build-board` edge function and normalize its result to the
- * manifest's `{ id } | { error }` union. The invoke + read-once error unwrap
- * live in `callEdgeFn`, which returns a CLASSIFIABLE CallError — carrying the
- * relayed SQLSTATE (`code`) and the "the function answered" marker — so every
- * consumer routes it through the classifier instead of stringifying it. On
- * success we still guard the `{ id }` payload here (a 200 with an `{ error }`
- * body is possible).
- *
- * `brand` + `mode` only feed the last-resort "failed to start …" message.
- */
-export async function invokeStartGameEdgeFn(
-  fnName: string,
-  body: StartGameBody,
-  brand: string,
-): Promise<{ id: string } | { error: NonNullable<CallError> }> {
-  const res = await callEdgeFn(fnName, body)
-  if (res.error) return { error: res.error }
-  const payload = res.data as { id?: string; error?: string; code?: string } | null
-  if (!payload || payload.error || !payload.id) {
-    // A 2xx that isn't the success shape. The function answered — so this is
-    // never transport — carrying its own words or the last-resort description.
-    return {
-      error: {
-        message: payload?.error ?? `failed to start ${brand} (${body.mode}) game`,
-        ...(payload?.code ? { code: payload.code } : {}),
-        answered: true,
-      },
-    }
-  }
-  return { id: payload.id }
-}
 
-/**
- * THE OLD START RESULT, AS AN ENVELOPE — for every `create_game` that has not
- * been converted yet.
- *
- * `startGameInClub` hands back an `Envelope` now, so that a converted game's
- * `field` can reach the box it names. The SQL converts one game at a time, so
- * until the last one lands most of them still answer in the old shape: a row
- * with an id, or a `CallError`. This turns one into the other.
- *
- * It CLASSIFIES but does not PRESENT. A fault's modal comes from `dbFetch`,
- * which sees the non-2xx before any of this runs; calling the classifier's
- * presenting cousin here would raise a second one over it.
- *
- * **Temporary, with a defined end.** Every game's conversion deletes its own
- * call, and the last one deletes this function.
- */
-export function startEnvelope(
-  data: { id?: string } | null,
-  error: CallError,
-  brand: string,
-): Envelope<{ id: string }> {
-  if (!error && data?.id) return { type: 'ok', data: { id: data.id } }
-  const msg = failureMessage(error, `new ${brand} game`)
-  return {
-    type: 'not-ok',
-    // The old classifier's two answers, in the new vocabulary: something broke
-    // (`fault`), or the server explained itself (`error`). It never named a
-    // field, which is the whole reason the games are being converted.
-    severity: msg.fault ? 'fault' : 'error',
-    message: typeof msg.text === 'string' ? msg.text : String(msg.text),
-    ...(error?.code ? { dbcode: error.code } : {}),
-  }
-}
 
-/** The same, for a start that went through an edge function — which still
- *  answers in the old shape, because its OTHER caller is each game's in-play
- *  "New game" button, a fault surface that classifies and LOGS the failure
- *  itself (`faultMessage`). Converting that path belongs with the edge
- *  functions' own conversion. */
-export function edgeStartEnvelope(
-  res: { id: string } | { error: NonNullable<CallError> },
-  brand: string,
-): Envelope<{ id: string }> {
-  return 'error' in res ? startEnvelope(null, res.error, brand) : { type: 'ok', data: { id: res.id } }
-}

@@ -130,7 +130,7 @@ describe('the field', () => {
     // screen whichever source was chosen, so this message is always beside a
     // control rather than on the dialog's bottom line.
     draw({}, 'Pick a puzzle to start.')
-    expect(errorUnder('puzzle_source')).toBe('Pick a puzzle to start.')
+    expect(errorUnder('source')).toBe('Pick a puzzle to start.')
   })
 
   it('opens a picker rather than switching a tab', async () => {

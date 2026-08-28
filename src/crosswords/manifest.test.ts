@@ -20,11 +20,11 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-/** A chainable supabase-query-builder stand-in: `.single()` resolves to the
- *  shared result; `rpc` records the (fn, args) it was called with. */
+/** A supabase-query-builder stand-in. No `.single()` any more: `create_game`
+ *  returns the ENVELOPE itself — one jsonb value, not a row — so the manifest
+ *  awaits the builder directly and `runRpc` reads what comes back. */
 function builder(result: { data: unknown; error: unknown }) {
   const b: Record<string, unknown> = {
-    single: () => Promise.resolve(result),
     then: (resolve: (v: unknown) => void) => resolve(result),
   }
   return b
@@ -32,7 +32,10 @@ function builder(result: { data: unknown; error: unknown }) {
 
 const { rpcCalls, rpcResult } = vi.hoisted(() => ({
   rpcCalls: [] as Array<{ fn: string; args: Record<string, unknown> }>,
-  rpcResult: { current: { data: { id: 'new-game' } as unknown, error: null as unknown } },
+  // The envelope, as the converted RPC answers it.
+  rpcResult: {
+    current: { data: { type: 'ok', data: { id: 'new-game' } } as unknown, error: null as unknown },
+  },
 }))
 
 vi.mock('./db', () => ({
@@ -61,7 +64,7 @@ const UPLOAD_BOARD = {
 
 beforeEach(() => {
   rpcCalls.length = 0
-  rpcResult.current = { data: { id: 'new-game' }, error: null }
+  rpcResult.current = { data: { type: 'ok', data: { id: 'new-game' } }, error: null }
 })
 
 describe('crosswordsCoopGame.startGameInClub — setup-leak backstop', () => {

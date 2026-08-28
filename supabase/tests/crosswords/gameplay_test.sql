@@ -19,17 +19,17 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.create_club('XW Club', array['ada', 'bea', 'cade']) as club_handle \gset
 
 -- Coop game (ada + bea share one grid), a compete game, and a given game.
-select id as gc_id from crosswords.create_game(
+select (crosswords.create_game(
   :'club_handle', pg_temp.xw_setup(:'pz_id'),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
-        'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') \gset
-select id as gp_id from crosswords.create_game(
+        'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as gc_id \gset
+select (crosswords.create_game(
   :'club_handle', pg_temp.xw_setup(:'pz_id'),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
-        'bea22222-2222-2222-2222-222222222222'::uuid], 'compete') \gset
-select id as gg_id from crosswords.create_game(
+        'bea22222-2222-2222-2222-222222222222'::uuid], 'compete')->'data'->>'id')::uuid as gp_id \gset
+select (crosswords.create_game(
   :'club_handle', pg_temp.xw_setup(:'pzg_id'),
-  array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop') \gset
+  array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop')->'data'->>'id')::uuid as gg_id \gset
 
 -- ── set_cell ─────────────────────────────────────────────────────────
 -- Lowercase input is uppercased; version starts at 0 and bumps to 1.
@@ -217,10 +217,10 @@ reset role;
 -- compete" claim. ada fills her across word; probing it, ada solves, but bea
 -- (whose identical cells are empty in her own grid) gets solved=false.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select id as grw_id from crosswords.create_game(
+select (crosswords.create_game(
   :'club_handle', pg_temp.xw_setup(:'pz_id'),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
-        'bea22222-2222-2222-2222-222222222222'::uuid], 'compete') \gset
+        'bea22222-2222-2222-2222-222222222222'::uuid], 'compete')->'data'->>'id')::uuid as grw_id \gset
 select set_cell from crosswords.set_cell(:'grw_id', 0, 0, 'c', false);
 select set_cell from crosswords.set_cell(:'grw_id', 0, 1, 'a', false);
 select is(
@@ -244,9 +244,9 @@ reset role;
 -- degenerate empty-cells case (no cells → vacuously solved, empty answer;
 -- the edge fn guards on the falsy answer). One note-bearing game covers both.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select id as gn_id from crosswords.create_game(
+select (crosswords.create_game(
   :'club_handle', pg_temp.xw_setup(:'pzn_id'),
-  array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop') \gset
+  array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop')->'data'->>'id')::uuid as gn_id \gset
 select is(
   (select note from crosswords.reveal_solved_word(:'gn_id', '[]'::jsonb)),
   'Ripe for a theme', 'reveal_solved_word: returns the puzzle note for the explainer');

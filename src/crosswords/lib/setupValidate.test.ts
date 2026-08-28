@@ -32,7 +32,7 @@ describe('crosswords setup — the NYT source', () => {
 
   it('refuses neither, under the puzzle field', () => {
     expect(check({ source: 'nyt' })).toEqual({
-      puzzle_source: 'Pick a weekday or a date.',
+      source: 'Pick a weekday or a date.',
     })
   })
 })
@@ -41,21 +41,21 @@ describe('crosswords setup — the other sources', () => {
   it('needs a Guardian series', () => {
     expect(check({ source: 'guardian', series: 'quiptic' })).toEqual({})
     expect(check({ source: 'guardian' })).toEqual({
-      puzzle_source: 'Pick a Guardian series.',
+      source: 'Pick a Guardian series.',
     })
   })
 
   it('needs an uploaded file', () => {
     expect(check({ source: 'upload', board: { grid: [] } })).toEqual({})
     expect(check({ source: 'upload' })).toEqual({
-      puzzle_source: 'Choose a .puz or .ipuz file.',
+      source: 'Choose a .puz or .ipuz file.',
     })
   })
 
   it('needs a picked puzzle for anything else', () => {
     expect(check({ source: 'library', puzzle_id: 'p1' })).toEqual({})
     expect(check({ source: 'library' })).toEqual({
-      puzzle_source: 'Pick a puzzle to start.',
+      source: 'Pick a puzzle to start.',
     })
   })
 })

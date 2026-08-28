@@ -14,17 +14,17 @@ select pg_temp.create_club('XW Club', array['ada', 'bea', 'cade']) as club_handl
 
 -- Three games off the same puzzle: coop (solve fully), coop (pencil solve),
 -- compete (first-correct-wins). Answers: (0,0)C (0,1)A (1,0)T (1,1)S.
-select id as gc_id from crosswords.create_game(
+select (crosswords.create_game(
   :'club_handle', pg_temp.xw_setup(:'pz_id'),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
-        'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') \gset
-select id as gc2_id from crosswords.create_game(
+        'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as gc_id \gset
+select (crosswords.create_game(
   :'club_handle', pg_temp.xw_setup(:'pz_id'),
-  array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop') \gset
-select id as gp_id from crosswords.create_game(
+  array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop')->'data'->>'id')::uuid as gc2_id \gset
+select (crosswords.create_game(
   :'club_handle', pg_temp.xw_setup(:'pz_id'),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
-        'bea22222-2222-2222-2222-222222222222'::uuid], 'compete') \gset
+        'bea22222-2222-2222-2222-222222222222'::uuid], 'compete')->'data'->>'id')::uuid as gp_id \gset
 
 -- ── Coop: solving the whole grid wins ────────────────────────────────
 select set_cell from crosswords.set_cell(:'gc_id', 0, 0, 'c', false);
@@ -105,12 +105,12 @@ select pg_temp.xw_insert_puzzle('h-rebus', pg_temp.xw_meta_rebus(), pg_temp.xw_s
   as pzr_id \gset
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select id as gr_full from crosswords.create_game(
+select (crosswords.create_game(
   :'club_handle', pg_temp.xw_setup(:'pzr_id'),
-  array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop') \gset
-select id as gr_first from crosswords.create_game(
+  array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop')->'data'->>'id')::uuid as gr_full \gset
+select (crosswords.create_game(
   :'club_handle', pg_temp.xw_setup(:'pzr_id'),
-  array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop') \gset
+  array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop')->'data'->>'id')::uuid as gr_first \gset
 
 -- Full-string rebus fill: "HEART" in (0,0), "S" in (0,1).
 select set_cell from crosswords.set_cell(:'gr_full', 0, 0, 'heart', false);

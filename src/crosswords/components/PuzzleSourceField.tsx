@@ -96,7 +96,7 @@ export function PuzzleSourceField({ values: s, set, seenBy, clubHandle, error }:
 
   return (
     <>
-      <Field label={summarize(s, resolved, libraryTitle)} name="puzzle_source" error={error} group>
+      <Field label={summarize(s, resolved, libraryTitle)} name="source" error={error} group>
         <div className={cls('segmented', styles.sources)} role="group" aria-label="Puzzle source">
           <button type="button" aria-pressed={s.source === 'library'} onClick={() => setOpen('library')}>
             Library

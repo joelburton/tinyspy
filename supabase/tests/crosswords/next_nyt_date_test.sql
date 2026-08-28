@@ -76,7 +76,7 @@ select ok(
 select pg_temp.as_user((select ada from ids));
 
 create temp table g1 on commit drop as
-select id from crosswords.create_game(
+select (crosswords.create_game(
   '=ada',
   jsonb_build_object('timer', jsonb_build_object('kind', 'none'),
                      'source', 'nyt',
@@ -86,7 +86,8 @@ select id from crosswords.create_game(
   -- The inline `board` arg, the way the NYT edge function passes it: an NYT
   -- game is self-contained (no crosswords.puzzles row), which is exactly why
   -- games.puzzle_date had to exist for this walk to have anything to exclude on.
-  jsonb_build_object('meta', pg_temp.xw_meta_2x2(), 'solution', pg_temp.xw_sol_2x2()));
+  jsonb_build_object('meta', pg_temp.xw_meta_2x2(), 'solution', pg_temp.xw_sol_2x2())
+)->'data'->>'id')::uuid as id;
 
 -- Back to the superuser to read `puzzle_date`: it is deliberately NOT in
 -- crosswords.games's column grant. Nothing client-side needs it — the walk is

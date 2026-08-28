@@ -45,6 +45,18 @@ export const fault = (dbcode: string, message: string, detail?: string): Respons
   json({ type: 'not-ok', severity: 'fault', message, dbcode, ...(detail ? { detail } : {}) })
 
 /**
+ * SOMETHING WE DEPEND ON DIDN'T ANSWER — an outside service down or refusing us.
+ *
+ * The narrowest of the three, and the one that is nobody's fault in either
+ * direction: the player did nothing wrong and neither did we. NYT unreachable,
+ * the Guardian timing out, a pasted cookie the site no longer accepts. It reads
+ * as "try again later" rather than as a bug, and unlike a fault it does not
+ * claim something is broken here.
+ */
+export const environmental = (dbcode: string, message: string, detail?: string): Response =>
+  json({ type: 'not-ok', severity: 'error', message, dbcode, ...(detail ? { detail } : {}) })
+
+/**
  * The catch-all: an exception nobody expected, wrapped so even a crash comes
  * back envelope-shaped rather than as a bare 500 the frontend can only guess at.
  * The raw message rides as the detail — it is for the log, and showing it

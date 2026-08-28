@@ -41,10 +41,10 @@ reset role;
 -- finished puzzle can be run back), and it clears EVERY owner's grid, because a
 -- restart is a whole-table thing.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select id as gcl_id from crosswords.create_game(
+select (crosswords.create_game(
   :'club_handle', pg_temp.xw_setup(:'pz_id'),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
-        'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') \gset
+        'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as gcl_id \gset
 -- Dirty the shared grid: a fill, a pencil, a revealed cell, a wrong flag, a mark.
 select set_cell from crosswords.set_cell(:'gcl_id', 0, 0, 'c', false);
 select set_cell from crosswords.set_cell(:'gcl_id', 0, 1, 'z', true);
@@ -82,10 +82,10 @@ reset role;
 -- Compete: a restart re-opens the race for EVERYONE (the widening from
 -- clear_board, which only ever touched the caller's own grid).
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select id as gpcl_id from crosswords.create_game(
+select (crosswords.create_game(
   :'club_handle', pg_temp.xw_setup(:'pz_id'),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
-        'bea22222-2222-2222-2222-222222222222'::uuid], 'compete') \gset
+        'bea22222-2222-2222-2222-222222222222'::uuid], 'compete')->'data'->>'id')::uuid as gpcl_id \gset
 select set_cell from crosswords.set_cell(:'gpcl_id', 0, 0, 'c', false);
 reset role;
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');

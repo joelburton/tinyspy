@@ -139,25 +139,6 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   // shape it should never have built.
   'path-crosses-found': { text: () => 'Crosses a found word' },
 
-  // ── crosswords (the two importers) ──
-  // Importing a puzzle depends on an outside service and, for NYT, a pasted
-  // cookie — so these are real answers a player can fix (a fresh cookie, a
-  // different date) or wait out (the service is down). Edge-fn-raised
-  // (crosswords-import-nyt / -guardian); wording approved 2026-08-12. The
-  // specific cause (HTTP status, bot challenge, bad JSON) stays in the
-  // function's serve log.
-  // The weekday walk found nothing: this club's players have done every
-  // Monday (or whichever) back to the 2015 floor. Unreachable in practice —
-  // that's ~600 games of one weekday — but it is a real branch, and a fault
-  // would tell the player nothing they could act on. `info`: nobody erred.
-  'no-unplayed-weekday': {
-    text: () => "You've played every one of those",
-    tone: 'noted',
-  },
-  'nyt-auth': { text: () => 'NYT rejected the cookie — it may be expired' },
-  'nyt-no-puzzle': { text: (d) => `No NYT crossword published for ${d[0]}` },
-  'nyt-fetch': { text: () => "NYT couldn't be reached — try again later" },
-  'guardian-fetch': { text: () => "The Guardian couldn't be reached — try again later" },
 
   // ── psychicnum ──
   // The FE checks board membership before submitting but NOT whether a word was

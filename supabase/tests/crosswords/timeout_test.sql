@@ -42,17 +42,17 @@ select pg_temp.create_club('XW Club', array['ada', 'bea', 'cade']) as club_handl
 
 -- Three games off the one puzzle: a coop to time out, a compete to time out,
 -- and a coop we'll SOLVE first and then try to time out.
-select id as gc_id from crosswords.create_game(
+select (crosswords.create_game(
   :'club_handle', pg_temp.xw_setup(:'pz_id'),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
-        'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') \gset
-select id as gp_id from crosswords.create_game(
+        'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as gc_id \gset
+select (crosswords.create_game(
   :'club_handle', pg_temp.xw_setup(:'pz_id'),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
-        'bea22222-2222-2222-2222-222222222222'::uuid], 'compete') \gset
-select id as gw_id from crosswords.create_game(
+        'bea22222-2222-2222-2222-222222222222'::uuid], 'compete')->'data'->>'id')::uuid as gp_id \gset
+select (crosswords.create_game(
   :'club_handle', pg_temp.xw_setup(:'pz_id'),
-  array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop') \gset
+  array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop')->'data'->>'id')::uuid as gw_id \gset
 reset role;
 
 -- ── A. require_game_player gate ──────────────────────────────────────

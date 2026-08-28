@@ -1,27 +1,22 @@
 // cs-unmet
 
 /**
- * Tests for manifestRpcs — the shared manifest dispatchers every game routes
- * its RPCs and board-build edge-fn calls through. Small but load-bearing: a
- * regression in the `{ data, error }` → `{ error? }` collapse, or in the
- * read-once edge-function error unwrap, would surface as a broken "start game"
- * or a swallowed failure across every game at once.
+ * Tests for manifestRpcs — what is left of it.
  *
- * makeRpcDispatcher takes the `db` as a param, so it's tested with a fake
- * client (no mocking). invokeStartGameEdgeFn reaches the module-level
- * `supabase.functions.invoke`, so that one module is mocked; the real
- * callEdgeFn unwrap runs, driven by a fake `context` Response.
+ * The start-game adapters this file also covered are gone: every `create_game`
+ * returns the envelope itself now, so a manifest calls `runRpc` / `runEdgeFn`
+ * and those two are tested where they live (dbResult.test.ts). What remains is
+ * the `{ data, error }` → `{ error? }` collapse for `submit_timeout` and
+ * `end_game`, which is small but load-bearing: it is ONE frontend path over
+ * sixteen SQL definitions, so a regression here breaks every game at once.
+ *
+ * `makeRpcDispatcher` takes the `db` as a param, so it is tested with a fake
+ * client and no mocking at all.
  */
 
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
-const { mockInvoke } = vi.hoisted(() => ({ mockInvoke: vi.fn() }))
-
-vi.mock('../supabase/supabase', () => ({
-  supabase: { functions: { invoke: mockInvoke } },
-}))
-
-import { invokeStartGameEdgeFn, makeRpcDispatcher, type StartGameBody } from './manifestRpcs'
+import { makeRpcDispatcher } from './manifestRpcs'
 
 describe('makeRpcDispatcher', () => {
   it('calls the named RPC with { target_game } and returns {} on success', async () => {
@@ -40,68 +35,5 @@ describe('makeRpcDispatcher', () => {
 
     expect(await endGame('game-2')).toEqual({ error: { message: 'game-not-in-play|', code: 'P0001' } })
     expect(rpc).toHaveBeenCalledWith('end_game', { target_game: 'game-2' })
-  })
-})
-
-describe('invokeStartGameEdgeFn', () => {
-  const body: StartGameBody = {
-    target_club: 'club-x',
-    setup: { timer: { kind: 'none' } },
-    player_user_ids: ['u1'],
-    mode: 'coop',
-  }
-
-  beforeEach(() => {
-    mockInvoke.mockReset()
-  })
-
-  it('returns { id } when the edge function succeeds', async () => {
-    mockInvoke.mockResolvedValue({ data: { id: 'new-game' }, error: null })
-
-    expect(await invokeStartGameEdgeFn('boggle-build-board', body, 'MothCubes')).toEqual({
-      id: 'new-game',
-    })
-    expect(mockInvoke).toHaveBeenCalledWith('boggle-build-board', { body })
-  })
-
-  it('unwraps the real server error off error.context, ANSWERED and code-bearing', async () => {
-    mockInvoke.mockResolvedValue({
-      data: null,
-      // invoke reports a generic message; the real error rides on context.json().
-      // callEdgeFn recovers it plus the relayed SQLSTATE, and marks it answered
-      // so a codeless prose answer can never misfile as transport.
-      error: {
-        message: 'Edge Function returned a non-2xx status code',
-        context: { json: async () => ({ error: 'no-required-words|', code: 'P0001' }) },
-      },
-    })
-
-    expect(await invokeStartGameEdgeFn('spellingbee-build-board', body, 'FreeBee')).toEqual({
-      error: { message: 'no-required-words|', code: 'P0001', answered: true },
-    })
-  })
-
-  it('a contextless failure is transport-shaped: codeless and UNanswered', async () => {
-    mockInvoke.mockResolvedValue({ data: null, error: { message: 'network down' } })
-
-    expect(await invokeStartGameEdgeFn('waffle-build-board', body, 'Waffle')).toEqual({
-      error: { message: 'network down', code: '' },
-    })
-  })
-
-  it('treats a 200 with an { error } body as an answered failure', async () => {
-    mockInvoke.mockResolvedValue({ data: { error: 'those letters yield no words' }, error: null })
-
-    expect(await invokeStartGameEdgeFn('spellingbee-build-board', body, 'FreeBee')).toEqual({
-      error: { message: 'those letters yield no words', answered: true },
-    })
-  })
-
-  it('uses the last-resort message when the payload has no id and no error', async () => {
-    mockInvoke.mockResolvedValue({ data: {}, error: null })
-
-    expect(await invokeStartGameEdgeFn('boggle-build-board', body, 'MothCubes')).toEqual({
-      error: { message: 'failed to start MothCubes (coop) game', answered: true },
-    })
   })
 })

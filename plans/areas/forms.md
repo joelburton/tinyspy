@@ -1315,7 +1315,7 @@ dialog's own half).
 
 ### The design (Joel's)
 
-**One field, `puzzle_source`: four buttons.** Pressing one opens a
+**One field, `source`: four buttons.** Pressing one opens a
 modal-blocking dialog specific to that source. Its whole job is to let the
 player choose — or cancel — and hand back what starting a game with that puzzle
 needs.
@@ -1390,9 +1390,9 @@ a definition"). The dialogs still say them in full.
 
 ### The pieces
 
-1. **`PuzzleSourceField`** — four buttons, `name="puzzle_source"`, its value the
-   sentence above, wearing `error={errors.puzzle_source}`. This is what closes
-   the crosswords half of F48: a server validation naming `puzzle_source` draws
+1. **`PuzzleSourceField`** — four buttons, `name="source"`, its value the
+   sentence above, wearing `error={errors.source}`. This is what closes
+   the crosswords half of F48: a server validation naming `source` draws
    beside the buttons, visible whichever source was used.
 2. **Four dialogs**, one file and one test each:
    `LibraryPickerDialog` (owns `library_for_club` + the filter box),

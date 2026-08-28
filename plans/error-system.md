@@ -1124,7 +1124,7 @@ select pg_temp.envelope_is(
 
 ## 7. The conversion roster
 
-**146 entries. 36 done, 5 edge functions deferred, 105 to go.** Cross them off
+**146 entries. 38 done, 5 edge functions deferred, 103 to go.** Cross them off
 here as they land.
 
 An entry is one RPC or one table read **per area**, so the same name in two
@@ -1246,8 +1246,8 @@ identifier — a shape nothing has exercised yet.
 
 #### crosswords
 
-- [ ] `create_game` · RPC, reached through `crosswords-import-nyt / -guardian`
-- [ ] `create_game` · RPC
+- [x] `create_game` · RPC, reached through `crosswords-import-nyt / -guardian`
+- [x] `create_game` · RPC
 - [ ] `export_solution` · RPC (2 call sites)
 - [ ] `library_for_club` · RPC
 - [ ] `next_nyt_date_for_club` · RPC
@@ -1401,10 +1401,23 @@ Because those are shared, converting the first board builder converts the
 handoff for all seven — the other six are red until they land. That is the
 chosen sequencing, not an accident.
 
-**Six of the seven are done** (waffle, wordiply, boggle, spellingbee, wordwheel,
-letterboxed). Only crosswords is left, and it is last for its own reasons: its
-setup form is the un-converted layout exception, so none of its controls carry a
-`name` for a validation to land under.
+**ALL SEVEN ARE DONE**, crosswords last, because it needed a field before its
+one validation had anywhere to land — see plans/areas/forms.md → F50
+`puzzle-source-picks-in-a-dialog`, which turned its four source tabs into one
+`source` field — named for the setup key it writes, like every other field.
+
+Crosswords is also where the third severity finally appears. `error` — "something
+we depend on didn't answer" — had been in the type and in the `[db]` line with
+nothing producing it, because it belongs to services outside us and only the two
+importers talk to any: NYT rejecting a stale cookie, the Guardian unreachable.
+Both keep Joel's approved words.
+
+**The three temporary start-game adapters are gone** (`startEnvelope`,
+`edgeStartEnvelope`, `invokeStartGameEdgeFn` — `manifestRpcs.ts` is 146 lines
+down to 70). They existed to make an unconverted RPC's `{ data, error }` look
+like an envelope so the frontend could convert first; every `create_game` returns
+one now, so a manifest calls `runRpc` or `runEdgeFn` and there is nothing to
+adapt. That was the stated end and this is it.
 
 **Still deferred:** the five that answer a question rather than start a game
 (`common-define`, `codenamesduet-suggest-clue`, `crosswords-explain-clue`,
