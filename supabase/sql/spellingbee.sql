@@ -304,6 +304,8 @@ grant execute on function spellingbee.candidate_words(bigint, bigint, int, int) 
 --     player picked the letters and the gate relaxes to ≥ 1
 --   - board.required_words / board.bonus_words must be arrays
 
+drop function if exists spellingbee.create_game(text, jsonb, uuid[], text, jsonb);
+
 create or replace function spellingbee.create_game(
   target_club text,
   setup jsonb,
@@ -311,13 +313,14 @@ create or replace function spellingbee.create_game(
   mode text,
   board jsonb
 )
-returns table(id uuid)
+returns jsonb
 language plpgsql
 security definer
 set search_path = spellingbee, common, public, extensions
 as $$
 declare
   new_id uuid;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text;
   s_target_rank int;
   s_required int;
   s_legal int;
@@ -341,9 +344,9 @@ begin
     -- compete Start button in 1-player clubs; this is the
     -- server-side catch. Matches psychicnum + connections.
     if coalesce(array_length(player_user_ids, 1), 0) < 2 then
-      raise exception 'too-few-players|'
-        using errcode = 'P0001',
-      detail = 'compete needs >= 2 players';
+      raise exception 'A race with fewer than two players reached the server'
+        using errcode = 'PN156', hint = 'fault', column = '_',
+        detail = 'compete needs >= 2 players';
     end if;
   end if;
 
@@ -358,22 +361,22 @@ begin
   --          End button. Absent and explicit null are the same thing, so a FE
   --          that always sends the key can send null for "none".
   if mode = 'compete' and (setup->>'target_rank') is null then
-    raise exception 'missing-target-rank|'
-      using errcode = 'P0001',
+    raise exception 'A race with no target rank reached the server'
+      using errcode = 'PN157', hint = 'fault', column = '_',
       detail = 'compete needs a target_rank';
   end if;
   if (setup->>'target_rank') is not null then
     begin
       s_target_rank := (setup->>'target_rank')::int;
     exception when invalid_text_representation then
-      raise exception 'target-rank-not-int|'
-        using errcode = 'P0001',
-      detail = 'setup.target_rank must be an integer';
+      raise exception 'A target rank that is not a number reached the server'
+        using errcode = 'PN158', hint = 'fault', column = '_',
+        detail = 'setup.target_rank must be an integer';
     end;
     if s_target_rank < 0 or s_target_rank > 6 then
-      raise exception 'bad-target-rank|%|', s_target_rank
-        using errcode = 'P0001',
-      detail = 'setup.target_rank must be 0..6';
+      raise exception 'A target rank of % reached the server', s_target_rank
+        using errcode = 'PN159', hint = 'fault', column = '_',
+        detail = 'setup.target_rank must be 0..6';
     end if;
   end if;
 
@@ -386,14 +389,14 @@ begin
   -- authority on the shape.
   s_required := coalesce((setup->>'required')::int, 3);
   if s_required < 1 or s_required > 6 then
-    raise exception 'bad-required-band|%|', s_required
-      using errcode = 'P0001',
+    raise exception 'A required difficulty of % reached the server', s_required
+      using errcode = 'PN160', hint = 'fault', column = '_',
       detail = 'setup.required must be 1..6';
   end if;
   s_legal := coalesce((setup->>'legal')::int, 5);
   if s_legal < s_required or s_legal > 6 then
-    raise exception 'bad-legal-band|%|%|',
-      s_legal, s_required using errcode = 'P0001',
+    raise exception 'A legal difficulty of % reached the server, below the required % ', s_legal, s_required
+      using errcode = 'PN161', hint = 'fault', column = '_',
       detail = 'setup.legal must be between required and 6';
   end if;
 
@@ -404,9 +407,9 @@ begin
   b_center := board->>'center_letter';
 
   if b_outer is null or length(b_outer) <> 6 then
-    raise exception 'bad-outer-letters|%|',
-                    coalesce(length(b_outer)::text, 'null')
-      using errcode = 'P0001',
+    raise exception 'A board with % outer letters reached the server',
+      coalesce(length(b_outer)::text, 'no')
+      using errcode = 'PN162', hint = 'fault', column = '_',
       detail = 'board.outer_letters must be 6 characters';
   end if;
   if b_outer !~ '^[a-rt-z]{6}$' then
@@ -414,31 +417,31 @@ begin
     -- the puzzle rule excludes). A regex is more compact than
     -- enumerating the alphabet, and the failure message names
     -- the intent.
-    raise exception 'bad-outer-letters|'
-      using errcode = 'P0001',
+    raise exception 'Outer letters the puzzle cannot use reached the server'
+      using errcode = 'PN163', hint = 'fault', column = '_',
       detail = 'outer letters must be lowercase ASCII, not s';
   end if;
   -- 6 DISTINCT: cardinality of the deduplicated character set.
   if cardinality(string_to_array(b_outer, null)) <>
      cardinality(array(select distinct unnest(string_to_array(b_outer, null)))) then
-    raise exception 'outer-letters-repeat|'
-      using errcode = 'P0001',
+    raise exception 'A board with a repeated letter reached the server'
+      using errcode = 'PN164', hint = 'fault', column = '_',
       detail = 'board.outer_letters must be distinct';
   end if;
 
   if b_center is null or length(b_center) <> 1 then
-    raise exception 'bad-center-letter|'
-      using errcode = 'P0001',
+    raise exception 'A board whose center is not one letter reached the server'
+      using errcode = 'PN165', hint = 'fault', column = '_',
       detail = 'board.center_letter must be exactly 1 character';
   end if;
   if b_center !~ '^[a-rt-z]$' then
-    raise exception 'bad-center-letter|'
-      using errcode = 'P0001',
+    raise exception 'A center letter the puzzle cannot use reached the server'
+      using errcode = 'PN166', hint = 'fault', column = '_',
       detail = 'center must be a lowercase ASCII letter, not s';
   end if;
   if position(b_center in b_outer) > 0 then
-    raise exception 'center-in-outer|'
-      using errcode = 'P0001',
+    raise exception 'A board whose center is also an outer letter reached the server'
+      using errcode = 'PN167', hint = 'fault', column = '_',
       detail = 'center_letter duplicated in outer_letters';
   end if;
 
@@ -451,25 +454,24 @@ begin
   is_custom_board := coalesce(setup->>'custom_letters', '') <> '';
   if is_custom_board then
     if b_required_words_count < 1 then
-      raise exception 'no-required-words|'
-        using errcode = 'P0001',
-      detail = 'the chosen letters produce an empty required set at that band';
+      raise exception 'No words for those letters at that difficulty'
+        using errcode = 'PN168', hint = 'validation', column = 'custom_letters',
+        detail = 'the chosen letters produce an empty required set at that band';
     end if;
   elsif b_required_words_count < 30 then
-    raise exception 'too-few-required-words|%|',
-                    b_required_words_count
-      using errcode = 'P0001',
+    raise exception 'The generated board had only % words to find', b_required_words_count
+      using errcode = 'PN169', hint = 'fault', column = '_',
       detail = 'required_words_count must be >= 30; the edge function''s gate must agree';
   end if;
 
   if jsonb_typeof(board->'required_words') <> 'array' then
-    raise exception 'bad-required-words|'
-      using errcode = 'P0001',
+    raise exception 'The generated board arrived with no word list'
+      using errcode = 'PN170', hint = 'fault', column = '_',
       detail = 'board.required_words must be a jsonb array';
   end if;
   if jsonb_typeof(board->'bonus_words') <> 'array' then
-    raise exception 'bad-bonus-words|'
-      using errcode = 'P0001',
+    raise exception 'The generated board arrived with a malformed bonus list'
+      using errcode = 'PN171', hint = 'fault', column = '_',
       detail = 'board.bonus_words must be a jsonb array';
   end if;
 
@@ -554,7 +556,17 @@ begin
     );
   end if;
 
-  return query select new_id;
+  return common.ok_envelope(jsonb_build_object('id', new_id));
+
+-- The boundary. It reads the SQLSTATE, re-raises anything that isn't ours, and
+-- lets the raise itself carry the message, the kind and the field.
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 

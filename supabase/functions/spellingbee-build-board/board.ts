@@ -191,15 +191,16 @@ export function buildBoard(
 // form (customLettersError in src/spellingbee/lib/setup.ts), so reaching one
 // of these means a broken client — they carry no copy and render as faults
 // (docs/supabase.md → Server errors).
-export function validateCustomLetters(center: string, letters: string): string | null {
-  if (!/^[a-z]$/.test(center) || center === 's') {
-    return 'bad-custom-center|'
-  }
-  if (!/^[a-z]{6}$/.test(letters) || letters.includes('s')) {
-    return 'bad-custom-letters|'
-  }
-  if (new Set(center + letters).size !== 7) {
-    return 'bad-custom-duplicates|'
-  }
+/** Which of the three letter rules broke. Named, not coded: this file knows
+ *  spellingbee's spelling rules and nothing about how a refusal is carried, so
+ *  the SQLSTATE and the severity are the caller's to attach — and keeping them
+ *  together there is what lets the code guard read a code and its severity in
+ *  one place. */
+export type LetterFault = 'center' | 'letters' | 'duplicates'
+
+export function validateCustomLetters(center: string, letters: string): LetterFault | null {
+  if (!/^[a-z]$/.test(center) || center === 's') return 'center'
+  if (!/^[a-z]{6}$/.test(letters) || letters.includes('s')) return 'letters'
+  if (new Set(center + letters).size !== 7) return 'duplicates'
   return null
 }

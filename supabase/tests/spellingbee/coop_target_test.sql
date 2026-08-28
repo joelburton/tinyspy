@@ -40,14 +40,14 @@ create temp table club on commit drop as
 select pg_temp.create_club('Coop target', array['ada','bea']) as handle;
 
 create temp table g on commit drop as
-select * from spellingbee.create_game(
+select (spellingbee.create_game(
   (select handle from club),
   pg_temp.spellingbee_setup() || '{"target_rank": 3}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop',
   pg_temp.spellingbee_board()
-);
+)->'data'->>'id')::uuid as id;
 
 -- ============================================================
 -- (1) Below the target: a 1-point word doesn't end anything
@@ -131,13 +131,13 @@ select pg_temp.create_club('Coop timeout', array['ada','bea']) as handle;
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
-select * from spellingbee.create_game(
+select (spellingbee.create_game(
   (select handle from club2),
   pg_temp.spellingbee_setup() || '{"target_rank": 6}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid],
   'coop',
   pg_temp.spellingbee_board()
-);
+)->'data'->>'id')::uuid as id;
 
 select spellingbee.submit_timeout((select id from g2));
 
@@ -155,13 +155,13 @@ create temp table club3 on commit drop as
 select pg_temp.create_club('Coop no target', array['ada','bea']) as handle;
 
 create temp table g3 on commit drop as
-select * from spellingbee.create_game(
+select (spellingbee.create_game(
   (select handle from club3),
   pg_temp.spellingbee_setup(),
   array['ada11111-1111-1111-1111-111111111111'::uuid],
   'coop',
   pg_temp.spellingbee_board()
-);
+)->'data'->>'id')::uuid as id;
 
 select spellingbee.submit_timeout((select id from g3));
 
@@ -180,13 +180,13 @@ create temp table club4 on commit drop as
 select pg_temp.create_club('Coop manual', array['ada','bea']) as handle;
 
 create temp table g4 on commit drop as
-select * from spellingbee.create_game(
+select (spellingbee.create_game(
   (select handle from club4),
   pg_temp.spellingbee_setup() || '{"target_rank": 6}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid],
   'coop',
   pg_temp.spellingbee_board()
-);
+)->'data'->>'id')::uuid as id;
 
 select spellingbee.end_game((select id from g4));
 

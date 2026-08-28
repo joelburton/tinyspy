@@ -1124,7 +1124,7 @@ select pg_temp.envelope_is(
 
 ## 7. The conversion roster
 
-**146 entries. 33 done, 5 edge functions deferred, 108 to go.** Cross them off
+**146 entries. 34 done, 5 edge functions deferred, 107 to go.** Cross them off
 here as they land.
 
 An entry is one RPC or one table read **per area**, so the same name in two
@@ -1305,7 +1305,7 @@ identifier — a shape nothing has exercised yet.
 
 #### spellingbee
 
-- [ ] `create_game` · RPC, reached through `spellingbee-build-board`
+- [x] `create_game` · RPC, reached through `spellingbee-build-board`
 - [ ] `submit_word` · RPC (2 call sites)
 - [ ] `found_words` · read
 - [ ] `games_state` · read

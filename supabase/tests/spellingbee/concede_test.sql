@@ -25,7 +25,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select pg_temp.create_club('Bee concede', array['ada', 'bea', 'cade']) as handle;
 create temp table g on commit drop as
-select * from spellingbee.create_game(
+select (spellingbee.create_game(
   (select handle from club),
   pg_temp.spellingbee_setup() || '{"target_rank": 2}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
@@ -33,7 +33,7 @@ select * from spellingbee.create_game(
         'cade3333-3333-3333-3333-333333333333'::uuid],
   'compete',
   pg_temp.spellingbee_board()
-);
+)->'data'->>'id')::uuid as id;
 
 -- ─── (1) ada concedes; bea + cade still race ───
 select lives_ok(
@@ -65,14 +65,14 @@ select is(
 -- ─── (3) concede is rejected in coop ───
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table gc on commit drop as
-select * from spellingbee.create_game(
+select (spellingbee.create_game(
   (select handle from club),
   pg_temp.spellingbee_setup(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop',
   pg_temp.spellingbee_board()
-);
+)->'data'->>'id')::uuid as id;
 select throws_ok(
   format($$ select spellingbee.concede(%L) $$, (select id from gc)),
   'P0001',

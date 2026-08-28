@@ -46,7 +46,7 @@ select pg_temp.create_club('Compete club',
   array['ada','bea','cade']) as handle;
 
 create temp table g on commit drop as
-select * from spellingbee.create_game(
+select (spellingbee.create_game(
   (select handle from club),
   pg_temp.spellingbee_setup() || '{"target_rank": 2}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
@@ -54,7 +54,7 @@ select * from spellingbee.create_game(
         'cade3333-3333-3333-3333-333333333333'::uuid],
   'compete',
   pg_temp.spellingbee_board()
-);
+)->'data'->>'id')::uuid as id;
 
 -- ============================================================
 -- (1)–(2) Per-player duplicate rule
@@ -181,14 +181,14 @@ select throws_ok(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g_timeout on commit drop as
-select * from spellingbee.create_game(
+select (spellingbee.create_game(
   (select handle from club),
   pg_temp.spellingbee_setup() || '{"target_rank": 5}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'compete',
   pg_temp.spellingbee_board()
-);
+)->'data'->>'id')::uuid as id;
 
 select spellingbee.submit_timeout((select id from g_timeout));
 
@@ -239,14 +239,14 @@ select is(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g_end on commit drop as
-select * from spellingbee.create_game(
+select (spellingbee.create_game(
   (select handle from club),
   pg_temp.spellingbee_setup() || '{"target_rank": 5}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'compete',
   pg_temp.spellingbee_board()
-);
+)->'data'->>'id')::uuid as id;
 
 select spellingbee.end_game((select id from g_end));
 
@@ -283,7 +283,7 @@ select is(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g_rls on commit drop as
-select * from spellingbee.create_game(
+select (spellingbee.create_game(
   (select handle from club),
   pg_temp.spellingbee_setup() || '{"target_rank": 6}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
@@ -291,7 +291,7 @@ select * from spellingbee.create_game(
         'cade3333-3333-3333-3333-333333333333'::uuid],
   'compete',
   pg_temp.spellingbee_board()
-);
+)->'data'->>'id')::uuid as id;
 
 select spellingbee.submit_word((select id from g_rls), 'bead', 1, false, false);
 

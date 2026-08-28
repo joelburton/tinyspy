@@ -111,6 +111,7 @@ export function SetupForm({
         selfId={selfId}
         numberOfPlayers={numberOfPlayers}
         value={s.player_user_ids}
+        error={errors.player_user_ids}
         onChange={(next) => set('player_user_ids', next)}
       />
 
@@ -118,6 +119,7 @@ export function SetupForm({
         <SetupSection label={`Target rank: ${targetRankLabel}`}>
           <SelectField
             name="target_rank"
+            error={errors.target_rank}
             value={s.target_rank ?? NO_TARGET}
             onChange={(v) => set('target_rank', Number(v))}
           >
@@ -132,6 +134,7 @@ export function SetupForm({
         <SetupSection label={`Win at: ${targetRankLabel}`}>
           <SelectField
             name="target_rank"
+            error={errors.target_rank}
             value={s.target_rank ?? NO_TARGET}
             // -1 is this picker's "None" value only; it never reaches the setup
             // blob — picking it DELETES the key, because "no win condition" is
@@ -157,6 +160,7 @@ export function SetupForm({
       <SetupSection label={dictLabel}>
         <DictBandField
           name="required"
+          error={errors.required}
           label="Required words"
           length={null}
           minBand={1}
@@ -167,6 +171,7 @@ export function SetupForm({
         />
         <DictBandField
           name="legal"
+          error={errors.legal}
           label="Legal (bonus) words"
           length={null}
           minBand={s.required}
@@ -188,6 +193,7 @@ export function SetupForm({
         <ManualBoardField
           help="Leave blank for a random board, or set your own: a center letter plus six other letters. No S, and all seven must be different."
           name="custom_letters"
+          error={errors.custom_letters}
           value={customEntry}
           onChange={(raw) => {
             const { center, letters } = splitCustomLetters(raw)

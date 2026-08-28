@@ -31,6 +31,7 @@ set search_path = spellingbee, common, public, extensions;
 select plan(34);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 -- ============================================================
@@ -46,14 +47,14 @@ select pg_temp.create_club('Ada and Bea', array['ada','bea']) as handle;
 -- ============================================================
 
 create temp table g on commit drop as
-select * from spellingbee.create_game(
+select (spellingbee.create_game(
   (select handle from club),
   pg_temp.spellingbee_setup(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop',
   pg_temp.spellingbee_board()
-);
+)->'data'->>'id')::uuid as id;
 
 select isnt(
   (select id from g), null,
@@ -134,7 +135,7 @@ create temp table compete_club on commit drop as
 select pg_temp.create_club('Compete club', array['ada','bea','cade']) as handle;
 
 create temp table g_compete on commit drop as
-select * from spellingbee.create_game(
+select (spellingbee.create_game(
   (select handle from compete_club),
   pg_temp.spellingbee_setup() || '{"target_rank": 4}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
@@ -142,7 +143,7 @@ select * from spellingbee.create_game(
         'cade3333-3333-3333-3333-333333333333'::uuid],
   'compete',
   pg_temp.spellingbee_board()
-);
+)->'data'->>'id')::uuid as id;
 
 select is(
   (select gametype from common.games where id = (select id from g_compete)),
@@ -181,18 +182,13 @@ select is(
 -- ============================================================
 
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
-select throws_ok(
-  format(
-    $$ select spellingbee.create_game(%L, pg_temp.spellingbee_setup(),
-                                   array['ada11111-1111-1111-1111-111111111111'::uuid],
-                                   'coop',
-                                   pg_temp.spellingbee_board()) $$,
-    (select handle from club)
-  ),
-  'PN012',
-  null,
-  'dee (non-member) cannot create a spellingbee game'
-);
+select pg_temp.envelope_is(
+  spellingbee.create_game((select handle from club), pg_temp.spellingbee_setup(),
+    array['ada11111-1111-1111-1111-111111111111'::uuid],
+    'coop',
+    pg_temp.spellingbee_board()),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN012"}'::jsonb,
+  'dee (non-member) cannot create a spellingbee game');
 
 -- ============================================================
 -- (13) mode arg: invalid value rejected
@@ -200,70 +196,54 @@ select throws_ok(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
-select throws_ok(
-  format(
-    $$ select spellingbee.create_game(%L, pg_temp.spellingbee_setup(),
-                                   array['ada11111-1111-1111-1111-111111111111'::uuid],
-                                   'solo',
-                                   pg_temp.spellingbee_board()) $$,
-    (select handle from club)
-  ),
-  'PN040',
-  null,
-  'rejects mode value not in {coop, compete}'
-);
+select pg_temp.envelope_is(
+  spellingbee.create_game((select handle from club), pg_temp.spellingbee_setup(),
+    array['ada11111-1111-1111-1111-111111111111'::uuid],
+    'solo',
+    pg_temp.spellingbee_board()),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN040",
+    "message":"A game mode of ''solo'' reached the server"}'::jsonb,
+  'rejects mode value not in {coop, compete}');
 
 -- ============================================================
 -- (15) Compete needs ≥2 players
 -- ============================================================
 
-select throws_ok(
-  format(
-    $$ select spellingbee.create_game(%L,
-                                   pg_temp.spellingbee_setup() || '{"target_rank": 3}'::jsonb,
-                                   array['ada11111-1111-1111-1111-111111111111'::uuid],
-                                   'compete',
-                                   pg_temp.spellingbee_board()) $$,
-    (select handle from club)
-  ),
-  'P0001',
-  'too-few-players|',
-  'compete with 1 player rejected'
-);
+select pg_temp.envelope_is(
+  spellingbee.create_game((select handle from club),
+    pg_temp.spellingbee_setup() || '{"target_rank": 3}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid],
+    'compete',
+    pg_temp.spellingbee_board()),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN156",
+    "message":"A race with fewer than two players reached the server"}'::jsonb,
+  'compete with 1 player rejected');
 
 -- ============================================================
 -- (16) target_rank required iff compete
 -- ============================================================
 
-select throws_ok(
-  format(
-    $$ select spellingbee.create_game(%L,
-                                   pg_temp.spellingbee_setup(),
-                                   array['ada11111-1111-1111-1111-111111111111'::uuid,
-                                         'bea22222-2222-2222-2222-222222222222'::uuid],
-                                   'compete',
-                                   pg_temp.spellingbee_board()) $$,
-    (select handle from club)
-  ),
-  'P0001',
-  'missing-target-rank|',
-  'compete without target_rank rejected'
-);
+select pg_temp.envelope_is(
+  spellingbee.create_game((select handle from club),
+    pg_temp.spellingbee_setup(),
+    array['ada11111-1111-1111-1111-111111111111'::uuid,
+          'bea22222-2222-2222-2222-222222222222'::uuid],
+    'compete',
+    pg_temp.spellingbee_board()),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN157",
+    "message":"A race with no target rank reached the server"}'::jsonb,
+  'compete without target_rank rejected');
 
-select throws_ok(
-  format(
-    $$ select spellingbee.create_game(%L,
-                                   pg_temp.spellingbee_setup() || '{"target_rank": 7}'::jsonb,
-                                   array['ada11111-1111-1111-1111-111111111111'::uuid,
-                                         'bea22222-2222-2222-2222-222222222222'::uuid],
-                                   'compete',
-                                   pg_temp.spellingbee_board()) $$,
-    (select handle from club)
-  ),
-  'P0001',
-  null,
-  'compete with target_rank > 6 rejected'
-);
+select pg_temp.envelope_is(
+  spellingbee.create_game((select handle from club),
+    pg_temp.spellingbee_setup() || '{"target_rank": 7}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid,
+          'bea22222-2222-2222-2222-222222222222'::uuid],
+    'compete',
+    pg_temp.spellingbee_board()),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN159",
+    "message":"A target rank of 7 reached the server"}'::jsonb,
+  'compete with target_rank > 6 rejected');
 
 -- coop MAY set target_rank: it's the team's win threshold (reach that rank
 -- together and spellingbee.submit_word ends the game as 'won'). Absent/null is the
@@ -300,91 +280,69 @@ select is(
 -- from pg_temp.spellingbee_setup(), so the happy paths above exercise
 -- the coalesced defaults; these assert the rejection edges.
 
-select throws_ok(
-  format(
-    $$ select spellingbee.create_game(%L,
-                                   pg_temp.spellingbee_setup() || '{"required": 0}'::jsonb,
-                                   array['ada11111-1111-1111-1111-111111111111'::uuid],
-                                   'coop',
-                                   pg_temp.spellingbee_board()) $$,
-    (select handle from club)
-  ),
-  'P0001',
-  null,
-  'rejects setup.required below 1 (band floor)'
-);
+select pg_temp.envelope_is(
+  spellingbee.create_game((select handle from club),
+    pg_temp.spellingbee_setup() || '{"required": 0}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid],
+    'coop',
+    pg_temp.spellingbee_board()),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN160",
+    "message":"A required difficulty of 0 reached the server"}'::jsonb,
+  'rejects setup.required below 1 (band floor)');
 
 -- required = 1 is now the floor (was 2) — accepted. Same fixture board (its
 -- required_words_count clears the ≥30 gate regardless of the required band).
 select isnt(
-  (
-    select id from spellingbee.create_game(
+      (spellingbee.create_game(
       (select pg_temp.create_club('Required one', array['ada','bea']) as handle),
       pg_temp.spellingbee_setup() || '{"required": 1}'::jsonb,
       array['ada11111-1111-1111-1111-111111111111'::uuid,
             'bea22222-2222-2222-2222-222222222222'::uuid],
       'coop',
       pg_temp.spellingbee_board()
-    )
-  ),
+    )->'data'->>'id'),
   null,
   'accepts setup.required = 1 (the new band floor)'
 );
 
-select throws_ok(
-  format(
-    $$ select spellingbee.create_game(%L,
-                                   pg_temp.spellingbee_setup() || '{"required": 7}'::jsonb,
-                                   array['ada11111-1111-1111-1111-111111111111'::uuid],
-                                   'coop',
-                                   pg_temp.spellingbee_board()) $$,
-    (select handle from club)
-  ),
-  'P0001',
-  null,
-  'rejects setup.required above 6 (band ceiling)'
-);
+select pg_temp.envelope_is(
+  spellingbee.create_game((select handle from club),
+    pg_temp.spellingbee_setup() || '{"required": 7}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid],
+    'coop',
+    pg_temp.spellingbee_board()),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN160",
+    "message":"A required difficulty of 7 reached the server"}'::jsonb,
+  'rejects setup.required above 6 (band ceiling)');
 
-select throws_ok(
-  format(
-    $$ select spellingbee.create_game(%L,
-                                   pg_temp.spellingbee_setup() || '{"required": 4, "legal": 3}'::jsonb,
-                                   array['ada11111-1111-1111-1111-111111111111'::uuid],
-                                   'coop',
-                                   pg_temp.spellingbee_board()) $$,
-    (select handle from club)
-  ),
-  'P0001',
-  null,
-  'rejects setup.legal below setup.required (legal must contain required)'
-);
+select pg_temp.envelope_is(
+  spellingbee.create_game((select handle from club),
+    pg_temp.spellingbee_setup() || '{"required": 4, "legal": 3}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid],
+    'coop',
+    pg_temp.spellingbee_board()),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN161"}'::jsonb,
+  'rejects setup.legal below setup.required (legal must contain required)');
 
-select throws_ok(
-  format(
-    $$ select spellingbee.create_game(%L,
-                                   pg_temp.spellingbee_setup() || '{"required": 2, "legal": 7}'::jsonb,
-                                   array['ada11111-1111-1111-1111-111111111111'::uuid],
-                                   'coop',
-                                   pg_temp.spellingbee_board()) $$,
-    (select handle from club)
-  ),
-  'P0001',
-  null,
-  'rejects setup.legal above 6 (band ceiling)'
-);
+select pg_temp.envelope_is(
+  spellingbee.create_game((select handle from club),
+    pg_temp.spellingbee_setup() || '{"required": 2, "legal": 7}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid],
+    'coop',
+    pg_temp.spellingbee_board()),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN161"}'::jsonb,
+  'rejects setup.legal above 6 (band ceiling)');
 
 -- Happy path with explicit non-default bands: required 4, legal 6.
 select isnt(
-  (
-    select id from spellingbee.create_game(
+      (spellingbee.create_game(
       (select pg_temp.create_club('Bands ok', array['ada','bea']) as handle),
       pg_temp.spellingbee_setup() || '{"required": 4, "legal": 6}'::jsonb,
       array['ada11111-1111-1111-1111-111111111111'::uuid,
             'bea22222-2222-2222-2222-222222222222'::uuid],
       'coop',
       pg_temp.spellingbee_board()
-    )
-  ),
+    )->'data'->>'id'),
   null,
   'accepts explicit required=4 / legal=6 (legal ≥ required, both in range)'
 );
@@ -393,82 +351,60 @@ select isnt(
 -- (19)-(22) Board validation (unchanged from pre-split)
 -- ============================================================
 
-select throws_ok(
-  format(
-    $$ select spellingbee.create_game(%L, pg_temp.spellingbee_setup(),
-                                   array['ada11111-1111-1111-1111-111111111111'::uuid],
-                                   'coop',
-                                   pg_temp.spellingbee_board() || '{"outer_letters": "abcdef"}'::jsonb) $$,
-    (select handle from club)
-  ),
-  'P0001',
-  null,
-  'rejects board where center_letter appears in outer_letters'
-);
+select pg_temp.envelope_is(
+  spellingbee.create_game((select handle from club), pg_temp.spellingbee_setup(),
+    array['ada11111-1111-1111-1111-111111111111'::uuid],
+    'coop',
+    pg_temp.spellingbee_board() || '{"outer_letters": "abcdef"}'::jsonb),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN167",
+    "message":"A board whose center is also an outer letter reached the server"}'::jsonb,
+  'rejects board where center_letter appears in outer_letters');
 
-select throws_ok(
-  format(
-    $$ select spellingbee.create_game(%L, pg_temp.spellingbee_setup(),
-                                   array['ada11111-1111-1111-1111-111111111111'::uuid],
-                                   'coop',
-                                   pg_temp.spellingbee_board() || '{"outer_letters": "abcde"}'::jsonb) $$,
-    (select handle from club)
-  ),
-  'P0001',
-  null,
-  'rejects outer_letters with wrong length (not 6)'
-);
+select pg_temp.envelope_is(
+  spellingbee.create_game((select handle from club), pg_temp.spellingbee_setup(),
+    array['ada11111-1111-1111-1111-111111111111'::uuid],
+    'coop',
+    pg_temp.spellingbee_board() || '{"outer_letters": "abcde"}'::jsonb),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN162"}'::jsonb,
+  'rejects outer_letters with wrong length (not 6)');
 
-select throws_ok(
-  format(
-    $$ select spellingbee.create_game(%L, pg_temp.spellingbee_setup(),
-                                   array['ada11111-1111-1111-1111-111111111111'::uuid],
-                                   'coop',
-                                   pg_temp.spellingbee_board() || '{"outer_letters": "absdfg"}'::jsonb) $$,
-    (select handle from club)
-  ),
-  'P0001',
-  null,
-  'rejects outer_letters containing "s"'
-);
+select pg_temp.envelope_is(
+  spellingbee.create_game((select handle from club), pg_temp.spellingbee_setup(),
+    array['ada11111-1111-1111-1111-111111111111'::uuid],
+    'coop',
+    pg_temp.spellingbee_board() || '{"outer_letters": "absdfg"}'::jsonb),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN163",
+    "message":"Outer letters the puzzle cannot use reached the server"}'::jsonb,
+  'rejects outer_letters containing "s"');
 
-select throws_ok(
-  format(
-    $$ select spellingbee.create_game(%L, pg_temp.spellingbee_setup(),
-                                   array['ada11111-1111-1111-1111-111111111111'::uuid],
-                                   'coop',
-                                   pg_temp.spellingbee_board() || '{"required_words_count": 29}'::jsonb) $$,
-    (select handle from club)
-  ),
-  'P0001',
-  null,
-  'rejects board.required_words_count < 30 (puzzle-quality gate)'
-);
+select pg_temp.envelope_is(
+  spellingbee.create_game((select handle from club), pg_temp.spellingbee_setup(),
+    array['ada11111-1111-1111-1111-111111111111'::uuid],
+    'coop',
+    pg_temp.spellingbee_board() || '{"required_words_count": 29}'::jsonb),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN169",
+    "message":"The generated board had only 29 words to find"}'::jsonb,
+  'rejects board.required_words_count < 30 (puzzle-quality gate)');
 
 -- ============================================================
 -- (23) Player-count upper bound (max 6)
 -- ============================================================
 
-select throws_ok(
-  format(
-    $$ select spellingbee.create_game(%L, pg_temp.spellingbee_setup(),
-                                   array[
-                                     'ada11111-1111-1111-1111-111111111111'::uuid,
-                                     'bea22222-2222-2222-2222-222222222222'::uuid,
-                                     gen_random_uuid(),
-                                     gen_random_uuid(),
-                                     gen_random_uuid(),
-                                     gen_random_uuid(),
-                                     gen_random_uuid()
-                                   ],
-                                   'coop',
-                                   pg_temp.spellingbee_board()) $$,
-    (select handle from club)
-  ),
-  'PN041',
-  null,
-  'rejects player_user_ids with > 6 entries (max 6)'
-);
+select pg_temp.envelope_is(
+  spellingbee.create_game((select handle from club), pg_temp.spellingbee_setup(),
+    array[
+      'ada11111-1111-1111-1111-111111111111'::uuid,
+      'bea22222-2222-2222-2222-222222222222'::uuid,
+      gen_random_uuid(),
+      gen_random_uuid(),
+      gen_random_uuid(),
+      gen_random_uuid(),
+      gen_random_uuid()
+    ],
+    'coop',
+    pg_temp.spellingbee_board()),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN041"}'::jsonb,
+  'rejects player_user_ids with > 6 entries (max 6)');
 
 -- ============================================================
 -- (24) Compete writes the gametype string suffixed correctly

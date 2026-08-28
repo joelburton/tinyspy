@@ -25,6 +25,7 @@ set search_path = spellingbee, common, public, extensions;
 select plan(6);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -52,14 +53,14 @@ select jsonb_build_object(
 
 -- ── (1) Custom board with <30 required words is accepted ────
 create temp table g on commit drop as
-select * from spellingbee.create_game(
+select (spellingbee.create_game(
   (select handle from club),
   (select s from cset),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop',
   (select b from small)
-);
+)->'data'->>'id')::uuid as id;
 select isnt((select id from g), null,
   'custom board with only 3 required words is accepted (≥30 gate relaxed)');
 select is(
@@ -79,35 +80,37 @@ select is(
   'none', 'saved default still keeps the rest of the setup (timer)');
 
 -- ── (3) A RANDOM board with <30 words is still rejected ─────
-select throws_ok(
-  format(
-    $$ select spellingbee.create_game(%L,
-                                   pg_temp.spellingbee_setup(),
-                                   array['ada11111-1111-1111-1111-111111111111'::uuid,
-                                         'bea22222-2222-2222-2222-222222222222'::uuid],
-                                   'coop',
-                                   %L::jsonb) $$,
-    (select handle from club), (select b from small)
-  ),
-  'P0001', NULL,
+-- A FAULT: nobody typed these letters. A random board short of the gate means
+-- the builder handed over something its own gate should have rejected, so there
+-- is no field to put it under and nothing for the player to change.
+select pg_temp.envelope_is(
+  spellingbee.create_game((select handle from club),
+    pg_temp.spellingbee_setup(),
+    array['ada11111-1111-1111-1111-111111111111'::uuid,
+          'bea22222-2222-2222-2222-222222222222'::uuid],
+    'coop',
+    (select b from small)::jsonb),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN169"}'::jsonb,
   'a NON-custom board with <30 required words is still rejected (gate holds)');
 
 -- ── (4) A custom board with ZERO required words is rejected ─
-select throws_ok(
-  format(
-    $$ select spellingbee.create_game(%L,
-                                   pg_temp.spellingbee_setup()
-                                     || '{"custom_letters":"abcdfg","custom_center":"e"}'::jsonb,
-                                   array['ada11111-1111-1111-1111-111111111111'::uuid,
-                                         'bea22222-2222-2222-2222-222222222222'::uuid],
-                                   'coop',
-                                   jsonb_build_object(
-                                     'outer_letters','abcdfg','center_letter','e',
-                                     'required_words_score',0,'required_words_count',0,
-                                     'required_words','[]'::jsonb,'bonus_words','[]'::jsonb)) $$,
-    (select handle from club)
-  ),
-  'P0001', NULL,
+-- A VALIDATION, and the only one spellingbee's create_game can make: the player
+-- typed these letters, and whether they yield anything is the dictionary's
+-- answer rather than a shape the dialog already checks. Under the box they came
+-- from — the same place the edge function puts it when it gets there first.
+select pg_temp.envelope_is(
+  spellingbee.create_game((select handle from club),
+    pg_temp.spellingbee_setup()
+      || '{"custom_letters":"abcdfg","custom_center":"e"}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid,
+          'bea22222-2222-2222-2222-222222222222'::uuid],
+    'coop',
+    jsonb_build_object(
+      'outer_letters','abcdfg','center_letter','e',
+      'required_words_score',0,'required_words_count',0,
+      'required_words','[]'::jsonb,'bonus_words','[]'::jsonb)),
+  '{"type":"not-ok","severity":"validation","field":"custom_letters","dbcode":"PN168",
+    "message":"No words for those letters at that difficulty"}'::jsonb,
   'a custom board with ZERO required words is rejected (≥1 playability floor)');
 
 select * from finish();

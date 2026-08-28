@@ -121,25 +121,12 @@ Deno.test('validateCustomLetters: seven distinct non-s letters pass', () => {
   eq(validateCustomLetters('e', 'cabdon'), null, 'valid seven-letter set')
 })
 
+// WHICH RULE broke, not a sentence and not a code. All three are rules the
+// setup dialog gates Start on, so this file's whole job is to name the one that
+// failed; the caller attaches the SQLSTATE and tells the player once.
 Deno.test('validateCustomLetters: rejects s, duplicates, and wrong counts', () => {
-  eq(
-    validateCustomLetters('s', 'cabdon'),
-    'bad-custom-center|',
-    "'s' center rejected",
-  )
-  eq(
-    validateCustomLetters('e', 'cabdos'),
-    'bad-custom-letters|',
-    "'s' among outer letters rejected",
-  )
-  eq(
-    validateCustomLetters('e', 'cabdoe'),
-    'bad-custom-duplicates|',
-    'a duplicate (e appears twice) rejected',
-  )
-  eq(
-    validateCustomLetters('e', 'cabdo'),
-    'bad-custom-letters|',
-    'five outer letters rejected',
-  )
+  eq(validateCustomLetters('s', 'cabdon'), 'center', "'s' center rejected")
+  eq(validateCustomLetters('e', 'cabdos'), 'letters', "'s' among outer letters rejected")
+  eq(validateCustomLetters('e', 'cabdoe'), 'duplicates', 'a duplicate (e appears twice) rejected')
+  eq(validateCustomLetters('e', 'cabdo'), 'letters', 'five outer letters rejected')
 })
