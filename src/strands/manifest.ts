@@ -1,6 +1,7 @@
 // cs-unmet
 
 import { lazy } from 'react'
+import { startEnvelope } from '../common/lib/game/manifestRpcs'
 import type { GameManifest } from '../common/lib/games'
 import { db } from './db'
 import { count, outcome, statusLine } from '../common/lib/game/statusLabel'
@@ -60,8 +61,7 @@ function startGameInClub(mode: 'coop' | 'compete') {
         mode,
       })
       .single()
-    if (error || !data) return { error: error ?? { message: `failed to start ${BRAND} (${mode})`, answered: true as const } }
-    return { id: data.id }
+    return startEnvelope(data, error, BRAND)
   }
 }
 

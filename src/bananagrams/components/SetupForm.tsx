@@ -51,7 +51,7 @@ import { CheckboxField } from '../../common/components/fields/CheckboxField'
  * between the manifest's `unknown` setup and our narrow shape.
  */
 export function SetupForm({
-  members, selfId, numberOfPlayers, values, set: setValue,
+  members, selfId, numberOfPlayers, values, set: setValue, errors,
 }: SetupBodyProps) {
   const s = values as BananagramsValues
   const set = setValue as SetupSetter<BananagramsValues>
@@ -150,6 +150,7 @@ export function SetupForm({
       </SetupSection>
 
       <SetupTimerSection
+        errors={errors}
         value={s.timer}
         onChange={(timer) => set('timer', timer)}
       />

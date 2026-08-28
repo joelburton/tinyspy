@@ -75,7 +75,7 @@ const NO_TARGET = -1
  * wordwheel's narrow shape.
  */
 export function SetupForm({
-  mode, members, selfId, numberOfPlayers, values, set: setValue,
+  mode, members, selfId, numberOfPlayers, values, set: setValue, errors,
 }: SetupBodyProps) {
   const s = values as WordwheelValues
   const set = setValue as SetupSetter<WordwheelValues>
@@ -226,6 +226,7 @@ export function SetupForm({
       </SetupSection>
 
       <SetupTimerSection
+        errors={errors}
         value={s.timer}
         onChange={(timer) => set('timer', timer)}
       />

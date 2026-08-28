@@ -47,7 +47,7 @@ const CONSTRAINT_ROWS: ReadonlyArray<{ label: string; min: NumKey; max: NumKey }
  * state lives in SetupGameModal; `create_game` re-validates server-side.
  */
 export function SetupForm({
-  mode, members, selfId, numberOfPlayers, values, set: setValue,
+  mode, members, selfId, numberOfPlayers, values, set: setValue, errors,
 }: SetupBodyProps) {
   const s = values as BoggleValues
   const set = setValue as SetupSetter<BoggleValues>
@@ -243,7 +243,7 @@ export function SetupForm({
         </div>
       </SetupSection>
 
-      <SetupTimerSection value={s.timer} onChange={(timer) => set('timer', timer)} />
+      <SetupTimerSection errors={errors} value={s.timer} onChange={(timer) => set('timer', timer)} />
     </>
   )
 }

@@ -4,7 +4,7 @@ import { lazy } from 'react'
 import type { GameManifest } from '../common/lib/games'
 import { db } from './db'
 import { count, outcome, statusLine, wonBy } from '../common/lib/game/statusLabel'
-import { makeRpcDispatcher, invokeStartGameEdgeFn } from '../common/lib/game/manifestRpcs'
+import { edgeStartEnvelope, makeRpcDispatcher, invokeStartGameEdgeFn } from '../common/lib/game/manifestRpcs'
 import {
   DEFAULT_WORDIPLY_SETUP_COMPETE,
   DEFAULT_WORDIPLY_SETUP_COOP,
@@ -57,10 +57,13 @@ const setupFormLoader = lazy(() =>
  * `wordiply.create_game(target_club, setup, players, mode, board)`.
  */
 function startGameInClubFactory(mode: 'coop' | 'compete', brand: string) {
-  return (clubHandle: string, setup: unknown, playerUserIds: string[]) =>
-    invokeStartGameEdgeFn(
+  return async (clubHandle: string, setup: unknown, playerUserIds: string[]) =>
+    edgeStartEnvelope(
+      await invokeStartGameEdgeFn(
       'wordiply-build-board',
       { target_club: clubHandle, setup: setup as WordiplySetup, player_user_ids: playerUserIds, mode },
+        brand,
+      ),
       brand,
     )
 }

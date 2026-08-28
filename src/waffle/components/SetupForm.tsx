@@ -27,7 +27,7 @@ import { EXTRA_SWAP_OPTIONS, type WaffleValues } from '../lib/setup'
  * doesn't change the form).
  */
 export function SetupForm({
-  mode, members, selfId, numberOfPlayers, values, set: setValue,
+  mode, members, selfId, numberOfPlayers, values, set: setValue, errors,
 }: SetupBodyProps) {
   const s = values as WaffleValues
   const set = setValue as SetupSetter<WaffleValues>
@@ -56,6 +56,7 @@ export function SetupForm({
       {/* Coop pacing — first, right below the dialog's player picker.
           Self-gates to nothing for compete / solo. */}
       <SetupCoopStyleSection
+        errors={errors}
         mode={mode}
         players={players}
         coopStyle={s.coop_style ?? 'free-for-all'}
@@ -92,6 +93,7 @@ export function SetupForm({
         />
       </SetupSection>
       <SetupTimerSection
+        errors={errors}
         value={s.timer}
         onChange={(timer) => set('timer', timer)}
       />

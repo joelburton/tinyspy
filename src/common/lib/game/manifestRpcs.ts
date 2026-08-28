@@ -11,7 +11,8 @@
  */
 
 import { callEdgeFn } from '../supabase/callEdgeFn'
-import type { CallError } from './serverError'
+import { failureMessage, type CallError } from './serverError'
+import type { Envelope } from '../supabase/dbResult'
 
 /** The manifest contract's dispatcher result: an optional STRUCTURED error
  *  (message + SQLSTATE), ready for the classifier — flattening to a string
@@ -95,4 +96,50 @@ export async function invokeStartGameEdgeFn(
     }
   }
   return { id: payload.id }
+}
+
+/**
+ * THE OLD START RESULT, AS AN ENVELOPE — for every `create_game` that has not
+ * been converted yet.
+ *
+ * `startGameInClub` hands back an `Envelope` now, so that a converted game's
+ * `field` can reach the box it names. The SQL converts one game at a time, so
+ * until the last one lands most of them still answer in the old shape: a row
+ * with an id, or a `CallError`. This turns one into the other.
+ *
+ * It CLASSIFIES but does not PRESENT. A fault's modal comes from `dbFetch`,
+ * which sees the non-2xx before any of this runs; calling the classifier's
+ * presenting cousin here would raise a second one over it.
+ *
+ * **Temporary, with a defined end.** Every game's conversion deletes its own
+ * call, and the last one deletes this function.
+ */
+export function startEnvelope(
+  data: { id?: string } | null,
+  error: CallError,
+  brand: string,
+): Envelope<{ id: string }> {
+  if (!error && data?.id) return { type: 'ok', data: { id: data.id } }
+  const msg = failureMessage(error, `new ${brand} game`)
+  return {
+    type: 'not-ok',
+    // The old classifier's two answers, in the new vocabulary: something broke
+    // (`fault`), or the server explained itself (`error`). It never named a
+    // field, which is the whole reason the games are being converted.
+    severity: msg.fault ? 'fault' : 'error',
+    message: typeof msg.text === 'string' ? msg.text : String(msg.text),
+    ...(error?.code ? { dbcode: error.code } : {}),
+  }
+}
+
+/** The same, for a start that went through an edge function — which still
+ *  answers in the old shape, because its OTHER caller is each game's in-play
+ *  "New game" button, a fault surface that classifies and LOGS the failure
+ *  itself (`faultMessage`). Converting that path belongs with the edge
+ *  functions' own conversion. */
+export function edgeStartEnvelope(
+  res: { id: string } | { error: NonNullable<CallError> },
+  brand: string,
+): Envelope<{ id: string }> {
+  return 'error' in res ? startEnvelope(null, res.error, brand) : { type: 'ok', data: { id: res.id } }
 }

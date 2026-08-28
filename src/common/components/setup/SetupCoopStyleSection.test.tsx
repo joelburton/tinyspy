@@ -13,6 +13,7 @@ describe('SetupCoopStyleSection', () => {
   it('renders nothing for compete', () => {
     const { container } = render(
       <SetupCoopStyleSection
+        errors={{}}
         mode="compete"
         players={[ada, bea]}
         coopStyle="free-for-all"
@@ -26,6 +27,7 @@ describe('SetupCoopStyleSection', () => {
   it('renders nothing for a solo roster (1 player)', () => {
     const { container } = render(
       <SetupCoopStyleSection
+        errors={{}}
         mode="coop"
         players={[ada]}
         coopStyle="free-for-all"
@@ -39,6 +41,7 @@ describe('SetupCoopStyleSection', () => {
   it('shows the style radios; the first-player picker only appears for turns', () => {
     const { rerender } = render(
       <SetupCoopStyleSection
+        errors={{}}
         mode="coop"
         players={[ada, bea]}
         coopStyle="free-for-all"
@@ -55,6 +58,7 @@ describe('SetupCoopStyleSection', () => {
     // Turns: the first-player dropdown appears, one <option> per selected player.
     rerender(
       <SetupCoopStyleSection
+        errors={{}}
         mode="coop"
         players={[ada, bea]}
         coopStyle="turns"
@@ -70,6 +74,7 @@ describe('SetupCoopStyleSection', () => {
   it('bakes the live value into the disclosure summary', () => {
     const { rerender } = render(
       <SetupCoopStyleSection
+        errors={{}}
         mode="coop"
         players={[ada, bea]}
         coopStyle="free-for-all"
@@ -80,6 +85,7 @@ describe('SetupCoopStyleSection', () => {
     expect(screen.getByText('Co-op: free-for-all')).toBeInTheDocument()
     rerender(
       <SetupCoopStyleSection
+        errors={{}}
         mode="coop"
         players={[ada, bea]}
         coopStyle="turns"
@@ -94,6 +100,7 @@ describe('SetupCoopStyleSection', () => {
     const onChange = vi.fn()
     render(
       <SetupCoopStyleSection
+        errors={{}}
         mode="coop"
         players={[ada, bea]}
         coopStyle="free-for-all"
@@ -109,6 +116,7 @@ describe('SetupCoopStyleSection', () => {
     const onChange = vi.fn()
     render(
       <SetupCoopStyleSection
+        errors={{}}
         mode="coop"
         players={[ada, bea]}
         coopStyle="turns"
@@ -126,6 +134,7 @@ describe('SetupCoopStyleSection', () => {
     // bea + cade. The seed effect re-picks the first still-selected player.
     render(
       <SetupCoopStyleSection
+        errors={{}}
         mode="coop"
         players={[bea, { user_id: 'cade', username: 'cade', color: 'green' }]}
         coopStyle="turns"

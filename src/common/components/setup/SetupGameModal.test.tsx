@@ -19,8 +19,11 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { SetupGameModal } from './SetupGameModal'
 import { PlayersSection } from './PlayersSection'
+import { NumberField } from '../fields/NumberField'
 import type { GameManifest, Member, SetupBodyProps } from '../../lib/games'
-import { ERROR_COPY } from '../../lib/game/errorCopy'
+import { errorUnder } from '../fields/errorUnder'
+
+const MESSAGE = 'The server said this exact thing.'
 
 const MEMBERS = [
   { user_id: 'self', username: 'joel', color: 'red' },
@@ -29,7 +32,7 @@ const MEMBERS = [
 
 /** Stands in for a game's setup body: the players picker every body renders,
  *  plus one field of its own, read and written the way a real one does. */
-function Body({ values, set, members, selfId, numberOfPlayers }: SetupBodyProps) {
+function Body({ values, set, members, selfId, numberOfPlayers, errors }: SetupBodyProps) {
   const v = values as { guesses: number; player_user_ids: Set<string> }
   return (
     <>
@@ -40,11 +43,12 @@ function Body({ values, set, members, selfId, numberOfPlayers }: SetupBodyProps)
         value={v.player_user_ids}
         onChange={(next) => set('player_user_ids', next)}
       />
-      <input
+      <NumberField
         name="guesses"
-        type="number"
+        chars={2}
         value={v.guesses}
-        onChange={(e) => set('guesses', Number(e.target.value))}
+        onChange={(guesses) => set('guesses', guesses)}
+        error={errors.guesses}
       />
     </>
   )
@@ -85,7 +89,7 @@ const start = () => screen.getByRole('button', { name: /^Start/ })
 
 beforeEach(() => {
   startGameInClub.mockReset()
-  startGameInClub.mockResolvedValue({ id: 'g1' })
+  startGameInClub.mockResolvedValue({ type: 'ok', data: { id: 'g1' } })
   validate.mockReset()
   validate.mockReturnValue(null)
 })
@@ -189,32 +193,49 @@ describe('SetupGameModal — when Start is refused', () => {
     expect(startGameInClub).not.toHaveBeenCalled()
   })
 
-  it("puts a refusal the server EXPLAINED on the form's line", async () => {
-    // An answer, not an outage: the server said which rule stopped it, so the
-    // words belong beside the Start they gate. The copy comes from ERROR_COPY
-    // rather than being written out here — this is a test of where the message
-    // goes, and rewording it is not a change to the form.
-    startGameInClub.mockResolvedValue({ error: { message: 'not-a-player|', answered: true } })
+  it("puts a refusal that names no field on the form's line", async () => {
+    startGameInClub.mockResolvedValue({
+      type: 'not-ok',
+      severity: 'error',
+      message: MESSAGE,
+    })
     const user = userEvent.setup()
     draw()
     await waitFor(() => expect(screen.getByRole('spinbutton')).toBeInTheDocument())
     await user.click(start())
 
-    const expected = ERROR_COPY['not-a-player']!.text([])
-    await waitFor(() => expect(screen.getByText(expected as string)).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText(MESSAGE)).toBeInTheDocument())
+    expect(errorUnder('guesses')).not.toBe(MESSAGE)
   })
 
-  it('leaves the line EMPTY when the failure was an outage', async () => {
-    // Nothing the player can act on, so it goes to the fault modal instead.
-    // A form that also printed it would be saying the setup was wrong.
-    startGameInClub.mockResolvedValue({ error: { message: 'connection reset' } })
+  it('puts a validation that NAMES a field under that field', async () => {
+    // The whole reason the dialog became a form: `create_game` raising
+    // `column = 'guesses'` reaches the box the player typed into, rather than
+    // a line at the bottom that makes them work out which of six it meant.
+    startGameInClub.mockResolvedValue({
+      type: 'not-ok',
+      severity: 'validation',
+      field: 'guesses',
+      message: MESSAGE,
+    })
     const user = userEvent.setup()
     draw()
     await waitFor(() => expect(screen.getByRole('spinbutton')).toBeInTheDocument())
     await user.click(start())
 
-    await waitFor(() => expect(startGameInClub).toHaveBeenCalled())
-    expect(screen.queryByText(/connection reset/)).not.toBeInTheDocument()
+    await waitFor(() => expect(errorUnder('guesses')).toBe(MESSAGE))
+  })
+
+  it("shows a FAULT's words on the line too, since the modal is dismissible", async () => {
+    // The modal is raised on the way through `dbFetch`; this line is what is
+    // left once it is dismissed, with the dialog still open behind it.
+    startGameInClub.mockResolvedValue({ type: 'not-ok', severity: 'fault', message: MESSAGE })
+    const user = userEvent.setup()
+    draw()
+    await waitFor(() => expect(screen.getByRole('spinbutton')).toBeInTheDocument())
+    await user.click(start())
+
+    await waitFor(() => expect(screen.getByText(MESSAGE)).toBeInTheDocument())
   })
 })
 

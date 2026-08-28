@@ -4,6 +4,7 @@ import { useState, type ReactNode } from 'react'
 import { formatTimerSeconds } from '../../hooks/game/useGameTimer'
 import { timerLabel } from '../../lib/game/timerLabel'
 import { RadioRow } from '../fields/RadioRow'
+import type { FormErrors } from '../fields/formState'
 import { SetupSection } from './SetupSection'
 import type { TimerMode } from '../../lib/games'
 import styles from './SetupTimerSection.module.css'
@@ -22,6 +23,10 @@ type Props = {
   help?: ReactNode
   value: TimerMode
   onChange: (next: TimerMode) => void
+  /** The form's errors. This section reads the key for the field it draws —
+   *  `timer`, which is what `common.require_valid_timer` names when it
+   *  refuses one. */
+  errors: FormErrors
 }
 
 /**
@@ -49,7 +54,7 @@ type Props = {
  * setup forms wrap it in their own `<div>` (alongside other
  * fields) — this file doesn't impose layout outside the fieldset.
  */
-export function SetupTimerSection({ value, onChange, help }: Props) {
+export function SetupTimerSection({ value, onChange, help, errors }: Props) {
   // Local text state for the MM:SS input. Initialized from the
   // current setup when countdown, otherwise a sensible default.
   // The text and the setup can diverge briefly while the user
@@ -91,7 +96,11 @@ export function SetupTimerSection({ value, onChange, help }: Props) {
     // "Timer: none", "Timer: 2:30 countdown"), so it's readable without opening.
     <SetupSection label={`Timer: ${timerLabel(value)}`} help={help}>
       <RadioRow
-        name="timerKind"
+        // Named for the SETUP KEY it writes, not for the control. The timer is
+        // one field holding one compound value, so a raise saying
+        // `column = 'timer'` lands here.
+        name="timer"
+        error={errors.timer}
         value={value.kind}
         onChange={setKind}
         options={[
@@ -117,7 +126,7 @@ export function SetupTimerSection({ value, onChange, help }: Props) {
                   placeholder="MM:SS"
                   inputMode="numeric"
                   maxLength={5}
-                  aria-label="Countdown duration in MM:SS"
+                  name="timer.seconds"
                   aria-invalid={downSelected && !textValid}
                 />
               </>

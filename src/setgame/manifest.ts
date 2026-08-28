@@ -1,6 +1,7 @@
 // cs-unmet
 
 import { lazy } from 'react'
+import { startEnvelope } from '../common/lib/game/manifestRpcs'
 import type { CommonGameListRow, GameManifest } from '../common/lib/games'
 import { deckSize } from './lib/cards'
 import { CLAIM_SIZE } from './lib/selection'
@@ -59,10 +60,7 @@ function startGameInClubFactory(mode: 'coop' | 'compete', brand: string) {
         mode,
       })
       .single()
-    if (error || !data) {
-      return { error: error ?? { message: `failed to start ${brand} (${mode})`, answered: true as const } }
-    }
-    return { id: data.id }
+    return startEnvelope(data, error, brand)
   }
 }
 

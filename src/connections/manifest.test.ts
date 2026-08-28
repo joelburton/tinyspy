@@ -67,7 +67,7 @@ describe('connectionsCoopGame.startGameInClub', () => {
     const res = await connectionsCoopGame.startGameInClub('pals', { timer: { kind: 'none' } }, [
       'cade-id',
     ])
-    expect(res).toEqual({ id: 'new-game' })
+    expect(res).toEqual({ type: 'ok', data: { id: 'new-game' } })
     expect(rpcCalls[0]!.name).toBe('create_game')
     expect(rpcCalls[0]!.args.target_club).toBe('pals')
     expect(rpcCalls[0]!.args.player_user_ids).toEqual(['cade-id'])
@@ -88,11 +88,11 @@ describe('connectionsCoopGame.startGameInClub', () => {
     expect((rpcCalls[0]!.args.setup as Record<string, unknown>).puzzleId).toBe('p1')
   })
 
-  it('surfaces a create_game failure as an error rather than an id', async () => {
+  it('surfaces a create_game failure as a not-ok envelope rather than an id', async () => {
     rpcResult.current = { data: null, error: { message: 'boom' } }
     const res = await connectionsCoopGame.startGameInClub('pals', { timer: { kind: 'none' } }, [
       'cade-id',
     ])
-    expect(res).toHaveProperty('error')
+    expect(res.type).toBe('not-ok')
   })
 })

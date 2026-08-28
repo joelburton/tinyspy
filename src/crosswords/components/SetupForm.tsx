@@ -106,7 +106,7 @@ function weekdayName(dow: number): string {
  * makes "find the one we haven't done" a glance rather than a memory test.
  */
 export function SetupForm({
-  clubHandle, members, selfId, numberOfPlayers, values, set: setValue,
+  clubHandle, members, selfId, numberOfPlayers, values, set: setValue, errors,
 }: SetupBodyProps) {
   const s = values as CrosswordsValues
   const set = setValue as SetupSetter<CrosswordsValues>
@@ -466,7 +466,7 @@ export function SetupForm({
           which ends the table: coop → `lost`, compete → `lost_compete`, both
           stamped `outcome: 'timeout'` so buildOver can say "Out of time"
           rather than the concede wording those states otherwise carry. */}
-      <SetupTimerSection value={s.timer} onChange={(timer) => set('timer', timer)} />
+      <SetupTimerSection errors={errors} value={s.timer} onChange={(timer) => set('timer', timer)} />
     </div>
   )
 }

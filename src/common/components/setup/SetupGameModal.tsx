@@ -1,6 +1,5 @@
 // cs-unmet
 
-import { expectedTextOrFault } from '../../lib/game/serverError'
 import { Suspense, useState } from 'react'
 import { MODE_LABEL, type GameManifest, type Member } from '../../lib/games'
 import { NormalModal } from '../floating-panels/NormalModal'
@@ -152,25 +151,17 @@ export function SetupGameModal({
       setup,
       Array.from(player_user_ids as Set<string>),
     )
-    if ('error' in result) {
+    if (result.type !== 'ok') {
       setBusy(false)
-      // Split by surface rule (docs/ui.md → Faults): a validation ANSWER ("no
-      // candidate words for band 3") stays on this form's red line; a
-      // fault/transport pops the fault MODAL, and the dialog stays open behind
-      // it so the player can retry after dismissing.
-      //
-      // One key, because nothing tells us which field yet. When create_game
-      // returns the envelope its `field` names one and this becomes
-      // `errors[field] = message`.
-      const line = Array.isArray(result.error)
-        ? result.error.map((seg) => (typeof seg === 'string' ? seg : seg.player.username)).join('')
-        : expectedTextOrFault(result.error, 'new game')
-      // Null means it went to the fault modal instead, and this line stays empty.
-      setErrors(line === null ? {} : { [FORM_ERROR_KEYNAME]: line })
+      // `field` when the raise named a column, the form's own line when it did
+      // not. A fault has already raised the modal on its way through
+      // `dbFetch`; the line is what remains once that is dismissed, with the
+      // dialog still open behind it so the player can retry.
+      setErrors({ [result.field ?? FORM_ERROR_KEYNAME]: result.message })
       return
     }
     // Don't bother clearing `busy` — we're about to unmount.
-    onStarted(result.id)
+    onStarted(result.data.id)
   }
 
   // The chosen mode (Co-op / Compete), shown in BOTH the dialog title and the

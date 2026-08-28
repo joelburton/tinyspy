@@ -2,6 +2,7 @@
 
 import { useEffect, type ReactNode } from 'react'
 import { RadioRow } from '../fields/RadioRow'
+import type { FormErrors } from '../fields/formState'
 import { SelectField } from '../fields/SelectField'
 import { SetupSection } from './SetupSection'
 import type { Member } from '../../lib/games'
@@ -48,6 +49,11 @@ type Props = {
    *  are snake_case (the DB vocabulary — see docs/naming.md), so each parent
    *  spells the mapping out: `{ ...s, coop_style: coopStyle, … }`. */
   onChange: (next: { coopStyle: CoopStyle; firstTurnUserId: string }) => void
+  /** The form's errors. This section draws TWO fields and reads the key for
+   *  each — they are separate setup keys with different lifetimes (the style
+   *  is a club preference that round-trips, the first player is a per-game
+   *  choice `create_game` strips), so a raise names one or the other. */
+  errors: FormErrors
 }
 
 /**
@@ -81,6 +87,7 @@ export function SetupCoopStyleSection({
   firstTurnUserId,
   onChange,
   help,
+  errors,
 }: Props) {
   const isTurns = coopStyle === 'turns'
   // Coop-only, and pointless for a lone player — a one-person rotation.
@@ -113,7 +120,9 @@ export function SetupCoopStyleSection({
     // it's readable without opening (matches SetupTimerSection's disclosure).
     <SetupSection label={`Co-op: ${summaryValue}`} help={help}>
       <RadioRow
-        name="coopStyle"
+        // Named for the setup key, so a raise can reach it.
+        name="coop_style"
+        error={errors.coop_style}
         prefix="Co-op style"
         options={[
           { value: 'free-for-all', label: 'free-for-all' },
@@ -129,7 +138,8 @@ export function SetupCoopStyleSection({
         // choice above; this component draws no layout of its own.
         <SelectField
           label="First player"
-          name="firstTurn"
+          name="first_turn_user_id"
+          error={errors.first_turn_user_id}
           value={firstTurnUserId}
           onChange={(id) => onChange({ coopStyle, firstTurnUserId: id })}
         >

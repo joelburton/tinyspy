@@ -1,6 +1,7 @@
 // cs-unmet
 
 import { lazy } from 'react'
+import { startEnvelope } from '../common/lib/game/manifestRpcs'
 import type { GameManifest } from '../common/lib/games'
 import { db } from './db'
 import { makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
@@ -93,10 +94,7 @@ export const codenamesduetGame: GameManifest = {
         player_user_ids: playerUserIds,
       })
       .single()
-    if (error || !data) {
-      return { error: error ?? { message: `failed to start ${BRAND} game`, answered: true as const } }
-    }
-    return { id: data.id }
+    return startEnvelope(data, error, BRAND)
   },
 
   // Render the per-row label from a common.games row. codenamesduet's

@@ -20,7 +20,10 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { SetupTimerSection } from './SetupTimerSection'
 
-const box = () => screen.getByLabelText('Countdown duration in MM:SS')
+// Found by NAME, not by caption: the box has no visible label, and its name
+// is the setup key it writes into — the same string a server validation would
+// use to reach it.
+const box = () => document.querySelector('[name=\'timer.seconds\']') as HTMLInputElement
 
 /**
  * Render the field with its disclosure OPEN.
@@ -37,7 +40,7 @@ async function open(user: ReturnType<typeof userEvent.setup>) {
 describe('SetupTimerSection', () => {
   it('offers the three modes as one radio group', async () => {
     const user = userEvent.setup()
-    render(<SetupTimerSection value={{ kind: 'none' }} onChange={() => {}} />)
+    render(<SetupTimerSection errors={{}} value={{ kind: 'none' }} onChange={() => {}} />)
     await open(user)
     expect(screen.getByRole('radio', { name: 'None' })).toBeInTheDocument()
     expect(screen.getByRole('radio', { name: 'Up' })).toBeInTheDocument()
@@ -53,7 +56,7 @@ describe('SetupTimerSection', () => {
   it('keeps the MM:SS box inert until Down is the choice', async () => {
     const user = userEvent.setup()
     const onChange = vi.fn()
-    const { rerender } = render(<SetupTimerSection value={{ kind: 'none' }} onChange={onChange} />)
+    const { rerender } = render(<SetupTimerSection errors={{}} value={{ kind: 'none' }} onChange={onChange} />)
     await open(user)
     expect(box()).toBeDisabled()
 
@@ -62,14 +65,14 @@ describe('SetupTimerSection', () => {
     // plays the parent. The default is 10:00 when nothing valid has been typed.
     expect(onChange).toHaveBeenCalledWith({ kind: 'countdown', seconds: 600 })
 
-    rerender(<SetupTimerSection value={{ kind: 'countdown', seconds: 600 }} onChange={onChange} />)
+    rerender(<SetupTimerSection errors={{}} value={{ kind: 'countdown', seconds: 600 }} onChange={onChange} />)
     expect(box()).toBeEnabled()
   })
 
   it('reports the other two modes without a duration', async () => {
     const user = userEvent.setup()
     const onChange = vi.fn()
-    render(<SetupTimerSection value={{ kind: 'countdown', seconds: 600 }} onChange={onChange} />)
+    render(<SetupTimerSection errors={{}} value={{ kind: 'countdown', seconds: 600 }} onChange={onChange} />)
     await open(user)
 
     await user.click(screen.getByRole('radio', { name: 'Up' }))
@@ -82,7 +85,7 @@ describe('SetupTimerSection', () => {
   it('parses a typed MM:SS into seconds', async () => {
     const user = userEvent.setup()
     const onChange = vi.fn()
-    render(<SetupTimerSection value={{ kind: 'countdown', seconds: 600 }} onChange={onChange} />)
+    render(<SetupTimerSection errors={{}} value={{ kind: 'countdown', seconds: 600 }} onChange={onChange} />)
     await open(user)
 
     await user.clear(box())
@@ -95,7 +98,7 @@ describe('SetupTimerSection', () => {
     // half-typed "2:" leaves the value alone and complains in place instead.
     const user = userEvent.setup()
     const onChange = vi.fn()
-    render(<SetupTimerSection value={{ kind: 'countdown', seconds: 600 }} onChange={onChange} />)
+    render(<SetupTimerSection errors={{}} value={{ kind: 'countdown', seconds: 600 }} onChange={onChange} />)
     await open(user)
 
     await user.clear(box())

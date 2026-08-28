@@ -6,6 +6,7 @@ import type { LucideIcon } from 'lucide-react'
 // Type-only and circular-safe: serverError.ts imports GenericFeedbackMsg from
 // this file; both imports are erased at runtime.
 import type { CallError } from './game/serverError'
+import type { Envelope } from './supabase/dbResult'
 import type { GenericFeedbackTone } from './outcomes'
 import type { FormErrors } from '../components/fields/formState'
 
@@ -704,14 +705,11 @@ export type GameManifest = {
    *     defaults this to every current club member; the caller
    *     does NOT have to be in the list.
    *
-   * Returns `{ id }` on success or `{ error }`, which the dialog
-   * routes through the server-error classifier before a player
-   * reads it (SetupGameModal): a CallError is the STRUCTURED
-   * failure (message + SQLSTATE + the answered marker — direct
-   * RPC and edge-fn paths both produce it; no manifest flattens
-   * to a string, which would cost the code AND misfile coded
-   * prose as transport), and a RichMessage is already
-   * frontend-authored. Server-side validation is the trust
+   * Returns the ENVELOPE, so a validation that names a column can reach the
+   * box that wrote it: `SetupGameModal` writes `errors[field]`, and the setup
+   * body hands each field its own. A game whose `create_game` has not been
+   * converted yet answers through `startEnvelope`, which says `fault` or
+   * `error` and never names a field. Server-side validation is the trust
    * boundary — the FE-collected setup is not trusted.
    *
    * Lives on the manifest so common code (ClubPage,
@@ -722,7 +720,7 @@ export type GameManifest = {
     clubHandle: string,
     setup: unknown,
     playerUserIds: string[],
-  ) => Promise<{ id: string } | { error: RichMessage | NonNullable<CallError> }>
+  ) => Promise<Envelope<{ id: string }>>
 
   /**
    * Render a one-line label for a single `common.games` row,

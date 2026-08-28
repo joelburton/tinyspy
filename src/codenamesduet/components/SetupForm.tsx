@@ -43,7 +43,7 @@ import { SetupSection } from '../../common/components/setup/SetupSection'
  * other games' SetupForm components.
  */
 export function SetupForm({
-  members, selfId, numberOfPlayers, values, set: setValue,
+  members, selfId, numberOfPlayers, values, set: setValue, errors,
 }: SetupBodyProps) {
   const s = values as CodenamesduetValues
   const set = setValue as SetupSetter<CodenamesduetValues>
@@ -93,6 +93,7 @@ export function SetupForm({
       </SetupSection>
 
       <SetupTimerSection
+        errors={errors}
         value={s.timer}
         onChange={(timer) => set('timer', timer)}
       />

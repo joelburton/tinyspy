@@ -35,7 +35,7 @@ import type { ConnectionsValues } from '../lib/setup'
  * Resuming a half-finished game is the club page's job.
  */
 export function SetupForm({
-  brand, mode, members, selfId, numberOfPlayers, values, set: setValue,
+  brand, mode, members, selfId, numberOfPlayers, values, set: setValue, errors,
 }: SetupBodyProps) {
   const s = values as ConnectionsValues
   const set = setValue as SetupSetter<ConnectionsValues>
@@ -55,6 +55,7 @@ export function SetupForm({
       {/* Coop pacing — first, right below the dialog's player picker.
           Self-gates to nothing for compete / solo. */}
       <SetupCoopStyleSection
+        errors={errors}
         mode={mode}
         players={players}
         coopStyle={s.coop_style ?? 'free-for-all'}
@@ -83,7 +84,7 @@ export function SetupForm({
         onPick={(puzzleId) => set('puzzleId', puzzleId)}
       />
 
-      <SetupTimerSection value={s.timer} onChange={(timer) => set('timer', timer)} />
+      <SetupTimerSection errors={errors} value={s.timer} onChange={(timer) => set('timer', timer)} />
     </>
   )
 }

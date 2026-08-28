@@ -29,7 +29,7 @@ import type { StrandsValues } from '../lib/setup'
  * Plus the shared SetupTimerSection and SetupCoopStyleSection.
  */
 export function SetupForm({
-  brand, mode, members, selfId, numberOfPlayers, values, set: setValue,
+  brand, mode, members, selfId, numberOfPlayers, values, set: setValue, errors,
 }: SetupBodyProps) {
   const s = values as StrandsValues
   const set = setValue as SetupSetter<StrandsValues>
@@ -47,6 +47,7 @@ export function SetupForm({
         onChange={(next) => set('player_user_ids', next)}
       />
       <SetupCoopStyleSection
+        errors={errors}
         mode={mode}
         players={players}
         coopStyle={s.coop_style ?? 'free-for-all'}
@@ -122,7 +123,7 @@ export function SetupForm({
         </SelectField>
       </SetupSection>
 
-      <SetupTimerSection value={s.timer} onChange={(timer) => set('timer', timer)} />
+      <SetupTimerSection errors={errors} value={s.timer} onChange={(timer) => set('timer', timer)} />
     </>
   )
 }

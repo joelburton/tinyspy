@@ -2,7 +2,12 @@
 
 import { lazy } from 'react'
 import type { GameManifest } from '../common/lib/games'
-import { invokeStartGameEdgeFn, makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
+import {
+  edgeStartEnvelope,
+  invokeStartGameEdgeFn,
+  makeRpcDispatcher,
+  startEnvelope,
+} from '../common/lib/game/manifestRpcs'
 import { db } from './db'
 import { outcome, statusLine, wonBy } from '../common/lib/game/statusLabel'
 import { CROSSWORDS_DEFAULTS, type CrosswordsSetup } from './lib/setup'
@@ -47,9 +52,12 @@ function startGameInClubFactory(mode: 'coop' | 'compete', brand: string) {
     // and create the game from the imported puzzle — the edge function owns
     // the error-context unwrap via invokeStartGameEdgeFn.
     if (s.source === 'nyt' || s.source === 'guardian') {
-      return invokeStartGameEdgeFn(
-        s.source === 'nyt' ? 'crosswords-import-nyt' : 'crosswords-import-guardian',
-        { target_club: clubHandle, setup: s, player_user_ids: playerUserIds, mode },
+      return edgeStartEnvelope(
+        await invokeStartGameEdgeFn(
+          s.source === 'nyt' ? 'crosswords-import-nyt' : 'crosswords-import-guardian',
+          { target_club: clubHandle, setup: s, player_user_ids: playerUserIds, mode },
+          brand,
+        ),
         brand,
       )
     }
@@ -75,8 +83,7 @@ function startGameInClubFactory(mode: 'coop' | 'compete', brand: string) {
         ...(board ? { board } : {}),
       })
       .single()
-    if (error || !data) return { error: error ?? { message: `failed to start ${brand} (${mode})`, answered: true as const } }
-    return { id: data.id }
+    return startEnvelope(data, error, brand)
   }
 }
 

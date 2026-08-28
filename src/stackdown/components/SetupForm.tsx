@@ -17,7 +17,7 @@ import type { StackdownValues } from '../lib/setup'
  * manifests (mode doesn't change the form).
  */
 export function SetupForm({
-  members, selfId, numberOfPlayers, values, set: setValue,
+  members, selfId, numberOfPlayers, values, set: setValue, errors,
 }: SetupBodyProps) {
   const s = values as StackdownValues
   const set = setValue as SetupSetter<StackdownValues>
@@ -49,6 +49,7 @@ export function SetupForm({
         />
       </SetupSection>
       <SetupTimerSection
+        errors={errors}
         value={s.timer}
         onChange={(timer) => set('timer', timer)}
       />

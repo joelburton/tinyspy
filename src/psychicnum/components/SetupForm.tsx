@@ -76,6 +76,7 @@ export function SetupForm({
           below the dialog's player picker. Self-gates to nothing for
           compete / solo, so it's dropped in unconditionally. */}
       <SetupCoopStyleSection
+        errors={errors}
         mode={mode}
         players={players}
         coopStyle={s.coop_style ?? 'free-for-all'}
@@ -134,6 +135,7 @@ export function SetupForm({
         />
       </SetupSection>
       <SetupTimerSection
+        errors={errors}
         value={s.timer}
         onChange={(timer) => set('timer', timer)}
       />

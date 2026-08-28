@@ -4,7 +4,7 @@ import { lazy } from 'react'
 import type { GameManifest } from '../common/lib/games'
 import { db } from './db'
 import { count, outcome, setupNum, statusLine, wonBy } from '../common/lib/game/statusLabel'
-import { makeRpcDispatcher, invokeStartGameEdgeFn } from '../common/lib/game/manifestRpcs'
+import { edgeStartEnvelope, makeRpcDispatcher, invokeStartGameEdgeFn } from '../common/lib/game/manifestRpcs'
 import {
   DEFAULT_BOGGLE_SETUP_COMPETE,
   DEFAULT_BOGGLE_SETUP_COOP,
@@ -37,10 +37,13 @@ const setupFormLoader = lazy(() =>
 /** Shared start-game caller — invokes the board-builder edge function (the
  *  shared helper owns the error-context unwrap). */
 function startGameInClubFactory(mode: 'coop' | 'compete', brand: string) {
-  return (clubHandle: string, setup: unknown, playerUserIds: string[]) =>
-    invokeStartGameEdgeFn(
+  return async (clubHandle: string, setup: unknown, playerUserIds: string[]) =>
+    edgeStartEnvelope(
+      await invokeStartGameEdgeFn(
       'boggle-build-board',
       { target_club: clubHandle, setup: setup as BoggleSetup, player_user_ids: playerUserIds, mode },
+        brand,
+      ),
       brand,
     )
 }

@@ -24,7 +24,7 @@ import { ManualBoardField } from '../../common/components/fields/ManualBoardFiel
  * body renders `value` and signals via `onChange`.
  */
 export function SetupForm({
-  mode, members, selfId, numberOfPlayers, values, set: setValue,
+  mode, members, selfId, numberOfPlayers, values, set: setValue, errors,
 }: SetupBodyProps) {
   const s = values as WordiplyValues
   const set = setValue as SetupSetter<WordiplyValues>
@@ -51,6 +51,7 @@ export function SetupForm({
       {/* Coop pacing — first, right below the dialog's player picker.
           Self-gates to nothing for compete / solo. */}
       <SetupCoopStyleSection
+        errors={errors}
         mode={mode}
         players={players}
         coopStyle={s.coop_style ?? 'free-for-all'}
@@ -94,7 +95,7 @@ export function SetupForm({
         />
       </SetupSection>
 
-      <SetupTimerSection value={s.timer} onChange={(timer) => set('timer', timer)} />
+      <SetupTimerSection errors={errors} value={s.timer} onChange={(timer) => set('timer', timer)} />
     </>
   )
 }

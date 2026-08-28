@@ -69,7 +69,7 @@ describe('crosswordsCoopGame.startGameInClub — setup-leak backstop', () => {
     const setup = { timer: { kind: 'none' }, source: 'upload', board: UPLOAD_BOARD, filename: 'x.puz' }
     const res = await crosswordsCoopGame.startGameInClub('pals', setup, ['ada-id'])
 
-    expect(res).toEqual({ id: 'new-game' })
+    expect(res).toEqual({ type: 'ok', data: { id: 'new-game' } })
     const args = lastCreateArgs()
     // The board rides as the separate inline arg…
     expect(args.board).toEqual(UPLOAD_BOARD)
@@ -90,7 +90,7 @@ describe('crosswordsCoopGame.startGameInClub — setup-leak backstop', () => {
     }
     const res = await crosswordsCoopGame.startGameInClub('pals', setup, ['ada-id'])
 
-    expect(res).toEqual({ id: 'new-game' })
+    expect(res).toEqual({ type: 'ok', data: { id: 'new-game' } })
     const args = lastCreateArgs()
     // Not an upload, so no inline board arg is sent…
     expect(args.board).toBeUndefined()

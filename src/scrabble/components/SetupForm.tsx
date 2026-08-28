@@ -27,7 +27,7 @@ import { AI_BAND, AI_LEVELS, AI_LEVEL_LABEL, type AiLevel, type ScrabbleValues }
  * Controlled component; state lives in the SetupGameModal wrapper.
  */
 export function SetupForm({
-  mode, members, selfId, numberOfPlayers, values, set: setValue,
+  mode, members, selfId, numberOfPlayers, values, set: setValue, errors,
 }: SetupBodyProps) {
   const s = values as ScrabbleValues
   const set = setValue as SetupSetter<ScrabbleValues>
@@ -57,6 +57,7 @@ export function SetupForm({
           below the dialog's player picker. Self-gates to nothing for
           compete / solo. */}
       <SetupCoopStyleSection
+        errors={errors}
         mode={mode}
         players={players}
         coopStyle={s.coop_style ?? 'free-for-all'}
@@ -132,7 +133,7 @@ export function SetupForm({
         </SetupSection>
       )}
 
-      <SetupTimerSection value={s.timer} onChange={(timer) => set('timer', timer)} />
+      <SetupTimerSection errors={errors} value={s.timer} onChange={(timer) => set('timer', timer)} />
     </>
   )
 }

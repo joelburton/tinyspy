@@ -1,6 +1,7 @@
 // cs-unmet
 
 import { lazy } from 'react'
+import { startEnvelope } from '../common/lib/game/manifestRpcs'
 import type { GameManifest } from '../common/lib/games'
 import { db } from './db'
 import { makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
@@ -78,10 +79,7 @@ export const bananagramsGame: GameManifest = {
         player_user_ids: playerUserIds,
       })
       .single()
-    if (error || !data) {
-      return { error: error ?? { message: `failed to start ${BRAND} game`, answered: true as const } }
-    }
-    return { id: data.id }
+    return startEnvelope(data, error, BRAND)
   },
 
   // Per-row label for the ClubPage games list. Pure + synchronous.

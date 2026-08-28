@@ -4,7 +4,7 @@ import { lazy } from 'react'
 import type { GameManifest } from '../common/lib/games'
 import { db } from './db'
 import { outcome, statusLine, tally, wonBy } from '../common/lib/game/statusLabel'
-import { makeRpcDispatcher, invokeStartGameEdgeFn } from '../common/lib/game/manifestRpcs'
+import { edgeStartEnvelope, makeRpcDispatcher, invokeStartGameEdgeFn } from '../common/lib/game/manifestRpcs'
 import {
   DEFAULT_SPELLINGBEE_SETUP_COMPETE,
   DEFAULT_SPELLINGBEE_SETUP_COOP,
@@ -73,10 +73,13 @@ const setupFormLoader = lazy(() =>
  * players, mode, board)`. The shared helper owns the error-context unwrap.
  */
 function startGameInClubFactory(mode: 'coop' | 'compete', brand: string) {
-  return (clubHandle: string, setup: unknown, playerUserIds: string[]) =>
-    invokeStartGameEdgeFn(
+  return async (clubHandle: string, setup: unknown, playerUserIds: string[]) =>
+    edgeStartEnvelope(
+      await invokeStartGameEdgeFn(
       'spellingbee-build-board',
       { target_club: clubHandle, setup: setup as SpellingbeeSetup, player_user_ids: playerUserIds, mode },
+        brand,
+      ),
       brand,
     )
 }
