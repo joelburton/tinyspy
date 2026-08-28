@@ -6,7 +6,7 @@ import type { LucideIcon } from 'lucide-react'
 // Type-only and circular-safe: serverError.ts imports GenericFeedbackMsg from
 // this file; both imports are erased at runtime.
 import type { CallError } from './game/serverError'
-import type { Envelope } from './supabase/dbResult'
+import type { Envelope } from './supabase/envelope'
 import type { GenericFeedbackTone } from './outcomes'
 import type { FormErrors } from '../components/fields/formState'
 

@@ -4,7 +4,6 @@ import { showFaultModal } from '../fault/faultStore'
 import { callEdgeFn } from './callEdgeFn'
 import { logStamp } from './realtimeDiag'
 import type { Envelope, Severity } from './envelope'
-export type { Envelope, Severity } from './envelope'
 
 /**
  * **The new server-result system.** Types, classification, the environmental
