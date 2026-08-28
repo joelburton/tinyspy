@@ -25,7 +25,7 @@ select plan(2);
 -- A strict solo game: legal_guess 2.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g on commit drop as
-select * from wordle.create_game(
+select (wordle.create_game(
   '=ada',
   '{"max_guesses": 6, "answer_source": 0, "legal_guess": 2, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop');

@@ -190,19 +190,25 @@ grant select on wordle.games_state to authenticated;
 -- `mode` ('coop' | 'compete') routes the gametype string and the
 -- working-state semantics. Picks a hidden target per `answer_source`
 -- (always clean — see the pick below) and seeds one players row per player.
+-- `create or replace` cannot change a function's return type, and this one
+-- became jsonb. `if exists` because this file is re-applied in full on every
+-- deploy, so the drop has to be a no-op the second time.
+drop function if exists wordle.create_game(text, jsonb, uuid[], text);
+
 create or replace function wordle.create_game(
   target_club     text,
   setup           jsonb,
   player_user_ids uuid[],
   mode            text
 )
-returns table(id uuid)
+returns jsonb
 language plpgsql
 security definer
 set search_path = wordle, common, public, extensions
 as $$
 declare
   new_id          uuid;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text;
   s_max_guesses   int;
   s_answer_source int;
   s_legal_guess   int;
@@ -219,8 +225,8 @@ begin
   -- ─── Validate setup.max_guesses ──────────────────────────
   s_max_guesses := coalesce((setup->>'max_guesses')::int, 6);
   if s_max_guesses < 5 or s_max_guesses > 8 then
-    raise exception 'bad-max-guesses|%|', s_max_guesses
-      using errcode = 'P0001',
+    raise exception 'A guess budget of % reached the server', s_max_guesses
+      using errcode = 'PN053', hint = 'fault', column = '_',
       detail = 'setup.max_guesses must be 5..8';
   end if;
 
@@ -231,20 +237,24 @@ begin
   -- (it tops out at band 2), else answer_source.
   s_answer_source := coalesce((setup->>'answer_source')::int, 0);
   if s_answer_source < 0 or s_answer_source > 6 then
-    raise exception 'bad-answer-source|%|', s_answer_source
-      using errcode = 'P0001',
+    raise exception 'An answer source of % reached the server', s_answer_source
+      using errcode = 'PN054', hint = 'fault', column = '_',
       detail = 'setup.answer_source must be 0..6';
   end if;
   s_legal_guess := coalesce((setup->>'legal_guess')::int, 4);
   if s_legal_guess < 1 or s_legal_guess > 6 then
-    raise exception 'bad-legal-band|%|', s_legal_guess
-      using errcode = 'P0001',
+    raise exception 'A legal-guess band of % reached the server', s_legal_guess
+      using errcode = 'PN055', hint = 'fault', column = '_',
       detail = 'setup.legal_guess must be 1..6';
   end if;
   s_answer_max := case when s_answer_source = 0 then 2 else s_answer_source end;
   if s_legal_guess < s_answer_max then
-    raise exception 'bad-legal-band|%|%|',
-      s_legal_guess, s_answer_max using errcode = 'P0001',
+    -- A CROSS-FIELD rule, and it names the field the form can fix: every
+    -- answer has to be a legal guess, so the legal band is raised to meet the
+    -- answer band rather than the answer band lowered to meet it. The setup
+    -- form already floors the control at `answerMaxBand`; this is the backstop.
+    raise exception 'A legal-guess band below the answer band reached the server'
+      using errcode = 'PN056', hint = 'fault', column = '_',
       detail = 'legal_guess must be >= the answer band';
   end if;
 
@@ -279,8 +289,8 @@ begin
      order by random() limit 1;
   end if;
   if v_target is null then
-    raise exception 'no-answer-words|'
-      using errcode = 'P0002',
+    raise exception 'No answers available from that source'
+      using errcode = 'PN057', hint = 'validation', column = 'answer_source',
       detail = 'common.words has no answer candidates at that band; run gmake all-words';
   end if;
 
@@ -304,8 +314,8 @@ begin
   if mode = 'coop' and setup->>'coop_style' = 'turns' then
     first_turn := (setup->>'first_turn_user_id')::uuid;
     if first_turn is null or not (first_turn = any(player_user_ids)) then
-      raise exception 'bad-first-turn|'
-        using errcode = 'P0001',
+      raise exception 'A first player who is not in the game reached the server'
+        using errcode = 'PN058', hint = 'fault', column = '_',
       detail = 'setup.first_turn_user_id must be one of the players';
     end if;
     perform common._assign_turn_order(new_id, first_turn);
@@ -331,7 +341,18 @@ begin
          end
   );
 
-  return query select new_id;
+  return common.ok_envelope(jsonb_build_object('id', new_id));
+
+-- One block, and it has never heard of any specific condition: it reads the
+-- SQLSTATE, re-raises anything that isn't ours, and lets the raise itself carry
+-- the message, the kind and the field.
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 

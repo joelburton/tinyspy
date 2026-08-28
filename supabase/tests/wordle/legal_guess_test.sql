@@ -20,7 +20,7 @@ select plan(2);
 -- legal under the old hardcoded ≤4). Solo game in ada's solo club.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
-select * from wordle.create_game(
+select (wordle.create_game(
   '=ada',
   '{"max_guesses": 6, "answer_source": 0, "legal_guess": 2, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop');
@@ -33,7 +33,7 @@ select is(
 -- legal_guess 6: the same band-3 word is now a legal (but incorrect) guess.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g6 on commit drop as
-select * from wordle.create_game(
+select (wordle.create_game(
   '=ada',
   '{"max_guesses": 6, "answer_source": 0, "legal_guess": 6, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop');

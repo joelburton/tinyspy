@@ -585,8 +585,8 @@ declare
   timer_seconds int;
 begin
   if timer is null then
-    raise exception 'Pick how time is kept'
-      using errcode = 'PN035', hint = 'validation', column = 'timer',
+    raise exception 'A game with no timer setting reached the server'
+      using errcode = 'PN035', hint = 'fault', column = '_',
       detail = 'setup.timer absent';
   end if;
 
@@ -596,26 +596,26 @@ begin
   -- through the next check unraised. Separate "is required" vs
   -- "must be" messages give clearer FE error display.
   if timer_kind is null then
-    raise exception 'Pick how time is kept'
-      using errcode = 'PN036', hint = 'validation', column = 'timer',
+    raise exception 'A timer with no setting reached the server'
+      using errcode = 'PN036', hint = 'fault', column = '_',
       detail = 'setup.timer.kind absent';
   end if;
   if timer_kind not in ('none', 'countup', 'countdown') then
-    raise exception 'A timer setting of %L reached the server', timer_kind
+    raise exception 'A timer setting of ''%'' reached the server', timer_kind
       using errcode = 'PN037', hint = 'fault', column = '_',
       detail = 'timer kind must be none, countup or countdown';
   end if;
 
   if timer_kind = 'countdown' then
     if (timer->>'seconds') is null then
-      raise exception 'Enter how long the countdown runs'
-        using errcode = 'PN038', hint = 'validation', column = 'timer',
+      raise exception 'A countdown with no length reached the server'
+        using errcode = 'PN038', hint = 'fault', column = '_',
       detail = 'countdown needs setup.timer.seconds';
     end if;
     timer_seconds := (timer->>'seconds')::int;
     if timer_seconds < 1 or timer_seconds > 3600 then
-      raise exception 'A countdown runs from 1 second to 60 minutes'
-        using errcode = 'PN039', hint = 'validation', column = 'timer',
+      raise exception 'A countdown of % seconds reached the server', timer_seconds
+        using errcode = 'PN039', hint = 'fault', column = '_',
       detail = 'countdown seconds must be 1..3600';
     end if;
   end if;
@@ -646,7 +646,7 @@ immutable
 as $$
 begin
   if p_mode not in ('coop', 'compete') then
-    raise exception 'A game mode of %L reached the server', p_mode
+    raise exception 'A game mode of ''%'' reached the server', p_mode
       using errcode = 'PN040', hint = 'fault', column = '_',
       detail = 'mode must be coop or compete';
   end if;
@@ -826,8 +826,8 @@ begin
   if player_user_ids is null
      or array_length(player_user_ids, 1) is null
      or array_length(player_user_ids, 1) = 0 then
-    raise exception 'no-players|'
-      using errcode = 'P0001',
+    raise exception 'A game with no players reached the server'
+      using errcode = 'PN059', hint = 'fault', column = '_',
       detail = 'player_user_ids was empty';
   end if;
 
@@ -842,9 +842,11 @@ begin
   );
 
   if array_length(non_members, 1) > 0 then
-    raise exception 'players-not-in-club|%|',
-      array_to_string(non_members, ', ')
-      using errcode = 'P0001',
+    -- The picker only ever offers this club's members, so arriving here means
+    -- the roster moved under the dialog or the client is wrong. Either way it
+    -- is not something the creator can fix by changing a control.
+    raise exception 'Not in this club: %', array_to_string(non_members, ', ')
+      using errcode = 'PN060', hint = 'fault', column = '_',
       detail = 'every player must already be a club member';
   end if;
 
@@ -2813,8 +2815,8 @@ set search_path = common, public, extensions
 as $$
 begin
   if array_length(player_user_ids, 1) > max_count then
-    raise exception 'This game takes at most % players', max_count
-      using errcode = 'PN041', hint = 'validation', column = 'player_user_ids',
+    raise exception 'A game with % players reached the server', array_length(player_user_ids, 1)
+      using errcode = 'PN041', hint = 'fault', column = '_',
       detail = 'player count exceeds the gametype''s max';
   end if;
 end;

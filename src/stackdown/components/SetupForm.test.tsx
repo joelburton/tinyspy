@@ -90,13 +90,12 @@ describe('stackdown setup — where a refusal lands', () => {
   // `create_game` names `band` twice: PN051 for a band outside 1..6, and PN052
   // when the library holds no board at that one. Both are answerable at the
   // same control, which is why both are validations rather than faults.
-  it.each([
-    ['band', 'Word difficulty runs from 1 to 6'],
-    ['band', 'No boards at that difficulty yet — try the other one'],
-    ['timer', 'A countdown runs from 1 second to 60 minutes'],
-    ['player_user_ids', 'This game takes at most 6 players'],
-  ])('puts a validation naming %s under that field', (field, message) => {
-    draw({ errors: { [field]: message } })
-    expect(errorUnder(field)).toBe(message)
+  it('puts the one validation create_game can still raise under its field', () => {
+    // PN052 — the board library holds nothing at that band. The form offers
+    // both bands, so it cannot know; everything else it CAN prevent, and those
+    // arrive as faults.
+    const message = 'No boards at that difficulty yet — try the other one'
+    draw({ errors: { band: message } })
+    expect(errorUnder('band')).toBe(message)
   })
 })

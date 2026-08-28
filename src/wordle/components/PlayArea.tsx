@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { faultMessage } from '../../common/lib/game/serverError'
+import { runRpc } from '../../common/lib/supabase/dbResult'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { IconHideSolution, IconNewGame, IconPrint, IconRestart, IconReveal } from '../../common/components/icons'
 import type { GamePageCtx, GenericFeedbackMsg } from '../../common/lib/games'
@@ -262,8 +262,8 @@ export function PlayArea({
     // copy says shelved, not ended. At terminal there's nothing to interrupt.
     if (!isTerminal && !(await confirmAction(NEW_GAME_CONFIRM))) return
     if (!gameMode) return // menu exists pre-load, but there's no mode to copy yet
-    const { data, error } = await db
-      .rpc('create_game', {
+    const res = await runRpc<{ id: string }>(
+      db.rpc('create_game', {
         target_club: clubHandle,
         // ctx.setup is Record<string,unknown> at the shell level; this game's
         // rows were created from a WordleSetup, so the cast is the usual
@@ -271,16 +271,18 @@ export function PlayArea({
         setup: setup as WordleSetup,
         player_user_ids: members.map((m) => m.user_id),
         mode: gameMode,
-      })
-      .single()
-    if (error || !data) {
-      // New game is a FAULT SURFACE (serverError.ts → faultMessage): this setup
-      // already built a game once, so any failure here is a bug or an outage
-      // — never a pill. Copy supplies the words when it has them.
-      showLocalFeedback(faultMessage(error, 'new game'))
+      }),
+    )
+    if (res.type !== 'ok') {
+      // THE SAME ENVELOPE, READ DIFFERENTLY. On the setup form a validation is
+      // an answer — fix the field and press Start again. Here there is no field
+      // and no form: this setup already built a game once, so whatever comes
+      // back is a bug or an outage, and it wears the fault look whatever the
+      // server called it. `runRpc` has already logged it under `[db]`.
+      showLocalFeedback({ tone: 'error', fault: true, text: res.message, mode: { kind: 'manual' } })
       return
     }
-    goToGame(`wordle_${gameMode}`, (data as { id: string }).id)
+    goToGame(`wordle_${gameMode}`, res.data.id)
   }, [gameMode, clubHandle, setup, members, goToGame, showLocalFeedback, confirmAction, isTerminal])
 
   // Single-flight guard. New game has THREE triggers (the terminal button, the

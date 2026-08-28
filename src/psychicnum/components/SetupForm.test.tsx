@@ -94,17 +94,20 @@ describe('psychicnum setup — writing a setting', () => {
 })
 
 describe('psychicnum setup — where a refusal lands', () => {
-  // `create_game` raises `column = 'guesses'` (PN044), `'word_count'` (PN046),
-  // `'difficulty'` (PN048) and — through common.require_valid_timer —
-  // `'timer'` (PN035/PN039). Each has to reach its own box.
-  it.each([
-    ['guesses', 'Guesses must be 3, 5, 7 or 9'],
-    ['word_count', 'The board holds 5 to 20 words'],
-    ['difficulty', 'Word difficulty runs from 1 to 6'],
-    ['timer', 'A countdown runs from 1 second to 60 minutes'],
-    ['player_user_ids', 'A race needs at least two players'],
-  ])('puts a validation naming %s under that field', (field, message) => {
-    draw({ errors: { [field]: message } })
-    expect(errorUnder(field)).toBe(message)
+  it('puts the one validation create_game can still raise under its field', () => {
+    // PN049 — the dictionary has too few words at that band for a board this
+    // size. The ONLY thing here the form cannot prevent, so the only thing that
+    // arrives as a validation rather than a fault.
+    const message = 'Not enough words at that difficulty for a board this size'
+    draw({ errors: { difficulty: message } })
+    expect(errorUnder('difficulty')).toBe(message)
+  })
+
+  it('leaves the other fields able to carry one, whoever writes it', () => {
+    // The routing is not create_game's alone: a client-side check writes into
+    // the same object, and every field reads its own key.
+    draw({ errors: { guesses: 'nope', word_count: 'also nope' } })
+    expect(errorUnder('guesses')).toBe('nope')
+    expect(errorUnder('word_count')).toBe('also nope')
   })
 })

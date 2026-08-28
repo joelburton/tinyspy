@@ -43,13 +43,12 @@ select pg_temp.create_club('Wordle turns', array['ada', 'bea']) as handle;
 
 -- ── TURN GAME — ada first ──
 create temp table g on commit drop as
-select * from wordle.create_game(
+select (wordle.create_game(
   (select handle from club),
   pg_temp.wordle_turn_setup('ada11111-1111-1111-1111-111111111111'),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
-  'coop'
-);
+  'coop')->'data'->>'id')::uuid as id;
 
 -- Two distinct valid non-target words (as superuser, bypassing the hidden
 -- target grant) — one per player so each accepted guess is 'incorrect'.
@@ -121,12 +120,11 @@ select is(
 -- ── FREE-FOR-ALL (no coop_style) — pointer null, ungated ──
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table ffa on commit drop as
-select * from wordle.create_game(
+select (wordle.create_game(
   (select handle from club), pg_temp.wordle_setup(6),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
-  'coop'
-);
+  'coop')->'data'->>'id')::uuid as id;
 reset role;
 select is(
   (select current_turn_user_id from common.games where id = (select id from ffa)),

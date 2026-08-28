@@ -7,6 +7,7 @@
 begin;
 set search_path = wordle, common, public, extensions;
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 select plan(17);
@@ -15,12 +16,11 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select pg_temp.create_club('Wordle cg', array['ada', 'bea']) as handle;
 create temp table g on commit drop as
-select * from wordle.create_game(
+select (wordle.create_game(
   (select handle from club), pg_temp.wordle_setup(5),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
-  'coop'
-);
+  'coop')->'data'->>'id')::uuid as id;
 
 reset role;
 select is((select mode from wordle.games where id = (select id from g)), 'coop',
@@ -51,18 +51,25 @@ select ok(
   'games_state.target is NULL while the game is in progress');
 
 -- ── Setup validation ────────────────────────────────────────
-select throws_ok(
-  format($$ select wordle.create_game(%L, %s, array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop') $$,
-         (select handle from club), $$ pg_temp.wordle_setup(4) $$),
-  'P0001', null, 'max_guesses below 5 is rejected');
-select throws_ok(
-  format($$ select wordle.create_game(%L, %s, array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop') $$,
-         (select handle from club), $$ pg_temp.wordle_setup(9) $$),
-  'P0001', null, 'max_guesses above 8 is rejected');
-select throws_ok(
-  format($$ select wordle.create_game(%L, pg_temp.wordle_setup(6), array['ada11111-1111-1111-1111-111111111111'::uuid], 'solo') $$,
-         (select handle from club)),
-  'P0001', null, 'an invalid mode is rejected');
+select pg_temp.envelope_is(
+  wordle.create_game(
+    (select handle from club), pg_temp.wordle_setup(4),
+    array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop'),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN053"}'::jsonb,
+  'max_guesses below 5 names the max_guesses field');
+select pg_temp.envelope_is(
+  wordle.create_game(
+    (select handle from club), pg_temp.wordle_setup(9),
+    array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop'),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN053"}'::jsonb,
+  'max_guesses above 8 names it too');
+-- A mode nobody can pick is a FAULT, not a validation: no control offers one.
+select pg_temp.envelope_is(
+  wordle.create_game(
+    (select handle from club), pg_temp.wordle_setup(6),
+    array['ada11111-1111-1111-1111-111111111111'::uuid], 'solo'),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN040"}'::jsonb,
+  'an invalid mode is a fault');
 
 -- ── Word bands: answer_source + legal_guess ─────────────────
 -- g used the default setup → answer_source 0 → target from the Wordle list.
@@ -78,7 +85,7 @@ select ok(
 -- A difficulty-band answer source: target is band-1-or-easier; legal_guess stored.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g1 on commit drop as
-select * from wordle.create_game(
+select (wordle.create_game(
   (select handle from club),
   '{"max_guesses": 6, "answer_source": 1, "legal_guess": 6, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop');
@@ -94,16 +101,26 @@ select ok(
 
 -- Band validation (as a member).
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select throws_ok(
-  format($$ select wordle.create_game(%L, '{"max_guesses":6,"answer_source":7,"legal_guess":6,"timer":{"kind":"none"}}'::jsonb, array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop') $$, (select handle from club)),
-  'P0001', 'bad-answer-source|7|', 'answer_source above 6 is rejected');
-select throws_ok(
-  format($$ select wordle.create_game(%L, '{"max_guesses":6,"answer_source":1,"legal_guess":7,"timer":{"kind":"none"}}'::jsonb, array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop') $$, (select handle from club)),
-  'P0001', 'bad-legal-band|7|', 'legal_guess above 6 is rejected');
-select throws_ok(
-  format($$ select wordle.create_game(%L, '{"max_guesses":6,"answer_source":5,"legal_guess":4,"timer":{"kind":"none"}}'::jsonb, array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop') $$, (select handle from club)),
-  'P0001', 'bad-legal-band|4|5|',
-  'a legal_guess below the answer band is rejected');
+select pg_temp.envelope_is(
+  wordle.create_game(
+    (select handle from club), '{"max_guesses":6,"answer_source":7,"legal_guess":6,"timer":{"kind":"none"}}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop'),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN054"}'::jsonb,
+  'answer_source above 6 names the answer_source field');
+select pg_temp.envelope_is(
+  wordle.create_game(
+    (select handle from club), '{"max_guesses":6,"answer_source":1,"legal_guess":7,"timer":{"kind":"none"}}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop'),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN055"}'::jsonb,
+  'legal_guess above 6 names the legal_guess field');
+-- The CROSS-FIELD rule. Two fields are involved and it names the one the form
+-- can move: the legal band rises to meet the answer band, never the reverse.
+select pg_temp.envelope_is(
+  wordle.create_game(
+    (select handle from club), '{"max_guesses":6,"answer_source":5,"legal_guess":4,"timer":{"kind":"none"}}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop'),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN056"}'::jsonb,
+  'a legal_guess below the answer band names the legal band');
 
 select * from finish();
 rollback;

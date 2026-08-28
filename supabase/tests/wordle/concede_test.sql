@@ -28,12 +28,11 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select pg_temp.create_club('Wordle concede', array['ada', 'bea']) as handle;
 create temp table g on commit drop as
-select * from wordle.create_game(
+select (wordle.create_game(
   (select handle from club), pg_temp.wordle_setup(6),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
-  'compete'
-);
+  'compete')->'data'->>'id')::uuid as id;
 
 reset role;
 create temp table tgt on commit drop as
@@ -74,12 +73,11 @@ select is(
 -- ─── (3) both players concede → collective loss, no winner ───
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
-select * from wordle.create_game(
+select (wordle.create_game(
   (select handle from club), pg_temp.wordle_setup(6),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
-  'compete'
-);
+  'compete')->'data'->>'id')::uuid as id;
 select wordle.concede((select id from g2)); -- ada out, bea still racing
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select wordle.concede((select id from g2)); -- last racer out
@@ -100,12 +98,11 @@ select is(
 -- ─── (4) concede is rejected in coop ───
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table gc on commit drop as
-select * from wordle.create_game(
+select (wordle.create_game(
   (select handle from club), pg_temp.wordle_setup(6),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
-  'coop'
-);
+  'coop')->'data'->>'id')::uuid as id;
 select throws_ok(
   format($$ select wordle.concede(%L) $$, (select id from gc)),
   'P0001',

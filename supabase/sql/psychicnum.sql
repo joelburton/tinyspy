@@ -202,8 +202,8 @@ begin
     -- button in 1-player clubs; this guard is the server-side
     -- catch.
     if coalesce(array_length(player_user_ids, 1), 0) < 2 then
-      raise exception 'A race needs at least two players'
-        using errcode = 'PN042', hint = 'validation', column = 'player_user_ids',
+      raise exception 'A race with fewer than two players reached the server'
+        using errcode = 'PN042', hint = 'fault', column = '_',
       detail = 'compete needs >= 2 players';
     end if;
   end if;
@@ -216,40 +216,40 @@ begin
 
   -- ─── Validate setup shape ────────────────────────────
   if (setup->>'guesses') is null then
-    raise exception 'Pick how many guesses each player gets'
-      using errcode = 'PN043', hint = 'validation', column = 'guesses',
+    raise exception 'A game with no guess budget reached the server'
+      using errcode = 'PN043', hint = 'fault', column = '_',
       detail = 'setup.guesses absent';
   end if;
   s_guesses := (setup->>'guesses')::int;
   if s_guesses not in (3, 5, 7, 9) then
-    raise exception 'Guesses must be 3, 5, 7 or 9'
-      using errcode = 'PN044', hint = 'validation', column = 'guesses',
+    raise exception 'A guess budget of % reached the server', s_guesses
+      using errcode = 'PN044', hint = 'fault', column = '_',
       detail = 'setup.guesses must be 3, 5, 7 or 9';
   end if;
 
   -- ─── Validate the board size (how many words) ──────────────
   if (setup->>'word_count') is null then
-    raise exception 'Pick how many words go on the board'
-      using errcode = 'PN045', hint = 'validation', column = 'word_count',
+    raise exception 'A game with no board size reached the server'
+      using errcode = 'PN045', hint = 'fault', column = '_',
       detail = 'setup.word_count absent';
   end if;
   s_word_count := (setup->>'word_count')::int;
   if s_word_count < 5 or s_word_count > 20 then
-    raise exception 'The board holds 5 to 20 words'
-      using errcode = 'PN046', hint = 'validation', column = 'word_count',
+    raise exception 'A board size of % reached the server', s_word_count
+      using errcode = 'PN046', hint = 'fault', column = '_',
       detail = 'setup.word_count must be 5..20';
   end if;
 
   -- ─── Validate the dictionary difficulty band ───────────────
   if (setup->>'difficulty') is null then
-    raise exception 'Pick how obscure the words can get'
-      using errcode = 'PN047', hint = 'validation', column = 'difficulty',
+    raise exception 'A game with no word difficulty reached the server'
+      using errcode = 'PN047', hint = 'fault', column = '_',
       detail = 'setup.difficulty absent';
   end if;
   s_difficulty := (setup->>'difficulty')::int;
   if s_difficulty < 1 or s_difficulty > 6 then
-    raise exception 'Word difficulty runs from 1 to 6'
-      using errcode = 'PN048', hint = 'validation', column = 'difficulty',
+    raise exception 'A word difficulty of % reached the server', s_difficulty
+      using errcode = 'PN048', hint = 'fault', column = '_',
       detail = 'setup.difficulty must be 1..6';
   end if;
 
@@ -278,7 +278,7 @@ begin
     -- Effectively impossible (the band-1 clean set is large), but guard so a
     -- short board never silently ships.
     raise exception 'Not enough words at that difficulty for a board this size'
-      using errcode = 'PN049', hint = 'error', column = '_',
+      using errcode = 'PN049', hint = 'validation', column = 'difficulty',
       detail = 'common.words has fewer clean words than word_count at that band';
   end if;
 
@@ -332,8 +332,8 @@ begin
   if mode = 'coop' and setup->>'coop_style' = 'turns' then
     first_turn := (setup->>'first_turn_user_id')::uuid;
     if first_turn is null or not (first_turn = any(player_user_ids)) then
-      raise exception 'The first player must be one of the players'
-        using errcode = 'PN050', hint = 'validation', column = 'first_turn_user_id',
+      raise exception 'A first player who is not in the game reached the server'
+        using errcode = 'PN050', hint = 'fault', column = '_',
       detail = 'setup.first_turn_user_id must be one of the players';
     end if;
     perform common._assign_turn_order(new_id, first_turn);

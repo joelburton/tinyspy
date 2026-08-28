@@ -229,11 +229,12 @@ describe('wordle PlayArea — icon-only action rows', () => {
   })
 
   it('terminal "New game" button starts a fresh game with this setup/roster/mode', async () => {
-    // handleNewGame calls db.rpc('create_game', …).single() — give the mock
+    // handleNewGame calls db.rpc('create_game', …) — the RPC returns the
     // that shape for this call only.
     rpc.mockImplementation((name: string) =>
       name === 'create_game'
-        ? { single: () => Promise.resolve({ data: { id: 'next-game-id' }, error: null }) }
+        ? // envelope itself now, one jsonb value, so there is no `.single()`.
+          Promise.resolve({ data: { type: 'ok', data: { id: 'next-game-id' } }, error: null })
         : Promise.resolve({ error: null }),
     )
     const user = userEvent.setup()

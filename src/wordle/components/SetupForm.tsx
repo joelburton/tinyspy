@@ -47,6 +47,7 @@ export function SetupForm({
         members={members}
         selfId={selfId}
         numberOfPlayers={numberOfPlayers}
+        error={errors.player_user_ids}
         value={s.player_user_ids}
         onChange={(next) => set('player_user_ids', next)}
       />
@@ -66,6 +67,7 @@ export function SetupForm({
         <SelectField
           help="How many guesses you get (6 is classic)."
           name="max_guesses"
+          error={errors.max_guesses}
           value={s.max_guesses}
           onChange={(v) => set('max_guesses', Number(v))}
         >
@@ -79,6 +81,7 @@ export function SetupForm({
       <SetupSection label={dictLabel}>
         <DictBandField
           name="answer_source"
+          error={errors.answer_source}
           label="Answer source"
           length={5}
           extraLowOption={{ value: 0, label: 'Wordle' }}
@@ -89,6 +92,7 @@ export function SetupForm({
         />
         <DictBandField
           name="legal_guess"
+          error={errors.legal_guess}
           label="Legal guesses"
           length={5}
           minBand={answerMaxBand(s)}

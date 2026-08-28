@@ -33,14 +33,14 @@ create temp table club on commit drop as
 select pg_temp.create_club('Wordle loss', array['ada', 'bea']) as handle;
 
 create temp table g_coop on commit drop as
-select * from wordle.create_game(
+select (wordle.create_game(
   (select handle from club), pg_temp.wordle_setup(5),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop');
 
 create temp table g_comp on commit drop as
-select * from wordle.create_game(
+select (wordle.create_game(
   (select handle from club), pg_temp.wordle_setup(5),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],

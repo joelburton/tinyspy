@@ -108,7 +108,7 @@ select pg_temp.envelope_is(
     '{"guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid],
     'compete'),
-  '{"type":"not-ok","severity":"validation","field":"player_user_ids","dbcode":"PN042"}'::jsonb,
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN042"}'::jsonb,
   'a solo race is refused, and the picker is what to fix'
 );
 
@@ -142,7 +142,7 @@ select pg_temp.envelope_is(
     array['ada11111-1111-1111-1111-111111111111'::uuid,
            'bea22222-2222-2222-2222-222222222222'::uuid],
     'coop'),
-  '{"type":"not-ok","severity":"validation","field":"guesses","dbcode":"PN044"}'::jsonb,
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN044"}'::jsonb,
   'guesses out of range names the guesses field'
 );
 
@@ -153,7 +153,7 @@ select pg_temp.envelope_is(
     array['ada11111-1111-1111-1111-111111111111'::uuid,
            'bea22222-2222-2222-2222-222222222222'::uuid],
     'coop'),
-  '{"type":"not-ok","severity":"validation","field":"guesses","dbcode":"PN043"}'::jsonb,
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN043"}'::jsonb,
   'missing guesses names the guesses field'
 );
 
@@ -164,7 +164,7 @@ select pg_temp.envelope_is(
     array['ada11111-1111-1111-1111-111111111111'::uuid,
            'bea22222-2222-2222-2222-222222222222'::uuid],
     'coop'),
-  '{"type":"not-ok","severity":"validation","field":"word_count","dbcode":"PN045"}'::jsonb,
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN045"}'::jsonb,
   'missing word_count names the word_count field'
 );
 
@@ -175,12 +175,14 @@ select pg_temp.envelope_is(
     array['ada11111-1111-1111-1111-111111111111'::uuid,
            'bea22222-2222-2222-2222-222222222222'::uuid],
     'coop'),
-  '{"type":"not-ok","severity":"validation","field":"word_count","dbcode":"PN046"}'::jsonb,
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN046"}'::jsonb,
   'word_count out of range names the word_count field'
 );
 
 -- A SHARED guard's raise (common.require_valid_timer), caught by this
--- function's handler and named for the field the form actually draws.
+-- function's handler. A FAULT rather than a validation: the timer control
+-- always sends a kind and keeps the last VALID seconds, so neither of these
+-- can come from the form — arriving means something else is wrong.
 select pg_temp.envelope_is(
   psychicnum.create_game(
     (select handle from club),
@@ -188,8 +190,8 @@ select pg_temp.envelope_is(
     array['ada11111-1111-1111-1111-111111111111'::uuid,
            'bea22222-2222-2222-2222-222222222222'::uuid],
     'coop'),
-  '{"type":"not-ok","severity":"validation","field":"timer","dbcode":"PN035"}'::jsonb,
-  'a missing timer names the timer field'
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN035"}'::jsonb,
+  'a missing timer is a fault — the control always sends one'
 );
 
 select pg_temp.envelope_is(
@@ -199,8 +201,8 @@ select pg_temp.envelope_is(
     array['ada11111-1111-1111-1111-111111111111'::uuid,
            'bea22222-2222-2222-2222-222222222222'::uuid],
     'coop'),
-  '{"type":"not-ok","severity":"validation","field":"timer","dbcode":"PN039"}'::jsonb,
-  'an out-of-range countdown names the timer field too'
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN039"}'::jsonb,
+  'an out-of-range countdown is a fault — the box keeps the last valid length'
 );
 
 select pg_temp.envelope_is(
@@ -210,7 +212,7 @@ select pg_temp.envelope_is(
     array['ada11111-1111-1111-1111-111111111111'::uuid,
            'bea22222-2222-2222-2222-222222222222'::uuid],
     'coop'),
-  '{"type":"not-ok","severity":"validation","field":"difficulty","dbcode":"PN048"}'::jsonb,
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN048"}'::jsonb,
   'a band outside 1..6 names the difficulty field'
 );
 

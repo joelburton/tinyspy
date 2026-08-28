@@ -124,7 +124,7 @@ select pg_temp.envelope_is(
     (select handle from club),
     '{"timer":{"kind":"none"},"band":7}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop'),
-  '{"type":"not-ok","severity":"validation","field":"band","dbcode":"PN051"}'::jsonb,
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN051"}'::jsonb,
   'a band outside 1..6 names the band field');
 -- A band the library has no boards for (band 3 has none here). A validation
 -- rather than an error: the fix is the other difficulty, and that is the field.
