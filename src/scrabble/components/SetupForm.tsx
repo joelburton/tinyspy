@@ -53,6 +53,7 @@ export function SetupForm({ value, onChange, mode, players, playerCount }: Setup
       />
       <SetupSection label={dictLabel}>
         <DictBandField
+          name="dict_2"
           label="2-letter words"
           length={2}
           minBand={1}
@@ -61,6 +62,7 @@ export function SetupForm({ value, onChange, mode, players, playerCount }: Setup
           onChange={(dict_2) => onChange({ ...s, dict_2 })}
         />
         <DictBandField
+          name="dict_3plus"
           label="Longer words (3+)"
           length="3+"
           minBand={1}
@@ -101,6 +103,7 @@ export function SetupForm({ value, onChange, mode, players, playerCount }: Setup
           />
           {s.ai_count > 0 && (
             <SelectField
+              name="ai_level"
               label="Skill"
               value={s.ai_level}
               onChange={(v) => onChange({ ...s, ai_level: v as AiLevel })}

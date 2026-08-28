@@ -2,28 +2,12 @@
 
 import type { ReactNode } from 'react'
 import { Field } from './Field'
+import type { AllFieldProps } from './fieldProps'
 import styles from './SelectField.module.css'
 
-type Props = {
-  /** Optional field label rendered above the select. Omit it when the select
-   *  sits inside a form section that already supplies a heading (a `<fieldset>`
-   *  legend), in which case just the bare styled `<select>` is returned. */
-  label?: string
-  /** The selected option's value. */
-  value: string | number
-  /** Fired with the raw selected string; the caller parses (e.g. `Number(v)`)
-   *  since a native `<select>` value is always a string. */
+type Props = AllFieldProps<string | number> & {
   onChange: (value: string) => void
-  disabled?: boolean
-  /** Optional `name` on the underlying `<select>`. */
-  name?: string
-  /** What the setting is about, between the caption and the control. */
-  help?: ReactNode
-  /** How to type it, under the control. */
-  entryHelp?: ReactNode
-  /** What's wrong with what's there. Rings the control and says why. */
-  error?: string | null
-  /** The `<option>` elements. */
+  /** The `<option>`s. */
   children: ReactNode
 }
 

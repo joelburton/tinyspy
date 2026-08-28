@@ -85,6 +85,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
         {/* The board shows this many words; three of them are the hidden
             secrets, so a bigger board is more haystack. Same in both modes. */}
         <SelectField
+          name="word_count"
           help={<>{s.word_count} words on the board — find the 3 secrets among them.</>}
           value={s.word_count}
           onChange={(v) => onChange({ ...s, word_count: Number(v) })}
@@ -100,6 +101,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
         {/* Dictionary band: board words are drawn from common.words at
             difficulty ≤ this (harder bands add more obscure words). */}
         <DictBandField
+          name="difficulty"
           help="How obscure the board words can get."
           length={null}
           minBand={1}

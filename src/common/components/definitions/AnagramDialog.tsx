@@ -112,7 +112,6 @@ export function AnagramDialog({ onClose }: { onClose: () => void }) {
               name="letters"
               // No caption: this box IS the dialog, and the titlebar above it
               // already says "Anagrams".
-              ariaLabel="Letters to anagram"
               // Autofocus so the player can type immediately after the
               // shortcut opens the dialog.
               autoFocus

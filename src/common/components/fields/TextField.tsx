@@ -1,61 +1,22 @@
 // cs-unmet
 
-import type { ReactNode } from 'react'
 import { Field } from './Field'
+import type { AllFieldProps } from './fieldProps'
 import styles from './TextField.module.css'
 
-type Props = {
-  /**
-   * The caption above the control. A ReactNode, because CreateClubPage's
-   * carries a live hint beside the word ("Club name (becomes handle: jb)").
-   *
-   * **Omit it for no caption row at all**. Some fields ARE
-   * the surface — a search box in a lookup dialog, where a caption above one
-   * input in a one-input panel says nothing the title has not. Those pass
-   * `ariaLabel` instead, so the control still has a name.
-   */
-  label?: ReactNode
-  /** The accessible name when there is no caption. Exactly one of `label` and
-   *  `ariaLabel` is expected: a caption names the control by wrapping it, and
-   *  this names it when nothing is drawn. It is a plain string because a name
-   *  is text, where a caption can be markup. */
-  ariaLabel?: string
-  value: string
+type Props = AllFieldProps<string> & {
   onChange: (value: string) => void
-  /** A textarea instead of a one-line input. Same field, more room — not a
-   *  different kind, which is why it's a prop and not a second component. */
+  /** A textarea rather than an input, for a value with room to breathe. */
   multiline?: boolean
-  /** Textarea height, in rows. Ignored for a single-line field. */
   rows?: number
-  /** What the setting is about, between the caption and the control. */
-  help?: ReactNode
-  /** HOW TO TYPE IT — advice about the entry, under the control. Where `help`
-   *  says what the setting is, this says how to give it. */
-  entryHelp?: ReactNode
-  /** WHAT'S WRONG with what's there now. Rings the control in the fault color
-   *  and says why underneath. `null` for nothing wrong.
-   *
-   *  A setup form does NOT use this — its errors collect at the bottom, beside
-   *  the Start they gate. This is for a form where the
-   *  problem belongs to one entry. */
-  error?: string | null
   placeholder?: string
   maxLength?: number
   required?: boolean
   autoFocus?: boolean
-  disabled?: boolean
-  name?: string
-  /** `email` gets the right keyboard on a phone and the browser's own check.
-   *  Everything else is text; a number is `<NumberField>`. */
   type?: 'text' | 'email'
-  /** Phone-keyboard and autofill hints — the sign-in code wants a numeric pad
-   *  and the one-time-code autofill. */
   inputMode?: 'numeric'
   pattern?: string
   autoComplete?: string
-  /** Where the field sits in ITS OWN parent — a search box shares a flex row
-   *  with its button and has to grow. Placement is the caller's, always. */
-  className?: string
 }
 
 /**
@@ -79,7 +40,6 @@ type Props = {
  */
 export function TextField({
   label,
-  ariaLabel,
   help,
   entryHelp,
   error,
@@ -101,7 +61,6 @@ export function TextField({
 }: Props) {
   const shared = {
     className: styles.control,
-    'aria-label': label === undefined ? ariaLabel : undefined,
     'aria-invalid': error ? true : undefined,
     value,
     onChange: (e: { target: { value: string } }) => onChange(e.target.value),

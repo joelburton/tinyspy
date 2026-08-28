@@ -1,80 +1,18 @@
 // cs-unmet
 
-import type { ReactNode } from 'react'
 import { cls } from '../../lib/util/cls'
 import { Field } from './Field'
+import type { AllFieldProps } from './fieldProps'
 import { groupTiles } from './groupTiles'
 import styles from './ManualBoardField.module.css'
 
-type Props = {
-  /** The text as typed. Controlled — the caller owns it, and stores whatever
-   *  shape its own setup blob wants. */
-  /** The `name` on the underlying control, and the field's key in the form's
-   *  values and errors. It matches the RPC parameter the value is sent as —
-   *  see `FormErrors`. */
-  name?: string
-  value: string
-  /** Fired with the RAW keystroke result. The caller cleans it (each game's
-   *  rules differ: spellingbee lowercases and truncates, boggle keeps case and
-   *  spaces) and decides what reaches its setup. */
+type Props = AllFieldProps<string> & {
   onChange: (raw: string) => void
-  /** An EXAMPLE, in the same shape as real input — `A-CHIROT`, `MOTH`,
-   *  `ABC-DEF-GHI-JKL`. It teaches the format, which is the whole reason this
-   *  field can be a single box with no sub-labels. */
   placeholder: string
-  /** How wide, in characters of the expected content — so a field states what
-   *  it holds rather than a hand-picked rem width. `full` is boggle, whose
-   *  content is a whole grid. */
   chars: number | 'full'
-  /** The caption above the box. Every field can have one; today's five callers
-   *  don't pass it, because each sits in a `<SetupSection>` whose summary is
-   *  already the caption ("Custom letters: A-CHIROT"). The prop exists so the
-   *  next one doesn't have to reinvent the row. */
-  label?: ReactNode
-  /** The name, for when there is no caption — which is all five callers today. */
-  ariaLabel?: string
-  /**
-   * Draw the entry uppercase. Default true.
-   *
-   * **boggle passes false, and it is the only one.** A display transform does
-   * not change the value, which is harmless where case carries no meaning — but
-   * boggle's two-letter tiles are recognized BY their case (`Qu` is one tile,
-   * `QU` is a Q beside a U), so a field showing `QU` while holding `Qu` would
-   * contradict the board it is describing, and contradict the recap and the
-   * printout, which both say `Qu`.
-   */
   uppercase?: boolean
-  /** Cap the keystrokes. Omit where length is checked by the validator instead
-   *  (boggle counts tiles, not characters). */
   maxLength?: number
-  /** What the setting is about, between the caption and the box. */
-  help?: ReactNode
-  /** How to type it, under the box. */
-  entryHelp?: ReactNode
-  /** What's wrong with what's there. Rings the box and says why. */
-  error?: string | null
-  /**
-   * Where the dashes fall — the sizes of each group of TILES, in order.
-   * `[1, 6]` is freebee's centre-plus-six, `[3, 3, 3, 3]` is letterboxed's four
-   * sides, boggle passes its n rows of n. Omit for no grouping (wordiply's
-   * starter is one word).
-   *
-   * **The field owns the dashes**, so callers store and hand over the letters
-   * alone and get them back the same way. Typing a dash yourself is harmless —
-   * it is stripped and re-inserted where it belongs.
-   *
-   * This is why the echo went. The dashes show the reading
-   * directly: type `ABQU` into a 4-wide boggle board and the dash lands a tile
-   * early, because `QU` was read as two tiles and `Qu` would have been one.
-   */
   groups?: number[]
-  /**
-   * How the value splits into TILES. One per character by default.
-   *
-   * boggle passes `readTiles`, because `Qu` is one tile and grouping must not
-   * cut it in half — the whole point of showing the dashes is that they fall on
-   * tile boundaries.
-   */
   tiles?: (value: string) => string[]
 }
 
@@ -104,7 +42,6 @@ export function ManualBoardField({
   placeholder,
   chars,
   label,
-  ariaLabel,
   help,
   entryHelp,
   error,
@@ -144,7 +81,6 @@ export function ManualBoardField({
           value={shown}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          aria-label={label === undefined ? ariaLabel : undefined}
           aria-invalid={error ? true : undefined}
           className={cls(styles.input, uppercase && styles.upper)}
           // Sized from what it holds rather than a hand-picked rem: `ch` is

@@ -27,7 +27,7 @@ function Harness({ groups }: { groups?: number[] }) {
   const [value, setValue] = useState('')
   return (
     <ManualBoardField
-      ariaLabel="Custom board"
+      name="custom_board"
       value={value}
       onChange={setValue}
       placeholder="ABC-DEF-GHI-JKL"
@@ -41,7 +41,7 @@ describe('ManualBoardField separators', () => {
   it('groups as you type, without re-grouping its own dashes', async () => {
     const user = userEvent.setup()
     render(<Harness groups={[3, 3, 3, 3]} />)
-    const box = screen.getByRole('textbox', { name: 'Custom board' })
+    const box = screen.getByRole('textbox')
 
     await user.type(box, 'BICAEMYUKLRF')
 
@@ -53,7 +53,7 @@ describe('ManualBoardField separators', () => {
 
     for (const pasted of ['BIC-AEM-YUK-LRF', 'BIC AEM YUK LRF', 'BICAEMYUKLRF']) {
       const { unmount } = render(<Harness groups={[3, 3, 3, 3]} />)
-      const box = screen.getByRole('textbox', { name: 'Custom board' })
+      const box = screen.getByRole('textbox')
       await user.click(box)
       await user.paste(pasted)
       expect(box, `pasted as "${pasted}"`).toHaveValue('BIC-AEM-YUK-LRF')
@@ -64,7 +64,7 @@ describe('ManualBoardField separators', () => {
   it('leaves the text alone when no grouping is asked for', async () => {
     const user = userEvent.setup()
     render(<Harness />)
-    const box = screen.getByRole('textbox', { name: 'Custom board' })
+    const box = screen.getByRole('textbox')
 
     await user.type(box, 'MOTH')
 
@@ -76,7 +76,7 @@ describe('ManualBoardField separators', () => {
     const user = userEvent.setup()
     render(
       <ManualBoardField
-        ariaLabel="Custom board"
+        name="custom_board"
         value="BICAEM"
         onChange={onChange}
         placeholder="ABC-DEF-GHI-JKL"
@@ -84,7 +84,7 @@ describe('ManualBoardField separators', () => {
         groups={[3, 3, 3, 3]}
       />,
     )
-    const box = screen.getByRole('textbox', { name: 'Custom board' })
+    const box = screen.getByRole('textbox')
     // The field is showing "BIC-AEM"; typing Y makes the DOM value "BIC-AEMY",
     // and that is what the caller hears. Cleaning it is the caller's job — each
     // game's rules differ — and the next render regroups whatever it stores.

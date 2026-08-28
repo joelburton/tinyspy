@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 import { cls } from '../../lib/util/cls'
 import { CheckboxField } from './CheckboxField'
 import { Field } from './Field'
+import type { AllFieldProps } from './fieldProps'
 import styles from './CheckboxListField.module.css'
 
 /** One option in the list. `label` is a node because a caller routinely puts
@@ -17,27 +18,9 @@ export type CheckboxListOption = {
   description?: ReactNode
 }
 
-type Props = {
-  /** The field's name — its key in the form's values and errors. */
-  name: string
-  /** The caption above the list. */
-  label?: ReactNode
-  /** What the setting is about, between the caption and the list. */
-  help?: ReactNode
-  /** How to give it, under the list. */
-  entryHelp?: ReactNode
-  /** What's wrong with what's ticked. */
-  error?: string | null
-  /** The ticked options. A Set because the question every row asks is "am I in
-   *  it?", and an array would make that a scan per row. */
-  value: Set<string>
-  /** The whole new set — not the option that changed. A caller that wants the
-   *  difference can compare, but every caller so far wants the set. */
+type Props = AllFieldProps<Set<string>> & {
   onChange: (next: Set<string>) => void
   options: CheckboxListOption[]
-  disabled?: boolean
-  /** Where the field sits in ITS OWN parent. Placement is the caller's. */
-  className?: string
 }
 
 /**
@@ -92,7 +75,7 @@ export function CheckboxListField({
           // FIELD's name is the list's key in the form, which is a different
           // thing — one question, many boxes.
           name={`${name}.${option.value}`}
-          checked={value.has(option.value)}
+          value={value.has(option.value)}
           onChange={() => toggle(option.value)}
           disabled={disabled}
           className={styles.row}

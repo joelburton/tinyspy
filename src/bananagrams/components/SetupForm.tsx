@@ -92,7 +92,7 @@ export function SetupForm({ value, onChange, playerCount }: SetupBodyProps) {
         <CheckboxField
           help="By default a dumped tile goes back to the bunch. With this, it goes to the bag. You still draw three either way."
           name="dump_to_bag"
-          checked={s.dump_to_bag}
+          value={s.dump_to_bag}
           onChange={(dump_to_bag) => onChange({ ...s, dump_to_bag })}
         >
           Return dumped tiles to the bag (out of play)
@@ -118,6 +118,7 @@ export function SetupForm({ value, onChange, playerCount }: SetupBodyProps) {
             vocabulary, so they get their own band. */}
         <div className={styles.dictRow}>
           <DictBandField
+            name="dict_2"
             label="2-letter words"
             length={2}
             minBand={2}
@@ -126,6 +127,7 @@ export function SetupForm({ value, onChange, playerCount }: SetupBodyProps) {
             onChange={(dict_2) => onChange({ ...s, dict_2 })}
           />
           <DictBandField
+            name="dict_3plus"
             label="Longer words (3+)"
             length="3+"
             minBand={1}

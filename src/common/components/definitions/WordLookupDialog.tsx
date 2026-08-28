@@ -57,7 +57,6 @@ export function WordLookupDialog({ onClose }: Props) {
               name="query"
               // No caption: this box IS the panel, and the titlebar says what it
               // looks up.
-              ariaLabel="Word to look up"
               // Autofocus so the player can type immediately after the
               // shortcut opens the dialog.
               autoFocus

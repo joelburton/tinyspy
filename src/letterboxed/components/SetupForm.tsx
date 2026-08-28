@@ -76,6 +76,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
           "par + 3" says exactly how much room you are giving yourself. */}
       <SetupSection label={`Word limit: ${wordLimitLabel}`}>
         <SelectField
+          name="extra_words"
           help={<>Every board can be solved in {PAR}.</>}
         value={s.extra_words}
         onChange={(v) => onChange({ ...s, extra_words: Number(v) })}
@@ -93,6 +94,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
       <SetupSection label={`Dictionary: ${difficultyValue(s.legal_band)}`}>
         {/* Higher = easier here, unlike most games' difficulty bands. */}
         <DictBandField
+          name="legal_band"
           help="A higher band accepts more words."
           length={null}
           minBand={1}
@@ -120,7 +122,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
       <SetupSection label={customSidesLabel}>
         <ManualBoardField
           help="Leave blank to roll a random board, or type one: all twelve letters, clockwise from the top-left corner. Separators are ignored, so paste it however you have it written."
-          ariaLabel="Custom board"
+          name="custom_sides"
           value={typedSides}
           onChange={(raw) => {
             setTypedSides(raw)

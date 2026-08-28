@@ -2,28 +2,10 @@
 
 import type { ReactNode } from 'react'
 import { Field } from './Field'
+import type { AllFieldProps } from './fieldProps'
 import styles from './ReadOnlyField.module.css'
 
-type Props = {
-  /** The caption above the value. Optional, like every field's. */
-  label?: ReactNode
-  /** What the field is about, between the caption and the value. */
-  help?: ReactNode
-  /** How the value gets set, since you can't set it here — "chosen when you
-   *  claimed your handle". The same slot every other field has — it takes the
-   *  same props — and here it reads as a note under a value rather than typing
-   *  advice, because there is no typing to advise. */
-  entryHelp?: ReactNode
-  /** What's wrong — a value that couldn't be loaded, say. Rings nothing, since
-   *  there is no control to ring, but the sentence still belongs to the field. */
-  error?: string | null
-  /** What it says. Not editable, and not pretending to be. */
-  /** The field's key in the form's values and errors, matching the RPC
-   *  parameter the value is sent as (see `FormErrors`). Identity only here:
-   *  this field has no single input for a `name` attribute to sit on. */
-  name?: string
-  children: ReactNode
-}
+type Props = AllFieldProps<ReactNode>
 
 /**
  * A CAPTION OVER A VALUE YOU CANNOT CHANGE — your username on the profile
@@ -47,11 +29,11 @@ type Props = {
  * but not edit, an invite link say — that IS `<TextField readOnly>`, and both
  * names stay honest.
  */
-export function ReadOnlyField({ label, name, help, entryHelp, error, children }: Props) {
+export function ReadOnlyField({ label, name, help, entryHelp, error, value }: Props) {
   return (
     <Field label={label} help={help} entryHelp={entryHelp} error={error}>
       <span className={styles.value} data-field={name}>
-        {children}
+        {value}
       </span>
     </Field>
   )

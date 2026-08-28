@@ -151,6 +151,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
           (Obscure)"). */}
       <SetupSection label={dictLabel}>
         <DictBandField
+          name="required"
           label="Required words"
           length={null}
           minBand={1}
@@ -160,6 +161,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
           onChange={(required) => onChange({ ...s, required })}
         />
         <DictBandField
+          name="legal"
           label="Legal (bonus) words"
           length={null}
           minBand={s.required}
@@ -180,7 +182,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
       <SetupSection label={customLabel}>
         <ManualBoardField
           help="Leave blank for a random board, or set your own: a center letter plus six other letters. No S, and all seven must be different."
-          ariaLabel="Custom letters"
+          name="custom_letters"
           value={customEntry}
           onChange={(raw) => {
             const { center, letters } = splitCustomLetters(raw)

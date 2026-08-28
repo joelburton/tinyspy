@@ -25,14 +25,14 @@ describe('AnagramDialog', () => {
   it('sends the letters case-intact (pins mean case matters) on Enter', async () => {
     const user = userEvent.setup()
     render(<AnagramDialog onClose={vi.fn()} />)
-    await user.type(screen.getByLabelText('Letters to anagram'), 'Acer{Enter}')
+    await user.type(screen.getByRole('textbox'), 'Acer{Enter}')
     expect(mockRpc).toHaveBeenCalledWith('anagrams', { letters: 'Acer' })
   })
 
   it('drops non-letter junk on entry; too-short input never submits', async () => {
     const user = userEvent.setup()
     render(<AnagramDialog onClose={vi.fn()} />)
-    const input = screen.getByLabelText<HTMLInputElement>('Letters to anagram')
+    const input = screen.getByRole<HTMLInputElement>('textbox')
     await user.type(input, 'a1 c-e?')
     expect(input.value).toBe('ace?')
     await user.clear(input)
@@ -53,7 +53,7 @@ describe('AnagramDialog', () => {
     })
     const user = userEvent.setup()
     render(<AnagramDialog onClose={vi.fn()} />)
-    await user.type(screen.getByLabelText('Letters to anagram'), 'Acer{Enter}')
+    await user.type(screen.getByRole('textbox'), 'Acer{Enter}')
 
     await waitFor(() => expect(screen.getByText('2 words')).toBeInTheDocument())
     const acer = screen.getByText('ACER').closest('li')!
@@ -64,7 +64,7 @@ describe('AnagramDialog', () => {
   it('shows the honest empty state and surfaces an RPC error', async () => {
     const user = userEvent.setup()
     render(<AnagramDialog onClose={vi.fn()} />)
-    const input = screen.getByLabelText('Letters to anagram')
+    const input = screen.getByRole('textbox')
     await user.type(input, 'zzzz{Enter}')
     await waitFor(() => expect(screen.getByText('No words.')).toBeInTheDocument())
 
@@ -114,7 +114,7 @@ describe('AnagramDialog', () => {
       },
       error: null,
     })
-    await user.type(screen.getByLabelText('Letters to anagram'), 'acer{Enter}')
+    await user.type(screen.getByRole('textbox'), 'acer{Enter}')
     await waitFor(() =>
       expect(
         screen.getByText("Dictionary service couldn't be reached — try again later"),
@@ -132,7 +132,7 @@ describe('AnagramDialog', () => {
       data: { type: 'not-ok', severity: 'fault', message: 'That table is gone', dbcode: 'PN900' },
       error: null,
     })
-    await user.type(screen.getByLabelText('Letters to anagram'), 'acer{Enter}')
+    await user.type(screen.getByRole('textbox'), 'acer{Enter}')
     await waitFor(() =>
       expect(screen.getByText('That table is gone')).toBeInTheDocument(),
     )

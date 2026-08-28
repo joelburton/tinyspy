@@ -1,43 +1,21 @@
 // cs-unmet
 
-import type { ReactNode } from 'react'
 import { Dot } from '../text/Dot'
 import { Field } from './Field'
+import type { AllFieldProps } from './fieldProps'
 import type { Member } from '../../lib/games'
 import styles from './PlayersField.module.css'
 
-type Props = {
+type Props = AllFieldProps<Set<string>> & {
   /** The club roster, in the order it should be listed. */
-  /** The field's key in the form's values and errors, matching the RPC
-   *  parameter the value is sent as (see `FormErrors`). A GROUP of controls, so
-   *  each one's own `name` is composed from it — there is no single input for
-   *  the field's name to sit on. */
-  name?: string
   members: Member[]
   /** The creating user. Always a player — their row is checked and disabled,
    *  because you cannot start a game you are not in. */
   selfId: string
-  /** Who is currently checked. */
-  selectedIds: Set<string>
   /** Fired with the member whose row was clicked. The parent owns the set —
    *  it also has to hand the SELECTED players to the game's own setup body (the
    *  turn-order "First player" picker lists only who will actually play). */
-  onToggle: (userId: string) => void
-  /** What the setting is about, between the caption and the control. */
-  help?: ReactNode
-  /** How to give it, under the control. */
-  entryHelp?: ReactNode
-  /** What's wrong with what's there. */
-  error?: string | null
-  /** A caption above the rows. Optional like every field's — and not passed
-   *  today, because the section around it already says "Players". */
-  label?: ReactNode
-  /** Disable every row while the create RPC is in flight. */
-  busy?: boolean
-  /** The count complaint, when there is one: "Pick at least 2 players." The
-   *  parent computes it, because the bounds come from the game's manifest and
-   *  the same count gates its Start button. */
-  hint?: string | null
+  onChange: (userId: string) => void
 }
 
 /**
@@ -69,20 +47,20 @@ export function PlayersField({
   name,
   members,
   selfId,
-  selectedIds,
-  onToggle,
-  busy,
-  hint,
+  value,
+  onChange,
+  disabled,
   label,
   help,
   entryHelp,
   error,
+  className,
 }: Props) {
   return (
     // `group`: the control is a SET of checkboxes, so a caption heads them as a
     // <legend> rather than pointing at one. No box of its own — the
     // <SetupSection> around it draws that.
-    <Field label={label} group help={help} entryHelp={entryHelp} error={error}>
+    <Field label={label} group help={help} entryHelp={entryHelp} error={error} className={className}>
       {members.map((m) => {
         const isSelf = m.user_id === selfId
         return (
@@ -92,12 +70,12 @@ export function PlayersField({
             title={isSelf ? "You're always a player" : undefined}
           >
             <input
-              name={name === undefined ? undefined : `${name}.${m.user_id}`}
+              name={`${name}.${m.user_id}`}
               type="checkbox"
-              checked={selectedIds.has(m.user_id)}
-              onChange={() => onToggle(m.user_id)}
+              checked={value.has(m.user_id)}
+              onChange={() => onChange(m.user_id)}
               // The creator can't deselect themselves.
-              disabled={busy || isSelf}
+              disabled={disabled || isSelf}
             />
             <Dot color={m.color} className={styles.dot} />
             <span>
@@ -107,7 +85,6 @@ export function PlayersField({
           </label>
         )
       })}
-      {hint && <p className={styles.hint}>{hint}</p>}
     </Field>
   )
 }

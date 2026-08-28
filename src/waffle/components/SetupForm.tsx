@@ -52,6 +52,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
       />
       <SetupSection label={dictLabel}>
         <DictBandField
+          name="difficulty"
           help="Which vocabulary the puzzle's words come from."
           length={5}
           minBand={1}

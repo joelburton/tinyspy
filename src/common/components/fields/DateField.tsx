@@ -1,32 +1,13 @@
 // cs-unmet
 
-import type { ReactNode } from 'react'
 import { Field } from './Field'
+import type { AllFieldProps } from './fieldProps'
 import styles from './DateField.module.css'
 
-type Props = {
-  /** The caption above the box. Optional, like every field's. */
-  label?: ReactNode
-  /** The name, for when there is no caption — "Puzzle date". */
-  ariaLabel?: string
-  /** `YYYY-MM-DD`, or `''` for no date. Kept as the RAW string so the box stays
-   *  controlled even for a date that resolves to nothing. */
-  /** The `name` on the underlying control, and the field's key in the form's
-   *  values and errors. It matches the RPC parameter the value is sent as —
-   *  see `FormErrors`. */
-  name?: string
-  value: string
+type Props = AllFieldProps<string> & {
   onChange: (value: string) => void
-  /** Bounds, same format. crosswords' archive starts somewhere. */
   min?: string
   max?: string
-  disabled?: boolean
-  /** What the setting is about, between the caption and the box. */
-  help?: ReactNode
-  /** How to type it, under the box. */
-  entryHelp?: ReactNode
-  /** What's wrong with what's there. Rings the box and says why. */
-  error?: string | null
 }
 
 /**
@@ -46,7 +27,6 @@ type Props = {
 export function DateField({
   name,
   label,
-  ariaLabel,
   value,
   onChange,
   min,
@@ -63,7 +43,6 @@ export function DateField({
           name={name}
           id={id}
           type="date"
-          aria-label={label === undefined ? ariaLabel : undefined}
           value={value}
           min={min}
           max={max}

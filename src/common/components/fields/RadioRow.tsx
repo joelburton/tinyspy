@@ -2,31 +2,17 @@
 
 import type { ReactNode } from 'react'
 import { Field } from './Field'
+import type { AllFieldProps } from './fieldProps'
 import styles from './RadioRow.module.css'
 
 type Option<T> = { value: T; label: ReactNode }
 
-type Props<T extends string | number> = {
-  /** The radio group's `name` (mutually-exclusive within it). */
-  name: string
+type Props<T extends string | number> = AllFieldProps<T | undefined> & {
   options: Option<T>[]
-  /** The currently-selected value; the matching option renders checked.
-   *  `undefined` (no selection yet) leaves them all unchecked. */
-  value: T | undefined
   onChange: (value: T) => void
   /** Optional leading text inside the row, before the options
    *  (boggle: "Minimum word length:"). */
   prefix?: ReactNode
-  /** A caption above the row, in the position every other field's sits. */
-  label?: ReactNode
-  /** What the setting is about, between the caption and the control. */
-  help?: ReactNode
-  /** How to give it, under the control. */
-  entryHelp?: ReactNode
-  /** What's wrong with what's there. */
-  error?: string | null
-  /** Where the field sits in ITS OWN parent. */
-  className?: string
 }
 
 /**

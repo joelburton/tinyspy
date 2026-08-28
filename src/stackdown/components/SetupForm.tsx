@@ -27,6 +27,7 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
     <>
       <SetupSection label={dictLabel}>
         <DictBandField
+          name="band"
           help="Band 1 is the common everyday words; band 2 uses the next tier of less-common ones."
           label="Word difficulty"
           length={5}

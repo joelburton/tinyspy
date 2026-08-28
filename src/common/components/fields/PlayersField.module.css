@@ -23,11 +23,3 @@
   color: var(--page-text-muted-color);
   font-size: 0.85em;
 }
-
-/* "Pick at least 2 players." — a count complaint, so it wears the fault color
-   rather than the help text's grey: it is the reason Start is disabled. */
-/* @@ */ .hint {
-  margin: 0.4rem 0 0;
-  font-size: 0.85rem;
-  color: var(--chrome-fault-color);
-}

@@ -1,26 +1,11 @@
 // cs-unmet
 
-import type { ReactNode } from 'react'
 import { ColorChoiceList } from '../account/ColorChoiceList'
 import { Field } from './Field'
+import type { AllFieldProps } from './fieldProps'
 
-type Props = {
-  /** The caption. Defaults to "Player color", which is what both callers say. */
-  label?: string
-  /** What the setting is about, between the caption and the control. */
-  help?: ReactNode
-  /** How to give it, under the control. */
-  entryHelp?: ReactNode
-  /** What's wrong with what's there. */
-  error?: string | null
-  /** The field's key in the form's values and errors, matching the RPC
-   *  parameter the value is sent as (see `FormErrors`). Identity only: the
-   *  swatches are `<button type="button">`, and `name` on a button means
-   *  "submitted with the form", which these never are. */
-  name?: string
-  value: string | null
+type Props = AllFieldProps<string | null> & {
   onChange: (color: string) => void
-  disabled?: boolean
 }
 
 /**

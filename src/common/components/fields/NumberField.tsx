@@ -1,35 +1,17 @@
 // cs-unmet
 
-import type { ReactNode } from 'react'
 import { Field } from './Field'
+import type { AllFieldProps } from './fieldProps'
 import styles from './NumberField.module.css'
 
-type Props = {
-  /** The `name` on the underlying input. */
-  name: string
-  /** The caption above the box. DRAWN, like every other field's — it wasn't at
-   *  first, and three number boxes shipped with no captions at all because the
-   *  label went only to `aria-label` (Joel spotted it on screen, 2026-08-26). */
-  label?: ReactNode
-  /** The name, for when there is no caption. */
-  ariaLabel?: string
-  /** The current value. `NaN` shows an empty box, which is what a half-typed
-   *  number looks like: the caller decides whether that blocks Start. */
-  value: number
+type Props = AllFieldProps<number> & {
   onChange: (value: number) => void
   min?: number
   max?: number
   step?: number
-  /** How wide, in characters of the largest value it can hold. `3` fits 144.
-   *  The box adds room for its padding and its spinner arrows on top. */
+  /** How many characters wide the box is, so a 1-digit band doesn't get a
+   *  20-character input. */
   chars: number
-  disabled?: boolean
-  /** What the setting is about, between the caption and the box. */
-  help?: ReactNode
-  /** How to type it, under the box. */
-  entryHelp?: ReactNode
-  /** What's wrong with what's there. Rings the box and says why. */
-  error?: string | null
 }
 
 /**
@@ -53,7 +35,6 @@ type Props = {
 export function NumberField({
   name,
   label,
-  ariaLabel,
   value,
   onChange,
   min,
@@ -72,7 +53,6 @@ export function NumberField({
           id={id}
           type="number"
           name={name}
-          aria-label={label === undefined ? ariaLabel : undefined}
           inputMode="numeric"
           min={min}
           max={max}

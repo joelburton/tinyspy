@@ -85,6 +85,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
           Revised"); expand to change it. */}
       <SetupSection label={diceLabel}>
         <SelectField
+          name="dice_set"
           label="Dice set"
           value={s.dice_set}
           // CHANGING THE DICE SET CLEARS THE CUSTOM BOARD. The set fixes the
@@ -119,7 +120,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
       <SetupSection label={customBoardLabel}>
         <ManualBoardField
           help={<>Leave blank to roll a random board, or type one: every tile, rows top to bottom{diceSet ? ` (${diceSet.n * diceSet.n} of them for a ${diceSet.desc})` : ''}. Write a two-letter tile the way it prints — {twoLetterList()} — and{' '} <strong>?</strong> for a blank.</>}
-          ariaLabel="Custom board"
+          name="custom_board"
           value={customBoard}
           onChange={(raw) =>
             onChange({
@@ -151,6 +152,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
           spellingbee's section of the same name. */}
       <SetupSection label={dictLabel}>
         <DictBandField
+          name="band"
           label="Required words"
           help="What the board is built around, and what the end-of-game reveal lists."
           length={null}
@@ -162,6 +164,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
           onChange={(band) => onChange({ ...s, band, legal_band: Math.max(band, s.legal_band) })}
         />
         <DictBandField
+          name="legal_band"
           label="Legal (bonus) words"
           help="How obscure a non-required word can be and still score as a bonus. These filter on difficulty only (any spelling or dialect counts), so a higher band rewards digging up rarer finds."
           length={null}
@@ -176,6 +179,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
           Min length: 3"). */}
       <SetupSection label={scoringLabel}>
         <SelectField
+          name="scoring_ladder"
           label="Ladder"
           value={s.scoring_ladder}
           onChange={(ladder) => onChange({ ...s, scoring_ladder: ladder as LadderName })}
@@ -201,6 +205,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
       {/* "Winning" — the summary shows the current target (e.g. "Win at: 70%"). */}
       <SetupSection label={winLabel}>
         <SelectField
+          name="win_percent"
           help={<>Win by reaching this share of the required-words score {mode === 'compete' ? ' (first player there wins)' : ' (the team wins together)'} , or <strong>None</strong> to play until you End (or the timer runs out).</>}
           label="Win at"
           value={s.win_percent === null ? 'none' : String(s.win_percent)}

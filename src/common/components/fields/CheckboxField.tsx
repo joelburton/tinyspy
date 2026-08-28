@@ -2,33 +2,14 @@
 
 import type { ReactNode } from 'react'
 import { Field } from './Field'
+import type { AllFieldProps } from './fieldProps'
 import styles from './CheckboxField.module.css'
 
-type Props = {
-  /** The `name` on the underlying input. */
-  name: string
-  /** On or off. */
-  checked: boolean
+type Props = AllFieldProps<boolean> & {
   onChange: (checked: boolean) => void
   /** What the box means, sitting beside it — "Unique letters only". The whole
    *  row is the click target, so this is inside the `<label>`. */
   children: ReactNode
-  disabled?: boolean
-  /** A caption ABOVE the row, in the position every other field's sits.
-   *  Separate from `children`, which is the text beside the box — and optional,
-   *  because no caller passes one today: a checkbox whose inline text already
-   *  says what it does needs no second heading. The prop exists so this field
-   *  has the same shape as the rest. */
-  label?: ReactNode
-  /** What the setting is about, between the caption and the control. */
-  help?: ReactNode
-  /** How to give it, under the control. */
-  entryHelp?: ReactNode
-  /** What's wrong with what's there. */
-  error?: string | null
-  /** Where the row sits in ITS OWN parent — EditClubModal's gametype rows carry
-   *  a hairline and their own padding. Placement is the caller's, always. */
-  className?: string
 }
 
 /**
@@ -52,7 +33,7 @@ type Props = {
  */
 export function CheckboxField({
   name,
-  checked,
+  value,
   onChange,
   children,
   disabled,
@@ -71,7 +52,7 @@ export function CheckboxField({
         <input
           type="checkbox"
           name={name}
-          checked={checked}
+          checked={value}
           disabled={disabled}
           onChange={(e) => onChange(e.target.checked)}
         />

@@ -63,6 +63,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
       </SetupSection>
       <SetupSection label={dictLabel}>
         <DictBandField
+          name="answer_source"
           label="Answer source"
           length={5}
           extraLowOption={{ value: 0, label: 'Wordle' }}
@@ -72,6 +73,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
           onChange={(answer_source) => onChange({ ...s, answer_source })}
         />
         <DictBandField
+          name="legal_guess"
           label="Legal guesses"
           length={5}
           minBand={answerMaxBand(s)}

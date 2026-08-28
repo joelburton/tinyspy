@@ -9,6 +9,7 @@ describe('DictBandField', () => {
   it('lists all six bands as "N: Label: SAMPLES" and disables out-of-range', () => {
     render(
       <DictBandField
+        name="band"
         label="Difficulty"
         length={5}
         minBand={2}
@@ -31,6 +32,7 @@ describe('DictBandField', () => {
     const onChange = vi.fn()
     render(
       <DictBandField
+        name="band"
         label="Difficulty"
         length={2}
         minBand={1}
@@ -45,14 +47,14 @@ describe('DictBandField', () => {
 
   it('shows length-appropriate samples (2-letter set)', () => {
     render(
-      <DictBandField length={2} minBand={1} maxBand={6} value={1} onChange={() => {}} />,
+      <DictBandField name="band" length={2} minBand={1} maxBand={6} value={1} onChange={() => {}} />,
     )
     expect(screen.getAllByRole('option')[1]).toHaveTextContent('2: Common: AX EX OW BI YO')
   })
 
   it('drops the 2-letter words for the "3+" length', () => {
     render(
-      <DictBandField length="3+" minBand={1} maxBand={6} value={1} onChange={() => {}} />,
+      <DictBandField name="band" length="3+" minBand={1} maxBand={6} value={1} onChange={() => {}} />,
     )
     // Band 1 open is "OX CAT MILK HAPPY JUMP"; the 3+ set drops OX.
     const band1 = screen.getAllByRole('option')[0]
@@ -63,6 +65,7 @@ describe('DictBandField', () => {
   it('prepends an always-enabled extra option (wordle "0: Wordle")', () => {
     render(
       <DictBandField
+        name="band"
         label="Answer source"
         length={5}
         minBand={1}
@@ -81,6 +84,7 @@ describe('DictBandField', () => {
   it('disables the whole control when asked (stackdown is locked to band 1)', () => {
     render(
       <DictBandField
+        name="band"
         length={5}
         minBand={1}
         maxBand={1}

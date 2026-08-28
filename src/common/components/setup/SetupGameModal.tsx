@@ -147,7 +147,7 @@ export function SetupGameModal({
   // whole club. Recomputed each render as the picker toggles.
   const selectedPlayers = members.filter((m) => selectedIds.has(m.user_id))
   const countOk = playerCount >= minPlayers && playerCount <= maxPlayers
-  const playerHint =
+  const playerCountError =
     playerCount < minPlayers
       ? `Pick at least ${minPlayers} player${minPlayers === 1 ? '' : 's'}.`
       : playerCount > maxPlayers
@@ -260,10 +260,11 @@ export function SetupGameModal({
             <PlayersField
               members={members}
               selfId={selfId}
-              selectedIds={selectedIds}
-              onToggle={togglePlayer}
-              busy={busy}
-              hint={playerHint}
+              name="player_user_ids"
+              value={selectedIds}
+              onChange={togglePlayer}
+              disabled={busy}
+              error={playerCountError}
             />
           </SetupSection>
         )}

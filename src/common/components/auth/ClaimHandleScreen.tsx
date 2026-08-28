@@ -204,6 +204,7 @@ export function ClaimHandleScreen({ onClaimed, email }: Props) {
                 />
 
                 <ColorField
+                  name="chosen_color"
                   value={values.chosen_color}
                   onChange={(v) => set('chosen_color', v)}
                   error={errors.chosen_color}

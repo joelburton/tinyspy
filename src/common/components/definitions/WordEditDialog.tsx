@@ -320,7 +320,7 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
               <div className={styles.checks}>
                 <CheckboxField
                   name="slang"
-                  checked={values.slang}
+                  value={values.slang}
                   onChange={(on) => set('slang', on)}
                 >
                   slang
@@ -329,7 +329,7 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
                   <CheckboxField
                     key={d}
                     name={d}
-                    checked={values[d]}
+                    value={values[d]}
                     onChange={(on) => set(d, on)}
                   >
                     {d}

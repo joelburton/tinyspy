@@ -48,6 +48,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
 
       <SetupSection label={`Dictionary: ${difficultyValue(s.difficulty)}`}>
         <DictBandField
+          name="difficulty"
           length={null}
           minBand={1}
           maxBand={6}
@@ -70,7 +71,7 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
       <SetupSection label={customBaseLabel}>
         <ManualBoardField
           help="Leave blank for a random starter, or set your own: 2–4 letters that every guess must contain. Very short starters usually match too many words to make a puzzle."
-          ariaLabel="Custom starter"
+          name="custom_base"
           value={customBase}
           onChange={(raw) => onChange({ ...s, custom_base: cleanBase(raw) || undefined })}
           placeholder="MOTH"

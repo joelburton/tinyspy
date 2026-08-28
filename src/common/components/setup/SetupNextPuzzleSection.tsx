@@ -157,8 +157,8 @@ export function SetupNextPuzzleSection({
       <p className={styles.next}>{line}</p>
       <DateField
         // No caption: the section's summary IS the caption, and the box is the
-        // only control in it. Named for the tests and the tooltip instead.
-        ariaLabel="Puzzle date"
+        // only control in it. The name is how a test finds it.
+        name="puzzle_date"
         help={
           <>
             The next {brand} puzzle nobody playing has seen — including games any of you

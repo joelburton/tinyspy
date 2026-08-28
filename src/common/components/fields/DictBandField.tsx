@@ -1,39 +1,14 @@
 // cs-unmet
 
 import { DIFFICULTY_LABELS, sampleWordsFor, type WordLength } from '../../lib/game/difficulty'
-import type { ReactNode } from 'react'
 import { SelectField } from './SelectField'
+import type { AllFieldProps } from './fieldProps'
 
-type Props = {
-  /** Optional field label, e.g. "Required words" — rendered above the select.
-   *  Omit it when the surrounding form already supplies one (a fieldset legend);
-   *  pass it for the inline two-dropdown layouts. */
-  /** The `name` on the underlying control, and the field's key in the form's
-   *  values and errors. It matches the RPC parameter the value is sent as —
-   *  see `FormErrors`. */
-  name?: string
-  label?: string
-  /** Which sample-word set to show — the word length this dictionary cares
-   *  about (so the examples match the game). */
+type Props = AllFieldProps<number> & {
+  onChange: (band: number) => void
   length: WordLength
-  /** Selectable band range. Bands outside `[minBand, maxBand]` are still
-   *  LISTED but disabled, so a constraint (e.g. "legal ≥ required") is visible
-   *  rather than hidden. */
   minBand: number
   maxBand: number
-  value: number
-  onChange: (band: number) => void
-  /** Disable the whole control (e.g. stackdown is locked to band 1). */
-  disabled?: boolean
-  /** What the setting is about, between the caption and the control. */
-  help?: ReactNode
-  /** How to type it, under the control. */
-  entryHelp?: ReactNode
-  /** What's wrong with what's there. */
-  error?: string | null
-  /** An always-enabled option rendered ABOVE band 1 — for a source that sits
-   *  outside the 1..6 band scale. wordle uses `{ value: 0, label: 'Wordle' }`
-   *  for the curated NYT answer list. */
   extraLowOption?: { value: number; label: string }
 }
 

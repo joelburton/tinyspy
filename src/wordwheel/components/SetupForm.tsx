@@ -159,6 +159,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
         help="Required words are the goal; legal words also score but aren't required. Both are length-agnostic (examples just show the band)."
       >
         <DictBandField
+          name="required"
           label="Required words"
           length={null}
           minBand={1}
@@ -167,6 +168,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
           onChange={(required) => onChange({ ...s, required })}
         />
         <DictBandField
+          name="legal"
           label="Legal (bonus) words"
           length={null}
           minBand={s.required}
@@ -185,7 +187,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
         <CheckboxField
           help="Pick only boards whose nine tiles are all different letters — no wheel with a doubled tile. Applies to random boards; a custom board keeps the letters you enter below."
           name="unique_letters"
-          checked={s.unique_letters ?? false}
+          value={s.unique_letters ?? false}
           onChange={(on) => onChange({ ...s, unique_letters: on || undefined })}
         >
           Unique letters only
@@ -202,7 +204,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
       <SetupSection label={customLabel}>
         <ManualBoardField
           help="Leave blank for a random board, or set your own: a center letter plus eight other letters. Repeats are fine — each tile is one use."
-          ariaLabel="Custom letters"
+          name="custom_letters"
           value={customEntry}
           onChange={(raw) => {
             const { center, letters } = splitCustomLetters(raw)
