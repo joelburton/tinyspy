@@ -28,12 +28,12 @@ select pg_temp.create_club('test club', array['ada', 'bea']) as handle;
 
 -- ─── Game 1: 2 players, hand_size 21. bunch = 144 − 42 = 102, needed = 2 ───
 create temp table g1 on commit drop as
-select * from bananagrams.create_game(
+select (bananagrams.create_game(
   (select handle from club),
   '{"hand_size": 21, "bunch_size": 144, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid]
-);
+)->'data'->>'id')::uuid as id;
 
 -- (1) Tiles still in hand → peel rejected (ada's board is empty).
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -108,11 +108,11 @@ select throws_ok(
 -- ─── Game 2: solo ada (needed = 1). Drain the bunch, then peel = win ───
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
-select * from bananagrams.create_game(
+select (bananagrams.create_game(
   '=ada',
   '{"hand_size": 15, "bunch_size": 144, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid]
-);
+)->'data'->>'id')::uuid as id;
 
 -- ada places all 15 tiles (empty hand).
 select bananagrams.save_player_board(
@@ -170,13 +170,13 @@ create temp table trio on commit drop as
 select pg_temp.create_club('trio', array['ada', 'bea', 'cade']) as handle;
 
 create temp table g3 on commit drop as
-select * from bananagrams.create_game(
+select (bananagrams.create_game(
   (select handle from trio),
   '{"hand_size": 21, "bunch_size": 144, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid,
         'cade3333-3333-3333-3333-333333333333'::uuid]
-);
+)->'data'->>'id')::uuid as id;
 
 -- cade drops out (2 active remain, so the game keeps going).
 select pg_temp.as_user('cade3333-3333-3333-3333-333333333333');

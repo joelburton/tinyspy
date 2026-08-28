@@ -127,8 +127,6 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   'bunch-too-low': { text: () => 'Bunch too low to dump', tone: 'noted' },
   'hand-not-empty': { text: () => 'Place all your tiles first' },
   'tile-not-held': { text: () => "You don't have that tile" },
-  // A setup pair that can't seat everyone: players x hand size beats the bunch.
-  'bunch-too-small': { text: (d) => `Bunch too small: ${d[2]} tiles needed, ${d[3]} in the bunch` },
 
   // ── AI features (codenamesduet clue suggester; more surfaces convert soon) ──
   // Model flakiness a retry genuinely fixes — real answers, shown in the AI

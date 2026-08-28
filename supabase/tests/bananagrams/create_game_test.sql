@@ -24,6 +24,14 @@ set search_path = bananagrams, common, public, extensions;
 select plan(32);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
+
+-- `throws_ok` took a SQL STRING because the call had to be deferred; an
+-- envelope is a VALUE. This runs the string and returns what it gave.
+create function pg_temp.envelope_of(sql text) returns jsonb as $envfn$
+declare result jsonb;
+begin execute sql into result; return result; end;
+$envfn$ language plpgsql;
 
 -- ============================================================
 -- (1) Unauthenticated callers are rejected
@@ -32,14 +40,13 @@ select plan(32);
 select set_config('request.jwt.claims', '', true);
 select set_config('role', 'postgres', true);
 
-select throws_ok(
-  $$ select bananagrams.create_game(
+select pg_temp.envelope_is(
+  pg_temp.envelope_of($$ select bananagrams.create_game(
        '=ada',
        '{"hand_size": 21, "bunch_size": 144, "timer": {"kind": "none"}}'::jsonb,
        array['ada11111-1111-1111-1111-111111111111'::uuid]
-     ) $$,
-  'PN011',
-  'Signed out; try refresh',
+     )$$),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN011"}'::jsonb,
   'unauthenticated create_game is rejected'
 );
 
@@ -57,14 +64,14 @@ select pg_temp.create_club('test club', array['ada', 'bea']) as handle;
 -- dee is outside the club. NULL errcode/errmsg → "throws anything".
 
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
-select throws_ok(
-  format(
+select pg_temp.envelope_is(
+  pg_temp.envelope_of(format(
     $$ select bananagrams.create_game(%L,
          '{"hand_size": 21, "bunch_size": 144, "timer": {"kind": "none"}}'::jsonb,
-         array['ada11111-1111-1111-1111-111111111111'::uuid]) $$,
+         array['ada11111-1111-1111-1111-111111111111'::uuid])$$,
     (select handle from club)
-  ),
-  null, null,
+  )),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN012"}'::jsonb,
   'non-member caller is rejected'
 );
 
@@ -75,140 +82,129 @@ select throws_ok(
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
 -- hand_size missing
-select throws_ok(
-  format(
+select pg_temp.envelope_is(
+  pg_temp.envelope_of(format(
     $$ select bananagrams.create_game(%L, '{"timer": {"kind": "none"}}'::jsonb,
-       array['ada11111-1111-1111-1111-111111111111'::uuid]) $$,
+       array['ada11111-1111-1111-1111-111111111111'::uuid])$$,
     (select handle from club)
-  ),
-  'P0001',
-  'missing-hand-size|',
+  )),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN094"}'::jsonb,
   'missing hand_size is rejected'
 );
 
 -- hand_size out of the allowed set
-select throws_ok(
-  format(
+select pg_temp.envelope_is(
+  pg_temp.envelope_of(format(
     $$ select bananagrams.create_game(%L, '{"hand_size": 10, "timer": {"kind": "none"}}'::jsonb,
-       array['ada11111-1111-1111-1111-111111111111'::uuid]) $$,
+       array['ada11111-1111-1111-1111-111111111111'::uuid])$$,
     (select handle from club)
-  ),
-  'P0001',
-  'bad-hand-size|10|',
+  )),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN095"}'::jsonb,
   'hand_size outside {15, 21} is rejected'
 );
 
 -- bunch_size missing (hand_size valid, so we reach the bunch_size check)
-select throws_ok(
-  format(
+select pg_temp.envelope_is(
+  pg_temp.envelope_of(format(
     $$ select bananagrams.create_game(%L, '{"hand_size": 21, "timer": {"kind": "none"}}'::jsonb,
-       array['ada11111-1111-1111-1111-111111111111'::uuid]) $$,
+       array['ada11111-1111-1111-1111-111111111111'::uuid])$$,
     (select handle from club)
-  ),
-  'P0001',
-  'missing-bunch-size|',
+  )),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN096"}'::jsonb,
   'missing bunch_size is rejected'
 );
 
 -- bunch_size out of range (> 144)
-select throws_ok(
-  format(
+select pg_temp.envelope_is(
+  pg_temp.envelope_of(format(
     $$ select bananagrams.create_game(%L, '{"hand_size": 21, "bunch_size": 200, "timer": {"kind": "none"}}'::jsonb,
-       array['ada11111-1111-1111-1111-111111111111'::uuid]) $$,
+       array['ada11111-1111-1111-1111-111111111111'::uuid])$$,
     (select handle from club)
-  ),
-  'P0001',
-  'bad-bunch-size|200|',
+  )),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN097"}'::jsonb,
   'bunch_size above 144 is rejected'
 );
 
 -- bunch_size too small to deal: 2 players × 21 = 42 needed, bunch holds 40
-select throws_ok(
-  format(
+select pg_temp.envelope_is(
+  pg_temp.envelope_of(format(
     $$ select bananagrams.create_game(%L, '{"hand_size": 21, "bunch_size": 40, "timer": {"kind": "none"}}'::jsonb,
        array['ada11111-1111-1111-1111-111111111111'::uuid,
-             'bea22222-2222-2222-2222-222222222222'::uuid]) $$,
+             'bea22222-2222-2222-2222-222222222222'::uuid])$$,
     (select handle from club)
-  ),
-  'P0001',
-  'bunch-too-small|2|21|42|40|',
+  )),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN098"}'::jsonb,
   'a bunch too small to deal every hand is rejected'
 );
 
 -- an unknown word_check value is rejected
-select throws_ok(
-  format(
+select pg_temp.envelope_is(
+  pg_temp.envelope_of(format(
     $$ select bananagrams.create_game(%L,
        '{"hand_size": 21, "bunch_size": 144, "word_check": "bogus", "timer": {"kind": "none"}}'::jsonb,
-       array['ada11111-1111-1111-1111-111111111111'::uuid]) $$,
+       array['ada11111-1111-1111-1111-111111111111'::uuid])$$,
     (select handle from club)
-  ),
-  'P0001',
-  'bad-word-check|bogus|',
+  )),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN099"}'::jsonb,
   'an unknown word_check value is rejected'
 );
 
 -- word_check on but dict_2 missing
-select throws_ok(
-  format(
+select pg_temp.envelope_is(
+  pg_temp.envelope_of(format(
     $$ select bananagrams.create_game(%L,
        '{"hand_size": 21, "bunch_size": 144, "word_check": "win", "dict_3plus": 4, "timer": {"kind": "none"}}'::jsonb,
-       array['ada11111-1111-1111-1111-111111111111'::uuid]) $$,
+       array['ada11111-1111-1111-1111-111111111111'::uuid])$$,
     (select handle from club)
-  ),
-  'P0001',
-  'missing-dict-2|',
+  )),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN100"}'::jsonb,
   'word_check on without dict_2 is rejected'
 );
 
 -- dict_2 out of its 2..6 band (band 1 has too few 2-letter words)
-select throws_ok(
-  format(
+select pg_temp.envelope_is(
+  pg_temp.envelope_of(format(
     $$ select bananagrams.create_game(%L,
        '{"hand_size": 21, "bunch_size": 144, "word_check": "strict", "dict_2": 1, "dict_3plus": 4, "timer": {"kind": "none"}}'::jsonb,
-       array['ada11111-1111-1111-1111-111111111111'::uuid]) $$,
+       array['ada11111-1111-1111-1111-111111111111'::uuid])$$,
     (select handle from club)
-  ),
-  'P0001',
-  'bad-dict-2|1|',
+  )),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN101"}'::jsonb,
   'dict_2 below 2 is rejected'
 );
 
 -- dict_3plus missing (dict_2 present, so we reach the dict_3plus check)
-select throws_ok(
-  format(
+select pg_temp.envelope_is(
+  pg_temp.envelope_of(format(
     $$ select bananagrams.create_game(%L,
        '{"hand_size": 21, "bunch_size": 144, "word_check": "win", "dict_2": 4, "timer": {"kind": "none"}}'::jsonb,
-       array['ada11111-1111-1111-1111-111111111111'::uuid]) $$,
+       array['ada11111-1111-1111-1111-111111111111'::uuid])$$,
     (select handle from club)
-  ),
-  'P0001',
-  'missing-dict-3plus|',
+  )),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN102"}'::jsonb,
   'word_check on without dict_3plus is rejected'
 );
 
 -- dict_3plus out of its 1..6 band
-select throws_ok(
-  format(
+select pg_temp.envelope_is(
+  pg_temp.envelope_of(format(
     $$ select bananagrams.create_game(%L,
        '{"hand_size": 21, "bunch_size": 144, "word_check": "win", "dict_2": 4, "dict_3plus": 7, "timer": {"kind": "none"}}'::jsonb,
-       array['ada11111-1111-1111-1111-111111111111'::uuid]) $$,
+       array['ada11111-1111-1111-1111-111111111111'::uuid])$$,
     (select handle from club)
-  ),
-  'P0001',
-  'bad-dict-3plus|7|',
+  )),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN103"}'::jsonb,
   'dict_3plus above 6 is rejected'
 );
 
 -- timer missing entirely (hand_size + bunch_size valid, so we reach the timer check)
-select throws_ok(
-  format(
+select pg_temp.envelope_is(
+  pg_temp.envelope_of(format(
     $$ select bananagrams.create_game(%L, '{"hand_size": 21, "bunch_size": 144}'::jsonb,
-       array['ada11111-1111-1111-1111-111111111111'::uuid]) $$,
+       array['ada11111-1111-1111-1111-111111111111'::uuid])$$,
     (select handle from club)
-  ),
-  'PN035',
-  'A game with no timer setting reached the server',
+  )),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN035"}'::jsonb,
   'missing timer is rejected'
 );
 
@@ -217,29 +213,29 @@ select throws_ok(
 -- ============================================================
 
 create temp table mg_game on commit drop as
-select * from bananagrams.create_game(
+select (bananagrams.create_game(
   (select handle from club),
   '{"hand_size": 21, "bunch_size": 144, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid]
-);
+)->'data'->>'id')::uuid as id;
 
 -- (solo is allowed: ada starts a game in her solo club)
 select lives_ok(
-  $$ select bananagrams.create_game('=ada',
+  $$ select (bananagrams.create_game('=ada',
        '{"hand_size": 15, "bunch_size": 144, "timer": {"kind": "none"}}'::jsonb,
-       array['ada11111-1111-1111-1111-111111111111'::uuid]) $$,
+       array['ada11111-1111-1111-1111-111111111111'::uuid])->'data'->>'id')::uuid as id;$$,
   'solo (1-player) create_game is allowed'
 );
 
 -- A smaller bunch: 2 players × 21 = 42 dealt, bunch holds 60 → bunch of 18.
 create temp table mg_small on commit drop as
-select * from bananagrams.create_game(
+select (bananagrams.create_game(
   (select handle from club),
   '{"hand_size": 21, "bunch_size": 60, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid]
-);
+)->'data'->>'id')::uuid as id;
 
 -- Reset to superuser to read across the owner-only RLS on
 -- player_boards for the assertions below.

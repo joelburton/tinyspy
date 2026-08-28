@@ -31,12 +31,12 @@ select pg_temp.create_club('test club', array['ada', 'bea']) as handle;
 -- 2-player game started WITH a countdown (the realistic setup for a
 -- timeout, though submit_timeout doesn't inspect the timer).
 create temp table g1 on commit drop as
-select * from bananagrams.create_game(
+select (bananagrams.create_game(
   (select handle from club),
   '{"hand_size": 21, "bunch_size": 144, "timer": {"kind": "countdown", "seconds": 300}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid]
-);
+)->'data'->>'id')::uuid as id;
 
 -- (1) ANY player can fire it — bea (who didn't create the game).
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');

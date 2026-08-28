@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { lazy } from 'react'
-import { startEnvelope } from '../common/lib/game/manifestRpcs'
+import { runRpc } from '../common/lib/supabase/dbResult'
 import type { GameManifest } from '../common/lib/games'
 import { db } from './db'
 import { makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
@@ -70,17 +70,15 @@ export const bananagramsGame: GameManifest = {
   // Single gametype → no `mode` in the payload (the RPC writes
   // 'bananagrams' directly). The server deals the starter hands and
   // validates the setup shape; the FE-collected setup isn't trusted.
-  startGameInClub: async (clubHandle, setup, playerUserIds) => {
-    const s = setup as BananagramsSetup
-    const { data, error } = await db
-      .rpc('create_game', {
+  startGameInClub: (clubHandle, setup, playerUserIds) =>
+    // No `.single()`: the RPC returns the envelope itself, one jsonb value.
+    runRpc<{ id: string }>(
+      db.rpc('create_game', {
         target_club: clubHandle,
-        setup: s,
+        setup: setup as BananagramsSetup,
         player_user_ids: playerUserIds,
-      })
-      .single()
-    return startEnvelope(data, error, BRAND)
-  },
+      }),
+    ),
 
   // Per-row label for the ClubPage games list. Pure + synchronous.
   // We don't write a mid-game status to common.games (progress lives

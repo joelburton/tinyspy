@@ -32,12 +32,12 @@ select pg_temp.create_club('test club', array['ada', 'bea']) as handle;
 
 -- 2-player game. bunch = 144 − 42 = 102.
 create temp table g1 on commit drop as
-select * from bananagrams.create_game(
+select (bananagrams.create_game(
   (select handle from club),
   '{"hand_size": 21, "bunch_size": 144, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid]
-);
+)->'data'->>'id')::uuid as id;
 
 -- ─── (1) ada concedes; bea is still active, so the game continues ───
 select lives_ok(
@@ -108,12 +108,12 @@ select is(
 -- Fresh 2-player game; ada concedes, then bea (the last one) concedes.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
-select * from bananagrams.create_game(
+select (bananagrams.create_game(
   (select handle from club),
   '{"hand_size": 21, "bunch_size": 144, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid]
-);
+)->'data'->>'id')::uuid as id;
 select bananagrams.concede((select id from g2)); -- ada out, bea still active
 select is(
   (select play_state from common.games where id = (select id from g2)),
@@ -144,11 +144,11 @@ select is(
 -- ─── (5) Solo game: conceding ends it immediately (N = 1, no one left) ───
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g3 on commit drop as
-select * from bananagrams.create_game(
+select (bananagrams.create_game(
   '=ada',
   '{"hand_size": 15, "bunch_size": 144, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid]
-);
+)->'data'->>'id')::uuid as id;
 select bananagrams.concede((select id from g3));
 reset role;
 select set_config('request.jwt.claims', '', true);

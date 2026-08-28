@@ -34,12 +34,12 @@ create temp table club on commit drop as
 select pg_temp.create_club('test club', array['ada', 'bea']) as handle;
 
 create temp table g1 on commit drop as
-select * from bananagrams.create_game(
+select (bananagrams.create_game(
   (select handle from club),
   '{"hand_size": 21, "bunch_size": 144, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid]
-);
+)->'data'->>'id')::uuid as id;
 
 -- ─── (1) Either player can stop the table ────────────────────
 -- bea, not the creator: End is a group action, not the starter's privilege.
@@ -74,12 +74,12 @@ select throws_ok(
 -- ─── (3) A conceded player stays conceded ────────────────────
 -- Ending the table says nothing about the quit that came before it.
 create temp table g2 on commit drop as
-select * from bananagrams.create_game(
+select (bananagrams.create_game(
   (select handle from club),
   '{"hand_size": 21, "bunch_size": 144, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid]
-);
+)->'data'->>'id')::uuid as id;
 select bananagrams.concede((select id from g2));   -- ada drops out; bea races on
 reset role;
 select is(
@@ -96,11 +96,11 @@ select is(
 
 -- ─── (4) Non-player rejected ─────────────────────────────────
 create temp table g3 on commit drop as
-select * from bananagrams.create_game(
+select (bananagrams.create_game(
   (select handle from club),
   '{"hand_size": 21, "bunch_size": 144, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid]
-);
+)->'data'->>'id')::uuid as id;
 -- The temp table is owned by the creating role; dee reads it inside the
 -- throws_ok argument, so grant it (same as the other suites' fixtures).
 reset role;

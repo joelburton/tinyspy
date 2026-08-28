@@ -1,6 +1,7 @@
 // cs-unmet
 
-import { failureMessage, faultMessage } from '../../common/lib/game/serverError'
+import { failureMessage } from '../../common/lib/game/serverError'
+import { runRpc } from '../../common/lib/supabase/dbResult'
 import { useCallback, useEffect, useRef, useMemo } from 'react'
 import { IconNewGame, IconPrint, IconRestart } from '../../common/components/icons'
 import type { GamePageCtx, GenericFeedbackMsg } from '../../common/lib/games'
@@ -315,21 +316,23 @@ export function PlayArea(ctx: GamePageCtx) {
     // anyway so an accidental `+` doesn't read as "I just lost my game" — the
     // copy says shelved, not ended. At terminal there's nothing to interrupt.
     if (!ctx.isTerminal && !(await confirmAction(NEW_GAME_CONFIRM))) return
-    const { data, error } = await db
-      .rpc('create_game', {
+    const res = await runRpc<{ id: string }>(
+      db.rpc('create_game', {
         target_club: ctx.clubHandle,
         setup: ctx.setup as unknown as BananagramsSetup,
         player_user_ids: ctx.players.map((p) => p.user_id),
-      })
-      .single()
-    if (error || !data) {
-      // New game is a FAULT SURFACE (serverError.ts → faultMessage): this setup
-      // already built a game once, so any failure here is a bug or an outage
-      // — never a pill. Copy supplies the words when it has them.
-      showLocalFeedback(faultMessage(error, 'new game'))
+      }),
+    )
+    if (res.type !== 'ok') {
+      // THE SAME ENVELOPE, READ DIFFERENTLY. On the setup form a validation is
+      // an answer — fix the field and press Start again. Here there is no field
+      // and no form: this setup already built a game once, so whatever comes
+      // back is a bug or an outage, and it wears the fault look whatever the
+      // server called it. `runRpc` has already logged it under `[db]`.
+      showLocalFeedback({ tone: 'error', fault: true, text: res.message, mode: { kind: 'manual' } })
       return
     }
-    ctx.goToGame('bananagrams', (data as { id: string }).id)
+    ctx.goToGame('bananagrams', res.data.id)
   }, [ctx, showLocalFeedback, confirmAction])
 
   // Single-flight guard. New game has THREE triggers (the terminal button, the

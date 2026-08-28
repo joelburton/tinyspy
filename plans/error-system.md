@@ -1123,7 +1123,7 @@ select pg_temp.envelope_is(
 
 ## 7. The conversion roster
 
-**139 entries. 29 done, 5 edge functions deferred, 105 to go.** Cross them off
+**139 entries. 30 done, 5 edge functions deferred, 104 to go.** Cross them off
 here as they land.
 
 An entry is one RPC or one table read **per area**, so the same name in two

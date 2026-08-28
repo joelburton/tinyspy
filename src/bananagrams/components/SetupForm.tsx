@@ -74,12 +74,14 @@ export function SetupForm({
         members={members}
         selfId={selfId}
         numberOfPlayers={numberOfPlayers}
+        error={errors.player_user_ids}
         value={s.player_user_ids}
         onChange={(next) => set('player_user_ids', next)}
       />
       <SetupSection label={handLabel}>
         <RadioRow
           name="hand_size"
+          error={errors.hand_size}
           options={HAND_SIZE_OPTIONS.map((n) => ({ value: n, label: n }))}
           value={s.hand_size}
           onChange={(hand_size) => set('hand_size', hand_size)}
@@ -90,6 +92,7 @@ export function SetupForm({
         <NumberField
           help={<>The full bag is {BANANAGRAMS_BUNCH_MAX}. This game deals {needed} ({s.player_user_ids.size} player {s.player_user_ids.size === 1 ? '' : 's'} × {s.hand_size}).</>}
           name="bunch_size"
+          error={errors.bunch_size}
           label="Bunch size"
           min={1}
           max={BANANAGRAMS_BUNCH_MAX}
@@ -103,6 +106,7 @@ export function SetupForm({
         <CheckboxField
           help="By default a dumped tile goes back to the bunch. With this, it goes to the bag. You still draw three either way."
           name="dump_to_bag"
+          error={errors.dump_to_bag}
           value={s.dump_to_bag}
           onChange={(dump_to_bag) => set('dump_to_bag', dump_to_bag)}
         >
@@ -113,6 +117,7 @@ export function SetupForm({
       <SetupSection label={checkLabel}>
         <RadioRow
           name="word_check"
+          error={errors.word_check}
           prefix="Words must be legal"
           options={WORD_CHECK_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
           value={s.word_check}
@@ -130,6 +135,7 @@ export function SetupForm({
         <div className={styles.dictRow}>
           <DictBandField
             name="dict_2"
+            error={errors.dict_2}
             label="2-letter words"
             length={2}
             minBand={2}
@@ -139,6 +145,7 @@ export function SetupForm({
           />
           <DictBandField
             name="dict_3plus"
+            error={errors.dict_3plus}
             label="Longer words (3+)"
             length="3+"
             minBand={1}

@@ -32,12 +32,12 @@ select pg_temp.create_club('test club', array['ada', 'bea']) as handle;
 
 -- 2 players, hand_size 21 → bunch = 144 − 42 = 102, dump_count = 3.
 create temp table g1 on commit drop as
-select * from bananagrams.create_game(
+select (bananagrams.create_game(
   (select handle from club),
   '{"hand_size": 21, "bunch_size": 144, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid]
-);
+)->'data'->>'id')::uuid as id;
 
 -- ─── Happy path: ada dumps one tile she holds ───
 -- Capture the tile she'll dump (her first held tile) so we can assert it ends
@@ -91,12 +91,12 @@ select is(
 -- nets −3 (not −2) and the bag grows by one.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
-select * from bananagrams.create_game(
+select (bananagrams.create_game(
   (select handle from club),
   '{"hand_size": 21, "bunch_size": 144, "dump_to_bag": true, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid]
-);
+)->'data'->>'id')::uuid as id;
 select bananagrams.dump((select id from g2),
   (select left(tiles, 1) from bananagrams.player_boards
     where game_id = (select id from g2)
@@ -133,12 +133,12 @@ select is(
 -- the BACK of the bag. Crafted state: bunch='A' (1), bag='XYZ' (3), ada holds Q.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g3 on commit drop as
-select * from bananagrams.create_game(
+select (bananagrams.create_game(
   (select handle from club),
   '{"hand_size": 21, "bunch_size": 144, "dump_to_bag": true, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid]
-);
+)->'data'->>'id')::uuid as id;
 reset role;
 select set_config('request.jwt.claims', '', true);
 update bananagrams.games set bunch = 'A', bag = 'XYZ' where id = (select id from g3);
@@ -173,12 +173,12 @@ select is(
 -- bag='XYZ', ada holds Q.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g4 on commit drop as
-select * from bananagrams.create_game(
+select (bananagrams.create_game(
   (select handle from club),
   '{"hand_size": 21, "bunch_size": 144, "dump_to_bag": false, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid]
-);
+)->'data'->>'id')::uuid as id;
 reset role;
 select set_config('request.jwt.claims', '', true);
 update bananagrams.games set bunch = 'A', bag = 'XYZ' where id = (select id from g4);

@@ -135,18 +135,24 @@ revoke execute on function bananagrams._full_bag() from public;
 -- past the dealt slices becomes the `bunch` (the bunch) that peel and
 -- dump later draw from. Each player's `board` starts empty.
 
+-- `create or replace` cannot change a function's return type, and this one
+-- became jsonb. `if exists` because this file is re-applied in full on every
+-- deploy, so the drop has to be a no-op the second time.
+drop function if exists bananagrams.create_game(text, jsonb, uuid[]);
+
 create or replace function bananagrams.create_game(
   target_club text,
   setup jsonb,
   player_user_ids uuid[]
 )
-returns table(id uuid)
+returns jsonb
 language plpgsql
 security definer
 set search_path = bananagrams, common, public, extensions
 as $$
 declare
   new_id uuid;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text;
   s_hand_size int;
   s_bunch_size int;
   s_word_check text;
@@ -169,13 +175,14 @@ begin
 
   -- ─── Validate setup shape ────────────────────────────
   if (setup->>'hand_size') is null then
-    raise exception 'missing-hand-size|' using errcode = 'P0001',
+    raise exception 'A game with no hand size reached the server'
+      using errcode = 'PN094', hint = 'fault', column = '_',
       detail = 'setup.hand_size absent';
   end if;
   s_hand_size := (setup->>'hand_size')::int;
   if s_hand_size not in (15, 21) then
-    raise exception 'bad-hand-size|%|', s_hand_size
-      using errcode = 'P0001',
+    raise exception 'A hand size of % reached the server', s_hand_size
+      using errcode = 'PN095', hint = 'fault', column = '_',
       detail = 'setup.hand_size must be 15 or 21';
   end if;
 
@@ -185,19 +192,23 @@ begin
   -- the FE disables Start on the same check (see bananagrams bunchSizeError),
   -- but the server is the authority.
   if (setup->>'bunch_size') is null then
-    raise exception 'missing-bunch-size|' using errcode = 'P0001',
+    raise exception 'A game with no bunch size reached the server'
+      using errcode = 'PN096', hint = 'fault', column = '_',
       detail = 'setup.bunch_size absent';
   end if;
   s_bunch_size := (setup->>'bunch_size')::int;
   if s_bunch_size < 1 or s_bunch_size > 144 then
-    raise exception 'bad-bunch-size|%|', s_bunch_size
-      using errcode = 'P0001',
+    raise exception 'A bunch size of % reached the server', s_bunch_size
+      using errcode = 'PN097', hint = 'fault', column = '_',
       detail = 'setup.bunch_size must be 1..144';
   end if;
   if player_count * s_hand_size > s_bunch_size then
-    raise exception 'bunch-too-small|%|%|%|%|',
-      player_count, s_hand_size, player_count * s_hand_size, s_bunch_size
-      using errcode = 'P0001',
+    -- A CROSS-FIELD rule the form already gates on (its manifest's `validate`
+    -- couples the bunch to the headcount and blocks Start), so reaching it
+    -- means something other than the form sent the setup.
+    raise exception 'A bunch of % for % players of % tiles reached the server',
+      s_bunch_size, player_count, s_hand_size
+      using errcode = 'PN098', hint = 'fault', column = '_',
       detail = 'players x hand_size exceeds bunch_size';
   end if;
 
@@ -212,31 +223,31 @@ begin
   --              longer words (1..6).
   s_word_check := coalesce(setup->>'word_check', 'off');
   if s_word_check not in ('off', 'win', 'strict') then
-    raise exception 'bad-word-check|%|', s_word_check
-      using errcode = 'P0001',
+    raise exception 'A word-check setting of ''%'' reached the server', s_word_check
+      using errcode = 'PN099', hint = 'fault', column = '_',
       detail = 'word_check must be off, win or strict';
   end if;
   if s_word_check <> 'off' then
     if (setup->>'dict_2') is null then
-      raise exception 'missing-dict-2|'
-        using errcode = 'P0001',
+      raise exception 'Word checking with no 2-letter dictionary reached the server'
+        using errcode = 'PN100', hint = 'fault', column = '_',
       detail = 'dict_2 required when word_check is on';
     end if;
     s_dict_2 := (setup->>'dict_2')::int;
     if s_dict_2 < 2 or s_dict_2 > 6 then
-      raise exception 'bad-dict-2|%|', s_dict_2
-        using errcode = 'P0001',
+      raise exception 'A 2-letter dictionary of % reached the server', s_dict_2
+        using errcode = 'PN101', hint = 'fault', column = '_',
       detail = 'setup.dict_2 must be 2..6';
     end if;
     if (setup->>'dict_3plus') is null then
-      raise exception 'missing-dict-3plus|'
-        using errcode = 'P0001',
+      raise exception 'Word checking with no longer-word dictionary reached the server'
+        using errcode = 'PN102', hint = 'fault', column = '_',
       detail = 'dict_3plus required when word_check is on';
     end if;
     s_dict_3plus := (setup->>'dict_3plus')::int;
     if s_dict_3plus < 1 or s_dict_3plus > 6 then
-      raise exception 'bad-dict-3plus|%|', s_dict_3plus
-        using errcode = 'P0001',
+      raise exception 'A longer-word dictionary of % reached the server', s_dict_3plus
+        using errcode = 'PN103', hint = 'fault', column = '_',
       detail = 'setup.dict_3plus must be 1..6';
     end if;
   end if;
@@ -326,7 +337,18 @@ begin
     jsonb_build_object('bunch_remaining', length(s_bunch),
                        'bag_remaining', length(s_bag)));
 
-  return query select new_id;
+  return common.ok_envelope(jsonb_build_object('id', new_id));
+
+-- One block, and it has never heard of any specific condition: it reads the
+-- SQLSTATE, re-raises anything that isn't ours, and lets the raise itself carry
+-- the message, the kind and the field.
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 

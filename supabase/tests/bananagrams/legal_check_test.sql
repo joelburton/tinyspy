@@ -140,9 +140,9 @@ select is(
 -- ── Game A: word_check win + legal board → peel WINS ──
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table ga on commit drop as
-select * from bananagrams.create_game('=ada',
+select (bananagrams.create_game('=ada',
   '{"hand_size": 15, "bunch_size": 144, "word_check": "win", "dict_2": 6, "dict_3plus": 6, "timer": {"kind": "none"}}'::jsonb,
-  array['ada11111-1111-1111-1111-111111111111'::uuid]);
+  array['ada11111-1111-1111-1111-111111111111'::uuid])->'data'->>'id')::uuid as id;
 
 reset role;
 select set_config('request.jwt.claims', '', true);
@@ -163,9 +163,9 @@ select is(
 -- ── Game B: word_check win + connected NON-WORD → peel BLOCKED ──
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table gb on commit drop as
-select * from bananagrams.create_game('=ada',
+select (bananagrams.create_game('=ada',
   '{"hand_size": 15, "bunch_size": 144, "word_check": "win", "dict_2": 6, "dict_3plus": 6, "timer": {"kind": "none"}}'::jsonb,
-  array['ada11111-1111-1111-1111-111111111111'::uuid]);
+  array['ada11111-1111-1111-1111-111111111111'::uuid])->'data'->>'id')::uuid as id;
 
 reset role;
 select set_config('request.jwt.claims', '', true);
@@ -189,9 +189,9 @@ select is(
 -- ── Game C: word_check off + connected non-word → peel WINS (classic) ──
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table gc on commit drop as
-select * from bananagrams.create_game('=ada',
+select (bananagrams.create_game('=ada',
   '{"hand_size": 15, "bunch_size": 144, "word_check": "off", "dict_2": 4, "dict_3plus": 4, "timer": {"kind": "none"}}'::jsonb,
-  array['ada11111-1111-1111-1111-111111111111'::uuid]);
+  array['ada11111-1111-1111-1111-111111111111'::uuid])->'data'->>'id')::uuid as id;
 
 reset role;
 select set_config('request.jwt.claims', '', true);
@@ -213,9 +213,9 @@ select is(
 -- ── Game D: word_check off + DISCONNECTED board → peel BLOCKED (geography) ──
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table gd on commit drop as
-select * from bananagrams.create_game('=ada',
+select (bananagrams.create_game('=ada',
   '{"hand_size": 15, "bunch_size": 144, "word_check": "off", "dict_2": 4, "dict_3plus": 4, "timer": {"kind": "none"}}'::jsonb,
-  array['ada11111-1111-1111-1111-111111111111'::uuid]);
+  array['ada11111-1111-1111-1111-111111111111'::uuid])->'data'->>'id')::uuid as id;
 
 reset role;
 select set_config('request.jwt.claims', '', true);
@@ -245,9 +245,9 @@ select is(
 -- ── Game E: strict + continuing peel + NON-WORD → BLOCKED (no deal) ──
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table ge on commit drop as
-select * from bananagrams.create_game('=ada',
+select (bananagrams.create_game('=ada',
   '{"hand_size": 15, "bunch_size": 144, "word_check": "strict", "dict_2": 6, "dict_3plus": 6, "timer": {"kind": "none"}}'::jsonb,
-  array['ada11111-1111-1111-1111-111111111111'::uuid]);
+  array['ada11111-1111-1111-1111-111111111111'::uuid])->'data'->>'id')::uuid as id;
 
 reset role;
 select set_config('request.jwt.claims', '', true);
@@ -271,9 +271,9 @@ select is((select length(bunch) from bananagrams.games where id = (select id fro
 -- ── Game F: strict + continuing peel + VALID word → DEALS ──
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table gf on commit drop as
-select * from bananagrams.create_game('=ada',
+select (bananagrams.create_game('=ada',
   '{"hand_size": 15, "bunch_size": 144, "word_check": "strict", "dict_2": 6, "dict_3plus": 6, "timer": {"kind": "none"}}'::jsonb,
-  array['ada11111-1111-1111-1111-111111111111'::uuid]);
+  array['ada11111-1111-1111-1111-111111111111'::uuid])->'data'->>'id')::uuid as id;
 
 reset role;
 select set_config('request.jwt.claims', '', true);
@@ -290,9 +290,9 @@ select is((select res->>'result' from pf), 'dealt',
 -- ── Game G: word_check 'win' + continuing peel + NON-WORD → DEALS (not checked) ──
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table gg on commit drop as
-select * from bananagrams.create_game('=ada',
+select (bananagrams.create_game('=ada',
   '{"hand_size": 15, "bunch_size": 144, "word_check": "win", "dict_2": 6, "dict_3plus": 6, "timer": {"kind": "none"}}'::jsonb,
-  array['ada11111-1111-1111-1111-111111111111'::uuid]);
+  array['ada11111-1111-1111-1111-111111111111'::uuid])->'data'->>'id')::uuid as id;
 
 reset role;
 select set_config('request.jwt.claims', '', true);
@@ -312,9 +312,9 @@ select is((select res->>'result' from pg), 'dealt',
 -- exactly the game where a player most wants to self-serve.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table gh on commit drop as
-select * from bananagrams.create_game('=ada',
+select (bananagrams.create_game('=ada',
   '{"hand_size": 15, "bunch_size": 144, "word_check": "off", "timer": {"kind": "none"}}'::jsonb,
-  array['ada11111-1111-1111-1111-111111111111'::uuid]);
+  array['ada11111-1111-1111-1111-111111111111'::uuid])->'data'->>'id')::uuid as id;
 reset role;
 select set_config('request.jwt.claims', '', true);
 

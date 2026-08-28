@@ -35,11 +35,11 @@ select pg_temp.create_club('test club', array['ada', 'bea']) as handle;
 
 -- 2 players, hand_size 21 → bunch = 144 − 42 = 102, bag = 0 (full bunch).
 create temp table g1 on commit drop as
-select * from bananagrams.create_game(
+select (bananagrams.create_game(
   (select handle from club),
   '{"hand_size": 21, "bunch_size": 144, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
-        'bea22222-2222-2222-2222-222222222222'::uuid]);
+        'bea22222-2222-2222-2222-222222222222'::uuid])->'data'->>'id')::uuid as id;
 reset role;
 
 -- Snapshot the opening deal, so we can prove the SAME hands come back.
