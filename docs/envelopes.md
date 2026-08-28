@@ -94,15 +94,14 @@ An **outcome** is the verdict on a move, or a move-like thing: `won`, `lost`,
 `near`, `warning`, `neutral`, `noted`. Despite the names, `won` and `lost` are
 "good move" and "bad move" as often as they are the end of a game.
 
-An `ok` will often carry one. It colours the feedback pill and the verdict
+An `ok` will often carry one. It colors the feedback pill and the verdict
 column in a game's turn log.
 
 **A `not-ok` can carry one too** — which is what lets a refusal look calm or
 loud independently of how bad it is. See Appearance, below.
 
-XXX: outcomes deserve their own canonical doc (`outcomes.md`) explaining each
-one. It should also settle what `noted` is FOR, now that the game refusals which
-used it are races.
+Each outcome's meaning, and where it is used, is in
+[outcomes.md](outcomes.md).
 
 ## Severity (not-ok only)
 
