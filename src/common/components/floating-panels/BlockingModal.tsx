@@ -9,7 +9,7 @@ type Props = {
   /** The headline — usually the question. Rendered as an `<h2>` at the top of
    *  the body, NOT in a titlebar: a card family has none, because the titlebar
    *  is the drag handle and this can never be dragged. Optional for a leaf that
-   *  wants to render its own (the fault's is red — that colour IS the shape
+   *  wants to render its own (the fault's is red — that color IS the shape
    *  test, "a box popped up, the app broke"). */
   title?: string
   /** Escape. A card has no ✕, so a footer button must also route here — the

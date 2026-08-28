@@ -90,7 +90,7 @@ export function suggest(
   const FULL = (1 << BOARD_SIZE) - 1
   // Words already in the chain are excluded outright: the server refuses a
   // repeat, so suggesting one hands the player an error. (Steps DEEPER in a
-  // candidate route are not deduped against each other — modelling that would
+  // candidate route are not deduped against each other — modeling that would
   // put the played-set in the BFS state — so wordsToFinish is exact for legal
   // routes and merely optimistic in the contrived case where every shortest
   // route repeats itself; the first word shown is always legal.)

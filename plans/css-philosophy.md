@@ -1389,7 +1389,7 @@ happens to look exactly like the help text above it. Two ways to write it:
 
 > **Can you say what the thing is, in a sentence that doesn't mention how it
 > looks?** *"The number of results found"* — yes, name it. *"This bit should be
-> quieter than its neighbour"* — no, that's an adjustment, and utilities are
+> quieter than its neighbor"* — no, that's an adjustment, and utilities are
 > honest.
 
 The count passes. That its look currently coincides with help text is a fact

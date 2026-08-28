@@ -2,7 +2,7 @@
 <!-- wordwheel logo: the word wheel, mirroring the on-screen board. A large
      saturated-red center tile ringed by eight warm-neutral outer tiles, each with
      a thick gold border (the tile-5-border token) and each TANGENT to the center +
-     its neighbours (the same tangency the board geometry uses). The tiles sit
+     its neighbors (the same tangency the board geometry uses). The tiles sit
      directly on a dark rounded-rect card — no inner ground, matching the board's
      no-tray look. Colors are inlined from the theme (tile-2 fill, tile-5-border
      stroke, wordwheel-accent center); SVG files can't read CSS custom properties.

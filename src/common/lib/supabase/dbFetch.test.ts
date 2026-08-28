@@ -154,7 +154,7 @@ describe('dbFetch — presenting faults', () => {
     expect(fault.diagnostics).toContain('/rest/v1/clubs')
   })
 
-  // An abort is US cancelling our own request — a component unmounting, a
+  // An abort is US canceling our own request — a component unmounting, a
   // superseded fetch. Nobody is owed a modal for that, and one would appear on
   // ordinary navigation.
   it('says nothing when WE aborted the request', async () => {

@@ -14,7 +14,7 @@
  *     move (or an exchange). This is the reusable AI-player decision; the
  *     eventual server/edge opponent calls exactly this. It is PURE and
  *     deterministic given its `rng`.
- *   - `playSelfGame` — drive a whole coop game (one shared rack, maximise total
+ *   - `playSelfGame` — drive a whole coop game (one shared rack, maximize total
  *     score) to completion with a given level, returning the final score plus
  *     diagnostics. This is the measurement harness's per-game unit; the CLI
  *     (`supabase/scripts/scrabble-selfplay.ts`) runs it over many paired seeds.

@@ -13,7 +13,7 @@
    * it should sit closer to the page. So against the tile's `1px 2px 6px / 30%`
    * this is tighter and a touch sharper — a shorter drop, half the blur — and the
    * hover deepens more than a tile's does, though — a keycap is small and packed
-   * against its neighbours, so a shadow alone has little surface to read against.
+   * against its neighbors, so a shadow alone has little surface to read against.
    * The lift matches the tile's 2px and the drop goes 1px → 4px, with the cap
    * going white underneath (see --kbd-key-hover-fill-color). Same light angle as everything else
    * (the 1px x-offset), because a shadow that disagrees about where the light is

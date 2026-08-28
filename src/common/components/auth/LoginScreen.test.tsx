@@ -10,7 +10,7 @@
  *
  * The other thing worth holding: the "sent to" line names the address the link
  * ACTUALLY went to. It read the live field once, so editing the box after
- * sending re-labelled the sentence with an address nothing had been sent to.
+ * sending re-labeled the sentence with an address nothing had been sent to.
  */
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'

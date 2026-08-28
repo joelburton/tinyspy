@@ -63,7 +63,7 @@ export type WordListFilter = {
  *
  * Vocabulary note: players are named by **handle, including you**, matching the
  * turn log's picker (settled 2026-08-02) — a list of handles is one list, where
- * labelling yourself "You" makes your own entry read as a different kind of thing.
+ * labeling yourself "You" makes your own entry read as a different kind of thing.
  *
  *     const f = useWordListFilter({ rows, players, selfId, isCompete, isTerminal, hasBonus })
  *     const shown = f.filter(rows)

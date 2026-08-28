@@ -270,15 +270,15 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/components/feedback/GenericFeedbackPill.module.css': ['0.5rem'],
       // The gap under a checkbox row and under a date override — both moved
       // out of files already on this list, at the same values. The debt
-      // travelled with the markup; it did not grow.
+      // traveled with the markup; it did not grow.
       'src/common/components/fields/CheckboxField.module.css': ['0.5rem'],
       // The three field components carved out of ClaimHandleScreen,
       // CreateClubModal and EditProfileModal. Same values,
-      // now in one place instead of four — the debt travelled and shrank.
+      // now in one place instead of four — the debt traveled and shrank.
       'src/common/components/fields/field.module.css': ['0.4rem'],
       'src/common/components/fields/DateField.module.css': ['0.5rem'],
       // setupForm.module.css is gone; each of its values
-      // travelled to the component that draws the rule, and none of them grew.
+      // traveled to the component that draws the rule, and none of them grew.
       'src/common/components/fields/RadioRow.module.css': ['1rem', '0.4rem'],
       'src/common/components/setup/SetupSection.module.css': ['0.75rem'],
       'src/common/components/setup/SetupTimerSection.module.css': ['0.3rem'],
@@ -313,10 +313,10 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/components/floating-panels/GameScratchpadCompanion.module.css': ['0.4rem', '0.5rem'],
       'src/common/components/menu/Menu.module.css': ['1.5rem', '0.3rem', '0.1rem', '-1px', '-1rem'],
       // The picker's summary dots moved out of the modal with <PlayersSection>.
-      // Same value, new file — the debt travelled, it did not grow.
+      // Same value, new file — the debt traveled, it did not grow.
       'src/common/components/setup/PlayersSection.module.css': ['0.3rem'],
       // Lives with <PlayersField>, which draws the rows these size.
-      // Same values, new file — the debt travelled, it did not grow.
+      // Same values, new file — the debt traveled, it did not grow.
       'src/common/components/fields/PlayersField.module.css': ['0.5rem'],
       'src/common/components/text/RichMessage.module.css': ['0.25rem'],
       'src/common/components/toasts/Toast.module.css': ['0.7rem'],

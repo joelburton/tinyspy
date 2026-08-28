@@ -72,7 +72,7 @@ describe('useWordListFilter — the two axes', () => {
 
   it('names players by handle, including the viewer, self first', async () => {
     // Same ruling as the turn log's picker: a list of handles is one list, where
-    // labelling yourself "You" makes your own entry a different kind of thing.
+    // labeling yourself "You" makes your own entry a different kind of thing.
     const { result } = setup({ players: [two[1], two[0]] }) // deliberately not self-first
     render(<>{result.current.picker}</>)
     expect(await filterOptions(WHO)).toEqual(['All', 'Found', 'Missed', 'me', 'moth'])

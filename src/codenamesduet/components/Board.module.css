@@ -141,7 +141,7 @@
 /* Turn-history: a cell the VIEWED past turn decided — the shared history-yellow
  * (`--view-history-color`), the same signal the board frame + viewed log row
  * wear. An inset outline so it hugs just inside the tile edge (over the fill,
- * clear of the grid gap and neighbours). Pairs with the board-level `.frame`. */
+ * clear of the grid gap and neighbors). Pairs with the board-level `.frame`. */
 /* @@ */ .viewedCell {
   outline: 3px solid var(--view-history-color);
   outline-offset: -3px;

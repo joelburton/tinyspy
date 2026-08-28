@@ -59,7 +59,7 @@
  * The red (dropNo) case is always an OCCUPIED cell, whose `.tile` is
  * `position: absolute; inset: 0`, opaque, and — via `container-type: size` — its
  * own stacking context, so it paints over a cell-level ring. Ring the TILE
- * instead (z-index above its neighbours), exactly like the `.viewedTile`
+ * instead (z-index above its neighbors), exactly like the `.viewedTile`
  * turn-highlight below does with the green token. (bananagrams needs neither
  * trick — its occupied cell is plain text, not an opaque overlay tile.) */
 /* @@ */ .dropOk {

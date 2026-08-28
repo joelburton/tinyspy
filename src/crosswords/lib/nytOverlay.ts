@@ -105,7 +105,7 @@ export function detectOverlayMarkings(
         if (px > maxX) maxX = px
         if (py < minY) minY = py
         if (py > maxY) maxY = py
-        // 4-connected neighbours; diagonal connectivity isn't needed because
+        // 4-connected neighbors; diagonal connectivity isn't needed because
         // the outline / bar stroke is thicker than a single pixel.
         if (px + 1 < W) {
           const ni = i + 1

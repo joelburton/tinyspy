@@ -12,7 +12,7 @@ algorithm back into C and C wins again, by 2×.
 
 | file | algorithm |
 |---|---|
-| `libwords.c` + `bench_before.c` | **before** — minimised DAWG + FNV-hash dedup of word strings + per-word arena `strdup`, run on every board. (Copied verbatim from `~/src/wsboggle/c`.) |
+| `libwords.c` + `bench_before.c` | **before** — minimized DAWG + FNV-hash dedup of word strings + per-word arena `strdup`, run on every board. (Copied verbatim from `~/src/wsboggle/c`.) |
 | `solver_trie.c` | **after** — plain trie + a generation-stamp on the trie node for dedup; nothing is materialised in the hot loop. |
 
 A third file, `dump_fixture.c`, reuses `libwords.c` as a size- and

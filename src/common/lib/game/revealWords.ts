@@ -5,7 +5,7 @@
  * (spellingbee, wordwheel, boggle).
  *
  * Lives in its own module rather than beside `buildDisplayRows` because that one
- * comes in two deliberately different flavours — the shared spellingbee/wordwheel
+ * comes in two deliberately different flavors — the shared spellingbee/wordwheel
  * copy and boggle's own — while this step is genuinely identical for all three.
  * (Each game's word shape differs slightly: spellingbee/wordwheel entries carry
  * `is_pangram`, boggle's don't. Hence the generic.)

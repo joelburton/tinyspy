@@ -898,7 +898,7 @@ const sendManualPause = useCallback(() => { … }, [deps])
 const sendManualPause = useCallback(function sendManualPause() { … }, [deps])
 ```
 
-The const name labels it for the scan, for prose ("the `sendManualPause` callback"), and — in practice — for stack traces (V8 doesn't propagate the const name through the `useCallback(…)` call expression onto the inner arrow's `.name`, but source-position info in modern stack traces and React DevTools' own labelling close most of the gap). Writing the name twice adds noise without a matching read-time win.
+The const name labels it for the scan, for prose ("the `sendManualPause` callback"), and — in practice — for stack traces (V8 doesn't propagate the const name through the `useCallback(…)` call expression onto the inner arrow's `.name`, but source-position info in modern stack traces and React DevTools' own labeling close most of the gap). Writing the name twice adds noise without a matching read-time win.
 
 The one exception: if the *callback's* most natural name genuinely differs from the *const's* most natural name — e.g. `const doFooOnInitialLoad = useCallback(function doFoo(){…}, [initialLoad])` where the outer name carries the *when* and the inner carries the *what* — name the inner. Rare in practice; don't reach for it without a real difference.
 

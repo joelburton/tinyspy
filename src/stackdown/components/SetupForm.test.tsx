@@ -75,7 +75,7 @@ describe('stackdown setup — writing a setting', () => {
   })
 
   it('shows the whole difficulty ladder but only enables the two it has boards for', () => {
-    // The field draws all six bands and greys the rest, so a player can see
+    // The field draws all six bands and grays the rest, so a player can see
     // where this game sits on the scale rather than wondering what 1–2 means.
     draw()
     const options = screen.getAllByRole('option')

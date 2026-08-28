@@ -169,7 +169,7 @@ test.describe('puzzle pickers', () => {
     await ctx.close()
   })
 
-  test('crosswords: a picker can be cancelled without choosing', async ({ browser }) => {
+  test('crosswords: a picker can be canceled without choosing', async ({ browser }) => {
     // The affordance the tabs did not have. Leaving a source used to be a side
     // effect of pressing a different tab, which also cleared what you had
     // already chosen; backing out of a picker now leaves the choice alone.

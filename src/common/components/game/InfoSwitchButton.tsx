@@ -25,7 +25,7 @@ type Props = {
  * pause), so if this rode along inside either group it would shift between
  * pages and lose the muscle memory that justified consolidating it.
  *
- * A `<PageHeaderButton>`, like its neighbour the pause button: a mark in the
+ * A `<PageHeaderButton>`, like its neighbor the pause button: a mark in the
  * header rather than an action being offered. GamePage renders it only on
  * mobile — on desktop the info column is always on screen and there is nothing
  * to switch to.

@@ -106,7 +106,7 @@ The ordering half was a **bug**, fixed 2026-08-04. A word with a repeated letter
 can sit on two interchangeable tiles, and then more than one legal trace covers
 the identical cells and spells the identical word. Real case (2026-08-02, "Eyes
 on the prize") — INTENTION runs through two `N`s at `[5,1]` and `[6,1]`, each
-adjacent to both of the other's neighbours:
+adjacent to both of the other's neighbors:
 
 ```
 I[5,0] N[6,1] T[6,2] E[7,3] N[7,2] T[7,1] I[7,0] O[6,0] N[5,1]   ← was rejected
@@ -325,7 +325,7 @@ next:
 - **Nothing traced** → any unused cell bearing the letter, anywhere. That
   competes with all 48 cells, so it's usually ambiguous — a word's first letter
   is usually a click.
-- **Mid-word** → only the ≤8 neighbours of the last cell, minus cells already in
+- **Mid-word** → only the ≤8 neighbors of the last cell, minus cells already in
   the trace (a path can't visit one twice; clicking your own cell still means
   "undo back to here", which stays click-only). A small field, so this is usually
   unique — which is what makes typing the *rest* of a word work.
@@ -351,7 +351,7 @@ letter in the trace, the last one included, backs up to just before it — and
 the two deliberate routes (Enter, the Submit button) carry submission alone.
 That makes the move row load-bearing rather than a convenience, since a phone
 has no Enter key. The last tile keeps its second ring: it marks where the trace
-ends, which is what tells you which neighbours are live and what Backspace will
+ends, which is what tells you which neighbors are live and what Backspace will
 take.
 
 **The move row** is the shared `<MoveRow>` (⌫ | the traced word in an

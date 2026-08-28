@@ -20,7 +20,7 @@ type Props = AllFieldProps<string> & {
 }
 
 /**
- * A LABELLED TEXT BOX — the field type the app uses most, and the last one with
+ * A LABELED TEXT BOX — the field type the app uses most, and the last one with
  * no component.
  *
  * Every form that needed one invented `.field` again: `ClaimHandleScreen`,

@@ -7,7 +7,7 @@
  * A summary carries its section's live value, and this section's value is WHO.
  * Names would wrap in a 480px dialog the moment a club has four of them; the
  * colors are the same identity every board, every turn log and every feedback
- * pill uses, so a player recognises themselves in the row without reading it.
+ * pill uses, so a player recognizes themselves in the row without reading it.
  */
 /* @@ */ .playerDots {
   display: inline-flex;

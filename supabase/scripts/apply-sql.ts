@@ -99,7 +99,7 @@ try {
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
   })
-  console.log('PostgREST schema cache reload signalled.')
+  console.log('PostgREST schema cache reload signaled.')
 } catch (e) {
   // Not fatal: the SQL is applied either way, and a hosted project also
   // reloads on its own within a minute. Say so rather than failing the deploy.

@@ -150,7 +150,7 @@ describe('typeLetter — starting a word (empty trace)', () => {
     expect(r.kind === 'ambiguous' && r.candidates).toEqual([[0, 1], [1, 0], [1, 1], [2, 3]])
   })
 
-  it('searches the WHOLE board, not just some neighbourhood', () => {
+  it('searches the WHOLE board, not just some neighborhood', () => {
     // B is at [2,0] — nowhere near anything else the tests touch.
     expect(typeLetter([], 'b', TB, none)).toEqual({ kind: 'extend', at: [2, 0] })
   })
@@ -171,27 +171,27 @@ describe('typeLetter — starting a word (empty trace)', () => {
 })
 
 describe('typeLetter — continuing a word (non-empty trace)', () => {
-  it('considers only the last cell’s 8 neighbours', () => {
+  it('considers only the last cell’s 8 neighbors', () => {
     // From [0,0] (C), the A's adjacent are [0,1] and [1,0] and [1,1] — three,
     // so ambiguous; the far A at [2,3] is NOT among them.
     const r = typeLetter([[0, 0]], 'a', TB, none)
     expect(r.kind === 'ambiguous' && r.candidates).toEqual([[0, 1], [1, 0], [1, 1]])
   })
 
-  it('resolves to one when only one neighbour bears the letter', () => {
+  it('resolves to one when only one neighbor bears the letter', () => {
     // From [0,0], the only adjacent R… there is none; use S from [1,3]:
-    // neighbours of [1,3] are [0,2] T, [0,3] S, [1,2] R, [2,2] D, [2,3] A.
+    // neighbors of [1,3] are [0,2] T, [0,3] S, [1,2] R, [2,2] D, [2,3] A.
     expect(typeLetter([[1, 3]], 's', TB, none)).toEqual({ kind: 'extend', at: [0, 3] })
   })
 
-  it('counts DIAGONAL neighbours', () => {
+  it('counts DIAGONAL neighbors', () => {
     // [2,2] D is diagonally adjacent to [1,3] E… check the other way round:
     // from [0,0] C, the diagonal [1,1] A is reachable — proven by the ambiguous
     // case above including it. Here: from [2,1] C, the diagonal [1,2] R.
     expect(typeLetter([[2, 1]], 'r', TB, none)).toEqual({ kind: 'extend', at: [1, 2] })
   })
 
-  it('says nothing matched when no neighbour bears the letter', () => {
+  it('says nothing matched when no neighbor bears the letter', () => {
     // Nothing adjacent to [0,0] is an S.
     expect(typeLetter([[0, 0]], 's', TB, none)).toEqual({ kind: 'none' })
   })
@@ -203,7 +203,7 @@ describe('typeLetter — continuing a word (non-empty trace)', () => {
     expect(typeLetter([[0, 0], [0, 1]], 'c', TB, none)).toEqual({ kind: 'none' })
   })
 
-  it('excludes a consumed neighbour', () => {
+  it('excludes a consumed neighbor', () => {
     // From [1,3] the only S is [0,3]; consume it and nothing is left.
     expect(typeLetter([[1, 3]], 's', TB, consumedOf([0, 3]))).toEqual({ kind: 'none' })
   })

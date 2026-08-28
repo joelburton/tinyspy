@@ -27,12 +27,12 @@
 
 /*
  * The caption. Callers disagreed — 600 weight at inherited size, 600 at 0.9rem
- * in muted grey, no weight at all, and WordEditDialog's 0.8rem muted — and none
+ * in muted gray, no weight at all, and WordEditDialog's 0.8rem muted — and none
  * of those was a recorded choice. This matches `<SelectField>`'s label, the
  * field vocabulary's existing answer to the same question.
  *
  * NOT muted, deliberately (docs/ui.md — muting is asked about, never defaulted
- * to). Two of the callers greyed their captions and three didn't; full strength
+ * to). Two of the callers grayed their captions and three didn't; full strength
  * is the safe direction to unify on.
  */
 /* @@ */ .label {

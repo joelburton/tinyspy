@@ -28,7 +28,7 @@ type Props = {
  * **A DESTRUCTIVE button in every state**: the same tone at
  * rest, on hover and while confirming, so the affordance that says "this
  * deletes something" is there BEFORE the click rather than after it. Only the
- * SHAPE changes, from a square trash can to a labelled pill.
+ * SHAPE changes, from a square trash can to a labeled pill.
  *
  * **It stops the click from propagating**, which is load-bearing now that a
  * game row is a `<SelectionList>` row: the row's own click activates it, so

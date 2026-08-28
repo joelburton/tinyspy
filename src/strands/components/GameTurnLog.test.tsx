@@ -61,7 +61,7 @@ describe('GameTurnLog — a spent hint', () => {
     renderLog([guess('APPLE', 'theme'), hint()])
     expect(screen.getByText('Hint used')).toBeInTheDocument()
     // The word slot is the one thing a hint cannot fill — and the row must not
-    // borrow a neighbouring word to fill it.
+    // borrow a neighboring word to fill it.
     expect(screen.getAllByText(/APPLE/)).toHaveLength(1)
   })
 

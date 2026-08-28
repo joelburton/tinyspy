@@ -18,7 +18,7 @@
 }
 
 /* One option. `align-items: flex-start` rather than `center` because an option
-   can be two lines — the box belongs beside the FIRST of them, not centred
+   can be two lines — the box belongs beside the FIRST of them, not centered
    against both. */
 /* @@ */ .row {
   align-items: flex-start;

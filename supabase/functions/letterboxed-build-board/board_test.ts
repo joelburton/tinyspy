@@ -87,7 +87,7 @@ Deno.test('partitionSides: re-rolls to a DIFFERENT board — one seed, many puzz
 
 Deno.test('partitionSides: returns null when no partition exists', () => {
   // A side holds three letters, so an unplaceable letter is one with no two
-  // non-neighbours to sit beside. Here 'a' alternates with every other letter,
+  // non-neighbors to sit beside. Here 'a' alternates with every other letter,
   // making it adjacent to all eleven — it would have to sit alone, and sides
   // are not allowed to be short. This is the ~0.2% case the seed importer
   // filters out before storing a row, which is why the builder can treat a

@@ -1,9 +1,17 @@
 # Project priors
 
-**Spelling is American.** `color`, not `colour`; `gray`, not `grey`;
-`behavior`, `center`, `canceled`. This is an American app written by an
-American, and it holds everywhere — identifiers, CSS tokens, comments, docs,
-commit messages, and UI copy alike.
+**Spelling is American.** `color`, `gray`, `behavior`, `center`, `canceled` —
+`-or` over `-our`, `-er` over `-re`, `-ize` over `-ise`, and one `l` where
+British doubles it. This is an American app written by an American, and it holds
+everywhere — identifiers, CSS tokens, comments, docs, commit messages, and UI
+copy alike.
+
+`src/guards/americanSpelling.test.ts` enforces it, and its list is absolute: the
+common British forms appear NOWHERE in the repo, including in the sentence above
+that used to illustrate the rule by spelling them out. Word DATA is exempt (a
+dictionary legitimately contains `LITER`), and if prose ever needs to show a
+British spelling as an example, reach for a rarity the guard does not list —
+`gaol`, `connexion` — so no exemption has to be carved for it.
 
 Context for AI assistants and contributors working on this repo. These are project-level priors that should shape every decision; the specific docs build on top:
 

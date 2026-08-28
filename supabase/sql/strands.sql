@@ -37,7 +37,7 @@ grant usage on schema strands to authenticated;
 --
 -- WHY THE CLUE IS ON THE SAFE SIDE (it was withheld until 2026-08-13). The
 -- picker offers 884 dates and nothing else, so it is easy to start a puzzle
--- you have already played and only realise once the board is up. The clue is
+-- you have already played and only realize once the board is up. The clue is
 -- what a person recognizes a puzzle BY — it is already the game's title
 -- ("2025-06-15: Here's to him!", see create_game) and it is on screen from the
 -- first second of play, so a club's past games display it on the club page
@@ -609,7 +609,7 @@ grant execute on function strands.create_game(text, jsonb, uuid[], text) to auth
 -- letter can have two interchangeable tiles, and then more than one legal trace
 -- spells the same word over the identical cells. Real case (2026-08-02,
 -- "Eyes on the prize"): INTENTION runs through two N's at [5,1] and [6,1], each
--- adjacent to both of the other's neighbours —
+-- adjacent to both of the other's neighbors —
 --
 --   I[5,0] N[6,1] T[6,2] E[7,3] N[7,2] T[7,1] I[7,0] O[6,0] N[5,1]
 --   I[5,0] N[5,1] T[6,2] E[7,3] N[7,2] T[7,1] I[7,0] O[6,0] N[6,1]

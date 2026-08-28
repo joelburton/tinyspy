@@ -335,7 +335,7 @@ export function FloatingPanel({
   const coarse = useCoarsePointer()
   const effectiveDraggable = claims.draggable && !coarse
   const effectiveResizable = resizable && !coarse
-  // A viewport change RE-CENTRES this panel unless it remembers where you put
+  // A viewport change RE-CENTERS this panel unless it remembers where you put
   // it. See `useReclampOnResize` for why a modal-normal is in the set despite
   // being draggable, and why the second clause matters on a touch device.
   const recenterOnResize = !claims.remembersRect || !effectiveDraggable

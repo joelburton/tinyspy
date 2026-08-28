@@ -14,7 +14,7 @@
  * language (a C port of this same approach is in `boggle-c-solver/`, used as the
  * golden-master parity oracle for the test beside this file):
  *
- *   1. A flat typed-array **trie** (not a minimised DAWG). A DAWG merges shared
+ *   1. A flat typed-array **trie** (not a minimized DAWG). A DAWG merges shared
  *      suffixes, so a node can't identify a word; a trie gives every word its own
  *      terminal node, which unlocks choice 2. The trie itself lives in
  *      `common/lib/game/trie.ts` (shared with scrabble's move suggester) and is
@@ -112,7 +112,7 @@ export interface SolveResult {
 }
 
 /** Adjacency lists for an `n × n` board, cached per size. Precomputing the
- *  neighbours keeps `/n` and `%n` (integer division — slow in a JS hot loop)
+ *  neighbors keeps `/n` and `%n` (integer division — slow in a JS hot loop)
  *  out of the DFS; it just walks a flat list of cell indices. */
 const neighborCache = new Map<number, Int8Array[]>()
 function neighborsFor(n: number): Int8Array[] {

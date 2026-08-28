@@ -22,7 +22,7 @@ const cleanLetters = (raw: string, max: number) =>
  * Split the one typed field into the two setup keys.
  *
  * THE HYPHEN IS OPTIONAL. `A-CHIROT` and `ACHIROT` mean the same thing — the
- * first letter is the centre and the rest are the outer ring — because the
+ * first letter is the center and the rest are the outer ring — because the
  * hyphen is punctuation in a display form, not data. `cleanLetters` drops it
  * either way; this just decides where the cut falls, which is always after the
  * first letter.
@@ -100,7 +100,7 @@ export function SetupForm({
   const targetRankLabel = s.target_rank === undefined ? 'None' : RANKS[s.target_rank]
 
   // The one field's text, rebuilt from the two keys it writes. Undashed: the
-  // field owns the hyphen and puts it back after the centre letter, so typing
+  // field owns the hyphen and puts it back after the center letter, so typing
   // it, omitting it or pasting it all mean the same thing.
   const customEntry = `${s.custom_center ?? ''}${s.custom_letters ?? ''}`
 
@@ -202,8 +202,8 @@ export function SetupForm({
           placeholder="A-CHIROT"
           chars={8}
           maxLength={8}
-          // The centre, then the ring — so the hyphen the summary has always
-          // printed appears as you type it, and "which one is the centre?" is
+          // The center, then the ring — so the hyphen the summary has always
+          // printed appears as you type it, and "which one is the center?" is
           // answered on screen rather than in the help text.
           groups={[1, 6]}
         />

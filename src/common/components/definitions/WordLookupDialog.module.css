@@ -4,7 +4,7 @@
    and has to take the slack. This is `<TextField>`'s `className`, which lands on
    the FIELD — so it must be placement only.
    
-   It used to carry a full control chrome as well — padding, font-size, colour,
+   It used to carry a full control chrome as well — padding, font-size, color,
    background, border, radius — a second definition of what an input looks like,
    beside base.css's. That went on 2026-08-26 with the conversion: the two
    dialogs' copies were byte-identical, which is how you know neither was a

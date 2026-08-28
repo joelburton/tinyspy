@@ -225,7 +225,7 @@ relevant and never touches the mouse experience.
 
 - **Cursor state lives wherever that game's selection already lives** (waffle's
   `Board`, psychicnum's and connections' `BoardCol`). The two must agree, so they
-  should be neighbours.
+  should be neighbors.
 - **Read-only mid-move** (a peer ends your turn while you navigate): keep the
   index, hide the mark, ignore the keys — it returns where you left it.
 - **The history viewer wins the first keypress.** Every one of these games exits

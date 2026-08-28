@@ -62,7 +62,7 @@ create schema if not exists letterboxed;
 -- Every row here is PARTITIONABLE BY CONSTRUCTION. About 0.2% of
 -- otherwise-valid pairs are not — a long word can leave one letter
 -- adjacent to so many others that no side is free for it
--- ('paradigmatic' gives its repeated 'a' six distinct neighbours) — and
+-- ('paradigmatic' gives its repeated 'a' six distinct neighbors) — and
 -- the importer proves the partition exists before storing the row, by
 -- exhaustive backtracking. So the builder never needs a fallback, and
 -- it stays free to roll a DIFFERENT random partition each game: a

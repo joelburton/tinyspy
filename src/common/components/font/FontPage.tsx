@@ -225,7 +225,7 @@ export function FontPage() {
           <div className={styles.sectionHead}>
             <h2>Weights</h2>
             <span className={styles.rowLabel}>
-              Greyed rows are hundreds the app does not currently write.
+              Grayed rows are hundreds the app does not currently write.
             </span>
           </div>
           {WEIGHTS.map((w) => (

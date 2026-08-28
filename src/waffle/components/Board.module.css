@@ -168,7 +168,7 @@
  * are one mark rather than three. Drawn with `outline` (order-independent, and
  * the channel is free while viewing: you cannot select, and nothing can be in
  * flight); `position: relative` + a z-index lift it so the ring paints over
- * neighbouring tiles rather than under. */
+ * neighboring tiles rather than under. */
 /* @@ */ .viewedTile {
   outline: 3px solid var(--view-history-color);
   outline-offset: 2px;

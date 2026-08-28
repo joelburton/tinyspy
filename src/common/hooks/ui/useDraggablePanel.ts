@@ -23,7 +23,7 @@ type PanelOpts = {
   minHeight: number
   /** Overrides `VIEWPORT_EDGE_MARGIN`. Nothing passes one. */
   edgeMargin?: number
-  /** Re-centre on a viewport change rather than nudging inside — see
+  /** Re-center on a viewport change rather than nudging inside — see
    *  `useReclampOnResize`. */
   recenterOnResize: boolean
 }
@@ -135,23 +135,23 @@ export function useReclampOnResize(
   /**
    * RE-CENTER instead of merely pulling back inside.
    *
-   * **The rule: re-centre unless the panel REMEMBERS where you put it.** Which
+   * **The rule: re-center unless the panel REMEMBERS where you put it.** Which
    * is `!remembersRect || !draggable` — a panel that forgets your position had
    * none worth preserving, and a panel you cannot drag never had one at all.
    *
    * Clamping instead is visibly wrong for those: a confirmation whose whole
-   * identity is "centred" ended up flush against the right margin, because
+   * identity is "centered" ended up flush against the right margin, because
    * `defaultPosition: 'center'` is resolved into concrete x/y once at mount and
    * nothing afterwards remembers it was ever an intent.
    *
    * **`modal-normal` is in the set even though you CAN drag one** (Joel,
-   * 2026-08-25): they always open centred and never save a position, so *"the
+   * 2026-08-25): they always open centered and never save a position, so *"the
    * players think 'these start at the center' — which is true — and therefore
    * should re-center on viewport resize."* Shoving one aside is a transient act
    * to see something behind it, not a placement.
    *
    * The `!draggable` clause is what covers a COARSE POINTER, where every panel
-   * is forced non-draggable: a tablet rotation re-centres chat, because the rect
+   * is forced non-draggable: a tablet rotation re-centers chat, because the rect
    * it restored was chosen in some desktop session and is not an intent on that
    * device.
    *
@@ -193,7 +193,7 @@ export function useReclampOnResize(
   }, [minWidth, minHeight, edgeMargin, recenter])
 }
 
-/** A rect's own size, centred in the current viewport. Size untouched. */
+/** A rect's own size, centered in the current viewport. Size untouched. */
 function centerInViewport(rect: PanelRect): PanelRect {
   const vw = typeof window !== 'undefined' ? window.innerWidth : rect.width
   const vh = typeof window !== 'undefined' ? window.innerHeight : rect.height

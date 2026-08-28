@@ -341,7 +341,7 @@ the Down option because the box must sit INSIDE the `<label>`. It does sit
 inside — that is exactly where `RadioRow` renders `opt.label`, and `label` is a
 ReactNode. Then I said the leftover `align-items: center` was a styling
 decision; measured, it changes nothing, because each `.radio` is an inline-flex
-that centres its own contents (10.59px from the row top either way). Both
+that centers its own contents (10.59px from the row top either way). Both
 mistakes were the same one: seeing a declaration in one file and not the other,
 and writing it up as a difference without asking whether it did anything.
 
@@ -444,7 +444,7 @@ placeholders ever get a global treatment, this rule folds into it."*
 
 One change of substance: the placeholder keeps the field's LETTER-SPACING (Joel,
 2026-08-26), where both copies had dropped it on the theory that a third axis of
-difference helped. It differs on colour and slant alone now.
+difference helped. It differs on color and slant alone now.
 
 
 boggle's `.boardInput::placeholder` and letterboxed's `.sidesInput::placeholder`
@@ -886,7 +886,7 @@ letterboxed, spellingbee — were the ones using `styles` for the shared sheet a
 
 **Guarded, not just documented** (`src/guards/cssClasses.test.ts`), which is the
 point: this is exactly the kind of convention that rotted `--radius-md` while the
-guarded colour vocabulary held. Two checks, both PLANTED to prove they
+guarded color vocabulary held. Two checks, both PLANTED to prove they
 discriminate — renaming wordle's `form` to `shared`, and wordwheel's own module
 back to `local`, each failed the right one.
 
@@ -908,7 +908,7 @@ So the finding is answered, and the answer is that its premise was wrong. A
 declared vocabulary step is not the same kind of thing as a stray token somebody
 forgot to delete — the ramp is meant to be complete, and "nothing happens to read
 step 3 this week" is a fact about this week. That is the same argument the guard
-already accepts for a reserved cell in a colour family.
+already accepts for a reserved cell in a color family.
 
 The history, for whoever reads the token later: it had exactly ONE consumer in
 the repo — `ClubGameDeleteButton.module.css`, hand-tightening the corner delete
@@ -917,7 +917,7 @@ the button started declaring its own type.
 
 **Left over:** `src/guards/cssTokens.test.ts` → "every defined token is
 referenced (no dead tokens)" is RED on it, and stays red. The guard has a
-mechanism for a reserved COLOUR cell (`palette.ts` reads every one) and none for
+mechanism for a reserved COLOR cell (`palette.ts` reads every one) and none for
 a reserved ramp step. Teaching it that a declared ramp step is reserved rather
 than dead would be a change to a guard's premise, which is not something to do
 off the back of a finding — **open question, not this finding's business.**
@@ -1417,7 +1417,7 @@ a definition"). The dialogs still say them in full.
 
 - `.tabStack` / `.tabBody` / `.tabHidden` and the always-mounted stack
 - the four `onClick`s that clear `board` + `filename` when leaving a tab —
-  cancelling is a real affordance now, rather than a silent side effect of
+  canceling is a real affordance now, rather than a silent side effect of
   pressing a different tab
 - `uploadBusy` / `uploadError` / `dragOver` / `query` from the setup form
 - both `useEffect` fetches, into the dialogs that need them

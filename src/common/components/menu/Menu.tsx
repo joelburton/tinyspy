@@ -23,7 +23,7 @@ import styles from './Menu.module.css'
  * exception is the mobile drill-down's "‹ Back" row, which is navigable and
  * activatable but isn't a menu item the caller supplied.
  *
- * Modelling Back as a nav row (rather than special-casing it around the
+ * Modeling Back as a nav row (rather than special-casing it around the
  * keyboard code) is what keeps the flat-index model intact: there is still
  * exactly ONE list of rows on screen with focus in it, mobile or desktop.
  */

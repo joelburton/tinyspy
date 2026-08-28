@@ -1,6 +1,6 @@
 /* cs-unmet */
 
-/* A labelled text box (see TextField.tsx). The column and the caption are the
+/* A labeled text box (see TextField.tsx). The column and the caption are the
  * shared `field.module.css`; only the control is this file's. */
 /* Fill the field. The control's own chrome — border, radius, padding — is
    base.css's `input, textarea` rule; only the width is this field's business. */

@@ -164,7 +164,7 @@
 }
 
 /* A tile on the current traced path: accent fill + a light ring so the word's
- * route reads at a glance and lifts off the neighbouring tiles. Overrides the
+ * route reads at a glance and lifts off the neighboring tiles. Overrides the
  * resting `.tile` fill/text (placed after it, equal specificity). */
 /* @@ */ .selected {
   background: var(--button-normal-primary-color);

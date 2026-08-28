@@ -611,7 +611,7 @@
 
      Pure white under the pointer: the lift and the shadow do most of
      the hover, but a keycap is small and packed against its
-     neighbours, so the shadow has little room to read. Going white
+     neighbors, so the shadow has little room to read. Going white
      rather than tinting keeps it a lightness change, so it can't be
      read as a state. */
 /* @@ */   --kbd-key-fill-color:        #fdfbf6;

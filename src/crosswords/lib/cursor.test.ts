@@ -20,7 +20,7 @@ import {
 /** Build a `Cell[][]` from an ASCII sketch: `#` is a block, `.` an empty
  *  open cell, an `A–Z` letter a filled open cell. Cell numbers are
  *  assigned exactly the way the parsers do (a cell starts a word if its
- *  left/up neighbour is a block/edge and its right/down neighbour is
+ *  left/up neighbor is a block/edge and its right/down neighbor is
  *  open), so the fixtures read like real grids. */
 function grid(rows: string[]): Cell[][] {
   let n = 0

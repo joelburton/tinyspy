@@ -30,7 +30,7 @@ export function Help({ onClose, brand }: Props) {
         </li>
         <li>
           <strong>Or type it.</strong> Once a word has a first letter, typing picks
-          the neighbour that matches — usually there's only one. When several
+          the neighbor that matches — usually there's only one. When several
           letters could be meant, they ring red: click the one you want. (A word's
           <em>first</em> letter is usually a click, since the same letter appears
           all over the board.)

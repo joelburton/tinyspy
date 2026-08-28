@@ -9,7 +9,7 @@
  *
  * `.timerRow` differed from `.radioRow` by a single `align-items: center`, and
  * that was MEASURED before deleting rather than assumed: it changed nothing.
- * Each `.radio` is itself an inline-flex that centres its own contents, so the
+ * Each `.radio` is itself an inline-flex that centers its own contents, so the
  * radio and its text land at the same place either way — 10.59px from the row's
  * top, with or without it. A pure duplicate wearing a second name.
  */

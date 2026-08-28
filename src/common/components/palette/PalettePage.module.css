@@ -122,7 +122,7 @@
   line-height: 1.35;
 }
 
-/* A wide, short block: wide enough to judge a color against its neighbour, short
+/* A wide, short block: wide enough to judge a color against its neighbor, short
  * enough that a family fits on one screen. The border is the page's own divider,
  * not a swatch color — a pale swatch still needs an edge to have a size. */
 /* @@ */ .swatch {

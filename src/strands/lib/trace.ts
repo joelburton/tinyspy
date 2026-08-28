@@ -19,7 +19,7 @@
  *
  * That works because of an asymmetry in the board: the FIRST letter of a word
  * competes with all 48 cells and is usually ambiguous, but every letter after it
- * competes only with the ≤8 neighbours of the last cell and is usually unique.
+ * competes only with the ≤8 neighbors of the last cell and is usually unique.
  * In practice you click a word's opening letter and type the rest.
  *
  * Keeping the machine pure and separate from the component means the rules can
@@ -127,7 +127,7 @@ export type TypeResult =
  *  - **Mid-trace** → only cells 8-way ADJACENT to the last one, unconsumed, and
  *    **not already in the trace** (a path can't visit a cell twice — clicking
  *    one of your own cells means "undo back to here", which is a different
- *    action and stays click-only). Eight neighbours minus the ones already used
+ *    action and stays click-only). Eight neighbors minus the ones already used
  *    is a small field, so this is usually unique — which is what makes typing
  *    the rest of a word work.
  *

@@ -17,7 +17,7 @@
 /* THE OFFSET IS THE ONLY THING THAT VARIES, and it is not a preference — it
    follows from what the element sits against:
  *
- *   -2px   the element ABUTS its neighbours (a list row, a menu item). An
+ *   -2px   the element ABUTS its neighbors (a list row, a menu item). An
  *          outside ring would overlap the next one and get clipped by the
  *          frame's overflow at the first and last.
  *   -1px   the element has its OWN BORDER to sit just inside (an input, a

@@ -1059,7 +1059,7 @@ against rather than from taste:
 
 | offset | when | e.g. |
 |---|---|---|
-| `-2px` | the element **abuts** its neighbours; an outside ring would overlap the next one and be clipped by the frame | list rows, menu items |
+| `-2px` | the element **abuts** its neighbors; an outside ring would overlap the next one and be clipped by the frame | list rows, menu items |
 | `-1px` | the element has **its own border** to sit just inside | inputs, selects, the color swatch |
 | `+2px` | the element has **clear space** around it | a standalone button, the menu trigger |
 
@@ -1729,7 +1729,7 @@ not anything reads them yet, because a family picked at one sitting is picked by
 one formula. (`-base` is the anchor the other five derive from, and nothing
 paints it.) `quiet` is the cautionary tale: it spent a redesign as an
 outline-only tone on the argument that a filled quiet button would out-shout its
-neighbour, which is a claim about one USE promoted into a fact about the TONE —
+neighbor, which is a claim about one USE promoted into a fact about the TONE —
 and it made `tone="quiet"` + `weight="primary"` silently paint blue. Cancel wants
 the outline because **secondary is the right treatment there**, which says
 nothing about the tone. Two guards in

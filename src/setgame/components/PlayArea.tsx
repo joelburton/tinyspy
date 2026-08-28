@@ -237,7 +237,7 @@ export function PlayArea(ctx: GamePageCtx) {
   )
 
   // NOT gated on a claim being in flight: the rest of the board stays live so a
-  // fast player can start their next set while this one is still travelling.
+  // fast player can start their next set while this one is still traveling.
   // The three cards being claimed are made unclickable individually.
   const active = !isTerminal && !myConceded && isMyTurn
 

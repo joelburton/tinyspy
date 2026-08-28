@@ -17,7 +17,7 @@ import { FIXTURES } from './oracle.fixture'
 const BOARD = FIXTURES[0].board
 
 describe('adjacent', () => {
-  it('accepts all eight neighbours', () => {
+  it('accepts all eight neighbors', () => {
     const around: Coord[] = [
       [2, 2], [2, 3], [2, 4],
       [3, 2], /*  */ [3, 4],

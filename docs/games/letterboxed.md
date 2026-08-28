@@ -324,7 +324,7 @@ easiest-band pair per key. Three load-bearing filters:
   becoming two obscurities. Band ≤ 2 yields ~459k letter-sets, ample.
 - **Partitionability proved at import** by exhaustive backtracking (~0.2% of
   otherwise-valid pairs fail — a long word can give one letter more distinct
-  neighbours than there are sides for). So every stored seed partitions under
+  neighbors than there are sides for). So every stored seed partitions under
   *any* ordering, the builder needs no fallback path, and it's free to roll a
   **different** random partition per game.
 

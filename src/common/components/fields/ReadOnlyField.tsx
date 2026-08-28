@@ -21,7 +21,7 @@ type Props = AllFieldProps<ReactNode>
  * order, that you simply cannot type into. This is plain text with no box at
  * all. A boolean that swapped `<input>` for `<span>` would be changing the
  * ELEMENT, which is more than a prop should do, and a call site reading
- * `<TextField readOnly>` would reasonably expect the greyed-out box it does not
+ * `<TextField readOnly>` would reasonably expect the grayed-out box it does not
  * get. The props diverge too: no `onChange`, no `placeholder`, no `maxLength`,
  * and `disabled` is meaningless when there is nothing to disable.
  *

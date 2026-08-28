@@ -27,7 +27,7 @@ through `<GamePage>` + `useCommonGame`, like every other multiplayer gametype.
 
 A square board of `n × n` lettered tiles (`n` ∈ 4 / 5 / 6, set by the dice set).
 A word is legal when you can trace it as a path of adjacent tiles — each step to
-one of the up-to-8 neighbours, no tile visited twice — and the word clears the
+one of the up-to-8 neighbors, no tile visited twice — and the word clears the
 minimum length.
 
 - **Dice sets.** All eight wsboggle sets ship (4×4 Classic/Revised, four 5×5
@@ -607,7 +607,7 @@ allowlist.
 - **"Board constraints" is the one setup summary that doesn't say what's set.**
   Every `<SetupSection>` in the app carries its live value in the summary —
   `Timer: none`, `Dictionary: 3 (Familiar)`, `Turns: 9` — so a player reads the
-  whole form without opening anything. boggle's constraints section is labelled
+  whole form without opening anything. boggle's constraints section is labeled
   with the bare name, so the only way to learn whether a min/max is set is to
   expand it.
 
@@ -633,7 +633,7 @@ allowlist.
   boggle's own module.
 
   **Left here on purpose, not overlooked** (Joel, 2026-08-26). Six numbers in a
-  labelled matrix is a GRID, not six independent fields — `<NumberField>` exists
+  labeled matrix is a GRID, not six independent fields — `<NumberField>` exists
   and would fit each cell, but wrapping each cell in it does not answer the
   question this thing actually poses, which is what a min/max matrix should look
   like when only boggle has one. Whoever takes it decides that first; the cells

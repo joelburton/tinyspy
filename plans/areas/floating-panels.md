@@ -985,7 +985,7 @@ already fits stays quiet — no re-render, no storage write.
 > was this the last time?'… whichever is easier is fine."* · *"But, obviously, IF
 > I then move/resize, it should remember the new location."*
 
-The middle one cancelled half the fix I had proposed: the two paths disagree
+The middle one canceled half the fix I had proposed: the two paths disagree
 about whether a viewport correction is written back, and it does not matter, so
 the persisted path keeps the write it already did. The third is untouched — a
 user's drag goes through the SOFT clamp, which is allowed to park a panel half
@@ -997,13 +997,13 @@ listener removed, a confirmation on a 1200px viewport shrunk to 600 keeps
 reach. With it, 172 and 592.
 
 **It also did not need to be dragged anywhere**, which is the part the finding
-missed: a CENTRED panel is off-screen the moment the window is narrower than the
+missed: a CENTERED panel is off-screen the moment the window is narrower than the
 panel. "It clamped once on mount" was never the same claim as "it is on screen".
 
 **And that exposed a second half, which Joel caught by asking whether I had made
 a claim and not done the work.** Pulling a panel back inside is not the same as
 putting it back where it belongs: the confirmation landed at `x = 172` on a 600px
-viewport — flush against the right margin — where centred is 90. The cause is
+viewport — flush against the right margin — where centered is 90. The cause is
 that `defaultPosition: 'center'` is resolved into concrete x/y ONCE at mount, and
 nothing afterwards remembers the position was an intent rather than a choice.
 
@@ -1012,18 +1012,18 @@ we should re-calc its position"* — better than the version I proposed, which
 listed the two card families, because it states the REASON rather than the
 members. Then he widened it, and the wider one is the keeper:
 
-> **Re-centre unless the panel REMEMBERS where you put it** — `!remembersRect ||
+> **Re-center unless the panel REMEMBERS where you put it** — `!remembersRect ||
 > !draggable`.
 
 **`modal-normal` is in the set even though you CAN drag one** (Joel): they always
-open centred and never save a position, so *"the players think 'these start at
+open centered and never save a position, so *"the players think 'these start at
 the center' — which is true — and therefore should re-center on viewport
 resize."* Shoving one aside is a transient act to see something behind it, not a
 placement. That is a field the family table already had, so the rule needed no
 new information.
 
 The `!draggable` clause is what still covers a COARSE POINTER, where every panel
-is forced non-draggable: a tablet rotation re-centres chat, because the rect it
+is forced non-draggable: a tablet rotation re-centers chat, because the rect it
 restored was chosen in some desktop session and is not an intent on that device.
 
 Only the POSITION is recomputed; the size is left alone, because a `fitContent`
@@ -1031,8 +1031,8 @@ panel's height is its content's answer rather than the viewport's. Measured:
 
 | | before resize | after |
 |---|---|---|
-| blocking modal, 1200 → 600 | 390 (centred) | **90** (centred) — was 172, flush right |
-| setup dialog, DRAGGED to 560, 1200 → 1000 | 560 | **260** (centred) |
+| blocking modal, 1200 → 600 | 390 (centered) | **90** (centered) — was 172, flush right |
+| setup dialog, DRAGGED to 560, 1200 → 1000 | 560 | **260** (centered) |
 | chat, dragged, resize it still fits in | 670, 250 | **670, 250** — untouched |
 
 ## RESOLVED · F28 · `help-rect-per-game` · Help is a companion, so it remembers — but sixteen games size it differently

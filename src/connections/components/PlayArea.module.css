@@ -147,7 +147,7 @@
  *   - a ring in the shared viewer blue, drawn OUTSIDE the tile so it reads as the
  *     same mark as the board frame at tile scale — an outline, outside, in the
  *     history color. Offset 0 is forced by the grid: 3px of ring on each of two
- *     neighbours takes 6px of the 0.5rem gap, and any positive offset would have
+ *     neighbors takes 6px of the 0.5rem gap, and any positive offset would have
  *     two ringed tiles collide.
  * A guessed tile stays on the grid in the strictly-before snapshot even for a
  * correct guess (it hasn't collapsed into its band yet) — that's what we ring. */

@@ -77,7 +77,7 @@ describe('the field family', () => {
   it('holds a field OUTSIDE fields/ to the same contract', () => {
     // Having a test file is not the same as being held to the family's terms. A
     // game-local field is the one that drifts, because it is written next to the
-    // game's own components and nothing about that neighbourhood suggests
+    // game's own components and nothing about that neighborhood suggests
     // `AllFieldProps`.
     const loose = fieldsOutside()
       .filter((f) => !readFileSync(f.replace(/\.tsx$/, '.test.tsx'), 'utf8').includes('expectFieldContract('))

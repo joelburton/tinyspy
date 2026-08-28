@@ -245,7 +245,7 @@ OUTCOME (why) · other · facts
 ```
 
 - **The lead is one of `Playing` / `Won` / `Lost` / `Ended`.** It's what survives
-  truncation on a narrow card, so it carries the thing you scan for. Per-game flavour
+  truncation on a narrow card, so it carries the thing you scan for. Per-game flavor
   words (`solving…`, `stacking…`, `racing…`) were retired for it.
 - **Parentheses carry a reason**, phrased in the game's own noun — `out of guesses`,
   `out of swaps`, `4 mistakes`, `all conceded`. A reason goes on a loss or an end, never

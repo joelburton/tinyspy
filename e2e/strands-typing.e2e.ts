@@ -64,11 +64,11 @@ test.describe('strands typed input', () => {
     await cell(page, [2, 4]).click()
     await expect(entry(page)).toHaveText('C')
 
-    // 'h' — the only H among [2,4]'s eight neighbours is [2,5]. Types straight in.
+    // 'h' — the only H among [2,4]'s eight neighbors is [2,5]. Types straight in.
     await page.keyboard.press('h')
     await expect(entry(page)).toHaveText('CH')
 
-    // 'a' — TWO A's neighbour [2,5]: [1,5] and [3,5]. So nothing is appended,
+    // 'a' — TWO A's neighbor [2,5]: [1,5] and [3,5]. So nothing is appended,
     // both ring red, and no pill appears (the rings are the message; a pill here
     // would cover the very word being built).
     await page.keyboard.press('a')
@@ -91,7 +91,7 @@ test.describe('strands typed input', () => {
     await page.keyboard.press('q')
     await expect(page.getByText(/No “Q” left on the board/)).toBeVisible()
 
-    // Mid-word the scope is the neighbours, so the same key means something
+    // Mid-word the scope is the neighbors, so the same key means something
     // narrower — and the message says so rather than repeating itself.
     await cell(page, [2, 4]).click()
     await page.keyboard.press('q')

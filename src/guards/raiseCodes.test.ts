@@ -94,7 +94,7 @@ describe('the raise codes', () => {
     expect(raises().length).toBeGreaterThan(40)
   })
 
-  it('is shaped so the handler recognises it as ours', () => {
+  it('is shaped so the handler recognizes it as ours', () => {
     const malformed = raises()
       .filter((r) => !/^P[AN][0-9]{3}$/.test(r.code))
       .map((r) => `${r.file}: ${r.code}`)

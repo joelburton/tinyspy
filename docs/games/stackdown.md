@@ -72,7 +72,7 @@ games (`stackdown_coop`, `stackdown_compete`), and inherits the shared chrome
 ### 2.1 Geometry (fixed)
 
 An integer 9×9 grid: each tile occupies a cell `(x, y, z)` (`z = 0` base, higher
-= raised). Neighbouring tiles are two cells apart; a raised tile sits one
+= raised). Neighboring tiles are two cells apart; a raised tile sits one
 diagonal step from each base tile it rests on. **Positions and the covering DAG
 are a constant** — the same physical shape every puzzle (like the reference
 board). Only the *letters* vary between boards. This shrinks generation to a

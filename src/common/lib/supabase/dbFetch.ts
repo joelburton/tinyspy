@@ -145,7 +145,7 @@ export const dbFetch: typeof fetch = async (input, init) => {
       // compete with it — and `status` stays blank because nothing answered.
       const fields = { call, ms, detail: `${name}: ${message} ${context()}` }
 
-      // An ABORT is not an environmental failure: it is us cancelling our own
+      // An ABORT is not an environmental failure: it is us canceling our own
       // request (a component unmounting, a superseded fetch), so nobody is owed
       // a modal. It still gets a line — an abort storm is worth seeing. Neither
       // is a call to Supabase's own endpoints, which the sign-in screen owns.

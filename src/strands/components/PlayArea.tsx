@@ -326,7 +326,7 @@ export function PlayArea(ctx: GamePageCtx) {
    *     click; none says so in the pill, since that's almost always a mistake
    *     rather than an ambiguity. The first letter of a word competes with all
    *     48 cells and so is usually a click; every letter after it competes only
-   *     with ≤8 neighbours and so usually just works.
+   *     with ≤8 neighbors and so usually just works.
    *   - **Backspace** drops the last tile, so a misclick costs one key instead
    *     of restarting the word;
    *   - **Enter** submits — one of only two ways, with the Submit button;

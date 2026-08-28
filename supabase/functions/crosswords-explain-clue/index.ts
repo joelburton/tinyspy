@@ -164,7 +164,7 @@ A good explanation identifies BOTH parts, names the wordplay MECHANISM, and poin
 - HIDDEN — answer sits inside consecutive letters of the clue. Indicators: "in", "within", "part of", "some", "held by", "hiding".
 - REVERSAL — letters read backward. Indicators: "back", "returning", "up" (in a down clue), "reflected", "recalled".
 - HOMOPHONE — sounds like another word. Indicators: "we hear", "reportedly", "said", "on the radio", "aloud".
-- CHARADE — answer built from pieces joined in sequence (e.g. abbreviation + word). Often no explicit indicator; signalled by juxtaposition.
+- CHARADE — answer built from pieces joined in sequence (e.g. abbreviation + word). Often no explicit indicator; signaled by juxtaposition.
 - CONTAINER / INSERTION — one string placed inside/around another. Indicators: "in", "around", "holding", "swallowing", "without", "outside".
 - DELETION — letters removed. Indicators: "headless", "endless", "almost", "curtailed", "heartless", "shortly".
 - DOUBLE DEFINITION — two straight definitions side by side, no mechanical wordplay.

@@ -736,7 +736,7 @@ alter table common.games replica identity full;
 --                 spellingbee uses two thresholds: required = <= 3 (clean),
 --                 legal = <= 5.
 --   american/british/canadian/australian — dialect validity. Mostly
---                 a SPELLING filter (colour/color, -ise/-ize); a word
+--                 a SPELLING filter (color/color, -ise/-ize); a word
 --                 like `lorry` is american=true too. Default play is
 --                 `american AND british`.
 --   crude       — profanity level: 0 none, 1 mild (`damn`), 2 strong

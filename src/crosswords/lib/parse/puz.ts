@@ -15,8 +15,8 @@
  * Cell numbering is computed here, not read from puzjs: the library
  * exposes clue *text* keyed by number but doesn't say which cells start a
  * word, so we walk the grid in reading order and assign numbers the
- * standard way (a cell starts a word if its left/up neighbour is a block
- * or edge and its right/down neighbour is open).
+ * standard way (a cell starts a word if its left/up neighbor is a block
+ * or edge and its right/down neighbor is open).
  */
 
 import Puz from 'puzjs'

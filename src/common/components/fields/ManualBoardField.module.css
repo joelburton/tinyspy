@@ -30,7 +30,7 @@
  *
  * It is the only placeholder in the app that can be misread as data: it is a
  * board, in the same face, tracking and case as real input, and the browser's
- * default placeholder grey sits close enough to the text grey that a player
+ * default placeholder gray sits close enough to the text gray that a player
  * could hit Start believing they had pasted something. boggle met this first
  * and letterboxed copied its rule wholesale (F33); it is one rule now.
  *

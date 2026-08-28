@@ -17,13 +17,13 @@ import { signIn } from './helpers/session'
  *
  * ⚠️ The first case must use a panel with NO `persistKey` — a blocking modal —
  * or it tests the path that already worked. And note it does not need to be
- * dragged anywhere: a centred panel is off-screen the moment the window is
+ * dragged anywhere: a centered panel is off-screen the moment the window is
  * narrower than the panel, which is why "it clamped once on mount" was never the
  * same claim as "it is on screen".
  *
- * The rule the cases below pin: **a resize re-centres a floating panel unless it
- * REMEMBERS where you put it.** So both modal families re-centre — including
- * `modal-normal`, which you CAN drag, because it always opens centred and never
+ * The rule the cases below pin: **a resize re-centers a floating panel unless it
+ * REMEMBERS where you put it.** So both modal families re-center — including
+ * `modal-normal`, which you CAN drag, because it always opens centered and never
  * saves a position, so shoving one aside is a transient act rather than a
  * placement — while a companion, which does remember, stays exactly where you
  * left it.
@@ -53,14 +53,14 @@ test.describe('floating panels and the viewport', () => {
     expect(b.x + b.width).toBeLessThanOrEqual(600)
     expect(b.y + b.height).toBeLessThanOrEqual(500)
 
-    // And it is RE-CENTRED, not merely shoved inside. This panel cannot be
+    // And it is RE-CENTERED, not merely shoved inside. This panel cannot be
     // dragged, so its position was never anyone's choice — clamping put a modal
-    // whose whole identity is "centred" flush against the right margin (x=172
-    // where centred is 90).
+    // whose whole identity is "centered" flush against the right margin (x=172
+    // where centered is 90).
     expect(b.x).toBeCloseTo((600 - b.width) / 2, 0)
   })
 
-  test('a modal-normal re-centres even though you CAN drag it', async ({ browser }) => {
+  test('a modal-normal re-centers even though you CAN drag it', async ({ browser }) => {
     const club = await createClubWithMembers(['ada', 'bea'])
     const ctx = await browser.newContext({ viewport: { width: 1200, height: 900 } })
     await signIn(ctx, club.members[0].session)
@@ -80,7 +80,7 @@ test.describe('floating panels and the viewport', () => {
     await page.setViewportSize({ width: 1000, height: 800 })
     await page.waitForTimeout(400)
     const after = (await panel(page).boundingBox())!
-    // Dragged to 560 on a 1200 viewport; back to dead centre at 1000.
+    // Dragged to 560 on a 1200 viewport; back to dead center at 1000.
     expect(after.x).toBeCloseTo((1000 - after.width) / 2, 0)
   })
 
@@ -107,7 +107,7 @@ test.describe('floating panels and the viewport', () => {
     // it horizontally, and then a fixed 700 tall overflowed it vertically — the
     // clamp did its job correctly both times and the test failed anyway.
     // Nothing should move it here: chat REMEMBERS its rect, which is the half of
-    // the rule that re-centring excludes.
+    // the rule that re-centering excludes.
     await page.setViewportSize({
       width: Math.ceil(moved.x + moved.width + 40),
       height: Math.ceil(moved.y + moved.height + 40),

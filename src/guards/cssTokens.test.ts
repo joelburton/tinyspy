@@ -447,7 +447,7 @@ describe('the color families are complete rectangles', () => {
   /**
    * `quiet` is the case that proves the rule above. It went two years as an
    * outline-only tone on the argument that "a filled quiet button would out-shout
-   * its neighbour" — a claim about one USE, promoted into a fact about the
+   * its neighbor" — a claim about one USE, promoted into a fact about the
    * FAMILY, which then made `tone="quiet" weight="primary"` paint itself blue.
    * Nothing reads quiet's primary trio today. It is still written today.
    *

@@ -125,7 +125,7 @@
  * unrelated marks.
  *
  * Inside the tile rather than straddling its edge, so it can never collide with
- * the selection border, the history ring, or a neighbour — and small, because it
+ * the selection border, the history ring, or a neighbor — and small, because it
  * answers a question you ask deliberately ("who got that one?") rather than one
  * the board should be shouting. */
 /* @@ */ .actorDot {
@@ -174,7 +174,7 @@
  * off the tile and no longer backed by the fill — the offset costs it presence,
  * so the width has to hold.
  *
- * Two neighbours to know about:
+ * Two neighbors to know about:
  *   - The next TILE is never a problem: the grid gap is 0.5rem (8px) and only one
  *     tile is ever `.viewed`, so this ring stops 3px short of it.
  *   - The BOARD FRAME is. It is an outline on `.grid` at `outline-offset: 3px`,

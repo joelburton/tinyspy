@@ -10,8 +10,8 @@
  * WHAT CHANGED, AND WHY
  * =============================================================================
  *
- * 1. DICTIONARY: minimised DAWG  ->  plain TRIE
- *    libwords.c reads a minimised DAWG (words.dat). A DAWG merges shared
+ * 1. DICTIONARY: minimized DAWG  ->  plain TRIE
+ *    libwords.c reads a minimized DAWG (words.dat). A DAWG merges shared
  *    SUFFIXES, so "CARS" and "BARS" end at the SAME node (they share "ARS").
  *    That makes the DAWG tiny (288 KB) but it means a node does NOT identify a
  *    word — two different words can land on one node.

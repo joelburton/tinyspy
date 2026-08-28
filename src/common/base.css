@@ -377,7 +377,7 @@
                     recognition.
        gameOver     the one dim that is PERMANENT rather than
                     transient, which is why it gets its own name even
-                    where the value matches its neighbour's: a finished
+                    where the value matches its neighbor's: a finished
                     board is what players sit and study afterwards
                     ("where did we go wrong"), so it has to stay fully
                     readable, and it must be free to move without

@@ -427,7 +427,7 @@ temptation to separate them by tier has to be resisted for two reasons. Color
 matching is doing real work — a player learns one red — and, more sharply, **the
 outcome palette is a gradient**: red for errors, orange for warnings, gold for a
 near miss, sitting close together by hue. Lightening any of them walks it toward
-its neighbour, so a "faded red" starts reading as an orange, which is not a
+its neighbor, so a "faded red" starts reading as an orange, which is not a
 weaker version of the message but a different one. What separates temporary from
 permanent is its LIFETIME, not its shade.
 
@@ -585,7 +585,7 @@ nothing on any background, might be the half doing the work.
 A drop-shadow works because it reads as elevation against the surface around the
 tile. Where tiles are **packed edge to edge** — spellingbee's and wordwheel's
 hexes — there is barely any surface to cast onto, and the shadow lands on a
-neighbour instead of on the board. Those boards may add a **subtle dim-up** to
+neighbor instead of on the board. Those boards may add a **subtle dim-up** to
 make the hovered tile feel more active.
 
 Note this is the one place dim-up is allowed on a game piece, and it is allowed
@@ -1035,7 +1035,7 @@ accepted.
 
 The pairing is not psychicnum's alone — connections wears the same two tokens
 (`PlayArea.module.css:157-159`), and any game putting white on the outcome green
-inherits this ruling rather than re-opening it. For contrast, the neighbouring
+inherits this ruling rather than re-opening it. For contrast, the neighboring
 values, so nobody re-measures:
 
 | fill | white ink | dark ink |

@@ -92,7 +92,7 @@ const hasDoubledLetter = (w: string): boolean => {
  * and we need four independent sets of exactly three.
  *
  * A pair CAN fail this — a long word like 'paradigmatic' gives its repeated 'a'
- * six distinct neighbours, and a node that busy may have no side left to sit on.
+ * six distinct neighbors, and a node that busy may have no side left to sit on.
  * It's rare (~0.2% of pairs) but real, and it's checked HERE rather than in the
  * board builder so the builder never needs a fallback path: every seed row is
  * partitionable by construction. Exhaustive backtracking, so a `false` means no
