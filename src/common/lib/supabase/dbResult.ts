@@ -1,6 +1,7 @@
 // cs-unmet
 
 import { showFaultModal } from '../fault/faultStore'
+import { callEdgeFn } from './callEdgeFn'
 import type { Outcome } from '../outcomes'
 import { logStamp } from './realtimeDiag'
 
@@ -409,6 +410,60 @@ type QueryLike<T> = PromiseLike<{ data: T | null; error: DbError }>
  * builder: they are there at runtime and have been for every version we have
  * used, but a rename upstream should cost a vaguer log line, not a crash.
  */
+/**
+ * **Call an edge function and hand back its envelope** — `runRpc`'s twin, for
+ * the calls that reach Postgres through Deno instead of PostgREST.
+ *
+ * The two exist separately because the transports differ, not because the
+ * results do. A setup edge function builds a board and then hands off to the
+ * same `create_game` an RPC-path game calls directly, so what comes back is the
+ * same envelope and every caller reads it the same way.
+ *
+ * ─── The status says whether the function RAN ────────────────
+ * Not what it decided. A function that produced an envelope answers 200
+ * whatever the envelope says, including `severity: 'fault'` — the fault modal
+ * is raised HERE, from the envelope, exactly as `runRpc` raises it. Reserving
+ * non-2xx for "the function never answered" is what keeps `dbFetch`'s rule
+ * (any non-2xx is a fault) true without it having to read the body.
+ *
+ * A function that has not been converted yet still answers `{ error: key }`
+ * with a 4xx; that arrives here as a transport-shaped `CallError` and becomes
+ * a fault envelope, which is the old behavior and the right one for a shape no
+ * caller can read.
+ */
+export async function runEdgeFn<T>(
+  fnName: string,
+  body: Record<string, unknown>,
+): Promise<Envelope<T>> {
+  const started = performance.now()
+  const { data, error } = await callEdgeFn(fnName, body)
+  const t = {
+    call: `POST /functions/v1/${fnName}`,
+    status: error?.status ?? 200,
+    ms: Math.round(performance.now() - started),
+  }
+  if (error) {
+    // Either the function never ran, or it answered in a shape from before the
+    // conversion. Both are faults; `callEdgeFn` has already recovered whatever
+    // message there was.
+    const envelope = faultEnvelope(error, 'The request never reached the server.')
+    reportDbFault(t, envelope)
+    return envelope
+  }
+  if (!isEnvelope(data)) {
+    const rawBody = `rawBody: ${JSON.stringify(data)?.slice(0, 120)}`
+    const unreadable = faultEnvelope(null, 'The server answered with an unreadable result.', rawBody)
+    reportDbFault(t, unreadable)
+    return unreadable
+  }
+  if (data.type === 'not-ok' && data.severity === 'fault') {
+    reportDbFault(t, data)
+  } else {
+    logDbOutcome(t, data)
+  }
+  return data as Envelope<T>
+}
+
 function callLabel(call: unknown, fallback: string): string {
   const c = call as { url?: unknown; method?: unknown }
   if (!(c?.url instanceof URL)) return fallback

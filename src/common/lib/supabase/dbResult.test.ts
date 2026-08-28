@@ -4,9 +4,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { PostgrestClient } from '@supabase/postgrest-js'
 import {
   diagnosticsLine, environmentalEnvelope, faultEnvelope, isEnvelope, isOurDbCode, logDb, logSlow,
-  reportDbFault, readRows, runRpc,
+  reportDbFault, readRows, runEdgeFn, runRpc,
 } from './dbResult'
 import { clearFaultsForTest, peekFaultsForTest } from '../fault/faultStore'
+
+const { mockInvoke } = vi.hoisted(() => ({ mockInvoke: vi.fn() }))
+vi.mock('./supabase', () => ({ supabase: { functions: { invoke: mockInvoke } } }))
 
 /**
  * The new server-result system's own tests (plans/error-system.md).
@@ -325,5 +328,81 @@ describe('reportDbFault', () => {
     expect(fault.text).toBe('That word is not on the board')
     expect(fault.diagnostics).toContain('dbcode=PN500')
     expect(fault.diagnostics).toContain('guess absent from games.words')
+  })
+})
+
+describe('runEdgeFn — the same shape, through Deno', () => {
+  // The status says whether the function RAN, never what it decided. These
+  // pin that: an envelope always arrives 200, faults included, and the modal
+  // comes from the envelope rather than from the HTTP code.
+  beforeEach(() => mockInvoke.mockReset())
+
+  it('hands back an ok envelope', async () => {
+    mockInvoke.mockResolvedValue({
+      data: { type: 'ok', data: { id: 'g1' } },
+      error: null,
+    })
+    const r = await runEdgeFn<{ id: string }>('boggle-build-board', {})
+    expect(r).toEqual({ type: 'ok', data: { id: 'g1' } })
+    expect(peekFaultsForTest()).toHaveLength(0)
+  })
+
+  it('leaves a validation alone — no modal, the form will say it', async () => {
+    const envelope = {
+      type: 'not-ok', severity: 'validation', field: 'band',
+      message: 'No board could be built at that difficulty', dbcode: 'PN500',
+    }
+    mockInvoke.mockResolvedValue({ data: envelope, error: null })
+
+    const r = await runEdgeFn('boggle-build-board', {})
+
+    expect(r).toEqual(envelope)
+    expect(peekFaultsForTest()).toHaveLength(0)
+  })
+
+  it('raises the modal for a declared fault, though the call succeeded', async () => {
+    // The whole reason this function exists rather than callEdgeFn alone: a
+    // fault that arrives 200 is invisible to `dbFetch`, which only reads a
+    // non-2xx body. Without this, `severity: fault` would mean two different
+    // things depending on which transport carried it.
+    mockInvoke.mockResolvedValue({
+      data: { type: 'not-ok', severity: 'fault', message: 'Broken', dbcode: 'PN501' },
+      error: null,
+    })
+
+    await runEdgeFn('boggle-build-board', {})
+
+    const [fault] = peekFaultsForTest()
+    expect(fault.text).toBe('Broken')
+    expect(fault.diagnostics).toContain('dbcode=PN501')
+  })
+
+  it('names the function in the diagnostics', async () => {
+    mockInvoke.mockResolvedValue({
+      data: { type: 'not-ok', severity: 'fault', message: 'Broken' },
+      error: null,
+    })
+    await runEdgeFn('waffle-build-board', {})
+    expect(peekFaultsForTest()[0].diagnostics).toContain('/functions/v1/waffle-build-board')
+  })
+
+  it('treats a body that is not an envelope as a fault', async () => {
+    // An unconverted function still answering `{ id }`, or anything else no
+    // caller can read.
+    mockInvoke.mockResolvedValue({ data: { id: 'g1' }, error: null })
+
+    const r = await runEdgeFn('boggle-build-board', {})
+
+    expect(r).toMatchObject({ type: 'not-ok', severity: 'fault' })
+    expect(peekFaultsForTest()[0].text).toContain('unreadable')
+  })
+
+  it('treats a function that never answered as a fault', async () => {
+    mockInvoke.mockResolvedValue({ data: null, error: { message: 'network down' } })
+
+    const r = await runEdgeFn('boggle-build-board', {})
+
+    expect(r).toMatchObject({ type: 'not-ok', severity: 'fault' })
+    expect(peekFaultsForTest()).toHaveLength(1)
   })
 })
