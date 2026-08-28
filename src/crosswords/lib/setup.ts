@@ -102,14 +102,14 @@ export const CROSSWORDS_DEFAULTS: CrosswordsSetup = {
  *  wordplay); everything else is a **cryptic** (each clue is wordplay + a
  *  definition), ordered here roughly gentlest-cryptic-first. */
 export const GUARDIAN_SERIES: { slug: string; label: string; hint: string }[] = [
-  { slug: 'quick', label: 'Quick', hint: 'Straight definitions, no wordplay — the gentlest start.' },
-  { slug: 'speedy', label: 'Speedy', hint: 'A bigger definitions-only puzzle (the Sunday quick).' },
+  { slug: 'quick', label: 'Quick', hint: 'Straight definitions, no wordplay.' },
+  { slug: 'speedy', label: 'Speedy', hint: 'A bigger definitions-only puzzle (Sunday quick).' },
   {
     slug: 'quick-cryptic',
     label: 'Quick cryptic',
-    hint: 'An easier cryptic in everyday vocabulary — a good first cryptic.',
+    hint: 'An easier cryptic in everyday vocabulary.',
   },
   { slug: 'quiptic', label: 'Quiptic', hint: 'A gentle cryptic “for beginners or those in a hurry”.' },
   { slug: 'everyman', label: 'Everyman', hint: 'A fair, accessible cryptic (the Observer’s).' },
-  { slug: 'cryptic', label: 'Cryptic', hint: 'The full daily cryptic: wordplay + definition. The hardest.' },
+  { slug: 'cryptic', label: 'Cryptic', hint: 'The full daily cryptic: wordplay + definition. Hardest.' },
 ]

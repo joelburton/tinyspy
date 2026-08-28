@@ -98,9 +98,27 @@
   min-width: 0;
 }
 
-/* The weekday and series rows carry a second, quieter line: what that choice
- * is LIKE. It is the whole reason these are lists rather than a <select> — a
- * dropdown can show a difficulty note only on the row you are already on. */
+/* A row whose two parts stack instead of sitting side by side.
+ *
+ * `SelectionList`'s row is a flex ROW, which suits a short trailing note (the
+ * NYT weekdays: "Monday" · "easiest"). It does not suit a sentence — the
+ * Guardian's descriptions are long enough that the row's first column loses the
+ * width contest and `.itemTitle` ellipsizes the NAME, which is the one thing you
+ * are choosing by.
+ *
+ * `min-width: 0` is load-bearing for the same reason it is on `.itemTitle`: a
+ * flex item will not shrink below its content without it, so the description
+ * would widen the card rather than wrap inside it. */
+/* @@ */ .stacked {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+/* The second, quieter line: what a choice is LIKE. It is the whole reason these
+ * are lists rather than a <select> — a dropdown can show a difficulty note only
+ * on the row you are already on. */
 /* @@ */ .rowNote {
   color: var(--page-text-muted-color);
   font-size: 0.85rem;

@@ -51,9 +51,7 @@ export function GuardianPickerBlockingModal({ onPick, onClose }: Props) {
     >
       <div className={styles.body}>
         <p className={styles.lead}>
-          Load today&rsquo;s Guardian crossword. <strong>Quick</strong> and{' '}
-          <strong>Speedy</strong> are plain-definition puzzles; the rest are{' '}
-          <strong>cryptics</strong> (each clue is wordplay + a definition).
+          Load most recent Guardian crossword.
         </p>
         <div className={styles.shortListBox}>
           <SelectionList
@@ -65,10 +63,14 @@ export function GuardianPickerBlockingModal({ onPick, onClose }: Props) {
             onActivate={(g) => onPick(g.slug)}
             empty={null}
             renderRow={(g) => (
-              <>
+              // STACKED, not side by side. `SelectionList`'s row is a flex ROW
+              // and `.itemTitle` ellipsizes, so a long second column eats the
+              // first — which put the series NAME under the ellipsis while its
+              // description got the width. The name is what you are choosing by.
+              <span className={styles.stacked}>
                 <span className={styles.itemTitle}>{g.label}</span>
                 <span className={styles.rowNote}>{g.hint}</span>
-              </>
+              </span>
             )}
           />
         </div>
