@@ -1488,6 +1488,31 @@ person will fall into exactly as this did. It is a change to a shared shell with
 six existing consumers, all currently working because they happen to be mounted
 at the top level, so it wants its own decision.
 
+**The field takes `AllFieldProps`, and it did not at first.** Joel, on reading
+it: *"why does the PuzzleSourceField, which is a field, not use the
+AllFieldProps? all fields are supposed to have compatible signatures. it missing
+things (at least two that I noticed: help and helpEntry)."*
+
+It had grown its own props — `values` + `set`, no `help`, no `entryHelp`, no
+`disabled`, no `className`. Its value is a `PuzzleChoice`: every key the four
+pickers write, replaced whole rather than patched key by key, so that "nothing
+from the source you left survives" is a property of the TYPE instead of a rule
+the caller keeps. That matters most for `board` — an uploaded solution grid left
+behind would leak the answers.
+
+**Two guards were missing the class of mistake entirely**, which is why nothing
+caught it:
+
+- **`expectFieldContract` never asserted `help` or `entryHelp`** — the exact two
+  Joel spotted. It checked the caption, the error, the name and `disabled`, so a
+  component could forward four of six and pass. It asserts both now, for all
+  thirteen fields.
+- **`fieldTests.test.ts` only read `common/components/fields/`.** A field in a
+  game folder was invisible to it — no test file required, no contract required.
+  It walks every `*Field.tsx` under `src/` now, and separately requires that
+  each one outside `fields/` actually CALLS the contract, since having a test
+  file and being held to the family's terms are different things.
+
 **Two e2e files were rewritten and NOT RUN.** `puzzle-pickers.e2e.ts`'s
 crosswords test drove the tabs in detail — a `<select>` for the weekday, a
 `p[class*="nextDate"]` state line — and none of that exists now; it reads the

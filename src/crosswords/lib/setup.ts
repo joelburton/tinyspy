@@ -59,6 +59,24 @@ export type CrosswordsValues = {
 /** What is SENT and STORED — every value the form collects except the players
  *  (see `SetupOf`). This is the shape `common.games.setup` holds, and what
  *  `setupSummary.ts` and `PlayArea` read back. */
+/**
+ * WHICH PUZZLE — every key the four pickers write, and nothing else.
+ *
+ * One value rather than seven loose keys, because a picker settles all of them
+ * at once: choosing NYT is also "no library id, no uploaded board". Handing the
+ * form a complete value makes that a property of the type — whatever the new
+ * choice does not name is absent — instead of a rule the caller has to keep.
+ *
+ * It matters most for `board`: an uploaded solution grid left behind by a
+ * source you switched away from would ride into `setup` and leak the answers.
+ * That has three guards now (this, the manifest's strip, and create_game's);
+ * this is the one that makes it structural.
+ */
+export type PuzzleChoice = Pick<
+  CrosswordsValues,
+  'source' | 'puzzle_id' | 'date' | 'weekday' | 'series' | 'board' | 'filename'
+>
+
 export type CrosswordsSetup = SetupOf<CrosswordsValues>
 /** Default setup: no timer, library source, nothing picked yet (the form's
  *  `validate` blocks Start until a puzzle / date is chosen). */

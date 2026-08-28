@@ -1,6 +1,6 @@
 // cs-unmet
 
-import type { CrosswordsValues } from './setup'
+import type { PuzzleChoice } from './setup'
 import { GUARDIAN_SERIES } from './setup'
 import { DEFAULT_WEEKDAY, weekdayName } from './nytDays'
 
@@ -17,7 +17,7 @@ import { DEFAULT_WEEKDAY, weekdayName } from './nytDays'
  * statement and must not be shown while the answer is still coming.
  */
 export function summarize(
-  s: CrosswordsValues,
+  s: PuzzleChoice,
   resolved: string | null | undefined,
   libraryTitle: string | null,
 ): string {

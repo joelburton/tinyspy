@@ -21,30 +21,43 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { PuzzleSourceField } from './PuzzleSourceField'
 import { summarize } from '../lib/puzzleSummary'
 import { errorUnder } from '../../common/components/fields/errorUnder'
-import type { CrosswordsValues } from '../lib/setup'
+import { expectFieldContract } from '../../common/components/fields/fieldContract'
+import type { PuzzleChoice } from '../lib/setup'
 
 const { mockRpc } = vi.hoisted(() => ({ mockRpc: vi.fn() }))
 vi.mock('../db', () => ({ db: { rpc: mockRpc } }))
 
-const BASE: CrosswordsValues = {
-  timer: { kind: 'none' },
-  source: 'library',
-  player_user_ids: new Set(['self']),
-}
+const BASE: PuzzleChoice = { source: 'library' }
 
-function draw(values: Partial<CrosswordsValues> = {}, error?: string) {
-  const set = vi.fn()
+function draw(value: Partial<PuzzleChoice> = {}, error?: string) {
+  const onChange = vi.fn()
   const view = render(
     <PuzzleSourceField
-      values={{ ...BASE, ...values }}
-      set={set}
+      name="source"
+      value={{ ...BASE, ...value }}
+      onChange={onChange}
       seenBy={['self']}
       clubHandle="moths"
       error={error}
     />,
   )
-  return { ...view, set }
+  return { ...view, onChange }
 }
+
+// The SHARED contract, the same one the twelve components in
+// `common/components/fields` are held to. It lives in a game folder, which is
+// exactly why it needs saying out loud: `fieldTests.test.ts` only reads
+// `common/components/fields`, so nothing would have noticed this field taking
+// its own ad-hoc props and quietly dropping `help`, `entryHelp` and `disabled`.
+expectFieldContract((props) => render(
+  <PuzzleSourceField
+    value={BASE}
+    onChange={() => {}}
+    seenBy={[]}
+    clubHandle="moths"
+    {...props}
+  />,
+))
 
 beforeEach(() => {
   mockRpc.mockReset()
@@ -55,7 +68,7 @@ describe('the puzzle caption', () => {
   // `summarize` directly: the caption is a pure function of the setup plus the
   // resolved date, and testing it here says what each source READS AS without
   // standing up four pickers to produce the values.
-  const say = (values: Partial<CrosswordsValues>, resolved?: string | null, title?: string) =>
+  const say = (values: Partial<PuzzleChoice>, resolved?: string | null, title?: string) =>
     summarize({ ...BASE, ...values }, resolved, title ?? null)
 
   it('asks for a choice before one is made', () => {
@@ -135,14 +148,14 @@ describe('the field', () => {
 
   it('opens a picker rather than switching a tab', async () => {
     const user = userEvent.setup()
-    const { set } = draw()
+    const { onChange } = draw()
 
     await user.click(screen.getByRole('button', { name: 'Guardian' }))
 
     // Pressing a source button chooses NOTHING on its own — the picker does.
     // The tabs it replaces wrote `source` on click, which is why a half-made
     // choice could sit in `setup` while you looked at a different tab.
-    expect(set).not.toHaveBeenCalled()
+    expect(onChange).not.toHaveBeenCalled()
     // The Guardian picker is up, showing its series.
     expect(screen.getByText('Quiptic')).toBeInTheDocument()
   })

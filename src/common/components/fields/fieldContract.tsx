@@ -26,6 +26,8 @@ import { errorUnder, fieldBox } from './errorUnder'
  *  on the prefix. */
 export const FIELD_NAME = 'tested_field'
 export const FIELD_LABEL = 'The caption'
+export const FIELD_HELP = 'What this setting is about.'
+export const FIELD_ENTRY_HELP = 'How to give it.'
 export const FIELD_ERROR = 'That will not do.'
 
 /** The props the contract varies. A field's own test supplies everything else
@@ -35,6 +37,8 @@ export type ContractProps = {
    *  field spreading these props must end up with one. */
   name: string
   label?: string
+  help?: string
+  entryHelp?: string
   error?: string
   disabled?: boolean
 }
@@ -83,6 +87,27 @@ export function expectFieldContract(
     it('draws its caption, inside its own box', () => {
       draw({ name: FIELD_NAME, label: FIELD_LABEL })
       expect(within(fieldBox(FIELD_NAME)!).getByText(FIELD_LABEL)).toBeInTheDocument()
+    })
+
+    it('draws BOTH its help lines', () => {
+      // The two sentences with different jobs: `help` says what the setting is,
+      // `entryHelp` says how to give it. A component that forwards `label` and
+      // `error` but forgets these compiles, renders, and looks right — the type
+      // cannot tell, which is the whole reason this file exists.
+      //
+      // Added after `PuzzleSourceField` was written with ad-hoc props and
+      // dropped exactly this pair; the contract passed it anyway, because it
+      // was not asking.
+      draw({ name: FIELD_NAME, help: FIELD_HELP, entryHelp: FIELD_ENTRY_HELP })
+      const box = within(fieldBox(FIELD_NAME)!)
+      expect(box.getByText(FIELD_HELP)).toBeInTheDocument()
+      expect(box.getByText(FIELD_ENTRY_HELP)).toBeInTheDocument()
+    })
+
+    it('says neither when neither is given', () => {
+      const { queryByText } = draw({ name: FIELD_NAME })
+      expect(queryByText(FIELD_HELP)).not.toBeInTheDocument()
+      expect(queryByText(FIELD_ENTRY_HELP)).not.toBeInTheDocument()
     })
 
     it('draws its error, under its own name', () => {

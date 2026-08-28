@@ -3,9 +3,10 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Field } from '../../common/components/fields/Field'
+import type { AllFieldProps } from '../../common/components/fields/fieldProps'
 import { cls } from '../../common/lib/util/cls'
 import { db } from '../db'
-import type { CrosswordsValues } from '../lib/setup'
+import type { PuzzleChoice } from '../lib/setup'
 import { LibraryPickerBlockingModal } from './pickers/LibraryPickerBlockingModal'
 import { NytPickerBlockingModal } from './pickers/NytPickerBlockingModal'
 import { DEFAULT_WEEKDAY } from '../lib/nytDays'
@@ -17,16 +18,16 @@ import styles from './PuzzleSourceField.module.css'
 /** Which picker is open, or none. */
 type OpenPicker = 'library' | 'nyt' | 'guardian' | 'upload' | null
 
-type Props = {
-  /** The setup values this field reads its summary out of. */
-  values: CrosswordsValues
-  /** Write a setup key. The four pickers write the same keys the four tabs
-   *  wrote, so `create_game` sees no difference. */
-  set: <K extends keyof CrosswordsValues>(key: K, value: CrosswordsValues[K]) => void
-  /** Whose history the NYT weekday walk skips over — the checked players. */
+type Props = AllFieldProps<PuzzleChoice> & {
+  /** The whole choice, replaced — not one key at a time. A picker settles every
+   *  key at once (choosing NYT clears the library's id and the upload's board),
+   *  so handing back a complete value is what makes "nothing from the source
+   *  you left survives" a property of the type rather than of the caller's care. */
+  onChange: (next: PuzzleChoice) => void
+  /** Whose history the NYT weekday walk skips over — the checked players. It
+   *  cannot come from `value`: the player picker is a sibling field. */
   seenBy: string[]
   clubHandle: string
-  error?: string
 }
 
 /**
@@ -52,7 +53,10 @@ type Props = {
  * not merely "NYT". That is the one way this design can lose information the
  * tabs kept on screen.
  */
-export function PuzzleSourceField({ values: s, set, seenBy, clubHandle, error }: Props) {
+export function PuzzleSourceField({
+  name, label, help, entryHelp, error, disabled, className,
+  value: s, onChange, seenBy, clubHandle,
+}: Props) {
   const [open, setOpen] = useState<OpenPicker>(null)
   // The chosen library puzzle's NAME, for the caption. Local, not a setup key:
   // `create_game` strips `puzzle_id` from the club's saved default (it is an
@@ -96,18 +100,52 @@ export function PuzzleSourceField({ values: s, set, seenBy, clubHandle, error }:
 
   return (
     <>
-      <Field label={summarize(s, resolved, libraryTitle)} name="source" error={error} group>
+      <Field
+        label={label}
+        help={help}
+        entryHelp={entryHelp}
+        error={error}
+        name={name}
+        className={className}
+        group
+      >
+        {/* THE VALUE, as a sentence — what pressing Start will play. It is not
+            the `label`, because the caption is the caller's to write and this is
+            what the field HOLDS: `<ReadOnlyField>` shows its value the same way,
+            in a span under the caption. It matters more here than there, since
+            after a picker closes this is the only account of what it chose. */}
+        <p className={styles.chosen}>{summarize(s, resolved, libraryTitle)}</p>
         <div className={cls('segmented', styles.sources)} role="group" aria-label="Puzzle source">
-          <button type="button" aria-pressed={s.source === 'library'} onClick={() => setOpen('library')}>
+          <button
+            type="button"
+            disabled={disabled}
+            aria-pressed={s.source === 'library'}
+            onClick={() => setOpen('library')}
+          >
             Library
           </button>
-          <button type="button" aria-pressed={s.source === 'nyt'} onClick={() => setOpen('nyt')}>
+          <button
+            type="button"
+            disabled={disabled}
+            aria-pressed={s.source === 'nyt'}
+            onClick={() => setOpen('nyt')}
+          >
             NYT
           </button>
-          <button type="button" aria-pressed={s.source === 'guardian'} onClick={() => setOpen('guardian')}>
+          <button
+            type="button"
+            disabled={disabled}
+            aria-pressed={s.source === 'guardian'}
+            onClick={() => setOpen('guardian')}
+          >
             Guardian
           </button>
-          <button type="button" aria-pressed={s.source === 'upload'} onClick={() => setOpen('upload')}>
+          <button
+            type="button"
+            disabled={disabled}
+            aria-pressed={s.source === 'upload'}
+            onClick={() => setOpen('upload')}
+          >
             Upload
           </button>
         </div>
@@ -137,8 +175,7 @@ export function PuzzleSourceField({ values: s, set, seenBy, clubHandle, error }:
           clubHandle={clubHandle}
           onClose={() => setOpen(null)}
           onPick={(p) => {
-            chooseSource('library')
-            set('puzzle_id', p.id)
+            choose({ source: 'library', puzzle_id: p.id })
             setLibraryTitle(`${p.title}${p.author ? ` · ${p.author}` : ''}`)
             setOpen(null)
           }}
@@ -147,12 +184,10 @@ export function PuzzleSourceField({ values: s, set, seenBy, clubHandle, error }:
       {open === 'nyt' && (
         <NytPickerBlockingModal
           onClose={() => setOpen(null)}
-          onPick={(choice) => {
-            chooseSource('nyt')
+          onPick={(picked) => {
             // Exactly one of the two, always: a weekday clears any override and
             // an override clears the weekday, because they answer one question.
-            set('weekday', choice.weekday)
-            set('date', choice.date)
+            choose({ source: 'nyt', weekday: picked.weekday, date: picked.date })
             setOpen(null)
           }}
         />
@@ -161,8 +196,7 @@ export function PuzzleSourceField({ values: s, set, seenBy, clubHandle, error }:
         <GuardianPickerBlockingModal
           onClose={() => setOpen(null)}
           onPick={(slug) => {
-            chooseSource('guardian')
-            set('series', slug)
+            choose({ source: 'guardian', series: slug })
             setOpen(null)
           }}
         />
@@ -171,9 +205,7 @@ export function PuzzleSourceField({ values: s, set, seenBy, clubHandle, error }:
         <UploadPickerBlockingModal
           onClose={() => setOpen(null)}
           onPick={({ board, filename }) => {
-            chooseSource('upload')
-            set('board', board)
-            set('filename', filename)
+            choose({ source: 'upload', board, filename })
             setOpen(null)
           }}
         />
@@ -185,27 +217,18 @@ export function PuzzleSourceField({ values: s, set, seenBy, clubHandle, error }:
   )
 
   /**
-   * Switch source, clearing what the OTHER three left behind.
+   * Take a picker's answer and make it the WHOLE value.
    *
-   * The tabs did this in four hand-written `onClick`s, and only for `board` +
-   * `filename` — the two whose staleness was dangerous, since an upload's
-   * solution grid riding along in `setup` would leak the answers. Doing it in
-   * one place lets it be complete instead of just careful: nothing from a
-   * source you are no longer using survives into the game you start.
+   * Everything the chosen source did not set is absent, which is the point:
+   * nothing from a source you are no longer using survives into the game you
+   * start. The tabs did this in four hand-written `onClick`s and only for
+   * `board` + `filename` — the two whose staleness was dangerous, since an
+   * upload's solution grid riding along in `setup` would leak the answers.
+   * Replacing the value instead of patching keys makes it complete rather than
+   * merely careful.
    */
-  function chooseSource(source: CrosswordsValues['source']) {
-    set('source', source)
-    if (source !== 'library') {
-      set('puzzle_id', undefined)
-      setLibraryTitle(null)
-    }
-    if (source !== 'nyt') {
-      set('date', undefined)
-    }
-    if (source !== 'guardian') set('series', undefined)
-    if (source !== 'upload') {
-      set('board', undefined)
-      set('filename', undefined)
-    }
+  function choose(next: PuzzleChoice) {
+    if (next.source !== 'library') setLibraryTitle(null)
+    onChange(next)
   }
 }

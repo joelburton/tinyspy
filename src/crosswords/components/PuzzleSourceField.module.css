@@ -7,3 +7,16 @@
 /* @@ */ .sources {
   margin-top: 0.25rem;
 }
+
+/* THE VALUE — what pressing Start will play, as a sentence.
+ *
+ * Full-strength text, not muted, and the reason is structural rather than
+ * stylistic: once a picker closes, this line is the ONLY account of what it
+ * chose. Dimming it would understate the one thing on the field that carries
+ * information. `<ReadOnlyField>` shows its value the same way and for the same
+ * reason — a field's value is not a caption. */
+/* @@ */ .chosen {
+  margin: 0;
+  color: var(--page-text-color);
+  font-weight: 600;
+}

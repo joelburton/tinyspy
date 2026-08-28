@@ -3,7 +3,7 @@
 import { PlayersSection } from '../../common/components/setup/PlayersSection'
 import type { SetupBodyProps, SetupSetter } from '../../common/lib/games'
 import { SetupTimerSection } from '../../common/components/setup/SetupTimerSection'
-import type { CrosswordsValues } from '../lib/setup'
+import type { CrosswordsValues, PuzzleChoice } from '../lib/setup'
 import { PuzzleSourceField } from './PuzzleSourceField'
 import styles from './SetupForm.module.css'
 
@@ -23,6 +23,12 @@ import styles from './SetupForm.module.css'
  * server validation lands under a control here like it does in every other
  * game rather than on the dialog's bottom line.
  */
+/** The keys `PuzzleChoice` carries, so applying a new one writes every one of
+ *  them — including the absences, which is the half that matters. */
+const PUZZLE_KEYS: Array<keyof PuzzleChoice> = [
+  'source', 'puzzle_id', 'date', 'weekday', 'series', 'board', 'filename',
+]
+
 export function SetupForm({
   clubHandle, members, selfId, numberOfPlayers, values, set: setValue, errors,
 }: SetupBodyProps) {
@@ -44,8 +50,23 @@ export function SetupForm({
       />
 
       <PuzzleSourceField
-        values={s}
-        set={set}
+        name="source"
+        help="Where the puzzle comes from. Each button opens its own picker."
+        value={{
+          source: s.source,
+          puzzle_id: s.puzzle_id,
+          date: s.date,
+          weekday: s.weekday,
+          series: s.series,
+          board: s.board,
+          filename: s.filename,
+        }}
+        // The WHOLE choice replaces the old one, so every key a source did not
+        // set lands as `undefined` — which is how a stale board from a source
+        // you left cannot ride along into the game you start.
+        onChange={(next) => {
+          for (const key of PUZZLE_KEYS) set(key, next[key] as never)
+        }}
         // WHOSE history the NYT weekday walk skips over. It lives up here
         // because the field cannot know it — the player picker is a sibling,
         // and unchecking someone brings a puzzle back.
