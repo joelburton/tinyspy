@@ -29,13 +29,12 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club1 on commit drop as
 select pg_temp.create_club('Stackdown rp1', array['ada', 'bea']) as handle;
 create temp table g1 on commit drop as
-select * from stackdown.create_game(
+select (stackdown.create_game(
   (select handle from club1),
   jsonb_build_object('band', 1, 'timer', jsonb_build_object('kind', 'none')),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
-  'coop'
-);
+  'coop')->'data'->>'id')::uuid as id;
 
 -- Play the six words in order → coop win. Now there are six submissions, a
 -- rewritten title, found_count 6, solved, and a terminal game: the full state
@@ -100,13 +99,12 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club2 on commit drop as
 select pg_temp.create_club('Stackdown rp2', array['ada', 'bea']) as handle;
 create temp table g2 on commit drop as
-select * from stackdown.create_game(
+select (stackdown.create_game(
   (select handle from club2),
   jsonb_build_object('band', 1, 'timer', jsonb_build_object('kind', 'none')),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
-  'compete'
-);
+  'compete')->'data'->>'id')::uuid as id;
 -- Both concede → the last one out ends it as a collective loss.
 select stackdown.submit_word((select id from g2), pg_temp.sd_seq(1));
 select stackdown.concede((select id from g2));

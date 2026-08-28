@@ -158,13 +158,18 @@ grant select on stackdown.games_state to authenticated;
 -- semantics. Unlike waffle, the board isn't passed in — it's claimed from
 -- the pre-generated library (a random board OF THE CHOSEN BAND) and copied
 -- in (tiles public, words hidden).
+-- `create or replace` cannot change a function's return type, and this one
+-- became jsonb. `if exists` because this file is re-applied in full on every
+-- deploy, so the drop has to be a no-op the second time.
+drop function if exists stackdown.create_game(text, jsonb, uuid[], text);
+
 create or replace function stackdown.create_game(
   target_club     text,
   setup           jsonb,
   player_user_ids uuid[],
   mode            text
 )
-returns table(id uuid)
+returns jsonb
 language plpgsql
 security definer
 set search_path = stackdown, common, public, extensions
@@ -173,6 +178,7 @@ declare
   new_id uuid;
   b      stackdown.boards%rowtype;
   v_band int;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text;
 begin
   perform common.require_club_member(target_club);
   -- Must agree with numberOfPlayers in src/stackdown/manifest.ts ([1,6]/[2,6]).
@@ -186,16 +192,20 @@ begin
   -- library actually holds boards for is accepted.
   v_band := coalesce((setup->>'band')::int, 1);
   if v_band < 1 or v_band > 6 then
-    raise exception 'bad-band|%|', v_band
-      using errcode = 'P0001',
+    raise exception 'Word difficulty runs from 1 to 6'
+      using errcode = 'PN051', hint = 'validation', column = 'band',
       detail = 'setup band must be 1..6';
   end if;
 
   -- Claim a random pre-generated board OF THE CHOSEN BAND.
   select * into b from stackdown.boards where band = v_band order by random() limit 1;
   if not found then
-    raise exception 'no-boards|%|', v_band
-      using errcode = 'P0001',
+    -- A validation rather than an error, because the player CAN act on it:
+    -- the fix is the other difficulty, and that is the field it names. The
+    -- library is pre-generated per band, so an empty one is a content gap
+    -- rather than anything they did.
+    raise exception 'No boards at that difficulty yet — try the other one'
+      using errcode = 'PN052', hint = 'validation', column = 'band',
       detail = 'stackdown.boards is empty at that band; run gmake g-stackdown-puzzles + the import';
   end if;
 
@@ -217,7 +227,18 @@ begin
     jsonb_build_object('mode', mode, 'found_words_count', 0, 'required_words_count', 6)
   );
 
-  return query select new_id;
+  return common.ok_envelope(jsonb_build_object('id', new_id));
+
+-- One block, and it has never heard of any specific condition: it reads the
+-- SQLSTATE, re-raises anything that isn't ours, and lets the raise itself carry
+-- the message, the kind and the field.
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 revoke execute on function stackdown.create_game(text, jsonb, uuid[], text) from public;

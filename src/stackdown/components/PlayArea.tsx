@@ -1,6 +1,7 @@
 // cs-unmet
 
-import { failureText, faultMessage } from '../../common/lib/game/serverError'
+import { failureText } from '../../common/lib/game/serverError'
+import { runRpc } from '../../common/lib/supabase/dbResult'
 import { actionName } from '../../common/lib/game/callRpc'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { IconHideSolution, IconHint, IconNewGame, IconPrint, IconRestart, IconReveal, IconSpoiler } from '../../common/components/icons'
@@ -369,22 +370,24 @@ export function PlayArea({
     // copy says shelved, not ended. At terminal there's nothing to interrupt.
     if (!isTerminal && !(await confirmAction(NEW_GAME_CONFIRM))) return
     if (!gameMode) return // menu exists pre-load, but there's no mode to copy yet
-    const { data, error } = await db
-      .rpc('create_game', {
+    const res = await runRpc<{ id: string }>(
+      db.rpc('create_game', {
         target_club: clubHandle,
         setup: setup as StackdownSetup,
         player_user_ids: players.map((p) => p.user_id),
         mode: gameMode,
-      })
-      .single()
-    if (error || !data) {
-      // New game is a FAULT SURFACE (serverError.ts → faultMessage): this setup
-      // already built a game once, so any failure here is a bug or an outage
-      // — never a pill. Copy supplies the words when it has them.
-      showMsg(faultMessage(error, actionName('create_game')))
+      }),
+    )
+    if (res.type !== 'ok') {
+      // THE SAME ENVELOPE, READ DIFFERENTLY. On the setup form a validation is
+      // an answer — fix the field and press Start again. Here there is no field
+      // and no form: this setup already built a game once, so whatever comes
+      // back is a bug or an outage, and it wears the fault look whatever the
+      // server called it. `runRpc` has already logged it under `[db]`.
+      showMsg({ tone: 'error', fault: true, text: res.message, mode: { kind: 'manual' } })
       return
     }
-    goToGame(`stackdown_${gameMode}`, (data as { id: string }).id)
+    goToGame(`stackdown_${gameMode}`, res.data.id)
   }, [gameMode, clubHandle, setup, players, goToGame, showMsg, confirmAction, isTerminal])
 
   // Single-flight guard. New game has THREE triggers (the terminal button, the

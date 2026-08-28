@@ -33,12 +33,14 @@ export function SetupForm({
         members={members}
         selfId={selfId}
         numberOfPlayers={numberOfPlayers}
+        error={errors.player_user_ids}
         value={s.player_user_ids}
         onChange={(next) => set('player_user_ids', next)}
       />
       <SetupSection label={dictLabel}>
         <DictBandField
           name="band"
+          error={errors.band}
           help="Band 1 is the common everyday words; band 2 uses the next tier of less-common ones."
           label="Word difficulty"
           length={5}

@@ -19,7 +19,7 @@ select pg_temp.create_club('Stack end', array['ada', 'bea']) as handle;
 
 -- ── Manual end → neutral 'ended' ────────────────────────────────────
 create temp table g1 on commit drop as
-select * from stackdown.create_game(
+select (stackdown.create_game(
   (select handle from club), '{"timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
@@ -47,7 +47,7 @@ select throws_ok(
 
 -- ── Countdown timeout → loss ────────────────────────────────────────
 create temp table g2 on commit drop as
-select * from stackdown.create_game(
+select (stackdown.create_game(
   (select handle from club), '{"timer": {"kind": "countdown", "seconds": 300}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],

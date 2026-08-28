@@ -10,6 +10,7 @@
 begin;
 set search_path = stackdown, common, public, extensions;
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 select plan(18);
@@ -18,13 +19,12 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select pg_temp.create_club('Stack coop', array['ada', 'bea']) as handle;
 create temp table g on commit drop as
-select * from stackdown.create_game(
+select (stackdown.create_game(
   (select handle from club),
   '{"timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
-  'coop'
-);
+  'coop')->'data'->>'id')::uuid as id;
 
 reset role;
 
@@ -101,12 +101,11 @@ select tiles, words, 2 from stackdown.boards where band = 1 limit 1;
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
-select * from stackdown.create_game(
+select (stackdown.create_game(
   (select handle from club),
   '{"timer": {"kind": "none"}, "band": 2}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid],
-  'coop'
-);
+  'coop')->'data'->>'id')::uuid as id;
 reset role;
 
 select is(
@@ -118,23 +117,24 @@ select is(
   (select id from stackdown.boards where band = 2),
   'create_game with band:2 claims the band-2 board, not the band-1 one');
 
--- A band outside 1..6 is rejected outright.
+-- Both refusals name the BAND, which is the control the player would change.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select throws_ok(
-  format($$ select stackdown.create_game(%L,
+select pg_temp.envelope_is(
+  stackdown.create_game(
+    (select handle from club),
     '{"timer":{"kind":"none"},"band":7}'::jsonb,
-    array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop') $$,
-    (select handle from club)),
-  'P0001', null,
-  'a band outside 1..6 is rejected');
--- A band the library has no boards for is rejected (band 3 has none here).
-select throws_ok(
-  format($$ select stackdown.create_game(%L,
+    array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop'),
+  '{"type":"not-ok","severity":"validation","field":"band","dbcode":"PN051"}'::jsonb,
+  'a band outside 1..6 names the band field');
+-- A band the library has no boards for (band 3 has none here). A validation
+-- rather than an error: the fix is the other difficulty, and that is the field.
+select pg_temp.envelope_is(
+  stackdown.create_game(
+    (select handle from club),
     '{"timer":{"kind":"none"},"band":3}'::jsonb,
-    array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop') $$,
-    (select handle from club)),
-  'P0001', null,
-  'a band with no boards in the library is rejected');
+    array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop'),
+  '{"type":"not-ok","severity":"validation","field":"band","dbcode":"PN052"}'::jsonb,
+  'a band the library has no boards for names the band field too');
 reset role;
 
 -- Retiring a board (deleting it) must NOT delete games built from it: the
