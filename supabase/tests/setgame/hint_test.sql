@@ -23,11 +23,11 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select pg_temp.create_club('Set hints', array['ada', 'bea']) as handle;
 create temp table g on commit drop as
-select * from setgame.create_game(
+select (setgame.create_game(
   (select handle from club), '{"timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
-  'coop');
+  'coop')->'data'->>'id')::uuid as id;
 
 reset role;
 select is(
@@ -93,11 +93,11 @@ select lives_ok(
 -- ── Compete: banned ─────────────────────────────────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table gr on commit drop as
-select * from setgame.create_game(
+select (setgame.create_game(
   (select handle from club), '{"timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
-  'compete');
+  'compete')->'data'->>'id')::uuid as id;
 
 select throws_ok(
   format($$ select setgame.record_hint(%L, (pg_temp.sg_live(%L))[1:1]) $$,

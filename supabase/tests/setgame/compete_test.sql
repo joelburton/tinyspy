@@ -20,11 +20,11 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select pg_temp.create_club('Set race', array['ada', 'bea']) as handle;
 create temp table g on commit drop as
-select * from setgame.create_game(
+select (setgame.create_game(
   (select handle from club), '{"timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
-  'compete');
+  'compete')->'data'->>'id')::uuid as id;
 
 reset role;
 select is(
@@ -70,11 +70,11 @@ select is(
 -- One claim each, then the clock. No speed tiebreak exists, so both win.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
-select * from setgame.create_game(
+select (setgame.create_game(
   (select handle from club), '{"timer": {"kind": "countdown", "seconds": 60}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
-  'compete');
+  'compete')->'data'->>'id')::uuid as id;
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select setgame.submit_set((select id from g2), pg_temp.sg_live((select id from g2)));
@@ -94,11 +94,11 @@ select is(
 -- ── Conceding forfeits the win but keeps the count ───────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g3 on commit drop as
-select * from setgame.create_game(
+select (setgame.create_game(
   (select handle from club), '{"timer": {"kind": "countdown", "seconds": 60}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
-  'compete');
+  'compete')->'data'->>'id')::uuid as id;
 
 -- ada gets two, then drops out; bea takes one and is the only racer left.
 select setgame.submit_set((select id from g3), pg_temp.sg_live((select id from g3)));

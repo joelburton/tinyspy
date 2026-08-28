@@ -40,7 +40,7 @@ select pg_temp.create_club('Set turns', array['ada', 'bea']) as handle;
 
 -- ── TURN GAME — ada first ──
 create temp table g on commit drop as
-select * from setgame.create_game(
+select (setgame.create_game(
   (select handle from club),
   jsonb_build_object(
     'timer', jsonb_build_object('kind', 'none'),
@@ -48,7 +48,7 @@ select * from setgame.create_game(
     'first_turn_user_id', 'ada11111-1111-1111-1111-111111111111'::text),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
-  'coop');
+  'coop')->'data'->>'id')::uuid as id;
 
 -- (1) Pointer seated on ada.
 reset role;
@@ -137,11 +137,11 @@ select is(
 -- ── FREE-FOR-ALL GAME — the pointer stays null and nothing is gated ──
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table gf on commit drop as
-select * from setgame.create_game(
+select (setgame.create_game(
   (select handle from club), '{"timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
-  'coop');
+  'coop')->'data'->>'id')::uuid as id;
 
 reset role;
 select is(

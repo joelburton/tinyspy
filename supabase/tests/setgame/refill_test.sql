@@ -24,11 +24,11 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select pg_temp.create_club('Set refill', array['ada', 'bea']) as handle;
 create temp table g on commit drop as
-select * from setgame.create_game(
+select (setgame.create_game(
   (select handle from club), '{"timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
-  'coop');
+  'coop')->'data'->>'id')::uuid as id;
 
 -- ── (1) Tail-compaction, on a planted fifteen-card board ─────────────
 -- Cards 0..14 in slot order. 0,1,2 is a set (same count/color/shade, all
@@ -75,11 +75,11 @@ select is(
 -- terminal to fire on a board holding cards the deck still contains).
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
-select * from setgame.create_game(
+select (setgame.create_game(
   (select handle from club), '{"timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
-  'coop');
+  'coop')->'data'->>'id')::uuid as id;
 
 create temp table played on commit drop as
 select pg_temp.sg_play_out(

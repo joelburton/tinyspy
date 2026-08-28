@@ -26,11 +26,11 @@ select pg_temp.create_club('Set clock', array['ada', 'bea']) as handle;
 
 -- ── Coop: the clock is a loss ────────────────────────────────────────
 create temp table gc on commit drop as
-select * from setgame.create_game(
+select (setgame.create_game(
   (select handle from club), '{"timer": {"kind": "countdown", "seconds": 60}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
-  'coop');
+  'coop')->'data'->>'id')::uuid as id;
 
 select setgame.submit_set((select id from gc), pg_temp.sg_live((select id from gc)));
 select setgame.submit_timeout((select id from gc));
@@ -61,11 +61,11 @@ select throws_ok(
 -- ── Compete with a leader: the standings decide ──────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table gl on commit drop as
-select * from setgame.create_game(
+select (setgame.create_game(
   (select handle from club), '{"timer": {"kind": "countdown", "seconds": 60}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
-  'compete');
+  'compete')->'data'->>'id')::uuid as id;
 
 select setgame.submit_set((select id from gl), pg_temp.sg_live((select id from gl)));
 select setgame.submit_set((select id from gl), pg_temp.sg_live((select id from gl)));
@@ -84,11 +84,11 @@ select is(
 -- ── Compete with nobody scoring: nobody to crown ─────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table gz on commit drop as
-select * from setgame.create_game(
+select (setgame.create_game(
   (select handle from club), '{"timer": {"kind": "countdown", "seconds": 60}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
-  'compete');
+  'compete')->'data'->>'id')::uuid as id;
 select setgame.submit_timeout((select id from gz));
 
 reset role;

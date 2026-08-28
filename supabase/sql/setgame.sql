@@ -260,19 +260,25 @@ grant select on setgame.games_state to authenticated;
 -- board is just a shuffle. The only work beyond dealing is running the
 -- deal-three rule before anyone sees the table, so the opening board is never
 -- one of the ~3% that come out set-free.
+-- `create or replace` cannot change a function's return type, and this one
+-- became jsonb. `if exists` because this file is re-applied in full on every
+-- deploy, so the drop has to be a no-op the second time.
+drop function if exists setgame.create_game(text, jsonb, uuid[], text);
+
 create or replace function setgame.create_game(
   target_club     text,
   setup           jsonb,
   player_user_ids uuid[],
   mode            text
 )
-returns table(id uuid)
+returns jsonb
 language plpgsql
 security definer
 set search_path = setgame, common, public, extensions
 as $$
 declare
   new_id       uuid;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text;
   v_deck_kind  text;
   v_deck       smallint[];
   v_board      smallint[];
@@ -288,8 +294,8 @@ begin
 
   v_deck_kind := coalesce(setup->>'deck', 'full');
   if v_deck_kind not in ('full', 'junior') then
-    raise exception 'bad-deck|%|', v_deck_kind
-      using errcode = 'P0001',
+    raise exception 'A deck of ''%'' reached the server', v_deck_kind
+      using errcode = 'PN075', hint = 'fault', column = '_',
       detail = 'setup deck must be full or junior';
   end if;
 
@@ -340,8 +346,8 @@ begin
   if mode = 'coop' and setup->>'coop_style' = 'turns' then
     first_turn := (setup->>'first_turn_user_id')::uuid;
     if first_turn is null or not (first_turn = any(player_user_ids)) then
-      raise exception 'bad-first-turn|'
-        using errcode = 'P0001',
+      raise exception 'A first player who is not in the game reached the server'
+        using errcode = 'PN076', hint = 'fault', column = '_',
         detail = 'setup.first_turn_user_id must be one of the players';
     end if;
     perform common._assign_turn_order(new_id, first_turn);
@@ -362,7 +368,18 @@ begin
     )
   );
 
-  return query select new_id;
+  return common.ok_envelope(jsonb_build_object('id', new_id));
+
+-- One block, and it has never heard of any specific condition: it reads the
+-- SQLSTATE, re-raises anything that isn't ours, and lets the raise itself carry
+-- the message, the kind and the field.
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 revoke execute on function setgame.create_game(text, jsonb, uuid[], text) from public;

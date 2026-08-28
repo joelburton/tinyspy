@@ -1,13 +1,14 @@
 // cs-unmet
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { runRpc } from '../../common/lib/supabase/dbResult'
 import { IconNewGame, IconPrint, IconRestart } from '../../common/components/icons'
 import { cls } from '../../common/lib/util/cls'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import type { GamePageCtx, Member } from '../../common/lib/games'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { outOfRacePill, stickyPill, terminalPill } from '../../common/lib/game/localPills'
-import { failureMessage, faultMessage } from '../../common/lib/game/serverError'
+import { failureMessage } from '../../common/lib/game/serverError'
 import { waitingTurnPill, yourTurnPill } from '../../common/components/game/turnCopy'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback'
@@ -360,20 +361,24 @@ export function PlayArea(ctx: GamePageCtx) {
   const createNewGame = useCallback(async () => {
     if (!isTerminal && !(await confirmAction(NEW_GAME_CONFIRM))) return
     if (!gameMode) return
-    const { data, error } = await db.rpc('create_game', {
-      target_club: clubHandle,
-      setup: setup as never,
-      player_user_ids: players.map((p) => p.user_id),
-      mode: gameMode,
-    })
-    if (error) {
-      // New game is a FAULT surface: this setup already built a game once, so
-      // anything coming back now is a bug or an outage, never a pill.
-      showLocalFeedback(faultMessage(error, 'new game'))
+    const res = await runRpc<{ id: string }>(
+      db.rpc('create_game', {
+        target_club: clubHandle,
+        setup: setup as never,
+        player_user_ids: players.map((p) => p.user_id),
+        mode: gameMode,
+      }),
+    )
+    if (res.type !== 'ok') {
+      // THE SAME ENVELOPE, READ DIFFERENTLY. On the setup form a validation is
+      // an answer — fix the field and press Start again. Here there is no field
+      // and no form: this setup already built a game once, so whatever comes
+      // back is a bug or an outage, and it wears the fault look whatever the
+      // server called it. `runRpc` has already logged it under `[db]`.
+      showLocalFeedback({ tone: 'error', fault: true, text: res.message, mode: { kind: 'manual' } })
       return
     }
-    const id = (data as { id: string }[] | null)?.[0]?.id
-    if (id) goToGame(`setgame_${gameMode}`, id)
+    goToGame(`setgame_${gameMode}`, res.data.id)
   }, [gameMode, clubHandle, setup, players, goToGame, showLocalFeedback, confirmAction, isTerminal])
 
   const [handleNewGame, startingNewGame] = useSingleFlight(createNewGame)
