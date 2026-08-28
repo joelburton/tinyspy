@@ -23,18 +23,19 @@ type Props = {
  * result navigates in place AND syncs the input, so the box always
  * shows what's being defined.
  */
+/** What the form holds. Nothing here reaches an RPC — the definition comes from
+ *  an edge function by way of `<DefinitionView>` — so the name is just the
+ *  box's. */
+type Values = { query: string }
+
 export function WordLookupDialog({ onClose }: Props) {
-  const [query, setQuery] = useState('')
+  /** The word being DEFINED, as against the one being typed. Clicking a related
+   *  word in the definition sets both: you see what you are looking at. */
   const [word, setWord] = useState<string | null>(null)
 
-  function onSubmit() {
+  function onSubmit({ query }: Values) {
     const w = query.trim().toLowerCase()
     if (w) setWord(w)
-  }
-
-  function navigate(next: string) {
-    setQuery(next)
-    setWord(next)
   }
 
   return (
@@ -49,22 +50,38 @@ export function WordLookupDialog({ onClose }: Props) {
       defaultSize={{ width: 360, height: 280 }}
       resizable={false}
     >
-      <StandardForm onSubmit={onSubmit}>
-        <TextField
-          // No caption: this box IS the panel, and the titlebar says what it
-          // looks up.
-          ariaLabel="Word to look up"
-          // Autofocus so the player can type immediately after the
-          // shortcut opens the dialog.
-          autoFocus
-          className={styles.input}
-          value={query}
-          onChange={setQuery}
-          placeholder="a word…"
-        />
-        <StandardButton name="Define" type="submit" weight="primary" className={styles.button} />
+      <StandardForm initialValues={{ query: '' } satisfies Values} onSubmit={onSubmit}>
+        {({ values, set }) => (
+          <>
+            <TextField
+              name="query"
+              // No caption: this box IS the panel, and the titlebar says what it
+              // looks up.
+              ariaLabel="Word to look up"
+              // Autofocus so the player can type immediately after the
+              // shortcut opens the dialog.
+              autoFocus
+              className={styles.input}
+              value={values.query}
+              onChange={(v) => set('query', v)}
+              placeholder="a word…"
+            />
+            <StandardButton name="Define" type="submit" weight="primary" className={styles.button} />
+
+            {/* INSIDE the form, which it did not use to be. Following a related
+                word writes back into the box as well as changing what is
+                defined, and the box belongs to the form — so the thing that
+                writes to it has to sit where the setter is. */}
+            <DefinitionView
+              word={word}
+              onNavigate={(next) => {
+                set('query', next)
+                setWord(next)
+              }}
+            />
+          </>
+        )}
       </StandardForm>
-      <DefinitionView word={word} onNavigate={navigate} />
     </Dialog>
   )
 }
