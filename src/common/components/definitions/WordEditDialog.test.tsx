@@ -11,10 +11,13 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { mockRpc, mockWordRows } = vi.hoisted(() => ({
+const { mockRpc, mockWordRows, mockSetWordEdit } = vi.hoisted(() => ({
   mockRpc: vi.fn(),
   mockWordRows: vi.fn(),
+  mockSetWordEdit: vi.fn(),
 }))
+// Closing is a call to the store, so that is what "it closed" asserts.
+vi.mock('../../lib/definitions/wordEditStore', () => ({ setWordEdit: mockSetWordEdit }))
 vi.mock('../../db', () => ({
   db: {
     rpc: mockRpc,
@@ -42,6 +45,9 @@ const ROW = {
 
 beforeEach(() => {
   mockRpc.mockReset()
+  // Reset too, or a close from an earlier test satisfies the next one's
+  // assertion that THIS one closed.
+  mockSetWordEdit.mockReset()
   // The RPCs answer with the result envelope, so a refusal arrives HTTP 200.
   mockRpc.mockResolvedValue({ data: { type: 'ok' }, error: null })
   mockWordRows.mockReset()
@@ -89,6 +95,18 @@ describe('WordEditDialog', () => {
     expect(fn).toBe('add_word')
     expect(args.new_word).toBe('zqnew')
     expect(args.fields).toMatchObject({ difficulty: 3, american: true, slang: false })
+  })
+
+  // The way OUT that wasn't there. Delete and Save were the only two buttons,
+  // so leaving without saving meant the titlebar's X or Escape — neither of
+  // which reads as a choice the way a button beside Save does.
+  it('closes on Cancel without calling any RPC', async () => {
+    const user = userEvent.setup()
+    render(<WordEditDialog request={{ mode: 'edit', word: 'acre' }} />)
+    await waitFor(() => expect(screen.getByLabelText('Band (1–6)')).toHaveValue(2))
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(mockRpc).not.toHaveBeenCalled()
+    expect(mockSetWordEdit).toHaveBeenCalledWith(null)
   })
 
   it('an RPC rejection surfaces inline and keeps the dialog open', async () => {

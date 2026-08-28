@@ -18,12 +18,6 @@
   gap: 0.35rem;
 }
 
-/* @@ */ .error {
-  margin: 0;
-  font-size: 0.85rem;
-  color: var(--chrome-fault-color);
-}
-
 /* @@ */ .actions {
   display: flex;
   justify-content: space-between;
@@ -31,8 +25,9 @@
   margin-top: auto; /* pin the buttons to the panel's bottom edge */
 }
 
-/* Layout only — the chrome is the shared `button primary`. */
-/* @@ */ .saveButton {
+/* The right-hand PAIR starts here: pushing Cancel over leaves Delete alone at
+   the left edge and keeps Cancel and Save together, one gap apart. */
+/* @@ */ .cancelButton {
   margin-left: auto;
 }
 

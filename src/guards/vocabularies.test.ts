@@ -347,7 +347,6 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/components/club/CreateClubModal.module.css': ['0.8rem'],
       'src/common/components/club/StartGameRow.module.css': ['1rem', '0.85rem'],
       'src/common/components/definitions/DefinitionView.module.css': ['1.05rem', '0.92rem', '0.9rem', '0.72rem', '0.8rem'],
-      'src/common/components/definitions/WordEditDialog.module.css': ['0.85rem'],
       'src/common/components/feedback/FaultModal.module.css': ['1.1rem', '0.78rem'],
       // ErrorPage is FaultModal's twin as a PAGE (F39 `loading-and-errors`);
       // its two sizes are copied to the digit so the two read as one event.

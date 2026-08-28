@@ -1,6 +1,8 @@
 // cs-unmet
 
 import { StandardForm } from '../fields/StandardForm'
+import { FORM_ERROR_KEYNAME, type FormErrors } from '../fields/formState'
+import { FailureLine } from '../feedback/FailureLine'
 import { useEffect, useState } from 'react'
 import { db as commonDb } from '../../db'
 import { readRows, runRpc } from '../../lib/supabase/dbResult'
@@ -9,6 +11,7 @@ import { useConfirmation } from '../../hooks/ui/useConfirmation'
 import { Dialog } from '../floating-panels/Dialog'
 import styles from './WordEditDialog.module.css'
 import { StandardButton } from '../buttons/StandardButton'
+import { CancelButton } from '../buttons/CancelButton'
 import { TextField } from '../fields/TextField'
 import { NumberField } from '../fields/NumberField'
 import { CheckboxField } from '../fields/CheckboxField'
@@ -78,13 +81,43 @@ function wireValue(key: keyof Fields, v: Fields[keyof Fields]): unknown {
   return v === '' ? null : v
 }
 
+/**
+ * What the form holds: the ten editable columns, plus the word being added and
+ * the journal note.
+ *
+ * The column keys are NOT RPC parameters — they travel inside `fields` (add) or
+ * `patch` (update), which is why a validation about one of them names the blob
+ * rather than the box. See `formFieldFor`.
+ */
+type Values = Fields & { new_word: string; note: string }
+
+/**
+ * Where a server message belongs on THIS form.
+ *
+ * `add_word` and `update_word` take the ten columns as one jsonb argument, so a
+ * validation about what is inside it can only name that argument — PN028 ("Pick
+ * a difficulty") raises `column = 'fields'`, and the guard requires a column to
+ * name a real parameter. There is no box called `fields`, so left alone the
+ * message would be written into an errors key nothing renders and vanish.
+ *
+ * It goes on the form's own line instead. That is a genuine limit rather than a
+ * workaround: a jsonb parameter is one parameter, and the raise cannot say which
+ * of the ten it meant.
+ */
+function formFieldFor(field: string | undefined): string {
+  if (field === undefined) return FORM_ERROR_KEYNAME
+  return field === 'fields' || field === 'patch' || field === 'target_word'
+    ? FORM_ERROR_KEYNAME
+    : field
+}
+
 export function WordEditDialog({ request }: { request: WordEditRequest }) {
   const editing = request.mode === 'edit'
-  const [word, setWord] = useState(editing ? request.word : '')
-  const [fields, setFields] = useState<Fields>(EMPTY)
-  // The loaded row's values, for computing the changed-fields patch.
-  const [initial, setInitial] = useState<Fields | null>(editing ? null : EMPTY)
-  const [error, setError] = useState<string | null>(null)
+  // The row AS LOADED — the baseline the patch is diffed against, and the form's
+  // starting values. `null` means the read is still in flight, which is edit
+  // mode only: adding starts from EMPTY and needs no round trip.
+  const [loaded, setLoaded] = useState<Fields | null>(editing ? null : EMPTY)
+  const [errors, setErrors] = useState<FormErrors>({})
   const [busy, setBusy] = useState(false)
   const { confirm: confirmAction, confirmationModal } = useConfirmation()
 
@@ -104,7 +137,7 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
       if (res.type !== 'ok') {
         // A load failure is a fault — nothing an editor typed can cause it —
         // and `dbFetch` has already raised the modal. The line says which load.
-        setError('Could not load this word.')
+        setErrors({ [FORM_ERROR_KEYNAME]: 'Could not load this word.' })
         return
       }
       const data = res.data[0]
@@ -114,10 +147,10 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
         // click. Zero rows is `ok`, so only this call site can say what it
         // means here. Same words as the server's own PN025/PN026 — one fact,
         // one sentence, whichever side states it.
-        setError(`No such word: ${request.word}`)
+        setErrors({ [FORM_ERROR_KEYNAME]: `No such word: ${request.word}` })
         return
       }
-      const loaded: Fields = {
+      const row: Fields = {
         definition: data.definition ?? '',
         hint: data.hint ?? '',
         difficulty: String(data.difficulty),
@@ -129,28 +162,22 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
         canadian: data.canadian,
         australian: data.australian,
       }
-      setFields(loaded)
-      setInitial(loaded)
+      setLoaded(row)
     })()
     return () => {
       mounted = false
     }
   }, [editing, request])
 
-  const [note, setNote] = useState('')
+  async function onSubmit({ new_word, note, ...fields }: Values) {
+    if (busy || loaded === null) return
+    setErrors({})
 
-  function set<K extends keyof Fields>(key: K, v: Fields[K]) {
-    setFields((f) => ({ ...f, [key]: v }))
-  }
-
-  async function onSubmit() {
-    if (busy || initial === null) return
-    setError(null)
-
-    // The changed-fields patch (edit) / the full field set (add).
+    // The changed-fields patch (edit) / the full field set (add). Diffed against
+    // the row as loaded, which is also what the form started from.
     const payload: Record<string, unknown> = {}
-    for (const key of Object.keys(fields) as (keyof Fields)[]) {
-      if (!editing || fields[key] !== initial[key]) {
+    for (const key of Object.keys(loaded) as (keyof Fields)[]) {
+      if (!editing || fields[key] !== loaded[key]) {
         payload[key] = wireValue(key, fields[key])
       }
     }
@@ -171,22 +198,24 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
             note: note.trim() || undefined,
           })
         : commonDb.rpc('add_word', {
-            new_word: word.trim().toLowerCase(),
+            new_word: new_word.trim().toLowerCase(),
             fields: jsonPayload,
             note: note.trim() || undefined,
           }),
     )
     setBusy(false)
     if (res.type !== 'ok') {
-      // Everything the server said goes on the form's line. A fault has already
-      // raised the modal, and the line is what remains once it is dismissed.
-      setError(res.message)
+      // Under the box the server named, when it named one it can reach. A fault
+      // has already raised the modal, and the line is what remains after it.
+      setErrors({ [formFieldFor(res.field)]: res.message })
       return
     }
     setWordEdit(null)
   }
 
-  async function onDelete() {
+  /** Takes the note because the box belongs to the form — Delete sits inside
+   *  it and hands the current value in. */
+  async function onDelete(note: string) {
     if (request.mode !== 'edit') return
     if (
       !(await confirmAction({
@@ -206,7 +235,7 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
     )
     setBusy(false)
     if (res.type !== 'ok') {
-      setError(res.message)
+      setErrors({ [formFieldFor(res.field)]: res.message })
       return
     }
     setWordEdit(null)
@@ -224,99 +253,129 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
       defaultSize={{ width: 380, height: 500 }}
       resizable={false}
     >
-      <StandardForm onSubmit={onSubmit}>
-        {!editing && (
-          <TextField
-            label="Word"
-            value={word}
-            onChange={(v) => setWord(v.replace(/[^A-Za-z]/g, ''))}
-            autoFocus
-          />
-        )}
-        <TextField
-          label="Definition"
-          value={fields.definition}
-          onChange={(v) => set('definition', v)}
-          disabled={initial === null}
-          multiline
-          rows={2}
-        />
-        <TextField
-          label="Hint"
-          value={fields.hint}
-          onChange={(v) => set('hint', v)}
-          disabled={initial === null}
-        />
-        {/* Three small numbers on one row, not three rows. Each is a
-            <NumberField> in a <label>-less wrapper because the caption belongs
-            to the field; the row only decides they share a line. The values are
-            kept as STRINGS in `fields` (the patch is diffed against the loaded
-            row as text), so each converts at the boundary — an emptied box is
-            NaN, which stores as '' rather than the string "NaN". */}
-        <div className={styles.numbers}>
-          {NUMBER_FIELDS.map(({ key, label, min, max }) => (
-            <NumberField
-              key={key}
-              name={key}
-              label={label}
-              min={min}
-              max={max}
-              chars={1}
-              value={Number(fields[key])}
-              onChange={(n) => set(key, Number.isNaN(n) ? '' : String(n))}
-              disabled={initial === null}
-            />
-          ))}
-        </div>
-        <div className={styles.checks}>
-          <CheckboxField
-            name="slang"
-            checked={fields.slang}
-            onChange={(on) => set('slang', on)}
-            disabled={initial === null}
-          >
-            slang
-          </CheckboxField>
-          {DIALECTS.map((d) => (
-            <CheckboxField
-              key={d}
-              name={d}
-              checked={fields[d]}
-              onChange={(on) => set(d, on)}
-              disabled={initial === null}
-            >
-              {d}
-            </CheckboxField>
-          ))}
-        </div>
-        <TextField
-          label="Note"
-          value={note}
-          onChange={setNote}
-          placeholder="a quick aside for the wordlist process…"
-          multiline
-          rows={2}
-        />
-        {error && <p className={styles.error}>{error}</p>}
-        <div className={styles.actions}>
-          {editing && (
-            <StandardButton
-              name="Delete"
-              tone="destructive"
-              className={styles.deleteButton}
-              onClick={() => void onDelete()}
-              disabled={busy || initial === null}
-            />
+      {/* NOT RENDERED until the row is in hand. `initialValues` is read once at
+          mount, so a form that appeared first and filled in later would either
+          ignore the row or reset under someone already typing. Waiting also
+          retires the eight `disabled={initial === null}` props this dialog used
+          to carry for exactly that reason. */}
+      {loaded === null ? (
+        <p className="muted">Loading…</p>
+      ) : (
+        <StandardForm
+          initialValues={
+            {
+              ...loaded,
+              new_word: editing ? request.word : '',
+              note: '',
+            } satisfies Values
+          }
+          onSubmit={onSubmit}
+        >
+          {({ values, set }) => (
+            <>
+              {!editing && (
+                <TextField
+                  name="new_word"
+                  label="Word"
+                  value={values.new_word}
+                  onChange={(v) => set('new_word', v.replace(/[^A-Za-z]/g, ''))}
+                  error={errors.new_word}
+                  autoFocus
+                />
+              )}
+              <TextField
+                name="definition"
+                label="Definition"
+                value={values.definition}
+                onChange={(v) => set('definition', v)}
+                multiline
+                rows={2}
+              />
+              <TextField
+                name="hint"
+                label="Hint"
+                value={values.hint}
+                onChange={(v) => set('hint', v)}
+              />
+              {/* Three small numbers on one row, not three rows. Each is a
+                  <NumberField> in a <label>-less wrapper because the caption
+                  belongs to the field; the row only decides they share a line.
+                  The values are kept as STRINGS (the patch is diffed against the
+                  loaded row as text), so each converts at the boundary — an
+                  emptied box is NaN, which stores as '' rather than "NaN". */}
+              <div className={styles.numbers}>
+                {NUMBER_FIELDS.map(({ key, label, min, max }) => (
+                  <NumberField
+                    key={key}
+                    name={key}
+                    label={label}
+                    min={min}
+                    max={max}
+                    chars={1}
+                    value={Number(values[key])}
+                    onChange={(n) => set(key, Number.isNaN(n) ? '' : String(n))}
+                  />
+                ))}
+              </div>
+              <div className={styles.checks}>
+                <CheckboxField
+                  name="slang"
+                  checked={values.slang}
+                  onChange={(on) => set('slang', on)}
+                >
+                  slang
+                </CheckboxField>
+                {DIALECTS.map((d) => (
+                  <CheckboxField
+                    key={d}
+                    name={d}
+                    checked={values[d]}
+                    onChange={(on) => set(d, on)}
+                  >
+                    {d}
+                  </CheckboxField>
+                ))}
+              </div>
+              <TextField
+                name="note"
+                label="Note"
+                value={values.note}
+                onChange={(v) => set('note', v)}
+                placeholder="a quick aside for the wordlist process…"
+                multiline
+                rows={2}
+              />
+              <FailureLine>{errors[FORM_ERROR_KEYNAME]}</FailureLine>
+              {/* Delete sits alone on the left, away from the pair you reach
+                  for on the way out — Cancel and Save travel together on the
+                  right, as they do in every other dialog. */}
+              <div className={styles.actions}>
+                {editing && (
+                  <StandardButton
+                    name="Delete"
+                    tone="destructive"
+                    className={styles.deleteButton}
+                    onClick={() => void onDelete(values.note)}
+                    disabled={busy}
+                  />
+                )}
+                <CancelButton
+                  className={styles.cancelButton}
+                  onClick={() => setWordEdit(null)}
+                  disabled={busy}
+                />
+                <StandardButton
+                  name="Save"
+                  type="submit"
+                  weight="primary"
+                  className={styles.saveButton}
+                  disabled={busy}
+                />
+              </div>
+            </>
           )}
-          <StandardButton
-            name="Save"
-            type="submit"
-            weight="primary"
-            className={styles.saveButton}
-            disabled={busy || initial === null}
-          />
-        </div>
-      </StandardForm>
+        </StandardForm>
+      )}
       {confirmationModal}
     </Dialog>
   )
