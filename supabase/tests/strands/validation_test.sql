@@ -30,10 +30,10 @@ select pg_temp.create_club('Malformed club', array['ada','bea']) as handle;
 create temp table fix on commit drop as select pg_temp.strands_puzzle() as puzzle_id;
 
 create temp table g on commit drop as
-select id from strands.create_game(
+select (strands.create_game(
   (select handle from club),
   pg_temp.strands_setup((select puzzle_id from fix)),
-  array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop');
+  array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop')->'data'->>'id')::uuid as id;
 
 -- A tiny local shorthand: run submit_path against the fixture game with a
 -- literal path.

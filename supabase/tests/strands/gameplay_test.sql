@@ -33,10 +33,10 @@ create temp table fix on commit drop as select pg_temp.strands_puzzle() as puzzl
 select pg_temp.strands_hint_words();
 
 create temp table game on commit drop as
-select id from strands.create_game(
+select (strands.create_game(
   (select handle from club), pg_temp.strands_setup((select puzzle_id from fix)),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
-        'bea22222-2222-2222-2222-222222222222'::uuid], 'coop');
+        'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as id;
 
 -- ============================================================
 -- (1)–(3) The three accepting outcomes
@@ -68,11 +68,11 @@ select is(
 -- regression that would only show up in a club that turned the knob up.
 
 create temp table strict_game on commit drop as
-select id from strands.create_game(
+select (strands.create_game(
   (select handle from club),
   pg_temp.strands_setup((select puzzle_id from fix), 5, 3, 7),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
-        'bea22222-2222-2222-2222-222222222222'::uuid], 'coop');
+        'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as id;
 
 select is(
   strands.submit_path((select id from strict_game), pg_temp.strands_row_path(2))->>'result',
@@ -156,11 +156,11 @@ select is(
 -- words. A game at a LOWER band than the word's difficulty must reject it —
 -- this is the knob that makes the game harder.
 create temp table band_game on commit drop as
-select id from strands.create_game(
+select (strands.create_game(
   (select handle from club),
   pg_temp.strands_setup((select puzzle_id from fix), 1, 3, 4),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
-        'bea22222-2222-2222-2222-222222222222'::uuid], 'coop');
+        'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as id;
 
 select is(
   strands.submit_path((select id from band_game), pg_temp.strands_prefix_path(0, 4))->>'result',
@@ -237,10 +237,10 @@ select is(
 
 create temp table amb on commit drop as select pg_temp.strands_ambiguous_puzzle() as puzzle_id;
 create temp table ambgame on commit drop as
-select id from strands.create_game(
+select (strands.create_game(
   (select handle from club), pg_temp.strands_setup((select puzzle_id from amb)),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
-        'bea22222-2222-2222-2222-222222222222'::uuid], 'coop');
+        'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as id;
 
 select is(
   strands.submit_path((select id from ambgame), pg_temp.strands_abba_equivalent())->>'result',
@@ -265,10 +265,10 @@ select throws_ok(
 -- fresh board too: on the one above those tiles are spent, and the structural
 -- check would reject the trace before classification ever ran.
 create temp table ambgame2 on commit drop as
-select id from strands.create_game(
+select (strands.create_game(
   (select handle from club), pg_temp.strands_setup((select puzzle_id from amb)),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
-        'bea22222-2222-2222-2222-222222222222'::uuid], 'coop');
+        'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as id;
 
 select is(
   strands.submit_path(

@@ -85,6 +85,7 @@ export function SetupForm({
             arrive sooner. */}
         <DictBandField
           name="band"
+          error={errors.band}
           help={<>How obscure a word may be and still earn a hint. A wider dictionary makes the game <strong>easier</strong> — more words count, so hints come faster.</>}
           label="Hint dictionary"
           // '3+' — strands' hint words have no fixed length (min_word_length is
@@ -100,6 +101,7 @@ export function SetupForm({
       <SetupSection label={`Words per hint: ${s.hint_cost}`}>
         <SelectField
           name="hint_cost"
+          error={errors.hint_cost}
           help="How many valid non-theme words buy one hint (3 is standard)."
           label="Words per hint"
           value={String(s.hint_cost)}
@@ -114,6 +116,7 @@ export function SetupForm({
       <SetupSection label={`Shortest word: ${s.min_word_length}`}>
         <SelectField
           name="min_word_length"
+          error={errors.min_word_length}
           help="The shortest word that can earn a hint. Theme words always count, however short."
           label="Shortest word"
           value={String(s.min_word_length)}

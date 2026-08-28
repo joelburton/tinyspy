@@ -39,12 +39,12 @@ select pg_temp.strands_hint_words();
 -- Three players, so bea's concede leaves a live race behind it.
 
 create temp table g_guard on commit drop as
-select id from strands.create_game(
+select (strands.create_game(
   (select handle from club),
   pg_temp.strands_setup((select puzzle_id from fix), 5, 1, 4),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid,
-        'cade3333-3333-3333-3333-333333333333'::uuid], 'compete');
+        'cade3333-3333-3333-3333-333333333333'::uuid], 'compete')->'data'->>'id')::uuid as id;
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select strands.concede((select id from g_guard));
@@ -79,11 +79,11 @@ select is(
 -- is owned by postgres and unreadable once we act as a player again.)
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g_forfeit on commit drop as
-select id from strands.create_game(
+select (strands.create_game(
   (select handle from club),
   pg_temp.strands_setup((select puzzle_id from fix), 5, 1, 4),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
-        'bea22222-2222-2222-2222-222222222222'::uuid], 'compete');
+        'bea22222-2222-2222-2222-222222222222'::uuid], 'compete')->'data'->>'id')::uuid as id;
 
 select strands.submit_path((select id from g_forfeit), pg_temp.strands_row_path(r))
   from generate_series(0, 7) r;
@@ -157,11 +157,11 @@ select is(
 -- ============================================================
 
 create temp table g_all on commit drop as
-select id from strands.create_game(
+select (strands.create_game(
   (select handle from club),
   pg_temp.strands_setup((select puzzle_id from fix), 5, 1, 4),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
-        'bea22222-2222-2222-2222-222222222222'::uuid], 'compete');
+        'bea22222-2222-2222-2222-222222222222'::uuid], 'compete')->'data'->>'id')::uuid as id;
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select strands.concede((select id from g_all));

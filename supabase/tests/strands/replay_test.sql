@@ -34,12 +34,12 @@ create temp table fix on commit drop as select pg_temp.strands_puzzle() as puzzl
 select pg_temp.strands_hint_words();
 
 create temp table game on commit drop as
-select id from strands.create_game(
+select (strands.create_game(
   (select handle from club),
   -- hint_cost 2 so two fixture hint words fill the bar and a hint can be cashed.
   pg_temp.strands_setup((select puzzle_id from fix), 5, 2, 4),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
-        'bea22222-2222-2222-2222-222222222222'::uuid], 'coop');
+        'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as id;
 
 -- ── Dirty the game: two valid words, then cash the hint they buy ──
 select strands.submit_path((select id from game), pg_temp.strands_prefix_path(0, 4));

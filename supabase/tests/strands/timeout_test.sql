@@ -35,11 +35,11 @@ create temp table fix on commit drop as select pg_temp.strands_puzzle() as puzzl
 -- ============================================================
 
 create temp table g_coop on commit drop as
-select id from strands.create_game(
+select (strands.create_game(
   (select handle from club),
   pg_temp.strands_setup((select puzzle_id from fix)),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
-        'bea22222-2222-2222-2222-222222222222'::uuid], 'coop');
+        'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as id;
 
 select strands.submit_path((select id from g_coop), pg_temp.strands_row_path(0));
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
@@ -68,11 +68,11 @@ select is(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g_won on commit drop as
-select id from strands.create_game(
+select (strands.create_game(
   (select handle from club),
   pg_temp.strands_setup((select puzzle_id from fix)),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
-        'bea22222-2222-2222-2222-222222222222'::uuid], 'compete');
+        'bea22222-2222-2222-2222-222222222222'::uuid], 'compete')->'data'->>'id')::uuid as id;
 
 select strands.submit_path((select id from g_won), pg_temp.strands_row_path(r))
   from generate_series(0, 7) r;
@@ -118,11 +118,11 @@ select is(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g_lost on commit drop as
-select id from strands.create_game(
+select (strands.create_game(
   (select handle from club),
   pg_temp.strands_setup((select puzzle_id from fix)),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
-        'bea22222-2222-2222-2222-222222222222'::uuid], 'compete');
+        'bea22222-2222-2222-2222-222222222222'::uuid], 'compete')->'data'->>'id')::uuid as id;
 
 select strands.submit_path((select id from g_lost), pg_temp.strands_row_path(0));
 select strands.submit_timeout((select id from g_lost));

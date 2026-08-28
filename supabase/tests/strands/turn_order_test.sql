@@ -32,7 +32,7 @@ select pg_temp.strands_hint_words();
 
 -- ── TURN GAME — ada first ──
 create temp table g on commit drop as
-select id from strands.create_game(
+select (strands.create_game(
   (select handle from club),
   pg_temp.strands_setup((select puzzle_id from fix), 5, 3, 4)
     || jsonb_build_object(
@@ -40,7 +40,7 @@ select id from strands.create_game(
          'first_turn_user_id', 'ada11111-1111-1111-1111-111111111111'::text),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
-  'coop');
+  'coop')->'data'->>'id')::uuid as id;
 
 -- (1) Pointer seated on ada.
 reset role;
@@ -97,12 +97,12 @@ select is(
 -- ── (6) FREE-FOR-ALL — no pointer, no gate ──
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g_free on commit drop as
-select id from strands.create_game(
+select (strands.create_game(
   (select handle from club),
   pg_temp.strands_setup((select puzzle_id from fix)),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
-  'coop');
+  'coop')->'data'->>'id')::uuid as id;
 reset role;
 select is(
   (select current_turn_user_id from common.games where id = (select id from g_free)),
@@ -113,7 +113,7 @@ select is(
 -- ── (7) COMPETE — never rotates, even if the setup smuggles coop_style in ──
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g_race on commit drop as
-select id from strands.create_game(
+select (strands.create_game(
   (select handle from club),
   pg_temp.strands_setup((select puzzle_id from fix))
     || jsonb_build_object(
@@ -121,7 +121,7 @@ select id from strands.create_game(
          'first_turn_user_id', 'ada11111-1111-1111-1111-111111111111'::text),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
-  'compete');
+  'compete')->'data'->>'id')::uuid as id;
 reset role;
 select is(
   (select current_turn_user_id from common.games where id = (select id from g_race)),

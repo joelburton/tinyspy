@@ -30,13 +30,13 @@ create temp table fix on commit drop as select pg_temp.strands_puzzle() as puzzl
 select pg_temp.strands_hint_words();
 
 create temp table game on commit drop as
-select id from strands.create_game(
+select (strands.create_game(
   (select handle from club),
   -- hint_cost 2, so the fixture's four hint words can fill the bar TWICE —
   -- which is what makes the "a hint is already showing" case reachable at all.
   pg_temp.strands_setup((select puzzle_id from fix), 5, 2, 4),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
-        'bea22222-2222-2222-2222-222222222222'::uuid], 'coop');
+        'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as id;
 
 -- ============================================================
 -- (1) Both players can act on the shared board

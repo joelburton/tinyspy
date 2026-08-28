@@ -1,6 +1,7 @@
 // cs-unmet
 
 import { failureMessage, faultMessage } from '../../common/lib/game/serverError'
+import { runRpc } from '../../common/lib/supabase/dbResult'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { IconHideSolution, IconPrint, IconRestart, IconReveal } from '../../common/components/icons'
 import { cls } from '../../common/lib/util/cls'
@@ -535,22 +536,24 @@ export function PlayArea(ctx: GamePageCtx) {
     // puzzle we just finished.
     const carried = { ...strandsSetup }
     delete carried.puzzle_id
-    const { data, error } = await db
-      .rpc('create_game', {
+    const res = await runRpc<{ id: string }>(
+      db.rpc('create_game', {
         target_club: clubHandle,
         setup: carried,
         player_user_ids: players.map((p) => p.user_id),
         mode: game.mode,
-      })
-      .single()
-    if (error || !data) {
-      // New game is a FAULT SURFACE (serverError.ts → faultMessage): this setup
-      // already built a game once, so any failure here is a bug or an outage
-      // — never a pill. Copy supplies the words when it has them.
-      showLocalFeedback(faultMessage(error, 'new game'))
+      }),
+    )
+    if (res.type !== 'ok') {
+      // THE SAME ENVELOPE, READ DIFFERENTLY. On the setup form a validation is
+      // an answer — fix the field and press Start again. Here there is no field
+      // and no form: this setup already built a game once, so whatever comes
+      // back is a bug or an outage, and it wears the fault look whatever the
+      // server called it. `runRpc` has already logged it under `[db]`.
+      showLocalFeedback({ tone: 'error', fault: true, text: res.message, mode: { kind: 'manual' } })
       return
     }
-    goToGame(`strands_${game.mode}`, data.id)
+    goToGame(`strands_${game.mode}`, res.data.id)
   })
 
   // The GamePage menu. Held in a ref so the effect needn't list the per-render

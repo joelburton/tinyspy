@@ -25,6 +25,7 @@ set search_path = strands, common, public, extensions;
 select plan(21);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -36,21 +37,24 @@ select pg_temp.strands_hint_words();
 -- hint_cost 1, so a single valid word buys a hint — the tests need to SPEND
 -- hints cheaply, since spending is the thing being ranked.
 create temp table game on commit drop as
-select id from strands.create_game(
+select (strands.create_game(
   (select handle from club),
   pg_temp.strands_setup((select puzzle_id from fix), 5, 1, 4),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
-        'bea22222-2222-2222-2222-222222222222'::uuid], 'compete');
+        'bea22222-2222-2222-2222-222222222222'::uuid], 'compete')->'data'->>'id')::uuid as id;
 
 -- ============================================================
 -- (1)–(2) Compete needs an opponent, and seats everyone
 -- ============================================================
 
-select throws_ok(
-  format($$ select strands.create_game(%L, %L::jsonb, array['ada11111-1111-1111-1111-111111111111'::uuid], 'compete') $$,
-         (select handle from club), pg_temp.strands_setup((select puzzle_id from fix))::text),
-  'P0001',
-  'too-few-players|',
+-- A FAULT, not a validation: the Start button is hidden in a one-player club
+-- (numberOfPlayers [2, 6]), so a solo race cannot be asked for.
+select pg_temp.envelope_is(
+  strands.create_game(
+    (select handle from club),
+    pg_temp.strands_setup((select puzzle_id from fix)),
+    array['ada11111-1111-1111-1111-111111111111'::uuid], 'compete'),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN066"}'::jsonb,
   'a one-player compete game is refused — a race needs somebody to race'
 );
 
@@ -232,11 +236,11 @@ select is(
 -- solved and the rest walked away must end with the solver WINNING.
 
 create temp table game2 on commit drop as
-select id from strands.create_game(
+select (strands.create_game(
   (select handle from club),
   pg_temp.strands_setup((select puzzle_id from fix), 5, 1, 4),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
-        'bea22222-2222-2222-2222-222222222222'::uuid], 'compete');
+        'bea22222-2222-2222-2222-222222222222'::uuid], 'compete')->'data'->>'id')::uuid as id;
 
 -- ada solves; bea gives up.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');

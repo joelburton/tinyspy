@@ -202,13 +202,6 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   // puzzle left, and it's reachable two ways — the setup dialog's Start, and
   // the in-game "New game". `info`, because nobody did anything wrong.
   //
-  // The wording carefully doesn't say "you've played them all": with the
-  // exclusion spanning clubs and players, the usual cause is that SOMEONE at
-  // the table has, which reads as a lie to everyone else.
-  'no-unplayed-puzzle': {
-    text: () => 'Everyone here has played every puzzle',
-    tone: 'noted',
-  },
 
   // ── connections ──
   // Elimination is connections' own end-state — four mistakes and you're out —

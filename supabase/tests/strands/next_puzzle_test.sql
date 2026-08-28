@@ -31,6 +31,7 @@ set search_path = strands, common, public, extensions;
 select plan(10);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 -- Two more fixture puzzles beside setup.psql's 1999-01-01 one, so "the next
@@ -89,11 +90,11 @@ select is(
 select pg_temp.as_user((select ada from ids));
 
 create temp table g1 on commit drop as
-select id from strands.create_game(
+select (strands.create_game(
   '=ada',
   pg_temp.strands_setup((select day1 from p)),
   array[(select ada from ids)],
-  'coop');
+  'coop')->'data'->>'id')::uuid as id;
 
 select is(
   (select puzzle_date from strands.next_puzzle_for_club(array[(select ada from ids)])),
@@ -134,19 +135,19 @@ select pg_temp.create_club('ada and cade', array['ada','cade']) as handle;
 grant select on shared to public;
 
 create temp table g2 on commit drop as
-select id from strands.create_game(
+select (strands.create_game(
   (select handle from shared),
   pg_temp.strands_setup((select day2 from p)),
   array[(select ada from ids)],           -- ada alone: cade is a member, not a player
-  'coop');
+  'coop')->'data'->>'id')::uuid as id;
 
 select pg_temp.as_user((select cade from ids));
 create temp table g3 on commit drop as
-select id from strands.create_game(
+select (strands.create_game(
   '=cade',
   pg_temp.strands_setup((select day1 from p)),
   array[(select cade from ids)],
-  'coop');
+  'coop')->'data'->>'id')::uuid as id;
 
 select is(
   (select puzzle_date from strands.next_puzzle_for_club(array[(select cade from ids)])),
@@ -194,17 +195,16 @@ select is(
   'with every remaining puzzle played, the function returns NO rows'
 );
 
-select throws_ok(
-  format(
-    $$ select strands.create_game(
-         '=ada',
-         '{"band":5,"hint_cost":3,"min_word_length":4,"timer":{"kind":"none"}}'::jsonb,
-         array[%L]::uuid[], 'coop') $$,
-    (select ada from ids)
-  ),
-  'P0001',
-  'no-unplayed-puzzle|',
-  'and create_game with no puzzle_id raises no-unplayed-puzzle| rather than crashing'
+-- A VALIDATION naming the PICKER: the archive is spent for THESE players, so
+-- unchecking someone is what brings a puzzle back. One of the few refusals in
+-- the whole create_game path that a setup form genuinely cannot predict.
+select pg_temp.envelope_is(
+  strands.create_game(
+    '=ada',
+    '{"band":5,"hint_cost":3,"min_word_length":4,"timer":{"kind":"none"}}'::jsonb,
+    array[(select ada from ids)]::uuid[], 'coop'),
+  '{"type":"not-ok","severity":"validation","field":"player_user_ids","dbcode":"PN067"}'::jsonb,
+  'create_game with every puzzle played names the picker, rather than crashing'
 );
 
 select * from finish();

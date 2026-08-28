@@ -376,6 +376,9 @@ begin
       -- It names the PICKER, not the puzzle box: the archive is exhausted
       -- for THESE players, so unchecking someone is what brings a puzzle
       -- back. Picking a date plays one again, which is a different wish.
+      -- The wording deliberately does not say "you have played them all": the
+      -- exclusion spans clubs and players, so the usual cause is that SOMEONE
+      -- at the table has, which reads as a lie to everyone else.
       raise exception 'Everyone here has played every puzzle'
         using errcode = 'PN062', hint = 'validation', column = 'player_user_ids',
         detail = 'every imported puzzle has been played by one of these players';

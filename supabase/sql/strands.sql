@@ -406,19 +406,25 @@ grant execute on function strands.puzzle_for_date(date) to authenticated;
 -- The three knobs are stored explicitly rather than read back out of
 -- common.games.setup on every move: they're immutable after this call, and the
 -- move RPC reads all three on every submission.
+-- `create or replace` cannot change a function's return type, and this one
+-- became jsonb. `if exists` because this file is re-applied in full on every
+-- deploy, so the drop has to be a no-op the second time.
+drop function if exists strands.create_game(text, jsonb, uuid[], text);
+
 create or replace function strands.create_game(
   target_club text,
   setup jsonb,
   player_user_ids uuid[],
   mode text
 )
-returns table(id uuid)
+returns jsonb
 language plpgsql
 security definer
 set search_path = strands, common, public, extensions
 as $$
 declare
   new_id             uuid;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text;
   s_puzzle_id        uuid;
   puzzle_row         strands.puzzles%rowtype;
   v_band             int;
@@ -433,7 +439,8 @@ begin
   -- Compete needs an opposing PLAYER. The manifest hides its Start button in a
   -- one-player club; this is the server-side catch.
   if mode = 'compete' and coalesce(array_length(player_user_ids, 1), 0) < 2 then
-    raise exception 'too-few-players|' using errcode = 'P0001',
+    raise exception 'A race with fewer than two players reached the server'
+      using errcode = 'PN066', hint = 'fault', column = '_',
       detail = 'compete needs >= 2 players';
   end if;
 
@@ -451,14 +458,19 @@ begin
     select n.id into s_puzzle_id
       from strands.next_puzzle_for_club(player_user_ids) n;
     if s_puzzle_id is null then
-      raise exception 'no-unplayed-puzzle|' using errcode = 'P0001',
+            -- The wording deliberately does not say "you have played them all": the
+      -- exclusion spans clubs and players, so the usual cause is that SOMEONE
+      -- at the table has, which reads as a lie to everyone else.
+raise exception 'Everyone here has played every puzzle'
+        using errcode = 'PN067', hint = 'validation', column = 'player_user_ids',
         detail = 'every imported puzzle has been played by one of these players';
     end if;
   else
     begin
       s_puzzle_id := (setup->>'puzzle_id')::uuid;
     exception when invalid_text_representation then
-      raise exception 'bad-puzzle-id|' using errcode = 'P0001',
+      raise exception 'A puzzle reference the server cannot read arrived'
+        using errcode = 'PN068', hint = 'fault', column = '_',
         detail = 'setup.puzzle_id is not a uuid';
     end;
   end if;
@@ -472,15 +484,18 @@ begin
   v_min_word_length := coalesce((setup->>'min_word_length')::int, 4);
 
   if v_band < 1 or v_band > 6 then
-    raise exception 'bad-band|' using errcode = 'P0001',
+    raise exception 'A hint dictionary of % reached the server', v_band
+      using errcode = 'PN069', hint = 'fault', column = '_',
       detail = 'setup.band must be 1..6';
   end if;
   if v_hint_cost < 1 or v_hint_cost > 10 then
-    raise exception 'bad-hint-cost|' using errcode = 'P0001',
+    raise exception 'A hint cost of % reached the server', v_hint_cost
+      using errcode = 'PN070', hint = 'fault', column = '_',
       detail = 'setup.hint_cost must be 1..10';
   end if;
   if v_min_word_length < 3 or v_min_word_length > 8 then
-    raise exception 'bad-min-word-length|' using errcode = 'P0001',
+    raise exception 'A shortest word of % reached the server', v_min_word_length
+      using errcode = 'PN071', hint = 'fault', column = '_',
       detail = 'setup.min_word_length must be 3..8';
   end if;
 
@@ -491,7 +506,8 @@ begin
   select * into puzzle_row from strands.puzzles
    where strands.puzzles.id = s_puzzle_id;
   if not found then
-    raise exception 'no-puzzle|' using errcode = 'P0002',
+    raise exception 'That puzzle is no longer available'
+      using errcode = 'PN072', hint = 'validation', column = 'puzzle_id',
       detail = 'no strands.puzzles row for that id; run the puzzle import';
   end if;
 
@@ -519,12 +535,13 @@ begin
     begin
       first_turn := (setup->>'first_turn_user_id')::uuid;
     exception when invalid_text_representation then
-      raise exception 'bad-first-turn|' using errcode = 'P0001',
+      raise exception 'A first player the server cannot read arrived'
+        using errcode = 'PN073', hint = 'fault', column = '_',
       detail = 'setup.first_turn_user_id is not a uuid';
     end;
     if first_turn is null or not (first_turn = any(player_user_ids)) then
-      raise exception 'bad-first-turn|'
-        using errcode = 'P0001',
+      raise exception 'A first player who is not in the game reached the server'
+        using errcode = 'PN074', hint = 'fault', column = '_',
       detail = 'setup.first_turn_user_id must be one of the players';
     end if;
     perform common._assign_turn_order(new_id, first_turn);
@@ -564,7 +581,18 @@ begin
     end
   );
 
-  return query select new_id;
+  return common.ok_envelope(jsonb_build_object('id', new_id));
+
+-- One block, and it has never heard of any specific condition: it reads the
+-- SQLSTATE, re-raises anything that isn't ours, and lets the raise itself carry
+-- the message, the kind and the field.
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 
