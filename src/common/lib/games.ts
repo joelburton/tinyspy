@@ -725,10 +725,10 @@ export type GameManifest = {
    *
    * Returns the ENVELOPE, so a validation that names a column can reach the
    * box that wrote it: `SetupGameModal` writes `errors[field]`, and the setup
-   * body hands each field its own. A game whose `create_game` has not been
-   * converted yet answers through `startEnvelope`, which says `fault` or
-   * `error` and never names a field. Server-side validation is the trust
-   * boundary — the FE-collected setup is not trusted.
+   * body hands each field its own. **All sixteen answer this way now** — the
+   * adapters that made an unconverted RPC's `{ data, error }` look like an
+   * envelope are gone, so there is no second shape to allow for. Server-side
+   * validation is the trust boundary — the FE-collected setup is not trusted.
    *
    * Lives on the manifest so common code (ClubPage,
    * SetupGameModal) can iterate `games` without importing from

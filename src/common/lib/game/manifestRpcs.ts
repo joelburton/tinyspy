@@ -61,14 +61,5 @@ export function makeRpcDispatcher<F extends string>(
   }
 }
 
-/** The standard start-game edge-function request body. Every board-builder
- *  (boggle / spellingbee / waffle) takes exactly these fields. */
-export type StartGameBody = {
-  target_club: string
-  setup: unknown
-  player_user_ids: string[]
-  mode: 'coop' | 'compete'
-}
-
 
 

@@ -43,7 +43,6 @@ type GameHook = {
 const h = vi.hoisted(() => ({ result: null as unknown as GameHook }))
 vi.mock('../hooks/useGame', () => ({ useGame: () => h.result }))
 vi.mock('../db', () => ({ db: { rpc: vi.fn().mockResolvedValue({ error: null }) } }))
-vi.mock('../../common/lib/game/manifestRpcs', () => ({ invokeStartGameEdgeFn: vi.fn() }))
 
 /** An 8×6 board — the real shape, so the grid renders 48 cells like the game. */
 const BOARD = ['ABCDEF', 'GHIJKL', 'MNOPQR', 'STUVWX', 'YZABCD', 'EFGHIJ', 'KLMNOP', 'QRSTUV']
