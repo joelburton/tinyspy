@@ -118,13 +118,20 @@ $$;
 
 -- The envelope for a raise we authored. Called only from an exception handler,
 -- with the values `get stacked diagnostics` just produced.
+--
+-- Every superseded ARITY is dropped, because `create or replace` only replaces
+-- a function of the SAME signature — adding a defaulted parameter leaves the
+-- shorter one behind as an overload, and then every existing call site matches
+-- both and fails as ambiguous. One line per arity this function has ever had.
 drop function if exists common.raised_envelope(text, text, text, text);
+drop function if exists common.raised_envelope(text, text, text, text, text);
 create or replace function common.raised_envelope(
   sqlstate_code text,
   message text,
   hint text,
   detail text default null,
-  field text default null
+  field text default null,
+  outcome text default null
 )
 returns jsonb
 language sql
@@ -135,7 +142,14 @@ as $$
     'data',     null,
     -- HINT carries the refinement, and which vocabulary it is drawn from
     -- depends on the branch. The two are disjoint, so one field is unambiguous.
-    'outcome',  case when substr(sqlstate_code, 2, 1) = 'A' then hint end,
+    --
+    -- On the NOT-OK branch the outcome is a separate channel (the raise's
+    -- CONSTRAINT), because a `not-ok` has both things to say: how bad it is, and
+    -- how it reads. Null is the ordinary case and means "use the default this
+    -- severity carries" — not "no appearance" (docs/envelopes.md → Appearance).
+    'outcome',  case when substr(sqlstate_code, 2, 1) = 'A'
+                     then hint
+                     else nullif(outcome, '') end,
     'severity', case when substr(sqlstate_code, 2, 1) = 'A' then null else hint end,
     'message',  message,
     -- Which FIELD a validation is about, from the raise's COLUMN. A form puts
@@ -157,10 +171,10 @@ $$;
 -- call these. They are pure and take no arguments they do not return, so there
 -- is nothing to protect.
 grant execute on function common.ok_envelope(jsonb, text, text, jsonb) to authenticated;
-grant execute on function common.raised_envelope(text, text, text, text, text) to authenticated;
+grant execute on function common.raised_envelope(text, text, text, text, text, text) to authenticated;
 
 revoke execute on function common.ok_envelope(jsonb, text, text, jsonb) from public;
-revoke execute on function common.raised_envelope(text, text, text, text, text) from public;
+revoke execute on function common.raised_envelope(text, text, text, text, text, text) from public;
 
 -- Which gametypes a freshly-created club should be enrolled in
 -- (i.e. which Start buttons it should offer). Two filters:
@@ -1733,19 +1747,25 @@ set search_path = common, public, extensions
 as $$
 declare
   target_club text;
-  v_msg text; v_detail text; v_hint text; v_code text; v_col text;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   select club_handle into target_club from common.games where id = target_game;
-  -- PN010 — reachable by a second click or by a friend deleting the same game
-  -- a moment earlier, so `error` rather than `fault`: the modal would claim a
-  -- bug where two people just pressed the same button. It is an error and not
-  -- an `ok` because it is unusual enough to be worth red.
+  -- PN010 — a RACE, and the textbook one: a friend deleted the same game a
+  -- moment earlier, or this is a second click, and either way the client's list
+  -- had not heard yet. Not a `fault`, which would claim a bug where two people
+  -- just pressed the same button; not a `service-error`, since everything we
+  -- depend on answered perfectly.
+  --
+  -- The CONSTRAINT overrides the appearance a race would otherwise carry.
+  -- `race` defaults to orange — "we're not taking it, notice" — and this one
+  -- earns red: the game is gone, which is a bigger thing to be told than a
+  -- move not landing. So `lost`, the outcome for the losing side of a race.
   --
   -- A raise, not an early `return`, so every exit from this function goes
   -- through the handler below.
   if target_club is null then
     raise exception 'That game was already deleted'
-      using errcode = 'PN010', hint = 'service-error', column = '_',
+      using errcode = 'PN010', hint = 'race', column = '_', constraint = 'lost',
       detail = 'no common.games row for target_game';
   end if;
 
@@ -1761,9 +1781,9 @@ exception when others then
   get stacked diagnostics
     v_msg = message_text, v_detail = pg_exception_detail,
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
-    v_col = column_name;
+    v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 

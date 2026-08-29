@@ -208,8 +208,8 @@ decide how it reads.
 
 A `not-ok`'s appearance is derived, not decided at the call site.
 `getNotOkFeedback(envelope)` in `src/common/lib/game/genericPills.ts` maps it to
-the parts of a feedback message: the tone from severity-or-outcome, the text
-from `message`.
+the parts of a feedback message: the outcome — the author's, or the default its
+severity carries — and the text from `message`.
 
 **One function, because it is one mapping.** The first surface where a single
 call can answer three ways — `submit_guess`, which returns `ok`, a race, or a
@@ -360,23 +360,35 @@ author's judgment, and no test can second-guess it.
 | `hint` | `outcome` (PA) or `severity` (PN) | disjoint vocabularies, so one channel is unambiguous |
 | `column` | `field` | `'_'` for "not one field" |
 | `detail` | `detail` | for the log, never the player |
+| `constraint` | `outcome`, on a `not-ok` | the appearance OVERRIDE — omit it and the severity's default applies |
 
-`constraint` is free and survives `get stacked diagnostics` — the channel to
-reach for if a raise ever needs to carry a sixth thing.
+**Why the override needs a channel of its own:** a `not-ok` has two things to
+say — how bad it is, and how it reads — and `hint` is already carrying the
+first. `common.delete_game` is the case that wanted both: *"That game was
+already deleted"* is a `race` (a friend deleted it a moment earlier and your
+list hadn't heard), but a race's orange is too quiet for a game vanishing, so it
+takes `constraint = 'lost'` and reads red.
 
 **Every RPC ends with the same handler**, which knows about no specific
 condition. It reads the SQLSTATE, re-raises anything that is not ours, and lets
-the raise itself carry the message, the kind and the field:
+the raise itself carry the message, the kind, the field and the appearance:
 
 ```sql
 exception when others then
   get stacked diagnostics
     v_msg = message_text, v_detail = pg_exception_detail,
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
-    v_col = column_name;
+    v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 ```
+
+**A handler that omits `v_out` drops the override silently** — `get stacked
+diagnostics` returns only what you ask for, so nothing fails and nothing logs;
+the pill just wears the default. `raiseCodes.test.ts` therefore fails any
+function that writes a `constraint` its own handler never reads back. The
+handlers written before the channel existed are correct as they are: they carry
+no override, so there is nothing to lose.
 
 `when others` rather than `when sqlstate …` because the latter accepts only a
 literal code — no patterns, no variables. Anything not ours reaches the client

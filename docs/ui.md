@@ -490,7 +490,7 @@ not a thing with qualities; the quality *is* the thing. Stated so nobody "fixes"
 
 | bucket | what it answers |
 |---|---|
-| `outcomes-*` | how a move or a game went — the seven families, one per tone ([outcomes.md](outcomes.md) has what each word means) |
+| `outcomes-*` | how a move or a game went — the seven families, one per outcome ([outcomes.md](outcomes.md) has what each word means) |
 | `gamelist-*` | the state of a game as an object in a list (club cards, the crossword picker) |
 | `button-*` | what kind of action a control offers — normal · success · destructive · caution · quiet — plus the treatment SLOTS a `.primary` / `.secondary` reads |
 | `chrome-*` | the app furniture that isn't a button or a field: fault / cursor / link / caret / badge / definable / floating-control |

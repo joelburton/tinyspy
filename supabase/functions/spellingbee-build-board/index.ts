@@ -61,17 +61,19 @@
  *     setup: jsonb,                 // {timer, target_rank?}, NO mode field
  *     player_user_ids: uuid[],
  *     mode: 'coop' | 'compete' }
- *   → { id: uuid }  (200)
- *   → { error: fe-error-key, code?: SQLSTATE }  (400/401/403/500)
+ *   → an ENVELOPE, always 200 (docs/envelopes.md). The status says whether this
+ *     function RAN; the envelope says what it decided.
  *
- * Errors are fe-error-keys (`key|detail|` — docs/supabase.md → Server errors;
- * guarded by src/guards/edgeFnErrorKeys.test.ts): the FE owns every player-facing
- * word. The one player-reachable key is `no-required-words|band|` (custom
- * letters with no words at the band — reuses SQL's key + its ERROR_COPY
- * sentence); the rest (bad-custom-* / overlap-cap-exhausted /
- * quality-gate-failed / edge-internal) are "impossible without an FE bug or a
- * broken pipeline" — no copy, they render as faults. A create_game raise
- * relays verbatim with its SQLSTATE (invokeCreateGame).
+ * The words are written HERE, at the raise, not looked up on the frontend:
+ *
+ *   PN175  form-validation  custom_letters  no words for those letters
+ *   PN177  form-validation  required        no board at that required difficulty
+ *   PN176  fault            -               the generator gave up on a club board
+ *   PN172-4, crash          -               a bad request, or a broken pipeline
+ *
+ * The two form-validations are the narrow class the setup form cannot rule out
+ * from the values alone: whether a board actually EXISTS at those settings.
+ * A create_game raise relays verbatim, envelope and all (invokeCreateGame).
  */
 
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'

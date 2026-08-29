@@ -25,7 +25,7 @@ import { notOkOutcome } from '../supabase/dbResult'
  * envelope cannot know:
  *
  *   mode  permanence is a property of the SURFACE, not of the answer — the same
- *         refusal is `sticky` below a board and `manual` in a dialog
+ *         answer is `sticky` below a board and `manual` in a dialog
  *   dot    peer identity, which is about who acted, not about what happened
  *
  *     if (res.type !== 'ok') {

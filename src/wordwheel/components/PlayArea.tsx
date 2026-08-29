@@ -368,8 +368,8 @@ export function PlayArea(ctx: GamePageCtx) {
       // THE SAME ENVELOPE, READ DIFFERENTLY. On the setup form a validation is
       // an answer — fix the field and press Start again. Here there is no field
       // and no form, so whatever came back goes in the pill as it reads: a fault
-      // wears `error` and has already raised its modal centrally, a refusal wears
-      // its own tone. The pill is shown either way — the modal escalates, it does
+      // wears `error` and has already raised its modal centrally, anything else wears
+      // its own outcome. The pill is shown either way — the modal escalates, it does
       // not replace (docs/envelopes.md), so dismissing it must not leave the board
       // silent about why the game didn't start.
       showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'manual' } })

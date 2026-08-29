@@ -69,17 +69,22 @@
  *     setup: jsonb,                 // {timer, required?, legal?, target_rank?}, NO mode field
  *     player_user_ids: uuid[],
  *     mode: 'coop' | 'compete' }
- *   → { id: uuid }  (200)
- *   → { error: fe-error-key, code?: SQLSTATE }  (400/401/403/500)
+ *   → an ENVELOPE, always 200 (docs/envelopes.md). The status says whether this
+ *     function RAN; the envelope says what it decided.
  *
- * Errors are fe-error-keys (`key|detail|` — docs/supabase.md → Server errors;
- * guarded by src/guards/edgeFnErrorKeys.test.ts): the FE owns every player-facing
- * word. Three are player-reachable and carry ERROR_COPY: no-required-words
- * (custom letters, SQL's key reused), no-pangram-seeds and
- * no-unique-letter-boards (band/constraint choices the server is first to
- * check). The rest (bad-custom-* / overlap-cap-exhausted /
- * quality-gate-failed / edge-internal) are "impossible" — no copy, they
- * render as faults. A create_game raise relays verbatim with its SQLSTATE.
+ * The words are written HERE, at the raise, not looked up on the frontend:
+ *
+ *   PN194  form-validation  custom_letters  no words for those letters
+ *   PN195  form-validation  required        no pangram seeds at that difficulty
+ *   PN196  form-validation  unique_letters  no unique-letter boards at it either
+ *   PN198  form-validation  required        no board at that required difficulty
+ *   PN197  fault            -               the generator gave up on a club board
+ *   PN192-3, crash          -               a bad request, or a broken pipeline
+ *
+ * The form-validations are the narrow class the setup form cannot rule out from
+ * the values alone: whether a board actually EXISTS at those settings — which
+ * is why this game has four where most build-boards have one.
+ * A create_game raise relays verbatim, envelope and all (invokeCreateGame).
  */
 
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'

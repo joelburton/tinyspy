@@ -125,7 +125,7 @@ psychicnum's `submit_guess` has ten raise sites: **eight pills and two faults
 today, six faults and three `ok` after** (worked through in §5b). That near
 inversion is what the yardstick in
 [envelopes.md → Envelope type](../docs/envelopes.md) does in practice — a
-game-rule refusal is `ok`, something the frontend should have caught is a fault.
+game-rule rejection is `ok`, something the frontend should have caught is a fault.
 Most of what currently reads as an ordinary rejection is really "the frontend
 let you do something it shouldn't have", so expect a conversion to *move*
 classifications rather than preserve them, at every remaining roster entry.

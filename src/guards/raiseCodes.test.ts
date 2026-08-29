@@ -36,7 +36,7 @@ const SQL_DIR = resolve(HERE, '../../supabase/sql')
 const FN_DIR = resolve(HERE, '../../supabase/functions')
 
 /** The two vocabularies HINT is drawn from, by branch. `PA` codes are results
- *  that read as an outcome; `PN` codes are refusals with a severity. Pinned to
+ *  that read as an outcome; `PN` codes are failures with a severity. Pinned to
  *  the TypeScript unions by the last test in this file. */
 const OUTCOMES = new Set(['won', 'lost', 'near', 'warning', 'neutral', 'noted'])
 const SEVERITIES = new Set(['fault', 'race', 'form-validation', 'service-error'])
@@ -144,6 +144,34 @@ describe('the raise codes', () => {
       })
       .map((r) => `${r.file}: ${r.code} says hint='${r.hint}'`)
     expect(wrong, 'a hint outside the vocabulary lands in the envelope verbatim').toEqual([])
+  })
+
+  // A `not-ok` says how bad it is in HINT and how it READS in CONSTRAINT, and
+  // the second is easy to write and lose: `get stacked diagnostics` only gives
+  // you the fields you ask for, so a handler that doesn't request
+  // `constraint_name` drops the override on the floor. Nothing fails, nothing
+  // logs — the pill just wears the severity's default and looks fine.
+  it('reads back every outcome override a raise writes', () => {
+    const missing: string[] = []
+    const badWord: string[] = []
+    for (const file of readdirSync(SQL_DIR).filter((f) => f.endsWith('.sql'))) {
+      const sql = readFileSync(join(SQL_DIR, file), 'utf8')
+      // Split on function boundaries so "does the handler read it" is asked of
+      // the SAME function that raised it, not of the file.
+      for (const body of sql.split(/create or replace function /)) {
+        const fn = body.slice(0, body.indexOf('(')).trim()
+        for (const m of body.matchAll(/constraint = '([^']*)'/g)) {
+          if (!OUTCOMES.has(m[1]!) && m[1] !== NOT_ON_A_SUCCESS) {
+            badWord.push(`${file}: ${fn} says constraint='${m[1]}'`)
+          }
+          if (!body.includes('constraint_name')) {
+            missing.push(`${file}: ${fn} writes constraint='${m[1]}' but its handler never reads constraint_name`)
+          }
+        }
+      }
+    }
+    expect(missing, 'an outcome override nothing reads back').toEqual([])
+    expect(badWord, 'an override outside the outcome vocabulary').toEqual([])
   })
 
   // The SQL↔TypeScript link, and the assertion most likely to rot unwatched:

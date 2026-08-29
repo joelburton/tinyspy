@@ -448,7 +448,7 @@ describe('notOkOutcome', () => {
   })
 
   // What the `outcome` key on a not-ok is FOR: one race that reads as news
-  // rather than as a refusal, without inventing a severity for it.
+  // rather than as a rejection, without inventing a severity for it.
   it("prefers the author's outcome over the default", () => {
     expect(notOkOutcome(notOk('race', 'noted'))).toBe('noted')
     expect(notOkOutcome(notOk('fault', 'lost'))).toBe('lost')

@@ -37,7 +37,7 @@ import type { Outcome } from '../outcomes'
  * short forms are both words that already mean something else here. A bare
  * `validation` is broad enough to describe most of what any RPC does, while
  * this one specifically means "put it under that control". And a bare `error`
- * would collide with the outcome tone of the same name: one severity and one
+ * would collide with the outcome of the same name: one severity and one
  * outcome, spelled identically, meaning different things — exactly the
  * confusion the two levels exist to remove.
  */
@@ -101,7 +101,7 @@ export type Envelope<T = unknown> =
        * Null is the ordinary case and means "use the default" — not "no
        * appearance". A race reads `warning` without anyone saying so; setting
        * `noted` here is how one particular race says "this is news, not a
-       * refusal".
+       * rejection".
        */
       outcome: Outcome | null
       severity: Severity

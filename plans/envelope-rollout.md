@@ -147,7 +147,7 @@ fixed by the step that opens the file:
    `runEdgeFn`, which has its own docstring right after it. `callLabel` is 55
    lines further down with none. Step 3 opens this file.
 2. **`errorCopy.ts` says `info` in five places** (lines 46, 159, 166, 203, 228)
-   where the entries say `noted`. The tone was renamed and the prose was not.
+   where the entries say `noted`. The outcome was renamed and the prose was not.
    Step 4 deletes this file's entries per key, which takes the comments with
    them — nothing to do beyond not being misled while reading it.
 3. **`errorCopy.ts` has three orphaned comment blocks** left by deleted entries
@@ -256,7 +256,7 @@ which is what `docs/envelopes.md` means by "the pill is what remains after it is
 dismissed".
 
 **One guard is deliberately deferred to step 4**: nothing should hand-write a
-tone beside a `runRpc` result. Nineteen sites still do, and step 4 converts
+outcome beside a `runRpc` result. Nineteen sites still do, and step 4 converts
 them, so the guard lands in the commit that turns it green rather than sitting
 red in the suite meanwhile.
 

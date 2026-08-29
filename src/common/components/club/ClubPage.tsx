@@ -494,10 +494,21 @@ export function ClubPage({ handle, session }: Props) {
 
     const res = await runRpc(commonDb.rpc('delete_game', { target_game: gameId }))
     if (res.type !== 'ok') {
-      // A fault has already raised the modal centrally, so a toast would say it
-      // twice. Anything else gets one, and with no `ms`: it waits to be
-      // dismissed.
-      if (res.severity !== 'fault') showToast({ message: res.message, tone: 'error' })
+      // EVERY severity gets the toast, a fault included. Its modal has already
+      // been raised centrally, and the toast is what survives dismissing it —
+      // without one, pressing OK leaves a club page that looks like nothing
+      // happened and a game still sitting in the list (docs/envelopes.md → the
+      // modal is an escalation, not a replacement).
+      //
+      // No `ms`, so it waits to be dismissed: the toast is the only lasting
+      // record here, since this page has no pill.
+      //
+      // `tone` by hand, and NOT from `getNotOkFeedback`: a toast has its own
+      // three-value vocabulary (`info` / `success` / `error`, an accent stripe
+      // — docs/ui.md → Toasts), not the seven outcomes. It has exactly one red,
+      // so every severity that reads red lands on it and the envelope's own
+      // `outcome` has nothing finer to say here.
+      showToast({ message: res.message, tone: 'error' })
       // The Error is only a signal to the card, which catches it and goes from
       // 'deleting' back to 'idle'. The words are already on screen.
       throw new Error(res.message)

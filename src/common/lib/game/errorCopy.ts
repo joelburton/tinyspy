@@ -81,13 +81,6 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   // status rides as the detail and in the serve log. Approved 2026-08-12.
   'dictionary-source-failed': { text: () => "Dictionary service couldn't be reached — try again later" },
 
-  // ── spellingbee / wordwheel ──
-  // Custom letters are a player's own choice in the setup form, so this is a
-  // real answer to a real request — not a re-check of something the FE already
-  // refused. It arrives through the build-board EDGE FUNCTION, which is why
-  // classifyFailure reads the key before the SQLSTATE (serverError.ts).
-  'no-required-words': { text: () => 'No words for those letters' },
-
   // ── scrabble ──
   // The board and the bag are SHARED even in compete, so a rival's play lands
   // between your stage and your commit: the square you were about to use is

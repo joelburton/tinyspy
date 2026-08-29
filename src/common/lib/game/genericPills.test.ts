@@ -8,7 +8,7 @@ import type { Envelope } from '../supabase/envelope'
  * The one mapping from a refused answer to what a player sees.
  *
  * What these pin is the DIVISION, more than the values: the answer decides the
- * tone and the words, the surface decides everything else. A regression here
+ * outcome and the words, the surface decides everything else. A regression here
  * doesn't look like a crash — it looks like fifteen boards slowly disagreeing
  * about what a lost race is colored, which is what one shared function exists
  * to prevent.

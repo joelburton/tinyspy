@@ -30,6 +30,14 @@ import { ERROR_COPY } from '../common/lib/game/errorCopy'
 const SQL_DIR = 'supabase/sql'
 const FN_DIR = 'supabase/functions'
 
+/** Drop `/* … *​/` blocks and `// …` tails, so a key NAMED in prose is not read
+ *  as a key RAISED in code. Crude on purpose — it will also blank a `//` inside
+ *  a string literal, and the only strings this file cares about are
+ *  `key|detail|` shapes, which contain neither. */
+function stripComments(src: string): string {
+  return src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '')
+}
+
 /** Every .ts file under supabase/functions (skipping tests), recursively. */
 function edgeFnFiles(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
@@ -55,7 +63,14 @@ function raisedKeys(): Map<string, Set<string>> {
     }
   }
   for (const file of edgeFnFiles(FN_DIR)) {
-    const src = readFileSync(file, 'utf8')
+    // COMMENTS FIRST, and this is load-bearing rather than tidy. A docstring
+    // that MENTIONS a key — `no-required-words|band|` in a paragraph explaining
+    // what the function used to return — is prose, not a raise, and counting it
+    // keeps that key's ERROR_COPY entry alive after the last real raise is
+    // gone. That is exactly what happened: spellingbee and wordwheel converted
+    // to envelopes, their key died, and the orphan check below stayed green
+    // because both files still described the old contract in a comment.
+    const src = stripComments(readFileSync(file, 'utf8'))
     // Key-headed string/template literals in error positions — the return
     // values themselves (json({ error: 'x|' })) and helpers that produce them
     // (validateCustomLetters' return 'bad-custom-center|').

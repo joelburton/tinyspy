@@ -690,9 +690,9 @@ select pg_temp.envelope_is(
 select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   common.delete_game('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'::uuid),
-  '{"type": "not-ok", "severity": "service-error", "dbcode": "PN010",
+  '{"type": "not-ok", "severity": "race", "dbcode": "PN010", "outcome": "lost",
     "message": "That game was already deleted"}'::jsonb,
-  'delete_game: an already-gone game is an error, not a fault'
+  'delete_game: an already-gone game is a race that reads as lost'
 );
 
 -- ============================================================
