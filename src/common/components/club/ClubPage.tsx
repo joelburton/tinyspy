@@ -136,10 +136,10 @@ export function ClubPage({ handle, session }: Props) {
   /**
    * Why the page can't render, when it can't: the sentence, and the diagnostics
    * line built at the moment the load failed — so it names the query that failed
-   * rather than the page, and carries the failure's own timestamp instead of the
+   * rather than the page, and carries the fault's own timestamp instead of the
    * render's.
    */
-  const [failure, setFailure] = useState<{ text: string; diagnostics: string } | null>(null)
+  const [fault, setFault] = useState<{ text: string; diagnostics: string } | null>(null)
   // Whether the club Help modal is mounted — toggled by the menu's "Help" item
   // (the club-page counterpart to each game's Help modal on GamePage).
   const [helpOpen, setHelpOpen] = useState(false)
@@ -599,8 +599,8 @@ export function ClubPage({ handle, session }: Props) {
         commonDb.from('clubs').select('handle, name').eq('handle', handle),
       )
       if (!mounted) return
-      if (clubRes.type !== 'ok') {
-        setFailure({ text: 'Could not load this club.', diagnostics: diag('clubs') })
+      if (clubRes.type === 'not-ok') {
+        setFault({ text: 'Could not load this club.', diagnostics: diag('clubs') })
         setLoading(false)
         return
       }
@@ -612,7 +612,7 @@ export function ClubPage({ handle, session }: Props) {
       if (!clubData) {
         // Not a failure of anything — RLS answers "not yours" and "no such club"
         // the same way, with zero rows — so the line says OK and states the fact.
-        setFailure({
+        setFault({
           text: 'Club not found, or you are not a member.',
           diagnostics: diagnosticsLine('OK', {
             call: 'GET /rest/v1/clubs', status: 200, detail: `rows=0 handle=${handle}`,
@@ -627,8 +627,8 @@ export function ClubPage({ handle, session }: Props) {
         commonDb.from('clubs_members').select('user_id').eq('club_handle', clubData.handle),
       )
       if (!mounted) return
-      if (membersRes.type !== 'ok') {
-        setFailure({ text: 'Could not load this club’s members.', diagnostics: diag('clubs_members') })
+      if (membersRes.type === 'not-ok') {
+        setFault({ text: 'Could not load this club’s members.', diagnostics: diag('clubs_members') })
         setLoading(false)
         return
       }
@@ -644,7 +644,7 @@ export function ClubPage({ handle, session }: Props) {
         // name in the chat, so a club page without them is wrong rather than
         // reduced.
         if (profilesRes.type !== 'ok') {
-          setFailure({ text: 'Could not load this club’s members.', diagnostics: diag('profiles') })
+          setFault({ text: 'Could not load this club’s members.', diagnostics: diag('profiles') })
           setLoading(false)
           return
         }
@@ -670,7 +670,7 @@ export function ClubPage({ handle, session }: Props) {
       // all, which reads as "this club plays nothing" — a wrong answer wearing
       // the look of a real one.
       if (kindsRes.type !== 'ok') {
-        setFailure({ text: 'Could not load this club’s games.', diagnostics: diag('clubs_gametypes') })
+        setFault({ text: 'Could not load this club’s games.', diagnostics: diag('clubs_gametypes') })
         setLoading(false)
         return
       }
@@ -815,15 +815,15 @@ export function ClubPage({ handle, session }: Props) {
 
   if (loading) return <Loading />
   // The club did not load, so there is no page to put a modal over — the
-  // failure IS the route (F39 `loading-and-errors`). The sentence is for the
+  // fault IS the route (F39 `loading-and-errors`). The sentence is for the
   // player and the condition is for whoever reads it back; the handle is the
   // one thing neither of them can know.
-  if (failure || !club) {
+  if (fault || !club) {
     return (
       <ErrorPage
-        message={failure?.text ?? 'Unknown error.'}
+        message={fault?.text ?? 'Unknown error.'}
         diagnostics={
-          failure?.diagnostics
+          fault?.diagnostics
           ?? diagnosticsLine('FAULT', { call: 'GET /rest/v1/clubs', severity: 'fault', detail: `handle=${handle}; no failure recorded` })
         }
       />

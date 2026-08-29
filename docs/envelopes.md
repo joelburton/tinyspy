@@ -342,6 +342,21 @@ server-written message is awkward at the call site, that is a question about the
 types, not a reason to make the surface compose a sentence the RPC already
 knows how to write (→ [Who writes the words](#who-writes-the-words-per-answer)).
 
+### The cancel guard comes FIRST
+
+**Where a call site has an `if (!mounted) return` — or a generation check — it
+belongs above the branch chain, not inside it.** The reason is one specific
+answer: an `AbortError`. When a component unmounts mid-flight we cancel our own
+request, and `dbFetch` deliberately gives that no modal — *"nobody is owed a
+modal"* (`dbFetch.ts:152`) — but the wrapper still hands back a `not-ok`, because
+from its side a request that never completed is a failure like any other.
+
+So a chain that asks `type` before it asks whether anyone is still listening
+renders a failure for its own cleanup: a page that says "Could not load this
+club" because you navigated away from it. Ordering the guard first is the whole
+fix, and it is worth checking at every site rather than assuming — the two
+lines look independent and are not (Joel, 2026-08-29).
+
 ### The `not-ok` branch is one line
 
 It is a mapping, and the mapping is shared, so this branch rarely holds an `if`

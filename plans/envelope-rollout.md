@@ -380,7 +380,12 @@ was written before the rules existed, so each needs the same three things —
    so a second wordless answer added later matches and is silently drawn as the
    first. → [envelopes.md → Choosing which `ok`
    branch](../docs/envelopes.md#choosing-which-ok-branch).
-5. **Grep the RPC for `return common.ok_envelope()` with no arguments** while
+5. **Check that `if (!mounted) return` sits ABOVE the branch chain**, wherever
+   the site has one. An `AbortError` from our own unmount gets no modal but
+   still arrives as a `not-ok`, so a chain that asks `type` first renders a
+   failure for its own cleanup. → [envelopes.md → The cancel guard comes
+   FIRST](../docs/envelopes.md#the-cancel-guard-comes-first).
+6. **Grep the RPC for `return common.ok_envelope()` with no arguments** while
    you are in its SQL. It is the tell that produced #4 — an `ok` that says
    nothing about which `ok` leaves the call site nothing to test but the
    absence. Give it a `data` that names the answer. → [envelopes.md → How SQL
