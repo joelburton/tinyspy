@@ -2517,8 +2517,14 @@ begin
     ) t;
 
   -- No matches is an ANSWER, not a failure: the letters were well-formed and
-  -- the dictionary has nothing. The dialog says so itself.
-  return common.ok_envelope(data => found);
+  -- the dictionary has nothing. One `ok` covers both — the dialog reads the
+  -- array's length and says so itself.
+  --
+  -- The words sit UNDER a key rather than being `data` outright. A bare array
+  -- leaves a call site nothing to assert but its shape, and `Array.isArray` is
+  -- not a case (docs/envelopes.md → Choosing which `ok` branch); `result` is.
+  return common.ok_envelope(
+    data => jsonb_build_object('result', 'searched', 'words', found));
 
 exception when others then
   get stacked diagnostics

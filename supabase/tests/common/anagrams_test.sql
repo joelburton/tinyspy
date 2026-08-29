@@ -35,7 +35,7 @@ returns text[]
 language sql
 as $$
   select array_agg(e ->> 'word' order by ord)
-    from jsonb_array_elements(common.anagrams(letters) -> 'data')
+    from jsonb_array_elements(common.anagrams(letters) -> 'data' -> 'words')
          with ordinality t(e, ord);
 $$;
 

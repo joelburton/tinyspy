@@ -399,24 +399,47 @@ first and **every game's Start button breaks**, then each game's entry fixes its
 own half and turns its Start back on. That breakage is the to-do list: it is
 loud, it is per-game, and it disappears exactly when the work is done.
 
-#### Common
+#### Common — 10 of 13 done
 
-- [ ] `ClubPage.tsx` — `unset_current_view` (the presence heal, `void`) +
+**Tick a box as its commit lands**, not at the end of a session: the list is
+the only record of where the sweep is, and an untracked one costs a re-read of
+the diff to find out (Joel, 2026-08-29).
+
+- [x] `ClubPage.tsx` — `unset_current_view` (the presence heal, `void`) +
   `delete_game`, and five reads: `clubs`, `clubs_members`, `profiles`,
-  `clubs_gametypes`, `games`
-- [ ] `CreateClubModal.tsx` — `create_club`
-- [ ] `EditClubModal.tsx` — `set_club_gametypes`
-- [ ] `HomePage.tsx` — `clubs` read
-- [ ] `ChatBody.tsx` — `send_message`
-- [ ] `useClubChat.ts` — `messages` read
-- [ ] `ClaimHandleScreen.tsx` — `claim_username`
-- [ ] `EditProfileModal.tsx` — `update_profile_color`
-- [ ] `WordEditDialog.tsx` — `add_word` / `update_word` (one call, a ternary) +
+  `clubs_gametypes`, `games`. Both RPCs cost a SQL edit; the `failure` state
+  was renamed `fault` along the way
+- [x] `CreateClubModal.tsx` — `create_club`
+- [x] `EditClubModal.tsx` — `set_club_gametypes`
+- [x] `HomePage.tsx` — `clubs` read
+- [x] `ChatBody.tsx` — `send_message`
+- [x] `useClubChat.ts` — `messages` read
+- [x] `ClaimHandleScreen.tsx` — `claim_username`
+- [x] `EditProfileModal.tsx` — `update_profile_color`
+- [x] `WordEditDialog.tsx` — `add_word` / `update_word` (one call, a ternary) +
   `delete_word`, and the `words` read
-- [ ] `AnagramDialog.tsx` — `anagrams`
+- [x] `AnagramDialog.tsx` — `anagrams`. The only payload RESHAPE so far: `data`
+  was a bare array, which leaves a call site nothing to assert but its shape
 - [ ] `useSession.ts` — `profiles` read
 - [ ] `useProfile.ts` — `profiles` read
-- [ ] `useCommonGame.ts` — `unset_current_view` (the last-viewer-leave, `void`)
+- [ ] `useCommonGame.ts` — `unset_current_view` (the last-viewer-leave, `void`).
+  The same RPC ClubPage's heal calls, so it already has a payload to read
+
+**What the ten cost, for estimating the rest.** They hold **11 RPCs and 5
+queries**, and *every one of the 11 needed a SQL edit* — there was not one whose
+`ok` a call site could already name. In three shapes: **8** returned a bare
+`common.ok_envelope()`; **2** carried a value but no case name (`create_club`'s
+handle, `claim_username`'s username); **1** was a bare array (`anagrams`). The
+5 queries were one word each and needed nothing else.
+
+The tests: **4 unit-test stubs across 3 files** were asserting the shape being
+removed, and about ten pgTAP assertions moved with the payloads. Two pgTAP
+successes — `add_word`, `delete_word` — turned out not to be asserted at all,
+so what the frontend now branches on had nothing holding it; both are asserted
+now, which is what tripped `plan(17)` → `plan(19)`.
+
+`common.sql` now has **zero** bare `common.ok_envelope()` calls, leaving only
+the four inside `connections.submit_guess` from the original census.
 
 #### The six converted games
 

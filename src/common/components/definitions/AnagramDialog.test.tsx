@@ -19,7 +19,12 @@ import { errorUnder } from '../fields/errorUnder'
 
 beforeEach(() => {
   mockRpc.mockReset()
-  mockRpc.mockResolvedValue({ data: { type: 'ok', data: [] }, error: null })
+  // The words travel under a key so the answer can name itself; an empty list
+  // is a real result, which is what this default stands for.
+  mockRpc.mockResolvedValue({
+    data: { type: 'ok', data: { result: 'searched', words: [] } },
+    error: null,
+  })
 })
 
 describe('AnagramDialog', () => {
@@ -45,10 +50,13 @@ describe('AnagramDialog', () => {
     mockRpc.mockResolvedValue({
       data: {
         type: 'ok',
-        data: [
-          { word: 'acer', difficulty: 4 },
-          { word: 'acre', difficulty: 1 },
-        ],
+        data: {
+          result: 'searched',
+          words: [
+            { word: 'acer', difficulty: 4 },
+            { word: 'acre', difficulty: 1 },
+          ],
+        },
       },
       error: null,
     })

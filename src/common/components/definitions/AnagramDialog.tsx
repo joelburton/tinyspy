@@ -6,6 +6,7 @@ import { FORM_ERROR_KEYNAME, type FormErrors } from '../fields/formState'
 import { useState } from 'react'
 import { db as commonDb } from '../../db'
 import { runRpc } from '../../lib/supabase/dbResult'
+import { showFaultModal } from '../../lib/fault/faultStore'
 import { useDefinePopover } from '../../hooks/definitions/useDefinePopover'
 import { Dialog } from '../floating-panels/Dialog'
 import styles from './AnagramDialog.module.css'
@@ -15,6 +16,12 @@ import { FailureLine } from '../feedback/FailureLine'
 import { SimpleScrollableList } from '../lists/SimpleScrollableList'
 
 type Result = { word: string; difficulty: number }
+
+/** What `common.anagrams` puts in `data`. The words sit under a key rather
+ *  than being the payload outright, so the branch can assert `result` — a
+ *  bare array leaves nothing to test but its shape. An EMPTY `words` is a
+ *  real answer, not a missing one; the dialog says "nothing found". */
+type AnagramAnswer = { result: 'searched'; words: Result[] }
 
 /**
  * HOW LONG A PATTERN MAY BE — a mirror of `common.anagrams`, which rejects
@@ -78,9 +85,9 @@ export function AnagramDialog({ onClose }: { onClose: () => void }) {
     // The previous answer STAYS on screen while the next one is fetched. Clearing
     // it would collapse the list and shrink the dialog for the length of the
     // round trip, then grow it again — a lot of flash for nothing.
-    const res = await runRpc<Result[]>(commonDb.rpc('anagrams', { letters: trimmed }))
+    const res = await runRpc<AnagramAnswer>(commonDb.rpc('anagrams', { letters: trimmed }))
     setSearching(false)
-    if (res.type !== 'ok') {
+    if (res.type === 'not-ok') {
       setResults(null)
       // No severity test: the message goes where the SERVER said it belongs.
       // PN001 — "2–15 letters, or ?" — says `letters`, so it rings the box it
@@ -88,9 +95,15 @@ export function AnagramDialog({ onClose }: { onClose: () => void }) {
       // already interrupted with a modal, and once that is dismissed the line
       // is the only thing left saying the search is still broken.
       setErrors({ [res.field ?? FORM_ERROR_KEYNAME]: res.message })
-      return
+    } else if (res.data.result === 'searched') {
+      // One answer covers matches AND none: an empty list is a real result
+      // here, and the dialog is what says "nothing found".
+      setResults(res.data.words)
+    } else {
+      // The previous answer stays on screen, as it does during a search — an
+      // answer nobody handled is no reason to claim the old one is now wrong.
+      showFaultModal({ text: 'BUG: anagrams fell through to unhandled' })
     }
-    setResults(res.data)
   }
 
   return (
