@@ -740,7 +740,7 @@ export function ClubPage({ handle, session }: Props) {
       // and the next event will try again. Writing `[]` would replace it with
       // "this club has no games", which is a worse answer than a stale one.
       // `dbFetch` has already logged it and put the modal up.
-      if (res.type !== 'ok') return
+      if (res.type === 'not-ok') return
 
       const rows = res.data
       let currentId: string | null = null
