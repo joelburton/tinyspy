@@ -128,6 +128,28 @@ The shipped treatment is [`ui.md → Terminal results`](ui.md#terminal-results--
 - ~~**Crosswords replay.**~~ **Decided 2026-07-31: won't do — reversed 2026-08-03, and shipped.** The argument against was that a crossword can't surprise you twice once the answers have been read. What that missed is that crosswords already *had* the feature under another name: **Clear board** wiped the fill and kept the grid, i.e. a restart with a different label and one missing power (it couldn't un-terminal a finished puzzle). So the choice wasn't "add a replay" but "keep two names for one act" — see [ui.md → Restart](ui.md#terminal-results--the-moment-vs-the-record). codenamesduet and bananagrams got one the same day, for the reasons recorded there.
 - ~~**Keeping a prior attempt's turn log across a replay.**~~ **Decided (2026-08-02): won't do.** `common.reset_game` wipes the log and will keep wiping it. Preserving it means an attempt/generation column on every game's log table plus `reset_game` changes — `common` and all sixteen games — to serve a comparison nobody has asked for. A replay is a fresh attempt, not a diffable branch.
 
+## Two band-2 words have no hint
+
+`common.words` promises a hint for every 5-letter word at difficulty 1 or 2 —
+2496 of 2496 at band 1, and **1665 of 1667 at band 2**. The two exceptions are a
+data gap, and the one place it bites is stackdown, whose hint rung reads
+`common.words.hint` for the next word the player still has to clear.
+
+**Nothing is broken today**: no board in the shipped library uses either word
+(`select count(*) from stackdown.boards b where exists (select 1 from
+unnest(b.words) w join common.words cw on cw.word = w where cw.hint is null)`
+returns 0). The exposure is that stackdown's boards are generated from the same
+dictionary, so the next batch could pick one up — and after the envelope
+conversion that board's hint button answers a **fault**, deliberately: every
+word a stackdown board can use is band 1 or 2 (the setup form offers only those
+and the library holds only those), so a missing hint means the dictionary is
+wrong rather than the game being unusual.
+
+Find them with `select word from common.words where len = 5 and difficulty <= 2
+and hint is null`. Fixing is a `common.words` edit — a hint for each, or a band
+bump if they don't belong at 2 — not a stackdown one, which is why it sits here
+rather than in that game's register.
+
 ## Wordlist markers (spellingbee + boggle)
 
 The shared `WordList` (used by both spellingbee and boggle) now leads each row with a **circle marker** carrying finder attribution — a filled ● in the finder's color for found words, a hollow ○ in light gray for post-terminal misses — with the word text itself plain black. Rationale worth keeping: a solid disc is a far better color carrier than thin colored text (bigger area, no legibility/antialiasing fight), which **decouples identity from legibility** and relaxes the member palette — colors no longer have to survive as thin text, only as a ~12px disc. The deferred ideas that fall out of having a marker vocabulary:
