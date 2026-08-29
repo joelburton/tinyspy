@@ -104,7 +104,7 @@ export function HomePage({ session }: Props) {
       // resumed (plans/error-system.md). What is left is the bail-out: record
       // that the load failed so the muted line under the list can say something
       // true. No classifying, no wording, no showFaultModal.
-      if (result.type !== 'ok') {
+      if (result.type === 'not-ok') {
         setLoad('failed')
         return
       }
