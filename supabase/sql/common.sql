@@ -1752,7 +1752,7 @@ grant execute on function common.tick_timer(uuid) to authenticated;
 -- the FE skips the broadcast in that case.
 --
 -- Outcomes:
---   - ok               the row (and its subtree) is gone
+--   - ok               {"result": "deleted"} — the row (and its subtree) is gone
 --   - not-ok / error   PN010 — it was already gone
 --   - not-ok/fault     PN011 / PN012, from require_club_member — not
 --                      signed in, or not a member of this club
@@ -1794,7 +1794,10 @@ begin
   delete from common.games where id = target_game;
 
   -- No message: the FE knows the title and composes "<title> deleted" itself.
-  return common.ok_envelope();
+  -- `data` still names the answer, because a bare envelope would leave the call
+  -- site nothing to test but what the answer lacks (docs/envelopes.md → How SQL
+  -- builds one).
+  return common.ok_envelope(jsonb_build_object('result', 'deleted'));
 
 exception when others then
   get stacked diagnostics

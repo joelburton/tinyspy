@@ -90,6 +90,10 @@ type ListedGame = {
  *  raise, and `common.raised_envelope` always builds `data: null`. */
 type UnsetAnswer = { result: 'cleared' } | null
 
+/** What `common.delete_game` puts in `data`. One `ok` answer, named anyway —
+ *  a branch matching merely by being `ok` would draw a second one as this. */
+type DeleteAnswer = { result: 'deleted' }
+
 type Props = {
   handle: string
   /** Signed-in session — its user id is this client's identity on the
@@ -515,8 +519,8 @@ export function ClubPage({ handle, session }: Props) {
       if (subscribed) await new Promise((r) => setTimeout(r, 150))
     }
 
-    const res = await runRpc(commonDb.rpc('delete_game', { target_game: gameId }))
-    if (res.type !== 'ok') {
+    const res = await runRpc<DeleteAnswer>(commonDb.rpc('delete_game', { target_game: gameId }))
+    if (res.type === 'not-ok') {
       // EVERY severity gets the toast, a fault included. Its modal has already
       // been raised centrally, and the toast is what survives dismissing it —
       // without one, pressing OK leaves a club page that looks like nothing
@@ -535,19 +539,26 @@ export function ClubPage({ handle, session }: Props) {
       // The Error is only a signal to the card, which catches it and goes from
       // 'deleting' back to 'idle'. The words are already on screen.
       throw new Error(res.message)
+    } else if (res.data.result === 'deleted') {
+      // Look up the title BEFORE the postgres-changes refetch sweeps the row
+      // out of allGames; the value is captured by the closure and survives the
+      // rerender.
+      const deleted = allGames.find((g) => g.gameId === gameId)
+      showToast({
+        message: `${deleted?.title ?? 'Game'} deleted`,
+        tone: 'success',
+        ms: DEFAULT_TOAST_MS,
+      })
+      // No explicit list refresh — the postgres-changes
+      // subscription below fires DELETE on common.games and our
+      // loadGames() re-runs.
+    } else {
+      // Throws as well as screams: the button only leaves "Deleting…" when this
+      // function rejects (ClubGameDeleteButton's catch), so a fallen-through
+      // answer would otherwise strand it there with the game still listed.
+      showFaultModal({ text: 'BUG: delete_game fell through to unhandled' })
+      throw new Error('delete_game fell through to unhandled')
     }
-    // Look up the title BEFORE the postgres-changes refetch sweeps the row out
-    // of allGames; the value is captured by the closure and survives the
-    // rerender.
-    const deleted = allGames.find((g) => g.gameId === gameId)
-    showToast({
-      message: `${deleted?.title ?? 'Game'} deleted`,
-      tone: 'success',
-      ms: DEFAULT_TOAST_MS,
-    })
-    // No explicit list refresh — the postgres-changes
-    // subscription below fires DELETE on common.games and our
-    // loadGames() re-runs.
   }
 
   /**

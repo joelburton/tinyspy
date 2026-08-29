@@ -254,6 +254,16 @@ happened. If the branch would have to cast, or restructure the chain, or reach
 into a value TypeScript has narrowed to `never`, don't: the cost of the ceremony
 is paid at every call site, and the payoff is a line nobody will read anyway.
 
+**The modal is the whole report. Anything beside it is the surface's own
+unwind, and most surfaces need none** (Joel, 2026-08-29). Where a call site
+does, it is the same obligation the `not-ok` branch has when it clears a
+selection or releases a dim: state this answer has left mid-flight. In
+`ClubPage.handleDelete` that is a `throw`, because `ClubGameDeleteButton` leaves
+"Deleting…" only when the promise it awaited rejects — a fact about that button,
+not about screaming. So **`throw` is not this branch's default shape**: reach
+for one only when leaving the surface untouched would strand something, and
+never as a second way of reporting, which is what the modal is for.
+
 **No outer branch for "neither `ok` nor `not-ok`".** `runRpc` /
 `runEdgeFn` / `readRows` have already turned that into a fault envelope —
 `isEnvelope` accepts only those two — so a call site's outer `else` is

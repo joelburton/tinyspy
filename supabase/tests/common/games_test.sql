@@ -647,8 +647,8 @@ select is(
 select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   common.delete_game(current_setting('test.created_game_id')::uuid),
-  '{"type": "ok"}'::jsonb,
-  'delete_game: a member deleting a real game gets a plain ok'
+  '{"type": "ok", "data": {"result": "deleted"}}'::jsonb,
+  'delete_game: a member deleting a real game answers ok/deleted'
 );
 
 reset role;
