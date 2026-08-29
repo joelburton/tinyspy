@@ -15,6 +15,7 @@
 begin;
 set search_path = setgame, common, public, extensions;
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 select plan(11);
@@ -69,21 +70,26 @@ select is(
 
 -- ── The checks on client-supplied cards ──────────────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select throws_ok(
-  format($$ select setgame.record_hint(%L, array[]::smallint[]) $$, (select id from g)),
-  'P0001', 'bad-hint|', 'an empty hint is refused');
+select pg_temp.envelope_is(
+  setgame.record_hint((select id from g), array[]::smallint[]),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN282",
+    "message":"BUG: hint that was not one to three cards"}'::jsonb,
+  'an empty hint is refused');
 
-select throws_ok(
-  format($$ select setgame.record_hint(%L,
-            array[(select c from generate_series(0,80) c
-                    where not (c = any(pg_temp.sg_board(%L))) limit 1)]::smallint[]) $$,
-         (select id from g), (select id from g)),
-  'P0001', 'bad-hint|', 'a card that is not on the board is refused');
+select pg_temp.envelope_is(
+  setgame.record_hint(
+    (select id from g),
+    array[(select c from generate_series(0,80) c
+            where not (c = any(pg_temp.sg_board((select id from g)))) limit 1)]::smallint[]),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN283",
+    "message":"BUG: hint naming a card that is not on the board"}'::jsonb,
+  'a card that is not on the board is refused');
 
-select throws_ok(
-  format($$ select setgame.record_hint(%L, pg_temp.sg_not_a_set(%L)) $$,
-         (select id from g), (select id from g)),
-  'P0001', 'bad-hint|', 'three cards that are not a set are refused');
+select pg_temp.envelope_is(
+  setgame.record_hint((select id from g), pg_temp.sg_not_a_set((select id from g))),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN284",
+    "message":"BUG: three-card hint that is not a set"}'::jsonb,
+  'three cards that are not a set are refused');
 
 select lives_ok(
   format($$ select setgame.record_hint(%L, pg_temp.sg_live(%L)) $$,
@@ -99,10 +105,10 @@ select (setgame.create_game(
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'compete')->'data'->>'id')::uuid as id;
 
-select throws_ok(
-  format($$ select setgame.record_hint(%L, (pg_temp.sg_live(%L))[1:1]) $$,
-         (select id from gr), (select id from gr)),
-  'P0001', 'hint-in-compete|',
+select pg_temp.envelope_is(
+  setgame.record_hint((select id from gr), (pg_temp.sg_live((select id from gr)))[1:1]),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN280",
+    "message":"BUG: hint request in a race"}'::jsonb,
   'a hint in a race would be a win button, so there are none');
 
 select * from finish();

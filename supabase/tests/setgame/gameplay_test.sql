@@ -11,6 +11,7 @@
 begin;
 set search_path = setgame, common, public, extensions;
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 select plan(18);
@@ -53,35 +54,38 @@ select is(
   'the title is the game''s own short id');
 
 -- ── Rejections ──────────────────────────────────────────────────────
-select throws_ok(
-  format($$ select setgame.submit_set(%L, pg_temp.sg_not_a_set(%L)) $$,
-         (select id from g), (select id from g)),
-  'P0001', 'not-a-set|',
+select pg_temp.envelope_is(
+  setgame.submit_set((select id from g), pg_temp.sg_not_a_set((select id from g))),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN278",
+    "message":"BUG: bad set"}'::jsonb,
   'three cards that are not a set are refused');
 
-select throws_ok(
-  format($$ select setgame.submit_set(%L, array[0,1]::smallint[]) $$, (select id from g)),
-  'P0001', 'bad-claim|',
+select pg_temp.envelope_is(
+  setgame.submit_set((select id from g), array[0,1]::smallint[]),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN276",
+    "message":"BUG: claim that was not three different cards"}'::jsonb,
   'a claim of two cards is refused');
 
-select throws_ok(
-  format($$ select setgame.submit_set(%L, array[%s,%s,%s]::smallint[]) $$,
-         (select id from g),
-         (pg_temp.sg_live((select id from g)))[1],
-         (pg_temp.sg_live((select id from g)))[1],
-         (pg_temp.sg_live((select id from g)))[2]),
-  'P0001', 'bad-claim|',
+select pg_temp.envelope_is(
+  setgame.submit_set(
+    (select id from g),
+    array[(pg_temp.sg_live((select id from g)))[1],
+          (pg_temp.sg_live((select id from g)))[1],
+          (pg_temp.sg_live((select id from g)))[2]]::smallint[]),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN276",
+    "message":"BUG: claim that was not three different cards"}'::jsonb,
   'the same card three times is refused, not read as a set');
 
 -- A card that is nowhere on the board — the shape of the contention refusal.
-select throws_ok(
-  format($$ select setgame.submit_set(%L, array[%s,%s,%s]::smallint[]) $$,
-         (select id from g),
-         (pg_temp.sg_live((select id from g)))[1],
-         (pg_temp.sg_live((select id from g)))[2],
-         (select c from generate_series(0,80) c
-           where not (c = any(pg_temp.sg_board((select id from g)))) limit 1)),
-  'P0001', 'cards-gone|',
+select pg_temp.envelope_is(
+  setgame.submit_set(
+    (select id from g),
+    array[(pg_temp.sg_live((select id from g)))[1],
+          (pg_temp.sg_live((select id from g)))[2],
+          (select c from generate_series(0,80) c
+            where not (c = any(pg_temp.sg_board((select id from g)))) limit 1)]::smallint[]),
+  '{"type":"not-ok","severity":"race","dbcode":"PN277",
+    "message":"Someone got there first"}'::jsonb,
   'a card that has left the board is refused');
 
 -- ── A real claim ────────────────────────────────────────────────────
@@ -91,7 +95,7 @@ select pg_temp.sg_board((select id from g)) as board,
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  (select setgame.submit_set((select id from g), (select taken from before_claim))->>'result'),
+  (select setgame.submit_set((select id from g), (select taken from before_claim))->'data'->>'result'),
   'claimed', 'a genuine set is accepted');
 
 reset role;

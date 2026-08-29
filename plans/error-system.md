@@ -851,11 +851,11 @@ read to convert; `submit_guess` has one call site, not two.
 #### setgame
 
 - [x] `create_game` · RPC (2 call sites)
-- [ ] `record_hint` · RPC
-- [ ] `submit_set` · RPC (2 call sites)
-- [ ] `events` · read
-- [ ] `games_state` · read (2 call sites)
-- [ ] `players` · read
+- [x] `record_hint` · RPC
+- [x] `submit_set` · RPC
+- [x] `events` · read
+- [x] `games_state` · read
+- [x] `players` · read
 
 #### spellingbee
 

@@ -535,6 +535,7 @@ revoke execute on function setgame._finish(uuid, text) from public;
 -- The `for update` lock on the games row is what makes that rejection safe
 -- rather than a race — two players claiming overlapping sets serialize, the
 -- first commits, and the second finds a card missing from the board.
+drop function if exists setgame.submit_set(uuid, smallint[]);
 create or replace function setgame.submit_set(target_game uuid, cards smallint[])
 returns jsonb
 language plpgsql
@@ -543,6 +544,7 @@ set search_path = setgame, common, public, extensions
 as $$
 declare
   caller_id    uuid;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
   g_row        setgame.games%rowtype;
   cur_state    text;
   board_min    int;
@@ -562,13 +564,17 @@ begin
 
   select * into g_row from setgame.games where id = target_game for update;
   if not found then
-    raise exception 'game-not-found|' using errcode = 'P0002',
+    raise exception 'That game no longer exists'
+      using errcode = 'PN273', hint = 'fault', column = '_',
       detail = 'no setgame.games row for target_game';
   end if;
 
   select play_state into cur_state from common.games where id = target_game;
   if cur_state <> 'playing' then
-    raise exception 'game-not-in-play|' using errcode = 'P0001',
+    -- A race: a teammate ended the game, or the countdown expired, while this
+    -- claim was in flight.
+    raise exception 'Game over'
+      using errcode = 'PN274', hint = 'race', column = '_',
       detail = 'play_state is not an active state';
   end if;
 
@@ -576,7 +582,8 @@ begin
   -- fires on a genuine race (a claim in flight when concede commits).
   if (select conceded from common.game_players
         where game_id = target_game and user_id = caller_id) then
-    raise exception 'you-conceded|' using errcode = 'P0001',
+    raise exception 'Already conceded'
+      using errcode = 'PN275', hint = 'race', column = '_',
       detail = 'caller already dropped out of this compete race';
   end if;
 
@@ -587,7 +594,8 @@ begin
   -- ─── Validate the selection ────────────────────────────────
   if cardinality(cards) is distinct from 3
      or (select count(distinct e) from unnest(cards) e) <> 3 then
-    raise exception 'bad-claim|' using errcode = 'P0001',
+    raise exception 'BUG: claim that was not three different cards'
+      using errcode = 'PN276', hint = 'fault', column = '_',
       detail = 'a claim is exactly three distinct cards';
   end if;
 
@@ -597,14 +605,22 @@ begin
   foreach card in array cards loop
     p := array_position(g_row.board, card);
     if p is null then
-      raise exception 'cards-gone|' using errcode = 'P0001',
+      -- THE contention race, and the only one on the roster that is ordinary
+      -- rather than exotic: one table, everyone claiming off it, so a rival's
+      -- claim lands between your click and your submit. No local gate can see
+      -- it — the cards leave the board by realtime.
+      raise exception 'Someone got there first'
+        using errcode = 'PN277', hint = 'race', column = '_',
         detail = 'a claimed card is no longer on the board';
     end if;
     positions := positions || p;
   end loop;
 
   if not setgame._is_set(cards[1], cards[2], cards[3]) then
-    raise exception 'not-a-set|' using errcode = 'P0001',
+    -- The whole board is face-up and the FE runs the same algebra before it
+    -- submits (src/setgame/lib/cards.ts), so a non-set arriving is a bug.
+    raise exception 'BUG: bad set'
+      using errcode = 'PN278', hint = 'fault', column = '_',
       detail = 'those three cards are not a set';
   end if;
 
@@ -684,7 +700,18 @@ begin
     );
   end if;
 
-  return jsonb_build_object('result', 'claimed', 'terminal', out_terminal);
+  -- No message: a claim that lands shows itself, in the cards leaving the
+  -- board.
+  return common.ok_envelope(
+    jsonb_build_object('result', 'claimed', 'terminal', out_terminal), 'won');
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 revoke execute on function setgame.submit_set(uuid, smallint[]) from public;
@@ -712,8 +739,9 @@ grant execute on function setgame.submit_set(uuid, smallint[]) to authenticated;
 -- BANNED IN COMPETE, per the priced-help rule: help must be banned, earned,
 -- scored into the ranking, or free only when self-informative. A hint here is
 -- free and generative, so in a race it is a win button.
+drop function if exists setgame.record_hint(uuid, smallint[]);
 create or replace function setgame.record_hint(target_game uuid, cards smallint[])
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = setgame, common, public, extensions
@@ -723,6 +751,8 @@ declare
   g_row     setgame.games%rowtype;
   cur_state text;
   card      smallint;
+  v_used    int;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   caller_id := common.require_game_player(target_game);
 
@@ -743,18 +773,24 @@ begin
   -- belt and braces, and the causal order anyway.)
   select * into g_row from setgame.games where id = target_game for update;
   if not found then
-    raise exception 'game-not-found|' using errcode = 'P0002',
+    raise exception 'That game no longer exists'
+      using errcode = 'PN279', hint = 'fault', column = '_',
       detail = 'no setgame.games row for target_game';
   end if;
 
   if g_row.mode <> 'coop' then
-    raise exception 'hint-in-compete|' using errcode = 'P0001',
+    -- Mode is fixed at create_game and never changes, so no unbroken client
+    -- would ask: the compete board offers no hint button at all.
+    raise exception 'BUG: hint request in a race'
+      using errcode = 'PN280', hint = 'fault', column = '_',
       detail = 'hints are coop-only; free generative help would decide a race';
   end if;
 
   select play_state into cur_state from common.games where id = target_game;
   if cur_state <> 'playing' then
-    raise exception 'game-not-in-play|' using errcode = 'P0001',
+    -- A race: the game ended under you while the hint request was in flight.
+    raise exception 'Game over'
+      using errcode = 'PN281', hint = 'race', column = '_',
       detail = 'play_state is not an active state';
   end if;
 
@@ -770,13 +806,15 @@ begin
 
   if cardinality(cards) not between 1 and 3
      or (select count(distinct e) from unnest(cards) e) <> cardinality(cards) then
-    raise exception 'bad-hint|' using errcode = 'P0001',
+    raise exception 'BUG: hint that was not one to three cards'
+      using errcode = 'PN282', hint = 'fault', column = '_',
       detail = 'a hint is one to three distinct cards';
   end if;
 
   foreach card in array cards loop
     if not (card = any(g_row.board)) then
-      raise exception 'bad-hint|' using errcode = 'P0001',
+      raise exception 'BUG: hint naming a card that is not on the board'
+        using errcode = 'PN283', hint = 'fault', column = '_',
         detail = 'a hinted card is not on the board';
     end if;
   end loop;
@@ -784,20 +822,35 @@ begin
   -- Two cards must belong to one set, and three must BE one. A single card
   -- can't be wrong on its own, so it is taken as given.
   if cardinality(cards) = 3 and not setgame._is_set(cards[1], cards[2], cards[3]) then
-    raise exception 'bad-hint|' using errcode = 'P0001',
+    raise exception 'BUG: three-card hint that is not a set'
+      using errcode = 'PN284', hint = 'fault', column = '_',
       detail = 'a three-card hint must be a set';
   elsif cardinality(cards) = 2
         and not (setgame._third(cards[1], cards[2]) = any(g_row.board)) then
-    raise exception 'bad-hint|' using errcode = 'P0001',
+    raise exception 'BUG: two-card hint with no third card on the board'
+      using errcode = 'PN285', hint = 'fault', column = '_',
       detail = 'a two-card hint must be part of a set that is on the board';
   end if;
 
   update setgame.players
      set hints_used = hints_used + 1
-   where game_id = target_game and user_id = caller_id;
+   where game_id = target_game and user_id = caller_id
+  returning hints_used into v_used;
 
   insert into setgame.events (game_id, user_id, kind, cards, board_after)
   values (target_game, caller_id, 'hint', cards, g_row.board);
+
+  -- The count this call just moved. No message and no outcome: asking for a
+  -- hint shows itself, in the ring the client already drew.
+  return common.ok_envelope(jsonb_build_object('hints_used', v_used));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 revoke execute on function setgame.record_hint(uuid, smallint[]) from public;

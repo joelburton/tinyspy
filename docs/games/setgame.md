@@ -556,6 +556,22 @@ geometry mistakes worth not repeating — is in
 | `create_game(target_club, setup, player_user_ids, mode)` | inline shuffle — **no edge function**, since a board is a shuffle. Deals the floor, then runs the deal rule so the opening board always holds a set. |
 | `submit_set(target_game, cards)` | the only mid-game move. Locks the games row, validates, removes, refills to a fixpoint, writes the `claim` event with its `board_after`, scores, checks the terminal. |
 | `record_hint(target_game, cards)` | coop only, and **the tally, not the hint** — it charges the asker and writes the event. Takes the games row lock too, so a hint and a claim can't take the same two rows in opposite orders. |
+
+Both answer with [an envelope](../envelopes.md). `submit_set` carries
+`{result, terminal}` and `outcome: won`; `record_hint` carries `{hints_used}` —
+the count the call just moved — with no message and no outcome, because asking
+for a hint shows itself in the ring the client already drew.
+
+**Three of its refusals are races, which is more than any other game has**, and
+one of them is why: `PN277` "Someone got there first" is the contention check,
+and setgame is the only board on the roster where losing a race is ordinary
+rather than exotic — one table, everyone claiming off it, and the cards leave by
+realtime so no local gate can see it coming. `PN274`/`PN281` "Game over" and
+`PN275` "Already conceded" are the usual two. Everything else is a fault the
+client should have prevented and says so: `BUG: bad set` (the board is face-up
+and `lib/cards.ts` runs the same algebra before submitting), `BUG: claim that
+was not three different cards`, `BUG: hint request in a race` (compete offers no
+hint button at all), and four `BUG: …` hint-shape checks.
 | `concede` / `submit_timeout` / `end_game` / `replay_board` | the standard four. |
 | `_third` / `_is_set` / `_find_set` / `_find_set_with` / `_deck_size` / `_board_min` / `_deal_to_playable` / `_finish` | internals. `_deck_size` is the one granted to `authenticated`, because the `games_state` view is `security_invoker` and its body runs as the reader. |
 

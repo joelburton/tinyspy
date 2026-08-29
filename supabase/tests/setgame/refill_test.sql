@@ -45,7 +45,7 @@ select deck_left from setgame.games_state where id = (select id from g);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  (select setgame.submit_set((select id from g), array[0,1,2]::smallint[])->>'result'),
+  (select setgame.submit_set((select id from g), array[0,1,2]::smallint[])->'data'->>'result'),
   'claimed', 'a set can be claimed off an oversized board');
 
 reset role;

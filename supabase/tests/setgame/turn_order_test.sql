@@ -30,6 +30,7 @@
 begin;
 set search_path = setgame, common, public, extensions;
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 select plan(13);
@@ -60,10 +61,10 @@ select is(
 
 -- (2) bea claiming out of turn is rejected — before anything is scored.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select throws_ok(
-  format($$ select setgame.submit_set(%L::uuid, pg_temp.sg_live(%L)) $$,
-         (select id from g), (select id from g)),
-  'P0001', 'not-your-turn|',
+select pg_temp.envelope_is(
+  setgame.submit_set((select id from g), pg_temp.sg_live((select id from g))),
+  '{"type":"not-ok","severity":"race","dbcode":"PN243",
+    "message":"Not your turn"}'::jsonb,
   'turns: the non-current player cannot claim'
 );
 reset role;
@@ -75,10 +76,10 @@ select is(
 -- (3) An out-of-turn HINT is refused too. A hint costs the TABLE a point on a
 --     counter everyone reads, so it is a move, not a private convenience.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select throws_ok(
-  format($$ select setgame.record_hint(%L::uuid, (pg_temp.sg_live(%L))[1:1]) $$,
-         (select id from g), (select id from g)),
-  'P0001', 'not-your-turn|',
+select pg_temp.envelope_is(
+  setgame.record_hint((select id from g), (pg_temp.sg_live((select id from g)))[1:1]),
+  '{"type":"not-ok","severity":"race","dbcode":"PN243",
+    "message":"Not your turn"}'::jsonb,
   'turns: the non-current player cannot cash a hint'
 );
 
@@ -107,10 +108,10 @@ select is(
 -- (5) A claim that ISN'T a set is refused, and the turn stays with ada — a bad
 --     move must not cost the turn, or a misclick would be a penalty.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select throws_ok(
-  format($$ select setgame.submit_set(%L::uuid, pg_temp.sg_not_a_set(%L)) $$,
-         (select id from g), (select id from g)),
-  'P0001', 'not-a-set|',
+select pg_temp.envelope_is(
+  setgame.submit_set((select id from g), pg_temp.sg_not_a_set((select id from g))),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN278",
+    "message":"BUG: bad set"}'::jsonb,
   'turns: three cards that are not a set are refused'
 );
 reset role;

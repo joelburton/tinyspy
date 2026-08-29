@@ -8,7 +8,6 @@ import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import type { GamePageCtx, Member } from '../../common/lib/games'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { outOfRacePill, stickyPill, terminalPill } from '../../common/lib/game/localPills'
-import { failureMessage } from '../../common/lib/game/serverError'
 import { waitingTurnPill, yourTurnPill } from '../../common/components/game/turnCopy'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback'
@@ -224,14 +223,14 @@ export function PlayArea(ctx: GamePageCtx) {
       // hear me?" — its length IS the lag.
       setSubmitted(cards)
       setPicked([])
-      const { error } = await db.rpc('submit_set', { target_game: gameId, cards })
-      if (error) {
-        // Release the dim: nothing is coming. `cards-gone` is the one rejection
-        // a player realistically meets, and it isn't their mistake — someone
-        // was faster. Those cards are already gone, so this player falls
-        // through to the same mark everyone else gets for them.
+      const res = await runRpc(db.rpc('submit_set', { target_game: gameId, cards }))
+      if (res.type !== 'ok') {
+        // Release the dim: nothing is coming. The contention RACE — someone was
+        // faster — is the one refusal a player realistically meets, and it
+        // isn't their mistake. Those cards are already gone, so this player
+        // falls through to the same mark everyone else gets for them.
         setSubmitted([])
-        showLocalFeedback(failureMessage(error, 'claim'))
+        showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
       }
     },
     [gameId, showLocalFeedback],
@@ -334,8 +333,10 @@ export function PlayArea(ctx: GamePageCtx) {
     // the tie with a deadlock — reliably, on the third hint, since that is the
     // press that also claims. Awaiting is the causal order anyway: you asked,
     // and then it was claimed.
-    const { error } = await db.rpc('record_hint', { target_game: gameId, cards: next })
-    if (error) showLocalFeedback(failureMessage(error, 'hint'))
+    const res = await runRpc(db.rpc('record_hint', { target_game: gameId, cards: next }))
+    if (res.type !== 'ok') {
+      showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+    }
     // The third rung needs no special case: three selected cards claim, which
     // is the same path a player's own third click takes.
     if (next.length === CLAIM_SIZE) void submitClaim(next)

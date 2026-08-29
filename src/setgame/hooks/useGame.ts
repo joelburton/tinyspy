@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { useRealtimeRefetch } from '../../common/hooks/realtime/useRealtimeRefetch'
 import type { Card, DeckKind } from '../lib/cards'
+import { readRows } from '../../common/lib/supabase/dbResult'
 import { db } from '../db'
 
 /** Projected from `setgame.games_state` — the live table. */
@@ -104,26 +105,43 @@ export function useGame(gameId: string, selfId: string): {
     channelPrefix: 'setgame',
     id: gameId,
     load: async ({ mounted }) => {
-      const [{ data: g }, { data: ps }, { data: es }] = await Promise.all([
-        db
-          .from('games_state')
-          .select('id, club_handle, mode, deck_kind, board, deck_left')
-          .eq('id', gameId)
-          .maybeSingle(),
-        db
-          .from('players')
-          .select('game_id, user_id, sets_found, hints_used')
-          .eq('game_id', gameId),
-        db
-          .from('events')
-          .select('id, game_id, user_id, kind, cards, board_after, created_at')
-          .eq('game_id', gameId)
-          .order('id', { ascending: true }),
+      const [gameRes, playersRes, eventsRes] = await Promise.all([
+        // No `.maybeSingle()`: `readRows` hands back rows, and `id` is the PK,
+        // so this is 0 or 1 of them.
+        readRows(
+          db
+            .from('games_state')
+            .select('id, club_handle, mode, deck_kind, board, deck_left')
+            .eq('id', gameId),
+        ),
+        readRows(
+          db
+            .from('players')
+            .select('game_id, user_id, sets_found, hints_used')
+            .eq('game_id', gameId),
+        ),
+        readRows(
+          db
+            .from('events')
+            .select('id, game_id, user_id, kind, cards, board_after, created_at')
+            .eq('game_id', gameId)
+            .order('id', { ascending: true }),
+        ),
       ])
       if (!mounted()) return
-      if (g) setGame(g as unknown as SetgameGame)
-      setPlayers((ps ?? []) as SetgamePlayer[])
-      setEvents((es ?? []) as EventRow[])
+      // A FAILED read used to be indistinguishable from a game with no rows:
+      // `data` is null either way, so `if (g)` simply left the previous game on
+      // screen. The fault is logged and shown by `dbFetch`; stop loading.
+      if (gameRes.type !== 'ok' || playersRes.type !== 'ok' || eventsRes.type !== 'ok') {
+        setLoading(false)
+        return
+      }
+      // ZERO ROWS is the caller's to read, and this hook's answer is the one it
+      // already gave: leave `game` null and let the surface say "not found".
+      const row = gameRes.data[0]
+      if (row) setGame(row as unknown as SetgameGame)
+      setPlayers(playersRes.data as SetgamePlayer[])
+      setEvents(eventsRes.data as EventRow[])
       setLoading(false)
     },
   })
