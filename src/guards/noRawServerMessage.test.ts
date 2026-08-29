@@ -93,6 +93,39 @@ describe('no raw server message reaches a UI sink', () => {
     ).toEqual([])
   })
 
+  // ── The same failure one layer up ──────────────────────────
+  //
+  // `fault: true` on a feedback message routes it to `showFaultModal`, which was
+  // how a call site raised the fault modal before the modal became central. It
+  // is now raised by `runRpc` / `runEdgeFn` / `dbFetch`, WITH the diagnostics
+  // only the transport layer can build — so a call site setting the flag pops a
+  // SECOND modal carrying less than the first.
+  //
+  // That is not hypothetical: all fourteen "New game" buttons did it, and the
+  // player dismissed one modal to find a poorer copy behind it. Nothing failed;
+  // there is no dedupe in `faultStore` and both simply queued.
+  it('no call site marks a feedback message as a fault', () => {
+    // `serverError.ts` is the unconverted system's classifier and still owns the
+    // flag; it goes when the roster empties, and this list should empty with it.
+    const OWNS_THE_FLAG = ['src/common/lib/game/serverError.ts']
+    const offenders: string[] = []
+    for (const file of sourceFiles('src')) {
+      if (OWNS_THE_FLAG.includes(file)) continue
+      readFileSync(file, 'utf8').split('\n').forEach((line, i) => {
+        // Comment lines are prose ABOUT the flag — the pill renderer and the
+        // fault store both describe the routing they implement. A guard that
+        // counted those would fail on its own subject matter, which is how
+        // `serverErrorKeys.test.ts` came to believe a dead key was still live.
+        if (/^\s*(\/\/|\*|\/\*)/.test(line)) return
+        if (/\bfault:\s*true\b/.test(line)) offenders.push(`${file}:${i + 1}  ${line.trim()}`)
+      })
+    }
+    expect(
+      offenders,
+      'the modal is raised centrally — use getNotOkFeedback and let the pill carry the words',
+    ).toEqual([])
+  })
+
   it('the allowlist has no stale entries', () => {
     // A file that stopped touching `.message` should leave the list, so the list
     // keeps meaning "these are the exceptions" rather than accumulating.

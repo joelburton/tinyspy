@@ -30,10 +30,10 @@ import { ERROR_COPY } from '../common/lib/game/errorCopy'
 const SQL_DIR = 'supabase/sql'
 const FN_DIR = 'supabase/functions'
 
-/** Drop `/* … *​/` blocks and `// …` tails, so a key NAMED in prose is not read
- *  as a key RAISED in code. Crude on purpose — it will also blank a `//` inside
- *  a string literal, and the only strings this file cares about are
- *  `key|detail|` shapes, which contain neither. */
+/** Strip block and line comments, so a key NAMED in prose is not read as a key
+ *  RAISED in code. Crude on purpose — it will also blank a `//` inside a string
+ *  literal, and the only strings this file cares about are `key|detail|`
+ *  shapes, which contain neither. */
 function stripComments(src: string): string {
   return src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '')
 }

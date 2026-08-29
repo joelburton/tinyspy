@@ -433,6 +433,47 @@ describe('runEdgeFn — the same shape, through Deno', () => {
   })
 })
 
+// The override is the ONE field on a `[db]` line you cannot infer from the
+// others, so a not-ok that carries it has to print it. It was dropped for a
+// while: `envelopeFields` logged `outcome` only on the ok arm, correct until a
+// not-ok could carry one, after which `outcome=` blank meant both "no override"
+// and "an override we didn't print".
+describe('the [db] line carries a not-ok outcome', () => {
+  it('logs an override the author set on a failure', async () => {
+    // `mockClear`: an earlier test in this file spied `console.warn` without
+    // restoring it, so a fresh `spyOn` hands back the SAME spy with its calls
+    // still on it, and `calls[0]` would be somebody else's line.
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    warn.mockClear()
+    await runRpc(
+      Promise.resolve({
+        data: env({
+          type: 'not-ok', severity: 'race', outcome: 'lost',
+          message: 'That game was already deleted', dbcode: 'PN010',
+        }),
+        error: null,
+      }),
+    )
+    expect(warn.mock.calls[0][0]).toContain('severity=race')
+    expect(warn.mock.calls[0][0]).toContain('outcome=lost')
+  })
+
+  it('leaves it blank when the severity default applies', async () => {
+    // `mockClear`: an earlier test in this file spied `console.warn` without
+    // restoring it, so a fresh `spyOn` hands back the SAME spy with its calls
+    // still on it, and `calls[0]` would be somebody else's line.
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    warn.mockClear()
+    await runRpc(
+      Promise.resolve({
+        data: env({ type: 'not-ok', severity: 'race', message: 'Someone got there first' }),
+        error: null,
+      }),
+    )
+    expect(warn.mock.calls[0][0]).toContain('outcome= |')
+  })
+})
+
 describe('notOkOutcome', () => {
   const notOk = (severity: string, outcome: string | null = null) =>
     ({ ...env({ type: 'not-ok', severity, outcome, message: 'x' }) }) as never

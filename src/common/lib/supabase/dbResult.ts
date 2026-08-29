@@ -353,7 +353,7 @@ function envelopeFields(t: Transport, envelope: Envelope): DiagFields {
   return {
     ...t,
     severity: envelope.type === 'not-ok' ? envelope.severity : undefined,
-    outcome: envelope.type === 'ok' ? envelope.outcome : undefined,
+    outcome: envelope.outcome,
     dbcode: envelope.dbcode,
     field: envelope.type === 'not-ok' ? envelope.field : undefined,
     detail: envelope.detail,
