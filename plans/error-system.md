@@ -684,6 +684,11 @@ select pg_temp.envelope_is(
 **145 entries. 68 done, 77 to go** (5 of those are the deferred edge
 functions). Cross them off here as they land.
 
+**Paused until the retro-fix list is empty** (Joel, 2026-08-29). A "done" entry
+below means its SQL answers with an envelope — not that its call site is written
+to the rules, which did not exist when the first 68 landed. See
+[envelope-rollout.md → The retro-fix list](envelope-rollout.md#the-retro-fix-list--every-already-converted-call-site).
+
 An entry is one RPC or one table read **per area**, so the same name in two
 areas is two entries — each has its own call sites and converts separately.
 `clubs` is the live example: HomePage's read is done, ClubPage's is not.

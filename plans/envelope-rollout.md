@@ -342,14 +342,16 @@ because severity carries a default appearance.
 
 The roster — which is where we are now, and where the rules below were written.
 
-### Step 5 — the call-site rules — **WRITTEN 2026-08-29, NOT APPLIED**
+### Step 5 — the call-site rules, and the retro-fix
 
 The SQL half of a conversion had a written process from the start; the frontend
 half did not, and stackdown's `submit_word` produced four wrong versions of one
 branch in a row before the rules got said out loud. They now live in
 [docs/envelopes.md → The shape of a call site](../docs/envelopes.md#the-shape-of-a-call-site)
 and [→ Choosing which `ok` branch](../docs/envelopes.md#choosing-which-ok-branch),
-and `error-system.md` §6 points at them from the per-game process.
+and `error-system.md` §6 points at them from the per-game process. The list
+below is the work they imply on everything already converted; the roster resumes
+when it is empty.
 
 In short: one branch per answer, every condition a positive assertion about the
 case, a bare `else` that screams and is never contorted for, and never picking
@@ -357,14 +359,82 @@ an `ok` branch by asking whether there is a message or what the outcome is —
 branch on `data` or `dbcode`, and add to `data` if it cannot tell the cases
 apart.
 
-**What is left of this step:** the ~47 call sites already converted were written
-before the rules existed, so some of them break these. stackdown's three are
-fixed (the first written to the rules, and the first to find that a
-single-answer RPC needs a `result` in `data` anyway). One other is known:
+### The retro-fix list — every already-converted call site
 
-- `src/wordle/components/BoardCol.tsx:243` — `res.outcome ?? 'lost'` and
-  `res.message ?? ''`, the guessed defaults the rules forbid, and it picks its
-  branch off `result` inside an already-`ok` block with no scream.
+**This runs BEFORE the rest of the roster** (Joel, 2026-08-29), and **not as one
+commit**: each entry is looked at on its own. Every already-converted call site
+was written before the rules existed, so each needs the same three things —
 
-Sweep the rest when the roster is done, not now: a sweep before the rules have
-been used on a few games would be guessing at what they mean.
+1. `res.type !== 'ok'` → `res.type === 'not-ok'`. Not cosmetic: a third `type`
+   added to the envelope would reroute into the not-ok branch at **every** one
+   of these on the same day, silently, with nothing failing to compile and no
+   test going red.
+2. The bare `else` that screams, worded
+   `BUG: <rpc_name> fell through to unhandled`.
+3. Each `ok` branch chosen by `data` or `dbcode` — never by `message`, never by
+   `outcome`, and never by merely matching `ok`. Where `data` cannot tell the
+   cases apart, the RPC's `data` gains something that can, which makes the entry
+   a SQL edit too.
+
+`create_game` has a shared consumer and sixteen private halves. Every game's
+setup dialog starts through ONE branch — `SetupGameModal.tsx`, typed once as
+`Envelope<{ id: string }>` at `games.ts:741` — while each game's SQL function,
+its `manifest.ts` and its in-game New Game are its own. So the consumer converts
+first and **every game's Start button breaks**, then each game's entry fixes its
+own half and turns its Start back on. That breakage is the to-do list: it is
+loud, it is per-game, and it disappears exactly when the work is done.
+
+#### Common
+
+- [ ] `ClubPage.tsx` — `unset_current_view` (the presence heal, `void`) +
+  `delete_game`, and five reads: `clubs`, `clubs_members`, `profiles`,
+  `clubs_gametypes`, `games`
+- [ ] `CreateClubModal.tsx` — `create_club`
+- [ ] `EditClubModal.tsx` — `set_club_gametypes`
+- [ ] `HomePage.tsx` — `clubs` read
+- [ ] `ChatBody.tsx` — `send_message`
+- [ ] `useClubChat.ts` — `messages` read
+- [ ] `ClaimHandleScreen.tsx` — `claim_username`
+- [ ] `EditProfileModal.tsx` — `update_profile_color`
+- [ ] `WordEditDialog.tsx` — `add_word` / `update_word` (one call, a ternary) +
+  `delete_word`, and the `words` read
+- [ ] `AnagramDialog.tsx` — `anagrams`
+- [ ] `useSession.ts` — `profiles` read
+- [ ] `useProfile.ts` — `profiles` read
+- [ ] `useCommonGame.ts` — `unset_current_view` (the last-viewer-leave, `void`)
+
+#### The six converted games
+
+- [ ] connections — `BoardCol.submit_guess`, `SetupForm.next_puzzle_for_club` +
+  `puzzle_for_date`, `PlayArea.next_puzzle_for_club`, and `useGame`'s three reads
+- [ ] psychicnum — `BoardCol.submit_guess` and `useGame`'s three reads
+- [ ] setgame — `PlayArea.submit_set` + `record_hint`, and `useGame`'s three reads
+- [ ] stackdown — the three RPCs and three reads are **done**, and are the model
+  the rules were written from; what is left is its `create_game` half
+- [ ] waffle — `PlayArea.submit_swap` and `useGame`'s three reads
+- [ ] wordle — `BoardCol.submit_guess` (**the one confirmed live bug**:
+  `res.outcome ?? 'lost'`, `res.message ?? ''`, branch off `result` inside an
+  already-`ok` block, no scream) and `useGame`'s three reads
+
+#### `create_game` — the shared consumer, then a game at a time
+
+- [ ] `SetupGameModal.tsx` + the `startGameInClub` contract in `games.ts` — the
+  one branch all sixteen setup dialogs go through. It starts asserting the case
+  name here, which breaks Start for every game until that game's own entry
+  lands. Take it FIRST, so the rest is a shrinking list of red buttons.
+
+Then, per game: its `create_game` SQL gains the case name, and its `manifest.ts`
++ `PlayArea.tsx` New Game branch on it. The six converted games take theirs
+inside their entry above; these ten have nothing else converted yet, so
+`create_game` is all they are here for.
+
+- [ ] bananagrams
+- [ ] boggle — via `boggle-build-board`
+- [ ] codenamesduet
+- [ ] crosswords — two paths, the edge function and the direct RPC
+- [ ] letterboxed — via `letterboxed-build-board`
+- [ ] scrabble
+- [ ] spellingbee — via `spellingbee-build-board`
+- [ ] strands
+- [ ] wordiply — via `wordiply-build-board`
+- [ ] wordwheel — via `wordwheel-build-board`
