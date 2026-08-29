@@ -59,24 +59,33 @@ async function ensureLoaded(userId: string) {
     commonDb.from('profiles').select('username, color, can_edit_words').eq('user_id', userId),
   )
   if (loadedFor !== userId) return // a newer load superseded this one
+
+  // Clearing the load marker is the FIRST thing both failure paths do, so a
+  // later mount / navigation retries. Without it the failed first fetch is
+  // permanent for the session — every `ensureLoaded` no-ops on the
+  // `loadedFor === userId` guard above and the account menu row shows "…"
+  // until a full reload.
+  if (res.type === 'not-ok') {
+    // Already logged and presented by `dbFetch`; there is nothing to add.
+    loadedFor = null
+    return
+  }
+
   // Zero rows is its own answer, not an error — which is why the read no longer
   // asks PostgREST for a single row. `.single()` turned "no profile" into a 406,
   // so a signed-in user without one popped a fault modal from a background load
   // rather than being reported as the missing row it is.
-  const row = res.type === 'ok' ? res.data[0] : undefined
+  const row = res.data[0]
   if (!row) {
-    // Clear the load marker so a later mount / navigation retries. Without
-    // this the failed first fetch is permanent for the session — every
-    // `ensureLoaded` no-ops on the `loadedFor === userId` guard above and
-    // the account menu row shows "…" until a full reload.
     loadedFor = null
-    // A failure has already been logged and presented by `dbFetch`. A MISSING
-    // ROW has not, and it is a different thing: `user_id` is the PK and the
-    // select policy is `using (true)`, so nothing can hide a row that exists —
-    // and every consumer of this hook renders only after `useSession` saw one.
-    // So zero rows means the row was there and is not now: a `db:reset` under a
-    // live tab, or an account deleted mid-session. A token that outlived its
-    // data, which is `claim_username`'s PN018 arriving by another door.
+    // A MISSING ROW is a different thing from a failed read, which is why it
+    // has its own branch now rather than sharing one: `user_id` is the PK and
+    // the select policy is `using (true)`, so nothing can hide a row that
+    // exists — and every consumer of this hook renders only after `useSession`
+    // saw one. So zero rows means the row was there and is not now: a
+    // `db:reset` under a live tab, or an account deleted mid-session. A token
+    // that outlived its data, which is `claim_username`'s PN018 arriving by
+    // another door.
     //
     // It gets the modal rather than a log line, because the alternative is what
     // this used to do: retry on every mount and leave the account menu showing
@@ -84,22 +93,20 @@ async function ensureLoaded(userId: string) {
     // the real remedy — it re-probes, finds no profile, and routes them to the
     // claim screen, which either re-claims (a reset) or signs them out (PN018,
     // a deleted account).
-    if (res.type === 'ok') {
-      reportDbFault(
-        { call: 'GET /rest/v1/profiles', status: 200 },
-        {
-          type: 'not-ok',
-          data: null,
-          outcome: null,
-          severity: 'fault',
-          message: 'Your profile is no longer on the server. Please refresh.',
-          field: null,
-          meta: null,
-          dbcode: null,
-          detail: `rows=0 for user_id=${userId}`,
-        },
-      )
-    }
+    reportDbFault(
+      { call: 'GET /rest/v1/profiles', status: 200 },
+      {
+        type: 'not-ok',
+        data: null,
+        outcome: null,
+        severity: 'fault',
+        message: 'Your profile is no longer on the server. Please refresh.',
+        field: null,
+        meta: null,
+        dbcode: null,
+        detail: `rows=0 for user_id=${userId}`,
+      },
+    )
     return
   }
   current = { username: row.username, color: row.color, can_edit_words: row.can_edit_words }

@@ -399,7 +399,7 @@ first and **every game's Start button breaks**, then each game's entry fixes its
 own half and turns its Start back on. That breakage is the to-do list: it is
 loud, it is per-game, and it disappears exactly when the work is done.
 
-#### Common — 10 of 13 done
+#### Common — 12 of 13 done
 
 **Tick a box as its commit lands**, not at the end of a session: the list is
 the only record of where the sweep is, and an untracked one costs a re-read of
@@ -420,8 +420,10 @@ the diff to find out (Joel, 2026-08-29).
   `delete_word`, and the `words` read
 - [x] `AnagramDialog.tsx` — `anagrams`. The only payload RESHAPE so far: `data`
   was a bare array, which leaves a call site nothing to assert but its shape
-- [ ] `useSession.ts` — `profiles` read
-- [ ] `useProfile.ts` — `profiles` read
+- [x] `useSession.ts` — `profiles` read
+- [x] `useProfile.ts` — `profiles` read. Had NO `!== 'ok'` and was still the
+  worst-shaped site here: a failure and a zero-row merged into one branch, then
+  re-split inside it
 - [ ] `useCommonGame.ts` — `unset_current_view` (the last-viewer-leave, `void`).
   The same RPC ClubPage's heal calls, so it already has a payload to read
 
