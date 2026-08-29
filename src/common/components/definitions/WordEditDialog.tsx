@@ -138,7 +138,7 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
           .eq('word', request.word),
       )
       if (!mounted) return
-      if (res.type !== 'ok') {
+      if (res.type === 'not-ok') {
         // A load failure is a fault — nothing an editor typed can cause it —
         // and `dbFetch` has already raised the modal. The line says which load.
         setErrors({ [FORM_ERROR_KEYNAME]: 'Could not load this word.' })
