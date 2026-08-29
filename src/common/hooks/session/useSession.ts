@@ -130,7 +130,7 @@ export function useSession() {
         db.from('profiles').select('user_id').eq('user_id', next.user.id),
       )
       if (!mountedRef.value) return
-      if (res.type !== 'ok') {
+      if (res.type === 'not-ok') {
         // A failed probe assumes the session is valid AND unclaimed, so the
         // user lands on ClaimHandleScreen. That is over-permissive and always
         // has been (flagged in the 2026-06-16 review): the honest answer is
