@@ -1,17 +1,11 @@
 // cs-unmet
 
 /**
- * THE ENVELOPE, WRITTEN IN DENO — the same result shape `common.ok_envelope`
- * and `common.raised_envelope` build in SQL (plans/error-system.md), for the
- * refusals an edge function decides on its own.
- *
- * Everything here answers **200**, faults included, and that is the whole point.
- * The HTTP status says whether the function RAN — not what it decided. A
- * function that answers 400 for "that difficulty has no buildable board" is
- * making the status carry two unrelated jobs, and the frontend then can't tell
- * a refusal it should show under a field from a container that never woke up.
- * `runEdgeFn` reads the envelope for the verdict and the status for nothing but
- * "did this reach the function at all".
+ * THE ENVELOPE, WRITTEN IN DENO — the same shape `common.ok_envelope` and
+ * `common.raised_envelope` build in SQL, for what an edge function decides on
+ * its own. The contract is docs/envelopes.md → How edge functions build one:
+ * **everything here answers 200**, faults included, because the status says
+ * whether the function RAN and the envelope says what it decided.
  *
  * **Every builder is TYPED as `Envelope`, and writes all nine keys out.**
  * Neither is decoration:
@@ -21,16 +15,15 @@
  *     nothing else; `dbResult.ts` would drag in the browser client.
  *   - The keys are spelled out at each call rather than spread from a shared
  *     `EMPTY` constant. A spread compiles forever: add a tenth key and every
- *     builder here keeps working while silently omitting it — which is the
- *     ambiguity required keys exist to prevent, since "considered and left
- *     null" would again be indistinguishable from "never considered". Written
- *     out, a new key is a compile error at each of these four and somebody has
- *     to decide what it holds (Joel, 2026-08-28).
+ *     builder here keeps working while silently omitting it, so "considered and
+ *     left null" becomes indistinguishable from "never considered" — the exact
+ *     ambiguity required keys exist to prevent. Written out, a new key is a
+ *     compile error at each of these four (Joel, 2026-08-28).
  *
- * The three strings a refusal carries are spelled `dbcode` / `severity` /
- * `field` here where SQL spells them `errcode` / `hint` / `column`. Same
- * sequence of numbers, though — `src/guards/raiseCodes.test.ts` reads both
- * sources together so a code allocated in Deno can't collide with a raise.
+ * The three strings are spelled `dbcode` / `severity` / `field` here where SQL
+ * spells them `errcode` / `hint` / `column`. Same sequence of numbers, though —
+ * `src/guards/raiseCodes.test.ts` reads both sources together so a code
+ * allocated in Deno can't collide with a raise.
  */
 
 import { json } from './http.ts'

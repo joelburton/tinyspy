@@ -30,42 +30,24 @@ import type { Envelope, Severity } from './envelope'
  *
  * Faults are presented centrally — `reportDbFault`, from `dbFetch` and from the
  * wrappers below — so no call site classifies a failure, words a network
- * problem, or reaches for `showFaultModal` itself. The layer that knows it is a
- * fault is the layer holding its diagnostics, and those are transport facts an
- * envelope does not carry.
+ * problem, or reaches for `showFaultModal` itself.
  *
- * **The modal is an escalation, not a replacement**, so a call site still shows
- * a fault's `message` in its pill or on its form line, exactly as it would a
- * race or a form-validation. Dismiss a modal in front of a form that filtered
- * the fault out and the form looks fine — or shows some lesser validation
- * error, and now claims the problem is a short club name when the server is
- * down. **Nothing reads `severity` to decide WHETHER to display an answer**,
- * only how it reads (docs/envelopes.md → What a caller does with one).
+ * A call site still SHOWS a fault's message, though: the modal is an escalation,
+ * not a replacement, and nothing reads `severity` to decide whether to display
+ * an answer — only how it reads. Why, in docs/envelopes.md → What a caller does
+ * with one.
  */
-
-// ─────────────────────────────────────────────────────────────
-// The shapes
-// ─────────────────────────────────────────────────────────────
-
 
 // ─────────────────────────────────────────────────────────────
 // The environmental messages
 // ─────────────────────────────────────────────────────────────
 
 /**
- * The whole frontend-authored message table — everything the server never got
- * to speak for.
+ * The whole frontend-authored message table — the two sentences for a failed JS
+ * fetch, which is everything the server never got to speak for.
  *
- * **Generic, and naming no action, on purpose.** A dropped connection cannot
- * tell you whether the move landed — the link can die on the way BACK, after
- * the write committed. So a sentence like "Your guess didn't send" would be a
- * confident false statement in the one moment a player most needs the truth.
- *
- * "Refresh and try again" is the right instruction for the same reason —
- * refreshing reveals the real state before a retry can double-apply.
- *
- * Which call it was rides in the diagnostics line instead, where `dbFetch`
- * already puts the method and path.
+ * Both are generic and name no action, and that is a correctness rule rather
+ * than a style: docs/envelopes.md → The environmental sentences.
  */
 const ENVIRONMENTAL = {
   offline: 'You appear to be offline. Please refresh and try again.',
@@ -435,21 +417,6 @@ export function isEnvelope(body: unknown): body is Envelope {
 type QueryLike<T> = PromiseLike<{ data: T | null; error: DbError }>
 
 /**
- * **`METHOD /path` for a query builder** — the same identifier `dbFetch` puts on
- * every line it writes, so a fault reads the same wherever it was reported.
- *
- * A builder carries the request it is going to make (`POST`, `/rest/v1/rpc/…`)
- * from the moment it is constructed, which is why nothing here has to be told
- * the RPC's name or the table's. That matters most for the faults we DECLARE:
- * they arrive HTTP 200, so `dbFetch` never sees them, and without this they
- * would be the only faults in the app that could not say which call they came
- * from — the ones we authored and wrote sentences for.
- *
- * Defensive because `url` and `method` are `protected` on postgrest-js's
- * builder: they are there at runtime and have been for every version we have
- * used, but a rename upstream should cost a vaguer log line, not a crash.
- */
-/**
  * **Call an edge function and hand back its envelope** — `runRpc`'s twin, for
  * the calls that reach Postgres through Deno instead of PostgREST.
  *
@@ -458,17 +425,13 @@ type QueryLike<T> = PromiseLike<{ data: T | null; error: DbError }>
  * same `create_game` an RPC-path game calls directly, so what comes back is the
  * same envelope and every caller reads it the same way.
  *
- * ─── The status says whether the function RAN ────────────────
- * Not what it decided. A function that produced an envelope answers 200
- * whatever the envelope says, including `severity: 'fault'` — the fault modal
- * is raised HERE, from the envelope, exactly as `runRpc` raises it. Reserving
- * non-2xx for "the function never answered" is what keeps `dbFetch`'s rule
- * (any non-2xx is a fault) true without it having to read the body.
+ * The status says whether the function RAN, not what it decided
+ * (docs/envelopes.md → How edge functions build one), so everything with an
+ * envelope arrives 200 and the modal for a declared fault is raised HERE.
  *
  * A function that has not been converted yet still answers `{ error: key }`
- * with a 4xx; that arrives here as a transport-shaped `CallError` and becomes
- * a fault envelope, which is the old behavior and the right one for a shape no
- * caller can read.
+ * with a 4xx; that arrives as a transport-shaped `CallError` and becomes a
+ * fault envelope, which is the right treatment for a shape no caller can read.
  */
 export async function runEdgeFn<T>(
   fnName: string,
@@ -503,6 +466,21 @@ export async function runEdgeFn<T>(
   return data as Envelope<T>
 }
 
+/**
+ * **`METHOD /path` for a query builder** — the same identifier `dbFetch` puts on
+ * every line it writes, so a fault reads the same wherever it was reported.
+ *
+ * A builder carries the request it is going to make (`POST`, `/rest/v1/rpc/…`)
+ * from the moment it is constructed, which is why nothing here has to be told
+ * the RPC's name or the table's. That matters most for the faults we DECLARE:
+ * they arrive HTTP 200, so `dbFetch` never sees them, and without this they
+ * would be the only faults in the app that could not say which call they came
+ * from — the ones we authored and wrote sentences for.
+ *
+ * Defensive because `url` and `method` are `protected` on postgrest-js's
+ * builder: they are there at runtime and have been for every version we have
+ * used, but a rename upstream should cost a vaguer log line, not a crash.
+ */
 function callLabel(call: unknown, fallback: string): string {
   const c = call as { url?: unknown; method?: unknown }
   if (!(c?.url instanceof URL)) return fallback
@@ -569,23 +547,13 @@ export async function runRpc<T>(call: PromiseLike<{ data: unknown; error: DbErro
 /**
  * **Run a direct table read and hand back an envelope.**
  *
- * A read never produces one of its own — an envelope carries an authored
- * judgment about a move, and a read has no move to judge. Its only outcomes are
- * rows, an error, or silence, and none of those needs a person to have written
- * anything. So one is built here, in the same shape as an RPC's, and every call
- * site branches alike whatever it called.
+ * A read never authors one of its own, so this builds it — same shape as an
+ * RPC's, so every call site branches alike whatever it called. **Zero rows is
+ * `ok`** and a failure is always a `fault`; both rules, and why, are in
+ * docs/envelopes.md → Consumers.
  *
- * **Zero rows is `ok`, deliberately.** At the protocol level an empty result is
- * a correct answer, and the database has no opinion about whether your read
- * *should* have found something. Only the caller knows that. So an invariant
- * like "every profile has a solo club" stays a check at the call site, with its
- * sentence written there — the same rule as the RPC side, with the frontend as
- * author because the frontend is what knows the invariant.
- *
- * A failure is always `severity: fault` and never anything else: a read can't
- * produce a form-validation (nothing was submitted to validate) or a
- * wait-and-retry. By then the modal is already up, because `dbFetch` presented
- * it in `dbFetch` — so a call site's only job is to stop showing a stale answer.
+ * What that leaves a caller: the modal is already up (`dbFetch` presented it),
+ * so its only job is to stop showing a stale answer.
  *
  *     const r = await readRows(db.from('clubs').select('handle, name'))
  *     if (r.type !== 'ok') { setLoad('failed'); return }

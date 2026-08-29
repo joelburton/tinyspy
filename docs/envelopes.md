@@ -141,6 +141,13 @@ Every `not-ok` carries one:
 classification goes to die — the next ambiguous case lands there instead of
 being decided.
 
+**The two compound names are spelled out rather than shortened**, because both
+short forms are words that already mean something else here. A bare `validation`
+describes most of what any RPC does, while this one means specifically "put it
+under that control". A bare `error` would collide with the outcome of the same
+name — one severity and one outcome, spelled identically, meaning different
+things, which is the confusion the two levels exist to remove.
+
 ### Appearance
 
 A severity carries a default appearance; an outcome overrides it.

@@ -31,15 +31,7 @@ import type { Outcome } from '../outcomes'
  *
  * A `fault` arrives like any other — one shape, always. Its modal has already
  * been raised centrally by the time a call site sees it, but the call site still
- * shows the `message`: the modal escalates, it does not replace (docs/envelopes.md).
- *
- * The two compound names are spelled out rather than shortened, because the
- * short forms are both words that already mean something else here. A bare
- * `validation` is broad enough to describe most of what any RPC does, while
- * this one specifically means "put it under that control". And a bare `error`
- * would collide with the outcome of the same name: one severity and one
- * outcome, spelled identically, meaning different things — exactly the
- * confusion the two levels exist to remove.
+ * shows the `message`: the modal escalates, it does not replace.
  */
 export type Severity = 'fault' | 'race' | 'form-validation' | 'service-error'
 
@@ -94,36 +86,22 @@ export type Envelope<T = unknown> =
        *  the same reason `severity` is declared on the ok arm: the wire has
        *  nine keys either way. */
       data: null
-      /**
-       * How this failure READS, when the author wanted something other than the
-       * default its severity would give it (docs/envelopes.md → Appearance).
-       *
-       * Null is the ordinary case and means "use the default" — not "no
-       * appearance". A race reads `warning` without anyone saying so; setting
-       * `noted` here is how one particular race says "this is news, not a
-       * rejection".
-       */
+      /** The appearance OVERRIDE. Null is the ordinary case and means "use the
+       *  default this severity carries" — not "no appearance"
+       *  (docs/envelopes.md → Appearance). */
       outcome: Outcome | null
       severity: Severity
       message: string
       /**
-       * Which FIELD a `form-validation` is about, from the raise's `COLUMN`.
+       * Which control a `form-validation` is about, from the raise's `COLUMN`.
        *
        *     'letters'   the message belongs under that field
        *     '_'         deliberately not about one field — the form's own line
-       *     absent      the raise didn't say; a SQL-side guard catches it
+       *     null        the raise didn't say; a SQL-side guard catches it
        *
-       * `_` is a real value, not a stand-in for nothing: an author who decides
-       * a form-validation isn't about one field says so, and that reads differently
-       * from having forgotten. It is also the form-level key in the form's
-       * error object, so the same string serves SQL, the envelope and the form
-       * (plans/areas/forms.md → F48).
-       *
-       * Always exactly one field, because a raise stops at the first failure —
-       * which makes server validation incremental the way a form already is,
-       * and never wrong about whose fault it is.
-       *
-       * The form plumbing that reads this isn't built yet.
+       * `'_'` is a real value rather than a stand-in for nothing, and always
+       * exactly one field: docs/envelopes.md → The keys. The form plumbing that
+       * reads this isn't built yet.
        */
       field: string | null
       meta: Record<string, unknown> | null

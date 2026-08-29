@@ -113,7 +113,33 @@ Also in step 1:
 
 ---
 
-## Step 2 — shrink the over-explaining comments
+## Step 2 — shrink the over-explaining comments — **DONE 2026-08-28**
+
+The sweep ran after steps 3 and 4 rather than during them, because those steps
+*grew* these files: step 1 moved a pile of reasoning into `docs/envelopes.md`,
+and the code comments saying the same things were still sitting there.
+
+| file | before the sprint | after 3 + 4 | now |
+|---|---|---|---|
+| `dbResult.ts` | 537 / 311 | 621 / 368 | **589 / 338** |
+| `supabase/envelope.ts` | 102 / 73 | 132 / 103 | **110 / 81** |
+| `_shared/envelope.ts` | 131 / 63 | 136 / 67 | **129 / 60** |
+| `errorCopy.ts` | 233 / 165 | — | 226 / 160 |
+| `outcomes.ts` | 52 / 40 | — | 45 / 35 |
+
+Both files that grew are back below where they started, while holding more
+machinery than they did. What went, in every case, is a paragraph the doc now
+says better: the escalation rule, the environmental sentences' "name no action"
+argument, `readRows`' zero-rows reasoning, `runEdgeFn`'s "the status says
+whether it RAN", the `field` docstring's four paragraphs about `'_'`, and the
+Severity union's argument for the compound names — that last one **moved** into
+[envelopes.md](../docs/envelopes.md) → Severity rather than being deleted,
+because it is a naming decision and nothing else owned it.
+
+`errorCopy.ts` and `outcomes.ts` needed nothing beyond what steps 3 and 4
+already did to them; `errorCopy.ts` is deleted wholesale at the end anyway.
+
+### The rule, for the rest of the sprint
 
 The rule: where a comment explains **what an envelope or an outcome is**, it
 becomes a short reminder on the line and the reader goes to the doc. Where it
@@ -139,13 +165,12 @@ file is touched. Shrinking before step 3 means editing files step 3 rewrites,
 and writing fresh long comments in step 3 that then need shrinking. A short
 sweep at the end covers the files steps 3 and 4 never opened.
 
-**What the step-1 reading found**, beyond length — four defects, each to be
-fixed by the step that opens the file:
+**What the step-1 reading found**, beyond length — four defects:
 
-1. **`dbResult.ts:353-367`: an orphaned docstring.** It describes `callLabel`
-   ("`METHOD /path` for a query builder") but sits immediately above
-   `runEdgeFn`, which has its own docstring right after it. `callLabel` is 55
-   lines further down with none. Step 3 opens this file.
+1. ~~**`dbResult.ts`: an orphaned docstring.**~~ **Fixed.** It described
+   `callLabel` but sat immediately above `runEdgeFn`, which had its own
+   docstring right after it; `callLabel` was 55 lines further down with none.
+   Moved onto the function it describes.
 2. **`errorCopy.ts` says `info` in five places** (lines 46, 159, 166, 203, 228)
    where the entries say `noted`. The outcome was renamed and the prose was not.
    Step 4 deletes this file's entries per key, which takes the comments with
@@ -154,8 +179,8 @@ fixed by the step that opens the file:
    — lines 68-76 (the form raises), 154-161 (the dated archives), 184-193
    (wordiply's `custom_base`). Each explains keys that are gone. Same
    disposition as #2.
-4. **`dbResult.ts:36-39` is an empty section header** ("The shapes") left behind
-   when the types moved to `envelope.ts`.
+4. ~~**`dbResult.ts` has an empty section header**~~ ("The shapes") left behind
+   when the types moved to `envelope.ts`. **Fixed** — deleted.
 
 Nothing in the comments contradicted the docs on substance, which is the result
 step 1 was looking for: the long comments and `docs/envelopes.md` agree, and the
