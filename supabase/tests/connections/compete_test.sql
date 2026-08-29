@@ -259,15 +259,11 @@ select is(
 -- Surviving player tries to submit after the race ended; the
 -- play_state guard rejects.
 select pg_temp.as_user('cade3333-3333-3333-3333-333333333333');
-select throws_ok(
-  format(
-    $$ select connections.submit_guess(%L::uuid,
-                                     array['ALPHA','ANGEL','APPLE','ARROW']::text[],
-                                     'correct', 0) $$,
-    (select id from g)
-  ),
-  'P0001',
-  'game-not-in-play|',
+select pg_temp.envelope_is(
+  connections.submit_guess((select id from g),
+                           array['ALPHA','ANGEL','APPLE','ARROW']::text[], 'correct', 0),
+  '{"type":"not-ok","severity":"race","dbcode":"PN245",
+    "message":"Game over"}'::jsonb,
   'submit_guess (compete): post-win opponent submit is rejected'
 );
 
@@ -315,15 +311,11 @@ select is(
 
 -- Eliminated bea tries to submit → rejected.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select throws_ok(
-  format(
-    $$ select connections.submit_guess(%L::uuid,
-                                     array['ALPHA','BANANA','CASTLE','DAGGER']::text[],
-                                     'wrong', null) $$,
-    (select id from g2)
-  ),
-  'P0001',
-  'eliminated|',
+select pg_temp.envelope_is(
+  connections.submit_guess((select id from g2),
+                           array['ALPHA','BANANA','CASTLE','DAGGER']::text[], 'wrong', null),
+  '{"type":"not-ok","severity":"race","dbcode":"PN251",
+    "message":"Out of mistakes"}'::jsonb,
   'submit_guess (compete): eliminated player''s submit is rejected'
 );
 

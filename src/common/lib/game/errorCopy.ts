@@ -152,13 +152,6 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   // the in-game "New game". `info`, because nobody did anything wrong.
   //
 
-  // ── connections ──
-  // Elimination is connections' own end-state — four mistakes and you're out —
-  // and in coop the mistake budget is SHARED, so a teammate's fourth wrong
-  // guess can eliminate the team while your submit is in flight. `info`: it's
-  // the state of the game, not a complaint about the guess.
-  'eliminated': { text: () => 'Out of mistakes', tone: 'noted' },
-
   // ── waffle ──
   // A shared coop grid with a shared swap budget, so both are lost races: a
   // teammate spent the last swap, or solved it, while your swap was in flight.

@@ -30,6 +30,7 @@ set search_path = connections, common, public, extensions;
 select plan(21);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 -- ============================================================
@@ -54,15 +55,13 @@ select (connections.create_game(
 -- (1) Wrong tile count is rejected
 -- ============================================================
 
-select throws_ok(
-  format(
-    $$ select connections.submit_guess(%L::uuid,
-                                     array['ALPHA','ANGEL','APPLE']::text[],
-                                     'wrong', null) $$,
-    (select id from g)
-  ),
-  'P0001',
-  'bad-selection|3|',
+-- A converted RPC does not THROW its own refusals — it catches them and answers
+-- with an envelope, so these read the answer instead of catching an exception.
+select pg_temp.envelope_is(
+  connections.submit_guess((select id from g),
+                           array['ALPHA','ANGEL','APPLE']::text[], 'wrong', null),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN247",
+    "message":"A guess must be four tiles"}'::jsonb,
   'submit_guess: 3-tile guess is rejected'
 );
 
@@ -70,15 +69,11 @@ select throws_ok(
 -- (2) Bad result enum is rejected
 -- ============================================================
 
-select throws_ok(
-  format(
-    $$ select connections.submit_guess(%L::uuid,
-                                     array['ALPHA','ANGEL','APPLE','ARROW']::text[],
-                                     'banana', null) $$,
-    (select id from g)
-  ),
-  'P0001',
-  'bad-result|banana|',
+select pg_temp.envelope_is(
+  connections.submit_guess((select id from g),
+                           array['ALPHA','ANGEL','APPLE','ARROW']::text[], 'banana', null),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN248",
+    "message":"That guess was not one we recognize"}'::jsonb,
   'submit_guess: bogus result enum is rejected'
 );
 
@@ -86,15 +81,11 @@ select throws_ok(
 -- (3) result='correct' requires a rank
 -- ============================================================
 
-select throws_ok(
-  format(
-    $$ select connections.submit_guess(%L::uuid,
-                                     array['ALPHA','ANGEL','APPLE','ARROW']::text[],
-                                     'correct', null) $$,
-    (select id from g)
-  ),
-  'P0001',
-  'bad-category-rank|',
+select pg_temp.envelope_is(
+  connections.submit_guess((select id from g),
+                           array['ALPHA','ANGEL','APPLE','ARROW']::text[], 'correct', null),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN249",
+    "message":"A correct guess did not name its category"}'::jsonb,
   'submit_guess: correct without matched_category_rank is rejected'
 );
 

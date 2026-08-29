@@ -748,7 +748,7 @@ identifier — a shape nothing has exercised yet.
 - [x] `create_game` · RPC (3 call sites)
 - [x] `next_puzzle_for_club` · RPC (2 call sites)
 - [x] `puzzle_for_date` · RPC
-- [ ] `submit_guess` · RPC
+- [x] `submit_guess` · RPC
 - [ ] `games` · read (2 call sites)
 - [ ] `guesses` · read (2 call sites)
 - [ ] `players` · read

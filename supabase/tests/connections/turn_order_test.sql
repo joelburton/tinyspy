@@ -20,6 +20,7 @@
 begin;
 set search_path = connections, common, public, extensions;
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 select plan(9);
@@ -52,11 +53,14 @@ select is(
 
 -- (2) bea guessing out of turn is rejected.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select throws_ok(
-  format($$ select connections.submit_guess(%L::uuid,
-             array['ALPHA','ANGEL','APPLE','ARROW']::text[], 'wrong', null) $$,
-         (select id from g)),
-  'PN243', 'Not your turn',
+-- submit_guess CATCHES the helper's raise now, so this reads the envelope
+-- rather than catching an exception. `_require_turn` still raises — helpers
+-- raise, RPCs catch at their own boundary (docs/envelopes.md).
+select pg_temp.envelope_is(
+  connections.submit_guess((select id from g),
+                           array['ALPHA','ANGEL','APPLE','ARROW']::text[], 'wrong', null),
+  '{"type":"not-ok","severity":"race","dbcode":"PN243",
+    "message":"Not your turn"}'::jsonb,
   'turns: the non-current player is rejected'
 );
 

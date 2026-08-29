@@ -199,7 +199,7 @@ The only mid-game action. Validates the payload shape (4 tiles, valid result enu
 **Opt-in turn-by-turn coop.** The coop sibling supports the common turn-order primitive (setup `coop_style = 'turns'`): after the lock + caller resolution `submit_guess` gates on `common._require_turn`, and calls `common._advance_turn` on the **two coop non-terminal continue paths** — a fresh correct guess that didn't win, and a fresh wrong/one-away that didn't lose. It deliberately does **not** advance on the dup-race no-op (a `correct` whose row was swallowed by the partial-unique constraint) — a no-op move must not consume anyone's turn. Both a correct and a wrong guess are budget-consuming, so both hand off. See [common.md → Turn-order](../common.md#turn-order--opt-in-turn-by-turn-for-coop-games).
 
 **Compete branch:**
-- Caller eliminated check (`connections.players.mistake_count >= 4` for caller) raises P0001 'you are eliminated from this game'.
+- Caller eliminated check (`connections.players.mistake_count >= 4` for caller) answers `not-ok` / `race`, "Out of mistakes" — your own fourth mistake landed and the row saying so hadn't reached this client.
 - `correct` → insert a row with `mode='compete'` (partial unique on `(game_id, user_id, matched_category_rank)` filtered to `result='correct' AND mode='compete'` catches same-player dup-races; different players can match the same rank, each gets their own row); count caller's correct rows; 4 → `play_state='won_compete'`, caller `{won: true}`, opponents `{won: false}`. Race ends instantly — survivors with remaining lives no longer get to submit.
 - `wrong` / `oneAway` → insert row; UPDATE only the caller's `connections.players` row; then `connections._maybe_finish_compete` — the terminal check shared with `connections.concede` — ends the game only when NO player is still alive (alive = not conceded AND `mistake_count < 4`): `play_state='lost_compete'`, all `{won: false}`, with `status.outcome = 'conceded'` when every player conceded and `'mistakes'` otherwise (somebody played it out). Caller-just-eliminated-but-others-alive lets the game continue.
 
@@ -207,7 +207,24 @@ The only mid-game action. Validates the payload shape (4 tiles, valid result enu
 
 The PL/pgSQL **does not re-evaluate** the guess against `board.categories` — that's the FE-knows trade, preserved in both modes (see [the FE-knows section](#the-fe-knows-the-answer-decision) above for the cheating-incentive note that's specific to compete).
 
-Reject reasons: not authenticated; not a club member; play_state ≠ playing; tile count ≠ 4; bad result enum; missing or out-of-range `matched_category_rank` when result is correct; (compete only) caller is eliminated.
+**What it answers.** [An envelope](../envelopes.md), and one call can answer three ways:
+
+| | | |
+|---|---|---|
+| the move landed, or nothing changed | `ok` | a duplicate — a peer took the rank first, or the same 4-tile set was already guessed — is `ok` with nothing to say: the call ran, and the board already shows the answer |
+| `PN245` "Game over" | `race` | a teammate ended it while your guess was in flight |
+| `PN246` "Already conceded" | `race` | your own concede landed first |
+| `PN251` "Out of mistakes" | `race` | your own fourth mistake landed |
+| `PN243` "Not your turn" | `race` | from `common._require_turn`; a stale tab or a deaf window |
+| `PN244` "That game no longer exists" | `fault` | nothing to race against |
+| `PN247` "A guess must be four tiles" | `fault` | the board only ever selects four |
+| `PN248` "That guess was not one we recognize" | `fault` | `result` comes from the FE's own evaluator |
+| `PN249` "A correct guess did not name its category" | `fault` | ditto |
+| `PN250` "You are not in this game" | `fault` | `create_game` seeds the row |
+
+The three races are the ones the FE cannot gate, because each turns on state only the server has and realtime may not have delivered yet ([envelopes.md → What makes a race legitimate](../envelopes.md)). Everything else is a fault: the frontend prevents it, so its arrival means a broken client.
+
+Still old-style: `common.require_game_player`'s "not a player" / "not authenticated", which arrive as **raw** faults until that helper converts with its 95 callers.
 
 ### `connections.submit_timeout(target_game uuid)`
 

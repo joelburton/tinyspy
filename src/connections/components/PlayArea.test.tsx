@@ -47,6 +47,17 @@ vi.mock('../db', () => ({ db: { rpc: vi.fn() } }))
 
 const rpc = db.rpc as unknown as ReturnType<typeof vi.fn>
 
+/** What `submit_guess` answers on an accepted move. `runRpc` reads the ENVELOPE
+ *  out of `data` now, so a mock resolving `{ error: null }` alone hands it a
+ *  body it can't read and the call site sees a fault. */
+const okEnvelope = {
+  data: {
+    type: 'ok', data: null, outcome: null, severity: null,
+    message: null, field: null, meta: null, dbcode: null, detail: null,
+  },
+  error: null,
+}
+
 /** A minimal 4-category / 16-tile board — enough for the FE to render the grid
  *  and the info-column setup disclosure without crashing. */
 const board: ConnectionsGame['board'] = {
@@ -116,7 +127,7 @@ const twoMembers = [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')]
 beforeEach(() => {
   h.result = loaded()
   rpc.mockReset()
-  rpc.mockResolvedValue({ error: null })
+  rpc.mockResolvedValue(okEnvelope)
 })
 
 describe('connections PlayArea — concede', () => {
@@ -376,7 +387,7 @@ describe('connections PlayArea — selection, identity, and the guess in flight'
   it('dims the guess while it is with the server, then fills the verdict', async () => {
     const user = userEvent.setup()
     // A guess the server hasn't answered yet: hold the RPC open.
-    let answer: (value: { error: null }) => void = () => {}
+    let answer: (value: typeof okEnvelope) => void = () => {}
     rpc.mockReturnValue(new Promise((resolve) => { answer = resolve }))
     h.result = loaded({
       game: game('coop'),
@@ -393,7 +404,7 @@ describe('connections PlayArea — selection, identity, and the guess in flight'
     for (const t of ['a', 'b', 'e', 'i']) expect(tile(t).className).toMatch(/dimInFlight/)
     expect(tile('c').className).not.toMatch(/dimInFlight/)
 
-    answer({ error: null })
+    answer(okEnvelope)
 
     // The answer arrives: the dim lifts and the verdict fills the same four
     // tiles in the tone its pill wears — "Incorrect" is an error in both places.

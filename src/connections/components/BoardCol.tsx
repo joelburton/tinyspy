@@ -1,6 +1,7 @@
 // cs-unmet
 
-import { failureMessage } from '../../common/lib/game/serverError'
+import { getNotOkFeedback } from '../../common/lib/game/genericPills'
+import { runRpc } from '../../common/lib/supabase/dbResult'
 import { useRef, useState } from 'react'
 import { cls } from '../../common/lib/util/cls'
 import type { GenericFeedbackMsg } from '../../common/lib/games'
@@ -248,19 +249,25 @@ export function BoardCol({
     const outcome = evaluateGuess(unionTiles, game.board.categories)
     setSubmitting(true)
     setInFlightTiles(new Set(sent))
-    const { error } = await db.rpc('submit_guess', {
+    const res = await runRpc(db.rpc('submit_guess', {
       target_game: gameId,
       tiles: unionTiles,
       result: outcome.kind,
       ...(outcome.kind === 'correct' ? { matched_category_rank: outcome.rank } : {}),
-    })
+    }))
     setSubmitting(false)
     setInFlightTiles(NO_TILES)
-    if (error) {
-      showLocalFeedback(failureMessage(error, 'guess'))
-      // The server refused the move outright, so the four tiles are still sitting
-      // there un-played — ring them in the error tone the pill took.
-      markVerdict(sent, 'lost')
+    // A guess that isn't taken can be a RACE — a teammate ended the game, your
+    // own concede landed first, your own fourth mistake landed — or a fault.
+    // `getNotOkFeedback` decides how each reads (docs/envelopes.md).
+    if (res.type !== 'ok') {
+      const msg = getNotOkFeedback(res)
+      showLocalFeedback({ ...msg, mode: { kind: 'sticky' } })
+      // The move wasn't taken, so the four tiles are still sitting there
+      // un-played — ring them, following the pill. A race wears the same amber
+      // as the local "You already tried that" above, which is the same kind of
+      // answer arriving by a different route; anything else rings red.
+      markVerdict(sent, msg.tone === 'warning' ? 'warning' : 'lost')
       return
     }
     // Own-result flash in the commit slot, then clear the selection in EVERY case:

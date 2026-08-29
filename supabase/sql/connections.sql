@@ -660,13 +660,14 @@ revoke execute on function connections._maybe_finish_compete(uuid) from public;
 -- as winner; second sees play_state != 'playing' on its read
 -- and raises 'game is not in progress'.
 
+drop function if exists connections.submit_guess(uuid, text[], text, int);
 create or replace function connections.submit_guess(
   target_game uuid,
   tiles text[],
   result text,
   matched_category_rank int default null
 )
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = connections, common, public, extensions
@@ -680,6 +681,7 @@ declare
   matched_count int;
   player_results jsonb;
   winner_name text;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   -- Lock the game row for atomic mistake_count++ and play_state
   -- flips.
@@ -687,7 +689,8 @@ begin
    where connections.games.id = target_game
    for update;
   if not found then
-    raise exception 'game-not-found|' using errcode = 'P0002',
+    raise exception 'That game no longer exists'
+      using errcode = 'PN244', hint = 'fault', column = '_',
       detail = 'no connections.games row for target_game';
   end if;
 
@@ -702,7 +705,11 @@ begin
     from common.games where id = target_game;
 
   if current_play_state <> 'playing' then
-    raise exception 'game-not-in-play|' using errcode = 'P0001',
+    -- A race: a teammate ended the game (or it timed out) while this guess was
+    -- in flight. The FE hides the board at terminal, so the only way here is a
+    -- client that has not heard yet.
+    raise exception 'Game over'
+      using errcode = 'PN245', hint = 'race', column = '_',
       detail = 'play_state is not an active state';
   end if;
 
@@ -712,7 +719,8 @@ begin
   -- complete the win condition and be recorded the winner.
   if (select conceded from common.game_players
         where game_id = target_game and user_id = caller_id) then
-    raise exception 'you-conceded|' using errcode = 'P0001',
+    raise exception 'Already conceded'
+      using errcode = 'PN246', hint = 'race', column = '_',
       detail = 'caller already dropped out of this compete race';
   end if;
 
@@ -730,24 +738,24 @@ begin
   -- payloads (lengths, enum values) so the data we persist is at
   -- least well-typed.
   if tiles is null or array_length(tiles, 1) <> 4 then
-    raise exception 'bad-selection|%|',
-                    coalesce(array_length(tiles, 1), 0)
-      using errcode = 'P0001',
-      detail = 'a guess is exactly 4 tile ids';
+    raise exception 'A guess must be four tiles'
+      using errcode = 'PN247', hint = 'fault', column = '_',
+      detail = format('a guess is exactly 4 tile ids; got %s',
+                      coalesce(array_length(tiles, 1), 0));
   end if;
 
   if result not in ('correct', 'oneAway', 'wrong') then
-    raise exception 'bad-result|%|', result
-      using errcode = 'P0001',
-      detail = 'result must be correct, oneAway or wrong';
+    raise exception 'That guess was not one we recognize'
+      using errcode = 'PN248', hint = 'fault', column = '_',
+      detail = format('result must be correct, oneAway or wrong; got %L', result);
   end if;
 
   if result = 'correct' then
     if matched_category_rank is null
        or matched_category_rank not between 0 and 3 then
-      raise exception 'bad-category-rank|'
-        using errcode = 'P0001',
-      detail = 'a correct guess must name a category rank 0..3';
+      raise exception 'A correct guess did not name its category'
+        using errcode = 'PN249', hint = 'fault', column = '_',
+        detail = 'a correct guess must name a category rank 0..3';
     end if;
   end if;
 
@@ -758,7 +766,8 @@ begin
   if caller_mistakes is null then
     -- require_game_player passed but there's no players row;
     -- shouldn't happen since create_game seeds them. Defensive.
-    raise exception 'not-a-player|' using errcode = 'P0002',
+    raise exception 'You are not in this game'
+      using errcode = 'PN250', hint = 'fault', column = '_',
       detail = 'no connections.players row for the caller';
   end if;
 
@@ -766,8 +775,11 @@ begin
   -- whole game would already be terminal at mistake_count=4, so
   -- the play_state guard above catches it.)
   if g_row.mode = 'compete' and caller_mistakes >= 4 then
-    raise exception 'eliminated|'
-      using errcode = 'P0001',
+    -- A race: your own fourth mistake landed and the row saying so has not
+    -- arrived — milliseconds usually, unbounded in a deaf window, permanent in
+    -- a stale second tab.
+    raise exception 'Out of mistakes'
+      using errcode = 'PN251', hint = 'race', column = '_',
       detail = 'this player is out on mistakes';
   end if;
 
@@ -782,7 +794,10 @@ begin
       values
         (target_game, caller_id, tiles, result, matched_category_rank, g_row.mode);
     exception when unique_violation then
-      return;
+      -- `ok`, not `not-ok`: the call ran and the rank was already taken — in
+      -- coop by a peer, in compete by this player twice — so nothing changed
+      -- and the board already shows the answer.
+      return common.ok_envelope();
     end;
 
     -- Persist the caller's own found count to their (public) players row so a
@@ -879,7 +894,7 @@ begin
       end if;
     end if;
 
-    return;
+    return common.ok_envelope();
   end if;
 
   -- ─── Wrong / oneAway: cost a mistake ─────────────────────
@@ -901,7 +916,9 @@ begin
        and (g_row.mode = 'coop' or gu.user_id = caller_id)
        and gu.tiles @> submit_guess.tiles and gu.tiles <@ submit_guess.tiles
   ) then
-    return;
+    -- `ok` for the same reason as the correct branch's dup above: the call ran
+    -- and nothing changed.
+    return common.ok_envelope();
   end if;
 
   insert into connections.guesses
@@ -978,6 +995,16 @@ begin
       perform common.update_state(target_game, 'playing', '{}'::jsonb);
     end if;
   end if;
+
+  return common.ok_envelope();
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
