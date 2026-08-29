@@ -399,8 +399,11 @@ Server-side conventions
   through an RPC. Reads are the only thing RLS grants directly.
 - Authorization gates: `common.require_game_player` for moves,
   `common.require_club_member` for viewing-adjacent actions
-  (`set_current_view`, `tick_timer`);
-  errcode `42501` for authz failures, `P0001` for validation.
+  (`set_current_view`, `tick_timer`).
+- **Errcodes.** A converted RPC raises `PA###` / `PN###` and catches its own
+  raise — [envelopes.md → How SQL builds one](envelopes.md). An unconverted one
+  still uses `42501` for authz failures and `P0001` for validation, which is the
+  old scheme; **write a new raise the new way.**
 - **Every mid-game mutation locks the game row** (`select … for update`)
   to serialize concurrent moves — across all games (codenamesduet,
   psychicnum, connections, waffle ×4, bananagrams ×3, scrabble ×3, …).
@@ -426,6 +429,22 @@ of a FunctionsHttpError's read-once body. `useStandardGameActions` builds
 the End/Concede/Replay handlers on top.
 
 ## Server errors: the server raises a KEY, TypeScript owns the words
+
+> ### ⚠ THIS SECTION DESCRIBES THE SYSTEM BEING REPLACED
+>
+> Everything below is **the old system**, and it is still what most of the app
+> runs on — which is the only reason it is still here. A **converted** call site
+> works nothing like this: the server writes the player's sentence, there is no
+> key and no lookup table, and the shape is
+> [an envelope](envelopes.md). **[docs/envelopes.md](envelopes.md) is
+> canonical; where the two disagree, this section is the one that is out of
+> date.**
+>
+> It is kept, marked, rather than deleted because it is **how to read an
+> unconverted RPC** — 106 of 146 call sites on the roster
+> ([plans/error-system.md](../plans/error-system.md) §7) still raise keys, and
+> converting one means understanding what it does today. **Delete this whole
+> section when that roster empties.**
 
 **No `raise exception` anywhere in `supabase/sql/` writes a sentence for a
 player.** It raises a machine-shaped key; the frontend decides what, if
@@ -503,8 +522,10 @@ The `key|detail1|detail2|` format is called an **fe-error-key**, and as of
 2026-08-12 **every edge function returns its errors as one** — the same
 contract SQL raises follow, extended over the second server surface:
 
-- The envelope is `{ error: '<fe-error-key>', code?: '<SQLSTATE>' }` with the
-  usual HTTP statuses. `code` is present whenever the error came from the DB
+- The body is `{ error: '<fe-error-key>', code?: '<SQLSTATE>' }` with the
+  usual HTTP statuses. (It was called an *envelope* here until that word was
+  given a precise and different meaning — see [envelopes.md](envelopes.md).)
+  `code` is present whenever the error came from the DB
   (the create_game / context-RPC relays pass it through), restoring what
   functions-js strips in transit.
 - Each function's catch-all wraps as `edge-internal|<message>|`

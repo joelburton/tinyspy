@@ -255,9 +255,63 @@ the boundary still answers in one shape. A helper cannot return an envelope
 without every caller having to check and re-return it.
 
 **The SQLSTATE says which branch.** `PA###` produces an `ok`; `PN###` produces a
-`not-ok`. Digits are allocated max+1 and never reused, so a gap means a raise
-was deleted and its code is retired. `src/guards/raiseCodes.test.ts` reads the
-SQL and the edge functions together, since both draw from one sequence.
+`not-ok`. `src/guards/raiseCodes.test.ts` reads the SQL and the edge functions
+together, since both draw from one sequence.
+
+```
+P A 0 4 2               P N 5 0 7
+│ │ └─┴─┴── unique id, 000–999
+│ └──────── A = this raise becomes `type: ok`
+│           N = this raise becomes `type: not-ok`
+└────────── P = ours
+```
+
+`P0` is PL/pgSQL's own class (`P0001` raise_exception, `P0002` no_data_found),
+which is why ours are `PA` / `PN`: a code from anywhere else can never be
+mistaken for one of ours. **We never reuse a Postgres code**, even where one fits
+semantically — a condition resembling `unique_violation` still gets a `PN###`,
+so "did we raise this, or did the database?" is answered by the prefix alone.
+
+**The digits encode nothing** — no families, no ranges to remember. They are a
+unique ID, so a code in a bug report leads to exactly one line of SQL.
+
+**Unique per raise SITE, not per condition.** `game-not-found` is raised 88
+times and `game-not-in-play` 57; per-condition numbering would send you to 88
+lines, per-site to one. The cost is that one condition wears many codes, so
+"find every game-not-found" is a grep on the message prose. **A helper's code is
+shared by all its callers, and that is fine**: `common.require_club_member`
+raises the same code through `delete_game` and `send_message`, because the code
+answers *what happened* and the diagnostics line answers *which call*.
+
+**Allocating one: `max + 1` for that class, never filling gaps.** A reused number
+means an old bug report — "it said PA003" — later points at a different
+condition, and gaps cost nothing against 1,000 slots per class. The regex is the
+whole allocator:
+
+```sh
+grep -rhoE '\bP[AN][0-9]{3}\b' supabase/sql supabase/functions | sort -u
+```
+
+`raiseCodes.test.ts` prints the next free number of each class on every run, so
+the same regex serves the guard and a by-hand check. It enforces shape and
+uniqueness, **not contiguity**. What it asserts:
+
+1. Every raise carries an errcode matching `^P[AN][0-9]{3}$`. **The shape check
+   matters most**, because a malformed errcode does not fail loudly: Postgres
+   accepts a *condition name* in that slot, so `PU00-` is looked up as a name and
+   comes back as `42704 undefined_object` — a plausible-looking code on the raw-fault
+   route rather than obvious garbage.
+2. Every code appears exactly once across the whole app.
+3. Every `PA` raise's HINT is an `outcome`; every `PN` raise's HINT is a severity.
+4. That the outcome vocabulary equals `GenericFeedbackTone` minus `error` — the
+   SQL↔TypeScript link, which is the assertion that actually rots unguarded.
+
+**Errcodes stay bare literals.** `errcode = case when g.mode = 'coop' then …` is
+legal SQL and would blind the guard exactly where the interesting classification
+lives; a condition that classifies differently per mode gets written as two
+raises in an `if/else`. And the guard can check that a severity is well-formed,
+never that it is *right* — whether a given raise is really a fault is the
+author's judgment, and no test can second-guess it.
 
 **Each `RAISE` clause carries exactly one thing:**
 
@@ -320,3 +374,118 @@ same `Envelope` the frontend uses. That type lives in its own module
 `dbResult.ts` reaches the browser client and cannot cross. The builders write
 every key out rather than spreading a shared constant, so a new key is a compile
 error there too.
+
+## How the frontend receives one
+
+**Three populations, three shapes, and the shape says who authored the
+failure:**
+
+| shape | means | treated as |
+|---|---|---|
+| an **envelope** | we wrote this outcome down — someone named the condition and wrote a sentence for it | whatever `type` / `severity` says |
+| the **raw Postgres/PostgREST shape** (`{code, message, details, hint}`) | nobody anticipated it — a constraint violation, a missing function, a deadlock, permission denied | always a fault |
+| **no reply at all** | environmental — offline, server down, dead edge container | always a fault |
+
+**Nomenclature: a "raw fault" is one that arrives in Postgres's own shape**, as
+opposed to a **declared fault**, which arrives as an envelope with `severity:
+fault`. Both look identical to a player and are completely different to debug: a
+declared fault has a named condition and a written reason, a raw fault has
+neither. The term is worth using in code, comments and conversation. An earlier
+draft made the fault test "is there an envelope", which put the faults we *did*
+anticipate on the same side as the ones nobody ever thought about.
+
+**Where the envelope comes from when the server didn't send one.** `runRpc`,
+`runEdgeFn` and `readRows` in `src/common/lib/supabase/dbResult.ts` each hand
+back an `Envelope`, building one in the same shape when the call errored, never
+completed, or answered with something unreadable. So a call site has one thing
+to read no matter what happened, and a **read** — which never authors a `not-ok`
+of its own — branches like everything else.
+
+**Faults are presented centrally, and a call site never words a failure.** Two
+layers split the job by what each can see:
+
+- **`dbFetch`** is installed as the client's `global.fetch` (`supabase.ts`), so
+  every PostgREST request, table read, edge function and auth call passes
+  through it. It owns the two failures with no body worth reading: **nothing
+  answered** (environmental) and **a non-2xx** (a raw fault — it clones the
+  response and parses Postgres's shape out of it). Both are logged and shown.
+  Two deliberate exceptions are logged but never presented: an **abort**, which
+  is us canceling our own request, and Supabase's **own auth endpoints**, which
+  the sign-in screen speaks for.
+- **`runRpc` / `runEdgeFn` / `readRows`** own everything that arrives HTTP 200,
+  because the meaning is in the body. A `severity: fault` gets the modal here;
+  everything else gets its `[db]` line. `dbFetch` stays quiet on an RPC's 2xx
+  rather than printing an `OK` directly above a line contradicting it.
+
+One diagnostic falls out of the split: **a `PA`/`PN` code arriving in the raw
+shape is always a bug of ours.** Our codes are meant to arrive 200 inside an
+envelope, so one beside a 4xx means the RPC that raised it has no handler to
+catch it — during the rollout, an unconverted RPC calling a converted helper.
+
+**What reaches a call site is then only what it has an opinion about**: an `ok`,
+or a `not-ok` it renders with `getNotOkFeedback`. A declared fault still arrives
+— one shape, always — but the modal is already up, so there is nothing left to
+render. The one `if` that stays is a caller noticing it didn't get data so it
+can clear a `busy` flag or roll back an optimistic write: a bail-out, not a
+decision, needing no error vocabulary at all.
+
+### The environmental sentences
+
+The frontend authors exactly two sentences, and they are the only ones it
+authors at all — for the one failure where the server never spoke, so no author
+could have written for it. Which of the two applies turns on `navigator.onLine`.
+
+**They are generic and name no action**, and that is a correctness rule rather
+than a simplicity one: **an environmental failure cannot tell you whether the
+move landed.** The connection can die on the way *back*, after the write
+committed, so "Your guess didn't send" would be a confident false statement in
+the one moment a player most needs the truth. "Refresh and try again" is the
+right instruction for the same reason — refreshing reveals the real state before
+a retry can double-apply. Which call it was rides in the diagnostics line
+instead, free, where the request path already is.
+
+### The `[db]` line
+
+One format and one builder, for the console **and** for the diagnostics under a
+fault modal or an `<ErrorPage>` — the second is the first minus the trailing
+`msg=`, since those surfaces already lead with the message. Built once and
+shared, so screen and log carry the same timestamp as well as the same fields.
+
+```
+[db] 05:41:12.204 | FAULT | POST /rest/v1/rpc/delete_game | severity=fault | outcome= | dbcode=PN012 | status=200 | ms= | field=_ | detail="caller is not in common.club_members for this club" | msg="You are not a member of this club"
+```
+
+**Every field prints every time**, empty after the `=` when there is nothing to
+say, so a fact is always in the same position and a blank is itself information:
+no `dbcode` means nothing raised, no `status` means the server never answered.
+`call` is never blank.
+
+The level is the first word and picks the console method, so a line's level and
+its severity cannot disagree:
+
+| level | method | is |
+|---|---|---|
+| `FAULT` | `console.error` | a bug |
+| `ERROR` | `console.warn` | an outage |
+| `SLOW` | `console.warn` | a call over the threshold that still worked |
+| `VALIDATION` | `console.debug` | the values you sent |
+| `OK` | `console.debug` | it worked |
+
+The three quiet levels are why every call can be logged without drowning
+anything — the browser's own level filter is the volume control, and no custom
+verbose flag is needed.
+
+**A `not-ok` that is not a fault is logged too**, at `warn`. The old rule was
+"expected rejections are NOT logged", which makes a MISCLASSIFIED bug completely
+silent: if "already deleted" starts firing on every click because something
+broke, nothing anywhere says so. One line keeps that visible without putting a
+modal in anyone's way, and tagging by level keeps real faults from being buried
+among them.
+
+`SLOW` is the one line about the REQUEST rather than an answer, and it carries
+fewer fields on purpose: it is written before the body is read, so printing
+`dbcode=` would say the response carried no code when the truth is that nobody
+looked. Omitted beats empty.
+
+`[db]` is its own console channel beside `[rt]` (realtime) and `[ui]`, so
+filtering to it gives every database call and nothing else.

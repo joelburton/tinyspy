@@ -60,18 +60,18 @@ The **same pill serves both feedback areas** — two role phrases we use consist
 **API on `GamePageCtx`:**
 
 ```ts
-type FeedbackTone = 'success' | 'error' | 'warning' | 'neutral' | 'info' | 'near'
-//                                       ▲ amber — "important, but not good/bad"
-//                                         (a hint asked for, an opponent's progress);
-//                                         'near' = a near-miss (connections' "one away"),
-//                                         amber-adjacent — may share warning's color for now.
-//   A deliberately semantic set: some tones collapse to one color today, but the
-//   names stay distinct so we can re-color them independently later.
+// The seven tones, and what each means, are in docs/outcomes.md — the same
+// vocabulary a board, a tile and a server result reach for. Six of them are
+// the `Outcome` type; `error` is the one a result can never carry.
+type GenericFeedbackTone =
+  'won' | 'lost' | 'near' | 'warning' | 'neutral' | 'noted' | 'error'
 
-type FeedbackMsg = {
-  tone: FeedbackTone
-  text: string
-  dot?: string                          // leading player-color disc (from colorVarFor) — identity anchor for peer messages
+type GenericFeedbackMsg = {
+  tone: GenericFeedbackTone
+  text: ReactNode                       // usually a string; a node so a message can embed an inline icon
+  dot?: string | null                   // leading player-color disc — identity anchor for peer messages (null = the neutral fallback; absent = none)
+  fault?: true                          // bare red text, not a pill — see Faults below. Never authored by hand
+  diagnostics?: string                  // the `[db]` line the fault modal shows; travels with `fault`
   mode:                                 // what KIND of message — decides both behavior AND look
     | { kind: 'sticky' }                // until replaced, or the player acts (key / tile / tap the pill)
     | { kind: 'timed'; ms?: number }    // self-dismisses after the delay; a tap kills it early
@@ -80,7 +80,7 @@ type FeedbackMsg = {
 }
 
 feedback: {
-  show: (msg: FeedbackMsg) => void
+  show: (msg: GenericFeedbackMsg) => void
   clear: () => void
 }
 ```
@@ -121,13 +121,16 @@ easier: *"did a box pop up?"* separates **"the game refused my move"** from
 Three lines (Joel's spec, 2026-08-13):
 
 1. **"Error"**, red.
-2. **The message** — the classifier's words: `ERROR_COPY`'s sentence when the
-   key has copy on a fault surface, the raw `action|key|detail|` otherwise,
-   the transport line (`word: Server; try refresh`) when nothing answered.
-3. **The diagnostics**, small and muted — everything we know (action,
-   fe-error-key, SQLSTATE, HTTP status, DETAIL, raw text, timestamp): the
-   SAME string the `[db]` console line carries, from one shared builder
-   (`faultBits` in serverError.ts), so screen and log can never drift.
+2. **The message** — never written here. On a **converted** call it is the
+   envelope's own `message`, the sentence the RPC author wrote at the raise
+   ([envelopes.md](envelopes.md)); where nothing answered, it is one of the
+   two environmental sentences the frontend owns. On an **unconverted** one it
+   is still `ERROR_COPY`'s sentence, or the raw `action|key|detail|`.
+3. **The diagnostics**, small and muted — everything we know (the call, the
+   severity, SQLSTATE, HTTP status, DETAIL, timestamp): the SAME string the
+   `[db]` console line carries, from one shared builder, so screen and log can
+   never drift. The format is in
+   [envelopes.md → the `[db]` line](envelopes.md).
 
 Dismissal: the Close button or Esc — backdrop clicks are deliberately inert
 (see-and-acknowledge). One fault at a time; each fault is its own modal
@@ -140,11 +143,15 @@ modal, on every surface; expected rejections, validation, and answers stay
 where they are.* Mechanics:
 
 - **Nothing authors a fault by hand.** `GenericFeedbackMsg.fault` (+ its
-  `diagnostics`) is set only inside
-  [`serverError.ts`](../src/common/lib/game/serverError.ts) — by
-  `failureMessage` when no copy exists for what came back, and by
+  `diagnostics`) is set only by the layer that received the failure — on a
+  converted call, `reportDbFault` in
+  [`dbResult.ts`](../src/common/lib/supabase/dbResult.ts), which raises the
+  modal centrally so no call site classifies anything
+  ([envelopes.md → How the frontend receives one](envelopes.md)); on an
+  unconverted one, [`serverError.ts`](../src/common/lib/game/serverError.ts) —
+  by `failureMessage` when no copy exists for what came back, and by
   `faultMessage` on a fault surface (in-game New game, where nothing that
-  comes back is gameplay) — see
+  comes back is gameplay), described in
   [supabase.md → Server errors](supabase.md#server-errors-the-server-raises-a-key-typescript-owns-the-words).
 - **Routing lives at the sink chokepoints**, not per game:
   `useLocalFeedback.show` and the GamePage global slot send `fault: true`
@@ -472,7 +479,7 @@ not a thing with qualities; the quality *is* the thing. Stated so nobody "fixes"
 
 | bucket | what it answers |
 |---|---|
-| `outcomes-*` | how a move or a game went — won · lost · near · warning · neutral · noted · error |
+| `outcomes-*` | how a move or a game went — the seven families, one per tone ([outcomes.md](outcomes.md) has what each word means) |
 | `gamelist-*` | the state of a game as an object in a list (club cards, the crossword picker) |
 | `button-*` | what kind of action a control offers — normal · success · destructive · caution · quiet — plus the treatment SLOTS a `.primary` / `.secondary` reads |
 | `chrome-*` | the app furniture that isn't a button or a field: fault / cursor / link / caret / badge / definable / floating-control |

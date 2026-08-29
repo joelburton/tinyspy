@@ -336,6 +336,7 @@ These show up as smells when they leak into wide-visibility names (columns, top-
 | `list` | the named collection |
 | `value` | the actual semantic (`score`, `rank`, `count`) |
 | `thing` / `stuff` / `obj` | never (in wide visibility); fine as a 3-line-function local |
+| `copy` (meaning message text) | `text` or `message`. In the literary world `copy` is the right word; among programmers it means *duplicate*, so `hintCopy` reads as a copy OF a hint. **New names say `text` or `message`** — the existing population (`TerminalCopy` / `terminalCopy`, `endedCopy`, `withCopy`, `turnCopy`, `hintCopy`) is a rename nobody has scheduled, and `ERROR_COPY` / `errorCopy.ts` keep their names because they are being deleted outright ([envelopes.md](envelopes.md)) and renaming a corpse is churn |
 
 ## What's in the rest of `docs/`
 

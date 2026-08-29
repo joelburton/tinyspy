@@ -1,0 +1,220 @@
+# The envelope rollout
+
+**Short-lived.** This is the ordering for the prep that has to happen before the
+remaining roster entries in [error-system.md](error-system.md) get converted —
+the docs, the comments, the shared machinery, the retro-fixes. It ships nothing
+a player sees. **Delete this file when step 4 is done**; nothing in it is
+durable, because everything durable lands in `docs/envelopes.md`,
+`docs/outcomes.md`, or the roster.
+
+Why it exists at all: the roster has **101 entries left** and **40 already
+done**. Every hour here is an hour spent not doing the remaining 101 the wrong
+way, and not doing the finished 40 twice.
+
+---
+
+## Decisions already made (do not re-litigate)
+
+- **The severity rename is not a step.** `validation` → `form-validation` and
+  `error` → `service-error` was going to be one atomic commit. It isn't:
+  `Severity` has exactly two consumers in TypeScript (`dbResult.ts:6` and the
+  optional field at `dbResult.ts:142`), and nothing branches on it, so renaming
+  the union's members breaks **zero** files. The 26 SQL raises and the 37 pgTAP
+  files that assert a severity string are not compiled by anything. They convert
+  **as each game comes up on the roster**, inside work already scheduled. A game
+  not yet converted raises the old word, matches no arm, and wears the wrong
+  look until its turn — a not-yet-fixed part not working, which is fine.
+- **The guard goes red, no transition shim.** After the vocabulary commit,
+  `raiseCodes.test.ts` fails listing all unconverted raises by file and code.
+  That is a to-do list that reprints itself on every run and turns green exactly
+  when the sprint ends. A set holding both spellings would have accepted the old
+  word forever and needed its own cleanup commit to close. (This choice rests on
+  the sprint being days, not weeks. If it stretches, revisit.)
+- **`getNotOkFeedback` returns four fields**, not three:
+
+  ```ts
+  /** Turns a `not-ok` envelope into a feedback message minus its `mode`: the tone
+   *  from `outcome` where it carries one and its severity's default where it
+   *  doesn't, the text from `message`, and — for a fault — the `fault` flag and
+   *  `diagnostics` line that route it to the modal instead of the pill. */
+  export function getNotOkFeedback(env: NotOkEnvelope): Omit<GenericFeedbackMsg, 'mode' | 'dot'>
+  ```
+
+  `diagnostics` is the k=v line the fault modal shows, built beside the `[db]`
+  console line so screen and log can't drift; a fault mapped without it loses
+  the modal's diagnostics. `mode` and `dot` are the two the envelope cannot
+  know — permanence belongs to the surface, `dot` is peer identity.
+- **There is no `ok` equivalent, deliberately.** What a successful answer shows
+  is game-specific and no rule has been found there. Recorded in
+  `docs/envelopes.md` as a decision so nobody fills it by inventing one.
+
+---
+
+## Step 1 — reconcile the docs — **DONE 2026-08-28**
+
+What landed, against the findings below:
+
+- **`CLAUDE.md`** gained rows for `envelopes.md`, `outcomes.md` and this file,
+  and its `error-system.md` row no longer calls that plan "the ONLY spec".
+- **`docs/supabase.md` keeps none of the new mechanics** (Q1 → b). Its
+  "Server errors" section is now headed by a marked block saying it describes
+  the system being replaced, kept because it is how to read an unconverted RPC,
+  and **deleted when the roster empties** (Q2 → a). Its RPC-conventions bullet
+  now says a new raise uses `PA###`/`PN###`; the old edge-function `{ error,
+  code }` body is no longer called an "envelope", since that word is taken.
+- **`error-system.md` §3 shrank 634 → ~100 lines.** What moved into
+  `docs/envelopes.md`: the SQLSTATE scheme in full (the allocator, the guard's
+  four assertions, bare-literal errcodes), the three-populations table and the
+  **raw fault vs declared fault** nomenclature, central fault presentation
+  (`dbFetch` vs `runRpc`/`runEdgeFn`/`readRows`, and the `PA`/`PN`-beside-a-4xx
+  diagnostic), the environmental-sentence rule, and the `[db]` line with its
+  level table. What §3 keeps: why the conversion is affordable (the raise
+  census, the savepoint measurement, the CHECK-constraint analysis), the
+  discriminator-vs-verdict conversion rule, the multi-row-RPC split, and what
+  `ERROR_COPY` shrinks to. The "no `copy` for message text" rule went to
+  `docs/naming.md`'s watch list, where §3 itself said it belonged.
+- **`docs/ui.md`** — three corrections, no restructuring: the `FeedbackTone`
+  block declared a vocabulary (`success`, `info`) that no longer exists and is
+  now `GenericFeedbackTone` pointing at `outcomes.md`; the fault modal's message
+  and diagnostics no longer claim to come from `ERROR_COPY` and `faultBits`; the
+  `outcomes-*` bucket row points at `outcomes.md` instead of listing meanings.
+
+**Not done, deliberately:** ui.md wants a thorough sweep at the end of this
+sprint and the CSS one. Only clearly-wrong statements were fixed.
+
+### The original findings
+
+Cheapest thing on the list, and its output is a decision list rather than a
+diff. Three findings are already in hand:
+
+1. **`docs/supabase.md` contradicts the new docs — it does not merely repeat
+   them.** Line 456 describes `ERROR_COPY`'s membership as the live mechanism;
+   line 506 says *"The envelope is `{ error: '<fe-error-key>', code?:
+   '<SQLSTATE>' }`"*. Same word, different shape, stated as current. A reader
+   landing there first learns the old system. **The open question is not
+   "point at envelopes.md" but how much error content supabase.md keeps at
+   all** — it is the RPC-conventions doc, so it plausibly keeps the raise
+   mechanics (the `using` clauses, the per-RPC handler shape) and points for
+   the rest, or keeps none. Either is defensible; two stale paragraphs is the
+   only bad answer.
+2. **`error-system.md` §3 "The shape" is 634 lines** (55–689) and is now the
+   second-best copy of `envelopes.md`. The usual rule — a running sprint's plan
+   outranks the docs — is inverted here, because the sharper version was written
+   into `docs/`. §3 shrinks to a pointer; the plan keeps §4 (still open), §6
+   (process) and §7 (the roster), which a reference doc should not hold.
+3. **`docs/ui.md` is mostly not duplication.** Its 28 hits are nearly all
+   `--outcomes-*` tokens, the seven CSS variants and the pill's border rule —
+   ui.md's own job, and it keeps them. The single overlap is the seven-word list
+   with meanings at line 475. One line to reconcile, not a section.
+
+Also in step 1:
+
+4. **`CLAUDE.md`'s doc table gains two rows.** Neither `envelopes.md` nor
+   `outcomes.md` is listed, so the map every session reads first does not know
+   they exist. That row is most of why step 1 holds at all.
+5. **Read the long comments** (see step 2). Reading them is part of this step,
+   because anything in them that is not in the docs is either a fact the docs
+   still owe or a disagreement — the same product step 1 exists to produce.
+
+---
+
+## Step 2 — shrink the over-explaining comments
+
+The rule: where a comment explains **what an envelope or an outcome is**, it
+becomes a short reminder on the line and the reader goes to the doc. Where it
+explains **what this code does**, it stays — that is the repo's standing
+convention and this does not weaken it.
+
+```ts
+/* multiple paragraphs about what `field` means */   →   field: string | null   // which input; '_' = not one field
+```
+
+Current weight:
+
+| file | lines | comment lines |
+|---|---|---|
+| `src/common/lib/supabase/dbResult.ts` | 537 | 311 |
+| `src/common/lib/game/errorCopy.ts` | 233 | 165 |
+| `supabase/functions/_shared/envelope.ts` | 131 | 63 |
+| `src/common/lib/supabase/envelope.ts` | 102 | 73 |
+| `src/common/lib/outcomes.ts` | 52 | 40 |
+
+**The reading happens in step 1; the editing happens in steps 3 and 4**, as each
+file is touched. Shrinking before step 3 means editing files step 3 rewrites,
+and writing fresh long comments in step 3 that then need shrinking. A short
+sweep at the end covers the files steps 3 and 4 never opened.
+
+**What the step-1 reading found**, beyond length — four defects, each to be
+fixed by the step that opens the file:
+
+1. **`dbResult.ts:353-367`: an orphaned docstring.** It describes `callLabel`
+   ("`METHOD /path` for a query builder") but sits immediately above
+   `runEdgeFn`, which has its own docstring right after it. `callLabel` is 55
+   lines further down with none. Step 3 opens this file.
+2. **`errorCopy.ts` says `info` in five places** (lines 46, 159, 166, 203, 228)
+   where the entries say `noted`. The tone was renamed and the prose was not.
+   Step 4 deletes this file's entries per key, which takes the comments with
+   them — nothing to do beyond not being misled while reading it.
+3. **`errorCopy.ts` has three orphaned comment blocks** left by deleted entries
+   — lines 68-76 (the form raises), 154-161 (the dated archives), 184-193
+   (wordiply's `custom_base`). Each explains keys that are gone. Same
+   disposition as #2.
+4. **`dbResult.ts:36-39` is an empty section header** ("The shapes") left behind
+   when the types moved to `envelope.ts`.
+
+Nothing in the comments contradicted the docs on substance, which is the result
+step 1 was looking for: the long comments and `docs/envelopes.md` agree, and the
+comments are the more detailed of the two by a wide margin — which is exactly
+the imbalance step 2 exists to correct.
+
+---
+
+## Step 3 — the shared machinery
+
+**3a. The vocabulary commit** (small). The `Severity` union's members, the
+helper names in `supabase/functions/_shared/envelope.ts`, and
+`raiseCodes.test.ts:42`'s `SEVERITIES` set. Adds `race`. Renaming the Deno
+helpers breaks their callers at `deno check`, but per edge function, and they
+deploy per function. Everything else stays green; the guard goes red on purpose.
+
+**3b. The additive machinery** — none of it needs a retro-fix to land green:
+
+- the severity → default-appearance resolution, one function, filling `outcome`
+  where it is null, used by `runRpc` / `runEdgeFn` / `readRows`. `[db]` logs
+  what **arrived**, before normalization.
+- `outcome` allowed on the not-ok arm (today typed `outcome: null`), so a site
+  can override the default its severity would give it.
+- `getNotOkFeedback` in `src/common/lib/game/genericPills.ts` — generic, not
+  `localPills.ts`, because a **local** pill is specifically the below-board one
+  about this player and this mapping serves global pills too.
+
+**A new guard belongs here.** Once `getNotOkFeedback` exists, nothing should
+hand-write a tone beside a `runRpc` result, and the severity → default map
+should be total. This is exactly where `--radius-md` rotted while the guarded
+color tokens did not: guard the vocabulary, don't just name it.
+
+---
+
+## Step 4 — retro-fix what is already converted
+
+Two jobs with different costs; don't batch them together.
+
+**Mechanical.** 19 hand-written `tone: 'error'` call sites become
+`getNotOkFeedback`. They are correct today only because every one is a "new
+game" path where every possible answer really is a fault. The first surface
+where one call can answer three ways — `connections.submit_guess`: `ok`, a race,
+or a fault — cannot have that line written by hand, and neither can the fifteen
+boards after it.
+
+**Judgment, per site.** Which already-converted raises are actually races (the
+19 `tone: 'noted'` `ERROR_COPY` entries are the candidates; `hint-in-compete` is
+a fault). And `ERROR_COPY`'s deletion, per key, by the rule in error-system.md
+§3: text → `message` verbatim, membership → severity, tone usually **disappears**
+because severity carries a default appearance.
+
+---
+
+## Then
+
+The roster. `connections.submit_guess` is next, and its classification table is
+already agreed.
