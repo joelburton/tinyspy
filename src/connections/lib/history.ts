@@ -7,7 +7,7 @@
  * snapshot the same way it hands it the live board.
  *
  * connections's board MUTATES: a **correct** guess collapses its 4 tiles into a
- * colored band (they leave the grid); a wrong / oneAway guess leaves the board
+ * colored band (they leave the grid); a wrong / one-away guess leaves the board
  * unchanged. That makes it the removal-style twin of stackdown (a guess "consumes"
  * tiles into a band like stackdown clears a word off the stack) — so this uses the
  * same **strictly-before** boundary: the snapshot for the turn at `index` shows the
@@ -26,6 +26,7 @@
  */
 import type { Board, Category } from './board'
 import type { GuessRow, MatchedCategory } from '../hooks/useGame'
+import type { GuessOutcome } from './evaluate'
 
 export interface TurnSnapshot {
   /** Bands matched by correct guesses STRICTLY BEFORE this turn (so this turn's own
@@ -36,9 +37,9 @@ export interface TurnSnapshot {
   tiles: string[]
   /** The four tiles this turn guessed — ring + tint them in the outcome color. */
   highlightTiles: Set<string>
-  /** This turn's verdict — drives the highlight color (correct = green / oneAway =
-   *  amber / wrong = red). */
-  outcome: GuessRow['result']
+  /** This turn's verdict — drives the highlight color. An outcome, so the color
+   *  comes from the shared vocabulary rather than a mapping written here. */
+  outcome: GuessOutcome
   /** A short, name-free turn label for the viewer banner (the log row shows *who*). */
   description: string
 }
@@ -58,7 +59,7 @@ export function turnSnapshot(
   const matchedTiles = new Set<string>()
   for (let i = 0; i < index && i < guesses.length; i++) {
     const g = guesses[i]
-    if (g.result !== 'correct' || g.matched_category_rank == null) continue
+    if (!g.matched || g.matched_category_rank == null) continue
     const cat = categoryByRank.get(g.matched_category_rank)
     if (!cat) continue
     matched.push({ rank: cat.rank, name: cat.name, tiles: cat.tiles, matched_at: g.guessed_at })
@@ -70,7 +71,7 @@ export function turnSnapshot(
     matched,
     tiles,
     highlightTiles: new Set(turn?.tiles ?? []),
-    outcome: turn?.result ?? 'wrong',
+    outcome: turn?.outcome ?? 'lost',
     description: describe(turn, board),
   }
 }
@@ -79,13 +80,13 @@ export function turnSnapshot(
  *  carry the NYT-canonical short copy (matching the turn log's `verdictLabel`). */
 function describe(turn: GuessRow | undefined, board: Board): string {
   if (!turn) return 'This turn'
-  if (turn.result === 'correct') {
+  if (turn.matched) {
     const cat =
       turn.matched_category_rank != null
         ? board.categories.find((c) => c.rank === turn.matched_category_rank)
         : undefined
     return cat ? `Matched ${cat.name.toUpperCase()}` : 'Correct'
   }
-  if (turn.result === 'oneAway') return 'One away!'
+  if (turn.outcome === 'near') return 'One away!'
   return 'Not a match'
 }

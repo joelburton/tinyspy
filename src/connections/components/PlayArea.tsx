@@ -229,7 +229,7 @@ export function PlayArea({
     messageFor: (g) => {
       if (g.user_id === session.user.id) return null // mine → local commit flash
       const member = memberById(players, g.user_id)
-      if (g.result === 'correct') {
+      if (g.matched) {
         // NOT the category's name: it's puzzle data of unbounded length (a NYT
         // category can run 25+ chars), and the header pill fits ~26 on a phone
         // before it ellipsises. The solved band appears on the reader's own
@@ -245,11 +245,11 @@ export function PlayArea({
         }
       }
       return {
-        tone: g.result === 'oneAway' ? 'near' : 'lost',
+        tone: g.outcome,
         text: (
           <>
             <ActorDot actor={member} fallback="Someone" />{' '}
-            {g.result === 'oneAway' ? 'was one away' : 'guessed wrong'}
+            {g.outcome === 'near' ? 'was one away' : 'guessed wrong'}
           </>
         ),
         mode: { kind: 'timed' },

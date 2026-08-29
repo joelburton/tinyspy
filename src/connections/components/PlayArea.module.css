@@ -155,17 +155,17 @@
   outline: 3px solid var(--view-history-color);
   outline-offset: 0;
 }
-/* @@ */ .viewedTile_correct {
+/* @@ */ .viewedTile_won {
 /* @@ */   --tile-slot-fill-color: var(--outcomes-won-fill-color);
 /* @@ */   --tile-slot-edge-color: var(--outcomes-won-ink-color);
 /* @@ */   --tile-slot-ink-color: var(--ink-onDark-color);
 }
-/* @@ */ .viewedTile_oneAway {
+/* @@ */ .viewedTile_near {
 /* @@ */   --tile-slot-fill-color: var(--outcomes-near-fill-color);
 /* @@ */   --tile-slot-edge-color: var(--outcomes-near-ink-color);
 /* @@ */   --tile-slot-ink-color: var(--ink-onDark-color);
 }
-/* @@ */ .viewedTile_wrong {
+/* @@ */ .viewedTile_lost {
 /* @@ */   --tile-slot-fill-color: var(--outcomes-lost-fill-color);
 /* @@ */   --tile-slot-edge-color: var(--outcomes-lost-ink-color);
 /* @@ */   --tile-slot-ink-color: var(--ink-onDark-color);

@@ -33,7 +33,7 @@ const guess = (over: Partial<GuessRow> = {}): GuessRow => ({
   id: 'g1',
   user_id: 'u1',
   tiles: ['ALPHA', 'ANGEL', 'APPLE', 'BANANA'],
-  result: 'wrong',
+  outcome: 'lost', matched: false,
   matched_category_rank: null,
   guessed_at: '2026-01-01T00:00:00Z',
   ...over,
@@ -111,14 +111,14 @@ describe('buildConnectionsPrintModel — bands', () => {
 describe('buildConnectionsPrintModel — the log', () => {
   it('names a correct guess by its category LETTER, tying the row to the band', () => {
     const t = team({
-      guesses: [guess({ result: 'correct', matched_category_rank: 2, tiles: CATS[2].tiles })],
+      guesses: [guess({ outcome: 'won', matched: true, matched_category_rank: 2, tiles: CATS[2].tiles })],
     })
     expect(t.turns[0].text).toBe('C: CASTLE · CIRCLE · CLOUD · CROWN')
   })
 
   it('keeps the other two verdicts terse — the move column holds ~38 chars', () => {
     const t = team({
-      guesses: [guess({ result: 'oneAway' }), guess({ id: 'g2', result: 'wrong' })],
+      guesses: [guess({ outcome: 'near', matched: false }), guess({ id: 'g2', outcome: 'lost', matched: false })],
     })
     expect(t.turns[0].text).toMatch(/^1 away: /)
     expect(t.turns[1].text).toMatch(/^miss: /)
@@ -136,9 +136,9 @@ describe('buildConnectionsPrintModel — the log', () => {
 
 describe('buildConnectionsPrintModel — compete splits per player', () => {
   const gs = [
-    guess({ id: 'a', user_id: 'u1', result: 'correct', matched_category_rank: 0, tiles: CATS[0].tiles }),
-    guess({ id: 'b', user_id: 'u2', result: 'correct', matched_category_rank: 2, tiles: CATS[2].tiles }),
-    guess({ id: 'c', user_id: 'u2', result: 'wrong' }),
+    guess({ id: 'a', user_id: 'u1', outcome: 'won', matched: true, matched_category_rank: 0, tiles: CATS[0].tiles }),
+    guess({ id: 'b', user_id: 'u2', outcome: 'won', matched: true, matched_category_rank: 2, tiles: CATS[2].tiles }),
+    guess({ id: 'c', user_id: 'u2', outcome: 'lost', matched: false }),
   ]
 
   it('at terminal: one track per player, each with only their own earned bands', () => {

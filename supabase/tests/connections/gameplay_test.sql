@@ -27,7 +27,7 @@ begin;
 
 set search_path = connections, common, public, extensions;
 
-select plan(21);
+select plan(23);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -106,15 +106,16 @@ select pg_temp.envelope_is(
 -- (5)–(7) Wrong guess: counts as a mistake
 -- ============================================================
 
+-- `lives_ok` said only that it did not throw, which stayed true after the
+-- conversion and would have stayed true if the answer became a race. The
+-- envelope is the claim worth making: the mistake was COUNTED.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select lives_ok(
-  format(
-    $$ select connections.submit_guess(%L::uuid,
-                                     array['ALPHA','BANANA','CASTLE','DAGGER']::text[],
-                                     'wrong', null) $$,
-    (select id from g)
-  ),
-  'submit_guess: wrong call returns without error'
+select pg_temp.envelope_is(
+  connections.submit_guess((select id from g),
+                           array['ALPHA','BANANA','CASTLE','DAGGER']::text[],
+                           'wrong', null),
+  '{"type": "ok", "data": {"result": "lost"}}'::jsonb,
+  'submit_guess: a recorded wrong guess answers ok/lost'
 );
 
 reset role;
@@ -132,20 +133,30 @@ select is(
 -- submit (two players Submit the identical 4 tiles at once); resubmitting in a
 -- DIFFERENT order also pins the order-insensitive comparison.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select lives_ok(
-  format(
-    $$ select connections.submit_guess(%L::uuid,
-                                     array['DAGGER','ALPHA','CASTLE','BANANA']::text[],
-                                     'wrong', null) $$,
-    (select id from g)
-  ),
-  'submit_guess: a repeat wrong guess (reordered) returns without error'
+select pg_temp.envelope_is(
+  connections.submit_guess((select id from g),
+                           array['DAGGER','ALPHA','CASTLE','BANANA']::text[],
+                           'wrong', null),
+  '{"type": "not-ok", "severity": "race", "dbcode": "PN301",
+    "message": "You already tried that"}'::jsonb,
+  'submit_guess: a repeat wrong guess (reordered) is a race'
+);
+
+-- (7c) The THIRD ok answer: a one-away guess is recorded like a wrong one, and
+-- says which verdict it wrote. Pinned because the FE branches on it — nothing
+-- else in the suite reaches this return.
+select pg_temp.envelope_is(
+  connections.submit_guess((select id from g),
+                           array['ALPHA','ANGEL','APPLE','BANANA']::text[],
+                           'oneAway', null),
+  '{"type": "ok", "data": {"result": "near"}}'::jsonb,
+  'submit_guess: a recorded one-away guess answers ok/near'
 );
 reset role;
 select is(
   (select max(mistake_count) from connections.players where game_id = (select id from g)),
-  1,
-  'submit_guess: a repeat wrong guess is a no-op — mistake_count stays 1'
+  2,
+  'submit_guess: the repeat cost nothing; only the one-away above added a mistake'
 );
 
 select is(
@@ -158,12 +169,19 @@ select is(
 -- (8) Correct guess: a result='correct' guesses row lands
 -- ============================================================
 
+-- Asserted rather than called bare: the FE branches on this `result`, and a
+-- guess that wrote NOTHING is a race (PN300 / PN301) — so reaching `matched`
+-- is the claim that the match is durably recorded.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select connections.submit_guess(
-  (select id from g),
-  array['ALPHA','ANGEL','APPLE','ARROW']::text[],
-  'correct',
-  0
+select pg_temp.envelope_is(
+  connections.submit_guess(
+    (select id from g),
+    array['ALPHA','ANGEL','APPLE','ARROW']::text[],
+    'correct',
+    0
+  ),
+  '{"type": "ok", "data": {"result": "won"}}'::jsonb,
+  'submit_guess: a recorded correct guess answers ok/won'
 );
 
 reset role;
@@ -182,14 +200,13 @@ select is(
 -- ============================================================
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select lives_ok(
-  format(
-    $$ select connections.submit_guess(%L::uuid,
-                                     array['ALPHA','ANGEL','APPLE','ARROW']::text[],
-                                     'correct', 0) $$,
-    (select id from g)
-  ),
-  'submit_guess: a repeat correct on the same rank is a silent no-op'
+select pg_temp.envelope_is(
+  connections.submit_guess((select id from g),
+                           array['ALPHA','ANGEL','APPLE','ARROW']::text[],
+                           'correct', 0),
+  '{"type": "not-ok", "severity": "race", "dbcode": "PN300",
+    "message": "That category is already matched"}'::jsonb,
+  'submit_guess: a repeat correct on the same rank is a race'
 );
 
 reset role;

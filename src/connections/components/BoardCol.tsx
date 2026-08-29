@@ -2,6 +2,7 @@
 
 import { getNotOkFeedback } from '../../common/lib/game/genericPills'
 import { runRpc } from '../../common/lib/supabase/dbResult'
+import { showFaultModal } from '../../common/lib/fault/faultStore'
 import { useRef, useState } from 'react'
 import { cls } from '../../common/lib/util/cls'
 import type { GenericFeedbackMsg } from '../../common/lib/games'
@@ -14,7 +15,7 @@ import { StrikeMarks } from '../../common/components/game/StrikeMarks'
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
 import { usePhone } from '../../common/hooks/ui/usePhone'
 import { db } from '../db'
-import { evaluateGuess, sameTileSet } from '../lib/evaluate'
+import { evaluateGuess, sameTileSet, RESULT_FOR_OUTCOME, type GuessOutcome } from '../lib/evaluate'
 import { reconcileLocalOrder, shuffleTiles } from '../lib/localOrder'
 import { stickyPill, terminalPill, outOfRacePill } from '../../common/lib/game/localPills'
 import type { ConnectionsGame, GuessRow, MatchedCategory } from '../hooks/useGame'
@@ -50,6 +51,18 @@ const NO_TILES: ReadonlySet<string> = new Set()
  * `showLocalFeedback` / `clearLocalFeedback` write the shared below-board channel,
  * which InfoCol's End / Concede also write). See docs/playarea.md.
  */
+/**
+ * What `connections.submit_guess` puts in `data`: the verdict it RECORDED.
+ *
+ * The frontend adjudicates the guess itself (`evaluateGuess`, the FE-knows
+ * model) and sends its answer up, so this tells it nothing new — but a call
+ * site may not pick an `ok` branch by reading its own local value back
+ * (docs/envelopes.md → Choosing which `ok` branch), so each recorded verdict is
+ * its own answer. A guess that wrote NOTHING is not here at all: it comes back
+ * as PN300 or PN301, both races.
+ */
+type GuessAnswer = { result: GuessOutcome }
+
 export function BoardCol({
   // ── Board to render (live OR a historical snapshot — PlayArea picks via `snap`) ──
   game,
@@ -183,23 +196,35 @@ export function BoardCol({
     setVerdict({ tiles: new Set(tiles), tone, nonce: verdictSeq.current })
   }
 
-  // THE LOG IS THE VERDICT'S CLOCK. My answer is about a position, and two things
-  // end that position without me touching anything:
+  // ─── When the verdict mark expires ──────────────────────────────────────
   //
-  //   - a RESTART deletes every guess, so the log SHRINKS — the one thing only a
-  //     restart does (the same signal the attention flash reads);
-  //   - a TEAMMATE GUESSES, so the log grows with a row that isn't mine. The board
-  //     has moved on, and a stale mark on it claims to be about the move that just
-  //     happened.
+  // The mark rings four particular tiles, so it is a claim about the board AS IT
+  // WAS. It has no timer: it lives until the board stops being that board, and
+  // the guess log is where that shows up. Two events end it, neither of them
+  // something this player did:
   //
-  // My OWN row landing is neither: it is the tail of the very action that set the
-  // mark, arriving a beat later over realtime, so the newest-row check is by
-  // AUTHOR rather than by count. (A refused duplicate writes no row at all, which
-  // is why this can't just watch for "my row arrived".)
+  //   • a RESTART — every guess is deleted, so the log SHRINKS. Only a restart
+  //     shrinks it, which is what makes the count a reliable signal.
+  //   • a TEAMMATE'S GUESS — the log grows a row somebody else wrote. The board
+  //     has moved on, and a mark still sitting on it now claims to be about the
+  //     move that just happened.
   //
-  // Read during render, so the mark and the board it is about land in one commit —
-  // and read off the LOG rather than `onRestarted`, which fires only on the client
-  // that clicked it. See plans/tile-feedback.md → "Check what a RESTART does".
+  // MY OWN row growing the log is neither of those: it is the tail of the very
+  // action that set the mark, arriving a beat later over realtime. So the test
+  // asks WHO wrote the newest row, not just whether the log changed.
+  //
+  // Two things this deliberately does NOT do:
+  //
+  //   • It does not wait for my own row to arrive as a signal that the guess is
+  //     done — a refused guess (PN300 / PN301) writes no row at all, so that
+  //     signal would never come for exactly the answers worth marking.
+  //   • It does not listen to `onRestarted`, which fires only on the client that
+  //     clicked Restart — everyone else's mark would be stranded.
+  //
+  // Run during RENDER rather than in an effect, so the cleared mark and the
+  // board that cleared it land in the same commit; there is no frame in which a
+  // stale ring is painted over a new board. See plans/tile-feedback.md →
+  // "Check what a RESTART does".
   const newestGuess = guesses.length > 0 ? guesses[guesses.length - 1] : null
   const [seenGuess, setSeenGuess] = useState({
     count: guesses.length,
@@ -246,21 +271,32 @@ export function BoardCol({
       return
     }
 
-    const outcome = evaluateGuess(unionTiles, game.board.categories)
+    const evaluation = evaluateGuess(unionTiles, game.board.categories)
     setSubmitting(true)
     setInFlightTiles(new Set(sent))
-    const res = await runRpc(db.rpc('submit_guess', {
+    // THE OUTBOUND SEAM, the twin of useGame's: the wire word is written here
+    // and nowhere else in the FE. `evaluateGuess` answers in outcomes, the
+    // column stores `connections.guesses.result`, and these two lines are the
+    // whole of the translation between them.
+    const storedResult = RESULT_FOR_OUTCOME[evaluation.outcome]
+    // Only a match names a category. The argument is OPTIONAL rather than
+    // nullable, so the other two verdicts leave it out rather than send null —
+    // which is why this is a spread and not a value.
+    const matchedCategory =
+      evaluation.outcome === 'won' ? { matched_category_rank: evaluation.rank } : {}
+
+    const res = await runRpc<GuessAnswer>(db.rpc('submit_guess', {
       target_game: gameId,
       tiles: unionTiles,
-      result: outcome.kind,
-      ...(outcome.kind === 'correct' ? { matched_category_rank: outcome.rank } : {}),
+      result: storedResult,
+      ...matchedCategory,
     }))
     setSubmitting(false)
     setInFlightTiles(NO_TILES)
     // A guess that isn't taken can be a RACE — a teammate ended the game, your
     // own concede landed first, your own fourth mistake landed — or a fault.
     // `getNotOkFeedback` decides how each reads (docs/envelopes.md).
-    if (res.type !== 'ok') {
+    if (res.type === 'not-ok') {
       const msg = getNotOkFeedback(res)
       showLocalFeedback({ ...msg, mode: { kind: 'sticky' } })
       // The move wasn't taken, so the four tiles are still sitting there
@@ -278,14 +314,25 @@ export function BoardCol({
     // The ring follows the pill's tone, and only where there is something left to
     // ring: a correct guess's four tiles collapse into a band on this very render,
     // so a mark on them would have nothing to land on.
-    if (outcome.kind === 'correct') {
+    // One branch per recorded verdict, each asserting `data` and nothing else.
+    // The FE computed these three itself and sent the answer up — but reading
+    // its own value back to pick a branch would be choosing an `ok` case by
+    // something the envelope did not say, so the RPC names each one.
+    if (res.data.result === 'won') {
+      // A correct guess that wrote NOTHING comes back as PN300, so reaching
+      // here means the match is durably recorded. No mark: these four collapse
+      // into a band on this very render, leaving nothing to ring.
       showLocalFeedback(stickyPill('won', 'Correct'))
-    } else if (outcome.kind === 'oneAway') {
+    } else if (res.data.result === 'near') {
       showLocalFeedback(stickyPill('near', 'One away!'))
       markVerdict(sent, 'near')
-    } else {
+    } else if (res.data.result === 'lost') {
       showLocalFeedback(stickyPill('lost', 'Incorrect'))
       markVerdict(sent, 'lost')
+    } else {
+      // The selection is cleared below either way — an unhandled answer is no
+      // reason to leave four tiles sitting on a board that has moved on.
+      showFaultModal({ text: 'BUG: submit_guess fell through to unhandled' })
     }
     sendClear()
   }

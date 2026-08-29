@@ -6,6 +6,7 @@ import { supabase } from '../../common/lib/supabase/supabase'
 import { channelLeaving, releaseChannel } from '../../common/lib/supabase/channelTeardown'
 import { onPostgresAttached } from '../../common/lib/supabase/postgresAttached'
 import { readRows } from '../../common/lib/supabase/dbResult'
+import { OUTCOME_FOR_RESULT, type GuessOutcome, type GuessResult } from '../lib/evaluate'
 import { db } from '../db'
 import type { Database } from '../../types/db'
 import type { Member } from '../../common/lib/games'
@@ -39,7 +40,15 @@ export type GuessRow = {
   id: string
   user_id: string
   tiles: string[]
-  result: 'correct' | 'oneAway' | 'wrong'
+  /** How this guess READS — the shared vocabulary, converted at the seam above.
+   *  Never the wire word: a tile ring, a log row and a PDF cell all want the
+   *  same three colors the rest of the app uses. */
+  outcome: GuessOutcome
+  /** Whether this guess MATCHED a category — the rule, kept separate from the
+   *  look. `outcome === 'won'` happens to mean the same thing today, but that
+   *  is a color answering a question about the rules, which is exactly the
+   *  confusion the seam exists to end. */
+  matched: boolean
   matched_category_rank: number | null
   guessed_at: string
 }
@@ -259,11 +268,22 @@ export function useGame(
         puzzleDate: row.puzzle_date,
         created_at: row.created_at,
       })
+      // THE INBOUND SEAM: the wire word is converted here and never travels
+      // further. `matched` is derived here too, so no downstream rule has to
+      // ask a color whether a category was found.
       setGuesses(
-        guessesRes.data.map((g) => ({
-          ...g,
-          result: g.result as GuessRow['result'],
-        })),
+        guessesRes.data.map((g) => {
+          const result = g.result as GuessResult
+          return {
+            id: g.id,
+            user_id: g.user_id,
+            tiles: g.tiles,
+            outcome: OUTCOME_FOR_RESULT[result],
+            matched: result === 'correct',
+            matched_category_rank: g.matched_category_rank,
+            guessed_at: g.guessed_at,
+          }
+        }),
       )
       setPlayers(playersRes.data)
 
@@ -406,7 +426,7 @@ export function useGame(
     const categoryByRank = new Map<number, Board['categories'][number]>()
     for (const c of game.board.categories) categoryByRank.set(c.rank, c)
     for (const g of guesses) {
-      if (g.result !== 'correct') continue
+      if (!g.matched) continue
       if (g.matched_category_rank == null) continue
       const cat = categoryByRank.get(g.matched_category_rank)
       if (!cat) continue

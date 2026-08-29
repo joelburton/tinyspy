@@ -198,14 +198,13 @@ select is(
 -- by unique_violation just like the coop race-idempotency check.
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select lives_ok(
-  format(
-    $$ select connections.submit_guess(%L::uuid,
-                                     array['BANANA','BIRCH','BREAD','BRICK']::text[],
-                                     'correct', 1) $$,
-    (select id from g)
-  ),
-  'submit_guess (compete): same player re-matching same rank is a silent no-op'
+select pg_temp.envelope_is(
+  connections.submit_guess((select id from g),
+                           array['BANANA','BIRCH','BREAD','BRICK']::text[],
+                           'correct', 1),
+  '{"type": "not-ok", "severity": "race", "dbcode": "PN300",
+    "message": "That category is already matched"}'::jsonb,
+  'submit_guess (compete): same player re-matching same rank is a race'
 );
 
 reset role;

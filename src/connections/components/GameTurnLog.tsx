@@ -4,7 +4,7 @@ import { Fragment } from 'react'
 import { TurnLogActor } from '../../common/components/game/lists/TurnLogActor'
 import { cls } from '../../common/lib/util/cls'
 import { memberById } from '../../common/lib/game/peers'
-import { TurnLog, TurnLogBar, TurnLogNumber, type TurnOutcome } from '../../common/components/game/lists/TurnLog'
+import { TurnLog, TurnLogBar, TurnLogNumber } from '../../common/components/game/lists/TurnLog'
 import turnLog from '../../common/components/game/lists/TurnLog.module.css'
 import { useTurnLogPlayerPicker } from '../../common/hooks/game/useTurnLogPlayerPicker'
 import type { Category } from '../lib/board'
@@ -31,13 +31,6 @@ type Props = {
   viewingIndex: number | null
   /** Open a turn in the board viewer (click its `#N`). */
   onSelectTurn: (index: number) => void
-}
-
-/** connections's three guess verdicts → the shared turn-log outcome bar. */
-const OUTCOME: Record<GuessRow['result'], TurnOutcome> = {
-  correct: 'won',
-  oneAway: 'near',
-  wrong: 'lost',
 }
 
 /**
@@ -108,7 +101,7 @@ export function GameTurnLog({
               `.entryCont` hug the two rows together. The `#N` handle opens that turn
               on the board viewer. */}
           <tr className={cls(turnLog.turnLogDivider, turnLog.entryHead)}>
-            <TurnLogBar outcome={OUTCOME[g.result]} rowSpan={2} />
+            <TurnLogBar outcome={g.outcome} rowSpan={2} />
             {/* The `#N` handle replays that turn on the board — live ONLY when the
                 rows on show ARE the board's (my own, or coop's shared game). On an
                 opponent's log, or the All view, the board still shows mine, so the
@@ -137,7 +130,7 @@ export function GameTurnLog({
  * (the green outcome bar already says "found", so no "Matched:" prefix); the
  * other two carry the NYT-canonical short copy.
  *
- * `matched_category_rank` is non-null IFF result === 'correct' (the SQL
+ * `matched_category_rank` is non-null IFF the guess MATCHED (the SQL
  * constraint guarantees this); a defensive fallback to plain "Correct" if a
  * future correct row somehow arrived without a rank.
  */
@@ -145,13 +138,15 @@ function verdictLabel(
   g: GuessRow,
   nameByRank: Map<number, string>,
 ): string {
-  if (g.result === 'correct') {
+  // The MATCH flag, not the color: naming the category is a question about the
+  // rules, and `outcome === 'won'` would be a color answering it.
+  if (g.matched) {
     const name =
       g.matched_category_rank != null
         ? nameByRank.get(g.matched_category_rank)
         : undefined
     return name ?? 'Correct'
   }
-  if (g.result === 'oneAway') return 'One away!'
+  if (g.outcome === 'near') return 'One away!'
   return 'Not a match'
 }

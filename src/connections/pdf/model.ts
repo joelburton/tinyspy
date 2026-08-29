@@ -76,12 +76,12 @@ export type ConnectionsPrintModel = PrintHeader & {
  * from a truncated line, so it goes first and always survives.
  */
 function verdict(g: GuessRow): string {
-  if (g.result === 'correct') {
+  if (g.matched) {
     return g.matched_category_rank != null
       ? RANK_LETTER[g.matched_category_rank as CategoryRank]
       : 'match'
   }
-  return g.result === 'oneAway' ? '1 away' : 'miss'
+  return g.outcome === 'near' ? '1 away' : 'miss'
 }
 
 function toBand(c: Category): PrintBand {
@@ -145,10 +145,10 @@ export function buildConnectionsPrintModel(o: {
     const guesses = o.guesses.filter((g) => g.user_id === p.user_id)
     const solved = new Set(
       guesses
-        .filter((g) => g.result === 'correct' && g.matched_category_rank != null)
+        .filter((g) => g.matched && g.matched_category_rank != null)
         .map((g) => g.matched_category_rank as CategoryRank),
     )
-    const mistakes = guesses.filter((g) => g.result !== 'correct').length
+    const mistakes = guesses.filter((g) => !g.matched).length
     return {
       who: p.username,
       bands: o.categories.filter((c) => solved.has(c.rank)).map(toBand),

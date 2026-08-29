@@ -794,10 +794,20 @@ begin
       values
         (target_game, caller_id, tiles, result, matched_category_rank, g_row.mode);
     exception when unique_violation then
-      -- `ok`, not `not-ok`: the call ran and the rank was already taken — in
-      -- coop by a peer, in compete by this player twice — so nothing changed
-      -- and the board already shows the answer.
-      return common.ok_envelope();
+      -- PN300 — a RACE, and the textbook one (Joel, 2026-08-29). The rank was
+      -- taken between this caller's read and their insert: in coop by a peer
+      -- who matched the same category, in compete by this player twice. Nothing
+      -- was written, so the guess did not happen — which is exactly what `race`
+      -- means, and what an `ok` here could not say.
+      --
+      -- The message covers both modes: in coop somebody got there first, in
+      -- compete you did, and either way the category is already matched.
+      --
+      -- Raising from inside this handler propagates to the function's own
+      -- handler below, like any other raise.
+      raise exception 'That category is already matched'
+        using errcode = 'PN300', hint = 'race', column = '_',
+        detail = 'unique_violation on the mode-aware matched-rank index';
     end;
 
     -- Persist the caller's own found count to their (public) players row so a
@@ -894,7 +904,12 @@ begin
       end if;
     end if;
 
-    return common.ok_envelope();
+    -- The match is written, and the answer says WHICH verdict was recorded.
+    -- The three `ok`s use the outcome vocabulary (docs/outcomes.md) because
+    -- that is what a guess's verdict IS — `near` is defined there as "close —
+    -- one away, nearly right". The wire words stay in the column; the answer
+    -- speaks the language every reader of it already speaks.
+    return common.ok_envelope(jsonb_build_object('result', 'won'));
   end if;
 
   -- ─── Wrong / oneAway: cost a mistake ─────────────────────
@@ -916,9 +931,23 @@ begin
        and (g_row.mode = 'coop' or gu.user_id = caller_id)
        and gu.tiles @> submit_guess.tiles and gu.tiles <@ submit_guess.tiles
   ) then
-    -- `ok` for the same reason as the correct branch's dup above: the call ran
-    -- and nothing changed.
-    return common.ok_envelope();
+    -- PN301 — the same race as PN300 above, one branch earlier in the guess's
+    -- life (Joel, 2026-08-29). Nothing was written and no mistake was counted,
+    -- so the guess did not happen.
+    --
+    -- Legitimate in BOTH modes by the test in docs/envelopes.md → What makes a
+    -- race legitimate. Coop: a peer's identical guess landed in the gap between
+    -- this caller's local dup-check and their insert — another player's action
+    -- arriving by subscription, a window not theirs to close. Compete: the
+    -- caller's own repeat, which looks like the doc's third row but is not,
+    -- because the board unlocks on the RPC's reply while `guesses` updates by
+    -- subscription — so a fast second submit outruns its own row.
+    --
+    -- The words are the FE's own, verbatim from the local dup-check it backs
+    -- up, so a player cannot tell which of the two routes caught it.
+    raise exception 'You already tried that'
+      using errcode = 'PN301', hint = 'race', column = '_',
+      detail = 'this tile set was already guessed (coop: by anyone; compete: by the caller)';
   end if;
 
   insert into connections.guesses
@@ -996,7 +1025,15 @@ begin
     end if;
   end if;
 
-  return common.ok_envelope();
+  -- The mistake is counted, and the answer distinguishes the two verdicts that
+  -- reach here. The FE computed the difference and sent it up, but the call
+  -- site may not read it back off its own local value: an `ok` branch is chosen
+  -- by `data` (docs/envelopes.md → Choosing which `ok` branch), so the RPC
+  -- returns the two answers separately rather than one the caller must
+  -- disambiguate itself (Joel, 2026-08-29).
+  return common.ok_envelope(
+    jsonb_build_object('result',
+      case when result = 'oneAway' then 'near' else 'lost' end));
 
 exception when others then
   get stacked diagnostics

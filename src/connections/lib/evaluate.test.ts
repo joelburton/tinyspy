@@ -17,8 +17,8 @@ describe('evaluateGuess', () => {
       ['ALPHA', 'ANGEL', 'APPLE', 'ARROW'],
       CATEGORIES,
     )
-    expect(result.kind).toBe('correct')
-    if (result.kind === 'correct') {
+    expect(result.outcome).toBe('won')
+    if (result.outcome === 'won') {
       expect(result.rank).toBe(0)
       expect(result.name).toBe('A-words')
       expect(result.tiles).toEqual(['ALPHA', 'ANGEL', 'APPLE', 'ARROW'])
@@ -30,16 +30,16 @@ describe('evaluateGuess', () => {
       ['ARROW', 'ALPHA', 'APPLE', 'ANGEL'],
       CATEGORIES,
     )
-    expect(result.kind).toBe('correct')
+    expect(result.outcome).toBe('won')
   })
 
-  it('returns oneAway when 3 of 4 tiles share a category', () => {
+  it('returns near when 3 of 4 tiles share a category', () => {
     // 3 A-words + 1 B-word
     const result = evaluateGuess(
       ['ALPHA', 'ANGEL', 'APPLE', 'BANANA'],
       CATEGORIES,
     )
-    expect(result.kind).toBe('oneAway')
+    expect(result.outcome).toBe('near')
   })
 
   it('returns wrong when at most 2 tiles share any one category', () => {
@@ -48,7 +48,7 @@ describe('evaluateGuess', () => {
       ['ALPHA', 'ANGEL', 'BANANA', 'BIRCH'],
       CATEGORIES,
     )
-    expect(result.kind).toBe('wrong')
+    expect(result.outcome).toBe('lost')
   })
 
   it('returns wrong for a fully-mixed guess (one from each category)', () => {
@@ -56,7 +56,7 @@ describe('evaluateGuess', () => {
       ['ALPHA', 'BANANA', 'CASTLE', 'DAGGER'],
       CATEGORIES,
     )
-    expect(result.kind).toBe('wrong')
+    expect(result.outcome).toBe('lost')
   })
 
   it('returns wrong when the guess has fewer than 4 tiles', () => {
@@ -65,7 +65,7 @@ describe('evaluateGuess', () => {
     // a "correct" if it does — short input means no category can have
     // 4 overlap.
     const result = evaluateGuess(['ALPHA', 'ANGEL', 'APPLE'], CATEGORIES)
-    expect(result.kind).toBe('wrong')
+    expect(result.outcome).toBe('lost')
   })
 
   it('returned tiles is a copy, not a reference to the category', () => {
@@ -75,7 +75,7 @@ describe('evaluateGuess', () => {
       ['ALPHA', 'ANGEL', 'APPLE', 'ARROW'],
       CATEGORIES,
     )
-    if (result.kind === 'correct') {
+    if (result.outcome === 'won') {
       result.tiles.push('NEW')
       expect(CATEGORIES[0].tiles).toEqual(['ALPHA', 'ANGEL', 'APPLE', 'ARROW'])
     }

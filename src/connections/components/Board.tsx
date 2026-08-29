@@ -3,7 +3,8 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { cls } from '../../common/lib/util/cls'
 import type { Category, CategoryRank } from '../lib/board'
-import type { GuessRow, MatchedCategory } from '../hooks/useGame'
+import type { MatchedCategory } from '../hooks/useGame'
+import type { GuessOutcome } from '../lib/evaluate'
 import { RANK_TOKEN } from '../lib/rankColors'
 import { useMoveCausedChange } from '../../common/hooks/game/useMoveCausedChange'
 import { ATTENTION_FLASH_MS } from '../../common/lib/game/feedbackTiming'
@@ -13,11 +14,13 @@ import styles from './PlayArea.module.css'
 
 const COLS = 4
 
-/** Turn-history: a guessed tile's tint class by the viewed turn's outcome. */
-const VIEWED_TINT: Record<GuessRow['result'], string> = {
-  correct: styles.viewedTile_correct,
-  oneAway: styles.viewedTile_oneAway,
-  wrong: styles.viewedTile_wrong,
+/** Turn-history: a guessed tile's tint class by the viewed turn's outcome. Keyed
+ *  by the OUTCOME, like everything else the guess touches — the classes it names
+ *  were already built from `--outcomes-*` tokens. */
+const VIEWED_TINT: Record<GuessOutcome, string> = {
+  won: styles.viewedTile_won,
+  near: styles.viewedTile_near,
+  lost: styles.viewedTile_lost,
 }
 
 /** Empty highlight set — a stable reference so a live render never rings a tile. */
@@ -107,7 +110,7 @@ type Props = {
    *  outcome color (`highlightOutcome`). Empty / omitted when live. */
   highlightTiles?: ReadonlySet<string>
   /** Turn-history: the viewed turn's verdict — the tint for `highlightTiles`. */
-  highlightOutcome?: GuessRow['result']
+  highlightOutcome?: GuessOutcome
   /** A control floated over the board's top-right (the Shuffle button). Rendered
    *  INSIDE the board root — the root is the `position: relative` anchor — so it
    *  hugs the VISUAL board. Anchoring to the column instead would strand it at the
@@ -156,7 +159,7 @@ export function Board({
   lastMoveMine = false,
   viewing = false,
   highlightTiles = NO_TILES,
-  highlightOutcome = 'wrong',
+  highlightOutcome = 'lost',
   floatingControl,
 }: Props) {
   const sortedMatched = [...matched].sort((a, b) => a.rank - b.rank)

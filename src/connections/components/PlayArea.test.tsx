@@ -49,10 +49,14 @@ const rpc = db.rpc as unknown as ReturnType<typeof vi.fn>
 
 /** What `submit_guess` answers on an accepted move. `runRpc` reads the ENVELOPE
  *  out of `data` now, so a mock resolving `{ error: null }` alone hands it a
- *  body it can't read and the call site sees a fault. */
+ *  body it can't read and the call site sees a fault.
+ *
+ *  `data.result` is what the call site branches on: `counted` is a wrong guess
+ *  the server recorded, which is what these tests submit. An answer that wrote
+ *  nothing comes back as a RACE (PN300 / PN301), not as an `ok`. */
 const okEnvelope = {
   data: {
-    type: 'ok', data: null, outcome: null, severity: null,
+    type: 'ok', data: { result: 'lost' }, outcome: null, severity: null,
     message: null, field: null, meta: null, dbcode: null, detail: null,
   },
   error: null,
@@ -423,7 +427,7 @@ describe('connections PlayArea — selection, identity, and the guess in flight'
           id: 'g1',
           user_id: 'u1',
           tiles: ['a', 'b', 'e', 'i'],
-          result: 'wrong',
+          outcome: 'lost', matched: false,
           matched_category_rank: null,
           guessed_at: '2026-06-15T00:01:00Z',
         },
@@ -450,7 +454,7 @@ describe('connections PlayArea — selection, identity, and the guess in flight'
           id: 'g1',
           user_id: 'u1',
           tiles: ['a', 'b', 'e', 'i'],
-          result: 'wrong',
+          outcome: 'lost', matched: false,
           matched_category_rank: null,
           guessed_at: '2026-06-15T00:01:00Z',
         },
@@ -479,7 +483,7 @@ describe('connections PlayArea — selection, identity, and the guess in flight'
       id,
       user_id: userId,
       tiles: ['a', 'b', 'e', 'i'],
-      result: 'wrong' as const,
+      outcome: 'lost' as const, matched: false,
       matched_category_rank: null,
       guessed_at: '2026-06-15T00:01:00Z',
     })
@@ -588,7 +592,7 @@ describe('connections PlayArea — attention', () => {
     id: `g-${userId}`,
     user_id: userId,
     tiles: ['a', 'b', 'c', 'd'],
-    result: 'correct' as const,
+    outcome: 'won' as const, matched: true,
     matched_category_rank: 0,
     guessed_at: '2026-06-15T00:01:00Z',
   })

@@ -30,15 +30,15 @@ const BOARD: Board = {
 function g(o: Partial<GuessRow>): GuessRow {
   return {
     id: 'id', user_id: 'u', tiles: ['apple', 'pear', 'plum', 'lime'],
-    result: 'wrong', matched_category_rank: null, guessed_at: '2026-06-12T18:00:00Z', ...o,
+    outcome: 'lost', matched: false, matched_category_rank: null, guessed_at: '2026-06-12T18:00:00Z', ...o,
   }
 }
 
 // Turn 0: correct FRUIT (rank 0). Turn 1: a wrong guess. Turn 2: correct METALS (rank 1).
 const GUESSES: GuessRow[] = [
-  g({ tiles: ['apple', 'pear', 'plum', 'lime'], result: 'correct', matched_category_rank: 0 }),
-  g({ tiles: ['iron', 'gold', 'red', 'blue'], result: 'wrong' }),
-  g({ tiles: ['iron', 'gold', 'lead', 'zinc'], result: 'correct', matched_category_rank: 1 }),
+  g({ tiles: ['apple', 'pear', 'plum', 'lime'], outcome: 'won', matched: true, matched_category_rank: 0 }),
+  g({ tiles: ['iron', 'gold', 'red', 'blue'], outcome: 'lost', matched: false }),
+  g({ tiles: ['iron', 'gold', 'lead', 'zinc'], outcome: 'won', matched: true, matched_category_rank: 1 }),
 ]
 
 describe('turnSnapshot', () => {
@@ -62,12 +62,12 @@ describe('turnSnapshot', () => {
     expect([...turnSnapshot(GUESSES, BOARD, 1).highlightTiles].sort()).toEqual(
       ['blue', 'gold', 'iron', 'red'],
     )
-    expect(turnSnapshot(GUESSES, BOARD, 1).outcome).toBe('wrong')
+    expect(turnSnapshot(GUESSES, BOARD, 1).outcome).toBe('lost')
   })
 
   it('describes a correct turn by its category, the others by the canonical copy', () => {
     expect(turnSnapshot(GUESSES, BOARD, 0).description).toBe('Matched FRUIT')
     expect(turnSnapshot(GUESSES, BOARD, 1).description).toBe('Not a match')
-    expect(turnSnapshot([g({ result: 'oneAway' })], BOARD, 0).description).toBe('One away!')
+    expect(turnSnapshot([g({ outcome: 'near', matched: false })], BOARD, 0).description).toBe('One away!')
   })
 })
