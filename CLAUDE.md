@@ -97,6 +97,34 @@ asked something, it's confusing, or should change, or that you should commit to
 phrasing it differently in the future. A question is just that: a question.
 Answer it and don't change things.
 
+## Committing — only when Joel says so, every single time
+
+**`git commit` runs ONLY when Joel has just explicitly asked for it.** Nothing
+else authorizes a commit. Not a plan that says "commit after each step", not a
+sequence he approved, not a rhythm the session has settled into, not how
+obviously finished the work is.
+
+**The permission reaches BACKWARD only.** "Commit" covers the work that exists
+at the moment he says it, and nothing the same sentence goes on to ask for.
+These all mean *commit what is there now, then do the next thing and STOP*:
+
+- "commit, then continue"
+- "commit and move on to the next step"
+- "commit, then do X"
+
+**A later instruction never inherits it.** "Do the next step" means do the next
+step. It does not mean commit, however many times he said "commit" earlier.
+
+**The check, at the moment of typing `git commit`:** is the LAST thing the
+current user message asked for the commit itself? If not — if the message asked
+for a commit *and then* something else, or asked only for work — do not commit.
+The second commit in a turn is wrong by construction.
+
+**When the work is done, leave it in the working tree, say what's there, and
+say it's ready.** The un-committed diff is how Joel reviews. **When in doubt,
+STOP AND ASK.** If a commit has already happened by mistake, offer
+`git reset --soft HEAD~1` and wait.
+
 ## Audience — friends, not strangers
 
 This is a venue for groups of friends to play games together. It is **not** a public matchmaking platform.
