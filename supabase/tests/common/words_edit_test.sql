@@ -20,7 +20,7 @@ set search_path = common, public, extensions;
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
 
-select plan(18);
+select plan(19);
 
 reset role;
 update common.profiles set can_edit_words = true
@@ -95,7 +95,13 @@ select pg_temp.envelope_is(
 );
 
 -- ── delete: a hard DELETE, snapshot in the journal ──
-select common.delete_word('zqeditb', 'not a real word');
+-- Asserted rather than called bare, for the same reason add_word's is: the FE
+-- branches on this `result`.
+select pg_temp.envelope_is(
+  common.delete_word('zqeditb', 'not a real word'),
+  '{"type": "ok", "data": {"result": "deleted"}}'::jsonb,
+  'an editor deletes a word'
+);
 select is(
   (select count(*)::int from common.words where word = 'zqeditb'),
   0,

@@ -2734,7 +2734,8 @@ begin
   insert into common.words_edits (word, kind, old, new, note, edited_by, edited_by_username)
   values (w.word, 'delete', to_jsonb(w), null, note, ed.editor_id, ed.editor_username);
 
-  return common.ok_envelope();
+  -- As in add_word / update_word: `result` is the journal's own `kind`.
+  return common.ok_envelope(jsonb_build_object('result', 'deleted'));
 
 exception when others then
   get stacked diagnostics

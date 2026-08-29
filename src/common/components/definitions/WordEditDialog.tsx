@@ -124,6 +124,9 @@ function formFieldFor(field: string | null | undefined): string {
  */
 type SaveAnswer = { result: 'added' | 'updated' }
 
+/** What `common.delete_word` puts in `data` — `words_edits.kind` again. */
+type DeleteWordAnswer = { result: 'deleted' }
+
 export function WordEditDialog({ request }: { request: WordEditRequest }) {
   const editing = request.mode === 'edit'
   // The row AS LOADED — the baseline the patch is diffed against, and the form's
@@ -251,18 +254,22 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
       return
     }
     setBusy(true)
-    const res = await runRpc(
+    const res = await runRpc<DeleteWordAnswer>(
       commonDb.rpc('delete_word', {
         target_word: request.word,
         note: note.trim() || undefined,
       }),
     )
     setBusy(false)
-    if (res.type !== 'ok') {
+    if (res.type === 'not-ok') {
       setErrors({ [formFieldFor(res.field)]: res.message })
-      return
+    } else if (res.data.result === 'deleted') {
+      setWordEdit(null)
+    } else {
+      // The dialog stays open on an answer nobody handled — closing it would
+      // claim the word is gone, and `busy` is already clear above.
+      showFaultModal({ text: 'BUG: delete_word fell through to unhandled' })
     }
-    setWordEdit(null)
   }
 
   return (
