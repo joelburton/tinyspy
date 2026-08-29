@@ -490,10 +490,40 @@ one has two halves:
 
 Each conversion moves one call from "not ours" to "ours". Per game:
 
-> **drop the function** → convert it to the envelope → move its message into
-> the raise, with a `PA`/`PN` code, a HINT and a COLUMN → add the catch block →
-> convert that game's pgTAP (swapping `throws_ok` for `envelope_is`) → run it →
-> fix.
+> **the table** (below, and Joel rules on it) → **drop the function** → convert
+> it to the envelope → move its message into the raise, with a `PA`/`PN` code, a
+> HINT and a COLUMN → add the catch block → convert that game's pgTAP (swapping
+> `throws_ok` for `envelope_is`) → run it → fix.
+
+#### The table comes first, and then you STOP
+
+Before writing anything, show **every answer the RPC can give** — both arms — and
+wait (Joel, 2026-08-29). The classification is the whole design; the code is
+transcription. Do not go reading the frontend to fill it in: what the FE shows
+today is not the input, and Joel already knows it.
+
+**ok**
+
+| | data | outcome | message |
+|---|---|---|---|
+| *each success and each game-rule refusal* | the fact, structurally | how it reads | the sentence, or **null** = the FE composes |
+
+**not-ok**
+
+| raise | severity | message | why |
+|---|---|---|---|
+| *each raise* | `fault` / `race` / `form-validation` / `service-error` | the player's sentence | what makes it that kind |
+
+Three things the table is FOR, each of which has already caught something:
+
+- **The severity is a judgment, and it is the one thing a test cannot check.**
+  Whether a raise is a race or a fault turns on what the frontend gates, which
+  is where a conversion goes wrong invisibly.
+- **`data` must carry the fact structurally**, even where the message says it
+  too — the frontend has uses for it that have nothing to do with words (a board
+  shake, a counter, a mark).
+- **A null message is a decision**, not an omission: see "Who writes the words,
+  per answer" in [envelopes.md](../docs/envelopes.md).
 
 **The drop comes first and is not optional.** `create or replace` cannot change
 a function's return type, and every conversion changes it:

@@ -222,8 +222,8 @@ select throws_ok(
     $$ select common.require_game_player(%L::uuid) $$,
     current_setting('test.created_game_id')::uuid
   ),
-  '42501',
-  'not-authenticated|',
+  'PN252',
+  'Signed out; try refresh',
   'require_game_player: null auth.uid() raises 42501'
 );
 
@@ -233,8 +233,8 @@ select throws_ok(
     $$ select common.require_game_player(%L::uuid) $$,
     current_setting('test.created_game_id')::uuid
   ),
-  '42501',
-  'not-a-player|',
+  'PN253',
+  'You are not in this game',
   'require_game_player: outsider raises 42501'
 );
 

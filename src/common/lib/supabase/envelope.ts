@@ -70,7 +70,10 @@ export type Envelope<T = unknown> =
       severity: null
       /** Always null on this arm, for the same reason as `severity`. */
       field: null
-      /** Null here, because plenty of results have nothing to say. */
+      /** The player's sentence, or **null meaning "the frontend composes this
+       *  one"** — because it needs a name and a color dot, a link, or local
+       *  state. A server-written message may not say less than the sentence it
+       *  replaces (docs/envelopes.md → Who writes the words, per answer). */
       message: string | null
       /** The additive slot: SQL can leave breadcrumbs with no frontend change. */
       meta: Record<string, unknown> | null

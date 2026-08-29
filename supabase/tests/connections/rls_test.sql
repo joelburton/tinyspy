@@ -95,15 +95,11 @@ select is(
 -- Dee's mutating RPCs throw
 -- ============================================================
 
-select throws_ok(
-  format(
-    $$ select connections.submit_guess(%L::uuid,
-                                     array['ALPHA','ANGEL','APPLE','ARROW']::text[],
-                                     'wrong', null) $$,
-    (select id from g)
-  ),
-  '42501',
-  'not-a-player|',
+select pg_temp.envelope_is(
+  connections.submit_guess((select id from g),
+                           array['ALPHA','ANGEL','APPLE','ARROW']::text[], 'wrong', null),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN253",
+    "message":"You are not in this game"}'::jsonb,
   'dee cannot call submit_guess on a game she didn''t play (via require_game_player)'
 );
 

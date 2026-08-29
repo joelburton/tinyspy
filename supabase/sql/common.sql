@@ -977,7 +977,10 @@ declare
 begin
   caller_id := auth.uid();
   if caller_id is null then
-    raise exception 'not-authenticated|' using errcode = '42501',
+    -- The one fault here with a remedy, so the sentence names it: a page left
+    -- open overnight whose session expired.
+    raise exception 'Signed out; try refresh'
+      using errcode = 'PN252', hint = 'fault', column = '_',
       detail = 'auth.uid() is null';
   end if;
 
@@ -985,7 +988,10 @@ begin
     select 1 from common.game_players
     where game_id = target_game and user_id = caller_id
   ) then
-    raise exception 'not-a-player|' using errcode = '42501',
+    -- `create_game` seeds a row for every player and the FE knows the roster,
+    -- so a caller without one is a broken client or a hand-rolled call.
+    raise exception 'You are not in this game'
+      using errcode = 'PN253', hint = 'fault', column = '_',
       detail = 'caller has no common.game_players row';
   end if;
 

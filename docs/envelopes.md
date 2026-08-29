@@ -70,16 +70,38 @@ never have been sent.
 A legitimate race is neither the player's fault nor a bug. Two players act at
 the same instant and only one can be taken; the FE could not have known.
 
-**The sharp test: was the FE's gate depending on state it can only learn from
-the server, and had it not learned it yet?**
+**The sharp test: WHERE DOES THE FRONTEND LEARN THE MOVE LANDED?** Not "does the
+gate depend on server state" — it nearly always does, and that answer decides
+nothing. What decides it is whether a window exists at all between the move and
+the frontend knowing its result. Three answers:
 
-That is what separates a race from a broken client. Connections' `eliminated`
-fires when your fourth mistake has landed but the realtime row saying so has not
-arrived — a gap that is usually milliseconds, unbounded during a deaf window
-(see [realtime-lost-events.md](realtime-lost-events.md)), and permanent in a
-stale second tab. Its `bad-selection` guard is the opposite: the board's own
-selection is local, nothing about it can lag, so a five-tile guess arriving
-means a broken client or someone poking at the API.
+| the gate is released by | window | so |
+|---|---|---|
+| the RPC's own response | none — the surface is locked until it returns | a **fault**: you could not have got here without a bug |
+| **another player's** action, arriving by subscription | open, and not yours to close | a **race** |
+| your own row arriving by subscription | none, and it is held LONGER than the round trip | a **fault** |
+
+The third is easy to misread as the second. wordle's guess gate is
+`!submitting && !pendingWord`, and `pendingWord` clears when the guess's colored
+row appears in `rows` — the realtime row, not the reply. So the board stays
+locked past the response, and running out of your OWN compete budget is
+unreachable without a broken client, even though a subscription is what releases
+the lock.
+
+Connections' `eliminated` is the second row: your fourth mistake has landed but
+the row saying so has not arrived — a gap that is usually milliseconds,
+unbounded during a deaf window (see
+[realtime-lost-events.md](realtime-lost-events.md)), and permanent in a stale
+second tab. Its `bad-selection` guard is neither: the board's own selection is
+local, nothing about it can lag, so a five-tile guess arriving means a broken
+client or someone poking at the API.
+
+**A classification can therefore differ by MODE**, and the server knows the
+mode: wordle's exhausted budget is a `race` in coop, where the budget is shared
+and a teammate can spend the last one with no local gate able to know, and a
+`fault` in compete, where it is your own. That is written as two raises in an
+`if/else` — an errcode must stay a bare literal, so a `case` expression is not
+an option (see the guard, below).
 
 ### Worked cases
 
@@ -242,6 +264,39 @@ if (res.type !== 'ok') {
 shows is game-specific — a pangram's score, a word's length, nothing at all —
 and we do not know whether rules exist there yet. Better an honest gap than a
 shared helper guessing at one.
+
+### Who writes the words, per answer
+
+Not per game, and not per arm — the question is asked of each answer an RPC can
+give, and there are three rules.
+
+**1. `data` carries the fact, structurally, whether or not a message goes with
+it.** A server that judged a word and found it isn't one says so in `data`;
+"the sentence mentions it" is not the same as the caller being told. The
+frontend has its own uses for the fact — a board shake, a counter, a mark on the
+tiles — that have nothing to do with the words.
+
+**2. Where the RPC can write the sentence, it does**, on the same principle as a
+raise: whoever knows why the answer is what it is writes it, once, where the
+decision was made. `common.ok_envelope` takes a `message` for exactly this.
+
+**3. `message: null` means THE FRONTEND COMPOSES IT** — a signal, not an
+absence. Some sentences need what only the frontend has: a player's name beside
+their color dot, a link, a piece of local state. Non-null means render it as it
+came, and do not rebuild it without a very good reason.
+
+**The rule that makes the signal usable: a server-written message may not say
+LESS than the sentence it replaces.** Without it, "can the server write this?"
+is answerable *yes* almost anywhere, by writing a worse one — nothing stops an
+RPC producing "Waiting for another player" in place of "Waiting for ● moth",
+and the result looks like a properly server-authored message while having
+quietly dropped the dot and the name. The test is not *can the server say
+something*; it is **can the server say this thing, at full fidelity**. If the
+honest server version is a downgrade, the message stays null.
+
+So a null message is not a gap waiting to be filled. "Why has this one no
+message?" has a real answer: because the sentence carries an identity, a link,
+or local state, and a server-written one would say less.
 
 A **form** needs none of this: `setErrors({ [res.field ?? '_']: res.message })`
 is the whole mapping, and a field error has one look. Note that there is no
