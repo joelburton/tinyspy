@@ -6,6 +6,7 @@ import { FailureLine } from '../feedback/FailureLine'
 import { useState } from 'react'
 import { db as commonDb } from '../../db'
 import { runRpc } from '../../lib/supabase/dbResult'
+import { showFaultModal } from '../../lib/fault/faultStore'
 import { supabase } from '../../lib/supabase/supabase'
 import { cls } from '../../lib/util/cls'
 import { defaultColorFor } from '../../lib/color/memberColor'
@@ -14,6 +15,11 @@ import { StandardButton } from '../buttons/StandardButton'
 import { CancelButton } from '../buttons/CancelButton'
 import { TextField } from '../fields/TextField'
 import { ColorField } from '../fields/ColorField'
+
+/** What `common.claim_username` puts in `data`. `result` sits beside the
+ *  username rather than replacing it — the name is what a caller would use,
+ *  `result` is what says which answer this is. */
+type ClaimAnswer = { result: 'claimed'; username: string }
 
 type Props = {
   /** Re-probe the profile table after the claim_username RPC
@@ -117,12 +123,12 @@ export function ClaimHandleScreen({ onClaimed, email }: Props) {
     }
 
     setBusy(true)
-    const res = await runRpc(
+    const res = await runRpc<ClaimAnswer>(
       commonDb.rpc('claim_username', { desired, chosen_color }),
     )
     setBusy(false)
 
-    if (res.type !== 'ok') {
+    if (res.type === 'not-ok') {
       // ONE entry, under the field the server named. PN017 — the username is
       // taken — says `desired`, and it is the only thing here a player can act
       // on. Everything else says `_` and lands on the form's own line; those
@@ -133,10 +139,15 @@ export function ClaimHandleScreen({ onClaimed, email }: Props) {
       // account), so there is no recovering the session. Reading the code here
       // picks a RECOVERY, not a severity — the server already said fault.
       if (res.dbcode === 'PN018') await supabase.auth.signOut()
-      return
+    } else if (res.data.result === 'claimed') {
+      // The name isn't read: `onClaimed` re-probes the profiles row, so the
+      // parent takes it from the table rather than from this answer.
+      onClaimed()
+    } else {
+      // Nothing to undo — `busy` is already clear, and the screen stays put so
+      // the name can be resubmitted.
+      showFaultModal({ text: 'BUG: claim_username fell through to unhandled' })
     }
-
-    onClaimed()
   }
 
   // The always-available escape off this screen. We deliberately DON'T lean

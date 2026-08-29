@@ -163,8 +163,8 @@ select is(
 
 select pg_temp.envelope_is(
   common.claim_username('fia', 'blue'),
-  '{"type": "ok", "data": {"username": "fia"}}'::jsonb,
-  'claim_username: valid claim succeeds, and hands back the name'
+  '{"type": "ok", "data": {"result": "claimed", "username": "fia"}}'::jsonb,
+  'claim_username: valid claim answers ok/claimed, and hands back the name'
 );
 
 select is(

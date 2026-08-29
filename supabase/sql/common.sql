@@ -2165,7 +2165,7 @@ grant execute on function common.send_message(text, text) to authenticated;
 --      (common.set_club_gametypes) if they want them listed.
 --
 -- Outcomes:
---   - ok               data.username is the claimed name
+--   - ok               {"result": "claimed"}, and data.username is the name
 --   - not-ok/validation  PN017 — that username is taken. The ONE thing here a
 --                      player can act on, and the one the form cannot know.
 --   - not-ok/error     PN016 — this profile already has a username
@@ -2265,7 +2265,11 @@ begin
   select '=' || desired, gametype
     from common.default_gametypes_for_club('=' || desired);
 
-  return common.ok_envelope(data => jsonb_build_object('username', desired));
+  -- `result` beside the username, not instead of it: the name is what a caller
+  -- would USE, `result` is what says which answer this is (docs/envelopes.md →
+  -- Choosing which `ok` branch).
+  return common.ok_envelope(
+    data => jsonb_build_object('result', 'claimed', 'username', desired));
 
 exception when others then
   get stacked diagnostics
