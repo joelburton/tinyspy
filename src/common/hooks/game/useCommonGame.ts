@@ -8,6 +8,7 @@ import { supabase } from '../../lib/supabase/supabase'
 import { channelLeaving, releaseChannel } from '../../lib/supabase/channelTeardown'
 import { onPostgresAttached } from '../../lib/supabase/postgresAttached'
 import { runRpc } from '../../lib/supabase/dbResult'
+import { showFaultModal } from '../../lib/fault/faultStore'
 import { rtLog } from '../../lib/supabase/realtimeDiag'
 import { computePause } from '../../lib/game/pause'
 import type { GamePlayer, Member, TimerMode } from '../../lib/games'
@@ -94,6 +95,12 @@ type ManualPauseEvent =
  * (someone already cleared the flag) or harmlessly re-clear it.
  */
 type SuspendEvent = { type: 'suspend' }
+
+/** What `common.unset_current_view` puts in `data` when it cleared the
+ *  pointer. Nullable because its other `ok` — PA001, the game is gone —
+ *  arrives through a raise, and `common.raised_envelope` builds `data: null`.
+ *  ClubPage's heal declares the same shape for the same RPC. */
+type UnsetAnswer = { result: 'cleared' } | null
 
 /**
  * The one common-side realtime entry point for a game page —
@@ -501,11 +508,26 @@ export function useCommonGame(
         // (its vacate-others step clears stragglers), but the gap
         // until then is silent. Same friends-alpha tradeoff as
         // above; revisit alongside that one.
-        void runRpc(
+        void runRpc<UnsetAnswer>(
           commonDb.rpc('unset_current_view', { target_game: gameId }),
         ).then((res) => {
-          if (res.type !== 'ok') {
+          if (res.type === 'not-ok' && res.severity === 'fault') {
+            // The severity is asserted, not assumed, and it is the reason a
+            // console line is enough: a fault is the only not-ok this RPC can
+            // give (PN011 / PN012, from require_club_member) and `runRpc` has
+            // already put its modal up. This tab is on its way out and has no
+            // surface left to say anything on, so a race or a service-error
+            // would have nowhere to go — better the scream below than a quiet
+            // log line. Same reasoning as ClubPage's heal, the other caller.
             console.error('unset_current_view failed', res.message)
+          } else if (res.type === 'ok' && res.dbcode === 'PA001') {
+            // The game was deleted out from under us. Not a failure: a deleted
+            // game has no pointer to leave behind, which is the job done.
+          } else if (res.type === 'ok' && res.data?.result === 'cleared') {
+            // Cleared, or already false — the RPC's own `is_current_view =
+            // true` guard absorbing a peer who got there first.
+          } else {
+            showFaultModal({ text: 'BUG: unset_current_view fell through to unhandled' })
           }
         })
       }
