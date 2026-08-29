@@ -2292,9 +2292,10 @@ grant execute on function common.claim_username(text, text) to authenticated;
 -- own row), so there's no UPDATE policy on common.profiles — this RPC
 -- is the single write path, like every other mutation in the app. The
 -- FE surface is the "Edit profile" dialog off the user menu.
--- Outcomes: `ok`, or one of three faults. Nothing here is a validation — the
--- picker offers the eight palette swatches and nothing else, so every way this
--- can refuse is a bug or a dead session rather than a choice a player made.
+-- Outcomes: `ok` with {"result": "saved"}, or one of three faults. Nothing here
+-- is a validation — the picker offers the eight palette swatches and nothing
+-- else, so every way this can refuse is a bug or a dead session rather than a
+-- choice a player made.
 drop function if exists common.update_profile_color(text);
 create or replace function common.update_profile_color(new_color text)
 returns jsonb
@@ -2335,7 +2336,9 @@ begin
       detail = 'no profiles row for the caller';
   end if;
 
-  return common.ok_envelope();
+  -- No message: the dialog closes and the dot repaints, which says it. `result`
+  -- is what a call site branches on (docs/envelopes.md → How SQL builds one).
+  return common.ok_envelope(jsonb_build_object('result', 'saved'));
 
 exception when others then
   get stacked diagnostics

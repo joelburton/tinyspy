@@ -4,6 +4,7 @@ import { useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { db as commonDb } from '../../db'
 import { runRpc } from '../../lib/supabase/dbResult'
+import { showFaultModal } from '../../lib/fault/faultStore'
 import { StandardForm } from '../fields/StandardForm'
 import { FORM_ERROR_KEYNAME, type FormErrors } from '../fields/formState'
 import { FailureLine } from '../feedback/FailureLine'
@@ -42,6 +43,11 @@ type Props = {
  *  `common.update_profile_color`'s own parameter. */
 type Values = { new_color: string }
 
+/** What `common.update_profile_color` puts in `data`. It writes no message —
+ *  the dialog closes and the dot repaints, which says it — so `result` is the
+ *  whole answer and the only thing a branch can assert about it. */
+type ColorAnswer = { result: 'saved' }
+
 export function EditProfileModal({ session, onSaved, onCancel }: Props) {
   const profile = useProfile(session)
   const [busy, setBusy] = useState(false)
@@ -50,17 +56,26 @@ export function EditProfileModal({ session, onSaved, onCancel }: Props) {
   async function onSubmit({ new_color }: Values) {
     setBusy(true)
     setErrors({})
-    const res = await runRpc(commonDb.rpc('update_profile_color', { new_color }))
-    if (res.type !== 'ok') {
+    const res = await runRpc<ColorAnswer>(
+      commonDb.rpc('update_profile_color', { new_color }),
+    )
+    if (res.type === 'not-ok') {
       setBusy(false)
       // Every outcome here is a fault — the picker offers eight swatches and
       // nothing else — so this line is what remains once the modal is
       // dismissed rather than the primary way anyone hears about it.
       setErrors({ [res.field ?? FORM_ERROR_KEYNAME]: res.message })
-      return
+    } else if (res.data.result === 'saved') {
+      setProfileColor(new_color) // live-update the menu dot + any reader
+      onSaved()
+    } else {
+      // Clears `busy` as well as screaming: `onSaved` is what unmounts this
+      // dialog, so an answer nobody handled would leave Save disabled with only
+      // Cancel as a way out. The color is NOT written — an unhandled answer is
+      // no evidence the server took it, and the dot would then lie.
+      setBusy(false)
+      showFaultModal({ text: 'BUG: update_profile_color fell through to unhandled' })
     }
-    setProfileColor(new_color) // live-update the menu dot + any reader
-    onSaved()
   }
 
   return (

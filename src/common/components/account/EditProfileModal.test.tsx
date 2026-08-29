@@ -84,7 +84,9 @@ describe('EditProfileModal — where a refusal lands', () => {
 
 describe('EditProfileModal — saving', () => {
   it('sends the color you picked under the name the RPC takes', async () => {
-    mockRpc.mockResolvedValue({ data: { type: 'ok' }, error: null })
+    // The envelope names its answer: an `ok` a call site could match merely by
+    // being `ok` is the shape the sweep removes, so the stub says which it is.
+    mockRpc.mockResolvedValue({ data: { type: 'ok', data: { result: 'saved' } }, error: null })
     const { container, onSaved } = draw()
 
     const user = userEvent.setup()

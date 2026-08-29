@@ -24,7 +24,7 @@ select plan(8);
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   common.update_profile_color('purple'),
-  '{"type": "ok"}'::jsonb,
+  '{"type": "ok", "data": {"result": "saved"}}'::jsonb,
   'a player can set their own color');
 select is(
   (select color from common.profiles
