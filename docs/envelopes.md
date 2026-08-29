@@ -275,6 +275,22 @@ different refusals both read `lost` — so it identifies nothing.
 apart, add something to `data` that can.** The payload is where the case lives;
 making it legible is the RPC's job, not a puzzle for the call site.
 
+**The test must be equality against a specific value — never against `null` or
+`undefined`.** `res.dbcode === null` and `res.data === null` look like they name
+a case, and they name an *absence*: the answer that happens to have nothing in
+that slot today. Add a second wordless `ok` and it matches too, is drawn as the
+first, and nothing fails (Joel, 2026-08-29). The negated forms (`!== null`,
+`?? …`, a truthiness check) are the same defect wearing different clothes. So
+`res.data?.result === 'cleared'` is a case; `res.dbcode === null` is a catch-all
+that has learned to sit in the middle of the chain — and the chain already has
+somewhere for anything unnamed to go, which screams.
+
+A raise is the one place where `dbcode` carries the name, because
+`common.raised_envelope` always builds `data: null` — so an RPC whose `ok`s
+include both a raised one and a returned one names the raised one by its
+`PA###` and the returned one by its payload. Two keys, two cases, neither of
+them an absence.
+
 **No just-matching `ok` branch.** Even when an RPC has exactly one `ok` answer
 today, assert what that answer *is*. A branch that matches merely by being
 `ok` swallows the second `ok` silently on the day it is added, and produces a
@@ -510,6 +526,16 @@ returns a `not-ok` directly, and that is what lets a shared helper — say
 `common.require_club_member` — raise from deep in a call stack while the RPC at
 the boundary still answers in one shape. A helper cannot return an envelope
 without every caller having to check and re-return it.
+
+**`return common.ok_envelope()` — with no arguments — is a defect, and a loud
+one to grep for.** It answers `ok` while saying nothing about *which* `ok`, so
+the only thing left for a call site to test is what the envelope does not have
+(→ [Choosing which `ok` branch](#choosing-which-ok-branch)). Give the answer a
+`data` that names it — `jsonb_build_object('result', 'cleared')` — even when
+the RPC has exactly one `ok` today, and especially when it also raises a `PA`,
+because then there are already two. The argument is the same one the no-just-
+matching-`ok` rule makes on the frontend, arriving one layer earlier: the day a
+second answer lands, the naming is what stops it being drawn as the first.
 
 **The SQLSTATE says which branch.** `PA###` produces an `ok`; `PN###` produces a
 `not-ok`. `src/guards/raiseCodes.test.ts` reads the SQL and the edge functions

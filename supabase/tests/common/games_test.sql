@@ -433,8 +433,8 @@ select is(
 select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   common.unset_current_view(current_setting('test.created_game_id')::uuid),
-  '{"type": "ok"}'::jsonb,
-  'unset_current_view: clearing a real pointer is a plain ok'
+  '{"type": "ok", "data": {"result": "cleared"}}'::jsonb,
+  'unset_current_view: clearing a real pointer answers ok/cleared'
 );
 
 reset role;

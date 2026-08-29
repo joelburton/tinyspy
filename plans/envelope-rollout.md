@@ -356,8 +356,8 @@ when it is empty.
 In short: one branch per answer, every condition a positive assertion about the
 case, a bare `else` that screams and is never contorted for, and never picking
 an `ok` branch by asking whether there is a message or what the outcome is —
-branch on `data` or `dbcode`, and add to `data` if it cannot tell the cases
-apart.
+branch on `data` or `dbcode`, by equality against a specific value, and add to
+`data` if it cannot tell the cases apart.
 
 ### The retro-fix list — every already-converted call site
 
@@ -375,6 +375,16 @@ was written before the rules existed, so each needs the same three things —
    `outcome`, and never by merely matching `ok`. Where `data` cannot tell the
    cases apart, the RPC's `data` gains something that can, which makes the entry
    a SQL edit too.
+4. **That check is equality against a specific value** — never `=== null`,
+   `!== null`, `?? …` or a truthiness test. Those name an absence, not a case,
+   so a second wordless answer added later matches and is silently drawn as the
+   first. → [envelopes.md → Choosing which `ok`
+   branch](../docs/envelopes.md#choosing-which-ok-branch).
+5. **Grep the RPC for `return common.ok_envelope()` with no arguments** while
+   you are in its SQL. It is the tell that produced #4 — an `ok` that says
+   nothing about which `ok` leaves the call site nothing to test but the
+   absence. Give it a `data` that names the answer. → [envelopes.md → How SQL
+   builds one](../docs/envelopes.md#how-sql-builds-one).
 
 `create_game` has a shared consumer and sixteen private halves. Every game's
 setup dialog starts through ONE branch — `SetupGameModal.tsx`, typed once as

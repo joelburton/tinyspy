@@ -1601,9 +1601,16 @@ grant execute on function common.set_current_view(uuid) to authenticated;
 -- you're a member" is the right granularity.
 --
 -- Outcomes:
---   - ok           the flag is false (or already was)
+--   - ok           {"result": "cleared"} — the flag is false (or already was)
 --   - ok / noted   PA001 — the game itself is gone
 --   - not-ok/fault PN011 / PN012, from require_club_member
+--
+-- The success carries a `result` rather than an empty `data`, because the two
+-- `ok`s have to be told apart at the call site and only one of them can be
+-- named by `dbcode`: PA001 arrives through a raise, and a raise always builds
+-- `data: null`. Leaving this one empty would make "no dbcode" its identity —
+-- an absence, which a second wordless `ok` added later would match too, and be
+-- drawn as this one (docs/envelopes.md → Choosing which `ok` branch).
 
 drop function if exists common.unset_current_view(uuid);
 create or replace function common.unset_current_view(target_game uuid)
@@ -1642,7 +1649,7 @@ begin
    where id = target_game
      and is_current_view = true;
 
-  return common.ok_envelope();
+  return common.ok_envelope(jsonb_build_object('result', 'cleared'));
 
 exception when others then
   get stacked diagnostics

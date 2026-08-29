@@ -1,6 +1,7 @@
 // cs-unmet
 
 import { diagnosticsLine, readRows, runRpc } from '../../lib/supabase/dbResult'
+import { showFaultModal } from '../../lib/fault/faultStore'
 import { showToast } from '../../lib/toast/toastStore'
 import { DEFAULT_TOAST_MS } from '../toasts/Toast'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -83,6 +84,11 @@ type ListedGame = {
   baseGametype: string
   brand: string
 }
+
+/** What `common.unset_current_view` puts in `data` when it cleared the pointer.
+ *  Nullable because its other `ok` — PA001, the game is gone — comes through a
+ *  raise, and `common.raised_envelope` always builds `data: null`. */
+type UnsetAnswer = { result: 'cleared' } | null
 
 type Props = {
   handle: string
@@ -222,19 +228,36 @@ export function ClubPage({ handle, session }: Props) {
     // unattended game.
     const timer = setTimeout(() => {
       healedRef.current = activeGameId
-      void runRpc(
+      void runRpc<UnsetAnswer>(
         commonDb.rpc('unset_current_view', { target_game: activeGameId }),
       ).then((res) => {
-        // Logged, not surfaced: nobody asked for this, so there is nobody to
-        // tell. A fault has already put the modal up centrally; this line is
-        // what says which call it was. A game deleted inside the 2.5s window
-        // comes back `ok` and is not a failure at all.
-        if (res.type !== 'ok') {
+        // No manual refetch on any of these — the is_current_view UPDATE flows
+        // back through the club-games postgres-changes subscription, which
+        // re-runs loadGames and clears activeGameId.
+        if (res.type === 'not-ok' && res.severity === 'fault') {
+          // Logged, not surfaced: nobody asked for this heal, so there is
+          // nobody to tell, and `runRpc` has already put the modal up. The line
+          // is what names WHICH call it was.
+          //
+          // The severity is asserted rather than assumed, because it is the
+          // whole reason a console line is enough. A fault is the only not-ok
+          // this RPC can give today (PN011 / PN012, from require_club_member),
+          // and it is the only one this page can safely leave unsaid — the
+          // modal has said it. A race or a service-error would need a surface,
+          // and this page has none for news nobody asked for, so rather than
+          // becoming a quiet console line it goes to the scream below.
           console.error('heal unset_current_view failed', res.message)
+        } else if (res.type === 'ok' && res.dbcode === 'PA001') {
+          // The game was deleted inside the 2.5s grace window. Not a failure at
+          // all: a deleted game has no pointer left to clear, which is what the
+          // heal wanted. Named by its `dbcode` because it arrives through a
+          // raise, and a raise carries no `data`.
+        } else if (res.type === 'ok' && res.data?.result === 'cleared') {
+          // The pointer is cleared — or was already false, the RPC's own
+          // `where is_current_view = true` guard making a lost race a no-op.
+        } else {
+          showFaultModal({ text: 'BUG: unset_current_view fell through to unhandled' })
         }
-        // No manual refetch — the is_current_view UPDATE flows back
-        // through the club-games postgres-changes subscription,
-        // which re-runs loadGames and clears activeGameId.
       })
     }, 2500)
     return () => clearTimeout(timer)
