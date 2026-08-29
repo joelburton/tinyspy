@@ -125,6 +125,39 @@ describe('readRows', () => {
     const r = await readRows(Promise.reject(new TypeError('Load failed')))
     expect(r).toMatchObject({ type: 'not-ok', severity: 'fault', message: 'Load failed' })
   })
+
+  // ── Pointed at an RPC ────────────────────────────────────────
+  // The cast is the point: TypeScript rejects `readRows(db.rpc(…))` because an
+  // RPC resolves to `data: T | null`, not `Row[]` — but a `returns setof`
+  // function slips through that, and so does any cast. The envelope would
+  // otherwise be nested inside `data`, where its own `type` and `severity`
+  // are invisible to every call site.
+  it('faults when handed an RPC envelope instead of rows', async () => {
+    const envelope = { type: 'not-ok', severity: 'race', message: 'too late' }
+    const r = await readRows(
+      Promise.resolve({ data: envelope, error: null }) as unknown as Promise<
+        { data: unknown[] | null; error: null }
+      >,
+    )
+    expect(r).toMatchObject({
+      type: 'not-ok',
+      severity: 'fault',
+      message: 'BUG: a table read did not answer with rows',
+    })
+    expect(r.detail).toContain('an RPC envelope')
+    // The modal is raised here, like every other fault the wrappers detect.
+    expect(peekFaultsForTest()).toHaveLength(1)
+  })
+
+  it('faults on a scalar too, and says what it got', async () => {
+    const r = await readRows(
+      Promise.resolve({ data: 42, error: null }) as unknown as Promise<
+        { data: unknown[] | null; error: null }
+      >,
+    )
+    expect(r).toMatchObject({ type: 'not-ok', severity: 'fault' })
+    expect(r.detail).toContain('a number')
+  })
 })
 
 // Nothing is stripped between the wire and the caller: the plan's rule is that

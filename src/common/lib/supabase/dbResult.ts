@@ -609,6 +609,25 @@ export async function readRows<Row>(query: QueryLike<Row[]>): Promise<Envelope<R
     return faultEnvelope(thrown as DbError, 'The request never reached the server.')
   }
   if (settled.error) return faultEnvelope(settled.error, 'The read failed.')
+  // **This wrapper is for QUERIES.** Pointed at an RPC, what comes back is a
+  // single value rather than rows — most often one of our own envelopes — and
+  // wrapping that as `data` would bury its real `type`, `severity` and `dbcode`
+  // a level down where no call site looks for them. So it faults instead, the
+  // mirror of `runRpc`'s unreadable-body check above.
+  //
+  // TypeScript blocks most of the mistake already (an RPC resolves to
+  // `data: T | null`, which is not `Row[]`) — but not a `returns setof` one,
+  // and not a cast. `src/guards/dbCallShape.test.ts` is the compile-time half
+  // of this pair; this is the half that runs.
+  if (settled.data !== null && !Array.isArray(settled.data)) {
+    const what = isEnvelope(settled.data) ? 'an RPC envelope' : `a ${typeof settled.data}`
+    const crossed = faultEnvelope(
+      null, 'BUG: a table read did not answer with rows',
+      `readRows received ${what}: ${JSON.stringify(settled.data)?.slice(0, 120)}`,
+    )
+    reportDbFault({ call: callLabel(query, 'read'), status: 200 }, crossed)
+    return crossed
+  }
   // `null` collapses to `[]`: PostgREST returns null rather than an empty array
   // in some shapes, and "no rows" is one answer, not two.
   return {

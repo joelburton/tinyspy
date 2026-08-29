@@ -47,6 +47,21 @@ been invalid. **Zero rows is `ok`**, always: an empty result is a correct answer
 at the protocol level, and only the caller knows whether it *should* have found
 something.
 
+**`runRpc` takes an RPC and `readRows` takes a query, and crossing them is a
+bug in both directions.** The wrappers look interchangeable and are not: one
+receives an envelope an author wrote, the other builds one around rows nobody
+authored. An envelope read as rows lands inside `data`, where its `type` and
+`severity` are invisible; rows read as an envelope are unreadable.
+
+The compiler catches only half of it — `readRows` demands an array, so an RPC
+fails to compile, while `runRpc`'s parameter is `data: unknown` and accepts
+anything. **And it cannot be made to catch the rest**: our RPCs generate as
+`Returns: Json`, which already includes arrays, so a parameter type narrow
+enough to reject a query rejects every RPC we have (measured 2026-08-29). Hence
+two mechanisms instead: `src/guards/dbCallShape.test.ts` reads every call site
+and asserts the builder matches its wrapper, and each wrapper faults at runtime
+on the other's answer.
+
 ## Envelope type: ok | not-ok
 
 A `not-ok` is a failure — but "failure" is a broad word, so:
