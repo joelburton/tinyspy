@@ -111,6 +111,13 @@ An `ok` envelope may carry an outcome, and a `not-ok` may too — where it
 overrides the default appearance its severity would otherwise give it. See
 [envelopes.md](envelopes.md).
 
+The two arms reach a pill differently, and the asymmetry is deliberate. A
+`not-ok` is mapped by one shared function (`getNotOkFeedback`), because severity
+already says how it should read and fifteen boards deriving that separately
+would drift. An `ok` is **not** mapped: what a successful answer shows is
+game-specific — a pangram's score, a word's length, nothing at all — and no rule
+has been found there yet.
+
 Two rules from there worth repeating, because they are what keep this list from
 sprawling:
 

@@ -12,6 +12,13 @@ This file is the canonical place for these decisions.
 [plans/error-system.md](../plans/error-system.md) is the sprint doing the
 conversion and tracks what is left; where the two disagree, this file wins.
 
+**Some of what follows is decided and not yet built** — this file describes the
+target, and the plan tracks the distance. As of 2026-08-28 the code still spells
+the severities `validation` and `error` (here: `form-validation` and
+`service-error`), has no `race` at all, resolves no default appearance, and has
+no `getNotOkFeedback`. Roughly 21 raises, 6 edge-function calls and the guard's
+vocabulary set move when it lands.
+
 ## Consumers
 
 The places we call servers, and what each does with an answer.
@@ -160,6 +167,44 @@ one function rather than being a mystery.
 
 `outcome` stays nullable on the not-ok arm for now. We do not yet know that
 every `not-ok` will have one; it can be tightened later.
+
+## What a caller does with one
+
+A `not-ok`'s appearance is derived, not decided at the call site.
+`getNotOkFeedback(envelope)` in `src/common/lib/game/genericPills.ts` maps it to
+the parts of a feedback message — the tone from severity-or-outcome, the text
+from `message`, and `fault: true` where the modal has already fired and the pill
+is what remains after it is dismissed.
+
+**One function, because it is one mapping.** Fourteen call sites currently write
+`tone: 'error'` by hand, which is correct only because every one of them is a
+"new game" path where every possible answer really is a fault. The first surface
+where a single call can answer three ways — `submit_guess`, which returns `ok`,
+a race, or a fault — cannot have that line written by hand, and neither can the
+fifteen boards after it. Letting each derive its own would put back exactly the
+drift `ERROR_COPY` was centralizing.
+
+`genericPills.ts` rather than `localPills.ts`: a **local** pill is specifically
+the below-board one, about this player. This mapping serves global pills too, so
+it does not belong in a file whose docstring says otherwise.
+
+**`mode` stays at the call site** — permanence is about the surface, not about
+the answer — so the function returns the message minus its mode:
+
+```ts
+if (res.type !== 'ok') {
+  showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'manual' } })
+  return
+}
+```
+
+**There is no equivalent for `ok`, deliberately.** What pill a successful answer
+shows is game-specific — a pangram's score, a word's length, nothing at all —
+and we do not know whether rules exist there yet. Better an honest gap than a
+shared helper guessing at one.
+
+A **form** needs none of this: `setErrors({ [res.field ?? '_']: res.message })`
+is the whole mapping, and a field error has one look.
 
 ## The keys
 
