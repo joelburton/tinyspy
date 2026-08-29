@@ -29,8 +29,9 @@ import type { Outcome } from '../outcomes'
  *   form-validation  the form is invalid; the message belongs under a control
  *   service-error    something we depend on didn't answer
  *
- * A `fault` still arrives — one shape, always — but the modal is already up by
- * then, so a call site has nothing to render for it.
+ * A `fault` arrives like any other — one shape, always. Its modal has already
+ * been raised centrally by the time a call site sees it, but the call site still
+ * shows the `message`: the modal escalates, it does not replace (docs/envelopes.md).
  *
  * The two compound names are spelled out rather than shortened, because the
  * short forms are both words that already mean something else here. A bare

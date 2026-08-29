@@ -266,12 +266,44 @@ red in the suite meanwhile.
 
 Two jobs with different costs; don't batch them together.
 
-**Mechanical.** 19 hand-written `tone: 'error'` call sites become
-`getNotOkFeedback`. They are correct today only because every one is a "new
-game" path where every possible answer really is a fault. The first surface
-where one call can answer three ways — `connections.submit_guess`: `ok`, a race,
-or a fault — cannot have that line written by hand, and neither can the fifteen
-boards after it.
+**Mechanical — DONE 2026-08-28.** The hand-written `tone: 'error'` call sites
+were 14, not 19: one per game's in-game **New Game** button. Each is now
+`showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'manual' } })`. The
+other five `tone: 'error'` hits are not this pattern — three in `serverError.ts`
+(deleted wholesale at the end), one toast on the club page, and bananagrams'
+check-board line.
+
+**It fixed a live bug**: every one of the 14 fired **two** fault modals. `runRpc`
+/ `runEdgeFn` call `reportDbFault` (modal #1, with diagnostics), and then the
+hand-written `fault: true` routed the message to `showFaultModal` through
+`useLocalFeedback` (modal #2, same words, no diagnostics). `faultStore` has "no
+batching, no dedupe", so both queued and the player dismissed one to find the
+other.
+
+**And it dropped a promotion, deliberately** (Joel, 2026-08-28). The old line
+wore the fault look *whatever the server said*. The matrix behind that call:
+
+| surface | what can actually arrive | after |
+|---|---|---|
+| the 8 `create_game` games | **`fault` only** — `common.create_game` raises PN059/PN060, both faults, and its three helpers raise nothing else | modal ×1, plus a pill |
+| the 6 build-board games | `fault`, **or a `form-validation`** | fault: modal + pill · validation: pill only |
+
+Most of those validations can't fire here (New Game reuses a setup that already
+built a board, so anything deterministic about the values passes again). **Two
+can**, because they are about a randomized generator giving up: waffle `PN121`
+"No board could be built at that difficulty. Try another." and boggle `PN155`
+"No board met those constraints — please relax them." Both now read as pills,
+which is what their own raise-site comments asked for — waffle's says the
+sentence belongs under a field "rather than raising a modal that offers nothing
+to do", and the call site was overriding that.
+
+The governing rule this settled is now in
+[envelopes.md](../docs/envelopes.md) → What a caller does with one: **presenting
+a fault is not a call site's job, and the modal is an escalation, not a
+replacement.** `fault: true` on a feedback message becomes deletable once
+`serverError.ts` goes — nothing else sets it, and the only non-routing read is
+`useWordSubmit:237`, which clears a stale optimistic pill and needs to read the
+envelope instead.
 
 **Judgment, per site.** Which already-converted raises are actually races (the
 19 `tone: 'noted'` `ERROR_COPY` entries are the candidates; `hint-in-compete` is

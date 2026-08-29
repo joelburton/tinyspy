@@ -36,6 +36,7 @@ import styles from './PlayArea.module.css'
 import '../theme.css'
 import { useSwallowTab } from '../../common/hooks/input/useSwallowTab'
 import { useSingleFlight } from '../../common/hooks/ui/useSingleFlight'
+import { getNotOkFeedback } from '../../common/lib/game/genericPills'
 
 /** Disc colors for AI seats (up to 3), kept distinct from the common
  *  member-color palette's usual first picks so a bot reads as "not one of us". */
@@ -464,11 +465,15 @@ export function PlayArea({
     if (res.type !== 'ok') {
       // THE SAME ENVELOPE, READ DIFFERENTLY. On the setup form a validation is
       // an answer — fix the field and press Start again. Here there is no field
-      // and no form: this setup already built a game once, so whatever comes
-      // back is a bug or an outage, and it wears the fault look whatever the
-      // server called it. Straight to showMsg: the sticky-forcing wrapper
-      // would flatten the fault's manual-dismiss mode.
-      showMsg({ tone: 'error', fault: true, text: res.message, mode: { kind: 'manual' } })
+      // and no form, so whatever came back goes in the pill as it reads: a fault
+      // wears `error` and has already raised its modal centrally, a refusal wears
+      // its own tone. The pill is shown either way — the modal escalates, it does
+      // not replace (docs/envelopes.md), so dismissing it must not leave the board
+      // silent about why the game didn't start.
+      //
+      // Straight to `showMsg`: the sticky-forcing wrapper would flatten the
+      // manual-dismiss mode this message needs.
+      showMsg({ ...getNotOkFeedback(res), mode: { kind: 'manual' } })
       return
     }
     goToGame(`scrabble_${gameMode}`, res.data.id)

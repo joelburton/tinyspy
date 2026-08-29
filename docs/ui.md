@@ -140,7 +140,18 @@ before routing.
 
 **The one rule:** *every failure that classifies as fault/transport pops the
 modal, on every surface; expected rejections, validation, and answers stay
-where they are.* Mechanics:
+where they are.*
+
+**On a converted call the modal is an ESCALATION, not a replacement** — the
+fault also appears in the pill or on the form line, like any other answer, so
+that dismissing the modal doesn't leave a form looking fine or a board still
+showing "FOOZLE: not a word" when the real news is that the server is down. The
+heading above ("the one thing that is NOT a pill") describes the unconverted
+path, where a fault replaced the pill; see
+[envelopes.md](envelopes.md) → What a caller does with one, and expect this
+section to be rewritten when the roster empties.
+
+Mechanics:
 
 - **Nothing authors a fault by hand.** `GenericFeedbackMsg.fault` (+ its
   `diagnostics`) is set only by the layer that received the failure — on a

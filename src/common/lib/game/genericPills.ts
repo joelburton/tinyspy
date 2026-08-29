@@ -33,14 +33,16 @@ import { notOkOutcome } from '../supabase/dbResult'
  *       return
  *     }
  *
- * **A fault gets a pill here, not a modal**, which looks backwards for one
- * moment and isn't: by the time a call site reads the envelope, `runRpc` has
- * already fired the modal centrally, with the diagnostics only the transport
- * layer could supply (the call, the status, the elapsed ms). Setting
- * `fault: true` on this message would route it to `showFaultModal` a SECOND
- * time — a duplicate modal, and a poorer one, since nothing here can rebuild
- * that line. So the pill carries the same sentence the modal leads with, and it
- * is what the player still has after dismissing it.
+ * **Every severity is mapped, `fault` included** — the modal is an ESCALATION,
+ * not a replacement (docs/envelopes.md → What a caller does with one). Filtering
+ * a fault out here would leave the board showing "FOOZLE: not a word" after the
+ * modal is dismissed, when the real news is that nothing is reaching the server.
+ *
+ * That the pill is the ONLY thing this returns for a fault is deliberate too:
+ * by the time a call site reads the envelope, `runRpc` has already raised the
+ * modal centrally, with the diagnostics only the transport layer could supply.
+ * Marking this message a fault would route it to `showFaultModal` a second time
+ * — a duplicate, and a poorer one, since nothing here can rebuild that line.
  *
  * **There is deliberately no `ok` equivalent.** What a successful answer shows
  * is game-specific — a pangram's score, a word's length, nothing at all — and

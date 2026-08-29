@@ -173,19 +173,49 @@ distinction.
 
 ## What a caller does with one
 
+### Presenting a fault is not a call site's job
+
+**One rule, and everything else here follows from it: the layer that KNOWS a
+failure is a fault, and HOLDS its diagnostics, is the layer that shows the
+modal.** That is `dbFetch` for an environmental failure and a raw fault, and
+`runRpc` / `runEdgeFn` / `readRows` for a declared one arriving on a 200. Never
+a call site.
+
+The diagnostics line is why: it is built from **transport** facts — the call,
+the HTTP status, the elapsed milliseconds — that no envelope carries and no call
+site has. A call site raising its own modal can only produce a worse copy of one
+that already fired.
+
+### But the surface still shows it — the modal is an ESCALATION, not a replacement
+
+**Do not filter by severity when you report an answer.** A fault goes in the
+form's error line, or the pill, exactly as a `form-validation` or a race would.
+The modal is *additional*.
+
+The reason is what the player sees after dismissing it. Press OK on a modal and
+a form that filtered the fault out looks like nothing is wrong — or worse, shows
+some lesser validation error, so the dialog now claims the problem is a
+too-short club name when the truth is the server is down. A board is the same:
+leaving "FOOZLE: not a word" in the pill is pointless when the real news is that
+nothing is reaching the server.
+
+So `getNotOkFeedback` maps **every** severity, `fault` included, and a form
+writes `res.message` to its error line whatever the severity says. Nothing
+anywhere reads `severity` to decide whether to display an answer — only to
+decide how it reads.
+
+### The mapping
+
 A `not-ok`'s appearance is derived, not decided at the call site.
 `getNotOkFeedback(envelope)` in `src/common/lib/game/genericPills.ts` maps it to
-the parts of a feedback message — the tone from severity-or-outcome, the text
-from `message`, and `fault: true` where the modal has already fired and the pill
-is what remains after it is dismissed.
+the parts of a feedback message: the tone from severity-or-outcome, the text
+from `message`.
 
-**One function, because it is one mapping.** Fourteen call sites currently write
-`tone: 'error'` by hand, which is correct only because every one of them is a
-"new game" path where every possible answer really is a fault. The first surface
-where a single call can answer three ways — `submit_guess`, which returns `ok`,
-a race, or a fault — cannot have that line written by hand, and neither can the
-fifteen boards after it. Letting each derive its own would put back exactly the
-drift `ERROR_COPY` was centralizing.
+**One function, because it is one mapping.** The first surface where a single
+call can answer three ways — `submit_guess`, which returns `ok`, a race, or a
+fault — cannot have that line written by hand, and neither can the fifteen
+boards after it. Letting each derive its own would put back exactly the drift
+`ERROR_COPY` was centralizing.
 
 `genericPills.ts` rather than `localPills.ts`: a **local** pill is specifically
 the below-board one, about this player. This mapping serves global pills too, so
@@ -207,7 +237,10 @@ and we do not know whether rules exist there yet. Better an honest gap than a
 shared helper guessing at one.
 
 A **form** needs none of this: `setErrors({ [res.field ?? '_']: res.message })`
-is the whole mapping, and a field error has one look.
+is the whole mapping, and a field error has one look. Note that there is no
+`if` in it — a fault lands on the form line like anything else, per the
+escalation rule above, and `'_'` is where one goes since a fault is not about a
+control.
 
 ## The keys
 

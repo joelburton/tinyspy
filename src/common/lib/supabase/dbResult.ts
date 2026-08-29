@@ -26,13 +26,21 @@ import type { Envelope, Severity } from './envelope'
  *     not-ok / form-validation  show `message` under the control it names
  *     not-ok / race             show `message` in a pill — you lost the race
  *     not-ok / service-error    show `message` in a pill; wait and retry
- *     not-ok / fault            nothing to do — the modal is already up
+ *     not-ok / fault            show `message` too — see below
  *
- * Faults are presented centrally (`reportDbFault`, called from `dbFetch`), so
- * no call site classifies a failure, words a network problem, or reaches for
- * `showFaultModal` itself. Most callers never test `severity` at all: they bail
- * on anything that isn't `ok`, and only a form that shows form-validation text needs
- * to look closer.
+ * Faults are presented centrally — `reportDbFault`, from `dbFetch` and from the
+ * wrappers below — so no call site classifies a failure, words a network
+ * problem, or reaches for `showFaultModal` itself. The layer that knows it is a
+ * fault is the layer holding its diagnostics, and those are transport facts an
+ * envelope does not carry.
+ *
+ * **The modal is an escalation, not a replacement**, so a call site still shows
+ * a fault's `message` in its pill or on its form line, exactly as it would a
+ * race or a form-validation. Dismiss a modal in front of a form that filtered
+ * the fault out and the form looks fine — or shows some lesser validation
+ * error, and now claims the problem is a short club name when the server is
+ * down. **Nothing reads `severity` to decide WHETHER to display an answer**,
+ * only how it reads (docs/envelopes.md → What a caller does with one).
  */
 
 // ─────────────────────────────────────────────────────────────
