@@ -894,9 +894,9 @@ refetch), not two places in the source.
 
 - [x] `create_game` · RPC (2 call sites)
 - [x] `submit_guess` · RPC (2 call sites)
-- [ ] `games_state` · read (2 call sites)
-- [ ] `guesses` · read
-- [ ] `players` · read
+- [x] `games_state` · read
+- [x] `guesses` · read
+- [x] `players` · read
 
 #### wordwheel
 

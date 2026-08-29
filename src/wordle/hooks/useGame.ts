@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRealtimeRefetch } from '../../common/hooks/realtime/useRealtimeRefetch'
 import type { Member } from '../../common/lib/games'
+import { readRows } from '../../common/lib/supabase/dbResult'
 import { db } from '../db'
 
 /** A wordle player. No fixed seats — every game_player can guess. */
@@ -72,24 +73,43 @@ export function useGame(gameId: string): {
     id: gameId,
     load: async ({ mounted }) => {
       const [gameRes, playersRes, guessesRes] = await Promise.all([
-        db
-          .from('games_state')
-          .select('id, mode, max_guesses, target')
-          .eq('id', gameId)
-          .maybeSingle(),
-        db
-          .from('players')
-          .select('user_id, guesses_used, solved, solved_at')
-          .eq('game_id', gameId),
-        db
-          .from('guesses')
-          .select('user_id, seq, guess, colors, is_correct')
-          .eq('game_id', gameId)
-          .order('seq', { ascending: true }),
+        // No `.maybeSingle()`: `readRows` hands back rows, and `id` is the PK,
+        // so this is 0 or 1 of them.
+        readRows(
+          db
+            .from('games_state')
+            .select('id, mode, max_guesses, target')
+            .eq('id', gameId),
+        ),
+        readRows(
+          db
+            .from('players')
+            .select('user_id, guesses_used, solved, solved_at')
+            .eq('game_id', gameId),
+        ),
+        readRows(
+          db
+            .from('guesses')
+            .select('user_id, seq, guess, colors, is_correct')
+            .eq('game_id', gameId)
+            .order('seq', { ascending: true }),
+        ),
       ])
       if (!mounted()) return
 
-      if (!gameRes.data) {
+      // A FAILED read and a MISSING game used to be one branch — a failure left
+      // `data` null, so a dead connection rendered the game as not-found. The
+      // fault is already logged and shown by `dbFetch`; all that is left here is
+      // to stop loading rather than claim anything about the game.
+      if (gameRes.type !== 'ok' || playersRes.type !== 'ok' || guessesRes.type !== 'ok') {
+        setLoading(false)
+        return
+      }
+
+      // ZERO ROWS is the caller's to read: no game with that id, or one this
+      // club cannot see.
+      const row = gameRes.data[0]
+      if (!row) {
         setGame(null)
         setPlayers([])
         setGuesses([])
@@ -98,13 +118,13 @@ export function useGame(gameId: string): {
       }
 
       setGame({
-        id: gameRes.data.id as string,
-        mode: gameRes.data.mode as 'coop' | 'compete',
-        max_guesses: gameRes.data.max_guesses as number,
-        target: (gameRes.data.target as string | null) ?? null,
+        id: row.id as string,
+        mode: row.mode as 'coop' | 'compete',
+        max_guesses: row.max_guesses as number,
+        target: (row.target as string | null) ?? null,
       })
-      setPlayers((playersRes.data ?? []) as WordlePlayerState[])
-      setGuesses((guessesRes.data ?? []) as GuessRow[])
+      setPlayers(playersRes.data as WordlePlayerState[])
+      setGuesses(guessesRes.data as GuessRow[])
       setLoading(false)
     },
   })
