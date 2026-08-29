@@ -461,7 +461,17 @@ the four inside `connections.submit_guess` from the original census.
 - [ ] `SetupGameModal.tsx` + the `startGameInClub` contract in `games.ts` — the
   one branch all sixteen setup dialogs go through. It starts asserting the case
   name here, which breaks Start for every game until that game's own entry
-  lands. Take it FIRST, so the rest is a shrinking list of red buttons.
+  lands. Take it FIRST **within this group** — the six converted games above
+  come before all of it — so the rest of the group is a shrinking list of red
+  buttons.
+
+  **Measured 2026-08-29, and it contradicts "red buttons":** changing the
+  contract ALONE red-builds every one of the 16 `manifest.ts` files at once
+  (`Envelope<{id}>` is not assignable to `Envelope<{result, id}>`), so nothing
+  compiles until the whole group lands. To get the buttons-not-build breakage
+  this entry wants, the 16 manifests' type PARAMETERS come with the contract —
+  one line each, no logic — leaving each game's SQL and its in-game New Game
+  branch to that game's own entry.
 
 Then, per game: its `create_game` SQL gains the case name, and its `manifest.ts`
 + `PlayArea.tsx` New Game branch on it. The six converted games take theirs
