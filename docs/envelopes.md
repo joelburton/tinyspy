@@ -227,7 +227,7 @@ if (res.type === 'not-ok') {
   clearWord()
   showMsg({ tone: res.outcome, text: res.message, mode: { kind: 'sticky' } })
 } else {
-  showFaultModal({ text: 'BUG: submit_word answered in a way this build does not know' })
+  showFaultModal({ text: 'BUG: submit_word fell through to unhandled' })
 }
 ```
 
@@ -240,15 +240,19 @@ anything else where it belongs, in the scream.
 **There is always a bare `else`, and it only ever screams.** Not when the types
 say it is unreachable, not when you have just read the RPC and know it cannot
 happen — those are the claims that rot, and the whole job of this branch is to
-be there on the day one of them stops being true. It says "this build does not
-know this answer" and raises the fault modal.
+be there on the day one of them stops being true.
+
+**The wording is fixed: `BUG: <rpc_name> fell through to unhandled`.** It is
+addressed to whoever is debugging, and what they need from the sentence is which
+RPC and that no branch matched; everything else — the codes, the payload, the
+call — is already in the modal's diagnostics. Saying it the same way everywhere
+also makes the whole class greppable, which a per-site paraphrase would not be.
 
 **Do not contort anything to serve it.** It should be rare, it is a plain bug
 when it fires, and the modal's `detail` carries enough to work out what
-happened — so a short sentence naming the RPC is the whole of it. If the branch
-would have to cast, or restructure the chain, or reach into a value TypeScript
-has narrowed to `never`, don't: the cost of the ceremony is paid at every call
-site, and the payoff is a line nobody will read anyway.
+happened. If the branch would have to cast, or restructure the chain, or reach
+into a value TypeScript has narrowed to `never`, don't: the cost of the ceremony
+is paid at every call site, and the payoff is a line nobody will read anyway.
 
 **No outer branch for "neither `ok` nor `not-ok`".** `runRpc` /
 `runEdgeFn` / `readRows` have already turned that into a fault envelope —

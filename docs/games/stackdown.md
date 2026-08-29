@@ -253,10 +253,10 @@ creation, so it's self-contained; `board_id` is provenance only.
   + `winner_username`). Answers with an
   [envelope](../envelopes.md) whose `data` is
   `{result: 'accepted'|'invalid', word, terminal}` — a non-word is an **`ok`**,
-  because the rules were applied and nothing was cleared. It carries no words:
-  "not a word" is one fixed line per case, so `result` carries the case and the
-  surface writes the sentence (naming the word, since the tiles have just gone
-  back on the board). The refusals are three races (the game ending, the
+  because the rules were applied and nothing was cleared; the server writes
+  `Not a word: EBATL`, naming the word because the tiles have just gone back on
+  the board and taken it off the screen. The refusals are three races (the game
+  ending, the
   caller having conceded, a teammate taking your tiles) and four faults the
   frontend should have prevented. On a valid **coop** word it
   also rewrites `common.games.title` to the cleared words (see [Title
@@ -273,12 +273,15 @@ creation, so it's self-contained; `board_id` is provenance only.
 - **`replay_board(target_game)`** — the "Restart" menu item / terminal-row Restart: reset the working state on the SAME game row. The frozen puzzle (tiles / solution / band / mode) stays — the same stack, cleared again. Any game player, from a finished game OR mid-game; both modes reset ALL players. Zeroes `players`, deletes every `submissions` row (words AND the hint/reveal cheats — a replay is a genuine second try), puts `common.games.title` back to `"New game"` (else a replayed coop game would still advertise the previous run's cleared words, spoiling the board it just reset), then hands the common half to `common.reset_game`. The solution re-hides on its own: `games_state` gates it on `is_terminal`, which `reset_game` clears. pgTAP: `replay_test.sql`.
 - **`concede(target_game)`** — the compete per-player drop-out. stackdown is a race to clear (first to clear wins, no elimination), so it's a **thin wrapper over `common.concede`** (compete-only guard): marks the caller out, ends as a collective loss only when the last racer drops. FE: `<ConcedeGameButton>` in compete, conceder "out" in the OpponentStrip, "You conceded" locally-terminal look. See [common.md → Concede](../common.md#concede--per-player-drop-out). pgTAP: `concede_test.sql`.
 - **`reveal_next_word(target_game) → jsonb`** — a **cheat**: answers with an
-  envelope carrying `{word}` — the next solution word the caller still has to
-  clear (`solution[cleared + 1]`) — defeating the hidden-solution invariant on
+  envelope carrying `{result: 'reveal', word}` — the next solution word the
+  caller still has to clear (`solution[cleared + 1]`) — defeating the
+  hidden-solution invariant on
   purpose. The `warning` outcome rides with it, painting the pill amber: priced
   help is neither good nor bad play. There is no "all cleared" answer: clearing
   the sixth word ends the game in both modes, so a later call meets the
-  in-progress gate and reads "Game over". It exists
+  in-progress gate and reads "Game over". `result` names the one case it does
+  answer, because a call site may not take an `ok` branch by merely matching
+  `ok` ([envelopes.md](../envelopes.md#choosing-which-ok-branch)). It exists
   to verify generated boards are solvable in order (and as a playtest hint), and
   may be removed once boards are trusted. Gated like a move (game player,
   in-progress only). Because strict validity forces clearing in solution order,
@@ -293,8 +296,9 @@ creation, so it's self-contained; `board_id` is provenance only.
   per `(player, for_word_index)` so repeated clicks don't spam, and serialized by
   the games-row `for update` lock (for a collision-free `seq`).
 - **`reveal_next_hint(target_game) → jsonb`** — the softer sibling: an envelope
-  carrying `{hint}` — the next word's clue (`common.words.hint`, which points at
-  the word without naming it) — under the same amber `warning`. Same gating +
+  carrying `{result: 'hint', hint}` — the next word's clue
+  (`common.words.hint`, which points at the word without naming it) — under the
+  same amber `warning`. Same gating +
   next-word math as `reveal_next_word`, but the word never reaches the client —
   only the hint text crosses the wire. Every word a stackdown board can hold
   carries a hint, so a missing one is a fault the RPC shouts about (with the

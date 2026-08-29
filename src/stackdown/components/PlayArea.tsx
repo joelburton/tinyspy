@@ -1,6 +1,7 @@
 // cs-unmet
 
 import { runRpc } from '../../common/lib/supabase/dbResult'
+import { showFaultModal } from '../../common/lib/fault/faultStore'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { IconHideSolution, IconHint, IconNewGame, IconPrint, IconRestart, IconReveal, IconSpoiler } from '../../common/components/icons'
 import { cls } from '../../common/lib/util/cls'
@@ -49,6 +50,13 @@ type WordAnswer = {
   word: string
   terminal: boolean
 }
+
+/** What the two cheats put in `data`. Each has exactly one `ok` answer today,
+ *  and `result` names it anyway: a call site may not take an `ok` branch by
+ *  merely matching `ok` (docs/envelopes.md → Choosing which `ok` branch), or a
+ *  second answer added to either RPC would be drawn as this one, silently. */
+type RevealAnswer = { result: 'reveal'; word: string }
+type HintAnswer = { result: 'hint'; hint: string }
 
 /**
  * stackdown's play surface, shared by the coop and compete manifests, on the
@@ -240,15 +248,13 @@ export function PlayArea({
         db.rpc('submit_word', { target_game: gameId, tile_ids: tileIds }),
       )
       setSubmitting(false)
-      if (res.type !== 'ok') {
+      if (res.type === 'not-ok') {
         // The tiles come back to the board: nothing was cleared. A coop
         // teammate taking your tiles mid-flight is the one refusal a player
         // realistically meets here, and it isn't their mistake.
         clearWord()
         showMsg({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
-        return
-      }
-      if (res.data.result === 'accepted') {
+      } else if (res.data.result === 'accepted') {
         // Empty the word and hold its tiles removed optimistically on THIS client so
         // the grid doesn't flash them back on before the valid submission lands via
         // realtime. Teammates just see the tiles leave once, on their own refetch.
@@ -257,16 +263,19 @@ export function PlayArea({
         // own-accepted signal; no pill needed).
         clearLocalFeedback()
         showFlash([...res.data.word.toUpperCase()], 'won')
-      } else if (res.data.result === 'invalid') {
+      } else if (res.data.result === 'invalid' && res.message !== null) {
         // NOT A WORD — an `ok`, because the rules were applied and no tile
         // moved: the five tiles go straight back onto the board. The server
         // wrote the sentence, and named the word in it, because by the time it
-        // is read `clearWord` has taken the word off the screen.
+        // is read `clearWord` has taken the word off the screen — so the
+        // sentence is half of what this case promises, and the branch says so.
         clearWord()
-        showMsg({ ...getOkFeedback(res), mode: { kind: 'sticky' } })
+        showMsg({ tone: res.outcome, text: res.message, mode: { kind: 'sticky' } })
+      } else {
+        showFaultModal({ text: 'BUG: submit_word fell through to unhandled' })
       }
     },
-    [gameId, clearWord, commitWord, showFlash, showMsg, showLocalFeedback, clearLocalFeedback],
+    [gameId, clearWord, commitWord, showFlash, showMsg, clearLocalFeedback],
   )
 
   // ─── Spoiler: the next word (a CHEAT — see stackdown.reveal_next_word) ──
@@ -277,17 +286,20 @@ export function PlayArea({
   // Surfaced in the LOCAL feedback slot (the player's own request) — `manual` so it
   // lingers while they hunt for the tiles.
   const spoilNext = useCallback(async () => {
-    const res = await runRpc<{ word: string }>(db.rpc('reveal_next_word', { target_game: gameId }))
-    if (res.type !== 'ok') {
+    const res = await runRpc<RevealAnswer>(db.rpc('reveal_next_word', { target_game: gameId }))
+    if (res.type === 'not-ok') {
       showMsg({ ...getNotOkFeedback(res), mode: { kind: 'manual' } })
-      return
+    } else if (res.data.result === 'reveal' && res.outcome !== null) {
+      // The server sends no sentence — the word IS the answer, and only the
+      // surface knows it belongs in a "Next word:" line rather than, say, a
+      // PDF. What it does send is how that reads, so the outcome is the other
+      // half of this case's promise and the branch asserts it too.
+      showLocalFeedback(`Next word: ${res.data.word.toUpperCase()}`, res.outcome, {
+        kind: 'manual',
+      })
+    } else {
+      showFaultModal({ text: 'BUG: reveal_next_word fell through to unhandled' })
     }
-    // The server sends no sentence — the word IS the answer, and only the
-    // surface knows it belongs in a "Next word:" line rather than, say, a PDF.
-    // Its `warning` outcome comes down with it and paints the pill amber.
-    showLocalFeedback(`Next word: ${res.data.word.toUpperCase()}`, res.outcome ?? 'warning', {
-      kind: 'manual',
-    })
   }, [gameId, showLocalFeedback, showMsg])
 
 
@@ -298,12 +310,14 @@ export function PlayArea({
   // this word" answer: every word a stackdown board can hold carries one, so the
   // server treats a missing hint as a fault and says so (see its comment).
   const revealHint = useCallback(async () => {
-    const res = await runRpc<{ hint: string }>(db.rpc('reveal_next_hint', { target_game: gameId }))
-    if (res.type !== 'ok') {
+    const res = await runRpc<HintAnswer>(db.rpc('reveal_next_hint', { target_game: gameId }))
+    if (res.type === 'not-ok') {
       showMsg({ ...getNotOkFeedback(res), mode: { kind: 'manual' } })
-      return
+    } else if (res.data.result === 'hint' && res.outcome !== null) {
+      showLocalFeedback(`Hint: ${res.data.hint}`, res.outcome, { kind: 'manual' })
+    } else {
+      showFaultModal({ text: 'BUG: reveal_next_hint fell through to unhandled' })
     }
-    showLocalFeedback(`Hint: ${res.data.hint}`, res.outcome ?? 'warning', { kind: 'manual' })
   }, [gameId, showLocalFeedback, showMsg])
 
   // ─── Terminal solution reveal ────────────────────────────────────

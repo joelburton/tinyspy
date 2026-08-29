@@ -38,8 +38,8 @@ select stackdown.submit_word((select id from g), pg_temp.sd_invalid()) as res;
 select is((select res->'data'->>'result' from inv), 'invalid', 'a reachable non-word → invalid');
 select is((select res->'data'->>'word' from inv), 'ebatl', 'invalid submission echoes the word (lowercase)');
 select pg_temp.envelope_is((select res from inv),
-  '{"type":"ok","message":null,"severity":null}'::jsonb,
-  'a rejected word is an ok answer, worded by the surface');
+  '{"type":"ok","outcome":"lost","message":"Not a word: EBATL"}'::jsonb,
+  'a rejected word is an ok answer that names the word');
 
 reset role;
 select is(

@@ -175,7 +175,7 @@ describe('stackdown PlayArea — concede', () => {
 function hintEnvelope(hint: string) {
   return {
     data: {
-      type: 'ok', data: { hint }, outcome: 'warning', severity: null,
+      type: 'ok', data: { result: 'hint', hint }, outcome: 'warning', severity: null,
       message: null, field: null, meta: null, dbcode: null, detail: null,
     },
     error: null,

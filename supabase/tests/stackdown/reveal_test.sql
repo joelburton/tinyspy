@@ -14,7 +14,7 @@ set search_path = stackdown, common, public, extensions;
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(12);
+select plan(13);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -30,6 +30,11 @@ select (stackdown.create_game(
 select is(
   (select stackdown.reveal_next_word((select id from g))->'data'->>'word'),
   'eagle', 'reveal at the start → the first word (eagle, stored lowercase)');
+-- `result` names the case: a call site may not take an `ok` branch by merely
+-- matching `ok` (docs/envelopes.md → Choosing which `ok` branch).
+select is(
+  (select stackdown.reveal_next_word((select id from g))->'data'->>'result'),
+  'reveal', 'the reveal answer names its case');
 
 -- reveal_next_hint returns the next word's HINT (not the word). Every
 -- stackdown word is in common.words' hint set, so the hint is present.
@@ -41,7 +46,7 @@ select is(
 -- present" is asserted as the envelope being ok, which is the same claim.
 select pg_temp.envelope_is(
   stackdown.reveal_next_hint((select id from g)),
-  '{"type":"ok","outcome":"warning","message":null}'::jsonb,
+  '{"type":"ok","outcome":"warning","message":null,"data":{"result":"hint"}}'::jsonb,
   'the hint is present (stackdown words are all in the hint set)');
 
 -- ── Requesting logs a persistent row (deduped per word) ─────────────

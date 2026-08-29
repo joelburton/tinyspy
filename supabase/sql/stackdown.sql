@@ -547,7 +547,14 @@ begin
   -- Priced help wears amber: a spoiler is neither good nor bad play, so
   -- coloring it green or red would adjudicate something the player did not do.
   -- No message — the word IS the answer, and the surface shows it.
-  return common.ok_envelope(jsonb_build_object('word', next_word), 'warning');
+  --
+  -- `result` names the case even though there is only one today: a call site
+  -- may not take an `ok` branch by merely matching `ok` (docs/envelopes.md →
+  -- Choosing which `ok` branch), because a second answer added here would then
+  -- be rendered as this one, silently. It borrows the `kind` vocabulary the
+  -- submissions row already uses for the same request.
+  return common.ok_envelope(
+    jsonb_build_object('result', 'reveal', 'word', next_word), 'warning');
 
 exception when others then
   get stacked diagnostics
@@ -651,8 +658,10 @@ begin
   end if;
 
   -- Amber, like the spoiler: priced help is neither good nor bad play. No
-  -- message — the clue IS the answer.
-  return common.ok_envelope(jsonb_build_object('hint', hint_text), 'warning');
+  -- message — the clue IS the answer. `result` names the case for the same
+  -- reason as reveal_next_word's.
+  return common.ok_envelope(
+    jsonb_build_object('result', 'hint', 'hint', hint_text), 'warning');
 
 exception when others then
   get stacked diagnostics

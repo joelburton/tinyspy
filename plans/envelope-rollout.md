@@ -358,14 +358,12 @@ branch on `data` or `dbcode`, and add to `data` if it cannot tell the cases
 apart.
 
 **What is left of this step:** the ~47 call sites already converted were written
-before the rules existed, so some of them break these. Two are known:
+before the rules existed, so some of them break these. stackdown's three are
+fixed (the first written to the rules, and the first to find that a
+single-answer RPC needs a `result` in `data` anyway). One other is known:
 
-- `src/stackdown/components/PlayArea.tsx` — the conversion committed in
-  49bac96a does not compile; its `invalid` branch is the one that was being
-  argued about. `supabase/tests/stackdown/gameplay_test.sql` carries a stale
-  assertion from the same argument.
 - `src/wordle/components/BoardCol.tsx:243` — `res.outcome ?? 'lost'` and
-  `res.message ?? ''`, the guessed defaults rule 8 forbids, and it picks its
+  `res.message ?? ''`, the guessed defaults the rules forbid, and it picks its
   branch off `result` inside an already-`ok` block with no scream.
 
 Sweep the rest when the roster is done, not now: a sweep before the rules have
