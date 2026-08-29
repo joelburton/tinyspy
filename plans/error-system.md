@@ -1076,9 +1076,34 @@ psql "$DB_URL" -c "create extension if not exists pgtap with schema extensions;"
 
 ### Step 3 — the sweep-up
 
-When the last call converts: `ERROR_COPY` drops to the environmental entries,
-the old `serverError.ts` machinery goes, and `expectedTextOrFault` and the
-`action` parameter go with it.
+When the last call converts: **`ERROR_COPY` is deleted outright**, the old
+`serverError.ts` machinery goes, and `expectedTextOrFault` and the `action`
+parameter go with it.
+
+Not "drops to the environmental entries" — that was written before
+`service-error` messages moved to the raise as well (the two NYT ones and the
+Guardian's already have). There is no residue and no mapping table at the end:
+whoever decided the answer wrote the sentence, and nothing on the frontend looks
+a key up.
+
+**The migration rule, per key.** An `ERROR_COPY` entry is two things — a
+sentence and a `tone` — and both have a home in the raise that replaces it:
+
+| the entry's | becomes the raise's | notes |
+|---|---|---|
+| `text` | `message` | verbatim; the words were approved once already |
+| `tone` | `hint`, on a `PA` code — or nothing | see below |
+| membership in the table | the severity, via `hint` on a `PN` code | having copy meant "expected"; now the author says which kind |
+
+**The `tone` usually disappears rather than moving**, because a severity carries
+a default appearance (docs/envelopes.md → Appearance). A `tone: 'noted'` entry
+that becomes a `race` needs no outcome at all — orange is what a race already
+reads as. Carry the tone across only where the raise wants to override its
+severity's default, and then it is an `outcome` on the envelope.
+
+19 of the 40 remaining entries carry a `tone`, and all 19 are game `not-ok`s
+that become races. So the expected outcome of this sweep is 19 tones dropped, not 19
+tones moved.
 
 **The pgTAP cost — it isn't de-JSON.** Of 2,379 assertions, 1,683 (71%) read
 table state and never touch a return value, so they're untouched. The JSON
@@ -1376,7 +1401,7 @@ conversions, which is most of what §7 has left. They are listed with their game
 **200 whenever the function answered**, faults included. The status says whether
 the function RAN; the envelope says what it decided. A function that answers 400
 for "that difficulty has no buildable board" makes the status carry two
-unrelated jobs, and the frontend then cannot tell a refusal that belongs under a
+unrelated jobs, and the frontend then cannot tell a `not-ok` that belongs under a
 field from a container that never woke up. `runEdgeFn` reads the envelope for
 the verdict and the status for nothing but "did this reach the function at all".
 

@@ -21,7 +21,7 @@ should have to import a game manifest to get at it.
 | `won` | a good move, or a won game | green |
 | `lost` | a bad move, or a lost game | red |
 | `near` | close — one away, nearly right | gold |
-| `warning` | not being taken, and you should notice | orange |
+| `warning` | not a verdict on your play — notice it | orange |
 | `neutral` | a move nothing adjudicates | gray |
 | `noted` | a thing that happened, not a verdict | blue |
 | `error` | a real failure, not a bad move | dark red |
@@ -35,10 +35,21 @@ connections' one-away, a word that would have scored if it were longer. It is
 not a weaker `lost`; it tells you the guess was on the right track, which is
 information a player acts on differently.
 
-**`warning` is the "we're not taking it" tone.** Not a losing move — that is
-`lost`, red — but the move is not happening and you should notice, the way a
-duplicate word needs noticing. It is what a `race` refusal defaults to (see
-[envelopes.md](envelopes.md) → Appearance).
+**`warning` is the "this is not about how you're playing" tone**, and it covers
+two things that turn out to be one:
+
+- **A move not being taken.** Not a losing move — that is `lost`, red — but it
+  is not happening and you should notice, the way a duplicate word needs
+  noticing. Connections' "You already tried that", scrabble's "Board changed".
+  It is also what a `race` defaults to (see
+  [envelopes.md](envelopes.md) → Appearance).
+- **Help you asked for.** Stackdown's spoiler and letterboxed's stuck-hint are
+  amber for the same reason its button is: a hint is neither good nor bad play,
+  and coloring it green or red would adjudicate something the player did not
+  do.
+
+What both have in common is that nothing is being judged. Which one a given case
+is stays a judgment call — decide it per site rather than by rule.
 
 **`neutral` is for a move with no verdict**: a turn that counted but that
 nothing judged. It is the only one with no hue, and its pill border is a visible
@@ -76,17 +87,17 @@ is that the tone chooses the color and nothing else does.
 
 ### The turn log
 
-Each row can carry a colored left bar naming that turn's outcome. The turn log
-uses a **narrower set** on purpose:
+Each row can carry a colored left bar naming that turn's outcome, and it is
+**the same vocabulary** — a log row and a pill reporting the same turn say the
+same word.
 
 ```ts
 export type TurnOutcome = 'won' | 'lost' | 'near' | 'neutral'
 ```
 
-Four, not seven, because a log row is always a turn that happened and was
-judged: there is no "news" in a turn log, and nothing in it is a failure —
-a failed request never became a turn. `warning` is absent for the same reason
-(a refused move is not a turn).
+That type lists four because four are what the games have needed so far, not
+because a rule keeps the others out. Nothing stops a log row being `warning` or
+`noted`; widen the type when a game wants one.
 
 ### Boards and tiles
 

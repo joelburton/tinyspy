@@ -51,7 +51,7 @@ export type Envelope<T = unknown> =
       data: T
       /** How it reads on screen. */
       outcome: Outcome | null
-      /** Always null on this arm — a severity belongs to a refusal. It is
+      /** Always null on this arm — a severity belongs to a `not-ok`. It is
        *  declared because the WIRE carries it: nine keys travel whatever
        *  happened, so the type says nine. */
       severity: null
@@ -69,7 +69,7 @@ export type Envelope<T = unknown> =
     }
   | {
       type: 'not-ok'
-      /** Always null on this arm — a refusal carries no payload. Declared for
+      /** Always null on this arm — a `not-ok` carries no payload. Declared for
        *  the same reason `severity` is declared on the ok arm: the wire has
        *  nine keys either way. */
       data: null

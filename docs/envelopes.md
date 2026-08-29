@@ -24,9 +24,14 @@ The places we call servers, and what each does with an answer.
   of what any RPC does.
 - **Reads** — the homepage's "all your clubs", the club page's "all games".
 
-(XXX: are there other places or other categories?)
+**Realtime is the fourth way data arrives, and it is deliberately outside this
+convention.** Nobody called anything, so there is no answer to wrap: a row
+changed and we were told. It matters here anyway, because it is what makes races
+possible — the frontend's gates are built on state realtime delivered, and the
+gap before it arrives (or the deaf window in which it never does) is exactly
+when a legitimate race happens.
 
-**A read never authors a refusal.** It has no move to judge, so its only answers
+**A read never authors a `not-ok` of its own.** It has no move to judge, so its answers
 are rows, a failure, or silence. `readRows` builds the envelope, and a failed
 read is always a `fault` — nothing was submitted, so there is nothing to have
 been invalid. **Zero rows is `ok`**, always: an empty result is a correct answer
@@ -97,8 +102,8 @@ An **outcome** is the verdict on a move, or a move-like thing: `won`, `lost`,
 An `ok` will often carry one. It colors the feedback pill and the verdict
 column in a game's turn log.
 
-**A `not-ok` can carry one too** — which is what lets a refusal look calm or
-loud independently of how bad it is. See Appearance, below.
+**A `not-ok` can carry one too** — which is what lets one look calm or loud
+independently of how bad it is. See Appearance, below.
 
 Each outcome's meaning, and where it is used, is in
 [outcomes.md](outcomes.md).
@@ -110,8 +115,13 @@ Every `not-ok` carries one:
 - **`fault`** — a hard failure: a bug, a broken server, or a request that did
   not come from our FE. Shown as a blocking modal, and may also appear on a form
   or a pill.
-- **`race`** — the player lost a legitimate race. Usually a local feedback pill
-  in a game. (XXX: i suspect all races will be about games)
+- **`race`** — the player lost a legitimate race. Shown as a local feedback pill.
+
+  **So far every race is in a game**, and there is a reason to expect that to
+  hold: a race needs shared state changing underneath you, and only a game has
+  any. A form's values are yours alone until you submit, and a read has no move
+  to lose. If one ever turns up on a form, that is worth looking at twice — it
+  probably means the form was reading live state it should not have been.
 - **`form-validation`** — the form is invalid, and the message belongs under the
   control it is about. The only severity that names a `field`.
 - **`service-error`** — something we depend on did not answer. NYT unreachable,
@@ -149,7 +159,7 @@ normalization — so a blank `outcome=` beside an orange pill is explained by th
 one function rather than being a mystery.
 
 `outcome` stays nullable on the not-ok arm for now. We do not yet know that
-every refusal will have one; it can be tightened later.
+every `not-ok` will have one; it can be tightened later.
 
 ## The keys
 
@@ -171,7 +181,7 @@ Two reasons, and the second is the load-bearing one:
 | `type` | both | `ok` \| `not-ok` |
 | `data` | ok | the payload the caller asked for |
 | `outcome` | both | how it reads on screen |
-| `severity` | not-ok | what kind of refusal |
+| `severity` | not-ok | what kind of `not-ok` it is |
 | `message` | both | **the player-facing sentence** |
 | `field` | not-ok | which control a `form-validation` is about |
 | `meta` | both | the additive slot — SQL can leave breadcrumbs with no FE change |
@@ -194,8 +204,10 @@ alike.
 ## How SQL builds one
 
 An RPC builds its envelope by RAISING and catching its own raise. Nothing
-returns a refusal directly — which is what lets a helper deep in a call stack
-refuse while the RPC at the boundary still answers in one shape.
+returns a `not-ok` directly, and that is what lets a shared helper — say
+`common.require_club_member` — raise from deep in a call stack while the RPC at
+the boundary still answers in one shape. A helper cannot return an envelope
+without every caller having to check and re-return it.
 
 **The SQLSTATE says which branch.** `PA###` produces an `ok`; `PN###` produces a
 `not-ok`. Digits are allocated max+1 and never reused, so a gap means a raise
@@ -249,7 +261,7 @@ granted to `authenticated` where they are defined.
 **An edge function answers 200 whenever it ran**, faults included. The status
 says whether the function RAN; the envelope says what it decided. A function
 answering 400 for "that difficulty has no buildable board" makes the status
-carry two unrelated jobs, and the frontend can no longer tell a refusal it
+carry two unrelated jobs, and the frontend can no longer tell a `not-ok` it
 should show under a field from a container that never woke up.
 
 Where a function calls an RPC it **relays that envelope untouched**, so a
