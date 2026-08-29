@@ -1,8 +1,6 @@
 // cs-unmet
 
-import { failureText } from '../../common/lib/game/serverError'
 import { runRpc } from '../../common/lib/supabase/dbResult'
-import { actionName } from '../../common/lib/game/callRpc'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { IconHideSolution, IconHint, IconNewGame, IconPrint, IconRestart, IconReveal, IconSpoiler } from '../../common/components/icons'
 import { cls } from '../../common/lib/util/cls'
@@ -42,6 +40,15 @@ import '../theme.css'
 
 /** Empty highlight set — while live, the board rings no tiles green (turn-viewer only). */
 const NO_TILES: ReadonlySet<number> = new Set()
+
+/** What `stackdown.submit_word` puts in `data`. The structural fact travels even
+ *  where the server also wrote the sentence: `result` decides whether the tiles
+ *  leave the board or come back, and has nothing to do with the words. */
+type WordAnswer = {
+  result: 'accepted' | 'invalid'
+  word: string
+  terminal: boolean
+}
 
 /**
  * stackdown's play surface, shared by the coop and compete manifests, on the
@@ -229,19 +236,19 @@ export function PlayArea({
   const submit = useCallback(
     async (tileIds: number[]) => {
       setSubmitting(true)
-      const { data, error } = await db.rpc('submit_word', {
-        target_game: gameId,
-        tile_ids: tileIds,
-      })
+      const res = await runRpc<WordAnswer>(
+        db.rpc('submit_word', { target_game: gameId, tile_ids: tileIds }),
+      )
       setSubmitting(false)
-      if (error) {
-        // Reachability/lock races (rare in friendly coop) land here.
+      if (res.type !== 'ok') {
+        // The tiles come back to the board: nothing was cleared. A coop
+        // teammate taking your tiles mid-flight is the one refusal a player
+        // realistically meets here, and it isn't their mistake.
         clearWord()
-        showLocalFeedback(failureText(error, actionName('submit_word')), 'error')
+        showMsg({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
         return
       }
-      const res = data as { result: 'accepted' | 'invalid'; word: string }
-      if (res.result === 'accepted') {
+      if (res.data.result === 'accepted') {
         // Empty the word and hold its tiles removed optimistically on THIS client so
         // the grid doesn't flash them back on before the valid submission lands via
         // realtime. Teammates just see the tiles leave once, on their own refetch.
@@ -249,13 +256,17 @@ export function PlayArea({
         // Flash the just-spelled word green in the entry row (the ring is the
         // own-accepted signal; no pill needed).
         clearLocalFeedback()
-        showFlash([...res.word.toUpperCase()], 'won')
-      } else {
-        clearWord() // invalid → the tiles return to the board
-        showLocalFeedback(`Not a word: ${res.word.toUpperCase()}`, 'lost')
+        showFlash([...res.data.word.toUpperCase()], 'won')
+      } else if (res.data.result === 'invalid') {
+        // NOT A WORD — an `ok`, because the rules were applied and no tile
+        // moved: the five tiles go straight back onto the board. The server
+        // wrote the sentence, and named the word in it, because by the time it
+        // is read `clearWord` has taken the word off the screen.
+        clearWord()
+        showMsg({ ...getOkFeedback(res), mode: { kind: 'sticky' } })
       }
     },
-    [gameId, clearWord, commitWord, showFlash, showLocalFeedback, clearLocalFeedback],
+    [gameId, clearWord, commitWord, showFlash, showMsg, showLocalFeedback, clearLocalFeedback],
   )
 
   // ─── Spoiler: the next word (a CHEAT — see stackdown.reveal_next_word) ──
@@ -266,44 +277,34 @@ export function PlayArea({
   // Surfaced in the LOCAL feedback slot (the player's own request) — `manual` so it
   // lingers while they hunt for the tiles.
   const spoilNext = useCallback(async () => {
-    const { data, error } = await db.rpc('reveal_next_word', { target_game: gameId })
-    if (error) {
-      // actionName, not a retyped label: the two cheat RPCs' names each contain
-      // the OTHER cheat's word (reveal_next_word IS the spoiler), and a
-      // hand-typed pair here shipped crossed — a failed Spoiler said `hint|…`.
-      showLocalFeedback(failureText(error, actionName('reveal_next_word')), 'error')
+    const res = await runRpc<{ word: string }>(db.rpc('reveal_next_word', { target_game: gameId }))
+    if (res.type !== 'ok') {
+      showMsg({ ...getNotOkFeedback(res), mode: { kind: 'manual' } })
       return
     }
-    const word = data as string | null
-    showLocalFeedback(
-      word ? `Next word: ${word.toUpperCase()}` : 'All words cleared',
-      'warning', // a spoiler is a "help, not good-or-bad" action — amber like the button
-      { kind: 'manual' },
-    )
-  }, [gameId, showLocalFeedback])
+    // The server sends no sentence — the word IS the answer, and only the
+    // surface knows it belongs in a "Next word:" line rather than, say, a PDF.
+    // Its `warning` outcome comes down with it and paints the pill amber.
+    showLocalFeedback(`Next word: ${res.data.word.toUpperCase()}`, res.outcome ?? 'warning', {
+      kind: 'manual',
+    })
+  }, [gameId, showLocalFeedback, showMsg])
 
 
   // ─── Reveal hint (the next word's HINT — a nudge, not the word) ──
   // A softer reveal than "Reveal word": shows the curated hint for the next solution
   // word (common.words.hint, a clue that hides the word). The word never reaches the
-  // client — reveal_next_hint returns only the hint text. Band-1 words all carry a
-  // hint, but higher-band words (difficulty >= 2) may not be backfilled yet, so a
-  // NULL return means "this word has no hint" — NOT "all cleared". (You can't request
-  // a hint after clearing the last word: the sixth clear ends the game, and the RPC
-  // rejects a non-playing game.) So a null is a gentle "no hint" note, not a reveal.
+  // client — reveal_next_hint returns only the hint text. There is no "no hint for
+  // this word" answer: every word a stackdown board can hold carries one, so the
+  // server treats a missing hint as a fault and says so (see its comment).
   const revealHint = useCallback(async () => {
-    const { data, error } = await db.rpc('reveal_next_hint', { target_game: gameId })
-    if (error) {
-      showLocalFeedback(failureText(error, actionName('reveal_next_hint')), 'error')
+    const res = await runRpc<{ hint: string }>(db.rpc('reveal_next_hint', { target_game: gameId }))
+    if (res.type !== 'ok') {
+      showMsg({ ...getNotOkFeedback(res), mode: { kind: 'manual' } })
       return
     }
-    const hint = data as string | null
-    showLocalFeedback(
-      hint ? `Hint: ${hint}` : 'No hint for this word yet',
-      'warning', // a hint is a "help, not good-or-bad" action — amber like the button
-      { kind: 'manual' },
-    )
-  }, [gameId, showLocalFeedback])
+    showLocalFeedback(`Hint: ${res.data.hint}`, res.outcome ?? 'warning', { kind: 'manual' })
+  }, [gameId, showLocalFeedback, showMsg])
 
   // ─── Terminal solution reveal ────────────────────────────────────
   // The six words are NOT shown just because the game ended — not even on a

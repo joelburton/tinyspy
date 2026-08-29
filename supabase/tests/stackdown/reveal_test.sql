@@ -11,6 +11,7 @@
 begin;
 set search_path = stackdown, common, public, extensions;
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 select plan(12);
@@ -27,17 +28,20 @@ select (stackdown.create_game(
 
 -- ── At the start, the next word is the first solution word ──────────
 select is(
-  (select stackdown.reveal_next_word((select id from g))),
+  (select stackdown.reveal_next_word((select id from g))->'data'->>'word'),
   'eagle', 'reveal at the start → the first word (eagle, stored lowercase)');
 
 -- reveal_next_hint returns the next word's HINT (not the word). Every
 -- stackdown word is in common.words' hint set, so the hint is present.
 select is(
-  (select stackdown.reveal_next_hint((select id from g))),
+  (select stackdown.reveal_next_hint((select id from g))->'data'->>'hint'),
   (select hint from common.words where word = 'eagle'),
   'reveal_next_hint → the next word''s hint (EAGLE''s)');
-select ok(
-  (select stackdown.reveal_next_hint((select id from g))) is not null,
+-- A word with no hint is a FAULT, not an empty answer — so "the hint is
+-- present" is asserted as the envelope being ok, which is the same claim.
+select pg_temp.envelope_is(
+  stackdown.reveal_next_hint((select id from g)),
+  '{"type":"ok","outcome":"warning","message":null}'::jsonb,
   'the hint is present (stackdown words are all in the hint set)');
 
 -- ── Requesting logs a persistent row (deduped per word) ─────────────
@@ -73,22 +77,22 @@ select is(
 
 -- ── A non-player can't peek ─────────────────────────────────────────
 select pg_temp.as_user('cade3333-3333-3333-3333-333333333333');
-select throws_ok(
-  format($$ select stackdown.reveal_next_word(%L) $$, (select id from g)),
-  '42501', 'not-a-player|',
+select pg_temp.envelope_is(
+  stackdown.reveal_next_word((select id from g)),
+  '{"type":"not-ok","severity":"fault","message":"You are not in this game"}'::jsonb,
   'a non-player cannot reveal');
 
 -- ── After clearing the first word, reveal advances ──────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select stackdown.submit_word((select id from g), pg_temp.sd_seq(1)); -- EAGLE
 select is(
-  (select stackdown.reveal_next_word((select id from g))),
+  (select stackdown.reveal_next_word((select id from g))->'data'->>'word'),
   'table', 'after EAGLE → the next word is TABLE');
 
 -- Coop is shared: bea's reveal sees the same advanced position.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
-  (select stackdown.reveal_next_word((select id from g))),
+  (select stackdown.reveal_next_word((select id from g))->'data'->>'word'),
   'table', 'coop: the other player sees the same next word');
 
 -- ── Clear the rest; once all six are gone, reveal is NULL ───────────
@@ -101,9 +105,9 @@ select stackdown.submit_word((select id from g), pg_temp.sd_seq(6));
 
 -- The game is terminal now, so reveal is rejected (not in progress) —
 -- the post-game reveal lives in games_state.solution instead.
-select throws_ok(
-  format($$ select stackdown.reveal_next_word(%L) $$, (select id from g)),
-  'P0001', 'game-not-in-play|',
+select pg_temp.envelope_is(
+  stackdown.reveal_next_word((select id from g)),
+  '{"type":"not-ok","severity":"race","message":"Game over"}'::jsonb,
   'once the board is cleared the game is terminal → reveal is closed');
 
 -- And the solution is now openly revealed via games_state.

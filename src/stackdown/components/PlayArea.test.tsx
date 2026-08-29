@@ -169,25 +169,45 @@ describe('stackdown PlayArea — concede', () => {
   })
 })
 
+/** An envelope carrying a hint. `runRpc` reads the envelope out of `data`, so a
+ *  mock resolving the bare hint string hands it a body it can't read and the
+ *  call site sees a fault. */
+function hintEnvelope(hint: string) {
+  return {
+    data: {
+      type: 'ok', data: { hint }, outcome: 'warning', severity: null,
+      message: null, field: null, meta: null, dbcode: null, detail: null,
+    },
+    error: null,
+  }
+}
+
 describe('stackdown PlayArea — hint', () => {
   it('surfaces the clue when the next word has a hint', async () => {
     const user = userEvent.setup()
     render(<PlayArea {...makeCtx()} />)
-    rpc.mockResolvedValueOnce({ error: null, data: 'a fruit' })
+    rpc.mockResolvedValueOnce(hintEnvelope('a fruit'))
     await user.click(screen.getByRole('button', { name: /^hint$/i }))
     expect(rpc).toHaveBeenCalledWith('reveal_next_hint', { target_game: 'g1' })
     expect(await screen.findByText('Hint: a fruit')).toBeInTheDocument()
   })
 
-  it('a null hint reads as "no hint", NOT "all cleared"', async () => {
-    // Regression: band-2 words may lack a hint, so reveal_next_hint returns
-    // null even mid-game — which must not be mistaken for clearing the board.
+  it("a not-ok answer shows the server's sentence, not a hint line", async () => {
+    // The hint button's refusal path. There is no "no hint for this word"
+    // answer any more — a hintless word is a fault the server shouts about —
+    // so what a player can actually meet here is the game ending mid-request.
     const user = userEvent.setup()
     render(<PlayArea {...makeCtx()} />)
-    rpc.mockResolvedValueOnce({ error: null, data: null })
+    rpc.mockResolvedValueOnce({
+      data: {
+        type: 'not-ok', data: null, outcome: null, severity: 'race',
+        message: 'Game over', field: null, meta: null, dbcode: 'PN296', detail: null,
+      },
+      error: null,
+    })
     await user.click(screen.getByRole('button', { name: /^hint$/i }))
-    expect(await screen.findByText(/no hint for this word/i)).toBeInTheDocument()
-    expect(screen.queryByText(/all .*cleared/i)).not.toBeInTheDocument()
+    expect(await screen.findByText('Game over')).toBeInTheDocument()
+    expect(screen.queryByText(/^Hint:/)).not.toBeInTheDocument()
   })
 })
 

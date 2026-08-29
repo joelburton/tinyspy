@@ -27,7 +27,7 @@ select (stackdown.create_game(
 
 -- ── ada finds her first word ────────────────────────────────────────
 select is(
-  (select stackdown.submit_word((select id from g), pg_temp.sd_seq(1))->>'result'),
+  (select stackdown.submit_word((select id from g), pg_temp.sd_seq(1))->'data'->>'result'),
   'accepted', 'ada: EAGLE → accepted');
 
 -- ── Mid-game visibility as bea ──────────────────────────────────────
@@ -59,7 +59,7 @@ select stackdown.submit_word((select id from g), pg_temp.sd_seq(4));
 select stackdown.submit_word((select id from g), pg_temp.sd_seq(5));
 create temp table win on commit drop as
 select stackdown.submit_word((select id from g), pg_temp.sd_seq(6)) as res;
-select is((select (res->>'terminal')::boolean from win), true,
+select is((select (res->'data'->>'terminal')::boolean from win), true,
   'ada''s sixth word ends the game (race)');
 
 reset role;

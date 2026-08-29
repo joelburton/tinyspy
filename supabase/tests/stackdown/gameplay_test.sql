@@ -11,9 +11,10 @@
 begin;
 set search_path = stackdown, common, public, extensions;
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(12);
+select plan(13);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -26,16 +27,19 @@ select (stackdown.create_game(
   'coop')->'data'->>'id')::uuid as id;
 
 -- ── Unreachable tiles (tile 21 is covered at the start) ─────────────
-select throws_ok(
-  format($$ select stackdown.submit_word(%L, array[21,4,11,6,2]) $$, (select id from g)),
-  'P0001', 'tiles-unreachable|',
+select pg_temp.envelope_is(
+  stackdown.submit_word((select id from g), array[21,4,11,6,2]),
+  '{"type":"not-ok","severity":"fault","message":"BUG: word using a covered tile"}'::jsonb,
   'submitting unreachable tiles is rejected');
 
 -- ── A reachable non-word → invalid (logged, no advance) ─────────────
 create temp table inv on commit drop as
 select stackdown.submit_word((select id from g), pg_temp.sd_invalid()) as res;
-select is((select res->>'result' from inv), 'invalid', 'a reachable non-word → invalid');
-select is((select res->>'word' from inv), 'ebatl', 'invalid submission echoes the word (lowercase)');
+select is((select res->'data'->>'result' from inv), 'invalid', 'a reachable non-word → invalid');
+select is((select res->'data'->>'word' from inv), 'ebatl', 'invalid submission echoes the word (lowercase)');
+select pg_temp.envelope_is((select res from inv),
+  '{"type":"ok","message":null,"severity":null}'::jsonb,
+  'a rejected word is an ok answer, worded by the surface');
 
 reset role;
 select is(
@@ -51,7 +55,7 @@ select is(
 -- ── First valid word ────────────────────────────────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  (select stackdown.submit_word((select id from g), pg_temp.sd_seq(1))->>'result'),
+  (select stackdown.submit_word((select id from g), pg_temp.sd_seq(1))->'data'->>'result'),
   'accepted', 'EAGLE → accepted');
 
 -- Coop surfaces the cleared word as the club-list title (ada is a club
@@ -67,7 +71,7 @@ select stackdown.submit_word((select id from g), pg_temp.sd_seq(4));
 select stackdown.submit_word((select id from g), pg_temp.sd_seq(5));
 create temp table w6 on commit drop as
 select stackdown.submit_word((select id from g), pg_temp.sd_seq(6)) as res;
-select is((select (res->>'terminal')::boolean from w6), true,
+select is((select (res->'data'->>'terminal')::boolean from w6), true,
   'the sixth accepted word is terminal');
 
 reset role;

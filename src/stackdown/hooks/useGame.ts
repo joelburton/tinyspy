@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from 'react'
 import { useRealtimeRefetch } from '../../common/hooks/realtime/useRealtimeRefetch'
+import { readRows } from '../../common/lib/supabase/dbResult'
 import { db } from '../db'
 import type { Database } from '../../types/db'
 import type { Tile } from '../lib/board'
@@ -174,28 +175,44 @@ export function useGame(gameId: string): {
     id: gameId,
     load: async ({ mounted }) => {
       const [gameRes, playersRes, subsRes] = await Promise.all([
-        db
-          .from('games_state')
-          .select('id, club_handle, mode, tiles, created_at, solution')
-          .eq('id', gameId)
-          .maybeSingle(),
-        db
-          .from('players')
-          .select('user_id, found_count, solved, solved_at')
-          .eq('game_id', gameId),
-        db
-          .from('submissions')
-          .select('user_id, seq, kind, word, tile_ids, valid, submitted_at')
-          .eq('game_id', gameId)
-          .order('submitted_at', { ascending: true }),
+        // No `.maybeSingle()`: `readRows` hands back rows, and `id` is the PK,
+        // so this is 0 or 1 of them.
+        readRows(
+          db
+            .from('games_state')
+            .select('id, club_handle, mode, tiles, created_at, solution')
+            .eq('id', gameId),
+        ),
+        readRows(
+          db
+            .from('players')
+            .select('user_id, found_count, solved, solved_at')
+            .eq('game_id', gameId),
+        ),
+        readRows(
+          db
+            .from('submissions')
+            .select('user_id, seq, kind, word, tile_ids, valid, submitted_at')
+            .eq('game_id', gameId)
+            .order('submitted_at', { ascending: true }),
+        ),
       ])
       if (!mounted()) return
-      if (!gameRes.data) {
+      // A FAILED read used to be indistinguishable from a game with no rows:
+      // `data` is null either way, so the board simply kept whatever was on it.
+      // The fault is logged and shown by `readRows`; stop loading.
+      if (gameRes.type !== 'ok' || playersRes.type !== 'ok' || subsRes.type !== 'ok') {
+        setLoading(false)
+        return
+      }
+      const row = gameRes.data[0] as StateRow | undefined
+      // ZERO ROWS is the caller's to read, and this hook's answer is the one it
+      // already gave: leave `game` null and let the surface say "not found".
+      if (!row) {
         setGame(null)
         setLoading(false)
         return
       }
-      const row = gameRes.data as StateRow
       setGame({
         id: row.id,
         club_handle: row.club_handle,
@@ -204,8 +221,8 @@ export function useGame(gameId: string): {
         created_at: row.created_at,
         solution: row.solution,
       })
-      setPlayers(playersRes.data ?? [])
-      const subs = (subsRes.data ?? []) as SubmissionRow[]
+      setPlayers(playersRes.data as PlayerRow[])
+      const subs = subsRes.data as unknown as SubmissionRow[]
       setSubmissions(subs)
       // Prune optimistic holds the server has now confirmed: any tile
       // that shows up in a valid submission is durably removed, so it no

@@ -258,6 +258,7 @@ grant execute on function stackdown.create_game(text, jsonb, uuid[], text) to au
 --
 -- The `for update` lock on the games row serializes concurrent coop
 -- submits and keeps each submitter's `seq` collision-free.
+drop function if exists stackdown.submit_word(uuid, int[]);
 create or replace function stackdown.submit_word(target_game uuid, tile_ids int[])
 returns jsonb
 language plpgsql
@@ -279,18 +280,23 @@ declare
   team_found     int;
   out_terminal   boolean := false;
   player_results jsonb;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   caller_id := common.require_game_player(target_game);
 
   select * into g_row from stackdown.games where id = target_game for update;
   if not found then
-    raise exception 'game-not-found|' using errcode = 'P0002',
+    raise exception 'That game no longer exists'
+      using errcode = 'PN286', hint = 'fault', column = '_',
       detail = 'no stackdown.games row for target_game';
   end if;
 
   select play_state into cur_state from common.games where id = target_game;
   if cur_state <> 'playing' then
-    raise exception 'game-not-in-play|' using errcode = 'P0001',
+    -- A race: a teammate ended it, or the clock ran out, while this word was
+    -- in flight.
+    raise exception 'Game over'
+      using errcode = 'PN287', hint = 'race', column = '_',
       detail = 'play_state is not an active state';
   end if;
 
@@ -300,7 +306,8 @@ begin
   -- word could crown them the winner.
   if (select conceded from common.game_players
         where game_id = target_game and user_id = caller_id) then
-    raise exception 'you-conceded|' using errcode = 'P0001',
+    raise exception 'Already conceded'
+      using errcode = 'PN288', hint = 'race', column = '_',
       detail = 'caller already dropped out of this compete race';
   end if;
 
@@ -308,7 +315,10 @@ begin
   if g_row.mode = 'compete'
      and (select solved from stackdown.players
             where game_id = target_game and user_id = caller_id) then
-    raise exception 'already-solved|' using errcode = 'P0001',
+    -- Compete-only, and a fault: it is the caller's own row, and clearing the
+    -- sixth word ENDS the race, so a coop player never reaches this line.
+    raise exception 'BUG: submit after solving'
+      using errcode = 'PN289', hint = 'fault', column = '_',
       detail = 'this player has already cleared the stack';
   end if;
 
@@ -323,19 +333,25 @@ begin
   -- ─── Validate the submitted tiles ──────────────────────────
   if array_length(tile_ids, 1) is distinct from 5
      or (select count(distinct e) from unnest(tile_ids) e) <> 5 then
-    raise exception 'bad-word-length|' using errcode = 'P0001',
+    raise exception 'BUG: word that was not five distinct tiles'
+      using errcode = 'PN290', hint = 'fault', column = '_',
       detail = 'a submitted word is exactly five distinct tile ids';
   end if;
   if tile_ids && removed then
-    raise exception 'tile-gone|' using errcode = 'P0001',
+    -- A race: coop's stack is one shared object, so a teammate's word takes
+    -- your tiles between your pick and your submit. They leave by realtime, so
+    -- no local gate can see it coming.
+    raise exception 'Someone cleared those tiles'
+      using errcode = 'PN291', hint = 'race', column = '_',
       detail = 'a submitted tile has already been cleared';
   end if;
   -- Reveal-respecting: each tile must be exposed at the moment it's picked.
   gone := removed;
   foreach tid in array tile_ids loop
     if not stackdown._is_exposed(g_row.tiles, gone, tid) then
-      raise exception 'tiles-unreachable|' using errcode = 'P0001',
-      detail = 'a tile was covered at the moment it was picked';
+      raise exception 'BUG: word using a covered tile'
+        using errcode = 'PN292', hint = 'fault', column = '_',
+        detail = 'a tile was covered at the moment it was picked';
     end if;
     gone := gone || tid;
   end loop;
@@ -362,7 +378,13 @@ begin
   values (target_game, caller_id, next_seq, w, tile_ids, is_word);
 
   if not is_word then
-    return jsonb_build_object('result', 'invalid', 'word', w, 'terminal', false);
+    -- `ok`: a game-rule refusal is the rules being applied, and nothing was
+    -- cleared. `data` carries the case; the sentence names the word, because by
+    -- the time it is read the tiles are back on the board and the word is gone
+    -- from the screen.
+    return common.ok_envelope(
+      jsonb_build_object('result', 'invalid', 'word', w, 'terminal', false),
+      'lost', format('Not a word: %s', upper(w)));
   end if;
 
   -- ─── Accepted: remove tiles (implicitly, via the valid row), advance ──
@@ -424,7 +446,17 @@ begin
     end if;
   end if;
 
-  return jsonb_build_object('result', 'accepted', 'word', w, 'terminal', out_terminal);
+  -- No message: the tiles clearing is the answer.
+  return common.ok_envelope(
+    jsonb_build_object('result', 'accepted', 'word', w, 'terminal', out_terminal), 'won');
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 revoke execute on function stackdown.submit_word(uuid, int[]) from public;
@@ -445,8 +477,9 @@ grant execute on function stackdown.submit_word(uuid, int[]) to authenticated;
 -- words IS the index of the next one. Cleared count mirrors submit_word's
 -- removed-set rule: coop = every valid submission on the shared board,
 -- compete = the caller's own.
+drop function if exists stackdown.reveal_next_word(uuid);
 create or replace function stackdown.reveal_next_word(target_game uuid)
-returns text
+returns jsonb
 language plpgsql
 security definer
 set search_path = stackdown, common, public, extensions
@@ -458,6 +491,7 @@ declare
   cleared   int;
   next_word text;
   next_seq  int;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   caller_id := common.require_game_player(target_game);
 
@@ -465,13 +499,16 @@ begin
   -- against concurrent submits / reveals on this game.
   select * into g_row from stackdown.games where id = target_game for update;
   if not found then
-    raise exception 'game-not-found|' using errcode = 'P0002',
+    raise exception 'That game no longer exists'
+      using errcode = 'PN293', hint = 'fault', column = '_',
       detail = 'no stackdown.games row for target_game';
   end if;
 
   select play_state into cur_state from common.games where id = target_game;
   if cur_state <> 'playing' then
-    raise exception 'game-not-in-play|' using errcode = 'P0001',
+    -- A race: the game ended under you while the request was in flight.
+    raise exception 'Game over'
+      using errcode = 'PN294', hint = 'race', column = '_',
       detail = 'play_state is not an active state';
   end if;
 
@@ -480,9 +517,14 @@ begin
    where s.game_id = target_game and s.valid
      and (g_row.mode = 'coop' or s.user_id = caller_id);
 
-  next_word := g_row.solution[cleared + 1];   -- NULL once all six cleared
+  next_word := g_row.solution[cleared + 1];
   if next_word is null then
-    return null;
+    -- Unreachable: clearing the sixth word ENDS the game in both modes, so a
+    -- later call meets the play_state guard above and reads "Game over". Kept
+    -- as an assertion that the game-ending invariant holds.
+    raise exception 'BUG: reveal after the stack was cleared'
+      using errcode = 'PN298', hint = 'fault', column = '_',
+      detail = 'solution has no word at cleared + 1';
   end if;
 
   -- Log a "Revealed: <word>" entry, once per (player, word) so repeated
@@ -502,7 +544,18 @@ begin
     values (target_game, caller_id, next_seq, 'reveal', cleared, next_word);
   end if;
 
-  return next_word;
+  -- Priced help wears amber: a spoiler is neither good nor bad play, so
+  -- coloring it green or red would adjudicate something the player did not do.
+  -- No message — the word IS the answer, and the surface shows it.
+  return common.ok_envelope(jsonb_build_object('word', next_word), 'warning');
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 revoke execute on function stackdown.reveal_next_word(uuid) from public;
@@ -516,16 +569,12 @@ grant execute on function stackdown.reveal_next_word(uuid) to authenticated;
 -- common.words.hint). Unlike reveal_next_word it doesn't leak the word
 -- itself: only the hint text crosses the wire.
 --
--- The return is NULL when the next word has no hint: band-1 words all carry
--- one (len=5 AND (wordle OR difficulty=1) is common.words' hint set), but
--- higher-band words (difficulty >= 2) can lack a hint until common.words is
--- backfilled. We still log the 'hint' request row (its `word` just holds
--- NULL) and return NULL; the FE reads that as "no hint for this word" and
--- says so (NOT "all cleared" — that can't happen here: clearing the sixth
--- word ends the game, and the play_state guard below rejects a non-playing
--- game). Same gating + next-word math as reveal_next_word.
+-- There is no "this word has no hint" answer — see the raise below for why a
+-- missing hint is a fault instead. Same gating + next-word math as
+-- reveal_next_word.
+drop function if exists stackdown.reveal_next_hint(uuid);
 create or replace function stackdown.reveal_next_hint(target_game uuid)
-returns text
+returns jsonb
 language plpgsql
 security definer
 set search_path = stackdown, common, public, extensions
@@ -538,6 +587,7 @@ declare
   next_word text;
   hint_text text;
   next_seq  int;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   caller_id := common.require_game_player(target_game);
 
@@ -545,13 +595,16 @@ begin
   -- reveal_next_word).
   select * into g_row from stackdown.games where id = target_game for update;
   if not found then
-    raise exception 'game-not-found|' using errcode = 'P0002',
+    raise exception 'That game no longer exists'
+      using errcode = 'PN295', hint = 'fault', column = '_',
       detail = 'no stackdown.games row for target_game';
   end if;
 
   select play_state into cur_state from common.games where id = target_game;
   if cur_state <> 'playing' then
-    raise exception 'game-not-in-play|' using errcode = 'P0001',
+    -- A race: the game ended under you while the request was in flight.
+    raise exception 'Game over'
+      using errcode = 'PN296', hint = 'race', column = '_',
       detail = 'play_state is not an active state';
   end if;
 
@@ -560,11 +613,27 @@ begin
    where s.game_id = target_game and s.valid
      and (g_row.mode = 'coop' or s.user_id = caller_id);
 
-  next_word := g_row.solution[cleared + 1];          -- NULL once all cleared
+  next_word := g_row.solution[cleared + 1];
   if next_word is null then
-    return null;
+    -- Unreachable, same as reveal_next_word's: clearing the last word ends the
+    -- game, so the play_state guard answers first.
+    raise exception 'BUG: hint after the stack was cleared'
+      using errcode = 'PN299', hint = 'fault', column = '_',
+      detail = 'solution has no word at cleared + 1';
   end if;
+
   select hint into hint_text from common.words where word = lower(next_word);
+  -- EVERY word a stackdown board can use has a hint: the setup form offers
+  -- bands 1..2 and the board library holds only those, and common.words carries
+  -- a hint for every 5-letter word at those bands (2496/2496 and 1665/1667 —
+  -- the two exceptions are a known data gap, docs/deferred.md). So a null here
+  -- is the dictionary being wrong, not this game being unusual. The word rides
+  -- in the detail so the `[db]` line names the row to fix.
+  if hint_text is null then
+    raise exception 'BUG: no hint for a band-% word', g_row.band
+      using errcode = 'PN297', hint = 'fault', column = '_',
+      detail = format('common.words has no hint for %L', lower(next_word));
+  end if;
 
   -- Log a "Hint: <clue>" entry, once per (player, word). The hint TEXT is
   -- stored on the row (in `word`) so the log can show it — this leaks only the
@@ -581,7 +650,17 @@ begin
     values (target_game, caller_id, next_seq, 'hint', cleared, hint_text);
   end if;
 
-  return hint_text;
+  -- Amber, like the spoiler: priced help is neither good nor bad play. No
+  -- message — the clue IS the answer.
+  return common.ok_envelope(jsonb_build_object('hint', hint_text), 'warning');
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 revoke execute on function stackdown.reveal_next_hint(uuid) from public;

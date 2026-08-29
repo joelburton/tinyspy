@@ -672,8 +672,8 @@ select pg_temp.envelope_is(
 
 ## 7. The conversion roster
 
-**146 entries. 40 done, 5 edge functions deferred, 101 to go.** Cross them off
-here as they land.
+**145 entries. 68 done, 77 to go** (5 of those are the deferred edge
+functions). Cross them off here as they land.
 
 An entry is one RPC or one table read **per area**, so the same name in two
 areas is two entries — each has its own call sites and converts separately.
@@ -867,13 +867,17 @@ read to convert; `submit_guess` has one call site, not two.
 #### stackdown
 
 - [x] `create_game` · RPC (2 call sites)
-- [ ] `reveal_next_hint` · RPC
-- [ ] `reveal_next_word` · RPC
-- [ ] `submit_word` · RPC
-- [ ] `games` · read
-- [ ] `games_state` · read
-- [ ] `players` · read
-- [ ] `submissions` · read
+- [x] `reveal_next_hint` · RPC — a hintless word is now a FAULT, not an answer
+- [x] `reveal_next_word` · RPC — its "all cleared" branch is unreachable, kept
+  as a `BUG:` assertion that clearing the last word really does end the game
+- [x] `submit_word` · RPC
+- [x] ~~`games` · read~~ — **there is no such read.** The entry came from
+  `stackdown/db.ts`'s docstring, which spells `db.from('games')` as its EXAMPLE
+  of what the schema-scoped client buys you. Same false positive as the dead
+  `ERROR_COPY` key a docstring kept alive; the roster is one entry shorter
+- [x] `games_state` · read
+- [x] `players` · read
+- [x] `submissions` · read
 
 #### strands
 

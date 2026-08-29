@@ -135,8 +135,10 @@ game); the setup form offers bands 1–2 today (that's what the board library
 holds), and `create_game` claims a random board **of the chosen band**.
 
 > **Hints + higher bands.** `reveal_next_hint` reads `common.words.hint`, which
-> is populated for the band-1 (len-5) set but not yet for every band-2 word — so
-> a band-2 clue can come back blank until those hints are backfilled.
+> is populated for every band-1 (len-5) word and all but two band-2 ones
+> (`docs/deferred.md`). Those two are a data gap, not a shape the game handles:
+> a missing hint is a **fault**, and the RPC says so rather than answering
+> "no hint for this word".
 
 **Runtime does not consult a lexicon at all.** Because the strict invariant
 (§2.4) guarantees the only completable word at each round is the solution word
@@ -248,8 +250,15 @@ creation, so it's self-contained; `board_id` is provenance only.
   FE); logs the submission (valid OR invalid — both are durable rows); on a valid
   word bumps `found_count` and, on the sixth, ends the game (coop → `won`,
   compete → `won_compete` with the caller recorded in `status.winner_user_id`
-  + `winner_username`). Returns
-  `{result: 'accepted'|'invalid', word, terminal}`. On a valid **coop** word it
+  + `winner_username`). Answers with an
+  [envelope](../envelopes.md) whose `data` is
+  `{result: 'accepted'|'invalid', word, terminal}` — a non-word is an **`ok`**,
+  because the rules were applied and nothing was cleared. It carries no words:
+  "not a word" is one fixed line per case, so `result` carries the case and the
+  surface writes the sentence (naming the word, since the tiles have just gone
+  back on the board). The refusals are three races (the game ending, the
+  caller having conceded, a teammate taking your tiles) and four faults the
+  frontend should have prevented. On a valid **coop** word it
   also rewrites `common.games.title` to the cleared words (see [Title
   formula](#title-formula)).
 - **`submit_timeout(target_game)`** — countdown expiry: coop → `lost`, compete →
@@ -263,9 +272,13 @@ creation, so it's self-contained; `board_id` is provenance only.
   but has no FE button today — same posture as scrabble.
 - **`replay_board(target_game)`** — the "Restart" menu item / terminal-row Restart: reset the working state on the SAME game row. The frozen puzzle (tiles / solution / band / mode) stays — the same stack, cleared again. Any game player, from a finished game OR mid-game; both modes reset ALL players. Zeroes `players`, deletes every `submissions` row (words AND the hint/reveal cheats — a replay is a genuine second try), puts `common.games.title` back to `"New game"` (else a replayed coop game would still advertise the previous run's cleared words, spoiling the board it just reset), then hands the common half to `common.reset_game`. The solution re-hides on its own: `games_state` gates it on `is_terminal`, which `reset_game` clears. pgTAP: `replay_test.sql`.
 - **`concede(target_game)`** — the compete per-player drop-out. stackdown is a race to clear (first to clear wins, no elimination), so it's a **thin wrapper over `common.concede`** (compete-only guard): marks the caller out, ends as a collective loss only when the last racer drops. FE: `<ConcedeGameButton>` in compete, conceder "out" in the OpponentStrip, "You conceded" locally-terminal look. See [common.md → Concede](../common.md#concede--per-player-drop-out). pgTAP: `concede_test.sql`.
-- **`reveal_next_word(target_game) → text`** — a **cheat**: returns the next
-  solution word the caller still has to clear (`solution[cleared + 1]`; NULL once
-  all six are gone), defeating the hidden-solution invariant on purpose. It exists
+- **`reveal_next_word(target_game) → jsonb`** — a **cheat**: answers with an
+  envelope carrying `{word}` — the next solution word the caller still has to
+  clear (`solution[cleared + 1]`) — defeating the hidden-solution invariant on
+  purpose. The `warning` outcome rides with it, painting the pill amber: priced
+  help is neither good nor bad play. There is no "all cleared" answer: clearing
+  the sixth word ends the game in both modes, so a later call meets the
+  in-progress gate and reads "Game over". It exists
   to verify generated boards are solvable in order (and as a playtest hint), and
   may be removed once boards are trusted. Gated like a move (game player,
   in-progress only). Because strict validity forces clearing in solution order,
@@ -279,12 +292,13 @@ creation, so it's self-contained; `board_id` is provenance only.
   for a label) so the ask persists in the game log; deduped
   per `(player, for_word_index)` so repeated clicks don't spam, and serialized by
   the games-row `for update` lock (for a collision-free `seq`).
-- **`reveal_next_hint(target_game) → text`** — the softer sibling: returns the
-  next word's **hint** (`common.words.hint` — a curated clue that points at the
-  word without naming it), NULL once all six are cleared. Same gating + next-word
-  math as `reveal_next_word`, but the word never reaches the client — only the
-  hint text crosses the wire. Every stackdown word is a 5-letter Wordle word, so
-  it's always in `common.words`' hint set; no fallback. The FE's **Reveal hint**
+- **`reveal_next_hint(target_game) → jsonb`** — the softer sibling: an envelope
+  carrying `{hint}` — the next word's clue (`common.words.hint`, which points at
+  the word without naming it) — under the same amber `warning`. Same gating +
+  next-word math as `reveal_next_word`, but the word never reaches the client —
+  only the hint text crosses the wire. Every word a stackdown board can hold
+  carries a hint, so a missing one is a fault the RPC shouts about (with the
+  word in the envelope's `detail`), not an answer the surface narrates. The FE's **Reveal hint**
   action button shows it in the same local below-board feedback slot. Both
   cheats also carry **menu rows** ("Hint for next word" / "Cheat for next word"
   — the buttons' tooltip copy, since a menu has room to say which word it acts
