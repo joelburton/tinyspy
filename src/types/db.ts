@@ -127,9 +127,7 @@ export type Database = {
       concede: { Args: { target_game: string }; Returns: undefined }
       create_game: {
         Args: { player_user_ids: string[]; setup: Json; target_club: string }
-        Returns: {
-          id: string
-        }[]
+        Returns: Json
       }
       dump: { Args: { target_game: string; tile: string }; Returns: undefined }
       end_game: { Args: { target_game: string }; Returns: undefined }
@@ -252,9 +250,7 @@ export type Database = {
           setup: Json
           target_club: string
         }
-        Returns: {
-          id: string
-        }[]
+        Returns: Json
       }
       end_game: { Args: { target_game: string }; Returns: undefined }
       replay_board: { Args: { target_game: string }; Returns: undefined }
@@ -448,9 +444,7 @@ export type Database = {
       _end_turn: { Args: { target_game: string }; Returns: undefined }
       create_game: {
         Args: { player_user_ids: string[]; setup: Json; target_club: string }
-        Returns: {
-          id: string
-        }[]
+        Returns: Json
       }
       end_game: { Args: { target_game: string }; Returns: undefined }
       get_clue_context: { Args: { target_game: string }; Returns: Json }
@@ -975,28 +969,22 @@ export type Database = {
       _validate_word_fields: { Args: { fields: Json }; Returns: undefined }
       add_word: {
         Args: { fields: Json; new_word: string; note?: string }
-        Returns: undefined
+        Returns: Json
       }
-      anagrams: {
-        Args: { letters: string }
-        Returns: {
-          difficulty: number
-          word: string
-        }[]
-      }
+      anagrams: { Args: { letters: string }; Returns: Json }
       cache_definition: {
         Args: { p_def: string; p_source: string; p_word: string }
         Returns: undefined
       }
       claim_username: {
         Args: { chosen_color: string; desired: string }
-        Returns: string
+        Returns: Json
       }
       color_for_username: { Args: { username: string }; Returns: string }
       concede: { Args: { target_game: string }; Returns: undefined }
       create_club: {
         Args: { club_name: string; member_usernames: string[] }
-        Returns: string
+        Returns: Json
       }
       create_game: {
         Args: {
@@ -1015,10 +1003,10 @@ export type Database = {
           gametype: string
         }[]
       }
-      delete_game: { Args: { target_game: string }; Returns: undefined }
+      delete_game: { Args: { target_game: string }; Returns: Json }
       delete_word: {
         Args: { note?: string; target_word: string }
-        Returns: undefined
+        Returns: Json
       }
       end_game: {
         Args: {
@@ -1030,6 +1018,21 @@ export type Database = {
         Returns: undefined
       }
       is_club_member: { Args: { target_club: string }; Returns: boolean }
+      ok_envelope: {
+        Args: { data?: Json; message?: string; meta?: Json; outcome?: string }
+        Returns: Json
+      }
+      raised_envelope: {
+        Args: {
+          detail?: string
+          field?: string
+          hint: string
+          message: string
+          outcome?: string
+          sqlstate_code: string
+        }
+        Returns: Json
+      }
       require_club_member: { Args: { target_club: string }; Returns: string }
       require_compete: { Args: { p_mode: string }; Returns: undefined }
       require_game_player: { Args: { target_game: string }; Returns: string }
@@ -1045,11 +1048,11 @@ export type Database = {
       }
       send_message: {
         Args: { content: string; target_club: string }
-        Returns: undefined
+        Returns: Json
       }
       set_club_gametypes: {
         Args: { gametypes: string[]; target_club: string }
-        Returns: undefined
+        Returns: Json
       }
       set_current_view: { Args: { target_game: string }; Returns: undefined }
       set_scratchpad: {
@@ -1058,15 +1061,15 @@ export type Database = {
       }
       slugify_club_name: { Args: { name: string }; Returns: string }
       tick_timer: { Args: { target_game: string }; Returns: number }
-      unset_current_view: { Args: { target_game: string }; Returns: undefined }
-      update_profile_color: { Args: { new_color: string }; Returns: undefined }
+      unset_current_view: { Args: { target_game: string }; Returns: Json }
+      update_profile_color: { Args: { new_color: string }; Returns: Json }
       update_state: {
         Args: { play_state: string; status: Json; target_game: string }
         Returns: undefined
       }
       update_word: {
         Args: { note?: string; patch: Json; target_word: string }
-        Returns: undefined
+        Returns: Json
       }
       word_letter_mask: { Args: { w: string }; Returns: number }
       wordle_colors: {
@@ -1246,27 +1249,11 @@ export type Database = {
           setup: Json
           target_club: string
         }
-        Returns: {
-          id: string
-        }[]
+        Returns: Json
       }
       end_game: { Args: { target_game: string }; Returns: undefined }
-      next_puzzle_for_club: {
-        Args: { seen_by: string[] }
-        Returns: {
-          id: string
-          label: string
-          puzzle_date: string
-        }[]
-      }
-      puzzle_for_date: {
-        Args: { target_date: string }
-        Returns: {
-          id: string
-          label: string
-          puzzle_date: string
-        }[]
-      }
+      next_puzzle_for_club: { Args: { seen_by: string[] }; Returns: Json }
+      puzzle_for_date: { Args: { target_date: string }; Returns: Json }
       replay_board: { Args: { target_game: string }; Returns: undefined }
       submit_guess: {
         Args: {
@@ -1275,7 +1262,7 @@ export type Database = {
           target_game: string
           tiles: string[]
         }
-        Returns: undefined
+        Returns: Json
       }
       submit_timeout: { Args: { target_game: string }; Returns: undefined }
     }
@@ -1491,9 +1478,7 @@ export type Database = {
           setup: Json
           target_club: string
         }
-        Returns: {
-          id: string
-        }[]
+        Returns: Json
       }
       end_game: { Args: { target_game: string }; Returns: undefined }
       export_solution: { Args: { target_game: string }; Returns: Json }
@@ -1847,9 +1832,7 @@ export type Database = {
           setup: Json
           target_club: string
         }
-        Returns: {
-          id: string
-        }[]
+        Returns: Json
       }
       end_game: { Args: { target_game: string }; Returns: undefined }
       log_help: {
@@ -2046,9 +2029,7 @@ export type Database = {
           setup: Json
           target_club: string
         }
-        Returns: {
-          id: string
-        }[]
+        Returns: Json
       }
       end_game: { Args: { target_game: string }; Returns: undefined }
       replay_board: { Args: { target_game: string }; Returns: undefined }
@@ -2056,7 +2037,7 @@ export type Database = {
       request_reveal: { Args: { target_game: string }; Returns: string }
       submit_guess: {
         Args: { guess: string; target_game: string }
-        Returns: string
+        Returns: Json
       }
       submit_timeout: { Args: { target_game: string }; Returns: undefined }
     }
@@ -2397,9 +2378,7 @@ export type Database = {
           setup: Json
           target_club: string
         }
-        Returns: {
-          id: string
-        }[]
+        Returns: Json
       }
       end_game: { Args: { target_game: string }; Returns: undefined }
       exchange_tiles: {
@@ -2616,14 +2595,12 @@ export type Database = {
           setup: Json
           target_club: string
         }
-        Returns: {
-          id: string
-        }[]
+        Returns: Json
       }
       end_game: { Args: { target_game: string }; Returns: undefined }
       record_hint: {
         Args: { cards: number[]; target_game: string }
-        Returns: undefined
+        Returns: Json
       }
       replay_board: { Args: { target_game: string }; Returns: undefined }
       submit_set: {
@@ -2809,9 +2786,7 @@ export type Database = {
           setup: Json
           target_club: string
         }
-        Returns: {
-          id: string
-        }[]
+        Returns: Json
       }
       end_game: { Args: { target_game: string }; Returns: undefined }
       replay_board: { Args: { target_game: string }; Returns: undefined }
@@ -3037,14 +3012,12 @@ export type Database = {
           setup: Json
           target_club: string
         }
-        Returns: {
-          id: string
-        }[]
+        Returns: Json
       }
       end_game: { Args: { target_game: string }; Returns: undefined }
       replay_board: { Args: { target_game: string }; Returns: undefined }
-      reveal_next_hint: { Args: { target_game: string }; Returns: string }
-      reveal_next_word: { Args: { target_game: string }; Returns: string }
+      reveal_next_hint: { Args: { target_game: string }; Returns: Json }
+      reveal_next_word: { Args: { target_game: string }; Returns: Json }
       submit_timeout: { Args: { target_game: string }; Returns: undefined }
       submit_word: {
         Args: { target_game: string; tile_ids: number[] }
@@ -3393,9 +3366,7 @@ export type Database = {
           setup: Json
           target_club: string
         }
-        Returns: {
-          id: string
-        }[]
+        Returns: Json
       }
       end_game: { Args: { target_game: string }; Returns: undefined }
       next_puzzle_for_club: {
@@ -3681,9 +3652,7 @@ export type Database = {
           setup: Json
           target_club: string
         }
-        Returns: {
-          id: string
-        }[]
+        Returns: Json
       }
       end_game: { Args: { target_game: string }; Returns: undefined }
       replay_board: { Args: { target_game: string }; Returns: undefined }
@@ -3860,9 +3829,7 @@ export type Database = {
           setup: Json
           target_club: string
         }
-        Returns: {
-          id: string
-        }[]
+        Returns: Json
       }
       end_game: { Args: { target_game: string }; Returns: undefined }
       matching_words: {
@@ -4058,9 +4025,7 @@ export type Database = {
           setup: Json
           target_club: string
         }
-        Returns: {
-          id: string
-        }[]
+        Returns: Json
       }
       end_game: { Args: { target_game: string }; Returns: undefined }
       replay_board: { Args: { target_game: string }; Returns: undefined }
@@ -4253,9 +4218,7 @@ export type Database = {
           setup: Json
           target_club: string
         }
-        Returns: {
-          id: string
-        }[]
+        Returns: Json
       }
       end_game: { Args: { target_game: string }; Returns: undefined }
       replay_board: { Args: { target_game: string }; Returns: undefined }
