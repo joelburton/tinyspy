@@ -20,7 +20,7 @@ set search_path = common, public, extensions;
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
 
-select plan(17);
+select plan(18);
 
 reset role;
 update common.profiles set can_edit_words = true
@@ -50,7 +50,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   common.update_word('zqedita', '{"difficulty": 5, "slang": true}'::jsonb,
                      'saw this in wordle; way too obscure'),
-  '{"type": "ok"}'::jsonb,
+  '{"type": "ok", "data": {"result": "updated"}}'::jsonb,
   'an editor patches a word'
 );
 select is(
@@ -109,9 +109,15 @@ select is(
 );
 
 -- ── add: insert with derived columns + journal ──
-select common.add_word('zqeditnew',
-  '{"difficulty": 4, "american": true, "definition": "another fake"}'::jsonb,
-  'heard at the table');
+-- Asserted rather than called bare: the FE branches on this `result`, so it
+-- needs pinning here the way update_word's does.
+select pg_temp.envelope_is(
+  common.add_word('zqeditnew',
+    '{"difficulty": 4, "american": true, "definition": "another fake"}'::jsonb,
+    'heard at the table'),
+  '{"type": "ok", "data": {"result": "added"}}'::jsonb,
+  'an editor adds a word'
+);
 select is(
   (select difficulty::text || '|' || len::text || '|' || american::text
         || '|' || british::text || '|' || definition_source

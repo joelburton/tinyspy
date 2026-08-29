@@ -2679,7 +2679,9 @@ begin
   insert into common.words_edits (word, kind, old, new, note, edited_by, edited_by_username)
   values (w.word, 'update', to_jsonb(w), patch, note, ed.editor_id, ed.editor_username);
 
-  return common.ok_envelope();
+  -- `result` reuses the journal's own vocabulary (`words_edits.kind`), so the
+  -- answer and the row it wrote say the same word.
+  return common.ok_envelope(jsonb_build_object('result', 'updated'));
 
 exception when others then
   get stacked diagnostics
@@ -2815,7 +2817,8 @@ begin
   insert into common.words_edits (word, kind, old, new, note, edited_by, edited_by_username)
   values (w.word, 'add', null, to_jsonb(w), note, ed.editor_id, ed.editor_username);
 
-  return common.ok_envelope();
+  -- As in update_word: the journal's `kind` is the vocabulary.
+  return common.ok_envelope(jsonb_build_object('result', 'added'));
 
 exception when others then
   get stacked diagnostics

@@ -6,6 +6,7 @@ import { FailureLine } from '../feedback/FailureLine'
 import { useEffect, useState } from 'react'
 import { db as commonDb } from '../../db'
 import { readRows, runRpc } from '../../lib/supabase/dbResult'
+import { showFaultModal } from '../../lib/fault/faultStore'
 import { setWordEdit, type WordEditRequest } from '../../lib/definitions/wordEditStore'
 import { useConfirmation } from '../../hooks/ui/useConfirmation'
 import { Dialog } from '../floating-panels/Dialog'
@@ -115,6 +116,14 @@ function formFieldFor(field: string | null | undefined): string {
     : field
 }
 
+/**
+ * What `common.add_word` and `common.update_word` put in `data`. Two RPCs, one
+ * type, because the ternary below calls whichever the mode asks for and the
+ * dialog treats both the same. `result` reuses `words_edits.kind`, the journal's
+ * own vocabulary for the row each of them writes.
+ */
+type SaveAnswer = { result: 'added' | 'updated' }
+
 export function WordEditDialog({ request }: { request: WordEditRequest }) {
   const editing = request.mode === 'edit'
   // The row AS LOADED — the baseline the patch is diffed against, and the form's
@@ -194,7 +203,7 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
     // The generated Json type wants a Json-shaped object; the payload is one
     // by construction (strings / numbers / booleans / null).
     const jsonPayload = payload as import('../../../types/db').Json
-    const res = await runRpc(
+    const res = await runRpc<SaveAnswer>(
       editing
         ? commonDb.rpc('update_word', {
             target_word: request.mode === 'edit' ? request.word : '',
@@ -208,13 +217,24 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
           }),
     )
     setBusy(false)
-    if (res.type !== 'ok') {
+    if (res.type === 'not-ok') {
       // Under the box the server named, when it named one it can reach. A fault
       // has already raised the modal, and the line is what remains after it.
       setErrors({ [formFieldFor(res.field)]: res.message })
-      return
+    } else if (res.data.result === 'added' || res.data.result === 'updated') {
+      // TWO answers, one action: the ternary above chose which RPC to call, and
+      // whichever it was, the word is saved and the dialog closes. Both are
+      // named rather than folded into one word, because they come from
+      // different functions and each may grow a second `ok` of its own.
+      setWordEdit(null)
+    } else {
+      // Named for the RPC this call actually made — the ternary means the
+      // scream cannot say one name for both, and the useful half of the
+      // sentence is which function answered oddly.
+      showFaultModal({
+        text: `BUG: ${editing ? 'update_word' : 'add_word'} fell through to unhandled`,
+      })
     }
-    setWordEdit(null)
   }
 
   /** Takes the note because the box belongs to the form — Delete sits inside
