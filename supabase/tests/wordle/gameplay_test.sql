@@ -11,9 +11,10 @@
 begin;
 set search_path = wordle, common, public, extensions;
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(16);
+select plan(18);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -41,13 +42,16 @@ grant select on valw to authenticated;
 -- ── Soft rejects: no guess consumed, no row written ─────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
-select is(
-  wordle.submit_guess((select id from g), 'zzz')->>'result',
-  'invalid',
-  'too-short entry → invalid');
+-- Not a soft reject any more: `doSubmit` refuses a short word before it calls,
+-- so one arriving is a broken client.
+select pg_temp.envelope_is(
+  wordle.submit_guess((select id from g), 'zzz'),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN256",
+    "message":"A guess must be five letters"}'::jsonb,
+  'too-short entry is a fault');
 
 select is(
-  wordle.submit_guess((select id from g), 'zzzzz')->>'result',
+  wordle.submit_guess((select id from g), 'zzzzz')->'data'->>'result',
   'notAWord',
   'a 5-letter non-word → notAWord');
 
@@ -64,7 +68,7 @@ select is(
 -- ── A valid non-target guess: incorrect, burns one ─────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  wordle.submit_guess((select id from g), (select word from valw))->>'result',
+  wordle.submit_guess((select id from g), (select word from valw))->'data'->>'result',
   'incorrect',
   'a valid non-answer word → incorrect');
 
@@ -88,7 +92,7 @@ select is(
 -- ── Duplicate (same word again): soft reject, no burn ──────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  wordle.submit_guess((select id from g), (select word from valw))->>'result',
+  wordle.submit_guess((select id from g), (select word from valw))->'data'->>'result',
   'duplicate',
   'a word already on the shared board → duplicate');
 reset role;
@@ -101,9 +105,9 @@ select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 create temp table winres on commit drop as
 select wordle.submit_guess((select id from g), (select w from tgt)) as res;
 
-select is((select (res->>'result') from winres), 'correct',
+select is((select (res->'data'->>'result') from winres), 'correct',
   'guessing the target → correct');
-select is((select (res->>'terminal')::boolean from winres), true,
+select is((select (res->'data'->>'terminal')::boolean from winres), true,
   'the solving guess is terminal');
 
 reset role;
@@ -126,6 +130,36 @@ select is(
   (select title from common.games where id = (select id from g)),
   (select upper(w) from tgt),
   'terminal: the title becomes the answer');
+
+-- ============================================================
+-- No such game — the guard that needs constructing
+-- ============================================================
+-- `require_game_player` runs BEFORE the games lookup, and it reads
+-- common.game_players — so passing a random uuid raises "not in this game",
+-- never this. The only state that reaches PN254 is a caller who IS a player of
+-- a common.games row whose wordle.games row is missing, which `create_game`
+-- writes together and nothing deletes. Constructed here on purpose: the guard
+-- is defensive, and a defensive guard nothing exercises is a guard nobody knows
+-- is wrong.
+delete from wordle.games where id = (select id from g);
+
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select pg_temp.envelope_is(
+  wordle.submit_guess((select id from g), (select word from valw)),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN254",
+    "message":"That game no longer exists"}'::jsonb,
+  'a common.games row with no wordle.games row is a fault'
+);
+
+-- And the ordering that makes the above the only route: a stranger asking about
+-- a game that does not exist is told the thing that is true of THEM.
+select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
+select pg_temp.envelope_is(
+  wordle.submit_guess('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'::uuid, 'zzzzz'),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN253",
+    "message":"You are not in this game"}'::jsonb,
+  'a non-player on a nonexistent game is told they are not in it'
+);
 
 select * from finish();
 rollback;

@@ -893,7 +893,7 @@ refetch), not two places in the source.
 #### wordle
 
 - [x] `create_game` · RPC (2 call sites)
-- [ ] `submit_guess` · RPC (2 call sites)
+- [x] `submit_guess` · RPC (2 call sites)
 - [ ] `games_state` · read (2 call sites)
 - [ ] `guesses` · read
 - [ ] `players` · read

@@ -12,9 +12,10 @@
 begin;
 set search_path = wordle, common, public, extensions;
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(15);
+select plan(16);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -43,10 +44,22 @@ grant select on vals to authenticated;
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table a_solve on commit drop as
 select wordle.submit_guess((select id from g), (select w from tgt)) as res;
-select is((select (res->>'result') from a_solve), 'correct',
+select is((select (res->'data'->>'result') from a_solve), 'correct',
   'ada solves on her first guess');
-select is((select (res->>'terminal')::boolean from a_solve), false,
+select is((select (res->'data'->>'terminal')::boolean from a_solve), false,
   'game is NOT terminal yet — bea is still playing');
+
+-- ada guesses again, having already solved. A FAULT, not a race: the race is
+-- still live (bea is playing), so the play_state guard doesn't catch her — and
+-- it is her OWN row, with the board locked until that row lands, so getting
+-- here means a broken client or a stale second tab. Coop never reaches this
+-- line at all: solving ends the game there.
+select pg_temp.envelope_is(
+  wordle.submit_guess((select id from g), (select word from vals where rn = 1)),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN257",
+    "message":"Already solved"}'::jsonb,
+  'compete: guessing after your own solve is a fault'
+);
 
 reset role;
 select is(
@@ -90,7 +103,7 @@ select wordle.submit_guess((select id from g), (select word from vals where rn =
 create temp table b_solve on commit drop as
 select wordle.submit_guess((select id from g), (select w from tgt)) as res;
 
-select is((select (res->>'terminal')::boolean from b_solve), true,
+select is((select (res->'data'->>'terminal')::boolean from b_solve), true,
   'once every player is done → terminal');
 
 reset role;

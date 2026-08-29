@@ -26,7 +26,7 @@ select (wordle.create_game(
   array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop')->'data'->>'id')::uuid as id;
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  wordle.submit_guess((select id from g2), 'moxie')->>'result',
+  wordle.submit_guess((select id from g2), 'moxie')->'data'->>'result',
   'notAWord',
   'legal_guess 2: a band-3 word is not a legal guess');
 
@@ -39,7 +39,7 @@ select (wordle.create_game(
   array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop')->'data'->>'id')::uuid as id;
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  wordle.submit_guess((select id from g6), 'moxie')->>'result',
+  wordle.submit_guess((select id from g6), 'moxie')->'data'->>'result',
   'incorrect',
   'legal_guess 6: the same band-3 word is a legal (incorrect) guess');
 

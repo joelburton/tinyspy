@@ -1,6 +1,7 @@
 // cs-unmet
 
-import { failureMessage } from '../../common/lib/game/serverError'
+import { getNotOkFeedback } from '../../common/lib/game/genericPills'
+import { runRpc } from '../../common/lib/supabase/dbResult'
 import { useEffect, useCallback, useState } from 'react'
 import type { GenericFeedbackMsg } from '../../common/lib/games'
 import { GenericFeedbackPill } from '../../common/components/feedback/GenericFeedbackPill'
@@ -36,6 +37,17 @@ import styles from './BoardCol.module.css'
 /** How long the rejected row keeps its amber ring — a touch past the shake, so
  *  the mark is still there when the movement stops. */
 const REJECT_MARK_MS = 900
+
+/** What `wordle.submit_guess` puts in `data`. The structural fact travels even
+ *  where the server also wrote the sentence: the board's shake is keyed on
+ *  `result`, and has nothing to do with the words. */
+type GuessAnswer = {
+  result: 'correct' | 'incorrect' | 'duplicate' | 'notAWord'
+  colors?: string
+  guesses_used: number | null
+  solved: boolean
+  terminal: boolean
+}
 
 export function BoardCol({
   // ── Board to render (live rows + the history snapshot — PlayArea picks the log,
@@ -202,38 +214,33 @@ export function BoardCol({
       // Optimistically keep the letters on the board through the round-trip so they
       // don't blink out. Reverted on any soft-reject below.
       setPending(word)
-      const { data, error } = await db.rpc('submit_guess', {
-        target_game: gameId,
-        guess: word,
-      })
+      const res = await runRpc<GuessAnswer>(
+        db.rpc('submit_guess', { target_game: gameId, guess: word }),
+      )
       setSubmitting(false)
-      if (error) {
+      if (res.type !== 'ok') {
         setPending(null)
         setRejectNonce((n) => n + 1)
-        // A real failure (not a soft reject) → error-toned, still sticky.
-        showLocalFeedback(failureMessage(error, 'guess'))
+        showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
         return
       }
-      const res = data as { result: string }
-      // Soft rejects (no guess burned, the typed row stays). An invalid word
-      // (`notAWord`) reads as an error; the rest are non-error nudges (warning).
-      if (res.result === 'notAWord') {
+      // A SOFT REJECT is an `ok`: the rules were applied and no guess was
+      // burned, so the typed row stays. The words and the tone come from the
+      // server, and the board's shake takes the same tone the pill does — one
+      // answer, one appearance. `result` says WHICH refusal, which is what the
+      // shake is keyed on.
+      if (res.data.result === 'notAWord' || res.data.result === 'duplicate') {
         setPending(null)
-        setRejectTone('lost')
+        // TOTAL, not a filter. `Board` renders two ring colors and `outcome` is
+        // one of seven, so a bare `if` on the two it knows would leave the
+        // PREVIOUS rejection's color on the row when anything else arrived —
+        // wrong, and silent. Amber for a warning, red for everything else,
+        // which is what a failure looks like anyway. The pill carries the exact
+        // words either way. (Widening `Board` to take an outcome is filed in
+        // plans/css-system-2.md §18 with the rest of this state's shape.)
+        setRejectTone(res.outcome === 'warning' ? 'warning' : 'lost')
         setRejectNonce((n) => n + 1)
-        showLocalFeedback(stickyPill('lost', 'Not in word list'))
-        return
-      }
-      if (res.result === 'duplicate') {
-        setPending(null)
-        setRejectTone('warning')
-        setRejectNonce((n) => n + 1)
-        showLocalFeedback(stickyPill('warning', 'Already guessed'))
-        return
-      }
-      if (res.result === 'invalid') {
-        setPending(null)
-        showLocalFeedback(stickyPill('warning', 'Not enough letters'))
+        showLocalFeedback({ tone: res.outcome ?? 'lost', text: res.message ?? '', mode: { kind: 'sticky' } })
         return
       }
       // accepted (correct/incorrect): clear the typing buffer. `pending` holds the word

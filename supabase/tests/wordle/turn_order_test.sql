@@ -20,6 +20,7 @@
 begin;
 set search_path = wordle, common, public, extensions;
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 select plan(10);
@@ -71,17 +72,16 @@ select is(
 
 -- (2) bea guessing out of turn is rejected.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select throws_ok(
-  format($$ select wordle.submit_guess(%L::uuid, (select word from valws where n = 1)) $$,
-         (select id from g)),
-  'P0001', 'not-your-turn|',
+select pg_temp.envelope_is(
+  wordle.submit_guess((select id from g), (select word from valws where n = 1)),
+  '{"type":"not-ok","severity":"race","dbcode":"PN243","message":"Not your turn"}'::jsonb,
   'turns: the non-current player is rejected'
 );
 
 -- (3) ada (current) guesses a valid non-target word — accepted, advances.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  wordle.submit_guess((select id from g), (select word from valws where n = 1))->>'result',
+  wordle.submit_guess((select id from g), (select word from valws where n = 1))->'data'->>'result',
   'incorrect',
   'turns: the current player''s valid guess is accepted'
 );
@@ -96,7 +96,7 @@ select is(
 -- word (a shared-board duplicate → soft reject). The pointer stays bea's.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
-  wordle.submit_guess((select id from g), (select word from valws where n = 1))->>'result',
+  wordle.submit_guess((select id from g), (select word from valws where n = 1))->'data'->>'result',
   'duplicate',
   'turns: a duplicate is soft-rejected'
 );
@@ -134,7 +134,7 @@ select is(
 -- bea guesses first (would be out of turn in a turn game) — no gate.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
-  wordle.submit_guess((select id from ffa), (select word from valws where n = 1))->>'result',
+  wordle.submit_guess((select id from ffa), (select word from valws where n = 1))->'data'->>'result',
   'incorrect',
   'free-for-all: any player may guess in any order'
 );

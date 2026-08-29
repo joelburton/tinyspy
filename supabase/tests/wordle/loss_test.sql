@@ -24,6 +24,7 @@
 begin;
 set search_path = wordle, common, public, extensions;
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 select plan(9);
@@ -71,9 +72,9 @@ select wordle.submit_guess((select id from g_coop), (select word from valw where
 create temp table c5 on commit drop as
 select wordle.submit_guess((select id from g_coop), (select word from valw where rn = 5)) as res;
 
-select is((select res->>'result' from c5), 'incorrect',
+select is((select res->'data'->>'result' from c5), 'incorrect',
   'coop: the 5th wrong guess is still incorrect (no fluke solve)');
-select is((select (res->>'terminal')::boolean from c5), true,
+select is((select (res->'data'->>'terminal')::boolean from c5), true,
   'coop: exhausting the budget is terminal');
 
 reset role;
@@ -97,13 +98,10 @@ select is(
 
 -- A further guess on the now-terminal game is rejected.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select throws_ok(
-  format(
-    $$ select wordle.submit_guess(%L, %L) $$,
-    (select id from g_coop), (select word from valw where rn = 1)
-  ),
-  'P0001', 'game-not-in-play|',
-  'coop: guessing after a lost game is rejected'
+select pg_temp.envelope_is(
+  wordle.submit_guess((select id from g_coop), (select word from valw where rn = 1)),
+  '{"type":"not-ok","severity":"race","dbcode":"PN255","message":"Game over"}'::jsonb,
+  'coop: guessing after a lost game is a lost race'
 );
 
 -- ─── Compete: ada exhausts her own budget; bea still playing ──
@@ -114,18 +112,18 @@ select wordle.submit_guess((select id from g_comp), (select word from valw where
 create temp table p5 on commit drop as
 select wordle.submit_guess((select id from g_comp), (select word from valw where rn = 5)) as res;
 
-select is((select (res->>'terminal')::boolean from p5), false,
+select is((select (res->'data'->>'terminal')::boolean from p5), false,
   'compete: one player exhausting her budget does NOT end the game (bea still playing)');
 
--- ada is now out of guesses while the game is still 'playing' → the
--- 'no-guesses-left|' guard fires (unreachable in coop).
-select throws_ok(
-  format(
-    $$ select wordle.submit_guess(%L, %L) $$,
-    (select id from g_comp), (select word from valw where rn = 1)
-  ),
-  'P0001', 'no-guesses-left|',
-  'compete: a guess past a player''s own exhausted budget is rejected'
+-- ada is out of guesses while the game is still 'playing'. In COMPETE the
+-- budget is her own and the board stays locked until her row lands, so getting
+-- here means a broken client — a fault, where the coop twin (PN258, a teammate
+-- spending the last shared guess) is a race.
+select pg_temp.envelope_is(
+  wordle.submit_guess((select id from g_comp), (select word from valw where rn = 1)),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN259",
+    "message":"No guesses left"}'::jsonb,
+  'compete: a guess past a player''s own exhausted budget is a fault'
 );
 
 select * from finish();

@@ -1185,6 +1185,38 @@ vocabulary; invent it if we ever need it.
 
 ## 18. Open
 
+- **The verdict mark's STATE is built per component, and it should not be**
+  (2026-08-29, found while converting wordle's `submit_guess`). Two games wear
+  the shake-and-ring mark, and each solved the same problem its own way:
+
+  - **connections** holds one state, `verdict: { tiles, tone, nonce } | null`,
+    written through a single `markVerdict()`, with the nonce in a `useRef`
+    because it is read while setting and never rendered on its own.
+  - **wordle** holds `rejectNonce` and `rejectTone` as two separate `useState`s,
+    always written together and only read together. Narrowing the envelope's
+    seven-value `outcome` down to the two colors `Board` renders happens at the
+    call site, where it is total (`warning` → amber, everything else red) —
+    correct, but it is narrowing done in the wrong place. The real fix is for
+    `Board` to take an `Outcome` and map it, which is part of this item.
+
+  **What is genuinely shared is the nonce discipline**, and it is the thing a
+  third game would get wrong: a CSS animation replays only on a NEW element, so
+  a counter has to ride in the row's `key`, and a boolean cannot distinguish
+  "rejected again" from "still rejected". Both games worked that out
+  independently.
+
+  **What is not shared is the mark's LIFETIME**, which is why this isn't a hook
+  yet: wordle clears on a 900ms timer, while connections has no timer at all —
+  its comment calls the turn log "the verdict's clock", clearing when the log
+  shrinks (a restart) or grows with someone else's row. One is wall-clock, the
+  other is derived from game state, and a shared hook would have to force one or
+  take it as a callback and own almost nothing.
+
+  With a population of two and both working, the extraction point is the third
+  game that wants a shake — by then we would know which lifetime is the common
+  case. Until then this belongs in `docs/ui.md` beside the verdict-mark rules as
+  a written paragraph rather than as code.
+
 - **Better name for the `button` bucket?** Accepted for now: buttons are easy to
   visualize, and "control" is vague. It is used for text occasionally too.
 - **What actually goes in `light-mode.css`** — possibly nothing. Kept as a named

@@ -476,6 +476,7 @@ revoke execute on function wordle._maybe_finish_compete(uuid) from public;
 --
 -- Returns jsonb { result, colors, guesses_used, solved, terminal }.
 -- `result` ∈ correct | incorrect | notAWord | duplicate | invalid.
+drop function if exists wordle.submit_guess(uuid, text);
 create or replace function wordle.submit_guess(
   target_game uuid,
   guess       text
@@ -499,19 +500,24 @@ declare
   out_terminal       boolean := false;
   term_state         text;
   player_results     jsonb;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   caller_id := common.require_game_player(target_game);
 
   select * into g_row from wordle.games where id = target_game for update;
   if not found then
-    raise exception 'game-not-found|' using errcode = 'P0002',
+    raise exception 'That game no longer exists'
+      using errcode = 'PN254', hint = 'fault', column = '_',
       detail = 'no wordle.games row for target_game';
   end if;
 
   select play_state into current_play_state
     from common.games where id = target_game;
   if current_play_state <> 'playing' then
-    raise exception 'game-not-in-play|' using errcode = 'P0001',
+    -- A race: a teammate ended it, or the clock ran out, while this guess was
+    -- in flight.
+    raise exception 'Game over'
+      using errcode = 'PN255', hint = 'race', column = '_',
       detail = 'play_state is not an active state';
   end if;
 
@@ -521,10 +527,13 @@ begin
   perform common._require_turn(target_game, caller_id);
 
   -- ─── Soft reject: malformed entry (no burn) ──────────────
+  -- Not a soft reject: `doSubmit` refuses a short word before it calls, so a
+  -- malformed one arriving means a broken client.
   norm := lower(trim(coalesce(guess, '')));
   if norm !~ '^[a-z]{5}$' then
-    return jsonb_build_object('result', 'invalid', 'guesses_used', null,
-                              'solved', false, 'terminal', false);
+    raise exception 'A guess must be five letters'
+      using errcode = 'PN256', hint = 'fault', column = '_',
+      detail = format('guess must match ^[a-z]{5}$; got %L', norm);
   end if;
 
   -- The caller's working state (coop rows are identical; compete is the
@@ -533,12 +542,25 @@ begin
     from wordle.players
    where game_id = target_game and user_id = caller_id;
   if p_solved then
-    raise exception 'already-solved|' using errcode = 'P0001',
+    -- A fault, in both modes, for the same reason as the budget guard below.
+    -- COOP: solving ENDS the game, so a later guess meets the play_state guard
+    -- forty lines above and reads "Game over" — this is unreachable there.
+    -- COMPETE: it is your own row, and the board stays locked until that row
+    -- lands, so getting here means a broken client or a stale second tab.
+    raise exception 'Already solved'
+      using errcode = 'PN257', hint = 'fault', column = '_',
       detail = 'this player has already found the answer';
   end if;
   if p_used >= g_row.max_guesses then
-    raise exception 'no-guesses-left|' using errcode = 'P0001',
-      detail = 'the guess budget for this player/team is spent';
+    -- COMPETE-ONLY in practice, and a fault. Spending the last COOP guess ends
+    -- the game, so a coop player who guesses again meets the play_state guard
+    -- above and reads "Game over"; only compete keeps playing with an exhausted
+    -- player at the table. There the budget is the caller's own and the board
+    -- stays locked until their row lands, so reaching this means a broken
+    -- client or a stale second tab.
+    raise exception 'No guesses left'
+      using errcode = 'PN259', hint = 'fault', column = '_',
+      detail = 'this player''s guess budget is spent';
   end if;
 
   -- ─── Soft reject: duplicate (no burn) ────────────────────
@@ -558,8 +580,13 @@ begin
     ) into is_dup;
   end if;
   if is_dup then
-    return jsonb_build_object('result', 'duplicate', 'guesses_used', p_used,
-                              'solved', false, 'terminal', false);
+    -- `ok`: a game-rule refusal is the rules being applied, and nothing was
+    -- burned. `data` still carries `result` — the board reads it for the shake,
+    -- independently of the pill.
+    return common.ok_envelope(
+      jsonb_build_object('result', 'duplicate', 'guesses_used', p_used,
+                         'solved', false, 'terminal', false),
+      'warning', 'Already guessed');
   end if;
 
   -- ─── Soft reject: not in the legal word slice (no burn) ──
@@ -578,8 +605,10 @@ begin
     select 1 from common.words
      where word = norm and len = 5 and difficulty <= g_row.legal_guess
   ) then
-    return jsonb_build_object('result', 'notAWord', 'guesses_used', p_used,
-                              'solved', false, 'terminal', false);
+    return common.ok_envelope(
+      jsonb_build_object('result', 'notAWord', 'guesses_used', p_used,
+                         'solved', false, 'terminal', false),
+      'lost', 'Not in word list');
   end if;
 
   -- ─── Accept: color, log, count, resolve ──────────────────
@@ -661,13 +690,26 @@ begin
   -- sees the settled is_terminal.
   perform wordle._sync_title(target_game);
 
-  return jsonb_build_object(
-    'result',       case when did_solve then 'correct' else 'incorrect' end,
-    'colors',       v_colors,
-    'guesses_used', new_used,
-    'solved',       did_solve,
-    'terminal',     out_terminal
-  );
+  -- No message: what an accepted guess shows is composed from the colors and
+  -- the board, which the server cannot say as fully (docs/envelopes.md → Who
+  -- writes the words, per answer).
+  return common.ok_envelope(
+    jsonb_build_object(
+      'result',       case when did_solve then 'correct' else 'incorrect' end,
+      'colors',       v_colors,
+      'guesses_used', new_used,
+      'solved',       did_solve,
+      'terminal',     out_terminal
+    ),
+    case when did_solve then 'won' else 'lost' end);
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 

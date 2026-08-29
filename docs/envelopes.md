@@ -96,12 +96,19 @@ second tab. Its `bad-selection` guard is neither: the board's own selection is
 local, nothing about it can lag, so a five-tile guess arriving means a broken
 client or someone poking at the API.
 
-**A classification can therefore differ by MODE**, and the server knows the
-mode: wordle's exhausted budget is a `race` in coop, where the budget is shared
-and a teammate can spend the last one with no local gate able to know, and a
-`fault` in compete, where it is your own. That is written as two raises in an
-`if/else` — an errcode must stay a bare literal, so a `case` expression is not
-an option (see the guard, below).
+**A classification MAY differ by mode**, and the server knows the mode, so it
+can say so — written as two raises in an `if/else`, since an errcode must stay a
+bare literal and a `case` expression is not an option (see the guard, below).
+
+**Check that both halves are REACHABLE before splitting, though.** The temptation
+is to reason "coop shares this, so coop is the race" and stop, and the mode that
+shares a thing is usually the mode that ENDS on it. wordle's exhausted guess
+budget is the case that taught this: a shared coop budget sounds like the
+textbook race — a teammate spends the last guess while yours is in flight — but
+spending the last coop guess ends the game, so a later guess meets the
+`play_state` guard instead and reads "Game over". The coop half of the split was
+dead code, and the honest answer was one fault. **The question to ask of each
+half is not "is this a race here?" but "can this line run here at all?"**
 
 ### Worked cases
 

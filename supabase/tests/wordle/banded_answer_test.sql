@@ -43,14 +43,14 @@ grant select on t to authenticated;
 -- A non-answer word above the band is still rejected (the gate works)…
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  wordle.submit_guess((select id from g), 'moxie')->>'result',
+  wordle.submit_guess((select id from g), 'moxie')->'data'->>'result',
   'notAWord',
   'the dictionary gate still rejects a non-answer above the band'
 );
 
 -- …but the ANSWER solves, banded out or not.
 select is(
-  wordle.submit_guess((select id from g), (select target from t))->>'result',
+  wordle.submit_guess((select id from g), (select target from t))->'data'->>'result',
   'correct',
   'the banded-out answer still solves — never notAWord'
 );
