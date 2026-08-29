@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRealtimeRefetch } from '../../common/hooks/realtime/useRealtimeRefetch'
+import { readRows } from '../../common/lib/supabase/dbResult'
 import { db } from '../db'
 import type { Member } from '../../common/lib/games'
 
@@ -125,13 +126,27 @@ export function useGame(gameId: string): {
     channelPrefix: 'psychicnum',
     id: gameId,
     load: async ({ mounted }) => {
-      const { data: gameData } = await db
-        .from('games_state')
-        .select('id, club_handle, mode, words, secrets, created_at')
-        .eq('id', gameId)
-        .maybeSingle()
+      // No `.maybeSingle()`: `readRows` hands back rows, and `id` is the PK,
+      // so this is 0 or 1 of them.
+      const gameRes = await readRows(
+        db
+          .from('games_state')
+          .select('id, club_handle, mode, words, secrets, created_at')
+          .eq('id', gameId),
+      )
       if (!mounted()) return
 
+      // A FAILED read and a MISSING game used to be one branch — a failure left
+      // `data` null, so a dead connection rendered the game as not-found. The
+      // fault is already logged and shown by `dbFetch`; stop loading and claim
+      // nothing about the game.
+      if (gameRes.type !== 'ok') {
+        setLoading(false)
+        return
+      }
+      // ZERO ROWS is the caller's to read: no game with that id, or one this
+      // club cannot see.
+      const gameData = gameRes.data[0]
       if (!gameData) {
         setGame(null)
         setPlayers([])
@@ -140,18 +155,26 @@ export function useGame(gameId: string): {
         return
       }
 
-      const [{ data: playerRows }, { data: guessRows }] = await Promise.all([
-        db
-          .from('players')
-          .select('user_id, guesses_remaining, found_secrets_count')
-          .eq('game_id', gameId),
-        db
-          .from('guesses')
-          .select('id, user_id, word, is_correct, kind, guessed_at')
-          .eq('game_id', gameId)
-          .order('guessed_at', { ascending: true }),
+      const [playersRes, guessesRes] = await Promise.all([
+        readRows(
+          db
+            .from('players')
+            .select('user_id, guesses_remaining, found_secrets_count')
+            .eq('game_id', gameId),
+        ),
+        readRows(
+          db
+            .from('guesses')
+            .select('id, user_id, word, is_correct, kind, guessed_at')
+            .eq('game_id', gameId)
+            .order('guessed_at', { ascending: true }),
+        ),
       ])
       if (!mounted()) return
+      if (playersRes.type !== 'ok' || guessesRes.type !== 'ok') {
+        setLoading(false)
+        return
+      }
 
       setGame({
         id: gameData.id as string,
@@ -161,8 +184,8 @@ export function useGame(gameId: string): {
         secrets: gameData.secrets as string[] | null,
         created_at: gameData.created_at as string,
       })
-      setPlayers((playerRows ?? []) as PlayerRow[])
-      setGuesses((guessRows ?? []) as GuessRow[])
+      setPlayers(playersRes.data as PlayerRow[])
+      setGuesses(guessesRes.data as GuessRow[])
       setLoading(false)
     },
   })

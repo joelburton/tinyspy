@@ -819,11 +819,13 @@ refetch), not two places in the source.
   fault in the game being converted. They are called by 15–17 files, so until
   each of those converts, their failures wear the fault look elsewhere — right
   words, wrong weight, and not worth a shim for an afternoon
-- [ ] `submit_guess` · RPC (2 call sites)
-- [ ] `games` · read
-- [ ] `games_state` · read
-- [ ] `guesses` · read
-- [ ] `players` · read
+- [x] `submit_guess` · RPC
+- [x] `games_state` · read
+- [x] `guesses` · read
+- [x] `players` · read
+
+`games` was already read through the `games_state` view, so there was no second
+read to convert; `submit_guess` has one call site, not two.
 
 #### scrabble
 

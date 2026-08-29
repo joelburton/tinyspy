@@ -439,8 +439,9 @@ grant execute on function psychicnum.create_game(text, jsonb, uuid[], text) to a
 -- compete: first commits the winner; the second sees play_state
 -- != 'playing' and raises 'game is not active'.
 
+drop function if exists psychicnum.submit_guess(uuid, text);
 create or replace function psychicnum.submit_guess(target_game uuid, guess text)
-returns text
+returns jsonb
 language plpgsql
 security definer
 set search_path = psychicnum, common, public, extensions
@@ -460,6 +461,7 @@ declare
   winner_name text;
   terminal_state text;
   terminal_outcome text;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   -- Lock the gametype row for serialization of concurrent submits. We read it
   -- first so the board-word check can use this game's words.
@@ -467,7 +469,8 @@ begin
    where psychicnum.games.id = target_game
    for update;
   if not found then
-    raise exception 'game-not-found|' using errcode = 'P0002',
+    raise exception 'That game no longer exists'
+      using errcode = 'PN267', hint = 'fault', column = '_',
       detail = 'no psychicnum.games row for target_game';
   end if;
 
@@ -476,7 +479,8 @@ begin
   -- the old 1..max range check).
   w := lower(trim(coalesce(guess, '')));
   if not (w = any(g.words)) then
-    raise exception 'not-on-board|' using errcode = 'P0001',
+    raise exception 'That word is not on the board'
+      using errcode = 'PN268', hint = 'fault', column = '_',
       detail = 'the guess is not one of the board''s words';
   end if;
 
@@ -488,7 +492,10 @@ begin
     from common.games where id = target_game;
 
   if current_play_state <> 'playing' then
-    raise exception 'game-not-in-play|' using errcode = 'P0001',
+    -- A race: a teammate ended it, or the clock ran out, while this guess was
+    -- in flight.
+    raise exception 'Game over'
+      using errcode = 'PN269', hint = 'race', column = '_',
       detail = 'play_state is not an active state';
   end if;
 
@@ -505,7 +512,8 @@ begin
   -- complete the win condition and be recorded the winner.
   if (select conceded from common.game_players
         where game_id = target_game and user_id = caller_id) then
-    raise exception 'you-conceded|' using errcode = 'P0001',
+    raise exception 'Already conceded'
+      using errcode = 'PN270', hint = 'race', column = '_',
       detail = 'caller already dropped out of this compete race';
   end if;
 
@@ -516,11 +524,15 @@ begin
   if caller_remaining is null then
     -- Shouldn't happen — require_game_player passed, so the row
     -- exists. Defensive.
-    raise exception 'not-a-player|' using errcode = 'P0002',
+    raise exception 'You are not in this game'
+      using errcode = 'PN271', hint = 'fault', column = '_',
       detail = 'no psychicnum.players budget row for the caller';
   end if;
   if caller_remaining <= 0 then
-    raise exception 'no-guesses-left|' using errcode = 'P0001',
+    -- The FE knows your budget, so reaching this is a bug rather than a bad
+    -- move.
+    raise exception 'No guesses left'
+      using errcode = 'PN272', hint = 'fault', column = '_',
       detail = 'this player''s guess budget is spent';
   end if;
 
@@ -531,7 +543,12 @@ begin
      where game_id = target_game and kind = 'guess' and word = w
        and (g.mode = 'coop' or user_id = caller_id)
   ) then
-    raise exception 'already-guessed|' using errcode = 'P0001',
+    -- An `ok`, raised: the PA branch. A game-rule refusal is the rules being
+    -- applied, and psychicnum's FE deliberately does not check for duplicates,
+    -- so this is reached by ordinary typing. Still a raise so the savepoint
+    -- rolls back anything above it, and so control flow here is untouched.
+    raise exception 'Already guessed'
+      using errcode = 'PA002', hint = 'warning', column = '_',
       detail = 'that word is already in the guess log';
   end if;
 
@@ -618,7 +635,11 @@ begin
       ),
       player_results
     );
-    return 'won';
+    -- `found_all` is the second fact the old `'won'` packed in beside the
+    -- first: this guess hit, AND it was the last secret. Two facts, two
+    -- fields, so neither has to be decoded out of the other.
+    return common.ok_envelope(
+      jsonb_build_object('verdict', 'hit', 'found_all', true), 'won');
   end if;
 
   -- ─── Budget exhausted before completing the set = loss ───
@@ -664,7 +685,10 @@ begin
     -- The caller's own verdict, NOT the game's — the game's fate travels by
     -- realtime (end_game above). A correct guess that empties the budget is
     -- still a correct guess to the person who made it.
-    return case when is_correct then 'correct' else 'wrong' end;
+    return common.ok_envelope(
+      jsonb_build_object('verdict', case when is_correct then 'hit' else 'miss' end,
+                         'found_all', false),
+      case when is_correct then 'won' else 'neutral' end);
   end if;
 
   -- ─── Game continues ──────────────────────────────────────
@@ -696,7 +720,18 @@ begin
               else '{}'::jsonb
          end
   );
-  return case when is_correct then 'correct' else 'wrong' end;
+  return common.ok_envelope(
+    jsonb_build_object('verdict', case when is_correct then 'hit' else 'miss' end,
+                       'found_all', false),
+    case when is_correct then 'won' else 'neutral' end);
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 

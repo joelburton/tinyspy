@@ -474,6 +474,50 @@ describe('the [db] line carries a not-ok outcome', () => {
   })
 })
 
+// A signature violation, not a game's problem: a non-null message means "render
+// this" and the outcome is how it renders, so an `ok` with one and not the other
+// leaves a call site nothing to do but guess — and a guess turns a server bug
+// into a pill nobody questions.
+describe('an ok that breaks its own contract', () => {
+  it('faults on a message with no outcome', async () => {
+    const r = await runRpc(
+      Promise.resolve({
+        data: env({ type: 'ok', data: { x: 1 }, message: 'Already guessed' }),
+        error: null,
+      }),
+    )
+    expect(r).toMatchObject({ type: 'not-ok', severity: 'fault' })
+    // Its OWN sentence, not the unreadable-body one: a player who quotes this
+    // back has to be identifiable as this failure rather than that one.
+    const [fault] = peekFaultsForTest()
+    expect(fault.text).toBe("The server's answer was incomplete.")
+    expect(fault.diagnostics).toContain('a message with no outcome')
+  })
+
+  it('lets an ok with BOTH through, and one with neither', async () => {
+    const withBoth = await runRpc(
+      Promise.resolve({
+        data: env({ type: 'ok', outcome: 'warning', message: 'Already guessed' }),
+        error: null,
+      }),
+    )
+    expect(withBoth.type).toBe('ok')
+    const withNeither = await runRpc(
+      Promise.resolve({ data: env({ type: 'ok', data: { x: 1 } }), error: null }),
+    )
+    expect(withNeither.type).toBe('ok')
+  })
+
+  // An outcome with no message is the ORDINARY case — the surface composes the
+  // words — so it must not trip this.
+  it('lets an outcome with no message through', async () => {
+    const r = await runRpc(
+      Promise.resolve({ data: env({ type: 'ok', outcome: 'won' }), error: null }),
+    )
+    expect(r.type).toBe('ok')
+  })
+})
+
 describe('notOkOutcome', () => {
   const notOk = (severity: string, outcome: string | null = null) =>
     ({ ...env({ type: 'not-ok', severity, outcome, message: 'x' }) }) as never

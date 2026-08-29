@@ -29,6 +29,7 @@ set search_path = psychicnum, common, public, extensions;
 select plan(19);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -187,10 +188,10 @@ select is(
   0,
   'dee cannot SELECT games_state (RLS through underlying table)'
 );
-select throws_ok(
-  format($$ select psychicnum.submit_guess(%L::uuid, 'alpha') $$, (select id from comp_g)),
-  '42501',
-  'not-a-player|',
+select pg_temp.envelope_is(
+  psychicnum.submit_guess((select id from comp_g), 'alpha'),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN253",
+    "message":"You are not in this game"}'::jsonb,
   'dee cannot call submit_guess (require_game_player gate)'
 );
 

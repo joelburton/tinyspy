@@ -134,10 +134,6 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
 
 
   // ── psychicnum ──
-  // The FE checks board membership before submitting but NOT whether a word was
-  // already tried, so this one is reached by ordinary typing — not a race, not a
-  // broken client. The most straightforwardly player-facing key in the sweep.
-  'already-guessed': { text: () => 'Already guessed' },
   // The two cheat rungs, exhausted. psychicnum RAISES here where stackdown
   // returns null and lets the FE narrate — a real divergence between the two
   // implementations of the same feature, recorded rather than smoothed over.

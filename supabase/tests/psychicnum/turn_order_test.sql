@@ -66,17 +66,19 @@ select is(
 
 -- (2) bea guessing out of turn is rejected.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select throws_ok(
-  format($$ select psychicnum.submit_guess(%L::uuid, 'zdelta') $$, (select id from turn_g)),
-  'P0001', 'not-your-turn|',
+select pg_temp.envelope_is(
+  psychicnum.submit_guess((select id from turn_g), 'zdelta'),
+  '{"type":"not-ok","severity":"race","dbcode":"PN243",
+    "message":"Not your turn"}'::jsonb,
   'turns: a guess from the non-current player is rejected'
 );
 
 -- (3) ada (current) guesses wrong — accepted, returns 'wrong'.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select is(
+select pg_temp.envelope_is(
   psychicnum.submit_guess((select id from turn_g), 'zdelta'),
-  'wrong',
+  '{"type":"ok","outcome":"neutral",
+    "data":{"verdict":"miss","found_all":false}}'::jsonb,
   'turns: the current player''s guess is accepted'
 );
 
@@ -90,17 +92,19 @@ select is(
 
 -- (5) Now ada is out of turn.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select throws_ok(
-  format($$ select psychicnum.submit_guess(%L::uuid, 'zecho') $$, (select id from turn_g)),
-  'P0001', 'not-your-turn|',
+select pg_temp.envelope_is(
+  psychicnum.submit_guess((select id from turn_g), 'zecho'),
+  '{"type":"not-ok","severity":"race","dbcode":"PN243",
+    "message":"Not your turn"}'::jsonb,
   'turns: the player who just went is now rejected'
 );
 
 -- (6) bea guesses wrong — accepted, advances back to ada.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select is(
+select pg_temp.envelope_is(
   psychicnum.submit_guess((select id from turn_g), 'zecho'),
-  'wrong',
+  '{"type":"ok","outcome":"neutral",
+    "data":{"verdict":"miss","found_all":false}}'::jsonb,
   'turns: the new current player may guess'
 );
 reset role;
@@ -113,10 +117,11 @@ select is(
 -- (7) SOFT-REJECT does NOT advance: ada (current) re-guesses zdelta, an
 -- already-taken word. It raises (rolls back), and the turn stays ada's.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select throws_ok(
-  format($$ select psychicnum.submit_guess(%L::uuid, 'zdelta') $$, (select id from turn_g)),
-  'P0001', 'already-guessed|',
-  'turns: a duplicate (soft-reject) guess is rejected'
+select pg_temp.envelope_is(
+  psychicnum.submit_guess((select id from turn_g), 'zdelta'),
+  '{"type":"ok","dbcode":"PA002","outcome":"warning",
+    "message":"Already guessed"}'::jsonb,
+  'turns: a duplicate guess is refused'
 );
 reset role;
 select is(
@@ -127,9 +132,10 @@ select is(
 
 -- (8) A finding-but-not-terminal guess advances too (accepted move).
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select is(
+select pg_temp.envelope_is(
   psychicnum.submit_guess((select id from turn_g), 'zalpha'),
-  'correct',
+  '{"type":"ok","outcome":"won",
+    "data":{"verdict":"hit","found_all":false}}'::jsonb,
   'turns: finding a secret (not the last) is an accepted guess'
 );
 reset role;
@@ -185,9 +191,10 @@ select is(
 
 -- bea guesses first (would be out of turn in a turn game) — no gate here.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select is(
+select pg_temp.envelope_is(
   psychicnum.submit_guess((select id from ffa_g), 'zdelta'),
-  'wrong',
+  '{"type":"ok","outcome":"neutral",
+    "data":{"verdict":"miss","found_all":false}}'::jsonb,
   'free-for-all: any player may guess in any order'
 );
 
@@ -214,9 +221,10 @@ update psychicnum.games
 -- so neither guess is ever "out of turn".
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select psychicnum.submit_guess((select id from solo_g), 'zdelta');
-select is(
+select pg_temp.envelope_is(
   psychicnum.submit_guess((select id from solo_g), 'zecho'),
-  'wrong',
+  '{"type":"ok","outcome":"neutral",
+    "data":{"verdict":"miss","found_all":false}}'::jsonb,
   'solo turns: the lone player keeps the turn (advance wraps to self)'
 );
 reset role;

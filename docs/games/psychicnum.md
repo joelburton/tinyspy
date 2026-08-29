@@ -249,15 +249,21 @@ Locks the gametype row with `SELECT ... FOR UPDATE` to serialize concurrent gues
 
 Records every guess in `psychicnum.guesses` (`kind='guess'`, `word` lowercased, `is_correct` set). A word already taken (game-wide in coop, caller's own in compete) is **rejected** (`'word already guessed'`) — the FE disables guessed tiles, this is the server guard. Hint rows don't count, so a hinted word can still be guessed.
 
-Reject reasons:
+**What it answers.** [An envelope](../envelopes.md). `data` carries the caller's
+OWN verdict and nothing else — `{ verdict: 'hit' | 'miss', found_all }` — with
+`found_all` the second fact the old three-valued `'won' | 'correct' | 'wrong'`
+packed in beside the first. Splitting them means neither has to be decoded out
+of the other, and the surface keeps learning about the ending from realtime.
 
-- not authenticated
-- not a word on the board
-- game not found
-- not a game player
-- game status ≠ playing
-- word already guessed (in scope)
-- caller has 0 guesses remaining
+| answer | | |
+|---|---|---|
+| a hit | `ok`, `outcome: won` | `{verdict: 'hit', found_all}` |
+| a miss | `ok`, `outcome: neutral` | `{verdict: 'miss', found_all: false}` |
+| already guessed | `ok`, `outcome: warning`, "Already guessed" | a game-rule refusal is the rules being applied, and the FE deliberately doesn't check for duplicates — so this is reached by ordinary typing. **Raised on the `PA` branch**, the first use of it |
+| `PN269` "Game over" | `race` | a teammate ended it while your guess was in flight |
+| `PN270` "Already conceded" | `race` | your own concede landed first |
+| `PN243` "Not your turn" | `race` | `common._require_turn` |
+| `PN267` no such game · `PN268` "That word is not on the board" · `PN271` not in this game · `PN272` "No guesses left" | `fault` | the board disables non-board tiles and the FE knows your budget, so each means a broken client |
 
 **Opt-in turn-by-turn coop.** The coop sibling supports the common turn-order primitive (setup `coop_style = 'turns'`): `submit_guess` gates on `common._require_turn` right after the row lock + caller resolution (out-of-turn → `'not your turn'`), and calls `common._advance_turn` only on an accepted, non-terminal guess — so a soft-reject (not-a-board-word, duplicate, exhausted) lets the same player retry, and the pointer isn't touched when the guess ends the game. As the reference minimal game, psychicnum was the pilot for this common feature; see [common.md → Turn-order](../common.md#turn-order--opt-in-turn-by-turn-for-coop-games).
 

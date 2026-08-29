@@ -55,34 +55,56 @@ export type Severity = 'fault' | 'race' | 'form-validation' | 'service-error'
  * `data: null` and no `data` key were the same JSON, so an RPC could not answer
  * "there is no next puzzle" as a VALUE. Now it can.
  */
+/**
+ * The keys every `ok` carries the same way, whether or not it wrote words.
+ * Split out so the two shapes below differ in exactly the pair that matters.
+ */
+type OkCommon<T> = {
+  type: 'ok'
+  /** The payload. */
+  data: T
+  /** Always null on this arm — a severity belongs to a `not-ok`. It is
+   *  declared because the WIRE carries it: nine keys travel whatever happened,
+   *  so the type says nine. */
+  severity: null
+  /** Always null on this arm, for the same reason as `severity`. */
+  field: null
+  /** The additive slot: SQL can leave breadcrumbs with no frontend change. */
+  meta: Record<string, unknown> | null
+  /** The SQLSTATE, when the outcome came from a raise. Named `dbcode` because
+   *  "code" is too broad for one specific thing. */
+  dbcode: string | null
+  /** PL/pgSQL's DETAIL — the debugging line, never shown to a player. */
+  detail: string | null
+}
+
 export type Envelope<T = unknown> =
-  | {
-      type: 'ok'
-      /** The payload. */
-      data: T
-      /** How it reads on screen. Never `error` in practice — a successful
-       *  result does not read as a failure — which `raiseCodes.test.ts` pins on
-       *  the SQL side, where the value is actually authored. */
+  /**
+   * **It wrote the words, so it says how they read.** A message means "render
+   * this", and the outcome is how — so the pair travels together and a caller
+   * needs no default. `res.message !== null` narrows to exactly this shape,
+   * which is why no call site tests the outcome separately.
+   *
+   * The rule is enforced three ways besides the type (docs/envelopes.md → Who
+   * writes the words): every `PA` raise must carry a HINT, `raiseCodes.test.ts`
+   * refuses an `ok_envelope` built with one and not the other, and `runRpc`
+   * faults on the pair at runtime for anything neither can see.
+   */
+  | (OkCommon<T> & {
+      message: string
+      /** Never `error` — a successful result does not read as a failure, which
+       *  `raiseCodes.test.ts` pins on the SQL side where the value is written. */
+      outcome: Outcome
+    })
+  /**
+   * **It wrote no words**, so the frontend composes them — or shows nothing.
+   * An outcome is still allowed and usual: the surface picks the sentence, the
+   * server says how the answer reads.
+   */
+  | (OkCommon<T> & {
+      message: null
       outcome: Outcome | null
-      /** Always null on this arm — a severity belongs to a `not-ok`. It is
-       *  declared because the WIRE carries it: nine keys travel whatever
-       *  happened, so the type says nine. */
-      severity: null
-      /** Always null on this arm, for the same reason as `severity`. */
-      field: null
-      /** The player's sentence, or **null meaning "the frontend composes this
-       *  one"** — because it needs a name and a color dot, a link, or local
-       *  state. A server-written message may not say less than the sentence it
-       *  replaces (docs/envelopes.md → Who writes the words, per answer). */
-      message: string | null
-      /** The additive slot: SQL can leave breadcrumbs with no frontend change. */
-      meta: Record<string, unknown> | null
-      /** The SQLSTATE, when the outcome came from a raise. Named `dbcode`
-       *  because "code" is too broad for one specific thing. */
-      dbcode: string | null
-      /** PL/pgSQL's DETAIL — the debugging line, never shown to a player. */
-      detail: string | null
-    }
+    })
   | {
       type: 'not-ok'
       /** Always null on this arm — a `not-ok` carries no payload. Declared for

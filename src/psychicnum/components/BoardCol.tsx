@@ -1,6 +1,7 @@
 // cs-unmet
 
-import { failureMessage } from '../../common/lib/game/serverError'
+import { getNotOkFeedback } from '../../common/lib/game/genericPills'
+import { runRpc } from '../../common/lib/supabase/dbResult'
 import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import { cls } from '../../common/lib/util/cls'
 import type { GenericFeedbackMsg, Member } from '../../common/lib/games'
@@ -216,26 +217,30 @@ export function BoardCol({
     }
     setSubmitting(true)
     setSubmittedWord(guess)
-    // submit_guess returns 'won' | 'correct' | 'wrong' — the caller's own verdict
-    // and nothing else. 'won'/'correct' both mean the guess hit a secret; every
-    // terminal transition (including the guess that empties the budget, which
-    // still returns its own hit/miss) we observe via realtime, not this value.
-    const { data, error } = await db.rpc('submit_guess', { target_game: gameId, guess })
+    // `verdict` is the caller's OWN answer and nothing else. Whether the game
+    // ended rides beside it in `found_all`, which this surface ignores: every
+    // terminal transition reaches us by realtime, and a hit that empties the
+    // budget is still a hit to the person who made it.
+    const res = await runRpc<{ verdict: 'hit' | 'miss'; found_all: boolean }>(
+      db.rpc('submit_guess', { target_game: gameId, guess }),
+    )
     setSubmitting(false)
-    if (error) {
+    if (res.type !== 'ok') {
       setSubmittedWord(null)
-      // The server's answer is a KEY; the words come from ERROR_COPY, and the
-      // LOOK comes with them (a rule we anticipated is a pill, anything else a
-      // fault). `capitalize` went with the prose it used to tidy.
-      showLocalFeedback(failureMessage(error, 'guess'))
+      showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
       return
     }
-    showLocalFeedback(
-      stickyPill(
-        data === 'won' || data === 'correct' ? 'won' : 'lost',
-        data === 'won' || data === 'correct' ? 'Correct' : 'Incorrect',
-      ),
-    )
+    // An `ok` that carries a MESSAGE wrote its own words — "Already guessed",
+    // which the server raised as a game-rule refusal. The test narrows to the
+    // envelope arm where the outcome travels with it, so there is nothing to
+    // default. It comes FIRST because that answer arrives through a raise, and
+    // a raise carries no `data`.
+    if (res.message !== null) {
+      showLocalFeedback(stickyPill(res.outcome, res.message))
+      return
+    }
+    const hit = res.data.verdict === 'hit'
+    showLocalFeedback(stickyPill(hit ? 'won' : 'lost', hit ? 'Correct' : 'Incorrect'))
   }
 
   // Picking a tile or typing both drive this one pending guess word. (A partial word

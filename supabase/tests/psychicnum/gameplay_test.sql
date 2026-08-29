@@ -45,6 +45,7 @@ set search_path = psychicnum, common, public, extensions;
 select plan(37);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -70,25 +71,28 @@ update psychicnum.games
 
 -- (1) A word not on the board is rejected
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select throws_ok(
-  format($$ select psychicnum.submit_guess(%L::uuid, 'zzulu') $$, (select id from coop_g)),
-  'P0001', 'not-on-board|',
+select pg_temp.envelope_is(
+  psychicnum.submit_guess((select id from coop_g), 'zzulu'),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN268",
+    "message":"That word is not on the board"}'::jsonb,
   'coop: a word not on the board is rejected'
 );
 
 -- (2) Non-player rejected
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
-select throws_ok(
-  format($$ select psychicnum.submit_guess(%L::uuid, 'zdelta') $$, (select id from coop_g)),
-  '42501', 'not-a-player|',
+select pg_temp.envelope_is(
+  psychicnum.submit_guess((select id from coop_g), 'zdelta'),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN253",
+    "message":"You are not in this game"}'::jsonb,
   'coop: non-player submit_guess rejected'
 );
 
 -- (3) ada submits wrong (zdelta): decrement EVERY player's budget
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select is(
+select pg_temp.envelope_is(
   psychicnum.submit_guess((select id from coop_g), 'zdelta'),
-  'wrong',
+  '{"type":"ok","outcome":"neutral",
+    "data":{"verdict":"miss","found_all":false}}'::jsonb,
   'coop: wrong guess returns wrong'
 );
 
@@ -102,9 +106,10 @@ select is(
 
 -- (4) ada finds a secret (zalpha): returns 'correct', game continues
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select is(
+select pg_temp.envelope_is(
   psychicnum.submit_guess((select id from coop_g), 'zalpha'),
-  'correct',
+  '{"type":"ok","outcome":"won",
+    "data":{"verdict":"hit","found_all":false}}'::jsonb,
   'coop: finding a secret (not the last) returns correct'
 );
 
@@ -126,10 +131,11 @@ select is(
 
 -- (6) re-guessing a taken word (game-wide in coop) is rejected
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select throws_ok(
-  format($$ select psychicnum.submit_guess(%L::uuid, 'zalpha') $$, (select id from coop_g)),
-  'P0001', 'already-guessed|',
-  'coop: re-guessing a word another player took is rejected'
+select pg_temp.envelope_is(
+  psychicnum.submit_guess((select id from coop_g), 'zalpha'),
+  '{"type":"ok","dbcode":"PA002","outcome":"warning",
+    "message":"Already guessed"}'::jsonb,
+  'coop: re-guessing a word another player took is refused'
 );
 
 -- (7) request_hint returns the secret's CLUE (common.words.hint), or the
@@ -180,9 +186,10 @@ select is(
 -- (10) bea finds zbravo, then zcharlie (the last) → team wins
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select psychicnum.submit_guess((select id from coop_g), 'zbravo');
-select is(
+select pg_temp.envelope_is(
   psychicnum.submit_guess((select id from coop_g), 'zcharlie'),
-  'won',
+  '{"type":"ok","outcome":"won",
+    "data":{"verdict":"hit","found_all":true}}'::jsonb,
   'coop: finding the last secret returns won'
 );
 
@@ -202,9 +209,10 @@ select is(
 
 -- (11) submit_guess on a finished game is rejected
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select throws_ok(
-  format($$ select psychicnum.submit_guess(%L::uuid, 'zecho') $$, (select id from coop_g)),
-  'P0001', 'game-not-in-play|',
+select pg_temp.envelope_is(
+  psychicnum.submit_guess((select id from coop_g), 'zecho'),
+  '{"type":"not-ok","severity":"race","dbcode":"PN269",
+    "message":"Game over"}'::jsonb,
   'coop: submit_guess on terminal game rejected'
 );
 
@@ -241,9 +249,10 @@ select is(
 -- 3rd wrong → team loses. The return value is the CALLER'S verdict on their own
 -- guess ('wrong'), not the game's fate — the loss reaches the FE by realtime.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select is(
+select pg_temp.envelope_is(
   psychicnum.submit_guess((select id from coop_loss), 'zfoxtrot'),
-  'wrong',
+  '{"type":"ok","outcome":"neutral",
+    "data":{"verdict":"miss","found_all":false}}'::jsonb,
   'coop: the budget-exhausting wrong guess returns wrong'
 );
 
@@ -279,9 +288,10 @@ update psychicnum.games
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select psychicnum.submit_guess((select id from coop_loss_hit), 'zdelta');
 select psychicnum.submit_guess((select id from coop_loss_hit), 'zecho');
-select is(
+select pg_temp.envelope_is(
   psychicnum.submit_guess((select id from coop_loss_hit), 'zalpha'),
-  'correct',
+  '{"type":"ok","outcome":"won",
+    "data":{"verdict":"hit","found_all":false}}'::jsonb,
   'coop: the budget-exhausting CORRECT guess returns correct, not a loss value'
 );
 
@@ -335,15 +345,17 @@ select is(
 
 -- (2) bea finds all three on her own → wins
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select is(
+select pg_temp.envelope_is(
   psychicnum.submit_guess((select id from comp_g), 'zalpha'),
-  'correct',
+  '{"type":"ok","outcome":"won",
+    "data":{"verdict":"hit","found_all":false}}'::jsonb,
   'compete: finding a secret (not the last) returns correct'
 );
 select psychicnum.submit_guess((select id from comp_g), 'zbravo');
-select is(
+select pg_temp.envelope_is(
   psychicnum.submit_guess((select id from comp_g), 'zcharlie'),
-  'won',
+  '{"type":"ok","outcome":"won",
+    "data":{"verdict":"hit","found_all":true}}'::jsonb,
   'compete: finding the last secret returns won'
 );
 
@@ -372,9 +384,10 @@ select is(
 
 -- (3) ada (with budget remaining=2) cannot guess after bea won
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select throws_ok(
-  format($$ select psychicnum.submit_guess(%L::uuid, 'zalpha') $$, (select id from comp_g)),
-  'P0001', 'game-not-in-play|',
+select pg_temp.envelope_is(
+  psychicnum.submit_guess((select id from comp_g), 'zalpha'),
+  '{"type":"not-ok","severity":"race","dbcode":"PN269",
+    "message":"Game over"}'::jsonb,
   'compete: game ends for everyone on the win, even those with budget left'
 );
 
@@ -405,10 +418,11 @@ select psychicnum.submit_guess((select id from comp_loss), 'zecho');
 select psychicnum.submit_guess((select id from comp_loss), 'zfoxtrot');
 
 -- ada now at 0 budget; trying to guess again raises.
-select throws_ok(
-  format($$ select psychicnum.submit_guess(%L::uuid, 'zgolf') $$, (select id from comp_loss)),
-  'P0001', 'no-guesses-left|',
-  'compete: caller with 0 budget cannot submit (P0001)'
+select pg_temp.envelope_is(
+  psychicnum.submit_guess((select id from comp_loss), 'zgolf'),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN272",
+    "message":"No guesses left"}'::jsonb,
+  'compete: caller with 0 budget cannot submit'
 );
 
 -- bea still has 3 — game continues.
@@ -423,9 +437,10 @@ select is(
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select psychicnum.submit_guess((select id from comp_loss), 'zdelta');
 select psychicnum.submit_guess((select id from comp_loss), 'zecho');
-select is(
+select pg_temp.envelope_is(
   psychicnum.submit_guess((select id from comp_loss), 'zgolf'),
-  'wrong',
+  '{"type":"ok","outcome":"neutral",
+    "data":{"verdict":"miss","found_all":false}}'::jsonb,
   'compete: the all-exhausting wrong guess returns wrong'
 );
 

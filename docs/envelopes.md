@@ -305,6 +305,25 @@ So a null message is not a gap waiting to be filled. "Why has this one no
 message?" has a real answer: because the sentence carries an identity, a link,
 or local state, and a server-written one would say less.
 
+**A message therefore REQUIRES an outcome, and the pair is enforced four ways.**
+The outcome is how the message reads; without one a call site has nothing to do
+but guess, and a guess turns a server bug into a pill nobody questions — the
+frontend is supposed to know every answer an RPC can give.
+
+1. **The TYPE says it.** The `ok` arm is two shapes, not one: `{ message:
+   string; outcome: Outcome }` or `{ message: null; outcome: Outcome | null }`.
+   So `if (res.message !== null)` narrows to the first, and `res.outcome` is an
+   `Outcome` with **no second test and no default** — which is the point. The
+   bad shape is a compile error at every place that builds one.
+2. Every `PA` raise must carry a HINT from the outcome vocabulary.
+3. `src/guards/raiseCodes.test.ts` refuses a `common.ok_envelope` built with a
+   message and no outcome.
+4. `runRpc` / `runEdgeFn` **fault** on the pair at runtime — for an edge
+   function's literal, or anything hand-built, which neither guard can see.
+
+Call sites do not default. If one is tempted to, the answer is wrong somewhere
+further up.
+
 A **form** needs none of this: `setErrors({ [res.field ?? '_']: res.message })`
 is the whole mapping, and a field error has one look. Note that there is no
 `if` in it — a fault lands on the form line like anything else, per the

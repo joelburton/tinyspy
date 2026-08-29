@@ -174,6 +174,35 @@ describe('the raise codes', () => {
     expect(badWord, 'an override outside the outcome vocabulary').toEqual([])
   })
 
+  // The same contract from the OTHER side. A raise cannot break it — every `PA`
+  // raise must carry a HINT, checked above — but `common.ok_envelope` takes its
+  // data, outcome and message as three independent arguments, so nothing stops
+  // a plain `ok_envelope(x, null, 'some words')`. A non-null message means
+  // "render this" and the outcome is how it renders; without one a call site
+  // has nothing to do but guess, which is how a server bug becomes a pill
+  // nobody questions (`dbResult.ts` faults on it at runtime; this stops it
+  // being written).
+  it('never builds an ok with a message and no outcome', () => {
+    const offenders: string[] = []
+    for (const file of readdirSync(SQL_DIR).filter((f) => f.endsWith('.sql'))) {
+      const sql = readFileSync(join(SQL_DIR, file), 'utf8')
+      for (const m of sql.matchAll(/common\.ok_envelope\(([\s\S]{0,400}?)\);/g)) {
+        const args = m[1]!
+        // Named form: `message => …` with no `outcome => …` beside it.
+        if (/\bmessage\s*=>/.test(args) && !/\boutcome\s*=>/.test(args)) {
+          offenders.push(`${file}: ok_envelope(… message => …) with no outcome`)
+          continue
+        }
+        // Positional form: (data, outcome, message) — a third argument with a
+        // literal `null` in the second slot.
+        if (/^\s*[^,]+,\s*null\s*,\s*'/.test(args)) {
+          offenders.push(`${file}: ok_envelope(…, null, '…') — a message with no outcome`)
+        }
+      }
+    }
+    expect(offenders, 'an `ok` a caller could only render by guessing').toEqual([])
+  })
+
   // The SQL↔TypeScript link, and the assertion most likely to rot unwatched:
   // the sets above are hand-written strings in a test, while the truth is a
   // union in `src/common/lib/`. Nothing but this notices when someone adds a

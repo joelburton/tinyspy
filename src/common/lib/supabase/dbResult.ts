@@ -408,6 +408,26 @@ export function isEnvelope(body: unknown): body is Envelope {
   return t === 'ok' || t === 'not-ok'
 }
 
+/** The sentence for the one below. Its own, NOT the unreadable-body one: those
+ *  are different failures, and a player who quotes this back has to identify
+ *  which. "Incomplete" is the honest word — the answer arrived and parsed, and
+ *  one half of it is missing. */
+const NO_OUTCOME_TEXT = "The server's answer was incomplete."
+
+/**
+ * **An `ok` that wrote words but not how they read.** A non-null message means
+ * "render this", and the outcome is how it renders — so without one a call site
+ * has nothing to do but guess, and a guess turns a server bug into a pill
+ * nobody questions (docs/envelopes.md → Who writes the words).
+ *
+ * The TYPE rules this out at every place that builds an envelope, and two
+ * guards rule it out in SQL. What is left for this to catch is what neither
+ * sees: an edge function's JSON literal, and anything hand-built at runtime.
+ */
+function hasMessageWithoutOutcome(envelope: Envelope): boolean {
+  return envelope.type === 'ok' && envelope.message !== null && envelope.outcome === null
+}
+
 // ─────────────────────────────────────────────────────────────
 // The read wrapper
 // ─────────────────────────────────────────────────────────────
@@ -457,6 +477,14 @@ export async function runEdgeFn<T>(
     const unreadable = faultEnvelope(null, 'The server answered with an unreadable result.', rawBody)
     reportDbFault(t, unreadable)
     return unreadable
+  }
+  if (hasMessageWithoutOutcome(data)) {
+    const broken = faultEnvelope(
+      null, NO_OUTCOME_TEXT,
+      `an ok carried a message with no outcome: ${JSON.stringify(data)?.slice(0, 120)}`,
+    )
+    reportDbFault(t, broken)
+    return broken
   }
   if (data.type === 'not-ok' && data.severity === 'fault') {
     reportDbFault(t, data)
@@ -536,6 +564,14 @@ export async function runRpc<T>(call: PromiseLike<{ data: unknown; error: DbErro
   //
   // A declared fault also gets the modal here, which is what makes
   // `severity: 'fault'` mean the same thing however the fault arose.
+  if (hasMessageWithoutOutcome(body)) {
+    const broken = faultEnvelope(
+      null, NO_OUTCOME_TEXT,
+      `an ok carried a message with no outcome: ${JSON.stringify(body)?.slice(0, 120)}`,
+    )
+    reportDbFault(t, broken)
+    return broken
+  }
   if (body.type === 'not-ok' && body.severity === 'fault') {
     reportDbFault(t, body)
   } else {
