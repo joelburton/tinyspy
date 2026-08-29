@@ -643,7 +643,7 @@ export function ClubPage({ handle, session }: Props) {
         // club. Every member is a presence light, a player-count bound and a
         // name in the chat, so a club page without them is wrong rather than
         // reduced.
-        if (profilesRes.type !== 'ok') {
+        if (profilesRes.type === 'not-ok') {
           setFault({ text: 'Could not load this club’s members.', diagnostics: diag('profiles') })
           setLoading(false)
           return
@@ -669,7 +669,7 @@ export function ClubPage({ handle, session }: Props) {
       // Also bails now. Without these rows the page draws no Start buttons at
       // all, which reads as "this club plays nothing" — a wrong answer wearing
       // the look of a real one.
-      if (kindsRes.type !== 'ok') {
+      if (kindsRes.type === 'not-ok') {
         setFault({ text: 'Could not load this club’s games.', diagnostics: diag('clubs_gametypes') })
         setLoading(false)
         return
