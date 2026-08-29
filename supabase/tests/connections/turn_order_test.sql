@@ -56,7 +56,7 @@ select throws_ok(
   format($$ select connections.submit_guess(%L::uuid,
              array['ALPHA','ANGEL','APPLE','ARROW']::text[], 'wrong', null) $$,
          (select id from g)),
-  'P0001', 'not-your-turn|',
+  'PN243', 'Not your turn',
   'turns: the non-current player is rejected'
 );
 

@@ -1127,7 +1127,13 @@ begin
   select current_turn_user_id into cur
     from common.games where id = target_game;
   if cur is not null and caller is distinct from cur then
-    raise exception 'not-your-turn|' using errcode = 'P0001',
+    -- A RACE, and one of the narrow ones. The FE gates hard on `isMyTurn`
+    -- (connections' tiles aren't clickable, its Submit is disabled), and that
+    -- gate reads `current_turn_user_id` — which arrives by realtime. So the
+    -- only way here is a client whose pointer is stale: a second tab left open,
+    -- or a deaf window (docs/realtime-lost-events.md).
+    raise exception 'Not your turn'
+      using errcode = 'PN243', hint = 'race', column = '_',
       detail = 'current_turn_user_id is another player';
   end if;
 end;

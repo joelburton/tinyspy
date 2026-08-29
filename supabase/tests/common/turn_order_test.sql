@@ -133,8 +133,8 @@ select lives_ok(
 select throws_ok(
   format($$ select common._require_turn(%L, 'bea22222-2222-2222-2222-222222222222') $$,
          current_setting('test.turn_game')),
-  'P0001',
-  'not-your-turn|',
+  'PN243',
+  'Not your turn',
   'a non-current player is rejected'
 );
 
