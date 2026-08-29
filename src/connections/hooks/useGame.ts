@@ -5,6 +5,7 @@ import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../../common/lib/supabase/supabase'
 import { channelLeaving, releaseChannel } from '../../common/lib/supabase/channelTeardown'
 import { onPostgresAttached } from '../../common/lib/supabase/postgresAttached'
+import { readRows } from '../../common/lib/supabase/dbResult'
 import { db } from '../db'
 import type { Database } from '../../types/db'
 import type { Member } from '../../common/lib/games'
@@ -208,30 +209,48 @@ export function useGame(
 
     async function load() {
       const [gameRes, guessesRes, playersRes] = await Promise.all([
-        db
-          .from('games')
-          .select('id, club_handle, mode, board, created_at, puzzle_date')
-          .eq('id', gameId)
-          .maybeSingle(),
-        db
-          .from('guesses')
-          .select(
-            'id, user_id, tiles, result, matched_category_rank, guessed_at',
-          )
-          .eq('game_id', gameId)
-          .order('guessed_at', { ascending: true }),
-        db
-          .from('players')
-          .select('user_id, mistake_count, matched_count')
-          .eq('game_id', gameId),
+        // No `.maybeSingle()`: `readRows` hands back rows, and `id` is the PK,
+        // so this is 0 or 1 of them.
+        readRows(
+          db
+            .from('games')
+            .select('id, club_handle, mode, board, created_at, puzzle_date')
+            .eq('id', gameId),
+        ),
+        readRows(
+          db
+            .from('guesses')
+            .select(
+              'id, user_id, tiles, result, matched_category_rank, guessed_at',
+            )
+            .eq('game_id', gameId)
+            .order('guessed_at', { ascending: true }),
+        ),
+        readRows(
+          db
+            .from('players')
+            .select('user_id, mistake_count, matched_count')
+            .eq('game_id', gameId),
+        ),
       ])
       if (!mounted) return
-      if (!gameRes.data) {
+      // A FAILED read and a MISSING game used to be the same branch — a failure
+      // left `data` null, so a dead connection rendered "Game not found." and
+      // said nothing else. They are separate now: the fault has already been
+      // logged and shown by `dbFetch`, and the surface behind the modal stops
+      // loading rather than making a claim about the game.
+      if (gameRes.type !== 'ok' || guessesRes.type !== 'ok' || playersRes.type !== 'ok') {
+        setLoading(false)
+        return
+      }
+      // ZERO ROWS is the caller's to read, and here it means what it says: no
+      // game with that id, or one this club can't see.
+      const row = gameRes.data[0] as GameRow | undefined
+      if (!row) {
         setGame(null)
         setLoading(false)
         return
       }
-      const row = gameRes.data as GameRow
       setGame({
         id: row.id,
         club_handle: row.club_handle,
@@ -241,12 +260,12 @@ export function useGame(
         created_at: row.created_at,
       })
       setGuesses(
-        (guessesRes.data ?? []).map((g) => ({
+        guessesRes.data.map((g) => ({
           ...g,
           result: g.result as GuessRow['result'],
         })),
       )
-      setPlayers(playersRes.data ?? [])
+      setPlayers(playersRes.data)
 
       setLoading(false)
     }

@@ -749,9 +749,13 @@ identifier — a shape nothing has exercised yet.
 - [x] `next_puzzle_for_club` · RPC (2 call sites)
 - [x] `puzzle_for_date` · RPC
 - [x] `submit_guess` · RPC
-- [ ] `games` · read (2 call sites)
-- [ ] `guesses` · read (2 call sites)
-- [ ] `players` · read
+- [x] `games` · read
+- [x] `guesses` · read
+- [x] `players` · read
+
+All three are one `Promise.all` in `hooks/useGame.ts` — the "2 call sites" above
+counted `load()` being INVOKED twice (mount, then the postgres-attached
+refetch), not two places in the source.
 
 #### crosswords
 
