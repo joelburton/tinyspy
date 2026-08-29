@@ -878,10 +878,10 @@ refetch), not two places in the source.
 #### waffle
 
 - [x] `create_game` · RPC, reached through `waffle-build-board`
-- [ ] `submit_swap` · RPC (2 call sites)
-- [ ] `games_state` · read (2 call sites)
-- [ ] `players_state` · read
-- [ ] `swaps` · read
+- [x] `submit_swap` · RPC
+- [x] `games_state` · read
+- [x] `players_state` · read
+- [x] `swaps` · read
 
 #### wordiply
 

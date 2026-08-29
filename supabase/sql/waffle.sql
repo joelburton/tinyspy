@@ -704,6 +704,7 @@ revoke execute on function waffle._maybe_finish_compete(uuid) from public;
 -- swaps (two friends swapping at once): the second waits, then reads
 -- the first's committed board. The working board lives in
 -- waffle.players, so the games-row lock is purely the mutex.
+drop function if exists waffle.submit_swap(uuid, int, int);
 create or replace function waffle.submit_swap(
   target_game uuid,
   pos_a       int,
@@ -729,20 +730,24 @@ declare
   out_terminal       boolean := false;
   term_state         text;
   player_results     jsonb;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   caller_id := common.require_game_player(target_game);
 
   select * into g_row from waffle.games where id = target_game for update;
   if not found then
-    raise exception 'game-not-found|' using errcode = 'P0002',
+    raise exception 'That game no longer exists'
+      using errcode = 'PN260', hint = 'fault', column = '_',
       detail = 'no waffle.games row for target_game';
   end if;
 
   select play_state into current_play_state
     from common.games where id = target_game;
   if current_play_state <> 'playing' then
-    raise exception 'game-not-in-play|'
-      using errcode = 'P0001',
+    -- A race: a teammate ended it, or the clock ran out, while this swap was
+    -- in flight.
+    raise exception 'Game over'
+      using errcode = 'PN261', hint = 'race', column = '_',
       detail = 'swaps require an active play_state';
   end if;
 
@@ -751,7 +756,8 @@ begin
   -- concede commits, or a stale second tab).
   if (select conceded from common.game_players
         where game_id = target_game and user_id = caller_id) then
-    raise exception 'you-conceded|' using errcode = 'P0001',
+    raise exception 'Already conceded'
+      using errcode = 'PN262', hint = 'race', column = '_',
       detail = 'caller already dropped out of this compete race';
   end if;
 
@@ -764,12 +770,14 @@ begin
   -- ─── Validate the two positions ──────────────────────────
   if pos_a is null or pos_b is null or pos_a = pos_b
      or pos_a < 0 or pos_a > 24 or pos_b < 0 or pos_b > 24 then
-    raise exception 'bad-swap-cells|'
-      using errcode = 'P0001',
-      detail = 'swap needs two distinct cells in 0..24';
+    raise exception 'A swap needs two different squares'
+      using errcode = 'PN263', hint = 'fault', column = '_',
+      detail = format('swap needs two distinct cells in 0..24; got %s and %s',
+                      coalesce(pos_a::text, 'null'), coalesce(pos_b::text, 'null'));
   end if;
   if pos_a in (6, 8, 16, 18) or pos_b in (6, 8, 16, 18) then
-    raise exception 'swap-on-hole|' using errcode = 'P0001',
+    raise exception 'There is no tile there'
+      using errcode = 'PN264', hint = 'fault', column = '_',
       detail = 'cells 7/9/17/19 are holes and hold no tile';
   end if;
 
@@ -781,12 +789,20 @@ begin
   -- A solved player is locked (matters in compete, where the game
   -- continues for others after one player solves).
   if p_solved then
-    raise exception 'already-solved|' using errcode = 'P0001',
+    -- A fault in both modes. COOP: solving ENDS the game, so a later swap meets
+    -- the play_state guard above and reads "Game over" — unreachable here.
+    -- COMPETE: it is the caller's own row, on a board that stays theirs.
+    raise exception 'Already solved'
+      using errcode = 'PN265', hint = 'fault', column = '_',
       detail = 'this player has already solved the grid';
   end if;
   if p_swaps >= g_row.max_swaps then
-    raise exception 'no-swaps-left|' using errcode = 'P0001',
-      detail = 'the swap budget for this player/team is spent';
+    -- Compete-only in practice, and a fault for the same reason: spending the
+    -- last COOP swap ends the game, so a coop player who swaps again reads
+    -- "Game over". Only compete keeps playing with a spent player at the table.
+    raise exception 'No swaps left'
+      using errcode = 'PN266', hint = 'fault', column = '_',
+      detail = 'the swap budget for this player is spent';
   end if;
 
   -- Apply the swap (overlay/substr are 1-based). Both placements use
@@ -880,12 +896,25 @@ begin
   -- branches so it sees the settled is_terminal.
   perform waffle._sync_title(target_game);
 
-  return jsonb_build_object(
-    'colors',     waffle.board_colors(new_board, g_row.solution),
-    'swaps_used', new_swaps,
-    'solved',     did_solve,
-    'terminal',   out_terminal
-  );
+  -- No outcome and no message: an accepted swap shows the swapper NOTHING until
+  -- the colors reach everyone together over the realtime refetch (see the
+  -- PlayArea comment on why the reply is deliberately ignored). The payload
+  -- still travels — the fact is structural whether or not anyone reads it.
+  return common.ok_envelope(
+    jsonb_build_object(
+      'colors',     waffle.board_colors(new_board, g_row.solution),
+      'swaps_used', new_swaps,
+      'solved',     did_solve,
+      'terminal',   out_terminal
+    ));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 

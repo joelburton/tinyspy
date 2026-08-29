@@ -9,6 +9,7 @@ begin;
 set search_path = waffle, common, public, extensions;
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 select plan(21);
@@ -27,21 +28,33 @@ select (waffle.create_game(
 )->'data'->>'id')::uuid as id;
 
 -- Validation (as ada, a player). These raise before any mutation.
-select throws_ok(
-  format($$ select waffle.submit_swap(%L::uuid, 6, 0) $$, (select id from g1)),
-  'P0001', NULL, 'swap-on-hole|');
-select throws_ok(
-  format($$ select waffle.submit_swap(%L::uuid, 0, 0) $$, (select id from g1)),
-  'P0001', NULL, 'cannot swap a cell with itself');
-select throws_ok(
-  format($$ select waffle.submit_swap(%L::uuid, 0, 25) $$, (select id from g1)),
-  'P0001', NULL, 'positions must be in 0..24');
+select pg_temp.envelope_is(
+  waffle.submit_swap((select id from g1), 6, 0),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN264",
+    "message":"There is no tile there"}'::jsonb,
+  'a hole holds no tile'
+);
+select pg_temp.envelope_is(
+  waffle.submit_swap((select id from g1), 0, 0),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN263",
+    "message":"A swap needs two different squares"}'::jsonb,
+  'cannot swap a cell with itself'
+);
+select pg_temp.envelope_is(
+  waffle.submit_swap((select id from g1), 0, 25),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN263",
+    "message":"A swap needs two different squares"}'::jsonb,
+  'positions must be in 0..24'
+);
 
 -- A non-player cannot swap (dee is not in this club).
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
-select throws_ok(
-  format($$ select waffle.submit_swap(%L::uuid, 0, 1) $$, (select id from g1)),
-  '42501', NULL, 'a non-player cannot swap');
+select pg_temp.envelope_is(
+  waffle.submit_swap((select id from g1), 0, 1),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN253",
+    "message":"You are not in this game"}'::jsonb,
+  'a non-player cannot swap'
+);
 
 -- Lock-step: ada makes a NON-solving swap (cells 2,3). Every player's
 -- board moves together.
@@ -84,9 +97,9 @@ select waffle.submit_swap((select id from g1), 2, 3);    -- undo
 create temp table win on commit drop as
 select waffle.submit_swap((select id from g1), 0, 1) as res;   -- solve
 
-select is((select (res->>'solved')::boolean from win), true,
+select is((select (res->'data'->>'solved')::boolean from win), true,
   'the solving swap reports solved');
-select is((select (res->>'terminal')::boolean from win), true,
+select is((select (res->'data'->>'terminal')::boolean from win), true,
   'the solving swap reports terminal');
 
 reset role;
@@ -147,9 +160,9 @@ select (waffle.create_game(
 create temp table lose on commit drop as
 select waffle.submit_swap((select id from g2), 2, 3) as res;
 
-select is((select (res->>'terminal')::boolean from lose), true,
+select is((select (res->'data'->>'terminal')::boolean from lose), true,
   'exhausting the budget → terminal');
-select is((select (res->>'solved')::boolean from lose), false,
+select is((select (res->'data'->>'solved')::boolean from lose), false,
   'not solved');
 
 reset role;

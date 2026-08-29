@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRealtimeRefetch } from '../../common/hooks/realtime/useRealtimeRefetch'
 import type { Member } from '../../common/lib/games'
+import { readRows } from '../../common/lib/supabase/dbResult'
 import { db } from '../db'
 
 /** A waffle player. No fixed seats — every game_player can act. */
@@ -82,26 +83,45 @@ export function useGame(gameId: string): {
     id: gameId,
     load: async ({ mounted }) => {
       const [gameRes, playersRes, swapsRes] = await Promise.all([
-        db
-          .from('games_state')
-          .select('id, mode, scramble, par_swaps, max_swaps, solution')
-          .eq('id', gameId)
-          .maybeSingle(),
-        db
-          .from('players_state')
-          .select('user_id, board, swaps_used, solved, solved_at, colors')
-          .eq('game_id', gameId),
+        // No `.maybeSingle()`: `readRows` hands back rows, and `id` is the PK,
+        // so this is 0 or 1 of them.
+        readRows(
+          db
+            .from('games_state')
+            .select('id, mode, scramble, par_swaps, max_swaps, solution')
+            .eq('id', gameId),
+        ),
+        readRows(
+          db
+            .from('players_state')
+            .select('user_id, board, swaps_used, solved, solved_at, colors')
+            .eq('game_id', gameId),
+        ),
         // The move log (coop only; empty in compete). Read straight from
         // the base table — it has no gated columns.
-        db
-          .from('swaps')
-          .select('user_id, seq, pos_a, pos_b, letter_a, letter_b')
-          .eq('game_id', gameId)
-          .order('seq', { ascending: true }),
+        readRows(
+          db
+            .from('swaps')
+            .select('user_id, seq, pos_a, pos_b, letter_a, letter_b')
+            .eq('game_id', gameId)
+            .order('seq', { ascending: true }),
+        ),
       ])
       if (!mounted()) return
 
-      if (!gameRes.data) {
+      // A FAILED read and a MISSING game used to be one branch — a failure left
+      // `data` null, so a dead connection rendered the game as not-found. The
+      // fault has already been logged and shown by `dbFetch`; all that is left
+      // is to stop loading rather than claim anything about the game.
+      if (gameRes.type !== 'ok' || playersRes.type !== 'ok' || swapsRes.type !== 'ok') {
+        setLoading(false)
+        return
+      }
+
+      // ZERO ROWS is the caller's to read: no game with that id, or one this
+      // club cannot see.
+      const row = gameRes.data[0]
+      if (!row) {
         setGame(null)
         setPlayers([])
         setSwaps([])
@@ -110,15 +130,15 @@ export function useGame(gameId: string): {
       }
 
       setGame({
-        id: gameRes.data.id as string,
-        mode: gameRes.data.mode as 'coop' | 'compete',
-        scramble: gameRes.data.scramble as string,
-        par_swaps: gameRes.data.par_swaps as number,
-        max_swaps: gameRes.data.max_swaps as number,
-        solution: (gameRes.data.solution as string | null) ?? null,
+        id: row.id as string,
+        mode: row.mode as 'coop' | 'compete',
+        scramble: row.scramble as string,
+        par_swaps: row.par_swaps as number,
+        max_swaps: row.max_swaps as number,
+        solution: (row.solution as string | null) ?? null,
       })
-      setPlayers((playersRes.data ?? []) as WafflePlayerState[])
-      setSwaps((swapsRes.data ?? []) as SwapRow[])
+      setPlayers(playersRes.data as WafflePlayerState[])
+      setSwaps(swapsRes.data as SwapRow[])
       setLoading(false)
     },
   })

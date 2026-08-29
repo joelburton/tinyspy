@@ -152,11 +152,6 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   // the in-game "New game". `info`, because nobody did anything wrong.
   //
 
-  // ── waffle ──
-  // A shared coop grid with a shared swap budget, so both are lost races: a
-  // teammate spent the last swap, or solved it, while your swap was in flight.
-  'no-swaps-left': { text: () => 'No swaps left', tone: 'noted' },
-
   // ── wordle ──
   // Both are per-player states a second submit can land on: the coop board is
   // shared, so a teammate's winning guess can arrive while yours is in flight.

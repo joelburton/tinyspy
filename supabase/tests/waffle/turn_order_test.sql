@@ -54,9 +54,10 @@ select is(
 
 -- (2) bea swapping out of turn is rejected.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select throws_ok(
-  format($$ select waffle.submit_swap(%L::uuid, 2, 3) $$, (select id from g)),
-  'P0001', 'not-your-turn|',
+select pg_temp.envelope_is(
+  waffle.submit_swap((select id from g), 2, 3),
+  '{"type":"not-ok","severity":"race","dbcode":"PN243",
+    "message":"Not your turn"}'::jsonb,
   'turns: the non-current player is rejected'
 );
 
@@ -76,10 +77,11 @@ select is(
 -- (4) SOFT-REJECT does NOT advance: it's bea's turn; bea tries to swap a hole
 -- cell (position 6). It raises (rolls back), and the turn stays bea's.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select throws_ok(
-  format($$ select waffle.submit_swap(%L::uuid, 6, 0) $$, (select id from g)),
-  'P0001', 'swap-on-hole|',
-  'turns: a hole-cell swap is soft-rejected'
+select pg_temp.envelope_is(
+  waffle.submit_swap((select id from g), 6, 0),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN264",
+    "message":"There is no tile there"}'::jsonb,
+  'turns: a hole-cell swap does not consume the turn'
 );
 reset role;
 select is(

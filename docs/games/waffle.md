@@ -208,7 +208,19 @@ everything reveals post-terminal. **Coop** shows the shared board to all members
     and append a `waffle.swaps` log row (swapper, ordinal, positions, pre-swap
     letters).
   - **compete:** apply to the caller's row only (no log row).
-  - Returns `{ colors, swaps_used, solved, terminal }`.
+  - Returns [an envelope](../envelopes.md) carrying `{ colors, swaps_used, solved,
+    terminal }` in `data`, with **no outcome and no message**: an accepted swap
+    shows the swapper nothing until the colors reach everyone together over the
+    realtime refetch, which is why the reply is deliberately ignored (see the
+    PlayArea comment). The payload travels anyway — the fact is structural.
+  - Every refusal is a raise, and only two are races: `PN261` "Game over" (a
+    teammate ended it, or the clock ran out) and `PN262` "Already conceded".
+    The rest are faults, because the board cannot produce them: `PN260` no such
+    game, `PN263` two different squares, `PN264` no tile there, `PN265` already
+    solved and `PN266` no swaps left. The last two look like shared-budget races
+    and are not — spending the last coop swap, or solving, ENDS the game, so a
+    later swap meets the play_state guard instead; only compete keeps playing
+    with a finished player at the table.
   - **Opt-in turn-by-turn coop** (setup `coop_style = 'turns'`): after the
     lock + caller, `submit_swap` gates on `common._require_turn`, and calls
     `common._advance_turn` only on an accepted, non-terminal swap — never on a

@@ -1,6 +1,5 @@
 // cs-unmet
 
-import { failureMessage } from '../../common/lib/game/serverError'
 import { useCallback, useEffect, useRef, useMemo, useState } from 'react'
 import { IconHideSolution, IconNewGame, IconPrint, IconRestart, IconReveal } from '../../common/components/icons'
 import type { GamePageCtx, GenericFeedbackMsg } from '../../common/lib/games'
@@ -16,7 +15,7 @@ import { buildWafflePrintModel } from '../pdf/model'
 import { printWafflePdf } from '../pdf/printWafflePdf'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { setupRows } from '../lib/setupSummary'
-import { runEdgeFn } from '../../common/lib/supabase/dbResult'
+import { runEdgeFn, runRpc } from '../../common/lib/supabase/dbResult'
 import { useDismissLocalFeedbackOnKey } from '../../common/hooks/feedback/useDismissLocalFeedbackOnKey'
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
@@ -225,13 +224,15 @@ export function PlayArea({
     async (a: number, b: number) => {
       const { board: atBoard, swaps: atSwaps } = serverStateRef.current
       setOptimisticSwap({ cells: [a, b], atBoard, atSwaps })
-      const { error } = await db.rpc('submit_swap', { target_game: gameId, pos_a: a, pos_b: b })
-      if (error) {
-        // Refused (a teammate spent the last swap, the turn moved, the game
-        // ended). Optimism is about ACCEPTANCE, so this is the price: take the
-        // letters back, then say why in the below-board flash.
+      const res = await runRpc(
+        db.rpc('submit_swap', { target_game: gameId, pos_a: a, pos_b: b }),
+      )
+      if (res.type !== 'ok') {
+        // Refused (the turn moved, the game ended, you conceded). Optimism is
+        // about ACCEPTANCE, so this is the price: take the letters back, then
+        // say why in the below-board flash, in the words the server sent.
         setOptimisticSwap(null)
-        showLocalFeedback(failureMessage(error, 'swap'))
+        showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
       }
       // Accepted: leave the overlay standing. It clears when the server's own
       // board lands, which is the same moment the colors do.

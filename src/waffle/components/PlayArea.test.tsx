@@ -54,6 +54,17 @@ vi.mock('../../common/db', () => ({ db: { rpc: vi.fn() } }))
 vi.mock('../../common/lib/supabase/callEdgeFn', () => ({ callEdgeFn: vi.fn() }))
 
 const rpc = db.rpc as unknown as ReturnType<typeof vi.fn>
+
+/** What `waffle.submit_swap` answers on an accepted swap. `runRpc` reads the
+ *  ENVELOPE out of `data`, so a mock resolving `{ error: null }` alone hands it
+ *  a body it cannot read and the call site sees a fault. */
+const okEnvelope = {
+  data: {
+    type: 'ok', data: null, outcome: null, severity: null,
+    message: null, field: null, meta: null, dbcode: null, detail: null,
+  },
+  error: null,
+}
 const commonRpc = commonDb.rpc as unknown as ReturnType<typeof vi.fn>
 const startEdgeFn = callEdgeFn as unknown as ReturnType<typeof vi.fn>
 
@@ -143,7 +154,7 @@ beforeEach(() => {
   clearFaultsForTest()
   h.result = loaded(coopGame)
   rpc.mockReset()
-  rpc.mockResolvedValue({ error: null })
+  rpc.mockResolvedValue(okEnvelope)
   // The reveal handler destructures `{ error }` off the awaited call, so the
   // common spy has to resolve to a PostgREST-shaped result, not `undefined`.
   commonRpc.mockReset()
@@ -532,7 +543,7 @@ describe('waffle PlayArea — a swap in flight', () => {
   // beats the refetch, so clearing on it would un-dim two colorless tiles).
   it('shows the move at once, unjudged and dimmed, until the server board lands', async () => {
     const user = userEvent.setup()
-    let settle!: (v: { error: null }) => void
+    let settle!: (v: typeof okEnvelope) => void
     rpc.mockImplementation((fn: string) =>
       fn === 'submit_swap'
         ? new Promise((resolve) => {
@@ -566,7 +577,7 @@ describe('waffle PlayArea — a swap in flight', () => {
     expect(rpc).toHaveBeenCalledTimes(1)
 
     // The RPC resolving is NOT the end of it — the colors haven't arrived yet.
-    await act(async () => settle({ error: null }))
+    await act(async () => settle(okEnvelope))
     expect(tiles[0].className).toMatch(/dimInFlight/)
 
     // The server's board is what ends it: the dim lifts, the letters stay put
@@ -595,7 +606,7 @@ describe('waffle PlayArea — a swap in flight', () => {
   // deletes — so a re-dealt board says nothing. Same rule setgame learned the
   // hard way; see common/hooks/game/useMoveCausedChange.
   it('says nothing when the board is re-dealt rather than played', async () => {
-    rpc.mockResolvedValue({ error: null })
+    rpc.mockResolvedValue(okEnvelope)
     h.result = loaded(
       coopGame,
       [{ ...me, board: swapped(BOARD, 0, 1), colors: ALL_GREEN, swaps_used: 1 }],
@@ -614,7 +625,14 @@ describe('waffle PlayArea — a swap in flight', () => {
 
   it('takes the letters back when the swap is refused', async () => {
     const user = userEvent.setup()
-    rpc.mockResolvedValue({ error: { message: 'no swaps left|' } })
+    // A refusal arrives HTTP 200 as a not-ok envelope now, not as an `error`.
+    rpc.mockResolvedValue({
+      error: null,
+      data: {
+        type: 'not-ok', data: null, outcome: null, severity: 'race',
+        message: 'Game over', field: '_', meta: null, dbcode: 'PN261', detail: null,
+      },
+    })
     h.result = loaded(coopGame, [{ ...me, colors: ALL_GREEN }])
     render(<PlayArea {...makeCtx()} />)
 

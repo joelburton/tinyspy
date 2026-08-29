@@ -16,6 +16,7 @@ begin;
 set search_path = waffle, common, public, extensions;
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 select plan(27);
@@ -37,9 +38,9 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table a_solve on commit drop as
 select waffle.submit_swap((select id from g), 0, 1) as res;
 
-select is((select (res->>'solved')::boolean from a_solve), true,
+select is((select (res->'data'->>'solved')::boolean from a_solve), true,
   'ada solves on her first swap');
-select is((select (res->>'terminal')::boolean from a_solve), false,
+select is((select (res->'data'->>'terminal')::boolean from a_solve), false,
   'game is NOT terminal yet — bea is still playing');
 
 reset role;
@@ -103,9 +104,12 @@ select is(
   'mid-game: no opponent rows leak into the log');
 
 -- A solved player is locked out of further swaps.
-select throws_ok(
-  format($$ select waffle.submit_swap(%L::uuid, 2, 3) $$, (select id from g)),
-  'P0001', NULL, 'a solved player cannot swap again');
+select pg_temp.envelope_is(
+  waffle.submit_swap((select id from g), 2, 3),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN265",
+    "message":"Already solved"}'::jsonb,
+  'a solved player cannot swap again'
+);
 
 -- ── bea solves, but in 3 swaps (so ada wins on fewest) ──────
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
@@ -114,7 +118,7 @@ select waffle.submit_swap((select id from g), 2, 3);   -- 2, undo
 create temp table b_solve on commit drop as
 select waffle.submit_swap((select id from g), 0, 1) as res;   -- 3, solve → all done
 
-select is((select (res->>'terminal')::boolean from b_solve), true,
+select is((select (res->'data'->>'terminal')::boolean from b_solve), true,
   'once every player is done → terminal');
 
 reset role;
