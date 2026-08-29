@@ -1,6 +1,6 @@
 // cs-unmet
 
-import type { GenericFeedbackTone } from '../outcomes'
+import type { Outcome } from '../outcomes'
 
 /**
  * Every player-facing sentence for a server rejection, in ONE table.
@@ -44,7 +44,7 @@ export type ErrorCopyEntry = {
   /** Defaults to `error`. Set it when the rejection isn't a failure so much as
    *  news — a teammate finishing the game while your move was in flight reads
    *  better as `info` than as something you did wrong. */
-  tone?: GenericFeedbackTone
+  tone?: Outcome
 }
 
 /**

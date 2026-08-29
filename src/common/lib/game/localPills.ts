@@ -1,7 +1,7 @@
 // cs-unmet
 
 import type { ReactNode } from 'react'
-import type { GenericFeedbackTone } from '../outcomes'
+import type { Outcome } from '../outcomes'
 import type { GenericFeedbackMsg } from '../games'
 
 /**
@@ -45,7 +45,7 @@ type OutcomeTone = 'won' | 'lost' | 'neutral'
  * error, an accepted word). Replaces the per-game `ownMove` / `ownGuess` /
  * `localPill` copies + `useWordSubmit`'s private copy.
  */
-export function stickyPill(tone: GenericFeedbackTone, text: string): GenericFeedbackMsg {
+export function stickyPill(tone: Outcome, text: string): GenericFeedbackMsg {
   return { tone, text, mode: { kind: 'sticky' } }
 }
 

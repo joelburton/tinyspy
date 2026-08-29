@@ -3,6 +3,7 @@
 import { showFaultModal } from '../fault/faultStore'
 import { callEdgeFn } from './callEdgeFn'
 import { logStamp } from './realtimeDiag'
+import type { Outcome } from '../outcomes'
 import type { Envelope, Severity } from './envelope'
 
 /**
@@ -152,6 +153,41 @@ const SEVERITY_TO_LOGLEVEL: Record<Exclude<Severity, 'fault'>, LogLevel> = {
   'service-error': 'SERVICE_ERROR',
   'form-validation': 'FORM_VALIDATION',
   race: 'RACE',
+}
+
+/**
+ * **The default appearance of each severity** — how a `not-ok` reads when its
+ * author didn't say (docs/envelopes.md → Appearance).
+ *
+ * Three of the four are `error` and only `race` differs, which is the whole
+ * point of having a race at all: it is not a losing move, but the move is not
+ * being taken and you should notice, so it wears orange rather than red.
+ *
+ * Resolved HERE, once, rather than in SQL — which would repeat it at every
+ * raise and mean editing all of them to change it — or at the call site, which
+ * is the same problem one layer up.
+ */
+const SEVERITY_TO_OUTCOME: Record<Severity, Outcome> = {
+  fault: 'error',
+  'form-validation': 'error',
+  'service-error': 'error',
+  race: 'warning',
+}
+
+/**
+ * **How a `not-ok` reads**: what its author asked for, or its severity's
+ * default. The one place that question is answered, so fifteen boards can't
+ * drift on it.
+ *
+ * Note what this does NOT do: it does not write the answer back into the
+ * envelope. A caller reads the same envelope the server sent, and `outcome`
+ * keeps meaning one thing — *the author overrode the default* — rather than
+ * meaning "the default, filled in later" on the way past. So a blank `outcome=`
+ * on a `[db]` line beside an orange pill is not a discrepancy to explain: it
+ * says the author didn't override, and orange is what `race` looks like.
+ */
+export function notOkOutcome(envelope: Envelope & { type: 'not-ok' }): Outcome {
+  return envelope.outcome ?? SEVERITY_TO_OUTCOME[envelope.severity]
 }
 
 /**

@@ -4,7 +4,7 @@ import { useCallback } from 'react'
 import { cls } from '../../common/lib/util/cls'
 import { useFlash } from '../../common/hooks/ui/useFlash'
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
-import type { GenericFeedbackTone } from '../../common/lib/outcomes'
+import type { Outcome } from '../../common/lib/outcomes'
 import type { GenericFeedbackMsg } from '../../common/lib/games'
 import { GenericFeedbackPill } from '../../common/components/feedback/GenericFeedbackPill'
 import { MoveRow } from '../../common/components/game/entry/MoveRow'
@@ -90,7 +90,7 @@ export function BoardCol({
   /** The below-board pill to show (terminal verdict / own-move message), or null. */
   localPill: GenericFeedbackMsg | null
   /** Report an input-engine message (no matching tile / ambiguous letter). */
-  showLocalFeedback: (text: string, tone: GenericFeedbackTone) => void
+  showLocalFeedback: (text: string, tone: Outcome) => void
   /** Clear the below-board pill (a new move dismisses the previous one). */
   clearLocalFeedback: () => void
 

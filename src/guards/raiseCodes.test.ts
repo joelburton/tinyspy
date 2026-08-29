@@ -36,10 +36,17 @@ const SQL_DIR = resolve(HERE, '../../supabase/sql')
 const FN_DIR = resolve(HERE, '../../supabase/functions')
 
 /** The two vocabularies HINT is drawn from, by branch. `PA` codes are results
- *  that read as an outcome; `PN` codes are refusals with a severity. Kept in
- *  step with `Outcome` and `Severity` in dbResult.ts / outcomes.ts. */
+ *  that read as an outcome; `PN` codes are refusals with a severity. Pinned to
+ *  the TypeScript unions by the last test in this file. */
 const OUTCOMES = new Set(['won', 'lost', 'near', 'warning', 'neutral', 'noted'])
 const SEVERITIES = new Set(['fault', 'race', 'form-validation', 'service-error'])
+
+/** `error` is a full member of `Outcome` — a `not-ok`'s default appearance is
+ *  that word — but a SUCCESSFUL result never reads as a failure, so a `PA`
+ *  raise may not take it. The type can't say that (both arms hold an `Outcome`
+ *  and the ok arm's restriction is about meaning, not shape), so this is where
+ *  the rule actually lives, checked against the SQL that authors the value. */
+const NOT_ON_A_SUCCESS = 'error'
 
 /** The Deno builders in `_shared/envelope.ts`, and the severity each writes.
  *  **Every builder that takes a code belongs here**: one left out is not a
@@ -137,6 +144,34 @@ describe('the raise codes', () => {
       })
       .map((r) => `${r.file}: ${r.code} says hint='${r.hint}'`)
     expect(wrong, 'a hint outside the vocabulary lands in the envelope verbatim').toEqual([])
+  })
+
+  // The SQL↔TypeScript link, and the assertion most likely to rot unwatched:
+  // the sets above are hand-written strings in a test, while the truth is a
+  // union in `src/common/lib/`. Nothing but this notices when someone adds a
+  // severity and every SQL raise carrying it starts failing the vocabulary
+  // check for a reason the message wouldn't explain.
+  it('keeps its vocabularies equal to the TypeScript unions', () => {
+    const union = (file: string, name: string): Set<string> => {
+      const src = readFileSync(resolve(HERE, '../common/lib', file), 'utf8')
+      // Up to the next blank line, or the end of the file — a union is often
+      // the last thing in its module, and requiring a trailing blank line would
+      // make this fail for a reason that has nothing to do with vocabulary.
+      const decl = src.match(new RegExp(`export type ${name}\\s*=([\\s\\S]*?)(?:\\n\\s*\\n|$)`))
+      expect(decl, `couldn't find \`export type ${name}\` in ${file}`).toBeTruthy()
+      return new Set([...decl![1]!.matchAll(/'([^']+)'/g)].map((m) => m[1]!))
+    }
+
+    const outcomes = union('outcomes.ts', 'Outcome')
+    expect(outcomes.has(NOT_ON_A_SUCCESS), '`error` belongs to the outcome vocabulary').toBe(true)
+    expect(
+      [...OUTCOMES].sort(),
+      "a PA raise's vocabulary is every outcome but `error`",
+    ).toEqual([...outcomes].filter((o) => o !== NOT_ON_A_SUCCESS).sort())
+
+    expect([...SEVERITIES].sort(), 'the severities, exactly').toEqual(
+      [...union('supabase/envelope.ts', 'Severity')].sort(),
+    )
   })
 
   it('reports the next number to allocate (a line, not a failure)', () => {

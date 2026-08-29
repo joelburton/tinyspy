@@ -7,28 +7,35 @@
  * board, a tile, a turn-log row and a server result all reach for the same
  * words, and none of them should have to import a manifest type to get them.
  *
- * See docs/ui.md → the feedback pill and the color system.
+ * What each word means, and everywhere it is shown, is in docs/outcomes.md.
  */
 
 /**
- * Tone variants the feedback pill renders. See docs/ui.md → Feedback pill.
+ * How a thing turned out. **One list, seven words, no second spelling** — a
+ * pill reporting a won game, a board showing one, a turn-log bar and a server
+ * result all name it identically. (The two spellings this list once had,
+ * `success` / `error` for won / lost, hid that behind a rename buried in a CSS
+ * rule.)
  *
- * **The first five are the OUTCOME families**, named identically on purpose: a
- * pill reporting a won game and a board showing one say the same thing, and the
- * two spellings this list used to have (`success` / `error` for won / lost) hid
- * that behind a rename buried in a CSS rule.
- *
- * The last two are the pill saying something rather than adjudicating
- * something, which is why no board has them:
+ * The first five are the families a board and a tile also use. The last two are
+ * the ones that say something rather than adjudicate something, which is why no
+ * board has them:
  *
  *   error — a real failure, not a bad move: a lost connection, a service that
- *           didn't answer, a server result nobody wrote words for. Angrier red
- *           than `lost`, which is the whole reason it is its own tone.
+ *           didn't answer, a bug. Angrier red than `lost`, which is the whole
+ *           reason it is its own word.
  *   noted — a turn that COUNTS without being a verdict, and news that isn't a
  *           result at all: "Leah invited you", "everyone here has played every
  *           puzzle".
+ *
+ * **`error` is a full member.** It reads as an outcome, it has the same four
+ * theme roles as the rest, and a `not-ok` envelope's default appearance IS this
+ * word — so a type that excluded it made the one value a failure needs
+ * unsayable. What stays true is narrower and lives where it can be checked: a
+ * SUCCESSFUL result never reads as a failure, so no `PA` raise may take `error`
+ * as its outcome, and `src/guards/raiseCodes.test.ts` enforces exactly that.
  */
-export type GenericFeedbackTone =
+export type Outcome =
   | 'won'
   | 'lost'
   | 'near'
@@ -36,17 +43,3 @@ export type GenericFeedbackTone =
   | 'neutral'
   | 'error'
   | 'noted'
-
-/**
- * How an `ok` server result reads on screen.
- *
- * DERIVED rather than restated, because a hand-copied list would drift the
- * moment anyone added a tone.
- *
- * `error` is excluded, and the exclusion IS the rule: that tone means "a real
- * failure, not a bad move", and a real failure comes back as `not-ok` carrying
- * a `severity`. So it can never be an outcome — which is how the line between
- * `lost`, `warning` and `error` gets drawn structurally rather than by
- * judgment, per plans/error-system.md.
- */
-export type Outcome = Exclude<GenericFeedbackTone, 'error'>

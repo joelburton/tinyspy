@@ -60,14 +60,14 @@ The **same pill serves both feedback areas** — two role phrases we use consist
 **API on `GamePageCtx`:**
 
 ```ts
-// The seven tones, and what each means, are in docs/outcomes.md — the same
-// vocabulary a board, a tile and a server result reach for. Six of them are
-// the `Outcome` type; `error` is the one a result can never carry.
-type GenericFeedbackTone =
+// A pill's tone IS an outcome — the same vocabulary a board, a tile, a
+// turn-log row and a server result reach for. What each word means is in
+// docs/outcomes.md.
+type Outcome =
   'won' | 'lost' | 'near' | 'warning' | 'neutral' | 'noted' | 'error'
 
 type GenericFeedbackMsg = {
-  tone: GenericFeedbackTone
+  tone: Outcome
   text: ReactNode                       // usually a string; a node so a message can embed an inline icon
   dot?: string | null                   // leading player-color disc — identity anchor for peer messages (null = the neutral fallback; absent = none)
   fault?: true                          // bare red text, not a pill — see Faults below. Never authored by hand

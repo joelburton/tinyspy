@@ -77,7 +77,7 @@ grant usage on schema common to authenticated;
 -- how the frontend tells a fault WE declared from one nobody anticipated.
 
 -- A successful result. `data` is the payload the caller asked for; `outcome`
--- is how it reads on screen (the GenericFeedbackTone vocabulary minus `error`,
+-- is how it reads on screen (the `Outcome` vocabulary minus `error`,
 -- which belongs to the not-ok branch); `message` is optional because plenty of
 -- results have nothing to say.
 --

@@ -7,7 +7,7 @@ import type { LucideIcon } from 'lucide-react'
 // this file; both imports are erased at runtime.
 import type { CallError } from './game/serverError'
 import type { Envelope } from './supabase/envelope'
-import type { GenericFeedbackTone } from './outcomes'
+import type { Outcome } from './outcomes'
 import type { FormErrors } from '../components/fields/formState'
 
 /**
@@ -148,7 +148,7 @@ export type GamePageCtx = {
  *  leaves the screen. See docs/ui.md → "Dismiss modes" for the
  *  detailed when-to-use guidance. */
 export type GenericFeedbackMsg = {
-  tone: GenericFeedbackTone
+  tone: Outcome
   /** The message. Usually a plain string; a `ReactNode` is allowed so a message
    *  can embed an inline icon (e.g. bananagrams' dump pill leads with the
    *  exchange glyph, matching its dump zone). */

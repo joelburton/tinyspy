@@ -67,7 +67,9 @@ export type Envelope<T = unknown> =
       type: 'ok'
       /** The payload. */
       data: T
-      /** How it reads on screen. */
+      /** How it reads on screen. Never `error` in practice — a successful
+       *  result does not read as a failure — which `raiseCodes.test.ts` pins on
+       *  the SQL side, where the value is actually authored. */
       outcome: Outcome | null
       /** Always null on this arm — a severity belongs to a `not-ok`. It is
        *  declared because the WIRE carries it: nine keys travel whatever
@@ -91,7 +93,16 @@ export type Envelope<T = unknown> =
        *  the same reason `severity` is declared on the ok arm: the wire has
        *  nine keys either way. */
       data: null
-      outcome: null
+      /**
+       * How this failure READS, when the author wanted something other than the
+       * default its severity would give it (docs/envelopes.md → Appearance).
+       *
+       * Null is the ordinary case and means "use the default" — not "no
+       * appearance". A race reads `warning` without anyone saying so; setting
+       * `noted` here is how one particular race says "this is news, not a
+       * refusal".
+       */
+      outcome: Outcome | null
       severity: Severity
       message: string
       /**

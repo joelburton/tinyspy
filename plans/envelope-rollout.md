@@ -33,20 +33,12 @@ way, and not doing the finished 40 twice.
   spellings would have accepted the old word forever and needed its own cleanup
   commit to close. It holds only the new four — and since 3a converted the
   raises in the same commit, it is green rather than red-as-a-to-do-list.
-- **`getNotOkFeedback` returns four fields**, not three:
-
-  ```ts
-  /** Turns a `not-ok` envelope into a feedback message minus its `mode`: the tone
-   *  from `outcome` where it carries one and its severity's default where it
-   *  doesn't, the text from `message`, and — for a fault — the `fault` flag and
-   *  `diagnostics` line that route it to the modal instead of the pill. */
-  export function getNotOkFeedback(env: NotOkEnvelope): Omit<GenericFeedbackMsg, 'mode' | 'dot'>
-  ```
-
-  `diagnostics` is the k=v line the fault modal shows, built beside the `[db]`
-  console line so screen and log can't drift; a fault mapped without it loses
-  the modal's diagnostics. `mode` and `dot` are the two the envelope cannot
-  know — permanence belongs to the surface, `dot` is peer identity.
+- ~~**`getNotOkFeedback` returns four fields**, not three.~~ **Overtaken by step
+  3b** — it returns two (`tone`, `text`). `diagnostics` is built from transport
+  facts an envelope doesn't carry, and `fault: true` would fire a second modal
+  on top of the one `runRpc` already raised. What still holds is the reason
+  `mode` and `dot` are excluded: they are the two the envelope cannot know —
+  permanence belongs to the surface, `dot` is peer identity.
 - **There is no `ok` equivalent, deliberately.** What a successful answer shows
   is game-specific and no rule has been found there. Recorded in
   `docs/envelopes.md` as a decision so nobody fills it by inventing one.
@@ -78,7 +70,7 @@ What landed, against the findings below:
   `docs/naming.md`'s watch list, where §3 itself said it belonged.
 - **`docs/ui.md`** — three corrections, no restructuring: the `FeedbackTone`
   block declared a vocabulary (`success`, `info`) that no longer exists and is
-  now `GenericFeedbackTone` pointing at `outcomes.md`; the fault modal's message
+  now `Outcome` pointing at `outcomes.md`; the fault modal's message
   and diagnostics no longer claim to come from `ERROR_COPY` and `faultBits`; the
   `outcomes-*` bucket row points at `outcomes.md` instead of listing meanings.
 
@@ -228,21 +220,45 @@ Then a review round (Joel, 2026-08-28), which changed four more things:
   the third case, which is what the `environmental` → `serviceError` rename
   above had already half-fixed.
 
-**3b. The additive machinery** — none of it needs a retro-fix to land green:
+**3b. The additive machinery — DONE 2026-08-28.** Nothing needed a retro-fix to
+land green.
 
-- the severity → default-appearance resolution, one function, filling `outcome`
-  where it is null, used by `runRpc` / `runEdgeFn` / `readRows`. `[db]` logs
-  what **arrived**, before normalization.
-- `outcome` allowed on the not-ok arm (today typed `outcome: null`), so a site
-  can override the default its severity would give it.
-- `getNotOkFeedback` in `src/common/lib/game/genericPills.ts` — generic, not
+- **`Outcome` and `GenericFeedbackTone` are one type, and `error` belongs to it**
+  (Joel, 2026-08-28). The split was `Outcome = Exclude<GenericFeedbackTone,
+  'error'>`, which made the appearance resolution below unbuildable: three of
+  the four severities default to `error`, and the excluded value was the one
+  they needed. `Outcome` is now the seven words, `GenericFeedbackTone` is gone,
+  and the 14 usages renamed. What survives of the exclusion is narrower and
+  checkable — **a successful result never reads as a failure** — so no `PA`
+  raise may take `error`, pinned in `raiseCodes.test.ts` against the SQL that
+  authors the value.
+- **`notOkOutcome`** in `dbResult.ts` — the severity → default-appearance map,
+  total by `Record<Severity, Outcome>`, plus the author's override.
+- **`outcome` on the not-ok arm**, typed `Outcome | null`, meaning *the author
+  overrode the default*; null means "use the default", not "no appearance".
+- **`getNotOkFeedback`** in `src/common/lib/game/genericPills.ts` — generic, not
   `localPills.ts`, because a **local** pill is specifically the below-board one
   about this player and this mapping serves global pills too.
+- **The vocabulary guard**: `raiseCodes.test.ts` now reads the TypeScript unions
+  and asserts its own two sets equal them. Both arms verified by planting (a
+  new outcome word; `error` removed from the union). This is the assertion the
+  plan wanted — guard the vocabulary, don't just name it.
 
-**A new guard belongs here.** Once `getNotOkFeedback` exists, nothing should
-hand-write a tone beside a `runRpc` result, and the severity → default map
-should be total. This is exactly where `--radius-md` rotted while the guarded
-color tokens did not: guard the vocabulary, don't just name it.
+**`getNotOkFeedback` returns two fields, not the four decided above**, because
+four could not be built. `diagnostics` is assembled from TRANSPORT facts (the
+call, the status, the elapsed ms) that an envelope does not carry, so a function
+taking only an envelope cannot produce it. And `fault: true` would be actively
+wrong: `useLocalFeedback` routes any message carrying it to `showFaultModal`,
+but by the time a call site reads the envelope, `runRpc` has already fired that
+modal centrally **with** the diagnostics — so the flag would pop a second,
+poorer modal. The pill instead carries the same sentence the modal leads with,
+which is what `docs/envelopes.md` means by "the pill is what remains after it is
+dismissed".
+
+**One guard is deliberately deferred to step 4**: nothing should hand-write a
+tone beside a `runRpc` result. Nineteen sites still do, and step 4 converts
+them, so the guard lands in the commit that turns it green rather than sitting
+red in the suite meanwhile.
 
 ---
 

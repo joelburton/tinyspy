@@ -60,21 +60,22 @@ showing." "Nothing on the board to check yet." It also covers a turn that COUNTS
 without being adjudicated — letterboxed's help pills use it. It is deliberately
 blue, so it cannot be mistaken for a verdict at a glance.
 
-**`error` is the one that is not an outcome**, and the exclusion is structural:
+**`error` is a full member of the list.** A `not-ok`'s default appearance IS
+this word — three of the four severities read `error` (see
+[envelopes.md](envelopes.md) → Appearance) — so it is the one value a failure
+cannot do without. It is an angrier red than `lost`, and that difference is the
+whole reason it is a separate word rather than a reuse.
 
-```ts
-export type Outcome = Exclude<GenericFeedbackTone, 'error'>
-```
+**One type, one name.** `Outcome` is the list, and a feedback pill's `tone` is
+an `Outcome` — the claim this file makes, said in the type rather than
+alongside it.
 
-A real failure comes back as a `not-ok` envelope carrying a `severity`, so it
-can never arrive as an outcome. That is how the line between `lost`, `warning`
-and `error` gets drawn by the type rather than by judgment each time. `error` is
-an angrier red than `lost` — that difference is the whole reason it is a
-separate tone rather than a reuse.
-
-`GenericFeedbackTone` is the seven; `Outcome` is the six a server result may
-carry. The second is derived from the first rather than restated, so a new tone
-cannot drift between the two lists.
+What is still true is narrower, and it lives where it can be checked: **a
+successful result never reads as a failure.** No `PA` raise — the branch that
+produces `type: ok` — may take `error`, and
+[`raiseCodes.test.ts`](../src/guards/raiseCodes.test.ts) enforces that against
+the SQL, which is where the value is actually authored. A real failure comes
+back as a `not-ok` carrying a `severity` instead.
 
 ## Where they are used
 
@@ -123,7 +124,8 @@ sprawling:
 
 - **A game-rule refusal is `ok`**, so "that's a duplicate word" is an outcome,
   not a failure.
-- **`error` is never an outcome.** A real failure carries a severity instead.
+- **A successful result never reads as `error`.** A real failure carries a
+  severity instead, and `error` is the appearance most of them default to.
 
 ## The colors
 
@@ -152,7 +154,7 @@ neighbors at a glance and in a sentence.
 
 If one is genuinely needed:
 
-1. Add it to `GenericFeedbackTone`. `Outcome` derives, so it follows.
+1. Add it to `Outcome`.
 2. Give it all four `--outcomes-*` roles in **both** themes.
 3. Decide whether it belongs in `TurnOutcome` — most will not.
 4. Say here what it means and how it differs from the nearest existing word.

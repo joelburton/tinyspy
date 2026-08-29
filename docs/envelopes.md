@@ -156,19 +156,20 @@ Orange is the point of `race`. It is not a losing move — that would be red —
 the move is not being taken and you should notice, the way "that's a duplicate
 word" needs noticing.
 
-**The default is resolved in `dbResult`, once.** Not in SQL, which would repeat
-it at every raise and mean editing all of them to change it; not at the call
-site, which is the same problem one layer up. One function maps severity to its
-default and fills in `outcome` where the server left it null, and `runRpc`,
-`runEdgeFn` and `readRows` all pass through it.
+**The default is resolved once, in `notOkOutcome` (`dbResult.ts`).** Not in SQL,
+which would repeat it at every raise and mean editing all of them to change it;
+not at the call site, which is the same problem one layer up.
 
-One consequence worth knowing: the envelope a caller reads is then not identical
-to the one the server sent. **The `[db]` line logs what ARRIVED**, before
-normalization — so a blank `outcome=` beside an orange pill is explained by that
-one function rather than being a mystery.
+**Nothing is written back into the envelope.** A caller reads exactly the
+envelope the server sent, and `outcome` on a `not-ok` keeps one meaning — *the
+author overrode the default* — rather than meaning "the default, filled in on
+the way past". So a blank `outcome=` on a `[db]` line beside an orange pill is
+not a discrepancy to explain: it says nobody overrode anything, and orange is
+what a `race` looks like.
 
-`outcome` stays nullable on the not-ok arm for now. We do not yet know that
-every `not-ok` will have one; it can be tightened later.
+`outcome` stays nullable on the not-ok arm, and null means "use the default"
+rather than "no appearance" — which is why filling it in would have cost the
+distinction.
 
 ## What a caller does with one
 
@@ -305,8 +306,10 @@ uniqueness, **not contiguity**. What it asserts:
    route rather than obvious garbage.
 2. Every code appears exactly once across the whole app.
 3. Every `PA` raise's HINT is an `outcome`; every `PN` raise's HINT is a severity.
-4. That the outcome vocabulary equals `GenericFeedbackTone` minus `error` — the
-   SQL↔TypeScript link, which is the assertion that actually rots unguarded.
+4. That its two vocabularies equal the TypeScript unions — a `PA` raise's is
+   every `Outcome` but `error` (a successful result never reads as a failure),
+   a `PN` raise's is `Severity` exactly. This is the SQL↔TypeScript link, and
+   the assertion that actually rots unguarded.
 
 **Errcodes stay bare literals.** `errcode = case when g.mode = 'coop' then …` is
 legal SQL and would blind the guard exactly where the interesting classification

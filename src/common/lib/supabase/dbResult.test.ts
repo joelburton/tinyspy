@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { PostgrestClient } from '@supabase/postgrest-js'
 import {
   diagnosticsLine, environmentalEnvelope, faultEnvelope, isEnvelope, isOurDbCode, logDb, logSlow,
-  reportDbFault, readRows, runEdgeFn, runRpc,
+  notOkOutcome, reportDbFault, readRows, runEdgeFn, runRpc,
 } from './dbResult'
 import { clearFaultsForTest, peekFaultsForTest } from '../fault/faultStore'
 
@@ -430,5 +430,33 @@ describe('runEdgeFn — the same shape, through Deno', () => {
 
     expect(r).toMatchObject({ type: 'not-ok', severity: 'fault' })
     expect(peekFaultsForTest()).toHaveLength(1)
+  })
+})
+
+describe('notOkOutcome', () => {
+  const notOk = (severity: string, outcome: string | null = null) =>
+    ({ ...env({ type: 'not-ok', severity, outcome, message: 'x' }) }) as never
+
+  // The three that read red and the one that doesn't. `race` is the whole
+  // reason the defaults aren't a single constant: it is not a losing move, so
+  // it must not wear the color of one.
+  it('gives each severity its default appearance', () => {
+    expect(notOkOutcome(notOk('fault'))).toBe('error')
+    expect(notOkOutcome(notOk('form-validation'))).toBe('error')
+    expect(notOkOutcome(notOk('service-error'))).toBe('error')
+    expect(notOkOutcome(notOk('race'))).toBe('warning')
+  })
+
+  // What the `outcome` key on a not-ok is FOR: one race that reads as news
+  // rather than as a refusal, without inventing a severity for it.
+  it("prefers the author's outcome over the default", () => {
+    expect(notOkOutcome(notOk('race', 'noted'))).toBe('noted')
+    expect(notOkOutcome(notOk('fault', 'lost'))).toBe('lost')
+  })
+
+  // Null means "use the default", NOT "no appearance" — the distinction the
+  // always-present-nullable keys exist to make readable.
+  it('reads a null outcome as unset, not as an answer', () => {
+    expect(notOkOutcome(notOk('race', null))).toBe('warning')
   })
 })

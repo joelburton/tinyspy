@@ -7,7 +7,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { IconHideSolution, IconHint, IconNewGame, IconPrint, IconRestart, IconReveal, IconSpoiler } from '../../common/components/icons'
 import { cls } from '../../common/lib/util/cls'
 import type { GenericFeedbackMsg, GamePageCtx, Member } from '../../common/lib/games'
-import type { GenericFeedbackTone } from '../../common/lib/outcomes'
+import type { Outcome } from '../../common/lib/outcomes'
 import { useSwallowTab } from '../../common/hooks/input/useSwallowTab'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { buildStackdownPrintModel } from '../pdf/model'
@@ -153,7 +153,7 @@ export function PlayArea({
   const celebration = useCelebration(playState === 'won')
 
   const showLocalFeedback = useCallback(
-    (text: string, tone: GenericFeedbackTone, mode: GenericFeedbackMsg['mode'] = { kind: 'sticky' }) =>
+    (text: string, tone: Outcome, mode: GenericFeedbackMsg['mode'] = { kind: 'sticky' }) =>
       showMsg({ tone, text, mode }),
     [showMsg],
   )

@@ -5,7 +5,7 @@ import { runRpc } from '../../common/lib/supabase/dbResult'
 import { useCallback, useEffect, useRef, useState, type ReactNode, useMemo } from 'react'
 import { IconHideSolution, IconNewGame, IconPrint, IconRestart, IconReveal } from '../../common/components/icons'
 import { useSolutionReveal } from '../../common/hooks/game/useSolutionReveal'
-import type { GenericFeedbackTone } from '../../common/lib/outcomes'
+import type { Outcome } from '../../common/lib/outcomes'
 import type { GenericFeedbackApi, GenericFeedbackMsg, GamePageCtx } from '../../common/lib/games'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import { cls } from '../../common/lib/util/cls'
@@ -169,7 +169,7 @@ function useTurnPill(args: {
   // disc came from the pill's separate `dot` prop.)
   let key: string | null = null
   let node: ReactNode = null
-  let tone: GenericFeedbackTone = 'neutral'
+  let tone: Outcome = 'neutral'
   // Peer-status pills are messages (sticky — "moth is writing a clue" is true
   // until it isn't). Sudden death is a CONDITION: once the turn budget is spent
   // you're in it for the rest of the game, and only the verdict replaces it —

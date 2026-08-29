@@ -735,7 +735,9 @@ the `[db]` log at once — and nothing failed. Writing the guard immediately fou
 
 Two hard rules for anything that *sets, holds, renders, or types* one of those pill messages:
 
-1. **Every feedback identifier is qualified by channel — `Global`, `Local`, or `Generic`. Nothing is named bare `feedback`.** `Global` = the header pill (peer / opponent news). `Local` = the below-board pill (the player's own move / own state). `Generic` = machinery genuinely shared by both channels (the renderer, the message type/tone, the shared state primitive). If a name resists all three labels, that's a signal it's mis-scoped — find a clearer one. The bare word is banned even when it reads heavier (`GenericFeedbackTone`, `GENERIC_FEEDBACK_DISMISS_MS`): the weight is the tell that you're touching shared machinery.
+1. **Every feedback identifier is qualified by channel — `Global`, `Local`, or `Generic`. Nothing is named bare `feedback`.** `Global` = the header pill (peer / opponent news). `Local` = the below-board pill (the player's own move / own state). `Generic` = machinery genuinely shared by both channels (the renderer, the message type/tone, the shared state primitive). If a name resists all three labels, that's a signal it's mis-scoped — find a clearer one. The bare word is banned even when it reads heavier (`GenericFeedbackMsg`, `GENERIC_FEEDBACK_DISMISS_MS`): the weight is the tell that you're touching shared machinery.
+
+   The rule covers the feedback MACHINERY, not every type it happens to hold. A pill's `tone` is an [`Outcome`](outcomes.md) — a vocabulary a board, a tile, a turn-log row and a server result reach for too — so naming it for the feedback channel would have claimed it for one consumer out of five.
 
 2. **The noun is always `feedback`; never `result`, `action`, `flash`, or similar.** In particular, avoid `flash` — whether a message is timed / sticky / closeable is a per-message property (the `dismiss` field), not something a name should assert.
 
@@ -744,7 +746,8 @@ Same role → same name across games (a peer-narration hook is `useGlobalFeedbac
 | role | name | channel |
 |---|---|---|
 | shared pill renderer | `GenericFeedbackPill` | Generic |
-| shared message type / tone / API | `GenericFeedbackMsg` / `GenericFeedbackTone` / `GenericFeedbackApi` | Generic |
+| shared message type / API | `GenericFeedbackMsg` / `GenericFeedbackApi` | Generic |
+| the tone a message carries | `Outcome` — a shared vocabulary, not feedback machinery ([outcomes.md](outcomes.md)) | — |
 | the global sink on `GamePageCtx` | `globalFeedback` (`.show` / `.clear`) | Global |
 | per-game hook computing peer messages → global area | `useGlobalFeedback` | Global |
 | hook holding the own-move below-board message | `useLocalFeedback` | Local |
