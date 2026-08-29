@@ -492,8 +492,17 @@ Each conversion moves one call from "not ours" to "ours". Per game:
 
 > **the table** (below, and Joel rules on it) → **drop the function** → convert
 > it to the envelope → move its message into the raise, with a `PA`/`PN` code, a
-> HINT and a COLUMN → add the catch block → convert that game's pgTAP (swapping
-> `throws_ok` for `envelope_is`) → run it → fix.
+> HINT and a COLUMN → add the catch block → **rewrite the call site to the
+> branch shape** → convert that game's pgTAP (swapping `throws_ok` for
+> `envelope_is`) → run it → fix.
+
+**The call-site half has its own rules, and they are not in this plan.**
+[docs/envelopes.md → The shape of a call site](../docs/envelopes.md#the-shape-of-a-call-site)
+holds them: one branch per answer, positive conditions, a bare `else` that
+screams, and never picking an `ok` branch by asking whether there is a message
+or what the outcome is. They were written on 2026-08-29 after stackdown's
+conversion produced four wrong versions of one branch in a row, so read them
+before the first call site of a game, not after.
 
 #### The table comes first, and then you STOP
 

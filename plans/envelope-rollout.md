@@ -3,7 +3,7 @@
 **Short-lived.** This is the ordering for the prep that has to happen before the
 remaining roster entries in [error-system.md](error-system.md) get converted —
 the docs, the comments, the shared machinery, the retro-fixes. It ships nothing
-a player sees. **Delete this file when step 4 is done**; nothing in it is
+a player sees. **Delete this file when step 5 is done**; nothing in it is
 durable, because everything durable lands in `docs/envelopes.md`,
 `docs/outcomes.md`, or the roster.
 
@@ -340,5 +340,33 @@ because severity carries a default appearance.
 
 ## Then
 
-The roster. `connections.submit_guess` is next, and its classification table is
-already agreed.
+The roster — which is where we are now, and where the rules below were written.
+
+### Step 5 — the call-site rules — **WRITTEN 2026-08-29, NOT APPLIED**
+
+The SQL half of a conversion had a written process from the start; the frontend
+half did not, and stackdown's `submit_word` produced four wrong versions of one
+branch in a row before the rules got said out loud. They now live in
+[docs/envelopes.md → The shape of a call site](../docs/envelopes.md#the-shape-of-a-call-site)
+and [→ Choosing which `ok` branch](../docs/envelopes.md#choosing-which-ok-branch),
+and `error-system.md` §6 points at them from the per-game process.
+
+In short: one branch per answer, every condition a positive assertion about the
+case, a bare `else` that screams and is never contorted for, and never picking
+an `ok` branch by asking whether there is a message or what the outcome is —
+branch on `data` or `dbcode`, and add to `data` if it cannot tell the cases
+apart.
+
+**What is left of this step:** the ~47 call sites already converted were written
+before the rules existed, so some of them break these. Two are known:
+
+- `src/stackdown/components/PlayArea.tsx` — the conversion committed in
+  49bac96a does not compile; its `invalid` branch is the one that was being
+  argued about. `supabase/tests/stackdown/gameplay_test.sql` carries a stale
+  assertion from the same argument.
+- `src/wordle/components/BoardCol.tsx:243` — `res.outcome ?? 'lost'` and
+  `res.message ?? ''`, the guessed defaults rule 8 forbids, and it picks its
+  branch off `result` inside an already-`ok` block with no scream.
+
+Sweep the rest when the roster is done, not now: a sweep before the rules have
+been used on a few games would be guessing at what they mean.

@@ -209,6 +209,102 @@ distinction.
 
 ## What a caller does with one
 
+### The shape of a call site
+
+**One branch per answer the RPC can give, each condition a positive assertion
+about that answer, and a bare `else` that screams.**
+
+```ts
+const res = await runRpc<WordAnswer>(db.rpc('submit_word', { … }))
+
+if (res.type === 'not-ok') {
+  clearWord()
+  showMsg({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+} else if (res.data.result === 'accepted') {
+  commitWord(tileIds)
+  showFlash([...res.data.word.toUpperCase()], 'won')
+} else if (res.data.result === 'invalid' && res.message !== null) {
+  clearWord()
+  showMsg({ tone: res.outcome, text: res.message, mode: { kind: 'sticky' } })
+} else {
+  showFaultModal({ text: 'BUG: submit_word answered in a way this build does not know' })
+}
+```
+
+**Branch positively, on exact things.** `res.type === 'not-ok'`, never
+`res.type !== 'ok'`. A negated condition is a catch-all wearing a case's
+clothes: it compiles, it narrows cleanly, and an answer that is neither `ok` nor
+`not-ok` is shown to the player as a refusal. Naming the case you handle puts
+anything else where it belongs, in the scream.
+
+**There is always a bare `else`, and it only ever screams.** Not when the types
+say it is unreachable, not when you have just read the RPC and know it cannot
+happen — those are the claims that rot, and the whole job of this branch is to
+be there on the day one of them stops being true. It says "this build does not
+know this answer" and raises the fault modal.
+
+**Do not contort anything to serve it.** It should be rare, it is a plain bug
+when it fires, and the modal's `detail` carries enough to work out what
+happened — so a short sentence naming the RPC is the whole of it. If the branch
+would have to cast, or restructure the chain, or reach into a value TypeScript
+has narrowed to `never`, don't: the cost of the ceremony is paid at every call
+site, and the payoff is a line nobody will read anyway.
+
+**No outer branch for "neither `ok` nor `not-ok`".** `runRpc` /
+`runEdgeFn` / `readRows` have already turned that into a fault envelope —
+`isEnvelope` accepts only those two — so a call site's outer `else` is
+unreachable by construction and would be ceremony repeated 146 times. The scream
+at the end of the chain covers it.
+
+### Choosing which `ok` branch
+
+**Never test `message` to decide which `ok` case you are in.** That asks about
+the wire, not about the game — a reader has to deduce "there were words, so it
+must have been the rejection", which is a deduction the code should not be
+asking for, and two worded cases collapse into one branch the day the second
+arrives.
+
+**Never use `outcome` either.** Several cases legitimately share one — two
+different refusals both read `lost` — so it identifies nothing.
+
+**Branch on `data`, or on `dbcode`.** And **if `data` cannot tell the cases
+apart, add something to `data` that can.** The payload is where the case lives;
+making it legible is the RPC's job, not a puzzle for the call site.
+
+**No just-matching `ok` branch.** Even when an RPC has exactly one `ok` answer
+today, assert what that answer *is*. A branch that matches merely by being
+`ok` swallows the second `ok` silently on the day it is added, and produces a
+bug that is invisible in review: nothing changed at the call site, and the new
+case is quietly rendered as the old one.
+
+**Never guess a tone or a sentence.** `res.outcome ?? 'lost'` and
+`res.message ?? ''` are the tell that the branch is wrong: inside a branch that
+has named its case, what the server sends for that case is a known fact. A
+guessed outcome turns a server bug into a pill nobody questions.
+
+**Keep an assertion that completes the case's contract, even when it is
+technically redundant.** `res.data.result === 'invalid' && res.message !== null`
+states the whole of what that answer promises — this case, *with* its sentence —
+where `result` alone states half. TypeScript needs the second half anyway (the
+`ok` arm is two shapes and it discriminates on `message`), but the reason to
+keep it is the failure mode: if the RPC ever stops sending the sentence, the
+branch does not match, and the answer reaches the scream instead of rendering a
+pill with a hole in it. This is the one place `message` may be tested, and it
+tests it as an assertion — never as the thing that picks the case.
+
+**Do not move words out of the server to dodge a typing problem.** If reading a
+server-written message is awkward at the call site, that is a question about the
+types, not a reason to make the surface compose a sentence the RPC already
+knows how to write (→ [Who writes the words](#who-writes-the-words-per-answer)).
+
+### The `not-ok` branch is one line
+
+It is a mapping, and the mapping is shared, so this branch rarely holds an `if`
+at all: `getNotOkFeedback(res)` plus whatever the surface has to undo — the
+selection cleared, the dim released. A call site that finds itself branching on
+`severity` or `dbcode` here should check that what it wants is not already in
+the mapping (→ [The mapping](#the-mapping)).
+
 ### Presenting a fault is not a call site's job
 
 **One rule, and everything else here follows from it: the layer that KNOWS a
@@ -261,7 +357,7 @@ it does not belong in a file whose docstring says otherwise.
 the answer — so the function returns the message minus its mode:
 
 ```ts
-if (res.type !== 'ok') {
+if (res.type === 'not-ok') {
   showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'manual' } })
   return
 }
@@ -271,6 +367,12 @@ if (res.type !== 'ok') {
 shows is game-specific — a pangram's score, a word's length, nothing at all —
 and we do not know whether rules exist there yet. Better an honest gap than a
 shared helper guessing at one.
+
+And a helper is the wrong shape besides. Anything shared could only ask the
+envelope what it happens to contain — "is there a message?" — which is exactly
+the question a call site must not ask (→ [Choosing which `ok`
+branch](#choosing-which-ok-branch)). Which `ok` case this is, is knowledge the
+call site has and a helper does not.
 
 ### Who writes the words, per answer
 
