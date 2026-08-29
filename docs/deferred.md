@@ -53,6 +53,10 @@ See [`common.md → Deferred / open`](common.md#deferred--open) for more detail 
 - ~~**Auto-propagating a newly-registered gametype to existing clubs.**~~ **Decided (2026-08-02): won't do.** The roster is complete, so the case that motivated it — a gametype registered after a club exists — is now the rare one, and it already has two answers: the "Edit club" dialog, and a per-game backfill in that game's migration (bananagrams does this). Neither is worth a standing auto-propagation mechanism.
 - ~~**No recovery from a LOST realtime event.**~~ **Fixed (2026-08-06).** The mechanism turned out to be measurable — `SUBSCRIBED` is only the join ack, and events committed before the server's `system` "Subscribed to PostgreSQL" attach confirmation are dropped — which made the fix a patch after all, not new plumbing: every postgres_changes hook now refetches again when the attach is confirmed (`common/lib/supabase/postgresAttached.ts`), closing the window. Pinned by `e2e/realtime-deaf-window.e2e.ts` (written failing, flipped by the fix). Full story: [realtime-lost-events.md](realtime-lost-events.md).
 - **The history viewer's banner ✕ is hand-written in eight games; convert it to `<CloseButton>`.** The shared dismiss glyph landed 2026-08-26 in the CSS sprint's `forms` area — `common/components/buttons/CloseButton.tsx`, converted at the floating-panel titlebar, the toast and the feedback pill. The eight left are the history-viewer banner exits, one per game (`codenamesduet`, `connections`, `psychicnum`, `scrabble`, `stackdown`, `strands`, `waffle`, `wordle`). The *class* is already shared (`historyViewer.bannerExit`); the **glyph and the button markup are not** — `✕` (U+2715) is typed by hand into each of the eight `BoardCol.tsx`, so they agree today by luck and drift the moment one is touched. **Filed rather than swept** (Joel, 2026-08-26): each of those games has its own CSS pass scheduled, and a sweep now would collide with it. The work per game is three lines — import, swap the `<button>`, and let `.bannerExit` keep only its `flex: 0 0 auto` and the pinning. **Not in the family:** letterboxed's `.chainRemove`, which is an *undo* ("Take back WORD") that merely looks like a close.
+- **`help` names two different things, and one of them is wrong.** The reserved sense is **UI assistance** — the rules dialog, an InfoCol explanation, a field's `entryHelp`. It is also, wrongly, the umbrella for **hint + spoiler**, which are priced in-game assistance and not help at all (Joel, 2026-08-28: *"asking for a hint or a spoiler is NOT 'help'"*). Filed here rather than in [letterboxed.md](games/letterboxed.md) because the umbrella half is cross-cutting.
+  - **In letterboxed** (the only game with the pattern): `askHelp(kind: 'hint' | 'spoiler')` at `PlayArea.tsx:238` — Joel's name for it is **`askForHintOrSpoiler`**, and a hint-only game's would be `askHint`. Its two wrappers `takeHint` / `takeSpoiler` are already right. Also `helpPillText()`, the file `letterboxed/lib/help.ts`, the RPC **`letterboxed.log_help`** (SQL + generated `db.ts` + `replay_test.sql` + the game doc — no migration, since the schema shape is a `kind` column that doesn't say "help"), and the prose "help ladder" / "Peer help".
+  - **Repo-wide**, the same word is the umbrella in [win-lose.md](win-lose.md) (**"priced help"** — a named rule), [ui.md](ui.md) and [setgame.md](games/setgame.md) ("the help ladder"). Renaming the identifiers without the umbrella leaves the collision in place; renaming the umbrella needs a word that works in a rule, which `askForHintOrSpoiler` does not. **assist** is the candidate — "the priced-assist rule", "the assist ladder", `log_assist`.
+  - Deliberately not done during the envelope sprint (unrelated), and scoped when picked up: identifiers only, or identifiers + umbrella.
 - **User-visible error surface for view-state RPC failures.** `useCommonGame`'s `set_current_view` / `unset_current_view` calls log-and-swallow errors on the assumption that idempotency + the next reconnect's SUBSCRIBED-refire will self-heal transient failures. A persistent failure (RLS broken, RPC missing, network gone) goes unnoticed — the club's current pointer drifts from what the FE thinks it is until someone notices. Acceptable for friends-alpha; revisit when there's a generic toast/error-surface layer. See the inline `// Fragile:` comments at `useCommonGame.ts`.
 - **Stricter `useSession` profile-verify at startup.** Today profile-verify failure is uniformly permissive (assume the session is valid). Right for transient mid-session blips, over-permissive for startup-time PostgREST/RLS failures — a corrupted auth setup looks like "no profile yet" and the user is let through. Acceptable for friends-alpha; revisit when a real auth path (passwords, third-party providers) lands and we can distinguish startup-restore from mid-session refresh. See the `// Fragile:` comment at `useSession.ts`.
 - ~~**Retire the `-bg` half of the outcome vocabulary with `color-mix`.**~~ Overtaken by the 2026-08-18 palette sweep (docs/ui.md → The color system), which renamed the tier `-wash` and deleted the three cells nobody read. What survives of the idea is one live question, recorded in the token: the feedback pill computes its tint as `fill 18% over the surface` while the `-wash` tier exists at a different value for the same job, so one of the two is redundant. Deciding which moves pixels.
@@ -170,6 +174,54 @@ permanent exclusion until 2026-08-02; the 4-state tile encoding
 was their green/yellow/gray feedback flattening to one gray in mono.
 
 ## To discuss
+
+- **`docs/nomenclature.md` — a dictionary of what each word means and, more
+  importantly, what it doesn't** (Joel's idea, 2026-08-28). One file to check
+  when we agree something like *"'environmental' means fetch-failed"* — a
+  decision that today is spread across `envelopes.md`, two code comments and a
+  conversation. **Exactly one thing: a table.** Not advice, not explanations.
+  - **`naming.md` splits.** It is ~343 lines of two documents: a dictionary
+    (Terminology lexicon 15–184, tuned/justified/locked 210–231, Cross-game
+    canonical names 298–322, Watch list of generic words 323–340) and ~95 lines
+    of "how to pick a good name" (The big idea, Numbers or names?, the seven
+    Naming principles). The advice stays and reads better without the glossary
+    on top of it; the dictionary moves and `naming.md` points at it.
+  - **A short entry is a FORCING FUNCTION, not a compromise.** If a word needs a
+    long explanation, that explanation belongs in the area doc and its absence
+    is a hole worth filing — `tuned` / `justified` / `locked` want a CSS doc, not
+    a paragraph here. The entry is one line plus a pointer. Sampling suggests
+    most terms already have a natural owner (`common.md` for the architecture
+    nouns, `testing.md` for `persona`), so this is mostly *finding* homes, not
+    writing them.
+  - **The "never for" column is the point.** *"`help` = UI assistance — the rules
+    dialog, an InfoCol explanation, a field's `entryHelp`; never a hint or a
+    spoiler"* is what stops a collision. *"`outcome` = the verdict on a play, see
+    outcomes.md"* prevents nothing on its own. Write the negative clause only
+    where a collision has actually happened.
+  - **Prefix the key where the bare word has a natural-language meaning** —
+    `cssdesign-justified`, `game-peer`, `outcome-warning`. This is `naming.md`'s
+    own rule ("qualify when the name will be read in isolation") applied to the
+    one place that is *always* read in isolation, and it does much of the "never
+    for" column's job for free. Two cautions: **reuse the bucket prefixes that
+    already exist** (`outcomes-`, `mark-`, `chrome-`, `button-`, `pill-`,
+    `toast-`, `view-`, `gamelist-`, `member-`, `page-`, `field-`,
+    `flex-color-` — see [ui.md](ui.md)) rather than minting a parallel set, and
+    **say when the prefix is the dictionary's alone** (`--outcomes-warning-*` is
+    real CSS; the TypeScript says `tone: 'warning'`), or someone greps the
+    qualified form, finds nothing, and calls the doc stale.
+  - **It will go somewhat stale, and that is accepted** (Joel): a table with a
+    "never for" column is cheap to check and obvious when wrong, which is not
+    true of prose. Partial guard if it earns one: assert that identifiers
+    matching a reserved word appear only in that word's allowed directories —
+    that would have caught `askHelp` and `letterboxed/lib/help.ts`.
+  - **Chores:** three inbound anchors point into the lexicon (`naming.md#member`,
+    `#peer`, `#player`, plus `#watch-list-of-generic-words`) out of 44 references
+    to the file; `CLAUDE.md`'s table needs a row and an edit to the `naming.md`
+    row, which currently calls it the glossary.
+
+  The `help` / `hint` item under **Common / architecture** above is the same
+  problem, one instance: that one is a collision to fix, this is the mechanism
+  that would have prevented it.
 
 - **Leaving "alpha": stop editing baseline migrations, start appending new ones.**
   [`CLAUDE.md`](../CLAUDE.md) names this trigger already — *"prefer editing baseline
