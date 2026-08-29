@@ -38,11 +38,12 @@ Only these games have open items today; the rest have none.
 | [bananagrams](games/bananagrams.md#deferred) | the peel pill's peer case · won't-do: touch input, replay |
 | [boggle](games/boggle.md#12-wont-do) | won't-do only: word-list freshness via Storage, a "check board" helper |
 | [codenamesduet](games/codenamesduet.md#wont-do) | won't-do only: missions, tile `aria-label`s |
-| [connections](games/connections.md#deferred) | per-tile match animations |
+| [connections](games/connections.md#deferred) | per-tile match animations · a `data[0]` cast standing in for a compiler flag |
 | [crosswords](games/crosswords.md#9-deferred) | the fullest register — ⌥M, `fetch-nyt-range`, NYT dedup, the library picker bound before the bulk import, the scratchpad lock races, standing schema flags, unpinned tests |
 | [letterboxed](games/letterboxed.md#deferred) | rare-letter seed weighting · won't-do: trimming the seed table (measured — 55 MB against a 500 MB tier) |
 | [psychicnum](games/psychicnum.md#wont-do) | won't-do only: anti-spam, a livelier `.infoState` |
-| [setgame](games/setgame.md#deferred) | a coop `target_sets` · won't-do: calling "no set", a wrong-claim penalty |
+| [setgame](games/setgame.md#deferred) | a coop `target_sets` · an `undefined` lost into a `\| null` slot · won't-do: calling "no set", a wrong-claim penalty |
+| [stackdown](games/stackdown.md#7-deferred) | `tile-gone` should be a pill · a `data[0]` cast standing in for a compiler flag |
 | [wordwheel](games/wordwheel.md#deferred) | the `Letters`/`Wheel` CSS fold (owns the spellingbee pair's ledger) · `s`-heavy seeds |
 
 ## Common / architecture

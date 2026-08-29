@@ -679,6 +679,17 @@ would file a bug report for.
 
 ## Deferred
 
+- **`useGame.ts:163` loses an `undefined` into a slot typed `| null`.** The
+  latest-event row comes from `eventsRes.data[0]`, which is `EventRow |
+  undefined` when the read found nothing — but the state it feeds is
+  `EventRow | null`, so the two ways of saying "no row" are being conflated.
+  Found while measuring `noUncheckedIndexedAccess` during the envelope sprint
+  (2026-08-29): with that flag on, this is the **only** error across all nine
+  files that consume `readRows`, so every other zero-rows check in the app is
+  already right. The flag itself is not the fix — it costs 930 errors repo-wide,
+  almost all of them safe grid indexing in the solvers and PDF models. One line,
+  here, when setgame is next open.
+
 - **Rename `card` → `tile` throughout** (Joel, 2026-08-21). The app has one word
   for the main game piece — **tile** — regardless of what the physical game uses.
   codenamesduet deals in real-world cards too and calls them tiles; setgame is

@@ -609,6 +609,18 @@ mono printer flattens the outcome bar's green and red to one gray.
 
 ## 7. Deferred
 
+- **`useGame.ts:208`'s `as StateRow | undefined` is a cast standing in for a
+  compiler flag.** `readRows` hands back `Row[]`, and `data[0]` types as present
+  because `noUncheckedIndexedAccess` is off — so this file writes the
+  `| undefined` by hand to make its own `if (!row)` check mean something. It
+  lies in the SAFE direction and the code is correct; what is wrong is that a
+  cast is doing a type-checker's job, and a reader can't tell it from a cast
+  that is papering over something. Connections does the same thing
+  ([connections.md](connections.md#deferred)) and they are the only two.
+  Measured during the envelope sprint (2026-08-29): turning the flag on costs
+  930 errors repo-wide, almost all safe grid indexing in solvers and PDF models,
+  so the flag is not the answer — revisit if it ever becomes affordable.
+
 - **`tile-gone` shows the FAULT modal, and it should be a pill.** Seen live
   2026-08-24, Joel and moth clearing the same word at the same moment. The RPC
   raises `tile-gone|` (`supabase/sql/stackdown.sql`, "a submitted tile has
