@@ -37,7 +37,7 @@ const RING_R = 105
  *     distance is RING_R, so touching means CENTER_R = RING_R − OUTER_R.
  *
  * That makes the center ≈1.6× an outer tile — the "used in every word" hub reads
-   * as the biggest tile while every tile kisses its neighbors + the hub.
+ * as the biggest tile while every tile kisses its neighbors + the hub.
  */
 export const OUTER_R = RING_R * Math.sin(Math.PI / OUTER_COUNT)
 export const CENTER_R = RING_R - OUTER_R
