@@ -18,7 +18,7 @@
 --
 --   select pg_temp.envelope_is(
 --     common.anagrams('ab1'),
---     '{"type":"not-ok","severity":"validation","message":"2–15 letters, or ?"}'::jsonb,
+--     '{"type":"not-ok","severity":"form-validation","message":"2–15 letters, or ?"}'::jsonb,
 --     'digits are rejected');
 --
 -- pgTAP's own `ok(x @> y, …)` would do the same test, but reports only "false"

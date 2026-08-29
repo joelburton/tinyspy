@@ -205,7 +205,7 @@ begin
     -- library is pre-generated per band, so an empty one is a content gap
     -- rather than anything they did.
     raise exception 'No boards at that difficulty yet — try the other one'
-      using errcode = 'PN052', hint = 'validation', column = 'band',
+      using errcode = 'PN052', hint = 'form-validation', column = 'band',
       detail = 'stackdown.boards is empty at that band; run gmake g-stackdown-puzzles + the import';
   end if;
 

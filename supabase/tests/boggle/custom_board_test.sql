@@ -83,7 +83,7 @@ select pg_temp.envelope_is(
     pg_temp.boggle_board()
       || '{"required_words":[],"required_words_count":0,
            "required_words_score":0}'::jsonb),
-  '{"type":"not-ok","severity":"validation","field":"custom_board","dbcode":"PN147",
+  '{"type":"not-ok","severity":"form-validation","field":"custom_board","dbcode":"PN147",
     "message":"No words for those letters at that difficulty"}'::jsonb,
   'a custom board with ZERO required words is rejected (win_percent floor)');
 

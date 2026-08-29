@@ -1745,7 +1745,7 @@ begin
   -- through the handler below.
   if target_club is null then
     raise exception 'That game was already deleted'
-      using errcode = 'PN010', hint = 'error', column = '_',
+      using errcode = 'PN010', hint = 'service-error', column = '_',
       detail = 'no common.games row for target_game';
   end if;
 
@@ -1878,7 +1878,7 @@ begin
   -- it belongs under the usernames box.
   if array_length(unknown_names, 1) > 0 then
     raise exception 'No such user: %', array_to_string(unknown_names, ', ')
-      using errcode = 'PN007', hint = 'validation', column = 'member_usernames',
+      using errcode = 'PN007', hint = 'form-validation', column = 'member_usernames',
       detail = 'no profile matches these usernames';
   end if;
 
@@ -1891,7 +1891,7 @@ begin
   -- is already in the list — but it doesn't today, so it stays reachable.
   if coalesce(array_length(resolved_ids, 1), 0) < 2 then
     raise exception 'A club needs at least 2 members'
-      using errcode = 'PN008', hint = 'validation', column = 'member_usernames',
+      using errcode = 'PN008', hint = 'form-validation', column = 'member_usernames',
       detail = 'a club needs the creator plus one';
   end if;
 
@@ -1909,7 +1909,7 @@ begin
     values (new_handle, club_name, caller_id);
   exception when unique_violation then
     raise exception 'Club name taken (handle “%”)', new_handle
-      using errcode = 'PN009', hint = 'validation', column = 'club_name',
+      using errcode = 'PN009', hint = 'form-validation', column = 'club_name',
       detail = 'a club already holds this handle';
   end;
 
@@ -2058,7 +2058,7 @@ begin
   -- the server's to state. A validation about the box they typed in.
   if length(trimmed) > 1000 then
     raise exception 'Too long: max 1000 characters'
-      using errcode = 'PN031', hint = 'validation', column = 'content',
+      using errcode = 'PN031', hint = 'form-validation', column = 'content',
       detail = 'chat body over the cap';
   end if;
 
@@ -2158,7 +2158,7 @@ begin
   -- user_id PK would raise the same 23505 as a username collision.
   if exists (select 1 from common.profiles where user_id = caller_id) then
     raise exception 'You already have a username'
-      using errcode = 'PN016', hint = 'error', column = '_',
+      using errcode = 'PN016', hint = 'service-error', column = '_',
       detail = 'this profile already has a username';
   end if;
 
@@ -2183,7 +2183,7 @@ begin
     -- something about — the form cannot know what other people have taken.
     when unique_violation then
       raise exception 'That username is taken'
-        using errcode = 'PN017', hint = 'validation', column = 'desired',
+        using errcode = 'PN017', hint = 'form-validation', column = 'desired',
         detail = 'a profile already holds this username';
     -- PN018. profiles.user_id references auth.users, so this means the row
     -- behind the caller's JWT is gone — a stale token after a db:reset, or a
@@ -2410,7 +2410,7 @@ begin
   -- says which field it belongs under.
   if letters is null or letters !~ '^[A-Za-z?]{2,15}$' then
     raise exception '2–15 letters, or ?'
-      using errcode = 'PN001', hint = 'validation', column = 'letters',
+      using errcode = 'PN001', hint = 'form-validation', column = 'letters',
       detail = 'anagram input must be 2-15 letters or ?';
   end if;
   n := length(letters);
@@ -2580,7 +2580,7 @@ begin
     -- there is no note, so this is the note-only save. A validation — change
     -- something or cancel — and it names the patch it came in on.
     raise exception 'Nothing changed'
-      using errcode = 'PN024', hint = 'validation', column = 'patch',
+      using errcode = 'PN024', hint = 'form-validation', column = 'patch',
       detail = 'the edit was a no-op';
   end if;
 
@@ -2590,7 +2590,7 @@ begin
   -- reading delete_game's already-deleted gets.
   if not found then
     raise exception 'No such word: %', target_word
-      using errcode = 'PN025', hint = 'error', column = '_',
+      using errcode = 'PN025', hint = 'service-error', column = '_',
       detail = 'word absent from common.words';
   end if;
 
@@ -2656,7 +2656,7 @@ begin
     -- PN026. The same condition as PN025 at its own site: one code per raise,
     -- so a code in a report leads to one line rather than to two.
     raise exception 'No such word: %', target_word
-      using errcode = 'PN026', hint = 'error', column = '_',
+      using errcode = 'PN026', hint = 'service-error', column = '_',
       detail = 'word absent from common.words';
   end if;
 
@@ -2708,7 +2708,7 @@ begin
     -- PN027. The add form takes the new word as free text and checks nothing,
     -- so this is a real validation about the box they typed in.
     raise exception 'A word is 1-45 lowercase letters'
-      using errcode = 'PN027', hint = 'validation', column = 'new_word',
+      using errcode = 'PN027', hint = 'form-validation', column = 'new_word',
       detail = 'new word must be 1-45 lowercase letters';
   end if;
   if not fields ? 'difficulty' then
@@ -2716,13 +2716,13 @@ begin
     -- ask. `fields` is the parameter it arrived in; the difficulty control
     -- inside it is where the message belongs once forms route by field.
     raise exception 'Pick a difficulty'
-      using errcode = 'PN028', hint = 'validation', column = 'fields',
+      using errcode = 'PN028', hint = 'form-validation', column = 'fields',
       detail = 'add_word needs a difficulty';
   end if;
   if exists (select 1 from common.words cw where cw.word = new_word) then
     -- PN029. The form cannot know what the dictionary holds.
     raise exception 'Already in the dictionary: %', new_word
-      using errcode = 'PN029', hint = 'validation', column = 'new_word',
+      using errcode = 'PN029', hint = 'form-validation', column = 'new_word',
       detail = 'word already present in common.words';
   end if;
 

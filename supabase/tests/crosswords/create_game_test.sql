@@ -193,7 +193,7 @@ select pg_temp.envelope_is(
                        'puzzle_id', '99999999-9999-9999-9999-999999999999'),
     array['ada11111-1111-1111-1111-111111111111'::uuid],
     'coop'),
-  '{"type":"not-ok","severity":"validation","field":"source","dbcode":"PN222",
+  '{"type":"not-ok","severity":"form-validation","field":"source","dbcode":"PN222",
     "message":"That puzzle is no longer in the library"}'::jsonb,
   'a puzzle_id with no row is refused, under the field that picks one');
 

@@ -278,7 +278,7 @@ begin
     -- Effectively impossible (the band-1 clean set is large), but guard so a
     -- short board never silently ships.
     raise exception 'Not enough words at that difficulty for a board this size'
-      using errcode = 'PN049', hint = 'validation', column = 'difficulty',
+      using errcode = 'PN049', hint = 'form-validation', column = 'difficulty',
       detail = 'common.words has fewer clean words than word_count at that band';
   end if;
 

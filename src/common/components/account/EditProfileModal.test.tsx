@@ -47,7 +47,7 @@ beforeEach(() => {
 describe('EditProfileModal — where a refusal lands', () => {
   it('puts a message naming the color under the swatches, which have no control to name', async () => {
     mockRpc.mockResolvedValue({
-      data: { type: 'not-ok', severity: 'validation', field: 'new_color', message: MESSAGE },
+      data: { type: 'not-ok', severity: 'form-validation', field: 'new_color', message: MESSAGE },
       error: null,
     })
     draw()
@@ -60,7 +60,7 @@ describe('EditProfileModal — where a refusal lands', () => {
     // A read-only field is a field: it carries a name, so the server can name
     // it, and the message has somewhere to go.
     mockRpc.mockResolvedValue({
-      data: { type: 'not-ok', severity: 'validation', field: 'username', message: MESSAGE },
+      data: { type: 'not-ok', severity: 'form-validation', field: 'username', message: MESSAGE },
       error: null,
     })
     draw()
@@ -71,7 +71,7 @@ describe('EditProfileModal — where a refusal lands', () => {
 
   it("puts a fieldless message on the form's line", async () => {
     mockRpc.mockResolvedValue({
-      data: { type: 'not-ok', severity: 'validation', message: MESSAGE },
+      data: { type: 'not-ok', severity: 'form-validation', message: MESSAGE },
       error: null,
     })
     draw()

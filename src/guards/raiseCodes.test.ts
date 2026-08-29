@@ -39,7 +39,18 @@ const FN_DIR = resolve(HERE, '../../supabase/functions')
  *  that read as an outcome; `PN` codes are refusals with a severity. Kept in
  *  step with `Outcome` and `Severity` in dbResult.ts / outcomes.ts. */
 const OUTCOMES = new Set(['won', 'lost', 'near', 'warning', 'neutral', 'noted'])
-const SEVERITIES = new Set(['fault', 'validation', 'error'])
+const SEVERITIES = new Set(['fault', 'race', 'form-validation', 'service-error'])
+
+/** The Deno builders in `_shared/envelope.ts`, and the severity each writes.
+ *  **Every builder that takes a code belongs here**: one left out is not a
+ *  failure but a silence — its codes never reach the uniqueness check, and the
+ *  next-number line reports a number already in use. `serviceError` (then
+ *  spelled `environmental`) was missing exactly that way, hiding three. */
+const FN_BUILDERS: Record<string, string> = {
+  fault: 'fault',
+  formValidation: 'form-validation',
+  serviceError: 'service-error',
+}
 
 type Raise = { file: string; code: string; hint: string | null }
 
@@ -63,7 +74,7 @@ function raises(): Raise[] {
   }
   // Deno, two spellings. `_shared/envelope.ts` builds a refusal through a
   // helper NAMED for its severity, which is where the hint comes from — a
-  // `fault(` call cannot be a validation, so there is no second string to
+  // `fault(` call cannot be a form-validation, so there is no second string to
   // mistype and no way to omit it. A literal envelope object spells it out
   // instead, as `dbcode` + `severity`.
   //
@@ -74,8 +85,9 @@ function raises(): Raise[] {
   for (const path of fnFiles(FN_DIR)) {
     const ts = readFileSync(path, 'utf8')
     const file = path.slice(path.indexOf('functions/'))
-    for (const m of ts.matchAll(/\b(fault|validation)\(\s*\n?\s*'([^']*)'/g)) {
-      found.push({ file, code: m[2]!, hint: m[1]! })
+    const builders = new RegExp(`\\b(${Object.keys(FN_BUILDERS).join('|')})\\(\\s*\\n?\\s*'([^']*)'`, 'g')
+    for (const m of ts.matchAll(builders)) {
+      found.push({ file, code: m[2]!, hint: FN_BUILDERS[m[1]!]! })
     }
     for (const m of ts.matchAll(/dbcode:\s*'([^']*)'([\s\S]{0,200})/g)) {
       const near = m[2]!.match(/(?:severity|outcome):\s*'([^']*)'/)

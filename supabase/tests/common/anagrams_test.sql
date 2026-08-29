@@ -109,7 +109,7 @@ select is(
 -- message on its own error line rather than in a fault modal.
 select pg_temp.envelope_is(
   common.anagrams('ab1'),
-  '{"type": "not-ok", "severity": "validation", "message": "2–15 letters, or ?"}'::jsonb,
+  '{"type": "not-ok", "severity": "form-validation", "message": "2–15 letters, or ?"}'::jsonb,
   'digits are rejected'
 );
 
@@ -124,7 +124,7 @@ select pg_temp.envelope_is(
 
 select pg_temp.envelope_is(
   common.anagrams('a'),
-  '{"type": "not-ok", "severity": "validation", "message": "2–15 letters, or ?"}'::jsonb,
+  '{"type": "not-ok", "severity": "form-validation", "message": "2–15 letters, or ?"}'::jsonb,
   'a single letter is rejected'
 );
 

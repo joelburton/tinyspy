@@ -21,15 +21,16 @@ import type { Envelope, Severity } from './envelope'
  *
  * A call site reads `type` first:
  *
- *     ok                    use `data`
- *     not-ok / validation   show `message` on the form's own error line
- *     not-ok / error        show `message` in a pill; wait and retry
- *     not-ok / fault        nothing to do — the modal is already up
+ *     ok                        use `data`
+ *     not-ok / form-validation  show `message` under the control it names
+ *     not-ok / race             show `message` in a pill — you lost the race
+ *     not-ok / service-error    show `message` in a pill; wait and retry
+ *     not-ok / fault            nothing to do — the modal is already up
  *
  * Faults are presented centrally (`reportDbFault`, called from `dbFetch`), so
  * no call site classifies a failure, words a network problem, or reaches for
  * `showFaultModal` itself. Most callers never test `severity` at all: they bail
- * on anything that isn't `ok`, and only a form that shows validation text needs
+ * on anything that isn't `ok`, and only a form that shows form-validation text needs
  * to look closer.
  */
 
@@ -107,23 +108,50 @@ export type DbError = {
 // ─────────────────────────────────────────────────────────────
 
 /**
- * What a `[db]` line is ABOUT, and how loudly. One word, five values, and it
+ * What a `[db]` line is ABOUT, and how loudly. One word, six values, and it
  * decides the console method as well as the label — so a line's level and its
  * severity can never disagree.
  *
- *     FAULT       a bug     → console.error
- *     ERROR       an outage → console.warn
- *     SLOW        a call over the threshold that still worked → console.warn
- *     VALIDATION  the values you sent → console.debug
- *     OK          it worked → console.debug
+ *     FAULT            a bug
+ *     SERVICE_ERROR    something we depend on didn't answer
+ *     SLOW             a call over the threshold that still worked
+ *     RACE             a race the player lost
+ *     FORM_VALIDATION  the values you sent
+ *     OK               it worked
  *
- * The three quiet levels are why every call can be logged without drowning
- * anything: the browser's own level filter is the volume control.
+ * **Four of the six are a severity, spelled the same way.** A level named for
+ * what it is about would drift from the severity it prints beside — a bare
+ * `ERROR` on a line whose `severity=service-error` invites the reader to wonder
+ * which of the two they are looking at, and `error` is the word this system
+ * exists to stop using loosely. `SLOW` and `OK` are the exceptions because they
+ * are `dbFetch` narrating transport, where no envelope reached a decision.
+ *
+ * Why each sits at the console method it does — including why `RACE` is `warn`
+ * when nothing is wrong — is in docs/envelopes.md → the `[db]` line.
  */
-export type LogLevel = 'FAULT' | 'ERROR' | 'SLOW' | 'VALIDATION' | 'OK'
+export type LogLevel =
+  'FAULT' | 'SERVICE_ERROR' | 'SLOW' | 'RACE' | 'FORM_VALIDATION' | 'OK'
 
-const LEVEL_METHOD: Record<LogLevel, 'error' | 'warn' | 'debug'> = {
-  FAULT: 'error', ERROR: 'warn', SLOW: 'warn', VALIDATION: 'debug', OK: 'debug',
+/** Which function on `console` writes a line at each level — the values are
+ *  literally its method names, called as `console[…]`, which is why the browser's
+ *  own level filter is the only volume control this needs. */
+const LOGLEVEL_TO_CONSOLE_LOG_METHOD: Record<LogLevel, 'error' | 'warn' | 'debug'> = {
+  FAULT: 'error',
+  SERVICE_ERROR: 'warn',
+  SLOW: 'warn',
+  RACE: 'warn',
+  FORM_VALIDATION: 'debug',
+  OK: 'debug',
+}
+
+/** A `not-ok`'s severity decides its `[db]` level, so a line's level and its
+ *  severity can never disagree. Total by construction: a new severity is a
+ *  compile error here, which is the point of the `Record`. A `fault` is not in
+ *  the map because it never reaches this path — `reportDbFault` logs it. */
+const SEVERITY_TO_LOGLEVEL: Record<Exclude<Severity, 'fault'>, LogLevel> = {
+  'service-error': 'SERVICE_ERROR',
+  'form-validation': 'FORM_VALIDATION',
+  race: 'RACE',
 }
 
 /**
@@ -138,25 +166,35 @@ export type DiagFields = {
   call: string
   // `| null` because an envelope's are always PRESENT and null when empty, and
   // this reads them straight through. The formatter already treats the two
-  // alike (`v` returns '' for either), so this only lets the type say so.
+  // alike (`fieldValue` returns '' for either), so this only lets the type say so.
   severity?: Severity | null
   outcome?: string | null
   dbcode?: string | null
   status?: number
   /** Round-trip milliseconds. Known where the fetch happens, not after it. */
   ms?: number
-  /** The raise's COLUMN, on a validation. */
+  /** The raise's COLUMN, on a form-validation. */
   field?: string | null
   /** The debugging line: the raise's DETAIL, Postgres's details + hint, or the
    *  thrown JS error. Never shown to a player. */
   detail?: string | null
 }
 
-const v = (x: unknown) => (x === undefined || x === null ? '' : String(x))
-/** Free text, quoted — and its own quotes escaped, since Postgres routinely
- *  hands back a hint like `Perhaps you meant "clubs.name"` and an unescaped one
- *  makes the line unparseable exactly where it is most worth parsing. */
-const q = (x: unknown) =>
+/** A field's value for the `[db]` line: itself, or **empty** when it has nothing
+ *  to say. Both "absent" and "explicitly null" print as nothing, because the
+ *  line's promise is that a blank means the same thing wherever you see one —
+ *  an envelope's keys are always present and often null, while the transport's
+ *  are simply missing, and a reader should not have to know which they are
+ *  looking at. */
+const fieldValue = (x: unknown) => (x === undefined || x === null ? '' : String(x))
+
+/** The same, for **free text**, wrapped in quotes so its spaces and `|` cannot
+ *  be mistaken for the line's own delimiters — and with its own quotes escaped,
+ *  since Postgres routinely hands back a hint like `Perhaps you meant
+ *  "clubs.name"` and an unescaped one makes the line unparseable exactly where
+ *  it is most worth parsing. An empty string prints as nothing rather than as
+ *  `""`, so it reads like every other empty field. */
+const quotedText = (x: unknown) =>
   x === undefined || x === null || x === '' ? '' : `"${String(x).replace(/"/g, '\\"')}"`
 
 /**
@@ -173,13 +211,13 @@ export function diagnosticsLine(level: LogLevel, f: DiagFields): string {
     logStamp(),
     level,
     f.call,
-    `severity=${v(f.severity)}`,
-    `outcome=${v(f.outcome)}`,
-    `dbcode=${v(f.dbcode)}`,
-    `status=${v(f.status)}`,
-    `ms=${v(f.ms)}`,
-    `field=${v(f.field)}`,
-    `detail=${q(f.detail)}`,
+    `severity=${fieldValue(f.severity)}`,
+    `outcome=${fieldValue(f.outcome)}`,
+    `dbcode=${fieldValue(f.dbcode)}`,
+    `status=${fieldValue(f.status)}`,
+    `ms=${fieldValue(f.ms)}`,
+    `field=${fieldValue(f.field)}`,
+    `detail=${quotedText(f.detail)}`,
   ].join(' | ')
 }
 
@@ -194,8 +232,8 @@ export function diagnosticsLine(level: LogLevel, f: DiagFields): string {
  * code, when the truth is that nobody looked. Omitted beats empty.
  */
 export function logSlow(f: { call: string; ms?: number; detail?: string }): void {
-  console[LEVEL_METHOD.SLOW](
-    `[db] ${[logStamp(), 'SLOW', f.call, `ms=${v(f.ms)}`, `detail=${q(f.detail)}`].join(' | ')}`,
+  console[LOGLEVEL_TO_CONSOLE_LOG_METHOD.SLOW](
+    `[db] ${[logStamp(), 'SLOW', f.call, `ms=${fieldValue(f.ms)}`, `detail=${quotedText(f.detail)}`].join(' | ')}`,
   )
 }
 
@@ -217,8 +255,8 @@ export function logDb(level: LogLevel, f: DiagFields, message?: string | null): 
   const diagnostics = diagnosticsLine(level, f)
   // `null` as well as `undefined`: an `ok` envelope always CARRIES a `message`
   // key and it is usually null, so "nothing to say" arrives both ways.
-  console[LEVEL_METHOD[level]](
-    `[db] ${diagnostics}${message === undefined || message === null ? '' : ` | msg=${q(message)}`}`,
+  console[LOGLEVEL_TO_CONSOLE_LOG_METHOD[level]](
+    `[db] ${diagnostics}${message === undefined || message === null ? '' : ` | msg=${quotedText(message)}`}`,
   )
   return diagnostics
 }
@@ -297,10 +335,10 @@ function envelopeFields(t: Transport, envelope: Envelope): DiagFields {
 }
 
 /**
- * **Log an outcome that is NOT a fault** — a validation, a wait-and-retry error,
- * or an `ok` carrying words.
+ * **Log an outcome that is NOT a fault** — a form-validation, a lost race, a
+ * wait-and-retry service-error, or an `ok` carrying words.
  *
- * The `error` half is the one that matters. `serverError.ts`'s rule was
+ * The `service-error` half is the one that matters. `serverError.ts`'s rule was
  * "expected rejections are NOT logged", which makes a MISCLASSIFIED bug
  * completely silent: if "already deleted" starts firing on every click because
  * something is broken, nothing anywhere says so. Logging it at `warn` costs one
@@ -308,7 +346,9 @@ function envelopeFields(t: Transport, envelope: Envelope): DiagFields {
  */
 export function logDbOutcome(t: Transport, envelope: Envelope): void {
   const level: LogLevel =
-    envelope.type === 'ok' ? 'OK' : envelope.severity === 'error' ? 'ERROR' : 'VALIDATION'
+    envelope.type === 'ok' ? 'OK'
+    : envelope.severity === 'fault' ? 'FAULT'
+    : SEVERITY_TO_LOGLEVEL[envelope.severity]
   logDb(level, envelopeFields(t, envelope), envelope.message)
 }
 
@@ -435,7 +475,7 @@ function callLabel(call: unknown, fallback: string): string {
  *
  *     const r = await runRpc<Word[]>(db.rpc('anagrams', { letters }))
  *     if (r.type !== 'ok') {
- *       setError(r.severity === 'validation' ? r.message : null)
+ *       setError(r.severity === 'form-validation' ? r.message : null)
  *       return
  *     }
  *     setResults(r.data)
@@ -499,7 +539,7 @@ export async function runRpc<T>(call: PromiseLike<{ data: unknown; error: DbErro
  * author because the frontend is what knows the invariant.
  *
  * A failure is always `severity: fault` and never anything else: a read can't
- * produce a validation error (nothing was submitted to validate) or a
+ * produce a form-validation (nothing was submitted to validate) or a
  * wait-and-retry. By then the modal is already up, because `dbFetch` presented
  * it in `dbFetch` — so a call site's only job is to stop showing a stale answer.
  *

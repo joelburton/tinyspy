@@ -290,7 +290,7 @@ begin
   end if;
   if v_target is null then
     raise exception 'No answers available from that source'
-      using errcode = 'PN057', hint = 'validation', column = 'answer_source',
+      using errcode = 'PN057', hint = 'form-validation', column = 'answer_source',
       detail = 'common.words has no answer candidates at that band; run gmake all-words';
   end if;
 

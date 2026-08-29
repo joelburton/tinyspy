@@ -189,7 +189,7 @@ begin
   is_custom_board := coalesce(setup->>'custom_board', '') <> '';
   if is_custom_board and coalesce(b_required_count, 0) < 1 then
     raise exception 'No words for those letters at that difficulty'
-      using errcode = 'PN147', hint = 'validation', column = 'custom_board',
+      using errcode = 'PN147', hint = 'form-validation', column = 'custom_board',
       detail = 'the typed board produces no words at that band';
   end if;
 

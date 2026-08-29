@@ -57,7 +57,7 @@ import {
 import { parseCustomBoard } from '../../../src/boggle/lib/customBoard.ts'
 import { requiredTrie, legalTrie } from './dict.ts'
 import { preflight } from '../_shared/http.ts'
-import { crash, fault, validation } from '../_shared/envelope.ts'
+import { crash, fault, formValidation } from '../_shared/envelope.ts'
 import { parseBuildBoardRequest, invokeCreateGame } from '../_shared/startGame.ts'
 
 interface BoggleSetup {
@@ -153,7 +153,7 @@ serve(async (req: Request): Promise<Response> => {
       // the first bonus word wins.
       if (requiredWords.length < 1) {
         console.log(`boggle-build-board reject: custom board has no words at band ${band}`)
-        return validation(
+        return formValidation(
           'PN154',
           'custom_board',
           'No words for those letters at that difficulty.',
@@ -180,7 +180,7 @@ serve(async (req: Request): Promise<Response> => {
       // whichever we guessed would send the player to change a setting that is
       // fine on its own.
       if (!rolled) {
-        return validation(
+        return formValidation(
           'PN155',
           '_',
           'No board met those constraints — please relax them.',

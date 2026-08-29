@@ -89,7 +89,7 @@ select pg_temp.envelope_is(
 );
 select pg_temp.envelope_is(
   common.update_word('zqnope', '{"difficulty": 3}'::jsonb),
-  '{"type": "not-ok", "severity": "error", "dbcode": "PN025",
+  '{"type": "not-ok", "severity": "service-error", "dbcode": "PN025",
     "message": "No such word: zqnope"}'::jsonb,
   'patching a missing word says so'
 );
@@ -131,19 +131,19 @@ select is(
 );
 select pg_temp.envelope_is(
   common.add_word('zqeditnew', '{"difficulty": 1}'::jsonb),
-  '{"type": "not-ok", "severity": "validation", "dbcode": "PN029",
+  '{"type": "not-ok", "severity": "form-validation", "dbcode": "PN029",
     "field": "new_word", "message": "Already in the dictionary: zqeditnew"}'::jsonb,
   'a duplicate add is rejected'
 );
 select pg_temp.envelope_is(
   common.add_word('Zq1', '{"difficulty": 1}'::jsonb),
-  '{"type": "not-ok", "severity": "validation", "dbcode": "PN027",
+  '{"type": "not-ok", "severity": "form-validation", "dbcode": "PN027",
     "field": "new_word", "message": "A word is 1-45 lowercase letters"}'::jsonb,
   'a malformed word is rejected'
 );
 select pg_temp.envelope_is(
   common.add_word('zqblank', '{"slang": true}'::jsonb),
-  '{"type": "not-ok", "severity": "validation", "dbcode": "PN028",
+  '{"type": "not-ok", "severity": "form-validation", "dbcode": "PN028",
     "field": "fields", "message": "Pick a difficulty"}'::jsonb,
   'a new word must state its band'
 );

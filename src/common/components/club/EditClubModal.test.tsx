@@ -50,7 +50,7 @@ beforeEach(() => {
 describe('EditClubModal — where a refusal lands', () => {
   it("puts a fieldless message on the form's line, not under a box", async () => {
     mockRpc.mockResolvedValue({
-      data: { type: 'not-ok', severity: 'validation', message: MESSAGE },
+      data: { type: 'not-ok', severity: 'form-validation', message: MESSAGE },
       error: null,
     })
     draw()
@@ -66,7 +66,7 @@ describe('EditClubModal — where a refusal lands', () => {
     // what the form promises, and the day an RPC does name a column the form
     // must already be able to carry it.
     mockRpc.mockResolvedValue({
-      data: { type: 'not-ok', severity: 'validation', field: 'gametypes', message: MESSAGE },
+      data: { type: 'not-ok', severity: 'form-validation', field: 'gametypes', message: MESSAGE },
       error: null,
     })
     draw()

@@ -520,7 +520,7 @@ begin
       from crosswords.puzzles p where p.id = v_puzzle_id;
     if not found then
       raise exception 'That puzzle is no longer in the library'
-        using errcode = 'PN222', hint = 'validation', column = 'source',
+        using errcode = 'PN222', hint = 'form-validation', column = 'source',
         detail = 'no crosswords.puzzles row for that id; run the puzzle import';
     end if;
   end if;

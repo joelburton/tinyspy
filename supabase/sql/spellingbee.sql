@@ -455,7 +455,7 @@ begin
   if is_custom_board then
     if b_required_words_count < 1 then
       raise exception 'No words for those letters at that difficulty'
-        using errcode = 'PN168', hint = 'validation', column = 'custom_letters',
+        using errcode = 'PN168', hint = 'form-validation', column = 'custom_letters',
         detail = 'the chosen letters produce an empty required set at that band';
     end if;
   elsif b_required_words_count < 30 then

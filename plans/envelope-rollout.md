@@ -15,7 +15,12 @@ way, and not doing the finished 40 twice.
 
 ## Decisions already made (do not re-litigate)
 
-- **The severity rename is not a step.** `validation` → `form-validation` and
+- ~~**The severity rename is not a step.**~~ **Overtaken by step 3a** — the
+  premise below ("a game not yet converted raises the old word") turned out to
+  describe no raise in the repo, so the rename landed atomically after all. Kept
+  because the reasoning about what the guard is for still stands.
+
+  `validation` → `form-validation` and
   `error` → `service-error` was going to be one atomic commit. It isn't:
   `Severity` has exactly two consumers in TypeScript (`dbResult.ts:6` and the
   optional field at `dbResult.ts:142`), and nothing branches on it, so renaming
@@ -24,12 +29,10 @@ way, and not doing the finished 40 twice.
   **as each game comes up on the roster**, inside work already scheduled. A game
   not yet converted raises the old word, matches no arm, and wears the wrong
   look until its turn — a not-yet-fixed part not working, which is fine.
-- **The guard goes red, no transition shim.** After the vocabulary commit,
-  `raiseCodes.test.ts` fails listing all unconverted raises by file and code.
-  That is a to-do list that reprints itself on every run and turns green exactly
-  when the sprint ends. A set holding both spellings would have accepted the old
-  word forever and needed its own cleanup commit to close. (This choice rests on
-  the sprint being days, not weeks. If it stretches, revisit.)
+- **The guard takes no transition shim.** A `SEVERITIES` set holding both
+  spellings would have accepted the old word forever and needed its own cleanup
+  commit to close. It holds only the new four — and since 3a converted the
+  raises in the same commit, it is green rather than red-as-a-to-do-list.
 - **`getNotOkFeedback` returns four fields**, not three:
 
   ```ts
@@ -171,11 +174,59 @@ the imbalance step 2 exists to correct.
 
 ## Step 3 — the shared machinery
 
-**3a. The vocabulary commit** (small). The `Severity` union's members, the
-helper names in `supabase/functions/_shared/envelope.ts`, and
-`raiseCodes.test.ts:42`'s `SEVERITIES` set. Adds `race`. Renaming the Deno
-helpers breaks their callers at `deno check`, but per edge function, and they
-deploy per function. Everything else stays green; the guard goes red on purpose.
+**3a. The vocabulary commit — DONE 2026-08-28.** The `Severity` union's members,
+the Deno helper names (`validation` → `formValidation`, `environmental` →
+`serviceError`) and their 8 callers, `raiseCodes.test.ts`'s `SEVERITIES` set,
+and `race` added everywhere.
+
+**It included the SQL, against the decision above, because that decision rested
+on a wrong premise.** All 26 raises spelling the old words sit in
+**already-converted** RPCs — `common.sql`'s forms plus eleven games'
+`create_game` — not in unconverted games, so "they convert as each game comes up
+on the roster" described nobody, and the guard would have gone red on items no
+scheduled work returns to. The measured cost was 26 SQL lines and 22 pgTAP
+assertions, not the "37 pgTAP files" this plan estimated. Everything is green
+(`tsc -b`, 2461 unit tests, `deno check` ×13, 2406 pgTAP).
+
+Two things found while doing it, both fixed here:
+
+- **The guard was blind to one Deno builder.** Its regex read `fault(` and
+  `validation(` but never `environmental(`, so PN230, PN232 and PN240 were
+  invisible to the uniqueness check and to the next-number line — 239 codes
+  seen where there were 242. The builder list is now a `Record` the regex is
+  built from, so adding a builder and forgetting the guard is one edit, not two.
+  Both arms re-verified by planting (a bad hint, and a duplicated code).
+- **`LogLevel` gained `RACE`**, at `console.warn` (Joel, 2026-08-28). The
+  severity → level map is now a total `Record`, so a new severity is a compile
+  error there. `warn` is deliberately not about how bad a race is — it is the
+  one level chosen for how PUZZLING the thing is to a player: a move that simply
+  didn't happen is rare and produces "what was that?", which should be one
+  glance at the console rather than a dig through debug output.
+
+Then a review round (Joel, 2026-08-28), which changed four more things:
+
+- **The log levels are named for the severities they print beside.** `ERROR` →
+  `SERVICE_ERROR`, `VALIDATION` → `FORM_VALIDATION`. A bare `ERROR` on a line
+  reading `severity=service-error` reintroduced exactly the ambiguity the
+  severity rename existed to remove. `SLOW` and `OK` stay as they are: they are
+  `dbFetch` narrating transport, where no envelope reached a decision.
+  **This changes what a `[db]` line prints.**
+- **A map's name says what it maps.** `LEVEL_METHOD` → `LOGLEVEL_TO_CONSOLE_LOG_METHOD`,
+  `NOT_OK_LEVEL` → `SEVERITY_TO_LOGLEVEL`. The house form is `FOO_TO_BAR`, and
+  spell out what the values ARE — `_TO_METHOD` only parses for a reader who
+  already knows they are `console`'s own method names.
+- **No single-letter helpers.** `v` / `q` → `fieldValue` / `quotedText`, each
+  with a docstring. The abbreviations hid the one interesting thing about each,
+  which is what "empty" means.
+- **"Environmental" now has a written definition**, in
+  [envelopes.md](../docs/envelopes.md) → "Environmental" means the JS fetch
+  failed. **An environmental problem is a failed JS fetch** (Joel's phrasing) —
+  the promise rejected, no `Response` object exists — minus a fetch we canceled
+  ourselves. `PGRST202` and a dead edge container are raw faults, because both
+  answered; a working edge function reporting NYT down is a `service-error`.
+  Three places said otherwise and are corrected. The word was drifting toward
+  the third case, which is what the `environmental` → `serviceError` rename
+  above had already half-fixed.
 
 **3b. The additive machinery** — none of it needs a retro-fix to land green:
 

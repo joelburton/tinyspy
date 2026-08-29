@@ -70,7 +70,7 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { type SupabaseClient } from 'jsr:@supabase/supabase-js@2'
 import { preflight } from '../_shared/http.ts'
-import { crash, fault, validation } from '../_shared/envelope.ts'
+import { crash, fault, formValidation } from '../_shared/envelope.ts'
 import { parseBuildBoardRequest, invokeCreateGame } from '../_shared/startGame.ts'
 
 // ───────────────────────────────────────────────────────────
@@ -288,9 +288,9 @@ serve(async (req) => {
         const shown = customBase.toUpperCase()
         console.log(`reject: custom base ${customBase} has ${children} children`)
         return children > CUSTOM_CHILD_MAX
-          ? validation('PN133', 'custom_base', `${shown} matches too many words.`,
+          ? formValidation('PN133', 'custom_base', `${shown} matches too many words.`,
               `wordiply-build-board: ${children} children, max ${CUSTOM_CHILD_MAX}`)
-          : validation('PN134', 'custom_base', `No long enough word contains ${shown}.`,
+          : formValidation('PN134', 'custom_base', `No long enough word contains ${shown}.`,
               `wordiply-build-board: ${children} children`)
       }
       board = {

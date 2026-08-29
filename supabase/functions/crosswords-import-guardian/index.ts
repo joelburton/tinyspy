@@ -40,7 +40,7 @@
 
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { json, preflight } from '../_shared/http.ts'
-import { crash, environmental, fault } from '../_shared/envelope.ts'
+import { crash, fault, serviceError } from '../_shared/envelope.ts'
 import { callerClient } from '../_shared/startGame.ts'
 import type { Json } from '../../../src/types/db.ts'
 import { convertGuardianPuzzle, GuardianConvertError, type GuardianData } from '../../../src/crosswords/lib/guardian.ts'
@@ -179,7 +179,7 @@ serve(async (req) => {
         'crosswords-import-guardian: GuardianConvertError')
     }
     if (e instanceof GuardianFetchError) {
-      return environmental('PN240', "The Guardian couldn't be reached — try again later",
+      return serviceError('PN240', "The Guardian couldn't be reached — try again later",
         'crosswords-import-guardian: GuardianFetchError')
     }
     return crash('crosswords-import-guardian', e)

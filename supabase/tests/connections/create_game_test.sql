@@ -122,7 +122,7 @@ select pg_temp.envelope_is(
     $$ select connections.create_game(%L, pg_temp.connections_setup('00000000-0000-0000-0000-000000000000'::uuid), array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
     (select handle from club)
   )),
-  '{"type":"not-ok","severity":"validation","field":"puzzle_id","dbcode":"PN065"}'::jsonb,
+  '{"type":"not-ok","severity":"form-validation","field":"puzzle_id","dbcode":"PN065"}'::jsonb,
   'create_game: unknown puzzle_id is rejected');
 
 -- ============================================================

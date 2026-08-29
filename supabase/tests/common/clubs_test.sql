@@ -125,7 +125,7 @@ select pg_temp.envelope_is(
 -- handle. Each names the input it belongs under, which is what `field` is for.
 select pg_temp.envelope_is(
   common.create_club('Some Club', array['nonesuch']),
-  '{"type": "not-ok", "severity": "validation", "field": "member_usernames",
+  '{"type": "not-ok", "severity": "form-validation", "field": "member_usernames",
     "message": "No such user: nonesuch"}'::jsonb,
   'create_club: an unknown username is a validation, naming the offender'
 );
@@ -135,7 +135,7 @@ select pg_temp.envelope_is(
 -- to be >= 2 after that.)
 select pg_temp.envelope_is(
   common.create_club('Just Me', array['ada']),
-  '{"type": "not-ok", "severity": "validation", "field": "member_usernames",
+  '{"type": "not-ok", "severity": "form-validation", "field": "member_usernames",
     "message": "A club needs at least 2 members"}'::jsonb,
   'create_club: lone-caller membership is a validation'
 );
@@ -143,7 +143,7 @@ select pg_temp.envelope_is(
 -- Empty member list → caller alone is added → still < 2 → rejected.
 select pg_temp.envelope_is(
   common.create_club('Empty Members', array[]::text[]),
-  '{"type": "not-ok", "severity": "validation", "field": "member_usernames"}'::jsonb,
+  '{"type": "not-ok", "severity": "form-validation", "field": "member_usernames"}'::jsonb,
   'create_club: an empty member list is a validation'
 );
 
@@ -221,7 +221,7 @@ select pg_temp.as_user('cade3333-3333-3333-3333-333333333333');
 
 select pg_temp.envelope_is(
   common.create_club('friday night', array['ada','bea']),
-  '{"type": "not-ok", "severity": "validation", "field": "club_name",
+  '{"type": "not-ok", "severity": "form-validation", "field": "club_name",
     "dbcode": "PN009", "message": "Club name taken (handle “friday-night”)"}'::jsonb,
   'create_club: a handle collision is a validation naming the handle'
 );

@@ -109,7 +109,7 @@ select pg_temp.envelope_is(
       'outer_letters','abcdfg','center_letter','e',
       'required_words_score',0,'required_words_count',0,
       'required_words','[]'::jsonb,'bonus_words','[]'::jsonb)),
-  '{"type":"not-ok","severity":"validation","field":"custom_letters","dbcode":"PN168",
+  '{"type":"not-ok","severity":"form-validation","field":"custom_letters","dbcode":"PN168",
     "message":"No words for those letters at that difficulty"}'::jsonb,
   'a custom board with ZERO required words is rejected (≥1 playability floor)');
 

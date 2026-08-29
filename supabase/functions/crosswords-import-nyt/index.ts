@@ -51,7 +51,7 @@ import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { PNG } from 'npm:pngjs'
 import { Buffer } from 'node:buffer'
 import { json, preflight } from '../_shared/http.ts'
-import { crash, environmental, fault, validation } from '../_shared/envelope.ts'
+import { crash, fault, formValidation, serviceError } from '../_shared/envelope.ts'
 import { callerClient } from '../_shared/startGame.ts'
 import type { Json } from '../../../src/types/db.ts'
 import { convertNytPuzzle, type NytPuzzleResponse } from '../../../src/crosswords/lib/nyt.ts'
@@ -231,7 +231,7 @@ serve(async (req) => {
     // pick a different day, so it lands on the field that picks one. Joel's
     // words, approved 2026-08-12.
     if (!picked) {
-      return validation('PN228', 'source', "You've played every one of those",
+      return formValidation('PN228', 'source', "You've played every one of those",
         `crosswords-import-nyt: no unplayed puzzle for dow ${weekday}`)
     }
     date = picked as unknown as string
@@ -278,15 +278,15 @@ serve(async (req) => {
     // approved 2026-08-12; the specific cause (HTTP status, bot challenge, bad
     // JSON) stays in the function's serve log.
     if (e instanceof NytAuthError) {
-      return environmental('PN230', 'NYT rejected the cookie — it may be expired',
+      return serviceError('PN230', 'NYT rejected the cookie — it may be expired',
         'crosswords-import-nyt: NytAuthError')
     }
     if (e instanceof NytNoPuzzleError) {
-      return validation('PN231', 'source', `No NYT crossword published for ${date}`,
+      return formValidation('PN231', 'source', `No NYT crossword published for ${date}`,
         'crosswords-import-nyt: NytNoPuzzleError')
     }
     if (e instanceof NytFetchError) {
-      return environmental('PN232', "NYT couldn't be reached — try again later",
+      return serviceError('PN232', "NYT couldn't be reached — try again later",
         'crosswords-import-nyt: NytFetchError')
     }
     return crash('crosswords-import-nyt', e)

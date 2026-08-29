@@ -20,9 +20,27 @@
 
 import type { Outcome } from '../outcomes'
 
-/** How bad a `not-ok` is. A `fault` still arrives — one shape, always — but the
- *  modal is already up by then, so a call site has nothing to render for it. */
-export type Severity = 'fault' | 'validation' | 'error'
+/**
+ * What KIND of `not-ok` this is. Each meaning, and the default appearance each
+ * carries, is in docs/envelopes.md → Severity.
+ *
+ *   fault            a bug, a broken server, or a request our FE didn't send
+ *   race             the player lost a legitimate race
+ *   form-validation  the form is invalid; the message belongs under a control
+ *   service-error    something we depend on didn't answer
+ *
+ * A `fault` still arrives — one shape, always — but the modal is already up by
+ * then, so a call site has nothing to render for it.
+ *
+ * The two compound names are spelled out rather than shortened, because the
+ * short forms are both words that already mean something else here. A bare
+ * `validation` is broad enough to describe most of what any RPC does, while
+ * this one specifically means "put it under that control". And a bare `error`
+ * would collide with the outcome tone of the same name: one severity and one
+ * outcome, spelled identically, meaning different things — exactly the
+ * confusion the two levels exist to remove.
+ */
+export type Severity = 'fault' | 'race' | 'form-validation' | 'service-error'
 
 /**
  * **The envelope** — the one shape everything travels in.
@@ -77,14 +95,14 @@ export type Envelope<T = unknown> =
       severity: Severity
       message: string
       /**
-       * Which FIELD a `validation` is about, from the raise's `COLUMN`.
+       * Which FIELD a `form-validation` is about, from the raise's `COLUMN`.
        *
        *     'letters'   the message belongs under that field
        *     '_'         deliberately not about one field — the form's own line
        *     absent      the raise didn't say; a SQL-side guard catches it
        *
        * `_` is a real value, not a stand-in for nothing: an author who decides
-       * a validation isn't about one field says so, and that reads differently
+       * a form-validation isn't about one field says so, and that reads differently
        * from having forgotten. It is also the form-level key in the form's
        * error object, so the same string serves SQL, the envelope and the form
        * (plans/areas/forms.md → F48).

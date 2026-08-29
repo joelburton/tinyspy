@@ -296,7 +296,7 @@ begin
     -- their doing and not their fix, but it IS a plain answer rather than a
     -- broken client.
     raise exception 'Not enough words on the server to build a board'
-      using errcode = 'PN093', hint = 'error', column = '_',
+      using errcode = 'PN093', hint = 'service-error', column = '_',
       detail = 'codenamesduet.word_pool has fewer than 25 rows; run the seed';
   end if;
 

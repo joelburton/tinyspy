@@ -13,11 +13,13 @@ This file is the canonical place for these decisions.
 conversion and tracks what is left; where the two disagree, this file wins.
 
 **Some of what follows is decided and not yet built** — this file describes the
-target, and the plan tracks the distance. As of 2026-08-28 the code still spells
-the severities `validation` and `error` (here: `form-validation` and
-`service-error`), has no `race` at all, resolves no default appearance, and has
-no `getNotOkFeedback`. Roughly 21 raises, 6 edge-function calls and the guard's
-vocabulary set move when it lands.
+target, and the plan tracks the distance. As of 2026-08-28 the vocabulary here
+is the vocabulary in the code: all four severities, `race` included, are spelled
+as written here in TypeScript, in SQL's hints, in the Deno builders and in the
+guard. Still to land: **the default-appearance resolution** (nothing fills
+`outcome` from a severity yet), **`outcome` on the not-ok arm** (typed `null`
+today), and **`getNotOkFeedback`**. No raise classifies itself as a `race` yet
+either — the severity exists, and the roster decides which raises earn it.
 
 ## Consumers
 
@@ -384,7 +386,7 @@ failure:**
 |---|---|---|
 | an **envelope** | we wrote this outcome down — someone named the condition and wrote a sentence for it | whatever `type` / `severity` says |
 | the **raw Postgres/PostgREST shape** (`{code, message, details, hint}`) | nobody anticipated it — a constraint violation, a missing function, a deadlock, permission denied | always a fault |
-| **no reply at all** | environmental — offline, server down, dead edge container | always a fault |
+| **no reply at all** | environmental — offline, or the fetch died in transit | always a fault |
 
 **Nomenclature: a "raw fault" is one that arrives in Postgres's own shape**, as
 opposed to a **declared fault**, which arrives as an envelope with `severity:
@@ -429,11 +431,46 @@ render. The one `if` that stays is a caller noticing it didn't get data so it
 can clear a `busy` flag or roll back an optimistic write: a bail-out, not a
 decision, needing no error vocabulary at all.
 
+### "Environmental" means the JS fetch failed
+
+The word is narrow, and worth holding to its edges because it is easy to widen
+by accident. The one-line version: **an environmental problem is a failed JS
+fetch.** The promise rejected, no `Response` object exists, and `dbFetch` — the
+only place that builds one — tests exactly that.
+
+With one carve-out, because not every failed fetch is the environment's fault:
+**a fetch WE canceled doesn't count.** An `AbortError` — a component unmounting,
+a superseded request — is logged and nothing more, since nobody is owed a modal
+for a request we withdrew. Calls to Supabase's own auth endpoints are excluded
+too; the sign-in screen speaks for those. So, fully: *the JS fetch failed, and
+we didn't cause it.*
+
+What is **not** environmental, though each is tempting:
+
+| | is | because |
+|---|---|---|
+| `PGRST202` — no function by that name | a **raw fault** | a real HTTP response, with a code. Something answered |
+| a dead edge-function container | a **raw fault** | a gateway 502 is still a response |
+| a working edge function reporting that NYT is down | a **`service-error`** | our function ran, reached a decision, and said so on a 200 |
+
+**The third is the one to guard.** An outside service failing is not the
+environment failing: our own stack worked perfectly, and a function wrote a
+sentence about what it found. It is a decision, so it travels as one, and the
+Deno builder that writes it is `serviceError` — named for the severity, so the
+two words cannot be swapped by reflex.
+
+Nothing behavioral hangs on the line being here rather than one step wider: a
+raw fault and an environmental failure both pop the same modal and read the same
+to a player. It is drawn here because it is a property the code can test in one
+expression, and a boundary that needs judgment is a boundary that drifts. The
+fact a wider definition wanted is already on the `[db]` line anyway — **a blank
+`status=` is "nothing answered"**.
+
 ### The environmental sentences
 
 The frontend authors exactly two sentences, and they are the only ones it
-authors at all — for the one failure where the server never spoke, so no author
-could have written for it. Which of the two applies turns on `navigator.onLine`.
+authors at all — for the one failure above, where the server never spoke, so no
+author could have written for it. Which applies turns on `navigator.onLine`.
 
 **They are generic and name no action**, and that is a correctness rule rather
 than a simplicity one: **an environmental failure cannot tell you whether the
@@ -466,14 +503,26 @@ its severity cannot disagree:
 | level | method | is |
 |---|---|---|
 | `FAULT` | `console.error` | a bug |
-| `ERROR` | `console.warn` | an outage |
+| `SERVICE_ERROR` | `console.warn` | something we depend on didn't answer |
 | `SLOW` | `console.warn` | a call over the threshold that still worked |
-| `VALIDATION` | `console.debug` | the values you sent |
+| `RACE` | `console.warn` | a race the player lost |
+| `FORM_VALIDATION` | `console.debug` | the values you sent |
 | `OK` | `console.debug` | it worked |
 
-The three quiet levels are why every call can be logged without drowning
+**Four of the six are a severity, spelled the same way**, so a line's level and
+the `severity=` on it cannot read as two different claims. `SLOW` and `OK` are
+the exceptions: they are `dbFetch` narrating transport, where no envelope
+reached a decision at all.
+
+The two quiet levels are why every call can be logged without drowning
 anything — the browser's own level filter is the volume control, and no custom
 verbose flag is needed.
+
+**`RACE` is `warn` even though nothing is wrong**, and it is the one level that
+isn't tracking how bad something is. A lost race is rare and genuinely puzzling
+from the player's side — the move they made simply didn't happen — so the
+question it produces is "what was that?", and the answer should be one glance at
+the console rather than a dig through debug output.
 
 **A `not-ok` that is not a fault is logged too**, at `warn`. The old rule was
 "expected rejections are NOT logged", which makes a MISCLASSIFIED bug completely

@@ -78,7 +78,7 @@ select pg_temp.envelope_is(
 
 select pg_temp.envelope_is(
   common.send_message((select handle from club), repeat('x', 1001)),
-  '{"type": "not-ok", "severity": "validation", "dbcode": "PN031",
+  '{"type": "not-ok", "severity": "form-validation", "dbcode": "PN031",
     "field": "content", "message": "Too long: max 1000 characters"}'::jsonb,
   'send_message: over-1000-char message is rejected'
 );

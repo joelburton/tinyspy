@@ -49,7 +49,7 @@ describe('ClaimHandleScreen — a taken username lands on the username box', () 
     mockRpc.mockResolvedValue({
       data: {
         type: 'not-ok',
-        severity: 'validation',
+        severity: 'form-validation',
         dbcode: 'PN017',
         field: 'desired',
         message: 'That username is taken',

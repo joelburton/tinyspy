@@ -59,7 +59,7 @@ export const ok = <T>(data: T): Response =>
  * settings. Anything the form's own controls already constrain is a fault, not
  * this — if the form prevents it and it arrives anyway, something is broken.
  */
-export const validation = (
+export const formValidation = (
   dbcode: string,
   field: string,
   message: string,
@@ -69,7 +69,7 @@ export const validation = (
     type: 'not-ok',
     data: null,
     outcome: null,
-    severity: 'validation',
+    severity: 'form-validation',
     message,
     field,
     meta: null,
@@ -104,18 +104,23 @@ export const fault = (dbcode: string, message: string, detail?: string): Respons
  * as "try again later" rather than as a bug, and unlike a fault it does not
  * claim something is broken here.
  */
-export const environmental = (dbcode: string, message: string, detail?: string): Response =>
+export const serviceError = (dbcode: string, message: string, detail?: string): Response =>
   json({
     type: 'not-ok',
     data: null,
     outcome: null,
-    severity: 'error',
+    severity: 'service-error',
     message,
     field: null,
     meta: null,
     dbcode,
     detail: detail ?? null,
   } satisfies Envelope)
+
+/* There is deliberately no `race` builder. A race needs shared state changing
+ * underneath the player, and only a game has any — an edge function here builds
+ * a board or asks a model a question, with nothing to lose a race against. If
+ * one ever belongs here, that is worth looking at twice before adding it. */
 
 /**
  * The catch-all: an exception nobody expected, wrapped so even a crash comes

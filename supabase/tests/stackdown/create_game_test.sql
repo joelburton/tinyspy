@@ -133,7 +133,7 @@ select pg_temp.envelope_is(
     (select handle from club),
     '{"timer":{"kind":"none"},"band":3}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop'),
-  '{"type":"not-ok","severity":"validation","field":"band","dbcode":"PN052"}'::jsonb,
+  '{"type":"not-ok","severity":"form-validation","field":"band","dbcode":"PN052"}'::jsonb,
   'a band the library has no boards for names the band field too');
 reset role;
 

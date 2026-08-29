@@ -423,7 +423,7 @@ begin
       -- exclusion spans clubs and players, so the usual cause is that SOMEONE
       -- at the table has, which reads as a lie to everyone else.
       raise exception 'Everyone here has played every puzzle'
-        using errcode = 'PN062', hint = 'validation', column = 'player_user_ids',
+        using errcode = 'PN062', hint = 'form-validation', column = 'player_user_ids',
         detail = 'every imported puzzle has been played by one of these players';
     end if;
   else
@@ -451,7 +451,7 @@ begin
     -- puzzle was retired between picking it and pressing Start. Clearing the
     -- date is the fix, which is the box it names.
     raise exception 'That puzzle is no longer available'
-      using errcode = 'PN065', hint = 'validation', column = 'puzzle_id',
+      using errcode = 'PN065', hint = 'form-validation', column = 'puzzle_id',
       detail = 'no connections.puzzles row for that id; run the puzzle import';
   end if;
 

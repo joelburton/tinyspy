@@ -225,7 +225,7 @@ select is(
 
 select pg_temp.envelope_is(
   common.claim_username('fianewname', 'blue'),
-  '{"type": "not-ok", "severity": "error", "dbcode": "PN016",
+  '{"type": "not-ok", "severity": "service-error", "dbcode": "PN016",
     "message": "You already have a username"}'::jsonb,
   'claim_username: same user can''t claim twice'
 );
@@ -253,7 +253,7 @@ select pg_temp.as_user('9a999999-9999-9999-9999-999999999999');
 -- names the field the claim form binds to.
 select pg_temp.envelope_is(
   common.claim_username('fia', 'blue'),
-  '{"type": "not-ok", "severity": "validation", "dbcode": "PN017",
+  '{"type": "not-ok", "severity": "form-validation", "dbcode": "PN017",
     "field": "desired", "message": "That username is taken"}'::jsonb,
   'claim_username: a taken username is a validation, on the field that caused it'
 );

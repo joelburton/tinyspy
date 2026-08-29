@@ -81,7 +81,7 @@ describe('AnagramDialog', () => {
     mockRpc.mockResolvedValue({
       data: {
         type: 'not-ok',
-        severity: 'validation',
+        severity: 'form-validation',
         message: '2–15 letters, or ?',
         dbcode: 'PN001',
         field: 'letters',
@@ -110,7 +110,7 @@ describe('AnagramDialog', () => {
     mockRpc.mockResolvedValue({
       data: {
         type: 'not-ok',
-        severity: 'error',
+        severity: 'service-error',
         message: "Dictionary service couldn't be reached — try again later",
       },
       error: null,
@@ -146,7 +146,7 @@ describe('AnagramDialog — the other arm of the routing', () => {
     // that is not about what you typed — the message belongs to the surface.
     const message = 'The server said this exact thing.'
     mockRpc.mockResolvedValue({
-      data: { type: 'not-ok', severity: 'validation', message },
+      data: { type: 'not-ok', severity: 'form-validation', message },
       error: null,
     })
     const user = userEvent.setup()

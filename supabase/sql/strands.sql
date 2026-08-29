@@ -462,7 +462,7 @@ begin
       -- exclusion spans clubs and players, so the usual cause is that SOMEONE
       -- at the table has, which reads as a lie to everyone else.
 raise exception 'Everyone here has played every puzzle'
-        using errcode = 'PN067', hint = 'validation', column = 'player_user_ids',
+        using errcode = 'PN067', hint = 'form-validation', column = 'player_user_ids',
         detail = 'every imported puzzle has been played by one of these players';
     end if;
   else
@@ -507,7 +507,7 @@ raise exception 'Everyone here has played every puzzle'
    where strands.puzzles.id = s_puzzle_id;
   if not found then
     raise exception 'That puzzle is no longer available'
-      using errcode = 'PN072', hint = 'validation', column = 'puzzle_id',
+      using errcode = 'PN072', hint = 'form-validation', column = 'puzzle_id',
       detail = 'no strands.puzzles row for that id; run the puzzle import';
   end if;
 

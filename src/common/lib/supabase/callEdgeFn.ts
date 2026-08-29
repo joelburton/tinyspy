@@ -28,8 +28,10 @@ import type { CallError } from '../game/serverError'
  * Every function returns errors as `{ error: '<fe-error-key>', code? }` —
  * `key|detail1|detail2|` shapes, never player-facing prose (the fe-error-key
  * contract, docs/supabase.md → Server errors; guarded by edgeFnErrorKeys.test.ts).
- * So in the converted world a NON-key, UNANSWERED failure here can only be
- * environmental, which is what finally makes the transport wording honest.
+ * So in the converted world a NON-key, UNANSWERED failure here can only be the
+ * transport, which is what finally makes the transport wording honest — though
+ * "the transport" is wider than "environmental", which means specifically that
+ * no response object exists (docs/envelopes.md).
  *
  * Returns `{ data }` on 2xx (payload validation is the caller's — shapes are
  * per-function) or `{ error }` ready for `failureMessage` / `faultMessage` /
@@ -65,8 +67,12 @@ export async function callEdgeFn(
     }
   }
   // No response, or a response that isn't our function speaking (a gateway
-  // 502's HTML, platform JSON) — either way the FUNCTION never answered, so
-  // this is environmental: codeless and unanswered, classifyFailure files it
-  // as transport and the player gets the translated advice line.
+  // 502's HTML, platform JSON) — either way the FUNCTION never answered, so it
+  // goes back codeless and unanswered, classifyFailure files it as transport
+  // and the player gets the translated advice line.
+  //
+  // Codeless-and-unanswered, NOT "environmental": that word is reserved for a
+  // fetch that produced no response at all, and a gateway 502 is a response
+  // (docs/envelopes.md → "Environmental" means the JS fetch failed).
   return { data: null, error: { message: error.message, code: '' } }
 }

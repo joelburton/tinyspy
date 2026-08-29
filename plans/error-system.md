@@ -125,11 +125,10 @@ psychicnum's `submit_guess` has ten raise sites: **eight pills and two faults
 today, six faults and three `ok` after** (worked through in §5b). That near
 inversion is what the yardstick in
 [envelopes.md → Envelope type](../docs/envelopes.md) does in practice — a
-game-rule refusal is `ok`, something the frontend should have caught is a fault
-— and most of what currently reads as an ordinary rejection is really
-"the frontend let you do something it shouldn't have" — and it is the reason to
-expect a conversion to *move* classifications rather than preserve them. Expect
-the same shape of answer at every remaining roster entry.
+game-rule refusal is `ok`, something the frontend should have caught is a fault.
+Most of what currently reads as an ordinary rejection is really "the frontend
+let you do something it shouldn't have", so expect a conversion to *move*
+classifications rather than preserve them, at every remaining roster entry.
 
 ### Multi-row query RPCs convert too, if the frontend calls them
 
@@ -474,8 +473,10 @@ work thrown away and would blur which entries belong to which system. The new
 one has two halves:
 
 - **Environmental** — permanent residents, because the server never spoke and
-  no author could have written for them: no network, a request that died in
-  transit, `PGRST202` after a reset, a dead edge-function container.
+  no author could have written for them: no network, or a request that died in
+  transit. Not `PGRST202` and not a dead edge-function container — both answer,
+  so both are raw faults ([envelopes.md](../docs/envelopes.md) → "Environmental"
+  means the JS fetch failed).
 - **Raw faults we want to word better** — and this half should stay nearly
   empty, by a principle rather than by discipline: **if a raw fault deserves
   nice words, that is a signal it should have been a declared fault instead.**

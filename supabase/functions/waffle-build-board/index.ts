@@ -52,7 +52,7 @@ import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { type SupabaseClient } from 'jsr:@supabase/supabase-js@2'
 import { buildWaffleBoard, type WordRow } from './gen.ts'
 import { preflight } from '../_shared/http.ts'
-import { crash, fault, validation } from '../_shared/envelope.ts'
+import { crash, fault, formValidation } from '../_shared/envelope.ts'
 import { parseBuildBoardRequest, invokeCreateGame } from '../_shared/startGame.ts'
 
 /** Page size for the word-fetch loop — an optimization knob, NOT a
@@ -145,7 +145,7 @@ serve(async (req) => {
       // player has over it, so the sentence goes under that field rather than
       // raising a modal that offers nothing to do.
       console.log(`reject: could not build a band-${band} board`)
-      return validation(
+      return formValidation(
         'PN121',
         'difficulty',
         'No board could be built at that difficulty. Try another.',

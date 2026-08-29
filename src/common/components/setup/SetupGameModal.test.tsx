@@ -217,7 +217,7 @@ describe('SetupGameModal — when Start is refused', () => {
   it("puts a refusal that names no field on the form's line", async () => {
     startGameInClub.mockResolvedValue({
       type: 'not-ok',
-      severity: 'error',
+      severity: 'service-error',
       message: MESSAGE,
     })
     const user = userEvent.setup()
@@ -235,7 +235,7 @@ describe('SetupGameModal — when Start is refused', () => {
     // a line at the bottom that makes them work out which of six it meant.
     startGameInClub.mockResolvedValue({
       type: 'not-ok',
-      severity: 'validation',
+      severity: 'form-validation',
       field: 'guesses',
       message: MESSAGE,
     })

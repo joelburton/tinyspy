@@ -150,24 +150,24 @@ describe('runRpc — one shape, always', () => {
     const r = await runRpc(
       Promise.resolve({
         data: {
-          type: 'not-ok', severity: 'validation', field: 'letters',
+          type: 'not-ok', severity: 'form-validation', field: 'letters',
           message: '2–15 letters, or ?', dbcode: 'PN001',
         },
         error: null,
       }),
     )
-    expect(r).toMatchObject({ severity: 'validation', field: 'letters' })
+    expect(r).toMatchObject({ severity: 'form-validation', field: 'letters' })
   })
 
   it('keeps them on a not-ok result too', async () => {
     const r = await runRpc(
       Promise.resolve({
-        data: { type: 'not-ok', severity: 'validation', message: 'Nope', dbcode: 'PN001', detail: 'why' },
+        data: { type: 'not-ok', severity: 'form-validation', message: 'Nope', dbcode: 'PN001', detail: 'why' },
         error: null,
       }),
     )
     expect(r).toEqual({
-      type: 'not-ok', severity: 'validation', message: 'Nope', dbcode: 'PN001', detail: 'why',
+      type: 'not-ok', severity: 'form-validation', message: 'Nope', dbcode: 'PN001', detail: 'why',
     })
   })
 
@@ -305,7 +305,7 @@ describe('the [db] line', () => {
   // them would say the same thing twice.
   it('logs the message but leaves it out of the diagnostics', () => {
     const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    const diagnostics = logDb('ERROR', { call: 'POST /rest/v1/rpc/delete_game' }, 'Already deleted')
+    const diagnostics = logDb('SERVICE_ERROR', { call: 'POST /rest/v1/rpc/delete_game' }, 'Already deleted')
     expect(spy.mock.calls[0][0]).toContain('msg="Already deleted"')
     expect(diagnostics).not.toContain('msg=')
   })
@@ -375,7 +375,7 @@ describe('runEdgeFn — the same shape, through Deno', () => {
 
   it('leaves a validation alone — no modal, the form will say it', async () => {
     const envelope = {
-      type: 'not-ok', severity: 'validation', field: 'band',
+      type: 'not-ok', severity: 'form-validation', field: 'band',
       message: 'No board could be built at that difficulty', dbcode: 'PN500',
     }
     mockInvoke.mockResolvedValue({ data: envelope, error: null })

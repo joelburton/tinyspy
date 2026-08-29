@@ -33,7 +33,7 @@ describe('CreateClubModal — a validation lands on its own field', () => {
     mockRpc.mockResolvedValue({
       data: {
         type: 'not-ok',
-        severity: 'validation',
+        severity: 'form-validation',
         dbcode: 'PN007',
         field: 'member_usernames',
         message: 'No such user: zoe',
@@ -57,7 +57,7 @@ describe('CreateClubModal — a validation lands on its own field', () => {
     mockRpc.mockResolvedValue({
       data: {
         type: 'not-ok',
-        severity: 'validation',
+        severity: 'form-validation',
         dbcode: 'PN009',
         field: 'club_name',
         message: 'Club name taken (handle “friday-night”)',

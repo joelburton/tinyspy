@@ -76,7 +76,7 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { type SupabaseClient } from 'jsr:@supabase/supabase-js@2'
 import { preflight } from '../_shared/http.ts'
-import { crash, fault, validation } from '../_shared/envelope.ts'
+import { crash, fault, formValidation } from '../_shared/envelope.ts'
 import { parseBuildBoardRequest, invokeCreateGame } from '../_shared/startGame.ts'
 import {
   BOARD_SIZE,
@@ -348,16 +348,16 @@ serve(async (req: Request) => {
           case 'unknown-board':
             // The sorted SET is what missed, so rearranging would not help —
             // which is why this one says "the letters in", not "the board".
-            return validation('PN214', 'custom_sides',
+            return formValidation('PN214', 'custom_sides',
               `No known solution for the letters in ${shown}`,
               `${FN}: the letter set is not in the seed table`)
           case 'unverified-board':
             // The letters were right, so this one is about the arrangement.
-            return validation('PN215', 'custom_sides',
+            return formValidation('PN215', 'custom_sides',
               `${shown} isn't solvable in two — check the sides`,
               `${FN}: the letters are known but this partition is not verified`)
           case 'board-needs-band':
-            return validation('PN216', 'legal_band',
+            return formValidation('PN216', 'legal_band',
               `That board needs dictionary ${built.band} or higher`,
               `${FN}: the pair is verified only at band ${built.band}`)
         }
@@ -379,7 +379,7 @@ serve(async (req: Request) => {
     // dictionary decides which words count, and it is the only lever they have
     // over a re-roll. Under that select rather than in a modal offering nothing.
     console.log(`${FN} reject: could not build a board in ${MAX_ATTEMPTS} attempts`)
-    return validation('PN217', 'legal_band',
+    return formValidation('PN217', 'legal_band',
       'No board could be built with that dictionary. Try a wider one.',
       `${FN}: ${MAX_ATTEMPTS} attempts all rejected`)
   }

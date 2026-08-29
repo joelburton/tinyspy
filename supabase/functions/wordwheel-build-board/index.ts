@@ -85,7 +85,7 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { type SupabaseClient } from 'jsr:@supabase/supabase-js@2'
 import { preflight } from '../_shared/http.ts'
-import { crash, fault, validation } from '../_shared/envelope.ts'
+import { crash, fault, formValidation } from '../_shared/envelope.ts'
 import { parseBuildBoardRequest, invokeCreateGame } from '../_shared/startGame.ts'
 import {
   type Board,
@@ -352,7 +352,7 @@ serve(async (req) => {
         // box they were typed into, and the same sentence create_game gives
         // when it re-checks the rule.
         console.log(`reject: custom letters yield no required words at band ${requiredBand}`)
-        return validation(
+        return formValidation(
           'PN194',
           'custom_letters',
           'No words for those letters at that difficulty.',
@@ -373,7 +373,7 @@ serve(async (req) => {
         // seeds at all. The sentence is Joel's, approved 2026-08-12, and moves
         // here verbatim from ERROR_COPY.
         console.log('reject: no pangram seeds at this required band')
-        return validation(
+        return formValidation(
           'PN195',
           'required',
           `No pangram seeds at required difficulty ${requiredBand}`,
@@ -399,7 +399,7 @@ serve(async (req) => {
         // 2026-08-12; "higher difficulty" is the right direction here, since
         // the seed pool GROWS with the band.
         console.log('reject: no all-distinct pangram seeds at this required band')
-        return validation(
+        return formValidation(
           'PN196',
           'unique_letters',
           `No unique-letter boards at required difficulty ${requiredBand} — try a higher difficulty or turn off "unique letters only"`,
@@ -459,7 +459,7 @@ serve(async (req) => {
         // lever the player has, and the reason this is a validation rather than
         // a modal that offers nothing to do.
         console.log(`reject: no seed/center cleared the ${MIN_REQUIRED_WORDS_COUNT}-word gate in ${MAX_SEED_ATTEMPTS} seeds`)
-        return validation(
+        return formValidation(
           'PN198',
           'required',
           'No puzzle could be built at that required difficulty. Try a wider one.',
