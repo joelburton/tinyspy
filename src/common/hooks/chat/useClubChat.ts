@@ -110,7 +110,7 @@ export function useClubChat(clubHandle: string) {
       // so, and this re-runs on every reconnect, so what is on screen is the
       // best answer until the next one lands. `loading` still clears: the
       // "Loading…" line would otherwise stay up forever.
-      if (res.type !== 'ok') {
+      if (res.type === 'not-ok') {
         setLoading(false)
         return
       }
