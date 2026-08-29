@@ -164,7 +164,7 @@ select pg_temp.envelope_is(
     array['ada11111-1111-1111-1111-111111111111'::uuid],
     'compete'),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN219",
-    "message":"A race with fewer than two players reached the server"}'::jsonb,
+    "message":"BUG: race with fewer than two players"}'::jsonb,
   'compete with 1 player is rejected');
 
 select pg_temp.envelope_is(
@@ -173,7 +173,7 @@ select pg_temp.envelope_is(
     array['ada11111-1111-1111-1111-111111111111'::uuid],
     'coop'),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN221",
-    "message":"A game with no puzzle reached the server"}'::jsonb,
+    "message":"BUG: game with no puzzle"}'::jsonb,
   'missing puzzle_id is rejected');
 
 -- The ONE validation crosswords makes, and the last thing the error sprint's

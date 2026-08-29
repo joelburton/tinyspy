@@ -667,7 +667,7 @@ begin
     -- compete Start button in 1-player clubs; this is the server-side
     -- catch. Matches psychicnum + connections.
     if coalesce(array_length(player_user_ids, 1), 0) < 2 then
-      raise exception 'A race with fewer than two players reached the server'
+      raise exception 'BUG: race with fewer than two players'
         using errcode = 'PN199', hint = 'fault', column = '_',
         detail = 'compete needs >= 2 players';
     end if;
@@ -678,7 +678,7 @@ begin
   -- ─── Validate setup ──────────────────────────────────────
   s_extra_words := coalesce((setup->>'extra_words')::int, 3);
   if s_extra_words < 0 or s_extra_words > 5 then
-    raise exception 'A spare-word count of % reached the server', s_extra_words
+    raise exception 'BUG: spare-word count of %', s_extra_words
       using errcode = 'PN200', hint = 'fault', column = '_',
       detail = 'setup.extra_words must be 0..5';
   end if;
@@ -689,7 +689,7 @@ begin
 
   s_legal_band := coalesce((setup->>'legal_band')::int, 5);
   if s_legal_band < 1 or s_legal_band > 6 then
-    raise exception 'A dictionary of % reached the server', s_legal_band
+    raise exception 'BUG: dictionary of %', s_legal_band
       using errcode = 'PN201', hint = 'fault', column = '_',
       detail = 'setup.legal_band must be 1..6';
   end if;
@@ -699,14 +699,14 @@ begin
   -- ─── Validate the board ──────────────────────────────────
   b_sides := board->>'sides';
   if b_sides is null or b_sides !~ '^[a-z]{12}$' then
-    raise exception 'A board of ''%'' reached the server',
+    raise exception 'BUG: board of ''%''',
       coalesce(b_sides, 'nothing')
       using errcode = 'PN202', hint = 'fault', column = '_',
       detail = 'board.sides must be 12 lowercase ASCII letters';
   end if;
   -- Letter Boxed never repeats a letter: the board is a SET of twelve.
   if (select count(distinct c) from regexp_split_to_table(b_sides, '') c) <> 12 then
-    raise exception 'A board repeating a letter reached the server: ''%''', b_sides
+    raise exception 'BUG: board repeating a letter: ''%''', b_sides
       using errcode = 'PN203', hint = 'fault', column = '_',
       detail = 'board.sides must be twelve DISTINCT letters';
   end if;
@@ -721,14 +721,14 @@ begin
   -- custom base.
   if setup->>'custom_sides' is not null
      and setup->>'custom_sides' <> b_sides then
-    raise exception 'You asked for ''%'' and the board built was ''%''',
+    raise exception 'BUG: you asked for ''%'' and the board built was ''%''',
       setup->>'custom_sides', b_sides
       using errcode = 'PN204', hint = 'fault', column = '_',
       detail = 'board.sides must equal setup.custom_sides exactly';
   end if;
 
   if jsonb_typeof(board->'playable_words') <> 'array' then
-    raise exception 'The generated board arrived with no word list'
+    raise exception 'BUG: generated board arrived with no word list'
       using errcode = 'PN205', hint = 'fault', column = '_',
       detail = 'board.playable_words must be a jsonb array';
   end if;
@@ -747,7 +747,7 @@ begin
   -- your business. Same relaxation spellingbee and wordiply make for
   -- their custom boards.
   if setup->>'custom_sides' is null and jsonb_array_length(b_words) < 150 then
-    raise exception 'The generated board had only % words to find',
+    raise exception 'BUG: generated board had only % words to find',
       jsonb_array_length(b_words)
       using errcode = 'PN206', hint = 'fault', column = '_',
       detail = 'board.playable_words must hold >= 150; the edge function''s gate must agree';
@@ -758,7 +758,7 @@ begin
   -- SOLVED, which is the promise the seed pipeline exists to keep.
   b_solution := array(select jsonb_array_elements_text(board->'solution'));
   if cardinality(b_solution) <> 2 then
-    raise exception 'The generated board came with the wrong number of solution words'
+    raise exception 'BUG: generated board came with the wrong number of solution words'
       using errcode = 'PN207', hint = 'fault', column = '_',
       detail = 'board.solution must hold exactly 2 words';
   end if;
@@ -766,18 +766,18 @@ begin
   sol_b := b_solution[2];
 
   if not (b_words ? sol_a) or not (b_words ? sol_b) then
-    raise exception 'The generated board''s solution uses words it does not allow'
+    raise exception 'BUG: generated board''s solution uses words it does not allow'
       using errcode = 'PN208', hint = 'fault', column = '_',
       detail = 'both solution words must appear in playable_words';
   end if;
   if right(sol_a, 1) <> left(sol_b, 1) then
-    raise exception 'The generated board''s solution does not chain: ''%'' ends in % and ''%'' starts with %',
+    raise exception 'BUG: generated board''s solution does not chain: ''%'' ends in % and ''%'' starts with %',
       sol_a, right(sol_a, 1), sol_b, left(sol_b, 1)
       using errcode = 'PN209', hint = 'fault', column = '_',
       detail = 'board.solution must chain: word_a''s last letter is word_b''s first';
   end if;
   if letterboxed._covered(b_solution) <> 12 then
-    raise exception 'The generated board''s solution covers only % of the twelve letters',
+    raise exception 'BUG: generated board''s solution covers only % of the twelve letters',
       letterboxed._covered(b_solution)
       using errcode = 'PN210', hint = 'fault', column = '_',
       detail = 'board.solution must cover all twelve letters';
@@ -824,7 +824,7 @@ begin
   if mode = 'coop' and setup->>'coop_style' = 'turns' then
     first_turn := (setup->>'first_turn_user_id')::uuid;
     if first_turn is null or not (first_turn = any(player_user_ids)) then
-      raise exception 'A first player who is not in the game reached the server'
+      raise exception 'BUG: first player who is not in the game'
         using errcode = 'PN211', hint = 'fault', column = '_',
         detail = 'setup.first_turn_user_id must be one of the players';
     end if;

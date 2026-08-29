@@ -158,7 +158,7 @@ select pg_temp.envelope_is(
     'coop',
     pg_temp.lb_board()),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN204",
-    "message":"You asked for ''lkjihgfedcba'' and the board built was ''abcdefghijkl''"}'::jsonb,
+    "message":"BUG: you asked for ''lkjihgfedcba'' and the board built was ''abcdefghijkl''"}'::jsonb,
   'a board that is not the one typed is refused'
 );
 
@@ -206,7 +206,7 @@ select pg_temp.envelope_is(
     'coop',
     pg_temp.lb_thin_board()),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN206",
-    "message":"The generated board had only 2 words to find"}'::jsonb,
+    "message":"BUG: generated board had only 2 words to find"}'::jsonb,
   'the same thin board is still refused when nobody typed it'
 );
 

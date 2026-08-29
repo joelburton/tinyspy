@@ -263,7 +263,7 @@ of the other, and the surface keeps learning about the ending from realtime.
 | `PN269` "Game over" | `race` | a teammate ended it while your guess was in flight |
 | `PN270` "Already conceded" | `race` | your own concede landed first |
 | `PN243` "Not your turn" | `race` | `common._require_turn` |
-| `PN267` no such game · `PN268` "A guess that is not on the board reached the server" · `PN271` not in this game · `PN272` "No guesses left" | `fault` | the board disables non-board tiles and the FE knows your budget, so each means a broken client |
+| `PN267` no such game · `PN268` "BUG: guess that is not on the board" · `PN271` not in this game · `PN272` "No guesses left" | `fault` | the board disables non-board tiles and the FE knows your budget, so each means a broken client |
 
 **Opt-in turn-by-turn coop.** The coop sibling supports the common turn-order primitive (setup `coop_style = 'turns'`): `submit_guess` gates on `common._require_turn` right after the row lock + caller resolution (out-of-turn → `'not your turn'`), and calls `common._advance_turn` only on an accepted, non-terminal guess — so a soft-reject (not-a-board-word, duplicate, exhausted) lets the same player retry, and the pointer isn't touched when the guess ends the game. As the reference minimal game, psychicnum was the pilot for this common feature; see [common.md → Turn-order](../common.md#turn-order--opt-in-turn-by-turn-for-coop-games).
 

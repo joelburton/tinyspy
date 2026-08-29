@@ -174,6 +174,59 @@ describe('the raise codes', () => {
     expect(badWord, 'an override outside the outcome vocabulary').toEqual([])
   })
 
+  // A FAULT means the frontend let something through that it prevents, so its
+  // sentence says that — `BUG: guess was not four tiles`, never `A guess must be
+  // four tiles`, which recites a rule at someone who cannot have broken it
+  // (docs/envelopes.md → A fault says what reached the server).
+  //
+  // Guarded because it was precedent and nothing else for months, and four
+  // conversions broke it seven times without anyone noticing. Writing it down
+  // was not enough; the next conversion reads this file's failures, not the doc.
+  it('prefixes every fault caused by a bug with BUG:', () => {
+    // A fault about a STATE rather than about something malformed that arrived.
+    // The idiom does not fit these and the plain sentence is right: the game is
+    // gone, your session expired, your budget is spent. Keep this list SHORT —
+    // adding to it is the move this guard exists to make deliberate.
+    const STATE_NOT_BUG = new Set([
+      'Signed out; try refresh',
+      'Your session expired — signing you out.',
+      'Your profile is no longer on the server. Please refresh.',
+      'You are not a member of this club',
+      'You are not in this game',
+      'That game no longer exists',
+      'No guesses left',
+      'No swaps left',
+      'Already solved',
+      "You can't edit the dictionary",
+      // A file the PLAYER supplied, so not our bug — arguably not a fault at
+      // all, which is a question for crosswords' own conversion.
+      'The puzzle file could not be read',
+    ])
+    const offenders: string[] = []
+    const seen = new Set<string>()
+    for (const file of readdirSync(SQL_DIR).filter((f) => f.endsWith('.sql'))) {
+      const sql = readFileSync(join(SQL_DIR, file), 'utf8')
+      for (const m of sql.matchAll(/raise exception\s+'((?:[^']|'')*)'((?:[^;']|'[^']*')*);/g)) {
+        if (!/hint\s*=\s*'fault'/.test(m[2]!)) continue
+        const msg = m[1]!.replace(/''/g, "'")
+        seen.add(msg)
+        if (msg.startsWith('BUG: ') || STATE_NOT_BUG.has(msg)) continue
+        offenders.push(`${file}: ${msg}`)
+      }
+    }
+    expect(
+      offenders,
+      'a fault that reads like a game rule — prefix it `BUG: `, or justify it in STATE_NOT_BUG',
+    ).toEqual([])
+    // The list must not outlive what it excuses, or it stops meaning "these are
+    // the exceptions" and starts meaning "these were, once". Same arm
+    // `noRawServerMessage.test.ts` carries on its own allowlist.
+    expect(
+      [...STATE_NOT_BUG].filter((m) => !seen.has(m)),
+      'excused but no longer raised — remove it',
+    ).toEqual([])
+  })
+
   // The same contract from the OTHER side. A raise cannot break it — every `PA`
   // raise must carry a HINT, checked above — but `common.ok_envelope` takes its
   // data, outcome and message as three independent arguments, so nothing stops

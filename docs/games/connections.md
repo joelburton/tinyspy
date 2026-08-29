@@ -217,9 +217,9 @@ The PL/pgSQL **does not re-evaluate** the guess against `board.categories` — t
 | `PN251` "Out of mistakes" | `race` | your own fourth mistake landed |
 | `PN243` "Not your turn" | `race` | from `common._require_turn`; a stale tab or a deaf window |
 | `PN244` "That game no longer exists" | `fault` | nothing to race against |
-| `PN247` "A guess that was not four tiles reached the server" | `fault` | the board only ever selects four |
-| `PN248` "An unknown guess result reached the server" | `fault` | `result` comes from the FE's own evaluator |
-| `PN249` "A correct guess with no category reached the server" | `fault` | ditto |
+| `PN247` "BUG: guess that was not four tiles" | `fault` | the board only ever selects four |
+| `PN248` "BUG: unknown guess result" | `fault` | `result` comes from the FE's own evaluator |
+| `PN249` "BUG: correct guess with no category" | `fault` | ditto |
 | `PN250` "You are not in this game" | `fault` | `create_game` seeds the row |
 
 The three races are the ones the FE cannot gate, because each turns on state only the server has and realtime may not have delivered yet ([envelopes.md → What makes a race legitimate](../envelopes.md)). Everything else is a fault: the frontend prevents it, so its arrival means a broken client.

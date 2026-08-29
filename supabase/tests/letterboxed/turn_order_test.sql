@@ -153,7 +153,7 @@ select pg_temp.envelope_is(
     'coop',
     pg_temp.lb_board()),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN211",
-    "message":"A first player who is not in the game reached the server"}'::jsonb,
+    "message":"BUG: first player who is not in the game"}'::jsonb,
   'turns: a first player who is not in the game is refused'
 );
 

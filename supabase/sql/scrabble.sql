@@ -564,7 +564,7 @@ begin
   -- Up to 4 players; compete needs at least 2 (a 1-player race is degenerate).
   perform common.require_player_count_max(player_user_ids, 4);
   if array_length(player_user_ids, 1) is null then
-    raise exception 'A game with no players reached the server'
+    raise exception 'BUG: game with no players'
       using errcode = 'PN077', hint = 'fault', column = '_',
       detail = 'player_user_ids was empty';
   end if;
@@ -574,12 +574,12 @@ begin
   s_dict_2     := coalesce((setup->>'dict_2')::int, 3);
   s_dict_3plus := coalesce((setup->>'dict_3plus')::int, 3);
   if s_dict_2 < 1 or s_dict_2 > 6 then
-    raise exception 'A 2-letter dictionary of % reached the server', s_dict_2
+    raise exception 'BUG: 2-letter dictionary of %', s_dict_2
       using errcode = 'PN078', hint = 'fault', column = '_',
       detail = 'setup.dict_2 must be 1..6';
   end if;
   if s_dict_3plus < 1 or s_dict_3plus > 6 then
-    raise exception 'A longer-word dictionary of % reached the server', s_dict_3plus
+    raise exception 'BUG: longer-word dictionary of %', s_dict_3plus
       using errcode = 'PN079', hint = 'fault', column = '_',
       detail = 'setup.dict_3plus must be 1..6';
   end if;
@@ -589,12 +589,12 @@ begin
   -- common.game_players / profiles) and seated AFTER the humans.
   v_ai_count := coalesce((setup->>'ai_count')::int, 0);
   if v_ai_count < 0 or v_ai_count > 3 then
-    raise exception 'An AI count of % reached the server', v_ai_count
+    raise exception 'BUG: AI count of %', v_ai_count
       using errcode = 'PN080', hint = 'fault', column = '_',
       detail = 'setup.ai_count must be 0..3';
   end if;
   if v_ai_count > 0 and mode <> 'compete' then
-    raise exception 'An AI opponent in a co-op game reached the server'
+    raise exception 'BUG: AI opponent in a co-op game'
       using errcode = 'PN081', hint = 'fault', column = '_',
       detail = 'AI opponents seat only in compete';
   end if;
@@ -607,7 +607,7 @@ begin
                    when 'intermediate' then 4 when 'strong' then 6 when 'best' then 6
                    else null end;
     if v_ai_band is null then
-      raise exception 'An AI skill of ''%'' reached the server', coalesce(v_ai_level, '(null)')
+      raise exception 'BUG: AI skill of ''%''', coalesce(v_ai_level, '(null)')
       using errcode = 'PN082', hint = 'fault', column = '_',
       detail = 'ai_level is not one of the known levels';
     end if;
@@ -617,7 +617,7 @@ begin
       -- A CROSS-FIELD rule the form already gates on (validateScrabbleSetup
       -- blocks Start), so reaching it means something other than the form sent
       -- the setup.
-      raise exception 'A % AI with the dictionary below band % reached the server',
+      raise exception 'BUG: % AI with the dictionary below band %',
         v_ai_level, v_ai_band
       using errcode = 'PN083', hint = 'fault', column = '_',
       detail = 'the dictionary bands must reach the AI''s band';
@@ -628,12 +628,12 @@ begin
   -- (humans + AI) is 2..4 in compete.
   v_total := array_length(player_user_ids, 1) + v_ai_count;
   if mode = 'compete' and v_total < 2 then
-    raise exception 'A race with fewer than two seats reached the server'
+    raise exception 'BUG: race with fewer than two seats'
       using errcode = 'PN084', hint = 'fault', column = '_',
       detail = 'compete needs >= 2 seats including AI';
   end if;
   if v_total > 4 then
-    raise exception 'A game with % seats reached the server', v_total
+    raise exception 'BUG: game with % seats', v_total
       using errcode = 'PN085', hint = 'fault', column = '_',
       detail = 'scrabble seats at most 4';
   end if;
@@ -698,7 +698,7 @@ begin
     if setup->>'coop_style' = 'turns' then
       first_turn := (setup->>'first_turn_user_id')::uuid;
       if first_turn is null or not (first_turn = any(player_user_ids)) then
-        raise exception 'A first player who is not in the game reached the server'
+        raise exception 'BUG: first player who is not in the game'
           using errcode = 'PN086', hint = 'fault', column = '_',
       detail = 'setup.first_turn_user_id must be one of the players';
       end if;

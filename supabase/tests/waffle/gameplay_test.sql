@@ -31,19 +31,19 @@ select (waffle.create_game(
 select pg_temp.envelope_is(
   waffle.submit_swap((select id from g1), 6, 0),
   '{"type":"not-ok","severity":"fault","dbcode":"PN264",
-    "message":"A swap of an empty square reached the server"}'::jsonb,
+    "message":"BUG: swap of an empty square"}'::jsonb,
   'a hole holds no tile'
 );
 select pg_temp.envelope_is(
   waffle.submit_swap((select id from g1), 0, 0),
   '{"type":"not-ok","severity":"fault","dbcode":"PN263",
-    "message":"A swap of one square with itself reached the server"}'::jsonb,
+    "message":"BUG: swap of one square with itself"}'::jsonb,
   'cannot swap a cell with itself'
 );
 select pg_temp.envelope_is(
   waffle.submit_swap((select id from g1), 0, 25),
   '{"type":"not-ok","severity":"fault","dbcode":"PN263",
-    "message":"A swap of one square with itself reached the server"}'::jsonb,
+    "message":"BUG: swap of one square with itself"}'::jsonb,
   'positions must be in 0..24'
 );
 

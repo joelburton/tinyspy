@@ -484,7 +484,7 @@ begin
   perform common.require_club_member(target_club);
   perform common.require_valid_mode(mode);
   if mode = 'compete' and coalesce(array_length(player_user_ids, 1), 0) < 2 then
-    raise exception 'A race with fewer than two players reached the server'
+    raise exception 'BUG: race with fewer than two players'
       using errcode = 'PN219', hint = 'fault', column = '_',
       detail = 'compete needs >= 2 players';
   end if;
@@ -512,7 +512,7 @@ begin
     -- `returns table(id uuid)` OUT column shadows an unqualified `id`.)
     v_puzzle_id := nullif(setup ->> 'puzzle_id', '')::uuid;
     if v_puzzle_id is null then
-      raise exception 'A game with no puzzle reached the server'
+      raise exception 'BUG: game with no puzzle'
         using errcode = 'PN221', hint = 'fault', column = '_',
         detail = 'setup.puzzle_id absent';
     end if;

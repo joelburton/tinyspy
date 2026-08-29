@@ -294,7 +294,7 @@ begin
 
   v_deck_kind := coalesce(setup->>'deck', 'full');
   if v_deck_kind not in ('full', 'junior') then
-    raise exception 'A deck of ''%'' reached the server', v_deck_kind
+    raise exception 'BUG: deck of ''%''', v_deck_kind
       using errcode = 'PN075', hint = 'fault', column = '_',
       detail = 'setup deck must be full or junior';
   end if;
@@ -346,7 +346,7 @@ begin
   if mode = 'coop' and setup->>'coop_style' = 'turns' then
     first_turn := (setup->>'first_turn_user_id')::uuid;
     if first_turn is null or not (first_turn = any(player_user_ids)) then
-      raise exception 'A first player who is not in the game reached the server'
+      raise exception 'BUG: first player who is not in the game'
         using errcode = 'PN076', hint = 'fault', column = '_',
         detail = 'setup.first_turn_user_id must be one of the players';
     end if;

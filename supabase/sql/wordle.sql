@@ -225,7 +225,7 @@ begin
   -- ─── Validate setup.max_guesses ──────────────────────────
   s_max_guesses := coalesce((setup->>'max_guesses')::int, 6);
   if s_max_guesses < 5 or s_max_guesses > 8 then
-    raise exception 'A guess budget of % reached the server', s_max_guesses
+    raise exception 'BUG: guess budget of %', s_max_guesses
       using errcode = 'PN053', hint = 'fault', column = '_',
       detail = 'setup.max_guesses must be 5..8';
   end if;
@@ -237,13 +237,13 @@ begin
   -- (it tops out at band 2), else answer_source.
   s_answer_source := coalesce((setup->>'answer_source')::int, 0);
   if s_answer_source < 0 or s_answer_source > 6 then
-    raise exception 'An answer source of % reached the server', s_answer_source
+    raise exception 'BUG: answer source of %', s_answer_source
       using errcode = 'PN054', hint = 'fault', column = '_',
       detail = 'setup.answer_source must be 0..6';
   end if;
   s_legal_guess := coalesce((setup->>'legal_guess')::int, 4);
   if s_legal_guess < 1 or s_legal_guess > 6 then
-    raise exception 'A legal-guess band of % reached the server', s_legal_guess
+    raise exception 'BUG: legal-guess band of %', s_legal_guess
       using errcode = 'PN055', hint = 'fault', column = '_',
       detail = 'setup.legal_guess must be 1..6';
   end if;
@@ -253,7 +253,7 @@ begin
     -- answer has to be a legal guess, so the legal band is raised to meet the
     -- answer band rather than the answer band lowered to meet it. The setup
     -- form already floors the control at `answerMaxBand`; this is the backstop.
-    raise exception 'A legal-guess band below the answer band reached the server'
+    raise exception 'BUG: legal-guess band below the answer band'
       using errcode = 'PN056', hint = 'fault', column = '_',
       detail = 'legal_guess must be >= the answer band';
   end if;
@@ -314,7 +314,7 @@ begin
   if mode = 'coop' and setup->>'coop_style' = 'turns' then
     first_turn := (setup->>'first_turn_user_id')::uuid;
     if first_turn is null or not (first_turn = any(player_user_ids)) then
-      raise exception 'A first player who is not in the game reached the server'
+      raise exception 'BUG: first player who is not in the game'
         using errcode = 'PN058', hint = 'fault', column = '_',
       detail = 'setup.first_turn_user_id must be one of the players';
     end if;
@@ -531,7 +531,7 @@ begin
   -- malformed one arriving means a broken client.
   norm := lower(trim(coalesce(guess, '')));
   if norm !~ '^[a-z]{5}$' then
-    raise exception 'A guess that was not five letters reached the server'
+    raise exception 'BUG: guess that was not five letters'
       using errcode = 'PN256', hint = 'fault', column = '_',
       detail = format('guess must match ^[a-z]{5}$; got %L', norm);
   end if;

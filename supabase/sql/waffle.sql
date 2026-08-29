@@ -467,7 +467,7 @@ begin
   -- ─── Validate setup.extra_swaps (the swap-budget knob) ───
   s_extra := coalesce((setup->>'extra_swaps')::int, 5);
   if s_extra < 0 or s_extra > 15 then
-    raise exception 'A swap budget of % reached the server', s_extra
+    raise exception 'BUG: swap budget of %', s_extra
       using errcode = 'PN104', hint = 'fault', column = '_',
       detail = 'setup.extra_swaps must be 0..15';
   end if;
@@ -479,7 +479,7 @@ begin
   -- DB change since boards are generated on demand per band.
   s_difficulty := coalesce((setup->>'difficulty')::int, 2);
   if s_difficulty not between 1 and 6 then
-    raise exception 'A word difficulty of % reached the server', s_difficulty
+    raise exception 'BUG: word difficulty of %', s_difficulty
       using errcode = 'PN105', hint = 'fault', column = '_',
       detail = 'setup.difficulty must be 1..6';
   end if;
@@ -492,19 +492,19 @@ begin
   b_par      := (board->>'par_swaps')::int;
   if b_solution is null or length(b_solution) <> 25
      or b_scramble is null or length(b_scramble) <> 25 then
-    raise exception 'The generated board was not a pair of 25-square grids'
+    raise exception 'BUG: generated board was not a pair of 25-square grids'
       using errcode = 'PN106', hint = 'fault', column = '_',
       detail = 'solution and scramble must both be 25-char strings';
   end if;
   if b_par is null or b_par < 1 then
-    raise exception 'The generated board arrived with a par of %', b_par
+    raise exception 'BUG: generated board arrived with a par of %', b_par
       using errcode = 'PN107', hint = 'fault', column = '_',
       detail = 'board.par_swaps must be a positive int';
   end if;
   -- Holes ('.') at the four interior cells (1-based 7, 9, 17, 19).
   if substr(b_solution, 7, 1) <> '.' or substr(b_solution, 9, 1) <> '.'
      or substr(b_solution, 17, 1) <> '.' or substr(b_solution, 19, 1) <> '.' then
-    raise exception 'The generated board had its holes in the wrong squares'
+    raise exception 'BUG: generated board had its holes in the wrong squares'
       using errcode = 'PN108', hint = 'fault', column = '_',
       detail = 'board.solution holes must sit at 7/9/17/19';
   end if;
@@ -515,7 +515,7 @@ begin
      is distinct from
      (select array_agg(c order by c)
         from regexp_split_to_table(b_scramble, '') c) then
-    raise exception 'The generated board could not be solved by swapping'
+    raise exception 'BUG: generated board could not be solved by swapping'
       using errcode = 'PN109', hint = 'fault', column = '_',
       detail = 'scramble must be a permutation of solution';
   end if;
@@ -542,7 +542,7 @@ begin
   if mode = 'coop' and setup->>'coop_style' = 'turns' then
     first_turn := (setup->>'first_turn_user_id')::uuid;
     if first_turn is null or not (first_turn = any(player_user_ids)) then
-      raise exception 'A first player who is not in the game reached the server'
+      raise exception 'BUG: first player who is not in the game'
         using errcode = 'PN110', hint = 'fault', column = '_',
       detail = 'setup.first_turn_user_id must be one of the players';
     end if;
@@ -770,13 +770,13 @@ begin
   -- ─── Validate the two positions ──────────────────────────
   if pos_a is null or pos_b is null or pos_a = pos_b
      or pos_a < 0 or pos_a > 24 or pos_b < 0 or pos_b > 24 then
-    raise exception 'A swap of one square with itself reached the server'
+    raise exception 'BUG: swap of one square with itself'
       using errcode = 'PN263', hint = 'fault', column = '_',
       detail = format('swap needs two distinct cells in 0..24; got %s and %s',
                       coalesce(pos_a::text, 'null'), coalesce(pos_b::text, 'null'));
   end if;
   if pos_a in (6, 8, 16, 18) or pos_b in (6, 8, 16, 18) then
-    raise exception 'A swap of an empty square reached the server'
+    raise exception 'BUG: swap of an empty square'
       using errcode = 'PN264', hint = 'fault', column = '_',
       detail = 'cells 7/9/17/19 are holes and hold no tile';
   end if;

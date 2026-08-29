@@ -629,7 +629,7 @@ declare
   timer_seconds int;
 begin
   if timer is null then
-    raise exception 'A game with no timer setting reached the server'
+    raise exception 'BUG: game with no timer setting'
       using errcode = 'PN035', hint = 'fault', column = '_',
       detail = 'setup.timer absent';
   end if;
@@ -640,25 +640,25 @@ begin
   -- through the next check unraised. Separate "is required" vs
   -- "must be" messages give clearer FE error display.
   if timer_kind is null then
-    raise exception 'A timer with no setting reached the server'
+    raise exception 'BUG: timer with no setting'
       using errcode = 'PN036', hint = 'fault', column = '_',
       detail = 'setup.timer.kind absent';
   end if;
   if timer_kind not in ('none', 'countup', 'countdown') then
-    raise exception 'A timer setting of ''%'' reached the server', timer_kind
+    raise exception 'BUG: timer setting of ''%''', timer_kind
       using errcode = 'PN037', hint = 'fault', column = '_',
       detail = 'timer kind must be none, countup or countdown';
   end if;
 
   if timer_kind = 'countdown' then
     if (timer->>'seconds') is null then
-      raise exception 'A countdown with no length reached the server'
+      raise exception 'BUG: countdown with no length'
         using errcode = 'PN038', hint = 'fault', column = '_',
       detail = 'countdown needs setup.timer.seconds';
     end if;
     timer_seconds := (timer->>'seconds')::int;
     if timer_seconds < 1 or timer_seconds > 3600 then
-      raise exception 'A countdown of % seconds reached the server', timer_seconds
+      raise exception 'BUG: countdown of % seconds', timer_seconds
         using errcode = 'PN039', hint = 'fault', column = '_',
       detail = 'countdown seconds must be 1..3600';
     end if;
@@ -690,7 +690,7 @@ immutable
 as $$
 begin
   if p_mode not in ('coop', 'compete') then
-    raise exception 'A game mode of ''%'' reached the server', p_mode
+    raise exception 'BUG: game mode of ''%''', p_mode
       using errcode = 'PN040', hint = 'fault', column = '_',
       detail = 'mode must be coop or compete';
   end if;
@@ -870,7 +870,7 @@ begin
   if player_user_ids is null
      or array_length(player_user_ids, 1) is null
      or array_length(player_user_ids, 1) = 0 then
-    raise exception 'A game with no players reached the server'
+    raise exception 'BUG: game with no players'
       using errcode = 'PN059', hint = 'fault', column = '_',
       detail = 'player_user_ids was empty';
   end if;
@@ -889,7 +889,7 @@ begin
     -- The picker only ever offers this club's members, so arriving here means
     -- the roster moved under the dialog or the client is wrong. Either way it
     -- is not something the creator can fix by changing a control.
-    raise exception 'Not in this club: %', array_to_string(non_members, ', ')
+    raise exception 'BUG: player not in this club: %', array_to_string(non_members, ', ')
       using errcode = 'PN060', hint = 'fault', column = '_',
       detail = 'every player must already be a club member';
   end if;
@@ -1864,7 +1864,7 @@ begin
   -- raise still earns its place over the table's own CHECK: a named condition
   -- with a written reason and a code pointing at one line beats a 23514.
   if char_length(club_name) > 20 then
-    raise exception 'A club name over 20 characters reached the server'
+    raise exception 'BUG: club name over 20 characters'
       using errcode = 'PN003', hint = 'fault', column = '_',
       detail = 'club name length cap';
   end if;
@@ -1872,21 +1872,21 @@ begin
   new_handle := common.slugify_club_name(club_name);
   -- PN004. Prevented by the form's `handleError`; see PN003 on the wording.
   if length(new_handle) = 0 then
-    raise exception 'A club name with no letter or digit reached the server'
+    raise exception 'BUG: club name with no letter or digit'
       using errcode = 'PN004', hint = 'fault', column = '_',
       detail = 'club name needs at least one alphanumeric';
   end if;
   -- PN005. The handle CHECK regex requires a leading letter; the form checks
   -- the same rule first, so reaching this is a bug.
   if new_handle !~ '^[a-z]' then
-    raise exception 'A handle not starting with a letter reached the server'
+    raise exception 'BUG: handle not starting with a letter'
       using errcode = 'PN005', hint = 'fault', column = '_',
       detail = 'club name must begin with a letter';
   end if;
   -- PN006. The handle CHECK's other half: 3–30 characters. The form checks the
   -- floor too, so this is a bug rather than a name problem.
   if length(new_handle) < 3 then
-    raise exception 'A handle under 3 characters reached the server'
+    raise exception 'BUG: handle under 3 characters'
       using errcode = 'PN006', hint = 'fault', column = '_',
       detail = 'derived handle needs at least 3 characters';
   end if;
@@ -2081,7 +2081,7 @@ begin
   -- PN030. The chat form returns early on an empty box, so this is a bug
   -- rather than an empty message.
   if length(trimmed) = 0 then
-    raise exception 'A blank message reached the server'
+    raise exception 'BUG: blank message'
       using errcode = 'PN030', hint = 'fault', column = '_',
       detail = 'chat body was blank';
   end if;
@@ -2175,7 +2175,7 @@ begin
   -- PN014. The claim screen tests the SAME regex before it submits, so this is
   -- a bug rather than a name problem.
   if desired !~ '^[a-z][a-z0-9-]{2,14}$' then
-    raise exception 'A username in the wrong format reached the server'
+    raise exception 'BUG: username in the wrong format'
       using errcode = 'PN014', hint = 'fault', column = '_',
       detail = 'username must match ^[a-z][a-z0-9-]{2,14}$';
   end if;
@@ -2199,7 +2199,7 @@ begin
   -- personas supply their own via common.color_for_username.)
   if chosen_color not in
        ('red', 'orange', 'yellow', 'green', 'brown', 'blue', 'purple', 'pink') then
-    raise exception 'A color outside the palette reached the server'
+    raise exception 'BUG: color outside the palette'
       using errcode = 'PN015', hint = 'fault', column = '_',
       detail = format('color %L is not in the member palette', chosen_color);
   end if;
@@ -2288,7 +2288,7 @@ begin
   -- one line, and the message says which value arrived.
   if new_color not in
        ('red', 'orange', 'yellow', 'green', 'brown', 'blue', 'purple', 'pink') then
-    raise exception 'A color outside the palette reached the server: %', new_color
+    raise exception 'BUG: color outside the palette: %', new_color
       using errcode = 'PN033', hint = 'fault', column = '_',
       detail = 'color must be one of the member palette';
   end if;
@@ -2561,24 +2561,24 @@ begin
                  'american', 'british', 'canadian', 'australian') then
       -- PN020-PN023 are all faults: the dialog builds this object from its own
       -- named controls, so an unknown key or an out-of-range number is our bug.
-      raise exception 'A field outside the editable set reached the server: %', k
+      raise exception 'BUG: field outside the editable set: %', k
         using errcode = 'PN020', hint = 'fault', column = '_',
         detail = 'field is not in the editable allow-list';
     end if;
   end loop;
   if fields ? 'difficulty'
      and (fields->>'difficulty')::int not between 1 and 6 then
-    raise exception 'A difficulty outside 1-6 reached the server'
+    raise exception 'BUG: difficulty outside 1-6'
       using errcode = 'PN021', hint = 'fault', column = '_',
       detail = 'words.difficulty is 1-6';
   end if;
   if fields ? 'crude' and (fields->>'crude')::int not between 0 and 2 then
-    raise exception 'A crude rating outside 0-2 reached the server'
+    raise exception 'BUG: crude rating outside 0-2'
       using errcode = 'PN022', hint = 'fault', column = '_',
       detail = 'words.crude is 0-2';
   end if;
   if fields ? 'slur' and (fields->>'slur')::int not between 0 and 2 then
-    raise exception 'A slur rating outside 0-2 reached the server'
+    raise exception 'BUG: slur rating outside 0-2'
       using errcode = 'PN023', hint = 'fault', column = '_',
       detail = 'words.slur is 0-2';
   end if;
@@ -2877,7 +2877,7 @@ set search_path = common, public, extensions
 as $$
 begin
   if array_length(player_user_ids, 1) > max_count then
-    raise exception 'A game with % players reached the server', array_length(player_user_ids, 1)
+    raise exception 'BUG: game with % players', array_length(player_user_ids, 1)
       using errcode = 'PN041', hint = 'fault', column = '_',
       detail = 'player count exceeds the gametype''s max';
   end if;

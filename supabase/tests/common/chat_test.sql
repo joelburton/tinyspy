@@ -72,7 +72,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   common.send_message((select handle from club), '   '),
   '{"type": "not-ok", "severity": "fault", "dbcode": "PN030",
-    "message": "A blank message reached the server"}'::jsonb,
+    "message": "BUG: blank message"}'::jsonb,
   'send_message: whitespace-only message is rejected'
 );
 

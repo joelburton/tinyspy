@@ -95,7 +95,7 @@ begin
   -- ─── Mode + player-count ─────────────────────────────────
   perform common.require_valid_mode(mode);
   if mode = 'compete' and coalesce(array_length(player_user_ids, 1), 0) < 2 then
-    raise exception 'A race with fewer than two players reached the server'
+    raise exception 'BUG: race with fewer than two players'
       using errcode = 'PN136', hint = 'fault', column = '_',
       detail = 'compete needs >= 2 players';
   end if;
@@ -106,14 +106,14 @@ begin
 
   s_min_word_length := coalesce((setup->>'min_word_length')::int, 3);
   if s_min_word_length < 3 or s_min_word_length > 9 then
-    raise exception 'A minimum word length of % reached the server', s_min_word_length
+    raise exception 'BUG: minimum word length of %', s_min_word_length
       using errcode = 'PN137', hint = 'fault', column = '_',
       detail = 'setup.min_word_length must be 3..9';
   end if;
 
   s_band := (setup->>'band')::int;
   if s_band is null or s_band < 1 or s_band > 6 then
-    raise exception 'A required difficulty of ''%'' reached the server', setup->>'band'
+    raise exception 'BUG: required difficulty of ''%''', setup->>'band'
       using errcode = 'PN138', hint = 'fault', column = '_',
       detail = 'setup.band must be 1..6';
   end if;
@@ -123,20 +123,20 @@ begin
   -- (every required word is, by definition, also legal) and at most 6.
   s_legal_band := (setup->>'legal_band')::int;
   if s_legal_band is null or s_legal_band < s_band or s_legal_band > 6 then
-    raise exception 'A legal-word difficulty of ''%'' reached the server', setup->>'legal_band'
+    raise exception 'BUG: legal-word difficulty of ''%''', setup->>'legal_band'
       using errcode = 'PN139', hint = 'fault', column = '_',
       detail = 'setup.legal_band must be between band and 6';
   end if;
 
   s_ladder := setup->>'scoring_ladder';
   if s_ladder is null or s_ladder not in ('flat', 'basic', 'fib', 'big') then
-    raise exception 'A scoring ladder of ''%'' reached the server', s_ladder
+    raise exception 'BUG: scoring ladder of ''%''', s_ladder
       using errcode = 'PN140', hint = 'fault', column = '_',
       detail = 'scoring_ladder must be flat, basic, fib or big';
   end if;
 
   if coalesce(setup->>'dice_set', '') = '' then
-    raise exception 'A game with no dice set reached the server'
+    raise exception 'BUG: game with no dice set'
       using errcode = 'PN141', hint = 'fault', column = '_',
       detail = 'setup.dice_set absent';
   end if;
@@ -146,7 +146,7 @@ begin
   s_win_percent := (setup->>'win_percent')::int;   -- NULL when absent or JSON null
   if s_win_percent is not null
      and (s_win_percent < 50 or s_win_percent > 100 or s_win_percent % 5 <> 0) then
-    raise exception 'A win target of % reached the server', s_win_percent
+    raise exception 'BUG: win target of %', s_win_percent
       using errcode = 'PN142', hint = 'fault', column = '_',
       detail = 'win_percent must be 50..100 in steps of 5, or null';
   end if;
@@ -155,24 +155,24 @@ begin
   b_board := board->>'board';
   b_n := (board->>'n')::int;
   if b_board is null or b_n is null or b_n < 4 or b_n > 6 then
-    raise exception 'The generated board was unreadable'
+    raise exception 'BUG: generated board was unreadable'
       using errcode = 'PN143', hint = 'fault', column = '_',
       detail = 'board.board / board.n missing or malformed';
   end if;
   if length(b_board) <> b_n * b_n then
-    raise exception 'The generated board had % tiles where % were wanted', length(b_board), b_n * b_n
+    raise exception 'BUG: generated board had % tiles where % were wanted', length(b_board), b_n * b_n
       using errcode = 'PN144', hint = 'fault', column = '_',
       detail = 'board length must be n squared';
   end if;
   if jsonb_typeof(board->'required_words') <> 'array' then
-    raise exception 'The generated board arrived with no word list'
+    raise exception 'BUG: generated board arrived with no word list'
       using errcode = 'PN145', hint = 'fault', column = '_',
       detail = 'board.required_words must be a jsonb array';
   end if;
   -- bonus_words is optional (empty when legal_band == band); if present it must
   -- be an array of the same { word, points } shape.
   if board ? 'bonus_words' and jsonb_typeof(board->'bonus_words') <> 'array' then
-    raise exception 'The generated board arrived with a malformed bonus list'
+    raise exception 'BUG: generated board arrived with a malformed bonus list'
       using errcode = 'PN146', hint = 'fault', column = '_',
       detail = 'board.bonus_words must be a jsonb array';
   end if;

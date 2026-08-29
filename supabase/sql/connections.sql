@@ -384,7 +384,7 @@ begin
     -- compete Start button in 1-player clubs; this guard is the
     -- server-side catch. Matches psychicnum's pattern.
     if coalesce(array_length(player_user_ids, 1), 0) < 2 then
-      raise exception 'A race with fewer than two players reached the server'
+      raise exception 'BUG: race with fewer than two players'
         using errcode = 'PN061', hint = 'fault', column = '_',
       detail = 'compete needs >= 2 players';
     end if;
@@ -430,7 +430,7 @@ begin
     begin
       s_puzzle_id := (setup->>'puzzle_id')::uuid;
     exception when invalid_text_representation then
-      raise exception 'A puzzle reference the server cannot read arrived'
+      raise exception 'BUG: puzzle reference the server cannot read'
         using errcode = 'PN063', hint = 'fault', column = '_',
         detail = 'setup.puzzle_id is not a uuid';
     end;
@@ -513,7 +513,7 @@ begin
   if mode = 'coop' and setup->>'coop_style' = 'turns' then
     first_turn := (setup->>'first_turn_user_id')::uuid;
     if first_turn is null or not (first_turn = any(player_user_ids)) then
-      raise exception 'A first player who is not in the game reached the server'
+      raise exception 'BUG: first player who is not in the game'
         using errcode = 'PN064', hint = 'fault', column = '_',
       detail = 'setup.first_turn_user_id must be one of the players';
     end if;
@@ -738,14 +738,14 @@ begin
   -- payloads (lengths, enum values) so the data we persist is at
   -- least well-typed.
   if tiles is null or array_length(tiles, 1) <> 4 then
-    raise exception 'A guess that was not four tiles reached the server'
+    raise exception 'BUG: guess that was not four tiles'
       using errcode = 'PN247', hint = 'fault', column = '_',
       detail = format('a guess is exactly 4 tile ids; got %s',
                       coalesce(array_length(tiles, 1), 0));
   end if;
 
   if result not in ('correct', 'oneAway', 'wrong') then
-    raise exception 'An unknown guess result reached the server'
+    raise exception 'BUG: unknown guess result'
       using errcode = 'PN248', hint = 'fault', column = '_',
       detail = format('result must be correct, oneAway or wrong; got %L', result);
   end if;
@@ -753,7 +753,7 @@ begin
   if result = 'correct' then
     if matched_category_rank is null
        or matched_category_rank not between 0 and 3 then
-      raise exception 'A correct guess with no category reached the server'
+      raise exception 'BUG: correct guess with no category'
         using errcode = 'PN249', hint = 'fault', column = '_',
         detail = 'a correct guess must name a category rank 0..3';
     end if;

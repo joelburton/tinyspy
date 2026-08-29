@@ -357,7 +357,7 @@ begin
     -- compete Start button in 1-player clubs; this is the
     -- server-side catch. Matches psychicnum + connections.
     if coalesce(array_length(player_user_ids, 1), 0) < 2 then
-      raise exception 'A race with fewer than two players reached the server'
+      raise exception 'BUG: race with fewer than two players'
         using errcode = 'PN178', hint = 'fault', column = '_',
         detail = 'compete needs >= 2 players';
     end if;
@@ -374,7 +374,7 @@ begin
   --          End button. Absent and explicit null are the same thing, so a FE
   --          that always sends the key can send null for "none".
   if mode = 'compete' and (setup->>'target_rank') is null then
-    raise exception 'A race with no target rank reached the server'
+    raise exception 'BUG: race with no target rank'
       using errcode = 'PN179', hint = 'fault', column = '_',
       detail = 'compete needs a target_rank';
   end if;
@@ -382,12 +382,12 @@ begin
     begin
       s_target_rank := (setup->>'target_rank')::int;
     exception when invalid_text_representation then
-      raise exception 'A target rank that is not a number reached the server'
+      raise exception 'BUG: target rank that is not a number'
         using errcode = 'PN180', hint = 'fault', column = '_',
         detail = 'setup.target_rank must be an integer';
     end;
     if s_target_rank < 0 or s_target_rank > 6 then
-      raise exception 'A target rank of % reached the server', s_target_rank
+      raise exception 'BUG: target rank of %', s_target_rank
         using errcode = 'PN181', hint = 'fault', column = '_',
         detail = 'setup.target_rank must be 0..6';
     end if;
@@ -402,13 +402,13 @@ begin
   -- authority on the shape.
   s_required := coalesce((setup->>'required')::int, 3);
   if s_required < 1 or s_required > 6 then
-    raise exception 'A required difficulty of % reached the server', s_required
+    raise exception 'BUG: required difficulty of %', s_required
       using errcode = 'PN182', hint = 'fault', column = '_',
       detail = 'setup.required must be 1..6';
   end if;
   s_legal := coalesce((setup->>'legal')::int, 5);
   if s_legal < s_required or s_legal > 6 then
-    raise exception 'A legal difficulty of % reached the server, below the required % ', s_legal, s_required
+    raise exception 'BUG: legal difficulty of % below the required % ', s_legal, s_required
       using errcode = 'PN183', hint = 'fault', column = '_',
       detail = 'setup.legal must be between required and 6';
   end if;
@@ -420,7 +420,7 @@ begin
   b_center := board->>'center_letter';
 
   if b_outer is null or length(b_outer) <> 8 then
-    raise exception 'A wheel with % outer letters reached the server',
+    raise exception 'BUG: wheel with % outer letters',
       coalesce(length(b_outer)::text, 'no')
       using errcode = 'PN184', hint = 'fault', column = '_',
       detail = 'board.outer_letters must be 8 characters';
@@ -432,20 +432,20 @@ begin
   -- any word; word wheel spends a tile per use, so 's' pluralizes at most
   -- once per 's' tile (as the classic wheel has it).
   if b_outer !~ '^[a-z]{8}$' then
-    raise exception 'Outer letters the puzzle cannot use reached the server'
+    raise exception 'BUG: outer letters the puzzle cannot use'
       using errcode = 'PN185', hint = 'fault', column = '_',
       detail = 'outer letters must be lowercase ASCII';
   end if;
 
   if b_center is null or length(b_center) <> 1 then
-    raise exception 'A wheel whose center is not one letter reached the server'
+    raise exception 'BUG: wheel whose center is not one letter'
       using errcode = 'PN186', hint = 'fault', column = '_',
       detail = 'board.center_letter must be exactly 1 character';
   end if;
   -- The center MAY also appear among the outer letters — that's just a wheel
   -- with two tiles carrying the same letter, one of them the center.
   if b_center !~ '^[a-z]$' then
-    raise exception 'A center letter the puzzle cannot use reached the server'
+    raise exception 'BUG: center letter the puzzle cannot use'
       using errcode = 'PN187', hint = 'fault', column = '_',
       detail = 'center must be a lowercase ASCII letter';
   end if;
@@ -469,18 +469,18 @@ begin
     -- reuse), so the ≥15 floor is lower than spellingbee's ≥30. Tune against
     -- the seed data's word_counts once the import has run; the edge function's
     -- builder must target the same number.
-    raise exception 'The generated wheel had only % words to find', b_required_words_count
+    raise exception 'BUG: generated wheel had only % words to find', b_required_words_count
       using errcode = 'PN189', hint = 'fault', column = '_',
       detail = 'required_words_count must be >= 15; the edge function''s gate must agree';
   end if;
 
   if jsonb_typeof(board->'required_words') <> 'array' then
-    raise exception 'The generated wheel arrived with no word list'
+    raise exception 'BUG: generated wheel arrived with no word list'
       using errcode = 'PN190', hint = 'fault', column = '_',
       detail = 'board.required_words must be a jsonb array';
   end if;
   if jsonb_typeof(board->'bonus_words') <> 'array' then
-    raise exception 'The generated wheel arrived with a malformed bonus list'
+    raise exception 'BUG: generated wheel arrived with a malformed bonus list'
       using errcode = 'PN191', hint = 'fault', column = '_',
       detail = 'board.bonus_words must be a jsonb array';
   end if;

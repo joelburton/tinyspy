@@ -310,7 +310,7 @@ begin
   perform common.require_valid_mode(mode);
   if mode = 'compete' then
     if coalesce(array_length(player_user_ids, 1), 0) < 2 then
-      raise exception 'A race with fewer than two players reached the server'
+      raise exception 'BUG: race with fewer than two players'
         using errcode = 'PN122', hint = 'fault', column = '_',
       detail = 'compete needs >= 2 players';
     end if;
@@ -319,7 +319,7 @@ begin
 
   -- ─── Reject deprecated / inapplicable setup fields ───────
   if setup ? 'target_rank' then
-    raise exception 'A game with a target rank reached the server'
+    raise exception 'BUG: game with a target rank'
       using errcode = 'PN123', hint = 'fault', column = '_',
       detail = 'wordiply has no target_rank; the setup carried one';
   end if;
@@ -327,7 +327,7 @@ begin
   -- ─── Validate the dictionary band ────────────────────────
   s_difficulty := coalesce((setup->>'difficulty')::int, 5);
   if s_difficulty < 1 or s_difficulty > 6 then
-    raise exception 'A word difficulty of % reached the server', s_difficulty
+    raise exception 'BUG: word difficulty of %', s_difficulty
       using errcode = 'PN124', hint = 'fault', column = '_',
       detail = 'setup.difficulty must be 1..6';
   end if;
@@ -342,7 +342,7 @@ begin
   -- docs/games/wordiply.md.
   s_custom_base := nullif(lower(trim(setup->>'custom_base')), '');
   if s_custom_base is not null and s_custom_base !~ '^[a-z]{2,4}$' then
-    raise exception 'A starter of ''%'' reached the server', s_custom_base
+    raise exception 'BUG: starter of ''%''', s_custom_base
       using errcode = 'PN125', hint = 'fault', column = '_',
       detail = 'setup.custom_base must be 2-4 lowercase ASCII letters';
   end if;
@@ -350,7 +350,7 @@ begin
   -- ─── Board structure validation ──────────────────────────
   b_base := board->>'base';
   if b_base is null or b_base !~ '^[a-z]{2,4}$' then
-    raise exception 'The generated board came with a starter of ''%''',
+    raise exception 'BUG: generated board came with a starter of ''%''',
       coalesce(b_base, 'null')
       using errcode = 'PN126', hint = 'fault', column = '_',
       detail = 'board.base must be 2-4 lowercase ASCII letters';
@@ -363,7 +363,7 @@ begin
   -- board.base, and the player would simply be handed a different game than
   -- the one they set up.
   if s_custom_base is not null and b_base <> s_custom_base then
-    raise exception 'You asked to start with ''%'' and the generated board used ''%''',
+    raise exception 'BUG: you asked to start with ''%'' and the generated board used ''%''',
       s_custom_base, b_base
       using errcode = 'PN127', hint = 'fault', column = '_',
       detail = 'board.base does not match the requested setup.custom_base';
@@ -374,7 +374,7 @@ begin
   -- or there's nothing to reach for. (The edge fn targets +3; this is the
   -- looser server floor a misbehaving builder can't sneak past.)
   if b_max_word_length is null or b_max_word_length < b_base_len + 2 then
-    raise exception 'The generated board left no room to grow the starter (longest word %)',
+    raise exception 'BUG: generated board left no room to grow the starter (longest word %)',
       coalesce(b_max_word_length::text, 'none')
       using errcode = 'PN128', hint = 'fault', column = '_',
       detail = 'max_word_length must be >= base length + 2';
@@ -382,13 +382,13 @@ begin
 
   if jsonb_typeof(board->'longest_words') <> 'array'
      or jsonb_array_length(board->'longest_words') < 1 then
-    raise exception 'The generated board arrived with no target words'
+    raise exception 'BUG: generated board arrived with no target words'
       using errcode = 'PN129', hint = 'fault', column = '_',
       detail = 'board.longest_words must be a non-empty jsonb array';
   end if;
   if jsonb_typeof(board->'legal_words') <> 'array'
      or jsonb_array_length(board->'legal_words') < 1 then
-    raise exception 'The generated board arrived with no legal words'
+    raise exception 'BUG: generated board arrived with no legal words'
       using errcode = 'PN130', hint = 'fault', column = '_',
       detail = 'board.legal_words must be a non-empty jsonb array';
   end if;
@@ -419,7 +419,7 @@ begin
   if mode = 'coop' and setup->>'coop_style' = 'turns' then
     first_turn := (setup->>'first_turn_user_id')::uuid;
     if first_turn is null or not (first_turn = any(player_user_ids)) then
-      raise exception 'A first player who is not in the game reached the server'
+      raise exception 'BUG: first player who is not in the game'
         using errcode = 'PN131', hint = 'fault', column = '_',
       detail = 'setup.first_turn_user_id must be one of the players';
     end if;

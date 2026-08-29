@@ -202,7 +202,7 @@ begin
     -- button in 1-player clubs; this guard is the server-side
     -- catch.
     if coalesce(array_length(player_user_ids, 1), 0) < 2 then
-      raise exception 'A race with fewer than two players reached the server'
+      raise exception 'BUG: race with fewer than two players'
         using errcode = 'PN042', hint = 'fault', column = '_',
       detail = 'compete needs >= 2 players';
     end if;
@@ -216,39 +216,39 @@ begin
 
   -- ─── Validate setup shape ────────────────────────────
   if (setup->>'guesses') is null then
-    raise exception 'A game with no guess budget reached the server'
+    raise exception 'BUG: game with no guess budget'
       using errcode = 'PN043', hint = 'fault', column = '_',
       detail = 'setup.guesses absent';
   end if;
   s_guesses := (setup->>'guesses')::int;
   if s_guesses not in (3, 5, 7, 9) then
-    raise exception 'A guess budget of % reached the server', s_guesses
+    raise exception 'BUG: guess budget of %', s_guesses
       using errcode = 'PN044', hint = 'fault', column = '_',
       detail = 'setup.guesses must be 3, 5, 7 or 9';
   end if;
 
   -- ─── Validate the board size (how many words) ──────────────
   if (setup->>'word_count') is null then
-    raise exception 'A game with no board size reached the server'
+    raise exception 'BUG: game with no board size'
       using errcode = 'PN045', hint = 'fault', column = '_',
       detail = 'setup.word_count absent';
   end if;
   s_word_count := (setup->>'word_count')::int;
   if s_word_count < 5 or s_word_count > 20 then
-    raise exception 'A board size of % reached the server', s_word_count
+    raise exception 'BUG: board size of %', s_word_count
       using errcode = 'PN046', hint = 'fault', column = '_',
       detail = 'setup.word_count must be 5..20';
   end if;
 
   -- ─── Validate the dictionary difficulty band ───────────────
   if (setup->>'difficulty') is null then
-    raise exception 'A game with no word difficulty reached the server'
+    raise exception 'BUG: game with no word difficulty'
       using errcode = 'PN047', hint = 'fault', column = '_',
       detail = 'setup.difficulty absent';
   end if;
   s_difficulty := (setup->>'difficulty')::int;
   if s_difficulty < 1 or s_difficulty > 6 then
-    raise exception 'A word difficulty of % reached the server', s_difficulty
+    raise exception 'BUG: word difficulty of %', s_difficulty
       using errcode = 'PN048', hint = 'fault', column = '_',
       detail = 'setup.difficulty must be 1..6';
   end if;
@@ -332,7 +332,7 @@ begin
   if mode = 'coop' and setup->>'coop_style' = 'turns' then
     first_turn := (setup->>'first_turn_user_id')::uuid;
     if first_turn is null or not (first_turn = any(player_user_ids)) then
-      raise exception 'A first player who is not in the game reached the server'
+      raise exception 'BUG: first player who is not in the game'
         using errcode = 'PN050', hint = 'fault', column = '_',
       detail = 'setup.first_turn_user_id must be one of the players';
     end if;
@@ -479,7 +479,7 @@ begin
   -- the old 1..max range check).
   w := lower(trim(coalesce(guess, '')));
   if not (w = any(g.words)) then
-    raise exception 'A guess that is not on the board reached the server'
+    raise exception 'BUG: guess that is not on the board'
       using errcode = 'PN268', hint = 'fault', column = '_',
       detail = 'the guess is not one of the board''s words';
   end if;

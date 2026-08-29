@@ -151,7 +151,7 @@ select throws_ok(
     (select handle from club)
   ),
   'PN059',
-  'A game with no players reached the server',
+  'BUG: game with no players',
   'create_game: empty player_user_ids is rejected'
 );
 
@@ -169,7 +169,7 @@ select throws_ok(
     (select handle from club)
   ),
   'PN060',
-  'Not in this club: dee44444-4444-4444-4444-444444444444',
+  'BUG: player not in this club: dee44444-4444-4444-4444-444444444444',
   'create_game: rejects when a listed uid isn''t in clubs_members'
 );
 

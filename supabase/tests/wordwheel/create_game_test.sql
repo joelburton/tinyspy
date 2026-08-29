@@ -203,7 +203,7 @@ select pg_temp.envelope_is(
     'solo',
     pg_temp.wordwheel_board()),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN040",
-    "message":"A game mode of ''solo'' reached the server"}'::jsonb,
+    "message":"BUG: game mode of ''solo''"}'::jsonb,
   'rejects mode value not in {coop, compete}');
 
 
@@ -218,7 +218,7 @@ select pg_temp.envelope_is(
     'compete',
     pg_temp.wordwheel_board()),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN178",
-    "message":"A race with fewer than two players reached the server"}'::jsonb,
+    "message":"BUG: race with fewer than two players"}'::jsonb,
   'compete with 1 player rejected');
 
 -- ============================================================
@@ -233,7 +233,7 @@ select pg_temp.envelope_is(
     'compete',
     pg_temp.wordwheel_board()),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN179",
-    "message":"A race with no target rank reached the server"}'::jsonb,
+    "message":"BUG: race with no target rank"}'::jsonb,
   'compete without target_rank rejected');
 
 select pg_temp.envelope_is(
@@ -244,7 +244,7 @@ select pg_temp.envelope_is(
     'compete',
     pg_temp.wordwheel_board()),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN181",
-    "message":"A target rank of 7 reached the server"}'::jsonb,
+    "message":"BUG: target rank of 7"}'::jsonb,
   'compete with target_rank > 6 rejected');
 
 -- coop MAY set target_rank: it's the team's win threshold (reach that rank
@@ -288,7 +288,7 @@ select pg_temp.envelope_is(
     'coop',
     pg_temp.wordwheel_board()),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN182",
-    "message":"A required difficulty of 0 reached the server"}'::jsonb,
+    "message":"BUG: required difficulty of 0"}'::jsonb,
   'rejects setup.required below 1 (band floor)');
 
 -- required = 1 is the floor — accepted. Same fixture board (its
@@ -313,7 +313,7 @@ select pg_temp.envelope_is(
     'coop',
     pg_temp.wordwheel_board()),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN182",
-    "message":"A required difficulty of 7 reached the server"}'::jsonb,
+    "message":"BUG: required difficulty of 7"}'::jsonb,
   'rejects setup.required above 6 (band ceiling)');
 
 select pg_temp.envelope_is(
@@ -415,7 +415,7 @@ select pg_temp.envelope_is(
     'coop',
     pg_temp.wordwheel_board() || '{"required_words_count": 14}'::jsonb),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN189",
-    "message":"The generated wheel had only 14 words to find"}'::jsonb,
+    "message":"BUG: generated wheel had only 14 words to find"}'::jsonb,
   'rejects board.required_words_count < 15 (puzzle-quality gate — the wordwheel floor)');
 
 -- ============================================================

@@ -48,7 +48,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   common.update_profile_color('chartreuse'),
   '{"type": "not-ok", "severity": "fault", "dbcode": "PN033",
-    "message": "A color outside the palette reached the server: chartreuse"}'::jsonb,
+    "message": "BUG: color outside the palette: chartreuse"}'::jsonb,
   'an off-palette color is rejected');
 select is(
   (select color from common.profiles

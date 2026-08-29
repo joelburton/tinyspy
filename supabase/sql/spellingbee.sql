@@ -344,7 +344,7 @@ begin
     -- compete Start button in 1-player clubs; this is the
     -- server-side catch. Matches psychicnum + connections.
     if coalesce(array_length(player_user_ids, 1), 0) < 2 then
-      raise exception 'A race with fewer than two players reached the server'
+      raise exception 'BUG: race with fewer than two players'
         using errcode = 'PN156', hint = 'fault', column = '_',
         detail = 'compete needs >= 2 players';
     end if;
@@ -361,7 +361,7 @@ begin
   --          End button. Absent and explicit null are the same thing, so a FE
   --          that always sends the key can send null for "none".
   if mode = 'compete' and (setup->>'target_rank') is null then
-    raise exception 'A race with no target rank reached the server'
+    raise exception 'BUG: race with no target rank'
       using errcode = 'PN157', hint = 'fault', column = '_',
       detail = 'compete needs a target_rank';
   end if;
@@ -369,12 +369,12 @@ begin
     begin
       s_target_rank := (setup->>'target_rank')::int;
     exception when invalid_text_representation then
-      raise exception 'A target rank that is not a number reached the server'
+      raise exception 'BUG: target rank that is not a number'
         using errcode = 'PN158', hint = 'fault', column = '_',
         detail = 'setup.target_rank must be an integer';
     end;
     if s_target_rank < 0 or s_target_rank > 6 then
-      raise exception 'A target rank of % reached the server', s_target_rank
+      raise exception 'BUG: target rank of %', s_target_rank
         using errcode = 'PN159', hint = 'fault', column = '_',
         detail = 'setup.target_rank must be 0..6';
     end if;
@@ -389,13 +389,13 @@ begin
   -- authority on the shape.
   s_required := coalesce((setup->>'required')::int, 3);
   if s_required < 1 or s_required > 6 then
-    raise exception 'A required difficulty of % reached the server', s_required
+    raise exception 'BUG: required difficulty of %', s_required
       using errcode = 'PN160', hint = 'fault', column = '_',
       detail = 'setup.required must be 1..6';
   end if;
   s_legal := coalesce((setup->>'legal')::int, 5);
   if s_legal < s_required or s_legal > 6 then
-    raise exception 'A legal difficulty of % reached the server, below the required % ', s_legal, s_required
+    raise exception 'BUG: legal difficulty of % below the required % ', s_legal, s_required
       using errcode = 'PN161', hint = 'fault', column = '_',
       detail = 'setup.legal must be between required and 6';
   end if;
@@ -407,7 +407,7 @@ begin
   b_center := board->>'center_letter';
 
   if b_outer is null or length(b_outer) <> 6 then
-    raise exception 'A board with % outer letters reached the server',
+    raise exception 'BUG: board with % outer letters',
       coalesce(length(b_outer)::text, 'no')
       using errcode = 'PN162', hint = 'fault', column = '_',
       detail = 'board.outer_letters must be 6 characters';
@@ -417,30 +417,30 @@ begin
     -- the puzzle rule excludes). A regex is more compact than
     -- enumerating the alphabet, and the failure message names
     -- the intent.
-    raise exception 'Outer letters the puzzle cannot use reached the server'
+    raise exception 'BUG: outer letters the puzzle cannot use'
       using errcode = 'PN163', hint = 'fault', column = '_',
       detail = 'outer letters must be lowercase ASCII, not s';
   end if;
   -- 6 DISTINCT: cardinality of the deduplicated character set.
   if cardinality(string_to_array(b_outer, null)) <>
      cardinality(array(select distinct unnest(string_to_array(b_outer, null)))) then
-    raise exception 'A board with a repeated letter reached the server'
+    raise exception 'BUG: board with a repeated letter'
       using errcode = 'PN164', hint = 'fault', column = '_',
       detail = 'board.outer_letters must be distinct';
   end if;
 
   if b_center is null or length(b_center) <> 1 then
-    raise exception 'A board whose center is not one letter reached the server'
+    raise exception 'BUG: board whose center is not one letter'
       using errcode = 'PN165', hint = 'fault', column = '_',
       detail = 'board.center_letter must be exactly 1 character';
   end if;
   if b_center !~ '^[a-rt-z]$' then
-    raise exception 'A center letter the puzzle cannot use reached the server'
+    raise exception 'BUG: center letter the puzzle cannot use'
       using errcode = 'PN166', hint = 'fault', column = '_',
       detail = 'center must be a lowercase ASCII letter, not s';
   end if;
   if position(b_center in b_outer) > 0 then
-    raise exception 'A board whose center is also an outer letter reached the server'
+    raise exception 'BUG: board whose center is also an outer letter'
       using errcode = 'PN167', hint = 'fault', column = '_',
       detail = 'center_letter duplicated in outer_letters';
   end if;
@@ -459,18 +459,18 @@ begin
         detail = 'the chosen letters produce an empty required set at that band';
     end if;
   elsif b_required_words_count < 30 then
-    raise exception 'The generated board had only % words to find', b_required_words_count
+    raise exception 'BUG: generated board had only % words to find', b_required_words_count
       using errcode = 'PN169', hint = 'fault', column = '_',
       detail = 'required_words_count must be >= 30; the edge function''s gate must agree';
   end if;
 
   if jsonb_typeof(board->'required_words') <> 'array' then
-    raise exception 'The generated board arrived with no word list'
+    raise exception 'BUG: generated board arrived with no word list'
       using errcode = 'PN170', hint = 'fault', column = '_',
       detail = 'board.required_words must be a jsonb array';
   end if;
   if jsonb_typeof(board->'bonus_words') <> 'array' then
-    raise exception 'The generated board arrived with a malformed bonus list'
+    raise exception 'BUG: generated board arrived with a malformed bonus list'
       using errcode = 'PN171', hint = 'fault', column = '_',
       detail = 'board.bonus_words must be a jsonb array';
   end if;

@@ -96,14 +96,14 @@ select pg_temp.envelope_is(
   boggle.create_game((select handle from club), pg_temp.boggle_setup(),
     array['ada11111-1111-1111-1111-111111111111'::uuid], 'sideways', pg_temp.boggle_board()),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN040",
-    "message":"A game mode of ''sideways'' reached the server"}'::jsonb,
+    "message":"BUG: game mode of ''sideways''"}'::jsonb,
   'rejects an unknown mode');
 
 select pg_temp.envelope_is(
   boggle.create_game((select handle from club), pg_temp.boggle_setup(),
     array['ada11111-1111-1111-1111-111111111111'::uuid], 'compete', pg_temp.boggle_board()),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN136",
-    "message":"A race with fewer than two players reached the server"}'::jsonb,
+    "message":"BUG: race with fewer than two players"}'::jsonb,
   'compete with 1 player is rejected');
 
 select pg_temp.envelope_is(
@@ -112,7 +112,7 @@ select pg_temp.envelope_is(
     array['ada11111-1111-1111-1111-111111111111'::uuid,'bea22222-2222-2222-2222-222222222222'::uuid],
     'coop', pg_temp.boggle_board()),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN138",
-    "message":"A required difficulty of ''9'' reached the server"}'::jsonb,
+    "message":"BUG: required difficulty of ''9''"}'::jsonb,
   'rejects band out of range');
 
 -- legal_band must sit between the required band and 6. Default band is 3, so a
@@ -123,7 +123,7 @@ select pg_temp.envelope_is(
     array['ada11111-1111-1111-1111-111111111111'::uuid,'bea22222-2222-2222-2222-222222222222'::uuid],
     'coop', pg_temp.boggle_board()),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN139",
-    "message":"A legal-word difficulty of ''2'' reached the server"}'::jsonb,
+    "message":"BUG: legal-word difficulty of ''2''"}'::jsonb,
   'rejects legal_band below the required band');
 
 select pg_temp.envelope_is(
@@ -132,7 +132,7 @@ select pg_temp.envelope_is(
     array['ada11111-1111-1111-1111-111111111111'::uuid,'bea22222-2222-2222-2222-222222222222'::uuid],
     'coop', pg_temp.boggle_board()),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN140",
-    "message":"A scoring ladder of ''wacky'' reached the server"}'::jsonb,
+    "message":"BUG: scoring ladder of ''wacky''"}'::jsonb,
   'rejects an unknown scoring_ladder');
 
 -- Non-member (dee) cannot create in this club.

@@ -80,7 +80,7 @@ select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select pg_temp.envelope_is(
   waffle.submit_swap((select id from g), 6, 0),
   '{"type":"not-ok","severity":"fault","dbcode":"PN264",
-    "message":"A swap of an empty square reached the server"}'::jsonb,
+    "message":"BUG: swap of an empty square"}'::jsonb,
   'turns: a hole-cell swap does not consume the turn'
 );
 reset role;
@@ -141,7 +141,7 @@ select pg_temp.envelope_is(
     'coop',
     pg_temp.waffle_board()),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN110",
-    "message":"A first player who is not in the game reached the server"}'::jsonb,
+    "message":"BUG: first player who is not in the game"}'::jsonb,
   'turns: a first player who is not in the game is refused'
 );
 

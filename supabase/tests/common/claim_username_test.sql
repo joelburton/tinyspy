@@ -101,35 +101,35 @@ select pg_temp.as_user('f1a66666-6666-6666-6666-666666666666');
 -- Too short (must be 3+ chars)
 select pg_temp.envelope_is(
   common.claim_username('ab', 'blue'),
-  '{"type": "not-ok", "severity": "fault", "dbcode": "PN014", "message": "A username in the wrong format reached the server"}'::jsonb,
+  '{"type": "not-ok", "severity": "fault", "dbcode": "PN014", "message": "BUG: username in the wrong format"}'::jsonb,
   'claim_username: 2-char username rejected'
 );
 
 -- Starts with digit (must start with letter)
 select pg_temp.envelope_is(
   common.claim_username('1abc', 'blue'),
-  '{"type": "not-ok", "severity": "fault", "dbcode": "PN014", "message": "A username in the wrong format reached the server"}'::jsonb,
+  '{"type": "not-ok", "severity": "fault", "dbcode": "PN014", "message": "BUG: username in the wrong format"}'::jsonb,
   'claim_username: leading digit rejected'
 );
 
 -- Uppercase letters
 select pg_temp.envelope_is(
   common.claim_username('Joel', 'blue'),
-  '{"type": "not-ok", "severity": "fault", "dbcode": "PN014", "message": "A username in the wrong format reached the server"}'::jsonb,
+  '{"type": "not-ok", "severity": "fault", "dbcode": "PN014", "message": "BUG: username in the wrong format"}'::jsonb,
   'claim_username: uppercase letters rejected'
 );
 
 -- Dot (only a-z, 0-9, - are allowed)
 select pg_temp.envelope_is(
   common.claim_username('joel.smith', 'blue'),
-  '{"type": "not-ok", "severity": "fault", "dbcode": "PN014", "message": "A username in the wrong format reached the server"}'::jsonb,
+  '{"type": "not-ok", "severity": "fault", "dbcode": "PN014", "message": "BUG: username in the wrong format"}'::jsonb,
   'claim_username: dot rejected'
 );
 
 -- 16 chars (1 over the cap)
 select pg_temp.envelope_is(
   common.claim_username('aaaaaaaaaaaaaaaa', 'blue'),
-  '{"type": "not-ok", "severity": "fault", "dbcode": "PN014", "message": "A username in the wrong format reached the server"}'::jsonb,
+  '{"type": "not-ok", "severity": "fault", "dbcode": "PN014", "message": "BUG: username in the wrong format"}'::jsonb,
   'claim_username: 16-char username rejected'
 );
 
@@ -137,7 +137,7 @@ select pg_temp.envelope_is(
 -- profiles.username doesn't allow it)
 select pg_temp.envelope_is(
   common.claim_username('=joel', 'blue'),
-  '{"type": "not-ok", "severity": "fault", "dbcode": "PN014", "message": "A username in the wrong format reached the server"}'::jsonb,
+  '{"type": "not-ok", "severity": "fault", "dbcode": "PN014", "message": "BUG: username in the wrong format"}'::jsonb,
   'claim_username: leading = rejected'
 );
 
@@ -145,7 +145,7 @@ select pg_temp.envelope_is(
 -- so the color check is what rejects it (and nothing is inserted).
 select pg_temp.envelope_is(
   common.claim_username('fia', 'chartreuse'),
-  '{"type": "not-ok", "severity": "fault", "dbcode": "PN015", "message": "A color outside the palette reached the server"}'::jsonb,
+  '{"type": "not-ok", "severity": "fault", "dbcode": "PN015", "message": "BUG: color outside the palette"}'::jsonb,
   'claim_username: off-palette color rejected'
 );
 

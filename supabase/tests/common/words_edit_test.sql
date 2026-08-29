@@ -78,13 +78,13 @@ select is(
 select pg_temp.envelope_is(
   common.update_word('zqedita', '{"wordle": true}'::jsonb),
   '{"type": "not-ok", "severity": "fault", "dbcode": "PN020",
-    "message": "A field outside the editable set reached the server: wordle"}'::jsonb,
+    "message": "BUG: field outside the editable set: wordle"}'::jsonb,
   'only the editable column set is patchable'
 );
 select pg_temp.envelope_is(
   common.update_word('zqedita', '{"difficulty": 7}'::jsonb),
   '{"type": "not-ok", "severity": "fault", "dbcode": "PN021",
-    "message": "A difficulty outside 1-6 reached the server"}'::jsonb,
+    "message": "BUG: difficulty outside 1-6"}'::jsonb,
   'a typo band is a clean rejection'
 );
 select pg_temp.envelope_is(

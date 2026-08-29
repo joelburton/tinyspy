@@ -94,9 +94,9 @@ describe('setgame setup — the two decks', () => {
 
 describe('setgame setup — where a refusal lands', () => {
   it.each([
-    ['deck', 'A deck of ‘tarot’ reached the server'],
+    ['deck', "BUG: deck of 'tarot'"],
     ['palette', 'nothing raises this today, but the field can carry one'],
-    ['player_user_ids', 'A game with 7 players reached the server'],
+    ['player_user_ids', 'BUG: game with 7 players'],
   ])('puts a message naming %s under that field', (field, message) => {
     draw({ errors: { [field]: message } })
     expect(errorUnder(field)).toBe(message)

@@ -202,7 +202,7 @@ select pg_temp.envelope_is(
     'solo',
     pg_temp.spellingbee_board()),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN040",
-    "message":"A game mode of ''solo'' reached the server"}'::jsonb,
+    "message":"BUG: game mode of ''solo''"}'::jsonb,
   'rejects mode value not in {coop, compete}');
 
 -- ============================================================
@@ -216,7 +216,7 @@ select pg_temp.envelope_is(
     'compete',
     pg_temp.spellingbee_board()),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN156",
-    "message":"A race with fewer than two players reached the server"}'::jsonb,
+    "message":"BUG: race with fewer than two players"}'::jsonb,
   'compete with 1 player rejected');
 
 -- ============================================================
@@ -231,7 +231,7 @@ select pg_temp.envelope_is(
     'compete',
     pg_temp.spellingbee_board()),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN157",
-    "message":"A race with no target rank reached the server"}'::jsonb,
+    "message":"BUG: race with no target rank"}'::jsonb,
   'compete without target_rank rejected');
 
 select pg_temp.envelope_is(
@@ -242,7 +242,7 @@ select pg_temp.envelope_is(
     'compete',
     pg_temp.spellingbee_board()),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN159",
-    "message":"A target rank of 7 reached the server"}'::jsonb,
+    "message":"BUG: target rank of 7"}'::jsonb,
   'compete with target_rank > 6 rejected');
 
 -- coop MAY set target_rank: it's the team's win threshold (reach that rank
@@ -287,7 +287,7 @@ select pg_temp.envelope_is(
     'coop',
     pg_temp.spellingbee_board()),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN160",
-    "message":"A required difficulty of 0 reached the server"}'::jsonb,
+    "message":"BUG: required difficulty of 0"}'::jsonb,
   'rejects setup.required below 1 (band floor)');
 
 -- required = 1 is now the floor (was 2) — accepted. Same fixture board (its
@@ -312,7 +312,7 @@ select pg_temp.envelope_is(
     'coop',
     pg_temp.spellingbee_board()),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN160",
-    "message":"A required difficulty of 7 reached the server"}'::jsonb,
+    "message":"BUG: required difficulty of 7"}'::jsonb,
   'rejects setup.required above 6 (band ceiling)');
 
 select pg_temp.envelope_is(
@@ -357,7 +357,7 @@ select pg_temp.envelope_is(
     'coop',
     pg_temp.spellingbee_board() || '{"outer_letters": "abcdef"}'::jsonb),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN167",
-    "message":"A board whose center is also an outer letter reached the server"}'::jsonb,
+    "message":"BUG: board whose center is also an outer letter"}'::jsonb,
   'rejects board where center_letter appears in outer_letters');
 
 select pg_temp.envelope_is(
@@ -374,7 +374,7 @@ select pg_temp.envelope_is(
     'coop',
     pg_temp.spellingbee_board() || '{"outer_letters": "absdfg"}'::jsonb),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN163",
-    "message":"Outer letters the puzzle cannot use reached the server"}'::jsonb,
+    "message":"BUG: outer letters the puzzle cannot use"}'::jsonb,
   'rejects outer_letters containing "s"');
 
 select pg_temp.envelope_is(
@@ -383,7 +383,7 @@ select pg_temp.envelope_is(
     'coop',
     pg_temp.spellingbee_board() || '{"required_words_count": 29}'::jsonb),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN169",
-    "message":"The generated board had only 29 words to find"}'::jsonb,
+    "message":"BUG: generated board had only 29 words to find"}'::jsonb,
   'rejects board.required_words_count < 30 (puzzle-quality gate)');
 
 -- ============================================================

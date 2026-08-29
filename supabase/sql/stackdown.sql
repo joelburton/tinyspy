@@ -192,7 +192,7 @@ begin
   -- library actually holds boards for is accepted.
   v_band := coalesce((setup->>'band')::int, 1);
   if v_band < 1 or v_band > 6 then
-    raise exception 'A word difficulty of % reached the server', v_band
+    raise exception 'BUG: word difficulty of %', v_band
       using errcode = 'PN051', hint = 'fault', column = '_',
       detail = 'setup band must be 1..6';
   end if;

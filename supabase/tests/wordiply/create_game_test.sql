@@ -205,7 +205,7 @@ select pg_temp.envelope_is(
     'coop',
     pg_temp.wordiply_board()),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN123",
-    "message":"A game with a target rank reached the server"}'::jsonb,
+    "message":"BUG: game with a target rank"}'::jsonb,
   'rejects setup.target_rank (wordiply is not a race-to-rank)'
 );
 
@@ -215,7 +215,7 @@ select pg_temp.envelope_is(
     'compete',
     pg_temp.wordiply_board()),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN122",
-    "message":"A race with fewer than two players reached the server"}'::jsonb,
+    "message":"BUG: race with fewer than two players"}'::jsonb,
   'compete with 1 player rejected'
 );
 
@@ -230,7 +230,7 @@ select pg_temp.envelope_is(
     'coop',
     pg_temp.wordiply_board()),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN124",
-    "message":"A word difficulty of 0 reached the server"}'::jsonb,
+    "message":"BUG: word difficulty of 0"}'::jsonb,
   'rejects setup.difficulty below 1 (band floor)'
 );
 
@@ -241,7 +241,7 @@ select pg_temp.envelope_is(
     'coop',
     pg_temp.wordiply_board()),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN124",
-    "message":"A word difficulty of 7 reached the server"}'::jsonb,
+    "message":"BUG: word difficulty of 7"}'::jsonb,
   'rejects setup.difficulty above 6 (band ceiling)'
 );
 
@@ -256,7 +256,7 @@ select pg_temp.envelope_is(
     'coop',
     pg_temp.wordiply_board() || '{"base": "A"}'::jsonb),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN126",
-    "message":"The generated board came with a starter of ''A''"}'::jsonb,
+    "message":"BUG: generated board came with a starter of ''A''"}'::jsonb,
   'rejects board.base that is not 2–4 lowercase ASCII letters'
 );
 
@@ -267,7 +267,7 @@ select pg_temp.envelope_is(
     'coop',
     pg_temp.wordiply_board() || '{"max_word_length": 3}'::jsonb),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN128",
-    "message":"The generated board left no room to grow the starter (longest word 3)"}'::jsonb,
+    "message":"BUG: generated board left no room to grow the starter (longest word 3)"}'::jsonb,
   'rejects board.max_word_length below base length + 2 (no headroom)'
 );
 
@@ -278,7 +278,7 @@ select pg_temp.envelope_is(
     'coop',
     pg_temp.wordiply_board() || '{"longest_words": []}'::jsonb),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN129",
-    "message":"The generated board arrived with no target words"}'::jsonb,
+    "message":"BUG: generated board arrived with no target words"}'::jsonb,
   'rejects empty board.longest_words'
 );
 
@@ -289,7 +289,7 @@ select pg_temp.envelope_is(
     'coop',
     pg_temp.wordiply_board() || '{"legal_words": []}'::jsonb),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN130",
-    "message":"The generated board arrived with no legal words"}'::jsonb,
+    "message":"BUG: generated board arrived with no legal words"}'::jsonb,
   'rejects empty board.legal_words'
 );
 
@@ -332,7 +332,7 @@ select pg_temp.envelope_is(
     'coop',
     pg_temp.wordiply_board()),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN125",
-    "message":"A starter of ''a'' reached the server"}'::jsonb,
+    "message":"BUG: starter of ''a''"}'::jsonb,
   'rejects a setup.custom_base that is not 2–4 lowercase ASCII letters'
 );
 
@@ -346,7 +346,7 @@ select pg_temp.envelope_is(
     'coop',
     pg_temp.wordiply_board()),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN127",
-    "message":"You asked to start with ''moth'' and the generated board used ''ar''"}'::jsonb,
+    "message":"BUG: you asked to start with ''moth'' and the generated board used ''ar''"}'::jsonb,
   'rejects a board whose base is not the requested custom_base'
 );
 

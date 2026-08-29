@@ -38,21 +38,21 @@ select pg_temp.envelope_is(
     pg_temp.boggle_setup() || '{"win_percent":33}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop', pg_temp.boggle_board()),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN142",
-    "message":"A win target of 33 reached the server"}'::jsonb,
+    "message":"BUG: win target of 33"}'::jsonb,
   'win_percent not a multiple of 5 is rejected');
 select pg_temp.envelope_is(
   boggle.create_game((select handle from club),
     pg_temp.boggle_setup() || '{"win_percent":45}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop', pg_temp.boggle_board()),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN142",
-    "message":"A win target of 45 reached the server"}'::jsonb,
+    "message":"BUG: win target of 45"}'::jsonb,
   'win_percent below 50 is rejected');
 select pg_temp.envelope_is(
   boggle.create_game((select handle from club),
     pg_temp.boggle_setup() || '{"win_percent":105}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop', pg_temp.boggle_board()),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN142",
-    "message":"A win target of 105 reached the server"}'::jsonb,
+    "message":"BUG: win target of 105"}'::jsonb,
   'win_percent above 100 is rejected');
 
 -- ── (2) COOP: team reaching the threshold (5 pts) wins ────────

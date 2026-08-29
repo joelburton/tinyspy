@@ -439,7 +439,7 @@ begin
   -- Compete needs an opposing PLAYER. The manifest hides its Start button in a
   -- one-player club; this is the server-side catch.
   if mode = 'compete' and coalesce(array_length(player_user_ids, 1), 0) < 2 then
-    raise exception 'A race with fewer than two players reached the server'
+    raise exception 'BUG: race with fewer than two players'
       using errcode = 'PN066', hint = 'fault', column = '_',
       detail = 'compete needs >= 2 players';
   end if;
@@ -469,7 +469,7 @@ raise exception 'Everyone here has played every puzzle'
     begin
       s_puzzle_id := (setup->>'puzzle_id')::uuid;
     exception when invalid_text_representation then
-      raise exception 'A puzzle reference the server cannot read arrived'
+      raise exception 'BUG: puzzle reference the server cannot read'
         using errcode = 'PN068', hint = 'fault', column = '_',
         detail = 'setup.puzzle_id is not a uuid';
     end;
@@ -484,17 +484,17 @@ raise exception 'Everyone here has played every puzzle'
   v_min_word_length := coalesce((setup->>'min_word_length')::int, 4);
 
   if v_band < 1 or v_band > 6 then
-    raise exception 'A hint dictionary of % reached the server', v_band
+    raise exception 'BUG: hint dictionary of %', v_band
       using errcode = 'PN069', hint = 'fault', column = '_',
       detail = 'setup.band must be 1..6';
   end if;
   if v_hint_cost < 1 or v_hint_cost > 10 then
-    raise exception 'A hint cost of % reached the server', v_hint_cost
+    raise exception 'BUG: hint cost of %', v_hint_cost
       using errcode = 'PN070', hint = 'fault', column = '_',
       detail = 'setup.hint_cost must be 1..10';
   end if;
   if v_min_word_length < 3 or v_min_word_length > 8 then
-    raise exception 'A shortest word of % reached the server', v_min_word_length
+    raise exception 'BUG: shortest word of %', v_min_word_length
       using errcode = 'PN071', hint = 'fault', column = '_',
       detail = 'setup.min_word_length must be 3..8';
   end if;
@@ -535,12 +535,12 @@ raise exception 'Everyone here has played every puzzle'
     begin
       first_turn := (setup->>'first_turn_user_id')::uuid;
     exception when invalid_text_representation then
-      raise exception 'A first player the server cannot read arrived'
+      raise exception 'BUG: first player the server cannot read'
         using errcode = 'PN073', hint = 'fault', column = '_',
       detail = 'setup.first_turn_user_id is not a uuid';
     end;
     if first_turn is null or not (first_turn = any(player_user_ids)) then
-      raise exception 'A first player who is not in the game reached the server'
+      raise exception 'BUG: first player who is not in the game'
         using errcode = 'PN074', hint = 'fault', column = '_',
       detail = 'setup.first_turn_user_id must be one of the players';
     end if;

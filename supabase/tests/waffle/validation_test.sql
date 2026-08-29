@@ -48,7 +48,7 @@ select pg_temp.envelope_is(
     array['ada11111-1111-1111-1111-111111111111'::uuid],
     'solo', pg_temp.waffle_board()),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN040",
-    "message":"A game mode of ''solo'' reached the server"}'::jsonb,
+    "message":"BUG: game mode of ''solo''"}'::jsonb,
   'mode outside {coop, compete} is rejected'
 );
 
@@ -59,7 +59,7 @@ select pg_temp.envelope_is(
     array['ada11111-1111-1111-1111-111111111111'::uuid],
     'coop', pg_temp.waffle_board()),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN104",
-    "message":"A swap budget of 99 reached the server"}'::jsonb,
+    "message":"BUG: swap budget of 99"}'::jsonb,
   'extra_swaps above 15 is rejected'
 );
 
@@ -70,7 +70,7 @@ select pg_temp.envelope_is(
     array['ada11111-1111-1111-1111-111111111111'::uuid],
     'coop', pg_temp.waffle_board()),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN105",
-    "message":"A word difficulty of 9 reached the server"}'::jsonb,
+    "message":"BUG: word difficulty of 9"}'::jsonb,
   'difficulty outside 1..6 is rejected'
 );
 
@@ -80,7 +80,7 @@ select pg_temp.envelope_is(
     array['ada11111-1111-1111-1111-111111111111'::uuid],
     'coop', pg_temp.waffle_board() || '{"solution": "abc"}'::jsonb),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN106",
-    "message":"The generated board was not a pair of 25-square grids"}'::jsonb,
+    "message":"BUG: generated board was not a pair of 25-square grids"}'::jsonb,
   'a solution that is not 25 chars is rejected'
 );
 
@@ -90,7 +90,7 @@ select pg_temp.envelope_is(
     array['ada11111-1111-1111-1111-111111111111'::uuid],
     'coop', pg_temp.waffle_board() || '{"par_swaps": 0}'::jsonb),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN107",
-    "message":"The generated board arrived with a par of 0"}'::jsonb,
+    "message":"BUG: generated board arrived with a par of 0"}'::jsonb,
   'a non-positive par_swaps is rejected'
 );
 
@@ -105,7 +105,7 @@ select pg_temp.envelope_is(
         'solution', 'abcdefghijklmnopqrstuvwxy',
         'scramble', 'abcdefghijklmnopqrstuvwxy')),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN108",
-    "message":"The generated board had its holes in the wrong squares"}'::jsonb,
+    "message":"BUG: generated board had its holes in the wrong squares"}'::jsonb,
   'a solution without holes at the interior cells is rejected'
 );
 
@@ -119,7 +119,7 @@ select pg_temp.envelope_is(
     'coop', pg_temp.waffle_board() ||
       '{"scramble": "zacdef.g.hijklmn.o.pqrstu"}'::jsonb),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN109",
-    "message":"The generated board could not be solved by swapping"}'::jsonb,
+    "message":"BUG: generated board could not be solved by swapping"}'::jsonb,
   'a scramble whose letters differ from the solution is rejected'
 );
 

@@ -232,26 +232,26 @@ begin
   -- NULL as the empty string and we'd raise "...must be 9, 10, or
   -- 11 (got )" — readable, but confusingly empty in the parens.
   if (setup->>'turns') is null then
-    raise exception 'A game with no turn budget reached the server'
+    raise exception 'BUG: game with no turn budget'
       using errcode = 'PN087', hint = 'fault', column = '_',
       detail = 'setup.turns absent';
   end if;
   s_turns := (setup->>'turns')::int;
   if s_turns not in (9, 10, 11) then
-    raise exception 'A turn budget of % reached the server', s_turns
+    raise exception 'BUG: turn budget of %', s_turns
       using errcode = 'PN088', hint = 'fault', column = '_',
       detail = 'setup.turns must be 9, 10 or 11';
   end if;
 
   if (setup->>'first_clue_giver_user_id') is null then
-    raise exception 'A game with no first clue-giver reached the server'
+    raise exception 'BUG: game with no first clue-giver'
       using errcode = 'PN089', hint = 'fault', column = '_',
       detail = 'setup.first_clue_giver_user_id absent';
   end if;
   begin
     s_first := (setup->>'first_clue_giver_user_id')::uuid;
   exception when invalid_text_representation then
-    raise exception 'A first clue-giver the server cannot read arrived'
+    raise exception 'BUG: first clue-giver the server cannot read'
       using errcode = 'PN090', hint = 'fault', column = '_',
       detail = 'setup.first_clue_giver_user_id is not a uuid';
   end;
@@ -267,13 +267,13 @@ begin
   -- ─── Validate player_user_ids size + first-clue-giver ─
   -- codenamesduet is intrinsically 2-player.
   if array_length(player_user_ids, 1) <> 2 then
-    raise exception 'A game with % players reached the server',
+    raise exception 'BUG: game with % players',
       coalesce(array_length(player_user_ids, 1), 0)
       using errcode = 'PN091', hint = 'fault', column = '_',
       detail = 'codenamesduet is exactly 2 players';
   end if;
   if s_first <> player_user_ids[1] and s_first <> player_user_ids[2] then
-    raise exception 'A first clue-giver who is not in the game reached the server'
+    raise exception 'BUG: first clue-giver who is not in the game'
       using errcode = 'PN092', hint = 'fault', column = '_',
       detail = 'the first clue-giver must be one of the players';
   end if;

@@ -368,9 +368,9 @@ A fault means the frontend let something through that it prevents. So the
 sentence says that, in the form ~100 raises across every `create_game` already
 use:
 
-> "A game with no players reached the server"
-> "A board with a repeated letter reached the server"
-> "A guess that was not four tiles reached the server"
+> "BUG: game with no players"
+> "BUG: board with a repeated letter"
+> "BUG: guess that was not four tiles"
 
 **Not** "A guess must be four tiles." That recites a rule at someone who cannot
 have broken it — the board only ever selects four — so it reads as *you did
