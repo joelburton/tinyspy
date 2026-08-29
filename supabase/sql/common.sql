@@ -2079,6 +2079,11 @@ grant execute on function common.set_club_gametypes(text, text[]) to authenticat
 -- Post a message to a club's chat. Authorized for any member of
 -- the club. Trimmed content must be 1–1000 chars (matches the
 -- check constraint on common.messages).
+--
+-- Outcomes:
+--   - ok                     {"result": "sent"} — the row is in
+--   - not-ok/fault           PN011 / PN012 (require_club_member), PN030
+--   - not-ok/form-validation PN031 — over the 1000-char cap, on `content`
 
 drop function if exists common.send_message(text, text);
 create or replace function common.send_message(target_club text, content text)
@@ -2103,8 +2108,11 @@ begin
       detail = 'chat body was blank';
   end if;
 
-  -- PN031. Reachable by pasting: the input carries no maxLength, so the cap is
-  -- the server's to state. A validation about the box they typed in.
+  -- PN031. The chat input mirrors this cap with `maxLength={1000}`, which
+  -- browsers apply to pastes too, so nothing from that form should reach here —
+  -- this is the second lock, for a caller that isn't the form. Still a
+  -- validation rather than a fault: if it ever does arrive, shortening the text
+  -- is what fixes it, and that belongs under the box they typed in.
   if length(trimmed) > 1000 then
     raise exception 'Too long: max 1000 characters'
       using errcode = 'PN031', hint = 'form-validation', column = 'content',
@@ -2114,7 +2122,10 @@ begin
   insert into common.messages (club_handle, user_id, content)
   values (target_club, caller_id, trimmed);
 
-  return common.ok_envelope();
+  -- No message: the sent line appears in the log, which says it better than a
+  -- sentence would. `result` is still what a call site branches on
+  -- (docs/envelopes.md → How SQL builds one).
+  return common.ok_envelope(jsonb_build_object('result', 'sent'));
 
 exception when others then
   get stacked diagnostics

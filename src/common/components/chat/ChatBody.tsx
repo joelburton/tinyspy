@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type SubmitEvent } from 'react'
 import { db as commonDb } from '../../db'
 import { runRpc } from '../../lib/supabase/dbResult'
+import { showFaultModal } from '../../lib/fault/faultStore'
 import { colorVarFor } from '../../lib/color/memberColor'
 import { linkify } from '../../lib/util/linkify'
 import { handOffKeyboardOnTab } from '../../lib/util/keyboardHandoff'
@@ -10,6 +11,11 @@ import type { ClubMessage } from '../../hooks/chat/useClubChat'
 import styles from './ChatBody.module.css'
 
 import type { Member } from '../../lib/games'
+
+/** What `common.send_message` puts in `data`. The sent line shows up in the
+ *  log on its own, so the RPC writes no sentence — `result` is the whole
+ *  answer, and the only thing a branch can assert about it. */
+type SendAnswer = { result: 'sent' }
 
 type Props = {
   clubHandle: string
@@ -74,18 +80,26 @@ export function ChatBody({ clubHandle, members, messages, loading }: Props) {
     if (!trimmed) return
     setError(null)
     setBusy(true)
-    const res = await runRpc(
+    const res = await runRpc<SendAnswer>(
       commonDb.rpc('send_message', { target_club: clubHandle, content: trimmed }),
     )
     setBusy(false)
-    if (res.type !== 'ok') {
-      // The 1000-char cap is the only one a player can act on, and the input
-      // carries no maxLength, so it is the server that says so. A fault has
-      // already raised the modal; this line is what remains after it.
+    if (res.type === 'not-ok') {
+      // Every severity lands on this line. In practice what arrives is a fault
+      // — the input's own `maxLength` already enforces the 1000-char cap, so
+      // the server's PN031 is the second lock rather than the one a player
+      // meets. A fault has already raised the modal; this line is what remains
+      // after it is dismissed.
       setError(res.message)
-      return
+    } else if (res.data.result === 'sent') {
+      // Empty the box only once the row is IN. The message itself arrives back
+      // through the chat subscription, so nothing is echoed locally.
+      setInput('')
+    } else {
+      // The typed text stays in the box — an answer nobody handled is not
+      // evidence the message was posted, and retyping it would be the cost.
+      showFaultModal({ text: 'BUG: send_message fell through to unhandled' })
     }
-    setInput('')
   }
 
   return (

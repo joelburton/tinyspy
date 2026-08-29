@@ -89,7 +89,7 @@ select pg_temp.envelope_is(
 
 select pg_temp.envelope_is(
   common.send_message((select handle from club), 'hello from ada'),
-  '{"type": "ok"}'::jsonb,
+  '{"type": "ok", "data": {"result": "sent"}}'::jsonb,
   'send_message: member can post a normal message'
 );
 
