@@ -521,7 +521,16 @@ Three things the table is FOR, each of which has already caught something:
   is where a conversion goes wrong invisibly.
 - **`data` must carry the fact structurally**, even where the message says it
   too — the frontend has uses for it that have nothing to do with words (a board
-  shake, a counter, a mark).
+  shake, a counter, a mark). An `ok` with no `data` at all is a smell: the
+  function computed something, and "returns void today" is not a reason to throw
+  it away.
+- **A fault's message says what REACHED THE SERVER**, in the form every
+  `create_game` already uses — "A guess that was not four tiles reached the
+  server", never "A guess must be four tiles". A fault means the frontend let
+  something through that it prevents, so reciting the rule blames the player for
+  a bug (envelopes.md → A fault says what reached the server). A fault about a
+  STATE rather than an input — "No guesses left", "Already solved" — is the
+  exception and keeps its plain sentence.
 - **A null message is a decision**, not an omission: see "Who writes the words,
   per answer" in [envelopes.md](../docs/envelopes.md).
 

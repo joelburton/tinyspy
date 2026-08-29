@@ -347,14 +347,14 @@ describe('reportDbFault', () => {
       data: null,
       outcome: null,
       severity: 'fault',
-      message: 'That word is not on the board',
+      message: 'A guess that is not on the board reached the server',
       field: null,
       meta: null,
       dbcode: 'PN500',
       detail: 'guess absent from games.words',
     })
     const [fault] = peekFaultsForTest()
-    expect(fault.text).toBe('That word is not on the board')
+    expect(fault.text).toBe('A guess that is not on the board reached the server')
     expect(fault.diagnostics).toContain('dbcode=PN500')
     expect(fault.diagnostics).toContain('guess absent from games.words')
   })

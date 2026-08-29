@@ -61,7 +61,7 @@ select pg_temp.envelope_is(
   connections.submit_guess((select id from g),
                            array['ALPHA','ANGEL','APPLE']::text[], 'wrong', null),
   '{"type":"not-ok","severity":"fault","dbcode":"PN247",
-    "message":"A guess must be four tiles"}'::jsonb,
+    "message":"A guess that was not four tiles reached the server"}'::jsonb,
   'submit_guess: 3-tile guess is rejected'
 );
 
@@ -73,7 +73,7 @@ select pg_temp.envelope_is(
   connections.submit_guess((select id from g),
                            array['ALPHA','ANGEL','APPLE','ARROW']::text[], 'banana', null),
   '{"type":"not-ok","severity":"fault","dbcode":"PN248",
-    "message":"That guess was not one we recognize"}'::jsonb,
+    "message":"An unknown guess result reached the server"}'::jsonb,
   'submit_guess: bogus result enum is rejected'
 );
 
@@ -85,7 +85,7 @@ select pg_temp.envelope_is(
   connections.submit_guess((select id from g),
                            array['ALPHA','ANGEL','APPLE','ARROW']::text[], 'correct', null),
   '{"type":"not-ok","severity":"fault","dbcode":"PN249",
-    "message":"A correct guess did not name its category"}'::jsonb,
+    "message":"A correct guess with no category reached the server"}'::jsonb,
   'submit_guess: correct without matched_category_rank is rejected'
 );
 

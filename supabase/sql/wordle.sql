@@ -531,7 +531,7 @@ begin
   -- malformed one arriving means a broken client.
   norm := lower(trim(coalesce(guess, '')));
   if norm !~ '^[a-z]{5}$' then
-    raise exception 'A guess must be five letters'
+    raise exception 'A guess that was not five letters reached the server'
       using errcode = 'PN256', hint = 'fault', column = '_',
       detail = format('guess must match ^[a-z]{5}$; got %L', norm);
   end if;

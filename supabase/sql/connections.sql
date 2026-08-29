@@ -738,14 +738,14 @@ begin
   -- payloads (lengths, enum values) so the data we persist is at
   -- least well-typed.
   if tiles is null or array_length(tiles, 1) <> 4 then
-    raise exception 'A guess must be four tiles'
+    raise exception 'A guess that was not four tiles reached the server'
       using errcode = 'PN247', hint = 'fault', column = '_',
       detail = format('a guess is exactly 4 tile ids; got %s',
                       coalesce(array_length(tiles, 1), 0));
   end if;
 
   if result not in ('correct', 'oneAway', 'wrong') then
-    raise exception 'That guess was not one we recognize'
+    raise exception 'An unknown guess result reached the server'
       using errcode = 'PN248', hint = 'fault', column = '_',
       detail = format('result must be correct, oneAway or wrong; got %L', result);
   end if;
@@ -753,7 +753,7 @@ begin
   if result = 'correct' then
     if matched_category_rank is null
        or matched_category_rank not between 0 and 3 then
-      raise exception 'A correct guess did not name its category'
+      raise exception 'A correct guess with no category reached the server'
         using errcode = 'PN249', hint = 'fault', column = '_',
         detail = 'a correct guess must name a category rank 0..3';
     end if;

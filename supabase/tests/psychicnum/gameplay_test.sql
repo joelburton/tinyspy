@@ -74,7 +74,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   psychicnum.submit_guess((select id from coop_g), 'zzulu'),
   '{"type":"not-ok","severity":"fault","dbcode":"PN268",
-    "message":"That word is not on the board"}'::jsonb,
+    "message":"A guess that is not on the board reached the server"}'::jsonb,
   'coop: a word not on the board is rejected'
 );
 

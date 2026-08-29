@@ -216,7 +216,7 @@ everything reveals post-terminal. **Coop** shows the shared board to all members
   - Every refusal is a raise, and only two are races: `PN261` "Game over" (a
     teammate ended it, or the clock ran out) and `PN262` "Already conceded".
     The rest are faults, because the board cannot produce them: `PN260` no such
-    game, `PN263` two different squares, `PN264` no tile there, `PN265` already
+    game, `PN263` a square swapped with itself, `PN264` an empty square, `PN265` already
     solved and `PN266` no swaps left. The last two look like shared-budget races
     and are not — spending the last coop swap, or solving, ENDS the game, so a
     later swap meets the play_state guard instead; only compete keeps playing

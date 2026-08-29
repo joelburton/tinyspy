@@ -47,7 +47,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   wordle.submit_guess((select id from g), 'zzz'),
   '{"type":"not-ok","severity":"fault","dbcode":"PN256",
-    "message":"A guess must be five letters"}'::jsonb,
+    "message":"A guess that was not five letters reached the server"}'::jsonb,
   'too-short entry is a fault');
 
 select is(

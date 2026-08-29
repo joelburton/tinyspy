@@ -362,6 +362,33 @@ the whole convention rests on: whoever knows why the answer is what it is writes
 the sentence, once, where the decision was made. The frontend does not rebuild
 it from a key.
 
+### A fault says what REACHED THE SERVER, not what the rule is
+
+A fault means the frontend let something through that it prevents. So the
+sentence says that, in the form ~100 raises across every `create_game` already
+use:
+
+> "A game with no players reached the server"
+> "A board with a repeated letter reached the server"
+> "A guess that was not four tiles reached the server"
+
+**Not** "A guess must be four tiles." That recites a rule at someone who cannot
+have broken it — the board only ever selects four — so it reads as *you did
+something wrong* when the truth is *we did*. It also sends the player off to fix
+their own behavior, which will not help, instead of telling them the app is
+broken, which is the one useful thing a fault modal can say. The distinction is
+audible in a bug report: "it said I must guess four tiles" sounds like a player
+misunderstanding the game; "it said a guess that was not four tiles reached the
+server" sounds like a bug, which it is.
+
+**The exception is a fault about a STATE rather than an input.** "That game no
+longer exists", "You are not in this game", "No guesses left", "Already solved"
+describe a condition, not something malformed that arrived — the idiom does not
+fit and the plain sentence is right.
+
+This was precedent and nothing else until 2026-08-29, which is exactly why the
+first four move RPCs converted broke it seven times without anyone noticing.
+
 **`field`, and `'_'`.** `_` means "deliberately not about one field" — the
 form's own line — and it is a real value, distinct from an author having
 forgotten to say. The marker has to exist because `get stacked diagnostics`

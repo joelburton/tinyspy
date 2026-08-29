@@ -80,7 +80,7 @@ select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select pg_temp.envelope_is(
   waffle.submit_swap((select id from g), 6, 0),
   '{"type":"not-ok","severity":"fault","dbcode":"PN264",
-    "message":"There is no tile there"}'::jsonb,
+    "message":"A swap of an empty square reached the server"}'::jsonb,
   'turns: a hole-cell swap does not consume the turn'
 );
 reset role;

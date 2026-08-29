@@ -479,7 +479,7 @@ begin
   -- the old 1..max range check).
   w := lower(trim(coalesce(guess, '')));
   if not (w = any(g.words)) then
-    raise exception 'That word is not on the board'
+    raise exception 'A guess that is not on the board reached the server'
       using errcode = 'PN268', hint = 'fault', column = '_',
       detail = 'the guess is not one of the board''s words';
   end if;

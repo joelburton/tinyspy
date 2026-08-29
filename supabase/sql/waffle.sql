@@ -770,13 +770,13 @@ begin
   -- ─── Validate the two positions ──────────────────────────
   if pos_a is null or pos_b is null or pos_a = pos_b
      or pos_a < 0 or pos_a > 24 or pos_b < 0 or pos_b > 24 then
-    raise exception 'A swap needs two different squares'
+    raise exception 'A swap of one square with itself reached the server'
       using errcode = 'PN263', hint = 'fault', column = '_',
       detail = format('swap needs two distinct cells in 0..24; got %s and %s',
                       coalesce(pos_a::text, 'null'), coalesce(pos_b::text, 'null'));
   end if;
   if pos_a in (6, 8, 16, 18) or pos_b in (6, 8, 16, 18) then
-    raise exception 'There is no tile there'
+    raise exception 'A swap of an empty square reached the server'
       using errcode = 'PN264', hint = 'fault', column = '_',
       detail = 'cells 7/9/17/19 are holes and hold no tile';
   end if;
