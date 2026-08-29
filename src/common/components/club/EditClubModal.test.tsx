@@ -76,7 +76,9 @@ describe('EditClubModal — where a refusal lands', () => {
   })
 
   it('hands the chosen gametypes back on success, and asks the server for them', async () => {
-    mockRpc.mockResolvedValue({ data: { type: 'ok' }, error: null })
+    // The envelope names its answer: a branch that matched merely by being `ok`
+    // is what the sweep is removing, so the stub has to say which `ok` this is.
+    mockRpc.mockResolvedValue({ data: { type: 'ok', data: { result: 'saved' } }, error: null })
     const onSaved = vi.fn()
     const { container } = draw(onSaved)
 

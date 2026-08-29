@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { db as commonDb } from '../../db'
 import { runRpc } from '../../lib/supabase/dbResult'
+import { showFaultModal } from '../../lib/fault/faultStore'
 import { games } from '../../../games'
 import { NormalModal } from '../floating-panels/NormalModal'
 import { FailureLine } from '../feedback/FailureLine'
@@ -57,6 +58,11 @@ type Props = {
  */
 type Values = { gametypes: Set<string> }
 
+/** What `common.set_club_gametypes` puts in `data`. It sends no message —
+ *  the dialog closes and says nothing — so `result` is the whole of what the
+ *  answer says, and the only thing a branch can assert about it. */
+type SetGametypesAnswer = { result: 'saved' }
+
 export function EditClubModal({
   clubHandle, clubName, allowedGametypes, onSaved, onCancel,
 }: Props) {
@@ -72,23 +78,29 @@ export function EditClubModal({
   async function onSubmit({ gametypes }: Values) {
     setBusy(true)
     setErrors({})
-    const res = await runRpc(
+    const res = await runRpc<SetGametypesAnswer>(
       commonDb.rpc('set_club_gametypes', {
         target_club: clubHandle,
         gametypes: Array.from(gametypes),
       }),
     )
-    if (res.type !== 'ok') {
+    if (res.type === 'not-ok') {
       setBusy(false)
       // A fault has already raised the modal; the line is what remains once
       // that is dismissed. It says `_`, since the RPC has no validation of its
       // own — the only things it can refuse are the membership gate and an
       // unregistered gametype, neither of which is about one input.
       setErrors({ [res.field ?? FORM_ERROR_KEYNAME]: res.message })
-      return
+    } else if (res.data.result === 'saved') {
+      // Don't bother clearing `busy` — onSaved unmounts us.
+      onSaved(gametypes)
+    } else {
+      // Clears `busy` as well as screaming: nothing unmounts this dialog on an
+      // answer it didn't handle, so leaving the flag set would strand Save
+      // disabled with no way back but Cancel.
+      setBusy(false)
+      showFaultModal({ text: 'BUG: set_club_gametypes fell through to unhandled' })
     }
-    // Don't bother clearing `busy` — onSaved unmounts us.
-    onSaved(gametypes)
   }
 
   return (

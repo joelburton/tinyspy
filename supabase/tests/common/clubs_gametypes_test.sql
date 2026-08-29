@@ -228,7 +228,7 @@ select pg_temp.envelope_is(
   common.set_club_gametypes(
     (select handle from club),
     array['codenamesduet', 'connections_coop', 'psychicnum_coop', 'spellingbee_coop']),
-  '{"type": "ok"}'::jsonb,
+  '{"type": "ok", "data": {"result": "saved"}}'::jsonb,
   'set_club_gametypes: a member can replace the club''s gametype set (incl. opting into an off-by-default game)'
 );
 
@@ -253,7 +253,7 @@ select is(
 -- ============================================================
 select pg_temp.envelope_is(
   common.set_club_gametypes((select handle from club), array[]::text[]),
-  '{"type": "ok"}'::jsonb,
+  '{"type": "ok", "data": {"result": "saved"}}'::jsonb,
   'set_club_gametypes: an empty list is accepted'
 );
 select is(

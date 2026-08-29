@@ -1969,7 +1969,12 @@ begin
   select new_handle, gametype
     from common.default_gametypes_for_club(new_handle);
 
-  return common.ok_envelope(data => jsonb_build_object('handle', new_handle));
+  -- `result` beside the handle, not instead of it. The handle is what the
+  -- caller USES; `result` is what tells it which answer it got, and a payload
+  -- that carries only a value leaves a call site matching on `ok` alone
+  -- (docs/envelopes.md → Choosing which `ok` branch).
+  return common.ok_envelope(
+    data => jsonb_build_object('result', 'created', 'handle', new_handle));
 
 exception when others then
   get stacked diagnostics
@@ -2008,7 +2013,7 @@ grant execute on function common.create_club(text, text[]) to authenticated;
 -- constraint and the offending value better than a sentence would.
 --
 -- Outcomes:
---   - ok           the set is now exactly `gametypes`
+--   - ok           {"result": "saved"} — the set is now exactly `gametypes`
 --   - not-ok/fault PN011 / PN012, from require_club_member
 --   - a RAW fault  the FK above
 --
@@ -2049,8 +2054,10 @@ begin
     from unnest(wanted) as g
   on conflict do nothing;
 
-  -- No message: the dialog closes on success and says nothing.
-  return common.ok_envelope();
+  -- No message: the dialog closes on success and says nothing. `data` still
+  -- names the answer — an `ok` a call site can only match by being `ok` is one
+  -- a second answer would be drawn as (docs/envelopes.md → How SQL builds one).
+  return common.ok_envelope(jsonb_build_object('result', 'saved'));
 
 exception when others then
   get stacked diagnostics

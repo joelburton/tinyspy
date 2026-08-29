@@ -5,6 +5,7 @@ import { FORM_ERROR_KEYNAME, type FormErrors } from '../fields/formState'
 import { useState } from 'react'
 import { db as commonDb } from '../../db'
 import { runRpc } from '../../lib/supabase/dbResult'
+import { showFaultModal } from '../../lib/fault/faultStore'
 import { NormalModal } from '../floating-panels/NormalModal'
 import { FailureLine } from '../feedback/FailureLine'
 import actionRow from '../floating-panels/modalActions.module.css'
@@ -111,6 +112,11 @@ const CLUB_NAME_MAX = 20
  */
 type Values = { club_name: string; member_usernames: string }
 
+/** What `common.create_club` puts in `data`. `result` sits beside the handle
+ *  rather than replacing it: the handle is what the caller uses, `result` is
+ *  what says which answer this is. */
+type CreateClubAnswer = { result: 'created'; handle: string }
+
 const EMPTY: Values = { club_name: '', member_usernames: '' }
 
 export function CreateClubModal({ onCreated, onCancel }: Props) {
@@ -140,7 +146,7 @@ export function CreateClubModal({ onCreated, onCancel }: Props) {
       .filter((s) => s.length > 0)
 
     setBusy(true)
-    const res = await runRpc<{ handle: string }>(
+    const res = await runRpc<CreateClubAnswer>(
       commonDb.rpc('create_club', {
         club_name: trimmed,
         member_usernames: usernames,
@@ -148,7 +154,7 @@ export function CreateClubModal({ onCreated, onCancel }: Props) {
     )
     setBusy(false)
 
-    if (res.type !== 'ok') {
+    if (res.type === 'not-ok') {
       // ONE entry, under the field the server named. Its three validations
       // each say which input they are about — PN009 `club_name`, PN007 and
       // PN008 `member_usernames` — so the message appears beneath that box and
@@ -158,10 +164,11 @@ export function CreateClubModal({ onCreated, onCancel }: Props) {
       // A fault says `_` and lands on the form's own line; it has also already
       // raised the modal, and the line is what remains once that is dismissed.
       setErrors({ [res.field ?? FORM_ERROR_KEYNAME]: res.message })
-      return
+    } else if (res.data.result === 'created') {
+      onCreated(res.data.handle)
+    } else {
+      showFaultModal({ text: 'BUG: create_club fell through to unhandled' })
     }
-    // Don't bother clearing `busy` — onCreated navigates away and unmounts us.
-    onCreated(res.data.handle)
   }
 
   return (

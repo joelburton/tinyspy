@@ -159,8 +159,8 @@ select common.create_club('Joel and Leah', array['ada','bea','cade']) as envelop
 
 select pg_temp.envelope_is(
   (select envelope from created_club),
-  '{"type": "ok"}'::jsonb,
-  'create_club: a successful create is an ok envelope'
+  '{"type": "ok", "data": {"result": "created"}}'::jsonb,
+  'create_club: a successful create answers ok/created'
 );
 
 select is(
