@@ -456,22 +456,43 @@ the four inside `connections.submit_guess` from the original census.
   `res.outcome ?? 'lost'`, `res.message ?? ''`, branch off `result` inside an
   already-`ok` block, no scream) and `useGame`'s three reads
 
-#### `create_game` — the shared consumer, then a game at a time
+#### `create_game` — LAST, and in the reverse order this section first gave
 
-- [ ] `SetupGameModal.tsx` + the `startGameInClub` contract in `games.ts` — the
-  one branch all sixteen setup dialogs go through. It starts asserting the case
-  name here, which breaks Start for every game until that game's own entry
-  lands. Take it FIRST **within this group** — the six converted games above
-  come before all of it — so the rest of the group is a shrinking list of red
-  buttons.
+**Deferred to the end of the sprint** (Joel, 2026-08-29). Nothing here is
+broken: no `create_game` in any of the sixteen games has a second `ok`, so
+naming the one it has is purely preventative — unlike the five RPCs that
+genuinely answer more than one way and were mis-drawing answers. It is also the
+one entry that touches every game at once, and the sweep was already three
+levels deep when it came up.
 
-  **Measured 2026-08-29, and it contradicts "red buttons":** changing the
-  contract ALONE red-builds every one of the 16 `manifest.ts` files at once
-  (`Envelope<{id}>` is not assignable to `Envelope<{result, id}>`), so nothing
-  compiles until the whole group lands. To get the buttons-not-build breakage
-  this entry wants, the 16 manifests' type PARAMETERS come with the contract —
-  one line each, no logic — leaving each game's SQL and its in-game New Game
-  branch to that game's own entry.
+**The ordering below is the opposite of what this section said**, and the
+correction matters because the old order is what made this look expensive.
+"Take it FIRST" implied changing `GameManifest.startGameInClub` before the
+games, which red-builds all sixteen `manifest.ts` at once — `Envelope<{id}>` is
+not assignable to `Envelope<{result, id}>`. That is real, and it is avoidable:
+
+**Assignability runs ONE WAY. An implementation may promise MORE than its
+interface asks.** Measured: a manifest returning `Envelope<{result: 'created';
+id: string}>` against an interface still saying `Envelope<{id: string}>`
+compiles with zero errors. So:
+
+1. **Per game, one at a time.** Its `create_game` SQL gains `'result',
+   'created'` and its `manifest.ts` type argument gains it in the SAME commit.
+   Legal against the unchanged interface, true the moment it is claimed, and the
+   other fifteen games are untouched. Build green throughout.
+2. **Then, once all sixteen promise it**, the interface changes and
+   `SetupGameModal` gets its `ok` branch and its scream. Nothing breaks, because
+   every implementation already satisfies the new promise.
+
+No red build, no type asserting something its SQL has not grown yet.
+
+- [ ] `SetupGameModal.tsx` + the `startGameInClub` contract in `games.ts` —
+  **partially done**: `res.type !== 'ok'` → `=== 'not-ok'` landed 2026-08-29,
+  which needs nothing from anyone. The `ok` branch and the scream cannot follow
+  in this file alone: a scream is what catches an answer no named case matched,
+  and there is nothing to name a case WITH until `data` carries `result`. The
+  only local alternative is `typeof result.data.id === 'string'`, a shape test
+  rather than equality against a specific value, which the rules forbid.
 
 Then, per game: its `create_game` SQL gains the case name, and its `manifest.ts`
 + `PlayArea.tsx` New Game branch on it. The six converted games take theirs

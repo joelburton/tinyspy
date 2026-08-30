@@ -172,7 +172,7 @@ export function SetupGameModal({
       setup,
       Array.from(player_user_ids as Set<string>),
     )
-    if (result.type !== 'ok') {
+    if (result.type === 'not-ok') {
       setBusy(false)
       // `field` when the raise named a column, the form's own line when it did
       // not. A fault has already raised the modal on its way through
