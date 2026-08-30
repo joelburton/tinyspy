@@ -12,26 +12,38 @@ begin;
 set search_path = waffle, common, public, extensions;
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(7);
+select plan(8);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
 create temp table club on commit drop as
 select pg_temp.create_club('Waffle coop', array['ada', 'bea']) as handle;
 
-create temp table g on commit drop as
-select (waffle.create_game(
+-- The whole envelope is kept, not just the id: `data.result` is what both call
+-- sites branch on (the in-game New Game and, once the interface follows,
+-- SetupGameModal), and it reaches them through `waffle-build-board` untouched.
+create temp table created on commit drop as
+select waffle.create_game(
   (select handle from club),
   pg_temp.waffle_setup(5),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop',
   pg_temp.waffle_board()
-)->'data'->>'id')::uuid as id;
+) as env;
+create temp table g on commit drop as
+select (env->'data'->>'id')::uuid as id from created;
 
 reset role;
+
+select pg_temp.envelope_is(
+  (select env from created),
+  '{"type":"ok","data":{"result":"created"}}'::jsonb,
+  'the answer names itself, so a call site has a case to assert'
+);
 
 select is(
   (select mode from waffle.games where id = (select id from g)),

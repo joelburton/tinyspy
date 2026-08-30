@@ -47,7 +47,12 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
     // The board is generated in Deno, so this goes through an edge function
     // rather than straight to the RPC — but it comes back the same envelope a
     // direct create_game returns, relayed untouched (see _shared/startGame.ts).
-    runEdgeFn<{ id: string }>('waffle-build-board', {
+    // Which is why naming the answer in waffle.create_game's SQL reaches here:
+    // nothing in between rewrites the payload.
+    //
+    // This promises MORE than `GameManifest.startGameInClub` asks for, which is
+    // legal — assignability runs one way (plans/envelope-rollout.md → create_game).
+    runEdgeFn<{ result: 'created'; id: string }>('waffle-build-board', {
       target_club: clubHandle,
       setup: setup as WaffleSetup,
       player_user_ids: playerUserIds,

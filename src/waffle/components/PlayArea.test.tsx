@@ -57,10 +57,15 @@ const rpc = db.rpc as unknown as ReturnType<typeof vi.fn>
 
 /** What `waffle.submit_swap` answers on an accepted swap. `runRpc` reads the
  *  ENVELOPE out of `data`, so a mock resolving `{ error: null }` alone hands it
- *  a body it cannot read and the call site sees a fault. */
+ *  a body it cannot read and the call site sees a fault.
+ *
+ *  `data.result` is the case the call site asserts, so a stub without it is an
+ *  answer the chain cannot name and correctly screams at. Only `result` is
+ *  needed here — nothing reads the rest (docs/envelopes.md → Choosing which `ok`
+ *  branch). */
 const okEnvelope = {
   data: {
-    type: 'ok', data: null, outcome: null, severity: null,
+    type: 'ok', data: { result: 'swapped' }, outcome: null, severity: null,
     message: null, field: null, meta: null, dbcode: null, detail: null,
   },
   error: null,
@@ -258,7 +263,7 @@ describe('waffle PlayArea — new game (menu)', () => {
 
   it('starts a fresh game with this game\'s setup + roster + mode, then navigates', async () => {
     const user = userEvent.setup()
-    startEdgeFn.mockResolvedValue({ error: null, data: { type: 'ok', data: { id: 'fresh-game-id' } } })
+    startEdgeFn.mockResolvedValue({ error: null, data: { type: 'ok', data: { result: 'created', id: 'fresh-game-id' } } })
     h.result = loaded(coopGame, [me, moth])
     const ctx = makeCtx({ players: twoMembers })
     render(<PlayArea {...ctx} />)
@@ -402,7 +407,7 @@ describe('waffle PlayArea — icon-only action rows', () => {
   })
 
   it('terminal "New game" button starts the follow-up game', async () => {
-    startEdgeFn.mockResolvedValue({ error: null, data: { type: 'ok', data: { id: 'next-game-id' } } })
+    startEdgeFn.mockResolvedValue({ error: null, data: { type: 'ok', data: { result: 'created', id: 'next-game-id' } } })
     const user = userEvent.setup()
     h.result = loaded({ ...coopGame, solution: FIXTURE_SOLUTION })
     const ctx = makeCtx({ isTerminal: true, playState: 'lost' })

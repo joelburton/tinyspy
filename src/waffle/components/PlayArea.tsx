@@ -16,6 +16,7 @@ import { printWafflePdf } from '../pdf/printWafflePdf'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { setupRows } from '../lib/setupSummary'
 import { runEdgeFn, runRpc } from '../../common/lib/supabase/dbResult'
+import { showFaultModal } from '../../common/lib/fault/faultStore'
 import { useDismissLocalFeedbackOnKey } from '../../common/hooks/feedback/useDismissLocalFeedbackOnKey'
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
@@ -39,6 +40,23 @@ import styles from './PlayArea.module.css'
 import { useSwallowTab } from '../../common/hooks/input/useSwallowTab'
 import { useSingleFlight } from '../../common/hooks/ui/useSingleFlight'
 import { getNotOkFeedback } from '../../common/lib/game/genericPills'
+
+/** What `waffle.submit_swap` puts in `data` for a swap it took. Only `result` is
+ *  read — the rest is deliberately ignored, because the new colors must reach
+ *  every player together over realtime rather than reaching the swapper a round
+ *  trip early (see `doSwap`). It is typed anyway: the fields exist on the wire,
+ *  and a reader deserves to see what was declined rather than what was missing. */
+type SwapAnswer = {
+  result: 'swapped'
+  colors: string
+  swaps_used: number
+  solved: boolean
+  terminal: boolean
+}
+
+/** What `waffle.create_game` puts in `data`, forwarded verbatim through the
+ *  `waffle-build-board` edge function by `invokeCreateGame`. */
+type NewGameAnswer = { result: 'created'; id: string }
 
 /**
  * waffle's play surface, shared by the coop and compete manifests, on the shared
@@ -224,18 +242,33 @@ export function PlayArea({
     async (a: number, b: number) => {
       const { board: atBoard, swaps: atSwaps } = serverStateRef.current
       setOptimisticSwap({ cells: [a, b], atBoard, atSwaps })
-      const res = await runRpc(
+      const res = await runRpc<SwapAnswer>(
         db.rpc('submit_swap', { target_game: gameId, pos_a: a, pos_b: b }),
       )
-      if (res.type !== 'ok') {
+      if (res.type === 'not-ok') {
         // Refused (the turn moved, the game ended, you conceded). Optimism is
         // about ACCEPTANCE, so this is the price: take the letters back, then
         // say why in the below-board flash, in the words the server sent.
         setOptimisticSwap(null)
         showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+        return
+      } else if (res.type === 'ok' && res.data.result === 'swapped') {
+        // Accepted: leave the overlay standing. It clears when the server's own
+        // board lands, which is the same moment the colors do.
+        //
+        // The rest of the payload — the new colors, the swap count, solved,
+        // terminal — is ignored on purpose (see the comment above `doSwap`): the
+        // colors must reach everyone together, over realtime. `result` is read
+        // BECAUSE it is ignored, since an answer nobody inspects is an answer
+        // that can change into something else without anyone noticing.
+        return
+      } else {
+        // The overlay is waiting for a board that may never come, so drop it —
+        // otherwise two letters sit swapped and colorless until a reload.
+        setOptimisticSwap(null)
+        showFaultModal({ text: 'BUG: submit_swap fell through to unhandled' })
+        return
       }
-      // Accepted: leave the overlay standing. It clears when the server's own
-      // board lands, which is the same moment the colors do.
     },
     [gameId, showLocalFeedback],
   )
@@ -341,7 +374,7 @@ export function PlayArea({
     if (!isTerminal && !(await confirmAction(NEW_GAME_CONFIRM))) return
     if (!gameMode) return // menu exists pre-load, but there's no mode to copy yet
     const args = newGameArgsRef.current
-    const res = await runEdgeFn<{ id: string }>(
+    const res = await runEdgeFn<NewGameAnswer>(
       'waffle-build-board',
       {
         target_club: clubHandle,
@@ -350,7 +383,7 @@ export function PlayArea({
         mode: gameMode,
       },
     )
-    if (res.type !== 'ok') {
+    if (res.type === 'not-ok') {
       // THE SAME ENVELOPE, READ DIFFERENTLY. On the setup form a validation is
       // an answer — fix the field and press Start again. Here there is no field
       // and no form, so whatever came back goes in the pill as it reads: a fault
@@ -358,10 +391,20 @@ export function PlayArea({
       // its own outcome. The pill is shown either way — the modal escalates, it does
       // not replace (docs/envelopes.md), so dismissing it must not leave the board
       // silent about why the game didn't start.
+      //
+      // This is one of only two New Game buttons where a `form-validation` can
+      // genuinely arrive rather than a fault: `waffle-build-board` answers PN121
+      // when the generator gives up at that difficulty. It reads as a pill, which
+      // is what its raise site asked for — there is no field here to put it under.
       showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'manual' } })
       return
+    } else if (res.type === 'ok' && res.data.result === 'created') {
+      goToGame(`waffle_${gameMode}`, res.data.id)
+      return
+    } else {
+      showFaultModal({ text: 'BUG: waffle-build-board fell through to unhandled' })
+      return
     }
-    goToGame(`waffle_${gameMode}`, res.data.id)
   }, [gameMode, clubHandle, goToGame, showLocalFeedback, confirmAction, isTerminal])
 
   // Single-flight guard. New game has THREE triggers (the terminal button, the

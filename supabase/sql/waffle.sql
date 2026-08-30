@@ -573,7 +573,10 @@ begin
          end
   );
 
-  return common.ok_envelope(jsonb_build_object('id', new_id));
+  -- `result` NAMES the answer; `id` is the game to go to. It travels through
+  -- `waffle-build-board` untouched — `invokeCreateGame` forwards this envelope
+  -- verbatim — so naming it here is what gives BOTH call sites a case to assert.
+  return common.ok_envelope(jsonb_build_object('result', 'created', 'id', new_id));
 
 -- The boundary. It reads the SQLSTATE, re-raises anything that isn't ours, and
 -- lets the raise itself carry the message, the kind and the field.
@@ -900,8 +903,13 @@ begin
   -- the colors reach everyone together over the realtime refetch (see the
   -- PlayArea comment on why the reply is deliberately ignored). The payload
   -- still travels — the fact is structural whether or not anyone reads it.
+  --
+  -- `result` NAMES the answer, and it is the one field the call site DOES read:
+  -- everything beside it is ignored on purpose, so without a name the branch
+  -- would match by being `ok` and would draw a second answer as this one.
   return common.ok_envelope(
     jsonb_build_object(
+      'result',     'swapped',
       'colors',     waffle.board_colors(new_board, g_row.solution),
       'swaps_used', new_swaps,
       'solved',     did_solve,

@@ -494,7 +494,32 @@ the four inside `connections.submit_guess` from the original census.
   that answer's branch, where nothing has to be known.
 - [ ] stackdown — the three RPCs and three reads are **done**, and are the model
   the rules were written from; what is left is its `create_game` half
-- [ ] waffle — `PlayArea.submit_swap` and `useGame`'s three reads
+- [x] waffle — `PlayArea.submit_swap`, `useGame`'s three reads, and its
+  `create_game` half. **Done 2026-08-30.** Both RPCs needed the SQL edit: neither
+  `submit_swap` nor `create_game` named its answer.
+
+  **`submit_swap` is the case for naming an answer nobody reads.** Its reply is
+  ignored ON PURPOSE — the new colors must reach every player together over
+  realtime rather than reaching the swapper a round trip early — so the payload
+  traveled with nothing to assert and the branch could only match by being `ok`.
+  It now says `'result', 'swapped'`, which is the one field the call site reads,
+  precisely BECAUSE the rest is declined: an answer nobody inspects is an answer
+  that can change into something else with nobody noticing.
+
+  **The create_game half went through the edge function without touching it.**
+  `waffle-build-board` calls `invokeCreateGame`, which forwards the RPC's envelope
+  verbatim — so naming the answer in `waffle.create_game`'s SQL reached both the
+  manifest's Start and the in-game New Game with no Deno change at all. Worth
+  knowing for the five other builder games.
+
+  It is also the first entry where the `not-ok` branch has a real second case:
+  `PN121` is a `form-validation` (the generator gave up at that difficulty), not
+  a fault, and it reads as a pill because there is no field on this surface.
+
+  **Two unit tests failed on the first run and were right to.** Their stubs
+  answered `data: null` / `{id}` with no `result`, so the chain screamed instead
+  of acting — the fake envelope had drifted from the contract, which is the exact
+  failure this shape exists to make loud. Both stubs now carry the case name.
 - [ ] wordle — `BoardCol.submit_guess` (**the one confirmed live bug**:
   `res.outcome ?? 'lost'`, `res.message ?? ''`, branch off `result` inside an
   already-`ok` block, no scream) and `useGame`'s three reads

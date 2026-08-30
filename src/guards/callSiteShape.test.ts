@@ -97,6 +97,9 @@ describe('call-site shape', () => {
       'src/setgame/hooks/useGame.ts',
       'src/setgame/components/PlayArea.tsx',
       'src/setgame/manifest.ts',
+      'src/waffle/components/PlayArea.tsx',
+      'src/waffle/hooks/useGame.ts',
+      'src/waffle/manifest.ts',
       // setgame is the first game finished END TO END, its in-game New Game
       // included: `create_game` now answers `'result', 'created'`, which is what
       // its call site needed to assert a case rather than match by being `ok`.

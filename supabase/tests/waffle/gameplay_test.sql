@@ -12,7 +12,7 @@ set search_path = waffle, common, public, extensions;
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(21);
+select plan(22);
 
 -- ── Game 1: validation + lock-step + win ────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -58,8 +58,16 @@ select pg_temp.envelope_is(
 
 -- Lock-step: ada makes a NON-solving swap (cells 2,3). Every player's
 -- board moves together.
+--
+-- The envelope is asserted, not just discarded: `data.result` is the case the
+-- PlayArea branches on, and it was the one field nothing here held to the
+-- contract. The colors/counts beside it are checked further down, off the rows.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select waffle.submit_swap((select id from g1), 2, 3);
+select pg_temp.envelope_is(
+  waffle.submit_swap((select id from g1), 2, 3),
+  '{"type":"ok","data":{"result":"swapped","solved":false,"terminal":false}}'::jsonb,
+  'an accepted swap names itself, so a call site has a case to assert'
+);
 
 reset role;
 select is(
