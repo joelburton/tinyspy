@@ -94,13 +94,15 @@ describe('call-site shape', () => {
       'src/connections/hooks/useGame.ts',
       'src/psychicnum/components/BoardCol.tsx',
       'src/psychicnum/hooks/useGame.ts',
-      // NOT psychicnum's PlayArea, for stackdown's reason below: its `submit_guess`
-      // and its three reads are converted, and its in-game New Game is not.
-      // NOT stackdown's PlayArea: its three gameplay RPCs are converted and are
-      // the model the rules came from, but its in-game New Game still calls
-      // `create_game` with the negated form — the half its roster entry leaves
-      // open, deferred with the whole create_game group. Listing it here is how
-      // this guard caught my own bookkeeping being wrong on its first run.
+      'src/setgame/hooks/useGame.ts',
+      'src/setgame/components/PlayArea.tsx',
+      // setgame's PlayArea is listed for the NEGATED FORM ONLY, which is the
+      // whole of what this guard tests. Its in-game New Game still has no named
+      // `ok` branch and no scream: `create_game`'s `data` carries only an id, so
+      // there is nothing to assert a case with until that group lands.
+      //
+      // NOT psychicnum's or stackdown's PlayArea, which still have the negated
+      // form on that same `create_game` call.
     ]
     const regressed = CONVERTED.filter((f) => NEGATED.test(readFileSync(f, 'utf8')))
     expect(regressed, 'a converted file went back to the negated form').toEqual([])

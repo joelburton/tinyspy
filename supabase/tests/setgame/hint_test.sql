@@ -36,11 +36,14 @@ select is(
   0, 'nobody has asked yet');
 
 -- ── One card: taken as given, since a single card cannot be wrong ────
+-- Asserted as an ENVELOPE, not merely `lives_ok`: the frontend's accept branch
+-- tests `data.result`, and nothing was holding that value to the contract —
+-- "it didn't raise" is true of an answer with no payload at all.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select lives_ok(
-  format($$ select setgame.record_hint(%L, (pg_temp.sg_live(%L))[1:1]) $$,
-         (select id from g), (select id from g)),
-  'a one-card hint is recorded');
+select pg_temp.envelope_is(
+  setgame.record_hint((select id from g), (pg_temp.sg_live((select id from g)))[1:1]),
+  '{"type":"ok","data":{"result":"recorded","hints_used":1}}'::jsonb,
+  'a one-card hint is recorded, and the answer names itself');
 
 reset role;
 select is(

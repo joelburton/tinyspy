@@ -840,9 +840,16 @@ begin
   insert into setgame.events (game_id, user_id, kind, cards, board_after)
   values (target_game, caller_id, 'hint', cards, g_row.board);
 
-  -- The count this call just moved. No message and no outcome: asking for a
-  -- hint shows itself, in the ring the client already drew.
-  return common.ok_envelope(jsonb_build_object('hints_used', v_used));
+  -- `result` NAMES the answer, and `hints_used` is the count this call just
+  -- moved. The name is here even though this is the function's only `ok` today:
+  -- a call site cannot assert a case that the payload does not carry, so without
+  -- it the branch would match by being `ok` and would silently draw a second
+  -- answer as this one (docs/envelopes.md → How SQL builds one).
+  --
+  -- No message and no outcome: asking for a hint shows itself, in the ring the
+  -- client already drew.
+  return common.ok_envelope(
+    jsonb_build_object('result', 'recorded', 'hints_used', v_used));
 
 exception when others then
   get stacked diagnostics

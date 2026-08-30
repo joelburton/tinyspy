@@ -461,7 +461,32 @@ the four inside `connections.submit_guess` from the original census.
   there to be read. What the entry actually removed is the `res.message !== null`
   test that was picking the refusal by the wire, and the missing scream. Its
   `create_game` half is deferred with that group.
-- [ ] setgame — `PlayArea.submit_set` + `record_hint`, and `useGame`'s three reads
+- [x] setgame — `PlayArea.submit_set` + `record_hint`, and `useGame`'s three
+  reads. **Done 2026-08-29.** One SQL edit: `record_hint` returned only
+  `hints_used`, a count with no case name, so its call site had nothing to assert
+  — `submit_set` already said `'result', 'claimed'`. Its success had also never
+  been asserted at all (`lives_ok`, which is true of an answer with no payload),
+  so the pgTAP became an `envelope_is`; plan count unchanged, and the assertion
+  was verified by planting. Its `create_game` half is deferred with that group,
+  which is why `PlayArea.tsx` is NOT in the guard's converted list even though
+  two of its three RPCs are done.
+
+  **And it fixed a live bug the chain exposed** (Joel ruled, 2026-08-29).
+  `askHint` fired `submitClaim` after a FAILED `record_hint`. Only on the THIRD
+  press — the ladder hands back one card, then two, then three, and three
+  selected cards is what claims — so a third press whose hint the server refused
+  went on to fire a claim anyway: a second round trip, refused for the same
+  reason, whose pill overwrote the first one with the same news. Every raise
+  `record_hint` can make refuses the claim too (PN279 / PN281 / PN243 directly;
+  PN283 becomes PN277, PN284 becomes PN278), and the one that would not — PN280,
+  a hint in a race — is a `fault`, meaning the button should not be there at all.
+
+  **The claim went INSIDE the `recorded` branch**, not behind `return`s at the
+  top of the other two (Joel, 2026-08-29). Guarding a trailing statement with
+  returns gets the same answer today and plants the bug back for later: the day a
+  fourth branch is added, whoever writes it has to know that falling out of the
+  chain fires a claim. A statement that may follow exactly one answer belongs in
+  that answer's branch, where nothing has to be known.
 - [ ] stackdown — the three RPCs and three reads are **done**, and are the model
   the rules were written from; what is left is its `create_game` half
 - [ ] waffle — `PlayArea.submit_swap` and `useGame`'s three reads

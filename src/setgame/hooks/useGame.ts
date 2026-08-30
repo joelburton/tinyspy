@@ -132,7 +132,11 @@ export function useGame(gameId: string, selfId: string): {
       // A FAILED read used to be indistinguishable from a game with no rows:
       // `data` is null either way, so `if (g)` simply left the previous game on
       // screen. The fault is logged and shown by `dbFetch`; stop loading.
-      if (gameRes.type !== 'ok' || playersRes.type !== 'ok' || eventsRes.type !== 'ok') {
+      if (
+        gameRes.type === 'not-ok' ||
+        playersRes.type === 'not-ok' ||
+        eventsRes.type === 'not-ok'
+      ) {
         setLoading(false)
         return
       }

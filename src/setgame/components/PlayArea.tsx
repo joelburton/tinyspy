@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { runRpc } from '../../common/lib/supabase/dbResult'
+import { showFaultModal } from '../../common/lib/fault/faultStore'
 import { IconNewGame, IconPrint, IconRestart } from '../../common/components/icons'
 import { cls } from '../../common/lib/util/cls'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
@@ -38,6 +39,16 @@ import { getNotOkFeedback } from '../../common/lib/game/genericPills'
 import styles from './PlayArea.module.css'
 
 import '../theme.css'
+
+/** What `setgame.submit_set` puts in `data`. One `ok` answer, named anyway — a
+ *  branch matching merely by being `ok` would draw a second one as this. Its
+ *  `terminal` is the claim that ended the game, which this surface does not read:
+ *  the finish reaches it by realtime like everyone else's. */
+type ClaimAnswer = { result: 'claimed'; terminal: boolean }
+
+/** What `setgame.record_hint` puts in `data`. `hints_used` is the tally after
+ *  this press; unread here, because the info column reads it off `players`. */
+type HintAnswer = { result: 'recorded'; hints_used: number }
 
 /** A row of `status.leaderboard` (compete). */
 type LeaderRow = {
@@ -223,14 +234,25 @@ export function PlayArea(ctx: GamePageCtx) {
       // hear me?" — its length IS the lag.
       setSubmitted(cards)
       setPicked([])
-      const res = await runRpc(db.rpc('submit_set', { target_game: gameId, cards }))
-      if (res.type !== 'ok') {
+      const res = await runRpc<ClaimAnswer>(db.rpc('submit_set', { target_game: gameId, cards }))
+      if (res.type === 'not-ok') {
         // Release the dim: nothing is coming. The contention RACE — someone was
         // faster — is the one refusal a player realistically meets, and it
         // isn't their mistake. Those cards are already gone, so this player
         // falls through to the same mark everyone else gets for them.
         setSubmitted([])
         showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+      } else if (res.type === 'ok' && res.data.result === 'claimed') {
+        // Nothing to show and nothing to release: the cards leaving the board
+        // IS the feedback, and the dim ends when they go (`marks` derives it
+        // from the live board). `data.terminal` rides along unread for the same
+        // reason — the game ending reaches this surface by realtime.
+      } else {
+        // The dim would otherwise sit on three cards forever: it is released by
+        // the board moving, and an answer nobody named is an answer that may not
+        // have moved it.
+        setSubmitted([])
+        showFaultModal({ text: 'BUG: submit_set fell through to unhandled' })
       }
     },
     [gameId, showLocalFeedback],
@@ -333,13 +355,25 @@ export function PlayArea(ctx: GamePageCtx) {
     // the tie with a deadlock — reliably, on the third hint, since that is the
     // press that also claims. Awaiting is the causal order anyway: you asked,
     // and then it was claimed.
-    const res = await runRpc(db.rpc('record_hint', { target_game: gameId, cards: next }))
-    if (res.type !== 'ok') {
+    const res = await runRpc<HintAnswer>(
+      db.rpc('record_hint', { target_game: gameId, cards: next }),
+    )
+    if (res.type === 'not-ok') {
       showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+    } else if (res.type === 'ok' && res.data.result === 'recorded') {
+      // Nothing to show: the ring was drawn before the round trip, and it is the
+      // whole of what a hint looks like. `hints_used` rides along unread here —
+      // the info column reads the tally off `players`, which realtime refetches.
+      //
+      // The claim lives IN this branch, because a recorded hint is the only
+      // answer it may follow. The third rung needs no special case beyond that:
+      // three selected cards claim, which is the same path a player's own third
+      // click takes, and only the third press gets here — the ladder hands back
+      // one card, then two, then three.
+      if (next.length === CLAIM_SIZE) void submitClaim(next)
+    } else {
+      showFaultModal({ text: 'BUG: record_hint fell through to unhandled' })
     }
-    // The third rung needs no special case: three selected cards claim, which
-    // is the same path a player's own third click takes.
-    if (next.length === CLAIM_SIZE) void submitClaim(next)
   }, [game, gameId, ring, submitClaim, showLocalFeedback])
 
   // Single-flight, because a press takes a round trip to record and the button
@@ -371,7 +405,7 @@ export function PlayArea(ctx: GamePageCtx) {
         mode: gameMode,
       }),
     )
-    if (res.type !== 'ok') {
+    if (res.type === 'not-ok') {
       // THE SAME ENVELOPE, READ DIFFERENTLY. On the setup form a validation is
       // an answer — fix the field and press Start again. Here there is no field
       // and no form, so whatever came back goes in the pill as it reads: a fault

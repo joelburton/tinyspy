@@ -226,6 +226,69 @@ distinction.
 
 ### The shape of a call site
 
+#### Why these rules exist, before the rules
+
+**An envelope is a wire format from another system, not a value this codebase
+constructs** (Joel, 2026-08-29). Postgres composes it and PostgREST carries it.
+The `Envelope` union is our CLAIM about what arrives — it is not a constraint on
+what can. Every rule below is about staying correct on the day the claim goes
+stale, and none of them is a style preference.
+
+**The type system covers the wrong half.** Say a third member is added —
+`maybe`. That is a compile error everywhere an envelope is PRODUCED
+exhaustively: the Deno builders, a total `Record<Severity, …>`, anything the
+compiler can see must cover every case. It is not an error anywhere one is
+CONSUMED by negation. `res.type !== 'ok'` still compiles and still narrows
+cleanly — it narrows a `maybe` into the not-ok branch and shows the player a
+refusal. A statement after the chain still runs. Nothing goes red. All 146 call
+sites are consumers, so the entire blast radius sits on the side the compiler
+does not cover.
+
+**The goal, as a metaphor: an exhaustive `when`.** Kotlin will not compile a
+`when` over a sealed type that misses a variant, and adding a variant turns every
+such `when` red. That is the guarantee this chain is hand-rolling — the metaphor
+is Joel's, and it is a statement of the END, not a claim that we are switching on
+an enum (2026-08-29). Naming what we cannot have says precisely what the shape is
+substituting for.
+
+TypeScript has the compile-time half of it. A `const _exhaustive: never = res` in
+the `else` goes red the day the union grows a member, which IS the Kotlin
+behavior. It cannot reach these chains, for two reasons, and both of them are the
+argument for the scream:
+
+- **The set is open at runtime.** Kotlin's check is sound because a sealed type
+  is closed — no value outside the set can exist. Ours arrives over a wire from
+  another system, so any compile-time proof is a proof about our declaration, not
+  about what a player will receive.
+- **Our cases are not variants.** Past `res.type === 'ok'` the branches split on
+  `res.data.result === 'claimed'` — a VALUE INSIDE the payload. That narrows
+  nothing toward `never`, so the assignment would not even compile; and where it
+  did, it would be checking a `'claimed'` we declared against a wire that can
+  carry any string. No language checks that exhaustively.
+
+So we are two steps from the compiler, not one, and the `else` has to be a
+RUNTIME branch that does something visible. A sealed `when` needs no else because
+the compiler already proved there is nothing to catch. Ours needs one because
+nothing proved anything: the scream is the exhaustiveness check, run a year
+later, in production, by a player.
+
+**And the net that would catch it is what that edit removes.** `isEnvelope`
+(`dbResult.ts`) returns true for exactly two strings, so a third type arriving
+today becomes *"The server answered with an unreadable result."* — loud, central,
+one modal. Whoever adds `maybe` widens that check in the same commit as the
+union, because otherwise their new answer never reaches a call site at all. That
+one edit flips every consumer's behavior at once, and silently.
+
+So the rules below are one rule wearing several hats. Asking `=== 'not-ok'` is
+what stops an unrecognized type being drawn as a refusal. Asking `res.type ===
+'ok' && <case>` is what stops a `maybe` carrying an ok-shaped `data` from sailing
+into an ok branch. The bare `else`, with no work stranded after the chain, is
+what turns the change into 146 visible events instead of zero. **The scream is
+not defensive ceremony — it is the only construct here that converts "the server
+changed and nobody told the frontend" into something a human sees.**
+
+#### The shape
+
 **One branch per answer the RPC can give, each condition a positive assertion
 about that answer, and a bare `else` that screams.**
 
@@ -235,10 +298,10 @@ const res = await runRpc<WordAnswer>(db.rpc('submit_word', { … }))
 if (res.type === 'not-ok') {
   clearWord()
   showMsg({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
-} else if (res.data.result === 'accepted') {
+} else if (res.type === 'ok' && res.data.result === 'accepted') {
   commitWord(tileIds)
   showFlash([...res.data.word.toUpperCase()], 'won')
-} else if (res.data.result === 'invalid' && res.message !== null) {
+} else if (res.type === 'ok' && res.data.result === 'invalid' && res.message !== null) {
   clearWord()
   showMsg({ tone: res.outcome, text: res.message, mode: { kind: 'sticky' } })
 } else {
@@ -259,6 +322,29 @@ described a shape rather than demanding it, code that did not already resemble
 the shape — a guard clause, an inherited early-return sequence — never got held
 up against it at all, and the rules were applied to the lines being rewritten
 while the surrounding structure kept its silent fall-through.
+
+**Work that follows exactly one answer goes IN that answer's branch** — never
+after the chain, held off the other answers by `return`s (Joel, 2026-08-29).
+
+The two get the same result today and are not the same code. Returns make the
+trailing statement's audience something a reader has to reconstruct by checking
+every branch above it, and they make it a standing obligation: the day someone
+adds a fourth branch, that statement runs unless they notice they were supposed
+to return. Nobody adding a branch is thinking about a line ten rows below it.
+Putting the work in its own branch is what makes the chain closed — a new answer
+gets a new branch or reaches the scream, and neither of those can reach into
+another answer's work.
+
+```ts
+} else if (res.type === 'ok' && res.data.result === 'recorded') {
+  if (next.length === CLAIM_SIZE) void submitClaim(next)   // only a recorded hint claims
+}
+```
+
+A statement that genuinely follows SEVERAL answers is a different thing and may
+sit after the chain — but it inherits every branch added later, so say in a
+comment which answers it is for. `connections/BoardCol`'s `sendClear()` is the
+one in the repo.
 
 **And nothing downstream re-asks.** A helper the chain calls takes the NARROWED
 arm as its parameter — `Extract<Envelope<T>, { type: 'not-ok' }>` — so there is
