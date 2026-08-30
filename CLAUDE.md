@@ -163,40 +163,59 @@ What this **doesn't** mean:
   tile ramp, and the two-vocabularies rule in [docs/ui.md](docs/ui.md) are
   about people *seeing* the board clearly.
 
-## Alpha software — break things freely
+## Production software — preserve the data, migrate forward
 
-The actual user population is Joel plus a handful of friends who *know* this is alpha-stage and have signed up for the bumpy ride. There are no production users to protect.
+**This project is no longer alpha** (Joel, 2026-08-29, describing a switch made
+weeks earlier — the forward migrations start at `20260813000001`). Prod carries
+real accounts, real games and real chat history, and **that data is not
+expendable.** Earlier revisions of this file said the opposite at length; if you
+find advice anywhere that leans on "the friends will understand", it predates
+this and is wrong.
 
-What this means in practice:
+Two rules follow, and they are the whole of it:
 
-- **Don't engineer for backwards compatibility.** No redirect shims for old URL shapes, no dual-running code paths during a migration, no "legacy" branches that exist to be polite to existing data. Make the change, tell Joel to tell the friends.
-- **Schema rewrites are fine.** Drop tables, rename columns, change RPC signatures. The cost is "Joel sends a Discord message" — not "engineering a multi-week dual-write transition." To keep the supabase files readable, prefer editing in place rather than appending a new migration. Once the game is out of alpha stage, we'll switch to deployed and will not edit old migration files.
-- **Where a SQL change goes** ([docs/supabase.md → Schema vs code](docs/supabase.md#schema-vs-code)). Each game's SQL is two files: `supabase/migrations/<ts>_<game>.sql` is **shape** (tables, constraints, indexes, the Realtime publication, seeds) and is applied once; `supabase/sql/<game>.sql` is **behavior** (functions, views, policies, triggers, grants) and is re-applied in full on every deploy. So a function/policy/grant change is an in-place edit to `supabase/sql/` **forever, alpha or not** — it never becomes a migration. Only shape changes accumulate, and only those are affected by leaving alpha.
-- **Data loss between rebuilds is expected and accepted.** `supabase db reset` wipes everything; in-progress games disappear; chat history goes with them. This is fine. The friends understand.
-- **Forcing re-authentication / re-account-creation is fine.** Renaming `display_name` → `username` invalidated everyone's previous handle. They picked new ones. Migrating to a fresh Supabase project means everyone signs in afresh. None of this is a blocker.
-- **Bookmarks rotting is fine.** 
+- **Preserve production data.** A change that would drop rows, invalidate
+  accounts or orphan a game needs a migration path, not a Discord message. If
+  the honest answer is "this cannot be done without losing X", say so and ask
+  before doing it.
+- **Write a NEW migration; never edit an applied one.** `supabase db push`
+  skips any migration the remote has already recorded, so an in-place edit
+  simply never reaches prod — while `supabase/sql/` (re-applied in full every
+  deploy) *does*. The two halves then disagree and the deploy fails partway
+  through the affected game's SQL file. A shape change is a new timestamped file
+  in `supabase/migrations/`, every time.
 
-This **doesn't** mean be cavalier with destructive actions. The principle is about *avoiding compat apparatus we don't need*, not about being sloppy with the friends' goodwill. Still:
+### What has NOT changed
 
-- **Always confirm before destructive operations** (dropping databases, force-pushes, etc.). The "friends will understand" license is for *design* decisions, not for *unauthorized* destruction.
-- **The friends' actual game data, if it matters to them, still matters.** Joel decides what's expendable; if he says "you can wipe the dev DB," yes. **Prod is deployed and real** — it has carried live profiles and games. Ask before wiping it, and take a `supabase db dump --linked` first.
+- **Where a SQL change goes** ([docs/supabase.md → Schema vs
+  code](docs/supabase.md#schema-vs-code)). Each game's SQL is two files:
+  `supabase/migrations/<ts>_<game>.sql` is **shape** (tables, constraints,
+  indexes, the Realtime publication, seeds) and is applied once;
+  `supabase/sql/<game>.sql` is **behavior** (functions, views, policies,
+  triggers, grants) and is re-applied in full on every deploy. So a
+  function/policy/grant change is an in-place edit to `supabase/sql/` **forever**
+  — it never becomes a migration, and nothing here changes that. Only shape
+  accumulates, and only shape needs a new file.
+- **`supabase db reset` locally still wipes everything**, and that is fine — it
+  is a local operation on a database seeded by `seed.dev.sql`. Nothing in this
+  section is about the dev loop.
+- **We still don't build compat apparatus nobody needs.** No redirect shims for
+  URL shapes we never shipped, no dual-running code paths for a rename that
+  touches no stored data. The rule is about *data*, not about keeping every
+  past decision alive: a change that only moves code is still just a change.
+- **Always confirm before destructive operations** (dropping databases,
+  force-pushes, wiping prod). This was true under the old regime too, and it
+  matters more now.
 
-### In-place migration edits now cost a PROD RESET
+### The incident this rule came out of
 
-The edit-in-place convention above is written for `db reset`, which is a LOCAL
-operation. Prod applies migrations with `supabase db push`, which **skips any
-migration the remote has already recorded** — so an in-place edit to an applied
-migration never reaches production, while `supabase/sql/` (re-applied in full
-every deploy) *does*. The two halves then disagree, and the deploy fails partway
-through the affected game's SQL file.
+On 2026-08-04, `strands.guesses` → `strands.events` was edited into the
+already-applied strands migration. The only non-destructive fix would have been
+a forward migration; the alternative chosen was to reset prod, which preserved
+the file convention at the cost of every account and game on it. That trade is
+no longer available — prod's data wins, and the forward migration is the fix.
 
-That happened on 2026-08-04: `strands.guesses` → `strands.events` was edited into
-the already-applied strands migration, and the only non-destructive fix would
-have been a forward migration. Joel chose to reset prod instead, which preserves
-the convention at the cost of every account and game on it.
-
-So, before editing an applied migration in place, decide which you're buying:
-the convention, or prod's data. **Two operational notes if you reset prod:**
+**If prod ever is reset anyway**, two operational notes that have bitten before:
 
 - **Clear the stamps.** `gmake db-schema ENV=local` deletes `.make/<env>/*.stamp`
   precisely because a reset makes them lie. Resetting prod with the Supabase CLI
@@ -205,8 +224,6 @@ the convention, or prod's data. **Two operational notes if you reset prod:**
   .make/prod/*.stamp` first.
 - **`db-data` is not part of `deploy`.** The deploy target ships structure +
   functions + FE only; a reset database also needs `gmake db-data ENV=prod`.
-
-When you encounter a question like "should we keep the old URL pattern working?" or "do we need a migration path for existing rows?" — the default answer is **no, just make the change cleanly**. If you're not sure whether a specific destructive choice is in-bounds, ask once; once Joel says yes, take the simpler path.
 
 ## Trust model — server-authoritative for cleanliness, not anti-cheat
 

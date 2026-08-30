@@ -10,10 +10,12 @@ at the doc that owns the rationale, and adds only the shape of the DB change.
 When an item ships, delete it here *and* resolve it there. When the queue
 empties, delete this file.
 
-The reason to care about the list at all is the alpha prior in
-[`CLAUDE.md`](../CLAUDE.md): baselines are still editable and `db-reset` wipes
-everything, so schema work is free right now and stops being free when we leave
-alpha ([`deferred.md → To discuss`](../docs/deferred.md#to-discuss)).
+**The premise this queue was written on has expired.** It existed because
+baselines were editable and schema work was therefore free; that stopped being
+true around 2026-08-13 (CLAUDE.md → "Production software"). A shape change is
+now a new forward migration against data that must survive, so nothing on this
+list is cheaper today than any other work — batching it buys nothing, and the
+file is kept only until its remaining entries are resolved.
 
 **Nothing here is urgent, and nothing here is decided-and-unbuilt.** The sweep
 turned up one real constraint (the club-name cap), one set of unratified rules

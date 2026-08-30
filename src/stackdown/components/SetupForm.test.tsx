@@ -38,6 +38,7 @@ function draw({ errors = {} as FormErrors, members = MEMBERS } = {}) {
         player_user_ids: new Set(members.map((m) => m.user_id)),
       }}
       set={set}
+      setError={vi.fn()}
       errors={errors}
     />,
   )

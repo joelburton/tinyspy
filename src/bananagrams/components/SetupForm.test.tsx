@@ -45,6 +45,7 @@ function draw({ values = {}, errors = {} as FormErrors } = {}) {
         ...values,
       }}
       set={set}
+      setError={vi.fn()}
       errors={errors}
     />,
   )

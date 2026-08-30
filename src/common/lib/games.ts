@@ -494,6 +494,26 @@ export type SetupBodyProps = {
    * its value is sent as.
    */
   errors: FormErrors
+  /**
+   * Write one error, keyed the same way — `FORM_ERROR_KEYNAME` for the form's
+   * own line, a field `name` for that field's.
+   *
+   * A body needs this because some of them CALL SERVERS of their own, before
+   * Start: connections and strands load a puzzle, crosswords loads a library.
+   * Without a setter such a body could display a failure line but never write
+   * one, so a failed load had to be shown as an empty result — the puzzle
+   * picker saying "the archive is spent" about a read that never landed
+   * (Joel, 2026-08-29).
+   *
+   * **A fault gets written here like anything else.** Its modal is an
+   * escalation, not a replacement: press OK and this line is the only thing
+   * left saying the load is still broken (docs/envelopes.md → But the surface
+   * still shows it).
+   *
+   * Passing `null` clears the entry — what a body does when the same load
+   * succeeds on a later attempt.
+   */
+  setError: (name: string, message: string | null) => void
 }
 
 /**

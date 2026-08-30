@@ -19,7 +19,7 @@ Don't put a won't-do under "Deferred," or it reads as a backlog item forever. Ga
 
 When an item gets picked up, delete it. When a new "we'll do this later" decision happens, add it to the right place.
 
-**Database-touching items are indexed in [`plans/db-work-2.md`](../plans/db-work-2.md)** — a whole-docs sweep (every game's `## Deferred`, not just this file), kept while migrations are still free under the alpha prior. Delete it when it empties.
+**Database-touching items are indexed in [`plans/db-work-2.md`](../plans/db-work-2.md)** — a whole-docs sweep (every game's `## Deferred`, not just this file). It was written while migrations were free; they are not any more (CLAUDE.md → "Production software"), so the index is now just an index. Delete it when it empties.
 
 *(An earlier queue lived in `db-work.md` (deleted) from 2026-08-02 to 2026-08-03,
 while the alpha prior made migrations free. It emptied — the solution-reveal
@@ -246,32 +246,19 @@ was their green/yellow/gray feedback flattening to one gray in mono.
   problem, one instance: that one is a collision to fix, this is the mechanism
   that would have prevented it.
 
-- **Leaving "alpha": stop editing baseline migrations, start appending new ones.**
-  [`CLAUDE.md`](../CLAUDE.md) names this trigger already — *"prefer editing baseline
-  migrations rather than appending a new migration. Once the game is out of alpha stage,
-  we'll switch to deployed and will not edit old migration files."* We're approaching it:
-  the roster is complete and the remaining known work is FE copy rather than schema.
-  Flipping the switch is what ends **trashing the database on every deploy** (`db-reset`
-  wipes everything today, which is fine only because nothing is worth keeping).
-  **Settled (2026-08-02): the baselines do NOT get squashed.** They stay one file per
-  game plus one for `common`, frozen as-is, and new work appends. A single squashed v1
-  would be a wall of SQL you have to read end-to-end to understand how one game works;
-  the per-game split is what makes each game's schema, RPCs, and RLS legible in one
-  sitting — the same removability property the FE has (docs/common.md).
+- ~~**Leaving "alpha": stop editing baseline migrations, start appending new ones.**~~
+  **Done — the switch was made around 2026-08-13** (the first forward migrations
+  are `20260813000001…3`, then `20260815000000_drop_solution_revealed` and
+  `20260822000000_clubs_is_solo`), and written into
+  [`CLAUDE.md`](../CLAUDE.md) → "Production software" on 2026-08-29 after it
+  turned out the file still described the old regime.
 
-  **Most of the sting is now gone (2026-08-03): the schema-vs-code split shipped.**
-  Each game's SQL is two files — `supabase/migrations/<ts>_<game>.sql` for shape,
-  `supabase/sql/<game>.sql` for functions/views/policies/grants — and the second is
-  re-applied in full on every deploy, so it is edited in place *forever, alpha or
-  not* ([supabase.md → Schema vs code](supabase.md#schema-vs-code)). That's roughly
-  two-thirds of each game's SQL by line count. Leaving alpha therefore only changes
-  what happens to **shape** changes, which are rare now that the roster is complete.
-
-  **Still to decide together:** what counts as "out of alpha"; how `gmake db-reset` +
-  `gmake db-data` + `seed.dev.sql` change for a database that must survive; and
-  whether the friends get one last "everything resets" warning before the freeze.
-  Until then, the alpha prior in CLAUDE.md still holds — keep editing the schema
-  migrations in place too.
+  What survived the switch, and was most of the sting: the **schema-vs-code
+  split** (2026-08-03). `supabase/sql/<game>.sql` is re-applied in full every
+  deploy and is edited in place *forever* — roughly two-thirds of each game's
+  SQL by line count. Only **shape** accumulates. And the baselines are still not
+  squashed (settled 2026-08-02): one file per game plus `common`, frozen, so
+  each game's schema stays legible in one sitting.
 
 ## Tooling
 

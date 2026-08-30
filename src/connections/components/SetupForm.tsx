@@ -2,15 +2,29 @@
 
 import { SetupTimerSection } from '../../common/components/setup/SetupTimerSection'
 import { runRpc } from '../../common/lib/supabase/dbResult'
+import { showFaultModal } from '../../common/lib/fault/faultStore'
 import { PlayersSection } from '../../common/components/setup/PlayersSection'
 import { SetupCoopStyleSection } from '../../common/components/setup/SetupCoopStyleSection'
 import {
   SetupNextPuzzleSection,
   type NextPuzzle,
 } from '../../common/components/setup/SetupNextPuzzleSection'
+import { FORM_ERROR_KEYNAME } from '../../common/components/fields/formState'
 import type { SetupBodyProps, SetupSetter } from '../../common/lib/games'
 import { db } from '../db'
 import type { ConnectionsValues } from '../lib/setup'
+
+/**
+ * What the two puzzle-picker RPCs put in `data`. One shape for both, which is
+ * what lets the shared `<SetupNextPuzzleSection>` take either — and each answer
+ * names itself, so "there isn't one" is a case rather than an empty payload.
+ *
+ * `NonNullable<NextPuzzle>` because the section's own type is
+ * `{…} | null`, and the null half of it is this type's `'none'`.
+ */
+type PuzzleAnswer =
+  | { result: 'found'; puzzle: NonNullable<NextPuzzle> }
+  | { result: 'none' }
 
 /**
  * connections's per-game setup form. Two choices — and the puzzle is no
@@ -39,7 +53,7 @@ import type { ConnectionsValues } from '../lib/setup'
  * Resuming a half-finished game is the club page's job.
  */
 export function SetupForm({
-  brand, mode, members, selfId, numberOfPlayers, values, set: setValue, errors,
+  brand, mode, members, selfId, numberOfPlayers, values, set: setValue, errors, setError,
 }: SetupBodyProps) {
   const s = values as ConnectionsValues
   const set = setValue as SetupSetter<ConnectionsValues>
@@ -74,18 +88,39 @@ export function SetupForm({
         errors={errors}
         brand={brand}
         seenBy={players.map((p) => p.user_id)}
-        // Both RPCs answer with ONE puzzle or null — `data: null` carrying
-        // `outcome: 'warning'`, which is the server saying "nothing failed, there
-        // just isn't one". The section has its own words for each case (the
-        // archive is spent / no puzzle that day), so the outcome is not read
-        // here; what matters is that null is a value rather than an absence.
+        // Both RPCs answer two ways — a puzzle, or none — and each says which,
+        // so neither is read as "whatever `data` happens to be". The section has
+        // its own words for the empty case (the archive is spent / no puzzle
+        // that day), which is why the server's `warning` outcome is not read
+        // here: the caller already knows which question it asked.
         //
-        // A failure collapses to null too, and deliberately: `runRpc` has already
-        // put the fault modal up, so the section's job is only to stop showing a
-        // stale answer.
+        // A failure still returns null — the section has no third state — but
+        // it no longer passes for an empty archive: the message goes under
+        // `puzzle_id`, where the section already draws a field error, and stays
+        // there after the modal is dismissed.
         load={async (seenBy) => {
-          const r = await runRpc<NextPuzzle>(db.rpc('next_puzzle_for_club', { seen_by: seenBy }))
-          return r.type === 'ok' ? r.data : null
+          const res = await runRpc<PuzzleAnswer>(
+            db.rpc('next_puzzle_for_club', { seen_by: seenBy }),
+          )
+          if (res.type === 'not-ok') {
+            // EVERY severity, where the server said it belongs: PN302 (the
+            // archive is spent) names `puzzle_id` and lands red under the
+            // puzzle field, a fault says `_` and lands on the form's line. The
+            // modal is dismissable, so it cannot be the only place a fault is
+            // said; and the spent archive never had a modal at all, only a gray
+            // line it did not deserve (Joel, 2026-08-29).
+            setError(res.field ?? FORM_ERROR_KEYNAME, res.message)
+            return null
+          } else if (res.type === 'ok' && res.data.result === 'found') {
+            // BOTH keys, because a previous failure could have used either —
+            // this load answering at last is what clears whichever it was.
+            setError('puzzle_id', null)
+            setError(FORM_ERROR_KEYNAME, null)
+            return res.data.puzzle
+          } else {
+            showFaultModal({ text: 'BUG: next_puzzle_for_club fell through to unhandled' })
+            return null
+          }
         }}
         loadByDate={async (date) => {
           const r = await runRpc<NextPuzzle>(db.rpc('puzzle_for_date', { target_date: date }))

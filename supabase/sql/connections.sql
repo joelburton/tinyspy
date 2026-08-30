@@ -200,15 +200,20 @@ grant select on connections.club_game_status to authenticated;
 -- Postgres error still reaches `runRpc` as an error and becomes a fault there.
 drop function if exists connections.next_puzzle_for_club(uuid[]);
 
+-- `plpgsql`, not `sql`, because the empty case RAISES (PN302 below) and a raise
+-- needs a handler to become an envelope.
 create or replace function connections.next_puzzle_for_club(seen_by uuid[])
 returns jsonb
-language sql
+language plpgsql
 stable
 security definer
 set search_path = connections, common, public, extensions
 as $$
-  select common.ok_envelope(found, case when found is null then 'warning' end)
-    from (
+    declare
+  found jsonb;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text;
+begin
+  select s.found into found from (
       select (
         select jsonb_build_object(
                  'id', p.id,
@@ -240,6 +245,50 @@ as $$
          limit 1
       ) as found
     ) s;
+
+  -- PN302 — a VALIDATION, not an empty success (Joel, 2026-08-29). Running out
+  -- of puzzles is not a quieter kind of yes: it BLOCKS Start, and what fixes it
+  -- is an input on this very form — uncheck a player who has played them all,
+  -- or type a date and play one again. That is the shape of a validation, and
+  -- it belongs on the form, in red, rather than in a passing line.
+  --
+  -- It used to be `ok` with `outcome: 'warning'` and no message, which left the
+  -- section to infer the situation from an empty payload and say so in a quiet
+  -- gray line — a blocking condition mentioned in passing.
+  --
+  -- `column = 'puzzle_id'` — the PUZZLE field, not the form line. Two controls
+  -- can technically fix this (uncheck a player who has played them all, or type
+  -- a date), but nobody setting up a game thinks "remove a player to get a
+  -- puzzle" (Joel, 2026-08-29). The answer belongs where the question was
+  -- asked.
+  --
+  -- `serverErrorKeys.test.ts` has a justified entry for it: a LOADER's
+  -- parameters are the question (which players?), never the field its answer
+  -- lands in, so the usual "name one of your own arguments" rule cannot apply.
+  --
+  -- The sentence NAMES THE REMEDY, which is what makes the red date field make
+  -- sense rather than look like an accusation: the field it lights up is the
+  -- way out of the condition it is reporting (Joel, 2026-08-29).
+  --
+  -- It carries no brand: `Connections` is the manifest's, not the schema's
+  -- (docs/naming.md → codename vs brand), and the dialog is already titled
+  -- with it.
+  if found is null then
+    raise exception 'Everyone here has played every puzzle. You can open one already played by its date.'
+      using errcode = 'PN302', hint = 'form-validation', column = 'puzzle_id',
+      detail = 'no puzzle unseen by every uid in seen_by';
+  end if;
+
+  return common.ok_envelope(jsonb_build_object('result', 'found', 'puzzle', found));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
+end;
 $$;
 
 revoke execute on function connections.next_puzzle_for_club(uuid[]) from public;
@@ -410,11 +459,12 @@ begin
   -- chose would make those tests assert against whatever the fixture club
   -- happened not to have played.
   if (setup->>'puzzle_id') is null then
-    -- Reading the ENVELOPE's `data`, because that is what the function returns
-    -- now. `data` is one puzzle or null, and null is the exhausted case the
-    -- next branch names — so this pulls the id straight out rather than
-    -- selecting from a row set.
-    s_puzzle_id := (connections.next_puzzle_for_club(player_user_ids) -> 'data' ->> 'id')::uuid;
+    -- Reading the ENVELOPE's `data`, which names its answer: `{"result":
+    -- "found", "puzzle": {…}}`. A spent archive is no longer an empty payload
+    -- here — it is PN302, a not-ok, whose `data` is null — so this stays null
+    -- and the next branch raises this function's own PN062 for it.
+    s_puzzle_id := (connections.next_puzzle_for_club(player_user_ids)
+                      -> 'data' -> 'puzzle' ->> 'id')::uuid;
     if s_puzzle_id is null then
       -- It names the PICKER, not the puzzle box: the archive is exhausted
       -- for THESE players, so unchecking someone is what brings a puzzle

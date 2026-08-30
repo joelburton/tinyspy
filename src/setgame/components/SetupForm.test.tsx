@@ -41,6 +41,7 @@ function draw({ mode = 'coop' as 'coop' | 'compete', values = {}, errors = {} as
         ...values,
       }}
       set={set}
+      setError={vi.fn()}
       errors={errors}
     />,
   )

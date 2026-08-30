@@ -58,19 +58,22 @@ describe('SetupNextPuzzleSection — what it says Start will play', () => {
 
   it('says it is still asking, rather than saying there is nothing', async () => {
     // The distinction the two three-state values exist for: before the answer
-    // lands, this must not read as "none left".
+    // lands, this must not read as "no next puzzle".
     load.mockReturnValue(new Promise(() => {}))
     draw()
 
     expect(screen.getByText(/loading; please wait/)).toBeInTheDocument()
-    expect(screen.queryByText(/none left/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Puzzle: none/)).not.toBeInTheDocument()
   })
 
-  it('says the archive is used up when the server has nothing', async () => {
+  it('says there is no next puzzle when the server has nothing', async () => {
     load.mockResolvedValue(null)
     draw()
 
-    await waitFor(() => expect(screen.getByText('Puzzle: none left')).toBeInTheDocument())
+    // TERSE on purpose: WHY there is none — the archive is spent, or the load
+    // failed — is the caller's to say, under the date field where a blocking
+    // condition belongs. This line only reports the absence.
+    await waitFor(() => expect(screen.getByText('Puzzle: none')).toBeInTheDocument())
     // A message you have to SEE, so the section opens itself rather than
     // hiding the one thing that matters behind a summary.
     expect((document.querySelector('details') as HTMLDetailsElement).open).toBe(true)

@@ -22,7 +22,7 @@
  * longer happen, which will drift silently out of date and mislead whoever
  * reads it next. That IS a failure.
  */
-import { readFileSync, readdirSync } from 'node:fs'
+import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { ERROR_COPY } from '../common/lib/game/errorCopy'
@@ -79,6 +79,26 @@ function raisedKeys(): Map<string, Set<string>> {
     }
   }
   return out
+}
+
+  /**
+ * Every `name="…"` the frontend puts on a field.
+ *
+ * `Field` requires the prop, and it is the key an error is filed at, so this IS
+ * the set of places a server message can land. Read from source rather than
+ * listed, because a list would be one more thing to keep in step.
+ */
+function frontendFieldNames(dir = 'src'): Set<string> {
+  const names = new Set<string>()
+  for (const entry of readdirSync(dir)) {
+    const full = join(dir, entry)
+    if (statSync(full).isDirectory()) {
+      for (const n of frontendFieldNames(full)) names.add(n)
+    } else if (/\.tsx?$/.test(entry)) {
+      for (const m of readFileSync(full, 'utf8').matchAll(/name="([a-z_]+)"/g)) names.add(m[1]!)
+    }
+  }
+  return names
 }
 
 describe('server-error keys', () => {
@@ -144,6 +164,19 @@ describe('server-error keys', () => {
     // function reads `setup->>'guesses'`, the form has a field of that name,
     // and the message belongs under it. Requiring the read is what keeps this
     // honest: a column naming a key nothing looks at is still caught.
+    //
+    // OR A FIELD THE FRONTEND DECLARES, which is the LOADER case and is
+    // ordinary rather than exceptional: a setup form asks a question mid-edit
+    // (`next_puzzle_for_club(seen_by)`, `puzzle_for_date(target_date)`,
+    // `next_nyt_date_for_club`), so the function's parameters are the QUESTION
+    // and the field its answer belongs to is one it is never passed. Five such
+    // call sites across three games today.
+    //
+    // The two arms are one invariant said two ways — THE MESSAGE MUST LAND
+    // SOMEWHERE. Naming a parameter is the strict proof of that where the form
+    // submits its own values; naming a declared field is the direct proof where
+    // it does not.
+    const feFields = frontendFieldNames()
     const offenders: string[] = []
     for (const file of readdirSync(SQL_DIR).filter((f) => f.endsWith('.sql'))) {
       const sql = readFileSync(join(SQL_DIR, file), 'utf8')
@@ -161,7 +194,7 @@ describe('server-error keys', () => {
           if (params.has(r[1]!)) named.add(r[2]!)
         }
         for (const m of fn.matchAll(/column\s*=\s*'([^']*)'/g)) {
-          if (m[1] === '_' || named.has(m[1]!)) continue
+          if (m[1] === '_' || named.has(m[1]!) || feFields.has(m[1]!)) continue
           offenders.push(
             `${file}: ${header[1]} raises column='${m[1]}' — not a parameter, ` +
               `and not a key it reads out of one (${[...named].join(', ')})`,

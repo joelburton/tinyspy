@@ -104,10 +104,10 @@ While we're still building (no real deploys yet), each schema is **squashed to a
 20260706000000_crosswords.sql
 ```
 
-These get re-squashed in place as a schema evolves (alpha — `db reset` re-runs everything from scratch, so there's no migration history to preserve). Once we deploy for real, new changes become append-only topic deltas instead:
+These are **frozen** — one baseline per game plus `common`, never edited again. A shape change appends a new topic delta instead, because `supabase db push` skips any migration prod has already recorded (CLAUDE.md → "Production software"). The switch was made around 2026-08-13:
 
 ```
-# future, post-deploy:
+# how shape changes land now:
 20260720000000_codenamesduet_add_difficulty.sql
 20260721000000_common_add_friends.sql
 ```

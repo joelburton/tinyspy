@@ -365,6 +365,39 @@ selection cleared, the dim released. A call site that finds itself branching on
 `severity` or `dbcode` here should check that what it wants is not already in
 the mapping (→ [The mapping](#the-mapping)).
 
+### The rare site with NO surface at all
+
+**First: almost nothing qualifies.** A form has an error line, a board has a
+pill, a page has its own failure state — and all of them write `res.message`
+there whatever the severity says, because the modal is dismissable and that line
+is what remains (→ [the modal is an
+ESCALATION](#but-the-surface-still-shows-it--the-modal-is-an-escalation-not-a-replacement)).
+Reaching for the pattern below because a surface is *awkward* is the mistake it
+is easiest to make; the answer there is to give the surface a way to say it.
+`SetupBodyProps` gained a `setError` for exactly that reason, on 2026-08-29,
+rather than let a setup body keep quiet about a failed load.
+
+A couple of sites genuinely have nowhere: `ClubPage`'s presence heal, which
+fires on a 2.5-second timer with nobody having asked for it, and
+`useCommonGame`'s last-viewer-leave, which runs in an effect cleanup on a tab
+that is leaving. Those log — and because a bare `not-ok` → log-and-move-on would
+swallow a race or a validation added later, they **name the severity they are
+accounting for**:
+
+```ts
+if (res.type === 'not-ok' && res.severity === 'fault') {
+  console.error('heal unset_current_view failed', res.message)
+} else if (…) {
+  …
+} else {
+  showFaultModal({ text: 'BUG: unset_current_view fell through to unhandled' })
+}
+```
+
+`fault` is the one severity a site with no surface may leave to the modal;
+everything else reaches the scream, which is loud and greppable. **A site that
+gains a surface drops the assertion** and goes back to the one-line mapping.
+
 ### Presenting a fault is not a call site's job
 
 **One rule, and everything else here follows from it: the layer that KNOWS a

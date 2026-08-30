@@ -50,22 +50,22 @@ select pg_temp.connections_puzzle() as pz_id \gset
 
 select pg_temp.envelope_is(
   connections.next_puzzle_for_club(array['ada11111-1111-1111-1111-111111111111'::uuid]),
-  '{"type":"ok","outcome":null,"severity":null,"message":null}'::jsonb,
-  'a puzzle is waiting: ok, and no outcome to report'
+  '{"type":"ok","data":{"result":"found"},"outcome":null,"severity":null,"message":null}'::jsonb,
+  'a puzzle is waiting: ok/found, and no outcome to report'
 );
 
 select is(
   (connections.next_puzzle_for_club(array['ada11111-1111-1111-1111-111111111111'::uuid])
-     -> 'data' ->> 'id')::uuid,
+     -> 'data' -> 'puzzle' ->> 'id')::uuid,
   :'pz_id'::uuid,
-  'data is the puzzle itself — one object, not a row in an array'
+  'the puzzle rides under its own key, beside the result naming the case'
 );
 
 -- The label is what the dialog SHOWS, so it is worth pinning: the date leads,
 -- then the two alphabetically-first tiles as a fingerprint.
 select is(
   connections.next_puzzle_for_club(array['ada11111-1111-1111-1111-111111111111'::uuid])
-    -> 'data' ->> 'label',
+    -> 'data' -> 'puzzle' ->> 'label',
   '1900-01-01: ALPHA, ANGEL',
   'the label names the date and two tiles'
 );
@@ -74,7 +74,9 @@ select is(
 -- (4–5) next_puzzle_for_club — the archive is spent
 -- ============================================================
 -- Play it, and there is nothing left for ada. The walk excludes a puzzle any
--- SEATED player has done, which is why unchecking someone can bring one back.
+-- SEATED player has done, which is why unchecking someone can bring one back —
+-- and why the refusal is a VALIDATION on `puzzle_id`: unchecking a player, or
+-- typing a date, is what fixes it, and both are controls on this form.
 
 select (connections.create_game(
   (select pg_temp.create_club('Next puzzle', array['ada', 'bea'])),
@@ -84,15 +86,16 @@ select (connections.create_game(
 
 select pg_temp.envelope_is(
   connections.next_puzzle_for_club(array['ada11111-1111-1111-1111-111111111111'::uuid]),
-  '{"type":"ok","data":null,"outcome":"warning","severity":null}'::jsonb,
-  'nothing left: still ok, with data null and outcome warning'
+  '{"type":"not-ok","severity":"form-validation","dbcode":"PN302","field":"puzzle_id",
+    "message":"Everyone here has played every puzzle. You can open one already played by its date."}'::jsonb,
+  'nothing left: a validation on the puzzle field, not an empty ok'
 );
 
 -- Bea has played nothing, so the same puzzle is hers to have — the answer is
 -- about the PLAYERS asked about, not about the archive as a whole.
 select is(
   (connections.next_puzzle_for_club(array['bea22222-2222-2222-2222-222222222222'::uuid])
-     -> 'data' ->> 'id')::uuid,
+     -> 'data' -> 'puzzle' ->> 'id')::uuid,
   :'pz_id'::uuid,
   'a player who has not played it still gets it'
 );

@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { Suspense, useState } from 'react'
+import { Suspense, useCallback, useState } from 'react'
 import { MODE_LABEL, type GameManifest, type Member } from '../../lib/games'
 import { NormalModal } from '../floating-panels/NormalModal'
 import { HelpButton } from '../buttons/HelpButton'
@@ -116,6 +116,27 @@ export function SetupGameModal({
   // What is wrong, keyed by field name. The server contributes one entry per
   // failed start; the cross-field guard below contributes the form-level one.
   const [errors, setErrors] = useState<FormErrors>({})
+
+  /**
+   * One error in or out, for a setup body that talks to a server itself (the
+   * puzzle pickers). Stable, because a body may call it from inside a loader
+   * whose identity feeds an effect.
+   *
+   * `null` deletes the key rather than storing an empty string, so a cleared
+   * error leaves no entry behind for `FailureLine` to render as a blank row.
+   */
+  const setError = useCallback((name: string, message: string | null) => {
+    setErrors((prev) => {
+      if (message === null) {
+        if (!(name in prev)) return prev
+        const next = { ...prev }
+        delete next[name]
+        return next
+      }
+      if (prev[name] === message) return prev
+      return { ...prev, [name]: message }
+    })
+  }, [])
   // The game's Help/rules, opened from the footer's HelpButton ON TOP of this
   // dialog (which stays open behind it) — read the rules, then keep setting up.
   const [showHelp, setShowHelp] = useState(false)
@@ -242,6 +263,7 @@ export function SetupGameModal({
                   values={values}
                   set={set}
                   errors={allErrors}
+                  setError={setError}
                 />
               </Suspense>
 

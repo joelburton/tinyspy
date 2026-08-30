@@ -134,7 +134,13 @@ export function SetupNextPuzzleSection({
     : derived === undefined
       ? ' '
       : derived === null
-        ? `Everyone here has already played every ${brand} puzzle.`
+        // TERSE, because it is no longer this line's job to explain. A caller
+        // whose RPC says why — connections' PN302, "Everyone playing has
+        // already done every puzzle" — puts that under the date field, in red,
+        // where a blocking condition belongs. A caller that has not converted
+        // yet leaves this line as the only word, which is why it still says
+        // something true rather than nothing (Joel, 2026-08-29).
+        ? 'No next puzzle.'
         : derived.label
 
   // Nothing to play — the archive is used up, or the date you typed has no
@@ -155,7 +161,7 @@ export function SetupNextPuzzleSection({
     : derived === undefined
       ? 'Puzzle: (loading; please wait)'
       : derived === null
-        ? 'Puzzle: none left'
+        ? 'Puzzle: none'
         : `Puzzle: ${derived.label}`
 
   return (
