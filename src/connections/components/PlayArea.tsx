@@ -6,6 +6,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { IconHint, IconNewGame, IconPrint, IconRestart } from '../../common/components/icons'
 import { cls } from '../../common/lib/util/cls'
 import { ErrorPage } from '../../common/components/loading-and-errs/ErrorPage'
+import { getNotOkFeedback } from '../../common/lib/game/genericPills'
+import { showFaultModal } from '../../common/lib/fault/faultStore'
 import type { GamePageCtx } from '../../common/lib/games'
 import { colorByUserIdMap } from '../../common/lib/color/memberColor'
 import { CelebrationBlockingModal } from '../../common/components/game/CelebrationBlockingModal'
@@ -32,7 +34,7 @@ import { solvedByMe, useSolutionReveal } from '../../common/hooks/game/useSoluti
 import { db } from '../db'
 import type { CategoryRank } from '../lib/board'
 import { useGame } from '../hooks/useGame'
-import type { ConnectionsSetup } from '../lib/setup'
+import type { ConnectionsSetup, PuzzleAnswer } from '../lib/setup'
 import { turnSnapshot } from '../lib/history'
 import { waitingTurnPill } from '../../common/components/game/turnCopy'
 import { BoardCol } from './BoardCol'
@@ -363,16 +365,17 @@ export function PlayArea({
     // failure of this click. Same shape strands uses. The answer is advisory —
     // the create below derives it again, so a peer taking that puzzle in the
     // gap costs nothing.
-    const preview = await runRpc<{ id: string } | null>(
+    const preview = await runRpc<PuzzleAnswer>(
       db.rpc('next_puzzle_for_club', { seen_by: players.map((p) => p.user_id) }),
     )
-    // A failure is already on screen as a fault modal (`runRpc` reported it), so
-    // there is nothing to say here — just don't go on to create a game.
-    if (preview.type !== 'ok') return
-    // `data: null` with `outcome: 'warning'` is the archive being spent. The
-    // RPC says which case it is; the SENTENCE is this surface's, because only
-    // here does "there are no more" come with somewhere to go next.
-    if (preview.data === null) {
+    if (preview.type === 'not-ok' && preview.dbcode === 'PN302') {
+      // THE ARCHIVE IS SPENT, and this surface says it better than the server
+      // can. PN302's own sentence points at the date field on the setup form —
+      // right there, useless here, since this path has no form. What this
+      // surface knows instead is the two ways forward from a finished game, so
+      // it substitutes rather than repeats (docs/envelopes.md → a server
+      // message may not say LESS than the sentence it replaces; the same test
+      // read the other way permits a caller that says MORE).
       await acknowledge({
         title: 'No more puzzles',
         message:
@@ -380,6 +383,21 @@ export function PlayArea({
           + '`gmake g-connections-puzzles`, or pick a date in the setup dialog to replay one.',
         okLabel: 'Got it',
       })
+      return
+    } else if (preview.type === 'not-ok') {
+      // Anything else: the pill carries the words, because the fault modal that
+      // just fired is dismissable and this is what remains once it is gone. It
+      // also has to be said HERE — the new game never happens, and a player who
+      // pressed a button and saw nothing change is owed a reason.
+      showLocalFeedback({ ...getNotOkFeedback(preview), mode: { kind: 'manual' } })
+      return
+    } else if (preview.type === 'ok' && preview.data.result === 'found') {
+      // A puzzle is waiting, so the create below runs. Nothing to do HERE: the
+      // id is deliberately not carried forward — this was only ever a
+      // look-ahead, and create_game derives it again — so the branch exists to
+      // name the answer, not to act on it.
+    } else {
+      showFaultModal({ text: 'BUG: next_puzzle_for_club fell through to unhandled' })
       return
     }
 

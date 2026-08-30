@@ -7,24 +7,11 @@ import { PlayersSection } from '../../common/components/setup/PlayersSection'
 import { SetupCoopStyleSection } from '../../common/components/setup/SetupCoopStyleSection'
 import {
   SetupNextPuzzleSection,
-  type NextPuzzle,
 } from '../../common/components/setup/SetupNextPuzzleSection'
 import { FORM_ERROR_KEYNAME } from '../../common/components/fields/formState'
 import type { SetupBodyProps, SetupSetter } from '../../common/lib/games'
 import { db } from '../db'
-import type { ConnectionsValues } from '../lib/setup'
-
-/**
- * What the two puzzle-picker RPCs put in `data`. One shape for both, which is
- * what lets the shared `<SetupNextPuzzleSection>` take either — and each answer
- * names itself, so "there isn't one" is a case rather than an empty payload.
- *
- * `NonNullable<NextPuzzle>` because the section's own type is
- * `{…} | null`, and the null half of it is this type's `'none'`.
- */
-type PuzzleAnswer =
-  | { result: 'found'; puzzle: NonNullable<NextPuzzle> }
-  | { result: 'none' }
+import type { ConnectionsValues, PuzzleAnswer } from '../lib/setup'
 
 /**
  * connections's per-game setup form. Two choices — and the puzzle is no

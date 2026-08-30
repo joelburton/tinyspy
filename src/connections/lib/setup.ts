@@ -55,3 +55,21 @@ export const DEFAULT_CONNECTIONS_SETUP: ConnectionsSetup = {
   // 2+ players) offers turn-by-turn. first_turn_user_id is seeded by the field.
   coop_style: 'free-for-all',
 }
+
+/**
+ * What both puzzle-picker RPCs put in `data` — `next_puzzle_for_club` and
+ * `puzzle_for_date`, which answer in the same shape so the shared
+ * `<SetupNextPuzzleSection>` can take either.
+ *
+ * ONE answer: there is a puzzle. Not finding one is a refusal, not a quieter
+ * success — PN302 for a spent archive, PN303 for a date with nothing on it —
+ * because it blocks starting a game and the thing that fixes it is a control on
+ * the form.
+ *
+ * Here rather than in a component, because the setup dialog and the in-game New
+ * Game path both ask.
+ */
+export type PuzzleAnswer = {
+  result: 'found'
+  puzzle: { id: string; puzzle_date: string; label: string }
+}

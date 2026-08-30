@@ -246,6 +246,26 @@ if (res.type === 'not-ok') {
 }
 ```
 
+**EVERY RPC CALL IS A BRANCH CHAIN.** Not "should be shaped like one" — is one
+(Joel, 2026-08-29). Early returns, a bare statement after an `if`, a `?:` on the
+result: all wrong on sight, before anyone reads a single condition, because a
+call written that way has nowhere to put the answers it is not handling. This is
+first because it is the only rule here that needs no judgment — every other one
+below asks you to evaluate a condition, and this one asks you to look at a
+shape.
+
+It is stated this way because the alternative failed repeatedly. When the rule
+described a shape rather than demanding it, code that did not already resemble
+the shape — a guard clause, an inherited early-return sequence — never got held
+up against it at all, and the rules were applied to the lines being rewritten
+while the surrounding structure kept its silent fall-through.
+
+**And nothing downstream re-asks.** A helper the chain calls takes the NARROWED
+arm as its parameter — `Extract<Envelope<T>, { type: 'not-ok' }>` — so there is
+no second test to get backwards. A `if (res.type !== 'not-ok') return` inside
+such a helper is the same defect one layer down, and it is easy to write because
+it reads as a guard rather than as a question already answered.
+
 **Branch positively, on exact things.** `res.type === 'not-ok'`, never
 `res.type !== 'ok'`. A negated condition is a catch-all wearing a case's
 clothes: it compiles, it narrows cleanly, and an answer that is neither `ok` nor
