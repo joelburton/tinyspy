@@ -485,6 +485,15 @@ inside their entry above; these ten have nothing else converted yet, so
 - [ ] letterboxed — via `letterboxed-build-board`
 - [ ] scrabble
 - [ ] spellingbee — via `spellingbee-build-board`
-- [ ] strands
+- [ ] strands — **also has connections' puzzle-picker pair**, deliberately
+  identical (`strands.next_puzzle_for_club`, its own `puzzle_for_date`, and a
+  Start-time "Everyone here has played every puzzle" raise in `create_game`).
+  Mirror what connections landed 2026-08-29: the empty answers are VALIDATIONS
+  on `puzzle_id`, not `ok`s with a null payload — PN302 for a spent archive
+  ("…You can open one already played by its date."), PN303 for a date with
+  nothing on it (the date IS in the message). **Undecided for both games:**
+  whether the Start-time raise follows — connections' PN062 still names
+  `player_user_ids` and carries no remedy, so the pair disagrees with its own
+  load-time half until someone rules on it.
 - [ ] wordiply — via `wordiply-build-board`
 - [ ] wordwheel — via `wordwheel-build-board`

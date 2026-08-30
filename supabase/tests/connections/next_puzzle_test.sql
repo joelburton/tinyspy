@@ -107,19 +107,20 @@ select is(
 -- is how replaying one deliberately works.
 
 select is(
-  (connections.puzzle_for_date('1900-01-01') -> 'data' ->> 'id')::uuid,
+  (connections.puzzle_for_date('1900-01-01') -> 'data' -> 'puzzle' ->> 'id')::uuid,
   :'pz_id'::uuid,
   'a played date is still returned — the override filters nothing'
 );
 
 select pg_temp.envelope_is(
   connections.puzzle_for_date('1899-01-01'),
-  '{"type":"ok","data":null,"outcome":"warning","severity":null}'::jsonb,
-  'no puzzle that day: ok, data null, outcome warning'
+  '{"type":"not-ok","severity":"form-validation","dbcode":"PN303","field":"puzzle_id",
+    "message":"No puzzle for 1899-01-01. Try another date."}'::jsonb,
+  'no puzzle that day: a validation on the box the date was typed into'
 );
 
 select is(
-  connections.puzzle_for_date('1900-01-01') -> 'data' ->> 'label',
+  connections.puzzle_for_date('1900-01-01') -> 'data' -> 'puzzle' ->> 'label',
   '1900-01-01: ALPHA, ANGEL',
   'the override builds the same label as the walk'
 );

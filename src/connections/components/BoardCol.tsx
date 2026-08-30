@@ -300,10 +300,11 @@ export function BoardCol({
       const msg = getNotOkFeedback(res)
       showLocalFeedback({ ...msg, mode: { kind: 'sticky' } })
       // The move wasn't taken, so the four tiles are still sitting there
-      // un-played — ring them, following the pill. A race wears the same amber
-      // as the local "You already tried that" above, which is the same kind of
-      // answer arriving by a different route; anything else rings red.
-      markVerdict(sent, msg.tone === 'warning' ? 'warning' : 'lost')
+      // un-played — ring them in the PILL'S OWN TONE, no translation. This used
+      // to squeeze seven outcomes into three by hand (`=== 'warning' ?
+      // 'warning' : 'lost'`), which painted anything it did not recognize red;
+      // the tile vocabulary is complete now, so the two cannot disagree.
+      markVerdict(sent, msg.tone)
       return
     }
     // Own-result flash in the commit slot, then clear the selection in EVERY case:

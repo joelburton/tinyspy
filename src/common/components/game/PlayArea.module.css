@@ -559,6 +559,33 @@
 /* @@ */   --verdict-ink: var(--ink-onLight-color);
 }
 
+/* The three below complete the vocabulary: a tile can now wear ANY outcome its
+ * pill can, which is what lets `VERDICT_TONE` be TOTAL. A map covering only the
+ * words one game happened to use forced the one call site whose tone comes from
+ * the SERVER to hand-map seven onto three, painting anything unrecognized red
+ * (Joel, 2026-08-29). Unreachable from a connections guess today — that is the
+ * point: the gap is now a compile error rather than a silent fall-through.
+ *
+ * `won` gets no class at all, deliberately: those four tiles become a band on
+ * the same render, so there is nothing left to mark. */
+/* @@ */ .verdictError {
+/* @@ */   --verdict-tone: var(--outcomes-error-ink-color);
+/* @@ */   --verdict-fill: var(--outcomes-error-fill-color);
+/* @@ */   --verdict-ink: var(--ink-onDark-color);
+}
+
+/* @@ */ .verdictNeutral {
+/* @@ */   --verdict-tone: var(--outcomes-neutral-ink-color);
+/* @@ */   --verdict-fill: var(--outcomes-neutral-fill-color);
+/* @@ */   --verdict-ink: var(--ink-onDark-color);
+}
+
+/* @@ */ .verdictNoted {
+/* @@ */   --verdict-tone: var(--outcomes-noted-ink-color);
+/* @@ */   --verdict-fill: var(--outcomes-noted-fill-color);
+/* @@ */   --verdict-ink: var(--ink-onDark-color);
+}
+
 /* @@ */ @keyframes verdict-shake {
   0%, 100% { transform: translateX(0); }
   20%      { transform: translateX(-5px); }

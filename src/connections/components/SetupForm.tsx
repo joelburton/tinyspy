@@ -123,8 +123,21 @@ export function SetupForm({
           }
         }}
         loadByDate={async (date) => {
-          const r = await runRpc<NextPuzzle>(db.rpc('puzzle_for_date', { target_date: date }))
-          return r.type === 'ok' ? r.data : null
+          const res = await runRpc<PuzzleAnswer>(db.rpc('puzzle_for_date', { target_date: date }))
+          if (res.type === 'not-ok') {
+            // PN303 names `puzzle_id`, the box the date was typed into — the
+            // most direct case of a message landing where the question was
+            // asked. A fault says `_` and takes the form's line.
+            setError(res.field ?? FORM_ERROR_KEYNAME, res.message)
+            return null
+          } else if (res.type === 'ok' && res.data.result === 'found') {
+            setError('puzzle_id', null)
+            setError(FORM_ERROR_KEYNAME, null)
+            return res.data.puzzle
+          } else {
+            showFaultModal({ text: 'BUG: puzzle_for_date fell through to unhandled' })
+            return null
+          }
         }}
         // A chosen date rides in setup.puzzle_id; cleared, the key is dropped
         // entirely — its ABSENCE is what tells create_game to choose.

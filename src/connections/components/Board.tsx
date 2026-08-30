@@ -5,6 +5,7 @@ import { cls } from '../../common/lib/util/cls'
 import type { Category, CategoryRank } from '../lib/board'
 import type { MatchedCategory } from '../hooks/useGame'
 import type { GuessOutcome } from '../lib/evaluate'
+import type { Outcome } from '../../common/lib/outcomes'
 import { RANK_TOKEN } from '../lib/rankColors'
 import { useMoveCausedChange } from '../../common/hooks/game/useMoveCausedChange'
 import { ATTENTION_FLASH_MS } from '../../common/lib/game/feedbackTiming'
@@ -29,22 +30,36 @@ const NO_TILES: ReadonlySet<string> = new Set()
 /** Empty flash set — the resting value of the attention state below. */
 const NO_RANKS: ReadonlySet<CategoryRank> = new Set()
 
-/** The verdict's tone class, keyed by the tone its PILL wore — one entry per
- *  answer connections' own-guess pill can give: red "Incorrect", gold "One
- *  away!", orange "You already tried that". The mark never picks its own color;
- *  it wears the pill's, because the two are one message (plans/tile-feedback.md).
- *  A CORRECT guess has no entry: those four tiles become a band on the same
- *  render, so there is nothing left to mark. */
-const VERDICT_TONE = {
+/**
+ * The verdict's tone class, keyed by the tone its PILL wore.
+ *
+ * TOTAL over `Outcome`, which is the point: the mark never picks its own color,
+ * it wears the pill's, because the two are one message
+ * (plans/tile-feedback.md). A map that covered only the three connections
+ * happened to use forced the one call site whose tone comes from the SERVER to
+ * hand-map seven words onto three — `msg.tone === 'warning' ? 'warning' :
+ * 'lost'` — which silently painted anything unrecognized red (Joel,
+ * 2026-08-29). Being total makes a new outcome a compile error here instead.
+ *
+ * `won: null` is a real entry, not a gap: a correct guess's four tiles collapse
+ * into a band on the same render, so there is nothing left to mark.
+ */
+const VERDICT_TONE: Record<Outcome, string | null> = {
+  won: null,
   lost: shared.verdictLost,
   warning: shared.verdictWarning,
   near: shared.verdictNear,
-} as const
+  error: shared.verdictError,
+  neutral: shared.verdictNeutral,
+  noted: shared.verdictNoted,
+}
 
 /** The answer to my last guess, worn by the tiles it covered. */
 export type BoardVerdict = {
   tiles: ReadonlySet<string>
-  tone: keyof typeof VERDICT_TONE
+  /** ANY outcome, because the mark wears its pill's tone and the pill speaks the
+   *  full vocabulary. `VERDICT_TONE` above is total over it. */
+  tone: Outcome
   /** Bumped per verdict. The shake is a CSS animation, which only restarts on a
    *  NEW element, so the tiles are keyed on this: submitting the same four tiles
    *  twice has to shake twice. */

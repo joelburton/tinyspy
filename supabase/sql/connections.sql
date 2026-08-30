@@ -316,16 +316,24 @@ grant execute on function connections.next_puzzle_for_club(uuid[]) to authentica
 -- day, which the dialog says out loud rather than silently ignoring.
 -- The override's twin of the above, and the same shape for the same reasons.
 -- `puzzle_date` is unique, so this is one puzzle or none; empty means no puzzle
--- was published that day, which is again a `warning` rather than a failure.
+-- was published that day — PN303, a VALIDATION, for the same reason PN302 is
+-- one: it blocks Start, and the thing that fixes it is the box you just typed
+-- in. Here `column = 'puzzle_id'` is the field literally being edited.
 drop function if exists connections.puzzle_for_date(date);
 
+-- `plpgsql`, not `sql`, because the empty case RAISES and a raise needs a
+-- handler to become an envelope.
 create or replace function connections.puzzle_for_date(target_date date)
 returns jsonb
-language sql
+language plpgsql
 stable
 set search_path = connections, common, public, extensions
 as $$
-  select common.ok_envelope(found, case when found is null then 'warning' end)
+declare
+  found jsonb;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text;
+begin
+  select s.found into found
     from (
       select (
         select jsonb_build_object(
@@ -344,6 +352,25 @@ as $$
          where p.puzzle_date = target_date
       ) as found
     ) s;
+
+  -- The date is IN the message, because the field it lands under holds the date
+  -- and a bare "no puzzle" would make the reader check what they typed.
+  if found is null then
+    raise exception 'No puzzle for %. Try another date.', target_date
+      using errcode = 'PN303', hint = 'form-validation', column = 'puzzle_id',
+      detail = 'no connections.puzzles row with that puzzle_date';
+  end if;
+
+  return common.ok_envelope(jsonb_build_object('result', 'found', 'puzzle', found));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
+end;
 $$;
 
 -- `security invoker` (the default), unlike its twin — it filters nothing, so it

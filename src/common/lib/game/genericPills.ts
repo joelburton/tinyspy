@@ -28,7 +28,7 @@ import { notOkOutcome } from '../supabase/dbResult'
  *         answer is `sticky` below a board and `manual` in a dialog
  *   dot    peer identity, which is about who acted, not about what happened
  *
- *     if (res.type !== 'ok') {
+ *     if (res.type === 'not-ok') {
  *       showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'manual' } })
  *       return
  *     }
