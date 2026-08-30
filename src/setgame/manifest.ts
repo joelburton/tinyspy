@@ -53,7 +53,13 @@ const setupFormLoader = lazy(() =>
 function startGameInClubFactory(mode: 'coop' | 'compete') {
   return (clubHandle: string, setup: unknown, playerUserIds: string[]) =>
     // No `.single()`: the RPC returns the envelope itself, one jsonb value.
-    runRpc<{ id: string }>(
+    //
+    // The type promises MORE than `GameManifest.startGameInClub` currently asks
+    // for (`Envelope<{ id: string }>`), which is legal — assignability runs one
+    // way, so a game may name its answer before the interface requires it. The
+    // interface and `SetupGameModal` change once all sixteen do
+    // (plans/envelope-rollout.md → create_game).
+    runRpc<{ result: 'created'; id: string }>(
       db.rpc('create_game', {
         target_club: clubHandle,
         setup: setup as SetgameSetup,

@@ -368,7 +368,11 @@ begin
     )
   );
 
-  return common.ok_envelope(jsonb_build_object('id', new_id));
+  -- `result` NAMES the answer; `id` is the game to go to. The name is here even
+  -- though this is the only `ok` — a call site cannot assert a case the payload
+  -- does not carry, and the alternative it is left with (`typeof data.id ===
+  -- 'string'`) is a shape test rather than equality against a value.
+  return common.ok_envelope(jsonb_build_object('result', 'created', 'id', new_id));
 
 -- One block, and it has never heard of any specific condition: it reads the
 -- SQLSTATE, re-raises anything that isn't ours, and lets the raise itself carry

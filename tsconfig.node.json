@@ -18,7 +18,11 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+
+    // The twin of tsconfig.app.json's — see the reasoning there. Set in both so
+    // a file does not lose the check by which project happens to include it.
+    "allowUnreachableCode": false
   },
   "include": [
     "vite.config.ts",

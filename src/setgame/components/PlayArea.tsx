@@ -50,6 +50,11 @@ type ClaimAnswer = { result: 'claimed'; terminal: boolean }
  *  this press; unread here, because the info column reads it off `players`. */
 type HintAnswer = { result: 'recorded'; hints_used: number }
 
+/** What `setgame.create_game` puts in `data` — the answer's name, and the game
+ *  to go to. The in-game New Game button reads it; the setup dialog's Start
+ *  reaches the same RPC through `manifest.startGameInClub`. */
+type NewGameAnswer = { result: 'created'; id: string }
+
 /** A row of `status.leaderboard` (compete). */
 type LeaderRow = {
   user_id: string
@@ -397,7 +402,7 @@ export function PlayArea(ctx: GamePageCtx) {
   const createNewGame = useCallback(async () => {
     if (!isTerminal && !(await confirmAction(NEW_GAME_CONFIRM))) return
     if (!gameMode) return
-    const res = await runRpc<{ id: string }>(
+    const res = await runRpc<NewGameAnswer>(
       db.rpc('create_game', {
         target_club: clubHandle,
         setup: setup as never,
@@ -415,8 +420,13 @@ export function PlayArea(ctx: GamePageCtx) {
       // silent about why the game didn't start.
       showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'manual' } })
       return
+    } else if (res.type === 'ok' && res.data.result === 'created') {
+      goToGame(`setgame_${gameMode}`, res.data.id)
+      return
+    } else {
+      showFaultModal({ text: 'BUG: create_game fell through to unhandled' })
+      return
     }
-    goToGame(`setgame_${gameMode}`, res.data.id)
   }, [gameMode, clubHandle, setup, players, goToGame, showLocalFeedback, confirmAction, isTerminal])
 
   const [handleNewGame, startingNewGame] = useSingleFlight(createNewGame)

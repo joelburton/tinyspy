@@ -298,21 +298,35 @@ const res = await runRpc<WordAnswer>(db.rpc('submit_word', { … }))
 if (res.type === 'not-ok') {
   clearWord()
   showMsg({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+  return
 } else if (res.type === 'ok' && res.data.result === 'accepted') {
   commitWord(tileIds)
   showFlash([...res.data.word.toUpperCase()], 'won')
+  return
 } else if (res.type === 'ok' && res.data.result === 'invalid' && res.message !== null) {
   clearWord()
   showMsg({ tone: res.outcome, text: res.message, mode: { kind: 'sticky' } })
+  return
 } else {
   showFaultModal({ text: 'BUG: submit_word fell through to unhandled' })
+  return
 }
+// Nothing may follow. `allowUnreachableCode: false` makes anything here TS7027.
 ```
 
 **EVERY RPC CALL IS A BRANCH CHAIN.** Not "should be shaped like one" — is one
-(Joel, 2026-08-29). Early returns, a bare statement after an `if`, a `?:` on the
+(Joel, 2026-08-29). A guard clause, a bare statement after an `if`, a `?:` on the
 result: all wrong on sight, before anyone reads a single condition, because a
-call written that way has nowhere to put the answers it is not handling. This is
+call written that way has nowhere to put the answers it is not handling.
+
+(**A guard clause is not the same thing as a branch that returns.** The rule
+below says every branch of the chain ends in `return`; what is wrong here is
+`if (res.type === 'not-ok') { … return }` followed by UNBRANCHED code — one
+answer handled and exited, the rest of the function serving as an unnamed `else`
+that no future answer can be kept out of. The shape is what distinguishes them,
+not the keyword.)
+
+This is
 first because it is the only rule here that needs no judgment — every other one
 below asks you to evaluate a condition, and this one asks you to look at a
 shape.
@@ -323,28 +337,35 @@ the shape — a guard clause, an inherited early-return sequence — never got h
 up against it at all, and the rules were applied to the lines being rewritten
 while the surrounding structure kept its silent fall-through.
 
-**Work that follows exactly one answer goes IN that answer's branch** — never
-after the chain, held off the other answers by `return`s (Joel, 2026-08-29).
+**EVERY BRANCH ENDS IN `return`, AND NOTHING FOLLOWS THE CHAIN** (Joel,
+2026-08-29). The chain is the last thing in the function. All the work an answer
+causes lives inside that answer's branch.
 
-The two get the same result today and are not the same code. Returns make the
-trailing statement's audience something a reader has to reconstruct by checking
-every branch above it, and they make it a standing obligation: the day someone
-adds a fourth branch, that statement runs unless they notice they were supposed
-to return. Nobody adding a branch is thinking about a line ten rows below it.
-Putting the work in its own branch is what makes the chain closed — a new answer
-gets a new branch or reaches the scream, and neither of those can reach into
-another answer's work.
+The point is not tidiness — it is that this makes the rule a BUILD ERROR rather
+than something a reviewer has to notice. With every branch returning, a statement
+appended after the chain is unreachable, and `allowUnreachableCode: false` (set
+in both tsconfigs) turns that into `TS7027: Unreachable code detected`. Written
+the other way — no returns, a statement at the bottom — that same line is legal
+code that quietly runs for every answer, including the ones added next year.
 
 ```ts
 } else if (res.type === 'ok' && res.data.result === 'recorded') {
   if (next.length === CLAIM_SIZE) void submitClaim(next)   // only a recorded hint claims
+  return
 }
 ```
 
-A statement that genuinely follows SEVERAL answers is a different thing and may
-sit after the chain — but it inherits every branch added later, so say in a
-comment which answers it is for. `connections/BoardCol`'s `sendClear()` is the
-one in the repo.
+**The `return` in the last branch and in the scream is LOAD-BEARING, however
+redundant it looks.** Nothing follows it, so it reads like noise and invites a
+tidy-up — and deleting it disarms TS7027 at that site, silently, restoring the
+exact hazard the rule exists to remove. Leave them.
+
+**Work that several answers need becomes a named function each of them calls**,
+never a statement at the bottom that they all fall into. **Give it explicit
+parameters rather than closing over `res`**: it is defined outside the chain, so
+it cannot see the narrowed arm anyway, and having to name what it takes is the
+point. A trailing statement never has to say which answers it serves, which is
+how it ends up serving one it was never meant to.
 
 **And nothing downstream re-asks.** A helper the chain calls takes the NARROWED
 arm as its parameter — `Extract<Envelope<T>, { type: 'not-ok' }>` — so there is

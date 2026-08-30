@@ -20,7 +20,19 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+
+    // Unreachable code is a BUILD ERROR (TS7027), not the editor's gray text.
+    //
+    // This is what arms the call-site rule in docs/envelopes.md: every branch of
+    // an RPC's chain ends in `return`, so anything appended after the chain is
+    // unreachable and fails `tsc -b` instead of silently running for every
+    // answer. Without it the rule needs a reviewer to notice.
+    //
+    // eslint's own `no-unreachable` cannot do this job here —
+    // `tseslint.configs.recommended` switches it off on purpose, deferring to
+    // tsc, so the compiler is the only place the check can live.
+    "allowUnreachableCode": false
   },
   "include": ["src"],
   // These are node/filesystem tests (they read fixtures via `node:fs`) —

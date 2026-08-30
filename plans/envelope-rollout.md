@@ -467,9 +467,14 @@ the four inside `connections.submit_guess` from the original census.
   — `submit_set` already said `'result', 'claimed'`. Its success had also never
   been asserted at all (`lives_ok`, which is true of an answer with no payload),
   so the pgTAP became an `envelope_is`; plan count unchanged, and the assertion
-  was verified by planting. Its `create_game` half is deferred with that group,
-  which is why `PlayArea.tsx` is NOT in the guard's converted list even though
-  two of its three RPCs are done.
+  was verified by planting.
+
+  **Its `create_game` half landed here too** (Joel, 2026-08-29), which makes
+  setgame the first game finished end to end. Deferring the whole group had left
+  the New Game button matching by being `ok` — a fall-through to `goToGame` with
+  nothing protecting it, in sixteen games. But only the INTERFACE has to be last:
+  the per-game half is legal on its own, so it belongs in each game's entry. See
+  the reordering note under that group.
 
   **And it fixed a live bug the chain exposed** (Joel ruled, 2026-08-29).
   `askHint` fired `submitClaim` after a FAILED `record_hint`. Only on the THIRD
@@ -523,8 +528,27 @@ fifteen small judgment calls.
   may have no `!game` branch, and the two layout exceptions (bananagrams,
   crosswords) may not want a full-page error surface.
 
-- [ ] **Every `ok` branch states its arm** — `res.type === 'ok' && <the case>`,
-  never the case alone (Joel, 2026-08-29; the rule is now in
+- [ ] **Every `ok` branch states its arm, AND every branch ends in `return`** —
+  two rules, one sweep, because they are the same lines in the same files and
+  splitting them would open each twice (Joel, 2026-08-29).
+
+  **The returns half is now enforced**: `allowUnreachableCode: false` is set in
+  both tsconfigs, so once a chain's branches all return, anything appended after
+  it is `TS7027` rather than code that quietly runs for every answer. So this
+  half needs no guard — converting a site arms the compiler AT that site, which
+  is better than a guard. What it DOES need is the discipline not to "tidy away"
+  the redundant-looking `return` in the last branch, which disarms it again; the
+  rule says so in [envelopes.md → The shape of a call
+  site](../docs/envelopes.md#the-shape-of-a-call-site).
+
+  Every already-converted site has work stranded after its chain or is one edit
+  away from it — that is what the shape was before the rule existed. Expect the
+  same conversion at each: add the `return`s, and move a trailing statement into
+  whichever branch it belongs to, or into a named function with explicit
+  parameters that each branch calls.
+
+  The arm half — `res.type === 'ok' && <the case>`, never the case alone
+  (the rule is in
   [envelopes.md → Choosing which `ok` branch](../docs/envelopes.md#choosing-which-ok-branch)).
   **14 branches across 8 files are already converted and already wrong**, because
   the rule was not written down until psychicnum's entry: `stackdown/PlayArea.tsx`
@@ -541,9 +565,10 @@ fifteen small judgment calls.
   mode exactly: a `not-ok` reaching an `ok` branch does not draw the wrong thing,
   it throws.
 
-  A grep finds them (`} else if (res.` with no `type === 'ok'` on the line), so
-  this wants a guard rather than a list — the same argument
-  `callSiteShape.test.ts` makes, and probably a second arm on that same file.
+  The arm half is the one that DOES want a guard, because nothing mechanical
+  catches it: a grep finds them (`} else if (res.` with no `type === 'ok'` on the
+  line), which is the same argument `callSiteShape.test.ts` makes, and probably a
+  second arm on that same file.
 
 The cost of deferring all three is bounded and known: each `useGame` is opened
 twice, once for the one-word read conversion inside its own entry and once for
@@ -587,10 +612,20 @@ No red build, no type asserting something its SQL has not grown yet.
   only local alternative is `typeof result.data.id === 'string'`, a shape test
   rather than equality against a specific value, which the rules forbid.
 
-Then, per game: its `create_game` SQL gains the case name, and its `manifest.ts`
-+ `PlayArea.tsx` New Game branch on it. The six converted games take theirs
-inside their entry above; these ten have nothing else converted yet, so
-`create_game` is all they are here for.
+**The per-game half is NOT deferred — it goes inside that game's entry** (Joel,
+2026-08-29). Deferring the group deferred every game's half with it, and the cost
+of that was visible in setgame: the New Game button matched by being `ok` and
+fell through to `goToGame` with nothing protecting it. A game whose entry is
+"done" while its own file still holds an unprotected fall-through is not done.
+
+What is genuinely last is the INTERFACE — `GameManifest.startGameInClub` and
+`SetupGameModal` — because that one edit does touch all sixteen at once. The
+per-game half is legal against the unchanged interface, so it waits for nothing.
+
+Per game, then: its `create_game` SQL gains the case name, its pgTAP asserts it,
+and its `manifest.ts` + `PlayArea.tsx` New Game branch on it — in that game's own
+entry. The ten games below have nothing else converted yet, so `create_game` is
+all they are here for.
 
 - [ ] bananagrams
 - [ ] boggle — via `boggle-build-board`

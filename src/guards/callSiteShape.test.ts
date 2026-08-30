@@ -96,13 +96,15 @@ describe('call-site shape', () => {
       'src/psychicnum/hooks/useGame.ts',
       'src/setgame/hooks/useGame.ts',
       'src/setgame/components/PlayArea.tsx',
-      // setgame's PlayArea is listed for the NEGATED FORM ONLY, which is the
-      // whole of what this guard tests. Its in-game New Game still has no named
-      // `ok` branch and no scream: `create_game`'s `data` carries only an id, so
-      // there is nothing to assert a case with until that group lands.
+      'src/setgame/manifest.ts',
+      // setgame is the first game finished END TO END, its in-game New Game
+      // included: `create_game` now answers `'result', 'created'`, which is what
+      // its call site needed to assert a case rather than match by being `ok`.
+      // Only `SetupGameModal` + the `startGameInClub` contract wait for the rest
+      // of the roster (plans/envelope-rollout.md → create_game).
       //
       // NOT psychicnum's or stackdown's PlayArea, which still have the negated
-      // form on that same `create_game` call.
+      // form on that same call.
     ]
     const regressed = CONVERTED.filter((f) => NEGATED.test(readFileSync(f, 'utf8')))
     expect(regressed, 'a converted file went back to the negated form').toEqual([])
