@@ -445,8 +445,14 @@ the four inside `connections.submit_guess` from the original census.
 
 #### The six converted games
 
-- [ ] connections — `BoardCol.submit_guess`, `SetupForm.next_puzzle_for_club` +
-  `puzzle_for_date`, `PlayArea.next_puzzle_for_club`, and `useGame`'s three reads
+- [x] connections — `BoardCol.submit_guess`, `SetupForm.next_puzzle_for_club` +
+  `puzzle_for_date`, `PlayArea.next_puzzle_for_club`, and `useGame`'s three
+  reads. **Done 2026-08-29**, and it cost far more than the Common entries: four
+  indistinguishable `ok`s in `submit_guess` (two of which wrote nothing and were
+  drawn as though they had), both pickers' empty answers promoted from `ok` to
+  validations (PN302 / PN303), and the FE's whole `correct|oneAway|wrong`
+  vocabulary folded into `Outcome`. Its `create_game` half is deferred with that
+  group.
 - [ ] psychicnum — `BoardCol.submit_guess` and `useGame`'s three reads
 - [ ] setgame — `PlayArea.submit_set` + `record_hint`, and `useGame`'s three reads
 - [ ] stackdown — the three RPCs and three reads are **done**, and are the model
