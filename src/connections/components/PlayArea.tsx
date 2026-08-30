@@ -5,6 +5,7 @@ import { runRpc } from '../../common/lib/supabase/dbResult'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { IconHint, IconNewGame, IconPrint, IconRestart } from '../../common/components/icons'
 import { cls } from '../../common/lib/util/cls'
+import { ErrorPage } from '../../common/components/loading-and-errs/ErrorPage'
 import type { GamePageCtx } from '../../common/lib/games'
 import { colorByUserIdMap } from '../../common/lib/color/memberColor'
 import { CelebrationBlockingModal } from '../../common/components/game/CelebrationBlockingModal'
@@ -129,6 +130,7 @@ export function PlayArea({
     toggleTile,
     sendClear,
     loading,
+    failure,
   } = useGame(session, gameId)
   const connectionsSetup = setup as unknown as ConnectionsSetup
 
@@ -540,6 +542,14 @@ export function PlayArea({
   // the local tile shuffle moved into BoardCol, beside the board + commit row.)
 
   if (loading) return <p>Loading board…</p>
+  // THE LOAD FAILED, which is not the same as the game being absent — and used
+  // to be told as if it were, so a dead connection said "Game not found."
+  // about a game that exists. The board cannot render either way, so the
+  // failure IS the surface here (docs/ui.md → Faults: a fault page where the
+  // page behind it does not survive, a modal where it does). The modal has
+  // already been and gone; this is what a player is left looking at.
+  if (failure) return <ErrorPage message={failure.text} diagnostics={failure.diagnostics} />
+  // Genuinely absent: the reads worked and there is no such game.
   if (!game) return <p>Game not found.</p>
 
   // `concededIds` marks a dropped-out opponent 'out' in the strip. (`myConceded`

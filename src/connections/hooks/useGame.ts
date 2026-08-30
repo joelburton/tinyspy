@@ -5,7 +5,11 @@ import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../../common/lib/supabase/supabase'
 import { channelLeaving, releaseChannel } from '../../common/lib/supabase/channelTeardown'
 import { onPostgresAttached } from '../../common/lib/supabase/postgresAttached'
-import { readRows } from '../../common/lib/supabase/dbResult'
+import { diagnosticsLine, readRows } from '../../common/lib/supabase/dbResult'
+import type { Envelope } from '../../common/lib/supabase/envelope'
+
+/** The refusal arm of an envelope, on its own — what a failed read always is. */
+type NotOk = Extract<Envelope<unknown>, { type: 'not-ok' }>
 import { OUTCOME_FOR_RESULT, type GuessOutcome, type GuessResult } from '../lib/evaluate'
 import { db } from '../db'
 import type { Database } from '../../types/db'
@@ -158,6 +162,17 @@ export function useGame(
   toggleTile: (tile: string) => void
   sendClear: () => void
   loading: boolean
+  /**
+   * Why the board cannot be shown, when it cannot — the sentence and the
+   * diagnostics line, both built at the moment the load failed.
+   *
+   * SEPARATE FROM `game === null`, which means the game does not exist. A failed
+   * read knows nothing about whether it exists, and saying "Game not found."
+   * about a dead connection is a confident wrong answer (docs/envelopes.md →
+   * the modal is an escalation, not a replacement: this is what remains once
+   * the fault modal is dismissed).
+   */
+  failure: { text: string; diagnostics: string } | null
 } {
   const [game, setGame] = useState<ConnectionsGame | null>(null)
   const [guesses, setGuesses] = useState<GuessRow[]>([])
@@ -166,6 +181,7 @@ export function useGame(
     () => new Map(),
   )
   const [loading, setLoading] = useState(true)
+  const [failure, setFailure] = useState<{ text: string; diagnostics: string } | null>(null)
   const [channel, setChannel] = useState<
     ReturnType<typeof supabase.channel> | null
   >(null)
@@ -243,15 +259,43 @@ export function useGame(
         ),
       ])
       if (!mounted) return
-      // A FAILED read and a MISSING game used to be the same branch — a failure
-      // left `data` null, so a dead connection rendered "Game not found." and
-      // said nothing else. They are separate now: the fault has already been
-      // logged and shown by `dbFetch`, and the surface behind the modal stops
-      // loading rather than making a claim about the game.
-      if (gameRes.type !== 'ok' || guessesRes.type !== 'ok' || playersRes.type !== 'ok') {
+      // A read can only fail as a FAULT — `readRows` never authors anything
+      // else — and `dbFetch` has already logged it and raised the modal. What
+      // is left is the sentence BEHIND it: the server's own message, kept
+      // rather than replaced, plus a line naming which of the three reads it
+      // was. One branch each, because "which read" is the only thing the
+      // player's sentence cannot say and the diagnostics line must.
+      // Takes the NOT-OK ARM, so there is no test to write inside it: each
+      // caller below has already named its case, and the type carries that
+      // through rather than asking again.
+      const reportFailure = (res: NotOk, table: string) => {
+        setFailure({
+          text: res.message,
+          diagnostics: diagnosticsLine('FAULT', {
+            call: `GET /rest/v1/${table}`,
+            severity: res.severity,
+            dbcode: res.dbcode,
+            detail: `game=${gameId}`,
+          }),
+        })
         setLoading(false)
+      }
+      if (gameRes.type === 'not-ok') {
+        reportFailure(gameRes, 'games_state')
         return
       }
+      if (guessesRes.type === 'not-ok') {
+        reportFailure(guessesRes, 'guesses')
+        return
+      }
+      if (playersRes.type === 'not-ok') {
+        reportFailure(playersRes, 'players')
+        return
+      }
+      // A load that worked clears a previous one's failure: this refetches on
+      // every realtime event, so an outage that ends should take its sentence
+      // with it rather than leaving the board behind a stale explanation.
+      setFailure(null)
       // ZERO ROWS is the caller's to read, and here it means what it says: no
       // game with that id, or one this club can't see.
       const row = gameRes.data[0] as GameRow | undefined
@@ -475,5 +519,6 @@ export function useGame(
     toggleTile,
     sendClear,
     loading,
+    failure,
   }
 }

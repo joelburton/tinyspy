@@ -15,28 +15,24 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '../../common/lib/games'
 import { gp } from '../../common/test/gamePlayers'
-import type {
-  ConnectionsGame,
-  GuessRow,
-  MatchedCategory,
-} from '../hooks/useGame'
+import type { ConnectionsGame, MatchedCategory } from '../hooks/useGame'
 import { db } from '../db'
 import { PlayArea } from './PlayArea'
 
-// The shape connections' useGame returns — the mock hands one of these back.
-type GameHook = {
-  game: ConnectionsGame | null
-  guesses: GuessRow[]
-  matchedCategories: MatchedCategory[]
-  mistakeCount: number
-  opponentFound: ReadonlyMap<string, number>
-  isEliminated: boolean
-  selections: ReadonlyMap<string, string[]>
-  unionTiles: string[]
-  toggleTile: (tile: string) => void
-  sendClear: () => void
-  loading: boolean
-}
+/**
+ * The shape connections' useGame returns — the mock hands one of these back.
+ *
+ * DERIVED, not restated. Spelling the twelve fields out here made two
+ * definitions of one shape with nothing forcing them to match, and the drift is
+ * silent in the direction that matters: `vi.mock`'s factory is not type-checked
+ * against the real module, so a field added to the hook and forgotten here
+ * would leave the fake without it — the component reading `undefined` where the
+ * real app reads a value, with every test still green.
+ *
+ * `typeof import(...)` rather than a top-level import, so asking for the type
+ * pulls in no runtime binding from the module this file mocks.
+ */
+type GameHook = ReturnType<typeof import('../hooks/useGame').useGame>
 
 // A mutable holder the mocked useGame returns each render — set per test before
 // render(). `vi.hoisted` runs before the (also-hoisted) `vi.mock` factory, so
@@ -99,6 +95,7 @@ function loaded(over: Partial<GameHook> = {}): GameHook {
     toggleTile: vi.fn(),
     sendClear: vi.fn(),
     loading: false,
+    failure: null,
     ...over,
   }
 }
@@ -584,6 +581,32 @@ describe('connections PlayArea — selection, identity, and the guess in flight'
 
     expect(tile('a').className).not.toMatch(/selected/)
     expect(tile('b').className).not.toMatch(/peerPick/)
+  })
+})
+
+describe('connections PlayArea — a failed load is not a missing game', () => {
+  it('shows the server\'s own sentence, not "Game not found."', () => {
+    // The two used to be one `null`, so an outage told the player their game
+    // did not exist. The fault modal has already been dismissed by the time
+    // this renders — this IS what they are left looking at.
+    h.result = loaded({
+      game: null,
+      failure: { text: 'The read failed.', diagnostics: '[db] FAULT GET /rest/v1/games_state' },
+    })
+    render(<PlayArea {...makeCtx()} />)
+
+    expect(screen.getByText('The read failed.')).toBeInTheDocument()
+    expect(screen.queryByText('Game not found.')).not.toBeInTheDocument()
+    // The diagnostics line rides with it, because a player quoting the sentence
+    // back is not enough to find the call that failed.
+    expect(screen.getByText(/GET \/rest\/v1\/games_state/)).toBeInTheDocument()
+  })
+
+  it('still says "Game not found." when the reads WORKED and there is no game', () => {
+    h.result = loaded({ game: null, failure: null })
+    render(<PlayArea {...makeCtx()} />)
+
+    expect(screen.getByText('Game not found.')).toBeInTheDocument()
   })
 })
 
