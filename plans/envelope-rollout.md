@@ -456,6 +456,38 @@ the four inside `connections.submit_guess` from the original census.
   `res.outcome ?? 'lost'`, `res.message ?? ''`, branch off `result` inside an
   already-`ok` block, no scream) and `useGame`'s three reads
 
+#### Two END-SWEEPS, once the per-game roster is clear
+
+Both came out of connections and both are **shapes** — settled once, then
+repeated. Deferred deliberately (Joel, 2026-08-29): threading either through the
+roster would put an unrelated edit in fifteen entry diffs, and a shape is easier
+to review as a set, where the game that ISN'T identical stands out instead of
+looking like one of fifteen small judgment calls.
+
+- [ ] **Derive `GameHook` in every game's `PlayArea.test.tsx`.** They hand-mirror
+  what `useGame` returns — twelve fields written out — instead of
+  `ReturnType<typeof import('../hooks/useGame').useGame>`. Two definitions of
+  one shape with nothing forcing them to match, and the drift is silent in the
+  direction that matters: `vi.mock`'s factory is not type-checked against the
+  real module, so a field added to the hook and forgotten in the copy leaves the
+  fake without it and every test still passes. Connections is done and is the
+  model; no design content, one line each.
+
+- [ ] **A failed read must stop claiming the game does not exist.** Every
+  `useGame` returns `game: null` on a failed read, and every `PlayArea` renders
+  `Game not found.` for that — so an outage tells the player their game is gone.
+  The fix, worked in connections: the hook carries a `failure` state (the
+  server's message + a diagnostics line naming WHICH read), and the surface
+  renders `<ErrorPage>` between `loading` and `!game`.
+
+  **START BY SURVEYING, not by scripting.** "Apply connections' shape
+  everywhere" is an assumption until the fifteen are looked at: some PlayAreas
+  may have no `!game` branch, and the two layout exceptions (bananagrams,
+  crosswords) may not want a full-page error surface.
+
+The cost of deferring both is bounded and known: each `useGame` is opened twice,
+once for the one-word read conversion inside its own entry and once here.
+
 #### `create_game` — LAST, and in the reverse order this section first gave
 
 **Deferred to the end of the sprint** (Joel, 2026-08-29). Nothing here is
