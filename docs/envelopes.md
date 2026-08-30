@@ -307,6 +307,29 @@ at the end of the chain covers it.
 
 ### Choosing which `ok` branch
 
+**Every one of these branches states its arm: `res.type === 'ok' && <the
+case>`.** The chain opens with `res.type === 'ok'` and never merely inherits it
+(Joel, 2026-08-29).
+
+It is redundant to the compiler, and that is not what it is for. An `ok` branch
+that tests only `res.data.result === 'saved'` is asserting a case while
+*assuming* an arm — and the assumption is that some earlier branch already took
+every `not-ok` away. That holds until someone edits an earlier branch. Narrow the
+`not-ok` arm by anything (`res.type === 'not-ok' && res.severity === 'fault'` is
+a real shape and already in the repo, at `ClubPage.tsx`), and every later branch
+silently starts receiving `not-ok`s — where `res.data` is null by construction,
+so the reads below it throw rather than reaching the scream.
+
+The failure is worse than a wrong pill, because it is not a rendering bug:
+
+```ts
+} else if (res.data.result === 'added') {   // TypeError on a not-ok that got this far
+} else if (res.type === 'ok' && res.data.result === 'added') {   // reaches the scream
+```
+
+The same argument the `!== 'ok'` rule makes one level up, arriving one level
+down: **a branch says which case it is, and a case is an arm plus a value.**
+
 **Never test `message` to decide which `ok` case you are in.** That asks about
 the wire, not about the game — a reader has to deduce "there were words, so it
 must have been the rejection", which is a deduction the code should not be

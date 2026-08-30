@@ -20,7 +20,7 @@
  * Why a guard at all, when the rule is written down: because writing it down
  * was not enough. Three of these were introduced BY the session that wrote the
  * rule, in the same file, minutes apart — the failure is not knowing the rule
- * but recognising code as being in its scope, and a grep does not have that
+ * but recognizing code as being in its scope, and a grep does not have that
  * problem (Joel, 2026-08-29).
  */
 import { readFileSync, readdirSync, statSync } from 'node:fs'
@@ -45,7 +45,7 @@ function offenders(): string[] {
     readFileSync(file, 'utf8')
       .split('\n')
       .forEach((line, i) => {
-        // A docstring showing the bad form so a reader can recognise it is not
+        // A docstring showing the bad form so a reader can recognize it is not
         // an instance of it — dbResult's and genericPills' examples are the
         // subject matter, the same trap serverErrorKeys fell into.
         if (/^\s*(\/\/|\*|\/\*)/.test(line)) return
@@ -92,6 +92,10 @@ describe('call-site shape', () => {
       'src/connections/components/PlayArea.tsx',
       'src/connections/components/SetupForm.tsx',
       'src/connections/hooks/useGame.ts',
+      'src/psychicnum/components/BoardCol.tsx',
+      'src/psychicnum/hooks/useGame.ts',
+      // NOT psychicnum's PlayArea, for stackdown's reason below: its `submit_guess`
+      // and its three reads are converted, and its in-game New Game is not.
       // NOT stackdown's PlayArea: its three gameplay RPCs are converted and are
       // the model the rules came from, but its in-game New Game still calls
       // `create_game` with the negated form — the half its roster entry leaves

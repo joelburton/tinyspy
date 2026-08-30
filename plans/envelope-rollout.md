@@ -453,7 +453,14 @@ the four inside `connections.submit_guess` from the original census.
   validations (PN302 / PN303), and the FE's whole `correct|oneAway|wrong`
   vocabulary folded into `Outcome`. Its `create_game` half is deferred with that
   group.
-- [ ] psychicnum — `BoardCol.submit_guess` and `useGame`'s three reads
+- [x] psychicnum — `BoardCol.submit_guess` and `useGame`'s three reads. **Done
+  2026-08-29**, and the cheapest entry so far: **no SQL edit at all**, the first
+  one. Its three returned `ok`s already carry `verdict`, and its fourth answer is
+  the raised `PA002` "Already guessed" — so the pair of keys the rules ask for
+  (`dbcode` names the raised one, `data` names the returned ones) was already
+  there to be read. What the entry actually removed is the `res.message !== null`
+  test that was picking the refusal by the wire, and the missing scream. Its
+  `create_game` half is deferred with that group.
 - [ ] setgame — `PlayArea.submit_set` + `record_hint`, and `useGame`'s three reads
 - [ ] stackdown — the three RPCs and three reads are **done**, and are the model
   the rules were written from; what is left is its `create_game` half
@@ -462,13 +469,13 @@ the four inside `connections.submit_guess` from the original census.
   `res.outcome ?? 'lost'`, `res.message ?? ''`, branch off `result` inside an
   already-`ok` block, no scream) and `useGame`'s three reads
 
-#### Two END-SWEEPS, once the per-game roster is clear
+#### Three END-SWEEPS, once the per-game roster is clear
 
-Both came out of connections and both are **shapes** — settled once, then
-repeated. Deferred deliberately (Joel, 2026-08-29): threading either through the
-roster would put an unrelated edit in fifteen entry diffs, and a shape is easier
-to review as a set, where the game that ISN'T identical stands out instead of
-looking like one of fifteen small judgment calls.
+All three are **shapes** — settled once, then repeated. Deferred deliberately
+(Joel, 2026-08-29): threading any of them through the roster would put an
+unrelated edit in fifteen entry diffs, and a shape is easier to review as a set,
+where the game that ISN'T identical stands out instead of looking like one of
+fifteen small judgment calls.
 
 - [ ] **Derive `GameHook` in every game's `PlayArea.test.tsx`.** They hand-mirror
   what `useGame` returns — twelve fields written out — instead of
@@ -491,8 +498,31 @@ looking like one of fifteen small judgment calls.
   may have no `!game` branch, and the two layout exceptions (bananagrams,
   crosswords) may not want a full-page error surface.
 
-The cost of deferring both is bounded and known: each `useGame` is opened twice,
-once for the one-word read conversion inside its own entry and once here.
+- [ ] **Every `ok` branch states its arm** — `res.type === 'ok' && <the case>`,
+  never the case alone (Joel, 2026-08-29; the rule is now in
+  [envelopes.md → Choosing which `ok` branch](../docs/envelopes.md#choosing-which-ok-branch)).
+  **14 branches across 8 files are already converted and already wrong**, because
+  the rule was not written down until psychicnum's entry: `stackdown/PlayArea.tsx`
+  ×4 (257, 266, 292, 316 — the sites the call-site rules were WRITTEN from),
+  `connections/BoardCol.tsx` ×2 (327, 330), and eight in `common/` —
+  `EditClubModal`, `ClubPage`'s `delete_game`, `CreateClubModal`, `ChatBody`,
+  `ClaimHandleScreen`, `EditProfileModal`, `WordEditDialog` ×2, `AnagramDialog`.
+  (`ClubPage`'s presence heal is the one site that already does it, which is why
+  it is the shape the rule was written from.)
+
+  **This one is not preventative.** `WordEditDialog.tsx:227` is already throwing
+  — `Cannot read properties of undefined (reading 'result')`, twice, in its own
+  test file, as an unhandled rejection that fails no test. That is the failure
+  mode exactly: a `not-ok` reaching an `ok` branch does not draw the wrong thing,
+  it throws.
+
+  A grep finds them (`} else if (res.` with no `type === 'ok'` on the line), so
+  this wants a guard rather than a list — the same argument
+  `callSiteShape.test.ts` makes, and probably a second arm on that same file.
+
+The cost of deferring all three is bounded and known: each `useGame` is opened
+twice, once for the one-word read conversion inside its own entry and once for
+the failed-read sweep.
 
 #### `create_game` — LAST, and in the reverse order this section first gave
 

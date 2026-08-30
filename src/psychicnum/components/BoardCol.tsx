@@ -1,6 +1,7 @@
 // cs-unmet
 
 import { getNotOkFeedback } from '../../common/lib/game/genericPills'
+import { showFaultModal } from '../../common/lib/fault/faultStore'
 import { runRpc } from '../../common/lib/supabase/dbResult'
 import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import { cls } from '../../common/lib/util/cls'
@@ -17,6 +18,14 @@ import { Board } from './Board'
 import shared from '../../common/components/game/PlayArea.module.css'
 import history from '../../common/components/game/lists/historyViewer.module.css'
 import styles from './BoardCol.module.css'
+
+/** What `psychicnum.submit_guess` puts in `data` for a guess it TOOK — the
+ *  caller's own verdict, plus whether that guess completed the set.
+ *
+ *  Nullable because the RPC's other `ok` — PA002, the word was already guessed —
+ *  arrives through a raise, and `common.raised_envelope` always builds
+ *  `data: null`. That answer is named by its `dbcode` instead. */
+type GuessAnswer = { verdict: 'hit' | 'miss'; found_all: boolean } | null
 
 /** Fisher–Yates shuffle on a copy. Pure — doesn't mutate input. */
 function shuffled<T>(arr: readonly T[]): T[] {
@@ -220,27 +229,37 @@ export function BoardCol({
     // `verdict` is the caller's OWN answer and nothing else. Whether the game
     // ended rides beside it in `found_all`, which this surface ignores: every
     // terminal transition reaches us by realtime, and a hit that empties the
-    // budget is still a hit to the person who made it.
-    const res = await runRpc<{ verdict: 'hit' | 'miss'; found_all: boolean }>(
-      db.rpc('submit_guess', { target_game: gameId, guess }),
-    )
+    // budget is still a hit to the person who made it. That is also why the two
+    // verdict branches below cover THREE server returns (the win, the guess that
+    // spends the last of the budget, and the ordinary one) — they differ in what
+    // they did to the game, not in what they did for the player.
+    const res = await runRpc<GuessAnswer>(db.rpc('submit_guess', { target_game: gameId, guess }))
     setSubmitting(false)
-    if (res.type !== 'ok') {
+    if (res.type === 'not-ok') {
       setSubmittedWord(null)
       showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
-      return
-    }
-    // An `ok` that carries a MESSAGE wrote its own words — "Already guessed",
-    // which the server raised as a game-rule refusal. The test narrows to the
-    // envelope arm where the outcome travels with it, so there is nothing to
-    // default. It comes FIRST because that answer arrives through a raise, and
-    // a raise carries no `data`.
-    if (res.message !== null) {
+    } else if (res.type === 'ok' && res.dbcode === 'PA002' && res.message !== null) {
+      // ALREADY GUESSED — an `ok`, because the rules were applied and nothing
+      // moved. psychicnum's FE deliberately does not check for duplicates, so
+      // this is reached by ordinary typing rather than by a bug. Named by its
+      // `dbcode` because it arrives through a raise, and a raise carries no
+      // `data`; the message assertion is the other half of what the case
+      // promises, and it is what makes `outcome` non-null here.
+      //
+      // No `setSubmittedWord(null)`: the word is refused BECAUSE it is already
+      // in the log, so it is already in `results` and the in-flight dim has
+      // released itself.
       showLocalFeedback(stickyPill(res.outcome, res.message))
-      return
+    } else if (res.type === 'ok' && res.data?.verdict === 'hit') {
+      showLocalFeedback(stickyPill('won', 'Correct'))
+    } else if (res.type === 'ok' && res.data?.verdict === 'miss') {
+      showLocalFeedback(stickyPill('lost', 'Incorrect'))
+    } else {
+      // Nothing named this answer, so the tile must not keep claiming to be in
+      // flight — there is no result coming that would release it.
+      setSubmittedWord(null)
+      showFaultModal({ text: 'BUG: submit_guess fell through to unhandled' })
     }
-    const hit = res.data.verdict === 'hit'
-    showLocalFeedback(stickyPill(hit ? 'won' : 'lost', hit ? 'Correct' : 'Incorrect'))
   }
 
   // Picking a tile or typing both drive this one pending guess word. (A partial word
