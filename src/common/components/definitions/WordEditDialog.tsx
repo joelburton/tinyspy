@@ -224,12 +224,14 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
       // Under the box the server named, when it named one it can reach. A fault
       // has already raised the modal, and the line is what remains after it.
       setErrors({ [formFieldFor(res.field)]: res.message })
-    } else if (res.data.result === 'added' || res.data.result === 'updated') {
+      return
+    } else if (res.type === 'ok' && (res.data.result === 'added' || res.data.result === 'updated')) {
       // TWO answers, one action: the ternary above chose which RPC to call, and
       // whichever it was, the word is saved and the dialog closes. Both are
       // named rather than folded into one word, because they come from
       // different functions and each may grow a second `ok` of its own.
       setWordEdit(null)
+      return
     } else {
       // Named for the RPC this call actually made — the ternary means the
       // scream cannot say one name for both, and the useful half of the
@@ -237,6 +239,7 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
       showFaultModal({
         text: `BUG: ${editing ? 'update_word' : 'add_word'} fell through to unhandled`,
       })
+      return
     }
   }
 
@@ -263,12 +266,15 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
     setBusy(false)
     if (res.type === 'not-ok') {
       setErrors({ [formFieldFor(res.field)]: res.message })
-    } else if (res.data.result === 'deleted') {
+      return
+    } else if (res.type === 'ok' && res.data.result === 'deleted') {
       setWordEdit(null)
+      return
     } else {
       // The dialog stays open on an answer nobody handled — closing it would
       // claim the word is gone, and `busy` is already clear above.
       showFaultModal({ text: 'BUG: delete_word fell through to unhandled' })
+      return
     }
   }
 

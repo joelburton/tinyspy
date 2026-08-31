@@ -539,7 +539,7 @@ export function ClubPage({ handle, session }: Props) {
       // The Error is only a signal to the card, which catches it and goes from
       // 'deleting' back to 'idle'. The words are already on screen.
       throw new Error(res.message)
-    } else if (res.data.result === 'deleted') {
+    } else if (res.type === 'ok' && res.data.result === 'deleted') {
       // Look up the title BEFORE the postgres-changes refetch sweeps the row
       // out of allGames; the value is captured by the closure and survives the
       // rerender.

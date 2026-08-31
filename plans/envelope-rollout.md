@@ -632,99 +632,40 @@ at once and none belongs to a single RPC's entry.
   may have no `!game` branch, and the two layout exceptions (bananagrams,
   crosswords) may not want a full-page error surface.
 
-- [ ] **Every `ok` branch states its arm, AND every branch ends in `return`** —
-  two rules, one sweep, because they are the same lines in the same files and
-  splitting them would open each twice (Joel, 2026-08-29).
+- [x] **Every `ok` branch states its arm, AND every branch ends in `return` —
+  DONE 2026-08-31.** The guard came first again: a third arm on
+  `callSiteShape.test.ts`, keyed on `.data.` so it cannot confuse an envelope
+  with an old-style `{ data, error }` result cast to a local shape — scrabble's
+  two `res.result` reads are unconverted roster, not this rule's business.
 
-  **The returns half is now enforced**: `allowUnreachableCode: false` is set in
-  both tsconfigs, so once a chain's branches all return, anything appended after
-  it is `TS7027` rather than code that quietly runs for every answer. So this
-  half needs no guard — converting a site arms the compiler AT that site, which
-  is better than a guard. What it DOES need is the discipline not to "tidy away"
-  the redundant-looking `return` in the last branch, which disarms it again; the
-  rule says so in [envelopes.md → The shape of a call
-  site](../docs/envelopes.md#the-shape-of-a-call-site).
+  It reported **15**, and fixing them turned up three things a list alone would
+  not have:
 
-  Every already-converted site has work stranded after its chain or is one edit
-  away from it — that is what the shape was before the rule existed. Expect the
-  same conversion at each: add the `return`s, and move a trailing statement into
-  whichever branch it belongs to, or into a named function with explicit
-  parameters that each branch calls.
+  **The guard's first version missed a shape it was written for.** It looked only
+  at `} else if`, and connections' chain opened with a BARE `if
+  (res.data.result === 'won')` — the same defect, invisible. Widened to any `if`
+  reading `.data.`, then narrowed again to chain openers only, because a
+  standalone `if` on already-narrowed data is correct: `HomePage`'s
+  `result.data.length === 0` is a domain check after a read's `not-ok` return,
+  not an ok-branch. Both shapes verified by planting.
 
-  The arm half — `res.type === 'ok' && <the case>`, never the case alone
-  (the rule is in
-  [envelopes.md → Choosing which `ok` branch](../docs/envelopes.md#choosing-which-ok-branch)).
-  **14 branches across 8 files are already converted and already wrong**, because
-  the rule was not written down until psychicnum's entry: `stackdown/PlayArea.tsx`
-  ×4 (257, 266, 292, 316 — the sites the call-site rules were WRITTEN from),
-  `connections/BoardCol.tsx` ×2 (327, 330), and eight in `common/` —
-  `EditClubModal`, `ClubPage`'s `delete_game`, `CreateClubModal`, `ChatBody`,
-  `ClaimHandleScreen`, `EditProfileModal`, `WordEditDialog` ×2, `AnagramDialog`.
-  (`ClubPage`'s presence heal is the one site that already does it, which is why
-  it is the shape the rule was written from.)
+  **The scripted fix introduced a precedence bug.** Prepending `res.type === 'ok'
+  &&` to `A || B` guards only `A` — `&&` binds tighter — so
+  `WordEditDialog`'s two-value branch still read `res.data.result` unguarded on
+  the second alternative. Parenthesized, with a comment saying why.
 
-  **This one is not preventative.** `WordEditDialog.tsx:227` is already throwing
-  — `Cannot read properties of undefined (reading 'result')`, twice, in its own
-  test file, as an unhandled rejection that fails no test. That is the failure
-  mode exactly: a `not-ok` reaching an `ok` branch does not draw the wrong thing,
-  it throws.
+  **And the live throw was a lying TEST STUB, not the call site.** That file's
+  `mockRpc` answered `{ type: 'ok' }` with no `data` key at all — not an
+  envelope, since every real one carries nine keys — so `res.data.result` threw
+  even with the arm asserted. It had been printing two unhandled rejections on
+  every suite run, failing nothing. **The suite is clean of them for the first
+  time.**
 
-  The arm half is the one that DOES want a guard, because nothing mechanical
-  catches it: a grep finds them (`} else if (res.` with no `type === 'ok'` on the
-  line), which is the same argument `callSiteShape.test.ts` makes, and probably a
-  second arm on that same file.
+  The returns half is now armed everywhere: verified by appending a statement
+  after a converted chain and getting `TS7027`. Only ONE statement had actually
+  been stranded — connections' `sendClear()`, which serves four of five answers
+  and not the refusal, and now says so from inside each branch.
 
-- [x] **The `BUG:` prefix reaches the edge functions — DONE 2026-08-31.**
-
-  **The guard came first**, and that was the whole trick: extending
-  `raiseCodes.test.ts` to read `fault(` calls under `supabase/functions/` turned
-  38 never-checked messages into a printed list of **34 offenders**, the same
-  move that made the `!== 'ok'` sweep tractable. It needed no new walker —
-  `fnFiles(FN_DIR)` was already there for the code-uniqueness check; only the
-  message was going unread. Verified by planting a Deno regression.
-
-  All 34 fixed, in three groups:
-
-  **Reworded to `BUG: <what arrived>`** — the ones that say what the frontend let
-  through: `PN112` `PN113` `PN114` `PN115` (`_shared`), `PN149` `PN150` `PN151`
-  `PN152` (boggle), `PN212` (letterboxed), `PN119` (waffle), `PN132` (wordiply),
-  `PN225` `PN226` `PN229` (nyt), `PN237` `PN238` (guardian).
-
-  **Reworded because they are OURS even though nothing arrived wrong** — the
-  distinction that took two passes to see: `BUG:` marks *our bug*, and the
-  "what arrived" wording is only the right FORM for the subset where something
-  did arrive. `PN117`/`PN233`/`PN241` (create_game did not run),
-  `PN118`/`PN234`/`PN242` (create_game returned no envelope), `PN148` (a request
-  that was not a POST), `PN153`/`PN213` (a typed board our own parser had already
-  read successfully), `PN224`/`PN236` (our own request body), `PN218` (a board
-  our generator produced and could not solve), `PN239` (whose comment says it
-  outright: *"Guardian answered and our converter did not cope"*), and `PN120`
-  (waffle's unseeded dictionary, joining the family of five).
-
-  **Left plain, and now exempted in `STATE_NOT_BUG`** (Joel, 2026-08-31): *"You
-  are not signed in."* — a lapsed session is a real state, the frontend cannot
-  send a header it does not have — and *"The next puzzle could not be worked
-  out."*
-
-  `PN111` and `PN135` landed earlier, inside wordiply's entry.
-
-
-- [ ] **`PN176` and `PN197` are the same line and want opposite answers.** Both
-  fire when the anti-repeat filter (`applyOverlapCap`, dropping seeds that share
-  too many letters with the club's previous board) empties the pangram pool.
-  Measured 2026-08-31:
-
-  | | pool entering the cap | narrowed by a player setting? |
-  |---|---|---|
-  | `PN176` spellingbee | **1,889** seeds, the whole table | no — nothing the form offers touches it |
-  | `PN197` wordwheel | **411–1,107**, after band + `unique_letters` | yes, both, and `PN195`/`PN196` already name them |
-
-  So `PN176` is not reachable by play — emptying it needs `spellingbee.pangrams`
-  to be empty, a data problem like wordle's `PN057`. It stays a **fault**, but its
-  sentence is wrong: *"No puzzle could be built for this club right now"* says
-  "right now", inviting a retry that cannot work. `PN197` has two levers the
-  player can actually pull, so it looks like a **form-validation** on
-  `unique_letters` — the field `PN196` already uses for the same pool.
 
 - [ ] **The Deno/SQL twins: one condition, two raises, two sentences.** Filed as
   "boggle raises one refusal twice"; writing that game's full table found **seven

@@ -137,4 +137,47 @@ describe('call-site shape', () => {
     const regressed = CONVERTED.filter((f) => NEGATED.test(readFileSync(f, 'utf8')))
     expect(regressed, 'a converted file went back to the negated form').toEqual([])
   })
+
+  /**
+   * Guard: **an `ok` branch states its arm** — `res.type === 'ok' && <the case>`,
+   * never the case alone (docs/envelopes.md → Choosing which `ok` branch).
+   *
+   * Testing only `res.data.result === 'saved'` asserts a case while ASSUMING an
+   * arm, and the assumption is that some earlier branch took every `not-ok`
+   * away. That holds until someone narrows an earlier branch — `res.type ===
+   * 'not-ok' && res.severity === 'fault'` is a real shape and already in the
+   * repo — after which a `not-ok` reaches here, `res.data` is null by
+   * construction, and the read THROWS rather than reaching the scream.
+   *
+   * Not hypothetical: `WordEditDialog` was doing exactly that, twice, in its own
+   * test file, as an unhandled rejection that failed nothing.
+   *
+   * Keyed on `.data.` so it cannot confuse an envelope with an old-style
+   * `{ data, error }` result cast to a local shape — scrabble's `res.result`
+   * reads are the unconverted roster, not this rule's business.
+   */
+  it('every `ok` branch states its arm', () => {
+    const offenders: string[] = []
+    for (const file of sourceFiles('src')) {
+      const lines = readFileSync(file, 'utf8').split('\n')
+      lines.forEach((line, i) => {
+        if (/^\s*(\/\/|\*|\/\*)/.test(line)) return
+        if (!/\bif\s*\(/.test(line) || !/\.data\./.test(line)) return
+        if (/\.type === 'ok'/.test(line)) return
+        // A branch of a CHAIN, which is what this rule is about — not a
+        // standalone `if` on data an earlier `not-ok` return already narrowed.
+        // A `} else if` is one by definition; a bare `if` is one only when the
+        // block it opens is continued, so look ahead for that.
+        const isChain =
+          /}\s*else if\s*\(/.test(line) ||
+          lines.slice(i + 1, i + 14).some((l) => /^\s*}\s*else\b/.test(l))
+        if (!isChain) return
+        offenders.push(`${file}:${i + 1}  ${line.trim()}`)
+      })
+    }
+    expect(
+      offenders,
+      "an `ok` branch that assumes its arm — a not-ok reaching it throws on `data`",
+    ).toEqual([])
+  })
 })

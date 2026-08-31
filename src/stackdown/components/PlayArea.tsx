@@ -254,7 +254,8 @@ export function PlayArea({
         // realistically meets here, and it isn't their mistake.
         clearWord()
         showMsg({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
-      } else if (res.data.result === 'accepted') {
+        return
+      } else if (res.type === 'ok' && res.data.result === 'accepted') {
         // Empty the word and hold its tiles removed optimistically on THIS client so
         // the grid doesn't flash them back on before the valid submission lands via
         // realtime. Teammates just see the tiles leave once, on their own refetch.
@@ -263,7 +264,8 @@ export function PlayArea({
         // own-accepted signal; no pill needed).
         clearLocalFeedback()
         showFlash([...res.data.word.toUpperCase()], 'won')
-      } else if (res.data.result === 'invalid' && res.message !== null) {
+        return
+      } else if (res.type === 'ok' && res.data.result === 'invalid' && res.message !== null) {
         // NOT A WORD — an `ok`, because the rules were applied and no tile
         // moved: the five tiles go straight back onto the board. The server
         // wrote the sentence, and named the word in it, because by the time it
@@ -271,8 +273,10 @@ export function PlayArea({
         // sentence is half of what this case promises, and the branch says so.
         clearWord()
         showMsg({ tone: res.outcome, text: res.message, mode: { kind: 'sticky' } })
+        return
       } else {
         showFaultModal({ text: 'BUG: submit_word fell through to unhandled' })
+        return
       }
     },
     [gameId, clearWord, commitWord, showFlash, showMsg, clearLocalFeedback],
@@ -289,7 +293,8 @@ export function PlayArea({
     const res = await runRpc<RevealAnswer>(db.rpc('reveal_next_word', { target_game: gameId }))
     if (res.type === 'not-ok') {
       showMsg({ ...getNotOkFeedback(res), mode: { kind: 'manual' } })
-    } else if (res.data.result === 'reveal' && res.outcome !== null) {
+      return
+    } else if (res.type === 'ok' && res.data.result === 'reveal' && res.outcome !== null) {
       // The server sends no sentence — the word IS the answer, and only the
       // surface knows it belongs in a "Next word:" line rather than, say, a
       // PDF. What it does send is how that reads, so the outcome is the other
@@ -297,8 +302,10 @@ export function PlayArea({
       showLocalFeedback(`Next word: ${res.data.word.toUpperCase()}`, res.outcome, {
         kind: 'manual',
       })
+      return
     } else {
       showFaultModal({ text: 'BUG: reveal_next_word fell through to unhandled' })
+      return
     }
   }, [gameId, showLocalFeedback, showMsg])
 
@@ -313,10 +320,13 @@ export function PlayArea({
     const res = await runRpc<HintAnswer>(db.rpc('reveal_next_hint', { target_game: gameId }))
     if (res.type === 'not-ok') {
       showMsg({ ...getNotOkFeedback(res), mode: { kind: 'manual' } })
-    } else if (res.data.result === 'hint' && res.outcome !== null) {
+      return
+    } else if (res.type === 'ok' && res.data.result === 'hint' && res.outcome !== null) {
       showLocalFeedback(`Hint: ${res.data.hint}`, res.outcome, { kind: 'manual' })
+      return
     } else {
       showFaultModal({ text: 'BUG: reveal_next_hint fell through to unhandled' })
+      return
     }
   }, [gameId, showLocalFeedback, showMsg])
 

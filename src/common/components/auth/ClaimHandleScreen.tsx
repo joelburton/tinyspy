@@ -139,14 +139,17 @@ export function ClaimHandleScreen({ onClaimed, email }: Props) {
       // account), so there is no recovering the session. Reading the code here
       // picks a RECOVERY, not a severity — the server already said fault.
       if (res.dbcode === 'PN018') await supabase.auth.signOut()
-    } else if (res.data.result === 'claimed') {
+      return
+    } else if (res.type === 'ok' && res.data.result === 'claimed') {
       // The name isn't read: `onClaimed` re-probes the profiles row, so the
       // parent takes it from the table rather than from this answer.
       onClaimed()
+      return
     } else {
       // Nothing to undo — `busy` is already clear, and the screen stays put so
       // the name can be resubmitted.
       showFaultModal({ text: 'BUG: claim_username fell through to unhandled' })
+      return
     }
   }
 

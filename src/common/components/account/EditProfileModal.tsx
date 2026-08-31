@@ -65,9 +65,11 @@ export function EditProfileModal({ session, onSaved, onCancel }: Props) {
       // nothing else — so this line is what remains once the modal is
       // dismissed rather than the primary way anyone hears about it.
       setErrors({ [res.field ?? FORM_ERROR_KEYNAME]: res.message })
-    } else if (res.data.result === 'saved') {
+      return
+    } else if (res.type === 'ok' && res.data.result === 'saved') {
       setProfileColor(new_color) // live-update the menu dot + any reader
       onSaved()
+      return
     } else {
       // Clears `busy` as well as screaming: `onSaved` is what unmounts this
       // dialog, so an answer nobody handled would leave Save disabled with only
@@ -75,6 +77,7 @@ export function EditProfileModal({ session, onSaved, onCancel }: Props) {
       // no evidence the server took it, and the dot would then lie.
       setBusy(false)
       showFaultModal({ text: 'BUG: update_profile_color fell through to unhandled' })
+      return
     }
   }
 

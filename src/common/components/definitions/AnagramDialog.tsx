@@ -95,14 +95,17 @@ export function AnagramDialog({ onClose }: { onClose: () => void }) {
       // already interrupted with a modal, and once that is dismissed the line
       // is the only thing left saying the search is still broken.
       setErrors({ [res.field ?? FORM_ERROR_KEYNAME]: res.message })
-    } else if (res.data.result === 'searched') {
+      return
+    } else if (res.type === 'ok' && res.data.result === 'searched') {
       // One answer covers matches AND none: an empty list is a real result
       // here, and the dialog is what says "nothing found".
       setResults(res.data.words)
+      return
     } else {
       // The previous answer stays on screen, as it does during a search — an
       // answer nobody handled is no reason to claim the old one is now wrong.
       showFaultModal({ text: 'BUG: anagrams fell through to unhandled' })
+      return
     }
   }
 

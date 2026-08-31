@@ -91,15 +91,18 @@ export function EditClubModal({
       // own — the only things it can refuse are the membership gate and an
       // unregistered gametype, neither of which is about one input.
       setErrors({ [res.field ?? FORM_ERROR_KEYNAME]: res.message })
-    } else if (res.data.result === 'saved') {
+      return
+    } else if (res.type === 'ok' && res.data.result === 'saved') {
       // Don't bother clearing `busy` — onSaved unmounts us.
       onSaved(gametypes)
+      return
     } else {
       // Clears `busy` as well as screaming: nothing unmounts this dialog on an
       // answer it didn't handle, so leaving the flag set would strand Save
       // disabled with no way back but Cancel.
       setBusy(false)
       showFaultModal({ text: 'BUG: set_club_gametypes fell through to unhandled' })
+      return
     }
   }
 

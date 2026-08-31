@@ -91,14 +91,17 @@ export function ChatBody({ clubHandle, members, messages, loading }: Props) {
       // meets. A fault has already raised the modal; this line is what remains
       // after it is dismissed.
       setError(res.message)
-    } else if (res.data.result === 'sent') {
+      return
+    } else if (res.type === 'ok' && res.data.result === 'sent') {
       // Empty the box only once the row is IN. The message itself arrives back
       // through the chat subscription, so nothing is echoed locally.
       setInput('')
+      return
     } else {
       // The typed text stays in the box — an answer nobody handled is not
       // evidence the message was posted, and retyping it would be the cost.
       showFaultModal({ text: 'BUG: send_message fell through to unhandled' })
+      return
     }
   }
 

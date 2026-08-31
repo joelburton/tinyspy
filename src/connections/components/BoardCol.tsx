@@ -306,36 +306,48 @@ export function BoardCol({
       // the tile vocabulary is complete now, so the two cannot disagree.
       markVerdict(sent, msg.tone)
       return
-    }
-    // Own-result flash in the commit slot, then clear the selection in EVERY case:
-    // correct (those four become a band and leave the grid) and wrong / one-away
-    // (start fresh). The sticky flash shows over the cleared board; clicking a tile
-    // dismisses it (handleToggle) and starts the next guess.
+    // Own-result flash in the commit slot, then clear the selection — the sticky
+    // flash shows over the cleared board; clicking a tile dismisses it
+    // (handleToggle) and starts the next guess.
+    //
+    // `sendClear()` is called from each branch that takes the move rather than
+    // once after the chain. It serves four of the five answers and NOT the
+    // refusal above, which keeps the four tiles selected because the move was
+    // not taken — and a statement at the bottom would have to be reasoned about
+    // branch by branch to see that (docs/envelopes.md → The shape of a call site).
     //
     // The ring follows the pill's tone, and only where there is something left to
     // ring: a correct guess's four tiles collapse into a band on this very render,
     // so a mark on them would have nothing to land on.
+    //
     // One branch per recorded verdict, each asserting `data` and nothing else.
     // The FE computed these three itself and sent the answer up — but reading
     // its own value back to pick a branch would be choosing an `ok` case by
     // something the envelope did not say, so the RPC names each one.
-    if (res.data.result === 'won') {
+    } else if (res.type === 'ok' && res.data.result === 'won') {
       // A correct guess that wrote NOTHING comes back as PN300, so reaching
       // here means the match is durably recorded. No mark: these four collapse
       // into a band on this very render, leaving nothing to ring.
       showLocalFeedback(stickyPill('won', 'Correct'))
-    } else if (res.data.result === 'near') {
+      sendClear()
+      return
+    } else if (res.type === 'ok' && res.data.result === 'near') {
       showLocalFeedback(stickyPill('near', 'One away!'))
       markVerdict(sent, 'near')
-    } else if (res.data.result === 'lost') {
+      sendClear()
+      return
+    } else if (res.type === 'ok' && res.data.result === 'lost') {
       showLocalFeedback(stickyPill('lost', 'Incorrect'))
       markVerdict(sent, 'lost')
+      sendClear()
+      return
     } else {
-      // The selection is cleared below either way — an unhandled answer is no
-      // reason to leave four tiles sitting on a board that has moved on.
+      // An unhandled answer is no reason to leave four tiles sitting on a board
+      // that has moved on, so this clears too.
       showFaultModal({ text: 'BUG: submit_guess fell through to unhandled' })
+      sendClear()
+      return
     }
-    sendClear()
   }
 
   // Enter submits the current selection from ANYWHERE on the board, not just when

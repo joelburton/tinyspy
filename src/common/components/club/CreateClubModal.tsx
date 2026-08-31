@@ -164,10 +164,13 @@ export function CreateClubModal({ onCreated, onCancel }: Props) {
       // A fault says `_` and lands on the form's own line; it has also already
       // raised the modal, and the line is what remains once that is dismissed.
       setErrors({ [res.field ?? FORM_ERROR_KEYNAME]: res.message })
-    } else if (res.data.result === 'created') {
+      return
+    } else if (res.type === 'ok' && res.data.result === 'created') {
       onCreated(res.data.handle)
+      return
     } else {
       showFaultModal({ text: 'BUG: create_club fell through to unhandled' })
+      return
     }
   }
 

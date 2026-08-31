@@ -50,7 +50,15 @@ beforeEach(() => {
   // assertion that THIS one closed.
   mockSetWordEdit.mockReset()
   // The RPCs answer with the result envelope, so a refusal arrives HTTP 200.
-  mockRpc.mockResolvedValue({ data: { type: 'ok' }, error: null })
+  //
+  // `data` carries the case name. A bare `{ type: 'ok' }` is not an envelope —
+  // every real one has all nine keys — and it made this file throw twice on
+  // every run, as an unhandled rejection that failed no test: the call site
+  // reads `res.data.result` and `data` was not there at all.
+  //
+  // `'added'` serves both paths: the branch accepts `added` OR `updated`, so an
+  // edit-mode test does not need its own stub to get past it.
+  mockRpc.mockResolvedValue({ data: { type: 'ok', data: { result: 'added' } }, error: null })
   mockWordRows.mockReset()
   mockWordRows.mockResolvedValue({ data: [ROW], error: null })
 })
