@@ -13,7 +13,7 @@ import { instrumentChannel, rtLog, rtVerbose } from './realtimeDiag'
  * and RPCs are reached via `.schema('<game>')`:
  *
  *     supabase.schema('codenamesduet').from('games').select(...)
- *     supabase.schema('codenamesduet').rpc('start_game', {...})
+ *     supabase.schema('codenamesduet').rpc('submit_guess', {...})
  *     supabase.schema('common').from('profiles').select(...)
  *
  * Auth, Edge Functions, and Realtime channels operate on the raw

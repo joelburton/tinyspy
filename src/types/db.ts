@@ -1060,7 +1060,7 @@ export type Database = {
         Returns: Json
       }
       slugify_club_name: { Args: { name: string }; Returns: string }
-      tick_timer: { Args: { target_game: string }; Returns: number }
+      tick_timer: { Args: { target_game: string }; Returns: Json }
       unset_current_view: { Args: { target_game: string }; Returns: Json }
       update_profile_color: { Args: { new_color: string }; Returns: Json }
       update_state: {

@@ -80,6 +80,10 @@ describe('dbFetch — a request that never reached the server', () => {
 })
 
 describe('dbFetch — requests that DID reach the server', () => {
+  // The fault queue is a module singleton, so it carries across tests in this
+  // file — and the poll assertions below COUNT modals.
+  beforeEach(() => clearFaultsForTest())
+
   it('passes a success straight through, silently', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     stubFetch(() => Promise.resolve(new Response('{}', { status: 200 })))
@@ -141,6 +145,35 @@ describe('dbFetch — requests that DID reach the server', () => {
     await dbFetch('https://x.supabase.co/rest/v1/clubs')
     expect(err.mock.calls[0][0]).toContain('body was not JSON')
     expect(err.mock.calls[0][0]).toContain('text/html')
+  })
+
+  // ── A POLL is logged, never presented ────────────────────────
+  // `tick_timer` fires once a second, so a five-second wifi drop was five fault
+  // modals — and QUEUE_CAP holds five, so dismissing one revealed the next until
+  // the network returned. Nobody pressed anything, and a tick that does not
+  // happen is what the clock does anyway when nobody is viewing.
+  it('raises no modal for a poll that got no answer', async () => {
+    stubFetch(() => Promise.reject(new TypeError('Failed to fetch')))
+    await expect(
+      dbFetch('https://x.supabase.co/rest/v1/rpc/tick_timer', { method: 'POST' }),
+    ).rejects.toThrow()
+    expect(peekFaultsForTest()).toHaveLength(0)
+  })
+
+  it('raises no modal for a poll that answered a failing status', async () => {
+    stubFetch(() => Promise.resolve(new Response('{}', { status: 500 })))
+    await dbFetch('https://x.supabase.co/rest/v1/rpc/tick_timer', { method: 'POST' })
+    expect(peekFaultsForTest()).toHaveLength(0)
+  })
+
+  // The other half of the rule: an ordinary RPC on the same path prefix still
+  // gets one. Without this, "never present anything" would pass both above.
+  it('still raises one for a call somebody actually made', async () => {
+    stubFetch(() => Promise.reject(new TypeError('Failed to fetch')))
+    await expect(
+      dbFetch('https://x.supabase.co/rest/v1/rpc/submit_guess', { method: 'POST' }),
+    ).rejects.toThrow()
+    expect(peekFaultsForTest()).toHaveLength(1)
   })
 
   it('narrates a failing STATUS too — "said no" and "never arrived" are one investigation', async () => {

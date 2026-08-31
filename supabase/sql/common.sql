@@ -1749,8 +1749,11 @@ grant execute on function common.unset_current_view(uuid) to authenticated;
 --
 -- Returns the current ticks either way, so the same call the FE
 -- uses to advance the clock also reads it back.
+-- Dropped, not replaced: this returned `int` (the tick count) before it
+-- answered in an envelope, and `create or replace` cannot change a return type.
+drop function if exists common.tick_timer(uuid);
 create or replace function common.tick_timer(target_game uuid)
-returns int
+returns jsonb
 language plpgsql
 security definer
 set search_path = common, public, extensions
@@ -1758,10 +1761,21 @@ as $$
 declare
   target_club text;
   current_ticks int;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text;
 begin
   select club_handle into target_club from common.games where id = target_game;
+  -- PA004, the third of the family (set_current_view's PA003,
+  -- unset_current_view's PA001): a deleted game has no clock to advance, so
+  -- the job is MOOT rather than failed.
+  --
+  -- Moot is the whole character of this function. The clock is not a server
+  -- process — it only moves while someone is looking at it, because looking IS
+  -- what moves it (see the update below). So "there is nothing to tick" is a
+  -- state this mechanism handles by design, not an error, and it is the same
+  -- state as nobody viewing.
   if target_club is null then
-    raise exception 'game-not-found|' using errcode = 'P0002',
+    raise exception 'That game is gone'
+      using errcode = 'PA004', hint = 'noted',
       detail = 'no common.games row for target_game';
   end if;
   perform common.require_club_member(target_club);
@@ -1779,7 +1793,18 @@ begin
       from common.timers where game_id = target_game;
   end if;
 
-  return coalesce(current_ticks, 0);
+  -- The authoritative count. Every viewer polls once a second and the guard
+  -- above lets only the first of them advance it, so three players do not make
+  -- three ticks — the rest fall through to this read.
+  return common.ok_envelope(jsonb_build_object('result', 'ticked', 'ticks', coalesce(current_ticks, 0)));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 

@@ -156,6 +156,46 @@ describe('call-site shape', () => {
    * `{ data, error }` result cast to a local shape — scrabble's `res.result`
    * reads are the unconverted roster, not this rule's business.
    */
+  /**
+   * Guard: **every call site ends in a scream.** `docs/envelopes.md` → the
+   * shape of a call site says a chain closes with a bare `else` that reports
+   * `BUG: <rpc> fell through to unhandled`. Nothing enforced it until now, and
+   * the omission is invisible by construction: a missing `else` is a branch
+   * that silently does nothing, which is exactly what it looks like when the
+   * code is right.
+   *
+   * `useGameTimer` shipped without one (Joel caught it, 2026-08-31). It read as
+   * three `if (…) return` statements — which ALSO slipped past the arm rule
+   * below, because that one exempts a standalone `if` on data an earlier return
+   * already narrowed. So writing early returns instead of a chain evaded both
+   * halves at once.
+   *
+   * **Branching is what triggers it, not calling.** A manifest's
+   * `startGameInClub` runs `runRpc` and hands the envelope straight back —
+   * `SetupGameModal` is the one that reads it, and owns the scream. Producing
+   * an envelope obliges nothing; asking it a question obliges an else.
+   *
+   * Deliberately coarse beyond that: it asks whether the same FILE that
+   * branches also contains a scream, not whether each chain has its own. A file
+   * with two chains and one scream passes. That is the cheap version, and it
+   * catches the case that actually happens — a call site written without one.
+   */
+  it('a file that branches on an envelope also screams somewhere', () => {
+    const CALLS = /\b(runRpc|runEdgeFn)\s*[<(]/
+    const BRANCHES = /\.type === '(ok|not-ok)'/
+    const offenders = sourceFiles('src')
+      .filter((f) => !f.includes('/guards/') && !f.includes('.test.') && !f.endsWith('dbResult.ts'))
+      .filter((f) => {
+        const text = readFileSync(f, 'utf8')
+        return CALLS.test(text) && BRANCHES.test(text)
+          && !/BUG: .* fell through to unhandled/.test(text)
+      })
+    expect(
+      offenders,
+      'a call site with no `else` scream — an answer it cannot read would vanish',
+    ).toEqual([])
+  })
+
   it('every `ok` branch states its arm', () => {
     const offenders: string[] = []
     for (const file of sourceFiles('src')) {

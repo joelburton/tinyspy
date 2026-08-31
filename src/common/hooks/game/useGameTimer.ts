@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { db as commonDb } from '../../db'
+import { runRpc } from '../../lib/supabase/dbResult'
+import { showFaultModal } from '../../lib/fault/faultStore'
 import type { TimerMode } from '../../lib/games'
 
 /**
@@ -51,6 +53,11 @@ import type { TimerMode } from '../../lib/games'
  *  replay-board), and the display follows it down. (If a stale high response
  *  lands right after a reset, the next 1s round-trip re-detects the drop —
  *  self-healing.) */
+/** What `common.tick_timer` puts in `data`. Nullable because its other `ok` —
+ *  PA004, the game is gone — arrives through a raise, and
+ *  `common.raised_envelope` builds `data: null`. */
+type Ticked = { result: 'ticked'; ticks: number } | null
+
 function mergeTicks(prev: number, server: number): number {
   return server < prev - 2 ? server : Math.max(prev, server)
 }
@@ -97,12 +104,54 @@ export function useGameTimer({
     if (!running || paused || mode.kind === 'none') return
     let canceled = false
     const drive = () => {
-      void commonDb
-        .rpc('tick_timer', { target_game: gameId })
-        .then(({ data, error }) => {
-          if (canceled || error || typeof data !== 'number') return
-          setTicks((t) => mergeTicks(t, data))
-        })
+      void runRpc<Ticked>(commonDb.rpc('tick_timer', { target_game: gameId })).then((res) => {
+        if (canceled) return
+        // **Every failure here is silent, and that is the design rather than a
+        // shortcut.** This is a POLL: nobody pressed anything, and a tick that
+        // does not happen is exactly what the clock does when nobody is
+        // viewing — a state the mechanism already handles. There is nothing to
+        // retry and nothing to recover; the next successful call returns the
+        // authoritative count however many were missed.
+        //
+        // `dbFetch` matches this with its `isPolled` exemption, so an offline
+        // player gets `[db]` lines instead of a fault modal per second. The
+        // gap that leaves is filed: docs/deferred.md → "A disconnected player
+        // is the one person who is not told".
+        if (res.type === 'not-ok' && res.dbcode === null) {
+          // NOTHING ANSWERED — offline, and not an answer from the RPC at all:
+          // `runRpc` builds this when the call never reached the server, so
+          // there is no dbcode because there was no raise. Silent for the
+          // reason above: a tick that did not happen is what the clock does
+          // anyway when nobody is viewing.
+          //
+          // **This condition is wrong and is being fixed next**
+          // (docs/deferred.md → "A frontend-authored envelope has no code").
+          // Three other failures also arrive codeless — an unreadable body, an
+          // `ok` with a message and no outcome, a Postgres error Postgres did
+          // not name — so this reads as "nothing answered" and means "nothing
+          // answered, OR answered incomprehensibly", swallowing two real bugs.
+          // It is the only branch in the repo that identifies an answer by an
+          // ABSENCE; once those envelopes carry codes of their own it becomes
+          // an equality test like every other one here.
+        } else if (res.type === 'not-ok' && (res.dbcode === 'PN011' || res.dbcode === 'PN012')) {
+          // The two the RPC itself declares, both from `require_club_member` and
+          // both already being handled somewhere better — a lapsed session signs
+          // you out and unmounts this page, a revoked membership does the same.
+        } else if (res.type === 'ok' && res.dbcode === 'PA004') {
+          // The game was deleted under us. No clock to advance, and the page is
+          // about to become a no-such-game anyway.
+        } else if (res.type === 'ok' && res.data !== null && res.data.result === 'ticked') {
+          const { ticks } = res.data
+          setTicks((t) => mergeTicks(t, ticks))
+        } else {
+          // Once a second, and that is FINE (Joel, 2026-08-31): an answer this
+          // chain cannot read is a bug we want to meet immediately, in a game or
+          // in an e2e run. The alternative is what was here before — three
+          // early returns and a silent fall-through, which would have swallowed
+          // it forever.
+          showFaultModal({ text: 'BUG: tick_timer fell through to unhandled' })
+        }
+      })
     }
     drive() // immediately, then once a second
     const id = setInterval(drive, 1000)

@@ -122,6 +122,34 @@ function isSupabaseInternal(input: RequestInfo | URL, init?: RequestInit): boole
 }
 
 /**
+ * **Calls nobody asked for.** A POLL — fired on a timer, not by a person — and
+ * so the third member of the "logged, but nobody is owed a modal" set, beside
+ * an abort and Supabase's own endpoints.
+ *
+ * What earns membership: nobody pressed anything, nobody is waiting on an
+ * outcome, and a failure is indistinguishable from a state the feature already
+ * handles. `tick_timer` is all three — it advances a clock that only moves
+ * while someone is looking at it, so a tick that does not happen is what the
+ * mechanism does anyway when nobody is viewing.
+ *
+ * The cost of not having it: it fires once a second, so a five-second wifi drop
+ * was five modals — and `QUEUE_CAP` holds five, so dismissing one revealed the
+ * next until the network returned.
+ *
+ * **Known gap** (docs/deferred.md → "Faults are presented from two places"):
+ * this covers what `dbFetch` presents. A fault the server DECLARED arrives HTTP
+ * 200 and is presented by `runRpc` instead, which this does not reach.
+ *
+ * **And it makes a disconnected player quieter, which is a real loss** rather
+ * than pure noise removed — those modals are currently the only automatic
+ * signal a dropped player gets. docs/deferred.md → "A disconnected player is
+ * the one person who is not told".
+ */
+function isPolled(input: RequestInfo | URL, init?: RequestInit): boolean {
+  return getMethodPathClean(input, init).endsWith('/rest/v1/rpc/tick_timer')
+}
+
+/**
  * `fetch` with a `[db]` console trail, and **where faults are presented**
  * (docs/envelopes.md → "Faults are presented centrally, and a call site never
  * words a failure").
@@ -174,7 +202,9 @@ export const dbFetch: typeof fetch = async (input, init) => {
     // request (a component unmounting, a superseded fetch), so nobody is owed a
     // modal. It still gets a line — an abort storm is worth seeing. Neither is a
     // call to Supabase's own endpoints, which the sign-in screen owns.
-    if (name === 'AbortError' || isSupabaseInternal(input, init)) logDb('FAULT', fields)
+    if (name === 'AbortError' || isSupabaseInternal(input, init) || isPolled(input, init)) {
+      logDb('FAULT', fields)
+    }
     // The server never spoke, so no author could have written for this. The
     // sentence is `environmentalEnvelope`'s, not this function's — the three
     // wrappers in dbResult call the same builder for the same failure, so the
@@ -217,9 +247,9 @@ export const dbFetch: typeof fetch = async (input, init) => {
   }
 
   // ─── IT ANSWERED, WITH A FAILURE ─────────────────────────────
-  // Supabase's own endpoints are never presented, so nothing downstream will
-  // report this one. The line is the whole record of it.
-  if (isSupabaseInternal(input, init)) {
+  // Neither Supabase's own endpoints nor a poll is ever presented, so nothing
+  // downstream will report these. The line is the whole record of them.
+  if (isSupabaseInternal(input, init) || isPolled(input, init)) {
     logDb('FAULT', fields)
     return res
   }

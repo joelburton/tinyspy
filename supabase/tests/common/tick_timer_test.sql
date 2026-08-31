@@ -23,6 +23,7 @@ begin;
 set search_path = common, public, extensions;
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 
 select plan(9);
 
@@ -80,9 +81,9 @@ insert into common.timers (game_id, ticks, last_tick)
 
 -- (2) A second hasn't passed yet → no advance, returns 0.
 select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
-select is(
+select pg_temp.envelope_is(
   common.tick_timer((select id from g)),
-  0,
+  '{"type": "ok", "data": {"result": "ticked", "ticks": 0}}'::jsonb,
   'tick_timer: within the first second → no advance, returns 0'
 );
 
@@ -94,27 +95,27 @@ update common.timers set last_tick = now() - interval '2 seconds'
 
 -- (3) Now a second has passed → advance to 1.
 select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
-select is(
+select pg_temp.envelope_is(
   common.tick_timer((select id from g)),
-  1,
+  '{"type": "ok", "data": {"result": "ticked", "ticks": 1}}'::jsonb,
   'tick_timer: ≥1s elapsed → advances to 1'
 );
 
 -- (4) Dedup: an immediate second call (last_tick just set to now)
 --     does NOT advance — returns the same 1. Stands in for a second
 --     player calling within the same second.
-select is(
+select pg_temp.envelope_is(
   common.tick_timer((select id from g)),
-  1,
+  '{"type": "ok", "data": {"result": "ticked", "ticks": 1}}'::jsonb,
   'tick_timer: a call within the same second does not double-count'
 );
 
 -- (5) bea (a second player) calling, still within the second, also
 --     no-ops — the clock is per-game, not per-player.
 select pg_temp.as_jwt_only('bea22222-2222-2222-2222-222222222222');
-select is(
+select pg_temp.envelope_is(
   common.tick_timer((select id from g)),
-  1,
+  '{"type": "ok", "data": {"result": "ticked", "ticks": 1}}'::jsonb,
   'tick_timer: a different player in the same second also no-ops'
 );
 
@@ -126,9 +127,9 @@ update common.timers set last_tick = now() - interval '60 seconds'
  where game_id = (select id from g);
 
 select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
-select is(
+select pg_temp.envelope_is(
   common.tick_timer((select id from g)),
-  2,
+  '{"type": "ok", "data": {"result": "ticked", "ticks": 2}}'::jsonb,
   'tick_timer: a 60s gap costs +1 (resume), not +60'
 );
 
@@ -143,20 +144,24 @@ select is(
 
 -- (8) Non-member (dee) is rejected.
 select pg_temp.as_jwt_only('dee44444-4444-4444-4444-444444444444');
-select throws_ok(
-  format($$ select common.tick_timer(%L::uuid) $$, (select id from g)),
-  'PN012',
-  'You are not a member of this club',
-  'tick_timer: non-member is rejected'
+select pg_temp.envelope_is(
+  common.tick_timer((select id from g)),
+  '{"type": "not-ok", "severity": "fault", "dbcode": "PN012",
+    "message": "You are not a member of this club"}'::jsonb,
+  'tick_timer: a non-member gets a declared fault'
 );
 
--- (9) Unknown game raises P0002.
+-- (9) A deleted game is `ok`, the third of the family (set_current_view's
+--     PA003, unset_current_view's PA001): there is no clock to advance, so the
+--     job is MOOT rather than failed. Which is this function's whole character
+--     — the clock only moves while someone is looking at it, so "nothing to
+--     tick" is the state it is in whenever nobody is viewing.
 select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
-select throws_ok(
-  $$ select common.tick_timer('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'::uuid) $$,
-  'P0002',
-  'game-not-found|',
-  'tick_timer: unknown game raises P0002'
+select pg_temp.envelope_is(
+  common.tick_timer('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'::uuid),
+  '{"type": "ok", "outcome": "noted", "dbcode": "PA004",
+    "message": "That game is gone"}'::jsonb,
+  'tick_timer: a deleted game is ok/noted, not a fault'
 );
 
 select * from finish();

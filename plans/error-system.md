@@ -684,7 +684,7 @@ select pg_temp.envelope_is(
 
 ## 7. The conversion roster
 
-**145 entries. 68 done, 77 to go** (5 of those are the deferred edge
+**144 entries. 70 done, 74 to go** (5 of those are the deferred edge
 functions). Cross them off here as they land.
 
 **Un-paused 2026-08-31: the retro-fix list is empty.** It existed because a
@@ -750,8 +750,11 @@ identifier — a shape nothing has exercised yet.
       PN305 is a RACE — the debounced flush landing after the game ended, which
       is the one keystroke this system can actually lose. Its pgTAP gained that
       case, which it never had
-- [ ] `start_game` · RPC
-- [ ] `tick_timer` · RPC
+- [x] `tick_timer` · RPC — PA004 for a deleted game (no clock to advance), and
+      a POLL: `dbFetch` gained `isPolled` so a per-second call is logged, never
+      presented. A 5s wifi drop was 5 fault modals with the queue refilling as
+      you dismissed. The gap that leaves is docs/deferred.md → a disconnected
+      player is the one person who is not told
 - [x] `unset_current_view` · RPC — `useCommonGame`'s last-viewer-leave; ONE SQL
   definition serves both areas, so it converted with the club page's
 - [x] `update_profile_color` · RPC — with EditProfileModal, as one unit

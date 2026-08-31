@@ -224,6 +224,73 @@ was their green/yellow/gray feedback flattening to one gray in mono.
 
 ## To discuss
 
+- **A frontend-authored envelope has no code, so its kind is identified by an
+  ABSENCE** (found 2026-08-31, **do this next — the timer is waiting on it**).
+  Four different failures all arrive with `dbcode === null`, all with
+  `severity: 'fault'`, so neither field separates them:
+
+  | built by | means |
+  |---|---|
+  | `environmentalEnvelope` | nothing answered — offline or unreachable |
+  | `faultEnvelope(null, 'The server answered with an unreadable result.')` | the RPC returned a non-envelope |
+  | `faultEnvelope(null, NO_OUTCOME_TEXT)` | an `ok` carrying a message with no outcome — a server bug |
+  | `faultEnvelope(err, …)` with a codeless error | anything Postgres did not name |
+
+  `useGameTimer:125` is the ONLY call site in the repo that branches on an
+  absence — every other one tests equality against a named code (`PA001`,
+  `PA003`, `PA004`, `PN018`, `PN302`, `PN011`/`PN012`). It reads as "nothing
+  answered" and actually means "nothing answered, OR answered incomprehensibly",
+  so it swallows two real bugs, and the next codeless FE envelope joins them
+  silently.
+
+  **Fix: give frontend-authored envelopes their own class**, the way `PA` and
+  `PN` name who authored a raise — say `FE001` offline, `FE002` unreachable,
+  `FE003` unreadable result, `FE004` an ok with no outcome. Then `dbcode` is
+  never null, no call site identifies anything by absence, and a NEW
+  frontend-authored failure falls through the timer's chain to its scream
+  instead of being swallowed.
+
+  Costs: `raiseCodes.test.ts` guards `PA`/`PN` allocation against the SQL, so
+  the new class wants its own allocation and guard; and `docs/envelopes.md`
+  defines `dbcode` as the SQLSTATE, which widens to "which answer is this,
+  whoever authored it".
+
+  **Then change `useGameTimer:125` to the explicit check** — that line is the
+  reason this was found, and it stays wrong until it can name what it drops.
+- **Faults are presented from two places, and only one can be exempted**
+  (found 2026-08-31 while adding `dbFetch`'s `isPolled`, not fixed). A transport
+  failure is presented by `dbFetch`; a fault the server DECLARED arrives HTTP
+  200, so `dbFetch` never sees it and `runRpc` presents it instead. Both call
+  `reportDbFault`, so a rule like "this call is a poll, never show it" has to be
+  written twice or it works by halves — today `tick_timer`'s exemption covers
+  its offline failures but not a `PN011` lapsed session, which still modals once
+  a second.
+
+  The fix is probably to move the check INTO `reportDbFault`, which is the one
+  presenter and already receives the call label in its `transport` argument. It
+  is a change to the shared fault path, so it wants doing on its own rather than
+  riding along with whatever RPC exposed it.
+- **A disconnected player is the one person who is not told** (raised
+  2026-08-31, wanted). Pause is derived locally from `presentUserIds`, which is
+  only ever updated by the server-pushed `presence: sync` event — so when YOUR
+  wifi drops, your socket dies, no events arrive, your set stays frozen with
+  everyone still in it, and `computePause` says false. Your peers all see the
+  pause overlay naming you; you see a normal board that has silently stopped
+  receiving anything. Nothing reacts to `CLOSED` / `CHANNEL_ERROR` /
+  `TIMED_OUT` either — `useCommonGame`'s `subscribe` callback handles only
+  `SUBSCRIBED`.
+
+  **`tick_timer` is the heartbeat we already have and don't use.** It is the
+  app's only per-second round trip, so N consecutive failures is a cheap and
+  accurate "I cannot reach the server" — enough to show the disconnected player
+  the same overlay their peers are seeing, once, in the right words. Today its
+  `.then` swallows every failure, and the only automatic signal a dropped player
+  gets is the `[db]` fault modals its failures raise, which is the wrong
+  instrument in every respect: wrong words, blocks the page, repeats every
+  second, and is about to be silenced (see the poll exemption in `dbFetch`).
+
+  Silencing those modals therefore LEAVES A GAP rather than removing pure noise,
+  which is the reason this is filed rather than forgotten.
 - **Does a fault still want a modal AND a pill?** (raised 2026-08-31, unresolved.)
   The rule today is that the modal is an ESCALATION, not a replacement — a fault
   gets both, and `genericPills.ts` says so deliberately, because filtering it out

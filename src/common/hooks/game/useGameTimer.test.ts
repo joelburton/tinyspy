@@ -28,12 +28,13 @@ vi.mock('../../db', () => ({
   },
 }))
 
+import { clearFaultsForTest, peekFaultsForTest } from '../../lib/fault/faultStore'
 import { useGameTimer, formatTimerSeconds } from './useGameTimer'
 
 beforeEach(() => {
   vi.useFakeTimers()
   maybeSingleMock.mockResolvedValue({ data: { ticks: 0 } })
-  rpcMock.mockResolvedValue({ data: 0, error: null })
+  rpcMock.mockResolvedValue({ data: { type: 'ok', data: { result: 'ticked', ticks: 0 }, outcome: null, severity: null, message: null, field: null, meta: null, dbcode: null, detail: null }, error: null })
 })
 
 afterEach(() => {
@@ -61,7 +62,7 @@ describe('useGameTimer', () => {
   })
 
   it('countup display equals the tick count', async () => {
-    rpcMock.mockResolvedValue({ data: 3, error: null })
+    rpcMock.mockResolvedValue({ data: { type: 'ok', data: { result: 'ticked', ticks: 3 }, outcome: null, severity: null, message: null, field: null, meta: null, dbcode: null, detail: null }, error: null })
     const { result } = renderHook(() =>
       useGameTimer({ gameId: 'g', mode: { kind: 'countup' }, paused: false, running: true }),
     )
@@ -70,7 +71,7 @@ describe('useGameTimer', () => {
   })
 
   it('countdown display is max(0, seconds - ticks)', async () => {
-    rpcMock.mockResolvedValue({ data: 4, error: null })
+    rpcMock.mockResolvedValue({ data: { type: 'ok', data: { result: 'ticked', ticks: 4 }, outcome: null, severity: null, message: null, field: null, meta: null, dbcode: null, detail: null }, error: null })
     const { result } = renderHook(() =>
       useGameTimer({ gameId: 'g', mode: { kind: 'countdown', seconds: 10 }, paused: false, running: true }),
     )
@@ -80,7 +81,7 @@ describe('useGameTimer', () => {
   })
 
   it('flips `expired` when a countdown reaches 0 and never goes negative', async () => {
-    rpcMock.mockResolvedValue({ data: 12, error: null }) // past the 10s duration
+    rpcMock.mockResolvedValue({ data: { type: 'ok', data: { result: 'ticked', ticks: 12 }, outcome: null, severity: null, message: null, field: null, meta: null, dbcode: null, detail: null }, error: null }) // past the 10s duration
     const { result } = renderHook(() =>
       useGameTimer({ gameId: 'g', mode: { kind: 'countdown', seconds: 10 }, paused: false, running: true }),
     )
@@ -108,10 +109,72 @@ describe('useGameTimer', () => {
     expect(result.current.displaySeconds).toBe(0)
   })
 
+  /**
+   * **Which not-ok this poll may swallow, and which it may not.**
+   *
+   * It used to drop every one, which is what hid the interesting half: a raw
+   * Postgres fault here — a broken `common.timers`, a lost grant — is a real
+   * bug arriving with a real SQLSTATE, and it vanished once a second.
+   */
+  const notOk = (dbcode: string | null) => ({
+    data: {
+      type: 'not-ok', data: null, outcome: null, severity: 'fault',
+      message: 'nope', field: null, meta: null, dbcode, detail: null,
+    },
+    error: null,
+  })
+
+  it('swallows a poll that nothing answered — the offline case', async () => {
+    clearFaultsForTest()
+    // Nothing answered: postgrest reports a rejected fetch as `status: 0` with
+    // an error, NOT as a not-ok envelope at 200. `runRpc` turns that into an
+    // environmental envelope whose dbcode is null, because nothing raised.
+    rpcMock.mockResolvedValue({
+      data: null,
+      error: { message: 'TypeError: Failed to fetch', code: '' },
+      status: 0,
+    })
+    renderHook(() =>
+      useGameTimer({ gameId: 'g', mode: { kind: 'countup' }, paused: false, running: true }),
+    )
+    await flush()
+    expect(peekFaultsForTest()).toHaveLength(0)
+  })
+
+  // Asserts the absence of the SCREAM, not of every modal. `runRpc` presents a
+  // declared fault itself, and `dbFetch`'s poll exemption cannot reach that —
+  // docs/deferred.md → "Faults are presented from two places". What this branch
+  // controls is whether the chain also calls it unhandled, and it must not.
+  it('does not call a lapsed session unhandled', async () => {
+    clearFaultsForTest()
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    rpcMock.mockResolvedValue(notOk('PN011'))
+    renderHook(() =>
+      useGameTimer({ gameId: 'g', mode: { kind: 'countup' }, paused: false, running: true }),
+    )
+    await flush()
+    expect(peekFaultsForTest().map((f) => String(f.text)).join(' ')).not.toContain(
+      'fell through to unhandled',
+    )
+  })
+
+  it('SCREAMS for a code it never declared — a bug it used to swallow', async () => {
+    clearFaultsForTest()
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    rpcMock.mockResolvedValue(notOk('42P01')) // undefined_table: common.timers is gone
+    renderHook(() =>
+      useGameTimer({ gameId: 'g', mode: { kind: 'countup' }, paused: false, running: true }),
+    )
+    await flush()
+    expect(peekFaultsForTest().map((f) => String(f.text)).join(' ')).toContain(
+      'fell through to unhandled',
+    )
+  })
+
   it('never rewinds the display when a later read reports fewer ticks', async () => {
     rpcMock
-      .mockResolvedValueOnce({ data: 5, error: null })
-      .mockResolvedValue({ data: 3, error: null }) // out-of-order / stale
+      .mockResolvedValueOnce({ data: { type: 'ok', data: { result: 'ticked', ticks: 5 }, outcome: null, severity: null, message: null, field: null, meta: null, dbcode: null, detail: null }, error: null })
+      .mockResolvedValue({ data: { type: 'ok', data: { result: 'ticked', ticks: 3 }, outcome: null, severity: null, message: null, field: null, meta: null, dbcode: null, detail: null }, error: null }) // out-of-order / stale
     const { result } = renderHook(() =>
       useGameTimer({ gameId: 'g', mode: { kind: 'countup' }, paused: false, running: true }),
     )
@@ -125,8 +188,8 @@ describe('useGameTimer', () => {
 
   it('accepts a LARGE backward jump — the server clock was reset (replay-board)', async () => {
     rpcMock
-      .mockResolvedValueOnce({ data: 70, error: null }) // past the duration → expired
-      .mockResolvedValue({ data: 1, error: null }) // common.reset_game zeroed the clock
+      .mockResolvedValueOnce({ data: { type: 'ok', data: { result: 'ticked', ticks: 70 }, outcome: null, severity: null, message: null, field: null, meta: null, dbcode: null, detail: null }, error: null }) // past the duration → expired
+      .mockResolvedValue({ data: { type: 'ok', data: { result: 'ticked', ticks: 1 }, outcome: null, severity: null, message: null, field: null, meta: null, dbcode: null, detail: null }, error: null }) // common.reset_game zeroed the clock
     const { result } = renderHook(() =>
       useGameTimer({ gameId: 'g', mode: { kind: 'countdown', seconds: 60 }, paused: false, running: true }),
     )
