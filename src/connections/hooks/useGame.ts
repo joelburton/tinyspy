@@ -5,12 +5,8 @@ import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../../common/lib/supabase/supabase'
 import { channelLeaving, releaseChannel } from '../../common/lib/supabase/channelTeardown'
 import { onPostgresAttached } from '../../common/lib/supabase/postgresAttached'
-import { diagnosticsLine } from '../../common/lib/supabase/dbLog'
 import { readRows } from '../../common/lib/supabase/dbResult'
-import type { Envelope } from '../../common/lib/supabase/envelope'
-
-/** The refusal arm of an envelope, on its own — what a failed read always is. */
-type NotOk = Extract<Envelope<unknown>, { type: 'not-ok' }>
+import type { NotOk } from '../../common/lib/supabase/envelope'
 import { OUTCOME_FOR_RESULT, type GuessOutcome, type GuessResult } from '../lib/evaluate'
 import { db } from '../db'
 import type { Database } from '../../types/db'
@@ -173,7 +169,7 @@ export function useGame(
    * the modal is an escalation, not a replacement: this is what remains once
    * the fault modal is dismissed).
    */
-  failure: { text: string; diagnostics: string } | null
+  failure: NotOk | null
 } {
   const [game, setGame] = useState<ConnectionsGame | null>(null)
   const [guesses, setGuesses] = useState<GuessRow[]>([])
@@ -182,7 +178,7 @@ export function useGame(
     () => new Map(),
   )
   const [loading, setLoading] = useState(true)
-  const [failure, setFailure] = useState<{ text: string; diagnostics: string } | null>(null)
+  const [failure, setFailure] = useState<NotOk | null>(null)
   const [channel, setChannel] = useState<
     ReturnType<typeof supabase.channel> | null
   >(null)
@@ -262,35 +258,23 @@ export function useGame(
       if (!mounted) return
       // A read can only fail as a FAULT — `readRows` never authors anything
       // else — and `dbFetch` has already logged it and raised the modal. What
-      // is left is the sentence BEHIND it: the server's own message, kept
-      // rather than replaced, plus a line naming which of the three reads it
-      // was. One branch each, because "which read" is the only thing the
-      // player's sentence cannot say and the diagnostics line must.
-      // Takes the NOT-OK ARM, so there is no test to write inside it: each
-      // caller below has already named its case, and the type carries that
-      // through rather than asking again.
-      const reportFailure = (res: NotOk, table: string) => {
-        setFailure({
-          text: res.message,
-          diagnostics: diagnosticsLine('FAULT', {
-            call: `GET /rest/v1/${table}`,
-            severity: res.severity,
-            dbcode: res.dbcode,
-            detail: `game=${gameId}`,
-          }),
-        })
-        setLoading(false)
-      }
+      // is left is the envelope BEHIND it, held as it arrived: it already
+      // carries the sentence, the severity, the dbcode, and (in `detail`) which
+      // of the three reads died. One branch each, because that last fact is the
+      // one nobody can recover afterwards.
       if (gameRes.type === 'not-ok') {
-        reportFailure(gameRes, 'games_state')
+        setFailure(gameRes)
+        setLoading(false)
         return
       }
       if (guessesRes.type === 'not-ok') {
-        reportFailure(guessesRes, 'guesses')
+        setFailure(guessesRes)
+        setLoading(false)
         return
       }
       if (playersRes.type === 'not-ok') {
-        reportFailure(playersRes, 'players')
+        setFailure(playersRes)
+        setLoading(false)
         return
       }
       // A load that worked clears a previous one's failure: this refetches on

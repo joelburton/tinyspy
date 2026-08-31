@@ -4,7 +4,8 @@ import { useState } from 'react'
 import { useRealtimeRefetch } from '../../common/hooks/realtime/useRealtimeRefetch'
 import { db } from '../db'
 import { db as commonDb } from '../../common/db'
-import { readFailure, readRows, type ReadFailure } from '../../common/lib/supabase/dbResult'
+import { readRows } from '../../common/lib/supabase/dbResult'
+import type { NotOk } from '../../common/lib/supabase/envelope'
 import type { Member } from '../../common/lib/games'
 import type { Database } from '../../types/db'
 
@@ -70,7 +71,7 @@ export function useGame(gameId: string) {
   const [game, setGame] = useState<GameRow | null>(null)
   const [players, setPlayers] = useState<Player[]>([])
   const [loading, setLoading] = useState(true)
-  const [failure, setFailure] = useState<ReadFailure | null>(null)
+  const [failure, setFailure] = useState<NotOk | null>(null)
 
   useRealtimeRefetch({
     tables: { schema: 'codenamesduet', table: 'games', filter: `id=eq.${gameId}` },
@@ -95,7 +96,7 @@ export function useGame(gameId: string) {
       // is the sentence BEHIND it, plus a line naming which of the reads it was:
       // "something didn't load" is not a fact anyone can act on.
       if (gameRes.type === 'not-ok') {
-        setFailure(readFailure(gameRes, 'games', gameId))
+        setFailure(gameRes)
         setLoading(false)
         return
       }
@@ -124,7 +125,7 @@ export function useGame(gameId: string) {
       // One branch each rather than one combined test, because WHICH read failed
       // is the only thing the player's sentence cannot say.
       if (profilesRes.type === 'not-ok') {
-        setFailure(readFailure(profilesRes, 'profiles', gameId))
+        setFailure(profilesRes)
         setLoading(false)
         return
       }

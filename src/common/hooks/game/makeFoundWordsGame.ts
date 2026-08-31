@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react'
 import { useRealtimeRefetch } from '../realtime/useRealtimeRefetch'
 import { supabase } from '../../lib/supabase/supabase'
 import { type DbError } from '../../lib/supabase/dbEnvelope'
-import { readFailure, readRows, type ReadFailure } from '../../lib/supabase/dbResult'
+import { readRows } from '../../lib/supabase/dbResult'
+import type { NotOk } from '../../lib/supabase/envelope'
 import type { FoundWordsGame, FoundWordsWord, FoundWordRow } from '../../lib/game/foundWords'
 
 /** The schema names of the found-words rank-ladder games — whatever
@@ -67,7 +68,7 @@ export function makeFoundWordsGame(schema: GameSchema) {
     rowsLoaded: boolean
     /** Set when a read FAILED, which is not the same as the game being absent.
      *  The surface renders this instead of "Game not found." */
-    failure: ReadFailure | null
+    failure: NotOk | null
   } {
     const [game, setGame] = useState<FoundWordsGame | null>(null)
     const [foundWords, setFoundWords] = useState<FoundWordRow[]>([])
@@ -78,8 +79,8 @@ export function makeFoundWordsGame(schema: GameSchema) {
     // the found list refetches on every event, so its failure should clear the
     // moment one works. One shared slot would let a successful refetch erase a
     // header failure that is still true.
-    const [headerFailure, setHeaderFailure] = useState<ReadFailure | null>(null)
-    const [rowsFailure, setRowsFailure] = useState<ReadFailure | null>(null)
+    const [headerFailure, setHeaderFailure] = useState<NotOk | null>(null)
+    const [rowsFailure, setRowsFailure] = useState<NotOk | null>(null)
 
     // The immutable header (letters + both word lists) — fetched once per game.
     // `loading` gates the PlayArea render, so it flips here.
@@ -102,7 +103,7 @@ export function makeFoundWordsGame(schema: GameSchema) {
         // else — and `dbFetch` has already logged it and raised the modal. What
         // is left is the sentence BEHIND it, plus a line naming which read it was.
         if (res.type === 'not-ok') {
-          setHeaderFailure(readFailure(res, 'games_state', gameId))
+          setHeaderFailure(res)
           setLoading(false)
           return
         }
@@ -152,7 +153,7 @@ export function makeFoundWordsGame(schema: GameSchema) {
         )
         if (!mounted()) return
         if (res.type === 'not-ok') {
-          setRowsFailure(readFailure(res, 'found_words', gameId))
+          setRowsFailure(res)
           return
         }
         // A load that worked clears a previous one's failure: this refetches on

@@ -3,7 +3,8 @@
 import { useMemo, useState } from 'react'
 import { useRealtimeRefetch } from '../../common/hooks/realtime/useRealtimeRefetch'
 import type { Card, DeckKind } from '../lib/cards'
-import { readFailure, readRows, type ReadFailure } from '../../common/lib/supabase/dbResult'
+import { readRows } from '../../common/lib/supabase/dbResult'
+import type { NotOk } from '../../common/lib/supabase/envelope'
 import { db } from '../db'
 
 /** Projected from `setgame.games_state` — the live table. */
@@ -92,13 +93,13 @@ export function useGame(gameId: string, selfId: string): {
   loading: boolean
   /** Set when a read FAILED, which is not the same as the game being absent.
    *  The surface renders this instead of "Game not found." */
-  failure: ReadFailure | null
+  failure: NotOk | null
 } {
   const [game, setGame] = useState<SetgameGame | null>(null)
   const [players, setPlayers] = useState<SetgamePlayer[]>([])
   const [events, setEvents] = useState<EventRow[]>([])
   const [loading, setLoading] = useState(true)
-  const [failure, setFailure] = useState<ReadFailure | null>(null)
+  const [failure, setFailure] = useState<NotOk | null>(null)
 
   useRealtimeRefetch({
     tables: [
@@ -141,17 +142,17 @@ export function useGame(gameId: string, selfId: string): {
       // One branch each rather than one combined test, because WHICH read failed
       // is the only thing the player's sentence cannot say.
       if (gameRes.type === 'not-ok') {
-        setFailure(readFailure(gameRes, 'games_state', gameId))
+        setFailure(gameRes)
         setLoading(false)
         return
       }
       if (playersRes.type === 'not-ok') {
-        setFailure(readFailure(playersRes, 'players', gameId))
+        setFailure(playersRes)
         setLoading(false)
         return
       }
       if (eventsRes.type === 'not-ok') {
-        setFailure(readFailure(eventsRes, 'events', gameId))
+        setFailure(eventsRes)
         setLoading(false)
         return
       }

@@ -5,7 +5,7 @@ import { runRpc } from '../../common/lib/supabase/dbResult'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { IconHint, IconNewGame, IconPrint, IconRestart } from '../../common/components/icons'
 import { cls } from '../../common/lib/util/cls'
-import { ErrorPage } from '../../common/components/loading-and-errs/ErrorPage'
+import { EnvelopeErrorPage } from '../../common/components/loading-and-errs/ErrorPage'
 import { getNotOkFeedback } from '../../common/lib/game/genericPills'
 import { showFaultModal } from '../../common/lib/fault/faultStore'
 import type { GamePageCtx } from '../../common/lib/games'
@@ -566,7 +566,7 @@ export function PlayArea({
   // failure IS the surface here (docs/ui.md → Faults: a fault page where the
   // page behind it does not survive, a modal where it does). The modal has
   // already been and gone; this is what a player is left looking at.
-  if (failure) return <ErrorPage message={failure.text} diagnostics={failure.diagnostics} />
+  if (failure) return <EnvelopeErrorPage envelope={failure} />
   // Genuinely absent: the reads worked and there is no such game.
   if (!game) return <p>Game not found.</p>
 

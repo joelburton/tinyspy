@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRealtimeRefetch } from '../../common/hooks/realtime/useRealtimeRefetch'
-import { readFailure, readRows, type ReadFailure } from '../../common/lib/supabase/dbResult'
+import { readRows } from '../../common/lib/supabase/dbResult'
+import type { NotOk } from '../../common/lib/supabase/envelope'
 import { db } from '../db'
 import type { Member } from '../../common/lib/games'
 
@@ -109,7 +110,7 @@ export function useGame(gameId: string, selfId: string): {
   rowsLoaded: boolean
   /** Set when a read FAILED, which is not the same as the game being absent.
    *  The surface renders this instead of "Game not found." */
-  failure: ReadFailure | null
+  failure: NotOk | null
 } {
   const [game, setGame] = useState<LetterboxedGame | null>(null)
   const [playerRows, setPlayerRows] = useState<PlayerRow[]>([])
@@ -121,8 +122,8 @@ export function useGame(gameId: string, selfId: string): {
   // rows refetch on every event, so their failure should clear the moment one
   // works. One shared slot would let a successful refetch erase a header
   // failure that is still true.
-  const [headerFailure, setHeaderFailure] = useState<ReadFailure | null>(null)
-  const [rowsFailure, setRowsFailure] = useState<ReadFailure | null>(null)
+  const [headerFailure, setHeaderFailure] = useState<NotOk | null>(null)
+  const [rowsFailure, setRowsFailure] = useState<NotOk | null>(null)
 
   // The immutable header — fetched once per game. `loading` gates the PlayArea
   // render, so it flips here.
@@ -143,7 +144,7 @@ export function useGame(gameId: string, selfId: string): {
       // — and `dbFetch` has already logged it and raised the modal. What is left
       // is the sentence BEHIND it, plus a line naming which read it was.
       if (res.type === 'not-ok') {
-        setHeaderFailure(readFailure(res, 'games_state', gameId))
+        setHeaderFailure(res)
         setLoading(false)
         return
       }
@@ -192,11 +193,11 @@ export function useGame(gameId: string, selfId: string): {
       // One branch each rather than one combined test, because WHICH read failed
       // is the only thing the player's sentence cannot say.
       if (playersRes.type === 'not-ok') {
-        setRowsFailure(readFailure(playersRes, 'players_state', gameId))
+        setRowsFailure(playersRes)
         return
       }
       if (eventsRes.type === 'not-ok') {
-        setRowsFailure(readFailure(eventsRes, 'events', gameId))
+        setRowsFailure(eventsRes)
         return
       }
       // A load that worked clears a previous one's failure: this refetches on

@@ -2,7 +2,8 @@
 
 import { useCallback, useState } from 'react'
 import { useRealtimeRefetch } from '../../common/hooks/realtime/useRealtimeRefetch'
-import { readFailure, readRows, type ReadFailure } from '../../common/lib/supabase/dbResult'
+import { readRows } from '../../common/lib/supabase/dbResult'
+import type { NotOk } from '../../common/lib/supabase/envelope'
 import { db } from '../db'
 import type { Database } from '../../types/db'
 import type { Tile } from '../lib/board'
@@ -126,7 +127,7 @@ export function useGame(gameId: string): {
   loading: boolean
   /** Set when a read FAILED, which is not the same as the game being absent.
    *  The surface renders this instead of "Game not found." */
-  failure: ReadFailure | null
+  failure: NotOk | null
 } {
   const [game, setGame] = useState<StackdownGame | null>(null)
   const [players, setPlayers] = useState<PlayerRow[]>([])
@@ -138,7 +139,7 @@ export function useGame(gameId: string): {
   // back onto the board during the round-trip. Pruned in `load()`.
   const [pendingRemoved, setPendingRemoved] = useState<number[]>([])
   const [loading, setLoading] = useState(true)
-  const [failure, setFailure] = useState<ReadFailure | null>(null)
+  const [failure, setFailure] = useState<NotOk | null>(null)
 
   // Apply a word event to the local in-progress word. Idempotent (append
   // skips a tile already in the word, retract/clear are slice/empty,
@@ -210,17 +211,17 @@ export function useGame(gameId: string): {
       // One branch each rather than one combined test, because WHICH read failed
       // is the only thing the player's sentence cannot say.
       if (gameRes.type === 'not-ok') {
-        setFailure(readFailure(gameRes, 'games_state', gameId))
+        setFailure(gameRes)
         setLoading(false)
         return
       }
       if (playersRes.type === 'not-ok') {
-        setFailure(readFailure(playersRes, 'players', gameId))
+        setFailure(playersRes)
         setLoading(false)
         return
       }
       if (subsRes.type === 'not-ok') {
-        setFailure(readFailure(subsRes, 'submissions', gameId))
+        setFailure(subsRes)
         setLoading(false)
         return
       }

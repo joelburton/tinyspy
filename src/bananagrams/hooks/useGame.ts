@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { db } from '../db'
 import { useRealtimeRefetch } from '../../common/hooks/realtime/useRealtimeRefetch'
-import { readFailure, readRows, type ReadFailure } from '../../common/lib/supabase/dbResult'
+import { readRows } from '../../common/lib/supabase/dbResult'
+import type { NotOk } from '../../common/lib/supabase/envelope'
 import type { Member } from '../../common/lib/games'
 
 /** Cross-game vocabulary: a player in a bananagrams game is just a
@@ -38,7 +39,7 @@ export type Player = Member
 export function useGame(gameId: string, userId: string) {
   const [initialBoard, setInitialBoard] = useState<string | null>(null)
   const [tiles, setTiles] = useState('')
-  const [failure, setFailure] = useState<ReadFailure | null>(null)
+  const [failure, setFailure] = useState<NotOk | null>(null)
   const seeded = useRef(false)
 
   useRealtimeRefetch({
@@ -61,7 +62,7 @@ export function useGame(gameId: string, userId: string) {
       // — and `dbFetch` has already logged it and raised the modal. What is left
       // is the sentence BEHIND it, plus a line naming which read it was.
       if (res.type === 'not-ok') {
-        setFailure(readFailure(res, 'player_boards', gameId))
+        setFailure(res)
         return
       }
       // A load that worked clears a previous one's failure: this refetches on

@@ -1,7 +1,8 @@
 // cs-unmet
 
 import { useEffect, useState } from 'react'
-import { readFailure, readRows, type ReadFailure } from '../../common/lib/supabase/dbResult'
+import { readRows } from '../../common/lib/supabase/dbResult'
+import type { NotOk } from '../../common/lib/supabase/envelope'
 import { db } from '../db'
 import type { PuzzleTemplate } from '../lib/types'
 
@@ -25,11 +26,11 @@ export function useGame(gameId: string): {
   loading: boolean
   /** Set when the read FAILED, which is not the same as the game being absent.
    *  The surface renders this instead of "Game not found." */
-  failure: ReadFailure | null
+  failure: NotOk | null
 } {
   const [game, setGame] = useState<CrosswordsGame | null>(null)
   const [loading, setLoading] = useState(true)
-  const [failure, setFailure] = useState<ReadFailure | null>(null)
+  const [failure, setFailure] = useState<NotOk | null>(null)
 
   useEffect(() => {
     let active = true
@@ -46,7 +47,7 @@ export function useGame(gameId: string): {
       // — and `dbFetch` has already logged it and raised the modal. What is left
       // is the sentence BEHIND it, plus a line naming which read it was.
       if (res.type === 'not-ok') {
-        setFailure(readFailure(res, 'games', gameId))
+        setFailure(res)
         setLoading(false)
         return
       }

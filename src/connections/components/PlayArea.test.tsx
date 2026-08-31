@@ -589,9 +589,15 @@ describe('connections PlayArea — a failed load is not a missing game', () => {
     // The two used to be one `null`, so an outage told the player their game
     // did not exist. The fault modal has already been dismissed by the time
     // this renders — this IS what they are left looking at.
+    // The hook holds the ENVELOPE, exactly as `readRows` built it — no second
+    // shape in between. `detail` is where the failed call's name rides.
     h.result = loaded({
       game: null,
-      failure: { text: 'The read failed.', diagnostics: '[db] FAULT GET /rest/v1/games_state' },
+      failure: {
+        type: 'not-ok', data: null, outcome: null, severity: 'fault',
+        message: 'The read failed.', field: null, meta: null, dbcode: '42501',
+        detail: 'GET /rest/v1/games_state',
+      },
     })
     render(<PlayArea {...makeCtx()} />)
 

@@ -3,7 +3,8 @@
 import { useState } from 'react'
 import { useRealtimeRefetch } from '../../common/hooks/realtime/useRealtimeRefetch'
 import type { Member } from '../../common/lib/games'
-import { readFailure, readRows, type ReadFailure } from '../../common/lib/supabase/dbResult'
+import { readRows } from '../../common/lib/supabase/dbResult'
+import type { NotOk } from '../../common/lib/supabase/envelope'
 import { db } from '../db'
 
 /** A wordle player. No fixed seats — every game_player can guess. */
@@ -59,13 +60,13 @@ export function useGame(gameId: string): {
   loading: boolean
   /** Set when a read FAILED, which is not the same as the game being absent.
    *  The surface renders this instead of "Game not found." */
-  failure: ReadFailure | null
+  failure: NotOk | null
 } {
   const [game, setGame] = useState<WordleGame | null>(null)
   const [players, setPlayers] = useState<WordlePlayerState[]>([])
   const [guesses, setGuesses] = useState<GuessRow[]>([])
   const [loading, setLoading] = useState(true)
-  const [failure, setFailure] = useState<ReadFailure | null>(null)
+  const [failure, setFailure] = useState<NotOk | null>(null)
 
   useRealtimeRefetch({
     tables: [
@@ -109,17 +110,17 @@ export function useGame(gameId: string): {
       // One branch each rather than one combined test, because WHICH read failed
       // is the only thing the player's sentence cannot say.
       if (gameRes.type === 'not-ok') {
-        setFailure(readFailure(gameRes, 'games_state', gameId))
+        setFailure(gameRes)
         setLoading(false)
         return
       }
       if (playersRes.type === 'not-ok') {
-        setFailure(readFailure(playersRes, 'players', gameId))
+        setFailure(playersRes)
         setLoading(false)
         return
       }
       if (guessesRes.type === 'not-ok') {
-        setFailure(readFailure(guessesRes, 'guesses', gameId))
+        setFailure(guessesRes)
         setLoading(false)
         return
       }

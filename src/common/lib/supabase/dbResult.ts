@@ -4,7 +4,7 @@ import { callEdgeFn } from './callEdgeFn'
 import {
   environmentalEnvelope, envelopeFields, faultEnvelope, reportDbFault, type DbError,
 } from './dbEnvelope'
-import { diagnosticsLine, logDb, type LogLevel, type Transport } from './dbLog'
+import { logDb, type LogLevel, type Transport } from './dbLog'
 import type { Outcome } from '../outcomes'
 import type { Envelope, Severity } from './envelope'
 
@@ -109,47 +109,6 @@ const SEVERITY_TO_OUTCOME: Record<Severity, Outcome> = {
  */
 export function notOkOutcome(envelope: Envelope & { type: 'not-ok' }): Outcome {
   return envelope.outcome ?? SEVERITY_TO_OUTCOME[envelope.severity]
-}
-
-/**
- * **What a failed READ leaves behind, once its modal is dismissed.**
- *
- * A read can only fail as a fault — `readRows` never authors anything else — and
- * `dbFetch` has already logged it and raised the modal by the time a hook sees
- * it. What is left is the sentence BEHIND that: the server's own message, kept
- * rather than replaced, plus a line naming WHICH read it was.
- *
- * A hook holds one of these so its surface can tell a failed read from a game
- * that genuinely is not there. Both leave `game` null, and rendering
- * "Game not found." for the first tells a player their game is gone when the
- * truth is that the network blinked.
- */
-export type ReadFailure = { text: string; diagnostics: string }
-
-/**
- * Build a {@link ReadFailure} from the not-ok arm.
- *
- * `table` is the one thing the player's sentence cannot carry and the
- * diagnostics line must: a hook makes several reads, and "something didn't load"
- * is not a fact anyone can act on.
- *
- * Takes the NARROWED type, so there is no test to repeat inside it — the caller
- * has already named its case and the type carries that through.
- */
-export function readFailure(
-  res: Extract<Envelope<unknown>, { type: 'not-ok' }>,
-  table: string,
-  gameId: string,
-): ReadFailure {
-  return {
-    text: res.message,
-    diagnostics: diagnosticsLine('FAULT', {
-      call: `GET /rest/v1/${table}`,
-      severity: res.severity,
-      dbcode: res.dbcode,
-      detail: `game=${gameId}`,
-    }),
-  }
 }
 
 /**
@@ -427,8 +386,7 @@ export async function readRows<Row>(query: QueryLike<Row[]>): Promise<Envelope<R
   // nothing here, and the failure envelopes below need it: a hook makes several
   // reads, and the sentence a player sees is generic by design ("You appear to
   // be offline"). Without this, the envelope a hook keeps says a read failed and
-  // cannot say which — the one fact nobody can recover afterwards, and the fact
-  // `readFailure` was invented to bolt on beside it.
+  // cannot say which — the one fact nobody can recover afterwards.
   const call = callLabel(query, 'read')
   let settled: { data: Row[] | null; error: DbError; status?: number }
   try {

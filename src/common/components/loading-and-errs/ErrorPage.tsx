@@ -2,7 +2,9 @@
 
 import type { ReactNode } from 'react'
 import { Link } from '../../lib/routing/Link'
+import { diagnosticsLine } from '../../lib/supabase/dbLog'
 import { cls } from '../../lib/util/cls'
+import type { NotOk } from '../../lib/supabase/envelope'
 import styles from './ErrorPage.module.css'
 
 type Props = {
@@ -18,6 +20,39 @@ type Props = {
   diagnostics: string
   /** An extra action beside "← Back home" — the error boundary's Reload. */
   action?: ReactNode
+}
+
+/**
+ * **The same page, from an envelope** — for the callers that hold one, which is
+ * every hook whose read failed.
+ *
+ * It projects rather than stores: the envelope already carries the sentence, the
+ * severity, the dbcode and (in `detail`) which call died, so the two props above
+ * are derived here, once, instead of at sixteen surfaces. A hook keeping its own
+ * `{ text, diagnostics }` pair was the shape this replaced — a second format
+ * nobody could say which callers were supposed to build.
+ *
+ * `FAULT` is not a guess: a read can only fail as one (`readRows` never authors
+ * anything else), and a not-ok that reached a whole-page dead end is a fault
+ * whatever raised it.
+ */
+export function EnvelopeErrorPage({ envelope, action }: { envelope: NotOk; action?: ReactNode }) {
+  return (
+    <ErrorPage
+      message={envelope.message}
+      // No `call` or `status`: this is built during RENDER, long after the
+      // request, and the line's fixed shape is a promise that a blank means
+      // something. `dbFetch` wrote the full line when it happened; `detail`
+      // names the call, which is what survives into the envelope.
+      diagnostics={diagnosticsLine('FAULT', {
+        call: '(read)',
+        severity: envelope.severity,
+        dbcode: envelope.dbcode,
+        detail: envelope.detail,
+      })}
+      action={action}
+    />
+  )
 }
 
 /**
