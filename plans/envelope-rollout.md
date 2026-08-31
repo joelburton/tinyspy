@@ -361,6 +361,18 @@ branch on `data` or `dbcode`, by equality against a specific value, and add to
 
 ### The retro-fix list — every already-converted call site
 
+> **THE UNIT OF WORK IS ONE RPC, NEVER A GAME** (Joel, 2026-08-31). Every list in
+> this file and in the roster is a list of RPCs; a game name appearing on a row
+> is only saying WHICH schema that RPC lives in. Ticking a game's `create_game`
+> says nothing about that game's other RPCs, which are almost always still on the
+> old system — bananagrams has **nine** RPCs and this sweep converted one.
+>
+> Written down because the rows below used to read `- [ ] bananagrams` /
+> `- [ ] boggle` under a `create_game` heading, and I ticked one and announced
+> "next up is boggle" — treating a finished RPC as a finished game. The rows now
+> name the RPC. `error-system.md` §7 already had this right: *"An entry is one
+> RPC or one table read per area."*
+
 **This runs BEFORE the rest of the roster** (Joel, 2026-08-29), and **not as one
 commit**: each entry is looked at on its own. Every already-converted call site
 was written before the rules existed, so each needs the same three things —
@@ -694,14 +706,52 @@ and its `manifest.ts` + `PlayArea.tsx` New Game branch on it — in that game's 
 entry. The ten games below have nothing else converted yet, so `create_game` is
 all they are here for.
 
-- [ ] bananagrams
-- [ ] boggle — via `boggle-build-board`
-- [ ] codenamesduet
-- [ ] crosswords — two paths, the edge function and the direct RPC
-- [ ] letterboxed — via `letterboxed-build-board`
-- [ ] scrabble
-- [ ] spellingbee — via `spellingbee-build-board`
-- [ ] strands — **also has connections' puzzle-picker pair**, deliberately
+**Four steps per game, and they are the same four every time.** Tick a box as its
+commit lands, not at the end of a session — the list is the only record of where
+the sweep is (Joel, 2026-08-29). Where a step does not apply, say so on the line
+rather than leaving it blank.
+
+| step | file | what |
+|---|---|---|
+| 1 | `supabase/sql/<game>.sql` | `create_game`'s `ok_envelope` gains `'result', 'created'` |
+| 2 | `supabase/tests/<game>/create_game_test.sql` | keep the whole envelope, assert `data.result`; bump the plan count |
+| 3 | `<game>/components/PlayArea.tsx` | the New Game chain: `not-ok` · `ok && result === 'created'` · scream, every branch returning |
+| 4 | `<game>/manifest.ts` | the type argument widens to `{ result: 'created'; id: string }` |
+
+Step 4 is INERT until the interface changes — nothing reads a manifest's own
+generic, since `SetupGameModal` sees the interface's type. It is carried per game
+anyway, so the final interface commit is a two-file review that CANNOT break
+rather than an eighteen-file one that might (Joel, 2026-08-31).
+
+**Write the ok/not-ok table before the code, per game.** It is cheap here — one
+`ok`, and a stack of inherited faults — but it is not always the same table:
+waffle's `PN121`, stackdown's `PN052` and wordle's `PN057` were each a
+`form-validation` hiding among the faults, and one of those turned out to be
+mis-classified. Three of the first five had something. Do not assume the sixth is
+bananagrams-shaped.
+
+- [x] **bananagrams' `create_game`** — all four steps, 2026-08-31. Its eight
+  OTHER RPCs (`peel`, `dump`, `check_board`, `save_player_board`, `concede`,
+  `end_game`, `replay_board`, `submit_timeout`) are untouched roster work. Every
+  one of this RPC's 16 raises is a fault (10 of its own, `PN094`–`PN103`, plus the inherited timer /
+  player-count / club-member / `common.create_game` gates), so it is the first
+  whose New Game `not-ok` branch has genuinely nothing but faults to render.
+
+  Its own ten split two ways, and the split is the rule to reuse: `PN094`,
+  `PN096`, `PN100`, `PN102` are ABSENT-field checks, and `PN095`, `PN097`,
+  `PN101`, `PN103` are value-RANGE checks on settings the form does offer — as
+  pickers with fixed option sets, which is what makes an out-of-range value a
+  broken client rather than a bad choice. That is the line waffle's `PN121` falls
+  on the other side of: its value is GENERATED, not picked, so the player really
+  can retry it. `PN098` is the only cross-field one (bunch vs players × hand),
+  and stays a fault for the same reason — both halves are pickers.
+- [ ] **boggle's `create_game`** — via `boggle-build-board`
+- [ ] **codenamesduet's `create_game`**
+- [ ] **crosswords' `create_game`** — two paths, the edge function and the direct RPC
+- [ ] **letterboxed's `create_game`** — via `letterboxed-build-board`
+- [ ] **scrabble's `create_game`**
+- [ ] **spellingbee's `create_game`** — via `spellingbee-build-board`
+- [ ] **strands' `create_game`** — the game **also has connections' puzzle-picker pair**, which is ROSTER work, not this entry, deliberately
   identical (`strands.next_puzzle_for_club`, its own `puzzle_for_date`, and a
   Start-time "Everyone here has played every puzzle" raise in `create_game`).
   Mirror what connections landed 2026-08-29: the empty answers are VALIDATIONS
@@ -711,5 +761,5 @@ all they are here for.
   whether the Start-time raise follows — connections' PN062 still names
   `player_user_ids` and carries no remedy, so the pair disagrees with its own
   load-time half until someone rules on it.
-- [ ] wordiply — via `wordiply-build-board`
-- [ ] wordwheel — via `wordwheel-build-board`
+- [ ] **wordiply's `create_game`** — via `wordiply-build-board`
+- [ ] **wordwheel's `create_game`** — via `wordwheel-build-board`

@@ -41,6 +41,11 @@ import { useSwallowTab } from '../../common/hooks/input/useSwallowTab'
 import { useConfirmation, NEW_GAME_CONFIRM, END_GAME_CONFIRM, RESTART_CONFIRM } from '../../common/hooks/ui/useConfirmation'
 import { useSingleFlight } from '../../common/hooks/ui/useSingleFlight'
 import { getNotOkFeedback } from '../../common/lib/game/genericPills'
+import { showFaultModal } from '../../common/lib/fault/faultStore'
+
+/** What `bananagrams.create_game` puts in `data`. One `ok` answer, named anyway
+ *  — a branch matching merely by being `ok` would draw a second one as this. */
+type NewGameAnswer = { result: 'created'; id: string }
 
 /**
  * bananagrams play surface (v3).
@@ -317,14 +322,14 @@ export function PlayArea(ctx: GamePageCtx) {
     // anyway so an accidental `+` doesn't read as "I just lost my game" — the
     // copy says shelved, not ended. At terminal there's nothing to interrupt.
     if (!ctx.isTerminal && !(await confirmAction(NEW_GAME_CONFIRM))) return
-    const res = await runRpc<{ id: string }>(
+    const res = await runRpc<NewGameAnswer>(
       db.rpc('create_game', {
         target_club: ctx.clubHandle,
         setup: ctx.setup as unknown as BananagramsSetup,
         player_user_ids: ctx.players.map((p) => p.user_id),
       }),
     )
-    if (res.type !== 'ok') {
+    if (res.type === 'not-ok') {
       // THE SAME ENVELOPE, READ DIFFERENTLY. On the setup form a validation is
       // an answer — fix the field and press Start again. Here there is no field
       // and no form, so whatever came back goes in the pill as it reads: a fault
@@ -334,8 +339,13 @@ export function PlayArea(ctx: GamePageCtx) {
       // silent about why the game didn't start.
       showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'manual' } })
       return
+    } else if (res.type === 'ok' && res.data.result === 'created') {
+      ctx.goToGame('bananagrams', res.data.id)
+      return
+    } else {
+      showFaultModal({ text: 'BUG: create_game fell through to unhandled' })
+      return
     }
-    ctx.goToGame('bananagrams', res.data.id)
   }, [ctx, showLocalFeedback, confirmAction])
 
   // Single-flight guard. New game has THREE triggers (the terminal button, the

@@ -21,7 +21,7 @@ begin;
 
 set search_path = bananagrams, common, public, extensions;
 
-select plan(32);
+select plan(33);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -212,13 +212,22 @@ select pg_temp.envelope_is(
 -- Happy path (2 players, hand_size 21)
 -- ============================================================
 
-create temp table mg_game on commit drop as
-select (bananagrams.create_game(
+-- The whole envelope is kept, not just the id: `data.result` is what the call
+-- site branches on, and nothing here was holding it to the contract.
+create temp table mg_created on commit drop as
+select bananagrams.create_game(
   (select handle from club),
   '{"hand_size": 21, "bunch_size": 144, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid]
-)->'data'->>'id')::uuid as id;
+) as env;
+create temp table mg_game on commit drop as
+select (env->'data'->>'id')::uuid as id from mg_created;
+
+select pg_temp.envelope_is(
+  (select env from mg_created),
+  '{"type":"ok","data":{"result":"created"}}'::jsonb,
+  'the answer names itself, so a call site has a case to assert');
 
 -- (solo is allowed: ada starts a game in her solo club)
 select lives_ok(

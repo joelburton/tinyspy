@@ -72,7 +72,14 @@ export const bananagramsGame: GameManifest = {
   // validates the setup shape; the FE-collected setup isn't trusted.
   startGameInClub: (clubHandle, setup, playerUserIds) =>
     // No `.single()`: the RPC returns the envelope itself, one jsonb value.
-    runRpc<{ id: string }>(
+    //
+    // Promises MORE than `GameManifest.startGameInClub` asks for
+    // (`Envelope<{ id: string }>`), which is legal — assignability runs one way,
+    // so a game may name its answer before the interface requires it. Inert
+    // until then: `SetupGameModal` reads the INTERFACE's type, so it cannot
+    // branch on `result` until every game promises it and the interface widens
+    // (plans/envelope-rollout.md → create_game).
+    runRpc<{ result: 'created'; id: string }>(
       db.rpc('create_game', {
         target_club: clubHandle,
         setup: setup as BananagramsSetup,
