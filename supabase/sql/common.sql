@@ -414,8 +414,11 @@ create policy game_scratchpads_select on common.game_scratchpads
 -- membership + play state; the FE debounces this full-text flush (the pad is
 -- small + one-writer-at-a-time, so no OT/CRDT). Returns the new version so
 -- the FE adopts it and its own CDC echo is a no-op.
+-- Dropped, not replaced: this returned `bigint` (the version) before it
+-- answered in an envelope, and `create or replace` cannot change a return type.
+drop function if exists common.set_scratchpad(uuid, uuid, text);
 create or replace function common.set_scratchpad(target_game uuid, p_owner_id uuid, p_body text)
-returns bigint
+returns jsonb
 language plpgsql
 security definer
 set search_path = common, public, extensions
@@ -423,18 +426,36 @@ as $$
 declare
   caller_id uuid;
   v_version bigint;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text;
 begin
   caller_id := common.require_game_player(target_game);
+  -- The FE sends its own id or null (the shared pad) and has no control that
+  -- offers a third value, so anything else got past us rather than past a
+  -- player.
   if p_owner_id is not null and p_owner_id <> caller_id then
-    raise exception 'not-your-scratchpad|' using errcode = '42501',
+    raise exception 'BUG: a scratchpad write named someone else''s pad'
+      using errcode = 'PN304', hint = 'fault', column = '_',
       detail = 'scratchpad writes are owner-only';
   end if;
+  -- A RACE, not a refusal: writes are debounced, so a note typed in the last
+  -- window before the game ends arrives after it has. Nobody did anything
+  -- wrong, and the player wants to know the note did not land — the one
+  -- keystroke of theirs this system can actually lose.
+  --
+  -- `is distinct from 'playing'` is right for the only gametype that enables a
+  -- scratchpad (crosswords, whose non-terminal set is just `playing`). A game
+  -- with a second live phase — codenamesduet's `sudden_death` — would need the
+  -- `not in (...)` form its own guards use.
   if (select play_state from common.games where id = target_game) is distinct from 'playing' then
-    raise exception 'game-not-in-play|' using errcode = 'P0001',
+    raise exception 'The game ended before that note saved.'
+      using errcode = 'PN305', hint = 'race', column = '_',
       detail = 'play_state is not an active state';
   end if;
+  -- The textarea carries `maxLength={10000}`, so this is the cap being
+  -- bypassed rather than a player typing too much.
   if char_length(coalesce(p_body, '')) > 10000 then
-    raise exception 'scratchpad-too-long|10000|' using errcode = 'P0001',
+    raise exception 'BUG: a scratchpad write exceeded the 10000-character cap'
+      using errcode = 'PN306', hint = 'fault', column = '_',
       detail = 'scratchpad body exceeds the cap';
   end if;
 
@@ -443,7 +464,18 @@ begin
   on conflict on constraint game_scratchpads_owner_key
     do update set body = excluded.body
   returning version into v_version;
-  return v_version;
+
+  -- `version` rides in `data` because the caller acts on it: it keeps the
+  -- highest one seen so a slow flush's reply cannot roll the pad backwards.
+  return common.ok_envelope(jsonb_build_object('result', 'saved', 'version', v_version));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 revoke execute on function common.set_scratchpad(uuid, uuid, text) from public;

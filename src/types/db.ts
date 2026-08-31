@@ -1057,7 +1057,7 @@ export type Database = {
       set_current_view: { Args: { target_game: string }; Returns: Json }
       set_scratchpad: {
         Args: { p_body: string; p_owner_id: string; target_game: string }
-        Returns: number
+        Returns: Json
       }
       slugify_club_name: { Args: { name: string }; Returns: string }
       tick_timer: { Args: { target_game: string }; Returns: number }

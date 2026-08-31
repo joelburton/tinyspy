@@ -745,7 +745,11 @@ identifier — a shape nothing has exercised yet.
 - [x] `set_current_view` · RPC — PA003 for a deleted game, the twin of unset's
       PA001. Its own pgTAP had it throwing `P0002 game-not-found|`; both that and
       the non-member `throws_ok` are envelope assertions now
-- [ ] `set_scratchpad` · RPC
+- [x] `set_scratchpad` · RPC — three raises: PN304/PN306 are `BUG:` faults (the
+      FE sends its own id or null, and the textarea carries maxLength=10000), and
+      PN305 is a RACE — the debounced flush landing after the game ended, which
+      is the one keystroke this system can actually lose. Its pgTAP gained that
+      case, which it never had
 - [ ] `start_game` · RPC
 - [ ] `tick_timer` · RPC
 - [x] `unset_current_view` · RPC — `useCommonGame`'s last-viewer-leave; ONE SQL

@@ -2,9 +2,10 @@
 
 begin;
 set search_path = common, public, extensions;
-select plan(12);
+select plan(13);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 
 -- A club (ada, bea, cade) + a game with ada & bea as players. The game row
 -- is inserted directly (the scratchpad is a common feature; no game schema
@@ -23,11 +24,17 @@ insert into common.game_players (game_id, user_id) values
 
 -- ── Shared pad (owner null): any player writes; version bumps ─────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select common.set_scratchpad(:'game_id'::uuid, null::uuid, 'ada was here') as v1 \gset
-select is(:'v1'::bigint, 0::bigint, 'first shared-pad write returns version 0');
+-- The version rides in `data` because the CALLER acts on it: it keeps the
+-- highest one seen, so an out-of-order debounced flush cannot roll the pad back.
+select pg_temp.envelope_is(
+  common.set_scratchpad(:'game_id'::uuid, null::uuid, 'ada was here'),
+  '{"type": "ok", "data": {"result": "saved", "version": 0}}'::jsonb,
+  'first shared-pad write answers ok/saved at version 0');
 
-select common.set_scratchpad(:'game_id'::uuid, null::uuid, 'edited') as v2 \gset
-select is(:'v2'::bigint, 1::bigint, 'second shared-pad write bumps version to 1');
+select pg_temp.envelope_is(
+  common.set_scratchpad(:'game_id'::uuid, null::uuid, 'edited'),
+  '{"type": "ok", "data": {"result": "saved", "version": 1}}'::jsonb,
+  'second shared-pad write bumps the version to 1');
 reset role;
 
 select is(
@@ -36,23 +43,27 @@ select is(
 
 -- bea (another player) can also write the shared pad.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select lives_ok(
-  format($$ select common.set_scratchpad(%L::uuid, null::uuid, 'bea too') $$, :'game_id'),
+select pg_temp.envelope_is(
+  common.set_scratchpad(:'game_id'::uuid, null::uuid, 'bea too'),
+  '{"type": "ok", "data": {"result": "saved"}}'::jsonb,
   'any player can write the shared pad');
 reset role;
 
 -- ── Private pads (owner = self) ──────────────────────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select lives_ok(
-  format($$ select common.set_scratchpad(%L::uuid, %L::uuid, 'ada private') $$,
-         :'game_id', 'ada11111-1111-1111-1111-111111111111'),
+select pg_temp.envelope_is(
+  common.set_scratchpad(:'game_id'::uuid, 'ada11111-1111-1111-1111-111111111111'::uuid, 'ada private'),
+  '{"type": "ok", "data": {"result": "saved"}}'::jsonb,
   'a player can write their own private pad');
 
 -- ada cannot write bea's private pad.
-select throws_ok(
-  format($$ select common.set_scratchpad(%L::uuid, %L::uuid, 'sneaky') $$,
-         :'game_id', 'bea22222-2222-2222-2222-222222222222'),
-  '42501', null, 'cannot write another player''s private pad');
+-- A BUG:, not a refusal — the FE sends its own id or null and offers no control
+-- that produces a third value, so reaching this means we let it through.
+select pg_temp.envelope_is(
+  common.set_scratchpad(:'game_id'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid, 'sneaky'),
+  '{"type": "not-ok", "severity": "fault", "dbcode": "PN304",
+    "message": "BUG: a scratchpad write named someone else''s pad"}'::jsonb,
+  'cannot write another player''s private pad');
 reset role;
 
 -- bea writes her own private pad (for the RLS test below).
@@ -62,9 +73,11 @@ reset role;
 
 -- Non-player cannot write.
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
-select throws_ok(
-  format($$ select common.set_scratchpad(%L::uuid, null::uuid, 'nope') $$, :'game_id'),
-  '42501', null, 'a non-player cannot write the scratchpad');
+select pg_temp.envelope_is(
+  common.set_scratchpad(:'game_id'::uuid, null::uuid, 'nope'),
+  '{"type": "not-ok", "severity": "fault", "dbcode": "PN253",
+    "message": "You are not in this game"}'::jsonb,
+  'a non-player cannot write the scratchpad');
 reset role;
 
 -- ── RLS: shared + own private visible; other's private hidden ────────
@@ -92,10 +105,27 @@ reset role;
 
 -- Over-length body is rejected.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select throws_ok(
-  format($$ select common.set_scratchpad(%L::uuid, null::uuid, %L) $$,
-         :'game_id', repeat('x', 10001)),
-  'P0001', null, 'a body over 10000 chars is rejected');
+-- Also a BUG:: the textarea carries maxLength={10000}, so over the cap means
+-- the cap was bypassed rather than a player typing too much.
+select pg_temp.envelope_is(
+  common.set_scratchpad(:'game_id'::uuid, null::uuid, repeat('x', 10001)),
+  '{"type": "not-ok", "severity": "fault", "dbcode": "PN306",
+    "message": "BUG: a scratchpad write exceeded the 10000-character cap"}'::jsonb,
+  'a body over 10000 chars is rejected');
+reset role;
+
+-- ── The RACE: the game ended before the debounced flush landed ───────
+-- The one loss this system can actually inflict on a player, and the only
+-- not-ok here that is nobody's fault: writes are debounced, so a note typed in
+-- the last window arrives after the game is over. It reads as a `race`, which
+-- is what stops it wearing a fault's red.
+update common.games set play_state = 'won' where id = :'game_id';
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select pg_temp.envelope_is(
+  common.set_scratchpad(:'game_id'::uuid, null::uuid, 'typed as it ended'),
+  '{"type": "not-ok", "severity": "race", "dbcode": "PN305",
+    "message": "The game ended before that note saved."}'::jsonb,
+  'a flush landing after the game ended is a race, not a fault');
 reset role;
 
 select * from finish();

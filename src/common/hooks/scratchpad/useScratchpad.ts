@@ -5,6 +5,8 @@ import type { RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from '../../lib/supabase/supabase'
 import { channelLeaving, releaseChannel } from '../../lib/supabase/channelTeardown'
 import { onPostgresAttached } from '../../lib/supabase/postgresAttached'
+import { runRpc } from '../../lib/supabase/dbResult'
+import { showFaultModal } from '../../lib/fault/faultStore'
 
 const commonDb = supabase.schema('common')
 
@@ -47,6 +49,11 @@ export type ScratchpadApi = {
  * auto-releases when idle / disconnected; others read-only until they take
  * over.
  */
+/** What `common.set_scratchpad` puts in `data`. The version is the point: the
+ *  caller keeps the highest one seen, so an out-of-order flush cannot roll the
+ *  pad backwards. Nullable because its not-ok arms arrive through a raise. */
+type SavedPad = { result: 'saved'; version: number } | null
+
 export function useScratchpad(
   gameId: string,
   ownerId: string | null,
@@ -194,21 +201,35 @@ export function useScratchpad(
 
   const flush = useCallback(
     (text: string) => {
-      void commonDb
+      void runRpc<SavedPad>(
         // p_owner_id is a nullable uuid (null = the shared pad), but the generated
         // arg type is non-null. PostgREST passes null through fine.
-        .rpc('set_scratchpad', { target_game: gameId, p_owner_id: ownerId as string, p_body: text })
-        .then(({ data, error }) => {
-          // Don't silently swallow a failed flush (keep-logs ethos): notes typed
-          // in the last debounce window before the game turns terminal ride on
-          // this write, and a dropped one is only visible locally + lost on
-          // reload. No retry — the next keystroke re-flushes the full body.
-          if (error) {
-            console.warn('[scratchpad] flush failed:', error.message)
-            return
-          }
-          if (typeof data === 'number' && data > versionRef.current) versionRef.current = data
-        })
+        commonDb.rpc('set_scratchpad', { target_game: gameId, p_owner_id: ownerId as string, p_body: text }),
+      ).then((res) => {
+        // Don't silently swallow a failed flush (keep-logs ethos): notes typed
+        // in the last debounce window before the game turns terminal ride on
+        // this write, and a dropped one is only visible locally + lost on
+        // reload. No retry — the next keystroke re-flushes the full body.
+        if (res.type === 'not-ok' && res.severity === 'race') {
+          // PN305, and the ONE loss this system can actually inflict: the game
+          // ended between the keystroke and the debounced write. A log line is
+          // all this layer can do — `flush` has no surface, and the pad it
+          // belongs to may already be closed. Whether the player is told at all
+          // is a UX question nobody has answered.
+          console.warn('[scratchpad] flush lost:', res.message)
+        } else if (res.type === 'not-ok') {
+          // A fault, and `runRpc` has already raised its modal. The line names
+          // which write it was, which the modal cannot.
+          console.error('[scratchpad] flush failed:', res.message)
+        } else if (res.type === 'ok' && res.data?.result === 'saved') {
+          // Keep the HIGHEST version seen: flushes are debounced and can land
+          // out of order, and a slow reply must not roll the pad backwards.
+          const { version } = res.data
+          if (version > versionRef.current) versionRef.current = version
+        } else {
+          showFaultModal({ text: 'BUG: set_scratchpad fell through to unhandled' })
+        }
+      })
     },
     [gameId, ownerId],
   )
