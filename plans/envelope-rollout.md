@@ -667,37 +667,37 @@ at once and none belongs to a single RPC's entry.
   and not the refusal, and now says so from inside each branch.
 
 
-- [ ] **The Deno/SQL twins: one condition, two raises, two sentences.** Filed as
-  "boggle raises one refusal twice"; writing that game's full table found **seven
-  on its one path**, so this is structural rather than boggle's.
+- [x] **The Deno/SQL twins — SURVEYED 2026-08-31, and no work follows.**
 
-  The cause is sound and stays: Deno validates so the player gets a fast answer
-  without a round trip to Postgres, and SQL re-validates because the RPC is the
-  authority and must not trust its caller. What is wrong is that ONE
-  player-visible sentence lives in two files with nothing holding them equal.
-  `PN147` / `PN154` have already drifted — by a full stop.
+  **The premise was wrong in both directions.** Filed as "boggle raises one
+  refusal twice", then counted up to twelve by observation while writing per-RPC
+  tables. Measured mechanically, it is **three**.
 
-  | condition | Deno | SQL | after end-sweep 4's rewording |
+  33 messages ARE raised under more than one code, and almost all of it is
+  legitimate per-game repetition rather than duplication: `Game over` ×9,
+  `That game no longer exists` ×9, `BUG: race with fewer than two players` ×9,
+  `Already conceded` ×5. Nine games each raising "Game over" from their own
+  schema is sixteen games doing the same thing — the architecture working.
+
+  A TRUE twin is the same condition raised on both halves of ONE call path:
+
+  | condition | SQL | Deno | paths |
   |---|---|---|---|
-  | game mode | `PN114` | `PN040` | both `BUG: game mode of '<x>'` |
-  | no players | `PN115` | `PN059` | both `BUG: game with no players` |
-  | no dice set | `PN149` | `PN141` | both `BUG: game with no dice set` |
-  | required difficulty | `PN150` | `PN138` | both `BUG: required difficulty of '<x>'` |
-  | legal-word difficulty | `PN151` | `PN139` | both `BUG: legal-word difficulty of '<x>'` |
-  | scoring ladder | `PN152` | `PN140` | both `BUG: scoring ladder of '<x>'` |
-  | no words for those letters | `PN154` | `PN147` | already near-identical |
+  | `BUG: game with no players` | `PN059` | `PN115` | **8** — every builder + both importers |
+  | `No words for those letters at that difficulty` | `PN147` `PN168` `PN188` | `PN154` `PN175` `PN194` | 3 |
+  | `BUG: game with no dice set` | `PN141` | `PN149` | 1 |
 
-  Note this gets WORSE, not better, once end-sweep 4 lands: the sentences become
-  exactly identical, in two languages, with two codes.
+  **And after end-sweep 4 all three pairs already carry identical text**, so there
+  is nothing to reword. **No guard** (Joel, 2026-08-31) — three pairs is not worth
+  a standing assertion, and the cause is sound and stays: Deno validates so the
+  player gets an answer without a Postgres round trip, SQL re-validates because
+  the RPC is the authority and must not trust its caller.
 
-  **Decide, once, for all seven:** pin the pairs in a test (a guard asserting the
-  twin messages match, the way `raiseCodes.test.ts` already pairs codes to
-  files), or accept the Deno half as the player-facing one and demote the SQL
-  twin to a terse internal `BUG:` only a broken caller reaches.
+  Two claims made earlier that the survey retired: `PN072`/`PN222` and
+  `PN067`/`PN302` are **two different games behaving identically on purpose**,
+  never on one path, so not twins at all — there is no "twin between two games"
+  category. And `PN077`/`PN059` is not a pair; the messages differ.
 
-  **Survey before deciding** — seven is what ONE path holds. The other builder
-  games (`waffle`, `spellingbee`, `wordwheel`, `wordiply`, `letterboxed`,
-  `crosswords`) run the same Deno-then-SQL shape and have not been counted.
 
 The cost of deferring all three call-site sweeps is bounded and known: each
 `useGame` is opened twice, once for the one-word read conversion inside its own
