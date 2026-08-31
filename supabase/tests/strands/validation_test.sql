@@ -17,9 +17,10 @@ begin;
 
 set search_path = strands, common, public, extensions;
 
-select plan(10);
+select plan(11);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -29,11 +30,20 @@ create temp table club on commit drop as
 select pg_temp.create_club('Malformed club', array['ada','bea']) as handle;
 create temp table fix on commit drop as select pg_temp.strands_puzzle() as puzzle_id;
 
-create temp table g on commit drop as
-select (strands.create_game(
+-- The whole envelope is kept, not just the id: `data.result` is the field both
+-- call sites filter the `ok` on.
+create temp table created on commit drop as
+select strands.create_game(
   (select handle from club),
   pg_temp.strands_setup((select puzzle_id from fix)),
-  array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop')->'data'->>'id')::uuid as id;
+  array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop') as env;
+create temp table g on commit drop as
+select (env->'data'->>'id')::uuid as id from created;
+
+select pg_temp.envelope_is(
+  (select env from created),
+  '{"type":"ok","data":{"result":"created"}}'::jsonb,
+  'the answer names itself, so a call site has a case to assert');
 
 -- A tiny local shorthand: run submit_path against the fixture game with a
 -- literal path.

@@ -999,15 +999,24 @@ bananagrams-shaped.
   count and what the cap rejected. **wordwheel's `PN197` is the other half and is
   still open** — there the pool IS narrowed by two player settings, so it wants
   the opposite answer.
-- [ ] **strands' `create_game`** — the game **also has connections' puzzle-picker pair**, which is ROSTER work, not this entry, deliberately
-  identical (`strands.next_puzzle_for_club`, its own `puzzle_for_date`, and a
-  Start-time "Everyone here has played every puzzle" raise in `create_game`).
-  Mirror what connections landed 2026-08-29: the empty answers are VALIDATIONS
-  on `puzzle_id`, not `ok`s with a null payload — PN302 for a spent archive
-  ("…You can open one already played by its date."), PN303 for a date with
-  nothing on it (the date IS in the message). **Undecided for both games:**
-  whether the Start-time raise follows — connections' PN062 still names
-  `player_user_ids` and carries no remedy, so the pair disagrees with its own
-  load-time half until someone rules on it.
+- [x] **strands' `create_game`** — all four steps, 2026-08-31. **21 answers: one
+  `ok`, 18 faults, 2 form-validations.**
+
+  **`PN067` moved from `player_user_ids` to `puzzle_id`** (Joel, 2026-08-31),
+  settling the question this row had left open. *"A group told the archive is
+  spent will try another date, not drop a player"* — and the field the DATE
+  picker writes is `puzzle_id`, so that is where the sentence belongs. It also
+  gained the remedy clause its connections twin already carried, making the pair
+  identical as the two games intend: **"Everyone here has played every puzzle.
+  You can open one already played by its date."**
+
+  Both tests that pinned the old field moved with it — the pgTAP now asserts the
+  full message, and `SetupForm.test.tsx`'s docstring no longer claims the two
+  refusals split between the picker and the date box. They both name the date box.
+
+  **`PN072` is a tenth twin, and the first between two GAMES** rather than two
+  halves of one path: *"That puzzle is no longer available"* against crosswords'
+  *"That puzzle is no longer in the library"* — same severity, same kind of
+  field, same cause (the row a picker offered has since gone).
 - [ ] **wordiply's `create_game`** — via `wordiply-build-board`
 - [ ] **wordwheel's `create_game`** — via `wordwheel-build-board`

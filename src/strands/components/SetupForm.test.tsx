@@ -4,10 +4,9 @@
  * strands' setup form — the puzzle-derived shape of connections, plus three
  * settings of its own (the hint economy).
  *
- * Same two refusals a setup form cannot predict, and the same split between
- * them: PN067 names the PICKER, because the archive being spent is about WHO is
- * playing; PN072 names the puzzle box, because a retired puzzle is fixed by
- * clearing the date.
+ * Same two refusals a setup form cannot predict, and BOTH name the date box:
+ * PN067 because a group told the archive is spent will try another date rather
+ * than drop a player, PN072 because a retired puzzle is fixed by clearing it.
  */
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
@@ -85,10 +84,10 @@ describe('strands setup — the hint economy', () => {
 })
 
 describe('strands setup — where a refusal lands', () => {
-  it('puts a spent archive under the PICKER, because unchecking is the fix', () => {
-    const message = 'Everyone here has played every puzzle'
-    draw({ errors: { player_user_ids: message } })
-    expect(errorUnder('player_user_ids')).toBe(message)
+  it('puts a spent archive under the date box, because another date is the fix', () => {
+    const message = 'Everyone here has played every puzzle. You can open one already played by its date.'
+    draw({ errors: { puzzle_id: message } })
+    expect(errorUnder('puzzle_id')).toBe(message)
   })
 
   it('puts a retired puzzle under the date box, because clearing it is the fix', () => {

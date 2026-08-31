@@ -6,7 +6,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { IconHideSolution, IconPrint, IconRestart, IconReveal } from '../../common/components/icons'
 import { cls } from '../../common/lib/util/cls'
 import { setupRows } from '../lib/setupSummary'
-import type { GamePageCtx, GamePlayer } from '../../common/lib/games'
+import type { CreatedGame, GamePageCtx, GamePlayer } from '../../common/lib/games'
+import { showFaultModal } from '../../common/lib/fault/faultStore'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { CelebrationBlockingModal } from '../../common/components/game/CelebrationBlockingModal'
 import { useCelebration } from '../../common/hooks/game/useCelebration'
@@ -537,7 +538,7 @@ export function PlayArea(ctx: GamePageCtx) {
     // puzzle we just finished.
     const carried = { ...strandsSetup }
     delete carried.puzzle_id
-    const res = await runRpc<{ id: string }>(
+    const res = await runRpc<CreatedGame>(
       db.rpc('create_game', {
         target_club: clubHandle,
         setup: carried,
@@ -545,7 +546,7 @@ export function PlayArea(ctx: GamePageCtx) {
         mode: game.mode,
       }),
     )
-    if (res.type !== 'ok') {
+    if (res.type === 'not-ok') {
       // THE SAME ENVELOPE, READ DIFFERENTLY. On the setup form a validation is
       // an answer — fix the field and press Start again. Here there is no field
       // and no form, so whatever came back goes in the pill as it reads: a fault
@@ -555,8 +556,13 @@ export function PlayArea(ctx: GamePageCtx) {
       // silent about why the game didn't start.
       showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'manual' } })
       return
+    } else if (res.type === 'ok' && res.data.result === 'created') {
+      goToGame(`strands_${game.mode}`, res.data.id)
+      return
+    } else {
+      showFaultModal({ text: 'BUG: create_game fell through to unhandled' })
+      return
     }
-    goToGame(`strands_${game.mode}`, res.data.id)
   })
 
   // The GamePage menu. Held in a ref so the effect needn't list the per-render

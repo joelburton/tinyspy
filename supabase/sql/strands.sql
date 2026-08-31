@@ -458,11 +458,15 @@ begin
     select n.id into s_puzzle_id
       from strands.next_puzzle_for_club(player_user_ids) n;
     if s_puzzle_id is null then
-            -- The wording deliberately does not say "you have played them all": the
+      -- The wording deliberately does not say "you have played them all": the
       -- exclusion spans clubs and players, so the usual cause is that SOMEONE
       -- at the table has, which reads as a lie to everyone else.
-raise exception 'Everyone here has played every puzzle'
-        using errcode = 'PN067', hint = 'form-validation', column = 'player_user_ids',
+      --
+      -- Under `puzzle_id`, the field the DATE picker writes — a group told the
+      -- archive is spent will try another date, not drop a player. Identical to
+      -- connections' PN302, which the two games do on purpose.
+      raise exception 'Everyone here has played every puzzle. You can open one already played by its date.'
+        using errcode = 'PN067', hint = 'form-validation', column = 'puzzle_id',
         detail = 'every imported puzzle has been played by one of these players';
     end if;
   else
@@ -581,7 +585,10 @@ raise exception 'Everyone here has played every puzzle'
     end
   );
 
-  return common.ok_envelope(jsonb_build_object('id', new_id));
+  -- `result` NAMES the answer; `id` is the game to go to. It is the only thing a
+  -- call site can filter the `ok` on — without it the branch would match by
+  -- merely being `ok` and would draw a second answer as this one.
+  return common.ok_envelope(jsonb_build_object('result', 'created', 'id', new_id));
 
 -- One block, and it has never heard of any specific condition: it reads the
 -- SQLSTATE, re-raises anything that isn't ours, and lets the raise itself carry

@@ -203,8 +203,9 @@ select pg_temp.envelope_is(
     '=ada',
     '{"band":5,"hint_cost":3,"min_word_length":4,"timer":{"kind":"none"}}'::jsonb,
     array[(select ada from ids)]::uuid[], 'coop'),
-  '{"type":"not-ok","severity":"form-validation","field":"player_user_ids","dbcode":"PN067"}'::jsonb,
-  'create_game with every puzzle played names the picker, rather than crashing'
+  '{"type":"not-ok","severity":"form-validation","field":"puzzle_id","dbcode":"PN067",
+    "message":"Everyone here has played every puzzle. You can open one already played by its date."}'::jsonb,
+  'a spent archive names the DATE box — the remedy is another date, not fewer players'
 );
 
 select * from finish();
