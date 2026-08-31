@@ -13,6 +13,13 @@ The explanation bar in this codebase is higher than the average TypeScript proje
 - **Names describe role, not implementation.** `isClueGiver` not `playerA`. See [`naming.md`](naming.md) for the terminology lexicon.
 - **Prefer one clear path over a clever one.** A few extra lines of straightforward code beat a tight expression that requires the reader to pause.
 - **Extract a small helper over a deeply-nested ternary.** A single `a ? b : c` is fine; two-or-more-deep nests almost always read better as a small function with `if` branches — each case lands on its own line, picks up a name (or at least a local variable), and survives a future tweak without re-balancing the whole expression. See [`psychicnum/manifest.ts → labelFor`](../src/psychicnum/manifest.ts) for the model: a 3-deep ternary refactored into a 6-line helper. The only reason to keep the ternary inline is a measured hot path where allocating the helper actually shows up in a profile — and there are no such hot paths in this codebase today.
+- **A comment about a SHARED concept shrinks to a reminder and a pointer.** Where a comment explains what an envelope, an outcome or a severity *is*, one line and the name of the doc beats a paragraph — the doc is the one copy, and prose in five files drifts from it silently. Where a comment explains what *this code* does, it stays, and the bar above is unchanged. The tell is whether editing the doc would make the comment wrong.
+
+  ```ts
+  /* three paragraphs on what `field` means */  →  field: string | null  // which input; '_' = not one field
+  ```
+- **A lookup table's name says what it maps, and what the values ARE.** `LOGLEVEL_TO_CONSOLE_LOG_METHOD`, not `LEVEL_METHOD`; `SEVERITY_TO_LOGLEVEL`, not `NOT_OK_LEVEL`. The house form is `FOO_TO_BAR`, spelled out: `_TO_METHOD` only parses for a reader who already knows the values are `console`'s own method names, which is the thing worth saying.
+- **No single-letter helpers**, even for a formatter used twice on the next line. `fieldValue` and `quotedText` each carry a docstring saying what "empty" means for them — which is the only interesting thing about either, and exactly what `v` and `q` hid.
 - **`useEffect`, `useCallback`, and `useMemo` get header comments. `useEffect` callbacks also get a named function expression when non-trivial; `useCallback` / `useMemo` results assigned to a `const` skip the inner name (the const already carries it).** See [the hook-callback rule](#naming-and-commenting-hook-callbacks) below.
 
 ### What doesn't belong

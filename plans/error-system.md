@@ -12,8 +12,10 @@ two copies of one decision is how they drift. What this plan owns is the work �
 the evidence behind the design (§3), what is still open (§4), the worked example
 (§5), the process (§6) and the roster (§7).
 
-[plans/envelope-rollout.md](envelope-rollout.md) holds the ordering of the prep
-that runs before the rest of the roster.
+The prep that ran before the rest of the roster is finished, and its plan is
+deleted. What survives it lives in [docs/envelopes.md](../docs/envelopes.md);
+the layering work that came out of it is
+[plans/envelope-layering.md](envelope-layering.md).
 
 ---
 
@@ -684,10 +686,10 @@ select pg_temp.envelope_is(
 **145 entries. 68 done, 77 to go** (5 of those are the deferred edge
 functions). Cross them off here as they land.
 
-**Paused until the retro-fix list is empty** (Joel, 2026-08-29). A "done" entry
-below means its SQL answers with an envelope — not that its call site is written
-to the rules, which did not exist when the first 68 landed. See
-[envelope-rollout.md → The retro-fix list](envelope-rollout.md#the-retro-fix-list--every-already-converted-call-site).
+**Un-paused 2026-08-31: the retro-fix list is empty.** It existed because a
+"done" entry meant its SQL answered with an envelope, not that its call site was
+written to the rules — which did not exist when the first 68 landed. Those 68
+have been brought up to the rules, so a "done" entry now means both.
 
 An entry is one RPC or one table read **per area**, so the same name in two
 areas is two entries — each has its own call sites and converts separately.

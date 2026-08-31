@@ -32,7 +32,7 @@ begin;
 
 set search_path = connections, common, public, extensions;
 
-select plan(29);
+select plan(30);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -205,11 +205,23 @@ select lives_ok(
 -- ============================================================
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-create temp table created on commit drop as
-select (connections.create_game(
+create temp table created_env on commit drop as
+select connections.create_game(
   (select handle from club),
   pg_temp.connections_setup((select id from puzzle)),
-  array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as id;
+  array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') as env;
+create temp table created on commit drop as
+select (env->'data'->>'id')::uuid as id from created_env;
+
+-- The happy path used to reach straight for `data.id` and never look at the
+-- envelope, which is how this shipped without `result` while every sibling had
+-- it: SetupGameModal branches on `data.result === 'created'`, so the game was
+-- created and the player got the chain's scream.
+select pg_temp.envelope_is(
+  (select env from created_env),
+  '{"type":"ok","data":{"result":"created"}}'::jsonb,
+  'the answer names itself, so a call site has a case to assert'
+);
 
 select is(
   (select count(*) from created),

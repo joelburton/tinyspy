@@ -986,9 +986,17 @@ fact a wider definition wanted is already on the `[db]` line anyway — **a blan
 
 ### The environmental sentences
 
-The frontend authors exactly two sentences, and they are the only ones it
-authors at all — for the one failure above, where the server never spoke, so no
-author could have written for it. Which applies turns on `navigator.onLine`.
+Two sentences, for the one failure above, where the server never spoke and no
+author could have written for it. Which applies turns on `navigator.onLine`,
+read inside `environmentalEnvelope` — the ONE place either is chosen, called by
+`dbFetch` to word the modal and by all three wrappers to word the envelope a
+call site reads, so the two cannot disagree about one event.
+
+They are not the only sentences the frontend writes, and an earlier draft of
+this section claimed they were. The rest are the fallbacks a failure that
+reached no author still needs — an unreadable body, an `ok` with a message and
+no outcome, a page that has nothing to render. What IS true is the rule those
+obey: the frontend never words a failure it could have received words for.
 
 **They are generic and name no action**, and that is a correctness rule rather
 than a simplicity one: **an environmental failure cannot tell you whether the
