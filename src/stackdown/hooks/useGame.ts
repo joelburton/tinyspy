@@ -201,7 +201,11 @@ export function useGame(gameId: string): {
       // A FAILED read used to be indistinguishable from a game with no rows:
       // `data` is null either way, so the board simply kept whatever was on it.
       // The fault is logged and shown by `readRows`; stop loading.
-      if (gameRes.type !== 'ok' || playersRes.type !== 'ok' || subsRes.type !== 'ok') {
+      if (
+        gameRes.type === 'not-ok' ||
+        playersRes.type === 'not-ok' ||
+        subsRes.type === 'not-ok'
+      ) {
         setLoading(false)
         return
       }

@@ -104,14 +104,18 @@ describe('call-site shape', () => {
       'src/wordle/components/PlayArea.tsx',
       'src/wordle/hooks/useGame.ts',
       'src/wordle/manifest.ts',
+      'src/stackdown/components/PlayArea.tsx',
+      'src/stackdown/hooks/useGame.ts',
+      'src/stackdown/manifest.ts',
       // setgame is the first game finished END TO END, its in-game New Game
       // included: `create_game` now answers `'result', 'created'`, which is what
       // its call site needed to assert a case rather than match by being `ok`.
       // Only `SetupGameModal` + the `startGameInClub` contract wait for the rest
       // of the roster (plans/envelope-rollout.md → create_game).
       //
-      // NOT psychicnum's or stackdown's PlayArea, which still have the negated
-      // form on that same call.
+      // NOT psychicnum's PlayArea, the last one still holding the negated form —
+      // on `create_game`, the half its entry deferred before that group's
+      // ordering was corrected (plans/envelope-rollout.md → create_game).
     ]
     const regressed = CONVERTED.filter((f) => NEGATED.test(readFileSync(f, 'utf8')))
     expect(regressed, 'a converted file went back to the negated form').toEqual([])

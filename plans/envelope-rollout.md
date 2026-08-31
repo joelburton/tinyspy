@@ -492,8 +492,21 @@ the four inside `connections.submit_guess` from the original census.
   fourth branch is added, whoever writes it has to know that falling out of the
   chain fires a claim. A statement that may follow exactly one answer belongs in
   that answer's branch, where nothing has to be known.
-- [ ] stackdown — the three RPCs and three reads are **done**, and are the model
-  the rules were written from; what is left is its `create_game` half
+- [x] stackdown — the three gameplay RPCs were done first and are the model the
+  rules were written from. **Its `create_game` half and its three reads landed
+  2026-08-31**, closing this list.
+
+  **This entry's own line was wrong**, which is worth recording: it claimed the
+  three reads were done, and `useGame.ts` still held the negated form the whole
+  time. The guard's sweep list said so on every run; the plan and the guard
+  disagreed and the plan was believed. **Trust the number the guard prints, not
+  the checkbox** — one is measured, the other is typed.
+
+  `create_game` cost the usual `'result', 'created'` in SQL, its type argument in
+  `manifest.ts` and `PlayArea.tsx`, and the whole envelope in its pgTAP
+  (plan 18 → 19). Like waffle, its `not-ok` branch has a real second case:
+  **PN052** is a `form-validation` on `band` — a difficulty the board library has
+  no boards for — so a New Game refusal here is not always a fault.
 - [x] waffle — `PlayArea.submit_swap`, `useGame`'s three reads, and its
   `create_game` half. **Done 2026-08-30.** Both RPCs needed the SQL edit: neither
   `submit_swap` nor `create_game` named its answer.

@@ -58,6 +58,10 @@ type WordAnswer = {
 type RevealAnswer = { result: 'reveal'; word: string }
 type HintAnswer = { result: 'hint'; hint: string }
 
+/** What `stackdown.create_game` puts in `data` — the answer's name, and the game
+ *  to go to. Same reasoning as the two above. */
+type NewGameAnswer = { result: 'created'; id: string }
+
 /**
  * stackdown's play surface, shared by the coop and compete manifests, on the
  * shared two-column scaffold (docs/playarea.md → PlayArea layout).
@@ -386,7 +390,7 @@ export function PlayArea({
     // copy says shelved, not ended. At terminal there's nothing to interrupt.
     if (!isTerminal && !(await confirmAction(NEW_GAME_CONFIRM))) return
     if (!gameMode) return // menu exists pre-load, but there's no mode to copy yet
-    const res = await runRpc<{ id: string }>(
+    const res = await runRpc<NewGameAnswer>(
       db.rpc('create_game', {
         target_club: clubHandle,
         setup: setup as StackdownSetup,
@@ -394,7 +398,7 @@ export function PlayArea({
         mode: gameMode,
       }),
     )
-    if (res.type !== 'ok') {
+    if (res.type === 'not-ok') {
       // THE SAME ENVELOPE, READ DIFFERENTLY. On the setup form a validation is
       // an answer — fix the field and press Start again. Here there is no field
       // and no form, so whatever came back goes in the pill as it reads: a fault
@@ -404,8 +408,13 @@ export function PlayArea({
       // silent about why the game didn't start.
       showMsg({ ...getNotOkFeedback(res), mode: { kind: 'manual' } })
       return
+    } else if (res.type === 'ok' && res.data.result === 'created') {
+      goToGame(`stackdown_${gameMode}`, res.data.id)
+      return
+    } else {
+      showFaultModal({ text: 'BUG: create_game fell through to unhandled' })
+      return
     }
-    goToGame(`stackdown_${gameMode}`, res.data.id)
   }, [gameMode, clubHandle, setup, players, goToGame, showMsg, confirmAction, isTerminal])
 
   // Single-flight guard. New game has THREE triggers (the terminal button, the

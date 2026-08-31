@@ -13,20 +13,29 @@ set search_path = stackdown, common, public, extensions;
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(18);
+select plan(19);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select pg_temp.create_club('Stack coop', array['ada', 'bea']) as handle;
-create temp table g on commit drop as
-select (stackdown.create_game(
+-- The whole envelope is kept, not just the id: `data.result` is what both call
+-- sites branch on — the in-game New Game, and SetupGameModal once the interface
+-- follows.
+create temp table created on commit drop as
+select stackdown.create_game(
   (select handle from club),
   '{"timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
-  'coop')->'data'->>'id')::uuid as id;
+  'coop') as env;
+create temp table g on commit drop as
+select (env->'data'->>'id')::uuid as id from created;
 
 reset role;
+select pg_temp.envelope_is(
+  (select env from created),
+  '{"type":"ok","data":{"result":"created"}}'::jsonb,
+  'the answer names itself, so a call site has a case to assert');
 
 select is(
   (select gametype from common.games where id = (select id from g)),

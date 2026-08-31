@@ -227,7 +227,11 @@ begin
     jsonb_build_object('mode', mode, 'found_words_count', 0, 'required_words_count', 6)
   );
 
-  return common.ok_envelope(jsonb_build_object('id', new_id));
+  -- `result` NAMES the answer; `id` is the game to go to. The name is here even
+  -- though this is the only `ok` — a call site cannot assert a case the payload
+  -- does not carry, and without it the branch would match by being `ok` and draw
+  -- a second answer as this one.
+  return common.ok_envelope(jsonb_build_object('result', 'created', 'id', new_id));
 
 -- One block, and it has never heard of any specific condition: it reads the
 -- SQLSTATE, re-raises anything that isn't ours, and lets the raise itself carry

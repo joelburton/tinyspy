@@ -39,7 +39,9 @@ const setupFormLoader = lazy(() =>
 function startGameInClubFactory(mode: 'coop' | 'compete') {
   return (clubHandle: string, setup: unknown, playerUserIds: string[]) =>
     // No `.single()`: the RPC returns the envelope itself, one jsonb value.
-    runRpc<{ id: string }>(
+    // Promises MORE than `GameManifest.startGameInClub` asks for, which is legal
+    // — assignability runs one way (plans/envelope-rollout.md → create_game).
+    runRpc<{ result: 'created'; id: string }>(
       db.rpc('create_game', {
         target_club: clubHandle,
         setup: setup as StackdownSetup,
