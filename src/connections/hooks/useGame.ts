@@ -5,7 +5,8 @@ import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../../common/lib/supabase/supabase'
 import { channelLeaving, releaseChannel } from '../../common/lib/supabase/channelTeardown'
 import { onPostgresAttached } from '../../common/lib/supabase/postgresAttached'
-import { diagnosticsLine, readRows } from '../../common/lib/supabase/dbResult'
+import { diagnosticsLine } from '../../common/lib/supabase/dbLog'
+import { readRows } from '../../common/lib/supabase/dbResult'
 import type { Envelope } from '../../common/lib/supabase/envelope'
 
 /** The refusal arm of an envelope, on its own — what a failed read always is. */

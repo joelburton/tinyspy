@@ -3,7 +3,8 @@
 import { useEffect, useSyncExternalStore } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { db as commonDb } from '../../db'
-import { readRows, reportDbFault } from '../../lib/supabase/dbResult'
+import { reportDbFault } from '../../lib/supabase/dbEnvelope'
+import { readRows } from '../../lib/supabase/dbResult'
 
 /** The slice of `common.profiles` the FE consumes today — the
  *  identity fields used by greetings, the user menu badge, etc.

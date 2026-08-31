@@ -1,8 +1,9 @@
 // cs-unmet
 
 import {
-  environmentalEnvelope, faultEnvelope, logDb, logSlow, reportDbFault, type DbError,
-} from './dbResult'
+  environmentalEnvelope, faultEnvelope, reportDbFault, type DbError,
+} from './dbEnvelope'
+import { logDb, logSlow } from './dbLog'
 
 /**
  * The `fetch` every Supabase call goes through — the ONE place a request that

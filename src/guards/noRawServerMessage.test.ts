@@ -46,7 +46,8 @@ const ALLOWED = new Map<string, string>([
   // there, because the alternative is "something went wrong" with the diagnosis
   // thrown away. Anything we authored arrives as an envelope and is read from
   // `message` on that, not here.
-  ['src/common/lib/supabase/dbResult.ts', "shows a raw fault's own text, since nobody wrote one for it"],
+  ['src/common/lib/supabase/dbEnvelope.ts', "shows a raw fault's own text, since nobody wrote one for it"],
+  ['src/common/lib/supabase/dbResult.ts', "puts the browser's opaque string in an envelope's DETAIL, which no surface renders — the MESSAGE on that path is the frontend's own sentence"],
   // Reads the message to build a CallError for the classifier — the opposite of
   // rendering it.
   ['src/common/hooks/game/useWordSubmit.ts', 'normalizes a thrown rejection into a CallError'],

@@ -47,7 +47,7 @@ import { PageHeaderStatusSlot } from '../page-header/PageHeaderStatusSlot'
 import { SuspendConfirmationBlockingModal } from './SuspendConfirmationBlockingModal'
 import { Loading } from '../loading-and-errs/Loading'
 import { ErrorPage } from '../loading-and-errs/ErrorPage'
-import { diagnosticsLine } from '../../lib/supabase/dbResult'
+import { diagnosticsLine } from '../../lib/supabase/dbLog'
 import type { GameManifest } from '../../lib/games'
 import styles from './GamePage.module.css'
 

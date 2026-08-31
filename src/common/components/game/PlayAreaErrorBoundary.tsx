@@ -2,7 +2,7 @@
 
 import { Component, type ReactNode } from 'react'
 import { ErrorPage } from '../loading-and-errs/ErrorPage'
-import { diagnosticsLine } from '../../lib/supabase/dbResult'
+import { diagnosticsLine } from '../../lib/supabase/dbLog'
 import { StandardButton } from '../buttons/StandardButton'
 
 /**

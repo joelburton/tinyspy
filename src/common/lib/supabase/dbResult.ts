@@ -1,8 +1,10 @@
 // cs-unmet
 
-import { showFaultModal } from '../fault/faultStore'
 import { callEdgeFn } from './callEdgeFn'
-import { logStamp } from './realtimeDiag'
+import {
+  environmentalEnvelope, envelopeFields, faultEnvelope, reportDbFault, type DbError,
+} from './dbEnvelope'
+import { diagnosticsLine, logDb, type LogLevel, type Transport } from './dbLog'
 import type { Outcome } from '../outcomes'
 import type { Envelope, Severity } from './envelope'
 
@@ -39,22 +41,6 @@ import type { Envelope, Severity } from './envelope'
  */
 
 // ─────────────────────────────────────────────────────────────
-// The environmental messages
-// ─────────────────────────────────────────────────────────────
-
-/**
- * The whole frontend-authored message table — the two sentences for a failed JS
- * fetch, which is everything the server never got to speak for.
- *
- * Both are generic and name no action, and that is a correctness rule rather
- * than a style: docs/envelopes.md → The environmental sentences.
- */
-const ENVIRONMENTAL_TO_TEXT = {
-  offline: 'You appear to be offline. Please refresh and try again.',
-  unreachable: "The server didn't answer. Please refresh and try again.",
-} as const
-
-// ─────────────────────────────────────────────────────────────
 // Classification
 // ─────────────────────────────────────────────────────────────
 
@@ -78,56 +64,6 @@ const ENVIRONMENTAL_TO_TEXT = {
  */
 export function nothingAnswered(status: number | undefined): boolean {
   return status === 0
-}
-
-/** The `{code, message, details, hint}` shape PostgREST returns for an error.
- *  Structural, so a PostgrestError or a hand-built object both satisfy it. */
-export type DbError = {
-  message?: string
-  code?: string
-  details?: string | null
-  hint?: string | null
-} | null | undefined
-
-// ─────────────────────────────────────────────────────────────
-// The `[db]` line
-// ─────────────────────────────────────────────────────────────
-
-/**
- * What a `[db]` line is ABOUT, and how loudly. One word, six values, and it
- * decides the console method as well as the label — so a line's level and its
- * severity can never disagree.
- *
- *     FAULT            a bug
- *     SERVICE_ERROR    something we depend on didn't answer
- *     SLOW             a call over the threshold that still worked
- *     RACE             a race the player lost
- *     FORM_VALIDATION  the values you sent
- *     OK               it worked
- *
- * **Four of the six are a severity, spelled the same way.** A level named for
- * what it is about would drift from the severity it prints beside — a bare
- * `ERROR` on a line whose `severity=service-error` invites the reader to wonder
- * which of the two they are looking at, and `error` is the word this system
- * exists to stop using loosely. `SLOW` and `OK` are the exceptions because they
- * are `dbFetch` narrating transport, where no envelope reached a decision.
- *
- * Why each sits at the console method it does — including why `RACE` is `warn`
- * when nothing is wrong — is in docs/envelopes.md → the `[db]` line.
- */
-type LogLevel =
-  'FAULT' | 'SERVICE_ERROR' | 'SLOW' | 'RACE' | 'FORM_VALIDATION' | 'OK'
-
-/** Which function on `console` writes a line at each level — the values are
- *  literally its method names, called as `console[…]`, which is why the browser's
- *  own level filter is the only volume control this needs. */
-const LOGLEVEL_TO_CONSOLE_LOG_METHOD: Record<LogLevel, 'error' | 'warn' | 'debug'> = {
-  FAULT: 'error',
-  SERVICE_ERROR: 'warn',
-  SLOW: 'warn',
-  RACE: 'warn',
-  FORM_VALIDATION: 'debug',
-  OK: 'debug',
 }
 
 /** A `not-ok`'s severity decides its `[db]` level, so a line's level and its
@@ -176,89 +112,6 @@ export function notOkOutcome(envelope: Envelope & { type: 'not-ok' }): Outcome {
 }
 
 /**
- * Everything a `[db]` line can carry. **Every field prints, every time**, empty
- * after the `=` when there is nothing to say — so the same fact is always in the
- * same position whether you are reading one line or scanning fifty, and a blank
- * is itself information (no `dbcode` means nothing raised; no `status` means the
- * server never answered).
- */
-type DiagFields = {
-  /** `METHOD /path`. The one field that is never blank. */
-  call: string
-  // `| null` because an envelope's are always PRESENT and null when empty, and
-  // this reads them straight through. The formatter already treats the two
-  // alike (`fieldValue` returns '' for either), so this only lets the type say so.
-  severity?: Severity | null
-  outcome?: string | null
-  dbcode?: string | null
-  status?: number
-  /** Round-trip milliseconds. Known where the fetch happens, not after it. */
-  ms?: number
-  /** The raise's COLUMN, on a form-validation. */
-  field?: string | null
-  /** The debugging line: the raise's DETAIL, Postgres's details + hint, or the
-   *  thrown JS error. Never shown to a player. */
-  detail?: string | null
-}
-
-/** A field's value for the `[db]` line: itself, or **empty** when it has nothing
- *  to say. Both "absent" and "explicitly null" print as nothing, because the
- *  line's promise is that a blank means the same thing wherever you see one —
- *  an envelope's keys are always present and often null, while the transport's
- *  are simply missing, and a reader should not have to know which they are
- *  looking at. */
-const fieldValue = (x: unknown) => (x === undefined || x === null ? '' : String(x))
-
-/** The same, for **free text**, wrapped in quotes so its spaces and `|` cannot
- *  be mistaken for the line's own delimiters — and with its own quotes escaped,
- *  since Postgres routinely hands back a hint like `Perhaps you meant
- *  "clubs.name"` and an unescaped one makes the line unparseable exactly where
- *  it is most worth parsing. An empty string prints as nothing rather than as
- *  `""`, so it reads like every other empty field. */
-const quotedText = (x: unknown) =>
-  x === undefined || x === null || x === '' ? '' : `"${String(x).replace(/"/g, '\\"')}"`
-
-/**
- * **The diagnostics line** — every field, in a fixed order, empty after the `=`
- * when there is nothing to say. The same fact is always in the same position,
- * and a blank is itself information: no `dbcode` means nothing raised, no
- * `status` means the server never answered.
- *
- * Pure, so a surface can build one during render — an `<ErrorPage>` showing a
- * failure that was already logged where it happened.
- */
-export function diagnosticsLine(level: LogLevel, f: DiagFields): string {
-  return [
-    logStamp(),
-    level,
-    f.call,
-    `severity=${fieldValue(f.severity)}`,
-    `outcome=${fieldValue(f.outcome)}`,
-    `dbcode=${fieldValue(f.dbcode)}`,
-    `status=${fieldValue(f.status)}`,
-    `ms=${fieldValue(f.ms)}`,
-    `field=${fieldValue(f.field)}`,
-    `detail=${quotedText(f.detail)}`,
-  ].join(' | ')
-}
-
-/**
- * **A call took too long.** The one `[db]` line that is about the REQUEST rather
- * than about an answer — it says how long, and nothing about what came back.
- *
- * It carries fewer fields than every other line, on purpose. The fixed list is a
- * promise that a blank means something: no `dbcode` means nothing raised, no
- * `status` means nothing answered. This line is written before the body is read,
- * so it can keep neither — printing `dbcode=` would say the response carried no
- * code, when the truth is that nobody looked. Omitted beats empty.
- */
-export function logSlow(f: { call: string; ms?: number; detail?: string }): void {
-  console[LOGLEVEL_TO_CONSOLE_LOG_METHOD.SLOW](
-    `[db] ${[logStamp(), 'SLOW', f.call, `ms=${fieldValue(f.ms)}`, `detail=${quotedText(f.detail)}`].join(' | ')}`,
-  )
-}
-
-/**
  * **What a failed READ leaves behind, once its modal is dismissed.**
  *
  * A read can only fail as a fault — `readRows` never authors anything else — and
@@ -300,135 +153,6 @@ export function readFailure(
 }
 
 /**
- * **Write one `[db]` line, and hand back its diagnostics half.**
- *
- * The console gets the whole line; the returned string is the same thing minus
- * the trailing `msg=`, which is what the fault modal and `<ErrorPage>` show
- * under the message — no point printing the message twice on a surface that
- * already leads with it.
- *
- * Built ONCE and shared, so the screen and the log carry the same timestamp as
- * well as the same fields. Two `logStamp()` calls would drift immediately.
- *
- * `[db]` is its own console channel, beside `[rt]` (realtime) and `[ui]`, so
- * filtering to it gives every database call and nothing else.
- */
-export function logDb(level: LogLevel, f: DiagFields, message?: string | null): string {
-  const diagnostics = diagnosticsLine(level, f)
-  // `null` as well as `undefined`: an `ok` envelope always CARRIES a `message`
-  // key and it is usually null, so "nothing to say" arrives both ways.
-  console[LOGLEVEL_TO_CONSOLE_LOG_METHOD[level]](
-    `[db] ${diagnostics}${message === undefined || message === null ? '' : ` | msg=${quotedText(message)}`}`,
-  )
-  return diagnostics
-}
-
-/**
- * **Build an envelope for a failure the database didn't envelope itself** — a
- * raw Postgres error, or a reply no caller can read.
- *
- * Always `severity: fault`, because by construction nobody authored it. The
- * words are chosen HERE rather than when the fault is reported, so everything
- * downstream has an envelope and nothing downstream has to know what sort of
- * failure produced it.
- */
-export function faultEnvelope(error: DbError, fallback: string, extra?: string): Envelope<never> {
-  // Postgres's HINT is folded into `detail` rather than dropped. Our own raises
-  // use HINT as an inter-function channel and never forward it — but a RAW
-  // fault's hint is Postgres talking, and it is frequently the most useful
-  // thing in the whole error ("Grant the required privileges to the current
-  // role with: …"). The envelope has one debugging field, so it goes there.
-  const parts = [error?.details, error?.hint, extra].filter(Boolean)
-  const detail = parts.length ? parts.join(' — ') : undefined
-  // EVERY KEY, null where there is nothing — the same nine an envelope from SQL
-  // carries. It used to omit them, to match a SQL builder that stripped its own
-  // nulls; neither does now, so that a caller never has to ask whether a key is
-  // present before asking what it holds (Joel, 2026-08-28).
-  return {
-    type: 'not-ok',
-    data: null,
-    outcome: null,
-    severity: 'fault',
-    message: error?.message ?? fallback,
-    field: null,
-    meta: null,
-    dbcode: error?.code ?? null,
-    detail: detail ?? null,
-  }
-}
-
-/**
- * **The envelope for a request nothing answered** — the one failure where the
- * server never spoke, so no author could have written for it.
- *
- * **This is the only place either sentence is chosen**, which is the whole point
- * of it existing. `dbFetch` calls it to word the modal; the three wrappers call
- * it to word the envelope a call site reads. They used to answer separately —
- * `dbFetch` here and the wrappers via `faultEnvelope`, which reaches for
- * `error.message` and so handed back the browser's `"TypeError: Failed to
- * fetch"`. A player then got a modal and a pill disagreeing about one event.
- *
- * It reads `navigator.onLine` ITSELF rather than taking a boolean. Two callers
- * asking the same global and passing the answer in is two chances to ask it
- * differently, and the value is ambient — reading it here is reading it at the
- * same moment either way.
- *
- * `detail` is where the browser's string belongs: it is the only thing that
- * separates a dead socket from a TLS failure or a DNS miss, and it is worth
- * keeping — just not as the sentence a player reads.
- */
-export function environmentalEnvelope(detail?: string): Envelope<never> {
-  const offline = typeof navigator !== 'undefined' && navigator.onLine === false
-  return {
-    type: 'not-ok',
-    data: null,
-    outcome: null,
-    severity: 'fault',
-    message: offline ? ENVIRONMENTAL_TO_TEXT.offline : ENVIRONMENTAL_TO_TEXT.unreachable,
-    field: null,
-    meta: null,
-    dbcode: null,
-    detail: detail ?? null,
-  }
-}
-
-/** What the LAYER THAT MADE THE REQUEST knows and the envelope cannot: which
- *  call it was, what the server answered, how long it took. `ms` matters more
- *  than it looks — an instant reject is a dead connection and a 30-second one is
- *  a timeout on a live connection, and they arrive with the same message. */
-type Transport = {
-  call: string
-  status?: number
-  ms?: number
-  /** What the REQUEST knew, which no envelope can carry: the device's own state
-   *  at the moment of the call. `dbFetch` has always passed one; the type simply
-   *  did not say so, which is how it came to be silently dropped below. */
-  detail?: string
-}
-
-/** The `[db]` fields for an envelope, merged with what the transport knows. */
-function envelopeFields(transport: Transport, envelope: Envelope): DiagFields {
-  // **Both details, joined — not the envelope's INSTEAD of the transport's.**
-  // They answer different questions and neither substitutes for the other: the
-  // envelope's is what the server said (Postgres's own details + hint, or a
-  // raise's DETAIL), and the transport's is what the device knew (`online=`,
-  // `hidden`). Overriding lost the second on every fault that carried the
-  // first, which is exactly the pair you want on a gateway 502 — "the stack is
-  // broken" and "this phone was on a train" are the same line apart.
-  const details = [transport.detail, envelope.detail].filter(Boolean)
-  return {
-    ...transport,
-    severity: envelope.type === 'not-ok' ? envelope.severity : undefined,
-    outcome: envelope.outcome,
-    dbcode: envelope.dbcode,
-    field: envelope.type === 'not-ok' ? envelope.field : undefined,
-    // `null` rather than `''` when neither said anything, so it prints like
-    // every other empty field.
-    detail: details.length ? details.join(' — ') : null,
-  }
-}
-
-/**
  * **Log an outcome that is NOT a fault** — a form-validation, a lost race, a
  * wait-and-retry service-error, or an `ok` carrying words.
  *
@@ -457,23 +181,6 @@ function logLevelFor(envelope: Envelope): LogLevel {
   // Every remaining severity maps, and the `Record` makes that total: a new
   // severity is a compile error here rather than a silent fall-through.
   return SEVERITY_TO_LOGLEVEL[envelope.severity]
-}
-
-/**
- * **Report a database failure**: write the `[db]` line, then put the modal up.
- *
- * It decides nothing. Whoever built the envelope already chose the words —
- * `faultEnvelope` for a raw Postgres error, `environmentalEnvelope` for a
- * request that never completed, the RPC's own author for a declared fault — so
- * there is one path here and no taxonomy of failure kinds to keep in step with
- * the envelope's own.
- *
- * Returns nothing: by the time the caller resumes, the news is delivered.
- */
-export function reportDbFault(transport: Transport, envelope: Envelope): void {
-  const text = envelope.type === 'not-ok' ? envelope.message : 'Something went wrong.'
-  const diagnostics = logDb('FAULT', envelopeFields(transport, envelope), text)
-  showFaultModal({ text, diagnostics })
 }
 
 /**

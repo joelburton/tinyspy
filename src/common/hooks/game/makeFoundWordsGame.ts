@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react'
 import { useRealtimeRefetch } from '../realtime/useRealtimeRefetch'
 import { supabase } from '../../lib/supabase/supabase'
-import { readFailure, readRows, type DbError, type ReadFailure } from '../../lib/supabase/dbResult'
+import { type DbError } from '../../lib/supabase/dbEnvelope'
+import { readFailure, readRows, type ReadFailure } from '../../lib/supabase/dbResult'
 import type { FoundWordsGame, FoundWordsWord, FoundWordRow } from '../../lib/game/foundWords'
 
 /** The schema names of the found-words rank-ladder games — whatever

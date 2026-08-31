@@ -3,9 +3,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { PostgrestClient } from '@supabase/postgrest-js'
 import {
-  diagnosticsLine, environmentalEnvelope, faultEnvelope, _isEnvelope, logDb, logSlow,
-  notOkOutcome, reportDbFault, readRows, runEdgeFn, runRpc,
-} from './dbResult'
+  environmentalEnvelope, faultEnvelope, reportDbFault,
+} from './dbEnvelope'
+import { diagnosticsLine, logDb, logSlow } from './dbLog'
+import { _isEnvelope, notOkOutcome, readRows, runEdgeFn, runRpc } from './dbResult'
 import { clearFaultsForTest, peekFaultsForTest } from '../fault/faultStore'
 
 const { mockInvoke } = vi.hoisted(() => ({ mockInvoke: vi.fn() }))

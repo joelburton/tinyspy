@@ -1,6 +1,7 @@
 // cs-unmet
 
-import { diagnosticsLine, readRows, runRpc } from '../../lib/supabase/dbResult'
+import { diagnosticsLine } from '../../lib/supabase/dbLog'
+import { readRows, runRpc } from '../../lib/supabase/dbResult'
 import { showFaultModal } from '../../lib/fault/faultStore'
 import { showToast } from '../../lib/toast/toastStore'
 import { DEFAULT_TOAST_MS } from '../toasts/Toast'
