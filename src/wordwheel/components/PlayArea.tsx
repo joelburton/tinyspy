@@ -6,7 +6,8 @@ import { cls } from '../../common/lib/util/cls'
 import { CelebrationBlockingModal } from '../../common/components/game/CelebrationBlockingModal'
 import { useCelebration } from '../../common/hooks/game/useCelebration'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
-import type { GamePageCtx, Member } from '../../common/lib/games'
+import type { CreatedGame, GamePageCtx, Member } from '../../common/lib/games'
+import { showFaultModal } from '../../common/lib/fault/faultStore'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
@@ -355,7 +356,7 @@ export function PlayArea(ctx: GamePageCtx) {
     // already strips these from the saved club default; strip them here too so
     // the edge fn takes the random path.
     const freshSetup = { ...setup, custom_center: undefined, custom_letters: undefined }
-    const res = await runEdgeFn<{ id: string }>(
+    const res = await runEdgeFn<CreatedGame>(
       'wordwheel-build-board',
       {
         target_club: clubHandle,
@@ -364,7 +365,7 @@ export function PlayArea(ctx: GamePageCtx) {
         mode: gameMode,
       },
     )
-    if (res.type !== 'ok') {
+    if (res.type === 'not-ok') {
       // THE SAME ENVELOPE, READ DIFFERENTLY. On the setup form a validation is
       // an answer — fix the field and press Start again. Here there is no field
       // and no form, so whatever came back goes in the pill as it reads: a fault
@@ -372,10 +373,18 @@ export function PlayArea(ctx: GamePageCtx) {
       // its own outcome. The pill is shown either way — the modal escalates, it does
       // not replace (docs/envelopes.md), so dismissing it must not leave the board
       // silent about why the game didn't start.
+      // FIVE of the answers here are form-validations rather than faults — the
+      // most of any game — so this branch renders whatever outcome arrived
+      // instead of assuming a fault look.
       showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'manual' } })
       return
+    } else if (res.type === 'ok' && res.data.result === 'created') {
+      goToGame(`wordwheel_${gameMode}`, res.data.id)
+      return
+    } else {
+      showFaultModal({ text: 'BUG: wordwheel-build-board fell through to unhandled' })
+      return
     }
-    goToGame(`wordwheel_${gameMode}`, res.data.id)
   }, [gameMode, clubHandle, setup, players, goToGame, showLocalFeedback, confirmAction, isTerminal])
 
   // Single-flight guard. New game has THREE triggers (the terminal button, the

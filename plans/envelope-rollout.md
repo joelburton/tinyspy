@@ -1040,4 +1040,19 @@ bananagrams-shaped.
 
   `PN125` / `PN132` is an eleventh twin: the same malformed-starter check in both
   halves.
-- [ ] **wordwheel's `create_game`** — via `wordwheel-build-board`
+- [x] **wordwheel's `create_game`** — via `wordwheel-build-board`. All four
+  steps, 2026-08-31, and **the last `create_game` in the sweep.** 38 answers: one
+  `ok`, 32 faults, **5 form-validations — the most of any game.**
+
+  **`PN197` became a `form-validation` on `_`** (Joel, 2026-08-31) — the OPPOSITE
+  answer to its twin `PN176`, which became a `BUG:` in spellingbee's entry. Same
+  line of code in both games; what differs is the pool reaching it. spellingbee's
+  overlap cap sees the whole 1,889-seed table with nothing filtering it, so
+  emptying it means the table is unseeded. wordwheel's has already been narrowed
+  by TWO settings — `required` and `unique_letters` take it from thousands to as
+  few as 411 — so there IS something the player can change. The field is `_`
+  rather than either lever, because the two narrowed it TOGETHER and neither is
+  wrong on its own: the same call boggle's `PN155` makes.
+
+  `PN188` / `PN194` is a twelfth twin, the *"No words for those letters at that
+  difficulty"* pair spellingbee and boggle also carry, full stop and all.

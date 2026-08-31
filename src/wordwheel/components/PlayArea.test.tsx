@@ -204,7 +204,7 @@ describe('wordwheel PlayArea — icon-only action rows', () => {
   })
 
   it('terminal "New game" starts a fresh game with this setup/roster/mode', async () => {
-    startEdgeFn.mockResolvedValue({ type: 'ok', data: { id: 'fresh-game-id' } })
+    startEdgeFn.mockResolvedValue({ type: 'ok', data: { result: 'created', id: 'fresh-game-id' } })
     const user = userEvent.setup()
     const ctx = makeCtx({ isTerminal: true, playState: 'ended' })
     render(<PlayArea {...ctx} />)

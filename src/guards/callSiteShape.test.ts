@@ -126,8 +126,11 @@ describe('call-site shape', () => {
       'src/strands/manifest.ts',
       'src/wordiply/components/PlayArea.tsx',
       'src/wordiply/manifest.ts',
-      // What is NOT here is wordwheel's PlayArea, the last one whose in-game New
-      // Game still calls `create_game` with the negated form. Each joins as its own entry lands, which is
+      'src/wordwheel/components/PlayArea.tsx',
+      'src/wordwheel/manifest.ts',
+      // EVERY file in `src/` that reads an envelope is now listed. When the
+      // roster empties, delete this list and flip the report above into
+      // `expect(offenders()).toEqual([])` — the guard's own docstring says so. Each joins as its own entry lands, which is
       // the list above growing one game at a time
       // (plans/envelope-rollout.md → create_game).
     ]

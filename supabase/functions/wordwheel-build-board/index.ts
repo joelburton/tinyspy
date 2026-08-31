@@ -413,11 +413,21 @@ serve(async (req) => {
       }
       const eligible = applyOverlapCap(constrained, previousMask)
       if (eligible.length === 0) {
+        // Player-reachable, unlike spellingbee's twin: TWO settings have already
+        // narrowed this pool before the overlap cap sees it — `required` and
+        // `unique_letters` can take it from thousands of seeds to a few hundred,
+        // and the cap then finishes it off against the club's last board. So
+        // there is something to change, which is what makes it a validation.
+        //
+        // On the FORM's own line rather than under a field: `required` and
+        // `unique_letters` narrowed it TOGETHER, and neither is the wrong one on
+        // its own — the same call PN155 makes in boggle.
         console.log('reject: empty pangram pool after overlap cap')
-        return fault(
+        return formValidation(
           'PN197',
-          'No puzzle could be built for this club right now.',
-          'wordwheel-build-board: pangram pool empty after the overlap cap',
+          '_',
+          'No board could be built with those settings — please relax them.',
+          `wordwheel-build-board: ${constrained.length} seeds at that band, none within the overlap cap of the club's last board`,
         )
       }
       const weighted = buildWeightedPool(eligible)

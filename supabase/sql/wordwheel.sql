@@ -566,7 +566,10 @@ begin
     );
   end if;
 
-  return common.ok_envelope(jsonb_build_object('id', new_id));
+  -- `result` NAMES the answer; `id` is the game to go to. It is the only thing a
+  -- call site can filter the `ok` on, and it reaches both — the edge function
+  -- relays this envelope untouched.
+  return common.ok_envelope(jsonb_build_object('result', 'created', 'id', new_id));
 
 -- The boundary. It reads the SQLSTATE, re-raises anything that isn't ours, and
 -- lets the raise itself carry the message, the kind and the field.
