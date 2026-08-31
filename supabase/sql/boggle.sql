@@ -245,7 +245,13 @@ begin
     ));
   end if;
 
-  return common.ok_envelope(jsonb_build_object('id', new_id));
+  -- `result` NAMES the answer; `id` is the game to go to. REQUIRED, not
+  -- decorative: it is the only thing a call site can filter the `ok` on, and
+  -- without it the branch would match by merely being `ok` and would draw a
+  -- second answer as this one. It travels through `boggle-build-board`
+  -- untouched — `invokeCreateGame` forwards this envelope verbatim — so naming
+  -- it here reaches both call sites.
+  return common.ok_envelope(jsonb_build_object('result', 'created', 'id', new_id));
 
 -- The boundary. It reads the SQLSTATE, re-raises anything that isn't ours, and
 -- lets the raise itself carry the message, the kind and the field.

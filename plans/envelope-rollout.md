@@ -713,16 +713,37 @@ at once and none belongs to a single RPC's entry.
   player can actually pull, so it looks like a **form-validation** on
   `unique_letters` — the field `PN196` already uses for the same pool.
 
-- [ ] **boggle raises one refusal twice, worded twice.** `PN154`
-  (`boggle-build-board`, `form-validation` on `custom_board`, *"No words for
-  those letters at that difficulty."*) and `PN147` (`boggle.create_game`, same
-  severity, same field, *"No words for those letters at that difficulty"* — no
-  period) are the same check. The SQL one is unreachable through the edge
-  function, which refuses first; it exists because the RPC is the authority and
-  must not trust its caller. Fine as belt-and-braces, but one player-visible
-  sentence now lives in two files and has already drifted by a full stop.
-  **Decide:** keep both and pin the wording in a test, or make the SQL one a
-  `BUG:` fault since only a broken caller reaches it.
+- [ ] **The Deno/SQL twins: one condition, two raises, two sentences.** Filed as
+  "boggle raises one refusal twice"; writing that game's full table found **seven
+  on its one path**, so this is structural rather than boggle's.
+
+  The cause is sound and stays: Deno validates so the player gets a fast answer
+  without a round trip to Postgres, and SQL re-validates because the RPC is the
+  authority and must not trust its caller. What is wrong is that ONE
+  player-visible sentence lives in two files with nothing holding them equal.
+  `PN147` / `PN154` have already drifted — by a full stop.
+
+  | condition | Deno | SQL | after end-sweep 4's rewording |
+  |---|---|---|---|
+  | game mode | `PN114` | `PN040` | both `BUG: game mode of '<x>'` |
+  | no players | `PN115` | `PN059` | both `BUG: game with no players` |
+  | no dice set | `PN149` | `PN141` | both `BUG: game with no dice set` |
+  | required difficulty | `PN150` | `PN138` | both `BUG: required difficulty of '<x>'` |
+  | legal-word difficulty | `PN151` | `PN139` | both `BUG: legal-word difficulty of '<x>'` |
+  | scoring ladder | `PN152` | `PN140` | both `BUG: scoring ladder of '<x>'` |
+  | no words for those letters | `PN154` | `PN147` | already near-identical |
+
+  Note this gets WORSE, not better, once end-sweep 4 lands: the sentences become
+  exactly identical, in two languages, with two codes.
+
+  **Decide, once, for all seven:** pin the pairs in a test (a guard asserting the
+  twin messages match, the way `raiseCodes.test.ts` already pairs codes to
+  files), or accept the Deno half as the player-facing one and demote the SQL
+  twin to a terse internal `BUG:` only a broken caller reaches.
+
+  **Survey before deciding** — seven is what ONE path holds. The other builder
+  games (`waffle`, `spellingbee`, `wordwheel`, `wordiply`, `letterboxed`,
+  `crosswords`) run the same Deno-then-SQL shape and have not been counted.
 
 The cost of deferring all three call-site sweeps is bounded and known: each
 `useGame` is opened twice, once for the one-word read conversion inside its own
@@ -821,7 +842,19 @@ bananagrams-shaped.
   on the other side of: its value is GENERATED, not picked, so the player really
   can retry it. `PN098` is the only cross-field one (bunch vs players × hand),
   and stays a fault for the same reason — both halves are pickers.
-- [ ] **boggle's `create_game`** — via `boggle-build-board`
+- [x] **boggle's `create_game`** — via `boggle-build-board`. All four steps,
+  2026-08-31. **39 answers: one `ok`, 35 faults, 3 form-validations** — the most
+  validations of any New Game so far (`PN154` no words for those letters, `PN155`
+  no board met those constraints, and the RPC's own `PN147`), which is why its
+  `not-ok` branch renders whatever outcome arrived rather than assuming a fault.
+
+  `PN143`–`PN146` are the one group where "should the FE have caught it?" is NO
+  and `BUG:` is still right: the RPC re-checking the board OUR OWN edge function
+  generated. Something malformed did arrive; the broken party is our Deno half
+  rather than our React half.
+
+  **Writing the table found seven Deno/SQL twins on this one path** — see the
+  rewritten end-sweep 6.
 - [ ] **codenamesduet's `create_game`**
 - [ ] **crosswords' `create_game`** — two paths, the edge function and the direct RPC
 - [ ] **letterboxed's `create_game`** — via `letterboxed-build-board`

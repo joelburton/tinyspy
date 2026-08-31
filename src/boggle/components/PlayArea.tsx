@@ -33,8 +33,15 @@ import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
 import shared from '../../common/components/game/PlayArea.module.css'
 import { getNotOkFeedback } from '../../common/lib/game/genericPills'
+import { showFaultModal } from '../../common/lib/fault/faultStore'
 import styles from './PlayArea.module.css'
 import '../theme.css'
+
+/** What `boggle.create_game` puts in `data`, forwarded verbatim through the
+ *  `boggle-build-board` edge function by `invokeCreateGame`. `result` is the
+ *  field the `ok` branch filters on — without it there is nothing to assert but
+ *  the absence of a failure. */
+type NewGameAnswer = { result: 'created'; id: string }
 
 /**
  * boggle play surface, shared by the coop and compete manifests, on the shared
@@ -326,7 +333,7 @@ export function PlayArea(ctx: GamePageCtx) {
     // copy says shelved, not ended. At terminal there's nothing to interrupt.
     if (!isTerminal && !(await confirmAction(NEW_GAME_CONFIRM))) return
     if (!gameMode) return // menu exists pre-load, but there's no mode to copy yet
-    const res = await runEdgeFn<{ id: string }>(
+    const res = await runEdgeFn<NewGameAnswer>(
       'boggle-build-board',
       {
         target_club: clubHandle,
@@ -335,7 +342,7 @@ export function PlayArea(ctx: GamePageCtx) {
         mode: gameMode,
       },
     )
-    if (res.type !== 'ok') {
+    if (res.type === 'not-ok') {
       // THE SAME ENVELOPE, READ DIFFERENTLY. On the setup form a validation is
       // an answer — fix the field and press Start again. Here there is no field
       // and no form, so whatever came back goes in the pill as it reads: a fault
@@ -343,10 +350,20 @@ export function PlayArea(ctx: GamePageCtx) {
       // its own outcome. The pill is shown either way — the modal escalates, it does
       // not replace (docs/envelopes.md), so dismissing it must not leave the board
       // silent about why the game didn't start.
+      // THREE of the answers here are genuinely form-validations rather than
+      // faults — PN154 (no words for those letters), PN155 (no board met those
+      // constraints) and the RPC's own PN147 — which is the most of any game's
+      // New Game, and why this branch renders whatever outcome arrived instead
+      // of assuming a fault look.
       showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'manual' } })
       return
+    } else if (res.type === 'ok' && res.data.result === 'created') {
+      goToGame(`boggle_${gameMode}`, res.data.id)
+      return
+    } else {
+      showFaultModal({ text: 'BUG: boggle-build-board fell through to unhandled' })
+      return
     }
-    goToGame(`boggle_${gameMode}`, res.data.id)
   }, [gameMode, clubHandle, setup, players, goToGame, showLocalFeedback, confirmAction, isTerminal])
 
   // Single-flight guard. New game has THREE triggers (the terminal button, the

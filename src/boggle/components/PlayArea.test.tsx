@@ -242,7 +242,9 @@ describe('boggle PlayArea — icon-only action rows', () => {
   })
 
   it('terminal "New game" starts a fresh game with this setup/roster/mode', async () => {
-    startEdgeFn.mockResolvedValue({ type: 'ok', data: { id: 'fresh-game-id' } })
+    // `data.result` is the field the call site filters the `ok` on, so a stub
+    // without it is an answer the chain cannot name and correctly screams at.
+    startEdgeFn.mockResolvedValue({ type: 'ok', data: { result: 'created', id: 'fresh-game-id' } })
     const user = userEvent.setup()
     const ctx = makeCtx({ isTerminal: true, playState: 'ended' })
     render(<PlayArea {...ctx} />)

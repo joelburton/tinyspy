@@ -42,7 +42,12 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
     // The board is rolled in Deno, so this goes through an edge function rather
     // than straight to the RPC — but it comes back the same envelope a direct
     // create_game returns, relayed untouched (see _shared/startGame.ts).
-    runEdgeFn<{ id: string }>('boggle-build-board', {
+    //
+    // Promises MORE than `GameManifest.startGameInClub` asks for, which is legal
+    // — assignability runs one way. Inert until the interface widens, since
+    // `SetupGameModal` reads the INTERFACE's type
+    // (plans/envelope-rollout.md → create_game).
+    runEdgeFn<{ result: 'created'; id: string }>('boggle-build-board', {
       target_club: clubHandle,
       setup: setup as BoggleSetup,
       player_user_ids: playerUserIds,
