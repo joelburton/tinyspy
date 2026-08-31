@@ -107,10 +107,17 @@ describe('wordle setup — writing a setting', () => {
 })
 
 describe('wordle setup — where a refusal lands', () => {
-  it('puts the one validation create_game can still raise under its field', () => {
-    // PN057 — nothing to draw an answer from at that band. Every other refusal
-    // this RPC can make is about a value the form does not offer, so it is a
-    // fault and lands on the dialog's own line instead.
+  // `wordle.create_game` raises NO form-validations today: every refusal it can
+  // make is about a value this form does not offer, so all of them are faults
+  // and land on the dialog's own line. PN057 was the last one that wasn't, and
+  // it became a fault on 2026-08-30 — the bands are cumulative, so no choice
+  // here can empty the answer pool, and the sentence was inviting the player to
+  // re-pick a control that could not help.
+  //
+  // These two keep testing the WIRING rather than a live raise: a field error
+  // that arrives renders under its own control. That is what a future
+  // validation would need, and it is cheaper to hold than to rediscover.
+  it('lets the answer-source picker carry a field error, if one ever lands', () => {
     const message = 'No answers available from that source'
     draw({ errors: { answer_source: message } })
     expect(errorUnder('answer_source')).toBe(message)

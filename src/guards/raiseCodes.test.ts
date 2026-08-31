@@ -201,6 +201,12 @@ describe('the raise codes', () => {
       // A file the PLAYER supplied, so not our bug — arguably not a fault at
       // all, which is a question for crosswords' own conversion.
       'The puzzle file could not be read',
+      // A DEPLOY state, not an input: `common.words` came up with no clean
+      // 5-letter rows, which happens when the word import never ran. Nothing
+      // reached the server malformed, so the `BUG:` idiom would be a lie —
+      // and the player cannot act on it either way, which is why it is a fault
+      // rather than the answer_source validation it used to be (2026-08-30).
+      'The word list is empty',
     ])
     const offenders: string[] = []
     const seen = new Set<string>()

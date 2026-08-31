@@ -35,8 +35,13 @@ import { InfoCol } from './InfoCol'
 import { cls } from '../../common/lib/util/cls'
 import shared from '../../common/components/game/PlayArea.module.css'
 import { getNotOkFeedback } from '../../common/lib/game/genericPills'
+import { showFaultModal } from '../../common/lib/fault/faultStore'
 import styles from './PlayArea.module.css'
 import '../theme.css'
+
+/** What `wordle.create_game` puts in `data`. One `ok` answer, named anyway — a
+ *  branch matching merely by being `ok` would draw a second one as this. */
+type NewGameAnswer = { result: 'created'; id: string }
 
 /**
  * wordle's play surface, shared by the coop and compete manifests. The thin
@@ -263,7 +268,7 @@ export function PlayArea({
     // copy says shelved, not ended. At terminal there's nothing to interrupt.
     if (!isTerminal && !(await confirmAction(NEW_GAME_CONFIRM))) return
     if (!gameMode) return // menu exists pre-load, but there's no mode to copy yet
-    const res = await runRpc<{ id: string }>(
+    const res = await runRpc<NewGameAnswer>(
       db.rpc('create_game', {
         target_club: clubHandle,
         // ctx.setup is Record<string,unknown> at the shell level; this game's
@@ -274,7 +279,7 @@ export function PlayArea({
         mode: gameMode,
       }),
     )
-    if (res.type !== 'ok') {
+    if (res.type === 'not-ok') {
       // THE SAME ENVELOPE, READ DIFFERENTLY. On the setup form a validation is
       // an answer — fix the field and press Start again. Here there is no field
       // and no form, so whatever came back goes in the pill as it reads: a fault
@@ -282,10 +287,20 @@ export function PlayArea({
       // its own outcome. The pill is shown either way — the modal escalates, it does
       // not replace (docs/envelopes.md), so dismissing it must not leave the board
       // silent about why the game didn't start.
+      //
+      // Unlike waffle's, everything this can answer is a FAULT — wordle's
+      // create_game raises no form-validation at all, since every value it
+      // refuses is one no control offers. PN057 was the last exception and
+      // became a fault on 2026-08-30.
       showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'manual' } })
       return
+    } else if (res.type === 'ok' && res.data.result === 'created') {
+      goToGame(`wordle_${gameMode}`, res.data.id)
+      return
+    } else {
+      showFaultModal({ text: 'BUG: create_game fell through to unhandled' })
+      return
     }
-    goToGame(`wordle_${gameMode}`, res.data.id)
   }, [gameMode, clubHandle, setup, members, goToGame, showLocalFeedback, confirmAction, isTerminal])
 
   // Single-flight guard. New game has THREE triggers (the terminal button, the

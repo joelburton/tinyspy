@@ -1,7 +1,9 @@
 // cs-unmet
 
 import { getNotOkFeedback } from '../../common/lib/game/genericPills'
+import { showFaultModal } from '../../common/lib/fault/faultStore'
 import { runRpc } from '../../common/lib/supabase/dbResult'
+import type { Outcome } from '../../common/lib/outcomes'
 import { useEffect, useCallback, useState } from 'react'
 import type { GenericFeedbackMsg } from '../../common/lib/games'
 import { GenericFeedbackPill } from '../../common/components/feedback/GenericFeedbackPill'
@@ -38,16 +40,35 @@ import styles from './BoardCol.module.css'
  *  the mark is still there when the movement stops. */
 const REJECT_MARK_MS = 900
 
-/** What `wordle.submit_guess` puts in `data`. The structural fact travels even
- *  where the server also wrote the sentence: the board's shake is keyed on
- *  `result`, and has nothing to do with the words. */
-type GuessAnswer = {
-  result: 'correct' | 'incorrect' | 'duplicate' | 'notAWord'
-  colors?: string
-  guesses_used: number | null
-  solved: boolean
-  terminal: boolean
-}
+/**
+ * What `wordle.submit_guess` puts in `data`. The structural fact travels even
+ * where the server also wrote the sentence: the board's shake is keyed on
+ * `result`, and has nothing to do with the words.
+ *
+ * A UNION, because the two halves are not the same answer wearing one shape. A
+ * soft reject burns no guess and carries no colors — there is no row to color —
+ * while an accepted guess always has them. Written as one object with `colors?`
+ * that distinction was invisible, and `?` said "sometimes missing" where the
+ * truth is "missing in exactly these two cases".
+ */
+type GuessAnswer =
+  /** Soft rejects: the rules were applied, nothing was burned, the typed row
+   *  stays. Both come with the server's own sentence + outcome. */
+  | {
+      result: 'duplicate' | 'notAWord'
+      guesses_used: number | null
+      solved: false
+      terminal: false
+    }
+  /** Accepted: the guess is recorded. `colors` and the finish reach this surface
+   *  by realtime like everyone else's, so neither is read here. */
+  | {
+      result: 'correct' | 'incorrect'
+      colors: string
+      guesses_used: number | null
+      solved: boolean
+      terminal: boolean
+    }
 
 export function BoardCol({
   // ── Board to render (live rows + the history snapshot — PlayArea picks the log,
@@ -203,6 +224,34 @@ export function BoardCol({
     setCurrent((c) => c.slice(0, -1))
   }, [clearLocalFeedback])
 
+  /**
+   * What BOTH soft rejects do — `duplicate` and `notAWord`. They are separate
+   * answers with separate branches; this is the work they happen to share, named
+   * rather than left as a statement two branches fall into
+   * (docs/envelopes.md → The shape of a call site).
+   *
+   * The rules were applied and no guess was burned, so the typed row stays put
+   * and the board shakes instead. Takes the tone and the sentence as ARGUMENTS
+   * because the server wrote both, per answer — this function is the shared
+   * mechanism, never the source of the words.
+   *
+   * `tone` widens to the two ring colors `Board` renders: amber for a warning,
+   * red for anything else, which is what a failure looks like anyway. It is a
+   * TOTAL map rather than a filter — a bare `if` on the value it knows would
+   * leave the PREVIOUS rejection's color on the row when anything else arrived,
+   * wrong and silent. (Widening `Board` to take an outcome is filed in
+   * plans/css-system-2.md §18 with the rest of this state's shape.)
+   */
+  const softReject = useCallback(
+    (tone: Outcome, text: string) => {
+      setPending(null)
+      setRejectTone(tone === 'warning' ? 'warning' : 'lost')
+      setRejectNonce((n) => n + 1)
+      showLocalFeedback({ tone, text, mode: { kind: 'sticky' } })
+    },
+    [showLocalFeedback],
+  )
+
   // ─── Submit a guess (stable across keystrokes) ────────────────
   const doSubmit = useCallback(
     async (word: string) => {
@@ -218,36 +267,40 @@ export function BoardCol({
         db.rpc('submit_guess', { target_game: gameId, guess: word }),
       )
       setSubmitting(false)
-      if (res.type !== 'ok') {
+      if (res.type === 'not-ok') {
         setPending(null)
         setRejectNonce((n) => n + 1)
         showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
         return
-      }
-      // A SOFT REJECT is an `ok`: the rules were applied and no guess was
-      // burned, so the typed row stays. The words and the tone come from the
-      // server, and the board's shake takes the same tone the pill does — one
-      // answer, one appearance. `result` says WHICH refusal, which is what the
-      // shake is keyed on.
-      if (res.data.result === 'notAWord' || res.data.result === 'duplicate') {
+      } else if (res.type === 'ok' && res.data.result === 'duplicate' && res.message !== null) {
+        softReject(res.outcome, res.message)
+        return
+      } else if (res.type === 'ok' && res.data.result === 'notAWord' && res.message !== null) {
+        softReject(res.outcome, res.message)
+        return
+      } else if (res.type === 'ok' && res.data.result === 'correct') {
+        // Accepted: clear the typing buffer. `pending` holds the word in place
+        // until its colored row lands (then flips). Solving shows NOTHING extra
+        // here — the win arrives with the colored row over realtime, the same
+        // way it reaches everyone else.
+        setCurrent('')
+        return
+      } else if (res.type === 'ok' && res.data.result === 'incorrect') {
+        // Identical to `correct` on purpose, and a separate branch anyway: the
+        // two differ in what they did to the GAME, not in what this column has
+        // to do about it, and merging them would be a branch matching two
+        // answers — which is how the `?? 'lost'` below it came to exist.
+        setCurrent('')
+        return
+      } else {
+        // The optimistic word is on the board waiting for a row that may never
+        // arrive, so take it back before screaming.
         setPending(null)
-        // TOTAL, not a filter. `Board` renders two ring colors and `outcome` is
-        // one of seven, so a bare `if` on the two it knows would leave the
-        // PREVIOUS rejection's color on the row when anything else arrived —
-        // wrong, and silent. Amber for a warning, red for everything else,
-        // which is what a failure looks like anyway. The pill carries the exact
-        // words either way. (Widening `Board` to take an outcome is filed in
-        // plans/css-system-2.md §18 with the rest of this state's shape.)
-        setRejectTone(res.outcome === 'warning' ? 'warning' : 'lost')
-        setRejectNonce((n) => n + 1)
-        showLocalFeedback({ tone: res.outcome ?? 'lost', text: res.message ?? '', mode: { kind: 'sticky' } })
+        showFaultModal({ text: 'BUG: submit_guess fell through to unhandled' })
         return
       }
-      // accepted (correct/incorrect): clear the typing buffer. `pending` holds the word
-      // in place until its colored row lands (then flips).
-      setCurrent('')
     },
-    [gameId, showLocalFeedback],
+    [gameId, showLocalFeedback, softReject],
   )
 
   // ─── Physical keyboard ────────────────────────────────────────

@@ -289,9 +289,25 @@ begin
      order by random() limit 1;
   end if;
   if v_target is null then
-    raise exception 'No answers available from that source'
-      using errcode = 'PN057', hint = 'form-validation', column = 'answer_source',
-      detail = 'common.words has no answer candidates at that band; run gmake all-words';
+    -- A FAULT, not a validation about `answer_source` (Joel, 2026-08-30). The
+    -- bands are cumulative — `difficulty <= n` — so band 1 is the smallest pool
+    -- and every band above it is a superset. There is no choice on the form that
+    -- empties one: reaching here means `common.words` itself has no clean
+    -- 5-letter rows, and then EVERY source fails, the curated list included.
+    --
+    -- Which makes the old form-validation actively misleading: it put the
+    -- sentence under a picker and invited the player to choose again, when
+    -- nothing they can pick helps. The condition is a missing word import (see
+    -- the stamps note in CLAUDE.md), so the modal is the right escalation —
+    -- it reaches whoever can run `gmake db-data`.
+    --
+    -- A state, not an input, so it keeps a plain sentence rather than the
+    -- "reached the server" form (docs/envelopes.md → A fault says what reached
+    -- the server). Worded as `waffle-build-board`'s PN120, which is this same
+    -- condition one game over.
+    raise exception 'The word list is empty'
+      using errcode = 'PN057', hint = 'fault', column = '_',
+      detail = 'common.words has no clean 5-letter answer candidates; run gmake all-words';
   end if;
 
   new_id := common.create_game(
@@ -341,7 +357,11 @@ begin
          end
   );
 
-  return common.ok_envelope(jsonb_build_object('id', new_id));
+  -- `result` NAMES the answer; `id` is the game to go to. The name is here even
+  -- though this is the only `ok` — a call site cannot assert a case the payload
+  -- does not carry, and without it the branch would match by being `ok` and draw
+  -- a second answer as this one.
+  return common.ok_envelope(jsonb_build_object('result', 'created', 'id', new_id));
 
 -- One block, and it has never heard of any specific condition: it reads the
 -- SQLSTATE, re-raises anything that isn't ours, and lets the raise itself carry

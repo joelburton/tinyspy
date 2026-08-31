@@ -234,7 +234,10 @@ describe('wordle PlayArea — icon-only action rows', () => {
     rpc.mockImplementation((name: string) =>
       name === 'create_game'
         ? // envelope itself now, one jsonb value, so there is no `.single()`.
-          Promise.resolve({ data: { type: 'ok', data: { id: 'next-game-id' } }, error: null })
+          Promise.resolve({
+            data: { type: 'ok', data: { result: 'created', id: 'next-game-id' } },
+            error: null,
+          })
         : Promise.resolve({ error: null }),
     )
     const user = userEvent.setup()

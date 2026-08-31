@@ -50,10 +50,17 @@ select pg_temp.envelope_is(
     "message":"BUG: guess that was not five letters"}'::jsonb,
   'too-short entry is a fault');
 
-select is(
-  wordle.submit_guess((select id from g), 'zzzzz')->'data'->>'result',
-  'notAWord',
-  'a 5-letter non-word → notAWord');
+-- The WHOLE envelope, not just `result`. BoardCol reads three things off this
+-- answer — the case, the sentence and the outcome — and used to guess the last
+-- two (`res.message ?? ''`, `res.outcome ?? 'lost'`) because one branch served
+-- both soft rejects. The branches are split now and the guesses are gone, so if
+-- the server ever stops sending the pair, this answer matches no branch and
+-- screams. That is the behavior worth pinning.
+select pg_temp.envelope_is(
+  wordle.submit_guess((select id from g), 'zzzzz'),
+  '{"type":"ok","outcome":"lost","message":"Not in word list",
+    "data":{"result":"notAWord","solved":false,"terminal":false}}'::jsonb,
+  'a 5-letter non-word → notAWord, with the words and the tone the pill renders');
 
 reset role;
 select is(
@@ -91,10 +98,11 @@ select is(
 
 -- ── Duplicate (same word again): soft reject, no burn ──────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select is(
-  wordle.submit_guess((select id from g), (select word from valw))->'data'->>'result',
-  'duplicate',
-  'a word already on the shared board → duplicate');
+select pg_temp.envelope_is(
+  wordle.submit_guess((select id from g), (select word from valw)),
+  '{"type":"ok","outcome":"warning","message":"Already guessed",
+    "data":{"result":"duplicate","solved":false,"terminal":false}}'::jsonb,
+  'a word already on the shared board → duplicate, and it reads as a warning');
 reset role;
 select is(
   (select max(guesses_used) from wordle.players where game_id = (select id from g)),

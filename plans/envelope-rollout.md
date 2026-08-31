@@ -520,9 +520,38 @@ the four inside `connections.submit_guess` from the original census.
   answered `data: null` / `{id}` with no `result`, so the chain screamed instead
   of acting — the fake envelope had drifted from the contract, which is the exact
   failure this shape exists to make loud. Both stubs now carry the case name.
-- [ ] wordle — `BoardCol.submit_guess` (**the one confirmed live bug**:
-  `res.outcome ?? 'lost'`, `res.message ?? ''`, branch off `result` inside an
-  already-`ok` block, no scream) and `useGame`'s three reads
+- [x] wordle — `BoardCol.submit_guess`, `useGame`'s three reads, and its
+  `create_game` half. **Done 2026-08-30**, and **the roster's one confirmed live
+  bug is fixed by the shape rather than beside it.**
+
+  `res.outcome ?? 'lost'` and `res.message ?? ''` were not defensive: the two
+  soft rejects — `duplicate` and `notAWord` — shared ONE branch
+  (`result === 'notAWord' || result === 'duplicate'`), so TypeScript could not
+  narrow to the worded arm and the defaults were covering for that. Split into
+  two branches, each asserting `message !== null`, and the guesses become
+  unwritable. The fix and the shape are the same edit.
+
+  The shared work went to a named `softReject(tone, text)` — explicit parameters,
+  because the server writes both per answer and this function is the mechanism,
+  never the source of the words.
+
+  `GuessAnswer` became a UNION. As one object with `colors?` it said "sometimes
+  missing" where the truth is "missing in exactly the two soft rejects", which is
+  the same open-set defect the branch rules exist for, one layer down.
+
+  **PN057 was reclassified `form-validation` → `fault`** (Joel, 2026-08-30) — see
+  its raise comment. The bands are cumulative, so no setup choice can empty the
+  answer pool; reaching it means the word import never ran, and then EVERY source
+  fails. It had no pgTAP at all, and now has two; reaching it needs
+  `delete from common.words` after a `reset role`, since `authenticated` holds no
+  DELETE — which is the grant that makes it unreachable in production by anything
+  but a failed import. `raiseCodes.test.ts` also required it in `STATE_NOT_BUG`.
+  With it gone, **wordle's `create_game` raises no form-validation at all**, so
+  `SetupForm.test.tsx`'s two tests now pin the wiring rather than a live raise.
+
+  pgTAP: the two soft rejects became `envelope_is` asserting the message and
+  outcome the pill renders (1-for-1, no plan change), and `create_game_test`
+  keeps the whole envelope (plan 17 → 20 with PN057's pair).
 
 #### Three END-SWEEPS, once the per-game roster is clear
 

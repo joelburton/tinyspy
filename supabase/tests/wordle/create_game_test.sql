@@ -10,19 +10,28 @@ set search_path = wordle, common, public, extensions;
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(17);
+select plan(20);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select pg_temp.create_club('Wordle cg', array['ada', 'bea']) as handle;
-create temp table g on commit drop as
-select (wordle.create_game(
+-- The whole envelope is kept, not just the id: `data.result` is what both call
+-- sites branch on — the in-game New Game, and SetupGameModal once the interface
+-- follows.
+create temp table created on commit drop as
+select wordle.create_game(
   (select handle from club), pg_temp.wordle_setup(5),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
-  'coop')->'data'->>'id')::uuid as id;
+  'coop') as env;
+create temp table g on commit drop as
+select (env->'data'->>'id')::uuid as id from created;
 
 reset role;
+select pg_temp.envelope_is(
+  (select env from created),
+  '{"type":"ok","data":{"result":"created"}}'::jsonb,
+  'the answer names itself, so a call site has a case to assert');
 select is((select mode from wordle.games where id = (select id from g)), 'coop',
   'game stored with mode coop');
 select is((select max_guesses from wordle.games where id = (select id from g)), 5,
@@ -121,6 +130,36 @@ select pg_temp.envelope_is(
     array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop'),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN056"}'::jsonb,
   'a legal_guess below the answer band names the legal band');
+
+-- ── PN057: an empty dictionary is a FAULT, not a field validation ──
+-- The only raise here that no test held, and its severity changed on 2026-08-30
+-- (Joel): the bands are cumulative, so no setup choice can empty the pool —
+-- reaching it means the word import never ran, which the player cannot fix.
+--
+-- Emptying `common.words` is how to reach it, and it is safe: every pgTAP file
+-- runs in a transaction this file rolls back. It goes LAST for that reason —
+-- nothing after it could still pick a target.
+--
+-- `reset role` first: the delete runs as the TEST, not as a player. Nobody the
+-- app authenticates may delete a word — `authenticated` holds no DELETE on
+-- common.words — which is the grant that makes this raise unreachable in
+-- production by anything but a failed import.
+reset role;
+delete from common.words where len = 5;
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select pg_temp.envelope_is(
+  wordle.create_game(
+    (select handle from club), '{"max_guesses":6,"answer_source":0,"legal_guess":6,"timer":{"kind":"none"}}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop'),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN057",
+    "message":"The word list is empty"}'::jsonb,
+  'the curated source with no words is a fault, not a bad answer_source');
+select pg_temp.envelope_is(
+  wordle.create_game(
+    (select handle from club), '{"max_guesses":6,"answer_source":1,"legal_guess":6,"timer":{"kind":"none"}}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop'),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN057"}'::jsonb,
+  '…and so is every band, which is the argument for it being a fault');
 
 select * from finish();
 rollback;

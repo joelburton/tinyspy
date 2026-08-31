@@ -101,7 +101,11 @@ export function useGame(gameId: string): {
       // `data` null, so a dead connection rendered the game as not-found. The
       // fault is already logged and shown by `dbFetch`; all that is left here is
       // to stop loading rather than claim anything about the game.
-      if (gameRes.type !== 'ok' || playersRes.type !== 'ok' || guessesRes.type !== 'ok') {
+      if (
+        gameRes.type === 'not-ok' ||
+        playersRes.type === 'not-ok' ||
+        guessesRes.type === 'not-ok'
+      ) {
         setLoading(false)
         return
       }
