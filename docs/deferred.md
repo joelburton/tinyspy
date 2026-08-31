@@ -68,6 +68,23 @@ See [`common.md → Deferred / open`](common.md#deferred--open) for more detail 
   raises the modal) but a MISSING UI STATE: the honest answer is "we don't know", and
   there is no screen for it. Filed 2026-08-29 while converting the call site. Closely
   related to the entry below, which is the same shape one layer in.
+- **BUG — my own member dot reads as absent on the first paint of a club page.**
+  Observed on prod (a build ~10 days old) by Joel, 2026-08-30. Entering a club he
+  is a member of, **his own** dot rendered hollow rather than filled — the
+  hollow/filled pair being "not present" vs "present". A hollow dot for Leah was
+  correct there (she had not joined the club yet); his own cannot be, because
+  seeing the ClubPage header at all requires him to be present. **An immediate
+  refresh showed it filled.**
+
+  Joel's read: *"we either have a logic bug or a race I lost."* The refresh
+  clearing it points at the race — the presence channel's own membership arriving
+  after the first render, so the page paints before the client sees itself — but
+  the self case is special enough that it may not need to wait for the channel at
+  all. Not investigated; filed only.
+
+  Filed here rather than under a game: club presence is `common/`, and the dot is
+  the shared `<Dot>`.
+
 - **Stricter `useSession` profile-verify at startup.** Today profile-verify failure is uniformly permissive (assume the session is valid). Right for transient mid-session blips, over-permissive for startup-time PostgREST/RLS failures — a corrupted auth setup looks like "no profile yet" and the user is let through. Acceptable for friends-alpha; revisit when a real auth path (passwords, third-party providers) lands and we can distinguish startup-restore from mid-session refresh. See the `// Fragile:` comment at `useSession.ts`.
 - ~~**Retire the `-bg` half of the outcome vocabulary with `color-mix`.**~~ Overtaken by the 2026-08-18 palette sweep (docs/ui.md → The color system), which renamed the tier `-wash` and deleted the three cells nobody read. What survives of the idea is one live question, recorded in the token: the feedback pill computes its tint as `fill 18% over the surface` while the `-wash` tier exists at a different value for the same job, so one of the two is redundant. Deciding which moves pixels.
 - **Member-color borders beyond dots — the `-edge` question.** The paired `--member-NAME-border-color` tokens + the shared `<Dot>` shipped 2026-07-07 (docs/ui.md → Player identity = a colored disc). What's still open: raw member colors also sit directly on the page background in **tile-selection borders** (connections peers), **crosswords peer-cursor frames**, and **chat name labels** — a light-yellow player has the same contrast problem there that the dot border solved. When those bite, decide whether the border token generalizes into an `-edge` ("this color legible against the body background") vocabulary, and whether name labels should switch to the border shade outright.

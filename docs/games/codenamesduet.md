@@ -588,7 +588,20 @@ a printout gets read where nothing else explains them.
 
 ## Deferred
 
-Nothing outstanding.
+- **BUG — restart leaves the CLUES in the turn log.** Observed on prod by Joel,
+  2026-08-30; **may already be fixed locally** — hard to confirm, since restart
+  needs a second player.
+
+  On restarting a game, the reset is partial in a way that shows: every **guess**
+  is gone and the turn counter reads **0/11 turns spent**, but the **clues
+  themselves are still listed in the turn log**. So the log carries clues from a
+  game whose guesses and counter say it never happened.
+
+  Not investigated; filed only. The shape to check first is which tables the
+  restart path clears — a reset that takes the guesses and the counter but leaves
+  the clue rows would produce exactly this. See
+  [testing.md](../testing.md) on checking every mark against BOTH restart and
+  game-end, which is the class of bug this belongs to.
 
 ## Won't do
 
