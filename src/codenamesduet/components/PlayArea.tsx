@@ -40,8 +40,14 @@ import { InfoCol } from './InfoCol'
 import { StateLine } from './StateLine'
 import shared from '../../common/components/game/PlayArea.module.css'
 import { getNotOkFeedback } from '../../common/lib/game/genericPills'
+import { showFaultModal } from '../../common/lib/fault/faultStore'
 import styles from './PlayArea.module.css'
 import '../theme.css'  // codenamesduet-specific color tokens (lazy-loaded with this chunk)
+
+/** What `codenamesduet.create_game` puts in `data`. `result` is the field the
+ *  `ok` branch filters on — without it there is nothing to assert but the
+ *  absence of a failure. */
+type NewGameAnswer = { result: 'created'; id: string }
 
 /**
  * codenamesduet's play surface — two-column viewport-bound composition:
@@ -417,14 +423,14 @@ export function PlayArea({
     // anyway so an accidental `+` doesn't read as "I just lost my game" — the
     // copy says shelved, not ended. At terminal there's nothing to interrupt.
     if (!isTerminal && !(await confirmAction(NEW_GAME_CONFIRM))) return
-    const res = await runRpc<{ id: string }>(
+    const res = await runRpc<NewGameAnswer>(
       db.rpc('create_game', {
         target_club: clubHandle,
         setup: codenamesduetSetup,
         player_user_ids: members.map((m) => m.user_id),
       }),
     )
-    if (res.type !== 'ok') {
+    if (res.type === 'not-ok') {
       // THE SAME ENVELOPE, READ DIFFERENTLY. On the setup form a validation is
       // an answer — fix the field and press Start again. Here there is no field
       // and no form, so whatever came back goes in the pill as it reads: a fault
@@ -432,10 +438,18 @@ export function PlayArea({
       // its own outcome. The pill is shown either way — the modal escalates, it does
       // not replace (docs/envelopes.md), so dismissing it must not leave the board
       // silent about why the game didn't start.
+      // Every answer this RPC can give is a fault — there is no form-validation
+      // among them — so in practice the modal has already been raised centrally
+      // and this pill is what remains once it is dismissed.
       showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'manual' } })
       return
+    } else if (res.type === 'ok' && res.data.result === 'created') {
+      goToGame('codenamesduet', res.data.id)
+      return
+    } else {
+      showFaultModal({ text: 'BUG: create_game fell through to unhandled' })
+      return
     }
-    goToGame('codenamesduet', res.data.id)
   }, [clubHandle, codenamesduetSetup, members, goToGame, showLocalFeedback, confirmAction, isTerminal])
 
   // Single-flight guard. New game has THREE triggers (the terminal button, the

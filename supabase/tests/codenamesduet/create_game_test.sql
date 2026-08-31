@@ -38,7 +38,7 @@ begin;
 
 set search_path = codenamesduet, common, public, extensions;
 
-select plan(35);
+select plan(37);
 
 -- Cast: ada + bea form the 2-member club used for the happy
 -- path. cade is the in-club third member for the wrong-size
@@ -304,12 +304,22 @@ select lives_ok(
 -- Happy path — ada chooses 11 turns, ada as first clue-giver
 -- ============================================================
 
-create temp table created on commit drop as
-select (codenamesduet.create_game(
+-- The whole envelope is kept, not just the id: `data.result` is the field both
+-- call sites filter the `ok` on.
+create temp table created_env on commit drop as
+select codenamesduet.create_game(
   (select handle from club2),
   pg_temp.codenamesduet_setup(11),  -- turns=11, first_user=ada (default)
   pg_temp.codenamesduet_players()
-)->'data'->>'id')::uuid as id;
+) as env;
+create temp table created on commit drop as
+select (env->'data'->>'id')::uuid as id from created_env;
+
+select pg_temp.envelope_is(
+  (select env from created_env),
+  '{"type":"ok","data":{"result":"created"}}'::jsonb,
+  'the answer names itself, so a call site has a case to assert'
+);
 
 select is(
   (select count(*) from created),
@@ -555,6 +565,26 @@ select is(
     where club_handle = (select handle from club2) and gametype = 'codenamesduet'),
   false,
   'saved defaults: codenamesduet STRIPS first_clue_giver_user_id (per-game decision, not a per-club preference)'
+);
+
+-- ── PN093: an unseeded word pool ──
+-- Emptying the pool is the only way to reach this raise, so it goes LAST —
+-- nothing after it could still deal a board. Safe, because this file rolls back.
+--
+-- `reset role` first: nobody the app authenticates may delete from the pool, so
+-- the delete runs as the test rather than as a player.
+reset role;
+delete from codenamesduet.word_pool;
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select pg_temp.envelope_is(
+  codenamesduet.create_game(
+    (select handle from club2),
+    pg_temp.codenamesduet_setup(11),
+    pg_temp.codenamesduet_players()
+  ),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN093",
+    "message":"BUG: Too few words on server to build a board"}'::jsonb,
+  'an unseeded word pool is a fault'
 );
 
 select * from finish();

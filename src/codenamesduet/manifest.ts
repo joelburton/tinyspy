@@ -87,7 +87,12 @@ export const codenamesduetGame: GameManifest = {
   // Component is the only thing populating the wrapper's value).
   startGameInClub: async (clubHandle, setup, playerUserIds) => {
     // No `.single()`: the RPC returns the envelope itself, one jsonb value.
-    return runRpc<{ id: string }>(
+    //
+    // Promises MORE than `GameManifest.startGameInClub` asks for, which is legal
+    // — assignability runs one way. Inert until the interface widens, since
+    // `SetupGameModal` reads the INTERFACE's type
+    // (plans/envelope-rollout.md → create_game).
+    return runRpc<{ result: 'created'; id: string }>(
       db.rpc('create_game', {
         target_club: clubHandle,
         setup: setup as CodenamesduetSetup,

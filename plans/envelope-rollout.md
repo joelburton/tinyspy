@@ -855,7 +855,32 @@ bananagrams-shaped.
 
   **Writing the table found seven Deno/SQL twins on this one path** — see the
   rewritten end-sweep 6.
-- [ ] **codenamesduet's `create_game`**
+- [x] **codenamesduet's `create_game`** — all four steps, 2026-08-31. A direct
+  RPC, no edge function. **17 answers: one `ok`, 16 faults, zero
+  form-validations** — nothing here is a choice a control offers.
+
+  **`PN093` was a `service-error` and is now a `fault`** (Joel, 2026-08-31: *"it's
+  our bug"*). It fires when `codenamesduet.word_pool` holds fewer than 25 rows.
+  `service-error` is for something we DEPEND ON not answering — an outside
+  system — and a table we seed coming up short is not that. It was the last of
+  three games disagreeing about one condition:
+
+  | game | code | severity before | after |
+  |---|---|---|---|
+  | wordle | `PN057` | form-validation | fault (2026-08-30) |
+  | waffle | `PN120` | fault | fault |
+  | codenamesduet | `PN093` | service-error | fault (2026-08-31) |
+
+  **And writing its first-ever test found the guard does not fire.** It read
+  `array_length(picked_words, 1) <> 25`; with ZERO rows `array_agg` returns NULL,
+  `array_length(NULL, 1)` is NULL, and `NULL <> 25` is NULL — which `if` treats
+  as false. So an empty pool sailed past the guard and died later on
+  `games.title` being null. Now `coalesce(array_length(...), 0) <> 25`.
+
+  That is this sprint's own subject in SQL: **an absence matching no case.** The
+  frontend rule — never test `=== null` or a truthiness to pick a branch — has a
+  three-valued-logic twin on the server, and nothing guards it. Worth a look
+  when the roster reaches the other games' `array_length` checks.
 - [ ] **crosswords' `create_game`** — two paths, the edge function and the direct RPC
 - [ ] **letterboxed's `create_game`** — via `letterboxed-build-board`
 - [ ] **scrabble's `create_game`**

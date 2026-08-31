@@ -290,13 +290,10 @@ begin
   -- picked words to build the title.
   select array_agg(word) into picked_words
     from (select word from codenamesduet.word_pool order by random() limit 25) sub;
-  if array_length(picked_words, 1) <> 25 then
-    -- An `error` on `_` rather than a validation: the word pool is a fixed
-    -- table, so no control the player can reach would change this. It is not
-    -- their doing and not their fix, but it IS a plain answer rather than a
-    -- broken client.
-    raise exception 'Not enough words on the server to build a board'
-      using errcode = 'PN093', hint = 'service-error', column = '_',
+  if coalesce(array_length(picked_words, 1), 0) <> 25 then
+    -- FAULT: can't build board because not enough words in PG
+    raise exception 'BUG: Too few words on server to build a board'
+      using errcode = 'PN093', hint = 'fault', column = '_',
       detail = 'codenamesduet.word_pool has fewer than 25 rows; run the seed';
   end if;
 
@@ -401,7 +398,11 @@ begin
     values (new_id, i, picked_words[i+1]);
   end loop;
 
-  return common.ok_envelope(jsonb_build_object('id', new_id));
+  -- `result` NAMES the answer; `id` is the game to go to. REQUIRED, not
+  -- decorative: it is the only thing a call site can filter the `ok` on, and
+  -- without it the branch would match by merely being `ok` and would draw a
+  -- second answer as this one.
+  return common.ok_envelope(jsonb_build_object('result', 'created', 'id', new_id));
 
 -- One block, and it has never heard of any specific condition: it reads the
 -- SQLSTATE, re-raises anything that isn't ours, and lets the raise itself carry
