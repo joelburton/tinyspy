@@ -780,13 +780,34 @@ compiles with zero errors. So:
 
 No red build, no type asserting something its SQL has not grown yet.
 
-- [ ] `SetupGameModal.tsx` + the `startGameInClub` contract in `games.ts` —
-  **partially done**: `res.type !== 'ok'` → `=== 'not-ok'` landed 2026-08-29,
-  which needs nothing from anyone. The `ok` branch and the scream cannot follow
-  in this file alone: a scream is what catches an answer no named case matched,
-  and there is nothing to name a case WITH until `data` carries `result`. The
-  only local alternative is `typeof result.data.id === 'string'`, a shape test
-  rather than equality against a specific value, which the rules forbid.
+- [x] `SetupGameModal.tsx` + the `startGameInClub` contract in `games.ts` —
+  **DONE 2026-08-31, and it went FIRST after all**, which is what this section
+  originally said before it was inverted on 2026-08-29 to avoid a red build.
+
+  The inversion was wrong twice over. A red build never had to happen: widening a
+  manifest is legal against the unchanged interface, so all sixteen went first in
+  their own commit and the contract change compiled clean. And the thing the
+  inversion was protecting — no game's Start breaking meanwhile — is not worth
+  protecting (Joel, 2026-08-31). This sprint already accepts that unconverted
+  games are unplayable, nothing deploys until it lands, and the breakage here is
+  the property this section wanted in the first place: *loud, per-game, and it
+  disappears exactly when the work is done.*
+
+  **So EIGHT games' Start now hits the scream** — `connections`, `letterboxed`,
+  `psychicnum`, `scrabble`, `spellingbee`, `strands`, `wordiply`, `wordwheel` —
+  because their `create_game` SQL does not send `result` yet. Each turns its own
+  Start back on when its entry lands. **You can see the remaining work by
+  pressing Start.**
+
+  What landed: the contract is `Promise<Envelope<CreatedGame>>`; the modal's
+  chain is `not-ok` · `ok && data.result === 'created'` · scream, every branch
+  returning. The scream clears `busy` — unlike the success path, which does not
+  bother because it is about to unmount — since an unnamed answer leaves the
+  dialog open and the Start button has to work again. A test pins all of it.
+
+  Its `not-ok` branch is the one surface in the repo that can put a validation
+  UNDER the control it is about, via `result.field`. Every in-game New Game
+  throws that away, having no form to put it on.
 
 **The per-game half is NOT deferred — it goes inside that game's entry** (Joel,
 2026-08-29). Deferring the group deferred every game's half with it, and the cost

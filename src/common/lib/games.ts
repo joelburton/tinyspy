@@ -461,7 +461,7 @@ export type CreatedGame = { result: 'created'; id: string }
 
 /**
  * Write one field of the form. The setup body casts the loose `set` it is given
- * to this over its own values type, which is what makes `set('dificulty', 4)` a
+ * to this over its own values type, which is what makes `set('difficulty', 4)` a
  * compile error rather than a control that silently does nothing.
  */
 export type SetupSetter<V> = <K extends keyof V>(name: K, value: V[K]) => void
@@ -773,7 +773,7 @@ export type GameManifest = {
     clubHandle: string,
     setup: unknown,
     playerUserIds: string[],
-  ) => Promise<Envelope<{ id: string }>>
+  ) => Promise<Envelope<CreatedGame>>
 
   /**
    * Render a one-line label for a single `common.games` row,

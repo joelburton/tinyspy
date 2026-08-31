@@ -8,6 +8,7 @@ import { cls } from '../../lib/util/cls'
 import { StandardForm } from '../fields/StandardForm'
 import { FailureLine } from '../feedback/FailureLine'
 import { FORM_ERROR_KEYNAME, type FormErrors } from '../fields/formState'
+import { showFaultModal } from '../../lib/fault/faultStore'
 import actionRow from '../floating-panels/modalActions.module.css'
 import styles from './SetupGameModal.module.css'
 import { StandardButton } from '../buttons/StandardButton'
@@ -178,11 +179,24 @@ export function SetupGameModal({
       // not. A fault has already raised the modal on its way through
       // `dbFetch`; the line is what remains once that is dismissed, with the
       // dialog still open behind it so the player can retry.
+      //
+      // This is the ONE surface that can put a validation under the control it
+      // is about — every in-game New Game throws `field` away, having no form to
+      // put it on.
       setErrors({ [result.field ?? FORM_ERROR_KEYNAME]: result.message })
       return
+    } else if (result.type === 'ok' && result.data.result === 'created') {
+      // Don't bother clearing `busy` — we're about to unmount.
+      onStarted(result.data.id)
+      return
+    } else {
+      // `busy` IS cleared here: the dialog stays open, because an unnamed answer
+      // means no game to navigate to and the player is left looking at a Start
+      // button that must work again.
+      setBusy(false)
+      showFaultModal({ text: 'BUG: create_game fell through to unhandled' })
+      return
     }
-    // Don't bother clearing `busy` — we're about to unmount.
-    onStarted(result.data.id)
   }
 
   // The chosen mode (Co-op / Compete), shown in BOTH the dialog title and the

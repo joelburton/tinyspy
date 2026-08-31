@@ -22,6 +22,7 @@ import { PlayersSection } from './PlayersSection'
 import { NumberField } from '../fields/NumberField'
 import type { GameManifest, Member, SetupBodyProps } from '../../lib/games'
 import { errorUnder, formError } from '../fields/errorUnder'
+import { clearFaultsForTest, peekFaultsForTest } from '../../lib/fault/faultStore'
 import { FORM_ERROR_KEYNAME, type FormErrors } from '../fields/formState'
 
 const MESSAGE = 'The server said this exact thing.'
@@ -90,7 +91,9 @@ const start = () => screen.getByRole('button', { name: /^Start/ })
 
 beforeEach(() => {
   startGameInClub.mockReset()
-  startGameInClub.mockResolvedValue({ type: 'ok', data: { id: 'g1' } })
+  // `data.result` is the field the ok branch filters on, so a stub without it is
+  // an answer the chain cannot name and correctly screams at.
+  startGameInClub.mockResolvedValue({ type: 'ok', data: { result: 'created', id: 'g1' } })
   validate.mockReset()
   validate.mockReturnValue({})
 })
@@ -257,6 +260,24 @@ describe('SetupGameModal — when Start is refused', () => {
     await user.click(start())
 
     await waitFor(() => expect(screen.getByText(MESSAGE)).toBeInTheDocument())
+  })
+
+  it('screams at an `ok` it cannot name, and leaves the dialog usable', async () => {
+    // An `ok` whose `data` does not say `created` — what a game whose SQL has
+    // not been converted yet sends. It must not navigate: there is no game to
+    // navigate to. `busy` clears so the player can press Start again once
+    // someone fixes it.
+    clearFaultsForTest()
+    startGameInClub.mockResolvedValue({ type: 'ok', data: { id: 'g1' } })
+    const user = userEvent.setup()
+    const onStarted = draw()
+    await waitFor(() => expect(screen.getByRole('spinbutton')).toBeInTheDocument())
+    await user.click(start())
+
+    await waitFor(() => expect(peekFaultsForTest()).toHaveLength(1))
+    expect(peekFaultsForTest()[0]!.text).toBe('BUG: create_game fell through to unhandled')
+    expect(onStarted).not.toHaveBeenCalled()
+    expect(start()).toBeEnabled()
   })
 })
 
