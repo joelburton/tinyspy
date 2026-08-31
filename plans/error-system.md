@@ -12,10 +12,11 @@ two copies of one decision is how they drift. What this plan owns is the work �
 the evidence behind the design (§3), what is still open (§4), the worked example
 (§5), the process (§6) and the roster (§7).
 
-The prep that ran before the rest of the roster is finished, and its plan is
-deleted. What survives it lives in [docs/envelopes.md](../docs/envelopes.md);
-the layering work that came out of it is
-[plans/envelope-layering.md](envelope-layering.md).
+The prep that ran before the rest of the roster is finished, and so is the
+layering fix that came out of it — one author for "nothing answered",
+`dbResult` split so the imports point down, `ReadFailure` deleted. Both plans
+are gone; what survives them is in [docs/envelopes.md](../docs/envelopes.md),
+[docs/code-conventions.md](../docs/code-conventions.md) and the code itself.
 
 ---
 

@@ -224,6 +224,16 @@ was their green/yellow/gray feedback flattening to one gray in mono.
 
 ## To discuss
 
+- **Does a fault still want a modal AND a pill?** (raised 2026-08-31, unresolved.)
+  The rule today is that the modal is an ESCALATION, not a replacement — a fault
+  gets both, and `genericPills.ts` says so deliberately, because filtering it out
+  would leave the board showing a stale answer after the modal is dismissed.
+  That rule was written when the two could *disagree*: the modal said "You appear
+  to be offline" while the pill said `TypeError: Failed to fetch`, because two
+  layers worded the same failure. They now share one author and say the same
+  sentence — so the argument for showing both is weaker than it was, and the
+  question is whether one sentence twice is worth a blocking box plus a pill.
+  Not a bug; a ruling nobody has made since the premise changed.
 - **`docs/nomenclature.md` — a dictionary of what each word means and, more
   importantly, what it doesn't** (Joel's idea, 2026-08-28). One file to check
   when we agree something like *"'environmental' means fetch-failed"* — a

@@ -40,6 +40,25 @@ import { logDb, logSlow } from './dbLog'
  *
  * No retry either. These are mutations (`submit_word`, `concede`, `end_game`);
  * a silent second attempt is worse than a clear message. The player decides.
+ *
+ * ─── Why it THROWS rather than answering with an envelope ────
+ * The obvious idea, on finding that the wrappers were re-deriving a worse
+ * envelope than the one built here: stop throwing, and return this envelope as
+ * a normal 200 JSON body — the contract the server already follows. Every
+ * wrapper's failure handling would collapse to "if the body is an envelope,
+ * return it unchanged."
+ *
+ * It would have worked. Auth is fenced off by `isSupabaseInternal`, so
+ * supabase-js's own token refresh would never see the synthetic response, and
+ * the objection is not risk.
+ *
+ * **It was rejected because it buys nothing.** The wrappers already have every
+ * fact they need — `status === 0` says nothing answered, `navigator.onLine`
+ * says which sentence — so inverting a standard contract hands them information
+ * they can read for themselves, at the price of every future reader (and every
+ * future direct-`fetch` consumer) having to learn that this `fetch` sometimes
+ * resolves for a request that never happened. Calling the same builder from
+ * both places was the smaller answer, and it is what is here.
  */
 
 /** How long a request may run before we count it slow enough to narrate. A
