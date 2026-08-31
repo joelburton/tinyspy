@@ -26,9 +26,10 @@ begin;
 
 set search_path = letterboxed, common, public, extensions;
 
-select plan(28);
+select plan(29);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 -- ============================================================
@@ -39,15 +40,25 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select pg_temp.create_club('Ada Bea Cade', array['ada','bea','cade']) as handle;
 
-create temp table g on commit drop as
-select (letterboxed.create_game(
+-- The whole envelope is kept, not just the id: `data.result` is the field both
+-- call sites filter the `ok` on, and it reaches them through
+-- `letterboxed-build-board` untouched.
+create temp table created on commit drop as
+select letterboxed.create_game(
   (select handle from club),
   pg_temp.lb_setup(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop',
   pg_temp.lb_board()
-)->'data'->>'id')::uuid as id;
+) as env;
+create temp table g on commit drop as
+select (env->'data'->>'id')::uuid as id from created;
+
+select pg_temp.envelope_is(
+  (select env from created),
+  '{"type":"ok","data":{"result":"created"}}'::jsonb,
+  'the answer names itself, so a call site has a case to assert');
 
 -- ── 1. The board landed as specified ────────────────────────
 select is(

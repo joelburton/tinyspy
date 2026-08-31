@@ -114,15 +114,13 @@ describe('call-site shape', () => {
       'src/codenamesduet/components/PlayArea.tsx',
       'src/codenamesduet/manifest.ts',
       'src/crosswords/manifest.ts',
-      // setgame is the first game finished END TO END, its in-game New Game
-      // included: `create_game` now answers `'result', 'created'`, which is what
-      // its call site needed to assert a case rather than match by being `ok`.
-      // Only `SetupGameModal` + the `startGameInClub` contract wait for the rest
-      // of the roster (plans/envelope-rollout.md → create_game).
-      //
-      // NOT psychicnum's PlayArea, the last one still holding the negated form —
-      // on `create_game`, the half its entry deferred before that group's
-      // ordering was corrected (plans/envelope-rollout.md → create_game).
+      'src/letterboxed/components/PlayArea.tsx',
+      'src/letterboxed/manifest.ts',
+      // What is NOT here is the six PlayAreas whose in-game New Game still calls
+      // `create_game` with the negated form — psychicnum, scrabble, spellingbee,
+      // strands, wordiply, wordwheel. Each joins as its own entry lands, which is
+      // the list above growing one game at a time
+      // (plans/envelope-rollout.md → create_game).
     ]
     const regressed = CONVERTED.filter((f) => NEGATED.test(readFileSync(f, 'utf8')))
     expect(regressed, 'a converted file went back to the negated form').toEqual([])

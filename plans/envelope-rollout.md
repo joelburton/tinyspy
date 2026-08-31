@@ -926,7 +926,26 @@ bananagrams-shaped.
   blob — the FE's upload parser or an import edge function — had already parsed
   the puzzle successfully. A missing key is our construction, so the old message
   pointed the player at the one thing that was not wrong.
-- [ ] **letterboxed's `create_game`** — via `letterboxed-build-board`
+- [x] **letterboxed's `create_game`** — via `letterboxed-build-board`. All four
+  steps, 2026-08-31. **36 answers: one `ok`, 31 faults, 4 form-validations** —
+  `PN214`/`PN215` (the letters have no solution, or none in two words),
+  `PN216`/`PN217` (the dictionary does not reach the board).
+
+  **The largest "our own generator" group so far: `PN205`–`PN210`, six raises.**
+  The RPC re-checks everything the Deno builder produced — word list present,
+  enough words, right count, solution words legal, solution actually chains, all
+  twelve letters covered. Faults, correctly: something malformed did arrive, and
+  the broken party is our Deno half rather than our React half. Same shape as
+  boggle's `PN143`–`PN146`.
+
+  **An eighth Deno/SQL twin for end-sweep 6**, and a worse one than boggle's
+  seven: `PN218` and `PN210` are both "the solution covers all twelve letters",
+  and they are worded DIFFERENTLY on each side — so a player sees a different
+  sentence depending on which half caught it.
+
+  Its pgTAP went into `gameplay_test.sql` (plan 28 → 29), which holds the
+  canonical happy path; letterboxed has no `create_game_test.sql` of its own, and
+  the file had never loaded `envelope.psql`.
 - [ ] **scrabble's `create_game`**
 - [ ] **spellingbee's `create_game`** — via `spellingbee-build-board`
 - [ ] **strands' `create_game`** — the game **also has connections' puzzle-picker pair**, which is ROSTER work, not this entry, deliberately

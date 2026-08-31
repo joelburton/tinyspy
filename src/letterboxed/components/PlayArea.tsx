@@ -4,7 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { IconHideSolution, IconHint, IconNewGame, IconPrint, IconRestart, IconReveal, IconSpoiler } from '../../common/components/icons'
 import { cls } from '../../common/lib/util/cls'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
-import type { GamePageCtx } from '../../common/lib/games'
+import type { CreatedGame, GamePageCtx } from '../../common/lib/games'
+import { showFaultModal } from '../../common/lib/fault/faultStore'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { outOfRacePill, stickyPill } from '../../common/lib/game/localPills'
 import { waitingTurnPill } from '../../common/components/game/turnCopy'
@@ -369,11 +370,11 @@ export function PlayArea(ctx: GamePageCtx) {
     // the club page). Confirm so an accidental `+` doesn't read as a loss.
     if (!isTerminal && !(await confirmAction(NEW_GAME_CONFIRM))) return
     if (!gameMode) return
-    const res = await runEdgeFn<{ id: string }>(
+    const res = await runEdgeFn<CreatedGame>(
       'letterboxed-build-board',
       { target_club: clubHandle, setup, player_user_ids: players.map((p) => p.user_id), mode: gameMode },
     )
-    if (res.type !== 'ok') {
+    if (res.type === 'not-ok') {
       // THE SAME ENVELOPE, READ DIFFERENTLY. On the setup form a validation is
       // an answer — fix the field and press Start again. Here there is no field
       // and no form, so whatever came back goes in the pill as it reads: a fault
@@ -381,10 +382,19 @@ export function PlayArea(ctx: GamePageCtx) {
       // its own outcome. The pill is shown either way — the modal escalates, it does
       // not replace (docs/envelopes.md), so dismissing it must not leave the board
       // silent about why the game didn't start.
+      // FOUR of the answers here are form-validations rather than faults —
+      // PN214/PN215 (the letters have no solution), PN216/PN217 (the dictionary
+      // does not reach it) — so this branch renders whatever outcome arrived
+      // instead of assuming a fault look.
       showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'manual' } })
       return
+    } else if (res.type === 'ok' && res.data.result === 'created') {
+      goToGame(`letterboxed_${gameMode}`, res.data.id)
+      return
+    } else {
+      showFaultModal({ text: 'BUG: letterboxed-build-board fell through to unhandled' })
+      return
     }
-    goToGame(`letterboxed_${gameMode}`, res.data.id)
   }, [gameMode, clubHandle, setup, players, goToGame, showLocalFeedback, confirmAction, isTerminal])
 
   // Single-flight: "New game" has three triggers (terminal button, menu item,
