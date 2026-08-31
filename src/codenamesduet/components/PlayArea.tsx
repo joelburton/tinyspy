@@ -39,6 +39,7 @@ import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
 import { StateLine } from './StateLine'
 import shared from '../../common/components/game/PlayArea.module.css'
+import { EnvelopeErrorPage } from '../../common/components/loading-and-errs/ErrorPage'
 import { getNotOkFeedback } from '../../common/lib/game/genericPills'
 import { showFaultModal } from '../../common/lib/fault/faultStore'
 import styles from './PlayArea.module.css'
@@ -258,7 +259,7 @@ export function PlayArea({
   // today is `turns` for the "X/Y turns" status counter.
   const codenamesduetSetup = setup as CodenamesduetSetup
 
-  const { game, players } = useGame(gameId)
+  const { game, players, failure } = useGame(gameId)
   // The setup recap, built ONCE and handed to both consumers — the info column
   // renders it as <li>s, the print model prints the same array object
   // (docs/pdf.md → Setup rows).
@@ -558,9 +559,14 @@ export function PlayArea({
     feedback: globalFeedback,
   })
 
-  if (loading || !game || !myKey || words.length < 25) {
-    return <p>Loading board…</p>
-  }
+  if (loading) return <p>Loading board…</p>
+  // A failed read is NOT a missing game. Both leave `game` null, and saying
+  // "Game not found." about a dead connection is a confident wrong answer —
+  // this is what remains once the fault modal is dismissed.
+  if (failure) return <EnvelopeErrorPage envelope={failure} />
+  // `!myKey` and a short word list are DERIVED from the game row, so they can
+  // only be missing when it is — one branch, not three.
+  if (!game || !myKey || words.length < 25) return <p>Game not found.</p>
 
   const firstClueGiver = players.find(
     (p) => p.user_id === codenamesduetSetup.first_clue_giver_user_id,

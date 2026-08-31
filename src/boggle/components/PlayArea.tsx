@@ -32,6 +32,7 @@ import { db } from '../db'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
 import shared from '../../common/components/game/PlayArea.module.css'
+import { EnvelopeErrorPage } from '../../common/components/loading-and-errs/ErrorPage'
 import { getNotOkFeedback } from '../../common/lib/game/genericPills'
 import { showFaultModal } from '../../common/lib/fault/faultStore'
 import styles from './PlayArea.module.css'
@@ -61,7 +62,7 @@ import '../theme.css'
  */
 export function PlayArea(ctx: GamePageCtx) {
   const { gameId, players, isTerminal, playState, setup, goToClub, clubHandle, goToGame, session, status, globalFeedback, menu, brand, title } = ctx
-  const { game, foundWords, loading, rowsLoaded } = useGame(gameId)
+  const { game, foundWords, loading, rowsLoaded, failure } = useGame(gameId)
 
   // Mobile (docs/mobile.md → the shared recipe): below the breakpoint the board
   // fills the screen and the info column moves into a full-width off-canvas
@@ -425,7 +426,14 @@ export function PlayArea(ctx: GamePageCtx) {
   })
 
 
-  if (loading || !game || !grid) return <div className={styles.loading}>Loading…</div>
+  if (loading) return <div className={styles.loading}>Loading…</div>
+  // A failed read is NOT a missing game. Both leave `game` null, and saying
+  // "Game not found." about a dead connection is a confident wrong answer —
+  // this is what remains once the fault modal is dismissed.
+  if (failure) return <EnvelopeErrorPage envelope={failure} />
+  // `!grid` stays fused with `!game`: the grid is DERIVED from the game's board,
+  // so it can only be absent when the game is, and it has no failure of its own.
+  if (!game || !grid) return <div className={styles.empty}>Game not found.</div>
 
   const isCompete = game.mode === 'compete'
   // Locally terminal (compete only): I conceded but the game continues for the

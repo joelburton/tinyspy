@@ -7,7 +7,8 @@ import { navigate } from '../../lib/routing/router'
 import { supabase } from '../../lib/supabase/supabase'
 import { channelLeaving, releaseChannel } from '../../lib/supabase/channelTeardown'
 import { onPostgresAttached } from '../../lib/supabase/postgresAttached'
-import { runRpc } from '../../lib/supabase/dbResult'
+import { readRows, runRpc } from '../../lib/supabase/dbResult'
+import type { NotOk } from '../../lib/supabase/envelope'
 import { showFaultModal } from '../../lib/fault/faultStore'
 import { rtLog } from '../../lib/supabase/realtimeDiag'
 import { computePause } from '../../lib/game/pause'
@@ -185,6 +186,11 @@ export function useCommonGame(
    *  it's true, matching the pre-load "nothing to gate yet" posture. */
   isMyTurn: boolean
   loading: boolean
+  /** Set when a read FAILED, which is not the same as the game being absent.
+   *  GamePage renders this instead of "There's no game here." — the SHELL had
+   *  the same confident-wrong-answer bug the sixteen play surfaces had, and it
+   *  runs first, so it short-circuited all of them. */
+  failure: NotOk | null
 } {
   const [commonGame, setCommonGame] = useState<CommonGame | null>(null)
   const [players, setPlayers] = useState<GamePlayer[]>([])
@@ -197,6 +203,7 @@ export function useCommonGame(
     null,
   )
   const [loading, setLoading] = useState(true)
+  const [failure, setFailure] = useState<NotOk | null>(null)
   // Held in state so a new effect run (StrictMode double-mount,
   // gameId change) gets a fresh channel and re-renders consumers.
   // The setChannel-in-effect below is intentional — the realtime
@@ -257,6 +264,13 @@ export function useCommonGame(
     let generation = 0
 
     async function load() {
+      // Already dead on arrival. Not the same question as the guard after the
+      // await, which asks whether the world changed WHILE we waited — this one
+      // catches a `load()` that should never have started: the cleanup below
+      // does `void releaseChannel(ch)` without awaiting it, so the channel can
+      // still deliver an event, or `onPostgresAttached` still fire, for a
+      // moment after this hook unmounted. Three reads, certain to be discarded.
+      if (!mounted) return
       const myGen = ++generation
       // Common-side row + player roster + profile usernames.
       // Two queries instead of an embed: game_players → profiles
@@ -267,21 +281,51 @@ export function useCommonGame(
       // club_handle IS the club's handle (post-uuid-PK-drop), so
       // GamePage can build the Back-to-club href from the row
       // directly.
-      const [{ data: gameData }, { data: playerRows }] = await Promise.all([
-        commonDb
-          .from('games')
-          .select(
-            'id, club_handle, gametype, title, setup, is_current_view, play_state, is_terminal, status, started_at, ended_at, current_turn_user_id',
-          )
-          .eq('id', gameId)
-          .maybeSingle(),
-        commonDb
-          .from('game_players')
-          .select('user_id, conceded, conceded_at, result')
-          .eq('game_id', gameId),
+      const [gameRes, playersRes] = await Promise.all([
+        // No `.maybeSingle()`: `readRows` hands back rows, and `id` is the PK,
+        // so this is 0 or 1 of them.
+        readRows(
+          commonDb
+            .from('games')
+            .select(
+              'id, club_handle, gametype, title, setup, is_current_view, play_state, is_terminal, status, started_at, ended_at, current_turn_user_id',
+            )
+            .eq('id', gameId),
+        ),
+        readRows(
+          commonDb
+            .from('game_players')
+            .select('user_id, conceded, conceded_at, result')
+            .eq('game_id', gameId),
+        ),
       ])
       if (!mounted || myGen !== generation) return
 
+      // A read can only fail as a FAULT — `readRows` never authors anything else
+      // — and `dbFetch` has already logged it and raised the modal. What is left
+      // is the envelope BEHIND it, which already names which read died.
+      //
+      // One branch each rather than one combined test, because WHICH read failed
+      // is the only thing the player's sentence cannot say.
+      if (gameRes.type === 'not-ok') {
+        setFailure(gameRes)
+        setLoading(false)
+        return
+      }
+      if (playersRes.type === 'not-ok') {
+        setFailure(playersRes)
+        setLoading(false)
+        return
+      }
+      // A load that worked clears a previous one's failure: this refetches on
+      // every realtime event, so an outage that ends should take its sentence
+      // with it rather than leaving the shell behind a stale explanation.
+      setFailure(null)
+
+      // ZERO ROWS is the caller's to read, and GamePage reads it as the game
+      // being gone — which is only true because the read WORKED.
+      const gameData = gameRes.data[0]
+      const playerRows = playersRes.data
       if (!gameData) {
         setCommonGame(null)
         setPlayers([])
@@ -292,11 +336,16 @@ export function useCommonGame(
       let playerList: GamePlayer[] = []
       const userIds = (playerRows ?? []).map((r) => r.user_id)
       if (userIds.length > 0) {
-        const { data: profileData } = await commonDb
-          .from('profiles')
-          .select('user_id, username, color')
-          .in('user_id', userIds)
+        const profilesRes = await readRows(
+          commonDb.from('profiles').select('user_id, username, color').in('user_id', userIds),
+        )
         if (!mounted || myGen !== generation) return
+        if (profilesRes.type === 'not-ok') {
+          setFailure(profilesRes)
+          setLoading(false)
+          return
+        }
+        const profileData = profilesRes.data
         // Merge the profile (username/color) with the per-player
         // game_players bits (conceded/result) into one GamePlayer.
         const byId = new Map(
@@ -665,5 +714,6 @@ export function useCommonGame(
     timer,
     isMyTurn,
     loading,
+    failure,
   }
 }

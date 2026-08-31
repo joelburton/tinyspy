@@ -36,6 +36,7 @@ import { PeersStrip } from './PeersStrip'
 import { setupRows } from '../lib/setupSummary'
 import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
 import shared from '../../common/components/game/PlayArea.module.css'
+import { EnvelopeErrorPage } from '../../common/components/loading-and-errs/ErrorPage'
 import '../theme.css' // bananagrams tokens + the global drag-cursor rule
 import { useSwallowTab } from '../../common/hooks/input/useSwallowTab'
 import { useConfirmation, NEW_GAME_CONFIRM, END_GAME_CONFIRM, RESTART_CONFIRM } from '../../common/hooks/ui/useConfirmation'
@@ -76,7 +77,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // the browser's URL bar, stranding the player. (The capture-entry games get
   // this from useCaptureKeys; see useSwallowTab.)
   useSwallowTab()
-  const { initialBoard, tiles, loading } = useGame(ctx.gameId, ctx.session.user.id)
+  const { initialBoard, tiles, loading, failure } = useGame(ctx.gameId, ctx.session.user.id)
   // Everyone's finished grids, for the printout's per-player columns. Empty
   // until the game ends — see usePeerBoards / the player_boards RLS.
   const peerBoards = usePeerBoards(ctx.gameId, ctx.isTerminal)
@@ -494,6 +495,13 @@ export function PlayArea(ctx: GamePageCtx) {
     )
   }
 
+  // A failed read is NOT a missing game. Both leave the board unrenderable, and
+  // saying "Game not found." about a dead connection is a confident wrong
+  // answer — this is what remains once the fault modal is dismissed.
+  if (failure) return <EnvelopeErrorPage envelope={failure} />
+  // bananagrams has no `game` row of its own — the board IS the state — so there
+  // is no "not found" to tell apart. What the failure branch above buys here is
+  // the difference between a dead read and a deal that has not landed yet.
   if (loading || initialBoard === null) return <p className="muted">Dealing tiles…</p>
 
   // Locally terminal: I've conceded but the game is still live for the others.

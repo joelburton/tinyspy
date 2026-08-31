@@ -38,6 +38,7 @@ import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
 import type { StrandsSetup } from '../lib/setup'
 import shared from '../../common/components/game/PlayArea.module.css'
+import { EnvelopeErrorPage } from '../../common/components/loading-and-errs/ErrorPage'
 import { getNotOkFeedback } from '../../common/lib/game/genericPills'
 import styles from './PlayArea.module.css'
 
@@ -167,7 +168,7 @@ export function PlayArea(ctx: GamePageCtx) {
   } = ctx
 
   const selfId = session.user.id
-  const { game, players: playerStates, me, events, found, loading } = useGame(gameId, selfId)
+  const { game, players: playerStates, me, events, found, loading, failure } = useGame(gameId, selfId)
   // Mode comes off the loaded game row (denormalized from strands.games.mode),
   // which is how every sibling-pair game branches.
   const isCompete = game?.mode === 'compete'
@@ -677,7 +678,12 @@ export function PlayArea(ctx: GamePageCtx) {
     summaryRows,
   ])
 
-  if (loading || !game) return <div className={styles.loading}>Loading…</div>
+  if (loading) return <div className={styles.loading}>Loading…</div>
+  // A failed read is NOT a missing game. Both leave `game` null, and saying
+  // "Game not found." about a dead connection is a confident wrong answer —
+  // this is what remains once the fault modal is dismissed.
+  if (failure) return <EnvelopeErrorPage envelope={failure} />
+  if (!game) return <div className={styles.empty}>Game not found.</div>
 
   const over = isTerminal
     ? buildOver(playState, found.length, isCompete, players, selfId, playerStates)

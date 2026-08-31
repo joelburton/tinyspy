@@ -29,6 +29,7 @@ import { terminalPill, outOfRacePill } from '../../common/lib/game/localPills'
 import type { GenericFeedbackMsg } from '../../common/lib/games'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
+import { EnvelopeErrorPage } from '../../common/components/loading-and-errs/ErrorPage'
 import { cls } from '../../common/lib/util/cls'
 import {
   activeClueNumber,
@@ -91,7 +92,7 @@ export function PlayArea(ctx: GamePageCtx) {
     ctx
   const myId = session.user.id
 
-  const { game } = useGame(gameId)
+  const { game, loading, failure } = useGame(gameId)
   const mode: 'coop' | 'compete' = game?.mode ?? 'coop'
   const ownerId = mode === 'compete' ? myId : null
   const { cells, setCell, setMark } = useCells(gameId, ownerId)
@@ -907,10 +908,25 @@ export function PlayArea(ctx: GamePageCtx) {
     }
   }, [handleCheck, handleReveal, handleShowNote, handleExplain, handleEndGame, handleConcede, handleNewGame, cursor])
 
-  if (!game || !cursor) {
+  if (loading) {
     return (
       <div className={cls(styles.wrap, styles.loading)}>
         <p className="muted">Loading puzzle…</p>
+      </div>
+    )
+  }
+  // A failed read is NOT a missing game. Both leave the board unrenderable, and
+  // saying "Game not found." about a dead connection is a confident wrong
+  // answer — this is what remains once the fault modal is dismissed.
+  if (failure) return <EnvelopeErrorPage envelope={failure} />
+  // Was fused with the loading state above, so a puzzle this club cannot see —
+  // and a puzzle that failed to load — both read as "Loading puzzle…" forever.
+  // `!cursor` stays here: it is derived from the grid, so it can only be absent
+  // when the game is.
+  if (!game || !cursor) {
+    return (
+      <div className={cls(styles.wrap, styles.loading)}>
+        <p className="muted">Game not found.</p>
       </div>
     )
   }

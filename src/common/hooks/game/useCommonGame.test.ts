@@ -208,26 +208,24 @@ beforeEach(() => {
     if (table === 'games') {
       return {
         select: () => ({
-          eq: () => ({
-            maybeSingle: vi.fn().mockResolvedValue({
-              data: GAME_ROW,
-              error: null,
-            }),
-          }),
+          // Rows, not a single row: `readRows` dropped `.maybeSingle()`, which
+          // treated a game this club cannot see as indistinguishable from a
+          // broken connection.
+          eq: () => Promise.resolve({ data: [GAME_ROW], error: null, status: 200 }),
         }),
       }
     }
     if (table === 'game_players') {
       return {
         select: () => ({
-          eq: () => Promise.resolve({ data: PLAYER_ROWS, error: null }),
+          eq: () => Promise.resolve({ data: PLAYER_ROWS, error: null, status: 200 }),
         }),
       }
     }
     if (table === 'profiles') {
       return {
         select: () => ({
-          in: () => Promise.resolve({ data: PROFILES, error: null }),
+          in: () => Promise.resolve({ data: PROFILES, error: null, status: 200 }),
         }),
       }
     }
@@ -257,6 +255,53 @@ describe('useCommonGame — initial load', () => {
       title: 'Game One',
     })
     expect(result.current.players).toEqual(GAME_PLAYERS)
+  })
+})
+
+/**
+ * **A failed read is not a missing game — in the SHELL.**
+ *
+ * This gate runs before any play surface mounts, so `GamePage` saying "There's
+ * no game here." for an outage overrode all sixteen of them, whatever they had
+ * worked out for themselves. Zero rows and a dead read both left `gameData`
+ * null, and only one of them means the game is gone.
+ */
+describe('useCommonGame — a dead read is not an absent game', () => {
+  it('reports a failed games read as a failure, not as no-such-game', async () => {
+    mockSchemaFrom.mockImplementation((table: string) => {
+      if (table === 'games') {
+        return {
+          select: () => ({
+            eq: () => Promise.resolve({
+              data: null,
+              error: { message: 'permission denied', code: '42501' },
+              status: 403,
+            }),
+          }),
+        }
+      }
+      return { select: () => ({ eq: () => Promise.resolve({ data: [], error: null, status: 200 }) }) }
+    })
+    const { result } = renderHook(() => useCommonGame('g1', fakeSession))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(result.current.failure).toMatchObject({ type: 'not-ok', message: 'permission denied' })
+    expect(result.current.commonGame).toBeNull()
+  })
+
+  // The other half: zero rows is a real answer, and must NOT set a failure —
+  // otherwise a deleted game would show an error page instead of the sentence
+  // written for it.
+  it('leaves failure null when the read worked and found nothing', async () => {
+    mockSchemaFrom.mockImplementation(() => ({
+      select: () => ({
+        eq: () => Promise.resolve({ data: [], error: null, status: 200 }),
+        in: () => Promise.resolve({ data: [], error: null, status: 200 }),
+      }),
+    }))
+    const { result } = renderHook(() => useCommonGame('g1', fakeSession))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(result.current.failure).toBeNull()
+    expect(result.current.commonGame).toBeNull()
   })
 })
 
@@ -356,27 +401,25 @@ describe('useCommonGame — paused unification', () => {
       if (table === 'games') {
         return {
           select: () => ({
-            eq: () => ({
-              maybeSingle: vi.fn().mockImplementation(async () => {
-                const data = firstCall ? GAME_ROW : endedRow
-                firstCall = false
-                return { data, error: null }
-              }),
-            }),
+            eq: async () => {
+              const row = firstCall ? GAME_ROW : endedRow
+              firstCall = false
+              return { data: [row], error: null, status: 200 }
+            },
           }),
         }
       }
       if (table === 'game_players') {
         return {
           select: () => ({
-            eq: () => Promise.resolve({ data: PLAYER_ROWS, error: null }),
+            eq: () => Promise.resolve({ data: PLAYER_ROWS, error: null, status: 200 }),
           }),
         }
       }
       if (table === 'profiles') {
         return {
           select: () => ({
-            in: () => Promise.resolve({ data: PROFILES, error: null }),
+            in: () => Promise.resolve({ data: PROFILES, error: null, status: 200 }),
           }),
         }
       }

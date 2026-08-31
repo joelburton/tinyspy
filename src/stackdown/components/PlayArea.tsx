@@ -35,6 +35,7 @@ import { type WordFlash } from './WordEntry'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
 import shared from '../../common/components/game/PlayArea.module.css'
+import { EnvelopeErrorPage } from '../../common/components/loading-and-errs/ErrorPage'
 import { getNotOkFeedback } from '../../common/lib/game/genericPills'
 import styles from './PlayArea.module.css'
 import '../theme.css'
@@ -122,6 +123,7 @@ export function PlayArea({
     clearWord,
     commitWord,
     loading,
+    failure,
   } = useGame(gameId)
   const stackdownSetup = setup as unknown as StackdownSetup
 
@@ -597,6 +599,10 @@ export function PlayArea({
   })
 
   if (loading) return <p>Loading game…</p>
+  // A failed read is NOT a missing game. Both leave `game` null, and saying
+  // "Game not found." about a dead connection is a confident wrong answer —
+  // this is what remains once the fault modal is dismissed.
+  if (failure) return <EnvelopeErrorPage envelope={failure} />
   if (!game) return <p>Game not found.</p>
 
   // The compete winner, for the loser's named verdict. `status.winner_user_id` is the id

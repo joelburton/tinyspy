@@ -190,7 +190,8 @@
 /* (The input row + its EntryBox/Delete/Submit live in the shared
  * common/components/game/entry/EntryRow now; only the below-board slot wrapper is here.) */
 
-/* @@ */ .loading {
+/* @@ */ .loading,
+/* @@ */ .empty {
   padding: 2rem;
   color: var(--page-text-color);
 }

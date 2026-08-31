@@ -34,6 +34,7 @@ import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
 import { cls } from '../../common/lib/util/cls'
 import shared from '../../common/components/game/PlayArea.module.css'
+import { EnvelopeErrorPage } from '../../common/components/loading-and-errs/ErrorPage'
 import { getNotOkFeedback } from '../../common/lib/game/genericPills'
 import { showFaultModal } from '../../common/lib/fault/faultStore'
 import styles from './PlayArea.module.css'
@@ -77,7 +78,7 @@ export function PlayArea({
   goToGame,
   menu,
 }: GamePageCtx) {
-  const { game, players: playerStates, guesses, loading } = useGame(gameId)
+  const { game, players: playerStates, guesses, loading, failure } = useGame(gameId)
   // The setup recap, built ONCE and handed to both consumers — the info column
   // renders it as <li>s, the print model prints the same array object
   // (docs/pdf.md → Setup rows).
@@ -438,6 +439,10 @@ export function PlayArea({
   }, [endGame, concede, restart, toggleAnswer, handleNewGame])
 
   if (loading) return <p>Loading game…</p>
+  // A failed read is NOT a missing game. Both leave `game` null, and saying
+  // "Game not found." about a dead connection is a confident wrong answer —
+  // this is what remains once the fault modal is dismissed.
+  if (failure) return <EnvelopeErrorPage envelope={failure} />
   if (!game) return <p>Game not found.</p>
 
   const rows = myGuesses.map((g) => ({ guess: g.guess, colors: g.colors }))

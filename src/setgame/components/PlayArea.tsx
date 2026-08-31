@@ -35,6 +35,7 @@ import { db } from '../db'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
 import shared from '../../common/components/game/PlayArea.module.css'
+import { EnvelopeErrorPage } from '../../common/components/loading-and-errs/ErrorPage'
 import { getNotOkFeedback } from '../../common/lib/game/genericPills'
 import styles from './PlayArea.module.css'
 
@@ -86,7 +87,7 @@ export function PlayArea(ctx: GamePageCtx) {
     isMyTurn, currentTurnUserId,
     setup, goToClub, clubHandle, goToGame, menu, brand, globalFeedback, title,
   } = ctx
-  const { game, players: rows, events, claims, lastClaim, teamFound, loading } =
+  const { game, players: rows, events, claims, lastClaim, teamFound, loading, failure } =
     useGame(gameId, session.user.id)
 
   const selfId = session.user.id
@@ -559,6 +560,10 @@ export function PlayArea(ctx: GamePageCtx) {
   }, [stillWaiting, holderName, holderColor, globalFeedback])
 
   if (loading) return <div className={styles.loading}>Loading…</div>
+  // A failed read is NOT a missing game. Both leave `game` null, and saying
+  // "Game not found." about a dead connection is a confident wrong answer —
+  // this is what remains once the fault modal is dismissed.
+  if (failure) return <EnvelopeErrorPage envelope={failure} />
   if (!game) return <div className={styles.empty}>Game not found.</div>
 
   const isCompete = game.mode === 'compete'

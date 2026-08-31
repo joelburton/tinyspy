@@ -127,7 +127,12 @@ export default function App() {
     // Without it, opening a sibling game silently falls through to
     // the HomePage fallback below — the user lands back at their
     // club list with no console error to explain why.
-    const gameMatch = path.match(/^\/g\/([a-z0-9_]+)\/([0-9a-f-]+)\/?$/i)
+    //
+    // The id is matched LOOSELY — anything that is not a slash. Whether a
+    // string could name a game is GamePage's question, not this one's: it is
+    // where the other "no such game" is answered, so both arrive at the same
+    // page instead of a URL-shaped rule here and a row-shaped rule there.
+    const gameMatch = path.match(/^\/g\/([a-z0-9_]+)\/([^/]+)\/?$/i)
     if (gameMatch) {
       const [, gametype, gameId] = gameMatch
       const game = games.find((g) => g.gametype === gametype)

@@ -37,6 +37,7 @@ import { buildLetterboxedPrintModel } from '../pdf/model'
 import { printLetterboxedPdf } from '../pdf/printLetterboxedPdf'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import shared from '../../common/components/game/PlayArea.module.css'
+import { EnvelopeErrorPage } from '../../common/components/loading-and-errs/ErrorPage'
 import { getNotOkFeedback } from '../../common/lib/game/genericPills'
 import styles from './PlayArea.module.css'
 
@@ -78,7 +79,7 @@ export function PlayArea(ctx: GamePageCtx) {
     isMyTurn, currentTurnUserId,
     setup, goToClub, clubHandle, goToGame, menu, brand, globalFeedback, title,
   } = ctx
-  const { game, playerRows, myRow, events, loading, rowsLoaded } = useGame(gameId, session.user.id)
+  const { game, playerRows, myRow, events, loading, rowsLoaded, failure } = useGame(gameId, session.user.id)
 
   const letterboxedSetup = setup as LetterboxedSetup
 
@@ -538,6 +539,10 @@ export function PlayArea(ctx: GamePageCtx) {
   })
 
   if (loading) return <div className={styles.loading}>Loading…</div>
+  // A failed read is NOT a missing game. Both leave `game` null, and saying
+  // "Game not found." about a dead connection is a confident wrong answer —
+  // this is what remains once the fault modal is dismissed.
+  if (failure) return <EnvelopeErrorPage envelope={failure} />
   if (!game) return <div className={styles.empty}>Game not found.</div>
 
   // The rows the BOARD's viewer replays: the shared chain's events in coop, my

@@ -51,3 +51,23 @@
 /* @@ */ .timerStopped {
   color: var(--timer-stopped-color);
 }
+
+/* **The no-such-game page.** Not an error surface: nothing is broken and there
+ * is nothing to diagnose out loud — the link is just pointing at a game that
+ * is not there, which is a 404, not a fault. So no red heading and no `k=v`
+ * line, only the sentence and the way out (Joel, 2026-08-31).
+ *
+ * It keeps `.card` + `.pageMain` from ErrorPage, since the containing shape IS
+ * right — a bordered card at the app's default page width. What it drops is
+ * everything inside that says "something went wrong". */
+/* @@ */ .notFound {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacer-4);
+  align-items: flex-start;
+}
+
+/* @@ */ .notFoundMessage {
+  margin: 0;
+  overflow-wrap: anywhere;
+}

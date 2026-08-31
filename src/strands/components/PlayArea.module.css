@@ -46,7 +46,8 @@
   );
 }
 
-/* @@ */ .loading {
+/* @@ */ .loading,
+/* @@ */ .empty {
   padding: 2rem;
   color: var(--page-text-muted-color);
 }

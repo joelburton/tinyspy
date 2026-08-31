@@ -41,14 +41,17 @@ import { PauseBoundary } from './PauseBoundary'
 import { PauseButton } from '../buttons/PauseButton'
 import { InfoSwitchButton } from './InfoSwitchButton'
 import { cls } from '../../lib/util/cls'
+import { Link } from '../../lib/routing/Link'
 import { PageHeader } from '../page-header/PageHeader'
 import { PageHeaderMenu } from '../page-header/PageHeaderMenu'
 import { PageHeaderStatusSlot } from '../page-header/PageHeaderStatusSlot'
 import { SuspendConfirmationBlockingModal } from './SuspendConfirmationBlockingModal'
 import { Loading } from '../loading-and-errs/Loading'
-import { ErrorPage } from '../loading-and-errs/ErrorPage'
-import { diagnosticsLine } from '../../lib/supabase/dbLog'
+import { EnvelopeErrorPage } from '../loading-and-errs/ErrorPage'
 import type { GameManifest } from '../../lib/games'
+import { db as commonDb } from '../../db'
+import { readRows } from '../../lib/supabase/dbResult'
+import type { NotOk } from '../../lib/supabase/envelope'
 import styles from './GamePage.module.css'
 
 type Props = {
@@ -144,7 +147,93 @@ type Props = {
 /** The shared peer-pill lifetime (ms) — see the auto-clear effect below. */
 const PEER_PILL_MS = 3000
 
-export function GamePage({
+/** Could this string BE a game id? Not "does the game exist" — that is a
+ *  question for the server, and one worth asking only about ids that could
+ *  have an answer. Postgres rejects anything else as `22P02`, once per query,
+ *  and every one of those becomes its own fault modal. */
+const isGameId = (s: string) =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s)
+
+/**
+ * **The one "no such game" page**, for both of the ways to have no game: an id
+ * that cannot name one, and an id that names one which is not there.
+ *
+ * One function rather than two call sites writing the same card, because a
+ * player cannot tell the two apart and should not be asked to.
+ *
+ * **Deliberately not an `<ErrorPage>`.** Nothing is broken here — a link points
+ * at a game that is not there, which is a 404 — so it wears no red "Error" and
+ * shows no `k=v` line. `detail` still says which of the two it was, but to the
+ * CONSOLE: it is worth having when someone reports "it says there's no game",
+ * and worth nothing to the person reading the page.
+ */
+function noSuchGamePage(detail: string) {
+  console.debug(`[ui] no-such-game | ${detail}`)
+  return (
+    <div className={cls('card', 'pageMain', styles.notFound)}>
+      <p className={styles.notFoundMessage}>
+        There's no game here. It may have been deleted, or the link you followed
+        might be wrong or out of date.
+      </p>
+      <Link to="/" className="link-button">
+        ← Back home
+      </Link>
+    </div>
+  )
+}
+
+/**
+ * **Does this game exist? — asked once, before anything else runs.**
+ *
+ * One cheap `select id` and three answers, and NOTHING below mounts until it
+ * says yes. That is the whole job of this component; `GamePageInner` holds the
+ * shell as it always has, and `useCommonGame` is untouched.
+ *
+ * **Why a pre-flight query rather than reading the answer out of
+ * `useCommonGame`,** which fetches the same row a moment later: because that
+ * hook does far more than fetch. It joins the realtime channel, tracks
+ * presence, and asserts `set_current_view` on the subscribe ack — for a game
+ * that may not be there. Sequencing those internally means teaching a 600-line
+ * hook to half-run, which is worse than one extra PK lookup on a path that is
+ * about to make six more.
+ *
+ * **Why the id test appears twice.** In the effect it prevents the request: an
+ * id that cannot be a uuid is a `22P02` per query and a fault modal per
+ * `22P02`, and the answer is knowable without asking. In the render it picks
+ * the page. Two different jobs — *don't ask*, and *say why*.
+ *
+ * The `'checking'` state and the `mounted` flag are React's tax and nothing
+ * more: a render is synchronous so it cannot await, and a render that gets
+ * discarded must not write state.
+ */
+export function GamePage(props: Props) {
+  const { gameId, manifest } = props
+  const [exists, setExists] = useState<'checking' | 'yes' | 'no' | NotOk>('checking')
+
+  useEffect(() => {
+    if (!isGameId(gameId)) return
+    let mounted = true
+    void (async () => {
+      const res = await readRows(commonDb.from('games').select('id').eq('id', gameId))
+      if (!mounted) return
+      // Three-way on purpose. Collapsing a FAILED read into "no" would tell a
+      // player their game is gone because the network blinked — the confident
+      // wrong answer this whole area exists to stop.
+      setExists(res.type === 'not-ok' ? res : res.data.length > 0 ? 'yes' : 'no')
+    })()
+    return () => {
+      mounted = false
+    }
+  }, [gameId])
+
+  if (!isGameId(gameId)) return noSuchGamePage(`not a game id: ${gameId}`)
+  if (exists === 'checking') return <Loading />
+  if (exists === 'no') return noSuchGamePage(`rows=0 gametype=${manifest.gametype} game=${gameId}`)
+  if (exists !== 'yes') return <EnvelopeErrorPage envelope={exists} />
+  return <GamePageInner {...props} />
+}
+
+function GamePageInner({
   gameId,
   session,
   manifest,
@@ -164,13 +253,13 @@ export function GamePage({
     timer,
     isMyTurn,
     loading,
+    failure,
   } = useCommonGame(gameId, session)
 
   // Announce on the club's presence channel that this player is
   // viewing THIS game, so the club page's member dots +
   // abandoned-game heal can see them. We don't read the roster here —
-  // GamePage only announces. `club_handle` is null until the game row
-  // loads, so the hook is a no-op until then.
+  // GamePage only announces.
   useClubPresence(commonGame?.club_handle ?? null, gameId, session.user.id)
 
   // Receive-only: while you're IN a game of this club (active OR paused), still
@@ -306,10 +395,10 @@ export function GamePage({
   }, [])
   const openHelp = useCallback(() => setHelpOpen(true), [])
   // Club handle + terminal flag drive both "Back to club" affordances. Derived
-  // from `commonGame` here (before the early returns) so the menu API can be
-  // assembled; the primitives (not the `commonGame` object) are the callback
-  // deps, so identities only change on the rare club-load / terminal flip — not
-  // on every realtime `commonGame` update.
+  // from `commonGame` here so the menu API can be assembled; the primitives
+  // (not the `commonGame` object) are the callback deps, so identities only
+  // change on the rare club-load / terminal flip — not on every realtime
+  // `commonGame` update.
   const clubHandle = commonGame?.club_handle ?? ''
   const isGameOver = commonGame?.ended_at != null
   // Direct-nav to the club page — the terminal branch. Exposed via ctx so each
@@ -428,24 +517,16 @@ export function GamePage({
     globalFeedback: globalFeedbackApi,
   })
 
+  // `GamePage` proved the row existed before mounting this, so these are about
+  // what happens AFTER: `useCommonGame` refetches on every realtime event, so a
+  // game someone deletes mid-session arrives here as zero rows, and an outage
+  // arrives as a failed read. The pre-flight answers the question once; this
+  // keeps answering it.
   if (loading) return <Loading />
-  // No common.games row for this id. The likely stories: the game was
-  // deleted (someone in the club cleaned it up), or the URL is wrong /
-  // stale. Either way the player has nowhere to go from here except
-  // hand-editing the URL, so give them a real page with an exit —
-  // same shape as ClubPage's couldn't-load card.
-  if (!commonGame) {
-    return (
-      <ErrorPage
-        message="There's no game here. It may have been deleted, or the link you followed might be wrong or out of date."
-        diagnostics={diagnosticsLine('OK', {
-          call: 'GET /rest/v1/games',
-          status: 200,
-          detail: `rows=0 gametype=${gametype} game=${gameId}`,
-        })}
-      />
-    )
-  }
+  // A failed read is NOT a missing game — both leave `commonGame` null, and
+  // only one of them means the game is gone.
+  if (failure) return <EnvelopeErrorPage envelope={failure} />
+  if (!commonGame) return noSuchGamePage(`rows=0 gametype=${gametype} game=${gameId}`)
 
   // The gametype's manual end-game dispatcher, if it has one (bananagrams has no
   // whole-table end — see the manifest). Used by the pause overlay's End-game
