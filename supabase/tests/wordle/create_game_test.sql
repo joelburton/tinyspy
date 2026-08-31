@@ -131,19 +131,15 @@ select pg_temp.envelope_is(
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN056"}'::jsonb,
   'a legal_guess below the answer band names the legal band');
 
--- ── PN057: an empty dictionary is a FAULT, not a field validation ──
--- The only raise here that no test held, and its severity changed on 2026-08-30
--- (Joel): the bands are cumulative, so no setup choice can empty the pool —
--- reaching it means the word import never ran, which the player cannot fix.
+-- ── PN057: an empty dictionary ──
+-- Emptying `common.words` is the only way to reach this raise, so it goes LAST —
+-- nothing after it could still pick a target. Safe, because this file rolls back.
 --
--- Emptying `common.words` is how to reach it, and it is safe: every pgTAP file
--- runs in a transaction this file rolls back. It goes LAST for that reason —
--- nothing after it could still pick a target.
+-- `reset role` first: `authenticated` holds no DELETE on common.words, so the
+-- delete runs as the test rather than as a player.
 --
--- `reset role` first: the delete runs as the TEST, not as a player. Nobody the
--- app authenticates may delete a word — `authenticated` holds no DELETE on
--- common.words — which is the grant that makes this raise unreachable in
--- production by anything but a failed import.
+-- Both sources are asserted because the bands are cumulative: if the curated
+-- list is empty, every band is too.
 reset role;
 delete from common.words where len = 5;
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -152,14 +148,14 @@ select pg_temp.envelope_is(
     (select handle from club), '{"max_guesses":6,"answer_source":0,"legal_guess":6,"timer":{"kind":"none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop'),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN057",
-    "message":"The word list is empty"}'::jsonb,
-  'the curated source with no words is a fault, not a bad answer_source');
+    "message":"BUG: Too few words on server to pick an answer"}'::jsonb,
+  'the curated source with no words is a fault');
 select pg_temp.envelope_is(
   wordle.create_game(
     (select handle from club), '{"max_guesses":6,"answer_source":1,"legal_guess":6,"timer":{"kind":"none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop'),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN057"}'::jsonb,
-  '…and so is every band, which is the argument for it being a fault');
+  '…and so is every band');
 
 select * from finish();
 rollback;

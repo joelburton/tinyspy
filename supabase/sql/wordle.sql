@@ -289,23 +289,10 @@ begin
      order by random() limit 1;
   end if;
   if v_target is null then
-    -- A FAULT, not a validation about `answer_source` (Joel, 2026-08-30). The
-    -- bands are cumulative — `difficulty <= n` — so band 1 is the smallest pool
-    -- and every band above it is a superset. There is no choice on the form that
-    -- empties one: reaching here means `common.words` itself has no clean
-    -- 5-letter rows, and then EVERY source fails, the curated list included.
-    --
-    -- Which makes the old form-validation actively misleading: it put the
-    -- sentence under a picker and invited the player to choose again, when
-    -- nothing they can pick helps. The condition is a missing word import (see
-    -- the stamps note in CLAUDE.md), so the modal is the right escalation —
-    -- it reaches whoever can run `gmake db-data`.
-    --
-    -- A state, not an input, so it keeps a plain sentence rather than the
-    -- "reached the server" form (docs/envelopes.md → A fault says what reached
-    -- the server). Worded as `waffle-build-board`'s PN120, which is this same
-    -- condition one game over.
-    raise exception 'The word list is empty'
+    -- FAULT: can't pick an answer because no clean 5-letter words in PG. The
+    -- bands are cumulative (`difficulty <= n`), so no `answer_source` empties
+    -- the pool on its own — every source fails together.
+    raise exception 'BUG: Too few words on server to pick an answer'
       using errcode = 'PN057', hint = 'fault', column = '_',
       detail = 'common.words has no clean 5-letter answer candidates; run gmake all-words';
   end if;
