@@ -611,14 +611,29 @@ The last three are **raise-side**, found on 2026-08-31 while writing boggle's
 answer table. They are grouped here for the same reason: each touches many files
 at once and none belongs to a single RPC's entry.
 
-- [ ] **Derive `GameHook` in every game's `PlayArea.test.tsx`.** They hand-mirror
-  what `useGame` returns — twelve fields written out — instead of
-  `ReturnType<typeof import('../hooks/useGame').useGame>`. Two definitions of
-  one shape with nothing forcing them to match, and the drift is silent in the
-  direction that matters: `vi.mock`'s factory is not type-checked against the
-  real module, so a field added to the hook and forgotten in the copy leaves the
-  fake without it and every test still passes. Connections is done and is the
-  model; no design content, one line each.
+- [x] **Derive `GameHook` in every game's `PlayArea.test.tsx` — DONE
+  2026-08-31.** Ten files converted; six lines of hand-written type become one
+  `ReturnType<typeof import('../hooks/useGame').useGame>`. Five games had no such
+  alias to convert (bananagrams, codenamesduet, connections, crosswords,
+  wordiply) — connections was already derived and is the model.
+
+  **The drift it was written to prevent was already there, and `tsc` found it on
+  the first compile.** boggle, spellingbee and wordwheel's hooks return
+  `rowsLoaded`; their hand-written copies did not, so the fakes returned an
+  object without the key.
+
+  And the failure was exactly the "silent in the direction that matters" kind:
+  `useGlobalFeedback`'s `ready` parameter DEFAULTS to `true` when it receives
+  `undefined`, so those three test files have been exercising the SINGLE-fetch
+  peer-narration path while their real hooks are two-fetch — the very case
+  `ready` exists to handle. Every test passed throughout.
+
+  Verified by planting a field on wordle's real hook: the converted test file
+  fails to compile, an unconverted one would not have.
+
+  Three now-unused type imports dropped along the way (letterboxed, psychicnum,
+  strands).
+
 
 - [ ] **A failed read must stop claiming the game does not exist.** Every
   `useGame` returns `game: null` on a failed read, and every `PlayArea` renders

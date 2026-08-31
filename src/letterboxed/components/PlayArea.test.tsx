@@ -19,19 +19,12 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '../../common/lib/games'
 import { gp } from '../../common/test/gamePlayers'
-import type { EventRow, LetterboxedGame, PlayerRow } from '../hooks/useGame'
+import type { LetterboxedGame, PlayerRow } from '../hooks/useGame'
 import { db } from '../db'
 import { PlayArea } from './PlayArea'
 import { clearFaultsForTest, peekFaultsForTest } from '../../common/lib/fault/faultStore'
 
-type GameHook = {
-  game: LetterboxedGame | null
-  playerRows: PlayerRow[]
-  myRow: PlayerRow | null
-  events: EventRow[]
-  loading: boolean
-  rowsLoaded: boolean
-}
+type GameHook = ReturnType<typeof import('../hooks/useGame').useGame>
 
 // A mutable holder the mocked useGame returns each render — set per test before
 // render(). `vi.hoisted` runs before the (also-hoisted) `vi.mock` factory.

@@ -27,18 +27,7 @@ import { PlayArea } from './PlayArea'
 
 // The mocked useGame's full return shape — a mutable holder set per test before
 // render(). `vi.hoisted` runs before the (also-hoisted) `vi.mock` factory.
-type GameHook = {
-  game: StackdownGame | null
-  players: PlayerRow[]
-  submissions: SubmissionRow[]
-  removedTileIds: Set<number>
-  currentWord: number[]
-  appendTile: (tileId: number) => number[] | null
-  retractTo: (index: number) => void
-  clearWord: () => void
-  commitWord: (tileIds: number[]) => void
-  loading: boolean
-}
+type GameHook = ReturnType<typeof import('../hooks/useGame').useGame>
 
 const h = vi.hoisted(() => ({ result: null as unknown as GameHook }))
 vi.mock('../hooks/useGame', () => ({ useGame: () => h.result }))

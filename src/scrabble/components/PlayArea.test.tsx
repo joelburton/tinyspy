@@ -26,12 +26,7 @@ import { PlayArea } from './PlayArea'
 
 const rpc = db.rpc as unknown as ReturnType<typeof vi.fn>
 
-type GameHook = {
-  game: ScrabbleGame | null
-  players: PlayerRow[]
-  plays: PlayRow[]
-  loading: boolean
-}
+type GameHook = ReturnType<typeof import('../hooks/useGame').useGame>
 
 // A mutable holder the mocked useGame returns each render — set per test before
 // render(). `vi.hoisted` runs before the (also-hoisted) `vi.mock` factory.

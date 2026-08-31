@@ -33,11 +33,7 @@ import { PlayArea } from './PlayArea'
 // than a string — render it and read the plain text to assert on the wording.
 const nodeText = (node: ReactNode) => render(<>{node}</>).container.textContent ?? ''
 
-type GameHook = {
-  game: WordwheelGame | null
-  foundWords: FoundWordRow[]
-  loading: boolean
-}
+type GameHook = ReturnType<typeof import('../hooks/useGame').useGame>
 
 // A mutable holder the mocked useGame returns each render — set per test before
 // render(). `vi.hoisted` runs before the (also-hoisted) `vi.mock` factory.
@@ -73,7 +69,9 @@ function loadedGame(over: Partial<WordwheelGame> = {}): WordwheelGame {
 }
 
 function loaded(game: WordwheelGame, foundWords: FoundWordRow[] = []): GameHook {
-  return { game, foundWords, loading: false }
+  // See boggle's note: `rowsLoaded` went missing while `GameHook` was
+  // hand-written, and `ready` fell back to its `true` default.
+  return { game, foundWords, loading: false, rowsLoaded: true }
 }
 
 const twoMembers = [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')]

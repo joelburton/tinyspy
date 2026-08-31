@@ -29,11 +29,7 @@ import { PlayArea } from './PlayArea'
 // than a string — render it and read the plain text to assert on the wording.
 const nodeText = (node: ReactNode) => render(<>{node}</>).container.textContent ?? ''
 
-type GameHook = {
-  game: BoggleGame | null
-  foundWords: FoundWordRow[]
-  loading: boolean
-}
+type GameHook = ReturnType<typeof import('../hooks/useGame').useGame>
 
 // A mutable holder the mocked useGame returns each render — set per test before
 // render(). `vi.hoisted` runs before the (also-hoisted) `vi.mock` factory.
@@ -65,7 +61,12 @@ function loadedGame(over: Partial<BoggleGame> = {}): BoggleGame {
 }
 
 function loaded(game: BoggleGame, foundWords: FoundWordRow[] = []): GameHook {
-  return { game, foundWords, loading: false }
+  // `rowsLoaded: true` because this helper builds a LOADED state — the rows
+  // have arrived. It went missing while `GameHook` was hand-written, and the
+  // fake returned no such key: `useGlobalFeedback`'s `ready` then fell back to
+  // its `true` default, so these tests exercised the SINGLE-fetch narration
+  // path while the real hook is two-fetch.
+  return { game, foundWords, loading: false, rowsLoaded: true }
 }
 
 const twoMembers = [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')]

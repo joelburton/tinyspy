@@ -6,7 +6,7 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '../../common/lib/games'
 import { gp } from '../../common/test/gamePlayers'
-import type { EventRow, StrandsGame, StrandsPlayer } from '../hooks/useGame'
+import type { StrandsGame, StrandsPlayer } from '../hooks/useGame'
 import { PlayArea } from './PlayArea'
 
 /**
@@ -30,15 +30,7 @@ import { PlayArea } from './PlayArea'
  * and turn log all render for real.
  */
 
-type GameHook = {
-  game: StrandsGame | null
-  players: StrandsPlayer[]
-  me: StrandsPlayer | null
-  events: EventRow[]
-  found: EventRow[]
-  loading: boolean
-  rowsLoaded: boolean
-}
+type GameHook = ReturnType<typeof import('../hooks/useGame').useGame>
 
 const h = vi.hoisted(() => ({ result: null as unknown as GameHook }))
 vi.mock('../hooks/useGame', () => ({ useGame: () => h.result }))

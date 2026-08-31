@@ -31,12 +31,7 @@ import { filterOptions, pickFilter } from '../../common/test/filterSelect'
 // than a string — render it and read the plain text to assert on the wording.
 const nodeText = (node: ReactNode) => render(<>{node}</>).container.textContent ?? ''
 
-type GameHook = {
-  game: WordleGame | null
-  players: WordlePlayerState[]
-  guesses: GuessRow[]
-  loading: boolean
-}
+type GameHook = ReturnType<typeof import('../hooks/useGame').useGame>
 
 // A mutable holder the mocked useGame returns each render — set per test before
 // render(). `vi.hoisted` runs before the (also-hoisted) `vi.mock` factory, so

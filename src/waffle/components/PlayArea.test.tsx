@@ -28,12 +28,7 @@ import { callEdgeFn } from '../../common/lib/supabase/callEdgeFn'
 import { PlayArea } from './PlayArea'
 import { clearFaultsForTest, peekFaultsForTest } from '../../common/lib/fault/faultStore'
 
-type GameHook = {
-  game: WaffleGame | null
-  players: WafflePlayerState[]
-  swaps: SwapRow[]
-  loading: boolean
-}
+type GameHook = ReturnType<typeof import('../hooks/useGame').useGame>
 
 // A mutable holder the mocked useGame returns each render — set per test before
 // render(). `vi.hoisted` runs before the (also-hoisted) `vi.mock` factory, so
