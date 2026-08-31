@@ -4,7 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react'
 import { IconHideSolution, IconNewGame, IconPrint, IconRestart, IconReveal } from '../../common/components/icons'
 import { cls } from '../../common/lib/util/cls'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
-import type { GamePageCtx, Member } from '../../common/lib/games'
+import type { CreatedGame, GamePageCtx, Member } from '../../common/lib/games'
+import { showFaultModal } from '../../common/lib/fault/faultStore'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { outOfRacePill } from '../../common/lib/game/localPills'
 import { waitingTurnPill } from '../../common/components/game/turnCopy'
@@ -225,11 +226,11 @@ export function PlayArea(ctx: GamePageCtx) {
     // copy says shelved, not ended. At terminal there's nothing to interrupt.
     if (!isTerminal && !(await confirmAction(NEW_GAME_CONFIRM))) return
     if (!gameMode) return
-    const res = await runEdgeFn<{ id: string }>(
+    const res = await runEdgeFn<CreatedGame>(
       'wordiply-build-board',
       { target_club: clubHandle, setup, player_user_ids: players.map((p) => p.user_id), mode: gameMode },
     )
-    if (res.type !== 'ok') {
+    if (res.type === 'not-ok') {
       // THE SAME ENVELOPE, READ DIFFERENTLY. On the setup form a validation is
       // an answer — fix the field and press Start again. Here there is no field
       // and no form, so whatever came back goes in the pill as it reads: a fault
@@ -239,8 +240,13 @@ export function PlayArea(ctx: GamePageCtx) {
       // silent about why the game didn't start.
       showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'manual' } })
       return
+    } else if (res.type === 'ok' && res.data.result === 'created') {
+      goToGame(`wordiply_${gameMode}`, res.data.id)
+      return
+    } else {
+      showFaultModal({ text: 'BUG: wordiply-build-board fell through to unhandled' })
+      return
     }
-    goToGame(`wordiply_${gameMode}`, res.data.id)
   }, [gameMode, clubHandle, setup, players, goToGame, showLocalFeedback, confirmAction, isTerminal])
 
   // Single-flight guard. New game has THREE triggers (the terminal button, the

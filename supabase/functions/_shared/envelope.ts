@@ -124,6 +124,6 @@ export const serviceError = (dbcode: string, message: string, detail?: string): 
 export const crash = (fnName: string, e: unknown): Response =>
   fault(
     'PN111',
-    'Something went wrong building the game.',
+    `BUG: ${fnName} threw`,
     `${fnName}: ${String(e instanceof Error ? e.message : e)}`,
   )

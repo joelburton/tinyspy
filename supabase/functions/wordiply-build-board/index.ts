@@ -325,12 +325,13 @@ serve(async (req) => {
 
       if (board === null) {
         console.log(`reject: no candidate base cleared the gate in ${candidates.length} tries`)
-        // Every candidate base failed the max-children gate — a generation dead
-        // end, not a player-reachable state, so nothing here is the player's to
-        // fix and no field is the place to say it.
+        // Measured: about half of a 40-candidate draw clears the gate, and the
+        // loop needs one — so all 40 failing is not luck. It means
+        // `candidate_bases` returned few or no rows, i.e. common.words has no
+        // 4-to-9-letter words at the source band.
         return fault(
           'PN135',
-          'No starter could be found for this game.',
+          'BUG: Too few words on server to find a starter',
           `wordiply-build-board: ${candidates.length} candidate bases all failed the gate`,
         )
       }

@@ -1018,5 +1018,26 @@ bananagrams-shaped.
   halves of one path: *"That puzzle is no longer available"* against crosswords'
   *"That puzzle is no longer in the library"* — same severity, same kind of
   field, same cause (the row a picker offered has since gone).
-- [ ] **wordiply's `create_game`** — via `wordiply-build-board`
+- [x] **wordiply's `create_game`** — via `wordiply-build-board`. All four steps,
+  2026-08-31. **33 answers: one `ok`, 30 faults, 2 form-validations.**
+
+  **`PN135` became a `BUG:`** — and the measurement is why. Its comment called it
+  *"a generation dead end, not a player-reachable state"*, which was right about
+  the classification and wrong about the cause. Five real draws of
+  `candidate_bases(3, 40)`, gated at `[20, 500]` children, cleared **20 / 19 / 15
+  / 23 / 26** of 40 — and the loop takes the FIRST that clears, so all forty
+  failing is not luck. It means `candidate_bases` returned few or no rows, i.e.
+  `common.words` has no 4-to-9-letter words at the source band. The **fifth**
+  instance of the unseeded-dictionary condition, after wordle `PN057`, waffle
+  `PN120`, codenamesduet `PN093` and psychicnum `PN049`.
+
+  **`PN111` became a `BUG:` too** (Joel: *an uncaught error is by definition a
+  bug; it's unexpected*), closing part of end-sweep 4's group C. It is `crash()`
+  in `_shared/envelope.ts` — the catch-all every edge function wraps itself in —
+  so the message is now `BUG: <fnName> threw`, with the raw exception already
+  riding in the detail. **One line**, reaching all eleven functions; the seven
+  call sites pass only their name.
+
+  `PN125` / `PN132` is an eleventh twin: the same malformed-starter check in both
+  halves.
 - [ ] **wordwheel's `create_game`** — via `wordwheel-build-board`

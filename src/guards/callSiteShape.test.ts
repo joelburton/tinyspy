@@ -124,8 +124,10 @@ describe('call-site shape', () => {
       'src/spellingbee/manifest.ts',
       'src/strands/components/PlayArea.tsx',
       'src/strands/manifest.ts',
-      // What is NOT here is the two PlayAreas whose in-game New Game still
-      // calls `create_game` with the negated form — wordiply and wordwheel. Each joins as its own entry lands, which is
+      'src/wordiply/components/PlayArea.tsx',
+      'src/wordiply/manifest.ts',
+      // What is NOT here is wordwheel's PlayArea, the last one whose in-game New
+      // Game still calls `create_game` with the negated form. Each joins as its own entry lands, which is
       // the list above growing one game at a time
       // (plans/envelope-rollout.md → create_game).
     ]

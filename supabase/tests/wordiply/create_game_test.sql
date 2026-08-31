@@ -25,7 +25,7 @@ begin;
 
 set search_path = wordiply, common, public, extensions;
 
-select plan(30);
+select plan(31);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -43,15 +43,25 @@ select pg_temp.create_club('Ada and Bea', array['ada','bea']) as handle;
 -- (1) Coop happy path
 -- ============================================================
 
-create temp table g on commit drop as
-select (wordiply.create_game(
+-- The whole envelope is kept, not just the id: `data.result` is the field both
+-- call sites filter the `ok` on, and it reaches them through
+-- `wordiply-build-board` untouched.
+create temp table created on commit drop as
+select wordiply.create_game(
   (select handle from club),
   pg_temp.wordiply_setup(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop',
   pg_temp.wordiply_board()
-)->'data'->>'id')::uuid as id;
+) as env;
+create temp table g on commit drop as
+select (env->'data'->>'id')::uuid as id from created;
+
+select pg_temp.envelope_is(
+  (select env from created),
+  '{"type":"ok","data":{"result":"created"}}'::jsonb,
+  'the answer names itself, so a call site has a case to assert');
 
 select isnt(
   (select id from g), null,
