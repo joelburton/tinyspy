@@ -50,7 +50,11 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
     // NYT (by date) and Guardian (today's, by series) both fetch server-side and
     // create the game from the imported puzzle.
     if (s.source === 'nyt' || s.source === 'guardian') {
-      return runEdgeFn<{ id: string }>(
+      // Promises MORE than `GameManifest.startGameInClub` asks for, which is
+      // legal — assignability runs one way. Inert until the interface widens,
+      // since `SetupGameModal` reads the INTERFACE's type
+      // (plans/envelope-rollout.md → create_game).
+      return runEdgeFn<{ result: 'created'; id: string }>(
         s.source === 'nyt' ? 'crosswords-import-nyt' : 'crosswords-import-guardian',
         { target_club: clubHandle, setup: s, player_user_ids: playerUserIds, mode },
       )
@@ -68,7 +72,8 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
     delete setupToStore.board
     delete setupToStore.filename
     // No `.single()`: the RPC returns the envelope itself, one jsonb value.
-    return runRpc<{ id: string }>(
+    // Same widened type as the import paths above, for the same reason.
+    return runRpc<{ result: 'created'; id: string }>(
       db.rpc('create_game', {
         target_club: clubHandle,
         setup: setupToStore,

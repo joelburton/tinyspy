@@ -2,7 +2,7 @@
 
 begin;
 set search_path = crosswords, common, public, extensions;
-select plan(29);
+select plan(30);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -19,12 +19,20 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.create_club('XW Club', array['ada', 'bea', 'cade']) as club_handle \gset
 
 -- ── Coop happy path ──────────────────────────────────────────────────
-select (crosswords.create_game(
+-- The whole envelope is captured, not just the id: `data.result` is the field a
+-- call site filters the `ok` on, and it reaches all three start paths.
+select crosswords.create_game(
     :'club_handle', pg_temp.xw_setup(:'pz_id'),
     array['ada11111-1111-1111-1111-111111111111'::uuid,
           'bea22222-2222-2222-2222-222222222222'::uuid],
-    'coop')->'data'->>'id')::uuid as gc_id \gset
+    'coop') as env \gset
+select (:'env'::jsonb->'data'->>'id')::uuid as gc_id \gset
 reset role;
+
+select pg_temp.envelope_is(
+  :'env'::jsonb,
+  '{"type":"ok","data":{"result":"created"}}'::jsonb,
+  'the answer names itself, so a call site has a case to assert');
 
 select ok(
   exists(select 1 from crosswords.games where id = :'gc_id'),

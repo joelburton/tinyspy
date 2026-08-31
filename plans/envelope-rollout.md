@@ -881,7 +881,30 @@ bananagrams-shaped.
   frontend rule — never test `=== null` or a truthiness to pick a branch — has a
   three-valued-logic twin on the server, and nothing guards it. Worth a look
   when the roster reaches the other games' `array_length` checks.
-- [ ] **crosswords' `create_game`** — two paths, the edge function and the direct RPC
+- [x] **crosswords' `create_game`** — 2026-08-31. **Steps 1, 2 and 4 only —
+  there is no step 3, deliberately.** crosswords is the one game with no in-game
+  New Game button, because a single "next puzzle" makes no sense across its three
+  sources (Joel, 2026-08-31): the Guardian path has no "another one" to fetch,
+  an upload cannot re-upload itself, and a library pick is a choice from a list.
+
+  **Three start paths, one RPC**, chosen by `setup.source` in `manifest.ts` —
+  NYT and Guardian go through their import edge functions, upload/library calls
+  the RPC directly. Both edge functions relay the RPC's envelope untouched, so
+  naming the answer in SQL reached all three and neither Deno file changed.
+
+  **40 answers: one `ok`, 36 faults, 2 form-validations, 1 service-error.**
+
+  **`PN230` is the only true `service-error` in the repo** — *"NYT rejected the
+  cookie — it may be expired"*. An outside system we depend on refusing us, which
+  is exactly the definition, and the counter-example that makes `PN093`'s move to
+  `fault` coherent.
+
+  **`PN220` became a `BUG:`** and left `STATE_NOT_BUG`. Its exemption read *"a
+  file the PLAYER supplied, so not our bug"* — but Postgres never reads a file.
+  It checks two keys on a jsonb blob (`meta`, `solution`), and whoever built that
+  blob — the FE's upload parser or an import edge function — had already parsed
+  the puzzle successfully. A missing key is our construction, so the old message
+  pointed the player at the one thing that was not wrong.
 - [ ] **letterboxed's `create_game`** — via `letterboxed-build-board`
 - [ ] **scrabble's `create_game`**
 - [ ] **spellingbee's `create_game`** — via `spellingbee-build-board`

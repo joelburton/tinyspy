@@ -502,7 +502,10 @@ begin
     v_meta := board -> 'meta';
     v_solution := board -> 'solution';
     if v_meta is null or v_solution is null then
-      raise exception 'The puzzle file could not be read'
+      -- FAULT: whoever built this blob — the FE's upload parser or an import
+      -- edge function — already read the puzzle successfully, so a missing key
+      -- is our construction, not the player's file.
+      raise exception 'BUG: puzzle with no meta or solution'
         using errcode = 'PN220', hint = 'fault', column = '_',
         detail = 'the board blob needs both meta and solution';
     end if;
@@ -598,7 +601,10 @@ begin
     jsonb_build_object('mode', mode, 'title', coalesce(v_meta ->> 'title', 'Crossword'))
   );
 
-  return common.ok_envelope(jsonb_build_object('id', new_id));
+  -- `result` NAMES the answer; `id` is the game to go to. It is the only thing
+  -- a call site can filter the `ok` on, and it reaches all three start paths —
+  -- the two import edge functions relay this envelope untouched.
+  return common.ok_envelope(jsonb_build_object('result', 'created', 'id', new_id));
 
 -- The boundary. It reads the SQLSTATE, re-raises anything that isn't ours, and
 -- lets the raise itself carry the message, the kind and the field.

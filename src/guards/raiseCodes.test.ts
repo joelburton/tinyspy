@@ -198,9 +198,6 @@ describe('the raise codes', () => {
       'No swaps left',
       'Already solved',
       "You can't edit the dictionary",
-      // A file the PLAYER supplied, so not our bug — arguably not a fault at
-      // all, which is a question for crosswords' own conversion.
-      'The puzzle file could not be read',
     ])
     const offenders: string[] = []
     const seen = new Set<string>()
