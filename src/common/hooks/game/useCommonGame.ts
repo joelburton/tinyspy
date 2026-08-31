@@ -103,6 +103,12 @@ type SuspendEvent = { type: 'suspend' }
  *  ClubPage's heal declares the same shape for the same RPC. */
 type UnsetAnswer = { result: 'cleared' } | null
 
+/** What `common.set_current_view` puts in `data` when it flipped the pointer.
+ *  Nullable for the same reason as its twin above: its other `ok` — PA003, the
+ *  game is gone — arrives through a raise, and `common.raised_envelope` builds
+ *  `data: null`. */
+type SetAnswer = { result: 'set' } | null
+
 /**
  * The one common-side realtime entry point for a game page —
  * owns the **shared room** for this game across all peers.
@@ -492,23 +498,30 @@ export function useCommonGame(
           // See docs/states.md → "Lifecycle: when is_current_view
           // flips" and the matching common.set_current_view RPC.
           //
-          // Fragile: errors are logged-and-swallowed. The RPC is
-          // idempotent (its `is_current_view = false` guard absorbs
-          // double-fires), and the next SUBSCRIBED reconnect re-
-          // asserts state — so transient failures self-heal at the
-          // next network blip. A persistent failure (RLS broken,
-          // RPC dropped) goes unnoticed by the user. Acceptable
-          // under the friends-alpha posture; revisit when there's a
-          // user-visible error-surface story.
-          // See docs/code-review-2026-06-16.md §1.2 +
-          // docs/deferred.md → Common.
-          commonDb
-            .rpc('set_current_view', { target_game: gameId })
-            .then((res) => {
-              if (res.error) {
-                console.error('set_current_view failed', res.error)
-              }
-            })
+          // A console line is the whole response, and the severity below is
+          // what buys that: a fault is the only not-ok this RPC can give
+          // (PN011 / PN012, from require_club_member) and `runRpc` has already
+          // raised its modal. Nobody asked for this write — it rides on the
+          // subscribe ack — so there is no surface owed an answer, and the RPC
+          // is idempotent, so a transient failure self-heals at the next
+          // reconnect. Same shape as `unset_current_view` below.
+          void runRpc<SetAnswer>(
+            commonDb.rpc('set_current_view', { target_game: gameId }),
+          ).then((res) => {
+            if (res.type === 'not-ok' && res.severity === 'fault') {
+              console.error('set_current_view failed', res.message)
+            } else if (res.type === 'ok' && res.dbcode === 'PA003') {
+              // The game was deleted out from under us — the reconnect case,
+              // not a race: this ack fires again on every resubscribe. Nothing
+              // to make current, and this is the wrong messenger anyway;
+              // `load()` finds zero rows and GamePage says it properly.
+            } else if (res.type === 'ok' && res.data?.result === 'set') {
+              // Flipped, or already true — the RPC's own `is_current_view =
+              // false` guard absorbing a re-assert.
+            } else {
+              showFaultModal({ text: 'BUG: set_current_view fell through to unhandled' })
+            }
+          })
         }
       })
       setChannel(ch)

@@ -1054,7 +1054,7 @@ export type Database = {
         Args: { gametypes: string[]; target_club: string }
         Returns: Json
       }
-      set_current_view: { Args: { target_game: string }; Returns: undefined }
+      set_current_view: { Args: { target_game: string }; Returns: Json }
       set_scratchpad: {
         Args: { p_body: string; p_owner_id: string; target_game: string }
         Returns: number

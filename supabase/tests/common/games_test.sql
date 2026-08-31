@@ -410,12 +410,10 @@ select is(
 -- we did it naively; the WHERE clause `and is_current_view = false`
 -- in set_current_view's body is what keeps it a no-op.
 select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
-select lives_ok(
-  format(
-    $$ select common.set_current_view(%L::uuid) $$,
-    current_setting('test.created_game_id')::uuid
-  ),
-  'set_current_view: re-mount on the already-current game is a no-op'
+select pg_temp.envelope_is(
+  common.set_current_view(current_setting('test.created_game_id')::uuid),
+  '{"type": "ok", "data": {"result": "set"}}'::jsonb,
+  'set_current_view: re-mount on the already-current game answers ok/set'
 );
 
 reset role;
@@ -449,14 +447,11 @@ select is(
 
 -- Non-member rejected on both helpers.
 select pg_temp.as_jwt_only('dee44444-4444-4444-4444-444444444444');
-select throws_ok(
-  format(
-    $$ select common.set_current_view(%L::uuid) $$,
-    current_setting('test.second_game_id')::uuid
-  ),
-  'PN012',
-  'You are not a member of this club',
-  'set_current_view: non-member is rejected'
+select pg_temp.envelope_is(
+  common.set_current_view(current_setting('test.second_game_id')::uuid),
+  '{"type": "not-ok", "severity": "fault", "dbcode": "PN012",
+    "message": "You are not a member of this club"}'::jsonb,
+  'set_current_view: a non-member gets a declared fault'
 );
 select pg_temp.envelope_is(
   common.unset_current_view(current_setting('test.second_game_id')::uuid),
@@ -465,18 +460,24 @@ select pg_temp.envelope_is(
   'unset_current_view: a non-member gets a declared fault'
 );
 
--- Unknown game raises P0002 (matches end_game's vocabulary).
 select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
-select throws_ok(
-  $$ select common.set_current_view('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'::uuid) $$,
-  'P0002',
-  'game-not-found|',
-  'set_current_view: unknown game raises P0002'
+-- Both halves answer a deleted game as an `ok`, and for the same reason:
+-- nothing here is anybody's action. Both fire from housekeeping — this one on
+-- the channel's SUBSCRIBED ack, including every reconnect — so a player whose
+-- network blinks an hour after someone deleted the game reaches it without any
+-- bug being involved.
+--
+-- The JOBS are not symmetrical, which is the interesting part. Unset's ("leave
+-- no pointer on that game") is trivially satisfied by a deleted game; set's
+-- ("make that game the club's current view") is unachievable. Still `ok`: an
+-- unachievable job is not a failure when the thing it was for is gone.
+select pg_temp.envelope_is(
+  common.set_current_view('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'::uuid),
+  '{"type": "ok", "outcome": "noted", "dbcode": "PA003",
+    "message": "That game is gone"}'::jsonb,
+  'set_current_view: a deleted game is ok/noted, not a fault'
 );
 
--- Its converted twin answers the same case as an `ok`: leaving no pointer on a
--- game that no longer exists is the job done, and both callers race a delete by
--- construction.
 select pg_temp.envelope_is(
   common.unset_current_view('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'::uuid),
   '{"type": "ok", "outcome": "noted", "dbcode": "PA001",

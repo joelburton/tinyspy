@@ -742,7 +742,9 @@ identifier — a shape nothing has exercised yet.
 - [ ] `end_game` · RPC — cross-cutting, see above
 - [ ] `replay_board` · RPC — cross-cutting, see above
 - [x] `send_message` · RPC
-- [ ] `set_current_view` · RPC
+- [x] `set_current_view` · RPC — PA003 for a deleted game, the twin of unset's
+      PA001. Its own pgTAP had it throwing `P0002 game-not-found|`; both that and
+      the non-member `throws_ok` are envelope assertions now
 - [ ] `set_scratchpad` · RPC
 - [ ] `start_game` · RPC
 - [ ] `tick_timer` · RPC

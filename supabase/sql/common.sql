@@ -1548,18 +1548,38 @@ grant execute on function common.concede(uuid) to authenticated;
 -- leaves). See docs/states.md → "Lifecycle: when
 -- is_current_view flips" for the full story.
 
+-- Dropped, not replaced: this returned `void` before it answered in an
+-- envelope, and `create or replace` cannot change a return type. Same as its
+-- twin below.
+drop function if exists common.set_current_view(uuid);
 create or replace function common.set_current_view(target_game uuid)
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = common, public, extensions
 as $$
 declare
   target_club text;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text;
 begin
   select club_handle into target_club from common.games where id = target_game;
+  -- PA003 — the twin of unset_current_view's PA001, and `ok` for the same
+  -- reason: nothing here is anybody's action. This fires on the channel's
+  -- SUBSCRIBED ack, including every reconnect, and its only caller logs.
+  --
+  -- The jobs are not symmetrical, though. Unset's ("leave no pointer on that
+  -- game") is trivially SATISFIED by a deleted game; this one's ("make that
+  -- game the club's current view") is UNACHIEVABLE. It is still `ok`, because
+  -- an unachievable job is not a failure when the thing it was for is gone.
+  --
+  -- Reachable without any bug, which is why it is not a `BUG:` fault: the ack
+  -- fires on reconnect too, so a player whose network blinks an hour after
+  -- someone deleted the game lands here. Telling them their game is gone is
+  -- right, but this is the wrong messenger — `useCommonGame`'s next refetch
+  -- finds zero rows and GamePage says so, in the words written for it.
   if target_club is null then
-    raise exception 'game-not-found|' using errcode = 'P0002',
+    raise exception 'That game is gone'
+      using errcode = 'PA003', hint = 'noted',
       detail = 'no common.games row for target_game';
   end if;
 
@@ -1583,6 +1603,16 @@ begin
      set is_current_view = true
    where id = target_game
      and is_current_view = false;
+
+  return common.ok_envelope(jsonb_build_object('result', 'set'));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 
