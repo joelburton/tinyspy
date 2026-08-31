@@ -578,13 +578,20 @@ the four inside `connections.submit_guess` from the original census.
   outcome the pill renders (1-for-1, no plan change), and `create_game_test`
   keeps the whole envelope (plan 17 → 20 with PN057's pair).
 
-#### Three END-SWEEPS, once the per-game roster is clear
+#### Six END-SWEEPS, once the per-RPC roster is clear
 
-All three are **shapes** — settled once, then repeated. Deferred deliberately
-(Joel, 2026-08-29): threading any of them through the roster would put an
-unrelated edit in fifteen entry diffs, and a shape is easier to review as a set,
-where the game that ISN'T identical stands out instead of looking like one of
-fifteen small judgment calls.
+**These are part of THIS work, not a someday list** (Joel, 2026-08-31). The
+sprint is not finished while they are open.
+
+The first three are **call-site shapes** — settled once, then repeated. Deferred
+deliberately (Joel, 2026-08-29): threading any of them through the roster would
+put an unrelated edit in fifteen entry diffs, and a shape is easier to review as
+a set, where the game that ISN'T identical stands out instead of looking like one
+of fifteen small judgment calls.
+
+The last three are **raise-side**, found on 2026-08-31 while writing boggle's
+answer table. They are grouped here for the same reason: each touches many files
+at once and none belongs to a single RPC's entry.
 
 - [ ] **Derive `GameHook` in every game's `PlayArea.test.tsx`.** They hand-mirror
   what `useGame` returns — twelve fields written out — instead of
@@ -649,9 +656,78 @@ fifteen small judgment calls.
   line), which is the same argument `callSiteShape.test.ts` makes, and probably a
   second arm on that same file.
 
-The cost of deferring all three is bounded and known: each `useGame` is opened
-twice, once for the one-word read conversion inside its own entry and once for
-the failed-read sweep.
+- [ ] **The `BUG:` prefix reaches the edge functions.** `raiseCodes.test.ts`
+  walks `supabase/sql/*.sql` and nothing else, so **all 38 Deno faults have never
+  been checked** — which is why they drifted to a second idiom nobody chose:
+  `envelopes.md` → *A fault says what REACHED THE SERVER* gives the form as
+  `BUG: game with no players`, and the Deno functions copied the paragraph BELOW
+  it, which explains how that message sounds when quoted in a bug report
+  ("…reached the server"). Right fact, wrong half of the doc, no guard to notice.
+
+  **Extend the guard first** — that turns 38 unchecked messages into a list, the
+  way `callSiteShape.test.ts` did for `!== 'ok'` — then fix by group.
+
+  **Group A — 16 raises, the wrong idiom.** Reword to `BUG: <what arrived>`.
+  `PN115` is the tell: SQL's `common.create_game` raises `PN059`
+  **"BUG: game with no players"** for the same condition.
+
+  | code | function | message |
+  |---|---|---|
+  | `PN112` `PN113` `PN114` `PN115` | `_shared` | A game with no club / settings / of kind '*mode*' / with no players reached the server. |
+  | `PN119` | waffle | A word difficulty of *band* reached the server. |
+  | `PN132` | wordiply | A starter of '*customBase*' reached the server. |
+  | `PN149` `PN150` `PN151` `PN152` | boggle | no dice set / required difficulty / legal-word difficulty / no scoring ladder |
+  | `PN212` | letterboxed | A dictionary of *legal_band* reached the server. |
+  | `PN225` `PN226` `PN229` | crosswords-nyt | no club or players / weekday / puzzle date |
+  | `PN237` `PN238` | crosswords-guardian | no club or players / Guardian series |
+
+  **Group B — 12 raises, correctly unprefixed.** State or environment, not
+  something malformed arriving. These want `STATE_NOT_BUG` entries, not rewording.
+  `PN116` `PN223` `PN235` ("You are not signed in."), `PN120` ("The word list is
+  empty." — already matched by wordle's `PN057`), `PN111`, and the six
+  `PN117` `PN118` `PN148` `PN233` `PN234` `PN241` `PN242` ("The game could not be
+  created.").
+
+  **Group C — 10 raises, needing ONE ruling**, and they split on the picker rule:
+
+  | codes | what happened | likely |
+  |---|---|---|
+  | `PN153` `PN213` | the board the PLAYER typed would not parse | `STATE_NOT_BUG` — the same call crosswords' `"The puzzle file could not be read"` already gets |
+  | `PN224` `PN236` | OUR request body would not parse | group A — `BUG:` |
+  | `PN218` `PN227` `PN135` `PN176` `PN197` | a GENERATED value could not be produced | not faults at all — the `PN121` shape, i.e. `form-validation` |
+
+- [ ] **`PN176` and `PN197` are the same line and want opposite answers.** Both
+  fire when the anti-repeat filter (`applyOverlapCap`, dropping seeds that share
+  too many letters with the club's previous board) empties the pangram pool.
+  Measured 2026-08-31:
+
+  | | pool entering the cap | narrowed by a player setting? |
+  |---|---|---|
+  | `PN176` spellingbee | **1,889** seeds, the whole table | no — nothing the form offers touches it |
+  | `PN197` wordwheel | **411–1,107**, after band + `unique_letters` | yes, both, and `PN195`/`PN196` already name them |
+
+  So `PN176` is not reachable by play — emptying it needs `spellingbee.pangrams`
+  to be empty, a data problem like wordle's `PN057`. It stays a **fault**, but its
+  sentence is wrong: *"No puzzle could be built for this club right now"* says
+  "right now", inviting a retry that cannot work. `PN197` has two levers the
+  player can actually pull, so it looks like a **form-validation** on
+  `unique_letters` — the field `PN196` already uses for the same pool.
+
+- [ ] **boggle raises one refusal twice, worded twice.** `PN154`
+  (`boggle-build-board`, `form-validation` on `custom_board`, *"No words for
+  those letters at that difficulty."*) and `PN147` (`boggle.create_game`, same
+  severity, same field, *"No words for those letters at that difficulty"* — no
+  period) are the same check. The SQL one is unreachable through the edge
+  function, which refuses first; it exists because the RPC is the authority and
+  must not trust its caller. Fine as belt-and-braces, but one player-visible
+  sentence now lives in two files and has already drifted by a full stop.
+  **Decide:** keep both and pin the wording in a test, or make the SQL one a
+  `BUG:` fault since only a broken caller reaches it.
+
+The cost of deferring all three call-site sweeps is bounded and known: each
+`useGame` is opened twice, once for the one-word read conversion inside its own
+entry and once for the failed-read sweep. The three above cost nothing to defer —
+they touch files no per-RPC entry opens.
 
 #### `create_game` — LAST, and in the reverse order this section first gave
 
