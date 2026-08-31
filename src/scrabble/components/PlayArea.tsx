@@ -4,7 +4,8 @@ import { expectedTextOrFault } from '../../common/lib/game/serverError'
 import { runRpc } from '../../common/lib/supabase/dbResult'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { IconNewGame, IconPrint, IconRestart } from '../../common/components/icons'
-import type { GenericFeedbackMsg, GamePageCtx, Member } from '../../common/lib/games'
+import type { CreatedGame, GenericFeedbackMsg, GamePageCtx, Member } from '../../common/lib/games'
+import { showFaultModal } from '../../common/lib/fault/faultStore'
 import { cls } from '../../common/lib/util/cls'
 import { outOfRacePill, terminalPill } from '../../common/lib/game/localPills'
 import { waitingTurnPill } from '../../common/components/game/turnCopy'
@@ -454,7 +455,7 @@ export function PlayArea({
     // anyway so an accidental `+` doesn't read as "I just lost my game" — the
     // copy says shelved, not ended. At terminal there's nothing to interrupt.
     if (!isTerminal && !(await confirmAction(NEW_GAME_CONFIRM))) return
-    const res = await runRpc<{ id: string }>(
+    const res = await runRpc<CreatedGame>(
       db.rpc('create_game', {
         target_club: clubHandle,
         setup: setup as unknown as ScrabbleSetup,
@@ -462,7 +463,7 @@ export function PlayArea({
         mode: gameMode,
       }),
     )
-    if (res.type !== 'ok') {
+    if (res.type === 'not-ok') {
       // THE SAME ENVELOPE, READ DIFFERENTLY. On the setup form a validation is
       // an answer — fix the field and press Start again. Here there is no field
       // and no form, so whatever came back goes in the pill as it reads: a fault
@@ -475,8 +476,13 @@ export function PlayArea({
       // manual-dismiss mode this message needs.
       showMsg({ ...getNotOkFeedback(res), mode: { kind: 'manual' } })
       return
+    } else if (res.type === 'ok' && res.data.result === 'created') {
+      goToGame(`scrabble_${gameMode}`, res.data.id)
+      return
+    } else {
+      showFaultModal({ text: 'BUG: create_game fell through to unhandled' })
+      return
     }
-    goToGame(`scrabble_${gameMode}`, res.data.id)
   }, [gameMode, clubHandle, setup, players, goToGame, showMsg, confirmAction, isTerminal])
 
   // Single-flight guard. New game has THREE triggers (the terminal button, the

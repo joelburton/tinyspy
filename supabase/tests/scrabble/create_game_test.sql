@@ -21,20 +21,29 @@ begin execute sql into result; return result; end;
 $envfn$ language plpgsql;
 \ir setup.psql
 
-select plan(18);
+select plan(19);
 
 -- ─── Coop ────────────────────────────────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table cc on commit drop as
   select pg_temp.create_club('Rack coop', array['ada', 'bea']) as handle;
-create temp table gc on commit drop as
-  select (scrabble.create_game(
+-- The whole envelope is kept, not just the id: `data.result` is the field both
+-- call sites filter the `ok` on.
+create temp table created on commit drop as
+  select scrabble.create_game(
     (select handle from cc),
     '{"dict_2": 3, "dict_3plus": 3, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
           'bea22222-2222-2222-2222-222222222222'::uuid],
-    'coop')->'data'->>'id')::uuid as id;
+    'coop') as env;
+create temp table gc on commit drop as
+  select (env->'data'->>'id')::uuid as id from created;
 reset role;
+
+select pg_temp.envelope_is(
+  (select env from created),
+  '{"type":"ok","data":{"result":"created"}}'::jsonb,
+  'the answer names itself, so a call site has a case to assert');
 
 select is(
   (select gametype from common.games where id = (select id from gc)),

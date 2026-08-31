@@ -964,7 +964,19 @@ bananagrams-shaped.
   Its pgTAP went into `gameplay_test.sql` (plan 28 → 29), which holds the
   canonical happy path; letterboxed has no `create_game_test.sql` of its own, and
   the file had never loaded `envelope.psql`.
-- [ ] **scrabble's `create_game`**
+- [x] **scrabble's `create_game`** — all four steps, 2026-08-31. **22 answers:
+  one `ok`, 21 faults, zero form-validations** — nothing its dialog offers can
+  produce an answer the player could act on: the board is fixed, the bag is
+  fixed, and every setting is a picker with a closed set.
+
+  **`PN077` and `PN059` are the first SQL-vs-SQL twin** — the same message,
+  *"BUG: game with no players"*, once in `scrabble.create_game` and once in
+  `common.create_game` beneath it. Every other twin found so far has been
+  Deno-vs-SQL, so end-sweep 6's survey should look wider than the builder games.
+
+  `PN083` is a second cross-field check (AI opponents requiring a dictionary at
+  or above a band). Both halves are pickers, so it is a fault — matching wordle's
+  `PN056` rather than psychicnum's `PN049`.
 - [ ] **spellingbee's `create_game`** — via `spellingbee-build-board`
 - [ ] **strands' `create_game`** — the game **also has connections' puzzle-picker pair**, which is ROSTER work, not this entry, deliberately
   identical (`strands.next_puzzle_for_club`, its own `puzzle_for_date`, and a
