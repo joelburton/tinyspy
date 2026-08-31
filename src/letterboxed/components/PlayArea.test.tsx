@@ -72,7 +72,10 @@ function loadedGame(over: Partial<LetterboxedGame> = {}): LetterboxedGame {
 }
 
 function loaded(game: LetterboxedGame): GameHook {
-  return { game, playerRows: [myRow], myRow, events: [], loading: false, rowsLoaded: true }
+  return {
+    game, playerRows: [myRow], myRow, events: [], loading: false, rowsLoaded: true,
+    failure: null,
+  }
 }
 
 function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {

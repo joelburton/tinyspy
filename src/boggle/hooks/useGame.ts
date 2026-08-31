@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRealtimeRefetch } from '../../common/hooks/realtime/useRealtimeRefetch'
+import { readFailure, readRows, type ReadFailure } from '../../common/lib/supabase/dbResult'
 import { db } from '../db'
 import type { Member } from '../../common/lib/games'
 
@@ -64,25 +65,50 @@ export function useGame(gameId: string): {
    *  `loading` (which flips on the HEADER fetch). Peer narration gates on this
    *  so it seeds against the real backlog, not the empty pre-rows snapshot. */
   rowsLoaded: boolean
+  /** Set when a read FAILED, which is not the same as the game being absent.
+   *  The surface renders this instead of "Game not found." */
+  failure: ReadFailure | null
 } {
   const [game, setGame] = useState<BoggleGame | null>(null)
   const [foundWords, setFoundWords] = useState<FoundWordRow[]>([])
   const [loading, setLoading] = useState(true)
   const [rowsLoaded, setRowsLoaded] = useState(false)
+  // TWO failure slots, because the two lifecycles below fail differently. The
+  // header is fetched once and never retried, so its failure is permanent; the
+  // rows refetch on every event, so their failure should clear the moment one
+  // works. One shared slot would let a successful refetch erase a header
+  // failure that is still true.
+  const [headerFailure, setHeaderFailure] = useState<ReadFailure | null>(null)
+  const [rowsFailure, setRowsFailure] = useState<ReadFailure | null>(null)
 
   // The immutable header — fetched once per game. `loading` gates the PlayArea's
   // board render, so it flips here (the found_words load below just fills the list).
   useEffect(() => {
     let mounted = true
     void (async () => {
-      const { data } = await db
-        .from('games')
-        .select(
-          'id, club_handle, mode, board, n, min_word_length, required_words, bonus_words, required_words_count, required_words_score',
-        )
-        .eq('id', gameId)
-        .maybeSingle()
+      // No `.maybeSingle()`: `readRows` hands back rows, and `id` is the PK, so
+      // this is 0 or 1 of them.
+      const res = await readRows(
+        db
+          .from('games')
+          .select(
+            'id, club_handle, mode, board, n, min_word_length, required_words, bonus_words, required_words_count, required_words_score',
+          )
+          .eq('id', gameId),
+      )
       if (!mounted) return
+
+      // A read can only fail as a FAULT — `readRows` never authors anything else
+      // — and `dbFetch` has already logged it and raised the modal. What is
+      // left is the sentence BEHIND it, plus a line naming which read it was.
+      if (res.type === 'not-ok') {
+        setHeaderFailure(readFailure(res, 'games', gameId))
+        setLoading(false)
+        return
+      }
+      // ZERO ROWS is the caller's to read: no game with that id, or one this
+      // club cannot see.
+      const data = res.data[0]
       if (data) {
         setGame({
           id: data.id as string,
@@ -117,16 +143,28 @@ export function useGame(gameId: string): {
     channelPrefix: 'boggle',
     id: gameId,
     load: async ({ mounted }) => {
-      const { data } = await db
-        .from('found_words')
-        .select('game_id, user_id, word, points, is_bonus, found_at')
-        .eq('game_id', gameId)
-        .order('found_at', { ascending: true })
+      const res = await readRows(
+        db
+          .from('found_words')
+          .select('game_id, user_id, word, points, is_bonus, found_at')
+          .eq('game_id', gameId)
+          .order('found_at', { ascending: true }),
+      )
       if (!mounted()) return
-      setFoundWords((data ?? []) as FoundWordRow[])
+      if (res.type === 'not-ok') {
+        setRowsFailure(readFailure(res, 'found_words', gameId))
+        return
+      }
+      // A load that worked clears a previous one's failure: this refetches on
+      // every realtime event, so an outage that ends should take its sentence
+      // with it rather than leaving the surface behind a stale explanation.
+      setRowsFailure(null)
+      setFoundWords(res.data as FoundWordRow[])
       setRowsLoaded(true)
     },
   })
 
-  return { game, foundWords, loading, rowsLoaded }
+  // The header's wins: it can never be retried, so once it has failed the board
+  // is not coming back however well the rows are loading.
+  return { game, foundWords, loading, rowsLoaded, failure: headerFailure ?? rowsFailure }
 }

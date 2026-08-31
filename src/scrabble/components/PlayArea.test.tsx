@@ -73,7 +73,7 @@ function selfPlayer(over: Partial<PlayerRow> = {}): PlayerRow {
 }
 
 function loaded(game: ScrabbleGame, players: PlayerRow[], plays: PlayRow[] = []): GameHook {
-  return { game, players, plays, loading: false }
+  return { game, players, plays, loading: false, failure: null }
 }
 
 /** A committed word play, for the move log / turn viewer. */

@@ -26,11 +26,18 @@ const { headerResult, rowsResult, fromMock, schemaMock, refetchMock } = vi.hoist
 }))
 
 vi.mock('../../lib/supabase/supabase', () => {
+  // `.eq()` is BOTH awaitable and chainable, which is what separates the two
+  // lifecycles now that neither ends in `.maybeSingle()`: the header awaits it
+  // directly and gets the game row (as ROWS — 0 or 1, since `id` is the PK),
+  // while the found list calls `.order()` first and gets the word rows.
+  const eqResult = {
+    then: (resolve: (r: unknown) => unknown) =>
+      resolve({ data: headerResult.value ? [headerResult.value] : [], error: null }),
+    order: vi.fn(async () => ({ data: rowsResult.value, error: null })),
+  }
   const chain = {
     select: vi.fn(() => chain),
-    eq: vi.fn(() => chain),
-    maybeSingle: vi.fn(async () => ({ data: headerResult.value })),
-    order: vi.fn(async () => ({ data: rowsResult.value })),
+    eq: vi.fn(() => eqResult),
   }
   const from = (table: string) => {
     fromMock(table)

@@ -636,16 +636,36 @@ at once and none belongs to a single RPC's entry.
 
 
 - [ ] **A failed read must stop claiming the game does not exist.** Every
-  `useGame` returns `game: null` on a failed read, and every `PlayArea` renders
-  `Game not found.` for that — so an outage tells the player their game is gone.
-  The fix, worked in connections: the hook carries a `failure` state (the
-  server's message + a diagnostics line naming WHICH read), and the surface
-  renders `<ErrorPage>` between `loading` and `!game`.
+  `useGame` returns `game: null` on a failed read, and the surface cannot tell
+  that from a game that genuinely is not there — so an outage tells the player
+  their game is gone. The fix, worked in connections: the hook carries a
+  `failure` state (the server's message + a diagnostics line naming WHICH read),
+  and the surface renders `<ErrorPage>` between `loading` and `!game`.
 
-  **START BY SURVEYING, not by scripting.** "Apply connections' shape
-  everywhere" is an assumption until the fifteen are looked at: some PlayAreas
-  may have no `!game` branch, and the two layout exceptions (bananagrams,
-  crosswords) may not want a full-page error surface.
+  **SURVEYED 2026-08-31, and there is no design question in it** — an earlier
+  draft of this entry said the two layout exceptions "may not want a full-page
+  error surface", which does not survive being asked out loud (Joel): bananagrams
+  and crosswords are exceptions about INPUT (desktop-only drag, keyboard-required)
+  and that has nothing to do with whether a failed read can say so. Two different
+  messages for two different states is simply right, everywhere.
+
+  What the survey DID find is that the sixteen surfaces come in two shapes, and
+  the second is worse than the entry assumed:
+
+  | shape | games | today's behavior on a failed read |
+  |---|---|---|
+  | has a `!game` branch | 10 | shows "Game not found." — the wrong sentence |
+  | folds it into loading | **5** — bananagrams, boggle, codenamesduet, crosswords, strands | **spins forever** (`if (loading \|\| !game) return <Loading/>`) |
+
+  connections is the sixteenth and is done. A permanent spinner is arguably worse
+  than the wrong message: at least the wrong message stops.
+
+  Only connections' hook carries `failure` today. (psychicnum, waffle and wordle
+  each match the word once — check whether that is an unrelated local before
+  assuming it is the pattern.)
+
+  So: **twelve-ish hooks gain a `failure` state, sixteen surfaces gain a branch**,
+  in two sub-shapes that are obvious once seen. Mechanical, not a conversation.
 
 - [x] **Every `ok` branch states its arm, AND every branch ends in `return` —
   DONE 2026-08-31.** The guard came first again: a third arm on

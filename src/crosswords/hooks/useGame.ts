@@ -1,6 +1,7 @@
 // cs-unmet
 
 import { useEffect, useState } from 'react'
+import { readFailure, readRows, type ReadFailure } from '../../common/lib/supabase/dbResult'
 import { db } from '../db'
 import type { PuzzleTemplate } from '../lib/types'
 
@@ -19,20 +20,40 @@ export type CrosswordsGame = {
  * `useCommonGame` (via the PlayArea's ctx). The `solution` column is
  * shielded and never fetched here.
  */
-export function useGame(gameId: string): { game: CrosswordsGame | null; loading: boolean } {
+export function useGame(gameId: string): {
+  game: CrosswordsGame | null
+  loading: boolean
+  /** Set when the read FAILED, which is not the same as the game being absent.
+   *  The surface renders this instead of "Game not found." */
+  failure: ReadFailure | null
+} {
   const [game, setGame] = useState<CrosswordsGame | null>(null)
   const [loading, setLoading] = useState(true)
+  const [failure, setFailure] = useState<ReadFailure | null>(null)
 
   useEffect(() => {
     let active = true
     void (async () => {
-      const { data, error } = await db
-        .from('games')
-        .select('mode, puzzle_id, meta')
-        .eq('id', gameId)
-        .single()
+      // No `.single()`: it treats zero rows as an ERROR, so a game this club
+      // cannot see arrived looking exactly like a broken connection. `readRows`
+      // hands back rows, and `id` is the PK, so this is 0 or 1 of them.
+      const res = await readRows(
+        db.from('games').select('mode, puzzle_id, meta').eq('id', gameId),
+      )
       if (!active) return
-      if (error || !data) {
+
+      // A read can only fail as a FAULT — `readRows` never authors anything else
+      // — and `dbFetch` has already logged it and raised the modal. What is left
+      // is the sentence BEHIND it, plus a line naming which read it was.
+      if (res.type === 'not-ok') {
+        setFailure(readFailure(res, 'games', gameId))
+        setLoading(false)
+        return
+      }
+      // ZERO ROWS is the caller's to read: no game with that id, or one this
+      // club cannot see.
+      const data = res.data[0]
+      if (!data) {
         setLoading(false)
         return
       }
@@ -48,5 +69,5 @@ export function useGame(gameId: string): { game: CrosswordsGame | null; loading:
     }
   }, [gameId])
 
-  return { game, loading }
+  return { game, loading, failure }
 }

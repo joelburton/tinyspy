@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRealtimeRefetch } from '../../common/hooks/realtime/useRealtimeRefetch'
+import { readFailure, readRows, type ReadFailure } from '../../common/lib/supabase/dbResult'
 import { db } from '../db'
 import type { Cell } from '../lib/board'
 
@@ -72,11 +73,15 @@ export function useGame(gameId: string): {
   players: PlayerRow[]
   plays: PlayRow[]
   loading: boolean
+  /** Set when a read FAILED, which is not the same as the game being absent.
+   *  The surface renders this instead of "Game not found." */
+  failure: ReadFailure | null
 } {
   const [game, setGame] = useState<ScrabbleGame | null>(null)
   const [players, setPlayers] = useState<PlayerRow[]>([])
   const [plays, setPlays] = useState<PlayRow[]>([])
   const [loading, setLoading] = useState(true)
+  const [failure, setFailure] = useState<ReadFailure | null>(null)
 
   // Subscribe to the base tables (games / players / plays); `load` reads the
   // VIEWS (games_state / players_state) so the bag stays a count and a compete
@@ -92,31 +97,68 @@ export function useGame(gameId: string): {
     id: gameId,
     load: async ({ mounted }) => {
       const [gameRes, playersRes, playsRes] = await Promise.all([
-        db
-          .from('games_state')
-          .select(
-            'id, club_handle, mode, board, version, bag_count, shared_rack, team_score, current_seat',
-          )
-          .eq('id', gameId)
-          .maybeSingle(),
-        db
-          .from('players_state')
-          .select('user_id, seat, score, rack, rack_count, ai_level')
-          .eq('game_id', gameId),
-        db
-          .from('plays')
-          .select('user_id, seat, seq, kind, placements, words, score, tile_count, played_at')
-          .eq('game_id', gameId)
-          .order('seq', { ascending: true }),
+        // No `.maybeSingle()`: `readRows` hands back rows, and `id` is the PK,
+        // so this is 0 or 1 of them.
+        readRows(
+          db
+            .from('games_state')
+            .select(
+              'id, club_handle, mode, board, version, bag_count, shared_rack, team_score, current_seat',
+            )
+            .eq('id', gameId),
+        ),
+        readRows(
+          db
+            .from('players_state')
+            .select('user_id, seat, score, rack, rack_count, ai_level')
+            .eq('game_id', gameId),
+        ),
+        readRows(
+          db
+            .from('plays')
+            .select('user_id, seat, seq, kind, placements, words, score, tile_count, played_at')
+            .eq('game_id', gameId)
+            .order('seq', { ascending: true }),
+        ),
       ])
       if (!mounted()) return
-      if (!gameRes.data) {
+
+      // A read can only fail as a FAULT — `readRows` never authors anything else
+      // — and `dbFetch` has already logged it and raised the modal. What is left
+      // is the sentence BEHIND it, plus a line naming which of the reads it was:
+      // "something didn't load" is not a fact anyone can act on.
+      //
+      // One branch each rather than one combined test, because WHICH read failed
+      // is the only thing the player's sentence cannot say.
+      if (gameRes.type === 'not-ok') {
+        setFailure(readFailure(gameRes, 'games_state', gameId))
+        setLoading(false)
+        return
+      }
+      if (playersRes.type === 'not-ok') {
+        setFailure(readFailure(playersRes, 'players_state', gameId))
+        setLoading(false)
+        return
+      }
+      if (playsRes.type === 'not-ok') {
+        setFailure(readFailure(playsRes, 'plays', gameId))
+        setLoading(false)
+        return
+      }
+      // A load that worked clears a previous one's failure: this refetches on
+      // every realtime event, so an outage that ends should take its sentence
+      // with it rather than leaving the surface behind a stale explanation.
+      setFailure(null)
+
+      // ZERO ROWS is the caller's to read: no game with that id, or one this
+      // club cannot see.
+      const r = gameRes.data[0]
+      if (!r) {
         setGame(null)
         setLoading(false)
         return
       }
-      const r = gameRes.data
-      const playerRows = (playersRes.data ?? []) as PlayerRow[]
+      const playerRows = playersRes.data as PlayerRow[]
       const currentSeat = r.current_seat as number | null
       // Turns are seat-based; map the current seat back to its user for the
       // FE's myTurn / "whose turn" checks (null when it's an AI seat's turn).
@@ -135,10 +177,10 @@ export function useGame(gameId: string): {
         currentUserId,
       })
       setPlayers(playerRows)
-      setPlays((playsRes.data ?? []) as PlayRow[])
+      setPlays(playsRes.data as PlayRow[])
       setLoading(false)
     },
   })
 
-  return { game, players, plays, loading }
+  return { game, players, plays, loading, failure }
 }

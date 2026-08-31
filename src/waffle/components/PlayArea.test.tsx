@@ -115,7 +115,7 @@ function loaded(
   players: WafflePlayerState[] = [me],
   swaps: SwapRow[] = [],
 ): GameHook {
-  return { game, players, swaps, loading: false }
+  return { game, players, swaps, loading: false, failure: null }
 }
 
 const coopGame: WaffleGame = {

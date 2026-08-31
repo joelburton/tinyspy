@@ -71,7 +71,7 @@ function loadedGame(over: Partial<WordwheelGame> = {}): WordwheelGame {
 function loaded(game: WordwheelGame, foundWords: FoundWordRow[] = []): GameHook {
   // See boggle's note: `rowsLoaded` went missing while `GameHook` was
   // hand-written, and `ready` fell back to its `true` default.
-  return { game, foundWords, loading: false, rowsLoaded: true }
+  return { game, foundWords, loading: false, rowsLoaded: true, failure: null }
 }
 
 const twoMembers = [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')]

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRealtimeRefetch } from '../../common/hooks/realtime/useRealtimeRefetch'
-import { readRows } from '../../common/lib/supabase/dbResult'
+import { readFailure, readRows, type ReadFailure } from '../../common/lib/supabase/dbResult'
 import { db } from '../db'
 import type { Member } from '../../common/lib/games'
 
@@ -111,11 +111,15 @@ export function useGame(gameId: string): {
   players: PlayerRow[]
   guesses: GuessRow[]
   loading: boolean
+  /** Set when a read FAILED, which is not the same as the game being absent.
+   *  The surface renders this instead of "Game not found." */
+  failure: ReadFailure | null
 } {
   const [game, setGame] = useState<PsychicnumGame | null>(null)
   const [players, setPlayers] = useState<PlayerRow[]>([])
   const [guesses, setGuesses] = useState<GuessRow[]>([])
   const [loading, setLoading] = useState(true)
+  const [failure, setFailure] = useState<ReadFailure | null>(null)
 
   useRealtimeRefetch({
     tables: [
@@ -136,11 +140,12 @@ export function useGame(gameId: string): {
       )
       if (!mounted()) return
 
-      // A FAILED read and a MISSING game used to be one branch — a failure left
-      // `data` null, so a dead connection rendered the game as not-found. The
-      // fault is already logged and shown by `dbFetch`; stop loading and claim
-      // nothing about the game.
+      // A read can only fail as a FAULT — `readRows` never authors anything else
+      // — and `dbFetch` has already logged it and raised the modal. What is left
+      // is the sentence BEHIND it, plus a line naming which of the reads it was:
+      // "something didn't load" is not a fact anyone can act on.
       if (gameRes.type === 'not-ok') {
+        setFailure(readFailure(gameRes, 'games_state', gameId))
         setLoading(false)
         return
       }
@@ -171,10 +176,22 @@ export function useGame(gameId: string): {
         ),
       ])
       if (!mounted()) return
-      if (playersRes.type === 'not-ok' || guessesRes.type === 'not-ok') {
+      // One branch each rather than one combined test, because WHICH read failed
+      // is the only thing the player's sentence cannot say.
+      if (playersRes.type === 'not-ok') {
+        setFailure(readFailure(playersRes, 'players', gameId))
         setLoading(false)
         return
       }
+      if (guessesRes.type === 'not-ok') {
+        setFailure(readFailure(guessesRes, 'guesses', gameId))
+        setLoading(false)
+        return
+      }
+      // A load that worked clears a previous one's failure: this refetches on
+      // every realtime event, so an outage that ends should take its sentence
+      // with it rather than leaving the surface behind a stale explanation.
+      setFailure(null)
 
       setGame({
         id: gameData.id as string,
@@ -190,5 +207,5 @@ export function useGame(gameId: string): {
     },
   })
 
-  return { game, players, guesses, loading }
+  return { game, players, guesses, loading, failure }
 }

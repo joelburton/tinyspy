@@ -66,7 +66,7 @@ function loaded(game: BoggleGame, foundWords: FoundWordRow[] = []): GameHook {
   // fake returned no such key: `useGlobalFeedback`'s `ready` then fell back to
   // its `true` default, so these tests exercised the SINGLE-fetch narration
   // path while the real hook is two-fetch.
-  return { game, foundWords, loading: false, rowsLoaded: true }
+  return { game, foundWords, loading: false, rowsLoaded: true, failure: null }
 }
 
 const twoMembers = [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')]

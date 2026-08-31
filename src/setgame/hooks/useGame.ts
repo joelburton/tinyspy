@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import { useRealtimeRefetch } from '../../common/hooks/realtime/useRealtimeRefetch'
 import type { Card, DeckKind } from '../lib/cards'
-import { readRows } from '../../common/lib/supabase/dbResult'
+import { readFailure, readRows, type ReadFailure } from '../../common/lib/supabase/dbResult'
 import { db } from '../db'
 
 /** Projected from `setgame.games_state` — the live table. */
@@ -90,11 +90,15 @@ export function useGame(gameId: string, selfId: string): {
    *  game runs; the per-player breakdown waits for the terminal. */
   teamFound: number
   loading: boolean
+  /** Set when a read FAILED, which is not the same as the game being absent.
+   *  The surface renders this instead of "Game not found." */
+  failure: ReadFailure | null
 } {
   const [game, setGame] = useState<SetgameGame | null>(null)
   const [players, setPlayers] = useState<SetgamePlayer[]>([])
   const [events, setEvents] = useState<EventRow[]>([])
   const [loading, setLoading] = useState(true)
+  const [failure, setFailure] = useState<ReadFailure | null>(null)
 
   useRealtimeRefetch({
     tables: [
@@ -129,17 +133,32 @@ export function useGame(gameId: string, selfId: string): {
         ),
       ])
       if (!mounted()) return
-      // A FAILED read used to be indistinguishable from a game with no rows:
-      // `data` is null either way, so `if (g)` simply left the previous game on
-      // screen. The fault is logged and shown by `dbFetch`; stop loading.
-      if (
-        gameRes.type === 'not-ok' ||
-        playersRes.type === 'not-ok' ||
-        eventsRes.type === 'not-ok'
-      ) {
+      // A read can only fail as a FAULT — `readRows` never authors anything else
+      // — and `dbFetch` has already logged it and raised the modal. What is left
+      // is the sentence BEHIND it, plus a line naming which of the reads it was:
+      // "something didn't load" is not a fact anyone can act on.
+      //
+      // One branch each rather than one combined test, because WHICH read failed
+      // is the only thing the player's sentence cannot say.
+      if (gameRes.type === 'not-ok') {
+        setFailure(readFailure(gameRes, 'games_state', gameId))
         setLoading(false)
         return
       }
+      if (playersRes.type === 'not-ok') {
+        setFailure(readFailure(playersRes, 'players', gameId))
+        setLoading(false)
+        return
+      }
+      if (eventsRes.type === 'not-ok') {
+        setFailure(readFailure(eventsRes, 'events', gameId))
+        setLoading(false)
+        return
+      }
+      // A load that worked clears a previous one's failure: this refetches on
+      // every realtime event, so an outage that ends should take its sentence
+      // with it rather than leaving the surface behind a stale explanation.
+      setFailure(null)
       // ZERO ROWS is the caller's to read, and this hook's answer is the one it
       // already gave: leave `game` null and let the surface say "not found".
       const row = gameRes.data[0]
@@ -167,5 +186,6 @@ export function useGame(gameId: string, selfId: string): {
     lastClaim,
     teamFound: claims.length,
     loading,
+    failure,
   }
 }

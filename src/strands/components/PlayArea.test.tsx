@@ -88,6 +88,7 @@ function loaded(over: Partial<GameHook> = {}): GameHook {
     found: [],
     loading: false,
     rowsLoaded: true,
+    failure: null,
     ...over,
   }
 }

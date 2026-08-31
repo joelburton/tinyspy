@@ -43,7 +43,7 @@ const moth: PlayerRow = { user_id: 'u2', guesses_remaining: 7, found_secrets_cou
 
 /** A loaded game-hook result; override the game header + budget rows per test. */
 function loaded(game: PsychicnumGame, players: PlayerRow[] = [me]): GameHook {
-  return { game, players, guesses: [], loading: false }
+  return { game, players, guesses: [], loading: false, failure: null }
 }
 
 /** A board word list — Board renders a tile per word; needs at least one. */
@@ -213,6 +213,7 @@ describe('psychicnum PlayArea — click-to-define (turn log)', () => {
     h.result = {
       game: coopGame,
       players: [me],
+      failure: null,
       guesses: [
         { id: 'g-1', user_id: 'u1', word: 'bravo', is_correct: false, kind: 'guess', guessed_at: '2026-07-02' },
         { id: 'h-1', user_id: 'u1', word: 'a paid assassin', is_correct: false, kind: 'hint', guessed_at: '2026-07-02' },

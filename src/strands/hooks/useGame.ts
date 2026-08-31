@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { useRealtimeRefetch } from '../../common/hooks/realtime/useRealtimeRefetch'
+import { readFailure, readRows, type ReadFailure } from '../../common/lib/supabase/dbResult'
 import type { Coord } from '../lib/board'
 import { db } from '../db'
 
@@ -110,12 +111,16 @@ export function useGame(gameId: string, selfId: string): {
   /** True once the event rows have loaded at least once. Distinct from
    *  `loading`, which tracks the game row. */
   rowsLoaded: boolean
+  /** Set when a read FAILED, which is not the same as the game being absent.
+   *  The surface renders this instead of "Game not found." */
+  failure: ReadFailure | null
 } {
   const [game, setGame] = useState<StrandsGame | null>(null)
   const [players, setPlayers] = useState<StrandsPlayer[]>([])
   const [events, setEvents] = useState<EventRow[]>([])
   const [loading, setLoading] = useState(true)
   const [rowsLoaded, setRowsLoaded] = useState(false)
+  const [failure, setFailure] = useState<ReadFailure | null>(null)
 
   useRealtimeRefetch({
     tables: [
@@ -140,29 +145,67 @@ export function useGame(gameId: string, selfId: string): {
     channelPrefix: 'strands',
     id: gameId,
     load: async ({ mounted }) => {
-      const [{ data: g }, { data: rows }, { data: ps }] = await Promise.all([
-        db
-          .from('games_state')
-          .select(
-            'id, club_handle, mode, puzzle_date, board, clue,'
-            + ' hint_cost, min_word_length, band, solution',
-          )
-          .eq('id', gameId)
-          .maybeSingle(),
-        db
-          .from('events')
-          .select('id, game_id, user_id, kind, word, path, result, created_at')
-          .eq('game_id', gameId)
-          .order('created_at', { ascending: true }),
-        db
-          .from('players_state')
-          .select('game_id, user_id, hints_spent, solved, solved_at, hint_points, active_hint_coords')
-          .eq('game_id', gameId),
+      const [gameRes, eventsRes, playersRes] = await Promise.all([
+        // No `.maybeSingle()`: `readRows` hands back rows, and `id` is the PK,
+        // so this is 0 or 1 of them.
+        readRows(
+          db
+            .from('games_state')
+            .select(
+              'id, club_handle, mode, puzzle_date, board, clue,'
+              + ' hint_cost, min_word_length, band, solution',
+            )
+            .eq('id', gameId),
+        ),
+        readRows(
+          db
+            .from('events')
+            .select('id, game_id, user_id, kind, word, path, result, created_at')
+            .eq('game_id', gameId)
+            .order('created_at', { ascending: true }),
+        ),
+        readRows(
+          db
+            .from('players_state')
+            .select('game_id, user_id, hints_spent, solved, solved_at, hint_points, active_hint_coords')
+            .eq('game_id', gameId),
+        ),
       ])
       if (!mounted()) return
+
+      // A read can only fail as a FAULT — `readRows` never authors anything else
+      // — and `dbFetch` has already logged it and raised the modal. What is left
+      // is the sentence BEHIND it, plus a line naming which of the reads it was:
+      // "something didn't load" is not a fact anyone can act on.
+      //
+      // One branch each rather than one combined test, because WHICH read failed
+      // is the only thing the player's sentence cannot say.
+      if (gameRes.type === 'not-ok') {
+        setFailure(readFailure(gameRes, 'games_state', gameId))
+        setLoading(false)
+        return
+      }
+      if (eventsRes.type === 'not-ok') {
+        setFailure(readFailure(eventsRes, 'events', gameId))
+        setLoading(false)
+        return
+      }
+      if (playersRes.type === 'not-ok') {
+        setFailure(readFailure(playersRes, 'players_state', gameId))
+        setLoading(false)
+        return
+      }
+      // A load that worked clears a previous one's failure: this refetches on
+      // every realtime event, so an outage that ends should take its sentence
+      // with it rather than leaving the surface behind a stale explanation.
+      setFailure(null)
+
+      // ZERO ROWS is the caller's to read, and this hook's answer is the one it
+      // already gave: leave `game` null and let the surface say "not found".
+      const g = gameRes.data[0]
       if (g) setGame(g as unknown as StrandsGame)
-      setEvents((rows ?? []) as EventRow[])
-      setPlayers((ps ?? []) as unknown as StrandsPlayer[])
+      setEvents(eventsRes.data as EventRow[])
+      setPlayers(playersRes.data as unknown as StrandsPlayer[])
       setLoading(false)
       setRowsLoaded(true)
     },
@@ -191,5 +234,5 @@ export function useGame(gameId: string, selfId: string): {
     [players, selfId],
   )
 
-  return { game, players, me, events, found, loading, rowsLoaded }
+  return { game, players, me, events, found, loading, rowsLoaded, failure }
 }

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRealtimeRefetch } from '../../common/hooks/realtime/useRealtimeRefetch'
+import { readFailure, readRows, type ReadFailure } from '../../common/lib/supabase/dbResult'
 import { db } from '../db'
 import type { Member } from '../../common/lib/games'
 
@@ -106,24 +107,49 @@ export function useGame(gameId: string, selfId: string): {
    *  `loading` (which flips on the HEADER fetch). Peer narration gates on this
    *  so a rejoin doesn't replay the backlog as a burst of pills. */
   rowsLoaded: boolean
+  /** Set when a read FAILED, which is not the same as the game being absent.
+   *  The surface renders this instead of "Game not found." */
+  failure: ReadFailure | null
 } {
   const [game, setGame] = useState<LetterboxedGame | null>(null)
   const [playerRows, setPlayerRows] = useState<PlayerRow[]>([])
   const [events, setEvents] = useState<EventRow[]>([])
   const [loading, setLoading] = useState(true)
   const [rowsLoaded, setRowsLoaded] = useState(false)
+  // TWO failure slots, because the two lifecycles below fail differently. The
+  // header is fetched once and never retried, so its failure is permanent; the
+  // rows refetch on every event, so their failure should clear the moment one
+  // works. One shared slot would let a successful refetch erase a header
+  // failure that is still true.
+  const [headerFailure, setHeaderFailure] = useState<ReadFailure | null>(null)
+  const [rowsFailure, setRowsFailure] = useState<ReadFailure | null>(null)
 
   // The immutable header — fetched once per game. `loading` gates the PlayArea
   // render, so it flips here.
   useEffect(() => {
     let mounted = true
     void (async () => {
-      const { data } = await db
-        .from('games_state')
-        .select('id, club_handle, mode, sides, playable_words, clean_words, solution, max_words, legal_band, created_at')
-        .eq('id', gameId)
-        .maybeSingle()
+      // No `.maybeSingle()`: `readRows` hands back rows, and `id` is the PK, so
+      // this is 0 or 1 of them.
+      const res = await readRows(
+        db
+          .from('games_state')
+          .select('id, club_handle, mode, sides, playable_words, clean_words, solution, max_words, legal_band, created_at')
+          .eq('id', gameId),
+      )
       if (!mounted) return
+
+      // A read can only fail as a FAULT — `readRows` never authors anything else
+      // — and `dbFetch` has already logged it and raised the modal. What is left
+      // is the sentence BEHIND it, plus a line naming which read it was.
+      if (res.type === 'not-ok') {
+        setHeaderFailure(readFailure(res, 'games_state', gameId))
+        setLoading(false)
+        return
+      }
+      // ZERO ROWS is the caller's to read: no game with that id, or one this
+      // club cannot see.
+      const data = res.data[0]
       if (data) {
         setGame({
           id: data.id as string,
@@ -147,20 +173,38 @@ export function useGame(gameId: string, selfId: string): {
 
   const load = useCallback(
     async ({ mounted }: { mounted: () => boolean }) => {
-      const [{ data: pData }, { data: eData }] = await Promise.all([
-        db
-          .from('players_state')
-          .select('game_id, user_id, chain, word_count, letters_covered, hints_used, solved, solved_at')
-          .eq('game_id', gameId),
-        db
-          .from('events')
-          .select('id, game_id, user_id, kind, word, letters_covered, created_at')
-          .eq('game_id', gameId)
-          .order('id', { ascending: true }),
+      const [playersRes, eventsRes] = await Promise.all([
+        readRows(
+          db
+            .from('players_state')
+            .select('game_id, user_id, chain, word_count, letters_covered, hints_used, solved, solved_at')
+            .eq('game_id', gameId),
+        ),
+        readRows(
+          db
+            .from('events')
+            .select('id, game_id, user_id, kind, word, letters_covered, created_at')
+            .eq('game_id', gameId)
+            .order('id', { ascending: true }),
+        ),
       ])
       if (!mounted()) return
-      setPlayerRows((pData ?? []) as PlayerRow[])
-      setEvents((eData ?? []) as EventRow[])
+      // One branch each rather than one combined test, because WHICH read failed
+      // is the only thing the player's sentence cannot say.
+      if (playersRes.type === 'not-ok') {
+        setRowsFailure(readFailure(playersRes, 'players_state', gameId))
+        return
+      }
+      if (eventsRes.type === 'not-ok') {
+        setRowsFailure(readFailure(eventsRes, 'events', gameId))
+        return
+      }
+      // A load that worked clears a previous one's failure: this refetches on
+      // every realtime event, so an outage that ends should take its sentence
+      // with it rather than leaving the surface behind a stale explanation.
+      setRowsFailure(null)
+      setPlayerRows(playersRes.data as PlayerRow[])
+      setEvents(eventsRes.data as EventRow[])
       setRowsLoaded(true)
     },
     [gameId],
@@ -187,5 +231,10 @@ export function useGame(gameId: string, selfId: string): {
     [playerRows, selfId],
   )
 
-  return { game, playerRows, myRow, events, loading, rowsLoaded }
+  // The header's wins: it can never be retried, so once it has failed the board
+  // is not coming back however well the rows are loading.
+  return {
+    game, playerRows, myRow, events, loading, rowsLoaded,
+    failure: headerFailure ?? rowsFailure,
+  }
 }

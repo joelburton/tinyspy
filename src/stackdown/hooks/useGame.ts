@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from 'react'
 import { useRealtimeRefetch } from '../../common/hooks/realtime/useRealtimeRefetch'
-import { readRows } from '../../common/lib/supabase/dbResult'
+import { readFailure, readRows, type ReadFailure } from '../../common/lib/supabase/dbResult'
 import { db } from '../db'
 import type { Database } from '../../types/db'
 import type { Tile } from '../lib/board'
@@ -124,6 +124,9 @@ export function useGame(gameId: string): {
   clearWord: () => void
   commitWord: (tileIds: number[]) => void
   loading: boolean
+  /** Set when a read FAILED, which is not the same as the game being absent.
+   *  The surface renders this instead of "Game not found." */
+  failure: ReadFailure | null
 } {
   const [game, setGame] = useState<StackdownGame | null>(null)
   const [players, setPlayers] = useState<PlayerRow[]>([])
@@ -135,6 +138,7 @@ export function useGame(gameId: string): {
   // back onto the board during the round-trip. Pruned in `load()`.
   const [pendingRemoved, setPendingRemoved] = useState<number[]>([])
   const [loading, setLoading] = useState(true)
+  const [failure, setFailure] = useState<ReadFailure | null>(null)
 
   // Apply a word event to the local in-progress word. Idempotent (append
   // skips a tile already in the word, retract/clear are slice/empty,
@@ -198,17 +202,32 @@ export function useGame(gameId: string): {
         ),
       ])
       if (!mounted()) return
-      // A FAILED read used to be indistinguishable from a game with no rows:
-      // `data` is null either way, so the board simply kept whatever was on it.
-      // The fault is logged and shown by `readRows`; stop loading.
-      if (
-        gameRes.type === 'not-ok' ||
-        playersRes.type === 'not-ok' ||
-        subsRes.type === 'not-ok'
-      ) {
+      // A read can only fail as a FAULT — `readRows` never authors anything else
+      // — and `dbFetch` has already logged it and raised the modal. What is left
+      // is the sentence BEHIND it, plus a line naming which of the reads it was:
+      // "something didn't load" is not a fact anyone can act on.
+      //
+      // One branch each rather than one combined test, because WHICH read failed
+      // is the only thing the player's sentence cannot say.
+      if (gameRes.type === 'not-ok') {
+        setFailure(readFailure(gameRes, 'games_state', gameId))
         setLoading(false)
         return
       }
+      if (playersRes.type === 'not-ok') {
+        setFailure(readFailure(playersRes, 'players', gameId))
+        setLoading(false)
+        return
+      }
+      if (subsRes.type === 'not-ok') {
+        setFailure(readFailure(subsRes, 'submissions', gameId))
+        setLoading(false)
+        return
+      }
+      // A load that worked clears a previous one's failure: this refetches on
+      // every realtime event, so an outage that ends should take its sentence
+      // with it rather than leaving the surface behind a stale explanation.
+      setFailure(null)
       const row = gameRes.data[0] as StateRow | undefined
       // ZERO ROWS is the caller's to read, and this hook's answer is the one it
       // already gave: leave `game` null and let the surface say "not found".
@@ -302,5 +321,6 @@ export function useGame(gameId: string): {
     clearWord,
     commitWord,
     loading,
+    failure,
   }
 }

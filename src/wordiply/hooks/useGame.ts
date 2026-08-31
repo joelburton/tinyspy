@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useRealtimeRefetch } from '../../common/hooks/realtime/useRealtimeRefetch'
+import { readFailure, readRows, type ReadFailure } from '../../common/lib/supabase/dbResult'
 import { db } from '../db'
 import type { Member } from '../../common/lib/games'
 
@@ -84,23 +85,48 @@ export function useGame(gameId: string): {
    *  `loading` (which flips on the HEADER fetch). Peer narration gates on this
    *  so it seeds against the real backlog, not the empty pre-rows snapshot. */
   rowsLoaded: boolean
+  /** Set when a read FAILED, which is not the same as the game being absent.
+   *  The surface renders this instead of "Game not found." */
+  failure: ReadFailure | null
 } {
   const [game, setGame] = useState<WordiplyGame | null>(null)
   const [guesses, setGuesses] = useState<GuessRow[]>([])
   const [loading, setLoading] = useState(true)
   const [rowsLoaded, setRowsLoaded] = useState(false)
+  // TWO failure slots, because the two lifecycles below fail differently. The
+  // header is fetched once and never retried, so its failure is permanent; the
+  // rows refetch on every event, so their failure should clear the moment one
+  // works. One shared slot would let a successful refetch erase a header
+  // failure that is still true.
+  const [headerFailure, setHeaderFailure] = useState<ReadFailure | null>(null)
+  const [rowsFailure, setRowsFailure] = useState<ReadFailure | null>(null)
 
   // The immutable header — fetched once per game. `loading` gates the
   // PlayArea render, so it flips here.
   useEffect(() => {
     let mounted = true
     void (async () => {
-      const { data } = await db
-        .from('games_state')
-        .select('id, club_handle, mode, base, difficulty, max_word_length, longest_words, legal_words, created_at')
-        .eq('id', gameId)
-        .maybeSingle()
+      // No `.maybeSingle()`: `readRows` hands back rows, and `id` is the PK, so
+      // this is 0 or 1 of them.
+      const res = await readRows(
+        db
+          .from('games_state')
+          .select('id, club_handle, mode, base, difficulty, max_word_length, longest_words, legal_words, created_at')
+          .eq('id', gameId),
+      )
       if (!mounted) return
+
+      // A read can only fail as a FAULT — `readRows` never authors anything else
+      // — and `dbFetch` has already logged it and raised the modal. What is left
+      // is the sentence BEHIND it, plus a line naming which read it was.
+      if (res.type === 'not-ok') {
+        setHeaderFailure(readFailure(res, 'games_state', gameId))
+        setLoading(false)
+        return
+      }
+      // ZERO ROWS is the caller's to read: no game with that id, or one this
+      // club cannot see.
+      const data = res.data[0]
       if (data) {
         setGame({
           id: data.id as string,
@@ -131,13 +157,23 @@ export function useGame(gameId: string): {
     channelPrefix: 'wordiply',
     id: gameId,
     load: async ({ mounted }) => {
-      const { data } = await db
-        .from('guesses')
-        .select('id, game_id, user_id, word, length, valid, reason, seq, guessed_at')
-        .eq('game_id', gameId)
-        .order('guessed_at', { ascending: true })
+      const res = await readRows(
+        db
+          .from('guesses')
+          .select('id, game_id, user_id, word, length, valid, reason, seq, guessed_at')
+          .eq('game_id', gameId)
+          .order('guessed_at', { ascending: true }),
+      )
       if (!mounted()) return
-      setGuesses((data ?? []) as GuessRow[])
+      if (res.type === 'not-ok') {
+        setRowsFailure(readFailure(res, 'guesses', gameId))
+        return
+      }
+      // A load that worked clears a previous one's failure: this refetches on
+      // every realtime event, so an outage that ends should take its sentence
+      // with it rather than leaving the surface behind a stale explanation.
+      setRowsFailure(null)
+      setGuesses(res.data as GuessRow[])
       setRowsLoaded(true)
     },
   })
@@ -146,5 +182,7 @@ export function useGame(gameId: string): {
   // dedup and every score read `validGuesses`; only the turn log wants them all.
   const validGuesses = useMemo(() => guesses.filter((g) => g.valid), [guesses])
 
-  return { game, guesses, validGuesses, loading, rowsLoaded }
+  // The header's wins: it can never be retried, so once it has failed the board
+  // is not coming back however well the rows are loading.
+  return { game, guesses, validGuesses, loading, rowsLoaded, failure: headerFailure ?? rowsFailure }
 }

@@ -70,6 +70,7 @@ function loaded(game: StackdownGame, players: PlayerRow[] = []): GameHook {
     clearWord: vi.fn(),
     commitWord: vi.fn(),
     loading: false,
+    failure: null,
   }
 }
 

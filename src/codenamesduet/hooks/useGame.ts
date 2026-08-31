@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRealtimeRefetch } from '../../common/hooks/realtime/useRealtimeRefetch'
 import { db } from '../db'
 import { db as commonDb } from '../../common/db'
+import { readFailure, readRows, type ReadFailure } from '../../common/lib/supabase/dbResult'
 import type { Member } from '../../common/lib/games'
 import type { Database } from '../../types/db'
 
@@ -69,22 +70,36 @@ export function useGame(gameId: string) {
   const [game, setGame] = useState<GameRow | null>(null)
   const [players, setPlayers] = useState<Player[]>([])
   const [loading, setLoading] = useState(true)
+  const [failure, setFailure] = useState<ReadFailure | null>(null)
 
   useRealtimeRefetch({
     tables: { schema: 'codenamesduet', table: 'games', filter: `id=eq.${gameId}` },
     channelPrefix: 'codenamesduet:game',
     id: gameId,
     load: async ({ mounted }) => {
-      const gameRes = await db
-        .from('games')
-        .select(
-          'id, club_handle, turns_remaining, turn_number, current_clue_giver, user_a_id, user_b_id, key_card_a, key_card_b',
-        )
-        .eq('id', gameId)
-        .single()
-
+      // No `.single()`: it treats zero rows as an ERROR, so a game this pair
+      // cannot see arrived looking exactly like a broken connection. `readRows`
+      // hands back rows, and `id` is the PK, so this is 0 or 1 of them.
+      const gameRes = await readRows(
+        db
+          .from('games')
+          .select(
+            'id, club_handle, turns_remaining, turn_number, current_clue_giver, user_a_id, user_b_id, key_card_a, key_card_b',
+          )
+          .eq('id', gameId),
+      )
       if (!mounted()) return
-      if (!gameRes.data) {
+
+      // A read can only fail as a FAULT — `readRows` never authors anything else
+      // — and `dbFetch` has already logged it and raised the modal. What is left
+      // is the sentence BEHIND it, plus a line naming which of the reads it was:
+      // "something didn't load" is not a fact anyone can act on.
+      if (gameRes.type === 'not-ok') {
+        setFailure(readFailure(gameRes, 'games', gameId))
+        setLoading(false)
+        return
+      }
+      if (!gameRes.data[0]) {
         // Explicit null on not-found — without this, a server-side
         // delete (e.g. db:reset during dev) leaves the previously-
         // loaded game state in place and the PlayArea keeps
@@ -95,18 +110,28 @@ export function useGame(gameId: string) {
         return
       }
 
-      const g = gameRes.data
+      const g = gameRes.data[0]
       setGame(g)
 
       // Roster from the columns. Cross-schema profile fetch for the
       // usernames — PostgREST schema cache doesn't embed common.profiles
       // for these FKs.
       const userIds = [g.user_a_id, g.user_b_id]
-      const profilesRes = await commonDb
-        .from('profiles')
-        .select('user_id, username, color')
-        .in('user_id', userIds)
+      const profilesRes = await readRows(
+        commonDb.from('profiles').select('user_id, username, color').in('user_id', userIds),
+      )
       if (!mounted()) return
+      // One branch each rather than one combined test, because WHICH read failed
+      // is the only thing the player's sentence cannot say.
+      if (profilesRes.type === 'not-ok') {
+        setFailure(readFailure(profilesRes, 'profiles', gameId))
+        setLoading(false)
+        return
+      }
+      // A load that worked clears a previous one's failure: this refetches on
+      // every realtime event, so an outage that ends should take its sentence
+      // with it rather than leaving the surface behind a stale explanation.
+      setFailure(null)
       // Single lookup map carrying both fields — the seats
       // assembly below needs username AND color per uid, and
       // building one map is cheaper to read than two.
@@ -114,7 +139,7 @@ export function useGame(gameId: string) {
         string,
         { username: string; color: string }
       >(
-        (profilesRes.data ?? []).map((p) => [
+        profilesRes.data.map((p) => [
           p.user_id,
           { username: p.username, color: p.color },
         ]),
@@ -139,5 +164,5 @@ export function useGame(gameId: string) {
     },
   })
 
-  return { game, players, loading }
+  return { game, players, loading, failure }
 }

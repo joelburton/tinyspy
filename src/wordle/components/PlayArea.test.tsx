@@ -59,7 +59,7 @@ function loaded(
   guesses: GuessRow[] = [],
   players: WordlePlayerState[] = [me],
 ): GameHook {
-  return { game, players, guesses, loading: false }
+  return { game, players, guesses, loading: false, failure: null }
 }
 
 function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {

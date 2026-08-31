@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { db } from '../db'
 import { useRealtimeRefetch } from '../../common/hooks/realtime/useRealtimeRefetch'
+import { readFailure, readRows, type ReadFailure } from '../../common/lib/supabase/dbResult'
 import type { Member } from '../../common/lib/games'
 
 /** Cross-game vocabulary: a player in a bananagrams game is just a
@@ -25,11 +26,10 @@ export type Player = Member
  * **Filters on `user_id` explicitly.** It used to lean on RLS for that —
  * player_boards was owner-only, so `eq(game_id)` alone could only ever match
  * one row. That stopped being true when the policy opened at terminal so the
- * printout could show every player's grid: the select then matched the whole
- * table, `maybeSingle()` errored, and the board never loaded — no board, no
- * hand, no print menu item, for every player in a finished game. A query that
- * depends on a policy to be correct breaks silently the day the policy moves,
- * so it now says what it means.
+ * printout could show every player's grid: the select then matched every
+ * player's row, and this hook took the first of them. A query that depends on
+ * a policy to be correct breaks silently the day the policy moves, so it now
+ * says what it means.
  *
  * Pattern A: re-read on any change — the row is tiny and `tiles` changes only
  * at deal/peel/dump (board snapshots also echo here, but re-reading the
@@ -38,6 +38,7 @@ export type Player = Member
 export function useGame(gameId: string, userId: string) {
   const [initialBoard, setInitialBoard] = useState<string | null>(null)
   const [tiles, setTiles] = useState('')
+  const [failure, setFailure] = useState<ReadFailure | null>(null)
   const seeded = useRef(false)
 
   useRealtimeRefetch({
@@ -45,13 +46,33 @@ export function useGame(gameId: string, userId: string) {
     channelPrefix: 'bananagrams-board',
     id: gameId,
     load: async ({ mounted }) => {
-      const { data } = await db
-        .from('player_boards')
-        .select('board, tiles')
-        .eq('game_id', gameId)
-        .eq('user_id', userId)
-        .maybeSingle()
-      if (!mounted() || !data) return
+      // No `.maybeSingle()`: `readRows` hands back rows, and (game, user) is the
+      // PK, so this is 0 or 1 of them.
+      const res = await readRows(
+        db
+          .from('player_boards')
+          .select('board, tiles')
+          .eq('game_id', gameId)
+          .eq('user_id', userId),
+      )
+      if (!mounted()) return
+
+      // A read can only fail as a FAULT — `readRows` never authors anything else
+      // — and `dbFetch` has already logged it and raised the modal. What is left
+      // is the sentence BEHIND it, plus a line naming which read it was.
+      if (res.type === 'not-ok') {
+        setFailure(readFailure(res, 'player_boards', gameId))
+        return
+      }
+      // A load that worked clears a previous one's failure: this refetches on
+      // every realtime event, so an outage that ends should take its sentence
+      // with it rather than leaving the surface behind a stale explanation.
+      setFailure(null)
+
+      // ZERO ROWS: no board for this player yet. Nothing to seed and nothing to
+      // correct — leave `initialBoard` null, which is what `loading` reads.
+      const data = res.data[0]
+      if (!data) return
       if (!seeded.current) {
         setInitialBoard(data.board)
         seeded.current = true
@@ -60,7 +81,10 @@ export function useGame(gameId: string, userId: string) {
     },
   })
 
-  return { initialBoard, tiles, loading: initialBoard === null }
+  // `loading` is derived rather than a flag — the board arriving IS the end of
+  // loading. A failure has to end it too, or the read that never lands leaves
+  // the surface spinning behind a fault modal it can't explain.
+  return { initialBoard, tiles, loading: initialBoard === null && failure === null, failure }
 }
 
 /** One row of `bananagrams.progress` — the public per-player projection peers
@@ -88,12 +112,18 @@ export function useProgress(gameId: string): ProgressRow[] {
     channelPrefix: 'bananagrams-progress',
     id: gameId,
     load: async ({ mounted }) => {
-      const { data } = await db
-        .from('progress')
-        .select('user_id, unplaced, placed, solved')
-        .eq('game_id', gameId)
+      const res = await readRows(
+        db
+          .from('progress')
+          .select('user_id, unplaced, placed, solved')
+          .eq('game_id', gameId),
+      )
       if (!mounted()) return
-      setRows(data ?? [])
+      // The peers strip, not the board: a failed read has already raised the
+      // fault modal, and the honest thing left is to keep showing the last
+      // counts rather than blank the strip.
+      if (res.type === 'not-ok') return
+      setRows(res.data)
     },
   })
   return rows
@@ -121,11 +151,13 @@ export function usePeerBoards(
     if (!isTerminal) return
     let mounted = true
     void (async () => {
-      const { data } = await db
-        .from('player_boards')
-        .select('user_id, board')
-        .eq('game_id', gameId)
-      if (mounted) setRows(data ?? [])
+      const res = await readRows(
+        db.from('player_boards').select('user_id, board').eq('game_id', gameId),
+      )
+      // Feeds the PDF's per-player columns, nothing on screen. A failed read has
+      // already raised the fault modal; leaving `rows` empty is what the print
+      // menu item already reads as "not ready".
+      if (mounted && res.type === 'ok') setRows(res.data)
     })()
     return () => {
       mounted = false
