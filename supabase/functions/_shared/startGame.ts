@@ -82,19 +82,19 @@ export async function parseBuildBoardRequest(
   // frontend is broken and no field of the form is the place to say so.
   if (!targetClub || typeof targetClub !== 'string') {
     console.log(`${fnName} reject: missing target_club; body keys =`, Object.keys(body))
-    return fault('PN112', 'A game with no club reached the server.', `${fnName}: target_club`)
+    return fault('PN112', 'BUG: game with no club', `${fnName}: target_club`)
   }
   if (!setup || typeof setup !== 'object') {
     console.log(`${fnName} reject: missing/invalid setup`)
-    return fault('PN113', 'A game with no settings reached the server.', `${fnName}: setup`)
+    return fault('PN113', 'BUG: game with no settings', `${fnName}: setup`)
   }
   if (mode !== 'coop' && mode !== 'compete') {
     console.log(`${fnName} reject: invalid mode "${mode}"`)
-    return fault('PN114', `A game of kind '${mode}' reached the server.`, `${fnName}: mode`)
+    return fault('PN114', `BUG: game mode of '${mode}'`, `${fnName}: mode`)
   }
   if (!Array.isArray(playerUserIds) || playerUserIds.length === 0) {
     console.log(`${fnName} reject: missing player_user_ids`)
-    return fault('PN115', 'A game with no players reached the server.', `${fnName}: player_user_ids`)
+    return fault('PN115', 'BUG: game with no players', `${fnName}: player_user_ids`)
   }
   const authHeader = req.headers.get('Authorization')
   if (!authHeader) {
@@ -145,13 +145,13 @@ export async function invokeCreateGame(
   const { data, error } = await supabase.schema(schema).rpc('create_game', args)
   if (error) {
     if (fnName) console.log(`${fnName} create_game did not run:`, error.message)
-    return fault('PN117', 'The game could not be created.', `${fnName}: ${error.message} (${error.code})`)
+    return fault('PN117', 'BUG: create_game did not run', `${fnName}: ${error.message} (${error.code})`)
   }
   // A converted create_game always returns one; anything else means this
   // function is calling a version of the RPC that predates the envelope.
   if (!data || typeof data !== 'object' || !('type' in data)) {
     if (fnName) console.log(`${fnName} reject: create_game returned no envelope`)
-    return fault('PN118', 'The game could not be created.', `${fnName}: create_game returned ${JSON.stringify(data)}`)
+    return fault('PN118', 'BUG: create_game returned no envelope', `${fnName}: create_game returned ${JSON.stringify(data)}`)
   }
   if (fnName) console.log(`${fnName} create_game said:`, JSON.stringify(data))
   return json(data)

@@ -142,17 +142,17 @@ serve(async (req) => {
   try {
     body = await req.json()
   } catch {
-    return fault('PN236', 'The request could not be read.',
+    return fault('PN236', 'BUG: request body that could not be read',
       'crosswords-import-guardian: unparseable body')
   }
   const { target_club, mode, player_user_ids, setup } = body
   const series = setup?.series
   if (!target_club || !mode || !Array.isArray(player_user_ids)) {
-    return fault('PN237', 'A game with no club or players reached the server.',
+    return fault('PN237', 'BUG: game with no club or players',
       'crosswords-import-guardian: target_club / mode / player_user_ids')
   }
   if (!series || !SERIES.has(series)) {
-    return fault('PN238', `A Guardian series of '${String(series)}' reached the server.`,
+    return fault('PN238', `BUG: Guardian series of '${String(series)}'`,
       'crosswords-import-guardian: series is not in the allowlist')
   }
 
@@ -175,7 +175,7 @@ serve(async (req) => {
     // Guardian answered and our converter did not cope.
     console.log(`crosswords-import-guardian failed: ${(e as Error).message}`)
     if (e instanceof GuardianConvertError) {
-      return fault('PN239', 'That Guardian puzzle could not be read.',
+      return fault('PN239', 'BUG: Guardian puzzle our converter could not read',
         'crosswords-import-guardian: GuardianConvertError')
     }
     if (e instanceof GuardianFetchError) {
@@ -197,11 +197,11 @@ serve(async (req) => {
   // Relayed untouched, so a raise written in SQL reaches the player with its own
   // words and its own field. `error` then means only that the RPC never ran.
   if (error) {
-    return fault('PN241', 'The game could not be created.',
+    return fault('PN241', 'BUG: create_game did not run',
       `crosswords-import-guardian: create_game did not run: ${error.message} (${error.code})`)
   }
   if (!data || typeof data !== 'object' || !('type' in data)) {
-    return fault('PN242', 'The game could not be created.',
+    return fault('PN242', 'BUG: create_game returned no envelope',
       `crosswords-import-guardian: create_game returned ${JSON.stringify(data)}`)
   }
   return json(data)

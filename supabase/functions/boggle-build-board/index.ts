@@ -82,7 +82,7 @@ serve(async (req: Request): Promise<Response> => {
   const pre = preflight(req)
   if (pre) return pre
   if (req.method !== 'POST')
-    return fault('PN148', 'The game could not be created.', `boggle-build-board: ${req.method}, not POST`)
+    return fault('PN148', 'BUG: a request that was not a POST', `boggle-build-board: ${req.method}, not POST`)
 
   try {
     const parsed = await parseBuildBoardRequest(req, 'boggle-build-board')
@@ -93,17 +93,17 @@ serve(async (req: Request): Promise<Response> => {
     const set = DICE_BY_NAME[setup.dice_set ?? '4']
     if (!set) {
       console.log(`boggle-build-board reject: unknown dice_set ${setup.dice_set}`)
-      return fault('PN149', 'A game with no dice set reached the server.', 'boggle-build-board: dice_set')
+      return fault('PN149', 'BUG: game with no dice set', 'boggle-build-board: dice_set')
     }
     const band = setup.band ?? 3
     if (band < 1 || band > 6)
-      return fault('PN150', `A required difficulty of ${band} reached the server.`, 'boggle-build-board: band must be 1..6')
+      return fault('PN150', `BUG: required difficulty of '${band}'`, 'boggle-build-board: band must be 1..6')
     // The bonus (legal) band — the difficulty ceiling for the extra words a player
     // may discover beyond the required set. Must be at least `band` (required
     // words are legal too) and at most 6. create_game re-validates.
     const legalBand = setup.legal_band ?? band
     if (legalBand < band || legalBand > 6) {
-      return fault('PN151', `A legal-word difficulty of ${legalBand} reached the server.`, 'boggle-build-board: legal_band')
+      return fault('PN151', `BUG: legal-word difficulty of '${legalBand}'`, 'boggle-build-board: legal_band')
     }
     // Validate the ladder here (the trust boundary): it comes from untyped JSON
     // and flows straight into the solver's scoring, which would crash on an
@@ -111,7 +111,7 @@ serve(async (req: Request): Promise<Response> => {
     const ladder = setup.scoring_ladder ?? 'basic'
     if (!(ladder in LADDERS)) {
       console.log(`boggle-build-board reject: unknown scoring_ladder ${ladder}`)
-      return fault('PN152', 'A game with no scoring ladder reached the server.', 'boggle-build-board: scoring_ladder')
+      return fault('PN152', 'BUG: game with no scoring ladder', 'boggle-build-board: scoring_ladder')
     }
 
     // ─── Generate the board (cached band trie + synchronous solve loop) ─────
@@ -140,7 +140,7 @@ serve(async (req: Request): Promise<Response> => {
         // already saying it under the box, and repeating it in a modal would
         // present a broken client as something the player got wrong.
         console.log(`boggle-build-board reject: custom board unreadable — ${parsed.error}`)
-        return fault('PN153', 'The typed board could not be read.', `boggle-build-board: ${parsed.error}`)
+        return fault('PN153', 'BUG: typed board that could not be read', `boggle-build-board: ${parsed.error}`)
       }
       const requiredWords = listWords(trie, parseBoard(parsed.board), {
         minWordLength: constraints.minWordLength,

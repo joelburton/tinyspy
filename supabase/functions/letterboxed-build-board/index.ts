@@ -305,7 +305,7 @@ serve(async (req: Request) => {
   const legalBand = Number(setup.legal_band ?? 5)
   if (!Number.isInteger(legalBand) || legalBand < 1 || legalBand > 6) {
     console.log(`${FN} reject: bad legal_band ${setup.legal_band} (must be an integer 1..6)`)
-    return fault('PN212', `A dictionary of ${setup.legal_band} reached the server.`,
+    return fault('PN212', `BUG: dictionary of '${setup.legal_band}'`,
       `${FN}: legal_band must be an integer 1..6`)
   }
 
@@ -326,7 +326,7 @@ serve(async (req: Request) => {
         // box, and repeating it in a modal would present a broken client as
         // something the player got wrong.
         console.log(`${FN} reject: custom board unreadable — ${parsed.error}`)
-        return fault('PN213', 'The typed board could not be read.', `${FN}: ${parsed.error}`)
+        return fault('PN213', 'BUG: typed board that could not be read', `${FN}: ${parsed.error}`)
       }
       const built = await buildCustomBoard(supabase, parsed.sides, legalBand)
       // A rejection is the PLAYER's to see and act on (retype the board, raise
@@ -390,7 +390,7 @@ serve(async (req: Request) => {
   const covered = new Set(board.solution.join('')).size
   if (covered !== BOARD_SIZE) {
     console.log(`${FN} error: solution covers ${covered}/${BOARD_SIZE} letters`)
-    return fault('PN218', 'The generated board could not be solved.',
+    return fault('PN218', 'BUG: generated board whose solution could not be found',
       `${FN}: solution covers ${covered}/${BOARD_SIZE} letters`)
   }
 

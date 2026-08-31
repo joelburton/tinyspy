@@ -674,45 +674,40 @@ at once and none belongs to a single RPC's entry.
   line), which is the same argument `callSiteShape.test.ts` makes, and probably a
   second arm on that same file.
 
-- [ ] **The `BUG:` prefix reaches the edge functions.** `raiseCodes.test.ts`
-  walks `supabase/sql/*.sql` and nothing else, so **all 38 Deno faults have never
-  been checked** — which is why they drifted to a second idiom nobody chose:
-  `envelopes.md` → *A fault says what REACHED THE SERVER* gives the form as
-  `BUG: game with no players`, and the Deno functions copied the paragraph BELOW
-  it, which explains how that message sounds when quoted in a bug report
-  ("…reached the server"). Right fact, wrong half of the doc, no guard to notice.
+- [x] **The `BUG:` prefix reaches the edge functions — DONE 2026-08-31.**
 
-  **Extend the guard first** — that turns 38 unchecked messages into a list, the
-  way `callSiteShape.test.ts` did for `!== 'ok'` — then fix by group.
+  **The guard came first**, and that was the whole trick: extending
+  `raiseCodes.test.ts` to read `fault(` calls under `supabase/functions/` turned
+  38 never-checked messages into a printed list of **34 offenders**, the same
+  move that made the `!== 'ok'` sweep tractable. It needed no new walker —
+  `fnFiles(FN_DIR)` was already there for the code-uniqueness check; only the
+  message was going unread. Verified by planting a Deno regression.
 
-  **Group A — 16 raises, the wrong idiom.** Reword to `BUG: <what arrived>`.
-  `PN115` is the tell: SQL's `common.create_game` raises `PN059`
-  **"BUG: game with no players"** for the same condition.
+  All 34 fixed, in three groups:
 
-  | code | function | message |
-  |---|---|---|
-  | `PN112` `PN113` `PN114` `PN115` | `_shared` | A game with no club / settings / of kind '*mode*' / with no players reached the server. |
-  | `PN119` | waffle | A word difficulty of *band* reached the server. |
-  | `PN132` | wordiply | A starter of '*customBase*' reached the server. |
-  | `PN149` `PN150` `PN151` `PN152` | boggle | no dice set / required difficulty / legal-word difficulty / no scoring ladder |
-  | `PN212` | letterboxed | A dictionary of *legal_band* reached the server. |
-  | `PN225` `PN226` `PN229` | crosswords-nyt | no club or players / weekday / puzzle date |
-  | `PN237` `PN238` | crosswords-guardian | no club or players / Guardian series |
+  **Reworded to `BUG: <what arrived>`** — the ones that say what the frontend let
+  through: `PN112` `PN113` `PN114` `PN115` (`_shared`), `PN149` `PN150` `PN151`
+  `PN152` (boggle), `PN212` (letterboxed), `PN119` (waffle), `PN132` (wordiply),
+  `PN225` `PN226` `PN229` (nyt), `PN237` `PN238` (guardian).
 
-  **Group B — 12 raises, correctly unprefixed.** State or environment, not
-  something malformed arriving. These want `STATE_NOT_BUG` entries, not rewording.
-  `PN116` `PN223` `PN235` ("You are not signed in."), `PN120` ("The word list is
-  empty." — already matched by wordle's `PN057`), `PN111`, and the six
-  `PN117` `PN118` `PN148` `PN233` `PN234` `PN241` `PN242` ("The game could not be
-  created.").
+  **Reworded because they are OURS even though nothing arrived wrong** — the
+  distinction that took two passes to see: `BUG:` marks *our bug*, and the
+  "what arrived" wording is only the right FORM for the subset where something
+  did arrive. `PN117`/`PN233`/`PN241` (create_game did not run),
+  `PN118`/`PN234`/`PN242` (create_game returned no envelope), `PN148` (a request
+  that was not a POST), `PN153`/`PN213` (a typed board our own parser had already
+  read successfully), `PN224`/`PN236` (our own request body), `PN218` (a board
+  our generator produced and could not solve), `PN239` (whose comment says it
+  outright: *"Guardian answered and our converter did not cope"*), and `PN120`
+  (waffle's unseeded dictionary, joining the family of five).
 
-  **Group C — 10 raises, needing ONE ruling**, and they split on the picker rule:
+  **Left plain, and now exempted in `STATE_NOT_BUG`** (Joel, 2026-08-31): *"You
+  are not signed in."* — a lapsed session is a real state, the frontend cannot
+  send a header it does not have — and *"The next puzzle could not be worked
+  out."*
 
-  | codes | what happened | likely |
-  |---|---|---|
-  | `PN153` `PN213` | the board the PLAYER typed would not parse | `STATE_NOT_BUG` — the same call crosswords' `"The puzzle file could not be read"` already gets |
-  | `PN224` `PN236` | OUR request body would not parse | group A — `BUG:` |
-  | `PN218` `PN227` `PN135` `PN176` `PN197` | a GENERATED value could not be produced | not faults at all — the `PN121` shape, i.e. `form-validation` |
+  `PN111` and `PN135` landed earlier, inside wordiply's entry.
+
 
 - [ ] **`PN176` and `PN197` are the same line and want opposite answers.** Both
   fire when the anti-repeat filter (`applyOverlapCap`, dropping seeds that share

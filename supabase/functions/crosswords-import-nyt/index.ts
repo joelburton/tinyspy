@@ -191,11 +191,11 @@ serve(async (req) => {
   try {
     body = await req.json()
   } catch {
-    return fault('PN224', 'The request could not be read.', 'crosswords-import-nyt: unparseable body')
+    return fault('PN224', 'BUG: request body that could not be read', 'crosswords-import-nyt: unparseable body')
   }
   const { target_club, mode, player_user_ids, setup } = body
   if (!target_club || !mode || !Array.isArray(player_user_ids)) {
-    return fault('PN225', 'A game with no club or players reached the server.',
+    return fault('PN225', 'BUG: game with no club or players',
       'crosswords-import-nyt: target_club / mode / player_user_ids')
   }
 
@@ -215,7 +215,7 @@ serve(async (req) => {
   if (!date) {
     const weekday = setup?.weekday
     if (typeof weekday !== 'number' || !Number.isInteger(weekday) || weekday < 0 || weekday > 6) {
-      return fault('PN226', `A weekday of '${String(weekday)}' reached the server.`,
+      return fault('PN226', `BUG: weekday of '${String(weekday)}'`,
         'crosswords-import-nyt: setup.weekday must be an integer 0..6')
     }
     const { data: picked, error: pickErr } = await caller
@@ -237,7 +237,7 @@ serve(async (req) => {
     date = picked as unknown as string
   }
   if (!DATE_RE.test(date)) {
-    return fault('PN229', `A puzzle date of '${date}' reached the server.`,
+    return fault('PN229', `BUG: puzzle date of '${date}'`,
       'crosswords-import-nyt: date must be YYYY-MM-DD')
   }
 
@@ -323,11 +323,11 @@ serve(async (req) => {
   // the player with its own words and its own field. `error` then means only
   // that the RPC never ran.
   if (error) {
-    return fault('PN233', 'The game could not be created.',
+    return fault('PN233', 'BUG: create_game did not run',
       `crosswords-import-nyt: create_game did not run: ${error.message} (${error.code})`)
   }
   if (!data || typeof data !== 'object' || !('type' in data)) {
-    return fault('PN234', 'The game could not be created.',
+    return fault('PN234', 'BUG: create_game returned no envelope',
       `crosswords-import-nyt: create_game returned ${JSON.stringify(data)}`)
   }
   return json(data)

@@ -272,7 +272,7 @@ serve(async (req) => {
         console.log(`reject: custom base ${customBase} is not 2-4 letters`)
         return fault(
           'PN132',
-          `A starter of '${customBase}' reached the server.`,
+          `BUG: starter of '${customBase}'`,
           'wordiply-build-board: custom_base must be 2-4 lowercase ASCII letters',
         )
       }

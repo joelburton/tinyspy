@@ -123,7 +123,7 @@ serve(async (req) => {
     const band = setup.difficulty ?? DEFAULT_BAND
     if (!Number.isInteger(band) || band < MIN_BAND || band > MAX_BAND) {
       console.log(`waffle-build-board reject: invalid difficulty "${band}" (must be ${MIN_BAND}..${MAX_BAND})`)
-      return fault('PN119', `A word difficulty of ${band} reached the server.`, `waffle-build-board: difficulty must be ${MIN_BAND}..${MAX_BAND}`)
+      return fault('PN119', `BUG: word difficulty of '${band}'`, `waffle-build-board: difficulty must be ${MIN_BAND}..${MAX_BAND}`)
     }
     console.log(`waffle-build-board: band=${band}`)
 
@@ -135,7 +135,7 @@ serve(async (req) => {
       // problem (an empty common.words after a reset without db-data), not a
       // player-reachable state — a fault, though it names the band it looked in.
       console.log(`waffle-build-board reject: no candidate words for band ${band}`)
-      return fault('PN120', 'The word list is empty.', `waffle-build-board: no 5-letter candidates at band ${band}`)
+      return fault('PN120', 'BUG: Too few words on server to build a board', `waffle-build-board: no 5-letter candidates at band ${band}`)
     }
 
     // ─── 2. Build a board of exactly this band ────────────

@@ -198,17 +198,43 @@ describe('the raise codes', () => {
       'No swaps left',
       'Already solved',
       "You can't edit the dictionary",
+      // A lapsed session is a real state, not our bug — the frontend cannot send
+      // an Authorization header it does not have (Joel, 2026-08-31).
+      'You are not signed in.',
+      // The next-puzzle pick did not answer. Left as a plain sentence
+      // (Joel, 2026-08-31) — nothing malformed arrived, and the caller has no
+      // way to tell our failure from an empty archive.
+      'The next puzzle could not be worked out.',
     ])
     const offenders: string[] = []
     const seen = new Set<string>()
+    const check = (file: string, msg: string) => {
+      seen.add(msg)
+      if (msg.startsWith('BUG: ') || STATE_NOT_BUG.has(msg)) return
+      offenders.push(`${file}: ${msg}`)
+    }
     for (const file of readdirSync(SQL_DIR).filter((f) => f.endsWith('.sql'))) {
       const sql = readFileSync(join(SQL_DIR, file), 'utf8')
       for (const m of sql.matchAll(/raise exception\s+'((?:[^']|'')*)'((?:[^;']|'[^']*')*);/g)) {
         if (!/hint\s*=\s*'fault'/.test(m[2]!)) continue
-        const msg = m[1]!.replace(/''/g, "'")
-        seen.add(msg)
-        if (msg.startsWith('BUG: ') || STATE_NOT_BUG.has(msg)) continue
-        offenders.push(`${file}: ${msg}`)
+        check(file, m[1]!.replace(/''/g, "'"))
+      }
+    }
+    // The Deno half, which this guard did not read until 2026-08-31 — which is
+    // why those messages drifted to a second idiom nobody chose. They copied the
+    // paragraph in envelopes.md that EXPLAINS the rule ("…reached the server")
+    // rather than the rule above it, and nothing was looking.
+    //
+    // A template literal is normalized to its `${…}` source text, not evaluated:
+    // the guard only cares whether the sentence opens with `BUG: `, and an
+    // interpolated value never appears at the front.
+    for (const path of fnFiles(FN_DIR)) {
+      const ts = readFileSync(path, 'utf8')
+      const file = path.slice(path.indexOf('functions/'))
+      for (const m of ts.matchAll(
+        /\bfault\(\s*\n?\s*'(PN\d{3})'\s*,\s*\n?\s*(`(?:[^`]*)`|'(?:[^']*)')/g,
+      )) {
+        check(file, m[2]!.slice(1, -1))
       }
     }
     expect(
