@@ -459,10 +459,6 @@ export function PlayArea({
       // its own outcome. The pill is shown either way — the modal escalates, it does
       // not replace (docs/envelopes.md), so dismissing it must not leave the board
       // silent about why the game didn't start.
-      // ONE of the answers here is a real validation rather than a fault —
-      // PN049, the dictionary having too few words at that difficulty for a
-      // board this size — so this branch renders whatever outcome arrived
-      // instead of assuming a fault look.
       showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'manual' } })
       return
     } else if (res.type === 'ok' && res.data.result === 'created') {

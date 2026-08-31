@@ -471,8 +471,26 @@ the four inside `connections.submit_guess` from the original census.
   the raised `PA002` "Already guessed" — so the pair of keys the rules ask for
   (`dbcode` names the raised one, `data` names the returned ones) was already
   there to be read. What the entry actually removed is the `res.message !== null`
-  test that was picking the refusal by the wire, and the missing scream. Its
-  `create_game` half is deferred with that group.
+  test that was picking the refusal by the wire, and the missing scream.
+
+  **Its `create_game` half landed 2026-08-31**, closing what this line had
+  deferred. 21 answers: one `ok`, 20 faults, and — after the fix below — zero
+  form-validations.
+
+  **`PN049` moved `form-validation` → `fault`, the FOURTH game with one
+  condition.** It fires when the clean word pool cannot fill a board. Measured:
+  band 1 is the smallest pool at 2,466 five-letter words, against a `word_count`
+  capped at 20 by `PN046` — so no `difficulty` choice reaches it, and the old
+  sentence rang a picker that could not help. Reaching it means the word import
+  never ran, exactly like wordle's `PN057`, waffle's `PN120` and codenamesduet's
+  `PN093`, all already faults. It had no test; it has one now, verified by
+  planting. With it gone, `SetupForm.test.tsx`'s two tests pin the WIRING rather
+  than a live raise.
+
+  Noted while reading it, NOT changed: the word-pick query carries a live `TEMP`
+  comment — it currently samples five-letter words plus one nine-letter word for
+  font-tuning texture, and asks to be reverted to a length-agnostic sample once
+  that work is done.
 - [x] setgame — `PlayArea.submit_set` + `record_hint`, and `useGame`'s three
   reads. **Done 2026-08-29.** One SQL edit: `record_hint` returned only
   `hints_used`, a count with no case name, so its call site had nothing to assert

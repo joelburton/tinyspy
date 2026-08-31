@@ -275,11 +275,13 @@ begin
     ) picked;
 
   if coalesce(array_length(s_words, 1), 0) < s_word_count then
-    -- Effectively impossible (the band-1 clean set is large), but guard so a
-    -- short board never silently ships.
-    raise exception 'Not enough words at that difficulty for a board this size'
-      using errcode = 'PN049', hint = 'form-validation', column = 'difficulty',
-      detail = 'common.words has fewer clean words than word_count at that band';
+    -- FAULT: can't build a board because not enough clean words in PG. No
+    -- `difficulty` empties the pool on its own — band 1 is the smallest and
+    -- still holds thousands, against a `word_count` capped at 20 — so reaching
+    -- here means the word import never ran.
+    raise exception 'BUG: Too few words on server to build a board'
+      using errcode = 'PN049', hint = 'fault', column = '_',
+      detail = 'common.words has fewer clean words than word_count at that band; run gmake all-words';
   end if;
 
   -- Three DISTINCT secrets sampled from the board words.

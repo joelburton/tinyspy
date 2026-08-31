@@ -93,10 +93,12 @@ describe('psychicnum setup — writing a setting', () => {
 })
 
 describe('psychicnum setup — where a refusal lands', () => {
-  it('puts the one validation create_game can still raise under its field', () => {
-    // PN049 — the dictionary has too few words at that band for a board this
-    // size. The ONLY thing here the form cannot prevent, so the only thing that
-    // arrives as a validation rather than a fault.
+  // `psychicnum.create_game` raises NO form-validation: every value it refuses
+  // comes from a picker with a fixed set, so all of them are faults and land on
+  // the dialog's own line. These two test the WIRING rather than a live raise —
+  // a field error that arrives renders under its own control, which is what a
+  // future validation would need.
+  it('lets the difficulty picker carry a field error, if one ever lands', () => {
     const message = 'Not enough words at that difficulty for a board this size'
     draw({ errors: { difficulty: message } })
     expect(errorUnder('difficulty')).toBe(message)

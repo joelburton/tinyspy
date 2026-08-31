@@ -21,7 +21,7 @@ begin;
 
 set search_path = psychicnum, common, public, extensions;
 
-select plan(31);
+select plan(32);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -415,6 +415,27 @@ select is(
   (select status from common.games where id = (select id from seeded_cmp)),
   '{"guesses_remaining": 14}'::jsonb,
   'compete seeds only the SUMMED budget (2 players x 7) — no shared progress');
+
+-- ── PN049: an unseeded dictionary ──
+-- Emptying the pool is the only way to reach this raise, so it goes LAST —
+-- nothing after it could still deal a board. Safe, because this file rolls back.
+--
+-- `reset role` first: `authenticated` holds no DELETE on common.words, so the
+-- delete runs as the test rather than as a player.
+reset role;
+delete from common.words;
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select pg_temp.envelope_is(
+  psychicnum.create_game(
+    (select handle from club),
+    '{"guesses": 5, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid,
+          'bea22222-2222-2222-2222-222222222222'::uuid],
+    'coop'),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN049",
+    "message":"BUG: Too few words on server to build a board"}'::jsonb,
+  'an unseeded dictionary is a fault'
+);
 
 -- ============================================================
 select * from finish();
