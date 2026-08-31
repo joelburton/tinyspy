@@ -3,7 +3,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { PostgrestClient } from '@supabase/postgrest-js'
 import {
-  diagnosticsLine, environmentalEnvelope, faultEnvelope, isEnvelope, isOurDbCode, logDb, logSlow,
+  diagnosticsLine, environmentalEnvelope, faultEnvelope, _isEnvelope, logDb, logSlow,
   notOkOutcome, reportDbFault, readRows, runEdgeFn, runRpc,
 } from './dbResult'
 import { clearFaultsForTest, peekFaultsForTest } from '../fault/faultStore'
@@ -14,14 +14,10 @@ vi.mock('./supabase', () => ({ supabase: { functions: { invoke: mockInvoke } } }
 /**
  * The new server-result system's own tests (plans/error-system.md).
  *
- * Two of these are load-bearing for the whole design:
- *
- *   - `isOurDbCode` must accept ONLY our two classes. Every other SQLSTATE in
- *     existence is a raw fault, and a test that widened would quietly promote
- *     Postgres's own errors into outcomes we claim to have authored.
- *   - zero rows must be `ok`. An empty result is a correct protocol answer, and
- *     only a caller can know it is impossible — so a helper that treated it as
- *     a failure would take that judgment away from the one place that has it.
+ * The load-bearing one: zero rows must be `ok`. An empty result is a correct
+ * protocol answer, and only a caller can know it is impossible — so a helper
+ * that treated it as a failure would take that judgment away from the one place
+ * that has it.
  */
 
 /**
@@ -51,46 +47,106 @@ beforeEach(() => {
   vi.spyOn(console, 'error').mockImplementation(() => {})
 })
 
-describe('isOurDbCode', () => {
-  it('accepts our two classes', () => {
-    expect(isOurDbCode('PA000')).toBe(true)
-    expect(isOurDbCode('PN999')).toBe(true)
+/**
+ * **Nothing answered: every wrapper says the same thing.**
+ *
+ * This is the guard for the failure that had none, and its absence is why the
+ * two authors drifted (plans/envelope-layering.md). `dbFetch` words a request
+ * that never reached the server — "You appear to be offline…" — and shows it.
+ * The three wrappers used to word it again from the browser's own opaque
+ * string, so a player saw a modal and a pill disagreeing about one event.
+ *
+ * `status: 0` is the signal: postgrest-js sets it on its fetch-rejection path
+ * and only there, and `callEdgeFn` matches it for the same case.
+ *
+ * The browser's string is not thrown away — it moves to `detail`, which is the
+ * one field that separates a dead socket from a TLS failure. It just stops
+ * being the sentence a player reads.
+ */
+describe('a request nothing answered', () => {
+  const OFFLINE = 'You appear to be offline. Please refresh and try again.'
+  const UNREACHABLE = "The server didn't answer. Please refresh and try again."
+
+  /** `navigator.onLine` picks WHICH sentence; both are pinned below. */
+  const setOnline = (online: boolean) =>
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(online)
+
+  const rejected = {
+    data: null,
+    error: { message: 'TypeError: Failed to fetch', code: '' },
+    status: 0,
+  }
+
+  it('readRows says the frontend sentence, not the browser string', async () => {
+    setOnline(false)
+    const r = await readRows(Promise.resolve(rejected))
+    expect(r).toMatchObject({ type: 'not-ok', severity: 'fault', message: OFFLINE })
   })
 
-  // The class carries the meaning, so a code from PL/pgSQL's own P0 class is
-  // rejected on its second character alone.
-  it("rejects PL/pgSQL's class and the privilege codes", () => {
-    expect(isOurDbCode('P0001')).toBe(false)
-    expect(isOurDbCode('P0002')).toBe(false)
-    expect(isOurDbCode('42501')).toBe(false)
+  it('runRpc says it too', async () => {
+    setOnline(false)
+    const r = await runRpc(Promise.resolve(rejected))
+    expect(r).toMatchObject({ type: 'not-ok', severity: 'fault', message: OFFLINE })
   })
 
-  it("rejects Postgres's own codes and malformed ones", () => {
-    expect(isOurDbCode('23514')).toBe(false) // check violation
-    expect(isOurDbCode('40P01')).toBe(false) // deadlock
-    expect(isOurDbCode('PA00')).toBe(false) // too short
-    expect(isOurDbCode('PA0000')).toBe(false) // too long
-    expect(isOurDbCode('pa001')).toBe(false) // lowercase
-    expect(isOurDbCode('PB001')).toBe(false) // not one of our classes
-    expect(isOurDbCode(undefined)).toBe(false)
+  it('runEdgeFn says it too', async () => {
+    setOnline(false)
+    mockInvoke.mockResolvedValue({ data: null, error: { message: 'TypeError: Failed to fetch' } })
+    const r = await runEdgeFn('anything', {})
+    expect(r).toMatchObject({ type: 'not-ok', severity: 'fault', message: OFFLINE })
+  })
+
+  it('picks the unreachable sentence when the device thinks it is online', async () => {
+    setOnline(true)
+    const r = await readRows(Promise.resolve(rejected))
+    expect(r).toMatchObject({ message: UNREACHABLE })
+  })
+
+  it('keeps the browser string as the DETAIL, where it is worth having', async () => {
+    setOnline(false)
+    const r = await readRows(Promise.resolve(rejected))
+    expect(r.detail).toContain('TypeError: Failed to fetch')
+  })
+
+  // The other half of the rule. Without this, a wrapper that ALWAYS said the
+  // offline sentence would pass every test above.
+  it('leaves a real server error alone — something did answer', async () => {
+    setOnline(false)
+    const r = await readRows(
+      Promise.resolve({
+        data: null,
+        error: { message: 'permission denied', code: '42501' },
+        status: 403,
+      }),
+    )
+    expect(r).toMatchObject({ message: 'permission denied', dbcode: '42501' })
+  })
+
+  // dbFetch has already presented this one; a second modal from the wrapper is
+  // the same news twice (plans/envelope-layering.md §1).
+  it('raises no modal of its own — dbFetch already did', async () => {
+    setOnline(false)
+    mockInvoke.mockResolvedValue({ data: null, error: { message: 'TypeError: Failed to fetch' } })
+    await runEdgeFn('anything', {})
+    expect(peekFaultsForTest()).toHaveLength(0)
   })
 })
 
-describe('isEnvelope', () => {
+describe('_isEnvelope', () => {
   it('accepts both branches', () => {
-    expect(isEnvelope({ type: 'ok' })).toBe(true)
-    expect(isEnvelope({ type: 'not-ok', severity: 'fault' })).toBe(true)
+    expect(_isEnvelope({ type: 'ok' })).toBe(true)
+    expect(_isEnvelope({ type: 'not-ok', severity: 'fault' })).toBe(true)
   })
 
   // Plenty of non-envelopes arrive on this path; each must fall through cleanly
   // rather than be half-read as one.
   it('rejects the other shapes an RPC can return', () => {
-    expect(isEnvelope('won')).toBe(false)
-    expect(isEnvelope(3)).toBe(false)
-    expect(isEnvelope(null)).toBe(false)
-    expect(isEnvelope([{ id: 'x' }])).toBe(false)
-    expect(isEnvelope({ result: 'accepted', points: 5 })).toBe(false)
-    expect(isEnvelope({ type: 'accepted' })).toBe(false)
+    expect(_isEnvelope('won')).toBe(false)
+    expect(_isEnvelope(3)).toBe(false)
+    expect(_isEnvelope(null)).toBe(false)
+    expect(_isEnvelope([{ id: 'x' }])).toBe(false)
+    expect(_isEnvelope({ result: 'accepted', points: 5 })).toBe(false)
+    expect(_isEnvelope({ type: 'accepted' })).toBe(false)
   })
 })
 
@@ -121,9 +177,20 @@ describe('readRows', () => {
     )
   })
 
-  it('builds one from a thrown rejection too', async () => {
+  // A THROW is "nothing answered" by another road, so it gets that sentence
+  // rather than the browser's. postgrest-js converts a rejected fetch into
+  // `{ error, status: 0 }` before it reaches here, so what this actually
+  // exercises is a throw from some other layer.
+  it('says the frontend sentence for a thrown rejection too', async () => {
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false)
     const r = await readRows(Promise.reject(new TypeError('Load failed')))
-    expect(r).toMatchObject({ type: 'not-ok', severity: 'fault', message: 'Load failed' })
+    expect(r).toMatchObject({
+      type: 'not-ok',
+      severity: 'fault',
+      message: 'You appear to be offline. Please refresh and try again.',
+    })
+    // Not discarded — kept where it is useful and invisible to players.
+    expect(r.detail).toContain('Load failed')
   })
 
   // ── Pointed at an RPC ────────────────────────────────────────
@@ -345,8 +412,23 @@ describe('the [db] line', () => {
 })
 
 describe('reportDbFault', () => {
+  // The two details answer different questions — what the SERVER said, and what
+  // the DEVICE knew — so a line carrying one used to silently drop the other.
+  it('keeps the transport detail alongside the envelope one', () => {
+    reportDbFault(
+      { call: 'GET /rest/v1/clubs', detail: 'online=false hidden' },
+      faultEnvelope({ message: 'nope', code: '42501', details: 'why' }, 'fallback'),
+    )
+    const [fault] = peekFaultsForTest()
+    expect(fault.diagnostics).toContain('online=false hidden')
+    expect(fault.diagnostics).toContain('why')
+  })
+
   it('words an offline failure itself, naming no action', () => {
-    reportDbFault({ call: 'GET /rest/v1/clubs' }, environmentalEnvelope(true))
+    // The builder reads `navigator.onLine` rather than taking it, so that two
+    // callers cannot ask the same global and disagree about the answer.
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false)
+    reportDbFault({ call: 'GET /rest/v1/clubs' }, environmentalEnvelope())
     const [fault] = peekFaultsForTest()
     expect(fault.text).toBe('You appear to be offline. Please refresh and try again.')
     // It must NOT claim the call did or didn't land — the link can die on the
@@ -355,7 +437,8 @@ describe('reportDbFault', () => {
   })
 
   it('puts the call in the diagnostics rather than the sentence', () => {
-    reportDbFault({ call: 'POST /rest/v1/rpc/submit_guess' }, environmentalEnvelope(false))
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true)
+    reportDbFault({ call: 'POST /rest/v1/rpc/submit_guess' }, environmentalEnvelope())
     const [fault] = peekFaultsForTest()
     expect(fault.diagnostics).toContain('POST /rest/v1/rpc/submit_guess')
     expect(fault.text).not.toContain('submit_guess')
@@ -456,13 +539,17 @@ describe('runEdgeFn — the same shape, through Deno', () => {
     expect(peekFaultsForTest()[0].text).toContain('unreadable')
   })
 
-  it('treats a function that never answered as a fault', async () => {
+  // Still a fault, but NOT a second modal. A `/functions/v1/` path is not
+  // `isSupabaseInternal`, so `dbFetch` has already presented this one —
+  // reporting again here was the same news twice, and the poorer telling of
+  // the two, since nothing at this layer can rebuild that diagnostics line.
+  it('treats a function that never answered as a fault, without a second modal', async () => {
     mockInvoke.mockResolvedValue({ data: null, error: { message: 'network down' } })
 
     const r = await runEdgeFn('boggle-build-board', {})
 
     expect(r).toMatchObject({ type: 'not-ok', severity: 'fault' })
-    expect(peekFaultsForTest()).toHaveLength(1)
+    expect(peekFaultsForTest()).toHaveLength(0)
   })
 })
 

@@ -67,12 +67,14 @@ export async function callEdgeFn(
     }
   }
   // No response, or a response that isn't our function speaking (a gateway
-  // 502's HTML, platform JSON) — either way the FUNCTION never answered, so it
-  // goes back codeless and unanswered, classifyFailure files it as transport
-  // and the player gets the translated advice line.
+  // 502's HTML, platform JSON) — either way OUR FUNCTION never answered, so it
+  // goes back codeless.
   //
-  // Codeless-and-unanswered, NOT "environmental": that word is reserved for a
-  // fetch that produced no response at all, and a gateway 502 is a response
-  // (docs/envelopes.md → "Environmental" means the JS fetch failed).
-  return { data: null, error: { message: error.message, code: '' } }
+  // **`status` is what separates the two**, and they are genuinely different
+  // failures: a gateway 502 IS a reply, and a dead socket is not. `0` is the
+  // no-reply signal `nothingAnswered` reads, matching what postgrest-js sets
+  // for the same case — so one predicate covers both transports and an edge
+  // function's offline failure gets the same sentence a read's does. Collapsing
+  // them made a 502 indistinguishable from a dead connection.
+  return { data: null, error: { message: error.message, code: '', status: ctx?.status ?? 0 } }
 }

@@ -88,9 +88,12 @@ describe('dbFetch — requests that DID reach the server', () => {
     expect(warn).not.toHaveBeenCalled()
   })
 
-  // An RPC's 2xx says only that the request arrived. What it MEANT is in the
-  // body, which `runRpc` reads and logs for itself — so a line here would claim
-  // success directly above one calling the same call a fault.
+  // ── Who speaks for a success ─────────────────────────────────
+  // A 2xx says the request arrived and nothing about what came back. Every call
+  // to OUR endpoints has a wrapper that reads the answer and logs what it MEANT
+  // — runRpc, runEdgeFn, readRows — so a line here as well would put a bare OK
+  // above one that may contradict it. What is left for this layer is Supabase's
+  // own endpoints, which no wrapper ever sees.
   it('says nothing about an RPC that returned 200', async () => {
     const debug = vi.spyOn(console, 'debug').mockImplementation(() => {})
     stubFetch(() => Promise.resolve(new Response('{}', { status: 200 })))
@@ -98,12 +101,46 @@ describe('dbFetch — requests that DID reach the server', () => {
     expect(debug).not.toHaveBeenCalled()
   })
 
-  // A read has no such second layer, so the seam's line is the only one it gets.
-  it('still narrates a read that returned 200', async () => {
+  it('says nothing about a read either — readRows knows the row count', async () => {
     const debug = vi.spyOn(console, 'debug').mockImplementation(() => {})
     stubFetch(() => Promise.resolve(new Response('[]', { status: 200 })))
     await dbFetch('https://x.supabase.co/rest/v1/clubs')
-    expect(debug.mock.calls[0][0]).toContain('| OK | GET /rest/v1/clubs')
+    expect(debug).not.toHaveBeenCalled()
+  })
+
+  // An edge function used to get TWO OK lines: one here and one from runEdgeFn.
+  it('says nothing about an edge function either — runEdgeFn does', async () => {
+    const debug = vi.spyOn(console, 'debug').mockImplementation(() => {})
+    stubFetch(() => Promise.resolve(new Response('{}', { status: 200 })))
+    await dbFetch('https://x.supabase.co/functions/v1/boggle-build-board', { method: 'POST' })
+    expect(debug).not.toHaveBeenCalled()
+  })
+
+  // Auth is the one success nothing downstream will ever speak for, so this
+  // line is its only record.
+  it('narrates a successful auth call, which no wrapper sees', async () => {
+    const debug = vi.spyOn(console, 'debug').mockImplementation(() => {})
+    stubFetch(() => Promise.resolve(new Response('{}', { status: 200 })))
+    await dbFetch('https://x.supabase.co/auth/v1/token', { method: 'POST' })
+    expect(debug.mock.calls[0][0]).toContain('| OK | POST /auth/v1/token')
+  })
+
+  // A body that isn't JSON is the failure most worth showing — a Kong 502 on a
+  // PostgREST call means the stack is broken — and it used to be the quietest,
+  // arriving with `dbcode=` and `detail=` both blank.
+  it('says WHY there is no dbcode when the body would not parse', async () => {
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {})
+    stubFetch(() =>
+      Promise.resolve(
+        new Response('<html>502 Bad Gateway</html>', {
+          status: 502,
+          headers: { 'Content-Type': 'text/html' },
+        }),
+      ),
+    )
+    await dbFetch('https://x.supabase.co/rest/v1/clubs')
+    expect(err.mock.calls[0][0]).toContain('body was not JSON')
+    expect(err.mock.calls[0][0]).toContain('text/html')
   })
 
   it('narrates a failing STATUS too — "said no" and "never arrived" are one investigation', async () => {

@@ -49,40 +49,35 @@ import type { Envelope, Severity } from './envelope'
  * Both are generic and name no action, and that is a correctness rule rather
  * than a style: docs/envelopes.md → The environmental sentences.
  */
-const ENVIRONMENTAL = {
+const ENVIRONMENTAL_TO_TEXT = {
   offline: 'You appear to be offline. Please refresh and try again.',
   unreachable: "The server didn't answer. Please refresh and try again.",
 } as const
-
-/**
- * Raw faults we have chosen to word better.
- *
- * **This should stay nearly empty, and there's a principle keeping it that
- * way:** if a raw fault deserves a written sentence, that is a signal it should
- * have been a DECLARED fault instead — anything we can anticipate well enough
- * to write for, we can anticipate well enough to raise with a `PN` code at the
- * site. Each entry here is a small admission, and the only permanent residents
- * are what we structurally cannot declare.
- *
- * Starting empty on purpose. The first one that actually shows up in front of
- * someone can argue for itself.
- */
-const RAW_FAULT_TEXT: Record<string, string> = {}
 
 // ─────────────────────────────────────────────────────────────
 // Classification
 // ─────────────────────────────────────────────────────────────
 
-/** Does this SQLSTATE belong to us? `PA` = the raise becomes `type: ok`,
- *  `PN` = it becomes `type: not-ok`. Everything else — `23514` from a
- *  constraint, `40P01` from a deadlock, PL/pgSQL's own `P0001` — is a RAW
- *  FAULT: something nobody wrote a line of SQL for.
+/**
+ * **Did anything answer at all?**
  *
- *  Note the class is what carries the meaning, not the digits. `P0` is
- *  PL/pgSQL's own class, which is why ours are `PA`/`PN` and why a code from
- *  anywhere else can never be mistaken for one of ours. */
-export function isOurDbCode(code: string | undefined | null): boolean {
-  return !!code && /^P[AN][0-9]{3}$/.test(code)
+ * The one question separating the two kinds of failure, and the reason it gets
+ * a name rather than an inline `=== 0`: it is asked at four call sites, and
+ * getting it wrong is invisible — both answers produce an `Envelope<never>`,
+ * so no type and no test notices the difference.
+ *
+ * `0` is not an HTTP status. postgrest-js sets it when the `fetch` REJECTED
+ * (its `.catch` branch in `PostgrestBuilder`), and only then — anything that
+ * actually replied carries a real status. `callEdgeFn` reports the same `0`
+ * for the same case, so one predicate covers both transports.
+ *
+ * **Known limit:** an abort also arrives as `0`. Unreachable today (nothing in
+ * `src/` uses `AbortController` or `.abortSignal()`), and postgrest-js does
+ * distinguish it via `hint: 'Request was aborted…'`, so a fix exists the day
+ * someone adds cancellation. plans/envelope-layering.md §6.
+ */
+export function nothingAnswered(status: number | undefined): boolean {
+  return status === 0
 }
 
 /** The `{code, message, details, hint}` shape PostgREST returns for an error.
@@ -120,7 +115,7 @@ export type DbError = {
  * Why each sits at the console method it does — including why `RACE` is `warn`
  * when nothing is wrong — is in docs/envelopes.md → the `[db]` line.
  */
-export type LogLevel =
+type LogLevel =
   'FAULT' | 'SERVICE_ERROR' | 'SLOW' | 'RACE' | 'FORM_VALIDATION' | 'OK'
 
 /** Which function on `console` writes a line at each level — the values are
@@ -187,7 +182,7 @@ export function notOkOutcome(envelope: Envelope & { type: 'not-ok' }): Outcome {
  * is itself information (no `dbcode` means nothing raised; no `status` means the
  * server never answered).
  */
-export type DiagFields = {
+type DiagFields = {
   /** `METHOD /path`. The one field that is never blank. */
   call: string
   // `| null` because an envelope's are always PRESENT and null when empty, and
@@ -354,7 +349,7 @@ export function faultEnvelope(error: DbError, fallback: string, extra?: string):
     data: null,
     outcome: null,
     severity: 'fault',
-    message: RAW_FAULT_TEXT[error?.code ?? ''] ?? error?.message ?? fallback,
+    message: error?.message ?? fallback,
     field: null,
     meta: null,
     dbcode: error?.code ?? null,
@@ -363,23 +358,37 @@ export function faultEnvelope(error: DbError, fallback: string, extra?: string):
 }
 
 /**
- * The envelope for a request that never completed — the one failure where the
+ * **The envelope for a request nothing answered** — the one failure where the
  * server never spoke, so no author could have written for it.
  *
- * Which of the two sentences applies is decided here, at the point of failure,
- * for the same reason as above: downstream sees an envelope, not a taxonomy.
+ * **This is the only place either sentence is chosen**, which is the whole point
+ * of it existing. `dbFetch` calls it to word the modal; the three wrappers call
+ * it to word the envelope a call site reads. They used to answer separately —
+ * `dbFetch` here and the wrappers via `faultEnvelope`, which reaches for
+ * `error.message` and so handed back the browser's `"TypeError: Failed to
+ * fetch"`. A player then got a modal and a pill disagreeing about one event.
+ *
+ * It reads `navigator.onLine` ITSELF rather than taking a boolean. Two callers
+ * asking the same global and passing the answer in is two chances to ask it
+ * differently, and the value is ambient — reading it here is reading it at the
+ * same moment either way.
+ *
+ * `detail` is where the browser's string belongs: it is the only thing that
+ * separates a dead socket from a TLS failure or a DNS miss, and it is worth
+ * keeping — just not as the sentence a player reads.
  */
-export function environmentalEnvelope(offline: boolean, extra?: string): Envelope<never> {
+export function environmentalEnvelope(detail?: string): Envelope<never> {
+  const offline = typeof navigator !== 'undefined' && navigator.onLine === false
   return {
     type: 'not-ok',
     data: null,
     outcome: null,
     severity: 'fault',
-    message: offline ? ENVIRONMENTAL.offline : ENVIRONMENTAL.unreachable,
+    message: offline ? ENVIRONMENTAL_TO_TEXT.offline : ENVIRONMENTAL_TO_TEXT.unreachable,
     field: null,
     meta: null,
     dbcode: null,
-    detail: extra ?? null,
+    detail: detail ?? null,
   }
 }
 
@@ -387,17 +396,35 @@ export function environmentalEnvelope(offline: boolean, extra?: string): Envelop
  *  call it was, what the server answered, how long it took. `ms` matters more
  *  than it looks — an instant reject is a dead connection and a 30-second one is
  *  a timeout on a live connection, and they arrive with the same message. */
-export type Transport = { call: string; status?: number; ms?: number }
+type Transport = {
+  call: string
+  status?: number
+  ms?: number
+  /** What the REQUEST knew, which no envelope can carry: the device's own state
+   *  at the moment of the call. `dbFetch` has always passed one; the type simply
+   *  did not say so, which is how it came to be silently dropped below. */
+  detail?: string
+}
 
 /** The `[db]` fields for an envelope, merged with what the transport knows. */
-function envelopeFields(t: Transport, envelope: Envelope): DiagFields {
+function envelopeFields(transport: Transport, envelope: Envelope): DiagFields {
+  // **Both details, joined — not the envelope's INSTEAD of the transport's.**
+  // They answer different questions and neither substitutes for the other: the
+  // envelope's is what the server said (Postgres's own details + hint, or a
+  // raise's DETAIL), and the transport's is what the device knew (`online=`,
+  // `hidden`). Overriding lost the second on every fault that carried the
+  // first, which is exactly the pair you want on a gateway 502 — "the stack is
+  // broken" and "this phone was on a train" are the same line apart.
+  const details = [transport.detail, envelope.detail].filter(Boolean)
   return {
-    ...t,
+    ...transport,
     severity: envelope.type === 'not-ok' ? envelope.severity : undefined,
     outcome: envelope.outcome,
     dbcode: envelope.dbcode,
     field: envelope.type === 'not-ok' ? envelope.field : undefined,
-    detail: envelope.detail,
+    // `null` rather than `''` when neither said anything, so it prints like
+    // every other empty field.
+    detail: details.length ? details.join(' — ') : null,
   }
 }
 
@@ -411,12 +438,25 @@ function envelopeFields(t: Transport, envelope: Envelope): DiagFields {
  * something is broken, nothing anywhere says so. Logging it at `warn` costs one
  * line and keeps that visible without putting a modal in anyone's way.
  */
-export function logDbOutcome(t: Transport, envelope: Envelope): void {
-  const level: LogLevel =
-    envelope.type === 'ok' ? 'OK'
-    : envelope.severity === 'fault' ? 'FAULT'
-    : SEVERITY_TO_LOGLEVEL[envelope.severity]
-  logDb(level, envelopeFields(t, envelope), envelope.message)
+function logDbOutcome(transport: Transport, envelope: Envelope): void {
+  logDb(logLevelFor(envelope), envelopeFields(transport, envelope), envelope.message)
+}
+
+/** Which `[db]` level an answer is written at — one case per line, in the order
+ *  they are decided. */
+function logLevelFor(envelope: Envelope): LogLevel {
+  // It worked. Whether it also carried words is `message`'s business, not the
+  // level's.
+  if (envelope.type === 'ok') return 'OK'
+  // Both callers already routed a fault to `reportDbFault`, so this is
+  // unreachable at runtime — but `severity` is still typed as the full union
+  // here, and `SEVERITY_TO_LOGLEVEL` deliberately omits `fault`. So the branch
+  // is what the map's own shape demands, and it is the right answer besides,
+  // the day a third caller forgets to filter.
+  if (envelope.severity === 'fault') return 'FAULT'
+  // Every remaining severity maps, and the `Record` makes that total: a new
+  // severity is a compile error here rather than a silent fall-through.
+  return SEVERITY_TO_LOGLEVEL[envelope.severity]
 }
 
 /**
@@ -430,9 +470,9 @@ export function logDbOutcome(t: Transport, envelope: Envelope): void {
  *
  * Returns nothing: by the time the caller resumes, the news is delivered.
  */
-export function reportDbFault(t: Transport, envelope: Envelope): void {
+export function reportDbFault(transport: Transport, envelope: Envelope): void {
   const text = envelope.type === 'not-ok' ? envelope.message : 'Something went wrong.'
-  const diagnostics = logDb('FAULT', envelopeFields(t, envelope), text)
+  const diagnostics = logDb('FAULT', envelopeFields(transport, envelope), text)
   showFaultModal({ text, diagnostics })
 }
 
@@ -443,7 +483,7 @@ export function reportDbFault(t: Transport, envelope: Envelope): void {
  * on this path — a bare string, a number, a row array — and every one of them
  * must fall through cleanly rather than be half-read as one.
  */
-export function isEnvelope(body: unknown): body is Envelope {
+export function _isEnvelope(body: unknown): body is Envelope {
   if (!body || typeof body !== 'object' || Array.isArray(body)) return false
   const t = (body as { type?: unknown }).type
   return t === 'ok' || t === 'not-ok'
@@ -473,9 +513,13 @@ function hasMessageWithoutOutcome(envelope: Envelope): boolean {
 // The read wrapper
 // ─────────────────────────────────────────────────────────────
 
-/** The `{ data, error }` a PostgREST query builder resolves to. Structural, so
- *  a schema-scoped builder satisfies it without importing its generics. */
-type QueryLike<T> = PromiseLike<{ data: T | null; error: DbError }>
+/** What a PostgREST query builder resolves to. Structural, so a schema-scoped
+ *  builder satisfies it without importing its generics.
+ *
+ *  `status` is optional because it is absent from a hand-built test double, not
+ *  because it is absent at runtime — postgrest-js always sets it, and `0` is
+ *  the signal `nothingAnswered` reads. */
+type QueryLike<T> = PromiseLike<{ data: T | null; error: DbError; status?: number }>
 
 /**
  * **Call an edge function and hand back its envelope** — `runRpc`'s twin, for
@@ -500,23 +544,29 @@ export async function runEdgeFn<T>(
 ): Promise<Envelope<T>> {
   const started = performance.now()
   const { data, error } = await callEdgeFn(fnName, body)
-  const t = {
+  if (error) {
+    // NOTHING ANSWERED: `dbFetch` has already worded this and put the modal up
+    // — a `/functions/v1/` path is not `isSupabaseInternal`, so it reports every
+    // failed edge-function call. Reporting again here was the same news twice,
+    // and a poorer telling, since nothing at this layer can rebuild that line.
+    if (nothingAnswered(error.status)) return environmentalEnvelope(error.message)
+    // SOMETHING ANSWERED, but not our function speaking — a gateway's HTML, a
+    // shape from before the conversion. `callEdgeFn` has recovered whatever
+    // message there was, and `dbFetch` has already reported it too.
+    return faultEnvelope(error, 'The server refused the request.')
+  }
+  // Below the failure branch, because nothing above it needs one. `status` is
+  // flatly 200 here rather than `error?.status ?? 200`: reaching this line is
+  // proof `error` was null, which is proof the function answered 2xx.
+  const transport = {
     call: `POST /functions/v1/${fnName}`,
-    status: error?.status ?? 200,
+    status: 200,
     ms: Math.round(performance.now() - started),
   }
-  if (error) {
-    // Either the function never ran, or it answered in a shape from before the
-    // conversion. Both are faults; `callEdgeFn` has already recovered whatever
-    // message there was.
-    const envelope = faultEnvelope(error, 'The request never reached the server.')
-    reportDbFault(t, envelope)
-    return envelope
-  }
-  if (!isEnvelope(data)) {
+  if (!_isEnvelope(data)) {
     const rawBody = `rawBody: ${JSON.stringify(data)?.slice(0, 120)}`
     const unreadable = faultEnvelope(null, 'The server answered with an unreadable result.', rawBody)
-    reportDbFault(t, unreadable)
+    reportDbFault(transport, unreadable)
     return unreadable
   }
   if (hasMessageWithoutOutcome(data)) {
@@ -524,13 +574,13 @@ export async function runEdgeFn<T>(
       null, NO_OUTCOME_TEXT,
       `an ok carried a message with no outcome: ${JSON.stringify(data)?.slice(0, 120)}`,
     )
-    reportDbFault(t, broken)
+    reportDbFault(transport, broken)
     return broken
   }
   if (data.type === 'not-ok' && data.severity === 'fault') {
-    reportDbFault(t, data)
+    reportDbFault(transport, data)
   } else {
-    logDbOutcome(t, data)
+    logDbOutcome(transport, data)
   }
   return data as Envelope<T>
 }
@@ -571,29 +621,48 @@ function callLabel(call: unknown, fallback: string): string {
  *     }
  *     setResults(r.data)
  */
-export async function runRpc<T>(call: PromiseLike<{ data: unknown; error: DbError }>): Promise<Envelope<T>> {
+export async function runRpc<T>(
+  call: PromiseLike<{ data: unknown; error: DbError; status?: number }>,
+): Promise<Envelope<T>> {
   // Timed here because `dbFetch` stays quiet on an RPC's 2xx — the answer
   // inside it is this function's to read, and one line per call beats a `OK`
   // sitting above a `FAULT` about the same request. So this line carries the
   // duration as well as the meaning.
   const started = performance.now()
-  let settled: { data: unknown; error: DbError }
+  let settled: { data: unknown; error: DbError; status?: number }
   try {
     settled = await call
   } catch (thrown) {
-    return faultEnvelope(thrown as DbError, 'The request never reached the server.')
+    // A throw IS "nothing answered". postgrest-js normally converts a rejected
+    // fetch into `{ error, status: 0 }` before it reaches here, so what this
+    // actually catches is a throw from some other layer — the same case by
+    // another road, not a different one.
+    return environmentalEnvelope(String(thrown))
   }
-  const t = { call: callLabel(call, 'rpc'), status: 200, ms: Math.round(performance.now() - started) }
-  if (settled.error) return faultEnvelope(settled.error, 'The server refused the request.')
+  if (settled.error) {
+    // `dbFetch` has already worded and presented both of these; the envelope is
+    // what the CALL SITE reads afterwards, and it must say the same thing.
+    return nothingAnswered(settled.status)
+      ? environmentalEnvelope(settled.error.message)
+      : faultEnvelope(settled.error, 'The server refused the request.')
+  }
+  // Below the failure branch, because nothing above it needs one: a transport
+  // failure has already been logged and presented by `dbFetch`, and what this
+  // describes is a call that ARRIVED and answered.
+  const transport = {
+    call: callLabel(call, 'rpc'),
+    status: settled.status ?? 200,
+    ms: Math.round(performance.now() - started),
+  }
   const body = settled.data
   // A reply that isn't an envelope means the RPC answered with something no
   // caller can read — an unconverted shape, or a null from a branch that never
   // decided. Neither is actionable, and both are bugs rather than play, so it
   // becomes a fault in the same shape as any other.
-  if (!isEnvelope(body)) {
+  if (!_isEnvelope(body)) {
     const rawBody = `rawBody: ${JSON.stringify(body)?.slice(0, 120)}`
     const unreadable = faultEnvelope(null, 'The server answered with an unreadable result.', rawBody)
-    reportDbFault(t, unreadable)
+    reportDbFault(transport, unreadable)
     // No `dbcode` to carry — the call SUCCEEDED (a 200 with an unreadable
     // body), so there is no Postgres error. What we do know is the body, and
     // it goes into `detail` rather than living only in the console line.
@@ -610,13 +679,13 @@ export async function runRpc<T>(call: PromiseLike<{ data: unknown; error: DbErro
       null, NO_OUTCOME_TEXT,
       `an ok carried a message with no outcome: ${JSON.stringify(body)?.slice(0, 120)}`,
     )
-    reportDbFault(t, broken)
+    reportDbFault(transport, broken)
     return broken
   }
   if (body.type === 'not-ok' && body.severity === 'fault') {
-    reportDbFault(t, body)
+    reportDbFault(transport, body)
   } else {
-    logDbOutcome(t, body)
+    logDbOutcome(transport, body)
   }
   return body as Envelope<T>
 }
@@ -640,16 +709,28 @@ export async function runRpc<T>(call: PromiseLike<{ data: unknown; error: DbErro
  * the envelope's `data` is generic.
  */
 export async function readRows<Row>(query: QueryLike<Row[]>): Promise<Envelope<Row[]>> {
-  let settled: { data: Row[] | null; error: DbError }
+  // Timed here, exactly as `runRpc` times itself: a postgrest builder is LAZY,
+  // so `await query` is what fires the request, and wrapping it captures the
+  // whole round trip. `dbFetch` no longer speaks for a successful read — the
+  // layer that knows what came back does — so this is where the duration for
+  // that line has to come from.
+  const started = performance.now()
+  let settled: { data: Row[] | null; error: DbError; status?: number }
   try {
     settled = await query
   } catch (thrown) {
-    // A rejected fetch: `dbFetch` already logged it and put the modal up, and
-    // then re-threw. postgrest-js normally converts that into an `error`, but
-    // catching here means a throw from any layer lands in the same place.
-    return faultEnvelope(thrown as DbError, 'The request never reached the server.')
+    // A throw IS "nothing answered". postgrest-js converts a rejected fetch
+    // into `{ error, status: 0 }` before it reaches here, so this catches a
+    // throw from some OTHER layer — the same case by another road.
+    return environmentalEnvelope(String(thrown))
   }
-  if (settled.error) return faultEnvelope(settled.error, 'The read failed.')
+  if (settled.error) {
+    // `dbFetch` has already worded and presented both of these; the envelope is
+    // what the hook reads afterwards, and it must say the same thing.
+    return nothingAnswered(settled.status)
+      ? environmentalEnvelope(settled.error.message)
+      : faultEnvelope(settled.error, 'The read failed.')
+  }
   // **This wrapper is for QUERIES.** Pointed at an RPC, what comes back is a
   // single value rather than rows — most often one of our own envelopes — and
   // wrapping that as `data` would bury its real `type`, `severity` and `dbcode`
@@ -661,7 +742,7 @@ export async function readRows<Row>(query: QueryLike<Row[]>): Promise<Envelope<R
   // and not a cast. `src/guards/dbCallShape.test.ts` is the compile-time half
   // of this pair; this is the half that runs.
   if (settled.data !== null && !Array.isArray(settled.data)) {
-    const what = isEnvelope(settled.data) ? 'an RPC envelope' : `a ${typeof settled.data}`
+    const what = _isEnvelope(settled.data) ? 'an RPC envelope' : `a ${typeof settled.data}`
     const crossed = faultEnvelope(
       null, 'BUG: a table read did not answer with rows',
       `readRows received ${what}: ${JSON.stringify(settled.data)?.slice(0, 120)}`,
@@ -671,9 +752,22 @@ export async function readRows<Row>(query: QueryLike<Row[]>): Promise<Envelope<R
   }
   // `null` collapses to `[]`: PostgREST returns null rather than an empty array
   // in some shapes, and "no rows" is one answer, not two.
+  const rows = settled.data ?? []
+  // The read's own `[db]` line, and a better one than `dbFetch` could write:
+  // this knows the ROW COUNT, which `dbFetch` deliberately does not parse the
+  // body to learn ("rows are not worth the cost"). It rides in `detail` rather
+  // than as a new column, because the line's fixed field list is a promise that
+  // a blank means something, and one caller's extra fact does not get to move
+  // every other line's shape.
+  logDb('OK', {
+    call: callLabel(query, 'read'),
+    status: settled.status ?? 200,
+    ms: Math.round(performance.now() - started),
+    detail: `rows=${rows.length}`,
+  })
   return {
     type: 'ok',
-    data: settled.data ?? [],
+    data: rows,
     outcome: null,
     severity: null,
     field: null,

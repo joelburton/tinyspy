@@ -8,8 +8,13 @@
  *     the relayed SQLSTATE, so classifyFailure treats it like a direct RPC
  *     failure (and prose can never misfile as transport);
  *   - a response that ISN'T our function speaking (gateway HTML, platform
- *     JSON) → unanswered → transport, which is the honest environmental read;
- *   - no response at all → transport.
+ *     JSON) → our function did not answer, but SOMETHING did, so the real
+ *     status rides along;
+ *   - no response at all → `status: 0`, the signal `nothingAnswered` reads.
+ *
+ * That last distinction is load-bearing and used not to exist. A gateway 502 IS
+ * a reply and a dead socket is not, and collapsing them made an offline phone
+ * and a broken deploy tell the player the same thing.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { callEdgeFn } from './callEdgeFn'
@@ -53,21 +58,30 @@ describe('callEdgeFn', () => {
     expect(res.error).toEqual({ message: 'no candidate words for band 3', status: 200, answered: true })
   })
 
-  it('treats a non-JSON body (a gateway answered, not our function) as transport', async () => {
+  // SOMETHING answered — so the status is real, and `nothingAnswered` is false.
+  it('keeps the status when a gateway answered instead of our function', async () => {
     invoke.mockResolvedValue({ data: null, error: fnError('<html>502</html>', 'text/html') })
     const res = await callEdgeFn('x-build-board', {})
-    expect(res.error).toEqual({ message: 'Edge Function returned a non-2xx status code', code: '' })
+    expect(res.error).toEqual({
+      message: 'Edge Function returned a non-2xx status code', code: '', status: 200,
+    })
   })
 
-  it('treats JSON that is not our { error } shape as transport', async () => {
+  it('keeps it for JSON that is not our { error } shape either', async () => {
     invoke.mockResolvedValue({ data: null, error: fnError(JSON.stringify({ msg: 'not ours' })) })
     const res = await callEdgeFn('x-build-board', {})
-    expect(res.error).toEqual({ message: 'Edge Function returned a non-2xx status code', code: '' })
+    expect(res.error).toEqual({
+      message: 'Edge Function returned a non-2xx status code', code: '', status: 200,
+    })
   })
 
-  it('treats a contextless failure (fetch died) as transport', async () => {
+  // NOTHING answered — `status: 0`, the same signal postgrest-js sets for a
+  // rejected fetch, so one predicate covers both transports.
+  it('reports status 0 when there was no response at all', async () => {
     invoke.mockResolvedValue({ data: null, error: fnError(null) })
     const res = await callEdgeFn('x-build-board', {})
-    expect(res.error).toEqual({ message: 'Edge Function returned a non-2xx status code', code: '' })
+    expect(res.error).toEqual({
+      message: 'Edge Function returned a non-2xx status code', code: '', status: 0,
+    })
   })
 })
