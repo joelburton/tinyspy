@@ -445,6 +445,21 @@ export type RichMessage = Array<string | { player: Member }>
 export type SetupOf<V> = Omit<V, 'player_user_ids'>
 
 /**
+ * **What every game's `create_game` puts in `data`.** One shape, sixteen
+ * schemas: `result` names the answer, `id` is the game to go to.
+ *
+ * `result` is what a call site filters the `ok` on. `create_game` has exactly
+ * one `ok` today and the name is still there, because a branch that matches by
+ * merely being `ok` would silently draw a second answer as this one
+ * (docs/envelopes.md → Choosing which `ok` branch).
+ *
+ * Declared here, beside the interface it satisfies, so the two cannot drift and
+ * a game's call site matches `startGameInClub` by NAME rather than by two type
+ * expressions happening to line up.
+ */
+export type CreatedGame = { result: 'created'; id: string }
+
+/**
  * Write one field of the form. The setup body casts the loose `set` it is given
  * to this over its own values type, which is what makes `set('dificulty', 4)` a
  * compile error rather than a control that silently does nothing.

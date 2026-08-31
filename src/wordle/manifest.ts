@@ -2,7 +2,7 @@
 
 import { lazy } from 'react'
 import { runRpc } from '../common/lib/supabase/dbResult'
-import type { CommonGameListRow, GameManifest } from '../common/lib/games'
+import type { CommonGameListRow, CreatedGame, GameManifest } from '../common/lib/games'
 import { db } from './db'
 import { count, dictLabel, outcome, setupNum, statusLine, wonBy } from '../common/lib/game/statusLabel'
 import { makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
@@ -40,9 +40,7 @@ const setupFormLoader = lazy(() =>
 function startGameInClubFactory(mode: 'coop' | 'compete') {
   return (clubHandle: string, setup: unknown, playerUserIds: string[]) =>
     // No `.single()`: the RPC returns the envelope itself, one jsonb value.
-    // Promises MORE than `GameManifest.startGameInClub` asks for, which is legal
-    // — assignability runs one way (plans/envelope-rollout.md → create_game).
-    runRpc<{ result: 'created'; id: string }>(
+    runRpc<CreatedGame>(
       db.rpc('create_game', {
         target_club: clubHandle,
         setup: setup as WordleSetup,

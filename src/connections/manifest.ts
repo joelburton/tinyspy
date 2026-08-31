@@ -2,7 +2,7 @@
 
 import { lazy } from 'react'
 import { runRpc } from '../common/lib/supabase/dbResult'
-import type { GameManifest } from '../common/lib/games'
+import type { CreatedGame, GameManifest } from '../common/lib/games'
 import { db } from './db'
 import { count, outcome, statusLine, tally, wonBy } from '../common/lib/game/statusLabel'
 import { makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
@@ -101,7 +101,7 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
     // `setup` rides through untouched, and its `puzzle_id` is ABSENT — that is
     // how create_game is told to derive the puzzle.
     // No `.single()`: the RPC returns the envelope itself, one jsonb value.
-    return runRpc<{ id: string }>(
+    return runRpc<CreatedGame>(
       db.rpc('create_game', {
         target_club: clubHandle,
         setup: setup as ConnectionsSetup,

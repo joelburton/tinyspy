@@ -3,7 +3,7 @@
 import { runRpc } from '../../common/lib/supabase/dbResult'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { IconHideSolution, IconNewGame, IconPrint, IconRestart, IconReveal } from '../../common/components/icons'
-import type { GamePageCtx, GenericFeedbackMsg } from '../../common/lib/games'
+import type { CreatedGame, GamePageCtx, GenericFeedbackMsg } from '../../common/lib/games'
 import { buildWordlePrintModel } from '../pdf/model'
 import { printWordlePdf } from '../pdf/printWordlePdf'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
@@ -38,10 +38,6 @@ import { getNotOkFeedback } from '../../common/lib/game/genericPills'
 import { showFaultModal } from '../../common/lib/fault/faultStore'
 import styles from './PlayArea.module.css'
 import '../theme.css'
-
-/** What `wordle.create_game` puts in `data`. One `ok` answer, named anyway — a
- *  branch matching merely by being `ok` would draw a second one as this. */
-type NewGameAnswer = { result: 'created'; id: string }
 
 /**
  * wordle's play surface, shared by the coop and compete manifests. The thin
@@ -268,7 +264,7 @@ export function PlayArea({
     // copy says shelved, not ended. At terminal there's nothing to interrupt.
     if (!isTerminal && !(await confirmAction(NEW_GAME_CONFIRM))) return
     if (!gameMode) return // menu exists pre-load, but there's no mode to copy yet
-    const res = await runRpc<NewGameAnswer>(
+    const res = await runRpc<CreatedGame>(
       db.rpc('create_game', {
         target_club: clubHandle,
         // ctx.setup is Record<string,unknown> at the shell level; this game's

@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode, useMemo } fro
 import { IconHideSolution, IconNewGame, IconPrint, IconRestart, IconReveal } from '../../common/components/icons'
 import { useSolutionReveal } from '../../common/hooks/game/useSolutionReveal'
 import type { Outcome } from '../../common/lib/outcomes'
-import type { GenericFeedbackApi, GenericFeedbackMsg, GamePageCtx } from '../../common/lib/games'
+import type { CreatedGame, GamePageCtx, GenericFeedbackApi, GenericFeedbackMsg } from '../../common/lib/games'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import { cls } from '../../common/lib/util/cls'
 import { db } from '../db'
@@ -43,11 +43,6 @@ import { getNotOkFeedback } from '../../common/lib/game/genericPills'
 import { showFaultModal } from '../../common/lib/fault/faultStore'
 import styles from './PlayArea.module.css'
 import '../theme.css'  // codenamesduet-specific color tokens (lazy-loaded with this chunk)
-
-/** What `codenamesduet.create_game` puts in `data`. `result` is the field the
- *  `ok` branch filters on — without it there is nothing to assert but the
- *  absence of a failure. */
-type NewGameAnswer = { result: 'created'; id: string }
 
 /**
  * codenamesduet's play surface — two-column viewport-bound composition:
@@ -423,7 +418,7 @@ export function PlayArea({
     // anyway so an accidental `+` doesn't read as "I just lost my game" — the
     // copy says shelved, not ended. At terminal there's nothing to interrupt.
     if (!isTerminal && !(await confirmAction(NEW_GAME_CONFIRM))) return
-    const res = await runRpc<NewGameAnswer>(
+    const res = await runRpc<CreatedGame>(
       db.rpc('create_game', {
         target_club: clubHandle,
         setup: codenamesduetSetup,

@@ -2,7 +2,7 @@
 
 import { lazy } from 'react'
 import type { FormErrors } from '../common/components/fields/formState'
-import type { GameManifest } from '../common/lib/games'
+import type { CreatedGame, GameManifest } from '../common/lib/games'
 import { makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
 import { runEdgeFn, runRpc } from '../common/lib/supabase/dbResult'
 import { db } from './db'
@@ -50,11 +50,7 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
     // NYT (by date) and Guardian (today's, by series) both fetch server-side and
     // create the game from the imported puzzle.
     if (s.source === 'nyt' || s.source === 'guardian') {
-      // Promises MORE than `GameManifest.startGameInClub` asks for, which is
-      // legal — assignability runs one way. Inert until the interface widens,
-      // since `SetupGameModal` reads the INTERFACE's type
-      // (plans/envelope-rollout.md → create_game).
-      return runEdgeFn<{ result: 'created'; id: string }>(
+      return runEdgeFn<CreatedGame>(
         s.source === 'nyt' ? 'crosswords-import-nyt' : 'crosswords-import-guardian',
         { target_club: clubHandle, setup: s, player_user_ids: playerUserIds, mode },
       )
@@ -73,7 +69,7 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
     delete setupToStore.filename
     // No `.single()`: the RPC returns the envelope itself, one jsonb value.
     // Same widened type as the import paths above, for the same reason.
-    return runRpc<{ result: 'created'; id: string }>(
+    return runRpc<CreatedGame>(
       db.rpc('create_game', {
         target_club: clubHandle,
         setup: setupToStore,

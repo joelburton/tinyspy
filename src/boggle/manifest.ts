@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { lazy } from 'react'
-import type { GameManifest } from '../common/lib/games'
+import type { CreatedGame, GameManifest } from '../common/lib/games'
 import { db } from './db'
 import { count, outcome, setupNum, statusLine, wonBy } from '../common/lib/game/statusLabel'
 import { makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
@@ -42,12 +42,7 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
     // The board is rolled in Deno, so this goes through an edge function rather
     // than straight to the RPC — but it comes back the same envelope a direct
     // create_game returns, relayed untouched (see _shared/startGame.ts).
-    //
-    // Promises MORE than `GameManifest.startGameInClub` asks for, which is legal
-    // — assignability runs one way. Inert until the interface widens, since
-    // `SetupGameModal` reads the INTERFACE's type
-    // (plans/envelope-rollout.md → create_game).
-    runEdgeFn<{ result: 'created'; id: string }>('boggle-build-board', {
+    runEdgeFn<CreatedGame>('boggle-build-board', {
       target_club: clubHandle,
       setup: setup as BoggleSetup,
       player_user_ids: playerUserIds,

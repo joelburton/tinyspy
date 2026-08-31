@@ -2,7 +2,7 @@
 
 import { lazy } from 'react'
 import { runRpc } from '../common/lib/supabase/dbResult'
-import type { CommonGameListRow, GameManifest } from '../common/lib/games'
+import type { CommonGameListRow, CreatedGame, GameManifest } from '../common/lib/games'
 import { deckSize } from './lib/cards'
 import { CLAIM_SIZE } from './lib/selection'
 import { db } from './db'
@@ -53,13 +53,7 @@ const setupFormLoader = lazy(() =>
 function startGameInClubFactory(mode: 'coop' | 'compete') {
   return (clubHandle: string, setup: unknown, playerUserIds: string[]) =>
     // No `.single()`: the RPC returns the envelope itself, one jsonb value.
-    //
-    // The type promises MORE than `GameManifest.startGameInClub` currently asks
-    // for (`Envelope<{ id: string }>`), which is legal — assignability runs one
-    // way, so a game may name its answer before the interface requires it. The
-    // interface and `SetupGameModal` change once all sixteen do
-    // (plans/envelope-rollout.md → create_game).
-    runRpc<{ result: 'created'; id: string }>(
+    runRpc<CreatedGame>(
       db.rpc('create_game', {
         target_club: clubHandle,
         setup: setup as SetgameSetup,

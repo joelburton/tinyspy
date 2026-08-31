@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useMemo, useState } from 'react'
 import { IconHideSolution, IconNewGame, IconPrint, IconRestart, IconReveal } from '../../common/components/icons'
-import type { GamePageCtx, GenericFeedbackMsg } from '../../common/lib/games'
+import type { CreatedGame, GamePageCtx, GenericFeedbackMsg } from '../../common/lib/games'
 import { cls } from '../../common/lib/util/cls'
 import { terminalPill, outOfRacePill } from '../../common/lib/game/localPills'
 import { waitingTurnPill } from '../../common/components/game/turnCopy'
@@ -53,10 +53,6 @@ type SwapAnswer = {
   solved: boolean
   terminal: boolean
 }
-
-/** What `waffle.create_game` puts in `data`, forwarded verbatim through the
- *  `waffle-build-board` edge function by `invokeCreateGame`. */
-type NewGameAnswer = { result: 'created'; id: string }
 
 /**
  * waffle's play surface, shared by the coop and compete manifests, on the shared
@@ -374,7 +370,7 @@ export function PlayArea({
     if (!isTerminal && !(await confirmAction(NEW_GAME_CONFIRM))) return
     if (!gameMode) return // menu exists pre-load, but there's no mode to copy yet
     const args = newGameArgsRef.current
-    const res = await runEdgeFn<NewGameAnswer>(
+    const res = await runEdgeFn<CreatedGame>(
       'waffle-build-board',
       {
         target_club: clubHandle,

@@ -2,7 +2,7 @@
 
 import { lazy } from 'react'
 import { runRpc } from '../common/lib/supabase/dbResult'
-import type { GameManifest } from '../common/lib/games'
+import type { CreatedGame, GameManifest } from '../common/lib/games'
 import { db } from './db'
 import { makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
 import { count, outcome, statusLine, tally } from '../common/lib/game/statusLabel'
@@ -87,12 +87,7 @@ export const codenamesduetGame: GameManifest = {
   // Component is the only thing populating the wrapper's value).
   startGameInClub: async (clubHandle, setup, playerUserIds) => {
     // No `.single()`: the RPC returns the envelope itself, one jsonb value.
-    //
-    // Promises MORE than `GameManifest.startGameInClub` asks for, which is legal
-    // — assignability runs one way. Inert until the interface widens, since
-    // `SetupGameModal` reads the INTERFACE's type
-    // (plans/envelope-rollout.md → create_game).
-    return runRpc<{ result: 'created'; id: string }>(
+    return runRpc<CreatedGame>(
       db.rpc('create_game', {
         target_club: clubHandle,
         setup: setup as CodenamesduetSetup,

@@ -2,7 +2,7 @@
 
 import { lazy } from 'react'
 import { runRpc } from '../common/lib/supabase/dbResult'
-import type { GameManifest } from '../common/lib/games'
+import type { CreatedGame, GameManifest } from '../common/lib/games'
 import { db } from './db'
 import { makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
 import { count, outcome, statusLine, wonBy } from '../common/lib/game/statusLabel'
@@ -72,14 +72,7 @@ export const bananagramsGame: GameManifest = {
   // validates the setup shape; the FE-collected setup isn't trusted.
   startGameInClub: (clubHandle, setup, playerUserIds) =>
     // No `.single()`: the RPC returns the envelope itself, one jsonb value.
-    //
-    // Promises MORE than `GameManifest.startGameInClub` asks for
-    // (`Envelope<{ id: string }>`), which is legal — assignability runs one way,
-    // so a game may name its answer before the interface requires it. Inert
-    // until then: `SetupGameModal` reads the INTERFACE's type, so it cannot
-    // branch on `result` until every game promises it and the interface widens
-    // (plans/envelope-rollout.md → create_game).
-    runRpc<{ result: 'created'; id: string }>(
+    runRpc<CreatedGame>(
       db.rpc('create_game', {
         target_club: clubHandle,
         setup: setup as BananagramsSetup,

@@ -5,7 +5,7 @@ import { showFaultModal } from '../../common/lib/fault/faultStore'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { IconHideSolution, IconHint, IconNewGame, IconPrint, IconRestart, IconReveal, IconSpoiler } from '../../common/components/icons'
 import { cls } from '../../common/lib/util/cls'
-import type { GenericFeedbackMsg, GamePageCtx, Member } from '../../common/lib/games'
+import type { CreatedGame, GamePageCtx, GenericFeedbackMsg, Member } from '../../common/lib/games'
 import type { Outcome } from '../../common/lib/outcomes'
 import { useSwallowTab } from '../../common/hooks/input/useSwallowTab'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
@@ -57,10 +57,6 @@ type WordAnswer = {
  *  second answer added to either RPC would be drawn as this one, silently. */
 type RevealAnswer = { result: 'reveal'; word: string }
 type HintAnswer = { result: 'hint'; hint: string }
-
-/** What `stackdown.create_game` puts in `data` — the answer's name, and the game
- *  to go to. Same reasoning as the two above. */
-type NewGameAnswer = { result: 'created'; id: string }
 
 /**
  * stackdown's play surface, shared by the coop and compete manifests, on the
@@ -390,7 +386,7 @@ export function PlayArea({
     // copy says shelved, not ended. At terminal there's nothing to interrupt.
     if (!isTerminal && !(await confirmAction(NEW_GAME_CONFIRM))) return
     if (!gameMode) return // menu exists pre-load, but there's no mode to copy yet
-    const res = await runRpc<NewGameAnswer>(
+    const res = await runRpc<CreatedGame>(
       db.rpc('create_game', {
         target_club: clubHandle,
         setup: setup as StackdownSetup,

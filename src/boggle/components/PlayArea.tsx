@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react'
 import { IconNewGame, IconPrint, IconRestart } from '../../common/components/icons'
 import { cls } from '../../common/lib/util/cls'
-import type { GamePageCtx, GamePlayer } from '../../common/lib/games'
+import type { CreatedGame, GamePageCtx, GamePlayer } from '../../common/lib/games'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { setupRows } from '../lib/setupSummary'
 import { runEdgeFn } from '../../common/lib/supabase/dbResult'
@@ -36,12 +36,6 @@ import { getNotOkFeedback } from '../../common/lib/game/genericPills'
 import { showFaultModal } from '../../common/lib/fault/faultStore'
 import styles from './PlayArea.module.css'
 import '../theme.css'
-
-/** What `boggle.create_game` puts in `data`, forwarded verbatim through the
- *  `boggle-build-board` edge function by `invokeCreateGame`. `result` is the
- *  field the `ok` branch filters on — without it there is nothing to assert but
- *  the absence of a failure. */
-type NewGameAnswer = { result: 'created'; id: string }
 
 /**
  * boggle play surface, shared by the coop and compete manifests, on the shared
@@ -333,7 +327,7 @@ export function PlayArea(ctx: GamePageCtx) {
     // copy says shelved, not ended. At terminal there's nothing to interrupt.
     if (!isTerminal && !(await confirmAction(NEW_GAME_CONFIRM))) return
     if (!gameMode) return // menu exists pre-load, but there's no mode to copy yet
-    const res = await runEdgeFn<NewGameAnswer>(
+    const res = await runEdgeFn<CreatedGame>(
       'boggle-build-board',
       {
         target_club: clubHandle,

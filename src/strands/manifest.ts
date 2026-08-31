@@ -2,7 +2,7 @@
 
 import { lazy } from 'react'
 import { runRpc } from '../common/lib/supabase/dbResult'
-import type { GameManifest } from '../common/lib/games'
+import type { CreatedGame, GameManifest } from '../common/lib/games'
 import { db } from './db'
 import { count, outcome, statusLine } from '../common/lib/game/statusLabel'
 import { makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
@@ -54,7 +54,7 @@ const BRAND = 'PaulPath'
 function startGameInClub(mode: 'coop' | 'compete') {
   return (clubHandle: string, setup: unknown, playerUserIds: string[]) =>
     // No `.single()`: the RPC returns the envelope itself, one jsonb value.
-    runRpc<{ id: string }>(
+    runRpc<CreatedGame>(
       db.rpc('create_game', {
         target_club: clubHandle,
         setup: setup as StrandsSetup,

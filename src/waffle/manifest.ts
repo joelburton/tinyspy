@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { lazy } from 'react'
-import type { CommonGameListRow, GameManifest } from '../common/lib/games'
+import type { CommonGameListRow, CreatedGame, GameManifest } from '../common/lib/games'
 import { db } from './db'
 import { count, dictLabel, outcome, setupNum, statusLine, wonBy } from '../common/lib/game/statusLabel'
 import { makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
@@ -49,10 +49,7 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
     // direct create_game returns, relayed untouched (see _shared/startGame.ts).
     // Which is why naming the answer in waffle.create_game's SQL reaches here:
     // nothing in between rewrites the payload.
-    //
-    // This promises MORE than `GameManifest.startGameInClub` asks for, which is
-    // legal — assignability runs one way (plans/envelope-rollout.md → create_game).
-    runEdgeFn<{ result: 'created'; id: string }>('waffle-build-board', {
+    runEdgeFn<CreatedGame>('waffle-build-board', {
       target_club: clubHandle,
       setup: setup as WaffleSetup,
       player_user_ids: playerUserIds,

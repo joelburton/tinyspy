@@ -6,7 +6,7 @@ import { showFaultModal } from '../../common/lib/fault/faultStore'
 import { IconNewGame, IconPrint, IconRestart } from '../../common/components/icons'
 import { cls } from '../../common/lib/util/cls'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
-import type { GamePageCtx, Member } from '../../common/lib/games'
+import type { CreatedGame, GamePageCtx, Member } from '../../common/lib/games'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { outOfRacePill, stickyPill, terminalPill } from '../../common/lib/game/localPills'
 import { waitingTurnPill, yourTurnPill } from '../../common/components/game/turnCopy'
@@ -49,11 +49,6 @@ type ClaimAnswer = { result: 'claimed'; terminal: boolean }
 /** What `setgame.record_hint` puts in `data`. `hints_used` is the tally after
  *  this press; unread here, because the info column reads it off `players`. */
 type HintAnswer = { result: 'recorded'; hints_used: number }
-
-/** What `setgame.create_game` puts in `data` — the answer's name, and the game
- *  to go to. The in-game New Game button reads it; the setup dialog's Start
- *  reaches the same RPC through `manifest.startGameInClub`. */
-type NewGameAnswer = { result: 'created'; id: string }
 
 /** A row of `status.leaderboard` (compete). */
 type LeaderRow = {
@@ -402,7 +397,7 @@ export function PlayArea(ctx: GamePageCtx) {
   const createNewGame = useCallback(async () => {
     if (!isTerminal && !(await confirmAction(NEW_GAME_CONFIRM))) return
     if (!gameMode) return
-    const res = await runRpc<NewGameAnswer>(
+    const res = await runRpc<CreatedGame>(
       db.rpc('create_game', {
         target_club: clubHandle,
         setup: setup as never,

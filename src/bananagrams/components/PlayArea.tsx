@@ -4,7 +4,7 @@ import { failureMessage } from '../../common/lib/game/serverError'
 import { runRpc } from '../../common/lib/supabase/dbResult'
 import { useCallback, useEffect, useRef, useMemo } from 'react'
 import { IconNewGame, IconPrint, IconRestart } from '../../common/components/icons'
-import type { GamePageCtx, GenericFeedbackMsg } from '../../common/lib/games'
+import type { CreatedGame, GamePageCtx, GenericFeedbackMsg } from '../../common/lib/games'
 import { timerLabel } from '../../common/lib/game/timerLabel'
 import { CelebrationBlockingModal } from '../../common/components/game/CelebrationBlockingModal'
 import { useCelebration } from '../../common/hooks/game/useCelebration'
@@ -42,10 +42,6 @@ import { useConfirmation, NEW_GAME_CONFIRM, END_GAME_CONFIRM, RESTART_CONFIRM } 
 import { useSingleFlight } from '../../common/hooks/ui/useSingleFlight'
 import { getNotOkFeedback } from '../../common/lib/game/genericPills'
 import { showFaultModal } from '../../common/lib/fault/faultStore'
-
-/** What `bananagrams.create_game` puts in `data`. One `ok` answer, named anyway
- *  — a branch matching merely by being `ok` would draw a second one as this. */
-type NewGameAnswer = { result: 'created'; id: string }
 
 /**
  * bananagrams play surface (v3).
@@ -322,7 +318,7 @@ export function PlayArea(ctx: GamePageCtx) {
     // anyway so an accidental `+` doesn't read as "I just lost my game" — the
     // copy says shelved, not ended. At terminal there's nothing to interrupt.
     if (!ctx.isTerminal && !(await confirmAction(NEW_GAME_CONFIRM))) return
-    const res = await runRpc<NewGameAnswer>(
+    const res = await runRpc<CreatedGame>(
       db.rpc('create_game', {
         target_club: ctx.clubHandle,
         setup: ctx.setup as unknown as BananagramsSetup,
