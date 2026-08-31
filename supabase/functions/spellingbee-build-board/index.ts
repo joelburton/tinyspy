@@ -388,11 +388,14 @@ serve(async (req) => {
       console.log(`fetched ${allPangrams.length} pangram seeds`)
       const eligible = applyOverlapCap(allPangrams, previousMask)
       if (eligible.length === 0) {
+        // No setup field narrows this pool — the whole pangram table goes into
+        // the overlap cap — so emptying it means the table is unseeded rather
+        // than the club having played too much.
         console.log('reject: empty pangram pool after overlap cap')
         return fault(
           'PN176',
-          'No puzzle could be built for this club right now.',
-          'spellingbee-build-board: pangram pool empty after the overlap cap',
+          'BUG: Too few pangram seeds on server to build a board',
+          `spellingbee-build-board: ${allPangrams.length} seeds, none within the overlap cap of the club's last board`,
         )
       }
       const weighted = buildWeightedPool(eligible)

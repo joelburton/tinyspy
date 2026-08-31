@@ -977,7 +977,28 @@ bananagrams-shaped.
   `PN083` is a second cross-field check (AI opponents requiring a dictionary at
   or above a band). Both halves are pickers, so it is a fault — matching wordle's
   `PN056` rather than psychicnum's `PN049`.
-- [ ] **spellingbee's `create_game`** — via `spellingbee-build-board`
+- [x] **spellingbee's `create_game`** — via `spellingbee-build-board`. All four
+  steps, 2026-08-31. **39 answers: one `ok`, 35 faults, 3 form-validations.**
+
+  **Ten "our own builder" raises — the largest group yet.** `PN162`–`PN167` and
+  `PN169`–`PN171` are the RPC re-checking the board Deno produced: six outer
+  letters, letters the puzzle can use, no repeats, one center, center usable,
+  center not also outer, enough words, word list present, bonus list well-formed.
+  Bigger than letterboxed's six and boggle's four.
+
+  **A ninth Deno/SQL twin**: `PN168` / `PN175`, *"No words for those letters at
+  that difficulty"*, same `custom_letters` field, differing by a full stop —
+  identical to boggle's `PN147`/`PN154` pair, drifted punctuation and all.
+
+  **`PN176` became a `BUG:`** (Joel, 2026-08-31), closing end-sweep 5's
+  spellingbee half. It fires when the anti-repeat filter empties the pangram
+  pool, and NO setup field narrows that pool — the whole 1,889-seed table goes
+  into the cap — so emptying it means the table is unseeded, not that the club
+  has played too much. The old *"No puzzle could be built for this club right
+  now"* invited a retry that could not work; the detail line now reports the seed
+  count and what the cap rejected. **wordwheel's `PN197` is the other half and is
+  still open** — there the pool IS narrowed by two player settings, so it wants
+  the opposite answer.
 - [ ] **strands' `create_game`** — the game **also has connections' puzzle-picker pair**, which is ROSTER work, not this entry, deliberately
   identical (`strands.next_puzzle_for_club`, its own `puzzle_for_date`, and a
   Start-time "Everyone here has played every puzzle" raise in `create_game`).

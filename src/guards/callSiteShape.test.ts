@@ -120,9 +120,11 @@ describe('call-site shape', () => {
       'src/psychicnum/manifest.ts',
       'src/scrabble/components/PlayArea.tsx',
       'src/scrabble/manifest.ts',
-      // What is NOT here is the four PlayAreas whose in-game New Game still
-      // calls `create_game` with the negated form — spellingbee, strands,
-      // wordiply, wordwheel. Each joins as its own entry lands, which is
+      'src/spellingbee/components/PlayArea.tsx',
+      'src/spellingbee/manifest.ts',
+      // What is NOT here is the three PlayAreas whose in-game New Game still
+      // calls `create_game` with the negated form — strands, wordiply,
+      // wordwheel. Each joins as its own entry lands, which is
       // the list above growing one game at a time
       // (plans/envelope-rollout.md → create_game).
     ]

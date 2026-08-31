@@ -209,7 +209,7 @@ describe('spellingbee PlayArea — icon-only action rows', () => {
   })
 
   it('terminal "New game" starts a fresh game with this setup/roster/mode', async () => {
-    startEdgeFn.mockResolvedValue({ type: 'ok', data: { id: 'fresh-game-id' } })
+    startEdgeFn.mockResolvedValue({ type: 'ok', data: { result: 'created', id: 'fresh-game-id' } })
     const user = userEvent.setup()
     const ctx = makeCtx({ isTerminal: true, playState: 'ended' })
     render(<PlayArea {...ctx} />)
@@ -253,7 +253,7 @@ describe('spellingbee PlayArea — icon-only action rows', () => {
     await user.click(button)
 
     expect(startEdgeFn).toHaveBeenCalledTimes(1)
-    await act(async () => release({ type: 'ok', data: { id: 'fresh-game-id' } }))
+    await act(async () => release({ type: 'ok', data: { result: 'created', id: 'fresh-game-id' } }))
     expect(ctx.goToGame).toHaveBeenCalledTimes(1)
   })
 })
