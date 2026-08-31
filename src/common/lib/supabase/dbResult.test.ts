@@ -167,13 +167,18 @@ describe('readRows', () => {
   })
 
   // A read that failed still comes back as an ENVELOPE — the database didn't
-  // give us one, so we build it, carrying what we know.
+  // give us one, so we build it, carrying what we know. `detail` joins what the
+  // SERVER said with which read it was; a bare promise has no url, so the label
+  // falls back to `read`.
   it('builds a fault envelope from a read error', async () => {
     const r = await readRows(
       Promise.resolve({ data: null, error: { message: 'nope', code: '42501', details: 'why' } }),
     )
     expect(r).toEqual(
-      env({ type: 'not-ok', severity: 'fault', message: 'nope', dbcode: '42501', detail: 'why' }),
+      env({
+        type: 'not-ok', severity: 'fault', message: 'nope', dbcode: '42501',
+        detail: 'why — read',
+      }),
     )
   })
 
@@ -191,6 +196,27 @@ describe('readRows', () => {
     })
     // Not discarded — kept where it is useful and invisible to players.
     expect(r.detail).toContain('Load failed')
+  })
+
+  // **Which read it was.** A hook makes several, the player's sentence is
+  // generic by design, and `dbFetch`'s line has this fact while the envelope —
+  // the thing a hook actually KEEPS — did not. Both failure paths carry it.
+  it('names the read in the detail of a server-side failure', async () => {
+    const r = await readRows(
+      Promise.resolve({
+        data: null, error: { message: 'permission denied', code: '42501' }, status: 403,
+      }),
+    )
+    expect(r.detail).toContain('read')
+  })
+
+  it('names it on the nothing-answered path too', async () => {
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false)
+    const r = await readRows(
+      Promise.resolve({ data: null, error: { message: 'TypeError: Failed to fetch' }, status: 0 }),
+    )
+    expect(r.detail).toContain('read')
+    expect(r.detail).toContain('TypeError: Failed to fetch')
   })
 
   // ── Pointed at an RPC ────────────────────────────────────────

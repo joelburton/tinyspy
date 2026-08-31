@@ -715,6 +715,14 @@ export async function readRows<Row>(query: QueryLike<Row[]>): Promise<Envelope<R
   // layer that knows what came back does — so this is where the duration for
   // that line has to come from.
   const started = performance.now()
+  // **WHICH read this is, resolved before the await and used on every path.**
+  // A builder carries its URL from the moment it is constructed, so this costs
+  // nothing here, and the failure envelopes below need it: a hook makes several
+  // reads, and the sentence a player sees is generic by design ("You appear to
+  // be offline"). Without this, the envelope a hook keeps says a read failed and
+  // cannot say which — the one fact nobody can recover afterwards, and the fact
+  // `readFailure` was invented to bolt on beside it.
+  const call = callLabel(query, 'read')
   let settled: { data: Row[] | null; error: DbError; status?: number }
   try {
     settled = await query
@@ -722,14 +730,14 @@ export async function readRows<Row>(query: QueryLike<Row[]>): Promise<Envelope<R
     // A throw IS "nothing answered". postgrest-js converts a rejected fetch
     // into `{ error, status: 0 }` before it reaches here, so this catches a
     // throw from some OTHER layer — the same case by another road.
-    return environmentalEnvelope(String(thrown))
+    return environmentalEnvelope(`${call} — ${String(thrown)}`)
   }
   if (settled.error) {
     // `dbFetch` has already worded and presented both of these; the envelope is
     // what the hook reads afterwards, and it must say the same thing.
     return nothingAnswered(settled.status)
-      ? environmentalEnvelope(settled.error.message)
-      : faultEnvelope(settled.error, 'The read failed.')
+      ? environmentalEnvelope(`${call} — ${settled.error.message}`)
+      : faultEnvelope(settled.error, 'The read failed.', call)
   }
   // **This wrapper is for QUERIES.** Pointed at an RPC, what comes back is a
   // single value rather than rows — most often one of our own envelopes — and
@@ -747,7 +755,7 @@ export async function readRows<Row>(query: QueryLike<Row[]>): Promise<Envelope<R
       null, 'BUG: a table read did not answer with rows',
       `readRows received ${what}: ${JSON.stringify(settled.data)?.slice(0, 120)}`,
     )
-    reportDbFault({ call: callLabel(query, 'read'), status: 200 }, crossed)
+    reportDbFault({ call, status: 200 }, crossed)
     return crossed
   }
   // `null` collapses to `[]`: PostgREST returns null rather than an empty array
@@ -760,7 +768,7 @@ export async function readRows<Row>(query: QueryLike<Row[]>): Promise<Envelope<R
   // a blank means something, and one caller's extra fact does not get to move
   // every other line's shape.
   logDb('OK', {
-    call: callLabel(query, 'read'),
+    call,
     status: settled.status ?? 200,
     ms: Math.round(performance.now() - started),
     detail: `rows=${rows.length}`,

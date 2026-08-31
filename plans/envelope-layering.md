@@ -194,11 +194,11 @@ Worth stating, so the plan is not read as bigger than it is:
 3. **`dbFetch` still cannot be received from.** The structural point in §2
    stands. This plan makes the two authors agree; it does not merge them.
 4. **An abort would read as "offline".** `dbFetch` stays deliberately silent for
-   an `AbortError` — we cancelled ourselves, nobody is owed a modal — but
+   an `AbortError` — we canceled ourselves, nobody is owed a modal — but
    postgrest-js reports an abort as `status: 0` too, so a wrapper keying on that
    alone cannot tell the two apart. Unreachable today: nothing in `src/` uses
    `AbortController` or `.abortSignal()` (checked, zero hits). It becomes live
-   the moment anyone adds cancellation, and postgrest-js does distinguish it
+   the moment anyone adds cancelation, and postgrest-js does distinguish it
    (`hint: 'Request was aborted…'`), so the fix exists — it is just stringly,
    and not worth writing against a case that cannot happen yet.
 
