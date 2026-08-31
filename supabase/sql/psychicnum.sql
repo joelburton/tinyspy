@@ -370,7 +370,10 @@ begin
     end
   );
 
-  return common.ok_envelope(jsonb_build_object('id', new_id));
+  -- `result` NAMES the answer; `id` is the game to go to. It is the only thing a
+  -- call site can filter the `ok` on — without it the branch would match by
+  -- merely being `ok` and would draw a second answer as this one.
+  return common.ok_envelope(jsonb_build_object('result', 'created', 'id', new_id));
 
 -- One block, and it has never heard of any specific condition: it reads the
 -- SQLSTATE, re-raises anything that isn't ours, and lets the raise itself carry

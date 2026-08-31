@@ -5,7 +5,8 @@ import { runRpc } from '../../common/lib/supabase/dbResult'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { IconHideSolution, IconHint, IconNewGame, IconPrint, IconRestart, IconReveal, IconSpoiler } from '../../common/components/icons'
 import { cls } from '../../common/lib/util/cls'
-import type { GamePageCtx } from '../../common/lib/games'
+import type { CreatedGame, GamePageCtx } from '../../common/lib/games'
+import { showFaultModal } from '../../common/lib/fault/faultStore'
 import type { PsychicnumSetup } from '../lib/setup'
 import { CelebrationBlockingModal } from '../../common/components/game/CelebrationBlockingModal'
 import { useCelebration } from '../../common/hooks/game/useCelebration'
@@ -442,7 +443,7 @@ export function PlayArea({
     // copy says shelved, not ended. At terminal there's nothing to interrupt.
     if (!isTerminal && !(await confirmAction(NEW_GAME_CONFIRM))) return
     if (!mode) return // menu exists pre-load, but there's no mode to copy yet
-    const res = await runRpc<{ id: string }>(
+    const res = await runRpc<CreatedGame>(
       db.rpc('create_game', {
         target_club: clubHandle,
         setup: setup as unknown as PsychicnumSetup,
@@ -450,7 +451,7 @@ export function PlayArea({
         mode,
       }),
     )
-    if (res.type !== 'ok') {
+    if (res.type === 'not-ok') {
       // THE SAME ENVELOPE, READ DIFFERENTLY. On the setup form a validation is
       // an answer — fix the field and press Start again. Here there is no field
       // and no form, so whatever came back goes in the pill as it reads: a fault
@@ -458,10 +459,19 @@ export function PlayArea({
       // its own outcome. The pill is shown either way — the modal escalates, it does
       // not replace (docs/envelopes.md), so dismissing it must not leave the board
       // silent about why the game didn't start.
+      // ONE of the answers here is a real validation rather than a fault —
+      // PN049, the dictionary having too few words at that difficulty for a
+      // board this size — so this branch renders whatever outcome arrived
+      // instead of assuming a fault look.
       showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'manual' } })
       return
+    } else if (res.type === 'ok' && res.data.result === 'created') {
+      goToGame(`psychicnum_${mode}`, res.data.id)
+      return
+    } else {
+      showFaultModal({ text: 'BUG: create_game fell through to unhandled' })
+      return
     }
-    goToGame(`psychicnum_${mode}`, res.data.id)
   }, [mode, clubHandle, setup, players, goToGame, showLocalFeedback, confirmAction, isTerminal])
 
   // Single-flight guard. New game has THREE triggers (the terminal button, the
