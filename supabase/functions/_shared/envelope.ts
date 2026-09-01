@@ -30,6 +30,22 @@ import { json } from './http.ts'
 import type { Envelope } from '../../../src/common/lib/supabase/envelope.ts'
 
 /** The function answered, and here is what the caller asked for. */
+/**
+ * **Is this an envelope?** — for a function that calls a converted RPC and
+ * relays whatever it answers.
+ *
+ * Deliberately strict, like its frontend twin: plenty of things that are not
+ * envelopes arrive on that path (a row array, a scalar, a `null` from a branch
+ * that never decided), and each must fall through cleanly rather than be
+ * half-read as one.
+ */
+export const isEnvelope = (body: unknown): boolean =>
+  !!body
+  && typeof body === 'object'
+  && !Array.isArray(body)
+  && ((body as { type?: unknown }).type === 'ok'
+    || (body as { type?: unknown }).type === 'not-ok')
+
 export const ok = <T>(data: T): Response =>
   json({
     type: 'ok',

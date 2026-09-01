@@ -15,7 +15,7 @@
 
 import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@2'
 import { json } from './http.ts'
-import { fault } from './envelope.ts'
+import { fault, isEnvelope } from './envelope.ts'
 import type { Database } from '../../../src/types/db.ts'
 
 /**
@@ -149,7 +149,7 @@ export async function invokeCreateGame(
   }
   // A converted create_game always returns one; anything else means this
   // function is calling a version of the RPC that predates the envelope.
-  if (!data || typeof data !== 'object' || !('type' in data)) {
+  if (!isEnvelope(data)) {
     if (fnName) console.log(`${fnName} reject: create_game returned no envelope`)
     return fault('PN118', 'BUG: create_game returned no envelope', `${fnName}: create_game returned ${JSON.stringify(data)}`)
   }

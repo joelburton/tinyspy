@@ -1,9 +1,10 @@
 // cs-unmet
 
-import { failureMessage, expectedTextOrFault } from '../../common/lib/game/serverError'
+import { failureMessage } from '../../common/lib/game/serverError'
 import type { GenericFeedbackMsg } from '../../common/lib/games'
 import { useRef, useState, type KeyboardEvent, type RefObject, type SubmitEvent } from 'react'
-import { callEdgeFn } from '../../common/lib/supabase/callEdgeFn'
+import { runEdgeFn } from '../../common/lib/supabase/dbResult'
+import { showFaultModal } from '../../common/lib/fault/faultStore'
 import { cls } from '../../common/lib/util/cls'
 import { ActorDot, ActorTag } from '../../common/components/game/lists/ActorMention'
 import { SubmitButton } from '../../common/components/buttons/SubmitButton'
@@ -65,6 +66,14 @@ type CluePanelProps = {
  * than rendered inline; the AI suggestion's reasoning opens in its own floating
  * panel (see ClueForm) — neither grows the row.
  */
+/** What `codenamesduet-suggest-clue` puts in `data`. Nullable because its
+ *  not-ok arms carry none — including `get_clue_context`'s own refusals, which
+ *  the function relays untouched rather than re-wording. */
+type SuggestedClue = {
+  result: 'suggested'
+  suggestion: { clue: string; count: number; reasoning: string }
+} | null
+
 export function CluePanel({
   gameId,
   isClueGiver,
@@ -258,32 +267,32 @@ function ClueForm({
     console.log('[ClueHint] button clicked → open dialog (loading)')
     setSuggesting(true)
     onSuggestionChange({ status: 'loading' })
-    // callEdgeFn hands back a classifiable error (fe-error-key + SQLSTATE +
-    // the answered marker), so the panel's message is the copy-table's
-    // sentence — "The model declined to suggest a clue — try again" — or a
-    // fault's raw key, never functions-js's generic prose.
-    const res = await callEdgeFn('codenamesduet-suggest-clue', { gameId })
+    const res = await runEdgeFn<SuggestedClue>('codenamesduet-suggest-clue', { gameId })
     setSuggesting(false)
-    const payload = res.data as { suggestion?: unknown; error?: string } | null
-    if (res.error || !payload || payload.error || !payload.suggestion) {
-      console.log('[ClueHint] response = error')
-      // Split by surface rule (docs/ui.md → Faults): an EXPECTED answer —
-      // ai-clue-declined / ai-truncated / ai-malformed, the model RAN — stays
-      // in the suggestion dialog as its sentence; a fault pops the modal and
-      // closes the suggestion dialog (there is nothing to show in it).
-      const text = expectedTextOrFault(
-        res.error ?? { message: payload?.error ?? 'no suggestion in the response', answered: true },
-        'AI clue',
-      )
-      onSuggestionChange(text ? { status: 'error', message: text } : null)
-      return
+
+    if (res.type === 'not-ok' && res.severity === 'fault') {
+      // The dialog CLOSES. `runEdgeFn` has already raised the modal, and a
+      // fault leaves nothing to put in the dialog — holding it open on a stale
+      // "loading" is worse than dismissing it (docs/ui.md → Faults).
+      console.log('[ClueHint] response = fault')
+      onSuggestionChange(null)
+    } else if (res.type === 'not-ok') {
+      // The dialog STAYS, carrying the sentence. PN319 and PN320 are Claude
+      // declining or being cut off — it ran, it just did not produce a clue —
+      // and `get_clue_context`'s own refusals arrive here relayed untouched.
+      console.log('[ClueHint] response = refused:', res.message)
+      onSuggestionChange({ status: 'error', message: res.message })
+    } else if (res.type === 'ok' && res.data?.result === 'suggested') {
+      const s = res.data.suggestion
+      const upper = s.clue.toUpperCase()
+      setWord(upper)
+      setCount(String(s.count))
+      console.log('[ClueHint] response = ready:', upper, s.count)
+      onSuggestionChange({ status: 'ready', word: upper, count: s.count, reasoning: s.reasoning })
+    } else {
+      showFaultModal({ text: 'BUG: codenamesduet-suggest-clue fell through to unhandled' })
+      onSuggestionChange(null)
     }
-    const s = payload.suggestion as { clue: string; count: number; reasoning: string }
-    const upper = s.clue.toUpperCase()
-    setWord(upper)
-    setCount(String(s.count))
-    console.log('[ClueHint] response = ready:', upper, s.count)
-    onSuggestionChange({ status: 'ready', word: upper, count: s.count, reasoning: s.reasoning })
   }
 
   const submittable = count !== '' && word.trim().length > 0

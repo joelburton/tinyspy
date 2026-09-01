@@ -12,16 +12,20 @@
  *      so the response arrives as schema-valid JSON. Dropping the forced tool
  *      lets us enable native adaptive thinking — the model deliberates in its
  *      own thinking channel, which we log but never send to the player.
- *   3. Return `{ suggestion: { clue, count, agents, reasoning } }` to
- *      the FE, which fills it into the existing clue inputs for the
- *      user to review + edit before submitting.
+ *   3. Answer `ok({ result: 'suggested', suggestion })`, which the FE fills
+ *      into the existing clue inputs for the user to review + edit before
+ *      submitting.
  *
- * Errors are fe-error-keys (`key|detail|` — docs/supabase.md → Server errors;
- * guarded by src/guards/edgeFnErrorKeys.test.ts): the FE owns every player-facing
- * word. With ERROR_COPY (shown in the clue dialog's message area):
- * ai-clue-declined|, ai-truncated|, ai-malformed|. Copyless faults:
- * bad-request / not-authenticated / no-unrevealed-agents / ai-unconfigured /
- * edge-internal. An RPC raise relays verbatim with its SQLSTATE.
+ * Every answer is an ENVELOPE (docs/envelopes.md). Two are `service-error` —
+ * PN319 the model declining, PN320 its reply cut off: it ran, it just produced
+ * no clue, and the clue dialog shows the sentence. The rest are faults, so they
+ * raise a modal and close the dialog: PN315 no game, PN316 the context RPC did
+ * not run, PN317 a board with nothing left to clue, PN318 no API key, PN321 and
+ * PN322 an answer we could not read.
+ *
+ * `get_clue_context`'s own refusals — not your turn, not a member, the game is
+ * over — are RELAYED untouched. Nothing here knows the board better than the
+ * raise that read it.
  *
  * Secrets:
  *   - ANTHROPIC_API_KEY  required; set via `supabase secrets set` in prod
@@ -61,6 +65,7 @@ type Suggestion = {
 }
 
 import { edgeInternal, json, preflight } from '../_shared/http.ts'
+import { fault, isEnvelope, ok, serviceError } from '../_shared/envelope.ts'
 
 serve(async (req) => {
   const pre = preflight(req)
@@ -70,11 +75,11 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}))
     const gameId = body.gameId
     if (!gameId || typeof gameId !== 'string') {
-      return json({ error: 'bad-request|gameId|' }, 400)
+      // The caller is a button on a live board, so it always has the id.
+      return fault('PN315', 'BUG: a clue request with no game', `codenamesduet-suggest-clue: gameId=${JSON.stringify(gameId)}`)
     }
 
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) return json({ error: 'not-authenticated|' }, 401)
+    const authHeader = req.headers.get('Authorization') ?? ''
 
     // Step 1: pull the board context as the calling user. The RPC enforces
     // membership + turn + status; if any fails we forward the message.
@@ -90,13 +95,25 @@ serve(async (req) => {
     const { data, error } = await supabase
       .schema('codenamesduet')
       .rpc('get_clue_context', { target_game: gameId })
-    if (error) return json({ error: error.message, code: error.code }, 403)
+    // **The RPC's own answer, relayed untouched.** `get_clue_context` is
+    // converted, so its refusals — not your turn, not a member, the game is
+    // over — arrive as envelopes with their own words and their own severity.
+    // Forwarding beats re-wording: nothing here knows the board better than the
+    // raise that read it.
+    //
+    // `error` therefore means only that the RPC never RAN: a revoked grant,
+    // PostgREST unreachable. That is not something the envelope can describe,
+    // so it is the one case this builds a fault of its own.
+    if (error) {
+      return fault('PN316', 'BUG: get_clue_context did not run', `codenamesduet-suggest-clue: ${error.message} (${error.code})`)
+    }
+    if (isEnvelope(data)) return json(data)
 
     const ctx = data as ClueContext
     if (!ctx.greens || ctx.greens.length === 0) {
-      // The FE grays the suggest button once every agent is revealed, so this
-      // re-check is "impossible" — key only, no copy; it renders as a fault.
-      return json({ error: 'no-unrevealed-agents|' }, 400)
+      // The FE grays the suggest button once every agent is revealed, so
+      // reaching this means the button was live when it should not have been.
+      return fault('PN317', 'BUG: a clue request for a board with every agent revealed', 'codenamesduet-suggest-clue: greens is empty')
     }
 
     // Step 2: ask Claude. Structured outputs (`output_config.format`) constrains
@@ -107,8 +124,9 @@ serve(async (req) => {
     // the discarded scratchpad field the tool schema used to carry.
     const apiKey = Deno.env.get('ANTHROPIC_API_KEY')
     if (!apiKey) {
-      // Config, not play — a copyless fault (the raw key IS the diagnosis).
-      return json({ error: 'ai-unconfigured|' }, 500)
+      // An operator's missing env var is still OUR bug — the same reading as
+      // the unseeded-dictionary raises. Nothing a player did reaches this.
+      return fault('PN318', 'BUG: the AI clue suggester is not configured', 'codenamesduet-suggest-clue: ANTHROPIC_API_KEY absent')
     }
     const anthropic = new Anthropic({ apiKey })
 
@@ -178,11 +196,14 @@ serve(async (req) => {
     // A safety decline (unlikely for a word game, but Sonnet 5 can return one)
     // or a truncated reply won't carry valid schema JSON — check stop_reason
     // before touching the content, and fail loudly rather than parse garbage.
+    // Neither is our bug or the player's — a dependency behaving badly, which
+    // is what `service-error` is for. Distinct codes and distinct sentences: a
+    // decline and a truncation are different things to go and look at.
     if (result.stop_reason === 'refusal') {
-      return json({ error: 'ai-clue-declined|' }, 502)
+      return serviceError('PN319', 'Claude declined to suggest a clue. Please try again.', 'codenamesduet-suggest-clue: stop_reason=refusal')
     }
     if (result.stop_reason === 'max_tokens') {
-      return json({ error: 'ai-truncated|' }, 502)
+      return serviceError('PN320', "Claude's answer was cut off. Please try again.", 'codenamesduet-suggest-clue: stop_reason=max_tokens')
     }
 
     // Native thinking arrives as its own content blocks (summarized text). Log
@@ -196,15 +217,19 @@ serve(async (req) => {
 
     // Structured outputs deliver the schema-valid JSON as a text block — there's
     // no tool_use block to dig out anymore.
+    // Two codes, one sentence — the same shape as PN319/PN320 above. A player
+    // cannot act differently on "no text block" and "text that would not
+    // parse", but they are different things to go and look at, and a code names
+    // one raise.
     const textBlock = result.content.find((b) => b.type === 'text')
     if (!textBlock || textBlock.type !== 'text') {
-      return json({ error: 'ai-malformed|' }, 502)
+      return fault('PN321', 'BUG: the AI answered in a shape we could not read', 'codenamesduet-suggest-clue: no text block')
     }
     let suggestion: Suggestion
     try {
       suggestion = JSON.parse(textBlock.text) as Suggestion
     } catch {
-      return json({ error: 'ai-malformed|' }, 502)
+      return fault('PN322', 'BUG: the AI answered in a shape we could not read', `codenamesduet-suggest-clue: unparseable text block — ${textBlock.text.slice(0, 120)}`)
     }
 
     // Append the exact target agents as their own paragraph, so the player sees
@@ -221,7 +246,7 @@ serve(async (req) => {
     }
 
     console.log('[suggest-clue] parsed suggestion:', JSON.stringify(suggestion))
-    return json({ suggestion })
+    return ok({ result: 'suggested', suggestion })
   } catch (e) {
     console.error('suggest-clue failed', e)
     return edgeInternal(e)

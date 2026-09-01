@@ -684,7 +684,7 @@ select pg_temp.envelope_is(
 
 ## 7. The conversion roster
 
-**144 entries. 70 done, 74 to go** (5 of those are the deferred edge
+**144 entries. 75 done, 69 to go** (5 of those are the deferred edge
 functions). Cross them off here as they land.
 
 **Un-paused 2026-08-31: the retro-fix list is empty.** It existed because a
@@ -771,7 +771,9 @@ identifier — a shape nothing has exercised yet.
 - [ ] `profiles` · read (4 call sites)
 - [ ] `timers` · read
 - [x] `words` · read — the same dialog's load
-- [ ] `common-define` · edge fn — deferred
+- [x] `common-define` · edge fn — PN311/PN312 service-errors (the dictionary
+      source down), PN313/PN314 faults. Three NAMED ok results replacing one
+      shape with `unknown?` and `def: string | null` flags
 
 #### bananagrams
 
@@ -806,7 +808,10 @@ identifier — a shape nothing has exercised yet.
 - [ ] `guesses` · read
 - [ ] `profiles` · read
 - [ ] `words` · read
-- [ ] `codenamesduet-suggest-clue` · edge fn — deferred
+- [x] `codenamesduet-suggest-clue` · edge fn — PN319/PN320 service-errors (the
+      model declined, or was cut off: it RAN), five faults, and
+      `get_clue_context`'s own refusals relayed untouched. `isEnvelope` added to
+      the Deno shared envelope, which `startGame.ts` had inlined
 
 #### connections
 
