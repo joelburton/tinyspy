@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../../lib/supabase/supabase'
 import { db as commonDb } from '../../db'
+import { readRows } from '../../lib/supabase/dbResult'
 import { navigate, usePath } from '../../lib/routing/router'
 import { channelDedupSuffix } from '../../lib/supabase/channelDedup'
 import { onPostgresAttached } from '../../lib/supabase/postgresAttached'
@@ -74,20 +75,28 @@ export function useGameInvitations(session: Session): {
     // filtered those ids to non-terminal games. The `!inner` embed pushes
     // the `is_terminal = false` filter into the same query, so the row set
     // is bounded to my *active* games — a handful, never near the cap.
-    const { data: rows } = await commonDb
-      .from('game_players')
-      .select('games!inner(id, gametype, club_handle, created_by)')
-      .eq('user_id', selfId)
-      .eq('games.is_terminal', false)
-      // …and recent. `is_terminal = false` alone is not a staleness bound: an
-      // abandoned game never becomes terminal, so without this the scan
-      // returns every unfinished game you've ever been seated in, and an empty
-      // `seen` set (new device, cleared storage) pops the lot at sign-in. See
-      // INVITE_MAX_AGE_MS.
-      .gt('games.started_at', inviteCutoffIso())
+    const rowsRes = await readRows(
+      commonDb
+        .from('game_players')
+        .select('games!inner(id, gametype, club_handle, created_by)')
+        .eq('user_id', selfId)
+        .eq('games.is_terminal', false)
+        // …and recent. `is_terminal = false` alone is not a staleness bound: an
+        // abandoned game never becomes terminal, so without this the scan
+        // returns every unfinished game you've ever been seated in, and an
+        // empty `seen` set (new device, cleared storage) pops the lot at
+        // sign-in. See INVITE_MAX_AGE_MS.
+        .gt('games.started_at', inviteCutoffIso()),
+    )
+    // A failed read means we do not learn about invites this round. Nothing to
+    // recover: this refetches on every `game_players` INSERT and on every
+    // reconnect rescan, so the next one that lands catches up. `readRows` has
+    // logged it and raised the modal.
+    if (rowsRes.type === 'not-ok') return
+
     // The embed is to-one (game_players.game_id → games.id), so each row's
     // `games` is a single game object.
-    const candidates = (rows ?? []).map((r) => r.games) as InviteCandidate[]
+    const candidates = rowsRes.data.map((r) => r.games) as InviteCandidate[]
 
     const fresh = newInviteCandidates(candidates, {
       selfId,
@@ -97,11 +106,17 @@ export function useGameInvitations(session: Session): {
 
     // Resolve inviter usernames (the game's creator).
     const creatorIds = [...new Set(fresh.map((c) => c.created_by))]
-    const { data: profs } = await commonDb
-      .from('profiles')
-      .select('user_id, username')
-      .in('user_id', creatorIds)
-    const nameById = new Map((profs ?? []).map((p) => [p.user_id, p.username]))
+    const profsRes = await readRows(
+      commonDb.from('profiles').select('user_id, username').in('user_id', creatorIds),
+    )
+    // A failed name lookup does NOT drop the invites — it only costs their
+    // inviter's name, and the `?? 'Someone'` below already covers a creator
+    // whose profile is missing. An invite that says "Someone started a game"
+    // is worth more than no invite at all, which is what returning here would
+    // produce.
+    const nameById = new Map(
+      profsRes.type === 'ok' ? profsRes.data.map((p) => [p.user_id, p.username]) : [],
+    )
 
     const built: GameInvite[] = fresh.map((c) => ({
       gameId: c.id,

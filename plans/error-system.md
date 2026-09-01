@@ -684,7 +684,7 @@ select pg_temp.envelope_is(
 
 ## 7. The conversion roster
 
-**144 entries. 80 done, 64 to go** (5 of those are the deferred edge
+**144 entries. 82 done, 62 to go** (5 of those are the deferred edge
 functions). Cross them off here as they land.
 
 **Un-paused 2026-08-31: the retro-fix list is empty.** It existed because a
@@ -764,13 +764,16 @@ identifier — a shape nothing has exercised yet.
       earlier. A failed read leaves `members` alone rather than emptying it: a
       club with nobody in it is a worse answer than a stale one
 - [ ] `found_words` · read
-- [ ] `game_players` · read (2 call sites)
+- [x] `game_players` · read (2 call sites) — `useCommonGame`'s converted in the
+      useGame sweep; `useGameInvitations`' embed here
 - [ ] `game_scratchpads` · read
 - [ ] `games` · read (2 call sites)
 - [ ] `games_state` · read
 - [x] `messages` · read — the same chat, and a refetch: a failure leaves the
   transcript alone
-- [ ] `profiles` · read (4 call sites)
+- [x] `profiles` · read — ONE real site left when this began, not four: two of
+      the four hits are docstring examples. A failed name lookup does not drop
+      the invites, it only costs the inviter's name
 - [x] `timers` · read — the seed beside the tick RPC, and it opts out for the
       SAME reason: a seed read and a tick fail together, so showing one while
       the driver swallows its twin would modal the mount and nothing after
