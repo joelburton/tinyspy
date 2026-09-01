@@ -92,10 +92,9 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   // The bunch is SHARED, so a rival's peel can empty it between your check and
   // your dump. And the board is FE-owned while the tiles are server-owned
   // (docs/games/bananagrams.md), so the server's view of your hand can
-  // legitimately differ from the screen's for a moment — which makes these
-  // three ordinary play, not broken clients.
+  // legitimately differ from the screen's for a moment — which makes these two
+  // ordinary play, not broken clients.
   'bunch-too-low': { text: () => 'Bunch too low to dump', tone: 'noted' },
-  'hand-not-empty': { text: () => 'Place all your tiles first' },
   'tile-not-held': { text: () => "You don't have that tile" },
 
   // ── AI features (codenamesduet clue suggester; more surfaces convert soon) ──

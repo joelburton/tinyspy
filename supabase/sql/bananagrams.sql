@@ -565,8 +565,10 @@ revoke execute on function bananagrams._win_blockers(text, integer, integer, boo
 -- normally not validated — you're not winning yet — EXCEPT under 'strict',
 -- where the same check runs on every peel (you can't peel an invalid board).
 --
--- Returns jsonb so the FE can react to a blocked win:
---   { result: 'won' | 'dealt' | 'illegal', invalid_cells: int[] }
+-- Three ok answers, and `illegal` is one of them ON PURPOSE: a board that isn't
+-- ready is a state of play, not a rejection — the game stays in progress and the
+-- player fixes the red cells and peels again.
+--   { result: 'dealt' } | { result: 'won' } | { result: 'illegal', cells: int[] }
 --
 -- Race-safety: lock the gametype row up front so two simultaneous peels
 -- serialize. The first either ends the game or advances the bunch; the second
@@ -597,11 +599,13 @@ declare
   v_dict_2 int;
   v_dict_3plus int;
   v_blockers int[];
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text;
 begin
   -- Serialize concurrent peels on the gametype row (see header).
   perform 1 from bananagrams.games where id = target_game for update;
   if not found then
-    raise exception 'game-not-found|' using errcode = 'P0002',
+    raise exception 'BUG: a peel for a game with no bananagrams row'
+      using errcode = 'PN338', hint = 'fault', column = '_',
       detail = 'no bananagrams.games row for target_game';
   end if;
 
@@ -609,16 +613,22 @@ begin
 
   select play_state, setup into current_play_state, s_setup
     from common.games where id = target_game;
+  -- A RACE, not a bug: the Peel button is gone at terminal, but someone else's
+  -- winning peel can land while this click is in flight.
   if current_play_state <> 'playing' then
-    raise exception 'game-not-in-play|' using errcode = 'P0001',
+    raise exception 'Game over'
+      using errcode = 'PN339', hint = 'race', column = '_',
       detail = 'play_state is not an active state';
   end if;
 
   -- A conceded player is out of the race — they can't peel. Conceded now
-  -- lives on common.game_players (the shared per-player drop-out flag).
+  -- lives on common.game_players (the shared per-player drop-out flag). Also a
+  -- race: the button is hidden once you concede, so reaching this means a
+  -- second tab that has not heard yet.
   if (select conceded from common.game_players
         where game_id = target_game and user_id = caller_id) then
-    raise exception 'you-conceded|' using errcode = 'P0001',
+    raise exception 'Already conceded'
+      using errcode = 'PN340', hint = 'race', column = '_',
       detail = 'caller already dropped out of this race';
   end if;
 
@@ -627,12 +637,20 @@ begin
     into v_board, n_tiles, n_placed
     from bananagrams.player_boards
    where game_id = target_game and user_id = caller_id;
+  -- The board row is written at deal, and `require_game_player` above has
+  -- already established membership — so a member with no board is an
+  -- inconsistency of ours.
   if v_board is null then
-    raise exception 'not-a-player|' using errcode = 'P0002',
-      detail = 'no bananagrams.boards row for the caller';
+    raise exception 'BUG: a peel from a player with no board'
+      using errcode = 'PN341', hint = 'fault', column = '_',
+      detail = 'no bananagrams.player_boards row for (target_game, caller)';
   end if;
+  -- The Peel button is disabled until the hand empties, and clicking it flushes
+  -- the board first so this comparison is against what the player sees. A
+  -- mismatch here means that flush did not land — ours to fix, not theirs.
   if n_placed <> n_tiles then
-    raise exception 'hand-not-empty|' using errcode = 'P0001',
+    raise exception 'BUG: a peel with tiles still in hand'
+      using errcode = 'PN342', hint = 'fault', column = '_',
       detail = 'peel requires every tile placed on the board';
   end if;
 
@@ -666,8 +684,7 @@ begin
     -- hand the FE the offending cells to paint red; the player fixes + re-peels.
     v_blockers := bananagrams._win_blockers(v_board, v_dict_2, v_dict_3plus, v_word_check <> 'off');
     if array_length(v_blockers, 1) > 0 then
-      return jsonb_build_object('result', 'illegal',
-                                'invalid_cells', to_jsonb(v_blockers));
+      return common.ok_envelope(jsonb_build_object('result', 'illegal', 'cells', to_jsonb(v_blockers)));
     end if;
 
     update bananagrams.progress
@@ -693,7 +710,7 @@ begin
                          'bunch_remaining', length(s_bunch)),
       player_results
     );
-    return jsonb_build_object('result', 'won', 'invalid_cells', '[]'::jsonb);
+    return common.ok_envelope(jsonb_build_object('result', 'won'));
   end if;
 
   -- ─── Strict mode: a CONTINUING peel is validated too ───
@@ -705,8 +722,7 @@ begin
   if v_word_check = 'strict' then
     v_blockers := bananagrams._win_blockers(v_board, v_dict_2, v_dict_3plus, true);
     if array_length(v_blockers, 1) > 0 then
-      return jsonb_build_object('result', 'illegal',
-                                'invalid_cells', to_jsonb(v_blockers));
+      return common.ok_envelope(jsonb_build_object('result', 'illegal', 'cells', to_jsonb(v_blockers)));
     end if;
   end if;
 
@@ -747,7 +763,15 @@ begin
     jsonb_build_object('bunch_remaining', length(s_bunch) - needed,
                        'bag_remaining', length(s_bag)));
 
-  return jsonb_build_object('result', 'dealt', 'invalid_cells', '[]'::jsonb);
+  return common.ok_envelope(jsonb_build_object('result', 'dealt'));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 

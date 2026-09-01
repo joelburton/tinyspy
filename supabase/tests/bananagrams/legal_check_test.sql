@@ -154,7 +154,7 @@ update bananagrams.games set bunch = '' where id = (select id from ga);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table pa on commit drop as select bananagrams.peel((select id from ga)) as res;
-select is((select res->>'result' from pa), 'won', 'word_check win + legal board → peel wins');
+select is((select res->'data'->>'result' from pa), 'won', 'word_check win + legal board → peel wins');
 reset role;
 select set_config('request.jwt.claims', '', true);
 select is(
@@ -177,9 +177,9 @@ update bananagrams.games set bunch = '' where id = (select id from gb);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table pb on commit drop as select bananagrams.peel((select id from gb)) as res;
-select is((select res->>'result' from pb), 'illegal',
+select is((select res->'data'->>'result' from pb), 'illegal',
   'word_check win + a non-word → peel is blocked');
-select is((select res->'invalid_cells' from pb), '[0,1,2]'::jsonb,
+select is((select res->'data'->'cells' from pb), '[0,1,2]'::jsonb,
   'the blocked peel returns the offending cells');
 reset role;
 select set_config('request.jwt.claims', '', true);
@@ -203,7 +203,7 @@ update bananagrams.games set bunch = '' where id = (select id from gc);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table pc on commit drop as select bananagrams.peel((select id from gc)) as res;
-select is((select res->>'result' from pc), 'won',
+select is((select res->'data'->>'result' from pc), 'won',
   'word_check off → a CONNECTED non-word still wins (words not checked)');
 reset role;
 select set_config('request.jwt.claims', '', true);
@@ -228,9 +228,9 @@ update bananagrams.games set bunch = '' where id = (select id from gd);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table pd on commit drop as select bananagrams.peel((select id from gd)) as res;
-select is((select res->>'result' from pd), 'illegal',
+select is((select res->'data'->>'result' from pd), 'illegal',
   'word_check off but DISCONNECTED → peel still blocked (geography is always checked)');
-select is((select res->'invalid_cells' from pd), '[125,126,127]'::jsonb,
+select is((select res->'data'->'cells' from pd), '[125,126,127]'::jsonb,
   'the blocked disconnected peel returns the floating tiles');
 reset role;
 select set_config('request.jwt.claims', '', true);
@@ -259,9 +259,9 @@ update bananagrams.games set bunch = 'ABCDEFGHIJ' where id = (select id from ge)
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table pe on commit drop as select bananagrams.peel((select id from ge)) as res;
-select is((select res->>'result' from pe), 'illegal',
+select is((select res->'data'->>'result' from pe), 'illegal',
   'strict + a non-word on a CONTINUING peel → blocked (not just at win)');
-select is((select res->'invalid_cells' from pe), '[0,1,2]'::jsonb,
+select is((select res->'data'->'cells' from pe), '[0,1,2]'::jsonb,
   'the blocked strict peel returns the offending cells');
 reset role;
 select set_config('request.jwt.claims', '', true);
@@ -285,7 +285,7 @@ update bananagrams.games set bunch = 'ABCDEFGHIJ' where id = (select id from gf)
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table pf on commit drop as select bananagrams.peel((select id from gf)) as res;
-select is((select res->>'result' from pf), 'dealt',
+select is((select res->'data'->>'result' from pf), 'dealt',
   'strict + a valid board on a continuing peel → deals normally');
 
 -- ── Game G: word_check 'win' + continuing peel + NON-WORD → DEALS (not checked) ──
@@ -304,7 +304,7 @@ update bananagrams.games set bunch = 'ABCDEFGHIJ' where id = (select id from gg)
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table pg on commit drop as select bananagrams.peel((select id from gg)) as res;
-select is((select res->>'result' from pg), 'dealt',
+select is((select res->'data'->>'result' from pg), 'dealt',
   'word_check win does NOT check a continuing peel (only the winning one)');
 
 -- ── check_board: the on-demand check, in a word_check='off' game ──

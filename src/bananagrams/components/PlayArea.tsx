@@ -71,6 +71,15 @@ import { showFaultModal } from '../../common/lib/fault/faultStore'
  * the game stays live; the last player to concede ends it as a collective loss.
  */
 
+/** What `bananagrams.peel` puts in `data`. `illegal` is an ok answer on purpose:
+ *  a board that isn't win-legal is a state of play — the game keeps going and
+ *  the player fixes the cells and peels again. */
+type PeelResult =
+  | { result: 'dealt' }
+  | { result: 'won' }
+  | { result: 'illegal'; cells: number[] }
+  | null
+
 export function PlayArea(ctx: GamePageCtx) {
   // Tab does nothing while the board has the keyboard — this play surface is
   // not a form, so native Tab would walk out to the header buttons and on into
@@ -120,29 +129,38 @@ export function PlayArea(ctx: GamePageCtx) {
   useDismissLocalFeedbackOnKey(clearLocalFeedback)
 
   const peel = useCallback(async (): Promise<{ illegalCells: number[] } | null> => {
-    const { data, error } = await db.rpc('peel', { target_game: gameId })
-    if (error) {
-      showLocalFeedback(failureMessage(error, 'peel'))
+    const res = await runRpc<PeelResult>(db.rpc('peel', { target_game: gameId }))
+    if (res.type === 'not-ok') {
+      // Two races (the game ended, or a second tab conceded) and three faults,
+      // and the pill says the same thing for all five: the server's sentence.
+      // `runRpc` has already raised the modal for the faults.
+      showLocalFeedback({ tone: 'lost', text: res.message, mode: { kind: 'sticky' } })
       return null
-    }
-    // A blocked peel: the board isn't win-legal (disconnected, or — with
-    // word_check 'win'/'strict' — an invalid word), so the game stays in
-    // progress and the RPC hands back the offending cells. Show the player an
-    // error and let PlayerBoard paint those cells red. In 'strict' this also
-    // fires on a CONTINUING peel (you can't peel an invalid board), not only on
-    // a winning one. A 'won'/'dealt' result needs nothing here: a continuing
-    // peel grows `tiles` (the announcement effect reacts) and a winning peel
-    // flips is_terminal (the verdict pill + the winner's celebration react).
-    const res = data as { result: string; invalid_cells: number[] } | null
-    if (res?.result === 'illegal') {
+    } else if (res.type === 'ok' && res.data?.result === 'illegal') {
+      // The board isn't win-legal (disconnected, or — with word_check
+      // 'win'/'strict' — an invalid word), so the game stays in progress and
+      // the RPC hands back the offending cells. Show the player an error and
+      // let PlayerBoard paint those cells red. In 'strict' this also fires on a
+      // CONTINUING peel (you can't peel an invalid board), not only on a
+      // winning one.
       showLocalFeedback({
         tone: 'lost',
         text: 'Fix the highlighted tiles before peeling — every word must be real and the grid one connected piece.',
         mode: { kind: 'sticky' },
       })
-      return { illegalCells: res.invalid_cells ?? [] }
+      return { illegalCells: res.data.cells }
+    } else if (res.type === 'ok' && res.data?.result === 'dealt') {
+      // Nothing to say: the draw grows `tiles`, and the announcement effect
+      // reacts to that.
+      return null
+    } else if (res.type === 'ok' && res.data?.result === 'won') {
+      // Nothing to say here either: the win flips is_terminal, and the verdict
+      // pill + the winner's celebration react to that.
+      return null
+    } else {
+      showFaultModal({ text: 'BUG: peel fell through to unhandled' })
+      return null
     }
-    return null
   }, [gameId, showLocalFeedback])
 
   // Check words → the local pill. Four outcomes, and the wording matters more than

@@ -239,26 +239,32 @@ export function PlayArea({
     const pokedVersion = game.version
     aiPokeVersionRef.current = pokedVersion
     void runEdgeFn<AiPoked>('scrabble-ai-move', { game_id: gameId }).then((res) => {
-      if (res.type === 'ok' && res.data?.result === 'moved') return
-      // DISARM on anything else. The once-per-version guard above assumes the
-      // poke either moves the AI (bumping `version`, which re-arms this) or is
-      // a harmless duplicate — a FAILED poke is neither, and leaving the ref
-      // set wedges the game permanently: the version never changes, so this
-      // effect never fires again and the bot appears to think forever.
-      // Clearing it means the next render that still sees an AI seat on turn
-      // tries again.
+      // DISARM, which every arm below but the first one wants. The once-per-
+      // version guard above assumes the poke either moves the AI (bumping
+      // `version`, which re-arms this) or is a harmless duplicate — a FAILED
+      // poke is neither, and leaving the ref set wedges the game permanently:
+      // the version never changes, so this effect never fires again and the bot
+      // appears to think forever. Clearing it means the next render that still
+      // sees an AI seat on turn tries again.
       //
       // Found the hard way: the edge function called two RPCs by the wrong
       // name (`ai_pass` for `ai_pass_turn`), which only bites the first time
       // the AI must pass rather than play — ~30 moves into a game, at which
       // point it hung with nothing in the logs and no way to recover but a
       // page reload.
-      if (aiPokeVersionRef.current === pokedVersion) aiPokeVersionRef.current = null
-      if (res.type === 'not-ok') {
+      const disarm = () => {
+        if (aiPokeVersionRef.current === pokedVersion) aiPokeVersionRef.current = null
+      }
+      if (res.type === 'ok' && res.data?.result === 'moved') {
+        // Nothing to do, and nothing to disarm: a move bumped `version`, which
+        // re-arms this effect on its own.
+      } else if (res.type === 'not-ok') {
         // Every one of them is a `BUG:`, and `runEdgeFn` has already raised the
         // modal. A wedged AI SHOULD be loud — see the hard-won lesson above.
+        disarm()
         console.error('scrabble-ai-move poke failed', res.message)
       } else {
+        disarm()
         showFaultModal({ text: 'BUG: scrabble-ai-move fell through to unhandled' })
       }
     })

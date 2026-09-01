@@ -11,16 +11,17 @@
 --   4. Win path: bunch can't refill the table → the peeler goes out and wins
 --   5. Race: a peel after the game is over is rejected
 --   6. Active-player math: a CONCEDED player neither draws on a continuing
---      peel nor counts toward the refill threshold
+--      peel nor counts toward the refill threshold — and cannot peel at all
 -- ============================================================
 
 begin;
 
 set search_path = bananagrams, common, public, extensions;
 
-select plan(16);
+select plan(20);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -35,12 +36,12 @@ select (bananagrams.create_game(
         'bea22222-2222-2222-2222-222222222222'::uuid]
 )->'data'->>'id')::uuid as id;
 
--- (1) Tiles still in hand → peel rejected (ada's board is empty).
+-- (1) Tiles still in hand → peel rejected (ada's board is empty). A FAULT: the
+-- Peel button is disabled until the hand empties, so nobody can pick this.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select throws_ok(
-  format($$ select bananagrams.peel(%L) $$, (select id from g1)),
-  'P0001',
-  'hand-not-empty|',
+select pg_temp.envelope_is(
+  bananagrams.peel((select id from g1)),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN342"}'::jsonb,
   'cannot peel with tiles still in hand'
 );
 
@@ -52,7 +53,11 @@ select bananagrams.save_player_board(
     where game_id = (select id from g1)
       and user_id = 'ada11111-1111-1111-1111-111111111111')
 );
-select bananagrams.peel((select id from g1));
+select pg_temp.envelope_is(
+  bananagrams.peel((select id from g1)),
+  '{"type":"ok","data":{"result":"dealt"}}'::jsonb,
+  'a continuing peel answers dealt'
+);
 
 reset role;
 select set_config('request.jwt.claims', '', true);
@@ -96,12 +101,11 @@ select is(
   'status.bunch_remaining tracks the bunch for the FE'
 );
 
--- (3) Non-player cannot peel.
+-- (3) Non-player cannot peel — `common.require_game_player`'s shared PN253.
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
-select throws_ok(
-  format($$ select bananagrams.peel(%L) $$, (select id from g1)),
-  '42501',
-  'not-a-player|',
+select pg_temp.envelope_is(
+  bananagrams.peel((select id from g1)),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN253"}'::jsonb,
   'a non-player cannot peel'
 );
 
@@ -129,7 +133,11 @@ select set_config('request.jwt.claims', '', true);
 update bananagrams.games set bunch = '' where id = (select id from g2);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select bananagrams.peel((select id from g2));
+select pg_temp.envelope_is(
+  bananagrams.peel((select id from g2)),
+  '{"type":"ok","data":{"result":"won"}}'::jsonb,
+  'going out answers won'
+);
 
 reset role;
 select set_config('request.jwt.claims', '', true);
@@ -152,12 +160,12 @@ select is(
   'winner game_players result is won:true'
 );
 
--- (5) Race: peeling an already-won game is rejected.
+-- (5) Race: peeling an already-won game is rejected. Not a fault — someone
+-- else's winning peel can land while this one is in flight.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select throws_ok(
-  format($$ select bananagrams.peel(%L) $$, (select id from g2)),
-  'P0001',
-  'game-not-in-play|',
+select pg_temp.envelope_is(
+  bananagrams.peel((select id from g2)),
+  '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN339","message":"Game over"}'::jsonb,
   'peeling after the game is over is rejected'
 );
 
@@ -185,6 +193,14 @@ select lives_ok(
   'cade can concede while ada + bea keep racing'
 );
 
+-- A conceded player is out of the race. The Peel button is gone once you
+-- concede, so this is a race (a second tab that has not heard), not a bug.
+select pg_temp.envelope_is(
+  bananagrams.peel((select id from g3)),
+  '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN340","message":"Already conceded"}'::jsonb,
+  'a conceded player cannot peel'
+);
+
 -- ada empties her hand and peels — a CONTINUING peel (bunch 81 ≥ active 2).
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select bananagrams.save_player_board(
@@ -194,7 +210,11 @@ select bananagrams.save_player_board(
     where game_id = (select id from g3)
       and user_id = 'ada11111-1111-1111-1111-111111111111')
 );
-select bananagrams.peel((select id from g3));
+select pg_temp.envelope_is(
+  bananagrams.peel((select id from g3)),
+  '{"type":"ok","data":{"result":"dealt"}}'::jsonb,
+  'a continuing peel past a conceded player answers dealt'
+);
 
 reset role;
 select set_config('request.jwt.claims', '', true);
