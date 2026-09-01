@@ -684,7 +684,7 @@ select pg_temp.envelope_is(
 
 ## 7. The conversion roster
 
-**144 entries. 93 done, 51 to go** (5 of those are the deferred edge
+**144 entries. 94 done, 50 to go** (5 of those are the deferred edge
 functions). Cross them off here as they land.
 
 **Un-paused 2026-08-31: the retro-fix list is empty.** It existed because a
@@ -706,23 +706,37 @@ accept a sixteen-file commit. They appear in several areas below, flagged.
 
 **A fourth name breaks it the same way, through a HOOK rather than a
 component.** `useWordSubmit`'s `commit` callback is typed
-`Promise<{ error: { message, code? } | null }>` and SIX games pass one — boggle
-`submit_word`, letterboxed `submit_word`, spellingbee `submit_word`, wordwheel
-`submit_word`, strands `submit_path`, wordiply `submit_guess`. The hook, not the
-game, decides what a failure looks like: it calls `failureMessage(error, 'word')`
-and releases the optimistically-accepted word.
+`Promise<{ error: { message, code? } | null }>` and FOUR games pass one — boggle
+`submit_word`, spellingbee `submit_word`, wordwheel `submit_word`, wordiply
+`submit_guess`. The hook, not the game, decides what a failure looks like: it
+calls `failureMessage(error, 'word')` and releases the optimistically-accepted
+word.
 
-So those six convert in TWO halves (Joel, 2026-09-01):
+**Count the `commit` callbacks, not the files that name the hook.** strands and
+letterboxed mention `useWordSubmit` only in prose — strands' `submit_path` is a
+standalone callback that already reads `data`, and letterboxed's header says it
+is "deliberately NOT `useWordSubmit` … the commit is a plain RPC". Both are
+ordinary entries in their own areas.
+
+So those four convert in TWO halves (Joel, 2026-09-01):
 
 - **each game's SQL converts in its own area**, leaving its call site raw. The
   entry is marked done and says "SQL only".
-- **`useWordSubmit` converts ONCE, after the last of the six**, taking all six
-  call sites with it and deleting the hook's use of `failureMessage`.
+- **`useWordSubmit` converts ONCE, after the last of the four**, taking every
+  call site with it and deleting the hook's use of `failureMessage`.
+
+**wordiply settles the hook's shape, so it goes last of the four.** Its `commit`
+manufactures an error out of a SUCCESSFUL answer — `res.ok === false` becomes
+`{ error: { message: rejectReason(…) } }` — to get the shared hook to pill a
+refusal. A refused guess is a designed answer there (it is a TURN), so what
+`commit` must be able to hand back is "refused, and here is why", not an error.
+wordiply also has a second call site, `recordReject`, firing the same RPC with
+`fe_legal: false`.
 
 The cost is a swallow window per game: a converted RPC answers `not-ok` with a
 200, so `error` is null at a raw call site and a refused word stays
 optimistically accepted until the next realtime refetch drops it. Accepted —
-the alternative is either a six-area commit or a call site whose sentence is
+the alternative is either a four-area commit or a call site whose sentence is
 still written by the system this sprint deletes.
 
 Everything else is self-contained. `create_game` appears sixteen times but each
@@ -887,8 +901,7 @@ refetch), not two places in the source.
 
 - [x] `create_game` · RPC, reached through `letterboxed-build-board`
 - [ ] `log_help` · RPC
-- [ ] `submit_word` · RPC — SQL converts here; the call site is
-      `useWordSubmit`'s `commit` (see the hook note above)
+- [ ] `submit_word` · RPC
 - [ ] `events` · read (2 call sites)
 - [ ] `games_state` · read (2 call sites)
 - [ ] `players_state` · read (2 call sites)
@@ -942,8 +955,11 @@ read to convert; `submit_guess` has one call site, not two.
 #### spellingbee
 
 - [x] `create_game` · RPC, reached through `spellingbee-build-board`
-- [ ] `submit_word` · RPC (2 call sites) — SQL converts here; the call site is
-      `useWordSubmit`'s `commit` (see the hook note above)
+- [x] `submit_word` · RPC — **SQL only**; the call site is `useWordSubmit`'s
+      `commit` (see the hook note above). The WIN became its own named result in
+      BOTH modes: it used to be a `won: true` field bolted onto coop's
+      `accepted`, and nothing at all on the compete path, so one event was
+      reported two different ways depending on mode
 - [ ] `found_words` · read
 - [ ] `games_state` · read
 
@@ -968,8 +984,7 @@ read to convert; `submit_guess` has one call site, not two.
 - [ ] `next_puzzle_for_club` · RPC (2 call sites)
 - [ ] `puzzle_for_date` · RPC
 - [ ] `spend_hint` · RPC
-- [ ] `submit_path` · RPC (2 call sites) — SQL converts here; the call site is
-      `useWordSubmit`'s `commit` (see the hook note above)
+- [ ] `submit_path` · RPC (2 call sites)
 - [ ] `events` · read
 - [ ] `games_state` · read (2 call sites)
 - [ ] `players_state` · read

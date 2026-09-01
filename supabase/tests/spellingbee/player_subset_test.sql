@@ -23,6 +23,7 @@ begin;
 set search_path = spellingbee, common, public, extensions;
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 select plan(4);
@@ -56,7 +57,7 @@ select is(
 -- A player can act.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  spellingbee.submit_word((select id from g), 'bead', 1, false, false)->>'result',
+  spellingbee.submit_word((select id from g), 'bead', 1, false, false)->'data'->>'result',
   'accepted',
   'a player (ada) can submit_word'
 );
@@ -70,10 +71,9 @@ select is(
 );
 
 -- …but cannot ACT (move RPCs gate on require_game_player).
-select throws_ok(
-  format($$ select spellingbee.submit_word(%L::uuid, 'face', 1, false, false) $$, (select id from g)),
-  '42501',
-  'not-a-player|',
+select pg_temp.envelope_is(
+  spellingbee.submit_word((select id from g), 'face', 1, false, false),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN253"}'::jsonb,
   'cade (member, not a player) CANNOT submit_word — acting is player-gated'
 );
 

@@ -29,6 +29,7 @@ set search_path = spellingbee, common, public, extensions;
 select plan(12);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 -- ============================================================
@@ -54,7 +55,7 @@ select (spellingbee.create_game(
 -- ============================================================
 
 select is(
-  spellingbee.submit_word((select id from g), 'bead', 1, false, false)->>'result',
+  spellingbee.submit_word((select id from g), 'bead', 1, false, false)->'data'->>'result',
   'accepted',
   'coop: a sub-target word is accepted and the game continues'
 );
@@ -72,9 +73,9 @@ select is(
 -- team's — coop has no individual result.
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select is(
-  spellingbee.submit_word((select id from g), 'abcdefg', 17, true, false)->>'won',
-  'true',
+select pg_temp.envelope_is(
+  spellingbee.submit_word((select id from g), 'abcdefg', 17, true, false),
+  '{"type":"ok","data":{"result":"won"}}'::jsonb,
   'coop: the word that crosses the target reports the win to its caller'
 );
 
@@ -114,11 +115,10 @@ select is(
 -- (3) The game is really over
 -- ============================================================
 
-select throws_ok(
-  format($$ select spellingbee.submit_word(%L, 'cafe', 1, false, false) $$,
-         (select id from g)),
-  'P0001',
-  'game-not-in-play|',
+-- A RACE, not a bug: the game can end while a submission is in flight.
+select pg_temp.envelope_is(
+  spellingbee.submit_word((select id from g), 'cafe', 1, false, false),
+  '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN354","message":"Game over"}'::jsonb,
   'coop: no more words after the team wins'
 );
 
