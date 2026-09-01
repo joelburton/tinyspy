@@ -708,7 +708,7 @@ select pg_temp.envelope_is(
 
 ## 7. The conversion roster
 
-**144 entries. 96 done, 48 to go** — plus `useWordSubmit`, which is not a
+**144 entries. 94 done, 50 to go** — plus `useWordSubmit`, which is not a
 roster entry of its own but carried five call sites across four games (5 of those are the deferred edge
 functions). Cross them off here as they land.
 
