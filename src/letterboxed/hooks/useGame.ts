@@ -140,9 +140,9 @@ export function useGame(gameId: string, selfId: string): {
       )
       if (!mounted) return
 
-      // A read can only fail as a FAULT — `readRows` never authors anything else
-      // — and `dbFetch` has already logged it and raised the modal. What is left
-      // is the sentence BEHIND it, plus a line naming which read it was.
+      // A read can only fail as a FAULT — `readRows` never authors anything
+      // else, and it has already logged the failure and raised the modal. What
+      // is left is the sentence BEHIND it, plus a line naming which read it was.
       if (res.type === 'not-ok') {
         setHeaderFailure(res)
         setLoading(false)

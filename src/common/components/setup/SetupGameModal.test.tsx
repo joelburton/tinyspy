@@ -251,7 +251,7 @@ describe('SetupGameModal — when Start is refused', () => {
   })
 
   it("shows a FAULT's words on the line too, since the modal is dismissible", async () => {
-    // The modal is raised on the way through `dbFetch`; this line is what is
+    // The modal is raised on the way through the wrapper; this line is what is
     // left once it is dismissed, with the dialog still open behind it.
     startGameInClub.mockResolvedValue({ type: 'not-ok', severity: 'fault', message: MESSAGE })
     const user = userEvent.setup()

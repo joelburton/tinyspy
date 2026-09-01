@@ -106,7 +106,7 @@ export function useClubChat(clubHandle: string) {
           .order('sent_at', { ascending: true }),
       )
       if (!mounted) return
-      // A failed load leaves the transcript alone — `dbFetch` has already said
+      // A failed load leaves the transcript alone — `readRows` has already said
       // so, and this re-runs on every reconnect, so what is on screen is the
       // best answer until the next one lands. `loading` still clears: the
       // "Loading…" line would otherwise stay up forever.

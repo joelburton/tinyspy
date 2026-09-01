@@ -176,8 +176,8 @@ export function SetupGameModal({
     if (result.type === 'not-ok') {
       setBusy(false)
       // `field` when the raise named a column, the form's own line when it did
-      // not. A fault has already raised the modal on its way through
-      // `dbFetch`; the line is what remains once that is dismissed, with the
+      // not. A fault has already raised the modal on its way through the
+      // wrapper; the line is what remains once that is dismissed, with the
       // dialog still open behind it so the player can retry.
       //
       // This is the ONE surface that can put a validation under the control it

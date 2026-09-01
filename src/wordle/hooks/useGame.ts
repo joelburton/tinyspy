@@ -102,10 +102,10 @@ export function useGame(gameId: string): {
       ])
       if (!mounted()) return
 
-      // A read can only fail as a FAULT — `readRows` never authors anything else
-      // — and `dbFetch` has already logged it and raised the modal. What is left
-      // is the sentence BEHIND it, plus a line naming which of the reads it was:
-      // "something didn't load" is not a fact anyone can act on.
+      // A read can only fail as a FAULT — `readRows` never authors anything
+      // else, and it has already logged the failure and raised the modal. What
+      // is left is the sentence BEHIND it, plus a line naming which of the reads
+      // it was: "something didn't load" is not a fact anyone can act on.
       //
       // One branch each rather than one combined test, because WHICH read failed
       // is the only thing the player's sentence cannot say.

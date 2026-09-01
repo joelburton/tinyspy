@@ -184,7 +184,20 @@ is and put the verification dangerously late (Joel, 2026-09-01).
       paths — which is the rule it already applied to its `OK` lines. That
       closes the double-log 5.2 opened. `logFault` is gone: this layer builds no
       envelopes at all now.
-- [ ] **5.6** **The mechanical sweep** — the 69 converted files. Does each still
+- [x] **5.6** **The mechanical sweep** — the 69 converted files. DONE
+      2026-09-01, and it needed **no code changes**, which is what default-ON
+      was for: every converted site inherited the behavior `dbFetch` was giving
+      it. Verified rather than assumed — only the timer passes `presentFaults`;
+      the 33 files that call `showFaultModal` are almost all calling their
+      `BUG: … fell through` scream, which is mutually exclusive with the wrapper
+      having presented; the three that branch on `severity` still get their
+      modal, from a different layer.
+
+      What it DID find: 26 comments across 26 files claiming `dbFetch` raised
+      the modal. All swept — `dbFetch` now appears nowhere in `src/` outside
+      `lib/supabase/`.
+
+      (The original text follows.) The 69 converted files. Does each still
       present what it should; does any want to opt out. **And specifically: is
       any of them relying on `dbFetch` presenting FOR it** — a site that shows
       nothing itself because a modal appeared anyway. Those still work under the

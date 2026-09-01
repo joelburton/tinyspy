@@ -101,7 +101,7 @@ export function HomePage({ session }: Props) {
       )
       if (!mounted()) return
       // A FAILED LOAD needs nothing here. The fault modal is already on screen
-      // and the `[db]` line is already written — `dbFetch` did both before this
+      // and the `[db]` line is already written — `readRows` did both before this
       // resumed (plans/error-system.md). What is left is the bail-out: record
       // that the load failed so the muted line under the list can say something
       // true. No classifying, no wording, no showFaultModal.

@@ -67,7 +67,7 @@ async function ensureLoaded(userId: string) {
   // `loadedFor === userId` guard above and the account menu row shows "…"
   // until a full reload.
   if (res.type === 'not-ok') {
-    // Already logged and presented by `dbFetch`; there is nothing to add.
+    // Already logged and presented by `readRows`; there is nothing to add.
     loadedFor = null
     return
   }

@@ -583,7 +583,7 @@ export function ClubPage({ handle, session }: Props) {
   useEffect(function loadClubAndRoster() {
     let mounted = true
 
-    // `dbFetch` has already logged each of these and put the modal up; this line
+    // `readRows` has already logged each of these and put the modal up; this line
     // is what the page shows behind it, naming the read that failed.
     const diag = (table: string) =>
       diagnosticsLine('FAULT', {
@@ -591,7 +591,7 @@ export function ClubPage({ handle, session }: Props) {
       })
 
     async function load() {
-      // EVERY failure below is the same shape: `dbFetch` has already logged it
+      // EVERY failure below is the same shape: `readRows` has already logged it
       // and put the fault modal up, so all that is left is to stop loading and
       // leave a page behind the modal that says something true. A page that
       // failed to load has nothing to render, so its own error state IS the
@@ -740,7 +740,7 @@ export function ClubPage({ handle, session }: Props) {
       // can't render: the list already on screen is the best answer we have,
       // and the next event will try again. Writing `[]` would replace it with
       // "this club has no games", which is a worse answer than a stale one.
-      // `dbFetch` has already logged it and put the modal up.
+      // `readRows` has already logged it and put the modal up.
       if (res.type === 'not-ok') return
 
       const rows = res.data

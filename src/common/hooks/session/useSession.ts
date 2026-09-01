@@ -136,7 +136,7 @@ export function useSession() {
         // has been (flagged in the 2026-06-16 review): the honest answer is
         // "we don't know", and there is no screen for it.
         //
-        // `dbFetch` has already logged this and put the modal up, so what is
+        // `readRows` has already logged this and put the modal up, so what is
         // left is only the guess about where to send them.
         setSession(next)
         setHasProfile(false)

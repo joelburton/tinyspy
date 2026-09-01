@@ -257,7 +257,7 @@ export function useGame(
       ])
       if (!mounted) return
       // A read can only fail as a FAULT — `readRows` never authors anything
-      // else — and `dbFetch` has already logged it and raised the modal. What
+      // else, and it has already logged the failure and raised the modal. What
       // is left is the envelope BEHIND it, held as it arrived: it already
       // carries the sentence, the severity, the dbcode, and (in `detail`) which
       // of the three reads died. One branch each, because that last fact is the

@@ -307,9 +307,9 @@ export function useCommonGame(
       ])
       if (!mounted || myGen !== generation) return
 
-      // A read can only fail as a FAULT — `readRows` never authors anything else
-      // — and `dbFetch` has already logged it and raised the modal. What is left
-      // is the envelope BEHIND it, which already names which read died.
+      // A read can only fail as a FAULT — `readRows` never authors anything
+      // else, and it has already logged the failure and raised the modal. What
+      // is left is the envelope BEHIND it, which already names which read died.
       //
       // One branch each rather than one combined test, because WHICH read failed
       // is the only thing the player's sentence cannot say.

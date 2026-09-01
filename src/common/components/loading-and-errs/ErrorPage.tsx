@@ -42,7 +42,7 @@ export function EnvelopeErrorPage({ envelope, action }: { envelope: NotOk; actio
       message={envelope.message}
       // No `call` or `status`: this is built during RENDER, long after the
       // request, and the line's fixed shape is a promise that a blank means
-      // something. `dbFetch` wrote the full line when it happened; `detail`
+      // something. The wrapper wrote the full line when it happened; `detail`
       // names the call, which is what survives into the envelope.
       diagnostics={diagnosticsLine('FAULT', {
         call: '(read)',

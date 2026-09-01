@@ -98,7 +98,7 @@ describe('no raw server message reaches a UI sink', () => {
   //
   // `fault: true` on a feedback message routes it to `showFaultModal`, which was
   // how a call site raised the fault modal before the modal became central. It
-  // is now raised by `runRpc` / `runEdgeFn` / `dbFetch`, WITH the diagnostics
+  // is now raised by `runRpc` / `runEdgeFn` / `readRows`, WITH the diagnostics
   // only the transport layer can build — so a call site setting the flag pops a
   // SECOND modal carrying less than the first.
   //
