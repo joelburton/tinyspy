@@ -124,12 +124,23 @@ describe('a request nothing answered', () => {
     expect(r).toMatchObject({ message: 'permission denied', dbcode: '42501' })
   })
 
-  // dbFetch has already presented this one; a second modal from the wrapper is
-  // the same news twice (plans/envelope-layering.md §1).
-  it('raises no modal of its own — dbFetch already did', async () => {
+  // The wrapper presents now — `dbFetch` logs and stops
+  // (plans/fault-presentation.md). This used to assert the opposite, on the
+  // reasoning that a second modal was the same news twice; there is no first
+  // modal any more.
+  it('presents it, because dbFetch no longer does', async () => {
     setOnline(false)
     mockInvoke.mockResolvedValue({ data: null, error: { message: 'TypeError: Failed to fetch' } })
     await runEdgeFn('anything', {})
+    expect(peekFaultsForTest()).toHaveLength(1)
+  })
+
+  // And a caller that took the job gets nothing shown — but the line is still
+  // written, because opting out of the modal is not opting out of the record.
+  it('shows nothing when the caller opted out', async () => {
+    setOnline(false)
+    mockInvoke.mockResolvedValue({ data: null, error: { message: 'TypeError: Failed to fetch' } })
+    await runEdgeFn('anything', {}, { presentFaults: false })
     expect(peekFaultsForTest()).toHaveLength(0)
   })
 })
@@ -570,13 +581,13 @@ describe('runEdgeFn — the same shape, through Deno', () => {
   // `isSupabaseInternal`, so `dbFetch` has already presented this one —
   // reporting again here was the same news twice, and the poorer telling of
   // the two, since nothing at this layer can rebuild that diagnostics line.
-  it('treats a function that never answered as a fault, without a second modal', async () => {
+  it('treats a function that never answered as a fault, and presents it', async () => {
     mockInvoke.mockResolvedValue({ data: null, error: { message: 'network down' } })
 
     const r = await runEdgeFn('boggle-build-board', {})
 
     expect(r).toMatchObject({ type: 'not-ok', severity: 'fault' })
-    expect(peekFaultsForTest()).toHaveLength(0)
+    expect(peekFaultsForTest()).toHaveLength(1)
   })
 })
 

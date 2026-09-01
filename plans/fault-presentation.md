@@ -1,6 +1,6 @@
 # Who shows a fault
 
-**Status: agreed, nothing built.** Written 2026-09-01, mid-`error-system` sprint.
+**Status: in progress — 5.1 and 5.2 done.** Written 2026-09-01, mid-`error-system` sprint.
 
 Move fault PRESENTATION from `dbFetch` to the three wrappers, and give a call
 site a way to take the job itself.
@@ -119,9 +119,34 @@ is and put the verification dangerously late (Joel, 2026-09-01).
 
 ## 5. Steps
 
-- [ ] **5.1** `presentFaults` on all three wrappers, default on; they present
-      every `severity: 'fault'`.
-- [ ] **5.2** `dbFetch` stops showing and keeps logging; `isPolled` deleted.
+- [x] **5.1** `presentFaults` on all three wrappers, default on; they present
+      every `severity: 'fault'`. DONE 2026-09-01. `CallOptions` + a `reportFault`
+      helper, the one place a wrapper decides — opting out still LOGS.
+      `runRpc` and `runEdgeFn` both built `transport` AFTER their error branch,
+      so those failures had no diagnostics to present with; both build it first
+      now. `readRows` never presented anything at all.
+
+      Also here, from a question Joel asked about the code: `reportDbFault` and
+      the three envelope builders take/return `NotOk` rather than the union,
+      which deleted `'Something went wrong.'` — a player-facing sentence that
+      existed only because the parameter was typed wider than any caller could
+      pass.
+- [x] **5.2** `dbFetch` stops showing and keeps logging; `isPolled` deleted.
+      DONE 2026-09-01. A `logFault` helper writes the line for a failure this
+      layer classified and stops. Two branches simplified as a result: the
+      nothing-answered case was `if (abort || internal || polled) log else
+      present` and is now one `logDb`; the answered-with-a-failure case lost its
+      poll check.
+
+      Its test file's `presenting faults` describe is now `classifying faults`,
+      and every assertion reads the `[db]` line instead of the modal queue. The
+      three poll tests became one — their subject was `isPolled`.
+
+      **The gap 5.5 has to close is now live.** For a non-2xx on the DB path,
+      `dbFetch` logs `FE004` / "You reached a server other than ours" while the
+      wrapper builds its own envelope from postgrest-js's flattened error — so
+      the MODAL shows the raw body where the LINE shows the classification.
+      Noted in `dbFetch` where the classification happens.
 - [ ] **5.3** `useGameTimer` opts out and decides per answer — the case that
       motivated this, and the proof it works.
 - [ ] **5.4** `PN310` moves into `callEdgeFn`.
@@ -134,7 +159,7 @@ is and put the verification dangerously late (Joel, 2026-09-01).
       later opts them out, and this is the cheapest moment to find them.
 - [ ] **5.7** A guard: a file passing `presentFaults: false` must contain a
       `showFaultModal` or a `console.error`. Opting out is a promise to handle
-      it, not a licence to drop it. Verify by planting.
+      it, not a license to drop it. Verify by planting.
 - [ ] **5.8** Delete the two now-answered `docs/deferred.md` entries — "Where
       should a fault modal be raised from?" and "Faults are presented from two
       places".

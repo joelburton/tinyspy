@@ -7,7 +7,7 @@ import {
 } from './dbEnvelope'
 import { logDb, type LogLevel, type Transport } from './dbLog'
 import type { Outcome } from '../outcomes'
-import type { Envelope, Severity } from './envelope'
+import type { Envelope, NotOk, Severity } from './envelope'
 
 /**
  * **The new server-result system.** Types, classification, the environmental
@@ -144,6 +144,49 @@ function logLevelFor(envelope: Envelope): LogLevel {
 }
 
 /**
+ * **What a caller may ask of a wrapper.** One question today, and the default
+ * is the answer almost every site wants.
+ *
+ * `presentFaults: false` says *I will handle my own faults* — not *drop them*.
+ * It exists because the alternative was a path test in `dbFetch`
+ * (`isPolled`), which is all-or-nothing per endpoint: it could silence
+ * `tick_timer` entirely but not silence its transport failures while still
+ * showing its `PN011`. A wrapper holds the parsed envelope, so a caller that
+ * opts out can decide per ANSWER (plans/fault-presentation.md).
+ *
+ * **Default ON is what keeps forgetting impossible.** A call site that ignores
+ * its result entirely still surfaces the failure; only a site that has thought
+ * about it passes the flag, and the flag is visible at the call rather than in
+ * a list in another file.
+ */
+export type CallOptions = {
+  /** Default `true`. Pass `false` only with a plan for handling faults
+   *  yourself — `src/guards/callSiteShape.test.ts` checks that you have one. */
+  presentFaults?: boolean
+}
+
+/**
+ * **Show a fault, unless the caller took the job.** The one place a wrapper
+ * decides, so the rule is written once rather than at each of the seven sites
+ * that used to call `reportDbFault` directly.
+ *
+ * Always LOGS, whoever presents: opting out of the modal is not opting out of
+ * the record, and a misclassified failure that stops being visible on screen
+ * must not also stop being visible in the console.
+ *
+ * Takes the NOT-OK ARM, like `reportDbFault` — every caller has established
+ * `severity: 'fault'` before reaching here, so the message is a `string` and
+ * there is no null to hedge against.
+ */
+function reportFault(transport: Transport, envelope: NotOk, opts?: CallOptions): void {
+  if (opts?.presentFaults === false) {
+    logDb('FAULT', envelopeFields(transport, envelope), envelope.message)
+    return
+  }
+  reportDbFault(transport, envelope)
+}
+
+/**
  * Is this parsed response body one of our envelopes?
  *
  * Deliberately strict, because plenty of things that are not envelopes arrive
@@ -202,27 +245,27 @@ type QueryLike<T> = PromiseLike<{ data: T | null; error: DbError; status?: numbe
 export async function runEdgeFn<T>(
   fnName: string,
   body: Record<string, unknown>,
+  opts?: CallOptions,
 ): Promise<Envelope<T>> {
   const started = performance.now()
   const { data, error } = await callEdgeFn(fnName, body)
-  if (error) {
-    // NOTHING ANSWERED: `dbFetch` has already worded this and put the modal up
-    // — a `/functions/v1/` path is not `isSupabaseInternal`, so it reports every
-    // failed edge-function call. Reporting again here was the same news twice,
-    // and a poorer telling, since nothing at this layer can rebuild that line.
-    if (nothingAnswered(error.status)) return nothingReachedUs(error.message)
-    // SOMETHING ANSWERED, but not our function speaking — a gateway's HTML, a
-    // shape from before the conversion. `callEdgeFn` has recovered whatever
-    // message there was, and `dbFetch` has already reported it too.
-    return faultEnvelope(error, 'The server refused the request.')
-  }
-  // Below the failure branch, because nothing above it needs one. `status` is
-  // flatly 200 here rather than `error?.status ?? 200`: reaching this line is
-  // proof `error` was null, which is proof the function answered 2xx.
+  // Built before the failure branch, not after, because these failures are
+  // presented HERE now — and a presented fault needs the transport facts for
+  // its diagnostics line.
   const transport = {
     call: `POST /functions/v1/${fnName}`,
-    status: 200,
+    status: error?.status ?? 200,
     ms: Math.round(performance.now() - started),
+  }
+  if (error) {
+    // NOTHING ANSWERED, or something answered that was not our function — a
+    // gateway's HTML, a shape from before the conversion. `callEdgeFn` has
+    // recovered whatever message there was.
+    const envelope = nothingAnswered(error.status)
+      ? nothingReachedUs(error.message)
+      : faultEnvelope(error, 'The server refused the request.')
+    reportFault(transport, envelope, opts)
+    return envelope
   }
   if (!_isEnvelope(data)) {
     const rawBody = `rawBody: ${JSON.stringify(data)?.slice(0, 120)}`
@@ -230,7 +273,7 @@ export async function runEdgeFn<T>(
       null, OUR_BUG_TO_CODE_AND_TEXT.unreadable.text, rawBody,
       OUR_BUG_TO_CODE_AND_TEXT.unreadable.code,
     )
-    reportDbFault(transport, unreadable)
+    reportFault(transport, unreadable, opts)
     return unreadable
   }
   if (hasMessageWithoutOutcome(data)) {
@@ -239,11 +282,11 @@ export async function runEdgeFn<T>(
       `an ok carried a message with no outcome: ${JSON.stringify(data)?.slice(0, 120)}`,
       OUR_BUG_TO_CODE_AND_TEXT.noOutcome.code,
     )
-    reportDbFault(transport, broken)
+    reportFault(transport, broken, opts)
     return broken
   }
   if (data.type === 'not-ok' && data.severity === 'fault') {
-    reportDbFault(transport, data)
+    reportFault(transport, data, opts)
   } else {
     logDbOutcome(transport, data)
   }
@@ -288,6 +331,7 @@ function callLabel(call: unknown, fallback: string): string {
  */
 export async function runRpc<T>(
   call: PromiseLike<{ data: unknown; error: DbError; status?: number }>,
+  opts?: CallOptions,
 ): Promise<Envelope<T>> {
   // Timed here because `dbFetch` stays quiet on an RPC's 2xx — the answer
   // inside it is this function's to read, and one line per call beats a `OK`
@@ -304,20 +348,21 @@ export async function runRpc<T>(
     // another road, not a different one.
     return nothingReachedUs(String(thrown))
   }
-  if (settled.error) {
-    // `dbFetch` has already worded and presented both of these; the envelope is
-    // what the CALL SITE reads afterwards, and it must say the same thing.
-    return nothingAnswered(settled.status)
-      ? nothingReachedUs(settled.error.message)
-      : faultEnvelope(settled.error, 'The server refused the request.')
-  }
-  // Below the failure branch, because nothing above it needs one: a transport
-  // failure has already been logged and presented by `dbFetch`, and what this
-  // describes is a call that ARRIVED and answered.
+  // Built before the failure branch, not after: these failures are presented
+  // HERE now, and a presented fault needs the transport facts for its
+  // diagnostics line.
   const transport = {
     call: callLabel(call, 'rpc'),
     status: settled.status ?? 200,
     ms: Math.round(performance.now() - started),
+  }
+  if (settled.error) {
+    // `dbFetch` worded these; presenting them is this layer's job now.
+    const envelope = nothingAnswered(settled.status)
+      ? nothingReachedUs(settled.error.message)
+      : faultEnvelope(settled.error, 'The server refused the request.')
+    reportFault(transport, envelope, opts)
+    return envelope
   }
   const body = settled.data
   // A reply that isn't an envelope means the RPC answered with something no
@@ -330,7 +375,7 @@ export async function runRpc<T>(
       null, OUR_BUG_TO_CODE_AND_TEXT.unreadable.text, rawBody,
       OUR_BUG_TO_CODE_AND_TEXT.unreadable.code,
     )
-    reportDbFault(transport, unreadable)
+    reportFault(transport, unreadable, opts)
     // No `dbcode` to carry — the call SUCCEEDED (a 200 with an unreadable
     // body), so there is no Postgres error. What we do know is the body, and
     // it goes into `detail` rather than living only in the console line.
@@ -348,11 +393,11 @@ export async function runRpc<T>(
       `an ok carried a message with no outcome: ${JSON.stringify(body)?.slice(0, 120)}`,
       OUR_BUG_TO_CODE_AND_TEXT.noOutcome.code,
     )
-    reportDbFault(transport, broken)
+    reportFault(transport, broken, opts)
     return broken
   }
   if (body.type === 'not-ok' && body.severity === 'fault') {
-    reportDbFault(transport, body)
+    reportFault(transport, body, opts)
   } else {
     logDbOutcome(transport, body)
   }
@@ -377,7 +422,10 @@ export async function runRpc<T>(
  * `Row` is inferred from the query builder, so the rows stay typed even though
  * the envelope's `data` is generic.
  */
-export async function readRows<Row>(query: QueryLike<Row[]>): Promise<Envelope<Row[]>> {
+export async function readRows<Row>(
+  query: QueryLike<Row[]>,
+  opts?: CallOptions,
+): Promise<Envelope<Row[]>> {
   // Timed here, exactly as `runRpc` times itself: a postgrest builder is LAZY,
   // so `await query` is what fires the request, and wrapping it captures the
   // whole round trip. `dbFetch` no longer speaks for a successful read — the
@@ -401,11 +449,14 @@ export async function readRows<Row>(query: QueryLike<Row[]>): Promise<Envelope<R
     return nothingReachedUs(`${call} — ${String(thrown)}`)
   }
   if (settled.error) {
-    // `dbFetch` has already worded and presented both of these; the envelope is
-    // what the hook reads afterwards, and it must say the same thing.
-    return nothingAnswered(settled.status)
+    // `dbFetch` worded these; presenting them is this layer's job now — which
+    // is new for reads: `readRows` used to build an envelope and show nothing,
+    // relying on `dbFetch` having done it.
+    const envelope = nothingAnswered(settled.status)
       ? nothingReachedUs(`${call} — ${settled.error.message}`)
       : faultEnvelope(settled.error, 'The read failed.', call)
+    reportFault({ call, status: settled.status, ms: Math.round(performance.now() - started) }, envelope, opts)
+    return envelope
   }
   // **This wrapper is for QUERIES.** Pointed at an RPC, what comes back is a
   // single value rather than rows — most often one of our own envelopes — and
@@ -424,7 +475,7 @@ export async function readRows<Row>(query: QueryLike<Row[]>): Promise<Envelope<R
       `readRows received ${what}: ${JSON.stringify(settled.data)?.slice(0, 120)}`,
       OUR_BUG_TO_CODE_AND_TEXT.notRows.code,
     )
-    reportDbFault({ call, status: 200 }, crossed)
+    reportFault({ call, status: 200 }, crossed, opts)
     return crossed
   }
   // `null` collapses to `[]`: PostgREST returns null rather than an empty array

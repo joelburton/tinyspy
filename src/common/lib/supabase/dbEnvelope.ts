@@ -2,7 +2,7 @@
 
 import { showFaultModal } from '../fault/faultStore'
 import { logDb, type DiagFields, type Transport } from './dbLog'
-import type { Envelope } from './envelope'
+import type { Envelope, NotOk } from './envelope'
 
 /**
  * **Building an envelope for a failure that never had one, and presenting it.**
@@ -175,7 +175,7 @@ export function faultEnvelope(
   fallback: string,
   extra?: string,
   ourCode?: string,
-): Envelope<never> {
+): NotOk {
   // Postgres's HINT is folded into `detail` rather than dropped. Our own raises
   // use HINT as an inter-function channel and never forward it — but a RAW
   // fault's hint is Postgres talking, and it is frequently the most useful
@@ -219,7 +219,7 @@ export function faultEnvelope(
 export function environmentalEnvelope(
   situation: { code: string; text: string },
   detail?: string,
-): Envelope<never> {
+): NotOk {
   return {
     type: 'not-ok',
     data: null,
@@ -242,7 +242,7 @@ export function environmentalEnvelope(
  * differently, and the value is ambient — reading it here is reading it at the
  * same moment either way.
  */
-export function nothingReachedUs(detail?: string): Envelope<never> {
+export function nothingReachedUs(detail?: string): NotOk {
   const offline = typeof navigator !== 'undefined' && navigator.onLine === false
   const { offline: OFFLINE, unreachable: UNREACHABLE } = NO_ANSWER_TO_CODE_AND_TEXT
   return environmentalEnvelope(offline ? OFFLINE : UNREACHABLE, detail)
@@ -280,9 +280,14 @@ export function envelopeFields(transport: Transport, envelope: Envelope): DiagFi
  * the envelope's own.
  *
  * Returns nothing: by the time the caller resumes, the news is delivered.
+ *
+ * Takes the NOT-OK ARM, not the union. Every caller has already established
+ * `severity: 'fault'` before reaching here, and typing the parameter wider than
+ * the truth forced a fallback sentence ("Something went wrong.") for a case no
+ * caller can produce — a string that read like a considered choice and was
+ * really an artifact of the signature.
  */
-export function reportDbFault(transport: Transport, envelope: Envelope): void {
-  const text = envelope.type === 'not-ok' ? envelope.message : 'Something went wrong.'
-  const diagnostics = logDb('FAULT', envelopeFields(transport, envelope), text)
-  showFaultModal({ text, diagnostics })
+export function reportDbFault(transport: Transport, envelope: NotOk): void {
+  const diagnostics = logDb('FAULT', envelopeFields(transport, envelope), envelope.message)
+  showFaultModal({ text: envelope.message, diagnostics })
 }

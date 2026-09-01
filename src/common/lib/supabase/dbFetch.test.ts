@@ -147,33 +147,16 @@ describe('dbFetch — requests that DID reach the server', () => {
     expect(err.mock.calls[0][0]).toContain('text/html')
   })
 
-  // ── A POLL is logged, never presented ────────────────────────
-  // `tick_timer` fires once a second, so a five-second wifi drop was five fault
-  // modals — and QUEUE_CAP holds five, so dismissing one revealed the next until
-  // the network returned. Nobody pressed anything, and a tick that does not
-  // happen is what the clock does anyway when nobody is viewing.
-  it('raises no modal for a poll that got no answer', async () => {
-    stubFetch(() => Promise.reject(new TypeError('Failed to fetch')))
-    await expect(
-      dbFetch('https://x.supabase.co/rest/v1/rpc/tick_timer', { method: 'POST' }),
-    ).rejects.toThrow()
-    expect(peekFaultsForTest()).toHaveLength(0)
-  })
-
-  it('raises no modal for a poll that answered a failing status', async () => {
-    stubFetch(() => Promise.resolve(new Response('{}', { status: 500 })))
-    await dbFetch('https://x.supabase.co/rest/v1/rpc/tick_timer', { method: 'POST' })
-    expect(peekFaultsForTest()).toHaveLength(0)
-  })
-
-  // The other half of the rule: an ordinary RPC on the same path prefix still
-  // gets one. Without this, "never present anything" would pass both above.
-  it('still raises one for a call somebody actually made', async () => {
+  // `isPolled` used to live here — a path test that silenced `tick_timer`'s
+  // failures. It is gone: this layer presents nothing at all now, so there is
+  // nothing to exempt, and the timer opts out at its own call instead
+  // (plans/fault-presentation.md).
+  it('presents nothing, whoever called', async () => {
     stubFetch(() => Promise.reject(new TypeError('Failed to fetch')))
     await expect(
       dbFetch('https://x.supabase.co/rest/v1/rpc/submit_guess', { method: 'POST' }),
     ).rejects.toThrow()
-    expect(peekFaultsForTest()).toHaveLength(1)
+    expect(peekFaultsForTest()).toHaveLength(0)
   })
 
   it('narrates a failing STATUS too — "said no" and "never arrived" are one investigation', async () => {
@@ -208,7 +191,20 @@ describe('dbFetch — requests that DID reach the server', () => {
  * the app notices — the failure would be silent, which is why it is tested here
  * rather than left to a call site's own test.
  */
-describe('dbFetch — presenting faults', () => {
+/**
+ * **dbFetch classifies; it no longer presents.** Every assertion here reads the
+ * `[db]` LINE, because that is now the whole of this layer's output — the
+ * wrapper decides whether anyone is shown anything
+ * (plans/fault-presentation.md).
+ *
+ * The classification still matters and still lives here: this is the only place
+ * Kong's JSON can be told from a captive portal's HTML, since postgrest-js
+ * flattens both into `{ message: string }` before a wrapper sees them.
+ */
+describe('dbFetch — classifying faults', () => {
+  /** The `[db]` line this call wrote, at whichever console level. */
+  const line = (spy: ReturnType<typeof vi.spyOn>) => String(spy.mock.calls[0]?.[0] ?? '')
+
   beforeEach(() => {
     clearFaultsForTest()
     vi.spyOn(console, 'error').mockImplementation(() => {})
@@ -216,12 +212,12 @@ describe('dbFetch — presenting faults', () => {
     vi.spyOn(console, 'debug').mockImplementation(() => {})
   })
 
-  it('presents an environmental fault when the request never completed', async () => {
+  it('writes a line when the request never completed, and shows nothing', async () => {
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {})
     stubFetch(() => Promise.reject(new TypeError('Load failed')))
     await expect(dbFetch('https://x.test/rest/v1/clubs')).rejects.toThrow()
-    const [fault] = peekFaultsForTest()
-    expect(fault.text).toMatch(/refresh and try again/i)
-    expect(fault.diagnostics).toContain('/rest/v1/clubs')
+    expect(line(err)).toContain('/rest/v1/clubs')
+    expect(peekFaultsForTest()).toHaveLength(0)
   })
 
   // An abort is US canceling our own request — a component unmounting, a
@@ -243,7 +239,8 @@ describe('dbFetch — presenting faults', () => {
     expect(peekFaultsForTest()).toHaveLength(0)
   })
 
-  it('presents a raw fault for a Postgres error nobody authored', async () => {
+  it('classifies a Postgres error nobody authored', async () => {
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {})
     stubFetch(() =>
       Promise.resolve(
         new Response(
@@ -253,9 +250,9 @@ describe('dbFetch — presenting faults', () => {
       ),
     )
     await dbFetch('https://x.test/rest/v1/rpc/submit_guess', { method: 'POST' })
-    const [fault] = peekFaultsForTest()
-    expect(fault.text).toContain('guesses_check')
-    expect(fault.diagnostics).toContain('dbcode=23514')
+    expect(line(err)).toContain('guesses_check')
+    expect(line(err)).toContain('dbcode=23514')
+    expect(peekFaultsForTest()).toHaveLength(0)
   })
 
   // ── WHO answered, and therefore what it says ─────────────────
@@ -266,32 +263,33 @@ describe('dbFetch — presenting faults', () => {
   // not PostgREST answered. A captive portal, a proxy, an ISP page. It used to
   // say "The server refused the request", which claims we answered and said no.
   it('names a foreign responder when the body is not JSON, on a rest path', async () => {
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {})
     stubFetch(() =>
       Promise.resolve(new Response('<html>502 Bad Gateway</html>', { status: 502 })),
     )
     await dbFetch('https://x.test/rest/v1/rpc/submit_guess', { method: 'POST' })
-    const [fault] = peekFaultsForTest()
-    expect(fault.text).toContain('a server other than ours')
-    expect(fault.diagnostics).toContain('dbcode=FE004')
-    expect(fault.diagnostics).toContain('status=502')
+    expect(line(err)).toContain('a server other than ours')
+    expect(line(err)).toContain('dbcode=FE004')
+    expect(line(err)).toContain('status=502')
   })
 
   // The edge RUNTIME answering instead of the function — `Function not found`
   // in text/plain. Ours: a deploy failure, not the player's network.
   it('blames our own deploy when the runtime answers on a functions path', async () => {
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {})
     stubFetch(() =>
       Promise.resolve(new Response('Function not found', { status: 404 })),
     )
     await dbFetch('https://x.test/functions/v1/boggle-build-board', { method: 'POST' })
-    const [fault] = peekFaultsForTest()
-    expect(fault.text).toContain('BUG:')
-    expect(fault.diagnostics).toContain('dbcode=PN310')
+    expect(line(err)).toContain('BUG:')
+    expect(line(err)).toContain('dbcode=PN310')
   })
 
   // It PARSED but carried no SQLSTATE — Kong's own `{"message":"no Route
   // matched…"}`. Our gateway is up and the thing behind it is not, which the
   // player does not need spelled out; they need "our server is down".
   it('says our server is down when our gateway answers without a SQLSTATE', async () => {
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {})
     stubFetch(() =>
       Promise.resolve(
         new Response(JSON.stringify({ message: 'no Route matched with those values' }), {
@@ -301,16 +299,16 @@ describe('dbFetch — presenting faults', () => {
       ),
     )
     await dbFetch('https://x.test/rest/v1/rpc/submit_guess', { method: 'POST' })
-    const [fault] = peekFaultsForTest()
-    expect(fault.text).toContain('Our server appears to be down')
-    expect(fault.diagnostics).toContain('dbcode=FE003')
+    expect(line(err)).toContain('Our server appears to be down')
+    expect(line(err)).toContain('dbcode=FE003')
     // The gateway's own words survive where whoever debugs will read them.
-    expect(fault.diagnostics).toContain('no Route matched')
+    expect(line(err)).toContain('no Route matched')
   })
 
   // And Postgres naming itself still wins: its SQLSTATE is the more specific
   // answer, so none of the three above applies.
   it('leaves a real Postgres error alone', async () => {
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {})
     stubFetch(() =>
       Promise.resolve(
         new Response(JSON.stringify({ message: 'permission denied', code: '42501' }), {
@@ -320,9 +318,8 @@ describe('dbFetch — presenting faults', () => {
       ),
     )
     await dbFetch('https://x.test/rest/v1/rpc/submit_guess', { method: 'POST' })
-    const [fault] = peekFaultsForTest()
-    expect(fault.text).toBe('permission denied')
-    expect(fault.diagnostics).toContain('dbcode=42501')
+    expect(line(err)).toContain('permission denied')
+    expect(line(err)).toContain('dbcode=42501')
   })
 
   // Reading the body must not consume it — every caller downstream still needs
