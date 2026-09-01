@@ -307,10 +307,38 @@ describe('the raise codes', () => {
     )
   })
 
+  /**
+   * **The frontend authors codes too, and they share the PN sequence.**
+   *
+   * `PN307`–`PN310` are in `dbEnvelope.ts`, not in a raise — the letter says
+   * what the code does to `type`, never who authored it, and that sequence
+   * already spans SQL and 64 Deno raises. So the counter below has to see them
+   * or it will hand out a number already taken.
+   *
+   * `FE001`–`FE004` are a separate class and a separate sequence, so they are
+   * checked for uniqueness and shape here but do not feed the PN counter.
+   */
+  const frontendCodes = () => {
+    const ts = readFileSync('src/common/lib/supabase/dbEnvelope.ts', 'utf8')
+    // The ASSIGNMENT form only — a docstring naming a code as an example is
+    // prose, not an allocation, and counting it reports a duplicate that is
+    // not one.
+    return [...ts.matchAll(/^\s*\w+: '((?:PN|FE)[0-9]{3})',/gm)].map((m) => m[1]!)
+  }
+
+  it('the frontend-authored codes are unique, and unique against the raises', () => {
+    const fe = frontendCodes()
+    const dupes = fe.filter((c, i) => fe.indexOf(c) !== i)
+    expect(dupes, 'a frontend code used twice').toEqual([])
+    const raised = new Set(raises().map((r) => r.code))
+    const clash = fe.filter((c) => raised.has(c))
+    expect(clash, 'a frontend code that a SQL or Deno raise already uses').toEqual([])
+  })
+
   it('reports the next number to allocate (a line, not a failure)', () => {
-    const nums = raises()
-      .filter((r) => r.code.startsWith('PN'))
-      .map((r) => Number(r.code.slice(2)))
+    const nums = [...raises().map((r) => r.code), ...frontendCodes()]
+      .filter((c) => c.startsWith('PN'))
+      .map((c) => Number(c.slice(2)))
     console.log(`[codes] ${new Set(nums).size} allocated; next PN is ${String(Math.max(...nums) + 1).padStart(3, '0')}`)
     expect(nums.length).toBeGreaterThan(0)
   })

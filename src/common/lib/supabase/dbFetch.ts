@@ -1,7 +1,8 @@
 // cs-unmet
 
 import {
-  environmentalEnvelope, faultEnvelope, reportDbFault, type DbError,
+  environmentalEnvelope, faultEnvelope, nothingReachedUs, NO_ANSWER_TO_CODE_AND_TEXT,
+  OUR_BUG_TO_CODE_AND_TEXT, reportDbFault, type DbError,
 } from './dbEnvelope'
 import { logDb, logSlow } from './dbLog'
 
@@ -121,6 +122,15 @@ function isSupabaseInternal(input: RequestInfo | URL, init?: RequestInit): boole
   return !(path.startsWith('/rest/v1/') || path.startsWith('/functions/v1/'))
 }
 
+/** Is this a call to one of OUR edge functions? The divider between "something
+ *  foreign answered" and "our own runtime answered instead of the function" —
+ *  PostgREST always speaks JSON, so a non-JSON body on `/rest/v1/` cannot be
+ *  ours, while `/functions/v1/` answers `text/plain` when a function is
+ *  missing. */
+function targetsEdgeFunction(input: RequestInfo | URL, init?: RequestInit): boolean {
+  return (getMethodPathClean(input, init).split(' ')[1] ?? '').startsWith('/functions/v1/')
+}
+
 /**
  * **Calls nobody asked for.** A POLL — fired on a timer, not by a person — and
  * so the third member of the "logged, but nobody is owed a modal" set, beside
@@ -206,11 +216,11 @@ export const dbFetch: typeof fetch = async (input, init) => {
       logDb('FAULT', fields)
     }
     // The server never spoke, so no author could have written for this. The
-    // sentence is `environmentalEnvelope`'s, not this function's — the three
+    // sentence is `nothingReachedUs`'s, not this function's — the three
     // wrappers in dbResult call the same builder for the same failure, so the
     // modal here and the envelope a call site reads afterwards cannot say
     // different things about one event.
-    else reportDbFault(fields, environmentalEnvelope(fields.detail))
+    else reportDbFault(fields, nothingReachedUs(fields.detail))
 
     // Re-thrown UNTOUCHED. The error object itself is never reworded here —
     // this function presents and logs; it does not edit what callers receive.
@@ -276,15 +286,45 @@ export const dbFetch: typeof fetch = async (input, init) => {
   try {
     body = (await res.clone().json()) as DbError
   } catch {
-    // **Say that the parse failed, rather than leaving a blank.** Without this
-    // the line prints `dbcode=` and `detail=` empty, which reads as "Postgres
-    // answered and declined to identify itself" — when the truth is that
-    // nothing speaking Postgres was on the other end at all. The content-type
-    // is the tell, and it is free: `text/html` is a gateway's error page,
-    // nothing is an empty response.
+    // The content-type is the tell, and it is free: `text/html` is a gateway's
+    // error page, `text/plain` is the edge runtime, nothing is an empty reply.
     const contentType = res.headers.get('content-type') ?? 'none'
     unparsed = `body was not JSON (content-type: ${contentType})`
   }
-  reportDbFault(fields, faultEnvelope(body, 'The server refused the request.', unparsed))
+
+  // ─── WHO answered, and therefore what to say ─────────────────
+  // Three different things to go fix, and this is the only layer that can tell
+  // them apart — a call site sees the envelope, never the response.
+  if (body?.code) {
+    // Postgres spoke and named itself. Its own words, its own SQLSTATE.
+    reportDbFault(fields, faultEnvelope(body, 'The server refused the request.'))
+  } else if (!unparsed) {
+    // It PARSED but carried no SQLSTATE — Kong's own
+    // `{"message":"no Route matched…"}`, or any platform layer answering for
+    // us. Our gateway is up and the thing behind it is not, which is not a
+    // sentence a player needs: they need "our server is down". The gateway's
+    // own message is the detail, where whoever debugs will read it.
+    reportDbFault(
+      fields,
+      environmentalEnvelope(NO_ANSWER_TO_CODE_AND_TEXT.upstreamDown, body?.message),
+    )
+  } else if (targetsEdgeFunction(input, init)) {
+    // The edge RUNTIME answered instead of the function — `Function not found`
+    // in `text/plain`, or a container that will not boot. Ours: a deploy
+    // failure, not a network one.
+    //
+    // A captive portal intercepts everything, so a portal on a function call
+    // lands here too and blames us for a network problem. That is the safe
+    // direction to be wrong in — better we accuse ourselves than send someone
+    // to fix a router that works — and the log corrects it: a portal produces
+    // FE004s on the concurrent `/rest/v1/` traffic at the same moment.
+    const bug = OUR_BUG_TO_CODE_AND_TEXT.runtimeNotFunction
+    reportDbFault(fields, faultEnvelope(null, bug.text, unparsed, bug.code))
+  } else {
+    // An unparseable body on `/rest/v1/`. PostgREST ALWAYS speaks JSON, so
+    // something that is not PostgREST answered: a captive portal, a proxy, an
+    // ISP error page.
+    reportDbFault(fields, environmentalEnvelope(NO_ANSWER_TO_CODE_AND_TEXT.foreignResponder, unparsed))
+  }
   return res
 }

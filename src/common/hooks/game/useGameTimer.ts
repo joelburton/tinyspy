@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { db as commonDb } from '../../db'
 import { runRpc } from '../../lib/supabase/dbResult'
+import { isEnvironmental } from '../../lib/supabase/dbEnvelope'
 import { showFaultModal } from '../../lib/fault/faultStore'
 import type { TimerMode } from '../../lib/games'
 
@@ -106,37 +107,38 @@ export function useGameTimer({
     const drive = () => {
       void runRpc<Ticked>(commonDb.rpc('tick_timer', { target_game: gameId })).then((res) => {
         if (canceled) return
-        // **Every failure here is silent, and that is the design rather than a
-        // shortcut.** This is a POLL: nobody pressed anything, and a tick that
-        // does not happen is exactly what the clock does when nobody is
-        // viewing — a state the mechanism already handles. There is nothing to
-        // retry and nothing to recover; the next successful call returns the
-        // authoritative count however many were missed.
+        // **A failure to REACH us is silent, and that is the design rather
+        // than a shortcut.** This is a POLL: nobody pressed anything, and a
+        // tick that does not happen is exactly what the clock does when nobody
+        // is viewing — a state the mechanism already handles. There is nothing
+        // to retry and nothing to recover; the next successful call returns
+        // the authoritative count however many were missed.
+        //
+        // A failure the RPC DECLARED is a different thing and is not silenced:
+        // `runRpc` shows it, once a second if it keeps happening.
         //
         // `dbFetch` matches this with its `isPolled` exemption, so an offline
         // player gets `[db]` lines instead of a fault modal per second. The
         // gap that leaves is filed: docs/deferred.md → "A disconnected player
         // is the one person who is not told".
-        if (res.type === 'not-ok' && res.dbcode === null) {
-          // NOTHING ANSWERED — offline, and not an answer from the RPC at all:
-          // `runRpc` builds this when the call never reached the server, so
-          // there is no dbcode because there was no raise. Silent for the
-          // reason above: a tick that did not happen is what the clock does
-          // anyway when nobody is viewing.
+        if (res.type === 'not-ok' && isEnvironmental(res.dbcode)) {
+          // OUR SERVER DID NOT ANSWER — one of the four `FE` codes, and not an
+          // answer from the RPC at all. Silent for the reason above: a tick
+          // that did not happen is what the clock does anyway when nobody is
+          // viewing.
           //
-          // **This condition is wrong and is being fixed next**
-          // (docs/deferred.md → "A frontend-authored envelope has no code").
-          // Three other failures also arrive codeless — an unreadable body, an
-          // `ok` with a message and no outcome, a Postgres error Postgres did
-          // not name — so this reads as "nothing answered" and means "nothing
-          // answered, OR answered incomprehensibly", swallowing two real bugs.
-          // It is the only branch in the repo that identifies an answer by an
-          // ABSENCE; once those envelopes carry codes of their own it becomes
-          // an equality test like every other one here.
+          // This used to read `res.dbcode === null`, which was the only branch
+          // in the repo that identified an answer by an ABSENCE — and true for
+          // every bug the frontend detects as well, since none of them carried
+          // a code either. It swallowed those. Now they are `PN307`–`PN310`
+          // and fall through to the scream, which is where a bug belongs.
         } else if (res.type === 'not-ok' && (res.dbcode === 'PN011' || res.dbcode === 'PN012')) {
-          // The two the RPC itself declares, both from `require_club_member` and
-          // both already being handled somewhere better — a lapsed session signs
-          // you out and unmounts this page, a revoked membership does the same.
+          // NOT silent: both carry `severity: 'fault'`, so `runRpc` has already
+          // put a modal up — which is right, and Joel's call (2026-08-31). A
+          // signed-out player should be told. All this branch does is decline
+          // to ALSO call it a bug, because it is not one: it is the RPC's own
+          // declared refusal, and the auth machinery is already unmounting the
+          // page underneath it.
         } else if (res.type === 'ok' && res.dbcode === 'PA004') {
           // The game was deleted under us. No clock to advance, and the page is
           // about to become a no-such-game anyway.

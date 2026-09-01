@@ -2,7 +2,8 @@
 
 import { callEdgeFn } from './callEdgeFn'
 import {
-  environmentalEnvelope, envelopeFields, faultEnvelope, reportDbFault, type DbError,
+  envelopeFields, faultEnvelope, nothingReachedUs, OUR_BUG_TO_CODE_AND_TEXT,
+  reportDbFault, type DbError,
 } from './dbEnvelope'
 import { logDb, type LogLevel, type Transport } from './dbLog'
 import type { Outcome } from '../outcomes'
@@ -155,12 +156,6 @@ export function _isEnvelope(body: unknown): body is Envelope {
   return t === 'ok' || t === 'not-ok'
 }
 
-/** The sentence for the one below. Its own, NOT the unreadable-body one: those
- *  are different failures, and a player who quotes this back has to identify
- *  which. "Incomplete" is the honest word — the answer arrived and parsed, and
- *  one half of it is missing. */
-const NO_OUTCOME_TEXT = "The server's answer was incomplete."
-
 /**
  * **An `ok` that wrote words but not how they read.** A non-null message means
  * "render this", and the outcome is how it renders — so without one a call site
@@ -215,7 +210,7 @@ export async function runEdgeFn<T>(
     // — a `/functions/v1/` path is not `isSupabaseInternal`, so it reports every
     // failed edge-function call. Reporting again here was the same news twice,
     // and a poorer telling, since nothing at this layer can rebuild that line.
-    if (nothingAnswered(error.status)) return environmentalEnvelope(error.message)
+    if (nothingAnswered(error.status)) return nothingReachedUs(error.message)
     // SOMETHING ANSWERED, but not our function speaking — a gateway's HTML, a
     // shape from before the conversion. `callEdgeFn` has recovered whatever
     // message there was, and `dbFetch` has already reported it too.
@@ -231,14 +226,18 @@ export async function runEdgeFn<T>(
   }
   if (!_isEnvelope(data)) {
     const rawBody = `rawBody: ${JSON.stringify(data)?.slice(0, 120)}`
-    const unreadable = faultEnvelope(null, 'The server answered with an unreadable result.', rawBody)
+    const unreadable = faultEnvelope(
+      null, OUR_BUG_TO_CODE_AND_TEXT.unreadable.text, rawBody,
+      OUR_BUG_TO_CODE_AND_TEXT.unreadable.code,
+    )
     reportDbFault(transport, unreadable)
     return unreadable
   }
   if (hasMessageWithoutOutcome(data)) {
     const broken = faultEnvelope(
-      null, NO_OUTCOME_TEXT,
+      null, OUR_BUG_TO_CODE_AND_TEXT.noOutcome.text,
       `an ok carried a message with no outcome: ${JSON.stringify(data)?.slice(0, 120)}`,
+      OUR_BUG_TO_CODE_AND_TEXT.noOutcome.code,
     )
     reportDbFault(transport, broken)
     return broken
@@ -303,13 +302,13 @@ export async function runRpc<T>(
     // fetch into `{ error, status: 0 }` before it reaches here, so what this
     // actually catches is a throw from some other layer — the same case by
     // another road, not a different one.
-    return environmentalEnvelope(String(thrown))
+    return nothingReachedUs(String(thrown))
   }
   if (settled.error) {
     // `dbFetch` has already worded and presented both of these; the envelope is
     // what the CALL SITE reads afterwards, and it must say the same thing.
     return nothingAnswered(settled.status)
-      ? environmentalEnvelope(settled.error.message)
+      ? nothingReachedUs(settled.error.message)
       : faultEnvelope(settled.error, 'The server refused the request.')
   }
   // Below the failure branch, because nothing above it needs one: a transport
@@ -327,7 +326,10 @@ export async function runRpc<T>(
   // becomes a fault in the same shape as any other.
   if (!_isEnvelope(body)) {
     const rawBody = `rawBody: ${JSON.stringify(body)?.slice(0, 120)}`
-    const unreadable = faultEnvelope(null, 'The server answered with an unreadable result.', rawBody)
+    const unreadable = faultEnvelope(
+      null, OUR_BUG_TO_CODE_AND_TEXT.unreadable.text, rawBody,
+      OUR_BUG_TO_CODE_AND_TEXT.unreadable.code,
+    )
     reportDbFault(transport, unreadable)
     // No `dbcode` to carry — the call SUCCEEDED (a 200 with an unreadable
     // body), so there is no Postgres error. What we do know is the body, and
@@ -342,8 +344,9 @@ export async function runRpc<T>(
   // `severity: 'fault'` mean the same thing however the fault arose.
   if (hasMessageWithoutOutcome(body)) {
     const broken = faultEnvelope(
-      null, NO_OUTCOME_TEXT,
+      null, OUR_BUG_TO_CODE_AND_TEXT.noOutcome.text,
       `an ok carried a message with no outcome: ${JSON.stringify(body)?.slice(0, 120)}`,
+      OUR_BUG_TO_CODE_AND_TEXT.noOutcome.code,
     )
     reportDbFault(transport, broken)
     return broken
@@ -395,13 +398,13 @@ export async function readRows<Row>(query: QueryLike<Row[]>): Promise<Envelope<R
     // A throw IS "nothing answered". postgrest-js converts a rejected fetch
     // into `{ error, status: 0 }` before it reaches here, so this catches a
     // throw from some OTHER layer — the same case by another road.
-    return environmentalEnvelope(`${call} — ${String(thrown)}`)
+    return nothingReachedUs(`${call} — ${String(thrown)}`)
   }
   if (settled.error) {
     // `dbFetch` has already worded and presented both of these; the envelope is
     // what the hook reads afterwards, and it must say the same thing.
     return nothingAnswered(settled.status)
-      ? environmentalEnvelope(`${call} — ${settled.error.message}`)
+      ? nothingReachedUs(`${call} — ${settled.error.message}`)
       : faultEnvelope(settled.error, 'The read failed.', call)
   }
   // **This wrapper is for QUERIES.** Pointed at an RPC, what comes back is a
@@ -417,8 +420,9 @@ export async function readRows<Row>(query: QueryLike<Row[]>): Promise<Envelope<R
   if (settled.data !== null && !Array.isArray(settled.data)) {
     const what = _isEnvelope(settled.data) ? 'an RPC envelope' : `a ${typeof settled.data}`
     const crossed = faultEnvelope(
-      null, 'BUG: a table read did not answer with rows',
+      null, OUR_BUG_TO_CODE_AND_TEXT.notRows.text,
       `readRows received ${what}: ${JSON.stringify(settled.data)?.slice(0, 120)}`,
+      OUR_BUG_TO_CODE_AND_TEXT.notRows.code,
     )
     reportDbFault({ call, status: 200 }, crossed)
     return crossed

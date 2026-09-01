@@ -258,20 +258,71 @@ describe('dbFetch — presenting faults', () => {
     expect(fault.diagnostics).toContain('dbcode=23514')
   })
 
-  // The failure most worth showing, and the one that was silent longest: a
-  // gateway's HTML error page or an empty body on a PostgREST call means the
-  // stack is broken, not that a move was refused. There is no code and no
-  // message to read, but the call, the status and the time are what the modal
-  // needs anyway.
-  it('presents a fault even when the error body is not JSON', async () => {
+  // ── WHO answered, and therefore what it says ─────────────────
+  // Three different things to go fix, and this is the only layer that can tell
+  // them apart: a call site sees the envelope, never the response.
+
+  // HTML on `/rest/v1/` — PostgREST always speaks JSON, so something that is
+  // not PostgREST answered. A captive portal, a proxy, an ISP page. It used to
+  // say "The server refused the request", which claims we answered and said no.
+  it('names a foreign responder when the body is not JSON, on a rest path', async () => {
     stubFetch(() =>
       Promise.resolve(new Response('<html>502 Bad Gateway</html>', { status: 502 })),
     )
     await dbFetch('https://x.test/rest/v1/rpc/submit_guess', { method: 'POST' })
     const [fault] = peekFaultsForTest()
-    expect(fault.text).toBe('The server refused the request.')
+    expect(fault.text).toContain('a server other than ours')
+    expect(fault.diagnostics).toContain('dbcode=FE004')
     expect(fault.diagnostics).toContain('status=502')
-    expect(fault.diagnostics).toContain('dbcode=')
+  })
+
+  // The edge RUNTIME answering instead of the function — `Function not found`
+  // in text/plain. Ours: a deploy failure, not the player's network.
+  it('blames our own deploy when the runtime answers on a functions path', async () => {
+    stubFetch(() =>
+      Promise.resolve(new Response('Function not found', { status: 404 })),
+    )
+    await dbFetch('https://x.test/functions/v1/boggle-build-board', { method: 'POST' })
+    const [fault] = peekFaultsForTest()
+    expect(fault.text).toContain('BUG:')
+    expect(fault.diagnostics).toContain('dbcode=PN310')
+  })
+
+  // It PARSED but carried no SQLSTATE — Kong's own `{"message":"no Route
+  // matched…"}`. Our gateway is up and the thing behind it is not, which the
+  // player does not need spelled out; they need "our server is down".
+  it('says our server is down when our gateway answers without a SQLSTATE', async () => {
+    stubFetch(() =>
+      Promise.resolve(
+        new Response(JSON.stringify({ message: 'no Route matched with those values' }), {
+          status: 502,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      ),
+    )
+    await dbFetch('https://x.test/rest/v1/rpc/submit_guess', { method: 'POST' })
+    const [fault] = peekFaultsForTest()
+    expect(fault.text).toContain('Our server appears to be down')
+    expect(fault.diagnostics).toContain('dbcode=FE003')
+    // The gateway's own words survive where whoever debugs will read them.
+    expect(fault.diagnostics).toContain('no Route matched')
+  })
+
+  // And Postgres naming itself still wins: its SQLSTATE is the more specific
+  // answer, so none of the three above applies.
+  it('leaves a real Postgres error alone', async () => {
+    stubFetch(() =>
+      Promise.resolve(
+        new Response(JSON.stringify({ message: 'permission denied', code: '42501' }), {
+          status: 403,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      ),
+    )
+    await dbFetch('https://x.test/rest/v1/rpc/submit_guess', { method: 'POST' })
+    const [fault] = peekFaultsForTest()
+    expect(fault.text).toBe('permission denied')
+    expect(fault.diagnostics).toContain('dbcode=42501')
   })
 
   // Reading the body must not consume it — every caller downstream still needs

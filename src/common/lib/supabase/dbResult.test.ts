@@ -3,7 +3,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { PostgrestClient } from '@supabase/postgrest-js'
 import {
-  environmentalEnvelope, faultEnvelope, reportDbFault,
+  faultEnvelope, nothingReachedUs, reportDbFault,
 } from './dbEnvelope'
 import { diagnosticsLine, logDb, logSlow } from './dbLog'
 import { _isEnvelope, notOkOutcome, readRows, runEdgeFn, runRpc } from './dbResult'
@@ -66,7 +66,8 @@ beforeEach(() => {
  */
 describe('a request nothing answered', () => {
   const OFFLINE = 'You appear to be offline. Please refresh and try again.'
-  const UNREACHABLE = "The server didn't answer. Please refresh and try again."
+  const UNREACHABLE =
+    "You appear online, but the server didn't answer. Please refresh and try again."
 
   /** `navigator.onLine` picks WHICH sentence; both are pinned below. */
   const setOnline = (online: boolean) =>
@@ -349,12 +350,11 @@ describe('runRpc — one shape, always', () => {
   it('builds a fault envelope when the reply is not an envelope at all', async () => {
     const r = await runRpc(Promise.resolve({ data: 'won', error: null }))
     expect(r).toMatchObject({ type: 'not-ok', severity: 'fault' })
-    // No dbcode: the call SUCCEEDED, so there is no Postgres error to carry.
-    // The unreadable body is the only evidence there is, so it must survive.
-    // The key is PRESENT and null, like every other key on every envelope — the
-    // assertion is that it carries no CODE, not that it is missing. Absence
-    // stopped being a way to say anything when the builders stopped stripping.
-    expect((r as { dbcode: string | null }).dbcode).toBeNull()
+    // PN307, not null. The call SUCCEEDED, so there is no Postgres SQLSTATE to
+    // carry — but "the frontend built this envelope" is itself an answer, and
+    // giving it a code is what stopped `useGameTimer` identifying a case by an
+    // absence. The unreadable body survives in `detail`.
+    expect((r as { dbcode: string | null }).dbcode).toBe('PN307')
     expect((r as { detail?: string }).detail).toBe('rawBody: "won"')
     expect(peekFaultsForTest()).toHaveLength(1)
   })
@@ -452,10 +452,10 @@ describe('reportDbFault', () => {
   })
 
   it('words an offline failure itself, naming no action', () => {
-    // The builder reads `navigator.onLine` rather than taking it, so that two
-    // callers cannot ask the same global and disagree about the answer.
+    // `nothingReachedUs` reads `navigator.onLine` rather than taking it, so
+    // that two callers cannot ask the same global and disagree about the answer.
     vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false)
-    reportDbFault({ call: 'GET /rest/v1/clubs' }, environmentalEnvelope())
+    reportDbFault({ call: 'GET /rest/v1/clubs' }, nothingReachedUs())
     const [fault] = peekFaultsForTest()
     expect(fault.text).toBe('You appear to be offline. Please refresh and try again.')
     // It must NOT claim the call did or didn't land — the link can die on the
@@ -465,7 +465,7 @@ describe('reportDbFault', () => {
 
   it('puts the call in the diagnostics rather than the sentence', () => {
     vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true)
-    reportDbFault({ call: 'POST /rest/v1/rpc/submit_guess' }, environmentalEnvelope())
+    reportDbFault({ call: 'POST /rest/v1/rpc/submit_guess' }, nothingReachedUs())
     const [fault] = peekFaultsForTest()
     expect(fault.diagnostics).toContain('POST /rest/v1/rpc/submit_guess')
     expect(fault.text).not.toContain('submit_guess')
@@ -563,7 +563,7 @@ describe('runEdgeFn — the same shape, through Deno', () => {
     const r = await runEdgeFn('boggle-build-board', {})
 
     expect(r).toMatchObject({ type: 'not-ok', severity: 'fault' })
-    expect(peekFaultsForTest()[0].text).toContain('unreadable')
+    expect(peekFaultsForTest()[0].text).toContain('no caller can read')
   })
 
   // Still a fault, but NOT a second modal. A `/functions/v1/` path is not
@@ -633,11 +633,12 @@ describe('an ok that breaks its own contract', () => {
         error: null,
       }),
     )
-    expect(r).toMatchObject({ type: 'not-ok', severity: 'fault' })
-    // Its OWN sentence, not the unreadable-body one: a player who quotes this
-    // back has to be identifiable as this failure rather than that one.
+    expect(r).toMatchObject({ type: 'not-ok', severity: 'fault', dbcode: 'PN308' })
+    // Its OWN sentence AND its own code, not the unreadable-body one: a player
+    // who quotes this back has to be identifiable as this failure rather than
+    // that one, and `dbcode` is what makes that true without reading prose.
     const [fault] = peekFaultsForTest()
-    expect(fault.text).toBe("The server's answer was incomplete.")
+    expect(fault.text).toBe('BUG: an ok carried a message with no outcome')
     expect(fault.diagnostics).toContain('a message with no outcome')
   })
 

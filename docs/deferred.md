@@ -224,39 +224,6 @@ was their green/yellow/gray feedback flattening to one gray in mono.
 
 ## To discuss
 
-- **A frontend-authored envelope has no code, so its kind is identified by an
-  ABSENCE** (found 2026-08-31, **do this next — the timer is waiting on it**).
-  Four different failures all arrive with `dbcode === null`, all with
-  `severity: 'fault'`, so neither field separates them:
-
-  | built by | means |
-  |---|---|
-  | `environmentalEnvelope` | nothing answered — offline or unreachable |
-  | `faultEnvelope(null, 'The server answered with an unreadable result.')` | the RPC returned a non-envelope |
-  | `faultEnvelope(null, NO_OUTCOME_TEXT)` | an `ok` carrying a message with no outcome — a server bug |
-  | `faultEnvelope(err, …)` with a codeless error | anything Postgres did not name |
-
-  `useGameTimer:125` is the ONLY call site in the repo that branches on an
-  absence — every other one tests equality against a named code (`PA001`,
-  `PA003`, `PA004`, `PN018`, `PN302`, `PN011`/`PN012`). It reads as "nothing
-  answered" and actually means "nothing answered, OR answered incomprehensibly",
-  so it swallows two real bugs, and the next codeless FE envelope joins them
-  silently.
-
-  **Fix: give frontend-authored envelopes their own class**, the way `PA` and
-  `PN` name who authored a raise — say `FE001` offline, `FE002` unreachable,
-  `FE003` unreadable result, `FE004` an ok with no outcome. Then `dbcode` is
-  never null, no call site identifies anything by absence, and a NEW
-  frontend-authored failure falls through the timer's chain to its scream
-  instead of being swallowed.
-
-  Costs: `raiseCodes.test.ts` guards `PA`/`PN` allocation against the SQL, so
-  the new class wants its own allocation and guard; and `docs/envelopes.md`
-  defines `dbcode` as the SQLSTATE, which widens to "which answer is this,
-  whoever authored it".
-
-  **Then change `useGameTimer:125` to the explicit check** — that line is the
-  reason this was found, and it stays wrong until it can name what it drops.
 - **Faults are presented from two places, and only one can be exempted**
   (found 2026-08-31 while adding `dbFetch`'s `isPolled`, not fixed). A transport
   failure is presented by `dbFetch`; a fault the server DECLARED arrives HTTP
@@ -270,6 +237,12 @@ was their green/yellow/gray feedback flattening to one gray in mono.
   presenter and already receives the call label in its `transport` argument. It
   is a change to the shared fault path, so it wants doing on its own rather than
   riding along with whatever RPC exposed it.
+
+  **Not urgent: nothing is currently wrong because of it.** `tick_timer` is the
+  only poll, and it declares only `PN011`/`PN012` — a signed-out or
+  no-longer-member player, who SHOULD be told (Joel, 2026-08-31). So the gap
+  produces the wanted behavior today. It bites the first poll that declares a
+  `race` or a `service-error`, which would then repeat once a second.
 - **A disconnected player is the one person who is not told** (raised
   2026-08-31, wanted). Pause is derived locally from `presentUserIds`, which is
   only ever updated by the server-pushed `presence: sync` event — so when YOUR

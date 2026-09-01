@@ -699,7 +699,7 @@ Two reasons, and the second is the load-bearing one:
 | `message` | both | **the player-facing sentence** |
 | `field` | not-ok | which control a `form-validation` is about |
 | `meta` | both | the additive slot — SQL can leave breadcrumbs with no FE change |
-| `dbcode` | both | the SQLSTATE, when a raise produced this |
+| `dbcode` | both | **which answer this is** — a SQLSTATE when a raise produced it, an `FE`/`PN` code when the frontend built the envelope |
 | `detail` | both | the debugging line — **never shown to a player** |
 
 **The message is written at the raise, by the RPC author.** This is the decision
@@ -984,19 +984,56 @@ expression, and a boundary that needs judgment is a boundary that drifts. The
 fact a wider definition wanted is already on the `[db]` line anyway — **a blank
 `status=` is "nothing answered"**.
 
-### The environmental sentences
+### When OUR SERVER did not answer — the `FE` codes
 
-Two sentences, for the one failure above, where the server never spoke and no
-author could have written for it. Which applies turns on `navigator.onLine`,
-read inside `environmentalEnvelope` — the ONE place either is chosen, called by
-`dbFetch` to word the modal and by all three wrappers to word the envelope a
-call site reads, so the two cannot disagree about one event.
+Four situations, four codes, four sentences. They live in `dbEnvelope.ts` and
+are the ONE place any of them is chosen — `dbFetch` calls it to word the modal
+and the three wrappers call it to word the envelope a call site reads, so the
+two cannot disagree about one event.
 
-They are not the only sentences the frontend writes, and an earlier draft of
-this section claimed they were. The rest are the fallbacks a failure that
-reached no author still needs — an unreadable body, an `ok` with a message and
-no outcome, a page that has nothing to render. What IS true is the rule those
-obey: the frontend never words a failure it could have received words for.
+| code | what happened | how it is told apart |
+|---|---|---|
+| `FE001` | nothing answered, and the device knew it was offline | no `Response`; `status=` blank |
+| `FE002` | nothing answered, and the device thought it was online | no `Response`; `status=` blank |
+| `FE003` | **our own gateway** answered and what sits behind it did not | body parsed, no SQLSTATE |
+| `FE004` | **something that is not ours** answered — a captive portal, a proxy, an ISP page | body would not parse, on `/rest/v1/` |
+
+The definition widened on 2026-08-31, from *"the JS fetch failed"* to **"our
+server did not answer."** The old line reasoned from whether a `Response` object
+existed, which is a fact about JavaScript rather than about anything a player or
+a debugger needs; the useful question is whether the game server answered, and
+for a portal or a dead upstream it did not.
+
+**Why four and not one.** They are four different things to go fix, and telling
+a player their network is at fault when our own upstream is down sends them to
+repair a router that works. `FE003` says "our server appears to be down, try
+again later"; `FE004` names the one thing on the player's side of the wire.
+
+**They still name no action beyond refreshing**, and that rule is unchanged: an
+answer that never arrived cannot tell you whether your move landed — the
+connection can die on the way *back*, after the write committed — so "refresh
+and try again" is right because refreshing reveals the real state before a retry
+can double-apply.
+
+### Bugs the frontend catches — `PN307`–`PN310`
+
+`PN`, not a class of their own: the letter says what a code does to `type`, not
+who authored it, and the sequence already spans SQL raises and 64 Deno ones.
+All four are OURS, so every message opens `BUG:` — something answered, and the
+answer was wrong.
+
+| code | what happened |
+|---|---|
+| `PN307` | a 2xx whose body is not one of our envelopes |
+| `PN308` | an `ok` carrying a message with no outcome |
+| `PN309` | `readRows` got a value instead of rows |
+| `PN310` | the edge-function runtime answered instead of the function |
+
+**Why these have codes at all:** without them a frontend-built envelope carried
+`dbcode: null`, and `useGameTimer` — the first call site that had to tell one
+failure from another — identified its case by an ABSENCE. That was true for
+reasons its condition could not state, and would have stopped being true the day
+a fifth codeless failure was added.
 
 **They are generic and name no action**, and that is a correctness rule rather
 than a simplicity one: **an environmental failure cannot tell you whether the
