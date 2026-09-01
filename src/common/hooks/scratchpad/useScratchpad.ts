@@ -5,7 +5,7 @@ import type { RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from '../../lib/supabase/supabase'
 import { channelLeaving, releaseChannel } from '../../lib/supabase/channelTeardown'
 import { onPostgresAttached } from '../../lib/supabase/postgresAttached'
-import { runRpc } from '../../lib/supabase/dbResult'
+import { readRows, runRpc } from '../../lib/supabase/dbResult'
 import { showFaultModal } from '../../lib/fault/faultStore'
 
 const commonDb = supabase.schema('common')
@@ -94,9 +94,23 @@ export function useScratchpad(
         .from('game_scratchpads')
         .select('body, version')
         .eq('game_id', gameId)
-      const { data } = await (ownerId === null ? q.is('owner_id', null) : q.eq('owner_id', ownerId))
+      // `is` rather than `eq` for the SHARED pad: PostgREST needs `is` to match
+      // a null, and an `eq` against one matches nothing.
+      const res = await readRows(
+        ownerId === null ? q.is('owner_id', null) : q.eq('owner_id', ownerId),
+      )
       if (!active) return
-      const row = data?.[0]
+      // A failed read leaves whatever is on the pad ALONE and stops loading.
+      // This runs on every realtime event, so the next one that lands seeds it
+      // — and blanking a pad someone is typing in would be the one thing worse
+      // than showing a stale one. `readRows` has logged it and raised the modal.
+      if (res.type === 'not-ok') {
+        setLoading(false)
+        return
+      }
+      // ZERO ROWS is a pad nobody has written in yet: there is no row until the
+      // first flush, and an empty pad is exactly what it should show.
+      const row = res.data[0]
       if (row) applyBody(row.body, row.version)
       setLoading(false)
     }

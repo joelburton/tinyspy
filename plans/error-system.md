@@ -684,7 +684,7 @@ select pg_temp.envelope_is(
 
 ## 7. The conversion roster
 
-**144 entries. 82 done, 62 to go** (5 of those are the deferred edge
+**144 entries. 83 done, 61 to go** (5 of those are the deferred edge
 functions). Cross them off here as they land.
 
 **Un-paused 2026-08-31: the retro-fix list is empty.** It existed because a
@@ -766,7 +766,8 @@ identifier — a shape nothing has exercised yet.
 - [ ] `found_words` · read
 - [x] `game_players` · read (2 call sites) — `useCommonGame`'s converted in the
       useGame sweep; `useGameInvitations`' embed here
-- [ ] `game_scratchpads` · read
+- [x] `game_scratchpads` · read — a failed read leaves the pad alone; blanking
+      one someone is typing in is the only thing worse than a stale one
 - [ ] `games` · read (2 call sites)
 - [ ] `games_state` · read
 - [x] `messages` · read — the same chat, and a refetch: a failure leaves the
