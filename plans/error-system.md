@@ -1,6 +1,29 @@
 # The error system — results, rejections, and faults
 
-**Status: in flight — 40 of the 146 call sites in §7 are converted.**
+**Status: in flight — 114 of the 145 roster entries in §7 are converted.**
+
+**Where to pick up (2026-09-01).** Thirteen of the sixteen game areas are
+finished; real work remains in FIVE games only, 23 pieces:
+
+| area | left |
+|---|---|
+| codenamesduet | 6 — 5 reads + `get_clue_context`, which the roster never listed. Its three turn-loop RPCs converted 2026-09-01. The only area with unconverted READS besides crosswords (`useBoard`'s three, `useClues`' one; its `useGame` reads are done) |
+| crosswords | 8 — 5 RPCs + 3 reads (`useCells`, and a `games_state` read in `PlayArea.tsx`; `useGame`'s is done) |
+| strands | 4 RPCs |
+| scrabble | 3 RPCs |
+| letterboxed | 2 RPCs |
+
+Then the CROSS-CUTTING FOUR, last, together: `concede`, `end_game`,
+`replay_board`, `submit_timeout`. The remaining 8 unchecked rows are these four
+appearing in several areas.
+
+**The roster undercounts what is done, so verify before believing an open row.**
+On 2026-09-01 seventeen read entries across seven games turned out to have been
+converted in the `useGame` sweep and never marked. Each was re-read before being
+ticked — `readRows`, a `not-ok` branch that SETS a failure rather than
+swallowing it, that failure rendered by the PlayArea, zero rows handled as its
+own case, and a refetch clearing a stale failure. Rows marked
+"verified 2026-09-01" have had that check.
 
 This supersedes `plans/error-copy-sprint.md` entirely. Ignore that file.
 
@@ -708,7 +731,7 @@ select pg_temp.envelope_is(
 
 ## 7. The conversion roster
 
-**144 entries. 94 done, 50 to go** — plus `useWordSubmit`, which is not a
+**145 entries. 114 done, 31 to go** — plus `useWordSubmit`, which is not a
 roster entry of its own but carried five call sites across four games (5 of those are the deferred edge
 functions). Cross them off here as they land.
 
@@ -723,11 +746,37 @@ areas is two entries — each has its own call sites and converts separately.
 
 The order is Joel's: club page, auth, common, then the games.
 
-**Three names break the per-area rhythm.** `concede`, `end_game` and
-`replay_board` are each ONE frontend path (`useStandardGameActions`) over
-SIXTEEN SQL definitions, so converting the frontend converts every game at once
-and all sixteen SQL files must land together. Sequence them after the games, or
-accept a sixteen-file commit. They appear in several areas below, flagged.
+**A NULL seat slipped every gate in codenamesduet's three turn-loop RPCs**, and
+the conversion closed it (Joel ruled it a bug, 2026-09-01). `caller_seat` came
+from a `case` with no `else`, so a caller seated in neither column got NULL, and
+`NULL <> giver` is NULL — which `if` reads as false. The gate meant to stop them
+waved them through; in `submit_guess` a NULL seat also fell down the
+sudden-death `else` and scored the guess against seat A's key card. Unreachable
+today (`create_game` seats both, PN091 rejects any other count), so it is a
+fault: PN384/PN385/PN386, one per site.
+
+**FOUR names break the per-area rhythm.** `concede`, `end_game`,
+`replay_board` and `submit_timeout` are each ONE frontend path over SIXTEEN SQL
+definitions, so converting the frontend converts every game at once and all
+sixteen SQL files must land together. Sequence them after the games, or accept a
+sixteen-file commit. They appear in several areas below, flagged.
+
+The first three share `useStandardGameActions`. **`submit_timeout` shares
+`makeRpcDispatcher`** — and so does `end_game`, which is why one shared function
+covers two of the four. There is no per-game call site for either: each
+`src/<game>/manifest.ts` just names the RPC.
+
+**`submit_timeout` joins the family rather than converting per area** (Joel,
+2026-09-01). It `returns void` in all sixteen schemas and every body is the same
+three lines — a member check, a no-op when the game already ended, `_finish` —
+so unlike `submit_word` there is no per-game answer shape worth designing
+separately. Sixteen identical conversions scattered across sixteen commits buy
+nothing that doing them together does not, and `end_game` has to be in that
+commit anyway.
+
+The roster had it wrong twice: it listed `submit_timeout` **once**, under
+boggle, when it exists in all sixteen schemas, and it was not flagged. Both were
+counting errors predating the areas.
 
 **A fourth name breaks it the same way, through a HOOK rather than a
 component.** `useWordSubmit`'s `commit` callback is typed
@@ -899,21 +948,40 @@ identifier — a shape nothing has exercised yet.
 
 - [x] `create_game` · RPC, reached through `boggle-build-board`
 - [ ] `end_game` · RPC — cross-cutting, see above
-- [ ] `submit_timeout` · RPC
+- [ ] `submit_timeout` · RPC — cross-cutting, see above
 - [x] `submit_word` · RPC — **SQL only**; its call site is `useWordSubmit`'s
-      `commit`, converted with the other five (see the hook note above).
+      `commit`, converted with the other three commits + wordiply's
+      `recordReject` (see the hook note above).
       PN352 keeps the raise-not-a-soft-return intent of `you-conceded`:
       a refusal is what releases the optimistic word. PN359 makes a DUPLICATE a
       race — see the note below
-- [ ] `found_words` · read (2 call sites)
-- [ ] `games` · read (2 call sites)
+- [x] `found_words` · read — converted in the useGame sweep; verified 2026-09-01
+- [x] `games` · read — converted in the useGame sweep; verified 2026-09-01
 
 #### codenamesduet
 
 - [x] `create_game` · RPC (2 call sites)
-- [ ] `pass_turn` · RPC
-- [ ] `submit_clue` · RPC (2 call sites)
-- [ ] `submit_guess` · RPC
+- [ ] `get_clue_context` · RPC — **the roster never listed it** (found
+      2026-09-01, converting the turn loop). Three raises, still old-format, and
+      the FE path is the AI button in `CluePanel`: because they arrive as
+      PostgREST errors rather than envelopes, `codenamesduet-suggest-clue`
+      turns EVERY one of them into PN316 "BUG: get_clue_context did not run" —
+      a fault modal for "you're not the clue-giver". The edge function's own
+      comment already claims this RPC is converted, so converting it makes the
+      comment true rather than needing a second edit. It is also what empties
+      `ERROR_COPY`'s last codenamesduet key, `not-clue-giver`
+- [x] `pass_turn` · RPC — PN373–PN376 + PN385, ONE `ok` carrying the turn state
+      `_end_turn` wrote. Sudden death rides in `data.play_state` rather than
+      being a second answer
+- [x] `submit_clue` · RPC — PN369–PN372 + PN384. THREE of its four refusals are
+      races: the form is drawn from the giver seat and the turn's clue row, both
+      arriving by subscription, while Submit unlocks on the reply
+- [x] `submit_guess` · RPC — PN377–PN383 + PN386, and FIVE `ok`s: the three
+      terminal ones named for the play_state they set, `agent` and `bystander`
+      for the two that leave the game running. The old `returns text` label
+      survives as `data.revealed`. `already-revealed` SPLIT in two (Joel,
+      2026-09-01): PN382 is the board's reveal, PN383 is your own bystander —
+      which blocks only you, so it is a different sentence
 - [ ] `clues` · read
 - [ ] `games` · read (3 call sites)
 - [ ] `guesses` · read
@@ -921,8 +989,9 @@ identifier — a shape nothing has exercised yet.
 - [ ] `words` · read
 - [x] `codenamesduet-suggest-clue` · edge fn — PN319/PN320 service-errors (the
       model declined, or was cut off: it RAN), five faults, and
-      `get_clue_context`'s own refusals relayed untouched. `isEnvelope` added to
-      the Deno shared envelope, which `startGame.ts` had inlined
+      `get_clue_context`'s own refusals relayed untouched — which is TRUE of the
+      relay code and NOT yet true of the RPC, see the row above. `isEnvelope`
+      added to the Deno shared envelope, which `startGame.ts` had inlined
 
 #### connections
 
@@ -960,9 +1029,9 @@ refetch), not two places in the source.
 - [x] `create_game` · RPC, reached through `letterboxed-build-board`
 - [ ] `log_help` · RPC
 - [ ] `submit_word` · RPC
-- [ ] `events` · read (2 call sites)
-- [ ] `games_state` · read (2 call sites)
-- [ ] `players_state` · read (2 call sites)
+- [x] `events` · read — converted in the useGame sweep; verified 2026-09-01
+- [x] `games_state` · read — converted in the useGame sweep; verified 2026-09-01
+- [x] `players_state` · read — converted in the useGame sweep; verified 2026-09-01
 
 #### psychicnum
 
@@ -987,9 +1056,9 @@ read to convert; `submit_guess` has one call site, not two.
 - [ ] `exchange_tiles` · RPC
 - [ ] `pass_turn` · RPC
 - [ ] `play_word` · RPC
-- [ ] `games_state` · read (2 call sites)
-- [ ] `players_state` · read
-- [ ] `plays` · read
+- [x] `games_state` · read — converted in the useGame sweep; verified 2026-09-01
+- [x] `players_state` · read — converted in the useGame sweep; verified 2026-09-01
+- [x] `plays` · read — converted in the useGame sweep; verified 2026-09-01
 - [x] `scrabble-ai-move` · edge fn — PN333–PN336, all faults, and the five
       `ai_*` RPCs' own envelopes relayed. `moves` renamed `turns`: one loop pass
       is one seat's TURN however many words it crossed, and 0 is the common
@@ -1019,8 +1088,8 @@ read to convert; `submit_guess` has one call site, not two.
       `accepted`, and nothing at all on the compete path, so one event was
       reported two different ways depending on mode. PN360 makes a duplicate a
       race
-- [ ] `found_words` · read
-- [ ] `games_state` · read
+- [x] `found_words` · read — converted in the useGame sweep; verified 2026-09-01
+- [x] `games_state` · read — converted in the useGame sweep; verified 2026-09-01
 
 #### stackdown
 
@@ -1044,9 +1113,9 @@ read to convert; `submit_guess` has one call site, not two.
 - [ ] `puzzle_for_date` · RPC
 - [ ] `spend_hint` · RPC
 - [ ] `submit_path` · RPC (2 call sites)
-- [ ] `events` · read
-- [ ] `games_state` · read (2 call sites)
-- [ ] `players_state` · read
+- [x] `events` · read — converted in the useGame sweep; verified 2026-09-01
+- [x] `games_state` · read — converted in the useGame sweep; verified 2026-09-01
+- [x] `players_state` · read — converted in the useGame sweep; verified 2026-09-01
 
 #### waffle
 
@@ -1069,8 +1138,8 @@ read to convert; `submit_guess` has one call site, not two.
       `fe_legal` tells the two callers apart — a structural break claimed legal
       by `commit` is PN367, a fault, because the FE holds `legalWords` and
       checks `minWordLength` before committing
-- [ ] `games_state` · read (2 call sites)
-- [ ] `guesses` · read (2 call sites)
+- [x] `games_state` · read — converted in the useGame sweep; verified 2026-09-01
+- [x] `guesses` · read — converted in the useGame sweep; verified 2026-09-01
 
 #### wordle
 
@@ -1087,8 +1156,8 @@ read to convert; `submit_guess` has one call site, not two.
       `commit` (see the hook note above). PN356–PN358 + PN361, and the win
       becomes one named result in both modes exactly as in spellingbee, which
       this is a fork of
-- [ ] `found_words` · read
-- [ ] `games_state` · read
+- [x] `found_words` · read — converted in the useGame sweep; verified 2026-09-01
+- [x] `games_state` · read — converted in the useGame sweep; verified 2026-09-01
 
 ### Edge functions
 

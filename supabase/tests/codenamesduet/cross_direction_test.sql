@@ -16,15 +16,21 @@
 --   3. Once contacted as an agent (global 'G'), it's locked for both.
 --   4. Both seats hitting a word as neutral locks it for both.
 --   5. Every guess is logged to codenamesduet.guesses (a word can appear twice).
+--
+-- The two locks answer DIFFERENTLY, which is the point of 3 vs 4: a globally
+-- contacted agent is "That word is already revealed" (PN382), while your own
+-- bystander is "You already tried that word" (PN383) — the partner is still
+-- free to guess that one.
 -- ============================================================
 
 begin;
 
 set search_path = codenamesduet, common, public, extensions;
 
-select plan(11);
+select plan(12);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -50,9 +56,9 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select submit_clue((select id from g1), 'CLUE1', 1);
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select is(
+select pg_temp.envelope_is(
   submit_guess((select id from g1), (select p_ng from cells)),
-  'N',
+  '{"type":"ok","data":{"result":"bystander","revealed":"N"}}'::jsonb,
   'P is a neutral on the clue-giver (ada) view'
 );
 
@@ -89,9 +95,9 @@ select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select submit_clue((select id from g1), 'CLUE2', 1);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select is(
+select pg_temp.envelope_is(
   submit_guess((select id from g1), (select p_ng from cells)),
-  'G',
+  '{"type":"ok","data":{"result":"agent","revealed":"G"}}'::jsonb,
   'the PARTNER can still guess the word bea neutraled — and it is her agent'
 );
 
@@ -106,9 +112,9 @@ select is(
 
 -- ada (same turn, green continues) guesses Q → neutral on bea's view.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select is(
+select pg_temp.envelope_is(
   submit_guess((select id from g1), (select q_nn from cells)),
-  'N',
+  '{"type":"ok","data":{"result":"bystander","revealed":"N"}}'::jsonb,
   'Q is a neutral on bea''s view → ada''s turn ends'
 );
 
@@ -118,10 +124,10 @@ select submit_clue((select id from g1), 'CLUE3', 1);
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 -- P is globally found now — locked for everyone.
-select throws_ok(
-  format($$ select submit_guess(%L, %s) $$, (select id from g1), (select p_ng from cells)),
-  'P0001',
-  'already-revealed|',
+select pg_temp.envelope_is(
+  submit_guess((select id from g1), (select p_ng from cells)),
+  '{"type":"not-ok","severity":"race","dbcode":"PN382",
+    "message":"That word is already revealed"}'::jsonb,
   'a globally-contacted agent is locked for both players'
 );
 -- bea guesses Q → neutral on ada's view → now BOTH seats have marked it.
@@ -140,6 +146,21 @@ select is(
   (select count(*)::int from codenamesduet.guesses where game_id = (select id from g1)),
   4,
   'every guess is logged (P×2, Q×2); the rejected re-guess inserted nothing'
+);
+
+-- ─── Turn 4: bea clues, ada guesses — her OWN bystander is locked ───
+-- The other half of the split. Q is neutral on both views, so it is not
+-- globally revealed and PN382 does not apply; what stops ada is her own mark
+-- from turn 2, and the sentence says so.
+select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
+select submit_clue((select id from g1), 'CLUE4', 1);
+
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select pg_temp.envelope_is(
+  submit_guess((select id from g1), (select q_nn from cells)),
+  '{"type":"not-ok","severity":"race","dbcode":"PN383",
+    "message":"You already tried that word"}'::jsonb,
+  'your own bystander is locked to you, and says so in its own words'
 );
 
 select * from finish();

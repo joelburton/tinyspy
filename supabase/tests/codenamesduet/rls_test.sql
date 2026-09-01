@@ -31,6 +31,7 @@ set search_path = codenamesduet, common, public, extensions;
 select plan(8);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 -- ============================================================
@@ -100,22 +101,21 @@ select is(
 -- Dee's mutating RPCs must throw.
 -- ============================================================
 -- The RPCs use common.require_game_player as the auth gate.
--- Since dee isn't in common.game_players for this game, she's
--- rejected with 'not playing this game' — different reject path
--- than the old "not a player in this game" message that came
--- from the per-game is_player_in_game helper (now retired).
+-- Since dee isn't in common.game_players for this game, she's rejected there —
+-- a FAULT, because create_game seats every player and the FE knows the roster,
+-- so a caller without a seat is a broken client rather than a lost race.
 
-select throws_ok(
-  $$ select submit_clue((select id from g), 'X', 1) $$,
-  '42501',
-  'not-a-player|',
+select pg_temp.envelope_is(
+  submit_clue((select id from g), 'X', 1),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN253",
+    "message":"You are not in this game"}'::jsonb,
   'dee cannot call submit_clue on a game she didn''t play'
 );
 
-select throws_ok(
-  $$ select submit_guess((select id from g), 0) $$,
-  '42501',
-  'not-a-player|',
+select pg_temp.envelope_is(
+  submit_guess((select id from g), 0),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN253",
+    "message":"You are not in this game"}'::jsonb,
   'dee cannot call submit_guess on a game she didn''t play'
 );
 

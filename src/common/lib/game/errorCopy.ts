@@ -96,14 +96,11 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
 
   // ── codenamesduet ──
   // Two seats taking turns, so both can race the turn flip: the clue arrives
-  // just as you tap, or the flip lands just as you do. All four are ordinary
-  // two-player timing, not broken clients.
+  // just as you tap, or the flip lands just as you do — ordinary two-player
+  // timing, not a broken client, which is `race` in the envelope vocabulary.
+  // The turn-loop RPCs say it themselves now; the one key left is
+  // `get_clue_context`'s, the last codenamesduet RPC still on this table.
   'not-clue-giver': { text: () => 'Not the clue-giver', tone: 'noted' },
-  'you-are-clue-giver': { text: () => "You're giving the clue", tone: 'noted' },
-  'no-clue-yet': { text: () => 'Wait for the clue', tone: 'noted' },
-  'clue-already-given': { text: () => 'Clue already given', tone: 'noted' },
-  // Your partner turned that cell over in the same moment.
-  'already-revealed': { text: () => 'Already revealed', tone: 'noted' },
 
   // ── strands ──
   // The earned-hint economy, which nothing else on the roster has. All three

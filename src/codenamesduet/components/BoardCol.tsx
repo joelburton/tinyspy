@@ -1,11 +1,13 @@
 // cs-unmet
 
-import { failureMessage } from '../../common/lib/game/serverError'
 import { useCallback, useRef, useState, type ReactNode } from 'react'
 import { cls } from '../../common/lib/util/cls'
 import type { GenericFeedbackMsg } from '../../common/lib/games'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { terminalPill } from '../../common/lib/game/localPills'
+import { runRpc } from '../../common/lib/supabase/dbResult'
+import { getNotOkFeedback } from '../../common/lib/game/genericPills'
+import { showFaultModal } from '../../common/lib/fault/faultStore'
 import { GenericFeedbackPill } from '../../common/components/feedback/GenericFeedbackPill'
 import { MobileStatusBar } from '../../common/components/game/MobileStatusBar'
 import { db } from '../db'
@@ -19,6 +21,32 @@ import { CluePanel, type SuggestState } from './CluePanel'
 import shared from '../../common/components/game/PlayArea.module.css'
 import history from '../../common/components/game/lists/historyViewer.module.css'
 import styles from './BoardCol.module.css'
+
+/**
+ * What `submit_guess` answers. Five `ok`s: the three that end the game are
+ * named for the play_state they set, and the two that leave it running are
+ * named for what was turned over.
+ *
+ * `revealed` is the key-card label the guess hit ('G' | 'N' | 'A') — the whole
+ * of what this RPC used to return, now one field among the board facts the
+ * reveal produced.
+ */
+type GuessAnswer =
+  | {
+      result: 'agent' | 'bystander'
+      revealed: 'G' | 'N'
+      greens_found: number
+      turn_number: number
+      turns_remaining: number
+      clue_giver: Seat
+      play_state: 'playing' | 'sudden_death'
+    }
+  | {
+      result: 'won' | 'lost_assassin' | 'lost_clock'
+      revealed: 'G' | 'N' | 'A'
+      greens_found: number
+      turns_used: number
+    }
 
 /**
  * codenamesduet's board column — the 5×5 `Board` plus the fixed-height
@@ -148,18 +176,42 @@ export function BoardCol({
       guessInFlight.current = true
       clearLocalFeedback()
       setPendingPos(position)
-      const { error } = await db.rpc('submit_guess', {
+      const res = await runRpc<GuessAnswer>(db.rpc('submit_guess', {
         target_game: gameId,
         target_position: position,
-      })
+      }))
       setPendingPos(null)
       guessInFlight.current = false
-      if (error) {
-        console.error('submit_guess failed', error)
-        onError(failureMessage(error, 'guess'))
+      // Five answers, and every one of them says nothing here: each is a
+      // REVEAL, and the reveal arrives via Realtime → useBoard
+      // refetches → the tile re-renders in its result color. No optimistic
+      // update, no flash, and a pill would only repeat the board.
+      //
+      // The refusals are the opposite — nothing on the board changes, so this
+      // is the only place they can be said. Most of them are races (orange):
+      // the tiles unlock on this reply while the board and the turn state
+      // arrive by subscription, and in sudden death the partner is guessing at
+      // the same time as you.
+      if (res.type === 'not-ok') {
+        onError({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+        return
+      } else if (res.type === 'ok' && res.data.result === 'agent') {
+        return
+      } else if (res.type === 'ok' && res.data.result === 'bystander') {
+        return
+      } else if (res.type === 'ok' && res.data.result === 'won') {
+        // The terminal verdict is PlayArea's: it reads the new play_state and
+        // swaps the below-board slot for the permanent pill (and pops the
+        // celebration). Saying it here as well would say it twice.
+        return
+      } else if (res.type === 'ok' && res.data.result === 'lost_assassin') {
+        return
+      } else if (res.type === 'ok' && res.data.result === 'lost_clock') {
+        return
+      } else {
+        showFaultModal({ text: 'BUG: submit_guess fell through to unhandled' })
+        return
       }
-      // Success: the reveal arrives via Realtime → useBoard refetches → the tile
-      // re-renders with its result color. No optimistic update, no flash.
     },
     [gameId, onError, clearLocalFeedback],
   )

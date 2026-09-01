@@ -1,9 +1,9 @@
 // cs-unmet
 
-import { failureMessage } from '../../common/lib/game/serverError'
 import type { GenericFeedbackMsg } from '../../common/lib/games'
 import { useRef, useState, type KeyboardEvent, type RefObject, type SubmitEvent } from 'react'
-import { runEdgeFn } from '../../common/lib/supabase/dbResult'
+import { runEdgeFn, runRpc } from '../../common/lib/supabase/dbResult'
+import { getNotOkFeedback } from '../../common/lib/game/genericPills'
 import { showFaultModal } from '../../common/lib/fault/faultStore'
 import { cls } from '../../common/lib/util/cls'
 import { ActorDot, ActorTag } from '../../common/components/game/lists/ActorMention'
@@ -12,10 +12,34 @@ import { AIButton } from '../../common/components/buttons/AIButton'
 import { EndTurnButton } from '../../common/components/buttons/EndTurnButton'
 import { usePhone } from '../../common/hooks/ui/usePhone'
 import { db } from '../db'
+import type { Seat } from '../lib/phase'
 import type { Player } from '../hooks/useGame'
 import styles from './CluePanel.module.css'
 
 type Clue = { word: string; count: number }
+
+/** What `submit_clue` answers: one `ok`, the clue as it was recorded. The word
+ *  and count are echoed from the stored row, so they say what the partner will
+ *  see rather than what this form sent. */
+type ClueAnswer = {
+  result: 'clued'
+  word: string
+  count: number
+  turn_number: number
+  by_seat: Seat
+}
+
+/** What `pass_turn` answers: one `ok`, carrying the turn state the pass
+ *  produced. `play_state` is where sudden death shows up — spending the last
+ *  turn is a state the board renders off the games row, not a second answer to
+ *  "did my pass go through". */
+type PassAnswer = {
+  result: 'passed'
+  turn_number: number
+  turns_remaining: number
+  clue_giver: Seat
+  play_state: 'playing' | 'sudden_death'
+}
 
 type CluePanelProps = {
   gameId: string
@@ -34,8 +58,9 @@ type CluePanelProps = {
   /** Report an own-action error (a failed clue submit / suggestion / pass). Goes
    *  to PlayArea's local feedback pill — NOT an inline line, so the slot height
    *  (and the board above) never changes. */
-  /** Show a failed call. Takes the whole message so a FAULT keeps its bare-red
-   *  look (lib/game/serverError.ts) — a string sink would flatten it to a pill. */
+  /** Show a refused call. Takes the whole message, tone included, because the
+   *  tone is the answer's own: `getNotOkFeedback` reads a race as orange and a
+   *  fault as red, and a string sink would flatten the two into one look. */
   onError: (msg: GenericFeedbackMsg) => void
   /** Open / update / close the AI clue-suggestion dialog. PlayArea owns the
    *  state and renders the <CodenamesduetAISuggestCompanion> HIGH in the tree: the board
@@ -200,8 +225,9 @@ function ClueForm({
   onSuggestionChange,
 }: {
   gameId: string
-  /** Show a failed call. Takes the whole message so a FAULT keeps its bare-red
-   *  look (lib/game/serverError.ts) — a string sink would flatten it to a pill. */
+  /** Show a refused call. Takes the whole message, tone included, because the
+   *  tone is the answer's own: `getNotOkFeedback` reads a race as orange and a
+   *  fault as red, and a string sink would flatten the two into one look. */
   onError: (msg: GenericFeedbackMsg) => void
   onSuggestionChange: (state: SuggestState | null) => void
 }) {
@@ -239,21 +265,32 @@ function ClueForm({
   async function onSubmit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault()
     setBusy(true)
-    const { error } = await db.rpc('submit_clue', {
+    const res = await runRpc<ClueAnswer>(db.rpc('submit_clue', {
       target_game: gameId,
       clue_word: word.trim(),
       clue_count: parseInt(count, 10),
-    })
+    }))
     setBusy(false)
-    if (error) {
-      onError(failureMessage(error, 'clue'))
+    // Three of the four refusals are RACES (orange), because this form is drawn
+    // from state that arrives by subscription while the button unlocks on the
+    // reply above: the partner's guess can hand the clue-giver seat away, and
+    // your own clue can land before the row saying so does. The inputs KEEP
+    // their contents on any refusal — the clue was never recorded, so it is
+    // still the clue you meant to give.
+    if (res.type === 'not-ok') {
+      onError({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+      return
+    } else if (res.type === 'ok' && res.data.result === 'clued') {
+      // Clear on success; the panel swaps to the guess-phase view once Realtime
+      // propagates the new clue row. Also dismiss any open suggestion dialog.
+      setCount('')
+      setWord('')
+      onSuggestionChange(null)
+      return
+    } else {
+      showFaultModal({ text: 'BUG: submit_clue fell through to unhandled' })
       return
     }
-    // Clear on success; the panel swaps to the guess-phase view once Realtime
-    // propagates the new clue row. Also dismiss any open suggestion dialog.
-    setCount('')
-    setWord('')
-    onSuggestionChange(null)
   }
 
   // Calls the codenamesduet-suggest-clue Edge Function (which enforces the
@@ -367,8 +404,9 @@ function PassButton({
   onError,
 }: {
   gameId: string
-  /** Show a failed call. Takes the whole message so a FAULT keeps its bare-red
-   *  look (lib/game/serverError.ts) — a string sink would flatten it to a pill. */
+  /** Show a refused call. Takes the whole message, tone included, because the
+   *  tone is the answer's own: `getNotOkFeedback` reads a race as orange and a
+   *  fault as red, and a string sink would flatten the two into one look. */
   onError: (msg: GenericFeedbackMsg) => void
 }) {
   const [busy, setBusy] = useState(false)
@@ -381,9 +419,19 @@ function PassButton({
       disabled={busy}
       onClick={async () => {
         setBusy(true)
-        const { error } = await db.rpc('pass_turn', { target_game: gameId })
+        const res = await runRpc<PassAnswer>(db.rpc('pass_turn', { target_game: gameId }))
         setBusy(false)
-        if (error) onError(failureMessage(error, 'pass'))
+        if (res.type === 'not-ok') {
+          onError({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+          return
+        } else if (res.type === 'ok' && res.data.result === 'passed') {
+          // Nothing to do: the new turn — and sudden death, if that was the last
+          // one — arrives on the games row, which is what redraws this panel.
+          return
+        } else {
+          showFaultModal({ text: 'BUG: pass_turn fell through to unhandled' })
+          return
+        }
       }}
     />
   )

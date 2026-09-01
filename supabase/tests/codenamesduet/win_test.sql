@@ -30,6 +30,7 @@ set search_path = codenamesduet, common, public, extensions;
 select plan(5);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 -- ============================================================
@@ -130,9 +131,10 @@ select is(
   'play_state stays playing after only 14 of 15 greens'
 );
 
--- The 15th and final reveal. submit_guess returns 'G', and inside the
--- same RPC call the win check flips play_state.
-select is(
+-- The 15th and final reveal. The answer is NAMED for the ending it caused —
+-- `won`, not `agent` — and inside the same RPC call the win check flips
+-- play_state.
+select pg_temp.envelope_is(
   submit_guess(
     (select id from g),
     (select (a.ord - 1)::int
@@ -150,8 +152,9 @@ select is(
        )
      limit 1)
   ),
-  'G',
-  'the 15th green reveal returns G'
+  '{"type":"ok","outcome":"won","data":{"result":"won","revealed":"G",
+    "greens_found":15}}'::jsonb,
+  'the 15th green reveal answers ok/won'
 );
 
 -- (4) Play state flips to won.

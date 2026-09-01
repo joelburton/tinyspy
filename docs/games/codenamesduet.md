@@ -151,7 +151,7 @@ All `security definer`, granted only to `authenticated`, search_path pinned to `
 
 ### `codenamesduet.create_game(target_club text, setup jsonb, player_user_ids uuid[]) → table(id uuid)`
 
-The one entry point. Verifies the roster is exactly 2 club members (any club size — the pair, not the club, is what's constrained), seats both, validates `setup.turns` + `setup.first_clue_giver_user_id` + `setup.timer` shape (the timer shape is shared validation via `common.require_valid_timer`), picks 25 words, generates the Duet key-card distribution, builds the title (the first 3 words in BOARD order, dash-joined — the board is shared, so naming the game after three of its words leaks nothing; the key card is what stays secret), calls `common.create_game(target_club, 'codenamesduet', player_user_ids, title, setup, setup - 'first_clue_giver_user_id')` for the common header half (the last arg is the saved club default, stripped of the per-game first-giver pick) (see [common.md → Game-RPC helpers](../common.md#game-rpc-helpers-called-by-per-game-rpcs)), then inserts the codenamesduet detail row. Finally calls `common.update_state(new_id, 'playing', jsonb_build_object(...))` to seed `common.games.status` with the initial label payload (turn_number, turns_remaining, greens_found). One call, no lobby state. (Mid-game RPCs that need to read setup — `submit_guess` reading `turns_used` for the result payload — query `common.games.setup` via a subquery.)
+The one entry point. Verifies the roster is exactly 2 club members (any club size — the pair, not the club, is what's constrained), seats both, validates `setup.turns` + `setup.first_clue_giver_user_id` + `setup.timer` shape (the timer shape is shared validation via `common.require_valid_timer`), picks 25 words, generates the Duet key-card distribution, builds the title (the first 3 words in BOARD order, dash-joined — the board is shared, so naming the game after three of its words leaks nothing; the key card is what stays secret), calls `common.create_game(target_club, 'codenamesduet', player_user_ids, title, setup, setup - 'first_clue_giver_user_id')` for the common header half (the last arg is the saved club default, stripped of the per-game first-giver pick) (see [common.md → Game-RPC helpers](../common.md#game-rpc-helpers-called-by-per-game-rpcs)), then inserts the codenamesduet detail row. Finally calls `common.update_state(new_id, 'playing', jsonb_build_object(...))` to seed `common.games.status` with the initial label payload (turn_number, turns_remaining, greens_found). One call, no lobby state. (Mid-game RPCs that need to read setup — `submit_guess` reading `turns_used` for the terminal status blob and its own answer — query `common.games.setup` via a subquery.)
 
 Reject reasons: not authenticated; non-member; the roster isn't exactly 2 players; bad `setup.timer` shape (see [Timer](#timer-server-authoritative-ticks)).
 
@@ -167,18 +167,26 @@ The words are on the shared board every player sees, so the title leaks nothing 
 
 ### `codenamesduet.submit_clue(target_game uuid, clue_word text, clue_count int)`
 
-Inserts a clue for the current turn. Reject reasons:
-
-- not authenticated
-- not your turn (`caller_seat ≠ current_clue_giver`)
-- a clue already exists for this `turn_number` (enforced by the `unique (game_id, turn_number)` constraint, but checked explicitly in the RPC for a cleaner error message)
-- play_state ≠ playing (no clues in sudden death — guesses come from memory only)
+Inserts a clue for the current turn.
 
 Both parameters are prefixed — `clue_word` (not `word`) and `clue_count` (not `count`, which would shadow the SQL aggregate); the matching columns on `codenamesduet.clues` stay `word` / `count` since they're only referenced in column lists.
 
-### `codenamesduet.submit_guess(target_game uuid, target_position int) → text`
+**What it answers.** [An envelope](../envelopes.md):
 
-The complex one. Returns the revealed label (`'G' | 'N' | 'A'`) for caller convenience.
+| | | |
+|---|---|---|
+| `ok` · `{result: 'clued', word, count, turn_number, by_seat}` | | the clue as it was recorded — what the partner will see, not what this form sent |
+| `PN370` "Game over" | `race` | the partner ended it, or the clock expired, while you composed |
+| `PN371` "Your partner is giving the clue now" | `race` | the giver flips inside `_end_turn`, which the PARTNER's guess runs |
+| `PN372` "A clue is already in for this turn" | `race` | your own clue landed and the `clues` row hasn't arrived |
+| `PN369` "That game no longer exists" | `fault` | nothing to race against |
+| `PN384` "BUG: a clue from a player with no seat" | `fault` | `create_game` seats both players |
+
+**Three races on one form**, which is unusual and is a fact about this game: the clue form is drawn from `current_clue_giver` and the turn's clue row, both arriving by subscription, while the Submit button unlocks the moment the RPC replies. Every window between "my move landed" and "my form knows" is real. `common.require_game_player`'s two faults (PN252, PN253) arrive through the same envelope.
+
+### `codenamesduet.submit_guess(target_game uuid, target_position int)`
+
+The complex one. The revealed label (`'G' | 'N' | 'A'`) rides in the answer's `data` as `revealed`.
 
 Logic in order:
 
@@ -189,19 +197,50 @@ Logic in order:
 5. Determine **whose key view labels this reveal**:
    - During `playing`: the clue-giver's view. Also rejects "you are the clue-giver" and "no clue yet."
    - During `sudden_death`: the partner's view (the seat opposite the caller).
-6. Verify the cell isn't already resolved **for this guesser** — blocked if it's globally revealed (`revealed_as` set) OR this seat already hit it as a neutral. A *partner's* neutral does not block the caller (it may be the caller's agent).
+6. Verify the cell isn't already resolved **for this guesser** — blocked if it's globally revealed (`revealed_as` set) OR this seat already hit it as a neutral. A *partner's* neutral does not block the caller (it may be the caller's agent). Those are two separate raises, because they are two different sentences: one is the board's, the other is only yours.
 7. Log the guess into `codenamesduet.guesses`, then denormalize onto `codenamesduet.words`: green → global `revealed_as = 'G'`, assassin → `revealed_as = 'A'`, neutral → the guesser's `neutral_a`/`neutral_b` flag.
 8. Resolve the outcome:
-   - Assassin → `common.end_game(target_game, 'lost_assassin', …)`, return `'A'`.
-   - Sudden death + non-green → `common.end_game(target_game, 'lost_clock', …)`, return label.
-   - Green → check if `count(revealed_as = 'G') >= 15` → `common.end_game(target_game, 'won', …)`; otherwise mid-game `common.update_state(target_game, 'playing'|'sudden_death', …)`. Return `'G'`.
-   - Neutral (in regular play) → `_end_turn`, then mid-game `common.update_state(…)`, return `'N'`.
+   - Assassin → `common.end_game(target_game, 'lost_assassin', …)`.
+   - Sudden death + non-green → `common.end_game(target_game, 'lost_clock', …)`.
+   - Green → check if `count(revealed_as = 'G') >= 15` → `common.end_game(target_game, 'won', …)`; otherwise mid-game `common.update_state(target_game, 'playing'|'sudden_death', …)`.
+   - Neutral (in regular play) → `_end_turn`, whose return value carries the new turn state into the answer.
 
-Terminal transitions write `common.games.play_state` + `is_terminal = true` + the `status` jsonb (`{outcome, turns_used}`) via `common.end_game`. The terminal write doesn't repeat `greens_found` — `common.end_game` **merges** into `status` (`status = coalesce(games.status, '{}') || …`) rather than assigning, so the tally the last mid-game `update_state` wrote survives into the terminal blob. They do **not** clear `is_current_view` — a terminal game stays in the club's current slot until the last viewer leaves.
+**What it answers.** [An envelope](../envelopes.md), with five `ok`s — the three that end the game named for the play_state they set, the two that don't named for what was turned over:
+
+| | | |
+|---|---|---|
+| `ok` · `{result: 'agent'}` | `won` | an agent contacted; the turn continues, so the turn state is reported unchanged |
+| `ok` · `{result: 'bystander'}` | `lost` | a bystander; carries the turn state `_end_turn` just wrote, sudden death included |
+| `ok` · `{result: 'won'}` | `won` | the 15th agent |
+| `ok` · `{result: 'lost_assassin'}` | `lost` | |
+| `ok` · `{result: 'lost_clock'}` | `lost` | a non-green in sudden death |
+| `PN379` "Game over" | `race` | in sudden death EITHER player may guess, so the partner can lose the game while yours is in flight |
+| `PN380` "Your partner is guessing this turn" | `race` | your own turn-ending guess made you the giver; the tiles unlocked on its reply |
+| `PN381` "No clue yet this turn" | `race` | the same window, one turn on |
+| `PN382` "That word is already revealed" | `race` | the partner turned it over, or your own previous guess did |
+| `PN383` "You already tried that word" | `race` | your own bystander — and only yours; the partner may still contact it |
+| `PN377` "BUG: a guess off the board" | `fault` | the position comes from the tile that was clicked |
+| `PN378` "That game no longer exists" | `fault` | nothing to race against |
+| `PN386` "BUG: a guess from a player with no seat" | `fault` | `create_game` seats both players |
+
+Every non-terminal `ok` carries `revealed`, `greens_found` and the turn state; every terminal one carries `revealed`, `greens_found` and `turns_used`. Nothing on the board reads them today — the reveal arrives by Realtime and the board redraws itself — but the answer states what it did, and the `[db]` line carries it.
+
+Terminal transitions write `common.games.play_state` + `is_terminal = true` + the `status` jsonb (`{outcome, turns_used, greens_found}`) via `common.end_game`. The terminal write states `greens_found` itself rather than leaving it to the merge: `common.end_game` **merges** into `status` (`status = coalesce(games.status, '{}') || …`), and the winning reveal IS a green — it takes the terminal branch instead of the `update_state` that would have bumped the tally, so a blob that stayed quiet left a won game reading "14/15 agents". They do **not** clear `is_current_view` — a terminal game stays in the club's current slot until the last viewer leaves.
 
 ### `codenamesduet.pass_turn(target_game uuid)`
 
-Voluntary turn-end during the guess phase. Spends one turn, swaps the clue-giver. Reject reasons: clue-giver can't pass; no clue this turn; play_state ≠ playing.
+Voluntary turn-end during the guess phase. Spends one turn, swaps the clue-giver.
+
+**What it answers.** [An envelope](../envelopes.md), with ONE `ok`:
+
+| | | |
+|---|---|---|
+| `ok` · `{result: 'passed', turn_number, turns_remaining, clue_giver, play_state}` | | the turn state `_end_turn` wrote. Spending the last turn shows up as `play_state: 'sudden_death'` rather than as a second answer — the board renders that off the games row, and "did my pass go through" has one answer |
+| `PN374` "Game over" | `race` | the partner ended it, or the clock expired |
+| `PN375` "You're giving the clue this turn" | `race` | your own turn-ending guess made you the giver |
+| `PN376` "No clue yet this turn" | `race` | the turn rolled over under a stale panel |
+| `PN373` "That game no longer exists" | `fault` | nothing to race against |
+| `PN385` "BUG: a pass from a player with no seat" | `fault` | `create_game` seats both players |
 
 ### `codenamesduet.submit_timeout(target_game uuid)`
 
@@ -235,7 +274,7 @@ Read-only RPC for the [`codenamesduet-suggest-clue`](#edge-function-codenamesdue
 
 | function | role |
 |---|---|
-| `codenamesduet._end_turn(target_game uuid)` | Shared by `submit_guess` (on neutral) and `pass_turn`. Decrements `turns_remaining`, increments `turn_number`, advances `current_clue_giver` to the partner **unless the partner has no unfound agents left** (in which case the current giver keeps the clue — the finished-player hand-off rule), calls `common.update_state(target_game, 'sudden_death', …)` when turns_remaining hits zero. Underscore-prefixed by convention to signal "internal." |
+| `codenamesduet._end_turn(target_game uuid) → jsonb` | Shared by `submit_guess` (on neutral) and `pass_turn`. Decrements `turns_remaining`, increments `turn_number`, advances `current_clue_giver` to the partner **unless the partner has no unfound agents left** (in which case the current giver keeps the clue — the finished-player hand-off rule), calls `common.update_state(target_game, 'sudden_death', …)` when turns_remaining hits zero. **Returns the turn state it wrote** — `{turn_number, turns_remaining, clue_giver, play_state}` — which both callers put in their answer's `data`; it is the only place that knows the next giver and whether the budget ran out. Underscore-prefixed by convention to signal "internal." |
 
 codenamesduet doesn't define its own `is_player_in_game` helper — authorization in the RPCs uses `common.require_game_player(target_game)` (which checks `common.game_players` for the caller). Seat derivation after the membership check is inline: `case caller_id when g_row.user_a_id then 'A' when g_row.user_b_id then 'B' end` reads off the games row.
 
@@ -504,12 +543,12 @@ See [`testing.md`](../testing.md) for the theory and shared setup. codenamesduet
 | `tests/codenamesduet/create_game_test.sql` | Auth, membership, happy path, club-size check, `setup.turns` validation, `setup.timer` shape spot-checks (full grid lives in connections's test), active-flag tracking via common.games, key-card distribution. Doubles as the pgTAP primer for the rest of the suite. |
 | `tests/codenamesduet/game_loop_test.sql` | The active-play turn loop: clue/guess/pass phase rejections, green-continues, neutral-ends-turn, turn decrement, clue-giver swap, turn-number advance, assassin reveal flips to `lost_assassin`. |
 | `tests/codenamesduet/clue_giver_handoff_test.sql` | The finished-player hand-off rule: when one seat's agents are all contacted, `_end_turn` keeps the clue with the seat that still has agents instead of swapping to the finished one (both directions), with a both-seats-live control swap. Forces "seat done" by marking its greens `revealed_as = 'G'` (via `reset role`, same poke as `sudden_death_test`). |
-| `tests/codenamesduet/cross_direction_test.sql` | The per-seat neutral rule: a neutral sets the guesser's `neutral_*` flag (not global `revealed_as`); the partner can still guess the word and contact it as their agent; a globally-contacted agent is locked for both; both-neutral locks for both; the guess log records each guess. |
+| `tests/codenamesduet/cross_direction_test.sql` | The per-seat neutral rule: a neutral sets the guesser's `neutral_*` flag (not global `revealed_as`); the partner can still guess the word and contact it as their agent; a globally-contacted agent is locked for both; both-neutral locks for both; the guess log records each guess. Also pins the two locks' DIFFERENT answers — PN382 for the board's reveal, PN383 for your own bystander. |
 | `tests/codenamesduet/win_test.sql` | The 15-greens-found win check. Drives through revealing greens via PL/pgSQL loops over positions. |
 | `tests/codenamesduet/sudden_death_test.sql` | Sudden-death rules: no more clues, green continues, any non-green is `lost_clock`. Forces the game into sudden_death directly via UPDATE rather than playing nine real turns. |
 | `tests/codenamesduet/submit_timeout_test.sql` | `submit_timeout` happy path from both `playing` and `sudden_death` → `lost_timeout`; idempotency on terminal state; non-player rejection via `require_game_player`; status.outcome plumbing. |
 | `tests/codenamesduet/end_game_test.sql` | `end_game` happy path: `playing` → `ended`, `is_terminal=true`, `status.outcome='manual'`, both players' `result={won:false}`; idempotency on terminal state; non-player rejection via `require_game_player`. |
-| `tests/codenamesduet/rls_test.sql` | The single highest-value security check: dee (not a player) sees zero rows from every game-scoped table, mutating RPCs throw, direct INSERTs are blocked. Includes a positive baseline (ada CAN see the game) so "dee sees nothing" is meaningful. |
+| `tests/codenamesduet/rls_test.sql` | The single highest-value security check: dee (not a player) sees zero rows from every game-scoped table, mutating RPCs refuse her (PN253, a fault), direct INSERTs are blocked at the grant layer. Includes a positive baseline (ada CAN see the game) so "dee sees nothing" is meaningful. |
 | `tests/codenamesduet/clue_context_test.sql` | `get_clue_context` auth gates + shape check (returns the expected keys). |
 
 ### codenamesduet-specific test helpers

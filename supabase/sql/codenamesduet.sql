@@ -88,9 +88,20 @@ grant select on codenamesduet.guesses to authenticated;
 -- submit_guess before this is called), so at least one seat always
 -- still has an unfound agent. The else-branch giver is therefore always
 -- a seat with agents left.
+--
+-- It RETURNS the turn state it just wrote — turn number, budget, next
+-- clue-giver, play_state. Both callers answer in an envelope and put those
+-- four values in its `data`, and this function is the only place that knows
+-- them: it decides the next giver and whether the budget ran out. Returning
+-- them beats re-reading the row it just updated.
+
+-- `create or replace` cannot change a function's return type, and this one
+-- became jsonb. `if exists` because this file is re-applied in full on every
+-- deploy, so the drop has to be a no-op the second time.
+drop function if exists codenamesduet._end_turn(uuid);
 
 create or replace function codenamesduet._end_turn(target_game uuid)
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = codenamesduet, common, public, extensions
@@ -142,6 +153,12 @@ begin
         'turns_remaining', 0
       )
     );
+    return jsonb_build_object(
+      'turn_number', new_turn_number,
+      'turns_remaining', 0,
+      'clue_giver', next_giver,
+      'play_state', 'sudden_death'
+    );
   else
     update codenamesduet.games
       set turns_remaining = remaining - 1,
@@ -156,6 +173,12 @@ begin
         'turn_number', new_turn_number,
         'turns_remaining', remaining - 1
       )
+    );
+    return jsonb_build_object(
+      'turn_number', new_turn_number,
+      'turns_remaining', remaining - 1,
+      'clue_giver', next_giver,
+      'play_state', 'playing'
     );
   end if;
 end;
@@ -428,9 +451,20 @@ grant execute on function codenamesduet.create_game(text, jsonb, uuid[]) to auth
 -- count, the SQL aggregate function). The matching columns stay "word" /
 -- "count" since they're only ever referenced in column lists, never
 -- ambiguously — the prefixed params keep the INSERT's VALUES unambiguous.
+--
+-- Three of its four rejections are RACES, because every one of them turns on
+-- state the clue form cannot see change under it. The form is rendered from
+-- `current_clue_giver` and the turn's clue row, both of which arrive by
+-- subscription, while the Submit button unlocks the moment this RPC replies —
+-- so the window between "my move landed" and "my form knows" is real.
+
+-- `create or replace` cannot change a function's return type, and this one
+-- became jsonb. `if exists` because this file is re-applied in full on every
+-- deploy, so the drop has to be a no-op the second time.
+drop function if exists codenamesduet.submit_clue(uuid, text, int);
 
 create or replace function codenamesduet.submit_clue(target_game uuid, clue_word text, clue_count int)
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = codenamesduet, common, public, extensions
@@ -440,11 +474,15 @@ declare
   g_row codenamesduet.games%rowtype;
   current_play_state text;
   caller_seat text;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   select * into g_row from codenamesduet.games
    where id = target_game for update;
   if not found then
-    raise exception 'game-not-found|' using errcode = 'P0002',
+    -- The id came from the FE's own route; there is no second player who could
+    -- have deleted the game out from under this call.
+    raise exception 'That game no longer exists'
+      using errcode = 'PN369', hint = 'fault', column = '_',
       detail = 'no codenamesduet.games row for target_game';
   end if;
 
@@ -452,7 +490,11 @@ begin
     from common.games where id = target_game;
 
   if current_play_state <> 'playing' then
-    raise exception 'game-not-in-play|' using errcode = 'P0001',
+    -- A race: the partner pressed End, or the countdown expired, while this
+    -- clue was being composed. Their action reaches this client by
+    -- subscription, so the form is still up when the game is already over.
+    raise exception 'Game over'
+      using errcode = 'PN370', hint = 'race', column = '_',
       detail = 'clues require an active play_state';
   end if;
 
@@ -467,8 +509,23 @@ begin
                    when g_row.user_b_id then 'B'
                  end;
 
+  -- A `case` with no `else` yields NULL, and every comparison against NULL is
+  -- NULL, which `if` reads as false — so without this the seat gate below would
+  -- fail OPEN for a caller who is in the game but sits in neither column, and
+  -- the insert would write a clue with by_seat = NULL. Unreachable today
+  -- (create_game seats both players and PN091 rejects any count but two), which
+  -- is exactly why it is a fault: getting here means those invariants broke.
+  if caller_seat is null then
+    raise exception 'BUG: a clue from a player with no seat'
+      using errcode = 'PN384', hint = 'fault', column = '_',
+      detail = 'caller matches neither user_a_id nor user_b_id';
+  end if;
+
   if caller_seat <> g_row.current_clue_giver then
-    raise exception 'not-clue-giver|' using errcode = 'P0001',
+    -- A race: the giver flips inside _end_turn, which the PARTNER's guess runs.
+    -- The form stays up until the new games row arrives.
+    raise exception 'Your partner is giving the clue now'
+      using errcode = 'PN371', hint = 'race', column = '_',
       detail = 'the other player holds the clue-giver seat';
   end if;
 
@@ -476,12 +533,39 @@ begin
     select 1 from codenamesduet.clues
     where game_id = target_game and turn_number = g_row.turn_number
   ) then
-    raise exception 'clue-already-given|' using errcode = 'P0001',
+    -- A race, and this one is the caller's own: the first clue landed, the
+    -- button unlocked on the reply, and the clues row that would have swapped
+    -- the panel to the guess view has not arrived yet.
+    raise exception 'A clue is already in for this turn'
+      using errcode = 'PN372', hint = 'race', column = '_',
       detail = 'one clue per turn';
   end if;
 
   insert into codenamesduet.clues (game_id, turn_number, by_seat, word, count)
   values (target_game, g_row.turn_number, caller_seat, clue_word, clue_count);
+
+  -- `result` NAMES the answer; the rest is the clue as it was recorded. The
+  -- word and count are the caller's own, echoed back from the row that now
+  -- exists rather than from the request — which is the difference between
+  -- "here is what you sent" and "here is what is stored".
+  return common.ok_envelope(jsonb_build_object(
+    'result', 'clued',
+    'word', clue_word,
+    'count', clue_count,
+    'turn_number', g_row.turn_number,
+    'by_seat', caller_seat
+  ));
+
+-- One block, and it has never heard of any specific condition: it reads the
+-- SQLSTATE, re-raises anything that isn't ours, and lets the raise itself carry
+-- the message, the kind and the field.
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -491,17 +575,32 @@ grant execute on function codenamesduet.submit_clue(uuid, text, int) to authenti
 -- ============================================================
 -- codenamesduet.submit_guess
 -- ============================================================
--- Returns the revealed label ('G' | 'N' | 'A') for caller
--- convenience. Handles all the Duet rules:
+-- Answers in an envelope whose `data` carries the revealed label
+-- ('G' | 'N' | 'A') plus the board state the reveal produced. Handles all
+-- the Duet rules:
 --   - whose key view labels this reveal (the clue-giver's during
 --     active play; the partner's in sudden death)
 --   - assassin reveal → lost_assassin
 --   - non-green during sudden death → lost_clock
 --   - green reveal → check win; turn continues
 --   - neutral reveal during active → turn ends via _end_turn
+--
+-- Five `ok` answers. The three terminal ones are named for the play_state they
+-- set; the two that leave the game running are named for what was turned over.
+--
+-- Its rejections are all races but two, and the reason is the same one the clue
+-- form has: the tiles unlock when this RPC replies, while the board and the
+-- turn state arrive by subscription. In sudden death the race is the textbook
+-- one — either player may guess, so the partner can turn a word over, or lose
+-- the game outright, while your guess is in flight.
+
+-- `create or replace` cannot change a function's return type, and this one
+-- became jsonb. `if exists` because this file is re-applied in full on every
+-- deploy, so the drop has to be a no-op the second time.
+drop function if exists codenamesduet.submit_guess(uuid, int);
 
 create or replace function codenamesduet.submit_guess(target_game uuid, target_position int)
-returns text
+returns jsonb
 language plpgsql
 security definer
 set search_path = codenamesduet, common, public, extensions
@@ -515,18 +614,25 @@ declare
   key_card jsonb;
   revealed_label text;
   green_total int;
+  turns_used int;
+  turn_state jsonb;
   player_results jsonb;
   end_state text;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   if target_position < 0 or target_position > 24 then
-    raise exception 'bad-position|' using errcode = 'P0001',
+    -- The position comes from the tile that was clicked, so an off-board one
+    -- never came from our board.
+    raise exception 'BUG: a guess off the board'
+      using errcode = 'PN377', hint = 'fault', column = '_',
       detail = 'a board position is 0..24';
   end if;
 
   select * into g_row from codenamesduet.games
    where id = target_game for update;
   if not found then
-    raise exception 'game-not-found|' using errcode = 'P0002',
+    raise exception 'That game no longer exists'
+      using errcode = 'PN378', hint = 'fault', column = '_',
       detail = 'no codenamesduet.games row for target_game';
   end if;
 
@@ -534,7 +640,11 @@ begin
     from common.games where id = target_game;
 
   if current_play_state not in ('playing', 'sudden_death') then
-    raise exception 'game-not-in-play|' using errcode = 'P0001',
+    -- A race: the partner ended the game — pressed End, ran the clock out, or
+    -- in sudden death turned over the word that lost it — while this guess was
+    -- in flight.
+    raise exception 'Game over'
+      using errcode = 'PN379', hint = 'race', column = '_',
       detail = 'play_state is not an active state';
   end if;
 
@@ -543,6 +653,16 @@ begin
                    when g_row.user_a_id then 'A'
                    when g_row.user_b_id then 'B'
                  end;
+
+  -- Seatless caller — see the same check in submit_clue for why a NULL seat
+  -- slips every gate written as a comparison. Here it would also pick the
+  -- WRONG KEY CARD: the sudden-death `case caller_seat when 'A' then 'B' else
+  -- 'A' end` below sends NULL down its else, scoring the guess against seat A.
+  if caller_seat is null then
+    raise exception 'BUG: a guess from a player with no seat'
+      using errcode = 'PN386', hint = 'fault', column = '_',
+      detail = 'caller matches neither user_a_id nor user_b_id';
+  end if;
 
   -- Whose key view labels this reveal? Most subtle rule in Duet.
   --
@@ -558,34 +678,58 @@ begin
   -- still use the partner's view (the seat opposite the caller).
   if current_play_state = 'playing' then
     if caller_seat = g_row.current_clue_giver then
-      raise exception 'you-are-clue-giver|' using errcode = 'P0001',
-      detail = 'the clue-giver may not also guess';
+      -- A race: your own turn-ending guess made you the giver, and the tiles
+      -- unlocked on that guess's reply — before the games row saying so
+      -- arrived.
+      raise exception 'Your partner is guessing this turn'
+        using errcode = 'PN380', hint = 'race', column = '_',
+        detail = 'the clue-giver may not also guess';
     end if;
     if not exists (
       select 1 from codenamesduet.clues
       where game_id = target_game and turn_number = g_row.turn_number
     ) then
-      raise exception 'no-clue-yet|' using errcode = 'P0001',
-      detail = 'no clue has been submitted for this turn';
+      -- The same window one step further on: the turn rolled over, and the new
+      -- one has no clue yet.
+      raise exception 'No clue yet this turn'
+        using errcode = 'PN381', hint = 'race', column = '_',
+        detail = 'no clue has been submitted for this turn';
     end if;
     key_owner_seat := g_row.current_clue_giver;
   else
     key_owner_seat := case caller_seat when 'A' then 'B' else 'A' end;
   end if;
 
-  -- Already resolved FOR THIS GUESSER? A word is off-limits to the caller if
-  -- it's globally done (contacted as an agent, or the assassin was hit) OR this
-  -- seat already hit it as a neutral. The PARTNER's neutral does not block the
-  -- caller — the word may be the caller's agent in the other direction.
+  -- Already resolved FOR THIS GUESSER? Two different facts, and they get two
+  -- raises because they are two different sentences to the player: the word is
+  -- globally done (an agent was contacted, or the assassin was hit), or THIS
+  -- SEAT already hit it as a neutral. The PARTNER's neutral does not block the
+  -- caller — the word may be the caller's agent in the other direction — which
+  -- is why the second condition is seat-scoped and the first is not.
   if exists (
     select 1 from codenamesduet.words w
     where w.game_id = target_game and w.position = target_position
-      and (w.revealed_as is not null
-           or (caller_seat = 'A' and w.neutral_a)
+      and w.revealed_as is not null
+  ) then
+    -- A race: in sudden death the partner may have turned it over while this
+    -- guess was in flight; in ordinary play it is your own previous guess,
+    -- whose words row has not landed yet.
+    raise exception 'That word is already revealed'
+      using errcode = 'PN382', hint = 'race', column = '_',
+      detail = 'that cell has already been turned over';
+  end if;
+
+  if exists (
+    select 1 from codenamesduet.words w
+    where w.game_id = target_game and w.position = target_position
+      and ((caller_seat = 'A' and w.neutral_a)
            or (caller_seat = 'B' and w.neutral_b))
   ) then
-    raise exception 'already-revealed|' using errcode = 'P0001',
-      detail = 'that cell has already been turned over';
+    -- Only ever the caller's own bystander, so the sentence says so. Still a
+    -- race for the same reason: the mark is on the board by subscription.
+    raise exception 'You already tried that word'
+      using errcode = 'PN383', hint = 'race', column = '_',
+      detail = 'this seat already turned that cell over as a bystander';
   end if;
 
   -- Pick the key from the column matching the labeling seat.
@@ -618,16 +762,18 @@ begin
       where game_id = target_game and position = target_position;
   end if;
 
-  -- Terminal-transition check. The three terminal cases share a
-  -- common.end_game call shape — building player_results once and
-  -- branching on the outcome string keeps the branches focused.
-  end_state := null;
+  -- The agent count as it stands after this reveal. Computed once, before the
+  -- branches, because the win check turns on it AND every answer reports it.
+  select count(*) into green_total from codenamesduet.words
+    where game_id = target_game and revealed_as = 'G';
 
   -- Terminal-transition check. The three terminal cases share a
   -- common.end_game call shape — building player_results once and
   -- branching on the outcome string keeps the branches focused.
   -- Each branch nulls out current_clue_giver on foo.games but the
   -- play_state write goes through common.end_game.
+  end_state := null;
+
   if revealed_label = 'A' then
     update codenamesduet.games set current_clue_giver = null
       where id = target_game;
@@ -636,14 +782,10 @@ begin
     update codenamesduet.games set current_clue_giver = null
       where id = target_game;
     end_state := 'lost_clock';
-  elsif revealed_label = 'G' then
-    select count(*) into green_total from codenamesduet.words
-      where game_id = target_game and revealed_as = 'G';
-    if green_total >= 15 then
-      update codenamesduet.games set current_clue_giver = null
-        where id = target_game;
-      end_state := 'won';
-    end if;
+  elsif revealed_label = 'G' and green_total >= 15 then
+    update codenamesduet.games set current_clue_giver = null
+      where id = target_game;
+    end_state := 'won';
   end if;
 
   if end_state is not null then
@@ -658,7 +800,11 @@ begin
      where game_id = target_game;
 
     -- Initial turn budget read from common.games.setup (canonical
-    -- setup location) for the `turns_used` summary field.
+    -- setup location) for the `turns_used` summary field. Held in a variable
+    -- because the answer reports it too.
+    select (setup->>'turns')::int - g_row.turns_remaining into turns_used
+      from common.games where id = target_game;
+
     perform common.end_game(
       target_game,
       end_state,
@@ -672,10 +818,7 @@ begin
                      when 'lost_clock'    then 'exhausted'
                      else 'solved'
                    end,
-        'turns_used',
-          (select (setup->>'turns')::int
-             from common.games where id = target_game)
-            - g_row.turns_remaining,
+        'turns_used', turns_used,
         -- Stated here rather than left to the merge. This branch can BE a green
         -- reveal — the 15th agent is what wins — and it returns before the
         -- update_state below that would otherwise have bumped the count. Since
@@ -685,38 +828,87 @@ begin
         -- luck, the last green having bumped it on its way past; now every
         -- terminal write states its own number, which is the convention
         -- (docs/supabase.md → the status blob).
-        'greens_found',
-          (select count(*) from codenamesduet.words
-            where game_id = target_game and revealed_as = 'G')
+        'greens_found', green_total
       ),
       player_results
     );
-    return revealed_label;
+
+    -- The three terminal answers are NAMED for the play_state they just set,
+    -- so a call site branching on `result` is branching on the ending. The
+    -- outcome is the verdict on the move that caused it: contacting the 15th
+    -- agent is a good move, and the other two are the two ways to lose.
+    return common.ok_envelope(
+      jsonb_build_object(
+        'result', end_state,
+        'revealed', revealed_label,
+        'greens_found', green_total,
+        'turns_used', turns_used
+      ),
+      case when end_state = 'won' then 'won' else 'lost' end
+    );
   end if;
 
   -- Non-terminal: if this was a green reveal, the turn continues
   -- with the same clue-giver. Otherwise (neutral in active play),
   -- end the turn.
   if revealed_label <> 'G' then
-    perform codenamesduet._end_turn(target_game);
-  else
-    -- Green reveal mid-game: bump greens_found in the listing
-    -- snapshot. play_state stays 'playing' or 'sudden_death'
-    -- depending on the current state.
-    perform common.update_state(
-      target_game,
-      current_play_state,
+    -- _end_turn hands back the turn state it wrote — the new number, what is
+    -- left of the budget, who clues next, and whether that spent the last turn
+    -- and dropped the game into sudden death.
+    turn_state := codenamesduet._end_turn(target_game);
+    return common.ok_envelope(
       jsonb_build_object(
-        'turn_number', g_row.turn_number,
-        'turns_remaining', g_row.turns_remaining,
-        'greens_found',
-          (select count(*) from codenamesduet.words
-            where game_id = target_game and revealed_as = 'G')
-      )
+        'result', 'bystander',
+        'revealed', revealed_label,
+        'greens_found', green_total,
+        'turn_number', turn_state->'turn_number',
+        'turns_remaining', turn_state->'turns_remaining',
+        'clue_giver', turn_state->>'clue_giver',
+        'play_state', turn_state->>'play_state'
+      ),
+      'lost'
     );
   end if;
 
-  return revealed_label;
+  -- Green reveal mid-game: bump greens_found in the listing
+  -- snapshot. play_state stays 'playing' or 'sudden_death'
+  -- depending on the current state.
+  perform common.update_state(
+    target_game,
+    current_play_state,
+    jsonb_build_object(
+      'turn_number', g_row.turn_number,
+      'turns_remaining', g_row.turns_remaining,
+      'greens_found', green_total
+    )
+  );
+
+  -- The turn does NOT end on an agent, so this answer reports the turn state
+  -- unchanged — the same four keys the bystander answer carries, which is what
+  -- lets a reader compare the two answers rather than the two shapes.
+  return common.ok_envelope(
+    jsonb_build_object(
+      'result', 'agent',
+      'revealed', revealed_label,
+      'greens_found', green_total,
+      'turn_number', g_row.turn_number,
+      'turns_remaining', g_row.turns_remaining,
+      'clue_giver', g_row.current_clue_giver,
+      'play_state', current_play_state
+    ),
+    'won'
+  );
+
+-- One block, and it has never heard of any specific condition: it reads the
+-- SQLSTATE, re-raises anything that isn't ours, and lets the raise itself carry
+-- the message, the kind and the field.
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -963,9 +1155,20 @@ grant execute on function codenamesduet.end_game(uuid) to authenticated;
 -- The guesser ends the turn without taking any more guesses,
 -- spending one turn. Legal even after zero guesses on the
 -- turn (e.g. "the clue makes no sense, let's just move on").
+--
+-- ONE `ok` answer, carrying the turn state the pass produced — including
+-- whether it spent the last turn and dropped the game into sudden death.
+-- That is a state the board renders off the games row, not a separate answer
+-- to "did my pass go through", so it rides in `data` rather than splitting the
+-- answer in two.
+
+-- `create or replace` cannot change a function's return type, and this one
+-- became jsonb. `if exists` because this file is re-applied in full on every
+-- deploy, so the drop has to be a no-op the second time.
+drop function if exists codenamesduet.pass_turn(uuid);
 
 create or replace function codenamesduet.pass_turn(target_game uuid)
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = codenamesduet, common, public, extensions
@@ -975,11 +1178,14 @@ declare
   g_row codenamesduet.games%rowtype;
   current_play_state text;
   caller_seat text;
+  turn_state jsonb;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   select * into g_row from codenamesduet.games
    where id = target_game for update;
   if not found then
-    raise exception 'game-not-found|' using errcode = 'P0002',
+    raise exception 'That game no longer exists'
+      using errcode = 'PN373', hint = 'fault', column = '_',
       detail = 'no codenamesduet.games row for target_game';
   end if;
 
@@ -987,7 +1193,10 @@ begin
     from common.games where id = target_game;
 
   if current_play_state <> 'playing' then
-    raise exception 'game-not-in-play|' using errcode = 'P0001',
+    -- A race: the partner ended the game, or the countdown expired, while the
+    -- Pass button was still on screen.
+    raise exception 'Game over'
+      using errcode = 'PN374', hint = 'race', column = '_',
       detail = 'passing requires an active play_state';
   end if;
 
@@ -997,8 +1206,20 @@ begin
                    when g_row.user_b_id then 'B'
                  end;
 
+  -- Seatless caller — see the same check in submit_clue for why a NULL seat
+  -- slips a gate written as a comparison. Here it would pass the turn on
+  -- behalf of somebody who is not playing.
+  if caller_seat is null then
+    raise exception 'BUG: a pass from a player with no seat'
+      using errcode = 'PN385', hint = 'fault', column = '_',
+      detail = 'caller matches neither user_a_id nor user_b_id';
+  end if;
+
   if caller_seat = g_row.current_clue_giver then
-    raise exception 'clue-giver-cannot-pass|' using errcode = 'P0001',
+    -- A race: your own turn-ending guess made you the giver, and the Pass
+    -- button unlocked on that guess's reply — before the games row arrived.
+    raise exception 'You''re giving the clue this turn'
+      using errcode = 'PN375', hint = 'race', column = '_',
       detail = 'the clue-giver''s exit is submitting a clue';
   end if;
 
@@ -1006,11 +1227,35 @@ begin
     select 1 from codenamesduet.clues
     where game_id = target_game and turn_number = g_row.turn_number
   ) then
-    raise exception 'no-clue-yet|' using errcode = 'P0001',
+    -- The same window one step on: the turn rolled over under a panel that is
+    -- still showing the last turn's clue.
+    raise exception 'No clue yet this turn'
+      using errcode = 'PN376', hint = 'race', column = '_',
       detail = 'no clue has been submitted for this turn';
   end if;
 
-  perform codenamesduet._end_turn(target_game);
+  -- _end_turn hands back the turn state it wrote, which is the whole of what
+  -- passing does.
+  turn_state := codenamesduet._end_turn(target_game);
+
+  return common.ok_envelope(jsonb_build_object(
+    'result', 'passed',
+    'turn_number', turn_state->'turn_number',
+    'turns_remaining', turn_state->'turns_remaining',
+    'clue_giver', turn_state->>'clue_giver',
+    'play_state', turn_state->>'play_state'
+  ));
+
+-- One block, and it has never heard of any specific condition: it reads the
+-- SQLSTATE, re-raises anything that isn't ours, and lets the raise itself carry
+-- the message, the kind and the field.
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 

@@ -24,6 +24,7 @@ set search_path = codenamesduet, common, public, extensions;
 select plan(18);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 -- ============================================================
@@ -40,21 +41,23 @@ create temp table g1 on commit drop as
 select (codenamesduet.create_game((select handle from club), pg_temp.codenamesduet_setup(), pg_temp.codenamesduet_players())->'data'->>'id')::uuid as id;
 
 -- ----- Phase-enforcement rejections -----
--- Bea is not the clue-giver (Ada is), so submit_clue must reject.
+-- Bea is not the clue-giver (Ada is), so submit_clue must reject. All three of
+-- these are RACES rather than faults: each turns on state the FE learns by
+-- subscription, so a stale panel can genuinely send one.
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select throws_ok(
-  $$ select submit_clue((select id from g1), 'TOOLS', 2) $$,
-  'P0001',
-  'not-clue-giver|',
+select pg_temp.envelope_is(
+  submit_clue((select id from g1), 'TOOLS', 2),
+  '{"type":"not-ok","severity":"race","dbcode":"PN371",
+    "message":"Your partner is giving the clue now"}'::jsonb,
   'submit_clue rejects when caller is not the current clue-giver'
 );
 
 -- Bea also can't guess yet — there's no clue for the current turn.
-select throws_ok(
-  $$ select submit_guess((select id from g1), 0) $$,
-  'P0001',
-  'no-clue-yet|',
+select pg_temp.envelope_is(
+  submit_guess((select id from g1), 0),
+  '{"type":"not-ok","severity":"race","dbcode":"PN381",
+    "message":"No clue yet this turn"}'::jsonb,
   'submit_guess rejects in the clue phase (no clue submitted yet)'
 );
 
@@ -62,27 +65,29 @@ select throws_ok(
 -- but right now there's no clue either, so the error she'd hit is
 -- "you are the clue-giver this turn" (checked first in the RPC).
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select throws_ok(
-  $$ select submit_guess((select id from g1), 0) $$,
-  'P0001',
-  'you-are-clue-giver|',
+select pg_temp.envelope_is(
+  submit_guess((select id from g1), 0),
+  '{"type":"not-ok","severity":"race","dbcode":"PN380",
+    "message":"Your partner is guessing this turn"}'::jsonb,
   'submit_guess rejects the clue-giver'
 );
 
 -- ----- Happy path: clue + green guess + neutral guess -----
--- Ada submits a clue.
+-- Ada submits a clue. The answer echoes the stored row, seat included.
 
-select lives_ok(
-  $$ select submit_clue((select id from g1), 'TOOLS', 2) $$,
+select pg_temp.envelope_is(
+  submit_clue((select id from g1), 'TOOLS', 2),
+  '{"type":"ok","data":{"result":"clued","word":"TOOLS","count":2,
+    "turn_number":1,"by_seat":"A"}}'::jsonb,
   'submit_clue succeeds for the current clue-giver in the clue phase'
 );
 
 -- Ada can't double up — the unique (game_id, turn_number) constraint
 -- on `clues` is enforced by the RPC ahead of the actual insert.
-select throws_ok(
-  $$ select submit_clue((select id from g1), 'OTHER', 1) $$,
-  'P0001',
-  'clue-already-given|',
+select pg_temp.envelope_is(
+  submit_clue((select id from g1), 'OTHER', 1),
+  '{"type":"not-ok","severity":"race","dbcode":"PN372",
+    "message":"A clue is already in for this turn"}'::jsonb,
   'submit_clue rejects a second clue in the same turn'
 );
 
@@ -90,13 +95,15 @@ select throws_ok(
 -- clue-giver's view), which is the most subtle rule in Duet. We use
 -- find_position to pin down a cell that's 'G' on Ada's side.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select is(
+select pg_temp.envelope_is(
   submit_guess(
     (select id from g1),
     pg_temp.find_position((select id from g1), 'A', 'G')
   ),
-  'G',
-  'a green guess returns G'
+  '{"type":"ok","outcome":"won","data":{"result":"agent","revealed":"G",
+    "greens_found":1,"turn_number":1,"turns_remaining":9,
+    "clue_giver":"A","play_state":"playing"}}'::jsonb,
+  'a green guess answers ok/agent, turn state unchanged'
 );
 
 -- Green keeps the turn alive: no turn spent, clue-giver unchanged.
@@ -116,14 +123,18 @@ select is(
   'green guess does not advance the turn number'
 );
 
--- Bea guesses a neutral (on Ada's view). This ends the turn.
-select is(
+-- Bea guesses a neutral (on Ada's view). This ends the turn, and the answer
+-- carries the turn state _end_turn just wrote — which is how the FE learns a
+-- pass or a bystander dropped the game into sudden death.
+select pg_temp.envelope_is(
   submit_guess(
     (select id from g1),
     pg_temp.find_position((select id from g1), 'A', 'N')
   ),
-  'N',
-  'a neutral guess returns N'
+  '{"type":"ok","outcome":"lost","data":{"result":"bystander","revealed":"N",
+    "greens_found":1,"turn_number":2,"turns_remaining":8,
+    "clue_giver":"B","play_state":"playing"}}'::jsonb,
+  'a neutral guess answers ok/bystander with the new turn state'
 );
 
 select is(
@@ -150,8 +161,10 @@ select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select submit_clue((select id from g1), 'WHATEVER', 1);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select lives_ok(
-  $$ select pass_turn((select id from g1)) $$,
+select pg_temp.envelope_is(
+  pass_turn((select id from g1)),
+  '{"type":"ok","data":{"result":"passed","turn_number":3,
+    "turns_remaining":7,"clue_giver":"A","play_state":"playing"}}'::jsonb,
   'pass_turn succeeds for the guesser in the guess phase'
 );
 
@@ -184,13 +197,14 @@ select (codenamesduet.create_game((select handle from club), pg_temp.codenamesdu
 select submit_clue((select id from g2), 'DOOM', 1);
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select is(
+select pg_temp.envelope_is(
   submit_guess(
     (select id from g2),
     pg_temp.find_position((select id from g2), 'A', 'A')
   ),
-  'A',
-  'an assassin guess returns A'
+  '{"type":"ok","outcome":"lost","data":{"result":"lost_assassin",
+    "revealed":"A","greens_found":0,"turns_used":0}}'::jsonb,
+  'an assassin guess answers ok/lost_assassin'
 );
 
 select is(

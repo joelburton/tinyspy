@@ -31,6 +31,7 @@ set search_path = codenamesduet, common, public, extensions;
 select plan(5);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 -- ============================================================
@@ -56,13 +57,15 @@ update codenamesduet.games set turns_remaining = 0, current_clue_giver = null
 -- ============================================================
 -- (1) submit_clue is rejected in sudden death
 -- ============================================================
--- The RPC guards on play_state='playing' and raises P0001 otherwise.
+-- The RPC guards on play_state='playing'. A RACE rather than a fault: the
+-- clue form is drawn from state that arrives by subscription, so the turn that
+-- spent the last budget can land while the form is still up.
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select throws_ok(
-  $$ select submit_clue((select id from g), 'CLUE', 1) $$,
-  'P0001',
-  'game-not-in-play|',
+select pg_temp.envelope_is(
+  submit_clue((select id from g), 'CLUE', 1),
+  '{"type":"not-ok","severity":"race","dbcode":"PN370",
+    "message":"Game over"}'::jsonb,
   'submit_clue is rejected when play_state = sudden_death'
 );
 
@@ -72,13 +75,14 @@ select throws_ok(
 -- Ada guesses; the reveal uses bea's view. We look up a 'G' on bea's
 -- side and submit it.
 
-select is(
+select pg_temp.envelope_is(
   submit_guess(
     (select id from g),
     pg_temp.find_position((select id from g), 'B', 'G')
   ),
-  'G',
-  'green reveal in sudden death returns G'
+  '{"type":"ok","outcome":"won","data":{"result":"agent","revealed":"G",
+    "greens_found":1,"play_state":"sudden_death"}}'::jsonb,
+  'green reveal in sudden death answers ok/agent and stays in sudden death'
 );
 
 select is(
@@ -92,13 +96,14 @@ select is(
 -- ============================================================
 -- A neutral on the partner's view is enough.
 
-select is(
+select pg_temp.envelope_is(
   submit_guess(
     (select id from g),
     pg_temp.find_position((select id from g), 'B', 'N')
   ),
-  'N',
-  'neutral reveal in sudden death returns N'
+  '{"type":"ok","outcome":"lost","data":{"result":"lost_clock","revealed":"N",
+    "greens_found":1}}'::jsonb,
+  'a neutral in sudden death answers ok/lost_clock — the game is over'
 );
 
 select is(
