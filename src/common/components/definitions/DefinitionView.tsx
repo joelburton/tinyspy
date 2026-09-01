@@ -58,13 +58,13 @@ export function DefinitionView({ word, onNavigate }: Props) {
       {!loading && error && (
         <div className={styles.error}>Couldn’t look that up. {error}</div>
       )}
-      {!loading && !error && result?.unknown && (
+      {!loading && !error && result?.result === 'not-a-word' && (
         <div className={styles.status}>Unknown word.</div>
       )}
-      {!loading && !error && result?.def === null && !result.unknown && (
+      {!loading && !error && result?.result === 'no-definition' && (
         <div className={styles.status}>No definition found.</div>
       )}
-      {!loading && !error && result?.def != null && (
+      {!loading && !error && result?.result === 'defined' && (
         <p className={styles.definition}>
           {parseDefinition(result.def, result.source).map((part, i) =>
             part.kind === 'ref'
@@ -90,12 +90,12 @@ export function DefinitionView({ word, onNavigate }: Props) {
           )}
         </p>
       )}
-      {!loading && result?.source === 'w' && result.def != null && (
+      {!loading && result?.result === 'defined' && result.source === 'w' && (
         // CC BY-SA attribution for live Wiktionary text (see
         // docs/common.md). Seeded glosses ('s'/'e'/'m') need none.
         <div className={styles.attribution}>via Wiktionary (CC BY-SA)</div>
       )}
-      {!loading && !error && result?.meta && (
+      {!loading && !error && result?.result !== 'not-a-word' && result?.meta && (
         // Categorization line — shown for any in-list word, even one with no
         // definition (it's still a real word with a band / flags).
         <div className={styles.meta}>{metaTags(result.meta).join(' · ')}</div>
@@ -106,7 +106,7 @@ export function DefinitionView({ word, onNavigate }: Props) {
           warm because the account menu loads it on every page; cold means
           the link stays hidden, the safe default. The RPC re-checks the
           permission server-side regardless. */}
-      {!loading && canEdit && !result?.unknown && (
+      {!loading && canEdit && result?.result !== 'not-a-word' && (
         <button
           type="button"
           className={styles.editLink}

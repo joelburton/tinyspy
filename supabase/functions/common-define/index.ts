@@ -45,7 +45,8 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 
-import { edgeInternal, json, preflight } from '../_shared/http.ts'
+import { edgeInternal, preflight } from '../_shared/http.ts'
+import { fault, ok, serviceError } from '../_shared/envelope.ts'
 
 /** Permissive but bounded normalization for the free-form lookup box.
  *  Lowercase, trim, collapse internal whitespace. Returns null if the
@@ -81,17 +82,40 @@ function formatWiktionary(data: WiktResponse): string | null {
   return lines.length > 0 ? lines.join('\n') : null
 }
 
+/**
+ * The two answers that carry a definition — from the cache or freshly fetched.
+ * One builder because the CASE is one: the word has words. `cached` is how it
+ * got here, not what it is.
+ *
+ * `no-definition` is its own result rather than `def: null` here: a word we
+ * looked up and found nothing for is a different answer from one we have a
+ * gloss for, and a call site should be able to say which without testing a
+ * field for null.
+ */
+function definitionAnswer(
+  word: string,
+  def: string,
+  source: string | null,
+  cached: boolean,
+  meta: Record<string, unknown>,
+): Response {
+  return ok({ result: 'defined', word, def, source, cached, meta })
+}
+
 serve(async (req) => {
   const pre = preflight(req)
   if (pre) return pre
 
   try {
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) return json({ error: 'not-authenticated|' }, 401)
+    // Empty rather than null when absent: `getUser` below rejects it either
+    // way, and that is the one place this is decided.
+    const authHeader = req.headers.get('Authorization') ?? ''
 
     const body = await req.json().catch(() => ({}))
     const word = normalizeWord(body.word)
-    if (!word) return json({ error: 'bad-request|word|' }, 400)
+    // The caller is a click on a word already on screen, so an empty one means
+    // we sent it wrong rather than that a player typed nothing.
+    if (!word) return fault('PN313', 'BUG: a definition request with no word', `common-define: word=${JSON.stringify(body.word)}`)
 
     // Caller-scoped client: validates the JWT and does the read under
     // the authenticated SELECT grant.
@@ -101,7 +125,12 @@ serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } },
     )
     const { data: auth } = await userClient.auth.getUser()
-    if (!auth?.user) return json({ error: 'not-authenticated|' }, 401)
+    // One check, not two: a missing Authorization header and a header the
+    // server rejects are the same answer to the player, and `getUser` catches
+    // both. Two raises would need two codes for one condition.
+    if (!auth?.user) {
+      return fault('PN314', 'Signed out; try refresh', `common-define: no authenticated user (header ${authHeader ? 'sent' : 'absent'})`)
+    }
 
     // Step 1: cache read against the master word list. Also pull the
     // categorization columns so the FE can show the word's band / dialects /
@@ -118,7 +147,7 @@ serve(async (req) => {
     // No row → not a playable word. We never look these up or store
     // them (the list is the universe of definable words).
     if (!row) {
-      return json({ word, def: null, source: null, unknown: true, cached: true })
+      return ok({ result: 'not-a-word', word })
     }
 
     // The word's categorization (every in-list response carries it).
@@ -136,18 +165,12 @@ serve(async (req) => {
 
     if (row.definition !== null) {
       // Seeded gloss or a previously-cached Wiktionary entry.
-      return json({
-        word,
-        def: row.definition,
-        source: row.definition_source,
-        cached: true,
-        meta,
-      })
+      return definitionAnswer(word, row.definition, row.definition_source, true, meta)
     }
     if (row.definition_source === 'w') {
       // Negative-cache tombstone — looked up, Wiktionary had nothing.
       // Permanent (no staleness): "don't refetch."
-      return json({ word, def: null, source: 'w', cached: true, meta })
+      return ok({ result: 'no-definition', word, meta })
     }
     // else: definition_source is NULL — never looked up; fall through.
 
@@ -165,15 +188,24 @@ serve(async (req) => {
         // Player-reachable in the wait-it-out sense (the external dictionary
         // API is down or rate-limiting) — carries ERROR_COPY; the status rides
         // as the detail and in this log line.
-        console.log(`common-define: dictionary source returned ${res.status} for "${word}"`)
-        return json({ error: `dictionary-source-failed|${res.status}|`, word }, 502)
+        return serviceError(
+          'PN311',
+          "The dictionary service didn't answer. Please try again later.",
+          `common-define: source returned ${res.status} for "${word}"`,
+        )
       }
       def = formatWiktionary((await res.json()) as WiktResponse)
     } catch (e) {
       // Timeout / network from the edge worker to the dictionary API — the
       // same wait-it-out answer as a bad status.
-      console.log(`common-define: dictionary lookup threw for "${word}" — ${String(e)}`)
-      return json({ error: 'dictionary-source-failed|', word }, 502)
+      // The same wait-it-out answer as a bad status, and the same sentence: a
+      // player cannot act differently on "returned 503" and "timed out". The
+      // codes differ so the log can say which.
+      return serviceError(
+        'PN312',
+        "The dictionary service didn't answer. Please try again later.",
+        `common-define: lookup threw for "${word}" — ${String(e)}`,
+      )
     }
 
     // Step 3: cache the definitive answer (def or tombstone) via the
@@ -192,7 +224,13 @@ serve(async (req) => {
       })
     if (cacheErr) console.error('cache_definition failed', cacheErr.message)
 
-    return json({ word, def, source: 'w', cached: false, meta })
+    // A null `def` here is Wiktionary answering 200 with no entries — the same
+    // answer as the tombstone above, reached the long way. Splitting the two
+    // `ok` results is what made that visible: the old single shape carried
+    // `def: null` for both and left the caller to notice.
+    return def === null
+      ? ok({ result: 'no-definition', word, meta })
+      : definitionAnswer(word, def, 'w', false, meta)
   } catch (e) {
     console.error('define failed', e)
     return edgeInternal(e)

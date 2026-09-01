@@ -1,8 +1,8 @@
 // cs-unmet
 
-import { failureText } from '../../lib/game/serverError'
 import { useEffect, useState } from 'react'
-import { callEdgeFn } from '../../lib/supabase/callEdgeFn'
+import { runEdgeFn } from '../../lib/supabase/dbResult'
+import { showFaultModal } from '../../lib/fault/faultStore'
 
 /** A word's categorization from `common.words` — band, dialects, slur/crude
  *  levels, slang, wordle-list membership. Present on any in-list word; absent
@@ -19,17 +19,20 @@ export type WordMeta = {
   wordle: boolean
 }
 
-/** The `common-define` Edge Function's response. `def === null` means
- *  "looked up, no definition found" (distinct from a fetch error);
- *  `unknown` means the word isn't in the master word list at all.
- *  `source` is the one-char provenance code ('s'/'e'/'w'/'m') or null. */
-export type DefinitionResult = {
-  word: string
-  def: string | null
-  source: string | null
-  unknown?: boolean
-  meta?: WordMeta
-}
+/**
+ * What `common-define` puts in `data` — three results, named, because the view
+ * shows three different things and a name is what lets it ask.
+ *
+ *   `defined`        we have words for it, from the cache or freshly fetched
+ *   `no-definition`  in the word list, looked up, nothing found
+ *   `not-a-word`     not in `common.words` at all, so never looked up
+ *
+ * `source` is the one-char provenance code ('s'/'e'/'w'/'m') or null.
+ */
+export type DefinitionResult =
+  | { result: 'defined'; word: string; def: string; source: string | null; cached: boolean; meta: WordMeta }
+  | { result: 'no-definition'; word: string; meta: WordMeta }
+  | { result: 'not-a-word'; word: string }
 
 type State = {
   result: DefinitionResult | null
@@ -72,26 +75,35 @@ export function useDefinition(word: string | null): State {
     if (!word) return
     let canceled = false
 
-    // callEdgeFn hands back a classifiable error (fe-error-key + the answered
-    // marker), so the popover's red line shows the copy-table's words —
-    // "Dictionary service couldn't be reached — try again later" — or a
-    // fault's raw key, never functions-js's generic prose.
-    void callEdgeFn('common-define', { word }).then((res) => {
-      if (canceled) return
-      const payload = res.data as (DefinitionResult & { error?: string }) | null
-      if (res.error || !payload || payload.error) {
-        setLoaded({
-          forWord: word,
-          result: null,
-          error: failureText(
-            res.error ?? { message: payload?.error ?? 'no definition in the response', answered: true },
-            'define',
-          ),
-        })
-        return
-      }
-      setLoaded({ forWord: word, result: payload, error: null })
-    })
+    // No opt-out, and the reason is worth stating because the opposite looked
+    // right: a failed lookup is a popover with nothing in it, so a blocking
+    // modal seems like too much. But `presentFaults` only ever suppresses a
+    // FAULT — `runEdgeFn` sends every other severity to the log — so opting out
+    // would silence the two that should be loud (a `BUG:` and a lapsed session)
+    // while doing nothing at all for the dictionary being down, which is a
+    // `service-error` and was never going to modal.
+    void runEdgeFn<DefinitionResult>('common-define', { word })
+      .then((res) => {
+        if (canceled) return
+        if (res.type === 'not-ok') {
+          // Every severity lands on the popover's own line, including the two
+          // that also raised a modal — the modal is dismissable, and this is
+          // the place the answer was supposed to appear.
+          setLoaded({ forWord: word, result: null, error: res.message })
+        } else if (
+          res.type === 'ok'
+          && (res.data?.result === 'defined'
+            || res.data?.result === 'no-definition'
+            || res.data?.result === 'not-a-word')
+        ) {
+          // All three named, though this hook stores them alike and the view
+          // does the asking. Naming them is what makes a FOURTH result reach
+          // the scream instead of being stored as something nothing renders.
+          setLoaded({ forWord: word, result: res.data, error: null })
+        } else {
+          showFaultModal({ text: 'BUG: common-define fell through to unhandled' })
+        }
+      })
 
     return () => {
       canceled = true

@@ -79,7 +79,6 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   // unreachable from the edge worker) — a wait-it-out answer, shown in the
   // definition popover's red line. Edge-fn-raised (common-define); the HTTP
   // status rides as the detail and in the serve log. Approved 2026-08-12.
-  'dictionary-source-failed': { text: () => "Dictionary service couldn't be reached — try again later" },
 
   // ── scrabble ──
   // The board and the bag are SHARED even in compete, so a rival's play lands
