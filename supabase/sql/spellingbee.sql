@@ -587,7 +587,7 @@ grant execute on function spellingbee.create_game(text, jsonb, uuid[], text, jso
 --   2. badLetters       uses a letter that isn't on the board
 --   3. missingCenter    doesn't include the center letter
 --   4. notAWord         not in required_words and not in bonus_words (i.e. not legal)
---   5. alreadyFound     per mode rule (see below)
+--   5. a duplicate      REFUSED per mode rule (see below) — not an answer
 --   6. accepted / bonus / pangram
 --
 -- "Per mode rule":
@@ -716,7 +716,14 @@ begin
        and fw.word = w_lower;
   end if;
   if duplicate_count > 0 then
-    return common.ok_envelope(jsonb_build_object('result', 'alreadyFound'));
+    -- A RACE, not an answer: `useWordSubmit` dedups locally and returns BEFORE
+    -- committing, so reaching this means its `foundWords` was stale — a
+    -- teammate found the word between the render and the submit (coop), or the
+    -- caller's own row had not landed yet (compete, a second tab). Nothing was
+    -- recorded, so this REFUSES; it is not a verdict on a move.
+    raise exception 'Already found'
+      using errcode = 'PN360', hint = 'race', column = '_',
+      detail = 'the word is already in found_words under this mode''s dedup rule';
   end if;
 
   -- ─── Insert the row (trusted word + points + flags) ──────

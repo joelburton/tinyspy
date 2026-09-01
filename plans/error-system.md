@@ -684,7 +684,7 @@ select pg_temp.envelope_is(
 
 ## 7. The conversion roster
 
-**144 entries. 94 done, 50 to go** (5 of those are the deferred edge
+**144 entries. 95 done, 49 to go** (5 of those are the deferred edge
 functions). Cross them off here as they land.
 
 **Un-paused 2026-08-31: the retro-fix list is empty.** It existed because a
@@ -732,6 +732,17 @@ refusal. A refused guess is a designed answer there (it is a TURN), so what
 `commit` must be able to hand back is "refused, and here is why", not an error.
 wordiply also has a second call site, `recordReject`, firing the same RPC with
 `fe_legal: false`.
+
+**A DUPLICATE is a race, not an answer** (Joel, 2026-09-01), in all four.
+`useWordSubmit.submit` dedups against `foundWords` PLUS a synchronous
+`pendingRef` and returns BEFORE calling `commit`, painting its own orange
+`warning` pill — so the server's duplicate branch is reachable only when that
+list is stale: a teammate found the word between the render and the submit
+(coop), or the caller's own row had not landed (compete, a second tab). Nothing
+is recorded, so it refuses. It is the §3 distinction exactly — `duplicate` is
+"the call refused it", where `incorrect` is "recorded, and the game said no" —
+and it matches connections' PN301. Codes: boggle PN359, spellingbee PN360,
+wordwheel PN361.
 
 The cost is a swallow window per game: a converted RPC answers `not-ok` with a
 200, so `error` is null at a raw call site and a refused word stays
@@ -846,7 +857,8 @@ identifier — a shape nothing has exercised yet.
 - [x] `submit_word` · RPC — **SQL only**; its call site is `useWordSubmit`'s
       `commit`, converted with the other five (see the hook note above).
       PN352 keeps the raise-not-a-soft-return intent of `you-conceded`:
-      a refusal is what releases the optimistic word
+      a refusal is what releases the optimistic word. PN359 makes a DUPLICATE a
+      race — see the note below
 - [ ] `found_words` · read (2 call sites)
 - [ ] `games` · read (2 call sites)
 
@@ -959,7 +971,8 @@ read to convert; `submit_guess` has one call site, not two.
       `commit` (see the hook note above). The WIN became its own named result in
       BOTH modes: it used to be a `won: true` field bolted onto coop's
       `accepted`, and nothing at all on the compete path, so one event was
-      reported two different ways depending on mode
+      reported two different ways depending on mode. PN360 makes a duplicate a
+      race
 - [ ] `found_words` · read
 - [ ] `games_state` · read
 
@@ -1016,8 +1029,10 @@ read to convert; `submit_guess` has one call site, not two.
 #### wordwheel
 
 - [x] `create_game` · RPC, reached through `wordwheel-build-board`
-- [ ] `submit_word` · RPC (2 call sites) — SQL converts here; the call site is
-      `useWordSubmit`'s `commit` (see the hook note above)
+- [x] `submit_word` · RPC — **SQL only**; the call site is `useWordSubmit`'s
+      `commit` (see the hook note above). PN356–PN358 + PN361, and the win
+      becomes one named result in both modes exactly as in spellingbee, which
+      this is a fork of
 - [ ] `found_words` · read
 - [ ] `games_state` · read
 

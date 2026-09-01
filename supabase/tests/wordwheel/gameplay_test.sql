@@ -33,9 +33,10 @@ begin;
 
 set search_path = wordwheel, common, public, extensions;
 
-select plan(47);
+select plan(46);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 -- ============================================================
@@ -61,17 +62,10 @@ select (wordwheel.create_game(
 -- (1) Coop happy path: ada submits 'bead' → accepted, 1pt
 -- ============================================================
 
-create temp table bead_ret on commit drop as
-select wordwheel.submit_word((select id from g), 'bead', 1, false, false) as ret;
-select is(
-  (select ret->>'result' from bead_ret),
-  'accepted',
+select pg_temp.envelope_is(
+  wordwheel.submit_word((select id from g), 'bead', 1, false, false),
+  '{"type":"ok","data":{"result":"accepted"}}'::jsonb,
   'submit_word: required word (is_bonus/is_pangram false) → "accepted"'
-);
-select is(
-  (select (ret->>'points')::int from bead_ret),
-  1,
-  'submit_word: return echoes the trusted points (bead = 1)'
 );
 
 select is(
@@ -104,7 +98,7 @@ select is(
 -- ============================================================
 
 select is(
-  wordwheel.submit_word((select id from g), 'abcdefghi', 24, true, false)->>'result',
+  wordwheel.submit_word((select id from g), 'abcdefghi', 24, true, false)->'data'->>'result',
   'pangram',
   'submit_word: is_pangram=true → result "pangram"'
 );
@@ -128,7 +122,7 @@ select is(
 -- ============================================================
 
 select is(
-  wordwheel.submit_word((select id from g), 'cadge', 5, false, true)->>'result',
+  wordwheel.submit_word((select id from g), 'cadge', 5, false, true)->'data'->>'result',
   'bonus',
   'submit_word: is_bonus=true → result "bonus"'
 );
@@ -154,7 +148,7 @@ select is(
 
 -- ── (3b) Bonus pangram: is_bonus AND is_pangram both true ──
 select is(
-  wordwheel.submit_word((select id from g), 'ihgfedcba', 24, true, true)->>'result',
+  wordwheel.submit_word((select id from g), 'ihgfedcba', 24, true, true)->'data'->>'result',
   'pangram',
   'submit_word: is_pangram wins over is_bonus in the result label ("pangram")'
 );
@@ -171,9 +165,11 @@ select is(
 -- ============================================================
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select is(
-  wordwheel.submit_word((select id from g), 'bead', 1, false, false)->>'result',
-  'alreadyFound',
+-- A RACE: useWordSubmit dedups locally and returns before committing, so
+-- reaching this means its foundWords list was stale.
+select pg_temp.envelope_is(
+  wordwheel.submit_word((select id from g), 'bead', 1, false, false),
+  '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN361","message":"Already found"}'::jsonb,
   'coop duplicate: bea cannot re-submit a word ada already found'
 );
 
@@ -182,10 +178,9 @@ select is(
 -- ============================================================
 
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
-select throws_ok(
-  format($$ select wordwheel.submit_word(%L::uuid, 'fade', 1, false, false) $$, (select id from g)),
-  '42501',
-  null,
+select pg_temp.envelope_is(
+  wordwheel.submit_word((select id from g), 'fade', 1, false, false),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN253"}'::jsonb,
   'submit_word: non-player (dee, outsider) is rejected with 42501'
 );
 
@@ -208,22 +203,24 @@ select (wordwheel.create_game(
 )->'data'->>'id')::uuid as id;
 
 select is(
-  wordwheel.submit_word((select id from compete_g), 'bead', 1, false, false)->>'result',
+  wordwheel.submit_word((select id from compete_g), 'bead', 1, false, false)->'data'->>'result',
   'accepted',
   'compete: ada''s first submission of "bead" is accepted'
 );
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
-  wordwheel.submit_word((select id from compete_g), 'bead', 1, false, false)->>'result',
+  wordwheel.submit_word((select id from compete_g), 'bead', 1, false, false)->'data'->>'result',
   'accepted',
   'compete: bea ALSO finds "bead" (per-player ownership)'
 );
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select is(
-  wordwheel.submit_word((select id from compete_g), 'bead', 1, false, false)->>'result',
-  'alreadyFound',
+-- A RACE: useWordSubmit dedups locally and returns before committing, so
+-- reaching this means its foundWords list was stale.
+select pg_temp.envelope_is(
+  wordwheel.submit_word((select id from compete_g), 'bead', 1, false, false),
+  '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN361","message":"Already found"}'::jsonb,
   'compete: ada''s SECOND "bead" is "alreadyFound" (same-player rule)'
 );
 
@@ -232,10 +229,10 @@ select is(
 -- ============================================================
 -- bead (1) + pangram (24) = 25 → rank_idx 3 (Nice) ≥ target_rank 2 → terminal.
 
-select is(
-  wordwheel.submit_word((select id from compete_g), 'abcdefghi', 24, true, false)->>'result',
-  'pangram',
-  'compete: pangram submission that crosses target_rank returns "pangram"'
+select pg_temp.envelope_is(
+  wordwheel.submit_word((select id from compete_g), 'abcdefghi', 24, true, false),
+  '{"type":"ok","data":{"result":"won"}}'::jsonb,
+  'compete: the pangram that crosses target_rank answers "won", as coop does'
 );
 
 select is(
@@ -260,10 +257,10 @@ select is(
 -- (8) Post-terminal submission is rejected with P0001
 -- ============================================================
 
-select throws_ok(
-  format($$ select wordwheel.submit_word(%L::uuid, 'face', 1, false, false) $$, (select id from compete_g)),
-  'P0001',
-  'game-not-in-play|',
+-- A RACE, not a bug: the game can end while a submission is in flight.
+select pg_temp.envelope_is(
+  wordwheel.submit_word((select id from compete_g), 'face', 1, false, false),
+  '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN357","message":"Game over"}'::jsonb,
   'post-terminal submit_word raises P0001'
 );
 
@@ -295,7 +292,7 @@ delete from wordwheel.found_words
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  wordwheel.submit_word((select id from g), 'iced', 1, false, false)->>'result',
+  wordwheel.submit_word((select id from g), 'iced', 1, false, false)->'data'->>'result',
   'accepted',
   'coop: the last required word returns "accepted"'
 );
@@ -315,7 +312,7 @@ select is(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  wordwheel.submit_word((select id from g), 'gibed', 5, false, true)->>'result',
+  wordwheel.submit_word((select id from g), 'gibed', 5, false, true)->'data'->>'result',
   'bonus',
   'coop: bonus word accepted after the required set is exhausted'
 );
@@ -353,7 +350,7 @@ select (wordwheel.create_game(
 
 -- One submission so the score isn't zero (proves the timeout captures state).
 select is(
-  wordwheel.submit_word((select id from timeout_g), 'face', 1, false, false)->>'result',
+  wordwheel.submit_word((select id from timeout_g), 'face', 1, false, false)->'data'->>'result',
   'accepted',
   'submit_word: face accepted in timeout-game setup'
 );
@@ -413,7 +410,7 @@ select (wordwheel.create_game(
 
 -- One required submission so end_game captures a real live aggregate.
 select is(
-  wordwheel.submit_word((select id from end_g), 'bead', 1, false, false)->>'result',
+  wordwheel.submit_word((select id from end_g), 'bead', 1, false, false)->'data'->>'result',
   'accepted',
   'submit_word: bead accepted in end_game setup'
 );
@@ -499,9 +496,9 @@ select (wordwheel.create_game(
   pg_temp.wordwheel_dup_board()
 )->'data'->>'id')::uuid as id;
 
-select is(
-  (select wordwheel.submit_word((select id from dup_g), 'egged', 5, false, false) ->> 'result'),
-  'accepted',
+select pg_temp.envelope_is(
+  wordwheel.submit_word((select id from dup_g), 'egged', 5, false, false),
+  '{"type":"ok","data":{"result":"accepted"}}'::jsonb,
   'submit_word: a repeat-letter word ("egged", both e-tiles + both g-tiles) → "accepted"'
 );
 

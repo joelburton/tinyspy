@@ -324,9 +324,10 @@ revoke execute on function boggle._refresh_status(uuid) from public;
 -- does the things the FE can't: enforce the game is live, dedup, record, and
 -- refresh the club-page status. No word-content or dictionary check.
 --
--- Four ok answers:
---   { result: 'accepted' } | { result: 'bonus' }
---   { result: 'alreadyFound' } | { result: 'gameOver' }
+-- Three ok answers:
+--   { result: 'accepted' } | { result: 'bonus' } | { result: 'gameOver' }
+-- A duplicate is NOT among them: the word is not recorded, so that REFUSES
+-- (PN359) rather than answering.
 -- The `points` every shape used to echo is gone — it was the number the caller
 -- had just sent, and nothing read it back.
 create or replace function boggle.submit_word(
@@ -390,7 +391,14 @@ begin
       where fw.game_id = target_game and fw.user_id = caller_id and fw.word = w_lower;
   end if;
   if dup_count > 0 then
-    return common.ok_envelope(jsonb_build_object('result', 'alreadyFound'));
+    -- A RACE, not an answer: `useWordSubmit` dedups locally and returns BEFORE
+    -- committing, so reaching this means its `foundWords` was stale — a
+    -- teammate found the word between the render and the submit (coop), or the
+    -- caller's own row had not landed yet (compete, a second tab). Nothing was
+    -- recorded, so this REFUSES; it is not a verdict on a move.
+    raise exception 'Already found'
+      using errcode = 'PN359', hint = 'race', column = '_',
+      detail = 'the word is already in found_words under this mode''s dedup rule';
   end if;
 
   insert into boggle.found_words (game_id, user_id, word, points, is_bonus)

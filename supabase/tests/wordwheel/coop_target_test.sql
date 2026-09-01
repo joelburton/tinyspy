@@ -29,6 +29,7 @@ set search_path = wordwheel, common, public, extensions;
 select plan(12);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 -- ============================================================
@@ -54,7 +55,7 @@ select (wordwheel.create_game(
 -- ============================================================
 
 select is(
-  wordwheel.submit_word((select id from g), 'bead', 1, false, false)->>'result',
+  wordwheel.submit_word((select id from g), 'bead', 1, false, false)->'data'->>'result',
   'accepted',
   'coop: a sub-target word is accepted and the game continues'
 );
@@ -72,9 +73,9 @@ select is(
 -- the team's — coop has no individual result.
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select is(
-  wordwheel.submit_word((select id from g), 'ihgfedcba', 24, true, false)->>'won',
-  'true',
+select pg_temp.envelope_is(
+  wordwheel.submit_word((select id from g), 'ihgfedcba', 24, true, false),
+  '{"type":"ok","data":{"result":"won"}}'::jsonb,
   'coop: the word that crosses the target reports the win to its caller'
 );
 
@@ -114,11 +115,10 @@ select is(
 -- (3) The game is really over
 -- ============================================================
 
-select throws_ok(
-  format($$ select wordwheel.submit_word(%L, 'cafe', 1, false, false) $$,
-         (select id from g)),
-  'P0001',
-  'game-not-in-play|',
+-- A RACE, not a bug: the game can end while a submission is in flight.
+select pg_temp.envelope_is(
+  wordwheel.submit_word((select id from g), 'cafe', 1, false, false),
+  '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN357","message":"Game over"}'::jsonb,
   'coop: no more words after the team wins'
 );
 

@@ -597,7 +597,7 @@ grant execute on function wordwheel.create_game(text, jsonb, uuid[], text, jsonb
 --   2. badLetters       uses a letter that isn't on the board
 --   3. missingCenter    doesn't include the center letter
 --   4. notAWord         not in required_words and not in bonus_words (i.e. not legal)
---   5. alreadyFound     per mode rule (see below)
+--   5. a duplicate      REFUSED per mode rule (see below) — not an answer
 --   6. accepted / bonus / pangram
 --
 -- "Per mode rule":
@@ -667,6 +667,7 @@ declare
   caller_found_words_count int;   -- caller's all-rows count (display + leaderboard)
   caller_rank_idx int;
   player_results jsonb;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text;
 begin
   -- Lock the gametype row. Mode is on it, so we pick it up "for
   -- free" in the same SELECT.
@@ -674,7 +675,8 @@ begin
    where wordwheel.games.id = target_game
    for update;
   if not found then
-    raise exception 'game-not-found|' using errcode = 'P0002',
+    raise exception 'BUG: a word submitted to a game with no wordwheel row'
+      using errcode = 'PN356', hint = 'fault', column = '_',
       detail = 'no wordwheel.games row for target_game';
   end if;
 
@@ -686,8 +688,11 @@ begin
     into current_play_state, current_target_rank
     from common.games where id = target_game;
 
+  -- A RACE: entry is gated on isTerminal, but the timer can expire or a rival
+  -- can reach the target rank while this submission is in flight.
   if current_play_state <> 'playing' then
-    raise exception 'game-not-in-play|' using errcode = 'P0001',
+    raise exception 'Game over'
+      using errcode = 'PN357', hint = 'race', column = '_',
       detail = 'play_state is not an active state';
   end if;
 
@@ -697,7 +702,8 @@ begin
   -- reach the target rank and be recorded the winner.
   if (select conceded from common.game_players
         where game_id = target_game and user_id = caller_id) then
-    raise exception 'you-conceded|' using errcode = 'P0001',
+    raise exception 'Already conceded'
+      using errcode = 'PN358', hint = 'race', column = '_',
       detail = 'caller already dropped out of this compete race';
   end if;
 
@@ -720,7 +726,14 @@ begin
        and fw.word = w_lower;
   end if;
   if duplicate_count > 0 then
-    return jsonb_build_object('result', 'alreadyFound', 'points', 0);
+    -- A RACE, not an answer: `useWordSubmit` dedups locally and returns BEFORE
+    -- committing, so reaching this means its `foundWords` was stale — a
+    -- teammate found the word between the render and the submit (coop), or the
+    -- caller's own row had not landed yet (compete, a second tab). Nothing was
+    -- recorded, so this REFUSES; it is not a verdict on a move.
+    raise exception 'Already found'
+      using errcode = 'PN361', hint = 'race', column = '_',
+      detail = 'the word is already in found_words under this mode''s dedup rule';
   end if;
 
   -- ─── Insert the row (trusted word + points + flags) ──────
@@ -769,9 +782,10 @@ begin
         (select jsonb_object_agg(gp.user_id, jsonb_build_object('won', true))
            from common.game_players gp
           where gp.game_id = target_game));
-      return jsonb_build_object(
-        'result', 'accepted', 'points', coalesce(points, 0), 'won', true
-      );
+      -- Its OWN answer, in both modes — see spellingbee.submit_word, which this
+      -- is forked from: the win used to be a `won: true` field here and nothing
+      -- at all on the compete path.
+      return common.ok_envelope(jsonb_build_object('result', 'won'));
     end if;
 
     perform common.update_state(
@@ -855,6 +869,9 @@ begin
                   )
                 )
            from jsonb_array_elements(player_results) entry));
+
+      -- Same answer the coop win gives, for the same event.
+      return common.ok_envelope(jsonb_build_object('result', 'won'));
     else
       -- Build the full leaderboard for the status label.
       select jsonb_agg(
@@ -895,16 +912,24 @@ begin
   end if;
 
   -- Echo back a classification (the FE drives its own optimistic feedback, so this
-  -- is mostly for tests / debugging). `points` is the trusted value on the row.
-  return jsonb_build_object(
+  -- is mostly for tests / debugging). The `points` this used to carry is gone: it
+  -- was the trusted value the caller had just sent.
+  return common.ok_envelope(jsonb_build_object(
     'result',
     case
       when coalesce(is_pangram, false) then 'pangram'
       when coalesce(is_bonus, false) then 'bonus'
       else 'accepted'
-    end,
-    'points', coalesce(points, 0)
-  );
+    end
+  ));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 

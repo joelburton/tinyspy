@@ -29,6 +29,7 @@ set search_path = wordwheel, common, public, extensions;
 select plan(23);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 -- ============================================================
@@ -58,22 +59,24 @@ select (wordwheel.create_game(
 -- ============================================================
 
 select is(
-  wordwheel.submit_word((select id from g), 'bead', 1, false, false)->>'result',
+  wordwheel.submit_word((select id from g), 'bead', 1, false, false)->'data'->>'result',
   'accepted',
   'compete: ada''s first "bead" submission accepted'
 );
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
-  wordwheel.submit_word((select id from g), 'bead', 1, false, false)->>'result',
+  wordwheel.submit_word((select id from g), 'bead', 1, false, false)->'data'->>'result',
   'accepted',
   'compete: bea also gets credit for "bead" — per-player ownership'
 );
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select is(
-  wordwheel.submit_word((select id from g), 'bead', 1, false, false)->>'result',
-  'alreadyFound',
+-- A RACE: useWordSubmit dedups locally and returns before committing, so
+-- reaching this means its foundWords list was stale.
+select pg_temp.envelope_is(
+  wordwheel.submit_word((select id from g), 'bead', 1, false, false),
+  '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN361","message":"Already found"}'::jsonb,
   'compete: ada re-submitting "bead" rejected as already-found-by-her'
 );
 
@@ -120,10 +123,10 @@ select is(
 -- cade gets {won: true}, others get {won: false}.
 
 select pg_temp.as_user('cade3333-3333-3333-3333-333333333333');
-select is(
-  wordwheel.submit_word((select id from g), 'abcdefghi', 24, true, false)->>'result',
-  'pangram',
-  'compete: cade''s target-hitting pangram returns "pangram"'
+select pg_temp.envelope_is(
+  wordwheel.submit_word((select id from g), 'abcdefghi', 24, true, false),
+  '{"type":"ok","data":{"result":"won"}}'::jsonb,
+  'compete: cade''s target-hitting pangram answers "won", as coop does'
 );
 
 reset role;
@@ -161,10 +164,10 @@ select is(
 
 -- Survivor can no longer submit (the race ended).
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select throws_ok(
-  format($$ select wordwheel.submit_word(%L::uuid, 'face', 1, false, false) $$, (select id from g)),
-  'P0001',
-  'game-not-in-play|',
+-- A RACE, not a bug: the game can end while a submission is in flight.
+select pg_temp.envelope_is(
+  wordwheel.submit_word((select id from g), 'face', 1, false, false),
+  '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN357","message":"Game over"}'::jsonb,
   'compete: post-win opponent submit is rejected'
 );
 
