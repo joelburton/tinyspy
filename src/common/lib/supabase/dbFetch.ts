@@ -2,7 +2,7 @@
 
 import {
   envelopeFields, environmentalEnvelope, faultEnvelope, NO_ANSWER_TO_CODE_AND_TEXT,
-  OUR_BUG_TO_CODE_AND_TEXT, type DbError,
+  type DbError,
 } from './dbEnvelope'
 import { logDb, logSlow } from './dbLog'
 import type { NotOk } from './envelope'
@@ -130,14 +130,6 @@ function isSupabaseInternal(input: RequestInfo | URL, init?: RequestInit): boole
   return !(path.startsWith('/rest/v1/') || path.startsWith('/functions/v1/'))
 }
 
-/** Is this a call to one of OUR edge functions? The divider between "something
- *  foreign answered" and "our own runtime answered instead of the function" —
- *  PostgREST always speaks JSON, so a non-JSON body on `/rest/v1/` cannot be
- *  ours, while `/functions/v1/` answers `text/plain` when a function is
- *  missing. */
-function targetsEdgeFunction(input: RequestInfo | URL, init?: RequestInit): boolean {
-  return (getMethodPathClean(input, init).split(' ')[1] ?? '').startsWith('/functions/v1/')
-}
 
 
 /**
@@ -287,22 +279,14 @@ export const dbFetch: typeof fetch = async (input, init) => {
     // sentence a player needs: they need "our server is down". The gateway's
     // own message is the detail, where whoever debugs will read it.
     logFault(fields, environmentalEnvelope(NO_ANSWER_TO_CODE_AND_TEXT.upstreamDown, body?.message))
-  } else if (targetsEdgeFunction(input, init)) {
-    // The edge RUNTIME answered instead of the function — `Function not found`
-    // in `text/plain`, or a container that will not boot. Ours: a deploy
-    // failure, not a network one.
-    //
-    // A captive portal intercepts everything, so a portal on a function call
-    // lands here too and blames us for a network problem. That is the safe
-    // direction to be wrong in — better we accuse ourselves than send someone
-    // to fix a router that works — and the log corrects it: a portal produces
-    // FE004s on the concurrent `/rest/v1/` traffic at the same moment.
-    const bug = OUR_BUG_TO_CODE_AND_TEXT.runtimeNotFunction
-    logFault(fields, faultEnvelope(null, bug.text, unparsed, bug.code))
   } else {
-    // An unparseable body on `/rest/v1/`. PostgREST ALWAYS speaks JSON, so
-    // something that is not PostgREST answered: a captive portal, a proxy, an
-    // ISP error page.
+    // An unparseable body. PostgREST ALWAYS speaks JSON, so something that is
+    // not PostgREST answered: a captive portal, a proxy, an ISP error page.
+    //
+    // An edge function's unparseable body means something else — the runtime
+    // answering instead of the function — but that never reaches here as a
+    // classification: `callEdgeFn` holds the Response and decides for itself
+    // (PN310).
     logFault(fields, environmentalEnvelope(NO_ANSWER_TO_CODE_AND_TEXT.foreignResponder, unparsed))
   }
   return res

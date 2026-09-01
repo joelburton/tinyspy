@@ -152,7 +152,14 @@ is and put the verification dangerously late (Joel, 2026-09-01).
       for one call, which no path test could express: silent for the four `FE`
       codes, `showFaultModal` for `PN011`/`PN012`. Verified by planting —
       removing `presentFaults: false` turns the silent-when-offline test red.
-- [ ] **5.4** `PN310` moves into `callEdgeFn`.
+- [x] **5.4** `PN310` moves into `callEdgeFn`. DONE 2026-09-01. Its `catch` on
+      `ctx.json()` was a one-line "fall through"; that catch IS the case — the
+      runtime answered instead of the function. It now returns the `BUG:` and
+      the code, with the content-type in `details`.
+
+      `dbFetch` lost the branch and `targetsEdgeFunction` with it: a path test
+      that existed only to guess at something the layer holding the Response
+      knows outright.
 - [ ] **5.5** Decide the DB path's parse bit (§3.6) with the code in front of us.
 - [ ] **5.6** **The mechanical sweep** — the 69 converted files. Does each still
       present what it should; does any want to opt out. **And specifically: is

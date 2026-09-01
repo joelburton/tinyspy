@@ -2,6 +2,7 @@
 
 import { supabase } from './supabase'
 import type { CallError } from '../game/serverError'
+import { OUR_BUG_TO_CODE_AND_TEXT } from './dbEnvelope'
 
 /**
  * Invoke an edge function and hand back either its payload or a CLASSIFIABLE
@@ -63,18 +64,35 @@ export async function callEdgeFn(
         }
       }
     } catch {
-      // Body wasn't JSON — fall through.
+      // Not JSON. The RUNTIME answered, not the function — `Function not found`
+      // in `text/plain`, or a container that will not boot. Ours either way: a
+      // deploy failure, not a network one.
+      //
+      // This is decided here because here is where the Response is.
+      // functions-js hands over the whole object as `error.context`, so the
+      // content-type and the parse attempt are both in reach — which is not
+      // true on the database path, where postgrest-js flattens a parsed body
+      // and an unparseable one into the same `{ message }` shape.
+      const bug = OUR_BUG_TO_CODE_AND_TEXT.runtimeNotFunction
+      const contentType = ctx.headers.get('content-type') ?? 'none'
+      return {
+        data: null,
+        error: {
+          message: bug.text,
+          code: bug.code,
+          status: ctx.status,
+          answered: true,
+          details: `body was not JSON (content-type: ${contentType})`,
+        },
+      }
     }
   }
-  // No response, or a response that isn't our function speaking (a gateway
-  // 502's HTML, platform JSON) — either way OUR FUNCTION never answered, so it
-  // goes back codeless.
+  // No response, or one that parsed but is not our function's shape — platform
+  // JSON, a relay's own error. Codeless, because our function never spoke.
   //
-  // **`status` is what separates the two**, and they are genuinely different
-  // failures: a gateway 502 IS a reply, and a dead socket is not. `0` is the
-  // no-reply signal `nothingAnswered` reads, matching what postgrest-js sets
-  // for the same case — so one predicate covers both transports and an edge
-  // function's offline failure gets the same sentence a read's does. Collapsing
-  // them made a 502 indistinguishable from a dead connection.
+  // **`status` separates the two**, and they are genuinely different failures:
+  // a gateway 502 IS a reply and a dead socket is not. `0` is the no-reply
+  // signal `nothingAnswered` reads, matching what postgrest-js sets for the
+  // same case, so one predicate covers both transports.
   return { data: null, error: { message: error.message, code: '', status: ctx?.status ?? 0 } }
 }

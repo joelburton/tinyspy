@@ -273,16 +273,18 @@ describe('dbFetch — classifying faults', () => {
     expect(line(err)).toContain('status=502')
   })
 
-  // The edge RUNTIME answering instead of the function — `Function not found`
-  // in text/plain. Ours: a deploy failure, not the player's network.
-  it('blames our own deploy when the runtime answers on a functions path', async () => {
+  // An edge function's unparseable body is the RUNTIME answering instead of the
+  // function, which is ours rather than the player's network — but that is
+  // `callEdgeFn`'s call, not this layer's: it holds the Response and decides
+  // for itself. Here the line is the generic one, and that is correct.
+  it('does not try to classify an edge function it cannot see into', async () => {
     const err = vi.spyOn(console, 'error').mockImplementation(() => {})
     stubFetch(() =>
       Promise.resolve(new Response('Function not found', { status: 404 })),
     )
     await dbFetch('https://x.test/functions/v1/boggle-build-board', { method: 'POST' })
-    expect(line(err)).toContain('BUG:')
-    expect(line(err)).toContain('dbcode=PN310')
+    expect(line(err)).toContain('status=404')
+    expect(line(err)).not.toContain('PN310')
   })
 
   // It PARSED but carried no SQLSTATE — Kong's own `{"message":"no Route

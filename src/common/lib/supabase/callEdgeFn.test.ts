@@ -58,13 +58,21 @@ describe('callEdgeFn', () => {
     expect(res.error).toEqual({ message: 'no candidate words for band 3', status: 200, answered: true })
   })
 
-  // SOMETHING answered — so the status is real, and `nothingAnswered` is false.
-  it('keeps the status when a gateway answered instead of our function', async () => {
+  // A body that will not parse means the RUNTIME answered, not the function —
+  // `Function not found` in text/plain, or a container that will not boot.
+  // Ours, so it carries a `BUG:` and a code of its own. Decided here because
+  // here is where the Response is: functions-js hands over the whole object,
+  // so the parse attempt and the content-type are both in reach.
+  it('blames our own deploy when the body will not parse', async () => {
     invoke.mockResolvedValue({ data: null, error: fnError('<html>502</html>', 'text/html') })
     const res = await callEdgeFn('x-build-board', {})
-    expect(res.error).toEqual({
-      message: 'Edge Function returned a non-2xx status code', code: '', status: 200,
+    expect(res.error).toMatchObject({
+      code: 'PN310',
+      status: 200,
+      answered: true,
     })
+    expect(res.error?.message).toContain('BUG:')
+    expect(res.error?.details).toContain('text/html')
   })
 
   it('keeps it for JSON that is not our { error } shape either', async () => {
