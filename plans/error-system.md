@@ -684,7 +684,7 @@ select pg_temp.envelope_is(
 
 ## 7. The conversion roster
 
-**144 entries. 91 done, 53 to go** (5 of those are the deferred edge
+**144 entries. 92 done, 52 to go** (5 of those are the deferred edge
 functions). Cross them off here as they land.
 
 **Un-paused 2026-08-31: the retro-fix list is empty.** It existed because a
@@ -796,7 +796,10 @@ identifier — a shape nothing has exercised yet.
 - [ ] `end_game` · RPC — cross-cutting, see above
 - [x] `peel` · RPC
 - [ ] `replay_board` · RPC — cross-cutting, see above
-- [ ] `save_player_board` · RPC (3 call sites)
+- [x] `save_player_board` · RPC — TWO named ok results where the two
+      deliberate no-ops (terminal, conceded) used to be silent. The three
+      call sites collapse to one: `save()` returns its promise, so the peel
+      and check-words flushes await the same chain
 - [x] `player_boards` · read (3 call sites) — converted in the useGame sweep
 - [x] `progress` · read — converted in the useGame sweep
 

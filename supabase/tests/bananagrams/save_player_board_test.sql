@@ -17,9 +17,10 @@ begin;
 
 set search_path = bananagrams, common, public, extensions;
 
-select plan(7);
+select plan(9);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -35,9 +36,12 @@ select (bananagrams.create_game(
 
 -- ─── ada snapshots a board with 2 tiles placed (A, B) ───
 -- She holds 21 tiles; placing 2 leaves 19 in hand.
-select bananagrams.save_player_board(
-  (select id from mg_game),
-  'AB' || repeat('.', 25 * 25 - 2)
+select pg_temp.envelope_is(
+  bananagrams.save_player_board(
+    (select id from mg_game),
+    'AB' || repeat('.', 25 * 25 - 2)),
+  '{"type":"ok","data":{"result":"saved"}}'::jsonb,
+  'a live snapshot answers saved'
 );
 
 reset role;
@@ -69,25 +73,19 @@ select is(
 
 -- ─── Length guard ───
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select throws_ok(
-  format(
-    $$ select bananagrams.save_player_board(%L, 'AB') $$,
-    (select id from mg_game)
-  ),
-  'P0001',
-  'bad-board|',
+-- A FAULT: the FE builds the 625-char grid itself, so no player can hand over
+-- another size.
+select pg_temp.envelope_is(
+  bananagrams.save_player_board((select id from mg_game), 'AB'),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN350"}'::jsonb,
   'a board that is not 625 chars is rejected'
 );
 
 -- ─── Non-player rejected ───
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
-select throws_ok(
-  format(
-    $$ select bananagrams.save_player_board(%L, %L) $$,
-    (select id from mg_game), repeat('.', 25 * 25)
-  ),
-  '42501',
-  'not-a-player|',
+select pg_temp.envelope_is(
+  bananagrams.save_player_board((select id from mg_game), repeat('.', 25 * 25)),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN253"}'::jsonb,
   'a non-player cannot snapshot a board'
 );
 
@@ -97,12 +95,14 @@ select set_config('request.jwt.claims', '', true);
 select common.end_game((select id from mg_game), 'won', '{}'::jsonb, '{}'::jsonb);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select lives_ok(
-  format(
-    $$ select bananagrams.save_player_board(%L, %L) $$,
-    (select id from mg_game), repeat('C', 5) || repeat('.', 25 * 25 - 5)
-  ),
-  'snapshotting a terminal game does not error'
+-- Named, not silent: the snapshot is discarded ON PURPOSE so a late unmount
+-- save can't clobber the final board — which is a different fact from storing
+-- one, and used to be the same answer.
+select pg_temp.envelope_is(
+  bananagrams.save_player_board(
+    (select id from mg_game), repeat('C', 5) || repeat('.', 25 * 25 - 5)),
+  '{"type":"ok","data":{"result":"game-over"}}'::jsonb,
+  'snapshotting a terminal game answers game-over'
 );
 
 reset role;
@@ -113,6 +113,27 @@ select is(
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
   2,
   'terminal snapshot is a no-op (progress unchanged from the last live save)'
+);
+
+-- ─── Conceded caller: snapshot is a no-op too ───
+-- A fresh game, because mg_game is over by now. bea drops out; ada keeps
+-- racing, so the game stays live and only bea's board is frozen.
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table live_game on commit drop as
+select (bananagrams.create_game(
+  (select handle from club),
+  '{"hand_size": 21, "bunch_size": 144, "timer": {"kind": "none"}}'::jsonb,
+  array['ada11111-1111-1111-1111-111111111111'::uuid,
+        'bea22222-2222-2222-2222-222222222222'::uuid]
+)->'data'->>'id')::uuid as id;
+
+select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
+select bananagrams.concede((select id from live_game));
+select pg_temp.envelope_is(
+  bananagrams.save_player_board(
+    (select id from live_game), repeat('D', 3) || repeat('.', 25 * 25 - 3)),
+  '{"type":"ok","data":{"result":"conceded"}}'::jsonb,
+  'a conceded player''s snapshot answers conceded'
 );
 
 select * from finish();

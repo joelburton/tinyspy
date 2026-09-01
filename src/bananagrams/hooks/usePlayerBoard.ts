@@ -182,6 +182,12 @@ export type PlayerBoardEngine = {
   checking: boolean
 }
 
+/** What `bananagrams.save_player_board` puts in `data`. The two no-op results
+ *  are named rather than silent: a snapshot dropped ON PURPOSE (the game is
+ *  over, or this player conceded and their board is frozen) and one that was
+ *  stored are different facts, and an unnamed no-op makes them one answer. */
+type SavedBoard = { result: 'saved' } | { result: 'game-over' } | { result: 'conceded' } | null
+
 /** What `bananagrams.check_board` puts in `data`. Three results because the
  *  check panel says three things — and `empty` is its own, since a board with
  *  nothing on it has no blockers and would otherwise read as clean. */
@@ -262,15 +268,31 @@ export function usePlayerBoard({
   const scrollRef = useRef<HTMLDivElement>(null)
 
   // --- Persistence: debounced autosave + save-on-unmount ----------------
+  // Returns its promise so the two FLUSH sites below (peel, check-words) can
+  // await the same one chain rather than each calling the RPC raw — they need
+  // the write to land before the server judges the board.
   const save = useCallback(() => {
-    // The PostgREST builder is LAZY — it only sends the request once `.then()` is
-    // called, so we must invoke it (not just `void` it). Fire-and-forget: a failed
-    // snapshot just means a stale save, so swallow errors. Only the board is sent;
-    // `tiles` is server-owned.
-    db.rpc('save_player_board', {
-      target_game: gameId,
-      board: boardRef.current,
-    }).then(undefined, () => {})
+    // Only the board is sent; `tiles` is server-owned. Nothing is rendered from
+    // the answer — the board on screen is already what was sent — so every arm
+    // here is about whether something went wrong, and `runRpc` has raised the
+    // modal by the time we see it.
+    return runRpc<SavedBoard>(
+      db.rpc('save_player_board', { target_game: gameId, board: boardRef.current }),
+    ).then((res) => {
+      if (res.type === 'ok' && res.data?.result === 'saved') {
+        // Stored, and `progress` recomputed for the peers strip.
+      } else if (res.type === 'ok' && res.data?.result === 'game-over') {
+        // Dropped ON PURPOSE: a late unmount-snapshot must not clobber the
+        // final board.
+      } else if (res.type === 'ok' && res.data?.result === 'conceded') {
+        // Dropped on purpose too: this player is out and their board is frozen.
+      } else if (res.type === 'not-ok') {
+        // Both are `BUG:`s and the modal is already up. Nothing to add on a
+        // surface whose whole job was to store what is already on screen.
+      } else {
+        showFaultModal({ text: 'BUG: save_player_board fell through to unhandled' })
+      }
+    })
   }, [gameId])
   const saveTimer = useRef(0)
   const firstSave = useRef(true)
@@ -475,7 +497,7 @@ export function usePlayerBoard({
     if (deriveHand(tilesRef.current, boardRef.current).length !== 0) return
     setDeclaring(true)
     try {
-      await db.rpc('save_player_board', { target_game: gameId, board: boardRef.current })
+      await save()
       // A blocked winning peel (legal-board check) hands back the offending cells; paint
       // them red against the board they were judged on. boardRef equals the saved board
       // here, and the board doesn't change on a peel — so the flags show until the
@@ -487,7 +509,7 @@ export function usePlayerBoard({
     } finally {
       setDeclaring(false)
     }
-  }, [onPeel, isTerminal, isConceded, gameId])
+  }, [onPeel, isTerminal, isConceded, save])
 
   // Check words — the same legality test a winning peel runs (one connected mass,
   // every word real), on demand and read-only. Flushes the board first for the same
@@ -500,7 +522,7 @@ export function usePlayerBoard({
     if (isTerminal || isConceded || checkingRef.current) return
     setChecking(true)
     try {
-      await db.rpc('save_player_board', { target_game: gameId, board: boardRef.current })
+      await save()
       const res = await runRpc<CheckedBoard>(db.rpc('check_board', { target_game: gameId }))
       if (res.type === 'not-ok') {
         // Both are faults and `runRpc` has raised the modal; this line is what
@@ -524,7 +546,7 @@ export function usePlayerBoard({
     } finally {
       setChecking(false)
     }
-  }, [isTerminal, isConceded, gameId, onCheckResult])
+  }, [isTerminal, isConceded, gameId, onCheckResult, save])
 
   // Board-cursor keyboard — the shared 2-D placement engine (scrabble's twin; it owns
   // the modifier bail, the focused-input guard, arrows→cursor, and the skip-Enter/

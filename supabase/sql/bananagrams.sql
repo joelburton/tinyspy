@@ -388,9 +388,17 @@ grant execute on function bananagrams.create_game(text, jsonb, uuid[]) to authen
 -- someone has won shouldn't clobber the final board. A CONCEDED caller
 -- is also a no-op — they've dropped out, so their board is frozen (a
 -- stray unmount-snapshot mustn't revive their counts).
-
+--
+-- Both of those no-ops are NAMED answers, not silence. Dropping a snapshot on
+-- purpose and storing one are different facts, and an unnamed no-op makes them
+-- the same answer — so nothing can tell a save from a discard.
+--   { result: 'saved' } | { result: 'game-over' } | { result: 'conceded' }
+--
+-- Dropped, not replaced: this returned `void` before it answered in an
+-- envelope, and `create or replace` cannot change a return type.
+drop function if exists bananagrams.save_player_board(uuid, text);
 create or replace function bananagrams.save_player_board(target_game uuid, board text)
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = bananagrams, common, public, extensions
@@ -401,27 +409,34 @@ declare
   n_tiles int;
   n_placed int;
   is_conceded boolean;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text;
 begin
   caller_id := common.require_game_player(target_game);
 
   select is_terminal into is_term from common.games where id = target_game;
+  -- (The raise this replaces said "no bananagrams.games row", which was wrong
+  -- on its face: the query above reads `common.games`.)
   if is_term is null then
-    raise exception 'game-not-found|' using errcode = 'P0002',
-      detail = 'no bananagrams.games row for target_game';
+    raise exception 'BUG: a board save for a game that does not exist'
+      using errcode = 'PN349', hint = 'fault', column = '_',
+      detail = 'no common.games row for target_game';
   end if;
   if is_term then
-    return; -- harmless no-op after game-over
+    return common.ok_envelope(jsonb_build_object('result', 'game-over'));
   end if;
 
   select conceded into is_conceded
     from common.game_players
    where game_id = target_game and user_id = caller_id;
   if is_conceded then
-    return; -- the caller has dropped out; their board is frozen
+    return common.ok_envelope(jsonb_build_object('result', 'conceded'));
   end if;
 
+  -- The FE builds the 625-char grid itself; a player cannot hand over another
+  -- size, so a wrong one is ours.
   if length(board) <> 25 * 25 then
-    raise exception 'bad-board|' using errcode = 'P0001',
+    raise exception 'BUG: a board save with the wrong grid size'
+      using errcode = 'PN350', hint = 'fault', column = '_',
       detail = 'the 25x25 board snapshot must be 625 chars';
   end if;
 
@@ -440,6 +455,16 @@ begin
      set unplaced = greatest(n_tiles - n_placed, 0),
          placed = n_placed
    where game_id = target_game and user_id = caller_id;
+
+  return common.ok_envelope(jsonb_build_object('result', 'saved'));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 
