@@ -224,53 +224,6 @@ was their green/yellow/gray feedback flattening to one gray in mono.
 
 ## To discuss
 
-- **Where should a fault modal be raised from?** (to discuss — Joel + Claude,
-  raised 2026-08-31.) Today it is `dbFetch`, on the reasoning that it is the one
-  place every Supabase call passes through, so "a player is never told twice"
-  can be enforced rather than remembered. The worry is that this is
-  **inflexible**: `dbFetch` sees transport, not meaning, so the only lever it
-  has is a path test — which is why `isPolled` exists, and why that lever cannot
-  reach a fault the server DECLARED (those arrive HTTP 200 and are presented by
-  `runRpc` instead).
-
-  Two alternatives to weigh:
-
-  - **In the wrappers** — `runRpc` / `readRows` / `runEdgeFn`. They have the
-    parsed envelope, so they can discriminate: `tick_timer`'s PN011/PN012
-    SHOULD pop (a signed-out player must be told) while its transport failures
-    should not, and that is a distinction only something holding the body can
-    make. It also merges the two presenters into one, which is the gap below.
-  - **At the call site** — nothing central presents anything; each caller
-    decides. Then `isPolled` disappears entirely, and so does every future
-    path-shaped exemption, because a poll simply chooses not to show its
-    failures. The cost is the rule that made this central in the first place:
-    with 145 call sites, "show a fault" becomes something each one has to
-    remember, and the ones that forget are silent in the way this whole sprint
-    exists to stop.
-
-  Worth deciding before the roster's remaining 73 entries harden the current
-  shape further. The three questions to settle: who has enough information to
-  choose, how a call site opts out without being able to forget, and whether
-  "never told twice" survives either move.
-- **Faults are presented from two places, and only one can be exempted**
-  (found 2026-08-31 while adding `dbFetch`'s `isPolled`, not fixed). A transport
-  failure is presented by `dbFetch`; a fault the server DECLARED arrives HTTP
-  200, so `dbFetch` never sees it and `runRpc` presents it instead. Both call
-  `reportDbFault`, so a rule like "this call is a poll, never show it" has to be
-  written twice or it works by halves — today `tick_timer`'s exemption covers
-  its offline failures but not a `PN011` lapsed session, which still modals once
-  a second.
-
-  The fix is probably to move the check INTO `reportDbFault`, which is the one
-  presenter and already receives the call label in its `transport` argument. It
-  is a change to the shared fault path, so it wants doing on its own rather than
-  riding along with whatever RPC exposed it.
-
-  **Not urgent: nothing is currently wrong because of it.** `tick_timer` is the
-  only poll, and it declares only `PN011`/`PN012` — a signed-out or
-  no-longer-member player, who SHOULD be told (Joel, 2026-08-31). So the gap
-  produces the wanted behavior today. It bites the first poll that declares a
-  `race` or a `service-error`, which would then repeat once a second.
 - **A disconnected player is the one person who is not told** (raised
   2026-08-31, wanted). Pause is derived locally from `presentUserIds`, which is
   only ever updated by the server-pushed `presence: sync` event — so when YOUR
@@ -286,12 +239,14 @@ was their green/yellow/gray feedback flattening to one gray in mono.
   accurate "I cannot reach the server" — enough to show the disconnected player
   the same overlay their peers are seeing, once, in the right words. Today its
   `.then` swallows every failure, and the only automatic signal a dropped player
-  gets is the `[db]` fault modals its failures raise, which is the wrong
-  instrument in every respect: wrong words, blocks the page, repeats every
-  second, and is about to be silenced (see the poll exemption in `dbFetch`).
+  got was the fault modals its failures raised — the wrong instrument in every
+  respect: wrong words, blocks the page, repeats every second. Those are gone:
+  `useGameTimer` passes `presentFaults: false` and stays silent for the four
+  `FE` codes, so a dropped player now gets nothing at all.
 
-  Silencing those modals therefore LEAVES A GAP rather than removing pure noise,
-  which is the reason this is filed rather than forgotten.
+  Silencing them left A GAP rather than removing pure noise, which is why this
+  is filed rather than forgotten — the fix is to use the tick as the heartbeat
+  it already is.
 - **Does a fault still want a modal AND a pill?** (raised 2026-08-31, unresolved.)
   The rule today is that the modal is an ESCALATION, not a replacement — a fault
   gets both, and `genericPills.ts` says so deliberately, because filtering it out

@@ -1,6 +1,7 @@
 # Who shows a fault
 
-**Status: in progress — 5.1 and 5.2 done.** Written 2026-09-01, mid-`error-system` sprint.
+**Status: DONE — all of §5.** Kept until the roster empties, because §4's
+note about the raw sites is the live half. Written 2026-09-01, mid-`error-system` sprint.
 
 Move fault PRESENTATION from `dbFetch` to the three wrappers, and give a call
 site a way to take the job itself.
@@ -214,9 +215,15 @@ is and put the verification dangerously late (Joel, 2026-09-01).
       thought about it, not that they picked a particular surface. The wrapper
       still writes the `[db]` line either way — what an unhandled opt-out loses
       is the PLAYER, which is the half no diff shows.
-- [ ] **5.8** Delete the two now-answered `docs/deferred.md` entries — "Where
+- [x] **5.8** Delete the two now-answered `docs/deferred.md` entries — "Where
       should a fault modal be raised from?" and "Faults are presented from two
-      places".
+      places". DONE 2026-09-01. Both are answered by this plan: the wrappers
+      raise it, and there is one presenter rather than two.
+
+      A third entry needed refreshing rather than deleting — "A disconnected
+      player is the one person who is not told" cited `isPolled` and said the
+      modals were "about to be silenced". They are silenced; the gap it
+      describes is now real rather than imminent.
 
 ## 6. Deliberately not in scope
 
