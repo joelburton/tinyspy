@@ -896,9 +896,15 @@ grant execute on function bananagrams.check_board(uuid) to authenticated;
 --
 -- Locks the gametype row so a dump and a concurrent peel serialize on the
 -- shared bunch (both draw from the front).
-
+--
+-- One ok answer — { result: 'dumped' } — since the swap either happens or is
+-- refused; the new hand arrives over realtime, not in the reply.
+--
+-- Dropped, not replaced: this returned `void` before it answered in an
+-- envelope, and `create or replace` cannot change a return type.
+drop function if exists bananagrams.dump(uuid, text);
 create or replace function bananagrams.dump(target_game uuid, tile text)
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = bananagrams, common, public, extensions
@@ -918,11 +924,13 @@ declare
   caller_tiles text;
   drawn text;
   pos int;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text;
 begin
   -- Serialize against concurrent peels/dumps on the shared bunch.
   perform 1 from bananagrams.games where id = target_game for update;
   if not found then
-    raise exception 'game-not-found|' using errcode = 'P0002',
+    raise exception 'BUG: a dump for a game with no bananagrams row'
+      using errcode = 'PN343', hint = 'fault', column = '_',
       detail = 'no bananagrams.games row for target_game';
   end if;
 
@@ -930,8 +938,11 @@ begin
 
   select play_state, setup into current_play_state, s_setup
     from common.games where id = target_game;
+  -- A RACE: the dump zone is gone at terminal, but a rival's winning peel can
+  -- land while this drop is in flight.
   if current_play_state <> 'playing' then
-    raise exception 'game-not-in-play|' using errcode = 'P0001',
+    raise exception 'Game over'
+      using errcode = 'PN344', hint = 'race', column = '_',
       detail = 'play_state is not an active state';
   end if;
 
@@ -941,13 +952,17 @@ begin
   -- or a stale second tab).
   if (select conceded from common.game_players
         where game_id = target_game and user_id = caller_id) then
-    raise exception 'you-conceded|' using errcode = 'P0001',
+    raise exception 'Already conceded'
+      using errcode = 'PN345', hint = 'race', column = '_',
       detail = 'caller already dropped out of this race';
   end if;
 
+  -- The letter always comes off a tile the FE rendered — there is no way to
+  -- type one — so anything else is ours.
   tile := upper(tile);
   if tile !~ '^[A-Z]$' then
-    raise exception 'bad-tile|' using errcode = 'P0001',
+    raise exception 'BUG: a dump of something that is not a tile'
+      using errcode = 'PN346', hint = 'fault', column = '_',
       detail = 'a tile id is a single letter';
   end if;
 
@@ -958,18 +973,25 @@ begin
   -- You need dump_count tiles to draw. Normally that's just the bunch, but in
   -- to-bag mode the bag can top up a draw the bunch can't cover (return-to-bunch
   -- keeps the bag empty, so this reduces to "bunch < dump_count" there).
+  -- A RACE, not a bug: the dump zone reads its own count and refuses the drop
+  -- below it, but the bunch is SHARED — a rival's peel can drain it between
+  -- that read and this call.
   if length(s_bunch) + length(s_bag) < s_dump_count then
-    raise exception 'bunch-too-low|' using errcode = 'P0001',
+    raise exception 'Bunch too low to dump'
+      using errcode = 'PN347', hint = 'race', column = '_',
       detail = 'the bunch holds fewer than the 3 tiles a dump returns';
   end if;
 
-  -- The caller must hold the tile they're dumping.
+  -- The caller must hold the tile they're dumping. Also a race: the board is
+  -- FE-owned while `tiles` is server-owned (docs/games/bananagrams.md), so the
+  -- server's view of the hand can legitimately lag the screen's for a moment.
   select tiles into caller_tiles
     from bananagrams.player_boards
    where game_id = target_game and user_id = caller_id;
   pos := position(tile in caller_tiles);
   if pos = 0 then
-    raise exception 'tile-not-held|' using errcode = 'P0001',
+    raise exception 'You don''t have that tile'
+      using errcode = 'PN348', hint = 'race', column = '_',
       detail = 'the dumped tile is not in the caller''s hand per the server';
   end if;
 
@@ -1009,6 +1031,16 @@ begin
   perform common.update_state(target_game, 'playing',
     jsonb_build_object('bunch_remaining', length(new_bunch),
                        'bag_remaining', length(new_bag)));
+
+  return common.ok_envelope(jsonb_build_object('result', 'dumped'));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 

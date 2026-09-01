@@ -80,6 +80,10 @@ type PeelResult =
   | { result: 'illegal'; cells: number[] }
   | null
 
+/** What `bananagrams.dump` puts in `data`. One answer: the swap either happens
+ *  or is refused, and the new hand arrives over realtime rather than here. */
+type DumpResult = { result: 'dumped' } | null
+
 export function PlayArea(ctx: GamePageCtx) {
   // Tab does nothing while the board has the keyboard — this play surface is
   // not a form, so native Tab would walk out to the header buttons and on into
@@ -132,9 +136,10 @@ export function PlayArea(ctx: GamePageCtx) {
     const res = await runRpc<PeelResult>(db.rpc('peel', { target_game: gameId }))
     if (res.type === 'not-ok') {
       // Two races (the game ended, or a second tab conceded) and three faults,
-      // and the pill says the same thing for all five: the server's sentence.
+      // and the pill says the server's sentence for all five — orange for the
+      // races, red for the faults, which is what the severity already means.
       // `runRpc` has already raised the modal for the faults.
-      showLocalFeedback({ tone: 'lost', text: res.message, mode: { kind: 'sticky' } })
+      showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
       return null
     } else if (res.type === 'ok' && res.data?.result === 'illegal') {
       // The board isn't win-legal (disconnected, or — with word_check
@@ -195,10 +200,20 @@ export function PlayArea(ctx: GamePageCtx) {
   const dump = useCallback(
     async (tile: string) => {
       dumpPending.current = true
-      const { error } = await db.rpc('dump', { target_game: gameId, tile })
-      if (error) {
+      const res = await runRpc<DumpResult>(db.rpc('dump', { target_game: gameId, tile }))
+      if (res.type === 'ok' && res.data?.result === 'dumped') {
+        // Nothing to say: the swap grows `tiles`, and the announcement effect
+        // reads the flag set above to call it a dump rather than a peel.
+      } else if (res.type === 'not-ok') {
+        // Four races (the game ended, a second tab conceded, a rival drained
+        // the bunch, the server's hand disagrees with the screen) and two
+        // faults, and the pill says the server's sentence for all six.
+        // `runRpc` has already raised the modal for the faults.
         dumpPending.current = false // no tiles change is coming
-        showLocalFeedback(failureMessage(error, 'dump'))
+        showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+      } else {
+        dumpPending.current = false
+        showFaultModal({ text: 'BUG: dump fell through to unhandled' })
       }
     },
     [gameId, showLocalFeedback],

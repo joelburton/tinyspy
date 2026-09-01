@@ -22,9 +22,10 @@ begin;
 
 set search_path = bananagrams, common, public, extensions;
 
-select plan(17);
+select plan(21);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -49,7 +50,11 @@ select left(tiles, 1) as letter
  where game_id = (select id from g1)
    and user_id = 'ada11111-1111-1111-1111-111111111111';
 
-select bananagrams.dump((select id from g1), (select letter from dumped));
+select pg_temp.envelope_is(
+  bananagrams.dump((select id from g1), (select letter from dumped)),
+  '{"type":"ok","data":{"result":"dumped"}}'::jsonb,
+  'a return-to-bunch dump answers dumped'
+);
 
 reset role;
 select set_config('request.jwt.claims', '', true);
@@ -97,10 +102,14 @@ select (bananagrams.create_game(
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid]
 )->'data'->>'id')::uuid as id;
-select bananagrams.dump((select id from g2),
-  (select left(tiles, 1) from bananagrams.player_boards
-    where game_id = (select id from g2)
-      and user_id = 'ada11111-1111-1111-1111-111111111111'));
+select pg_temp.envelope_is(
+  bananagrams.dump((select id from g2),
+    (select left(tiles, 1) from bananagrams.player_boards
+      where game_id = (select id from g2)
+        and user_id = 'ada11111-1111-1111-1111-111111111111')),
+  '{"type":"ok","data":{"result":"dumped"}}'::jsonb,
+  'a to-bag dump answers dumped'
+);
 
 reset role;
 select set_config('request.jwt.claims', '', true);
@@ -146,7 +155,11 @@ update bananagrams.player_boards set tiles = 'Q'
  where game_id = (select id from g3) and user_id = 'ada11111-1111-1111-1111-111111111111';
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select bananagrams.dump((select id from g3), 'Q');
+select pg_temp.envelope_is(
+  bananagrams.dump((select id from g3), 'Q'),
+  '{"type":"ok","data":{"result":"dumped"}}'::jsonb,
+  'a dump topped up from the bag answers dumped'
+);
 
 reset role;
 select set_config('request.jwt.claims', '', true);
@@ -186,7 +199,11 @@ update bananagrams.player_boards set tiles = 'Q'
  where game_id = (select id from g4) and user_id = 'ada11111-1111-1111-1111-111111111111';
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select bananagrams.dump((select id from g4), 'Q');
+select pg_temp.envelope_is(
+  bananagrams.dump((select id from g4), 'Q'),
+  '{"type":"ok","data":{"result":"dumped"}}'::jsonb,
+  'a to-bag dump topped up from the bag answers dumped'
+);
 
 reset role;
 select set_config('request.jwt.claims', '', true);
@@ -204,25 +221,25 @@ select is(
 -- ─── Can't dump a tile you don't hold ───
 -- Find a letter ada doesn't currently hold and try to dump it.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select throws_ok(
-  format($$ select bananagrams.dump(%L, %L) $$,
+-- A RACE, not a bug: `tiles` is server-owned while the board is FE-owned, so
+-- the server's view of the hand can lag the screen's for a moment.
+select pg_temp.envelope_is(
+  bananagrams.dump(
     (select id from g1),
     (select chr(c) from generate_series(65, 90) as c
        where position(chr(c) in (select tiles from bananagrams.player_boards
               where game_id = (select id from g1)
                 and user_id = 'ada11111-1111-1111-1111-111111111111')) = 0
        limit 1)),
-  'P0001',
-  'tile-not-held|',
+  '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN348","message":"You don''t have that tile"}'::jsonb,
   'cannot dump a tile you do not hold'
 );
 
 -- ─── Non-player rejected ───
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
-select throws_ok(
-  format($$ select bananagrams.dump(%L, 'A') $$, (select id from g1)),
-  '42501',
-  'not-a-player|',
+select pg_temp.envelope_is(
+  bananagrams.dump((select id from g1), 'A'),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN253"}'::jsonb,
   'a non-player cannot dump'
 );
 
@@ -233,10 +250,11 @@ select set_config('request.jwt.claims', '', true);
 update bananagrams.games set bunch = 'AB' where id = (select id from g1); -- 2 < dump_count 3
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select throws_ok(
-  format($$ select bananagrams.dump(%L, 'A') $$, (select id from g1)),
-  'P0001',
-  'bunch-too-low|',
+-- Also a race: the dump zone refuses the drop below dump_count, but the bunch
+-- is SHARED and a rival's peel can drain it between that read and this call.
+select pg_temp.envelope_is(
+  bananagrams.dump((select id from g1), 'A'),
+  '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN347","message":"Bunch too low to dump"}'::jsonb,
   'cannot dump when bunch + bag is smaller than dump_count'
 );
 

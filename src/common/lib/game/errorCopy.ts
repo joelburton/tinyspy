@@ -88,15 +88,6 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   'bag-too-low': { text: () => 'Not enough tiles in the bag' },
   'tile-not-in-rack': { text: () => "That tile isn't in your rack" },
 
-  // ── bananagrams ──
-  // The bunch is SHARED, so a rival's peel can empty it between your check and
-  // your dump. And the board is FE-owned while the tiles are server-owned
-  // (docs/games/bananagrams.md), so the server's view of your hand can
-  // legitimately differ from the screen's for a moment — which makes these two
-  // ordinary play, not broken clients.
-  'bunch-too-low': { text: () => 'Bunch too low to dump', tone: 'noted' },
-  'tile-not-held': { text: () => "You don't have that tile" },
-
   // ── AI features (codenamesduet clue suggester; more surfaces convert soon) ──
   // Model flakiness a retry genuinely fixes — real answers, shown in the AI
   // panels' own message areas. Wording approved 2026-08-12; per-surface keys
