@@ -29,7 +29,7 @@ begin;
 
 set search_path = spellingbee, common, public, extensions;
 
-select plan(44);
+select plan(45);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -58,10 +58,18 @@ select (spellingbee.create_game(
 -- (1) Coop happy path: ada submits 'bead' → accepted, 1pt
 -- ============================================================
 
-select pg_temp.envelope_is(
-  spellingbee.submit_word((select id from g), 'bead', 1, false, false),
-  '{"type":"ok","data":{"result":"accepted"}}'::jsonb,
+-- Capture the return so we assert both halves of the { result, points } shape.
+create temp table bead_ret on commit drop as
+select spellingbee.submit_word((select id from g), 'bead', 1, false, false) as ret;
+select is(
+  (select ret->'data'->>'result' from bead_ret),
+  'accepted',
   'submit_word: required word (is_bonus/is_pangram false) → "accepted"'
+);
+select is(
+  (select (ret->'data'->>'points')::int from bead_ret),
+  1,
+  'submit_word: return echoes the trusted points (bead = 1)'
 );
 
 select is(
@@ -166,7 +174,7 @@ select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 -- reaching this means its foundWords list was stale.
 select pg_temp.envelope_is(
   spellingbee.submit_word((select id from g), 'bead', 1, false, false),
-  '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN360","message":"Already found"}'::jsonb,
+  '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN360","message":"BEAD — already found"}'::jsonb,
   'coop duplicate: bea cannot re-submit a word ada already found'
 );
 
@@ -217,7 +225,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 -- reaching this means its foundWords list was stale.
 select pg_temp.envelope_is(
   spellingbee.submit_word((select id from compete_g), 'bead', 1, false, false),
-  '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN360","message":"Already found"}'::jsonb,
+  '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN360","message":"BEAD — already found"}'::jsonb,
   'compete: ada''s SECOND "bead" is "alreadyFound" (same-player rule)'
 );
 

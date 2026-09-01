@@ -82,7 +82,7 @@ select is(
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select pg_temp.envelope_is(
   wordiply.submit_guess((select id from g), 'arxxxxx'),
-  '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN365","message":"Already found"}'::jsonb,
+  '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN365","message":"ARXXXXX — already found"}'::jsonb,
   'turns: a duplicate is refused'
 );
 reset role;

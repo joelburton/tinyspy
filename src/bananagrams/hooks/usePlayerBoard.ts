@@ -192,9 +192,9 @@ type SavedBoard = { result: 'saved' } | { result: 'game-over' } | { result: 'con
  *  check panel says three things — and `empty` is its own, since a board with
  *  nothing on it has no blockers and would otherwise read as clean. */
 type CheckedBoard =
-  | { result: 'invalid'; cells: number[] }
-  | { result: 'empty' }
-  | { result: 'clean' }
+  | { result: 'invalid'; invalid_cells: number[]; placed: number }
+  | { result: 'empty'; invalid_cells: number[]; placed: number }
+  | { result: 'clean'; invalid_cells: number[]; placed: number }
   | null
 
 export function usePlayerBoard({
@@ -529,8 +529,8 @@ export function usePlayerBoard({
         // the check panel says once it is dismissed.
         onCheckResult?.({ kind: 'error', message: res.message })
       } else if (res.type === 'ok' && res.data?.result === 'invalid') {
-        setInvalid({ board: boardRef.current, cells: new Set(res.data.cells) })
-        onCheckResult?.({ kind: 'invalid', count: res.data.cells.length })
+        setInvalid({ board: boardRef.current, cells: new Set(res.data.invalid_cells) })
+        onCheckResult?.({ kind: 'invalid', count: res.data.invalid_cells.length })
       } else if (res.type === 'ok' && res.data?.result === 'empty') {
         // Its own answer, not a count of zero: an empty board has no blockers
         // either, and "all good" must not congratulate someone who has not put

@@ -179,7 +179,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table pb on commit drop as select bananagrams.peel((select id from gb)) as res;
 select is((select res->'data'->>'result' from pb), 'illegal',
   'word_check win + a non-word → peel is blocked');
-select is((select res->'data'->'cells' from pb), '[0,1,2]'::jsonb,
+select is((select res->'data'->'invalid_cells' from pb), '[0,1,2]'::jsonb,
   'the blocked peel returns the offending cells');
 reset role;
 select set_config('request.jwt.claims', '', true);
@@ -230,7 +230,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table pd on commit drop as select bananagrams.peel((select id from gd)) as res;
 select is((select res->'data'->>'result' from pd), 'illegal',
   'word_check off but DISCONNECTED → peel still blocked (geography is always checked)');
-select is((select res->'data'->'cells' from pd), '[125,126,127]'::jsonb,
+select is((select res->'data'->'invalid_cells' from pd), '[125,126,127]'::jsonb,
   'the blocked disconnected peel returns the floating tiles');
 reset role;
 select set_config('request.jwt.claims', '', true);
@@ -261,7 +261,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table pe on commit drop as select bananagrams.peel((select id from ge)) as res;
 select is((select res->'data'->>'result' from pe), 'illegal',
   'strict + a non-word on a CONTINUING peel → blocked (not just at win)');
-select is((select res->'data'->'cells' from pe), '[0,1,2]'::jsonb,
+select is((select res->'data'->'invalid_cells' from pe), '[0,1,2]'::jsonb,
   'the blocked strict peel returns the offending cells');
 reset role;
 select set_config('request.jwt.claims', '', true);
@@ -350,7 +350,7 @@ update bananagrams.player_boards
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
   (select jsonb_array_length(
-    (bananagrams.check_board((select id from gh)))->'data'->'cells')), 3,
+    (bananagrams.check_board((select id from gh)))->'data'->'invalid_cells')), 3,
   'check_board: flags a non-word even when setup.word_check is off');
 select is(
   (select (bananagrams.check_board((select id from gh)))->'data'->>'result'), 'invalid',

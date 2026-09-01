@@ -811,7 +811,14 @@ begin
   -- either call site, so reaching this means its list was stale. Same wording
   -- and same severity as the other three word games.
   if dup_count > 0 then
-    raise exception 'Already found'
+    -- The MESSAGE is the whole line, `WORD — already found`, matching
+    -- `useWordSubmit`'s `line()` exactly (bonus dot included). This rejection is
+    -- the only one that can arrive by BOTH routes — caught locally, or lost as
+    -- a race — and the two must not read differently, so the server composes
+    -- the same string rather than a sentence of its own. The phrase is
+    -- deliberately written twice (Joel, 2026-09-01): it is not going to change,
+    -- and machinery to share it would cost more than it saves.
+    raise exception '% — already found', upper(w_lower)
       using errcode = 'PN365', hint = 'race', column = '_',
       detail = 'the word is already in the log under this mode''s dedup rule';
   end if;

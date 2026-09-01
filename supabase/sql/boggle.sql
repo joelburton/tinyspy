@@ -324,8 +324,9 @@ revoke execute on function boggle._refresh_status(uuid) from public;
 -- does the things the FE can't: enforce the game is live, dedup, record, and
 -- refresh the club-page status. No word-content or dictionary check.
 --
--- Three ok answers:
---   { result: 'accepted' } | { result: 'bonus' } | { result: 'gameOver' }
+-- Three ok answers, each carrying the points the row was written with:
+--   { result: 'accepted', points } | { result: 'bonus', points }
+--   { result: 'gameOver', points: 0 }
 -- A duplicate is NOT among them: the word is not recorded, so that REFUSES
 -- (PN359) rather than answering.
 -- The `points` every shape used to echo is gone — it was the number the caller
@@ -365,7 +366,7 @@ begin
       detail = 'no boggle.games row for target_game';
   end if;
   if g_playstate <> 'playing' then
-    return common.ok_envelope(jsonb_build_object('result', 'gameOver'));
+    return common.ok_envelope(jsonb_build_object('result', 'gameOver', 'points', 0));
   end if;
 
   -- A conceded player is out of the race — no more words. The FE gates on
@@ -396,7 +397,14 @@ begin
     -- teammate found the word between the render and the submit (coop), or the
     -- caller's own row had not landed yet (compete, a second tab). Nothing was
     -- recorded, so this REFUSES; it is not a verdict on a move.
-    raise exception 'Already found'
+    -- The MESSAGE is the whole line, `WORD — already found`, matching
+    -- `useWordSubmit`'s `line()` exactly (bonus dot included). This rejection is
+    -- the only one that can arrive by BOTH routes — caught locally, or lost as
+    -- a race — and the two must not read differently, so the server composes
+    -- the same string rather than a sentence of its own. The phrase is
+    -- deliberately written twice (Joel, 2026-09-01): it is not going to change,
+    -- and machinery to share it would cost more than it saves.
+    raise exception '% — already found', upper(w_lower) || case when coalesce(is_bonus, false) then ' •' else '' end
       using errcode = 'PN359', hint = 'race', column = '_',
       detail = 'the word is already in found_words under this mode''s dedup rule';
   end if;
@@ -437,7 +445,8 @@ begin
   end if;
 
   return common.ok_envelope(jsonb_build_object(
-    'result', case when coalesce(is_bonus, false) then 'bonus' else 'accepted' end));
+    'result', case when coalesce(is_bonus, false) then 'bonus' else 'accepted' end,
+    'points', coalesce(points, 0)));
 
 exception when others then
   get stacked diagnostics

@@ -731,7 +731,14 @@ begin
     -- teammate found the word between the render and the submit (coop), or the
     -- caller's own row had not landed yet (compete, a second tab). Nothing was
     -- recorded, so this REFUSES; it is not a verdict on a move.
-    raise exception 'Already found'
+    -- The MESSAGE is the whole line, `WORD — already found`, matching
+    -- `useWordSubmit`'s `line()` exactly (bonus dot included). This rejection is
+    -- the only one that can arrive by BOTH routes — caught locally, or lost as
+    -- a race — and the two must not read differently, so the server composes
+    -- the same string rather than a sentence of its own. The phrase is
+    -- deliberately written twice (Joel, 2026-09-01): it is not going to change,
+    -- and machinery to share it would cost more than it saves.
+    raise exception '% — already found', upper(w_lower) || case when coalesce(is_bonus, false) then ' •' else '' end
       using errcode = 'PN361', hint = 'race', column = '_',
       detail = 'the word is already in found_words under this mode''s dedup rule';
   end if;
@@ -785,7 +792,8 @@ begin
       -- Its OWN answer, in both modes — see spellingbee.submit_word, which this
       -- is forked from: the win used to be a `won: true` field here and nothing
       -- at all on the compete path.
-      return common.ok_envelope(jsonb_build_object('result', 'won'));
+      return common.ok_envelope(jsonb_build_object(
+        'result', 'won', 'points', coalesce(points, 0)));
     end if;
 
     perform common.update_state(
@@ -871,7 +879,8 @@ begin
            from jsonb_array_elements(player_results) entry));
 
       -- Same answer the coop win gives, for the same event.
-      return common.ok_envelope(jsonb_build_object('result', 'won'));
+      return common.ok_envelope(jsonb_build_object(
+        'result', 'won', 'points', coalesce(points, 0)));
     else
       -- Build the full leaderboard for the status label.
       select jsonb_agg(
@@ -912,15 +921,15 @@ begin
   end if;
 
   -- Echo back a classification (the FE drives its own optimistic feedback, so this
-  -- is mostly for tests / debugging). The `points` this used to carry is gone: it
-  -- was the trusted value the caller had just sent.
+  -- is mostly for tests / debugging). `points` is the trusted value on the row.
   return common.ok_envelope(jsonb_build_object(
     'result',
     case
       when coalesce(is_pangram, false) then 'pangram'
       when coalesce(is_bonus, false) then 'bonus'
       else 'accepted'
-    end
+    end,
+    'points', coalesce(points, 0)
   ));
 
 exception when others then

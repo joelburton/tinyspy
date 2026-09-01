@@ -75,9 +75,9 @@ import { showFaultModal } from '../../common/lib/fault/faultStore'
  *  a board that isn't win-legal is a state of play — the game keeps going and
  *  the player fixes the cells and peels again. */
 type PeelResult =
-  | { result: 'dealt' }
-  | { result: 'won' }
-  | { result: 'illegal'; cells: number[] }
+  | { result: 'dealt'; invalid_cells: number[] }
+  | { result: 'won'; invalid_cells: number[] }
+  | { result: 'illegal'; invalid_cells: number[] }
   | null
 
 /** What `bananagrams.dump` puts in `data`. One answer: the swap either happens
@@ -153,7 +153,7 @@ export function PlayArea(ctx: GamePageCtx) {
         text: 'Fix the highlighted tiles before peeling — every word must be real and the grid one connected piece.',
         mode: { kind: 'sticky' },
       })
-      return { illegalCells: res.data.cells }
+      return { illegalCells: res.data.invalid_cells }
     } else if (res.type === 'ok' && res.data?.result === 'dealt') {
       // Nothing to say: the draw grows `tiles`, and the announcement effect
       // reacts to that.

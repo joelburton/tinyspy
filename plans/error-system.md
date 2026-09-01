@@ -499,6 +499,30 @@ Each conversion moves one call from "not ours" to "ours". Per game:
 > branch shape** → convert that game's pgTAP (swapping `throws_ok` for
 > `envelope_is`) → run it → fix.
 
+#### NEVER remove a field from `data`
+
+**A conversion changes the SHAPE an answer comes in, not what it contains**
+(Joel, 2026-09-01). Every field the old return carried survives, even when the
+new named results appear to make it redundant, even when nothing on today's
+frontend reads it.
+
+The rationale is Joel's and it is not about correctness: **that data is useful
+to see.** The frontend may want it later, and in the meantime every value is in
+the `[db]` log, where it is worth having.
+
+"Nothing reads it" is not a reason, and is not a judgment to make here — the
+only caller today is often a wrapper that looks at `error` alone, so *every*
+field would fail that test regardless of merit.
+
+**If a field genuinely looks WRONG to return, say so loudly and leave it in.**
+State it as its own point, get a ruling, and do not fold the removal into a
+conversion where it reads as tidying.
+
+Three were removed before the rule existed, and all three are restored:
+`bananagrams.check_board`'s `placed`, and `bananagrams.peel`'s `invalid_cells`
+— dropped from the two answers that had none to report, and renamed to `cells`
+on the third, which is the same thing from a caller's side.
+
 **The call-site half has its own rules, and they are not in this plan.**
 [docs/envelopes.md → The shape of a call site](../docs/envelopes.md#the-shape-of-a-call-site)
 holds them: one branch per answer, positive conditions, a bare `else` that

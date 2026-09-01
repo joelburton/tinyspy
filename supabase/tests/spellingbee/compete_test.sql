@@ -81,7 +81,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 -- reaching this means its foundWords list was stale.
 select pg_temp.envelope_is(
   spellingbee.submit_word((select id from g), 'bead', 1, false, false),
-  '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN360","message":"Already found"}'::jsonb,
+  '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN360","message":"BEAD — already found"}'::jsonb,
   'compete: ada re-submitting "bead" rejected as already-found-by-her'
 );
 

@@ -14,7 +14,7 @@
 
 begin;
 set search_path = boggle, common, public, extensions;
-select plan(21);
+select plan(22);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -33,10 +33,12 @@ select (boggle.create_game(
   'coop', pg_temp.boggle_board())->'data'->>'id')::uuid as id;
 
 -- ── (1) coop required happy path ──────────────────────────
-select pg_temp.envelope_is(
-  boggle.submit_word((select id from g), 'cat', 1, false),
-  '{"type":"ok","data":{"result":"accepted"}}'::jsonb,
+create temp table cat_ret on commit drop as
+select boggle.submit_word((select id from g), 'cat', 1, false) as ret;
+select is((select ret->'data'->>'result' from cat_ret), 'accepted',
   'required word (is_bonus false) → accepted');
+select is((select (ret->'data'->>'points')::int from cat_ret), 1,
+  'return carries the FE-supplied points (cat = 1)');
 
 reset role; select set_config('request.jwt.claims', '', true);
 select is((select count(*) from boggle.found_words where game_id = (select id from g) and word = 'cat'),
@@ -50,7 +52,7 @@ select is((select (status->>'found_words_score')::int from common.games where id
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select pg_temp.envelope_is(
   boggle.submit_word((select id from g), 'cat', 1, false),
-  '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN359","message":"Already found"}'::jsonb,
+  '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN359","message":"CAT — already found"}'::jsonb,
   'coop: a word found by another player → alreadyFound');
 
 -- ── (3) bonus: trusted from the FE (is_bonus true), no dictionary check ───
@@ -101,7 +103,7 @@ select pg_temp.envelope_is(
   'compete: bea independently finds the same word');
 select pg_temp.envelope_is(
   boggle.submit_word((select id from cg), 'cat', 1, false),
-  '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN359","message":"Already found"}'::jsonb,
+  '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN359","message":"CAT — already found"}'::jsonb,
   'compete: same player re-submitting → alreadyFound');
 
 -- ── (6b) a conceded player is out of the race ─────────────

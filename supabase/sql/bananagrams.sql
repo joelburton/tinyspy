@@ -593,7 +593,9 @@ revoke execute on function bananagrams._win_blockers(text, integer, integer, boo
 -- Three ok answers, and `illegal` is one of them ON PURPOSE: a board that isn't
 -- ready is a state of play, not a rejection — the game stays in progress and the
 -- player fixes the red cells and peels again.
---   { result: 'dealt' } | { result: 'won' } | { result: 'illegal', cells: int[] }
+--   { result: 'dealt' | 'won' | 'illegal', invalid_cells: int[] }
+-- `invalid_cells` is present on all three (empty on the two that succeeded),
+-- exactly as before the envelope: a converted RPC keeps what it returned.
 --
 -- Race-safety: lock the gametype row up front so two simultaneous peels
 -- serialize. The first either ends the game or advances the bunch; the second
@@ -709,7 +711,8 @@ begin
     -- hand the FE the offending cells to paint red; the player fixes + re-peels.
     v_blockers := bananagrams._win_blockers(v_board, v_dict_2, v_dict_3plus, v_word_check <> 'off');
     if array_length(v_blockers, 1) > 0 then
-      return common.ok_envelope(jsonb_build_object('result', 'illegal', 'cells', to_jsonb(v_blockers)));
+      return common.ok_envelope(jsonb_build_object(
+        'result', 'illegal', 'invalid_cells', to_jsonb(v_blockers)));
     end if;
 
     update bananagrams.progress
@@ -735,7 +738,8 @@ begin
                          'bunch_remaining', length(s_bunch)),
       player_results
     );
-    return common.ok_envelope(jsonb_build_object('result', 'won'));
+    return common.ok_envelope(jsonb_build_object(
+      'result', 'won', 'invalid_cells', '[]'::jsonb));
   end if;
 
   -- ─── Strict mode: a CONTINUING peel is validated too ───
@@ -747,7 +751,8 @@ begin
   if v_word_check = 'strict' then
     v_blockers := bananagrams._win_blockers(v_board, v_dict_2, v_dict_3plus, true);
     if array_length(v_blockers, 1) > 0 then
-      return common.ok_envelope(jsonb_build_object('result', 'illegal', 'cells', to_jsonb(v_blockers)));
+      return common.ok_envelope(jsonb_build_object(
+        'result', 'illegal', 'invalid_cells', to_jsonb(v_blockers)));
     end if;
   end if;
 
@@ -788,7 +793,8 @@ begin
     jsonb_build_object('bunch_remaining', length(s_bunch) - needed,
                        'bag_remaining', length(s_bag)));
 
-  return common.ok_envelope(jsonb_build_object('result', 'dealt'));
+  return common.ok_envelope(jsonb_build_object(
+    'result', 'dealt', 'invalid_cells', '[]'::jsonb));
 
 exception when others then
   get stacked diagnostics
@@ -866,15 +872,28 @@ begin
   -- THREE answers, because the surface says three different things. An empty
   -- board has no blockers, so "clean" and "empty" are one shape unless they are
   -- named — and congratulating someone who has not put a tile down is the bug
-  -- that naming prevents. The count that used to carry that (`placed`) is gone:
-  -- nothing else read it.
+  -- that naming prevents.
+  --
+  -- Naming them does NOT retire `placed`, which is what used to carry that
+  -- distinction: every answer still reports the blockers and the filled-cell
+  -- count. A converted RPC keeps everything it used to return (see the plan's
+  -- §6) — the FE may want it, and it is worth having in the log either way.
   if array_length(v_blockers, 1) > 0 then
-    return common.ok_envelope(jsonb_build_object('result', 'invalid', 'cells', to_jsonb(v_blockers)));
+    return common.ok_envelope(jsonb_build_object(
+      'result', 'invalid',
+      'invalid_cells', to_jsonb(v_blockers),
+      'placed', length(replace(v_board, '.', ''))));
   end if;
   if length(replace(v_board, '.', '')) = 0 then
-    return common.ok_envelope(jsonb_build_object('result', 'empty'));
+    return common.ok_envelope(jsonb_build_object(
+      'result', 'empty',
+      'invalid_cells', to_jsonb(v_blockers),
+      'placed', 0));
   end if;
-  return common.ok_envelope(jsonb_build_object('result', 'clean'));
+  return common.ok_envelope(jsonb_build_object(
+    'result', 'clean',
+    'invalid_cells', to_jsonb(v_blockers),
+    'placed', length(replace(v_board, '.', ''))));
 
 exception when others then
   get stacked diagnostics
