@@ -98,6 +98,20 @@ export const NO_ANSWER_TO_CODE_AND_TEXT = {
  * detects, since none of them carried a code at all. That is the whole reason
  * these codes exist.
  */
+/**
+ * **The situation `dbFetch` named, if it named one.** It writes its verdict into
+ * `statusText` — the one field that survives postgrest-js untouched — because
+ * it is the only layer that can tell Kong's JSON from a captive portal's HTML,
+ * and by the time a wrapper sees the failure both have been flattened into the
+ * same `{ message: string }`.
+ *
+ * `undefined` for anything else, including a real HTTP status text: nothing
+ * else in this app writes an `FE` code there.
+ */
+export function situationFor(statusText: string | undefined) {
+  return Object.values(NO_ANSWER_TO_CODE_AND_TEXT).find((s) => s.code === statusText)
+}
+
 export function isEnvironmental(dbcode: string | null): boolean {
   return (
     dbcode !== null

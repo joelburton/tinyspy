@@ -2,8 +2,8 @@
 
 import { callEdgeFn } from './callEdgeFn'
 import {
-  envelopeFields, faultEnvelope, nothingReachedUs, OUR_BUG_TO_CODE_AND_TEXT,
-  reportDbFault, type DbError,
+  envelopeFields, environmentalEnvelope, faultEnvelope, nothingReachedUs,
+  OUR_BUG_TO_CODE_AND_TEXT, reportDbFault, situationFor, type DbError,
 } from './dbEnvelope'
 import { logDb, type LogLevel, type Transport } from './dbLog'
 import type { Outcome } from '../outcomes'
@@ -144,6 +144,28 @@ function logLevelFor(envelope: Envelope): LogLevel {
 }
 
 /**
+ * **The envelope for a call that came back with an error**, in the order the
+ * three answers are decided.
+ *
+ * `dbFetch`'s verdict wins when it left one: it is the only layer that could
+ * see whether the body parsed, and a wrapper receiving postgrest-js's flattened
+ * `{ message: string }` cannot tell Kong's JSON from a captive portal's HTML.
+ * Then "nothing answered at all", which the status alone identifies. Then
+ * Postgres speaking for itself, which is the case that needs no help.
+ */
+function failureEnvelope(
+  settled: { error: DbError; status?: number; statusText?: string },
+  environmentalDetail: string | undefined,
+  fallback: string,
+  extra?: string,
+): NotOk {
+  const situation = situationFor(settled.statusText)
+  if (situation) return environmentalEnvelope(situation, environmentalDetail)
+  if (nothingAnswered(settled.status)) return nothingReachedUs(environmentalDetail)
+  return faultEnvelope(settled.error, fallback, extra)
+}
+
+/**
  * **What a caller may ask of a wrapper.** One question today, and the default
  * is the answer almost every site wants.
  *
@@ -223,7 +245,13 @@ function hasMessageWithoutOutcome(envelope: Envelope): boolean {
  *  `status` is optional because it is absent from a hand-built test double, not
  *  because it is absent at runtime — postgrest-js always sets it, and `0` is
  *  the signal `nothingAnswered` reads. */
-type QueryLike<T> = PromiseLike<{ data: T | null; error: DbError; status?: number }>
+type QueryLike<T> = PromiseLike<{
+  data: T | null
+  error: DbError
+  status?: number
+  /** `dbFetch`'s verdict when it had one — see `situationFor`. */
+  statusText?: string
+}>
 
 /**
  * **Call an edge function and hand back its envelope** — `runRpc`'s twin, for
@@ -330,7 +358,7 @@ function callLabel(call: unknown, fallback: string): string {
  *     setResults(r.data)
  */
 export async function runRpc<T>(
-  call: PromiseLike<{ data: unknown; error: DbError; status?: number }>,
+  call: PromiseLike<{ data: unknown; error: DbError; status?: number; statusText?: string }>,
   opts?: CallOptions,
 ): Promise<Envelope<T>> {
   // Timed here because `dbFetch` stays quiet on an RPC's 2xx — the answer
@@ -338,7 +366,7 @@ export async function runRpc<T>(
   // sitting above a `FAULT` about the same request. So this line carries the
   // duration as well as the meaning.
   const started = performance.now()
-  let settled: { data: unknown; error: DbError; status?: number }
+  let settled: { data: unknown; error: DbError; status?: number; statusText?: string }
   try {
     settled = await call
   } catch (thrown) {
@@ -357,10 +385,7 @@ export async function runRpc<T>(
     ms: Math.round(performance.now() - started),
   }
   if (settled.error) {
-    // `dbFetch` worded these; presenting them is this layer's job now.
-    const envelope = nothingAnswered(settled.status)
-      ? nothingReachedUs(settled.error.message)
-      : faultEnvelope(settled.error, 'The server refused the request.')
+    const envelope = failureEnvelope(settled, settled.error.message, 'The server refused the request.')
     reportFault(transport, envelope, opts)
     return envelope
   }
@@ -439,7 +464,7 @@ export async function readRows<Row>(
   // be offline"). Without this, the envelope a hook keeps says a read failed and
   // cannot say which — the one fact nobody can recover afterwards.
   const call = callLabel(query, 'read')
-  let settled: { data: Row[] | null; error: DbError; status?: number }
+  let settled: { data: Row[] | null; error: DbError; status?: number; statusText?: string }
   try {
     settled = await query
   } catch (thrown) {
@@ -449,12 +474,7 @@ export async function readRows<Row>(
     return nothingReachedUs(`${call} — ${String(thrown)}`)
   }
   if (settled.error) {
-    // `dbFetch` worded these; presenting them is this layer's job now — which
-    // is new for reads: `readRows` used to build an envelope and show nothing,
-    // relying on `dbFetch` having done it.
-    const envelope = nothingAnswered(settled.status)
-      ? nothingReachedUs(`${call} — ${settled.error.message}`)
-      : faultEnvelope(settled.error, 'The read failed.', call)
+    const envelope = failureEnvelope(settled, `${call} — ${settled.error.message}`, 'The read failed.', call)
     reportFault({ call, status: settled.status, ms: Math.round(performance.now() - started) }, envelope, opts)
     return envelope
   }

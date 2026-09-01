@@ -145,6 +145,59 @@ describe('a request nothing answered', () => {
   })
 })
 
+/**
+ * **The verdict `dbFetch` left, read back.**
+ *
+ * The one thing a wrapper cannot work out for itself: postgrest-js flattens a
+ * parsed body and an unparseable one into the same `{ message: string }`, so
+ * Kong's JSON and a captive portal's HTML are indistinguishable by the time
+ * they arrive. `dbFetch` writes which it was into `statusText`, and these pin
+ * that the envelope a call site reads carries it.
+ */
+describe('the verdict from dbFetch', () => {
+  it('turns FE004 into the sentence, not the raw body', async () => {
+    const r = await readRows(
+      Promise.resolve({
+        data: null,
+        error: { message: '<html>502 Bad Gateway</html>' },
+        status: 502,
+        statusText: 'FE004',
+      }),
+    )
+    expect(r).toMatchObject({ type: 'not-ok', dbcode: 'FE004' })
+    expect(r.message).toContain('a server other than ours')
+    // The raw body is not thrown away — it is just not the sentence.
+    expect(r.detail).toContain('502 Bad Gateway')
+  })
+
+  it('turns FE003 into ours-is-down', async () => {
+    const r = await runRpc(
+      Promise.resolve({
+        data: null,
+        error: { message: 'no Route matched with those values' },
+        status: 502,
+        statusText: 'FE003',
+      }),
+    )
+    expect(r).toMatchObject({ type: 'not-ok', dbcode: 'FE003' })
+    expect(r.message).toContain('Our server appears to be down')
+  })
+
+  // The other half: Postgres naming itself needs no verdict, and must not be
+  // overridden by one. Without this, "always trust statusText" would pass.
+  it('leaves a real SQLSTATE alone', async () => {
+    const r = await readRows(
+      Promise.resolve({
+        data: null,
+        error: { message: 'permission denied', code: '42501' },
+        status: 403,
+        statusText: 'Forbidden',
+      }),
+    )
+    expect(r).toMatchObject({ message: 'permission denied', dbcode: '42501' })
+  })
+})
+
 describe('_isEnvelope', () => {
   it('accepts both branches', () => {
     expect(_isEnvelope({ type: 'ok' })).toBe(true)

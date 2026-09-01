@@ -58,10 +58,12 @@ describe('dbFetch — a request that never reached the server', () => {
   it('logs the failure under [db] with the facts the message lacks', async () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
     stubFetch(() => Promise.reject(new TypeError('Load failed')))
-    await dbFetch('https://x.supabase.co/rest/v1/rpc/submit_word', { method: 'POST' }).catch(() => {})
+    // An AUTH path, because that is one nothing downstream speaks for. A
+    // failure on our own endpoints is the wrapper's to log now.
+    await dbFetch('https://x.supabase.co/auth/v1/token', { method: 'POST' }).catch(() => {})
     const line = spy.mock.calls[0][0] as string
     expect(line).toContain('[db]')
-    expect(line).toContain('POST /rest/v1/rpc/submit_word')
+    expect(line).toContain('POST /auth/v1/token')
     expect(line).toContain('FAULT')
     // The thrown error is the DETAIL: nothing answered, so there is no
     // server-supplied one to compete with it.
@@ -74,7 +76,7 @@ describe('dbFetch — a request that never reached the server', () => {
     // and console output gets screenshotted into chat.
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
     stubFetch(() => Promise.reject(new TypeError('Load failed')))
-    await dbFetch('https://x.supabase.co/rest/v1/games?apikey=SECRETKEY&id=eq.1').catch(() => {})
+    await dbFetch('https://x.supabase.co/auth/v1/token?apikey=SECRETKEY&id=eq.1').catch(() => {})
     expect(spy.mock.calls[0][0]).not.toContain('SECRETKEY')
   })
 })
@@ -132,8 +134,10 @@ describe('dbFetch — requests that DID reach the server', () => {
   // A body that isn't JSON is the failure most worth showing — a Kong 502 on a
   // PostgREST call means the stack is broken — and it used to be the quietest,
   // arriving with `dbcode=` and `detail=` both blank.
-  it('says WHY there is no dbcode when the body would not parse', async () => {
-    const err = vi.spyOn(console, 'error').mockImplementation(() => {})
+  // A body that will not parse used to be the quietest failure here, printing
+  // `dbcode=` and `detail=` blank. It is now the loudest thing this layer says:
+  // a verdict in `statusText` that the wrapper turns into a real sentence.
+  it('marks an unparseable body with a verdict, and keeps the body readable', async () => {
     stubFetch(() =>
       Promise.resolve(
         new Response('<html>502 Bad Gateway</html>', {
@@ -142,31 +146,15 @@ describe('dbFetch — requests that DID reach the server', () => {
         }),
       ),
     )
-    await dbFetch('https://x.supabase.co/rest/v1/clubs')
-    expect(err.mock.calls[0][0]).toContain('body was not JSON')
-    expect(err.mock.calls[0][0]).toContain('text/html')
+    const res = await dbFetch('https://x.supabase.co/rest/v1/clubs')
+    expect(res.statusText).toBe('FE004')
+    expect(await res.text()).toContain('502 Bad Gateway')
   })
 
-  // `isPolled` used to live here — a path test that silenced `tick_timer`'s
-  // failures. It is gone: this layer presents nothing at all now, so there is
-  // nothing to exempt, and the timer opts out at its own call instead
-  // (plans/fault-presentation.md).
-  it('presents nothing, whoever called', async () => {
-    stubFetch(() => Promise.reject(new TypeError('Failed to fetch')))
-    await expect(
-      dbFetch('https://x.supabase.co/rest/v1/rpc/submit_guess', { method: 'POST' }),
-    ).rejects.toThrow()
-    expect(peekFaultsForTest()).toHaveLength(0)
-  })
-
-  it('narrates a failing STATUS too — "said no" and "never arrived" are one investigation', async () => {
-    // On a seam path the status rides in the FAULT line the seam writes, at
-    // `error`: one line per failed call, not a warn and then an error.
-    const err = vi.spyOn(console, 'error').mockImplementation(() => {})
+  it('passes a failing status through untouched for the wrapper to read', async () => {
     stubFetch(() => Promise.resolve(new Response('{}', { status: 400 })))
-    await dbFetch('https://x.supabase.co/rest/v1/rpc/submit_word', { method: 'POST' })
-    expect(err.mock.calls[0][0]).toContain('status=400')
-    expect(err.mock.calls[0][0]).toContain('POST /rest/v1/rpc/submit_word')
+    const res = await dbFetch('https://x.supabase.co/rest/v1/rpc/submit_word', { method: 'POST' })
+    expect(res.status).toBe(400)
   })
 
   it('does NOT append advice to a server rejection — the move was really refused', async () => {
@@ -201,10 +189,17 @@ describe('dbFetch — requests that DID reach the server', () => {
  * Kong's JSON can be told from a captive portal's HTML, since postgrest-js
  * flattens both into `{ message: string }` before a wrapper sees them.
  */
+/**
+ * **dbFetch classifies; the wrapper logs and presents.** Its verdict rides in
+ * `statusText`, the one field that survives postgrest-js untouched — so these
+ * assertions read the RESPONSE, not the console.
+ *
+ * Why the classification lives here at all: this is the only layer that can see
+ * whether the body parsed. By the time a wrapper receives the failure,
+ * postgrest-js has flattened Kong's JSON and a captive portal's HTML into the
+ * same `{ message: string }`.
+ */
 describe('dbFetch — classifying faults', () => {
-  /** The `[db]` line this call wrote, at whichever console level. */
-  const line = (spy: ReturnType<typeof vi.spyOn>) => String(spy.mock.calls[0]?.[0] ?? '')
-
   beforeEach(() => {
     clearFaultsForTest()
     vi.spyOn(console, 'error').mockImplementation(() => {})
@@ -212,86 +207,51 @@ describe('dbFetch — classifying faults', () => {
     vi.spyOn(console, 'debug').mockImplementation(() => {})
   })
 
-  it('writes a line when the request never completed, and shows nothing', async () => {
-    const err = vi.spyOn(console, 'error').mockImplementation(() => {})
-    stubFetch(() => Promise.reject(new TypeError('Load failed')))
-    await expect(dbFetch('https://x.test/rest/v1/clubs')).rejects.toThrow()
-    expect(line(err)).toContain('/rest/v1/clubs')
-    expect(peekFaultsForTest()).toHaveLength(0)
-  })
-
   // An abort is US canceling our own request — a component unmounting, a
-  // superseded fetch. Nobody is owed a modal for that, and one would appear on
-  // ordinary navigation.
-  it('says nothing when WE aborted the request', async () => {
+  // superseded fetch. It still gets a line, because no wrapper will speak for
+  // a request that was never meant to finish.
+  it('logs an abort, which no wrapper will speak for', async () => {
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {})
     const abort = new DOMException('The operation was aborted.', 'AbortError')
     stubFetch(() => Promise.reject(abort))
     await expect(dbFetch('https://x.test/rest/v1/clubs')).rejects.toThrow()
-    expect(peekFaultsForTest()).toHaveLength(0)
+    expect(String(err.mock.calls[0]?.[0] ?? '')).toContain('/rest/v1/clubs')
   })
 
-  // Auth is deliberately outside the seam: a 400 from /auth/v1/ is usually a
-  // user-facing condition the sign-in screen already handles (expired link, bad
-  // OTP), and a blocking modal would be wrong.
-  it('leaves auth alone', async () => {
+  // Auth is outside the seam and has no wrapper, so this line is its whole
+  // record.
+  it('logs auth, which has no wrapper either', async () => {
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {})
     stubFetch(() => Promise.reject(new TypeError('Load failed')))
     await expect(dbFetch('https://x.test/auth/v1/token')).rejects.toThrow()
-    expect(peekFaultsForTest()).toHaveLength(0)
+    expect(String(err.mock.calls[0]?.[0] ?? '')).toContain('/auth/v1/token')
   })
 
-  it('classifies a Postgres error nobody authored', async () => {
+  // But a failure on OUR endpoints does NOT get a line here: the wrapper writes
+  // a better one, knowing the severity, the code and the outcome.
+  it('stays quiet for a call a wrapper will speak for', async () => {
     const err = vi.spyOn(console, 'error').mockImplementation(() => {})
-    stubFetch(() =>
-      Promise.resolve(
-        new Response(
-          JSON.stringify({ code: '23514', message: 'violates check constraint "guesses_check"' }),
-          { status: 400 },
-        ),
-      ),
-    )
-    await dbFetch('https://x.test/rest/v1/rpc/submit_guess', { method: 'POST' })
-    expect(line(err)).toContain('guesses_check')
-    expect(line(err)).toContain('dbcode=23514')
-    expect(peekFaultsForTest()).toHaveLength(0)
+    stubFetch(() => Promise.reject(new TypeError('Load failed')))
+    await expect(dbFetch('https://x.test/rest/v1/clubs')).rejects.toThrow()
+    expect(err).not.toHaveBeenCalled()
   })
 
-  // ── WHO answered, and therefore what it says ─────────────────
-  // Three different things to go fix, and this is the only layer that can tell
-  // them apart: a call site sees the envelope, never the response.
+  // ── The verdict, in statusText ───────────────────────────────
 
   // HTML on `/rest/v1/` — PostgREST always speaks JSON, so something that is
-  // not PostgREST answered. A captive portal, a proxy, an ISP page. It used to
-  // say "The server refused the request", which claims we answered and said no.
-  it('names a foreign responder when the body is not JSON, on a rest path', async () => {
-    const err = vi.spyOn(console, 'error').mockImplementation(() => {})
-    stubFetch(() =>
-      Promise.resolve(new Response('<html>502 Bad Gateway</html>', { status: 502 })),
-    )
-    await dbFetch('https://x.test/rest/v1/rpc/submit_guess', { method: 'POST' })
-    expect(line(err)).toContain('a server other than ours')
-    expect(line(err)).toContain('dbcode=FE004')
-    expect(line(err)).toContain('status=502')
-  })
-
-  // An edge function's unparseable body is the RUNTIME answering instead of the
-  // function, which is ours rather than the player's network — but that is
-  // `callEdgeFn`'s call, not this layer's: it holds the Response and decides
-  // for itself. Here the line is the generic one, and that is correct.
-  it('does not try to classify an edge function it cannot see into', async () => {
-    const err = vi.spyOn(console, 'error').mockImplementation(() => {})
-    stubFetch(() =>
-      Promise.resolve(new Response('Function not found', { status: 404 })),
-    )
-    await dbFetch('https://x.test/functions/v1/boggle-build-board', { method: 'POST' })
-    expect(line(err)).toContain('status=404')
-    expect(line(err)).not.toContain('PN310')
+  // not PostgREST answered: a captive portal, a proxy, an ISP page.
+  it('names a foreign responder when the body will not parse', async () => {
+    stubFetch(() => Promise.resolve(new Response('<html>502</html>', { status: 502 })))
+    const res = await dbFetch('https://x.test/rest/v1/rpc/submit_guess', { method: 'POST' })
+    expect(res.statusText).toBe('FE004')
+    expect(res.status).toBe(502)
+    // And the body still reads — the caller has not lost it.
+    expect(await res.text()).toBe('<html>502</html>')
   })
 
   // It PARSED but carried no SQLSTATE — Kong's own `{"message":"no Route
-  // matched…"}`. Our gateway is up and the thing behind it is not, which the
-  // player does not need spelled out; they need "our server is down".
-  it('says our server is down when our gateway answers without a SQLSTATE', async () => {
-    const err = vi.spyOn(console, 'error').mockImplementation(() => {})
+  // matched…"}`. Our gateway is up and the thing behind it is not.
+  it('names our own upstream when the gateway answers without a SQLSTATE', async () => {
     stubFetch(() =>
       Promise.resolve(
         new Response(JSON.stringify({ message: 'no Route matched with those values' }), {
@@ -300,43 +260,30 @@ describe('dbFetch — classifying faults', () => {
         }),
       ),
     )
-    await dbFetch('https://x.test/rest/v1/rpc/submit_guess', { method: 'POST' })
-    expect(line(err)).toContain('Our server appears to be down')
-    expect(line(err)).toContain('dbcode=FE003')
-    // The gateway's own words survive where whoever debugs will read them.
-    expect(line(err)).toContain('no Route matched')
+    const res = await dbFetch('https://x.test/rest/v1/rpc/submit_guess', { method: 'POST' })
+    expect(res.statusText).toBe('FE003')
   })
 
-  // And Postgres naming itself still wins: its SQLSTATE is the more specific
-  // answer, so none of the three above applies.
-  it('leaves a real Postgres error alone', async () => {
-    const err = vi.spyOn(console, 'error').mockImplementation(() => {})
+  // Postgres naming itself needs no help: the wrapper reads the SQLSTATE off
+  // the error, so this layer leaves the statusText alone.
+  it('adds no verdict when Postgres named itself', async () => {
     stubFetch(() =>
       Promise.resolve(
         new Response(JSON.stringify({ message: 'permission denied', code: '42501' }), {
           status: 403,
+          statusText: 'Forbidden',
           headers: { 'Content-Type': 'application/json' },
         }),
       ),
     )
-    await dbFetch('https://x.test/rest/v1/rpc/submit_guess', { method: 'POST' })
-    expect(line(err)).toContain('permission denied')
-    expect(line(err)).toContain('dbcode=42501')
-  })
-
-  // Reading the body must not consume it — every caller downstream still needs
-  // the stream. This is the whole reason for `clone()`.
-  it('leaves the response body readable by the caller', async () => {
-    stubFetch(() =>
-      Promise.resolve(new Response(JSON.stringify({ code: '23514', message: 'boom' }), { status: 400 })),
-    )
     const res = await dbFetch('https://x.test/rest/v1/rpc/submit_guess', { method: 'POST' })
-    await expect(res.json()).resolves.toEqual({ code: '23514', message: 'boom' })
+    expect(res.statusText).toBe('Forbidden')
   })
 
-  it('stays quiet on success', async () => {
-    stubFetch(() => Promise.resolve(new Response('[]', { status: 200 })))
-    await dbFetch('https://x.test/rest/v1/clubs')
+  // Nothing here is ever presented — that moved to the wrappers entirely.
+  it('presents nothing, whatever happened', async () => {
+    stubFetch(() => Promise.resolve(new Response('<html>502</html>', { status: 502 })))
+    await dbFetch('https://x.test/rest/v1/rpc/submit_guess', { method: 'POST' })
     expect(peekFaultsForTest()).toHaveLength(0)
   })
 })

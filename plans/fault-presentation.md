@@ -160,7 +160,30 @@ is and put the verification dangerously late (Joel, 2026-09-01).
       `dbFetch` lost the branch and `targetsEdgeFunction` with it: a path test
       that existed only to guess at something the layer holding the Response
       knows outright.
-- [ ] **5.5** Decide the DB path's parse bit (§3.6) with the code in front of us.
+- [x] **5.5** Decide the DB path's parse bit (§3.6). DONE 2026-09-01 — the
+      verdict rides in `statusText`, and `dbFetch` stops logging faults a
+      wrapper will speak for.
+
+      The decision was easier than §3.6 assumed, because the alternative is
+      worse than it looked: if `dbFetch` kept PRESENTING `FE003`/`FE004` alone,
+      the wrapper would still build its own envelope from the flattened error
+      and present THAT — two modals, one of them raw HTML — and even suppressed,
+      the envelope a call site reads would still carry the markup. It fixes the
+      modal at best and leaves the data wrong.
+
+      So: `dbFetch` reads the body as text once, classifies, and re-emits a
+      `Response` with the code in `statusText`. Everything either library
+      touches survives — `ok`, `status`, `statusText`, `text()`, `headers`.
+      `situationFor` reads it back; `failureEnvelope` in `dbResult` decides in
+      three lines, verdict first. Verified by planting: ignoring the verdict
+      turns two tests red.
+
+      **And `dbFetch` no longer logs faults on our endpoints** (Joel: going dark
+      on the raw sites is fine, every one is covered this sprint). It keeps
+      logging what no wrapper will ever speak for — auth, aborts, unrecognized
+      paths — which is the rule it already applied to its `OK` lines. That
+      closes the double-log 5.2 opened. `logFault` is gone: this layer builds no
+      envelopes at all now.
 - [ ] **5.6** **The mechanical sweep** — the 69 converted files. Does each still
       present what it should; does any want to opt out. **And specifically: is
       any of them relying on `dbFetch` presenting FOR it** — a site that shows

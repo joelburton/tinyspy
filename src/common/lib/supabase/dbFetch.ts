@@ -1,11 +1,9 @@
 // cs-unmet
 
 import {
-  envelopeFields, environmentalEnvelope, faultEnvelope, NO_ANSWER_TO_CODE_AND_TEXT,
-  type DbError,
+  NO_ANSWER_TO_CODE_AND_TEXT, type DbError,
 } from './dbEnvelope'
 import { logDb, logSlow } from './dbLog'
-import type { NotOk } from './envelope'
 
 /**
  * The `fetch` every Supabase call goes through — the ONE place a request that
@@ -83,12 +81,6 @@ function getTextualOnlineStatus(): string {
   return `online=${online}${hidden ? ' hidden' : ''}`
 }
 
-/** Write the `[db]` line for a failure this layer classified, and stop there.
- *  The classification is worth having — it is the only place Kong's JSON can be
- *  told from a portal's HTML — but showing it is the wrapper's job now. */
-function logFault(fields: { call: string; status?: number; ms?: number; detail?: string }, envelope: NotOk): void {
-  logDb('FAULT', envelopeFields(fields, envelope), envelope.message)
-}
 
 /** The request's identity, with no credentials in it. A Supabase URL carries
  *  the apikey and often a JWT in the query string, and console output gets
@@ -181,16 +173,15 @@ export const dbFetch: typeof fetch = async (input, init) => {
     // compete with it — and `status` stays blank because nothing answered.
     const fields = { call, ms, detail: `${name}: ${message} ${getTextualOnlineStatus()}` }
 
-    // The line, and only the line. Which of these it was — an abort, an auth
-    // call, a real network failure — matters to whoever reads the console and
-    // to nobody else here: the WRAPPER decides whether anyone is shown
-    // anything, because it holds the answer and this layer holds only the URL
-    // (plans/fault-presentation.md).
-    logDb('FAULT', fields)
+    // Only what nothing else will speak for — the same rule as the `OK` line
+    // below. An abort is us canceling ourselves; auth has no wrapper. A failure
+    // on OUR endpoints reaches a wrapper, which writes the better line: it
+    // knows the severity, the code and the outcome, and this layer knows only
+    // that a request did not come back.
+    if (name === 'AbortError' || isSupabaseInternal(input, init)) logDb('FAULT', fields)
 
     // Re-thrown UNTOUCHED. The error object itself is never reworded here —
-    // this function logs; it does not edit what callers receive, and no longer
-    // presents what they will read.
+    // this function classifies and logs; it does not edit what callers receive.
     throw thrown
   }
 
@@ -232,26 +223,22 @@ export const dbFetch: typeof fetch = async (input, init) => {
   }
 
   // A non-2xx from PostgREST is Postgres's own error shape — a RAW FAULT, by
-  // definition something nobody wrote a line of SQL for. `clone()` so the
-  // caller's stream is untouched.
+  // definition something nobody wrote a line of SQL for.
   //
   // A PA/PN code HERE is a third thing, and always a bug of ours: our own codes
   // are meant to arrive HTTP 200 inside an envelope, so one in the raw shape
-  // means the RPC that raised it has no handler to catch it — during the
-  // conversion, an unconverted RPC calling a converted helper. The line says so
+  // means the RPC that raised it has no handler to catch it. The line says so
   // by carrying one of our codes beside a 4xx status, which no correctly-handled
   // call can produce.
   //
-  // Parse if we can, present either way. A body that ISN'T JSON — a gateway's
-  // HTML error page, an empty response — leaves us with no code and no message
-  // from Postgres, but it is the failure most worth showing: a Kong 502 on a
-  // PostgREST call means the stack is broken, not that a move was refused. What
-  // we have then is the transport's own facts plus why the parse failed, and
-  // `faultEnvelope(null, …)` is the shape that carries them.
+  // The body is read as TEXT, once, and re-emitted below — `json()` would
+  // consume the stream the caller still needs, and a `clone()` cannot be
+  // annotated.
+  const text = await res.text()
   let body: DbError = null
   let unparsed: string | undefined
   try {
-    body = (await res.clone().json()) as DbError
+    body = JSON.parse(text) as DbError
   } catch {
     // The content-type is the tell, and it is free: `text/html` is a gateway's
     // error page, `text/plain` is the edge runtime, nothing is an empty reply.
@@ -259,35 +246,37 @@ export const dbFetch: typeof fetch = async (input, init) => {
     unparsed = `body was not JSON (content-type: ${contentType})`
   }
 
-  // ─── WHO answered, and therefore what the LINE says ──────────
-  // Three different things to go fix, and this is the only layer that can tell
-  // them apart — a wrapper sees postgrest-js's flattened `{ message }`, never
-  // the response, so it cannot distinguish Kong's JSON from a portal's HTML.
+  // ─── WHO answered ────────────────────────────────────────────
+  // Two things to go fix, and this is the only layer that can tell them apart:
+  // postgrest-js flattens a parsed body and an unparseable one into the same
+  // `{ message: string }` before a wrapper sees either.
   //
-  // **The envelope built here now reaches only the log.** The wrapper builds
-  // its own for the caller, from what postgrest-js left it — which is why this
-  // classification has to travel forward somehow (plans/fault-presentation.md
-  // §3.6, step 5.5, still open). Until it does, the `[db]` line is more
-  // specific than the modal.
-  if (body?.code) {
-    // Postgres spoke and named itself. Its own words, its own SQLSTATE.
-    logFault(fields, faultEnvelope(body, 'The server refused the request.'))
-  } else if (!unparsed) {
-    // It PARSED but carried no SQLSTATE — Kong's own
-    // `{"message":"no Route matched…"}`, or any platform layer answering for
-    // us. Our gateway is up and the thing behind it is not, which is not a
-    // sentence a player needs: they need "our server is down". The gateway's
-    // own message is the detail, where whoever debugs will read it.
-    logFault(fields, environmentalEnvelope(NO_ANSWER_TO_CODE_AND_TEXT.upstreamDown, body?.message))
-  } else {
+  // `null` means there is nothing for this layer to add — Postgres named itself
+  // with a SQLSTATE, and the wrapper reads that straight off the error.
+  const verdict =
+    body?.code ? null
+    : !unparsed ? NO_ANSWER_TO_CODE_AND_TEXT.upstreamDown
+    // It PARSED but carried no SQLSTATE — Kong's own `{"message":"no Route
+    // matched…"}`, or any platform layer answering for us. Our gateway is up
+    // and the thing behind it is not.
+    : NO_ANSWER_TO_CODE_AND_TEXT.foreignResponder
     // An unparseable body. PostgREST ALWAYS speaks JSON, so something that is
     // not PostgREST answered: a captive portal, a proxy, an ISP error page.
-    //
-    // An edge function's unparseable body means something else — the runtime
-    // answering instead of the function — but that never reaches here as a
-    // classification: `callEdgeFn` holds the Response and decides for itself
-    // (PN310).
-    logFault(fields, environmentalEnvelope(NO_ANSWER_TO_CODE_AND_TEXT.foreignResponder, unparsed))
-  }
-  return res
+    // (An edge function's unparseable body means something else — the runtime
+    // answering instead of the function — but `callEdgeFn` holds the Response
+    // and decides that for itself.)
+
+  // **The verdict rides in `statusText`.** It is the one field that survives
+  // postgrest-js untouched, and the wrapper reads it to build the envelope a
+  // call site will see — so the modal and the log say the same thing without
+  // this layer presenting anything.
+  //
+  // Reconstructing rather than mutating, because `Response.statusText` is
+  // read-only. Everything either library touches is preserved: `ok` and `status`
+  // (derived from the status), `text()`, and the headers.
+  return new Response(text, {
+    status: res.status,
+    statusText: verdict ? verdict.code : res.statusText,
+    headers: res.headers,
+  })
 }
