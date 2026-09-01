@@ -1,6 +1,5 @@
 // cs-unmet
 
-import { expectedTextOrFault } from '../../common/lib/game/serverError'
 import { runRpc } from '../../common/lib/supabase/dbResult'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { IconNewGame, IconPrint, IconRestart } from '../../common/components/icons'
@@ -22,6 +21,7 @@ import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { setupRows } from '../lib/setupSummary'
 import { colorVarFor } from '../../common/lib/color/memberColor'
 import { callEdgeFn } from '../../common/lib/supabase/callEdgeFn'
+import { runEdgeFn } from '../../common/lib/supabase/dbResult'
 import { db } from '../db'
 import type { ScrabbleSetup } from '../lib/setup'
 import type { Placement } from '../lib/play'
@@ -302,41 +302,44 @@ export function PlayArea({
     },
     [],
   )
+/** What `scrabble-suggest-move` puts in `data`. Two `ok`s because the panel
+ *  says two different things — a ranked list, or "No legal moves — swap
+ *  tiles?", which is advice and only right when the generator actually
+ *  searched. `version` rides on both: the staleness rule applies either way. */
+type Suggested =
+  | { result: 'suggested'; moves: RankedMove[]; version: number }
+  | { result: 'no-legal-moves'; version: number }
+  | null
+
   const handleSuggest = useCallback(async () => {
     setSuggest({ status: 'loading' })
-    // callEdgeFn hands back a classifiable error (fe-error-key + relayed
-    // SQLSTATE + the answered marker), so the panel's red line shows the
-    // copy-table's words — or a fault's raw key — never functions-js's
-    // generic prose, and never "Server; try refresh" over a real answer.
-    const res = await callEdgeFn('scrabble-suggest-move', { game_id: gameId })
-    if (res.error) {
-      // Split by surface rule (docs/ui.md → Faults): an EXPECTED answer (the
-      // ai-* keys with copy) stays on the panel's red line; a fault pops the
-      // modal and the panel resets to idle.
-      const text = expectedTextOrFault(res.error, 'suggest')
-      setSuggest(text ? { status: 'error', message: text } : { status: 'idle' })
-      return
+    const res = await runEdgeFn<Suggested>('scrabble-suggest-move', { game_id: gameId })
+
+    if (res.type === 'not-ok' && res.severity === 'fault') {
+      // The panel resets to idle. `runEdgeFn` has raised the modal, and a fault
+      // leaves nothing to put on the panel's line (docs/ui.md → Faults).
+      setSuggest({ status: 'idle' })
+    } else if (res.type === 'not-ok') {
+      // `get_suggest_context`'s own refusals — not your turn, not a member —
+      // relayed here in their own words.
+      setSuggest({ status: 'error', message: res.message })
+    } else if (res.type === 'ok' && res.data?.result === 'no-legal-moves') {
+      // Its own answer, not an empty list: "No legal moves — swap tiles?" is a
+      // RECOMMENDATION, and only right when we searched and found none.
+      setSuggest({ status: 'ready', moves: [], version: res.data.version })
+    } else if (res.type === 'ok' && res.data?.result === 'suggested') {
+      // We do NOT reject a version mismatch here. The response's version is the
+      // DB's fresh snapshot; the FE's realtime copy can still LAG behind it, in
+      // which case the hints answer the board the FE is about to catch up to —
+      // rejecting would lie ("Board changed") and loop until the CDC lands. The
+      // render-derived `suggestView` (below) is the single staleness authority:
+      // it shows the list exactly when `suggest.version === game.version` and
+      // hides it otherwise, so a genuinely superseded answer never surfaces.
+      setSuggest({ status: 'ready', moves: res.data.moves, version: res.data.version })
+    } else {
+      showFaultModal({ text: 'BUG: scrabble-suggest-move fell through to unhandled' })
+      setSuggest({ status: 'idle' })
     }
-    const payload = res.data as { moves?: RankedMove[]; version?: number; error?: string } | null
-    if (!payload || payload.error || !Array.isArray(payload.moves) || typeof payload.version !== 'number') {
-      // A 200 whose body isn't the contract is a fault too — through the
-      // classifier (answered: a 2xx arrived), which logs the [db] line and
-      // pops the modal.
-      const text = expectedTextOrFault(
-        { message: payload?.error ?? 'suggest returned an unexpected body', answered: true },
-        'suggest',
-      )
-      setSuggest(text ? { status: 'error', message: text } : { status: 'idle' })
-      return
-    }
-    // We do NOT reject a version mismatch here. The response's version is the
-    // DB's fresh snapshot; the FE's realtime copy can still LAG behind it, in
-    // which case the hints answer the board the FE is about to catch up to —
-    // rejecting would lie ("Board changed") and loop until the CDC lands. The
-    // render-derived `suggestView` (below) is the single staleness authority:
-    // it shows the list exactly when `suggest.version === game.version` and
-    // hides it otherwise, so a genuinely superseded answer never surfaces.
-    setSuggest({ status: 'ready', moves: payload.moves, version: payload.version })
   }, [gameId])
 
   const handleApplySuggestion = useCallback((move: RankedMove) => {

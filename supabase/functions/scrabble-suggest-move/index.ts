@@ -34,6 +34,7 @@
 
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { edgeInternal, json, preflight } from '../_shared/http.ts'
+import { fault, isEnvelope, ok } from '../_shared/envelope.ts'
 import { callerClient } from '../_shared/startGame.ts'
 import { walkWord } from '../../../src/common/lib/game/trie.ts'
 import type { Cell } from '../../../src/scrabble/lib/board.ts'
@@ -52,16 +53,20 @@ type SuggestContext = {
 serve(async (req: Request): Promise<Response> => {
   const pre = preflight(req)
   if (pre) return pre
-  if (req.method !== 'POST') return json({ error: 'bad-method|' }, 405)
+  if (req.method !== 'POST') {
+    return fault('PN330', 'BUG: a suggest-move request that was not a POST', `scrabble-suggest-move: ${req.method}, not POST`)
+  }
 
   try {
     const body = await req.json().catch(() => ({}))
     const gameId: unknown = body.game_id
     if (!gameId || typeof gameId !== 'string') {
-      return json({ error: 'bad-request|game_id|' }, 400)
+      return fault('PN331', 'BUG: a suggest-move request with no game', `scrabble-suggest-move: game_id=${JSON.stringify(gameId)}`)
     }
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) return json({ error: 'not-authenticated|' }, 401)
+    // Empty rather than null when absent, and no header check of our own:
+    // `callerClient` sends whatever arrived, and `get_suggest_context`'s own
+    // membership gate refuses it in its words.
+    const authHeader = req.headers.get('Authorization') ?? ''
 
     // ─── The context snapshot, as the caller ───────────────────────────────
     // `.schema('scrabble')` is required — supabase-js defaults to `public`.
@@ -69,7 +74,12 @@ serve(async (req: Request): Promise<Response> => {
     const { data, error } = await supabase
       .schema('scrabble')
       .rpc('get_suggest_context', { target_game: gameId })
-    if (error) return json({ error: error.message, code: error.code }, 403)
+    // `get_suggest_context` is converted, so its own refusals — not your turn,
+    // not a member — relay untouched. `error` means only that it never RAN.
+    if (error) {
+      return fault('PN332', 'BUG: get_suggest_context did not run', `scrabble-suggest-move: ${error.message} (${error.code})`)
+    }
+    if (isEnvelope(data)) return json(data)
     const ctx = data as SuggestContext
 
     // ─── Generate + rank (cached trie; the compute itself is synchronous) ──
@@ -100,7 +110,16 @@ serve(async (req: Request): Promise<Response> => {
       ),
     )
 
-    return json({ moves: ranked, version: ctx.version })
+    // TWO answers, because the surface says two different things: a ranked
+    // list, or "No legal moves — swap tiles?" — which is a RECOMMENDATION, and
+    // only right when we searched and found none. Derived from an empty array
+    // it would also fire for any future answer that happened to carry no moves.
+    //
+    // `version` rides on both: the staleness rule applies either way, since a
+    // no-legal-moves answer is about one specific board.
+    return ranked.length === 0
+      ? ok({ result: 'no-legal-moves', version: ctx.version })
+      : ok({ result: 'suggested', moves: ranked, version: ctx.version })
   } catch (e) {
     console.error('scrabble-suggest-move threw:', e)
     return edgeInternal(e)

@@ -684,7 +684,7 @@ select pg_temp.envelope_is(
 
 ## 7. The conversion roster
 
-**144 entries. 76 done, 68 to go** (5 of those are the deferred edge
+**144 entries. 77 done, 67 to go** (5 of those are the deferred edge
 functions). Cross them off here as they land.
 
 **Un-paused 2026-08-31: the retro-fix list is empty.** It existed because a
@@ -880,7 +880,10 @@ read to convert; `submit_guess` has one call site, not two.
 - [ ] `players_state` · read
 - [ ] `plays` · read
 - [ ] `scrabble-ai-move` · edge fn — deferred
-- [ ] `scrabble-suggest-move` · edge fn — deferred
+- [x] `scrabble-suggest-move` · edge fn — PN330–PN332 faults, and
+      `get_suggest_context`'s refusals relayed. TWO ok results: an empty
+      `moves` array was standing in for `no-legal-moves`, which the panel
+      already renders as its own sentence
 
 #### setgame
 
