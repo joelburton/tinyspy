@@ -20,7 +20,6 @@ import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { setupRows } from '../lib/setupSummary'
 import { colorVarFor } from '../../common/lib/color/memberColor'
-import { callEdgeFn } from '../../common/lib/supabase/callEdgeFn'
 import { runEdgeFn } from '../../common/lib/supabase/dbResult'
 import { db } from '../db'
 import type { ScrabbleSetup } from '../lib/setup'
@@ -228,32 +227,41 @@ export function PlayArea({
   // the version and re-arms this.
   const currentSeatIsAi =
     isCompete && game != null && game.currentUserId == null && aiRoster.some((a) => a.seat === game.currentSeat)
+  /** What `scrabble-ai-move` puts in `data`. `turns` is how many seats it
+   *  played this invocation — 0..40, and 0 is COMMON: every client pokes and
+   *  only one wins the race. Nothing reads it; the poke is fire-and-forget. */
+  type AiPoked = { result: 'moved'; turns: number } | null
+
   const aiPokeVersionRef = useRef<number | null>(null)
   useEffect(() => {
     if (!currentSeatIsAi || !game || isTerminal) return
     if (aiPokeVersionRef.current === game.version) return
     const pokedVersion = game.version
     aiPokeVersionRef.current = pokedVersion
-    void callEdgeFn('scrabble-ai-move', { game_id: gameId })
-      .then(({ error }) => {
-        if (error) throw error
-      })
-      .catch((err: unknown) => {
-        // DISARM on failure. The once-per-version guard above assumes the poke
-        // either moves the AI (bumping `version`, which re-arms this) or is a
-        // harmless duplicate — a FAILED poke is neither, and leaving the ref set
-        // wedges the game permanently: the version never changes, so this effect
-        // never fires again and the bot appears to think forever. Clearing it
-        // means the next render that still sees an AI seat on turn tries again.
-        //
-        // Found the hard way: the edge function called two RPCs by the wrong
-        // name (`ai_pass` for `ai_pass_turn`), which only bites the first time
-        // the AI must pass rather than play — ~30 moves into a game, at which
-        // point it hung with nothing in the logs and no way to recover but a
-        // page reload.
-        if (aiPokeVersionRef.current === pokedVersion) aiPokeVersionRef.current = null
-        console.error('scrabble-ai-move poke failed', err)
-      })
+    void runEdgeFn<AiPoked>('scrabble-ai-move', { game_id: gameId }).then((res) => {
+      if (res.type === 'ok' && res.data?.result === 'moved') return
+      // DISARM on anything else. The once-per-version guard above assumes the
+      // poke either moves the AI (bumping `version`, which re-arms this) or is
+      // a harmless duplicate — a FAILED poke is neither, and leaving the ref
+      // set wedges the game permanently: the version never changes, so this
+      // effect never fires again and the bot appears to think forever.
+      // Clearing it means the next render that still sees an AI seat on turn
+      // tries again.
+      //
+      // Found the hard way: the edge function called two RPCs by the wrong
+      // name (`ai_pass` for `ai_pass_turn`), which only bites the first time
+      // the AI must pass rather than play — ~30 moves into a game, at which
+      // point it hung with nothing in the logs and no way to recover but a
+      // page reload.
+      if (aiPokeVersionRef.current === pokedVersion) aiPokeVersionRef.current = null
+      if (res.type === 'not-ok') {
+        // Every one of them is a `BUG:`, and `runEdgeFn` has already raised the
+        // modal. A wedged AI SHOULD be loud — see the hard-won lesson above.
+        console.error('scrabble-ai-move poke failed', res.message)
+      } else {
+        showFaultModal({ text: 'BUG: scrabble-ai-move fell through to unhandled' })
+      }
+    })
   }, [currentSeatIsAi, game, gameId, isTerminal])
 
   // Peer-move news → the GLOBAL header (the peer-news channel; my own move goes

@@ -63,7 +63,6 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   'not-a-player': { text: () => "You're not in this game" },
   // A session that expired under a page left open overnight — the one fault
   // here with a real remedy, so it names it.
-  'not-authenticated': { text: () => 'Signed out; try refresh' },
 
   // The FORM raises are the other population, and they're the reason common
   // needs far more copy than a game does: for a club name, a username or a

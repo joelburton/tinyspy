@@ -26,6 +26,7 @@
 
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { edgeInternal, json, preflight } from '../_shared/http.ts'
+import { fault, isEnvelope, ok } from '../_shared/envelope.ts'
 import { callerClient } from '../_shared/startGame.ts'
 import type { Cell } from '../../../src/scrabble/lib/board.ts'
 import type { Bands } from '../../../src/scrabble/lib/suggest.ts'
@@ -52,17 +53,20 @@ const MAX_AI_MOVES = 40
 serve(async (req: Request): Promise<Response> => {
   const pre = preflight(req)
   if (pre) return pre
-  if (req.method !== 'POST') return json({ error: 'bad-method|' }, 405)
+  if (req.method !== 'POST') {
+    return fault('PN333', 'BUG: an ai-move request that was not a POST', `scrabble-ai-move: ${req.method}, not POST`)
+  }
 
   try {
     const body = await req.json().catch(() => ({}))
     const gameId: unknown = body.game_id
     if (!gameId || typeof gameId !== 'string') {
-      return json({ error: 'bad-request|game_id|' }, 400)
+      return fault('PN334', 'BUG: an ai-move request with no game', `scrabble-ai-move: game_id=${JSON.stringify(gameId)}`)
     }
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) return json({ error: 'not-authenticated|' }, 401)
+    // No header check of our own: `callerClient` sends whatever arrived, and
+    // `get_ai_context`'s own membership gate refuses it in its words.
 
+    const authHeader = req.headers.get('Authorization') ?? ''
     const db = callerClient(authHeader).schema('scrabble')
     const trie = await ratedTrie()
 
@@ -75,19 +79,23 @@ serve(async (req: Request): Promise<Response> => {
     // than an error. That is exactly how a wrong RPC name (`ai_pass` for
     // `ai_pass_turn`) survived ~30 moves of this game unnoticed — it only fires
     // on the branch the AI hadn't needed yet.
-    // `message` is the failing RPC's error.message — an fe-error-key (SQL
-    // raises them; guard: APPROVED_EXPRESSIONS). Nothing here is player-facing
-    // (the FE poke is fire-and-forget), but the contract holds everywhere.
+    // ONE code for all three, unlike a pair of raises that merely share a
+    // sentence: the investigation is identical — an RPC we call by name did not
+    // run — and `where` names which in the detail. That detail is how the
+    // wrong-name bug above is found; the code would not narrow it.
     const fail = (where: string, message: string) => {
-      console.error(`[ai-move] game ${gameId}: FAILED at ${where} after ${played} move(s) —`, message)
-      return json({ error: message }, 500)
+      console.error(`[ai-move] game ${gameId}: FAILED at ${where} after ${played} turn(s) —`, message)
+      return fault('PN336', 'BUG: an AI move RPC did not run', `scrabble-ai-move: ${where} — ${message}`)
     }
     for (let i = 0; i < MAX_AI_MOVES; i++) {
       const { data, error } = await db.rpc('get_ai_context', { target_game: gameId })
+      // `get_ai_context` is converted, so its own refusals relay untouched.
+      // `error` means only that it never RAN.
       if (error) {
-        console.error(`[ai-move] game ${gameId}: get_ai_context failed —`, error.message)
-        return json({ error: error.message, code: error.code }, 403)
+        console.error(`[ai-move] game ${gameId}: get_ai_context did not run —`, error.message)
+        return fault('PN335', 'BUG: get_ai_context did not run', `scrabble-ai-move: ${error.message} (${error.code})`)
       }
+      if (isEnvelope(data)) return json(data)
       const ctx = data as AiContext
       if (ctx.done) break
 
@@ -134,9 +142,12 @@ serve(async (req: Request): Promise<Response> => {
       played++
     }
 
-    // KEEP — the AI moves this invocation made, inspectable in the terminal.
+    // KEEP — the AI turns this invocation took, inspectable in the terminal.
     console.log(`[ai-move] game ${gameId}: played ${played} —`, JSON.stringify(log))
-    return json({ ok: true, moves: played })
+    // TURNS, not moves: one loop pass is one seat's turn, however many words it
+    // crossed. Consecutive AI seats all move in one invocation, so this is 0..40
+    // — and 0 is the COMMON case, since every client pokes and only one wins.
+    return ok({ result: 'moved', turns: played })
   } catch (e) {
     console.error('scrabble-ai-move threw:', e)
     return edgeInternal(e)

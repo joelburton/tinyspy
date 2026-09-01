@@ -157,6 +157,33 @@ describe('call-site shape', () => {
    * reads are the unconverted roster, not this rule's business.
    */
   /**
+   * Guard: **`callEdgeFn` is `runEdgeFn`'s, and nobody else's.**
+   *
+   * It is the transport adapter — it digs the real error out of a functions-js
+   * failure and normalizes it into the `{ data, error }` shape a postgrest call
+   * resolves to. What it does NOT do is read the envelope, log the outcome, or
+   * present a fault; that is `runEdgeFn`, and a call site reaching past it gets
+   * none of those.
+   *
+   * Five sites used to (the AI features and the definition lookup), which is
+   * how they came to present nothing at all. They are converted; this is what
+   * stops a sixth appearing — an editor's auto-import is all it would take,
+   * since the export itself cannot say who it is for.
+   *
+   * TESTS may: mocking the adapter is how you drive the real `runEdgeFn` from a
+   * component test, which is the opposite of reaching past it.
+   */
+  it('nothing but runEdgeFn imports callEdgeFn', () => {
+    const offenders = sourceFiles('src')
+      .filter((f) => !f.endsWith('dbResult.ts') && !f.includes('callEdgeFn') && !f.includes('.test.'))
+      .filter((f) => /from '[^']*callEdgeFn'/.test(readFileSync(f, 'utf8')))
+    expect(
+      offenders,
+      'imported the transport adapter directly — it neither logs nor presents',
+    ).toEqual([])
+  })
+
+  /**
    * Guard: **opting out is a promise to handle it.**
    *
    * `presentFaults: false` says *I will show my own faults* — not *drop them*.
