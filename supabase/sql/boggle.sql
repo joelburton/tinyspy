@@ -323,6 +323,12 @@ revoke execute on function boggle._refresh_status(uuid) from public;
 -- bonus) and scored it, so this trusts `word` + `points` + `is_bonus` and only
 -- does the things the FE can't: enforce the game is live, dedup, record, and
 -- refresh the club-page status. No word-content or dictionary check.
+--
+-- Four ok answers:
+--   { result: 'accepted' } | { result: 'bonus' }
+--   { result: 'alreadyFound' } | { result: 'gameOver' }
+-- The `points` every shape used to echo is gone — it was the number the caller
+-- had just sent, and nothing read it back.
 create or replace function boggle.submit_word(
   target_game uuid,
   word text,
@@ -344,6 +350,7 @@ declare
   g_req_score int;
   threshold int;
   total_score int;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text;
 begin
   caller_id := common.require_game_player(target_game);
 
@@ -352,20 +359,22 @@ begin
     from boggle.games bg join common.games cg on cg.id = bg.id
    where bg.id = target_game;
   if not found then
-    raise exception 'game-not-found|' using errcode = 'P0002',
+    raise exception 'BUG: a word submitted to a game with no boggle row'
+      using errcode = 'PN351', hint = 'fault', column = '_',
       detail = 'no boggle.games row for target_game';
   end if;
   if g_playstate <> 'playing' then
-    return jsonb_build_object('result', 'gameOver', 'points', 0);
+    return common.ok_envelope(jsonb_build_object('result', 'gameOver'));
   end if;
 
   -- A conceded player is out of the race — no more words. The FE gates on
   -- myConceded, so this only fires on a race (a submit in flight when concede
-  -- commits, or a stale second tab). Raise (rather than a soft 'gameOver'
-  -- return) so useWordSubmit releases the optimistically-accepted word.
+  -- commits, or a stale second tab). NOT the soft 'gameOver' return above: a
+  -- refusal is what releases the optimistically-accepted word.
   if (select conceded from common.game_players
         where game_id = target_game and user_id = caller_id) then
-    raise exception 'you-conceded|' using errcode = 'P0001',
+    raise exception 'Already conceded'
+      using errcode = 'PN352', hint = 'race', column = '_',
       detail = 'caller already dropped out of this compete race';
   end if;
 
@@ -381,7 +390,7 @@ begin
       where fw.game_id = target_game and fw.user_id = caller_id and fw.word = w_lower;
   end if;
   if dup_count > 0 then
-    return jsonb_build_object('result', 'alreadyFound', 'points', 0);
+    return common.ok_envelope(jsonb_build_object('result', 'alreadyFound'));
   end if;
 
   insert into boggle.found_words (game_id, user_id, word, points, is_bonus)
@@ -419,10 +428,16 @@ begin
     end if;
   end if;
 
-  return jsonb_build_object(
-    'result', case when coalesce(is_bonus, false) then 'bonus' else 'accepted' end,
-    'points', coalesce(points, 0)
-  );
+  return common.ok_envelope(jsonb_build_object(
+    'result', case when coalesce(is_bonus, false) then 'bonus' else 'accepted' end));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 

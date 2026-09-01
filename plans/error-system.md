@@ -684,7 +684,7 @@ select pg_temp.envelope_is(
 
 ## 7. The conversion roster
 
-**144 entries. 92 done, 52 to go** (5 of those are the deferred edge
+**144 entries. 93 done, 51 to go** (5 of those are the deferred edge
 functions). Cross them off here as they land.
 
 **Un-paused 2026-08-31: the retro-fix list is empty.** It existed because a
@@ -703,6 +703,27 @@ The order is Joel's: club page, auth, common, then the games.
 SIXTEEN SQL definitions, so converting the frontend converts every game at once
 and all sixteen SQL files must land together. Sequence them after the games, or
 accept a sixteen-file commit. They appear in several areas below, flagged.
+
+**A fourth name breaks it the same way, through a HOOK rather than a
+component.** `useWordSubmit`'s `commit` callback is typed
+`Promise<{ error: { message, code? } | null }>` and SIX games pass one — boggle
+`submit_word`, letterboxed `submit_word`, spellingbee `submit_word`, wordwheel
+`submit_word`, strands `submit_path`, wordiply `submit_guess`. The hook, not the
+game, decides what a failure looks like: it calls `failureMessage(error, 'word')`
+and releases the optimistically-accepted word.
+
+So those six convert in TWO halves (Joel, 2026-09-01):
+
+- **each game's SQL converts in its own area**, leaving its call site raw. The
+  entry is marked done and says "SQL only".
+- **`useWordSubmit` converts ONCE, after the last of the six**, taking all six
+  call sites with it and deleting the hook's use of `failureMessage`.
+
+The cost is a swallow window per game: a converted RPC answers `not-ok` with a
+200, so `error` is null at a raw call site and a refused word stays
+optimistically accepted until the next realtime refetch drops it. Accepted —
+the alternative is either a six-area commit or a call site whose sentence is
+still written by the system this sprint deletes.
 
 Everything else is self-contained. `create_game` appears sixteen times but each
 is a distinct function in its own schema, so it carries none of that cost — and
@@ -808,7 +829,10 @@ identifier — a shape nothing has exercised yet.
 - [x] `create_game` · RPC, reached through `boggle-build-board`
 - [ ] `end_game` · RPC — cross-cutting, see above
 - [ ] `submit_timeout` · RPC
-- [ ] `submit_word` · RPC (2 call sites)
+- [x] `submit_word` · RPC — **SQL only**; its call site is `useWordSubmit`'s
+      `commit`, converted with the other five (see the hook note above).
+      PN352 keeps the raise-not-a-soft-return intent of `you-conceded`:
+      a refusal is what releases the optimistic word
 - [ ] `found_words` · read (2 call sites)
 - [ ] `games` · read (2 call sites)
 
@@ -863,7 +887,8 @@ refetch), not two places in the source.
 
 - [x] `create_game` · RPC, reached through `letterboxed-build-board`
 - [ ] `log_help` · RPC
-- [ ] `submit_word` · RPC
+- [ ] `submit_word` · RPC — SQL converts here; the call site is
+      `useWordSubmit`'s `commit` (see the hook note above)
 - [ ] `events` · read (2 call sites)
 - [ ] `games_state` · read (2 call sites)
 - [ ] `players_state` · read (2 call sites)
@@ -917,7 +942,8 @@ read to convert; `submit_guess` has one call site, not two.
 #### spellingbee
 
 - [x] `create_game` · RPC, reached through `spellingbee-build-board`
-- [ ] `submit_word` · RPC (2 call sites)
+- [ ] `submit_word` · RPC (2 call sites) — SQL converts here; the call site is
+      `useWordSubmit`'s `commit` (see the hook note above)
 - [ ] `found_words` · read
 - [ ] `games_state` · read
 
@@ -942,7 +968,8 @@ read to convert; `submit_guess` has one call site, not two.
 - [ ] `next_puzzle_for_club` · RPC (2 call sites)
 - [ ] `puzzle_for_date` · RPC
 - [ ] `spend_hint` · RPC
-- [ ] `submit_path` · RPC (2 call sites)
+- [ ] `submit_path` · RPC (2 call sites) — SQL converts here; the call site is
+      `useWordSubmit`'s `commit` (see the hook note above)
 - [ ] `events` · read
 - [ ] `games_state` · read (2 call sites)
 - [ ] `players_state` · read
@@ -958,7 +985,8 @@ read to convert; `submit_guess` has one call site, not two.
 #### wordiply
 
 - [x] `create_game` · RPC, reached through `wordiply-build-board`
-- [ ] `submit_guess` · RPC (3 call sites)
+- [ ] `submit_guess` · RPC (3 call sites) — SQL converts here; the call site is
+      `useWordSubmit`'s `commit` (see the hook note above)
 - [ ] `games_state` · read (2 call sites)
 - [ ] `guesses` · read (2 call sites)
 
@@ -973,7 +1001,8 @@ read to convert; `submit_guess` has one call site, not two.
 #### wordwheel
 
 - [x] `create_game` · RPC, reached through `wordwheel-build-board`
-- [ ] `submit_word` · RPC (2 call sites)
+- [ ] `submit_word` · RPC (2 call sites) — SQL converts here; the call site is
+      `useWordSubmit`'s `commit` (see the hook note above)
 - [ ] `found_words` · read
 - [ ] `games_state` · read
 
