@@ -203,9 +203,17 @@ is and put the verification dangerously late (Joel, 2026-09-01).
       nothing itself because a modal appeared anyway. Those still work under the
       new default, but they are the ones most likely to be wrong if someone
       later opts them out, and this is the cheapest moment to find them.
-- [ ] **5.7** A guard: a file passing `presentFaults: false` must contain a
+- [x] **5.7** A guard: a file passing `presentFaults: false` must contain a
       `showFaultModal` or a `console.error`. Opting out is a promise to handle
-      it, not a license to drop it. Verify by planting.
+      it, not a license to drop it. DONE 2026-09-01, in
+      `src/guards/callSiteShape.test.ts` beside the scream guard. Both arms
+      verified by planting: stripping the timer's `showFaultModal` names that
+      file, and a new file that opts out with no handling names itself.
+
+      Why a modal OR a `console.error` counts: the point is that somebody
+      thought about it, not that they picked a particular surface. The wrapper
+      still writes the `[db]` line either way — what an unhandled opt-out loses
+      is the PLAYER, which is the half no diff shows.
 - [ ] **5.8** Delete the two now-answered `docs/deferred.md` entries — "Where
       should a fault modal be raised from?" and "Faults are presented from two
       places".

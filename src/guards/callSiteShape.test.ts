@@ -157,6 +157,37 @@ describe('call-site shape', () => {
    * reads are the unconverted roster, not this rule's business.
    */
   /**
+   * Guard: **opting out is a promise to handle it.**
+   *
+   * `presentFaults: false` says *I will show my own faults* — not *drop them*.
+   * The wrapper still writes the `[db]` line either way, so a file that opts
+   * out and then shows nothing is not silent in the console; it is silent to
+   * the PLAYER, which is the thing that cannot be noticed from a diff.
+   *
+   * A `showFaultModal` or a `console.error` is enough to satisfy this: the
+   * point is that somebody thought about it, not that they picked a particular
+   * surface. `useGameTimer` is the model — it is silent for the four `FE`
+   * codes on purpose, and says so, and shows `PN011`/`PN012` itself.
+   *
+   * File-level, like the scream guard below, and for the same reason: it
+   * catches the case that actually happens — an opt-out written without a plan
+   * — rather than trying to pair each option with each branch.
+   */
+  it('a file that opts out of presenting shows something itself', () => {
+    const offenders = sourceFiles('src')
+      .filter((f) => !f.includes('/guards/') && !f.includes('.test.'))
+      .filter((f) => {
+        const text = readFileSync(f, 'utf8')
+        return /presentFaults:\s*false/.test(text)
+          && !/showFaultModal|console\.error/.test(text)
+      })
+    expect(
+      offenders,
+      'opted out of the modal and shows nothing — a fault the player never sees',
+    ).toEqual([])
+  })
+
+  /**
    * Guard: **every call site ends in a scream.** `docs/envelopes.md` → the
    * shape of a call site says a chain closes with a bare `else` that reports
    * `BUG: <rpc> fell through to unhandled`. Nothing enforced it until now, and
