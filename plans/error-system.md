@@ -684,7 +684,7 @@ select pg_temp.envelope_is(
 
 ## 7. The conversion roster
 
-**144 entries. 75 done, 69 to go** (5 of those are the deferred edge
+**144 entries. 76 done, 68 to go** (5 of those are the deferred edge
 functions). Cross them off here as they land.
 
 **Un-paused 2026-08-31: the retro-fix list is empty.** It existed because a
@@ -839,7 +839,10 @@ refetch), not two places in the source.
 - [ ] `cells` · read
 - [ ] `games` · read
 - [ ] `games_state` · read
-- [ ] `crosswords-explain-clue` · edge fn — deferred
+- [x] `crosswords-explain-clue` · edge fn — PN327/PN328 service-errors (the
+      model ran, explained nothing), five faults, and `reveal_solved_word`'s
+      refusals relayed. `unsolved` stays an OK: the menu item is live on any
+      clue because the FE cannot see which are solved
 
 #### letterboxed
 

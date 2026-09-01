@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { failureMessage, expectedTextOrFault } from '../../common/lib/game/serverError'
+import { failureMessage } from '../../common/lib/game/serverError'
 import { callRpc } from '../../common/lib/game/callRpc'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { IconHideSolution, IconNewGame, IconPrint, IconRestart, IconReveal, IconScratchpad } from '../../common/components/icons'
@@ -55,7 +55,8 @@ import { CrosswordsNumberJumpBlockingModal } from './CrosswordsNumberJumpBlockin
 import { CrosswordsNoteCompanion } from './CrosswordsNoteCompanion'
 import { CrosswordsExplainCompanion, type ExplainState } from './CrosswordsExplainCompanion'
 import { enumerationFor } from '../lib/enumeration'
-import { callEdgeFn } from '../../common/lib/supabase/callEdgeFn'
+import { runEdgeFn } from '../../common/lib/supabase/dbResult'
+import { showFaultModal } from '../../common/lib/fault/faultStore'
 import { ClueLists } from './ClueLists'
 import { ClueText } from './ClueText'
 import { stripClueEmphasis } from '../lib/clueRuns'
@@ -448,8 +449,18 @@ export function PlayArea(ctx: GamePageCtx) {
     }
   })
 
-  // Ask the AI to explain the clue under the cursor. The edge function returns
-  // 409 unless the word is already solved (so it's never a spoiler).
+/** What `crosswords-explain-clue` puts in `data`. `unsolved` is an ANSWER, not
+ *  a refusal: the menu item is live on any clue under the cursor because the FE
+ *  cannot see which words are solved — the solution is server-only, and graying
+ *  the item out would leak exactly what that protects. */
+type Explained =
+  | { result: 'explained'; explanation: string }
+  | { result: 'unsolved' }
+  | null
+
+  // Ask the AI to explain the clue under the cursor. It answers `unsolved`
+  // rather than the explanation unless the word is already correct, so it is
+  // never a spoiler.
   const handleExplain = useCallback(async () => {
     const ctx = explainRef.current
     if (!ctx) {
@@ -459,37 +470,29 @@ export function PlayArea(ctx: GamePageCtx) {
     }
     setExplainLabel(ctx.label)
     setExplain({ kind: 'loading' })
-    // Failures come classified through callEdgeFn (fe-error-key + SQLSTATE +
-    // the answered marker); "unsolved" is not one of them — it's an ANSWER,
-    // a 200 `{ reason: 'unsolved' }` this side narrates in its own words.
-    // (This used to be a hand unwrap of a 409 body; moving the answer to a
-    // 200 is what let it fold into the shared wrapper.)
-    const res = await callEdgeFn('crosswords-explain-clue', {
+    const res = await runEdgeFn<Explained>('crosswords-explain-clue', {
       gameId, cells: ctx.cells, clueText: ctx.clueText, enumeration: ctx.enumeration,
     })
-    if (res.error) {
-      // Split by surface rule (docs/ui.md → Faults): an EXPECTED answer —
-      // ai-explain-declined / ai-truncated, the model RAN — stays in the
-      // explain dialog as its sentence; a fault pops the modal and closes the
-      // dialog (there is nothing to show in it).
-      const text = expectedTextOrFault(res.error, 'explain')
-      setExplain(text ? { kind: 'error', message: text } : null)
-      return
-    }
-    const payload = res.data as { explanation?: string; reason?: string; error?: string } | null
-    if (payload?.reason === 'unsolved') {
+
+    if (res.type === 'not-ok' && res.severity === 'fault') {
+      // The dialog CLOSES. `runEdgeFn` has raised the modal, and a fault leaves
+      // nothing to put in the dialog (docs/ui.md → Faults).
+      setExplain(null)
+    } else if (res.type === 'not-ok') {
+      // The dialog STAYS with the sentence: PN327 and PN328 are the model
+      // declining or being cut off — it ran, it just explained nothing.
+      setExplain({ kind: 'error', message: res.message })
+    } else if (res.type === 'ok' && res.data?.result === 'unsolved') {
+      // Not a refusal — the menu item is live on any clue, deliberately, since
+      // the FE cannot see which words are solved. This side words it, because
+      // the server must not hint at how close you are.
       setExplain({ kind: 'error', message: 'Solve this clue correctly first, then I can explain it.' })
-      return
+    } else if (res.type === 'ok' && res.data?.result === 'explained') {
+      setExplain({ kind: 'ok', explanation: res.data.explanation })
+    } else {
+      showFaultModal({ text: 'BUG: crosswords-explain-clue fell through to unhandled' })
+      setExplain(null)
     }
-    if (!payload?.explanation) {
-      const text = expectedTextOrFault(
-        { message: payload?.error ?? 'no explanation in the response', answered: true },
-        'explain',
-      )
-      setExplain(text ? { kind: 'error', message: text } : null)
-      return
-    }
-    setExplain({ kind: 'ok', explanation: payload.explanation })
   }, [gameId])
 
   // Clear board — a destructive "start over" (blanks my grid, keeps givens +

@@ -28,6 +28,7 @@ import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import Anthropic from 'npm:@anthropic-ai/sdk@0.109.0'
 import { edgeInternal, json, preflight } from '../_shared/http.ts'
+import { fault, isEnvelope, ok, serviceError } from '../_shared/envelope.ts'
 
 type Cell = { row: number; col: number }
 
@@ -42,14 +43,15 @@ serve(async (req) => {
     const clueText = typeof body.clueText === 'string' ? body.clueText.trim() : ''
     const enumeration = typeof body.enumeration === 'string' ? body.enumeration : ''
     if (!gameId || typeof gameId !== 'string') {
-      return json({ error: 'bad-request|gameId|' }, 400)
+      return fault('PN323', 'BUG: an explain request with no game', `crosswords-explain-clue: gameId=${JSON.stringify(gameId)}`)
     }
+    // Both come from the same ref the menu item is built from, so an empty one
+    // means we sent it wrong — not that a player asked for something odd.
     if (!Array.isArray(cells) || cells.length === 0 || !clueText) {
-      return json({ error: 'bad-request|cells|' }, 400)
+      return fault('PN324', 'BUG: an explain request with no clue', `crosswords-explain-clue: cells=${cells?.length ?? 'absent'} clueText=${clueText ? 'sent' : 'empty'}`)
     }
 
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) return json({ error: 'not-authenticated|' }, 401)
+    const authHeader = req.headers.get('Authorization') ?? ''
 
     // Pull the canonical answer + note as the caller. The RPC only returns the
     // answer if the caller has already solved these cells (else solved=false).
@@ -62,22 +64,28 @@ serve(async (req) => {
       .schema('crosswords')
       .rpc('reveal_solved_word', { target_game: gameId, p_cells: cells })
       .single()
-    if (error) return json({ error: error.message, code: error.code }, 403)
+    // `reveal_solved_word` is converted, so its own refusals relay untouched.
+    // `error` therefore means only that the RPC never RAN.
+    if (error) {
+      return fault('PN325', 'BUG: reveal_solved_word did not run', `crosswords-explain-clue: ${error.message} (${error.code})`)
+    }
+    if (isEnvelope(data)) return json(data)
 
     const ctx = data as { answer: string | null; solved: boolean; note: string | null }
     if (!ctx.solved || !ctx.answer) {
       // The player hasn't correctly filled this word yet — nothing to explain
-      // without spoiling it. A rule saying "no" is an ANSWER, not an error
-      // (the scrabble/stackdown shape), so it rides a 200 and the FE narrates
-      // it — which is also what lets the FE's reader be plain callEdgeFn
-      // instead of a hand unwrap of a 409 body.
-      return json({ reason: 'unsolved' })
+      // without spoiling it. An `ok`, not a refusal: the menu item is live on
+      // any clue under the cursor, and it HAS to be — the FE cannot see which
+      // words are solved (the solution is server-only), so graying it out would
+      // leak exactly what it is protecting.
+      return ok({ result: 'unsolved' })
     }
 
     const apiKey = Deno.env.get('ANTHROPIC_API_KEY')
     if (!apiKey) {
-      // Config, not play — a copyless fault (the raw key IS the diagnosis).
-      return json({ error: 'ai-unconfigured|' }, 500)
+      // An operator's missing env var is still OUR bug. Nothing a player did
+      // reaches this.
+      return fault('PN326', 'BUG: the AI clue explainer is not configured', 'crosswords-explain-clue: ANTHROPIC_API_KEY absent')
     }
     const anthropic = new Anthropic({ apiKey })
 
@@ -104,11 +112,14 @@ serve(async (req) => {
     // exactly what Anthropic returned to the `supabase functions serve` terminal.
     console.log('[explain-clue] anthropic response:', JSON.stringify(result, null, 2))
 
+    // The model RAN and produced no explanation — a dependency behaving badly,
+    // not our bug and not the player's. Two codes, because a decline and a
+    // truncation are different things to go and look at.
     if (result.stop_reason === 'refusal') {
-      return json({ error: 'ai-explain-declined|' }, 502)
+      return serviceError('PN327', 'Claude declined to explain that clue. Please try again.', 'crosswords-explain-clue: stop_reason=refusal')
     }
     if (result.stop_reason === 'max_tokens') {
-      return json({ error: 'ai-truncated|' }, 502)
+      return serviceError('PN328', "Claude's answer was cut off. Please try again.", 'crosswords-explain-clue: stop_reason=max_tokens')
     }
 
     // Native thinking arrives as its own blocks (summarized) — log it for
@@ -121,10 +132,10 @@ serve(async (req) => {
 
     const textBlock = result.content.find((b) => b.type === 'text')
     if (!textBlock || textBlock.type !== 'text' || !textBlock.text.trim()) {
-      return json({ error: 'ai-malformed|' }, 502)
+      return fault('PN329', 'BUG: the AI answered in a shape we could not read', 'crosswords-explain-clue: no usable text block')
     }
 
-    return json({ explanation: textBlock.text.trim() })
+    return ok({ result: 'explained', explanation: textBlock.text.trim() })
   } catch (e) {
     console.error('explain-clue failed', e)
     return edgeInternal(e)

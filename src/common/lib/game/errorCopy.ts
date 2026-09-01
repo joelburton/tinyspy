@@ -104,9 +104,6 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   // panels' own message areas. Wording approved 2026-08-12; per-surface keys
   // where the sentence names the task (clue vs explanation), because the
   // point of messages is to be clear.
-  'ai-explain-declined': { text: () => 'The model declined to explain this clue — try again' },
-  'ai-truncated': { text: () => 'The model response was truncated — try again' },
-  'ai-malformed': { text: () => 'The model returned a garbled answer — try again' },
 
   // ── codenamesduet ──
   // Two seats taking turns, so both can race the turn flip: the clue arrives
