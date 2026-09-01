@@ -14,15 +14,16 @@ import { renderHook, act } from '@testing-library/react'
  * flush the hook's async reads.
  */
 
-const { rpcMock, maybeSingleMock } = vi.hoisted(() => ({
+const { rpcMock, seedMock } = vi.hoisted(() => ({
   rpcMock: vi.fn(),
-  maybeSingleMock: vi.fn(),
+  seedMock: vi.fn(),
 }))
 
 vi.mock('../../db', () => ({
   db: {
     from: () => ({
-      select: () => ({ eq: () => ({ maybeSingle: maybeSingleMock }) }),
+      // `readRows` awaits `.eq()` directly and gets ROWS — no `.maybeSingle()`.
+      select: () => ({ eq: seedMock }),
     }),
     rpc: rpcMock,
   },
@@ -33,7 +34,7 @@ import { useGameTimer, formatTimerSeconds } from './useGameTimer'
 
 beforeEach(() => {
   vi.useFakeTimers()
-  maybeSingleMock.mockResolvedValue({ data: { ticks: 0 } })
+  seedMock.mockResolvedValue({ data: [{ ticks: 0 }], error: null, status: 200 })
   rpcMock.mockResolvedValue({ data: { type: 'ok', data: { result: 'ticked', ticks: 0 }, outcome: null, severity: null, message: null, field: null, meta: null, dbcode: null, detail: null }, error: null })
 })
 
@@ -91,7 +92,7 @@ describe('useGameTimer', () => {
   })
 
   it('does not drive while paused (count stops), but still seeds from the read', async () => {
-    maybeSingleMock.mockResolvedValue({ data: { ticks: 5 } })
+    seedMock.mockResolvedValue({ data: [{ ticks: 5 }], error: null, status: 200 })
     const { result } = renderHook(() =>
       useGameTimer({ gameId: 'g', mode: { kind: 'countup' }, paused: true, running: true }),
     )

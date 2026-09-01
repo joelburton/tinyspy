@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { db as commonDb } from '../../db'
-import { runRpc } from '../../lib/supabase/dbResult'
+import { readRows, runRpc } from '../../lib/supabase/dbResult'
 import { isEnvironmental } from '../../lib/supabase/dbEnvelope'
 import { showFaultModal } from '../../lib/fault/faultStore'
 import type { TimerMode } from '../../lib/games'
@@ -84,14 +84,31 @@ export function useGameTimer({
   // round-trip lands.
   useEffect(() => {
     let canceled = false
-    void commonDb
-      .from('timers')
-      .select('ticks')
-      .eq('game_id', gameId)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (!canceled && data) setTicks((t) => mergeTicks(t, data.ticks))
-      })
+    // `presentFaults: false` for the same reason the driver opts out, and the
+    // two must agree: a seed read and a tick fail together — same network, same
+    // second — so showing this one while the driver silently swallows its twin
+    // would put a modal on the mount and nothing on the next forty attempts.
+    //
+    // No `.maybeSingle()`: `readRows` hands back rows, and `game_id` is the PK,
+    // so this is 0 or 1 of them.
+    void readRows(commonDb.from('timers').select('ticks').eq('game_id', gameId), {
+      presentFaults: false,
+    }).then((res) => {
+      if (canceled) return
+      if (res.type === 'not-ok' && isEnvironmental(res.dbcode)) {
+        // Nothing reached us. The driver's first tick supplies the count a
+        // second later, so there is nothing to recover and nothing to say.
+      } else if (res.type === 'not-ok') {
+        // A real fault, and the seed read is the only thing that would report
+        // it — the driver's chain treats a bad `timers` table the same way.
+        showFaultModal({ text: res.message })
+      } else if (res.type === 'ok') {
+        // ZERO ROWS is an untimed game, or one whose row is not written yet.
+        // Leave the display at 0; the driver is the authority either way.
+        const row = res.data[0]
+        if (row) setTicks((t) => mergeTicks(t, row.ticks))
+      }
+    })
     return () => {
       canceled = true
     }

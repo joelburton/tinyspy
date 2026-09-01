@@ -684,7 +684,7 @@ select pg_temp.envelope_is(
 
 ## 7. The conversion roster
 
-**144 entries. 78 done, 66 to go** (5 of those are the deferred edge
+**144 entries. 79 done, 65 to go** (5 of those are the deferred edge
 functions). Cross them off here as they land.
 
 **Un-paused 2026-08-31: the retro-fix list is empty.** It existed because a
@@ -769,7 +769,9 @@ identifier — a shape nothing has exercised yet.
 - [x] `messages` · read — the same chat, and a refetch: a failure leaves the
   transcript alone
 - [ ] `profiles` · read (4 call sites)
-- [ ] `timers` · read
+- [x] `timers` · read — the seed beside the tick RPC, and it opts out for the
+      SAME reason: a seed read and a tick fail together, so showing one while
+      the driver swallows its twin would modal the mount and nothing after
 - [x] `words` · read — the same dialog's load
 - [x] `common-define` · edge fn — PN311/PN312 service-errors (the dictionary
       source down), PN313/PN314 faults. Three NAMED ok results replacing one
