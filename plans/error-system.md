@@ -684,7 +684,7 @@ select pg_temp.envelope_is(
 
 ## 7. The conversion roster
 
-**144 entries. 83 done, 61 to go** (5 of those are the deferred edge
+**144 entries. 89 done, 55 to go** (5 of those are the deferred edge
 functions). Cross them off here as they land.
 
 **Un-paused 2026-08-31: the retro-fix list is empty.** It existed because a
@@ -763,13 +763,15 @@ identifier — a shape nothing has exercised yet.
 - [x] `clubs_members` · read — `useClubRoster`; ClubPage's copy converted
       earlier. A failed read leaves `members` alone rather than emptying it: a
       club with nobody in it is a worse answer than a stale one
-- [ ] `found_words` · read
+- [x] `found_words` · read — `makeFoundWordsGame`'s, converted in the useGame
+      sweep; it is filed here because the factory lives in `src/common/`
 - [x] `game_players` · read (2 call sites) — `useCommonGame`'s converted in the
       useGame sweep; `useGameInvitations`' embed here
 - [x] `game_scratchpads` · read — a failed read leaves the pad alone; blanking
       one someone is typing in is the only thing worse than a stale one
-- [ ] `games` · read (2 call sites)
-- [ ] `games_state` · read
+- [x] `games` · read (2 call sites) — `useCommonGame`'s and `GamePage`'s
+      pre-flight, both converted
+- [x] `games_state` · read — `makeFoundWordsGame`'s, same as `found_words`
 - [x] `messages` · read — the same chat, and a refetch: a failure leaves the
   transcript alone
 - [x] `profiles` · read — ONE real site left when this began, not four: two of
@@ -785,7 +787,9 @@ identifier — a shape nothing has exercised yet.
 
 #### bananagrams
 
-- [ ] `check_board` · RPC
+- [x] `check_board` · RPC — THREE named ok results where the caller derived
+      `empty` from a `placed` count. PN337 replaces a raise that said "no
+      bananagrams.games row" while querying `player_boards`
 - [ ] `concede` · RPC — cross-cutting, see above
 - [x] `create_game` · RPC (3 call sites)
 - [ ] `dump` · RPC
@@ -793,8 +797,8 @@ identifier — a shape nothing has exercised yet.
 - [ ] `peel` · RPC
 - [ ] `replay_board` · RPC — cross-cutting, see above
 - [ ] `save_player_board` · RPC (3 call sites)
-- [ ] `player_boards` · read (3 call sites)
-- [ ] `progress` · read
+- [x] `player_boards` · read (3 call sites) — converted in the useGame sweep
+- [x] `progress` · read — converted in the useGame sweep
 
 #### boggle
 

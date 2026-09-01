@@ -789,15 +789,23 @@ declare
   v_dict_2     int;
   v_dict_3plus int;
   v_blockers   int[];
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text;
 begin
   v_caller := common.require_game_player(target_game);
 
   select board into v_board
     from bananagrams.player_boards
    where game_id = target_game and user_id = v_caller;
+  -- The board row is written at deal, and `require_game_player` above has
+  -- already established membership — so a member with no board is an
+  -- inconsistency of ours, not something a player reached.
+  --
+  -- (The raise this replaces said "no bananagrams.games row", which was wrong
+  -- on its face: the query above reads `player_boards`.)
   if v_board is null then
-    raise exception 'game-not-found|' using errcode = 'P0002',
-      detail = 'no bananagrams.games row for target_game';
+    raise exception 'BUG: a board check for a player with no board'
+      using errcode = 'PN337', hint = 'fault', column = '_',
+      detail = 'no bananagrams.player_boards row for (target_game, caller)';
   end if;
 
   select setup into v_setup from common.games where id = target_game;
@@ -806,13 +814,26 @@ begin
 
   v_blockers := bananagrams._win_blockers(v_board, v_dict_2, v_dict_3plus, true);
 
-  -- `placed` lets the FE tell "your board is fine" from "you haven't put
-  -- anything down yet" — an empty board has no blockers, which would otherwise
-  -- read as a clean bill of health.
-  return jsonb_build_object(
-    'invalid_cells', to_jsonb(v_blockers),
-    'placed', length(replace(v_board, '.', ''))
-  );
+  -- THREE answers, because the surface says three different things. An empty
+  -- board has no blockers, so "clean" and "empty" are one shape unless they are
+  -- named — and congratulating someone who has not put a tile down is the bug
+  -- that naming prevents. The count that used to carry that (`placed`) is gone:
+  -- nothing else read it.
+  if array_length(v_blockers, 1) > 0 then
+    return common.ok_envelope(jsonb_build_object('result', 'invalid', 'cells', to_jsonb(v_blockers)));
+  end if;
+  if length(replace(v_board, '.', '')) = 0 then
+    return common.ok_envelope(jsonb_build_object('result', 'empty'));
+  end if;
+  return common.ok_envelope(jsonb_build_object('result', 'clean'));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 

@@ -25,9 +25,10 @@ begin;
 
 set search_path = bananagrams, common, public, extensions;
 
-select plan(31);
+select plan(30);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 
 -- ── Board builders: place letters into a 625-char '.' grid (idx = r*25+c) ──
 create function pg_temp.mg_place(board text, r int, c int, ch text) returns text
@@ -318,17 +319,15 @@ select (bananagrams.create_game('=ada',
 reset role;
 select set_config('request.jwt.claims', '', true);
 
--- An empty board: no blockers, but `placed` = 0 so the FE can say "nothing to
--- check yet" instead of congratulating a blank grid.
+-- An empty board is its OWN answer, not a clean one with a zero count: it has
+-- no blockers either, and "all good" must not congratulate a blank grid.
 update bananagrams.player_boards set board = pg_temp.empty_board()
  where game_id = (select id from gh);
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select is(
-  (select (bananagrams.check_board((select id from gh)))->>'placed'), '0',
-  'check_board: an empty board reports placed = 0');
-select is(
-  (select jsonb_array_length((bananagrams.check_board((select id from gh)))->'invalid_cells')), 0,
-  'check_board: an empty board has no blockers');
+select pg_temp.envelope_is(
+  bananagrams.check_board((select id from gh)),
+  '{"type": "ok", "data": {"result": "empty"}}'::jsonb,
+  'check_board: an empty board answers empty, not clean');
 reset role;
 select set_config('request.jwt.claims', '', true);
 
@@ -337,12 +336,10 @@ update bananagrams.player_boards
    set board = pg_temp.mg_h(pg_temp.empty_board(), 0, 0, 'CAT')
  where game_id = (select id from gh);
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select is(
-  (select jsonb_array_length((bananagrams.check_board((select id from gh)))->'invalid_cells')), 0,
-  'check_board: a legal board comes back clean');
-select is(
-  (select (bananagrams.check_board((select id from gh)))->>'placed'), '3',
-  'check_board: placed counts the tiles on the board');
+select pg_temp.envelope_is(
+  bananagrams.check_board((select id from gh)),
+  '{"type": "ok", "data": {"result": "clean"}}'::jsonb,
+  'check_board: a legal board comes back clean, even with word_check off');
 reset role;
 select set_config('request.jwt.claims', '', true);
 
@@ -352,17 +349,22 @@ update bananagrams.player_boards
  where game_id = (select id from gh);
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  (select jsonb_array_length((bananagrams.check_board((select id from gh)))->'invalid_cells')), 3,
+  (select jsonb_array_length(
+    (bananagrams.check_board((select id from gh)))->'data'->'cells')), 3,
   'check_board: flags a non-word even when setup.word_check is off');
+select is(
+  (select (bananagrams.check_board((select id from gh)))->'data'->>'result'), 'invalid',
+  'check_board: … and names the answer rather than shipping an empty array');
 reset role;
 select set_config('request.jwt.claims', '', true);
 
 -- Caller-scoped: a non-player can't inspect anyone's board.
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
-select throws_ok(
-  format($$ select bananagrams.check_board(%L::uuid) $$, (select id from gh)),
-  '42501', 'not-a-player|',
-  'check_board: a non-player is rejected');
+select pg_temp.envelope_is(
+  bananagrams.check_board((select id from gh)),
+  '{"type": "not-ok", "severity": "fault", "dbcode": "PN253",
+    "message": "You are not in this game"}'::jsonb,
+  'check_board: a non-player gets a declared fault');
 reset role;
 select set_config('request.jwt.claims', '', true);
 

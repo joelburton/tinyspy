@@ -1,6 +1,5 @@
 // cs-unmet
 
-import { failureText } from '../../common/lib/game/serverError'
 import {
   useCallback,
   useEffect,
@@ -11,6 +10,8 @@ import {
   type RefObject,
 } from 'react'
 import { db } from '../db'
+import { runRpc } from '../../common/lib/supabase/dbResult'
+import { showFaultModal } from '../../common/lib/fault/faultStore'
 import {
   GRID,
   DEFAULT_CELL,
@@ -180,6 +181,15 @@ export type PlayerBoardEngine = {
   /** A Check-words round trip is in flight (grays its button). */
   checking: boolean
 }
+
+/** What `bananagrams.check_board` puts in `data`. Three results because the
+ *  check panel says three things — and `empty` is its own, since a board with
+ *  nothing on it has no blockers and would otherwise read as clean. */
+type CheckedBoard =
+  | { result: 'invalid'; cells: number[] }
+  | { result: 'empty' }
+  | { result: 'clean' }
+  | null
 
 export function usePlayerBoard({
   gameId,
@@ -491,22 +501,25 @@ export function usePlayerBoard({
     setChecking(true)
     try {
       await db.rpc('save_player_board', { target_game: gameId, board: boardRef.current })
-      const { data, error } = await db.rpc('check_board', { target_game: gameId })
-      if (error) {
-        onCheckResult?.({ kind: 'error', message: failureText(error, 'check board') })
-        return
-      }
-      const res = data as { invalid_cells: number[]; placed: number } | null
-      const cells = res?.invalid_cells ?? []
-      if (cells.length > 0) {
-        setInvalid({ board: boardRef.current, cells: new Set(cells) })
-        onCheckResult?.({ kind: 'invalid', count: cells.length })
-      } else {
-        // A clean board and an EMPTY board both come back with no blockers;
-        // `placed` is what tells them apart, so "all good" can't congratulate
-        // someone who hasn't put a tile down.
+      const res = await runRpc<CheckedBoard>(db.rpc('check_board', { target_game: gameId }))
+      if (res.type === 'not-ok') {
+        // Both are faults and `runRpc` has raised the modal; this line is what
+        // the check panel says once it is dismissed.
+        onCheckResult?.({ kind: 'error', message: res.message })
+      } else if (res.type === 'ok' && res.data?.result === 'invalid') {
+        setInvalid({ board: boardRef.current, cells: new Set(res.data.cells) })
+        onCheckResult?.({ kind: 'invalid', count: res.data.cells.length })
+      } else if (res.type === 'ok' && res.data?.result === 'empty') {
+        // Its own answer, not a count of zero: an empty board has no blockers
+        // either, and "all good" must not congratulate someone who has not put
+        // a tile down.
         setInvalid(null)
-        onCheckResult?.({ kind: (res?.placed ?? 0) === 0 ? 'empty' : 'clean' })
+        onCheckResult?.({ kind: 'empty' })
+      } else if (res.type === 'ok' && res.data?.result === 'clean') {
+        setInvalid(null)
+        onCheckResult?.({ kind: 'clean' })
+      } else {
+        showFaultModal({ text: 'BUG: check_board fell through to unhandled' })
       }
     } finally {
       setChecking(false)
