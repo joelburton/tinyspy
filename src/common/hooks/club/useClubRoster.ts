@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { db as commonDb } from '../../db'
+import { readRows } from '../../lib/supabase/dbResult'
 import type { Member } from '../../lib/games'
 
 /**
@@ -28,20 +29,30 @@ export function useClubRoster(clubHandle: string): { members: Member[] } {
       if (!clubHandle) return
       let mounted = true
       async function load() {
-        const { data: rows } = await commonDb
-          .from('clubs_members')
-          .select('user_id')
-          .eq('club_handle', clubHandle)
-        const userIds = (rows ?? []).map((r) => r.user_id)
+        const rowsRes = await readRows(
+          commonDb.from('clubs_members').select('user_id').eq('club_handle', clubHandle),
+        )
+        if (!mounted) return
+        // A failed read leaves `members` ALONE rather than emptying it. This
+        // hook feeds names, colors and presence dots, so writing `[]` would
+        // repaint the page as a club with nobody in it — a worse answer than a
+        // stale one. `readRows` has already logged it and raised the modal.
+        if (rowsRes.type === 'not-ok') return
+
+        // ZERO ROWS is a club with no members, which cannot happen — creating
+        // one seats its creator. Nothing to look up either way.
+        const userIds = rowsRes.data.map((r) => r.user_id)
         if (userIds.length === 0) {
-          if (mounted) setMembers([])
+          setMembers([])
           return
         }
-        const { data: profiles } = await commonDb
-          .from('profiles')
-          .select('user_id, username, color')
-          .in('user_id', userIds)
-        if (mounted) setMembers((profiles ?? []) as Member[])
+
+        const profilesRes = await readRows(
+          commonDb.from('profiles').select('user_id, username, color').in('user_id', userIds),
+        )
+        if (!mounted) return
+        if (profilesRes.type === 'not-ok') return
+        setMembers(profilesRes.data as Member[])
       }
       load()
       return () => {

@@ -684,7 +684,7 @@ select pg_temp.envelope_is(
 
 ## 7. The conversion roster
 
-**144 entries. 79 done, 65 to go** (5 of those are the deferred edge
+**144 entries. 80 done, 64 to go** (5 of those are the deferred edge
 functions). Cross them off here as they land.
 
 **Un-paused 2026-08-31: the retro-fix list is empty.** It existed because a
@@ -760,7 +760,9 @@ identifier — a shape nothing has exercised yet.
 - [x] `update_profile_color` · RPC — with EditProfileModal, as one unit
 - [x] `update_word` · RPC
 - [x] `clubs` · read (2 call sites)
-- [ ] `clubs_members` · read
+- [x] `clubs_members` · read — `useClubRoster`; ClubPage's copy converted
+      earlier. A failed read leaves `members` alone rather than emptying it: a
+      club with nobody in it is a worse answer than a stale one
 - [ ] `found_words` · read
 - [ ] `game_players` · read (2 call sites)
 - [ ] `game_scratchpads` · read
