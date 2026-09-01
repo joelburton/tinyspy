@@ -224,6 +224,34 @@ was their green/yellow/gray feedback flattening to one gray in mono.
 
 ## To discuss
 
+- **Where should a fault modal be raised from?** (to discuss — Joel + Claude,
+  raised 2026-08-31.) Today it is `dbFetch`, on the reasoning that it is the one
+  place every Supabase call passes through, so "a player is never told twice"
+  can be enforced rather than remembered. The worry is that this is
+  **inflexible**: `dbFetch` sees transport, not meaning, so the only lever it
+  has is a path test — which is why `isPolled` exists, and why that lever cannot
+  reach a fault the server DECLARED (those arrive HTTP 200 and are presented by
+  `runRpc` instead).
+
+  Two alternatives to weigh:
+
+  - **In the wrappers** — `runRpc` / `readRows` / `runEdgeFn`. They have the
+    parsed envelope, so they can discriminate: `tick_timer`'s PN011/PN012
+    SHOULD pop (a signed-out player must be told) while its transport failures
+    should not, and that is a distinction only something holding the body can
+    make. It also merges the two presenters into one, which is the gap below.
+  - **At the call site** — nothing central presents anything; each caller
+    decides. Then `isPolled` disappears entirely, and so does every future
+    path-shaped exemption, because a poll simply chooses not to show its
+    failures. The cost is the rule that made this central in the first place:
+    with 145 call sites, "show a fault" becomes something each one has to
+    remember, and the ones that forget are silent in the way this whole sprint
+    exists to stop.
+
+  Worth deciding before the roster's remaining 73 entries harden the current
+  shape further. The three questions to settle: who has enough information to
+  choose, how a call site opts out without being able to forget, and whether
+  "never told twice" survives either move.
 - **Faults are presented from two places, and only one can be exempted**
   (found 2026-08-31 while adding `dbFetch`'s `isPolled`, not fixed). A transport
   failure is presented by `dbFetch`; a fault the server DECLARED arrives HTTP
