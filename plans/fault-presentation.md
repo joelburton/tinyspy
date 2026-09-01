@@ -147,8 +147,11 @@ is and put the verification dangerously late (Joel, 2026-09-01).
       wrapper builds its own envelope from postgrest-js's flattened error — so
       the MODAL shows the raw body where the LINE shows the classification.
       Noted in `dbFetch` where the classification happens.
-- [ ] **5.3** `useGameTimer` opts out and decides per answer — the case that
-      motivated this, and the proof it works.
+- [x] **5.3** `useGameTimer` opts out and decides per answer — the case that
+      motivated this, and the proof it works. DONE 2026-09-01. Two treatments
+      for one call, which no path test could express: silent for the four `FE`
+      codes, `showFaultModal` for `PN011`/`PN012`. Verified by planting —
+      removing `presentFaults: false` turns the silent-when-offline test red.
 - [ ] **5.4** `PN310` moves into `callEdgeFn`.
 - [ ] **5.5** Decide the DB path's parse bit (§3.6) with the code in front of us.
 - [ ] **5.6** **The mechanical sweep** — the 69 converted files. Does each still

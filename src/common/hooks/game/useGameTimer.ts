@@ -47,6 +47,11 @@ import type { TimerMode } from '../../lib/games'
  *   - `expired` — true once a countdown reaches 0 (fires the
  *     timeout-loss RPC). Always false for countup / none.
  */
+/** What `common.tick_timer` puts in `data`. Nullable because its other `ok` —
+ *  PA004, the game is gone — arrives through a raise, and
+ *  `common.raised_envelope` builds `data: null`. */
+type Ticked = { result: 'ticked'; ticks: number } | null
+
 /** Merge a server-reported tick count into local state. Concurrent players'
  *  in-flight responses can land out of order, differing by a tick or two —
  *  those stay forward-only (`Math.max`). A drop bigger than that isn't
@@ -54,11 +59,6 @@ import type { TimerMode } from '../../lib/games'
  *  replay-board), and the display follows it down. (If a stale high response
  *  lands right after a reset, the next 1s round-trip re-detects the drop —
  *  self-healing.) */
-/** What `common.tick_timer` puts in `data`. Nullable because its other `ok` —
- *  PA004, the game is gone — arrives through a raise, and
- *  `common.raised_envelope` builds `data: null`. */
-type Ticked = { result: 'ticked'; ticks: number } | null
-
 function mergeTicks(prev: number, server: number): number {
   return server < prev - 2 ? server : Math.max(prev, server)
 }
@@ -105,52 +105,32 @@ export function useGameTimer({
     if (!running || paused || mode.kind === 'none') return
     let canceled = false
     const drive = () => {
-      void runRpc<Ticked>(commonDb.rpc('tick_timer', { target_game: gameId })).then((res) => {
+      // `presentFaults: false`: this call decides per answer, and the branches
+      // below are that decision. A poll fires once a second, so a failure that
+      // persists would otherwise be a modal a second.
+      void runRpc<Ticked>(commonDb.rpc('tick_timer', { target_game: gameId }), {
+        presentFaults: false,
+      }).then((res) => {
         if (canceled) return
-        // **A failure to REACH us is silent, and that is the design rather
-        // than a shortcut.** This is a POLL: nobody pressed anything, and a
-        // tick that does not happen is exactly what the clock does when nobody
-        // is viewing — a state the mechanism already handles. There is nothing
-        // to retry and nothing to recover; the next successful call returns
-        // the authoritative count however many were missed.
-        //
-        // A failure the RPC DECLARED is a different thing and is not silenced:
-        // `runRpc` shows it, once a second if it keeps happening.
-        //
-        // `dbFetch` matches this with its `isPolled` exemption, so an offline
-        // player gets `[db]` lines instead of a fault modal per second. The
-        // gap that leaves is filed: docs/deferred.md → "A disconnected player
-        // is the one person who is not told".
         if (res.type === 'not-ok' && isEnvironmental(res.dbcode)) {
-          // OUR SERVER DID NOT ANSWER — one of the four `FE` codes, and not an
-          // answer from the RPC at all. Silent for the reason above: a tick
-          // that did not happen is what the clock does anyway when nobody is
-          // viewing.
-          //
-          // This used to read `res.dbcode === null`, which was the only branch
-          // in the repo that identified an answer by an ABSENCE — and true for
-          // every bug the frontend detects as well, since none of them carried
-          // a code either. It swallowed those. Now they are `PN307`–`PN310`
-          // and fall through to the scream, which is where a bug belongs.
+          // Our server did not answer. Silent: the clock only advances because
+          // a viewer asks it to, so a tick that did not happen is what it does
+          // anyway when nobody is watching. Nothing is lost — the next call
+          // that lands returns the authoritative count.
         } else if (res.type === 'not-ok' && (res.dbcode === 'PN011' || res.dbcode === 'PN012')) {
-          // NOT silent: both carry `severity: 'fault'`, so `runRpc` has already
-          // put a modal up — which is right, and Joel's call (2026-08-31). A
-          // signed-out player should be told. All this branch does is decline
-          // to ALSO call it a bug, because it is not one: it is the RPC's own
-          // declared refusal, and the auth machinery is already unmounting the
-          // page underneath it.
+          // Signed out, or no longer in this club. Worth telling them, even
+          // once a second, because the auth machinery is unmounting this page
+          // underneath it and the count is about to stop meaning anything.
+          showFaultModal({ text: res.message })
         } else if (res.type === 'ok' && res.dbcode === 'PA004') {
-          // The game was deleted under us. No clock to advance, and the page is
-          // about to become a no-such-game anyway.
+          // The game was deleted under us: no clock to advance. The page is
+          // about to become a no-such-game on its own.
         } else if (res.type === 'ok' && res.data !== null && res.data.result === 'ticked') {
           const { ticks } = res.data
           setTicks((t) => mergeTicks(t, ticks))
         } else {
-          // Once a second, and that is FINE (Joel, 2026-08-31): an answer this
-          // chain cannot read is a bug we want to meet immediately, in a game or
-          // in an e2e run. The alternative is what was here before — three
-          // early returns and a silent fall-through, which would have swallowed
-          // it forever.
+          // A bug: an answer this chain cannot read. Once a second is the right
+          // volume for it — loud enough to meet in a game or an e2e run.
           showFaultModal({ text: 'BUG: tick_timer fell through to unhandled' })
         }
       })

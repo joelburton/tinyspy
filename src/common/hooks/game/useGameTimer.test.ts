@@ -141,11 +141,11 @@ describe('useGameTimer', () => {
     expect(peekFaultsForTest()).toHaveLength(0)
   })
 
-  // Asserts the absence of the SCREAM, not of every modal. `runRpc` presents a
-  // declared fault itself, and `dbFetch`'s poll exemption cannot reach that —
-  // docs/deferred.md → "Faults are presented from two places". What this branch
-  // controls is whether the chain also calls it unhandled, and it must not.
-  it('does not call a lapsed session unhandled', async () => {
+  // The point of `presentFaults: false`: two treatments for one call. The
+  // transport failures above are silent; this one is SHOWN, because a
+  // signed-out player should be told (Joel). And it is shown as ITSELF, not as
+  // a bug — the chain declines to call a declared refusal unhandled.
+  it('shows a lapsed session, in the RPC own words', async () => {
     clearFaultsForTest()
     vi.spyOn(console, 'error').mockImplementation(() => {})
     rpcMock.mockResolvedValue(notOk('PN011'))
@@ -153,9 +153,9 @@ describe('useGameTimer', () => {
       useGameTimer({ gameId: 'g', mode: { kind: 'countup' }, paused: false, running: true }),
     )
     await flush()
-    expect(peekFaultsForTest().map((f) => String(f.text)).join(' ')).not.toContain(
-      'fell through to unhandled',
-    )
+    const shown = peekFaultsForTest().map((f) => String(f.text))
+    expect(shown).toContain('nope')
+    expect(shown.join(' ')).not.toContain('fell through to unhandled')
   })
 
   it('SCREAMS for a code it never declared — a bug it used to swallow', async () => {
