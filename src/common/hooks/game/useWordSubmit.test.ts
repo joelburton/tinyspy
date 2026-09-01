@@ -12,7 +12,7 @@ import { renderHook, act } from '@testing-library/react'
  * rejected with the per-game reason and NEVER hits the RPC; and a failed commit
  * releases the word so a retry works.
  */
-import { clearFaultsForTest, peekFaultsForTest } from '../../lib/fault/faultStore'
+import { clearFaultsForTest } from '../../lib/fault/faultStore'
 import { useWordSubmit, type WordSubmitConfig, type WordEntry } from './useWordSubmit'
 
 const APPLE: WordEntry = { word: 'apple', points: 5, isBonus: false }
@@ -30,7 +30,7 @@ function makeCfg(over: Partial<WordSubmitConfig> = {}): WordSubmitConfig {
     minWordLength: 4,
     foundWords: [],
     lookup,
-    commit: vi.fn().mockResolvedValue({ error: null }),
+    commit: vi.fn().mockResolvedValue(null), // null = the word landed
     explainReject: () => 'not a word',
     ...over,
   }
@@ -209,22 +209,30 @@ describe('useWordSubmit', () => {
   })
 
   it('releases the word on a failed commit so a retry succeeds', async () => {
+    // A FAULT envelope — what `runRpc` builds when nothing answered. The game's
+    // commit hands it straight back; the hook reads its severity, not its words.
     const commit = vi
       .fn()
-      // No SQLSTATE — a request that never reached the server, which is what
-      // "the commit lost" almost always is here.
-      .mockResolvedValueOnce({ error: { message: 'TypeError: Load failed', code: '' } })
-      .mockResolvedValueOnce({ error: null })
+      .mockResolvedValueOnce({
+        type: 'not-ok', data: null, outcome: null, severity: 'fault',
+        message: 'You appear to be offline. Please refresh and try again.',
+        field: null, meta: null, dbcode: 'FE001', detail: null,
+      })
+      .mockResolvedValueOnce(null)
     const cfg = makeCfg({ commit })
     const { result, type, submit } = setup(cfg)
 
     type('apple')
     await submit()
-    // The background commit rejected → the word is freed, and the player is
-    // told in words TypeScript owns, via the fault MODAL (a fault never enters
-    // the slot — docs/ui.md → Faults). The browser's opaque phrasing never shows.
-    expect(result.current.localFeedback).toBeNull()
-    expect(peekFaultsForTest().map((f) => f.text)).toContain('word: Server; try refresh')
+    // The commit lost → the word is freed and the optimistic "+N" is REPLACED
+    // by the server's own sentence, in red (the `fault` severity's default).
+    // The modal is raised centrally by `runRpc`, not here — so unlike the old
+    // classifier this leaves the pill carrying the words rather than blanking
+    // the slot.
+    expect(result.current.localFeedback).toMatchObject({
+      tone: 'error',
+      text: 'You appear to be offline. Please refresh and try again.',
+    })
 
     // Retyping + resubmitting is allowed (not stuck on "already found").
     type('apple')

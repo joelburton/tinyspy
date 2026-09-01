@@ -34,6 +34,7 @@ import { InfoCol } from './InfoCol'
 import shared from '../../common/components/game/PlayArea.module.css'
 import { EnvelopeErrorPage } from '../../common/components/loading-and-errs/ErrorPage'
 import { getNotOkFeedback } from '../../common/lib/game/genericPills'
+import { runRpc } from '../../common/lib/supabase/dbResult'
 import { showFaultModal } from '../../common/lib/fault/faultStore'
 import styles from './PlayArea.module.css'
 import '../theme.css'
@@ -60,6 +61,14 @@ import '../theme.css'
  * Move entry is the shared capture model (window key capture + a chrome-less
  * `<EntryBox>` display), the same as spellingbee — boggle's structural twin.
  */
+/** What `boggle.submit_word` puts in `data`. Both results mean the row landed;
+ *  they differ only by the bonus flag the caller sent. A duplicate and a
+ *  post-terminal submit record nothing, so they arrive as refusals. */
+type SubmittedWord =
+  | { result: 'accepted'; points: number }
+  | { result: 'bonus'; points: number }
+  | null
+
 export function PlayArea(ctx: GamePageCtx) {
   const { gameId, players, isTerminal, playState, setup, goToClub, clubHandle, goToGame, session, status, globalFeedback, menu, brand, title } = ctx
   const { game, foundWords, loading, rowsLoaded, failure } = useGame(gameId)
@@ -168,14 +177,28 @@ export function PlayArea(ctx: GamePageCtx) {
       minWordLength: game?.min_word_length ?? 3,
       foundWords,
       lookup: (w) => legalIndex.get(w) ?? null,
+      // Two ok answers, both meaning the row landed — the classification is the
+      // FE's own flag coming back, and the optimistic pill already said it. The
+      // three refusals all mean the word was NOT recorded, so each releases it.
       commit: async (e) => {
-        const { error } = await db.rpc('submit_word', {
-          target_game: gameId,
-          word: e.word,
-          points: e.points,
-          is_bonus: e.isBonus,
-        })
-        return { error }
+        const res = await runRpc<SubmittedWord>(
+          db.rpc('submit_word', {
+            target_game: gameId,
+            word: e.word,
+            points: e.points,
+            is_bonus: e.isBonus,
+          }),
+        )
+        if (res.type === 'not-ok') {
+          return res
+        } else if (res.type === 'ok' && res.data?.result === 'accepted') {
+          return null
+        } else if (res.type === 'ok' && res.data?.result === 'bonus') {
+          return null
+        } else {
+          showFaultModal({ text: 'BUG: submit_word fell through to unhandled' })
+          return null
+        }
       },
       // A miss is either untraceable ("not on board") or traceable-but-not-a-word
       // — the distinction boggle keeps, computed from the board on the FE. The

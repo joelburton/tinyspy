@@ -1,8 +1,10 @@
 // cs-unmet
 
-import { failureMessage } from '../../lib/game/serverError'
 import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react'
 import type { GenericFeedbackMsg } from '../../lib/games'
+import type { NotOk } from '../../lib/supabase/envelope'
+import { getNotOkFeedback } from '../../lib/game/genericPills'
+import { showFaultModal } from '../../lib/fault/faultStore'
 import { useLocalFeedback } from '../feedback/useLocalFeedback'
 import { stickyPill } from '../../lib/game/localPills'
 
@@ -63,9 +65,20 @@ export type WordSubmitConfig = {
   /** O(1) membership over the game's legal list, keyed by lowercase word. Returns
    *  the matched entry (points + flags) or `null` for a non-legal word. */
   lookup: (word: string) => WordEntry | null
-  /** The trusting-commit RPC. The hook fires this in the background and only
-   *  awaits to surface an error + release the pending word. */
-  commit: (entry: WordEntry) => Promise<{ error: { message: string; code?: string } | null }>
+  /**
+   * The trusting-commit RPC, fired in the background.
+   *
+   * **`null` means the word LANDED; a `NotOk` means it did not.** The game owns
+   * the branch chain over its own answers (they are per-game — `pangram` in one,
+   * `dealt` in another — so a shared hook could not read them), and hands back
+   * only the fact this hook is entitled to: whether the optimistic pill it just
+   * showed is still true.
+   *
+   * Every refusal the four games can give is a REFUSAL — a race or a fault —
+   * because none of them records the word. That is what lets one envelope carry
+   * the whole answer here.
+   */
+  commit: (entry: WordEntry) => Promise<NotOk | null>
   /** Why did `lookup` miss? Returns just the lowercase *reason* — the hook wraps
    *  it in the shared `WORD — reason` line. Per-game vocabulary: boggle "not on
    *  board" (untraceable) vs "not a word"; spellingbee "bad letters" / "missing
@@ -226,28 +239,27 @@ export function useWordSubmit(cfg: WordSubmitConfig): WordSubmitApi {
     const body = `${entry.isPangram ? 'pangram ' : ''}+${entry.points}`
     showPill(stickyPill('won', line(w, body, entry.isBonus)))
 
-    // The commit lost: free the word so it can be retried, and say why in the
-    // words TypeScript owns. `failureMessage` decides the LOOK too — a rule the
-    // server anticipated replaces the optimistic pill; a FAULT routes to the
-    // modal (the sink's branch), so the stale "+N" success pill must be
-    // cleared here explicitly or it would keep claiming a word that never
-    // landed behind the modal.
+    // The commit lost: free the word so it can be retried, and replace the
+    // optimistic "+N" with the server's own sentence. Nothing is cleared
+    // first — showing the new pill IS the correction, and a fault's modal is
+    // raised centrally by `runRpc` rather than by anything here.
     const release = (msg: GenericFeedbackMsg) => {
       pendingRef.current.delete(w) // free it so the player can retry
-      if (msg.fault) clearLocalFeedback()
       showPill(msg)
     }
     c.commit(entry).then(
-      ({ error }) => {
-        if (error) release(failureMessage(error, 'word'))
+      (failure) => {
+        if (failure === null) return // it landed; the optimistic pill stands
+        // The SERVER's sentence, verbatim — never re-wrapped in `line()`. The
+        // duplicate's message is already the whole line (`CAT — already
+        // found`), composed server-side precisely so the two routes to that
+        // rejection read identically; wrapping it again would double the word.
+        // The tone comes from the severity: orange for a race, red for a fault.
+        release({ ...getNotOkFeedback(failure), mode: { kind: 'sticky' } })
       },
-      // A THROWN rejection rather than an `{ error }` — no SQLSTATE exists, so
-      // this is the transport path by construction.
-      (err: unknown) =>
-        release(failureMessage(
-          { message: err instanceof Error ? err.message : String(err), code: '' },
-          'word',
-        )),
+      // `runRpc` resolves for every answer it can classify, so a REJECTION here
+      // is ours — a commit that threw rather than answering.
+      () => showFaultModal({ text: 'BUG: a word commit threw instead of answering' }),
     )
   }, [showPill, clearLocalFeedback])
 

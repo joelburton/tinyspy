@@ -80,10 +80,12 @@ select is((select status->>'outcome' from common.games where id = (select id fro
 
 -- ── (5) submit after terminal → gameOver ──────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+-- A RACE: the game can end while a submission is in flight, and the word is
+-- not recorded — so it refuses rather than answering.
 select pg_temp.envelope_is(
   boggle.submit_word((select id from g), 'arc', 1, false),
-  '{"type":"ok","data":{"result":"gameOver"}}'::jsonb,
-  'submitting after the game ends → gameOver');
+  '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN368","message":"Game over"}'::jsonb,
+  'submitting after the game ends is refused');
 
 -- ── (6) compete dedup: per-player, not per-team ───────────
 create temp table cg on commit drop as

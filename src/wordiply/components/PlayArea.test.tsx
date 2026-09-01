@@ -31,7 +31,13 @@ vi.mock('../hooks/useGame', () => ({
   useGame: () => ({ ...h.result, validGuesses: h.result.guesses.filter((g) => g.valid) }),
 }))
 vi.mock('../db', () => ({ db: { rpc: vi.fn().mockResolvedValue({ error: null }) } }))
-vi.mock('../../common/lib/supabase/dbResult', () => ({ runEdgeFn: vi.fn() }))
+// Only `runEdgeFn` is stubbed — the create-game path. `runRpc` stays REAL so
+// the submit path exercises the envelope it actually receives; the `db.rpc`
+// mock above is what feeds it.
+vi.mock('../../common/lib/supabase/dbResult', async (orig) => ({
+  ...(await orig<typeof import('../../common/lib/supabase/dbResult')>()),
+  runEdgeFn: vi.fn(),
+}))
 
 /** A loaded game on base 'ar', longest possible 'hangars' (7). */
 function loadedGame(over: Partial<WordiplyGame> = {}): WordiplyGame {

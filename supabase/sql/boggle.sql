@@ -324,11 +324,10 @@ revoke execute on function boggle._refresh_status(uuid) from public;
 -- does the things the FE can't: enforce the game is live, dedup, record, and
 -- refresh the club-page status. No word-content or dictionary check.
 --
--- Three ok answers, each carrying the points the row was written with:
+-- Two ok answers, each carrying the points the row was written with:
 --   { result: 'accepted', points } | { result: 'bonus', points }
---   { result: 'gameOver', points: 0 }
--- A duplicate is NOT among them: the word is not recorded, so that REFUSES
--- (PN359) rather than answering.
+-- Neither a duplicate nor a post-terminal submit is among them: neither records
+-- the word, so both REFUSE (PN359, PN368) rather than answering.
 -- The `points` every shape used to echo is gone — it was the number the caller
 -- had just sent, and nothing read it back.
 create or replace function boggle.submit_word(
@@ -365,8 +364,15 @@ begin
       using errcode = 'PN351', hint = 'fault', column = '_',
       detail = 'no boggle.games row for target_game';
   end if;
+  -- A RACE, and on the NOT-OK arm like every sibling's (spellingbee PN354,
+  -- wordwheel PN357, wordiply PN363). This used to answer ok/'gameOver', which
+  -- was wrong in a way nothing noticed: the word is NOT recorded here, so an ok
+  -- answer left useWordSubmit's optimistic `+N` pill standing over a word that
+  -- never landed.
   if g_playstate <> 'playing' then
-    return common.ok_envelope(jsonb_build_object('result', 'gameOver', 'points', 0));
+    raise exception 'Game over'
+      using errcode = 'PN368', hint = 'race', column = '_',
+      detail = 'play_state is not an active state';
   end if;
 
   -- A conceded player is out of the race — no more words. The FE gates on

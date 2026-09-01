@@ -20,7 +20,7 @@ import { InfoCol } from './InfoCol'
 import { MAX_GUESSES } from './GuessBoard'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { setupRows } from '../lib/setupSummary'
-import { runEdgeFn } from '../../common/lib/supabase/dbResult'
+import { runEdgeFn, runRpc } from '../../common/lib/supabase/dbResult'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
 import { useConfirmation, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmation'
 import { buildWordiplyPrintModel } from '../pdf/model'
@@ -46,23 +46,6 @@ type LeaderRow = {
   won?: boolean
 }
 
-/** Map a server reject reason to a short line — rare (the FE pre-validates,
- *  so these only surface on a race with another tab). */
-function rejectReason(reason: string | undefined, base: string): string {
-  switch (reason) {
-    case 'too_short':
-      return 'too short'
-    case 'missing_base':
-      return `must contain "${base.toUpperCase()}"`
-    case 'duplicate':
-      // Worded exactly like the CLIENT-side duplicate check in useWordSubmit —
-      // same condition, so it must not read as two different rejections
-      // depending on which side caught it.
-      return 'already found'
-    default:
-      return 'not accepted'
-  }
-}
 
 /**
  * wordiply's play surface — shared between the coop and compete manifests.
@@ -79,6 +62,17 @@ function rejectReason(reason: string | undefined, base: string): string {
  * The live readout is ONLY each guess's length (a badge on its row); the
  * length score + letter count + longest word are terminal-only.
  */
+/** What `wordiply.submit_guess` puts in `data`.
+ *
+ *  The two results reach DIFFERENT call sites, which is what `fe_legal` says:
+ *  `commit` claims the word is legal and can only be told `accepted`, while
+ *  `recordReject` reports a rejection the FE already made and asks which guard
+ *  applied. A duplicate is neither — nothing is recorded, so it refuses. */
+type GuessResult =
+  | { result: 'accepted'; length: number; guesses_used: number; is_terminal: boolean }
+  | { result: 'rejected'; reason: 'too_short' | 'missing_base' | 'not_a_word' }
+  | null
+
 export function PlayArea(ctx: GamePageCtx) {
   const {
     gameId, isTerminal, playState, players, session, status,
@@ -174,12 +168,22 @@ export function PlayArea(ctx: GamePageCtx) {
       foundWords: guesses, // ALL rows: the server dedups on rejects too, so a re-try reads as 'already found' here rather than round-tripping
       lookup: (w): WordEntry | null =>
         legalSet.has(w) ? { word: w, points: w.length, isBonus: false } : null,
+      // ONE ok answer reaches this path. `rejected` is the other one the RPC can
+      // give, but only to `recordReject` below: the FE gates all three reasons
+      // before committing, so a structural break claimed legal here comes back
+      // as PN367, a fault. Every refusal means the guess was NOT recorded.
       commit: async (e) => {
-        const { data, error } = await db.rpc('submit_guess', { target_game: gameId, word: e.word })
-        if (error) return { error }
-        const res = data as { ok?: boolean; reason?: string } | null
-        if (res && res.ok === false) return { error: { message: rejectReason(res.reason, base) } }
-        return { error: null }
+        const res = await runRpc<GuessResult>(
+          db.rpc('submit_guess', { target_game: gameId, word: e.word }),
+        )
+        if (res.type === 'not-ok') {
+          return res
+        } else if (res.type === 'ok' && res.data?.result === 'accepted') {
+          return null
+        } else {
+          showFaultModal({ text: 'BUG: submit_guess fell through to unhandled' })
+          return null
+        }
       },
       // Not in the legal set: either it doesn't contain the base, or it's not
       // a word. (Too-short is handled by minWordLength above.)
@@ -192,14 +196,23 @@ export function PlayArea(ctx: GamePageCtx) {
       // Fire-and-forget: the pill already says the same thing, so a failed
       // write must not change what the player sees.
       recordReject: (w) => {
-        void db
-          .rpc('submit_guess', { target_game: gameId, word: w, fe_legal: false })
-          .then(({ error }) => {
+        void runRpc<GuessResult>(
+          db.rpc('submit_guess', { target_game: gameId, word: w, fe_legal: false }),
+        ).then((res) => {
+          if (res.type === 'ok' && res.data?.result === 'rejected') {
+            // The expected answer: the turn is logged and the server has told
+            // us which guard applied. Nothing to show — the pill saying the
+            // same thing went up before this call.
+          } else if (res.type === 'not-ok') {
             // Log-and-swallow: the pill already told the player, so a failed
             // write must not change what they see — but it must not vanish
-            // silently either (the log would just be missing a row).
-            if (error) console.error('recording a rejected guess failed', error)
-          })
+            // silently either (the log would just be missing a row). `runRpc`
+            // has raised the modal for the faults among these.
+            console.error('recording a rejected guess failed', res.message)
+          } else {
+            showFaultModal({ text: 'BUG: submit_guess fell through to unhandled' })
+          }
+        })
       },
     })
 

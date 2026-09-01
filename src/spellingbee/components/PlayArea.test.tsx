@@ -42,7 +42,13 @@ vi.mock('../hooks/useGame', () => ({ useGame: () => h.result }))
 vi.mock('../db', () => ({ db: { rpc: vi.fn() } }))
 // PlayArea's "New game" calls the start-game edge function directly (the same
 // helper the manifest uses); mocked so no edge runtime is needed.
-vi.mock('../../common/lib/supabase/dbResult', () => ({ runEdgeFn: vi.fn() }))
+// Only `runEdgeFn` is stubbed — the create-game path. `runRpc` stays REAL so
+// the submit path exercises the envelope it actually receives; the `db.rpc`
+// mock above is what feeds it.
+vi.mock('../../common/lib/supabase/dbResult', async (orig) => ({
+  ...(await orig<typeof import('../../common/lib/supabase/dbResult')>()),
+  runEdgeFn: vi.fn(),
+}))
 
 const rpc = db.rpc as unknown as ReturnType<typeof vi.fn>
 const startEdgeFn = runEdgeFn as unknown as ReturnType<typeof vi.fn>
@@ -99,10 +105,21 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
   } as unknown as GamePageCtx
 }
 
+/** A trusting-commit success, in the envelope `runRpc` unwraps. `accepted` is
+ *  the plain classification; the bonus/pangram ones return the same `null` to
+ *  the hook, so one fixture covers every accept. */
+const acceptedEnvelope = {
+  data: {
+    type: 'ok', data: { result: 'accepted', points: 1 }, outcome: null, severity: null,
+    message: null, field: null, meta: null, dbcode: null, detail: null,
+  },
+  error: null,
+}
+
 beforeEach(() => {
   h.result = loaded(loadedGame())
   rpc.mockReset()
-  rpc.mockResolvedValue({ error: null }) // trusting-commit succeeds by default
+  rpc.mockResolvedValue(acceptedEnvelope) // trusting-commit succeeds by default
   // Reset the edge-fn mock too: without this its call COUNT leaks between
   // tests, which silently breaks any toHaveBeenCalledTimes assertion (each
   // New-game test sets its own resolved value, so clearing is safe).

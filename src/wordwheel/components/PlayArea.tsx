@@ -7,6 +7,7 @@ import { CelebrationBlockingModal } from '../../common/components/game/Celebrati
 import { useCelebration } from '../../common/hooks/game/useCelebration'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import type { CreatedGame, GamePageCtx, Member } from '../../common/lib/games'
+import { runRpc } from '../../common/lib/supabase/dbResult'
 import { showFaultModal } from '../../common/lib/fault/faultStore'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { db } from '../db'
@@ -61,6 +62,16 @@ import '../theme.css'
  * Cross-cutting chrome (header / pause / chat / timer) lives in
  * `<GamePage>` above this component.
  */
+/** What `wordwheel.submit_word` puts in `data`. All four mean the row landed:
+ *  three classifications echoing the caller's own flags, plus `won` — the word
+ *  crossed the target rank and ended the game. */
+type SubmittedWord =
+  | { result: 'accepted'; points: number }
+  | { result: 'bonus'; points: number }
+  | { result: 'pangram'; points: number }
+  | { result: 'won'; points: number }
+  | null
+
 export function PlayArea(ctx: GamePageCtx) {
   const {
     gameId, isTerminal, playState, players, session, status,
@@ -297,15 +308,35 @@ export function PlayArea(ctx: GamePageCtx) {
       minWordLength: 4,
       foundWords,
       lookup: (w) => legalIndex.get(w) ?? null,
+      // Four ok answers, all meaning the row landed: three classifications the
+      // FE's own flags come back as, plus `won` — this word crossed the target
+      // rank and ended the game. None of them changes what the optimistic pill
+      // already says; the terminal flip arrives over realtime. Every refusal
+      // means the word was NOT recorded, so each releases it.
       commit: async (e) => {
-        const { error } = await db.rpc('submit_word', {
-          target_game: gameId,
-          word: e.word,
-          points: e.points,
-          is_pangram: e.isPangram ?? false,
-          is_bonus: e.isBonus,
-        })
-        return { error }
+        const res = await runRpc<SubmittedWord>(
+          db.rpc('submit_word', {
+            target_game: gameId,
+            word: e.word,
+            points: e.points,
+            is_pangram: e.isPangram ?? false,
+            is_bonus: e.isBonus,
+          }),
+        )
+        if (res.type === 'not-ok') {
+          return res
+        } else if (res.type === 'ok' && res.data?.result === 'accepted') {
+          return null
+        } else if (res.type === 'ok' && res.data?.result === 'bonus') {
+          return null
+        } else if (res.type === 'ok' && res.data?.result === 'pangram') {
+          return null
+        } else if (res.type === 'ok' && res.data?.result === 'won') {
+          return null
+        } else {
+          showFaultModal({ text: 'BUG: submit_word fell through to unhandled' })
+          return null
+        }
       },
       // A miss at/above min length. Words that don't fit the wheel's tiles (an
       // off-wheel letter, or a letter over its tile count) can't reach here —

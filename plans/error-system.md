@@ -708,7 +708,8 @@ select pg_temp.envelope_is(
 
 ## 7. The conversion roster
 
-**144 entries. 96 done, 48 to go** (5 of those are the deferred edge
+**144 entries. 96 done, 48 to go** — plus `useWordSubmit`, which is not a
+roster entry of its own but carried five call sites across four games (5 of those are the deferred edge
 functions). Cross them off here as they land.
 
 **Un-paused 2026-08-31: the retro-fix list is empty.** It existed because a
@@ -742,12 +743,33 @@ standalone callback that already reads `data`, and letterboxed's header says it
 is "deliberately NOT `useWordSubmit` … the commit is a plain RPC". Both are
 ordinary entries in their own areas.
 
-So those four convert in TWO halves (Joel, 2026-09-01):
+**DONE 2026-09-01.** Both halves have landed; what follows is the record.
 
-- **each game's SQL converts in its own area**, leaving its call site raw. The
-  entry is marked done and says "SQL only".
-- **`useWordSubmit` converts ONCE, after the last of the four**, taking every
+Those four converted in TWO halves:
+
+- **each game's SQL converted in its own area**, leaving its call site raw.
+- **`useWordSubmit` converted ONCE, after the last of the four**, taking every
   call site with it and deleting the hook's use of `failureMessage`.
+
+The contract is `commit: (entry) => Promise<NotOk | null>` — `null` means the
+word landed. The game owns the branch chain over its own answers (they are
+per-game: `pangram` in one, `dealt` in another, so a shared hook could not read
+them) and hands back only the fact the hook is entitled to: whether the
+optimistic pill it just showed is still true.
+
+That contract forced one SQL fix. **boggle's `gameOver` moved to the not-ok arm
+as PN368**, where its three siblings already were. The word is not recorded on
+that path, so an `ok` answer left the optimistic `+N` pill standing over a word
+that never landed — invisible only because the call site read `error` alone.
+There is no way to say "ok, but release the word", which is the contract
+reporting that the answer was on the wrong arm.
+
+Two behavior changes fell out, both from `getNotOkFeedback` replacing
+`failureMessage`: a **race is orange now** rather than red, and a **fault shows
+its sentence in the pill** while `runRpc` raises the modal centrally — where the
+old classifier blanked the slot and left only the modal. `noRawServerMessage`
+enforces the second ("the modal is raised centrally — use getNotOkFeedback and
+let the pill carry the words"), and its `useWordSubmit` allowlist entry is gone.
 
 **wordiply settles the hook's shape, so it goes last of the four.** Its `commit`
 manufactures an error out of a SUCCESSFUL answer — `res.ok === false` becomes

@@ -161,8 +161,10 @@ export type GenericFeedbackMsg = {
    * separates "the game refused my move" from "the app is broken" without
    * anyone having to read the words.
    *
-   * Set only by `failureMessage` (lib/game/serverError.ts) — a fault is never
-   * authored by hand, it's what's left when no copy exists for what came back.
+   * Never authored by hand: it is read off the envelope's `severity`, or — on
+   * the paths still using the old classifier — is what `failureMessage`
+   * (lib/game/serverError.ts) is left with when no copy exists for what came
+   * back.
    */
   fault?: true
   /** Fault-only: the diagnostics line for the fault modal (FaultModal) —
