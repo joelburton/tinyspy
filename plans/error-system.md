@@ -684,7 +684,7 @@ select pg_temp.envelope_is(
 
 ## 7. The conversion roster
 
-**144 entries. 95 done, 49 to go** (5 of those are the deferred edge
+**144 entries. 96 done, 48 to go** (5 of those are the deferred edge
 functions). Cross them off here as they land.
 
 **Un-paused 2026-08-31: the retro-fix list is empty.** It existed because a
@@ -1013,8 +1013,16 @@ read to convert; `submit_guess` has one call site, not two.
 #### wordiply
 
 - [x] `create_game` · RPC, reached through `wordiply-build-board`
-- [ ] `submit_guess` · RPC (3 call sites) — SQL converts here; the call site is
-      `useWordSubmit`'s `commit` (see the hook note above)
+- [x] `submit_guess` · RPC — **SQL only**; the call sites are `useWordSubmit`'s
+      `commit` AND `recordReject` (see the hook note above). PN362–PN367. Two
+      shapes that shared `ok: false` split across the arms: a DUPLICATE records
+      nothing and refuses (PN365), while a REJECT inserts a `guesses` row and
+      may spend the caller's go — it is a move the game said no to, so it stays
+      `ok`. It must also RETURN rather than raise: catching is a savepoint, and
+      a raise would roll back the row that is the point of the call. And
+      `fe_legal` tells the two callers apart — a structural break claimed legal
+      by `commit` is PN367, a fault, because the FE holds `legalWords` and
+      checks `minWordLength` before committing
 - [ ] `games_state` · read (2 call sites)
 - [ ] `guesses` · read (2 call sites)
 

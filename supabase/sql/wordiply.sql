@@ -735,13 +735,15 @@ declare
   is_term boolean;
   result jsonb;
   reject_reason text;   -- set iff this submission is being recorded as invalid
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text;
 begin
   -- Lock the gametype row; mode rides along.
   select * into g_row from wordiply.games
    where wordiply.games.id = target_game
    for update;
   if not found then
-    raise exception 'game-not-found|' using errcode = 'P0002',
+    raise exception 'BUG: a guess submitted to a game with no wordiply row'
+      using errcode = 'PN362', hint = 'fault', column = '_',
       detail = 'no wordiply.games row for target_game';
   end if;
 
@@ -749,14 +751,18 @@ begin
 
   select play_state into current_play_state
     from common.games where id = target_game;
+  -- A RACE: entry is gated on isTerminal, but the last active player can spend
+  -- their fifth guess while this one is in flight.
   if current_play_state <> 'playing' then
-    raise exception 'game-not-in-play|' using errcode = 'P0001',
+    raise exception 'Game over'
+      using errcode = 'PN363', hint = 'race', column = '_',
       detail = 'play_state is not an active state';
   end if;
 
   if (select conceded from common.game_players
         where game_id = target_game and user_id = caller_id) then
-    raise exception 'you-conceded|' using errcode = 'P0001',
+    raise exception 'Already conceded'
+      using errcode = 'PN364', hint = 'race', column = '_',
       detail = 'caller already dropped out of this compete race';
   end if;
 
@@ -781,7 +787,8 @@ begin
       from wordiply.guesses where game_id = target_game and user_id = caller_id and valid;
   end if;
   if track_count >= 5 then
-    raise exception 'no-guesses-left|' using errcode = 'P0001',
+    raise exception 'No guesses left'
+      using errcode = 'PN366', hint = 'race', column = '_',
       detail = 'the guess budget for this player/team is spent';
   end if;
 
@@ -799,8 +806,14 @@ begin
       from wordiply.guesses fw
      where fw.game_id = target_game and fw.user_id = caller_id and fw.word = w_lower;
   end if;
+  -- A RACE, and the one branch here that records NOTHING: `useWordSubmit` dedups
+  -- locally (the log plus a synchronous pending set) and returns before calling
+  -- either call site, so reaching this means its list was stale. Same wording
+  -- and same severity as the other three word games.
   if dup_count > 0 then
-    return jsonb_build_object('ok', false, 'reason', 'duplicate');
+    raise exception 'Already found'
+      using errcode = 'PN365', hint = 'race', column = '_',
+      detail = 'the word is already in the log under this mode''s dedup rule';
   end if;
 
   -- ─── Free guards (no dictionary lookup), then the FE's verdict ──
@@ -816,6 +829,22 @@ begin
 
   -- ─── Rejected: record the turn, maybe spend it, and stop ──
   if reject_reason is not null then
+    -- WHO ASKED decides whether a structural reject is an answer or a bug, and
+    -- `fe_legal` already separates them. `recordReject` sends false: it is
+    -- REPORTING a rejection the FE already made, and being told which guard
+    -- applies is the whole point of the call. `commit` leaves it true, which
+    -- claims the word is legal — and the FE holds `legalWords` and checks
+    -- `minWordLength` before committing, so a word that trips a structural
+    -- guard here never passed those checks.
+    --
+    -- (`not_a_word` cannot reach this branch with fe_legal true: it is only
+    -- ever set when fe_legal is false, so the two named here are the whole of
+    -- it. The raise is before the insert, so the savepoint has nothing to undo.)
+    if coalesce(fe_legal, true) and reject_reason in ('too_short', 'missing_base') then
+      raise exception 'BUG: a guess the client called legal breaks the base rules'
+        using errcode = 'PN367', hint = 'fault', column = '_',
+        detail = 'commit sent fe_legal true for a word that is ' || reject_reason;
+    end if;
     insert into wordiply.guesses (game_id, user_id, word, length, valid, reason, seq)
       values (target_game, caller_id, w_lower, ins_length, false, reject_reason, null);
     -- A rules error costs your go; a dictionary miss doesn't. No-op outside
@@ -826,7 +855,9 @@ begin
     -- No status write: nothing a reject changes is IN the status (budget and
     -- the scores are all valid-only), and the row itself reaches peers over
     -- the guesses realtime publication.
-    return jsonb_build_object('ok', false, 'reason', reject_reason);
+    -- An ok answer, NOT a raise: the row above is the point of the call, and a
+    -- raise would take the savepoint down with it.
+    return common.ok_envelope(jsonb_build_object('result', 'rejected', 'reason', reject_reason));
   end if;
 
   -- ─── Accepted (trusted word) ─────────────────────────────
@@ -891,7 +922,7 @@ begin
   is_term := (select play_state from common.games where id = target_game) <> 'playing';
 
   result := jsonb_build_object(
-    'ok', true,
+    'result', 'accepted',
     'length', ins_length,
     'guesses_used', used_now,
     'is_terminal', is_term
@@ -904,7 +935,15 @@ begin
       'letter_count', letters_now
     );
   end if;
-  return result;
+  return common.ok_envelope(result);
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 

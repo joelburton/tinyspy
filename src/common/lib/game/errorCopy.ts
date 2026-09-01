@@ -137,11 +137,6 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   // shared, so a teammate's winning guess can arrive while yours is in flight.
   'already-solved': { text: () => 'Already solved', tone: 'noted' },
 
-  // ── wordiply ──
-  // The guess budget is REAL and, in coop, SHARED — so a teammate can spend the
-  // last of five between your check and your submit. That's a lost race, same
-  // family as letterboxed's below.
-  'no-guesses-left': { text: () => 'No guesses left', tone: 'noted' },
   // The two ways a player-chosen starter (setup.custom_base) fails to make a
   // board. Unlike everything else here these fire at CREATE time and land on
   // the setup dialog's error line, not the below-board pill — but the

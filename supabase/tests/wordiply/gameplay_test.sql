@@ -33,9 +33,10 @@ begin;
 
 set search_path = wordiply, common, public, extensions;
 
-select plan(26);
+select plan(27);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 -- ============================================================
@@ -65,19 +66,19 @@ create temp table first_ret on commit drop as
 select wordiply.submit_guess((select id from g), 'arxxxxx') as ret;
 
 select is(
-  (select (ret->>'ok')::boolean from first_ret),
-  true,
-  'submit_guess: a valid guess (contains base, longer) → ok=true'
+  (select ret->'data'->>'result' from first_ret),
+  'accepted',
+  'submit_guess: a valid guess (contains base, longer) → accepted'
 );
 
 select is(
-  (select (ret->>'length')::int from first_ret),
+  (select (ret->'data'->>'length')::int from first_ret),
   7,
   'submit_guess: returns the guess length (the one live readout)'
 );
 
 select is(
-  (select (ret->>'is_terminal')::boolean from first_ret),
+  (select (ret->'data'->>'is_terminal')::boolean from first_ret),
   false,
   'submit_guess: not terminal after the first coop guess'
 );
@@ -103,17 +104,30 @@ select is(
 -- board slot (seq stays null) — the scores and the five rows are valid-only.
 
 -- too_short: a word not longer than the base ('ar' is exactly base length).
-select is(
-  wordiply.submit_guess((select id from g), 'ar')->>'reason',
-  'too_short',
-  'submit_guess: a word not longer than the base → {ok:false, reason:too_short}'
+-- `fe_legal false` because this is `recordReject`'s call: the FE has already
+-- rejected the word and is asking the server to log the turn and say which
+-- guard applied. The commit path claims a word is legal, so the same word
+-- there is a fault — asserted below.
+select pg_temp.envelope_is(
+  wordiply.submit_guess((select id from g), 'ar', false),
+  '{"type":"ok","data":{"result":"rejected","reason":"too_short"}}'::jsonb,
+  'submit_guess: a word not longer than the base → rejected/too_short'
 );
 
 -- missing_base: a word that does not contain 'ar'.
-select is(
-  wordiply.submit_guess((select id from g), 'zzzz')->>'reason',
-  'missing_base',
-  'submit_guess: a word not containing the base → {ok:false, reason:missing_base}'
+select pg_temp.envelope_is(
+  wordiply.submit_guess((select id from g), 'zzzz', false),
+  '{"type":"ok","data":{"result":"rejected","reason":"missing_base"}}'::jsonb,
+  'submit_guess: a word not containing the base → rejected/missing_base'
+);
+
+-- A structural break on the COMMIT path, which claims the word is legal. The
+-- FE holds legalWords and checks minWordLength before committing, so this is
+-- our bug, not a move.
+select pg_temp.envelope_is(
+  wordiply.submit_guess((select id from g), 'zzzzz'),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN367"}'::jsonb,
+  'submit_guess: a structural break the caller called legal is a fault'
 );
 
 -- Both rejections ARE logged, as invalid rows carrying their reason...
@@ -157,9 +171,9 @@ select is(
 -- bea tries the exact word ada already played → duplicate.
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select is(
-  wordiply.submit_guess((select id from g), 'arxxxxx')->>'reason',
-  'duplicate',
+select pg_temp.envelope_is(
+  wordiply.submit_guess((select id from g), 'arxxxxx'),
+  '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN365","message":"Already found"}'::jsonb,
   'coop dedup: bea cannot re-submit a word ada already played (team-wide)'
 );
 
@@ -180,11 +194,10 @@ select (select id from g),
   from (values ('arb', 2), ('arc', 3), ('ard', 4), ('are', 5)) t(w, gi);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select throws_ok(
-  format($$ select wordiply.submit_guess(%L::uuid, 'arfff') $$, (select id from g)),
-  'P0001',
-  'no-guesses-left|',
-  'coop: the 6th shared guess raises "no guesses remaining"'
+select pg_temp.envelope_is(
+  wordiply.submit_guess((select id from g), 'arfff'),
+  '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN366","message":"No guesses left"}'::jsonb,
+  'coop: the 6th shared guess is refused'
 );
 
 -- ============================================================
@@ -205,10 +218,9 @@ select (wordiply.create_game(
 
 -- ada concedes, then tries to submit.
 select wordiply.concede((select id from cg));
-select throws_ok(
-  format($$ select wordiply.submit_guess(%L::uuid, 'arxx') $$, (select id from cg)),
-  'P0001',
-  'you-conceded|',
+select pg_temp.envelope_is(
+  wordiply.submit_guess((select id from cg), 'arxx'),
+  '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN364","message":"Already conceded"}'::jsonb,
   'a conceded player cannot submit a guess'
 );
 
@@ -218,23 +230,23 @@ select throws_ok(
 -- bea + cade each play 'arbc' — both accepted (per-player ownership).
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select is(
-  (wordiply.submit_guess((select id from cg), 'arbc')->>'ok')::boolean,
-  true,
+select pg_temp.envelope_is(
+  wordiply.submit_guess((select id from cg), 'arbc'),
+  '{"type":"ok","data":{"result":"accepted"}}'::jsonb,
   'compete: bea''s first "arbc" is accepted'
 );
 
 select pg_temp.as_user('cade3333-3333-3333-3333-333333333333');
-select is(
-  (wordiply.submit_guess((select id from cg), 'arbc')->>'ok')::boolean,
-  true,
+select pg_temp.envelope_is(
+  wordiply.submit_guess((select id from cg), 'arbc'),
+  '{"type":"ok","data":{"result":"accepted"}}'::jsonb,
   'compete: cade ALSO plays "arbc" — per-player ownership, not a duplicate'
 );
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select is(
-  wordiply.submit_guess((select id from cg), 'arbc')->>'reason',
-  'duplicate',
+select pg_temp.envelope_is(
+  wordiply.submit_guess((select id from cg), 'arbc'),
+  '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN365","message":"Already found"}'::jsonb,
   'compete: bea''s SECOND "arbc" is a duplicate (same-player rule)'
 );
 
@@ -265,7 +277,7 @@ create temp table fifth on commit drop as
 select wordiply.submit_guess((select id from term_g), 'arw') as ret;  -- 3
 
 select is(
-  (select (ret->>'is_terminal')::boolean from fifth),
+  (select (ret->'data'->>'is_terminal')::boolean from fifth),
   true,
   'coop: the 5th shared guess reports is_terminal=true'
 );

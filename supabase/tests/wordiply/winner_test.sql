@@ -321,8 +321,8 @@ select (wordiply.create_game(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select wordiply.submit_guess((select id from g7), 'arzzzzz', false);  -- 7, NOT a word
-select wordiply.submit_guess((select id from g7), 'zzzz');            -- missing_base
-select wordiply.submit_guess((select id from g7), 'ar');              -- too_short
+select wordiply.submit_guess((select id from g7), 'zzzz', false);     -- missing_base
+select wordiply.submit_guess((select id from g7), 'ar', false);       -- too_short
 select wordiply.submit_guess((select id from g7), 'arxx');            -- 4  valid
 select wordiply.submit_guess((select id from g7), 'arxy');            -- 4  valid
 select wordiply.submit_guess((select id from g7), 'arxz');            -- 4  valid

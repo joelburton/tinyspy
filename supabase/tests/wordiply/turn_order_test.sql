@@ -57,17 +57,17 @@ select is(
 
 -- (2) bea guessing out of turn is rejected.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select throws_ok(
-  format($$ select wordiply.submit_guess(%L::uuid, 'arxxxxx') $$, (select id from g)),
-  'P0001', 'not-your-turn|',
+select pg_temp.envelope_is(
+  wordiply.submit_guess((select id from g), 'arxxxxx'),
+  '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN243","message":"Not your turn"}'::jsonb,
   'turns: the non-current player is rejected'
 );
 
 -- (3) ada (current) submits a valid guess — accepted, advances.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  wordiply.submit_guess((select id from g), 'arxxxxx')->>'ok',
-  'true',
+  wordiply.submit_guess((select id from g), 'arxxxxx')->'data'->>'result',
+  'accepted',
   'turns: the current player''s guess is accepted'
 );
 reset role;
@@ -80,10 +80,10 @@ select is(
 -- (4) SOFT-REJECT does NOT advance: it's bea's turn; bea re-guesses ada's
 -- word (a shared-board duplicate → soft reject). The pointer stays bea's.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select is(
-  wordiply.submit_guess((select id from g), 'arxxxxx')->>'reason',
-  'duplicate',
-  'turns: a duplicate is soft-rejected'
+select pg_temp.envelope_is(
+  wordiply.submit_guess((select id from g), 'arxxxxx'),
+  '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN365","message":"Already found"}'::jsonb,
+  'turns: a duplicate is refused'
 );
 reset role;
 select is(
@@ -107,7 +107,7 @@ select is(
 -- costs her the go.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  wordiply.submit_guess((select id from g), 'zzzz')->>'reason',
+  wordiply.submit_guess((select id from g), 'zzzz', false)->'data'->>'reason',
   'missing_base',
   'turns: a word without the base is rejected'
 );
@@ -122,7 +122,7 @@ select is(
 -- survives — this is the half that must NOT cost a go.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
-  wordiply.submit_guess((select id from g), 'arqqqqq', false)->>'reason',
+  wordiply.submit_guess((select id from g), 'arqqqqq', false)->'data'->>'reason',
   'not_a_word',
   'turns: the FE''s dictionary verdict is recorded as not_a_word'
 );
@@ -159,8 +159,8 @@ select is(
 -- bea guesses first (would be out of turn in a turn game) — no gate.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
-  wordiply.submit_guess((select id from ffa), 'arxxxxx')->>'ok',
-  'true',
+  wordiply.submit_guess((select id from ffa), 'arxxxxx')->'data'->>'result',
+  'accepted',
   'free-for-all: any player may guess in any order'
 );
 
