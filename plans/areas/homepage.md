@@ -1,7 +1,8 @@
 # Area: homepage
 
-Area 2 of app-audit's step 7. The process is [app-audit.md](../app-audit.md)
-§21; the plan holds the order, this file holds everything else.
+An area of app-audit's step 7. The process is
+[app-audit.md](../app-audit.md) §21; **the plan holds the order** (§7 → "The
+areas, in order"), this file holds everything else.
 
 **What it is.** The landing page after login — your clubs, and the button that opens `<CreateClubModal>` over them.
 

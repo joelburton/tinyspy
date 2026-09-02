@@ -1,11 +1,11 @@
 # Area: deep
 
-The first area of app-audit's step 7, and the first one to run under the
-2026-09-02 restart. The process is [app-audit.md](../app-audit.md) §21; the plan
-holds the order, this file holds everything else.
+An area of app-audit's step 7, and the one that ran first under the 2026-09-02
+restart. The process is [app-audit.md](../app-audit.md) §21; **the plan holds the
+order** (§7 → "The areas, in order"), this file holds everything else.
 
-**Opened 2026-09-02.** It was added to the top of §7's order the same day, ahead
-of `homepage`. Scope, set by Joel when he asked for it:
+**Opened 2026-09-02**, added to §7's order the same day, ahead of `homepage`.
+Scope, set by Joel when he asked for it:
 
 > "there's a new area to add at the very top of the list: the deep stuff that is
 > used in most places (the router, App.tsx, the rpc/edge-fn/query wrappers). I
@@ -31,8 +31,10 @@ understood, tidied* — `cs-blessed` here means he has read the file, not seen i
 
 **Every heading says its status**; a heading with **no status prefix means OPEN**.
 
-**One pass of three has run** — the boot path, 2026-09-02, twelve findings and
-all of them open. The data path and the realtime plumbing have not been read.
+**One pass of three has run** — the boot path, 2026-09-02, twelve findings. One
+RESOLVED (`F-deep-2`), one CLOSED (`F-deep-3`), one MOVED to `corecss`
+(`F-deep-1`); the other nine are open. The data path and the realtime plumbing
+have not been read.
 
 ## The roster — 31 files, 4,797 lines
 
@@ -110,7 +112,7 @@ without the other is how they drift. `supabase/functions/_shared/startGame.ts`
 | `src/types/db.ts` (4,422 lines) | generated, and it names every game's schema. **Set `cs-na` 2026-09-02** (Joel): it carries a stamp it could never earn its way off, because nobody will ever hand-read it |
 | `lib/util/`: `mulberry32`, `friendlyDate`, `linkify`, `layoutWidth`, `keyboardHandoff` | picked up by whichever area uses them — a util has no shared design language to settle |
 | the common non-game **hooks** — `useProfile`, `useTabRing`, `useAppShortcuts`, `useRealtimeRefetch` and the rest | Joel, 2026-09-02: *"we should do the common non-game ones, but not here."* They are the same kind of thing, but taking ~60 files under `hooks/` would double the area and mix two vocabularies. **A candidate area of its own** |
-| `base.css`, `utilities.css`, `fixed.css`, `breakpoints.css` | the vocabularies; owned by the page areas |
+| `base.css`, `utilities.css`, `fixed.css`, `breakpoints.css`, `patterns/*.css`, `themes/*.css` | **`corecss`**, the area created 2026-09-02 to take them, running directly after this one |
 
 ## Pass 1 — the boot path, read 2026-09-02
 
@@ -137,30 +139,18 @@ modal — but it has three live consumers (`ClubGameCard:59`, `GamePage:178`, `E
 ## Findings — pass 1, the boot path
 
 Twelve — **F-deep-1 … F-deep-12**. Every heading says its status; a heading with
-no status prefix means OPEN, so all twelve are open.
+no status prefix means OPEN, and nine are.
 
-## F-deep-1 · `stylesheet-map-rotted` · main.tsx's map of the stylesheet chain names two files that were deleted
+## MOVED · F-deep-1 · `stylesheet-map-rotted` · main.tsx's map of the stylesheet chain names two files that were deleted
 
-`main.tsx:11` describes `patterns/*.css` as "one named pattern per file — badge,
-button, list, page, …". **`patterns/button.css` and `patterns/list.css` do not
-exist** — `list.css` went when `<SelectionList>` landed and `button.css` when the
-`forms` area moved buttons onto `StandardButton.module.css`. The three that
-DO exist and are imported four lines below go unnamed: `focus-ring`, `heading`,
-`segmented`.
+**Moved to `corecss` 2026-09-02** (Joel), where it is `F-corecss-1`. The comment
+is in `main.tsx`, which is this area's file, but what it describes is the core
+stylesheet chain — so the correction belongs to the area that will decide what
+the chain should say.
 
-Two smaller drifts in the same comment block:
+The number stays here, spent, per §21: an ID never moves and is never reused.
 
-- `main.tsx:12` calls `utilities.css` "the adjustments that name nothing: muted,
-  error". Those two are still there, but the file is 137 lines and its own header
-  says "Surfaces and text" — `.card`, `.link-button`, `.definable` and
-  `[data-tooltip]` are surfaces and affordances, not adjustments.
-- `loadTheme.ts:27` describes the same theme-independent half as "(fixed.css,
-  base.css, utilities.css)" and omits `patterns/` entirely. Two files describe one
-  chain and neither describes it correctly.
-
-> resolution:
-
-## F-deep-2 · `gametype-case-mismatch` · A mis-capitalized gametype in a URL is diagnosed as a FAULT
+## RESOLVED · F-deep-2 · `gametype-case-mismatch` · A mis-capitalized gametype in a URL is diagnosed as a FAULT
 
 `App.tsx:135` matches the game route with `/^\/g\/([a-z0-9_]+)\/([^/]+)\/?$/i`.
 **The `/i` makes `[a-z0-9_]` match uppercase**, so `/g/Wordle/<id>` matches the
@@ -183,9 +173,17 @@ the URL is just mis-cased. Two coherent answers, and they go opposite ways:
 Either is fine. What is wrong today is the third thing it does: diagnose it as a
 fault.
 
-> resolution:
+> **resolution: lowercase before matching** (Joel, 2026-09-02) — the second
+> option, and the more forgiving one. `App.tsx` now captures `urlGametype` and
+> looks up `urlGametype.toLowerCase()`; every registered gametype is lowercase
+> (checked against all sixteen manifests), so nothing else moves.
+>
+> `urlGametype` survives for the two places that should echo what the URL
+> actually said rather than the normalized form: the error message and the
+> diagnostics line's `call`. The fault branch keeps its severity — a gametype
+> that is not a casing slip is still the registry and a link disagreeing.
 
-## F-deep-3 · `palette-waits-for-the-session` · "Ahead of the auth gates" is true of the auth gate and false of the loading gate
+## CLOSED · F-deep-3 · `palette-waits-for-the-session` · "Ahead of the auth gates" is true of the auth gate and false of the loading gate
 
 `App.tsx:93` says the palette route sits ahead of the auth gates *"on purpose: it
 renders tokens, not data, so there is nothing to sign in for"*, and `:97` says the
@@ -195,10 +193,15 @@ they render anything.
 
 The comment is describing an intent the code half implements. Either the two
 routes move above the loading gate, or the comment says "ahead of the auth gates,
-behind the session probe". **This is a finding about `App.tsx`'s comment**; the two
-pages themselves stay out of the sprint entirely.
+behind the session probe".
 
-> resolution:
+> **resolution: CLOSED, and the finding should not have been raised** (Joel,
+> 2026-09-02): *"the palette and fonts page are ABSOLUTELY EXCLUDED from this
+> sprint. Do not read them, do not edit them, do not touch them."*
+>
+> I raised it thinking the rule covered the two pages and not a comment about
+> them. It does not: the exclusion is total, and a finding about when those
+> routes render is a finding about those routes. Nothing changes in `App.tsx`.
 
 ## F-deep-4 · `boot-has-no-failure-path` · Two ways the boot can end in a white screen, neither of them announced
 

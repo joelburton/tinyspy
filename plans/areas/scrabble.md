@@ -1,8 +1,8 @@
 # Area: scrabble
 
-One of the sixteen game areas — area 8 of app-audit's step 7, which is "per game,
-one area each". The process is [app-audit.md](../app-audit.md) §21; the plan holds
-the order, this file holds everything else.
+One of the sixteen game areas. The process is
+[app-audit.md](../app-audit.md) §21; **the plan holds the order** (§7 → "The
+areas, in order"), this file holds everything else.
 
 **Brand: RackAttack.** The codename `scrabble` is what the code says everywhere —
 schema, folder, gametype, this file. The brand appears in the manifest's `BRAND`

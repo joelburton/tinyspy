@@ -134,7 +134,13 @@ export default function App() {
     // page instead of a URL-shaped rule here and a row-shaped rule there.
     const gameMatch = path.match(/^\/g\/([a-z0-9_]+)\/([^/]+)\/?$/i)
     if (gameMatch) {
-      const [, gametype, gameId] = gameMatch
+      const [, urlGametype, gameId] = gameMatch
+      // The route match is case-insensitive, so a mis-capitalized URL reaches
+      // here; every registered gametype is lowercase, so normalize before the
+      // lookup. Without this, `/g/Wordle/<id>` matches the route, misses the
+      // registry, and is reported as a fault — which it isn't. `urlGametype`
+      // survives for the message below, which should echo what the URL said.
+      const gametype = urlGametype.toLowerCase()
       const game = games.find((g) => g.gametype === gametype)
       if (!game) {
         // A FAULT, not a polite empty state (Joel, 2026-08-23): every
@@ -146,12 +152,12 @@ export default function App() {
           <ErrorPage
             message={
               <>
-                There's no game type called <code>{gametype}</code>. The link is
+                There's no game type called <code>{urlGametype}</code>. The link is
                 wrong, or the game was removed from the app.
               </>
             }
             diagnostics={diagnosticsLine('FAULT', {
-              call: `GET /g/${gametype}`,
+              call: `GET /g/${urlGametype}`,
               severity: 'fault',
               detail: 'no manifest registered for this gametype',
             })}

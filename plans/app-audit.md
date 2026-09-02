@@ -960,13 +960,14 @@ table.
 | # | area | what it is |
 |---|---|---|
 | 1 | `deep` | **NEW 2026-09-02, and it runs FIRST.** The boot path and the data path — the files every page and every game sits on and none of them owns: `main.tsx`, `App.tsx`'s boot half, the router, the Supabase client and the envelope wrappers, the realtime plumbing, the fault sink. **The membership rule is "it names no game and no page"** (below). Read before `homepage` so the theoretically-simple page is not read on top of a layer nobody has understood. **Opened 2026-09-02 at 31 files** (`plans/areas/deep.md`) |
-| 2 | `homepage` | **RE-AUDITED FROM SCRATCH** (§21 → the 2026-09-02 restart). It was audited once, 2026-08-22 → 08-26, and that file was deleted — the machinery underneath it moved too far. Everything that audit found and did not do survives in "Carried forward" above. The landing page after login: your clubs, and the button that opens `<CreateClubModal>` over them (`plans/areas/homepage.md`) |
-| 3 | `floating-panels` | **RE-AUDITED FROM SCRATCH** (§21 → the 2026-09-02 restart); audited once 2026-08-24 → 08-26 and that file deleted. The machinery and shared look of every window-like thing that floats over the page — the shell, the blocking modal, the confirmation and the acknowledgment, the drag hook, the focus trap. **Not the instances**, and since 2026-08-24 **not the forms either**. Two red e2e specs are known to be waiting for it, `page-no-scroll` and `anagram-finder` (`plans/areas/floating-panels.md`) |
-| 4 | `forms` | **RE-AUDITED FROM SCRATCH** (§21 → the 2026-09-02 restart); audited once 2026-08-25 → 08-26 and that file deleted. Split out of the area above 2026-08-24. The design language of forms: the shared field components, the setup scaffolding, and **the question the homepage could not answer — are a form's buttons really different from action buttons?** Seven hand-written Cancels say the taxonomy has a hole (F44). Split because a floating panel and a form share a container and nothing else; keeping them together meant one area holding two vocabularies |
-| 5 | `simple-page` | **NEW.** The pages that are not home, club or game: `LoginScreen`, `ClaimHandleScreen`, `ErrorPage`, `Loading`. (`CreateClubPage` was on this roster; F36 took it on 2026-08-26 and it is a modal now.) **The roster's test is "does `App` render it directly?"**, which is better than "is it routable": it catches `ErrorPage` and `Loading`, both of which stand in for a page AND appear inside one (`ClubPage:719`, `:726`, `PlayAreaErrorBoundary:47`) — which is exactly what the shell decision has to cover |
-| 6 | `club-page` | Absorbs the punted viewport-fit chain, the `.frame` rename, `<ModePill>` reading the shared `.badge`, and the leftovers listed in "Why 6 stopped" |
-| 7 | `shared-game-chrome` | `common/components/game/` — 258 rules, and every game sits on it. Also: the **contract-slot guard**, checked per mount point (§9, §10) |
-| 8 | per game, one area each | **Sixteen areas, and each has its file already** (`plans/areas/<game>.md`, keyed by CODENAME). Two passes back to back: the audit — React, SQL and CSS together — then the **tile-feedback** pass against [tile-feedback.md](tile-feedback.md), which is read per area rather than run as a sprint. `psychicnum` first, as the control: the deliberately minimal toy, so what it settles is about the shape of a game area rather than about the game |
+| 2 | `corecss` | **NEW 2026-09-02**, created while resolving `deep`'s first finding. The core stylesheets — the ones every page and every game loads and none of them owns: `fixed.css`, `base.css`, `patterns/*.css`, `utilities.css`, `breakpoints.css`, and the themes. It runs directly after `deep` on the same argument `deep` was created on: reading a page on top of a stylesheet nobody has read means auditing the same questions once per page. **`/palette` and `/font` are not in it, or in anything** (`plans/areas/corecss.md`) |
+| 3 | `homepage` | **RE-AUDITED FROM SCRATCH** (§21 → the 2026-09-02 restart). It was audited once, 2026-08-22 → 08-26, and that file was deleted — the machinery underneath it moved too far. Everything that audit found and did not do survives in "Carried forward" above. The landing page after login: your clubs, and the button that opens `<CreateClubModal>` over them (`plans/areas/homepage.md`) |
+| 4 | `floating-panels` | **RE-AUDITED FROM SCRATCH** (§21 → the 2026-09-02 restart); audited once 2026-08-24 → 08-26 and that file deleted. The machinery and shared look of every window-like thing that floats over the page — the shell, the blocking modal, the confirmation and the acknowledgment, the drag hook, the focus trap. **Not the instances**, and since 2026-08-24 **not the forms either**. Two red e2e specs are known to be waiting for it, `page-no-scroll` and `anagram-finder` (`plans/areas/floating-panels.md`) |
+| 5 | `forms` | **RE-AUDITED FROM SCRATCH** (§21 → the 2026-09-02 restart); audited once 2026-08-25 → 08-26 and that file deleted. Split out of the area above 2026-08-24. The design language of forms: the shared field components, the setup scaffolding, and **the question the homepage could not answer — are a form's buttons really different from action buttons?** Seven hand-written Cancels say the taxonomy has a hole (F44). Split because a floating panel and a form share a container and nothing else; keeping them together meant one area holding two vocabularies |
+| 6 | `simple-page` | **NEW.** The pages that are not home, club or game: `LoginScreen`, `ClaimHandleScreen`, `ErrorPage`, `Loading`. (`CreateClubPage` was on this roster; F36 took it on 2026-08-26 and it is a modal now.) **The roster's test is "does `App` render it directly?"**, which is better than "is it routable": it catches `ErrorPage` and `Loading`, both of which stand in for a page AND appear inside one (`ClubPage:719`, `:726`, `PlayAreaErrorBoundary:47`) — which is exactly what the shell decision has to cover |
+| 7 | `club-page` | Absorbs the punted viewport-fit chain, the `.frame` rename, `<ModePill>` reading the shared `.badge`, and the leftovers listed in "Why 6 stopped" |
+| 8 | `shared-game-chrome` | `common/components/game/` — 258 rules, and every game sits on it. Also: the **contract-slot guard**, checked per mount point (§9, §10) |
+| 9 | per game, one area each | **Sixteen areas, and each has its file already** (`plans/areas/<game>.md`, keyed by CODENAME). Two passes back to back: the audit — React, SQL and CSS together — then the **tile-feedback** pass against [tile-feedback.md](tile-feedback.md), which is read per area rather than run as a sprint. `psychicnum` first, as the control: the deliberately minimal toy, so what it settles is about the shape of a game area rather than about the game |
 
 #### `deep` — the rule, and what it is not (Joel, 2026-09-02)
 
@@ -1018,10 +1019,18 @@ the shell and the exception together.
 header and whose pageMain happens to be a card", produced by an area with
 nothing to apply it to.
 
-**Out of the sprint entirely, and not on any roster:** `/palette` and `/font`.
-They are instruments — one renders the color families (and keeps reserved
-tokens alive for the guard), the other compares typefaces — and their audience
-is Joel. There is no user to make them consistent for.
+**ABSOLUTELY EXCLUDED, and not on any roster:** `/palette` and `/font`. Joel,
+2026-09-02: *"the palette and fonts page are ABSOLUTELY EXCLUDED from this sprint.
+Do not read them, do not edit them, do not touch them."* They are instruments —
+one renders the color families (and keeps reserved tokens alive for the guard),
+the other compares typefaces — and their audience is Joel. There is no user to
+make them consistent for.
+
+**The exclusion covers findings ABOUT them, not just the files.** `deep` raised
+one (`F-deep-3`) about *when* those two routes render, on the reasoning that the
+finding was against `App.tsx`'s comment rather than against the pages. It was
+closed on exactly this rule: a finding about when those routes render is a finding
+about those routes.
 
 ### How a value gets converted (Joel, 2026-08-21)
 
@@ -2016,7 +2025,20 @@ An area is a loose unit of reading — a page, a component family, a game.
 predicted test breaks, and its notes. **The plan holds the order** (§13); the area
 file holds everything else.
 
-**Every area has its file from the start, opened or not** — twenty-three of them,
+**AREAS ARE REFERRED TO BY NAME, NEVER BY POSITION** (Joel, 2026-09-02): *"the
+ordinal numbers of the areas will move as we go through them. Do not put this kind
+of stuff in other pages."* §7's table is the ONLY place an area's position is
+written down. Everywhere else — area files, docs, commit messages, conversation —
+an area is `club-page` or "directly after `deep`", never "area 7".
+
+The rule earns itself immediately: inserting `corecss` at position 2 moved eight
+areas down one, and because twenty-two area files had opened with "Area N of
+step 7", a one-row insert rewrote twenty-two files that had nothing to do with
+it. **Adding an area or reordering the list must touch §7's table and nothing
+else.** The same goes for "the first game area": which game runs first is §7's,
+so an area file says *why* a game is the control, not *when* it runs.
+
+**Every area has its file from the start, opened or not** — twenty-four of them,
 seven for the app's surfaces and sixteen for the games, keyed by CODENAME. Joel,
 2026-09-02: *"this way, we're not creating them only when we open them; we can put
 things in them now."* A shell carries the live headings — roster, findings,

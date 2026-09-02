@@ -1,8 +1,8 @@
 # Area: psychicnum
 
-One of the sixteen game areas — area 8 of app-audit's step 7, which is "per game,
-one area each". The process is [app-audit.md](../app-audit.md) §21; the plan holds
-the order, this file holds everything else.
+One of the sixteen game areas. The process is
+[app-audit.md](../app-audit.md) §21; **the plan holds the order** (§7 → "The
+areas, in order"), this file holds everything else.
 
 **Brand: PsychicNum.** The codename `psychicnum` is what the code says everywhere —
 schema, folder, gametype, this file. The brand appears in the manifest's `BRAND`
@@ -10,7 +10,7 @@ and nowhere else (docs/naming.md).
 
 **Status: NOT OPENED.**
 
-**This is the FIRST game area** (§7): the control, chosen because it is the deliberately minimal toy — the smallest possible game-logic surface, so what it settles about a game area is about the SHAPE of a game area and not about the game.
+**This game is the CONTROL for the game areas** (§7), chosen because it is the deliberately minimal toy — the smallest possible game-logic surface, so what it settles is about the SHAPE of a game area rather than about the game. When it runs is §7's business.
 
 **A game area is TWO passes, back to back** (§7 → The areas, in order): the audit
 pass — React, SQL and CSS together — and then the **tile-feedback** pass against
@@ -45,7 +45,7 @@ sprint's record of the game.
 
 Rows §7 → "Carried forward" already assigns here, indexed so opening this area doesn't start by re-reading the whole checklist. **That checklist is the one home** — each line there carries the evidence.
 
-- **As the FIRST game area, it also answers what was punted to "the first game area"**: `CelebrationBlockingModal`'s `.title` is an `<h2>` at h1's size, and its `.button:focus-visible` re-declares the shared ring
+- **Whichever game area runs first also answers what was punted to "the first game area"** — §7 has that being this one: `CelebrationBlockingModal`'s `.title` is an `<h2>` at h1's size, and its `.button:focus-visible` re-declares the shared ring
 - `CelebrationBlockingModal` and `SuspendConfirmationBlockingModal` were punted here by `floating-panels`, as was whether Help's "Got it" button belongs on a companion
 - `<ShuffleButton>` should never take focus at all — game stuff doesn't. The fix is removing the tab stop, not restyling the ring
 

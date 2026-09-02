@@ -1,7 +1,8 @@
 # Area: floating-panels
 
-Area 3 of app-audit's step 7. The process is [app-audit.md](../app-audit.md)
-§21; the plan holds the order, this file holds everything else.
+An area of app-audit's step 7. The process is
+[app-audit.md](../app-audit.md) §21; **the plan holds the order** (§7 → "The
+areas, in order"), this file holds everything else.
 
 **What it is.** The machinery and shared look of every window-like thing that floats over the page — the shell, the blocking modal, the confirmation and the acknowledgment, the drag hook, the focus trap. **Not the instances.**
 

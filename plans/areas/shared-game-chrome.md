@@ -1,7 +1,8 @@
 # Area: shared-game-chrome
 
-Area 7 of app-audit's step 7. The process is [app-audit.md](../app-audit.md)
-§21; the plan holds the order, this file holds everything else.
+An area of app-audit's step 7. The process is
+[app-audit.md](../app-audit.md) §21; **the plan holds the order** (§7 → "The
+areas, in order"), this file holds everything else.
 
 **What it is.** `common/components/game/` — the chrome around every play surface. 258 rules, and every game sits on it.
 

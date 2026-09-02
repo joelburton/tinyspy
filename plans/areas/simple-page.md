@@ -1,7 +1,8 @@
 # Area: simple-page
 
-Area 5 of app-audit's step 7. The process is [app-audit.md](../app-audit.md)
-§21; the plan holds the order, this file holds everything else.
+An area of app-audit's step 7. The process is
+[app-audit.md](../app-audit.md) §21; **the plan holds the order** (§7 → "The
+areas, in order"), this file holds everything else.
 
 **What it is.** The pages that are not home, club or game: `LoginScreen`, `ClaimHandleScreen`, `ErrorPage`, `Loading`. The roster's test is **"does `App` render it directly?"**
 

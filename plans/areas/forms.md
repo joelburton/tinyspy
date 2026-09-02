@@ -1,7 +1,8 @@
 # Area: forms
 
-Area 4 of app-audit's step 7. The process is [app-audit.md](../app-audit.md)
-§21; the plan holds the order, this file holds everything else.
+An area of app-audit's step 7. The process is
+[app-audit.md](../app-audit.md) §21; **the plan holds the order** (§7 → "The
+areas, in order"), this file holds everything else.
 
 **What it is.** The design language of forms: the shared field components, the setup scaffolding, and the common buttons. The sixteen game `SetupForm`s are consumers, not members.
 
