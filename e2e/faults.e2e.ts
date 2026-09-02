@@ -88,7 +88,14 @@ test('faults: an empty club list faults instead of claiming you joined none', as
   await expect(page.getByText(/you should always have at least your own solo club/)).toBeVisible(
     { timeout: 15000 },
   )
-  await expect(page.getByText(/key=no-clubs/)).toBeVisible()
+  // The diagnostics line, which is what says WHICH fault this is. There is no
+  // `key=` in it any more: a fault carries an envelope's fields now, and this
+  // one is authored by the frontend (`HomePage`), so it has no dbcode to show —
+  // `detail` is the field that names the condition. Asserting on it rather than
+  // on `severity=fault` keeps this test pinned to THIS fault instead of to any.
+  await expect(
+    page.getByText(/detail="rows=0; every profile has a solo club"/),
+  ).toBeVisible()
 
   // And behind the modal, the page says something TRUE. The sentence this
   // replaced — "You haven't joined a club yet." — was the finding: it stated a

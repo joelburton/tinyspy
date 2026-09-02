@@ -67,17 +67,31 @@ test.describe('codenamesduet below-board layout stability', () => {
     await expect(pageBob.getByText(/waiting for/i).first()).toBeVisible({ timeout: 15000 })
     const bWait = await boardHeight(pageBob)
 
-    // ── Alice clicks the AI clue button and the edge function answers with an
-    //    EXPECTED fe-error-key (the model declined — it RAN). That stays in the
-    //    suggestion's own floating dialog as its ERROR_COPY sentence, NOT a slot
-    //    swap — so the form stays put and the board must not move.
-    //    (A keyless FAULT instead pops the fault MODAL and closes the dialog —
-    //    exercised below.)
+    // ── Alice clicks the AI clue button and the edge function REFUSES in the
+    //    ordinary way: a `service-error` envelope at 200, which is what
+    //    `codenamesduet-suggest-clue` answers when the model declines (PN319).
+    //    200 is the point — the status says the function RAN, and the envelope
+    //    says what it decided (docs/envelopes.md). A non-2xx would be a
+    //    transport failure instead, and `runEdgeFn` would fault it.
+    //    A service-error is not a fault, so it stays in the suggestion's own
+    //    floating dialog rather than swapping a slot — the form stays put and
+    //    the board must not move. (A FAULT instead pops the blocking modal and
+    //    closes the dialog — exercised below.)
     await pageAlice.route('**/functions/v1/codenamesduet-suggest-clue', (route) =>
       route.fulfill({
-        status: 502,
+        status: 200,
         contentType: 'application/json',
-        body: '{"error":"ai-clue-declined|"}',
+        body: JSON.stringify({
+          type: 'not-ok',
+          data: null,
+          outcome: null,
+          severity: 'service-error',
+          message: 'Claude declined to suggest a clue. Please try again.',
+          field: null,
+          meta: null,
+          dbcode: 'PN319',
+          detail: 'codenamesduet-suggest-clue: stop_reason=refusal',
+        }),
       }),
     )
     // `exact: true`: the accessible-name substring match otherwise also catches
@@ -102,9 +116,11 @@ test.describe('codenamesduet below-board layout stability', () => {
     expect(panel!.x + panel!.width).toBeLessThanOrEqual(viewport.width)
     expect(panel!.y + panel!.height).toBeLessThanOrEqual(viewport.height)
 
-    // The declined sentence is ERROR_COPY's, rendered in the dialog.
+    // The declined sentence is the SERVER'S, rendered in the dialog verbatim —
+    // the frontend no longer owns these words, so this is the message the
+    // envelope carried and nothing in between rewrote it.
     await expect(
-      pageAlice.getByText('The model declined to suggest a clue — try again'),
+      pageAlice.getByText('Claude declined to suggest a clue. Please try again.'),
     ).toBeVisible()
     await expect(countInput).toBeVisible()
     const aError = await boardHeight(pageAlice)
@@ -112,25 +128,33 @@ test.describe('codenamesduet below-board layout stability', () => {
     await pageAlice.getByRole('button', { name: 'Close' }).click()
     await expect(pageAlice.getByText('Clue suggestion')).toBeHidden()
 
-    // ── The FAULT case: keyless prose off the edge fn is a fault — it pops the
+    // ── The FAULT case: a body that is not an envelope is a fault — it pops the
     //    blocking fault MODAL (docs/ui.md → Faults) and the suggestion dialog
     //    never opens. The modal overlays (no reflow), so the board holds too.
+    //    Still the same garbage body, now answered at 200: that is what makes it
+    //    the UNREADABLE fault (PN307) rather than a transport failure, and it is
+    //    the shape a missed conversion would really arrive in — a function that
+    //    ran, answered 2xx, and said something no caller can read.
     await pageAlice.unroute('**/functions/v1/codenamesduet-suggest-clue')
     await pageAlice.route('**/functions/v1/codenamesduet-suggest-clue', (route) =>
       route.fulfill({
-        status: 500,
+        status: 200,
         contentType: 'application/json',
         body: '{"error":"boom"}',
       }),
     )
     await pageAlice.getByRole('button', { name: 'AI', exact: true }).click()
-    await expect(pageAlice.getByText('AI clue|boom')).toBeVisible({ timeout: 10000 })
+    await expect(
+      pageAlice.getByText('BUG: an RPC answered with something no caller can read'),
+    ).toBeVisible({ timeout: 10000 })
     await expect(pageAlice.getByText('Clue suggestion')).toBeHidden()
     const aFault = await boardHeight(pageAlice)
     // Two dismissers by design (the body button + the panel header's ×) —
     // target the body button by its text.
     await pageAlice.getByText('Close', { exact: true }).click()
-    await expect(pageAlice.getByText('AI clue|boom')).toBeHidden()
+    await expect(
+      pageAlice.getByText('BUG: an RPC answered with something no caller can read'),
+    ).toBeHidden()
 
     // ── Alice submits a clue → guess phase. She now sees the clue + "waiting for
     //    bob to guess".
