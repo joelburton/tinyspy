@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { useRealtimeRefetch } from '../../common/hooks/realtime/useRealtimeRefetch'
+import { readRows } from '../../common/lib/supabase/dbResult'
+import type { NotOk } from '../../common/lib/supabase/envelope'
 import { db } from '../db'
 import type { Database } from '../../types/db'
 import type { KeyLabel } from '../lib/labels'
@@ -53,6 +55,11 @@ export type GuessRow = {
  * and `guesses` (the log) — full refetch on any event. Every guess updates
  * `words` (denormalization) and inserts into `guesses`, so either event lands
  * the same fresh state.
+ *
+ * `failure` is the envelope behind a failed read, for the PlayArea to render in
+ * place of the board. A read that returns NOTHING is a different answer from a
+ * read that FAILED, and the board cannot tell them apart from `words` alone —
+ * both leave it empty.
  */
 export function useBoard(gameId: string, userId: string, revealPeer: boolean) {
   const [words, setWords] = useState<WordRow[]>([])
@@ -79,6 +86,7 @@ export function useBoard(gameId: string, userId: string, revealPeer: boolean) {
   const peerKey =
     revealPeer && fetchedFor === `${gameId}:${userId}` ? fetchedPeerKey : null
   const [loading, setLoading] = useState(true)
+  const [failure, setFailure] = useState<NotOk | null>(null)
 
   useRealtimeRefetch({
     tables: [
@@ -93,72 +101,117 @@ export function useBoard(gameId: string, userId: string, revealPeer: boolean) {
       // caller's seat. The guess log joins word text in JS (the guesses table
       // stores positions, not words).
       const [wordsRes, gameRes, guessesRes] = await Promise.all([
-        db
-          .from('words')
-          .select('position, word, revealed_as, neutral_a, neutral_b')
-          .eq('game_id', gameId)
-          .order('position'),
-        db
-          .from('games')
-          .select('user_a_id, user_b_id, key_card_a, key_card_b')
-          .eq('id', gameId)
-          .single(),
-        db
-          .from('guesses')
-          .select('position, guesser_seat, result, turn_number, guessed_at')
-          .eq('game_id', gameId),
+        readRows(
+          db
+            .from('words')
+            .select('position, word, revealed_as, neutral_a, neutral_b')
+            .eq('game_id', gameId)
+            .order('position'),
+        ),
+        // No `.single()`: it treats zero rows as an ERROR, so a game this pair
+        // cannot see arrived looking exactly like a broken connection.
+        // `readRows` hands back rows, and `id` is the PK, so this is 0 or 1.
+        readRows(
+          db
+            .from('games')
+            .select('user_a_id, user_b_id, key_card_a, key_card_b')
+            .eq('id', gameId),
+        ),
+        readRows(
+          db
+            .from('guesses')
+            .select('position, guesser_seat, result, turn_number, guessed_at')
+            .eq('game_id', gameId),
+        ),
       ])
       if (!mounted()) return
-      const wordRows = wordsRes.data ?? []
-      if (wordsRes.data) setWords(wordRows)
-      if (guessesRes.data) {
-        const wordAt = new Map(wordRows.map((w) => [w.position, w.word]))
-        setGuesses(
-          guessesRes.data.map((g) => ({
-            position: g.position,
-            word: wordAt.get(g.position) ?? '',
-            guesser_seat: g.guesser_seat as Seat,
-            result: g.result as KeyLabel,
-            turn_number: g.turn_number,
-            guessed_at: g.guessed_at,
-          })),
-        )
+
+      // A read can only fail as a FAULT — `readRows` never authors anything
+      // else, and it has already logged it and raised the modal. What is left
+      // is the envelope behind it, which carries the sentence and (in `detail`)
+      // WHICH of the three reads died. One branch each, because that last fact
+      // is the one nobody can recover afterwards.
+      if (wordsRes.type === 'not-ok') {
+        setFailure(wordsRes)
+        setLoading(false)
+        return
       }
-      const g = gameRes.data
-      if (g) {
-        // key_card_X is `jsonb` in the schema and typed as `Json` here;
-        // create_game guarantees it's a length-25 array of KeyLabels.
-        const iAmA = userId === g.user_a_id
-        const iAmB = userId === g.user_b_id
-        const myKeyJson = iAmA ? g.key_card_a : iAmB ? g.key_card_b : null
-        const peerKeyJson = iAmA ? g.key_card_b : iAmB ? g.key_card_a : null
-        if (myKeyJson) {
-          setMyKey(myKeyJson as unknown as KeyLabel[])
-        }
-        // The load already has the partner's key column in hand, so stash
-        // it here rather than firing a second games fetch at game-over.
-        // It's only exposed once `revealPeer` is true (the derived
-        // `peerKey` above gates on it), so holding it in state during play
-        // is invisible to the board — and the trust model doesn't treat
-        // the FE as the secrecy boundary anyway (see CLAUDE.md).
-        if (peerKeyJson) {
-          setFetchedPeerKey(peerKeyJson as unknown as KeyLabel[])
-          setFetchedFor(`${gameId}:${userId}`)
-        }
-        // Recomputed on every refetch (the realtime word reveals flow
-        // through here), so both flags stay live as agents are found.
-        setMyAgentsDone(
-          !!myKeyJson &&
-            agentsAllContacted(myKeyJson as unknown as KeyLabel[], wordRows),
-        )
-        setPeerAgentsDone(
-          !!peerKeyJson &&
-            agentsAllContacted(peerKeyJson as unknown as KeyLabel[], wordRows),
-        )
+      if (gameRes.type === 'not-ok') {
+        setFailure(gameRes)
+        setLoading(false)
+        return
       }
+      if (guessesRes.type === 'not-ok') {
+        setFailure(guessesRes)
+        setLoading(false)
+        return
+      }
+      // A load that worked clears a previous one's failure: this refetches on
+      // every realtime event, so an outage that ends should take its sentence
+      // with it rather than leaving the board behind a stale explanation.
+      setFailure(null)
+
+      const wordRows = wordsRes.data
+      setWords(wordRows)
+      const wordAt = new Map(wordRows.map((w) => [w.position, w.word]))
+      setGuesses(
+        guessesRes.data.map((g) => ({
+          position: g.position,
+          word: wordAt.get(g.position) ?? '',
+          guesser_seat: g.guesser_seat as Seat,
+          result: g.result as KeyLabel,
+          turn_number: g.turn_number,
+          guessed_at: g.guessed_at,
+        })),
+      )
+
+      // ZERO ROWS is its own answer, and here it says the game is gone — a
+      // server-side delete, or one this pair cannot see. Clearing the key is
+      // what makes the PlayArea say so: it renders "Game not found." on a
+      // missing key, and without this a deleted game would keep drawing from
+      // the last load.
+      const g = gameRes.data[0]
+      if (!g) {
+        setMyKey(null)
+        setFetchedPeerKey(null)
+        setFetchedFor(null)
+        setMyAgentsDone(false)
+        setPeerAgentsDone(false)
+        setLoading(false)
+        return
+      }
+      // key_card_X is `jsonb` in the schema and typed as `Json` here;
+      // create_game guarantees it's a length-25 array of KeyLabels.
+      const iAmA = userId === g.user_a_id
+      const iAmB = userId === g.user_b_id
+      const myKeyJson = iAmA ? g.key_card_a : iAmB ? g.key_card_b : null
+      const peerKeyJson = iAmA ? g.key_card_b : iAmB ? g.key_card_a : null
+      if (myKeyJson) {
+        setMyKey(myKeyJson as unknown as KeyLabel[])
+      }
+      // The load already has the partner's key column in hand, so stash
+      // it here rather than firing a second games fetch at game-over.
+      // It's only exposed once `revealPeer` is true (the derived
+      // `peerKey` above gates on it), so holding it in state during play
+      // is invisible to the board — and the trust model doesn't treat
+      // the FE as the secrecy boundary anyway (see CLAUDE.md).
+      if (peerKeyJson) {
+        setFetchedPeerKey(peerKeyJson as unknown as KeyLabel[])
+        setFetchedFor(`${gameId}:${userId}`)
+      }
+      // Recomputed on every refetch (the realtime word reveals flow
+      // through here), so both flags stay live as agents are found.
+      setMyAgentsDone(
+        !!myKeyJson &&
+          agentsAllContacted(myKeyJson as unknown as KeyLabel[], wordRows),
+      )
+      setPeerAgentsDone(
+        !!peerKeyJson &&
+          agentsAllContacted(peerKeyJson as unknown as KeyLabel[], wordRows),
+      )
       setLoading(false)
     },
   })
 
-  return { words, guesses, myKey, peerKey, myAgentsDone, peerAgentsDone, loading }
+  return { words, guesses, myKey, peerKey, myAgentsDone, peerAgentsDone, loading, failure }
 }

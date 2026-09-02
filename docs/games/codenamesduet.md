@@ -465,9 +465,10 @@ src/codenamesduet/
                           common's useCommonGame, consumed by GamePage.)
     useBoard.ts           Loads words (denormalized board state) + the guess
                           log + the caller's key; subscribes to realtime on
-                          both `words` and `guesses`.
+                          both `words` and `guesses`. Returns `failure` — the
+                          envelope of a read that died.
     useBoard.test.ts
-    useClues.ts           Loads the clue history.
+    useClues.ts           Loads the clue history. Returns `failure` too.
 
   lib/
     phase.ts              Pure derivation: from (game state, caller seat) → 'clue' | 'guess' | 'over' | 'wait'.
@@ -520,6 +521,10 @@ codenamesduet follows the shared [local-vs-group feedback split](../ui.md#feedba
 All three codenamesduet data hooks ([`useGame`](../../src/codenamesduet/hooks/useGame.ts), [`useBoard`](../../src/codenamesduet/hooks/useBoard.ts), [`useClues`](../../src/codenamesduet/hooks/useClues.ts)) drive off the shared [`useRealtimeRefetch`](../../src/common/hooks/realtime/useRealtimeRefetch.ts) factory — the per-effect UUID-suffixed channel name, the SUBSCRIBED-driven refetch, the cleanup flag are all owned there. Each hook just declares its tables + writes its `load({ mounted })` callback. See `code-conventions.md` → "Realtime data hooks" for the factory contract and when to reach for it (vs hand-rolling) when porting a new game.
 
 One codenamesduet-specific wrinkle worth knowing: the roster query in `useGame.ts` fetches profiles in a **separate** PostgREST call rather than via embedded-resource syntax — PostgREST's schema cache doesn't resolve cross-schema FKs (the `codenamesduet.games.user_a_id → common.profiles.user_id` embed fails with PGRST200), so we fetch the (≤ 2) profiles in a second query inside the same `load()` and merge in JS. See the inline comment.
+
+**Every read goes through [`readRows`](../envelopes.md), and each hook returns the `failure` envelope of its own.** All six reads across the three hooks share one shape: one branch per read (the envelope's `detail` names WHICH one died, the only fact nobody can recover afterwards), a `setFailure(null)` on a load that works — these refetch on every realtime event, so an outage that ends takes its sentence with it — and zero rows handled as its own answer rather than as an error. PlayArea takes the first of the three failures and renders `<EnvelopeErrorPage>` in place of the board: a failed read is NOT a missing game, and "Game not found." about a dead connection is a confident wrong answer.
+
+Two of the six deserve their own note. `useBoard`'s `games` read dropped its `.single()` — that treats zero rows as an error, so a game this pair cannot see arrived looking exactly like a broken connection; now zero rows clears the key cards, which is what makes the PlayArea say "Game not found." instead of drawing from the last load. And in `useClues`, zero rows is the ORDINARY case — turn 1 before the giver has spoken looks identical — which is precisely why a failed read had to stop being an empty list.
 
 ### Phase derivation
 
@@ -593,7 +598,7 @@ The test produces a deterministic array via `array_agg(... order by a_label, b_l
 |---|---|
 | `src/codenamesduet/lib/phase.test.ts` | Every branch of phase derivation. Pure, no DOM. |
 | `src/codenamesduet/lib/turnOutcome.test.ts` | Every branch of the per-turn outcome verdict (assassin / only-neutrals / mixed / all-agents / passed). Pure, no DOM. |
-| `src/codenamesduet/hooks/useBoard.test.ts` | The board hook's data flow — initial fetch, realtime append, refetch on resubscribe. |
+| `src/codenamesduet/hooks/useBoard.test.ts` | The board hook's data flow — initial fetch, realtime append, refetch on resubscribe — plus the failed read: the envelope is kept rather than left as an empty board (verified by planting a swallowed not-ok). |
 | `src/codenamesduet/components/GameTurnLog.test.tsx` | Per-turn grouping (each turn = two `<tr>`s), oldest-first chronological order, within-turn guess sort by `guessed_at`, the guess-line state ("(clue given)" while the turn is the current live one vs "(no guesses)" once it has ended, or the game is over), and the shared player picker (Team + both handles, defaulting to Team; picking a player narrows to the turns they CLUED). |
 | `src/codenamesduet/components/PlayArea.test.tsx` | The synchronous `guessInFlight` guard — a second tile click while a guess is in flight fires no second `submit_guess` (the pending-tile disable is async, so it misses a same-tick double-tap, and only disables the one clicked tile) — plus tile input gating: clickable on my guess turn, blocked at terminal. |
 | `src/codenamesduet/components/CluePanel.test.tsx` | The two-kinds-of-text-input contract: both clue inputs (count + word) carry `data-game-input`, so the global `/ ? ~` shortcuts still fire while typing a clue. (`isNonGameField`'s logic is covered in `useAppShortcuts.test.ts`; this pins that the actual inputs carry the tag.) |

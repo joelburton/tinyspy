@@ -259,7 +259,7 @@ export function PlayArea({
   // today is `turns` for the "X/Y turns" status counter.
   const codenamesduetSetup = setup as CodenamesduetSetup
 
-  const { game, players, failure } = useGame(gameId)
+  const { game, players, failure: gameFailure } = useGame(gameId)
   // The setup recap, built ONCE and handed to both consumers — the info column
   // renders it as <li>s, the print model prints the same array object
   // (docs/pdf.md → Setup rows).
@@ -310,9 +310,16 @@ export function PlayArea({
   const { revealed: peerKeyShown, toggle: togglePeerKey, hide: hidePeerKey } =
     useSolutionReveal()
 
-  const { words, guesses, myKey, peerKey, myAgentsDone, peerAgentsDone, loading } =
-    useBoard(gameId, session.user.id, peerKeyShown)
-  const { clues } = useClues(gameId)
+  const {
+    words, guesses, myKey, peerKey, myAgentsDone, peerAgentsDone, loading,
+    failure: boardFailure,
+  } = useBoard(gameId, session.user.id, peerKeyShown)
+  const { clues, failure: cluesFailure } = useClues(gameId)
+  // The three hooks read six tables between them and each holds the envelope of
+  // its own failure. FIRST one wins: they are equally fatal to the board, and
+  // each envelope names its own read in `detail`, so the page says which one
+  // died rather than "something didn't load".
+  const failure = gameFailure ?? boardFailure ?? cluesFailure
 
   // ─── Win celebration ───────────────────────────────────
   // Confetti at the MOMENT the pair contacts the 15th agent (the winning guess
@@ -560,9 +567,9 @@ export function PlayArea({
   })
 
   if (loading) return <p>Loading board…</p>
-  // A failed read is NOT a missing game. Both leave `game` null, and saying
-  // "Game not found." about a dead connection is a confident wrong answer —
-  // this is what remains once the fault modal is dismissed.
+  // A failed read is NOT a missing game. Both leave the board with nothing to
+  // draw, and saying "Game not found." about a dead connection is a confident
+  // wrong answer — this is what remains once the fault modal is dismissed.
   if (failure) return <EnvelopeErrorPage envelope={failure} />
   // `!myKey` and a short word list are DERIVED from the game row, so they can
   // only be missing when it is — one branch, not three.

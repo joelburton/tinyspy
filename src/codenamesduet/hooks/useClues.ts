@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { useRealtimeRefetch } from '../../common/hooks/realtime/useRealtimeRefetch'
+import { readRows } from '../../common/lib/supabase/dbResult'
+import type { NotOk } from '../../common/lib/supabase/envelope'
 import { db } from '../db'
 import type { Database } from '../../types/db'
 
@@ -25,26 +27,46 @@ export type ClueRow = Pick<
  * to close the missed-events-during-reconnect gap. The per-turn
  * uniqueness means the list is bounded by `games.turn_number`,
  * so the refetch cost stays small.
+ *
+ * ZERO CLUES is an ordinary answer here — turn 1 before the giver has spoken
+ * looks exactly like it — which is why a failed read has to arrive as its own
+ * thing. `failure` carries it, for the PlayArea to render in place of the
+ * board.
  */
 export function useClues(gameId: string) {
   const [clues, setClues] = useState<ClueRow[]>([])
   const [loading, setLoading] = useState(true)
+  const [failure, setFailure] = useState<NotOk | null>(null)
 
   useRealtimeRefetch({
     tables: { schema: 'codenamesduet', table: 'clues', filter: `game_id=eq.${gameId}` },
     channelPrefix: 'codenamesduet:clues',
     id: gameId,
     load: async ({ mounted }) => {
-      const { data } = await db
-        .from('clues')
-        .select('id, turn_number, by_seat, word, count')
-        .eq('game_id', gameId)
-        .order('turn_number', { ascending: true })
+      const res = await readRows(
+        db
+          .from('clues')
+          .select('id, turn_number, by_seat, word, count')
+          .eq('game_id', gameId)
+          .order('turn_number', { ascending: true }),
+      )
       if (!mounted()) return
-      if (data) setClues(data)
+      // A read can only fail as a FAULT — `readRows` never authors anything
+      // else, and it has already logged it and raised the modal. What is left
+      // is the envelope behind it, and the board must not go on drawing a clue
+      // list it could not load: an empty one reads as "no clue this turn".
+      if (res.type === 'not-ok') {
+        setFailure(res)
+        setLoading(false)
+        return
+      }
+      // A load that worked clears a previous one's failure — this refetches on
+      // every realtime event, so an outage that ends takes its sentence with it.
+      setFailure(null)
+      setClues(res.data)
       setLoading(false)
     },
   })
 
-  return { clues, loading, latest: clues[clues.length - 1] ?? null }
+  return { clues, loading, failure, latest: clues[clues.length - 1] ?? null }
 }

@@ -1,13 +1,13 @@
 # The error system — results, rejections, and faults
 
-**Status: in flight — 115 of the 145 roster entries in §7 are converted.**
+**Status: in flight — 120 of the 145 roster entries in §7 are converted.**
 
-**Where to pick up (2026-09-01).** Thirteen of the sixteen game areas are
-finished; real work remains in FIVE games only, 22 pieces:
+**Where to pick up (2026-09-01).** Fourteen of the sixteen game areas are
+finished — **codenamesduet completed 2026-09-01** — so real work remains in
+FOUR games, 17 pieces:
 
 | area | left |
 |---|---|
-| codenamesduet | 5 reads — every RPC done 2026-09-01. The only area with unconverted READS besides crosswords (`useBoard`'s three, `useClues`' one; its `useGame` reads are done) |
 | crosswords | 8 — 5 RPCs + 3 reads (`useCells`, and a `games_state` read in `PlayArea.tsx`; `useGame`'s is done) |
 | strands | 4 RPCs |
 | scrabble | 3 RPCs |
@@ -738,7 +738,7 @@ select pg_temp.envelope_is(
 
 ## 7. The conversion roster
 
-**145 entries. 115 done, 30 to go** — plus `useWordSubmit`, which is not a
+**145 entries. 120 done, 25 to go** — plus `useWordSubmit`, which is not a
 roster entry of its own but carried five call sites across four games (5 of those are the deferred edge
 functions). Cross them off here as they land.
 
@@ -990,11 +990,17 @@ identifier — a shape nothing has exercised yet.
       survives as `data.revealed`. `already-revealed` SPLIT in two (Joel,
       2026-09-01): PN382 is the board's reveal, PN383 is your own bystander —
       which blocks only you, so it is a different sentence
-- [ ] `clues` · read
-- [ ] `games` · read (3 call sites)
-- [ ] `guesses` · read
-- [ ] `profiles` · read
-- [ ] `words` · read
+- [x] `clues` · read — `useClues`. Zero clues is an ORDINARY answer here (turn
+      1 before the giver speaks looks exactly like it), which is why the
+      failure had to become its own thing
+- [x] `games` · read — `useGame`'s converted in the useGame sweep;
+      `useBoard`'s here, losing its `.single()`: zero rows now clears the key
+      cards so the PlayArea says "Game not found." instead of drawing from the
+      last load
+- [x] `guesses` · read — `useBoard`'s, in the same `Promise.all`
+- [x] `profiles` · read — `useGame`'s; verified 2026-09-01
+- [x] `words` · read — `useBoard`'s. Its unit test gained the failure case and
+      was verified by planting: swallow the not-ok and it goes red
 - [x] `codenamesduet-suggest-clue` · edge fn — PN319/PN320 service-errors (the
       model declined, or was cut off: it RAN), five faults, and
       `get_clue_context`'s own refusals relayed untouched — which is TRUE of the

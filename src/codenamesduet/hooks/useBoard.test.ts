@@ -14,6 +14,10 @@
  * subscription) are exercised here as a side effect but not asserted
  * deeply; those paths are covered by the pgTAP suite at the RPC
  * layer plus integration testing in a browser.
+ *
+ * The last test covers the read half of the envelope conversion: a failed read
+ * has to arrive as its own answer, because an empty board and an unreadable one
+ * look identical from `words` alone.
  */
 
 import { renderHook, waitFor } from '@testing-library/react'
@@ -59,13 +63,27 @@ function buildSupabaseMock() {
     const chain: Record<string, unknown> & { _table: string } = {
       _table: table,
       select() { return chain },
-      // The guesses query ends in .eq() (no .order()/.single()), so for that
-      // table .eq() is the terminal and resolves the (empty) guess log. The
-      // words/games queries chain further off .eq().
+      // `.eq()` is the terminal for guesses AND games — both read rows and
+      // neither orders them. Only words chains further, off `.order()`.
+      // The games row carries no `.single()`: `readRows` hands back rows, so
+      // zero of them is an answer rather than an error.
       eq() {
-        return table === 'guesses'
-          ? Promise.resolve({ data: [], error: null })
-          : chain
+        if (table === 'guesses') return Promise.resolve({ data: [], error: null })
+        if (table === 'games') {
+          // Caller (USER_ID) is in seat A; the other seat belongs to a sentinel
+          // uuid. Both key columns come back and the hook picks by comparing
+          // user_a_id / user_b_id.
+          return Promise.resolve({
+            data: [{
+              user_a_id: USER_ID,
+              user_b_id: '00000000-0000-0000-0000-00000000cccc',
+              key_card_a: ownKey,
+              key_card_b: peerKey,
+            }],
+            error: null,
+          })
+        }
+        return chain
       },
       neq() { return chain },
       order() {
@@ -79,20 +97,6 @@ function buildSupabaseMock() {
             neutral_a: false,
             neutral_b: false,
           })),
-          error: null,
-        })
-      },
-      single() {
-        // games row — caller (USER_ID) is in seat A; the other seat
-        // belongs to a sentinel uuid. Both key columns are returned;
-        // the hook chooses based on user_a_id/user_b_id comparison.
-        return Promise.resolve({
-          data: {
-            user_a_id: USER_ID,
-            user_b_id: '00000000-0000-0000-0000-00000000cccc',
-            key_card_a: ownKey,
-            key_card_b: peerKey,
-          },
           error: null,
         })
       },
@@ -172,5 +176,39 @@ describe('useBoard', () => {
     // derivation evaluate to null on the next render — no clear-state
     // action needed inside the hook.
     await waitFor(() => expect(result.current.peerKey).toBeNull())
+  })
+
+  it('keeps the envelope of a failed read instead of an empty board', async () => {
+    // The words read dies. An empty `words` is what a caller would otherwise
+    // see — indistinguishable from a board that legitimately has nothing on it
+    // — so the hook has to hand back the envelope as its own answer.
+    mockFrom.mockImplementation((table: string) => {
+      const chain: Record<string, unknown> = {
+        select() { return chain },
+        eq() {
+          return table === 'words'
+            ? chain
+            : Promise.resolve({ data: [], error: null })
+        },
+        order() {
+          return Promise.resolve({
+            data: null,
+            error: { message: 'connection refused' },
+            status: 500,
+          })
+        },
+      }
+      return chain
+    })
+
+    const { result } = renderHook(() => useBoard(GAME_ID, USER_ID, false))
+
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(result.current.failure?.type).toBe('not-ok')
+    // Always a FAULT: `readRows` never authors anything else.
+    expect(result.current.failure?.severity).toBe('fault')
+    // And the board is left with nothing to draw rather than a half-load.
+    expect(result.current.words).toHaveLength(0)
+    expect(result.current.myKey).toBeNull()
   })
 })
