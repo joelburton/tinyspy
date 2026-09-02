@@ -127,6 +127,47 @@ plain RPCs — no edge function needed. The one exception is
 | `library_for_club(target_club)` — **`security invoker`** | Backs the setup form's Library picker: every library puzzle (id, title, author, width, height) plus a per-club **`status`** — `solved` / `playing` / `lost` / `unplayed` — so each row can carry a club-history color bar. Sorted **alphabetically by title** (case-insensitive, `created_at desc` breaking ties) — the picker is a list you scan by name, where import order was an accident of how the files landed. Invoker is load-bearing twice over: the `puzzles` **column grant** is what hides `solution`, and `common.games`'s club-member RLS is what stops one club's history showing in another's picker (a non-member just sees an all-`unplayed` library). Status **precedence** is solved → playing → lost, so one win makes a puzzle permanently green and `ended` shares the yellow bucket with `playing`. **Mode-agnostic** by design — a coop solve colors the compete dialog too. Why a function where connections uses a view (`connections.club_game_status`): the join to `play_state` is cross-schema *and* has to be OUTER, and the club is an input to it — a view exposing `club_handle` from the games side is inner by construction and would drop exactly the unplayed rows the picker exists to show. |
 | `concede` / `submit_timeout` | Standard. The setup form offers the shared `<SetupTimerSection>` like every other game; a countdown expiring takes the whole table down (coop → `lost`, compete → `lost_compete`), stamped `outcome: 'timeout'` so the verdict reads "Out of time" rather than the concede wording those same states otherwise carry. |
 
+**Every one of these answers in [an envelope](../envelopes.md)**, and one line
+of reasoning classifies almost all of it: the grid is drawn from `cells` and
+`play_state`, both of which arrive by subscription, so a refusal is either
+**someone else moving under you** or **something the grid could not have
+produced**.
+
+| | | |
+|---|---|---|
+| `PN464` / `PN468` / `PN473` / `PN476` "Game over" | `race` | a teammate finished the grid, or the clock ran out, mid-keystroke |
+| `PN465` / `PN469` / `PN474` "Already conceded" | `race` | your own concede landed first |
+| `PN466` `BUG: a fill that is not letters` | `fault` | the FE mirrors `^[A-Z]{1,8}$` first |
+| `PN467` / `PN472` `BUG: a write/mark on a block or a given` | `fault` | the grid renders those non-focusable |
+| `PN470` / `PN471` `BUG: a mark on an unknown edge / of an unknown kind` | `fault` | both values come from the FE's own typed union |
+| `PN475` `BUG: a reveal in a compete game` | `fault` | mode is fixed at `create_game`; the FE hides the items |
+| `PN477` / `PN479` "That game no longer exists" | `fault` | |
+| `PN478` "You've played every one of those" | `form-validation` on `source` | see below |
+
+Three answers gained a NAME rather than being read off an absence:
+
+- **`check_cells` now says how many cells it flagged** (`wrong_count`). It
+  computed that anyway and returned nothing, so a caller could not tell
+  "checked, all correct" from "checked nothing".
+- **`reveal_solved_word` answers `solved` or `unsolved`**, where the two used to
+  be told apart by `answer` being null. `unsolved` stays an `ok`: the menu item
+  is live on any clue because the FE cannot see which are solved.
+- **`export_solution` says `exported`**, and a missing game is now `PN477`
+  rather than the same bare `null` a solution-less game returned.
+
+**`next_nyt_date_for_club`'s empty answer moved into the RPC.** Running out of
+unplayed dates for a weekday is `PN478`, a `form-validation` naming `source` —
+the control that picks the weekday, and the one a group told "you have done
+every Monday back to 2015" will change. The sentence is the one
+`crosswords-import-nyt` used to compose for itself (approved 2026-08-12); it
+moved because **two callers ask the same question**, and the setup form's
+weekday field deserves the same answer. PN227 and PN228 went with it.
+
+**`library_for_club`'s empty answer did NOT.** An empty library is an ordinary
+`ok` with an empty list: nothing is blocked and there is no input to fix, so the
+picker draws its own "No puzzles found." That is the whole difference between
+the two — whether the empty answer stops anything.
+
 ## 5. Puzzle sourcing
 
 Four sources, exposed as four tabs in the setup form (Library / NYT /

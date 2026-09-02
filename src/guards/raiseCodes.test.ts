@@ -205,10 +205,6 @@ describe('the raise codes', () => {
       // A lapsed session is a real state, not our bug — the frontend cannot send
       // an Authorization header it does not have (Joel, 2026-08-31).
       'You are not signed in.',
-      // The next-puzzle pick did not answer. Left as a plain sentence
-      // (Joel, 2026-08-31) — nothing malformed arrived, and the caller has no
-      // way to tell our failure from an empty archive.
-      'The next puzzle could not be worked out.',
     ])
     const offenders: string[] = []
     const seen = new Set<string>()

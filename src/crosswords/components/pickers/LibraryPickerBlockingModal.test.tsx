@@ -26,6 +26,18 @@ const ROWS = [
   { id: 'p2', title: 'Cross Purposes', author: 'Robyn Weintraub', status: 'solved' },
 ]
 
+/** An `ok` envelope as the wire carries one — all nine keys, because `runRpc`
+ *  reads the SHAPE and not just the arm. */
+const library = (puzzles: unknown[]) => ({
+  data: {
+    type: 'ok', data: { result: 'library', puzzles },
+    outcome: null, severity: null, message: null,
+    field: null, meta: null, dbcode: null, detail: null,
+  },
+  error: null,
+  status: 200,
+})
+
 const onPick = vi.fn()
 const onClose = vi.fn()
 
@@ -39,7 +51,7 @@ beforeEach(() => {
   onPick.mockReset()
   onClose.mockReset()
   mockRpc.mockReset()
-  mockRpc.mockResolvedValue({ data: ROWS })
+  mockRpc.mockResolvedValue(library(ROWS))
 })
 
 describe('the library picker', () => {
@@ -92,7 +104,7 @@ describe('the library picker', () => {
   it('says the library is empty as a fact, not as a command', async () => {
     // A shell command here would tell a friend on production to run something
     // they cannot. Filling the library is Joel's job, not the player's.
-    mockRpc.mockResolvedValue({ data: [] })
+    mockRpc.mockResolvedValue(library([]))
     draw()
 
     await waitFor(() => expect(screen.getByText('No puzzles found.')).toBeInTheDocument())

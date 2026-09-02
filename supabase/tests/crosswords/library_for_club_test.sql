@@ -100,10 +100,22 @@ select pg_temp.xw_end(:'g_lo_loss', 'lost');
 select pg_temp.xw_end(:'g_compete', 'won_compete');
 select pg_temp.xw_end(:'g_other',   'won');
 
+-- The RPC answers with ONE envelope now, so the rows come out of its
+-- `data.puzzles` array. This is the one place that unpacks it; every assertion
+-- below reads the same as it did.
+create function pg_temp.xw_library(p_club text)
+returns table (id uuid, title text, author text, width int, height int, status text)
+language sql as $$
+  select (e ->> 'id')::uuid, e ->> 'title', e ->> 'author',
+         (e ->> 'width')::int, (e ->> 'height')::int, e ->> 'status'
+    from jsonb_array_elements(
+           crosswords.library_for_club(p_club) -> 'data' -> 'puzzles') e;
+$$;
+
 -- A reusable "what does club A's picker say about this puzzle?" probe.
 create function pg_temp.xw_status(p_club text, p_puzzle uuid)
 returns text language sql as $$
-  select status from crosswords.library_for_club(p_club) where id = p_puzzle;
+  select status from pg_temp.xw_library(p_club) where id = p_puzzle;
 $$;
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -113,15 +125,15 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 -- ============================================================
 
 select is(
-  (select title from crosswords.library_for_club(:'club_a') where id = :'pz_solved'),
+  (select title from pg_temp.xw_library(:'club_a') where id = :'pz_solved'),
   'Toy', 'library_for_club: title comes from meta->>title');
 
 select is(
-  (select author from crosswords.library_for_club(:'club_a') where id = :'pz_solved'),
+  (select author from pg_temp.xw_library(:'club_a') where id = :'pz_solved'),
   'T', 'library_for_club: author comes from meta->>author');
 
 select is(
-  (select width || 'x' || height from crosswords.library_for_club(:'club_a')
+  (select width || 'x' || height from pg_temp.xw_library(:'club_a')
     where id = :'pz_solved'),
   '2x2', 'library_for_club: width/height come from meta');
 
@@ -132,12 +144,12 @@ select is(
 -- they'd appear twice and the picker would render duplicate rows.
 
 select is(
-  (select count(*)::int from crosswords.library_for_club(:'club_a')
+  (select count(*)::int from pg_temp.xw_library(:'club_a')
     where id = :'pz_winloss'),
   1, 'library_for_club: a puzzle with two games still yields exactly one row');
 
 select is(
-  (select count(*)::int from crosswords.library_for_club(:'club_a')),
+  (select count(*)::int from pg_temp.xw_library(:'club_a')),
   (select count(*)::int from crosswords.puzzles where source = 'library'),
   'library_for_club: exactly one row per library puzzle');
 
@@ -203,7 +215,7 @@ select is(pg_temp.xw_status(:'club_b', :'pz_other'), 'solved',
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 
 select is(
-  (select count(*)::int from crosswords.library_for_club(:'club_a')
+  (select count(*)::int from pg_temp.xw_library(:'club_a')
     where status <> 'unplayed'),
   0, 'library_for_club: a non-member sees every puzzle as unplayed (RLS)');
 

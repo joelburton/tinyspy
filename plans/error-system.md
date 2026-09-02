@@ -1,17 +1,21 @@
 # The error system — results, rejections, and faults
 
-**Status: in flight — 139 of the 157 roster entries in §7 are converted.**
+**Status: in flight — 148 of the 157 roster entries in §7 are converted.**
 
-**The 18 open rows are 14 conversions**, because the cross-cutting four appear
+**The 9 open rows are 5 conversions**, because the cross-cutting four appear
 once per area. That is the number to plan against.
 
-**Where to pick up (2026-09-01).** Fifteen of the sixteen games are finished —
-codenamesduet, psychicnum, letterboxed, strands and scrabble took it to
-fifteen — so work remains in ONE, 10 pieces:
+**`ERROR_COPY` is down to THREE keys** — `game-not-in-play`, `you-conceded` and
+`already-ended` — and every one of them is raised only by the cross-cutting
+four. Converting those empties the table, which is what lets the whole old
+system be deleted.
+
+**Where to pick up (2026-09-01).** **Every RPC in the roster is converted.**
+What is left is ONE read and the cross-cutting four:
 
 | area | left |
 |---|---|
-| crosswords | 10 — 8 RPCs + 2 reads (`useCells.ts:99`, and the solution fetch at `PlayArea.tsx:179`; `useGame`'s is done) |
+| crosswords | 1 — the solution fetch at `PlayArea.tsx:179`, a `games_state` read |
 
 Then the CROSS-CUTTING FOUR, last, together: `concede`, `end_game`,
 `replay_board`, `submit_timeout`. Their 8 unchecked rows are 4 conversions,
@@ -758,7 +762,7 @@ select pg_temp.envelope_is(
 
 ## 7. The conversion roster
 
-**157 entries. 139 done, 18 to go — which is 14 CONVERSIONS** — plus `useWordSubmit`, which is not a
+**157 entries. 148 done, 9 to go — which is 5 CONVERSIONS** — plus `useWordSubmit`, which is not a
 roster entry of its own but carried five call sites across four games (5 of those are the deferred edge
 functions). Cross them off here as they land.
 
@@ -1045,22 +1049,30 @@ refetch), not two places in the source.
 
 - [x] `create_game` · RPC, reached through `crosswords-import-nyt / -guardian`
 - [x] `create_game` · RPC
-- [ ] `check_cells` · RPC — **added 2026-09-01**, missing from the roster.
-      `PlayArea.tsx:843`, through the old `callRpc`
-- [ ] `export_solution` · RPC (2 call sites)
-- [ ] `library_for_club` · RPC
-- [ ] `next_nyt_date_for_club` · RPC — `returns date`, so a return-TYPE change
-- [ ] `reveal_cells` · RPC — **added 2026-09-01**. `PlayArea.tsx:886`, the twin
-      of `check_cells`
-- [ ] `reveal_solved_word` · RPC — **added 2026-09-01**, and the one carrying
-      the relay trap: `crosswords-explain-clue` still reads "an envelope means a
-      refusal", so converting this alone makes the function swallow the SUCCESS.
-      Fix the function in the same commit
-      ([deno-callers.md](deno-callers.md)). `returns table(answer, solved,
-      note)`, so a return-TYPE change: needs a `drop function if exists`
-- [ ] `set_cell` · RPC
-- [ ] `set_mark` · RPC
-- [ ] `cells` · read — `useCells.ts:99`
+- [x] `check_cells` · RPC — PN473/PN474, and it NAMES how many cells it
+      flagged: `wrong_count` was computed anyway and kept to itself, so a caller
+      could not tell "checked, all correct" from "checked nothing"
+- [x] `export_solution` · RPC (2 call sites) — PN477. A missing game was the
+      same bare `null` a solution-less game returned
+- [x] `library_for_club` · RPC — an EMPTY library stays an `ok` with an empty
+      list: nothing is blocked and there is no input to fix, which is exactly
+      what separates it from the two date pickers
+- [x] `next_nyt_date_for_club` · RPC — PN478, a `form-validation` on `source`,
+      carrying the sentence `crosswords-import-nyt` used to compose (approved
+      2026-08-12). It moved into the RPC because TWO callers ask — the importer
+      and the setup form's weekday field — and both deserve the same answer.
+      PN227/PN228 deleted
+- [x] `reveal_cells` · RPC — PN475/PN476, and `solved` in the answer: a reveal
+      can complete the grid, which lands the ordinary coop `won` on purpose
+- [x] `reveal_solved_word` · RPC — PN479, and TWO `ok`s (`solved` / `unsolved`)
+      where `answer` being null used to carry the difference. **The last relay
+      trap**: `crosswords-explain-clue` converted in the same commit, which is
+      the tenth and final call site in [deno-callers.md](deno-callers.md)
+- [x] `set_cell` · RPC — PN464–PN467
+- [x] `set_mark` · RPC — PN468–PN472
+- [x] `cells` · read — `useCells`, which stopped returning two bespoke result
+      unions and hands the envelope back instead: they existed only to carry an
+      error beside a value, which is what an envelope IS
 - [x] `games` · read — `useGame`'s, and its only one; verified 2026-09-01
 - [ ] `games_state` · read — `PlayArea.tsx:179`, the solution fetch
 - [x] `crosswords-explain-clue` · edge fn — PN327/PN328 service-errors (the

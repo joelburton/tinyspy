@@ -31,6 +31,7 @@ set search_path = crosswords, common, public, extensions;
 select plan(7);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 create temp table ids on commit drop as
@@ -49,19 +50,19 @@ grant select on expect to public;
 -- ============================================================
 
 select is(
-  crosswords.next_nyt_date_for_club(array[(select ada from ids)], 1),
+  (crosswords.next_nyt_date_for_club(array[(select ada from ids)], 1) -> 'data' ->> 'puzzle_date')::date,
   (select monday from expect),
   'an untouched player gets the MOST RECENT Monday, not the earliest'
 );
 
 select is(
-  extract(dow from crosswords.next_nyt_date_for_club(array[(select ada from ids)], 4))::int,
+  extract(dow from (crosswords.next_nyt_date_for_club(array[(select ada from ids)], 4) -> 'data' ->> 'puzzle_date')::date)::int,
   4,
   'asking for Thursday returns a Thursday'
 );
 
 select ok(
-  crosswords.next_nyt_date_for_club(array[(select ada from ids)], 6) <= current_date,
+  (crosswords.next_nyt_date_for_club(array[(select ada from ids)], 6) -> 'data' ->> 'puzzle_date')::date <= current_date,
   'the date is never in the future — an unpublished puzzle cannot be fetched'
 );
 
@@ -103,22 +104,21 @@ select is(
 );
 
 select is(
-  crosswords.next_nyt_date_for_club(array[(select ada from ids)], 1),
+  (crosswords.next_nyt_date_for_club(array[(select ada from ids)], 1) -> 'data' ->> 'puzzle_date')::date,
   (select monday - 7 from expect),
   'having played it, ada is walked back to the Monday before'
 );
 
 -- ada's SOLO game must count in a game with bea, whose club never touched it.
 select is(
-  crosswords.next_nyt_date_for_club(
-    array[(select ada from ids), (select bea from ids)], 1),
+  (crosswords.next_nyt_date_for_club(array[(select ada from ids), (select bea from ids)], 1) -> 'data' ->> 'puzzle_date')::date,
   (select monday - 7 from expect),
   'an ada+bea game skips it too — the exclusion crosses clubs, per-player'
 );
 
 -- ...but bea alone is still owed it.
 select is(
-  crosswords.next_nyt_date_for_club(array[(select bea from ids)], 1),
+  (crosswords.next_nyt_date_for_club(array[(select bea from ids)], 1) -> 'data' ->> 'puzzle_date')::date,
   (select monday from expect),
   'bea, who has played nothing, still gets it — exclusion is PER-PLAYER'
 );

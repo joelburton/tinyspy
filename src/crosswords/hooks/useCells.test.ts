@@ -27,7 +27,15 @@
 
 import { renderHook, act, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { SetCellResult, SetMarkResult } from './useCells'
+import type { Envelope } from '../../common/lib/supabase/envelope'
+import type { SetCellAnswer, SetMarkAnswer } from './useCells'
+
+/** An `ok` envelope as the wire carries one — all nine keys, because `runRpc`
+ *  reads the shape and not just the arm. */
+const okEnvelope = (data: unknown) => ({
+  type: 'ok', data, outcome: null, severity: null, message: null,
+  field: null, meta: null, dbcode: null, detail: null,
+})
 
 const { mockFrom, mockRpc, mockChannel, mockRemoveChannel } = vi.hoisted(() => ({
   mockFrom: vi.fn(),
@@ -183,10 +191,12 @@ describe('useCells — optimistic setCell', () => {
     const { result } = renderHook(() => useCells(GAME_ID, null))
     await fireSubscribed(() => result.current.loading)
 
-    const d = deferred<{ data: { version: number; solved: boolean } | null; error: null }>()
-    mockRpc.mockReturnValue({ single: () => d.promise })
+    // The RPC answers with ONE ENVELOPE now, not a row — so no `.single()`,
+    // and the mock resolves what `runRpc` reads.
+    const d = deferred<{ data: unknown; error: null; status: number }>()
+    mockRpc.mockReturnValue(d.promise)
 
-    let call!: Promise<SetCellResult>
+    let call!: Promise<Envelope<SetCellAnswer>>
     act(() => {
       call = result.current.setCell(0, 0, 'Z', false)
     })
@@ -196,7 +206,7 @@ describe('useCells — optimistic setCell', () => {
     expect(result.current.cells.get(cellKey(0, 0))?.version).toBe(1)
 
     await act(async () => {
-      d.resolve({ data: { version: 7, solved: false }, error: null })
+      d.resolve({ data: okEnvelope({ result: 'set', version: 7, solved: false }), error: null, status: 200 })
       await call
     })
     // Authoritative version adopted.
@@ -215,15 +225,17 @@ describe('useCells — failed setCell rolls back (C2)', () => {
     const { result } = renderHook(() => useCells(GAME_ID, null))
     await fireSubscribed(() => result.current.loading)
 
-    mockRpc.mockReturnValue({
-      single: () => Promise.resolve({ data: null, error: { message: 'boom' } }),
-    })
+    mockRpc.mockReturnValue(
+      Promise.resolve({ data: null, error: { message: 'boom' }, status: 500 }),
+    )
 
-    let out!: SetCellResult
+    let out!: Envelope<SetCellAnswer>
     await act(async () => {
       out = await result.current.setCell(0, 0, 'B', false)
     })
-    expect(out).toEqual({ error: { message: 'boom' } })
+    // A read that failed is always a FAULT — `runRpc` never authors anything
+    // else — and the hook hands the envelope straight back.
+    expect(out.type).toBe('not-ok')
     // The cell is back to its pre-write state — NOT stranded at 'B' version 3
     // (which the strict `>` merge could never repair).
     expect(result.current.cells.get(cellKey(0, 0))?.fill).toBe('A')
@@ -235,10 +247,10 @@ describe('useCells — failed setCell rolls back (C2)', () => {
     const { result } = renderHook(() => useCells(GAME_ID, null))
     await fireSubscribed(() => result.current.loading)
 
-    const d = deferred<{ data: null; error: { message: string } }>()
-    mockRpc.mockReturnValue({ single: () => d.promise })
+    const d = deferred<{ data: null; error: { message: string }; status: number }>()
+    mockRpc.mockReturnValue(d.promise)
 
-    let call!: Promise<SetCellResult>
+    let call!: Promise<Envelope<SetCellAnswer>>
     act(() => {
       call = result.current.setCell(0, 0, 'B', false)
     })
@@ -247,7 +259,7 @@ describe('useCells — failed setCell rolls back (C2)', () => {
     expect(result.current.cells.get(cellKey(0, 0))?.fill).toBe('C')
 
     await act(async () => {
-      d.resolve({ data: null, error: { message: 'boom' } })
+      d.resolve({ data: null, error: { message: 'boom' }, status: 500 })
       await call
     })
     // Rollback must NOT clobber the newer state: version moved past our
@@ -280,10 +292,10 @@ describe('useCells — setMark (cryptic edge marks)', () => {
     const { result } = renderHook(() => useCells(GAME_ID, null))
     await fireSubscribed(() => result.current.loading)
 
-    const d = deferred<{ data: { version: number } | null; error: null }>()
-    mockRpc.mockReturnValue({ single: () => d.promise })
+    const d = deferred<{ data: unknown; error: null; status: number }>()
+    mockRpc.mockReturnValue(d.promise)
 
-    let call!: Promise<SetMarkResult>
+    let call!: Promise<Envelope<SetMarkAnswer>>
     act(() => {
       call = result.current.setMark(0, 0, 'right', 'break')
     })
@@ -293,7 +305,7 @@ describe('useCells — setMark (cryptic edge marks)', () => {
     expect(result.current.cells.get(cellKey(0, 0))?.markBottom).toBeNull()
 
     await act(async () => {
-      d.resolve({ data: { version: 6 }, error: null })
+      d.resolve({ data: okEnvelope({ result: 'marked', version: 6 }), error: null, status: 200 })
       await call
     })
     expect(result.current.cells.get(cellKey(0, 0))?.markRight).toBe('break')
@@ -305,15 +317,15 @@ describe('useCells — setMark (cryptic edge marks)', () => {
     const { result } = renderHook(() => useCells(GAME_ID, null))
     await fireSubscribed(() => result.current.loading)
 
-    mockRpc.mockReturnValue({
-      single: () => Promise.resolve({ data: null, error: { message: 'nope' } }),
-    })
+    mockRpc.mockReturnValue(
+      Promise.resolve({ data: null, error: { message: 'nope' }, status: 500 }),
+    )
 
-    let out!: SetMarkResult
+    let out!: Envelope<SetMarkAnswer>
     await act(async () => {
       out = await result.current.setMark(0, 0, 'right', null)
     })
-    expect(out).toEqual({ error: { message: 'nope' } })
+    expect(out.type).toBe('not-ok')
     // Reverted to the pre-write mark, not left cleared.
     expect(result.current.cells.get(cellKey(0, 0))?.markRight).toBe('hyphen')
     expect(result.current.cells.get(cellKey(0, 0))?.version).toBe(3)

@@ -1,6 +1,8 @@
 // cs-unmet
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { runRpc } from '../../../common/lib/supabase/dbResult'
+import { showFaultModal } from '../../../common/lib/fault/faultStore'
 import { BlockingModal } from '../../../common/components/floating-panels/BlockingModal'
 import { CancelButton } from '../../../common/components/buttons/CancelButton'
 import { SelectionList } from '../../../common/components/lists/SelectionList'
@@ -65,6 +67,12 @@ type Props = {
  * Cancel is the only other way out, and it is a real one now: leaving a source
  * used to be a side effect of pressing a different tab.
  */
+/** What `library_for_club` answers: one `ok`, and an EMPTY list is part of it. */
+type LibraryAnswer = {
+  result: 'library'
+  puzzles: { id: string; title: string; author: string; status: string }[]
+}
+
 export function LibraryPickerBlockingModal({ clubHandle, onPick, onClose }: Props) {
   const [puzzles, setPuzzles] = useState<LibraryPuzzle[] | null>(null)
   const [query, setQuery] = useState('')
@@ -79,16 +87,35 @@ export function LibraryPickerBlockingModal({ clubHandle, onPick, onClose }: Prop
   useEffect(() => {
     let active = true
     void (async () => {
-      const { data } = await db.rpc('library_for_club', { target_club: clubHandle })
-      if (!active || !data) return
-      setPuzzles(
-        data.map((row) => ({
-          id: row.id,
-          title: row.title,
-          author: row.author,
-          status: row.status as PuzzleStatus,
-        })),
+      const res = await runRpc<LibraryAnswer>(
+        db.rpc('library_for_club', { target_club: clubHandle }),
       )
+      // The cancel guard first, before the branch: a modal closed mid-flight
+      // cancels its own request, and `runRpc` hands that back as a not-ok like
+      // any other (docs/envelopes.md → The cancel guard comes FIRST).
+      if (!active) return
+      if (res.type === 'not-ok') {
+        // The list stays `null`, which is the LOADING state — a failed load must
+        // not read as "this club has no puzzles", the one sentence a viewer
+        // would act on by importing some. `runRpc` has raised the modal.
+        return
+      } else if (res.type === 'ok' && res.data.result === 'library') {
+        // An EMPTY library is an ordinary answer here, not a refusal: nothing is
+        // blocked and there is no input to fix, so the list renders its own
+        // "No puzzles found." rather than a message from the server.
+        setPuzzles(
+          res.data.puzzles.map((row) => ({
+            id: row.id,
+            title: row.title,
+            author: row.author,
+            status: row.status as PuzzleStatus,
+          })),
+        )
+        return
+      } else {
+        showFaultModal({ text: 'BUG: library_for_club fell through to unhandled' })
+        return
+      }
     })()
     return () => {
       active = false

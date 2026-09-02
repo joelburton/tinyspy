@@ -1,10 +1,12 @@
 // cs-unmet
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { CallError } from '../../common/lib/game/serverError'
 import { supabase } from '../../common/lib/supabase/supabase'
 import { channelDedupSuffix } from '../../common/lib/supabase/channelDedup'
 import { onPostgresAttached } from '../../common/lib/supabase/postgresAttached'
+import { runRpc } from '../../common/lib/supabase/dbResult'
+import { showFaultModal } from '../../common/lib/fault/faultStore'
+import type { Envelope } from '../../common/lib/supabase/envelope'
 import { db } from '../db'
 import type { MarkSide, MarkType } from '../lib/types'
 
@@ -28,8 +30,17 @@ export type CellsMap = Map<string, CellState>
 // shows its ERROR_COPY pill ("Game over") and a dead connection shows the
 // transport fault — never raw server text in a pill. This hook only rolls the
 // optimistic write back; the words are the surface's job.
-export type SetCellResult = { solved: boolean } | { error: NonNullable<CallError> }
-export type SetMarkResult = { ok: true } | { error: NonNullable<CallError> }
+/**
+ * What `set_cell` and `set_mark` answer. Both hand the ENVELOPE straight back:
+ * the two bespoke result unions this replaced existed only to carry an error
+ * beside a value, which is what an envelope is.
+ *
+ * `solved` on a set is the RPC's own field, kept although nothing reads it —
+ * the terminal flow lands via `ctx.isTerminal` — because it is the answer's
+ * statement about what the write did.
+ */
+export type SetCellAnswer = { result: 'set'; version: number; solved: boolean }
+export type SetMarkAnswer = { result: 'marked'; version: number }
 
 export const cellKey = (row: number, col: number) => `${row}:${col}`
 
@@ -62,8 +73,8 @@ export function useCells(
   ownerId: string | null,
 ): {
   cells: CellsMap
-  setCell: (row: number, col: number, fill: string | null, pencil: boolean) => Promise<SetCellResult>
-  setMark: (row: number, col: number, side: MarkSide, next: MarkType | null) => Promise<SetMarkResult>
+  setCell: (row: number, col: number, fill: string | null, pencil: boolean) => Promise<Envelope<SetCellAnswer>>
+  setMark: (row: number, col: number, side: MarkSide, next: MarkType | null) => Promise<Envelope<SetMarkAnswer>>
   loading: boolean
 } {
   const [cells, setCells] = useState<CellsMap>(() => new Map())
@@ -177,7 +188,7 @@ export function useCells(
   }, [gameId, ownerId, isMine, applyRow])
 
   const setCell = useCallback(
-    async (row: number, col: number, fill: string | null, pencil: boolean): Promise<SetCellResult> => {
+    async (row: number, col: number, fill: string | null, pencil: boolean): Promise<Envelope<SetCellAnswer>> => {
       const key = cellKey(row, col)
       const pen = pencil && fill !== null
       // Snapshot the pre-optimistic cell so we can roll back on RPC failure.
@@ -200,50 +211,58 @@ export function useCells(
         out.set(key, { ...cur, fill, pencil: pen, wrong: false })
         return out
       })
-      const { data, error } = await db
-        .rpc('set_cell', {
-          target_game: gameId,
-          p_row: row,
-          p_col: col,
-          // p_fill is a nullable `text` param (null clears the cell), but the
-          // generated RPC arg type is non-null. PostgREST passes null through fine.
-          p_fill: fill as string,
-          p_pencil: pencil,
-        })
-        .single()
-      if (error || !data) {
-        // Roll the optimistic write back — but only if no newer authoritative
-        // write (a higher version, e.g. a teammate's CDC event in coop) landed
-        // during the RPC's round trip. Our optimistic echo left the version
-        // unchanged, so an unchanged version means the cell is still our stale
-        // guess and is safe to revert; a bumped version is a real newer state
-        // that must win over the rollback.
-        setCells((prev) => {
-          const cur = prev.get(key)
-          if (!cur || !prevCell || cur.version !== prevCell.version) return prev
-          const out = new Map(prev)
-          out.set(key, prevCell)
-          return out
-        })
-        // `.single()` makes no-row a real coded error, so a null `error` with
-        // no data shouldn't happen — the fallback keeps the classifier from
-        // ever being handed null (it is marked answered: a 2xx arrived).
-        return { error: error ?? { message: 'set_cell returned no row', answered: true as const } }
-      }
-      // Adopt the authoritative version so our own CDC echo is dropped.
-      // Marks live on the same row and aren't touched by a fill, so carry
-      // the current ones through.
-      const held = cellsRef.current.get(key)
-      applyRow(row, col, {
-        fill,
-        pencil: pen,
-        revealed: held?.revealed ?? false,
-        wrong: false,
-        markRight: held?.markRight ?? null,
-        markBottom: held?.markBottom ?? null,
-        version: data.version,
+      // Undo the echo — but only if no newer authoritative write (a higher
+      // version, e.g. a teammate's CDC event in coop) landed during the round
+      // trip. Our echo left the version unchanged, so an unchanged version
+      // means the cell is still our stale guess and is safe to revert; a bumped
+      // version is a real newer state that must win over the rollback.
+      //
+      // A named function rather than a statement in one branch, because TWO
+      // answers need it: a refusal, and an answer we cannot read
+      // (docs/envelopes.md → work several answers need becomes a named
+      // function each of them calls).
+      const rollBack = () => setCells((prev) => {
+        const cur = prev.get(key)
+        if (!cur || !prevCell || cur.version !== prevCell.version) return prev
+        const out = new Map(prev)
+        out.set(key, prevCell)
+        return out
       })
-      return { solved: data.solved }
+      const res = await runRpc<SetCellAnswer>(db.rpc('set_cell', {
+        target_game: gameId,
+        p_row: row,
+        p_col: col,
+        // p_fill is a nullable `text` param (null clears the cell), but the
+        // generated RPC arg type is non-null. PostgREST passes null through fine.
+        p_fill: fill as string,
+        p_pencil: pencil,
+      }))
+      // No `.single()` any more: the RPC answers with one envelope, not a row.
+      if (res.type === 'not-ok') {
+        rollBack()
+        return res
+      } else if (res.type === 'ok' && res.data.result === 'set') {
+        // Adopt the authoritative version so our own CDC echo is dropped.
+        // Marks live on the same row and aren't touched by a fill, so carry
+        // the current ones through.
+        const held = cellsRef.current.get(key)
+        applyRow(row, col, {
+          fill,
+          pencil: pen,
+          revealed: held?.revealed ?? false,
+          wrong: false,
+          markRight: held?.markRight ?? null,
+          markBottom: held?.markBottom ?? null,
+          version: res.data.version,
+        })
+        return res
+      } else {
+        // An answer neither branch above named. The optimistic letter is a
+        // guess about a write we cannot confirm happened, so it goes.
+        rollBack()
+        showFaultModal({ text: 'BUG: set_cell fell through to unhandled' })
+        return res
+      }
     },
     [gameId, applyRow],
   )
@@ -252,7 +271,7 @@ export function useCells(
   // optimistic + version-guarded-rollback shape as setCell, minus the solve
   // (marks are display-only). `next` is null to clear the edge.
   const setMark = useCallback(
-    async (row: number, col: number, side: MarkSide, next: MarkType | null): Promise<SetMarkResult> => {
+    async (row: number, col: number, side: MarkSide, next: MarkType | null): Promise<Envelope<SetMarkAnswer>> => {
       const key = cellKey(row, col)
       const prevCell = cellsRef.current.get(key)
       const field = side === 'right' ? 'markRight' : 'markBottom'
@@ -264,30 +283,40 @@ export function useCells(
         out.set(key, { ...cur, [field]: next })
         return out
       })
-      const { data, error } = await db
-        .rpc('set_mark', {
-          target_game: gameId,
-          p_row: row,
-          p_col: col,
-          p_side: side,
-          p_mark: next as string, // nullable text param; PostgREST passes null fine
-        })
-        .single()
-      if (error || !data) {
-        // Roll back only if no newer authoritative write landed mid-RPC.
-        setCells((prev) => {
-          const cur = prev.get(key)
-          if (!cur || !prevCell || cur.version !== prevCell.version) return prev
-          const out = new Map(prev)
-          out.set(key, prevCell)
-          return out
-        })
-        return { error: error ?? { message: 'set_mark returned no row', answered: true as const } }
+      const res = await runRpc<SetMarkAnswer>(db.rpc('set_mark', {
+        target_game: gameId,
+        p_row: row,
+        p_col: col,
+        p_side: side,
+        p_mark: next as string, // nullable text param; PostgREST passes null fine
+      }))
+      // Roll back only if no newer authoritative write landed mid-RPC. Named,
+      // like setCell's, because both a refusal and an unreadable answer want it.
+      const rollBack = () => setCells((prev) => {
+        const cur = prev.get(key)
+        if (!cur || !prevCell || cur.version !== prevCell.version) return prev
+        const out = new Map(prev)
+        out.set(key, prevCell)
+        return out
+      })
+      if (res.type === 'not-ok') {
+        rollBack()
+        return res
+      } else if (res.type === 'ok' && res.data.result === 'marked') {
+        // Adopt the authoritative version; the whole cell is otherwise unchanged.
+        // `version` is read out of the answer BEFORE the `if`, which is worth a
+        // line: an envelope read inside a conditional is the shape
+        // `callSiteShape` looks for, and a reader should not have to work out
+        // that this one is gated on `held` rather than on the arm.
+        const version = res.data.version
+        const held = cellsRef.current.get(key)
+        if (held) applyRow(row, col, { ...held, [field]: next, version })
+        return res
+      } else {
+        rollBack()
+        showFaultModal({ text: 'BUG: set_mark fell through to unhandled' })
+        return res
       }
-      // Adopt the authoritative version; the whole cell is otherwise unchanged.
-      const held = cellsRef.current.get(key)
-      if (held) applyRow(row, col, { ...held, [field]: next, version: data.version })
-      return { ok: true }
     },
     [gameId, applyRow],
   )

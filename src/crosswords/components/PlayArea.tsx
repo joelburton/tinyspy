@@ -1,6 +1,5 @@
 // cs-unmet
 
-import { failureMessage } from '../../common/lib/game/serverError'
 import { callRpc } from '../../common/lib/game/callRpc'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { IconHideSolution, IconNewGame, IconPrint, IconRestart, IconReveal, IconScratchpad } from '../../common/components/icons'
@@ -57,6 +56,8 @@ import { CrosswordsExplainCompanion, type ExplainState } from './CrosswordsExpla
 import { enumerationFor } from '../lib/enumeration'
 import { runEdgeFn } from '../../common/lib/supabase/dbResult'
 import { showFaultModal } from '../../common/lib/fault/faultStore'
+import { runRpc } from '../../common/lib/supabase/dbResult'
+import { getNotOkFeedback } from '../../common/lib/game/genericPills'
 import { ClueLists } from './ClueLists'
 import { ClueText } from './ClueText'
 import { stripClueEmphasis } from '../lib/clueRuns'
@@ -88,6 +89,18 @@ function fileStem(id: string | undefined): string {
  * end-game flow arrives through ctx (`useCommonGame` refetches common.games
  * when set_cell ends the game), so this component just reacts to `isTerminal`.
  */
+/** What `check_cells` answers: one `ok`, and HOW MANY cells it flagged — a
+ *  number the RPC computed anyway and used to keep to itself. */
+type CheckAnswer = { result: 'checked'; wrong_count: number }
+
+/** What `reveal_cells` answers. `solved` matters: a reveal can complete the
+ *  grid, and that lands the ordinary coop `won` terminal on purpose (§9). */
+type RevealAnswer = { result: 'revealed'; solved: boolean }
+
+/** What `export_solution` answers — the solution grid, typed where it used to
+ *  be cast at each of the two call sites. */
+type ExportAnswer = { result: 'exported'; solution: (string[] | null)[][] }
+
 export function PlayArea(ctx: GamePageCtx) {
   const { gameId, players, isTerminal, playState, goToClub, session, status, menu, clubHandle } =
     ctx
@@ -246,15 +259,20 @@ export function PlayArea(ctx: GamePageCtx) {
     async (row: number, col: number, fill: string | null, pencil: boolean) => {
       clearLocalFeedback()
       const res = await setCell(row, col, fill, pencil)
-      if ('error' in res) {
-        // Classified, not raw: the compete race (a rival finishing while this
-        // keystroke was in flight) shows game-not-in-play's "Game over" info
-        // pill; a dead connection shows the `letter: Server; try refresh`
-        // fault; anything else faults carrying what the server actually said.
-        showLocalFeedback(failureMessage(res.error, 'letter'))
+      // The two refusals a keystroke can meet are RACES — a teammate finished
+      // the grid, or your own concede landed — so they read orange and say the
+      // server's own words. Everything else here is a fault, which raises the
+      // modal centrally and leaves its sentence in this pill.
+      if (res.type === 'not-ok') {
+        showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+        return
+      } else if (res.type === 'ok' && res.data.result === 'set') {
+        if (fill != null) broadcastFill(row, col)
+        return
+      } else {
+        showFaultModal({ text: 'BUG: set_cell fell through to unhandled' })
         return
       }
-      if (fill != null) broadcastFill(row, col)
     },
     [setCell, showLocalFeedback, clearLocalFeedback, broadcastFill],
   )
@@ -267,7 +285,17 @@ export function PlayArea(ctx: GamePageCtx) {
       const cur = cells.get(cellKey(row, col))
       const current = side === 'right' ? cur?.markRight : cur?.markBottom
       const res = await setMark(row, col, side, nextMarkState(current ?? undefined))
-      if ('error' in res) showLocalFeedback(failureMessage(res.error, 'mark'))
+      if (res.type === 'not-ok') {
+        showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+        return
+      } else if (res.type === 'ok' && res.data.result === 'marked') {
+        // Nothing to say: the mark is already drawn optimistically and the
+        // authoritative version was adopted inside the hook.
+        return
+      } else {
+        showFaultModal({ text: 'BUG: set_mark fell through to unhandled' })
+        return
+      }
     },
     [cells, setMark, showLocalFeedback],
   )
@@ -532,21 +560,26 @@ type Explained =
   const handleDownloadIpuz = useCallback(async () => {
     const state = printStateRef.current
     if (!state) return
-    const { data, error } = await db.rpc('export_solution', { target_game: gameId })
-    if (error || !data) {
-      showLocalFeedback(failureMessage(error, 'download'))
+    const res = await runRpc<ExportAnswer>(db.rpc('export_solution', { target_game: gameId }))
+    if (res.type === 'not-ok') {
+      showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+      return
+    } else if (res.type === 'ok' && res.data.result === 'exported') {
+      const ipuz = writeIpuz(state, res.data.solution)
+      const blob = new Blob([ipuz], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      // Guardian ids carry slashes (e.g. "crosswords/quick/123"); sanitize so the
+      // download gets a clean name instead of a browser-mangled one.
+      a.download = `${fileStem(state.meta.id)}.ipuz`
+      a.click()
+      URL.revokeObjectURL(url)
+      return
+    } else {
+      showFaultModal({ text: 'BUG: export_solution fell through to unhandled' })
       return
     }
-    const ipuz = writeIpuz(state, data as unknown as (string[] | null)[][])
-    const blob = new Blob([ipuz], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    // Guardian ids carry slashes (e.g. "crosswords/quick/123"); sanitize so the
-    // download gets a clean name instead of a browser-mangled one.
-    a.download = `${fileStem(state.meta.id)}.ipuz`
-    a.click()
-    URL.revokeObjectURL(url)
   }, [gameId, showLocalFeedback])
 
   // Print the answer-key PDF (crossplay's `generateSolutionPdf`). Like the
@@ -557,16 +590,21 @@ type Explained =
   const handlePrintSolution = useCallback(async () => {
     const state = printStateRef.current
     if (!state) return
-    const { data, error } = await db.rpc('export_solution', { target_game: gameId })
-    if (error || !data) {
-      showLocalFeedback(failureMessage(error, 'answer key'))
+    const res = await runRpc<ExportAnswer>(db.rpc('export_solution', { target_game: gameId }))
+    if (res.type === 'not-ok') {
+      showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+      return
+    } else if (res.type === 'ok' && res.data.result === 'exported') {
+      await printCrosswordsSolutionPdf(
+        state,
+        res.data.solution,
+        `${fileStem(state.meta.id)}-answers`,
+      )
+      return
+    } else {
+      showFaultModal({ text: 'BUG: export_solution fell through to unhandled' })
       return
     }
-    await printCrosswordsSolutionPdf(
-      state,
-      data as unknown as (string[] | null)[][],
-      `${fileStem(state.meta.id)}-answers`,
-    )
   }, [gameId, showLocalFeedback])
 
   // Game-menu items. `hasNote` is stable per game, and `handleExplain` reads the
@@ -840,20 +878,34 @@ type Explained =
       // desktop (sheet never open) and when already closed (menu path).
       closeInfoSheet()
       clearLocalFeedback()
-      const bad = await callRpc(db, 'check_cells', { target_game: gameId, p_cells: target })
-      if (bad) {
-        showLocalFeedback(bad)
+      const res = await runRpc<CheckAnswer>(
+        db.rpc('check_cells', { target_game: gameId, p_cells: target }),
+      )
+      if (res.type === 'not-ok') {
+        showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+        return
+      } else if (res.type === 'ok' && res.data.result === 'checked') {
+        // The flagged cells arrive by subscription and the grid marks them, so
+        // a successful check says nothing about what it found. What it DOES owe
+        // is the pencil note, and it lives here rather than after the chain
+        // because it belongs to this answer alone: a refusal checked nothing,
+        // so there is nothing it could have skipped.
+        //
+        // Check deliberately skips pencil cells (a pencilled letter is a guess,
+        // not a committed answer — mirror `_check_cells` / crossplay's
+        // `applyCheck`). So if the checked scope held any pencilled fill, it
+        // went un-flagged; a timed info pill says so, so an unmarked pencil cell
+        // doesn't read as "correct".
+        const skippedPencil = target.some((p) => {
+          const c = cells.get(cellKey(p.row, p.col))
+          return Boolean(c?.pencil && c.fill)
+        })
+        if (skippedPencil) showLocalFeedback(PENCIL_SKIPPED_MSG)
+        return
+      } else {
+        showFaultModal({ text: 'BUG: check_cells fell through to unhandled' })
         return
       }
-      // Check deliberately skips pencil cells (a pencilled letter is a guess, not
-      // a committed answer — mirror `_check_cells` / crossplay's `applyCheck`). So
-      // if the checked scope held any pencilled fill, it went un-flagged; a timed
-      // info pill says so, so an unmarked pencil cell doesn't read as "correct."
-      const skippedPencil = target.some((p) => {
-        const c = cells.get(cellKey(p.row, p.col))
-        return Boolean(c?.pencil && c.fill)
-      })
-      if (skippedPencil) showLocalFeedback(PENCIL_SKIPPED_MSG)
     },
     [scopeCells, gameId, cells, showLocalFeedback, clearLocalFeedback, closeInfoSheet],
   )
@@ -883,14 +935,23 @@ type Explained =
       // error pill) are visible. No-op on desktop / when already closed.
       closeInfoSheet()
       clearLocalFeedback()
-      const bad = await callRpc(db, 'reveal_cells', { target_game: gameId, p_cells: target })
-      if (bad) {
-        showLocalFeedback(bad)
+      const res = await runRpc<RevealAnswer>(
+        db.rpc('reveal_cells', { target_game: gameId, p_cells: target }),
+      )
+      if (res.type === 'not-ok') {
+        showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+        return
+      } else if (res.type === 'ok' && res.data.result === 'revealed') {
+        // Flash the revealed cells on teammates' grids in my color — the
+        // reveal's CDC arrives colorless (like a typed fill), so it needs its
+        // own signal. Inside the branch because only a reveal that HAPPENED has
+        // cells to flash.
+        broadcastFills(target)
+        return
+      } else {
+        showFaultModal({ text: 'BUG: reveal_cells fell through to unhandled' })
         return
       }
-      // Flash the revealed cells on teammates' grids in my color — the reveal's
-      // CDC arrives colorless (like a typed fill), so it needs its own signal.
-      broadcastFills(target)
     },
     [scopeCells, gameId, showLocalFeedback, clearLocalFeedback, broadcastFills, closeInfoSheet, confirmAction],
   )

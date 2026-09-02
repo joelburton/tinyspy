@@ -124,10 +124,10 @@ select is(
 -- passes require_game_player but trips the play_state guard, so the win
 -- stands. Answers: (0,0)C (0,1)A (1,0)T (1,1)S.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select set_cell from crosswords.set_cell(:'gw_id', 0, 0, 'c', false);
-select set_cell from crosswords.set_cell(:'gw_id', 0, 1, 'a', false);
-select set_cell from crosswords.set_cell(:'gw_id', 1, 0, 't', false);
-select set_cell from crosswords.set_cell(:'gw_id', 1, 1, 's', false);
+select crosswords.set_cell(:'gw_id', 0, 0, 'c', false);
+select crosswords.set_cell(:'gw_id', 0, 1, 'a', false);
+select crosswords.set_cell(:'gw_id', 1, 0, 't', false);
+select crosswords.set_cell(:'gw_id', 1, 1, 's', false);
 select lives_ok(
   format('select crosswords.submit_timeout(%L::uuid)', :'gw_id'),
   'submit_timeout: a timeout on an already-won game does not throw (no-op)');

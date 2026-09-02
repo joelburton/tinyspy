@@ -102,12 +102,35 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
   }
 }
 
+/** What each RPC answers on the happy path, by name. */
+const OK_DATA: Record<string, unknown> = {
+  check_cells: { result: 'checked', wrong_count: 0 },
+  reveal_cells: { result: 'revealed', solved: false },
+  export_solution: { result: 'exported', solution: [] },
+  set_cell: { result: 'set', version: 1, solved: false },
+  set_mark: { result: 'marked', version: 1 },
+}
+
 beforeEach(() => {
   h.game = { mode: 'coop', puzzleId: 'p1', meta: template() }
   h.cells = new Map()
   h.setCell.mockReset().mockResolvedValue({ version: 1, solved: false })
   h.setMark.mockReset().mockResolvedValue({ version: 1 })
-  h.rpc.mockReset().mockResolvedValue({ error: null })
+  // Every RPC this component calls answers in an ENVELOPE, and `runRpc` reads
+  // the SHAPE — a bare `{ error: null }` is not one and would fault. Each call
+  // site asserts its OWN `result`, so the reply has to name the right one:
+  // answering `checked` to a reveal sends it to the scream, which is the
+  // branch chain doing its job.
+  h.rpc.mockReset().mockImplementation((name: string) => Promise.resolve({
+    data: {
+      type: 'ok',
+      data: OK_DATA[name] ?? { result: name },
+      outcome: null, severity: null, message: null,
+      field: null, meta: null, dbcode: null, detail: null,
+    },
+    error: null,
+    status: 200,
+  }))
   h.broadcastFills.mockReset()
   h.broadcastNote.mockReset()
 })

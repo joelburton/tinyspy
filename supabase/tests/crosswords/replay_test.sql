@@ -46,11 +46,11 @@ select (crosswords.create_game(
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as gcl_id \gset
 -- Dirty the shared grid: a fill, a pencil, a revealed cell, a wrong flag, a mark.
-select set_cell from crosswords.set_cell(:'gcl_id', 0, 0, 'c', false);
-select set_cell from crosswords.set_cell(:'gcl_id', 0, 1, 'z', true);
+select crosswords.set_cell(:'gcl_id', 0, 0, 'c', false);
+select crosswords.set_cell(:'gcl_id', 0, 1, 'z', true);
 select crosswords.reveal_cells(:'gcl_id', '[{"row":1,"col":0}]'::jsonb);
 select crosswords.check_cells(:'gcl_id', '[{"row":0,"col":1}]'::jsonb);
-select set_mark from crosswords.set_mark(:'gcl_id', 0, 0, 'right', 'break');
+select crosswords.set_mark(:'gcl_id', 0, 0, 'right', 'break');
 select crosswords.replay_board(:'gcl_id');
 reset role;
 select is(
@@ -86,10 +86,10 @@ select (crosswords.create_game(
   :'club_handle', pg_temp.xw_setup(:'pz_id'),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid], 'compete')->'data'->>'id')::uuid as gpcl_id \gset
-select set_cell from crosswords.set_cell(:'gpcl_id', 0, 0, 'c', false);
+select crosswords.set_cell(:'gpcl_id', 0, 0, 'c', false);
 reset role;
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select set_cell from crosswords.set_cell(:'gpcl_id', 0, 0, 'c', false);
+select crosswords.set_cell(:'gpcl_id', 0, 0, 'c', false);
 reset role;
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select crosswords.replay_board(:'gpcl_id');

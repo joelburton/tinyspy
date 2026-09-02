@@ -28,9 +28,19 @@ import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import Anthropic from 'npm:@anthropic-ai/sdk@0.109.0'
 import { edgeInternal, json, preflight } from '../_shared/http.ts'
-import { fault, isEnvelope, ok, serviceError } from '../_shared/envelope.ts'
+import { fault, ok, serviceError } from '../_shared/envelope.ts'
+import { runRpc } from '../_shared/dbResult.ts'
 
 type Cell = { row: number; col: number }
+
+/**
+ * What `reveal_solved_word` answers. TWO `ok`s: the word is solved (so there is
+ * an answer to explain), or it is not — which used to be told apart by `answer`
+ * being null, an absence rather than a name.
+ */
+type RevealedWord =
+  | { result: 'solved'; answer: string; solved: true; note: string | null }
+  | { result: 'unsolved'; answer: null; solved: false; note: string | null }
 
 serve(async (req) => {
   const pre = preflight(req)
@@ -60,19 +70,18 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_ANON_KEY')!,
       { global: { headers: { Authorization: authHeader } } },
     )
-    const { data, error } = await supabase
-      .schema('crosswords')
-      .rpc('reveal_solved_word', { target_game: gameId, p_cells: cells })
-      .single()
-    // `reveal_solved_word` is converted, so its own refusals relay untouched.
-    // `error` therefore means only that the RPC never RAN.
-    if (error) {
-      return fault('PN325', 'BUG: reveal_solved_word did not run', `crosswords-explain-clue: ${error.message} (${error.code})`)
-    }
-    if (isEnvelope(data)) return json(data)
-
-    const ctx = data as { answer: string | null; solved: boolean; note: string | null }
-    if (!ctx.solved || !ctx.answer) {
+    // No `.single()`: the RPC answers with one envelope, not a row.
+    const res = await runRpc<RevealedWord>(
+      supabase.schema('crosswords').rpc('reveal_solved_word', { target_game: gameId, p_cells: cells }),
+      'reveal_solved_word',
+    )
+    // Its own refusals relay untouched; `runRpc` folds "it never ran" and "it
+    // answered something unreadable" into the same branch.
+    if (res.type === 'not-ok') return json(res)
+    // UNWRAPPED rather than relayed: the answer it carries is the first step of
+    // this function's work, not its answer.
+    const ctx = res.data
+    if (ctx.result === 'unsolved') {
       // The player hasn't correctly filled this word yet — nothing to explain
       // without spoiling it. An `ok`, not a refusal: the menu item is live on
       // any clue under the cursor, and it HAS to be — the FE cannot see which

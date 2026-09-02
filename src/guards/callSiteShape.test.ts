@@ -56,17 +56,22 @@ function offenders(): string[] {
 }
 
 describe('call-site shape', () => {
-  it('reports every remaining `!== ok` (a list, not a failure)', () => {
+  it('nobody asks `!== ok` any more', () => {
     const left = offenders()
     console.log(
       `[envelope-sweep] ${left.length} call sites still ask \`!== 'ok'\`:\n` +
         left.map((o) => `  ${o}`).join('\n'),
     )
-    // The only assertion: the scan works. A zero here would mean the regex or
-    // the walk broke, not that the sweep finished — and a guard that finds
-    // nothing because it is looking at nothing passes just as quietly as one
-    // that works. Delete this and assert `toEqual([])` when the roster empties.
+    // The scan works — asserted FIRST, because a guard that finds nothing
+    // because it is looking at nothing passes just as quietly as one that
+    // works, and that trap is the whole reason this line outlived the sweep.
     expect(sourceFiles('src').length).toBeGreaterThan(100)
+    // It reached ZERO on 2026-09-01, so this stopped being a list and became a
+    // rule — which is what its predecessor comment said to do. The count is
+    // stable ahead of the roster finishing: what is left of the sprint is the
+    // cross-cutting four, whose call sites are still on the OLD system and ask
+    // `if (bad)`, never this.
+    expect(left, 'the negated form is a catch-all wearing a case\'s clothes').toEqual([])
   })
 
   it('the files already converted stay converted', () => {
@@ -133,6 +138,21 @@ describe('call-site shape', () => {
       // `expect(offenders()).toEqual([])` — the guard's own docstring says so. Each joins as its own entry lands, which is
       // the list above growing one game at a time
       // (plans/envelope-rollout.md → create_game).
+      // The 2026-09-01 sweep: codenamesduet, psychicnum, letterboxed,
+      // strands, scrabble and crosswords, plus the shared hooks they own.
+      // Listing a file is the LAST STEP of converting it, and skipping that
+      // step is what left this check disarmed on six games at once — the
+      // sweep above only LOGS, so an unlisted file can hold any shape.
+      'src/codenamesduet/components/BoardCol.tsx',
+      'src/codenamesduet/components/CluePanel.tsx',
+      'src/codenamesduet/hooks/useBoard.ts',
+      'src/codenamesduet/hooks/useClues.ts',
+      'src/crosswords/components/PlayArea.tsx',
+      'src/crosswords/components/PuzzleSourceField.tsx',
+      'src/crosswords/components/pickers/LibraryPickerBlockingModal.tsx',
+      'src/crosswords/hooks/useCells.ts',
+      'src/scrabble/components/BoardCol.tsx',
+      'src/strands/components/SetupForm.tsx',
     ]
     const regressed = CONVERTED.filter((f) => NEGATED.test(readFileSync(f, 'utf8')))
     expect(regressed, 'a converted file went back to the negated form').toEqual([])

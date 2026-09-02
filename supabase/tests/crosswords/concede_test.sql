@@ -5,6 +5,7 @@ set search_path = crosswords, common, public, extensions;
 select plan(10);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 select pg_temp.xw_insert_puzzle('h-2x2', pg_temp.xw_meta_2x2(), pg_temp.xw_sol_2x2()) as pz_id \gset
@@ -79,9 +80,11 @@ reset role;
 -- set_cell has). ada concedes gp2 (bea still active → game stays playing).
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select crosswords.concede(:'gp2_id');
-select throws_ok(
-  format('select crosswords.check_cells(%L, %L::jsonb)', :'gp2_id', '[{"row":0,"col":0}]'),
-  'P0001', null, 'check_cells is rejected for a conceded compete player');
+select pg_temp.envelope_is(
+  crosswords.check_cells(:'gp2_id', '[{"row":0,"col":0}]'::jsonb),
+  '{"type":"not-ok","severity":"race","dbcode":"PN474",
+    "message":"Already conceded"}'::jsonb,
+  'check_cells is rejected for a conceded compete player');
 reset role;
 
 select * from finish();

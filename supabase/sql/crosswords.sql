@@ -262,93 +262,140 @@ grant select on crosswords.games_state to authenticated;
 -- Returns NULL when that weekday is used up — the edge function turns that
 -- into `no-unplayed-weekday|`. Reachable only by a club that has played every
 -- one of ~600 Mondays, but it is a real branch and it has copy.
+-- `create or replace` cannot change a function's return type, and this one
+-- became jsonb. `if exists` because this file is re-applied in full on every
+-- deploy, so the drop has to be a no-op the second time.
+drop function if exists crosswords.next_nyt_date_for_club(uuid[], int);
+
 create or replace function crosswords.next_nyt_date_for_club(seen_by uuid[], dow int)
-returns date
-language sql
+returns jsonb
+language plpgsql
 stable
 security definer
 set search_path = crosswords, common, public, extensions
 as $$
-  select d::date
-    from generate_series(
-           -- The most recent `dow` on or before today. The modulo keeps it at
-           -- today when today already IS that weekday.
-           current_date - ((extract(dow from current_date)::int - dow + 7) % 7),
-           date '2015-01-01',
-           interval '-7 days'
-         ) d
-   where not exists (
-           select 1
-             from crosswords.games g
-             join common.game_players gp on gp.game_id = g.id
-            where g.puzzle_date = d::date
-              and gp.user_id = any(seen_by)
-         )
-   limit 1;
+declare
+  v_date date;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
+begin
+  select d into v_date from (
+    select d::date
+        from generate_series(
+               -- The most recent `dow` on or before today. The modulo keeps it at
+               -- today when today already IS that weekday.
+               current_date - ((extract(dow from current_date)::int - dow + 7) % 7),
+               date '2015-01-01',
+               interval '-7 days'
+             ) d
+       where not exists (
+               select 1
+                 from crosswords.games g
+                 join common.game_players gp on gp.game_id = g.id
+                where g.puzzle_date = d::date
+                  and gp.user_id = any(seen_by)
+             )
+       limit 1
+  ) q(d);
+
+  -- A VALIDATION under `source`, the control that picks the weekday — the field
+  -- a group told "you have done every Monday back to 2015" will change. Joel's
+  -- words, approved 2026-08-12, moved here from the importer that used to
+  -- compose them: two callers ask this now, and the sentence belongs with the
+  -- condition rather than with one of them.
+  if v_date is null then
+    raise exception 'You''ve played every one of those'
+      using errcode = 'PN478', hint = 'form-validation', column = 'source',
+      detail = format('no unplayed puzzle for dow %s back to the 2015 floor', dow);
+  end if;
+
+  return common.ok_envelope(jsonb_build_object(
+    'result', 'found', 'puzzle_date', v_date));
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+end;
 $$;
 
 revoke execute on function crosswords.next_nyt_date_for_club(uuid[], int) from public;
 grant execute on function crosswords.next_nyt_date_for_club(uuid[], int) to authenticated;
 
+-- `create or replace` cannot change a function's return type, and this one
+-- became jsonb. `if exists` because this file is re-applied in full on every
+-- deploy, so the drop has to be a no-op the second time.
+drop function if exists crosswords.library_for_club(text);
+
 create or replace function crosswords.library_for_club(target_club text)
-returns table (
-  id     uuid,
-  title  text,
-  author text,
-  width  int,
-  height int,
-  status text
-)
-language sql
+returns jsonb
+language plpgsql
 stable
 security invoker
 set search_path = crosswords, common, public, extensions
 as $$
-  -- Every column reference is table-qualified on purpose: the OUT columns
-  -- above (`id`, `title`, `status`, …) shadow unqualified names, and
-  -- `common.games` really does have `id`, `title` and `status` columns.
-  select
-    p.id,
-    coalesce(nullif(btrim(p.meta ->> 'title'), ''), 'Untitled') as title,
-    coalesce(btrim(p.meta ->> 'author'), '')                    as author,
-    (p.meta ->> 'width')::int                                   as width,
-    (p.meta ->> 'height')::int                                  as height,
-    case
-      when count(*) filter (
-             where cg.play_state in ('won', 'won_compete')
-           ) > 0 then 'solved'
-      when count(*) filter (
-             where cg.play_state is not null
-               and cg.play_state not in
-                   ('won', 'won_compete', 'lost', 'lost_compete')
-           ) > 0 then 'playing'
-      -- count(cg.id), NOT count(*): a LEFT JOIN that matched nothing still
-      -- yields one row per puzzle, so count(*) is never 0 and every
-      -- unplayed puzzle would report 'lost'.
-      when count(cg.id) > 0 then 'lost'
-      else 'unplayed'
-    end as status
-  from crosswords.puzzles p
-  -- LEFT, and the club test rides on the JOIN rather than a WHERE: both so
-  -- that a puzzle this club has never touched keeps its row. Moving
-  -- `club_handle` into a WHERE would quietly turn this back into an inner
-  -- join and hide every unplayed puzzle.
-  left join crosswords.games xg
-         on xg.puzzle_id = p.id
-        and xg.club_handle = target_club
-  left join common.games cg on cg.id = xg.id
-  where p.source = 'library'
-  -- Grouping by the PK lets the select + order reach p's other columns
-  -- (functional dependency), so `meta` needn't be in the GROUP BY.
-  group by p.id
-  -- Alphabetical by title, case-insensitively — the picker is a list you
-  -- scan by name, and import order (the previous `created_at desc`) is an
-  -- accident of how the files happened to land. The expression is repeated
-  -- rather than `order by title`, because the OUT column of that name would
-  -- shadow it. `created_at desc` breaks ties so equal titles hold a stable,
-  -- newest-first order instead of whatever the plan happens to emit.
-  order by lower(coalesce(nullif(btrim(p.meta ->> 'title'), ''), 'Untitled')),
-           p.created_at desc;
+declare
+  v_rows jsonb;
+begin
+  -- AN EMPTY LIBRARY IS AN `ok`, not a refusal. A club with nothing imported is
+  -- an ordinary state the picker draws as its empty case — nothing is blocked
+  -- and there is no input to fix, which is what separates this from the two
+  -- puzzle pickers, where running out stops Start and names a field.
+  --
+  -- It raises nothing at all, so it needs no catch block: `security invoker`
+  -- means RLS decides what it can see, and seeing nothing is an answer.
+  select coalesce(jsonb_agg(to_jsonb(r)), '[]'::jsonb) into v_rows
+    from (
+      -- Every column reference is table-qualified on purpose: the OUT columns
+        -- above (`id`, `title`, `status`, …) shadow unqualified names, and
+        -- `common.games` really does have `id`, `title` and `status` columns.
+        select
+          p.id,
+          coalesce(nullif(btrim(p.meta ->> 'title'), ''), 'Untitled') as title,
+          coalesce(btrim(p.meta ->> 'author'), '')                    as author,
+          (p.meta ->> 'width')::int                                   as width,
+          (p.meta ->> 'height')::int                                  as height,
+          case
+            when count(*) filter (
+                   where cg.play_state in ('won', 'won_compete')
+                 ) > 0 then 'solved'
+            when count(*) filter (
+                   where cg.play_state is not null
+                     and cg.play_state not in
+                         ('won', 'won_compete', 'lost', 'lost_compete')
+                 ) > 0 then 'playing'
+            -- count(cg.id), NOT count(*): a LEFT JOIN that matched nothing still
+            -- yields one row per puzzle, so count(*) is never 0 and every
+            -- unplayed puzzle would report 'lost'.
+            when count(cg.id) > 0 then 'lost'
+            else 'unplayed'
+          end as status
+        from crosswords.puzzles p
+        -- LEFT, and the club test rides on the JOIN rather than a WHERE: both so
+        -- that a puzzle this club has never touched keeps its row. Moving
+        -- `club_handle` into a WHERE would quietly turn this back into an inner
+        -- join and hide every unplayed puzzle.
+        left join crosswords.games xg
+               on xg.puzzle_id = p.id
+              and xg.club_handle = target_club
+        left join common.games cg on cg.id = xg.id
+        where p.source = 'library'
+        -- Grouping by the PK lets the select + order reach p's other columns
+        -- (functional dependency), so `meta` needn't be in the GROUP BY.
+        group by p.id
+        -- Alphabetical by title, case-insensitively — the picker is a list you
+        -- scan by name, and import order (the previous `created_at desc`) is an
+        -- accident of how the files happened to land. The expression is repeated
+        -- rather than `order by title`, because the OUT column of that name would
+        -- shadow it. `created_at desc` breaks ties so equal titles hold a stable,
+        -- newest-first order instead of whatever the plan happens to emit.
+        order by lower(coalesce(nullif(btrim(p.meta ->> 'title'), ''), 'Untitled')),
+                 p.created_at desc
+    ) r;
+
+  return common.ok_envelope(jsonb_build_object('result', 'library', 'puzzles', v_rows));
+end;
 $$;
 revoke execute on function crosswords.library_for_club(text) from public;
 grant execute on function crosswords.library_for_club(text) to authenticated;
@@ -634,6 +681,11 @@ grant execute on function crosswords.create_game(text, jsonb, uuid[], text, json
 -- IS editable and keeps its `revealed` flag. Then runs solved detection.
 -- Returns the new per-cell version (so the FE adopts it and its own CDC
 -- echo is a no-op) and whether the caller's grid is now solved.
+-- `create or replace` cannot change a function's return type, and this one
+-- became jsonb. `if exists` because this file is re-applied in full on every
+-- deploy, so the drop has to be a no-op the second time.
+drop function if exists crosswords.set_cell(uuid, int, int, text, boolean);
+
 create or replace function crosswords.set_cell(
   target_game uuid,
   p_row int,
@@ -641,7 +693,7 @@ create or replace function crosswords.set_cell(
   p_fill text,
   p_pencil boolean
 )
-returns table(version bigint, solved boolean)
+returns jsonb
 language plpgsql
 security definer
 set search_path = crosswords, common, public, extensions
@@ -655,17 +707,21 @@ declare
   v_pencil    boolean;
   v_version   bigint;
   v_solved    boolean;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   v_caller := common.require_game_player(target_game);
   select mode into v_mode from crosswords.games where id = target_game;
   select play_state into v_playstate from common.games where id = target_game;
   if v_playstate is distinct from 'playing' then
-    raise exception 'game-not-in-play|' using errcode = 'P0001',
+    -- A race: a teammate finished the grid, or the clock ran out, mid-keystroke.
+    raise exception 'Game over'
+      using errcode = 'PN464', hint = 'race', column = '_',
       detail = 'play_state is not an active state';
   end if;
   if (select conceded from common.game_players
         where game_id = target_game and user_id = v_caller) then
-    raise exception 'you-conceded|' using errcode = 'P0001',
+    raise exception 'Already conceded'
+      using errcode = 'PN465', hint = 'race', column = '_',
       detail = 'caller already dropped out of this compete race';
   end if;
   v_owner := case when v_mode = 'coop' then null else v_caller end;
@@ -679,7 +735,10 @@ begin
     -- check alone would persist. (An empty fill clears the cell — handled
     -- by the branch above.)
     if v_fill !~ '^[A-Z]{1,8}$' then
-      raise exception 'bad-fill|' using errcode = 'P0001',
+      -- A fault: the FE mirrors crossplay's `^[A-Z]{1,8}$` before sending, so a
+      -- stray non-letter did not come from our grid.
+      raise exception 'BUG: a fill that is not letters'
+        using errcode = 'PN466', hint = 'fault', column = '_',
       detail = 'a cell fill is 1 to 8 letters';
     end if;
   end if;
@@ -694,12 +753,27 @@ begin
      and c.row = p_row and c.col = p_col
   returning c.version into v_version;
   if not found then
-    raise exception 'cell-not-editable|' using errcode = 'P0001',
+    -- Also a fault: the grid renders blocks and givens as non-focusable, so a
+    -- write to one could not have come from a keystroke on our board.
+    raise exception 'BUG: a write to a block or a given'
+      using errcode = 'PN467', hint = 'fault', column = '_',
       detail = 'that cell is a block or a given';
   end if;
 
   v_solved := crosswords._maybe_finish(target_game, v_owner, v_mode, v_caller);
-  return query select v_version, v_solved;
+
+  -- No outcome: typing a letter is not adjudicated, and the cell is already on
+  -- screen optimistically. Both columns this used to return survive as fields.
+  return common.ok_envelope(jsonb_build_object(
+    'result', 'set', 'version', v_version, 'solved', v_solved));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 revoke execute on function crosswords.set_cell(uuid, int, int, text, boolean) from public;
@@ -716,6 +790,11 @@ grant execute on function crosswords.set_cell(uuid, int, int, text, boolean) to 
 -- (plan option A — marks live on fillable cells only). The version trigger
 -- bumps `version`, so the mark syncs via the same useCells CDC path as a
 -- fill; the RPC returns the new version so the FE's own echo is a no-op.
+-- `create or replace` cannot change a function's return type, and this one
+-- became jsonb. `if exists` because this file is re-applied in full on every
+-- deploy, so the drop has to be a no-op the second time.
+drop function if exists crosswords.set_mark(uuid, int, int, text, text);
+
 create or replace function crosswords.set_mark(
   target_game uuid,
   p_row int,
@@ -723,7 +802,7 @@ create or replace function crosswords.set_mark(
   p_side text,
   p_mark text
 )
-returns table(version bigint)
+returns jsonb
 language plpgsql
 security definer
 set search_path = crosswords, common, public, extensions
@@ -734,25 +813,32 @@ declare
   v_playstate text;
   v_owner     uuid;
   v_version   bigint;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   v_caller := common.require_game_player(target_game);
   select mode into v_mode from crosswords.games where id = target_game;
   select play_state into v_playstate from common.games where id = target_game;
   if v_playstate is distinct from 'playing' then
-    raise exception 'game-not-in-play|' using errcode = 'P0001',
+    raise exception 'Game over'
+      using errcode = 'PN468', hint = 'race', column = '_',
       detail = 'play_state is not an active state';
   end if;
   if (select conceded from common.game_players
         where game_id = target_game and user_id = v_caller) then
-    raise exception 'you-conceded|' using errcode = 'P0001',
+    raise exception 'Already conceded'
+      using errcode = 'PN469', hint = 'race', column = '_',
       detail = 'caller already dropped out of this compete race';
   end if;
   if p_side not in ('right', 'bottom') then
-    raise exception 'bad-side|' using errcode = 'P0001',
+    -- Both this and the mark below are faults for connections' `bad-result`
+    -- reason: the value comes from the frontend's own typed union.
+    raise exception 'BUG: a mark on an unknown edge'
+      using errcode = 'PN470', hint = 'fault', column = '_',
       detail = 'a mark''s side must be right or bottom';
   end if;
   if p_mark is not null and p_mark not in ('break', 'hyphen') then
-    raise exception 'bad-mark|' using errcode = 'P0001',
+    raise exception 'BUG: a mark of an unknown kind'
+      using errcode = 'PN471', hint = 'fault', column = '_',
       detail = 'mark must be break, hyphen or null';
   end if;
   v_owner := case when v_mode = 'coop' then null else v_caller end;
@@ -766,11 +852,19 @@ begin
      and c.row = p_row and c.col = p_col
   returning c.version into v_version;
   if not found then
-    raise exception 'cell-not-editable|' using errcode = 'P0001',
+    raise exception 'BUG: a mark on a block or a given'
+      using errcode = 'PN472', hint = 'fault', column = '_',
       detail = 'that cell is a block or a given';
   end if;
 
-  return query select v_version;
+  return common.ok_envelope(jsonb_build_object('result', 'marked', 'version', v_version));
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 revoke execute on function crosswords.set_mark(uuid, int, int, text, text) from public;
@@ -788,8 +882,13 @@ grant execute on function crosswords.set_mark(uuid, int, int, text, text) to aut
 -- Check: flag/unflag `wrong` against the solution, skipping empty and
 -- pencil cells (givens have no row). Available in both modes; wrong is
 -- self-informative, not answer-leaking.
+-- `create or replace` cannot change a function's return type, and this one
+-- became jsonb. `if exists` because this file is re-applied in full on every
+-- deploy, so the drop has to be a no-op the second time.
+drop function if exists crosswords.check_cells(uuid, jsonb);
+
 create or replace function crosswords.check_cells(target_game uuid, p_cells jsonb)
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = crosswords, common, public, extensions
@@ -799,19 +898,23 @@ declare
   v_mode      text;
   v_playstate text;
   v_owner     uuid;
+  v_wrong int;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   v_caller := common.require_game_player(target_game);
   select mode into v_mode from crosswords.games where id = target_game;
   select play_state into v_playstate from common.games where id = target_game;
   if v_playstate is distinct from 'playing' then
-    raise exception 'game-not-in-play|' using errcode = 'P0001',
+    raise exception 'Game over'
+      using errcode = 'PN473', hint = 'race', column = '_',
       detail = 'play_state is not an active state';
   end if;
   -- A conceded compete player is out — no checking their (frozen) grid, same
   -- guard set_cell has (reveal_cells is coop-only, where nobody concedes).
   if (select conceded from common.game_players
         where game_id = target_game and user_id = v_caller) then
-    raise exception 'you-conceded|' using errcode = 'P0001',
+    raise exception 'Already conceded'
+      using errcode = 'PN474', hint = 'race', column = '_',
       detail = 'caller already dropped out of this compete race';
   end if;
   v_owner := case when v_mode = 'coop' then null else v_caller end;
@@ -828,6 +931,30 @@ begin
        select 1 from jsonb_array_elements(p_cells) e
         where (e ->> 'row')::int = c.row and (e ->> 'col')::int = c.col
      );
+
+  -- HOW MANY it flagged. The update computes this as a side effect and the
+  -- function used to return nothing, so a caller learned only by watching the
+  -- cells subscription — and could not tell "checked, all correct" from
+  -- "checked nothing". Naming it gives the call site an answer to assert.
+  select count(*) into v_wrong
+    from crosswords.cells c
+   where c.game_id = target_game
+     and c.owner_id is not distinct from v_owner
+     and c.wrong
+     and exists (
+       select 1 from jsonb_array_elements(p_cells) e
+        where (e ->> 'row')::int = c.row and (e ->> 'col')::int = c.col
+     );
+
+  return common.ok_envelope(jsonb_build_object(
+    'result', 'checked', 'wrong_count', v_wrong));
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 revoke execute on function crosswords.check_cells(uuid, jsonb) from public;
@@ -836,8 +963,13 @@ grant execute on function crosswords.check_cells(uuid, jsonb) to authenticated;
 -- Reveal: write the canonical answer + revealed, clear wrong/pencil.
 -- COOP ONLY (reveal-all would trivially win the compete race). Revealing
 -- the last cell can complete the grid, so run solved detection after.
+-- `create or replace` cannot change a function's return type, and this one
+-- became jsonb. `if exists` because this file is re-applied in full on every
+-- deploy, so the drop has to be a no-op the second time.
+drop function if exists crosswords.reveal_cells(uuid, jsonb);
+
 create or replace function crosswords.reveal_cells(target_game uuid, p_cells jsonb)
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = crosswords, common, public, extensions
@@ -845,16 +977,22 @@ as $$
 declare
   v_mode      text;
   v_playstate text;
+  v_solved boolean;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   perform common.require_game_player(target_game);
   select mode into v_mode from crosswords.games where id = target_game;
   if v_mode <> 'coop' then
-    raise exception 'reveal-not-in-compete|' using errcode = 'P0001',
+    -- A fault: mode is fixed at create_game and the FE hides the reveal items
+    -- in compete, so nothing unbroken asks.
+    raise exception 'BUG: a reveal in a compete game'
+      using errcode = 'PN475', hint = 'fault', column = '_',
       detail = 'revealing your own grid would trivially win a race';
   end if;
   select play_state into v_playstate from common.games where id = target_game;
   if v_playstate is distinct from 'playing' then
-    raise exception 'game-not-in-play|' using errcode = 'P0001',
+    raise exception 'Game over'
+      using errcode = 'PN476', hint = 'race', column = '_',
       detail = 'play_state is not an active state';
   end if;
 
@@ -883,7 +1021,21 @@ begin
   -- way — reveal is a scoped, incremental solving aid (letter / word / puzzle),
   -- and there's no honest line between "revealed one letter" and "gave up". So
   -- a finished grid is a finished grid. See docs/games/crosswords.md §9.
-  perform crosswords._maybe_finish(target_game, null, 'coop', null);
+  -- `solved` is the answer's, not a side effect to watch for: a reveal that
+  -- completes the grid is how a crossword ends, and the call site has to know
+  -- whether this one did.
+  v_solved := crosswords._maybe_finish(target_game, null, 'coop', null);
+
+  return common.ok_envelope(jsonb_build_object(
+    'result', 'revealed', 'solved', v_solved));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 revoke execute on function crosswords.reveal_cells(uuid, jsonb) from public;
@@ -960,8 +1112,13 @@ grant execute on function crosswords.replay_board(uuid) to authenticated;
 -- only explain your own correctly-filled word). Also returns the puzzle note
 -- (not secret — the FE has it) so the edge function can pass it to the model
 -- as context in one round trip.
+-- `create or replace` cannot change a function's return type, and this one
+-- became jsonb. `if exists` because this file is re-applied in full on every
+-- deploy, so the drop has to be a no-op the second time.
+drop function if exists crosswords.reveal_solved_word(uuid, jsonb);
+
 create or replace function crosswords.reveal_solved_word(target_game uuid, p_cells jsonb)
-returns table(answer text, solved boolean, note text)
+returns jsonb
 language plpgsql
 security definer
 set search_path = crosswords, common, public, extensions
@@ -981,12 +1138,19 @@ declare
   v_sols     jsonb;
   v_given    boolean;
   v_fill     text;
+  v_note     text;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   v_caller := common.require_game_player(target_game);
   select mode, meta, solution into v_mode, v_meta, v_solution
     from crosswords.games where id = target_game;
+  if not found then
+    raise exception 'That game no longer exists'
+      using errcode = 'PN479', hint = 'fault', column = '_',
+      detail = 'no crosswords.games row for target_game';
+  end if;
   v_owner := case when v_mode = 'coop' then null else v_caller end;
-  note := v_meta ->> 'note';
+  v_note := v_meta ->> 'note';
 
   -- Cells arrive in reading order (the FE's word-cell order); jsonb arrays
   -- preserve order, so the concatenation yields the answer left-to-right.
@@ -1019,9 +1183,24 @@ begin
     end if;
   end loop;
 
-  answer := case when v_solved then v_answer else null end;
-  solved := v_solved;
-  return next;
+  -- TWO `ok`s, because "you have solved this word" and "not yet" are different
+  -- answers and used to be told apart by `answer` being null — an absence, not
+  -- a name. `unsolved` is an ordinary answer, not a refusal: the menu item is
+  -- live on any clue because the frontend cannot see which are solved.
+  if v_solved then
+    return common.ok_envelope(jsonb_build_object(
+      'result', 'solved', 'answer', v_answer, 'solved', true, 'note', v_note));
+  end if;
+  return common.ok_envelope(jsonb_build_object(
+    'result', 'unsolved', 'answer', null, 'solved', false, 'note', v_note));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 revoke execute on function crosswords.reveal_solved_word(uuid, jsonb) from public;
@@ -1048,9 +1227,33 @@ language plpgsql
 security definer
 set search_path = crosswords, common, public, extensions
 as $$
+declare
+  v_solution jsonb;
+  v_found boolean;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   perform common.require_game_player(target_game);
-  return (select solution from crosswords.games where id = target_game);
+
+  -- `found` separately from the blob: a missing game and a game whose solution
+  -- is null used to be one answer (a bare null), and the two call sites could
+  -- not tell them apart.
+  select true, g.solution into v_found, v_solution
+    from crosswords.games g where g.id = target_game;
+  if not v_found then
+    raise exception 'That game no longer exists'
+      using errcode = 'PN477', hint = 'fault', column = '_',
+      detail = 'no crosswords.games row for target_game';
+  end if;
+
+  return common.ok_envelope(jsonb_build_object(
+    'result', 'exported', 'solution', v_solution));
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 revoke execute on function crosswords.export_solution(uuid) from public;

@@ -51,10 +51,10 @@ reset role;
 -- ── Compete terminal: opponents' grids open up ───────────────────────
 -- ada solves her grid → the game becomes terminal.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select set_cell from crosswords.set_cell(:'gp_id', 0, 0, 'c', false);
-select set_cell from crosswords.set_cell(:'gp_id', 0, 1, 'a', false);
-select set_cell from crosswords.set_cell(:'gp_id', 1, 0, 't', false);
-select set_cell from crosswords.set_cell(:'gp_id', 1, 1, 's', false);
+select crosswords.set_cell(:'gp_id', 0, 0, 'c', false);
+select crosswords.set_cell(:'gp_id', 0, 1, 'a', false);
+select crosswords.set_cell(:'gp_id', 1, 0, 't', false);
+select crosswords.set_cell(:'gp_id', 1, 1, 's', false);
 reset role;
 
 select is((select is_terminal from common.games where id = :'gp_id'), true,

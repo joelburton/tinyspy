@@ -173,6 +173,9 @@ async function fetchOverlayMarkings(
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 
+/** What `next_nyt_date_for_club` answers: one `ok`; nothing left is PN478. */
+type NextDateAnswer = { result: 'found'; puzzle_date: string }
+
 serve(async (req) => {
   const pre = preflight(req)
   if (pre) return pre
@@ -219,23 +222,24 @@ serve(async (req) => {
       return fault('PN226', `BUG: weekday of '${String(weekday)}'`,
         'crosswords-import-nyt: setup.weekday must be an integer 0..6')
     }
-    const { data: picked, error: pickErr } = await caller
-      .schema('crosswords')
-      .rpc('next_nyt_date_for_club', { seen_by: player_user_ids, dow: weekday })
-    if (pickErr) {
-      return fault('PN227', 'The next puzzle could not be worked out.',
-        `crosswords-import-nyt: next_nyt_date_for_club: ${pickErr.message} (${pickErr.code})`)
+    const picked = await runRpc<NextDateAnswer>(
+      caller.schema('crosswords').rpc('next_nyt_date_for_club',
+        { seen_by: player_user_ids, dow: weekday }),
+      'next_nyt_date_for_club',
+    )
+    // RELAYED, both arms of it. The weekday walk finding nothing — this club's
+    // players have done every Monday (or whichever) back to the 2015 floor — is
+    // PN478 now, a `form-validation` naming `source`, carrying the same
+    // sentence this function used to compose for it (Joel's words, approved
+    // 2026-08-12). It moved into the RPC because TWO callers ask: the setup
+    // form's weekday field asks the same question and deserves the same answer.
+    // PN227 and PN228 are gone with it.
+    if (picked.type === 'not-ok') return json(picked)
+    if (picked.data.result !== 'found') {
+      return fault('PN480', 'BUG: next_nyt_date_for_club fell through to unhandled',
+        `crosswords-import-nyt: ${JSON.stringify(picked.data)}`)
     }
-    // The weekday walk found nothing: this club's players have done every
-    // Monday (or whichever) back to the 2015 floor. Unreachable in practice —
-    // that is ~600 games of one weekday — but a real branch, and the fix is to
-    // pick a different day, so it lands on the field that picks one. Joel's
-    // words, approved 2026-08-12.
-    if (!picked) {
-      return formValidation('PN228', 'source', "You've played every one of those",
-        `crosswords-import-nyt: no unplayed puzzle for dow ${weekday}`)
-    }
-    date = picked as unknown as string
+    date = picked.data.puzzle_date
   }
   if (!DATE_RE.test(date)) {
     return fault('PN229', `BUG: puzzle date of '${date}'`,

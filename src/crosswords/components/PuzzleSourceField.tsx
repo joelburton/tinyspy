@@ -11,6 +11,8 @@ import { LibraryPickerBlockingModal } from './pickers/LibraryPickerBlockingModal
 import { NytPickerBlockingModal } from './pickers/NytPickerBlockingModal'
 import { DEFAULT_WEEKDAY } from '../lib/nytDays'
 import { summarize } from '../lib/puzzleSummary'
+import { runRpc } from '../../common/lib/supabase/dbResult'
+import { showFaultModal } from '../../common/lib/fault/faultStore'
 import { GuardianPickerBlockingModal } from './pickers/GuardianPickerBlockingModal'
 import { UploadPickerBlockingModal } from './pickers/UploadPickerBlockingModal'
 import styles from './PuzzleSourceField.module.css'
@@ -53,6 +55,10 @@ type Props = AllFieldProps<PuzzleChoice> & {
  * not merely "NYT". That is the one way this design can lose information the
  * tabs kept on screen.
  */
+/** What `next_nyt_date_for_club` answers. "Nothing left for that weekday" is
+ *  PN478, a `form-validation` naming `source` — a refusal, not an empty ok. */
+type NextDateAnswer = { result: 'found'; puzzle_date: string }
+
 export function PuzzleSourceField({
   name, label, help, entryHelp, error, disabled, className,
   value: s, onChange, seenBy, clubHandle,
@@ -85,11 +91,31 @@ export function PuzzleSourceField({
     if (!wantsWeekday) return
     let active = true
     void (async () => {
-      const { data } = await db.rpc('next_nyt_date_for_club', {
+      const res = await runRpc<NextDateAnswer>(db.rpc('next_nyt_date_for_club', {
         seen_by: seenKey ? seenKey.split(',') : [],
         dow: weekday,
-      })
-      if (active) setNextDate({ key: nextKey, date: (data as string | null) ?? null })
+      }))
+      // The cancel guard first: this refires on every weekday or roster change,
+      // so an in-flight request is routinely abandoned, and `runRpc` reports an
+      // abandoned one as a not-ok like any other.
+      if (!active) return
+      // EACH of the three states this field can be in maps to exactly one
+      // answer now. `undefined` (the stamp unset) is "still looking", and a
+      // failure LEAVES IT THERE deliberately: "none left" is a fact about the
+      // archive that a dead connection has not established, and a group told it
+      // would go looking for a date they already have.
+      if (res.type === 'not-ok' && res.dbcode === 'PN478') {
+        setNextDate({ key: nextKey, date: null })
+        return
+      } else if (res.type === 'not-ok') {
+        return
+      } else if (res.type === 'ok' && res.data.result === 'found') {
+        setNextDate({ key: nextKey, date: res.data.puzzle_date })
+        return
+      } else {
+        showFaultModal({ text: 'BUG: next_nyt_date_for_club fell through to unhandled' })
+        return
+      }
     })()
     return () => {
       active = false

@@ -1,8 +1,8 @@
 # The Deno callers — the fourth quadrant
 
-**Status: the wrapper is BUILT; nine of its ten call sites are on it
-(2026-09-01).** Only `crosswords-explain-clue` is left, waiting on
-`reveal_solved_word`. The other seven call RPCs that have not converted yet, and they
+**Status: DONE (2026-09-01)** — the wrapper is built and all ten call sites
+are on it. What remains of this plan is its record of why, which folds into
+docs/envelopes.md when the sprint ends. The other seven call RPCs that have not converted yet, and they
 join as those do — see §6. A piece of the error sprint
 ([error-system.md](error-system.md)), split out because it is engine work rather
 than a roster entry: it is the inbound half of the envelope in Deno, and the
@@ -197,10 +197,13 @@ the wrapper already there.
       to UNWRAP rather than relay. PN316 deleted; its shim was the one that
       started this plan
 
-**Blocked, each on one RPC's conversion** — these keep their shim until then,
-because pointing `runRpc` at an unconverted RPC would fault every SUCCESS:
+**Converted with their RPCs**, each in the same commit — pointing `runRpc` at
+an unconverted RPC would have faulted every SUCCESS, so neither half could move
+alone:
 
-- [ ] `crosswords-explain-clue` — waits on `crosswords.reveal_solved_word`
+- [x] `crosswords-explain-clue` — converted with `reveal_solved_word`
+      (2026-09-01), the LAST of the ten. PN325 deleted; it unwraps the ok and
+      branches on `result` where it used to test `answer` for null
 - [x] `scrabble-ai-move` (4 sites) — converted with scrabble's RPCs
       (2026-09-01). Its `stale` break became `res.severity === 'race'`: losing
       the race to another driver is the ORDINARY outcome here, since every
@@ -209,8 +212,10 @@ because pointing `runRpc` at an unconverted RPC would fault every SUCCESS:
       argument existed to do
 - [x] `scrabble-suggest-move` — converted with `get_suggest_context`. PN332
       deleted; it UNWRAPS the ok rather than relaying, like the duet suggester
-- [ ] `crosswords-import-nyt`'s second call — waits on `next_nyt_date_for_club`
-      (a roster row in error-system.md already)
+- [x] `crosswords-import-nyt`'s second call — converted with
+      `next_nyt_date_for_club`. It RELAYS both arms now: the empty answer moved
+      into the RPC, because the setup form asks the same question and deserved
+      the same sentence. PN227/PN228 deleted
 
 ### Roster rows that error-system.md is missing
 

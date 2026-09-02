@@ -5,6 +5,7 @@ set search_path = crosswords, common, public, extensions;
 select plan(17);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 select pg_temp.xw_insert_puzzle('h-2x2', pg_temp.xw_meta_2x2(), pg_temp.xw_sol_2x2()) as pz_id \gset
@@ -27,10 +28,10 @@ select (crosswords.create_game(
         'bea22222-2222-2222-2222-222222222222'::uuid], 'compete')->'data'->>'id')::uuid as gp_id \gset
 
 -- ── Coop: solving the whole grid wins ────────────────────────────────
-select set_cell from crosswords.set_cell(:'gc_id', 0, 0, 'c', false);
-select set_cell from crosswords.set_cell(:'gc_id', 0, 1, 'a', false);
-select set_cell from crosswords.set_cell(:'gc_id', 1, 0, 't', false);
-select solved as s_last from crosswords.set_cell(:'gc_id', 1, 1, 's', false) \gset
+select crosswords.set_cell(:'gc_id', 0, 0, 'c', false);
+select crosswords.set_cell(:'gc_id', 0, 1, 'a', false);
+select crosswords.set_cell(:'gc_id', 1, 0, 't', false);
+select (crosswords.set_cell(:'gc_id', 1, 1, 's', false) -> 'data' ->> 'solved')::boolean as s_last \gset
 select is(:'s_last'::boolean, true, 'the final correct fill reports solved = true');
 
 reset role;
@@ -52,20 +53,20 @@ reset role;
 
 -- ── Pencil counts toward solve (mirror isPuzzleSolved) ───────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select set_cell from crosswords.set_cell(:'gc2_id', 0, 0, 'c', false);
-select set_cell from crosswords.set_cell(:'gc2_id', 0, 1, 'a', false);
-select set_cell from crosswords.set_cell(:'gc2_id', 1, 0, 't', false);
+select crosswords.set_cell(:'gc2_id', 0, 0, 'c', false);
+select crosswords.set_cell(:'gc2_id', 0, 1, 'a', false);
+select crosswords.set_cell(:'gc2_id', 1, 0, 't', false);
 -- Last cell is PENCIL but correct — solve does not skip pencil.
-select solved as s_pencil from crosswords.set_cell(:'gc2_id', 1, 1, 's', true) \gset
+select (crosswords.set_cell(:'gc2_id', 1, 1, 's', true) -> 'data' ->> 'solved')::boolean as s_pencil \gset
 select is(:'s_pencil'::boolean, true, 'a correct PENCIL cell still completes the solve');
 reset role;
 
 -- ── Compete: first fully-correct grid wins outright ──────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select set_cell from crosswords.set_cell(:'gp_id', 0, 0, 'c', false);
-select set_cell from crosswords.set_cell(:'gp_id', 0, 1, 'a', false);
-select set_cell from crosswords.set_cell(:'gp_id', 1, 0, 't', false);
-select solved as s_comp from crosswords.set_cell(:'gp_id', 1, 1, 's', false) \gset
+select crosswords.set_cell(:'gp_id', 0, 0, 'c', false);
+select crosswords.set_cell(:'gp_id', 0, 1, 'a', false);
+select crosswords.set_cell(:'gp_id', 1, 0, 't', false);
+select (crosswords.set_cell(:'gp_id', 1, 1, 's', false) -> 'data' ->> 'solved')::boolean as s_comp \gset
 select is(:'s_comp'::boolean, true, 'compete: completing your grid reports solved');
 reset role;
 
@@ -88,9 +89,13 @@ select is(
 -- grid — set_cell's play_state guard rejects it — so nothing can flip the
 -- already-recorded winner. This is the win-race guard the plan asked to pin.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select throws_ok(
-  format('select crosswords.set_cell(%L, 0, 0, %L, false)', :'gp_id', 'c'),
-  'P0001', null, 'compete: set_cell is rejected once the game is terminal');
+-- A RACE: a rival finished the grid while this keystroke was in flight, which
+-- is the win-race guard the plan asked to pin.
+select pg_temp.envelope_is(
+  crosswords.set_cell(:'gp_id', 0, 0, 'c', false),
+  '{"type":"not-ok","severity":"race","dbcode":"PN464",
+    "message":"Game over"}'::jsonb,
+  'compete: set_cell is rejected once the game is terminal');
 reset role;
 select is(
   (select status ->> 'winner_username' from common.games where id = :'gp_id'),
@@ -113,8 +118,8 @@ select (crosswords.create_game(
   array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop')->'data'->>'id')::uuid as gr_first \gset
 
 -- Full-string rebus fill: "HEART" in (0,0), "S" in (0,1).
-select set_cell from crosswords.set_cell(:'gr_full', 0, 0, 'heart', false);
-select solved as s_rebus_full from crosswords.set_cell(:'gr_full', 0, 1, 's', false) \gset
+select crosswords.set_cell(:'gr_full', 0, 0, 'heart', false);
+select (crosswords.set_cell(:'gr_full', 0, 1, 's', false) -> 'data' ->> 'solved')::boolean as s_rebus_full \gset
 select is(:'s_rebus_full'::boolean, true, 'rebus: the full-string fill completes the solve');
 reset role;
 select is((select play_state from common.games where id = :'gr_full'), 'won',
@@ -122,7 +127,7 @@ select is((select play_state from common.games where id = :'gr_full'), 'won',
 
 -- Bare first-letter fill: "H" alone stands in for "HEART"; "S" in (0,1).
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select set_cell from crosswords.set_cell(:'gr_first', 0, 0, 'h', false);
+select crosswords.set_cell(:'gr_first', 0, 0, 'h', false);
 -- check_cells on the lone "H": it's a CORRECT first-letter fill for the rebus,
 -- so the check must NOT flag it wrong.
 select crosswords.check_cells(:'gr_first', '[{"row":0,"col":0}]'::jsonb);
@@ -131,7 +136,7 @@ select is((select wrong from crosswords.cells
              where game_id = :'gr_first' and owner_id is null and row = 0 and col = 0),
   false, 'rebus: check does not flag a correct bare first-letter fill');
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select solved as s_rebus_first from crosswords.set_cell(:'gr_first', 0, 1, 's', false) \gset
+select (crosswords.set_cell(:'gr_first', 0, 1, 's', false) -> 'data' ->> 'solved')::boolean as s_rebus_first \gset
 select is(:'s_rebus_first'::boolean, true, 'rebus: the bare first-letter fill also completes the solve');
 reset role;
 
