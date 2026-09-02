@@ -86,8 +86,14 @@ export function usePath(): string {
  * — back button, forward button, hash change. Our synthetic dispatch
  * is a documented pattern for "programmatic nav uses the same
  * subscriber path as user nav.")
+ *
+ * Navigating to where you already are does nothing at all — see below.
  */
 export function navigate(to: string, replace = false) {
+  // A push to the current URL stacks an identical entry, so Back lands on the
+  // same page and appears broken. The comparison spans the query and hash, not
+  // just the path: `/c/x?new=wordle` is a real move from `/c/x`.
+  if (to === window.location.pathname + window.location.search + window.location.hash) return
   if (replace) {
     window.history.replaceState(null, '', to)
   } else {

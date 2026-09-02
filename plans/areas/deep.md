@@ -32,8 +32,9 @@ understood, tidied* — `cs-blessed` here means he has read the file, not seen i
 **Every heading says its status**; a heading with **no status prefix means OPEN**.
 
 **One pass of three has run** — the boot path, 2026-09-02, sixteen findings.
-Four RESOLVED (`F-deep-2`, `F-deep-4`, `F-deep-5`, `F-deep-9`), one CLOSED
-(`F-deep-3`), one MOVED to `corecss` (`F-deep-1`); the other ten are open. The data path and the realtime plumbing
+Five RESOLVED (`F-deep-2`, `F-deep-4`, `F-deep-5`, `F-deep-6`, `F-deep-9`), one
+CLOSED (`F-deep-3`), one MOVED to `corecss` (`F-deep-1`); the other nine are
+open. The data path and the realtime plumbing
 have not been read.
 
 ## The roster — 32 files, 4,866 lines
@@ -141,7 +142,7 @@ modal — but it has three live consumers (`ClubGameCard:59`, `GamePage:178`, `E
 ## Findings — pass 1, the boot path
 
 Sixteen — **F-deep-1 … F-deep-16**. Every heading says its status; a heading
-with no status prefix means OPEN, and ten are.
+with no status prefix means OPEN, and nine are.
 
 ## MOVED · F-deep-1 · `stylesheet-map-rotted` · main.tsx's map of the stylesheet chain names two files that were deleted
 
@@ -281,14 +282,33 @@ it.
 > It does not foreclose `F-deep-12`: if the router later carries the query,
 > `readPath` becomes `pathname + search` and stays a primitive.
 
-## F-deep-6 · `navigate-pushes-duplicate-entries` · Navigating to the path you are already on adds a history entry
+## RESOLVED · F-deep-6 · `navigate-pushes-duplicate-entries` · Navigating to the path you are already on adds a history entry
 
 `navigate()` (`router.ts:90`) always pushes. Called with the current path it
 stacks an identical entry, so the next Back press appears to do nothing — the URL
 is the same and every subscriber re-renders to the same value. Nothing does this
 today; it costs one comparison to make impossible.
 
-> resolution:
+> **resolution: an early return when the URL is already the one asked for**
+> (Joel, 2026-09-02). It covers `replace` as well as push — a `replaceState` to
+> the identical URL changes nothing either, and dispatching `popstate` for it
+> wakes every subscriber for no change.
+>
+> **The comparison spans the query and hash, not just the pathname**, and that is
+> the load-bearing detail rather than a nicety: `ClubPage:335` clears `?new=` with
+> `navigate(window.location.pathname, true)`, so a pathname-only comparison would
+> turn the strip into a no-op and strand the query in the URL bar.
+>
+> **All fifteen call sites checked first.** None navigates to the URL it is
+> already on; `GamePage`'s `goToGame` looked like the exception and is not — it is
+> for a PlayArea that just started a FOLLOW-UP game, so the id differs.
+>
+> Two tests, each proved by planting a different mistake: removing the guard fails
+> *"does nothing when the URL is already the one asked for"*, and narrowing the
+> comparison to the pathname fails *"still strips a query…"*. The second test was
+> written the wrong way round first — it added a query rather than removing one,
+> which passes under both implementations, and the plant is what caught that it
+> guarded nothing.
 
 ## F-deep-7 · `link-intercepts-target-blank` · The one "open elsewhere" gesture Link does not honor
 

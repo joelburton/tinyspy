@@ -107,6 +107,31 @@ describe('navigate', () => {
     expect(window.location.pathname).toBe('/g/some-id')
   })
 
+  it('does nothing when the URL is already the one asked for', () => {
+    window.history.replaceState(null, '', '/c/here')
+    const pushSpy = vi.spyOn(window.history, 'pushState')
+    const replaceSpy = vi.spyOn(window.history, 'replaceState')
+    const popstateListener = vi.fn()
+    window.addEventListener('popstate', popstateListener)
+
+    navigate('/c/here')
+    navigate('/c/here', true)
+
+    expect(pushSpy).not.toHaveBeenCalled()
+    expect(replaceSpy).not.toHaveBeenCalled()
+    expect(popstateListener).not.toHaveBeenCalled()
+    window.removeEventListener('popstate', popstateListener)
+  })
+
+  it('still strips a query, which is a move even though the path is unchanged', () => {
+    // ClubPage clears `?new=` with navigate(pathname, true) once it has read
+    // it. A guard that compared only the PATHNAME would make that a no-op and
+    // strand the query in the URL bar — so the comparison spans the query too.
+    window.history.replaceState(null, '', '/c/here?new=wordle')
+    navigate('/c/here', true)
+    expect(window.location.pathname + window.location.search).toBe('/c/here')
+  })
+
   it('dispatches a popstate so usePath subscribers re-render', () => {
     const popstateListener = vi.fn()
     window.addEventListener('popstate', popstateListener)
