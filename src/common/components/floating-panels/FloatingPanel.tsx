@@ -21,7 +21,7 @@ import styles from './FloatingPanel.module.css'
 // per-call. See the ClampMode type in useDraggablePanel.)
 
 /**
- * Which KIND of floating panel this is (plans/css-system-2.md §20).
+ * Which KIND of floating panel this is (plans/app-audit.md §20).
  *
  * The five families are the app's vocabulary for what a panel claims about the
  * page underneath it, and declaring one is how a panel gets held to that claim

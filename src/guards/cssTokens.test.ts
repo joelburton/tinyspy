@@ -64,7 +64,7 @@ function scanTokens() {
   //   UNDERSCORE a leading --_ marks a name private to one file
   //              (--_cardGap), the CSS answer to a local variable.
   //
-  // Both conventions are plans/css-system-2.md §5. A narrower class does not
+  // Both conventions are plans/app-audit.md §5. A narrower class does not
   // reject them — it makes them INVISIBLE here, so a typo'd --_crdGap would
   // never fail this guard. That is the failure mode to protect against.
   const TOKEN = String.raw`--[a-zA-Z0-9_-]+`
@@ -160,7 +160,7 @@ describe('CSS custom-property tokens', () => {
    * below would otherwise fail on.
    *
    * The CSS sprint lands a vocabulary as a whole ramp and then converts
-   * surfaces to it area by area (plans/css-system-2.md §6.6), so for a while
+   * surfaces to it area by area (plans/app-audit.md §6.6), so for a while
    * most of a ramp has nowhere reading it. The alternative — parking the
    * scale in a comment until someone needs a step — is worse than it sounds:
    * a commented token is invisible to every instrument we own. This guard,

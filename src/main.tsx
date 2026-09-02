@@ -20,12 +20,12 @@ import { createRoot } from 'react-dom/client'
  * never an unconditional default. Put daylight on a bare `:root` and
  * any role midnight forgets resolves silently to a light hex on a dark
  * page, which is worse than an undefined token because it resolves to
- * something plausible. See plans/css-system-2.md §3.
+ * something plausible. See plans/app-audit.md §3.
  *
  * All of it is EAGER and global. A game's own brand anchors ship in
  * that game's lazy chunk, which is why crosswords/SetupForm.tsx has to
  * import its own — an undefined custom property invalidates the whole
- * declaration, silently. See plans/css-system-2.md §9. */
+ * declaration, silently. See plans/app-audit.md §9. */
 import './common/fixed.css'
 import './common/base.css'
 import './common/patterns/badge.css'

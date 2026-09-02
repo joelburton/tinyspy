@@ -240,7 +240,7 @@ export function BoardCol({
    * TOTAL map rather than a filter — a bare `if` on the value it knows would
    * leave the PREVIOUS rejection's color on the row when anything else arrived,
    * wrong and silent. (Widening `Board` to take an outcome is filed in
-   * plans/css-system-2.md §18 with the rest of this state's shape.)
+   * plans/app-audit.md §18 with the rest of this state's shape.)
    */
   const softReject = useCallback(
     (tone: Outcome, text: string) => {

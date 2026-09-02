@@ -1,13 +1,13 @@
 # OUTDATED — DO NOT READ
 
-**Claude: go away. Read [css-system-2.md](css-system-2.md) instead.**
+**Claude: go away. Read [app-audit.md](app-audit.md) instead.**
 
 This is the superseded first draft of the CSS sprint plan. Much of its model
 FAILED — that is why there is a second one. Nothing here is authoritative, and
 reading it is how a settled decision gets re-litigated against a version we
 already threw out.
 
-**It is kept for one purpose only:** so Joel can say "go look at css-system-2's
+**It is kept for one purpose only:** so Joel can say "go look at app-audit's
 predecessor for X" when he suspects something was agreed and then lost. That
 sentence, from Joel, is the ONLY reason to open this file. A grep hit is not
 that sentence. Neither is curiosity, nor "checking whether it says anything

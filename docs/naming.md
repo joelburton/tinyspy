@@ -215,7 +215,7 @@ game chrome is **justified** (a difference owes a reason in the file), and
 everything non-game is **locked** (a difference is a bug until someone says
 otherwise).
 
-**The definition lives in [`plans/css-system-2.md` §6.5](../plans/css-system-2.md)**
+**The definition lives in [`plans/app-audit.md` §6.5](../plans/app-audit.md)**
 — including the two boundary rules and what "locked" does and doesn't constrain
 — and that file has precedence while the sprint runs. Repeating it here would
 just create a second copy to disagree with.

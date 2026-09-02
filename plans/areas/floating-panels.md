@@ -1,11 +1,11 @@
 # Area: floating-panels
 
 The second area of the CSS sprint's step 7. The process is
-[css-system-2.md](../css-system-2.md) §21; the plan holds the order, this file
+[app-audit.md](../app-audit.md) §21; the plan holds the order, this file
 holds everything else.
 
 **Opened 2026-08-24 as `dialogs-and-forms`; SPLIT the same day.** The forms half
-became its own area, [forms](../css-system-2.md) (§7 → The areas, in order,
+became its own area, [forms](../app-audit.md) (§7 → The areas, in order,
 position 3), which runs directly after this one. A floating panel and a form
 share a container and nothing else — the same area holding both meant one file
 carrying two vocabularies, and the name had stopped being true besides. "Dialog"

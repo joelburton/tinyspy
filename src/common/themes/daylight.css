@@ -58,7 +58,7 @@
 /* @@ */   --floatingPanel-titlebar-color: #f0f0f0;
 
   /* THE OTHER TWO TEXT GRAYS. The four together are one of the eight
-     vocabularies (plans/css-system-2.md §6.6) and the only one that is
+     vocabularies (plans/app-audit.md §6.6) and the only one that is
      color, which is why it is here and the other seven are constants
      in base.css.
 
@@ -174,7 +174,7 @@
      kept a considered 0.124 of distance so a destructive action could
      never read as a loss. The distance was retired knowingly — a
      terminal frame and a Delete button are never in the same
-     sightline. (Parked in css-system-2 §16: it should read
+     sightline. (Parked in app-audit §16: it should read
      differently, and 0.037 is not "differently".)
 
      Tried and rejected: lost's own #ef5350. At lightness 0.654 and hue

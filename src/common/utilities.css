@@ -7,7 +7,7 @@
  * and names nothing. A class that names a THING gets its own file in
  * patterns/ instead — the button did, and the list did after it. The
  * default is a new file per pattern: too many files merge easily, one
- * long file has to be read through (plans/css-system-2.md §7).
+ * long file has to be read through (plans/app-audit.md §7).
  *
  * Everything here is unscoped, which is why the set stays small.
  *

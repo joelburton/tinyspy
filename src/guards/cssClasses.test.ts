@@ -160,7 +160,7 @@ for (const f of CODE_FILES) {
  * Files with a known miss, waiting on the area that owns them.
  *
  * The same shrinking-allowlist rule the vocabulary guard uses
- * (plans/css-system-2.md §10): a listed path is silent, an unlisted one fails,
+ * (plans/app-audit.md §10): a listed path is silent, an unlisted one fails,
  * and a listed path that no longer misses has to leave the list. Every line
  * names the area that will clear it — a scoped pass never edits another game's
  * code, so finding these is where this guard's job ends.

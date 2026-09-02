@@ -260,7 +260,7 @@
  * is essential — without it the column grows to fit content and the log's
  * `overflow-y: auto` never engages. */
 /* @@ */ .infoCol {
-  /* THE ONE SATELLITE HOST in the app (plans/css-system-2.md §20). A dropdown
+  /* THE ONE SATELLITE HOST in the app (plans/app-audit.md §20). A dropdown
      sits just above whatever CONTAINS it, and `<FilterSelect>` — the word-list
      filter and the turn-log player picker — opens in here. Declaring the column
      as the host puts those dropdowns at 1301, clear of the local layering the

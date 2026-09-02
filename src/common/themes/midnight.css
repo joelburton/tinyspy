@@ -8,7 +8,7 @@
  * this sprint built is in the right place, by being the first thing
  * that ever asked. Every value here is a first guess; several are
  * visibly wrong on purpose, because a role that has no good dark
- * answer is exactly the finding we are after. See plans/css-system-2.md
+ * answer is exactly the finding we are after. See plans/app-audit.md
  * §13 step 4.
  *
  * It answers every role daylight.css defines, in the same order, so
@@ -44,7 +44,7 @@
      carries on white, low enough to still read as a dark room. Below
      about L* 15 the depth cue is simply not available at any alpha,
      which is a fact about the page and not about the shadow. See
-     plans/css-system-2.md §19.
+     plans/app-audit.md §19.
 
      COOL all the way up, so the family holds together, and the warm
      tile ramp is deliberately left warm against it — a board of wood
@@ -360,7 +360,7 @@
      tile ramp — WORKED: it took the stackdown tile's shadow from a
      step of 5 to 33 out of 255. It is parked rather than deleted,
      because it is still the strongest answer to the depth question and
-     a slate page does not replace it (plans/css-system-2.md §19).
+     a slate page does not replace it (plans/app-audit.md §19).
 
      Two things it taught while it was in:
 

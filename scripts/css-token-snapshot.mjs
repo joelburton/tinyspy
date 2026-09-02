@@ -7,7 +7,7 @@
  *     node scripts/css-token-snapshot.mjs after.json before.json   # capture + diff
  *
  * This is the acceptance instrument for the css-system sprint's step 3
- * (plans/css-system-2.md → §13), whose exit criterion is that every value which
+ * (plans/app-audit.md → §13), whose exit criterion is that every value which
  * MOVED is deliberate. Restructuring hundreds of token definitions across new files is exactly
  * the kind of change that is impossible to eyeball and trivial to get subtly
  * wrong, so the check is mechanical: resolve every token before, resolve every

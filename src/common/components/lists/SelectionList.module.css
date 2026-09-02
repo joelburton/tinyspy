@@ -102,7 +102,7 @@
      flag, a hover-revealed delete affordance. Those want the ROW's corners, not
      the corners of some box inset by its padding, so the anchor has to be here. */
   position: relative;
-  /* Tuned to the box, not taken from a ramp (plans/css-system-2.md §7). */
+  /* Tuned to the box, not taken from a ramp (plans/app-audit.md §7). */
   padding: 0.5rem 0.9rem;
   color: var(--page-text-color);
   text-align: left;

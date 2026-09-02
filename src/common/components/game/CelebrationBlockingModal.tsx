@@ -119,7 +119,7 @@ export function CelebrationBlockingModal({
     >
       {/* The title is rendered HERE rather than passed to `<BlockingModal>`,
           because the confetti has to come above it — and because this h2 is
-          still at h1's size, which is a live question (plans/css-system-2.md §7)
+          still at h1's size, which is a live question (plans/app-audit.md §7)
           and not something a structural move should quietly settle. */}
       <div className={styles.content} role="dialog" aria-label={title}>
         <div className={styles.confetti} aria-hidden>

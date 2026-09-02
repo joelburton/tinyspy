@@ -54,7 +54,7 @@ export function TurnLog({
    *  bare-`<h3>` branch below has no callers. It was written to let games adopt
    *  the picker one at a time; the last one landed and nobody removed the ramp.
    *  Make it required and delete the branch — the section-header pattern pass
-   *  is the moment to do it (plans/css-system-2.md §7). */
+   *  is the moment to do it (plans/app-audit.md §7). */
   headerAction?: ReactNode
   /** True when there are no rows — renders the muted empty state instead. */
   empty: boolean

@@ -7,7 +7,7 @@ import { inScope, readStamp, STAMPS } from '../../scripts/cs-stamp.mjs'
 /**
  * Guard: every file in the sprint's scope says where it stands.
  *
- * The css-system sprint (plans/css-system-2.md) reads the repo area by area,
+ * The css-system sprint (plans/app-audit.md) reads the repo area by area,
  * and each file carries one `cs-` comment on its first line — `cs-unmet`
  * through `cs-blessed`. The stamp lives IN the file because the sprint renames
  * constantly and a central manifest would rot on every rename.

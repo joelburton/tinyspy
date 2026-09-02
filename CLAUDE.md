@@ -67,15 +67,39 @@ Each game doc carries that game's rules, schema, RPCs, FE shape, and tests; the 
 
 A plan is a working document for a sprint: the agreed design, the evidence, and what's left. When a plan and a reference doc disagree, the doc describes today and the plan describes the target. When a plan's work ships, its durable knowledge moves into `docs/` and the plan is deleted.
 
+**How these sprints nest — read this before trusting the branch name.** Each one
+was found *inside* the one before it, so the plans stack four deep and the branch
+is named after the outermost:
+
+1. **tile-feedback** — the original, and a small one: improve the feedback a
+   board gives during play.
+2. **app-audit** (was `css-system-2`) — starting tile-feedback turned up how
+   messy the CSS was, so tile-feedback **paused** and this began. It was never
+   given a branch of its own, which is why the branch carried the wrong name
+   for so long.
+3. **The area-by-area pass** — app-audit grew from "one palette in one place"
+   into an app-wide walk through each area's React, SQL *and* CSS. That is what
+   the name now means, and why it stopped being "the CSS sprint".
+4. **The error/envelope sprint** — found early in that walk: how RPCs, reads,
+   edge functions and their failures are written. It became its own sprint,
+   paused the audit behind it, and **finished 2026-09-01**.
+
+**Where that leaves things: app-audit is the live sprint, and it is the only
+one.** The error sprint is done, and tile-feedback is **not** queued to resume as
+a sprint of its own — its ideas get folded into each area as that area is
+audited, which is the natural place for them since an area's board work is
+already open. So `plans/tile-feedback.md` is a design reference to consult per
+area, not a pass waiting its turn.
+
 | file | the work |
 |---|---|
-| [plans/css-system-2.md](plans/css-system-2.md) | **The CSS sprint** (unblocked 2026-09-01, when the error/envelope sprint finished), and the ONLY spec for it — one palette in one place, a theme-ready structure, named patterns, and the vocabularies. Start a session there (§13 holds the next step; §7 → "The areas, in order" holds the sequence, resequenced 2026-08-24). Runs BEFORE tile-feedback; each game takes its CSS pass and its tf pass back to back |
-| [plans/tile-feedback.md](plans/tile-feedback.md) | **The design target for tile/board feedback** — one channel per meaning, with a per-game conversion roster tracked by **tf level** (tf0 untouched · tf1 done in round 1, pre color+buttons · tf2 done against the current framework, on top of that game's CSS pass; every game ends at tf2). **PAUSED behind css-system-2.md.** Folds into ui.md once the games conform |
+| [plans/app-audit.md](plans/app-audit.md) | **THE LIVE SPRINT** — the app-wide, area-by-area audit (React, SQL and CSS together), and the ONLY spec for it. Began as the CSS half — one palette in one place, a theme-ready structure, named patterns, the vocabularies — and grew into the whole walk; renamed from `css-system-2` 2026-09-02 because "the CSS sprint" had stopped describing it. Unblocked 2026-09-01 when the error/envelope sprint finished. Start a session there (§13 holds the next step; §7 → "The areas, in order" holds the sequence, resequenced 2026-08-24) |
+| [plans/tile-feedback.md](plans/tile-feedback.md) | **The design target for tile/board feedback** — one channel per meaning, with a per-game roster tracked by **tf level** (tf0 untouched · tf1 done in round 1, pre color+buttons · tf2 done against the current framework). **Not a queued sprint: read it per AREA.** Its work folds into each area's audit rather than waiting for a pass of its own, so consult it whenever app-audit opens a game's board. Folds into ui.md once the games conform |
 | [plans/tab-rings.md](plans/tab-rings.md) | **Our version of tabbing** — Tab moves within a ring of stops a surface declared and never reaches the URL bar. Eight behaviors today, five of them one idea; crosswords is the only genuine exception. **The mechanism is built** (`useTabRing`); surfaces convert per area |
 | [plans/dark-mode.md](plans/dark-mode.md) | **Not scheduled** — what the midnight spike proved: the CSS system CAN carry a dark theme, what it would still cost, and the one thing not solved (depth on a dark page). Reachable today behind `?theme=midnight` |
 | [plans/keyboard-nav-plan.md](plans/keyboard-nav-plan.md) | Arrow-key navigation of board pieces for the five games where clicking pieces IS the move; two prerequisites land first |
 | [plans/error-system.md](plans/error-system.md) | **DONE — the results/rejections/faults sprint**, 157 of 157 roster entries converted (2026-09-01), and the deletion it ends with has happened: `errorCopy.ts`, `serverError.ts`, `callRpc.ts` and `serverErrorKeys.test.ts` are gone and `callSiteShape.test.ts` is a hard assertion. The SHAPE lives in [docs/envelopes.md](docs/envelopes.md), which outranks this file; what the plan still owns is the per-area record of how the conversion went — the roster, and what each area's conversion turned up |
-| [plans/css-philosophy.md](plans/css-philosophy.md) | **The reasoning archive** behind css-system-2.md: what CSS we share and why we haven't. Kept in full — the plan cites it rather than restating it |
+| [plans/css-philosophy.md](plans/css-philosophy.md) | **The reasoning archive** behind app-audit.md: what CSS we share and why we haven't. Kept in full — the plan cites it rather than restating it |
 | plans/css-system-outdated-dont-read.md | **DO NOT READ.** The superseded first draft of the CSS sprint, much of whose model failed. Listed here only so its presence in `plans/` isn't mistaken for an oversight. Open it if — and only if — Joel says to |
 
 

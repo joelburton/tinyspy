@@ -33,7 +33,7 @@
  * weight. Weight 100–1000, width 25–151%, grade −200…150, slant 0…−10°, and
  * optical size 8–144. `font-stretch` is how CSS spells width, and declaring
  * the ranges here is what lets a rule ask for 62.5% or 700 without a second
- * download. plans/css-system-2.md §22 has why this face, what each dial buys
+ * download. plans/app-audit.md §22 has why this face, what each dial buys
  * and what each one cost in bytes.
  *
  * WIDTH IS THE ONE THAT EARNED IT. A word on a psychicnum or connections tile
@@ -99,7 +99,7 @@
      a CHOICE FROM A LIST rather than a fresh decision nobody will
      remember making. The radii above are one; these are the rest.
 
-     plans/css-system-2.md §6.6 names eight. Seven are here, because a
+     plans/app-audit.md §6.6 names eight. Seven are here, because a
      distance, a duration and a weight of line are the same in daylight
      and midnight. The eighth is the text grays, which is color and
      therefore lives in the theme.
@@ -403,7 +403,7 @@
      **THE OLD `--z-index-*` LADDER IS GONE** (2026-08-25). It ran
      alongside this one while components migrated a rung at a time, and
      it is empty now that every reader has moved — which is the
-     condition plans/css-system-2.md §20 set for it to disappear. Eight
+     condition plans/app-audit.md §20 set for it to disappear. Eight
      tokens, thirteen declarations, eleven files.
 
      `--z-<layer>`, not `--z-index-<layer>`. The token IS the layer, and

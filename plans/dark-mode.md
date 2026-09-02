@@ -3,7 +3,7 @@
 **NOT SCHEDULED.** This records what a spike proved, so the decision to build it
 can be made later on evidence rather than re-derived.
 
-The spike ran on 2026-08-20/21 as step 4 of [css-system-2.md](css-system-2.md),
+The spike ran on 2026-08-20/21 as step 4 of [app-audit.md](app-audit.md),
 whose question was narrow: *does the file split that sprint built hold up when
 something other than the light theme asks it to?* It does. It is kept behind a
 flag rather than deleted, because a second theme is the only instrument that
@@ -142,7 +142,7 @@ All of it is color work, not structural work.
   per-theme judgment.
 - **The tile ramp**, twelve values picked in one sitting and never eyeballed.
 - **Assets**: 17 game logos carry baked color, and the wordmark and favicon carry
-  near-whites that fail on a dark page (css-system-2 step 11).
+  near-whites that fail on a dark page (app-audit step 11).
 - **`<meta name="color-scheme">` in index.html** says light and would need to
   agree with whatever ships.
 
@@ -155,7 +155,7 @@ invisible until someone opens that page in that theme. Which is exactly how
 stackdown's tiles were transparent for a day.
 
 The instrument for that is **the palette page's theme toggle**
-(css-system-2 §11), which now has something to toggle to. Both themes' families
+(app-audit §11), which now has something to toggle to. Both themes' families
 side by side, with the formula under each cell, is how "answered it badly"
 becomes something you catch in one screen rather than one game at a time. **Build
 that before converting anything else.**

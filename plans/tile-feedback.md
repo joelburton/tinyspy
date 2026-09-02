@@ -4,11 +4,13 @@
 what is; this plan describes what we agreed the play surfaces *should* say, so
 that an audit has something to check each game against.
 
-**PAUSED 2026-08-20, behind [css-system-2.md](css-system-2.md).** The CSS restructure
-resets what a game's stylesheet looks like underneath this sprint, so converting a
-board now and again afterwards is work done to be undone. From here on each game
-takes its **CSS pass and its tile-feedback pass back to back, in that order**,
-while it is loaded in your head.
+**NOT A SPRINT OF ITS OWN — read this per AREA** (2026-09-02). It paused on
+2026-08-20 behind [app-audit.md](app-audit.md), because the CSS restructure
+resets what a game's stylesheet looks like underneath this work and converting a
+board twice is work done to be undone. It does not resume afterwards either:
+its findings are folded into each area's audit instead, while that area is
+already open and loaded in your head. So this file is the design target an
+audit checks a board against, not a queue waiting its turn.
 
 **Where we are: 0 of 16 games at tf2.** The sprint restarted after the color and
 button mini-sprints changed the ground underneath it, so every game — including
@@ -576,7 +578,7 @@ is not making. The argument against is this doc's table, which is otherwise
 strict about one channel per meaning.
 
 **A dark theme raises the stakes**, which is why this surfaced now: on a dark page
-a darkening shadow is capped by the page's own lightness (css-system-2 §19), so
+a darkening shadow is capped by the page's own lightness (app-audit §19), so
 if hover is shadow-only it may not carry there at all — and the lift, which costs
 nothing on any background, might be the half doing the work.
 

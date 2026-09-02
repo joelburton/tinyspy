@@ -34,7 +34,7 @@ type Props = {
 
 /**
  * **The blocking modal** — the shell for the strictest category the app has
- * (plans/css-system-2.md §20). The world stops: nothing underneath is live,
+ * (plans/app-audit.md §20). The world stops: nothing underneath is live,
  * and you answer it now.
  *
  * It exists because the category was hand-assembled at every site — four

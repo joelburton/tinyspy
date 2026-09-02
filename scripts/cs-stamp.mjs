@@ -1,7 +1,7 @@
 /**
  * The `cs-` sprint stamp — add, remove, change and count it.
  *
- * The css-system sprint (plans/css-system-2.md) reads the repo AREA BY AREA,
+ * The css-system sprint (plans/app-audit.md) reads the repo AREA BY AREA,
  * and every file carries one comment on its first line saying where it stands:
  *
  *   cs-unmet    not reached yet

@@ -1,12 +1,12 @@
 # Area: homepage
 
 The first area of the CSS sprint's step 7. The process is
-[css-system-2.md](../css-system-2.md) §21; the plan holds the order, this file
+[app-audit.md](../app-audit.md) §21; the plan holds the order, this file
 holds everything else.
 
 **Status: PAUSED 2026-08-26 behind the error/fault redesign**
 (the error/envelope sprint) — and the whole sprint with
-it (css-system-2.md's header). What is left here is F21
+it (app-audit.md's header). What is left here is F21
 (`homepage-no-vitest`), plus the ten dependency findings F45–F54, which belong
 to the areas that own those files.
 
@@ -381,7 +381,7 @@ BETWEEN things*, and rejects "space" partly because "casually it also means the
 room INSIDE a button between its border and its label" — which is padding. And
 `list.css:129` carries a decision written in exactly those terms: `.item-row`'s
 `padding: 0.5rem 0.9rem` is annotated *"Tuned to the box, not taken from a ramp
-(plans/css-system-2.md §7)"*, echoing §7's "much of it is a tuple tuned to a
+(plans/app-audit.md §7)"*, echoing §7's "much of it is a tuple tuned to a
 box".
 
 So checking `padding` against the spacer scale would fail a value someone already

@@ -106,7 +106,7 @@ See [`common.md → Deferred / open`](common.md#deferred--open) for more detail 
   *is* (a card → `lg`, a panel → `md`, a chip → `sm`), which is a human judgment.
 
   What changed is *when*: no longer a sweep, but **area by area as each surface
-  is converted** (plans/css-system-2.md §13 → "How a value gets converted"). A
+  is converted** (plans/app-audit.md §13 → "How a value gets converted"). A
   raw value equal to a token changes silently; one that isn't — the `2px` and
   `3px` micro-radii, boggle's `12px` tray — gets surfaced and looked at once, in
   context, rather than living as a standing exemption. Tuned surfaces (a game's

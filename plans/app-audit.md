@@ -1,6 +1,9 @@
-# CSS System 2
+# App audit — the area-by-area sweep
 
-**The single spec for the CSS sprint.** It draws on the wisdom in
+**The single spec for the live sprint**, and named for what it turned out to be:
+a walk through the app area by area, auditing each one's React, SQL and CSS
+together. It began as the CSS half alone and was called `css-system-2` until
+2026-09-02; §0 is the record of that widening. It draws on the wisdom in
 [css-philosophy.md](css-philosophy.md) and the decisions in `css-system.md`, but
 it exists because much of `css-system.md` FAILED: we built part of a system too
 complex to understand and too fragile to maintain. On any conflict, this

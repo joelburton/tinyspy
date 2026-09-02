@@ -10,7 +10,7 @@
  * plausible LIGHT hex on a dark page — quieter than an undefined token and much
  * worse, because nothing would look broken enough to investigate. Loading one
  * chain means a forgotten role resolves to nothing at all, which is loud.
- * (plans/css-system-2.md §3.)
+ * (plans/app-audit.md §3.)
  *
  * ⚠️ MIDNIGHT IS A SPIKE, behind a flag, and is not finished design. Reach it
  * with `?theme=midnight`; the choice sticks in localStorage so it survives the

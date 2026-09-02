@@ -18,7 +18,7 @@ while dropping `←` and `→`, so an arrow-key hint would have shown two arrows
 the app font and two in something else, side by side.
 
 WHAT WE KEEP is Google's Latin range plus those five symbols
-(plans/css-system-2.md §22). A symbol outside this set is not a bug to fix
+(plans/app-audit.md §22). A symbol outside this set is not a bug to fix
 here: it is surfaced and decided by the area that wants it, the same way a
 value outside a vocabulary is.
 

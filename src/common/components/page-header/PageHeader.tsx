@@ -26,7 +26,7 @@ type Props = {
  * **A component rather than a class**, because the two slots are structure:
  * home, club and game were each assembling the same skeleton by hand, which
  * is how the three drifted apart in the first place (docs/ui.md → the page
- * header; plans/css-system-2.md §7 — a shared stylesheet with several
+ * header; plans/app-audit.md §7 — a shared stylesheet with several
  * consumers and no component is a component waiting to be written).
  *
  * **THE HEIGHT IS A CONTRACT.** All three pages were `2.5rem` tall by
