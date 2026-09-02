@@ -45,60 +45,76 @@ select pg_temp.envelope_is(
   '{"type":"ok","data":{"result":"created"}}'::jsonb,
   'the answer names itself, so a call site has a case to assert');
 
--- A tiny local shorthand: run submit_path against the fixture game with a
--- literal path.
-create function pg_temp.submit(p text) returns text
+-- A tiny local shorthand: submit a literal path against the fixture game.
+-- No `format` any more — a refusal is a VALUE now, not an exception, so the
+-- call needs no deferring.
+create function pg_temp.submit(p text) returns jsonb
 language sql as $$
-  select format('select strands.submit_path(%L::uuid, %L::jsonb)',
-                (select id from g), p)
+  select strands.submit_path((select id from g), p::jsonb)
 $$;
 
+-- Every check below is a FAULT, and one rule covers them: the frontend BUILDS
+-- the trace through `clickTile`, which only ever appends an adjacent,
+-- unvisited, on-board cell. A shape that fails one of these did not come from
+-- our board. The single exception is the last one.
+
 -- ── Not even a path ──
-select throws_ok(pg_temp.submit('"zigzag"'),
-  'P0001', 'bad-path|',
+select pg_temp.envelope_is(pg_temp.submit('"zigzag"'),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN422",
+    "message":"BUG: a trace that is not a path"}'::jsonb,
   'a JSON string is refused by name');
 
-select throws_ok(pg_temp.submit('[]'),
-  'P0001', 'bad-path|',
+select pg_temp.envelope_is(pg_temp.submit('[]'),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN423",
+    "message":"BUG: an empty trace"}'::jsonb,
   'an empty array is refused by name');
 
 -- ── Malformed cells: every shape gets the SAME designed error ──
-select throws_ok(pg_temp.submit('[[0,0],[2]]'),
-  'P0001', 'bad-path-cell|',
+select pg_temp.envelope_is(pg_temp.submit('[[0,0],[2]]'),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN424",
+    "message":"BUG: a trace cell that is not [row, col]"}'::jsonb,
   'a one-element cell is refused by name (not a 23502 from the insert)');
 
-select throws_ok(pg_temp.submit('[[0,0],["a",1]]'),
-  'P0001', 'bad-path-cell|',
+select pg_temp.envelope_is(pg_temp.submit('[[0,0],["a",1]]'),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN424",
+    "message":"BUG: a trace cell that is not [row, col]"}'::jsonb,
   'a non-numeric member is refused by name (not a 22P02 from the cast)');
 
-select throws_ok(pg_temp.submit('[[0,0],[0,1.5]]'),
-  'P0001', 'bad-path-cell|',
+select pg_temp.envelope_is(pg_temp.submit('[[0,0],[0,1.5]]'),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN424",
+    "message":"BUG: a trace cell that is not [row, col]"}'::jsonb,
   'a fractional coordinate is refused by name');
 
 -- ── …but an INTEGRAL float is normalized, not refused ──
-select is(
-  (select strands.submit_path((select id from g), '[[0,0],[0,1.0]]'::jsonb))->>'result',
-  'too_short',
-  'an integral 1.0 normalizes to 1 and the path classifies normally'
-);
+-- And `too_short` is an OK: the frontend does not gate on min_word_length, so
+-- the server's verdict is the first anyone knows rather than a stale check.
+select pg_temp.envelope_is(pg_temp.submit('[[0,0],[0,1.0]]'),
+  '{"type":"ok","outcome":"warning","data":{"result":"too_short"}}'::jsonb,
+  'an integral 1.0 normalizes to 1 and the path classifies normally');
 
 -- ── Geometry ──
-select throws_ok(pg_temp.submit('[[0,5],[0,6]]'),
-  'P0001', 'path-off-board|1|',
-  'an off-board cell is refused, naming WHICH cell');
+select pg_temp.envelope_is(pg_temp.submit('[[0,5],[0,6]]'),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN425",
+    "message":"BUG: a trace off the board"}'::jsonb,
+  'an off-board cell is refused, and the detail names WHICH cell');
 
-select throws_ok(pg_temp.submit('[[0,0],[2,2]]'),
-  'P0001', 'path-not-adjacent|0|1|',
+select pg_temp.envelope_is(pg_temp.submit('[[0,0],[2,2]]'),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN426",
+    "message":"BUG: a trace that jumps"}'::jsonb,
   'a jump is refused — 8-way adjacency is the rule');
 
-select throws_ok(pg_temp.submit('[[0,0],[0,1],[0,0]]'),
-  'P0001', 'path-revisits|',
+select pg_temp.envelope_is(pg_temp.submit('[[0,0],[0,1],[0,0]]'),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN427",
+    "message":"BUG: a trace that crosses itself"}'::jsonb,
   'a self-crossing trace is refused');
 
 -- ── Spent tiles lock ──
+-- THE ONE RACE among the path checks: a teammate found a word overlapping the
+-- path you were drawing, which the frontend cannot have known when it built it.
 select strands.submit_path((select id from g), pg_temp.strands_row_path(0));
-select throws_ok(pg_temp.submit(pg_temp.strands_prefix_path(0, 4)::text),
-  'P0001', 'path-crosses-found|',
+select pg_temp.envelope_is(pg_temp.submit(pg_temp.strands_prefix_path(0, 4)::text),
+  '{"type":"not-ok","severity":"race","dbcode":"PN421",
+    "message":"Crosses a found word"}'::jsonb,
   'a found word''s tiles are spent — tracing through them is refused');
 
 select * from finish();

@@ -18,9 +18,10 @@ begin;
 
 set search_path = strands, common, public, extensions;
 
-select plan(17);
+select plan(18);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -49,7 +50,7 @@ select (strands.create_game(
 -- is deterministic whatever else happens later.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
-  strands.submit_path((select id from game), pg_temp.strands_prefix_path(5, 4))->>'result',
+  strands.submit_path((select id from game), pg_temp.strands_prefix_path(5, 4)) -> 'data' ->> 'result',
   'invalid',
   'the other player can act on the shared board too (coop is shared state)'
 );
@@ -59,19 +60,22 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 -- (2)–(3) You cannot spend what you have not earned
 -- ============================================================
 
-select throws_ok(
-  format($$ select strands.spend_hint(%L) $$, (select id from game)),
-  'P0001',
-  'not-enough-hint-points|',
+-- A RACE, not a fault, and the shared pool is why: the button computes the
+-- shortfall itself and says so without calling, so reaching the server proves
+-- the bar moved after that check — which in coop a teammate can do.
+select pg_temp.envelope_is(
+  strands.spend_hint((select id from game)),
+  '{"type":"not-ok","severity":"race","dbcode":"PN432",
+    "message":"Hint bar not full yet"}'::jsonb,
   'an empty bar cannot be spent'
 );
 
 select strands.submit_path((select id from game), pg_temp.strands_prefix_path(0, 4));
 
-select throws_ok(
-  format($$ select strands.spend_hint(%L) $$, (select id from game)),
-  'P0001',
-  'not-enough-hint-points|',
+select pg_temp.envelope_is(
+  strands.spend_hint((select id from game)),
+  '{"type":"not-ok","severity":"race","dbcode":"PN432",
+    "message":"Hint bar not full yet"}'::jsonb,
   'a PARTLY full bar (1 of 2) still cannot be spent'
 );
 
@@ -81,8 +85,17 @@ select throws_ok(
 
 select strands.submit_path((select id from game), pg_temp.strands_prefix_path(1, 4));
 
+-- ONE call, two columns off it: spending twice here would cash two hints and
+-- make everything below read the wrong one.
 create temp table hint on commit drop as
-select strands.spend_hint((select id from game)) as payload;
+select e as envelope, e -> 'data' as payload
+  from strands.spend_hint((select id from game)) e;
+
+select pg_temp.envelope_is(
+  (select envelope from hint),
+  '{"type":"ok","outcome":"warning","data":{"result":"hinted","hint_points":0}}'::jsonb,
+  'spending answers ok/hinted, in the help-you-asked-for tone'
+);
 
 select is(
   (select jsonb_typeof(payload->'coords') from hint),
@@ -182,10 +195,12 @@ select is(
 select strands.submit_path((select id from game), pg_temp.strands_prefix_path(2, 4));
 select strands.submit_path((select id from game), pg_temp.strands_prefix_path(3, 4));
 
-select throws_ok(
-  format($$ select strands.spend_hint(%L) $$, (select id from game)),
-  'P0001',
-  'hint-already-showing|',
+-- Also a race, and also the shared pool: a teammate's spend rings a word
+-- between your click and this call.
+select pg_temp.envelope_is(
+  strands.spend_hint((select id from game)),
+  '{"type":"not-ok","severity":"race","dbcode":"PN433",
+    "message":"A hint is already showing"}'::jsonb,
   'a second hint is refused while one is unsolved — the board rings one word'
 );
 
@@ -201,7 +216,7 @@ select active_hint_coords as coords from strands.players_state
    and user_id = 'ada11111-1111-1111-1111-111111111111';
 
 select is(
-  strands.submit_path((select id from game), (select coords from hinted))->>'hint_cleared',
+  strands.submit_path((select id from game), (select coords from hinted)) -> 'data' ->> 'hint_cleared',
   'true',
   'finding the hinted word reports that the hint was cleared'
 );
@@ -219,10 +234,10 @@ select is(
 -- ============================================================
 
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
-select throws_ok(
-  format($$ select strands.spend_hint(%L) $$, (select id from game)),
-  '42501',
-  'not-a-player|',
+select pg_temp.envelope_is(
+  strands.spend_hint((select id from game)),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN253",
+    "message":"You are not in this game"}'::jsonb,
   'an outsider cannot spend the club''s hint'
 );
 

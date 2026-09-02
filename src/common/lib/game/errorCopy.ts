@@ -94,18 +94,6 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   // where the sentence names the task (clue vs explanation), because the
   // point of messages is to be clear.
 
-  // ── strands ──
-  // The earned-hint economy, which nothing else on the roster has. All three
-  // are reachable, and in COOP the hint bar is shared — so a teammate can fill
-  // it, spend it, or ring a word between your check and your click.
-  'not-enough-hint-points': { text: () => 'Hint bar not full yet', tone: 'noted' },
-  'hint-already-showing': { text: () => 'A hint is already showing', tone: 'noted' },
-  // The one path check a teammate can cause: they found a word that overlaps
-  // the path you were drawing. Every other path rejection means the FE built a
-  // shape it should never have built.
-  'path-crosses-found': { text: () => 'Crosses a found word' },
-
-
   // ── connections + strands (the dated archives) ──
   // Neither game lets you pick a puzzle any more: the server hands out the
   // earliest one none of the players has seen, in any club
@@ -113,11 +101,6 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   // puzzle left, and it's reachable two ways — the setup dialog's Start, and
   // the in-game "New game". `info`, because nobody did anything wrong.
   //
-
-  // ── wordle ──
-  // Both are per-player states a second submit can land on: the coop board is
-  // shared, so a teammate's winning guess can arrive while yours is in flight.
-  'already-solved': { text: () => 'Already solved', tone: 'noted' },
 
   // The two ways a player-chosen starter (setup.custom_base) fails to make a
   // board. Unlike everything else here these fire at CREATE time and land on

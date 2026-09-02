@@ -336,16 +336,28 @@ grant select on strands.club_game_status to authenticated;
 -- club works forward in publication order. The label is the clue, which is
 -- how a person recognizes a strands puzzle — it is already the game's title,
 -- and on screen from the first second of play.
+-- `create or replace` cannot change a function's return type, and this one
+-- became jsonb. `if exists` because this file is re-applied in full on every
+-- deploy, so the drop has to be a no-op the second time.
+drop function if exists strands.next_puzzle_for_club(uuid[]);
+
 create or replace function strands.next_puzzle_for_club(seen_by uuid[])
-returns table(id uuid, puzzle_date date, label text)
-language sql
+returns jsonb
+language plpgsql
 stable
 security definer
 set search_path = strands, common, public, extensions
 as $$
-  select p.id,
-         p.puzzle_date,
-         p.puzzle_date::text || ': ' || p.clue
+declare
+  found jsonb;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
+begin
+  select jsonb_build_object(
+           'id', p.id,
+           'puzzle_date', p.puzzle_date,
+           'label', p.puzzle_date::text || ': ' || p.clue
+         )
+    into found
     from strands.puzzles p
    where not exists (
            select 1
@@ -356,6 +368,33 @@ as $$
          )
    order by p.puzzle_date
    limit 1;
+
+  -- A VALIDATION, not an empty success, and connections' PN302 word for word.
+  -- Running out of puzzles BLOCKS Start, and what fixes it is an input on this
+  -- very form — uncheck a player who has played them all, or type a date and
+  -- play one again. `column = 'puzzle_id'` puts it under the field that is the
+  -- way out, rather than under the roster that is technically the other one:
+  -- nobody setting up a game thinks "remove a player to get a puzzle".
+  --
+  -- The same condition in the other dated-archive game must not be described
+  -- differently, so the sentence is identical. It carries no brand, which is
+  -- what lets it be.
+  if found is null then
+    raise exception 'Everyone here has played every puzzle. You can open one already played by its date.'
+      using errcode = 'PN416', hint = 'form-validation', column = 'puzzle_id',
+      detail = 'no puzzle unseen by every uid in seen_by';
+  end if;
+
+  return common.ok_envelope(jsonb_build_object('result', 'found', 'puzzle', found));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+end;
 $$;
 
 revoke execute on function strands.next_puzzle_for_club(uuid[]) from public;
@@ -372,15 +411,49 @@ grant execute on function strands.next_puzzle_for_club(uuid[]) to authenticated;
 --
 -- SECURITY INVOKER, unlike its sibling: it reads no history, only the
 -- archive, whose `clue` and `puzzle_date` are already granted.
+-- `create or replace` cannot change a function's return type, and this one
+-- became jsonb. `if exists` because this file is re-applied in full on every
+-- deploy, so the drop has to be a no-op the second time.
+drop function if exists strands.puzzle_for_date(date);
+
 create or replace function strands.puzzle_for_date(target_date date)
-returns table(id uuid, puzzle_date date, label text)
-language sql
+returns jsonb
+language plpgsql
 stable
 set search_path = strands, common, public, extensions
 as $$
-  select p.id, p.puzzle_date, p.puzzle_date::text || ': ' || p.clue
+declare
+  found jsonb;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
+begin
+  select jsonb_build_object(
+           'id', p.id,
+           'puzzle_date', p.puzzle_date,
+           'label', p.puzzle_date::text || ': ' || p.clue
+         )
+    into found
     from strands.puzzles p
    where p.puzzle_date = target_date;
+
+  -- The date is IN the message, because the field it lands under holds the date
+  -- and a bare "no puzzle" would make the reader check what they typed.
+  -- connections' PN303, verbatim.
+  if found is null then
+    raise exception 'No puzzle for %. Try another date.', target_date
+      using errcode = 'PN417', hint = 'form-validation', column = 'puzzle_id',
+      detail = 'no strands.puzzles row with that puzzle_date';
+  end if;
+
+  return common.ok_envelope(jsonb_build_object('result', 'found', 'puzzle', found));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+end;
 $$;
 
 revoke execute on function strands.puzzle_for_date(date) from public;
@@ -455,8 +528,13 @@ begin
   -- See connections.create_game for the full reasoning; the two games do
   -- this identically on purpose.
   if (setup->>'puzzle_id') is null then
-    select n.id into s_puzzle_id
-      from strands.next_puzzle_for_club(player_user_ids) n;
+    -- Reading the ENVELOPE's `data`, which names its answer: `{"result":
+    -- "found", "puzzle": {…}}`. A spent archive is no longer an empty payload
+    -- here — it is PN416, a not-ok, whose `data` is null — so this stays null
+    -- and the next branch raises this function's own PN067 for it, which says
+    -- the same sentence. Connections' create_game reads its twin the same way.
+    s_puzzle_id := (strands.next_puzzle_for_club(player_user_ids)
+                      -> 'data' -> 'puzzle' ->> 'id')::uuid;
     if s_puzzle_id is null then
       -- The wording deliberately does not say "you have played them all": the
       -- exclusion spans clubs and players, so the usual cause is that SOMEONE
@@ -835,18 +913,23 @@ declare
   did_end        boolean := false;
   v_solved       boolean := false;
   player_results jsonb;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   caller_id := common.require_game_player(target_game);
 
   select * into g_row from strands.games where id = target_game for update;
   if not found then
-    raise exception 'game-not-found|' using errcode = 'P0002',
+    raise exception 'That game no longer exists'
+      using errcode = 'PN418', hint = 'fault', column = '_',
       detail = 'no strands.games row for target_game';
   end if;
 
   select play_state into play from common.games where id = target_game;
   if play <> 'playing' then
-    raise exception 'game-not-in-play|' using errcode = 'P0001',
+    -- A race: a teammate finished the board, or the clock ran out, while this
+    -- trace was in flight.
+    raise exception 'Game over'
+      using errcode = 'PN419', hint = 'race', column = '_',
       detail = 'play_state is not an active state';
   end if;
 
@@ -856,7 +939,8 @@ begin
   -- complete the win condition and be recorded the winner.
   if (select conceded from common.game_players
         where game_id = target_game and user_id = caller_id) then
-    raise exception 'you-conceded|' using errcode = 'P0001',
+    raise exception 'Already conceded'
+      using errcode = 'PN420', hint = 'race', column = '_',
       detail = 'caller already dropped out of this compete race';
   end if;
 
@@ -865,13 +949,21 @@ begin
   perform common._require_turn(target_game, caller_id);
 
   -- ─── Structural validation (hard rejects) ────────────────
+  -- Every check from here to the classification below is a FAULT, and one
+  -- rule covers them all: the frontend BUILDS the trace, cell by cell, through
+  -- `clickTile` — which only ever appends an adjacent, unvisited, on-board
+  -- cell. A shape that fails one of these did not come from our board. The
+  -- single exception is `path-crosses-found` further down, which a TEAMMATE
+  -- can cause.
   if path is null or jsonb_typeof(path) <> 'array' then
-    raise exception 'bad-path|' using errcode = 'P0001',
+    raise exception 'BUG: a trace that is not a path'
+      using errcode = 'PN422', hint = 'fault', column = '_',
       detail = 'path must be a json array';
   end if;
   n := jsonb_array_length(path);
   if n < 1 then
-    raise exception 'bad-path|' using errcode = 'P0001',
+    raise exception 'BUG: an empty trace'
+      using errcode = 'PN423', hint = 'fault', column = '_',
       detail = 'path must have at least one cell';
   end if;
 
@@ -889,7 +981,8 @@ begin
         or (e->>0)::numeric <> floor((e->>0)::numeric)
         or (e->>1)::numeric <> floor((e->>1)::numeric)
   ) then
-    raise exception 'bad-path-cell|' using errcode = 'P0001',
+    raise exception 'BUG: a trace cell that is not [row, col]'
+      using errcode = 'PN424', hint = 'fault', column = '_',
       detail = 'each path cell must be [row, col]';
   end if;
 
@@ -902,26 +995,34 @@ begin
 
   for i in 1..n loop
     if rs[i] < 0 or rs[i] > 7 or cs[i] < 0 or cs[i] > 5 then
-      raise exception 'path-off-board|%|', i - 1 using errcode = 'P0001',
-      detail = 'a path cell is outside the 8x6 board';
+      raise exception 'BUG: a trace off the board'
+        using errcode = 'PN425', hint = 'fault', column = '_',
+        detail = format('path cell %s is outside the 8x6 board', i - 1);
     end if;
     if (rs[i] || ',' || cs[i]) = any (consumed) then
-      raise exception 'path-crosses-found|' using errcode = 'P0001',
-      detail = 'a path cell belongs to an already-found word';
+      -- THE ONE RACE among the path checks, and a teammate causes it: they
+      -- found a word overlapping the path you were drawing. The frontend drops
+      -- a trace as soon as a peer's find consumes one of its cells, but a find
+      -- landing while your trace is in flight beats that. The words are the
+      -- frontend's own, from when it owned this sentence.
+      raise exception 'Crosses a found word'
+        using errcode = 'PN421', hint = 'race', column = '_',
+        detail = 'a path cell belongs to an already-found word';
     end if;
     if i > 1 then
       -- 8-way adjacency: diagonals count. Same rule as
       -- src/strands/lib/board.ts `adjacent` and the puzzle importer's.
       if abs(rs[i] - rs[i-1]) > 1 or abs(cs[i] - cs[i-1]) > 1
          or (rs[i] = rs[i-1] and cs[i] = cs[i-1]) then
-        raise exception 'path-not-adjacent|%|%|', i - 2, i - 1
-          using errcode = 'P0001',
+        raise exception 'BUG: a trace that jumps'
+          using errcode = 'PN426', hint = 'fault', column = '_',
       detail = 'consecutive path cells must be 8-way adjacent';
       end if;
       -- No revisiting: a trace may not cross itself.
       if exists (select 1 from generate_series(1, i - 1) k
                   where rs[k] = rs[i] and cs[k] = cs[i]) then
-        raise exception 'path-revisits|' using errcode = 'P0001',
+        raise exception 'BUG: a trace that crosses itself'
+          using errcode = 'PN427', hint = 'fault', column = '_',
       detail = 'a path may not use a cell twice';
       end if;
     end if;
@@ -1089,16 +1190,47 @@ begin
     end if;
   end if;
 
-  return jsonb_build_object(
-    'result', v_result,
-    'word', v_word,
-    'isSpangram', is_spangram,
-    'hint_points', v_points,
-    'hint_cost', g_row.hint_cost,
-    'words_found', v_found,
-    'hint_cleared', hint_cleared > 0,
-    'terminal', did_end
-  );
+  -- SIX `ok` answers, and three of them read like refusals without being one:
+  -- `duplicate`, `too_short` and `invalid` are the game's rules applied to a
+  -- move that genuinely happened, which is the yardstick in
+  -- docs/envelopes.md — a game-rule refusal is `ok`, because answering is what
+  -- the move was FOR. Nothing local was consulted first: strands ships no word
+  -- list to the client and the frontend does not gate on `min_word_length`, so
+  -- the server's verdict is the first anyone knows rather than a stale copy
+  -- losing a race. Every field this RPC has ever returned is still here.
+  --
+  -- The outcome is the tone the frontend's `pillFor` was already choosing;
+  -- `message` stays null because the pill copy is the shared `WORD — body`
+  -- format four other games speak through `useWordSubmit`, and composing it in
+  -- SQL would fork a format whose whole point is being identical.
+  return common.ok_envelope(
+    jsonb_build_object(
+      'result', v_result,
+      'word', v_word,
+      'isSpangram', is_spangram,
+      'hint_points', v_points,
+      'hint_cost', g_row.hint_cost,
+      'words_found', v_found,
+      'hint_cleared', hint_cleared > 0,
+      'terminal', did_end
+    ),
+    case v_result
+      when 'duplicate'  then 'warning'
+      when 'too_short'  then 'warning'
+      when 'invalid'    then 'lost'
+      else 'won'
+    end);
+
+-- One block, and it has never heard of any specific condition: it reads the
+-- SQLSTATE, re-raises anything that isn't ours, and lets the raise itself carry
+-- the message, the kind and the field.
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1129,44 +1261,59 @@ declare
   p_row     strands.players%rowtype;
   play      text;
   coords    jsonb;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   caller_id := common.require_game_player(target_game);
 
   select * into g_row from strands.games where id = target_game for update;
   if not found then
-    raise exception 'game-not-found|' using errcode = 'P0002',
+    raise exception 'That game no longer exists'
+      using errcode = 'PN428', hint = 'fault', column = '_',
       detail = 'no strands.games row for target_game';
   end if;
 
   select play_state into play from common.games where id = target_game;
   if play <> 'playing' then
-    raise exception 'game-not-in-play|' using errcode = 'P0001',
+    raise exception 'Game over'
+      using errcode = 'PN429', hint = 'race', column = '_',
       detail = 'play_state is not an active state';
   end if;
 
   -- Same guard as submit_path: a conceded player has no race left to hint.
   if (select conceded from common.game_players
         where game_id = target_game and user_id = caller_id) then
-    raise exception 'you-conceded|' using errcode = 'P0001',
+    raise exception 'Already conceded'
+      using errcode = 'PN430', hint = 'race', column = '_',
       detail = 'caller already dropped out of this compete race';
   end if;
 
+  -- ─── The three the SHARED POOL makes racy ──────────────
+  -- In coop the hint bar is one resource with several hands on it, so a
+  -- teammate can fill it, spend it or ring a word between your check and your
+  -- click. All three keep the words the frontend used to write for them.
   select * into p_row from strands.players
    where game_id = target_game and user_id = caller_id;
   if p_row.solved then
-    raise exception 'already-solved|' using errcode = 'P0001',
+    -- Your own solve, arriving by subscription while the hint button is still
+    -- up: it has no in-flight lock of its own.
+    raise exception 'You''ve already finished this board'
+      using errcode = 'PN431', hint = 'race', column = '_',
       detail = 'this player has already consumed the board';
   end if;
 
   if p_row.hint_points < g_row.hint_cost then
-    raise exception 'not-enough-hint-points|' using errcode = 'P0001',
+    -- The button computes the shortfall itself and says so without calling, so
+    -- reaching here proves the pool moved after that check.
+    raise exception 'Hint bar not full yet'
+      using errcode = 'PN432', hint = 'race', column = '_',
       detail = 'the hint bar is not full';
   end if;
 
   -- An unspent hint blocks a second one: the board can only ring one word at a
   -- time without becoming unreadable, and the bar is capped anyway.
   if p_row.active_hint_coords is not null then
-    raise exception 'hint-already-showing|' using errcode = 'P0001',
+    raise exception 'A hint is already showing'
+      using errcode = 'PN433', hint = 'race', column = '_',
       detail = 'one theme word is already ringed';
   end if;
 
@@ -1189,8 +1336,10 @@ begin
    limit 1;
 
   if coords is null then
-    -- Defensive: a board with everything found should already be terminal.
-    raise exception 'nothing-to-hint|' using errcode = 'P0001',
+    -- UNREACHABLE, so a fault rather than a refusal: a board with everything
+    -- found is already terminal, and the play_state gate above catches that.
+    raise exception 'BUG: a hint with every theme word found'
+      using errcode = 'PN434', hint = 'fault', column = '_',
       detail = 'every theme word is already found';
   end if;
 
@@ -1216,7 +1365,24 @@ begin
   insert into strands.events (game_id, user_id, kind, path)
   values (target_game, caller_id, 'hint', coords);
 
-  return jsonb_build_object('coords', coords, 'hint_points', 0);
+  -- `warning`, the help-you-asked-for tone: spending a hint is neither good nor
+  -- bad play, and coloring it would adjudicate something the player did not do
+  -- (docs/outcomes.md). `coords` and `hint_points` are the fields this RPC has
+  -- always returned.
+  return common.ok_envelope(
+    jsonb_build_object('result', 'hinted', 'coords', coords, 'hint_points', 0),
+    'warning');
+
+-- One block, and it has never heard of any specific condition: it reads the
+-- SQLSTATE, re-raises anything that isn't ours, and lets the raise itself carry
+-- the message, the kind and the field.
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 

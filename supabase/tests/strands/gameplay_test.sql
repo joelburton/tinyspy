@@ -24,6 +24,7 @@ set search_path = strands, common, public, extensions;
 select plan(22);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -43,19 +44,19 @@ select (strands.create_game(
 -- ============================================================
 
 select is(
-  strands.submit_path((select id from game), pg_temp.strands_row_path(0))->>'result',
+  strands.submit_path((select id from game), pg_temp.strands_row_path(0)) -> 'data' ->> 'result',
   'theme',
   'a theme word''s exact path is accepted as "theme"'
 );
 
 select is(
-  strands.submit_path((select id from game), pg_temp.strands_row_path(4))->>'result',
+  strands.submit_path((select id from game), pg_temp.strands_row_path(4)) -> 'data' ->> 'result',
   'spangram',
   'the spangram''s path is accepted as "spangram", not merely "theme"'
 );
 
 select is(
-  strands.submit_path((select id from game), pg_temp.strands_prefix_path(1, 4))->>'result',
+  strands.submit_path((select id from game), pg_temp.strands_prefix_path(1, 4)) -> 'data' ->> 'result',
   'hint_word',
   'a dictionary word that is not a theme word earns a hint point'
 );
@@ -75,13 +76,13 @@ select (strands.create_game(
         'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as id;
 
 select is(
-  strands.submit_path((select id from strict_game), pg_temp.strands_row_path(2))->>'result',
+  strands.submit_path((select id from strict_game), pg_temp.strands_row_path(2)) -> 'data' ->> 'result',
   'theme',
   'a theme word SHORTER than min_word_length is still a theme word (order rule)'
 );
 
 select is(
-  strands.submit_path((select id from strict_game), pg_temp.strands_prefix_path(1, 4))->>'result',
+  strands.submit_path((select id from strict_game), pg_temp.strands_prefix_path(1, 4)) -> 'data' ->> 'result',
   'too_short',
   '…while a non-theme word under the same limit IS too short'
 );
@@ -99,13 +100,13 @@ select is(
 );
 
 select is(
-  strands.submit_path((select id from game), pg_temp.strands_prefix_path(2, 4))->>'hint_points',
+  strands.submit_path((select id from game), pg_temp.strands_prefix_path(2, 4)) -> 'data' ->> 'hint_points',
   '2',
   'the second advances it'
 );
 
 select is(
-  strands.submit_path((select id from game), pg_temp.strands_prefix_path(3, 4))->>'hint_points',
+  strands.submit_path((select id from game), pg_temp.strands_prefix_path(3, 4)) -> 'data' ->> 'hint_points',
   '3',
   'the third fills it (hint_cost = 3)'
 );
@@ -119,7 +120,7 @@ select is(
 -- 'hint_word' — it just doesn't move the bar.
 
 select is(
-  strands.submit_path((select id from game), pg_temp.strands_prefix_path(5, 4))->>'result',
+  strands.submit_path((select id from game), pg_temp.strands_prefix_path(5, 4)) -> 'data' ->> 'result',
   'invalid',
   'sanity: row 5''s prefix is NOT in the dictionary (only rows 0-3 were seeded)'
 );
@@ -137,7 +138,7 @@ select is(
 -- ============================================================
 
 select is(
-  strands.submit_path((select id from game), pg_temp.strands_prefix_path(1, 4))->>'result',
+  strands.submit_path((select id from game), pg_temp.strands_prefix_path(1, 4)) -> 'data' ->> 'result',
   'duplicate',
   'a word already credited this game is a duplicate, not a fresh point'
 );
@@ -147,7 +148,7 @@ select is(
 -- ============================================================
 
 select is(
-  strands.submit_path((select id from game), pg_temp.strands_prefix_path(6, 4))->>'result',
+  strands.submit_path((select id from game), pg_temp.strands_prefix_path(6, 4)) -> 'data' ->> 'result',
   'invalid',
   'a word not in the dictionary at this band is invalid'
 );
@@ -163,53 +164,59 @@ select (strands.create_game(
         'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as id;
 
 select is(
-  strands.submit_path((select id from band_game), pg_temp.strands_prefix_path(0, 4))->>'result',
+  strands.submit_path((select id from band_game), pg_temp.strands_prefix_path(0, 4)) -> 'data' ->> 'result',
   'hint_word',
   'a difficulty-1 word is accepted at band 1 — difficulty ALONE gates a hint word'
 );
 
 -- ============================================================
--- (13)–(17) Hard rejects: structurally impossible paths RAISE
+-- (13)–(17) Hard rejects: structurally impossible paths are FAULTS
 -- ============================================================
+-- Every path here starts on ROW 6, which nothing has consumed. Rows 0 and 4
+-- are found by now, and a trace through a found cell hits the crosses-found
+-- RACE before any geometry check — so paths starting there would assert the
+-- wrong thing. (They did: these cases passed on `P0001` alone, which every
+-- rejection answered.)
 
-select throws_ok(
-  format($$ select strands.submit_path(%L, '[[0,0],[4,4]]'::jsonb) $$, (select id from game)),
-  'P0001',
-  null,
-  'a non-adjacent jump raises — the FE reducer cannot produce one'
+select pg_temp.envelope_is(
+  strands.submit_path((select id from game), '[[6,0],[6,2]]'::jsonb),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN426",
+    "message":"BUG: a trace that jumps"}'::jsonb,
+  'a non-adjacent jump is a fault — the FE reducer cannot produce one'
 );
 
-select throws_ok(
-  format($$ select strands.submit_path(%L, '[[0,0],[0,1],[0,0]]'::jsonb) $$, (select id from game)),
-  'P0001',
-  null,
-  'a self-crossing path raises'
+select pg_temp.envelope_is(
+  strands.submit_path((select id from game), '[[6,0],[6,1],[6,0]]'::jsonb),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN427",
+    "message":"BUG: a trace that crosses itself"}'::jsonb,
+  'a self-crossing path is a fault'
 );
 
-select throws_ok(
-  format($$ select strands.submit_path(%L, '[[0,0],[0,6]]'::jsonb) $$, (select id from game)),
-  'P0001',
-  null,
-  'an off-board cell raises'
+select pg_temp.envelope_is(
+  strands.submit_path((select id from game), '[[6,0],[6,6]]'::jsonb),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN425",
+    "message":"BUG: a trace off the board"}'::jsonb,
+  'an off-board cell is a fault'
 );
 
-select throws_ok(
-  format($$ select strands.submit_path(%L, '[]'::jsonb) $$, (select id from game)),
-  'P0001',
-  null,
-  'an empty path raises'
+select pg_temp.envelope_is(
+  strands.submit_path((select id from game), '[]'::jsonb),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN423",
+    "message":"BUG: an empty trace"}'::jsonb,
+  'an empty path is a fault'
 );
 
 -- Row 0's theme word was found in test (1), so its cells are spent. Tracing
 -- through them must be refused — otherwise a player could reuse tiles they no
 -- longer own, and the tiling invariant (every cell consumed exactly once)
 -- would stop meaning anything.
-select throws_ok(
-  format($$ select strands.submit_path(%L, %L::jsonb) $$,
-         (select id from game), pg_temp.strands_prefix_path(0, 4)::text),
-  'P0001',
-  null,
-  'tracing through a FOUND word''s tiles raises — spent tiles are spent'
+-- The ONE race among the path checks: in coop a teammate's find can consume
+-- cells you were drawing through, which the FE cannot have known.
+select pg_temp.envelope_is(
+  strands.submit_path((select id from game), pg_temp.strands_prefix_path(0, 4)),
+  '{"type":"not-ok","severity":"race","dbcode":"PN421",
+    "message":"Crosses a found word"}'::jsonb,
+  'tracing through a FOUND word''s tiles is refused — spent tiles are spent'
 );
 
 -- ============================================================
@@ -243,7 +250,7 @@ select (strands.create_game(
         'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as id;
 
 select is(
-  strands.submit_path((select id from ambgame), pg_temp.strands_abba_equivalent())->>'result',
+  strands.submit_path((select id from ambgame), pg_temp.strands_abba_equivalent()) -> 'data' ->> 'result',
   'theme',
   'the EQUIVALENT trace is a theme word — same tiles, same word, other order'
 );
@@ -251,11 +258,10 @@ select is(
 -- Its tiles are now spent, so the CANONICAL trace can no longer be run — which
 -- is the proof the equivalent one really consumed the placement rather than
 -- being scored as some unrelated find that happened to say "theme".
-select throws_ok(
-  format($$ select strands.submit_path(%L, %L::jsonb) $$,
-         (select id from ambgame), pg_temp.strands_abba_canonical()::text),
-  'P0001',
-  'path-crosses-found|',
+select pg_temp.envelope_is(
+  strands.submit_path((select id from ambgame), pg_temp.strands_abba_canonical()),
+  '{"type":"not-ok","severity":"race","dbcode":"PN421",
+    "message":"Crosses a found word"}'::jsonb,
   'and it consumed the tiles — the canonical trace can''t be run afterwards'
 );
 
@@ -272,7 +278,7 @@ select (strands.create_game(
 
 select is(
   strands.submit_path(
-    (select id from ambgame2), '[[2,5],[2,4],[2,3],[2,2],[2,1],[2,0]]'::jsonb)->>'result',
+    (select id from ambgame2), '[[2,5],[2,4],[2,3],[2,2],[2,1],[2,0]]'::jsonb) -> 'data' ->> 'result',
   'invalid',
   'but cells alone are not enough — KLMNOP''s tiles read backwards are not a find'
 );

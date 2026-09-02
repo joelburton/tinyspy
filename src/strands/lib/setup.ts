@@ -75,3 +75,16 @@ export const DEFAULT_STRANDS_SETUP_COMPETE: StrandsSetup = {
   ...DEFAULT_STRANDS_SETUP_COOP,
   coop_style: 'free-for-all',
 }
+
+/**
+ * What both puzzle pickers answer — `next_puzzle_for_club` and
+ * `puzzle_for_date`. One `ok`; "there isn't one" is a `form-validation`
+ * naming `puzzle_id`, not an empty success (PN416 / PN417).
+ *
+ * Here rather than in a component, because the setup dialog and the in-game
+ * New Game path both ask.
+ */
+export type PuzzleAnswer = {
+  result: 'found'
+  puzzle: { id: string; puzzle_date: string; label: string }
+}

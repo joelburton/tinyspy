@@ -22,6 +22,7 @@ set search_path = strands, common, public, extensions;
 select plan(8);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -52,10 +53,10 @@ select is(
 
 -- (2) bea tracing out of turn is rejected.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select throws_ok(
-  format($$ select strands.submit_path(%L::uuid, %L::jsonb) $$,
-         (select id from g), pg_temp.strands_row_path(0)::text),
-  'P0001', 'not-your-turn|',
+-- PN243 comes from `common._require_turn`, shared by every turn-based game.
+select pg_temp.envelope_is(
+  strands.submit_path((select id from g), pg_temp.strands_row_path(0)),
+  '{"type":"not-ok","severity":"race","dbcode":"PN243"}'::jsonb,
   'turns: the non-current player is rejected'
 );
 
@@ -63,7 +64,7 @@ select throws_ok(
 -- but the pointer stays on her.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  (select strands.submit_path((select id from g), pg_temp.strands_prefix_path(0, 2)))->>'result',
+  (select strands.submit_path((select id from g), pg_temp.strands_prefix_path(0, 2))) -> 'data' ->> 'result',
   'too_short',
   'turns: a two-letter trace soft-rejects'
 );

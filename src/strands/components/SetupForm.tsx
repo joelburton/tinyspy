@@ -9,8 +9,11 @@ import { SetupNextPuzzleSection } from '../../common/components/setup/SetupNextP
 import { SetupSection } from '../../common/components/setup/SetupSection'
 import { difficultyValue } from '../../common/lib/game/difficulty'
 import type { SetupBodyProps, SetupSetter } from '../../common/lib/games'
+import { FORM_ERROR_KEYNAME } from '../../common/components/fields/formState'
+import { runRpc } from '../../common/lib/supabase/dbResult'
+import { showFaultModal } from '../../common/lib/fault/faultStore'
 import { db } from '../db'
-import type { StrandsValues } from '../lib/setup'
+import type { PuzzleAnswer, StrandsValues } from '../lib/setup'
 
 /**
  * strands' setup form.
@@ -29,7 +32,7 @@ import type { StrandsValues } from '../lib/setup'
  * Plus the shared SetupTimerSection and SetupCoopStyleSection.
  */
 export function SetupForm({
-  brand, mode, members, selfId, numberOfPlayers, values, set: setValue, errors,
+  brand, mode, members, selfId, numberOfPlayers, values, set: setValue, errors, setError,
 }: SetupBodyProps) {
   const s = values as StrandsValues
   const set = setValue as SetupSetter<StrandsValues>
@@ -62,16 +65,44 @@ export function SetupForm({
         errors={errors}
         brand={brand}
         seenBy={players.map((p) => p.user_id)}
+        // The empty cases are the SERVER's to word now, and each lands under
+        // the field that is the way out of it: PN416 (this archive is spent for
+        // these players) and PN417 (no puzzle that day) both name `puzzle_id`,
+        // so the message sits red under the puzzle field and stays there after
+        // a modal is dismissed. A fault says `_` and takes the form's own line.
+        // The section has no third state, so a refusal still returns null — it
+        // just no longer passes for an empty archive.
         load={async (seenBy) => {
-          const { data } = await db.rpc('next_puzzle_for_club', { seen_by: seenBy })
-          // Both RPCs return 0 or 1 rows. Zero from this one means the archive
-          // is spent for these players; zero from the by-date one means no
-          // puzzle that day. SetupNextPuzzleSection renders each as its own state.
-          return data?.[0] ?? null
+          const res = await runRpc<PuzzleAnswer>(
+            db.rpc('next_puzzle_for_club', { seen_by: seenBy }),
+          )
+          if (res.type === 'not-ok') {
+            setError(res.field ?? FORM_ERROR_KEYNAME, res.message)
+            return null
+          } else if (res.type === 'ok' && res.data.result === 'found') {
+            // BOTH keys, because a previous failure could have used either —
+            // this load answering at last is what clears whichever it was.
+            setError('puzzle_id', null)
+            setError(FORM_ERROR_KEYNAME, null)
+            return res.data.puzzle
+          } else {
+            showFaultModal({ text: 'BUG: next_puzzle_for_club fell through to unhandled' })
+            return null
+          }
         }}
         loadByDate={async (date) => {
-          const { data } = await db.rpc('puzzle_for_date', { target_date: date })
-          return data?.[0] ?? null
+          const res = await runRpc<PuzzleAnswer>(db.rpc('puzzle_for_date', { target_date: date }))
+          if (res.type === 'not-ok') {
+            setError(res.field ?? FORM_ERROR_KEYNAME, res.message)
+            return null
+          } else if (res.type === 'ok' && res.data.result === 'found') {
+            setError('puzzle_id', null)
+            setError(FORM_ERROR_KEYNAME, null)
+            return res.data.puzzle
+          } else {
+            showFaultModal({ text: 'BUG: puzzle_for_date fell through to unhandled' })
+            return null
+          }
         }}
         // A chosen date rides in setup.puzzle_id; cleared, the key is dropped
         // entirely — its ABSENCE is what tells create_game to choose.

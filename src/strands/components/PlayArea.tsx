@@ -1,6 +1,5 @@
 // cs-unmet
 
-import { failureMessage, faultMessage } from '../../common/lib/game/serverError'
 import { runRpc } from '../../common/lib/supabase/dbResult'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { IconHideSolution, IconPrint, IconRestart, IconReveal } from '../../common/components/icons'
@@ -36,7 +35,7 @@ import { useGame } from '../hooks/useGame'
 import { db } from '../db'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
-import type { StrandsSetup } from '../lib/setup'
+import type { PuzzleAnswer, StrandsSetup } from '../lib/setup'
 import shared from '../../common/components/game/PlayArea.module.css'
 import { EnvelopeErrorPage } from '../../common/components/loading-and-errs/ErrorPage'
 import { getNotOkFeedback } from '../../common/lib/game/genericPills'
@@ -49,6 +48,13 @@ import '../theme.css'
 const EMPTY_TRACE: Trace = []
 
 /** What `submit_path` hands back. */
+/** What `spend_hint` answers: one `ok`, the coords of the word now ringed. */
+type HintAnswer = {
+  result: 'hinted'
+  coords: [number, number][]
+  hint_points: number
+}
+
 type SubmitResult = {
   result: 'theme' | 'spangram' | 'hint_word' | 'duplicate' | 'too_short' | 'invalid'
   word: string
@@ -256,24 +262,41 @@ export function PlayArea(ctx: GamePageCtx) {
   const submit = useCallback(
     async (path: readonly Coord[]) => {
       setBusy(true)
-      const { data, error } = await db.rpc('submit_path', {
+      const res = await runRpc<SubmitResult>(db.rpc('submit_path', {
         target_game: gameId,
         path: path as Coord[],
-      })
+      }))
       setBusy(false)
-      if (error) {
-        showLocalFeedback(failureMessage(error, 'word'))
+      // A refusal here is NOT a verdict on the word — the six verdicts are all
+      // `ok`. It is a trace this board could not have produced (a fault), or a
+      // move somebody else overtook: `Crosses a found word` when a teammate's
+      // find lands on cells you were drawing through, `Game over`, `Not your
+      // turn`. Either way the trace goes, because it no longer describes
+      // anything on the board.
+      if (res.type === 'not-ok') {
+        showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+        setTrace([])
+        return
+      } else if (res.type === 'ok') {
+        // ONE branch over the six, uniquely here: `pillFor` is a total switch
+        // over `result` and the tone travels in the envelope, so splitting this
+        // into six identical bodies would say less, not more. What the six DO
+        // differ on is the trace, and that is the line below.
+        const r = res.data
+        showLocalFeedback(pillFor(r))
+        // Only a found word keeps its tiles: they stay lit as the in-progress
+        // thread until the events refetch lands and the derived clear above
+        // hands them over to their found colors — no blank flash in between.
+        // (The success pill outranks the echo in BoardCol's slot, so keeping the
+        // trace doesn't delay the verdict.) Everything else clears at once,
+        // which is what stops the board filling with non-theme paths.
+        if (r.result !== 'theme' && r.result !== 'spangram') setTrace([])
+        return
+      } else {
+        showFaultModal({ text: 'BUG: submit_path fell through to unhandled' })
+        setTrace([])
         return
       }
-      const r = data as SubmitResult
-      showLocalFeedback(pillFor(r))
-      // Only a found word keeps its tiles: they stay lit as the in-progress
-      // thread until the events refetch lands and the derived clear above
-      // hands them over to their found colors — no blank flash in between.
-      // (The success pill outranks the echo in BoardCol's slot, so keeping the
-      // trace doesn't delay the verdict.) Everything else clears at once,
-      // which is what stops the board filling with non-theme paths.
-      if (r.result !== 'theme' && r.result !== 'spangram') setTrace([])
     },
     [gameId, showLocalFeedback],
   )
@@ -418,8 +441,21 @@ export function PlayArea(ctx: GamePageCtx) {
       showLocalFeedback(stickyPill('warning', hintShortfallText(short)))
       return
     }
-    const { error } = await db.rpc('spend_hint', { target_game: gameId })
-    if (error) showLocalFeedback(failureMessage(error, 'hint'))
+    const res = await runRpc<HintAnswer>(db.rpc('spend_hint', { target_game: gameId }))
+    // Three of its refusals are the SHARED POOL moving between the check above
+    // and this call — a teammate filled the bar, spent it, or ringed a word.
+    // They read orange, which is what a race looks like.
+    if (res.type === 'not-ok') {
+      showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+      return
+    } else if (res.type === 'ok' && res.data.result === 'hinted') {
+      // Nothing to say: the ringed coords land on every coop player's row and
+      // the board draws them. A pill would describe what is already on screen.
+      return
+    } else {
+      showFaultModal({ text: 'BUG: spend_hint fell through to unhandled' })
+      return
+    }
   }, [gameId, showLocalFeedback, game?.hint_cost, me?.hint_points])
 
   // ─── The answer shows only when I ask for it ──────────
@@ -501,18 +537,18 @@ export function PlayArea(ctx: GamePageCtx) {
     // can go stale in the same harmless way the setup dialog's line can (a
     // peer starting that very puzzle in the gap), and for the same reason
     // nothing downstream depends on it: the authority is the create below.
-    const { data: preview, error: lookupError } = await db
-      .rpc('next_puzzle_for_club', { seen_by: players.map((p) => p.user_id) })
-    if (lookupError) {
-      // New game is a FAULT SURFACE (serverError.ts → faultMessage): the
-      // archive lookup failing is an outage or a bug, never gameplay — and a
-      // dropped connection now reads `new game: Server; try refresh` instead
-      // of raw browser prose in a pill.
-      showLocalFeedback(faultMessage(lookupError, 'new game'))
-      return
-    }
-    const next = preview?.[0] ?? null
-    if (!next) {
+    const preview = await runRpc<PuzzleAnswer>(
+      db.rpc('next_puzzle_for_club', { seen_by: players.map((p) => p.user_id) }),
+    )
+    if (preview.type === 'not-ok' && preview.dbcode === 'PN416') {
+      // THE ARCHIVE IS SPENT, and this surface says it better than the server
+      // can. PN416's own sentence points at the date field on the setup form —
+      // right there, useless here, since this path has no form. What this
+      // surface knows instead is how to get more puzzles, so it substitutes
+      // rather than repeats (docs/envelopes.md → a server message may not say
+      // LESS than the sentence it replaces; read the other way, the same test
+      // permits a caller that says MORE). Connections' New Game does the same
+      // with PN302, which is this condition in the other dated-archive game.
       await acknowledge({
         title: 'No unplayed puzzle',
         message:
@@ -520,7 +556,20 @@ export function PlayArea(ctx: GamePageCtx) {
           + '`gmake g-strands-fetch` to pick up new ones.',
       })
       return
+    } else if (preview.type === 'not-ok') {
+      // Anything else: the pill carries the words, because the fault modal that
+      // just fired is dismissable and this is what remains once it is gone. It
+      // also has to be said HERE — the new game never happens, and a player who
+      // pressed a button and saw nothing change is owed a reason.
+      showLocalFeedback({ ...getNotOkFeedback(preview), mode: { kind: 'manual' } })
+      return
+    } else if (preview.type === 'ok' && preview.data.result === 'found') {
+      // A puzzle is waiting, so the confirm below runs.
+    } else {
+      showFaultModal({ text: 'BUG: next_puzzle_for_club fell through to unhandled' })
+      return
     }
+    const next = preview.data.puzzle
 
     if (
       !(await confirmAction({

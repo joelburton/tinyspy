@@ -25,6 +25,7 @@ set search_path = strands, common, public, extensions;
 select plan(13);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -49,16 +50,17 @@ select (strands.create_game(
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select strands.concede((select id from g_guard));
 
-select throws_ok(
-  format($$ select strands.submit_path(%L::uuid, %L::jsonb) $$,
-         (select id from g_guard), pg_temp.strands_row_path(0)::text),
-  'P0001', 'you-conceded|',
+select pg_temp.envelope_is(
+  strands.submit_path((select id from g_guard), pg_temp.strands_row_path(0)),
+  '{"type":"not-ok","severity":"race","dbcode":"PN420",
+    "message":"Already conceded"}'::jsonb,
   'a conceded player''s trace is refused — she is out of the race'
 );
 
-select throws_ok(
-  format($$ select strands.spend_hint(%L::uuid) $$, (select id from g_guard)),
-  'P0001', 'you-conceded|',
+select pg_temp.envelope_is(
+  strands.spend_hint((select id from g_guard)),
+  '{"type":"not-ok","severity":"race","dbcode":"PN430",
+    "message":"Already conceded"}'::jsonb,
   'and so is her hint spend'
 );
 

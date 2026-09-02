@@ -72,20 +72,20 @@ select is(
 -- rather than a shared solve.
 
 select is(
-  strands.submit_path((select id from game), pg_temp.strands_row_path(0))->>'result',
+  strands.submit_path((select id from game), pg_temp.strands_row_path(0)) -> 'data' ->> 'result',
   'theme',
   'ada finds a theme word'
 );
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
-  strands.submit_path((select id from game), pg_temp.strands_row_path(0))->>'result',
+  strands.submit_path((select id from game), pg_temp.strands_row_path(0)) -> 'data' ->> 'result',
   'theme',
   'bea can find the SAME word — her board is her own'
 );
 
 select is(
-  strands.submit_path((select id from game), pg_temp.strands_prefix_path(1, 4))->>'result',
+  strands.submit_path((select id from game), pg_temp.strands_prefix_path(1, 4)) -> 'data' ->> 'result',
   'hint_word',
   'and credit is per-player too: a word ada already banked still counts for bea'
 );
@@ -161,10 +161,12 @@ select is(
   'but the GAME is still playing — bea could still beat her on hints'
 );
 
-select throws_ok(
-  format($$ select strands.spend_hint(%L) $$, (select id from game)),
-  'P0001',
-  'already-solved|',
+-- A race: your own solve arrives by subscription while the hint button is
+-- still up — it has no in-flight lock of its own.
+select pg_temp.envelope_is(
+  strands.spend_hint((select id from game)),
+  '{"type":"not-ok","severity":"race","dbcode":"PN431",
+    "message":"You''ve already finished this board"}'::jsonb,
   'a solved player can''t keep spending hints (their number is final)'
 );
 

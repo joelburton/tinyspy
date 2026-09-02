@@ -215,7 +215,7 @@ clock is merely how a session stops.
 |---|---|
 | `create_game(target_club, setup, player_user_ids, mode)` | Copies the puzzle onto the row, seeds counters + `status`, seats turn-order when `setup.coop_style = 'turns'`. Title is `"<date>: <clue>"` — the clue is the prompt, not the answer, so it spoils nothing and tells two games apart far better than a bare date. |
 | `submit_path(target_game, path)` | The move RPC. See the order below. |
-| `spend_hint(target_game)` | Picks a **random** unfound theme word and publishes its **coords**, never its word. |
+| `spend_hint(target_game)` | Picks a **random** unfound theme word and publishes its **coords**, never its word. Answers `ok` · `{result: 'hinted', coords, hint_points: 0}` with outcome `warning` — help you asked for is neither good nor bad play. Its three refusals are all RACES the shared pool makes real: `PN432` "Hint bar not full yet", `PN433` "A hint is already showing", `PN431` "You've already finished this board". `PN434` is the fault for a board with nothing left to hint, which the play_state gate should already have caught. |
 | `end_game` / `submit_timeout` / `replay_board` | The neutral manual stop, the clock, and the restart. |
 
 ### Classification order — a rule, not an implementation detail
@@ -232,15 +232,31 @@ theme words are exactly 4 letters*, so a club raising `min_word_length` to 5
 would have real answers rejected under a length-first check. The collision is
 with our own knob.
 
-**Hard vs soft rejects.** A structurally impossible path (off-board,
-non-adjacent, self-crossing) **raises**: the FE's reducer cannot produce one, so
-it means a broken or hostile client, and logging it would pollute a turn log
-players read. A path through a **spent tile** also raises, with one honest route
-in: a coop submit in flight while a peer's find lands can cross tiles the sender
-didn't yet see consumed — a realtime-lag-sized window in which the raise's
-message reads fine as the error pill and nothing commits. Every malformed-path
-shape gets a *designed* P0001, never a raw cast error (`validation_test.sql`
-plants each one). A merely wrong word returns softly and *is* logged.
+**All five verdicts above are `ok`** ([envelopes.md](../envelopes.md)), which is
+worth saying because three of them read like refusals. `duplicate`, `too_short`
+and `invalid` are the game's rules applied to a move that genuinely happened —
+and nothing local was consulted first, so there is no stale copy losing a race:
+strands ships **no word list to the client**, and the frontend deliberately does
+not gate on `min_word_length`. The server's verdict is the first anyone knows.
+Their outcomes (`warning`, `warning`, `lost`) are the tones `pillFor` was
+already choosing, moved into the answer; `message` stays null because the pill
+copy is the shared `WORD — body` format four other games speak.
+
+**What IS a `not-ok`** is a trace this board could not have produced, or a move
+somebody else overtook:
+
+| | | |
+|---|---|---|
+| `PN421` "Crosses a found word" | `race` | the one path check a TEAMMATE can cause: their find consumed tiles you were drawing through. The FE drops a trace when a peer's find touches it, but a find landing mid-flight beats that |
+| `PN419` "Game over" · `PN420` "Already conceded" · `PN243` "Not your turn" | `race` | |
+| `PN422`–`PN427` `BUG: …` | `fault` | not a path, empty, a cell that isn't `[row, col]`, off the board, a jump, a self-crossing |
+| `PN418` "That game no longer exists" | `fault` | |
+
+The six faults share one justification: **the frontend BUILDS the trace**, cell
+by cell, through `clickTile` — which only ever appends an adjacent, unvisited,
+on-board cell. A shape that fails one of them did not come from our board. Every
+malformed-path shape still gets a *designed* answer rather than a raw cast error
+(`validation_test.sql` plants each one).
 
 The dictionary filter is the **may-enter tier** ([common.md](../common.md)):
 `difficulty <= band` and nothing else. No slur / crude / slang / dialect filter —
@@ -307,6 +323,22 @@ A plain `<input type="date">` sits under the line as the **override** — for th
 rare case where you know the date and want that one, including one you've
 played before. It calls `strands.puzzle_for_date`, which filters nothing and
 starts a second game on a puzzle rather than reopening the first.
+
+**Neither picker answers "nothing" quietly.** Both return `ok` ·
+`{result: 'found', puzzle}` or a **`form-validation` naming `puzzle_id`** —
+`PN416` "Everyone here has played every puzzle. You can open one already played
+by its date." and `PN417` "No puzzle for `<date>`. Try another date." Running out
+BLOCKS Start, and what fixes it is a control on this very form, which is the
+shape of a validation rather than a gray line mentioning it in passing. Both
+sentences are connections' PN302/PN303 verbatim: the same condition in the other
+dated-archive game must not be described differently.
+
+The in-game **New game** path asks the same RPC and deliberately says something
+else for PN416 — an acknowledge dialog naming `gmake g-strands-fetch` — because
+the server's sentence points at a date field that surface does not have. A
+caller may say MORE than the message it replaces, never less
+([envelopes.md](../envelopes.md)); connections' New game does the same with
+PN302.
 
 The rules, the `security definer` reason, the per-player-not-per-club
 exclusion, the override's deliberate asymmetry and the exhausted state are

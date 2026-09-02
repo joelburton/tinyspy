@@ -53,7 +53,7 @@ select is(
 );
 
 create temp table final on commit drop as
-select strands.submit_path((select id from game), pg_temp.strands_row_path(7)) as payload;
+select strands.submit_path((select id from game), pg_temp.strands_row_path(7)) -> 'data' as payload;
 
 select is(
   (select payload->>'terminal' from final),

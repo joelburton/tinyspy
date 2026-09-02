@@ -1,19 +1,18 @@
 # The error system — results, rejections, and faults
 
-**Status: in flight — 127 of the 157 roster entries in §7 are converted.**
+**Status: in flight — 131 of the 157 roster entries in §7 are converted.**
 
-**The 30 open rows are 26 conversions**, because the cross-cutting four appear
+**The 26 open rows are 22 conversions**, because the cross-cutting four appear
 once per area. That is the number to plan against.
 
-**Where to pick up (2026-09-01).** Thirteen of the sixteen games are finished —
-codenamesduet, psychicnum and letterboxed took it to thirteen — so work
-remains in THREE, 22 pieces:
+**Where to pick up (2026-09-01).** Fourteen of the sixteen games are finished —
+codenamesduet, psychicnum, letterboxed and strands took it to fourteen — so
+work remains in TWO, 18 pieces:
 
 | area | left |
 |---|---|
 | crosswords | 10 — 8 RPCs + 2 reads (`useCells.ts:99`, and the solution fetch at `PlayArea.tsx:179`; `useGame`'s is done) |
 | scrabble | 8 RPCs — but SIX are thin wrappers over three shared cores, and both context RPCs drag an edge function with them |
-| strands | 4 RPCs |
 
 Then the CROSS-CUTTING FOUR, last, together: `concede`, `end_game`,
 `replay_board`, `submit_timeout`. Their 8 unchecked rows are 4 conversions,
@@ -760,7 +759,7 @@ select pg_temp.envelope_is(
 
 ## 7. The conversion roster
 
-**157 entries. 127 done, 30 to go — which is 26 CONVERSIONS** — plus `useWordSubmit`, which is not a
+**157 entries. 131 done, 26 to go — which is 22 CONVERSIONS** — plus `useWordSubmit`, which is not a
 roster entry of its own but carried five call sites across four games (5 of those are the deferred edge
 functions). Cross them off here as they land.
 
@@ -1207,10 +1206,28 @@ these convert, so those two functions move in the same commit
 #### strands
 
 - [x] `create_game` · RPC (2 call sites)
-- [ ] `next_puzzle_for_club` · RPC (2 call sites)
-- [ ] `puzzle_for_date` · RPC
-- [ ] `spend_hint` · RPC
-- [ ] `submit_path` · RPC (2 call sites)
+- [x] `next_puzzle_for_club` · RPC (2 call sites) — PN416, connections' PN302
+      verbatim: same condition in the other dated-archive game, so the same
+      sentence and the same `puzzle_id` field. `create_game` reads its envelope
+      rather than its rows now, and the New game path deliberately says MORE
+      (an acknowledge dialog naming the fetch command) because the server's
+      sentence points at a form field that surface lacks
+- [x] `puzzle_for_date` · RPC — PN417, connections' PN303 verbatim. Stays
+      SECURITY INVOKER: it reads only the archive
+- [x] `spend_hint` · RPC — PN428–PN434. THREE races the shared coop pool makes
+      real (a teammate can fill the bar, spend it, or ring a word between your
+      check and your click), one fault for the unreachable empty board, and an
+      `ok` in `warning` — help you asked for is neither good nor bad play
+- [x] `submit_path` · RPC (2 call sites) — PN418–PN427, and SIX `ok`s. Three of
+      them read like refusals and are not: `duplicate`, `too_short` and
+      `invalid` are the rules applied to a move that happened, and NOTHING local
+      was consulted first — strands ships no word list to the client and the FE
+      does not gate on `min_word_length`, so there is no stale copy to lose a
+      race against. That is the opposite of letterboxed, where `rejectReason`
+      checks first and the same class of answer is a fault. The six path faults
+      share one justification: `clickTile` BUILDS the trace, so a shape that
+      fails them did not come from our board. `path-crosses-found` is the
+      exception and the one race — a teammate's find eating your cells
 - [x] `events` · read — converted in the useGame sweep; verified 2026-09-01
 - [x] `games_state` · read — converted in the useGame sweep; verified 2026-09-01
 - [x] `players_state` · read — converted in the useGame sweep; verified 2026-09-01

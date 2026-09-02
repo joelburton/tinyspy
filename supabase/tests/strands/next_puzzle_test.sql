@@ -72,13 +72,13 @@ grant select on p, ids to public;
 -- ============================================================
 
 select is(
-  (select puzzle_date from strands.next_puzzle_for_club(array[(select ada from ids)])),
+  ((strands.next_puzzle_for_club(array[(select ada from ids)]) -> 'data' -> 'puzzle' ->> 'puzzle_date')::date),
   '1999-01-01'::date,
   'an untouched player is offered the earliest puzzle (ascending, not newest-first)'
 );
 
 select is(
-  (select label from strands.next_puzzle_for_club(array[(select ada from ids)])),
+  (strands.next_puzzle_for_club(array[(select ada from ids)]) -> 'data' -> 'puzzle' ->> 'label'),
   '1999-01-01: Rows of nonsense',
   'the row carries the date + clue label the dialog shows as "next up"'
 );
@@ -97,7 +97,7 @@ select (strands.create_game(
   'coop')->'data'->>'id')::uuid as id;
 
 select is(
-  (select puzzle_date from strands.next_puzzle_for_club(array[(select ada from ids)])),
+  ((strands.next_puzzle_for_club(array[(select ada from ids)]) -> 'data' -> 'puzzle' ->> 'puzzle_date')::date),
   '1999-01-02'::date,
   'having played day 1, ada is moved on to day 2'
 );
@@ -105,15 +105,15 @@ select is(
 -- The claim the design rests on: a DIFFERENT set of players containing ada
 -- must skip what ada burned elsewhere.
 select is(
-  (select puzzle_date from strands.next_puzzle_for_club(
-     array[(select ada from ids), (select bea from ids)])),
+  ((strands.next_puzzle_for_club(
+     array[(select ada from ids), (select bea from ids)]) -> 'data' -> 'puzzle' ->> 'puzzle_date')::date),
   '1999-01-02'::date,
   'an ada+bea game skips it too — the exclusion crosses clubs, not just games'
 );
 
 -- ...and it is ADA's history doing that, not the puzzle being globally spent.
 select is(
-  (select puzzle_date from strands.next_puzzle_for_club(array[(select bea from ids)])),
+  ((strands.next_puzzle_for_club(array[(select bea from ids)]) -> 'data' -> 'puzzle' ->> 'puzzle_date')::date),
   '1999-01-01'::date,
   'bea, who has played nothing, is still offered day 1 — exclusion is PER-PLAYER'
 );
@@ -150,7 +150,7 @@ select (strands.create_game(
   'coop')->'data'->>'id')::uuid as id;
 
 select is(
-  (select puzzle_date from strands.next_puzzle_for_club(array[(select cade from ids)])),
+  ((strands.next_puzzle_for_club(array[(select cade from ids)]) -> 'data' -> 'puzzle' ->> 'puzzle_date')::date),
   '1999-01-02'::date,
   'a club-mate''s game she was NOT seated in leaves the puzzle available — per-player, not per-club'
 );
@@ -164,15 +164,19 @@ select is(
 -- back, because "yes, I mean it" is its entire job.
 
 select is(
-  (select puzzle_date from strands.puzzle_for_date('1999-01-01')),
+  ((strands.puzzle_for_date('1999-01-01') -> 'data' -> 'puzzle' ->> 'puzzle_date')::date),
   '1999-01-01'::date,
   'puzzle_for_date returns a puzzle ada has ALREADY PLAYED — it excludes nothing'
 );
 
-select is(
-  (select count(*)::int from strands.puzzle_for_date('1998-12-25')),
-  0,
-  'a date with no puzzle returns no rows, so the dialog can say so'
+-- A VALIDATION under the box the date was typed into, which is the most direct
+-- case in the sprint of a message landing where the question was asked. The
+-- date is IN it, so the reader does not have to check what they typed.
+select pg_temp.envelope_is(
+  strands.puzzle_for_date('1998-12-25'),
+  '{"type":"not-ok","severity":"form-validation","dbcode":"PN417","field":"puzzle_id",
+    "message":"No puzzle for 1998-12-25. Try another date."}'::jsonb,
+  'a date with no puzzle is a validation on the date box, not an empty ok'
 );
 
 -- ============================================================
@@ -189,10 +193,13 @@ select set_config('request.jwt.claims', '', true);
 
 delete from strands.puzzles where puzzle_date <> '1999-01-01';
 
-select is(
-  (select count(*)::int from strands.next_puzzle_for_club(array[(select ada from ids)])),
-  0,
-  'with every remaining puzzle played, the function returns NO rows'
+-- Connections' PN302 said in strands' voice — the same condition in the other
+-- dated-archive game, so deliberately the same sentence.
+select pg_temp.envelope_is(
+  strands.next_puzzle_for_club(array[(select ada from ids)]),
+  '{"type":"not-ok","severity":"form-validation","dbcode":"PN416","field":"puzzle_id",
+    "message":"Everyone here has played every puzzle. You can open one already played by its date."}'::jsonb,
+  'with every remaining puzzle played, it is a validation on the puzzle field'
 );
 
 -- A VALIDATION naming the PICKER: the archive is spent for THESE players, so
