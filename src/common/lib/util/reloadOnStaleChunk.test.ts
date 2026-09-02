@@ -65,6 +65,33 @@ describe('reloadOnStaleChunk', () => {
     expect(second.defaultPrevented).toBe(false)
   })
 
+  it('does NOT reload when sessionStorage is unavailable — it fails closed', () => {
+    // A browser blocking site data throws on the read. The counter cannot
+    // count, so the recovery is given up rather than run uncounted: an
+    // uncounted reload is a reload loop on a real outage, which is the exact
+    // thing the counter is here to prevent.
+    //
+    // The whole accessor is swapped, not spied: jsdom implements `Storage` as
+    // a proxy, so `vi.spyOn(sessionStorage, 'getItem')` defines a property the
+    // proxy does not serve and the real method still runs.
+    const real = window.sessionStorage
+    const blocked = () => {
+      throw new Error('site data blocked')
+    }
+    Object.defineProperty(window, 'sessionStorage', {
+      value: { getItem: blocked, setItem: blocked },
+      configurable: true,
+    })
+    try {
+      reloadOnStaleChunk()
+      const event = firePreloadError()
+      expect(reload).not.toHaveBeenCalled()
+      expect(event.defaultPrevented).toBe(false)
+    } finally {
+      Object.defineProperty(window, 'sessionStorage', { value: real, configurable: true })
+    }
+  })
+
   it('reloads again once the guard window has passed', () => {
     vi.useFakeTimers()
     try {

@@ -35,6 +35,37 @@ export type ThemeName = 'daylight' | 'midnight'
 const STORAGE_KEY = 'pup-theme'
 
 /**
+ * The stored choice, or null when there isn't one — including when there is no
+ * storage to ask.
+ *
+ * **A theme is not worth failing to start over.** `localStorage` throws where a
+ * browser blocks site data, and this runs before a single stylesheet is
+ * requested, so an unguarded read takes `loadTheme()` down with it and the app
+ * paints main.tsx's "could not start" instead of a page. Falling back to
+ * daylight costs a midnight user their stickiness in that browser and nothing
+ * else. It is the same rule the rest of the app already follows — see
+ * `useStickyChoice`: storage failures are non-fatal.
+ */
+function storedTheme(): ThemeName | null {
+  try {
+    return window.localStorage.getItem(STORAGE_KEY) === 'midnight' ? 'midnight' : null
+  } catch {
+    return null
+  }
+}
+
+/** Remember the choice, or forget it when passed null. */
+function rememberTheme(theme: ThemeName | null): void {
+  try {
+    if (theme) window.localStorage.setItem(STORAGE_KEY, theme)
+    else window.localStorage.removeItem(STORAGE_KEY)
+  } catch {
+    // Nothing to do about it: the `?theme=` in the URL still applies to THIS
+    // load, it just won't survive the next navigation.
+  }
+}
+
+/**
  * The URL wins over the stored choice, so a link can always override a sticky
  * one — and an explicit `?theme=daylight` clears the stored value rather than
  * merely losing to it, which is the only way back out of the spike without
@@ -43,14 +74,14 @@ const STORAGE_KEY = 'pup-theme'
 function chosenTheme(): ThemeName {
   const fromUrl = new URLSearchParams(window.location.search).get('theme')
   if (fromUrl === 'midnight') {
-    window.localStorage.setItem(STORAGE_KEY, 'midnight')
+    rememberTheme('midnight')
     return 'midnight'
   }
   if (fromUrl === 'daylight') {
-    window.localStorage.removeItem(STORAGE_KEY)
+    rememberTheme(null)
     return 'daylight'
   }
-  return window.localStorage.getItem(STORAGE_KEY) === 'midnight' ? 'midnight' : 'daylight'
+  return storedTheme() ?? 'daylight'
 }
 
 export async function loadTheme(): Promise<ThemeName> {

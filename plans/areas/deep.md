@@ -32,9 +32,9 @@ understood, tidied* — `cs-blessed` here means he has read the file, not seen i
 **Every heading says its status**; a heading with **no status prefix means OPEN**.
 
 **One pass of three has run** — the boot path, 2026-09-02, sixteen findings.
-Seven RESOLVED (`F-deep-2`, `F-deep-4`, `F-deep-5`, `F-deep-6`, `F-deep-7`,
-`F-deep-9`, `F-deep-10`), one CLOSED (`F-deep-3`), one MOVED to `corecss`
-(`F-deep-1`); the other seven are open. The data path and the realtime plumbing
+Nine RESOLVED (`F-deep-2`, `F-deep-4`, `F-deep-5`, `F-deep-6`, `F-deep-7`,
+`F-deep-9`, `F-deep-10`, `F-deep-11`, `F-deep-13`), one CLOSED (`F-deep-3`), one
+MOVED to `corecss` (`F-deep-1`); the other five are open. The data path and the realtime plumbing
 have not been read.
 
 ## The roster — 33 files, 4,880 lines
@@ -115,7 +115,7 @@ without the other is how they drift. `supabase/functions/_shared/startGame.ts`
 | all 32 files of `src/common/lib/game/` | same |
 | `supabase/functions/_shared/startGame.ts` | same |
 | `src/types/db.ts` (4,422 lines) | generated, and it names every game's schema. **Set `cs-na` 2026-09-02** (Joel): it carries a stamp it could never earn its way off, because nobody will ever hand-read it |
-| `lib/util/`: `mulberry32`, `friendlyDate`, `linkify`, `layoutWidth`, `keyboardHandoff` | picked up by whichever area uses them — a util has no shared design language to settle |
+| `lib/util/`: `mulberry32`, `friendlyDate`, `linkify`, `layoutWidth`, `keyboardHandoff` | **`utils`**, the area created 2026-09-02 to take them. `deep` had said each would be picked up by whichever area uses it, which is no answer for a helper with callers in six areas. `cls.ts` and `reloadOnStaleChunk` stay here for now — see that area's roster |
 | the common non-game **hooks** — `useProfile`, `useTabRing`, `useAppShortcuts`, `useRealtimeRefetch` and the rest | Joel, 2026-09-02: *"we should do the common non-game ones, but not here."* They are the same kind of thing, but taking ~60 files under `hooks/` would double the area and mix two vocabularies. **A candidate area of its own** |
 | `base.css`, `utilities.css`, `fixed.css`, `breakpoints.css`, `patterns/*.css`, `themes/*.css` | **`corecss`**, the area created 2026-09-02 to take them, running directly after this one |
 
@@ -145,7 +145,7 @@ modal — but it has three live consumers (`ClubGameCard:59`, `GamePage:178`, `E
 ## Findings — pass 1, the boot path
 
 Sixteen — **F-deep-1 … F-deep-16**. Every heading says its status; a heading
-with no status prefix means OPEN, and seven are.
+with no status prefix means OPEN, and five are.
 
 ## MOVED · F-deep-1 · `stylesheet-map-rotted` · main.tsx's map of the stylesheet chain names two files that were deleted
 
@@ -410,7 +410,7 @@ app; this is the one sitting in this area's file.
 > play surface only; the header and chrome stay put while the game's chunk
 > arrives.
 
-## F-deep-11 · `sessionstorage-unguarded` · Blocked site data turns the recovery into a second failure
+## RESOLVED · F-deep-11 · `sessionstorage-unguarded` · Blocked site data turns the recovery into a second failure
 
 `reloadOnStaleChunk` (`:30`, `:32`) reads and writes `sessionStorage` inside the
 listener with no `try/catch`. Where a browser blocks site data the access throws,
@@ -421,7 +421,29 @@ worse than not having the guard at all.
 Genuinely an edge case, and the question is whether the app cares about that
 browser configuration. If it does, it is a `try/catch` returning "no record".
 
-> resolution:
+> **resolution: guarded, and it FAILS CLOSED** (Joel, 2026-09-02, taking the
+> recommendation). Not a question after all — the app decided this already:
+> **eight of the eleven files that touch storage guard it**, and
+> `useStickyChoice`'s docstring states the rule (*"`localStorage` failures are
+> non-fatal. Private mode throws on read and write"*). This file and
+> `loadTheme.ts` were the two that never got it.
+>
+> **The fallback is a decision, not a wrap.** The counter cannot count without
+> storage, so it has to answer one way: `reloadedRecently()` returns TRUE. That
+> gives up stale-deploy recovery — costing a manual refresh, which is what people
+> did before this helper existed — rather than reloading uncounted, which is a
+> reload loop on a genuine outage, the exact thing the counter is for.
+>
+> The write is guarded separately: a read can succeed where a write fails on a
+> full quota, and a throw there would skip the `preventDefault()` and leave the
+> page neither reloaded nor showing the error it swallowed.
+>
+> Pinned by a fourth test, and both directions planted: it fails if the fallback
+> flips to `false`. It swaps the whole `sessionStorage` accessor rather than
+> spying on `getItem`, because **jsdom implements `Storage` as a proxy** — a
+> `vi.spyOn` there defines a property the proxy does not serve and the real method
+> still runs, so the first version of the test passed against a deliberately
+> broken implementation.
 
 ## F-deep-12 · `router-query-params` · The router says query parsing is "not needed yet"; three places parse it
 
@@ -437,7 +459,7 @@ is a decision; the docstring asserting nobody needs it is just false.
 
 > resolution:
 
-## F-deep-13 · `theme-storage-unguarded` · Blocked site data stops the app from starting at all
+## RESOLVED · F-deep-13 · `theme-storage-unguarded` · Blocked site data stops the app from starting at all
 
 `chosenTheme()` (`loadTheme.ts:44`, `:46`, `:50`, `:53`) reads and writes
 `window.localStorage` with no `try/catch`. Where a browser blocks site data the
@@ -458,7 +480,19 @@ Whatever is decided for one should decide both — the honest options are a shar
 "storage that can't throw" helper, or a `try/catch` in each of the two places
 that lack one.
 
-> resolution:
+> **resolution: guarded, falling back to daylight** (Joel, 2026-09-02, with
+> `F-deep-11`). `storedTheme()` returns null where storage throws and
+> `rememberTheme()` swallows a failed write — the `?theme=` still applies to the
+> load that set it, it just will not survive the next navigation. The cost is a
+> midnight user's stickiness in that browser; the cost of leaving it was the app.
+>
+> **The shared helper was NOT built, deliberately.** Landing it with these two
+> callers converted and the other eight left raw is a half-migration, and those
+> eight belong to areas that have not opened. It went to the new `utils` area
+> instead, together with the half that matters — **a guard banning raw
+> `localStorage.` outside the helper.** A convention that eight files keep and two
+> break is what produced both of these findings, and the repo's answer to that is
+> a mechanism, not more care.
 
 ## F-deep-14 · `theme-chunks-load-serially` · Two awaits where one wait would do
 

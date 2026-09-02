@@ -1,6 +1,6 @@
 # Area: corecss
 
-An area of app-audit's step 7, running directly after `deep`. The process is
+An area of app-audit's step 7. The process is
 [app-audit.md](../app-audit.md) §21; **the plan holds the order** (§7 → "The
 areas, in order"), this file holds everything else.
 
@@ -13,8 +13,7 @@ the machinery that picks one, and `breakpoints.css`.
 new area: `corecss`; that will be the area where we do corecss stuff. It will come
 after the `deep` area."*
 
-**Status: NOT OPENED.** It follows `deep`, on the same argument
-`deep` itself was created on: these files are underneath every surface, so
+**Status: NOT OPENED.** It exists on the same argument `deep` was created on: these files are underneath every surface, so
 reading a page on top of a stylesheet nobody has read means auditing the same
 questions once per page.
 
