@@ -954,15 +954,58 @@ it. Both changes come from the same discovery: the homepage cannot finish
 without the areas below it, and **the page shell was filed under the wrong
 area**.
 
+**Resequenced again 2026-09-02** — **`deep-layer` goes in at the top**, ahead of
+`homepage`. Everything below it moves down one. Its own paragraph is under the
+table.
+
 | # | area | what it is |
 |---|---|---|
-| 1 | `homepage` | **RE-AUDITED ON REOPEN** (§21 → the 2026-09-02 restart); the findings below are inputs to that audit. **One finding of its own left.** The rehearsal for the full toolkit: patterns + vocabulary + the page shell, plus a **React pass** — the duplication was not only in the CSS. The two findings the 2026-08-24 pause was waiting on are closed: F44 (`action-button-text-only`) was answered by `forms`, and F36 (`createclub-modal`) is built — `CreateClubModal` is a `<NormalModal>` and `/c/new` is gone. F21 (`homepage-no-vitest`) is deliberately LAST: there is no point pinning the page's shape, or `<SelectionList>`'s, while either can still move (`plans/areas/homepage.md`) |
-| 2 | `floating-panels` | **RE-AUDITED ON REOPEN** (§21 → the 2026-09-02 restart). **Four findings open — F30, F31, F32, F33**, two of them red e2e specs this area is the one to answer. The machinery and shared look of every window-like thing that floats over the page — the shell, the blocking modal, the confirmation and the acknowledgment, the drag hook, the focus trap. **Not the instances**, and since 2026-08-24 **not the forms either** (`plans/areas/floating-panels.md`) |
-| 3 | `forms` | **RE-AUDITED ON REOPEN** (§21 → the 2026-09-02 restart). **Four findings open — F46, F48, F49, F50.** Opened 2026-08-24, split out of the area above. The design language of forms: the shared field components, the setup scaffolding, and **the question the homepage could not answer — are a form's buttons really different from action buttons?** Seven hand-written Cancels say the taxonomy has a hole (F44). Split because a floating panel and a form share a container and nothing else; keeping them together meant one area holding two vocabularies |
-| 4 | `simple-page` | **NEW.** The pages that are not home, club or game: `LoginScreen`, `ClaimHandleScreen`, `ErrorPage`, `Loading`. (`CreateClubPage` was on this roster; F36 took it on 2026-08-26 and it is a modal now.) **The roster's test is "does `App` render it directly?"**, which is better than "is it routable": it catches `ErrorPage` and `Loading`, both of which stand in for a page AND appear inside one (`ClubPage:719`, `:726`, `PlayAreaErrorBoundary:47`) — which is exactly what the shell decision has to cover |
-| 5 | `club-page` | Absorbs the punted viewport-fit chain, the `.frame` rename, `<ModePill>` reading the shared `.badge`, and the leftovers listed in "Why 6 stopped" |
-| 6 | `shared-game-chrome` | `common/components/game/` — 258 rules, and every game sits on it. Also: the **contract-slot guard**, checked per mount point (§9, §10) |
-| 7 | per game, one area each | CSS pass then tile-feedback pass, back to back. `psychicnum` first, as the control |
+| 1 | `deep-layer` | **NEW 2026-09-02, and it runs FIRST.** The boot path and the data path — the files every page and every game sits on and none of them owns: `main.tsx`, `App.tsx`'s boot half, the router, the Supabase client and the envelope wrappers, the realtime plumbing, the fault sink. **The membership rule is "it names no game and no page"** (below). Read before `homepage` so the theoretically-simple page is not read on top of a layer nobody has understood |
+| 2 | `homepage` | **RE-AUDITED ON REOPEN** (§21 → the 2026-09-02 restart); the findings below are inputs to that audit. **One finding of its own left.** The rehearsal for the full toolkit: patterns + vocabulary + the page shell, plus a **React pass** — the duplication was not only in the CSS. The two findings the 2026-08-24 pause was waiting on are closed: F44 (`action-button-text-only`) was answered by `forms`, and F36 (`createclub-modal`) is built — `CreateClubModal` is a `<NormalModal>` and `/c/new` is gone. F21 (`homepage-no-vitest`) is deliberately LAST: there is no point pinning the page's shape, or `<SelectionList>`'s, while either can still move (`plans/areas/homepage.md`) |
+| 3 | `floating-panels` | **RE-AUDITED ON REOPEN** (§21 → the 2026-09-02 restart). **Four findings open — F30, F31, F32, F33**, two of them red e2e specs this area is the one to answer. The machinery and shared look of every window-like thing that floats over the page — the shell, the blocking modal, the confirmation and the acknowledgment, the drag hook, the focus trap. **Not the instances**, and since 2026-08-24 **not the forms either** (`plans/areas/floating-panels.md`) |
+| 4 | `forms` | **RE-AUDITED ON REOPEN** (§21 → the 2026-09-02 restart). **Four findings open — F46, F48, F49, F50.** Opened 2026-08-24, split out of the area above. The design language of forms: the shared field components, the setup scaffolding, and **the question the homepage could not answer — are a form's buttons really different from action buttons?** Seven hand-written Cancels say the taxonomy has a hole (F44). Split because a floating panel and a form share a container and nothing else; keeping them together meant one area holding two vocabularies |
+| 5 | `simple-page` | **NEW.** The pages that are not home, club or game: `LoginScreen`, `ClaimHandleScreen`, `ErrorPage`, `Loading`. (`CreateClubPage` was on this roster; F36 took it on 2026-08-26 and it is a modal now.) **The roster's test is "does `App` render it directly?"**, which is better than "is it routable": it catches `ErrorPage` and `Loading`, both of which stand in for a page AND appear inside one (`ClubPage:719`, `:726`, `PlayAreaErrorBoundary:47`) — which is exactly what the shell decision has to cover |
+| 6 | `club-page` | Absorbs the punted viewport-fit chain, the `.frame` rename, `<ModePill>` reading the shared `.badge`, and the leftovers listed in "Why 6 stopped" |
+| 7 | `shared-game-chrome` | `common/components/game/` — 258 rules, and every game sits on it. Also: the **contract-slot guard**, checked per mount point (§9, §10) |
+| 8 | per game, one area each | CSS pass then tile-feedback pass, back to back. `psychicnum` first, as the control |
+
+#### `deep-layer` — the rule, and what it is not (Joel, 2026-09-02)
+
+Joel: *"there's a new area to add at the very top of the list: the deep stuff
+that is used in most places (the router, App.tsx, the rpc/edge-fn/query
+wrappers). I want to go through those files first to tidy and understand them
+before we hit even the homepage."*
+
+**The membership rule: it names no game and no page.** "Deep" on its own
+describes all 83 files of `src/common/lib/`, `trie.ts` and `rankLadder.ts`
+included; the rule is what keeps game logic that merely lives in `lib/` out. It
+admits the boot path, the data path, the realtime plumbing and the fault sink,
+and it excludes `games.ts` and the manifest, all of `lib/game/`, and every
+per-page module.
+
+**`App.tsx` splits, and the split is the rule applied to one file.** Its **boot
+half is in** — mounting, the session gate, the shell it renders into. Its
+**per-page and per-game routing rows are not**: they name pages and games, so
+they belong to the areas that own them.
+
+**The hooks are NOT here** (Joel, when the question was put): the common
+non-game hooks get an area, but not this one. `useProfile`, `useTabRing`,
+`useAppShortcuts` and `useRealtimeRefetch` are the same kind of thing as these
+files, and taking them would double the area and mix two vocabularies.
+
+**Why it goes first, and it is not mainly the dependency count.** Of the
+homepage's 33 listed dependencies this area absorbs six, and the page will still
+list around twenty-two after it — the bulk being shared components and
+stylesheets that belong to `simple-page` and `shared-game-chrome`. The real
+reason is that those twenty-two are components: you can look at one and see what
+it does. **The deep layer is the part you cannot understand by looking**, which
+makes "listed and left" cost the most there, and makes reading it once pay into
+every area after.
+
+**Its exit criterion is different, and that is deliberate.** Every other area
+ends with Joel looking at a surface; this one renders nothing. It closes on
+*read, understood, tidied* — `cs-blessed` here means he has read the file, not
+seen it. Naming that up front is what stops it being the area that never ends.
 
 **The page shell moves to `simple-page`.** It was filed under `club-page`, but
 its own evidence is five card-only pages with ClubPage as the lone exception —
