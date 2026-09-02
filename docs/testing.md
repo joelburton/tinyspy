@@ -422,7 +422,12 @@ game needing its own copy. The full set:
 | `gameStatusLabels` | every manifest's `labelFor`; regenerates [game-status-labels.md](game-status-labels.md) |
 | `deployLists` | `supabase/config.toml`, `supabase/deploy/env.sh`, `Makefile` vs the registry |
 | `edgeFnErrorKeys` | every `json({ error: … })` in `supabase/functions/` |
-| `serverErrorKeys` | `supabase/sql/` + `supabase/functions/` keys vs `ERROR_COPY` |
+| `raiseCodes` | every `PN`/`PA` raise in `supabase/sql/` — unique, hinted, outcome read back |
+| `dbCallShape` | `runRpc` takes an RPC, `readRows` takes a query — never crossed |
+| `dbCallWrapped` | every `.rpc(` / `.from(` in `src/` reaches a wrapper at all |
+| `callSiteShape` | every call site asks `=== 'not-ok'`, never the negated form |
+| `gameDeletedFirst` | a deleted game is checked BEFORE membership, in all 48 sites |
+| `concedeLock` | each elimination game locks its own row before `_set_conceded` |
 | `schemaExposure.e2e` | the running PostgREST stack, per registered schema |
 | `docLinks` | `docs/`, `plans/`, `CLAUDE.md`, `README.md` link targets |
 

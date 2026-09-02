@@ -49,8 +49,9 @@ open (F21 `homepage-no-vitest`, deliberately last) plus the ten dependency
 findings F45–F54, which belong to the areas that own their files. Then §7 →
 "The areas, in order" from `simple-page`.
 
-**The work that pauses this one:**
-[plans/error-system.md](error-system.md).
+**The work that paused this one is DONE** (the error/envelope sprint, finished
+2026-09-01 — see [docs/envelopes.md](../docs/envelopes.md)). Nothing blocks this
+plan now; whether it resumes is a scheduling question, not a dependency.
 
 ---
 

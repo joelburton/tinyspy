@@ -5,7 +5,7 @@ The first area of the CSS sprint's step 7. The process is
 holds everything else.
 
 **Status: PAUSED 2026-08-26 behind the error/fault redesign**
-([error-system.md](../error-system.md)) — and the whole sprint with
+(the error/envelope sprint) — and the whole sprint with
 it (css-system-2.md's header). What is left here is F21
 (`homepage-no-vitest`), plus the ten dependency findings F45–F54, which belong
 to the areas that own those files.

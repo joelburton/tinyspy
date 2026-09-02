@@ -114,9 +114,10 @@ is and put the verification dangerously late (Joel, 2026-09-01).
   still present what it should, and does any of them WANT to opt out. It belongs
   immediately after the wrappers change, because the whole roster is about to
   land on top of this machinery and it should not land on unverified machinery.
-- **The roster conversion — not part of this plan at all.** The ~114 raw sites
-  are already scheduled in [error-system.md](error-system.md). Nothing here adds
-  to that work; it only means each site is written knowing the opt-out exists.
+- **The roster conversion — not part of this plan at all.** Those sites all
+  converted (2026-09-01, [docs/envelopes.md](../docs/envelopes.md)) without the
+  opt-out existing, so nothing here is owed to them; it only means a site that
+  wants its own fault handling has somewhere to say so.
 
 ## 5. Steps
 

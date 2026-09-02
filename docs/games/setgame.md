@@ -339,11 +339,13 @@ Two defenses, and they are independent:
   hold the screen still shows cards that are already gone.
 
 **Losing a race is not an error**, and until 2026-08-16 it looked like one.
-`cards-gone` had no entry in `common/lib/game/errorCopy.ts`, and a key with no
-copy is by definition unanticipated — so the one rejection a setgame player
-actually meets rendered as a **fault**, the treatment reserved for "visibly
-broken while we work". (The code comment and this doc both claimed it was a
-pill. Neither had been checked; the game shipped that way.) It is registered
+Under the system that preceded envelopes, a raise's severity was decided by
+whether its key appeared in a frontend copy table — and `cards-gone` did not
+appear, so the one rejection a setgame player actually meets rendered as a
+**fault**, the treatment reserved for "visibly broken while we work". (The code
+comment and this doc both claimed it was a pill. Neither had been checked; the
+game shipped that way.) It is **PN277, `race`, "Someone got there first"** now,
+decided at the raise where it cannot be lost by omission. It was registered
 now, `info`-toned: "Someone got there first". `not-a-set` and `hint-in-compete`
 are registered too, as belt-and-braces — the FE prevents both — while
 `bad-deck` / `bad-claim` / `bad-first-turn` / `game-not-found` / `bad-hint` stay

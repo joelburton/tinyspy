@@ -53,8 +53,11 @@ describe('getNotOkFeedback', () => {
   })
 
   // The modal has already fired centrally, with diagnostics only the transport
-  // layer could build. A `fault: true` here would route this message to
-  // `showFaultModal` a SECOND time — a duplicate, and a poorer one.
+  // layer could build. This returning a fault flag is what would have caused a
+  // SECOND one — a duplicate, and a poorer one. The flag itself is gone now
+  // (2026-09-01), which is why this asserts an ABSENT property rather than a
+  // false one: nothing downstream would read it, and the assertion is here to
+  // say the shape stays tone-and-text.
   it('never marks a message as a fault, so no second modal fires', () => {
     const msg = getNotOkFeedback(notOk({ severity: 'fault' }))
     expect(msg).not.toHaveProperty('fault')

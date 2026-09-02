@@ -384,10 +384,11 @@ board**. The rejections are lopsided by length: short bases fail for being too g
   | `base-too-common` | children > 1000 | `ING matches too many words` |
   | `base-too-narrow` | 0 children, or best word < base+3 | `No long enough word contains YAKS` |
 
-  Two keys rather than one because the fixes differ — too many wants a *longer* starter, too
-  few a *different* one. Both carry copy in `errorCopy.ts` and land on the **setup dialog's
-  own error line** (`expectedTextOrFault` → `failureMessage` → `ERROR_COPY`), not the below-board
-  pill and not the fault modal.
+  Two rather than one because the fixes differ — too many wants a *longer* starter, too
+  few a *different* one. Both are **`form-validation`** raised by the build-board edge
+  function (**PN133** / **PN134**, `field: 'custom_base'`), so they land on the setup
+  dialog's own error line under that field, not the below-board pill and not the fault
+  modal.
 - **A malformed base is checked FIRST**, before any dictionary query, and returns
   `bad-custom-base` — no copy, so it faults. Without that guard `m` matches most of the
   language and comes back as "matches too many words", advising a longer starter for what is

@@ -3,7 +3,7 @@
 /**
  * Guard: **no server `error.message` reaches a UI sink.**
  *
- * The classifier in `lib/game/serverError.ts` decides whether a failed call
+ * `runRpc` and its wrappers decide whether a failed call
  * becomes a pill (a rule we anticipated) or a fault (bare red text, logged
  * under `[db]`) — but it is a FUNCTION, so it only decides for call sites that
  * call it. A site doing this asks nothing and gets neither:
@@ -39,8 +39,6 @@ const MESSAGE_READ = /\b(?:e|[\w$]*[eE]rr[\w$]*)\??\.message\b/
  */
 const ALLOWED = new Map<string, string>([
   // The classifier itself, and the wrapper that feeds it.
-  ['src/common/lib/game/serverError.ts', 'defines the classification'],
-  ['src/common/lib/game/callRpc.ts', 'documents the rule in a comment'],
   // Reads `.message` for exactly one case: a RAW FAULT — a Postgres error
   // nobody wrote a sentence for. Showing its own text is the deliberate design
   // there, because the alternative is "something went wrong" with the diagnosis
@@ -107,7 +105,7 @@ describe('no raw server message reaches a UI sink', () => {
   it('no call site marks a feedback message as a fault', () => {
     // `serverError.ts` is the unconverted system's classifier and still owns the
     // flag; it goes when the roster empties, and this list should empty with it.
-    const OWNS_THE_FLAG = ['src/common/lib/game/serverError.ts']
+    const OWNS_THE_FLAG: string[] = []
     const offenders: string[] = []
     for (const file of sourceFiles('src')) {
       if (OWNS_THE_FLAG.includes(file)) continue

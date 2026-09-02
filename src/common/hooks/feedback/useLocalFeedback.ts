@@ -1,7 +1,6 @@
 // cs-unmet
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { showFaultModal } from '../../lib/fault/faultStore'
 import type { GenericFeedbackMsg } from '../../lib/games'
 
 /** Default auto-clear duration for a `timed` local-feedback message whose own
@@ -72,13 +71,11 @@ export function useLocalFeedback({ locked = false }: LocalFeedbackOptions = {}):
   }
 
   const showLocalFeedback = useCallback((msg: GenericFeedbackMsg) => {
-    // A FAULT never enters the slot: it routes to the fault MODAL instead
-    // (docs/ui.md → Faults). One branch here covers every below-board slot in
-    // the app — no game wires anything.
-    if (msg.fault) {
-      showFaultModal({ text: msg.text, diagnostics: msg.diagnostics })
-      return
-    }
+    // A fault never reaches here to be sorted out. It raises its modal in
+    // `runRpc`, before any call site has an answer to show — so what arrives is
+    // always a pill (docs/ui.md → Faults). This branched on a `fault` flag until
+    // 2026-09-01, back when one classifier returned either kind and the sink
+    // had to tell them apart.
     setLocalFeedback(msg)
     cancelTimer()
     // Only a `timed` message auto-clears; the other modes persist until the host

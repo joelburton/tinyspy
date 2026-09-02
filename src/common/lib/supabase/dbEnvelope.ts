@@ -17,13 +17,26 @@ import type { Envelope, NotOk } from './envelope'
  * how the modal and the pill came to disagree (plans/envelope-layering.md).
  */
 
-/** The `{code, message, details, hint}` shape PostgREST returns for an error.
- *  Structural, so a PostgrestError or a hand-built object both satisfy it. */
+/**
+ * The error shape a failed call resolves to. Structural, so a PostgrestError
+ * and a hand-built object both satisfy it.
+ *
+ * The first four fields are PostgREST's. The last two are `callEdgeFn`'s, which
+ * has a Response in hand where the database path has only a flattened message:
+ * `status` is read back by `runEdgeFn` to tell "nothing answered" from "the
+ * function refused", and `answered` says the runtime replied at all.
+ */
 export type DbError = {
   message?: string
   code?: string
   details?: string | null
   hint?: string | null
+  /** The HTTP status, when the failure came through an edge function.
+   *  Direct PostgREST errors don't carry one. */
+  status?: number
+  /** Set by `callEdgeFn` when the runtime answered — the function's own
+   *  refusal, or a container that replied with something unparseable. */
+  answered?: true
 } | null | undefined
 
 /**

@@ -41,8 +41,8 @@ import { notOkOutcome } from '../supabase/dbResult'
  * That the pill is the ONLY thing this returns for a fault is deliberate too:
  * by the time a call site reads the envelope, `runRpc` has already raised the
  * modal centrally, with the diagnostics only the transport layer could supply.
- * Marking this message a fault would route it to `showFaultModal` a second time
- * — a duplicate, and a poorer one, since nothing here can rebuild that line.
+ * A second modal from here would be a duplicate, and a poorer one, since
+ * nothing here can rebuild that line.
  *
  * **There is deliberately no `ok` equivalent.** What a successful answer shows
  * is game-specific — a pangram's score, a word's length, nothing at all — and

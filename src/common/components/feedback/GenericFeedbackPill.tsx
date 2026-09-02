@@ -56,11 +56,10 @@ type Props = {
  */
 export function GenericFeedbackPill({ msg, onClose }: Props) {
   const { kind } = msg.mode
-  // A FAULT never reaches this component: the sinks (useLocalFeedback, the
-  // GamePage global slot) route `fault: true` messages to the fault MODAL
-  // (FaultModal) before slot state is ever set — guarded by
-  // faultStore.test.ts. The old bare-red inline branch lived here until the
-  // modal replaced it (docs/ui.md → Faults).
+  // A FAULT never reaches this component: it raises its own modal in `runRpc`,
+  // before a call site has an answer to show, so nothing fault-shaped is ever
+  // handed to a feedback sink (docs/ui.md → Faults). The old bare-red inline
+  // branch lived here until the modal replaced it.
   // Appearance follows the mode: only a PERMANENT condition wears the tinted
   // background. Everything else is a message, and messages are outlined.
   const outline = kind !== 'permanent'

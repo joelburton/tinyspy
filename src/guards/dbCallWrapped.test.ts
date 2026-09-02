@@ -45,8 +45,6 @@ const THE_BOUNDARY_ITSELF = new Set([
   'src/common/lib/supabase/dbResult.ts',
   'src/common/lib/supabase/dbFetch.ts',
   'src/common/lib/supabase/callEdgeFn.ts',
-  // The old wrapper, kept until the roster's deletion step. It has no callers.
-  'src/common/lib/game/callRpc.ts',
 ])
 
 function sourceFiles(dir: string): string[] {
@@ -80,7 +78,7 @@ function argumentSpan(src: string, open: number): [number, number] {
   return [open, src.length]
 }
 
-/** Indices inside a `//` or `/* *​/` comment — prose about a call, not a call. */
+/** Indices inside a line or block comment — prose about a call, not a call. */
 function commentMask(src: string): boolean[] {
   const mask = new Array<boolean>(src.length).fill(false)
   let i = 0

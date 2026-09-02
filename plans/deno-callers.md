@@ -1,10 +1,15 @@
 # The Deno callers — the fourth quadrant
 
+> **The sprint plan this belonged to is deleted** (finished 2026-09-01); its
+> durable content is in [docs/envelopes.md](../docs/envelopes.md). This file
+> is kept for the Deno-side design it records, and its references to that
+> plan are history rather than links.
+
 **Status: DONE (2026-09-01)** — the wrapper is built and all ten call sites
 are on it. What remains of this plan is its record of why, which folds into
 docs/envelopes.md when the sprint ends. The other seven call RPCs that have not converted yet, and they
 join as those do — see §6. A piece of the error sprint
-([error-system.md](error-system.md)), split out because it is engine work rather
+(the error/envelope sprint), split out because it is engine work rather
 than a roster entry: it is the inbound half of the envelope in Deno, and the
 remaining edge-function conversions should land on top of it rather than
 alongside it.
@@ -33,7 +38,7 @@ exists for the answer it **receives**. So each function hand-writes the inbound
 sequence, and thirteen of them have drifted into four spellings of it.
 
 This is traceable to the plan rather than to anyone's oversight:
-[error-system.md](error-system.md) §6 Step 1 named three engine pieces and all
+The error sprint's §6 Step 1 named three engine pieces and all
 three are frontend, and §3's Deno paragraph is titled "How edge functions
 **build** one". The outbound half was specified; the inbound half never was.
 
@@ -120,7 +125,7 @@ fault envelope at the edge.
 That is already a coherent boundary. Handing those helpers envelopes would push
 envelope-branching into every board builder to gain nothing: there is no refusal
 to relay, no player sentence, and `crash` already produces the right answer.
-[error-system.md](error-system.md) §3 made the same call for the RPCs
+The error sprint's plan §3 made the same call for the RPCs
 themselves — *"Edge-function-fed ones stay as they are… different consumer, no
 fault surface, Deno reads rows fine"* — and this is that decision arriving at
 the callers.
@@ -161,7 +166,7 @@ lines, and the two comments claiming `get_clue_context` and
 
 **Verified 2026-09-01, and the first draft of this section was wrong.** It
 assumed the ten Deno-called RPCs were converted because
-[error-system.md](error-system.md) says so of the edge functions above them.
+The error sprint said so of the edge functions above them.
 Checking each one for `ok_envelope` / `raised_envelope`:
 
 | RPC | envelope today |

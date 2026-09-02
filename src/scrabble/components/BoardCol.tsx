@@ -43,7 +43,7 @@ type DragSource = { kind: 'rack'; rackIdx: number } | { kind: 'board'; x: number
  * Widened when the server-error keys landed, because a FAULT has to survive the
  * trip: a string-only `text` cannot carry the `fault` flag, so a dead
  * connection mid-play would have been flattened into a pill that looks exactly
- * like a rejected word (lib/game/serverError.ts).
+ * like a rejected word (docs/envelopes.md → Appearance).
  */
 /** What BoardCol's sink accepts: a message whose `mode` is OPTIONAL. Hand-built
  *  own-move pills omit it and get the wrapper's sticky default; a classified

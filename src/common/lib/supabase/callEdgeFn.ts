@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { supabase } from './supabase'
-import type { CallError } from '../game/serverError'
+import type { DbError } from './dbEnvelope'
 import { OUR_BUG_TO_CODE_AND_TEXT } from './dbEnvelope'
 
 /**
@@ -23,7 +23,7 @@ import { OUR_BUG_TO_CODE_AND_TEXT } from './dbEnvelope'
  *   - **`answered`**: reading the body IS proof the server answered. Without
  *     the marker, a function's prose answer is indistinguishable from a dead
  *     connection and misfiles as transport ("Server; try refresh" over a real
- *     answer). See CallError in serverError.ts.
+ *     answer). See DbError in dbEnvelope.ts.
  *
  * ─── The contract with edge functions ─────────────────────────
  * Every function returns errors as `{ error: '<fe-error-key>', code? }` —
@@ -41,7 +41,7 @@ import { OUR_BUG_TO_CODE_AND_TEXT } from './dbEnvelope'
 export async function callEdgeFn(
   fnName: string,
   body: Record<string, unknown>,
-): Promise<{ data: unknown; error: null } | { data: null; error: NonNullable<CallError> }> {
+): Promise<{ data: unknown; error: null } | { data: null; error: NonNullable<DbError> }> {
   const { data, error } = await supabase.functions.invoke(fnName, { body })
   if (!error) return { data, error: null }
 

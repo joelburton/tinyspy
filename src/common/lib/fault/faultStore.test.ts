@@ -1,19 +1,21 @@
 // cs-unmet
 
 /**
- * The fault store + the ROUTING guard: a `fault: true` message handed to a
- * feedback sink must reach the modal queue, never slot state. This is the
- * contract that let GenericFeedbackPill's bare-red branch be deleted — if the
- * routing ever regresses, faults would silently vanish (no pill branch left
- * to catch them), which is why this file exists.
- * (Guard verified by planting: disable the sink's fault branch and the
- * routing tests fail.)
+ * The fault store: its FIFO queue, and the one thing a feedback sink does with
+ * a message now — put it in the slot.
+ *
+ * It used to guard a routing rule as well: a `fault: true` message handed to a
+ * sink had to reach the modal queue instead of slot state. That flag is gone
+ * (2026-09-01). It existed because ONE classifier returned either a pill or a
+ * fault and the sink had to tell them apart; a fault now raises its modal in
+ * `runRpc`, before any call site has an answer to show, so nothing arrives at a
+ * sink needing to be sorted. The rule it encoded still holds — a fault never
+ * sits in a pill slot — but by construction rather than by a branch.
  */
 import { act, renderHook } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { clearFaultsForTest, dismissFaultModal, showFaultModal, useCurrentFault } from './faultStore'
 import { useLocalFeedback } from '../../hooks/feedback/useLocalFeedback'
-import { failureMessage } from '../game/serverError'
 
 afterEach(() => {
   clearFaultsForTest()
@@ -51,23 +53,7 @@ describe('faultStore', () => {
   })
 })
 
-describe('routing: a fault never reaches slot state', () => {
-  it('useLocalFeedback sends fault messages to the modal queue, not the slot', () => {
-    vi.spyOn(console, 'error').mockImplementation(() => {})
-    const slot = renderHook(() => useLocalFeedback())
-    const modal = renderHook(() => useCurrentFault())
-
-    // A real classified fault (unknown key + SQLSTATE) — diagnostics included.
-    const fault = failureMessage({ message: 'planted-key|x|', code: 'P0001' }, 'word')
-    expect(fault.fault).toBe(true)
-
-    act(() => slot.result.current.showLocalFeedback(fault))
-    expect(slot.result.current.localFeedback).toBeNull()
-    expect(modal.result.current?.text).toBe('word|planted-key|x|')
-    expect(modal.result.current?.diagnostics).toContain('key=planted-key')
-    expect(modal.result.current?.diagnostics).toContain('code=P0001')
-  })
-
+describe('a sink puts what it is handed in the slot', () => {
   it('a normal pill still lands in the slot untouched', () => {
     const slot = renderHook(() => useLocalFeedback())
     const modal = renderHook(() => useCurrentFault())

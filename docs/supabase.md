@@ -428,129 +428,23 @@ creation, and `unwrapEdgeFnError` for reading the real server message out
 of a FunctionsHttpError's read-once body. `useStandardGameActions` builds
 the End/Concede/Replay handlers on top.
 
-## Server errors: the server raises a KEY, TypeScript owns the words
+## Server errors — see [envelopes.md](envelopes.md)
 
-> ### ⚠ THIS SECTION DESCRIBES THE SYSTEM BEING REPLACED
->
-> Everything below is **the old system**, and it is still what most of the app
-> runs on — which is the only reason it is still here. A **converted** call site
-> works nothing like this: the server writes the player's sentence, there is no
-> key and no lookup table, and the shape is
-> [an envelope](envelopes.md). **[docs/envelopes.md](envelopes.md) is
-> canonical; where the two disagree, this section is the one that is out of
-> date.**
->
-> It is kept, marked, rather than deleted because it is **how to read an
-> unconverted RPC** — 106 of 146 call sites on the roster
-> ([plans/error-system.md](../plans/error-system.md) §7) still raise keys, and
-> converting one means understanding what it does today. **Delete this whole
-> section when that roster empties.**
+Every RPC and edge function answers in **one envelope shape**, and the sentence
+a player reads is written at the raise by whoever knows why the answer is what
+it is. [envelopes.md](envelopes.md) is canonical for all of it: the two arms,
+the severities, who writes the words, how SQL and Deno build one, and what a
+call site does with it. [outcomes.md](outcomes.md) holds the tone vocabulary.
 
-**No `raise exception` anywhere in `supabase/sql/` writes a sentence for a
-player.** It raises a machine-shaped key; the frontend decides what, if
-anything, a person reads. This replaced 418 hand-written English messages
-across sixteen files (2026-08-11).
-
-```sql
-raise exception 'chain-full|%|', g_row.max_words
-  using errcode = 'P0001', detail = 'the chain is already at max_words';
-```
-
-**The format is `key|detail1|detail2|`** — kebab-case, and it **always ends
-with the delimiter**, so a trailing `|` on screen is how you tell a whole
-message from an ellipsised one on a phone. Details are positional; only a copy
-entry reads them.
-
-**`DETAIL` carries the human explanation**, for logs and psql. PostgREST passes
-it through as `error.details`, so it reaches the console too — it is never
-shown to a player. Mind the escaping: an apostrophe inside it (`the board's
-words`) silently terminates the SQL literal, which bit three times during the
-conversion.
-
-**The shape is deliberately not prose.** If one of these ever reaches a player
-it must look like the bug it is, rather than like something written for them.
-
-### What decides whether a player sees words or a key
-
-[`ERROR_COPY`](../src/common/lib/game/errorCopy.ts) — **its membership is the
-whole classification**, and SQL gets no say:
-
-| the frontend has copy for the key | → | a normal feedback pill, in whatever tone fits |
-| **no copy, no key, or no SQLSTATE** | → | a **fault**: bare red text (see [ui.md](ui.md)) |
-
-The server can't classify this itself, and shouldn't try. Whether a raise is
-reachable depends on whether the FRONTEND checks the same rule first, and that
-changes per mode and over time — `already-in-chain` is a lost race in coop and
-unreachable in compete. Writing copy IS the act of declaring a key expected.
-
-Today: **175 distinct keys, 52 with copy, 123 without** — and that ratio is
-healthy, not a backlog. Most raises re-validate something the FE already
-refused, so they can only fire against a broken client.
-
-### Rules of thumb when adding a raise
-
-- **Reuse a key before minting one.** A key is shared vocabulary:
-  `game-not-in-play` is raised by nine schemas and means one thing. The test is
-  whether ONE sentence could serve both sites — not whether they read similarly.
-  (wordiply's `setup.difficulty` wanted common's `bad-difficulty`, which is the
-  dictionary editor's field. It got `bad-band` instead.)
-- **Only write copy for what a player can actually reach** — a lost race, a
-  form the server validates first, a budget a teammate can spend. Everything
-  else should fault.
-- **A rule saying "no" is often an ANSWER, not an exception.** scrabble's
-  dictionary rejection returns `{result:'invalid', bad_words}` and stackdown's
-  exhausted cheats return `null`; neither appears in this system at all, and
-  both are the better design.
-- Guarded by [`serverErrorKeys.test.ts`](../src/guards/serverErrorKeys.test.ts): prose
-  in a raise FAILS, copy for a key nothing raises FAILS, and the covered /
-  uncovered split is printed on every run.
-- And by [`noRawServerMessage.test.ts`](../src/guards/noRawServerMessage.test.ts): a
-  call site that renders `error.message` instead of classifying it FAILS. That
-  bypass is invisible without a guard — it defeats the copy table, the fault
-  styling and the log together, while looking like perfectly ordinary code.
-
-**Every FAULT is logged under `[db]`** (`failureMessage` → `logFault`), carrying
-the action, the SQLSTATE and the raise's DETAIL — which is the only place that
-sentence ever surfaces. Expected rejections are deliberately NOT logged: a pill
-saying "Not your turn" is the game working, and logging it would bury the
-faults. A transport failure gets two `[db]` lines by design — `dbFetch` reports
-the request (path, elapsed, online), `logFault` reports what the player saw.
-
-### Edge functions speak the same language (fe-error-keys)
-
-The `key|detail1|detail2|` format is called an **fe-error-key**, and as of
-2026-08-12 **every edge function returns its errors as one** — the same
-contract SQL raises follow, extended over the second server surface:
-
-- The body is `{ error: '<fe-error-key>', code?: '<SQLSTATE>' }` with the
-  usual HTTP statuses. (It was called an *envelope* here until that word was
-  given a precise and different meaning — see [envelopes.md](envelopes.md).)
-  `code` is present whenever the error came from the DB
-  (the create_game / context-RPC relays pass it through), restoring what
-  functions-js strips in transit.
-- Each function's catch-all wraps as `edge-internal|<message>|`
-  (`_shared/http.ts → edgeInternal`), so even a crash comes back key-shaped —
-  which makes a NON-key, codeless failure provably environmental.
-- The FE consumes every edge function through **`callEdgeFn`**
-  (`common/lib/supabase/callEdgeFn.ts`), never a raw
-  `supabase.functions.invoke`: it does the read-once body unwrap, relays
-  `code`, and sets `answered: true` when the function actually spoke — the
-  marker that keeps a server's answer out of the transport bucket
-  ("Server; try refresh" may only ever describe a request that died in
-  transit).
-- **A rule saying "no" is still an ANSWER, not an error** — crosswords'
-  explain-clue returns `{ reason: 'unsolved' }` on a 200 and the FE narrates
-  it; that shape is preferred over minting a key wherever it fits.
-- Guarded by [`edgeFnErrorKeys.test.ts`](../src/guards/edgeFnErrorKeys.test.ts):
-  every `json({ error: … })` literal must be key-shaped; non-literal values
-  need a per-expression justification (never a per-file exemption).
-  [`serverErrorKeys.test.ts`](../src/guards/serverErrorKeys.test.ts) collects keys
-  from BOTH sources, so edge-only keys with copy aren't orphans.
-- **Fault surfaces vs pill surfaces**: gameplay actions classify via
-  `failureMessage` (expected keys → pills); actions with no ordinary way to
-  fail — the in-game "New game" button on every game — go through
-  `faultMessage`, which always renders the fault look, wearing the copy's
-  words when they exist (docs/ui.md → Faults).
+**What used to be here** was the system that preceded it — SQL raised a
+machine-shaped key (`chain-full|5|`), and membership in a TypeScript table
+called `ERROR_COPY` decided both the words and whether the failure counted as
+expected. It is gone: the last call site converted on 2026-09-01 and
+`errorCopy.ts`, `serverError.ts` and `callRpc.ts` were deleted with it. Nothing
+in `supabase/sql/` raises a bare key any more, and the four wrappers
+(`runRpc`, `readRows`, `runEdgeFn`, and Deno's own `runRpc`) are the only ways
+the app talks to the server — [`dbCallWrapped.test.ts`](../src/guards/dbCallWrapped.test.ts)
+holds that.
 
 ## RLS & grants
 

@@ -121,11 +121,10 @@ easier: *"did a box pop up?"* separates **"the game refused my move"** from
 Three lines (Joel's spec, 2026-08-13):
 
 1. **"Error"**, red.
-2. **The message** — never written here. On a **converted** call it is the
-   envelope's own `message`, the sentence the RPC author wrote at the raise
+2. **The message** — never written here. It is the envelope's own `message`,
+   the sentence the RPC author wrote at the raise
    ([envelopes.md](envelopes.md)); where nothing answered, it is one of the
-   two environmental sentences the frontend owns. On an **unconverted** one it
-   is still `ERROR_COPY`'s sentence, or the raw `action|key|detail|`.
+   environmental sentences the frontend owns.
 3. **The diagnostics**, small and muted — everything we know (the call, the
    severity, SQLSTATE, HTTP status, DETAIL, timestamp): the SAME string the
    `[db]` console line carries, from one shared builder, so screen and log can
@@ -142,44 +141,36 @@ before routing.
 modal, on every surface; expected rejections, validation, and answers stay
 where they are.*
 
-**On a converted call the modal is an ESCALATION, not a replacement** — the
-fault also appears in the pill or on the form line, like any other answer, so
-that dismissing the modal doesn't leave a form looking fine or a board still
-showing "FOOZLE: not a word" when the real news is that the server is down. The
-heading above ("the one thing that is NOT a pill") describes the unconverted
-path, where a fault replaced the pill; see
-[envelopes.md](envelopes.md) → What a caller does with one, and expect this
-section to be rewritten when the roster empties.
+**The modal is an ESCALATION, not a replacement** — the fault also appears in
+the pill or on the form line, like any other answer, so that dismissing the
+modal doesn't leave a form looking fine or a board still showing "FOOZLE: not a
+word" when the real news is that the server is down. (The heading above, "the
+one thing that is NOT a pill", is older than that rule and describes the system
+this replaced, where a fault took the pill's place.)
 
 Mechanics:
 
-- **Nothing authors a fault by hand.** `GenericFeedbackMsg.fault` (+ its
-  `diagnostics`) is set only by the layer that received the failure — on a
-  converted call, `reportDbFault` in
-  [`dbResult.ts`](../src/common/lib/supabase/dbResult.ts), which raises the
-  modal centrally so no call site classifies anything
-  ([envelopes.md → How the frontend receives one](envelopes.md)); on an
-  unconverted one, [`serverError.ts`](../src/common/lib/game/serverError.ts) —
-  by `failureMessage` when no copy exists for what came back, and by
-  `faultMessage` on a fault surface (in-game New game, where nothing that
-  comes back is gameplay), described in
-  [supabase.md → Server errors](supabase.md#server-errors-the-server-raises-a-key-typescript-owns-the-words).
-- **Routing lives at the sink chokepoints**, not per game:
-  `useLocalFeedback.show` and the GamePage global slot send `fault: true`
-  messages to the fault store instead of slot state, so no game wires
-  anything and `GenericFeedbackPill` has no fault branch (guarded by
-  `faultStore.test.ts` — a fault can never reach a slot). The reserved
-  below-board slot simply never shows one.
-- **Form/panel surfaces** use `expectedTextOrFault`: an expected rejection
-  returns its sentence for the surface's own red line (the setup dialog's
-  validation, the club-name rules, the AI panels' "the model declined —
-  try again"); a fault pops the modal and the surface resets. The two page
-  LOADS in ClubPage stay in-page — a page that failed to load has nothing to
+- **Nothing authors a fault by hand, and nothing can.** The layer that received
+  the failure raises the modal itself — `reportDbFault` in
+  [`dbResult.ts`](../src/common/lib/supabase/dbResult.ts), called from the
+  wrappers, with the transport facts no call site could rebuild
+  ([envelopes.md → How the frontend receives one](envelopes.md)). Every call
+  goes through a wrapper, so there is no second path.
+- **A fault therefore never reaches a feedback sink at all**, and the sinks no
+  longer check. `GenericFeedbackMsg` carried a `fault` flag until 2026-09-01,
+  and both sinks branched on it — necessary while ONE classifier returned
+  either a pill or a fault and the sink had to tell them apart. With the
+  classifier gone the branch had no input, so the flag, the branches and their
+  test went. The rule they encoded still holds; it holds by construction.
+  `GenericFeedbackPill` has no fault branch either, for the same reason.
+- **Form/panel surfaces** put the envelope's own `message` on their red line —
+  the setup dialog's validation, the club-name rules, the AI panels' "the model
+  declined — try again" — and a fault's modal has already fired. The two page
+  LOADS in ClubPage stay in-page: a page that failed to load has nothing to
   render behind a modal, so its own error state is the right surface.
-- **Look and words are independent axes.** The surface decides pill vs
-  fault; the copy table decides only the words — a fault surface wears the
-  copy's sentence when one exists, always `error`-toned (a fault is never
-  news), always logged.
+- **Look and words are independent axes.** The surface decides where a message
+  goes; the raise decides the words and the severity. A fault is always
+  `error`-toned (a fault is never news) and always logged.
 - **Testing the look:** real faults are bugs or dead networks, so
   `window.pupfault()` (registered by FaultModal) pops a canned one from the
   browser console — `pupfault('text', 'diagnostics')` to shape your own. For

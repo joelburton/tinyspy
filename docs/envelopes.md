@@ -8,12 +8,13 @@ answers in a single shape. "Everything we treat like one" includes failures that
 never reached a server at all — we build the same envelope for "couldn't reach
 the server", so a caller has one thing to read no matter what happened.
 
-This file is the canonical place for these decisions.
-[plans/error-system.md](../plans/error-system.md) is the sprint doing the
-conversion and tracks what is left; where the two disagree, this file wins.
+This file is the canonical place for these decisions, and the only one:
+**the conversion finished on 2026-09-01** — every RPC, every read, every edge
+function — and the sprint plan that tracked it is gone, its durable lessons
+folded in below (→ [Four things the roster conversion
+taught](#four-things-the-roster-conversion-taught)).
 
-**Some of what follows is decided and not yet built** — this file describes the
-target, and the plan tracks the distance. As of 2026-08-28 the vocabulary here
+As of 2026-08-28 the vocabulary here
 is the vocabulary in the code: all four severities, `race` included, are spelled
 as written here in TypeScript, in SQL's hints, in the Deno builders and in the
 guard. Still to land: **the default-appearance resolution** (nothing fills
@@ -874,6 +875,39 @@ adding a raise later would silently invalidate every call site.
 no reason to be — and a plain function runs as the caller. So the caller must be
 able to call the builders: `common.ok_envelope` and `common.raised_envelope` are
 granted to `authenticated` where they are defined.
+
+### Four things the roster conversion taught
+
+Each of these cost a wrong answer that nothing caught, so each has a guard now.
+
+**A raise that looks unreachable is usually one that something ABOVE it is
+answering instead.** All sixteen `replay_board`s checked membership before
+checking that the game still existed — but `delete_game` takes the game's own
+row, `common.games` and every `game_players` row together, so a caller whose
+game had just been deleted had no membership either and was told "You are not
+in this game". True of the rows, false of the player. boggle and crosswords had
+no row check at all in `end_game` / `submit_timeout` and returned **silent
+success**. Order the checks so the truest sentence wins;
+[`gameDeletedFirst.test.ts`](../src/guards/gameDeletedFirst.test.ts) holds it.
+
+**A race's TONE lives in the raise's `CONSTRAINT`, not in its severity.** A bare
+`hint = 'race'` renders `warning`. When the news is news rather than a setback —
+"Game over", "Already conceded" — add `constraint = 'noted'` at the raise. There
+is nowhere else to say it: the frontend does not second-guess an outcome.
+
+**A HELPER that raises with a constraint has no handler of its own**, so the
+override is read back by whichever CALLER catches. `get stacked diagnostics`
+returns only the fields you ask for, so a caller that omits `constraint_name`
+drops it silently and the pill quietly wears the default.
+[`raiseCodes.test.ts`](../src/guards/raiseCodes.test.ts) walks outward from a
+handler-less raiser to every catch that could swallow it.
+
+**One code can serve many sites when it is one question asked in many
+schemas.** `common.require_game_player` (PN252/PN253), `_raise_game_deleted`
+(PN485) and `_raise_game_over` (PN486) are each raised from dozens of places
+under a single code, because what a code distinguishes is WHICH QUESTION
+failed — not which file asked it. A caller always knows which RPC it called.
+Sixteen codes for one fact says the fact is sixteen things, and it is not.
 
 ## How edge functions build one
 

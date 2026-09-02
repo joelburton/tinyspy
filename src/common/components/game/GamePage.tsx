@@ -373,14 +373,10 @@ function GamePageInner({
     return () => clearTimeout(t)
   }, [globalFeedback])
 
-  // Stable identities for the feedback API exposed to PlayArea. A FAULT never
-  // enters the slot: it routes to the fault MODAL instead (docs/ui.md →
-  // Faults) — one branch here covers every game's global sink.
+  // Stable identities for the feedback API exposed to PlayArea. A fault never
+  // reaches here to be sorted out — it raises its modal in `runRpc`, before any
+  // call site has an answer to show (docs/ui.md → Faults).
   const globalFeedbackShow = useCallback((msg: GenericFeedbackMsg) => {
-    if (msg.fault) {
-      showFaultModal({ text: msg.text, diagnostics: msg.diagnostics })
-      return
-    }
     setGlobalFeedback(msg)
   }, [])
   const globalFeedbackClear = useCallback(() => {

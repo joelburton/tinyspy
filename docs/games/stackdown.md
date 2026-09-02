@@ -621,13 +621,14 @@ mono printer flattens the outcome bar's green and red to one gray.
   930 errors repo-wide, almost all safe grid indexing in solvers and PDF models,
   so the flag is not the answer — revisit if it ever becomes affordable.
 
-- **`tile-gone` shows the FAULT modal, and it should be a pill.** Seen live
-  2026-08-24, Joel and moth clearing the same word at the same moment. The RPC
-  raises `tile-gone|` (`supabase/sql/stackdown.sql`, "a submitted tile has
-  already been cleared") and **that key has no `ERROR_COPY` entry** — and an
-  unregistered key renders as a fault (`serverError.ts`: no entry → `kind:
-  'fault'`). So an ordinary race between two people playing fast produces the
-  red "something broke" modal plus a raw `submit-word|tile-gone|…` string.
+- **DONE 2026-09-01.** `tile-gone` showed the FAULT modal and should have been
+  a pill — seen live 2026-08-24, Joel and moth clearing the same word at the
+  same moment. Under the old system an unregistered key rendered as a fault, and
+  this one had no copy entry, so an ordinary race between two people playing
+  fast produced the red "something broke" modal plus a raw
+  `submit-word|tile-gone|…` string. It is **PN291, `race`, "Someone cleared
+  those tiles"** now — the severity is decided at the raise, so a race cannot
+  become a fault by omission.
 
   **setgame already solved exactly this**, and its comment is the argument:
   `'cards-gone': { text: () => 'Someone got there first', tone: 'noted' }` —

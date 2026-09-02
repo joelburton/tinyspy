@@ -7,16 +7,6 @@
  * narrows cleanly, and an answer that is neither `ok` nor `not-ok` is shown to
  * the player as a refusal (docs/envelopes.md → The shape of a call site).
  *
- * **This REPORTS rather than fails, for now.** The envelope sweep
- * (plans/envelope-rollout.md) is converting these one entry at a time, so a
- * hard assertion would be red for the length of the sprint and stop meaning
- * anything. The count printed on every run is the remaining work, and it only
- * goes down. `serverErrorKeys.test.ts` has the same shape for the same reason —
- * "a list, not a failure".
- *
- * **Flip it to a hard assertion the day the roster empties.** That is the last
- * step of the sweep, and the number below reaching zero is what says it is due.
- *
  * Why a guard at all, when the rule is written down: because writing it down
  * was not enough. Three of these were introduced BY the session that wrote the
  * rule, in the same file, minutes apart — the failure is not knowing the rule
@@ -66,96 +56,12 @@ describe('call-site shape', () => {
     // because it is looking at nothing passes just as quietly as one that
     // works, and that trap is the whole reason this line outlived the sweep.
     expect(sourceFiles('src').length).toBeGreaterThan(100)
-    // It reached ZERO on 2026-09-01, so this stopped being a list and became a
-    // rule — which is what its predecessor comment said to do. The count is
-    // stable ahead of the roster finishing: what is left of the sprint is the
-    // cross-cutting four, whose call sites are still on the OLD system and ask
-    // `if (bad)`, never this.
+    // Zero since 2026-09-01, when the last call site converted. It was a
+    // REPORT for the length of the sprint — a hard assertion would have been
+    // red for months and stopped meaning anything — and a manually-kept list of
+    // finished files carried the rule in the meantime. That list is gone: this
+    // line covers every file, which is the whole reason it could replace it.
     expect(left, 'the negated form is a catch-all wearing a case\'s clothes').toEqual([])
-  })
-
-  it('the files already converted stay converted', () => {
-    // Every file the sweep has finished. Adding one here is the last step of
-    // its entry, and it is what makes the guard bite before the roster is done:
-    // a converted file that grows a `!== 'ok'` fails immediately.
-    const CONVERTED = [
-      'src/common/components/club/ClubPage.tsx',
-      'src/common/components/club/CreateClubModal.tsx',
-      'src/common/components/club/EditClubModal.tsx',
-      'src/common/components/home/HomePage.tsx',
-      'src/common/components/chat/ChatBody.tsx',
-      'src/common/hooks/chat/useClubChat.ts',
-      'src/common/components/auth/ClaimHandleScreen.tsx',
-      'src/common/components/account/EditProfileModal.tsx',
-      'src/common/components/definitions/WordEditDialog.tsx',
-      'src/common/components/definitions/AnagramDialog.tsx',
-      'src/common/hooks/session/useSession.ts',
-      'src/common/hooks/session/useProfile.ts',
-      'src/common/hooks/game/useCommonGame.ts',
-      'src/common/components/setup/SetupGameModal.tsx',
-      'src/connections/components/BoardCol.tsx',
-      'src/connections/components/PlayArea.tsx',
-      'src/connections/components/SetupForm.tsx',
-      'src/connections/hooks/useGame.ts',
-      'src/psychicnum/components/BoardCol.tsx',
-      'src/psychicnum/hooks/useGame.ts',
-      'src/setgame/hooks/useGame.ts',
-      'src/setgame/components/PlayArea.tsx',
-      'src/setgame/manifest.ts',
-      'src/waffle/components/PlayArea.tsx',
-      'src/waffle/hooks/useGame.ts',
-      'src/waffle/manifest.ts',
-      'src/wordle/components/BoardCol.tsx',
-      'src/wordle/components/PlayArea.tsx',
-      'src/wordle/hooks/useGame.ts',
-      'src/wordle/manifest.ts',
-      'src/stackdown/components/PlayArea.tsx',
-      'src/stackdown/hooks/useGame.ts',
-      'src/stackdown/manifest.ts',
-      'src/bananagrams/components/PlayArea.tsx',
-      'src/bananagrams/manifest.ts',
-      'src/boggle/components/PlayArea.tsx',
-      'src/boggle/manifest.ts',
-      'src/codenamesduet/components/PlayArea.tsx',
-      'src/codenamesduet/manifest.ts',
-      'src/crosswords/manifest.ts',
-      'src/letterboxed/components/PlayArea.tsx',
-      'src/letterboxed/manifest.ts',
-      'src/psychicnum/components/PlayArea.tsx',
-      'src/psychicnum/manifest.ts',
-      'src/scrabble/components/PlayArea.tsx',
-      'src/scrabble/manifest.ts',
-      'src/spellingbee/components/PlayArea.tsx',
-      'src/spellingbee/manifest.ts',
-      'src/strands/components/PlayArea.tsx',
-      'src/strands/manifest.ts',
-      'src/wordiply/components/PlayArea.tsx',
-      'src/wordiply/manifest.ts',
-      'src/wordwheel/components/PlayArea.tsx',
-      'src/wordwheel/manifest.ts',
-      // EVERY file in `src/` that reads an envelope is now listed. When the
-      // roster empties, delete this list and flip the report above into
-      // `expect(offenders()).toEqual([])` — the guard's own docstring says so. Each joins as its own entry lands, which is
-      // the list above growing one game at a time
-      // (plans/envelope-rollout.md → create_game).
-      // The 2026-09-01 sweep: codenamesduet, psychicnum, letterboxed,
-      // strands, scrabble and crosswords, plus the shared hooks they own.
-      // Listing a file is the LAST STEP of converting it, and skipping that
-      // step is what left this check disarmed on six games at once — the
-      // sweep above only LOGS, so an unlisted file can hold any shape.
-      'src/codenamesduet/components/BoardCol.tsx',
-      'src/codenamesduet/components/CluePanel.tsx',
-      'src/codenamesduet/hooks/useBoard.ts',
-      'src/codenamesduet/hooks/useClues.ts',
-      'src/crosswords/components/PlayArea.tsx',
-      'src/crosswords/components/PuzzleSourceField.tsx',
-      'src/crosswords/components/pickers/LibraryPickerBlockingModal.tsx',
-      'src/crosswords/hooks/useCells.ts',
-      'src/scrabble/components/BoardCol.tsx',
-      'src/strands/components/SetupForm.tsx',
-    ]
-    const regressed = CONVERTED.filter((f) => NEGATED.test(readFileSync(f, 'utf8')))
-    expect(regressed, 'a converted file went back to the negated form').toEqual([])
   })
 
   /**

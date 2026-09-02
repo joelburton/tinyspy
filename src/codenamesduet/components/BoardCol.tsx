@@ -133,7 +133,7 @@ export function BoardCol({
   /** Report an own-action error (a rejected guess / a clue-panel error) — PlayArea
    *  routes it to the shared below-board pill (the channel InfoCol's End writes too). */
   /** Show a failed call. Takes the whole message so a FAULT keeps its bare-red
-   *  look (lib/game/serverError.ts) — a string sink would flatten it to a pill. */
+   *  look (docs/envelopes.md) — a string sink would flatten it to a pill. */
   onError: (msg: GenericFeedbackMsg) => void
   /** Clear the below-board pill (a new guess dismisses the previous one). */
   clearLocalFeedback: () => void

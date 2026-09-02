@@ -717,13 +717,13 @@ When the code wants to discriminate "is this me or someone else in this game?", 
 
 **"Feedback"** here means specifically **a message shown in the global feedback area (the GamePage-header pill) or the local feedback area (the below-board pill)** — nothing else. Lighting up a board cell, underlining a new word in the WordList, or an OpponentStrip readout are all "feedback" in plain English, but they are **not** feedback in this codebase's sense (they're the ambient display layer). Only the two pill channels count.
 
-**Never pass a server's `error.message` to a feedback sink.** Use
-[`callRpc`](../src/common/lib/game/callRpc.ts) (returns a ready message or
-`null`) or `failureMessage(error, action)`. The server raises machine keys and
-TypeScript owns every player-facing word — see
-[supabase.md → Server errors](supabase.md#server-errors-the-server-raises-a-key-typescript-owns-the-words).
-Passing the raw message through is what put `TypeError: Load failed` and
-`the chain is full at 5 words — undo to try another route` in front of players.
+**Never pass a server's `error.message` to a feedback sink.** Read the
+envelope: `res.message` is a sentence someone wrote for a player, at the raise,
+on purpose — and `getNotOkFeedback(res)` turns it into the tone and text a pill
+wants ([envelopes.md](envelopes.md)). An `error.message` is the other thing:
+whatever the transport happened to produce, which is what put `TypeError: Load
+failed` in front of players. [`noRawServerMessage.test.ts`](../src/guards/noRawServerMessage.test.ts)
+is the guard.
 
 A sink that takes a **string** loses the fault styling, since a string can't
 carry the flag: prefer `(msg: GenericFeedbackMsg) => void`. `showError` in

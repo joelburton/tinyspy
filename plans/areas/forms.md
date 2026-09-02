@@ -1050,7 +1050,7 @@ section, and a section more tightly than the form.
 
 ## F48 · `form-state-and-field-errors` · A form is one keyed object, and errors are too
 
-**Raised 2026-08-27, from the error sprint** ([error-system.md](../error-system.md)),
+**Raised 2026-08-27, from the error sprint** (the error/envelope sprint),
 which needs a server-side validation to land **under the field it is about**
 rather than on the form's bottom line. Tracing the plumbing found the missing
 piece is not in the error system at all — it is that a form has no consistent
@@ -1100,7 +1100,7 @@ idea of what its fields are called.
 
 A `not-ok` envelope carries `severity: 'validation'` and an optional `field`,
 taken from the raise's `COLUMN`
-([error-system.md](../error-system.md) → Field-level validation). So the form's
+([docs/envelopes.md](../../docs/envelopes.md) → Field-level validation). So the form's
 handler writes **one entry**: `errors[field]` when `field` is set, the
 form-level key when it isn't.
 

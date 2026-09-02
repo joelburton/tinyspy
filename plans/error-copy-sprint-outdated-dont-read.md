@@ -2,9 +2,9 @@
 
 > **DON'T READ THIS — VERY OUTDATED.**
 >
-> Superseded in full on 2026-08-26 by
-> [error-system.md](error-system.md), which is the only spec for the
-> error/fault work.
+> Superseded in full on 2026-08-26 by the error-system sprint, which finished
+> on 2026-09-01 and whose plan is gone. [docs/envelopes.md](../docs/envelopes.md)
+> is the canonical description of what shipped.
 >
 > This plan was built on a premise that turned out to be false — that changing
 > a server error message would need a schema change and a migration. It
