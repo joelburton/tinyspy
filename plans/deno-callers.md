@@ -1,7 +1,8 @@
 # The Deno callers — the fourth quadrant
 
-**Status: the wrapper is BUILT; four of its ten call sites are on it
-(2026-09-01).** The other seven call RPCs that have not converted yet, and they
+**Status: the wrapper is BUILT; nine of its ten call sites are on it
+(2026-09-01).** Only `crosswords-explain-clue` is left, waiting on
+`reveal_solved_word`. The other seven call RPCs that have not converted yet, and they
 join as those do — see §6. A piece of the error sprint
 ([error-system.md](error-system.md)), split out because it is engine work rather
 than a roster entry: it is the inbound half of the envelope in Deno, and the
@@ -200,9 +201,14 @@ the wrapper already there.
 because pointing `runRpc` at an unconverted RPC would fault every SUCCESS:
 
 - [ ] `crosswords-explain-clue` — waits on `crosswords.reveal_solved_word`
-- [ ] `scrabble-ai-move` (4 sites) — waits on `get_ai_context` + the three
-      `ai_*` move RPCs
-- [ ] `scrabble-suggest-move` — waits on `get_suggest_context`
+- [x] `scrabble-ai-move` (4 sites) — converted with scrabble's RPCs
+      (2026-09-01). Its `stale` break became `res.severity === 'race'`: losing
+      the race to another driver is the ORDINARY outcome here, since every
+      client pokes this function. PN335/PN336 deleted — `runRpc` names the RPC
+      in the message it faults with, which is what the `fail` helper's `where`
+      argument existed to do
+- [x] `scrabble-suggest-move` — converted with `get_suggest_context`. PN332
+      deleted; it UNWRAPS the ok rather than relaying, like the duet suggester
 - [ ] `crosswords-import-nyt`'s second call — waits on `next_nyt_date_for_club`
       (a roster row in error-system.md already)
 

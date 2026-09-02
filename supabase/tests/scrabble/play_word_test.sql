@@ -12,6 +12,7 @@
 begin;
 set search_path = scrabble, common, public, extensions;
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 select plan(33);
@@ -36,7 +37,16 @@ create temp table stale on commit drop as
   select scrabble.play_word((select id from ga), 99,
     '[{"x":7,"y":7,"letter":"C","blank":false}]'::jsonb, array['CO'], 4) as res;
 reset role;
-select is((select res->>'result' from stale), 'stale', 'a wrong base_version is rejected as stale');
+-- THE race, and the one the whole area turns on: somebody else's committed
+-- move bumped `version` between this client reading it and this call arriving.
+-- Nothing was validated and nothing is written. The version it used to return
+-- rides in DETAIL now — the `[db]` line shows it, and the frontend's own
+-- `game.version` comes from the games-row subscription, which is the authority.
+select pg_temp.envelope_is(
+  (select res from stale),
+  '{"type":"not-ok","severity":"race","dbcode":"PN437",
+    "message":"Board changed"}'::jsonb,
+  'a wrong base_version is rejected as a race');
 select is((select version from scrabble.games where id = (select id from ga)), 0,
   'a stale play leaves version untouched');
 select is((select count(*)::int from scrabble.plays where game_id = (select id from ga)), 0,
@@ -50,7 +60,7 @@ create temp table acc on commit drop as
       {"x":8,"y":7,"letter":"A","blank":false},
       {"x":9,"y":7,"letter":"T","blank":false}]'::jsonb, array['CAT'], 5) as res;
 reset role;
-select is((select res->>'result' from acc), 'accepted', 'a valid word is accepted');
+select is((select res -> 'data' ->> 'result' from acc), 'accepted', 'a valid word is accepted');
 select is((select board->112 from scrabble.games where id = (select id from ga)),
   '{"l":"C","b":false}'::jsonb, 'the C tile landed on the center square (7,7)');
 select is((select board->114 from scrabble.games where id = (select id from ga)),
@@ -64,7 +74,7 @@ select is((select shared_rack from scrabble.games where id = (select id from ga)
   'the rack loses C/A/T and refills from the bag (X/Y/Z)');
 select is((select coalesce(array_length(bag,1),0) from scrabble.games where id = (select id from ga)),
   0, 'the 3-tile bag is now empty');
-select is((select acc.res->'drawn' from acc), '["X","Y","Z"]'::jsonb,
+select is((select acc.res -> 'data' -> 'drawn' from acc), '["X","Y","Z"]'::jsonb,
   'play_word returns the newly-drawn tiles');
 select is((select string_agg(seq||':'||kind, ',') from scrabble.plays where game_id = (select id from ga)),
   '1:word', 'one word play is logged');
@@ -73,10 +83,15 @@ select is((select title from common.games where id = (select id from ga)),
 
 -- Occupied-square guard: replaying onto (7,7) (now version 1) is rejected.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select throws_ok($$
-  select scrabble.play_word((select id from ga), 1,
-    '[{"x":7,"y":7,"letter":"S","blank":false}]'::jsonb, array['SO'], 2)
-$$, 'P0001', null, 'placing on an occupied square is rejected');
+-- A FAULT, and the version gate above is why: any board change would have
+-- bumped `version` first, so reaching this check with a MATCHING version means
+-- the client's own board is wrong.
+select pg_temp.envelope_is(
+  scrabble.play_word((select id from ga), 1,
+    '[{"x":7,"y":7,"letter":"S","blank":false}]'::jsonb, array['SO'], 2),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN441",
+    "message":"BUG: a tile on an occupied square"}'::jsonb,
+  'placing on an occupied square is rejected');
 reset role;
 
 -- ─── Game B (coop) — dictionary reject + guards ──────────
@@ -99,8 +114,8 @@ create temp table inv on commit drop as
       {"x":9,"y":7,"letter":"Q","blank":false},
       {"x":10,"y":7,"letter":"J","blank":false}]'::jsonb, array['ZXQJ'], 99) as res;
 reset role;
-select is((select res->>'result' from inv), 'invalid', 'a non-word is rejected (free)');
-select is((select inv.res->'bad_words' from inv), '["ZXQJ"]'::jsonb,
+select is((select res -> 'data' ->> 'result' from inv), 'invalid', 'a non-word is rejected (free)');
+select is((select inv.res -> 'data' -> 'bad_words' from inv), '["ZXQJ"]'::jsonb,
   'the rejecting word is reported');
 select is((select version from scrabble.games where id = (select id from gb)), 0,
   'a rejected word leaves version untouched (no state change)');
@@ -109,16 +124,20 @@ select is((select count(*)::int from scrabble.plays where game_id = (select id f
 
 -- Tile-not-in-rack guard: a B isn't in the rigged rack.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select throws_ok($$
-  select scrabble.play_word((select id from gb), 0,
-    '[{"x":7,"y":7,"letter":"B","blank":false}]'::jsonb, array['BE'], 4)
-$$, 'P0001', null, 'playing a tile not in the rack is rejected');
+select pg_temp.envelope_is(
+  scrabble.play_word((select id from gb), 0,
+    '[{"x":7,"y":7,"letter":"B","blank":false}]'::jsonb, array['BE'], 4),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN442",
+    "message":"BUG: a tile that is not in the rack"}'::jsonb,
+  'playing a tile not in the rack is rejected');
 
 -- Out-of-bounds guard.
-select throws_ok($$
-  select scrabble.play_word((select id from gb), 0,
-    '[{"x":20,"y":7,"letter":"A","blank":false}]'::jsonb, array['AA'], 2)
-$$, 'P0001', null, 'an out-of-bounds placement is rejected');
+select pg_temp.envelope_is(
+  scrabble.play_word((select id from gb), 0,
+    '[{"x":20,"y":7,"letter":"A","blank":false}]'::jsonb, array['AA'], 2),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN440",
+    "message":"BUG: a tile off the board"}'::jsonb,
+  'an out-of-bounds placement is rejected');
 reset role;
 
 -- ─── Game C (compete) — turn gate + advance ──────────────
@@ -136,10 +155,15 @@ select pg_temp.sc_bag((select id from gc), array['X','Y','Z','N','M','P','L']);
 
 -- Not your turn: bea can't play while it's ada's turn.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select throws_ok($$
-  select scrabble.play_word((select id from gc), 0,
-    '[{"x":7,"y":7,"letter":"C","blank":false}]'::jsonb, array['CO'], 4)
-$$, 'P0001', null, 'a player cannot play out of turn (compete)');
+-- Also a fault, for the same reason: `current_seat` travels on the same row as
+-- `version`, so a matching version means the client agreed about whose turn it
+-- was and then acted otherwise.
+select pg_temp.envelope_is(
+  scrabble.play_word((select id from gc), 0,
+    '[{"x":7,"y":7,"letter":"C","blank":false}]'::jsonb, array['CO'], 4),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN438",
+    "message":"BUG: a move out of turn"}'::jsonb,
+  'a player cannot play out of turn (compete)');
 
 -- ada plays → turn advances to bea.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -149,7 +173,7 @@ create temp table cacc on commit drop as
       {"x":8,"y":7,"letter":"A","blank":false},
       {"x":9,"y":7,"letter":"T","blank":false}]'::jsonb, array['CAT'], 5) as res;
 reset role;
-select is((select res->>'result' from cacc), 'accepted', 'compete: a valid word is accepted');
+select is((select res -> 'data' ->> 'result' from cacc), 'accepted', 'compete: a valid word is accepted');
 select is(pg_temp.sc_current_user((select id from gc)),
   'bea22222-2222-2222-2222-222222222222'::uuid, 'the turn advances to the next player');
 select is((select version from scrabble.games where id = (select id from gc)), 1,
@@ -171,7 +195,7 @@ create temp table creset on commit drop as
     '[{"x":0,"y":0,"letter":"A","blank":false},
       {"x":1,"y":0,"letter":"T","blank":false}]'::jsonb, array['AT'], 2) as res;
 reset role;
-select is((select res->>'result' from creset), 'accepted',
+select is((select res -> 'data' ->> 'result' from creset), 'accepted',
   'compete: a second valid word is accepted');
 select is((select consecutive_passes from scrabble.games where id = (select id from gc)), 0,
   'a scoring play resets the pass streak to 0');
@@ -203,9 +227,9 @@ create temp table dcross on commit drop as
       {"x":9,"y":7,"letter":"T","blank":false}]'::jsonb,
     array['CAT','ZJ'], 4) as res;
 reset role;
-select is((select res->>'result' from dcross), 'invalid',
+select is((select res -> 'data' ->> 'result' from dcross), 'invalid',
   'a legal main word with an illegal cross-word is rejected');
-select is((select dcross.res->'bad_words' from dcross), '["ZJ"]'::jsonb,
+select is((select dcross.res -> 'data' -> 'bad_words' from dcross), '["ZJ"]'::jsonb,
   'the offending cross-word is reported, not the legal main word');
 select is((select version from scrabble.games where id = (select id from gd)), 0,
   'the rejected blank play leaves version (and the rack) untouched');

@@ -349,7 +349,7 @@ vs an AI is a legal compete table but a 1-seat "race" is not. Reads
 - Inserts the `games` row + one `players` row per uid, seeds `common.update_state`
   with the initial status ([§9](#9-status-jsonb--labels)).
 
-### 5.2 `play_word(target_game, base_version int, placements jsonb, words text[], score int) → jsonb`
+### 5.2 `play_word(target_game, base_version int, placements jsonb, words text[], score int)`
 
 **The core move — a *trusting* commit, not a re-validation** (see
 [§6](#6-where-validation-lives) for why). The FE has already validated geometry
@@ -360,12 +360,23 @@ declared letter).
 
 1. Lock `games` `for update`; `require_game_player`.
 2. **Optimistic-concurrency gate:** if `games.version <> base_version`, someone
-   moved first → return `{result:'stale'}` (the FE refetches + recomputes). This
-   is the race handler — it also rejects a *stale* client that computed against
-   an old board.
+   moved first → **`PN437`, a `race`, "Board changed"**. This is the race
+   handler — it also rejects a *stale* client that computed against an old
+   board. It was an `ok` named `stale` until 2026-09-01; it is a refusal, and
+   the version it used to return rides in the raise's DETAIL, where the `[db]`
+   line shows it (the FE's own `game.version` comes from the games-row
+   subscription, which is the authority).
+
+   **This gate is also why almost everything below it is a `fault`.** Any server
+   state a later check could disagree with — the turn, the rack, the bag, the
+   board — would have bumped `version` on its way, so reaching one of those
+   checks with a version that MATCHES means the client's own state is wrong.
+   Only `play_state` escapes it: that lives on `common.games`, so a peer ending
+   the game bumps nothing here, which is why "Game over" is the other race.
 3. **Compete:** reject unless it's the acting seat's turn — the check is
-   `g.mode = 'compete' and p_seat is distinct from g.current_seat` →
-   `'not your turn'` (`P0001`), keyed on the scrabble-local seat system. **Coop:** free-for-all by default (any player), but
+   `g.mode = 'compete' and p_seat is distinct from g.current_seat` → **`PN438`,
+   a fault** (`current_seat` travels on the same row as `version`, so see the
+   gate above), keyed on the scrabble-local seat system. **Coop:** free-for-all by default (any player), but
    the coop sibling also supports **opt-in turn-by-turn** play (setup `coop_style =
    'turns'`) — when on, the shared `_commit_word` core gates on the **common**
    `common._require_turn` and advances `common._advance_turn` on an accepted,
@@ -380,10 +391,11 @@ declared letter).
    caller's; coop: shared). These keep the board + bag accounting honest against
    a buggy client; they do *not* re-derive words or score.
 5. **Dictionary:** every word in `words` must be legal at the band for its length
-   (`dict_2` for 2-letter, `dict_3plus` for 3+). **Any**
-   failure → return `{result:'invalid', bad_words}` with **no state change** (the
-   free reject). This is the only validation the server does, because the word
-   list is here.
+   (`dict_2` for 2-letter, `dict_3plus` for 3+). **Any** failure → an `ok` ·
+   `{result:'invalid', bad_words}` in outcome `lost`, with **no state change**
+   (the free reject). An `ok` rather than a refusal because this is the only
+   validation the client cannot do — the word list is here — so asking is what
+   the move was for, and this is the answer.
 6. **Commit:** apply the placements to `board` (a cell-write loop — the server
    builds its own next board, it doesn't trust a board blob); remove the played
    tiles from the rack and **draw replacements from the hidden `bag`** (the
@@ -393,8 +405,28 @@ declared letter).
 7. **Compete:** advance the seat pointer via `scrabble._advance_seat(target_game)`.
    **Both:** check end conditions
    ([§2.7](#27-ending-the-game)); end the game if met, else `common.update_state`.
-8. Return `{result:'accepted', drawn, version}` — the newly-drawn tiles (so the
-   FE updates the rack without leaking the rest of the bag) and the new version.
+8. An `ok` · `{result:'accepted', drawn, version, terminal}` in outcome `won` —
+   the newly-drawn tiles (so the FE updates the rack without leaking the rest of
+   the bag) and the new version.
+
+**The full answer set, and where it is written.** The six move RPCs are thin
+wrappers over three shared cores — `_commit_word`, `_commit_exchange`,
+`_commit_pass` — which author every answer; a wrapper adds one seat gate and
+delegates. Each wrapper carries its own catch block anyway, and must: its gate
+raises BEFORE it delegates, so the core's block never sees it.
+
+| | | |
+|---|---|---|
+| `PN437` / `PN447` / `PN456` "Board changed" | `race` | the version gate, one per core |
+| `PN436` / `PN446` / `PN455` "Game over" | `race` | `play_state`, which bumps no version |
+| `PN243` "Not your turn" | `race` | coop turn-order, from `common._require_turn` |
+| `PN438` / `PN448` / `PN457` `BUG: a move/swap/pass out of turn` | `fault` | |
+| `PN439`–`PN442` `BUG: …` | `fault` | no word formed, a tile off the board, on an occupied square, not in the rack |
+| `PN449` / `PN450` `BUG: a swap of no tiles` / `…against a bag under seven` | `fault` | |
+| `PN454` `BUG: a pass in a coop game` | `fault` | see Deferred — the rule itself is in question |
+| `PN443` / `PN451` / `PN458` `BUG: a move/swap/pass from a player with no seat` | `fault` | the human wrappers |
+| `PN444` / `PN452` / `PN459` `BUG: an AI move/swap/pass on a human seat` | `fault` | the AI wrappers |
+| `PN435` / `PN445` / `PN453` "That game no longer exists" | `fault` | |
 
 There is **no instant-win threshold** — Scrabble is decided at game end, not by
 crossing a score. So `play_word` only *ends* the game via the natural triggers.
@@ -410,19 +442,22 @@ turn. **Coop:** none of that — it's just a rack refresh (no compete-seat
 turns, no blocked-end). Under **coop turn-by-turn** (setup `coop_style = 'turns'`)
 the shared `_commit_exchange` core also gates on `common._require_turn` and hands
 off via `common._advance_turn` — an exchange is a real turn-consuming coop move.
-(There's no coop pass — `pass_turn` is compete-only — so only `_commit_word` and
-`_commit_exchange` carry the common gate.) Returns
-`{result:'exchanged', drawn, version, terminal}` — `terminal` is always false
-now (an exchange resets the pass streak rather than feeding it, so it can no
-longer end a game), but the key stays in the shape because every move RPC
-returns it and the FE branches on it uniformly — or `{result:'stale', version}`
-on a CAS miss.
+(There's no coop pass — `pass_turn` is compete-only, which is the rule now in
+question: see Deferred — so only `_commit_word` and `_commit_exchange` carry the
+common gate.) Answers an `ok` · `{result:'exchanged', drawn, version, terminal}`
+in outcome `won` — `terminal` is always false now (an exchange resets the pass
+streak rather than feeding it, so it can no longer end a game), but the key
+stays in the shape because every move RPC returns it and the FE branches on it
+uniformly. A CAS miss is `PN447`, a race, exactly as `play_word`'s.
 
 ### 5.4 `pass_turn(target_game, base_version)` (compete only)
 
 Advances the turn, `consecutive_passes += 1`, logs `kind='pass'`, checks the
-blocked-end condition (streak == active seats). Like the other moves it takes `base_version` and runs the
-optimistic-concurrency stale-guard, returning `{result, version, terminal}`.
+blocked-end condition (streak == active seats). Like the other moves it takes
+`base_version` and runs the optimistic-concurrency gate. Answers an `ok` ·
+`{result:'passed', version, terminal}` in outcome **`neutral`** — a pass is a
+turn that counts and that nothing adjudicates — or `PN456`, a race, on a CAS
+miss.
 
 ### 5.5 `replay_board`
 
@@ -975,6 +1010,25 @@ a compact strip in the info column. pgTAP: `ai_players_test.sql`; e2e:
 `scrabble-ai-player.e2e.ts` (a human-vs-AI game against the real edge function).
 
 ## Deferred
+
+**Passing is refused in turn-by-turn coop, and probably should not be** (raised
+2026-09-01, converting the area to envelopes). Scrabble supports the opt-in
+coop turn pointer — `create_game` seats it when `setup.coop_style = 'turns'`,
+and BOTH other move cores respect it: `_commit_word` and `_commit_exchange`
+each `perform common._require_turn` and `_advance_turn`. `_commit_pass` is the
+odd one out: it refuses coop outright, on the stated grounds that *"coop has no
+turns to pass"* — which was true before opt-in turn coop landed and is not true
+now. This page still says it in three places (§4 Moves, §4 Ending,
+§5.4), all predating that feature.
+
+Deliberately left alone rather than fixed in passing, because allowing it is a
+GAMEPLAY decision with a second question inside it: compete's pass feeds
+`consecutive_passes`, the blocked-end counter, and coop has no blocked end. So
+a coop pass either stays a pure hand-off — the shape letterboxed's undo takes,
+priced at one turn — or it becomes a way for a coop game to end in a stalemate,
+which is a rule this game does not have today. The FE renders `PassButton` only
+in compete, so nothing is broken meanwhile; the refusal is a fault (PN452) for
+exactly that reason.
 
 **`<SubmitWithScore>` doesn't fit the shared button shape.** It composes
 `cls('button', 'primary', styles.button)` and its own module supplies

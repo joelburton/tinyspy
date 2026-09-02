@@ -34,8 +34,9 @@
 
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { edgeInternal, json, preflight } from '../_shared/http.ts'
-import { fault, isEnvelope, ok } from '../_shared/envelope.ts'
+import { fault, ok } from '../_shared/envelope.ts'
 import { callerClient } from '../_shared/startGame.ts'
+import { runRpc } from '../_shared/dbResult.ts'
 import { walkWord } from '../../../src/common/lib/game/trie.ts'
 import type { Cell } from '../../../src/scrabble/lib/board.ts'
 import { generateMoves, type Bands } from '../../../src/scrabble/lib/suggest.ts'
@@ -43,6 +44,9 @@ import { rankMoves } from '../../../src/scrabble/lib/rank.ts'
 import { ratedTrie } from './dict.ts'
 
 type SuggestContext = {
+  /** Names the answer. One `ok` today; asserted so a second cannot be read as
+   *  this one. */
+  result: 'context'
   board: Cell[]
   rack: string[]
   dict_2: number
@@ -71,16 +75,18 @@ serve(async (req: Request): Promise<Response> => {
     // ─── The context snapshot, as the caller ───────────────────────────────
     // `.schema('scrabble')` is required — supabase-js defaults to `public`.
     const supabase = callerClient(authHeader)
-    const { data, error } = await supabase
-      .schema('scrabble')
-      .rpc('get_suggest_context', { target_game: gameId })
-    // `get_suggest_context` is converted, so its own refusals — not your turn,
-    // not a member — relay untouched. `error` means only that it never RAN.
-    if (error) {
-      return fault('PN332', 'BUG: get_suggest_context did not run', `scrabble-suggest-move: ${error.message} (${error.code})`)
-    }
-    if (isEnvelope(data)) return json(data)
-    const ctx = data as SuggestContext
+    const res = await runRpc<SuggestContext>(
+      supabase.schema('scrabble').rpc('get_suggest_context', { target_game: gameId }),
+      'get_suggest_context',
+    )
+    // Its own refusals relay untouched — the game ended, this is a compete
+    // game, the caller is not a member. `runRpc` puts the two failures that are
+    // not the RPC's own into the same branch: it never ran, or it answered
+    // something unreadable.
+    if (res.type === 'not-ok') return json(res)
+    // UNWRAPPED rather than relayed: the board it carries is the first step of
+    // this function's work, not its answer.
+    const ctx = res.data
 
     // ─── Generate + rank (cached trie; the compute itself is synchronous) ──
     const trie = await ratedTrie()

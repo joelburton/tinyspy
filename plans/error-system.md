@@ -1,18 +1,17 @@
 # The error system — results, rejections, and faults
 
-**Status: in flight — 131 of the 157 roster entries in §7 are converted.**
+**Status: in flight — 139 of the 157 roster entries in §7 are converted.**
 
-**The 26 open rows are 22 conversions**, because the cross-cutting four appear
+**The 18 open rows are 14 conversions**, because the cross-cutting four appear
 once per area. That is the number to plan against.
 
-**Where to pick up (2026-09-01).** Fourteen of the sixteen games are finished —
-codenamesduet, psychicnum, letterboxed and strands took it to fourteen — so
-work remains in TWO, 18 pieces:
+**Where to pick up (2026-09-01).** Fifteen of the sixteen games are finished —
+codenamesduet, psychicnum, letterboxed, strands and scrabble took it to
+fifteen — so work remains in ONE, 10 pieces:
 
 | area | left |
 |---|---|
 | crosswords | 10 — 8 RPCs + 2 reads (`useCells.ts:99`, and the solution fetch at `PlayArea.tsx:179`; `useGame`'s is done) |
-| scrabble | 8 RPCs — but SIX are thin wrappers over three shared cores, and both context RPCs drag an edge function with them |
 
 Then the CROSS-CUTTING FOUR, last, together: `concede`, `end_game`,
 `replay_board`, `submit_timeout`. Their 8 unchecked rows are 4 conversions,
@@ -759,7 +758,7 @@ select pg_temp.envelope_is(
 
 ## 7. The conversion roster
 
-**157 entries. 131 done, 26 to go — which is 22 CONVERSIONS** — plus `useWordSubmit`, which is not a
+**157 entries. 139 done, 18 to go — which is 14 CONVERSIONS** — plus `useWordSubmit`, which is not a
 roster entry of its own but carried five call sites across four games (5 of those are the deferred edge
 functions). Cross them off here as they land.
 
@@ -1131,24 +1130,37 @@ authenticated` found them (2026-09-01). Converting them was where the
 #### scrabble
 
 - [x] `create_game` · RPC (2 call sites)
-- [ ] `ai_exchange_tiles` · RPC — **added 2026-09-01**
-- [ ] `ai_pass_turn` · RPC — **added 2026-09-01**
-- [ ] `ai_play_word` · RPC — **added 2026-09-01**
-- [ ] `exchange_tiles` · RPC
-- [ ] `get_ai_context` · RPC — **added 2026-09-01**, called by
-      `scrabble-ai-move`
-- [ ] `get_suggest_context` · RPC — **added 2026-09-01**, called by
-      `scrabble-suggest-move`
-- [ ] `pass_turn` · RPC
-- [ ] `play_word` · RPC
+- [x] `ai_exchange_tiles` · RPC — PN452
+- [x] `ai_pass_turn` · RPC — PN459
+- [x] `ai_play_word` · RPC — PN444
+- [x] `exchange_tiles` · RPC — PN445–PN451 through `_commit_exchange`
+- [x] `get_ai_context` · RPC — PN463, and TWO `ok`s: `done` is the COMMON one,
+      since every client pokes it on every version bump. `scrabble-ai-move`
+      moved with it
+- [x] `get_suggest_context` · RPC — PN460–PN462; `scrabble-suggest-move` moved
+      with it
+- [x] `pass_turn` · RPC — PN453–PN458 through `_commit_pass`
+- [x] `play_word` · RPC — PN435–PN444 through `_commit_word`
 
-**The eight are fewer conversions than they look, and they come as one unit.**
-The six move RPCs are thin wrappers over three shared cores — `_commit_word`,
-`_commit_exchange`, `_commit_pass` — which is where every answer is actually
-authored, so the cores carry the design and the wrappers inherit it. Both
-context RPCs feed edge functions whose relays would swallow the SUCCESS the day
-these convert, so those two functions move in the same commit
-([deno-callers.md](deno-callers.md)).
+**`stale` STOPPED being an `ok`** (Joel, 2026-09-01). The version gate is the
+race this whole area turns on — somebody else's committed move, arriving by
+subscription — and `outcomes.md` already named "scrabble's Board changed" as its
+example of the tone a race defaults to. The `version` it used to return rides in
+the raise's DETAIL now, where the `[db]` line shows it: nothing reads it (the
+FE's `game.version` comes from the games-row subscription, which is the
+authority), and if a caller ever needs the number rather than the record of it,
+`meta` is the slot — a structured field on both arms — not a string to parse.
+
+**The version gate is also what classifies the rest.** Every check below it is a
+fault, because any server state a later gate could disagree with would have
+bumped `version` first — so a MATCHING version plus a disagreement means the
+client's own state is wrong. Only `play_state` escapes, living on
+`common.games`, which is why "Game over" is the other race.
+
+**The six wrappers each needed their own catch block**, which the first pass got
+wrong: a wrapper's seat gate raises BEFORE it delegates, so the core's block
+never sees it. The pgTAP caught it — an uncaught raise aborted the transaction
+and took twenty assertions with it.
 - [x] `games_state` · read — converted in the useGame sweep; verified 2026-09-01
 - [x] `players_state` · read — converted in the useGame sweep; verified 2026-09-01
 - [x] `plays` · read — converted in the useGame sweep; verified 2026-09-01

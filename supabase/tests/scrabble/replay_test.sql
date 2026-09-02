@@ -18,6 +18,7 @@
 begin;
 set search_path = scrabble, common, public, extensions;
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 select plan(19);
@@ -130,10 +131,14 @@ select ok(
     > current_setting('test.v2')::int,
   'compete: a MID-GAME replay bumps version (never zeroes it)');
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select is(
-  (select scrabble.play_word((select id from g2), current_setting('test.v2')::int,
-     '[{"x":7,"y":7,"letter":"C","blank":false}]'::jsonb, array['CAT'], 5) ->> 'result'),
-  'stale',
+-- The restart bumped the version, so a move built on the old one has lost the
+-- same race a peer's move would have won: a not-ok, in the words the FE used to
+-- write for itself.
+select pg_temp.envelope_is(
+  scrabble.play_word((select id from g2), current_setting('test.v2')::int,
+     '[{"x":7,"y":7,"letter":"C","blank":false}]'::jsonb, array['CAT'], 5),
+  '{"type":"not-ok","severity":"race","dbcode":"PN437",
+    "message":"Board changed"}'::jsonb,
   'compete: a move carrying the pre-restart version is rejected as stale');
 reset role;
 select is(

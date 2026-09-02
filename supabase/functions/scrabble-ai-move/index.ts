@@ -26,7 +26,9 @@
 
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { edgeInternal, json, preflight } from '../_shared/http.ts'
-import { fault, isEnvelope, ok } from '../_shared/envelope.ts'
+import { fault, ok } from '../_shared/envelope.ts'
+import { runRpc } from '../_shared/dbResult.ts'
+import type { Envelope } from '../../../src/common/lib/supabase/envelope.ts'
 import { callerClient } from '../_shared/startGame.ts'
 import type { Cell } from '../../../src/scrabble/lib/board.ts'
 import type { Bands } from '../../../src/scrabble/lib/suggest.ts'
@@ -34,17 +36,33 @@ import { choosePlay, LEVELS, type LevelName } from '../../../src/scrabble/lib/po
 import { mulberry32 } from '../../../src/common/lib/util/mulberry32.ts'
 import { ratedTrie } from '../scrabble-suggest-move/dict.ts'
 
-type AiContext = {
-  done?: boolean
-  seat: number
-  board: Cell[]
-  rack: string[]
-  dict_2: number
-  dict_3plus: number
-  ai_level: LevelName
-  version: number
-  bag_count: number
-}
+/**
+ * What `get_ai_context` answers. TWO `ok`s, and `done` is the common one:
+ * every client pokes this function on every version bump, so most calls find
+ * no AI seat waiting. `done: true` is kept beside the new `result` — the field
+ * this RPC has always returned.
+ */
+type AiContext =
+  | { result: 'done'; done: true }
+  | {
+      result: 'context'
+      seat: number
+      board: Cell[]
+      rack: string[]
+      dict_2: number
+      dict_3plus: number
+      ai_level: LevelName
+      version: number
+      bag_count: number
+    }
+
+/** What the three `ai_*` move RPCs answer. A board that moved under the bot is
+ *  a RACE on the not-ok arm, not a `stale` result. */
+type MoveAnswer =
+  | { result: 'accepted'; drawn: string[]; version: number; terminal: boolean }
+  | { result: 'invalid'; bad_words: string[] }
+  | { result: 'exchanged'; drawn: string[]; version: number; terminal: boolean }
+  | { result: 'passed'; version: number; terminal: boolean }
 
 // A generous per-invocation cap on AI moves (a chain of AI seats, each playing
 // until the bag empties, can't realistically exceed this) — a runaway guard.
@@ -72,32 +90,32 @@ serve(async (req: Request): Promise<Response> => {
 
     let played = 0
     const log: unknown[] = []
-    // Every early exit goes through this. The success log used to be the ONLY
-    // one, sitting after the loop — so a failing RPC returned 500 from inside
-    // the loop and the invocation left NO trace at all: the container showed
-    // "serving the request" and nothing after it, which reads as a hang rather
-    // than an error. That is exactly how a wrong RPC name (`ai_pass` for
-    // `ai_pass_turn`) survived ~30 moves of this game unnoticed — it only fires
-    // on the branch the AI hadn't needed yet.
-    // ONE code for all three, unlike a pair of raises that merely share a
-    // sentence: the investigation is identical — an RPC we call by name did not
-    // run — and `where` names which in the detail. That detail is how the
-    // wrong-name bug above is found; the code would not narrow it.
-    const fail = (where: string, message: string) => {
-      console.error(`[ai-move] game ${gameId}: FAILED at ${where} after ${played} turn(s) —`, message)
-      return fault('PN336', 'BUG: an AI move RPC did not run', `scrabble-ai-move: ${where} — ${message}`)
-    }
+    // EVERY EXIT FROM THE LOOP LOGS, and that is load-bearing. The success log
+    // used to be the only one, sitting after the loop — so a failing RPC
+    // returned 500 from inside it and the invocation left NO trace: the
+    // container showed "serving the request" and nothing after, which reads as
+    // a hang rather than an error. That is how a wrong RPC name (`ai_pass` for
+    // `ai_pass_turn`) survived ~30 moves of this game unnoticed; it only fired
+    // on the branch the AI had not needed yet.
+    //
+    // WHICH RPC is what makes that line worth reading, and it comes free now:
+    // `runRpc` takes the name and writes it into the message it faults with
+    // (`BUG: ai_pass_turn did not run`), so the name is in the sentence rather
+    // than buried in a detail.
     for (let i = 0; i < MAX_AI_MOVES; i++) {
-      const { data, error } = await db.rpc('get_ai_context', { target_game: gameId })
-      // `get_ai_context` is converted, so its own refusals relay untouched.
-      // `error` means only that it never RAN.
-      if (error) {
-        console.error(`[ai-move] game ${gameId}: get_ai_context did not run —`, error.message)
-        return fault('PN335', 'BUG: get_ai_context did not run', `scrabble-ai-move: ${error.message} (${error.code})`)
+      const ctxRes = await runRpc<AiContext>(
+        db.rpc('get_ai_context', { target_game: gameId }), 'get_ai_context',
+      )
+      // Its own refusals relay untouched; `runRpc` folds "it never ran" and "it
+      // answered something unreadable" into the same branch.
+      if (ctxRes.type === 'not-ok') {
+        console.error(`[ai-move] game ${gameId}: get_ai_context refused —`, ctxRes.message)
+        return json(ctxRes)
       }
-      if (isEnvelope(data)) return json(data)
-      const ctx = data as AiContext
-      if (ctx.done) break
+      // `done` is the COMMON answer, not an edge case: every client pokes this
+      // on every version bump and only one poke finds an AI seat waiting.
+      if (ctxRes.data.result === 'done') break
+      const ctx = ctxRes.data
 
       const knobs = LEVELS[ctx.ai_level] ?? LEVELS.best
       const bands: Bands = { dict2: ctx.dict_2, dict3plus: ctx.dict_3plus }
@@ -106,39 +124,45 @@ serve(async (req: Request): Promise<Response> => {
       const rng = mulberry32((((ctx.version * 31 + ctx.seat) >>> 0) ^ 0x9e3779b9) >>> 0)
       const choice = choosePlay(ctx.board, ctx.rack, trie, bands, knobs, rng)
 
-      let res: { result?: string } | null = null
+      let res: Envelope<MoveAnswer>
       if (choice.kind === 'word') {
-        const r = await db.rpc('ai_play_word', {
+        res = await runRpc<MoveAnswer>(db.rpc('ai_play_word', {
           target_game: gameId,
           p_seat: ctx.seat,
           base_version: ctx.version,
           placements: choice.placements,
           words: choice.words.map((w) => w.word),
           score: choice.score,
-        })
-        if (r.error) return fail('ai_play_word', r.error.message)
-        res = r.data as { result?: string }
+        }), 'ai_play_word')
         log.push({ seat: ctx.seat, words: choice.words.map((w) => w.word), score: choice.score })
       } else if (ctx.bag_count >= 7) {
         // No playable word but the bag can afford a swap — dump the whole rack.
-        const r = await db.rpc('ai_exchange_tiles', {
+        res = await runRpc<MoveAnswer>(db.rpc('ai_exchange_tiles', {
           target_game: gameId, p_seat: ctx.seat, base_version: ctx.version, rack_tiles: choice.tiles,
-        })
-        if (r.error) return fail('ai_exchange_tiles', r.error.message)
-        res = r.data as { result?: string }
+        }), 'ai_exchange_tiles')
         log.push({ seat: ctx.seat, exchange: choice.tiles.length })
       } else {
-        const r = await db.rpc('ai_pass_turn', {
+        res = await runRpc<MoveAnswer>(db.rpc('ai_pass_turn', {
           target_game: gameId, p_seat: ctx.seat, base_version: ctx.version,
-        })
-        if (r.error) return fail('ai_pass_turn', r.error.message)
-        res = r.data as { result?: string }
+        }), 'ai_pass_turn')
         log.push({ seat: ctx.seat, pass: true })
       }
 
-      // Another driver moved first (or the board changed under us) — stop and
-      // let whoever won continue the chain.
-      if (res?.result === 'stale') break
+      // ANOTHER DRIVER MOVED FIRST — the board version this move was built on
+      // is gone. That used to be an `ok` named `stale`; it is a RACE now, which
+      // is what it always was: every client pokes this function, so losing is
+      // the ordinary outcome and not a failure of anything. Stop, and let
+      // whoever won carry the chain on.
+      if (res.type === 'not-ok' && res.severity === 'race') {
+        console.log(`[ai-move] game ${gameId}: lost the race after ${played} turn(s) —`, res.message)
+        break
+      }
+      // Anything else refused is the bot genuinely stuck: relay it, with the
+      // same tagged line `fail` used to write.
+      if (res.type === 'not-ok') {
+        console.error(`[ai-move] game ${gameId}: FAILED after ${played} turn(s) —`, res.message)
+        return json(res)
+      }
       played++
     }
 

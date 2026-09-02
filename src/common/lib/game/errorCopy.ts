@@ -57,10 +57,8 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   // Unlike a game's own file, common holds two quite different populations.
   // The GAME-lifecycle raises are races, same as letterboxed's: a peer ended
   // the game, took the turn, or conceded while your call was in flight.
-  'not-your-turn': { text: () => 'Not your turn' },
   'game-not-in-play': { text: () => 'Game over', tone: 'noted' },
   'you-conceded': { text: () => 'Already conceded', tone: 'noted' },
-  'not-a-player': { text: () => "You're not in this game" },
   // A session that expired under a page left open overnight — the one fault
   // here with a real remedy, so it names it.
 
@@ -79,14 +77,6 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   // definition popover's red line. Edge-fn-raised (common-define); the HTTP
   // status rides as the detail and in the serve log. Approved 2026-08-12.
 
-  // ── scrabble ──
-  // The board and the bag are SHARED even in compete, so a rival's play lands
-  // between your stage and your commit: the square you were about to use is
-  // taken, or the bag no longer covers your exchange. The rack is server-owned,
-  // so it too can disagree with the screen for a moment.
-  'square-taken': { text: () => 'That square is taken' },
-  'bag-too-low': { text: () => 'Not enough tiles in the bag' },
-  'tile-not-in-rack': { text: () => "That tile isn't in your rack" },
 
   // ── AI features (codenamesduet clue suggester; more surfaces convert soon) ──
   // Model flakiness a retry genuinely fixes — real answers, shown in the AI

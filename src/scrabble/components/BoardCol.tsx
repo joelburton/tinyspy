@@ -1,7 +1,9 @@
 // cs-unmet
 
-import { failureMessage } from '../../common/lib/game/serverError'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
+import { runRpc } from '../../common/lib/supabase/dbResult'
+import { getNotOkFeedback } from '../../common/lib/game/genericPills'
+import { showFaultModal } from '../../common/lib/fault/faultStore'
 import type { GenericFeedbackMsg } from '../../common/lib/games'
 import { useFlash } from '../../common/hooks/ui/useFlash'
 import { cls } from '../../common/lib/util/cls'
@@ -163,6 +165,24 @@ function nextRackOrder(
  *     turn number `boardUpToSeq` indexes by), where stackdown/waffle alias it to
  *     `viewingIndex` (an array position). Same hook, deliberately different key.
  */
+/**
+ * What the three move RPCs answer. Every one of them keeps `version`, and
+ * `terminal` is on all three because the FE branches on it uniformly.
+ *
+ * `stale` is NOT here: a board that moved under you is a RACE, so it arrives on
+ * the not-ok arm with the server's own "Board changed". The version it used to
+ * carry rides in that refusal's `detail`, where the `[db]` line shows it — the
+ * frontend's own `game.version` comes from the games-row subscription, which is
+ * the authority.
+ */
+type PlayAnswer =
+  | { result: 'accepted'; drawn: string[]; version: number; terminal: boolean }
+  | { result: 'invalid'; bad_words: string[] }
+
+type SwapAnswer = { result: 'exchanged'; drawn: string[]; version: number; terminal: boolean }
+
+type PassAnswer = { result: 'passed'; version: number; terminal: boolean }
+
 export function BoardCol({
   mobileStatus,
   game,
@@ -610,49 +630,58 @@ export function BoardCol({
     const prevDraw = pendingDrawRef.current
     lastActionRef.current = { removed: new Set(staged.map((s) => s.rackIdx)), oldLen: actingRack.length }
     pendingDrawRef.current = staged.length // optimistic; corrected to res.drawn on accept
-    const { data, error } = await db.rpc('play_word', {
+    const res = await runRpc<PlayAnswer>(db.rpc('play_word', {
       target_game: gameId,
       base_version: game.version,
       placements: placements as unknown as never,
       words: ev.words.map((w) => w.word),
       score: ev.score,
-    })
+    }))
     setSubmitting(false)
-    if (error) {
+    // ONE un-claim, covering every answer that didn't commit. `stale` used to
+    // be an `ok` handled three branches down; it is a RACE now — somebody
+    // else's move bumped the board version — so it arrives here with the
+    // server's own "Board changed", in the orange a race reads as.
+    if (res.type === 'not-ok') {
       lastActionRef.current = prevAction // the move didn't land — un-claim it
       pendingDrawRef.current = prevDraw
-      showLocalFeedback(failureMessage(error, 'play'))
+      showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
       return
-    }
-    const res = data as { result: string; bad_words?: string[]; drawn?: string[] }
-    if (res.result === 'accepted') {
+    } else if (res.type === 'ok' && res.data.result === 'accepted') {
       // Hold the played tiles on the board (as committed) until the realtime
       // refetch lands, so they don't blink out; green-flash them. The new rack
       // tiles get the yellow flash once the rack arrives.
       setOptimistic(placements)
       flashGreen(placements.map((p) => cellIndex(p.x, p.y)))
-      pendingDrawRef.current = res.drawn?.length ?? 0 // exact draw count now known
+      pendingDrawRef.current = res.data.drawn.length // exact draw count now known
       setStaged([])
       setSelected(new Set())
       const words = ev.words.map((w) => w.word).join(' · ')
       showLocalFeedback({ tone: 'won', text: `${words} +${ev.score}${ev.bingo ? ' 🎉' : ''}` })
-    } else if (res.result === 'stale') {
-      lastActionRef.current = prevAction // no commit — un-claim
+      return
+    } else if (res.type === 'ok' && res.data.result === 'invalid') {
+      // The dictionary refused it — the one validation this client cannot do,
+      // so an ok rather than a failure. Nothing was written and no version was
+      // bumped, so the claim comes back.
+      lastActionRef.current = prevAction
       pendingDrawRef.current = prevDraw
-      showLocalFeedback({ tone: 'noted', text: 'Board changed' })
-    } else if (res.result === 'invalid') {
-      lastActionRef.current = prevAction // no commit — un-claim
-      pendingDrawRef.current = prevDraw
-      showLocalFeedback({ tone: 'lost', text: `No: ${(res.bad_words ?? []).join(', ').toUpperCase()}` })
+      const badWords = res.data.bad_words ?? []
+      showLocalFeedback({ tone: 'lost', text: `No: ${badWords.join(', ').toUpperCase()}` })
       // Red-flash the NEW cells in each rejected word (match the server's
       // bad_words back to the words evaluatePlay read off the board).
-      const bad = new Set((res.bad_words ?? []).map((w) => w.toUpperCase()))
+      const bad = new Set(badWords.map((w) => w.toUpperCase()))
       const cells = new Set<number>()
       for (const w of ev.words) {
         if (!bad.has(w.word.toUpperCase())) continue
         for (const c of w.cells) if (c.isNew) cells.add(cellIndex(c.x, c.y))
       }
       flashRed(cells)
+      return
+    } else {
+      lastActionRef.current = prevAction
+      pendingDrawRef.current = prevDraw
+      showFaultModal({ text: 'BUG: play_word fell through to unhandled' })
+      return
     }
   }, [game.version, board, staged, actingRack, gameId, showLocalFeedback, flashGreen, flashRed])
 
@@ -664,23 +693,25 @@ export function BoardCol({
     const prevDraw = pendingDrawRef.current
     lastActionRef.current = { removed: new Set(selected), oldLen: actingRack.length }
     pendingDrawRef.current = tiles.length // optimistic; corrected on success
-    const { data, error } = await db.rpc('exchange_tiles', { target_game: gameId, base_version: game.version, rack_tiles: tiles })
+    const res = await runRpc<SwapAnswer>(
+      db.rpc('exchange_tiles', { target_game: gameId, base_version: game.version, rack_tiles: tiles }),
+    )
     setSubmitting(false)
-    if (error) {
-      lastActionRef.current = prevAction
-      pendingDrawRef.current = prevDraw
-      showLocalFeedback(failureMessage(error, 'swap'))
-      return
-    }
-    const res = data as { result: string; drawn?: string[] }
-    if (res.result === 'stale') {
+    if (res.type === 'not-ok') {
       lastActionRef.current = prevAction // no commit — un-claim
       pendingDrawRef.current = prevDraw
-      showLocalFeedback({ tone: 'noted', text: 'Board changed' })
-    } else {
+      showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+      return
+    } else if (res.type === 'ok' && res.data.result === 'exchanged') {
       setSelected(new Set())
-      pendingDrawRef.current = res.drawn?.length ?? tiles.length
+      pendingDrawRef.current = res.data.drawn?.length ?? tiles.length
       showLocalFeedback({ tone: 'won', text: `Swapped ${tiles.length}` })
+      return
+    } else {
+      lastActionRef.current = prevAction
+      pendingDrawRef.current = prevDraw
+      showFaultModal({ text: 'BUG: exchange_tiles fell through to unhandled' })
+      return
     }
   }, [game.version, selected, actingRack, gameId, showLocalFeedback])
 
@@ -690,8 +721,20 @@ export function BoardCol({
     // misclick. Exchange needs no confirm: it's
     // disabled until tiles are selected, so it's rarely hit by accident.
     if (!window.confirm('Do you really want to pass your turn?')) return
-    const { error } = await db.rpc('pass_turn', { target_game: gameId, base_version: game.version })
-    if (error) showLocalFeedback(failureMessage(error, 'pass'))
+    const res = await runRpc<PassAnswer>(
+      db.rpc('pass_turn', { target_game: gameId, base_version: game.version }),
+    )
+    if (res.type === 'not-ok') {
+      showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+      return
+    } else if (res.type === 'ok' && res.data.result === 'passed') {
+      // Nothing to say: the turn hands on, and the seat strip redraws from the
+      // games row. The pass is in the turn log either way.
+      return
+    } else {
+      showFaultModal({ text: 'BUG: pass_turn fell through to unhandled' })
+      return
+    }
   }, [game.version, gameId, showLocalFeedback])
 
   // Show-a-move (coop): broadcast my staged tiles to teammates for a read-only

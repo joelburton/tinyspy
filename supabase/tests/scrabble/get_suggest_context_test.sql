@@ -12,6 +12,7 @@
 begin;
 set search_path = scrabble, common, public, extensions;
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 select plan(9);
@@ -32,9 +33,11 @@ select pg_temp.sc_coop((select id from gco), array['A','B','C','D','E','F','?'],
 -- ─── Gates ───────────────────────────────────────────────
 -- cade is a club non-member who never sat down at this game.
 select pg_temp.as_user('cade3333-3333-3333-3333-333333333333');
-select throws_ok($$
-  select scrabble.get_suggest_context((select id from gco))
-$$, '42501', null, 'a non-player is rejected');
+select pg_temp.envelope_is(
+  scrabble.get_suggest_context((select id from gco)),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN253",
+    "message":"You are not in this game"}'::jsonb,
+  'a non-player is rejected');
 reset role;
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -43,9 +46,12 @@ create temp table gcp on commit drop as
     '{"dict_2": 2, "dict_3plus": 5, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
           'bea22222-2222-2222-2222-222222222222'::uuid], 'compete')->'data'->>'id')::uuid as id;
-select throws_ok($$
-  select scrabble.get_suggest_context((select id from gcp))
-$$, 'P0001', 'suggest-not-in-compete|',
+-- A FAULT: mode is fixed at create_game and the FE renders no suggest button
+-- in compete, so nothing unbroken asks.
+select pg_temp.envelope_is(
+  scrabble.get_suggest_context((select id from gcp)),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN462",
+    "message":"BUG: a suggestion in a compete game"}'::jsonb,
   'a compete game is rejected — hints are a coop feature');
 reset role;
 
@@ -53,9 +59,11 @@ reset role;
 -- own tests) is rejected even for a legit player.
 update common.games set play_state = 'suspended' where id = (select id from gco);
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select throws_ok($$
-  select scrabble.get_suggest_context((select id from gco))
-$$, 'P0001', 'game-not-in-play|',
+-- A RACE: a teammate can end the game while the suggest button is on screen.
+select pg_temp.envelope_is(
+  scrabble.get_suggest_context((select id from gco)),
+  '{"type":"not-ok","severity":"race","dbcode":"PN461",
+    "message":"Game over"}'::jsonb,
   'a non-playing game is rejected');
 reset role;
 update common.games set play_state = 'playing' where id = (select id from gco);
@@ -63,13 +71,15 @@ update common.games set play_state = 'playing' where id = (select id from gco);
 -- ─── Happy path: the five-key atomic snapshot ────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table ctx on commit drop as
-  select scrabble.get_suggest_context((select id from gco)) as c;
+  select scrabble.get_suggest_context((select id from gco)) -> 'data' as c;
 reset role;
 
+-- The five keys, plus the `result` that names the answer — which is what lets
+-- the edge function branch on the answer rather than on a key being present.
 select is(
   (select array(select jsonb_object_keys(c) order by 1) from ctx),
-  array['board', 'dict_2', 'dict_3plus', 'rack', 'version'],
-  'the context carries exactly the five expected keys');
+  array['board', 'dict_2', 'dict_3plus', 'rack', 'result', 'version'],
+  'the context carries exactly the five expected keys, and names itself');
 select is((select (c->>'dict_2')::int from ctx), 2,
   'dict_2 is the grant-hidden band from setup');
 select is((select (c->>'dict_3plus')::int from ctx), 5,

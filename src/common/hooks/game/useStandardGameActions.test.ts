@@ -73,15 +73,20 @@ describe('endGame', () => {
 
   it('surfaces an RPC failure through showError as the full message', async () => {
     const { result, rpc, showError } = setup()
-    // A keyed rejection the copy table knows: the words a player reads are
+    // A keyed rejection the copy table still knows: the words a player reads are
     // TypeScript's, not the server's (lib/game/errorCopy.ts). The sink gets the
     // whole GenericFeedbackMsg — an expected race stays an ordinary pill.
-    rpc.mockResolvedValue({ error: { message: 'not-your-turn|', code: 'P0001' } })
+    //
+    // `game-not-in-play` rather than `not-your-turn`, which this used until the
+    // scrabble conversion took the last raise of it (2026-09-01): the key has to
+    // be one something still raises, or the copy table would be carrying an
+    // entry for this test alone.
+    rpc.mockResolvedValue({ error: { message: 'game-not-in-play|', code: 'P0001' } })
     act(() => result.current.endGame())
     await flush()
     expect(showError).toHaveBeenCalledWith({
-      tone: 'error',
-      text: 'Not your turn',
+      tone: 'noted',
+      text: 'Game over',
       mode: { kind: 'sticky' },
     })
   })

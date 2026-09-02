@@ -11,6 +11,7 @@
 begin;
 set search_path = scrabble, common, public, extensions;
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 select plan(16);
@@ -32,9 +33,11 @@ select pg_temp.sc_coop((select id from gco), array['A','B','C','D','E','F','G'],
   array['H','I','J']);  -- only 3 in the bag
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select throws_ok($$
-  select scrabble.exchange_tiles((select id from gco), 0, array['A','B'])
-$$, 'P0001', null, 'exchange is rejected when the bag holds < 7 tiles');
+select pg_temp.envelope_is(
+  scrabble.exchange_tiles((select id from gco), 0, array['A','B']),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN450",
+    "message":"BUG: a swap against a bag under seven"}'::jsonb,
+  'exchange is rejected when the bag holds < 7 tiles');
 reset role;
 
 -- ─── Exchange: happy path (coop) ─────────────────────────
@@ -45,8 +48,8 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table rex on commit drop as
   select scrabble.exchange_tiles((select id from gco), 0, array['A','B']) as res;
 reset role;
-select is((select res->>'result' from rex), 'exchanged', 'a valid exchange succeeds');
-select is((select jsonb_array_length(res->'drawn') from rex), 2,
+select is((select res -> 'data' ->> 'result' from rex), 'exchanged', 'a valid exchange succeeds');
+select is((select jsonb_array_length(res -> 'data' -> 'drawn') from rex), 2,
   'two tiles are drawn to replace the two returned');
 select is((select array_length(shared_rack, 1) from scrabble.games where id = (select id from gco)),
   7, 'the rack is still 7 tiles after the swap');
@@ -84,7 +87,7 @@ select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 create temp table rp2 on commit drop as
   select scrabble.pass_turn((select id from gcp), 1) as res;
 reset role;
-select is((select res->>'terminal' from rp2), 'true',
+select is((select res -> 'data' ->> 'terminal' from rp2), 'true',
   'a full round of passes ends the game');
 select is((select status->>'outcome' from common.games where id = (select id from gcp)),
   'blocked', 'the all-passed end is stamped outcome=blocked');
@@ -117,9 +120,14 @@ select is((select play_state from common.games where id = (select id from gcx)),
 
 -- ─── Coop has no pass ────────────────────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select throws_ok($$
-  select scrabble.pass_turn((select id from gco), 1)
-$$, 'P0001', null, 'passing is rejected in coop (no turns)');
+-- A fault because the FE renders PassButton in compete only. Whether it
+-- SHOULD be refused in turn-by-turn coop, where there is a turn to pass and the
+-- other two cores respect it, is docs/games/scrabble.md → Deferred.
+select pg_temp.envelope_is(
+  scrabble.pass_turn((select id from gco), 1),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN454",
+    "message":"BUG: a pass in a coop game"}'::jsonb,
+  'passing is rejected in coop');
 
 -- ─── Exchange can return a blank `?` to the bag ──────────
 -- The exchange path runs `?` through `_remove_tiles` just like a letter;
@@ -139,7 +147,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table rbk on commit drop as
   select scrabble.exchange_tiles((select id from gbk), 0, array['?']) as res;
 reset role;
-select is((select res->>'result' from rbk), 'exchanged',
+select is((select res -> 'data' ->> 'result' from rbk), 'exchanged',
   'a blank `?` can be exchanged');
 select is((select count(*)::int from
             unnest((select shared_rack from scrabble.games where id = (select id from gbk))

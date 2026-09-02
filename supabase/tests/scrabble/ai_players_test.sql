@@ -80,7 +80,7 @@ update scrabble.players set rack = array['C','A','T','S','E','R','D']
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table ctx on commit drop as
-  select scrabble.get_ai_context((select id from gai)) as c;
+  select scrabble.get_ai_context((select id from gai)) -> 'data' as c;
 reset role;
 select is((select jsonb_array_length(c->'rack') from ctx), 7, 'context returns the current AI seat rack');
 select is((select c->>'ai_level' from ctx), 'best', 'context carries the level');
@@ -89,7 +89,7 @@ select is((select (c->>'seat')::int from ctx), 1, 'context names the current AI 
 -- A human seat holds the turn → the bot has nothing to do (done, not an error).
 select pg_temp.sc_turn_seat((select id from gai), 0);
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select is((select scrabble.get_ai_context((select id from gai)) ->> 'done'), 'true',
+select is((select scrabble.get_ai_context((select id from gai)) -> 'data' ->> 'done'), 'true',
   'get_ai_context returns done when a human holds the turn');
 reset role;
 
@@ -103,7 +103,7 @@ create temp table aiw on commit drop as
       {"x":8,"y":7,"letter":"A","blank":false},
       {"x":9,"y":7,"letter":"T","blank":false}]'::jsonb, array['CAT'], 10) as res;
 reset role;
-select is((select res->>'result' from aiw), 'accepted', 'the AI seat can commit a word');
+select is((select res -> 'data' ->> 'result' from aiw), 'accepted', 'the AI seat can commit a word');
 select is((select current_seat from scrabble.games where id = (select id from gai)), 0,
   'the turn advances to the human seat');
 select is((select score from scrabble.players where game_id = (select id from gai) and seat = 1),
@@ -114,9 +114,11 @@ select is((select user_id from scrabble.plays where game_id = (select id from ga
   null, 'an AI play has a null user_id');
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select throws_ok(
-  format($$ select scrabble.ai_play_word(%L, 0, 1, '[]'::jsonb, array['AT'], 2) $$, (select id from gai)),
-  'P0001', NULL, 'ai_play_word on a human seat is rejected');
+select pg_temp.envelope_is(
+  scrabble.ai_play_word((select id from gai), 0, 1, '[]'::jsonb, array['AT'], 2),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN444",
+    "message":"BUG: an AI move on a human seat"}'::jsonb,
+  'ai_play_word on a human seat is rejected');
 reset role;
 
 -- ─── ai_pass_turn ──────────────────────────────────────────────
@@ -126,7 +128,7 @@ create temp table aip on commit drop as
   select scrabble.ai_pass_turn((select id from gai), 1,
     (select version from scrabble.games where id = (select id from gai))) as res;
 reset role;
-select is((select res->>'result' from aip), 'passed', 'the AI seat can pass');
+select is((select res -> 'data' ->> 'result' from aip), 'passed', 'the AI seat can pass');
 select is((select current_seat from scrabble.games where id = (select id from gai)), 0,
   'the AI pass advances the turn');
 

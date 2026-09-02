@@ -87,8 +87,13 @@ begin
   foreach t in array p_remove loop
     pos := array_position(r, t);
     if pos is null then
-      raise exception 'tile-not-in-rack|%|', t using errcode = 'P0001',
-      detail = 'the staged tile is not in the caller''s rack per the server';
+      -- A FAULT wherever it is reached from: every caller sits behind
+      -- _commit_word's or _commit_exchange's version gate, so a rack that has
+      -- moved would have bumped the version first. Reaching here means the
+      -- client staged a tile it does not hold.
+      raise exception 'BUG: a tile that is not in the rack'
+        using errcode = 'PN442', hint = 'fault', column = '_',
+        detail = format('%L is not in the caller''s rack per the server', t);
     end if;
     -- splice element `pos` out (works at either end and down to empty)
     r := r[1:pos-1] || r[pos+1:];
@@ -760,6 +765,7 @@ declare
   g            scrabble.games%rowtype;
   v_user       uuid;      -- the acting seat's user (null for an AI seat)
   play_state   text;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
   v_rack       text[];   -- the acting rack (compete: the seat's; coop: shared)
   v_board      jsonb;
   v_consumed   text[] := '{}';
@@ -778,25 +784,49 @@ begin
 
   select * into g from scrabble.games where id = target_game for update;
   if not found then
-    raise exception 'game-not-found|' using errcode = 'P0002',
+    raise exception 'That game no longer exists'
+      using errcode = 'PN435', hint = 'fault', column = '_',
       detail = 'no scrabble.games row for target_game';
   end if;
 
   select g2.play_state into play_state from common.games g2 where g2.id = target_game;
   if play_state <> 'playing' then
-    raise exception 'game-not-in-play|' using errcode = 'P0001',
+    -- A RACE, and one of only two here, because `play_state` lives on
+    -- common.games and a teammate ending the game does NOT bump this game's
+    -- `version` — so the gate below cannot catch it first.
+    raise exception 'Game over'
+      using errcode = 'PN436', hint = 'race', column = '_',
       detail = 'play_state is not an active state';
   end if;
 
-  -- ─── Optimistic-concurrency gate ─────────────────────────
+  -- ─── Optimistic-concurrency gate: THE race, and it decides the rest ──
+  -- Somebody else's committed move bumped `version` between this client
+  -- reading it and this call arriving — in coop any teammate's, in compete the
+  -- opponent's or the AI's. Nothing was validated and nothing is written: the
+  -- move was built on a board that no longer exists.
+  --
+  -- It is also why every check BELOW is a fault. Any server state a later gate
+  -- could disagree with — the turn, the rack, the bag, the board — would have
+  -- bumped `version` on its way, so reaching one of them with a version that
+  -- MATCHES means this client's own state is wrong.
+  --
+  -- The version rides in DETAIL rather than in the answer: nothing reads it
+  -- (the frontend's `game.version` comes from the games-row subscription, which
+  -- is the authority), but it is worth having on the `[db]` line. If a caller
+  -- ever needs the number rather than the record of it, `meta` is where it
+  -- goes — a structured slot on both arms — not a string for anyone to parse.
   if g.version <> base_version then
-    return jsonb_build_object('result', 'stale', 'version', g.version);
+    raise exception 'Board changed'
+      using errcode = 'PN437', hint = 'race', column = '_',
+      detail = format('the board is at version %s, this move was built on %s',
+                      g.version, base_version);
   end if;
 
   -- ─── Turn check (compete only) ───────────────────────────
   -- By SEAT (current_seat), so the same gate works whoever occupies it.
   if g.mode = 'compete' and p_seat is distinct from g.current_seat then
-    raise exception 'not-your-turn|' using errcode = 'P0001',
+    raise exception 'BUG: a move out of turn'
+      using errcode = 'PN438', hint = 'fault', column = '_',
       detail = 'another seat holds the turn';
   end if;
 
@@ -809,7 +839,11 @@ begin
   end if;
 
   if coalesce(array_length(p_words, 1), 0) = 0 then
-    raise exception 'no-word-formed|' using errcode = 'P0001',
+    -- Every check from here down is a FAULT, and the version gate above is why:
+    -- see its comment. `evaluatePlay` also refuses each of these locally, in the
+    -- player's own words, before the call is ever made.
+    raise exception 'BUG: a play forming no word'
+      using errcode = 'PN439', hint = 'fault', column = '_',
       detail = 'a play must form at least one word';
   end if;
 
@@ -827,13 +861,15 @@ begin
     v_letter := upper(rec->>'letter');
     v_blank  := coalesce((rec->>'blank')::boolean, false);
     if v_x < 0 or v_x > 14 or v_y < 0 or v_y > 14 then
-      raise exception 'out-of-bounds|' using errcode = 'P0001',
-      detail = 'a placement falls outside the 15x15 grid';
+      raise exception 'BUG: a tile off the board'
+        using errcode = 'PN440', hint = 'fault', column = '_',
+        detail = 'a placement falls outside the 15x15 grid';
     end if;
     v_idx := v_y * 15 + v_x;
     if jsonb_typeof(v_board -> v_idx) = 'object' then
-      raise exception 'square-taken|%|', v_idx using errcode = 'P0001',
-      detail = 'a rival''s tile already sits on that square';
+      raise exception 'BUG: a tile on an occupied square'
+        using errcode = 'PN441', hint = 'fault', column = '_',
+        detail = format('a tile already sits on square %s', v_idx);
     end if;
     v_consumed := v_consumed || (case when v_blank then '?' else v_letter end);
     v_board := jsonb_set(v_board, array[v_idx::text],
@@ -858,8 +894,12 @@ begin
         and (cw.american or cw.british)
    );
   if array_length(bad_words, 1) > 0 then
-    -- Free reject: nothing written, no version bump, no log.
-    return jsonb_build_object('result', 'invalid', 'bad_words', to_jsonb(bad_words));
+    -- Free reject: nothing written, no version bump, no log. An `ok`, because
+    -- the dictionary is the ONLY validation the client cannot do — asking is
+    -- what the move was for, and this is the answer.
+    return common.ok_envelope(
+      jsonb_build_object('result', 'invalid', 'bad_words', to_jsonb(bad_words)),
+      'lost');
   end if;
 
   -- ─── Commit ──────────────────────────────────────────────
@@ -917,11 +957,27 @@ begin
     perform common.update_state(target_game, 'playing', scrabble._status(target_game));
   end if;
 
-  return jsonb_build_object(
-    'result', 'accepted',
-    'drawn', to_jsonb(v_drawn),
-    'version', g.version + 1,
-    'terminal', v_terminal);
+  return common.ok_envelope(
+    jsonb_build_object(
+      'result', 'accepted',
+      'drawn', to_jsonb(v_drawn),
+      'version', g.version + 1,
+      'terminal', v_terminal),
+    'won');
+
+-- One block, and it has never heard of any specific condition: it reads the
+-- SQLSTATE, re-raises anything that isn't ours, and lets the raise itself carry
+-- the message, the kind and the field.
+--
+-- The six wrappers each carry their OWN copy, and must: a wrapper's seat gate
+-- raises BEFORE it delegates, so this block never sees it.
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -944,14 +1000,25 @@ as $$
 declare
   caller_id uuid;
   v_seat    int;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   caller_id := common.require_game_player(target_game);
   v_seat    := scrabble._seat_of(target_game, caller_id);
   if v_seat is null then
-    raise exception 'not-a-player|' using errcode = 'P0001',
+    -- create_game seats every player, so a member without one is a broken
+    -- client. The core's own catch block turns this into the envelope.
+    raise exception 'BUG: a move from a player with no seat'
+      using errcode = 'PN443', hint = 'fault', column = '_',
       detail = 'no scrabble seat for the caller';
   end if;
   return scrabble._commit_word(target_game, v_seat, base_version, placements, words, score);
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -976,14 +1043,24 @@ language plpgsql
 security definer
 set search_path = scrabble, common, public, extensions
 as $$
+declare
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   perform common.require_game_player(target_game);
   if not exists (select 1 from scrabble.players
                   where game_id = target_game and seat = p_seat and ai_level is not null) then
-    raise exception 'not-an-ai-seat|%|', p_seat using errcode = 'P0001',
-      detail = 'that seat is a human';
+    raise exception 'BUG: an AI move on a human seat'
+      using errcode = 'PN444', hint = 'fault', column = '_',
+      detail = format('seat %s is a human', p_seat);
   end if;
   return scrabble._commit_word(target_game, p_seat, base_version, placements, words, score);
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1019,26 +1096,35 @@ declare
   v_drawn    text[];
   v_seq      int;
   v_terminal boolean := false;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   select user_id into v_user from scrabble.players where game_id = target_game and seat = p_seat;
 
   select * into g from scrabble.games where id = target_game for update;
   if not found then
-    raise exception 'game-not-found|' using errcode = 'P0002',
+    raise exception 'That game no longer exists'
+      using errcode = 'PN445', hint = 'fault', column = '_',
       detail = 'no scrabble.games row for target_game';
   end if;
 
   select g2.play_state into play_state from common.games g2 where g2.id = target_game;
   if play_state <> 'playing' then
-    raise exception 'game-not-in-play|' using errcode = 'P0001',
+    raise exception 'Game over'
+      using errcode = 'PN446', hint = 'race', column = '_',
       detail = 'play_state is not an active state';
   end if;
 
+  -- The same gate, the same reasoning, as _commit_word's: this is the race, and
+  -- it is what makes every check below it a fault.
   if g.version <> base_version then
-    return jsonb_build_object('result', 'stale', 'version', g.version);
+    raise exception 'Board changed'
+      using errcode = 'PN447', hint = 'race', column = '_',
+      detail = format('the board is at version %s, this swap was built on %s',
+                      g.version, base_version);
   end if;
   if g.mode = 'compete' and p_seat is distinct from g.current_seat then
-    raise exception 'not-your-turn|' using errcode = 'P0001',
+    raise exception 'BUG: a swap out of turn'
+      using errcode = 'PN448', hint = 'fault', column = '_',
       detail = 'another seat holds the turn';
   end if;
 
@@ -1050,11 +1136,13 @@ begin
 
   v_n := coalesce(array_length(rack_tiles, 1), 0);
   if v_n = 0 then
-    raise exception 'no-tiles-chosen|' using errcode = 'P0001',
+    raise exception 'BUG: a swap of no tiles'
+      using errcode = 'PN449', hint = 'fault', column = '_',
       detail = 'an exchange needs at least one tile';
   end if;
   if coalesce(array_length(g.bag, 1), 0) < 7 then
-    raise exception 'bag-too-low|' using errcode = 'P0001',
+    raise exception 'BUG: a swap against a bag under seven'
+      using errcode = 'PN450', hint = 'fault', column = '_',
       detail = 'the bag holds fewer tiles than the exchange asks for';
   end if;
 
@@ -1102,8 +1190,20 @@ begin
   -- `terminal` is always false now — an exchange can no longer end a game (it
   -- resets the pass streak rather than feeding it). The key stays in the shape
   -- because every move RPC returns it and the FE branches on it uniformly.
-  return jsonb_build_object('result', 'exchanged', 'drawn', to_jsonb(v_drawn),
-                            'version', g.version + 1, 'terminal', v_terminal);
+  return common.ok_envelope(
+    jsonb_build_object('result', 'exchanged', 'drawn', to_jsonb(v_drawn),
+                       'version', g.version + 1, 'terminal', v_terminal),
+    'won');
+
+-- As _commit_word's. Its two wrappers carry their own — their gates raise
+-- before they delegate here.
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1119,14 +1219,23 @@ as $$
 declare
   caller_id uuid;
   v_seat    int;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   caller_id := common.require_game_player(target_game);
   v_seat    := scrabble._seat_of(target_game, caller_id);
   if v_seat is null then
-    raise exception 'not-a-player|' using errcode = 'P0001',
+    raise exception 'BUG: a swap from a player with no seat'
+      using errcode = 'PN451', hint = 'fault', column = '_',
       detail = 'no scrabble seat for the caller';
   end if;
   return scrabble._commit_exchange(target_game, v_seat, base_version, rack_tiles);
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1140,14 +1249,24 @@ language plpgsql
 security definer
 set search_path = scrabble, common, public, extensions
 as $$
+declare
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   perform common.require_game_player(target_game);
   if not exists (select 1 from scrabble.players
                   where game_id = target_game and seat = p_seat and ai_level is not null) then
-    raise exception 'not-an-ai-seat|%|', p_seat using errcode = 'P0001',
-      detail = 'that seat is a human';
+    raise exception 'BUG: an AI swap on a human seat'
+      using errcode = 'PN452', hint = 'fault', column = '_',
+      detail = format('seat %s is a human', p_seat);
   end if;
   return scrabble._commit_exchange(target_game, p_seat, base_version, rack_tiles);
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1174,30 +1293,43 @@ declare
   v_seq      int;
   v_active   int;
   v_terminal boolean := false;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   select user_id into v_user from scrabble.players where game_id = target_game and seat = p_seat;
 
   select * into g from scrabble.games where id = target_game for update;
   if not found then
-    raise exception 'game-not-found|' using errcode = 'P0002',
+    raise exception 'That game no longer exists'
+      using errcode = 'PN453', hint = 'fault', column = '_',
       detail = 'no scrabble.games row for target_game';
   end if;
   if g.mode <> 'compete' then
-    raise exception 'pass-not-in-coop|' using errcode = 'P0001',
-      detail = 'coop has no turns to pass';
+    -- A fault because the FE renders PassButton in compete only, so nothing
+    -- unbroken asks. NOT because the rule is settled: scrabble supports opt-in
+    -- turn-by-turn coop, where there IS a turn to pass and the other two move
+    -- cores respect it. See docs/games/scrabble.md → Deferred.
+    raise exception 'BUG: a pass in a coop game'
+      using errcode = 'PN454', hint = 'fault', column = '_',
+      detail = 'pass_turn is compete-only today';
   end if;
 
   select g2.play_state into play_state from common.games g2 where g2.id = target_game;
   if play_state <> 'playing' then
-    raise exception 'game-not-in-play|' using errcode = 'P0001',
+    raise exception 'Game over'
+      using errcode = 'PN455', hint = 'race', column = '_',
       detail = 'play_state is not an active state';
   end if;
 
+  -- The same gate, the same reasoning, as _commit_word's.
   if g.version <> base_version then
-    return jsonb_build_object('result', 'stale', 'version', g.version);
+    raise exception 'Board changed'
+      using errcode = 'PN456', hint = 'race', column = '_',
+      detail = format('the board is at version %s, this pass was built on %s',
+                      g.version, base_version);
   end if;
   if p_seat is distinct from g.current_seat then
-    raise exception 'not-your-turn|' using errcode = 'P0001',
+    raise exception 'BUG: a pass out of turn'
+      using errcode = 'PN457', hint = 'fault', column = '_',
       detail = 'another seat holds the turn';
   end if;
 
@@ -1234,8 +1366,20 @@ begin
     perform common.update_state(target_game, 'playing', scrabble._status(target_game));
   end if;
 
-  return jsonb_build_object('result', 'passed', 'version', g.version + 1,
-                            'terminal', v_terminal);
+  -- `neutral`: a pass is a turn that counts and that nothing adjudicates.
+  return common.ok_envelope(
+    jsonb_build_object('result', 'passed', 'version', g.version + 1,
+                       'terminal', v_terminal),
+    'neutral');
+
+-- As the other two cores'. The wrappers carry their own, for the same reason.
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1251,14 +1395,23 @@ as $$
 declare
   caller_id uuid;
   v_seat    int;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   caller_id := common.require_game_player(target_game);
   v_seat    := scrabble._seat_of(target_game, caller_id);
   if v_seat is null then
-    raise exception 'not-a-player|' using errcode = 'P0001',
+    raise exception 'BUG: a pass from a player with no seat'
+      using errcode = 'PN458', hint = 'fault', column = '_',
       detail = 'no scrabble seat for the caller';
   end if;
   return scrabble._commit_pass(target_game, v_seat, base_version);
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1272,14 +1425,24 @@ language plpgsql
 security definer
 set search_path = scrabble, common, public, extensions
 as $$
+declare
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   perform common.require_game_player(target_game);
   if not exists (select 1 from scrabble.players
                   where game_id = target_game and seat = p_seat and ai_level is not null) then
-    raise exception 'not-an-ai-seat|%|', p_seat using errcode = 'P0001',
-      detail = 'that seat is a human';
+    raise exception 'BUG: an AI pass on a human seat'
+      using errcode = 'PN459', hint = 'fault', column = '_',
+      detail = format('seat %s is a human', p_seat);
   end if;
   return scrabble._commit_pass(target_game, p_seat, base_version);
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1485,6 +1648,7 @@ as $$
 declare
   g scrabble.games%rowtype;
   current_play_state text;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   -- Membership is the FIRST gate: a non-member gets the same "not your game"
   -- regardless of whether the game exists, so they can't probe game IDs. (Moot
@@ -1494,14 +1658,18 @@ begin
 
   select * into g from scrabble.games where id = target_game;
   if not found then
-    raise exception 'game-not-found|' using errcode = 'P0002',
+    raise exception 'That game no longer exists'
+      using errcode = 'PN460', hint = 'fault', column = '_',
       detail = 'no scrabble.games row for target_game';
   end if;
 
   select play_state into current_play_state
     from common.games where id = target_game;
   if current_play_state <> 'playing' then
-    raise exception 'game-not-in-play|' using errcode = 'P0001',
+    -- A race: a teammate finished the game, or the clock ran out, while the
+    -- suggest button was still on screen.
+    raise exception 'Game over'
+      using errcode = 'PN461', hint = 'race', column = '_',
       detail = 'the AI suggester requires an active play_state';
   end if;
 
@@ -1510,17 +1678,31 @@ begin
   -- so this gate is also what keeps the suggester from becoming a
   -- rack-reading side channel.
   if g.mode <> 'coop' then
-    raise exception 'suggest-not-in-compete|' using errcode = 'P0001',
+    -- A fault: mode is fixed at create_game and the FE renders no suggest
+    -- button in compete, so nothing unbroken asks.
+    raise exception 'BUG: a suggestion in a compete game'
+      using errcode = 'PN462', hint = 'fault', column = '_',
       detail = 'the AI suggester would be a win button in a race';
   end if;
 
-  return jsonb_build_object(
+  -- Unwrapped by `scrabble-suggest-move`, not relayed: the board it carries is
+  -- the first step of that function's work, not its answer.
+  return common.ok_envelope(jsonb_build_object(
+    'result', 'context',
     'board', g.board,
     'rack', to_jsonb(g.shared_rack),
     'dict_2', g.dict_2,
     'dict_3plus', g.dict_3plus,
     'version', g.version
-  );
+  ));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1552,27 +1734,35 @@ declare
   g          scrabble.games%rowtype;
   pl         scrabble.players%rowtype;
   cur_state  text;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   perform common.require_game_player(target_game);
 
   select * into g from scrabble.games where id = target_game;
   if not found then
-    raise exception 'game-not-found|' using errcode = 'P0002',
+    raise exception 'That game no longer exists'
+      using errcode = 'PN463', hint = 'fault', column = '_',
       detail = 'no scrabble.games row for target_game';
   end if;
 
   select play_state into cur_state from common.games where id = target_game;
-  -- Not an AI's turn to move → nothing for the bot to do.
+  -- TWO `ok`s, and `done` is the ordinary one rather than an exception: every
+  -- client pokes this on every version bump, so "nothing for the bot to do" is
+  -- the answer most calls get. `done` stays in `data` exactly as it was; the
+  -- new `result` is what lets the edge function branch on the answer rather
+  -- than on the presence of a key.
   if g.mode <> 'compete' or cur_state <> 'playing' or g.current_seat is null then
-    return jsonb_build_object('done', true);
+    return common.ok_envelope(jsonb_build_object('result', 'done', 'done', true));
   end if;
 
   select * into pl from scrabble.players where game_id = target_game and seat = g.current_seat;
   if pl.ai_level is null then
-    return jsonb_build_object('done', true); -- a human seat holds the turn
+    -- A human seat holds the turn.
+    return common.ok_envelope(jsonb_build_object('result', 'done', 'done', true));
   end if;
 
-  return jsonb_build_object(
+  return common.ok_envelope(jsonb_build_object(
+    'result', 'context',
     'seat', g.current_seat,
     'board', g.board,
     'rack', to_jsonb(pl.rack),
@@ -1581,7 +1771,15 @@ begin
     'ai_level', pl.ai_level,
     'version', g.version,
     'bag_count', coalesce(array_length(g.bag, 1), 0)
-  );
+  ));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 

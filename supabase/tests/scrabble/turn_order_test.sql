@@ -21,6 +21,7 @@
 begin;
 set search_path = scrabble, common, public, extensions;
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 select plan(9);
@@ -55,16 +56,17 @@ select is(
 -- (2) bea moving out of turn is rejected (version 0 is current, so the stale
 -- gate passes and the turn gate fires).
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select throws_ok(
-  format($$ select scrabble.exchange_tiles(%L::uuid, 0, array['C']) $$, (select id from g)),
-  'P0001', 'not-your-turn|',
+-- PN243 comes from `common._require_turn`, shared by every turn-based game.
+select pg_temp.envelope_is(
+  scrabble.exchange_tiles((select id from g), 0, array['C']),
+  '{"type":"not-ok","severity":"race","dbcode":"PN243"}'::jsonb,
   'turns: the non-current player is rejected'
 );
 
 -- (3) ada (current) exchanges — accepted, advances.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  (select scrabble.exchange_tiles((select id from g), 0, array['A'])->>'result'),
+  (select scrabble.exchange_tiles((select id from g), 0, array['A']) -> 'data' ->> 'result'),
   'exchanged',
   'turns: the current player''s move is accepted'
 );
@@ -78,10 +80,13 @@ select is(
 -- (4) SOFT-REJECT does NOT advance: it's bea's turn; bea exchanges 'Z', which
 -- isn't in the rack → raises (rolls back). The pointer stays bea's.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select throws_ok(
-  format($$ select scrabble.exchange_tiles(%L::uuid, 1, array['Z']) $$, (select id from g)),
-  'P0001', null,
-  'turns: an invalid-tile exchange is soft-rejected'
+-- A FAULT: the version matches, so the rack the client staged from is the
+-- rack the server holds — a tile it does not contain came from a broken client.
+select pg_temp.envelope_is(
+  scrabble.exchange_tiles((select id from g), 1, array['Z']),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN442",
+    "message":"BUG: a tile that is not in the rack"}'::jsonb,
+  'turns: an invalid-tile exchange does not advance the turn'
 );
 reset role;
 select is(
@@ -118,7 +123,7 @@ select is(
 -- bea moves first (would be out of turn in a turn game) — no gate.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
-  (select scrabble.exchange_tiles((select id from ffa), 0, array['A'])->>'result'),
+  (select scrabble.exchange_tiles((select id from ffa), 0, array['A']) -> 'data' ->> 'result'),
   'exchanged',
   'free-for-all coop: any player may move in any order'
 );
