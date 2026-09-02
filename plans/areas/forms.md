@@ -24,10 +24,16 @@ This area's own findings therefore start at **F30**, so no number in this file i
 ambiguous and an inherited finding is recognizable on sight (≤ F13 came from
 elsewhere; ≥ F30 was raised here).
 
-**Twenty findings. SEVENTEEN RESOLVED** — F8, F9, F13, F30, F31, F33, F34, F35,
-F36, F38, F39, F40, F41, F42, F43, F45, F47 — **three CLOSED and moved out**
+**Status: OPEN, and RE-AUDITED WHEN IT REOPENS** — app-audit.md §21 → "The
+2026-09-02 restart". Every stamp in the repo is `cs-unmet` again, so the findings
+below are inputs to a fresh audit rather than a queue to work through: each is
+judged then as still true, already answered by the machinery work, or no longer
+wanted.
+
+**Twenty-four findings. SEVENTEEN RESOLVED** — F8, F9, F13, F30, F31, F33, F34,
+F35, F36, F38, F39, F40, F41, F42, F43, F45, F47 — **three CLOSED and moved out**
 (F32 → the FreeBee pair, F37 → crosswords, F44 → crosswords + floating-panels)
-— and **one parked** for the sprint's docs step, F46.
+— and **four OPEN**: F46 (parked for the sprint's docs step), F48, F49, F50.
 
 F43–F47 came from the work rather than the audit, which is expected: §21 says a
 finding is not required to have come from the audit and takes the next free

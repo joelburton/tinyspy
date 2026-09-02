@@ -25,11 +25,21 @@ change here forward-fixes them in the same commit (§21's compile-break rule) an
 **their stamps do not move**. If one of them turns out to be the only evidence
 for a shared question, it gets surfaced and asked about, not audited.
 
-**Thirty-one findings.** Twenty-six RESOLVED (F1–F7, F16, F17, F18, F19, F21,
-F25, F28), three MOVED to `forms` (F8, F9, F13), two PUNTED (F14 → the first
-game area, F15 → crosswords), **nine OPEN** — F10, F11, F12, F20, F22, F23, F24,
-F26, F27 — plus two filed on 2026-08-25 and also open: **F30** from a bug report,
-and **F31** moved IN from `forms`.
+**Status: OPEN, and RE-AUDITED WHEN IT REOPENS** — app-audit.md §21 → "The
+2026-09-02 restart". Every stamp in the repo is `cs-unmet` again, so the findings
+below are inputs to a fresh audit rather than a queue to work through: each is
+judged then as still true, already answered by the machinery work, or no longer
+wanted.
+
+**Thirty-three findings**, counted off their own headings: **twenty-two
+RESOLVED** (F1–F7, F10, F11, F12, F16–F22, F24, F25, F26, F28, F29), **three
+MOVED to `forms`** (F8, F9, F13), **two PUNTED** (F14 → the first game area,
+F15 → crosswords), **two CLOSED** (F23, F27), and **four OPEN — F30, F31, F32,
+F33**.
+
+Two of the four open ones are **red e2e specs**, traced here from the `forms`
+area's run rather than fixed there because the elements are this area's to name:
+F32 (`titlebar-is-not-a-header`) and F33 (`word-dialogs-grow-instead-of-scrolling`).
 
 **A plan for eight of them is agreed** — see "The plan, agreed 2026-08-24" below.
 F16/F17/F18 turned out to be one question, and the answer is that a panel

@@ -4,9 +4,14 @@ The first area of the CSS sprint's step 7. The process is
 [app-audit.md](../app-audit.md) §21; the plan holds the order, this file
 holds everything else.
 
-**Status: PAUSED 2026-08-26 behind the error/fault redesign**
-(the error/envelope sprint) — and the whole sprint with
-it (app-audit.md's header). What is left here is F21
+**Status: OPEN, and RE-AUDITED WHEN IT REOPENS** — app-audit.md §21 → "The
+2026-09-02 restart". Every stamp in the repo is `cs-unmet` again, so the findings
+below are inputs to a fresh audit rather than a queue to work through: each is
+judged then as still true, already answered by the machinery work, or no longer
+wanted.
+
+It paused 2026-08-26 behind the error/fault redesign (the error/envelope sprint),
+which **finished 2026-09-01** — nothing blocks it now. What stands here is F21
 (`homepage-no-vitest`), plus the ten dependency findings F45–F54, which belong
 to the areas that own those files.
 

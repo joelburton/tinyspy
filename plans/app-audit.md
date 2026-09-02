@@ -956,9 +956,9 @@ area**.
 
 | # | area | what it is |
 |---|---|---|
-| 1 | `homepage` | **REOPENED 2026-08-26 — one finding left.** The rehearsal for the full toolkit: patterns + vocabulary + the page shell, plus a **React pass** — the duplication was not only in the CSS. The two findings the 2026-08-24 pause was waiting on are closed: F44 (`action-button-text-only`) was answered by `forms`, and F36 (`createclub-modal`) is built — `CreateClubModal` is a `<NormalModal>` and `/c/new` is gone. F21 (`homepage-no-vitest`) is deliberately LAST: there is no point pinning the page's shape, or `<SelectionList>`'s, while either can still move (`plans/areas/homepage.md`) |
-| 2 | `floating-panels` | **OPEN, seven findings resolved.** The machinery and shared look of every window-like thing that floats over the page — the shell, the blocking modal, the confirmation and the acknowledgment, the drag hook, the focus trap. **Not the instances**, and since 2026-08-24 **not the forms either** (`plans/areas/floating-panels.md`) |
-| 3 | `forms` | **NEW 2026-08-24, split out of the area above.** The design language of forms: the shared field components, the setup scaffolding, and **the question the homepage could not answer — are a form's buttons really different from action buttons?** Seven hand-written Cancels say the taxonomy has a hole (F44). Split because a floating panel and a form share a container and nothing else; keeping them together meant one area holding two vocabularies |
+| 1 | `homepage` | **RE-AUDITED ON REOPEN** (§21 → the 2026-09-02 restart); the findings below are inputs to that audit. **One finding of its own left.** The rehearsal for the full toolkit: patterns + vocabulary + the page shell, plus a **React pass** — the duplication was not only in the CSS. The two findings the 2026-08-24 pause was waiting on are closed: F44 (`action-button-text-only`) was answered by `forms`, and F36 (`createclub-modal`) is built — `CreateClubModal` is a `<NormalModal>` and `/c/new` is gone. F21 (`homepage-no-vitest`) is deliberately LAST: there is no point pinning the page's shape, or `<SelectionList>`'s, while either can still move (`plans/areas/homepage.md`) |
+| 2 | `floating-panels` | **RE-AUDITED ON REOPEN** (§21 → the 2026-09-02 restart). **Four findings open — F30, F31, F32, F33**, two of them red e2e specs this area is the one to answer. The machinery and shared look of every window-like thing that floats over the page — the shell, the blocking modal, the confirmation and the acknowledgment, the drag hook, the focus trap. **Not the instances**, and since 2026-08-24 **not the forms either** (`plans/areas/floating-panels.md`) |
+| 3 | `forms` | **RE-AUDITED ON REOPEN** (§21 → the 2026-09-02 restart). **Four findings open — F46, F48, F49, F50.** Opened 2026-08-24, split out of the area above. The design language of forms: the shared field components, the setup scaffolding, and **the question the homepage could not answer — are a form's buttons really different from action buttons?** Seven hand-written Cancels say the taxonomy has a hole (F44). Split because a floating panel and a form share a container and nothing else; keeping them together meant one area holding two vocabularies |
 | 4 | `simple-page` | **NEW.** The pages that are not home, club or game: `LoginScreen`, `ClaimHandleScreen`, `ErrorPage`, `Loading`. (`CreateClubPage` was on this roster; F36 took it on 2026-08-26 and it is a modal now.) **The roster's test is "does `App` render it directly?"**, which is better than "is it routable": it catches `ErrorPage` and `Loading`, both of which stand in for a page AND appear inside one (`ClubPage:719`, `:726`, `PlayAreaErrorBoundary:47`) — which is exactly what the shell decision has to cover |
 | 5 | `club-page` | Absorbs the punted viewport-fit chain, the `.frame` rename, `<ModePill>` reading the shared `.badge`, and the leftovers listed in "Why 6 stopped" |
 | 6 | `shared-game-chrome` | `common/components/game/` — 258 rules, and every game sits on it. Also: the **contract-slot guard**, checked per mount point (§9, §10) |
@@ -1880,6 +1880,37 @@ tally.
 of the file, and `migration list` matched local to remote with a stamped
 migration on disk. `stamp` and `unstamp` are exact inverses, proved by
 round-tripping all 1351 files and diffing, which is what step 12 depends on.
+
+### The 2026-09-02 restart — nothing is read, and an opened area is re-audited
+
+**Every file in scope is `cs-unmet`**: 1491 of them, plus
+`src/guards/csStamps.test.ts` at `cs-na`, which stays there because the guard
+about stamps is not a surface. Nothing sits at `found`, `audited`, `partial`,
+`fixed` or `blessed`.
+
+**Why.** Sprints nested inside this one ran between its last area and its resume
+— the error/envelope sprint above all — and they rebuilt machinery underneath
+every surface already audited: the envelope shape, the fault modal, `FailureLine`,
+the edge-function crash path. An audit of a surface whose foundation moved
+afterwards describes an app that no longer exists, so carrying those stamps
+forward would cost more than re-reading the files.
+
+**The findings are KEPT.** `homepage`, `floating-panels` and `forms` are the
+three areas already opened, and their files stay as they are. The restart is
+about the stamps, not about the record — a finding is evidence somebody
+gathered, and throwing it away costs the gathering twice.
+
+**What reopening an area means.** The area gets a **fresh audit**, and its
+existing findings are inputs to that audit rather than a queue to work through.
+Each one is judged at that moment, against the code as it then stands:
+
+- **still true** — it carries into the new audit, number and slug unchanged;
+- **already answered** — the machinery work settled it; say so and close it;
+- **no longer wanted** — the surface or the decision moved out from under it;
+  say so and close it.
+
+**None of that judging happens in advance.** A finding does not become stale by
+being old, and nothing marks it stale except the audit that reopens its area.
 
 ### Areas
 
