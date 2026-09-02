@@ -1,6 +1,5 @@
 // cs-unmet
 
-import { faultMessage } from '../../common/lib/game/serverError'
 import { runRpc } from '../../common/lib/supabase/dbResult'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { IconHint, IconNewGame, IconPrint, IconRestart } from '../../common/components/icons'
@@ -8,7 +7,7 @@ import { cls } from '../../common/lib/util/cls'
 import { EnvelopeErrorPage } from '../../common/components/loading-and-errs/ErrorPage'
 import { getNotOkFeedback } from '../../common/lib/game/genericPills'
 import { showFaultModal } from '../../common/lib/fault/faultStore'
-import type { GamePageCtx } from '../../common/lib/games'
+import type { CreatedGame, GamePageCtx } from '../../common/lib/games'
 import { colorByUserIdMap } from '../../common/lib/color/memberColor'
 import { CelebrationBlockingModal } from '../../common/components/game/CelebrationBlockingModal'
 import { useCelebration } from '../../common/hooks/game/useCelebration'
@@ -406,22 +405,32 @@ export function PlayArea({
     // very puzzle we just finished.
     const carried = { ...(setup as unknown as ConnectionsSetup) }
     delete carried.puzzle_id
-    const { data, error } = await db
-      .rpc('create_game', {
+    // No `.single()`: the RPC returns the envelope itself, one jsonb value —
+    // asking for a single ROW of it gets the envelope where the game was meant
+    // to be, and `data.id` reads undefined off it.
+    const res = await runRpc<CreatedGame>(
+      db.rpc('create_game', {
         target_club: clubHandle,
         setup: carried,
         player_user_ids: players.map((p) => p.user_id),
         mode: gameMode,
-      })
-      .single()
-    if (error || !data) {
-      // New game is a FAULT SURFACE (serverError.ts → faultMessage): this setup
-      // already built a game once, so any failure here is a bug or an outage
-      // — never a pill. Copy supplies the words when it has them.
-      showLocalFeedback(faultMessage(error, 'new game'))
+      }),
+    )
+    if (res.type === 'not-ok') {
+      // The same envelope the setup form reads, read differently: there is no
+      // field and no form here, so whatever came back goes in the pill as it
+      // reads. Shown even for a fault, whose modal has already fired centrally
+      // — the modal escalates, it does not replace, and dismissing it must not
+      // leave the board silent about why the game did not start.
+      showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'manual' } })
+      return
+    } else if (res.type === 'ok' && res.data.result === 'created') {
+      goToGame(`connections_${gameMode}`, res.data.id)
+      return
+    } else {
+      showFaultModal({ text: 'BUG: create_game fell through to unhandled' })
       return
     }
-    goToGame(`connections_${gameMode}`, (data as { id: string }).id)
   }, [gameMode, clubHandle, setup, players, goToGame, showLocalFeedback, confirmAction, acknowledge, isTerminal])
 
   // Single-flight guard. New game has THREE triggers (the terminal button, the
