@@ -49,7 +49,7 @@ test.describe('boggle play loop', () => {
     // either way, so the letters can always be copied into a next game
     // (setupRows.ts → the board-identity exception).
     await page.getByText('Setup options').click()
-    await expect(page.getByText('Letters: CATR XXXX XXXX XXXX')).toBeVisible()
+    await expect(page.getByText('Letters: CATR-XXXX-XXXX-XXXX')).toBeVisible()
 
     await ctx.close()
   })
@@ -168,7 +168,11 @@ test.describe('boggle play loop', () => {
  * comfortably at the default band.
  */
 test.describe('boggle custom board', () => {
-  const CUSTOM_BOARD = 'CATS AREA TILE NEST'
+  // Dashed, because that is the ONE form the round trip runs in now: the field
+  // groups tiles with '-' as you type, and the recap prints the same string. The
+  // field strips separators on the way in, so spaces would still build the board
+  // — but then this constant could not be both halves of the assertion below.
+  const CUSTOM_BOARD = 'CATS-AREA-TILE-NEST'
 
   test('a typed board is the board you play, and the recap reads it back', async ({
     browser,
@@ -187,7 +191,7 @@ test.describe('boggle custom board', () => {
     // The custom board lives behind a collapsed disclosure — expand it, then
     // type the tiles exactly as a recap would print them.
     await page.getByText('Custom board (optional)').click()
-    await page.getByRole('textbox', { name: 'Custom board' }).fill(CUSTOM_BOARD)
+    await page.locator('input[name="custom_board"]').fill(CUSTOM_BOARD)
 
     // Start → the edge function solves exactly this board and lands us on it.
     await page.getByRole('button', { name: /^Start MothCubes/ }).click()
@@ -195,7 +199,7 @@ test.describe('boggle custom board', () => {
     const tiles = page.locator('[data-boggle-tile]')
     await expect(tiles).toHaveCount(16, { timeout: 20000 })
     // The tiles ARE the typed board, in row-major order.
-    expect((await tiles.allInnerTexts()).join('')).toBe(CUSTOM_BOARD.replace(/ /g, ''))
+    expect((await tiles.allInnerTexts()).join('')).toBe(CUSTOM_BOARD.replace(/-/g, ''))
 
     // And the recap prints it back in the form the dialog takes — the round
     // trip a friend actually uses (docs/games/boggle.md → Custom board).

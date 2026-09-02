@@ -21,7 +21,9 @@ test('open with the chord, pin a letter, scroll a long list', async ({ browser }
   // The chord races the shortcut listener's effect-time attach (the same
   // paint-vs-listening gap as typing races useCaptureKeys) — press until
   // the dialog demonstrably answers.
-  const input = page.getByLabel('Letters to anagram')
+  // The box carries no caption — the titlebar above it is the label
+  // ("this box IS the dialog") — so it is reached by its form name.
+  const input = page.locator('input[name="letters"]')
   await expect(async () => {
     await page.keyboard.press('Alt+Backquote')
     await expect(input).toBeVisible({ timeout: 300 })

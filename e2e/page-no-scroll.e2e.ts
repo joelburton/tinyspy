@@ -57,6 +57,9 @@ test.describe('page never scrolls', () => {
     // Baseline: the club page itself respects the invariant.
     await expectNoPageScroll(page, 'club page baseline')
 
+    // A panel's titlebar is a div with a CSS-module `titlebar` class, not a
+    // <header> element — so it is matched on the hashed class. (The page's own
+    // <header> banner is a different element, and other specs still use it.)
     // Reopen the (ephemeral) dialog before each corner so its header always
     // starts centered and fully grabbable, then drag it hard past that corner.
     const corners: Array<[number, number]> = [
@@ -65,7 +68,7 @@ test.describe('page never scrolls', () => {
     ]
     for (const [cx, cy] of corners) {
       await startGameRow(page, /RackAttack/).click()
-      const header = page.locator('header').filter({ hasText: 'Start RackAttack' })
+      const header = page.locator('[class*="titlebar"]').filter({ hasText: 'Start RackAttack' })
       await expect(header).toBeVisible({ timeout: 15_000 })
       await dragHeaderTo(page, header, cx, cy)
       await expectNoPageScroll(page, `setup dialog parked near (${cx}, ${cy})`)
@@ -84,7 +87,7 @@ test.describe('page never scrolls', () => {
     await page.goto(`/c/${club.handle}`)
 
     await page.getByRole('button', { name: 'Open chat', exact: true }).click()
-    const header = page.locator('header').filter({ hasText: 'Chat' })
+    const header = page.locator('[class*="titlebar"]').filter({ hasText: 'Chat' })
     await expect(header).toBeVisible()
 
     // Chat is the persisted-panel path (its own code branch); park it in a

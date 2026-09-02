@@ -96,8 +96,11 @@ test.describe('spellingbee custom letters', () => {
     // Custom letters live behind a collapsed disclosure — expand it, then enter
     // our own letters: center A + the six others C H I R O T.
     await page.getByText('Custom letters (optional)').click()
-    await page.getByRole('textbox', { name: 'Center letter' }).fill('a')
-    await page.getByRole('textbox', { name: 'Six other letters' }).fill('chirot')
+    // ONE box, not two: the center and the ring are typed together as the
+    // hyphenated string the summary and the recap both print (`A-CHIROT`), and
+    // the field splits it. <ManualBoardField> carries no label of its own — the
+    // SetupSection above it is the label — so it is reached by its form name.
+    await page.locator('input[name="custom_letters"]').fill('a-chirot')
 
     // Start → the edge function builds the board + lands us on the game.
     await page.getByRole('button', { name: /^Start FreeBee/ }).click()

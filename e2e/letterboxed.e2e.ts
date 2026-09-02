@@ -542,7 +542,9 @@ test.describe('letterboxed custom board', () => {
     // Typed WITH separators, the way the app writes it everywhere — the field
     // keeps them and `cleanSides` strips them, which is the behavior here.
     const written = rolled.match(/.{3}/g)!.join('-')
-    const field = page.getByRole('textbox', { name: 'Custom board' })
+    // <ManualBoardField> carries no label of its own — the SetupSection above it
+    // is the label — so the input is reached by its form name.
+    const field = page.locator('input[name="custom_sides"]')
     await field.fill(written)
     // The separators STAY on screen: you typed a board, so you should see one.
     await expect(field).toHaveValue(written)
@@ -579,7 +581,7 @@ test.describe('letterboxed custom board', () => {
 
     await startGameRow(page, /SnakeBox/).click()
     await page.getByText('Board (optional)').click()
-    await page.getByRole('textbox', { name: 'Custom board' }).fill('BFG-JKP-QVW-XYZ')
+    await page.locator('input[name="custom_sides"]').fill('BFG-JKP-QVW-XYZ')
     await page.getByRole('button', { name: /^Start SnakeBox/ }).click()
 
     // The server's key, rendered by errorCopy — not a raw message, and not a

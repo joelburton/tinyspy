@@ -51,7 +51,9 @@ test('an editor edits + adds a word; the journal records both; a non-editor sees
   // ── Edit, via the ~ lookup's DefinitionView ──
   // (Shift+Backquote = `~`; bare Backquote is the app's Escape stand-in.
   // Retry the chord: it races the shortcut listener's effect-time attach.)
-  const lookupInput = page.getByLabel('Word to look up')
+  // The box carries no caption — the panel's titlebar says what it looks up —
+  // so it is reached by its form name.
+  const lookupInput = page.locator('input[name="query"]')
   await expect(async () => {
     await page.keyboard.press('Shift+Backquote')
     await expect(lookupInput).toBeVisible({ timeout: 300 })
@@ -104,7 +106,7 @@ test('an editor edits + adds a word; the journal records both; a non-editor sees
   await signIn(ctx2, club2.members[0].session)
   const page2 = await ctx2.newPage()
   await page2.goto(`/c/${club2.handle}`)
-  const lookup2 = page2.getByLabel('Word to look up')
+  const lookup2 = page2.locator('input[name="query"]')
   await expect(async () => {
     await page2.keyboard.press('Shift+Backquote')
     await expect(lookup2).toBeVisible({ timeout: 300 })

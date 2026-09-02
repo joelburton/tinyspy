@@ -187,7 +187,14 @@ test.describe('puzzle pickers', () => {
     await expect(caption).toHaveText('Puzzle: Guardian Quiptic')
 
     await page.getByRole('button', { name: 'NYT', exact: true }).click()
-    await page.getByRole('button', { name: 'Cancel' }).click()
+    // TWO "Cancel"s are on screen once a picker opens — the picker's own, and the
+    // setup dialog's underneath it, both the same shared CancelButton. Scope to
+    // the picker by the panel carrying its heading, so this cancels the picker
+    // and not the dialog behind it (which is the whole point of the test).
+    const nytPicker = page
+      .locator('.react-draggable, [class*="rnd"]')
+      .filter({ has: page.getByRole('heading', { name: 'New York Times' }) })
+    await nytPicker.getByRole('button', { name: 'Cancel' }).click()
     await expect(caption).toHaveText('Puzzle: Guardian Quiptic')
 
     await ctx.close()
