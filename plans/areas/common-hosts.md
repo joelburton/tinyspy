@@ -19,7 +19,8 @@ owes anyone — and the root-mounted components become an area of their own.
 
 **The question this area exists to answer: WHAT EARNS A MOUNT AT THE ROOT?**
 Six things sit there today and the reasons differ; two more sit one level down
-for no stated reason. Until that rule is written, each new case is decided by
+for no stated reason; and one is mounted SIXTEEN times on a defense that
+`TooltipHost` disproves. Until that rule is written, each new case is decided by
 whoever adds it. Everything below is evidence for that question rather than a
 list of components to tidy.
 
@@ -118,16 +119,48 @@ match reality.
 machinery and the shared look, not the instances*, so the one fault-modal host
 has had no area. It is this one's.
 
-**3. `DefinitionPopover` is the adjacent question, and its answer is probably
-different.** `useDefinePopover()` is called at **sixteen** sites, each holding its
-own `{ word, rect }`. That is not the same accident: the popover is **anchored to
-the element you clicked** (`getBoundingClientRect()`), so its state really is
-about a node on a surface, where the other dialogs are centered panels with
-nothing to anchor to. Sixteen copies of the same three lines is still a lot, and
-"the rect is just data" — a root-mounted popover reading a store would work. It
-is adjacent to §7 → "Carried forward"'s item about the definable-props bundle
-repeating at fourteen surfaces, and is `shared-game-chrome`'s as much as this
-area's.
+**3. `DefinitionPopover` is mounted sixteen times, and `TooltipHost` is the
+proof that it needn't be.** `useDefinePopover()` is called at sixteen sites, each
+holding its own `{ word, rect }`.
+
+**The obvious defense of that does not survive contact with this area's own
+roster.** The popover is anchored to the element you clicked
+(`getBoundingClientRect()`), which sounds like a reason it must live where the
+click happens — and it isn't one. `TooltipHost` is anchored to an arbitrary
+element too, and its docstring says how it manages from the root: *"Delegated
+listeners on the document, so it costs one host regardless of how many buttons
+carry the attribute."* Three properties make that work, and none of them is
+special to tooltips:
+
+- **the payload is in the DOM** (`data-tooltip="…"`), so a document listener
+  reads everything it needs off `event.target`;
+- **the anchor is measured, not passed** — take the target `Element`, measure
+  it, render `position: fixed` in a body portal (which also escapes an
+  `overflow: hidden` ancestor);
+- it is **inert** — `aria-hidden`, gone on the first interaction.
+
+So anchoring is a fact about the popover's STATE, not a constraint on its MOUNT.
+The two are separable, and one component in this area already separates them.
+
+**The delegation route is half-built already.** `WordList.wordActivation` puts
+`'data-word': word` on the element (added as the e2e handle, but it is exactly
+the `data-tooltip` shape), and `AnagramDialog:185` does the same.
+
+**The question, then: what actually stops the definition popover from being a
+host?** Two differences are real and are what this area would have to answer —
+neither is a blocker, both are work:
+
+- **it is INTERACTIVE.** Content, a lookup, and an edit affordance that opens
+  `WordEditDialog`. A tooltip dies on the first interaction; a popover has to own
+  focus and Escape. The `FloatingPanel` machinery exists for that.
+- **the definable thing is not always a word in the DOM.** §7 → "Carried
+  forward" says so — wordle's is a five-square tile row, wordiply's a
+  `<DimmedBaseWord>` with styled parts — and records that wordle's and
+  letterboxed's spreads OMIT `data-word` today. Delegation needs the attribute
+  everywhere, which is the same gap that item already names.
+
+Shared with `shared-game-chrome`, which owns the definable-props bundle repeating
+at fourteen surfaces.
 
 ## Predicted test breaks
 
