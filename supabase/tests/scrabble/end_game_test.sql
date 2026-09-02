@@ -12,6 +12,7 @@
 begin;
 set search_path = scrabble, common, public, extensions;
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 select plan(12);
@@ -60,8 +61,11 @@ select isnt((select ctid from scrabble.games where id = (select id from gm)),
 
 -- Idempotent: a second end_game (or a race) is rejected.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select throws_ok($$ select scrabble.end_game((select id from gm)) $$,
-  'P0001', null, 'ending an already-terminal game is rejected');
+select pg_temp.envelope_is(
+  scrabble.end_game((select id from gm)),
+  '{"type":"not-ok","severity":"race","outcome":"noted","dbcode":"PN486",
+    "message":"Game over"}'::jsonb,
+  'ending an already-terminal game is rejected');
 reset role;
 
 -- ─── Timeout (coop) crowns a gentle score report ─────────

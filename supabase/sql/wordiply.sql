@@ -968,13 +968,16 @@ grant execute on function wordiply.submit_guess(uuid, text, boolean) to authenti
 -- (whoever leads wins) → won_compete/timeout, or lost_compete/timeout when
 -- nobody scored (no leader to crown). Ends with a guesses realtime touch so
 -- compete peers refetch the now-RLS-visible opponents' guesses.
+drop function if exists wordiply.submit_timeout(uuid);
+
 create or replace function wordiply.submit_timeout(target_game uuid)
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = wordiply, common, public, extensions
 as $$
 declare
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
   g_row wordiply.games%rowtype;
   current_play_state text;
 begin
@@ -982,8 +985,7 @@ begin
    where wordiply.games.id = target_game
    for update;
   if not found then
-    raise exception 'game-not-found|' using errcode = 'P0002',
-      detail = 'no wordiply.games row for target_game';
+    perform common._raise_game_deleted('wordiply');
   end if;
 
   perform common.require_game_player(target_game);
@@ -991,8 +993,7 @@ begin
   select play_state into current_play_state
     from common.games where id = target_game;
   if current_play_state <> 'playing' then
-    raise exception 'game-not-in-play|' using errcode = 'P0001',
-      detail = 'play_state is not an active state';
+    perform common._raise_game_over();
   end if;
 
   if g_row.mode = 'coop' then
@@ -1003,6 +1004,15 @@ begin
 
   -- Realtime touch so peers refetch the now-visible opponents' guesses.
   update wordiply.guesses set user_id = user_id where game_id = target_game;
+  return common.ok_envelope(jsonb_build_object('result', 'ended'));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1017,13 +1027,16 @@ grant execute on function wordiply.submit_timeout(uuid) to authenticated;
 -- stop" path — per-player scores, NO winner (compete's per-player drop is
 -- concede, not this). Any game player may fire it; idempotent (a second
 -- click / a race with the timer raises P0001, swallowed by the FE).
+drop function if exists wordiply.end_game(uuid);
+
 create or replace function wordiply.end_game(target_game uuid)
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = wordiply, common, public, extensions
 as $$
 declare
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
   g_row wordiply.games%rowtype;
   current_play_state text;
 begin
@@ -1031,8 +1044,7 @@ begin
    where wordiply.games.id = target_game
    for update;
   if not found then
-    raise exception 'game-not-found|' using errcode = 'P0002',
-      detail = 'no wordiply.games row for target_game';
+    perform common._raise_game_deleted('wordiply');
   end if;
 
   perform common.require_game_player(target_game);
@@ -1040,8 +1052,7 @@ begin
   select play_state into current_play_state
     from common.games where id = target_game;
   if current_play_state <> 'playing' then
-    raise exception 'game-not-in-play|' using errcode = 'P0001',
-      detail = 'play_state is not an active state';
+    perform common._raise_game_over();
   end if;
 
   if g_row.mode = 'coop' then
@@ -1051,6 +1062,15 @@ begin
   end if;
 
   update wordiply.guesses set user_id = user_id where game_id = target_game;
+  return common.ok_envelope(jsonb_build_object('result', 'ended'));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 

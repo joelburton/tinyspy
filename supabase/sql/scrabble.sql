@@ -1559,13 +1559,16 @@ grant execute on function scrabble.concede(uuid) to authenticated;
 -- neutral) — a Scrabble score is real, so the leader wins (the deliberate
 -- deviation from the roster's "timeout = no winner"; see docs §2.7). Coop:
 -- a gentle score report. Idempotent on the play_state check.
+drop function if exists scrabble.submit_timeout(uuid);
+
 create or replace function scrabble.submit_timeout(target_game uuid)
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = scrabble, common, public, extensions
 as $$
 declare
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
   play_state text;
 begin
   -- Lock the gametype row first so concurrent timeout calls serialize.
@@ -1578,15 +1581,13 @@ begin
   -- raise below. Mirrors every other scrabble mutation + bananagrams.
   perform 1 from scrabble.games where id = target_game for update;
   if not found then
-    raise exception 'game-not-found|' using errcode = 'P0002',
-      detail = 'no scrabble.games row for target_game';
+    perform common._raise_game_deleted('scrabble');
   end if;
   perform common.require_game_player(target_game);
 
   select g2.play_state into play_state from common.games g2 where g2.id = target_game;
   if play_state <> 'playing' then
-    raise exception 'game-not-in-play|' using errcode = 'P0001',
-      detail = 'play_state is not an active state';
+    perform common._raise_game_over();
   end if;
 
   -- Nobody went out — just score the leftover racks and crown the leader.
@@ -1595,6 +1596,15 @@ begin
   -- Realtime touch so the FE's scrabble.* subscription wakes to reveal the
   -- final racks (common.end_game writes only common.games).
   update scrabble.games set club_handle = club_handle where id = target_game;
+  return common.ok_envelope(jsonb_build_object('result', 'ended'));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1611,13 +1621,16 @@ grant execute on function scrabble.submit_timeout(uuid) to authenticated;
 -- It runs final scoring through _finish and logs a 'forfeit' row with the lost
 -- value as a negative score. COMPETE ends flat: everyone {won:false}, no
 -- scoring, no leaderboard. Idempotent.
+drop function if exists scrabble.end_game(uuid);
+
 create or replace function scrabble.end_game(target_game uuid)
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = scrabble, common, public, extensions
 as $$
 declare
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
   caller_id      uuid;
   v_seat         int;
   g              scrabble.games%rowtype;
@@ -1626,19 +1639,21 @@ declare
   v_leftover     int;
   v_seq          int;
 begin
-  caller_id := common.require_game_player(target_game);
-  v_seat    := scrabble._seat_of(target_game, caller_id);
-
   select * into g from scrabble.games where id = target_game for update;
   if not found then
-    raise exception 'game-not-found|' using errcode = 'P0002',
-      detail = 'no scrabble.games row for target_game';
+    perform common._raise_game_deleted('scrabble');
   end if;
+
+  -- Row check before the membership gate: `delete_game` takes this row,
+  -- `common.games` and every `game_players` row together, so gate-first
+  -- answered "You are not in this game" for a game that was simply deleted.
+  caller_id := common.require_game_player(target_game);
+  -- Reads `caller_id`, so it stays BELOW the gate that assigns it.
+  v_seat    := scrabble._seat_of(target_game, caller_id);
 
   select g2.play_state into cur_state from common.games g2 where g2.id = target_game;
   if cur_state <> 'playing' then
-    raise exception 'game-not-in-play|' using errcode = 'P0001',
-      detail = 'play_state is not an active state';
+    perform common._raise_game_over();
   end if;
 
   if g.mode = 'coop' then
@@ -1663,6 +1678,15 @@ begin
   -- Realtime touch (see submit_timeout) — wakes the games subscription so the
   -- FE reveals the final racks even on the compete neutral path.
   update scrabble.games set club_handle = club_handle where id = target_game;
+  return common.ok_envelope(jsonb_build_object('result', 'ended'));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 

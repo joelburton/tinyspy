@@ -802,6 +802,41 @@ $$;
 
 revoke execute on function common._raise_game_deleted(text) from public;
 
+-- ─── common._raise_game_over ───────────────────────────────
+-- The one sentence for "this game is not accepting moves any
+-- more", raised from the twenty-nine `end_game` / `submit_timeout`
+-- sites that check `play_state` and find it terminal.
+--
+-- **A RACE**, and the ordinary one: the game ended between the
+-- frontend's gate reading `isTerminal` off the subscription and
+-- the call landing. For `end_game` a person clicked End on a game
+-- somebody else had just stopped; for `submit_timeout` every
+-- connected client fires on the same countdown edge and all but
+-- one arrive to find the work done. Neither is a malfunction.
+--
+-- `noted`, not the severity's default `warning`: the game being
+-- over is news, not a setback — the words and the tone
+-- `ERROR_COPY` carried for `game-not-in-play`, kept as the last
+-- entry in that table was converted away.
+--
+-- ONE code for all twenty-nine, like `require_game_player`'s
+-- PN253: what a code distinguishes is WHICH QUESTION failed, and
+-- across both RPCs this is one question. The caller always knows
+-- which RPC it called.
+create or replace function common._raise_game_over()
+returns void
+language plpgsql
+immutable
+as $$
+begin
+  raise exception 'Game over'
+    using errcode = 'PN486', hint = 'race', column = '_', constraint = 'noted',
+    detail = 'play_state is not an active state';
+end;
+$$;
+
+revoke execute on function common._raise_game_over() from public;
+
 -- ─── common.create_game ────────────────────────────────
 -- The common (header) half of starting a new game. Called by
 -- every gametype's `<gametype>.create_game` first to get the

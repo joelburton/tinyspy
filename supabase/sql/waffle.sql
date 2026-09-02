@@ -988,13 +988,16 @@ grant execute on function waffle.concede(uuid) to authenticated;
 -- swallows. Coop: the shared board wasn't solved → lost. Compete:
 -- time's up — the winner is whoever solved in the fewest swaps (the
 -- same rule as a natural finish); nobody solved → lost_compete.
+drop function if exists waffle.submit_timeout(uuid);
+
 create or replace function waffle.submit_timeout(target_game uuid)
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = waffle, common, public, extensions
 as $$
 declare
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
   g_row              waffle.games%rowtype;
   current_play_state text;
   winner_id          uuid;
@@ -1003,8 +1006,7 @@ declare
 begin
   select * into g_row from waffle.games where id = target_game for update;
   if not found then
-    raise exception 'game-not-found|' using errcode = 'P0002',
-      detail = 'no waffle.games row for target_game';
+    perform common._raise_game_deleted('waffle');
   end if;
 
   perform common.require_game_player(target_game);
@@ -1012,8 +1014,7 @@ begin
   select play_state into current_play_state
     from common.games where id = target_game;
   if current_play_state <> 'playing' then
-    raise exception 'game-not-in-play|' using errcode = 'P0001',
-      detail = 'play_state is not an active state';
+    perform common._raise_game_over();
   end if;
 
   if g_row.mode = 'coop' then
@@ -1065,6 +1066,15 @@ begin
   -- never wake. A no-op self-update produces a WAL entry it picks up,
   -- refetching games_state (now revealing the solution).
   update waffle.games set club_handle = club_handle where id = target_game;
+  return common.ok_envelope(jsonb_build_object('result', 'ended'));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1098,21 +1108,23 @@ grant execute on function waffle.submit_timeout(uuid) to authenticated;
 -- a timer race), and it's idempotent on the play_state check the
 -- same way submit_timeout is: a second click raises P0001, which
 -- the manifest swallows.
+drop function if exists waffle.end_game(uuid);
+
 create or replace function waffle.end_game(target_game uuid)
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = waffle, common, public, extensions
 as $$
 declare
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
   g_row              waffle.games%rowtype;
   current_play_state text;
   player_results     jsonb;
 begin
   select * into g_row from waffle.games where id = target_game for update;
   if not found then
-    raise exception 'game-not-found|' using errcode = 'P0002',
-      detail = 'no waffle.games row for target_game';
+    perform common._raise_game_deleted('waffle');
   end if;
 
   perform common.require_game_player(target_game);
@@ -1122,8 +1134,7 @@ begin
   if current_play_state <> 'playing' then
     -- Idempotency: a second click (or a click racing the countdown
     -- timer's submit_timeout) raises this; the FE swallows it.
-    raise exception 'game-not-in-play|' using errcode = 'P0001',
-      detail = 'play_state is not an active state';
+    perform common._raise_game_over();
   end if;
 
   -- Nobody won — the friends agreed to stop. Same {"won": false}
@@ -1149,6 +1160,15 @@ begin
   -- games_state — which now reveals the solution (and, in compete,
   -- opponents' boards) because common.end_game set is_terminal=true.
   update waffle.games set club_handle = club_handle where id = target_game;
+  return common.ok_envelope(jsonb_build_object('result', 'ended'));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 

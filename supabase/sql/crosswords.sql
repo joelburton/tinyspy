@@ -1283,27 +1283,42 @@ grant execute on function crosswords.export_solution(uuid) to authenticated;
 -- Coop mutual give-up ends NEUTRALLY ('ended' + outcome 'manual') — not a
 -- loss (putting down an unfinished crossword is normal). The solution
 -- reveals in the terminal view (games_state) once is_terminal flips.
+drop function if exists crosswords.end_game(uuid);
+
 create or replace function crosswords.end_game(target_game uuid)
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = crosswords, common, public, extensions
 as $$
 declare
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
   v_mode      text;
   v_playstate text;
   v_results   jsonb;
 begin
-  perform common.require_game_player(target_game);
+  -- Row check before the gate, and a check at all — crosswords had neither, so
+  -- a deleted game read `mode` as null, failed the coop test, and reported the
+  -- WRONG refusal. See boggle.end_game for the ordering rule.
   select mode into v_mode from crosswords.games where id = target_game;
+  if v_mode is null then
+    perform common._raise_game_deleted('crosswords');
+  end if;
+
+  perform common.require_game_player(target_game);
+
+  -- The mirror of `concede`'s PN484: crosswords offers End in coop and Concede
+  -- in compete, so each RPC refuses the other's mode. A fault — the menu never
+  -- shows this one in compete.
   if v_mode <> 'coop' then
-    raise exception 'end-not-in-compete|'
-      using errcode = 'P0001',
+    raise exception 'BUG: an end in a compete game'
+      using errcode = 'PN487', hint = 'fault', column = '_',
       detail = 'compete drops out per player via concede';
   end if;
+
   select play_state into v_playstate from common.games where id = target_game;
   if v_playstate is distinct from 'playing' then
-    return;
+    perform common._raise_game_over();
   end if;
 
   select jsonb_object_agg(user_id::text, jsonb_build_object('won', false))
@@ -1316,6 +1331,15 @@ begin
     jsonb_build_object('mode', 'coop', 'outcome', 'manual'),
     v_results
   );
+  return common.ok_envelope(jsonb_build_object('result', 'ended'));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 revoke execute on function crosswords.end_game(uuid) from public;
@@ -1356,22 +1380,31 @@ grant execute on function crosswords.concede(uuid) to authenticated;
 -- Standard manifest requirement, and a live path: the setup form offers the
 -- shared TimerField, so a countdown can expire (timeout_test.sql exercises
 -- it). Coop → lost, compete → lost_compete; outcome 'timeout' both ways.
+drop function if exists crosswords.submit_timeout(uuid);
+
 create or replace function crosswords.submit_timeout(target_game uuid)
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = crosswords, common, public, extensions
 as $$
 declare
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
   v_mode      text;
   v_playstate text;
   v_results   jsonb;
 begin
-  perform common.require_game_player(target_game);
+  -- Row check before the gate, and a check at all — see end_game above.
   select mode into v_mode from crosswords.games where id = target_game;
+  if v_mode is null then
+    perform common._raise_game_deleted('crosswords');
+  end if;
+
+  perform common.require_game_player(target_game);
+
   select play_state into v_playstate from common.games where id = target_game;
   if v_playstate is distinct from 'playing' then
-    return;
+    perform common._raise_game_over();
   end if;
 
   select jsonb_object_agg(user_id::text, jsonb_build_object('won', false))
@@ -1385,6 +1418,15 @@ begin
     jsonb_build_object('mode', v_mode, 'outcome', 'timeout'),
     v_results
   );
+  return common.ok_envelope(jsonb_build_object('result', 'ended'));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 revoke execute on function crosswords.submit_timeout(uuid) from public;

@@ -5,7 +5,6 @@ import type { ComponentType, ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
 // Type-only and circular-safe: serverError.ts imports GenericFeedbackMsg from
 // this file; both imports are erased at runtime.
-import type { CallError } from './game/serverError'
 import type { Envelope } from './supabase/envelope'
 import type { Outcome } from './outcomes'
 import type { FormErrors } from '../components/fields/formState'
@@ -606,6 +605,13 @@ export type GameSetupForm = {
  * names a specific game directly — see docs/common.md for the
  * "removability in three actions" rule that motivates this.
  */
+/**
+ * What `end_game` and `submit_timeout` both answer with: the game is over.
+ * ONE result for both, because it is one fact — HOW it came to be over is
+ * already in `common.games.status`, which every surface reads anyway.
+ */
+export type GameStopResult = { result: 'ended' }
+
 export type GameManifest = {
   /**
    * Stable identifier for the gametype — URL-safe, matches the
@@ -805,7 +811,7 @@ export type GameManifest = {
    * status jsonb. Dispatching at the FE keeps the SQL side from
    * needing per-gametype branches.
    */
-  submitTimeout: (gameId: string) => Promise<{ error?: NonNullable<CallError> }>
+  submitTimeout: (gameId: string) => Promise<Envelope<GameStopResult>>
 
   /**
    * End this game NOW (irreversible). Dispatches to the gametype's own
@@ -819,13 +825,13 @@ export type GameManifest = {
    * goes through PostgREST (whose token auto-refreshes independently of the
    * Realtime socket), so it works even when Realtime is stuck.
    *
-   * **Optional** — a game with no whole-table "end now" concept omits it, and
-   * the pause overlay hides its End-game button (Return-to-club still shows).
-   * bananagrams is the one such game: it retired its whole-table `end_game` for
-   * per-player `concede` (drop out = a real loss; the others keep racing), so
-   * "end the whole race now" doesn't exist for it.
+   * **Optional** in the type, but every gametype supplies it today — including
+   * bananagrams, which needs BOTH: conceding is a loss on your record and takes
+   * every player doing it to close a game the group has merely lost interest
+   * in, while End is the group agreeing there is no result. The overlay's
+   * button hides when a game omits this, and none currently does.
    */
-  endGame?: (gameId: string) => Promise<{ error?: NonNullable<CallError> }>
+  endGame?: (gameId: string) => Promise<Envelope<GameStopResult>>
 }
 
 /**

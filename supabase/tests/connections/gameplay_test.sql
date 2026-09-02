@@ -357,15 +357,11 @@ select is(
 -- lost game raises P0001. The FE catches and ignores so a
 -- racing peer's call is silent.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select throws_ok(
-  format(
-    $$ select connections.submit_timeout(%L::uuid) $$,
-    (select id from g3)
-  ),
-  'P0001',
-  'game-not-in-play|',
-  'submit_timeout: rejects on already-terminal games'
-);
+select pg_temp.envelope_is(
+  connections.submit_timeout((select id from g3)),
+  '{"type":"not-ok","severity":"race","outcome":"noted","dbcode":"PN486",
+    "message":"Game over"}'::jsonb,
+  'submit_timeout: rejects on already-terminal games');
 
 -- ============================================================
 select * from finish();

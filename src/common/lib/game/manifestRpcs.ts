@@ -12,17 +12,15 @@
  * LOOK like one, so that the frontend could be converted before all sixteen
  * games were — a bridge with a stated end, and this is it.
  *
- * `submit_timeout` / `end_game` are what remain: both are still on the old
- * shape, and both are ONE frontend path over sixteen SQL definitions
- * (`useStandardGameActions`), so they convert together or not at all.
+ * `submit_timeout` / `end_game` are what remain, and they are on the envelope
+ * now too — so this file is one thin call, kept because the manifest contract
+ * wants a `(gameId) => …` thunk and every game would otherwise write the same
+ * closure. It converts nothing and decides nothing.
  */
 
-import { type CallError } from './serverError'
-
-/** The manifest contract's dispatcher result: an optional STRUCTURED error
- *  (message + SQLSTATE), ready for the classifier — flattening to a string
- *  here is what used to cost GamePage the code and the copy table both. */
-export type RpcResult = { error?: NonNullable<CallError> }
+import { runRpc } from '../supabase/dbResult'
+import type { Envelope } from '../supabase/envelope'
+import type { GameStopResult } from '../games'
 
 /**
  * A minimal structural view of a schema-scoped Supabase client's `.rpc`, narrow
@@ -36,7 +34,7 @@ type RpcClient<F extends string> = {
   rpc: (
     fn: F,
     args: { target_game: string },
-  ) => PromiseLike<{ error: { message: string; code?: string } | null }>
+  ) => PromiseLike<{ data: unknown; error: { message?: string; code?: string } | null }>
 }
 
 /**
@@ -47,17 +45,17 @@ type RpcClient<F extends string> = {
  *     const submitTimeout = makeRpcDispatcher(db, 'submit_timeout')
  *     const endGame       = makeRpcDispatcher(db, 'end_game')
  *
- * `submit_timeout` is fired by every connected client on countdown expiry and
- * raises "not in progress" once one call wins — GamePage swallows that, so the
- * dispatcher just surfaces the message verbatim.
+ * `submit_timeout` is fired by every connected client on countdown expiry, so
+ * all but one arrive to find the game already over — PN486, a race. The
+ * dispatcher does not decide what to do about that: it hands the envelope up,
+ * and GamePage swallows the race while surfacing everything else.
  */
 export function makeRpcDispatcher<F extends string>(
   db: RpcClient<F>,
   fnName: F,
-): (gameId: string) => Promise<RpcResult> {
+): (gameId: string) => Promise<Envelope<GameStopResult>> {
   return async (gameId: string) => {
-    const { error } = await db.rpc(fnName, { target_game: gameId })
-    return error ? { error } : {}
+    return await runRpc<GameStopResult>(db.rpc(fnName, { target_game: gameId }))
   }
 }
 

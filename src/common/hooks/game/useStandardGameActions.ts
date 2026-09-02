@@ -1,9 +1,8 @@
 // cs-unmet
 
-import { actionName } from '../../lib/game/callRpc'
 import type { DbError } from '../../lib/supabase/dbEnvelope'
 import type { GenericFeedbackMsg } from '../../lib/games'
-import { failureMessage } from '../../lib/game/serverError'
+import type { GameStopResult } from '../../lib/games'
 import { getNotOkFeedback } from '../../lib/game/genericPills'
 import { runRpc } from '../../lib/supabase/dbResult'
 import { showFaultModal } from '../../lib/fault/faultStore'
@@ -102,8 +101,16 @@ export function useStandardGameActions({
     void (async () => {
       if (isTerminal) return
       if (!(await confirm(END_GAME_CONFIRM))) return
-      const { error } = await db.rpc('end_game', { target_game: gameId })
-      if (error) showError(failureMessage(error, actionName('end_game')))
+      const res = await runRpc<GameStopResult>(db.rpc('end_game', { target_game: gameId }))
+      if (res.type === 'not-ok') {
+        // The one race is `isTerminal` losing to the subscription that feeds
+        // it: somebody else stopped the game while the confirm was open.
+        showError({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+      } else if (res.type === 'ok' && res.data?.result === 'ended') {
+        // Nothing to do: the terminal arrives by subscription.
+      } else {
+        showFaultModal({ text: 'BUG: end_game fell through to unhandled' })
+      }
     })()
   }, [db, gameId, isTerminal, confirm, showError])
 

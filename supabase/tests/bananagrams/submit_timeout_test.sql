@@ -23,6 +23,7 @@ set search_path = bananagrams, common, public, extensions;
 select plan(8);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -83,21 +84,19 @@ select is(
 
 -- (4) Idempotency: a second timeout (or a click racing a peel-win) is rejected.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select throws_ok(
-  format($$ select bananagrams.submit_timeout(%L) $$, (select id from g1)),
-  'P0001',
-  'game-not-in-play|',
-  'timing out an already-terminal game is rejected'
-);
+select pg_temp.envelope_is(
+  bananagrams.submit_timeout((select id from g1)),
+  '{"type":"not-ok","severity":"race","outcome":"noted","dbcode":"PN486",
+    "message":"Game over"}'::jsonb,
+  'timing out an already-terminal game is rejected');
 
 -- (5) Non-player cannot fire it.
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
-select throws_ok(
-  format($$ select bananagrams.submit_timeout(%L) $$, (select id from g1)),
-  '42501',
-  'not-a-player|',
-  'a non-player cannot fire the timeout'
-);
+select pg_temp.envelope_is(
+  bananagrams.submit_timeout((select id from g1)),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN253",
+    "message":"You are not in this game"}'::jsonb,
+  'a non-player cannot fire the timeout');
 
 select * from finish();
 rollback;

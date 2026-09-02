@@ -73,9 +73,13 @@ select is(
 
 -- end_game is coop-only (compete drops out via concede).
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select throws_ok(
-  format('select crosswords.end_game(%L)', :'gp2_id'),
-  'P0001', null, 'end_game is rejected in compete');
+-- The mirror of the concede check above: crosswords offers End in coop and
+-- Concede in compete, so each RPC refuses the other's mode.
+select pg_temp.envelope_is(
+  crosswords.end_game(:'gp2_id'::uuid),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN487",
+    "message":"BUG: an end in a compete game"}'::jsonb,
+  'end_game is rejected in compete');
 reset role;
 
 -- A conceded compete player can't check their now-frozen grid (same guard

@@ -35,6 +35,7 @@ set search_path = connections, common, public, extensions;
 select plan(11);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 -- ============================================================
@@ -112,12 +113,11 @@ select is(
 -- solve / timeout) is harmless — the FE swallows P0001.
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select throws_ok(
-  format($$ select connections.end_game(%L::uuid) $$, (select id from g_coop)),
-  'P0001',
-  'game-not-in-play|',
-  'coop end_game: second call raises P0001 (idempotent at the FE-swallow layer)'
-);
+select pg_temp.envelope_is(
+  connections.end_game((select id from g_coop)),
+  '{"type":"not-ok","severity":"race","outcome":"noted","dbcode":"PN486",
+    "message":"Game over"}'::jsonb,
+  'coop end_game: second call raises P0001 (idempotent at the FE-swallow layer)');
 
 -- ============================================================
 -- (7)–(10) compete end_game: same neutral terminal, no winner
@@ -174,12 +174,11 @@ select (connections.create_game(
   'coop')->'data'->>'id')::uuid as id;
 
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
-select throws_ok(
-  format($$ select connections.end_game(%L::uuid) $$, (select id from g_auth)),
-  '42501',
-  'not-a-player|',
-  'end_game: non-player (dee, outsider) is rejected with 42501'
-);
+select pg_temp.envelope_is(
+  connections.end_game((select id from g_auth)),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN253",
+    "message":"You are not in this game"}'::jsonb,
+  'end_game: non-player (dee, outsider) is rejected with 42501');
 
 -- ============================================================
 select * from finish();

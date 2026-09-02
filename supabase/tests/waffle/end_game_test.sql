@@ -16,6 +16,7 @@ begin;
 set search_path = waffle, common, public, extensions;
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 select plan(11);
@@ -57,9 +58,11 @@ select is(
 
 -- Idempotent: a second end_game raises (already terminal).
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select throws_ok(
-  format($$ select waffle.end_game(%L::uuid) $$, (select id from g1)),
-  'P0001', NULL, 'coop: a second end on a finished game raises (idempotent)');
+select pg_temp.envelope_is(
+  waffle.end_game((select id from g1)),
+  '{"type":"not-ok","severity":"race","outcome":"noted","dbcode":"PN486",
+    "message":"Game over"}'::jsonb,
+  'coop: a second end on a finished game raises (idempotent)');
 
 -- ── Compete: manual end → ended, no winner ──────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -98,9 +101,11 @@ select is(
 
 -- Idempotent: a second end_game raises (already terminal).
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select throws_ok(
-  format($$ select waffle.end_game(%L::uuid) $$, (select id from g2)),
-  'P0001', NULL, 'compete: a second end on a finished game raises (idempotent)');
+select pg_temp.envelope_is(
+  waffle.end_game((select id from g2)),
+  '{"type":"not-ok","severity":"race","outcome":"noted","dbcode":"PN486",
+    "message":"Game over"}'::jsonb,
+  'compete: a second end on a finished game raises (idempotent)');
 
 -- ── Non-player rejected ─────────────────────────────────────
 -- dee is not a member/player of g2 → require_game_player rejects.
@@ -119,9 +124,11 @@ select (waffle.create_game(
 )->'data'->>'id')::uuid as id;
 
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
-select throws_ok(
-  format($$ select waffle.end_game(%L::uuid) $$, (select id from g3)),
-  NULL, NULL, 'a non-player cannot end the game');
+select pg_temp.envelope_is(
+  waffle.end_game((select id from g3)),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN253",
+    "message":"You are not in this game"}'::jsonb,
+  'a non-player cannot end the game');
 
 select * from finish();
 rollback;

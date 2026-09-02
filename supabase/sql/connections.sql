@@ -1203,13 +1203,16 @@ grant execute on function connections.concede(uuid) to authenticated;
 -- common.end_game handles the cross-cutting termination work
 -- (play_state + is_terminal + status + per-player results).
 
+drop function if exists connections.submit_timeout(uuid);
+
 create or replace function connections.submit_timeout(target_game uuid)
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = connections, common, public, extensions
 as $$
 declare
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
   g_row connections.games%rowtype;
   current_play_state text;
   player_results jsonb;
@@ -1222,8 +1225,7 @@ begin
    where connections.games.id = target_game
    for update;
   if not found then
-    raise exception 'game-not-found|' using errcode = 'P0002',
-      detail = 'no connections.games row for target_game';
+    perform common._raise_game_deleted('connections');
   end if;
 
   -- Auth + game-player gate. See common.require_game_player.
@@ -1233,8 +1235,7 @@ begin
     from common.games where id = target_game;
 
   if current_play_state <> 'playing' then
-    raise exception 'game-not-in-play|' using errcode = 'P0001',
-      detail = 'play_state is not an active state';
+    perform common._raise_game_over();
   end if;
 
   select jsonb_object_agg(user_id::text, '{"won": false}'::jsonb)
@@ -1277,6 +1278,15 @@ begin
       ),
       player_results);
   end if;
+  return common.ok_envelope(jsonb_build_object('result', 'ended'));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1319,13 +1329,16 @@ grant execute on function connections.submit_timeout(uuid) to authenticated;
 --   - an EXPLICIT Realtime touch at the tail — see the long
 --     comment there; this is the one wrinkle that submit_timeout
 --     doesn't need but end_game does.
+drop function if exists connections.end_game(uuid);
+
 create or replace function connections.end_game(target_game uuid)
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = connections, common, public, extensions
 as $$
 declare
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
   g_row connections.games%rowtype;
   current_play_state text;
   player_results jsonb;
@@ -1334,8 +1347,7 @@ begin
    where connections.games.id = target_game
    for update;
   if not found then
-    raise exception 'game-not-found|' using errcode = 'P0002',
-      detail = 'no connections.games row for target_game';
+    perform common._raise_game_deleted('connections');
   end if;
 
   -- Auth + game-player gate. Same as submit_timeout: any current
@@ -1350,8 +1362,7 @@ begin
     -- Idempotency: a second click (or a click racing a timeout /
     -- a solve) raises this and the FE swallows it the same way it
     -- does for submit_timeout's "already terminal" race.
-    raise exception 'game-not-in-play|' using errcode = 'P0001',
-      detail = 'play_state is not an active state';
+    perform common._raise_game_over();
   end if;
 
   -- Every player gets the bare {"won": false}. Identical in coop
@@ -1393,6 +1404,15 @@ begin
   update connections.games
      set club_handle = club_handle
    where id = target_game;
+  return common.ok_envelope(jsonb_build_object('result', 'ended'));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 

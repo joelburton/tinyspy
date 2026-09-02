@@ -7,6 +7,7 @@
 begin;
 set search_path = wordle, common, public, extensions;
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 select plan(8);
@@ -31,9 +32,10 @@ select is(
   'timeout', 'status.outcome = timeout');
 -- Idempotent: a second call raises P0001 (the FE swallows it).
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select throws_ok(
-  format($$ select wordle.submit_timeout(%L::uuid) $$, (select id from g1)),
-  'P0001', 'game-not-in-play|',
+select pg_temp.envelope_is(
+  wordle.submit_timeout((select id from g1)),
+  '{"type":"not-ok","severity":"race","outcome":"noted","dbcode":"PN486",
+    "message":"Game over"}'::jsonb,
   'submit_timeout is idempotent (second call raises P0001)');
 
 -- ── Manual end (end_game) → neutral 'ended' ─────────────────
@@ -66,9 +68,10 @@ select ok(
 
 -- A non-player cannot end the game (dee isn't in the club).
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
-select throws_ok(
-  format($$ select wordle.end_game(%L::uuid) $$, (select id from g2)),
-  '42501', null,
+select pg_temp.envelope_is(
+  wordle.end_game((select id from g2)),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN253",
+    "message":"You are not in this game"}'::jsonb,
   'a non-player cannot end the game (require_game_player)');
 
 select * from finish();

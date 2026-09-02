@@ -53,11 +53,6 @@ export type ErrorCopyEntry = {
  * we work" state.
  */
 export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
-  // ── common: every game reaches these ──
-  // Unlike a game's own file, common holds two quite different populations.
-  // The GAME-lifecycle raises are races, same as letterboxed's: a peer ended
-  // the game, took the turn, or conceded while your call was in flight.
-  'game-not-in-play': { text: () => 'Game over', tone: 'noted' },
 
   // The FORM raises are the other population, and they're the reason common
   // needs far more copy than a game does: for a club name, a username or a

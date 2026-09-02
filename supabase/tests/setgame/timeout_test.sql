@@ -16,6 +16,7 @@
 begin;
 set search_path = setgame, common, public, extensions;
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 select plan(8);
@@ -53,9 +54,10 @@ select ok(
 
 -- A second call is a no-op the manifest swallows.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select throws_ok(
-  format($$ select setgame.submit_timeout(%L) $$, (select id from gc)),
-  'P0001', 'game-not-in-play|',
+select pg_temp.envelope_is(
+  setgame.submit_timeout((select id from gc)),
+  '{"type":"not-ok","severity":"race","outcome":"noted","dbcode":"PN486",
+    "message":"Game over"}'::jsonb,
   'the timeout is idempotent — every client fires it, only the first counts');
 
 -- ── Compete with a leader: the standings decide ──────────────────────

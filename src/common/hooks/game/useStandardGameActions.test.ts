@@ -71,17 +71,17 @@ describe('endGame', () => {
     expect(rpc).not.toHaveBeenCalled()
   })
 
-  it('surfaces an RPC failure through showError as the full message', async () => {
+  it('shows a lost End race in the words and tone the server chose', async () => {
     const { result, rpc, showError } = setup()
-    // A keyed rejection the copy table still knows: the words a player reads are
-    // TypeScript's, not the server's (lib/game/errorCopy.ts). The sink gets the
-    // whole GenericFeedbackMsg — an expected race stays an ordinary pill.
-    //
-    // `game-not-in-play` rather than `not-your-turn`, which this used until the
-    // scrabble conversion took the last raise of it (2026-09-01): the key has to
-    // be one something still raises, or the copy table would be carrying an
-    // entry for this test alone.
-    rpc.mockResolvedValue({ error: { message: 'game-not-in-play|', code: 'P0001' } })
+    // The words are the SERVER's now — PN486, written at the raise — where they
+    // used to be looked up in errorCopy.ts from the key `game-not-in-play|`.
+    // Same sentence, same `noted` tone; one fewer place for them to live.
+    rpc.mockResolvedValue({
+      data: { type: 'not-ok', data: null, outcome: 'noted', severity: 'race',
+              message: 'Game over', field: '_', meta: null,
+              dbcode: 'PN486', detail: null },
+      error: null,
+    })
     act(() => result.current.endGame())
     await flush()
     expect(showError).toHaveBeenCalledWith({
@@ -89,6 +89,18 @@ describe('endGame', () => {
       text: 'Game over',
       mode: { kind: 'sticky' },
     })
+  })
+
+  it('runs nothing extra on the ok arm', async () => {
+    const { result, rpc, showError } = setup()
+    rpc.mockResolvedValue({
+      data: { type: 'ok', data: { result: 'ended' }, outcome: null, severity: null,
+              message: null, field: null, meta: null, dbcode: null, detail: null },
+      error: null,
+    })
+    act(() => result.current.endGame())
+    await flush()
+    expect(showError).not.toHaveBeenCalled()
   })
 })
 

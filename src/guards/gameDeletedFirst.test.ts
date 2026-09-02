@@ -50,16 +50,26 @@ describe('a deleted game says so', () => {
   )
 
   it('finds the callers at all', () => {
-    // A guard that finds nothing passes just as quietly as one that works. The
-    // sixteen replay_boards today; end_game and submit_timeout join as they
-    // convert (plans/error-system.md).
+    // A guard that finds nothing passes just as quietly as one that works.
+    // Three RPCs × sixteen games: every player-callable path that reaches for a
+    // game's own row and can find it gone.
     expect(callers.map((f) => f.name).sort()).toEqual([
-      'bananagrams.replay_board', 'boggle.replay_board', 'codenamesduet.replay_board',
-      'connections.replay_board', 'crosswords.replay_board', 'letterboxed.replay_board',
-      'psychicnum.replay_board', 'scrabble.replay_board', 'setgame.replay_board',
-      'spellingbee.replay_board', 'stackdown.replay_board', 'strands.replay_board',
-      'waffle.replay_board', 'wordiply.replay_board', 'wordle.replay_board',
-      'wordwheel.replay_board',
+      'bananagrams.end_game', 'bananagrams.replay_board', 'bananagrams.submit_timeout',
+      'boggle.end_game', 'boggle.replay_board', 'boggle.submit_timeout',
+      'codenamesduet.end_game', 'codenamesduet.replay_board', 'codenamesduet.submit_timeout',
+      'connections.end_game', 'connections.replay_board', 'connections.submit_timeout',
+      'crosswords.end_game', 'crosswords.replay_board', 'crosswords.submit_timeout',
+      'letterboxed.end_game', 'letterboxed.replay_board', 'letterboxed.submit_timeout',
+      'psychicnum.end_game', 'psychicnum.replay_board', 'psychicnum.submit_timeout',
+      'scrabble.end_game', 'scrabble.replay_board', 'scrabble.submit_timeout',
+      'setgame.end_game', 'setgame.replay_board', 'setgame.submit_timeout',
+      'spellingbee.end_game', 'spellingbee.replay_board', 'spellingbee.submit_timeout',
+      'stackdown.end_game', 'stackdown.replay_board', 'stackdown.submit_timeout',
+      'strands.end_game', 'strands.replay_board', 'strands.submit_timeout',
+      'waffle.end_game', 'waffle.replay_board', 'waffle.submit_timeout',
+      'wordiply.end_game', 'wordiply.replay_board', 'wordiply.submit_timeout',
+      'wordle.end_game', 'wordle.replay_board', 'wordle.submit_timeout',
+      'wordwheel.end_game', 'wordwheel.replay_board', 'wordwheel.submit_timeout',
     ])
   })
 

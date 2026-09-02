@@ -382,13 +382,11 @@ select is(
 
 -- Idempotency: a second concurrent fire raises P0001.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select throws_ok(
-  format($$ select connections.submit_timeout(%L::uuid) $$,
-         (select id from g3)),
-  'P0001',
-  'game-not-in-play|',
-  'submit_timeout (compete): second call on already-terminal game raises P0001'
-);
+select pg_temp.envelope_is(
+  connections.submit_timeout((select id from g3)),
+  '{"type":"not-ok","severity":"race","outcome":"noted","dbcode":"PN486",
+    "message":"Game over"}'::jsonb,
+  'submit_timeout (compete): second call on already-terminal game raises P0001');
 
 -- ============================================================
 -- (17)–(20) RLS sanity for compete

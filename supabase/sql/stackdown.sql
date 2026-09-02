@@ -687,29 +687,30 @@ grant execute on function stackdown.reveal_next_hint(uuid) to authenticated;
 -- ended the game already via submit_word's race) → everyone loses.
 -- Idempotent on the play_state check (a second caller raises P0001, which
 -- the manifest swallows).
+drop function if exists stackdown.submit_timeout(uuid);
+
 create or replace function stackdown.submit_timeout(target_game uuid)
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = stackdown, common, public, extensions
 as $$
 declare
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
   g_row          stackdown.games%rowtype;
   cur_state      text;
   player_results jsonb;
 begin
   select * into g_row from stackdown.games where id = target_game for update;
   if not found then
-    raise exception 'game-not-found|' using errcode = 'P0002',
-      detail = 'no stackdown.games row for target_game';
+    perform common._raise_game_deleted('stackdown');
   end if;
 
   perform common.require_game_player(target_game);
 
   select play_state into cur_state from common.games where id = target_game;
   if cur_state <> 'playing' then
-    raise exception 'game-not-in-play|' using errcode = 'P0001',
-      detail = 'play_state is not an active state';
+    perform common._raise_game_over();
   end if;
 
   if g_row.mode = 'coop' then
@@ -735,6 +736,15 @@ begin
   -- so a no-op self-update wakes the FE's stackdown subscription, which
   -- refetches games_state (now revealing the solution).
   update stackdown.games set club_handle = club_handle where id = target_game;
+  return common.ok_envelope(jsonb_build_object('result', 'ended'));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 revoke execute on function stackdown.submit_timeout(uuid) from public;
@@ -747,29 +757,30 @@ grant execute on function stackdown.submit_timeout(uuid) to authenticated;
 -- uniform neutral terminal 'ended' (nobody wins/loses), distinct from the
 -- intrinsic won/lost/won_compete/lost_compete terminals. Idempotent on the
 -- play_state check; any game player may fire it.
+drop function if exists stackdown.end_game(uuid);
+
 create or replace function stackdown.end_game(target_game uuid)
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = stackdown, common, public, extensions
 as $$
 declare
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
   g_row          stackdown.games%rowtype;
   cur_state      text;
   player_results jsonb;
 begin
   select * into g_row from stackdown.games where id = target_game for update;
   if not found then
-    raise exception 'game-not-found|' using errcode = 'P0002',
-      detail = 'no stackdown.games row for target_game';
+    perform common._raise_game_deleted('stackdown');
   end if;
 
   perform common.require_game_player(target_game);
 
   select play_state into cur_state from common.games where id = target_game;
   if cur_state <> 'playing' then
-    raise exception 'game-not-in-play|' using errcode = 'P0001',
-      detail = 'play_state is not an active state';
+    perform common._raise_game_over();
   end if;
 
   select jsonb_object_agg(user_id::text, jsonb_build_object('won', false))
@@ -782,6 +793,15 @@ begin
   );
 
   update stackdown.games set club_handle = club_handle where id = target_game;
+  return common.ok_envelope(jsonb_build_object('result', 'ended'));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 revoke execute on function stackdown.end_game(uuid) from public;

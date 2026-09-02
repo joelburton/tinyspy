@@ -1,9 +1,8 @@
 // cs-unmet
 
-import { callRpc } from '../../common/lib/game/callRpc'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { IconHideSolution, IconNewGame, IconPrint, IconRestart, IconReveal, IconScratchpad } from '../../common/components/icons'
-import type { GamePageCtx, Member } from '../../common/lib/games'
+import type { GamePageCtx, GameStopResult, Member } from '../../common/lib/games'
 import { CelebrationBlockingModal } from '../../common/components/game/CelebrationBlockingModal'
 import { useCelebration } from '../../common/hooks/game/useCelebration'
 import { GenericFeedbackPill } from '../../common/components/feedback/GenericFeedbackPill'
@@ -832,8 +831,14 @@ type Explained =
   // Always confirmed via the shared modal — crosswords previously ended unconfirmed.
   const handleEndGame = useCallback(async () => {
     if (!(await confirmAction(END_GAME_CONFIRM))) return
-    const bad = await callRpc(db, 'end_game', { target_game: gameId })
-    if (bad) showLocalFeedback(bad)
+    const res = await runRpc<GameStopResult>(db.rpc('end_game', { target_game: gameId }))
+    if (res.type === 'not-ok') {
+      showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+    } else if (res.type === 'ok' && res.data?.result === 'ended') {
+      // Nothing to do: the terminal arrives by subscription.
+    } else {
+      showFaultModal({ text: 'BUG: end_game fell through to unhandled' })
+    }
   }, [gameId, showLocalFeedback, confirmAction])
 
   // No confirm and no `isTerminal` gate of its own — crosswords' menu builds

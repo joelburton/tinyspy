@@ -631,21 +631,46 @@ $$;
 
 revoke execute on function boggle._finish(uuid, text, uuid) from public;
 
+drop function if exists boggle.end_game(uuid);
+
 create or replace function boggle.end_game(target_game uuid)
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = boggle, common, public, extensions
 as $$
 declare
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
   g_playstate text;
 begin
+  -- The row check comes BEFORE the membership gate: `delete_game` takes this
+  -- row, `common.games` and every `game_players` row together, so a caller
+  -- whose game was just deleted has no membership left either and gate-first
+  -- would answer "You are not in this game" — true of the rows, false of them.
+  --
+  -- boggle had NO check at all: `play_state` came back null for a deleted game,
+  -- fell into the `is distinct from` below, and returned SILENTLY — which the
+  -- frontend renders as success.
+  perform 1 from boggle.games where id = target_game;
+  if not found then
+    perform common._raise_game_deleted('boggle');
+  end if;
+
   perform common.require_game_player(target_game);
   select play_state into g_playstate from common.games where id = target_game;
   if g_playstate is distinct from 'playing' then
-    return; -- already over; idempotent
+    perform common._raise_game_over();
   end if;
   perform boggle._finish(target_game, 'manual');
+  return common.ok_envelope(jsonb_build_object('result', 'ended'));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -772,21 +797,39 @@ $$;
 revoke execute on function boggle.concede(uuid) from public;
 grant execute on function boggle.concede(uuid) to authenticated;
 
+drop function if exists boggle.submit_timeout(uuid);
+
 create or replace function boggle.submit_timeout(target_game uuid)
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = boggle, common, public, extensions
 as $$
 declare
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
   g_playstate text;
 begin
+  -- Row check before the gate, and a check at all — see end_game above.
+  perform 1 from boggle.games where id = target_game;
+  if not found then
+    perform common._raise_game_deleted('boggle');
+  end if;
+
   perform common.require_game_player(target_game);
   select play_state into g_playstate from common.games where id = target_game;
   if g_playstate is distinct from 'playing' then
-    return;
+    perform common._raise_game_over();
   end if;
   perform boggle._finish(target_game, 'timeout');
+  return common.ok_envelope(jsonb_build_object('result', 'ended'));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 

@@ -28,6 +28,7 @@ set search_path = bananagrams, common, public, extensions;
 select plan(9);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -66,9 +67,10 @@ select is(
 
 -- ─── (2) Idempotent ──────────────────────────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select throws_ok(
-  format($$ select bananagrams.end_game(%L::uuid) $$, (select id from g1)),
-  'P0001', 'game-not-in-play|',
+select pg_temp.envelope_is(
+  bananagrams.end_game((select id from g1)),
+  '{"type":"not-ok","severity":"race","outcome":"noted","dbcode":"PN486",
+    "message":"Game over"}'::jsonb,
   'ending an already-terminal game is rejected');
 
 -- ─── (3) A conceded player stays conceded ────────────────────
@@ -106,9 +108,11 @@ select (bananagrams.create_game(
 reset role;
 grant select on g3 to authenticated;
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
-select throws_ok(
-  format($$ select bananagrams.end_game(%L::uuid) $$, (select id from g3)),
-  '42501', null, 'a non-player cannot end the game');
+select pg_temp.envelope_is(
+  bananagrams.end_game((select id from g3)),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN253",
+    "message":"You are not in this game"}'::jsonb,
+  'a non-player cannot end the game');
 
 select * from finish();
 rollback;

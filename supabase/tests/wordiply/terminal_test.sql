@@ -26,6 +26,7 @@ set search_path = wordiply, common, public, extensions;
 select plan(19);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -85,12 +86,11 @@ select is(
 
 -- Idempotency: a second call raises P0001 (FE swallows it).
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select throws_ok(
-  format($$ select wordiply.end_game(%L::uuid) $$, (select id from end_g)),
-  'P0001',
-  'game-not-in-play|',
-  'coop end_game: a second call raises P0001'
-);
+select pg_temp.envelope_is(
+  wordiply.end_game((select id from end_g)),
+  '{"type":"not-ok","severity":"race","outcome":"noted","dbcode":"PN486",
+    "message":"Game over"}'::jsonb,
+  'coop end_game: a second call raises P0001');
 
 -- ============================================================
 -- (2) Coop submit_timeout → ended/timeout

@@ -13,6 +13,7 @@ begin;
 set search_path = waffle, common, public, extensions;
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 select plan(6);
@@ -45,9 +46,11 @@ select is(
 
 -- Idempotent: a second timeout raises (already terminal).
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select throws_ok(
-  format($$ select waffle.submit_timeout(%L::uuid) $$, (select id from g1)),
-  'P0001', NULL, 'a second timeout on a finished game raises (idempotent)');
+select pg_temp.envelope_is(
+  waffle.submit_timeout((select id from g1)),
+  '{"type":"not-ok","severity":"race","outcome":"noted","dbcode":"PN486",
+    "message":"Game over"}'::jsonb,
+  'a second timeout on a finished game raises (idempotent)');
 
 -- ── Compete: timeout with one solver → that player wins ─────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');

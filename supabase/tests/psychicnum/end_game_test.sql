@@ -24,6 +24,7 @@ set search_path = psychicnum, common, public, extensions;
 select plan(12);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -46,11 +47,11 @@ update psychicnum.games set secrets = array['alpha','bravo','charlie'] where id 
 
 -- (1) Non-player (dee) cannot end the game
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
-select throws_ok(
-  format($$ select psychicnum.end_game(%L::uuid) $$, (select id from coop_g)),
-  '42501', 'not-a-player|',
-  'coop: non-player end_game rejected'
-);
+select pg_temp.envelope_is(
+  psychicnum.end_game((select id from coop_g)),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN253",
+    "message":"You are not in this game"}'::jsonb,
+  'coop: non-player end_game rejected');
 
 -- (2) A game player ends the game — succeeds
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -91,11 +92,11 @@ select is(
 
 -- (7) Idempotency — a 2nd end_game on a terminal game raises P0001
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select throws_ok(
-  format($$ select psychicnum.end_game(%L::uuid) $$, (select id from coop_g)),
-  'P0001', 'game-not-in-play|',
-  'coop: second end_game on terminal game raises P0001'
-);
+select pg_temp.envelope_is(
+  psychicnum.end_game((select id from coop_g)),
+  '{"type":"not-ok","severity":"race","outcome":"noted","dbcode":"PN486",
+    "message":"Game over"}'::jsonb,
+  'coop: second end_game on terminal game raises P0001');
 
 -- ============================================================
 -- COMPETE block — same shape, mode echoed into status
@@ -145,11 +146,11 @@ select is(
 
 -- (12) Idempotency holds in compete too
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select throws_ok(
-  format($$ select psychicnum.end_game(%L::uuid) $$, (select id from comp_g)),
-  'P0001', 'game-not-in-play|',
-  'compete: second end_game on terminal game raises P0001'
-);
+select pg_temp.envelope_is(
+  psychicnum.end_game((select id from comp_g)),
+  '{"type":"not-ok","severity":"race","outcome":"noted","dbcode":"PN486",
+    "message":"Game over"}'::jsonb,
+  'compete: second end_game on terminal game raises P0001');
 
 -- ============================================================
 select * from finish();

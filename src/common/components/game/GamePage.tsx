@@ -18,7 +18,7 @@ import type {
   MenuSection,
 } from '../../lib/games'
 import { END_OR_CONCEDE_IDS, NEW_GAME_ID } from '../../lib/game/gameMenu'
-import { failureMessage } from '../../lib/game/serverError'
+import { getNotOkFeedback } from '../../lib/game/genericPills'
 import { showFaultModal } from '../../lib/fault/faultStore'
 import { useAppShortcuts } from '../../hooks/input/useAppShortcuts'
 import { useAccountMenuSection } from '../../hooks/account/useAccountMenuSection'
@@ -320,19 +320,23 @@ function GamePageInner({
     prevExpiredRef.current = timer.expired
     if (!timer.expired || wasExpired) return
     if (commonGame.ended_at !== null) return // a peer already ended it
-    manifest.submitTimeout(gameId).then((result) => {
-      if (result.error) {
-        // P0001 'game is not active' on a peer-race is silently
-        // swallowed by the manifest implementation; anything else
-        // is a real error we want to see during alpha.
-        // `[db]` so it sits in the same filter as every other failed call —
-        // this one never reaches a player, which is exactly why it needs to be
-        // findable in a log. The dispatcher keeps the error STRUCTURED now, so
-        // the SQLSTATE makes it into the line.
-        console.error(
-          `[db] submitTimeout failed: ${result.error.message}`
-          + (result.error.code ? ` (code=${result.error.code})` : ''),
-        )
+    void manifest.submitTimeout(gameId).then((res) => {
+      // THE RACE IS THE NORMAL CASE and it is not shown to anyone. Every
+      // connected client fires this on the same countdown edge, so in a
+      // four-player game three arrive to find the work done. Logged at info,
+      // because "someone else ended it" is exactly what should have happened.
+      if (res.type === 'not-ok' && res.severity === 'race') {
+        console.log(`[db] submitTimeout: ${res.message} (${res.dbcode})`)
+      } else if (res.type === 'not-ok') {
+        // Everything else is real — a deleted game, an expired session. `[db]`
+        // so it sits in the same filter as every other failed call; this one
+        // reaches no player, which is exactly why it must be findable in a log.
+        console.error(`[db] submitTimeout failed: ${res.message} (${res.dbcode})`)
+      } else if (res.type === 'ok' && res.data?.result === 'ended') {
+        // The terminal arrives at every client by subscription, this one
+        // included — winning the race buys no extra work.
+      } else {
+        showFaultModal({ text: 'BUG: submit_timeout fell through to unhandled' })
       }
     })
   }, [timer.expired, paused, commonGame, gameId, manifest])
@@ -653,24 +657,27 @@ function GamePageInner({
         // uses). Both go through PostgREST, so they work even when Realtime is
         // stuck — see docs + the reconnect nudge in App.
         onReturnToClub={sendSuspend}
-        // Undefined for a game with no whole-table end (bananagrams) → the
-        // overlay hides its End-game button. Captured as a local so the guard
-        // narrows inside the async closure.
+        // Optional on the manifest → the overlay hides its End-game button for
+        // a game that omits it. Every gametype supplies it today, bananagrams
+        // included: it needs End *and* per-player Concede, which are different
+        // acts. Captured as a local so the guard narrows in the async closure.
         onEndGame={
           endGameFn
             ? async () => {
                 // The shared end-game confirm modal (never window.confirm —
                 // docs/ui.md → Modals). Same copy every game's own End uses.
                 if (!(await confirmAction(END_GAME_CONFIRM))) return
-                const { error } = await endGameFn(gameId)
-                if (error) {
-                  // Classified, not hand-built: a lost End race shows
-                  // game-not-in-play's "Game over" info pill (the same copy the
-                  // in-game End action shows), and anything unexpected wears
-                  // the fault look. This used to interpolate the raw server
-                  // string into a prefixed pill — a bypass the guard couldn't
-                  // see because the flattening happened a file away.
-                  globalFeedbackShow(failureMessage(error, 'end game'))
+                const res = await endGameFn(gameId)
+                if (res.type === 'not-ok') {
+                  // A lost End race shows PN486's "Game over" in its own words
+                  // and its own tone — the same sentence the in-game End action
+                  // shows, because it is the same raise.
+                  globalFeedbackShow({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+                } else if (res.type === 'ok' && res.data?.result === 'ended') {
+                  // Nothing here: the terminal arrives by subscription and the
+                  // overlay unmounts with the pause.
+                } else {
+                  showFaultModal({ text: 'BUG: end_game fell through to unhandled' })
                 }
               }
             : undefined

@@ -383,12 +383,11 @@ select is(
 );
 
 -- Idempotency: a second call raises P0001 (peers racing the countdown).
-select throws_ok(
-  format($$ select wordwheel.submit_timeout(%L::uuid) $$, (select id from timeout_g)),
-  'P0001',
-  'game-not-in-play|',
-  'submit_timeout: second call raises P0001 (idempotent at the FE-swallow layer)'
-);
+select pg_temp.envelope_is(
+  wordwheel.submit_timeout((select id from timeout_g)),
+  '{"type":"not-ok","severity":"race","outcome":"noted","dbcode":"PN486",
+    "message":"Game over"}'::jsonb,
+  'submit_timeout: second call raises P0001 (idempotent at the FE-swallow layer)');
 
 -- games_state exposes the full required-words list (un-gated: available during
 -- play AND at terminal — the FE ships it from game start).
@@ -455,12 +454,11 @@ select is(
 );
 
 -- Idempotency: a second call raises P0001.
-select throws_ok(
-  format($$ select wordwheel.end_game(%L::uuid) $$, (select id from end_g)),
-  'P0001',
-  'game-not-in-play|',
-  'end_game: second call raises P0001 (idempotent at the FE-swallow layer)'
-);
+select pg_temp.envelope_is(
+  wordwheel.end_game((select id from end_g)),
+  '{"type":"not-ok","severity":"race","outcome":"noted","dbcode":"PN486",
+    "message":"Game over"}'::jsonb,
+  'end_game: second call raises P0001 (idempotent at the FE-swallow layer)');
 
 -- Auth: dee (outsider) cannot end a game they're not in. Fresh game (the previous
 -- one is terminal and would short-circuit on play_state).
@@ -477,12 +475,11 @@ select (wordwheel.create_game(
 )->'data'->>'id')::uuid as id;
 
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
-select throws_ok(
-  format($$ select wordwheel.end_game(%L::uuid) $$, (select id from auth_g)),
-  '42501',
-  null,
-  'end_game: non-player (dee, outsider) is rejected with 42501'
-);
+select pg_temp.envelope_is(
+  wordwheel.end_game((select id from auth_g)),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN253",
+    "message":"You are not in this game"}'::jsonb,
+  'end_game: non-player (dee, outsider) is rejected with 42501');
 
 -- ============================================================
 -- (10) DUPLICATE-letter board smoke: repeat-letter words are ordinary

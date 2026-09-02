@@ -23,6 +23,7 @@ set search_path = strands, common, public, extensions;
 select plan(15);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -142,12 +143,11 @@ select isnt(
   'a manual stop unshields the solution as well — same is_terminal gate'
 );
 
-select throws_ok(
-  format($$ select strands.end_game(%L) $$, (select id from game2)),
-  'P0001',
-  'game-not-in-play|',
-  'ending twice raises — idempotency the FE swallows, as elsewhere'
-);
+select pg_temp.envelope_is(
+  strands.end_game((select id from game2)),
+  '{"type":"not-ok","severity":"race","outcome":"noted","dbcode":"PN486",
+    "message":"Game over"}'::jsonb,
+  'ending twice raises — idempotency the FE swallows, as elsewhere');
 
 -- ============================================================
 -- (12)–(14) Replay wipes the board, the log, and the hint state

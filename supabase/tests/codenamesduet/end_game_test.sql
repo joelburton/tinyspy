@@ -28,6 +28,7 @@ set search_path = codenamesduet, common, public, extensions;
 select plan(8);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 -- 2-member club; ada + bea are seated. dee is signed in but
@@ -99,15 +100,11 @@ select is(
 -- ============================================================
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select throws_ok(
-  format(
-    $$ select codenamesduet.end_game(%L::uuid) $$,
-    (select id from g)
-  ),
-  'P0001',
-  'game-not-in-play|',
-  'end_game: rejects on already-terminal games'
-);
+select pg_temp.envelope_is(
+  codenamesduet.end_game((select id from g)),
+  '{"type":"not-ok","severity":"race","outcome":"noted","dbcode":"PN486",
+    "message":"Game over"}'::jsonb,
+  'end_game: rejects on already-terminal games');
 
 -- ============================================================
 -- (3) Non-player rejected (require_game_player gate)
@@ -125,15 +122,11 @@ select (codenamesduet.create_game(
 )->'data'->>'id')::uuid as id;
 
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
-select throws_ok(
-  format(
-    $$ select codenamesduet.end_game(%L::uuid) $$,
-    (select id from g2)
-  ),
-  '42501',
-  'not-a-player|',
-  'end_game: non-player rejected via require_game_player'
-);
+select pg_temp.envelope_is(
+  codenamesduet.end_game((select id from g2)),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN253",
+    "message":"You are not in this game"}'::jsonb,
+  'end_game: non-player rejected via require_game_player');
 
 -- ============================================================
 select * from finish();

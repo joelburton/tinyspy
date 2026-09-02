@@ -970,13 +970,16 @@ grant execute on function wordwheel.submit_word(uuid, text, int, boolean, boolea
 -- A no-op self-update fires the WAL events. (The header word lists ship at game
 -- start, so THAT needs no touch — but the per-player finds do.)
 
+drop function if exists wordwheel.submit_timeout(uuid);
+
 create or replace function wordwheel.submit_timeout(target_game uuid)
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = wordwheel, common, public, extensions
 as $$
 declare
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
   g_row wordwheel.games%rowtype;
   current_play_state text;
   current_target_rank int;
@@ -989,8 +992,7 @@ begin
    where wordwheel.games.id = target_game
    for update;
   if not found then
-    raise exception 'game-not-found|' using errcode = 'P0002',
-      detail = 'no wordwheel.games row for target_game';
+    perform common._raise_game_deleted('wordwheel');
   end if;
 
   perform common.require_game_player(target_game);
@@ -999,8 +1001,7 @@ begin
     from common.games where id = target_game;
 
   if current_play_state <> 'playing' then
-    raise exception 'game-not-in-play|' using errcode = 'P0001',
-      detail = 'play_state is not an active state';
+    perform common._raise_game_over();
   end if;
 
   if g_row.mode = 'coop' then
@@ -1108,6 +1109,15 @@ begin
   -- opponents' finds appear (see header). Harmless in coop (teammates already
   -- see each other's words live); load-bearing in compete.
   update wordwheel.found_words set user_id = user_id where game_id = target_game;
+  return common.ok_envelope(jsonb_build_object('result', 'ended'));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1144,13 +1154,16 @@ grant execute on function wordwheel.submit_timeout(uuid) to authenticated;
 -- opponents'-finds reveal is RLS-gated on terminal and useGame subscribes to
 -- found_words alone, so a manual end needs the no-op self-update to wake peers.
 
+drop function if exists wordwheel.end_game(uuid);
+
 create or replace function wordwheel.end_game(target_game uuid)
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = wordwheel, common, public, extensions
 as $$
 declare
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
   g_row wordwheel.games%rowtype;
   current_play_state text;
   current_target_rank int;
@@ -1163,8 +1176,7 @@ begin
    where wordwheel.games.id = target_game
    for update;
   if not found then
-    raise exception 'game-not-found|' using errcode = 'P0002',
-      detail = 'no wordwheel.games row for target_game';
+    perform common._raise_game_deleted('wordwheel');
   end if;
 
   perform common.require_game_player(target_game);
@@ -1176,8 +1188,7 @@ begin
     -- Idempotency: a second click (or a concurrent click + timer
     -- expiry) raises this and the FE swallows it the same way
     -- it does for submit_timeout's "already terminal" race.
-    raise exception 'game-not-in-play|' using errcode = 'P0001',
-      detail = 'play_state is not an active state';
+    perform common._raise_game_over();
   end if;
 
   if g_row.mode = 'coop' then
@@ -1270,6 +1281,15 @@ begin
   -- Realtime touch on found_words so compete peers refetch the now-RLS-visible
   -- opponents' finds (see submit_timeout's header for the full rationale).
   update wordwheel.found_words set user_id = user_id where game_id = target_game;
+  return common.ok_envelope(jsonb_build_object('result', 'ended'));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 

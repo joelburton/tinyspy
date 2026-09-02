@@ -783,13 +783,16 @@ grant execute on function wordle.concede(uuid) to authenticated;
 -- Compete: time's up — the winner is whoever solved in the fewest
 -- guesses (same rule as a natural finish); nobody solved →
 -- lost_compete.
+drop function if exists wordle.submit_timeout(uuid);
+
 create or replace function wordle.submit_timeout(target_game uuid)
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = wordle, common, public, extensions
 as $$
 declare
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
   g_row              wordle.games%rowtype;
   current_play_state text;
   winner_id          uuid;
@@ -798,8 +801,7 @@ declare
 begin
   select * into g_row from wordle.games where id = target_game for update;
   if not found then
-    raise exception 'game-not-found|' using errcode = 'P0002',
-      detail = 'no wordle.games row for target_game';
+    perform common._raise_game_deleted('wordle');
   end if;
 
   perform common.require_game_player(target_game);
@@ -807,8 +809,7 @@ begin
   select play_state into current_play_state
     from common.games where id = target_game;
   if current_play_state <> 'playing' then
-    raise exception 'game-not-in-play|' using errcode = 'P0001',
-      detail = 'play_state is not an active state';
+    perform common._raise_game_over();
   end if;
 
   if g_row.mode = 'coop' then
@@ -859,6 +860,15 @@ begin
   -- no-op self-update produces a WAL entry it picks up, refetching
   -- games_state (now revealing the target).
   update wordle.games set club_handle = club_handle where id = target_game;
+  return common.ok_envelope(jsonb_build_object('result', 'ended'));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -873,19 +883,21 @@ grant execute on function wordle.submit_timeout(uuid) to authenticated;
 -- {"won": false}, status.outcome = 'manual'. Any game player may fire
 -- it; idempotent on the play_state check (a second click / a race with
 -- submit_timeout raises P0001, which the manifest swallows).
+drop function if exists wordle.end_game(uuid);
+
 create or replace function wordle.end_game(target_game uuid)
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = wordle, common, public, extensions
 as $$
 declare
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
   current_play_state text;
   player_results     jsonb;
 begin
   if not exists (select 1 from wordle.games where id = target_game) then
-    raise exception 'game-not-found|' using errcode = 'P0002',
-      detail = 'no wordle.games row for target_game';
+    perform common._raise_game_deleted('wordle');
   end if;
 
   perform common.require_game_player(target_game);
@@ -893,8 +905,7 @@ begin
   select play_state into current_play_state
     from common.games where id = target_game;
   if current_play_state <> 'playing' then
-    raise exception 'game-not-in-play|' using errcode = 'P0001',
-      detail = 'play_state is not an active state';
+    perform common._raise_game_over();
   end if;
 
   select jsonb_object_agg(user_id::text, jsonb_build_object('won', false))
@@ -912,6 +923,15 @@ begin
 
   -- Realtime touch (see submit_timeout).
   update wordle.games set club_handle = club_handle where id = target_game;
+  return common.ok_envelope(jsonb_build_object('result', 'ended'));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 

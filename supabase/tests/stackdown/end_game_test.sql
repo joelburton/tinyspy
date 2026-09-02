@@ -9,6 +9,7 @@
 begin;
 set search_path = stackdown, common, public, extensions;
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 select plan(6);
@@ -40,9 +41,10 @@ select is(
 
 -- Idempotency: a second end is rejected.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select throws_ok(
-  format($$ select stackdown.end_game(%L) $$, (select id from g1)),
-  'P0001', 'game-not-in-play|',
+select pg_temp.envelope_is(
+  stackdown.end_game((select id from g1)),
+  '{"type":"not-ok","severity":"race","outcome":"noted","dbcode":"PN486",
+    "message":"Game over"}'::jsonb,
   'ending an already-ended game is rejected');
 
 -- ── Countdown timeout → loss ────────────────────────────────────────

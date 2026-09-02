@@ -1,12 +1,11 @@
 // cs-unmet
 
-import { callRpc } from '../../common/lib/game/callRpc'
 import { runRpc } from '../../common/lib/supabase/dbResult'
 import { useCallback, useEffect, useRef, useState, type ReactNode, useMemo } from 'react'
 import { IconHideSolution, IconNewGame, IconPrint, IconRestart, IconReveal } from '../../common/components/icons'
 import { useSolutionReveal } from '../../common/hooks/game/useSolutionReveal'
 import type { Outcome } from '../../common/lib/outcomes'
-import type { CreatedGame, GamePageCtx, GenericFeedbackApi, GenericFeedbackMsg } from '../../common/lib/games'
+import type { CreatedGame, GamePageCtx, GameStopResult, GenericFeedbackApi, GenericFeedbackMsg } from '../../common/lib/games'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import { cls } from '../../common/lib/util/cls'
 import { db } from '../db'
@@ -411,8 +410,14 @@ export function PlayArea({
   const handleEndGame = useCallback(async () => {
     if (isTerminal) return
     if (!(await confirmAction(END_GAME_CONFIRM))) return
-    const bad = await callRpc(db, 'end_game', { target_game: gameId })
-    if (bad) showLocalFeedback(bad)
+    const res = await runRpc<GameStopResult>(db.rpc('end_game', { target_game: gameId }))
+    if (res.type === 'not-ok') {
+      showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+    } else if (res.type === 'ok' && res.data?.result === 'ended') {
+      // Nothing to do: the terminal arrives by subscription.
+    } else {
+      showFaultModal({ text: 'BUG: end_game fell through to unhandled' })
+    }
   }, [gameId, isTerminal, showLocalFeedback, confirmAction])
 
   // ─── New game ───────────────────────────────────────────

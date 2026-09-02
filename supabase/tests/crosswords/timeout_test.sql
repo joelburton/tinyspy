@@ -31,6 +31,7 @@ set search_path = crosswords, common, public, extensions;
 select plan(19);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 -- Puzzles are superuser-seeded (authenticated has no INSERT on puzzles).
@@ -59,9 +60,11 @@ reset role;
 -- dee is signed in but isn't in this game's roster (frozen at create_game).
 -- The gate is the RPC's first statement, so it fires even while playing.
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
-select throws_ok(
-  format('select crosswords.submit_timeout(%L::uuid)', :'gc_id'),
-  '42501', null, 'submit_timeout: a non-player is rejected (require_game_player)');
+select pg_temp.envelope_is(
+  crosswords.submit_timeout(:'gc_id'),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN253",
+    "message":"You are not in this game"}'::jsonb,
+  'submit_timeout: a non-player is rejected (require_game_player)');
 
 -- ── B. Coop timeout: playing → lost ──────────────────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');

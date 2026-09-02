@@ -1399,31 +1399,36 @@ grant execute on function strands.spend_hint(uuid) to authenticated;
 -- Ending unshields the solution (the is_terminal gate on _solution_for) but
 -- puts it on nobody's screen: each player asks for it with their own
 -- RevealButton, a local display toggle (docs/ui.md → Terminal results).
+drop function if exists strands.end_game(uuid);
+
 create or replace function strands.end_game(target_game uuid)
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = strands, common, public, extensions
 as $$
 declare
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
   play           text;
   v_found        int;
   player_results jsonb;
 begin
-  perform common.require_game_player(target_game);
 
   perform 1 from strands.games where id = target_game for update;
   if not found then
-    raise exception 'game-not-found|' using errcode = 'P0002',
-      detail = 'no strands.games row for target_game';
+    perform common._raise_game_deleted('strands');
   end if;
+
+  -- Row check before the membership gate: `delete_game` takes this row,
+  -- `common.games` and every `game_players` row together, so gate-first
+  -- answered "You are not in this game" for a game that was simply deleted.
+  perform common.require_game_player(target_game);
 
   select play_state into play from common.games where id = target_game;
   if play <> 'playing' then
     -- Idempotency: a second click, or one racing a win, raises and the FE
     -- swallows it the same way the other games do.
-    raise exception 'game-not-in-play|' using errcode = 'P0001',
-      detail = 'play_state is not an active state';
+    perform common._raise_game_over();
   end if;
 
   select count(*) into v_found
@@ -1442,6 +1447,15 @@ begin
     target_game, 'ended',
     jsonb_build_object('outcome', 'manual', 'words_found', v_found),
     player_results);
+  return common.ok_envelope(jsonb_build_object('result', 'ended'));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1596,30 +1610,35 @@ grant execute on function strands.replay_board(uuid) to authenticated;
 -- lose if the game had a REACHABLE END and you didn't reach it. strands has one
 -- — find every theme word — so it sits with wordle and connections rather than
 -- with an untargeted word hunt, where the clock is merely how a session stops.
+drop function if exists strands.submit_timeout(uuid);
+
 create or replace function strands.submit_timeout(target_game uuid)
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = strands, common, public, extensions
 as $$
 declare
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
   g_row          strands.games%rowtype;
   play           text;
   v_found        int;
   player_results jsonb;
 begin
-  perform common.require_game_player(target_game);
 
   select * into g_row from strands.games where id = target_game for update;
   if not found then
-    raise exception 'game-not-found|' using errcode = 'P0002',
-      detail = 'no strands.games row for target_game';
+    perform common._raise_game_deleted('strands');
   end if;
+
+  -- Row check before the membership gate: `delete_game` takes this row,
+  -- `common.games` and every `game_players` row together, so gate-first
+  -- answered "You are not in this game" for a game that was simply deleted.
+  perform common.require_game_player(target_game);
 
   select play_state into play from common.games where id = target_game;
   if play <> 'playing' then
-    raise exception 'game-not-in-play|' using errcode = 'P0001',
-      detail = 'play_state is not an active state';
+    perform common._raise_game_over();
   end if;
 
   if g_row.mode = 'compete' then
@@ -1627,7 +1646,7 @@ begin
     -- to whoever HAD solved. A player mid-board simply didn't finish — the
     -- winner is still "solved, on the fewest hints", never "got furthest".
     perform strands._maybe_finish_compete(target_game, true);
-    return;
+    return common.ok_envelope(jsonb_build_object('result', 'ended'));
   end if;
 
   select count(*) into v_found
@@ -1642,6 +1661,15 @@ begin
     target_game, 'lost',
     jsonb_build_object('outcome', 'timeout', 'words_found', v_found),
     player_results);
+  return common.ok_envelope(jsonb_build_object('result', 'ended'));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
