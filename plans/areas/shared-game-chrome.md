@@ -1,11 +1,11 @@
-# Area: forms
+# Area: shared-game-chrome
 
-Area 4 of app-audit's step 7. The process is [app-audit.md](../app-audit.md)
+Area 7 of app-audit's step 7. The process is [app-audit.md](../app-audit.md)
 §21; the plan holds the order, this file holds everything else.
 
-**What it is.** The design language of forms: the shared field components, the setup scaffolding, and the common buttons. The sixteen game `SetupForm`s are consumers, not members.
+**What it is.** `common/components/game/` — the chrome around every play surface. 258 rules, and every game sits on it.
 
-**Status: NOT OPENED.** Audited once before the restart (2026-08-25 → 08-26) and **re-audited from scratch when it reopens**; that file was deleted 2026-09-02 (§21 → the restart). Its forward-pointing items are in §7 → "Carried forward".
+**Status: NOT OPENED.** Not opened. Also owns the **contract-slot guard**, checked per mount point (§9, §10).
 
 This file exists **before** the area opens so there is somewhere to put a note
 the moment one turns up — §21 says an area opens by listing its files and
@@ -18,7 +18,7 @@ agreed with Joel when the area actually opens.
 
 ## Findings
 
-*(IDs are `F-forms-1`, `F-forms-2`, … — §21 → Areas. Every heading states its
+*(IDs are `F-shared-game-chrome-1`, `F-shared-game-chrome-2`, … — §21 → Areas. Every heading states its
 status; no status prefix means OPEN.)*
 
 ## Notes, to-dos and deferrals

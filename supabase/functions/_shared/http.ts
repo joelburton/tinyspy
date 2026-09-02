@@ -1,4 +1,4 @@
-// cs-met
+// cs-met-deep
 
 // Shared HTTP scaffolding for every edge function. `_shared/` is importable by
 // the deployed functions but is not itself deployed as a function (the `_`

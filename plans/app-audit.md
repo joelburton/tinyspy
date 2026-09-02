@@ -47,10 +47,9 @@ built the surfaces the error system renders into — `FailureLine`, `Field`,
 `StandardForm`, the floating-panel families, `ErrorPage` wearing the fault look
 — so the redesign targets real components instead of inventing them.
 
-**Where to resume:** [plans/areas/homepage.md](areas/homepage.md) — one finding
-open (F21 `homepage-no-vitest`, deliberately last) plus the ten dependency
-findings F45–F54, which belong to the areas that own their files. Then §7 →
-"The areas, in order" from `simple-page`.
+**This resumed 2026-09-02**, and where it went is §21 → "The 2026-09-02 restart".
+The live area is `deep` ([plans/areas/deep.md](areas/deep.md)); §7 → "The areas,
+in order" holds what follows it.
 
 **The work that paused this one is DONE** (the error/envelope sprint, finished
 2026-09-01 — see [docs/envelopes.md](../docs/envelopes.md)). Nothing blocks this
@@ -716,7 +715,7 @@ plus justified's per-game half.)
 | `club-page` | **The viewport-fit chain**, which the shell owns. `min-height: 0` appears 48× in 24 files doing TWO jobs: 17 sites are the chain (the **bound** — `max-height` on a centered card, `height` on a full-bleed page, only two sites; the **relay** — a flex column carrying it down; the **scroller**), and 31 are a flex/grid item allowed to shrink below its content, which is board geometry and stays. Eleven of the relays are steps 9–10 anyway. The relay still has no good name |
 | `club-page` | **`.frame` → `.page`.** It is the page's outer stack, not anything header-specific; all three pages declare nearly the same rule and only the bound differs. The word is taken: `frame` means "a rectangle around a board" in four places. Rename when the bound is settled, so the element is touched once |
 | `club-page` | **`<ModePill>` is a BADGE and should be renamed** — 27 references across `src/` and `e2e/`, plus `ui.md`'s "Mode pills" heading. Its module already reads the shared `.badge` and holds nothing but the two colors, so this is a name, not a conversion. **The rule it carries is general (Joel, 2026-08-22): "pill" means the FEEDBACK pill and nothing else** — the fully-round-ended lozenge is a badge, and the app has other loose uses (`ui.md`'s "chat unread pill", `base.css`'s "hint pills" in the `--radius-sm` comment). Fix each where its area comes up |
-| `club-page` | **The `=` solo-handle convention is still tested in the FE** — `ClubPage.tsx:115` (`soloClub`) and `SetupGameModal.tsx:208` (`modeSuffix`). `common.clubs.is_solo` now carries it (a generated column, `plans/areas/homepage.md` → F25), and the homepage reads that instead. Joel, 2026-08-22: *"fine for now, but we should get '=' stuff out of FE when we get to them."* The two SQL sites (`common.sql`, the setgame migration) write `like '=%'` and can take the column too |
+| `club-page` | **The `=` solo-handle convention is still tested in the FE** — `ClubPage.tsx:115` (`soloClub`) and `SetupGameModal.tsx:208` (`modeSuffix`). `common.clubs.is_solo` now carries it (a generated column, settled by the first `homepage` audit), and the homepage reads that instead. Joel, 2026-08-22: *"fine for now, but we should get '=' stuff out of FE when we get to them."* The two SQL sites (`common.sql`, the setgame migration) write `like '=%'` and can take the column too |
 | `club-page` | **The two-line row** — `.content` / a name line / a muted meta line, now in THREE files: `StartGameRow`, `ClubGameRow` and the standalone `ClubGameCard`. The pattern should name the SLOTS; each component keeps its own name for what goes in one (`.gameTitle`, `.gametypeName`). The third copy is new and known: F38 split `ClubGameCard` and deliberately left the standalone callout's inner shape alone rather than pre-empt this area |
 | `club-page` | ~~`ClubGameCard`'s `.wrapper` / `.card` names~~ — **done 2026-08-24 by F38.** `.wrapper` is gone (the SelectionList row is the row), `ClubGameRow` carries no `.card`, and the standalone callout's box is `.standalone`. Kept as a line only so the row's disappearance isn't read as an oversight |
 | `club-page` | The club page's filters render TWICE, desktop and mobile, each hidden in the other mode. A markup decision before a CSS one |
@@ -726,14 +725,14 @@ plus justified's per-game half.)
 | `shared-game-chrome` | **The two drag ghosts disagree** — bananagrams 1000, scrabble 100, and `dragGhost.module.css` says the split is unintended. Both are `position: fixed`, so they are two tiers apart against everything else: scrabble's paints BELOW an open dialog, bananagrams's above. Nobody drags mid-dialog, which is why it has never shown. Neither takes a token until they agree |
 | `the first game area` | `CelebrationBlockingModal`'s `.title` is an `<h2>` at `1.5rem` — h1's size, where h2 is `1.25rem`. May be earned; should be a decision |
 | `the first game area` | `CelebrationBlockingModal`'s `.button:focus-visible` re-declares the shared ring. Nothing about that dialog should change a button's ring |
-| ~~`floating-panels` + `shared-game-chrome`~~ | ~~**Nine `.body` classes want real names.**~~ **DONE 2026-08-25** (`plans/areas/floating-panels.md` → F12). They were not one thing: a shell content region, two layout stacks, four paragraphs of PROSE, and one disclosure section that has nothing to do with panels. Split rather than renamed — `FloatingPanel` keeps `.body`, the rest took names for what they hold. Two strays folded in: `SetupGameModal.bodyReserve` and `.cluePanel` |
+| ~~`floating-panels` + `shared-game-chrome`~~ | ~~**Nine `.body` classes want real names.**~~ **DONE 2026-08-25** (the first `floating-panels` audit). They were not one thing: a shell content region, two layout stacks, four paragraphs of PROSE, and one disclosure section that has nothing to do with panels. Split rather than renamed — `FloatingPanel` keeps `.body`, the rest took names for what they hold. Two strays folded in: `SetupGameModal.bodyReserve` and `.cluePanel` |
 | `shared-game-chrome` | `FilterSelect`'s club-page override INVERTS: the component states the roomy default, the info column tightens it. Today the club page undoes six of its seven decisions one at a time |
 | `shared-game-chrome` | **Click-to-define repeats a four-part activation bundle at 14 surfaces, and two of them have already reinvented the same helper** — `WordList.wordActivation` and wordle's `defineProps`, both returning `{ className, title: 'Click to define', data-word, onClick }`. Promote the PROPS, not the element: `definableProps(word, define)`. **NOT a component** — the definable thing is not always a word (wordle's is a five-square tile row, wordiply's a `<DimmedBaseWord>` with styled parts), and `useDefinePopover` holds its state per SURFACE, so a per-word component would need `define` passed to each one or a context. A helper constrains no markup and leaves wordle's documented departure standing (colored blocks can't take an underline, so its hover cue is a ring). **Two real drifts it would settle:** `data-word` is the e2e handle convention and wordle's and letterboxed's spreads omit it, so those words can't be selected the standard way; and all fourteen pass a native `title` where the app uses `data-tooltip` + `TooltipHost` — the same opt-out, fourteen times. Raised 2026-08-26 auditing `AnagramDialog`, which was the one surface missing `.definable` entirely and so had no hover cue at all |
 | `shared-game-chrome` | `<TurnLog>`'s `headerAction` is optional in name only — all eleven call sites pass it, so the bare-`<h3>` arm is dead. Make it required |
-| `codenamesduet` | **`CluePanel` needs a name that says what it is** (`plans/areas/floating-panels.md` → F27 `cluepanel-clue-for-what`). Joel: *"'CluePanel' is a terrible name: CLUE FOR WHAT?"* — and the first answer was wrong, which is the part worth carrying: it is NOT the AI suggester. It is the below-board clue strip — the giver's form, the guesser's clue display, the Pass button — and it is **not a floating panel at all**, so neither `Panel` nor `Modal` belongs in whatever it becomes. The AI panel that shared its file is already split out as `CodenamesduetAISuggestCompanion`. Joel, 2026-08-25: *"change it back to CluePanel; we'll consider a better name when we work on it"* |
-| **each surface, as its area comes up** | **A floating panel's MINIMUM SIZE is still eyeballed** (`plans/areas/floating-panels.md` → F23 `viewport-margins-unchosen`, part C). Seven pairs remain, all on COMPANIONS — which is the one family where a floor is real, since they are the only floating panels you can drag shut. Five distinct widths (240 / 260 / 280 / 300 / 320) and five heights (140 / 180 / 200 / 220 / 240), none derived: `Chat` 260×240 · `ClubHelpCompanion` 280×180 · `GameHelpCompanion` per-game · `GameScratchpadCompanion` 240×200 · `CrosswordsNoteCompanion` 300×200 · `CrosswordsExplainCompanion` 320×220 · `CodenamesduetAISuggestCompanion` 240×140. **The rule to apply is written down** (§20 → the resize table): the number should come from what the BODY needs — "the titlebar, the composer and four messages" — not from what looked about right. Two strays also survive on floating panels nobody can resize, `BlockingModal` and `SetupGameModal`, each `minWidth: 320`; those are not floors at all and below ~336px they force the panel wider than the screen. Joel, 2026-08-25: *"ignore for now; as we get to these individually in areas, we can figure out"* |
-| `crosswords` | **`CrosswordsNumberJumpBlockingModal` is a blocking modal that isn't built as one** (`plans/areas/floating-panels.md` → F15 `numberjump-tier`). A hand-rolled `position: fixed` box with its own scrim, riding `--z-index-popover`, so a menu can open over it. `<BlockingModal>` now exists and is what it wants — the shell brings the backdrop, the focus trap, immovability and content-fit height. Punted here rather than converted in `floating-panels` (Joel, 2026-08-24) because the conversion MOVES ITS TIER, and a behavior change to a game's modal should be seen by the area that owns the game |
-| `crosswords` | **The header's marks are not evenly separated, and the CSS says they are** (`plans/areas/homepage.md` → F43 `unequal-mark-separation`). One `gap: 0.375rem` for the whole slot, then each mark adds its own padding INSIDE its box — the menu trigger `0.25rem`, the chat bubble `PageHeaderButton`'s `0.3rem` plus `.bubble`'s own, the status slot none — so every visible separation differs and none of them is the declared number. Owned here because this is the page where EVERY mark can be on the strip at once; home has one and the club page three. `--spacer` cannot claim `0.375rem` until this settles what the separation should be |
+| `codenamesduet` | **`CluePanel` needs a name that says what it is** (the first `floating-panels` audit, `cluepanel-clue-for-what`). Joel: *"'CluePanel' is a terrible name: CLUE FOR WHAT?"* — and the first answer was wrong, which is the part worth carrying: it is NOT the AI suggester. It is the below-board clue strip — the giver's form, the guesser's clue display, the Pass button — and it is **not a floating panel at all**, so neither `Panel` nor `Modal` belongs in whatever it becomes. The AI panel that shared its file is already split out as `CodenamesduetAISuggestCompanion`. Joel, 2026-08-25: *"change it back to CluePanel; we'll consider a better name when we work on it"* |
+| **each surface, as its area comes up** | **A floating panel's MINIMUM SIZE is still eyeballed** (the first `floating-panels` audit, `viewport-margins-unchosen`, part C). Seven pairs remain, all on COMPANIONS — which is the one family where a floor is real, since they are the only floating panels you can drag shut. Five distinct widths (240 / 260 / 280 / 300 / 320) and five heights (140 / 180 / 200 / 220 / 240), none derived: `Chat` 260×240 · `ClubHelpCompanion` 280×180 · `GameHelpCompanion` per-game · `GameScratchpadCompanion` 240×200 · `CrosswordsNoteCompanion` 300×200 · `CrosswordsExplainCompanion` 320×220 · `CodenamesduetAISuggestCompanion` 240×140. **The rule to apply is written down** (§20 → the resize table): the number should come from what the BODY needs — "the titlebar, the composer and four messages" — not from what looked about right. Two strays also survive on floating panels nobody can resize, `BlockingModal` and `SetupGameModal`, each `minWidth: 320`; those are not floors at all and below ~336px they force the panel wider than the screen. Joel, 2026-08-25: *"ignore for now; as we get to these individually in areas, we can figure out"* |
+| `crosswords` | **`CrosswordsNumberJumpBlockingModal` is a blocking modal that isn't built as one** (the first `floating-panels` audit, `numberjump-tier`). A hand-rolled `position: fixed` box with its own scrim, riding `--z-index-popover`, so a menu can open over it. `<BlockingModal>` now exists and is what it wants — the shell brings the backdrop, the focus trap, immovability and content-fit height. Punted here rather than converted in `floating-panels` (Joel, 2026-08-24) because the conversion MOVES ITS TIER, and a behavior change to a game's modal should be seen by the area that owns the game |
+| `crosswords` | **The header's marks are not evenly separated, and the CSS says they are** (the first `homepage` audit, `unequal-mark-separation`). One `gap: 0.375rem` for the whole slot, then each mark adds its own padding INSIDE its box — the menu trigger `0.25rem`, the chat bubble `PageHeaderButton`'s `0.3rem` plus `.bubble`'s own, the status slot none — so every visible separation differs and none of them is the declared number. Owned here because this is the page where EVERY mark can be on the strip at once; home has one and the club page three. `--spacer` cannot claim `0.375rem` until this settles what the separation should be |
 | `scrabble` | **The AI suggest-a-move box is the fifth SelectionList site and did not fit.** It is five frameless text lines pinned to `5 × 1.35rem`, whose own comment says a growable height would shift the setup disclosure and the Moves log below it — so the frame, the surface and the row padding would all arrive as a visible redesign, roughly doubling the box. Three options, written up in `docs/games/scrabble.md` → Deferred: leave it bespoke (as crosswords' clue lists are), give `<SelectionList>` a frameless compact form, or redesign the box and redo the height arithmetic. Closed out of the `homepage` area 2026-08-24 |
 | `scrabble` | **`ScrabbleBlankPickerBlockingModal`'s overlay at `z-index: 50`** — a full-screen `position: fixed` modal parked BELOW the panel tier, so an open chat or menu paints over it. Long-recorded as the ladder's known anomaly; it wants a look, not a reflex bump |
 | **an audit of its own** | **Four files export MORE THAN ONE component**, so "the filename is the component" — the rule that files and components share a name — is false in four places: `common/components/game/lists/TurnLog.tsx` (`TurnLog`, `TurnLogBar`, `TurnLogNumber`), `common/components/game/lists/ActorMention.tsx` (`ActorTag`, `ActorDot`), `common/components/game/PlayAreaMountLog.tsx` (`PlayAreaSlotLog`, `PlayAreaReadyLog`), and `setgame/components/Card.tsx` (`Card`, `CardDefs`). **This is not cosmetic — it is how a rename went wrong.** `CluePanel.tsx` held the below-board clue strip AND the AI suggestion panel; a table built by scanning files for `<FloatingPanel>` and labeling rows by basename attached the wrong name, F27 inherited it, and the rename sweep acted on it — putting `CodenamesduetAISuggestModal` on a component that is not AI, not a suggester and not a modal. Found 2026-08-25 while answering "aren't the filenames the same as the component names?"; that file is split, the other four are not. Three of them are `shared-game-chrome`'s, and `TurnLog`'s three look like a real family rather than an accident, which is why this wants an audit rather than a sweep |
@@ -745,9 +744,9 @@ plus justified's per-game half.)
 | **setgame** | **`PlayArea.module.css` `.breakdown` + `breakdownLabel` / `-List` / `-Count` are read by nothing** — the per-player breakdown they styled was replaced. Same guard |
 | **stackdown** | **`WordEntry.module.css` `.good` / `.bad` are read by nothing** — the slots take their colors elsewhere now. Same guard |
 | **club-page** | **`e2e/club-filters.e2e.ts` is RED too** — two specs, both looking for `[class*="_startList_"] [class*="_button_"]` and finding nothing. `.startList` is fine; **`_button_` is gone because the button sprint moved buttons onto the GLOBAL `.button`**, which carries no module hash for a spec to match. Rewrite it in the same sitting as `club-keyboard.e2e.ts` — three specs, two renames, one page. Found 2026-08-22 by the first full e2e run after the font switch, which is also how we know the font broke nothing: 214 passed, and none of the 7 failures was about type. **`cssClasses.test.ts` cannot catch this one** and says so in its own docstring: it substring-matches each needle separately, so `startList` resolves and *some* class somewhere contains "button". Seeing it would mean understanding that the two are NESTED and that `.button` is global — real work, not obviously worth it |
-| **club-page** | **`e2e/club-keyboard.e2e.ts` is RED.** `[class*="_kbCursor_"] a` returns null now that the cursor row takes the global `.kb-cursor`, so the href assertion under it fails. The same rename that broke the homepage's spec (`plans/areas/homepage.md` → F3); both were found four weeks late |
+| **club-page** | **`e2e/club-keyboard.e2e.ts` is RED.** `[class*="_kbCursor_"] a` returns null now that the cursor row takes the global `.kb-cursor`, so the href assertion under it fails. The same rename that broke the homepage's spec (the first `homepage` audit); both were found four weeks late |
 | **wordle** | **`e2e/wordle-keyboard.e2e.ts` is RED, and it is not the flake it was filed as.** Line 162 reads `--ink-on-dark-color`; the token is `--ink-onDark-color` (camel). The undefined `var()` leaves the probe at the inherited body color, so the spec's `white` is `rgb(26,26,26)` and every ink assertion compares a key's white ink against the page's text color. Verified pre-existing: it fails at HEAD in isolation. One character-case fix, but wordle is not the homepage's area — described, not fixed (2026-08-23). **Worth more than the fix: a phantom token inside an `e2e/` spec passes every guard we own**, because `cssTokens.test.ts` scans `src/`. That hole is the same shape as the one `cssClasses.test.ts` closed for module classes in e2e selectors |
-| **letterboxed** | **Two `font-weight: 650`** — `components/Board.module.css:55` and `components/PlayArea.module.css:136`. A weight must be a multiple of 100 (§6.6), so both are bugs to fix at that area's audit, not values to keep. Found by the homepage area (`plans/areas/homepage.md` → F8); they are the `pending` list of the font-weight guard until then |
+| **letterboxed** | **Two `font-weight: 650`** — `components/Board.module.css:55` and `components/PlayArea.module.css:136`. A weight must be a multiple of 100 (§6.6), so both are bugs to fix at that area's audit, not values to keep. Found by the first `homepage` audit; they are the `pending` list of the font-weight guard until then |
 | **crosswords** | its setup chooser is drifted on three values (`6px` not `--radius-md`, its own hover and rule colors) — unintended, per Joel |
 | **account** | `ColorChoiceList.swatchActive` draws the cursor ring to mean "the color you CHOSE" — deliberately not converted, since tying a selected state to a keyboard decision marries them forever. Whether "selected" should look like "the cursor is here" is its own question |
 | **when it has a consumer** | the two-line density variant of `.item-row` |
@@ -954,22 +953,22 @@ it. Both changes come from the same discovery: the homepage cannot finish
 without the areas below it, and **the page shell was filed under the wrong
 area**.
 
-**Resequenced again 2026-09-02** — **`deep-layer` goes in at the top**, ahead of
+**Resequenced again 2026-09-02** — **`deep` goes in at the top**, ahead of
 `homepage`. Everything below it moves down one. Its own paragraph is under the
 table.
 
 | # | area | what it is |
 |---|---|---|
-| 1 | `deep-layer` | **NEW 2026-09-02, and it runs FIRST.** The boot path and the data path — the files every page and every game sits on and none of them owns: `main.tsx`, `App.tsx`'s boot half, the router, the Supabase client and the envelope wrappers, the realtime plumbing, the fault sink. **The membership rule is "it names no game and no page"** (below). Read before `homepage` so the theoretically-simple page is not read on top of a layer nobody has understood. **Opened 2026-09-02 at 31 files** (`plans/areas/deep-layer.md`) |
-| 2 | `homepage` | **RE-AUDITED ON REOPEN** (§21 → the 2026-09-02 restart); the findings below are inputs to that audit. **One finding of its own left.** The rehearsal for the full toolkit: patterns + vocabulary + the page shell, plus a **React pass** — the duplication was not only in the CSS. The two findings the 2026-08-24 pause was waiting on are closed: F44 (`action-button-text-only`) was answered by `forms`, and F36 (`createclub-modal`) is built — `CreateClubModal` is a `<NormalModal>` and `/c/new` is gone. F21 (`homepage-no-vitest`) is deliberately LAST: there is no point pinning the page's shape, or `<SelectionList>`'s, while either can still move (`plans/areas/homepage.md`) |
-| 3 | `floating-panels` | **RE-AUDITED ON REOPEN** (§21 → the 2026-09-02 restart). **Four findings open — F30, F31, F32, F33**, two of them red e2e specs this area is the one to answer. The machinery and shared look of every window-like thing that floats over the page — the shell, the blocking modal, the confirmation and the acknowledgment, the drag hook, the focus trap. **Not the instances**, and since 2026-08-24 **not the forms either** (`plans/areas/floating-panels.md`) |
-| 4 | `forms` | **RE-AUDITED ON REOPEN** (§21 → the 2026-09-02 restart). **Four findings open — F46, F48, F49, F50.** Opened 2026-08-24, split out of the area above. The design language of forms: the shared field components, the setup scaffolding, and **the question the homepage could not answer — are a form's buttons really different from action buttons?** Seven hand-written Cancels say the taxonomy has a hole (F44). Split because a floating panel and a form share a container and nothing else; keeping them together meant one area holding two vocabularies |
+| 1 | `deep` | **NEW 2026-09-02, and it runs FIRST.** The boot path and the data path — the files every page and every game sits on and none of them owns: `main.tsx`, `App.tsx`'s boot half, the router, the Supabase client and the envelope wrappers, the realtime plumbing, the fault sink. **The membership rule is "it names no game and no page"** (below). Read before `homepage` so the theoretically-simple page is not read on top of a layer nobody has understood. **Opened 2026-09-02 at 31 files** (`plans/areas/deep.md`) |
+| 2 | `homepage` | **RE-AUDITED FROM SCRATCH** (§21 → the 2026-09-02 restart). It was audited once, 2026-08-22 → 08-26, and that file was deleted — the machinery underneath it moved too far. Everything that audit found and did not do survives in "Carried forward" above. The landing page after login: your clubs, and the button that opens `<CreateClubModal>` over them (`plans/areas/homepage.md`) |
+| 3 | `floating-panels` | **RE-AUDITED FROM SCRATCH** (§21 → the 2026-09-02 restart); audited once 2026-08-24 → 08-26 and that file deleted. The machinery and shared look of every window-like thing that floats over the page — the shell, the blocking modal, the confirmation and the acknowledgment, the drag hook, the focus trap. **Not the instances**, and since 2026-08-24 **not the forms either**. Two red e2e specs are known to be waiting for it, `page-no-scroll` and `anagram-finder` (`plans/areas/floating-panels.md`) |
+| 4 | `forms` | **RE-AUDITED FROM SCRATCH** (§21 → the 2026-09-02 restart); audited once 2026-08-25 → 08-26 and that file deleted. Split out of the area above 2026-08-24. The design language of forms: the shared field components, the setup scaffolding, and **the question the homepage could not answer — are a form's buttons really different from action buttons?** Seven hand-written Cancels say the taxonomy has a hole (F44). Split because a floating panel and a form share a container and nothing else; keeping them together meant one area holding two vocabularies |
 | 5 | `simple-page` | **NEW.** The pages that are not home, club or game: `LoginScreen`, `ClaimHandleScreen`, `ErrorPage`, `Loading`. (`CreateClubPage` was on this roster; F36 took it on 2026-08-26 and it is a modal now.) **The roster's test is "does `App` render it directly?"**, which is better than "is it routable": it catches `ErrorPage` and `Loading`, both of which stand in for a page AND appear inside one (`ClubPage:719`, `:726`, `PlayAreaErrorBoundary:47`) — which is exactly what the shell decision has to cover |
 | 6 | `club-page` | Absorbs the punted viewport-fit chain, the `.frame` rename, `<ModePill>` reading the shared `.badge`, and the leftovers listed in "Why 6 stopped" |
 | 7 | `shared-game-chrome` | `common/components/game/` — 258 rules, and every game sits on it. Also: the **contract-slot guard**, checked per mount point (§9, §10) |
 | 8 | per game, one area each | CSS pass then tile-feedback pass, back to back. `psychicnum` first, as the control |
 
-#### `deep-layer` — the rule, and what it is not (Joel, 2026-09-02)
+#### `deep` — the rule, and what it is not (Joel, 2026-09-02)
 
 Joel: *"there's a new area to add at the very top of the list: the deep stuff
 that is used in most places (the router, App.tsx, the rpc/edge-fn/query
@@ -1846,7 +1845,7 @@ same argument sixteen times.
    | `SetupGameDialog` | `SetupGameModal` |
    | `EditProfileDialog` | `EditProfileModal` |
    | `EditClubDialog` | `EditClubModal` |
-   | codenamesduet `CluePanel` | `CodenamesduetAISuggestModal` — F27 (`cluepanel-clue-for-what`): the old name said neither its game nor its job. `Codenamesduet`, not `Codenames`, per docs/naming.md's no-mid-caps rule |
+   | codenamesduet `CluePanel` | `CodenamesduetAISuggestModal` — `cluepanel-clue-for-what`: the old name said neither its game nor its job. `Codenamesduet`, not `Codenames`, per docs/naming.md's no-mid-caps rule |
 
    **modal-blocking / modal-fault** — MARKED, so the member word rides along:
 
@@ -1931,7 +1930,7 @@ compared against, measured, quoted — does not, however carefully it was read.
 The homepage area investigating ClubPage's and GamePage's page structure moved
 neither stamp.
 
-**`cs-met` is the eighth stamp, added 2026-09-02** when opening `deep-layer`
+**`cs-met` is the eighth stamp, added 2026-09-02** when opening `deep`
 turned up a state with no word for it: **listed on an open area's roster, agreed
 by Joel, and not yet read.** `cs-found` was the near miss and it is genuinely a
 different claim —
@@ -1981,22 +1980,34 @@ the edge-function crash path. An audit of a surface whose foundation moved
 afterwards describes an app that no longer exists, so carrying those stamps
 forward would cost more than re-reading the files.
 
-**The findings are KEPT.** `homepage`, `floating-panels` and `forms` are the
-three areas already opened, and their files stay as they are. The restart is
-about the stamps, not about the record — a finding is evidence somebody
-gathered, and throwing it away costs the gathering twice.
+**The three finished audits were DELETED** (Joel, 2026-09-02) — `homepage.md`,
+`floating-panels.md` and `forms.md`, replaced by shells. *"Let's delete them;
+we'll regenerate them and don't need to worry about history. So much has changed
+since we audited them."* An audit is a reading of code that has since moved
+underneath it, and keeping one invites the worst outcome: treating it as current.
 
-**What reopening an area means.** The area gets a **fresh audit**, and its
-existing findings are inputs to that audit rather than a queue to work through.
-Each one is judged at that moment, against the code as it then stands:
+**Nothing pending was lost, and that was checked before deleting.** Every
+forward-pointing item those files held — the punts to `crosswords`, `scrabble`,
+`codenamesduet`, `letterboxed`, the red e2e specs, the deferred decisions — was
+already written into §7 → "Carried forward" **in full**, not by reference. That
+checklist is the durable half; the area files held the reading. What went with
+them is the resolution record: how each finding was argued and closed.
 
-- **still true** — it carries into the new audit, number and slug unchanged;
-- **already answered** — the machinery work settled it; say so and close it;
-- **no longer wanted** — the surface or the decision moved out from under it;
-  say so and close it.
+**Their finding NUMBERS died with them.** Each area regenerates from
+`F-<area>-1`, so an old number would come to name a different finding. Every
+surviving citation therefore describes the finding and names the audit it came
+from — "the first `homepage` audit, `unequal-mark-separation`" — rather than
+pointing at a number that will be reused. The one exception is a finding that
+was still live and belonged elsewhere: `router-query-params` moved into `deep`
+and was renumbered there as `F-deep-12`.
 
-**None of that judging happens in advance.** A finding does not become stale by
-being old, and nothing marks it stale except the audit that reopens its area.
+**Every area now has a file before it opens** (Joel, 2026-09-02): *"so we have a
+place to put todos/defers/notes … this way we're not creating them only when we
+open them; we can put things in them now."* A shell carries the same headings as
+a live one — roster, findings, notes/to-dos/deferrals, predicted test breaks —
+and the notes section is the point. **A shell is not an open area.** §21's rule
+still holds: an area opens by listing its files and stopping, and its roster is
+agreed with Joel then.
 
 ### Areas
 
@@ -2103,7 +2114,7 @@ reused verbatim, which also makes it greppable.
 
 - **A new finding gets a slug when it is written.** No exceptions, or the file
   goes half-slugged, which is worse than neither.
-- **In conversation, say the number AND the slug** — `F26 (three-wrappers)`.
+- **In conversation, say the ID AND the slug** — `F-club-page-26 (three-wrappers)`.
   Repeating it every mention is fine and preferred: *"a little bit more to read
   is less disruptive for me than switching context to remember what F99 is."*
 - **A slug may be renamed if the subject genuinely changes**, never silently.

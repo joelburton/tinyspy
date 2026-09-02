@@ -1,4 +1,4 @@
-// cs-met
+// cs-met-deep
 
 import type { RealtimeChannel } from '@supabase/supabase-js'
 

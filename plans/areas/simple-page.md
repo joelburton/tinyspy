@@ -1,11 +1,11 @@
-# Area: forms
+# Area: simple-page
 
-Area 4 of app-audit's step 7. The process is [app-audit.md](../app-audit.md)
+Area 5 of app-audit's step 7. The process is [app-audit.md](../app-audit.md)
 §21; the plan holds the order, this file holds everything else.
 
-**What it is.** The design language of forms: the shared field components, the setup scaffolding, and the common buttons. The sixteen game `SetupForm`s are consumers, not members.
+**What it is.** The pages that are not home, club or game: `LoginScreen`, `ClaimHandleScreen`, `ErrorPage`, `Loading`. The roster's test is **"does `App` render it directly?"**
 
-**Status: NOT OPENED.** Audited once before the restart (2026-08-25 → 08-26) and **re-audited from scratch when it reopens**; that file was deleted 2026-09-02 (§21 → the restart). Its forward-pointing items are in §7 → "Carried forward".
+**Status: NOT OPENED.** Not opened. It also owns **the page shell** — a page is an optional header above a centered, width-bounded body, and the body is either a card or a layout (§7 → Carried forward). `CardOnlyPage` is a name already settled and waiting for it.
 
 This file exists **before** the area opens so there is somewhere to put a note
 the moment one turns up — §21 says an area opens by listing its files and
@@ -18,7 +18,7 @@ agreed with Joel when the area actually opens.
 
 ## Findings
 
-*(IDs are `F-forms-1`, `F-forms-2`, … — §21 → Areas. Every heading states its
+*(IDs are `F-simple-page-1`, `F-simple-page-2`, … — §21 → Areas. Every heading states its
 status; no status prefix means OPEN.)*
 
 ## Notes, to-dos and deferrals

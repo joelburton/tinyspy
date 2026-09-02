@@ -1,11 +1,11 @@
-# Area: forms
+# Area: club-page
 
-Area 4 of app-audit's step 7. The process is [app-audit.md](../app-audit.md)
+Area 6 of app-audit's step 7. The process is [app-audit.md](../app-audit.md)
 §21; the plan holds the order, this file holds everything else.
 
-**What it is.** The design language of forms: the shared field components, the setup scaffolding, and the common buttons. The sixteen game `SetupForm`s are consumers, not members.
+**What it is.** The club room: its page and everything shown on it.
 
-**Status: NOT OPENED.** Audited once before the restart (2026-08-25 → 08-26) and **re-audited from scratch when it reopens**; that file was deleted 2026-09-02 (§21 → the restart). Its forward-pointing items are in §7 → "Carried forward".
+**Status: NOT OPENED.** Not opened. It carries the largest share of §7's "Carried forward" checklist — the viewport-fit chain, the `.frame` → `.page` rename, `<ModePill>` becoming a badge, the `=` solo-handle convention, the two-line row, the twice-rendered filters, the two-column fold, and two red e2e specs.
 
 This file exists **before** the area opens so there is somewhere to put a note
 the moment one turns up — §21 says an area opens by listing its files and
@@ -18,7 +18,7 @@ agreed with Joel when the area actually opens.
 
 ## Findings
 
-*(IDs are `F-forms-1`, `F-forms-2`, … — §21 → Areas. Every heading states its
+*(IDs are `F-club-page-1`, `F-club-page-2`, … — §21 → Areas. Every heading states its
 status; no status prefix means OPEN.)*
 
 ## Notes, to-dos and deferrals
