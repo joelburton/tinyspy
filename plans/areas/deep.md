@@ -31,10 +31,11 @@ understood, tidied* — `cs-blessed` here means he has read the file, not seen i
 
 **Every heading says its status**; a heading with **no status prefix means OPEN**.
 
-**The boot pass is DONE** — 2026-09-02, nine files, sixteen findings and
-**nothing left open**: fourteen RESOLVED, one CLOSED (`F-deep-3`), one MOVED to
-`corecss` (`F-deep-1`). The data path (11 files) and the realtime plumbing (7)
-have not been read.
+**Two passes of three have run.** The BOOT pass is done — nine files, sixteen
+findings, nothing left open (fourteen RESOLVED, one CLOSED, one MOVED to
+`corecss`). The DATA PATH was read 2026-09-02: eleven files, **nine findings
+`F-deep-17` … `F-deep-25`, all open.** The realtime plumbing (7 files) has not
+been read.
 
 ## The roster — 33 files, 4,880 lines
 
@@ -610,6 +611,205 @@ somebody outside needs it.
 > already knows it — dropping the return to add it back later is churn for a
 > line that costs nothing. Recorded so the next reader does not re-raise it: the
 > unread export is deliberate, not an oversight.
+
+## Pass 2 — the data path, read 2026-09-02
+
+Eleven files, 2,860 lines — about half of it tests. This is the layer the
+error/envelope sprint rebuilt and finished 2026-09-01, so it was read against
+**docs/envelopes.md**, which is canonical and outranks any comment here.
+
+**Findings F-deep-17 … F-deep-25.** The shape of what turned up: the LOGIC is in
+good order and matches the doc; what has drifted is the prose around it — three
+docstrings describing a world that changed under them — plus one real hole in the
+presentation path and two facts computed and thrown away.
+
+**Checked and NOT findings**, recorded so they are not re-derived:
+
+- `faultEnvelope`'s `error?.code || ourCode || null` uses `||` rather than `??`
+  deliberately: `callEdgeFn:98` sets `code: ''` for a codeless transport failure,
+  and `??` would let the empty string win over `ourCode`.
+- `db.ts` (26 lines) and `dbLog.ts` (175) are clean. `dbLog`'s fixed-field line,
+  its `fieldValue` / `quotedText` split, and the level→console-method map all
+  say what they do and do it.
+
+## F-deep-17 · `orphaned-docstrings-in-the-envelope-layer` · Two docstrings sit above the wrong declaration
+
+Both have the tell an earlier audit named for this exact bug — **two docstrings
+stacked with nothing between them** — so the one above documents whatever the
+one below is attached to, and its real subject reads as undocumented.
+
+- **`dbEnvelope.ts:105`** — *"**Is this one of the four?** — the question a call
+  site asks when it wants to treat 'our server did not answer' as one thing"*,
+  which describes `isEnvironmental` (`:129`), sits above `situationFor`'s own
+  docstring (`:115`). So `situationFor` appears to carry two descriptions and
+  `isEnvironmental` none — and the orphan is the more useful of the two, since it
+  records why the codes exist at all (`useGameTimer` used to ask `dbcode === null`,
+  which was true for these AND for every frontend-detected bug).
+- **`envelope.ts:45`** — *"**The envelope** — the one shape everything travels
+  in"*, twenty lines and the canonical description of the type, sits above
+  `OkCommon<T>` (`:69`). `Envelope` itself (`:88`) has no top-level docstring;
+  only its three arms are documented.
+
+> resolution:
+
+## F-deep-18 · `throw-path-is-silent` · A failure that arrives by throw is neither logged nor presented
+
+`runRpc:375` and `readRows:471` each catch a throw and `return
+nothingReachedUs(...)` — **no `reportFault`, no `logDb`.** Every other failure
+path in both functions reports before returning.
+
+**And the transport does not cover for them.** `dbFetch:181` logs a thrown fetch
+only `if (name === 'AbortError' || isSupabaseInternal(...))`, on the stated
+reasoning that *"a failure on OUR endpoints reaches a wrapper, which writes the
+better line"*. For a throw on `/rest/v1/` or `/functions/v1/` that is false: the
+wrapper writes nothing. **Neither layer records it** — no `[db]` line, no modal,
+and the only trace is whatever the call site does with the envelope.
+
+The comment on the branch says this is *"the same case by another road, not a
+different one"*. That is exactly the argument for treating it the same, and the
+two roads differ in the one thing this system exists to guarantee: the `status:
+0` road goes `settled.error` → `failureEnvelope` → `reportFault`, logged and
+shown.
+
+**The tests can already see this and are not pointed at it.**
+`dbResult.test.ts` imports `peekFaultsForTest` and asserts presentation at
+`:131` and `:140`; the thrown-rejection test at `:255` asserts only the
+envelope's contents. So the hole is invisible to a green suite.
+
+Narrow — postgrest-js converts a rejected fetch to `{ status: 0 }` before it
+reaches here, so this catches a throw from some *other* layer — but "narrow"
+is why it would be silent for a long time.
+
+> resolution:
+
+## F-deep-19 · `content-type-tell-is-computed-and-dropped` · The one fact that identifies a foreign responder is built and discarded
+
+`dbFetch:246` builds `` `body was not JSON (content-type: ${contentType})` ``
+into `unparsed`, above a comment saying *"The content-type is the tell, and it is
+free: `text/html` is a gateway's error page, `text/plain` is the edge runtime,
+nothing is an empty reply."*
+
+**The string is never used.** `unparsed` appears three times in the file — its
+declaration, that assignment, and `!unparsed` as a boolean at `:258`. The
+content-type never reaches a log or an envelope.
+
+The comparison is what makes it a finding rather than a nit: `callEdgeFn:86`
+builds the identical sentence for the identical situation and **carries it**, as
+`details`, so it lands on the `[db]` line. The same fact survives on the edge
+path and evaporates on the database path.
+
+> resolution:
+
+## F-deep-20 · `verdict-comments-trail-their-branch` · In the file's subtlest expression, each comment explains the line above it
+
+`dbFetch:256` decides who answered, in a four-way chain. Every comment in it
+FOLLOWS the branch it explains, where every other comment in the file leads:
+
+```ts
+: !unparsed ? NO_ANSWER_TO_CODE_AND_TEXT.upstreamDown
+// It PARSED but carried no SQLSTATE — Kong's own …
+: NO_ANSWER_TO_CODE_AND_TEXT.foreignResponder
+// An unparseable body. PostgREST ALWAYS speaks JSON …
+```
+
+So "It PARSED" sits directly above `foreignResponder`, which is the branch for a
+body that did NOT parse, and the last comment dangles past the end of the
+expression. **The code is correct** and matches docs/envelopes.md (`FE003` =
+parsed without a SQLSTATE, `FE004` = would not parse); it is the reading that is
+off by one, in the one place in this file where getting the branch wrong matters.
+
+> resolution:
+
+## F-deep-21 · `nothing-answered-says-four-sites` · A docstring counts call sites, and the count is wrong
+
+`dbResult.ts:55` — *"it is asked at four call sites, and getting it wrong is
+invisible"*. It is asked at **two**: `:167` in `failureEnvelope` and `:295` in
+`runEdgeFn`. The argument for naming the predicate still holds; the number does
+not, and a number in a docstring is a thing a reader checks.
+
+> resolution:
+
+## F-deep-22 · `calledgefn-doc-describes-the-superseded-contract` · The transport adapter documents the system that replaced it
+
+Two ways, both in `callEdgeFn.ts`:
+
+- **`:39` names three functions that do not exist.** *"`{ error }` ready for
+  `failureMessage` / `faultMessage` / `failureText`, which own all wording per
+  the caller's surface."* None of the three is defined anywhere in `src/` —
+  they went with `errorCopy.ts` and `serverError.ts` when the envelope sprint
+  deleted them. Every remaining mention in the repo is a comment.
+- **`:29` frames the fe-error-key contract as how a function reports errors.**
+  *"Every function returns errors as `{ error: '<fe-error-key>', code? }` —
+  `key|detail1|detail2|` shapes, never player-facing prose."* docs/envelopes.md
+  → How edge functions build one is the authority and says otherwise: **a
+  function answers 200 with an envelope whenever it RAN**, relays an RPC's
+  envelope untouched, and *"the function's own `error` channel then means only
+  one thing: the RPC never ran."* The channel still exists; what it means is now
+  much narrower than this describes.
+
+The code below the docstring is fine — parsing a 4xx body for `{ error, code }`
+is right for the case that remains. It is the framing that is a version behind.
+
+> resolution:
+
+## F-deep-23 · `notrows-fault-has-no-duration` · One report drops the `ms` every other one carries
+
+`readRows:501` reports the not-rows fault with `{ call, status: 200 }` and no
+`ms`, where `started` is in scope four lines up and every other `reportFault` in
+both wrappers passes one. The `[db]` line's promise is that a blank field means
+something — here a blank `ms=` means nobody passed it, which is the one meaning
+it is not allowed to have.
+
+> resolution:
+
+## F-deep-24 · `is-environmental-null-check-is-dead` · A guard that cannot change the answer
+
+`dbEnvelope.ts:131`:
+
+```ts
+return dbcode !== null && Object.values(NO_ANSWER_TO_CODE_AND_TEXT).some((s) => s.code === dbcode)
+```
+
+`null` is never equal to any of the four code strings, so `.some(...)` already
+answers `false` for it. The conjunct reads as a necessary null guard and is
+inert.
+
+> resolution:
+
+## F-deep-25 · `no-test-covers-the-silent-throw` · The suite pins the envelope on that path and not the reporting
+
+The test half of `F-deep-18`, separated because it outlives the fix: whatever is
+decided about the throw path, the reason it could go unnoticed is that
+`dbResult.test.ts:255` asserts `type`, `severity`, `message` and `detail` on a
+thrown rejection and asks nothing about whether it was reported — while the same
+file asserts exactly that for the `status: 0` road at `:131` and `:140`, using
+`peekFaultsForTest`.
+
+A fix for `F-deep-18` that does not add the assertion leaves the next regression
+just as quiet.
+
+> resolution:
+
+## Notes from this pass that belong to OTHER areas
+
+Filed here because `callEdgeFn`'s docstring is what led to them; **none is this
+area's to fix.**
+
+1. **`src/guards/edgeFnErrorKeys.test.ts` guards a shape almost nothing emits.**
+   Exactly one `json({ error` site is left in `supabase/functions`
+   (`letterboxed-build-board`), the rest having become envelopes. Worse, its
+   non-vacuity assertion is `expect(files.length).toBeGreaterThan(10)` — that the
+   scan found FILES, not that it found any `error:` value to check. It passes
+   26/26 and could pass while checking nothing. **Whoever owns `src/guards/`.**
+2. **Two edge functions still document the old shape**:
+   `crosswords-import-nyt/index.ts:29` and
+   `crosswords-import-guardian/index.ts:28` both describe
+   `→ { error: fe-error-key, code?: SQLSTATE }`. **`crosswords`.**
+3. **`src/guards/noRawServerMessage.test.ts:96` prescribes a deleted function**:
+   its failure message tells you to *"route it through
+   failureMessage()/failureText()"*. Neither exists. **Whoever owns
+   `src/guards/`.**
+
 
 ## Questions this pass raises rather than answers
 

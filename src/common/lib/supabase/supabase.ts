@@ -79,7 +79,7 @@ if (!url || !publishableKey) {
 export const supabase = createClient<Database>(url, publishableKey, {
   // Every request — PostgREST, edge functions, auth — goes through one fetch
   // so a request that never reached the server is noticed ONCE rather than at
-  // 47 call sites, and so its pill tells the player to refresh instead of
+  // each call site, and so its pill tells the player to refresh instead of
   // looking like a rejected move. See dbFetch.ts.
   global: { fetch: dbFetch },
   auth: {
