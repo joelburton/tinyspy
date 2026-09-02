@@ -32,9 +32,10 @@ understood, tidied* — `cs-blessed` here means he has read the file, not seen i
 **Every heading says its status**; a heading with **no status prefix means OPEN**.
 
 **One pass of three has run** — the boot path, 2026-09-02, sixteen findings.
-Ten RESOLVED (`F-deep-2`, `F-deep-4`, `F-deep-5`, `F-deep-6`, `F-deep-7`,
-`F-deep-9`, `F-deep-10`, `F-deep-11`, `F-deep-12`, `F-deep-13`), one CLOSED
-(`F-deep-3`), one MOVED to `corecss` (`F-deep-1`); the other four are open. The data path and the realtime plumbing
+Eleven RESOLVED (`F-deep-2`, `F-deep-4`, `F-deep-5`, `F-deep-6`, `F-deep-7`,
+`F-deep-9`, `F-deep-10`, `F-deep-11`, `F-deep-12`, `F-deep-13`, `F-deep-14`), one
+CLOSED (`F-deep-3`), one MOVED to `corecss` (`F-deep-1`); the other three are
+open. The data path and the realtime plumbing
 have not been read.
 
 ## The roster — 33 files, 4,880 lines
@@ -145,7 +146,7 @@ modal — but it has three live consumers (`ClubGameCard:59`, `GamePage:178`, `E
 ## Findings — pass 1, the boot path
 
 Sixteen — **F-deep-1 … F-deep-16**. Every heading says its status; a heading
-with no status prefix means OPEN, and four are.
+with no status prefix means OPEN, and three are.
 
 ## MOVED · F-deep-1 · `stylesheet-map-rotted` · main.tsx's map of the stylesheet chain names two files that were deleted
 
@@ -513,7 +514,7 @@ that lack one.
 > break is what produced both of these findings, and the repo's answer to that is
 > a mechanism, not more care.
 
-## F-deep-14 · `theme-chunks-load-serially` · Two awaits where one wait would do
+## RESOLVED · F-deep-14 · `theme-chunks-load-serially` · Two awaits where one wait would do
 
 `loadTheme()` awaits its two stylesheet imports one after the other
 (`:59`–`:60`, `:62`–`:63`) — `dark-mode` then `midnight`, or `light-mode` then
@@ -528,7 +529,25 @@ It is a small number, in the one place the app can least afford one: this await
 is the last thing before the first paint, and every other boot step is
 synchronous.
 
-> resolution:
+> **resolution: `Promise.all`** (Joel, 2026-09-02). One wait instead of two.
+>
+> **The finding asserted that cascade order survives this, and that claim was
+> checked against the real build rather than reasoned about**, because it is the
+> whole risk: if the `<link>` order followed which download finished first, a
+> parallel load could put `midnight.css` ahead of `dark-mode.css` intermittently
+> — invisible on a fast local machine and wrong in production.
+>
+> It holds. Vite compiles each `import('./x.css')` to `__vitePreload(() =>
+> Promise.resolve({}), deps)`, and that helper does
+> `document.head.appendChild(link)` **synchronously inside the `.map` over its
+> deps** — at CALL time, not on resolve. Both calls sit inside the array literal,
+> so both links attach in written order before either is awaited. Confirmed in
+> the minified bundle:
+>
+> ```js
+> // before:  await T(deps[201]), await T(deps[202])
+> // after:   await Promise.all([T(deps[201]), T(deps[202])])
+> ```
 
 ## F-deep-15 · `theme-key-off-convention` · The one localStorage key that doesn't look like the others
 

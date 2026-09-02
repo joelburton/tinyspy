@@ -87,11 +87,9 @@ function chosenTheme(): ThemeName {
 export async function loadTheme(): Promise<ThemeName> {
   const theme = chosenTheme()
   if (theme === 'midnight') {
-    await import('./dark-mode.css')
-    await import('./midnight.css')
+    await Promise.all([import('./dark-mode.css'), import('./midnight.css')])
   } else {
-    await import('./light-mode.css')
-    await import('./daylight.css')
+    await Promise.all([import('./light-mode.css'), import('./daylight.css')])
   }
   // Published for anything that wants to know which theme it is in — the
   // palette page's toggle will, once there is a second theme worth toggling to.
