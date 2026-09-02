@@ -68,6 +68,23 @@ import { games } from './games'
  * "the game's JS chunk arrived." Subsequent in-session navigations
  * to that game are cached.
  */
+/** `/c/<handle>`, with or without a trailing slash. */
+const CLUB_ROUTE = /^\/c\/([^/]+)\/?$/
+
+/**
+ * `/g/<gametype>/<gameId>`.
+ *
+ * The gametype allows UNDERSCORES so the sibling-manifest pair strings match
+ * (`connections_coop`, `connections_compete`, `psychicnum_coop`, …); without
+ * that, opening a sibling game falls through to the home page.
+ *
+ * The id is matched LOOSELY — anything that is not a slash. Whether a string
+ * could name a game is `GamePage`'s question, not this one's: it is where the
+ * other "no such game" is answered, so both arrive at the same page instead of
+ * a URL-shaped rule here and a row-shaped rule there.
+ */
+const GAME_ROUTE = /^\/g\/([a-z0-9_]+)\/([^/]+)\/?$/i
+
 export default function App() {
   const { session, needsClaim, loading, refresh } = useSession()
   const path = usePath()
@@ -105,105 +122,100 @@ export default function App() {
     <ClaimHandleScreen onClaimed={refresh} email={session.user.email} />
   )
 
-  // Resolve the current route to a page component. The account items (Profile /
-  // Log out) are no longer a fixed chip mounted here — each page carries them as
-  // the last submenu of its own menu (see useAccountMenuSection), which is what
-  // freed the 2rem the game header was reserving for that chip to overlap.
-  let page
-  const clubMatch = path.match(/^\/c\/([^/]+)\/?$/)
-  if (clubMatch) {
-    // Keyed by handle (like GamePage's gameId key below) so a club→club
-    // navigation REMOUNTS — fresh subscriptions + a fresh chat-feedback
-    // seen-set, so the new club's chat backlog doesn't replay as pills.
-    page = <ClubPage key={clubMatch[1]} handle={clubMatch[1]} session={session} />
-  } else {
-    // Game routes — GamePage shell + the manifest's PlayArea
-    // as a render-prop child. Path shape: /g/<gametype>/<gameId>.
-    // Anything else under /g/ falls through to HomePage (rather
-    // than rendering a broken game screen), matching the
-    // "be forgiving with URLs" stance.
-    // Gametype allows underscore so the sibling-manifest pair strings
-    // (connections_coop, connections_compete, psychicnum_coop, …) match.
-    // Without it, opening a sibling game silently falls through to
-    // the HomePage fallback below — the user lands back at their
-    // club list with no console error to explain why.
-    //
-    // The id is matched LOOSELY — anything that is not a slash. Whether a
-    // string could name a game is GamePage's question, not this one's: it is
-    // where the other "no such game" is answered, so both arrive at the same
-    // page instead of a URL-shaped rule here and a row-shaped rule there.
-    const gameMatch = path.match(/^\/g\/([a-z0-9_]+)\/([^/]+)\/?$/i)
-    if (gameMatch) {
-      const [, urlGametype, gameId] = gameMatch
-      // The route match is case-insensitive, so a mis-capitalized URL reaches
-      // here; every registered gametype is lowercase, so normalize before the
-      // lookup. Without this, `/g/Wordle/<id>` matches the route, misses the
-      // registry, and is reported as a fault — which it isn't. `urlGametype`
-      // survives for the message below, which should echo what the URL said.
-      const gametype = urlGametype.toLowerCase()
-      const game = games.find((g) => g.gametype === gametype)
-      if (!game) {
-        // A FAULT, not a polite empty state (Joel, 2026-08-23): every
-        // gametype in a URL came from a link this app wrote, so an
-        // unregistered one means the registry and the link disagree. There is
-        // no server error to classify, so the diagnostics line is written by
-        // hand, the same way the homepage's no-clubs fault writes its own.
-        page = (
-          <ErrorPage
-            message={
-              <>
-                There's no game type called <code>{urlGametype}</code>. The link is
-                wrong, or the game was removed from the app.
-              </>
-            }
-            diagnostics={diagnosticsLine('FAULT', {
-              call: `GET /g/${urlGametype}`,
-              severity: 'fault',
-              detail: 'no manifest registered for this gametype',
-            })}
-          />
-        )
-      } else {
-        const PlayArea = game.PlayArea
-        page = (
-          <GamePage
-            key={gameId}
+  /**
+   * The game route: the `<GamePage>` shell with the manifest's PlayArea as its
+   * render-prop child.
+   *
+   * The gametype is matched case-INSENSITIVELY but the registry is keyed on the
+   * lowercase codename, so it is normalized before the lookup. Without that,
+   * `/g/Wordle/<id>` matches the route, misses the registry, and is reported as
+   * a fault — which it isn't. `urlGametype` survives for the two places that
+   * should echo what the URL actually said.
+   */
+  const gamePage = (urlGametype: string, gameId: string) => {
+    const gametype = urlGametype.toLowerCase()
+    const game = games.find((g) => g.gametype === gametype)
+    // A FAULT, not a polite empty state (Joel, 2026-08-23): every gametype in a
+    // URL came from a link this app wrote, so an unregistered one means the
+    // registry and the link disagree. There is no server error to classify, so
+    // the diagnostics line is written by hand, the same way the homepage's
+    // no-clubs fault writes its own.
+    if (!game)
+      return (
+        <ErrorPage
+          message={
+            <>
+              There's no game type called <code>{urlGametype}</code>. The link is
+              wrong, or the game was removed from the app.
+            </>
+          }
+          diagnostics={diagnosticsLine('FAULT', {
+            call: `GET /g/${urlGametype}`,
+            severity: 'fault',
+            detail: 'no manifest registered for this gametype',
+          })}
+        />
+      )
+    const PlayArea = game.PlayArea
+    // Keyed by gameId so navigating between games REMOUNTS — a clean state
+    // slate, no stale subscriptions.
+    return (
+      <GamePage key={gameId} gameId={gameId} session={session} manifest={game}>
+        {(ctx) => (
+          // The two mount-only console breadcrumbs for "blank play area"
+          // reports — slot handed over vs game code actually committed. See
+          // PlayAreaMountLog for how to read them.
+          <PlayAreaSlotLog
+            gametype={gametype}
             gameId={gameId}
-            session={session}
-            manifest={game}
+            playState={ctx.playState}
+            isTerminal={ctx.isTerminal}
           >
-            {(ctx) => (
-              // The two mount-only console breadcrumbs for "blank play
-              // area" reports — slot handed over vs game code actually
-              // committed. See PlayAreaMountLog for how to read them.
-              <PlayAreaSlotLog
-                gametype={gametype}
-                gameId={gameId}
-                playState={ctx.playState}
-                isTerminal={ctx.isTerminal}
-              >
-                <PlayAreaErrorBoundary>
-                  <Suspense fallback={<Loading />}>
-                    <PlayAreaReadyLog gametype={gametype} />
-                    <PlayArea {...ctx} />
-                  </Suspense>
-                </PlayAreaErrorBoundary>
-              </PlayAreaSlotLog>
-            )}
-          </GamePage>
-        )
-      }
-    } else {
-      // Fallback (including the bare `/`): land on home. Better
-      // UX than a 404 for a typo'd URL; if it matters we add a
-      // real not-found screen later.
-      page = <HomePage session={session} />
-    }
+            <PlayAreaErrorBoundary>
+              <Suspense fallback={<Loading />}>
+                <PlayAreaReadyLog gametype={gametype} />
+                <PlayArea {...ctx} />
+              </Suspense>
+            </PlayAreaErrorBoundary>
+          </PlayAreaSlotLog>
+        )}
+      </GamePage>
+    )
+  }
+
+  /**
+   * The current route, as a page. CALLED, not rendered as a component — the
+   * elements it returns reconcile exactly as if they were written inline, where
+   * a component defined in here would take a new identity every render and
+   * remount its whole subtree.
+   *
+   * The account items (Profile / Log out) are not a fixed chip mounted here —
+   * each page carries them as the last submenu of its own menu (see
+   * `useAccountMenuSection`), which is what freed the 2rem the game header was
+   * reserving for that chip to overlap.
+   */
+  const currentPage = () => {
+    const club = path.match(CLUB_ROUTE)
+    // Keyed by handle so a club→club navigation REMOUNTS — fresh subscriptions
+    // and a fresh chat-feedback seen-set, so the new club's chat backlog
+    // doesn't replay as pills.
+    if (club) return <ClubPage key={club[1]} handle={club[1]} session={session} />
+    const game = path.match(GAME_ROUTE)
+    if (game) return gamePage(game[1], game[2])
+    if (path === '/') return <HomePage session={session} />
+    // Anything else lands on home too — better than a 404 for a typo'd URL —
+    // but it says so, because the silent version of this hid a real bug: a
+    // sibling gametype that failed GAME_ROUTE went home with nothing to
+    // explain why. Unlike an unknown GAMETYPE, which is a fault (a link this
+    // app wrote disagreeing with the registry), an unknown PATH is just
+    // something someone typed.
+    console.warn(`[route] no match for ${path} — showing the home page`)
+    return <HomePage session={session} />
   }
 
   return (
     <>
-      {page}
+      {currentPage()}
       {editingProfile && (
         <EditProfileModal
           session={session}
