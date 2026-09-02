@@ -32,9 +32,9 @@ understood, tidied* — `cs-blessed` here means he has read the file, not seen i
 **Every heading says its status**; a heading with **no status prefix means OPEN**.
 
 **One pass of three has run** — the boot path, 2026-09-02, sixteen findings.
-Nine RESOLVED (`F-deep-2`, `F-deep-4`, `F-deep-5`, `F-deep-6`, `F-deep-7`,
-`F-deep-9`, `F-deep-10`, `F-deep-11`, `F-deep-13`), one CLOSED (`F-deep-3`), one
-MOVED to `corecss` (`F-deep-1`); the other five are open. The data path and the realtime plumbing
+Ten RESOLVED (`F-deep-2`, `F-deep-4`, `F-deep-5`, `F-deep-6`, `F-deep-7`,
+`F-deep-9`, `F-deep-10`, `F-deep-11`, `F-deep-12`, `F-deep-13`), one CLOSED
+(`F-deep-3`), one MOVED to `corecss` (`F-deep-1`); the other four are open. The data path and the realtime plumbing
 have not been read.
 
 ## The roster — 33 files, 4,880 lines
@@ -145,7 +145,7 @@ modal — but it has three live consumers (`ClubGameCard:59`, `GamePage:178`, `E
 ## Findings — pass 1, the boot path
 
 Sixteen — **F-deep-1 … F-deep-16**. Every heading says its status; a heading
-with no status prefix means OPEN, and five are.
+with no status prefix means OPEN, and four are.
 
 ## MOVED · F-deep-1 · `stylesheet-map-rotted` · main.tsx's map of the stylesheet chain names two files that were deleted
 
@@ -445,7 +445,7 @@ browser configuration. If it does, it is a `try/catch` returning "no record".
 > still runs, so the first version of the test passed against a deliberately
 > broken implementation.
 
-## F-deep-12 · `router-query-params` · The router says query parsing is "not needed yet"; three places parse it
+## RESOLVED · F-deep-12 · `router-query-params` · The router says query parsing is "not needed yet"; three places parse it
 
 **Raised first by the `homepage` area** on 2026-08-26, reading its dependencies,
 and it lands squarely on this area's files. It is numbered here rather than
@@ -457,7 +457,26 @@ has read it. `usePath()` returns the pathname alone, so a component that cares
 about the query cannot subscribe to it. Whether the router should carry the query
 is a decision; the docstring asserting nobody needs it is just false.
 
-> resolution:
+> **resolution: the docstring, and only the docstring** (Joel, 2026-09-02).
+> Surveying the callers is what settled it — **no consumer wants the reactive
+> thing a router usually provides**, so there is nothing to build:
+>
+> | param | written by | read by | what it is |
+> |---|---|---|---|
+> | `?new=<gametype>` | `GamePage:491` (⌥+), `crosswords/PlayArea:874` | `ClubPage:308` | a ONE-SHOT intent: read once at mount, held until the club fetch settles, then stripped from the URL so a refresh cannot re-open the dialog |
+> | `?theme=` | nobody — you type it | `loadTheme:75` | picks the stylesheet chain and writes through to `localStorage`; `?theme=daylight` is the way back out |
+> | `?img=` | `e2e/gallery/index.html` | `e2e/gallery/index.ts:70` | **not the app** — a standalone dev page with no React and no router |
+>
+> `?theme=` is read **before React exists**, so a hook could not serve it, and
+> `?new=` is deliberately read once — subscribing is the bug ClubPage is written
+> to avoid. The gap the finding named is real but latent: `usePath()` returns the
+> pathname alone, so a component that wanted the query could not subscribe, and
+> none does.
+>
+> Two options were declined and are recorded so they are not re-derived: a plain
+> `queryParam(name)` helper (mild duplication, two call sites), and carrying the
+> query in `usePath` (cheap — it stays a primitive — but it changes what every
+> subscriber re-renders on, to buy a capability nobody has asked for).
 
 ## RESOLVED · F-deep-13 · `theme-storage-unguarded` · Blocked site data stops the app from starting at all
 

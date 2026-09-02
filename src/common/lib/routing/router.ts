@@ -34,8 +34,14 @@ import { useSyncExternalStore } from 'react'
  *
  * - Route matching helpers. Callers do their own `path.startsWith('/c/')`
  *   or regex match — flat structure makes this cheap and explicit.
- * - Query/search-param parsing. Not needed yet; `URLSearchParams` is
- *   in the browser if a caller ever wants it.
+ * - Query/search-param parsing — and NOT for lack of callers. The query is
+ *   read by `loadTheme` (`?theme=`) and by ClubPage (`?new=`, once at mount,
+ *   then stripped with `navigate(pathname, true)`). Neither wants it
+ *   reactive: `?theme=` is read before React exists, and `?new=` is a
+ *   one-shot intent that re-firing would break. So `usePath()` returns the
+ *   pathname alone, and a caller that needs the query reads
+ *   `window.location.search` — one line of `URLSearchParams`. (`navigate()`
+ *   does compare the full URL, query included; see it below.)
  * - Scroll restoration, prefetching, layout transitions. Out of scope.
  *
  * Server side (Netlify): `public/_redirects` rewrites every path to
