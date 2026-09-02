@@ -27,33 +27,16 @@ loses its story; how something was discovered is `css-philosophy.md`'s.
 
 ---
 
-## PAUSED 2026-08-26 — behind the error/fault redesign
+## Where to start
 
-Joel: *"there's no point continuing this sprint before we fix the error/fault
-system. how could we really audit the site with a rotting fish head at the
-center."*
+**The live area is `deep`** — [plans/areas/deep.md](areas/deep.md). Its boot
+pass is done; the data path and the realtime plumbing are next.
 
-**Nothing here is withdrawn; the sequence changed.** The next two areas are the
-error-heavy ones — `simple-page` is `ErrorPage`, `Loading` and
-`ClaimHandleScreen` (the last file holding SQLSTATE branches), and `club-page`
-owns the two page-load failures and the setup dialog's error line. Auditing
-those means auditing surfaces whose content model is about to change, while
-`ERROR_COPY` has been frozen the whole time and every area has worked around it.
-The homepage area alone produced four error findings and two fixes on the day
-this was called.
-
-It is also good timing rather than merely necessary: this sprint has already
-built the surfaces the error system renders into — `FailureLine`, `Field`,
-`StandardForm`, the floating-panel families, `ErrorPage` wearing the fault look
-— so the redesign targets real components instead of inventing them.
-
-**This resumed 2026-09-02**, and where it went is §21 → "The 2026-09-02 restart".
-The live area is `deep` ([plans/areas/deep.md](areas/deep.md)); §7 → "The areas,
-in order" holds what follows it.
-
-**The work that paused this one is DONE** (the error/envelope sprint, finished
-2026-09-01 — see [docs/envelopes.md](../docs/envelopes.md)). Nothing blocks this
-plan now; whether it resumes is a scheduling question, not a dependency.
+- **§21** is the process — the stamps, what opening an area means, and what
+  "broken" is allowed to mean while this runs. Read it before doing anything.
+- **§7 → "The areas, in order"** is the sequence, and the ONLY place an area's
+  position is written down.
+- **§13** is the steps, and where the sprint is in them.
 
 ---
 
