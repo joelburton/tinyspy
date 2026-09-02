@@ -115,7 +115,7 @@ without the other is how they drift. `supabase/functions/_shared/startGame.ts`
 | `supabase/functions/_shared/startGame.ts` | same |
 | `src/types/db.ts` (4,422 lines) | generated, and it names every game's schema. **Set `cs-na` 2026-09-02** (Joel): it carries a stamp it could never earn its way off, because nobody will ever hand-read it |
 | `lib/util/`: `mulberry32`, `friendlyDate`, `linkify`, `layoutWidth`, `keyboardHandoff` | **`utils`**, the area created 2026-09-02 to take them. `deep` had said each would be picked up by whichever area uses it, which is no answer for a helper with callers in six areas. `cls.ts` and `reloadOnStaleChunk` stay here for now — see that area's roster |
-| the common non-game **hooks** — `useProfile`, `useTabRing`, `useAppShortcuts`, `useRealtimeRefetch` and the rest | Joel, 2026-09-02: *"we should do the common non-game ones, but not here."* They are the same kind of thing, but taking ~60 files under `hooks/` would double the area and mix two vocabularies. **A candidate area of its own** |
+| the common non-game **hooks** — `useProfile`, `useTabRing`, `useAppShortcuts`, `useRealtimeRefetch` and the rest | Joel, 2026-09-02: *"we should do the common non-game ones, but not here."* They are the same kind of thing, but taking `hooks/` — 87 files, 12,177 lines — would have swallowed this area. **`hooks` is now an area of its own**, and `App.tsx` waits on it to be blessed |
 | `base.css`, `utilities.css`, `fixed.css`, `breakpoints.css`, `patterns/*.css`, `themes/*.css` | **`corecss`**, the area created 2026-09-02 to take them, running directly after this one |
 
 ## Pass 1 — the boot path, read 2026-09-02
