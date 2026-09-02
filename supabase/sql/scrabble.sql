@@ -1498,8 +1498,10 @@ revoke execute on function scrabble._maybe_finish_compete(uuid) from public;
 -- their turn we hand off so the game isn't stuck. When the LAST active
 -- player concedes the game ends — final scoring with nobody eligible to
 -- win (a collective loss). Compete only (coop has no turns / no race).
+drop function if exists scrabble.concede(uuid);
+
 create or replace function scrabble.concede(target_game uuid)
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = scrabble, common, public, extensions
@@ -1507,6 +1509,7 @@ as $$
 declare
   caller_id  uuid;
   is_current boolean;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   perform common.require_compete((select mode from scrabble.games where id = target_game));
 
@@ -1519,7 +1522,9 @@ begin
   perform 1 from scrabble.games where id = target_game for update;
   caller_id := common._set_conceded(target_game);
 
-  if scrabble._maybe_finish_compete(target_game) then return; end if;
+  if scrabble._maybe_finish_compete(target_game) then
+    return common.ok_envelope(jsonb_build_object('result', 'conceded'));
+  end if;
 
   -- Others are still playing. If it was the conceder's turn, hand off to the
   -- next non-conceded seat (else the game would stall on a drop-out).
@@ -1531,6 +1536,16 @@ begin
   -- Bump version so optimistic-concurrency readers refetch, and mirror state.
   update scrabble.games set version = version + 1 where id = target_game;
   perform common.update_state(target_game, 'playing', scrabble._status(target_game));
+
+  return common.ok_envelope(jsonb_build_object('result', 'conceded'));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 

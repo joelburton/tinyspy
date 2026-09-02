@@ -101,6 +101,10 @@ type RevealAnswer = { result: 'revealed'; solved: boolean }
  *  be cast at each of the two call sites. */
 type ExportAnswer = { result: 'exported'; solution: (string[] | null)[][] }
 
+/** `concede` has ONE ok: you dropped out. Whether it also ended the game is
+ *  not in the answer — that reaches every client by subscription. */
+type ConcedeResult = { result: 'conceded' }
+
 export function PlayArea(ctx: GamePageCtx) {
   const { gameId, players, isTerminal, playState, goToClub, session, status, menu, clubHandle } =
     ctx
@@ -822,9 +826,19 @@ type Explained =
     if (bad) showLocalFeedback(bad)
   }, [gameId, showLocalFeedback, confirmAction])
 
+  // No confirm and no `isTerminal` gate of its own — crosswords' menu builds
+  // Concede only in compete and only while the game is live, which is where
+  // the other games' gates come from too.
   const handleConcede = useCallback(async () => {
-    const bad = await callRpc(db, 'concede', { target_game: gameId })
-    if (bad) showLocalFeedback(bad)
+    const res = await runRpc<ConcedeResult>(db.rpc('concede', { target_game: gameId }))
+    if (res.type === 'not-ok') {
+      showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+    } else if (res.type === 'ok' && res.data?.result === 'conceded') {
+      // Nothing to do: `myConceded` above, and the terminal if this was the
+      // last racer, both arrive through the game subscription.
+    } else {
+      showFaultModal({ text: 'BUG: concede fell through to unhandled' })
+    }
   }, [gameId, showLocalFeedback])
 
   // New game — unlike every other game's "same setup, fresh randomness", this

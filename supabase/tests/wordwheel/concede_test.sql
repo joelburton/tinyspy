@@ -16,6 +16,7 @@
 begin;
 set search_path = wordwheel, common, public, extensions;
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 select plan(6);
@@ -73,12 +74,11 @@ select (wordwheel.create_game(
   'coop',
   pg_temp.wordwheel_board()
 )->'data'->>'id')::uuid as id;
-select throws_ok(
-  format($$ select wordwheel.concede(%L) $$, (select id from gc)),
-  'P0001',
-  'concede-not-in-coop|',
-  'conceding a coop game is rejected'
-);
+select pg_temp.envelope_is(
+  wordwheel.concede((select id from gc)),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN484",
+    "message":"BUG: a concede in a coop game"}'::jsonb,
+  'conceding a coop game is rejected');
 
 select * from finish();
 rollback;

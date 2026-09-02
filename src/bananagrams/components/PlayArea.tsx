@@ -84,6 +84,10 @@ type PeelResult =
  *  or is refused, and the new hand arrives over realtime rather than here. */
 type DumpResult = { result: 'dumped' } | null
 
+/** `concede` has ONE ok: you dropped out. Whether it also ended the game is
+ *  not in the answer — that reaches every client by subscription. */
+type ConcedeResult = { result: 'conceded' }
+
 export function PlayArea(ctx: GamePageCtx) {
   // Tab does nothing while the board has the keyboard — this play surface is
   // not a form, so native Tab would walk out to the header buttons and on into
@@ -260,9 +264,14 @@ export function PlayArea(ctx: GamePageCtx) {
   const handleConcede = useCallback(async () => {
     if (isTerminal) return
     if (!window.confirm(CONCEDE_CONFIRM)) return
-    const { error } = await db.rpc('concede', { target_game: gameId })
-    if (error) {
-      showLocalFeedback(failureMessage(error, 'concede'))
+    const res = await runRpc<ConcedeResult>(db.rpc('concede', { target_game: gameId }))
+    if (res.type === 'not-ok') {
+      showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+    } else if (res.type === 'ok' && res.data?.result === 'conceded') {
+      // Nothing to do: the conceded flag and the game's terminal both arrive
+      // through the subscription, this client included.
+    } else {
+      showFaultModal({ text: 'BUG: concede fell through to unhandled' })
     }
   }, [gameId, isTerminal, showLocalFeedback])
 

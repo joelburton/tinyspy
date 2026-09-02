@@ -1,8 +1,12 @@
 // cs-unmet
 
 import { actionName } from '../../lib/game/callRpc'
+import type { DbError } from '../../lib/supabase/dbEnvelope'
 import type { GenericFeedbackMsg } from '../../lib/games'
 import { failureMessage } from '../../lib/game/serverError'
+import { getNotOkFeedback } from '../../lib/game/genericPills'
+import { runRpc } from '../../lib/supabase/dbResult'
+import { showFaultModal } from '../../lib/fault/faultStore'
 import { useCallback, useRef } from 'react'
 import { END_GAME_CONFIRM, RESTART_CONFIRM, type ConfirmOptions } from '../ui/useConfirmation'
 
@@ -28,8 +32,13 @@ type GameRpcClient = {
   rpc: (
     fn: 'end_game' | 'concede' | 'replay_board',
     args: { target_game: string },
-  ) => PromiseLike<{ error: { message: string } | null }>
+  ) => PromiseLike<{ data: unknown; error: DbError; status?: number; statusText?: string }>
 }
+
+/** `concede` has ONE ok: you dropped out. Whether that also ended the game is
+ *  not in the answer — the terminal reaches every client by subscription, this
+ *  one included, so there is nothing here for the conceder to act on. */
+type ConcedeResult = { result: 'conceded' }
 
 /**
  * The End / Concede / Replay handlers shared by twelve games (spellingbee,
@@ -100,8 +109,18 @@ export function useStandardGameActions({
     void (async () => {
       if (isTerminal || myConceded) return
       if (!window.confirm(CONCEDE_CONFIRM)) return
-      const { error } = await db.rpc('concede', { target_game: gameId })
-      if (error) showError(failureMessage(error, actionName('concede')))
+      const res = await runRpc<ConcedeResult>(db.rpc('concede', { target_game: gameId }))
+      if (res.type === 'not-ok') {
+        // Both races reachable here are the two gates above losing to the
+        // subscription that feeds them: the game ended, or this player already
+        // conceded. Sticky — a drop-out that did not happen is worth reading.
+        showError({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+      } else if (res.type === 'ok' && res.data?.result === 'conceded') {
+        // Nothing to do here. The conceded flag, the roster the others see, and
+        // a terminal if this was the last racer all arrive by subscription.
+      } else {
+        showFaultModal({ text: 'BUG: concede fell through to unhandled' })
+      }
     })()
   }, [db, gameId, isTerminal, myConceded, showError])
 

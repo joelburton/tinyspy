@@ -58,9 +58,6 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   // The GAME-lifecycle raises are races, same as letterboxed's: a peer ended
   // the game, took the turn, or conceded while your call was in flight.
   'game-not-in-play': { text: () => 'Game over', tone: 'noted' },
-  'you-conceded': { text: () => 'Already conceded', tone: 'noted' },
-  // A session that expired under a page left open overnight — the one fault
-  // here with a real remedy, so it names it.
 
   // The FORM raises are the other population, and they're the reason common
   // needs far more copy than a game does: for a club name, a username or a
@@ -102,9 +99,4 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   // Two keys rather than one because the fixes differ: too many words wants a
   // LONGER starter, too few wants a DIFFERENT one. The dialog's slot is
   // single-line, so both stay captions.
-
-  // Not a failure — news. A teammate finished, conceded the group out, or the
-  // clock ran out while your word was in flight; `info` says "this is what
-  // happened" rather than "you did something wrong".
-  'already-ended': { text: () => 'Game over', tone: 'noted' },
 }

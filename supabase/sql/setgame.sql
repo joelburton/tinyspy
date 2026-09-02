@@ -985,15 +985,29 @@ grant execute on function setgame.end_game(uuid) to authenticated;
 --
 -- A conceder keeps the sets they took — they appear in the leaderboard with
 -- their count — but cannot win. Outliving never crowns anyone.
+drop function if exists setgame.concede(uuid);
+
 create or replace function setgame.concede(target_game uuid)
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = setgame, common, public, extensions
 as $$
+declare
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   perform common.require_compete((select mode from setgame.games where id = target_game));
-  perform common.concede(target_game);
+  -- common.concede answers in an envelope and catches its own raises, so its
+  -- refusals relay untouched; the handler below is for require_compete's.
+  return common.concede(target_game);
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 revoke execute on function setgame.concede(uuid) from public;

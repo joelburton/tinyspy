@@ -1,21 +1,32 @@
 # The error system — results, rejections, and faults
 
-**Status: in flight — 149 of the 157 roster entries in §7 are converted.**
+**Status: in flight — 151 of the 157 roster entries in §7 are converted.**
 
-**The 8 open rows are 4 conversions** — the cross-cutting four, appearing once
-per area. **Nothing else is left.**
+**The 6 open rows are 3 conversions** — `end_game`, `replay_board` and
+`submit_timeout`, the rest of the cross-cutting four. **Nothing else is left.**
 
-**`ERROR_COPY` is down to THREE keys** — `game-not-in-play`, `you-conceded` and
-`already-ended` — and every one of them is raised only by the cross-cutting
-four. Converting those empties the table, which is what lets the whole old
+**`ERROR_COPY` is down to ONE key** — `game-not-in-play`, raised only by those
+three. Converting them empties the table, which is what lets the whole old
 system be deleted.
 
-**Where to pick up (2026-09-01).** **Every RPC and every read is converted.**
-All that remains is the CROSS-CUTTING FOUR.
+**Where to pick up (2026-09-01).** **Every RPC and every read is converted, and
+`concede` is done.** All that remains is the OTHER THREE of the cross-cutting
+four, each one FE path over sixteen SQL files.
 
-Then the CROSS-CUTTING FOUR, last, together: `concede`, `end_game`,
-`replay_board`, `submit_timeout`. Their 8 unchecked rows are 4 conversions,
-each one FE path over sixteen SQL files.
+**`useStandardGameActions.ts` joins `callSiteShape.test.ts`'s `CONVERTED` list
+with `replay_board`** — the LAST of its three handlers. Listing a file is a
+claim about the whole file, so it cannot join until then; skipping that step is
+what left the guard disarmed on six games at once earlier the same day.
+
+**What `concede` settled, and the other three inherit.** Its four refusals all
+live in `common` (`require_compete` + `_set_conceded`), because the sixteen
+wrappers add no rejection of their own — expect the same of `end_game` and
+`replay_board`, which share `common.require_game_player`. Two lessons cost a
+round trip each: a race whose ERROR_COPY tone was `noted` needs
+`constraint = 'noted'` at the raise, since `race` alone reads as `warning`; and
+a HELPER that raises with a constraint has no handler of its own, so every
+caller's catch must read `constraint_name` — `raiseCodes.test.ts` now walks
+outward to check that.
 
 **Twelve of those rows were added on 2026-09-01 and had never existed.** They
 came out of an audit that read every `grant execute … to authenticated` in
@@ -905,7 +916,7 @@ identifier — a shape nothing has exercised yet.
 - [x] `add_word` · RPC — with update_word, delete_word and their two private
   helpers, which share every raise an editor actually hits
 - [x] `anagrams` · RPC
-- [ ] `concede` · RPC — cross-cutting, see above
+- [x] `concede` · RPC — cross-cutting; DONE 2026-09-01
 - [x] `delete_word` · RPC
 - [ ] `end_game` · RPC — cross-cutting, see above
 - [ ] `replay_board` · RPC — cross-cutting, see above
@@ -958,7 +969,7 @@ identifier — a shape nothing has exercised yet.
 - [x] `check_board` · RPC — THREE named ok results where the caller derived
       `empty` from a `placed` count. PN337 replaces a raise that said "no
       bananagrams.games row" while querying `player_boards`
-- [ ] `concede` · RPC — cross-cutting, see above
+- [x] `concede` · RPC — cross-cutting; DONE 2026-09-01
 - [x] `create_game` · RPC (3 call sites)
 - [x] `dump` · RPC
 - [ ] `end_game` · RPC — cross-cutting, see above

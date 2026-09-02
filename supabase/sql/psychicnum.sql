@@ -805,12 +805,16 @@ revoke execute on function psychicnum._maybe_finish_compete(uuid) from public;
 -- player still has budget; if not (and nobody won — a win would have
 -- ended the game already), the game ends as a collective loss.
 -- Compete only (coop is a team; it ends via the shared End).
+drop function if exists psychicnum.concede(uuid);
+
 create or replace function psychicnum.concede(target_game uuid)
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = psychicnum, common, public, extensions
 as $$
+declare
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   perform common.require_compete((select mode from psychicnum.games where id = target_game));
 
@@ -825,7 +829,9 @@ begin
 
   perform common._set_conceded(target_game);
 
-  if not psychicnum._maybe_finish_compete(target_game) then return; end if;
+  if not psychicnum._maybe_finish_compete(target_game) then
+    return common.ok_envelope(jsonb_build_object('result', 'conceded'));
+  end if;
 
   -- Realtime touch — same as end_game/submit_timeout. common.end_game
   -- writes only common.games, so without this the psychicnum.games
@@ -834,6 +840,16 @@ begin
   update psychicnum.games
      set club_handle = club_handle
    where id = target_game;
+
+  return common.ok_envelope(jsonb_build_object('result', 'conceded'));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 

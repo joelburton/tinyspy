@@ -733,12 +733,16 @@ grant execute on function wordle.submit_guess(uuid, text) to authenticated;
 -- flag, it re-runs its own terminal check, which now counts a
 -- conceder as done. The conceder takes a real loss; the others keep
 -- racing (or, if this was the last racer, the game ends here).
+drop function if exists wordle.concede(uuid);
+
 create or replace function wordle.concede(target_game uuid)
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = wordle, common, public, extensions
 as $$
+declare
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   perform common.require_compete((select mode from wordle.games where id = target_game));
 
@@ -755,6 +759,16 @@ begin
   -- A concede can be the move that empties the racing set, ending the game —
   -- in which case the title becomes the answer.
   perform wordle._sync_title(target_game);
+
+  return common.ok_envelope(jsonb_build_object('result', 'conceded'));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 

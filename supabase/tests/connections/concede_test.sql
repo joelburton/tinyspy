@@ -15,6 +15,7 @@
 begin;
 set search_path = connections, common, public, extensions;
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 select plan(5);
@@ -62,9 +63,10 @@ select (connections.create_game(
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop')->'data'->>'id')::uuid as id;
-select throws_ok(
-  format($$ select connections.concede(%L) $$, (select id from gc)),
-  'P0001', 'concede-not-in-coop|',
+select pg_temp.envelope_is(
+  connections.concede((select id from gc)),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN484",
+    "message":"BUG: a concede in a coop game"}'::jsonb,
   'conceding a coop game is rejected');
 
 select * from finish();

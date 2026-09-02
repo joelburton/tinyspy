@@ -155,21 +155,65 @@ describe('the raise codes', () => {
   // you the fields you ask for, so a handler that doesn't request
   // `constraint_name` drops the override on the floor. Nothing fails, nothing
   // logs — the pill just wears the severity's default and looks fine.
+  //
+  // **The handler is not always the raiser's own.** A HELPER — one with no
+  // `exception` block at all — cannot drop anything, because the raise leaves
+  // it untouched and lands in whichever caller catches. So for those the
+  // question moves outward: every function that calls it has to read the field,
+  // and a caller that is itself handler-less passes the question on again.
+  // `common._set_conceded` is the shape that forced this: it writes
+  // `constraint='noted'` for the two concede races and SEVENTEEN handlers read
+  // it back, none of them its own.
   it('reads back every outcome override a raise writes', () => {
     const missing: string[] = []
     const badWord: string[] = []
+
+    /** Every function in `supabase/sql/`, by qualified name. */
+    const bodies = new Map<string, { file: string; body: string }>()
     for (const file of readdirSync(SQL_DIR).filter((f) => f.endsWith('.sql'))) {
       const sql = readFileSync(join(SQL_DIR, file), 'utf8')
       // Split on function boundaries so "does the handler read it" is asked of
       // the SAME function that raised it, not of the file.
-      for (const body of sql.split(/create or replace function /)) {
-        const fn = body.slice(0, body.indexOf('(')).trim()
-        for (const m of body.matchAll(/constraint = '([^']*)'/g)) {
-          if (!OUTCOMES.has(m[1]!) && m[1] !== NOT_ON_A_SUCCESS) {
-            badWord.push(`${file}: ${fn} says constraint='${m[1]}'`)
+      for (const body of sql.split(/create or replace function /).slice(1)) {
+        bodies.set(body.slice(0, body.indexOf('(')).trim(), { file, body })
+      }
+    }
+    const catches = (body: string) => /^exception when /m.test(body)
+    const reads = (body: string) => body.includes('constraint_name')
+
+    /** Who, if anyone, would drop this helper's override. Walks outward until
+     *  it meets a handler: that one either reads the field or is the offender. */
+    function droppedBy(helper: string): string[] {
+      const bad: string[] = []
+      const seen = new Set([helper])
+      const queue = [helper]
+      while (queue.length) {
+        const callee = queue.shift()!
+        for (const [name, { body }] of bodies) {
+          if (seen.has(name) || !body.includes(`${callee}(`)) continue
+          if (catches(body)) {
+            if (!reads(body)) bad.push(name)
+          } else {
+            seen.add(name)
+            queue.push(name)
           }
-          if (!body.includes('constraint_name')) {
+        }
+      }
+      return bad
+    }
+
+    for (const [fn, { file, body }] of bodies) {
+      for (const m of body.matchAll(/constraint = '([^']*)'/g)) {
+        if (!OUTCOMES.has(m[1]!) && m[1] !== NOT_ON_A_SUCCESS) {
+          badWord.push(`${file}: ${fn} says constraint='${m[1]}'`)
+        }
+        if (catches(body)) {
+          if (!reads(body)) {
             missing.push(`${file}: ${fn} writes constraint='${m[1]}' but its handler never reads constraint_name`)
+          }
+        } else {
+          for (const caller of droppedBy(fn)) {
+            missing.push(`${file}: ${fn} writes constraint='${m[1]}' but ${caller}, which catches it, never reads constraint_name`)
           }
         }
       }

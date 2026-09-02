@@ -22,7 +22,7 @@ const flush = () => act(async () => { await new Promise((r) => setTimeout(r, 0))
 type Overrides = { isTerminal?: boolean; myConceded?: boolean; confirmResult?: boolean }
 
 function setup(overrides: Overrides = {}) {
-  const rpc = vi.fn().mockResolvedValue({ error: null })
+  const rpc = vi.fn().mockResolvedValue({ data: null, error: null })
   const confirm = vi.fn().mockResolvedValue(overrides.confirmResult ?? true)
   const showError = vi.fn()
   const onRestarted = vi.fn()
@@ -92,13 +92,32 @@ describe('endGame', () => {
   })
 })
 
+/** The two arms `concede` can answer with, as PostgREST hands them over. */
+const CONCEDED_OK = {
+  data: { type: 'ok', data: { result: 'conceded' }, outcome: null, severity: null,
+          message: null, field: null, meta: null, dbcode: null, detail: null },
+  error: null,
+}
+const ALREADY_CONCEDED = {
+  // `outcome: 'noted'` is the raise's own choice, not the severity's default:
+  // `race` alone reads as `warning`, and this is news rather than a setback.
+  data: { type: 'not-ok', data: null, outcome: 'noted', severity: 'race',
+          message: 'Already conceded', field: '_', meta: null,
+          dbcode: 'PN483', detail: null },
+  error: null,
+}
+
 describe('concede', () => {
   it('confirms via window.confirm, then fires concede', async () => {
-    const { result, rpc } = setup()
+    const { result, rpc, showError } = setup()
+    rpc.mockResolvedValue(CONCEDED_OK)
     act(() => result.current.concede())
     await flush()
     expect(window.confirm).toHaveBeenCalledTimes(1)
     expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' })
+    // The ok arm is silent: the conceded flag and any terminal arrive by
+    // subscription, so there is nothing for the conceder to be told.
+    expect(showError).not.toHaveBeenCalled()
   })
 
   it('is a no-op when I have already conceded', async () => {
@@ -117,20 +136,31 @@ describe('concede', () => {
     expect(rpc).not.toHaveBeenCalled()
   })
 
-  it('surfaces an unexpected RPC failure as a FAULT, not a pill', async () => {
+  it('shows a RACE as an ordinary sticky pill, in the words the server sent', async () => {
     const { result, rpc, showError } = setup()
-    rpc.mockResolvedValue({ error: { message: 'nope', code: '42501' } })
+    rpc.mockResolvedValue(ALREADY_CONCEDED)
     act(() => result.current.concede())
     await flush()
-    // The fault flag and its manual mode survive the trip now that the sink
-    // takes the full message — this styling is what the widening was for.
+    // Both races here are the hook's own gates losing to the subscription that
+    // feeds them, so they read as news rather than as a failure.
+    expect(showError).toHaveBeenCalledWith({
+      tone: 'noted',
+      text: 'Already conceded',
+      mode: { kind: 'sticky' },
+    })
+  })
+
+  it('still SHOWS a fault, having left the modal to runRpc', async () => {
+    const { result, rpc, showError } = setup()
+    rpc.mockResolvedValue({ data: null, error: { message: 'nope', code: '42501' } })
+    act(() => result.current.concede())
+    await flush()
+    // A pill, not a fault-flagged message: `runRpc` raised the modal centrally
+    // with the transport facts, and marking this one too would double it. The
+    // pill still has to appear — the modal is an escalation, not a substitute.
     expect(showError).toHaveBeenCalledWith(expect.objectContaining({
       tone: 'error',
-      fault: true,
-      text: 'concede|nope',
-      mode: { kind: 'manual' },
-      // The modal's line-3 payload rides along on every fault.
-      diagnostics: expect.stringContaining('code=42501'),
+      mode: { kind: 'sticky' },
     }))
   })
 })

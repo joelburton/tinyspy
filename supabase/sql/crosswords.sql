@@ -1308,15 +1308,29 @@ grant execute on function crosswords.end_game(uuid) to authenticated;
 -- others; the last active conceder → collective loss. Fully handled by
 -- common.concede; this is the thin compete gate (non-elimination, like
 -- stackdown — a crossword player can't be individually eliminated).
+drop function if exists crosswords.concede(uuid);
+
 create or replace function crosswords.concede(target_game uuid)
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = crosswords, common, public, extensions
 as $$
+declare
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   perform common.require_compete((select mode from crosswords.games where id = target_game));
-  perform common.concede(target_game);
+  -- common.concede answers in an envelope and catches its own raises, so its
+  -- refusals relay untouched; the handler below is for require_compete's.
+  return common.concede(target_game);
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 revoke execute on function crosswords.concede(uuid) from public;

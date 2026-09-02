@@ -25,6 +25,7 @@ set search_path = bananagrams, common, public, extensions;
 select plan(14);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -65,12 +66,11 @@ select is(
 );
 
 -- ─── (2) Idempotency: ada can't concede twice ───
-select throws_ok(
-  format($$ select bananagrams.concede(%L) $$, (select id from g1)),
-  'P0001',
-  'you-conceded|',
-  'conceding twice is rejected'
-);
+select pg_temp.envelope_is(
+  bananagrams.concede((select id from g1)),
+  '{"type":"not-ok","severity":"race","dbcode":"PN483",
+    "message":"Already conceded"}'::jsonb,
+  'conceding twice is rejected');
 
 -- ─── (3) bea (the only active player) empties her hand and peels out ───
 -- The bunch (102) can still refill 1 active player, so drain it first to
@@ -160,21 +160,19 @@ select is(
 
 -- ─── (6) Non-player cannot concede ───
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
-select throws_ok(
-  format($$ select bananagrams.concede(%L) $$, (select id from g1)),
-  '42501',
-  'not-a-player|',
-  'a non-player cannot concede'
-);
+select pg_temp.envelope_is(
+  bananagrams.concede((select id from g1)),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN253",
+    "message":"You are not in this game"}'::jsonb,
+  'a non-player cannot concede');
 
 -- Conceding a finished game is rejected (g1 already won).
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select throws_ok(
-  format($$ select bananagrams.concede(%L) $$, (select id from g1)),
-  'P0001',
-  'already-ended|',
-  'conceding a finished game is rejected'
-);
+select pg_temp.envelope_is(
+  bananagrams.concede((select id from g1)),
+  '{"type":"not-ok","severity":"race","dbcode":"PN482",
+    "message":"Game over"}'::jsonb,
+  'conceding a finished game is rejected');
 
 select * from finish();
 rollback;

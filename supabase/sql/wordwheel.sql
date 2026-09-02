@@ -1364,15 +1364,24 @@ grant execute on function wordwheel.replay_board(uuid) to authenticated;
 -- as a collective loss. This wrapper just keeps the FE uniform (every
 -- game calls its own-schema `concede`) and gates concede to compete —
 -- coop is a team, it ends via the shared End, never a concede.
+drop function if exists wordwheel.concede(uuid);
+
 create or replace function wordwheel.concede(target_game uuid)
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = wordwheel, common, public, extensions
 as $$
+declare
+  v_res jsonb;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   perform common.require_compete((select mode from wordwheel.games where id = target_game));
-  perform common.concede(target_game);
+  v_res := common.concede(target_game);
+  -- The reveal below keys off the game having gone terminal, and PN482 refuses
+  -- on a game that ALREADY was — so a refusal has to stop here or the touch
+  -- fires on a concede that did nothing.
+  if v_res->>'type' = 'not-ok' then return v_res; end if;
 
   -- If that was the last racer, common.concede ended the game. Wake the
   -- found_words subscription (same reveal as submit_timeout/end_game) so the
@@ -1381,6 +1390,16 @@ begin
   if (select play_state from common.games where id = target_game) <> 'playing' then
     update wordwheel.found_words set user_id = user_id where game_id = target_game;
   end if;
+
+  return v_res;
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 

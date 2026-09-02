@@ -1580,14 +1580,32 @@ grant execute on function letterboxed.end_game(uuid) to authenticated;
 -- already ends the game). common.concede marks the caller out and ends
 -- the game as a collective loss iff no non-conceded player remains, and
 -- names that terminal `lost_compete` from the gametype's suffix.
+drop function if exists letterboxed.concede(uuid);
+
 create or replace function letterboxed.concede(target_game uuid)
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = letterboxed, common, public, extensions
 as $$
+declare
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
-  perform common.concede(target_game);
+  -- letterboxed has a coop mode, where dropping out is not a thing a player can
+  -- do — the chain is shared and ending it ends the table. Every other wrapper
+  -- with a coop sibling refuses this; this one did not until 2026-09-01.
+  perform common.require_compete((select mode from letterboxed.games where id = target_game));
+  -- common.concede answers in an envelope and catches its own raises, so its
+  -- refusals relay untouched; the handler below is for require_compete's.
+  return common.concede(target_game);
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 

@@ -1138,12 +1138,16 @@ grant execute on function connections.submit_guess(uuid, text[], text, int) to a
 -- common.concede: after flipping the shared flag it re-runs its own
 -- terminal check, which counts a conceder as "not alive" alongside the
 -- eliminated. Compete only (coop is a team; it ends via the shared End).
+drop function if exists connections.concede(uuid);
+
 create or replace function connections.concede(target_game uuid)
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = connections, common, public, extensions
 as $$
+declare
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   perform common.require_compete((select mode from connections.games where id = target_game));
   -- Lock this game's connections.games row FIRST so concede serializes against a
@@ -1156,6 +1160,16 @@ begin
   perform 1 from connections.games where id = target_game for update;
   perform common._set_conceded(target_game);
   perform connections._maybe_finish_compete(target_game);
+
+  return common.ok_envelope(jsonb_build_object('result', 'conceded'));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 

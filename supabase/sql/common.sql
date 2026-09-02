@@ -754,7 +754,10 @@ immutable
 as $$
 begin
   if p_mode <> 'compete' then
-    raise exception 'concede-not-in-coop|' using errcode = 'P0001',
+    -- The game menu offers Concede in compete only, so reaching this means a
+    -- hand-rolled call or a client that lost track of its own mode.
+    raise exception 'BUG: a concede in a coop game'
+      using errcode = 'PN484', hint = 'fault', column = '_',
       detail = 'coop ends the whole table instead';
   end if;
 end;
@@ -1452,7 +1455,10 @@ declare
 begin
   perform 1 from common.games where id = target_game for update;
   if not found then
-    raise exception 'game-not-found|' using errcode = 'P0002',
+    -- Every id the frontend holds came from a row it read, so a missing one is
+    -- a broken client rather than a game that ended under it.
+    raise exception 'BUG: a concede for a game that does not exist'
+      using errcode = 'PN481', hint = 'fault', column = '_',
       detail = 'no common.games row for target_game';
   end if;
 
@@ -1460,7 +1466,11 @@ begin
 
   select is_terminal into is_over from common.games where id = target_game;
   if is_over then
-    raise exception 'already-ended|' using errcode = 'P0001',
+    -- A RACE: the last other racer finished, or a peer ended the game, between
+    -- the menu opening and this click. `isTerminal` is fed by the subscription,
+    -- so losing that gap is ordinary.
+    raise exception 'Game over'
+      using errcode = 'PN482', hint = 'race', column = '_', constraint = 'noted',
       detail = 'play_state is already terminal';
   end if;
 
@@ -1468,7 +1478,11 @@ begin
     from common.game_players
    where game_id = target_game and user_id = caller_id;
   if already then
-    raise exception 'you-conceded|' using errcode = 'P0001',
+    -- Also a RACE, and for the same reason: `myConceded` is fed by the
+    -- subscription rather than set locally when the call returns, so a second
+    -- click — or a second tab — inside that window reaches here.
+    raise exception 'Already conceded'
+      using errcode = 'PN483', hint = 'race', column = '_', constraint = 'noted',
       detail = 'this player''s conceded flag is already set';
   end if;
 
@@ -1507,8 +1521,16 @@ revoke execute on function common._set_conceded(uuid) from public;
 -- ELIMINATION games do NOT use this — they call common._set_conceded
 -- and then their own terminal check (which counts conceded as
 -- "done" alongside solved / out-of-guesses). See wordle.concede.
+--
+-- Answers in an ENVELOPE, and catches for the ten wrappers that
+-- delegate to it: seven of them are `return common.concede(...)`
+-- and have nothing of their own to catch, so putting the handler
+-- here is what keeps them one line. The wrappers still carry their
+-- own, because `require_compete` raises BEFORE this is reached.
+drop function if exists common.concede(uuid);
+
 create or replace function common.concede(target_game uuid)
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = common, public, extensions
@@ -1517,6 +1539,7 @@ declare
   caller_id uuid;
   player_results jsonb;
   lost_state text;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   caller_id := common._set_conceded(target_game);
 
@@ -1525,7 +1548,7 @@ begin
     select 1 from common.game_players
      where game_id = target_game and not conceded
   ) then
-    return;
+    return common.ok_envelope(jsonb_build_object('result', 'conceded'));
   end if;
 
   -- The caller was the last active player → collective loss.
@@ -1550,6 +1573,20 @@ begin
     jsonb_build_object('outcome', 'conceded'),
     player_results
   );
+
+  -- The SAME ok as the other branch. Whether the drop-out also ended the game
+  -- is not something the conceder acts on — the terminal arrives at every
+  -- client alike, by subscription — so the answer says what the caller asked
+  -- for and nothing about the others.
+  return common.ok_envelope(jsonb_build_object('result', 'conceded'));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 revoke execute on function common.concede(uuid) from public;

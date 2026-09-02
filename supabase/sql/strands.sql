@@ -1459,14 +1459,17 @@ grant execute on function strands.end_game(uuid) to authenticated;
 -- a third had already SOLVED must end with that solver winning, not with
 -- everyone losing. So it's the documented split — common._set_conceded for the
 -- guarded flag flip, then this gametype's own finisher to decide the outcome.
+drop function if exists strands.concede(uuid);
+
 create or replace function strands.concede(target_game uuid)
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = strands, common, public, extensions
 as $$
 declare
   g_mode text;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   -- FOR UPDATE: serialize against submit_path (and end_game), which lock this
   -- same row. Without it a last solve and a last concede run on disjoint locks
@@ -1475,17 +1478,24 @@ begin
   -- game sticks in `playing` with nobody left to end it. Lock order is
   -- strands.games → common.games on every path, so no deadlock.
   select mode into g_mode from strands.games where id = target_game for update;
-  if g_mode is null then
-    raise exception 'game-not-found|' using errcode = 'P0002',
-      detail = 'no strands.games row for target_game';
-  end if;
-  if g_mode <> 'compete' then
-    raise exception 'concede-not-in-coop|' using errcode = 'P0001',
-      detail = 'coop ends the whole table instead';
-  end if;
+  -- A null mode (no strands row) falls straight through `require_compete` and is
+  -- refused by `_set_conceded` as the missing game it is — the same path the
+  -- five other games that decide their own terminal take. strands used to raise
+  -- both of these itself, which cost two codes to say what common already says.
+  perform common.require_compete(g_mode);
 
   perform common._set_conceded(target_game);
   perform strands._maybe_finish_compete(target_game);
+
+  return common.ok_envelope(jsonb_build_object('result', 'conceded'));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 

@@ -30,6 +30,7 @@ set search_path = common, public, extensions;
 select plan(14);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 
 -- Set JWT claims WITHOUT switching role away from postgres — keeps
 -- execute privilege on common.create_game, which is revoked from
@@ -106,12 +107,11 @@ select is(
 );
 
 -- ─── (2) Idempotency: ada can't concede twice ───
-select throws_ok(
-  format($$ select common.concede(%L) $$, current_setting('test.game_id')),
-  'P0001',
-  'you-conceded|',
-  'conceding twice is rejected'
-);
+select pg_temp.envelope_is(
+  common.concede(current_setting('test.game_id')::uuid),
+  '{"type":"not-ok","severity":"race","dbcode":"PN483",
+    "message":"Already conceded"}'::jsonb,
+  'conceding twice is rejected');
 
 -- ─── (3) bea concedes; cade alone is still active ───
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
@@ -154,19 +154,17 @@ select is(
 
 -- ─── (5) Non-player rejected; finished game rejected ───
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
-select throws_ok(
-  format($$ select common.concede(%L) $$, current_setting('test.game_id')),
-  '42501',
-  'not-a-player|',
-  'a non-player cannot concede'
-);
+select pg_temp.envelope_is(
+  common.concede(current_setting('test.game_id')::uuid),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN253",
+    "message":"You are not in this game"}'::jsonb,
+  'a non-player cannot concede');
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select throws_ok(
-  format($$ select common.concede(%L) $$, current_setting('test.game_id')),
-  'P0001',
-  'already-ended|',
-  'conceding a finished game is rejected'
-);
+select pg_temp.envelope_is(
+  common.concede(current_setting('test.game_id')::uuid),
+  '{"type":"not-ok","severity":"race","dbcode":"PN482",
+    "message":"Game over"}'::jsonb,
+  'conceding a finished game is rejected');
 
 -- ─── (6) A single-mode gametype ends plain 'lost' ───
 -- bananagrams has no coop/compete split, so its vocabulary has no `_compete`

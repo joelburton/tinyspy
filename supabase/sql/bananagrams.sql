@@ -1276,14 +1276,18 @@ grant execute on function bananagrams.replay_board(uuid) to authenticated;
 -- common.game_players (was bananagrams.progress); the FE reads it off
 -- ctx.players and common.end_game wakes the terminal via useCommonGame.
 -- This wrapper just keeps the FE uniform (`db.rpc('concede')`).
+drop function if exists bananagrams.concede(uuid);
+
 create or replace function bananagrams.concede(target_game uuid)
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = bananagrams, common, public, extensions
 as $$
 begin
-  perform common.concede(target_game);
+  -- No `require_compete`: bananagrams has no coop sibling, so there is no mode
+  -- to refuse. Every other wrapper checks, and every other wrapper needs to.
+  return common.concede(target_game);
 end;
 $$;
 

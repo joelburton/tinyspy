@@ -51,9 +51,11 @@ select is((select status ->> 'outcome' from common.games where id = :'gp_id'), '
 
 -- Concede is compete-only.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select throws_ok(
-  format('select crosswords.concede(%L)', :'gc2_id'),
-  'P0001', null, 'concede is rejected in coop');
+select pg_temp.envelope_is(
+  crosswords.concede(:'gc2_id'::uuid),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN484",
+    "message":"BUG: a concede in a coop game"}'::jsonb,
+  'concede is rejected in coop');
 reset role;
 
 -- ── Coop give-up (end_game): a NEUTRAL "finished", not a loss ────────

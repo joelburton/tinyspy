@@ -15,6 +15,7 @@
 begin;
 set search_path = waffle, common, public, extensions;
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 select plan(7);
@@ -71,9 +72,10 @@ select (waffle.create_game(
   'coop',
   pg_temp.waffle_board()
 )->'data'->>'id')::uuid as id;
-select throws_ok(
-  format($$ select waffle.concede(%L) $$, (select id from gc)),
-  'P0001', 'concede-not-in-coop|',
+select pg_temp.envelope_is(
+  waffle.concede((select id from gc)),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN484",
+    "message":"BUG: a concede in a coop game"}'::jsonb,
   'conceding a coop game is rejected');
 
 select * from finish();

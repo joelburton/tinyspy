@@ -1140,15 +1140,24 @@ grant execute on function wordiply.replay_board(uuid) to authenticated;
 -- hanging the game in `playing` forever. We therefore repeat that end check
 -- here after conceding. Gated to compete — coop is a team (it ends via the
 -- shared End, never a concede).
+drop function if exists wordiply.concede(uuid);
+
 create or replace function wordiply.concede(target_game uuid)
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = wordiply, common, public, extensions
 as $$
+declare
+  v_res jsonb;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   perform common.require_compete((select mode from wordiply.games where id = target_game));
-  perform common.concede(target_game);
+  v_res := common.concede(target_game);
+  -- Both blocks below key off the game's play_state, and PN482 refuses on a
+  -- game that was terminal before the click — so a refusal has to stop here
+  -- rather than re-finish a finished game.
+  if v_res->>'type' = 'not-ok' then return v_res; end if;
 
   -- If common.concede didn't end the game (the conceder wasn't the last
   -- active player), the remaining active players may nonetheless ALL be out
@@ -1176,6 +1185,16 @@ begin
   if (select play_state from common.games where id = target_game) <> 'playing' then
     update wordiply.guesses set user_id = user_id where game_id = target_game;
   end if;
+
+  return v_res;
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 

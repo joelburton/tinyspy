@@ -726,15 +726,29 @@ grant execute on function boggle.replay_board(uuid) to authenticated;
 -- racer, end as a collective loss. This wrapper keeps the FE uniform
 -- (`db.rpc('concede')`) and gates concede to compete (coop ends via
 -- the shared End, never a concede).
+drop function if exists boggle.concede(uuid);
+
 create or replace function boggle.concede(target_game uuid)
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = boggle, common, public, extensions
 as $$
+declare
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   perform common.require_compete((select mode from boggle.games where id = target_game));
-  perform common.concede(target_game);
+  -- common.concede answers in an envelope and catches its own raises, so its
+  -- refusals relay untouched; the handler below is for require_compete's.
+  return common.concede(target_game);
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
