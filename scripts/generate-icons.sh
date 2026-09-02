@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# cs-unmet
+# cs-blessed-deep
 
 # ============================================================
 # Home-screen / touch icon generator
@@ -16,10 +16,6 @@
 # mask that doesn't line up with the artwork's own radius leaves pale slivers
 # around the edge. So we strip that one corner-mask path and render the mark
 # FULL-BLEED on its indigo ground, letting the platform round it.
-#
-# (This is the inverse of what this script used to do. The previous logo was a
-# transparent edge-to-edge glyph, which had to be scaled down and dropped onto an
-# opaque ground; this one arrives as a finished tile and only needs undressing.)
 #
 # The `maskable` variant is a separate file because it plays by a stricter rule:
 # Android adaptive icons may crop to a circle of 80% diameter, and the "P" spans

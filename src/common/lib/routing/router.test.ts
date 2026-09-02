@@ -1,4 +1,4 @@
-// cs-met-deep
+// cs-blessed-deep
 
 /**
  * Tests for the hand-rolled router. Verifies the contract callers

@@ -1,4 +1,4 @@
-// cs-met-deep
+// cs-blessed-deep
 
 /**
  * Reload the page when a code-split chunk fails to load — stale-deploy recovery.

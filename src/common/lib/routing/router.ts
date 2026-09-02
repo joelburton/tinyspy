@@ -1,4 +1,4 @@
-// cs-met-deep
+// cs-blessed-deep
 
 import { useSyncExternalStore } from 'react'
 
@@ -50,6 +50,7 @@ const subscribeToPath = (onChange: () => void) => {
   window.addEventListener('popstate', onChange)
   return () => window.removeEventListener('popstate', onChange)
 }
+
 const readPath = () => window.location.pathname
 
 /**

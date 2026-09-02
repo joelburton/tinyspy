@@ -1,33 +1,11 @@
-// cs-met-deep
+// cs-blessed-deep
 
-/**
- * Pick a theme and load ITS chain — the whole chain, and only that one.
- *
- * A theme declares what it is built from and something imports it. The base is
- * never an unconditional default, and that rule is the reason this file exists
- * rather than a `[data-theme]` attribute with both stylesheets loaded: if
- * daylight were always present, every role midnight forgot would resolve to a
- * plausible LIGHT hex on a dark page — quieter than an undefined token and much
- * worse, because nothing would look broken enough to investigate. Loading one
- * chain means a forgotten role resolves to nothing at all, which is loud.
- * (plans/app-audit.md §3.)
- *
- * ⚠️ MIDNIGHT IS A SPIKE, behind a flag, and is not finished design. Reach it
- * with `?theme=midnight`; the choice sticks in localStorage so it survives the
- * in-app navigation that follows, and `?theme=daylight` clears it. There is no
- * UI for this on purpose — a theme picker is a product decision nobody has
- * made, and the flag is here to answer an engineering question: does the file
- * split hold up when something other than daylight asks it to?
- *
- * The chain is loaded with dynamic `import()` rather than a static one, which
- * is what lets the choice be a choice. The cost is that the theme's CSS arrives
- * a tick after the module graph rather than with it, so the caller awaits this
- * before rendering — otherwise the first paint would be an unstyled flash.
- *
- * The theme-INDEPENDENT half of the chain (fixed.css, base.css, utilities.css)
- * stays a static import in main.tsx. It is the same under every theme, so there
- * is nothing here to decide about it.
- */
+// ⚠️ MIDNIGHT IS A SPIKE, behind a flag, and is not finished design. Reach it
+// with `?theme=midnight`; the choice sticks in localStorage so it survives the
+// in-app navigation that follows, and `?theme=daylight` clears it. There is no
+// UI for this on purpose — a theme picker is a product decision nobody has
+// made, and the flag is here to answer an engineering question: does the file
+// split hold up when something other than daylight asks it to?
 
 /** The themes that exist. `daylight` is what ships. */
 export type ThemeName = 'daylight' | 'midnight'
@@ -37,16 +15,15 @@ const STORAGE_KEY = 'puzpuzpuz:theme'
 /**
  * The stored choice, or null when there isn't one — including when there is no
  * storage to ask.
- *
- * **A theme is not worth failing to start over.** `localStorage` throws where a
- * browser blocks site data, and this runs before a single stylesheet is
- * requested, so an unguarded read takes `loadTheme()` down with it and the app
- * paints main.tsx's "could not start" instead of a page. Falling back to
- * daylight costs a midnight user their stickiness in that browser and nothing
- * else. It is the same rule the rest of the app already follows — see
- * `useStickyChoice`: storage failures are non-fatal.
  */
 function storedTheme(): ThemeName | null {
+  // A theme is not worth failing to start over.** `localStorage` throws where a
+  // browser blocks site data, and this runs before a single stylesheet is
+  // requested, so an unguarded read takes `loadTheme()` down with it and the app
+  // paints main.tsx's "could not start" instead of a page. Falling back to
+  // daylight costs a midnight user their stickiness in that browser and nothing
+  // else. It is the same rule the rest of the app already follows — see
+  // `useStickyChoice`: storage failures are non-fatal.
   try {
     return window.localStorage.getItem(STORAGE_KEY) === 'midnight' ? 'midnight' : null
   } catch {
@@ -84,6 +61,15 @@ function chosenTheme(): ThemeName {
   return storedTheme() ?? 'daylight'
 }
 
+/**
+ * Pick a theme and load ITS chain — the whole chain, and only that one.
+ *
+ * The chain is loaded with dynamic `import()` rather than a static one, which
+ * is what lets the choice be a choice. The cost is that the theme's CSS arrives
+ * a tick after the module graph rather than with it, so the caller awaits this
+ * before rendering — otherwise the first paint would be an unstyled flash.
+ */
+
 export async function loadTheme(): Promise<ThemeName> {
   const theme = chosenTheme()
   if (theme === 'midnight') {
@@ -91,8 +77,7 @@ export async function loadTheme(): Promise<ThemeName> {
   } else {
     await Promise.all([import('./light-mode.css'), import('./daylight.css')])
   }
-  // Published for anything that wants to know which theme it is in — the
-  // palette page's toggle will, once there is a second theme worth toggling to.
+  // Published for anything that wants to know which theme it is in.
   document.documentElement.dataset.theme = theme
   return theme
 }

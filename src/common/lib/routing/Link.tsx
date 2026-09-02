@@ -1,4 +1,4 @@
-// cs-met-deep
+// cs-blessed-deep
 
 import { type AnchorHTMLAttributes, type ReactNode } from 'react'
 import { navigate } from './router'
@@ -8,6 +8,12 @@ type LinkProps = {
   to: string
   children: ReactNode
 } & Omit<AnchorHTMLAttributes<HTMLAnchorElement>, 'href' | 'onClick'>
+
+
+// Lives in its own file (split from `router.ts`) because Vite Fast
+// Refresh requires a file to export *only* components if it exports
+// any. Pure-function exports (`usePath`, `navigate`) stay in
+// `router.ts`; this is just the component.
 
 /**
  * Path-based link. Renders a normal `<a href={to}>` so the browser's
@@ -20,11 +26,6 @@ type LinkProps = {
  * browser, opening a new tab/window — preserving the affordance users
  * expect from any link they see. A `target` other than `_self` is that
  * same request in attribute form, so it falls through too.
- *
- * Lives in its own file (split from `router.ts`) because Vite Fast
- * Refresh requires a file to export *only* components if it exports
- * any. Pure-function exports (`usePath`, `navigate`) stay in
- * `router.ts`; this is just the component.
  */
 export function Link({ to, children, ...rest }: LinkProps) {
   return (
