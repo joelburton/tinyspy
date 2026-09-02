@@ -303,11 +303,11 @@ describe('letterboxed PlayArea — the accept list is wider than the hint list',
 })
 
 /**
- * The server-key path, end to end: a rejection leaves SQL as a machine key and
- * arrives on screen as words written in TypeScript.
+ * The refusal path, end to end: a raise leaves SQL as an envelope and arrives on
+ * screen wearing the words its author wrote at the raise.
  *
  * Driven through UNDO: one RPC, reachable mid-game from the chain strip's ×.
- * The submit path runs the same `callRpc`, but reaching it means getting a word
+ * The submit path runs the same wrapper, but reaching it means getting a word
  * past `rejectReason` first — a different test's job.
  */
 describe('letterboxed PlayArea — a refused undo, and who wrote the words', () => {

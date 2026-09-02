@@ -25,11 +25,10 @@ export type CellState = {
 /** Live cell state keyed `${row}:${col}`. */
 export type CellsMap = Map<string, CellState>
 
-// The error branch carries the STRUCTURED CallError (message + SQLSTATE), not
-// a flattened string: the caller classifies it (failureMessage) so a lost race
-// shows its ERROR_COPY pill ("Game over") and a dead connection shows the
-// transport fault — never raw server text in a pill. This hook only rolls the
-// optimistic write back; the words are the surface's job.
+// The not-ok arm is handed back whole rather than flattened to a string, so the
+// caller can tell a lost race (its own pill, "Game over") from a dead connection
+// (the transport fault) — never raw server text in a pill. This hook only rolls
+// the optimistic write back; the words are the surface's job.
 /**
  * What `set_cell` and `set_mark` answer. Both hand the ENVELOPE straight back:
  * the two bespoke result unions this replaced existed only to carry an error

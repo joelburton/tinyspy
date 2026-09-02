@@ -11,12 +11,13 @@ import { StandardButton } from '../buttons/StandardButton'
  * it interrupts on purpose (docs/ui.md → Faults):
  *
  *   1. "Error", red — the shape test: a box popped up, the app broke.
- *   2. The message — the classifier's words: ERROR_COPY's sentence when the
- *      key has copy, the raw `action|key|detail|` otherwise, the transport
- *      line when nothing answered. Never edited here.
- *   3. Small muted diagnostics — everything we know (action, fe-error-key,
- *      SQLSTATE, HTTP status, DETAIL, raw text, timestamp), the SAME string
- *      the `[db]` console line carries (one builder — serverError.ts).
+ *   2. The message — the envelope's own `message`, whoever authored it: the
+ *      raise's sentence, or the transport line when nothing answered. Never
+ *      edited here.
+ *   3. Small muted diagnostics — everything we know (the call, severity,
+ *      outcome, dbcode, HTTP status, ms, field, detail, timestamp), the SAME
+ *      string the `[db]` console line carries (one builder — `diagnosticsLine`
+ *      in `dbLog.ts`).
  *
  * **A `<BlockingModal>`**, so it inherits the whole category: the world stops,
  * nothing underneath is live, focus is trapped, and it cannot be dragged aside.

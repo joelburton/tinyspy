@@ -13,7 +13,7 @@ const { mockInvoke } = vi.hoisted(() => ({ mockInvoke: vi.fn() }))
 vi.mock('./supabase', () => ({ supabase: { functions: { invoke: mockInvoke } } }))
 
 /**
- * The new server-result system's own tests (plans/error-system.md).
+ * The new server-result system's own tests (docs/envelopes.md).
  *
  * The load-bearing one: zero rows must be `ok`. An empty result is a correct
  * protocol answer, and only a caller can know it is impossible — so a helper
@@ -52,7 +52,7 @@ beforeEach(() => {
  * **Nothing answered: every wrapper says the same thing.**
  *
  * This is the guard for the failure that had none, and its absence is why the
- * two authors drifted (plans/envelope-layering.md). `dbFetch` words a request
+ * two authors drifted (docs/envelopes.md → Who writes the words, per answer). `dbFetch` words a request
  * that never reached the server — "You appear to be offline…" — and shows it.
  * The three wrappers used to word it again from the browser's own opaque
  * string, so a player saw a modal and a pill disagreeing about one event.

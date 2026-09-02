@@ -3,8 +3,7 @@
 import type { Session } from '@supabase/supabase-js'
 import type { ComponentType, ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
-// Type-only and circular-safe: serverError.ts imports GenericFeedbackMsg from
-// this file; both imports are erased at runtime.
+// Type-only, so the cycle these participate in is erased at runtime.
 import type { Envelope } from './supabase/envelope'
 import type { Outcome } from './outcomes'
 import type { FormErrors } from '../components/fields/formState'

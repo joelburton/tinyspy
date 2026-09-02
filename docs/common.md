@@ -395,7 +395,7 @@ All RPCs in `common` are `security definer` and granted only to the `authenticat
 
 ### `common.claim_username(desired text, chosen_color text) → jsonb`
 
-Atomically creates this caller's profile (with the chosen player color — required, palette-validated; no server-side default), solo club (`=<username>`), solo-club membership, and clubs_gametypes seeds. Called once per user on first sign-in via `<ClaimHandleScreen>`. Returns the result envelope (`plans/error-system.md`) with `data.username`.
+Atomically creates this caller's profile (with the chosen player color — required, palette-validated; no server-side default), solo club (`=<username>`), solo-club membership, and clubs_gametypes seeds. Called once per user on first sign-in via `<ClaimHandleScreen>`. Returns the result envelope (`docs/envelopes.md`) with `data.username`.
 
 Its outcomes: **PN017 validation** — that username is taken, the one thing here a player can act on and the one the form cannot know, caught from the UNIQUE constraint that referees the race. **PN016 error** — this profile already has a username (a second tab, a double submit). **PN013/PN014/PN015 faults** — not signed in, a username the screen's own regex would have refused, a color outside the palette; the last two are unreachable from the app, so their messages are written for whoever reads the fault. **PN018 fault** — the `auth.users` row behind the JWT is gone (a stale token after a `db:reset`); `<ClaimHandleScreen>` reads that code and signs the user out, the one place a call site branches on a `dbcode`, and it does so to pick a recovery rather than a severity.
 
@@ -416,7 +416,7 @@ The caller is auto-added if not in `member_usernames` — a UI that lets the cre
 
 ### `common.set_club_gametypes(target_club text, gametypes text[])`
 
-Replaces a club's `clubs_gametypes` set with exactly the passed list — the write side of the "Edit club" dialog. Any club member may call it (friends, not an admin hierarchy). Returns the result envelope (`plans/error-system.md`), and authors no failure of its own: not authenticated / not a member (`42501`) and an unknown gametype in the list (`23503`, FK) both arrive as raw faults. Deletes by difference rather than truncate-and-refill, so an unchanged row keeps its `default_setup`; an empty (or NULL) list clears every enrollment. Applies **no** solo-club `min_players` filter — that only shapes the default enrollment at creation; a member may list a two-player game in a solo club, it just won't be startable.
+Replaces a club's `clubs_gametypes` set with exactly the passed list — the write side of the "Edit club" dialog. Any club member may call it (friends, not an admin hierarchy). Returns the result envelope (`docs/envelopes.md`), and authors no failure of its own: not authenticated / not a member (`42501`) and an unknown gametype in the list (`23503`, FK) both arrive as raw faults. Deletes by difference rather than truncate-and-refill, so an unchanged row keeps its `default_setup`; an empty (or NULL) list clears every enrollment. Applies **no** solo-club `min_players` filter — that only shapes the default enrollment at creation; a member may list a two-player game in a solo club, it just won't be startable.
 
 ### `common.send_message(target_club text, content text)`
 

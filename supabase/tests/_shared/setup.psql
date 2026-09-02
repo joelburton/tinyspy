@@ -179,7 +179,7 @@ $$;
 -- ============================================================
 --
 -- `common.create_club` returns the result envelope
--- (plans/error-system.md), so its handle now lives at
+-- (docs/envelopes.md), so its handle now lives at
 -- `->'data'->>'handle'`. Nearly every test file in the suite
 -- creates a club as SETUP and cares only about the handle:
 --

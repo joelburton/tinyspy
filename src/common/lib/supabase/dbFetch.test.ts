@@ -170,8 +170,8 @@ describe('dbFetch — requests that DID reach the server', () => {
 })
 
 /**
- * PRESENTING FAULTS (plans/error-system.md → "Faults and environmental failures
- * are presented centrally").
+ * PRESENTING FAULTS (docs/envelopes.md → "Presenting a fault is not a call
+ * site's job").
  *
  * These pin the rule that makes every converted call site simpler: a call site
  * never has to ask "did we hear back at all?", never words a network problem,

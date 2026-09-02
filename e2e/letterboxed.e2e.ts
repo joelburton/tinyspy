@@ -584,8 +584,8 @@ test.describe('letterboxed custom board', () => {
     await page.locator('input[name="custom_sides"]').fill('BFG-JKP-QVW-XYZ')
     await page.getByRole('button', { name: /^Start SnakeBox/ }).click()
 
-    // The server's key, rendered by errorCopy — not a raw message, and not a
-    // fault: this is a real answer to a real request.
+    // The SERVER'S sentence, carried on the envelope — not a raw Postgres
+    // message, and not a fault: this is a real answer to a real request.
     await expect(page.getByText(/No known solution for the letters/i))
       .toBeVisible({ timeout: 20000 })
 

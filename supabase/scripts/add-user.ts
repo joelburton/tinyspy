@@ -246,7 +246,7 @@ async function main() {
     const claimed = await asThem
       .schema('common')
       .rpc('claim_username', { desired: HANDLE, chosen_color: color })
-    // The RPC answers with the result envelope (plans/error-system.md), so a
+    // The RPC answers with the result envelope (docs/envelopes.md), so a
     // REFUSAL arrives HTTP 200 with `error` null — checking only `error` here
     // would report success for a taken username.
     const env = claimed.data as { type?: string; message?: string } | null

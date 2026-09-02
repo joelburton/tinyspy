@@ -29,8 +29,9 @@ export type FaultEntry = {
    *  author wrote at the raise; for a raw one, Postgres's own text; for an
    *  environmental failure, the frontend's sentence. */
   text: ReactNode
-  /** The k=v diagnostics line (serverError.ts faultBits — same content as
-   *  the `[db]` log line). Absent only for hand-triggered test faults. */
+  /** The k=v diagnostics line — `diagnosticsLine` in `dbLog.ts`, the same
+   *  content as the `[db]` log line. Absent only for hand-triggered test
+   *  faults. */
   diagnostics?: string
 }
 

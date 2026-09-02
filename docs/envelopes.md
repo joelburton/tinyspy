@@ -1,7 +1,9 @@
 # Envelopes
 
-**This is a design document for a convention we are still rolling out; not every
-RPC returns an envelope yet.**
+**This describes what the code does today.** The convention is fully rolled out:
+every RPC, every read and every edge function answers in this shape, and
+[`dbCallWrapped.test.ts`](../src/guards/dbCallWrapped.test.ts) is what stops a
+new call site from skipping it.
 
 Every Supabase RPC, every Edge Function, and everything we treat like one
 answers in a single shape. "Everything we treat like one" includes failures that
@@ -14,13 +16,13 @@ function — and the sprint plan that tracked it is gone, its durable lessons
 folded in below (→ [Four things the roster conversion
 taught](#four-things-the-roster-conversion-taught)).
 
-As of 2026-08-28 the vocabulary here
-is the vocabulary in the code: all four severities, `race` included, are spelled
-as written here in TypeScript, in SQL's hints, in the Deno builders and in the
-guard. Still to land: **the default-appearance resolution** (nothing fills
-`outcome` from a severity yet), **`outcome` on the not-ok arm** (typed `null`
-today), and **`getNotOkFeedback`**. No raise classifies itself as a `race` yet
-either — the severity exists, and the roster decides which raises earn it.
+The vocabulary here is the vocabulary in the code: all four severities, `race`
+included, are spelled as written here in TypeScript, in SQL's hints, in the Deno
+builders and in the guard. The default-appearance resolution lives in
+`notOkOutcome` (a severity's default, overridable per raise), the not-ok arm
+carries `outcome: Outcome | null`, `getNotOkFeedback` has 29 call sites, and
+raises do classify themselves as `race` — the four word games' duplicates are
+PN359/PN360/PN361/PN365.
 
 ## Consumers
 
@@ -671,8 +673,8 @@ severity carries — and the text from `message`.
 **One function, because it is one mapping.** The first surface where a single
 call can answer three ways — `submit_guess`, which returns `ok`, a race, or a
 fault — cannot have that line written by hand, and neither can the fifteen
-boards after it. Letting each derive its own would put back exactly the drift
-`ERROR_COPY` was centralizing.
+boards after it. Letting each derive its own is exactly the drift one shared mapping exists to
+prevent.
 
 `genericPills.ts` rather than `localPills.ts`: a **local** pill is specifically
 the below-board one, about this player. This mapping serves global pills too, so

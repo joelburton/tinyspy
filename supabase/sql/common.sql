@@ -26,7 +26,7 @@ grant usage on schema common to authenticated;
 -- The result envelope — what every RPC hands back
 -- ============================================================
 --
--- See plans/error-system.md. Every FE-facing RPC returns jsonb of one shape,
+-- See docs/envelopes.md. Every FE-facing RPC returns jsonb of one shape,
 -- so a caller reads `type` first and `severity`/`outcome` second, and nothing
 -- ever has to be inferred from a return value's absence.
 --

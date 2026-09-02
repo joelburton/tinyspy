@@ -14,7 +14,8 @@ import type { Envelope, NotOk } from './envelope'
  * Sits between `dbLog` and its two consumers. `dbFetch` calls these to word and
  * show a transport failure; `dbResult`'s wrappers call the same builders for
  * the same failures, which is the whole point — two authors of one sentence is
- * how the modal and the pill came to disagree (plans/envelope-layering.md).
+ * how the modal and the pill came to disagree (docs/envelopes.md → Who writes
+ * the words, per answer).
  */
 
 /**

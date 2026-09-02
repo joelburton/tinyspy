@@ -51,5 +51,5 @@ holds it. In the node project that means no `dom` lib, no `jsx`, and no
 nothing from `src/` can move over; today that's `cssTokens` alone.
 
 Guards that use `node:fs` *and* import from `src/` (`deployLists`,
-`serverErrorKeys`, `gameStatusLabels`) stay in the app project and typecheck fine —
+`gameStatusLabels`) stay in the app project and typecheck fine —
 `node:fs` resolves through `@types/node` regardless of the `types` array.

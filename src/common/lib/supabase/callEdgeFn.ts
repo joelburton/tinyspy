@@ -6,8 +6,9 @@ import { OUR_BUG_TO_CODE_AND_TEXT } from './dbEnvelope'
 
 /**
  * Invoke an edge function and hand back either its payload or a CLASSIFIABLE
- * error — the edge-function sibling of `callRpc`, and the only place FE code
- * is allowed to dig a server error out of a functions-js failure.
+ * error, normalized into the `{ data, error }` shape a postgrest call resolves
+ * to. It is `runEdgeFn`'s transport adapter and nobody else's — the only place
+ * FE code digs a server error out of a functions-js failure.
  *
  * ─── Why call sites must not do this themselves ───────────────
  * `supabase.functions.invoke` reports any 4xx/5xx as its own generic "Edge

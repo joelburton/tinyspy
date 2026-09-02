@@ -13,7 +13,7 @@ import type { Envelope, NotOk, Severity } from './envelope'
  * **The new server-result system.** Types, classification, the environmental
  * sentences, and the read wrapper — all of it, in one file on purpose.
  *
- * See `plans/error-system.md` for the design. The one-line version: a call
+ * See `docs/envelopes.md` for the design. The one-line version: a call
  * either reaches a decision and says what it was, or something is broken, and
  * a call site should never have to work out which.
  *
@@ -64,7 +64,7 @@ import type { Envelope, NotOk, Severity } from './envelope'
  * **Known limit:** an abort also arrives as `0`. Unreachable today (nothing in
  * `src/` uses `AbortController` or `.abortSignal()`), and postgrest-js does
  * distinguish it via `hint: 'Request was aborted…'`, so a fix exists the day
- * someone adds cancellation. plans/envelope-layering.md §6.
+ * someone adds cancellation — key on the hint rather than on the status alone.
  */
 export function nothingAnswered(status: number | undefined): boolean {
   return status === 0
@@ -119,11 +119,11 @@ export function notOkOutcome(envelope: Envelope & { type: 'not-ok' }): Outcome {
  * **Log an outcome that is NOT a fault** — a form-validation, a lost race, a
  * wait-and-retry service-error, or an `ok` carrying words.
  *
- * The `service-error` half is the one that matters. `serverError.ts`'s rule was
- * "expected rejections are NOT logged", which makes a MISCLASSIFIED bug
- * completely silent: if "already deleted" starts firing on every click because
- * something is broken, nothing anywhere says so. Logging it at `warn` costs one
- * line and keeps that visible without putting a modal in anyone's way.
+ * The `service-error` half is the one that matters, and it is why "an expected
+ * rejection is not worth logging" is the wrong rule: it makes a MISCLASSIFIED
+ * bug completely silent. If "already deleted" starts firing on every click
+ * because something is broken, nothing anywhere says so. Logging it at `warn`
+ * costs one line and keeps that visible without putting a modal in anyone's way.
  */
 function logDbOutcome(transport: Transport, envelope: Envelope): void {
   logDb(logLevelFor(envelope), envelopeFields(transport, envelope), envelope.message)
