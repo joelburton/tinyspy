@@ -53,6 +53,7 @@ import { Buffer } from 'node:buffer'
 import { json, preflight } from '../_shared/http.ts'
 import { crash, fault, formValidation, serviceError } from '../_shared/envelope.ts'
 import { callerClient } from '../_shared/startGame.ts'
+import { runRpc } from '../_shared/dbResult.ts'
 import type { Json } from '../../../src/types/db.ts'
 import { convertNytPuzzle, type NytPuzzleResponse } from '../../../src/crosswords/lib/nyt.ts'
 import {
@@ -306,7 +307,10 @@ serve(async (req) => {
   //   weekday       — the one genuine club PREFERENCE here; create_game keeps
   //                   it in the saved default while stripping `date`.
   // `date` is the RESOLVED one, so what gets recorded is what was fetched.
-  const { data, error } = await caller.schema('crosswords').rpc('create_game', {
+  // `runRpc` carries the whole inbound boundary: the RPC never ran, an answer
+  // that is not an envelope, and the envelope itself. All three come back as one,
+  // so the relay below is the same line whichever happened.
+  const res = await runRpc(caller.schema('crosswords').rpc('create_game', {
     target_club,
     setup: {
       timer: setup?.timer ?? { kind: 'none' },
@@ -317,18 +321,6 @@ serve(async (req) => {
     player_user_ids,
     mode,
     board,
-  })
-  // A converted create_game RETURNS its envelope rather than raising one, so
-  // this relays it untouched — which is what lets a raise written in SQL reach
-  // the player with its own words and its own field. `error` then means only
-  // that the RPC never ran.
-  if (error) {
-    return fault('PN233', 'BUG: create_game did not run',
-      `crosswords-import-nyt: create_game did not run: ${error.message} (${error.code})`)
-  }
-  if (!data || typeof data !== 'object' || !('type' in data)) {
-    return fault('PN234', 'BUG: create_game returned no envelope',
-      `crosswords-import-nyt: create_game returned ${JSON.stringify(data)}`)
-  }
-  return json(data)
+  }), 'create_game')
+  return json(res)
 })

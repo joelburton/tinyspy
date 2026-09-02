@@ -18,7 +18,10 @@
  *     builder here keeps working while silently omitting it, so "considered and
  *     left null" becomes indistinguishable from "never considered" — the exact
  *     ambiguity required keys exist to prevent. Written out, a new key is a
- *     compile error at each of these four (Joel, 2026-08-28).
+ *     compile error at each of these four (Joel, 2026-08-28). `fault` is the
+ *     one that delegates, to `faultEnvelope` — the compile error still lands,
+ *     one line further down, and the alternative was writing the fault's nine
+ *     keys twice so the inbound path could have them as a value.
  *
  * The three strings are spelled `dbcode` / `severity` / `field` here where SQL
  * spells them `errcode` / `hint` / `column`. Same sequence of numbers, though —
@@ -87,12 +90,21 @@ export const formValidation = (
   } satisfies Envelope)
 
 /**
- * A refusal nothing the player did explains: a value the form cannot produce, a
- * response shape that shouldn't exist, an environment that isn't there. Raises
- * the fault modal, and `detail` is the line the console audience reads.
+ * A fault as a VALUE rather than a response — for `runRpc`, which hands its
+ * caller an envelope to branch on instead of a `Response` to return blindly.
+ *
+ * It is the only builder here with a value form, and only because the inbound
+ * path needs one: an edge function reading an RPC's answer has to be able to
+ * ask "did this fail?" of the same object whether the failure was the RPC's or
+ * the transport's. The outbound builders never need that — an edge function
+ * that has decided something is done deciding.
  */
-export const fault = (dbcode: string, message: string, detail?: string): Response =>
-  json({
+export const faultEnvelope = <T = unknown>(
+  dbcode: string,
+  message: string,
+  detail?: string,
+): Envelope<T> =>
+  ({
     type: 'not-ok',
     data: null,
     outcome: null,
@@ -102,7 +114,18 @@ export const fault = (dbcode: string, message: string, detail?: string): Respons
     meta: null,
     dbcode,
     detail: detail ?? null,
-  } satisfies Envelope)
+    // Generic in `T` although a not-ok carries `data: null` whatever T is: the
+    // caller's `Envelope<T>` is one union, and a value has to be assignable to
+    // the whole of it, not to the arm it happens to be in.
+  } satisfies Envelope<T>)
+
+/**
+ * A refusal nothing the player did explains: a value the form cannot produce, a
+ * response shape that shouldn't exist, an environment that isn't there. Raises
+ * the fault modal, and `detail` is the line the console audience reads.
+ */
+export const fault = (dbcode: string, message: string, detail?: string): Response =>
+  json(faultEnvelope(dbcode, message, detail))
 
 /**
  * SOMETHING WE DEPEND ON DIDN'T ANSWER — an outside service down or refusing us.

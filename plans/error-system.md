@@ -35,6 +35,13 @@ two copies of one decision is how they drift. What this plan owns is the work �
 the evidence behind the design (§3), what is still open (§4), the worked example
 (§5), the process (§6) and the roster (§7).
 
+**One engine piece is still missing, and it has its own plan:**
+[deno-callers.md](deno-callers.md) — an edge function calling an RPC has no
+wrapper, so thirteen functions hand-write the inbound boundary. Two roster
+entries below (`codenamesduet.get_clue_context`, `crosswords.reveal_solved_word`)
+break the edge function above them unless it is fixed in the same commit, so
+that piece goes first.
+
 The prep that ran before the rest of the roster is finished, and so is the
 layering fix that came out of it — one author for "nothing answered",
 `dbResult` split so the imports point down, `ReadFailure` deleted. Both plans

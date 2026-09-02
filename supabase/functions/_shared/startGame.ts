@@ -15,7 +15,8 @@
 
 import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@2'
 import { json } from './http.ts'
-import { fault, isEnvelope } from './envelope.ts'
+import { fault } from './envelope.ts'
+import { runRpc } from './dbResult.ts'
 import type { Database } from '../../../src/types/db.ts'
 
 /**
@@ -126,9 +127,14 @@ export async function parseBuildBoardRequest(
  *
  * That leaves `error` meaning only what it should: the RPC never ran. A missing
  * function, a revoked grant, PostgREST unreachable. None of those are things the
- * envelope can describe, so they are the one case this builds a fault of its own.
+ * envelope can describe — and `runRpc` is where they now become a fault, along
+ * with an answer that is not an envelope at all. This was the first place those
+ * two cases were handled, and it owned PN117/PN118 for them; the wrapper owns
+ * both now, so the four other functions that copied the pattern stop needing
+ * codes of their own.
  *
- * Pass `fnName` to emit the tagged diagnostic logs; omit it for a silent handoff.
+ * `fnName` survives as the diagnostic tag on the one line this still logs — the
+ * envelope's own line comes from `runRpc`.
  */
 export async function invokeCreateGame(
   supabase: SupabaseClient,
@@ -142,17 +148,7 @@ export async function invokeCreateGame(
   },
   fnName?: string,
 ): Promise<Response> {
-  const { data, error } = await supabase.schema(schema).rpc('create_game', args)
-  if (error) {
-    if (fnName) console.log(`${fnName} create_game did not run:`, error.message)
-    return fault('PN117', 'BUG: create_game did not run', `${fnName}: ${error.message} (${error.code})`)
-  }
-  // A converted create_game always returns one; anything else means this
-  // function is calling a version of the RPC that predates the envelope.
-  if (!isEnvelope(data)) {
-    if (fnName) console.log(`${fnName} reject: create_game returned no envelope`)
-    return fault('PN118', 'BUG: create_game returned no envelope', `${fnName}: create_game returned ${JSON.stringify(data)}`)
-  }
-  if (fnName) console.log(`${fnName} create_game said:`, JSON.stringify(data))
-  return json(data)
+  const res = await runRpc(supabase.schema(schema).rpc('create_game', args), 'create_game')
+  if (fnName) console.log(`${fnName} create_game said:`, JSON.stringify(res))
+  return json(res)
 }

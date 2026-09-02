@@ -42,6 +42,7 @@ import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { json, preflight } from '../_shared/http.ts'
 import { crash, fault, serviceError } from '../_shared/envelope.ts'
 import { callerClient } from '../_shared/startGame.ts'
+import { runRpc } from '../_shared/dbResult.ts'
 import type { Json } from '../../../src/types/db.ts'
 import { convertGuardianPuzzle, GuardianConvertError, type GuardianData } from '../../../src/crosswords/lib/guardian.ts'
 
@@ -187,22 +188,15 @@ serve(async (req) => {
 
   // 3. create_game AS THE CALLER (authority on membership + setup), inline board.
   const caller = callerClient(authHeader)
-  const { data, error } = await caller.schema('crosswords').rpc('create_game', {
+  // `runRpc` carries the whole inbound boundary: the RPC never ran, an answer
+  // that is not an envelope, and the envelope itself. All three come back as one,
+  // so the relay below is the same line whichever happened.
+  const res = await runRpc(caller.schema('crosswords').rpc('create_game', {
     target_club,
     setup: { timer: setup?.timer ?? { kind: 'none' } },
     player_user_ids,
     mode,
     board,
-  })
-  // Relayed untouched, so a raise written in SQL reaches the player with its own
-  // words and its own field. `error` then means only that the RPC never ran.
-  if (error) {
-    return fault('PN241', 'BUG: create_game did not run',
-      `crosswords-import-guardian: create_game did not run: ${error.message} (${error.code})`)
-  }
-  if (!data || typeof data !== 'object' || !('type' in data)) {
-    return fault('PN242', 'BUG: create_game returned no envelope',
-      `crosswords-import-guardian: create_game returned ${JSON.stringify(data)}`)
-  }
-  return json(data)
+  }), 'create_game')
+  return json(res)
 })

@@ -55,6 +55,10 @@ const NOT_ON_A_SUCCESS = 'error'
  *  spelled `environmental`) was missing exactly that way, hiding three. */
 const FN_BUILDERS: Record<string, string> = {
   fault: 'fault',
+  // The value form, for `runRpc`'s two codes — an inbound failure has to be an
+  // envelope the caller branches on, not a Response it returns blindly. Same
+  // severity, so the same hint; invisible to this guard until it was named here.
+  faultEnvelope: 'fault',
   formValidation: 'form-validation',
   serviceError: 'service-error',
 }
@@ -232,7 +236,7 @@ describe('the raise codes', () => {
       const ts = readFileSync(path, 'utf8')
       const file = path.slice(path.indexOf('functions/'))
       for (const m of ts.matchAll(
-        /\bfault\(\s*\n?\s*'(PN\d{3})'\s*,\s*\n?\s*(`(?:[^`]*)`|'(?:[^']*)')/g,
+        /\b(?:fault|faultEnvelope)\(\s*\n?\s*'(PN\d{3})'\s*,\s*\n?\s*(`(?:[^`]*)`|'(?:[^']*)')/g,
       )) {
         check(file, m[2]!.slice(1, -1))
       }
