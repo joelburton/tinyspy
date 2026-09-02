@@ -116,7 +116,7 @@ export function useDraggablePanel({
  * remember their rect and were watched, while every dialog and modal clamped
  * once on mount and then stopped listening. Drag a modal toward an edge — which
  * the soft clamp lets you do on purpose — shrink the window, and nothing pulled
- * it back (plans/areas/floating-panels.md → F26).
+ * it back (plans/areas/floating-panels.md).
  *
  * `onReclamp` is what differs: a persisted panel stores the correction, an
  * ephemeral one only holds it in state. It is called ONLY when the rect actually

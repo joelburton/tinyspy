@@ -60,7 +60,7 @@ export function EnvelopeErrorPage({ envelope, action }: { envelope: NotOk; actio
  * that. The club failed to load, the game does not exist, a render crashed.
  *
  * **The rule this component is one half of** (Joel, 2026-08-23;
- * plans/areas/homepage.md → F39 `loading-and-errors`): the fault MODAL when the
+ * plans/areas/homepage.md → `loading-and-errors`): the fault MODAL when the
  * page behind it survives, a fault PAGE when it does not. A modal is
  * dismissable, and dismissing one of these would strand you on a blank page —
  * here the failure IS the whole route, so it takes the page's place instead of

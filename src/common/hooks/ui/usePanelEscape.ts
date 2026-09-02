@@ -105,7 +105,7 @@ function onKeyDown(e: KeyboardEvent) {
  * per-panel, and two open panels meant two listeners, so a single Escape fired
  * both: open a game's setup, open Help from its footer "?", press Escape once,
  * and BOTH close — the form you were filling in is gone
- * (plans/areas/floating-panels.md → F16 `esc-closes-every-panel`). A key that
+ * (plans/areas/floating-panels.md → `esc-closes-every-panel`). A key that
  * means "dismiss this" cannot be answered by everything at once; something has
  * to know what "this" is, and that is the registry below.
  *

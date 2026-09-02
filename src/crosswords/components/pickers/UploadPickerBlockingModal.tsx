@@ -16,7 +16,7 @@ type Props = {
 }
 
 /**
- * **Play a .puz or .ipuz file** (plans/areas/forms.md → F50
+ * **Play a .puz or .ipuz file** (plans/areas/forms.md →
  * `puzzle-source-picks-in-a-dialog`).
  *
  * The file is read HERE, on drop, entirely client-side — not at Start. So this

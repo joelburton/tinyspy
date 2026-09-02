@@ -67,7 +67,7 @@ describe('useAppShortcuts', () => {
   it('"?" with no menu registered does nothing', () => {
     // GamePage drops its menu while the game is paused, so this is the live
     // case, not a hypothetical: the shortcut has to be a no-op rather than a
-    // crash (plans/areas/homepage.md → F12).
+    // crash (plans/areas/homepage.md).
     renderHook(() => useAppShortcuts())
     expect(() => press('?', document.body)).not.toThrow()
   })

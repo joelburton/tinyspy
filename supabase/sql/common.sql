@@ -69,7 +69,7 @@ grant usage on schema common to authenticated;
 -- isn't about a field" and "the author forgot" would be the same value, and
 -- neither the guard nor a reader could tell them apart. '_' also travels
 -- unchanged all the way to the form's error object as its form-level key
--- (plans/areas/forms.md → F48), so one string serves all three layers.
+-- (plans/areas/forms.md), so one string serves all three layers.
 --
 -- `when others` rather than `when sqlstate …` because WHEN SQLSTATE accepts
 -- only a literal code — no patterns, no variables. Anything not ours is

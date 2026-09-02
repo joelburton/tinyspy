@@ -14,7 +14,7 @@ type Props = {
 }
 
 /**
- * **Pick a Guardian series** (plans/areas/forms.md → F50
+ * **Pick a Guardian series** (plans/areas/forms.md →
  * `puzzle-source-picks-in-a-dialog`).
  *
  * A LIST rather than the `<select>` + hint line this replaces. The hint is the

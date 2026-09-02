@@ -13,7 +13,7 @@ import { PlayAreaErrorBoundary } from './PlayAreaErrorBoundary'
  * Reload is asserted beside "← Back home" rather than instead of it: a crashed
  * render is the one dead end where retrying the same URL is a real fix, and
  * losing that button to a later tidy would leave a stuck player with only the
- * exit (plans/areas/homepage.md → F39 `loading-and-errors`).
+ * exit (plans/areas/homepage.md → `loading-and-errors`).
  */
 function Bomb(): never {
   throw new Error('chunk went missing')

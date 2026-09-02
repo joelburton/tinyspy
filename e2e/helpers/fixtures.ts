@@ -238,7 +238,7 @@ export async function deleteUser(userId: string): Promise<void> {
  * The app cannot reach this state on its own: `claim_username` materializes a
  * solo club atomically with the profile, so a signed-in user always has at
  * least that one. Which is exactly why the homepage treats no clubs as a FAULT
- * rather than an empty state (plans/areas/homepage.md → F14) — and why testing
+ * rather than an empty state (plans/areas/homepage.md) — and why testing
  * that fault means breaking the invariant from outside the app.
  */
 export async function removeAllClubMemberships(userId: string): Promise<void> {

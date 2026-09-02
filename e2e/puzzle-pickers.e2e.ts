@@ -31,7 +31,7 @@ import { startGameRow } from './helpers/clubPage'
 
 /**
  * The puzzle field's DISCLOSURE. It was a `<fieldset>` until 2026-08-25, when
- * every setup field became a `<SetupSection>` (plans/areas/forms.md → F35), so
+ * every setup field became a `<SetupSection>` (plans/areas/forms.md), so
  * the answer now lives in the summary — `Puzzle: 2025-06-15: Here's to him!` —
  * and the body holds only the date override.
  */
@@ -122,7 +122,7 @@ test.describe('puzzle pickers', () => {
     // into the most recent date of that weekday nobody playing has done.
     //
     // The four sources are four blocking modals now, not tabs
-    // (plans/areas/forms.md → F50 `puzzle-source-picks-in-a-dialog`), so the
+    // (plans/areas/forms.md → `puzzle-source-picks-in-a-dialog`), so the
     // resolved date is read off the setup form's CAPTION rather than a line
     // inside the source's body: once the picker closes, the caption is the only
     // place that answer exists.

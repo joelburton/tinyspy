@@ -610,7 +610,7 @@ This is the **canonical deferred register** for crosswords — distilled from th
   `.takeOver` — written by a different hand, sharing no code — reached the SAME
   four decisions, which says the shared button was not reachable rather than that
   either author wanted something else. That half went to
-  `plans/areas/floating-panels.md` → F31.
+  `plans/areas/floating-panels.md`.
 
   The two vocabularies sit close in light mode, which is why this survived: they
   are separate names because they answer different questions and are free to

@@ -3,7 +3,7 @@
 /**
  * The library picker — choosing closes it.
  *
- * That is the rule the whole design rests on (plans/areas/forms.md → F50
+ * That is the rule the whole design rests on (plans/areas/forms.md →
  * `puzzle-source-picks-in-a-dialog`), and it is the one thing here a refactor
  * could quietly undo: put the list back on `selected`/`onSelect` and everything
  * still renders, still highlights, still looks right — and starting a game

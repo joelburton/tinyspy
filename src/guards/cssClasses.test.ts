@@ -22,7 +22,7 @@ import { describe, expect, it } from 'vitest'
  * EXISTS.
  *
  * Four checks, and each one is here because the homepage area found it live
- * (plans/areas/homepage.md → F4):
+ * (plans/areas/homepage.md):
  *
  *   1. every `styles.x` resolves to a class in the module it was imported from;
  *   2. every class a module defines is read by someone;
@@ -396,7 +396,7 @@ describe('a class name resolves — the e2e side', () => {
  * picked differently. The shared setup stylesheet was `styles` in eleven files,
  * `form` in three and `shared` in one, while the game's own module took whichever
  * word was left — so `styles.checkRow` meant the SHARED class in one file and a
- * local one in the next (plans/areas/forms.md → F42).
+ * local one in the next (plans/areas/forms.md).
  *
  * Two rules, and both already held nearly everywhere before they were written
  * down. They are GUARDED rather than merely documented because that is the whole

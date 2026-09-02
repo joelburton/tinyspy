@@ -20,7 +20,7 @@ type Props = {
 }
 
 /**
- * **Pick a New York Times daily** (plans/areas/forms.md → F50
+ * **Pick a New York Times daily** (plans/areas/forms.md →
  * `puzzle-source-picks-in-a-dialog`).
  *
  * Two ways in, and they are not equals. The WEEKDAY is the normal path — an NYT

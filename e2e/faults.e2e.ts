@@ -20,7 +20,7 @@ const closeButton = (page: Page) => page.getByRole('button', { name: 'Close', ex
  * actually reaches the screen.
  *
  * This is about faults, not about the homepage; the homepage is only where we
- * happen to hit one (plans/areas/homepage.md → F14, F23). Everything about the
+ * happen to hit one (plans/areas/homepage.md). Everything about the
  * wiring reads as fine — `<FaultModal>` is mounted in App.tsx outside the
  * route switch, and the two tokens it paints with live in the eagerly-loaded
  * theme rather than a lazy chunk — but "reads as fine" is precisely what a

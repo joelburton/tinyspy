@@ -22,7 +22,7 @@
 /* ---------- Surfaces and text ---------- */
 
 /* A CARD in the ordinary sense: a bordered section of a page, like a post-it
-   note (plans/areas/homepage.md → F37 `card-only-page`). The app has few of
+   note (plans/areas/homepage.md → `card-only-page`). The app has few of
    them — the homepage's body is one, the error page is one, and the club page
    has none at all.
 

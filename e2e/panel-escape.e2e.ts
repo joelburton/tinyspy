@@ -7,7 +7,7 @@ import { startGameRow } from './helpers/clubPage'
 
 /**
  * Escape, for floating panels: **what you're IN, else what's on TOP**
- * (`usePanelEscape`; plans/areas/floating-panels.md → F16
+ * (`usePanelEscape`; plans/areas/floating-panels.md →
  * `esc-closes-every-panel`).
  *
  * This exists because the old behavior was one window-level listener PER PANEL,

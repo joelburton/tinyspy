@@ -5,7 +5,7 @@
  *
  * One file, imported by `<TextField>`, `<NumberField>`, `<ReadOnlyField>` and
  * `<ColorField>`, because writing it four times is precisely the finding these
- * components exist to close (plans/areas/forms.md → F34): four files had
+ * components exist to close (plans/areas/forms.md): four files had
  * declared it and disagreed on the numbers, three of them byte-identical.
  *
  * I wrote it three times AGAIN in the first pass at those components, on

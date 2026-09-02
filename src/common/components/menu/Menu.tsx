@@ -53,7 +53,7 @@ type Props = {
    *  down-chevron up against its right; the chevron is the "this opens a menu"
    *  affordance and is NOT optional, which is the point of taking the logo
    *  rather than a whole trigger. Every caller passed the identical wrapper
-   *  before (plans/areas/homepage.md → F12), and a fourth could have forgotten
+   *  before (plans/areas/homepage.md), and a fourth could have forgotten
    *  it with nothing to notice. */
   logo: ReactNode
   /** Ordered list of sections rendered in the dropdown. Empty

@@ -7,7 +7,7 @@
  * not changed here (plans/app-audit.md §7 → Carried forward). It is also a
  * blocking modal built by hand: `<BlockingModal>` now exists and is what it
  * wants, but converting it MOVES its tier, which is why this area gets to see
- * it (plans/areas/floating-panels.md → F15 `numberjump-tier`). */
+ * it (plans/areas/floating-panels.md → `numberjump-tier`). */
 /* @@ */ .backdrop {
   position: fixed;
   inset: 0;

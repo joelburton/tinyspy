@@ -658,7 +658,7 @@ begin
 --
 -- The one validation here is the last thing the error sprint's create_game run
 -- had to wait for: crosswords had no FIELD to name until its setup form became
--- one (plans/areas/forms.md → F50 `puzzle-source-picks-in-a-dialog`), so a
+-- one (plans/areas/forms.md → `puzzle-source-picks-in-a-dialog`), so a
 -- message about a puzzle could only land on the dialog's bottom line.
 exception when others then
   get stacked diagnostics

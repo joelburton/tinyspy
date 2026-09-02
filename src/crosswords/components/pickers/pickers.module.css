@@ -1,6 +1,6 @@
 /* cs-unmet */
 
-/* The four puzzle pickers (plans/areas/forms.md → F50
+/* The four puzzle pickers (plans/areas/forms.md →
  * `puzzle-source-picks-in-a-dialog`). Every rule here moved out of
  * SetupForm.module.css unchanged when the four tab bodies became four
  * dialogs — the tabs' own machinery (.tabStack / .tabBody / .tabHidden) is

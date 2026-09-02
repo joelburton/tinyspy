@@ -68,7 +68,7 @@ type Props = {
    * whether the URL names a real game at all, and a second lookup here could
    * only fail in a way the first one already ruled out (it did have one, and
    * the dead branch rendered "Unknown game type." where nobody could reach it —
-   * plans/areas/homepage.md → F39 `loading-and-errors`).
+   * plans/areas/homepage.md → `loading-and-errors`).
    *
    * Used for the submitTimeout dispatcher when the timer expires, the right SVG
    * for `<GameLogo>`, and the per-game `help` component for the menu.

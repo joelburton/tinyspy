@@ -54,7 +54,7 @@ type Props = {
 }
 
 /**
- * **Pick a puzzle from the curated library** (plans/areas/forms.md → F50
+ * **Pick a puzzle from the curated library** (plans/areas/forms.md →
  * `puzzle-source-picks-in-a-dialog`).
  *
  * **Choosing CLOSES it**, which is the rule the whole design rests on: with the

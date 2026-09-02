@@ -56,6 +56,12 @@ const ALLOWED = new Map<string, string>([
   // sentences are written for end users. The form line shows them as-is.
   ['src/common/components/auth/LoginScreen.tsx', "GoTrue's own user-facing auth errors, shown in the form line"],
   ['src/common/components/game/PlayAreaErrorBoundary.tsx', 'a React render error, not a server one'],
+  // The boot catch. Nothing has rendered and no call has been made — the error
+  // is a theme chunk that would not load or a missing `#root`, so there is no
+  // envelope to classify and no server sentence to protect a player from. It
+  // paints the message because the alternative is a blank page with the one
+  // useful fact thrown away.
+  ['src/main.tsx', 'a boot failure, which has no envelope and no server sentence'],
 ])
 
 function sourceFiles(dir: string): string[] {

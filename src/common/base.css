@@ -678,7 +678,7 @@
      column-major grid leaked ~9500px up through it, dragging the board
      off-screen in Safari. That is why `.layout` pins its own width. Changing
      this needs a real Safari, not a headless Chromium
-     (plans/areas/homepage.md → F31 `centering-said-4x`).
+     (plans/areas/homepage.md → `centering-said-4x`).
 
      Horizontal centering of the page's content is the PAGEMAIN's own, and is
      the one rule: it is the thing with a max-width, so it is the thing with

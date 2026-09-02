@@ -649,8 +649,8 @@ flex row with a gap.
 Moved here from the CSS sprint's `forms` area on 2026-08-25 (it was F32,
 `freebee-twins-byte-identical`) — the shared field vocabulary is that area's, but
 deleting these two files is the pair's own work. The related shared findings, if
-you want the evidence: `plans/areas/forms.md` F31 (`letter-input-unnamed`), F34
-(`label-above-control`), F36 (`stack-repeated`).
+you want the evidence, are the `forms` area's `letter-input-unnamed`,
+`label-above-control` and `stack-repeated`.
 
 Two shared items also touch this game:
 

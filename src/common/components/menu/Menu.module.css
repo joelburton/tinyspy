@@ -29,7 +29,7 @@
 }
 
 /* Sized in em, so the mark tracks whatever type it sits beside instead of being
-   the one pixel dimension in the header (plans/areas/homepage.md → F42). */
+   the one pixel dimension in the header (plans/areas/homepage.md). */
 /* @@ */ .chevron {
   width: 0.65em;
   height: 0.65em;

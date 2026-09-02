@@ -186,7 +186,7 @@ select pg_temp.envelope_is(
 
 -- The ONE validation crosswords makes, and the last thing the error sprint's
 -- create_game run was waiting for: until the setup form became one field
--- (plans/areas/forms.md → F50 `puzzle-source-picks-in-a-dialog`) there was no
+-- (plans/areas/forms.md → `puzzle-source-picks-in-a-dialog`) there was no
 -- NAME for it to land under, so it would have shown on the dialog's bottom line
 -- exactly as it already did.
 --

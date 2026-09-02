@@ -2,7 +2,7 @@
 
 /**
  * A FORM'S ERRORS — one object, keyed by field `name`, plus one key for the
- * message that isn't about any single field (plans/areas/forms.md → F48).
+ * message that isn't about any single field (plans/areas/forms.md).
  *
  * The same shape whoever wrote the message: a client-side check writes into it
  * directly, and a server `validation` contributes one entry from the envelope's
