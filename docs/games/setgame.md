@@ -701,9 +701,11 @@ would file a bug report for.
   Not small, and it is why this is deferred rather than done: **765 mentions in
   `src/setgame/`, 141 in SQL, 128 in this doc.** The SQL half is the part that
   costs — `cards` is a column and appears in `smallint` declarations, loop
-  variables and function bodies across `supabase/sql/setgame.sql`, so it is a
-  DB-touching rename, indexed in [`plans/db-work-2.md`](../../plans/db-work-2.md).
-  The FE half includes `components/Card.tsx`, `lib/cards.ts` and their tests.
+  variables and function bodies across `supabase/sql/setgame.sql`, so this is the
+  rare deferral that needs a **forward migration** for the column rename on top of
+  the in-place edit to `supabase/sql/setgame.sql` (CLAUDE.md → "Write a NEW
+  migration; never edit an applied one"). The FE half includes
+  `components/Card.tsx`, `lib/cards.ts` and their tests.
 
   Worth doing when setgame's CSS/tile-feedback pass comes up, so the rename
   rides along with a pass that is already opening every one of these files.

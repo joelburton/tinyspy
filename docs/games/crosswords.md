@@ -624,6 +624,9 @@ This is the **canonical deferred register** for crosswords — distilled from th
 - **`fetch-nyt-range` bulk CLI** — a Node script to download a date range
   of NYT dailies into the library; blocked on the `NYT_COOKIE_JAR` secret (same as
   the live NYT fetch). Workaround: run crossplay's script, then `gmake g-crosswords-puzzles`.
+  **Data, not schema:** it writes rows into the existing `crosswords.puzzles`, so
+  it needs no migration however large it gets — the cost it carries is the picker
+  bound below, not a shape change.
 - **⌥M "open the menu" shortcut** — the rest of crossplay's ⌥-set is
   ported (§7); ⌥M stays out because the shell exposes no programmatic menu-open to a
   PlayArea, and `?` / the logo already open it.

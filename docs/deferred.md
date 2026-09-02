@@ -19,13 +19,22 @@ Don't put a won't-do under "Deferred," or it reads as a backlog item forever. Ga
 
 When an item gets picked up, delete it. When a new "we'll do this later" decision happens, add it to the right place.
 
-**Database-touching items are indexed in [`plans/db-work-2.md`](../plans/db-work-2.md)** — a whole-docs sweep (every game's `## Deferred`, not just this file). It was written while migrations were free; they are not any more (CLAUDE.md → "Production software"), so the index is now just an index. Delete it when it empties.
+**Database-touching items are NOT indexed separately** — each lives in the doc
+that owns it, like any other deferral. Two queues once collected them
+(`db-work.md`, then `plans/db-work-2.md`), and both existed for a reason that
+expired: while the alpha prior made baselines editable, schema work was cheap and
+worth batching. Since 2026-08-13 a shape change is a forward migration against
+data that must survive (CLAUDE.md → "Production software"), so DB work is no
+cheaper for being listed together and an index buys nothing.
 
-*(An earlier queue lived in `db-work.md` (deleted) from 2026-08-02 to 2026-08-03,
-while the alpha prior made migrations free. It emptied — the solution-reveal
-flag shipped, the profile-hardening and `default_setup` items were settled as
-standing rules rather than work, and the last pgTAP gaps were closed — so the
-file is gone; `plans/db-work-2.md` is its successor with a wider net.)*
+*Worth knowing before anyone sweeps for hidden DB work again:* the second queue
+WAS a whole-docs sweep — every `## Deferred`, `## Open decisions`, `### Open
+questions` and `## TODO` across `docs/` and `docs/games/` — and it found only two
+DB-touching items, both of which are still open and now live with their games:
+crosswords' bulk import ([data, not schema](games/crosswords.md#9-deferred)) and
+setgame's [`card` → `tile` rename](games/setgame.md#deferred), the one deferral
+here that needs a forward migration. Everything else it examined was FE, CSS or a
+ratified decision.
 
 *(A future pass may split `## Deferred` further into "useful now" vs "far-future idea" — game-by-game, when each is next opened.)*
 
