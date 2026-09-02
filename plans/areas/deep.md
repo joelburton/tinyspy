@@ -31,9 +31,9 @@ understood, tidied* — `cs-blessed` here means he has read the file, not seen i
 
 **Every heading says its status**; a heading with **no status prefix means OPEN**.
 
-**One pass of three has run** — the boot path, 2026-09-02, twelve findings. One
-RESOLVED (`F-deep-2`), one CLOSED (`F-deep-3`), one MOVED to `corecss`
-(`F-deep-1`); the other nine are open. The data path and the realtime plumbing
+**One pass of three has run** — the boot path, 2026-09-02, twelve findings. Two
+RESOLVED (`F-deep-2`, `F-deep-4`), one CLOSED (`F-deep-3`), one MOVED to
+`corecss` (`F-deep-1`); the other eight are open. The data path and the realtime plumbing
 have not been read.
 
 ## The roster — 31 files, 4,797 lines
@@ -139,7 +139,7 @@ modal — but it has three live consumers (`ClubGameCard:59`, `GamePage:178`, `E
 ## Findings — pass 1, the boot path
 
 Twelve — **F-deep-1 … F-deep-12**. Every heading says its status; a heading with
-no status prefix means OPEN, and nine are.
+no status prefix means OPEN, and eight are.
 
 ## MOVED · F-deep-1 · `stylesheet-map-rotted` · main.tsx's map of the stylesheet chain names two files that were deleted
 
@@ -203,7 +203,7 @@ behind the session probe".
 > them. It does not: the exclusion is total, and a finding about when those
 > routes render is a finding about those routes. Nothing changes in `App.tsx`.
 
-## F-deep-4 · `boot-has-no-failure-path` · Two ways the boot can end in a white screen, neither of them announced
+## RESOLVED · F-deep-4 · `boot-has-no-failure-path` · Two ways the boot can end in a white screen, neither of them announced
 
 `main.tsx` has two unguarded steps:
 
@@ -223,7 +223,27 @@ it silently.
 Whether boot deserves a real error path is a decision — the alternative is a
 `try/catch` that paints a plain "couldn't start" message with the diagnostics line.
 
-> resolution:
+> **resolution: the try/catch, kept small** (Joel, 2026-09-02) — *"we don't
+> need/want anything complex here, but they shouldn't get a totally white page,
+> either — so a simple try/catch with whatever diagnostics are cheap would be
+> good."*
+>
+> The theme load, the `#root` lookup and the render sit inside one `try`. The `!`
+> is gone: a missing `#root` throws with a reason instead of asserting one away.
+>
+> The catch **paints itself** — plain DOM with inline styles, `textContent` not
+> `innerHTML` — because nothing has rendered yet and the stylesheet chain is one
+> of the things that can have failed. It shows one sentence and the app's own
+> `diagnosticsLine('FAULT', …)`, which was already in the module graph, so the
+> cheap diagnostics are also the standard format. The same line goes to
+> `console.error`.
+>
+> **The ordering is now stated** in one clause on `reloadOnStaleChunk()`:
+> registered before the await below, which is itself a dynamic import.
+>
+> `tsc -b` and eslint clean; `vite build` succeeds and the failure path survives
+> minification (checked in the bundle, since a top-level `await` inside a
+> `try` is the sort of thing a build target can quietly reject).
 
 ## F-deep-5 · `usepath-misses-updates-before-mount` · A navigate() between first render and effect commit is lost
 
