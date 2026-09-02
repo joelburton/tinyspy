@@ -263,8 +263,18 @@ named ([ui.md → the menu is the legend](../ui.md#button-iconography)). The men
 carries **Reveal solution** for the same reason: the terminal row's boxed-eye
 button had no legend row, the only reveal-capable game missing one.
 
-Both call `log_help`, which bumps `hints_used` and writes an `events` row, and
-the content reaches **every coop player, on three surfaces** (Joel's spec,
+Both call `log_help`, which bumps `hints_used` and writes an `events` row.
+
+**A failed help-log is shown, not swallowed** (Joel, 2026-09-01). The pill is
+already holding the help itself when the answer arrives, so a refusal replaces
+it — and nothing is lost by that, because `log_help` can only refuse in ways
+that make the help moot: one race that fires once the game is over, and three
+faults that mean a broken client. The reasoning that used to justify swallowing
+it — "the turn log keeps the content, so the pill is a convenience copy" — is
+true only when the write SUCCEEDS; a failed write is precisely the case where
+the log has nothing.
+
+The content reaches **every coop player, on three surfaces** (Joel's spec,
 2026-08-05): the requester's own pill; the teammates' pills — a header line
 naming the act ("● joel got a hint" / "● joel revealed a word") plus the same
 content pill the requester saw, because a hint one player asks for is a hint
@@ -454,26 +464,44 @@ schema comment says so because it's the mistake a future reader will make.
 
 ### Server rejections
 
-Every `raise` here is a key, not a sentence
-([supabase.md → Server errors](../supabase.md#server-errors-the-server-raises-a-key-typescript-owns-the-words)).
-Eight have player copy. Five are mid-game, and which five is the whole point:
-coop's chain is SHARED and free-for-all, so a teammate's word can land between
-your local check and your submit — `chain-full`, `already-in-chain`,
-`wrong-tail`, `already-ended`, `nothing-to-undo`. That's a legal move that lost
-a race.
+Every raise answers in [an envelope](../envelopes.md), writing its own sentence
+at the site that knows the condition. What the four turn RPCs can say:
 
-The other three fire at CREATE time and land on the setup dialog's error line
-rather than the below-board pill: `unknown-board`, `unverified-board` and
-`board-needs-band`, the three ways a typed board fails (above). Same
-classification as the five, for the same reason — the frontend validates the
-*shape* of a board and deliberately can't know whether those twelve letters are
-one we can prove, so a player reaches them on a perfectly good client.
+| | | |
+|---|---|---|
+| `PN400` "Must start with G" | `race` | |
+| `PN401` "Chain is full" | `race` | |
+| `PN402` "Already played" | `race` | |
+| `PN407` "Nothing to undo" | `race` | |
+| `PN397` / `PN405` / `PN409` / `PN413` "Game over" | `race` | one per RPC |
+| `PN398` / `PN406` / `PN410` "Already conceded" | `race` | |
+| `PN243` "Not your turn" | `race` | from `common._require_turn` |
+| `PN399` "BUG: a word under three letters" | `fault` | |
+| `PN403` "BUG: a word this board cannot play" | `fault` | |
+| `PN411` "BUG: a clear in turn-by-turn coop" | `fault` | |
+| `PN414` "BUG: help in a compete game" | `fault` | |
+| `PN415` "BUG: help of an unknown kind" | `fault` | |
+| `PN396` / `PN404` / `PN408` / `PN412` "That game no longer exists" | `fault` | one per RPC |
 
-Every other raise re-validates something `rejectReason` already refused
-locally, so it can't be reached without a broken client and deliberately has no
-copy: it shows as a fault. `unplayable-board|BITCH|` on screen means the
-frontend is out of step with the board, which is exactly what you'd want to
-know.
+**The split runs through `submit_word`'s five shape checks, and it is the one
+judgment worth understanding here.** `rejectReason` (`lib/board.ts`) checks all
+five before every submit, so reaching any of them means the frontend's answer
+and the server's differ — but *why* they differ decides the severity:
+
+- **The word and the board are FIXED.** The frontend holds `playable_words` and
+  applies the dictionary, the letters and the same-side rule itself. Nothing can
+  change under it, so a disagreement is a broken client — wordiply's `fe_legal`
+  ruling (PN367) arriving in another game.
+- **The CHAIN is shared, and coop is free-for-all.** A teammate's word lands
+  between your local check and your submit, and the three checks that read the
+  chain — its length, its contents, its tail — flip underneath you. Those are
+  races: a legal move that lost one.
+
+The racing three keep `rejectReason`'s exact words ("Chain is full", "Already
+played", "Must start with X"), so the same rule arriving by the other route is
+not described differently. And the three ways a typed board fails
+(`unknown-board`, `unverified-board`, `board-needs-band`) are still separate:
+they fire at CREATE time and land on the setup dialog's error line.
 
 ### The two word lists
 
@@ -717,6 +745,16 @@ genuinely unpartitionable pair), `isPlayable`, `isOneWordSolvable`,
 - **Rare-letter weighting for the seed pool** (wordwheel's precedent), so
   J/Q/X boards appear deliberately rather than at their natural frequency.
   Defers cleanly.
+- **Consider removing `clear_chain`** (raised 2026-09-01, converting the area
+  to envelopes). It is a live, granted RPC that **nothing can reach**: the
+  frontend's `runChainRpc` is typed `'undo_word' | 'clear_chain'` and its one
+  caller passes `'undo_word'`, so the second name exists only as a member of
+  that union. Its absence from the UI is a decision rather than an oversight
+  (§5 → "Undo and clear"), which is why it was left standing — but an
+  unreachable RPC still has to be designed, converted, tested and carried, and
+  it now has four raise codes of its own (PN408–PN411). Removing it would take
+  the function, its grant, the union member and its roster row together;
+  keeping it means keeping all four.
 
 ## Won't do
 

@@ -19,8 +19,7 @@ import type { LetterboxedSetup } from '../lib/setup'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
-import { callRpc } from '../../common/lib/game/callRpc'
-import { runEdgeFn } from '../../common/lib/supabase/dbResult'
+import { runEdgeFn, runRpc } from '../../common/lib/supabase/dbResult'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
@@ -73,6 +72,31 @@ type LeaderRow = {
  * submission is a chain APPEND whose legality depends on the word before it,
  * so the validation lives in `lib/board.ts` and the commit is a plain RPC.
  */
+/**
+ * What `submit_word` answers. TWO `ok`s — the word landed, or it landed and
+ * covered the twelve. `accepted`, `letters_covered` and `solved` are the
+ * fields this RPC has always returned; `result` is what names the case.
+ */
+type WordAnswer = {
+  result: 'accepted' | 'solved'
+  accepted: true
+  letters_covered: number
+  solved: boolean
+}
+
+/** What `undo_word` and `clear_chain` answer — one `ok` each, and the pair
+ *  shares a call site, so it shares a type. */
+type ChainAnswer =
+  | { result: 'undone'; word: string; letters_covered: number }
+  | { result: 'cleared'; letters_covered: 0 }
+
+/** What `log_help` answers: one `ok`, echoing the row it wrote. */
+type HelpAnswer = {
+  result: 'logged'
+  kind: 'hint' | 'spoiler'
+  word: string
+}
+
 export function PlayArea(ctx: GamePageCtx) {
   const {
     gameId, isTerminal, playState, players, session, status,
@@ -164,33 +188,53 @@ export function PlayArea(ctx: GamePageCtx) {
       return
     }
     setBusy(true)
-    const refused = await callRpc(db, 'submit_word', { target_game: gameId, submitted: word })
+    const res = await runRpc<WordAnswer>(
+      db.rpc('submit_word', { target_game: gameId, submitted: word }),
+    )
     setBusy(false)
-    if (refused) {
-      showLocalFeedback(refused)
+    // `rejectReason` above has already refused every shape the FRONTEND can
+    // judge alone, in these same words. What still reaches the server is the
+    // shared chain moving under you — coop is free-for-all, so a teammate's
+    // word can fill the cap, take your word, or change the tail between the
+    // local check and this call — plus the game ending, a concede landing, the
+    // turn moving. Races, all of them, and the draft stays put: the word was
+    // not taken, and it may well be legal again next second.
+    if (res.type === 'not-ok') {
+      showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
       return
-    }
-    // The next word's first letter comes from the chain, which the realtime
-    // refetch is about to update — so clearing the draft is all that's needed.
-    setDraft('')
-    // The accepted-word pill restates the cap: with no mobile status bar the
-    // board shows WHICH letters are covered and the strip shows the words, but
-    // "how many words are left" has no ambient home on a phone, so every
-    // accepted word says it. TIMED, not sticky (Joel's call, 2026-08-05): a
-    // sticky pill sits in the entry's slot until the next keystroke, which
-    // made every submit feel like a modal moment — this one says its piece
-    // and hands the entry back on its own. A solve is pre-empted by the
-    // terminal verdict and a cap-filling word by BoardCol's chainFull pill
-    // (both outrank localPill), so the two zero-cases need no branches here.
-    const wordsLeft = maxWords - (chain.length + 1)
-    if (wordsLeft > 0) {
-      showLocalFeedback({
-        tone: 'won',
-        text: `${word.toUpperCase()} — ${wordsLeft} ${wordsLeft === 1 ? 'word' : 'words'} left`,
-        mode: { kind: 'timed' },
-      })
-    } else {
+    } else if (res.type === 'ok' && res.data.result === 'accepted') {
+      // The next word's first letter comes from the chain, which the realtime
+      // refetch is about to update — so clearing the draft is all that's needed.
+      setDraft('')
+      // The accepted-word pill restates the cap: with no mobile status bar the
+      // board shows WHICH letters are covered and the strip shows the words, but
+      // "how many words are left" has no ambient home on a phone, so every
+      // accepted word says it. TIMED, not sticky (Joel's call, 2026-08-05): a
+      // sticky pill sits in the entry's slot until the next keystroke, which
+      // made every submit feel like a modal moment — this one says its piece
+      // and hands the entry back on its own. A cap-filling word is pre-empted by
+      // BoardCol's chainFull pill (which outranks localPill), so the zero case
+      // needs no branch here.
+      const wordsLeft = maxWords - (chain.length + 1)
+      if (wordsLeft > 0) {
+        showLocalFeedback({
+          tone: 'won',
+          text: `${word.toUpperCase()} — ${wordsLeft} ${wordsLeft === 1 ? 'word' : 'words'} left`,
+          mode: { kind: 'timed' },
+        })
+      } else {
+        clearLocalFeedback()
+      }
+      return
+    } else if (res.type === 'ok' && res.data.result === 'solved') {
+      // The terminal verdict outranks localPill and is about to arrive on the
+      // play_state, so this says nothing and only hands the entry back.
+      setDraft('')
       clearLocalFeedback()
+      return
+    } else {
+      showFaultModal({ text: 'BUG: submit_word fell through to unhandled' })
+      return
     }
   }, [game, busy, chain, draft, sides, playable, maxWords, gameId, showLocalFeedback, clearLocalFeedback])
 
@@ -212,14 +256,25 @@ export function PlayArea(ctx: GamePageCtx) {
   const runChainRpc = useCallback(
     async (fn: 'undo_word' | 'clear_chain') => {
       setBusy(true)
-      const bad = await callRpc(db, fn, { target_game: gameId })
+      const res = await runRpc<ChainAnswer>(db.rpc(fn, { target_game: gameId }))
       setBusy(false)
-      if (bad) {
-        showLocalFeedback(bad)
+      if (res.type === 'not-ok') {
+        showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+        return
+      } else if (res.type === 'ok' && res.data.result === 'undone') {
+        // The shortened chain arrives by subscription and the strip redraws
+        // itself; all this owes the player is the entry back.
+        setDraft('')
+        clearLocalFeedback()
+        return
+      } else if (res.type === 'ok' && res.data.result === 'cleared') {
+        setDraft('')
+        clearLocalFeedback()
+        return
+      } else {
+        showFaultModal({ text: `BUG: ${fn} fell through to unhandled` })
         return
       }
-      setDraft('')
-      clearLocalFeedback()
     },
     [gameId, showLocalFeedback, clearLocalFeedback],
   )
@@ -238,7 +293,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // coop-only — in compete, "first past the bar wins" would make either a win
   // button, and the server refuses them there too.
   const askHelp = useCallback(
-    (kind: 'hint' | 'spoiler') => {
+    async (kind: 'hint' | 'spoiler') => {
       if (!game) return
       // `cleanWords`, NOT `playableWords` — the accept list carries crude,
       // slur, slang and dialect words because the PLAYER may type them, and a
@@ -326,21 +381,34 @@ export function PlayArea(ctx: GamePageCtx) {
       // would mean either blocking input until the × is pressed, or a pill that
       // hides the entry you're typing into.
       //
-      // It costs nothing to lose: the turn log keeps the hint's CONTENT ("Hint:
-      // 8 letters: ADG"), so the pill is a convenience copy, not the record.
+      // It costs nothing to lose WHEN THE LOG HAS IT: the turn log keeps the
+      // hint's CONTENT ("Hint: 8 letters: ADG"), so the pill is a convenience
+      // copy of that row — which is exactly what a failed write means there
+      // isn't. So a refusal REPLACES this pill rather than being swallowed.
+      // Nothing is lost by that: the four answers below are one race that only
+      // fires once the game is over (a hint has nothing left to be for) and
+      // three faults that mean a broken client, so no player is holding a hint
+      // they could still have used (Joel, 2026-09-01).
       showLocalFeedback(stickyPill('noted', helpPillText(kind, r.word)))
-      void db
-        .rpc('log_help', { target_game: gameId, word_shown: r.word, kind })
-        .then(({ error }) => {
-          // Log-and-swallow: the player already has their answer, so a failed
-          // write must not change what they see — but it must not vanish either.
-          if (error) console.error('recording help failed', error)
-        })
+      const res = await runRpc<HelpAnswer>(
+        db.rpc('log_help', { target_game: gameId, word_shown: r.word, kind }),
+      )
+      if (res.type === 'not-ok') {
+        showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+        return
+      } else if (res.type === 'ok' && res.data.result === 'logged') {
+        // The help row arrives in the turn log by subscription. The pill above
+        // stands, which is the whole of what a successful log owes anyone.
+        return
+      } else {
+        showFaultModal({ text: 'BUG: log_help fell through to unhandled' })
+        return
+      }
     },
     [game, sides, chain, maxWords, gameId, showLocalFeedback],
   )
-  const takeHint = useCallback(() => askHelp('hint'), [askHelp])
-  const takeSpoiler = useCallback(() => askHelp('spoiler'), [askHelp])
+  const takeHint = useCallback(() => void askHelp('hint'), [askHelp])
+  const takeSpoiler = useCallback(() => void askHelp('spoiler'), [askHelp])
 
   // Reveal the seeded pair — LOCAL and reversible (useSolutionReveal), and
   // never automatic: a letterboxed win is covering the twelve letters with ANY

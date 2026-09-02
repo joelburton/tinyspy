@@ -22,6 +22,7 @@ set search_path = letterboxed, common, public, extensions;
 select plan(8);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -96,10 +97,10 @@ select is(
   'a rival''s chain becomes readable once the race is over'
 );
 
-select throws_ok(
-  format('select letterboxed.submit_word(%L, %L)', (select id from g), 'gjb'),
-  'P0001',
-  'already-ended|',
+select pg_temp.envelope_is(
+  letterboxed.submit_word((select id from g), 'gjb'),
+  '{"type":"not-ok","severity":"race","dbcode":"PN397",
+    "message":"Game over"}'::jsonb,
   'no further moves once it is over'
 );
 

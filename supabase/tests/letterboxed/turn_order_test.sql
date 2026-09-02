@@ -56,19 +56,19 @@ select is(
 
 -- (2) bea submitting out of turn is rejected.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select throws_ok(
-  format('select letterboxed.submit_word(%L, %L)', (select id from g), 'adg'),
-  'P0001',
-  'not-your-turn|',
+-- PN243 comes from `common._require_turn`, shared by every turn-based game.
+select pg_temp.envelope_is(
+  letterboxed.submit_word((select id from g), 'adg'),
+  '{"type":"not-ok","severity":"race","dbcode":"PN243"}'::jsonb,
   'turns: the non-current player is rejected'
 );
 
 -- (3) A rejected word is a misfire, not a turn: the pointer stays on ada.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select throws_ok(
-  format('select letterboxed.submit_word(%L, %L)', (select id from g), 'zzz'),
-  'P0001',
-  'unplayable-board|ZZZ|',
+select pg_temp.envelope_is(
+  letterboxed.submit_word((select id from g), 'zzz'),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN403",
+    "message":"BUG: a word this board cannot play"}'::jsonb,
   'turns: an unplayable word is refused'
 );
 reset role;
@@ -107,10 +107,12 @@ select ok(
 
 -- (6) clear_chain is not available in turn coop.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select throws_ok(
-  format('select letterboxed.clear_chain(%L)', (select id from g)),
-  'P0001',
-  'clear-not-in-turns|',
+-- A FAULT, not a refusal: whether a game runs turn-by-turn is fixed when it is
+-- created, so no unbroken client would offer clear here.
+select pg_temp.envelope_is(
+  letterboxed.clear_chain((select id from g)),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN411",
+    "message":"BUG: a clear in turn-by-turn coop"}'::jsonb,
   'turns: clear is refused (it would undercut undo''s per-turn pricing)'
 );
 

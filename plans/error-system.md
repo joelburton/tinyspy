@@ -1,19 +1,18 @@
 # The error system — results, rejections, and faults
 
-**Status: in flight — 123 of the 157 roster entries in §7 are converted.**
+**Status: in flight — 127 of the 157 roster entries in §7 are converted.**
 
-**The 34 open rows are 30 conversions**, because the cross-cutting four appear
+**The 30 open rows are 26 conversions**, because the cross-cutting four appear
 once per area. That is the number to plan against.
 
-**Where to pick up (2026-09-01).** Twelve of the sixteen games are finished —
-codenamesduet and psychicnum were the eleventh and twelfth — so work remains
-in FOUR, 26 pieces:
+**Where to pick up (2026-09-01).** Thirteen of the sixteen games are finished —
+codenamesduet, psychicnum and letterboxed took it to thirteen — so work
+remains in THREE, 22 pieces:
 
 | area | left |
 |---|---|
 | crosswords | 10 — 8 RPCs + 2 reads (`useCells.ts:99`, and the solution fetch at `PlayArea.tsx:179`; `useGame`'s is done) |
 | scrabble | 8 RPCs — but SIX are thin wrappers over three shared cores, and both context RPCs drag an edge function with them |
-| letterboxed | 4 RPCs — `undo_word` + `clear_chain` share a call site, so they convert as one |
 | strands | 4 RPCs |
 
 Then the CROSS-CUTTING FOUR, last, together: `concede`, `end_game`,
@@ -761,7 +760,7 @@ select pg_temp.envelope_is(
 
 ## 7. The conversion roster
 
-**157 entries. 123 done, 34 to go — which is 30 CONVERSIONS** — plus `useWordSubmit`, which is not a
+**157 entries. 127 done, 30 to go — which is 26 CONVERSIONS** — plus `useWordSubmit`, which is not a
 roster entry of its own but carried five call sites across four games (5 of those are the deferred edge
 functions). Cross them off here as they land.
 
@@ -1074,12 +1073,26 @@ refetch), not two places in the source.
 #### letterboxed
 
 - [x] `create_game` · RPC, reached through `letterboxed-build-board`
-- [ ] `clear_chain` · RPC — **added 2026-09-01**, missing from the roster.
-      Shares one call site with `undo_word` (`PlayArea.tsx:213` takes the RPC
-      name as an argument), so the two convert together
-- [ ] `log_help` · RPC
-- [ ] `submit_word` · RPC
-- [ ] `undo_word` · RPC — **added 2026-09-01**; see `clear_chain`
+- [x] `clear_chain` · RPC — PN408–PN411. Converted and treated as real
+      although NOTHING can reach it: `runChainRpc` is typed
+      `'undo_word' | 'clear_chain'` and its one caller passes the first.
+      Whether to delete it instead is now an item in
+      [letterboxed.md](../docs/games/letterboxed.md) → Deferred
+- [x] `log_help` · RPC — PN412–PN415, and its log-and-swallow ENDS: a refusal
+      shows in the pill like any other (Joel, 2026-09-01). The comment that
+      justified swallowing it — the turn log keeps the content — was true only
+      of a write that succeeded
+- [x] `submit_word` · RPC — PN396–PN403, and the area's one real judgment: of
+      the five shape checks `rejectReason` also makes, the two that read the
+      WORD and the BOARD are faults (both are fixed, so a disagreement is a
+      broken client) and the three that read the CHAIN are races (coop's chain
+      is shared and free-for-all, so a teammate moves it under you). The racing
+      three keep `rejectReason`'s exact words. **I first classified all five as
+      faults**; `errorCopy.ts`'s own comment had recorded the split years
+      before, and reading it is what caught the mistake
+- [x] `undo_word` · RPC — PN404–PN407. `nothing-to-undo` is a race twice over:
+      two coop players can undo the same last word, and a fast double-click
+      outruns its own row
 - [x] `events` · read — converted in the useGame sweep; verified 2026-09-01
 - [x] `games_state` · read — converted in the useGame sweep; verified 2026-09-01
 - [x] `players_state` · read — converted in the useGame sweep; verified 2026-09-01

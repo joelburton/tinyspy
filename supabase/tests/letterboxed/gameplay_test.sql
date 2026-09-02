@@ -26,7 +26,7 @@ begin;
 
 set search_path = letterboxed, common, public, extensions;
 
-select plan(29);
+select plan(30);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -87,9 +87,10 @@ select ok(
 );
 
 -- ── 2. A word appends ───────────────────────────────────────
-select is(
-  (letterboxed.submit_word((select id from g), 'adg'))->>'letters_covered',
-  '3',
+select pg_temp.envelope_is(
+  letterboxed.submit_word((select id from g), 'adg'),
+  '{"type":"ok","outcome":"won","data":{"result":"accepted",
+    "accepted":true,"letters_covered":3,"solved":false}}'::jsonb,
   'submit_word reports the letters the chain now covers'
 );
 
@@ -122,37 +123,44 @@ select is(
 );
 
 -- ── 3. The rejections ───────────────────────────────────────
-select throws_ok(
-  format('select letterboxed.submit_word(%L, %L)', (select id from g), 'zzz'),
-  'P0001',
-  'unplayable-board|ZZZ|',
+-- A FAULT: the board and the dictionary are fixed, and the frontend holds
+-- `playable_words` and checks against it first, so a word this board cannot
+-- play did not come from our board.
+select pg_temp.envelope_is(
+  letterboxed.submit_word((select id from g), 'zzz'),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN403",
+    "message":"BUG: a word this board cannot play"}'::jsonb,
   'a word outside playable_words is refused'
 );
 
-select throws_ok(
-  format('select letterboxed.submit_word(%L, %L)', (select id from g), 'ila'),
-  'P0001',
-  'wrong-tail|G|',
+-- A RACE, where the two above are faults: coop's chain is SHARED and
+-- free-for-all, so a teammate's word can change the tail between the
+-- frontend's own check and this call. The words are `rejectReason`'s, verbatim.
+select pg_temp.envelope_is(
+  letterboxed.submit_word((select id from g), 'ila'),
+  '{"type":"not-ok","severity":"race","dbcode":"PN400",
+    "message":"Must start with G"}'::jsonb,
   'THE CHAIN RULE: the next word must start with the tail letter'
 );
 
-select throws_ok(
-  format('select letterboxed.submit_word(%L, %L)', (select id from g), 'ad'),
-  'P0001',
-  'word-too-short|',
+select pg_temp.envelope_is(
+  letterboxed.submit_word((select id from g), 'ad'),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN399",
+    "message":"BUG: a word under three letters"}'::jsonb,
   'two letters is below the floor'
 );
 
 -- 'gjb' legally follows 'adg'; replaying 'adg' does not.
-select lives_ok(
-  format('select letterboxed.submit_word(%L, %L)', (select id from g), 'gjb'),
+select pg_temp.envelope_is(
+  letterboxed.submit_word((select id from g), 'gjb'),
+  '{"type":"ok","data":{"result":"accepted","solved":false}}'::jsonb,
   'a word starting with the tail letter is accepted'
 );
 
-select throws_ok(
-  format('select letterboxed.submit_word(%L, %L)', (select id from g), 'gjb'),
-  'P0001',
-  'already-in-chain|GJB|',
+select pg_temp.envelope_is(
+  letterboxed.submit_word((select id from g), 'gjb'),
+  '{"type":"not-ok","severity":"race","dbcode":"PN402",
+    "message":"Already played"}'::jsonb,
   'a repeat is a no-op loop and is refused'
 );
 
@@ -195,7 +203,7 @@ select is(
 select letterboxed.submit_word((select id from g), 'adgjbehk');
 
 select is(
-  (letterboxed.submit_word((select id from g), 'kcfil'))->>'solved',
+  (letterboxed.submit_word((select id from g), 'kcfil'))->'data'->>'solved',
   'true',
   'covering all twelve letters solves the board'
 );
@@ -220,10 +228,10 @@ select is(
   'the terminal restates coverage rather than inheriting the last move''s'
 );
 
-select throws_ok(
-  format('select letterboxed.submit_word(%L, %L)', (select id from g), 'adg'),
-  'P0001',
-  'already-ended|',
+select pg_temp.envelope_is(
+  letterboxed.submit_word((select id from g), 'adg'),
+  '{"type":"not-ok","severity":"race","dbcode":"PN397",
+    "message":"Game over"}'::jsonb,
   'no further moves once it is over'
 );
 
@@ -291,18 +299,25 @@ select (letterboxed.create_game(
 select letterboxed.submit_word((select id from gt), 'adg');
 select letterboxed.submit_word((select id from gt), 'gjb');
 
-select throws_ok(
-  format('select letterboxed.submit_word(%L, %L)', (select id from gt), 'beh'),
-  'P0001',
-  'chain-full|2|',
+select pg_temp.envelope_is(
+  letterboxed.submit_word((select id from gt), 'beh'),
+  '{"type":"not-ok","severity":"race","dbcode":"PN401",
+    "message":"Chain is full"}'::jsonb,
   'a full chain refuses a further word'
 );
 
 -- The refund property AT the cap: taking a word back reopens the slot —
 -- and an undone word is no longer "already in the chain", so it may return.
-select letterboxed.undo_word((select id from gt));
-select lives_ok(
-  format('select letterboxed.submit_word(%L, %L)', (select id from gt), 'gjb'),
+-- Undo NAMES the word it popped, which is the fact that makes the next line
+-- meaningful rather than coincidental.
+select pg_temp.envelope_is(
+  letterboxed.undo_word((select id from gt)),
+  '{"type":"ok","outcome":"neutral","data":{"result":"undone","word":"gjb"}}'::jsonb,
+  'undo answers with the word it took back'
+);
+select pg_temp.envelope_is(
+  letterboxed.submit_word((select id from gt), 'gjb'),
+  '{"type":"ok","data":{"result":"accepted"}}'::jsonb,
   'undo refunds against the cap — the slot reopens'
 );
 

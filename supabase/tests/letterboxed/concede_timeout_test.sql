@@ -24,6 +24,7 @@ set search_path = letterboxed, common, public, extensions;
 select plan(11);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 -- ============================================================
@@ -55,24 +56,24 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select letterboxed.concede((select id from ga));
 
 -- ── 1. The frozen chain ─────────────────────────────────────
-select throws_ok(
-  format('select letterboxed.submit_word(%L, %L)', (select id from ga), 'kcf'),
-  'P0001',
-  'you-conceded|',
+select pg_temp.envelope_is(
+  letterboxed.submit_word((select id from ga), 'kcf'),
+  '{"type":"not-ok","severity":"race","dbcode":"PN398",
+    "message":"Already conceded"}'::jsonb,
   'a conceded player cannot submit a word'
 );
 
-select throws_ok(
-  format('select letterboxed.undo_word(%L)', (select id from ga)),
-  'P0001',
-  'you-conceded|',
+select pg_temp.envelope_is(
+  letterboxed.undo_word((select id from ga)),
+  '{"type":"not-ok","severity":"race","dbcode":"PN406",
+    "message":"Already conceded"}'::jsonb,
   'a conceded player cannot undo'
 );
 
-select throws_ok(
-  format('select letterboxed.clear_chain(%L)', (select id from ga)),
-  'P0001',
-  'you-conceded|',
+select pg_temp.envelope_is(
+  letterboxed.clear_chain((select id from ga)),
+  '{"type":"not-ok","severity":"race","dbcode":"PN410",
+    "message":"Already conceded"}'::jsonb,
   'a conceded player cannot clear'
 );
 

@@ -37,8 +37,25 @@ import { describe, expect, it } from 'vitest'
  * first run of this guard reported `EditClubModal`'s perfectly good
  * `set_club_gametypes` call as a crossed wrapper.
  */
+/**
+ * The builder each wrapper takes. The two patterns are deliberately NOT
+ * symmetric:
+ *
+ *   - `query` requires a quoted table name, because `.from(` is not ours
+ *     alone — `Array.from(gametypes)` sits inside a `runRpc` argument in
+ *     `EditClubModal`, and without the quote it reads as a table query being
+ *     handed to the RPC wrapper.
+ *   - `rpc` does not, because an RPC's NAME is sometimes a variable and
+ *     legitimately so: letterboxed's `runChainRpc` takes
+ *     `'undo_word' | 'clear_chain'` so one helper serves both actions.
+ *     Nothing else in the codebase spells `.rpc(`, so the method alone is a
+ *     safe signal here where it is not for `.from(`.
+ *
+ * What the guard is actually looking for either way is a CROSSED call —
+ * `readRows` handed an RPC, `runRpc` handed a table query.
+ */
 const BUILDER = {
-  rpc: /\.rpc\(\s*['"`]/,
+  rpc: /\.rpc\(/,
   query: /\.from\(\s*['"`]/,
 }
 

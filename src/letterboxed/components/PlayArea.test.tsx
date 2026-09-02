@@ -310,13 +310,13 @@ describe('letterboxed PlayArea — the accept list is wider than the hint list',
  * The submit path runs the same `callRpc`, but reaching it means getting a word
  * past `rejectReason` first — a different test's job.
  */
-describe('letterboxed PlayArea — server keys become player copy', () => {
+describe('letterboxed PlayArea — a refused undo, and who wrote the words', () => {
   /** Take back the last word and have the server refuse it. Undo is used
    *  rather than Reveal because it's reachable MID-GAME: at terminal the
    *  verdict pill owns the slot by priority (localPills.ts) and would hide
    *  whatever we're asserting. */
-  async function undoWith(error: { message: string; code: string }) {
-    rpc.mockResolvedValue({ error })
+  async function undoAnswering(reply: unknown) {
+    rpc.mockResolvedValue(reply)
     h.result = loaded(loadedGame())
     h.result.myRow = { ...myRow, chain: ['bad'] }
     h.result.playerRows = [h.result.myRow]
@@ -325,33 +325,54 @@ describe('letterboxed PlayArea — server keys become player copy', () => {
     await user.click(screen.getByRole('button', { name: 'Take back BAD' }))
   }
 
-  it('a key WITH copy shows the TypeScript words, never the key', async () => {
-    await undoWith({ message: 'already-ended|', code: 'P0001' })
+  /** A refusal as it actually arrives: an HTTP 200 carrying an envelope. */
+  function refusal(over: Record<string, unknown>) {
+    return {
+      data: {
+        type: 'not-ok', data: null, outcome: null, severity: 'race',
+        message: 'Game over', field: null, meta: null,
+        dbcode: 'PN405', detail: null, ...over,
+      },
+      error: null,
+      status: 200,
+    }
+  }
+
+  it('shows the sentence the SERVER wrote', async () => {
+    // The whole inversion this system made: the words come from the raise, at
+    // the site that knows the condition, and the frontend renders them without
+    // a lookup table in between.
+    await undoAnswering(refusal({}))
     expect(screen.getByText('Game over')).toBeInTheDocument()
-    expect(screen.queryByText(/already-ended/)).toBeNull()
   })
 
-  it('...and as a normal pill, because it was anticipated', async () => {
-    await undoWith({ message: 'already-ended|', code: 'P0001' })
+  it('a race reads as a normal pill, not as something broken', async () => {
+    await undoAnswering(refusal({}))
     expect(screen.getByText('Game over').closest('[class*="fault"]')).toBeNull()
+    expect(peekFaultsForTest()).toHaveLength(0)
   })
 
-  it('a key with NO copy routes to the fault MODAL, raw — nobody wrote words for it', async () => {
-    // `game-not-found` is unreachable in normal play, so it has no entry. The
-    // action name comes from the FE, which is the only side that knows it.
-    // Faults never enter the slot any more — the sink sends them to the fault
-    // modal's queue (docs/ui.md → Faults).
-    await undoWith({ message: 'game-not-found|', code: 'P0002' })
-    expect(screen.queryByText('undo|game-not-found|')).toBeNull()
-    expect(peekFaultsForTest().map((f) => f.text)).toContain('undo|game-not-found|')
+  it('a fault raises the modal AND leaves its sentence behind', async () => {
+    // The escalation rule (docs/envelopes.md): the modal is dismissable, so the
+    // surface still has to say what happened once it is gone.
+    await undoAnswering(refusal({
+      severity: 'fault', dbcode: 'PN404', message: 'That game no longer exists',
+    }))
+    await waitFor(() =>
+      expect(peekFaultsForTest().map((f) => f.text)).toContain('That game no longer exists'))
+    expect(screen.getByText('That game no longer exists')).toBeInTheDocument()
   })
 
   it('a transport failure never shows the browser wording', async () => {
     // A rejected fetch arrives with no SQLSTATE; postgrest-js puts the
     // browser's opaque phrasing in `message`, which is worthless to a player.
-    await undoWith({ message: 'TypeError: Load failed', code: '' })
+    // `status: 0` is how it says nothing answered at all.
+    await undoAnswering({
+      data: null, error: { message: 'TypeError: Load failed', code: '' }, status: 0,
+    })
     expect(screen.queryByText(/TypeError/)).toBeNull()
-    expect(peekFaultsForTest().map((f) => f.text)).toContain('undo: Server; try refresh')
+    await waitFor(() =>
+      expect(peekFaultsForTest().map((f) => f.text).join(' ')).toMatch(/refresh and try again/))
   })
 })
 

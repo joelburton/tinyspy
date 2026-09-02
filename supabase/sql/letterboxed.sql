@@ -896,16 +896,21 @@ declare
   v_tail text;
   v_covered int;
   winner_results jsonb;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   caller_id := common.require_game_player(target_game);
 
   select * into g_row from letterboxed.games where id = target_game for update;
   if not found then
-    raise exception 'game-not-found|' using errcode = 'P0002',
+    raise exception 'That game no longer exists'
+      using errcode = 'PN396', hint = 'fault', column = '_',
       detail = 'no letterboxed.games row for target_game';
   end if;
   if (select is_terminal from common.games where id = target_game) then
-    raise exception 'already-ended|' using errcode = 'P0001',
+    -- A race: a teammate solved it or ended it, or the clock ran out, while
+    -- this word was in flight.
+    raise exception 'Game over'
+      using errcode = 'PN397', hint = 'race', column = '_',
       detail = 'common.games.play_state is terminal';
   end if;
 
@@ -916,17 +921,35 @@ begin
   -- branch below would crown them. A drop-out forfeits (strands' ruling).
   if (select conceded from common.game_players
         where game_id = target_game and user_id = caller_id) then
-    raise exception 'you-conceded|' using errcode = 'P0001',
+    raise exception 'Already conceded'
+      using errcode = 'PN398', hint = 'race', column = '_',
       detail = 'caller already dropped out of this compete race';
   end if;
 
   -- No-op when the game isn't turn-based (the pointer is null).
   perform common._require_turn(target_game, caller_id);
 
+  -- ─── The five shape checks, and the split that runs through them ───
+  -- `lib/board.ts`'s `rejectReason` checks all five before every submit, so
+  -- reaching any of them means the frontend's answer and the server's differ.
+  -- WHY they differ is what decides the severity, and it turns on what each
+  -- check reads:
+  --
+  --   * The word and the board are FIXED — the frontend holds `playable_words`
+  --     and applies the dictionary, the letters and the same-side rule itself.
+  --     Nothing can change under it, so a disagreement means a broken client:
+  --     wordiply's `fe_legal` ruling (PN367) arriving in another game.
+  --   * The CHAIN is shared, and coop is free-for-all. A teammate's word lands
+  --     between your local check and your submit, and the three checks that
+  --     read the chain — its length, its contents, its tail — flip underneath
+  --     you. Those are races: you made a legal move and lost it.
+  --
+  -- The racing three keep `rejectReason`'s exact words, so the same rule
+  -- arriving by the other route is not described differently.
   v_word := lower(trim(submitted));
   if v_word !~ '^[a-z]{3,}$' then
-    raise exception 'word-too-short|'
-      using errcode = 'P0001',
+    raise exception 'BUG: a word under three letters'
+      using errcode = 'PN399', hint = 'fault', column = '_',
       detail = 'a word must be at least three letters';
   end if;
 
@@ -934,9 +957,9 @@ begin
   -- the same-side rule: playable_words is exactly the set of words that
   -- satisfy all three, computed once when the board was built.
   if not (g_row.playable_words ? v_word) then
-    raise exception 'unplayable-board|%|', upper(v_word)
-      using errcode = 'P0001',
-      detail = 'word is absent from playable_words (dictionary, letters or side rule)';
+    raise exception 'BUG: a word this board cannot play'
+      using errcode = 'PN403', hint = 'fault', column = '_',
+      detail = format('%L is absent from playable_words (dictionary, letters or side rule)', v_word);
   end if;
 
   -- In coop every row holds the same chain, so the caller's own row is
@@ -947,24 +970,23 @@ begin
    for update;
 
   if cardinality(v_chain) >= g_row.max_words then
-    raise exception 'chain-full|%|',
-                    g_row.max_words
-      using errcode = 'P0001',
-      detail = 'the chain is already at max_words';
+    raise exception 'Chain is full'
+      using errcode = 'PN401', hint = 'race', column = '_',
+      detail = format('the chain is already at max_words (%s)', g_row.max_words);
   end if;
 
   if v_word = any(v_chain) then
-    raise exception 'already-in-chain|%|', upper(v_word)
-      using errcode = 'P0001',
-      detail = 'a repeat is a no-op loop';
+    raise exception 'Already played'
+      using errcode = 'PN402', hint = 'race', column = '_',
+      detail = format('%L is a repeat, which is a no-op loop', v_word);
   end if;
 
   if cardinality(v_chain) > 0 then
     v_tail := right(v_chain[cardinality(v_chain)], 1);
     if left(v_word, 1) <> v_tail then
-      raise exception 'wrong-tail|%|', upper(v_tail)
-        using errcode = 'P0001',
-      detail = 'the next word must start with the chain tail''s last letter';
+      raise exception 'Must start with %', upper(v_tail)
+        using errcode = 'PN400', hint = 'race', column = '_',
+        detail = 'the next word must start with the chain tail''s last letter';
     end if;
   end if;
 
@@ -1037,15 +1059,34 @@ begin
       );
     end if;
 
-    return jsonb_build_object('accepted', true, 'letters_covered', 12, 'solved', true);
+    -- `result` NAMES the ending; `accepted`, `letters_covered` and `solved`
+    -- are the fields this RPC has always returned and they stay exactly as
+    -- they were.
+    return common.ok_envelope(
+      jsonb_build_object('result', 'solved',
+                         'accepted', true, 'letters_covered', 12, 'solved', true),
+      'won');
   end if;
 
   -- Still going: hand the turn on (no-op in a free-for-all game).
   perform common._advance_turn(target_game);
   perform letterboxed._sync_status(target_game);
 
-  return jsonb_build_object(
-    'accepted', true, 'letters_covered', v_covered, 'solved', false);
+  return common.ok_envelope(
+    jsonb_build_object('result', 'accepted',
+                       'accepted', true, 'letters_covered', v_covered, 'solved', false),
+    'won');
+
+-- One block, and it has never heard of any specific condition: it reads the
+-- SQLSTATE, re-raises anything that isn't ours, and lets the raise itself carry
+-- the message, the kind and the field.
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1069,8 +1110,13 @@ grant execute on function letterboxed.submit_word(uuid, text) to authenticated;
 -- undo would make the chain meaningless. It also gives the mode its
 -- best dynamic: undoing doesn't help YOU — you retreat and the NEXT
 -- player inherits the better position, so it reads as a sacrifice.
+-- `create or replace` cannot change a function's return type, and this one
+-- became jsonb. `if exists` because this file is re-applied in full on every
+-- deploy, so the drop has to be a no-op the second time.
+drop function if exists letterboxed.undo_word(uuid);
+
 create or replace function letterboxed.undo_word(target_game uuid)
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = letterboxed, common, public, extensions
@@ -1080,23 +1126,28 @@ declare
   g_row letterboxed.games;
   v_chain text[];
   v_popped text;
+  v_covered int;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   caller_id := common.require_game_player(target_game);
 
   select * into g_row from letterboxed.games where id = target_game for update;
   if not found then
-    raise exception 'game-not-found|' using errcode = 'P0002',
+    raise exception 'That game no longer exists'
+      using errcode = 'PN404', hint = 'fault', column = '_',
       detail = 'no letterboxed.games row for target_game';
   end if;
   if (select is_terminal from common.games where id = target_game) then
-    raise exception 'already-ended|' using errcode = 'P0001',
+    raise exception 'Game over'
+      using errcode = 'PN405', hint = 'race', column = '_',
       detail = 'common.games.play_state is terminal';
   end if;
 
   -- Same guard as submit_word: a conceded player's chain is frozen.
   if (select conceded from common.game_players
         where game_id = target_game and user_id = caller_id) then
-    raise exception 'you-conceded|' using errcode = 'P0001',
+    raise exception 'Already conceded'
+      using errcode = 'PN406', hint = 'race', column = '_',
       detail = 'caller already dropped out of this compete race';
   end if;
 
@@ -1108,7 +1159,11 @@ begin
    for update;
 
   if coalesce(cardinality(v_chain), 0) = 0 then
-    raise exception 'nothing-to-undo|' using errcode = 'P0001',
+    -- A race, and the caller's own: the × renders only on a non-empty chain,
+    -- but the button unlocks on this RPC's reply while the shortened chain
+    -- arrives by subscription — so a fast second click outruns its own row.
+    raise exception 'Nothing to undo'
+      using errcode = 'PN407', hint = 'race', column = '_',
       detail = 'the chain is empty';
   end if;
 
@@ -1122,11 +1177,30 @@ begin
      where game_id = target_game and user_id = caller_id;
   end if;
 
+  v_covered := letterboxed._covered(v_chain);
   insert into letterboxed.events (game_id, user_id, kind, word, letters_covered)
-  values (target_game, caller_id, 'undone', v_popped, letterboxed._covered(v_chain));
+  values (target_game, caller_id, 'undone', v_popped, v_covered);
 
   perform common._advance_turn(target_game);
   perform letterboxed._sync_status(target_game);
+
+  -- `neutral`: a turn that counts (in turn-coop it costs one) but that nothing
+  -- adjudicates — taking a word back is neither good nor bad play.
+  return common.ok_envelope(
+    jsonb_build_object('result', 'undone', 'word', v_popped,
+                       'letters_covered', v_covered),
+    'neutral');
+
+-- One block, and it has never heard of any specific condition: it reads the
+-- SQLSTATE, re-raises anything that isn't ours, and lets the raise itself carry
+-- the message, the kind and the field.
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1142,8 +1216,13 @@ grant execute on function letterboxed.undo_word(uuid) to authenticated;
 -- the pricing undo_word establishes. Repeated undo already reaches the
 -- empty chain there, one turn at a time — which is the right speed, if
 -- a group genuinely needs to start over they should feel it.
+-- `create or replace` cannot change a function's return type, and this one
+-- became jsonb. `if exists` because this file is re-applied in full on every
+-- deploy, so the drop has to be a no-op the second time.
+drop function if exists letterboxed.clear_chain(uuid);
+
 create or replace function letterboxed.clear_chain(target_game uuid)
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = letterboxed, common, public, extensions
@@ -1151,29 +1230,37 @@ as $$
 declare
   caller_id uuid;
   g_row letterboxed.games;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   caller_id := common.require_game_player(target_game);
 
   select * into g_row from letterboxed.games where id = target_game for update;
   if not found then
-    raise exception 'game-not-found|' using errcode = 'P0002',
+    raise exception 'That game no longer exists'
+      using errcode = 'PN408', hint = 'fault', column = '_',
       detail = 'no letterboxed.games row for target_game';
   end if;
   if (select is_terminal from common.games where id = target_game) then
-    raise exception 'already-ended|' using errcode = 'P0001',
+    raise exception 'Game over'
+      using errcode = 'PN409', hint = 'race', column = '_',
       detail = 'common.games.play_state is terminal';
   end if;
 
   -- Same guard as submit_word: a conceded player's chain is frozen.
   if (select conceded from common.game_players
         where game_id = target_game and user_id = caller_id) then
-    raise exception 'you-conceded|' using errcode = 'P0001',
+    raise exception 'Already conceded'
+      using errcode = 'PN410', hint = 'race', column = '_',
       detail = 'caller already dropped out of this compete race';
   end if;
 
   if (select current_turn_user_id from common.games where id = target_game) is not null then
-    raise exception 'clear-not-in-turns|'
-      using errcode = 'P0001',
+    -- A fault, not a refusal: whether a game runs turn-by-turn is fixed when it
+    -- is created and never changes, so no unbroken client would offer the
+    -- action here. Connections' `hint-in-compete` is the same shape, and
+    -- docs/envelopes.md names it as the example of one.
+    raise exception 'BUG: a clear in turn-by-turn coop'
+      using errcode = 'PN411', hint = 'fault', column = '_',
       detail = 'turn-by-turn coop offers undo, not clear';
   end if;
 
@@ -1188,6 +1275,22 @@ begin
   values (target_game, caller_id, 'cleared', null, 0);
 
   perform letterboxed._sync_status(target_game);
+
+  -- `neutral` for the same reason undo is: emptying the chain is a move
+  -- nothing adjudicates.
+  return common.ok_envelope(
+    jsonb_build_object('result', 'cleared', 'letters_covered', 0), 'neutral');
+
+-- One block, and it has never heard of any specific condition: it reads the
+-- SQLSTATE, re-raises anything that isn't ours, and lets the raise itself carry
+-- the message, the kind and the field.
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1212,8 +1315,13 @@ grant execute on function letterboxed.clear_chain(uuid) to authenticated;
 -- the bar" makes the fastest clicker the winner — so the mode check
 -- below is a real rule, not bookkeeping.
 drop function if exists letterboxed.log_hint(uuid, text);
+-- `create or replace` cannot change a function's return type, and this one
+-- became jsonb. `if exists` because this file is re-applied in full on every
+-- deploy, so the drop has to be a no-op the second time.
+drop function if exists letterboxed.log_help(uuid, text, text);
+
 create or replace function letterboxed.log_help(target_game uuid, word_shown text, kind text)
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = letterboxed, common, public, extensions
@@ -1222,24 +1330,33 @@ declare
   caller_id uuid;
   g_row letterboxed.games;
   v_chain text[];
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   caller_id := common.require_game_player(target_game);
 
   select * into g_row from letterboxed.games where id = target_game;
   if not found then
-    raise exception 'game-not-found|' using errcode = 'P0002',
+    raise exception 'That game no longer exists'
+      using errcode = 'PN412', hint = 'fault', column = '_',
       detail = 'no letterboxed.games row for target_game';
   end if;
   if g_row.mode <> 'coop' then
-    raise exception 'help-not-in-compete|' using errcode = 'P0001',
+    -- A fault: the mode is fixed at create_game and the FE renders neither
+    -- help button in compete, so this arriving means a broken client.
+    raise exception 'BUG: help in a compete game'
+      using errcode = 'PN414', hint = 'fault', column = '_',
       detail = 'hint/spoiler would be a win button in a race';
   end if;
   if kind not in ('hint', 'spoiler') then
-    raise exception 'bad-help-kind|%|', kind using errcode = 'P0001',
-      detail = 'log_help kind must be hint or spoiler';
+    raise exception 'BUG: help of an unknown kind'
+      using errcode = 'PN415', hint = 'fault', column = '_',
+      detail = format('log_help kind must be hint or spoiler; got %L', kind);
   end if;
   if (select is_terminal from common.games where id = target_game) then
-    raise exception 'already-ended|' using errcode = 'P0001',
+    -- A race: a teammate solved it, or the clock ran out, between the FE
+    -- computing the help and telling the server it was taken.
+    raise exception 'Game over'
+      using errcode = 'PN413', hint = 'race', column = '_',
       detail = 'common.games.play_state is terminal';
   end if;
 
@@ -1258,6 +1375,25 @@ begin
   insert into letterboxed.events (game_id, user_id, kind, word, letters_covered)
   values (target_game, caller_id, log_help.kind, lower(trim(word_shown)),
           letterboxed._covered(v_chain));
+
+  -- No outcome: the FE has already shown the help itself, in its own pill, and
+  -- this answer only says the log agrees. Its job is to be a not-ok when the
+  -- log does NOT agree.
+  return common.ok_envelope(jsonb_build_object(
+    'result', 'logged',
+    'kind', log_help.kind,
+    'word', lower(trim(word_shown))));
+
+-- One block, and it has never heard of any specific condition: it reads the
+-- SQLSTATE, re-raises anything that isn't ours, and lets the raise itself carry
+-- the message, the kind and the field.
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
