@@ -125,16 +125,13 @@ export async function parseBuildBoardRequest(
  * lets a raise written in SQL reach the player with its own words and its own
  * field — nothing in the two hops between rewrites it.
  *
- * That leaves `error` meaning only what it should: the RPC never ran. A missing
- * function, a revoked grant, PostgREST unreachable. None of those are things the
- * envelope can describe — and `runRpc` is where they now become a fault, along
- * with an answer that is not an envelope at all. This was the first place those
- * two cases were handled, and it owned PN117/PN118 for them; the wrapper owns
- * both now, so the four other functions that copied the pattern stop needing
- * codes of their own.
+ * The two failures that are NOT the RPC's own — it never ran, or it answered
+ * something that is not an envelope — belong to `runRpc`, which turns each into
+ * a fault carrying the RPC's name. So there is nothing left for this function
+ * to decide: it relays.
  *
- * `fnName` survives as the diagnostic tag on the one line this still logs — the
- * envelope's own line comes from `runRpc`.
+ * `fnName` is the diagnostic tag on the one line this logs; the envelope's own
+ * line comes from `runRpc`.
  */
 export async function invokeCreateGame(
   supabase: SupabaseClient,

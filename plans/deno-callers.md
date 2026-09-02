@@ -1,6 +1,6 @@
 # The Deno callers — the fourth quadrant
 
-**Status: the wrapper is BUILT; three of its ten call sites are on it
+**Status: the wrapper is BUILT; four of its ten call sites are on it
 (2026-09-01).** The other seven call RPCs that have not converted yet, and they
 join as those do — see §6. A piece of the error sprint
 ([error-system.md](error-system.md)), split out because it is engine work rather
@@ -191,10 +191,14 @@ the wrapper already there.
       checked what `type` actually WAS
 - [x] `crosswords-import-guardian` — the same, PN241/PN242 deleted
 
+- [x] `codenamesduet-suggest-clue` — converted with
+      `codenamesduet.get_clue_context` itself (2026-09-01), the first call site
+      to UNWRAP rather than relay. PN316 deleted; its shim was the one that
+      started this plan
+
 **Blocked, each on one RPC's conversion** — these keep their shim until then,
 because pointing `runRpc` at an unconverted RPC would fault every SUCCESS:
 
-- [ ] `codenamesduet-suggest-clue` — waits on `codenamesduet.get_clue_context`
 - [ ] `crosswords-explain-clue` — waits on `crosswords.reveal_solved_word`
 - [ ] `scrabble-ai-move` (4 sites) — waits on `get_ai_context` + the three
       `ai_*` move RPCs

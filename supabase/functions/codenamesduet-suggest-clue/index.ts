@@ -19,13 +19,14 @@
  * Every answer is an ENVELOPE (docs/envelopes.md). Two are `service-error` —
  * PN319 the model declining, PN320 its reply cut off: it ran, it just produced
  * no clue, and the clue dialog shows the sentence. The rest are faults, so they
- * raise a modal and close the dialog: PN315 no game, PN316 the context RPC did
- * not run, PN317 a board with nothing left to clue, PN318 no API key, PN321 and
- * PN322 an answer we could not read.
+ * raise a modal and close the dialog: PN315 no game, PN317 a board with nothing
+ * left to clue, PN318 no API key, PN321 and PN322 an answer we could not read.
  *
  * `get_clue_context`'s own refusals — not your turn, not a member, the game is
  * over — are RELAYED untouched. Nothing here knows the board better than the
- * raise that read it.
+ * raise that read it. The call goes through `runRpc`, so "the RPC never ran"
+ * and "it answered something we cannot read" are its faults to name, not this
+ * function's.
  *
  * Secrets:
  *   - ANTHROPIC_API_KEY  required; set via `supabase secrets set` in prod
@@ -43,6 +44,9 @@ import { createClient } from 'jsr:@supabase/supabase-js@2'
 import Anthropic from 'npm:@anthropic-ai/sdk@0.109.0'
 
 type ClueContext = {
+  /** Names the answer. One `ok` today; asserted here so a second one cannot be
+   *  read as this one. */
+  result: 'context'
   greens: string[]
   neutrals: string[]
   // ALL still-unrevealed assassins. A Duet key card has THREE, so this is an
@@ -65,7 +69,8 @@ type Suggestion = {
 }
 
 import { edgeInternal, json, preflight } from '../_shared/http.ts'
-import { fault, isEnvelope, ok, serviceError } from '../_shared/envelope.ts'
+import { fault, ok, serviceError } from '../_shared/envelope.ts'
+import { runRpc } from '../_shared/dbResult.ts'
 
 serve(async (req) => {
   const pre = preflight(req)
@@ -92,24 +97,20 @@ serve(async (req) => {
     // supabase-js defaults to `public` (where it doesn't exist → a "function not
     // found" error that this handler would forward as a misleading 403). Matches
     // every sibling build-board function.
-    const { data, error } = await supabase
-      .schema('codenamesduet')
-      .rpc('get_clue_context', { target_game: gameId })
-    // **The RPC's own answer, relayed untouched.** `get_clue_context` is
-    // converted, so its refusals — not your turn, not a member, the game is
-    // over — arrive as envelopes with their own words and their own severity.
-    // Forwarding beats re-wording: nothing here knows the board better than the
-    // raise that read it.
-    //
-    // `error` therefore means only that the RPC never RAN: a revoked grant,
-    // PostgREST unreachable. That is not something the envelope can describe,
-    // so it is the one case this builds a fault of its own.
-    if (error) {
-      return fault('PN316', 'BUG: get_clue_context did not run', `codenamesduet-suggest-clue: ${error.message} (${error.code})`)
-    }
-    if (isEnvelope(data)) return json(data)
+    const res = await runRpc<ClueContext>(
+      supabase.schema('codenamesduet').rpc('get_clue_context', { target_game: gameId }),
+      'get_clue_context',
+    )
+    // **The RPC's own refusals, relayed untouched** — not your turn, not a
+    // member, the game is over. Forwarding beats re-wording: nothing here knows
+    // the board better than the raise that read it. `runRpc` puts the two
+    // failures that are not the RPC's own — it never ran, it answered something
+    // unreadable — into this same branch, so one line covers all three.
+    if (res.type === 'not-ok') return json(res)
 
-    const ctx = data as ClueContext
+    // The `ok` is UNWRAPPED rather than relayed, because the board it carries is
+    // the first step of this function's work, not its answer.
+    const ctx = res.data
     if (!ctx.greens || ctx.greens.length === 0) {
       // The FE grays the suggest button once every agent is revealed, so
       // reaching this means the button was live when it should not have been.

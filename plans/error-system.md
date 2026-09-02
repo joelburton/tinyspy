@@ -1,13 +1,13 @@
 # The error system — results, rejections, and faults
 
-**Status: in flight — 114 of the 145 roster entries in §7 are converted.**
+**Status: in flight — 115 of the 145 roster entries in §7 are converted.**
 
 **Where to pick up (2026-09-01).** Thirteen of the sixteen game areas are
-finished; real work remains in FIVE games only, 23 pieces:
+finished; real work remains in FIVE games only, 22 pieces:
 
 | area | left |
 |---|---|
-| codenamesduet | 6 — 5 reads + `get_clue_context`, which the roster never listed. Its three turn-loop RPCs converted 2026-09-01. The only area with unconverted READS besides crosswords (`useBoard`'s three, `useClues`' one; its `useGame` reads are done) |
+| codenamesduet | 5 reads — every RPC done 2026-09-01. The only area with unconverted READS besides crosswords (`useBoard`'s three, `useClues`' one; its `useGame` reads are done) |
 | crosswords | 8 — 5 RPCs + 3 reads (`useCells`, and a `games_state` read in `PlayArea.tsx`; `useGame`'s is done) |
 | strands | 4 RPCs |
 | scrabble | 3 RPCs |
@@ -738,7 +738,7 @@ select pg_temp.envelope_is(
 
 ## 7. The conversion roster
 
-**145 entries. 114 done, 31 to go** — plus `useWordSubmit`, which is not a
+**145 entries. 115 done, 30 to go** — plus `useWordSubmit`, which is not a
 roster entry of its own but carried five call sites across four games (5 of those are the deferred edge
 functions). Cross them off here as they land.
 
@@ -968,15 +968,16 @@ identifier — a shape nothing has exercised yet.
 #### codenamesduet
 
 - [x] `create_game` · RPC (2 call sites)
-- [ ] `get_clue_context` · RPC — **the roster never listed it** (found
-      2026-09-01, converting the turn loop). Three raises, still old-format, and
-      the FE path is the AI button in `CluePanel`: because they arrive as
-      PostgREST errors rather than envelopes, `codenamesduet-suggest-clue`
-      turns EVERY one of them into PN316 "BUG: get_clue_context did not run" —
-      a fault modal for "you're not the clue-giver". The edge function's own
-      comment already claims this RPC is converted, so converting it makes the
-      comment true rather than needing a second edit. It is also what empties
-      `ERROR_COPY`'s last codenamesduet key, `not-clue-giver`
+- [x] `get_clue_context` · RPC — **the roster never listed it** (found
+      2026-09-01, converting the turn loop). PN387–PN389, and its two races are
+      `submit_clue`'s sentences word for word: the AI button shares the
+      below-board row with Submit and loses the same races, so a player must not
+      be able to tell them apart by the words. It needed no seat check of its
+      own — `is distinct from` is NULL-safe where `<>` is not. Converting it
+      required the Deno caller first ([deno-callers.md](deno-callers.md)),
+      because the relay above it read "an envelope means a refusal" and would
+      have swallowed the SUCCESS. PN316 is gone with it, and codenamesduet is
+      off `ERROR_COPY` entirely
 - [x] `pass_turn` · RPC — PN373–PN376 + PN385, ONE `ok` carrying the turn state
       `_end_turn` wrote. Sudden death rides in `data.play_state` rather than
       being a second answer

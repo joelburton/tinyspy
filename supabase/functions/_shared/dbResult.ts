@@ -4,8 +4,7 @@
  * **CALLING AN RPC FROM DENO** — the inbound half of the envelope, the twin of
  * `src/common/lib/supabase/dbResult.ts`'s `runRpc`.
  *
- * The app has four call directions and, until this file, only three had a
- * caller:
+ * The app has four call directions, and this file is the fourth's caller:
  *
  *   | FE → RPC              | `runRpc`    (src/common/lib/supabase/dbResult.ts) |
  *   | FE → table read       | `readRows`  (same file)                           |
@@ -13,9 +12,9 @@
  *   | edge function → RPC   | HERE                                              |
  *
  * `envelope.ts` beside this holds the builders for the answer a function
- * **sends**; nothing existed for the answer it **receives**, so thirteen
- * functions hand-wrote the same three steps in four different spellings, with
- * eight PN codes between them for two sentences.
+ * **sends**; this is the answer it **receives**. Without it every function
+ * hand-writes the same three steps, and a boundary written thirteen times is a
+ * boundary spelled thirteen ways.
  *
  * **Why this is a second implementation and not an import.** The frontend's
  * `dbResult.ts` reaches into `dbFetch`, the fault-modal store and browser
@@ -99,9 +98,9 @@ export async function runRpc<T>(call: PromiseLike<RpcReply>, rpcName: string): P
     // A converted RPC always answers with one, so anything else means this
     // function is calling a version of it that predates the envelope — a
     // half-finished deploy, or a conversion that reached the Deno half first.
-    // It is emphatically NOT a fall-through to "then it must be the old bare
-    // shape": reading a non-envelope as the payload is how a stale deploy turns
-    // into a puzzling bug instead of a clear one.
+    // A fault rather than a fall-through, deliberately: reading a non-envelope
+    // as the payload is how a stale deploy becomes a puzzling bug instead of a
+    // clear one.
     return faultEnvelope(
       'PN118',
       `BUG: ${rpcName} returned no envelope`,

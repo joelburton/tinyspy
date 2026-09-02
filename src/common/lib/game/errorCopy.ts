@@ -94,14 +94,6 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   // where the sentence names the task (clue vs explanation), because the
   // point of messages is to be clear.
 
-  // ── codenamesduet ──
-  // Two seats taking turns, so both can race the turn flip: the clue arrives
-  // just as you tap, or the flip lands just as you do — ordinary two-player
-  // timing, not a broken client, which is `race` in the envelope vocabulary.
-  // The turn-loop RPCs say it themselves now; the one key left is
-  // `get_clue_context`'s, the last codenamesduet RPC still on this table.
-  'not-clue-giver': { text: () => 'Not the clue-giver', tone: 'noted' },
-
   // ── strands ──
   // The earned-hint economy, which nothing else on the roster has. All three
   // are reachable, and in COOP the hint bar is shared — so a teammate can fill

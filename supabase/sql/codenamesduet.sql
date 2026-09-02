@@ -1286,6 +1286,12 @@ grant execute on function codenamesduet.pass_turn(uuid) to authenticated;
 -- active (or sudden-death) game. We do the check here so the
 -- Edge Function can stay a thin orchestrator; it gets back either
 -- a clean context or a clean rejection.
+--
+-- ONE `ok`, and both refusals are the clue form's own races said again: the
+-- AI button sits on that form, one line from Submit, and loses exactly the
+-- races Submit loses. The sentences are submit_clue's, word for word — hearing
+-- two different ones for a single event would be the tell that they were
+-- written twice.
 
 create or replace function codenamesduet.get_clue_context(target_game uuid)
 returns jsonb
@@ -1300,10 +1306,12 @@ declare
   caller_seat text;
   caller_key jsonb;
   ctx jsonb;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   select * into g_row from codenamesduet.games where id = target_game;
   if not found then
-    raise exception 'game-not-found|' using errcode = 'P0002',
+    raise exception 'That game no longer exists'
+      using errcode = 'PN387', hint = 'fault', column = '_',
       detail = 'no codenamesduet.games row for target_game';
   end if;
 
@@ -1321,13 +1329,24 @@ begin
     from common.games where id = target_game;
 
   if current_play_state not in ('playing', 'sudden_death') then
-    raise exception 'game-not-in-play|' using errcode = 'P0001',
+    -- A race, and submit_clue's PN370 word for word: the partner ended the
+    -- game, or the clock ran out, while the form was still up.
+    raise exception 'Game over'
+      using errcode = 'PN388', hint = 'race', column = '_',
       detail = 'the AI suggester requires an active play_state';
   end if;
 
+  -- `is distinct from` rather than `<>`, and load-bearing: a caller seated in
+  -- neither column gets NULL from the `case` above, and `NULL <> 'A'` is NULL,
+  -- which `if` reads as false. The NULL-safe form rejects them instead — which
+  -- is why this RPC needs no seat check of its own, where the three turn-loop
+  -- RPCs each grew one (PN384-PN386).
   if caller_seat is distinct from g_row.current_clue_giver then
-    raise exception 'not-clue-giver|'
-      using errcode = 'P0001',
+    -- The same race as submit_clue's PN371: the giver flips inside _end_turn,
+    -- which the PARTNER's guess runs, and the form stays up until the games row
+    -- arrives.
+    raise exception 'Your partner is giving the clue now'
+      using errcode = 'PN389', hint = 'race', column = '_',
       detail = 'only the clue-giver may ask the AI';
   end if;
 
@@ -1370,7 +1389,21 @@ begin
     ), '[]'::jsonb)
   ) into ctx;
 
-  return ctx;
+  -- `result` NAMES the answer, beside the four lists that ARE it. The edge
+  -- function unwraps this rather than relaying it: the board is the first step
+  -- of its work, not its answer.
+  return common.ok_envelope(ctx || jsonb_build_object('result', 'context'));
+
+-- One block, and it has never heard of any specific condition: it reads the
+-- SQLSTATE, re-raises anything that isn't ours, and lets the raise itself carry
+-- the message, the kind and the field.
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 

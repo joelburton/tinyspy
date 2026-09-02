@@ -19,6 +19,7 @@ set search_path = codenamesduet, common, public, extensions;
 select plan(7);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 -- Set up an active game with ada as clue-giver (codenamesduet_setup()
@@ -36,10 +37,10 @@ select (codenamesduet.create_game((select handle from club), pg_temp.codenamesdu
 -- ============================================================
 
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
-select throws_ok(
-  $$ select get_clue_context((select id from g)) $$,
-  '42501',
-  'not-a-player|',
+select pg_temp.envelope_is(
+  get_clue_context((select id from g)),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN253",
+    "message":"You are not in this game"}'::jsonb,
   'get_clue_context rejects a non-player caller (via require_game_player)'
 );
 
@@ -47,11 +48,13 @@ select throws_ok(
 -- (2) Bea (the non-clue-giver) cannot ask
 -- ============================================================
 
+-- The same race, and the same sentence, as submit_clue's PN371: the AI button
+-- and the Submit button share a row and lose the same races.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select throws_ok(
-  $$ select get_clue_context((select id from g)) $$,
-  'P0001',
-  'not-clue-giver|',
+select pg_temp.envelope_is(
+  get_clue_context((select id from g)),
+  '{"type":"not-ok","severity":"race","dbcode":"PN389",
+    "message":"Your partner is giving the clue now"}'::jsonb,
   'get_clue_context rejects the non-clue-giver player'
 );
 
@@ -73,10 +76,10 @@ update common.games set play_state = 'won', is_terminal = true, ended_at = now()
 update codenamesduet.games set current_clue_giver = null
   where id = (select id from done_game);
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select throws_ok(
-  $$ select get_clue_context((select id from done_game)) $$,
-  'P0001',
-  'game-not-in-play|',
+select pg_temp.envelope_is(
+  get_clue_context((select id from done_game)),
+  '{"type":"not-ok","severity":"race","dbcode":"PN388",
+    "message":"Game over"}'::jsonb,
   'get_clue_context rejects when game is terminal'
 );
 
@@ -89,13 +92,15 @@ select throws_ok(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
+-- The four lists live in the envelope's `data` now, beside the `result` that
+-- names the answer.
 create temp table ctx on commit drop as
-  select get_clue_context((select id from g)) as data;
+  select get_clue_context((select id from g)) -> 'data' as data;
 
-select is(
-  (select jsonb_typeof(data) from ctx),
-  'object',
-  'returns a jsonb object'
+select pg_temp.envelope_is(
+  get_clue_context((select id from g)),
+  '{"type":"ok","data":{"result":"context"}}'::jsonb,
+  'answers ok/context'
 );
 
 select is(

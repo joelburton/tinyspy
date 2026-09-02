@@ -266,9 +266,24 @@ The terminal renders **neutral**, not as a loss: `buildOver('ended')` returns th
 
 **Realtime touch at the tail**: a no-op self-write on `codenamesduet.games` (`set turn_number = turn_number`) so the FE's schema-scoped `useGame` subscription wakes to refetch and flip into review mode — the uniform trick documented at [common.md → Manual end, step 6](../common.md#manual-end--every-gametypes-end_gametarget_game). (`submit_timeout`'s `current_clue_giver = null` write provides the same wake incidentally.) Tested in `tests/codenamesduet/end_game_test.sql`.
 
-### `codenamesduet.get_clue_context(target_game uuid) → jsonb`
+### `codenamesduet.get_clue_context(target_game uuid)`
 
 Read-only RPC for the [`codenamesduet-suggest-clue`](#edge-function-codenamesduet-suggest-clue) Edge Function. Returns the caller's unrevealed greens/neutrals/assassin words + the history of previous clues. Authorization: caller must be the current clue-giver of a playing (or sudden-death) game; the Edge Function inherits that gate by calling this as the user.
+
+**What it answers.** [An envelope](../envelopes.md):
+
+| | | |
+|---|---|---|
+| `ok` · `{result: 'context', greens, neutrals, assassins, previous_clues}` | | the four lists, unchanged — what the model is given |
+| `PN388` "Game over" | `race` | the partner ended it, or the clock expired |
+| `PN389` "Your partner is giving the clue now" | `race` | the giver flipped under a stale form |
+| `PN387` "That game no longer exists" | `fault` | nothing to race against |
+
+**The two races are `submit_clue`'s PN370 and PN371, word for word.** The AI button and the Submit button share the below-board row and lose exactly the same races, so a player must not be able to tell which one they hit by the sentence.
+
+Its seat check reads `caller_seat is distinct from current_clue_giver` — NULL-safe, so a caller seated in neither column is rejected here rather than waved through. That is why this RPC needed no seat check of its own where the three turn-loop RPCs each grew one (PN384–PN386).
+
+The edge function **unwraps** the `ok` rather than relaying it — the board is the first step of its work, not its answer — and relays any `not-ok` untouched. Both go through `runRpc` (`supabase/functions/_shared/dbResult.ts`), which also owns "the RPC never ran" and "it answered something unreadable", so the function has no codes of its own for either.
 
 ### Helpers (not callable from the client)
 
@@ -549,7 +564,7 @@ See [`testing.md`](../testing.md) for the theory and shared setup. codenamesduet
 | `tests/codenamesduet/submit_timeout_test.sql` | `submit_timeout` happy path from both `playing` and `sudden_death` → `lost_timeout`; idempotency on terminal state; non-player rejection via `require_game_player`; status.outcome plumbing. |
 | `tests/codenamesduet/end_game_test.sql` | `end_game` happy path: `playing` → `ended`, `is_terminal=true`, `status.outcome='manual'`, both players' `result={won:false}`; idempotency on terminal state; non-player rejection via `require_game_player`. |
 | `tests/codenamesduet/rls_test.sql` | The single highest-value security check: dee (not a player) sees zero rows from every game-scoped table, mutating RPCs refuse her (PN253, a fault), direct INSERTs are blocked at the grant layer. Includes a positive baseline (ada CAN see the game) so "dee sees nothing" is meaningful. |
-| `tests/codenamesduet/clue_context_test.sql` | `get_clue_context` auth gates + shape check (returns the expected keys). |
+| `tests/codenamesduet/clue_context_test.sql` | `get_clue_context` auth gates as envelope assertions (PN253 fault, PN388/PN389 races) + the shape check: `result: 'context'`, 9 greens, 3 assassins (the regression guard for the old `limit 1` that hid two). |
 
 ### codenamesduet-specific test helpers
 
