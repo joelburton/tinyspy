@@ -222,17 +222,21 @@ needs its own answer table before it converts:
 
 ## 7. Sequencing
 
-**Build this before the RPCs its call sites relay.** Two of the roster entries
-in [error-system.md](error-system.md) are RPCs whose conversion breaks the
-function above them unless that function is fixed in the same commit —
-`codenamesduet.get_clue_context` and `crosswords.reveal_solved_word` — so doing
-the wrapper first turns each of those from "SQL + Deno + tests, and be careful"
-into an ordinary conversion.
+**The wrapper goes before the RPCs its call sites relay**, and that is how
+`codenamesduet.get_clue_context` went: with `runRpc` already there, its
+conversion was an ordinary one — SQL, a three-line edit to the function above
+it, pgTAP — instead of "and be careful, or the success gets swallowed".
 
-Both of those also change return TYPE, not just shape (`returns table(...)` and
-a bare jsonb object become `returns jsonb` envelopes), so each needs a
-`drop function if exists` above it, like every other converted RPC in this
-sprint.
+`crosswords.reveal_solved_word` is the same shape and still carries the trap.
+It also changes return TYPE, not just shape (`returns table(answer, solved,
+note)` → `returns jsonb`), so it needs a `drop function if exists` above it;
+`get_clue_context` did not, being jsonb already.
+
+**The five scrabble RPCs are the larger remaining piece**, and they are not on
+error-system.md's roster at all. Their answers are authored in three shared
+cores (`_commit_word`, `_commit_exchange`, `_commit_pass`), so converting the
+cores converts all five call sites at once — closer to one conversion than
+five.
 
 When this ships, its durable half — the fourth quadrant, and what the Deno
 caller does — belongs in [docs/envelopes.md](../docs/envelopes.md) beside "How

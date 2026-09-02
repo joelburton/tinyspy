@@ -1,21 +1,33 @@
 # The error system — results, rejections, and faults
 
-**Status: in flight — 120 of the 145 roster entries in §7 are converted.**
+**Status: in flight — 121 of the 157 roster entries in §7 are converted.**
 
-**Where to pick up (2026-09-01).** Fourteen of the sixteen game areas are
-finished — **codenamesduet completed 2026-09-01** — so real work remains in
-FOUR games, 17 pieces:
+**The 36 open rows are 32 conversions**, because the cross-cutting four appear
+once per area. That is the number to plan against.
+
+**Where to pick up (2026-09-01).** Eleven of the sixteen games are finished —
+codenamesduet was the eleventh — so work remains in FIVE, 28 pieces:
 
 | area | left |
 |---|---|
-| crosswords | 8 — 5 RPCs + 3 reads (`useCells`, and a `games_state` read in `PlayArea.tsx`; `useGame`'s is done) |
+| crosswords | 10 — 8 RPCs + 2 reads (`useCells.ts:99`, and the solution fetch at `PlayArea.tsx:179`; `useGame`'s is done) |
+| scrabble | 8 RPCs — but SIX are thin wrappers over three shared cores, and both context RPCs drag an edge function with them |
+| letterboxed | 4 RPCs — `undo_word` + `clear_chain` share a call site, so they convert as one |
 | strands | 4 RPCs |
-| scrabble | 3 RPCs |
-| letterboxed | 2 RPCs |
+| psychicnum | 2 RPCs — the priced-help pair, and the reason this area's "done" was wrong |
 
 Then the CROSS-CUTTING FOUR, last, together: `concede`, `end_game`,
-`replay_board`, `submit_timeout`. The remaining 8 unchecked rows are these four
-appearing in several areas.
+`replay_board`, `submit_timeout`. Their 8 unchecked rows are 4 conversions,
+each one FE path over sixteen SQL files.
+
+**Twelve of those rows were added on 2026-09-01 and had never existed.** They
+came out of an audit that read every `grant execute … to authenticated` in
+`supabase/sql/` and checked each function's body for `ok_envelope` — three in
+crosswords, five in scrabble, two in letterboxed, and two in psychicnum, an
+area this table called finished. **Do that audit before believing any area is
+done**, and count call sites by grepping the RPC's quoted NAME: six of the
+twelve looked like dead code under `grep "rpc('name'"`, because
+`callRpc(db, 'name', …)` does not match it.
 
 **The roster undercounts what is done, so verify before believing an open row.**
 On 2026-09-01 seventeen read entries across seven games turned out to have been
@@ -24,6 +36,12 @@ ticked — `readRows`, a `not-ok` branch that SETS a failure rather than
 swallowing it, that failure rendered by the PlayArea, zero rows handled as its
 own case, and a refetch clearing a stale failure. Rows marked
 "verified 2026-09-01" have had that check.
+
+**It undercounted what is LEFT too, and worse.** `get_clue_context` had no row
+at all, which is what set off the audit described above; twelve more turned up,
+including two in an area marked finished. The rows exist now, and so does the
+method for checking — but the lesson is the one the whole section is about:
+**the roster is a record of intentions, and the SQL is the fact.**
 
 This supersedes `plans/error-copy-sprint.md` entirely. Ignore that file.
 
@@ -35,12 +53,14 @@ two copies of one decision is how they drift. What this plan owns is the work �
 the evidence behind the design (§3), what is still open (§4), the worked example
 (§5), the process (§6) and the roster (§7).
 
-**One engine piece is still missing, and it has its own plan:**
-[deno-callers.md](deno-callers.md) — an edge function calling an RPC has no
-wrapper, so thirteen functions hand-write the inbound boundary. Two roster
-entries below (`codenamesduet.get_clue_context`, `crosswords.reveal_solved_word`)
-break the edge function above them unless it is fixed in the same commit, so
-that piece goes first.
+**The engine's fourth quadrant has its own plan and is BUILT:**
+[deno-callers.md](deno-callers.md) — an edge function calling an RPC now has a
+`runRpc` of its own, so the inbound boundary is one place instead of thirteen.
+Four of its ten call sites are on it; the rest join as their RPCs convert, and
+that plan lists each with what it waits on. **Read it before converting any RPC
+an edge function calls** — the relay above such an RPC reads "an envelope means
+a refusal", so converting the SQL alone makes the function swallow the SUCCESS.
+`crosswords.reveal_solved_word` is the one still carrying that trap.
 
 The prep that ran before the rest of the roster is finished, and so is the
 layering fix that came out of it — one author for "nothing answered",
@@ -245,11 +265,11 @@ survive to the handler:
 
 ```sql
 raise exception '2–15 letters, or ?'
-  using errcode = 'PN001', hint = 'validation', column = 'letters',
+  using errcode = 'PN001', hint = 'form-validation', column = 'letters',
         detail = 'anagram input must be 2-15 letters or ?';
 ```
 ```
-code=PN001  msg=2–15 letters, or ?  hint=validation  column=letters
+code=PN001  msg=2–15 letters, or ?  hint=form-validation  column=letters
 ```
 
 Packing it into HINT alongside the severity was the alternative, and it is the
@@ -262,11 +282,14 @@ the RPC's own handler catches the raise *inside* the function and converts it to
 jsonb before any response is built. The channel only has to reach
 `get stacked diagnostics`.
 
-**The pieces, when it gets built:**
+**The pieces. The first two are BUILT** — every converted RPC's handler already
+reads `column_name` and every raise already carries a `column` — so what is
+missing is only the third: **nothing on the frontend reads `field` yet.**
 
-1. The handler gains one diagnostics item, `v_col = column_name`, passed
-   through to `raised_envelope`.
-2. The envelope gains one optional key on the `not-ok` arm: `field`.
+1. ~~The handler gains one diagnostics item, `v_col = column_name`, passed
+   through to `raised_envelope`.~~ Done, at every converted RPC.
+2. ~~The envelope gains one optional key on the `not-ok` arm: `field`.~~ Done,
+   and Deno's `formValidation` builder fills it too.
 3. The form routes it. **Not `StandardForm`** — that is a bare `<form>` with a
    class and no state. The frontend half is
    [areas/forms.md → F48](areas/forms.md) `form-state-and-field-errors`: a
@@ -738,7 +761,7 @@ select pg_temp.envelope_is(
 
 ## 7. The conversion roster
 
-**145 entries. 120 done, 25 to go** — plus `useWordSubmit`, which is not a
+**157 entries. 121 done, 36 to go — which is 32 CONVERSIONS** — plus `useWordSubmit`, which is not a
 roster entry of its own but carried five call sites across four games (5 of those are the deferred edge
 functions). Cross them off here as they land.
 
@@ -1025,14 +1048,24 @@ refetch), not two places in the source.
 
 - [x] `create_game` · RPC, reached through `crosswords-import-nyt / -guardian`
 - [x] `create_game` · RPC
+- [ ] `check_cells` · RPC — **added 2026-09-01**, missing from the roster.
+      `PlayArea.tsx:843`, through the old `callRpc`
 - [ ] `export_solution` · RPC (2 call sites)
 - [ ] `library_for_club` · RPC
-- [ ] `next_nyt_date_for_club` · RPC
+- [ ] `next_nyt_date_for_club` · RPC — `returns date`, so a return-TYPE change
+- [ ] `reveal_cells` · RPC — **added 2026-09-01**. `PlayArea.tsx:886`, the twin
+      of `check_cells`
+- [ ] `reveal_solved_word` · RPC — **added 2026-09-01**, and the one carrying
+      the relay trap: `crosswords-explain-clue` still reads "an envelope means a
+      refusal", so converting this alone makes the function swallow the SUCCESS.
+      Fix the function in the same commit
+      ([deno-callers.md](deno-callers.md)). `returns table(answer, solved,
+      note)`, so a return-TYPE change: needs a `drop function if exists`
 - [ ] `set_cell` · RPC
 - [ ] `set_mark` · RPC
-- [ ] `cells` · read
-- [ ] `games` · read
-- [ ] `games_state` · read
+- [ ] `cells` · read — `useCells.ts:99`
+- [x] `games` · read — `useGame`'s, and its only one; verified 2026-09-01
+- [ ] `games_state` · read — `PlayArea.tsx:179`, the solution fetch
 - [x] `crosswords-explain-clue` · edge fn — PN327/PN328 service-errors (the
       model ran, explained nothing), five faults, and `reveal_solved_word`'s
       refusals relayed. `unsolved` stays an OK: the menu item is live on any
@@ -1041,8 +1074,12 @@ refetch), not two places in the source.
 #### letterboxed
 
 - [x] `create_game` · RPC, reached through `letterboxed-build-board`
+- [ ] `clear_chain` · RPC — **added 2026-09-01**, missing from the roster.
+      Shares one call site with `undo_word` (`PlayArea.tsx:213` takes the RPC
+      name as an argument), so the two convert together
 - [ ] `log_help` · RPC
 - [ ] `submit_word` · RPC
+- [ ] `undo_word` · RPC — **added 2026-09-01**; see `clear_chain`
 - [x] `events` · read — converted in the useGame sweep; verified 2026-09-01
 - [x] `games_state` · read — converted in the useGame sweep; verified 2026-09-01
 - [x] `players_state` · read — converted in the useGame sweep; verified 2026-09-01
@@ -1056,6 +1093,11 @@ refetch), not two places in the source.
   fault in the game being converted. They are called by 15–17 files, so until
   each of those converts, their failures wear the fault look elsewhere — right
   words, wrong weight, and not worth a shim for an afternoon
+- [ ] `request_hint` · RPC — **added 2026-09-01**, missing from the roster.
+      `PlayArea.tsx:306`, through the old `callRpc`. The hidden-secrets pattern:
+      a priced in-game assist, so its refusals are game answers, not faults
+- [ ] `request_reveal` · RPC — **added 2026-09-01**. `PlayArea.tsx:313`, the
+      twin of `request_hint`
 - [x] `submit_guess` · RPC
 - [x] `games_state` · read
 - [x] `guesses` · read
@@ -1064,17 +1106,43 @@ refetch), not two places in the source.
 `games` was already read through the `games_state` view, so there was no second
 read to convert; `submit_guess` has one call site, not two.
 
+**This area was marked finished and is not.** The worked example in §5 covers
+`create_game` and `submit_guess`; the two priced-help RPCs were never listed,
+and an audit of every `grant execute … to authenticated` found them
+(2026-09-01). Their answers deserve the same care as any other — a hint is
+something the player asked for and paid for, so a refusal is a verdict rather
+than a failure.
+
 #### scrabble
 
 - [x] `create_game` · RPC (2 call sites)
+- [ ] `ai_exchange_tiles` · RPC — **added 2026-09-01**
+- [ ] `ai_pass_turn` · RPC — **added 2026-09-01**
+- [ ] `ai_play_word` · RPC — **added 2026-09-01**
 - [ ] `exchange_tiles` · RPC
+- [ ] `get_ai_context` · RPC — **added 2026-09-01**, called by
+      `scrabble-ai-move`
+- [ ] `get_suggest_context` · RPC — **added 2026-09-01**, called by
+      `scrabble-suggest-move`
 - [ ] `pass_turn` · RPC
 - [ ] `play_word` · RPC
+
+**The eight are fewer conversions than they look, and they come as one unit.**
+The six move RPCs are thin wrappers over three shared cores — `_commit_word`,
+`_commit_exchange`, `_commit_pass` — which is where every answer is actually
+authored, so the cores carry the design and the wrappers inherit it. Both
+context RPCs feed edge functions whose relays would swallow the SUCCESS the day
+these convert, so those two functions move in the same commit
+([deno-callers.md](deno-callers.md)).
 - [x] `games_state` · read — converted in the useGame sweep; verified 2026-09-01
 - [x] `players_state` · read — converted in the useGame sweep; verified 2026-09-01
 - [x] `plays` · read — converted in the useGame sweep; verified 2026-09-01
-- [x] `scrabble-ai-move` · edge fn — PN333–PN336, all faults, and the five
-      `ai_*` RPCs' own envelopes relayed. `moves` renamed `turns`: one loop pass
+- [x] `scrabble-ai-move` · edge fn — PN333–PN336, all faults, and a relay
+      written for the five `ai_*` RPCs' envelopes. **Those RPCs are NOT
+      converted** (verified 2026-09-01: `_commit_word` answers bare and raises
+      `P0001`), and they have no roster rows — so the relay is waiting for
+      something that has not happened, and converting them means fixing this
+      function in the same commit ([deno-callers.md](deno-callers.md)). `moves` renamed `turns`: one loop pass
       is one seat's TURN however many words it crossed, and 0 is the common
       value since every client pokes and one wins. **The last raw `callEdgeFn`
       call site**, with a guard that keeps it that way — the export cannot say
