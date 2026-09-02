@@ -18,7 +18,14 @@
  * (Joel, 2026-08-28).
  */
 
-import type { Outcome } from '../outcomes'
+// The `.ts` is REQUIRED, and this is the one import in `src/` that needs it:
+// `supabase/functions/_shared/envelope.ts` imports this file, so it is part of
+// the edge runtime's module graph, and that graph builder does no extensionless
+// resolution — without it every edge function fails to boot with a 503 rather
+// than answering. The frontend is indifferent (`allowImportingTsExtensions`).
+// Note that `deno check` does NOT catch this: the CLI resolves the bare
+// specifier that the deployed runtime cannot.
+import type { Outcome } from '../outcomes.ts'
 
 /**
  * What KIND of `not-ok` this is. Each meaning, and the default appearance each
