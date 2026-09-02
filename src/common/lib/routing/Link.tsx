@@ -15,10 +15,11 @@ type LinkProps = {
  * exactly as they would for a vanilla anchor.
  *
  * The click handler intercepts plain left-clicks (button 0, no
- * modifier keys) and routes them through `navigate()`. cmd/ctrl/
- * shift/alt clicks and middle-clicks fall through to the browser,
- * opening a new tab/window — preserving the affordance users expect
- * from any link they see.
+ * modifier keys, no `target`) and routes them through `navigate()`.
+ * cmd/ctrl/shift/alt clicks and middle-clicks fall through to the
+ * browser, opening a new tab/window — preserving the affordance users
+ * expect from any link they see. A `target` other than `_self` is that
+ * same request in attribute form, so it falls through too.
  *
  * Lives in its own file (split from `router.ts`) because Vite Fast
  * Refresh requires a file to export *only* components if it exports
@@ -33,6 +34,9 @@ export function Link({ to, children, ...rest }: LinkProps) {
         // Let the browser handle "open in new tab/window" gestures.
         if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
         if (e.button !== 0) return
+        // `target` asks for the same thing declaratively, so it gets the same
+        // answer. `_self` is the default and means this frame, so it routes.
+        if (rest.target && rest.target !== '_self') return
         e.preventDefault()
         navigate(to)
       }}

@@ -32,31 +32,34 @@ understood, tidied* — `cs-blessed` here means he has read the file, not seen i
 **Every heading says its status**; a heading with **no status prefix means OPEN**.
 
 **One pass of three has run** — the boot path, 2026-09-02, sixteen findings.
-Five RESOLVED (`F-deep-2`, `F-deep-4`, `F-deep-5`, `F-deep-6`, `F-deep-9`), one
-CLOSED (`F-deep-3`), one MOVED to `corecss` (`F-deep-1`); the other nine are
-open. The data path and the realtime plumbing
+Six RESOLVED (`F-deep-2`, `F-deep-4`, `F-deep-5`, `F-deep-6`, `F-deep-7`,
+`F-deep-9`), one CLOSED (`F-deep-3`), one MOVED to `corecss` (`F-deep-1`); the
+other eight are open. The data path and the realtime plumbing
 have not been read.
 
-## The roster — 32 files, 4,866 lines
+## The roster — 33 files, 4,880 lines
 
 Agreed with Joel 2026-09-02 before anything was read, and stamped **`cs-met`** —
 the eighth stamp, added the same day for exactly this state: on an open area's
-roster, agreed, and not yet read (app-audit.md §21 → The stamp). About half the line count is tests.
+roster, agreed, and not yet read (app-audit.md §21 → The stamp). About half the
+line count is tests. **Line counts measured 2026-09-02, after the boot fixes** —
+they move as this area edits its own files, so they date rather than promise.
 
-**The boot path — 8 files, 665 lines**
+**The boot path — 9 files, 874 lines**
 
 | file | lines | |
 |---|---|---|
-| `src/main.tsx` | 59 | |
-| `src/App.tsx` | 231 | **the boot half only** — its per-page and per-game routing rows belong to the areas that own those pages and games |
-| `src/common/lib/routing/router.ts` | 97 | |
-| `src/common/lib/routing/router.test.ts` | 93 | |
-| `src/common/lib/routing/Link.tsx` | 44 | the homepage writes no link at all now — its last one went when the create-club page became a modal; the file is still the router's |
+| `src/main.tsx` | 81 | |
+| `src/App.tsx` | 237 | **the boot half only** — its per-page and per-game routing rows belong to the areas that own those pages and games |
+| `src/common/lib/routing/router.ts` | 103 | |
+| `src/common/lib/routing/router.test.ts` | 142 | |
+| `src/common/lib/routing/Link.tsx` | 48 | the homepage writes no link at all now — its last one went when the create-club page became a modal; the file is still the router's |
+| `src/common/lib/routing/Link.test.tsx` | 78 | **written 2026-09-02 by `F-deep-7`**, which found the file had no test at all; stamped `cs-met-deep` on Joel's call |
 | `src/common/lib/util/reloadOnStaleChunk.ts` | 36 | filed under `util/`, but it is boot machinery |
-| `src/common/lib/util/reloadOnStaleChunk.test.ts` | 36 | |
+| `src/common/lib/util/reloadOnStaleChunk.test.ts` | 80 | |
 | `src/common/themes/loadTheme.ts` | 69 | **added 2026-09-02 by `F-deep-9`** — `main.tsx` awaits it before the first render, and it names no game and no page |
 
-**The data path — 11 files, 2,867 lines**
+**The data path — 11 files, 2,860 lines**
 
 | file | lines |
 |---|---|
@@ -118,8 +121,8 @@ without the other is how they drift. `supabase/functions/_shared/startGame.ts`
 
 ## Pass 1 — the boot path, read 2026-09-02
 
-Eight files, 665 lines — seven read on 2026-09-02, then `loadTheme.ts` when
-`F-deep-9` put it on the roster. **Scope, set by Joel:** *"don't go deep into consumers of
+Nine files — seven read on 2026-09-02, then `loadTheme.ts` when `F-deep-9` put it
+on the roster, and `Link.test.tsx`, which `F-deep-7` wrote because there was none. **Scope, set by Joel:** *"don't go deep into consumers of
 the boot area (I don't want this audit to explode with issues), just critique of
 the code/comments/correctness/etc of the boot area."* So a consumer is named only
 where it is the evidence for something inside these seven files, and no consumer's
@@ -142,7 +145,7 @@ modal — but it has three live consumers (`ClubGameCard:59`, `GamePage:178`, `E
 ## Findings — pass 1, the boot path
 
 Sixteen — **F-deep-1 … F-deep-16**. Every heading says its status; a heading
-with no status prefix means OPEN, and nine are.
+with no status prefix means OPEN, and eight are.
 
 ## MOVED · F-deep-1 · `stylesheet-map-rotted` · main.tsx's map of the stylesheet chain names two files that were deleted
 
@@ -310,7 +313,7 @@ today; it costs one comparison to make impossible.
 > which passes under both implementations, and the plant is what caught that it
 > guarded nothing.
 
-## F-deep-7 · `link-intercepts-target-blank` · The one "open elsewhere" gesture Link does not honor
+## RESOLVED · F-deep-7 · `link-intercepts-target-blank` · The one "open elsewhere" gesture Link does not honor
 
 `Link` (`Link.tsx:32`) is careful about gestures — it lets modifier-clicks and
 non-left buttons fall through to the browser so "open in new tab" works, and its
@@ -323,7 +326,30 @@ attribute that states it declaratively.
 None of the three consumers passes `target` today, so this is a trap rather than a
 bug: one line (`if (rest.target) return`) or a type that omits `target` closes it.
 
-> resolution:
+> **resolution: honor it, don't forbid it** (Joel, 2026-09-02). One line —
+> `if (rest.target && rest.target !== '_self') return`. Omitting `target` from the
+> props type was the other option and is the wrong one: the component's whole
+> promise is that it behaves like a vanilla anchor apart from plain left-clicks,
+> and refusing an attribute is a smaller anchor, not a truer one. `_self` names
+> this frame, so it routes.
+>
+> **`Link.tsx` had no test at all; it has one now** — `Link.test.tsx`, nine cases
+> covering each way of asking for "open this elsewhere": the four modifier keys, a
+> non-left button, `target="_blank"`, and `target="_self"` as the control.
+> Removing the new line fails the `_blank` case and nothing else.
+>
+> Two things worth knowing about how it reads. The modifier and button cases use
+> `fireEvent` rather than `userEvent`, because they assert about one FIELD of the
+> click event and `userEvent`'s held-key state does not survive between two calls
+> to the standalone API — the first draft used it and passed for the wrong reason,
+> routing a click it believed was modified. And a handed-back click is asserted as
+> an UNCHANGED path: jsdom does not follow an href, so it logs *"Not implemented:
+> navigation to another Document"* — which is jsdom confirming the click reached
+> the browser.
+>
+> **`download` was considered and left alone.** It is the same class of attribute,
+> but `Link` addresses in-app routes and nothing can download one, so guarding it
+> would be inventing a case.
 
 ## F-deep-8 · `router-doc-cites-what-cannot-be-read` · The decision docstring points outside the repo, and its supporting number is stale
 
