@@ -17,7 +17,7 @@ import { inScope, readStamp, STAMPS } from '../../scripts/cs-stamp.mjs'
  *
  *   - a file with NO stamp fails — and a brand-new file has none, which is the
  *     property that keeps the scope honest as the repo grows;
- *   - a stamp outside the seven fails, so a typo can't invent an eighth state
+ *   - a stamp outside the eight fails, so a typo can't invent a ninth state
  *     that quietly means nothing.
  *
  * There is deliberately no ladder here. The stamp is the latest true statement
@@ -42,7 +42,7 @@ describe('cs- sprint stamps', () => {
     expect(files.length).toBeGreaterThan(1000)
   })
 
-  it('every file in scope carries a stamp, and it is one of the seven', () => {
+  it('every file in scope carries a stamp, and it is one of the eight', () => {
     const bad = files
       .map((f) => [f, readStamp(f)] as const)
       .filter(([, s]) => s === null || !stamps.includes(s))

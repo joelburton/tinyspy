@@ -7,6 +7,9 @@
  *   cs-unmet    not reached yet
  *   cs-found    reached through the import/render graph; NOT audited, and
  *               being found is not a claim on anyone's attention
+ *   cs-met      on an open area's agreed roster — an area is being done for
+ *               this file. Still not read; what it adds over `found` is that
+ *               the file HAS an area, rather than merely deserving one
  *   cs-audited  an audit for it exists in plans/areas/<area>.md
  *   cs-partial  some findings resolved; the file says which are outstanding
  *   cs-fixed    every finding resolved
@@ -36,11 +39,11 @@ import { readFileSync, writeFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
-/** The seven states, in ladder order — though there is no ladder to walk: the
+/** The eight states, in ladder order — though there is no ladder to walk: the
  *  stamp is simply the latest true statement about the file. A file can go
  *  from `unmet` to `audited` in one sitting, and a dependency can sit at
  *  `found` for the rest of the sprint. */
-export const STAMPS = ['unmet', 'found', 'audited', 'partial', 'fixed', 'blessed', 'na']
+export const STAMPS = ['unmet', 'found', 'met', 'audited', 'partial', 'fixed', 'blessed', 'na']
 
 /** Where the sprint reads. Everything hand-written under these four. */
 export const ROOTS = ['src', 'e2e', 'supabase', 'scripts']
@@ -97,7 +100,7 @@ export function inScope() {
 
 /**
  * Matches a stamp line and nothing else. Note it reads ANY `cs-<word>`, not
- * only the seven: a typo'd `cs-audted` is a stamp that is wrong, and saying so
+ * only the eight: a typo'd `cs-audted` is a stamp that is wrong, and saying so
  * is far more use than reporting "no stamp" about a line sitting right there.
  * The guard judges the word against `STAMPS`; this only finds it. It also
  * means `unstamp` takes a typo'd stamp back out at step 12 rather than leaving
@@ -183,7 +186,7 @@ if (cmd === 'stamp') {
     const key = s === null ? 'MISSING' : STAMPS.includes(s) ? s : `INVALID cs-${s}`
     counts.set(key, (counts.get(key) ?? 0) + 1)
   }
-  // The seven in ladder order first, then anything wrong — which sorts to the
+  // The eight in ladder order first, then anything wrong — which sorts to the
   // bottom precisely so it is the last thing on screen.
   const order = [...STAMPS, ...[...counts.keys()].filter((k) => !STAMPS.includes(k)).sort()]
   let total = 0

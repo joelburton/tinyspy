@@ -960,7 +960,7 @@ table.
 
 | # | area | what it is |
 |---|---|---|
-| 1 | `deep-layer` | **NEW 2026-09-02, and it runs FIRST.** The boot path and the data path — the files every page and every game sits on and none of them owns: `main.tsx`, `App.tsx`'s boot half, the router, the Supabase client and the envelope wrappers, the realtime plumbing, the fault sink. **The membership rule is "it names no game and no page"** (below). Read before `homepage` so the theoretically-simple page is not read on top of a layer nobody has understood |
+| 1 | `deep-layer` | **NEW 2026-09-02, and it runs FIRST.** The boot path and the data path — the files every page and every game sits on and none of them owns: `main.tsx`, `App.tsx`'s boot half, the router, the Supabase client and the envelope wrappers, the realtime plumbing, the fault sink. **The membership rule is "it names no game and no page"** (below). Read before `homepage` so the theoretically-simple page is not read on top of a layer nobody has understood. **Opened 2026-09-02 at 31 files** (`plans/areas/deep-layer.md`) |
 | 2 | `homepage` | **RE-AUDITED ON REOPEN** (§21 → the 2026-09-02 restart); the findings below are inputs to that audit. **One finding of its own left.** The rehearsal for the full toolkit: patterns + vocabulary + the page shell, plus a **React pass** — the duplication was not only in the CSS. The two findings the 2026-08-24 pause was waiting on are closed: F44 (`action-button-text-only`) was answered by `forms`, and F36 (`createclub-modal`) is built — `CreateClubModal` is a `<NormalModal>` and `/c/new` is gone. F21 (`homepage-no-vitest`) is deliberately LAST: there is no point pinning the page's shape, or `<SelectionList>`'s, while either can still move (`plans/areas/homepage.md`) |
 | 3 | `floating-panels` | **RE-AUDITED ON REOPEN** (§21 → the 2026-09-02 restart). **Four findings open — F30, F31, F32, F33**, two of them red e2e specs this area is the one to answer. The machinery and shared look of every window-like thing that floats over the page — the shell, the blocking modal, the confirmation and the acknowledgment, the drag hook, the focus trap. **Not the instances**, and since 2026-08-24 **not the forms either** (`plans/areas/floating-panels.md`) |
 | 4 | `forms` | **RE-AUDITED ON REOPEN** (§21 → the 2026-09-02 restart). **Four findings open — F46, F48, F49, F50.** Opened 2026-08-24, split out of the area above. The design language of forms: the shared field components, the setup scaffolding, and **the question the homepage could not answer — are a form's buttons really different from action buttons?** Seven hand-written Cancels say the taxonomy has a hole (F44). Split because a floating panel and a form share a container and nothing else; keeping them together meant one area holding two vocabularies |
@@ -1882,6 +1882,7 @@ Every file in scope carries one comment on its first line, `cs-` for
 |---|---|---|
 | `cs-unmet` | not reached yet | the initial sweep |
 | `cs-found` | reached through the import/render graph | whoever reads the file that pointed at it |
+| `cs-met` | **on an open area's agreed roster** — an area is being done for it | Claude, when Joel agrees the roster |
 | `cs-audited` | an audit for it exists in `plans/areas/<area>.md` | Claude |
 | `cs-partial` | some findings resolved; it names which are outstanding and where | Claude |
 | `cs-fixed` | every finding resolved | Claude |
@@ -1907,6 +1908,25 @@ compared against, measured, quoted — does not, however carefully it was read.
 The homepage area investigating ClubPage's and GamePage's page structure moved
 neither stamp.
 
+**`cs-met` is the eighth stamp, added 2026-09-02** when opening `deep-layer`
+turned up a state with no word for it: **listed on an open area's roster, agreed
+by Joel, and not yet read.** `cs-found` was the near miss and it is genuinely a
+different claim —
+
+- **`cs-found`** says *this deserves an area*. Nobody owes it anything; it can
+  sit there for the rest of the sprint.
+- **`cs-met`** says *this HAS an area, and the area is open*. Somebody is coming
+  for it.
+
+Collapsing the two would have cost the question the stamp exists to answer:
+which of the files we have reached are actually claimed. **Neither means read** —
+that is still `cs-audited` and above.
+
+A file usually goes `unmet → met` in one move, because an area opening names its
+own files directly; `found → met` happens when a dependency later gets an area
+of its own. The ladder order in `STAMPS` puts `met` after `found` for that
+reason, and it remains true that there is no ladder to walk.
+
 **Why in the file** rather than one manifest: this sprint renames constantly, and
 a manifest rots on every rename while a stamp travels with the file.
 
@@ -1915,7 +1935,7 @@ a manifest rots on every rename while a stamp travels with the file.
 `scripts/`, in a language with a first-line comment. 1351 files at the sweep.
 Assets and puzzle data have nowhere to put a comment, so they stay the plan's
 business — they are step 11. `src/guards/csStamps.test.ts` fails on a file with
-no stamp (which is every NEW file) or a word outside the seven, and prints the
+no stamp (which is every NEW file) or a word outside the eight, and prints the
 tally.
 
 **Stamping a migration is safe**, checked before the sweep rather than assumed:

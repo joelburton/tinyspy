@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met
 
 import { createClient } from '@supabase/supabase-js'
 import { dbFetch } from './dbFetch'
