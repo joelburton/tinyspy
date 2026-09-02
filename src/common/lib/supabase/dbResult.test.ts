@@ -262,6 +262,12 @@ describe('readRows', () => {
     })
     // Not discarded — kept where it is useful and invisible to players.
     expect(r.detail).toContain('Load failed')
+    // **And it is REPORTED**, which is the half that was missing. The branch is
+    // unreachable through a real postgrest builder — the library converts every
+    // rejection to `{ status: 0 }` first — so only a hand-built rejection like
+    // this one reaches it. That is exactly why the assertion belongs here: if
+    // the branch ever does fire, it must not fire silently.
+    expect(peekFaultsForTest()).toHaveLength(1)
   })
 
   // **Which read it was.** A hook makes several, the player's sentence is

@@ -373,11 +373,18 @@ export async function runRpc<T>(
   try {
     settled = await call
   } catch (thrown) {
-    // A throw IS "nothing answered". postgrest-js normally converts a rejected
-    // fetch into `{ error, status: 0 }` before it reaches here, so what this
-    // actually catches is a throw from some other layer — the same case by
-    // another road, not a different one.
-    return nothingReachedUs(String(thrown))
+    // UNREACHABLE TODAY, and kept as a guard rather than as a second road:
+    // postgrest-js converts every rejection — AbortError included — into
+    // `{ error, status: 0 }` before the await settles, and nothing here calls
+    // `.throwOnError()`, which is the only switch that changes that. It reports
+    // like every other failure so that if a version bump or a `.throwOnError()`
+    // ever makes it reachable, it cannot be reachable AND silent.
+    const envelope = nothingReachedUs(String(thrown))
+    reportFault(
+      { call: callLabel(call, 'rpc'), ms: Math.round(performance.now() - started) },
+      envelope, opts,
+    )
+    return envelope
   }
   // Built before the failure branch, not after: these failures are presented
   // HERE now, and a presented fault needs the transport facts for its
@@ -471,10 +478,12 @@ export async function readRows<Row>(
   try {
     settled = await query
   } catch (thrown) {
-    // A throw IS "nothing answered". postgrest-js converts a rejected fetch
-    // into `{ error, status: 0 }` before it reaches here, so this catches a
-    // throw from some OTHER layer — the same case by another road.
-    return nothingReachedUs(`${call} — ${String(thrown)}`)
+    // Unreachable today, for the reason given on `runRpc`'s twin above, and
+    // reporting for the same reason: a guard that fires silently is worse than
+    // no guard.
+    const envelope = nothingReachedUs(`${call} — ${String(thrown)}`)
+    reportFault({ call, ms: Math.round(performance.now() - started) }, envelope, opts)
+    return envelope
   }
   if (settled.error) {
     const envelope = failureEnvelope(settled, `${call} — ${settled.error.message}`, 'The read failed.', call)

@@ -34,7 +34,7 @@ understood, tidied* — `cs-blessed` here means he has read the file, not seen i
 **Two passes of three have run.** The BOOT pass is done — nine files, sixteen
 findings, nothing left open (fourteen RESOLVED, one CLOSED, one MOVED to
 `corecss`). The DATA PATH was read 2026-09-02: eleven files, **nine findings
-`F-deep-17` … `F-deep-25`** — one RESOLVED, eight open. The realtime plumbing (7 files) has not
+`F-deep-17` … `F-deep-25`** — three RESOLVED, six open. The realtime plumbing (7 files) has not
 been read.
 
 ## The roster — 33 files, 4,880 lines
@@ -663,7 +663,7 @@ one below is attached to, and its real subject reads as undocumented.
 > any of the eleven data-path files now directly follows another. That is the tell
 > this bug has had both times it has been found, so it is the thing to check.
 
-## F-deep-18 · `throw-path-is-silent` · A failure that arrives by throw is neither logged nor presented
+## RESOLVED · F-deep-18 · `throw-path-is-silent` · A failure that arrives by throw is neither logged nor presented
 
 `runRpc:375` and `readRows:471` each catch a throw and `return
 nothingReachedUs(...)` — **no `reportFault`, no `logDb`.** Every other failure
@@ -691,7 +691,39 @@ Narrow — postgrest-js converts a rejected fetch to `{ status: 0 }` before it
 reaches here, so this catches a throw from some *other* layer — but "narrow"
 is why it would be silent for a long time.
 
-> resolution:
+> **⚠️ THE FINDING ABOVE IS OVERSTATED, and the correction is the useful part.**
+> Asked to describe a problem that would actually be silent, I could not — so I
+> read `postgrest-js` instead of reasoning about it:
+>
+> - `PostgrestBuilder.then()` wraps the request in `res.catch(fetchError => …)`
+>   and returns `{ error, data: null, count: null, status: 0, statusText: '' }`
+>   for **every** rejection, `AbortError` included;
+> - the only escape is `shouldThrowOnError`, and **nothing in `src/` calls
+>   `.throwOnError()`**;
+> - every production call passes a real builder (`db.rpc`, `db.from`,
+>   `client.schema`) — the only `Promise.reject` in the repo is in the test.
+>
+> **So the branch cannot fire today**, and `runEdgeFn`'s missing `catch` is
+> equally unreachable: `functions-js`'s `invoke` catches its own body and
+> RETURNS `{ data: null, error }`.
+>
+> What is real is not a silent failure but **a branch that cannot fire whose
+> comment says it can** — *"the same case by another road, not a different one"*
+> reads as a live safety net over dead code, and it is primed rather than broken:
+> one `.throwOnError()`, or a supabase-js that stops converting, turns it into a
+> silent failure whose trigger is a change somewhere else entirely.
+>
+> **resolution: make it report** (Joel, 2026-09-02, choosing that over deleting
+> the branch or only correcting the comment). Both wrappers now build the
+> transport and call `reportFault` before returning, so the branch cannot be
+> reachable AND silent. The comments say what is true: unreachable today, kept as
+> a guard against the library's conversion contract changing.
+>
+> One thing checked while chasing this and worth recording, because it would have
+> been a much larger finding: **`processResponse` opens with `let statusText =
+> res.statusText` and returns it**, so `dbFetch`'s `FE003`/`FE004` verdict does
+> survive the library to the wrapper. The mechanism is intact in production, not
+> only in tests.
 
 ## F-deep-19 · `content-type-tell-is-computed-and-dropped` · The one fact that identifies a foreign responder is built and discarded
 
@@ -787,7 +819,7 @@ inert.
 
 > resolution:
 
-## F-deep-25 · `no-test-covers-the-silent-throw` · The suite pins the envelope on that path and not the reporting
+## RESOLVED · F-deep-25 · `no-test-covers-the-silent-throw` · The suite pins the envelope on that path and not the reporting
 
 The test half of `F-deep-18`, separated because it outlives the fix: whatever is
 decided about the throw path, the reason it could go unnoticed is that
@@ -799,7 +831,15 @@ file asserts exactly that for the `status: 0` road at `:131` and `:140`, using
 A fix for `F-deep-18` that does not add the assertion leaves the next regression
 just as quiet.
 
-> resolution:
+> **resolution: the assertion added, and the criticism corrected.** The test was
+> not failing to cover a real failure mode — it covers a SYNTHETIC one, since a
+> hand-built rejected promise is the only thing that reaches that branch. That is
+> the reason the assertion belongs there rather than an accident: the branch's
+> whole job is to behave if it ever fires.
+>
+> `expect(peekFaultsForTest()).toHaveLength(1)` now sits beside the envelope
+> assertions, and it was proved by planting — reverting `readRows`'s catch to the
+> silent form fails it, and nothing else.
 
 ## Notes from this pass that belong to OTHER areas
 
