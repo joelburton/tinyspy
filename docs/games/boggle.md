@@ -337,6 +337,23 @@ game is terminal, then all.
   No word-content or dictionary check, and no scoring, in plpgsql — it does not
   read `common.words` at all anymore. (Drives off the shared `useWordSubmit` hook,
   same as spellingbee.)
+
+  **What it answers** ([envelopes.md](../envelopes.md)). Two `ok`s, both
+  carrying the points the row was written with:
+
+  | | | |
+  |---|---|---|
+  | `{ result: 'accepted', points }` | `ok` | a required word |
+  | `{ result: 'bonus', points }` | `ok` | legal, but not on the required list |
+  | `PN359` `<WORD> — already found` | `race` | **not a verdict.** `useWordSubmit` dedups locally first, so reaching this means that list was stale — a teammate found it between the render and the submit (coop), or the caller's own row had not landed (compete). Nothing is recorded, so it refuses. The server composes the whole `WORD — body` line here, because this is the one rejection reachable by BOTH routes and the two must not read differently |
+  | `PN368` "Game over" | `race` | it used to be an `ok` named `gameOver`, which was wrong the whole time: the word is not recorded on that path, so an `ok` left the optimistic `+N` pill standing over a word that never landed. `useWordSubmit`'s contract has no way to say *"ok, but release the word"*, and that absence is what surfaced it ([envelopes.md → How SQL builds one](../envelopes.md#how-sql-builds-one)) |
+  | `PN352` "Already conceded" | `race` | a raise rather than a soft return, deliberately: a refusal is what releases the optimistically-accepted word |
+  | `PN351` `BUG: a word submitted to a game with no boggle row` | `fault` | |
+
+  `create_game`'s eleven refusals (**PN136**–**PN146**) are all faults, and all
+  `BUG:` — the setup dialog composes every field and the edge function builds the
+  board, so any of them means a broken client or a builder that broke its own
+  contract.
 - **`_finish(target_game, outcome, winner_user_id default null)`** — the terminal
   transition. `outcome` ∈ `manual` / `timeout` / `target`; a `target` compete win
   passes the crosser as `winner_user_id` (they win outright, others lose regardless of

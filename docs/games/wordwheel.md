@@ -200,6 +200,28 @@ board shape differ). See spellingbee.md → *RPCs* for the full contracts.
 - `wordwheel.submit_timeout` / `end_game` / `replay_board` / `concede` — as spellingbee.
 - Helper: `wordwheel._rank_idx(score, total)` — the shared 7-tier ladder.
 
+**What `submit_word` answers** ([envelopes.md](../envelopes.md)) — the same four
+as spellingbee, under wordwheel's own codes:
+
+| | | |
+|---|---|---|
+| `{ result: 'accepted', points }` / `{ result: 'bonus', points }` | `ok` | `won: true` rides along on the commit that wins |
+| `PN361` `<WORD> — already found` | `race` | **not a verdict.** `useWordSubmit` dedups locally first, so reaching this means that list was stale — a teammate found it mid-flight (coop), or the caller's own row had not landed (compete). Nothing is recorded, so it refuses |
+| `PN357` "Game over" | `race` | |
+| `PN358` "Already conceded" | `race` | a raise rather than a soft return: a refusal is what releases the optimistically-accepted word |
+| `PN356` `BUG: a word submitted to a game with no wordwheel row` | `fault` | |
+
+`create_game`'s refusals are **PN178**–**PN191**, and all but one are `BUG:` faults — the setup dialog composes every
+field and the edge function builds the wheel, so each means a broken client or
+a builder that broke its own contract.
+
+**PN188 is the exception, and the only one a player can cause**: a
+**`form-validation`** on `custom_letters`, *"No words for those letters at that
+difficulty"*. Letters a player types are the one input the frontend cannot
+check — whether a set yields a playable board is a question only the dictionary
+answers — so it lands under that field on the setup dialog rather than as a
+fault.
+
 ## Edge function: `wordwheel-build-board`
 
 `supabase/functions/wordwheel-build-board/index.ts` — a near-twin of

@@ -94,11 +94,33 @@ A `not-ok` is a failure — but "failure" is a broad word, so:
 | something the FE would have caught | a failure |
 | an invalid form | a failure |
 
-**The yardstick for the second row: a game-rule refusal is `ok`.** Boggle
-refusing a duplicate word is the game's rules being applied — that is what the
-move was *for*, and the answer is a verdict. Submitting when it is not your turn
-does not meet that bar: no rule of the game was consulted, and the move should
-never have been sent.
+**The yardstick for the second row: a game-rule refusal is `ok` — if the rule
+was applied to a move that HAPPENED.** strands refusing a duplicate path is the
+game's rules being applied: nothing local was consulted first, the move really
+reached the server, and the answer is a verdict on it. Submitting when it is not
+your turn does not meet that bar — no rule of the game was consulted, and the
+move should never have been sent.
+
+**The same word can fall on either side, and the frontend decides which.**
+strands ships no word list to the client and does not gate on
+`min_word_length`, so its `duplicate`, `too_short` and `invalid` are all `ok`.
+The four word games are the mirror image: `useWordSubmit` dedups locally against
+`foundWords` plus a synchronous `pendingRef` and returns *before* calling
+`commit`, so the server's duplicate branch is reachable ONLY when that list was
+stale — a teammate found the word between the render and the submit, or the
+caller's own row had not landed. Nothing is recorded, so it refuses, and it is a
+race by the test below: **boggle PN359, spellingbee PN360, wordwheel PN361,
+wordiply PN365** (Joel, 2026-09-01).
+
+psychicnum makes the same choice deliberately and documents it: its board does
+not check for a repeated guess, so "already guessed" is reached by ordinary
+typing and answers `PA002` — an `ok` in `warning`.
+
+So the question is not "is this a rule of the game?" but **"was anything local
+consulted first?"** A rule the client also enforces produces a race when the
+server sees it; a rule only the server knows produces a verdict. It is a
+frontend decision as much as a SQL one, which is why the same word is an `ok` in
+one game and a `not-ok` in another.
 
 ### What makes a race legitimate
 
@@ -779,6 +801,21 @@ the RPC has exactly one `ok` today, and especially when it also raises a `PA`,
 because then there are already two. The argument is the same one the no-just-
 matching-`ok` rule makes on the frontend, arriving one layer earlier: the day a
 second answer lands, the naming is what stops it being drawn as the first.
+
+**A typed caller can tell you the answer is on the wrong arm.** boggle's
+`submit_word` answered `gameOver` as an `ok` for months, and it was wrong the
+whole time: the word is not recorded on that path, so an `ok` left
+`useWordSubmit`'s optimistic `+N` pill standing over a word that never landed.
+Nothing noticed, because the call site read `error` alone and an `ok` looks like
+success. What surfaced it was giving the hook a real contract —
+`commit: (entry) => Promise<NotOk | null>`, where `null` means the word landed.
+There is no way in that shape to say *"ok, but release the word"*, and the
+absence is the report: an answer that cannot be expressed on the arm it is
+sitting on is on the wrong arm. It is **PN368** now, beside its three siblings.
+
+The general form: if a caller has to do cleanup after an `ok`, the `ok` is
+probably a refusal. **Did this record anything?** is the sharper question than
+*was the player at fault?*, and it is the one that separates these two arms.
 
 **The SQLSTATE says which branch.** `PA###` produces an `ok`; `PN###` produces a
 `not-ok`. `src/guards/raiseCodes.test.ts` reads the SQL and the edge functions

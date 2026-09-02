@@ -211,6 +211,24 @@ table comment in the baseline migration.)
 - `bananagrams.end_game(target_game)` — **the whole table stops, with no result for anyone.** The uniform neutral terminal every other gametype has: `play_state='ended'`, `status.outcome='manual'`, every player `{"won": false}`. Any game player may fire it; idempotent on the play_state check. It is deliberately NOT concede's twin — conceding is a loss on your record, and it takes every player doing it to close a game the group has simply lost interest in, which left a stale game sitting as the club's current view. The FE offers both: the action row runs **[End] [Concede] [Peel]** and the game menu lists End beneath Concede (`buildGameMenu`'s `offerEndInCompete`, opt-in because most races genuinely have no whole-table stop). pgTAP: `end_game_test.sql`.
 - `bananagrams.concede(target_game)` — **a player drops out of the race.** bananagrams was the *origin* of per-player concede; that mechanism has since been promoted into `common` and made a whole-app feature (see [common.md → Concede](../common.md#concede--per-player-drop-out)), so this is now a **thin wrapper over `common.concede`**. The semantics are unchanged: conceding is a **real loss** for the conceder, it marks JUST the caller out and the **others keep racing**, and the game ends as a collective loss (`play_state='lost'`, `status={outcome:'conceded'}`, every `{"won": false}`, no `winner_username`) only when the LAST active player concedes (including a solo `N = 1` game). The `conceded` flag now lives on **`common.game_players`** (not `bananagrams.progress`), so `peel` / `save_player_board` read it from there to skip a dropped-out player, and the FE reads it off `ctx.players`; `useCommonGame`'s `common.game_players` realtime listener nudges peers, and the terminal `common.end_game` write rides the `common.games` subscription to flip everyone's terminal UI. pgTAP: `concede_test.sql`. `save_player_board` no-ops for a conceded caller (their board is frozen).
 
+### What the RPCs answer
+
+Every one returns an [envelope](../envelopes.md). bananagrams is compete-only
+and has no shared board, so almost nothing here is a race between players — its
+races are all against the game ENDING under you.
+
+| | | |
+|---|---|---|
+| `peel` → `dealt` · `won` · `illegal` | `ok` | three named results where the caller used to infer which from the payload. `illegal` is a verdict, not a refusal: `_win_blockers` ran and the board is the answer |
+| `check_board` → `clean` · `invalid` · `empty` | `ok` | `empty` used to be derived from a `placed` count at the call site |
+| `save_player_board` → `saved` · `game-over` · `conceded` | `ok` | the two no-ops were SILENT before. An autosave discarded because the game ended is not a refusal — nothing was asked for that did not happen |
+| `dump` → `dumped`, `create_game` → `created`, `end_game`/`submit_timeout` → `ended`, `replay_board` → `replayed` | `ok` | |
+| `PN339` · `PN344` "Game over" | `race` | peel and dump, against a game a peer just ended |
+| `PN340` · `PN345` "Already conceded" | `race` | your own concede landing first |
+| `PN347` "Bunch too low to dump" · `PN348` "You don't have that tile" | `race` | both are the FE's own gates losing to a peer's peel or to its own in-flight state |
+| `PN337`–`PN338`, `PN341`–`PN343`, `PN346`, `PN349`–`PN350` `BUG: …` | `fault` | a peel with tiles still in hand, a dump of something that is not a tile, a board save with the wrong grid size — each is a shape the board itself cannot produce |
+| `PN094`–`PN103` `BUG: …` | `fault` | `create_game`'s ten, all composed by the setup dialog |
+
 ### New game — a fresh deal; Restart — the same deal again
 
 The **New game** button in the terminal action row + the matching menu item: a FRESH game (new id, a newly dealt bunch) with this game's setup + roster, in the same club. A direct `create_game` RPC — bananagrams deals inline (no edge function) and takes no `mode` argument, being compete-only. Non-destructive: `common.create_game` un-currents this game into the club's list, so there's no confirm.

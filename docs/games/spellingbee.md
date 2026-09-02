@@ -230,6 +230,28 @@ Server-side on the trusted commit: inserts `found_words` row, recomputes team/pl
 
 `SELECT … FOR UPDATE` on `spellingbee.games` serializes concurrent submissions. The PK on `found_words` is `(game_id, user_id, word)` — a same-player double-submit is also caught at the constraint level.
 
+**What it answers** ([envelopes.md](../envelopes.md)):
+
+| | | |
+|---|---|---|
+| `{ result: 'accepted', points }` / `{ result: 'bonus', points }` | `ok` | the two ways a word lands; `won: true` rides along on the commit that wins |
+| `PN360` `<WORD> — already found` | `race` | **not a verdict.** `useWordSubmit` dedups locally first (step 4 above), so reaching this means that list was stale — a teammate found it between the render and the submit (coop), or the caller's own row had not landed (compete). Nothing is recorded, so it refuses. The server composes the whole `WORD — body` line, because this rejection is reachable by BOTH routes and the two must not read differently |
+| `PN354` "Game over" | `race` | a peer ended it, or the clock did, while the word was in flight |
+| `PN355` "Already conceded" | `race` | a raise rather than a soft return, deliberately: a refusal is what releases the optimistically-accepted word |
+| `PN353` `BUG: a word submitted to a game with no spellingbee row` | `fault` | |
+
+`create_game`'s refusals are **PN156**–**PN171**, and all but one are `BUG:` faults — the setup dialog composes every
+field and the edge function builds the board, so each means a broken client or
+a builder that broke its own contract.
+
+**PN168 is the exception, and the only one a player can cause**: a
+**`form-validation`** on `custom_letters`, *"No words for those letters at that
+difficulty"*. Letters a player types are the one input the frontend cannot
+check — whether a set yields a playable board is a question only the dictionary
+answers — so it lands under that field on the setup dialog rather than as a
+fault.
+
+
 ### `spellingbee.submit_timeout(target_game uuid) → void`
 
 Countdown-expiry handler. Calls `common.end_game` with `{outcome:'timeout', ...}` and the clock-is-a-loss terminal per mode: coop → `'lost'` if a `target_rank` was set, else the neutral `'ended'`; compete → `'lost_compete'` (a compete race always has a target, so the clock beating everyone to it is a real loss for the table). Idempotent — second call raises `P0001 'game is not in progress'`, which the FE swallows.

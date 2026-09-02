@@ -122,8 +122,12 @@ has been found there yet.
 Two rules from there worth repeating, because they are what keep this list from
 sprawling:
 
-- **A game-rule refusal is `ok`**, so "that's a duplicate word" is an outcome,
-  not a failure.
+- **A game-rule refusal is `ok`** when the rule was applied to a move that
+  actually happened — strands refusing a duplicate path is an outcome, not a
+  failure. Where the CLIENT checks the same rule first, the server seeing it
+  means the client's copy was stale, and that is a race: the four word games'
+  duplicates are `not-ok` for exactly that reason
+  ([envelopes.md](envelopes.md) → What makes a race legitimate).
 - **A successful result never reads as `error`.** A real failure carries a
   severity instead, and `error` is the appearance most of them default to.
 

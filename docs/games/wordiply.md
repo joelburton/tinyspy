@@ -234,6 +234,23 @@ Signatures mirror wordwheel one-for-one except the board shape and the validated
      terminal response.
   - Because the FE validates locally, an *invalid* guess never reaches the server (it never
     consumes a line) — same retry-Wordiply-style behavior, now for free.
+
+  **What it answers** ([envelopes.md](../envelopes.md)). Two shapes used to share
+  `ok: false` and they split across the arms, because they differ in the one way
+  that matters — whether anything was recorded:
+
+  | | | |
+  |---|---|---|
+  | `{ result: 'accepted', length, … }` | `ok` | the guess landed and spent a line |
+  | `{ result: 'rejected', … }` | `ok` | a guard refused it, a `guesses` row was written, and a line may have been spent. A verdict on a move that happened |
+  | `PN365` `<WORD> — already found` | `race` | records NOTHING, so it refuses. `useWordSubmit` dedups locally first, so reaching this means that list was stale |
+  | `PN363` "Game over" · `PN364` "Already conceded" · `PN366` "No guesses left" | `race` | the frontend's own gates losing to the subscription that feeds them |
+  | `PN362` `BUG: a guess submitted to a game with no wordiply row` · `PN367` `BUG: a guess the client called legal breaks the base rules` | `fault` | |
+
+  `create_game`'s ten (**PN122**–**PN131**) are all `BUG:` faults. The two a
+  player can actually cause — a starter that matches too many words, or too few —
+  are raised by the build-board edge function as `form-validation` instead
+  (PN133 / PN134), because they belong under the setup dialog's own field.
   - **Opt-in turn-by-turn coop** (setup `coop_style = 'turns'`): after the lock + caller,
     `submit_guess` gates on `common._require_turn`, and calls `common._advance_turn` only on
     an accepted, non-terminal guess — never on a guard reject (too-short / missing-base /

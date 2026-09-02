@@ -358,6 +358,18 @@ the opponent (same board, same hidden solution, raced independently — only
 hand a trailing racer the upcoming words. The non-spoiler invariant wins over a
 prettier title here.
 
+**What the three player RPCs answer** ([envelopes.md](../envelopes.md)):
+
+| | | |
+|---|---|---|
+| `submit_word` → `accepted` · `invalid` | `ok` | a non-word is a verdict: the rules were applied and nothing was cleared |
+| `reveal_next_word` → `reveal`, `reveal_next_hint` → `hint` | `ok`, `warning` | help you asked for is neither good nor bad play |
+| `PN291` "Someone cleared those tiles" | `race` | coop's stack is one shared object, so a teammate's word takes your tiles between your pick and your submit. They leave by realtime, so no local gate can see it coming. It rendered as the FAULT modal until 2026-09-01, when the severity moved to the raise |
+| `PN287` · `PN294` · `PN296` "Game over" · `PN288` "Already conceded" | `race` | |
+| `PN289` `BUG: submit after solving` · `PN290` `BUG: word that was not five distinct tiles` · `PN292` `BUG: word using a covered tile` | `fault` | the board only ever offers exposed, unremoved tiles, five at a time |
+| `PN298` · `PN299` `BUG: reveal/hint after the stack was cleared` · `PN297` `BUG: no hint for a band-N word` | `fault` | both buttons disappear at terminal |
+| `PN286` · `PN293` · `PN295` "That game no longer exists" · `PN051` (`create_game`) | `fault` | |
+
 ### 5.3 Frontend (`src/stackdown/`)
 
 stackdown is a **v3** game ([ui.md → Game versions](../ui.md#game-versions-v1--v3)): it renders on the shared
