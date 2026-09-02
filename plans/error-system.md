@@ -18,11 +18,15 @@ with `replay_board`** — the LAST of its three handlers. Listing a file is a
 claim about the whole file, so it cannot join until then; skipping that step is
 what left the guard disarmed on six games at once earlier the same day.
 
-**What `concede` settled, and the other three inherit.** Its four refusals all
+**What `concede` settled, and what does NOT carry over.** Its four refusals all
 live in `common` (`require_compete` + `_set_conceded`), because the sixteen
-wrappers add no rejection of their own — expect the same of `end_game` and
-`replay_board`, which share `common.require_game_player`. Two lessons cost a
-round trip each: a race whose ERROR_COPY tone was `noted` needs
+wrappers add no rejection of their own. **The other three are the opposite
+shape**: every game raises `game-not-found|` / `game-not-in-play|` in its own
+file, so `end_game` is ~29 sites over 15 files, `submit_timeout` ~27 over 14,
+and `replay_board` 16 over 16 — one shape each, repeated. Only
+`common.require_game_player` (PN252/PN253, already converted) is shared.
+
+Two lessons DO carry over, and each cost a round trip: a race whose ERROR_COPY tone was `noted` needs
 `constraint = 'noted'` at the raise, since `race` alone reads as `warning`; and
 a HELPER that raises with a constraint has no handler of its own, so every
 caller's catch must read `constraint_name` — `raiseCodes.test.ts` now walks
