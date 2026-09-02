@@ -1440,16 +1440,18 @@ grant execute on function connections.end_game(uuid) to authenticated;
 -- No realtime touch needed: the players update + guesses delete wake useGame
 -- (subscribed to connections.{games,players,guesses}), and reset_game's
 -- common.games write wakes useCommonGame.
+drop function if exists connections.replay_board(uuid);
+
 create or replace function connections.replay_board(target_game uuid)
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = connections, common, public, extensions
 as $$
 declare
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
   g_row connections.games;
 begin
-  perform common.require_game_player(target_game);
   -- FOR UPDATE: a replay racing a move must not interleave with it (the move
   -- RPCs lock the same row), or the reset could land on a half-applied move —
   -- a stray guess row in the "fresh" game, or worse, an in-flight game-ENDING
@@ -1457,9 +1459,15 @@ begin
   -- beyond the existence check; the LOCK is the point.
   select * into g_row from connections.games where id = target_game for update;
   if not found then
-    raise exception 'game-not-found|' using errcode = 'P0002',
-      detail = 'no connections.games row for target_game';
+    perform common._raise_game_deleted('connections');
   end if;
+
+  -- The row check comes BEFORE the membership gate, and the order is the whole
+  -- point: `delete_game` takes this row, `common.games` and every
+  -- `game_players` row together, so a caller whose game was just deleted has no
+  -- membership left either. Gate-first told them "You are not in this game",
+  -- which is both wrong and unhelpful — they WERE in it; it is gone.
+  perform common.require_game_player(target_game);
 
   update connections.players
      set mistake_count = 0,
@@ -1476,6 +1484,15 @@ begin
    where id = target_game and current_turn_user_id is not null;
 
   perform common.reset_game(target_game, '{}'::jsonb);
+  return common.ok_envelope(jsonb_build_object('result', 'replayed'));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 

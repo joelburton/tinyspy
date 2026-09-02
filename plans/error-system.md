@@ -1,22 +1,37 @@
 # The error system — results, rejections, and faults
 
-**Status: in flight — 151 of the 157 roster entries in §7 are converted.**
+**Status: in flight — 153 of the 157 roster entries in §7 are converted.**
 
-**The 6 open rows are 3 conversions** — `end_game`, `replay_board` and
-`submit_timeout`, the rest of the cross-cutting four. **Nothing else is left.**
+**The 4 open rows are 2 conversions** — `end_game` and `submit_timeout`, the
+rest of the cross-cutting four. **Nothing else is left.**
 
 **`ERROR_COPY` is down to ONE key** — `game-not-in-play`, raised only by those
 three. Converting them empties the table, which is what lets the whole old
 system be deleted.
 
 **Where to pick up (2026-09-01).** **Every RPC and every read is converted, and
-`concede` is done.** All that remains is the OTHER THREE of the cross-cutting
-four, each one FE path over sixteen SQL files.
+`concede` + `replay_board` are done.** What remains is `end_game` and
+`submit_timeout` — and they are entangled: both go through
+`makeRpcDispatcher`, one shared factory, so converting it changes the contract
+for both at once. Expect them to land together, or the factory to need a
+transitional shape.
 
 **`useStandardGameActions.ts` joins `callSiteShape.test.ts`'s `CONVERTED` list
-with `replay_board`** — the LAST of its three handlers. Listing a file is a
-claim about the whole file, so it cannot join until then; skipping that step is
-what left the guard disarmed on six games at once earlier the same day.
+with `end_game`** — the LAST of its three handlers. Listing a file is a claim
+about the whole file, so it cannot join until then; skipping that step is what
+left the guard disarmed on six games at once earlier the same day.
+
+**`replay_board` turned up a bug worth expecting again.** Its sixteen
+`game-not-found` raises looked dead, and the reason was an ordering: the
+membership gate ran first and answered "You are not in this game" for a game
+that had been DELETED — true of the rows (the delete cascades `game_players`),
+false of the player. `end_game` and `submit_timeout` have the same raise, and
+mixed order: **11 of 14 / 12 of 14 already check the row first** (right), the
+letterboxed/scrabble/strands sites gate first (wrong), and **boggle and
+crosswords have no check at all** in either RPC — a deleted game reads
+`play_state` as NULL, falls into `is distinct from 'playing'` and returns
+SILENTLY, which the FE shows as success. Reorder and fill those in as they
+convert, onto the shared `common._raise_game_deleted` (PN485).
 
 **What `concede` settled, and what does NOT carry over.** Its four refusals all
 live in `common` (`require_compete` + `_set_conceded`), because the sixteen
@@ -923,7 +938,7 @@ identifier — a shape nothing has exercised yet.
 - [x] `concede` · RPC — cross-cutting; DONE 2026-09-01
 - [x] `delete_word` · RPC
 - [ ] `end_game` · RPC — cross-cutting, see above
-- [ ] `replay_board` · RPC — cross-cutting, see above
+- [x] `replay_board` · RPC — cross-cutting; DONE 2026-09-01
 - [x] `send_message` · RPC
 - [x] `set_current_view` · RPC — PA003 for a deleted game, the twin of unset's
       PA001. Its own pgTAP had it throwing `P0002 game-not-found|`; both that and
@@ -978,7 +993,7 @@ identifier — a shape nothing has exercised yet.
 - [x] `dump` · RPC
 - [ ] `end_game` · RPC — cross-cutting, see above
 - [x] `peel` · RPC
-- [ ] `replay_board` · RPC — cross-cutting, see above
+- [x] `replay_board` · RPC — cross-cutting; DONE 2026-09-01
 - [x] `save_player_board` · RPC — TWO named ok results where the two
       deliberate no-ops (terminal, conceded) used to be silent. The three
       call sites collapse to one: `save()` returns its promise, so the peel

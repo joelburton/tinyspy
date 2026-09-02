@@ -28,6 +28,7 @@ set search_path = bananagrams, common, public, extensions;
 select plan(12);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -119,9 +120,11 @@ select lives_ok(
 reset role;
 
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
-select throws_ok(
-  format($$ select bananagrams.replay_board(%L::uuid) $$, (select id from g1)),
-  '42501', 'not-a-player|', 'a non-player cannot restart');
+select pg_temp.envelope_is(
+  bananagrams.replay_board((select id from g1)),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN253",
+    "message":"You are not in this game"}'::jsonb,
+  'a non-player cannot restart');
 reset role;
 
 select * from finish();

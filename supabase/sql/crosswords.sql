@@ -1065,23 +1065,31 @@ grant execute on function crosswords.reveal_cells(uuid, jsonb) to authenticated;
 --
 -- Any game player may call it, from a finished game OR mid-game (no play_state
 -- guard — it's a restart; the FE confirms mid-game).
+drop function if exists crosswords.replay_board(uuid);
+
 create or replace function crosswords.replay_board(target_game uuid)
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = crosswords, common, public, extensions
 as $$
 declare
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
   v_mode  text;
   v_title text;
 begin
-  perform common.require_game_player(target_game);
 
   select mode into v_mode from crosswords.games where id = target_game;
   if v_mode is null then
-    raise exception 'game-not-found|' using errcode = 'P0002',
-      detail = 'no crosswords.games row for target_game';
+    perform common._raise_game_deleted('crosswords');
   end if;
+
+  -- The row check comes BEFORE the membership gate, and the order is the whole
+  -- point: `delete_game` takes this row, `common.games` and every
+  -- `game_players` row together, so a caller whose game was just deleted has no
+  -- membership left either. Gate-first told them "You are not in this game",
+  -- which is both wrong and unhelpful — they WERE in it; it is gone.
+  perform common.require_game_player(target_game);
   -- The status blob create_game seeds, rebuilt: `reset_game` ASSIGNS status, so
   -- anything the listing label reads has to be restated here or it's lost.
   select status ->> 'title' into v_title from common.games where id = target_game;
@@ -1095,6 +1103,15 @@ begin
     target_game,
     jsonb_build_object('mode', v_mode, 'title', coalesce(v_title, 'Crossword'))
   );
+  return common.ok_envelope(jsonb_build_object('result', 'replayed'));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 revoke execute on function crosswords.replay_board(uuid) from public;

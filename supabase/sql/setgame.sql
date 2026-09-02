@@ -1026,25 +1026,33 @@ grant execute on function setgame.concede(uuid) to authenticated;
 -- restart, so there is no play_state guard. Both modes reset ALL players, per
 -- the friends trust model.
 --
+drop function if exists setgame.replay_board(uuid);
+
 create or replace function setgame.replay_board(target_game uuid)
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = setgame, common, public, extensions
 as $$
 declare
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
   g_row     setgame.games%rowtype;
   v_board   smallint[];
   v_pos     int;
 begin
-  perform common.require_game_player(target_game);
   -- FOR UPDATE: a replay racing a claim must not interleave with it (submit_set
   -- locks the same row), or the reset could land on a half-applied move.
   select * into g_row from setgame.games where id = target_game for update;
   if not found then
-    raise exception 'game-not-found|' using errcode = 'P0002',
-      detail = 'no setgame.games row for target_game';
+    perform common._raise_game_deleted('setgame');
   end if;
+
+  -- The row check comes BEFORE the membership gate, and the order is the whole
+  -- point: `delete_game` takes this row, `common.games` and every
+  -- `game_players` row together, so a caller whose game was just deleted has no
+  -- membership left either. Gate-first told them "You are not in this game",
+  -- which is both wrong and unhelpful — they WERE in it; it is gone.
+  perform common.require_game_player(target_game);
 
   -- Re-deal from the top of the same deck, including the opening deal-three
   -- fixpoint, so the board matches the one create_game produced exactly.
@@ -1073,6 +1081,15 @@ begin
       'deck_left', setgame._deck_size(g_row.deck_kind) - v_pos
     )
   );
+  return common.ok_envelope(jsonb_build_object('result', 'replayed'));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 revoke execute on function setgame.replay_board(uuid) from public;

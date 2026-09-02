@@ -239,6 +239,10 @@ function useTurnPill(args: {
  *  fixed total); named so the print model and the readout can't disagree. */
 const TOTAL_AGENTS = 15
 
+/** `replay_board` has ONE ok: the board was dealt again. Nothing else to say —
+ *  every client, this one included, learns the reset from the subscription. */
+type ReplayResult = { result: 'replayed' }
+
 export function PlayArea({
   session,
   gameId,
@@ -394,8 +398,14 @@ export function PlayArea({
     // partner's again. Nothing on the server remembers the reveal now, which is
     // why this is explicit.
     hidePeerKey()
-    const bad = await callRpc(db, 'replay_board', { target_game: gameId })
-    if (bad) showLocalFeedback(bad)
+    const res = await runRpc<ReplayResult>(db.rpc('replay_board', { target_game: gameId }))
+    if (res.type === 'not-ok') {
+      showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+    } else if (res.type === 'ok' && res.data?.result === 'replayed') {
+      // Nothing to do: the fresh board arrives through the subscription.
+    } else {
+      showFaultModal({ text: 'BUG: replay_board fell through to unhandled' })
+    }
   }, [gameId, isTerminal, confirmAction, showLocalFeedback, hidePeerKey])
 
   const handleEndGame = useCallback(async () => {

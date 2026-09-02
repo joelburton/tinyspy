@@ -765,6 +765,43 @@ $$;
 
 revoke execute on function common.require_compete(text) from public;
 
+-- ─── common._raise_game_deleted ────────────────────────────
+-- The one sentence for "the game you are acting on is gone",
+-- raised from the sixteen game RPCs that look for their own
+-- `<schema>.games` row and do not find one.
+--
+-- **It is a RACE, not a fault.** `common.delete_game` is granted
+-- to any club member for any game in the club, so a friend
+-- tidying the club list while you have the page open really does
+-- delete all three rows out from under you (the `<schema>.games`
+-- row, `common.games`, and every `common.game_players` row —
+-- cascaded from the one delete). Nothing about that is a broken
+-- client.
+--
+-- The words and the appearance are `delete_game`'s own PN010,
+-- deliberately: it is the same news, and `constraint = 'lost'`
+-- earns the red a race does not otherwise get, because the game
+-- being gone is a bigger thing to be told than a move not
+-- landing. A SEPARATE code, though — PN010 is your own delete
+-- finding nothing, this is another RPC finding the game gone
+-- beneath it, and a log has to be able to tell them apart.
+--
+-- A raise-only helper, so the name says so (there is no check
+-- here — `found` belongs to the caller's own select).
+create or replace function common._raise_game_deleted(p_schema text)
+returns void
+language plpgsql
+immutable
+as $$
+begin
+  raise exception 'That game was already deleted'
+    using errcode = 'PN485', hint = 'race', column = '_', constraint = 'lost',
+    detail = format('no %I.games row for target_game', p_schema);
+end;
+$$;
+
+revoke execute on function common._raise_game_deleted(text) from public;
+
 -- ─── common.create_game ────────────────────────────────
 -- The common (header) half of starting a new game. Called by
 -- every gametype's `<gametype>.create_game` first to get the

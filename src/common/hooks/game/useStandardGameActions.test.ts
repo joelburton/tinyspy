@@ -165,9 +165,17 @@ describe('concede', () => {
   })
 })
 
+/** `replay_board`'s one arm, as PostgREST hands it over. */
+const REPLAYED_OK = {
+  data: { type: 'ok', data: { result: 'replayed' }, outcome: null, severity: null,
+          message: null, field: null, meta: null, dbcode: null, detail: null },
+  error: null,
+}
+
 describe('restart', () => {
   it('confirms MID-GAME through the styled modal, fires replay_board, then runs onRestarted', async () => {
     const { result, rpc, confirm, onRestarted } = setup({ isTerminal: false })
+    rpc.mockResolvedValue(REPLAYED_OK)
     act(() => result.current.restart())
     await flush()
     // The styled ConfirmationBlockingModal, not window.confirm — Restart migrated off the
@@ -181,6 +189,7 @@ describe('restart', () => {
 
   it('skips the confirm at terminal (nothing left to lose)', async () => {
     const { result, rpc, confirm, onRestarted } = setup({ isTerminal: true })
+    rpc.mockResolvedValue(REPLAYED_OK)
     act(() => result.current.restart())
     await flush()
     expect(confirm).not.toHaveBeenCalled()
@@ -198,13 +207,15 @@ describe('restart', () => {
 
   it('does NOT run onRestarted when the RPC fails', async () => {
     const { result, rpc, showError, onRestarted } = setup({ isTerminal: true })
-    rpc.mockResolvedValue({ error: { message: 'TypeError: Load failed', code: '' } })
+    rpc.mockResolvedValue({ data: null, error: { message: 'TypeError: Load failed', code: '' } })
     act(() => result.current.restart())
     await flush()
+    // A pill, not a fault-flagged message — `runRpc` raised the modal centrally
+    // with the transport facts. The cleanup is what must not run: the board did
+    // not reset, so re-hiding wordle's answer would lie about the state.
     expect(showError).toHaveBeenCalledWith(expect.objectContaining({
-      fault: true,
-      text: 'restart: Server; try refresh',
-      diagnostics: expect.stringContaining('no-code'),
+      tone: 'error',
+      mode: { kind: 'sticky' },
     }))
     expect(onRestarted).not.toHaveBeenCalled()
   })
@@ -216,7 +227,7 @@ describe('restart', () => {
     const { result, rpc, onRestarted } = setup({ isTerminal: true })
     let release!: () => void
     rpc.mockImplementation(
-      () => new Promise((resolve) => { release = () => resolve({ error: null }) }),
+      () => new Promise((resolve) => { release = () => resolve(REPLAYED_OK) }),
     )
 
     act(() => result.current.restart())
@@ -229,14 +240,14 @@ describe('restart', () => {
 
   it('is retryable once the first replay settles — including after a failure', async () => {
     const { result, rpc, showError } = setup({ isTerminal: true })
-    rpc.mockResolvedValue({ error: { message: 'TypeError: Load failed', code: '' } })
+    rpc.mockResolvedValue({ data: null, error: { message: 'TypeError: Load failed', code: '' } })
     act(() => result.current.restart())
     await flush()
     expect(showError).toHaveBeenCalledTimes(1)
 
     // The guard must have cleared on the error path, or a failed replay would
     // wedge the button for the rest of the session.
-    rpc.mockResolvedValue({ error: null })
+    rpc.mockResolvedValue(REPLAYED_OK)
     act(() => result.current.restart())
     await flush()
     expect(rpc).toHaveBeenCalledTimes(2)

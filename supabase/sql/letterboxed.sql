@@ -1619,16 +1619,18 @@ grant execute on function letterboxed.concede(uuid) to authenticated;
 -- there is nothing to rebuild — clear the chains, drop the log, rewind
 -- the turn pointer. Nothing is re-revealed either (nothing was hidden),
 -- so unlike wordle there is no title to re-sync.
+drop function if exists letterboxed.replay_board(uuid);
+
 create or replace function letterboxed.replay_board(target_game uuid)
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = letterboxed, common, public, extensions
 as $$
 declare
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
   g_row letterboxed.games;
 begin
-  perform common.require_game_player(target_game);
 
   -- FOR UPDATE: a replay racing a move must not interleave with it (the
   -- move RPCs lock the same row), or the reset could land on a
@@ -1636,9 +1638,15 @@ begin
   -- in-flight game-ENDING move re-terminalling the board just reset.
   select * into g_row from letterboxed.games where id = target_game for update;
   if not found then
-    raise exception 'game-not-found|' using errcode = 'P0002',
-      detail = 'no letterboxed.games row for target_game';
+    perform common._raise_game_deleted('letterboxed');
   end if;
+
+  -- The row check comes BEFORE the membership gate, and the order is the whole
+  -- point: `delete_game` takes this row, `common.games` and every
+  -- `game_players` row together, so a caller whose game was just deleted has no
+  -- membership left either. Gate-first told them "You are not in this game",
+  -- which is both wrong and unhelpful — they WERE in it; it is gone.
+  perform common.require_game_player(target_game);
 
   update letterboxed.players
      set chain = '{}', hints_used = 0, solved = false, solved_at = null
@@ -1671,6 +1679,15 @@ begin
         'leaderboard', '[]'::jsonb)
     end
   );
+  return common.ok_envelope(jsonb_build_object('result', 'replayed'));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 

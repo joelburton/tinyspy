@@ -88,6 +88,10 @@ type DumpResult = { result: 'dumped' } | null
  *  not in the answer — that reaches every client by subscription. */
 type ConcedeResult = { result: 'conceded' }
 
+/** `replay_board` has ONE ok: the board was dealt again. Nothing else to say —
+ *  every client, this one included, learns the reset from the subscription. */
+type ReplayResult = { result: 'replayed' }
+
 export function PlayArea(ctx: GamePageCtx) {
   // Tab does nothing while the board has the keyboard — this play surface is
   // not a form, so native Tab would walk out to the header buttons and on into
@@ -344,9 +348,13 @@ export function PlayArea(ctx: GamePageCtx) {
   // and nobody has to re-navigate.
   const handleRestart = useCallback(async () => {
     if (!isTerminal && !(await confirmAction(RESTART_CONFIRM))) return
-    const { error } = await db.rpc('replay_board', { target_game: gameId })
-    if (error) {
-      showLocalFeedback(failureMessage(error, 'restart'))
+    const res = await runRpc<ReplayResult>(db.rpc('replay_board', { target_game: gameId }))
+    if (res.type === 'not-ok') {
+      showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+    } else if (res.type === 'ok' && res.data?.result === 'replayed') {
+      // Nothing to do: the fresh board arrives through the subscription.
+    } else {
+      showFaultModal({ text: 'BUG: replay_board fell through to unhandled' })
     }
   }, [gameId, isTerminal, showLocalFeedback, confirmAction])
   const restartRef = useRef<() => void>(() => {})

@@ -40,6 +40,9 @@ type GameRpcClient = {
  *  one included, so there is nothing here for the conceder to act on. */
 type ConcedeResult = { result: 'conceded' }
 
+/** `replay_board` has ONE ok: the board was dealt again. */
+type ReplayResult = { result: 'replayed' }
+
 /**
  * The End / Concede / Replay handlers shared by twelve games (spellingbee,
  * wordwheel, wordiply, boggle, waffle, wordle, psychicnum, stackdown, scrabble,
@@ -160,12 +163,18 @@ export function useStandardGameActions({
       if (!isTerminal && !(await confirm(RESTART_CONFIRM))) return
       restarting.current = true
       try {
-        const { error } = await db.rpc('replay_board', { target_game: gameId })
-        if (error) {
-          showError(failureMessage(error, actionName('replay_board')))
-          return
+        const res = await runRpc<ReplayResult>(db.rpc('replay_board', { target_game: gameId }))
+        if (res.type === 'not-ok') {
+          // The one race here is the game having been deleted out from under
+          // the page — a club member tidying the list while you had it open.
+          showError({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+        } else if (res.type === 'ok' && res.data?.result === 'replayed') {
+          // The fresh board arrives by subscription; this is the game's own
+          // post-replay cleanup (wordle/waffle re-hide the answer).
+          onRestarted?.()
+        } else {
+          showFaultModal({ text: 'BUG: replay_board fell through to unhandled' })
         }
-        onRestarted?.()
       } finally {
         // Cleared on every path — a failed replay must stay retryable.
         restarting.current = false

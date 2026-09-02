@@ -1512,16 +1512,18 @@ grant execute on function strands.concede(uuid) to authenticated;
 --
 -- The solution re-hides itself: _solution_for reads is_terminal, which
 -- common.reset_game puts back to false.
+drop function if exists strands.replay_board(uuid);
+
 create or replace function strands.replay_board(target_game uuid)
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = strands, common, public, extensions
 as $$
 declare
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
   g_row strands.games%rowtype;
 begin
-  perform common.require_game_player(target_game);
 
   -- FOR UPDATE: a replay racing a submission must not interleave with it, or
   -- the reset could land on a half-applied move — a stray log row in the
@@ -1529,9 +1531,15 @@ begin
   -- was just reset.
   select * into g_row from strands.games where id = target_game for update;
   if not found then
-    raise exception 'game-not-found|' using errcode = 'P0002',
-      detail = 'no strands.games row for target_game';
+    perform common._raise_game_deleted('strands');
   end if;
+
+  -- The row check comes BEFORE the membership gate, and the order is the whole
+  -- point: `delete_game` takes this row, `common.games` and every
+  -- `game_players` row together, so a caller whose game was just deleted has no
+  -- membership left either. Gate-first told them "You are not in this game",
+  -- which is both wrong and unhelpful — they WERE in it; it is gone.
+  perform common.require_game_player(target_game);
 
   delete from strands.events where game_id = target_game;
 
@@ -1561,6 +1569,15 @@ begin
          else jsonb_build_object('mode', g_row.mode)
     end
   );
+  return common.ok_envelope(jsonb_build_object('result', 'replayed'));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 

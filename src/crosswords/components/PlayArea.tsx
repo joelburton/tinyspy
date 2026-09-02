@@ -105,6 +105,10 @@ type ExportAnswer = { result: 'exported'; solution: (string[] | null)[][] }
  *  not in the answer — that reaches every client by subscription. */
 type ConcedeResult = { result: 'conceded' }
 
+/** `replay_board` has ONE ok: the board was dealt again. Nothing else to say —
+ *  every client, this one included, learns the reset from the subscription. */
+type ReplayResult = { result: 'replayed' }
+
 export function PlayArea(ctx: GamePageCtx) {
   const { gameId, players, isTerminal, playState, goToClub, session, status, menu, clubHandle } =
     ctx
@@ -553,8 +557,14 @@ type Explained =
     // (`shownSolution` deriving from the toggle is what stops a stale cache
     // painting the whole grid the instant Restart clears the fills.)
     hideSolution()
-    const bad = await callRpc(db, 'replay_board', { target_game: gameId })
-    if (bad) showLocalFeedback(bad)
+    const res = await runRpc<ReplayResult>(db.rpc('replay_board', { target_game: gameId }))
+    if (res.type === 'not-ok') {
+      showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+    } else if (res.type === 'ok' && res.data?.result === 'replayed') {
+      // Nothing to do: the fresh board arrives through the subscription.
+    } else {
+      showFaultModal({ text: 'BUG: replay_board fell through to unhandled' })
+    }
   }, [isTerminal, gameId, confirmAction, showLocalFeedback, clearLocalFeedback, hideSolution])
 
   // Show note — open the setter's note locally AND (in coop) broadcast so

@@ -14,9 +14,10 @@ begin;
 set search_path = waffle, common, public, extensions;
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(18);
+select plan(19);
 
 -- ── Coop: solve, then replay → fully reset + un-terminal ────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -143,10 +144,35 @@ select is(
 
 -- ── Non-player rejected ─────────────────────────────────────
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
--- 42501 = common.require_game_player's 'not-a-player|'.
-select throws_ok(
-  format($$ select waffle.replay_board(%L::uuid) $$, (select id from g1)),
-  '42501', NULL, 'a non-player cannot replay the board');
+select pg_temp.envelope_is(
+  waffle.replay_board((select id from g1)),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN253",
+    "message":"You are not in this game"}'::jsonb,
+  'a non-player cannot replay the board');
+reset role;
+
+-- ── A game DELETED out from under the page ──────────────────
+-- The reason `replay_board` looks for its own row BEFORE the membership gate,
+-- and the one assertion that pins the order. `common.delete_game` is granted to
+-- any club member for any game in the club, so this is an ordinary thing to
+-- lose a race with — a friend tidying the list while you have the game open.
+--
+-- It takes waffle.games, common.games and every game_players row together (all
+-- cascaded), so a gate-first replay_board would find no membership either and
+-- answer "You are not in this game" — true of the rows, false of the player,
+-- and no help at all. PN485 says the thing that actually happened.
+--
+-- **This covers all sixteen games**, not just waffle: they share one raise
+-- (`common._raise_game_deleted`) under one code, and `gameDeletedFirst.test.ts`
+-- is what checks the other fifteen put it in the same place.
+delete from common.games where id = (select id from g1);
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select pg_temp.envelope_is(
+  waffle.replay_board((select id from g1)),
+  '{"type":"not-ok","severity":"race","outcome":"lost","dbcode":"PN485",
+    "message":"That game was already deleted"}'::jsonb,
+  'a game deleted under the page says so, rather than disowning the player');
+reset role;
 
 select * from finish();
 rollback;

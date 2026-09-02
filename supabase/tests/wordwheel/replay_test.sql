@@ -16,6 +16,7 @@
 begin;
 set search_path = wordwheel, common, public, extensions;
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 select plan(13);
@@ -135,9 +136,11 @@ select is(
 -- ── Non-player rejected ─────────────────────────────────────
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 -- 42501 = common.require_game_player's 'not-a-player|'.
-select throws_ok(
-  format($$ select wordwheel.replay_board(%L::uuid) $$, (select id from g1)),
-  '42501', NULL, 'a non-player cannot replay the board');
+select pg_temp.envelope_is(
+  wordwheel.replay_board((select id from g1)),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN253",
+    "message":"You are not in this game"}'::jsonb,
+  'a non-player cannot replay the board');
 
 select * from finish();
 rollback;

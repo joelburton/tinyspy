@@ -25,6 +25,7 @@ set search_path = strands, common, public, extensions;
 select plan(9);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -117,12 +118,11 @@ select isnt(
 
 -- ── Access ────────────────────────────────────────────────
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
-select throws_ok(
-  format($$ select strands.replay_board(%L) $$, (select id from game)),
-  '42501',
-  'not-a-player|',
-  'a non-player cannot restart the club''s game'
-);
+select pg_temp.envelope_is(
+  strands.replay_board((select id from game)),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN253",
+    "message":"You are not in this game"}'::jsonb,
+  'a non-player cannot restart the club''s game');
 
 select * from finish();
 rollback;

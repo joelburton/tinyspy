@@ -20,6 +20,7 @@ set search_path = letterboxed, common, public, extensions;
 select plan(9);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -53,12 +54,11 @@ select is(
 );
 -- ── The access rule ─────────────────────────────────────────
 select pg_temp.as_user('cade3333-3333-3333-3333-333333333333');
-select throws_ok(
-  format('select letterboxed.replay_board(%L)', (select id from g)),
-  '42501',
-  'not-a-player|',
-  'a club member who is not a player cannot restart the game'
-);
+select pg_temp.envelope_is(
+  letterboxed.replay_board((select id from g)),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN253",
+    "message":"You are not in this game"}'::jsonb,
+  'a club member who is not a player cannot restart the game');
 
 -- ── The reset ───────────────────────────────────────────────
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');

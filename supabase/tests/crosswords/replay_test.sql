@@ -25,6 +25,7 @@ set search_path = crosswords, common, public, extensions;
 select plan(8);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 -- Puzzles are inserted as superuser (authenticated has no INSERT grant on
@@ -74,9 +75,11 @@ select is(
 
 -- Non-player cannot restart.
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
-select throws_ok(
-  format('select crosswords.replay_board(%L)', :'gcl_id'),
-  '42501', null, 'replay_board: a non-player is rejected');
+select pg_temp.envelope_is(
+  crosswords.replay_board(:'gcl_id'),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN253",
+    "message":"You are not in this game"}'::jsonb,
+  'replay_board: a non-player is rejected');
 reset role;
 
 -- Compete: a restart re-opens the race for EVERYONE (the widening from

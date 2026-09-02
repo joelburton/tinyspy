@@ -27,6 +27,7 @@ set search_path = codenamesduet, common, public, extensions;
 select plan(11);
 
 \ir ../_shared/setup.psql
+\ir ../_shared/envelope.psql
 \ir setup.psql
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -102,9 +103,11 @@ select lives_ok(
 reset role;
 
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
-select throws_ok(
-  format($$ select codenamesduet.replay_board(%L::uuid) $$, (select id from g1)),
-  '42501', 'not-a-player|', 'a non-player cannot restart');
+select pg_temp.envelope_is(
+  codenamesduet.replay_board((select id from g1)),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN253",
+    "message":"You are not in this game"}'::jsonb,
+  'a non-player cannot restart');
 reset role;
 
 select * from finish();

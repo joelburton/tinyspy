@@ -950,25 +950,33 @@ grant execute on function wordle.end_game(uuid) to authenticated;
 -- useGame (subscribed to wordle.{games,players,guesses}), and
 -- reset_game's common.games write wakes useCommonGame — the board,
 -- log, and terminal state all reset live for every player.
+drop function if exists wordle.replay_board(uuid);
+
 create or replace function wordle.replay_board(target_game uuid)
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = wordle, common, public, extensions
 as $$
 declare
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
   g_row wordle.games;
 begin
-  perform common.require_game_player(target_game);
   -- FOR UPDATE: a replay racing a move must not interleave with it (the move
   -- RPCs lock the same row), or the reset could land on a half-applied move —
   -- a stray log row in the "fresh" game, or worse, an in-flight game-ENDING
   -- move re-terminalling the board that was just reset.
   select * into g_row from wordle.games where id = target_game for update;
   if not found then
-    raise exception 'game-not-found|' using errcode = 'P0002',
-      detail = 'no wordle.games row for target_game';
+    perform common._raise_game_deleted('wordle');
   end if;
+
+  -- The row check comes BEFORE the membership gate, and the order is the whole
+  -- point: `delete_game` takes this row, `common.games` and every
+  -- `game_players` row together, so a caller whose game was just deleted has no
+  -- membership left either. Gate-first told them "You are not in this game",
+  -- which is both wrong and unhelpful — they WERE in it; it is gone.
+  perform common.require_game_player(target_game);
 
   update wordle.players
      set guesses_used = 0,
@@ -1002,6 +1010,15 @@ begin
   -- is_terminal, so the title must stop advertising the answer (the whole
   -- point of a replay is that the word is a secret again).
   perform wordle._sync_title(target_game);
+  return common.ok_envelope(jsonb_build_object('result', 'replayed'));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 

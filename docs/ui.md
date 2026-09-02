@@ -272,6 +272,8 @@ The four games without a clear win keep asking: **letterboxed** (a win is any co
 
 **Two surfaces, one rule.** The `RestartButton` shows **only at terminal**, so mid-game boards aren't cluttered with an action nobody's reaching for. The **game-menu item is always there** — that's where a mid-game restart lives — and mid-game it asks `RESTART_CONFIRM` first ("This clears everyone's progress and starts the same board again — you can't undo it"). At terminal it goes straight through, because there's nothing left to lose. No `replay_board` guards on `play_state`: it's a restart, and the confirm is the protection.
 
+**One answer, one refusal.** `replay_board` returns `{ result: 'replayed' }` and has no gates of its own — it is legal mid-game and at terminal, in both modes, for any player, and a replayed board is itself a perfectly legal thing to replay. The only thing that can refuse it is the game having been **deleted** underneath the page: `common.delete_game` is granted to any club member for any game in the club, so a friend tidying the list while you have it open really does take the row out from under you. That answers **PN485 "That game was already deleted"** — the words and the red of `delete_game`'s own PN010, since it is the same news. It is checked BEFORE membership, deliberately: the delete cascades `game_players` too, so a membership-first order answered "You are not in this game", which is true of the rows and false of the player (fixed 2026-09-01; [`gameDeletedFirst.test.ts`](../src/guards/gameDeletedFirst.test.ts) holds the order).
+
 ### Confirm modals — never `window.confirm`
 
 In-game confirmations go through the shared
