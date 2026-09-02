@@ -83,9 +83,28 @@ test.describe('setgame turn order (coop)', () => {
     // a complete set, which submits. It is also the exact path a stuck player
     // takes, and the reason a hint must NOT pass the turn: she has to still be
     // the mover on the third press.
+    //
+    // WAIT FOR EACH PRESS TO LAND BEFORE THE NEXT. `askHint` is wrapped in
+    // `useSingleFlight`, which DROPS a second call while the first is in flight
+    // rather than queueing it — and the button deliberately stays enabled
+    // meanwhile (PlayArea.tsx: "a press takes a round trip to record and the
+    // button stays live"), so nothing about the DOM makes Playwright wait. Three
+    // clicks in a row are three ladder rungs only while the round trip beats the
+    // next click, which is true on an idle machine and false under a full suite.
+    //
+    // The RING is not the signal: `askHint` calls `setRing` synchronously before
+    // awaiting, so it appears while the call is still in flight. `Hints: n` is
+    // the tally on the player ROW, so it moves only once the RPC has committed —
+    // which is exactly when the gate reopens.
     const hintA = pageA.getByRole('button', { name: 'Show hint' })
+    // The counts heading rather than the `Counts` bar: the bar renders twice
+    // (info column + mobile), so its text is never unique.
+    const hintsUsed = (n: number) =>
+      pageA.getByRole('heading', { name: new RegExp(`Hints:\\s*${n}\\b`) })
     await hintA.click()
+    await expect(hintsUsed(1)).toBeVisible({ timeout: 15000 })
     await hintA.click()
+    await expect(hintsUsed(2)).toBeVisible({ timeout: 15000 })
     await hintA.click()
 
     // ── The turn flips, and all three surfaces flip with it. ──
