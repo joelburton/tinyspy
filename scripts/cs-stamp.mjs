@@ -16,6 +16,15 @@
  *   cs-blessed  Joel read it himself — the only stamp Claude never sets alone
  *   cs-na       in the tree, deliberately not read
  *
+ * EVERY STAMP THAT RECORDS A JUDGMENT NAMES THE AREA THAT MADE IT, as a
+ * suffix — `cs-met-deep`, `cs-audited-club-page`, `cs-blessed-forms`. That is
+ * the five above from `met` down. `cs-unmet` and `cs-na` stay bare: no area has
+ * reached the first, and the second is a standing decision no area owns.
+ *
+ * The suffix answers a question only the file can answer — "which area was I in
+ * when I approved this, and has enough changed since to revisit it?" See
+ * `splitStamp` for why it is not guarded.
+ *
  * WHY IN THE FILE rather than one manifest: this sprint renames constantly, and
  * a manifest rots on every rename while a stamp travels with the file.
  *
@@ -30,6 +39,10 @@
  *   node scripts/cs-stamp.mjs tally            count files per stamp
  *   node scripts/cs-stamp.mjs list <stamp>     print the files at one stamp
  *   node scripts/cs-stamp.mjs set <stamp> <path>...   restamp named files
+ *
+ * `list` and `set` both take a state alone (`met`) or a state with its area
+ * (`met-deep`). `list met` prints every area's met files; `list met-deep`
+ * prints one area's.
  *
  * `stamp` and `set` take `--dry` to print what they would do and change nothing.
  */
@@ -108,6 +121,32 @@ export function inScope() {
  */
 const STAMP_RE = /^(?:\/\/|--|#|\/\*) cs-([a-z][a-z-]*)(?: \*\/)?$/
 
+/**
+ * Split a stamp word into its state and the AREA that made the claim.
+ *
+ *   'unmet'        → { state: 'unmet',   area: null }
+ *   'met-deep'     → { state: 'met',     area: 'deep' }
+ *   'blessed-club-page' → { state: 'blessed', area: 'club-page' }
+ *
+ * No state word contains a hyphen, so the first one is always the seam — which
+ * is why area names may contain as many as they like.
+ *
+ * **The area is NOT guarded, deliberately** (Joel, 2026-09-02): *"you don't
+ * need to guard this; it's just useful for me — hey, when did I approve this?
+ * should I revisit it now that we're elsewhere in the sprint?"* It is an
+ * annotation, not an invariant. Checking it against a list of areas would make
+ * that list a manifest, and a manifest rots on the renames this sprint does
+ * constantly — while a stamp left saying `cs-blessed-dialogs-and-forms` after
+ * that area split still answers the question correctly, because the old name
+ * IS the moment. The guard judges the STATE and ignores the rest.
+ */
+export function splitStamp(word) {
+  const at = word.indexOf('-')
+  return at === -1
+    ? { state: word, area: null }
+    : { state: word.slice(0, at), area: word.slice(at + 1) }
+}
+
 /** A shebang has to stay on line 1, so the stamp goes under it. */
 const isShebang = (line) => line.startsWith('#!')
 
@@ -168,7 +207,9 @@ if (cmd === 'stamp') {
   console.log(`unstamped ${n} file(s)`)
 } else if (cmd === 'set') {
   const [stamp, ...paths] = args
-  if (!STAMPS.includes(stamp)) throw new Error(`unknown stamp: ${stamp}`)
+  // Only the STATE is checked; the area suffix is free text on purpose.
+  const { state } = splitStamp(stamp)
+  if (!STAMPS.includes(state)) throw new Error(`unknown stamp state: ${state}`)
   // Check EVERY path before writing ANY. A typo'd path partway down a list of
   // twenty otherwise leaves half the area stamped and half not, which is the
   // one state this tooling exists to prevent.
@@ -178,13 +219,32 @@ if (cmd === 'stamp') {
   for (const p of paths) writeStamp(relative(CWD, join(CWD, p)), stamp, dry)
   console.log(`${dry ? 'would set' : 'set'} ${paths.length} file(s) cs-${stamp}`)
 } else if (cmd === 'list') {
-  for (const f of inScope()) if (readStamp(f) === args[0]) console.log(f)
-} else if (cmd === 'tally') {
-  const counts = new Map()
+  // `list met` matches every area's met files; `list met-deep` matches one
+  // area's. Which one you meant is simply whether you named an area.
+  const want = splitStamp(args[0] ?? '')
   for (const f of inScope()) {
     const s = readStamp(f)
-    const key = s === null ? 'MISSING' : STAMPS.includes(s) ? s : `INVALID cs-${s}`
+    if (s === null) continue
+    const got = splitStamp(s)
+    if (got.state !== want.state) continue
+    if (want.area !== null && got.area !== want.area) continue
+    console.log(f)
+  }
+} else if (cmd === 'tally') {
+  // Counted BY STATE, with each state's areas broken out under it — the shape
+  // that answers both "how much is left" and "which area claimed what".
+  const counts = new Map()
+  const areas = new Map()
+  for (const f of inScope()) {
+    const raw = readStamp(f)
+    const { state, area } = raw === null ? { state: null, area: null } : splitStamp(raw)
+    const key = raw === null ? 'MISSING' : STAMPS.includes(state) ? state : `INVALID cs-${raw}`
     counts.set(key, (counts.get(key) ?? 0) + 1)
+    if (area !== null) {
+      const byArea = areas.get(key) ?? new Map()
+      byArea.set(area, (byArea.get(area) ?? 0) + 1)
+      areas.set(key, byArea)
+    }
   }
   // The eight in ladder order first, then anything wrong — which sorts to the
   // bottom precisely so it is the last thing on screen.
@@ -193,9 +253,11 @@ if (cmd === 'stamp') {
   for (const s of order) {
     if (!counts.get(s)) continue
     total += counts.get(s)
-    console.log(`  ${s.startsWith('INVALID') || s === 'MISSING' ? s : `cs-${s}`}`.padEnd(20), String(counts.get(s)).padStart(5))
+    console.log(`  ${s.startsWith('INVALID') || s === 'MISSING' ? s : `cs-${s}`}`.padEnd(24), String(counts.get(s)).padStart(5))
+    for (const [area, n] of [...(areas.get(s) ?? new Map())].sort())
+      console.log(`    · ${area}`.padEnd(24), String(n).padStart(5))
   }
-  console.log('  total'.padEnd(20), String(total).padStart(5))
+  console.log('  total'.padEnd(24), String(total).padStart(5))
 } else if (cmd !== 'noop') {
   console.error('usage: cs-stamp.mjs stamp|unstamp|tally|list <stamp>|set <stamp> <path>...')
   process.exit(1)

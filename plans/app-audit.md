@@ -1889,6 +1889,29 @@ Every file in scope carries one comment on its first line, `cs-` for
 | `cs-blessed` | **Joel read it himself** | **only Joel** |
 | `cs-na` | in the tree, deliberately not read | either |
 
+**A JUDGMENT STAMP NAMES THE AREA THAT MADE IT** (Joel, 2026-09-02) — as a
+suffix, so the five from `met` down read `cs-met-deep`, `cs-audited-club-page`,
+`cs-blessed-forms`. `cs-unmet` and `cs-na` stay bare: no area has reached the
+first, and the second is a standing decision no area owns.
+
+It answers a question only the file itself can answer — Joel: *"hey, when did I
+approve this? should I revisit it now that we're elsewhere in the sprint?"* A
+stamp is a claim, and a claim with no author cannot be re-examined.
+
+**The suffix is NOT guarded, deliberately.** Joel: *"you don't need to guard
+this; it's just useful for me."* The guard checks the STATE against the eight and
+ignores the rest. Validating the area would need a list of areas, that list would
+be a manifest, and a manifest rots on the renames this sprint does constantly —
+while a stamp left reading `cs-blessed-dialogs-and-forms` after that area split
+still answers the question right, because the old name IS the moment. The cost,
+stated plainly: a typo'd area passes silently.
+
+`splitStamp()` in `scripts/cs-stamp.mjs` does the splitting — no state word
+contains a hyphen, so the first one is always the seam, which is why area names
+may contain as many as they like. `list` and `set` take either form (`list met`
+is every area's, `list met-deep` is one area's), and `tally` breaks each state
+down by area.
+
 **`cs-fixed` and `cs-blessed` are different claims.** "Claude found nothing" and
 "Joel actually read it" are not the same statement, and the sprint's real exit
 criterion is the second one.
@@ -1982,16 +2005,41 @@ An area is a loose unit of reading — a page, a component family, a game.
 resolution), its predicted test breaks, and its notes. **The plan holds the
 order** (§13); the area file holds everything else.
 
-**Findings are numbered `F1`, `F2`, … and sub-numbered `F6.1` when one finding
-grows a list of its own** (Joel, 2026-08-22). The prefix is the whole point: an
-hour into an area, a bare "2" is whatever list was last on screen, while `F2` can
-only be that finding. Use the F-number everywhere the finding is referred to — in
-the area file, in conversation, in a commit message.
+**A finding's ID names its AREA: `F-deep-1`, `F-club-page-7`** (Joel,
+2026-09-02), sub-numbered `F-deep-6.1` when one finding grows a list of its own.
+Use the full ID everywhere the finding is referred to — in the area file, in
+conversation, in a commit message.
+
+**Numbering restarts at 1 in every area.** It always did in practice; what was
+missing was a way to say so in the ID. A bare `F2` was three different findings
+in three files, so it only meant something with an area held in your head
+alongside it — and an inherited finding was worse, because §21 forbids
+renumbering it, which stranded `F48` in a file whose own run stops at 11. The
+number looked arbitrary because the sequence it belonged to was invisible.
+`F-homepage-48` puts it back in the namespace where 48 is a sensible count.
+
+What the ID buys, beyond reading correctly:
+
+- **it greps per area** — `grep -r F-deep` finds every mention across `plans/`
+  and the commit log, where `\bF3\b` finds three unrelated findings;
+- **it survives a split** — when `dialogs-and-forms` became two areas, three
+  findings moved and kept numbers that then looked arbitrary in their new home.
+  `F-floating-panels-8` explains itself wherever it lands;
+- **no area ever has to dodge another's numbers.** `forms` started at F30 to
+  clear the numbers it inherited; nothing needs that now.
+
+**The slug stays, and does a different job.** The ID says where the finding
+lives; the slug says what it is about. Their rules are different too, which is
+why one cannot replace the other: a slug may be renamed when the subject genuinely
+changes, and an ID never moves. In conversation, say both —
+`F-deep-3 (palette-waits-for-the-session)`.
 
 **The same goes for the plan's other two numberings, and they collide.** This doc
 has sections 1–21 AND steps 1–12, so "5" is either §5 (Naming) or step 5 (the
-shallow pattern pass), and F5 is a third thing. Write `§5` for a section, `step 5`
-for a step, `F5` for a finding — and **never a bare number for any of them**.
+shallow pattern pass). Write `§5` for a section, `step 5` for a step, and a
+finding's full ID (`F-deep-5`) for a finding — **never a bare number for any of
+them**. The finding form no longer collides with the other two at all, which is a
+second thing the area half of the ID buys.
 
 **Dependencies are listed, not audited.** Reading the homepage is the first time
 the page header appears; auditing it there would hand Joel a list nobody can
@@ -2025,19 +2073,20 @@ which is committed before any area opens.
 
 ### Findings are numbered AND slugged
 
-**Every finding in an area file gets a number and a slug**, written together as
-its heading:
+**Every finding in an area file gets an ID and a slug**, written together as its
+heading, with its status in front when it has one:
 
 ```
-**F26 · `three-wrappers` · Three `.frame` rules, and only one of the
-differences is a decision.**
+## F-club-page-26 · `three-wrappers` · Three `.frame` rules, and only one of the
+differences is a decision
 ```
 
-The **number** is the address: an hour into an area, "2" is whatever list was
-last on screen and `F2` is only ever this finding. It never changes, and
-findings raised after the audit take the next free number rather than a
-sub-number — a finding is not required to have come from the audit. Sub-numbers
-(`F6.1`) are for a finding that grows its own list.
+The **ID** is the address: an hour into an area, "26" is whatever list was last
+on screen and `F-club-page-26` is only ever this finding, in this file or any
+other. It never changes, and findings raised after the audit take the next free
+number rather than a sub-number — a finding is not required to have come from the
+audit. Sub-numbers (`F-club-page-6.1`) are for a finding that grows its own list.
+The area half is what makes the number readable; see "Areas" above for why.
 
 The **slug** is the hook (Joel, 2026-08-23). Two or three kebab words naming the
 SUBJECT rather than the verdict, so it survives the finding being resolved
