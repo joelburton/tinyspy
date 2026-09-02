@@ -26,16 +26,8 @@ export const json = (body: unknown, status = 200): Response =>
 export const preflight = (req: Request): Response | null =>
   req.method === 'OPTIONS' ? new Response('ok', { headers: cors }) : null
 
-/**
- * The catch-all error response: an UNCAUGHT exception, wrapped as an
- * fe-error-key so even a crash comes back key-shaped.
- *
- * Every edge-function error return carries an fe-error-key
- * (`key|detail1|detail2|` — docs/supabase.md → Server errors): the FE owns all
- * player-facing words, and a non-key response can then only mean the request
- * never reached the function at all. The raw message rides as the detail —
- * it's for the console/log audience, and the fault display shows it verbatim,
- * which for an internal error is exactly right (it announces "bug").
- */
-export const edgeInternal = (e: unknown, status = 500): Response =>
-  json({ error: `edge-internal|${String(e instanceof Error ? e.message : e)}|` }, status)
+/* There is deliberately no catch-all error response here. A function's `catch`
+ * ends with `crash()` from `./envelope.ts`, which answers an ENVELOPE at 200
+ * like every other decision a function makes — the status says whether it ran,
+ * and it did run, it just threw. This file knows nothing about envelopes and
+ * should not: it is transport. */

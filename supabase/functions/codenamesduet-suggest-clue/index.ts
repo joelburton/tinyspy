@@ -68,8 +68,8 @@ type Suggestion = {
   reasoning: string
 }
 
-import { edgeInternal, json, preflight } from '../_shared/http.ts'
-import { fault, ok, serviceError } from '../_shared/envelope.ts'
+import { json, preflight } from '../_shared/http.ts'
+import { crash, fault, ok, serviceError } from '../_shared/envelope.ts'
 import { runRpc } from '../_shared/dbResult.ts'
 
 serve(async (req) => {
@@ -250,7 +250,7 @@ serve(async (req) => {
     return ok({ result: 'suggested', suggestion })
   } catch (e) {
     console.error('suggest-clue failed', e)
-    return edgeInternal(e)
+    return crash('codenamesduet-suggest-clue', e)
   }
 })
 

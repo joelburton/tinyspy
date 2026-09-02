@@ -272,10 +272,10 @@ serve(async (req) => {
     }
     board = { meta, solution }
   } catch (e) {
-    // fe-error-keys out; the specific cause stays in the serve log. nyt-auth
-    // and nyt-no-puzzle carry ERROR_COPY (player-fixable: the pasted cookie /
-    // the picked date); nyt-fetch's copy says try later; anything else — the
-    // cookie-jar config problems included — is an edge-internal fault.
+    // Envelopes out, one per cause: `NytAuthError` and `NytFetchError` are
+    // service-errors, `NytNoPuzzleError` is a form-validation on `source`, and
+    // anything else — the cookie-jar config problems included — falls to
+    // `crash`. The specific cause stays in the serve log either way.
     console.log(`crosswords-import-nyt failed: ${(e as Error).message}`)
     // Three answers from OUTSIDE, and the middle one is the only one the player
     // can act on — they chose the date. The other two are the service saying no,

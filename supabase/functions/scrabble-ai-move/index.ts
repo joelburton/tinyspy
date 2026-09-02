@@ -25,8 +25,8 @@
  */
 
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
-import { edgeInternal, json, preflight } from '../_shared/http.ts'
-import { fault, ok } from '../_shared/envelope.ts'
+import { json, preflight } from '../_shared/http.ts'
+import { crash, fault, ok } from '../_shared/envelope.ts'
 import { runRpc } from '../_shared/dbResult.ts'
 import type { Envelope } from '../../../src/common/lib/supabase/envelope.ts'
 import { callerClient } from '../_shared/startGame.ts'
@@ -174,6 +174,6 @@ serve(async (req: Request): Promise<Response> => {
     return ok({ result: 'moved', turns: played })
   } catch (e) {
     console.error('scrabble-ai-move threw:', e)
-    return edgeInternal(e)
+    return crash('scrabble-ai-move', e)
   }
 })

@@ -27,8 +27,8 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import Anthropic from 'npm:@anthropic-ai/sdk@0.109.0'
-import { edgeInternal, json, preflight } from '../_shared/http.ts'
-import { fault, ok, serviceError } from '../_shared/envelope.ts'
+import { json, preflight } from '../_shared/http.ts'
+import { crash, fault, ok, serviceError } from '../_shared/envelope.ts'
 import { runRpc } from '../_shared/dbResult.ts'
 
 type Cell = { row: number; col: number }
@@ -147,7 +147,7 @@ serve(async (req) => {
     return ok({ result: 'explained', explanation: textBlock.text.trim() })
   } catch (e) {
     console.error('explain-clue failed', e)
-    return edgeInternal(e)
+    return crash('crosswords-explain-clue', e)
   }
 })
 

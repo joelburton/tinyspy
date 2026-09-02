@@ -45,8 +45,8 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 
-import { edgeInternal, preflight } from '../_shared/http.ts'
-import { fault, ok, serviceError } from '../_shared/envelope.ts'
+import { preflight } from '../_shared/http.ts'
+import { crash, fault, ok, serviceError } from '../_shared/envelope.ts'
 
 /** Permissive but bounded normalization for the free-form lookup box.
  *  Lowercase, trim, collapse internal whitespace. Returns null if the
@@ -233,6 +233,6 @@ serve(async (req) => {
       : definitionAnswer(word, def, 'w', false, meta)
   } catch (e) {
     console.error('define failed', e)
-    return edgeInternal(e)
+    return crash('common-define', e)
   }
 })
