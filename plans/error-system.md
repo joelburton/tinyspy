@@ -5,23 +5,29 @@
 **`ERROR_COPY` IS EMPTY.** Its last key, `game-not-in-play`, was raised only by
 `end_game` and `submit_timeout`; converting those took it.
 
-**What is left is a DELETION, not a conversion** (2026-09-01):
+**And the DELETION it ended with is done too** — the sprint's last act, since
+none of this could go until the roster emptied:
 
-- `src/common/lib/game/errorCopy.ts` — the table, now `{}`
+- `src/common/lib/game/errorCopy.ts` — the table
 - `src/common/lib/game/serverError.ts` — the classifier that read it
 - `src/common/lib/game/callRpc.ts` — the old call wrapper
+- `src/guards/serverErrorKeys.test.ts` — the guard that kept the table honest
 
-All three have **zero call sites**; the only surviving mentions are prose in
-four comments (codenamesduet's PlayArea, crosswords' `useCells`, scrabble's
-BoardCol, `games.ts`), which want rewording as the files go. `serverErrorKeys.test.ts`
-goes with them; `callSiteShape.test.ts`'s `CONVERTED` list can be deleted and
-its report flipped to a hard assertion, which its own docstring says to do the
-day the roster empties.
+`callSiteShape.test.ts`'s hand-kept `CONVERTED` list went with them, and its
+`!== 'ok'` report is a hard assertion now — which its own docstring said to do
+the day the roster emptied. `useStandardGameActions.ts`, the one file that list
+was waiting on, converted with the cross-cutting four.
 
-**`useStandardGameActions.ts` still has to join `CONVERTED`** before that list
-is deleted, or the flip loses the one file the list was waiting on.
+The prose took a second pass (2026-09-02): the count here was wrong, and it was
+**nine** comments naming the deleted files rather than four — in `FaultModal`,
+`faultStore`, `genericPills`, `callEdgeFn`, `games.ts`, `useCells`,
+`guards/README.md` and two letterboxed tests. `docs/envelopes.md` needed it too:
+its opening still described the convention as being rolled out.
 
-**What the cross-cutting four taught, worth keeping when this plan is deleted:**
+**What the cross-cutting four taught.** These four are the durable half, and
+they already live in [docs/envelopes.md](../docs/envelopes.md) → "Four things the
+roster conversion taught", in a fuller form with the guard for each. Kept here
+because this is where they were learned; the doc is what to read:
 
 - A raise that looks unreachable is usually a raise something ABOVE it is
   answering instead. All sixteen `replay_board`s, and six sites in the other
