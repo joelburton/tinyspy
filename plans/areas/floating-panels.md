@@ -23,8 +23,14 @@ status; no status prefix means OPEN.)*
 
 ## Notes, to-dos and deferrals
 
-Things another area noticed that belong here. **Add freely** — a line here costs
-nothing and is the alternative to losing it.
+Findings, notes, and the record of what the sprint did here — **all of it lives
+in this file**. Add freely: a line costs nothing and is the alternative to losing
+it.
+
+**The one thing that goes elsewhere:** something this area turns up that is
+genuinely OUT of the sprint's scope goes to `docs/deferred.md`, deliberately and
+by name. That is the app's standing register; this file is the sprint's record of
+the area.
 
 ## Predicted test breaks
 

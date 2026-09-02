@@ -966,7 +966,7 @@ table.
 | 5 | `simple-page` | **NEW.** The pages that are not home, club or game: `LoginScreen`, `ClaimHandleScreen`, `ErrorPage`, `Loading`. (`CreateClubPage` was on this roster; F36 took it on 2026-08-26 and it is a modal now.) **The roster's test is "does `App` render it directly?"**, which is better than "is it routable": it catches `ErrorPage` and `Loading`, both of which stand in for a page AND appear inside one (`ClubPage:719`, `:726`, `PlayAreaErrorBoundary:47`) — which is exactly what the shell decision has to cover |
 | 6 | `club-page` | Absorbs the punted viewport-fit chain, the `.frame` rename, `<ModePill>` reading the shared `.badge`, and the leftovers listed in "Why 6 stopped" |
 | 7 | `shared-game-chrome` | `common/components/game/` — 258 rules, and every game sits on it. Also: the **contract-slot guard**, checked per mount point (§9, §10) |
-| 8 | per game, one area each | CSS pass then tile-feedback pass, back to back. `psychicnum` first, as the control |
+| 8 | per game, one area each | **Sixteen areas, and each has its file already** (`plans/areas/<game>.md`, keyed by CODENAME). Two passes back to back: the audit — React, SQL and CSS together — then the **tile-feedback** pass against [tile-feedback.md](tile-feedback.md), which is read per area rather than run as a sprint. `psychicnum` first, as the control: the deliberately minimal toy, so what it settles is about the shape of a game area rather than about the game |
 
 #### `deep` — the rule, and what it is not (Joel, 2026-09-02)
 
@@ -2012,9 +2012,29 @@ agreed with Joel then.
 ### Areas
 
 An area is a loose unit of reading — a page, a component family, a game.
-`plans/areas/<area>.md` holds its audit (numbered findings, each with its
-resolution), its predicted test breaks, and its notes. **The plan holds the
-order** (§13); the area file holds everything else.
+`plans/areas/<area>.md` holds its audit (findings, each with its resolution), its
+predicted test breaks, and its notes. **The plan holds the order** (§13); the area
+file holds everything else.
+
+**Every area has its file from the start, opened or not** — twenty-three of them,
+seven for the app's surfaces and sixteen for the games, keyed by CODENAME. Joel,
+2026-09-02: *"this way, we're not creating them only when we open them; we can put
+things in them now."* A shell carries the live headings — roster, findings,
+notes/to-dos/deferrals, predicted test breaks — so a note has somewhere to go the
+moment it turns up, months before its area opens. **A shell is not an open area:**
+the roster stays empty until Joel agrees it, and opening is still "list the files
+and STOP".
+
+**Where a note goes, and it is one of two places** (Joel, 2026-09-02):
+
+- **the area file** — the audit, the findings, the notes, and *the record of what
+  the sprint did here*. All of it, including work done during the sprint.
+- **the standing register** — `docs/games/<game>.md` → Deferred for a game,
+  `docs/deferred.md` otherwise — and only for something the area turns up that is
+  **genuinely out of this sprint's scope**, added deliberately and by name.
+
+The split is by *whose work it is*, not by whether it is finished: the register is
+the app's list of owed work, the area file is the sprint's record of the area.
 
 **A finding's ID names its AREA: `F-deep-1`, `F-club-page-7`** (Joel,
 2026-09-02), sub-numbered `F-deep-6.1` when one finding grows a list of its own.
