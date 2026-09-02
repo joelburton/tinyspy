@@ -32,10 +32,9 @@ understood, tidied* — `cs-blessed` here means he has read the file, not seen i
 **Every heading says its status**; a heading with **no status prefix means OPEN**.
 
 **One pass of three has run** — the boot path, 2026-09-02, sixteen findings.
-Twelve RESOLVED (`F-deep-2`, `F-deep-4`, `F-deep-5`, `F-deep-6`, `F-deep-7`,
-`F-deep-9`, `F-deep-10`, `F-deep-11`, `F-deep-12`, `F-deep-13`, `F-deep-14`,
-`F-deep-15`), one CLOSED (`F-deep-3`), one MOVED to `corecss` (`F-deep-1`); the
-other two are open. The data path and the realtime plumbing
+Thirteen RESOLVED, one CLOSED (`F-deep-3`), one MOVED to `corecss`
+(`F-deep-1`) — leaving **`F-deep-8` (`router-doc-cites-what-cannot-be-read`)
+alone open**. The data path and the realtime plumbing
 have not been read.
 
 ## The roster — 33 files, 4,880 lines
@@ -146,7 +145,7 @@ modal — but it has three live consumers (`ClubGameCard:59`, `GamePage:178`, `E
 ## Findings — pass 1, the boot path
 
 Sixteen — **F-deep-1 … F-deep-16**. Every heading says its status; a heading
-with no status prefix means OPEN, and two are.
+with no status prefix means OPEN, and one is: `F-deep-8`.
 
 ## MOVED · F-deep-1 · `stylesheet-map-rotted` · main.tsx's map of the stylesheet chain names two files that were deleted
 
@@ -577,7 +576,7 @@ again — but it should be said out loud rather than discovered.
 > not worth a read-the-old-key-then-write-the-new shim that would have to be
 > carried until someone remembered to delete it.
 
-## F-deep-16 · `themename-export-unread` · An exported type and a return value, neither read
+## RESOLVED · F-deep-16 · `themename-export-unread` · An exported type and a return value, neither read
 
 `export type ThemeName` (`loadTheme.ts:33`) has no consumer outside its own file.
 `loadTheme()` is typed `Promise<ThemeName>` and its one caller, `main.tsx:56`,
@@ -591,7 +590,13 @@ that nobody reads.
 Not a bug, and not urgent — but `ThemeName` is exported, which is a claim that
 somebody outside needs it.
 
-> resolution:
+> **resolution: keep both, change nothing** (Joel, 2026-09-02): *"we'll keep the
+> export and not worry that main.tsx doesn't use it now."*
+>
+> A theme's name is the kind of thing a caller will want, and `loadTheme()`
+> already knows it — dropping the return to add it back later is churn for a
+> line that costs nothing. Recorded so the next reader does not re-raise it: the
+> unread export is deliberate, not an oversight.
 
 ## Questions this pass raises rather than answers
 
