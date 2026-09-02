@@ -18,7 +18,8 @@
  * cross-test pollution.
  */
 
-import { act, renderHook } from '@testing-library/react'
+import { act, render, renderHook } from '@testing-library/react'
+import { createElement, Fragment, useLayoutEffect } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { navigate, usePath } from './router'
 
@@ -49,6 +50,29 @@ describe('usePath', () => {
     })
 
     expect(result.current).toBe('/g/abc-123')
+  })
+
+  it('catches a navigate() fired before the subscription attaches', () => {
+    // The gap a useState + useEffect version has: the initial path is read
+    // during render, the listener attaches in a passive effect, and anything
+    // that navigates in between is lost. Staged with a SIBLING that navigates
+    // from a layout effect — those run before passive effects, so the navigate
+    // lands inside the window.
+    const seen: string[] = []
+    const Navigator = () => {
+      useLayoutEffect(() => {
+        navigate('/c/navigated-early')
+      }, [])
+      return null
+    }
+    const Reader = () => {
+      seen.push(usePath())
+      return null
+    }
+
+    render(createElement(Fragment, null, createElement(Navigator), createElement(Reader)))
+
+    expect(seen.at(-1)).toBe('/c/navigated-early')
   })
 
   it('updates on a native popstate event (back/forward button)', () => {

@@ -32,8 +32,8 @@ understood, tidied* — `cs-blessed` here means he has read the file, not seen i
 **Every heading says its status**; a heading with **no status prefix means OPEN**.
 
 **One pass of three has run** — the boot path, 2026-09-02, sixteen findings.
-Three RESOLVED (`F-deep-2`, `F-deep-4`, `F-deep-9`), one CLOSED (`F-deep-3`), one
-MOVED to `corecss` (`F-deep-1`); the other eleven are open. The data path and the realtime plumbing
+Four RESOLVED (`F-deep-2`, `F-deep-4`, `F-deep-5`, `F-deep-9`), one CLOSED
+(`F-deep-3`), one MOVED to `corecss` (`F-deep-1`); the other ten are open. The data path and the realtime plumbing
 have not been read.
 
 ## The roster — 32 files, 4,866 lines
@@ -141,7 +141,7 @@ modal — but it has three live consumers (`ClubGameCard:59`, `GamePage:178`, `E
 ## Findings — pass 1, the boot path
 
 Sixteen — **F-deep-1 … F-deep-16**. Every heading says its status; a heading
-with no status prefix means OPEN, and eleven are.
+with no status prefix means OPEN, and ten are.
 
 ## MOVED · F-deep-1 · `stylesheet-map-rotted` · main.tsx's map of the stylesheet chain names two files that were deleted
 
@@ -247,7 +247,7 @@ Whether boot deserves a real error path is a decision — the alternative is a
 > minification (checked in the bundle, since a top-level `await` inside a
 > `try` is the sort of thing a build target can quietly reject).
 
-## F-deep-5 · `usepath-misses-updates-before-mount` · A navigate() between first render and effect commit is lost
+## RESOLVED · F-deep-5 · `usepath-misses-updates-before-mount` · A navigate() between first render and effect commit is lost
 
 `usePath()` (`router.ts:58`) reads `window.location.pathname` in a `useState`
 initializer and subscribes to `popstate` in a `useEffect`. Between those two
@@ -261,7 +261,25 @@ and nothing currently navigates from a mount effect. It is a latent trap, not a
 live bug, and the fix is small enough that the question is only whether to spend
 it.
 
-> resolution:
+> **resolution: converted to `useSyncExternalStore`** (Joel, 2026-09-02). Thirteen
+> lines became seven and the `useState` + `useEffect` pair is gone; `subscribeToPath`
+> and `readPath` are module-level so React never resubscribes on a re-render, which
+> is the one easy way to get this hook wrong.
+>
+> **The window is closed by construction**, not narrowed: React reads the snapshot
+> during render and re-checks it once subscribed, so a `navigate()` in between
+> forces a re-render. The snapshot is a string, so it needs no caching to compare
+> equal, and there is no SSR here to need a server snapshot.
+>
+> **Pinned by a new test** — *"catches a navigate() fired before the subscription
+> attaches"* — which stages the gap with a sibling that navigates from a LAYOUT
+> effect, since those run before the passive effect a `useEffect` subscription
+> would attach in. Proved by planting: it fails against the old implementation and
+> passes against the new, while the other six tests pass against BOTH. That is why
+> the gap survived — nothing already written could see it.
+>
+> It does not foreclose `F-deep-12`: if the router later carries the query,
+> `readPath` becomes `pathname + search` and stays a primitive.
 
 ## F-deep-6 · `navigate-pushes-duplicate-entries` · Navigating to the path you are already on adds a history entry
 

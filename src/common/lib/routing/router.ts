@@ -1,6 +1,6 @@
 // cs-met-deep
 
-import { useEffect, useState } from 'react'
+import { useSyncExternalStore } from 'react'
 
 /**
  * Tiny hand-rolled path-based router. The non-component half.
@@ -44,30 +44,30 @@ import { useEffect, useState } from 'react'
  */
 
 /**
+ * Both module-level, so they are stable across renders — a `subscribe`
+ * that changed identity would make React resubscribe every render.
+ */
+const subscribeToPath = (onChange: () => void) => {
+  window.addEventListener('popstate', onChange)
+  return () => window.removeEventListener('popstate', onChange)
+}
+const readPath = () => window.location.pathname
+
+/**
  * Subscribes a component to changes in `window.location.pathname`.
- *
- * The initial value is read synchronously via a lazy `useState`
- * initializer, so the first render already has the correct path —
- * no flash through a wrong route.
  *
  * Updates fire via the browser's `popstate` event. The browser
  * dispatches that natively on back/forward navigation; we also
  * dispatch it ourselves from `navigate()` below so programmatic
  * navigation triggers the same subscriber path.
+ *
+ * `useSyncExternalStore` rather than `useState` + `useEffect`: it reads
+ * the path during render AND re-checks it once subscribed, so a
+ * `navigate()` between those two moments cannot be missed. The snapshot
+ * is a string, so it needs no caching to compare equal.
  */
 export function usePath(): string {
-  const [path, setPath] = useState(() => window.location.pathname)
-  // Bridge the browser's popstate event into React state. Empty
-  // deps = attach once for the component's lifetime; both real
-  // back/forward nav and our own navigate() trigger this listener.
-  useEffect(function subscribeToPopState() {
-    function onPop() {
-      setPath(window.location.pathname)
-    }
-    window.addEventListener('popstate', onPop)
-    return () => window.removeEventListener('popstate', onPop)
-  }, [])
-  return path
+  return useSyncExternalStore(subscribeToPath, readPath)
 }
 
 /**
