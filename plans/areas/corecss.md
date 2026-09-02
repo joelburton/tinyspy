@@ -39,11 +39,11 @@ src/common/patterns/badge.css · focus-ring.css · heading.css · page.css · se
 src/common/themes/            light-mode · daylight · dark-mode · midnight
 ```
 
-**`src/common/themes/loadTheme.ts` is a question this area inherits**, not a
-member by default: it is code rather than a stylesheet, `main.tsx` awaits it
-before the first render, and `deep` raised its own finding about which area should
-hold it (`F-deep-9`, `loadtheme-is-boot-and-is-not-on-the-roster`). Whichever way
-that goes, it should not be decided twice.
+**`src/common/themes/loadTheme.ts` is NOT this area's** — settled 2026-09-02 by
+`F-deep-9`, which put it on `deep`'s roster: `main.tsx` awaits it before the first
+render, so it is boot machinery that happens to live in `themes/`. The stylesheets
+it imports are still this area's. Four findings against it are recorded there
+(`F-deep-13` … `F-deep-16`).
 
 **ABSOLUTELY NOT in this area, or any area:** `/palette` and `/font`. They are
 instruments, they are out of the sprint entirely, and they are not to be read,

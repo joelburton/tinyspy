@@ -31,18 +31,18 @@ understood, tidied* — `cs-blessed` here means he has read the file, not seen i
 
 **Every heading says its status**; a heading with **no status prefix means OPEN**.
 
-**One pass of three has run** — the boot path, 2026-09-02, twelve findings. Two
-RESOLVED (`F-deep-2`, `F-deep-4`), one CLOSED (`F-deep-3`), one MOVED to
-`corecss` (`F-deep-1`); the other eight are open. The data path and the realtime plumbing
+**One pass of three has run** — the boot path, 2026-09-02, sixteen findings.
+Three RESOLVED (`F-deep-2`, `F-deep-4`, `F-deep-9`), one CLOSED (`F-deep-3`), one
+MOVED to `corecss` (`F-deep-1`); the other eleven are open. The data path and the realtime plumbing
 have not been read.
 
-## The roster — 31 files, 4,797 lines
+## The roster — 32 files, 4,866 lines
 
 Agreed with Joel 2026-09-02 before anything was read, and stamped **`cs-met`** —
 the eighth stamp, added the same day for exactly this state: on an open area's
 roster, agreed, and not yet read (app-audit.md §21 → The stamp). About half the line count is tests.
 
-**The boot path — 7 files, 596 lines**
+**The boot path — 8 files, 665 lines**
 
 | file | lines | |
 |---|---|---|
@@ -53,6 +53,7 @@ roster, agreed, and not yet read (app-audit.md §21 → The stamp). About half t
 | `src/common/lib/routing/Link.tsx` | 44 | the homepage writes no link at all now — its last one went when the create-club page became a modal; the file is still the router's |
 | `src/common/lib/util/reloadOnStaleChunk.ts` | 36 | filed under `util/`, but it is boot machinery |
 | `src/common/lib/util/reloadOnStaleChunk.test.ts` | 36 | |
+| `src/common/themes/loadTheme.ts` | 69 | **added 2026-09-02 by `F-deep-9`** — `main.tsx` awaits it before the first render, and it names no game and no page |
 
 **The data path — 11 files, 2,867 lines**
 
@@ -116,7 +117,8 @@ without the other is how they drift. `supabase/functions/_shared/startGame.ts`
 
 ## Pass 1 — the boot path, read 2026-09-02
 
-Seven files, 596 lines. **Scope, set by Joel:** *"don't go deep into consumers of
+Eight files, 665 lines — seven read on 2026-09-02, then `loadTheme.ts` when
+`F-deep-9` put it on the roster. **Scope, set by Joel:** *"don't go deep into consumers of
 the boot area (I don't want this audit to explode with issues), just critique of
 the code/comments/correctness/etc of the boot area."* So a consumer is named only
 where it is the evidence for something inside these seven files, and no consumer's
@@ -138,8 +140,8 @@ modal — but it has three live consumers (`ClubGameCard:59`, `GamePage:178`, `E
 
 ## Findings — pass 1, the boot path
 
-Twelve — **F-deep-1 … F-deep-12**. Every heading says its status; a heading with
-no status prefix means OPEN, and eight are.
+Sixteen — **F-deep-1 … F-deep-16**. Every heading says its status; a heading
+with no status prefix means OPEN, and eleven are.
 
 ## MOVED · F-deep-1 · `stylesheet-map-rotted` · main.tsx's map of the stylesheet chain names two files that were deleted
 
@@ -302,7 +304,7 @@ number.
 
 > resolution:
 
-## F-deep-9 · `loadtheme-is-boot-and-is-not-on-the-roster` · The file main.tsx awaits was left out
+## RESOLVED · F-deep-9 · `loadtheme-is-boot-and-is-not-on-the-roster` · The file main.tsx awaits was left out
 
 `src/common/themes/loadTheme.ts` (69 lines, `cs-unmet`, no test) is awaited by
 `main.tsx:53` before the first render, decides which stylesheet chain the app
@@ -314,7 +316,13 @@ rest of that folder is stylesheets.
 **Joel's call**, since it changes the roster: add it (making the boot path 8 files,
 665 lines), or leave it to whichever area takes the themes.
 
-> resolution:
+> **resolution: it joins this roster** (Joel, 2026-09-02) — *"yes, loadTheme
+> should be in roster for this."* Stamped `cs-met-deep` and read in the same
+> sitting; the boot path is eight files, 665 lines. It has one consumer,
+> `main.tsx`, and no test.
+>
+> `corecss` recorded it as a question it inherited; that note now points here so
+> it is not decided twice.
 
 ## F-deep-10 · `suspense-fallback-is-a-bare-p` · The game chunk's loading state is a raw paragraph
 
@@ -349,6 +357,80 @@ mean a different finding. `loadTheme.ts:44` reads `?theme=`,
 has read it. `usePath()` returns the pathname alone, so a component that cares
 about the query cannot subscribe to it. Whether the router should carry the query
 is a decision; the docstring asserting nobody needs it is just false.
+
+> resolution:
+
+## F-deep-13 · `theme-storage-unguarded` · Blocked site data stops the app from starting at all
+
+`chosenTheme()` (`loadTheme.ts:44`, `:46`, `:50`, `:53`) reads and writes
+`window.localStorage` with no `try/catch`. Where a browser blocks site data the
+access throws — and this one throws **before any CSS is imported**, from inside
+the function `loadTheme()` calls first. So `loadTheme()` rejects, and since
+`F-deep-4` that is caught and painted as "The app could not start."
+
+Before `F-deep-4` it was a silent white page; it was always fatal. **This is not a
+style question the app has left open** — `useDraggablePanel` guards its
+`localStorage` access at `:306` and `:314` and its docstring promises the
+behavior: *"Falls back gracefully if `localStorage` is unavailable (private
+browsing…)"*. Two files, two answers, and the one that gets it wrong is the one
+that runs first.
+
+Same shape as `F-deep-11` (`sessionstorage-unguarded`) and strictly worse:
+there, blocked storage costs a stale-deploy recovery; here it costs the app.
+Whatever is decided for one should decide both — the honest options are a shared
+"storage that can't throw" helper, or a `try/catch` in each of the two places
+that lack one.
+
+> resolution:
+
+## F-deep-14 · `theme-chunks-load-serially` · Two awaits where one wait would do
+
+`loadTheme()` awaits its two stylesheet imports one after the other
+(`:59`–`:60`, `:62`–`:63`) — `dark-mode` then `midnight`, or `light-mode` then
+`daylight`. The second request does not start until the first resolves, so the
+chain costs two round trips.
+
+They have no dependency on each other: both are plain CSS, and the cascade order
+is decided by import order in the built stylesheet rather than by which promise
+settles first. `Promise.all` makes it one wait.
+
+It is a small number, in the one place the app can least afford one: this await
+is the last thing before the first paint, and every other boot step is
+synchronous.
+
+> resolution:
+
+## F-deep-15 · `theme-key-off-convention` · The one localStorage key that doesn't look like the others
+
+`STORAGE_KEY = 'pup-theme'` (`loadTheme.ts:35`). Every other key the app stores
+under is `<scope>:<thing>` with a colon, and the app-wide scope is spelled
+`puzpuzpuz`: `puzpuzpuz:chat:open`, `puzpuzpuz:scratchpad:open`,
+`puzpuzpuz:help:rect`, `puzpuzpuz:gameInvitesSeen`, plus game-scoped ones like
+`crosswords:collapseRebus`.
+
+`pup-theme` is the only key with a hyphen instead of a colon, and `pup` is a
+prefix nothing else in the app uses.
+
+**Renaming it is a data question, not just a naming one:** the key is live in
+real browsers, so a rename silently drops whoever has `midnight` stored. That
+costs nothing here — midnight is a flagged spike and `?theme=midnight` sets it
+again — but it should be said out loud rather than discovered.
+
+> resolution:
+
+## F-deep-16 · `themename-export-unread` · An exported type and a return value, neither read
+
+`export type ThemeName` (`loadTheme.ts:33`) has no consumer outside its own file.
+`loadTheme()` is typed `Promise<ThemeName>` and its one caller, `main.tsx:56`,
+discards the result.
+
+The docstring explains a different mechanism and is right about it: the theme is
+published on `document.documentElement.dataset.theme` (`:67`), which is what a
+reader would actually use. The return value is a second channel for the same fact
+that nobody reads.
+
+Not a bug, and not urgent — but `ThemeName` is exported, which is a claim that
+somebody outside needs it.
 
 > resolution:
 
