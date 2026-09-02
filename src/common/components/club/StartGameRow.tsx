@@ -26,7 +26,7 @@ type Props = {
  * whether this row is choosable at all — a gametype the club's member count
  * doesn't fit is passed to `disabled`, and the list dims it and declines Enter.
  * That predicate used to be evaluated twice, once for the paint here and once
- * for the keyboard in ClubPage (plans/selection-lists.md).
+ * for the keyboard in ClubPage (docs/ui.md → Selection lists).
  *
  * The name is the prominent first line, the description the subtle second, so a
  * column of these reads as "options to consider" rather than "actions to take"

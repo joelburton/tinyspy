@@ -6,7 +6,7 @@ import { signIn } from './helpers/session'
 
 /**
  * The club list's keyboard navigation — which since 2026-08-24 is
- * `<SelectionList>`'s, not this page's (plans/selection-lists.md). The contract:
+ * `<SelectionList>`'s, not this page's (docs/ui.md → Selection lists). The contract:
  * the LIST CONTAINER is the tab stop, Up/Down move a cursor ring through the
  * rows (clamped, no wrap), Home/End jump to the ends, Space does nothing, and
  * Enter opens the row under the ring.

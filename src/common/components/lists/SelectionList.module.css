@@ -16,7 +16,7 @@
  * is also why `fills` and the packed density are props: a page used to
  * reach in and restyle `.item-row` from outside, and this shuts that door.
  *
- * plans/selection-lists.md
+ * docs/ui.md → Selection lists
  * ============================================================ */
 
 /* ---------- The frame ---------- */

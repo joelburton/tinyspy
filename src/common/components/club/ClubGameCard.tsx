@@ -40,7 +40,7 @@ type Props = {
  *
  * **The duplication between this and `<ClubGameRow>` is known and left.**
  * Whether the two should share an inner shape is a club-page question, and that
- * area has not opened (plans/selection-lists.md).
+ * area has not opened (docs/ui.md → Selection lists).
  */
 export function ClubGameCard({
   gameId,

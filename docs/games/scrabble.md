@@ -1036,6 +1036,32 @@ which is a rule this game does not have today. The FE renders `PassButton` only
 in compete, so nothing is broken meanwhile; the refusal is a fault (PN452) for
 exactly that reason.
 
+**The AI suggest-a-move box is the one SelectionList site that didn't convert,
+and the choice is still open.** It was on the roster for
+[`<SelectionList>`](../ui.md#selection-lists) and should not have been: the box
+is five bare text lines with no frame, no surface, no hairlines and no hover,
+pinned to a fixed `5 × 1.35rem = 6.75rem` (`InfoCol.module.css`) whose own
+comment says a growable height would shift the setup disclosure and the Moves
+log below it.
+
+A SelectionList row is ~2.4rem with its padding, so five of them run to ~12rem.
+Converting therefore roughly doubles the box and reflows the column — the one
+thing that height rule exists to forbid — and brings the frame, the surface and
+the hairlines with it, which is a visible redesign of a game's info column.
+
+Three ways out, none of them chosen (closed out of the `homepage` area
+2026-08-24, moved here 2026-09-02 when the SelectionList plan was swept):
+
+1. **Leave it bespoke**, as crosswords' clue lists are. It is a list of five
+   readouts you can click, and the family resemblance may be all there is.
+2. **Give `<SelectionList>` a frameless, compact form** — a real new variant
+   rather than a `density`, since "no frame" contradicts *the frame is what says
+   this is a list*.
+3. **Redesign the box** to wear the frame, and redo the height arithmetic.
+
+It is a scrabble-area decision either way, which is why it waits for scrabble's
+CSS pass rather than being settled from outside.
+
 **`<SubmitWithScore>` doesn't fit the shared button shape.** It composes
 `cls('button', 'primary', styles.button)` and its own module supplies
 `justify-content: space-between; width: 5.5rem` — a fixed-width button with the

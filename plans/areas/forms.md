@@ -1542,5 +1542,5 @@ dropzone, which cannot appear now that a parse closes the picker.
 Related: [F48](#f48--form-state-and-field-errors--a-form-is-one-keyed-object-and-errors-are-too) (the errors object and the
 `data-field` stamps), [F49](#f49--setup-sections-become-fields--a-setup-form-is-sections-wrapping-fields-and-nothing-else) (a fetching
 field is still a field — these four dialogs are that argument at full size),
-and `plans/selection-lists.md` (the crosswords library row, which moves from
-`select` to `activate`).
+and `docs/ui.md` → Selection lists (the crosswords library row, which moves
+from `select` to `activate`).

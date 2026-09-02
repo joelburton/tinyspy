@@ -82,7 +82,7 @@
  * for the packed rows every entry here wants — two lines of text where home's
  * carry one. Both used to be written here, the second by reaching through
  * `:global(.item-row)` into a shared pattern, which is the door
- * <SelectionList>'s module closed (plans/selection-lists.md). */
+ * <SelectionList>'s module closed (docs/ui.md → Selection lists). */
 
 /* Club title block — a full-width row of the .frame column (between
  * the header and the two-column body), so the "Club: <name>" heading

@@ -1231,7 +1231,15 @@ which is most of what the word points at in this repo (every game's Help panel).
 And the line that decides membership is **you pick exactly one thing** — not "a
 column of rows", which is what `Menu`, `FilterSelect`, the setup dialog's player
 checkboxes, `ColorChoiceList` and connections' `HintList` all look like from the
-outside without being one.
+outside without being one. `SelectField` isn't one either — that is the same job
+handed to a native `<select>` on purpose — and neither is any readout
+(`WordList`, `TurnLog`, chat, `RankBar`, board rows, Help's `<ul>`s): you don't
+pick from those at all.
+
+**Nowhere in the app selects more than one thing**, so there is no multi-select
+mode and none should be invented. The place that looks closest — the setup
+dialog's player roster — is check-many, which is a different control with a
+different keyboard, not this one with a flag flipped.
 
 ### The shape
 

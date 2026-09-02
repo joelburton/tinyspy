@@ -106,7 +106,7 @@ type Props<T> = {
  * Enter would all stay at the call site — which is the duplication being
  * removed. Hence `items` + `renderRow`.
  *
- * plans/selection-lists.md
+ * docs/ui.md → Selection lists
  */
 export function SelectionList<T>({
   items,

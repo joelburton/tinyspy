@@ -10,7 +10,7 @@
  * that color would be a lie about what the box does.
  *
  * The face inside mirrors <ClubGameRow>'s, a step larger. That duplication is
- * known and left for the club-page area (plans/selection-lists.md).
+ * known and left for the club-page area (docs/ui.md → Selection lists).
  */
 
 /* @@ */ .standalone {

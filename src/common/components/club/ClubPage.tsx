@@ -381,7 +381,7 @@ export function ClubPage({ handle, session }: Props) {
 
   // ─── Keyboard navigation ────────────────────────────────
   // The cursor, the ring, Enter and focus-on-arrival belong to each
-  // <SelectionList> (plans/selection-lists.md). What stays here is the part
+  // <SelectionList> (docs/ui.md → Selection lists). What stays here is the part
   // that is about the RELATIONSHIP between the two lists: Tab toggles focus
   // from one to the other. Everything else on the page is deliberately
   // mouse-only — the window handler below swallows Tab so focus can never
@@ -1053,7 +1053,7 @@ export function ClubPage({ handle, session }: Props) {
                 {/* The prominent callout — UNCHANGED by the current game also
                     being listed on the right, where it appears as an ordinary
                     row flying its orange flag. Not a list of one: this is its
-                    own component with its own box (plans/selection-lists.md). */}
+                    own component with its own box (docs/ui.md → Selection lists). */}
                 <ClubGameCard
                   gameId={activeGame.gameId}
                   gametype={activeGame.gametype}

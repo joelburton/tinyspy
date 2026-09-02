@@ -2072,9 +2072,12 @@ row's `<a>` or its `<li>`; today the ring is on one and the scroll ref is on the
 other, which is the sort of thing a component exists to stop being a per-page
 accident.
 
-> **resolution: DONE for this area (2026-08-24). The spec is
-> [selection-lists.md](../selection-lists.md)** — its own plan file, because the
-> sites live in four different areas and the component outlives this one.
+> **resolution: DONE for this area (2026-08-24). It was built from its own plan
+> file, since the sites live in four different areas and the component outlives
+> this one; that plan was swept 2026-09-02 and the component is described in
+> [docs/ui.md → Selection lists](../../docs/ui.md#selection-lists).** The one
+> site that did not convert is scrabble's suggest box, now in
+> [docs/games/scrabble.md](../../docs/games/scrabble.md) → Deferred.
 >
 > `<SelectionList>` ships in `common/components/lists/`; the homepage's clubs,
 > ClubPage's two lists and crosswords' library picker all go through it, and

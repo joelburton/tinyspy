@@ -48,7 +48,7 @@ type Props = {
  * current-game callout above the list is a separate component that happens to
  * wear a similar face; it is not a list of one (Joel, 2026-08-24), and the two
  * sharing an inner shape is a question for the club-page area rather than for
- * this pass (plans/selection-lists.md).
+ * this pass (docs/ui.md → Selection lists).
  */
 export function ClubGameRow({
   gametype,

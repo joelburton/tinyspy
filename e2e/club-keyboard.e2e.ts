@@ -79,7 +79,7 @@ test.describe('club page keyboard nav', () => {
     // matters is that Enter opens the row the RING is on.
     //
     // The row has no href to read any more: a SelectionList row is an inert
-    // <div> and the list navigates on activation (plans/selection-lists.md).
+    // <div> and the list navigates on activation (docs/ui.md → Selection lists).
     // So identify the ringed row by its TITLE and check we land on that game.
     await page.keyboard.press('Tab') // start list
     await page.keyboard.press('Tab') // games list

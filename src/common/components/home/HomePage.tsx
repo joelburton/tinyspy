@@ -142,7 +142,7 @@ export function HomePage({ session }: Props) {
 
   // ─── Keyboard navigation ─────────────────────────────────────────────────
   // The cursor, the ring, Enter, and focus-on-arrival all live in
-  // <SelectionList> — see plans/selection-lists.md.
+  // <SelectionList> — docs/ui.md → Selection lists.
   //
   // What stays here is the page's half: this page's TAB RING is exactly one
   // stop, the clubs list (plans/tab-rings.md). Everything else — the header
