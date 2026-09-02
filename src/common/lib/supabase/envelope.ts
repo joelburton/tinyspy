@@ -43,26 +43,6 @@ import type { Outcome } from '../outcomes.ts'
 export type Severity = 'fault' | 'race' | 'form-validation' | 'service-error'
 
 /**
- * **The envelope** — the one shape everything travels in.
- *
- * An RPC returns it. When the database did NOT give us one — a raw Postgres
- * error, a request that never completed, a direct table read — we construct one
- * in the same shape, so a call site has a single thing to read no matter what
- * happened. There is no second type and no special arm: if it reached the
- * frontend, it is an envelope.
- *
- * **Every key is always present, null where it has no value.** Nothing here is
- * optional in the "might not be there" sense, and that is the point: an envelope
- * has defined fields, so a caller reads one rather than first checking whether
- * it exists (Joel, 2026-08-28). The builders on both sides — `common.ok_envelope`
- * / `common.raised_envelope` in SQL, `faultEnvelope` and the `_shared/envelope.ts`
- * helpers here — emit the same nine keys.
- *
- * It also buys back a distinction a lookup needs. While SQL stripped its nulls,
- * `data: null` and no `data` key were the same JSON, so an RPC could not answer
- * "there is no next puzzle" as a VALUE. Now it can.
- */
-/**
  * The keys every `ok` carries the same way, whether or not it wrote words.
  * Split out so the two shapes below differ in exactly the pair that matters.
  */
@@ -85,6 +65,26 @@ type OkCommon<T> = {
   detail: string | null
 }
 
+/**
+ * **The envelope** — the one shape everything travels in.
+ *
+ * An RPC returns it. When the database did NOT give us one — a raw Postgres
+ * error, a request that never completed, a direct table read — we construct one
+ * in the same shape, so a call site has a single thing to read no matter what
+ * happened. There is no second type and no special arm: if it reached the
+ * frontend, it is an envelope.
+ *
+ * **Every key is always present, null where it has no value.** Nothing here is
+ * optional in the "might not be there" sense, and that is the point: an envelope
+ * has defined fields, so a caller reads one rather than first checking whether
+ * it exists (Joel, 2026-08-28). The builders on both sides — `common.ok_envelope`
+ * / `common.raised_envelope` in SQL, `faultEnvelope` and the `_shared/envelope.ts`
+ * helpers here — emit the same nine keys.
+ *
+ * It also buys back a distinction a lookup needs. While SQL stripped its nulls,
+ * `data: null` and no `data` key were the same JSON, so an RPC could not answer
+ * "there is no next puzzle" as a VALUE. Now it can.
+ */
 export type Envelope<T = unknown> =
   /**
    * **It wrote the words, so it says how they read.** A message means "render

@@ -103,16 +103,6 @@ export const NO_ANSWER_TO_CODE_AND_TEXT = {
 } as const
 
 /**
- * **Is this one of the four?** — the question a call site asks when it wants to
- * treat "our server did not answer" as one thing.
- *
- * It exists so that nothing has to enumerate the codes at a call site, and
- * because the alternative it replaced was worse: `useGameTimer` used to ask
- * `dbcode === null`, which was true for these AND for every bug the frontend
- * detects, since none of them carried a code at all. That is the whole reason
- * these codes exist.
- */
-/**
  * **The situation `dbFetch` named, if it named one.** It writes its verdict into
  * `statusText` — the one field that survives postgrest-js untouched — because
  * it is the only layer that can tell Kong's JSON from a captive portal's HTML,
@@ -126,6 +116,16 @@ export function situationFor(statusText: string | undefined) {
   return Object.values(NO_ANSWER_TO_CODE_AND_TEXT).find((s) => s.code === statusText)
 }
 
+/**
+ * **Is this one of the four?** — the question a call site asks when it wants to
+ * treat "our server did not answer" as one thing.
+ *
+ * It exists so that nothing has to enumerate the codes at a call site, and
+ * because the alternative it replaced was worse: `useGameTimer` used to ask
+ * `dbcode === null`, which was true for these AND for every bug the frontend
+ * detects, since none of them carried a code at all. That is the whole reason
+ * these codes exist.
+ */
 export function isEnvironmental(dbcode: string | null): boolean {
   return (
     dbcode !== null

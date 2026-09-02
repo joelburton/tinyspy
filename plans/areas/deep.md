@@ -34,7 +34,7 @@ understood, tidied* — `cs-blessed` here means he has read the file, not seen i
 **Two passes of three have run.** The BOOT pass is done — nine files, sixteen
 findings, nothing left open (fourteen RESOLVED, one CLOSED, one MOVED to
 `corecss`). The DATA PATH was read 2026-09-02: eleven files, **nine findings
-`F-deep-17` … `F-deep-25`, all open.** The realtime plumbing (7 files) has not
+`F-deep-17` … `F-deep-25`** — one RESOLVED, eight open. The realtime plumbing (7 files) has not
 been read.
 
 ## The roster — 33 files, 4,880 lines
@@ -632,7 +632,7 @@ presentation path and two facts computed and thrown away.
   its `fieldValue` / `quotedText` split, and the level→console-method map all
   say what they do and do it.
 
-## F-deep-17 · `orphaned-docstrings-in-the-envelope-layer` · Two docstrings sit above the wrong declaration
+## RESOLVED · F-deep-17 · `orphaned-docstrings-in-the-envelope-layer` · Two docstrings sit above the wrong declaration
 
 Both have the tell an earlier audit named for this exact bug — **two docstrings
 stacked with nothing between them** — so the one above documents whatever the
@@ -650,7 +650,18 @@ one below is attached to, and its real subject reads as undocumented.
   `OkCommon<T>` (`:69`). `Envelope` itself (`:88`) has no top-level docstring;
   only its three arms are documented.
 
-> resolution:
+> **resolution: each docstring moved onto the declaration it describes** (Joel,
+> 2026-09-02). Nothing was rewritten — the prose was already right about its
+> subject, it was attached to the wrong one.
+>
+> `isEnvironmental` now carries the "Is this one of the four?" explanation, and
+> `situationFor` carries one docstring instead of appearing to carry two.
+> `Envelope` carries "The envelope — the one shape everything travels in", and
+> `OkCommon` keeps its own two-line note.
+>
+> **Swept for the pattern afterwards rather than assumed fixed**: no docstring in
+> any of the eleven data-path files now directly follows another. That is the tell
+> this bug has had both times it has been found, so it is the thing to check.
 
 ## F-deep-18 · `throw-path-is-silent` · A failure that arrives by throw is neither logged nor presented
 
