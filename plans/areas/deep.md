@@ -31,10 +31,9 @@ understood, tidied* — `cs-blessed` here means he has read the file, not seen i
 
 **Every heading says its status**; a heading with **no status prefix means OPEN**.
 
-**One pass of three has run** — the boot path, 2026-09-02, sixteen findings.
-Thirteen RESOLVED, one CLOSED (`F-deep-3`), one MOVED to `corecss`
-(`F-deep-1`) — leaving **`F-deep-8` (`router-doc-cites-what-cannot-be-read`)
-alone open**. The data path and the realtime plumbing
+**The boot pass is DONE** — 2026-09-02, nine files, sixteen findings and
+**nothing left open**: fourteen RESOLVED, one CLOSED (`F-deep-3`), one MOVED to
+`corecss` (`F-deep-1`). The data path (11 files) and the realtime plumbing (7)
 have not been read.
 
 ## The roster — 33 files, 4,880 lines
@@ -144,8 +143,8 @@ modal — but it has three live consumers (`ClubGameCard:59`, `GamePage:178`, `E
 
 ## Findings — pass 1, the boot path
 
-Sixteen — **F-deep-1 … F-deep-16**. Every heading says its status; a heading
-with no status prefix means OPEN, and one is: `F-deep-8`.
+Sixteen — **F-deep-1 … F-deep-16**, and none is open. Every heading says its
+status; a heading with no status prefix would mean OPEN.
 
 ## MOVED · F-deep-1 · `stylesheet-map-rotted` · main.tsx's map of the stylesheet chain names two files that were deleted
 
@@ -351,7 +350,7 @@ bug: one line (`if (rest.target) return`) or a type that omits `target` closes i
 > but `Link` addresses in-app routes and nothing can download one, so guarding it
 > would be inventing a case.
 
-## F-deep-8 · `router-doc-cites-what-cannot-be-read` · The decision docstring points outside the repo, and its supporting number is stale
+## RESOLVED · F-deep-8 · `router-doc-cites-what-cannot-be-read` · The decision docstring points outside the repo, and its supporting number is stale
 
 `router.ts:8` opens its rationale with *"Decision context (see project memory's
 clubs-v1 entry)"*. **That is not in the repo** — no reader can follow it, and the
@@ -366,7 +365,21 @@ surface (~3 routes)"*. `App.tsx` resolves six — `/palette`, `/font`, `/c/<hand
 needs fixing is a rationale that cites an unreadable source and an out-of-date
 number.
 
-> resolution:
+> **resolution: cut the rationale to the decision** (Joel, 2026-09-02) — *"we
+> don't need to record the decision metadata: just a simple comment that says
+> we're-not-using-react-router."* Twelve lines became two:
+>
+> > We don't use `react-router`. The route surface is flat and small enough that
+> > a regex match is the whole job.
+>
+> Gone with them: the pointer to project memory, the route count, the bundle-size
+> estimate, and the hash-vs-path comparison. Each was an argument for a decision
+> already made, and every one of them could rot — which two of them had. What a
+> reader needs is that the choice was made and roughly why; the case for it is
+> not the file's job.
+>
+> `grep "project memory"` over `src/`, `supabase/` and `e2e/` returns nothing
+> else, so this was the only pointer of its kind.
 
 ## RESOLVED · F-deep-9 · `loadtheme-is-boot-and-is-not-on-the-roster` · The file main.tsx awaits was left out
 
@@ -604,7 +617,7 @@ somebody outside needs it.
    §7 puts its boot half in this area and its per-page/per-game routing rows in the
    areas that own those pages, but the file interleaves them in one 160-line
    function body — the route table sits in the same `if/else` chain as the auth
-   gates, and four global hosts plus two cross-subtree modals hang off the same
+   gates, and four global hosts plus two cross-subtree modals hang off athe same
    return.
 
    Joel's answer: **`App.tsx` does not get split.** It is a shell, and a shell

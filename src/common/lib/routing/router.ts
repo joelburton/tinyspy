@@ -5,15 +5,8 @@ import { useSyncExternalStore } from 'react'
 /**
  * Tiny hand-rolled path-based router. The non-component half.
  *
- * Decision context (see project memory's clubs-v1 entry):
- *
- * - We deliberately don't use `react-router`. The app has a flat,
- *   small route surface (~3 routes); declarative `<Routes>` config +
- *   nested layouts + loaders aren't earning their 30–50 KB of bundle
- *   and the API churn that comes with the library.
- * - Hash routing (`#/c/<handle>`) was the alternative; we picked
- *   paths for nicer SMS-shareable URLs ("games.example.com/c/joel-leah")
- *   and to keep the URL space clean for edge customization later.
+ * We don't use `react-router`. The route surface is flat and small enough
+ * that a regex match is the whole job.
  *
  * What's here:
  *
