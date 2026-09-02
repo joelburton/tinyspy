@@ -864,6 +864,12 @@ commit), not the TS-owned geometry/scoring:
 - `concede` — the turn-based concede ([§5.6](#56-end_game--concede--submit_timeout)):
   the rotation skips conceders, a conceder forfeits the win, the turn hands off,
   the last active player's concede ends the game with nobody eligible to win.
+  That last check is `scrabble._maybe_finish_compete`, named as the other four
+  elimination games name theirs — it has ONE caller here, since scrabble's move
+  paths end a game by going out or by the pass streak and neither is reachable
+  once everybody has dropped out, but the shared name is what
+  [common.md → Concede](../common.md#concede--per-player-drop-out) keys its
+  lock-order rule off.
 - `ai_players` — AI seats ([§12](#12-the-ai-opponent-compete)): `create_game`
   seats them (and rejects a dictionary narrower than the AI's band, bad counts,
   and coop), `get_ai_context` is the member-gated, AI-seat-only, its-turn-only

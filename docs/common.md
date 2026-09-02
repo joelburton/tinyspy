@@ -234,7 +234,36 @@ The uniform `end_game` contract (mirror this when adding a gametype):
 **Two SQL shapes** (both gate to compete + reject coop):
 
 - **`common.concede(target_game)` — the generic one, for NON-elimination games** (spellingbee, wordwheel, boggle, stackdown, crosswords, wordiply, bananagrams, letterboxed). Where the only way a non-conceded player stops racing is by *winning* (which already ends the game), the active set is exactly "not conceded", so this marks the caller out and ends the game as a collective loss iff no non-conceded player remains. Those games' `<schema>.concede` is a one-line wrapper over it. **It names that terminal in the caller's own vocabulary**, deriving it from the gametype's `_compete` suffix: `lost_compete` for a sibling compete gametype (the roster-wide convention, and what the elimination games write from their own checks), plain `lost` for a single-mode one with no `_compete` half — today just bananagrams. Derived in the one place rather than passed in per wrapper, so a new game can't forget.
-- **`common._set_conceded(target_game)` + the game's own terminal check — for ELIMINATION games** (wordle, waffle, connections, psychicnum, strands) and **turn-based scrabble**. Here a player can be "done" without the table ending (out of guesses / swaps / mistakes; or it's simply not their turn), so a drop-out can't be resolved by a generic active-count. These extract a `<schema>._maybe_finish_compete` (shared by the move RPC *and* `concede`) that treats a conceder as done and **excludes them from winning** — a drop-out forfeits, even a tying score. scrabble additionally skips conceders in `_advance_turn` and hands off the turn.
+- **`common._set_conceded(target_game)` + the game's own terminal check — for ELIMINATION games** (wordle, waffle, connections, psychicnum, strands) and **turn-based scrabble**. All six run that check through a `<schema>._maybe_finish_compete`, so the concept has one name across the roster; scrabble's and psychicnum's were extracted on 2026-09-01, the latter because an inline copy of the same decision hid it from the rule below. Here a player can be "done" without the table ending (out of guesses / swaps / mistakes; or it's simply not their turn), so a drop-out can't be resolved by a generic active-count. These extract a `<schema>._maybe_finish_compete` (shared by the move RPC *and* `concede`) that treats a conceder as done and **excludes them from winning** — a drop-out forfeits, even a tying score. scrabble additionally skips conceders in `_advance_turn` and hands off the turn.
+
+  **Those games must lock their OWN games row before `common.games`, and it is a
+  correctness rule, not a style.** Their "is anyone still racing?" test reads two
+  tables at once — the game's progress rows and `common.game_players.conceded` —
+  and two paths ask it: a final move, and a concede. The move path locks
+  `<schema>.games` (it needs that row anyway); `common._set_conceded` locks
+  `common.games`. If concede takes only the second, the two never serialize:
+  under READ COMMITTED each reads a snapshot from before the other's uncommitted
+  write, both see somebody still racing, **both decline to end the game**, and it
+  wedges in `playing` with nobody left in it. So every one of these five opens
+  `concede` with `perform 1 from <schema>.games where id = target_game for
+  update` — before `_set_conceded`, matching the move path's lock order, so
+  nothing deadlocks.
+
+  It cannot be shared into `common`: that schema cannot lock `<schema>.games`
+  without dynamic SQL, and `_maybe_finish_compete` itself runs *after*
+  `common.games` is held, so taking the lock there would invert the order and
+  turn a wedge into a deadlock. The ordering is what keeps the lock at the call
+  site — so [`src/guards/concedeLock.test.ts`](../src/guards/concedeLock.test.ts)
+  asserts it instead, **keyed off calling `_set_conceded`**: that call IS the
+  statement "I decide this myself", which is the two-table case, and it holds
+  however the check is shaped. (Keyed off `_maybe_finish_compete` — the first
+  version — it skipped psychicnum, whose identical check was then written
+  inline.) **waffle and wordle were missing the lock until 2026-09-01**, which
+  is what a rule kept as a comment does at the fourth and fifth call site.
+
+  The nine games on `common.concede` are not exposed: their racing test reads
+  only `common.game_players`, and both paths write `common.games`, so they
+  serialize there.
 
 **FE side** mirrors `end_game`: `window.confirm` then `db.rpc('concede', { target_game })` (every game has an own-schema `concede`, so the call is uniform). The info-column action row shows **Concede** in compete (`<ConcedeGameButton>`) and **End** in coop (`<EndGameButton>`); the OpponentStrip marks a conceder "out"; and the conceder gets a "You conceded" locally-terminal look (the same "I'm done, others race" branch elimination games already had) with their input disabled. bananagrams is the origin of the pattern; its per-player `concede` was promoted here in the 2026-07 sweep.
 

@@ -741,6 +741,15 @@ set search_path = wordle, common, public, extensions
 as $$
 begin
   perform common.require_compete((select mode from wordle.games where id = target_game));
+
+  -- Lock this game's wordle.games row FIRST so concede serializes against a
+  -- concurrent submit_guess (which also locks this row before common.games).
+  -- Without it concede locks only common.games (via _set_conceded) and a final
+  -- move locks wordle.games — they don't serialize, each reads the other's
+  -- uncommitted "still racing" state (READ COMMITTED), both decline to end the
+  -- game, and it wedges in 'playing'. Same lock order as the move path (no
+  -- deadlock). Mirrors connections.concede.
+  perform 1 from wordle.games where id = target_game for update;
   perform common._set_conceded(target_game);
   perform wordle._maybe_finish_compete(target_game);
   -- A concede can be the move that empties the racing set, ending the game —

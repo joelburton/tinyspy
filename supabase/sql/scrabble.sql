@@ -1450,6 +1450,46 @@ revoke execute on function scrabble.ai_pass_turn(uuid, int, int) from public;
 grant execute on function scrabble.ai_pass_turn(uuid, int, int) to authenticated;
 
 -- ============================================================
+-- scrabble._maybe_finish_compete — nobody left racing?
+-- ============================================================
+-- The collective-loss check, named as the other four elimination games name
+-- theirs (connections / waffle / wordle / strands). Scrabble has ONE caller
+-- today — concede — because its move paths end a game by going out or by the
+-- pass streak, neither of which can be reached once everybody has dropped out.
+-- It is a function anyway for two reasons: the name says what the check IS
+-- across the roster, and `src/guards/concedeLock.test.ts` keys the lock rule
+-- off games that define it.
+--
+-- MUST be called with this game's scrabble.games row already locked — see the
+-- caller. Returns whether it ended the game, so the caller can skip the
+-- turn-handoff it would otherwise do.
+create or replace function scrabble._maybe_finish_compete(target_game uuid)
+returns boolean
+language plpgsql
+security definer
+set search_path = scrabble, common, public, extensions
+as $$
+declare
+  v_active int;
+begin
+  select count(*) into v_active
+    from scrabble.players p
+    join common.game_players gp
+      on gp.game_id = p.game_id and gp.user_id = p.user_id
+   where p.game_id = target_game and not gp.conceded;
+
+  if v_active > 0 then return false; end if;
+
+  -- The last active player conceded → final scoring, nobody eligible to win
+  -- (collective loss). _finish excludes conceders, so the winner is null.
+  perform scrabble._finish(target_game, 'conceded', null);
+  return true;
+end;
+$$;
+
+revoke execute on function scrabble._maybe_finish_compete(uuid) from public;
+
+-- ============================================================
 -- scrabble.concede — a player drops out of a compete game
 -- ============================================================
 -- Turn-based, so concede is more than a flag: the conceder is removed
@@ -1466,28 +1506,20 @@ set search_path = scrabble, common, public, extensions
 as $$
 declare
   caller_id  uuid;
-  v_active   int;
   is_current boolean;
 begin
   perform common.require_compete((select mode from scrabble.games where id = target_game));
 
-  -- Lock the game row so a concede can't race a move / another concede.
+  -- Lock this game's scrabble.games row FIRST so concede serializes against a
+  -- concurrent move (which also locks this row before common.games). Without it
+  -- concede locks only common.games (via _set_conceded) and a final move locks
+  -- scrabble.games — they don't serialize, each reads the other's uncommitted
+  -- "still racing" state (READ COMMITTED), both decline to end the game, and it
+  -- wedges in 'playing'. Same lock order as the move path (no deadlock).
   perform 1 from scrabble.games where id = target_game for update;
   caller_id := common._set_conceded(target_game);
 
-  -- Any non-conceded players still in it?
-  select count(*) into v_active
-    from scrabble.players p
-    join common.game_players gp
-      on gp.game_id = p.game_id and gp.user_id = p.user_id
-   where p.game_id = target_game and not gp.conceded;
-
-  if v_active = 0 then
-    -- The last active player conceded → final scoring, nobody eligible to
-    -- win (collective loss). _finish excludes conceders, so winner is null.
-    perform scrabble._finish(target_game, 'conceded', null);
-    return;
-  end if;
+  if scrabble._maybe_finish_compete(target_game) then return; end if;
 
   -- Others are still playing. If it was the conceder's turn, hand off to the
   -- next non-conceded seat (else the game would stall on a drop-out).

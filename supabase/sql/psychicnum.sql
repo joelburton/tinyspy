@@ -744,18 +744,17 @@ revoke execute on function psychicnum.submit_guess(uuid, text) from public;
 grant execute on function psychicnum.submit_guess(uuid, text) to authenticated;
 
 -- ============================================================
--- psychicnum.concede — a player drops out of a compete race
+-- psychicnum._maybe_finish_compete — nobody left racing?
 -- ============================================================
--- psychicnum is an ELIMINATION game: each player has an independent
--- guess budget, and the compete game ends only when EVERY player is
--- done — either someone completed the set (immediate win, handled in
--- submit_guess) or all budgets are exhausted. A conceder is done too,
--- so after flipping the shared flag we check whether any NON-conceded
--- player still has budget; if not (and nobody won — a win would have
--- ended the game already), the game ends as a collective loss.
--- Compete only (coop is a team; it ends via the shared End).
-create or replace function psychicnum.concede(target_game uuid)
-returns void
+-- The collective-loss check, named as the other five elimination games name
+-- theirs. Extracted from `concede` on 2026-09-01: it was the same two-table
+-- decision they make, written inline, which hid it from the rule that governs
+-- it (common.md → Concede — the lock order).
+--
+-- MUST be called with this game's psychicnum.games row already locked — see
+-- the caller. Returns whether it ended the game.
+create or replace function psychicnum._maybe_finish_compete(target_game uuid)
+returns boolean
 language plpgsql
 security definer
 set search_path = psychicnum, common, public, extensions
@@ -763,19 +762,6 @@ as $$
 declare
   player_results jsonb;
 begin
-  perform common.require_compete((select mode from psychicnum.games where id = target_game));
-
-  -- Lock this game's psychicnum.games row FIRST so concede serializes against a
-  -- concurrent submit_guess (which also locks this row before common.games).
-  -- Otherwise concede locks only common.games (via _set_conceded) while the move
-  -- locks psychicnum.games, they don't serialize, and each reads the other's
-  -- uncommitted "still racing" state (READ COMMITTED) — both decline to end the
-  -- game and it wedges in 'playing'. Same order (psychicnum.games → common.games)
-  -- as the move path, so no deadlock. Mirrors scrabble.concede.
-  perform 1 from psychicnum.games where id = target_game for update;
-
-  perform common._set_conceded(target_game);
-
   -- Anyone still racing? (not conceded, budget left)
   if exists (
     select 1 from psychicnum.players pp
@@ -783,7 +769,7 @@ begin
         on gp.game_id = pp.game_id and gp.user_id = pp.user_id
      where pp.game_id = target_game and not gp.conceded and pp.guesses_remaining > 0
   ) then
-    return;
+    return false;
   end if;
 
   -- Everyone out (exhausted or conceded), nobody completed the set → loss.
@@ -802,6 +788,44 @@ begin
            then 'conceded' else 'exhausted' end),
     player_results
   );
+  return true;
+end;
+$$;
+
+revoke execute on function psychicnum._maybe_finish_compete(uuid) from public;
+
+-- ============================================================
+-- psychicnum.concede — a player drops out of a compete race
+-- ============================================================
+-- psychicnum is an ELIMINATION game: each player has an independent
+-- guess budget, and the compete game ends only when EVERY player is
+-- done — either someone completed the set (immediate win, handled in
+-- submit_guess) or all budgets are exhausted. A conceder is done too,
+-- so after flipping the shared flag we check whether any NON-conceded
+-- player still has budget; if not (and nobody won — a win would have
+-- ended the game already), the game ends as a collective loss.
+-- Compete only (coop is a team; it ends via the shared End).
+create or replace function psychicnum.concede(target_game uuid)
+returns void
+language plpgsql
+security definer
+set search_path = psychicnum, common, public, extensions
+as $$
+begin
+  perform common.require_compete((select mode from psychicnum.games where id = target_game));
+
+  -- Lock this game's psychicnum.games row FIRST so concede serializes against a
+  -- concurrent submit_guess (which also locks this row before common.games).
+  -- Otherwise concede locks only common.games (via _set_conceded) while the move
+  -- locks psychicnum.games, they don't serialize, and each reads the other's
+  -- uncommitted "still racing" state (READ COMMITTED) — both decline to end the
+  -- game and it wedges in 'playing'. Same order (psychicnum.games → common.games)
+  -- as the move path, so no deadlock. Mirrors scrabble.concede.
+  perform 1 from psychicnum.games where id = target_game for update;
+
+  perform common._set_conceded(target_game);
+
+  if not psychicnum._maybe_finish_compete(target_game) then return; end if;
 
   -- Realtime touch — same as end_game/submit_timeout. common.end_game
   -- writes only common.games, so without this the psychicnum.games
