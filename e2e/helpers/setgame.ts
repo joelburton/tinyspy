@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { asUser, type E2EClub, type E2EMember } from './fixtures'
+import { asUser, envelopeData, type E2EClub, type E2EMember } from './fixtures'
 
 /**
  * setgame's card algebra, for the specs and the gallery.
@@ -73,7 +73,7 @@ export async function claim(
   const res = await asUser(member.session.access_token)
     .schema('setgame')
     .rpc('submit_set', { target_game: gameId, cards })
-  if (res.error) throw new Error(`setgame.submit_set: ${res.error.message}`)
+  envelopeData(res, 'setgame.submit_set')
 }
 
 /**

@@ -39,6 +39,59 @@ export type E2EMember = { username: string; userId: string; session: Session }
 export type E2EClub = { handle: string; members: E2EMember[] }
 
 /**
+ * **Unwrap an RPC's envelope, or throw what the server said.** Every RPC these
+ * fixtures call answers in the shape of docs/envelopes.md — `{ type, data, … }`
+ * — so the payload a fixture wants is at `res.data.data`, never `res.data`.
+ *
+ * Checking `res.error` is NOT enough, and that is the whole reason this exists
+ * rather than a `.data.data` at each call site. **A refusal arrives HTTP 200**
+ * with `error` null, so a fixture that reads only `error` builds a broken world
+ * and says nothing: `create_game` refused, the id comes back `undefined`, and
+ * twenty seconds later a spec fails on a page reading "There's no game here" —
+ * or, worse, a submit is rejected and the assertion that follows blames the
+ * feature. The fixture must fail AT the call, naming it.
+ *
+ * `what` is that name (`'bananagrams.create_game'`), so the thrown line says
+ * which fixture broke rather than making a stack trace answer it.
+ */
+export function envelopeData<T>(
+  res: { data: unknown; error: { message: string } | null },
+  what: string,
+): T {
+  if (res.error) throw new Error(`${what}: ${res.error.message}`)
+  const env = res.data as {
+    type?: string
+    data?: unknown
+    message?: string
+    dbcode?: string
+  } | null
+  if (!env || typeof env !== 'object' || (env.type !== 'ok' && env.type !== 'not-ok')) {
+    // Not an envelope at all. Almost always a converted RPC that got missed, or
+    // `readRows`-shaped rows reaching an RPC path — say so with the body, since
+    // a "expected ok, got undefined" would send the reader hunting the wrong bug.
+    throw new Error(`${what}: expected an envelope, got ${JSON.stringify(res.data)}`)
+  }
+  if (env.type !== 'ok') {
+    throw new Error(`${what}: refused — ${env.message ?? 'no message'} [${env.dbcode ?? 'no code'}]`)
+  }
+  return env.data as T
+}
+
+/** The `create_game` answer every game's fixture reads: `id` is the game to open.
+ *  Named because nineteen fixtures want exactly this and nothing more. */
+function createdGameId(
+  res: { data: unknown; error: { message: string } | null },
+  what: string,
+): string {
+  const { id } = envelopeData<{ id: string; result?: string }>(res, what)
+  // A create that answers `ok` with no id is a converted RPC whose payload lost a
+  // field — invisible until a uuid column rejects the string "undefined" much
+  // later, so it is worth one line to catch here.
+  if (!id) throw new Error(`${what}: ok, but no game id in ${JSON.stringify(res.data)}`)
+  return id
+}
+
+/**
  * Create N fresh confirmed users, each with a claimed username (which also
  * materializes their solo club `=<username>`). Names are suffixed per-run so
  * repeated runs don't collide on the global username uniqueness.
@@ -76,14 +129,7 @@ async function createMembers(names: string[]): Promise<E2EMember[]> {
     const claimed = await asUser(session.access_token)
       .schema('common')
       .rpc('claim_username', { desired: username, chosen_color: 'blue' })
-    // An envelope, so a refusal comes back HTTP 200 with `error` null — see
-    // plans/error-system.md. Checking `error` alone would let a fixture build a
-    // member who has no profile.
-    const env = claimed.data as { type?: string; message?: string } | null
-    if (claimed.error) throw new Error(`claim_username(${username}): ${claimed.error.message}`)
-    if (env?.type !== 'ok') {
-      throw new Error(`claim_username(${username}): ${env?.message ?? 'unreadable reply'}`)
-    }
+    envelopeData(claimed, `common.claim_username(${username})`)
 
     members.push({ username, userId: session.user.id, session })
   }
@@ -108,9 +154,11 @@ export async function createClubWithMembers(names: string[]): Promise<E2EClub> {
       club_name: `E2E ${creator.username}`,
       member_usernames: members.map((m) => m.username),
     })
-  if (club.error || !club.data) throw new Error(`create_club: ${club.error?.message}`)
+  // The handle is DERIVED from the name (server-side slugify), so it has to be
+  // read back rather than recomputed here.
+  const { handle } = envelopeData<{ handle: string }>(club, 'common.create_club')
 
-  return { handle: club.data as string, members }
+  return { handle, members }
 }
 
 /**
@@ -249,9 +297,7 @@ export async function createGame(
       player_user_ids: playerUserIds,
       mode,
     })
-  if (res.error) throw new Error(`psychicnum.create_game: ${res.error.message}`)
-  const row = Array.isArray(res.data) ? res.data[0] : res.data
-  return { id: (row as { id: string }).id, gametype: `psychicnum_${mode}` }
+  return { id: createdGameId(res, 'psychicnum.create_game'), gametype: `psychicnum_${mode}` }
 }
 
 /**
@@ -279,9 +325,7 @@ export async function createTurnGame(
       player_user_ids: club.members.map((m) => m.userId),
       mode: 'coop',
     })
-  if (res.error) throw new Error(`psychicnum.create_game (turns): ${res.error.message}`)
-  const row = Array.isArray(res.data) ? res.data[0] : res.data
-  return { id: (row as { id: string }).id, gametype: 'psychicnum_coop' }
+  return { id: createdGameId(res, 'psychicnum.create_game (turns)'), gametype: 'psychicnum_coop' }
 }
 
 /**
@@ -317,9 +361,7 @@ export async function createBananagramsGame(
       },
       player_user_ids: playerUserIds,
     })
-  if (res.error) throw new Error(`bananagrams.create_game: ${res.error.message}`)
-  const row = Array.isArray(res.data) ? res.data[0] : res.data
-  return { id: (row as { id: string }).id, gametype: 'bananagrams' }
+  return { id: createdGameId(res, 'bananagrams.create_game'), gametype: 'bananagrams' }
 }
 
 /**
@@ -363,9 +405,7 @@ export async function createBoggleGame(
         required_words_score: 1,
       },
     })
-  if (res.error) throw new Error(`boggle.create_game: ${res.error.message}`)
-  const row = Array.isArray(res.data) ? res.data[0] : res.data
-  return { id: (row as { id: string }).id, gametype: `boggle_${mode}` }
+  return { id: createdGameId(res, 'boggle.create_game'), gametype: `boggle_${mode}` }
 }
 
 /**
@@ -431,9 +471,7 @@ export async function createCrosswordsGame(
       player_user_ids: playerUserIds,
       mode,
     })
-  if (res.error) throw new Error(`crosswords.create_game: ${res.error.message}`)
-  const row = Array.isArray(res.data) ? res.data[0] : res.data
-  return { id: (row as { id: string }).id, gametype: `crosswords_${mode}` }
+  return { id: createdGameId(res, 'crosswords.create_game'), gametype: `crosswords_${mode}` }
 }
 
 /**
@@ -507,9 +545,7 @@ export async function createCrosswordsGameSized(
       player_user_ids: club.members.map((m) => m.userId),
       mode,
     })
-  if (res.error) throw new Error(`crosswords.create_game: ${res.error.message}`)
-  const row = Array.isArray(res.data) ? res.data[0] : res.data
-  return { id: (row as { id: string }).id, gametype: `crosswords_${mode}` }
+  return { id: createdGameId(res, 'crosswords.create_game'), gametype: `crosswords_${mode}` }
 }
 
 /**
@@ -541,9 +577,7 @@ export async function createCrosswordsGameFromLibrary(
       player_user_ids: club.members.map((m) => m.userId),
       mode,
     })
-  if (res.error) throw new Error(`crosswords.create_game: ${res.error.message}`)
-  const row = Array.isArray(res.data) ? res.data[0] : res.data
-  return { id: (row as { id: string }).id, gametype: `crosswords_${mode}`, width: biggest.meta.width }
+  return { id: createdGameId(res, 'crosswords.create_game'), gametype: `crosswords_${mode}`, width: biggest.meta.width }
 }
 
 /**
@@ -590,9 +624,7 @@ export async function createSpellingbeeGame(
         bonus_words: [{ word: 'bcdfge', points: 6, is_pangram: false }],
       },
     })
-  if (res.error) throw new Error(`spellingbee.create_game: ${res.error.message}`)
-  const row = Array.isArray(res.data) ? res.data[0] : res.data
-  return { id: (row as { id: string }).id, gametype: `spellingbee_${mode}` }
+  return { id: createdGameId(res, 'spellingbee.create_game'), gametype: `spellingbee_${mode}` }
 }
 
 /**
@@ -647,9 +679,7 @@ export async function createWordwheelGame(
         bonus_words: [{ word: 'cadge', points: 5, is_pangram: false }],
       },
     })
-  if (res.error) throw new Error(`wordwheel.create_game: ${res.error.message}`)
-  const row = Array.isArray(res.data) ? res.data[0] : res.data
-  return { id: (row as { id: string }).id, gametype: `wordwheel_${mode}` }
+  return { id: createdGameId(res, 'wordwheel.create_game'), gametype: `wordwheel_${mode}` }
 }
 
 /**
@@ -678,9 +708,7 @@ export async function createWordiplyGame(
         legal_words: ['bar', 'car', 'arc', 'arts', 'cars', 'scar', 'stars', 'hangars'],
       },
     })
-  if (res.error) throw new Error(`wordiply.create_game: ${res.error.message}`)
-  const row = Array.isArray(res.data) ? res.data[0] : res.data
-  return { id: (row as { id: string }).id, gametype: `wordiply_${mode}` }
+  return { id: createdGameId(res, 'wordiply.create_game'), gametype: `wordiply_${mode}` }
 }
 
 /**
@@ -726,9 +754,7 @@ export async function createLetterboxedGame(
         playable_words: ['adgjbehk', 'kcfil', 'adg', 'gjb', 'beh', 'kcf', 'ila', ...filler],
       },
     })
-  if (res.error) throw new Error(`letterboxed.create_game: ${res.error.message}`)
-  const row = Array.isArray(res.data) ? res.data[0] : res.data
-  return { id: (row as { id: string }).id, gametype: `letterboxed_${mode}` }
+  return { id: createdGameId(res, 'letterboxed.create_game'), gametype: `letterboxed_${mode}` }
 }
 
 /** Start a wordle game (coop by default). Returns id + gametype for the URL. */
@@ -746,9 +772,7 @@ export async function createWordleGame(
       player_user_ids: playerUserIds,
       mode,
     })
-  if (res.error) throw new Error(`wordle.create_game: ${res.error.message}`)
-  const row = Array.isArray(res.data) ? res.data[0] : res.data
-  return { id: (row as { id: string }).id, gametype: `wordle_${mode}` }
+  return { id: createdGameId(res, 'wordle.create_game'), gametype: `wordle_${mode}` }
 }
 
 /**
@@ -792,8 +816,7 @@ export async function seedWordleGuesses(
     const res = await asUser(member.session.access_token)
       .schema('wordle')
       .rpc('submit_guess', { target_game: gameId, guess: word })
-    if (res.error) throw new Error(`submit_guess(${word}): ${res.error.message}`)
-    const result = (res.data as { result?: string })?.result
+    const { result } = envelopeData<{ result?: string }>(res, `wordle.submit_guess(${word})`)
     if (result !== 'incorrect') throw new Error(`submit_guess(${word}) → ${result}, expected incorrect`)
   }
   return words.map((w) => w.toUpperCase())
@@ -815,7 +838,7 @@ export async function seedWaffleSwap(
   const res = await asUser(member.session.access_token)
     .schema('waffle')
     .rpc('submit_swap', { target_game: gameId, pos_a: posA, pos_b: posB })
-  if (res.error) throw new Error(`submit_swap(${posA},${posB}): ${res.error.message}`)
+  envelopeData(res, `waffle.submit_swap(${posA},${posB})`)
 }
 
 /**
@@ -883,9 +906,7 @@ export async function createScrabbleGame(
       player_user_ids: playerUserIds,
       mode,
     })
-  if (res.error) throw new Error(`scrabble.create_game: ${res.error.message}`)
-  const row = Array.isArray(res.data) ? res.data[0] : res.data
-  return { id: (row as { id: string }).id, gametype: `scrabble_${mode}` }
+  return { id: createdGameId(res, 'scrabble.create_game'), gametype: `scrabble_${mode}` }
 }
 
 /** Pin one compete seat's rack + force it to be that seat's turn (superuser psql),
@@ -972,9 +993,7 @@ export async function createConnectionsGame(
       player_user_ids: playerUserIds,
       mode,
     })
-  if (res.error) throw new Error(`connections.create_game: ${res.error.message}`)
-  const row = Array.isArray(res.data) ? res.data[0] : res.data
-  return { id: (row as { id: string }).id, gametype: `connections_${mode}` }
+  return { id: createdGameId(res, 'connections.create_game'), gametype: `connections_${mode}` }
 }
 
 /** The `existingPuzzleId` arm of createConnectionsGame — no puzzle insert. */
@@ -992,9 +1011,7 @@ async function createConnectionsGameFrom(
       player_user_ids: playerUserIds,
       mode,
     })
-  if (res.error) throw new Error(`connections.create_game: ${res.error.message}`)
-  const row = Array.isArray(res.data) ? res.data[0] : res.data
-  return { id: (row as { id: string }).id, gametype: `connections_${mode}` }
+  return { id: createdGameId(res, 'connections.create_game'), gametype: `connections_${mode}` }
 }
 
 /** The imported connections archive's puzzle at one end of the date order —
@@ -1041,9 +1058,7 @@ export async function createWaffleGame(
         par_swaps: 1,
       },
     })
-  if (res.error) throw new Error(`waffle.create_game: ${res.error.message}`)
-  const row = Array.isArray(res.data) ? res.data[0] : res.data
-  return { id: (row as { id: string }).id, gametype: `waffle_${mode}` }
+  return { id: createdGameId(res, 'waffle.create_game'), gametype: `waffle_${mode}` }
 }
 
 /**
@@ -1105,9 +1120,7 @@ export async function createStackdownGame(
       player_user_ids: playerUserIds,
       mode,
     })
-  if (res.error) throw new Error(`stackdown.create_game: ${res.error.message}`)
-  const row = Array.isArray(res.data) ? res.data[0] : res.data
-  const id = (row as { id: string }).id
+  const id = createdGameId(res, 'stackdown.create_game')
 
   // PIN the board to the fixture one. `create_game` claims a RANDOM board from
   // stackdown.boards, and the seed above only fires when that table is EMPTY —
@@ -1179,7 +1192,7 @@ export async function seedStackdownFirstWord(member: E2EMember, gameId: string):
   const res = await asUser(member.session.access_token)
     .schema('stackdown')
     .rpc('submit_word', { target_game: gameId, tile_ids: [19, 11, 15, 24, 10] })
-  if (res.error) throw new Error(`submit_word(EAGLE): ${res.error.message}`)
+  envelopeData(res, 'stackdown.submit_word(EAGLE)')
 }
 
 /**
@@ -1199,9 +1212,7 @@ export async function createCodenamesduetGame(
       setup: { turns: 9, first_clue_giver_user_id: firstClueGiverUserId, timer: { kind: 'none' } },
       player_user_ids: club.members.map((m) => m.userId),
     })
-  if (res.error) throw new Error(`codenamesduet.create_game: ${res.error.message}`)
-  const row = Array.isArray(res.data) ? res.data[0] : res.data
-  return { id: (row as { id: string }).id, gametype: 'codenamesduet' }
+  return { id: createdGameId(res, 'codenamesduet.create_game'), gametype: 'codenamesduet' }
 }
 
 /** Read `member`'s own dealt tiles (the letters they hold). RLS scopes the
@@ -1232,7 +1243,7 @@ export async function saveBananagramsBoard(
   const res = await asUser(member.session.access_token)
     .schema('bananagrams')
     .rpc('save_player_board', { target_game: gameId, board })
-  if (res.error) throw new Error(`save_player_board: ${res.error.message}`)
+  envelopeData(res, 'bananagrams.save_player_board')
 }
 
 /** Empty a bananagrams game's tile reserves (both the live `bunch` and the
@@ -1264,7 +1275,7 @@ export async function sendMessage(
   const res = await asUser(from.session.access_token)
     .schema('common')
     .rpc('send_message', { target_club: club.handle, content })
-  if (res.error) throw new Error(`send_message: ${res.error.message}`)
+  envelopeData(res, 'common.send_message')
 }
 
 /**
@@ -1323,11 +1334,8 @@ export async function createStrandsGame(
       player_user_ids: club.members.map((m) => m.userId),
       mode,
     })
-  if (res.error) throw new Error(`strands.create_game: ${res.error.message}`)
-  const game = Array.isArray(res.data) ? res.data[0] : res.data
-
   return {
-    id: (game as { id: string }).id,
+    id: createdGameId(res, 'strands.create_game'),
     gametype: `strands_${mode}`,
     clue: row.clue,
     words: [
@@ -1369,7 +1377,5 @@ export async function createSetgameGame(
       player_user_ids: playerUserIds,
       mode,
     })
-  if (res.error) throw new Error(`setgame.create_game: ${res.error.message}`)
-  const row = Array.isArray(res.data) ? res.data[0] : res.data
-  return { id: (row as { id: string }).id, gametype: `setgame_${mode}` }
+  return { id: createdGameId(res, 'setgame.create_game'), gametype: `setgame_${mode}` }
 }
