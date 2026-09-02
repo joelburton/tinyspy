@@ -1,6 +1,5 @@
 // cs-unmet
 
-import { callRpc } from '../../common/lib/game/callRpc'
 import { runRpc } from '../../common/lib/supabase/dbResult'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { IconHideSolution, IconHint, IconNewGame, IconPrint, IconRestart, IconReveal, IconSpoiler } from '../../common/components/icons'
@@ -65,6 +64,22 @@ const SECRET_COUNT = 3
  * lives in `<GamePage>` above this component. PlayArea unmounts
  * on pause — its local state goes with it.
  */
+/**
+ * What `request_hint` answers. TWO `ok`s, because "here is a clue" and "this
+ * word has no clue" used to arrive as one string with a magic value in it —
+ * `hint` carries the row's text either way, and only `result` tells them apart.
+ */
+type HintAnswer = {
+  result: 'hint' | 'no-hint'
+  hint: string
+}
+
+/** What `request_reveal` answers: one `ok`, carrying the spoiled secret. */
+type RevealAnswer = {
+  result: 'reveal'
+  word: string
+}
+
 export function PlayArea({
   session,
   gameId,
@@ -303,16 +318,40 @@ export function PlayArea({
   // twins then share ONE pair of handlers, the way End / Concede already do.
   const getHint = useCallback(async () => {
     setHinting(true)
-    const bad = await callRpc(db, 'request_hint', { target_game: gameId })
+    const res = await runRpc<HintAnswer>(db.rpc('request_hint', { target_game: gameId }))
     setHinting(false)
-    if (bad) showLocalFeedback(bad)
+    if (res.type === 'not-ok') {
+      showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+      return
+    } else if (res.type === 'ok' && res.data.result === 'hint') {
+      // Nothing to show: the clue arrives as a `kind = 'hint'` row over the
+      // subscription and lands in the turn log, where it stays. A pill would
+      // say the same thing twice and then vanish.
+      return
+    } else if (res.type === 'ok' && res.data.result === 'no-hint') {
+      return
+    } else {
+      showFaultModal({ text: 'BUG: request_hint fell through to unhandled' })
+      return
+    }
   }, [gameId, showLocalFeedback])
 
   const getSpoiler = useCallback(async () => {
     setSpoiling(true)
-    const bad = await callRpc(db, 'request_reveal', { target_game: gameId })
+    const res = await runRpc<RevealAnswer>(db.rpc('request_reveal', { target_game: gameId }))
     setSpoiling(false)
-    if (bad) showLocalFeedback(bad)
+    if (res.type === 'not-ok') {
+      showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+      return
+    } else if (res.type === 'ok' && res.data.result === 'reveal') {
+      // Same as the hint: the word arrives as a `kind = 'reveal'` row and the
+      // turn log is where it belongs — a spoiler you asked for should stay
+      // readable, not flash past.
+      return
+    } else {
+      showFaultModal({ text: 'BUG: request_reveal fell through to unhandled' })
+      return
+    }
   }, [gameId, showLocalFeedback])
 
   // narrated in the header. My own events are excluded — my guesses get the

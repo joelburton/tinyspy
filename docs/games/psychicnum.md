@@ -267,12 +267,27 @@ of the other, and the surface keeps learning about the ending from realtime.
 
 **Opt-in turn-by-turn coop.** The coop sibling supports the common turn-order primitive (setup `coop_style = 'turns'`): `submit_guess` gates on `common._require_turn` right after the row lock + caller resolution (out-of-turn → `'not your turn'`), and calls `common._advance_turn` only on an accepted, non-terminal guess — so a soft-reject (not-a-board-word, duplicate, exhausted) lets the same player retry, and the pointer isn't touched when the guess ends the game. As the reference minimal game, psychicnum was the pilot for this common feature; see [common.md → Turn-order](../common.md#turn-order--opt-in-turn-by-turn-for-coop-games).
 
-### `psychicnum.request_hint(target_game uuid) → text` and `request_reveal(target_game uuid) → text`
+### `psychicnum.request_hint(target_game uuid)` and `request_reveal(target_game uuid)`
 
 Two helper RPCs, both: pick an as-yet-unfound secret (scoped like the win check — coop = the team's, compete = the caller's — via the shared `_unfound_secret(g, caller)` helper); log a row that flows into the turn log over realtime; cost **nothing** (no budget decrement) and do **not** find the secret. Coop teammates get a header pill; compete scopes the row to the caller via RLS. Guarded like a move (game player, status = playing).
 
-- **`request_reveal`** logs a `kind='reveal'` row with the secret **word** (the answer) and returns it. Teammate pill: "X revealed a word". Surfaced as the mid-game **Spoiler** button.
-- **`request_hint`** looks up that word's **clue** (`common.words.hint`), logs a `kind='hint'` row with the *clue text* (or the literal "No hint available" when the word has none — the row never carries the secret word), and returns the clue. Teammate pill: "● X got hint".
+- **`request_reveal`** logs a `kind='reveal'` row with the secret **word** (the answer). Teammate pill: "X revealed a word". Surfaced as the mid-game **Spoiler** button.
+- **`request_hint`** looks up that word's **clue** (`common.words.hint`), logs a `kind='hint'` row with the *clue text* (or the literal "No hint available" when the word has none — the row never carries the secret word). Teammate pill: "● X got hint".
+
+**What they answer.** [Envelopes](../envelopes.md), and the pair is deliberately shaped like [stackdown's](stackdown.md) `reveal_next_word` / `reveal_next_hint` — the same feature in another game:
+
+| | | |
+|---|---|---|
+| `ok` · `{result: 'reveal', word}` | `warning` | the spoiler |
+| `ok` · `{result: 'hint', hint}` | `warning` | the clue |
+| `ok` · `{result: 'no-hint', hint: 'No hint available'}` | `warning` | the word has no clue in the dictionary. A row is logged either way; only `result` tells the two apart, so nothing has to recognize the fallback by its prose |
+| `PN391` / `PN394` "Game over" | `race` | a teammate ended it, or the clock ran out, while the button was up |
+| `PN390` / `PN393` "That game no longer exists" | `fault` | nothing to race against |
+| `PN392` / `PN395` "BUG: a hint/spoiler with every secret already found" | `fault` | see below |
+
+**`warning`, not `won` or `lost`.** Help you asked for is neither good nor bad play, and coloring it would adjudicate something the player did not do ([outcomes.md](../outcomes.md)).
+
+**The "nothing left" branches are unreachable, so they are faults.** `_unfound_secret` comes back null only when every secret this caller can still find has been found, and `submit_guess` ends the game the moment that happens — in **both** modes, since finding all your own secrets is how a compete player wins. So the `play_state` gate fires first, and reaching these means `secrets` was empty at `create_game`. Until 2026-09-01 they were ordinary refusals ("Nothing left to hint"), which is what `ERROR_COPY`'s comment meant by psychicnum diverging from stackdown; the divergence closed in stackdown's direction.
 
 ### `psychicnum.submit_timeout(target_game uuid)`
 
@@ -492,7 +507,7 @@ See [`testing.md`](../testing.md) for theory and shared setup. Psychic-num-speci
 | file | covers |
 |---|---|
 | `tests/psychicnum/create_game_test.sql` | Auth, membership, happy path, `setup.{guesses,word_count}` validation, `setup.timer` shape spot-checks (the shared validator's full grid lives in connections's create_game test), `is_current_view` flips via `common.games`, title formula, `word_count` board words + three secrets drawn from them, column-level grant blocks SELECT of `secrets`. |
-| `tests/psychicnum/gameplay_test.sql` | Board-word guard (a word not on the board rejected), finding a secret returns `'correct'` and bumps `found_secrets_count`, finding the last returns `'won'` and flips `play_state`, wrong guess decrements (per-mode), re-guessing a taken word rejected, `request_hint` logs the clue (or "No hint available" fallback) and `request_reveal` logs the answer word — both `kind` rows, neither spends budget, budget-exhausted loss, `submit_timeout` happy path. |
+| `tests/psychicnum/gameplay_test.sql` | Board-word guard (a word not on the board rejected), finding a secret returns `'correct'` and bumps `found_secrets_count`, finding the last returns `'won'` and flips `play_state`, wrong guess decrements (per-mode), re-guessing a taken word rejected, `request_hint` answers `hint` or `no-hint` and logs the clue, `request_reveal` answers `reveal` and logs the answer word — both `kind` rows, neither spends budget, budget-exhausted loss, `submit_timeout` happy path. |
 | `tests/psychicnum/rls_test.sql` | dee (non-member) sees zero rows from both tables and from `games_state`, mutating RPCs throw. Members reading `games_state` see `secrets IS NULL` while active and the actual array once status is terminal — exercising both the `security_invoker` row-gating and the `_secrets_for` helper's CASE. |
 | `tests/psychicnum/concede_test.sql` | The compete-only elimination concede: a concede keeps the game going while an opponent still has budget; everyone conceding ends it (`lost_compete`, no winner); coop is rejected. |
 | `tests/psychicnum/end_game_test.sql` | The manual stop in BOTH modes: the uniform `play_state='ended'` + `status.outcome='manual'` + everyone's `result={won:false}`; idempotency (a second call raises P0001); non-player rejection. |

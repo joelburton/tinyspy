@@ -851,10 +851,20 @@ revoke execute on function psychicnum._unfound_secret(psychicnum.games, uuid) fr
 -- RLS scopes the row to the caller — reveals are private there).
 -- Costs nothing and does NOT find the secret: it just shows it, so
 -- the player still has to guess (or doesn't bother — it's a cheat).
--- Returns the revealed word.
+--
+-- ONE `ok`, carrying the revealed word, and its outcome is `warning`: a
+-- spoiler is neither good nor bad play, and coloring it green or red would
+-- adjudicate something the player did not do (docs/outcomes.md → Help you
+-- asked for). Its twin is stackdown.reveal_next_word, which answers the same
+-- way down to the outcome.
+
+-- `create or replace` cannot change a function's return type, and this one
+-- became jsonb. `if exists` because this file is re-applied in full on every
+-- deploy, so the drop has to be a no-op the second time.
+drop function if exists psychicnum.request_reveal(uuid);
 
 create or replace function psychicnum.request_reveal(target_game uuid)
-returns text
+returns jsonb
 language plpgsql
 security definer
 set search_path = psychicnum, common, public, extensions
@@ -864,12 +874,14 @@ declare
   g psychicnum.games%rowtype;
   current_play_state text;
   reveal_word text;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   select * into g from psychicnum.games
    where psychicnum.games.id = target_game
    for update;
   if not found then
-    raise exception 'game-not-found|' using errcode = 'P0002',
+    raise exception 'That game no longer exists'
+      using errcode = 'PN393', hint = 'fault', column = '_',
       detail = 'no psychicnum.games row for target_game';
   end if;
 
@@ -878,20 +890,43 @@ begin
   select play_state into current_play_state
     from common.games where id = target_game;
   if current_play_state <> 'playing' then
-    raise exception 'game-not-in-play|' using errcode = 'P0001',
+    -- A race: in coop a teammate ended the game, or the clock ran out, while
+    -- the button was still on screen.
+    raise exception 'Game over'
+      using errcode = 'PN394', hint = 'race', column = '_',
       detail = 'play_state is not an active state';
   end if;
 
   reveal_word := psychicnum._unfound_secret(g, caller_id);
   if reveal_word is null then
-    raise exception 'nothing-to-spoil|' using errcode = 'P0001',
-      detail = 'every secret has already been spoiled';
+    -- UNREACHABLE, which is what makes it a fault rather than a refusal.
+    -- `_unfound_secret` comes back null only when every secret this caller can
+    -- still find HAS been found, and submit_guess ends the game the moment
+    -- that happens — in both modes, since finding all your own secrets is how
+    -- a compete player wins. So the play_state gate above fires first, and
+    -- getting here means `secrets` was empty when the game was created.
+    -- stackdown's PN298 is the same condition with the same verdict.
+    raise exception 'BUG: a spoiler with every secret already found'
+      using errcode = 'PN395', hint = 'fault', column = '_',
+      detail = 'psychicnum._unfound_secret found no unfound secret for this caller';
   end if;
 
   insert into psychicnum.guesses (game_id, user_id, word, is_correct, kind)
   values (target_game, caller_id, reveal_word, true, 'reveal');
 
-  return reveal_word;
+  return common.ok_envelope(
+    jsonb_build_object('result', 'reveal', 'word', reveal_word), 'warning');
+
+-- One block, and it has never heard of any specific condition: it reads the
+-- SQLSTATE, re-raises anything that isn't ours, and lets the raise itself carry
+-- the message, the kind and the field.
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -908,10 +943,24 @@ grant execute on function psychicnum.request_reveal(uuid) to authenticated;
 -- "No hint available". The `kind = 'hint'` row carries the clue
 -- text (NOT the secret word — a hint never leaks the answer into
 -- the row). Coop teammates get a "X asked for a hint" pill;
--- compete scopes it to the caller via RLS. Returns the clue text.
+-- compete scopes it to the caller via RLS.
+--
+-- TWO `ok`s, because "here is a clue" and "this word has no clue" are two
+-- different answers that used to arrive as one string. Both log a row and both
+-- carry that row's text in `hint`; only `result` tells them apart, which is
+-- what keeps a call site from having to match on the prose.
+--
+-- Its outcome is `warning` in both cases: help you asked for is neither good
+-- nor bad play (docs/outcomes.md), and stackdown.reveal_next_hint — the same
+-- feature in another game — answers the same way.
+
+-- `create or replace` cannot change a function's return type, and this one
+-- became jsonb. `if exists` because this file is re-applied in full on every
+-- deploy, so the drop has to be a no-op the second time.
+drop function if exists psychicnum.request_hint(uuid);
 
 create or replace function psychicnum.request_hint(target_game uuid)
-returns text
+returns jsonb
 language plpgsql
 security definer
 set search_path = psychicnum, common, public, extensions
@@ -922,12 +971,15 @@ declare
   current_play_state text;
   secret_word text;
   clue_text text;
+  dict_hint text;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   select * into g from psychicnum.games
    where psychicnum.games.id = target_game
    for update;
   if not found then
-    raise exception 'game-not-found|' using errcode = 'P0002',
+    raise exception 'That game no longer exists'
+      using errcode = 'PN390', hint = 'fault', column = '_',
       detail = 'no psychicnum.games row for target_game';
   end if;
 
@@ -936,25 +988,49 @@ begin
   select play_state into current_play_state
     from common.games where id = target_game;
   if current_play_state <> 'playing' then
-    raise exception 'game-not-in-play|' using errcode = 'P0001',
+    -- A race: in coop a teammate ended the game, or the clock ran out, while
+    -- the button was still on screen.
+    raise exception 'Game over'
+      using errcode = 'PN391', hint = 'race', column = '_',
       detail = 'play_state is not an active state';
   end if;
 
   secret_word := psychicnum._unfound_secret(g, caller_id);
   if secret_word is null then
-    raise exception 'nothing-to-hint|' using errcode = 'P0001',
-      detail = 'every secret already has a hint logged';
+    -- UNREACHABLE — see the same check in request_reveal (PN395) for why the
+    -- terminal transition in submit_guess always gets here first.
+    raise exception 'BUG: a hint with every secret already found'
+      using errcode = 'PN392', hint = 'fault', column = '_',
+      detail = 'psychicnum._unfound_secret found no unfound secret for this caller';
   end if;
 
-  -- The clue for that word, or the literal fallback when it has none.
-  select coalesce(hint, 'No hint available') into clue_text
-    from common.words where word = secret_word;
-  clue_text := coalesce(clue_text, 'No hint available');  -- word not in dict
+  -- The clue for that word. NULL twice over: the word may not be in
+  -- `common.words` at all (no row, so no assignment), or be there with no
+  -- hint — the hint set is roughly 5-letter common words. Both mean the same
+  -- thing to the player, so both take the fallback, and the answer NAMES the
+  -- case rather than leaving the call site to recognize the sentence.
+  select hint into dict_hint from common.words where word = secret_word;
+  clue_text := coalesce(dict_hint, 'No hint available');
 
   insert into psychicnum.guesses (game_id, user_id, word, is_correct, kind)
   values (target_game, caller_id, clue_text, true, 'hint');
 
-  return clue_text;
+  return common.ok_envelope(
+    jsonb_build_object(
+      'result', case when dict_hint is null then 'no-hint' else 'hint' end,
+      'hint', clue_text),
+    'warning');
+
+-- One block, and it has never heard of any specific condition: it reads the
+-- SQLSTATE, re-raises anything that isn't ours, and lets the raise itself carry
+-- the message, the kind and the field.
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 

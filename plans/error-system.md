@@ -1,12 +1,13 @@
 # The error system — results, rejections, and faults
 
-**Status: in flight — 121 of the 157 roster entries in §7 are converted.**
+**Status: in flight — 123 of the 157 roster entries in §7 are converted.**
 
-**The 36 open rows are 32 conversions**, because the cross-cutting four appear
+**The 34 open rows are 30 conversions**, because the cross-cutting four appear
 once per area. That is the number to plan against.
 
-**Where to pick up (2026-09-01).** Eleven of the sixteen games are finished —
-codenamesduet was the eleventh — so work remains in FIVE, 28 pieces:
+**Where to pick up (2026-09-01).** Twelve of the sixteen games are finished —
+codenamesduet and psychicnum were the eleventh and twelfth — so work remains
+in FOUR, 26 pieces:
 
 | area | left |
 |---|---|
@@ -14,7 +15,6 @@ codenamesduet was the eleventh — so work remains in FIVE, 28 pieces:
 | scrabble | 8 RPCs — but SIX are thin wrappers over three shared cores, and both context RPCs drag an edge function with them |
 | letterboxed | 4 RPCs — `undo_word` + `clear_chain` share a call site, so they convert as one |
 | strands | 4 RPCs |
-| psychicnum | 2 RPCs — the priced-help pair, and the reason this area's "done" was wrong |
 
 Then the CROSS-CUTTING FOUR, last, together: `concede`, `end_game`,
 `replay_board`, `submit_timeout`. Their 8 unchecked rows are 4 conversions,
@@ -761,7 +761,7 @@ select pg_temp.envelope_is(
 
 ## 7. The conversion roster
 
-**157 entries. 121 done, 36 to go — which is 32 CONVERSIONS** — plus `useWordSubmit`, which is not a
+**157 entries. 123 done, 34 to go — which is 30 CONVERSIONS** — plus `useWordSubmit`, which is not a
 roster entry of its own but carried five call sites across four games (5 of those are the deferred edge
 functions). Cross them off here as they land.
 
@@ -1093,11 +1093,15 @@ refetch), not two places in the source.
   fault in the game being converted. They are called by 15–17 files, so until
   each of those converts, their failures wear the fault look elsewhere — right
   words, wrong weight, and not worth a shim for an afternoon
-- [ ] `request_hint` · RPC — **added 2026-09-01**, missing from the roster.
-      `PlayArea.tsx:306`, through the old `callRpc`. The hidden-secrets pattern:
-      a priced in-game assist, so its refusals are game answers, not faults
-- [ ] `request_reveal` · RPC — **added 2026-09-01**. `PlayArea.tsx:313`, the
-      twin of `request_hint`
+- [x] `request_hint` · RPC — PN390–PN392, and TWO `ok`s: `hint` and `no-hint`,
+      where a magic "No hint available" string used to carry the difference
+- [x] `request_reveal` · RPC — PN393–PN395, one `ok`. Both answer `warning`,
+      matching stackdown's twins — help you asked for is neither good nor bad
+      play. **Their "nothing left" branches turned out to be UNREACHABLE** and
+      became faults: `submit_guess` ends the game the moment the last secret is
+      found, in both modes, so the play_state gate always fires first. That
+      closes the divergence `ERROR_COPY` recorded between these and stackdown's,
+      in stackdown's direction, and takes psychicnum off that table
 - [x] `submit_guess` · RPC
 - [x] `games_state` · read
 - [x] `guesses` · read
@@ -1106,12 +1110,11 @@ refetch), not two places in the source.
 `games` was already read through the `games_state` view, so there was no second
 read to convert; `submit_guess` has one call site, not two.
 
-**This area was marked finished and is not.** The worked example in §5 covers
-`create_game` and `submit_guess`; the two priced-help RPCs were never listed,
-and an audit of every `grant execute … to authenticated` found them
-(2026-09-01). Their answers deserve the same care as any other — a hint is
-something the player asked for and paid for, so a refusal is a verdict rather
-than a failure.
+**This area was marked finished when it was not**, and is now finished for
+real. The worked example in §5 covers `create_game` and `submit_guess`; the two
+priced-help RPCs were never listed, and an audit of every `grant execute … to
+authenticated` found them (2026-09-01). Converting them was where the
+"unreachable branch" question got its answer — see the two rows above.
 
 #### scrabble
 

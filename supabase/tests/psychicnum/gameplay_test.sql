@@ -42,7 +42,7 @@ begin;
 
 set search_path = psychicnum, common, public, extensions;
 
-select plan(37);
+select plan(39);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -138,14 +138,16 @@ select pg_temp.envelope_is(
   'coop: re-guessing a word another player took is refused'
 );
 
--- (7) request_hint returns the secret's CLUE (common.words.hint), or the
--- "No hint available" fallback when it has none. Our pinned secrets are fake
--- (not in common.words), so the fallback fires. (The real-clue path is
--- exercised in its own block below.)
-select is(
+-- (7) request_hint answers with the secret's CLUE (common.words.hint), or the
+-- "No hint available" fallback when it has none — and NAMES which, so nothing
+-- has to recognize the fallback by its prose. Our pinned secrets are fake (not
+-- in common.words), so `no-hint` fires. (The real-clue path is exercised in
+-- its own block below.)
+select pg_temp.envelope_is(
   psychicnum.request_hint((select id from coop_g)),
-  'No hint available',
-  'coop: request_hint falls back to "No hint available" for a word with no clue'
+  '{"type":"ok","outcome":"warning",
+    "data":{"result":"no-hint","hint":"No hint available"}}'::jsonb,
+  'coop: request_hint answers no-hint for a word with no clue'
 );
 
 -- (8) the hint is logged as a kind='hint' row...
@@ -159,10 +161,18 @@ select is(
 
 -- (9) request_reveal returns an unfound secret WORD (the answer)...
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select is(
-  (select psychicnum.request_reveal((select id from coop_g)) = any(array['zbravo','zcharlie'])),
-  true,
-  'coop: request_reveal returns an as-yet-unfound secret word'
+select pg_temp.envelope_is(
+  psychicnum.request_reveal((select id from coop_g)),
+  '{"type":"ok","outcome":"warning","data":{"result":"reveal"}}'::jsonb,
+  'coop: request_reveal answers ok/reveal'
+);
+-- The WORD it spoiled is one of the two still unfound — asserted separately,
+-- because which one it picks is random and only its membership is a rule.
+select ok(
+  (select word from psychicnum.guesses
+    where game_id = (select id from coop_g) and kind = 'reveal'
+    order by guessed_at desc limit 1) = any(array['zbravo','zcharlie']),
+  'coop: request_reveal spoils an as-yet-unfound secret word'
 );
 
 -- (10) ...logged as a kind='reveal' row (and it does NOT find the secret —
@@ -487,11 +497,18 @@ update psychicnum.games
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select ok(
-  psychicnum.request_hint((select id from hint_g)) in (
+  (psychicnum.request_hint((select id from hint_g)) -> 'data' ->> 'hint') in (
     select hint from common.words
      where word in (select unnest(words[1:3]) from hinted)
   ),
   'request_hint returns the actual clue for a word that has one'
+);
+-- …and NAMES it as the clue case, which is the whole difference from the
+-- fallback above: same shape, different `result`.
+select pg_temp.envelope_is(
+  psychicnum.request_hint((select id from hint_g)),
+  '{"type":"ok","outcome":"warning","data":{"result":"hint"}}'::jsonb,
+  'request_hint answers ok/hint when the word has a clue'
 );
 
 -- ============================================================

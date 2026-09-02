@@ -106,13 +106,6 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   'path-crosses-found': { text: () => 'Crosses a found word' },
 
 
-  // ── psychicnum ──
-  // The two cheat rungs, exhausted. psychicnum RAISES here where stackdown
-  // returns null and lets the FE narrate — a real divergence between the two
-  // implementations of the same feature, recorded rather than smoothed over.
-  'nothing-to-hint': { text: () => 'Nothing left to hint', tone: 'noted' },
-  'nothing-to-spoil': { text: () => 'Nothing left to show', tone: 'noted' },
-
   // ── connections + strands (the dated archives) ──
   // Neither game lets you pick a puzzle any more: the server hands out the
   // earliest one none of the players has seen, in any club
