@@ -32,10 +32,10 @@ understood, tidied* — `cs-blessed` here means he has read the file, not seen i
 **Every heading says its status**; a heading with **no status prefix means OPEN**.
 
 **One pass of three has run** — the boot path, 2026-09-02, sixteen findings.
-Eleven RESOLVED (`F-deep-2`, `F-deep-4`, `F-deep-5`, `F-deep-6`, `F-deep-7`,
-`F-deep-9`, `F-deep-10`, `F-deep-11`, `F-deep-12`, `F-deep-13`, `F-deep-14`), one
-CLOSED (`F-deep-3`), one MOVED to `corecss` (`F-deep-1`); the other three are
-open. The data path and the realtime plumbing
+Twelve RESOLVED (`F-deep-2`, `F-deep-4`, `F-deep-5`, `F-deep-6`, `F-deep-7`,
+`F-deep-9`, `F-deep-10`, `F-deep-11`, `F-deep-12`, `F-deep-13`, `F-deep-14`,
+`F-deep-15`), one CLOSED (`F-deep-3`), one MOVED to `corecss` (`F-deep-1`); the
+other two are open. The data path and the realtime plumbing
 have not been read.
 
 ## The roster — 33 files, 4,880 lines
@@ -146,7 +146,7 @@ modal — but it has three live consumers (`ClubGameCard:59`, `GamePage:178`, `E
 ## Findings — pass 1, the boot path
 
 Sixteen — **F-deep-1 … F-deep-16**. Every heading says its status; a heading
-with no status prefix means OPEN, and three are.
+with no status prefix means OPEN, and two are.
 
 ## MOVED · F-deep-1 · `stylesheet-map-rotted` · main.tsx's map of the stylesheet chain names two files that were deleted
 
@@ -549,7 +549,7 @@ synchronous.
 > // after:   await Promise.all([T(deps[201]), T(deps[202])])
 > ```
 
-## F-deep-15 · `theme-key-off-convention` · The one localStorage key that doesn't look like the others
+## RESOLVED · F-deep-15 · `theme-key-off-convention` · The one localStorage key that doesn't look like the others
 
 `STORAGE_KEY = 'pup-theme'` (`loadTheme.ts:35`). Every other key the app stores
 under is `<scope>:<thing>` with a colon, and the app-wide scope is spelled
@@ -565,7 +565,17 @@ real browsers, so a rename silently drops whoever has `midnight` stored. That
 costs nothing here — midnight is a flagged spike and `?theme=midnight` sets it
 again — but it should be said out loud rather than discovered.
 
-> resolution:
+> **resolution: `puzpuzpuz:theme`** (Joel, 2026-09-02), which puts it on the
+> app-wide scope with the rest: `puzpuzpuz:chat:open`,
+> `puzpuzpuz:gameInvitesSeen`, `puzpuzpuz:help:rect`,
+> `puzpuzpuz:scratchpad:open`. One reference, one file — nothing else names the
+> key.
+>
+> **No migration, and that is the decision rather than an oversight.** Anyone
+> holding `pup-theme: midnight` in a real browser silently returns to daylight.
+> The cost is one keystroke of `?theme=midnight` on a flag with no UI, which is
+> not worth a read-the-old-key-then-write-the-new shim that would have to be
+> carried until someone remembered to delete it.
 
 ## F-deep-16 · `themename-export-unread` · An exported type and a return value, neither read
 
