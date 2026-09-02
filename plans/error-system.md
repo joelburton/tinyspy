@@ -436,15 +436,15 @@ and took twenty assertions with it.
 - [x] `players_state` · read — converted in the useGame sweep; verified 2026-09-01
 - [x] `plays` · read — converted in the useGame sweep; verified 2026-09-01
 - [x] `scrabble-ai-move` · edge fn — PN333–PN336, all faults, and a relay
-      written for the five `ai_*` RPCs' envelopes. **Those RPCs are NOT
-      converted** (verified 2026-09-01: `_commit_word` answers bare and raises
-      `P0001`), and they have no roster rows — so the relay is waiting for
-      something that has not happened, and converting them means fixing this
-      function in the same commit (`deno-callers.md` (deleted; its content is in docs/envelopes.md)). `moves` renamed `turns`: one loop pass
-      is one seat's TURN however many words it crossed, and 0 is the common
-      value since every client pokes and one wins. **The last raw `callEdgeFn`
-      call site**, with a guard that keeps it that way — the export cannot say
-      who it is for, and an auto-import is all a sixth would take
+      written for the five `ai_*` RPCs' envelopes. Those RPCs caught up in the
+      same area (PN444, PN452, PN459 — their rows are above), so the relay is no
+      longer waiting for something that has not happened. `moves` renamed
+      `turns`: one loop pass is one seat's TURN however many words it crossed,
+      and 0 is the common value since every client pokes and one wins. It was
+      also the last raw `callEdgeFn` call site, and is not one now:
+      `callEdgeFn` has exactly one consumer, `runEdgeFn`, with a guard in
+      `callSiteShape.test.ts` keeping it there — the export cannot say who it is
+      for, and an auto-import is all a second would take
 - [x] `scrabble-suggest-move` · edge fn — PN330–PN332 faults, and
       `get_suggest_context`'s refusals relayed. TWO ok results: an empty
       `moves` array was standing in for `no-legal-moves`, which the panel
@@ -577,7 +577,8 @@ the verdict and the status for nothing but "did this reach the function at all".
 
 The pieces, all shared:
 
-- **`_shared/envelope.ts`** — `ok` / `validation` / `fault` / `crash`, the Deno
+- **`_shared/envelope.ts`** — `ok` / `formValidation` / `serviceError` / `fault` /
+  `crash` (plus `faultEnvelope` for the inbound path and `isEnvelope`), the Deno
   twins of `common.ok_envelope` and `common.raised_envelope`. The severity is
   the FUNCTION NAME, so unlike SQL's `hint` there is no second string to
   mistype: `deno check` owns it.
@@ -614,8 +615,21 @@ like an envelope so the frontend could convert first; every `create_game` return
 one now, so a manifest calls `runRpc` or `runEdgeFn` and there is nothing to
 adapt. That was the stated end and this is it.
 
-**Still deferred:** the five that answer a question rather than start a game
-(`common-define`, `codenamesduet-suggest-clue`, `crosswords-explain-clue`,
-`scrabble-ai-move`, `scrabble-suggest-move`). Whether every edge function should
-return an envelope is a separate question, worth deciding once these seven have
-shown what it costs.
+**ALL THIRTEEN ARE DONE.** The five that answer a question rather than start a
+game — `common-define`, `codenamesduet-suggest-clue`, `crosswords-explain-clue`,
+`scrabble-ai-move`, `scrabble-suggest-move` — were held back here until the seven
+builders had shown what an envelope costs, then converted with the games that
+call them; their rows above are ticked. So the question this section left open is
+answered: **every** edge function returns an envelope, and the status means only
+"did this reach the function".
+
+**Their CRASH path was a separate, later job — done 2026-09-02.** All five kept
+`edgeInternal(e)` in their `catch` long after their ordinary paths were
+envelopes: the deleted `{"error":"key|detail|"}` shape at HTTP 500. Nothing
+caught it because nothing reaches a catch-all until something throws, and each
+still logged to the serve output, so only the player-facing half was wrong — and
+wrong in the case that least wants it, since `runEdgeFn` takes a non-2xx down its
+transport branch and replaces the crash's own message with "The server refused
+the request." They end with `crash()` now, like the other eight, and
+`edgeInternal` is deleted rather than left unused so a fourteenth function cannot
+reach for it.
