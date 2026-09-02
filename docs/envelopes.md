@@ -24,6 +24,25 @@ either — the severity exists, and the roster decides which raises earn it.
 
 ## Consumers
 
+**Four directions, four wrappers.** Every call to a server in this app goes
+through one of them, and each hands back the same `Envelope`, so no call site
+touches a raw response:
+
+| direction | wrapper | where |
+|---|---|---|
+| frontend → RPC | `runRpc` | `src/common/lib/supabase/dbResult.ts` |
+| frontend → table read | `readRows` | same |
+| frontend → edge function | `runEdgeFn` | same |
+| edge function → RPC | `runRpc` | `supabase/functions/_shared/dbResult.ts` |
+
+The fourth is a separate implementation rather than an import: the frontend's
+reaches the browser client and the fault-modal store, neither of which exists in
+Deno. It is described under [How edge functions RECEIVE
+one](#how-edge-functions-receive-one).
+[`dbCallWrapped.test.ts`](../src/guards/dbCallWrapped.test.ts) is what keeps a
+fifth path from appearing — a raw `.rpc()` reads `error` off an answer that
+refuses with HTTP 200, so the refusal reads as success.
+
 The places we call servers, and what each does with an answer.
 
 - **Game surfaces** — submitting a word for the server to adjudicate. These
@@ -928,6 +947,82 @@ same `Envelope` the frontend uses. That type lives in its own module
 `dbResult.ts` reaches the browser client and cannot cross. The builders write
 every key out rather than spreading a shared constant, so a new key is a compile
 error there too.
+
+## How edge functions RECEIVE one
+
+The section above is the answer a function **sends**. This is the answer it
+**receives** — the fourth call direction, and the one that had no wrapper until
+2026-09-01.
+
+**One wrapper, mirroring the frontend's**, in
+`supabase/functions/_shared/dbResult.ts`:
+
+```ts
+runRpc<T>(call, rpcName): Promise<Envelope<T>>
+```
+
+It does what the frontend's does minus everything belonging to a user surface —
+no modal, no pill, no fault reporting, because an edge function has no surface;
+it answers by returning an envelope of its own. Four steps: await the call; an
+`error` means the RPC never ran; a body that is not an envelope means it
+answered something unreadable; otherwise log a line and return it, typed. The
+first two are **PN117** and **PN118**, one pair for every call site rather than
+a pair per function — eight codes led to one fix, and the RPC's name is already
+in the message.
+
+Then a function reads the way a frontend call site reads:
+
+```ts
+const res = await runRpc<ClueContext>(
+  db.schema('codenamesduet').rpc('get_clue_context', { … }), 'get_clue_context',
+)
+if (res.type === 'not-ok') return json(res)   // relay the refusal untouched
+const ctx = res.data                          // carry on
+```
+
+**Relay-vs-unwrap is the call site's choice, and it is one line either way.**
+`startGame` and `scrabble-ai-move` relay the whole envelope; the two AI
+suggesters and the clue explainer unwrap the `ok` and keep working. A real
+per-function difference that does not deserve two wrapper variants.
+
+Two things the wrapper does that the frontend's does differently:
+
+- **The RPC name is a parameter**, not dug off the query builder. The frontend's
+  `callLabel` digs `url`/`method` off postgrest-js defensively because they are
+  `protected`; here the name is known at every call site, and a parameter cannot
+  go stale when a library renames a field.
+- **`faultEnvelope` is the only builder in `_shared/envelope.ts` with a value
+  form**, and `fault` delegates to it. An inbound failure has to be a VALUE the
+  caller branches on; the outbound builders return a `Response`, because a
+  function that has decided something is done deciding.
+
+It logs one line per call — `[rpc] <name> <type> <ms>ms`, plus severity and
+dbcode on a `not-ok` — the Deno counterpart of the frontend's `[db]` line.
+
+### The board builders are deliberately NOT on it
+
+There is no Deno `readRows`, and **ten** raw calls to row-returning helper RPCs
+— `candidate_words` (×4), `pick_seed`, `seed_for`, `candidate_bases`,
+`try_base`, `matching_words`, `cache_definition` — call them without a wrapper.
+**This is a decision, not an omission.**
+
+They sit inside pure helpers (`buildBoard(): Promise<Board | null>`), not inside
+a request handler, and they signal failure by `throw`, which the function-level
+`crash(FN, e)` turns into a fault envelope at the edge. That is already a
+coherent boundary. Handing those helpers envelopes would push envelope-branching
+into every board builder to gain nothing: there is no refusal to relay, no
+player sentence, and `crash` already produces the right answer.
+
+A Deno `readRows` earns its place the day one of those calls needs to relay a
+refusal, and not before.
+
+### The relay above an RPC has to convert WITH it
+
+A function that relays sits above its RPC, and pointing `runRpc` at an RPC that
+still answers bare **faults every SUCCESS** — the answer is not an envelope, so
+step 3 rejects it. So the two halves move in one commit, and the wrapper goes in
+before the RPCs whose answers it relays. Worth remembering for any new
+edge-function/RPC pair, which starts in exactly that position.
 
 ## How the frontend receives one
 
