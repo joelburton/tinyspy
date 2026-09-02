@@ -600,12 +600,16 @@ somebody outside needs it.
 
 ## Questions this pass raises rather than answers
 
-1. **`App.tsx` has no seam where the plan says it splits.** §7 puts its boot half
-   in this area and its per-page/per-game routing rows in the areas that own those
-   pages, but the file interleaves them in one 160-line function body — the route
-   table is inside the same `if/else` chain as the auth gates, and four global
-   hosts (`GameInvitations`, `ToastHost`, `FaultModal`, `TooltipHost`) plus two
-   cross-subtree modals hang off the same return. Splitting it is a real change
-   with consumers, so it is a question, not a finding.
+1. **ANSWERED 2026-09-02 — `App.tsx` has no seam where the plan says it splits.**
+   §7 puts its boot half in this area and its per-page/per-game routing rows in the
+   areas that own those pages, but the file interleaves them in one 160-line
+   function body — the route table sits in the same `if/else` chain as the auth
+   gates, and four global hosts plus two cross-subtree modals hang off the same
+   return.
+
+   Joel's answer: **`App.tsx` does not get split.** It is a shell, and a shell
+   holds the route table and what hangs off the root; the boot/routing line is a
+   scope line for this audit, not a seam the code owes anyone. The root-mounted
+   components became **`common-hosts`** instead, scheduled after `utils`.
 
 *(the data-path and realtime passes have not run.)*

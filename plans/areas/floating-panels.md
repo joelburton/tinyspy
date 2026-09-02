@@ -33,6 +33,12 @@ genuinely OUT of the sprint's scope goes to `docs/deferred.md`, deliberately and
 by name. That is the app's standing register; this file is the sprint's record of
 the area.
 
+### Already waiting for this area
+
+**`FaultModal` is NOT this area's** — settled 2026-09-02. This area is the
+machinery and the shared look, not the instances, so the one fault-modal host had
+no owner; `common-hosts` has it now.
+
 ## Predicted test breaks
 
 *(written when the area starts changing things, per §21's test-break rule:
