@@ -125,7 +125,7 @@ describe('a request nothing answered', () => {
   })
 
   // The wrapper presents now — `dbFetch` logs and stops
-  // (plans/fault-presentation.md). This used to assert the opposite, on the
+  // (docs/envelopes.md → Presenting a fault). This used to assert the opposite, on the
   // reasoning that a second modal was the same news twice; there is no first
   // modal any more.
   it('presents it, because dbFetch no longer does', async () => {

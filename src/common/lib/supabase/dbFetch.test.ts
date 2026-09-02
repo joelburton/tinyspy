@@ -183,7 +183,7 @@ describe('dbFetch — requests that DID reach the server', () => {
  * **dbFetch classifies; it no longer presents.** Every assertion here reads the
  * `[db]` LINE, because that is now the whole of this layer's output — the
  * wrapper decides whether anyone is shown anything
- * (plans/fault-presentation.md).
+ * (docs/envelopes.md → Presenting a fault).
  *
  * The classification still matters and still lives here: this is the only place
  * Kong's JSON can be told from a captive portal's HTML, since postgrest-js

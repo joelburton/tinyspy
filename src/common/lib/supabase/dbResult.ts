@@ -31,9 +31,12 @@ import type { Envelope, NotOk, Severity } from './envelope'
  *     not-ok / service-error    show `message` in a pill; wait and retry
  *     not-ok / fault            show `message` too — see below
  *
- * Faults are presented centrally — `reportDbFault`, from `dbFetch` and from the
- * wrappers below — so no call site classifies a failure, words a network
- * problem, or reaches for `showFaultModal` itself.
+ * Faults are presented centrally — `reportDbFault`, from the three wrappers
+ * below and from nowhere else — so no call site classifies a failure, words a
+ * network problem, or reaches for `showFaultModal` itself. `dbFetch` classifies
+ * and logs but never shows: all it knows is the URL, so the only rule it could
+ * express was "this path never modals", which cannot serve a call that wants
+ * quiet for one answer and a modal for another.
  *
  * A call site still SHOWS a fault's message, though: the modal is an escalation,
  * not a replacement, and nothing reads `severity` to decide whether to display
@@ -174,7 +177,7 @@ function failureEnvelope(
  * (`isPolled`), which is all-or-nothing per endpoint: it could silence
  * `tick_timer` entirely but not silence its transport failures while still
  * showing its `PN011`. A wrapper holds the parsed envelope, so a caller that
- * opts out can decide per ANSWER (plans/fault-presentation.md).
+ * opts out can decide per ANSWER (docs/envelopes.md → Presenting a fault).
  *
  * **Default ON is what keeps forgetting impossible.** A call site that ignores
  * its result entirely still surfaces the failure; only a site that has thought

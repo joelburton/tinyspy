@@ -592,16 +592,56 @@ gains a surface drops the assertion** and goes back to the one-line mapping.
 
 ### Presenting a fault is not a call site's job
 
-**One rule, and everything else here follows from it: the layer that KNOWS a
-failure is a fault, and HOLDS its diagnostics, is the layer that shows the
-modal.** That is `dbFetch` for an environmental failure and a raw fault, and
-`runRpc` / `runEdgeFn` / `readRows` for a declared one arriving on a 200. Never
-a call site.
+**One rule, and everything else here follows from it: the layer that HOLDS the
+answer is the layer that shows the modal.** That is the three wrappers —
+`runRpc`, `readRows`, `runEdgeFn` — for every fault, whatever built it. Never a
+call site, and **never `dbFetch`**, which classifies and logs but shows nothing.
 
-The diagnostics line is why: it is built from **transport** facts — the call,
-the HTTP status, the elapsed milliseconds — that no envelope carries and no call
-site has. A call site raising its own modal can only produce a worse copy of one
-that already fired.
+The diagnostics line is why a call site cannot: it is built from **transport**
+facts — the call, the HTTP status, the elapsed milliseconds — that no envelope
+carries and no call site has. A call site raising its own modal can only produce
+a worse copy of one that already fired.
+
+`dbFetch` is excluded for the opposite reason: **all it knows is the URL.** The
+only rule it can express is *"calls to this path never show a modal"*, which is
+all-or-nothing per endpoint. The case that broke it was `useGameTimer`, which
+polls once a second and wants quiet when the network dropped but a modal when
+the player is signed out — one call, two treatments, decided by what came back.
+To `dbFetch` both are "a request to `tick_timer` failed".
+
+So the split is by what a layer can see, and it was measured rather than assumed
+(against postgrest-js and functions-js, 2026-09-01). **Only `dbFetch` knows two
+things**: whether the response body PARSED — postgrest-js flattens a parsed body
+and an unparseable one into the same `{ message }`, so Kong's JSON and a captive
+portal's HTML are structurally identical by the time a wrapper sees them — and
+the thrown error's `name`, which is what tells an abort from a real network
+failure. It carries the first forward in `statusText`, the one field that
+survives postgrest-js untouched. Everything else a wrapper can get for itself:
+the elapsed ms (it times itself), `navigator.onLine` and `document.visibilityState`
+(globals), the path (off the query builder's own `url`), and the status
+(postgrest-js forwards it).
+
+### Opting out: `presentFaults`
+
+A call site that wants to handle its own faults passes `{ presentFaults: false }`
+to any of the three wrappers:
+
+```ts
+runRpc<Ticked>(commonDb.rpc('tick_timer', …), { presentFaults: false })
+```
+
+**Default-on is what makes forgetting impossible** — a call site that ignores its
+result entirely still surfaces the failure. And unlike a path string in another
+file, an opt-out is visible at the call, typed, and cannot be aimed at the wrong
+endpoint.
+
+**It means *I will show my own*, never *drop it*.** `useGameTimer` is the model:
+silent for the four `FE` codes on purpose, and it calls `showFaultModal` itself
+for `PN011`/`PN012`. `src/guards/callSiteShape.test.ts` enforces the promise at
+file level — a file containing `presentFaults: false` must also contain a
+`showFaultModal` or a `console.error`. The wrapper writes the `[db]` line either
+way, so an opt-out that shows nothing is not silent in the console; it is silent
+to the player, which is the thing a diff cannot show you.
 
 ### But the surface still shows it — the modal is an ESCALATION, not a replacement
 
