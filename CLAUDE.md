@@ -76,7 +76,6 @@ A plan is a working document for a sprint: the agreed design, the evidence, and 
 | [plans/keyboard-nav-plan.md](plans/keyboard-nav-plan.md) | Arrow-key navigation of board pieces for the five games where clicking pieces IS the move; two prerequisites land first |
 | [plans/error-system.md](plans/error-system.md) | **DONE — the results/rejections/faults sprint**, 157 of 157 roster entries converted (2026-09-01), and the deletion it ends with has happened: `errorCopy.ts`, `serverError.ts`, `callRpc.ts` and `serverErrorKeys.test.ts` are gone and `callSiteShape.test.ts` is a hard assertion. The SHAPE lives in [docs/envelopes.md](docs/envelopes.md), which outranks this file; what the plan still owns is the per-area record of how the conversion went. Its closing "still deferred" paragraph is stale — those five edge functions converted; only their crash path did not (docs/deferred.md) |
 | [plans/css-philosophy.md](plans/css-philosophy.md) | **The reasoning archive** behind css-system-2.md: what CSS we share and why we haven't. Kept in full — the plan cites it rather than restating it |
-| [plans/db-work-2.md](plans/db-work-2.md) | The queue of DB-touching deferred items (whole-docs sweep); delete it when it empties |
 | plans/css-system-outdated-dont-read.md | **DO NOT READ.** The superseded first draft of the CSS sprint, much of whose model failed. Listed here only so its presence in `plans/` isn't mistaken for an oversight. Open it if — and only if — Joel says to |
 
 
