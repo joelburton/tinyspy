@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../../common/lib/supabase/supabase'
 import { channelDedupSuffix } from '../../common/lib/supabase/channelDedup'
 import { onPostgresAttached } from '../../common/lib/supabase/postgresAttached'
-import { runRpc } from '../../common/lib/supabase/dbResult'
+import { readRows, runRpc } from '../../common/lib/supabase/dbResult'
 import { showFaultModal } from '../../common/lib/fault/faultStore'
 import type { Envelope } from '../../common/lib/supabase/envelope'
 import { db } from '../db'
@@ -111,10 +111,19 @@ export function useCells(
         .from('cells')
         .select('owner_id, row, col, fill, pencil, revealed, wrong, mark_right, mark_bottom, version')
         .eq('game_id', gameId)
-      const { data } = await (ownerId === null
-        ? base.is('owner_id', null)
-        : base.eq('owner_id', ownerId))
-      if (!active || !data) return
+      // `is` for the SHARED grid and `eq` for a private one: PostgREST needs
+      // `is` to match a null, and an `eq` against one matches nothing.
+      const res = await readRows(
+        ownerId === null ? base.is('owner_id', null) : base.eq('owner_id', ownerId),
+      )
+      if (!active) return
+      // A failed read LEAVES THE GRID ALONE rather than emptying it. This runs
+      // on the SUBSCRIBED reconnect too, so the next one that lands seeds it —
+      // and a blank crossword is a worse answer than a stale one, since the
+      // player would read it as the puzzle having been reset. `readRows` has
+      // logged it and raised the modal.
+      if (res.type === 'not-ok') return
+      const data = res.data
       setCells((prev) => {
         const out = new Map(prev)
         for (const r of data) {

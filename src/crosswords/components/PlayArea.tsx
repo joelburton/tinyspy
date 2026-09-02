@@ -56,7 +56,7 @@ import { CrosswordsExplainCompanion, type ExplainState } from './CrosswordsExpla
 import { enumerationFor } from '../lib/enumeration'
 import { runEdgeFn } from '../../common/lib/supabase/dbResult'
 import { showFaultModal } from '../../common/lib/fault/faultStore'
-import { runRpc } from '../../common/lib/supabase/dbResult'
+import { readRows, runRpc } from '../../common/lib/supabase/dbResult'
 import { getNotOkFeedback } from '../../common/lib/game/genericPills'
 import { ClueLists } from './ClueLists'
 import { ClueText } from './ClueText'
@@ -189,16 +189,24 @@ export function PlayArea(ctx: GamePageCtx) {
   useEffect(() => {
     if (!solutionShown || solution) return
     let alive = true
-    void db
-      .from('games_state')
-      .select('solution')
-      .eq('id', gameId)
-      .single()
-      .then(({ data }) => {
-        if (alive && data?.solution) {
-          setSolution(data.solution as unknown as (string[] | null)[][])
-        }
-      })
+    void (async () => {
+      // No `.single()`: it treats zero rows as an ERROR, so a game this club
+      // cannot see would arrive looking exactly like a broken connection.
+      // `readRows` hands back rows, and `id` is the PK, so this is 0 or 1.
+      const res = await readRows(
+        db.from('games_state').select('solution').eq('id', gameId),
+      )
+      if (!alive) return
+      // A failed read leaves `solution` null, which is the SAME state as "not
+      // fetched yet" — and that is the honest one: the reveal toggle is on, so
+      // the effect will ask again. `readRows` has raised the modal, and the
+      // grid keeps drawing what the player has actually filled.
+      if (res.type === 'not-ok') return
+      // Zero rows is its own answer here: the shield is still up (games_state
+      // gates the solution to terminal), which is not a failure to report.
+      const row = res.data[0]
+      if (row?.solution) setSolution(row.solution as unknown as (string[] | null)[][])
+    })()
     return () => {
       alive = false
     }

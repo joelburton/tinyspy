@@ -1,21 +1,17 @@
 # The error system — results, rejections, and faults
 
-**Status: in flight — 148 of the 157 roster entries in §7 are converted.**
+**Status: in flight — 149 of the 157 roster entries in §7 are converted.**
 
-**The 9 open rows are 5 conversions**, because the cross-cutting four appear
-once per area. That is the number to plan against.
+**The 8 open rows are 4 conversions** — the cross-cutting four, appearing once
+per area. **Nothing else is left.**
 
 **`ERROR_COPY` is down to THREE keys** — `game-not-in-play`, `you-conceded` and
 `already-ended` — and every one of them is raised only by the cross-cutting
 four. Converting those empties the table, which is what lets the whole old
 system be deleted.
 
-**Where to pick up (2026-09-01).** **Every RPC in the roster is converted.**
-What is left is ONE read and the cross-cutting four:
-
-| area | left |
-|---|---|
-| crosswords | 1 — the solution fetch at `PlayArea.tsx:179`, a `games_state` read |
+**Where to pick up (2026-09-01).** **Every RPC and every read is converted.**
+All that remains is the CROSS-CUTTING FOUR.
 
 Then the CROSS-CUTTING FOUR, last, together: `concede`, `end_game`,
 `replay_board`, `submit_timeout`. Their 8 unchecked rows are 4 conversions,
@@ -762,7 +758,7 @@ select pg_temp.envelope_is(
 
 ## 7. The conversion roster
 
-**157 entries. 148 done, 9 to go — which is 5 CONVERSIONS** — plus `useWordSubmit`, which is not a
+**157 entries. 149 done, 8 to go — which is 4 CONVERSIONS** — plus `useWordSubmit`, which is not a
 roster entry of its own but carried five call sites across four games (5 of those are the deferred edge
 functions). Cross them off here as they land.
 
@@ -1070,11 +1066,17 @@ refetch), not two places in the source.
       the tenth and final call site in [deno-callers.md](deno-callers.md)
 - [x] `set_cell` · RPC — PN464–PN467
 - [x] `set_mark` · RPC — PN468–PN472
-- [x] `cells` · read — `useCells`, which stopped returning two bespoke result
-      unions and hands the envelope back instead: they existed only to carry an
-      error beside a value, which is what an envelope IS
+- [x] `cells` · read — `useCells`. **Ticked once before it was true**: that
+      pass converted the file's two WRITES and left the read raw, which the
+      read scan caught. A failed read now leaves the grid alone rather than
+      emptying it — a blank crossword reads as a puzzle that was reset. The
+      hook also stopped returning two bespoke result unions and hands the
+      envelope back: they existed only to carry an error beside a value, which
+      is what an envelope IS
 - [x] `games` · read — `useGame`'s, and its only one; verified 2026-09-01
-- [ ] `games_state` · read — `PlayArea.tsx:179`, the solution fetch
+- [x] `games_state` · read — the solution fetch, and it lost its `.single()`
+      too: zero rows means the shield is still up (games_state gates the
+      solution to terminal), which is an answer rather than a failure
 - [x] `crosswords-explain-clue` · edge fn — PN327/PN328 service-errors (the
       model ran, explained nothing), five faults, and `reveal_solved_word`'s
       refusals relayed. `unsolved` stays an OK: the menu item is live on any
