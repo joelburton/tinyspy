@@ -64,7 +64,31 @@ function color(target: string, guess: string): string[] {
   return out
 }
 
-/** A legal guess that scores at least one of each color against the hidden target. */
+/**
+ * The tones the KEYBOARD will show for a guess — one per distinct letter, the
+ * best the letter earned anywhere in the row (`BoardCol.tsx` → `keyStates`,
+ * which keeps a tone only when `colorRank` beats what that key already has).
+ *
+ * This is not the same set as the row's, and the difference is the whole reason
+ * this function exists. A guess whose only yellow sits on a letter that is ALSO
+ * green somewhere else is tricolor across its five positions and two-tone on the
+ * keyboard: the green key wins and no yellow key is ever drawn. Measured against
+ * 400 random targets, that is ~5% of games — so picking on the row's tones made
+ * this spec fail about one run in twenty, for a reason that looks nothing like
+ * its cause.
+ */
+function keyboardTones(target: string, guess: string): Set<string> {
+  const RANK: Record<string, number> = { gray: 0, yellow: 1, green: 2 }
+  const tones = color(target, guess)
+  const best = new Map<string, string>()
+  for (let i = 0; i < guess.length; i++) {
+    const prev = best.get(guess[i])
+    if (prev === undefined || RANK[tones[i]] > RANK[prev]) best.set(guess[i], tones[i])
+  }
+  return new Set(best.values())
+}
+
+/** A legal guess whose KEYBOARD wears all three colors — see `keyboardTones`. */
 function pickTricolorGuess(gameId: string): string {
   const [target, band] = psql(
     `select target, legal_guess from wordle.games where id = '${gameId}';`,
@@ -74,10 +98,9 @@ function pickTricolorGuess(gameId: string): string {
       `and word <> '${target}' limit 4000;`,
   )
   for (const w of words) {
-    const tones = new Set(color(target, w))
-    if (tones.size === 3) return w
+    if (keyboardTones(target, w).size === 3) return w
   }
-  throw new Error('no legal word scores all three colors against this target')
+  throw new Error('no legal word paints all three colors onto the keyboard for this target')
 }
 
 test('the keyboard wears the right fill and ink, resting and hovered', async ({ browser }) => {
@@ -159,7 +182,11 @@ test('the keyboard wears the right fill and ink, resting and hovered', async ({ 
   })
   expect(Object.keys(byTone).sort()).toEqual(['gray', 'green', 'yellow'])
 
-  const white = await token('--ink-on-dark-color')
+  // `--ink-onDark-color`, not `--ink-on-dark-color`. An undefined custom property
+  // does not throw — `var()` on one just leaves the probe's `color` inherited —
+  // so the old name silently resolved to the page's body text and this read as a
+  // white key wearing black ink.
+  const white = await token('--ink-onDark-color')
   const darkInk = await token('--kbd-key-ink-color')
 
   // A JUDGED key wears its wordle color, resting AND hovered — the hover must not
@@ -180,11 +207,13 @@ test('the keyboard wears the right fill and ink, resting and hovered', async ({ 
   expect(plain.hovered).toEqual({ fill: await token('--kbd-key-hover-fill-color'), ink: darkInk })
 
   // ENTER is a Submit, so it is the action blue with white ink, and DARKENS on
-  // hover like every other filled action button.
+  // hover like every other filled action button. The tokens are the BUTTON
+  // vocabulary's — the key is styled as one (`--button-normal-primary-*`), which
+  // is the point: retuning the primary button retunes this key with it.
   const enter = await look('Enter')
-  expect(enter.resting).toEqual({ fill: await token('--chrome-action-primary-color'), ink: white })
+  expect(enter.resting).toEqual({ fill: await token('--button-normal-primary-color'), ink: white })
   expect(enter.hovered).toEqual({
-    fill: await token('--chrome-action-primary-hover-color'),
+    fill: await token('--button-normal-primary-hover-color'),
     ink: white,
   })
 

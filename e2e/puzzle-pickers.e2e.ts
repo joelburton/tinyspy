@@ -226,18 +226,21 @@ test.describe('puzzle pickers', () => {
     await open()
     await expect(nextUpLine(page)).not.toContainText(CLUE)
 
-    await page.getByLabel('Puzzle date').fill('2025-06-15')
+    // The setup form's date box carries no caption — the section's summary is
+    // the caption — so it is reached by its form name. (The crosswords NYT
+    // picker above is a different control and does have an aria-label.)
+    await page.locator('input[name="puzzle_id"]').fill('2025-06-15')
     await expect(nextUpLine(page)).toContainText(CLUE, { timeout: 10000 })
 
     // A date the archive doesn't have says so rather than silently ignoring it.
-    await page.getByLabel('Puzzle date').fill('1999-01-01')
+    await page.locator('input[name="puzzle_id"]').fill('1999-01-01')
     await expect(nextUpLine(page)).toContainText('No PaulPath puzzle', { timeout: 10000 })
 
     // Clearing hands the choice back to the server.
-    await page.getByLabel('Puzzle date').fill('')
+    await page.locator('input[name="puzzle_id"]').fill('')
     await expect(nextUpLine(page)).not.toContainText(CLUE, { timeout: 10000 })
 
-    await page.getByLabel('Puzzle date').fill('2025-06-15')
+    await page.locator('input[name="puzzle_id"]').fill('2025-06-15')
     await expect(nextUpLine(page)).toContainText(CLUE, { timeout: 10000 })
     await page.getByRole('button', { name: /^Start PaulPath/ }).click()
     await expect(page).toHaveURL(/\/g\/strands_coop\//, { timeout: 20000 })
@@ -247,7 +250,7 @@ test.describe('puzzle pickers', () => {
     // stumbling into a repeat; this is the door marked "yes, I mean it".
     await page.goto(`/c/${club.handle}`)
     await open()
-    await page.getByLabel('Puzzle date').fill('2025-06-15')
+    await page.locator('input[name="puzzle_id"]').fill('2025-06-15')
     await expect(nextUpLine(page)).toContainText(CLUE, { timeout: 10000 })
     await page.getByRole('button', { name: /^Start PaulPath/ }).click()
     await expect(page).toHaveURL(/\/g\/strands_coop\//, { timeout: 20000 })
