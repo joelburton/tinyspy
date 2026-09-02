@@ -183,7 +183,7 @@ export default function App() {
                 isTerminal={ctx.isTerminal}
               >
                 <PlayAreaErrorBoundary>
-                  <Suspense fallback={<p>Loading game…</p>}>
+                  <Suspense fallback={<Loading />}>
                     <PlayAreaReadyLog gametype={gametype} />
                     <PlayArea {...ctx} />
                   </Suspense>

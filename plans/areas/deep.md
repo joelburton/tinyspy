@@ -32,9 +32,9 @@ understood, tidied* — `cs-blessed` here means he has read the file, not seen i
 **Every heading says its status**; a heading with **no status prefix means OPEN**.
 
 **One pass of three has run** — the boot path, 2026-09-02, sixteen findings.
-Six RESOLVED (`F-deep-2`, `F-deep-4`, `F-deep-5`, `F-deep-6`, `F-deep-7`,
-`F-deep-9`), one CLOSED (`F-deep-3`), one MOVED to `corecss` (`F-deep-1`); the
-other eight are open. The data path and the realtime plumbing
+Seven RESOLVED (`F-deep-2`, `F-deep-4`, `F-deep-5`, `F-deep-6`, `F-deep-7`,
+`F-deep-9`, `F-deep-10`), one CLOSED (`F-deep-3`), one MOVED to `corecss`
+(`F-deep-1`); the other seven are open. The data path and the realtime plumbing
 have not been read.
 
 ## The roster — 33 files, 4,880 lines
@@ -145,7 +145,7 @@ modal — but it has three live consumers (`ClubGameCard:59`, `GamePage:178`, `E
 ## Findings — pass 1, the boot path
 
 Sixteen — **F-deep-1 … F-deep-16**. Every heading says its status; a heading
-with no status prefix means OPEN, and eight are.
+with no status prefix means OPEN, and seven are.
 
 ## MOVED · F-deep-1 · `stylesheet-map-rotted` · main.tsx's map of the stylesheet chain names two files that were deleted
 
@@ -388,14 +388,27 @@ rest of that folder is stylesheets.
 > `corecss` recorded it as a question it inherited; that note now points here so
 > it is not decided twice.
 
-## F-deep-10 · `suspense-fallback-is-a-bare-p` · The game chunk's loading state is a raw paragraph
+## RESOLVED · F-deep-10 · `suspense-fallback-is-a-bare-p` · The game chunk's loading state is a raw paragraph
 
 `App.tsx:180` — `<Suspense fallback={<p>Loading game…</p>}>` — while the app has a
 `<Loading />` component, imported into this very file and used eight lines above at
 `:92`. An earlier count found nine different ways to say "not ready" across the
 app; this is the one sitting in this area's file.
 
-> resolution:
+> **resolution: `fallback={<Loading />}`** (Joel, 2026-09-02). The component was
+> already imported in this file and used eight lines above, so the change is one
+> expression.
+>
+> `<Loading />` is the right shape for a fallback rather than merely the shared
+> one: it renders a word with no box, deliberately — *"they're not a card and
+> don't need or want a border"* — and a bordered box that exists for 200ms before
+> being replaced by a differently shaped one is the flash that layout stability
+> exists to prevent. Its own docstring cites the count this finding is a leftover
+> of.
+>
+> The boundary sits inside `GamePage`'s render-prop, so the fallback replaces the
+> play surface only; the header and chrome stay put while the game's chunk
+> arrives.
 
 ## F-deep-11 · `sessionstorage-unguarded` · Blocked site data turns the recovery into a second failure
 
