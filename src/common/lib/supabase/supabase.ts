@@ -1,4 +1,4 @@
-// cs-fixed-deep
+// cs-blessed-deep
 
 import { createClient } from '@supabase/supabase-js'
 import { dbFetch } from './dbFetch'
