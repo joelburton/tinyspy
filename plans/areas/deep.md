@@ -1972,7 +1972,7 @@ follow:
 | `dbEnvelope.ts:139` | *"64 Deno ones"* |
 | `callEdgeFn.ts:17` | *"Five call sites used to each hand-roll"* |
 | `dbFetch.test.ts:12` | *"the 47 sites that render an error"* |
-| `dbLog.ts:90-93` | *"which is how it came to be silently dropped below"* — nothing below drops it; the drop was in `envelopeFields`, and is gone |
+| `dbLog.ts:90-93` | *"which is how it came to be silently dropped below"* — nothing below drops it; the drop was in `envAndTransportToDiagFields`, and is gone |
 | `_shared/dbResult.ts:116` | *"until now whether a call said anything at all was per-function taste"* |
 | `_shared/http.ts:5-7` | *"the copy-per-function drift **the review** flagged … used to be stamped five times"* — "the review" is outside the repo, `F-deep-8`'s species |
 | `router.test.ts:3-13` | enumerates four contract items; the file now pins eight |

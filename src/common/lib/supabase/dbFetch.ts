@@ -35,9 +35,8 @@ import { logDb, logSlow } from './dbLog'
  *
  * It does not word the modal either. What it decides — WHO answered — rides
  * out as an `FE` code in `statusText`, and the wrapper holding the answer turns
- * that into the sentence and the modal through the one builder in
- * `dbEnvelope`, precisely so the log and the modal cannot disagree about one
- * event.
+ * that into the sentence and the modal. Why the split falls there rather than
+ * here is on `dbFetch` itself, below.
  *
  * No retry either. These are mutations (`submit_word`, `concede`, `end_game`);
  * a silent second attempt is worse than a clear message. The player decides.

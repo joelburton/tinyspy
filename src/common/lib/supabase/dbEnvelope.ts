@@ -1,4 +1,4 @@
-// cs-fixed-deep
+// cs-blessed-deep
 
 import { showFaultModal } from '../fault/faultStore'
 import { logDb, type DiagFields, type TransportFacts } from './dbLog'
@@ -33,11 +33,11 @@ export type DbError = {
   code?: string
   details?: string | null
   hint?: string | null
-  /** The HTTP status, when the failure came through an edge function.
-   *  Direct PostgREST errors don't carry one. */
+  // The HTTP status, when the failure came through an edge function. Direct
+  // PostgREST errors don't carry one.
   status?: number
-  /** Set by `callEdgeFn` when the runtime answered — the function's own
-   *  refusal, or a container that replied with something unparseable. */
+  // Set by `callEdgeFn` when the runtime answered — the function's own refusal,
+  // or a container that replied with something unparseable.
   answered?: true
 } | null | undefined
 
@@ -61,42 +61,40 @@ export type DbError = {
  * would leave the person reading a log at 2am with one word for three
  * investigations.
  *
- * **Why the messages differ too.** They used to be two generic sentences, on
- * the rule that an environmental failure cannot tell you whether your move
- * landed — so it must not claim, and "refresh and try again" is the instruction
- * because refreshing reveals the real state before a retry can double-apply.
- * That rule survives; what changed is that we CAN say which of these happened,
- * and telling a player their network is at fault when our own upstream is down
- * sends them to fix a router that is working (Joel, 2026-08-31).
+ * **What the sentences may say.** An environmental failure cannot tell you
+ * whether your move landed, so none of them claims either way, and each says
+ * "refresh and try again" — refreshing is what reveals the real state, before a
+ * retry can double-apply. They differ from each other because each names WHO
+ * failed, and getting that wrong sends a player to fix a router that is working
+ * when the fault is our own upstream (Joel, 2026-08-31).
  */
 export const NO_ANSWER_TO_CODE_AND_TEXT = {
-  /** Nothing answered and the device already knew — `navigator.onLine` false.
-   *  That ends the investigation. */
+  // Nothing answered and the device already knew — `navigator.onLine` false.
+  // That ends the investigation.
   offline: {
     code: 'FE001',
     text: 'You appear to be offline. Please refresh and try again.',
   },
-  /** Nothing answered and the device thought it was connected: DNS, TLS, a
-   *  refused connection, a socket that died. We know no more than that. */
+  // Nothing answered and the device thought it was connected: DNS, TLS, a
+  // refused connection, a socket that died. We know no more than that.
   unreachable: {
     code: 'FE002',
     text: "You appear online, but the server didn't answer. Please refresh and try again.",
   },
-  /** A non-2xx whose body PARSED but carried no SQLSTATE — Kong's own
-   *  `{"message":"no Route matched…"}`, or any platform layer answering for us.
-   *  Our gateway is up; the thing behind it is not — which is not a sentence a
-   *  player needs. They need "our server is down"; the gateway's own words go
-   *  to `detail`. "Later" as well as "refresh", because refreshing does not fix
-   *  an upstream outage — but it is still what reveals whether the last move
-   *  landed. */
+  // A non-2xx whose body PARSED but carried no SQLSTATE — Kong's own
+  // `{"message":"no Route matched…"}`, or any platform layer answering for us.
+  // Our gateway is up; the thing behind it is not — which is not a sentence a
+  // player needs. They need "our server is down"; the gateway's own words go to
+  // `detail`. "Later" as well as "refresh", because refreshing does not fix an
+  // upstream outage — but it is still what reveals whether the last move landed.
   upstreamDown: {
     code: 'FE003',
     text: 'Our server appears to be down. Please refresh and try again later.',
   },
-  /** A non-2xx on `/rest/v1/` whose body would not parse. PostgREST always
-   *  speaks JSON, so a non-JSON body there means something that is NOT
-   *  PostgREST answered — a captive portal, a proxy, an ISP error page. The one
-   *  case where something IS on the player's side of the wire to check. */
+  // A non-2xx on `/rest/v1/` whose body would not parse. PostgREST always
+  // speaks JSON, so a non-JSON body there means something that is NOT PostgREST
+  // answered — a captive portal, a proxy, an ISP error page. The one case where
+  // something IS on the player's side of the wire to check.
   foreignResponder: {
     code: 'FE004',
     text: 'You reached a server other than ours. Please check your network connection.',
@@ -120,12 +118,6 @@ export function situationFor(statusText: string | undefined) {
 /**
  * **Is this one of the four?** — the question a call site asks when it wants to
  * treat "our server did not answer" as one thing.
- *
- * It exists so that nothing has to enumerate the codes at a call site, and
- * because the alternative it replaced was worse: `useGameTimer` used to ask
- * `dbcode === null`, which was true for these AND for every bug the frontend
- * detects, since none of them carried a code at all. That is the whole reason
- * these codes exist.
  */
 export function isEnvironmental(dbcode: string | null): boolean {
   return Object.values(NO_ANSWER_TO_CODE_AND_TEXT).some((s) => s.code === dbcode)
@@ -148,46 +140,46 @@ export function isEnvironmental(dbcode: string | null): boolean {
  * the `FE` codes above, where our server did not answer at all.
  */
 export const OUR_BUG_TO_CODE_AND_TEXT = {
-  /** A 2xx whose body is not one of our envelopes — an unconverted RPC, or a
-   *  `null` from a branch that never decided. */
+  // A 2xx whose body is not one of our envelopes — an unconverted RPC, or a
+  // `null` from a branch that never decided.
   unreadable: {
     code: 'PN307',
     text: 'BUG: an RPC answered with something no caller can read',
   },
-  /** An `ok` carrying a message with no outcome. The type system rules this out
-   *  at every TypeScript site that builds an envelope, so only a Deno JSON
-   *  literal can reach it. */
+  // An `ok` carrying a message with no outcome. The type system rules this out
+  // at every TypeScript site that builds an envelope, so only a Deno JSON
+  // literal can reach it.
   noOutcome: {
     code: 'PN308',
     text: 'BUG: an ok carried a message with no outcome',
   },
-  /** `readRows` pointed at something that answers with a value, not rows — a
-   *  `returns setof`, or a cast. */
+  // `readRows` pointed at something that answers with a value, not rows — a
+  // `returns setof`, or a cast.
   notRows: {
     code: 'PN309',
     text: 'BUG: a table read did not answer with rows',
   },
-  /** The edge RUNTIME answered instead of the function — `Function not found`
-   *  in `text/plain`, or a container that will not boot. Ours: a deploy
-   *  failure, not a network one.
-   *
-   *  A captive portal intercepts everything, so a portal on a function call
-   *  lands here too and blames us for a network problem. That is the safe
-   *  direction to be wrong in, and the log corrects it: a portal produces
-   *  `FE004`s on the concurrent `/rest/v1/` traffic at the same moment. */
+  // The edge RUNTIME answered instead of the function — `Function not found` in
+  // `text/plain`, or a container that will not boot. Ours: a deploy failure,
+  // not a network one.
+  //
+  // A captive portal intercepts everything, so a portal on a function call
+  // lands here too and blames us for a network problem. That is the safe
+  // direction to be wrong in, and the log corrects it: a portal produces
+  // `FE004`s on the concurrent `/rest/v1/` traffic at the same moment.
   runtimeNotFunction: {
     code: 'PN310',
     text: 'BUG: the edge-function runtime answered instead of the function',
   },
-  /** A call site's branches did not cover the answer it got — the mandatory
-   *  `else` at the end of an RPC call site, which fires only when the server
-   *  said something this caller was never taught to read.
-   *
-   *  Its number is out of family on purpose: `max + 1` across the whole `PN`
-   *  class is what allocates a code (docs/envelopes.md → Allocating one), and
-   *  the 3xx block filled up with SQL raises long after 307–310 were taken.
-   *  Never filling gaps is the rule, so a bug report saying "PN488" can only
-   *  ever mean this. */
+  // A call site's branches did not cover the answer it got — the mandatory
+  // `else` at the end of an RPC call site, which fires only when the server
+  // said something this caller was never taught to read.
+  //
+  // Its number is out of family on purpose: `max + 1` across the whole `PN`
+  // class is what allocates a code (docs/envelopes.md → Allocating one), and
+  // the 3xx block filled up with SQL raises long after 307–310 were taken.
+  // Never filling gaps is the rule, so a bug report saying "PN488" can only
+  // ever mean this.
   unhandledAnswer: {
     code: 'PN488',
     text: 'fell through to unhandled',
@@ -225,9 +217,8 @@ export function faultEnvelope(
   const parts = [error?.details, error?.hint, extra].filter(Boolean)
   const detail = parts.length ? parts.join(' — ') : undefined
   // EVERY KEY, null where there is nothing — the same nine an envelope from SQL
-  // carries. It used to omit them, to match a SQL builder that stripped its own
-  // nulls; neither does now, so that a caller never has to ask whether a key is
-  // present before asking what it holds (Joel, 2026-08-28).
+  // carries, so that a caller never has to ask whether a key is present before
+  // asking what it holds (Joel, 2026-08-28).
   return {
     type: 'not-ok',
     data: null,
@@ -248,11 +239,11 @@ export function faultEnvelope(
  * **This is the only place any of those sentences is chosen**, which is the
  * whole point of it existing. The three wrappers call it to word the envelope
  * a call site reads AND the modal above it; `dbFetch` only names the situation,
- * as an `FE` code in `statusText`, and `situationFor` brings it back here. The
- * wrappers used to word this themselves via `faultEnvelope`, which
- * reaches for `error.message` and so handed back the browser's `"TypeError:
- * Failed to fetch"`. A player then got a modal and a pill disagreeing about one
- * event.
+ * as an `FE` code in `statusText`, and `situationFor` brings it back here.
+ *
+ * **Not `faultEnvelope`** for this path: it reaches for `error.message`, which
+ * here is the browser's `"TypeError: Failed to fetch"` — a string no player
+ * should be shown.
  *
  * `detail` is where the browser's string belongs: it is the only thing that
  * separates a dead socket from a TLS failure or a DNS miss, and it is worth
@@ -305,7 +296,7 @@ function clampDetail(detail: string | undefined): string | null {
  * same moment either way.
  */
 export function nothingReachedUs(detail?: string): NotOk {
-  const offline = typeof navigator !== 'undefined' && navigator.onLine === false
+  const offline = typeof navigator !== 'undefined' && !navigator.onLine
   const { offline: OFFLINE, unreachable: UNREACHABLE } = NO_ANSWER_TO_CODE_AND_TEXT
   return environmentalEnvelope(offline ? OFFLINE : UNREACHABLE, detail)
 }
@@ -320,7 +311,7 @@ export function nothingReachedUs(detail?: string): NotOk {
  * `EnvelopeErrorPage`, which builds a line during render with no transport to
  * merge.
  */
-export function envelopeFields(transport: TransportFacts, envelope: Envelope): DiagFields {
+export function envAndTransportToDiagFields(transport: TransportFacts, envelope: Envelope): DiagFields {
   // **Both details, joined — not the envelope's INSTEAD of the transport's.**
   // They answer different questions and neither substitutes for the other: the
   // envelope's is what the server said (Postgres's own details + hint, or a
@@ -335,8 +326,6 @@ export function envelopeFields(transport: TransportFacts, envelope: Envelope): D
     outcome: envelope.outcome ?? undefined,
     dbcode: envelope.dbcode ?? undefined,
     field: envelope.type === 'not-ok' ? envelope.field ?? undefined : undefined,
-    // Left out rather than `''` when neither said anything, so it prints like
-    // every other empty field.
     detail: details.length ? details.join(' — ') : undefined,
   }
 }
@@ -351,15 +340,9 @@ export function envelopeFields(transport: TransportFacts, envelope: Envelope): D
  * the envelope's own.
  *
  * Returns nothing: by the time the caller resumes, the news is delivered.
- *
- * Takes the NOT-OK ARM, not the union. Every caller has already established
- * `severity: 'fault'` before reaching here, and typing the parameter wider than
- * the truth forced a fallback sentence ("Something went wrong.") for a case no
- * caller can produce — a string that read like a considered choice and was
- * really an artifact of the signature.
  */
 export function reportDbFault(transport: TransportFacts, envelope: NotOk): void {
-  const diagnostics = logDb('FAULT', envelopeFields(transport, envelope), envelope.message)
+  const diagnostics = logDb('FAULT', envAndTransportToDiagFields(transport, envelope), envelope.message)
   showFaultModal({ text: envelope.message, diagnostics })
 }
 
@@ -373,10 +356,6 @@ export function reportDbFault(transport: TransportFacts, envelope: NotOk): void 
  * `[db]` line for the call itself says `OK`, so without this the only record
  * that anything went wrong is a modal — dismissible, capped at five, and
  * carrying no diagnostics line at all.
- *
- * Goes through `reportDbFault` rather than calling `showFaultModal` directly,
- * which is the whole point: one line in the console and one modal with a real
- * `k=v` line under it, built by the same builder as every other fault.
  *
  * **It takes the ANSWER, not just the name**, and that is the difference
  * between knowing there is a bug and knowing what it is: the useful fact about
@@ -397,6 +376,10 @@ export function reportUnhandled(call: string, answer: Envelope): void {
   // guessed — the one line where a blank `status=` means "not known here"
   // rather than "nothing answered". docs/deferred.md holds the change that
   // would make it known: the status in the envelope.
+  //
+  // Through `reportDbFault` rather than `showFaultModal` directly, which is the
+  // whole point of this function: one line in the console and one modal with a
+  // real `k=v` line under it, built by the same builder as every other fault.
   reportDbFault(
     { call, ...(answer.type === 'ok' ? { status: 200 } : {}) },
     faultEnvelope(

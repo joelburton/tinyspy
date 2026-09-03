@@ -2,7 +2,7 @@
 
 import { callEdgeFn } from './callEdgeFn'
 import {
-  envelopeFields, environmentalEnvelope, faultEnvelope, nothingReachedUs,
+  envAndTransportToDiagFields, environmentalEnvelope, faultEnvelope, nothingReachedUs,
   OUR_BUG_TO_CODE_AND_TEXT, reportDbFault, situationFor, type DbError,
 } from './dbEnvelope'
 import { logDb, type DbLogKind, type TransportFacts } from './dbLog'
@@ -127,7 +127,7 @@ export function notOkOutcome(envelope: Envelope & { type: 'not-ok' }): Outcome {
  * costs one line and keeps that visible without putting a modal in anyone's way.
  */
 function logDbOutcome(transport: TransportFacts, envelope: Envelope): void {
-  logDb(dbLogKindFor(envelope), envelopeFields(transport, envelope), envelope.message)
+  logDb(dbLogKindFor(envelope), envAndTransportToDiagFields(transport, envelope), envelope.message)
 }
 
 /** Which db log kind an answer is written under — one case per line, in the
@@ -206,7 +206,7 @@ export type CallOptions = {
  */
 function reportFault(transport: TransportFacts, envelope: NotOk, opts?: CallOptions): void {
   if (opts?.presentFaults === false) {
-    logDb('FAULT', envelopeFields(transport, envelope), envelope.message)
+    logDb('FAULT', envAndTransportToDiagFields(transport, envelope), envelope.message)
     return
   }
   reportDbFault(transport, envelope)

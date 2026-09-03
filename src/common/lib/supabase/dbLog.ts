@@ -69,8 +69,8 @@ const DB_LOG_KIND_TO_CONSOLE_LOG_METHOD: Record<DbLogKind, 'error' | 'warn' | 'd
  * **There is ONE way to say nothing here, and it is leaving the key out.**
  * `null` is the ENVELOPE's word for empty — its keys are always present, and
  * often null — so a value coming from one is converted on the way in, with
- * `?? undefined`, by whoever builds the fields (`envelopeFields`, and
- * `EnvelopeErrorPage`, which builds a line during render). A type accepting both
+ * `?? undefined`, by whoever builds the fields (`envAndTransportToDiagFields`,
+ * and `EnvelopeErrorPage`, which builds a line during render). Accepting both
  * would offer a distinction nothing downstream reads: a field prints blank
  * either way, and the two formatters below would each need to know it.
  */
@@ -94,8 +94,9 @@ export type TransportFacts = {
   status?: number               // HTTP status
   ms?: number                   // Round-trip milliseconds
   // The device's own state at the moment of the call (`online=`, `hidden`).
-  // `envelopeFields` appends the envelope's own detail to this rather than
-  // letting either replace the other — they answer different questions.
+  // `envAndTransportToDiagFields` appends the envelope's own detail to this
+  // rather than letting either replace the other — they answer different
+  // questions.
   detail?: string
 }
 
@@ -170,7 +171,7 @@ export function logDb(kind: DbLogKind, f: DiagFields, message?: string | null): 
   // straight from an envelope by three of the four callers, and an envelope
   // always CARRIES the key with null in it. Converting at those call sites would
   // put `?? undefined` on each and buy nothing — the boundary is one comparison,
-  // and it is here. Everything in `f` was normalized by `envelopeFields`.
+  // and it is here. Everything in `f` was normalized by whoever built it.
   console[DB_LOG_KIND_TO_CONSOLE_LOG_METHOD[kind]](
     `[db] ${diagnostics}${message === undefined || message === null ? '' : ` | msg=${quotedText(message)}`}`,
   )

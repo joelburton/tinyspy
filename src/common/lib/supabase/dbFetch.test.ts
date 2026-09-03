@@ -1,4 +1,4 @@
-// cs-fixed-deep
+// cs-blessed-deep
 
 /**
  * dbFetch — the wrapper every Supabase request goes through.

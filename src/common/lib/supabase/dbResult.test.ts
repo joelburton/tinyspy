@@ -663,9 +663,9 @@ describe('runEdgeFn — the same shape, through Deno', () => {
 
 // The override is the ONE field on a `[db]` line you cannot infer from the
 // others, so a not-ok that carries it has to print it. It was dropped for a
-// while: `envelopeFields` logged `outcome` only on the ok arm, correct until a
-// not-ok could carry one, after which `outcome=` blank meant both "no override"
-// and "an override we didn't print".
+// while: `envAndTransportToDiagFields` logged `outcome` only on the ok arm,
+// correct until a not-ok could carry one, after which `outcome=` blank meant
+// both "no override" and "an override we didn't print".
 describe('the [db] line carries a not-ok outcome', () => {
   it('logs an override the author set on a failure', async () => {
     // `mockClear`: an earlier test in this file spied `console.warn` without
