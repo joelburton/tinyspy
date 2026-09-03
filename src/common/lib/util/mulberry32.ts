@@ -11,9 +11,8 @@
  * **Seedability is the whole reason it exists**, not speed and not quality: it
  * is a JS function where `Math.random()` is native, and its 32 bits of state
  * are fewer than V8's. But `Math.random()` cannot be seeded at all — the spec
- * leaves it implementation-defined and V8 declines on fingerprinting grounds —
- * so it is simply unusable where the sequence must repeat. Three kinds of
- * caller need that:
+ * leaves it implementation-defined and offers no way in — so it is simply
+ * unusable where the sequence must repeat. Three kinds of caller need that:
  *
  *   - **Tests.** Put the seed in the test name and a failure reproduces
  *     verbatim (scrabble's `suggest.test.ts`, `policy.test.ts`).

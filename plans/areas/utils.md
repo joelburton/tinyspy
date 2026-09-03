@@ -710,13 +710,17 @@ callers that don't. The premise went from "callers overflow on purpose" to
 "not all of it stays inside int32", which is what the code shows. The case's
 seeds and assertions are unchanged.
 
-### F-utils-20 · `v8-fingerprinting-claim-unsourced` · a reason nobody can check
+### RESOLVED 2026-09-03 — F-utils-20 · `v8-fingerprinting-claim-unsourced` · a reason nobody can check
 
 `mulberry32.ts:14`: `Math.random()` cannot be seeded because *"the spec leaves it
 implementation-defined and V8 declines on fingerprinting grounds."* The first
 clause is the whole answer and is true. The second attributes a motive to V8
 that this audit could not source, and the docstring gives no way to. Drop the
 clause; it adds a claim without adding an argument.
+
+**Fixed 2026-09-03.** The clause is gone. The sentence now says the spec
+leaves `Math.random()` implementation-defined and offers no way in, which is
+the whole of what a caller needs and is checkable against the spec.
 
 ### F-utils-21 · `archaeology-written-into-two-other-areas` · the `F-utils-8` fault, twice more, in files this area was allowed into
 
