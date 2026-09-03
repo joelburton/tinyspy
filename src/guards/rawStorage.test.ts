@@ -76,6 +76,10 @@ const ALLOWED = new Map<string, string>([
   ['src/common/hooks/ui/useStickyChoice.test.ts', 'installs its own Storage fake on window; adopt storage.fake.ts when `hooks` opens'],
   ['src/common/lib/chat/chatOpenStore.test.ts', 'installs its own Storage fake on window, and spies on setItem to make a write throw'],
   ['src/common/lib/util/reloadOnStaleChunk.test.ts', 'clears the session guard between cases'],
+  // This file scans `src/`, and `src/` includes this file. Its fixture holds
+  // real violations on purpose — spelling them around the scan (`'local' +
+  // 'Storage'`) would make the test stop testing what it claims to.
+  ['src/guards/rawStorage.test.ts', 'its own fixture spells out the violations it asserts are caught'],
 ])
 
 function sourceFiles(dir: string): string[] {
@@ -86,11 +90,19 @@ function sourceFiles(dir: string): string[] {
   })
 }
 
-/** Blank out block and line comments, keeping line numbering intact so an
- *  offender still reports the line you have to open. */
+/**
+ * Blank out block and line comments, keeping line numbering intact so an
+ * offender still reports the line you have to open.
+ *
+ * **`[^:]` before the `//` is what keeps a URL from eating the rest of a line.**
+ * Without it, `const u = 'https://x'` reads as a comment start and everything
+ * after it on that line vanishes — including a storage touch, which the guard
+ * would then pass silently. Borrowed from `cssClasses` and `vocabularies`,
+ * which strip line comments the same way for the same reason.
+ */
 function stripComments(src: string): string[] {
   const out = src.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '))
-  return out.split('\n').map((line) => line.replace(/\/\/.*$/, ''))
+  return out.split('\n').map((line) => line.replace(/(^|[^:])\/\/.*$/, '$1'))
 }
 
 describe('no raw web storage outside the wrapper', () => {
@@ -106,6 +118,25 @@ describe('no raw web storage outside the wrapper', () => {
       offenders,
       'use readStored/writeStored/removeStored, or justify the file in ALLOWED',
     ).toEqual([])
+  })
+
+  // `stripComments` is the part of this guard that can fail SILENTLY — it
+  // decides what the scan never sees — so it is pinned directly rather than
+  // only through the files it happens to process today.
+  it('strips comments without letting a URL swallow the rest of the line', () => {
+    const lines = stripComments(
+      [
+        "const u = 'https://example.com'; localStorage.getItem(k)",
+        '// localStorage.getItem(k)',
+        'code() // localStorage.getItem(k)',
+        '/* localStorage.getItem(k) */',
+        'localStorage.getItem(k)',
+      ].join('\n'),
+    )
+    const seen = lines.map((line) => RAW_STORAGE.test(line))
+    // The URL line and the bare call are violations; the three comment forms
+    // are not. Getting the first one wrong is the silent failure.
+    expect(seen).toEqual([true, false, false, false, true])
   })
 
   // An allowlist nobody prunes is a list of files that stopped needing to be on

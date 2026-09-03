@@ -355,7 +355,7 @@ The claim is wrong in the direction that makes the design look weaker than it is
 comment-stripping is not a courtesy extended to one docstring, it is load-bearing
 across the repo, and without it this guard would have been red on arrival.
 
-### F-utils-11 · `strip-comments-ignores-string-literals` · a stated limit, not a fix
+### PARTLY RESOLVED 2026-09-03 — F-utils-11 · `strip-comments-ignores-string-literals` · a stated limit, not a fix
 
 `stripComments` blanks `//` to end of line and `/* … */` anywhere, with no notion
 of string literals. Two consequences:
@@ -371,6 +371,45 @@ than fixing it** — doing this properly needs a tokenizer, which is out of
 proportion to a guard whose subject is one identifier, and a limit written down
 is one a future reader can weigh. The same trade `noRawServerMessage` makes with
 its line-window heuristic.
+
+**The URL half is FIXED; the `/*`-in-a-string half stays a stated limit.** The
+split came from reading the folder instead of the file — `src/guards/` already
+had the answer to one half and a reason not to attempt the other.
+
+**Fixed.** `stripComments`'s line strip is now `/(^|[^:])\/\/.*$/` → `'$1'`.
+The `[^:]` refuses to read `//` as a comment when a colon precedes it, which is
+how a URL appears. **Not invented here:** `cssClasses.test.ts:58` and
+`vocabularies.test.ts:75` already strip line comments exactly this way, for
+exactly this reason. Adopting theirs is one character class and it removes a
+divergence rather than adding one.
+
+**Pinned two ways.** A new case asserts `stripComments` directly — five lines
+in, five verdicts out — because this function decides what the scan never sees
+and is therefore the part of the guard that can fail silently. And a planted
+`const u = 'https://x'; window.localStorage.setItem(…)` is now caught, where the
+old strip truncated the line at `https:` and reported nothing.
+
+**Not fixed, deliberately: `/*` inside a string literal.** Two reasons, the
+second stronger than the first:
+
+- a TS string holding `/*` with a later close is contrived, where a URL is not;
+- **three other guards carry the identical hole** — `cssClasses.test.ts:55` and
+  `cssTokens.test.ts:40` use the same block-comment regex, and
+  `callSiteShape.test.ts` is cruder still. Fixing this one with a tokenizer
+  would make a single guard exact and leave four `stripComments` that disagree,
+  manufacturing the accidental drift this sprint exists to kill. It is worth
+  doing as ONE change to all four or not at all.
+
+**If that folder-wide change is ever wanted**, `typescript` is already a direct
+devDependency (`~6.0.2`), so `ts.createScanner` costs no new dependency — but
+**no guard in `src/guards/` uses the TS API today**, so it would be the folder's
+first, and that is a decision about the folder rather than a side effect of a
+storage guard. It belongs to whoever opens `src/guards/` as an area.
+
+**The guard is now in its own `ALLOWED`.** It scans `src/`, and `src/` contains
+it; its fixture spells out real violations on purpose, because writing them
+around the scan (`'local' + 'Storage'`) would leave the test no longer testing
+what it claims.
 
 ### RESOLVED 2026-09-03 — F-utils-12 · `guard-scans-tests-and-does-not-say-so`
 
