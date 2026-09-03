@@ -722,7 +722,7 @@ clause; it adds a claim without adding an argument.
 leaves `Math.random()` implementation-defined and offers no way in, which is
 the whole of what a caller needs and is checkable against the spec.
 
-### F-utils-21 · `archaeology-written-into-two-other-areas` · the `F-utils-8` fault, twice more, in files this area was allowed into
+### RESOLVED 2026-09-03 — F-utils-21 · `archaeology-written-into-two-other-areas` · the `F-utils-8` fault, twice more, in files this area was allowed into
 
 `F-utils-8` fixed a docstring that narrated the migration instead of the code.
 The same sitting wrote two more of the same, into the two other areas Joel let
@@ -741,6 +741,13 @@ this one edit:
 These files stay `cs-unmet` and belong to `boggle` and `supabase/scripts/`; the
 lines are this area's, so the correction is too, under the same scope override
 recorded at `F-utils-1…4`.
+
+**Fixed 2026-09-03.** The boggle note is deleted outright — four lines and
+the blank after them; the import above already says where the generator
+lives. The stackdown note keeps its contract half only: the same generator the
+FE and edge functions use, so a board regenerated at a given seed is the one
+the vendored `.jsonl` already holds. The date and the deleted copy stay here,
+at `F-utils-1…4`, where the record of the migration belongs. No stamp moved.
 
 ### F-utils-22 · `panel-alone-in-two-docstrings` · a §20 breach in a file the first pass called clean
 

@@ -59,9 +59,9 @@ import { execFileSync } from 'node:child_process'
 import { appendFileSync, existsSync, readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-// The app's one seedable PRNG. This script had its own copy until 2026-09-03;
-// the two agreed bit-for-bit, so a regeneration at a given SEED still produces
-// the boards it produced before.
+// The app's one seedable PRNG — the same generator the FE and the edge
+// functions use, so a board regenerated at a given seed is the board the
+// vendored .jsonl already holds.
 import { mulberry32 } from '../../src/common/lib/util/mulberry32.ts'
 
 const DB_URL =

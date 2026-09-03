@@ -10,11 +10,6 @@ import { boggleSolverFixture as fixture } from './solver.fixture'
 const set4 = DICE_BY_NAME['4']
 const trie = buildTrie(fixture.dict)
 
-// The `describe('mulberry32')` block that used to sit here moved to
-// src/common/lib/util/mulberry32.test.ts along with the function itself: it was
-// the only test of a generator three games now share, so it belongs beside the
-// shared copy rather than in one game's suite.
-
 describe('rollBoard', () => {
   it('produces an n²-length board of valid faces, deterministic per seed', () => {
     const b1 = rollBoard(set4, mulberry32(42))
