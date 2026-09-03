@@ -1,4 +1,4 @@
-// cs-fixed-deep
+// cs-blessed-deep
 
 import { createElement } from 'react'
 import { flushSync } from 'react-dom'

@@ -1,4 +1,4 @@
-// cs-fixed-deep
+// cs-blessed-deep
 
 /**
  * The fault store: its FIFO queue, and the one thing a feedback sink does with

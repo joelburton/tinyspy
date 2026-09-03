@@ -1,4 +1,4 @@
-// cs-fixed-deep
+// cs-blessed-deep
 
 /**
  * GUARD: **a docstring sits on the thing it describes.**

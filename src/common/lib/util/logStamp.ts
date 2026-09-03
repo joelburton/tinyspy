@@ -1,4 +1,4 @@
-// cs-fixed-deep
+// cs-blessed-deep
 
 /**
  * `HH:MM:SS.mmm` wall-clock stamp — **the one format all three console
