@@ -32,14 +32,14 @@ understood, tidied* — `cs-blessed` here means he has read the file, not seen i
 **Every heading says its status**; a heading with **no status prefix means OPEN**.
 
 **⭐ REOPENED 2026-09-02 by a second read — twenty findings, `F-deep-40` …
-`F-deep-59`: eleven resolved, nine OPEN.** Joel asked a fresh session to read
+`F-deep-59`: twelve resolved, eight OPEN.** Joel asked a fresh session to read
 the 35 files and `deep.md` after the first six passes closed, and it found
 mostly prose the code has moved out from under — including four things the
 first read's own resolutions claimed fixed and were not (`F-deep-41`,
 `F-deep-42`, `F-deep-46`, `F-deep-48`). Pass 7, at the end of this file, holds
 them. `F-deep-40` … `-50` were fixed the same day on Joel's instruction —
 eight prose, one key rename, the render-crash screen, and the PN488 line's
-status; `F-deep-51` on waits. **The `cs-fixed-deep` stamps were NOT moved**; with open
+status; `F-deep-51` was resolved by decision, unchanged. `F-deep-52` on waits. **The `cs-fixed-deep` stamps were NOT moved**; with open
 findings against them they overstate, and restamping is Joel's call.
 
 The six passes before it, all on 2026-09-02:
@@ -53,8 +53,8 @@ The six passes before it, all on 2026-09-02:
 | `cls.ts` | 1 | `F-deep-36` — resolved |
 | the server side of the envelope | 3 | `F-deep-37` … `F-deep-39` — all resolved |
 
-**Fifty-nine findings: forty-eight resolved, one closed, one moved, nine
-open** (all nine in pass 7).
+**Fifty-nine findings: forty-nine resolved, one closed, one moved, eight
+open** (all eight in pass 7).
 
 **What is left besides pass 7 is `cs-blessed`, which is Joel's alone** — nine files carry it,
 twenty-six are `cs-fixed-deep`. `cs-fixed` is "Claude changed it and stands
@@ -1821,13 +1821,23 @@ empty"*) or to say in the comment that it is inferred.
 > that hands a raw-fault `not-ok` to the scream and asserts `| status= |` and
 > no `status=200`; proved by planting — restoring the always-200 form fails it.
 
-## F-deep-51 · `route-warn-in-render` · A `console.warn` in the render path, on an undocumented channel
+## RESOLVED · F-deep-51 · `route-warn-in-render` · A `console.warn` in the render path, on an undocumented channel
 
 `App.tsx:197` writes `[route] no match for …` from inside `currentPage()`, which
 runs on every App render — every store change (edit-profile, word-edit,
 session), and twice under StrictMode — so one bad URL logs many times. It is
 also the one console tag with no `logStamp()` and no mention in envelopes.md
 beside `[db]`, `[rt]`, `[ui]`, `[rpc]`.
+
+> **resolution: it stays exactly as it is** (Joel, 2026-09-02: *"it's ok if
+> it logs a lot; i don't want anything more complex"*). No code changed. The
+> repeat on every App render, doubled under StrictMode, is accepted: it fires
+> only on a URL the app does not recognize, and the honest alternatives — an
+> effect keyed on the path, or a "last warned" ref — are machinery for a line
+> that exists to be noticed. Nor is `[route]` added to the channel list or
+> given a `logStamp()`: it is one dev breadcrumb, and `F-deep-53` is already
+> about that list being written in too many places. Recorded so the next reader
+> does not re-raise the repeat as a bug.
 
 ## F-deep-52 · `teardown-failure-bypasses-rt` · The one line that says a teardown failed is not on the `[rt]` channel
 
