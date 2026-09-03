@@ -2114,6 +2114,24 @@ one above: a sweep caused by this area's rename ships with this area.
 permission to start the next one — and that includes the sprint's own setup,
 which is committed before any area opens.
 
+### The docstring marker — a pass every area makes
+
+Joel, 2026-09-02, reading `dbLog.ts`: a `/**` docstring is what a reader
+consults to decide *should I read this, should I call it*; a note about one
+field or one line is a comment and takes `//`. His editor lights `/**` up, so a
+field note written with it reads as "you must read this first" and the signal
+that tells him what to read is gone. The same habit is why docstrings grow —
+rationale for the body ends up in the docstring a caller reads, when it belongs
+on the line it defends. The rule now lives in
+[docs/code-conventions.md → Code clarity & docstrings](../docs/code-conventions.md#code-clarity--docstrings);
+this is the note that it gets applied.
+
+**Per area, not swept.** About 1,750 indented `/**` sit across 343 files in
+`src/`, and most are correct — a method or a nested function is still a
+function. Separating those from the field notes takes a read per file, which is
+what an area already does, so each area fixes its own as it goes rather than a
+regex fixing all of them blind. `deep`'s `dbLog.ts` is the worked example.
+
 ### Findings are numbered AND slugged
 
 **Every finding in an area file gets an ID and a slug**, written together as its

@@ -2052,3 +2052,34 @@ the underscore goes, or the export does and the test reads the behavior through
    components became **`common-hosts`** instead, scheduled after `utils`.
 
 *(the data-path and realtime passes have not run.)*
+
+## What blessing changed, 2026-09-02
+
+Reading the files himself turned up three names and one convention. None of it
+is a finding — Joel made the calls at the keyboard and the work followed — but
+it is the sprint's record of the area, so it is written down here.
+
+- **`LogLevel` → `DbLogKind`.** "Log level" is console's own idea (`error` /
+  `warn` / `debug`), which the six values MAP TO but are not, and
+  `LOGLEVEL_TO_CONSOLE_LOG_METHOD` was level-to-level. Carried through
+  `DB_LOG_KIND_TO_CONSOLE_LOG_METHOD`, `SEVERITY_TO_DB_LOG_KIND`,
+  `dbLogKindFor()`, the `kind:` params, docs/envelopes.md → the `[db]` line and
+  code-conventions.md's lookup-table examples. Prose says "the db log kind" or
+  "a line's kind", never a bare "kind"; "the browser's own level filter" stays a
+  level.
+- **`Transport` → `TransportFacts`**, so it stops reading as `dbFetch`'s type:
+  it is a bundle of observations both `dbFetch` and `dbResult` build. The old
+  name was cited in docs/deferred.md and in this file.
+- **Two overclaims about `detail`.** It is NOT "never shown to a player" — the
+  fault modal and `<ErrorPage>` print the whole diagnostics line, `detail=`
+  included; what is true is that it is never the player's SENTENCE. Fixed in
+  `envelope.ts` and in envelopes.md's two field tables. And `TransportFacts`'s
+  own `detail` no longer claims "no envelope can carry" it: the frontend's
+  envelope builders could and simply don't.
+- **Docstring vs comment.** `/**` is for the file, a type, a structure or a
+  function; a note about one field or one line takes `//`. `dbLog.ts` is the
+  worked example — the marker moved on `TransportFacts.detail`, and `logSlow`'s
+  "omitted beats empty" and `logDb`'s "built ONCE and shared" moved out of the
+  docstrings into the bodies they explain. The rule is
+  [docs/code-conventions.md → Code clarity & docstrings](../../docs/code-conventions.md#code-clarity--docstrings);
+  every area applies it to its own files ([app-audit.md](../app-audit.md) §21).

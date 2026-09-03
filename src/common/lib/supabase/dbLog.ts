@@ -88,9 +88,9 @@ export type TransportFacts = {
   call: string                  // METHOD /path
   status?: number               // HTTP status
   ms?: number                   // Round-trip milliseconds
-  /** The device's own state at the moment of the call (`online=`, `hidden`).
-   *  `envelopeFields` appends the envelope's own detail to this rather than
-   *  letting either replace the other — they answer different questions. */
+  // The device's own state at the moment of the call (`online=`, `hidden`).
+  // `envelopeFields` appends the envelope's own detail to this rather than
+  // letting either replace the other — they answer different questions.
   detail?: string
 }
 
@@ -138,14 +138,13 @@ export function diagnosticsLine(kind: DbLogKind, f: DiagFields): string {
 /**
  * **A call took too long.** The one `[db]` line that is about the REQUEST rather
  * than about an answer — it says how long, and nothing about what came back.
- *
- * It carries fewer fields than every other line, on purpose. The fixed list is a
- * promise that a blank means something: no `dbcode` means nothing raised, no
- * `status` means nothing answered. This line is written before the body is read,
- * so it can keep neither — printing `dbcode=` would say the response carried no
- * code, when the truth is that nobody looked. Omitted beats empty.
  */
 export function logSlow(f: { call: string; ms?: number; detail?: string }): void {
+  // Fewer fields than every other line, on purpose. The fixed list is a promise
+  // that a blank means something: no `dbcode` means nothing raised, no `status`
+  // means nothing answered. This line is written before the body is read, so it
+  // can keep neither — printing `dbcode=` would say the response carried no code,
+  // when the truth is that nobody looked. Omitted beats empty.
   console[DB_LOG_KIND_TO_CONSOLE_LOG_METHOD.SLOW](
     `[db] ${[logStamp(), 'SLOW', f.call, `ms=${fieldValue(f.ms)}`, 
       `detail=${quotedText(f.detail)}`].join(' | ')}`,
@@ -159,11 +158,10 @@ export function logSlow(f: { call: string; ms?: number; detail?: string }): void
  * the trailing `msg=`, which is what the fault modal and `<ErrorPage>` show
  * under the message — no point printing the message twice on a surface that
  * already leads with it.
- *
- * Built ONCE and shared, so the screen and the log carry the same timestamp as
- * well as the same fields. Two `logStamp()` calls would drift immediately.
  */
 export function logDb(kind: DbLogKind, f: DiagFields, message?: string | null): string {
+  // Built ONCE and shared, so the screen and the log carry the same timestamp as
+  // well as the same fields. Two `logStamp()` calls would drift immediately.
   const diagnostics = diagnosticsLine(kind, f)
   // `null` as well as `undefined`: an `ok` envelope always CARRIES a `message`
   // key and it is usually null, so "nothing to say" arrives both ways.
