@@ -258,6 +258,60 @@ type QueryLike<T> = PromiseLike<{
 }>
 
 /**
+ * **Read the envelope a server wrote** — the half of `runEdgeFn` and `runRpc`
+ * that does not depend on which transport carried it. Everything up to the
+ * parsed body is transport-specific and stays in each wrapper; everything
+ * after it is this, once, so a check added here reaches both roads.
+ *
+ * Three steps, in the order they are decided:
+ *
+ * 1. **Is it an envelope at all?** A reply that isn't means the server
+ *    answered with something no caller can read — an unconverted shape, or a
+ *    null from a branch that never decided. Neither is actionable, and both
+ *    are bugs rather than play, so it becomes a fault in the same shape as any
+ *    other. PN307 as its `dbcode`, not null: the call SUCCEEDED, so there is
+ *    no SQLSTATE — but "the frontend built this" is itself an answer, and a
+ *    call site should not have to identify it by an absence. The body goes
+ *    into `detail` rather than living only in the console line.
+ * 2. **An `ok` that wrote words but not how they read** — see
+ *    `hasMessageWithoutOutcome`.
+ * 3. **The answer itself.** Everything a server decided arrives HTTP 200, so
+ *    `dbFetch` — which only inspects a non-2xx body — has already moved on,
+ *    and this is where the MEANING gets its own `[db]` line, at the level the
+ *    severity names. A declared fault also gets the modal here, which is what
+ *    makes `severity: 'fault'` mean the same thing however the fault arose.
+ *
+ * Not for `readRows`, which builds an envelope around rows nobody authored and
+ * never receives one — `src/guards/dbCallShape.test.ts` guards that split.
+ */
+function readEnvelope<T>(transport: Transport, body: unknown, opts?: CallOptions): Envelope<T> {
+  if (!_isEnvelope(body)) {
+    const rawBody = `rawBody: ${JSON.stringify(body)?.slice(0, 120)}`
+    const unreadable = faultEnvelope(
+      null, OUR_BUG_TO_CODE_AND_TEXT.unreadable.text, rawBody,
+      OUR_BUG_TO_CODE_AND_TEXT.unreadable.code,
+    )
+    reportFault(transport, unreadable, opts)
+    return unreadable
+  }
+  if (hasMessageWithoutOutcome(body)) {
+    const broken = faultEnvelope(
+      null, OUR_BUG_TO_CODE_AND_TEXT.noOutcome.text,
+      `an ok carried a message with no outcome: ${JSON.stringify(body)?.slice(0, 120)}`,
+      OUR_BUG_TO_CODE_AND_TEXT.noOutcome.code,
+    )
+    reportFault(transport, broken, opts)
+    return broken
+  }
+  if (body.type === 'not-ok' && body.severity === 'fault') {
+    reportFault(transport, body, opts)
+  } else {
+    logDbOutcome(transport, body)
+  }
+  return body as Envelope<T>
+}
+
+/**
  * **Call an edge function and hand back its envelope** — `runRpc`'s twin, for
  * the calls that reach Postgres through Deno instead of PostgREST.
  *
@@ -300,30 +354,7 @@ export async function runEdgeFn<T>(
     reportFault(transport, envelope, opts)
     return envelope
   }
-  if (!_isEnvelope(data)) {
-    const rawBody = `rawBody: ${JSON.stringify(data)?.slice(0, 120)}`
-    const unreadable = faultEnvelope(
-      null, OUR_BUG_TO_CODE_AND_TEXT.unreadable.text, rawBody,
-      OUR_BUG_TO_CODE_AND_TEXT.unreadable.code,
-    )
-    reportFault(transport, unreadable, opts)
-    return unreadable
-  }
-  if (hasMessageWithoutOutcome(data)) {
-    const broken = faultEnvelope(
-      null, OUR_BUG_TO_CODE_AND_TEXT.noOutcome.text,
-      `an ok carried a message with no outcome: ${JSON.stringify(data)?.slice(0, 120)}`,
-      OUR_BUG_TO_CODE_AND_TEXT.noOutcome.code,
-    )
-    reportFault(transport, broken, opts)
-    return broken
-  }
-  if (data.type === 'not-ok' && data.severity === 'fault') {
-    reportFault(transport, data, opts)
-  } else {
-    logDbOutcome(transport, data)
-  }
-  return data as Envelope<T>
+  return readEnvelope<T>(transport, data, opts)
 }
 
 /**
@@ -401,46 +432,7 @@ export async function runRpc<T>(
     reportFault(transport, envelope, opts)
     return envelope
   }
-  const body = settled.data
-  // A reply that isn't an envelope means the RPC answered with something no
-  // caller can read — an unconverted shape, or a null from a branch that never
-  // decided. Neither is actionable, and both are bugs rather than play, so it
-  // becomes a fault in the same shape as any other.
-  if (!_isEnvelope(body)) {
-    const rawBody = `rawBody: ${JSON.stringify(body)?.slice(0, 120)}`
-    const unreadable = faultEnvelope(
-      null, OUR_BUG_TO_CODE_AND_TEXT.unreadable.text, rawBody,
-      OUR_BUG_TO_CODE_AND_TEXT.unreadable.code,
-    )
-    reportFault(transport, unreadable, opts)
-    // PN307 as the `dbcode`, not null: the call SUCCEEDED (a 200 with an
-    // unreadable body), so there is no SQLSTATE — but "the frontend built this"
-    // is itself an answer, and a call site should not have to identify it by an
-    // absence. The body goes into `detail` rather than living only in the
-    // console line.
-    return unreadable
-  }
-  // Everything the RPC decided arrives HTTP 200, so `dbFetch` — which only
-  // inspects a non-2xx body — has already written its line and moved on. This
-  // is where the MEANING gets its own, at the level the severity names.
-  //
-  // A declared fault also gets the modal here, which is what makes
-  // `severity: 'fault'` mean the same thing however the fault arose.
-  if (hasMessageWithoutOutcome(body)) {
-    const broken = faultEnvelope(
-      null, OUR_BUG_TO_CODE_AND_TEXT.noOutcome.text,
-      `an ok carried a message with no outcome: ${JSON.stringify(body)?.slice(0, 120)}`,
-      OUR_BUG_TO_CODE_AND_TEXT.noOutcome.code,
-    )
-    reportFault(transport, broken, opts)
-    return broken
-  }
-  if (body.type === 'not-ok' && body.severity === 'fault') {
-    reportFault(transport, body, opts)
-  } else {
-    logDbOutcome(transport, body)
-  }
-  return body as Envelope<T>
+  return readEnvelope<T>(transport, settled.data, opts)
 }
 
 /**

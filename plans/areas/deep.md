@@ -32,7 +32,7 @@ understood, tidied* — `cs-blessed` here means he has read the file, not seen i
 **Every heading says its status**; a heading with **no status prefix means OPEN**.
 
 **⭐ REOPENED 2026-09-02 by a second read — twenty findings, `F-deep-40` …
-`F-deep-59`: fifteen resolved, five OPEN.** Joel asked a fresh session to read
+`F-deep-59`: sixteen resolved, four OPEN.** Joel asked a fresh session to read
 the 35 files and `deep.md` after the first six passes closed, and it found
 mostly prose the code has moved out from under — including four things the
 first read's own resolutions claimed fixed and were not (`F-deep-41`,
@@ -41,7 +41,8 @@ them. `F-deep-40` … `-50` were fixed the same day on Joel's instruction —
 eight prose, one key rename, the render-crash screen, and the PN488 line's
 status; `F-deep-51` was resolved by decision, unchanged; `F-deep-52` moved
 one console line onto `[rt]`; `F-deep-53` left the channel list in one
-place, and `F-deep-54` did the same for the verbose recipe. `F-deep-55` on
+place, and `F-deep-54` did the same for the verbose recipe; `F-deep-55`
+folded the two wrappers' identical tails into `readEnvelope`. `F-deep-56` on
 waits. **The `cs-fixed-deep` stamps were NOT moved**; with open
 findings against them they overstate, and restamping is Joel's call.
 
@@ -56,8 +57,8 @@ The six passes before it, all on 2026-09-02:
 | `cls.ts` | 1 | `F-deep-36` — resolved |
 | the server side of the envelope | 3 | `F-deep-37` … `F-deep-39` — all resolved |
 
-**Fifty-nine findings: fifty-two resolved, one closed, one moved, five open**
-(all five in pass 7).
+**Fifty-nine findings: fifty-three resolved, one closed, one moved, four
+open** (all four in pass 7).
 
 **What is left besides pass 7 is `cs-blessed`, which is Joel's alone** — nine files carry it,
 twenty-six are `cs-fixed-deep`. `cs-fixed` is "Claude changed it and stands
@@ -1895,7 +1896,7 @@ once. (Renaming the key is `F-deep-48`.)
 > by grep: `setItem('puzpuzpuz:rt:verbose'` is once in `src/` and once in
 > `docs/`.
 
-## F-deep-55 · `envelope-tail-written-twice` · `runEdgeFn` and `runRpc` end in the same thirty lines
+## RESOLVED · F-deep-55 · `envelope-tail-written-twice` · `runEdgeFn` and `runRpc` end in the same thirty lines
 
 `dbResult.ts:301-324` and `:407-439`: the unreadable-body check, the
 message-without-outcome check, fault-or-log, and the cast — identical. The
@@ -1907,6 +1908,22 @@ Joel's call against [[feedback_no_generic_layer_when_uses_known]]: here both
 uses are known, identical, and in the same file, so a private
 `readEnvelope(transport, body, opts)` is a shared step rather than a generic
 layer. Not done unasked.
+
+> **resolution: `readEnvelope<T>(transport, body, opts)`, private to
+> `dbResult.ts`** (Joel, 2026-09-02: *"do it"*). Both wrappers now end in one
+> line, `return readEnvelope<T>(transport, …, opts)`, after their own
+> transport-specific error branch; `readRows` is deliberately not a caller,
+> since it never receives an envelope. The two copies' comments merged into
+> the one docstring — the PN307 reasoning `F-deep-45` corrected, the "arrives
+> HTTP 200 so `dbFetch` has moved on" paragraph, the declared-fault sentence —
+> as three numbered steps in the order they are decided. `git diff --numstat`
+> is `56 64`: net eight lines fewer, and one copy fewer of the rule.
+>
+> **Proved by planting the property the change buys**: disabling the
+> is-it-an-envelope step in the shared reader fails exactly two tests, the
+> unreadable-body case in `runRpc` AND the one in `runEdgeFn`, together. Before
+> this, a check added to one wrapper and not the other could not have been
+> caught that way. No behavior changed; the suite ran green unmodified.
 
 ## F-deep-56 · `explained-twice-across-files` · Two facts each carried by two files
 
