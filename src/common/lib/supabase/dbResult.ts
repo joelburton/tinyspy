@@ -507,7 +507,9 @@ export async function readRows<Row>(
       `readRows received ${what}: ${JSON.stringify(settled.data)?.slice(0, 120)}`,
       OUR_BUG_TO_CODE_AND_TEXT.notRows.code,
     )
-    reportFault({ call, status: 200 }, crossed, opts)
+    reportFault(
+      { call, status: 200, ms: Math.round(performance.now() - started) }, crossed, opts,
+    )
     return crossed
   }
   // `null` collapses to `[]`: PostgREST returns null rather than an empty array

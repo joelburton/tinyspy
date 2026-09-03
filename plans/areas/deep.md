@@ -34,7 +34,7 @@ understood, tidied* — `cs-blessed` here means he has read the file, not seen i
 **Two passes of three have run.** The BOOT pass is done — nine files, sixteen
 findings, nothing left open (fourteen RESOLVED, one CLOSED, one MOVED to
 `corecss`). The DATA PATH was read 2026-09-02: eleven files, **eleven findings
-`F-deep-17` … `F-deep-27`** — nine RESOLVED, two open. The realtime plumbing (7 files) has not
+`F-deep-17` … `F-deep-27`** — ten RESOLVED, one open. The realtime plumbing (7 files) has not
 been read.
 
 ## The roster — 33 files, 4,880 lines
@@ -897,7 +897,7 @@ is right for the case that remains. It is the framing that is a version behind.
 > | `scrabble/components/BoardCol.tsx:50` | `scrabble` |
 > | `guards/noRawServerMessage.test.ts:86`, `:96` | whoever owns `src/guards/` — and `:96` is the failure MESSAGE, so it prescribes a function that does not exist to whoever trips the guard |
 
-## F-deep-23 · `notrows-fault-has-no-duration` · One report drops the `ms` every other one carries
+## RESOLVED · F-deep-23 · `notrows-fault-has-no-duration` · One report drops the `ms` every other one carries
 
 `readRows:501` reports the not-rows fault with `{ call, status: 200 }` and no
 `ms`, where `started` is in scope four lines up and every other `reportFault` in
@@ -905,7 +905,14 @@ both wrappers passes one. The `[db]` line's promise is that a blank field means
 something — here a blank `ms=` means nobody passed it, which is the one meaning
 it is not allowed to have.
 
-> resolution:
+> **resolution: it passes `ms` like the others** (Joel, 2026-09-02). One
+> expression, from the `started` that was already four lines up.
+>
+> **Swept the rest rather than fixing only the one named**: all twelve
+> `reportFault` sites in the file now carry a duration — nine through the shared
+> `transport` object, three built inline in `readRows`, which has no `transport`
+> because its two failure paths need different statuses. That is the whole of it;
+> there is no fourth shape.
 
 ## F-deep-24 · `is-environmental-null-check-is-dead` · A guard that cannot change the answer
 
