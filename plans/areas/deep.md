@@ -71,7 +71,7 @@ behind it"; blessed is "Joel read it", and that is the area's exit criterion
 blessing it until the `hooks` area runs, because six of its lines are hook
 calls.
 
-## The roster — 35 files, 5,322 lines
+## The roster — 38 files, 5,679 lines
 
 Agreed with Joel 2026-09-02 before anything was read, and stamped **`cs-met`** —
 the eighth stamp, added the same day for exactly this state: on an open area's
@@ -93,7 +93,7 @@ twice while the passes ran, because the area kept editing its own files.
 | `src/common/lib/util/reloadOnStaleChunk.ts` | 63 | filed under `util/`, but it is boot machinery |
 | `src/common/lib/util/reloadOnStaleChunk.test.ts` | 107 | |
 | `src/common/themes/loadTheme.ts` | 83 | **added 2026-09-02 by `F-deep-9`** — `main.tsx` awaits it before the first render, and it names no game and no page |
-| `src/common/lib/util/panic.ts` | 64 | **written 2026-09-02 by `F-deep-49`** — the last-resort screen for a boot or render failure, moved out of `main.tsx` so it can be tested |
+| `src/common/lib/util/panic.ts` | 68 | **written 2026-09-02 by `F-deep-49`** — the last-resort screen for a boot or render failure, moved out of `main.tsx` so it can be tested |
 | `src/common/lib/util/panic.test.ts` | 96 | **written 2026-09-02 by `F-deep-49`** |
 
 **The data path — 11 files, 2,997 lines**
@@ -119,7 +119,7 @@ twice while the passes ran, because the area kept editing its own files.
 | `src/common/lib/supabase/channelDedup.ts` + `.test.ts` | 56 + 110 |
 | `src/common/lib/supabase/channelTeardown.ts` + `.test.ts` | 108 + 86 |
 | `src/common/lib/supabase/postgresAttached.ts` + `.test.ts` | 42 + 54 |
-| `src/common/lib/supabase/realtimeDiag.ts` | 218 |
+| `src/common/lib/supabase/realtimeDiag.ts` + `.test.ts` | 223 + 201 — the test **written 2026-09-02 by `F-deep-31`** |
 
 **The fault sink — 2 files, 159 lines**
 
@@ -143,6 +143,15 @@ about thirty lines.
 In because the envelope has two halves that have to agree, and reading one
 without the other is how they drift. `supabase/functions/_shared/startGame.ts`
 (151) is **out** — it names games, so the rule excludes it.
+
+**A guard the area wrote — 1 file, 195 lines**
+
+`src/guards/orphanedDocstrings.test.ts`, written by `F-deep-37`. On the roster
+by Joel's rule for closing an area (2026-09-02): *"if they were added in this
+area, they should be added to the roster and get the cs-deep-fixed stamp"* —
+a file the area created is the area's, wherever it lives. It had sat at
+`cs-unmet` from the day it was written. The other guards in `src/guards/` are
+NOT this area's; the four notes to their owner in pass 2 and pass 7 stand.
 
 ## Listed and left OUT, each with the rule that excludes it
 

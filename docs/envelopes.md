@@ -555,10 +555,11 @@ knows how to write (→ [Who writes the words](#who-writes-the-words-per-answer)
 
 **Where a call site has an `if (!mounted) return` — or a generation check — it
 belongs above the branch chain, not inside it.** The reason is one specific
-answer: an `AbortError`. When a component unmounts mid-flight we cancel our own
-request, and `dbFetch` deliberately gives that no modal — *"nobody is owed a
-modal"* (`dbFetch.ts:152`) — but the wrapper still hands back a `not-ok`, because
-from its side a request that never completed is a failure like any other.
+answer: an `AbortError`. When a component unmounts mid-flight and cancels its
+own request, the wrapper still hands back a `not-ok`, because from its side a
+request that never completed is a failure like any other. (Nothing in `src/`
+aborts a request today — `nothingAnswered`'s docstring records that as a known
+limit — but the ordering is right whether or not it ever does.)
 
 So a chain that asks `type` before it asks whether anyone is still listening
 renders a failure for its own cleanup: a page that says "Could not load this
@@ -1149,16 +1150,23 @@ layers split the job by what each can see:
 
 - **`dbFetch`** is installed as the client's `global.fetch` (`supabase.ts`), so
   every PostgREST request, table read, edge function and auth call passes
-  through it. It owns the two failures with no body worth reading: **nothing
-  answered** (environmental) and **a non-2xx** (a raw fault — it clones the
-  response and parses Postgres's shape out of it). Both are logged and shown.
-  Two deliberate exceptions are logged but never presented: an **abort**, which
-  is us canceling our own request, and Supabase's **own auth endpoints**, which
-  the sign-in screen speaks for.
-- **`runRpc` / `runEdgeFn` / `readRows`** own everything that arrives HTTP 200,
-  because the meaning is in the body. A `severity: fault` gets the modal here;
-  everything else gets its `[db]` line. `dbFetch` stays quiet on an RPC's 2xx
-  rather than printing an `OK` directly above a line contradicting it.
+  through it. It **classifies and shows nothing**. For a request nothing
+  answered it re-throws the browser's error untouched; for a non-2xx it reads
+  the body as text, decides who answered — Postgres with a SQLSTATE, our own
+  gateway (`FE003`), or something that is not ours (`FE004`) — writes that
+  verdict into `statusText`, the one field postgrest-js forwards untouched, and
+  re-emits the response. It logs only what no wrapper will speak for: an
+  **abort**, which is us canceling our own request, and Supabase's **own auth
+  endpoints**, which the sign-in screen handles.
+- **`runRpc` / `runEdgeFn` / `readRows`** own every answer and every failure,
+  because they hold the parsed result: the transport facts for the diagnostics
+  line, `status: 0` for nothing-answered, `dbFetch`'s verdict in `statusText`,
+  and the body's meaning when it arrived 200. A fault gets the modal here,
+  whatever built it; everything else gets its `[db]` line. `dbFetch` stays
+  quiet on a 2xx to our endpoints rather than printing an `OK` directly above a
+  line contradicting it. The half that reads a server-written envelope — is it
+  one at all, does an `ok` carry words without an outcome, present or log — is
+  one function, `readEnvelope`, shared by `runRpc` and `runEdgeFn`.
 
 One diagnostic falls out of the split: **a `PA`/`PN` code arriving in the raw
 shape is always a bug of ours.** Our codes are meant to arrive 200 inside an

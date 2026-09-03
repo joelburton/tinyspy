@@ -209,6 +209,7 @@ per-hook wiring. Always-on console lines (low-frequency by design):
 | `[rt …] <topic> — refetch #3 (event)` | `useRealtimeRefetch` ran its load, and why (`mount` / `subscribed` / `event`) |
 | `[rt …] game:<id> — load #2: play_state=playing terminal=false players=2` | what `useCommonGame`'s load actually saw |
 | `[rt …] <topic> — unsubscribing / teardown ok` | deliberate teardown — distinguishes "left" from "went deaf" |
+| `[rt …] <topic> — teardown timed out / teardown FAILED` | a leave that did not complete cleanly, at `warn`; a `timed out` here is the state that wedges a same-named re-join |
 | `[rt …] socket — heartbeat timeout/disconnected` | the socket itself is in trouble (routine `sent`/`ok` pulses are not logged) |
 
 **Reading the trail:** healthy is `status SUBSCRIBED` → `system ok` (~2–3s
