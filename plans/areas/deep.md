@@ -39,8 +39,9 @@ seven files, **five findings `F-deep-28` … `F-deep-32`, all RESOLVED** — no
 defects, four duplications-of-one-fact and a coverage gap. **The three named
 passes are done. The FAULT SINK was read the same day: two files, **three
 findings `F-deep-33` … `F-deep-35`, all RESOLVED.** `cls.ts` was read the same
-day: **one finding, `F-deep-36`, RESOLVED.** The three server-side envelope files
-are all that remain of the roster.**
+day: **one finding, `F-deep-36`, RESOLVED.** The SERVER SIDE of the envelope was
+read the same day: three files, **three findings `F-deep-37` … `F-deep-39`** —
+one RESOLVED, two open. **Every file on the roster has now been read.**
 
 ## The roster — 35 files, 4,880 lines
 
@@ -1374,6 +1375,119 @@ cannot rot with the roster, and it is what the docstring should say.
 > updated (`F-deep-8`, `F-deep-21`, here). The rule those three make: **a count
 > in a docstring is a maintenance promise nobody keeps** — state the property,
 > not the tally.
+
+## Pass 6 — the server side of the envelope, read 2026-09-02
+
+Three files, 321 lines: `_shared/envelope.ts` (the outbound builders),
+`_shared/dbResult.ts` (the inbound `runRpc`), `_shared/http.ts` (transport).
+**Three findings, `F-deep-37` … `F-deep-39`.** The design is in good order —
+this is the half the error sprint finished last, and it shows.
+
+**Checked and NOT findings:**
+
+- **`http.ts` is clean**, and its closing comment is the reason: *"There is
+  deliberately no catch-all error response here … This file knows nothing about
+  envelopes and should not: it is transport."* A file that says what it refuses
+  to do is worth more than one that does it.
+- **`[rpc]` is a documented channel** (docs/envelopes.md:1081), so
+  `dbResult.ts`'s log line is not a fourth invented one. `dbLog`'s "beside
+  `[rt]` and `[ui]`" stays accurate because those three are the BROWSER's; this
+  one is the edge runtime's.
+- **The "four builders" count in `envelope.ts:21` is right** — `ok`,
+  `formValidation`, `faultEnvelope` and `serviceError` spell the nine keys out;
+  `fault` delegates, and the docstring says so.
+
+## RESOLVED · F-deep-37 · `third-orphaned-docstring` · A one-line docstring for `ok` sits above `isEnvelope`
+
+`envelope.ts:35`:
+
+```ts
+/** The function answered, and here is what the caller asked for. */
+/**
+ * **Is this an envelope?** — for a function that calls a converted RPC …
+ */
+export const isEnvelope = …
+```
+
+The first line describes **`ok`**, which is seventeen lines below at `:52` and
+therefore undocumented; `isEnvelope` appears to carry two descriptions. Same tell
+as `F-deep-17` — **two docstrings stacked with nothing between them** — which is
+now the third time this exact bug has been found, in three different files.
+
+The sweep `F-deep-17` ran covered `src/common/lib/supabase/`; this file is under
+`supabase/functions/`, so it was outside it. **Worth doing repo-wide rather than
+per-pass**, since the tell is one grep and the bug is invisible by construction.
+
+> **resolution: the docstring moved onto `ok`, and the repo-wide half became a
+> GUARD rather than a list** (Joel, 2026-09-02, taking the recommendation over
+> forward-fixing).
+>
+> **Why not forward-fix the others.** Fixing an orphan means deciding which
+> declaration the stranded prose belongs to, which means reading the file — that
+> is the audit, not a mechanical edit, and a confidently misplaced docstring is
+> worse than an obviously stranded one. But "flag it and move on" has a record
+> here: `useProfile.ts`'s orphan was identified by the `homepage` area a week
+> ago, recorded, and lost when that file was deleted. So neither.
+>
+> `src/guards/orphanedDocstrings.test.ts` instead — the shrinking-allowlist shape
+> this repo already uses three times (`DECLARED_AHEAD`, `noRawServerMessage`'s
+> `ALLOWED`, `vocabularies`' `pending`). Two arms, both proved by planting: a NEW
+> stranded docstring fails, and a listed entry that has since been fixed fails
+> too, so the list cannot rot into blanket exemptions. **44 entries, grouped by
+> owning area**, each deleted by the area that opens the file. Nothing in an
+> unopened area was edited.
+>
+> **⚠️ The guard was broken when first written, and only planting found it.** Its
+> detector matched a bare `/**` LINE, so it saw stacked MULTI-line docstrings and
+> missed a SINGLE-line one above another — which is exactly the shape of this
+> finding, the orphan in `_shared/envelope.ts`. The guard built to catch this bug
+> could not have caught this bug, and reported a clean file. It parses docstring
+> SPANS now.
+>
+> That correction moved the count from 11 to 44: the single-line form is far more
+> common, which is why the first number looked reassuring.
+>
+> **The list is DETECTION, not verification.** Several were sampled and are real
+> — `boggle/manifest.ts:62` strands a coop-label docstring above the manifest's,
+> `GamePage.tsx:147` strands one above `PEER_PILL_MS` — but 44 files were not
+> read, and deciding where each sentence belongs is the owning area's judgment.
+>
+> The one exception that keeps it usable: a stacked pair is only suspect when the
+> earlier docstring is NOT the file's first, so a module header meeting the first
+> declaration does not cry wolf.
+
+## F-deep-38 · `isenvelope-is-not-a-predicate` · The Deno twin checks the same thing and tells the compiler nothing
+
+`envelope.ts:45` is `(body: unknown): boolean`. Its frontend twin
+`_isEnvelope` (`dbResult.ts:221`) is `(body: unknown): body is Envelope`, and
+this one's docstring claims the likeness — *"Deliberately strict, like its
+frontend twin."*
+
+They are alike in what they TEST and not in what they tell TypeScript. The
+consequence is at the one call site: after
+`if (!isEnvelope(settled.data)) return …`, `settled.data` is still `unknown`, so
+`:111`'s `settled.data as Envelope<T>` casts **from `unknown`** — which accepts
+anything at all. With a predicate the same line would narrow from a checked
+`Envelope`, and the cast would only be adding `T`.
+
+Small — one call site, and the runtime behavior is identical. It is filed
+because the fix is one word and the current shape quietly wastes the check it
+already performs.
+
+> resolution:
+
+## F-deep-39 · `cites-a-deleted-plan` · A comment points at a plan file that no longer exists
+
+`dbResult.ts:34` justifies what the wrapper deliberately does not cover and
+cites `(plans/deno-callers.md §3)`. **That file is not in `plans/`** — the eight
+that are, are listed in CLAUDE.md.
+
+Unlike `F-deep-8`'s pointer to project memory, **the replacement is known and
+written down**: `plans/error-system.md` refers to it twice as *"`deno-callers.md`
+(deleted; its content is in docs/envelopes.md)"*. So this is a citation to
+repoint, not a claim to delete.
+
+> resolution:
 
 ## Questions this pass raises rather than answers
 

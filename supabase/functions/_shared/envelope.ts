@@ -32,7 +32,6 @@
 import { json } from './http.ts'
 import type { Envelope } from '../../../src/common/lib/supabase/envelope.ts'
 
-/** The function answered, and here is what the caller asked for. */
 /**
  * **Is this an envelope?** — for a function that calls a converted RPC and
  * relays whatever it answers.
@@ -49,6 +48,7 @@ export const isEnvelope = (body: unknown): boolean =>
   && ((body as { type?: unknown }).type === 'ok'
     || (body as { type?: unknown }).type === 'not-ok')
 
+/** The function answered, and here is what the caller asked for. */
 export const ok = <T>(data: T): Response =>
   json({
     type: 'ok',
