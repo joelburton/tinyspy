@@ -1,4 +1,4 @@
-// cs-audited-utils
+// cs-blessed-utils
 
 /**
  * mulberry32 — the app's **seedable** random-number generator. Reach for it

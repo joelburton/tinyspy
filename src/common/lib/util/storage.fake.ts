@@ -1,4 +1,4 @@
-// cs-audited-utils
+// cs-blessed-utils
 
 /**
  * A Storage-shaped stand-in for tests, plus a switch that makes it throw.

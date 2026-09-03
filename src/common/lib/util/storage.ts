@@ -1,4 +1,4 @@
-// cs-audited-utils
+// cs-blessed-utils
 
 /**
  * Read and write `localStorage` / `sessionStorage` without the app falling over

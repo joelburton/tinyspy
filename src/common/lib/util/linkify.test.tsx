@@ -1,4 +1,4 @@
-// cs-audited-utils
+// cs-blessed-utils
 
 import { isValidElement } from 'react'
 import type { ReactElement, ReactNode } from 'react'

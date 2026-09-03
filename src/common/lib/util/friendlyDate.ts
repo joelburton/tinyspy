@@ -1,4 +1,4 @@
-// cs-audited-utils
+// cs-blessed-utils
 
 /**
  * Render an ISO timestamp as a "friendly" relative date for the

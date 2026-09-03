@@ -1,4 +1,4 @@
-// cs-audited-utils
+// cs-blessed-utils
 
 import type { KeyboardEvent } from 'react'
 
