@@ -12,8 +12,9 @@ import type { Severity } from './envelope'
  * `dbFetch` (the transport) and `dbResult` (the wrappers) both write lines, and
  * neither imports the other — they meet here.
  *
- * `[db]` is its own console channel, beside `[rt]` (realtime) and `[ui]`, so
- * filtering to it gives every database call and nothing else.
+ * `[db]` is one of the three stamped console channels, so filtering to it gives
+ * every database call and nothing else. `logStamp.ts` names the three and why
+ * they share a format.
  */
 
 /**
@@ -160,9 +161,6 @@ export function logSlow(f: { call: string; ms?: number; detail?: string }): void
  *
  * Built ONCE and shared, so the screen and the log carry the same timestamp as
  * well as the same fields. Two `logStamp()` calls would drift immediately.
- *
- * `[db]` is its own console channel, beside `[rt]` (realtime) and `[ui]`, so
- * filtering to it gives every database call and nothing else.
  */
 export function logDb(level: LogLevel, f: DiagFields, message?: string | null): string {
   const diagnostics = diagnosticsLine(level, f)

@@ -32,7 +32,7 @@ understood, tidied* — `cs-blessed` here means he has read the file, not seen i
 **Every heading says its status**; a heading with **no status prefix means OPEN**.
 
 **⭐ REOPENED 2026-09-02 by a second read — twenty findings, `F-deep-40` …
-`F-deep-59`: thirteen resolved, seven OPEN.** Joel asked a fresh session to read
+`F-deep-59`: fourteen resolved, six OPEN.** Joel asked a fresh session to read
 the 35 files and `deep.md` after the first six passes closed, and it found
 mostly prose the code has moved out from under — including four things the
 first read's own resolutions claimed fixed and were not (`F-deep-41`,
@@ -40,7 +40,8 @@ first read's own resolutions claimed fixed and were not (`F-deep-41`,
 them. `F-deep-40` … `-50` were fixed the same day on Joel's instruction —
 eight prose, one key rename, the render-crash screen, and the PN488 line's
 status; `F-deep-51` was resolved by decision, unchanged; `F-deep-52` moved
-one console line onto `[rt]`. `F-deep-53` on waits. **The `cs-fixed-deep` stamps were NOT moved**; with open
+one console line onto `[rt]`; `F-deep-53` left the channel list in one
+place. `F-deep-54` on waits. **The `cs-fixed-deep` stamps were NOT moved**; with open
 findings against them they overstate, and restamping is Joel's call.
 
 The six passes before it, all on 2026-09-02:
@@ -54,8 +55,8 @@ The six passes before it, all on 2026-09-02:
 | `cls.ts` | 1 | `F-deep-36` — resolved |
 | the server side of the envelope | 3 | `F-deep-37` … `F-deep-39` — all resolved |
 
-**Fifty-nine findings: fifty resolved, one closed, one moved, seven open**
-(all seven in pass 7).
+**Fifty-nine findings: fifty-one resolved, one closed, one moved, six open**
+(all six in pass 7).
 
 **What is left besides pass 7 is `cs-blessed`, which is Joel's alone** — nine files carry it,
 twenty-six are `cs-fixed-deep`. `cs-fixed` is "Claude changed it and stands
@@ -1857,12 +1858,23 @@ beside `[db]`, `[rt]`, `[ui]`, `[rpc]`.
 
 ### Duplication, and the species the first read already named
 
-## F-deep-53 · `db-channel-fact-five-times` · "`[db]` is its own channel beside `[rt]` and `[ui]`" is written in five places
+## RESOLVED · F-deep-53 · `db-channel-fact-five-times` · "`[db]` is its own channel beside `[rt]` and `[ui]`" is written in five places
 
 `dbFetch.ts:132`, `dbLog.ts:15`, `dbLog.ts:164` (twice in one file),
 `logStamp.ts:4-10`, docs/envelopes.md:1327. `F-deep-28` made `logStamp.ts` the
 neutral home for the stamp; it is the natural single home for the channel list
 too, with the doc pointing at it.
+
+> **resolution: once in code, once in the doc** (Joel, 2026-09-02: *"do it"*).
+> `logStamp.ts` is the one place the code lists the channels — it already named
+> all three with file and meaning, and all three writers import it — and it now
+> says so, with a clause that `[rpc]` is the edge runtime's and not a fourth.
+> `dbLog`'s module header keeps one sentence and points at the list; the copy
+> inside `logDb`'s docstring and the paragraph in `dbFetch` are deleted. The
+> doc's sentence (envelopes.md → the `[db]` line) stays: a reader there should
+> not have to open a source file. The `**/` closer on `logStamp.ts` — the
+> second bullet of `F-deep-59` — went with it. Checked by grep afterwards:
+> "beside `[rt]`" appears nowhere in `src/` now and once in `docs/`.
 
 ## F-deep-54 · `rt-verbose-instructions-twice` · The lever is documented in two files and its literal is in a third place
 
@@ -1925,7 +1937,8 @@ the underscore goes, or the export does and the test reads the behavior through
 
 - `loadTheme.ts:20` — the comment opens *"A theme is not worth failing to start
   over.\*\*"*, a bold marker with no opener (`F-deep-13`'s edit).
-- `logStamp.ts:11` — the docstring closes with `**/` (`F-deep-28`'s file).
+- ~~`logStamp.ts:11` — the docstring closes with `**/` (`F-deep-28`'s file).~~
+  **Fixed with `F-deep-53`**, which rewrote that docstring's tail.
 - `main.tsx:3` — `/** Top of React application.*/`, no space before the close.
 - ~~`main.tsx:46-68` — `showBootPanic` (`F-deep-4`'s edit) uses semicolons and
   double quotes; every other file on the roster uses neither.~~ **Gone with

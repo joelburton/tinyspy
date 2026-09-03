@@ -130,10 +130,6 @@ function isSupabaseInternal(input: RequestInfo | URL, init?: RequestInit): boole
  * never presented (docs/envelopes.md → Presenting a fault is not a call site's
  * job).
  *
- * The tag is its own channel, beside `[rt]` (realtime) and `[ui]` (the browser
- * snapshot + play-surface lifecycle) — a failed request is neither of those.
- * Filtering the console to `[db]` gives the request path on its own.
- *
  * ─── Why classification lives here, and presentation does not ──
  * This is the one place every Supabase call passes through, and the only layer
  * that can see whether the body parsed — so it is where "who answered" is

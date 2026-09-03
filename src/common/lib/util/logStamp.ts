@@ -8,7 +8,10 @@
  *     [db …]   dbLog.ts                 — every database call
  *     [rt …]   realtimeDiag.ts          — channel lifecycle and events
  *     [ui …]   PlayAreaMountLog.tsx     — the play surface's mount breadcrumbs
- **/
+ *
+ * This is the one place the three are listed. (`[rpc]` is the edge runtime's
+ * line, written in Deno on its own clock, so it is not a fourth here.)
+ */
 export function logStamp(): string {
   const t = new Date()
   const hh = String(t.getHours()).padStart(2, '0')
