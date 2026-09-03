@@ -167,9 +167,18 @@ Five files, 1,182 lines, all five read in full. **No logic bug.** The shipped
 behavior is correct everywhere; all nine findings are about what the files SAY —
 plus `F-game-lib-10`, raised later while resolving the first.
 
-**Four resolved 2026-09-03** — `F-game-lib-1` (the split, which Joel authorized
-after the audit), and `F-game-lib-2`, `F-game-lib-4`, `F-game-lib-10` as its
-consequences. **Six open:** `F-game-lib-3`, `5`, `6`, `7`, `8`, `9`.
+**Five resolved 2026-09-03** — `F-game-lib-1` (the split, which Joel authorized
+after the audit), with `F-game-lib-2`, `F-game-lib-4` and `F-game-lib-10` as its
+consequences, then `F-game-lib-3` on its own. **Five open:** `F-game-lib-5`,
+`6`, `7`, `8`, `9`.
+
+**Two of the five resolved turned out bigger than filed**, both in the same way:
+the audit caught a wrong number, and fixing it meant re-reading the file, where
+the neighboring sentences were wrong about something that mattered more.
+`F-game-lib-3` was filed as one stale count and was four false claims;
+`F-game-lib-10` did not exist until `F-game-lib-1` moved the declaration it sits
+on. **A counted claim is a good smoke detector for a docstring nobody has
+re-read** — worth remembering when groups B–F turn up the next one.
 which in a file 233 others import is the product, because nobody reads
 `games.ts` to learn what it does, they read it to learn what they may rely on.
 
@@ -312,7 +321,7 @@ resolved; they are still their own areas' to fix. **Any future import sweep will
 do this again**, and the guard's failure message ("fixed, or moved") is the only
 thing that tells the two apart.
 
-### F-game-lib-3 · `dispatcher-says-ten-games` · "all ten games" is sixteen
+### RESOLVED 2026-09-03 — F-game-lib-3 · `dispatcher-says-ten-games` · "all ten games" is sixteen
 
 `manifestRpcs.ts:43`: *"Collapses the byte-identical `submitTimeout` / `endGame`
 wrappers across all ten games."*
@@ -332,6 +341,40 @@ says ten, in a two-file group, about the same fact.
 Fold in while there: the file ends with **three trailing blank lines**
 (`manifestRpcs.ts:61-64`), the residue of the deleted start-game adapters. ESLint
 does not flag it.
+
+#### Resolved 2026-09-03 — and the count was one of FOUR false claims
+
+Fixing the number meant re-reading the file, which is the standing rule after
+any count fix, and the other three were worse than the one that was filed.
+**Three of the four are residue from the envelope conversion** — this file's own
+docstring boasts about having survived that conversion while three of its
+sentences still describe the shape from before it.
+
+| claim | where | truth |
+|---|---|---|
+| *"across all ten games"* | `:43` | sixteen; every game folder, twice each |
+| *"turn a `db.rpc(...)` into the **`{ error?: string }`** shape the GameManifest contract wants"* | file docstring | the contract wants `Promise<Envelope<GameStopResult>>`. There is no `{ error?: string }` anywhere in this path |
+| *"Build the game-agnostic **`(gameId) => Promise<{ error? }>`** dispatcher"* | `:41` | same, on the function that returns it |
+| *"generic … so a game whose schema lacks, say, `end_game` (**bananagrams**, which uses per-player concede) still satisfies `RpcClient<'submit_timeout'>`"* | `:28-30` | bananagrams has `end_game` — `supabase/sql/bananagrams.sql:1342` defines it and `src/bananagrams/manifest.ts:123` wires it. All sixteen game schemas define BOTH (measured; a seventeenth definer is `common.sql`'s own). It has per-player concede *as well as*, not *instead of* |
+| *"We only need the `{ error }` off the awaited result"* | `:30` | both halves are needed — on a 2xx the envelope arrives in **`data`**, which is `runRpc`'s whole job, and `RpcClient` declares `data: unknown` for exactly that reason |
+
+The generic over `F` is KEPT, with an honest reason replacing the false one: no
+game needs the narrowing today, and it costs nothing to state the per-call
+requirement rather than a module-wide one. **The mechanism was right and only
+its justification was stale** — which is the trap in fixing a docstring by
+deleting the sentence that turned out to be wrong.
+
+The file docstring was also rewritten to open with what a caller wants (build
+the two manifest members, here is the call) rather than with the history; the
+adapters paragraph is kept, after it. Trailing blank lines trimmed.
+
+**Checked and still true:** everything in `manifestRpcs.test.ts`. Its "ONE
+frontend path over sixteen SQL definitions" was already right — the pair
+disagreed, and the test was the half telling the truth. Its claim that
+`runEdgeFn` is tested in `dbResult.test.ts` holds (14 references there).
+
+**Verified:** `tsc -b` clean, ESLint clean, Vitest 263/263 across the file's own
+spec plus all 23 guards.
 
 ### RESOLVED 2026-09-03 — F-game-lib-4 · `menu-icon-says-fifteen-games` · "all fifteen games" is sixteen
 
