@@ -1,4 +1,4 @@
-// cs-met-deep
+// cs-fixed-deep
 
 /**
  * THE ENVELOPE, WRITTEN IN DENO — the same shape `common.ok_envelope` and
@@ -40,8 +40,13 @@ import type { Envelope } from '../../../src/common/lib/supabase/envelope.ts'
  * envelopes arrive on that path (a row array, a scalar, a `null` from a branch
  * that never decided), and each must fall through cleanly rather than be
  * half-read as one.
+ *
+ * **A type predicate, like that twin too.** Returning a bare `boolean` would
+ * leave the caller's value `unknown` after the check, so the cast that follows
+ * would be from `unknown` — which accepts anything, including the shapes this
+ * function exists to reject. Narrowing means the cast only has to add `T`.
  */
-export const isEnvelope = (body: unknown): boolean =>
+export const isEnvelope = (body: unknown): body is Envelope =>
   !!body
   && typeof body === 'object'
   && !Array.isArray(body)

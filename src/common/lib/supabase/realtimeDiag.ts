@@ -1,4 +1,4 @@
-// cs-met-deep
+// cs-fixed-deep
 
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { logStamp } from '../util/logStamp'

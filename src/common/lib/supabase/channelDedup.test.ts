@@ -1,4 +1,4 @@
-// cs-met-deep
+// cs-fixed-deep
 
 /**
  * Tests for channelDedupSuffix.

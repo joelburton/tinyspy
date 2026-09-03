@@ -1,4 +1,4 @@
-// cs-met-deep
+// cs-fixed-deep
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { PostgrestClient } from '@supabase/postgrest-js'

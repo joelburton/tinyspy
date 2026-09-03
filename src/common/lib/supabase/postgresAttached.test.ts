@@ -1,4 +1,4 @@
-// cs-met-deep
+// cs-fixed-deep
 
 /**
  * Tests for onPostgresAttached — the deaf-window closer's filter. The

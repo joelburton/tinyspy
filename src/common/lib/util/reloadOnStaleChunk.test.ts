@@ -1,4 +1,4 @@
-// cs-met-deep
+// cs-fixed-deep
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { reloadOnStaleChunk } from './reloadOnStaleChunk'

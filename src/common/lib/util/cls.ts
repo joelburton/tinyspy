@@ -1,4 +1,4 @@
-// cs-met-deep
+// cs-fixed-deep
 
 /**
  * Tiny class-name combiner. Hand-rolled rather than clsx/classnames

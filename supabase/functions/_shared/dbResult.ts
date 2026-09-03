@@ -1,4 +1,4 @@
-// cs-met-deep
+// cs-fixed-deep
 
 /**
  * **CALLING AN RPC FROM DENO** — the inbound half of the envelope, the twin of
@@ -31,8 +31,8 @@
  * the edge. Those calls sit inside pure helpers rather than the request
  * handler, they have no refusal to relay and no player sentence, and giving
  * them envelopes would push branching into every board builder to gain nothing
- * (plans/deno-callers.md §3). A `readRows` twin earns its place the day one of
- * them needs to relay a refusal.
+ * (docs/envelopes.md → How edge functions RECEIVE one). A `readRows` twin earns
+ * its place the day one of them needs to relay a refusal.
  */
 
 import { faultEnvelope, isEnvelope } from './envelope.ts'
@@ -108,6 +108,8 @@ export async function runRpc<T>(call: PromiseLike<RpcReply>, rpcName: string): P
     )
   }
 
+  // `settled.data` is an `Envelope` by the guard above; the cast only adds the
+  // caller's `T`, which no runtime check can establish.
   const envelope = settled.data as Envelope<T>
   // One line per call, the Deno counterpart of the frontend's `[db]` line. An
   // edge function's console is the only place its half of a request is visible,

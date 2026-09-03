@@ -31,17 +31,23 @@ understood, tidied* — `cs-blessed` here means he has read the file, not seen i
 
 **Every heading says its status**; a heading with **no status prefix means OPEN**.
 
-**Two passes of three are DONE, with nothing open.** The BOOT pass: nine files,
-sixteen findings — fourteen RESOLVED, one CLOSED, one MOVED to `corecss`. The
-DATA PATH, read 2026-09-02: eleven files, eleven findings `F-deep-17` …
-`F-deep-27`, **all RESOLVED**. The REALTIME PLUMBING was read the same day:
-seven files, **five findings `F-deep-28` … `F-deep-32`, all RESOLVED** — no
-defects, four duplications-of-one-fact and a coverage gap. **The three named
-passes are done. The FAULT SINK was read the same day: two files, **three
-findings `F-deep-33` … `F-deep-35`, all RESOLVED.** `cls.ts` was read the same
-day: **one finding, `F-deep-36`, RESOLVED.** The SERVER SIDE of the envelope was
-read the same day: three files, **three findings `F-deep-37` … `F-deep-39`** —
-one RESOLVED, two open. **Every file on the roster has now been read.**
+**⭐ THE AREA IS READ THROUGH, AND NOTHING IS OPEN.** Six passes over 35 files,
+all on 2026-09-02:
+
+| pass | files | findings |
+|---|---|---|
+| the boot path | 9 | `F-deep-1` … `F-deep-16` — 14 resolved, 1 closed, 1 moved to `corecss` |
+| the data path | 11 | `F-deep-17` … `F-deep-27` — all resolved |
+| the realtime plumbing | 7 | `F-deep-28` … `F-deep-32` — all resolved; no defects, four duplications-of-one-fact and a coverage gap |
+| the fault sink | 2 | `F-deep-33` … `F-deep-35` — all resolved |
+| `cls.ts` | 1 | `F-deep-36` — resolved |
+| the server side of the envelope | 3 | `F-deep-37` … `F-deep-39` — all resolved |
+
+**Thirty-nine findings: thirty-seven resolved, one closed, one moved.**
+
+**What is left is `cs-blessed`, which is Joel's alone** — nine files carry it,
+twenty-six are still `cs-met-deep`. `cs-fixed` is "Claude found nothing";
+blessed is "Joel read it", and that is the area's exit criterion (§21).
 
 ## The roster — 35 files, 4,880 lines
 
@@ -1456,7 +1462,7 @@ per-pass**, since the tell is one grep and the bug is invisible by construction.
 > earlier docstring is NOT the file's first, so a module header meeting the first
 > declaration does not cry wolf.
 
-## F-deep-38 · `isenvelope-is-not-a-predicate` · The Deno twin checks the same thing and tells the compiler nothing
+## RESOLVED · F-deep-38 · `isenvelope-is-not-a-predicate` · The Deno twin checks the same thing and tells the compiler nothing
 
 `envelope.ts:45` is `(body: unknown): boolean`. Its frontend twin
 `_isEnvelope` (`dbResult.ts:221`) is `(body: unknown): body is Envelope`, and
@@ -1474,9 +1480,19 @@ Small — one call site, and the runtime behavior is identical. It is filed
 because the fix is one word and the current shape quietly wastes the check it
 already performs.
 
-> resolution:
+> **resolution: `body is Envelope`** (Joel, 2026-09-02), matching the twin its
+> docstring already claimed likeness with. `deno check` clean on both files.
+>
+> The docstring says what the narrowing buys, since the runtime behavior is
+> unchanged and a reader would otherwise wonder: without it the caller's value
+> stays `unknown` after the check, so the cast below is **from `unknown`** —
+> which accepts anything, including the shapes this function exists to reject.
+>
+> `dbResult.ts:111`'s cast stays, and now carries a comment saying why it is
+> still a cast: the guard establishes `Envelope`, and the cast only adds the
+> caller's `T`, which no runtime check can establish.
 
-## F-deep-39 · `cites-a-deleted-plan` · A comment points at a plan file that no longer exists
+## RESOLVED · F-deep-39 · `cites-a-deleted-plan` · A comment points at a plan file that no longer exists
 
 `dbResult.ts:34` justifies what the wrapper deliberately does not cover and
 cites `(plans/deno-callers.md §3)`. **That file is not in `plans/`** — the eight
@@ -1487,7 +1503,13 @@ written down**: `plans/error-system.md` refers to it twice as *"`deno-callers.md
 (deleted; its content is in docs/envelopes.md)"*. So this is a citation to
 repoint, not a claim to delete.
 
-> resolution:
+> **resolution: repointed at `docs/envelopes.md` → How edge functions RECEIVE
+> one** (Joel, 2026-09-02), the section that holds what the plan held. Verified
+> the heading exists rather than assumed.
+>
+> The only remaining mentions of `deno-callers.md` are the two in
+> `plans/error-system.md` that record its deletion — which is where a note about
+> a deleted plan belongs, so those stay.
 
 ## Questions this pass raises rather than answers
 

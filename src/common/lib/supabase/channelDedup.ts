@@ -1,4 +1,4 @@
-// cs-met-deep
+// cs-fixed-deep
 
 /**
  * Generate a unique-enough suffix for a supabase-js Realtime
