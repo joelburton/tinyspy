@@ -2,9 +2,8 @@
 
 // Shared HTTP scaffolding for every edge function. `_shared/` is importable by
 // the deployed functions but is not itself deployed as a function (the `_`
-// prefix). Centralizing this kills the copy-per-function drift the review
-// flagged — e.g. a header added to `Access-Control-Allow-Headers` used to be
-// stamped five times.
+// prefix). Centralized so a header added to `Access-Control-Allow-Headers` is
+// added once, not once per function, where the copies would drift.
 
 /** Permissive CORS for the browser client. `apikey` + `authorization` cover the
  *  anon key and the caller's JWT; `x-client-info` is supabase-js's own header. */

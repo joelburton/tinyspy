@@ -32,7 +32,7 @@ understood, tidied* — `cs-blessed` here means he has read the file, not seen i
 **Every heading says its status**; a heading with **no status prefix means OPEN**.
 
 **⭐ REOPENED 2026-09-02 by a second read — twenty findings, `F-deep-40` …
-`F-deep-59`: seventeen resolved, three OPEN.** Joel asked a fresh session to read
+`F-deep-59`: eighteen resolved, two OPEN.** Joel asked a fresh session to read
 the 35 files and `deep.md` after the first six passes closed, and it found
 mostly prose the code has moved out from under — including four things the
 first read's own resolutions claimed fixed and were not (`F-deep-41`,
@@ -43,7 +43,8 @@ status; `F-deep-51` was resolved by decision, unchanged; `F-deep-52` moved
 one console line onto `[rt]`; `F-deep-53` left the channel list in one
 place, and `F-deep-54` did the same for the verbose recipe; `F-deep-55`
 folded the two wrappers' identical tails into `readEnvelope`; `F-deep-56`
-put each twice-told fact with its own file. `F-deep-57` on waits. **The `cs-fixed-deep` stamps were NOT moved**; with open
+put each twice-told fact with its own file; `F-deep-57` took the counts and
+the "used to"s out. `F-deep-58` and `-59` wait. **The `cs-fixed-deep` stamps were NOT moved**; with open
 findings against them they overstate, and restamping is Joel's call.
 
 The six passes before it, all on 2026-09-02:
@@ -57,8 +58,8 @@ The six passes before it, all on 2026-09-02:
 | `cls.ts` | 1 | `F-deep-36` — resolved |
 | the server side of the envelope | 3 | `F-deep-37` … `F-deep-39` — all resolved |
 
-**Fifty-nine findings: fifty-four resolved, one closed, one moved, three
-open** (all three in pass 7).
+**Fifty-nine findings: fifty-five resolved, one closed, one moved, two open**
+(both in pass 7).
 
 **What is left besides pass 7 is `cs-blessed`, which is Joel's alone** — nine files carry it,
 twenty-six are `cs-fixed-deep`. `cs-fixed` is "Claude changed it and stands
@@ -1949,7 +1950,7 @@ layer. Not done unasked.
 > docstring says both. A pointer to the hook cannot rot the way that
 > paragraph had.
 
-## F-deep-57 · `counts-and-archaeology-remaining` · The `F-deep-8` / `-21` / `-36` rule, applied to what the first read left
+## RESOLVED · F-deep-57 · `counts-and-archaeology-remaining` · The `F-deep-8` / `-21` / `-36` rule, applied to what the first read left
 
 Each is a count that will rot, a "used to", or a pointer a reader cannot
 follow:
@@ -1971,6 +1972,29 @@ follow:
 `callSiteShape.test.ts:83` says *"reads are the unconverted roster"*. If none
 remains, the paragraph describes a to-do that is finished; if some do, it is
 right and the sprint's "done" is the thing to qualify.
+
+> **resolution: all nine rewritten, and the question settled first** (Joel,
+> 2026-09-02: *"fix f57"*). Each count came out and each "used to" became the
+> property that holds at any size — the `F-deep-8` / `-21` / `-36` move,
+> applied to what those three left. `router.test.ts`'s header now describes
+> the eight behaviors the file pins as two bullets rather than a numbered list
+> of four. `_shared/http.ts` no longer cites "the review".
+>
+> **The last row's question, answered by looking rather than by grep.** A
+> script listed every `.rpc('` / `.from('` in non-test `src/` with no wrapper
+> in the four lines above it: three candidates (`crosswords/hooks/useCells.ts`,
+> `definitions/WordEditDialog.tsx`, `scratchpad/useScratchpad.ts`). All three
+> are wrapped — each holds the builder in a variable and passes it to
+> `readRows` or `runRpc` a few lines down, which is the shape a line-window
+> grep cannot see. So **no unwrapped call to our endpoints remains**, the
+> error sprint's "done" stands, and `dbFetch`'s "until the conversion
+> finishes … the roster's to-do list" paragraph is replaced by the one
+> sentence that stays true: a call made without a wrapper would leave no line
+> on success, which is one more reason every such call goes through one.
+>
+> **One more for the `src/guards/` owner**, found by the sweep and left:
+> `raiseCodes.test.ts:359` says the sequence *"already spans SQL and 64 Deno
+> raises"* — the same count `dbEnvelope.ts` just dropped.
 
 ## F-deep-58 · `underscore-export` · `_isEnvelope` is exported, and the underscore says private
 

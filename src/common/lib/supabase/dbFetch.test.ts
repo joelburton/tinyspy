@@ -9,9 +9,10 @@
  * player. Pinned because "helpfully" rewording a failure is exactly the change
  * someone will be tempted to make right here.
  *
- * The second is the `[db]` console trail, which exists because the 47 sites
- * that render an error just render and return: before this, a transport
- * failure left no record anywhere, so a phone report had nothing to read back.
+ * The second is the `[db]` console trail, which exists because a call site
+ * that renders an error just renders and returns: without it, a transport
+ * failure leaves no record anywhere, and a phone report has nothing to read
+ * back.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { dbFetch } from './dbFetch'

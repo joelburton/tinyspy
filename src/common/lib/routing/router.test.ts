@@ -4,13 +4,14 @@
  * Tests for the hand-rolled router. Verifies the contract callers
  * depend on:
  *
- *   1. `usePath()` returns `window.location.pathname` at mount.
- *   2. `usePath()` re-renders when `navigate()` is called (i.e. the
- *      synthetic popstate dispatch reaches subscribers).
- *   3. `usePath()` re-renders on a real `popstate` event (back/forward
- *      buttons in the wild).
- *   4. `navigate(to)` updates the URL via pushState; `navigate(to, true)`
- *      via replaceState.
+ *   - `usePath()` returns `window.location.pathname` at mount, re-renders
+ *     when `navigate()` is called (the synthetic popstate reaches
+ *     subscribers) and on a real `popstate` (back/forward in the wild), and
+ *     cannot miss a `navigate()` fired before its subscription attaches.
+ *   - `navigate(to)` updates the URL via pushState, `navigate(to, true)` via
+ *     replaceState, and dispatches a popstate either way — except when the
+ *     URL is already the one asked for, where it does nothing at all; the
+ *     comparison spans the query, so stripping one is still a move.
  *
  * Strategy: jsdom (set in vite.config.ts) gives us a working
  * `window.location`, `window.history`, and `window.dispatchEvent`.

@@ -13,9 +13,9 @@ import { OUR_BUG_TO_CODE_AND_TEXT } from './dbEnvelope'
  * ─── Why call sites must not do this themselves ───────────────
  * `supabase.functions.invoke` reports any 4xx/5xx as its own generic "Edge
  * Function returned a non-2xx status code"; the real server error rides on
- * `error.context`, a Response whose body is readable exactly ONCE. Five call
- * sites used to each hand-roll that read and then build a bare `{ message }`
- * — which threw away the two facts classification needs:
+ * `error.context`, a Response whose body is readable exactly ONCE. A call site
+ * that hand-rolls that read ends up building a bare `{ message }` — which
+ * throws away the two facts classification needs:
  *
  *   - **`code`**: the SQLSTATE. Edge functions that relay a DB error now
  *     return it beside the message (`{ error, code }`), restoring what

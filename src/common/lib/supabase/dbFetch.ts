@@ -205,10 +205,8 @@ export const dbFetch: typeof fetch = async (input, init) => {
     //
     // So what is left is Supabase's own endpoints: auth, and anything
     // unrecognized. No wrapper will ever see those, and this is their only line.
-    //
-    // The cost, until the conversion finishes: a call made WITHOUT its wrapper —
-    // the raw `db.rpc()` and `db.from()` sites — logs nothing on success. Those
-    // are the roster's to-do list, not a reason to keep narrating here.
+    // (A call to OUR endpoints made without a wrapper would leave no line on
+    // success — one more reason every such call goes through one.)
     if (isSupabaseInternal(input, init)) logDb('OK', fields)
     return res
   }

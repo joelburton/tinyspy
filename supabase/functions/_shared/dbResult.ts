@@ -112,8 +112,8 @@ export async function runRpc<T>(call: PromiseLike<RpcReply>, rpcName: string): P
   // caller's `T`, which no runtime check can establish.
   const envelope = settled.data as Envelope<T>
   // One line per call, the Deno counterpart of the frontend's `[db]` line. An
-  // edge function's console is the only place its half of a request is visible,
-  // and until now whether a call said anything at all was per-function taste.
+  // edge function's console is the only place its half of a request is
+  // visible, so every call says something rather than leaving it to taste.
   console.log(
     `[rpc] ${rpcName} ${envelope.type} ${ms}ms`
     + (envelope.type === 'not-ok' ? ` ${envelope.severity} ${envelope.dbcode}` : ''),

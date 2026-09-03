@@ -137,9 +137,9 @@ export function isEnvironmental(dbcode: string | null): boolean {
  *
  * `PN`, not a class of their own, because the letter says what the code does to
  * `type` — `PA` becomes `ok`, `PN` becomes `not-ok` — and never who authored
- * it. That sequence already spans SQL raises and 64 Deno ones; TypeScript is a
- * third author of the same thing, and a call site testing `dbcode === 'PN307'`
- * does not care which layer noticed.
+ * it. That sequence already spans SQL raises and Deno's; TypeScript is a third
+ * author of the same thing, and a call site testing `dbcode === 'PN307'` does
+ * not care which layer noticed.
  *
  * All of them are OURS, which is why every sentence a player reads opens
  * `BUG:` — four carry it in their text, and `unhandledAnswer`'s is prefixed at

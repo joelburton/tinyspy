@@ -193,8 +193,8 @@ export type CallOptions = {
 
 /**
  * **Show a fault, unless the caller took the job.** The one place a wrapper
- * decides, so the rule is written once rather than at each of the seven sites
- * that used to call `reportDbFault` directly.
+ * decides, so the rule is written once rather than at every site that
+ * presents.
  *
  * Always LOGS, whoever presents: opting out of the modal is not opting out of
  * the record, and a misclassified failure that stops being visible on screen

@@ -89,8 +89,9 @@ export type Transport = {
   status?: number
   ms?: number
   /** What the REQUEST knew, which no envelope can carry: the device's own state
-   *  at the moment of the call. `dbFetch` has always passed one; the type simply
-   *  did not say so, which is how it came to be silently dropped below. */
+   *  at the moment of the call (`online=`, `hidden`). `envelopeFields` joins it
+   *  with the envelope's own detail rather than letting either replace the
+   *  other — they answer different questions. */
   detail?: string
 }
 
