@@ -54,7 +54,6 @@ import { CrosswordsNoteCompanion } from './CrosswordsNoteCompanion'
 import { CrosswordsExplainCompanion, type ExplainState } from './CrosswordsExplainCompanion'
 import { enumerationFor } from '../lib/enumeration'
 import { runEdgeFn } from '../../common/lib/supabase/dbResult'
-import { showFaultModal } from '../../common/lib/fault/faultStore'
 import { readRows, runRpc } from '../../common/lib/supabase/dbResult'
 import { getNotOkFeedback } from '../../common/lib/game/genericPills'
 import { ClueLists } from './ClueLists'
@@ -64,6 +63,7 @@ import { Controls } from './Controls'
 import { db } from '../db'
 import styles from './PlayArea.module.css'
 import '../theme.css'
+import { reportUnhandled } from '../../common/lib/supabase/dbEnvelope'
 
 /** Timed info pill shown after a Check whose scope contained pencilled cells —
  *  Check skips them (see `handleCheck`), so this flags that they weren't tested.
@@ -285,7 +285,7 @@ export function PlayArea(ctx: GamePageCtx) {
         if (fill != null) broadcastFill(row, col)
         return
       } else {
-        showFaultModal({ text: 'BUG: set_cell fell through to unhandled' })
+        reportUnhandled('set_cell', res)
         return
       }
     },
@@ -308,7 +308,7 @@ export function PlayArea(ctx: GamePageCtx) {
         // authoritative version was adopted inside the hook.
         return
       } else {
-        showFaultModal({ text: 'BUG: set_mark fell through to unhandled' })
+        reportUnhandled('set_mark', res)
         return
       }
     },
@@ -533,7 +533,7 @@ type Explained =
     } else if (res.type === 'ok' && res.data?.result === 'explained') {
       setExplain({ kind: 'ok', explanation: res.data.explanation })
     } else {
-      showFaultModal({ text: 'BUG: crosswords-explain-clue fell through to unhandled' })
+      reportUnhandled('crosswords-explain-clue', res)
       setExplain(null)
     }
   }, [gameId])
@@ -562,7 +562,7 @@ type Explained =
     } else if (res.type === 'ok' && res.data?.result === 'replayed') {
       // Nothing to do: the fresh board arrives through the subscription.
     } else {
-      showFaultModal({ text: 'BUG: replay_board fell through to unhandled' })
+      reportUnhandled('replay_board', res)
     }
   }, [isTerminal, gameId, confirmAction, showLocalFeedback, clearLocalFeedback, hideSolution])
 
@@ -598,7 +598,7 @@ type Explained =
       URL.revokeObjectURL(url)
       return
     } else {
-      showFaultModal({ text: 'BUG: export_solution fell through to unhandled' })
+      reportUnhandled('export_solution', res)
       return
     }
   }, [gameId, showLocalFeedback])
@@ -623,7 +623,7 @@ type Explained =
       )
       return
     } else {
-      showFaultModal({ text: 'BUG: export_solution fell through to unhandled' })
+      reportUnhandled('export_solution', res)
       return
     }
   }, [gameId, showLocalFeedback])
@@ -837,7 +837,7 @@ type Explained =
     } else if (res.type === 'ok' && res.data?.result === 'ended') {
       // Nothing to do: the terminal arrives by subscription.
     } else {
-      showFaultModal({ text: 'BUG: end_game fell through to unhandled' })
+      reportUnhandled('end_game', res)
     }
   }, [gameId, showLocalFeedback, confirmAction])
 
@@ -852,7 +852,7 @@ type Explained =
       // Nothing to do: `myConceded` above, and the terminal if this was the
       // last racer, both arrive through the game subscription.
     } else {
-      showFaultModal({ text: 'BUG: concede fell through to unhandled' })
+      reportUnhandled('concede', res)
     }
   }, [gameId, showLocalFeedback])
 
@@ -940,7 +940,7 @@ type Explained =
         if (skippedPencil) showLocalFeedback(PENCIL_SKIPPED_MSG)
         return
       } else {
-        showFaultModal({ text: 'BUG: check_cells fell through to unhandled' })
+        reportUnhandled('check_cells', res)
         return
       }
     },
@@ -986,7 +986,7 @@ type Explained =
         broadcastFills(target)
         return
       } else {
-        showFaultModal({ text: 'BUG: reveal_cells fell through to unhandled' })
+        reportUnhandled('reveal_cells', res)
         return
       }
     },

@@ -11,9 +11,9 @@ import { difficultyValue } from '../../common/lib/game/difficulty'
 import type { SetupBodyProps, SetupSetter } from '../../common/lib/games'
 import { FORM_ERROR_KEYNAME } from '../../common/components/fields/formState'
 import { runRpc } from '../../common/lib/supabase/dbResult'
-import { showFaultModal } from '../../common/lib/fault/faultStore'
 import { db } from '../db'
 import type { PuzzleAnswer, StrandsValues } from '../lib/setup'
+import { reportUnhandled } from '../../common/lib/supabase/dbEnvelope'
 
 /**
  * strands' setup form.
@@ -86,7 +86,7 @@ export function SetupForm({
             setError(FORM_ERROR_KEYNAME, null)
             return res.data.puzzle
           } else {
-            showFaultModal({ text: 'BUG: next_puzzle_for_club fell through to unhandled' })
+            reportUnhandled('next_puzzle_for_club', res)
             return null
           }
         }}
@@ -100,7 +100,7 @@ export function SetupForm({
             setError(FORM_ERROR_KEYNAME, null)
             return res.data.puzzle
           } else {
-            showFaultModal({ text: 'BUG: puzzle_for_date fell through to unhandled' })
+            reportUnhandled('puzzle_for_date', res)
             return null
           }
         }}

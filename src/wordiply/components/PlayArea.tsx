@@ -5,7 +5,6 @@ import { IconHideSolution, IconNewGame, IconPrint, IconRestart, IconReveal } fro
 import { cls } from '../../common/lib/util/cls'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import type { CreatedGame, GamePageCtx, Member } from '../../common/lib/games'
-import { showFaultModal } from '../../common/lib/fault/faultStore'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { outOfRacePill } from '../../common/lib/game/localPills'
 import { waitingTurnPill } from '../../common/components/game/turnCopy'
@@ -35,6 +34,7 @@ import { getNotOkFeedback } from '../../common/lib/game/genericPills'
 import styles from './PlayArea.module.css'
 
 import '../theme.css'
+import { reportUnhandled } from '../../common/lib/supabase/dbEnvelope'
 
 /** A row of `status.leaderboard`. Mid-game only `guesses_used` is set (no
  *  scores leak early); the score fields fill in at terminal. */
@@ -181,7 +181,7 @@ export function PlayArea(ctx: GamePageCtx) {
         } else if (res.type === 'ok' && res.data?.result === 'accepted') {
           return null
         } else {
-          showFaultModal({ text: 'BUG: submit_guess fell through to unhandled' })
+          reportUnhandled('submit_guess', res)
           return null
         }
       },
@@ -210,7 +210,7 @@ export function PlayArea(ctx: GamePageCtx) {
             // has raised the modal for the faults among these.
             console.error('recording a rejected guess failed', res.message)
           } else {
-            showFaultModal({ text: 'BUG: submit_guess fell through to unhandled' })
+            reportUnhandled('submit_guess', res)
           }
         })
       },
@@ -258,7 +258,7 @@ export function PlayArea(ctx: GamePageCtx) {
       goToGame(`wordiply_${gameMode}`, res.data.id)
       return
     } else {
-      showFaultModal({ text: 'BUG: wordiply-build-board fell through to unhandled' })
+      reportUnhandled('wordiply-build-board', res)
       return
     }
   }, [gameMode, clubHandle, setup, players, goToGame, showLocalFeedback, confirmAction, isTerminal])

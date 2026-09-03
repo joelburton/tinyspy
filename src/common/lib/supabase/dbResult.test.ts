@@ -778,15 +778,24 @@ describe('notOkOutcome', () => {
 describe('reportUnhandled', () => {
   // The scream-else's whole problem was that it reached the screen and nothing
   // else. Both halves are asserted: the modal, and the [db] line under it.
+  const okAnswer = {
+    type: 'ok', data: { result: 'already_ended' }, message: null, outcome: null,
+    severity: null, field: null, meta: null, dbcode: null, detail: null,
+  } as const
+
   it('writes a FAULT line AND raises a modal carrying it', () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
-    reportUnhandled('end_game')
+    reportUnhandled('end_game', okAnswer)
 
     const line = spy.mock.calls.map((c) => String(c[0])).join('\n')
     expect(line).toContain('[db]')
     expect(line).toContain('FAULT')
     expect(line).toContain('end_game')
     expect(line).toContain('dbcode=PN488')
+    // The answer itself, which is what turns "there is a bug" into "here it is".
+    expect(line).toContain('already_ended')
+    // And NOT a blank status, which would claim nothing answered.
+    expect(line).toContain('status=200')
 
     const [fault] = peekFaultsForTest()
     expect(fault.text).toBe('BUG: end_game fell through to unhandled')
@@ -796,7 +805,7 @@ describe('reportUnhandled', () => {
 
   it('names the call it was given, so two fall-throughs are distinguishable', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
-    reportUnhandled('submit_guess')
+    reportUnhandled('submit_guess', okAnswer)
     expect(peekFaultsForTest()[0].text).toBe('BUG: submit_guess fell through to unhandled')
   })
 })

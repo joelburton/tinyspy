@@ -6,7 +6,6 @@ import { FORM_ERROR_KEYNAME, type FormErrors } from '../fields/formState'
 import { useState } from 'react'
 import { db as commonDb } from '../../db'
 import { runRpc } from '../../lib/supabase/dbResult'
-import { showFaultModal } from '../../lib/fault/faultStore'
 import { useDefinePopover } from '../../hooks/definitions/useDefinePopover'
 import { Dialog } from '../floating-panels/Dialog'
 import styles from './AnagramDialog.module.css'
@@ -14,6 +13,7 @@ import { StandardButton } from '../buttons/StandardButton'
 import { TextField } from '../fields/TextField'
 import { FailureLine } from '../feedback/FailureLine'
 import { SimpleScrollableList } from '../lists/SimpleScrollableList'
+import { reportUnhandled } from '../../lib/supabase/dbEnvelope'
 
 type Result = { word: string; difficulty: number }
 
@@ -104,7 +104,7 @@ export function AnagramDialog({ onClose }: { onClose: () => void }) {
     } else {
       // The previous answer stays on screen, as it does during a search — an
       // answer nobody handled is no reason to claim the old one is now wrong.
-      showFaultModal({ text: 'BUG: anagrams fell through to unhandled' })
+      reportUnhandled('anagrams', res)
       return
     }
   }

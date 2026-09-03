@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { runRpc } from '../../common/lib/supabase/dbResult'
-import { showFaultModal } from '../../common/lib/fault/faultStore'
 import { IconNewGame, IconPrint, IconRestart } from '../../common/components/icons'
 import { cls } from '../../common/lib/util/cls'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
@@ -40,6 +39,7 @@ import { getNotOkFeedback } from '../../common/lib/game/genericPills'
 import styles from './PlayArea.module.css'
 
 import '../theme.css'
+import { reportUnhandled } from '../../common/lib/supabase/dbEnvelope'
 
 /** What `setgame.submit_set` puts in `data`. One `ok` answer, named anyway — a
  *  branch matching merely by being `ok` would draw a second one as this. Its
@@ -253,7 +253,7 @@ export function PlayArea(ctx: GamePageCtx) {
         // the board moving, and an answer nobody named is an answer that may not
         // have moved it.
         setSubmitted([])
-        showFaultModal({ text: 'BUG: submit_set fell through to unhandled' })
+        reportUnhandled('submit_set', res)
       }
     },
     [gameId, showLocalFeedback],
@@ -373,7 +373,7 @@ export function PlayArea(ctx: GamePageCtx) {
       // one card, then two, then three.
       if (next.length === CLAIM_SIZE) void submitClaim(next)
     } else {
-      showFaultModal({ text: 'BUG: record_hint fell through to unhandled' })
+      reportUnhandled('record_hint', res)
     }
   }, [game, gameId, ring, submitClaim, showLocalFeedback])
 
@@ -420,7 +420,7 @@ export function PlayArea(ctx: GamePageCtx) {
       goToGame(`setgame_${gameMode}`, res.data.id)
       return
     } else {
-      showFaultModal({ text: 'BUG: create_game fell through to unhandled' })
+      reportUnhandled('create_game', res)
       return
     }
   }, [gameMode, clubHandle, setup, players, goToGame, showLocalFeedback, confirmAction, isTerminal])

@@ -40,9 +40,9 @@ import { StateLine } from './StateLine'
 import shared from '../../common/components/game/PlayArea.module.css'
 import { EnvelopeErrorPage } from '../../common/components/loading-and-errs/ErrorPage'
 import { getNotOkFeedback } from '../../common/lib/game/genericPills'
-import { showFaultModal } from '../../common/lib/fault/faultStore'
 import styles from './PlayArea.module.css'
 import '../theme.css'  // codenamesduet-specific color tokens (lazy-loaded with this chunk)
+import { reportUnhandled } from '../../common/lib/supabase/dbEnvelope'
 
 /**
  * codenamesduet's play surface — two-column viewport-bound composition:
@@ -403,7 +403,7 @@ export function PlayArea({
     } else if (res.type === 'ok' && res.data?.result === 'replayed') {
       // Nothing to do: the fresh board arrives through the subscription.
     } else {
-      showFaultModal({ text: 'BUG: replay_board fell through to unhandled' })
+      reportUnhandled('replay_board', res)
     }
   }, [gameId, isTerminal, confirmAction, showLocalFeedback, hidePeerKey])
 
@@ -416,7 +416,7 @@ export function PlayArea({
     } else if (res.type === 'ok' && res.data?.result === 'ended') {
       // Nothing to do: the terminal arrives by subscription.
     } else {
-      showFaultModal({ text: 'BUG: end_game fell through to unhandled' })
+      reportUnhandled('end_game', res)
     }
   }, [gameId, isTerminal, showLocalFeedback, confirmAction])
 
@@ -465,7 +465,7 @@ export function PlayArea({
       goToGame('codenamesduet', res.data.id)
       return
     } else {
-      showFaultModal({ text: 'BUG: create_game fell through to unhandled' })
+      reportUnhandled('create_game', res)
       return
     }
   }, [clubHandle, codenamesduetSetup, members, goToGame, showLocalFeedback, confirmAction, isTerminal])

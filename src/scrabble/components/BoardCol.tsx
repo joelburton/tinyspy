@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { runRpc } from '../../common/lib/supabase/dbResult'
 import { getNotOkFeedback } from '../../common/lib/game/genericPills'
-import { showFaultModal } from '../../common/lib/fault/faultStore'
 import type { GenericFeedbackMsg } from '../../common/lib/games'
 import { useFlash } from '../../common/hooks/ui/useFlash'
 import { cls } from '../../common/lib/util/cls'
@@ -26,6 +25,7 @@ import shared from '../../common/components/game/PlayArea.module.css'
 import dragGhost from '../../common/components/game/dragGhost.module.css'
 import history from '../../common/components/game/lists/historyViewer.module.css'
 import styles from './BoardCol.module.css'
+import { reportUnhandled } from '../../common/lib/supabase/dbEnvelope'
 
 /** A tile staged on the board this turn, tied to its rack slot. */
 type Staged = Placement & { rackIdx: number }
@@ -680,7 +680,7 @@ export function BoardCol({
     } else {
       lastActionRef.current = prevAction
       pendingDrawRef.current = prevDraw
-      showFaultModal({ text: 'BUG: play_word fell through to unhandled' })
+      reportUnhandled('play_word', res)
       return
     }
   }, [game.version, board, staged, actingRack, gameId, showLocalFeedback, flashGreen, flashRed])
@@ -710,7 +710,7 @@ export function BoardCol({
     } else {
       lastActionRef.current = prevAction
       pendingDrawRef.current = prevDraw
-      showFaultModal({ text: 'BUG: exchange_tiles fell through to unhandled' })
+      reportUnhandled('exchange_tiles', res)
       return
     }
   }, [game.version, selected, actingRack, gameId, showLocalFeedback])
@@ -732,7 +732,7 @@ export function BoardCol({
       // games row. The pass is in the turn log either way.
       return
     } else {
-      showFaultModal({ text: 'BUG: pass_turn fell through to unhandled' })
+      reportUnhandled('pass_turn', res)
       return
     }
   }, [game.version, gameId, showLocalFeedback])

@@ -365,11 +365,30 @@ export function reportDbFault(transport: Transport, envelope: NotOk): void {
  * which is the whole point: one line in the console and one modal with a real
  * `k=v` line under it, built by the same builder as every other fault.
  *
- * `call` is the RPC or edge function whose answer went unhandled. It is a
- * hand-written string and this does not change that — by the `else` branch the
- * caller holds an envelope, and an envelope does not carry the call's name.
+ * **It takes the ANSWER, not just the name**, and that is the difference
+ * between knowing there is a bug and knowing what it is: the useful fact about
+ * a fall-through is what the server actually said — an `ok` whose `result` this
+ * caller has no case for, an outcome nobody read — and that goes on the line as
+ * `detail`.
+ *
+ * `call` stays a hand-written string. By the `else` branch the caller holds an
+ * envelope, and an envelope does not carry the call's name.
  */
-export function reportUnhandled(call: string): void {
+export function reportUnhandled(call: string, answer: Envelope): void {
   const { code, text } = OUR_BUG_TO_CODE_AND_TEXT.unhandledAnswer
-  reportDbFault({ call }, faultEnvelope(null, `BUG: ${call} ${text}`, undefined, code))
+  // **`status` is derived, not left blank.** A blank one means "the server
+  // never answered" on every other `[db]` line — the opposite of what happened
+  // here, since a fall-through needs an answer to fall through ON. The one
+  // envelope that arrives without a server answering is the one the frontend
+  // built for exactly that, which `isEnvironmental` names.
+  const answered = !isEnvironmental(answer.dbcode)
+  reportDbFault(
+    { call, status: answered ? 200 : undefined },
+    faultEnvelope(
+      null,
+      `BUG: ${call} ${text}`,
+      `answered ${JSON.stringify(answer)?.slice(0, 120)}`,
+      code,
+    ),
+  )
 }

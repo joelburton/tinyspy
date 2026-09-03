@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { db as commonDb } from '../../db'
 import { runRpc } from '../../lib/supabase/dbResult'
-import { showFaultModal } from '../../lib/fault/faultStore'
 import { games } from '../../../games'
 import { NormalModal } from '../floating-panels/NormalModal'
 import { FailureLine } from '../feedback/FailureLine'
@@ -14,6 +13,7 @@ import { CancelButton } from '../buttons/CancelButton'
 import { CheckboxListField } from '../fields/CheckboxListField'
 import { StandardForm } from '../fields/StandardForm'
 import { FORM_ERROR_KEYNAME, type FormErrors } from '../fields/formState'
+import { reportUnhandled } from '../../lib/supabase/dbEnvelope'
 
 type Props = {
   /** Club being edited. */
@@ -101,7 +101,7 @@ export function EditClubModal({
       // answer it didn't handle, so leaving the flag set would strand Save
       // disabled with no way back but Cancel.
       setBusy(false)
-      showFaultModal({ text: 'BUG: set_club_gametypes fell through to unhandled' })
+      reportUnhandled('set_club_gametypes', res)
       return
     }
   }

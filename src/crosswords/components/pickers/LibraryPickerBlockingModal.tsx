@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { runRpc } from '../../../common/lib/supabase/dbResult'
-import { showFaultModal } from '../../../common/lib/fault/faultStore'
 import { BlockingModal } from '../../../common/components/floating-panels/BlockingModal'
 import { CancelButton } from '../../../common/components/buttons/CancelButton'
 import { SelectionList } from '../../../common/components/lists/SelectionList'
@@ -10,6 +9,7 @@ import { cls } from '../../../common/lib/util/cls'
 import { db } from '../../db'
 import styles from './pickers.module.css'
 import '../../theme.css'
+import { reportUnhandled } from '../../../common/lib/supabase/dbEnvelope'
 
 /**
  * Whether the club opening this picker has played a given puzzle, as
@@ -113,7 +113,7 @@ export function LibraryPickerBlockingModal({ clubHandle, onPick, onClose }: Prop
         )
         return
       } else {
-        showFaultModal({ text: 'BUG: library_for_club fell through to unhandled' })
+        reportUnhandled('library_for_club', res)
         return
       }
     })()

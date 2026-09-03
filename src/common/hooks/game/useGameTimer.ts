@@ -6,6 +6,7 @@ import { readRows, runRpc } from '../../lib/supabase/dbResult'
 import { isEnvironmental } from '../../lib/supabase/dbEnvelope'
 import { showFaultModal } from '../../lib/fault/faultStore'
 import type { TimerMode } from '../../lib/games'
+import { reportUnhandled } from '../../lib/supabase/dbEnvelope'
 
 /**
  * Per-game timer hook. Returns a display-ready elapsed/remaining
@@ -148,7 +149,7 @@ export function useGameTimer({
         } else {
           // A bug: an answer this chain cannot read. Once a second is the right
           // volume for it — loud enough to meet in a game or an e2e run.
-          showFaultModal({ text: 'BUG: tick_timer fell through to unhandled' })
+          reportUnhandled('tick_timer', res)
         }
       })
     }

@@ -9,11 +9,11 @@ import { channelLeaving, releaseChannel } from '../../lib/supabase/channelTeardo
 import { onPostgresAttached } from '../../lib/supabase/postgresAttached'
 import { readRows, runRpc } from '../../lib/supabase/dbResult'
 import type { NotOk } from '../../lib/supabase/envelope'
-import { showFaultModal } from '../../lib/fault/faultStore'
 import { rtLog } from '../../lib/supabase/realtimeDiag'
 import { computePause } from '../../lib/game/pause'
 import type { GamePlayer, Member, TimerMode } from '../../lib/games'
 import { useGameTimer } from './useGameTimer'
+import { reportUnhandled } from '../../lib/supabase/dbEnvelope'
 
 /**
  * Subset of common.games we surface to game pages. Mirrors the
@@ -519,7 +519,7 @@ export function useCommonGame(
               // Flipped, or already true — the RPC's own `is_current_view =
               // false` guard absorbing a re-assert.
             } else {
-              showFaultModal({ text: 'BUG: set_current_view fell through to unhandled' })
+              reportUnhandled('set_current_view', res)
             }
           })
         }
@@ -589,7 +589,7 @@ export function useCommonGame(
             // Cleared, or already false — the RPC's own `is_current_view =
             // true` guard absorbing a peer who got there first.
           } else {
-            showFaultModal({ text: 'BUG: unset_current_view fell through to unhandled' })
+            reportUnhandled('unset_current_view', res)
           }
         })
       }

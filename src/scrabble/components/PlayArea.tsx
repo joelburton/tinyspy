@@ -4,7 +4,6 @@ import { runRpc } from '../../common/lib/supabase/dbResult'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { IconNewGame, IconPrint, IconRestart } from '../../common/components/icons'
 import type { CreatedGame, GenericFeedbackMsg, GamePageCtx, Member } from '../../common/lib/games'
-import { showFaultModal } from '../../common/lib/fault/faultStore'
 import { cls } from '../../common/lib/util/cls'
 import { outOfRacePill, terminalPill } from '../../common/lib/game/localPills'
 import { waitingTurnPill } from '../../common/components/game/turnCopy'
@@ -38,6 +37,7 @@ import '../theme.css'
 import { useSwallowTab } from '../../common/hooks/input/useSwallowTab'
 import { useSingleFlight } from '../../common/hooks/ui/useSingleFlight'
 import { getNotOkFeedback } from '../../common/lib/game/genericPills'
+import { reportUnhandled } from '../../common/lib/supabase/dbEnvelope'
 
 /** Disc colors for AI seats (up to 3), kept distinct from the common
  *  member-color palette's usual first picks so a bot reads as "not one of us". */
@@ -265,7 +265,7 @@ export function PlayArea({
         console.error('scrabble-ai-move poke failed', res.message)
       } else {
         disarm()
-        showFaultModal({ text: 'BUG: scrabble-ai-move fell through to unhandled' })
+        reportUnhandled('scrabble-ai-move', res)
       }
     })
   }, [currentSeatIsAi, game, gameId, isTerminal])
@@ -351,7 +351,7 @@ type Suggested =
       // hides it otherwise, so a genuinely superseded answer never surfaces.
       setSuggest({ status: 'ready', moves: res.data.moves, version: res.data.version })
     } else {
-      showFaultModal({ text: 'BUG: scrabble-suggest-move fell through to unhandled' })
+      reportUnhandled('scrabble-suggest-move', res)
       setSuggest({ status: 'idle' })
     }
   }, [gameId])
@@ -498,7 +498,7 @@ type Suggested =
       goToGame(`scrabble_${gameMode}`, res.data.id)
       return
     } else {
-      showFaultModal({ text: 'BUG: create_game fell through to unhandled' })
+      reportUnhandled('create_game', res)
       return
     }
   }, [gameMode, clubHandle, setup, players, goToGame, showMsg, confirmAction, isTerminal])

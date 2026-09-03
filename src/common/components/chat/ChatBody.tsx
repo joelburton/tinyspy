@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState, type SubmitEvent } from 'react'
 import { db as commonDb } from '../../db'
 import { runRpc } from '../../lib/supabase/dbResult'
-import { showFaultModal } from '../../lib/fault/faultStore'
 import { colorVarFor } from '../../lib/color/memberColor'
 import { linkify } from '../../lib/util/linkify'
 import { handOffKeyboardOnTab } from '../../lib/util/keyboardHandoff'
@@ -11,6 +10,7 @@ import type { ClubMessage } from '../../hooks/chat/useClubChat'
 import styles from './ChatBody.module.css'
 
 import type { Member } from '../../lib/games'
+import { reportUnhandled } from '../../lib/supabase/dbEnvelope'
 
 /** What `common.send_message` puts in `data`. The sent line shows up in the
  *  log on its own, so the RPC writes no sentence — `result` is the whole
@@ -100,7 +100,7 @@ export function ChatBody({ clubHandle, members, messages, loading }: Props) {
     } else {
       // The typed text stays in the box — an answer nobody handled is not
       // evidence the message was posted, and retyping it would be the cost.
-      showFaultModal({ text: 'BUG: send_message fell through to unhandled' })
+      reportUnhandled('send_message', res)
       return
     }
   }

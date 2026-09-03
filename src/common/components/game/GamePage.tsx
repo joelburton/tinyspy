@@ -19,7 +19,6 @@ import type {
 } from '../../lib/games'
 import { END_OR_CONCEDE_IDS, NEW_GAME_ID } from '../../lib/game/gameMenu'
 import { getNotOkFeedback } from '../../lib/game/genericPills'
-import { showFaultModal } from '../../lib/fault/faultStore'
 import { useAppShortcuts } from '../../hooks/input/useAppShortcuts'
 import { useAccountMenuSection } from '../../hooks/account/useAccountMenuSection'
 import { useIsMobile } from '../../hooks/ui/useIsMobile'
@@ -53,6 +52,7 @@ import { db as commonDb } from '../../db'
 import { readRows } from '../../lib/supabase/dbResult'
 import type { NotOk } from '../../lib/supabase/envelope'
 import styles from './GamePage.module.css'
+import { reportUnhandled } from '../../lib/supabase/dbEnvelope'
 
 type Props = {
   /** The game's id. Drives every common-side data read
@@ -336,7 +336,7 @@ function GamePageInner({
         // The terminal arrives at every client by subscription, this one
         // included — winning the race buys no extra work.
       } else {
-        showFaultModal({ text: 'BUG: submit_timeout fell through to unhandled' })
+        reportUnhandled('submit_timeout', res)
       }
     })
   }, [timer.expired, paused, commonGame, gameId, manifest])
@@ -673,7 +673,7 @@ function GamePageInner({
                   // Nothing here: the terminal arrives by subscription and the
                   // overlay unmounts with the pause.
                 } else {
-                  showFaultModal({ text: 'BUG: end_game fell through to unhandled' })
+                  reportUnhandled('end_game', res)
                 }
               }
             : undefined

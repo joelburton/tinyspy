@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { runEdgeFn } from '../../lib/supabase/dbResult'
-import { showFaultModal } from '../../lib/fault/faultStore'
+import { reportUnhandled } from '../../lib/supabase/dbEnvelope'
 
 /** A word's categorization from `common.words` — band, dialects, slur/crude
  *  levels, slang, wordle-list membership. Present on any in-list word; absent
@@ -101,7 +101,7 @@ export function useDefinition(word: string | null): State {
           // the scream instead of being stored as something nothing renders.
           setLoaded({ forWord: word, result: res.data, error: null })
         } else {
-          showFaultModal({ text: 'BUG: common-define fell through to unhandled' })
+          reportUnhandled('common-define', res)
         }
       })
 

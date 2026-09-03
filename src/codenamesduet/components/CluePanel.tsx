@@ -4,7 +4,6 @@ import type { GenericFeedbackMsg } from '../../common/lib/games'
 import { useRef, useState, type KeyboardEvent, type RefObject, type SubmitEvent } from 'react'
 import { runEdgeFn, runRpc } from '../../common/lib/supabase/dbResult'
 import { getNotOkFeedback } from '../../common/lib/game/genericPills'
-import { showFaultModal } from '../../common/lib/fault/faultStore'
 import { cls } from '../../common/lib/util/cls'
 import { ActorDot, ActorTag } from '../../common/components/game/lists/ActorMention'
 import { SubmitButton } from '../../common/components/buttons/SubmitButton'
@@ -15,6 +14,7 @@ import { db } from '../db'
 import type { Seat } from '../lib/phase'
 import type { Player } from '../hooks/useGame'
 import styles from './CluePanel.module.css'
+import { reportUnhandled } from '../../common/lib/supabase/dbEnvelope'
 
 type Clue = { word: string; count: number }
 
@@ -288,7 +288,7 @@ function ClueForm({
       onSuggestionChange(null)
       return
     } else {
-      showFaultModal({ text: 'BUG: submit_clue fell through to unhandled' })
+      reportUnhandled('submit_clue', res)
       return
     }
   }
@@ -327,7 +327,7 @@ function ClueForm({
       console.log('[ClueHint] response = ready:', upper, s.count)
       onSuggestionChange({ status: 'ready', word: upper, count: s.count, reasoning: s.reasoning })
     } else {
-      showFaultModal({ text: 'BUG: codenamesduet-suggest-clue fell through to unhandled' })
+      reportUnhandled('codenamesduet-suggest-clue', res)
       onSuggestionChange(null)
     }
   }
@@ -429,7 +429,7 @@ function PassButton({
           // one — arrives on the games row, which is what redraws this panel.
           return
         } else {
-          showFaultModal({ text: 'BUG: pass_turn fell through to unhandled' })
+          reportUnhandled('pass_turn', res)
           return
         }
       }}

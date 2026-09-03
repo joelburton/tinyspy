@@ -2,7 +2,6 @@
 
 import { SetupTimerSection } from '../../common/components/setup/SetupTimerSection'
 import { runRpc } from '../../common/lib/supabase/dbResult'
-import { showFaultModal } from '../../common/lib/fault/faultStore'
 import { PlayersSection } from '../../common/components/setup/PlayersSection'
 import { SetupCoopStyleSection } from '../../common/components/setup/SetupCoopStyleSection'
 import {
@@ -12,6 +11,7 @@ import { FORM_ERROR_KEYNAME } from '../../common/components/fields/formState'
 import type { SetupBodyProps, SetupSetter } from '../../common/lib/games'
 import { db } from '../db'
 import type { ConnectionsValues, PuzzleAnswer } from '../lib/setup'
+import { reportUnhandled } from '../../common/lib/supabase/dbEnvelope'
 
 /**
  * connections's per-game setup form. Two choices — and the puzzle is no
@@ -105,7 +105,7 @@ export function SetupForm({
             setError(FORM_ERROR_KEYNAME, null)
             return res.data.puzzle
           } else {
-            showFaultModal({ text: 'BUG: next_puzzle_for_club fell through to unhandled' })
+            reportUnhandled('next_puzzle_for_club', res)
             return null
           }
         }}
@@ -122,7 +122,7 @@ export function SetupForm({
             setError(FORM_ERROR_KEYNAME, null)
             return res.data.puzzle
           } else {
-            showFaultModal({ text: 'BUG: puzzle_for_date fell through to unhandled' })
+            reportUnhandled('puzzle_for_date', res)
             return null
           }
         }}

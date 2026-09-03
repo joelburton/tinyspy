@@ -5,9 +5,9 @@ import type { GenericFeedbackMsg } from '../../lib/games'
 import type { GameStopResult } from '../../lib/games'
 import { getNotOkFeedback } from '../../lib/game/genericPills'
 import { runRpc } from '../../lib/supabase/dbResult'
-import { showFaultModal } from '../../lib/fault/faultStore'
 import { useCallback, useRef } from 'react'
 import { END_GAME_CONFIRM, RESTART_CONFIRM, type ConfirmOptions } from '../ui/useConfirmation'
+import { reportUnhandled } from '../../lib/supabase/dbEnvelope'
 
 /** The shared game-menu actions this hook owns, as fire-and-forget handlers.
  *  A game wires these into its own `actionsRef` alongside any game-specific
@@ -109,7 +109,7 @@ export function useStandardGameActions({
       } else if (res.type === 'ok' && res.data?.result === 'ended') {
         // Nothing to do: the terminal arrives by subscription.
       } else {
-        showFaultModal({ text: 'BUG: end_game fell through to unhandled' })
+        reportUnhandled('end_game', res)
       }
     })()
   }, [db, gameId, isTerminal, confirm, showError])
@@ -129,7 +129,7 @@ export function useStandardGameActions({
         // Nothing to do here. The conceded flag, the roster the others see, and
         // a terminal if this was the last racer all arrive by subscription.
       } else {
-        showFaultModal({ text: 'BUG: concede fell through to unhandled' })
+        reportUnhandled('concede', res)
       }
     })()
   }, [db, gameId, isTerminal, myConceded, showError])
@@ -180,7 +180,7 @@ export function useStandardGameActions({
           // post-replay cleanup (wordle/waffle re-hide the answer).
           onRestarted?.()
         } else {
-          showFaultModal({ text: 'BUG: replay_board fell through to unhandled' })
+          reportUnhandled('replay_board', res)
         }
       } finally {
         // Cleared on every path — a failed replay must stay retryable.

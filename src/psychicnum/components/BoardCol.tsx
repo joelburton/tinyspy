@@ -1,7 +1,6 @@
 // cs-unmet
 
 import { getNotOkFeedback } from '../../common/lib/game/genericPills'
-import { showFaultModal } from '../../common/lib/fault/faultStore'
 import { runRpc } from '../../common/lib/supabase/dbResult'
 import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import { cls } from '../../common/lib/util/cls'
@@ -18,6 +17,7 @@ import { Board } from './Board'
 import shared from '../../common/components/game/PlayArea.module.css'
 import history from '../../common/components/game/lists/historyViewer.module.css'
 import styles from './BoardCol.module.css'
+import { reportUnhandled } from '../../common/lib/supabase/dbEnvelope'
 
 /** What `psychicnum.submit_guess` puts in `data` for a guess it TOOK — the
  *  caller's own verdict, plus whether that guess completed the set.
@@ -258,7 +258,7 @@ export function BoardCol({
       // Nothing named this answer, so the tile must not keep claiming to be in
       // flight — there is no result coming that would release it.
       setSubmittedWord(null)
-      showFaultModal({ text: 'BUG: submit_guess fell through to unhandled' })
+      reportUnhandled('submit_guess', res)
     }
   }
 

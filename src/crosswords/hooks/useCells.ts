@@ -5,10 +5,10 @@ import { supabase } from '../../common/lib/supabase/supabase'
 import { channelDedupSuffix } from '../../common/lib/supabase/channelDedup'
 import { onPostgresAttached } from '../../common/lib/supabase/postgresAttached'
 import { readRows, runRpc } from '../../common/lib/supabase/dbResult'
-import { showFaultModal } from '../../common/lib/fault/faultStore'
 import type { Envelope } from '../../common/lib/supabase/envelope'
 import { db } from '../db'
 import type { MarkSide, MarkType } from '../lib/types'
+import { reportUnhandled } from '../../common/lib/supabase/dbEnvelope'
 
 export type CellState = {
   fill: string | null
@@ -268,7 +268,7 @@ export function useCells(
         // An answer neither branch above named. The optimistic letter is a
         // guess about a write we cannot confirm happened, so it goes.
         rollBack()
-        showFaultModal({ text: 'BUG: set_cell fell through to unhandled' })
+        reportUnhandled('set_cell', res)
         return res
       }
     },
@@ -322,7 +322,7 @@ export function useCells(
         return res
       } else {
         rollBack()
-        showFaultModal({ text: 'BUG: set_mark fell through to unhandled' })
+        reportUnhandled('set_mark', res)
         return res
       }
     },

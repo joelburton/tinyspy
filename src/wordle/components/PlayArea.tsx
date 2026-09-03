@@ -36,9 +36,9 @@ import { cls } from '../../common/lib/util/cls'
 import shared from '../../common/components/game/PlayArea.module.css'
 import { EnvelopeErrorPage } from '../../common/components/loading-and-errs/ErrorPage'
 import { getNotOkFeedback } from '../../common/lib/game/genericPills'
-import { showFaultModal } from '../../common/lib/fault/faultStore'
 import styles from './PlayArea.module.css'
 import '../theme.css'
+import { reportUnhandled } from '../../common/lib/supabase/dbEnvelope'
 
 /**
  * wordle's play surface, shared by the coop and compete manifests. The thin
@@ -295,7 +295,7 @@ export function PlayArea({
       goToGame(`wordle_${gameMode}`, res.data.id)
       return
     } else {
-      showFaultModal({ text: 'BUG: create_game fell through to unhandled' })
+      reportUnhandled('create_game', res)
       return
     }
   }, [gameMode, clubHandle, setup, members, goToGame, showLocalFeedback, confirmAction, isTerminal])

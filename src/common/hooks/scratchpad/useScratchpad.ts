@@ -6,7 +6,7 @@ import { supabase } from '../../lib/supabase/supabase'
 import { channelLeaving, releaseChannel } from '../../lib/supabase/channelTeardown'
 import { onPostgresAttached } from '../../lib/supabase/postgresAttached'
 import { readRows, runRpc } from '../../lib/supabase/dbResult'
-import { showFaultModal } from '../../lib/fault/faultStore'
+import { reportUnhandled } from '../../lib/supabase/dbEnvelope'
 
 const commonDb = supabase.schema('common')
 
@@ -241,7 +241,7 @@ export function useScratchpad(
           const { version } = res.data
           if (version > versionRef.current) versionRef.current = version
         } else {
-          showFaultModal({ text: 'BUG: set_scratchpad fell through to unhandled' })
+          reportUnhandled('set_scratchpad', res)
         }
       })
     },

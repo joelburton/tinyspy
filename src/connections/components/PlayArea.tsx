@@ -6,7 +6,6 @@ import { IconHint, IconNewGame, IconPrint, IconRestart } from '../../common/comp
 import { cls } from '../../common/lib/util/cls'
 import { EnvelopeErrorPage } from '../../common/components/loading-and-errs/ErrorPage'
 import { getNotOkFeedback } from '../../common/lib/game/genericPills'
-import { showFaultModal } from '../../common/lib/fault/faultStore'
 import type { CreatedGame, GamePageCtx } from '../../common/lib/games'
 import { colorByUserIdMap } from '../../common/lib/color/memberColor'
 import { CelebrationBlockingModal } from '../../common/components/game/CelebrationBlockingModal'
@@ -43,6 +42,7 @@ import styles from './PlayArea.module.css'
 import '../theme.css'  // connections-specific color tokens (lazy with this chunk)
 import { useSwallowTab } from '../../common/hooks/input/useSwallowTab'
 import { useSingleFlight } from '../../common/hooks/ui/useSingleFlight'
+import { reportUnhandled } from '../../common/lib/supabase/dbEnvelope'
 
 /** Four categories to find, four mistakes allowed — the NYT Connections
  *  constants, shown in the setup disclosure + the "N/4 found" state line. */
@@ -396,7 +396,7 @@ export function PlayArea({
       // look-ahead, and create_game derives it again — so the branch exists to
       // name the answer, not to act on it.
     } else {
-      showFaultModal({ text: 'BUG: next_puzzle_for_club fell through to unhandled' })
+      reportUnhandled('next_puzzle_for_club', preview)
       return
     }
 
@@ -428,7 +428,7 @@ export function PlayArea({
       goToGame(`connections_${gameMode}`, res.data.id)
       return
     } else {
-      showFaultModal({ text: 'BUG: create_game fell through to unhandled' })
+      reportUnhandled('create_game', res)
       return
     }
   }, [gameMode, clubHandle, setup, players, goToGame, showLocalFeedback, confirmAction, acknowledge, isTerminal])

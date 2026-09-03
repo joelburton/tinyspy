@@ -5,7 +5,6 @@ import { IconHideSolution, IconHint, IconNewGame, IconPrint, IconRestart, IconRe
 import { cls } from '../../common/lib/util/cls'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import type { CreatedGame, GamePageCtx } from '../../common/lib/games'
-import { showFaultModal } from '../../common/lib/fault/faultStore'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { outOfRacePill, stickyPill } from '../../common/lib/game/localPills'
 import { waitingTurnPill } from '../../common/components/game/turnCopy'
@@ -41,6 +40,7 @@ import { getNotOkFeedback } from '../../common/lib/game/genericPills'
 import styles from './PlayArea.module.css'
 
 import '../theme.css'
+import { reportUnhandled } from '../../common/lib/supabase/dbEnvelope'
 
 /** A row of `status.leaderboard` (compete). */
 type LeaderRow = {
@@ -233,7 +233,7 @@ export function PlayArea(ctx: GamePageCtx) {
       clearLocalFeedback()
       return
     } else {
-      showFaultModal({ text: 'BUG: submit_word fell through to unhandled' })
+      reportUnhandled('submit_word', res)
       return
     }
   }, [game, busy, chain, draft, sides, playable, maxWords, gameId, showLocalFeedback, clearLocalFeedback])
@@ -272,7 +272,7 @@ export function PlayArea(ctx: GamePageCtx) {
         clearLocalFeedback()
         return
       } else {
-        showFaultModal({ text: `BUG: ${fn} fell through to unhandled` })
+        reportUnhandled(fn, res)
         return
       }
     },
@@ -401,7 +401,7 @@ export function PlayArea(ctx: GamePageCtx) {
         // stands, which is the whole of what a successful log owes anyone.
         return
       } else {
-        showFaultModal({ text: 'BUG: log_help fell through to unhandled' })
+        reportUnhandled('log_help', res)
         return
       }
     },
@@ -461,7 +461,7 @@ export function PlayArea(ctx: GamePageCtx) {
       goToGame(`letterboxed_${gameMode}`, res.data.id)
       return
     } else {
-      showFaultModal({ text: 'BUG: letterboxed-build-board fell through to unhandled' })
+      reportUnhandled('letterboxed-build-board', res)
       return
     }
   }, [gameMode, clubHandle, setup, players, goToGame, showLocalFeedback, confirmAction, isTerminal])

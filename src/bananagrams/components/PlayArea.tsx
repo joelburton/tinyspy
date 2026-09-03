@@ -41,7 +41,7 @@ import { useSwallowTab } from '../../common/hooks/input/useSwallowTab'
 import { useConfirmation, NEW_GAME_CONFIRM, END_GAME_CONFIRM, RESTART_CONFIRM } from '../../common/hooks/ui/useConfirmation'
 import { useSingleFlight } from '../../common/hooks/ui/useSingleFlight'
 import { getNotOkFeedback } from '../../common/lib/game/genericPills'
-import { showFaultModal } from '../../common/lib/fault/faultStore'
+import { reportUnhandled } from '../../common/lib/supabase/dbEnvelope'
 
 /**
  * bananagrams play surface (v3).
@@ -170,7 +170,7 @@ export function PlayArea(ctx: GamePageCtx) {
       // pill + the winner's celebration react to that.
       return null
     } else {
-      showFaultModal({ text: 'BUG: peel fell through to unhandled' })
+      reportUnhandled('peel', res)
       return null
     }
   }, [gameId, showLocalFeedback])
@@ -220,7 +220,7 @@ export function PlayArea(ctx: GamePageCtx) {
         showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
       } else {
         dumpPending.current = false
-        showFaultModal({ text: 'BUG: dump fell through to unhandled' })
+        reportUnhandled('dump', res)
       }
     },
     [gameId, showLocalFeedback],
@@ -274,7 +274,7 @@ export function PlayArea(ctx: GamePageCtx) {
       // Nothing to do: the conceded flag and the game's terminal both arrive
       // through the subscription, this client included.
     } else {
-      showFaultModal({ text: 'BUG: concede fell through to unhandled' })
+      reportUnhandled('concede', res)
     }
   }, [gameId, isTerminal, showLocalFeedback])
 
@@ -333,7 +333,7 @@ export function PlayArea(ctx: GamePageCtx) {
     } else if (res.type === 'ok' && res.data?.result === 'ended') {
       // Nothing to do: the terminal arrives by subscription.
     } else {
-      showFaultModal({ text: 'BUG: end_game fell through to unhandled' })
+      reportUnhandled('end_game', res)
     }
   }, [gameId, isTerminal, showLocalFeedback, confirmAction])
   const endGameRef = useRef<() => void>(() => {})
@@ -357,7 +357,7 @@ export function PlayArea(ctx: GamePageCtx) {
     } else if (res.type === 'ok' && res.data?.result === 'replayed') {
       // Nothing to do: the fresh board arrives through the subscription.
     } else {
-      showFaultModal({ text: 'BUG: replay_board fell through to unhandled' })
+      reportUnhandled('replay_board', res)
     }
   }, [gameId, isTerminal, showLocalFeedback, confirmAction])
   const restartRef = useRef<() => void>(() => {})
@@ -393,7 +393,7 @@ export function PlayArea(ctx: GamePageCtx) {
       ctx.goToGame('bananagrams', res.data.id)
       return
     } else {
-      showFaultModal({ text: 'BUG: create_game fell through to unhandled' })
+      reportUnhandled('create_game', res)
       return
     }
   }, [ctx, showLocalFeedback, confirmAction])

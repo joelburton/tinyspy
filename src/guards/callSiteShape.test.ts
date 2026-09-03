@@ -117,7 +117,8 @@ describe('call-site shape', () => {
    * out and then shows nothing is not silent in the console; it is silent to
    * the PLAYER, which is the thing that cannot be noticed from a diff.
    *
-   * A `showFaultModal` or a `console.error` is enough to satisfy this: the
+   * A `showFaultModal`, a `reportUnhandled` or a `console.error` is enough to
+   * satisfy this: the
    * point is that somebody thought about it, not that they picked a particular
    * surface. `useGameTimer` is the model — it is silent for the four `FE`
    * codes on purpose, and says so, and shows `PN011`/`PN012` itself.
@@ -132,7 +133,7 @@ describe('call-site shape', () => {
       .filter((f) => {
         const text = readFileSync(f, 'utf8')
         return /presentFaults:\s*false/.test(text)
-          && !/showFaultModal|console\.error/.test(text)
+          && !/showFaultModal|reportUnhandled|console\.error/.test(text)
       })
     expect(
       offenders,
@@ -143,7 +144,10 @@ describe('call-site shape', () => {
   /**
    * Guard: **every call site ends in a scream.** `docs/envelopes.md` → the
    * shape of a call site says a chain closes with a bare `else` that reports
-   * `BUG: <rpc> fell through to unhandled`. Nothing enforced it until now, and
+   * the fall-through. Since 2026-09-02 that is `reportUnhandled(call, answer)`,
+   * which logs a `[db] FAULT` line and raises the modal; the sentence itself
+   * lives in `dbEnvelope.ts` and nowhere else, which the third check below
+   * keeps true. Nothing enforced any of it until now, and
    * the omission is invisible by construction: a missing `else` is a branch
    * that silently does nothing, which is exactly what it looks like when the
    * code is right.
@@ -172,11 +176,34 @@ describe('call-site shape', () => {
       .filter((f) => {
         const text = readFileSync(f, 'utf8')
         return CALLS.test(text) && BRANCHES.test(text)
-          && !/BUG: .* fell through to unhandled/.test(text)
+          && !/reportUnhandled\(/.test(text)
       })
     expect(
       offenders,
       'a call site with no `else` scream — an answer it cannot read would vanish',
+    ).toEqual([])
+  })
+
+  /**
+   * Guard: **the scream's sentence has ONE author.**
+   *
+   * It used to be hand-written at 95 call sites — one string, ninety-five
+   * copies, none of which could be changed centrally and none of which wrote a
+   * `[db]` line. `reportUnhandled` replaced them all on 2026-09-02, and this is
+   * what stops the ninety-sixth from being typed by hand: a convention held by
+   * habit is precisely what produced the ninety-five.
+   *
+   * `dbEnvelope.ts` owns the words; everywhere else calls the function.
+   */
+  it('only dbEnvelope writes the fall-through sentence', () => {
+    const offenders = sourceFiles('src')
+      // Tests assert on the sentence, which is the one legitimate reason to
+      // write it out — the same exclusion the two checks above make.
+      .filter((f) => !f.endsWith('dbEnvelope.ts') && !f.includes('/guards/') && !f.includes('.test.'))
+      .filter((f) => /fell through to unhandled/.test(readFileSync(f, 'utf8')))
+    expect(
+      offenders,
+      'hand-written fall-through text — call reportUnhandled(call, answer) instead',
     ).toEqual([])
   })
 

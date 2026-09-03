@@ -2,7 +2,6 @@
 
 import { getNotOkFeedback } from '../../common/lib/game/genericPills'
 import { runRpc } from '../../common/lib/supabase/dbResult'
-import { showFaultModal } from '../../common/lib/fault/faultStore'
 import { useRef, useState } from 'react'
 import { cls } from '../../common/lib/util/cls'
 import type { GenericFeedbackMsg } from '../../common/lib/games'
@@ -25,6 +24,7 @@ import { Board, type BoardVerdict } from './Board'
 import shared from '../../common/components/game/PlayArea.module.css'
 import history from '../../common/components/game/lists/historyViewer.module.css'
 import styles from './PlayArea.module.css'
+import { reportUnhandled } from '../../common/lib/supabase/dbEnvelope'
 
 /** Empty selection map — the board draws no selection while viewing a past turn. */
 const NO_OWNERS: ReadonlyMap<string, string> = new Map()
@@ -344,7 +344,7 @@ export function BoardCol({
     } else {
       // An unhandled answer is no reason to leave four tiles sitting on a board
       // that has moved on, so this clears too.
-      showFaultModal({ text: 'BUG: submit_guess fell through to unhandled' })
+      reportUnhandled('submit_guess', res)
       sendClear()
       return
     }

@@ -6,7 +6,6 @@ import { FailureLine } from '../feedback/FailureLine'
 import { useEffect, useState } from 'react'
 import { db as commonDb } from '../../db'
 import { readRows, runRpc } from '../../lib/supabase/dbResult'
-import { showFaultModal } from '../../lib/fault/faultStore'
 import { setWordEdit, type WordEditRequest } from '../../lib/definitions/wordEditStore'
 import { useConfirmation } from '../../hooks/ui/useConfirmation'
 import { Dialog } from '../floating-panels/Dialog'
@@ -18,6 +17,7 @@ import { CancelButton } from '../buttons/CancelButton'
 import { TextField } from '../fields/TextField'
 import { NumberField } from '../fields/NumberField'
 import { CheckboxField } from '../fields/CheckboxField'
+import { reportUnhandled } from '../../lib/supabase/dbEnvelope'
 
 /**
  * The dictionary-curation form — edit an existing word, or add one (the
@@ -233,12 +233,9 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
       setWordEdit(null)
       return
     } else {
-      // Named for the RPC this call actually made — the ternary means the
-      // scream cannot say one name for both, and the useful half of the
+      // Named for the RPC this call actually made — the useful half of the
       // sentence is which function answered oddly.
-      showFaultModal({
-        text: `BUG: ${editing ? 'update_word' : 'add_word'} fell through to unhandled`,
-      })
+      reportUnhandled(editing ? 'update_word' : 'add_word', res)
       return
     }
   }
@@ -273,7 +270,7 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
     } else {
       // The dialog stays open on an answer nobody handled — closing it would
       // claim the word is gone, and `busy` is already clear above.
-      showFaultModal({ text: 'BUG: delete_word fell through to unhandled' })
+      reportUnhandled('delete_word', res)
       return
     }
   }

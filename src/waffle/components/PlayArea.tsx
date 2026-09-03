@@ -16,7 +16,6 @@ import { printWafflePdf } from '../pdf/printWafflePdf'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { setupRows } from '../lib/setupSummary'
 import { runEdgeFn, runRpc } from '../../common/lib/supabase/dbResult'
-import { showFaultModal } from '../../common/lib/fault/faultStore'
 import { useDismissLocalFeedbackOnKey } from '../../common/hooks/feedback/useDismissLocalFeedbackOnKey'
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
@@ -41,6 +40,7 @@ import styles from './PlayArea.module.css'
 import { useSwallowTab } from '../../common/hooks/input/useSwallowTab'
 import { useSingleFlight } from '../../common/hooks/ui/useSingleFlight'
 import { getNotOkFeedback } from '../../common/lib/game/genericPills'
+import { reportUnhandled } from '../../common/lib/supabase/dbEnvelope'
 
 /** What `waffle.submit_swap` puts in `data` for a swap it took. Only `result` is
  *  read — the rest is deliberately ignored, because the new colors must reach
@@ -263,7 +263,7 @@ export function PlayArea({
         // The overlay is waiting for a board that may never come, so drop it —
         // otherwise two letters sit swapped and colorless until a reload.
         setOptimisticSwap(null)
-        showFaultModal({ text: 'BUG: submit_swap fell through to unhandled' })
+        reportUnhandled('submit_swap', res)
         return
       }
     },
@@ -399,7 +399,7 @@ export function PlayArea({
       goToGame(`waffle_${gameMode}`, res.data.id)
       return
     } else {
-      showFaultModal({ text: 'BUG: waffle-build-board fell through to unhandled' })
+      reportUnhandled('waffle-build-board', res)
       return
     }
   }, [gameMode, clubHandle, goToGame, showLocalFeedback, confirmAction, isTerminal])

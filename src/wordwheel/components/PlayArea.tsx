@@ -8,7 +8,6 @@ import { useCelebration } from '../../common/hooks/game/useCelebration'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import type { CreatedGame, GamePageCtx, Member } from '../../common/lib/games'
 import { runRpc } from '../../common/lib/supabase/dbResult'
-import { showFaultModal } from '../../common/lib/fault/faultStore'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
@@ -40,6 +39,7 @@ import { getNotOkFeedback } from '../../common/lib/game/genericPills'
 import styles from './PlayArea.module.css'
 
 import '../theme.css'
+import { reportUnhandled } from '../../common/lib/supabase/dbEnvelope'
 
 /**
  * wordwheel's play surface — shared between the coop and compete
@@ -334,7 +334,7 @@ export function PlayArea(ctx: GamePageCtx) {
         } else if (res.type === 'ok' && res.data?.result === 'won') {
           return null
         } else {
-          showFaultModal({ text: 'BUG: submit_word fell through to unhandled' })
+          reportUnhandled('submit_word', res)
           return null
         }
       },
@@ -414,7 +414,7 @@ export function PlayArea(ctx: GamePageCtx) {
       goToGame(`wordwheel_${gameMode}`, res.data.id)
       return
     } else {
-      showFaultModal({ text: 'BUG: wordwheel-build-board fell through to unhandled' })
+      reportUnhandled('wordwheel-build-board', res)
       return
     }
   }, [gameMode, clubHandle, setup, players, goToGame, showLocalFeedback, confirmAction, isTerminal])

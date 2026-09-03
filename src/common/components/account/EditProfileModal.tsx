@@ -4,7 +4,6 @@ import { useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { db as commonDb } from '../../db'
 import { runRpc } from '../../lib/supabase/dbResult'
-import { showFaultModal } from '../../lib/fault/faultStore'
 import { StandardForm } from '../fields/StandardForm'
 import { FORM_ERROR_KEYNAME, type FormErrors } from '../fields/formState'
 import { FailureLine } from '../feedback/FailureLine'
@@ -15,6 +14,7 @@ import { StandardButton } from '../buttons/StandardButton'
 import { CancelButton } from '../buttons/CancelButton'
 import { ReadOnlyField } from '../fields/ReadOnlyField'
 import { ColorField } from '../fields/ColorField'
+import { reportUnhandled } from '../../lib/supabase/dbEnvelope'
 
 type Props = {
   session: Session
@@ -76,7 +76,7 @@ export function EditProfileModal({ session, onSaved, onCancel }: Props) {
       // Cancel as a way out. The color is NOT written — an unhandled answer is
       // no evidence the server took it, and the dot would then lie.
       setBusy(false)
-      showFaultModal({ text: 'BUG: update_profile_color fell through to unhandled' })
+      reportUnhandled('update_profile_color', res)
       return
     }
   }

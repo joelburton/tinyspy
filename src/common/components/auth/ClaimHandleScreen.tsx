@@ -6,7 +6,6 @@ import { FailureLine } from '../feedback/FailureLine'
 import { useState } from 'react'
 import { db as commonDb } from '../../db'
 import { runRpc } from '../../lib/supabase/dbResult'
-import { showFaultModal } from '../../lib/fault/faultStore'
 import { supabase } from '../../lib/supabase/supabase'
 import { cls } from '../../lib/util/cls'
 import { defaultColorFor } from '../../lib/color/memberColor'
@@ -15,6 +14,7 @@ import { StandardButton } from '../buttons/StandardButton'
 import { CancelButton } from '../buttons/CancelButton'
 import { TextField } from '../fields/TextField'
 import { ColorField } from '../fields/ColorField'
+import { reportUnhandled } from '../../lib/supabase/dbEnvelope'
 
 /** What `common.claim_username` puts in `data`. `result` sits beside the
  *  username rather than replacing it — the name is what a caller would use,
@@ -148,7 +148,7 @@ export function ClaimHandleScreen({ onClaimed, email }: Props) {
     } else {
       // Nothing to undo — `busy` is already clear, and the screen stays put so
       // the name can be resubmitted.
-      showFaultModal({ text: 'BUG: claim_username fell through to unhandled' })
+      reportUnhandled('claim_username', res)
       return
     }
   }

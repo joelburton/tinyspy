@@ -11,7 +11,6 @@ import {
 } from 'react'
 import { db } from '../db'
 import { runRpc } from '../../common/lib/supabase/dbResult'
-import { showFaultModal } from '../../common/lib/fault/faultStore'
 import {
   GRID,
   DEFAULT_CELL,
@@ -28,6 +27,7 @@ import { useDragGesture, type DragGesture, type DragState } from '../../common/h
 import { moveCursor, stepBack } from '../../common/lib/game/gridCursor'
 import { useBoardCursorKeys } from '../../common/hooks/input/useBoardCursorKeys'
 import { isEditableField } from '../../common/hooks/input/useGameHasKeyboard'
+import { reportUnhandled } from '../../common/lib/supabase/dbEnvelope'
 
 /**
  * bananagrams' player-board **interaction engine** — the cross-column state and
@@ -290,7 +290,7 @@ export function usePlayerBoard({
         // Both are `BUG:`s and the modal is already up. Nothing to add on a
         // surface whose whole job was to store what is already on screen.
       } else {
-        showFaultModal({ text: 'BUG: save_player_board fell through to unhandled' })
+        reportUnhandled('save_player_board', res)
       }
     })
   }, [gameId])
@@ -541,7 +541,7 @@ export function usePlayerBoard({
         setInvalid(null)
         onCheckResult?.({ kind: 'clean' })
       } else {
-        showFaultModal({ text: 'BUG: check_board fell through to unhandled' })
+        reportUnhandled('check_board', res)
       }
     } finally {
       setChecking(false)

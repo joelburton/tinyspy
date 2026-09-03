@@ -1,7 +1,6 @@
 // cs-unmet
 
 import { runRpc } from '../../common/lib/supabase/dbResult'
-import { showFaultModal } from '../../common/lib/fault/faultStore'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { IconHideSolution, IconHint, IconNewGame, IconPrint, IconRestart, IconReveal, IconSpoiler } from '../../common/components/icons'
 import { cls } from '../../common/lib/util/cls'
@@ -39,6 +38,7 @@ import { EnvelopeErrorPage } from '../../common/components/loading-and-errs/Erro
 import { getNotOkFeedback } from '../../common/lib/game/genericPills'
 import styles from './PlayArea.module.css'
 import '../theme.css'
+import { reportUnhandled } from '../../common/lib/supabase/dbEnvelope'
 
 /** Empty highlight set — while live, the board rings no tiles green (turn-viewer only). */
 const NO_TILES: ReadonlySet<number> = new Set()
@@ -277,7 +277,7 @@ export function PlayArea({
         showMsg({ tone: res.outcome, text: res.message, mode: { kind: 'sticky' } })
         return
       } else {
-        showFaultModal({ text: 'BUG: submit_word fell through to unhandled' })
+        reportUnhandled('submit_word', res)
         return
       }
     },
@@ -306,7 +306,7 @@ export function PlayArea({
       })
       return
     } else {
-      showFaultModal({ text: 'BUG: reveal_next_word fell through to unhandled' })
+      reportUnhandled('reveal_next_word', res)
       return
     }
   }, [gameId, showLocalFeedback, showMsg])
@@ -327,7 +327,7 @@ export function PlayArea({
       showLocalFeedback(`Hint: ${res.data.hint}`, res.outcome, { kind: 'manual' })
       return
     } else {
-      showFaultModal({ text: 'BUG: reveal_next_hint fell through to unhandled' })
+      reportUnhandled('reveal_next_hint', res)
       return
     }
   }, [gameId, showLocalFeedback, showMsg])
@@ -420,7 +420,7 @@ export function PlayArea({
       goToGame(`stackdown_${gameMode}`, res.data.id)
       return
     } else {
-      showFaultModal({ text: 'BUG: create_game fell through to unhandled' })
+      reportUnhandled('create_game', res)
       return
     }
   }, [gameMode, clubHandle, setup, players, goToGame, showMsg, confirmAction, isTerminal])

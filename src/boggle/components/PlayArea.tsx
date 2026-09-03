@@ -35,9 +35,9 @@ import shared from '../../common/components/game/PlayArea.module.css'
 import { EnvelopeErrorPage } from '../../common/components/loading-and-errs/ErrorPage'
 import { getNotOkFeedback } from '../../common/lib/game/genericPills'
 import { runRpc } from '../../common/lib/supabase/dbResult'
-import { showFaultModal } from '../../common/lib/fault/faultStore'
 import styles from './PlayArea.module.css'
 import '../theme.css'
+import { reportUnhandled } from '../../common/lib/supabase/dbEnvelope'
 
 /**
  * boggle play surface, shared by the coop and compete manifests, on the shared
@@ -196,7 +196,7 @@ export function PlayArea(ctx: GamePageCtx) {
         } else if (res.type === 'ok' && res.data?.result === 'bonus') {
           return null
         } else {
-          showFaultModal({ text: 'BUG: submit_word fell through to unhandled' })
+          reportUnhandled('submit_word', res)
           return null
         }
       },
@@ -379,7 +379,7 @@ export function PlayArea(ctx: GamePageCtx) {
       goToGame(`boggle_${gameMode}`, res.data.id)
       return
     } else {
-      showFaultModal({ text: 'BUG: boggle-build-board fell through to unhandled' })
+      reportUnhandled('boggle-build-board', res)
       return
     }
   }, [gameMode, clubHandle, setup, players, goToGame, showLocalFeedback, confirmAction, isTerminal])

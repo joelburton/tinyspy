@@ -2,7 +2,6 @@
 
 import { diagnosticsLine } from '../../lib/supabase/dbLog'
 import { readRows, runRpc } from '../../lib/supabase/dbResult'
-import { showFaultModal } from '../../lib/fault/faultStore'
 import { showToast } from '../../lib/toast/toastStore'
 import { DEFAULT_TOAST_MS } from '../toasts/Toast'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -60,6 +59,7 @@ type ClubRow = Pick<
   'handle' | 'name'
 >
 import type { Member } from '../../lib/games'
+import { reportUnhandled } from '../../lib/supabase/dbEnvelope'
 
 /**
  * Display shape for one game in the club's games list. Built from
@@ -261,7 +261,7 @@ export function ClubPage({ handle, session }: Props) {
           // The pointer is cleared — or was already false, the RPC's own
           // `where is_current_view = true` guard making a lost race a no-op.
         } else {
-          showFaultModal({ text: 'BUG: unset_current_view fell through to unhandled' })
+          reportUnhandled('unset_current_view', res)
         }
       })
     }, 2500)
@@ -557,8 +557,8 @@ export function ClubPage({ handle, session }: Props) {
       // Throws as well as screams: the button only leaves "Deleting…" when this
       // function rejects (ClubGameDeleteButton's catch), so a fallen-through
       // answer would otherwise strand it there with the game still listed.
-      showFaultModal({ text: 'BUG: delete_game fell through to unhandled' })
-      throw new Error('delete_game fell through to unhandled')
+      reportUnhandled('delete_game', res)
+      throw new Error('delete_game: unreadable answer')
     }
   }
 

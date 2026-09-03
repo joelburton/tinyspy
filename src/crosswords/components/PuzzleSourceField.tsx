@@ -12,10 +12,10 @@ import { NytPickerBlockingModal } from './pickers/NytPickerBlockingModal'
 import { DEFAULT_WEEKDAY } from '../lib/nytDays'
 import { summarize } from '../lib/puzzleSummary'
 import { runRpc } from '../../common/lib/supabase/dbResult'
-import { showFaultModal } from '../../common/lib/fault/faultStore'
 import { GuardianPickerBlockingModal } from './pickers/GuardianPickerBlockingModal'
 import { UploadPickerBlockingModal } from './pickers/UploadPickerBlockingModal'
 import styles from './PuzzleSourceField.module.css'
+import { reportUnhandled } from '../../common/lib/supabase/dbEnvelope'
 
 /** Which picker is open, or none. */
 type OpenPicker = 'library' | 'nyt' | 'guardian' | 'upload' | null
@@ -113,7 +113,7 @@ export function PuzzleSourceField({
         setNextDate({ key: nextKey, date: res.data.puzzle_date })
         return
       } else {
-        showFaultModal({ text: 'BUG: next_nyt_date_for_club fell through to unhandled' })
+        reportUnhandled('next_nyt_date_for_club', res)
         return
       }
     })()

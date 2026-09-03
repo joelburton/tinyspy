@@ -8,11 +8,11 @@ import { cls } from '../../lib/util/cls'
 import { StandardForm } from '../fields/StandardForm'
 import { FailureLine } from '../feedback/FailureLine'
 import { FORM_ERROR_KEYNAME, type FormErrors } from '../fields/formState'
-import { showFaultModal } from '../../lib/fault/faultStore'
 import actionRow from '../floating-panels/modalActions.module.css'
 import styles from './SetupGameModal.module.css'
 import { StandardButton } from '../buttons/StandardButton'
 import { CancelButton } from '../buttons/CancelButton'
+import { reportUnhandled } from '../../lib/supabase/dbEnvelope'
 
 type Props = {
   /**
@@ -194,7 +194,7 @@ export function SetupGameModal({
       // means no game to navigate to and the player is left looking at a Start
       // button that must work again.
       setBusy(false)
-      showFaultModal({ text: 'BUG: create_game fell through to unhandled' })
+      reportUnhandled('create_game', result)
       return
     }
   }

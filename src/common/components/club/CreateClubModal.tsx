@@ -5,7 +5,6 @@ import { FORM_ERROR_KEYNAME, type FormErrors } from '../fields/formState'
 import { useState } from 'react'
 import { db as commonDb } from '../../db'
 import { runRpc } from '../../lib/supabase/dbResult'
-import { showFaultModal } from '../../lib/fault/faultStore'
 import { NormalModal } from '../floating-panels/NormalModal'
 import { FailureLine } from '../feedback/FailureLine'
 import actionRow from '../floating-panels/modalActions.module.css'
@@ -13,6 +12,7 @@ import styles from './CreateClubModal.module.css'
 import { StandardButton } from '../buttons/StandardButton'
 import { CancelButton } from '../buttons/CancelButton'
 import { TextField } from '../fields/TextField'
+import { reportUnhandled } from '../../lib/supabase/dbEnvelope'
 
 type Props = {
   /** The club exists — its handle, so the opener can go there. */
@@ -169,7 +169,7 @@ export function CreateClubModal({ onCreated, onCancel }: Props) {
       onCreated(res.data.handle)
       return
     } else {
-      showFaultModal({ text: 'BUG: create_club fell through to unhandled' })
+      reportUnhandled('create_club', res)
       return
     }
   }

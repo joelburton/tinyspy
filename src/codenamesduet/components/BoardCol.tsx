@@ -7,7 +7,6 @@ import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { terminalPill } from '../../common/lib/game/localPills'
 import { runRpc } from '../../common/lib/supabase/dbResult'
 import { getNotOkFeedback } from '../../common/lib/game/genericPills'
-import { showFaultModal } from '../../common/lib/fault/faultStore'
 import { GenericFeedbackPill } from '../../common/components/feedback/GenericFeedbackPill'
 import { MobileStatusBar } from '../../common/components/game/MobileStatusBar'
 import { db } from '../db'
@@ -21,6 +20,7 @@ import { CluePanel, type SuggestState } from './CluePanel'
 import shared from '../../common/components/game/PlayArea.module.css'
 import history from '../../common/components/game/lists/historyViewer.module.css'
 import styles from './BoardCol.module.css'
+import { reportUnhandled } from '../../common/lib/supabase/dbEnvelope'
 
 /**
  * What `submit_guess` answers. Five `ok`s: the three that end the game are
@@ -209,7 +209,7 @@ export function BoardCol({
       } else if (res.type === 'ok' && res.data.result === 'lost_clock') {
         return
       } else {
-        showFaultModal({ text: 'BUG: submit_guess fell through to unhandled' })
+        reportUnhandled('submit_guess', res)
         return
       }
     },

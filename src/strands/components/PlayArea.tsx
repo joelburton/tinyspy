@@ -6,7 +6,6 @@ import { IconHideSolution, IconPrint, IconRestart, IconReveal } from '../../comm
 import { cls } from '../../common/lib/util/cls'
 import { setupRows } from '../lib/setupSummary'
 import type { CreatedGame, GamePageCtx, GamePlayer } from '../../common/lib/games'
-import { showFaultModal } from '../../common/lib/fault/faultStore'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { CelebrationBlockingModal } from '../../common/components/game/CelebrationBlockingModal'
 import { useCelebration } from '../../common/hooks/game/useCelebration'
@@ -42,6 +41,7 @@ import { getNotOkFeedback } from '../../common/lib/game/genericPills'
 import styles from './PlayArea.module.css'
 
 import '../theme.css'
+import { reportUnhandled } from '../../common/lib/supabase/dbEnvelope'
 
 /** Stable empty trace, so the derived-clear below doesn't hand React a new
  *  array identity on every render. */
@@ -293,7 +293,7 @@ export function PlayArea(ctx: GamePageCtx) {
         if (r.result !== 'theme' && r.result !== 'spangram') setTrace([])
         return
       } else {
-        showFaultModal({ text: 'BUG: submit_path fell through to unhandled' })
+        reportUnhandled('submit_path', res)
         setTrace([])
         return
       }
@@ -453,7 +453,7 @@ export function PlayArea(ctx: GamePageCtx) {
       // the board draws them. A pill would describe what is already on screen.
       return
     } else {
-      showFaultModal({ text: 'BUG: spend_hint fell through to unhandled' })
+      reportUnhandled('spend_hint', res)
       return
     }
   }, [gameId, showLocalFeedback, game?.hint_cost, me?.hint_points])
@@ -566,7 +566,7 @@ export function PlayArea(ctx: GamePageCtx) {
     } else if (preview.type === 'ok' && preview.data.result === 'found') {
       // A puzzle is waiting, so the confirm below runs.
     } else {
-      showFaultModal({ text: 'BUG: next_puzzle_for_club fell through to unhandled' })
+      reportUnhandled('next_puzzle_for_club', preview)
       return
     }
     const next = preview.data.puzzle
@@ -610,7 +610,7 @@ export function PlayArea(ctx: GamePageCtx) {
       goToGame(`strands_${game.mode}`, res.data.id)
       return
     } else {
-      showFaultModal({ text: 'BUG: create_game fell through to unhandled' })
+      reportUnhandled('create_game', res)
       return
     }
   })

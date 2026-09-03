@@ -5,7 +5,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { IconHideSolution, IconHint, IconNewGame, IconPrint, IconRestart, IconReveal, IconSpoiler } from '../../common/components/icons'
 import { cls } from '../../common/lib/util/cls'
 import type { CreatedGame, GamePageCtx } from '../../common/lib/games'
-import { showFaultModal } from '../../common/lib/fault/faultStore'
 import type { PsychicnumSetup } from '../lib/setup'
 import { CelebrationBlockingModal } from '../../common/components/game/CelebrationBlockingModal'
 import { useCelebration } from '../../common/hooks/game/useCelebration'
@@ -39,6 +38,7 @@ import { EnvelopeErrorPage } from '../../common/components/loading-and-errs/Erro
 import { getNotOkFeedback } from '../../common/lib/game/genericPills'
 import styles from './PlayArea.module.css'
 import '../theme.css'  // psychicnum-specific tokens (empty today, see file)
+import { reportUnhandled } from '../../common/lib/supabase/dbEnvelope'
 
 /** The computer hides this many secret words; players win by finding all. */
 const SECRET_COUNT = 3
@@ -331,7 +331,7 @@ export function PlayArea({
     } else if (res.type === 'ok' && res.data.result === 'no-hint') {
       return
     } else {
-      showFaultModal({ text: 'BUG: request_hint fell through to unhandled' })
+      reportUnhandled('request_hint', res)
       return
     }
   }, [gameId, showLocalFeedback])
@@ -349,7 +349,7 @@ export function PlayArea({
       // readable, not flash past.
       return
     } else {
-      showFaultModal({ text: 'BUG: request_reveal fell through to unhandled' })
+      reportUnhandled('request_reveal', res)
       return
     }
   }, [gameId, showLocalFeedback])
@@ -505,7 +505,7 @@ export function PlayArea({
       goToGame(`psychicnum_${mode}`, res.data.id)
       return
     } else {
-      showFaultModal({ text: 'BUG: create_game fell through to unhandled' })
+      reportUnhandled('create_game', res)
       return
     }
   }, [mode, clubHandle, setup, players, goToGame, showLocalFeedback, confirmAction, isTerminal])

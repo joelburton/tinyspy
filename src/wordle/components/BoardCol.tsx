@@ -1,7 +1,6 @@
 // cs-unmet
 
 import { getNotOkFeedback } from '../../common/lib/game/genericPills'
-import { showFaultModal } from '../../common/lib/fault/faultStore'
 import { runRpc } from '../../common/lib/supabase/dbResult'
 import type { Outcome } from '../../common/lib/outcomes'
 import { useEffect, useCallback, useState } from 'react'
@@ -17,6 +16,7 @@ import { GuessKeyboard, type KeyTone } from '../../common/components/game/entry/
 import shared from '../../common/components/game/PlayArea.module.css'
 import history from '../../common/components/game/lists/historyViewer.module.css'
 import styles from './BoardCol.module.css'
+import { reportUnhandled } from '../../common/lib/supabase/dbEnvelope'
 
 /**
  * wordle's board column — the `<Board>` plus the below-board region under it
@@ -296,7 +296,7 @@ export function BoardCol({
         // The optimistic word is on the board waiting for a row that may never
         // arrive, so take it back before screaming.
         setPending(null)
-        showFaultModal({ text: 'BUG: submit_guess fell through to unhandled' })
+        reportUnhandled('submit_guess', res)
         return
       }
     },
