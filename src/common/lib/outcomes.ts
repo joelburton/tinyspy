@@ -1,4 +1,4 @@
-// cs-met-utils
+// cs-audited-utils
 
 /**
  * The OUTCOME vocabulary — the words the app uses for how a thing turned out.

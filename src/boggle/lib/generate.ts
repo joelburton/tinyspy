@@ -16,19 +16,9 @@
 import { createSolver, listWords, parseBoard } from './solver.ts'
 import type { FoundWord, LadderName, Trie } from './solver.ts'
 import type { DiceSet } from './dice.ts'
-
-/** Deterministic PRNG (mulberry32). Board generation is seeded so a board is
- *  reproducible from its seed — per CLAUDE.md's trust table, seeds are
- *  server-chosen for fairness, not secrecy. */
-export function mulberry32(seed: number): () => number {
-  let a = seed >>> 0
-  return function next(): number {
-    a = (a + 0x6d2b79f5) | 0
-    let t = Math.imul(a ^ (a >>> 15), 1 | a)
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
-  }
-}
+// Board generation is seeded so a board is reproducible from its seed — per
+// CLAUDE.md's trust table, seeds are server-chosen for fairness, not secrecy.
+import { mulberry32 } from '../../common/lib/util/mulberry32.ts'
 
 /** Roll one board: Fisher–Yates shuffle the dice across cells, then pick a random
  *  face per die. Returns the row-major raw-face string (length n²). */

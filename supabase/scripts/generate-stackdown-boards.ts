@@ -59,6 +59,10 @@ import { execFileSync } from 'node:child_process'
 import { appendFileSync, existsSync, readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+// The app's one seedable PRNG. This script had its own copy until 2026-09-03;
+// the two agreed bit-for-bit, so a regeneration at a given SEED still produces
+// the boards it produced before.
+import { mulberry32 } from '../../src/common/lib/util/mulberry32.ts'
 
 const DB_URL =
   process.env.SUPABASE_DB_URL ??
@@ -348,16 +352,6 @@ const COVERERS: Map<number, number[]> = new Map(
 )
 
 // ── Generator (reverse construction + brute-force assignment) ──────
-function mulberry32(seed: number): () => number {
-  let s = seed
-  return () => {
-    s |= 0
-    s = (s + 0x6d2b79f5) | 0
-    let t = Math.imul(s ^ (s >>> 15), 1 | s)
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
-  }
-}
 
 /** A random legal full removal order (topological wrt covering). */
 function randomTopoOrder(positions: Pos[], rng: () => number): number[] {

@@ -1,4 +1,4 @@
-// cs-met-utils
+// cs-audited-utils
 
 import { describe, expect, it } from 'vitest'
 import { friendlyDate } from './friendlyDate'

@@ -1,4 +1,4 @@
-// cs-met-utils
+// cs-audited-utils
 
 import type { ReactNode } from 'react'
 

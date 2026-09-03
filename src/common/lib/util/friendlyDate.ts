@@ -1,4 +1,4 @@
-// cs-met-utils
+// cs-audited-utils
 
 /**
  * Render an ISO timestamp as a "friendly" relative date for the

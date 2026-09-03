@@ -1,7 +1,8 @@
 // cs-unmet
 
 import { describe, expect, it } from 'vitest'
-import { generateBoard, mulberry32, rollBoard } from './generate'
+import { generateBoard, rollBoard } from './generate'
+import { mulberry32 } from '../../common/lib/util/mulberry32'
 import { DICE_BY_NAME } from './dice'
 import { buildTrie } from './solver'
 import { boggleSolverFixture as fixture } from './solver.fixture'
@@ -9,16 +10,10 @@ import { boggleSolverFixture as fixture } from './solver.fixture'
 const set4 = DICE_BY_NAME['4']
 const trie = buildTrie(fixture.dict)
 
-describe('mulberry32', () => {
-  it('is deterministic for a seed and varies across seeds', () => {
-    const a = Array.from({ length: 5 }, mulberry32(1))
-    const b = Array.from({ length: 5 }, mulberry32(1))
-    const c = Array.from({ length: 5 }, mulberry32(2))
-    expect(a).toEqual(b)
-    expect(a).not.toEqual(c)
-    expect(a.every((x) => x >= 0 && x < 1)).toBe(true)
-  })
-})
+// The `describe('mulberry32')` block that used to sit here moved to
+// src/common/lib/util/mulberry32.test.ts along with the function itself: it was
+// the only test of a generator three games now share, so it belongs beside the
+// shared copy rather than in one game's suite.
 
 describe('rollBoard', () => {
   it('produces an n²-length board of valid faces, deterministic per seed', () => {
