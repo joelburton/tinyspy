@@ -18,8 +18,9 @@ files at `cs-audited-utils`: the seven on the roster below, plus the five this
 area wrote (see "Files this area wrote"). The first pass produced `F-utils-1` …
 `F-utils-12`, eleven resolved and `F-utils-7` a note whose work belongs to
 `floating-panels`. **The second pass (2026-09-03, over the fixes themselves and
-every file they touched) produced `F-utils-13` … `F-utils-22`, all OPEN** — see
-"The second pass". `cs-blessed` remains the exit criterion and Joel's alone.
+every file they touched) produced `F-utils-13` … `F-utils-22`, and all ten are
+RESOLVED** — see "The second pass". `cs-blessed` remains the exit criterion and
+Joel's alone.
 
 ## The roster
 
@@ -749,7 +750,7 @@ FE and edge functions use, so a board regenerated at a given seed is the one
 the vendored `.jsonl` already holds. The date and the deleted copy stay here,
 at `F-utils-1…4`, where the record of the migration belongs. No stamp moved.
 
-### F-utils-22 · `panel-alone-in-two-docstrings` · a §20 breach in a file the first pass called clean
+### RESOLVED 2026-09-03 — F-utils-22 · `panel-alone-in-two-docstrings` · a §20 breach in a file the first pass called clean
 
 app-audit §20: *"'Panel' on its own means nothing and is banned — in prose, in
 docs, in conversation, and in any component name."* Two hits, one old and one
@@ -766,6 +767,11 @@ new:
   §20's own rule; the prose does not get the exemption.)
 
 `useDraggablePanel.ts` is `hooks`'s file; the lines are this area's.
+
+**Fixed 2026-09-03.** All six uses now say "floating panel" (the second in
+`useDraggablePanel`'s comment became "the live one", which reads better than
+the phrase twice in one sentence). Prose only; no code, no stamp moved —
+`useDraggablePanel.ts` stays `cs-unmet` for `hooks`.
 
 ## Notes, to-dos and deferrals
 

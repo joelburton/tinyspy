@@ -313,7 +313,7 @@ function readRect(key: string): PanelRect | null {
 }
 
 function writeRect(key: string, rect: PanelRect): void {
-  // Losing this costs the panel its remembered position; state still drives the
-  // live panel.
+  // Losing this costs the floating panel its remembered position; state still
+  // drives the live one.
   writeStored('local', key, JSON.stringify(rect))
 }

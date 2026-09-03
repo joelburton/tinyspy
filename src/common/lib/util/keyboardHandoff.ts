@@ -13,17 +13,18 @@ import type { KeyboardEvent } from 'react'
  * field focused, and blurring is the whole move. It's the same one bananagrams
  * makes on a board pointer-down (`blurActiveField` in usePlayerBoard).
  *
- * Native Tab instead walks the page's focus order — out of the panel, onto the
- * header's User menu button, and from there into the browser's own chrome (the
- * URL bar). Typing at any of those stops reaches neither the panel nor the game,
- * which is the trap this closes.
+ * Native Tab instead walks the page's focus order — out of the floating panel,
+ * onto the header's User menu button, and from there into the browser's own
+ * chrome (the URL bar). Typing at any of those stops reaches neither the
+ * floating panel nor the game, which is the trap this closes.
  *
- * **Shift+Tab is left alone**, so the panel's own controls (its close ✕) stay
- * keyboard-reachable — a deliberate escape hatch, not an oversight.
+ * **Shift+Tab is left alone**, so the floating panel's own controls (its close
+ * ✕) stay keyboard-reachable — a deliberate escape hatch, not an oversight.
  *
- * Used by the two panels you type into while a game is running: the club chat
- * box (`ChatBody`) and the game scratchpad (`GameScratchpadCompanion`). Coming back the
- * other way is `useAppShortcuts` — `/` focuses the chat entry from anywhere.
+ * Used by the two floating panels you type into while a game is running: the
+ * club chat box (`ChatBody`) and the game scratchpad
+ * (`GameScratchpadCompanion`). Coming back the other way is `useAppShortcuts`
+ * — `/` focuses the chat entry from anywhere.
  *
  * @example
  *   <textarea onKeyDown={handOffKeyboardOnTab} … />
