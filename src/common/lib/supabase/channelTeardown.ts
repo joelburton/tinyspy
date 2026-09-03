@@ -76,7 +76,9 @@ export function releaseChannel(ch: RealtimeChannel): Promise<unknown> {
       rtLog(name, `teardown ${String(status)}`, status === 'ok' ? 'log' : 'warn')
     })
     .catch((err) => {
-      console.error(`releaseChannel: removing "${name}" failed`, err)
+      // On the `[rt]` channel like the line above it, so a console filtered to
+      // `[rt]` shows the teardown that failed and not only the ones that worked.
+      rtLog(name, 'teardown FAILED', 'warn', err)
     })
     .finally(() => {
       // Only clear if we're still the current teardown: a re-create that

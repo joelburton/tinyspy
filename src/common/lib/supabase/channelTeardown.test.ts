@@ -54,14 +54,19 @@ describe('channelTeardown', () => {
     await done
   })
 
-  it('frees the name even when removeChannel REJECTS', async () => {
-    // A failed leave must not wedge every future join of that room.
-    const logged = vi.spyOn(console, 'error').mockImplementation(() => {})
+  it('frees the name even when removeChannel REJECTS, and says so on [rt]', async () => {
+    // A failed leave must not wedge every future join of that room — and the
+    // line about it lands on the `[rt]` channel with every other teardown line,
+    // so a console filtered to `[rt]` does not show only the ones that worked.
+    const warned = vi.spyOn(console, 'warn').mockImplementation(() => {})
     removeChannel.mockRejectedValue(new Error('socket gone'))
 
     await expect(releaseChannel(chan('game:g1'))).resolves.toBeUndefined()
     expect(channelLeaving('game:g1')).toBeNull()
-    expect(logged).toHaveBeenCalled()
+    expect(warned).toHaveBeenCalledWith(
+      expect.stringMatching(/^\[rt .*\] game:g1 — teardown FAILED/),
+      expect.any(Error),
+    )
   })
 
   it('a second release supersedes the first, and the stale one does not free the name', async () => {

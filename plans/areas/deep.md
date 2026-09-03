@@ -32,14 +32,15 @@ understood, tidied* — `cs-blessed` here means he has read the file, not seen i
 **Every heading says its status**; a heading with **no status prefix means OPEN**.
 
 **⭐ REOPENED 2026-09-02 by a second read — twenty findings, `F-deep-40` …
-`F-deep-59`: twelve resolved, eight OPEN.** Joel asked a fresh session to read
+`F-deep-59`: thirteen resolved, seven OPEN.** Joel asked a fresh session to read
 the 35 files and `deep.md` after the first six passes closed, and it found
 mostly prose the code has moved out from under — including four things the
 first read's own resolutions claimed fixed and were not (`F-deep-41`,
 `F-deep-42`, `F-deep-46`, `F-deep-48`). Pass 7, at the end of this file, holds
 them. `F-deep-40` … `-50` were fixed the same day on Joel's instruction —
 eight prose, one key rename, the render-crash screen, and the PN488 line's
-status; `F-deep-51` was resolved by decision, unchanged. `F-deep-52` on waits. **The `cs-fixed-deep` stamps were NOT moved**; with open
+status; `F-deep-51` was resolved by decision, unchanged; `F-deep-52` moved
+one console line onto `[rt]`. `F-deep-53` on waits. **The `cs-fixed-deep` stamps were NOT moved**; with open
 findings against them they overstate, and restamping is Joel's call.
 
 The six passes before it, all on 2026-09-02:
@@ -53,8 +54,8 @@ The six passes before it, all on 2026-09-02:
 | `cls.ts` | 1 | `F-deep-36` — resolved |
 | the server side of the envelope | 3 | `F-deep-37` … `F-deep-39` — all resolved |
 
-**Fifty-nine findings: forty-nine resolved, one closed, one moved, eight
-open** (all eight in pass 7).
+**Fifty-nine findings: fifty resolved, one closed, one moved, seven open**
+(all seven in pass 7).
 
 **What is left besides pass 7 is `cs-blessed`, which is Joel's alone** — nine files carry it,
 twenty-six are `cs-fixed-deep`. `cs-fixed` is "Claude changed it and stands
@@ -1839,11 +1840,20 @@ beside `[db]`, `[rt]`, `[ui]`, `[rpc]`.
 > about that list being written in too many places. Recorded so the next reader
 > does not re-raise the repeat as a bug.
 
-## F-deep-52 · `teardown-failure-bypasses-rt` · The one line that says a teardown failed is not on the `[rt]` channel
+## RESOLVED · F-deep-52 · `teardown-failure-bypasses-rt` · The one line that says a teardown failed is not on the `[rt]` channel
 
 `channelTeardown.ts:78-80` reports a rejected `removeChannel` through
 `console.error` while the `.then` above it uses `rtLog`. A console filtered to
 `[rt]` shows every teardown that worked and misses the one that did not.
+
+> **resolution: `rtLog(name, 'teardown FAILED', 'warn', err)`** (Joel,
+> 2026-09-02: *"do it"*). One call swapped for another, nothing else. The
+> level is `warn` because `rtLog` has `log` and `warn` and nothing louder, and
+> every failure line in this layer — `CHANNEL_ERROR`, `TIMED_OUT`, a `system`
+> error, a `timed out` teardown — is `warn` already. The reject test now
+> asserts the `[rt … ] game:g1 — teardown FAILED` line rather than merely that
+> `console.error` was called; proved by planting — restoring `console.error`
+> fails it and nothing else.
 
 ### Duplication, and the species the first read already named
 
