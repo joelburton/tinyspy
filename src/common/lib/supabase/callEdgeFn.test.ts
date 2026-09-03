@@ -2,10 +2,10 @@
 
 /**
  * callEdgeFn — the one place a functions-js failure becomes a classifiable
- * CallError. The cells these pin (the edge-fn column of the behavior matrix):
+ * `DbError` for `runEdgeFn`. The cases these pin:
  *
  *   - a response body with our `{ error, code? }` shape → `answered: true` and
- *     the relayed SQLSTATE, so classifyFailure treats it like a direct RPC
+ *     the relayed SQLSTATE, so `runEdgeFn` treats it like a direct RPC
  *     failure (and prose can never misfile as transport);
  *   - a response that ISN'T our function speaking (gateway HTML, platform
  *     JSON) → our function did not answer, but SOMETHING did, so the real

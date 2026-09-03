@@ -33,10 +33,11 @@ import { logDb, logSlow } from './dbLog'
  * it arrived — editing it here would make this a second author of player copy,
  * in the layer furthest from the player.
  *
- * It does word the MODAL for a request nothing answered, but not on its own
- * authority: the sentence comes from `environmentalEnvelope`, the same builder
- * the three wrappers call, precisely so the modal and the envelope a call site
- * reads afterwards cannot disagree about one event.
+ * It does not word the modal either. What it decides — WHO answered — rides
+ * out as an `FE` code in `statusText`, and the wrapper holding the answer turns
+ * that into the sentence and the modal through the one builder in
+ * `dbEnvelope`, precisely so the log and the modal cannot disagree about one
+ * event.
  *
  * No retry either. These are mutations (`submit_word`, `concede`, `end_game`);
  * a silent second attempt is worse than a clear message. The player decides.
@@ -125,19 +126,21 @@ function isSupabaseInternal(input: RequestInfo | URL, init?: RequestInit): boole
 
 
 /**
- * `fetch` with a `[db]` console trail, and **where faults are presented**
- * (docs/envelopes.md → "Faults are presented centrally, and a call site never
- * words a failure").
+ * `fetch` with a `[db]` console trail, and **where a failure is classified** —
+ * never presented (docs/envelopes.md → Presenting a fault is not a call site's
+ * job).
  *
  * The tag is its own channel, beside `[rt]` (realtime) and `[ui]` (the browser
  * snapshot + play-surface lifecycle) — a failed request is neither of those.
  * Filtering the console to `[db]` gives the request path on its own.
  *
- * ─── Why presentation lives here ─────────────────────────────
- * This is the one place every Supabase call passes through, so it is the only
- * place a rule like "a player never has to be told twice, and a call site never
- * has to word a network failure" can be enforced rather than remembered. What
- * reaches a call site is then only the outcomes it has an opinion about.
+ * ─── Why classification lives here, and presentation does not ──
+ * This is the one place every Supabase call passes through, and the only layer
+ * that can see whether the body parsed — so it is where "who answered" is
+ * decided. But all it knows is the URL, and a modal is decided per ANSWER: one
+ * call can want quiet for a dropped network and a modal for a signed-out
+ * player. So the wrapper holding the answer presents; this layer hands it the
+ * verdict in `statusText` and logs only what nothing else will.
  */
 export const dbFetch: typeof fetch = async (input, init) => {
   const started = performance.now()

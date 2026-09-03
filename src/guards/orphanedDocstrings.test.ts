@@ -65,8 +65,6 @@ const KNOWN: string[] = [
   'src/common/hooks/session/useProfile.ts:137',
   'src/common/lib/games.ts:414',
   'src/common/lib/games.ts:588',
-  'src/common/lib/supabase/dbFetch.test.ts:182',
-  'src/common/lib/supabase/dbFetch.test.ts:192',
   // → connections
   'src/connections/components/BoardCol.tsx:54',
   // → crosswords

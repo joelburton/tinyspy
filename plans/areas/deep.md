@@ -32,13 +32,15 @@ understood, tidied* — `cs-blessed` here means he has read the file, not seen i
 **Every heading says its status**; a heading with **no status prefix means OPEN**.
 
 **⭐ REOPENED 2026-09-02 by a second read — twenty findings, `F-deep-40` …
-`F-deep-59`, ALL OPEN.** Joel asked a fresh session to read the 35 files and
-`deep.md` after the first six passes closed, and it found mostly prose the code
-has moved out from under — including four things the first read's own
-resolutions claimed fixed and were not (`F-deep-41`, `F-deep-42`, `F-deep-46`,
-`F-deep-48`). Pass 7, at the end of this file, holds them. **The
-`cs-fixed-deep` stamps were NOT moved**; with open findings against them they
-overstate, and restamping is Joel's call.
+`F-deep-59`: eight resolved, twelve OPEN.** Joel asked a fresh session to read
+the 35 files and `deep.md` after the first six passes closed, and it found
+mostly prose the code has moved out from under — including four things the
+first read's own resolutions claimed fixed and were not (`F-deep-41`,
+`F-deep-42`, `F-deep-46`, `F-deep-48`). Pass 7, at the end of this file, holds
+them. The eight that were prose only (`F-deep-40` … `-47`) were fixed the same
+day on Joel's instruction; `F-deep-48` and everything from `F-deep-49` on would
+change code and wait. **The `cs-fixed-deep` stamps were NOT moved**; with open
+findings against them they overstate, and restamping is Joel's call.
 
 The six passes before it, all on 2026-09-02:
 
@@ -51,8 +53,8 @@ The six passes before it, all on 2026-09-02:
 | `cls.ts` | 1 | `F-deep-36` — resolved |
 | the server side of the envelope | 3 | `F-deep-37` … `F-deep-39` — all resolved |
 
-**Fifty-nine findings: thirty-seven resolved, one closed, one moved, twenty
-open** (pass 7).
+**Fifty-nine findings: forty-five resolved, one closed, one moved, twelve
+open** (all twelve in pass 7).
 
 **What is left besides pass 7 is `cs-blessed`, which is Joel's alone** — nine files carry it,
 twenty-six are `cs-fixed-deep`. `cs-fixed` is "Claude changed it and stands
@@ -1532,8 +1534,12 @@ session read all 35 files, `logStamp.ts`, the two guards the area wrote, and
 checked every claim in the first six passes' resolutions against the tree.
 Every line reference below was verified by reading the line, not by grep alone.
 
-**Twenty findings, `F-deep-40` … `F-deep-59`, and every one is OPEN** — a
-heading with no status prefix means open, as everywhere in this file. The shape
+**Twenty findings, `F-deep-40` … `F-deep-59`.** Joel, the same day: *"for
+F40–F48, it looks like these are just documentation/comment fixes. for those
+which do not change code, go ahead and do them. skip those which would change
+code."* So `F-deep-40` … `-47` are RESOLVED below; `F-deep-48` renames storage
+keys and stays open with the rest. A heading with no status prefix means open,
+as everywhere in this file. The shape
 of what turned up: the LOGIC held; what drifted is prose the code moved out from
 under — and four of the first read's resolutions said "fixed" of something that
 was only half fixed (`F-deep-41`, `F-deep-42`, `F-deep-46`, `F-deep-48`). Two
@@ -1552,7 +1558,7 @@ fixes (`F-deep-50`, the last item of `F-deep-57`).
 
 ### Claims the code now contradicts
 
-## F-deep-40 · `dbfetch-still-says-it-presents` · Six places say `dbFetch` words or shows the modal; it does neither
+## RESOLVED · F-deep-40 · `dbfetch-still-says-it-presents` · Six places say `dbFetch` words or shows the modal; it does neither
 
 `dbFetch.ts` imports `NO_ANSWER_TO_CODE_AND_TEXT`, `DbError`, `logDb` and
 `logSlow` — no builder, and nothing that shows anything. docs/envelopes.md:610
@@ -1573,7 +1579,21 @@ that never reached the server … and shows it"*), and the comment at
 `:650-653` says `dbFetch` *"has already presented this one"* directly above a
 test whose title and assertion say `runEdgeFn` presents.
 
-## F-deep-41 · `three-generations-stacked` · `dbFetch.test.ts` has three docstrings in a row, and the guard files two of them under other areas
+> **resolution: all eight places rewritten to what envelopes.md:610 says**
+> (Joel, 2026-09-02). Each now states the split the same way: `dbFetch`
+> classifies and names the situation as an `FE` code in `statusText`; the
+> wrapper holding the answer words the envelope AND the modal through the one
+> builder in `dbEnvelope`. `dbFetch.ts`'s "Why presentation lives here" section
+> became "Why classification lives here, and presentation does not", carrying
+> the `useGameTimer` reason from the doc. Nothing in the doc's :610 section was
+> touched — it was already right. Swept afterwards: no file under
+> `src/common/lib` or the doc still says `dbFetch` presents.
+>
+> Not touched, deliberately: `dbEnvelope.ts:249`'s *"which reaches for
+> `error.message`"* — true, and that file is on `noRawServerMessage`'s
+> allowlist for it.
+
+## RESOLVED · F-deep-41 · `three-generations-stacked` · `dbFetch.test.ts` has three docstrings in a row, and the guard files two of them under other areas
 
 `dbFetch.test.ts:172-201` is THREE stacked docstrings: *"if `dbFetch` stops
 presenting, nothing else notices"*, then *"`dbFetch` classifies; it no longer
@@ -1587,7 +1607,13 @@ this roster. The guard's own rule is that the area that opens the file removes
 the line, so `deep` closed with two of its own still listed, under someone
 else's name.
 
-## F-deep-42 · `faultstore-second-citation-not-fixed` · `F-deep-34` corrected one of the two lines it named
+> **resolution: the two stale generations deleted, the third kept** (Joel,
+> 2026-09-02) — it was the only one describing the file's assertions. The two
+> `KNOWN` lines came out of `orphanedDocstrings.test.ts` with them; its
+> shrinking arm would otherwise have gone red, which is that arm doing its job.
+> The guard is green with 42 entries.
+
+## RESOLVED · F-deep-42 · `faultstore-second-citation-not-fixed` · `F-deep-34` corrected one of the two lines it named
 
 `F-deep-34` found `reportDbFault` cited at `faultStore.ts:14` and `:49` as
 living in `dbResult.ts`, and its resolution says *"the citation corrected"*.
@@ -1595,7 +1621,10 @@ Line 14 was. **`faultStore.ts:56` still reads `reportDbFault
 (lib/supabase/dbResult.ts)`** — the second of the two, moved down by the edits
 to the first. [[feedback_verify_the_edit_landed]] again.
 
-## F-deep-43 · `field-plumbing-is-built` · Two comments say nothing reads `field`; eight forms do
+> **resolution: `:56` now says `dbEnvelope.ts`** (Joel, 2026-09-02). Checked by
+> grep afterwards: both citations in the file agree.
+
+## RESOLVED · F-deep-43 · `field-plumbing-is-built` · Two comments say nothing reads `field`; eight forms do
 
 `envelope.ts:136`: *"The form plumbing that reads this isn't built yet."*
 `dbResult.test.ts:355-357`: *"Nothing renders it yet — the form plumbing is
@@ -1604,7 +1633,13 @@ FORM_ERROR_KEYNAME`: `CreateClubModal:166`, `EditClubModal:93`,
 `ClaimHandleScreen:136`, `SetupGameModal:186`, `EditProfileModal:67`,
 `WordEditDialog:226`, and `connections/SetupForm` at `:99` and `:118`.
 
-## F-deep-44 · `all-four-are-five` · The docstring above `OUR_BUG_TO_CODE_AND_TEXT` counts four and promises a prefix the fifth lacks
+> **resolution: both comments now describe the readers** (Joel, 2026-09-02).
+> `envelope.ts` says every form reads it as `res.field ?? FORM_ERROR_KEYNAME`
+> and that the constant IS `'_'` — checked in `formState.ts:20` before writing
+> it — so a `null` lands on the form's own line by the form's choice. The test
+> comment says the same in one line.
+
+## RESOLVED · F-deep-44 · `all-four-are-five` · The docstring above `OUR_BUG_TO_CODE_AND_TEXT` counts four and promises a prefix the fifth lacks
 
 `dbEnvelope.ts:143`: *"All four are OURS, which is why every message opens
 `BUG:`."* `F-deep-33` added a fifth entry beneath it, `unhandledAnswer`, whose
@@ -1612,7 +1647,13 @@ text is `fell through to unhandled` — the `BUG:` is prepended at the call in
 `reportUnhandled`. Both halves of the sentence are now false, and it is the
 count-in-a-docstring species `F-deep-21` and `F-deep-36` named.
 
-## F-deep-45 · `no-dbcode-to-carry` · A comment says there is no code to carry, five lines under the call that carries one
+> **resolution: the count comes out, and the prefix claim says where the fifth
+> gets it** (Joel, 2026-09-02) — "All of them are OURS … four carry it in their
+> text, and `unhandledAnswer`'s is prefixed at its one call, `reportUnhandled`,
+> where the call's name goes between." The constant's text is untouched: moving
+> the prefix into it would change the modal's sentence, which is code.
+
+## RESOLVED · F-deep-45 · `no-dbcode-to-carry` · A comment says there is no code to carry, five lines under the call that carries one
 
 `dbResult.ts:414-416`: *"No `dbcode` to carry — the call SUCCEEDED (a 200 with
 an unreadable body), so there is no Postgres error."* The `faultEnvelope` call
@@ -1621,7 +1662,11 @@ The test at `dbResult.test.ts:434-437` has the corrected reasoning (*"PN307,
 not null … 'the frontend built this envelope' is itself an answer"*); the
 source kept the old half.
 
-## F-deep-46 · `callerror-does-not-exist` · `F-deep-22` removed the deleted helpers from `callEdgeFn.ts` and not from its neighbors
+> **resolution: the comment now carries the test's reasoning** (Joel,
+> 2026-09-02): PN307, not null — no SQLSTATE, but "the frontend built this" is
+> itself an answer, and a call site should not identify it by an absence.
+
+## RESOLVED · F-deep-46 · `callerror-does-not-exist` · `F-deep-22` removed the deleted helpers from `callEdgeFn.ts` and not from its neighbors
 
 `dbResult.ts:273`: a 4xx *"arrives as a transport-shaped `CallError`"*.
 `callEdgeFn.test.ts:5,8`: *"a classifiable `CallError`"*, *"so
@@ -1631,7 +1676,16 @@ in `src/`**; the adapter returns `NonNullable<DbError>`. Two more mentions sit
 in `src/guards/noRawServerMessage.test.ts:49,51,85`, which is the guards
 owner's, recorded here with the other two notes to that owner in pass 2.
 
-## F-deep-47 · `dbresult-header-claims-three-files` · The module docstring says it holds what two other files hold
+> **resolution: both this area's mentions rewritten** (Joel, 2026-09-02).
+> `dbResult.ts` now says what is true of the 4xx path — the function's own
+> `error` channel fired, `callEdgeFn` digs it out as a `DbError`, and it becomes
+> a fault here. `callEdgeFn.test.ts` names `DbError` and `runEdgeFn` where it
+> named the two deleted helpers, and "the cells these pin (the edge-fn column of
+> the behavior matrix)" became "the cases these pin". **The three in
+> `noRawServerMessage.test.ts` are left**, being the guards owner's — now the
+> fourth note to that owner in this file.
+
+## RESOLVED · F-deep-47 · `dbresult-header-claims-three-files` · The module docstring says it holds what two other files hold
 
 `dbResult.ts:12-14`: *"Types, classification, the environmental sentences, and
 the read wrapper — all of it, in one file on purpose."* The types are in
@@ -1639,6 +1693,11 @@ the read wrapper — all of it, in one file on purpose."* The types are in
 out by the error sprint. It also calls itself *"**The new server-result
 system**"* (and `dbResult.test.ts:16`) — new relative to a system that has been
 deleted, which is the archaeology this repo rules out.
+
+> **resolution: "The server-result wrappers"** (Joel, 2026-09-02) — the header
+> names the three it holds and points at `envelope.ts` for the type and
+> `dbEnvelope.ts` for the builders and sentences. "New" is gone here and from
+> `dbResult.test.ts:16`.
 
 ## F-deep-48 · `three-off-convention-keys` · `F-deep-15`'s premise was wrong: two more hyphenated keys remain, both this area's
 
@@ -1653,6 +1712,9 @@ colon."* Measured across `src/`:
 Every other key is `puzpuzpuz:…` or `<game>:…`. The second costs nothing to
 rename — nobody types it. The first is typed by hand in devtools, so renaming
 it is a real choice and it is Joel's.
+
+**Left open on 2026-09-02 when `F-deep-40` … `-47` were fixed**: renaming a
+key is code, and Joel's instruction covered prose only.
 
 ### Behavior
 

@@ -10,8 +10,9 @@ import type { Outcome } from '../outcomes'
 import type { Envelope, NotOk, Severity } from './envelope'
 
 /**
- * **The new server-result system.** Types, classification, the environmental
- * sentences, and the read wrapper — all of it, in one file on purpose.
+ * **The server-result wrappers.** Classification and the three wrappers —
+ * `runRpc`, `runEdgeFn`, `readRows` — in one file on purpose. The envelope's
+ * TYPE is `envelope.ts`; its builders and the sentences are `dbEnvelope.ts`.
  *
  * See `docs/envelopes.md` for the design. The one-line version: a call
  * either reaches a decision and says what it was, or something is broken, and
@@ -269,9 +270,10 @@ type QueryLike<T> = PromiseLike<{
  * (docs/envelopes.md → How edge functions build one), so everything with an
  * envelope arrives 200 and the modal for a declared fault is raised HERE.
  *
- * A function that has not been converted yet still answers `{ error: key }`
- * with a 4xx; that arrives as a transport-shaped `CallError` and becomes a
- * fault envelope, which is the right treatment for a shape no caller can read.
+ * A function whose own `error` channel fires — the RPC never ran, or a shape
+ * from before the conversion — answers `{ error }` with a 4xx. `callEdgeFn`
+ * digs that out as a `DbError`, and it becomes a fault envelope here, which is
+ * the right treatment for a shape no caller can read.
  */
 export async function runEdgeFn<T>(
   fnName: string,
@@ -411,9 +413,11 @@ export async function runRpc<T>(
       OUR_BUG_TO_CODE_AND_TEXT.unreadable.code,
     )
     reportFault(transport, unreadable, opts)
-    // No `dbcode` to carry — the call SUCCEEDED (a 200 with an unreadable
-    // body), so there is no Postgres error. What we do know is the body, and
-    // it goes into `detail` rather than living only in the console line.
+    // PN307 as the `dbcode`, not null: the call SUCCEEDED (a 200 with an
+    // unreadable body), so there is no SQLSTATE — but "the frontend built this"
+    // is itself an answer, and a call site should not have to identify it by an
+    // absence. The body goes into `detail` rather than living only in the
+    // console line.
     return unreadable
   }
   // Everything the RPC decided arrives HTTP 200, so `dbFetch` — which only
@@ -447,8 +451,8 @@ export async function runRpc<T>(
  * `ok`** and a failure is always a `fault`; both rules, and why, are in
  * docs/envelopes.md → Consumers.
  *
- * What that leaves a caller: the modal is already up (`dbFetch` presented it),
- * so its only job is to stop showing a stale answer.
+ * What that leaves a caller: the modal is already up (this wrapper presented
+ * it), so its only job is to stop showing a stale answer.
  *
  *     const r = await readRows(db.from('clubs').select('handle, name'))
  *     if (r.type !== 'ok') { setLoad('failed'); return }

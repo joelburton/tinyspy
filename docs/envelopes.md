@@ -1206,9 +1206,10 @@ fact a wider definition wanted is already on the `[db]` line anyway — **a blan
 ### When OUR SERVER did not answer — the `FE` codes
 
 Four situations, four codes, four sentences. They live in `dbEnvelope.ts` and
-are the ONE place any of them is chosen — `dbFetch` calls it to word the modal
-and the three wrappers call it to word the envelope a call site reads, so the
-two cannot disagree about one event.
+are the ONE place any of them is chosen — `dbFetch` names the situation as a
+code in `statusText`, and the three wrappers call it to word both the envelope
+a call site reads and the modal above it, so the two cannot disagree about one
+event.
 
 | code | what happened | how it is told apart |
 |---|---|---|

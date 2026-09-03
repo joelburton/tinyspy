@@ -11,9 +11,10 @@ import type { Envelope, NotOk } from './envelope'
  * error, a request that never completed — one is built here, in the same shape,
  * so nothing downstream has to know which sort of failure produced it.
  *
- * Sits between `dbLog` and its two consumers. `dbFetch` calls these to word and
- * show a transport failure; `dbResult`'s wrappers call the same builders for
- * the same failures, which is the whole point — two authors of one sentence is
+ * Sits between `dbLog` and `dbResult`'s three wrappers, which call these
+ * builders for every failure they present. `dbFetch` reaches in only for the
+ * `FE` codes it writes into `statusText`; it words nothing and shows nothing.
+ * One builder per sentence is the whole point — two authors of one sentence is
  * how the modal and the pill came to disagree (docs/envelopes.md → Who writes
  * the words, per answer).
  */
@@ -140,9 +141,11 @@ export function isEnvironmental(dbcode: string | null): boolean {
  * third author of the same thing, and a call site testing `dbcode === 'PN307'`
  * does not care which layer noticed.
  *
- * All four are OURS, which is why every message opens `BUG:`. They are the
- * failures where something answered and the answer was wrong — as against the
- * `FE` codes above, where our server did not answer at all.
+ * All of them are OURS, which is why every sentence a player reads opens
+ * `BUG:` — four carry it in their text, and `unhandledAnswer`'s is prefixed at
+ * its one call, `reportUnhandled`, where the call's name goes between. They are
+ * the failures where something answered and the answer was wrong — as against
+ * the `FE` codes above, where our server did not answer at all.
  */
 export const OUR_BUG_TO_CODE_AND_TEXT = {
   /** A 2xx whose body is not one of our envelopes — an unconverted RPC, or a
@@ -243,9 +246,10 @@ export function faultEnvelope(
  * four `FE` codes, whichever the caller identified.
  *
  * **This is the only place any of those sentences is chosen**, which is the
- * whole point of it existing. `dbFetch` calls it to word the modal; the three
- * wrappers call it to word the envelope a call site reads. They used to answer
- * separately — `dbFetch` here and the wrappers via `faultEnvelope`, which
+ * whole point of it existing. The three wrappers call it to word the envelope
+ * a call site reads AND the modal above it; `dbFetch` only names the situation,
+ * as an `FE` code in `statusText`, and `situationFor` brings it back here. The
+ * wrappers used to word this themselves via `faultEnvelope`, which
  * reaches for `error.message` and so handed back the browser's `"TypeError:
  * Failed to fetch"`. A player then got a modal and a pill disagreeing about one
  * event.

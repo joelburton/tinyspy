@@ -132,8 +132,10 @@ export type Envelope<T = unknown> =
        *     null        the raise didn't say; a SQL-side guard catches it
        *
        * `'_'` is a real value rather than a stand-in for nothing, and always
-       * exactly one field: docs/envelopes.md → The keys. The form plumbing that
-       * reads this isn't built yet.
+       * exactly one field: docs/envelopes.md → The keys. Every form reads it as
+       * `res.field ?? FORM_ERROR_KEYNAME`, and that constant IS `'_'` — so a
+       * `null` lands on the form's own line too, by the form's choice rather
+       * than the raise's.
        */
       field: string | null
       meta: Record<string, unknown> | null

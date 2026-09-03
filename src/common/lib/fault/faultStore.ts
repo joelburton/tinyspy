@@ -53,7 +53,7 @@ function emit(): void {
 
 /** Put a fault on screen: queue it for the modal, and nothing else. It decides
  *  nothing and logs nothing — a caller that needs the words chosen and the
- *  `[db]` line written wants `reportDbFault` (lib/supabase/dbResult.ts), which
+ *  `[db]` line written wants `reportDbFault` (lib/supabase/dbEnvelope.ts), which
  *  does both and then calls this. Drops the fault (UI-only — the `[db]` line
  *  already fired) when the queue is full. */
 export function showFaultModal(fault: FaultEntry): void {

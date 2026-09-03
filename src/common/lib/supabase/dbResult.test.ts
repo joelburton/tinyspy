@@ -13,7 +13,7 @@ const { mockInvoke } = vi.hoisted(() => ({ mockInvoke: vi.fn() }))
 vi.mock('./supabase', () => ({ supabase: { functions: { invoke: mockInvoke } } }))
 
 /**
- * The new server-result system's own tests (docs/envelopes.md).
+ * The server-result wrappers' own tests (docs/envelopes.md).
  *
  * The load-bearing one: zero rows must be `ok`. An empty result is a correct
  * protocol answer, and only a caller can know it is impossible — so a helper
@@ -52,10 +52,11 @@ beforeEach(() => {
  * **Nothing answered: every wrapper says the same thing.**
  *
  * This is the guard for the failure that had none, and its absence is why the
- * two authors drifted (docs/envelopes.md → Who writes the words, per answer). `dbFetch` words a request
- * that never reached the server — "You appear to be offline…" — and shows it.
- * The three wrappers used to word it again from the browser's own opaque
- * string, so a player saw a modal and a pill disagreeing about one event.
+ * two authors drifted (docs/envelopes.md → Who writes the words, per answer).
+ * The sentence for a request that never reached the server — "You appear to be
+ * offline…" — is chosen once, in `dbEnvelope`, and the three wrappers say it.
+ * They used to word it themselves from the browser's own opaque string, so a
+ * player saw a modal and a pill disagreeing about one event.
  *
  * `status: 0` is the signal: postgrest-js sets it on its fetch-rejection path
  * and only there, and `callEdgeFn` matches it for the same case.
@@ -352,9 +353,9 @@ describe('runRpc — one shape, always', () => {
     )
   })
 
-  // `field` names which input a validation is about. Nothing renders it yet —
-  // the form plumbing is designed but unbuilt — so this pins that the value
-  // survives the trip rather than being dropped in a layer on the way.
+  // `field` names which input a validation is about, and every form reads it
+  // (`res.field ?? FORM_ERROR_KEYNAME`) — so this pins that the value survives
+  // the trip rather than being dropped in a layer on the way.
   it('carries the field a validation is about', async () => {
     const r = await runRpc(
       Promise.resolve({
@@ -647,10 +648,9 @@ describe('runEdgeFn — the same shape, through Deno', () => {
     expect(peekFaultsForTest()[0].text).toContain('no caller can read')
   })
 
-  // Still a fault, but NOT a second modal. A `/functions/v1/` path is not
-  // `isSupabaseInternal`, so `dbFetch` has already presented this one —
-  // reporting again here was the same news twice, and the poorer telling of
-  // the two, since nothing at this layer can rebuild that diagnostics line.
+  // A fault, AND the modal. Nothing below this layer presents — `dbFetch`
+  // classifies and logs — so the one modal for a function that never answered
+  // is raised here, with the transport facts this layer holds.
   it('treats a function that never answered as a fault, and presents it', async () => {
     mockInvoke.mockResolvedValue({ data: null, error: { message: 'network down' } })
 

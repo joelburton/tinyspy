@@ -170,26 +170,6 @@ describe('dbFetch — requests that DID reach the server', () => {
 })
 
 /**
- * PRESENTING FAULTS (docs/envelopes.md → "Presenting a fault is not a call
- * site's job").
- *
- * These pin the rule that makes every converted call site simpler: a call site
- * never has to ask "did we hear back at all?", never words a network problem,
- * and never calls showFaultModal. If `dbFetch` stops presenting, nothing else in
- * the app notices — the failure would be silent, which is why it is tested here
- * rather than left to a call site's own test.
- */
-/**
- * **dbFetch classifies; it no longer presents.** Every assertion here reads the
- * `[db]` LINE, because that is now the whole of this layer's output — the
- * wrapper decides whether anyone is shown anything
- * (docs/envelopes.md → Presenting a fault).
- *
- * The classification still matters and still lives here: this is the only place
- * Kong's JSON can be told from a captive portal's HTML, since postgrest-js
- * flattens both into `{ message: string }` before a wrapper sees them.
- */
-/**
  * **dbFetch classifies; the wrapper logs and presents.** Its verdict rides in
  * `statusText`, the one field that survives postgrest-js untouched — so these
  * assertions read the RESPONSE, not the console.
