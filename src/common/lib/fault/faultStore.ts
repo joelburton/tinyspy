@@ -11,17 +11,20 @@ import { useSyncExternalStore, type ReactNode } from 'react'
  * as a blocking MODAL, not a pill — room to be read, impossible to miss, and
  * "did a box pop up?" is answerable down a phone line.
  *
- * Nothing decides here. `reportDbFault` (lib/supabase/dbResult.ts) picks the
- * words and writes the `[db]` line, then calls `showFaultModal`; the older
- * `fault: true` sinks (useLocalFeedback / the GamePage global slot) route here
- * the same way, so no game wires anything.
+ * Nothing decides here. `reportDbFault` (lib/supabase/dbEnvelope.ts) picks the
+ * words and writes the `[db]` line, then calls `showFaultModal` — including for
+ * every call site's `else` scream, which reaches it through `reportUnhandled`.
+ *
+ * Four callers reach past it, each with a reason: `HomePage` and the
+ * `window.pupfault` trigger build their own diagnostics, and `useGameTimer` and
+ * `useWordSubmit` show a fault whose words are already chosen.
  *
  * Queue semantics (Joel's rulings, 2026-08-13 — docs/ui.md → Faults):
  *   - Each fault is its OWN modal; strictly one visible; dismissing shows the
  *     next. No batching, no dedupe — revisit later if storms annoy.
  *   - Capped at QUEUE_CAP. Beyond it, new faults are silently dropped from
- *     the UI — "silently" meaning no modal: the classifier already wrote the
- *     `[db]` console line before routing, so nothing is lost to diagnosis.
+ *     the UI — "silently" meaning no modal: whoever routed the fault already
+ *     wrote its `[db]` console line, so nothing is lost to diagnosis.
  */
 
 export type FaultEntry = {
@@ -30,8 +33,12 @@ export type FaultEntry = {
    *  environmental failure, the frontend's sentence. */
   text: ReactNode
   /** The k=v diagnostics line — `diagnosticsLine` in `dbLog.ts`, the same
-   *  content as the `[db]` log line. Absent only for hand-triggered test
-   *  faults. */
+   *  content as the `[db]` log line.
+   *
+   *  Optional, and `<FaultModal>` renders it only when present — so a fault
+   *  built by hand rather than routed through `reportDbFault` shows a sentence
+   *  and nothing under it. Two do that on purpose (`useGameTimer`, which is
+   *  showing a fault the server worded). */
   diagnostics?: string
 }
 

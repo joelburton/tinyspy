@@ -38,7 +38,7 @@ DATA PATH, read 2026-09-02: eleven files, eleven findings `F-deep-17` …
 seven files, **five findings `F-deep-28` … `F-deep-32`, all RESOLVED** — no
 defects, four duplications-of-one-fact and a coverage gap. **The three named
 passes are done. The FAULT SINK was read the same day: two files, **three
-findings `F-deep-33` … `F-deep-35`** — one RESOLVED, two open. `cls.ts` and the three
+findings `F-deep-33` … `F-deep-35`, all RESOLVED.** `cls.ts` and the three
 server-side envelope files are what remain of the roster.**
 
 ## The roster — 35 files, 4,880 lines
@@ -1276,16 +1276,32 @@ describe the callers it has.
 > **A note went to `common-hosts`** for `FaultModal`, whose docstring promises the
 > diagnostics line it actually renders conditionally.
 
-## F-deep-34 · `faultstore-cites-the-wrong-file` · `reportDbFault` is pointed at twice, and both point at the wrong module
+## RESOLVED · F-deep-34 · `faultstore-cites-the-wrong-file` · `reportDbFault` is pointed at twice, and both point at the wrong module
 
 `faultStore.ts:14` and `:49` both say `reportDbFault (lib/supabase/dbResult.ts)`.
 It is in **`dbEnvelope.ts:335`**. `dbResult.ts` has `reportFault`, a different
 function — the private wrapper that honors `presentFaults: false` — so the
 citation does not merely miss, it lands next to a similarly-named neighbor.
 
-> resolution:
+> **resolution: the citation corrected, and the two claims it propped up
+> rechecked rather than assumed** (Joel, 2026-09-02).
+>
+> The `F-deep-33` sweep had changed what is true around it. The docstring's
+> *"Nothing decides here; `reportDbFault` … then calls `showFaultModal`"* was
+> false when 95 call sites went around it; it is true again now, because
+> `reportUnhandled` routes through `reportDbFault`. So the paragraph keeps its
+> claim and gains the four callers that legitimately reach past it — `HomePage`
+> and the `pupfault` trigger build their own diagnostics, `useGameTimer` and
+> `useWordSubmit` show a fault whose words are already chosen.
+>
+> **`FaultEntry.diagnostics` stopped claiming to be near-universal.** It now says
+> what is true — optional, rendered only when present, so a hand-built fault
+> shows a sentence and nothing under it — which is also the fact `common-hosts`
+> is holding a note about for `FaultModal`.
+>
+> The `QUEUE_CAP` comment keeps its conclusion, since the sweep made it earn it.
 
-## F-deep-35 · `fault-true-sinks-are-gone` · The source describes a routing flag its own test says was deleted
+## RESOLVED · F-deep-35 · `fault-true-sinks-are-gone` · The source describes a routing flag its own test says was deleted
 
 `faultStore.ts:15` — *"the older `fault: true` sinks (useLocalFeedback / the
 GamePage global slot) route here the same way, so no game wires anything."*
@@ -1301,7 +1317,11 @@ The rule it encoded still holds — a fault never sits in a pill slot — but by
 construction rather than by a branch, which is a better thing for the docstring
 to say.
 
-> resolution:
+> **resolution: the sentence is gone, removed with `F-deep-34`'s paragraph**
+> (they were the same paragraph). Nothing replaced it: the rule it described is
+> now true by construction, and a docstring that explained how a deleted flag
+> used to enforce it would be the archaeology this repo rules out. The store's
+> own test file still records the deletion, which is the right place for it.
 
 ## Questions this pass raises rather than answers
 
