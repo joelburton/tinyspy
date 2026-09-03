@@ -18,7 +18,7 @@ import App from './App.tsx'
 import { loadTheme } from './common/themes/loadTheme'
 import { trackLayoutWidth } from './common/lib/util/layoutWidth'
 import { reloadOnStaleChunk } from './common/lib/util/reloadOnStaleChunk'
-import { diagnosticsLine } from './common/lib/supabase/dbLog'
+import { onUncaughtRender, showPanic } from './common/lib/util/panic'
 
 // Publish `--client-width` (usable viewport width, scrollbar excluded) for the
 // board-sizing math.
@@ -37,33 +37,19 @@ try {
 
   const root = document.getElementById('root')
   if (!root) throw new Error('no #root element')
-  createRoot(root).render(
+  // A throw during RENDER never reaches the catch below: React schedules the
+  // render, catches what it throws, unmounts the whole tree, and calls this
+  // instead. The play surface has the app's only boundary, so everything
+  // outside it — a page, the shell — lands here, and the same last-resort
+  // screen as boot's is painted (see `panic.ts`).
+  createRoot(root, { onUncaughtError: onUncaughtRender }).render(
     <StrictMode>
       <App />
     </StrictMode>,
   )
 } catch (err) {
-  showBootPanic(err);
-}
-
-function showBootPanic(err: unknown): void {
-  // Nothing has rendered and the stylesheet chain may be what failed, so this
-  // paints itself rather than reaching for ErrorPage.
-  const detail = err instanceof Error ? `${ err.name }: ${ err.message }` : String(err);
-  const line = diagnosticsLine("FAULT", {
-    call: "boot",
-    severity: "fault",
-    detail,
-  });
-  console.error(line);
-
-  const box = document.createElement("div");
-  box.setAttribute("style", "max-width:32rem;margin:4rem auto;padding:0 1rem;font:14px system-ui,sans-serif");
-  const sentence = document.createElement("p");
-  sentence.textContent = "The app could not start. Reloading may fix it.";
-  const diagnostics = document.createElement("p");
-  diagnostics.setAttribute("style", "color:#666;font-size:0.85em;word-break:break-word");
-  diagnostics.textContent = line;
-  box.append(sentence, diagnostics);
-  document.body.append(box);
+  // The two steps above that can throw: the theme load and the #root lookup.
+  // Nothing has rendered, and the stylesheet chain may be what failed, so the
+  // screen paints itself rather than reaching for ErrorPage.
+  showPanic('boot', err)
 }

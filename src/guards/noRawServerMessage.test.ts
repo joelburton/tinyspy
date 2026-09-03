@@ -61,7 +61,7 @@ const ALLOWED = new Map<string, string>([
   // envelope to classify and no server sentence to protect a player from. It
   // paints the message because the alternative is a blank page with the one
   // useful fact thrown away.
-  ['src/main.tsx', 'a boot failure, which has no envelope and no server sentence'],
+  ['src/common/lib/util/panic.ts', 'the last-resort screen for a boot or render failure, which has no envelope and no server sentence'],
 ])
 
 function sourceFiles(dir: string): string[] {

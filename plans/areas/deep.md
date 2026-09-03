@@ -32,14 +32,14 @@ understood, tidied* — `cs-blessed` here means he has read the file, not seen i
 **Every heading says its status**; a heading with **no status prefix means OPEN**.
 
 **⭐ REOPENED 2026-09-02 by a second read — twenty findings, `F-deep-40` …
-`F-deep-59`: nine resolved, eleven OPEN.** Joel asked a fresh session to read
+`F-deep-59`: ten resolved, ten OPEN.** Joel asked a fresh session to read
 the 35 files and `deep.md` after the first six passes closed, and it found
 mostly prose the code has moved out from under — including four things the
 first read's own resolutions claimed fixed and were not (`F-deep-41`,
 `F-deep-42`, `F-deep-46`, `F-deep-48`). Pass 7, at the end of this file, holds
-them. `F-deep-40` … `-48` were fixed the same day on Joel's instruction —
-eight prose, one key rename; everything from `F-deep-49` on would change code
-and waits. **The `cs-fixed-deep` stamps were NOT moved**; with open
+them. `F-deep-40` … `-49` were fixed the same day on Joel's instruction —
+eight prose, one key rename, and the render-crash screen; `F-deep-50` on
+waits. **The `cs-fixed-deep` stamps were NOT moved**; with open
 findings against them they overstate, and restamping is Joel's call.
 
 The six passes before it, all on 2026-09-02:
@@ -53,8 +53,8 @@ The six passes before it, all on 2026-09-02:
 | `cls.ts` | 1 | `F-deep-36` — resolved |
 | the server side of the envelope | 3 | `F-deep-37` … `F-deep-39` — all resolved |
 
-**Fifty-nine findings: forty-six resolved, one closed, one moved, eleven
-open** (all eleven in pass 7).
+**Fifty-nine findings: forty-seven resolved, one closed, one moved, ten
+open** (all ten in pass 7).
 
 **What is left besides pass 7 is `cs-blessed`, which is Joel's alone** — nine files carry it,
 twenty-six are `cs-fixed-deep`. `cs-fixed` is "Claude changed it and stands
@@ -85,6 +85,8 @@ twice while the passes ran, because the area kept editing its own files.
 | `src/common/lib/util/reloadOnStaleChunk.ts` | 63 | filed under `util/`, but it is boot machinery |
 | `src/common/lib/util/reloadOnStaleChunk.test.ts` | 107 | |
 | `src/common/themes/loadTheme.ts` | 83 | **added 2026-09-02 by `F-deep-9`** — `main.tsx` awaits it before the first render, and it names no game and no page |
+| `src/common/lib/util/panic.ts` | 64 | **written 2026-09-02 by `F-deep-49`** — the last-resort screen for a boot or render failure, moved out of `main.tsx` so it can be tested |
+| `src/common/lib/util/panic.test.ts` | 96 | **written 2026-09-02 by `F-deep-49`** |
 
 **The data path — 11 files, 2,997 lines**
 
@@ -1730,7 +1732,7 @@ it is a real choice and it is Joel's.
 
 ### Behavior
 
-## F-deep-49 · `render-throw-is-still-a-white-page` · `F-deep-4` closed two roads to a blank page; a third is open
+## RESOLVED · F-deep-49 · `render-throw-is-still-a-white-page` · `F-deep-4` closed two roads to a blank page; a third is open
 
 `F-deep-4` wrapped the theme load, the `#root` lookup and `createRoot().render()`
 in one `try`. But `render()` schedules; it does not throw. A throw during the
@@ -1743,6 +1745,42 @@ The seam is in this area's file. React 19's `createRoot(root, {
 onUncaughtError })` is built for this, and `showBootPanic` is already there to
 call from it — the same "one sentence and the diagnostics line" `F-deep-4`
 settled on, painted by plain DOM because the app may be what failed.
+
+> **resolution: `createRoot(root, { onUncaughtError })`, and the painter moves
+> to `panic.ts`** (Joel, 2026-09-02: *"i'll take your rec. do it."*).
+>
+> `src/common/lib/util/panic.ts` (new, `cs-fixed-deep`) holds `showPanic(phase,
+> err)` — `'boot'` or `'render'`, which picks the sentence and names the
+> line's `call` — and `onUncaughtRender`, the root option, which writes React's
+> component stack to the console and calls the painter. The box gained a
+> Reload button; a reload is the only recovery from either path, and the
+> play-area card offers one on the same reasoning. `main.tsx` installs the
+> option and says which failures the `catch` covers (the two synchronous
+> steps) and which it never did (a render throw, which React catches and
+> reports after unmounting the tree). `showBootPanic` is gone with it, which
+> also closes the last bullet of `F-deep-59`.
+>
+> **One deviation from the recommendation, and why:** it said no new file. The
+> painter is in its own module because `main.tsx` boots the app on import and
+> cannot be imported by a test, and the recommendation also said the path
+> should be proved. `panic.test.ts` proves it four ways, the load-bearing one
+> being a REAL `createRoot` with the option installed and a component that
+> throws — React unmounts the host, the body carries the render sentence and
+> the `FAULT | render |` line, and the console got the component stack.
+>
+> **What React's own code taught while writing that test**: inside an `act()`
+> scope React pushes an uncaught error onto `thrownErrors` for `act` to rethrow
+> and **never calls `onUncaughtError` at all** (react-dom-client, the branch on
+> `actQueue`). The first draft used `act` and failed with the render error
+> rethrown at it; the test now renders through `flushSync` with no act scope,
+> which is also how a real page fails. Recorded so nobody "fixes" it back.
+>
+> Proved by planting both halves: dropping `showPanic` from the handler fails
+> the render case, dropping the button fails the button case. `vite build`
+> succeeds with the option in the bundle. The raw-message guard's allowlist
+> entry for `main.tsx`'s `err.message` read moved with the read to `panic.ts`.
+> `PlayAreaErrorBoundary`'s "the only boundary in the app" stays true — this is
+> a root OPTION, not a boundary.
 
 ## F-deep-50 · `unhandled-status-is-asserted` · The PN488 line claims `status=200` for an answer whose status it does not know
 
@@ -1847,10 +1885,12 @@ the underscore goes, or the export does and the test reads the behavior through
   over.\*\*"*, a bold marker with no opener (`F-deep-13`'s edit).
 - `logStamp.ts:11` — the docstring closes with `**/` (`F-deep-28`'s file).
 - `main.tsx:3` — `/** Top of React application.*/`, no space before the close.
-- `main.tsx:46-68` — `showBootPanic` (`F-deep-4`'s edit) uses semicolons and
-  double quotes; every other file on the roster uses neither. No eslint rule
-  enforces it (`eslint.config.js` has no `semi` or `quotes`), so this is
-  convention, not a red check.
+- ~~`main.tsx:46-68` — `showBootPanic` (`F-deep-4`'s edit) uses semicolons and
+  double quotes; every other file on the roster uses neither.~~ **Gone with
+  `F-deep-49`**: the function was rewritten into `panic.ts` in the repo's
+  convention. No eslint rule enforces it (`eslint.config.js` has no `semi` or
+  `quotes`), so it was convention, not a red check. The other three bullets
+  stand.
 
 ## Questions this pass raises rather than answers
 
