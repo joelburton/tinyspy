@@ -400,11 +400,12 @@ second stronger than the first:
   manufacturing the accidental drift this sprint exists to kill. It is worth
   doing as ONE change to all four or not at all.
 
-**If that folder-wide change is ever wanted**, `typescript` is already a direct
-devDependency (`~6.0.2`), so `ts.createScanner` costs no new dependency — but
-**no guard in `src/guards/` uses the TS API today**, so it would be the folder's
-first, and that is a decision about the folder rather than a side effect of a
-storage guard. It belongs to whoever opens `src/guards/` as an area.
+**FILED 2026-09-03 in [docs/deferred.md](../../docs/deferred.md) → Common /
+architecture**, as one item covering all four strippers. It went to the standing
+register rather than an area file because **`src/guards/` is on no area's
+roster** — §7 does not list it — so "whoever opens that area" pointed nowhere.
+`typescript` is already a direct devDependency (`~6.0.2`), so `ts.createScanner`
+needs nothing new; what it needs is a decision about the folder's shape.
 
 **The guard is now in its own `ALLOWED`.** It scans `src/`, and `src/` contains
 it; its fixture spells out real violations on purpose, because writing them

@@ -33,6 +33,15 @@ genuinely OUT of the sprint's scope goes to `docs/deferred.md`, deliberately and
 by name. That is the app's standing register; this file is the sprint's record of
 the area.
 
+### Already waiting for this area
+
+**MOVED 2026-09-03 — chat has its own area now.** A `utils` item about
+`chatOpenStore.test.ts` was filed here for an hour, on the reasoning that the
+club is chat's venue. It was wrong: `<Chat>` is mounted by `GamePage.tsx:713` as
+well as `ClubPage.tsx:1179`, so chat belongs to a page no more than the header
+does. See [chat.md](chat.md), which §7 schedules between this area and
+`shared-game-chrome`.
+
 ## Predicted test breaks
 
 *(written when the area starts changing things, per §21's test-break rule:

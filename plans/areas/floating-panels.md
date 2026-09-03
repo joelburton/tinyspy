@@ -39,6 +39,26 @@ the area.
 machinery and the shared look, not the instances, so the one fault-modal host had
 no owner; `common-hosts` has it now.
 
+**`handOffKeyboardOnTab` is yours to convert, and it has a scheduled successor**
+— from `utils`, 2026-09-03 (`F-utils-7`). `common/lib/util/keyboardHandoff.ts`
+blurs the field on Tab, which is how a panel hands the keyboard back to the game:
+every game reads keys off `window` and the dispatcher declines while any field is
+focused, so "focus the board" means having nothing focused.
+
+It is **row 7 of the eight behaviors** in [tab-rings.md](../tab-rings.md) —
+*"chat box · scratchpad → hands the keyboard back to the game → **ring
+transition**"*. The mechanism (`useTabRing`) is built and two surfaces use it;
+these two are not among them. Both callers — `ChatBody` and
+`GameScratchpadCompanion` — are floating panels, which is why this lands here
+rather than in `utils`.
+
+**The file audits clean as it stands** (`utils` verified every claim in its
+docstring), so nothing is wrong with it today. It is recorded so that it is not
+"tidied" by someone who does not know a replacement is planned, and so this area
+does not re-derive the mapping. Note also that the plan's row 6 — *any floating
+panel · setup / confirm dialogs → native Tab, **leaks to the URL bar*** — is the
+one row marked broken rather than merely unconverted, and it is also yours.
+
 ## Predicted test breaks
 
 *(written when the area starts changing things, per §21's test-break rule:

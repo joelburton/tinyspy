@@ -36,8 +36,8 @@ of 155 files.
 **The split below touches 236 files.** `common/lib/games.ts` is imported across
 every area in the sprint. Split it late and it edits files that are already
 `cs-blessed`; split it early and every area after this one reads the settled
-shape. Hence position 3, ahead of the other two scaffolding areas rather than
-beside them.
+shape. Hence its slot near the front, ahead of the other two scaffolding areas
+rather than beside them — §7 holds where, as it holds every area's position.
 
 ## The roster
 

@@ -32,7 +32,7 @@ Measured 2026-09-02, by folder:
 | `input/` | 9 | 6 | 1,344 | keys: shortcuts, cursors, tab rings, capture |
 | `realtime/` | 4 | 3 | 1,081 | presence, reconnect, refetch |
 | `session/` | 2 | 1 | 612 | `useSession`, `useProfile` |
-| `chat/` | 2 | 2 | 687 | |
+| ~~`chat/`~~ | ~~2~~ | ~~2~~ | ~~687~~ | **NOT THIS AREA'S** — [`chat`](chat.md) takes it (Joel, 2026-09-03) |
 | `feedback/` | 3 | 3 | 558 | the local/global feedback pair |
 | `scratchpad/` | 1 | 1 | 467 | |
 | `definitions/` | 2 | 0 | 162 | `useDefinePopover`, `useDefinition` |
@@ -49,6 +49,24 @@ the split is not obvious:
   `useStandardGameActions`, `useHistoryViewer`), which is
   `shared-game-chrome`'s subject. Taking `game/` out leaves ~6,900 lines of
   genuinely cross-cutting hooks, which is an area.
+
+**`chat/` is already answered, and it answers `game/` too** (Joel, 2026-09-03:
+*"move hooks/chat to chat"*). `hooks/chat/` — `useClubChat`, `useChatFeedback`,
+687 lines — belongs to [`chat`](chat.md), because the hooks are part of the
+subject and the subject has an owner.
+
+**That is a precedent, not an exception.** The rule it sets is *the subject's
+owner takes its hooks*, and `hooks/game/` is the same shape one size up: 5,284
+lines that are the game SHELL's, which is `shared-game-chrome`'s subject. So the
+question above is largely settled — a rule that sends `chat/` away while keeping
+`game/` here would have to explain what makes 687 lines different from 5,284,
+and nothing does. **Confirm it at the opening rather than assume it**; what is
+left for this area to decide is the remainder, ~6,200 lines across nine folders,
+which is a genuinely cross-cutting area.
+
+**Note the folders do NOT move on disk.** `common/hooks/chat/` stays where it is
+— docs/common-folders.md's echo principle is deliberate (*"you find everything
+about a concept by its name in each layer"*). What moved is which area READS it.
 
 **`deep`'s membership rule does not transfer.** "It names no game and no page"
 was the rule for the deep layer; here it would exile `hooks/game/` (which names
@@ -108,6 +126,28 @@ root-mounted anchored host works); the HOOK's shape is this area's.
 `useDraggablePanel`, `useFocusTrap`, `useConfirmation`, `useAcknowledge` were
 read as machinery by the first `floating-panels` audit. That audit is deleted, so
 they come back unread; its forward-pointing items are in §7 → "Carried forward".
+
+**6. `useStickyChoice.test.ts` should adopt `storage.fake.ts`, and drop its guard
+exemption** — from `utils`, 2026-09-03.
+
+jsdom in this project ships **no `localStorage` at all**: `window.localStorage`
+is `undefined` under our vitest config, so any test touching storage installs a
+Storage-shaped fake first. This file hand-rolls one (`:18-42`), as did
+`chatOpenStore.test.ts`; `utils` extracted the third copy instead of writing it,
+so `common/lib/util/storage.fake.ts` now provides `installFakeStorage()` and,
+more usefully, a `block()` that makes every method throw.
+
+Two reasons this is worth doing when the area opens rather than never:
+
+- the file is one of five entries in `src/guards/rawStorage.test.ts`'s `ALLOWED`
+  list, and that list is meant to shrink — its second test already fails on an
+  entry that has stopped being an offender;
+- the hook's own third decision is *"storage failures degrade to in-memory
+  state"*, which is exactly what `block()` exists to exercise.
+
+`useDraggablePanel.ts` and `useStickyChoice.ts` themselves were converted by
+`utils` and now call `readStored` / `writeStored`; only the TEST still reaches for
+raw storage.
 
 ## Predicted test breaks
 

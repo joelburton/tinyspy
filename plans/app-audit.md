@@ -944,10 +944,24 @@ area**.
 reached them: **`deep`**, then **`utils`**, **`common-hosts`**, **`hooks`** and
 **`corecss`** — the last four all created by `deep`'s own findings and questions. Each has a paragraph under the table.
 
-**Resequenced 2026-09-03** — **`game-lib`** added at 3, pushing eight areas down
-one. It came out of `utils`'s opening: the three loose files at the root of
-`common/lib/` needed homes, and answering that turned up 31 more files —
-`common/lib/game/` — that `deep` had listed out and no area had taken.
+**Resequenced 2026-09-03** — twice, and both times for the same reason: **the
+walk keeps finding folders on no area's roster.**
+
+- **`game-lib`** added at 3, pushing eight areas down one. It came out of
+  `utils`'s opening: the three loose files at the root of `common/lib/` needed
+  homes, and answering that turned up 31 more files — `common/lib/game/` — that
+  `deep` had listed out and no area had taken.
+- **`chat`** added at 12. `utils` had a small item to hand to whoever owns
+  `chatOpenStore.test.ts` and discovered there was nobody: chat's ten files were
+  named by no row in this table. It was filed under `club-page` for a day on the
+  reasoning that the club is chat's venue — which turned out to be wrong, since
+  `GamePage` mounts `<Chat>` too.
+
+**The pattern is worth naming, because a third one will turn up.** Both gaps
+were invisible until something needed to be *filed*: a roster answers "what does
+this area read", and neither answers "who owns this folder". The reliable test
+is the one both of these failed — pick a file at random and ask which row of
+this table names it.
 
 | #  | area | what it is |
 |----|---|---|
@@ -962,8 +976,9 @@ one. It came out of `utils`'s opening: the three loose files at the root of
 | 9  | `forms` | **RE-AUDITED FROM SCRATCH** (§21 → the 2026-09-02 restart); audited once 2026-08-25 → 08-26 and that file deleted. Split out of the area above 2026-08-24. The design language of forms: the shared field components, the setup scaffolding, and **the question the homepage could not answer — are a form's buttons really different from action buttons?** Seven hand-written Cancels say the taxonomy has a hole (F44). Split because a floating panel and a form share a container and nothing else; keeping them together meant one area holding two vocabularies |
 | 10 | `simple-page` | **NEW.** The pages that are not home, club or game: `LoginScreen`, `ClaimHandleScreen`, `ErrorPage`, `Loading`. (`CreateClubPage` was on this roster; F36 took it on 2026-08-26 and it is a modal now.) **The roster's test is "does `App` render it directly?"**, which is better than "is it routable": it catches `ErrorPage` and `Loading`, both of which stand in for a page AND appear inside one (`ClubPage:719`, `:726`, `PlayAreaErrorBoundary:47`) — which is exactly what the shell decision has to cover |
 | 11 | `club-page` | Absorbs the punted viewport-fit chain, the `.frame` rename, `<ModePill>` reading the shared `.badge`, and the leftovers listed in "Why 6 stopped" |
-| 12 | `shared-game-chrome` | `common/components/game/` — 66 files, 7,190 lines, 258 rules, and every game sits on it. **The visual half of the game shell**, of which `game-lib` is the other half; the third piece, `common/hooks/game/`, is `hooks`'s question to answer at its own opening. Also: the **contract-slot guard**, checked per mount point (§9, §10) |
-| 13 | per game, one area each | **Sixteen areas, and each has its file already** (`plans/areas/<game>.md`, keyed by CODENAME). Two passes back to back: the audit — React, SQL and CSS together — then the **tile-feedback** pass against [tile-feedback.md](tile-feedback.md), which is read per area rather than run as a sprint. `psychicnum` first, as the control: the deliberately minimal toy, so what it settles is about the shape of a game area rather than about the game |
+| 12 | `chat` | **NEW 2026-09-03**, created when `utils` needed somewhere to file a chat item and found that nothing claimed chat. The club chat panel end to end: `components/chat/` (`Chat`, `ChatBody`), `lib/chat/` (the open-state and unread stores), `hooks/chat/` (`useClubChat`, `useChatFeedback`) — **10 files, 1,529 lines**. It is not `club-page`'s, which is the discovery: `<Chat>` is mounted by `ClubPage.tsx:1179` AND `GamePage.tsx:713`, so it belongs to a page no more than the header does. Placed between its two hosts. `ChatButton` stays in `page-header` (docs/common-folders.md → a mark in the strip is the strip's) (`plans/areas/chat.md`) |
+| 13 | `shared-game-chrome` | `common/components/game/` — 66 files, 7,190 lines, 258 rules, and every game sits on it. **The visual half of the game shell**, of which `game-lib` is the other half; the third piece, `common/hooks/game/`, is `hooks`'s question to answer at its own opening. Also: the **contract-slot guard**, checked per mount point (§9, §10) |
+| 14 | per game, one area each | **Sixteen areas, and each has its file already** (`plans/areas/<game>.md`, keyed by CODENAME). Two passes back to back: the audit — React, SQL and CSS together — then the **tile-feedback** pass against [tile-feedback.md](tile-feedback.md), which is read per area rather than run as a sprint. `psychicnum` first, as the control: the deliberately minimal toy, so what it settles is about the shape of a game area rather than about the game |
 
 #### `deep` — the rule, and what it is not (Joel, 2026-09-02)
 
