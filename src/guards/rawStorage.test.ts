@@ -1,4 +1,4 @@
-// cs-audited-utils
+// cs-blessed-utils
 
 /**
  * Guard: **no raw `localStorage` / `sessionStorage` outside the wrapper.**
