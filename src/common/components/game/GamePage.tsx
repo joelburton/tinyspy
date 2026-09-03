@@ -10,13 +10,9 @@ import {
   type ReactNode,
 } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import type {
-  GenericFeedbackApi,
-  GenericFeedbackMsg,
-  GamePageCtx,
-  MenuApi,
-  MenuSection,
-} from '../../lib/games'
+import type { GamePageCtx } from '../../lib/games'
+import type { GenericFeedbackApi, GenericFeedbackMsg } from '../../lib/feedback/genericFeedback'
+import type { MenuApi, MenuSection } from '../../lib/menu/menu'
 import { END_OR_CONCEDE_IDS, NEW_GAME_ID } from '../../lib/game/gameMenu'
 import { getNotOkFeedback } from '../../lib/game/genericPills'
 import { useAppShortcuts } from '../../hooks/input/useAppShortcuts'

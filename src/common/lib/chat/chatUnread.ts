@@ -2,7 +2,7 @@
 
 import { useSyncExternalStore } from 'react'
 import { colorVarFor } from '../color/memberColor'
-import type { Member } from '../games'
+import type { Member } from '../members/member'
 import type { ClubMessage } from '../../hooks/chat/useClubChat'
 import { readStored, writeStored } from '../util/storage'
 

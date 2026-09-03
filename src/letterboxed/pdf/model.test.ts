@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest'
 import { buildLetterboxedPrintModel } from './model'
 import type { EventRow, PlayerRow } from '../hooks/useGame'
-import type { GamePlayer } from '../../common/lib/games'
+import type { GamePlayer } from '../../common/lib/members/member'
 
 const ALICE = 'a1111111-1111-1111-1111-111111111111'
 const BEA = 'b2222222-2222-2222-2222-222222222222'

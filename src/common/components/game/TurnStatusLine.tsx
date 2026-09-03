@@ -1,6 +1,6 @@
 // cs-unmet
 
-import type { Member } from '../../lib/games'
+import type { Member } from '../../lib/members/member'
 import { waitingFor } from './turnCopy'
 import shared from './PlayArea.module.css'
 

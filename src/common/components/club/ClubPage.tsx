@@ -40,13 +40,9 @@ import { StartGameRow } from './StartGameRow'
 import { SelectionList } from '../lists/SelectionList'
 import { PageHeaderStatusSlot } from '../page-header/PageHeaderStatusSlot'
 import { games } from '../../../games'
-import type {
-  CommonGameListRow,
-  GenericFeedbackApi,
-  GenericFeedbackMsg,
-  GameManifest,
-  MenuSection,
-} from '../../lib/games'
+import type { CommonGameListRow, GameManifest } from '../../lib/games'
+import type { GenericFeedbackApi, GenericFeedbackMsg } from '../../lib/feedback/genericFeedback'
+import type { MenuSection } from '../../lib/menu/menu'
 import { useChatFeedback } from '../../hooks/chat/useChatFeedback'
 import type { Database } from '../../../types/db'
 import styles from './ClubPage.module.css'
@@ -58,7 +54,7 @@ type ClubRow = Pick<
   Database['common']['Tables']['clubs']['Row'],
   'handle' | 'name'
 >
-import type { Member } from '../../lib/games'
+import type { Member } from '../../lib/members/member'
 import { reportUnhandled } from '../../lib/supabase/dbEnvelope'
 
 /**

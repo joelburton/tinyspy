@@ -8,7 +8,7 @@ import { RadioRow } from '../../common/components/fields/RadioRow'
 import { SelectField } from '../../common/components/fields/SelectField'
 import { SetupSection } from '../../common/components/setup/SetupSection'
 import { difficultyValue } from '../../common/lib/game/difficulty'
-import type { SetupBodyProps, SetupSetter } from '../../common/lib/games'
+import type { SetupBodyProps, SetupSetter } from '../../common/lib/setup/setupForm'
 import { AI_BAND, AI_LEVELS, AI_LEVEL_LABEL, type AiLevel, type ScrabbleValues } from '../lib/setup'
 
 /**

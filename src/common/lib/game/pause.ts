@@ -1,6 +1,6 @@
 // cs-met-game-lib
 
-import type { Member } from '../games'
+import type { Member } from '../members/member'
 
 /**
  * Pure derivation: given the set of currently-connected user_ids

@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react'
-import type { GenericFeedbackMsg } from '../../lib/games'
+import type { GenericFeedbackMsg } from '../../lib/feedback/genericFeedback'
 import type { NotOkEnv } from '../../lib/supabase/envelope'
 import { getNotOkFeedback } from '../../lib/game/genericPills'
 import { showFaultModal } from '../../lib/fault/faultStore'

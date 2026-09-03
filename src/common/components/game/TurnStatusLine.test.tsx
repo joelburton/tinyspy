@@ -3,7 +3,7 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { TurnStatusLine } from './TurnStatusLine'
-import type { Member } from '../../lib/games'
+import type { Member } from '../../lib/members/member'
 
 const ada: Member = { user_id: 'ada', username: 'ada', color: 'red' }
 const bea: Member = { user_id: 'bea', username: 'bea', color: 'blue' }

@@ -1,6 +1,6 @@
 // cs-unmet
 
-import type { GamePlayer } from '../../common/lib/games'
+import type { GamePlayer } from '../../common/lib/members/member'
 import { Dot } from '../../common/components/text/Dot'
 import type { ProgressRow } from '../hooks/useGame'
 import styles from './PeersStrip.module.css'

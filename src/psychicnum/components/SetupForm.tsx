@@ -8,7 +8,7 @@ import { RadioRow } from '../../common/components/fields/RadioRow'
 import { SetupSection } from '../../common/components/setup/SetupSection'
 import { PlayersSection } from '../../common/components/setup/PlayersSection'
 import { difficultyValue } from '../../common/lib/game/difficulty'
-import type { SetupBodyProps, SetupSetter } from '../../common/lib/games'
+import type { SetupBodyProps, SetupSetter } from '../../common/lib/setup/setupForm'
 import {
   GUESS_OPTIONS,
   WORD_COUNT_OPTIONS,

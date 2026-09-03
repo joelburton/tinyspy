@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from 'react'
 import { cls } from '../../common/lib/util/cls'
-import type { Member } from '../../common/lib/games'
+import type { Member } from '../../common/lib/members/member'
 import { Dot } from '../../common/components/text/Dot'
 import { ATTENTION_FLASH_MS } from '../../common/lib/game/feedbackTiming'
 import { useMoveCausedChange } from '../../common/hooks/game/useMoveCausedChange'

@@ -1,7 +1,7 @@
 // cs-unmet
 
 import type { MouseEvent } from 'react'
-import type { GamePlayer } from '../../common/lib/games'
+import type { GamePlayer } from '../../common/lib/members/member'
 import { useTurnLogPlayerPicker } from '../../common/hooks/game/useTurnLogPlayerPicker'
 import { useDefinePopover } from '../../common/hooks/definitions/useDefinePopover'
 import {

@@ -1,8 +1,24 @@
 // cs-unmet
 
-import type { RichMessage as RichMessageType } from '../../lib/games'
+import type { Member } from '../../lib/members/member'
 import { Dot } from './Dot'
 import styles from './RichMessage.module.css'
+
+/**
+ * A "rich" message — a sequence of text + inline player segments — so an error
+ * (or any message) can name players with their identity disc inline:
+ * "…needs these players: ● bert, ● ernie, ● claude." A plain `string` is still a
+ * valid message everywhere a `RichMessage` is accepted; this is just the
+ * structured form, rendered by the component below. Self-contained (each segment
+ * carries the full `Member`), so it needs no resolver wherever it's shown.
+ *
+ * **Named `RichMessageType` because the component below owns the plain name.**
+ * It lived in `lib/games.ts` until the split, where this file was its only
+ * importer — and imported it back out under exactly this alias, which is the
+ * tell that the type belongs beside its component (docs/common-folders.md →
+ * Judgment calls; plans/areas/game-lib.md → `F-game-lib-1`).
+ */
+export type RichMessageType = Array<string | { player: Member }>
 
 type Props = {
   /** A plain string (rendered as-is) or a `RichMessage` array (text +

@@ -8,7 +8,7 @@ import { SetupTimerSection } from '../../common/components/setup/SetupTimerSecti
 import { SetupCoopStyleSection } from '../../common/components/setup/SetupCoopStyleSection'
 import { SetupSection } from '../../common/components/setup/SetupSection'
 import { difficultyValue } from '../../common/lib/game/difficulty'
-import type { SetupBodyProps, SetupSetter } from '../../common/lib/games'
+import type { SetupBodyProps, SetupSetter } from '../../common/lib/setup/setupForm'
 import { PAR } from '../lib/board'
 import { cleanSides, formatSides } from '../lib/customBoard'
 import type { LetterboxedValues } from '../lib/setup'

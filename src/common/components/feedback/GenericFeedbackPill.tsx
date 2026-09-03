@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { cls } from '../../lib/util/cls'
-import type { GenericFeedbackMsg } from '../../lib/games'
+import type { GenericFeedbackMsg } from '../../lib/feedback/genericFeedback'
 import { Dot } from '../text/Dot'
 import { CloseButton } from '../buttons/CloseButton'
 import styles from './GenericFeedbackPill.module.css'

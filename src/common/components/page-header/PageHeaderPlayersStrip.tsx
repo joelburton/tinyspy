@@ -1,6 +1,6 @@
 // cs-unmet
 
-import type { Member } from '../../lib/games'
+import type { Member } from '../../lib/members/member'
 import { Dot } from '../text/Dot'
 import styles from './PageHeaderPlayersStrip.module.css'
 

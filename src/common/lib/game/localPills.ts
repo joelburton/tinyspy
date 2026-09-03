@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react'
 import type { Outcome } from '../outcomes'
-import type { GenericFeedbackMsg } from '../games'
+import type { GenericFeedbackMsg } from '../feedback/genericFeedback'
 
 /**
  * The below-board local-pill builders — one home for the three

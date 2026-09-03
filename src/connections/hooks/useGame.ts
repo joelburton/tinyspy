@@ -10,7 +10,7 @@ import type { NotOkEnv } from '../../common/lib/supabase/envelope'
 import { OUTCOME_FOR_RESULT, type GuessOutcome, type GuessResult } from '../lib/evaluate'
 import { db } from '../db'
 import type { Database } from '../../types/db'
-import type { Member } from '../../common/lib/games'
+import type { Member } from '../../common/lib/members/member'
 import type { Board, CategoryRank } from '../lib/board'
 
 /**

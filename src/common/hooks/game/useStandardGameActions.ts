@@ -1,7 +1,7 @@
 // cs-unmet
 
 import type { DbError } from '../../lib/supabase/dbEnvelope'
-import type { GenericFeedbackMsg } from '../../lib/games'
+import type { GenericFeedbackMsg } from '../../lib/feedback/genericFeedback'
 import type { GameStopResult } from '../../lib/games'
 import { getNotOkFeedback } from '../../lib/game/genericPills'
 import { runRpc } from '../../lib/supabase/dbResult'

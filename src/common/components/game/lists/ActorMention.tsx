@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { cls } from '../../../lib/util/cls'
-import type { Member } from '../../../lib/games'
+import type { Member } from '../../../lib/members/member'
 import { Dot } from '../../text/Dot'
 import styles from './ActorMention.module.css'
 

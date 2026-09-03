@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { PlayersSection } from '../../common/components/setup/PlayersSection'
-import type { SetupBodyProps, SetupSetter } from '../../common/lib/games'
+import type { SetupBodyProps, SetupSetter } from '../../common/lib/setup/setupForm'
 import { SetupTimerSection } from '../../common/components/setup/SetupTimerSection'
 import type { CrosswordsValues, PuzzleChoice } from '../lib/setup'
 import { PuzzleSourceField } from './PuzzleSourceField'

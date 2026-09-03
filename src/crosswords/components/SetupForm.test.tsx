@@ -25,7 +25,7 @@ import { SetupForm } from './SetupForm'
 import { fieldNames } from '../../common/components/setup/fieldNames'
 import { errorUnder } from '../../common/components/fields/errorUnder'
 import { CROSSWORDS_DEFAULTS } from '../lib/setup'
-import type { Member } from '../../common/lib/games'
+import type { Member } from '../../common/lib/members/member'
 import type { FormErrors } from '../../common/components/fields/formState'
 
 // jsdom doesn't implement scrollIntoView, and SelectionList keeps its cursor

@@ -1,6 +1,6 @@
 // cs-unmet
 
-import type { Member } from '../../lib/games'
+import type { Member } from '../../lib/members/member'
 import { colorVarFor } from '../../lib/color/memberColor'
 import { Dot } from '../text/Dot'
 import { BackToClubButton } from '../buttons/BackToClubButton'

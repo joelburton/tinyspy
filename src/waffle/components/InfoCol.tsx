@@ -1,6 +1,6 @@
 // cs-unmet
 
-import type { Member } from '../../common/lib/games'
+import type { Member } from '../../common/lib/members/member'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { OpponentStrip } from '../../common/components/game/OpponentStrip'
 import { TerminalActionRow } from '../../common/components/game/terminal/TerminalActionRow'

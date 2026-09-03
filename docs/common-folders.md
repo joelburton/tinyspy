@@ -131,10 +131,25 @@ hooks/
 
 ```
 lib/
-  games.ts       # the GameManifest type + registry helpers (MODE_LABEL,
-                 #   playerCountFits, GamePageCtx) — NOT the manifest list itself,
-                 #   which lives in src/games.ts (the one file allowed to import
-                 #   games). Kept at the lib root as a heavily-imported entry point
+  games.ts       # THE REGISTRY'S CONTRACT and nothing else: GameManifest (what a
+                 #   game declares) + GamePageCtx (what the shell hands its
+                 #   PlayArea), plus the supporting CommonGameListRow, TimerMode,
+                 #   CreatedGame, GameStopResult, MODE_LABEL, playerCount*.
+                 #   NOT the manifest list itself, which lives in src/games.ts
+                 #   (the one file allowed to import games). Kept at the lib root
+                 #   as a heavily-imported entry point. The test for anything
+                 #   proposed for it: does it name a GAME?
+  members/       # who someone is — Member + GamePlayer (member.ts, TYPES ONLY so
+                 #   its 103 importers erase at runtime), and the two values that
+                 #   read them (playerOutcome.ts)
+      member, playerOutcome
+  setup/         # the <SetupGameModal> ↔ game-form contract — SetupBodyProps,
+                 #   SetupSetter, SetupOf, GameSetupForm
+      setupForm
+  feedback/      # what a feedback pill IS — GenericFeedbackMsg + GenericFeedbackApi
+      genericFeedback
+  menu/          # what a menu is made of, plus its open/closed state
+      menu, pageMenuStore
   supabase/      # the supabase client + realtime channel-name helper
       supabase, channelDedup
   routing/       # the hash router + <Link>

@@ -165,6 +165,11 @@ shell. The group whose position in the order matters least.
 
 Five files, 1,182 lines, all five read in full. **No logic bug.** The shipped
 behavior is correct everywhere; all nine findings are about what the files SAY —
+plus `F-game-lib-10`, raised later while resolving the first.
+
+**Four resolved 2026-09-03** — `F-game-lib-1` (the split, which Joel authorized
+after the audit), and `F-game-lib-2`, `F-game-lib-4`, `F-game-lib-10` as its
+consequences. **Six open:** `F-game-lib-3`, `5`, `6`, `7`, `8`, `9`.
 which in a file 233 others import is the product, because nobody reads
 `games.ts` to learn what it does, they read it to learn what they may rely on.
 
@@ -207,7 +212,7 @@ without a number. See `F-game-lib-9`.
 *(IDs are `F-game-lib-1`, `F-game-lib-2`, … — §21 → Areas. Every heading states
 its status; no status prefix means OPEN.)*
 
-### F-game-lib-1 · `registry-has-no-header` · The file 233 others import opens with no docstring
+### RESOLVED 2026-09-03 — F-game-lib-1 · `registry-has-no-header` · The file 233 others import opens with no docstring
 
 `games.ts` is 908 lines holding five unrelated vocabularies, and **there is no
 module docstring**. The first `/**` in the file is line 11, and it belongs to
@@ -227,7 +232,45 @@ a docstring honest about today's contents would have to say "five vocabularies
 that share a file for historical reasons," and writing that sentence is what
 makes the split obviously right. **Resolve it by splitting**, not by describing.
 
-### F-game-lib-2 · `two-orphaned-docstrings` · Two stacked docstrings, both allowlisted to this area
+#### Resolved by doing the split, 2026-09-03
+
+Joel: *"do it"*, on the recommendation to split now rather than plan it first,
+in the order smallest-first so the codemod was proven on 14 call sites before it
+ran on 129. **`games.ts` 908 → 487 lines**, and what is left is one subject: the
+manifest a game declares and the ctx the shell hands back. It now opens with the
+header this finding asked for, whose last section is the list of what moved.
+
+| moved | to | imports |
+|---|---|---|
+| `MenuSection` `MenuApi` `MenuItem` `MenuHeader` `MenuAction` `MenuSubmenu` `MenuItemBase` `isSubmenu` | `lib/menu/menu.ts` | 14 |
+| `GenericFeedbackMsg` `GenericFeedbackApi` | `lib/feedback/genericFeedback.ts` | 44 |
+| `SetupOf` `SetupSetter` `SetupBodyProps` `GameSetupForm` | `lib/setup/setupForm.ts` | 80 |
+| `Member` `GamePlayer` | `lib/members/member.ts` — **types only** | 121 |
+| `playerOutcome` `outcomeVerb` | `lib/members/playerOutcome.ts` | 7 |
+| `RichMessage` → `RichMessageType` | `components/text/RichMessage.tsx` | 1 |
+
+Stayed, each for its own recorded reason: `GameManifest`, `GamePageCtx`,
+`CommonGameListRow`, `TimerMode`, `GameStopResult`, `MODE_LABEL`, the three
+`playerCount*` helpers, and `CreatedGame` — the one that reads like setup and
+stays anyway, beside the interface it satisfies.
+
+**Three things the split turned out to do beyond its own scope:**
+
+1. **`games.ts` no longer imports from `components/`.** The `FormErrors` import
+   that made the registry depend upward went with `SetupBodyProps`. The seam is
+   not fixed — `lib/setup/setupForm.ts` has it now — but it is no longer on the
+   file 233 others import. Still `forms`'.
+2. **`members/member.ts` is types-only, and that is enforced by having nowhere
+   else to put a value.** `playerOutcome` and `outcomeVerb` went to a sibling
+   module precisely so the 121-importer module has no runtime half. `games.ts:6`'s
+   standing cycle warning is now about a much smaller file.
+3. **`F-game-lib-2` and `F-game-lib-4` fell out of it** — see their entries.
+
+**Verified:** `tsc -b` clean, `vite build` clean (599ms, chunking unchanged),
+**Vitest 2556/2556 in 269 files**. The build matters more than usual here: it is
+the only check that resolves every import in the project.
+
+### RESOLVED 2026-09-03 — F-game-lib-2 · `two-orphaned-docstrings` · Two stacked docstrings, both allowlisted to this area
 
 `games.ts:414` and `games.ts:588` are the stacked-docstring fault that
 `src/guards/orphanedDocstrings.test.ts` exists for, and both sit on that guard's
@@ -247,6 +290,27 @@ to their neighbor — the guard's own description of the fault. The guard says t
 area that opens the file removes its lines, *"never add one to quiet a new
 failure"*, so **the fix includes deleting `orphanedDocstrings.test.ts:66-67`** and
 the shrinking allowlist gets two entries shorter.
+
+#### Resolved 2026-09-03, and the first one fixed ITSELF
+
+`F-game-lib-1`'s split resolved the `SetupBodyProps` orphan without anyone
+aiming at it: the prose traveled to `lib/setup/setupForm.ts` attached to the
+declaration it describes, because moving a docstring means deciding what it is
+about. **That is the argument for splitting a file rather than annotating one**,
+in one instance — the orphan existed only because the two declarations were
+neighbors, and they stopped being neighbors.
+
+The `GameManifest` one had to be fixed by hand (it and `GameStopResult` both
+stayed), and it was: the two declarations swapped places, so each sits under its
+own prose. Both allowlist lines are deleted.
+
+**The guard then caught the sweep, which is worth recording.** Its allowlist is
+keyed `path:line`, and rewriting imports in eight OTHER areas' files moved their
+orphans by one to four lines — so ten entries failed at once, two because they
+were fixed and eight because they had drifted. The eight were re-anchored, not
+resolved; they are still their own areas' to fix. **Any future import sweep will
+do this again**, and the guard's failure message ("fixed, or moved") is the only
+thing that tells the two apart.
 
 ### F-game-lib-3 · `dispatcher-says-ten-games` · "all ten games" is sixteen
 
@@ -269,13 +333,26 @@ Fold in while there: the file ends with **three trailing blank lines**
 (`manifestRpcs.ts:61-64`), the residue of the deleted start-game adapters. ESLint
 does not flag it.
 
-### F-game-lib-4 · `menu-icon-says-fifteen-games` · "all fifteen games" is sixteen
+### RESOLVED 2026-09-03 — F-game-lib-4 · `menu-icon-says-fifteen-games` · "all fifteen games" is sixteen
 
 `games.ts:229`, in `MenuItemBase.icon`'s docstring — the one that calls itself
 *"the icon language's legend"*: *"it reads in all fifteen games afterwards."*
 
 Sixteen game folders, and `src/games.ts` registers 30 gametypes across them. The
 argument the docstring makes is unaffected; only its count is wrong.
+
+#### Resolved in passing 2026-09-03, and flagged rather than done quietly
+
+`F-game-lib-1`'s split moved this docstring to `lib/menu/menu.ts`, and the
+number was corrected to sixteen on the way. **That is a content change inside a
+shape change**, which the split was not supposed to make — but the alternative
+was worse: copying a claim this file had just recorded as false into a brand-new
+module, where the next reader has no reason to doubt it. Recorded here so the
+deviation is visible rather than buried in a rename diff.
+
+Nothing else moved with an edit. Every other docstring in the six new modules is
+byte-identical to what it was in `games.ts`, except `SetupBodyProps`'s — see
+`F-game-lib-10`.
 
 ### F-game-lib-5 · `player-count-doc-names-one-max` · A stated max that four games don't use
 
@@ -475,13 +552,54 @@ It was audited there with no findings and is now `cs-blessed-utils`. Kept as a
 settled row rather than deleted, because the question will read as open again the
 next time someone counts the loose files at that root.
 
+### RESOLVED 2026-09-03 — F-game-lib-10 · `setup-body-doc-names-wrong-props` · The setup contract's docstring names two props it does not have
+
+Raised while moving `SetupBodyProps` to `lib/setup/setupForm.ts` — the split
+made it unavoidable, since attaching prose to a declaration means reading both.
+
+Its docstring described a **controlled component with `value` and `onChange`**:
+
+> *"state lives in the wrapper, the body renders `value` and signals edits via
+> `onChange`. `value` and `onChange` are `unknown` here so `GameManifest` can
+> stay non-generic … Each game's setup component starts with `value as MySetup`
+> at the top."*
+
+The type has neither. The props are **`values`** (plural) and **`set`**, and
+have been for as long as `SetupSetter` has existed — `set` is a *field* writer,
+not a whole-value `onChange`, which is a different contract, not a different
+name. Every game's setup body already casts `values`, so nothing was broken;
+the paragraph a form author reads first was describing a shape that never
+shipped.
+
+Corrected in the moved copy. It is `F-game-lib-1`'s doing in the same way the
+orphan was: prose is checked against its declaration when — and only when —
+someone has to decide which declaration it belongs to.
+
 ## Predicted test breaks
 
 *(written when the area starts changing things, per §21's test-break rule:
 predict them, name the specs, leave them)*
 
-The split is a rename sweep, so §21's "renaming is the point, not a risk" applies
-— but `docs/common-folders.md` records the one gotcha from the last one:
+**Predicted: ~50 specs failing with "real module ran."** The split is a rename
+sweep, so §21's "renaming is the point, not a risk" applies — but
+`docs/common-folders.md` records the gotcha from the last reorg:
 **`vi.mock('…relative…')` path arguments are not `import` statements**, so an
-import-rewriting codemod misses them and ~50 tests fail with "real module ran."
-Rewrite mock paths in a second pass.
+import-rewriting codemod misses them and the mocks silently stop intercepting.
+
+**What happened: nothing, and the reason is worth keeping.** The repo contains
+exactly ONE `vi.mock` naming anything called `games` —
+`hooks/game/useGameInvitations.test.ts:46`, and it mocks **`src/games`, the
+registry**, which this split does not touch. Nothing mocks `common/lib/games`,
+because it is almost entirely types: there is no runtime behavior to stand in
+for. **The gotcha is real but it is about VALUE modules**, and the doc does not
+say so — a reorg that moves components or hooks will meet it, this one could
+not.
+
+**What did break: the orphaned-docstring guard**, two tests, from line drift
+rather than from anything being wrong. Recorded under `F-game-lib-2`.
+
+**Final:** Vitest **2556/2556** in 269 files, `tsc -b` clean, `vite build` clean.
+ESLint reports one pre-existing warning in `hooks/game/useWordSubmit.ts:264`
+(`react-hooks/exhaustive-deps`, an unnecessary `clearLocalFeedback` dependency);
+this area's only edit to that file was its import path, so the warning predates
+the split and belongs to `hooks`. Described, not fixed.

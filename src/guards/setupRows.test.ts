@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest'
 import { games as GAMES } from '../games'
 import { ROSTER_KEY, type SetupRow } from '../common/lib/game/setupRows'
-import type { Member } from '../common/lib/games'
+import type { Member } from '../common/lib/members/member'
 
 /**
  * The roster-wide guard on setup recaps (docs/pdf.md → Setup rows).

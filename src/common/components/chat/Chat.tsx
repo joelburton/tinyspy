@@ -12,7 +12,7 @@ import {
 import { Companion } from '../floating-panels/Companion'
 import { ChatBody } from './ChatBody'
 
-import type { Member } from '../../lib/games'
+import type { Member } from '../../lib/members/member'
 
 type Props = {
   clubHandle: string

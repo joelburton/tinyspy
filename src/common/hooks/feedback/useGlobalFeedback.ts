@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { useEffect, useRef } from 'react'
-import type { GenericFeedbackApi, GenericFeedbackMsg } from '../../lib/games'
+import type { GenericFeedbackApi, GenericFeedbackMsg } from '../../lib/feedback/genericFeedback'
 
 /**
  * The shared **peer-narration machinery** for the global feedback area: watch an

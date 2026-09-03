@@ -2,7 +2,7 @@
 
 import { useCallback, type Dispatch, type ReactNode, type SetStateAction } from 'react'
 import { cls } from '../../common/lib/util/cls'
-import type { GenericFeedbackMsg } from '../../common/lib/games'
+import type { GenericFeedbackMsg } from '../../common/lib/feedback/genericFeedback'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { terminalPill } from '../../common/lib/game/localPills'
 import { GenericFeedbackPill } from '../../common/components/feedback/GenericFeedbackPill'

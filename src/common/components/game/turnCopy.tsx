@@ -1,7 +1,8 @@
 // cs-unmet
 
 import { Dot } from '../text/Dot'
-import type { GenericFeedbackMsg, Member } from '../../lib/games'
+import type { Member } from '../../lib/members/member'
+import type { GenericFeedbackMsg } from '../../lib/feedback/genericFeedback'
 
 /**
  * The whose-turn copy for turn-order coop games, in its two renderings.

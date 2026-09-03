@@ -5,7 +5,7 @@ import { PlayersSection } from '../../common/components/setup/PlayersSection'
 import { SetupCoopStyleSection } from '../../common/components/setup/SetupCoopStyleSection'
 import { RadioRow } from '../../common/components/fields/RadioRow'
 import { SetupSection } from '../../common/components/setup/SetupSection'
-import type { SetupBodyProps, SetupSetter } from '../../common/lib/games'
+import type { SetupBodyProps, SetupSetter } from '../../common/lib/setup/setupForm'
 import type { DeckKind } from '../lib/cards'
 import { paletteOf, type Palette, type SetgameValues } from '../lib/setup'
 

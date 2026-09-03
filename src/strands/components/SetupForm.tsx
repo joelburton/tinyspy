@@ -8,7 +8,7 @@ import { SetupTimerSection } from '../../common/components/setup/SetupTimerSecti
 import { SetupNextPuzzleSection } from '../../common/components/setup/SetupNextPuzzleSection'
 import { SetupSection } from '../../common/components/setup/SetupSection'
 import { difficultyValue } from '../../common/lib/game/difficulty'
-import type { SetupBodyProps, SetupSetter } from '../../common/lib/games'
+import type { SetupBodyProps, SetupSetter } from '../../common/lib/setup/setupForm'
 import { FORM_ERROR_KEYNAME } from '../../common/components/fields/formState'
 import { runRpc } from '../../common/lib/supabase/dbResult'
 import { db } from '../db'

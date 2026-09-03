@@ -4,7 +4,7 @@ import { describe, it, expect } from 'vitest'
 import { computeUnread } from './chatUnread'
 import { colorVarFor } from '../color/memberColor'
 import type { ClubMessage } from '../../hooks/chat/useClubChat'
-import type { Member } from '../games'
+import type { Member } from '../members/member'
 
 const members = [
   { user_id: 'alice', username: 'alice', color: 'orange' },

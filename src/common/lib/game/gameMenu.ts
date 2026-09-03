@@ -2,7 +2,7 @@
 
 import { IconBack, IconChat, IconConcede, IconEnd, IconHelp } from '../../components/icons'
 import { setChatOpen } from '../chat/chatOpenStore'
-import type { MenuApi, MenuHeader, MenuItem, MenuSection } from '../games'
+import type { MenuApi, MenuHeader, MenuItem, MenuSection } from '../menu/menu'
 
 /**
  * Assemble a game's FULL header menu. Every game owns its own menu now (the

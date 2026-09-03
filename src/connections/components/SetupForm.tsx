@@ -8,7 +8,7 @@ import {
   SetupNextPuzzleSection,
 } from '../../common/components/setup/SetupNextPuzzleSection'
 import { FORM_ERROR_KEYNAME } from '../../common/components/fields/formState'
-import type { SetupBodyProps, SetupSetter } from '../../common/lib/games'
+import type { SetupBodyProps, SetupSetter } from '../../common/lib/setup/setupForm'
 import { db } from '../db'
 import type { ConnectionsValues, PuzzleAnswer } from '../lib/setup'
 import { reportUnhandled } from '../../common/lib/supabase/dbEnvelope'

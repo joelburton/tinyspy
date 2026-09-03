@@ -1,7 +1,7 @@
 // cs-unmet
 
 import type { ReactNode } from 'react'
-import type { GenericFeedbackMsg } from '../../../lib/games'
+import type { GenericFeedbackMsg } from '../../../lib/feedback/genericFeedback'
 import { useCaptureKeys } from '../../../hooks/input/useCaptureKeys'
 import { useArrowHistory } from '../../../hooks/input/useArrowHistory'
 import { EntryBox } from './EntryBox'

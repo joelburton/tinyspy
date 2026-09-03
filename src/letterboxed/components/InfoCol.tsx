@@ -3,7 +3,7 @@
 import type React from 'react'
 import type { ReactNode } from 'react'
 import { cls } from '../../common/lib/util/cls'
-import type { GamePlayer } from '../../common/lib/games'
+import type { GamePlayer } from '../../common/lib/members/member'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { OpponentStrip } from '../../common/components/game/OpponentStrip'
 import { TurnStatusLine } from '../../common/components/game/TurnStatusLine'

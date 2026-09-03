@@ -27,7 +27,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { PauseBoundary } from './PauseBoundary'
-import type { Member } from '../../lib/games'
+import type { Member } from '../../lib/members/member'
 
 const ADA: Member = {
   user_id: 'ada',

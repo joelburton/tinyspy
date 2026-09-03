@@ -1,6 +1,7 @@
 // cs-unmet
 
-import type { GenericFeedbackMsg, Member } from '../../lib/games'
+import type { Member } from '../../lib/members/member'
+import type { GenericFeedbackMsg } from '../../lib/feedback/genericFeedback'
 import { GenericFeedbackPill } from '../feedback/GenericFeedbackPill'
 import { PageHeaderPlayersStrip } from './PageHeaderPlayersStrip'
 import styles from './PageHeaderStatusSlot.module.css'

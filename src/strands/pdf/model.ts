@@ -3,7 +3,7 @@
 import type { PrintHeader } from '../../common/pdf/frame'
 import type { Coord } from '../lib/board'
 import type { EventRow, GuessResult, StrandsPlayer, StrandsSolution } from '../hooks/useGame'
-import type { Member } from '../../common/lib/games'
+import type { Member } from '../../common/lib/members/member'
 
 /**
  * Build the strands print model — the pure half, away from jsPDF so the

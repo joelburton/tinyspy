@@ -4,7 +4,7 @@ import { useEffect } from 'react'
 import { PlayersSection } from '../../common/components/setup/PlayersSection'
 import { RadioRow } from '../../common/components/fields/RadioRow'
 import { SetupTimerSection } from '../../common/components/setup/SetupTimerSection'
-import type { SetupBodyProps, SetupSetter } from '../../common/lib/games'
+import type { SetupBodyProps, SetupSetter } from '../../common/lib/setup/setupForm'
 import {
   TURN_OPTIONS,
   type CodenamesduetValues,

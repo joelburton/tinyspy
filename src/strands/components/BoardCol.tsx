@@ -2,7 +2,7 @@
 
 import { GenericFeedbackPill } from '../../common/components/feedback/GenericFeedbackPill'
 import { cls } from '../../common/lib/util/cls'
-import type { GenericFeedbackMsg } from '../../common/lib/games'
+import type { GenericFeedbackMsg } from '../../common/lib/feedback/genericFeedback'
 import type { Coord } from '../lib/board'
 import { MoveRow } from '../../common/components/game/entry/MoveRow'
 import { EntryBox } from '../../common/components/game/entry/EntryBox'

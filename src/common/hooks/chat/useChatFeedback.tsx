@@ -3,7 +3,8 @@
 import { useClubChat } from './useClubChat'
 import { useGlobalFeedback } from '../feedback/useGlobalFeedback'
 import { memberById } from '../../lib/game/peers'
-import type { GenericFeedbackApi, Member } from '../../lib/games'
+import type { Member } from '../../lib/members/member'
+import type { GenericFeedbackApi } from '../../lib/feedback/genericFeedback'
 
 /** Longest chat text shown in the pill before it's clipped. The global-feedback
  *  slot is a small header element and this repo forbids header reflow (docs/ui.md

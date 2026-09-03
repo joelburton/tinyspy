@@ -6,7 +6,7 @@ import { db } from '../db'
 import { db as commonDb } from '../../common/db'
 import { readRows } from '../../common/lib/supabase/dbResult'
 import type { NotOkEnv } from '../../common/lib/supabase/envelope'
-import type { Member } from '../../common/lib/games'
+import type { Member } from '../../common/lib/members/member'
 import type { Database } from '../../types/db'
 
 // Narrower than Database[...]['Row'] — see code-conventions.md's "Avoid

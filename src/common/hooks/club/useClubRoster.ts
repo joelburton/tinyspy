@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { db as commonDb } from '../../db'
 import { readRows } from '../../lib/supabase/dbResult'
-import type { Member } from '../../lib/games'
+import type { Member } from '../../lib/members/member'
 
 /**
  * The FULL club membership (id + username + color), resolved the same two-step

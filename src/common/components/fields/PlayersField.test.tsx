@@ -15,7 +15,7 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { PlayersField } from './PlayersField'
 import { expectFieldContract } from './fieldContract'
-import type { Member } from '../../lib/games'
+import type { Member } from '../../lib/members/member'
 
 const MEMBERS = [
   { user_id: 'self', username: 'joel', color: 'red' },

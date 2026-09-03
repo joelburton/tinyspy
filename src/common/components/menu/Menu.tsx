@@ -13,7 +13,7 @@ import {
 } from 'react'
 import { cls } from '../../lib/util/cls'
 import { Dot } from '../text/Dot'
-import { isSubmenu, type MenuItem, type MenuSection, type MenuSubmenu } from '../../lib/games'
+import { isSubmenu, type MenuItem, type MenuSection, type MenuSubmenu } from '../../lib/menu/menu'
 import { useIsMobile } from '../../hooks/ui/useIsMobile'
 import { IconMenuChevron } from '../icons'
 import styles from './Menu.module.css'

@@ -5,7 +5,7 @@ import { RadioRow } from '../fields/RadioRow'
 import type { FormErrors } from '../fields/formState'
 import { SelectField } from '../fields/SelectField'
 import { SetupSection } from './SetupSection'
-import type { Member } from '../../lib/games'
+import type { Member } from '../../lib/members/member'
 
 /**
  * The two ways a coop game can be paced. `'free-for-all'` (the

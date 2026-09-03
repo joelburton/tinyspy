@@ -3,7 +3,7 @@
 import { Dot } from '../text/Dot'
 import { PlayersField } from '../fields/PlayersField'
 import { SetupSection } from './SetupSection'
-import type { Member } from '../../lib/games'
+import type { Member } from '../../lib/members/member'
 import styles from './PlayersSection.module.css'
 
 type Props = {

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { orderSelfFirst } from '../../lib/game/peers'
-import type { Member } from '../../lib/games'
+import type { Member } from '../../lib/members/member'
 import { FilterSelect } from '../../components/game/FilterSelect'
 
 /** The minimum a row needs for this hook to filter it: who made it. */

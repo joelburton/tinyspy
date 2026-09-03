@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { GenericFeedbackMsg } from '../../lib/games'
+import type { GenericFeedbackMsg } from '../../lib/feedback/genericFeedback'
 
 /** Default auto-clear duration for a `timed` local-feedback message whose own
  *  `dismiss.ms` is unset. Shared so every game's own-move feedback feels the same. */

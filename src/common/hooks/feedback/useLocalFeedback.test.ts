@@ -12,7 +12,7 @@ import { renderHook, act } from '@testing-library/react'
  */
 
 import { useLocalFeedback, LOCAL_FEEDBACK_DISMISS_MS } from './useLocalFeedback'
-import type { GenericFeedbackMsg } from '../../lib/games'
+import type { GenericFeedbackMsg } from '../../lib/feedback/genericFeedback'
 
 const timed = (text: string, ms?: number): GenericFeedbackMsg => ({
   tone: 'won',

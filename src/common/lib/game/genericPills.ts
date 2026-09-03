@@ -1,6 +1,6 @@
 // cs-met-game-lib
 
-import type { GenericFeedbackMsg } from '../games'
+import type { GenericFeedbackMsg } from '../feedback/genericFeedback'
 import type { Envelope } from '../supabase/envelope'
 import { notOkOutcome } from '../supabase/dbResult'
 

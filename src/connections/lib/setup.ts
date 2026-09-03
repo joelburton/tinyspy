@@ -1,6 +1,7 @@
 // cs-unmet
 
-import type { SetupOf, TimerMode } from '../../common/lib/games'
+import type { TimerMode } from '../../common/lib/games'
+import type { SetupOf } from '../../common/lib/setup/setupForm'
 import type { CoopTurnSetup } from '../../common/components/setup/SetupCoopStyleSection'
 
 /**

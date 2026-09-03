@@ -38,7 +38,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { IconRestart } from '../icons'
 import { Menu } from './Menu'
-import type { MenuSection } from '../../lib/games'
+import type { MenuSection } from '../../lib/menu/menu'
 
 function renderMenu(
   sections: MenuSection[],

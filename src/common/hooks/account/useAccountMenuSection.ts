@@ -6,7 +6,7 @@ import { useProfile } from '../session/useProfile'
 import { supabase } from '../../lib/supabase/supabase'
 import { setEditProfileOpen } from '../../lib/account/editProfileStore'
 import { setWordEdit } from '../../lib/definitions/wordEditStore'
-import type { MenuSection } from '../../lib/games'
+import type { MenuSection } from '../../lib/menu/menu'
 
 /**
  * The **account submenu** — the user-focused items, as one collapsed row to

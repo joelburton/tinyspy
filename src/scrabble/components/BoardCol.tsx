@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { runRpc } from '../../common/lib/supabase/dbResult'
 import { getNotOkFeedback } from '../../common/lib/game/genericPills'
-import type { GenericFeedbackMsg } from '../../common/lib/games'
+import type { GenericFeedbackMsg } from '../../common/lib/feedback/genericFeedback'
 import { useFlash } from '../../common/hooks/ui/useFlash'
 import { cls } from '../../common/lib/util/cls'
 import { ShuffleButton } from '../../common/components/buttons/ShuffleButton'

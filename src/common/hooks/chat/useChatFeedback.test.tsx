@@ -5,7 +5,8 @@ import { renderHook } from '@testing-library/react'
 import type { ReactElement } from 'react'
 import { useChatFeedback } from './useChatFeedback'
 import type { ClubMessage } from './useClubChat'
-import type { GenericFeedbackMsg, Member } from '../../lib/games'
+import type { Member } from '../../lib/members/member'
+import type { GenericFeedbackMsg } from '../../lib/feedback/genericFeedback'
 
 /**
  * useChatFeedback bridges club chat → the global feedback pill. We mock the chat

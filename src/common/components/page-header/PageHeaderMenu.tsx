@@ -3,7 +3,7 @@
 import { useEffect, useRef, type ReactNode } from 'react'
 import { Menu, type MenuHandle } from '../menu/Menu'
 import { registerPageMenu } from '../../lib/menu/pageMenuStore'
-import type { MenuSection } from '../../lib/games'
+import type { MenuSection } from '../../lib/menu/menu'
 
 type Props = {
   /** The identity element the menu hangs off — the app logo on home and the

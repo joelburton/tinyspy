@@ -13,7 +13,7 @@ import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { PlayersSection } from './PlayersSection'
 import { errorUnder } from '../fields/errorUnder'
-import type { Member } from '../../lib/games'
+import type { Member } from '../../lib/members/member'
 
 const MEMBERS = [
   { user_id: 'self', username: 'joel', color: 'red' },

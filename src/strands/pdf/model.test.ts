@@ -11,7 +11,7 @@
 import { describe, expect, it } from 'vitest'
 import { buildPrintModel } from './model'
 import type { EventRow, GuessResult, StrandsPlayer, StrandsSolution } from '../hooks/useGame'
-import type { Member } from '../../common/lib/games'
+import type { Member } from '../../common/lib/members/member'
 
 const ADA = 'ada'
 const BEA = 'bea'

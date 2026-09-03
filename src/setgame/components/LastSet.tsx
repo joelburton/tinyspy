@@ -1,6 +1,6 @@
 // cs-unmet
 
-import type { GamePlayer } from '../../common/lib/games'
+import type { GamePlayer } from '../../common/lib/members/member'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import type { EventRow } from '../hooks/useGame'
 import { Card } from './Card'

@@ -1,6 +1,6 @@
 // cs-unmet
 
-import type { Member } from '../../common/lib/games'
+import type { Member } from '../../common/lib/members/member'
 import { difficultyValue } from '../../common/lib/game/difficulty'
 import { coopRows, rosterRow, timerRow, type SetupRow } from '../../common/lib/game/setupRows'
 import { AI_LEVEL_LABEL, type ScrabbleSetup } from './setup'

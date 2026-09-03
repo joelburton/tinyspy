@@ -18,7 +18,7 @@ import { SetupForm } from './SetupForm'
 import { fieldNames } from '../../common/components/setup/fieldNames'
 import { errorUnder } from '../../common/components/fields/errorUnder'
 import { DEFAULT_CODENAMESDUET_SETUP } from '../lib/setup'
-import type { Member } from '../../common/lib/games'
+import type { Member } from '../../common/lib/members/member'
 import type { FormErrors } from '../../common/components/fields/formState'
 
 const MEMBERS = [

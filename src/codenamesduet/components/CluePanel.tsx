@@ -1,6 +1,6 @@
 // cs-unmet
 
-import type { GenericFeedbackMsg } from '../../common/lib/games'
+import type { GenericFeedbackMsg } from '../../common/lib/feedback/genericFeedback'
 import { useRef, useState, type KeyboardEvent, type RefObject, type SubmitEvent } from 'react'
 import { runEdgeFn, runRpc } from '../../common/lib/supabase/dbResult'
 import { getNotOkFeedback } from '../../common/lib/game/genericPills'

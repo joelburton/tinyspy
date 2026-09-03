@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from 'vitest'
 import { computePause } from './pause'
-import type { Member } from '../games'
+import type { Member } from '../members/member'
 
 // Stand-ins for the personas the pgTAP suite uses. The values
 // don't have to match those uuids — `computePause` is a pure

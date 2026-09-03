@@ -2,7 +2,7 @@
 
 import { useCallback, useRef, useState, type ReactNode } from 'react'
 import { cls } from '../../common/lib/util/cls'
-import type { GenericFeedbackMsg } from '../../common/lib/games'
+import type { GenericFeedbackMsg } from '../../common/lib/feedback/genericFeedback'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { terminalPill } from '../../common/lib/game/localPills'
 import { runRpc } from '../../common/lib/supabase/dbResult'

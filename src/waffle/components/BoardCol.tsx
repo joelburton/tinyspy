@@ -1,7 +1,7 @@
 // cs-unmet
 
 import type { ReactNode } from 'react'
-import type { GenericFeedbackMsg } from '../../common/lib/games'
+import type { GenericFeedbackMsg } from '../../common/lib/feedback/genericFeedback'
 import { GenericFeedbackPill } from '../../common/components/feedback/GenericFeedbackPill'
 import { MobileStatusBar } from '../../common/components/game/MobileStatusBar'
 import { Board } from './Board'

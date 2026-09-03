@@ -16,7 +16,7 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { WordList, type WordListRow } from './WordList'
-import type { Member } from '../../../lib/games'
+import type { Member } from '../../../lib/members/member'
 import { pickFilter } from '../../../test/filterSelect'
 
 const PLAYERS: Member[] = [

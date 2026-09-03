@@ -1,6 +1,7 @@
 // cs-unmet
 
-import type { SetupOf, TimerMode } from '../../common/lib/games'
+import type { TimerMode } from '../../common/lib/games'
+import type { SetupOf } from '../../common/lib/setup/setupForm'
 import type { FormErrors } from '../../common/components/fields/formState'
 import type { CoopTurnSetup } from '../../common/components/setup/SetupCoopStyleSection'
 import { difficultyValue } from '../../common/lib/game/difficulty'

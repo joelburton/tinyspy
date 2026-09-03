@@ -3,7 +3,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { renderHook } from '@testing-library/react'
 import { useGlobalFeedback } from './useGlobalFeedback'
-import type { GenericFeedbackMsg } from '../../lib/games'
+import type { GenericFeedbackMsg } from '../../lib/feedback/genericFeedback'
 
 /**
  * Tests for the shared peer-narration bootstrap. The cases that matter are the

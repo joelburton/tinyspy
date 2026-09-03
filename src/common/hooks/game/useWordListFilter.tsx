@@ -5,7 +5,7 @@ import type { WordListRow } from '../../components/game/lists/WordList'
 import infoPanel from '../../components/game/infoPanel.module.css'
 import { orderSelfFirst } from '../../lib/game/peers'
 import { FilterSelect } from '../../components/game/FilterSelect'
-import type { Member } from '../../lib/games'
+import type { Member } from '../../lib/members/member'
 
 /**
  * The KIND axis — which shipped list a word came from. `LEGAL` is the aggregate

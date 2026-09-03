@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { type MouseEvent } from 'react'
-import type { Member } from '../../common/lib/games'
+import type { Member } from '../../common/lib/members/member'
 import { cls } from '../../common/lib/util/cls'
 import { TurnLogActor } from '../../common/components/game/lists/TurnLogActor'
 import { TurnLog, TurnLogBar, TurnLogNumber, type TurnOutcome } from '../../common/components/game/lists/TurnLog'

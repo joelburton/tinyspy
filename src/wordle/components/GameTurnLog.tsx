@@ -8,7 +8,7 @@ import { useTurnLogPlayerPicker } from '../../common/hooks/game/useTurnLogPlayer
 import { useDefinePopover } from '../../common/hooks/definitions/useDefinePopover'
 import { TurnLog, TurnLogBar, TurnLogNumber } from '../../common/components/game/lists/TurnLog'
 import turnLog from '../../common/components/game/lists/TurnLog.module.css'
-import type { Member } from '../../common/lib/games'
+import type { Member } from '../../common/lib/members/member'
 import { tileColor } from '../lib/colors'
 import type { GuessRow } from '../hooks/useGame'
 import styles from './GameTurnLog.module.css'

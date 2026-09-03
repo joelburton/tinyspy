@@ -1,7 +1,7 @@
 // cs-unmet
 
 import type { ReactNode } from 'react'
-import type { Member } from '../../lib/games'
+import type { Member } from '../../lib/members/member'
 import { orderSelfFirst } from '../../lib/game/peers'
 import { Dot } from '../text/Dot'
 import styles from './OpponentStrip.module.css'

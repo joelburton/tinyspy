@@ -5,7 +5,7 @@ import { PlayersSection } from '../../common/components/setup/PlayersSection'
 import { SetupTimerSection } from '../../common/components/setup/SetupTimerSection'
 import { SetupSection } from '../../common/components/setup/SetupSection'
 import { difficultyValue } from '../../common/lib/game/difficulty'
-import type { SetupBodyProps, SetupSetter } from '../../common/lib/games'
+import type { SetupBodyProps, SetupSetter } from '../../common/lib/setup/setupForm'
 import type { StackdownValues } from '../lib/setup'
 
 /**

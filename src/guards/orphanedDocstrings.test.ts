@@ -60,18 +60,16 @@ const KNOWN: string[] = [
   'src/common/components/club/CreateClubModal.tsx:105',
   'src/common/components/club/EditClubModal.tsx:54',
   'src/common/components/definitions/AnagramDialog.tsx:56',
-  'src/common/components/game/GamePage.tsx:147',
+  'src/common/components/game/GamePage.tsx:143',
   'src/common/hooks/scratchpad/useScratchpad.ts:52',
   'src/common/hooks/session/useProfile.ts:137',
-  'src/common/lib/games.ts:414',
-  'src/common/lib/games.ts:588',
   // → connections
   'src/connections/components/BoardCol.tsx:54',
   // → crosswords
-  'src/crosswords/components/PlayArea.tsx:96',
+  'src/crosswords/components/PlayArea.tsx:97',
   'src/crosswords/components/PuzzleSourceField.tsx:58',
   'src/crosswords/components/pickers/LibraryPickerBlockingModal.tsx:70',
-  'src/crosswords/lib/setup.ts:62',
+  'src/crosswords/lib/setup.ts:63',
   'src/crosswords/manifest.ts:119',
   // → e2e
   'e2e/gallery/index.ts:43',
@@ -88,25 +86,25 @@ const KNOWN: string[] = [
   // → setgame
   'src/setgame/components/Card.tsx:36',
   // → spellingbee
-  'src/spellingbee/components/InfoCol.tsx:119',
+  'src/spellingbee/components/InfoCol.tsx:120',
   // → src/guards
   'src/guards/callSiteShape.test.ts:85',
   'src/guards/cssTokens.test.ts:490',
   'src/guards/dbCallShape.test.ts:40',
   // → stackdown
-  'src/stackdown/components/PlayArea.tsx:88',
+  'src/stackdown/components/PlayArea.tsx:90',
   'src/stackdown/manifest.ts:60',
   // → strands
-  'src/strands/components/PlayArea.tsx:51',
+  'src/strands/components/PlayArea.tsx:52',
   'src/strands/pdf/model.ts:112',
   // → waffle
   'src/waffle/manifest.ts:68',
   // → wordiply
-  'src/wordiply/components/PlayArea.tsx:65',
+  'src/wordiply/components/PlayArea.tsx:66',
   // → wordle
   'src/wordle/manifest.ts:61',
   // → wordwheel
-  'src/wordwheel/components/InfoCol.tsx:119',
+  'src/wordwheel/components/InfoCol.tsx:120',
 ]
 
 const ROOTS = ['src', 'supabase/functions', 'e2e', 'scripts']

@@ -1,6 +1,6 @@
 // cs-unmet
 
-import type { GenericFeedbackMsg } from '../../common/lib/games'
+import type { GenericFeedbackMsg } from '../../common/lib/feedback/genericFeedback'
 import { GenericFeedbackPill } from '../../common/components/feedback/GenericFeedbackPill'
 import { ClearButton } from '../../common/components/buttons/ClearButton'
 import { SharePreviewButton } from '../../common/components/buttons/SharePreviewButton'

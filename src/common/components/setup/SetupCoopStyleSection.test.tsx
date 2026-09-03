@@ -4,7 +4,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { SetupCoopStyleSection } from './SetupCoopStyleSection'
-import type { Member } from '../../lib/games'
+import type { Member } from '../../lib/members/member'
 
 const ada: Member = { user_id: 'ada', username: 'ada', color: 'red' }
 const bea: Member = { user_id: 'bea', username: 'bea', color: 'blue' }

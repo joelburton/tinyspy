@@ -9,7 +9,7 @@ import { handOffKeyboardOnTab } from '../../lib/util/keyboardHandoff'
 import type { ClubMessage } from '../../hooks/chat/useClubChat'
 import styles from './ChatBody.module.css'
 
-import type { Member } from '../../lib/games'
+import type { Member } from '../../lib/members/member'
 import { reportUnhandled } from '../../lib/supabase/dbEnvelope'
 
 /** What `common.send_message` puts in `data`. The sent line shows up in the

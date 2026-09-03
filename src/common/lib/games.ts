@@ -1,12 +1,52 @@
 // cs-audited-game-lib
 
 import type { Session } from '@supabase/supabase-js'
-import type { ComponentType, ReactNode } from 'react'
-import type { LucideIcon } from 'lucide-react'
+import type { ComponentType } from 'react'
 // Type-only, so the cycle these participate in is erased at runtime.
 import type { Envelope } from './supabase/envelope'
-import type { Outcome } from './outcomes'
-import type { FormErrors } from '../components/fields/formState'
+import type { MenuApi } from './menu/menu'
+import type { GenericFeedbackApi } from './feedback/genericFeedback'
+import type { GameSetupForm } from './setup/setupForm'
+import type { GamePlayer } from './members/member'
+
+/**
+ * THE GAME REGISTRY'S CONTRACT — what a game must declare to be a game here,
+ * and what the shell hands it back while it is being played.
+ *
+ * Two halves, and everything in this file is one or the other:
+ *
+ *   - **`GameManifest`** is the declaration. Each game's `manifest.ts` exports
+ *     one; `src/games.ts` collects them into the list the shell iterates. It is
+ *     the whole reason common code can render sixteen games without naming any
+ *     of them — see docs/common.md → "removability in three actions".
+ *   - **`GamePageCtx`** is what comes back: the values `<GamePage>` passes to
+ *     the manifest's `PlayArea` as render-prop children.
+ *
+ * The rest supports those two. `CommonGameListRow` is the narrow row slice
+ * `labelFor` may read; `TimerMode` is what `timerMode` may be; `CreatedGame` and
+ * `GameStopResult` are what the three RPC members answer with; the
+ * `playerCount*` helpers format `numberOfPlayers` for the club page.
+ *
+ * **This file is at `lib/` root rather than `lib/game/` deliberately** — it is
+ * THE registry, and a dead-obvious top-level path beats one more level of
+ * nesting (docs/common-folders.md → Judgment calls).
+ *
+ * **What is NOT here, and where it went.** Until the 2026-09-03 split this file
+ * was 908 lines holding five unrelated vocabularies, of which the registry was
+ * the smallest: `GameManifest` was 22 of its 364 imports and the most-imported
+ * name in it was `Member`, which names no game. The other four moved out, each
+ * to a module named for its job (plans/areas/game-lib.md → `F-game-lib-1`):
+ *
+ *   - who someone is ......... `lib/members/member.ts` · `playerOutcome.ts`
+ *   - what a setup form is ... `lib/setup/setupForm.ts`
+ *   - what a pill says ....... `lib/feedback/genericFeedback.ts`
+ *   - what a menu is ......... `lib/menu/menu.ts`
+ *
+ * The test for anything proposed for this file is the one that exemption was
+ * granted on: does it name a GAME? `CreatedGame` reads like setup and stays
+ * here anyway, because its docstring gives the answer — it is declared beside
+ * the interface it satisfies.
+ */
 
 /**
  * FE-facing labels for a gametype's interaction `mode`. The DB, code,
@@ -142,289 +182,6 @@ export type GamePageCtx = {
 }
 
 
-/** A single feedback message. The `dismiss` mode picks how it
- *  leaves the screen. See docs/ui.md → "Dismiss modes" for the
- *  detailed when-to-use guidance. */
-export type GenericFeedbackMsg = {
-  tone: Outcome
-  /** The message. Usually a plain string; a `ReactNode` is allowed so a message
-   *  can embed an inline icon (e.g. bananagrams' dump pill leads with the
-   *  exchange glyph, matching its dump zone). */
-  text: ReactNode
-  /** Optional leading identity disc — the actor's profile-color NAME
-   *  ('red' … 'pink'), rendered as the shared `<Dot>` (fill + paired border)
-   *  before the text: the identity anchor for group/peer messages
-   *  ("(disc) leah found APPLE"). `null` still shows a disc (the neutral
-   *  fallback — an unresolvable member); ABSENT shows none. See docs/ui.md →
-   *  "Player identity = a colored disc". */
-  dot?: string | null
-  /**
-   * What KIND of message this is — which decides both how it goes away and how
-   * it looks. One field, four values, no impossible combinations:
-   *
-   *   - **`sticky`** — "make sure they see this". Stays until something replaces
-   *     it or the player acts: a keystroke, a tile click, or a tap on the pill.
-   *     The common case for an own-move result ("Not a word").
-   *   - **`timed`** — self-clears after `ms` (each surface has its own default).
-   *     A tap dismisses it early. Peer narration, acknowledgements.
-   *   - **`manual`** — an × is the ONLY way out; a keystroke or a tap on the body
-   *     won't do it. For the rare message the player should actively acknowledge
-   *     (stackdown's revealed-word spoiler, which has to linger while they hunt).
-   *   - **`permanent`** — a standing condition, not a message: the terminal
-   *     verdict, or "Conceded — race continues". Nothing dismisses it; only a
-   *     later pill REPLACES it (out-of-race gives way to the final verdict).
-   *     Renders with the tinted background that says "this is the state now".
-   *
-   * This used to be two fields — a `variant` for appearance beside a `dismiss`
-   * for behavior — whose product allowed six states for four real meanings.
-   * "Permanent" had no name: it was spelled `variant: 'fill'` + sticky, so
-   * whether a pill could be dismissed had to be read off a styling prop. The
-   * out-of-race pill was filed as sticky for exactly that reason, and eight
-   * transient messages wore the permanent background by forgetting to say
-   * `outline`. Appearance now follows the mode, so neither mistake is sayable.
-   */
-  mode:
-    | { kind: 'sticky' }
-    | { kind: 'timed'; ms?: number }
-    | { kind: 'manual' }
-    | { kind: 'permanent' }
-}
-
-export type GenericFeedbackApi = {
-  show: (msg: GenericFeedbackMsg) => void
-  clear: () => void
-}
-
-/** What every menu row carries, whichever kind it is. */
-type MenuItemBase = {
-  /** Stable id for React keying. PlayArea-owned values that
-   *  reflect game-state changes are fine — the sections are replaced
-   *  wholesale on each `setGameSections` call. */
-  id: string
-  label: string
-  /** When true, the item renders grayed-out and skips keyboard
-   *  navigation. Use for state-dependent actions ("Reveal cell"
-   *  enabled only when a cell is selected). A disabled submenu
-   *  parent can't be opened. */
-  disabled?: boolean
-  /**
-   * A member-color NAME ('red' … 'pink') to draw as an identity disc before the
-   * label — the app-wide "this color is this player" marker (docs/ui.md →
-   * "Player identity = a colored disc").
-   *
-   * Exists for the account row, which is labeled with your username: the fixed
-   * top-right chip it replaced WAS the dot, so without one the menu drops the
-   * only place you see your own color. A color name rather than a ReactNode
-   * label, so `label` stays a plain string — the drill-down's "‹ {label}" row
-   * and the button's accessible name both depend on that.
-   */
-  dot?: string
-  /**
-   * The action's glyph, drawn before the label — **the icon language's legend**.
-   *
-   * Icon-only buttons carry their names in hover tooltips, which touch devices
-   * don't have (TooltipHost gates hover off there — a tap's synthetic hover
-   * leaves a stuck bubble). The menu already spells those same actions out in
-   * words, so showing each one's glyph beside its name teaches the association
-   * once, at the point of need, and it reads in all fifteen games afterwards.
-   * It costs no board space and nothing per interaction, which is why it beats
-   * both a Help-page legend and a tap-to-reveal on the buttons themselves.
-   *
-   * **Take it from `common/components/icons.ts`, never `lucide-react`.** That
-   * registry is "the ONE place that maps an action to its glyph"; the menu
-   * joining it is what stops a legend from ever teaching a symbol the button
-   * doesn't use. `LucideIcon` is the same type `ActionButton.icon` takes, so a
-   * menu row and its button can be handed the identical value.
-   *
-   * A menu with NO icons reserves no gutter; one with any reserves it for all,
-   * so labels line up rather than going ragged (Menu.module.css).
-   */
-  icon?: LucideIcon
-}
-
-/** A row that DOES something when activated. The common case. */
-export type MenuAction = MenuItemBase & {
-  onClick: () => void
-  /** Optional keyboard-shortcut hint shown right-aligned + muted on
-   *  the item (e.g. "⌥C"), matching how desktop apps annotate menu
-   *  entries. Display only — the actual binding lives in the game's
-   *  keyboard hook; this just advertises it. */
-  shortcut?: string
-  /** Never present on an action — the discriminant. */
-  items?: never
-}
-
-/**
- * A row that OPENS A SUBMENU instead of acting. One level deep only:
- * a submenu's own items are actions, not further submenus. That cap is
- * deliberate — the flyout half of the desktop presentation would need
- * cascade positioning to go deeper, and no menu in the app wants it.
- *
- * Carries no `onClick` (opening is the whole behavior) and no
- * `shortcut` (the row isn't a command, so there's nothing to bind).
- */
-export type MenuSubmenu = MenuItemBase & {
-  items: MenuAction[]
-  onClick?: never
-  shortcut?: never
-}
-
-/** One row in the GamePage menu's per-game section (and any
- *  future reuse of `<Menu>`). See docs/ui.md → "GamePage menu"
- *  for the placement + activation contract. */
-export type MenuItem = MenuAction | MenuSubmenu
-
-/** Narrow a row to the submenu arm. A function rather than an inline
- *  `'items' in item` so the discriminant is named in one place. */
-export function isSubmenu(item: MenuItem): item is MenuSubmenu {
-  return item.items !== undefined
-}
-
-/** A group of items rendered together in the menu popover.
- *  Sections are separated by a thin divider. Empty sections drop
- *  out — no leading or trailing dividers around them. */
-export type MenuSection = {
-  /** Optional non-clickable header shown ABOVE the section's items — a bold
-   *  `title` plus muted `lines` (e.g. "by Author", a copyright). crosswords uses
-   *  it to show the loaded puzzle's title + credits at the top of its menu, the
-   *  way crossplay's menu does. A section may be header-only (no `items`). */
-  header?: MenuHeader
-  items: MenuItem[]
-}
-
-export type MenuHeader = {
-  title: string
-  /** Muted sub-lines under the title (author, copyright). Empty/omitted lines
-   *  are the caller's to filter out. */
-  lines?: string[]
-}
-
-export type MenuApi = {
-  /** Replace the game's ENTIRE header menu. Every game owns its whole
-   *  menu — the shell no longer injects a common Help / Back-to-club
-   *  section — so the game supplies all sections (dividers appear
-   *  between them). Use the `buildGameMenu` helper (common/lib/game/
-   *  gameMenu.ts) to get the standard Help + End/Concede + Back-to-club
-   *  framing. Pass `[]` to clear (on unmount). Identity is stable across
-   *  GamePage renders. */
-  setGameSections: (sections: MenuSection[]) => void
-  /** Open this game's Help modal (the manifest `help` component). Wire
-   *  it into your menu's Help item. Stable identity. */
-  openHelp: () => void
-  /** "Back to club": navigates directly for a terminal game, or opens
-   *  the suspend-confirm modal mid-game (the same logic the old shell
-   *  menu item ran). Wire it into your menu's Back-to-club item. The
-   *  shell also binds ⇧< to it globally. Stable identity. */
-  requestBackToClub: () => void
-}
-
-/**
- * One person's identity, with the three fields every render
- * site needs: id, username, color.
- *
- * Same shape covers chat-message sender (club context) and
- * game player (game context). The naming distinction is at the
- * **variable** level — `members: Member[]` in club code,
- * `players: Player[]` in game code, where each game declares
- * its own `Player` alias on top of `Member`. See
- * docs/naming.md → "member" and "player" for the full
- * rationale.
- */
-export type Member = {
-  user_id: string
-  username: string
-  /** Palette name from `common.profiles.color`. Pass through
-   *  `colorVarFor` (src/common/lib/color/memberColor.ts) for the
-   *  matching CSS variable. */
-  color: string
-}
-
-/**
- * A game player: a [Member] plus the per-player bits that live on
- * `common.game_players` (as opposed to the profile). Distinct from
- * Member because a chat sender is a Member but never a game player.
- * `GamePlayer` is a superset, so anything typed `Member[]` still
- * accepts `GamePlayer[]` — a game's OpponentStrip / turn-log can keep
- * their `Member` props while the PlayArea reads `conceded` off the
- * same roster.
- *
- *   - `conceded`     — this player willfully quit a compete race
- *                      (common.concede). Drives the OpponentStrip
- *                      "out" marker and the "Quit at …" vs "Lost at
- *                      …" terminal wording.
- *   - `result`       — the per-player end-state jsonb from
- *                      common.game_players.result; null until the
- *                      game ends.
- */
-export type GamePlayer = Member & {
-  conceded: boolean
-  conceded_at: string | null
-  result: Record<string, unknown> | null
-}
-
-/** Outcome verb for one player at game-over, from their common
- *  end-state. Won trumps everything; a conceder "quit"; anyone else
- *  who didn't win "lost" (beaten to the win, or eliminated). Games
- *  render it as e.g. `${playerOutcome(p)} at ${rankName}`. */
-export function playerOutcome(p: {
-  conceded: boolean
-  result: Record<string, unknown> | null
-}): 'won' | 'quit' | 'lost' {
-  if (p.result?.won === true) return 'won'
-  if (p.conceded) return 'quit'
-  return 'lost'
-}
-
-/**
- * The capitalized past-tense verb for a player's terminal outcome — 'Won' / 'Quit'
- * (they conceded) / 'Lost' — for the OpponentStrip's terminal readout, which several
- * games format as `${outcomeVerb(p)} at ${value}` ("Won at 40", "Won at Genius") or
- * `${outcomeVerb(p)} · ${value}` (scrabble). A missing member reads as 'Lost' (a peer
- * we can't resolve didn't win). Lives right next to `playerOutcome` so the strip verbs
- * stay in lockstep with its vocabulary; each game keeps its own separator + value
- * (score / rank), which genuinely differ.
- */
-export function outcomeVerb(member: GamePlayer | undefined): 'Won' | 'Quit' | 'Lost' {
-  const outcome = member ? playerOutcome(member) : 'lost'
-  return outcome === 'won' ? 'Won' : outcome === 'quit' ? 'Quit' : 'Lost'
-}
-
-/**
- * A "rich" message — a sequence of text + inline player segments — so an error
- * (or any message) can name players with their identity disc inline:
- * "…needs these players: ● bert, ● ernie, ● claude." A plain `string` is still a
- * valid message everywhere a `RichMessage` is accepted; this is just the
- * structured form, rendered by `<RichMessage>`. Self-contained (each segment
- * carries the full `Member`), so it needs no resolver wherever it's shown.
- */
-export type RichMessage = Array<string | { player: Member }>
-
-/**
- * Props the per-game setup-form body receives from the common
- * `SetupGameModal` wrapper. **Controlled**: state lives in the
- * wrapper, the body renders `value` and signals edits via
- * `onChange`.
- *
- * `value` and `onChange` are `unknown` here so `GameManifest`
- * can stay non-generic (the registry holds `GameManifest[]`,
- * which can't carry per-game type parameters). Each game's
- * setup component starts with `value as MySetup` at the top
- * and is fully typed inside.
- */
-/**
- * WHAT THE FORM HOLDS, minus what the form alone needs — the setup blob a
- * game's `create_game` is actually sent, and the shape stored on
- * `common.games.setup` and `clubs_gametypes.default_setup`.
- *
- * `Values` is the primary type and `Setup` is derived from it, because the form
- * is where every one of these values is decided. The only difference is the
- * players: they are the RPC's own argument and become `common.game_players`
- * rows, so they are never in the setup blob — which matters, because
- * `<game>/lib/setupSummary.ts` and each `PlayArea` read that blob BACK as
- * `<Game>Setup` and would otherwise be typed for a key that is never there.
- */
-export type SetupOf<V> = Omit<V, 'player_user_ids'>
-
 /**
  * **What every game's `create_game` puts in `data`.** One shape, sixteen
  * schemas: `result` names the answer, `id` is the game to go to.
@@ -441,143 +198,11 @@ export type SetupOf<V> = Omit<V, 'player_user_ids'>
 export type CreatedGame = { result: 'created'; id: string }
 
 /**
- * Write one field of the form. The setup body casts the loose `set` it is given
- * to this over its own values type, which is what makes `set('difficulty', 4)` a
- * compile error rather than a control that silently does nothing.
+ * What `end_game` and `submit_timeout` both answer with: the game is over.
+ * ONE result for both, because it is one fact — HOW it came to be over is
+ * already in `common.games.status`, which every surface reads anyway.
  */
-export type SetupSetter<V> = <K extends keyof V>(name: K, value: V[K]) => void
-
-export type SetupBodyProps = {
-  members: Member[]
-  /** This gametype's user-facing brand name (the manifest's `name`),
-   *  forwarded by SetupGameModal so a setup form's own copy reads the
-   *  brand from the single branding source rather than hardcoding it
-   *  (e.g. connections's "Pick a <brand> puzzle"). Most forms ignore it. */
-  brand: string
-  /** Club the game would start in. Per-game setup forms that
-   *  need club-scoped data read it; the rest ignore it. */
-  clubHandle: string
-  /** The manifest's `mode` — `'coop'` or `'compete'`. Forwarded
-   *  so sibling-pair setup forms (connections, psychicnum) that
-   *  query mode-aware club state (e.g. connections's per-date
-   *  calendar overlay) can scope their reads to the right mode.
-   *  Setup forms for single-mode games can ignore it. */
-  mode: 'coop' | 'compete'
-  /** The creating user. Always a player — their row in the picker is
-   *  checked and locked, because you cannot start a game you are not in. */
-  selfId: string
-  /** The manifest's `[min, max]`. The body renders the picker, so it is
-   *  the body that must say "Pick at least 2 players." — the same bound
-   *  the modal gates Start on. */
-  numberOfPlayers: [number, number]
-  /**
-   * Everything the form holds, keyed by field `name` — the game's own
-   * `<Game>Values`, handed over as `unknown` because this contract is
-   * game-agnostic. The body casts it once, at the top.
-   */
-  values: unknown
-  /** Write one field. Loose for the same reason `values` is; cast to
-   *  `SetupSetter<GameValues>` alongside it, so the key names are checked. */
-  set: (name: string, value: unknown) => void
-  /**
-   * What is wrong with what is there, keyed by field `name`. A body passes each
-   * field its own — `error={errors.legal_band}` — and the modal renders
-   * `FORM_ERROR_KEYNAME` on the one line at the bottom.
-   *
-   * A server `validation` contributes one entry, from the envelope's `field`
-   * and `message`; a client-side check can contribute several at once. Same
-   * object either way, which is why a field's `name` matches the RPC parameter
-   * its value is sent as.
-   */
-  errors: FormErrors
-  /**
-   * Write one error, keyed the same way — `FORM_ERROR_KEYNAME` for the form's
-   * own line, a field `name` for that field's.
-   *
-   * A body needs this because some of them CALL SERVERS of their own, before
-   * Start: connections and strands load a puzzle, crosswords loads a library.
-   * Without a setter such a body could display a failure line but never write
-   * one, so a failed load had to be shown as an empty result — the puzzle
-   * picker saying "the archive is spent" about a read that never landed
-   * (Joel, 2026-08-29).
-   *
-   * **A fault gets written here like anything else.** Its modal is an
-   * escalation, not a replacement: press OK and this line is the only thing
-   * left saying the load is still broken (docs/envelopes.md → But the surface
-   * still shows it).
-   *
-   * Passing `null` clears the entry — what a body does when the same load
-   * succeeds on a later attempt.
-   */
-  setError: (name: string, message: string | null) => void
-}
-
-/**
- * Per-game setup-form declaration: the lazy-loaded body
- * component plus the initial value the wrapper seeds state with
- * when the dialog opens.
- *
- * `Component` is lazy so the form ships in the game's chunk.
- * `defaults` is NOT lazy because the wrapper needs an initial
- * value the moment the modal opens — before the chunk arrives.
- * It's a tiny literal so the size cost is negligible.
- */
-export type GameSetupForm = {
-  Component: ComponentType<SetupBodyProps>
-  defaults: unknown
-  /**
-   * The sentence at the top of the setup dialog, above everything — what this
-   * game is, in this mode. "Everyone in the club types words into the same
-   * honeycomb and the team racks up the score together."
-   *
-   * **On the manifest rather than in the form, because of WHERE it goes.**
-   * `<SetupGameModal>` draws the player picker and then the game's form, so an
-   * intro written inside the form lands under the picker — below the thing it
-   * is meant to introduce. From here the modal can put it first.
-   *
-   * **A plain string, not a function of mode**, because a manifest is already
-   * per-mode: `spellingbeeCoopGame` and `spellingbeeCompeteGame` are separate
-   * objects. All thirteen of these were a coop/compete pair of fixed sentences,
-   * written as two branches of a ternary or as two copies of the form; none
-   * read live setup state. So the branch was the sibling-manifest pattern
-   * spelled out by hand, and it goes.
-   *
-   * Optional: a game with nothing to say leaves it off. It sits beside
-   * `shortDescription`'s job one size up — that is the Start button's ~30
-   * characters, this is the dialog's full sentence — so an edit to one is
-   * visibly an edit that should touch the other.
-   */
-  intro?: string
-  /**
-   * Optional cross-field guard the dialog runs to gate the Start button.
-   * Returns the reasons the current `setup` can't start, **keyed by the field
-   * each one is about** — `'_'` for a reason that belongs to no single field.
-   * Empty means valid.
-   *
-   * The key is the whole point. It is the same `FormErrors` object a server
-   * `validation` writes one entry into, so a message about `legal_guess`
-   * appears under the Legal-guesses select whoever noticed it — the frontend
-   * before the request, or `create_game` after. Returning a bare sentence, as
-   * this used to, meant every frontend check landed on the form's bottom line
-   * even when the field that owned it was directly above.
-   *
-   * It also lets one check flag SEVERAL fields, which a server raise cannot:
-   * a raise stops at the first failure, and scrabble's "the AI needs a wider
-   * dictionary" is about two selects at once.
-   *
-   * Gets `playerCount` because some constraints couple the setup to the
-   * headcount — bananagrams's "bag must hold `playerCount × hand_size` tiles"
-   * is the first. Pure + synchronous; the server re-validates in `create_game`
-   * regardless (this is UX, not the authority).
-   *
-   * Lives beside the game's setup types rather than inside its `SetupForm`
-   * because the dialog needs the answer to gate a Start button the form does
-   * not render — a form that owned the check would have to report upward, and
-   * a child computing state for its parent is the loop `no-setState-in-effect`
-   * exists to prevent.
-   */
-  validate?: (setup: unknown, playerCount: number) => FormErrors
-}
+export type GameStopResult = { result: 'ended' }
 
 /**
  * Manifest exported by each game's `manifest.ts`. The shell
@@ -585,13 +210,6 @@ export type GameSetupForm = {
  * names a specific game directly — see docs/common.md for the
  * "removability in three actions" rule that motivates this.
  */
-/**
- * What `end_game` and `submit_timeout` both answer with: the game is over.
- * ONE result for both, because it is one fact — HOW it came to be over is
- * already in `common.games.status`, which every surface reads anyway.
- */
-export type GameStopResult = { result: 'ended' }
-
 export type GameManifest = {
   /**
    * Stable identifier for the gametype — URL-safe, matches the

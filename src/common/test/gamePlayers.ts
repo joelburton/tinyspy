@@ -1,6 +1,6 @@
 // cs-unmet
 
-import type { GamePlayer } from '../lib/games'
+import type { GamePlayer } from '../lib/members/member'
 
 /**
  * Build a [GamePlayer] for component tests with the per-player concede/result

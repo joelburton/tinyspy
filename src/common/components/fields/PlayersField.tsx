@@ -3,7 +3,7 @@
 import { Dot } from '../text/Dot'
 import { Field } from './Field'
 import type { AllFieldProps } from './fieldProps'
-import type { Member } from '../../lib/games'
+import type { Member } from '../../lib/members/member'
 import styles from './PlayersField.module.css'
 
 type Props = AllFieldProps<Set<string>> & {

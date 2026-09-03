@@ -5,7 +5,7 @@ import { useRealtimeRefetch } from '../../common/hooks/realtime/useRealtimeRefet
 import { readRows } from '../../common/lib/supabase/dbResult'
 import type { NotOkEnv } from '../../common/lib/supabase/envelope'
 import { db } from '../db'
-import type { Member } from '../../common/lib/games'
+import type { Member } from '../../common/lib/members/member'
 
 /**
  * One player in a wordiply game. wordiply adds no per-player state beyond

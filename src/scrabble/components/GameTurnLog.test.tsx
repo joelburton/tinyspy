@@ -15,7 +15,7 @@
 
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import type { Member } from '../../common/lib/games'
+import type { Member } from '../../common/lib/members/member'
 import type { PlayRow } from '../hooks/useGame'
 import { GameTurnLog } from './GameTurnLog'
 import { filterOptions, pickFilter } from '../../common/test/filterSelect'

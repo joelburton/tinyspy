@@ -5,7 +5,7 @@ import { useRealtimeRefetch } from '../../common/hooks/realtime/useRealtimeRefet
 import { readRows } from '../../common/lib/supabase/dbResult'
 import type { NotOkEnv } from '../../common/lib/supabase/envelope'
 import { db } from '../db'
-import type { Member } from '../../common/lib/games'
+import type { Member } from '../../common/lib/members/member'
 
 /** One player in a boggle game. No per-player state beyond a Member today. */
 export type Player = Member

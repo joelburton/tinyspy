@@ -1,6 +1,6 @@
 // cs-unmet
 
-import type { Member } from '../../common/lib/games'
+import type { Member } from '../../common/lib/members/member'
 import { difficultyValue } from '../../common/lib/game/difficulty'
 import { BOARD_KEY, rosterRow, timerRow, type SetupRow } from '../../common/lib/game/setupRows'
 import { DICE_BY_NAME } from './dice'
