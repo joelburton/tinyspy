@@ -34,8 +34,10 @@ understood, tidied* — `cs-blessed` here means he has read the file, not seen i
 **Two passes of three are DONE, with nothing open.** The BOOT pass: nine files,
 sixteen findings — fourteen RESOLVED, one CLOSED, one MOVED to `corecss`. The
 DATA PATH, read 2026-09-02: eleven files, eleven findings `F-deep-17` …
-`F-deep-27`, **all RESOLVED**. The realtime plumbing (7 files, 651 lines) is
-what is left of this area.
+`F-deep-27`, **all RESOLVED**. The REALTIME PLUMBING was read the same day:
+seven files, **five findings `F-deep-28` … `F-deep-32`, all open** — no defects,
+four duplications-of-one-fact and a coverage gap. **All three passes have now
+run.**
 
 ## The roster — 33 files, 4,880 lines
 
@@ -982,6 +984,134 @@ area's to fix.**
    failureMessage()/failureText()"*. Neither exists. **Whoever owns
    `src/guards/`.**
 
+
+## Pass 3 — the realtime plumbing, read 2026-09-02
+
+Seven files, 651 lines. Small, and the least changed by the recent sprints —
+this is the layer built for the lost-event failure mode
+(docs/realtime-lost-events.md), and it holds up on reading.
+
+**Findings F-deep-28 … F-deep-32.** Nothing here is a defect. Four are one
+fact written in two places, one is a coverage gap, and the last is a
+placement question this pass inherits rather than raises.
+
+**Checked and NOT findings**, recorded so the next reader does not repeat the
+work:
+
+- **The deaf-window contract IS honored everywhere.** Grepping for
+  `onPostgresAttached` finds it in 8 files while 16 bind `postgres_changes`,
+  which looks like eight surfaces exposed — and three of those are non-test
+  files (`letterboxed/hooks/useGame.ts`, `strands/hooks/useGame.ts`,
+  `common/lib/game/pause.ts`). **It is a false positive.** The first two go
+  through `useRealtimeRefetch`, which imports `onPostgresAttached` and does the
+  attach refetch centrally, and `pause.ts`'s only mention is prose in a comment.
+  A file-level grep under-counts a contract kept by a shared hook.
+- **`rtVerbose()` guards its `localStorage` read** (`realtimeDiag.ts:89`), so
+  this file was already following the rule `loadTheme` was not — see
+  `F-deep-13`.
+- `channelDedupSuffix`'s docstring cites "`useGame.ts` files" as the canonical
+  example; those exist, one per game.
+
+## F-deep-28 · `logstamp-lives-in-the-realtime-module` · An app-wide primitive is imported from the diagnostics of one subsystem
+
+`logStamp()` is defined in `realtimeDiag.ts:64` and its own docstring says it is
+shared *"across the console-diagnostics families"* — three of them, and only one
+is realtime:
+
+| channel | reader |
+|---|---|
+| `[rt]` | `realtimeDiag.ts` itself |
+| `[db]` | `dbLog.ts:3` — the lowest layer of the server-result system |
+| `[ui]` | `components/game/PlayAreaMountLog.tsx:4` |
+
+So `dbLog`, whose own docstring says it is where `dbFetch` and `dbResult`
+*"meet"* and that it has no opinion about anything, reaches into the realtime
+module for its timestamp. Nothing is duplicated and nothing is broken — one
+implementation, three importers — it is purely a question of where the thing
+lives.
+
+**This was found before and lost its home.** The `homepage` area's 2026-08-26
+dependency read raised it as `logstamp-in-realtimediag`; that audit was deleted
+2026-09-02, and both files are `cs-met-deep`, so this area can own it.
+
+> resolution:
+
+## F-deep-29 · `bare-topic-written-twice` · One fact about realtime-js, in two functions
+
+`channelTeardown.ts:62` and `realtimeDiag.ts:98` are the same three lines:
+
+```ts
+topic.replace(/^realtime:/, '')
+```
+
+Each carries its own docstring saying realtime-js prefixes topics and our
+callers speak the bare name — so the library detail is stated twice as well as
+implemented twice. `channelTeardown` calls its copy `bareName`, `realtimeDiag`
+calls its copy `bareTopic`, and the two differ only in taking a string versus a
+channel.
+
+Small, and the reason it is worth a line: the prefix is not ours. It is a
+convention of a dependency this area's comments elsewhere pin to an exact
+version ("verified against `@supabase/realtime-js` 2.108.1"), and a change to
+it would need finding in two places.
+
+> resolution:
+
+## F-deep-30 · `system-payload-parsed-twice` · The correctness guard and the diagnostic read one message independently
+
+`onPostgresAttached` (`postgresAttached.ts:35`) and `instrumentChannel`
+(`realtimeDiag.ts:119`) both bind `'system'` on every channel and both pick
+apart the same payload with the same string literals — `['status']`,
+`['extension']`, `'ok'`, `'postgres_changes'`.
+
+They are not redundant: one is a correctness guard that triggers a refetch, the
+other writes the console line. What makes the pair worth naming is **which two
+things would drift.** If the server's message shape ever changes, the guard
+stops closing the deaf window and the diagnostic stops reporting it — and the
+diagnostic is exactly what you would read to discover the guard had stopped
+firing. The two things that must not fail together are the two that share no
+code.
+
+> resolution:
+
+## F-deep-31 · `realtimediag-has-no-test` · The one file that patches a third-party API by hand is the one with no test
+
+Three of the four modules here have tests — `channelDedup` (110 lines),
+`channelTeardown` (86), `postgresAttached` (54). `realtimeDiag.ts` is the
+largest at 195 lines and has none.
+
+It is also the one doing the riskiest thing: it **monkey-patches three methods**
+of a `RealtimeChannel` — `.on()`, `.subscribe()`, `.unsubscribe()` — reassigning
+`.on` through a cast (`;(ch as { on: unknown }).on = …`) and forwarding
+arguments verbatim because *"RealtimeChannel.on has a dozen overloads"*. Its
+correctness rests on a hand-verification against one library version, recorded
+in a comment.
+
+So the failure mode is a dependency bump: a changed overload or subscribe
+signature would break instrumentation for every channel in the app, and the
+symptom is **console lines going missing** — which is the one symptom nobody
+notices, because the module's whole job is to be the thing you read when
+something else is wrong.
+
+> resolution:
+
+## F-deep-32 · `rtlog-takes-level-last` · Reaching the last argument means passing a placeholder
+
+`rtLog(topic, msg, extra?, level?)`, so a caller that wants to raise a line to
+`warn` without attaching an object writes `undefined` to get past `extra`:
+
+```ts
+rtLog(name, `teardown ${String(status)}`, undefined, status === 'ok' ? 'log' : 'warn')
+```
+
+Four of the twelve call sites do this — one in `channelTeardown`, three inside
+`realtimeDiag` itself — and the level is the argument most likely to be wanted
+alone, since it is what makes a failure stand out in a friend's screenshot.
+
+Not a bug and not urgent; the shape is `(what, message, then two optional
+knobs)` and the knobs are in the wrong order for how they are used.
+
+> resolution:
 
 ## Questions this pass raises rather than answers
 
