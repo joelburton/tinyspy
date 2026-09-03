@@ -4,6 +4,9 @@ import { test, expect, type Page } from '@playwright/test'
 import { createClubWithMembers, createBoggleGame } from './helpers/fixtures'
 import { signIn } from './helpers/session'
 import { startGameRow } from './helpers/clubPage'
+import { closeContextsAfterEach } from './helpers/contexts'
+
+closeContextsAfterEach()
 
 /**
  * Escape, for floating panels: **what you're IN, else what's on TOP**

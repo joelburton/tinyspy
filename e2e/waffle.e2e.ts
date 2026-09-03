@@ -3,6 +3,9 @@
 import { test, expect } from '@playwright/test'
 import { createSoloClub, createWaffleGame } from './helpers/fixtures'
 import { signIn } from './helpers/session'
+import { closeContextsAfterEach } from './helpers/contexts'
+
+closeContextsAfterEach()
 
 /**
  * "Restart" (the game menu) restarts the same board from scratch: it

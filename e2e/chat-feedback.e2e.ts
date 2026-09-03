@@ -3,6 +3,9 @@
 import { test, expect } from '@playwright/test'
 import { createClubWithMembers } from './helpers/fixtures'
 import { signIn } from './helpers/session'
+import { closeContextsAfterEach } from './helpers/contexts'
+
+closeContextsAfterEach()
 
 /**
  * A club chat message appears in the GLOBAL feedback area (the header pill) for

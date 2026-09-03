@@ -4,6 +4,9 @@ import { test, expect } from '@playwright/test'
 import { createClubWithMembers, createSetgameGame } from './helpers/fixtures'
 import { signIn } from './helpers/session'
 import { boardReady } from './helpers/ready'
+import { closeContextsAfterEach } from './helpers/contexts'
+
+closeContextsAfterEach()
 
 /**
  * Turn-by-turn coop on setgame, driven live with two clients.

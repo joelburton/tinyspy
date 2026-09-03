@@ -3,6 +3,9 @@
 import { test, expect } from '@playwright/test'
 import { createClubWithMembers, createCrosswordsGame } from './helpers/fixtures'
 import { signIn } from './helpers/session'
+import { closeContextsAfterEach } from './helpers/contexts'
+
+closeContextsAfterEach()
 
 /**
  * The common scratchpad feature, exercised through crosswords (its first

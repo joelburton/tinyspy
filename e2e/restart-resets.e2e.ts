@@ -12,6 +12,9 @@ import {
   createWordwheelGame,
 } from './helpers/fixtures'
 import { signIn } from './helpers/session'
+import { closeContextsAfterEach } from './helpers/contexts'
+
+closeContextsAfterEach()
 
 /**
  * Restart must hand back a board the player can play BLIND — the rule

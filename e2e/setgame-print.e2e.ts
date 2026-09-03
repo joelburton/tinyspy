@@ -6,6 +6,9 @@ import { createSoloClub, createSetgameGame } from './helpers/fixtures'
 import { boardOf, claim, findSetOn } from './helpers/setgame'
 import { signIn } from './helpers/session'
 import { boardReady } from './helpers/ready'
+import { closeContextsAfterEach } from './helpers/contexts'
+
+closeContextsAfterEach()
 
 /**
  * Smoke: setgame's "Print board (PDF)" menu item generates + downloads a real

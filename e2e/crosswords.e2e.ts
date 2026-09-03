@@ -10,6 +10,9 @@ import {
 import { signIn } from './helpers/session'
 import { settled } from './helpers/ready'
 import { startGameRow } from './helpers/clubPage'
+import { closeContextsAfterEach } from './helpers/contexts'
+
+closeContextsAfterEach()
 
 /**
  * Smoke test for the CrossPlay (crosswords) coop play loop on screen: the

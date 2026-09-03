@@ -4,6 +4,9 @@ import { test, expect } from '@playwright/test'
 import { createSoloClub, createSetgameGame } from './helpers/fixtures'
 import { signIn } from './helpers/session'
 import { boardReady } from './helpers/ready'
+import { closeContextsAfterEach } from './helpers/contexts'
+
+closeContextsAfterEach()
 
 /**
  * setgame on a phone (docs/mobile.md). Three properties that only exist below

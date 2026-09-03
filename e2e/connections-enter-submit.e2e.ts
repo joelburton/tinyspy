@@ -3,6 +3,9 @@
 import { test, expect } from '@playwright/test'
 import { createSoloClub, createConnectionsGame } from './helpers/fixtures'
 import { signIn } from './helpers/session'
+import { closeContextsAfterEach } from './helpers/contexts'
+
+closeContextsAfterEach()
 
 /**
  * Enter submits the current selection. The guess used to be bound to Enter only

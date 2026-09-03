@@ -5,6 +5,9 @@ import { createClubWithMembers, createSetgameGame, createSoloClub } from './help
 import { boardOf, claim, findNonSetOn, findSetOn, letterForSlot } from './helpers/setgame'
 import { signIn } from './helpers/session'
 import { boardReady } from './helpers/ready'
+import { closeContextsAfterEach } from './helpers/contexts'
+
+closeContextsAfterEach()
 
 /**
  * Smoke tests for setgame (HareTrigger), covering the two things that only
