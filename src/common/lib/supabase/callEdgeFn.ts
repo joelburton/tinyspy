@@ -26,18 +26,20 @@ import { OUR_BUG_TO_CODE_AND_TEXT } from './dbEnvelope'
  *     connection and misfiles as transport ("Server; try refresh" over a real
  *     answer). See DbError in dbEnvelope.ts.
  *
- * ─── The contract with edge functions ─────────────────────────
- * Every function returns errors as `{ error: '<fe-error-key>', code? }` —
- * `key|detail1|detail2|` shapes, never player-facing prose (the fe-error-key
- * contract, docs/supabase.md → Server errors; guarded by edgeFnErrorKeys.test.ts).
- * So in the converted world a NON-key, UNANSWERED failure here can only be the
- * transport, which is what finally makes the transport wording honest — though
- * "the transport" is wider than "environmental", which means specifically that
- * no response object exists (docs/envelopes.md).
+ * ─── What an edge function answers ────────────────────────────
+ * **A function that RAN answers 200 with an envelope**, faults included: the
+ * status says whether it ran, the envelope says what it decided
+ * (docs/envelopes.md → How edge functions build one). Where it calls an RPC it
+ * relays that envelope untouched, so a sentence written in a SQL raise reaches
+ * the player with its own words.
  *
- * Returns `{ data }` on 2xx (payload validation is the caller's — shapes are
- * per-function) or `{ error }` ready for `failureMessage` / `faultMessage` /
- * `failureText`, which own all wording per the caller's surface.
+ * That leaves its own `error` channel meaning **one thing only: the RPC never
+ * ran.** What this function digs out of a 4xx is that channel, and `runEdgeFn`
+ * turns it into a fault — the right treatment for a shape no caller can read.
+ *
+ * Returns `{ data }` on 2xx — payload validation is the caller's, since shapes
+ * are per-function — or `{ error }` for `runEdgeFn` to classify. **Nothing here
+ * words anything a player reads.**
  */
 export async function callEdgeFn(
   fnName: string,

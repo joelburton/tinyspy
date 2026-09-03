@@ -34,7 +34,7 @@ understood, tidied* — `cs-blessed` here means he has read the file, not seen i
 **Two passes of three have run.** The BOOT pass is done — nine files, sixteen
 findings, nothing left open (fourteen RESOLVED, one CLOSED, one MOVED to
 `corecss`). The DATA PATH was read 2026-09-02: eleven files, **eleven findings
-`F-deep-17` … `F-deep-27`** — eight RESOLVED, three open. The realtime plumbing (7 files) has not
+`F-deep-17` … `F-deep-27`** — nine RESOLVED, two open. The realtime plumbing (7 files) has not
 been read.
 
 ## The roster — 33 files, 4,880 lines
@@ -853,7 +853,7 @@ registered** — sixteen manifest imports in `src/games.ts`, sixteen folders und
 > so `deep`'s membership rule excludes it; it belongs to whichever area takes the
 > manifest registry. Recorded here so it is not lost.
 
-## F-deep-22 · `calledgefn-doc-describes-the-superseded-contract` · The transport adapter documents the system that replaced it
+## RESOLVED · F-deep-22 · `calledgefn-doc-describes-the-superseded-contract` · The transport adapter documents the system that replaced it
 
 Two ways, both in `callEdgeFn.ts`:
 
@@ -874,7 +874,28 @@ Two ways, both in `callEdgeFn.ts`:
 The code below the docstring is fine — parsing a 4xx body for `{ error, code }`
 is right for the case that remains. It is the framing that is a version behind.
 
-> resolution:
+> **resolution: the contract section rewritten from docs/envelopes.md**, which
+> is canonical (Joel, 2026-09-02). It now says what is true: a function that RAN
+> answers 200 with an envelope, faults included; where it calls an RPC it relays
+> that envelope untouched; **so its own `error` channel means one thing only —
+> the RPC never ran** — which is precisely the case this adapter digs out of a
+> 4xx. The three deleted helpers are gone from the closing line, replaced by
+> "`{ error }` for `runEdgeFn` to classify. Nothing here words anything a player
+> reads."
+>
+> Everything still true was left alone: why call sites must not hand-roll the
+> `error.context` read, and the two facts that read recovers (`code` and
+> `answered`).
+>
+> **The data path now has no reference to the three deleted helpers.** Four
+> remain elsewhere, and none is this area's:
+>
+> | file | owner |
+> |---|---|
+> | `codenamesduet/components/PlayArea.tsx:86` | `codenamesduet` |
+> | `common/hooks/game/useWordSubmit.ts:121` | `hooks` |
+> | `scrabble/components/BoardCol.tsx:50` | `scrabble` |
+> | `guards/noRawServerMessage.test.ts:86`, `:96` | whoever owns `src/guards/` — and `:96` is the failure MESSAGE, so it prescribes a function that does not exist to whoever trips the guard |
 
 ## F-deep-23 · `notrows-fault-has-no-duration` · One report drops the `ms` every other one carries
 
