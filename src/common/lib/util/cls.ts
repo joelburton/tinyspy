@@ -1,10 +1,9 @@
 // cs-met-deep
 
 /**
- * Tiny class-name combiner. Hand-rolled because clsx/classnames
- * are overkill for the handful of conditional class composition
- * sites we have — and we'd rather not add a dependency for ~30
- * lines of usage.
+ * Tiny class-name combiner. Hand-rolled rather than clsx/classnames
+ * because there is nothing to depend on: the whole thing is the one
+ * expression below.
  *
  *   <div className={cls(
  *     styles.tile,

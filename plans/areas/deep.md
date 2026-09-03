@@ -38,8 +38,9 @@ DATA PATH, read 2026-09-02: eleven files, eleven findings `F-deep-17` …
 seven files, **five findings `F-deep-28` … `F-deep-32`, all RESOLVED** — no
 defects, four duplications-of-one-fact and a coverage gap. **The three named
 passes are done. The FAULT SINK was read the same day: two files, **three
-findings `F-deep-33` … `F-deep-35`, all RESOLVED.** `cls.ts` and the three
-server-side envelope files are what remain of the roster.**
+findings `F-deep-33` … `F-deep-35`, all RESOLVED.** `cls.ts` was read the same
+day: **one finding, `F-deep-36`, RESOLVED.** The three server-side envelope files
+are all that remain of the roster.**
 
 ## The roster — 35 files, 4,880 lines
 
@@ -1322,6 +1323,57 @@ to say.
 > now true by construction, and a docstring that explained how a deleted flag
 > used to enforce it would be the archaeology this repo rules out. The store's
 > own test file still records the deletion, which is the right place for it.
+
+## Pass 5 — `cls.ts`, read 2026-09-02
+
+One file, 22 lines, of which one is the function. **One finding**, inherited in
+substance from the `homepage` area's deleted dependency read, which had it as
+`cls-thirty-lines`.
+
+**Checked and NOT findings:**
+
+- **Nobody has worked around its shape.** No hand-rolled
+  `filter(Boolean).join(' ')` anywhere else in `src/`, and no call site spreads
+  an array into it — so the varargs form fits all 206 uses, and the features
+  `clsx` adds over it (object and array forms) are ones nothing here wants.
+- **The parameter type earns its keep.** `Array<string | false | null |
+  undefined>` excludes `number`, so the classic `cls(items.length && styles.x)`
+  — which would render a bare `0` into `className` — is a compile error rather
+  than a rendered artifact.
+- **No test, and that is fine.** The body is `args.filter(Boolean).join(' ')`,
+  it has 206 call sites and two CSS guards reading its output, and a break would
+  be instant and universal. A test here would pin a tautology.
+
+## RESOLVED · F-deep-36 · `cls-usage-count-inverts-its-own-argument` · The number defending the decision now argues against it
+
+`cls.ts:4` — *"Hand-rolled because clsx/classnames are overkill for the handful
+of conditional class composition sites we have — and we'd rather not add a
+dependency for ~30 lines of usage."*
+
+**Measured: 206 call sites across 116 files.** Roughly seven times the stated
+figure, and "a handful" is not a description of 116 files.
+
+What makes this worth more than a number fix: **the argument reverses.** As
+written, the case against `clsx` is scale — we barely use this, so a dependency
+would not pay. At 206 sites that sentence argues the other way, because 206 is
+precisely the scale at which a project reaches for `clsx`.
+
+**The DECISION is still right and the reasoning for it is simply different now.**
+The function is one line. A dependency is not worth it because there is nothing
+to depend on — not because the need is rare. That is a justification which
+cannot rot with the roster, and it is what the docstring should say.
+
+> **resolution: the count comes out, not corrected** (Joel, 2026-09-02): *"just
+> remove the number of callers, it will always be stale."* Both halves go — "the
+> handful of … sites we have" as well as "~30 lines of usage" — leaving the
+> reason that holds at any size: *"Hand-rolled rather than clsx/classnames
+> because there is nothing to depend on: the whole thing is the one expression
+> below."*
+>
+> Third time this sprint a number in a comment has been deleted rather than
+> updated (`F-deep-8`, `F-deep-21`, here). The rule those three make: **a count
+> in a docstring is a maintenance promise nobody keeps** — state the property,
+> not the tally.
 
 ## Questions this pass raises rather than answers
 
