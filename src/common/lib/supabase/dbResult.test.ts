@@ -213,7 +213,20 @@ describe('the verdict from dbFetch', () => {
 describe('_isEnvelope', () => {
   it('accepts both branches', () => {
     expect(_isEnvelope({ type: 'ok' })).toBe(true)
-    expect(_isEnvelope({ type: 'not-ok', severity: 'fault' })).toBe(true)
+    expect(_isEnvelope({ type: 'not-ok', severity: 'fault', dbcode: 'PN012' })).toBe(true)
+  })
+
+  // **A refusal with no code cannot be one of ours**: SQL writes the SQLSTATE
+  // unconditionally, Deno's builders require it, and `callEdgeFn` names every
+  // failure it forwards. So the strictness costs no real answer, and what it
+  // catches is a hand-built shape that would otherwise travel unidentifiable
+  // through every log. An `ok` is unaffected — it has a code only when a raise
+  // wrote one.
+  it('rejects a not-ok that names no code', () => {
+    expect(_isEnvelope({ type: 'not-ok', severity: 'fault', message: 'x' })).toBe(false)
+    expect(_isEnvelope({ type: 'not-ok', severity: 'fault', dbcode: null })).toBe(false)
+    expect(_isEnvelope({ type: 'not-ok', severity: 'fault', dbcode: '' })).toBe(false)
+    expect(_isEnvelope({ type: 'ok', dbcode: null })).toBe(true)
   })
 
   // Plenty of non-envelopes arrive on this path; each must fall through cleanly
@@ -310,7 +323,7 @@ describe('readRows', () => {
   // otherwise be nested inside `data`, where its own `type` and `severity`
   // are invisible to every call site.
   it('faults when handed an RPC envelope instead of rows', async () => {
-    const envelope = { type: 'not-ok', severity: 'race', message: 'too late' }
+    const envelope = { type: 'not-ok', severity: 'race', message: 'too late', dbcode: 'PN013' }
     const r = await readRows(
       Promise.resolve({ data: envelope, error: null }) as unknown as Promise<
         { data: unknown[] | null; error: null }
@@ -526,7 +539,7 @@ describe('reportDbFault', () => {
   it('keeps the transport detail alongside the envelope one', () => {
     reportDbFault(
       { call: 'GET /rest/v1/clubs', detail: 'online=false hidden' },
-      faultEnvelope({ message: 'nope', code: '42501', details: 'why' }, 'fallback'),
+      faultEnvelope({ message: 'nope', code: '42501', details: 'why' }, 'fallback', undefined, 'PN900'),
     )
     const [fault] = peekFaultsForTest()
     expect(fault.diagnostics).toContain('online=false hidden')
@@ -558,7 +571,7 @@ describe('reportDbFault', () => {
       { call: 'POST /rest/v1/rpc/submit_guess' },
       faultEnvelope(
         { code: '23514', message: 'violates check constraint "players_guesses_remaining_check"' },
-        'unused',
+        'unused', undefined, 'PN900',
       ),
     )
     const [fault] = peekFaultsForTest()
@@ -628,6 +641,55 @@ describe('runEdgeFn — the same shape, through Deno', () => {
     expect(fault.diagnostics).toContain('dbcode=PN501')
   })
 
+  // **A not-ok always carries a `dbcode`**, and this is the only path that had
+  // to be made to. SQL writes the SQLSTATE unconditionally and Deno's builders
+  // take the code as a required argument; what could arrive without one is a
+  // function of ours answering non-2xx with `{ error }` and no `code`, which
+  // `callEdgeFn` forwards codeless (its own test pins that shape). `PN489` is
+  // what `faultEnvelope` puts there so no fault is left unidentifiable in a log.
+  it('gives a codeless refusal our own code', async () => {
+    mockInvoke.mockResolvedValue({
+      data: null,
+      error: {
+        message: 'Edge Function returned a non-2xx status code',
+        context: new Response(JSON.stringify({ error: 'the model refused' }), {
+          status: 500, headers: { 'Content-Type': 'application/json' },
+        }),
+      },
+    })
+
+    const r = await runEdgeFn('codenamesduet-suggest-clue', {})
+
+    expect(r).toMatchObject({ type: 'not-ok', severity: 'fault', dbcode: 'PN489' })
+    expect(peekFaultsForTest()[0].diagnostics).toContain('dbcode=PN489')
+  })
+
+  // **A reply that was not our function is an OUTAGE, not our bug** — the third
+  // answer this path was missing. `callEdgeFn` names it `FE003`, the same code
+  // `dbFetch` gives it on the database path, and `situationFor` reads it back
+  // here so the player gets the frontend's sentence rather than the gateway's
+  // own words.
+  it('says the server is down when something other than our function replied', async () => {
+    mockInvoke.mockResolvedValue({
+      data: null,
+      error: {
+        message: 'Edge Function returned a non-2xx status code',
+        context: new Response(JSON.stringify({ msg: 'no Route matched' }), {
+          status: 502, headers: { 'Content-Type': 'application/json' },
+        }),
+      },
+    })
+
+    const r = await runEdgeFn('boggle-build-board', {})
+
+    expect(r).toMatchObject({
+      type: 'not-ok',
+      severity: 'fault',
+      dbcode: 'FE003',
+      message: 'Our server appears to be down. Please refresh and try again later.',
+    })
+  })
+
   it('names the function in the diagnostics', async () => {
     mockInvoke.mockResolvedValue({
       data: { type: 'not-ok', severity: 'fault', message: 'Broken' },
@@ -694,7 +756,9 @@ describe('the [db] line carries a not-ok outcome', () => {
     warn.mockClear()
     await runRpc(
       Promise.resolve({
-        data: env({ type: 'not-ok', severity: 'race', message: 'Someone got there first' }),
+        data: env({
+          type: 'not-ok', severity: 'race', message: 'Someone got there first', dbcode: 'PN011',
+        }),
         error: null,
       }),
     )

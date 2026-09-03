@@ -168,7 +168,7 @@ async function addAndSave() {
 describe('WordEditDialog — where a validation lands', () => {
   it('puts a message naming a real box under THAT box', async () => {
     mockRpc.mockResolvedValue({
-      data: { type: 'not-ok', severity: 'form-validation', field: 'definition', message: MESSAGE },
+      data: { type: 'not-ok', severity: 'form-validation', field: 'definition', message: MESSAGE, dbcode: 'PN900' },
       error: null,
     })
     await addAndSave()
@@ -181,7 +181,7 @@ describe('WordEditDialog — where a validation lands', () => {
     // ten it meant. Routing it to the form is the honest answer; routing it to
     // `errors.fields` would lose it silently.
     mockRpc.mockResolvedValue({
-      data: { type: 'not-ok', severity: 'form-validation', field: 'fields', message: MESSAGE },
+      data: { type: 'not-ok', severity: 'form-validation', field: 'fields', message: MESSAGE, dbcode: 'PN900' },
       error: null,
     })
     await addAndSave()
@@ -192,7 +192,7 @@ describe('WordEditDialog — where a validation lands', () => {
 
   it("puts a fieldless message on the form's line", async () => {
     mockRpc.mockResolvedValue({
-      data: { type: 'not-ok', severity: 'form-validation', message: MESSAGE },
+      data: { type: 'not-ok', severity: 'form-validation', message: MESSAGE, dbcode: 'PN900' },
       error: null,
     })
     await addAndSave()

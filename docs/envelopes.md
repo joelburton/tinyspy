@@ -866,7 +866,7 @@ whole time: the word is not recorded on that path, so an `ok` left
 `useWordSubmit`'s optimistic `+N` pill standing over a word that never landed.
 Nothing noticed, because the call site read `error` alone and an `ok` looks like
 success. What surfaced it was giving the hook a real contract —
-`commit: (entry) => Promise<NotOk | null>`, where `null` means the word landed.
+`commit: (entry) => Promise<NotOkEnv | null>`, where `null` means the word landed.
 There is no way in that shape to say *"ok, but release the word"*, and the
 absence is the report: an answer that cannot be expressed on the arm it is
 sitting on is on the wrong arm. It is **PN368** now, beside its three siblings.

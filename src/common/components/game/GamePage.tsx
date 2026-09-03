@@ -50,7 +50,7 @@ import { EnvelopeErrorPage } from '../loading-and-errs/ErrorPage'
 import type { GameManifest } from '../../lib/games'
 import { db as commonDb } from '../../db'
 import { readRows } from '../../lib/supabase/dbResult'
-import type { NotOk } from '../../lib/supabase/envelope'
+import type { NotOkEnv } from '../../lib/supabase/envelope'
 import styles from './GamePage.module.css'
 import { reportUnhandled } from '../../lib/supabase/dbEnvelope'
 
@@ -208,7 +208,7 @@ function noSuchGamePage(detail: string) {
  */
 export function GamePage(props: Props) {
   const { gameId, manifest } = props
-  const [exists, setExists] = useState<'checking' | 'yes' | 'no' | NotOk>('checking')
+  const [exists, setExists] = useState<'checking' | 'yes' | 'no' | NotOkEnv>('checking')
 
   useEffect(() => {
     if (!isGameId(gameId)) return

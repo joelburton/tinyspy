@@ -90,7 +90,7 @@ Those four converted in TWO halves:
 - **`useWordSubmit` converted ONCE, after the last of the four**, taking every
   call site with it and deleting the hook's use of `failureMessage`.
 
-The contract is `commit: (entry) => Promise<NotOk | null>` — `null` means the
+The contract is `commit: (entry) => Promise<NotOkEnv | null>` — `null` means the
 word landed. The game owns the branch chain over its own answers (they are
 per-game: `pangram` in one, `dealt` in another, so a shared hook could not read
 them) and hands back only the fact the hook is entitled to: whether the

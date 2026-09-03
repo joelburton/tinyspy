@@ -5,7 +5,7 @@ import { useRealtimeRefetch } from '../../common/hooks/realtime/useRealtimeRefet
 import { db } from '../db'
 import { db as commonDb } from '../../common/db'
 import { readRows } from '../../common/lib/supabase/dbResult'
-import type { NotOk } from '../../common/lib/supabase/envelope'
+import type { NotOkEnv } from '../../common/lib/supabase/envelope'
 import type { Member } from '../../common/lib/games'
 import type { Database } from '../../types/db'
 
@@ -71,7 +71,7 @@ export function useGame(gameId: string) {
   const [game, setGame] = useState<GameRow | null>(null)
   const [players, setPlayers] = useState<Player[]>([])
   const [loading, setLoading] = useState(true)
-  const [failure, setFailure] = useState<NotOk | null>(null)
+  const [failure, setFailure] = useState<NotOkEnv | null>(null)
 
   useRealtimeRefetch({
     tables: { schema: 'codenamesduet', table: 'games', filter: `id=eq.${gameId}` },

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRealtimeRefetch } from '../../common/hooks/realtime/useRealtimeRefetch'
 import { readRows } from '../../common/lib/supabase/dbResult'
-import type { NotOk } from '../../common/lib/supabase/envelope'
+import type { NotOkEnv } from '../../common/lib/supabase/envelope'
 import { db } from '../db'
 import type { Database } from '../../types/db'
 
@@ -36,7 +36,7 @@ export type ClueRow = Pick<
 export function useClues(gameId: string) {
   const [clues, setClues] = useState<ClueRow[]>([])
   const [loading, setLoading] = useState(true)
-  const [failure, setFailure] = useState<NotOk | null>(null)
+  const [failure, setFailure] = useState<NotOkEnv | null>(null)
 
   useRealtimeRefetch({
     tables: { schema: 'codenamesduet', table: 'clues', filter: `game_id=eq.${gameId}` },

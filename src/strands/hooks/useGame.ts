@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import { useRealtimeRefetch } from '../../common/hooks/realtime/useRealtimeRefetch'
 import { readRows } from '../../common/lib/supabase/dbResult'
-import type { NotOk } from '../../common/lib/supabase/envelope'
+import type { NotOkEnv } from '../../common/lib/supabase/envelope'
 import type { Coord } from '../lib/board'
 import { db } from '../db'
 
@@ -114,14 +114,14 @@ export function useGame(gameId: string, selfId: string): {
   rowsLoaded: boolean
   /** Set when a read FAILED, which is not the same as the game being absent.
    *  The surface renders this instead of "Game not found." */
-  failure: NotOk | null
+  failure: NotOkEnv | null
 } {
   const [game, setGame] = useState<StrandsGame | null>(null)
   const [players, setPlayers] = useState<StrandsPlayer[]>([])
   const [events, setEvents] = useState<EventRow[]>([])
   const [loading, setLoading] = useState(true)
   const [rowsLoaded, setRowsLoaded] = useState(false)
-  const [failure, setFailure] = useState<NotOk | null>(null)
+  const [failure, setFailure] = useState<NotOkEnv | null>(null)
 
   useRealtimeRefetch({
     tables: [

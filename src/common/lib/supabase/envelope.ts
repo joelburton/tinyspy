@@ -1,4 +1,4 @@
-// cs-fixed-deep
+// cs-blessed-deep
 
 /**
  * THE ENVELOPE'S TYPE, and nothing else.
@@ -48,99 +48,83 @@ export type Severity = 'fault' | 'race' | 'form-validation' | 'service-error'
  */
 type OkCommon<T> = {
   type: 'ok'
-  /** The payload. */
-  data: T
-  /** Always null on this arm — a severity belongs to a `not-ok`. It is
-   *  declared because the WIRE carries it: nine keys travel whatever happened,
-   *  so the type says nine. */
-  severity: null
-  /** Always null on this arm, for the same reason as `severity`. */
-  field: null
-  /** The additive slot: SQL can leave breadcrumbs with no frontend change. */
-  meta: Record<string, unknown> | null
-  /** The SQLSTATE, when the outcome came from a raise. Named `dbcode` because
-   *  "code" is too broad for one specific thing. */
-  dbcode: string | null
-  /** PL/pgSQL's DETAIL — the debugging line. Never the player's SENTENCE; it
-   *  reaches the screen only as the muted diagnostics under the message. */
-  detail: string | null
+  data: T                                 // the payload
+  severity: null                          // always null since 'ok'
+  field: null                             // always null since 'ok'
+  meta: Record<string, unknown> | null    // additive slot for extra info
+  dbcode: string | null                   // unique code (often from SQLSTATE)
+  detail: string | null                   // diagnostic info
 }
 
 /**
  * **The envelope** — the one shape everything travels in.
  *
- * An RPC returns it. When the database did NOT give us one — a raw Postgres
- * error, a request that never completed, a direct table read — we construct one
- * in the same shape, so a call site has a single thing to read no matter what
- * happened. There is no second type and no special arm: if it reached the
- * frontend, it is an envelope.
+ * Three layers write one: SQL, for an RPC that returned or raised; Deno, for an
+ * edge function; and the frontend itself, when neither did — a direct table read
+ * that nothing composed, a raw Postgres error, a request that never completed.
+ * A call site has a single thing to read no matter which. There is no second
+ * type and no special arm: if it reached the frontend, it is an envelope.
  *
  * **Every key is always present, null where it has no value.** Nothing here is
  * optional in the "might not be there" sense, and that is the point: an envelope
  * has defined fields, so a caller reads one rather than first checking whether
- * it exists (Joel, 2026-08-28). The builders on both sides — `common.ok_envelope`
- * / `common.raised_envelope` in SQL, `faultEnvelope` and the `_shared/envelope.ts`
- * helpers here — emit the same nine keys.
+ * it exists (Joel, 2026-08-28). All three builders emit the same nine keys —
+ * `common.ok_envelope` / `common.raised_envelope` in SQL, `_shared/envelope.ts`
+ * in Deno, `faultEnvelope` and its neighbors in `dbEnvelope.ts` here.
  *
  * It also buys back a distinction a lookup needs. While SQL stripped its nulls,
  * `data: null` and no `data` key were the same JSON, so an RPC could not answer
  * "there is no next puzzle" as a VALUE. Now it can.
  */
 export type Envelope<T = unknown> =
-  /**
-   * **It wrote the words, so it says how they read.** A message means "render
-   * this", and the outcome is how — so the pair travels together and a caller
-   * needs no default. `res.message !== null` narrows to exactly this shape,
-   * which is why no call site tests the outcome separately.
-   *
-   * The rule is enforced three ways besides the type (docs/envelopes.md → Who
-   * writes the words): every `PA` raise must carry a HINT, `raiseCodes.test.ts`
-   * refuses an `ok_envelope` built with one and not the other, and `runRpc`
-   * faults on the pair at runtime for anything neither can see.
-   */
+  // **It wrote the words, so it says how they read.** A message means "render
+  // this", and the outcome is how — so the pair travels together and a caller
+  // needs no default. `res.message !== null` narrows to exactly this shape,
+  // which is why no call site tests the outcome separately.
+  //
+  // The rule is enforced three ways besides the type (docs/envelopes.md → Who
+  // writes the words): every `PA` raise must carry a HINT, `raiseCodes.test.ts`
+  // refuses an `ok_envelope` built with one and not the other, and `runRpc`
+  // faults on the pair at runtime for anything neither can see.
   | (OkCommon<T> & {
       message: string
-      /** Never `error` — a successful result does not read as a failure, which
-       *  `raiseCodes.test.ts` pins on the SQL side where the value is written. */
+      // Never `error` — a successful result does not read as a failure, which
+      // `raiseCodes.test.ts` pins on the SQL side where the value is written.
       outcome: Outcome
     })
-  /**
-   * **It wrote no words**, so the frontend composes them — or shows nothing.
-   * An outcome is still allowed and usual: the surface picks the sentence, the
-   * server says how the answer reads.
-   */
+  // **It wrote no words**, so the frontend composes them — or shows nothing.
+  // An outcome is still allowed and usual: the surface picks the sentence, the
+  // server says how the answer reads.
   | (OkCommon<T> & {
       message: null
       outcome: Outcome | null
     })
   | {
       type: 'not-ok'
-      /** Always null on this arm — a `not-ok` carries no payload. Declared for
-       *  the same reason `severity` is declared on the ok arm: the wire has
-       *  nine keys either way. */
+      // Always null on this arm — a `not-ok` carries no payload. Declared for
+      // the same reason `severity` is declared on the ok arm: the wire has nine
+      // keys either way.
       data: null
-      /** The appearance OVERRIDE. Null is the ordinary case and means "use the
-       *  default this severity carries" — not "no appearance"
-       *  (docs/envelopes.md → Appearance). */
+      // The appearance OVERRIDE. Null is the ordinary case and means "use the
+      // default this severity carries" — not "no appearance"
+      // (docs/envelopes.md → Appearance).
       outcome: Outcome | null
       severity: Severity
       message: string
-      /**
-       * Which control a `form-validation` is about, from the raise's `COLUMN`.
-       *
-       *     'letters'   the message belongs under that field
-       *     '_'         deliberately not about one field — the form's own line
-       *     null        the raise didn't say; a SQL-side guard catches it
-       *
-       * `'_'` is a real value rather than a stand-in for nothing, and always
-       * exactly one field: docs/envelopes.md → The keys. Every form reads it as
-       * `res.field ?? FORM_ERROR_KEYNAME`, and that constant IS `'_'` — so a
-       * `null` lands on the form's own line too, by the form's choice rather
-       * than the raise's.
-       */
+      // Which control a `form-validation` is about, from the raise's `COLUMN`.
+      //
+      //     'letters'   the message belongs under that field
+      //     '_'         deliberately not about one field — the form's own line
+      //     null        the raise didn't say; a SQL-side guard catches it
+      //
+      // `'_'` is a real value rather than a stand-in for nothing, and always
+      // exactly one field: docs/envelopes.md → The keys. Every form reads it as
+      // `res.field ?? FORM_ERROR_KEYNAME`, and that constant IS `'_'` — so a
+      // `null` lands on the form's own line too, by the form's choice rather
+      // than the raise's.
       field: string | null
       meta: Record<string, unknown> | null
-      dbcode: string | null
+      dbcode: string
       detail: string | null
     }
 
@@ -156,4 +140,4 @@ export type Envelope<T = unknown> =
  * message plus a diagnostics line" is the thing this replaced: nothing could say
  * which callers were supposed to build one, because the rule did not exist.
  */
-export type NotOk = Extract<Envelope<unknown>, { type: 'not-ok' }>
+export type NotOkEnv = Extract<Envelope<unknown>, { type: 'not-ok' }>

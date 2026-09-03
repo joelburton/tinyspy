@@ -3,7 +3,7 @@
 import { useEffect, useSyncExternalStore } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { db as commonDb } from '../../db'
-import { reportDbFault } from '../../lib/supabase/dbEnvelope'
+import { OUR_BUG_TO_CODE_AND_TEXT, reportDbFault } from '../../lib/supabase/dbEnvelope'
 import { readRows } from '../../lib/supabase/dbResult'
 
 /** The slice of `common.profiles` the FE consumes today — the
@@ -104,7 +104,7 @@ async function ensureLoaded(userId: string) {
         message: 'Your profile is no longer on the server. Please refresh.',
         field: null,
         meta: null,
-        dbcode: null,
+        dbcode: OUR_BUG_TO_CODE_AND_TEXT.noProfileRow.code,
         detail: `rows=0 for user_id=${userId}`,
       },
     )

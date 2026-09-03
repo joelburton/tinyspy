@@ -8,7 +8,7 @@ import { supabase } from '../../lib/supabase/supabase'
 import { channelLeaving, releaseChannel } from '../../lib/supabase/channelTeardown'
 import { onPostgresAttached } from '../../lib/supabase/postgresAttached'
 import { readRows, runRpc } from '../../lib/supabase/dbResult'
-import type { NotOk } from '../../lib/supabase/envelope'
+import type { NotOkEnv } from '../../lib/supabase/envelope'
 import { rtLog } from '../../lib/supabase/realtimeDiag'
 import { computePause } from '../../lib/game/pause'
 import type { GamePlayer, Member, TimerMode } from '../../lib/games'
@@ -196,7 +196,7 @@ export function useCommonGame(
    *  GamePage renders this instead of "There's no game here." — the SHELL had
    *  the same confident-wrong-answer bug the sixteen play surfaces had, and it
    *  runs first, so it short-circuited all of them. */
-  failure: NotOk | null
+  failure: NotOkEnv | null
 } {
   const [commonGame, setCommonGame] = useState<CommonGame | null>(null)
   const [players, setPlayers] = useState<GamePlayer[]>([])
@@ -209,7 +209,7 @@ export function useCommonGame(
     null,
   )
   const [loading, setLoading] = useState(true)
-  const [failure, setFailure] = useState<NotOk | null>(null)
+  const [failure, setFailure] = useState<NotOkEnv | null>(null)
   // Held in state so a new effect run (StrictMode double-mount,
   // gameId change) gets a fresh channel and re-renders consumers.
   // The setChannel-in-effect below is intentional — the realtime

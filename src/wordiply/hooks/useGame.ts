@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useRealtimeRefetch } from '../../common/hooks/realtime/useRealtimeRefetch'
 import { readRows } from '../../common/lib/supabase/dbResult'
-import type { NotOk } from '../../common/lib/supabase/envelope'
+import type { NotOkEnv } from '../../common/lib/supabase/envelope'
 import { db } from '../db'
 import type { Member } from '../../common/lib/games'
 
@@ -88,7 +88,7 @@ export function useGame(gameId: string): {
   rowsLoaded: boolean
   /** Set when a read FAILED, which is not the same as the game being absent.
    *  The surface renders this instead of "Game not found." */
-  failure: NotOk | null
+  failure: NotOkEnv | null
 } {
   const [game, setGame] = useState<WordiplyGame | null>(null)
   const [guesses, setGuesses] = useState<GuessRow[]>([])
@@ -99,8 +99,8 @@ export function useGame(gameId: string): {
   // rows refetch on every event, so their failure should clear the moment one
   // works. One shared slot would let a successful refetch erase a header
   // failure that is still true.
-  const [headerFailure, setHeaderFailure] = useState<NotOk | null>(null)
-  const [rowsFailure, setRowsFailure] = useState<NotOk | null>(null)
+  const [headerFailure, setHeaderFailure] = useState<NotOkEnv | null>(null)
+  const [rowsFailure, setRowsFailure] = useState<NotOkEnv | null>(null)
 
   // The immutable header — fetched once per game. `loading` gates the
   // PlayArea render, so it flips here.

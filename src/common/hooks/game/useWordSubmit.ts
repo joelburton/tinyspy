@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react'
 import type { GenericFeedbackMsg } from '../../lib/games'
-import type { NotOk } from '../../lib/supabase/envelope'
+import type { NotOkEnv } from '../../lib/supabase/envelope'
 import { getNotOkFeedback } from '../../lib/game/genericPills'
 import { showFaultModal } from '../../lib/fault/faultStore'
 import { useLocalFeedback } from '../feedback/useLocalFeedback'
@@ -68,7 +68,7 @@ export type WordSubmitConfig = {
   /**
    * The trusting-commit RPC, fired in the background.
    *
-   * **`null` means the word LANDED; a `NotOk` means it did not.** The game owns
+   * **`null` means the word LANDED; a `NotOkEnv` means it did not.** The game owns
    * the branch chain over its own answers (they are per-game — `pangram` in one,
    * `dealt` in another — so a shared hook could not read them), and hands back
    * only the fact this hook is entitled to: whether the optimistic pill it just
@@ -78,7 +78,7 @@ export type WordSubmitConfig = {
    * because none of them records the word. That is what lets one envelope carry
    * the whole answer here.
    */
-  commit: (entry: WordEntry) => Promise<NotOk | null>
+  commit: (entry: WordEntry) => Promise<NotOkEnv | null>
   /** Why did `lookup` miss? Returns just the lowercase *reason* — the hook wraps
    *  it in the shared `WORD — reason` line. Per-game vocabulary: boggle "not on
    *  board" (untraceable) vs "not a word"; spellingbee "bad letters" / "missing

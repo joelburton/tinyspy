@@ -7,7 +7,7 @@ import {
 } from './dbEnvelope'
 import { logDb, type DbLogKind, type TransportFacts } from './dbLog'
 import type { Outcome } from '../outcomes'
-import type { Envelope, NotOk, Severity } from './envelope'
+import type { Envelope, NotOkEnv, Severity } from './envelope'
 
 /**
  * **The server-result wrappers.** Classification and the three wrappers —
@@ -162,11 +162,11 @@ function failureEnvelope(
   environmentalDetail: string | undefined,
   fallback: string,
   extra?: string,
-): NotOk {
+): NotOkEnv {
   const situation = situationFor(settled.statusText)
   if (situation) return environmentalEnvelope(situation, environmentalDetail)
   if (nothingAnswered(settled.status)) return nothingReachedUs(environmentalDetail)
-  return faultEnvelope(settled.error, fallback, extra)
+  return faultEnvelope(settled.error, fallback, extra, OUR_BUG_TO_CODE_AND_TEXT.dbErrorNamedNoCode.code)
 }
 
 /**
@@ -204,7 +204,7 @@ export type CallOptions = {
  * `severity: 'fault'` before reaching here, so the message is a `string` and
  * there is no null to hedge against.
  */
-function reportFault(transport: TransportFacts, envelope: NotOk, opts?: CallOptions): void {
+function reportFault(transport: TransportFacts, envelope: NotOkEnv, opts?: CallOptions): void {
   if (opts?.presentFaults === false) {
     logDb('FAULT', envAndTransportToDiagFields(transport, envelope), envelope.message)
     return
@@ -218,11 +218,19 @@ function reportFault(transport: TransportFacts, envelope: NotOk, opts?: CallOpti
  * Deliberately strict, because plenty of things that are not envelopes arrive
  * on this path — a bare string, a number, a row array — and every one of them
  * must fall through cleanly rather than be half-read as one.
+ *
+ * **A `not-ok` must name a `dbcode`**, and that is now a thing this can insist
+ * on rather than hope for: SQL writes the SQLSTATE unconditionally, Deno's
+ * builders take the code as a required argument, and `callEdgeFn` names every
+ * failure it forwards. So a refusal with no code is not a refusal we can have
+ * produced — it is a hand-built shape, and the loud answer is the right one.
+ * An `ok` is unaffected: it carries a code only when a raise wrote one.
  */
 export function _isEnvelope(body: unknown): body is Envelope {
   if (!body || typeof body !== 'object' || Array.isArray(body)) return false
-  const t = (body as { type?: unknown }).type
-  return t === 'ok' || t === 'not-ok'
+  const { type, dbcode } = body as { type?: unknown; dbcode?: unknown }
+  if (type === 'not-ok') return typeof dbcode === 'string' && dbcode !== ''
+  return type === 'ok'
 }
 
 /**
@@ -345,12 +353,19 @@ export async function runEdgeFn<T>(
     ms: Math.round(performance.now() - started),
   }
   if (error) {
-    // NOTHING ANSWERED, or something answered that was not our function — a
-    // gateway's HTML, a shape from before the conversion. `callEdgeFn` has
-    // recovered whatever message there was.
-    const envelope = nothingAnswered(error.status)
-      ? nothingReachedUs(error.message)
-      : faultEnvelope(error, 'The server refused the request.')
+    // The same three answers the database path decides between, in the same
+    // order — `callEdgeFn` is this transport's `dbFetch`, and it has already
+    // named which happened. Nothing answered; something answered that was not
+    // our function (`FE003`, read back by code exactly as `situationFor` reads
+    // `dbFetch`'s verdict out of `statusText`); or our function itself refused.
+    const situation = situationFor(error.code)
+    const envelope =
+      nothingAnswered(error.status) ? nothingReachedUs(error.message)
+      : situation ? environmentalEnvelope(situation, error.message)
+      : faultEnvelope(
+        error, 'The server refused the request.', undefined,
+        OUR_BUG_TO_CODE_AND_TEXT.edgeFnRefusedCodeless.code,
+      )
     reportFault(transport, envelope, opts)
     return envelope
   }

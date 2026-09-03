@@ -49,13 +49,19 @@ describe('callEdgeFn', () => {
     expect(res.error).toEqual({ message: 'no-required-words|', code: 'P0001', status: 200, answered: true })
   })
 
-  it('recovers a codeless body and still marks it answered — prose is a FAULT, not transport', async () => {
+  // A function of OURS refusing without a code is a bug of its own: one that ran
+  // answers 200 with an envelope, and one relaying a raise sends the SQLSTATE
+  // beside the message. It gets `PN489` here so nothing downstream has to
+  // recognize a failure by the absence of a code.
+  it('names a codeless refusal PN489, and still marks it answered', async () => {
     invoke.mockResolvedValue({
       data: null,
       error: fnError(JSON.stringify({ error: 'no candidate words for band 3' })),
     })
     const res = await callEdgeFn('x-build-board', {})
-    expect(res.error).toEqual({ message: 'no candidate words for band 3', status: 200, answered: true })
+    expect(res.error).toEqual({
+      message: 'no candidate words for band 3', code: 'PN489', status: 200, answered: true,
+    })
   })
 
   // A body that will not parse means the RUNTIME answered, not the function —
@@ -75,21 +81,28 @@ describe('callEdgeFn', () => {
     expect(res.error?.details).toContain('text/html')
   })
 
-  it('keeps it for JSON that is not our { error } shape either', async () => {
+  // JSON that is not our `{ error }` shape means something REPLIED and it was
+  // not our function — a gateway, a relay. `FE003` is what the database path
+  // calls that, so an outage reads the same on either transport instead of as
+  // our bug. No `answered`: our function never spoke.
+  it('calls a reply that was not ours FE003', async () => {
     invoke.mockResolvedValue({ data: null, error: fnError(JSON.stringify({ msg: 'not ours' })) })
     const res = await callEdgeFn('x-build-board', {})
     expect(res.error).toEqual({
-      message: 'Edge Function returned a non-2xx status code', code: '', status: 200,
+      message: 'Edge Function returned a non-2xx status code', code: 'FE003', status: 200,
     })
   })
 
   // NOTHING answered — `status: 0`, the same signal postgrest-js sets for a
   // rejected fetch, so one predicate covers both transports.
+  // No code here, deliberately: `FE001` vs `FE002` turns on `navigator.onLine`,
+  // which `nothingReachedUs` asks at the moment it builds the envelope. This
+  // layer knows only that nothing replied.
   it('reports status 0 when there was no response at all', async () => {
     invoke.mockResolvedValue({ data: null, error: fnError(null) })
     const res = await callEdgeFn('x-build-board', {})
     expect(res.error).toEqual({
-      message: 'Edge Function returned a non-2xx status code', code: '', status: 0,
+      message: 'Edge Function returned a non-2xx status code', status: 0,
     })
   })
 })

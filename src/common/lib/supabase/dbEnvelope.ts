@@ -2,7 +2,7 @@
 
 import { showFaultModal } from '../fault/faultStore'
 import { logDb, type DiagFields, type TransportFacts } from './dbLog'
-import type { Envelope, NotOk } from './envelope'
+import type { Envelope, NotOkEnv } from './envelope'
 
 /**
  * **Building an envelope for a failure that never had one, and presenting it.**
@@ -184,6 +184,43 @@ export const OUR_BUG_TO_CODE_AND_TEXT = {
     code: 'PN488',
     text: 'fell through to unhandled',
   },
+  // One of OUR edge functions answered non-2xx with `{ error }` and no `code`.
+  // A function that ran answers 200 with an envelope, and one that relays a
+  // raise sends the SQLSTATE beside the message — so neither happened here, and
+  // the failure would otherwise travel with nothing to key on. `callEdgeFn`
+  // stamps this at the one place that can tell it from a reply that was not
+  // ours at all (which is `FE003`, not a bug of ours).
+  //
+  // Unreachable today, like `unreadable` and `noOutcome` above: no function
+  // returns a non-2xx status. It covers the unconverted one somebody writes.
+  edgeFnRefusedCodeless: {
+    code: 'PN489',
+    text: 'BUG: an edge function refused without naming a code',
+  },
+  // The database path's equivalent, and `faultEnvelope`'s required `ourCode`
+  // for it. postgrest-js puts Postgres's SQLSTATE on every error it reports,
+  // and the one case where it cannot — a rejected fetch — carries `status: 0`
+  // and is routed to `nothingReachedUs` long before this. So it is unreachable
+  // in the same way `unreadable` and `noOutcome` are: named because the type
+  // requires a code and a caller that had to invent one would invent a worse
+  // one.
+  dbErrorNamedNoCode: {
+    code: 'PN490',
+    text: 'BUG: a database error arrived with no SQLSTATE',
+  },
+  // A signed-in session whose profile row is gone — `useProfile` reads zero
+  // rows for its own `user_id`. Reachable, unlike the three above: a `db:reset`
+  // under a live tab, or an account deleted mid-session, which is
+  // `claim_username`'s PN018 arriving by another door.
+  //
+  // Its `text` is the code's MEANING, not the sentence the player reads: that
+  // hook words its own ("Your profile is no longer on the server. Please
+  // refresh."), the same way `unhandledAnswer`'s text is prefixed at its call
+  // site rather than shown as it stands here.
+  noProfileRow: {
+    code: 'PN491',
+    text: 'BUG: signed in with no profile row',
+  },
 } as const
 
 /**
@@ -195,20 +232,21 @@ export const OUR_BUG_TO_CODE_AND_TEXT = {
  * downstream has an envelope and nothing downstream has to know what sort of
  * failure produced it.
  *
- * `ourCode` is what the envelope carries when the ERROR has none of its own —
- * because there is no error at all (a reply we could not read), or because what
- * failed was not Postgres. Postgres's own SQLSTATE always wins when there is
- * one: it is the more specific answer. Without this an envelope the frontend
- * built carried `dbcode: null`, and a call site that needed to tell one from
- * another had to identify it by an ABSENCE — true for reasons its condition
- * could not state, and false the day a new one was added.
+ * **`ourCode` is REQUIRED**, because a not-ok always carries a `dbcode` and this
+ * is the only builder that could fail to produce one. Postgres's own SQLSTATE
+ * still wins when the error has one — it is the more specific answer — so what
+ * a caller names here is what this failure IS when nothing else said: the
+ * unreadable body, the ok with no outcome, the read that answered with a value.
+ * Several are unreachable, and naming one is still better than a shared tail:
+ * a caller forced to say what it means says something true, where a builder
+ * inventing a code for everybody says only "nobody knew".
  */
 export function faultEnvelope(
   error: DbError,
   fallback: string,
-  extra?: string,
-  ourCode?: string,
-): NotOk {
+  extra: string | undefined,
+  ourCode: string,
+): NotOkEnv {
   // Postgres's HINT is folded into `detail` rather than dropped. Our own raises
   // use HINT as an inter-function channel and never forward it — but a RAW
   // fault's hint is Postgres talking, and it is frequently the most useful
@@ -227,7 +265,7 @@ export function faultEnvelope(
     message: error?.message ?? fallback,
     field: null,
     meta: null,
-    dbcode: error?.code || ourCode || null,
+    dbcode: error?.code || ourCode,
     detail: detail ?? null,
   }
 }
@@ -252,7 +290,7 @@ export function faultEnvelope(
 export function environmentalEnvelope(
   situation: { code: string; text: string },
   detail?: string,
-): NotOk {
+): NotOkEnv {
   return {
     type: 'not-ok',
     data: null,
@@ -295,7 +333,7 @@ function clampDetail(detail: string | undefined): string | null {
  * differently, and the value is ambient — reading it here is reading it at the
  * same moment either way.
  */
-export function nothingReachedUs(detail?: string): NotOk {
+export function nothingReachedUs(detail?: string): NotOkEnv {
   const offline = typeof navigator !== 'undefined' && !navigator.onLine
   const { offline: OFFLINE, unreachable: UNREACHABLE } = NO_ANSWER_TO_CODE_AND_TEXT
   return environmentalEnvelope(offline ? OFFLINE : UNREACHABLE, detail)
@@ -341,7 +379,7 @@ export function envAndTransportToDiagFields(transport: TransportFacts, envelope:
  *
  * Returns nothing: by the time the caller resumes, the news is delivered.
  */
-export function reportDbFault(transport: TransportFacts, envelope: NotOk): void {
+export function reportDbFault(transport: TransportFacts, envelope: NotOkEnv): void {
   const diagnostics = logDb('FAULT', envAndTransportToDiagFields(transport, envelope), envelope.message)
   showFaultModal({ text: envelope.message, diagnostics })
 }
