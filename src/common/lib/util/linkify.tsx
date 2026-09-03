@@ -2,19 +2,31 @@
 
 import type { ReactNode } from 'react'
 
-/**
- * Wrap bare http(s) URLs in a chat message with anchor tags. Trailing
- * punctuation (`.`, `,`, `)`, etc.) is split off the URL and rendered as
- * plain text, so "see https://example.com." doesn't link the period.
- *
- * Returns a `ReactNode` — typically an array of strings and `<a>` elements,
- * or the bare empty string when the input is empty. React renders either
- * shape correctly. Pure — exported for direct unit testing.
- */
-
+// A URL runs to the first whitespace — which means a match also swallows any
+// punctuation ending the sentence it sits in. TRAIL_RE is what gives that back.
 const URL_RE = /https?:\/\/\S+/g
 const TRAIL_RE = /[.,!?;:)\]}>]+$/
 
+/**
+ * Make the URLs inside a chat message clickable.
+ *
+ * Hand it the message text and render what comes back in place of it —
+ * `{linkify(text)}`. That is an array of plain strings and `<a>` elements, or
+ * the bare empty string for empty input; React renders either shape the same
+ * way, so there is nothing for a caller to unwrap. Text with no URL in it comes
+ * back as a one-element array, not a string.
+ *
+ * Trailing punctuation is split off the URL and re-emitted as text, so
+ * "see https://example.com." links the address and not the period. The cost is
+ * a URL that really ends in one of those characters — a closing paren is the
+ * plausible case — loses it; one caller, and no message has hit it.
+ *
+ * Only `http:` and `https:` are recognized. That is also what stops a
+ * `javascript:` URL typed into chat from becoming an anchor, which matters
+ * because the input here is another player's text.
+ *
+ * Pure, and exported for its own unit test.
+ */
 export function linkify(text: string): ReactNode {
   const parts: ReactNode[] = []
   let last = 0

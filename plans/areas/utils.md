@@ -224,7 +224,7 @@ no arguments runs every import and then prints usage, which proves the cross-tre
 import resolves without generating a board or appending to the vendored file.
 Worth knowing for anything else that touches that folder.
 
-### F-utils-5 · `linkify-docstring-detached` · the function's docstring is attached to a regex
+### RESOLVED 2026-09-03 — F-utils-5 · `linkify-docstring-detached` · the function's docstring is attached to a regex
 
 `linkify.tsx` opens with a `/** … */` describing `linkify` — what it does, what
 it returns, that it is pure. It sits at lines 5–13, then a blank line, then
@@ -236,6 +236,26 @@ the exported function shows nothing, which is precisely the signal
 is about. This is the area's one hit from §21's docstring pass — the other six
 files use `/**` for files, types and functions only, with `//` for in-body notes,
 exactly as the rule wants.
+
+**Fixed 2026-09-03.** The `/**` moved down to sit on `export function linkify`,
+where hovering the export now shows it; the two regexes got a `//` note apiece,
+which is what a constant takes. Rewritten while it moved, since a docstring
+nobody could see had not been read in a while:
+
+- **It opens with why you would call it** — "Make the URLs inside a chat message
+  clickable" — and shows the call, `{linkify(text)}`. The old lede led with the
+  mechanism ("Wrap bare http(s) URLs … with anchor tags").
+- **The return is stated exactly.** The old text said "typically an array …, or
+  the bare empty string when the input is empty", and "typically" was doing real
+  work: text with no URL comes back as a ONE-ELEMENT ARRAY, not a string, which
+  `linkify.test.tsx:19` pins and the docstring now says.
+- **Two properties that were only in the code** are now written down: the
+  trailing-punctuation rule's cost (a URL genuinely ending in `)` loses it —
+  the trade this area checked and kept), and that matching only `http:`/`https:`
+  is what stops a `javascript:` URL in chat becoming an anchor. The input is
+  another player's text, so that one is worth saying out loud.
+
+No behavior change; `tsc -b` clean, the folder's 31 tests pass, eslint silent.
 
 ### F-utils-6 · `calendar-day-diff-false-claim` · a claim that is both wrong and unreachable
 
