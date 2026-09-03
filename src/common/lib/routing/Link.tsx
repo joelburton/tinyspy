@@ -13,7 +13,8 @@ type LinkProps = {
 // Lives in its own file (split from `router.ts`) because Vite Fast
 // Refresh requires a file to export *only* components if it exports
 // any. Pure-function exports (`usePath`, `navigate`) stay in
-// `router.ts`; this is just the component.
+// `router.ts`; this is just the component. The split also keeps React
+// JSX out of the import graph of a caller that only wants `navigate()`.
 
 /**
  * Path-based link. Renders a normal `<a href={to}>` so the browser's

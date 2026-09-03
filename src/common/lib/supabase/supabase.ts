@@ -21,13 +21,9 @@ import { instrumentChannel, rtLog, rtVerbose } from './realtimeDiag'
  * schema change.
  *
  * Configured for an SPA with localStorage-backed session persistence
- * (the supabase-js defaults). On every session restore we check that
- * the user the JWT points at still exists — see useSession.ts. The
- * check looks up `common.profiles` because (a) we can't read
- * auth.users directly from the FE, and (b) profiles cascades from
- * auth.users, so its presence is a reliable proxy. Catches stale
- * JWTs left over from a `supabase db reset` or admin-deleted users
- * in prod.
+ * (the supabase-js defaults). What happens on a session restore — checking
+ * that the user the JWT names still exists — is `useSession`'s, and
+ * explained there.
  */
 
 const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY

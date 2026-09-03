@@ -32,7 +32,7 @@ understood, tidied* — `cs-blessed` here means he has read the file, not seen i
 **Every heading says its status**; a heading with **no status prefix means OPEN**.
 
 **⭐ REOPENED 2026-09-02 by a second read — twenty findings, `F-deep-40` …
-`F-deep-59`: sixteen resolved, four OPEN.** Joel asked a fresh session to read
+`F-deep-59`: seventeen resolved, three OPEN.** Joel asked a fresh session to read
 the 35 files and `deep.md` after the first six passes closed, and it found
 mostly prose the code has moved out from under — including four things the
 first read's own resolutions claimed fixed and were not (`F-deep-41`,
@@ -42,8 +42,8 @@ eight prose, one key rename, the render-crash screen, and the PN488 line's
 status; `F-deep-51` was resolved by decision, unchanged; `F-deep-52` moved
 one console line onto `[rt]`; `F-deep-53` left the channel list in one
 place, and `F-deep-54` did the same for the verbose recipe; `F-deep-55`
-folded the two wrappers' identical tails into `readEnvelope`. `F-deep-56` on
-waits. **The `cs-fixed-deep` stamps were NOT moved**; with open
+folded the two wrappers' identical tails into `readEnvelope`; `F-deep-56`
+put each twice-told fact with its own file. `F-deep-57` on waits. **The `cs-fixed-deep` stamps were NOT moved**; with open
 findings against them they overstate, and restamping is Joel's call.
 
 The six passes before it, all on 2026-09-02:
@@ -57,8 +57,8 @@ The six passes before it, all on 2026-09-02:
 | `cls.ts` | 1 | `F-deep-36` — resolved |
 | the server side of the envelope | 3 | `F-deep-37` … `F-deep-39` — all resolved |
 
-**Fifty-nine findings: fifty-three resolved, one closed, one moved, four
-open** (all four in pass 7).
+**Fifty-nine findings: fifty-four resolved, one closed, one moved, three
+open** (all three in pass 7).
 
 **What is left besides pass 7 is `cs-blessed`, which is Joel's alone** — nine files carry it,
 twenty-six are `cs-fixed-deep`. `cs-fixed` is "Claude changed it and stands
@@ -1925,13 +1925,29 @@ layer. Not done unasked.
 > this, a check added to one wrapper and not the other could not have been
 > caught that way. No behavior changed; the suite ran green unmodified.
 
-## F-deep-56 · `explained-twice-across-files` · Two facts each carried by two files
+## RESOLVED · F-deep-56 · `explained-twice-across-files` · Two facts each carried by two files
 
 - The Fast Refresh reason for splitting `Link.tsx` from `router.ts` is at
   `router.ts:21-24` AND `Link.tsx:13-16`.
 - `supabase.ts:23-30` describes `useSession`'s profile check — a consumer's
   behavior, in the client's docstring. `useSession.ts:14-35` documents it
   itself, and does the check at `:130`.
+
+> **resolution: each fact lives with the file it is about** (Joel,
+> 2026-09-02: *"fix F56"*). The Fast Refresh reason stays in `Link.tsx`, the
+> file that exists because of it, and gained the one clause only `router.ts`
+> had (keeping JSX out of a `navigate()`-only caller's import graph);
+> `router.ts` now just names the companion and points there. The session
+> check's explanation is `useSession`'s alone; `supabase.ts` says that a
+> restore does one and where to read about it. Comments only.
+>
+> **The cut paragraph was also stale, checked before deleting rather than
+> assumed.** It said the existence check *"looks up `common.profiles` because
+> we can't read `auth.users` directly from the FE"*. `useSession.ts` today
+> validates the JWT with `supabase.auth.getUser()` (its `:82`) and reads
+> `profiles` only to decide "signed in but no username yet" — its own
+> docstring says both. A pointer to the hook cannot rot the way that
+> paragraph had.
 
 ## F-deep-57 · `counts-and-archaeology-remaining` · The `F-deep-8` / `-21` / `-36` rule, applied to what the first read left
 

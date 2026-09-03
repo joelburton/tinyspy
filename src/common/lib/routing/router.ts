@@ -18,10 +18,8 @@ import { useSyncExternalStore } from 'react'
  *   synthetic `popstate` event so every `usePath()` subscriber
  *   re-renders with the new path.
  *
- * Companion `Link.tsx` exports `<Link to=…>` — the JSX half lives in
- * a separate file so Vite Fast Refresh's "components-only" file rule
- * stays happy (and so callers that only need the imperative API
- * don't pull React JSX into the import graph).
+ * Companion `Link.tsx` exports `<Link to=…>`, the JSX half. Why it is a
+ * separate file is said there.
  *
  * What's NOT here:
  *
