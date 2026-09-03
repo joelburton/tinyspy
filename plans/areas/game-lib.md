@@ -167,18 +167,20 @@ Five files, 1,182 lines, all five read in full. **No logic bug.** The shipped
 behavior is correct everywhere; all nine findings are about what the files SAY —
 plus `F-game-lib-10`, raised later while resolving the first.
 
-**Five resolved 2026-09-03** — `F-game-lib-1` (the split, which Joel authorized
+**Six resolved 2026-09-03** — `F-game-lib-1` (the split, which Joel authorized
 after the audit), with `F-game-lib-2`, `F-game-lib-4` and `F-game-lib-10` as its
-consequences, then `F-game-lib-3` on its own. **Five open:** `F-game-lib-5`,
-`6`, `7`, `8`, `9`.
+consequences, then `F-game-lib-3` and `F-game-lib-5` on their own. **Four
+open:** `F-game-lib-6`, `7`, `8`, `9`.
 
-**Two of the five resolved turned out bigger than filed**, both in the same way:
+**Three of the six resolved turned out bigger than filed**, all the same way:
 the audit caught a wrong number, and fixing it meant re-reading the file, where
 the neighboring sentences were wrong about something that mattered more.
 `F-game-lib-3` was filed as one stale count and was four false claims;
-`F-game-lib-10` did not exist until `F-game-lib-1` moved the declaration it sits
-on. **A counted claim is a good smoke detector for a docstring nobody has
-re-read** — worth remembering when groups B–F turn up the next one.
+`F-game-lib-5` was filed as a stale max and turned up a bound that four games
+enforce only on the client; `F-game-lib-10` did not exist until `F-game-lib-1`
+moved the declaration it sits on. **A counted claim is a good smoke detector for
+a docstring nobody has re-read** — worth remembering when groups B–F turn up the
+next one.
 which in a file 233 others import is the product, because nobody reads
 `games.ts` to learn what it does, they read it to learn what they may rely on.
 
@@ -397,7 +399,7 @@ Nothing else moved with an edit. Every other docstring in the six new modules is
 byte-identical to what it was in `games.ts`, except `SetupBodyProps`'s — see
 `F-game-lib-10`.
 
-### F-game-lib-5 · `player-count-doc-names-one-max` · A stated max that four games don't use
+### RESOLVED 2026-09-03 — F-game-lib-5 · `player-count-doc-names-one-max` · A stated max that four games don't use
 
 `games.ts:709-712`, in `GameManifest.numberOfPlayers`: *"For an 'any club' game,
 pick a reasonable max — today we use 6 for all the open-N games (connections,
@@ -421,6 +423,50 @@ codenamesduet half is still exactly right.
 The advice the paragraph is giving — pick a bounded max, here is the house
 default — is still good advice. It has just been overtaken by a roster that grew
 from four games to sixteen and picked two other numbers on the way.
+
+#### Resolved 2026-09-03 — the table went to the doc, not the docstring
+
+Joel: *"for F5: make a table of games and their player counts."* It landed in
+**[docs/features.md](../../docs/features.md) → Player counts**, a new dimension
+section, and the docstring now states the RULE and points at it.
+
+**Deliberately not in the docstring**, and the finding is its own argument: a
+sixteen-row roster inside a `/**` is sixteen claims that go stale silently, which
+is precisely how this one got here. What stays in `games.ts` is what does not
+rot — both ends required, coop opens at 1 and compete at 2 because compete needs
+an opposing PLAYER, six is the house max, and departing wants a reason (scrabble
+seats an AI so its compete opens at 1; boggle and crosswords take 8 for a bigger
+board; scrabble caps at 4 for the tile bag).
+
+#### What building the table turned up: the compete minimum is client-only
+
+The docstring's other claim was that `numberOfPlayers` *"MUST AGREE with the
+member-count check in this gametype's `create_game` RPC … Drift fails loudly
+(RPC rejects)."* Measured, that is true of one bound and false of another:
+
+| bound | enforced by | holds? |
+|---|---|---|
+| at least 1 | `common.create_game_row` → **PN059** | every game |
+| the max | `common.require_player_count_max(ids, cap)` → **PN041**, 15 games; codenamesduet's inline exactly-2 | **all sixteen agree with the manifest** — checked cap by cap, not assumed |
+| compete's min of 2 | each `create_game`'s own `< 2` | **9 games.** `setgame`, `stackdown`, `waffle`, `wordle` declare `[2, 6]` and their servers accept 1. bananagrams and scrabble need none — their min IS 1 |
+
+So for four games the FE is the only thing keeping a one-player compete game
+from existing, and "drift fails loudly" is false there.
+
+**Not filed as a defect, and not fixed.** It is unreachable through the app —
+`playerCountFits` hides those Start buttons in a solo club — and a one-player
+compete game is a friend confusing themselves, not an attack, which is exactly
+what the trust model says to leave alone (CLAUDE.md → "if a server-authoritative
+implementation would meaningfully complicate the code … prefer the simpler
+path"). What was wrong was the DOCSTRING claiming a server check that four games
+do not have, and that is corrected in both places.
+
+**The better fix nobody asked for**, recorded rather than done: the max half is
+paired by "cross-reference comments" between a manifest literal and a SQL
+literal, which is the shape of every drift this sprint has found. A guard could
+read both and assert they match — it is the same move `cssTokens.test.ts` makes
+for tokens. It needs someone to decide whether `src/guards/` belongs to an area
+first, which is `F-utils-11`'s open question one folder over.
 
 ### F-game-lib-6 · `status-consumer-is-six-games` · "Today's primary consumer" is six games, and the future it defers to has arrived
 

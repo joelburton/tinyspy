@@ -35,6 +35,57 @@ Coop + compete pair:  PN FB WK MC RA SD SS WN CP MW WW PP SB HT
 Coop only (no compete):  TS
 Compete only (no coop):  MG
 
+## Player counts
+
+Each manifest's `numberOfPlayers: [min, max]`, per mode, beside the cap its
+`create_game` actually enforces. Both ends are required — an unbounded max is
+not allowed, because the FE rendering, the realtime channel load and the chat
+surface all assume a bounded count.
+
+**Coop starts at 1 and compete at 2**, everywhere, and for one reason: compete
+needs an opposing PLAYER. A countdown timer does not make a game compete, so a
+solo club sees only coop Start buttons. The two exceptions both earn it —
+scrabble's compete seats an AI opponent (`aiOpponent: true`), and bananagrams is
+compete-only and plays fine alone as a race against the clock.
+
+| game | brand | coop | compete | server cap |
+|---|---|---|---|---|
+| codenamesduet | TS | `[2, 2]` | — | exactly 2, inline |
+| psychicnum | PN | `[1, 6]` | `[2, 6]` | 6 |
+| connections | WK | `[1, 6]` | `[2, 6]` | 6 |
+| spellingbee | FB | `[1, 6]` | `[2, 6]` | 6 |
+| wordwheel | MW | `[1, 6]` | `[2, 6]` | 6 |
+| waffle | SS | `[1, 6]` | `[2, 6]` | 6 |
+| wordle | WN | `[1, 6]` | `[2, 6]` | 6 |
+| stackdown | SD | `[1, 6]` | `[2, 6]` | 6 |
+| wordiply | WW | `[1, 6]` | `[2, 6]` | 6 |
+| strands | PP | `[1, 6]` | `[2, 6]` | 6 |
+| letterboxed | SB | `[1, 6]` | `[2, 6]` | 6 |
+| setgame | HT | `[1, 6]` | `[2, 6]` | 6 |
+| bananagrams | MG | — | `[1, 6]` | 6 |
+| boggle | MC | `[1, 8]` | `[2, 8]` | 8 |
+| crosswords | CP | `[1, 8]` | `[2, 8]` | 8 |
+| scrabble | RA | `[1, 4]` | `[1, 4]` (AI) | 4 |
+
+**Six is the house default and three games depart from it**: boggle and
+crosswords take 8 (a bigger board absorbs more people), scrabble takes 4 (a
+100-tile bag divided by a 7-tile rack).
+
+**Where each bound is actually enforced**, since the three are not the same
+mechanism:
+
+| bound | who | how |
+|---|---|---|
+| at least 1 | every game | `common.create_game_row` raises **PN059** |
+| the max | 15 games | `common.require_player_count_max(ids, cap)` raises **PN041**; codenamesduet keeps its inline exactly-2 instead |
+| compete's min of 2 | 9 games | each `create_game`'s own `< 2` check. **setgame, stackdown, waffle and wordle have none** — their manifests say `[2, 6]` and their servers accept 1. bananagrams and scrabble need none (their min is 1) |
+
+Every manifest max agrees with its server cap; that half was measured, not
+assumed. The compete-minimum row is the gap — the FE hides those Start buttons
+in a solo club, so it is unreachable through the app and matches the
+friends-not-strangers trust model, but it is a client-only bound and the
+manifest's own docstring claims otherwise.
+
 ## Co-op interaction (games that have coop)
 This is the DEFAULT pacing; nine of the free-for-all games also offer opt-in
 turn-by-turn play at setup (see the "Opt-in turn-by-turn coop" tag below).

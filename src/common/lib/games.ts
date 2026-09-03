@@ -325,18 +325,34 @@ export type GameManifest = {
    * unbounded `null` upper ends aren't allowed because every game
    * benefits from a hard cap (the FE rendering, the realtime
    * channel load, the chat surface area — all assume a bounded
-   * count). For an "any club" game, pick a reasonable max — today
-   * we use 6 for all the open-N games (connections, psychicnum,
-   * spellingbee) and `[2, 2]` for fixed-seat codenamesduet.
+   * count).
+   *
+   * **Coop starts at 1 and compete at 2**, because compete needs an opposing
+   * PLAYER — a countdown timer is not an opponent, so a solo club sees only
+   * coop Start buttons. Six is the house max. Departing from any of that is
+   * allowed and wants a reason: scrabble's compete opens at 1 because it seats
+   * an AI (`aiOpponent`), boggle and crosswords take 8 because a bigger board
+   * absorbs more people, scrabble caps at 4 because of the tile bag.
+   *
+   * **Every game's actual numbers are one table**, in
+   * docs/features.md → Player counts, beside the cap each `create_game`
+   * enforces. Deliberately not repeated here: a roster in a docstring is
+   * sixteen claims that go stale silently, and this one already had (it named
+   * three games and one max, when four gametypes use 8 and two use 4).
    *
    * The shell uses this to decide whether the "Start" button is
    * hidden / disabled / enabled (in combination with the
    * club's `common.clubs_gametypes` row).
    *
-   * MUST AGREE with the member-count check in this gametype's
-   * `create_game` RPC — no automated sync, just paired
-   * cross-reference comments. Drift fails loudly (RPC rejects);
-   * see docs/code-conventions.md → "Per-game player counts."
+   * MUST AGREE with the member-count check in this gametype's `create_game`
+   * RPC — no automated sync, just paired cross-reference comments. The MAX
+   * half is honest: 15 games pass their cap to
+   * `common.require_player_count_max` and codenamesduet checks exactly-2
+   * inline, and all sixteen agree with this field today. **The compete
+   * MINIMUM is not** — four games declare `[2, 6]` with no server check, so
+   * drift there fails silently rather than loudly. See docs/features.md →
+   * Player counts for which, and docs/code-conventions.md → "Per-game player
+   * counts."
    */
   numberOfPlayers: [number, number]
 
