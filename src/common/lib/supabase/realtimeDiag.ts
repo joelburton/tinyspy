@@ -51,8 +51,8 @@ import { logStamp } from '../util/logStamp'
  * For deep debugging in a deployed browser, flip on the raw socket log
  * (every push/receive/heartbeat realtime-js sees) with:
  *
- *     localStorage.setItem('rt-verbose', '1')   // then reload
- *     localStorage.removeItem('rt-verbose')     // back to normal
+ *     localStorage.setItem('puzpuzpuz:rt:verbose', '1')   // then reload
+ *     localStorage.removeItem('puzpuzpuz:rt:verbose')     // back to normal
  *
  * The always-on lines above are low-frequency (channel lifecycle + one
  * line per game event) and stay on for everyone — that's the point:
@@ -79,11 +79,16 @@ export function rtLog(
   else console[level](line, extra)
 }
 
-/** True when the raw realtime-js socket log is enabled (see docstring).
- *  localStorage can throw (privacy modes); treat that as off. */
+/** The verbose-mode flag's key, on the app-wide `puzpuzpuz:` scope like every
+ *  other key the app stores under. */
+const VERBOSE_KEY = 'puzpuzpuz:rt:verbose'
+
+/** True when the raw realtime-js socket log is enabled (see the module
+ *  docstring → Verbose mode). localStorage can throw (privacy modes); treat
+ *  that as off. */
 export function rtVerbose(): boolean {
   try {
-    return localStorage.getItem('rt-verbose') === '1'
+    return localStorage.getItem(VERBOSE_KEY) === '1'
   } catch {
     return false
   }

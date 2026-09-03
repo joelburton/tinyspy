@@ -222,8 +222,8 @@ For deep debugging in a deployed browser there is a verbose mode — the raw
 realtime-js socket log (every push/receive/heartbeat):
 
 ```js
-localStorage.setItem('rt-verbose', '1')   // then reload
-localStorage.removeItem('rt-verbose')     // back to normal
+localStorage.setItem('puzpuzpuz:rt:verbose', '1')   // then reload
+localStorage.removeItem('puzpuzpuz:rt:verbose')     // back to normal
 ```
 
 ## Which specs are sensitive

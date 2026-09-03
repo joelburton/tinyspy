@@ -32,14 +32,14 @@ understood, tidied* — `cs-blessed` here means he has read the file, not seen i
 **Every heading says its status**; a heading with **no status prefix means OPEN**.
 
 **⭐ REOPENED 2026-09-02 by a second read — twenty findings, `F-deep-40` …
-`F-deep-59`: eight resolved, twelve OPEN.** Joel asked a fresh session to read
+`F-deep-59`: nine resolved, eleven OPEN.** Joel asked a fresh session to read
 the 35 files and `deep.md` after the first six passes closed, and it found
 mostly prose the code has moved out from under — including four things the
 first read's own resolutions claimed fixed and were not (`F-deep-41`,
 `F-deep-42`, `F-deep-46`, `F-deep-48`). Pass 7, at the end of this file, holds
-them. The eight that were prose only (`F-deep-40` … `-47`) were fixed the same
-day on Joel's instruction; `F-deep-48` and everything from `F-deep-49` on would
-change code and wait. **The `cs-fixed-deep` stamps were NOT moved**; with open
+them. `F-deep-40` … `-48` were fixed the same day on Joel's instruction —
+eight prose, one key rename; everything from `F-deep-49` on would change code
+and waits. **The `cs-fixed-deep` stamps were NOT moved**; with open
 findings against them they overstate, and restamping is Joel's call.
 
 The six passes before it, all on 2026-09-02:
@@ -53,8 +53,8 @@ The six passes before it, all on 2026-09-02:
 | `cls.ts` | 1 | `F-deep-36` — resolved |
 | the server side of the envelope | 3 | `F-deep-37` … `F-deep-39` — all resolved |
 
-**Fifty-nine findings: forty-five resolved, one closed, one moved, twelve
-open** (all twelve in pass 7).
+**Fifty-nine findings: forty-six resolved, one closed, one moved, eleven
+open** (all eleven in pass 7).
 
 **What is left besides pass 7 is `cs-blessed`, which is Joel's alone** — nine files carry it,
 twenty-six are `cs-fixed-deep`. `cs-fixed` is "Claude changed it and stands
@@ -1537,8 +1537,8 @@ Every line reference below was verified by reading the line, not by grep alone.
 **Twenty findings, `F-deep-40` … `F-deep-59`.** Joel, the same day: *"for
 F40–F48, it looks like these are just documentation/comment fixes. for those
 which do not change code, go ahead and do them. skip those which would change
-code."* So `F-deep-40` … `-47` are RESOLVED below; `F-deep-48` renames storage
-keys and stays open with the rest. A heading with no status prefix means open,
+code."* So `F-deep-40` … `-47` are RESOLVED below, and `F-deep-48` followed
+when he asked for the rename by name. A heading with no status prefix means open,
 as everywhere in this file. The shape
 of what turned up: the LOGIC held; what drifted is prose the code moved out from
 under — and four of the first read's resolutions said "fixed" of something that
@@ -1699,7 +1699,7 @@ deleted, which is the archaeology this repo rules out.
 > `dbEnvelope.ts` for the builders and sentences. "New" is gone here and from
 > `dbResult.test.ts:16`.
 
-## F-deep-48 · `three-off-convention-keys` · `F-deep-15`'s premise was wrong: two more hyphenated keys remain, both this area's
+## RESOLVED · F-deep-48 · `three-off-convention-keys` · `F-deep-15`'s premise was wrong: two more hyphenated keys remain, both this area's
 
 `F-deep-15` said `pup-theme` was *"the only key with a hyphen instead of a
 colon."* Measured across `src/`:
@@ -1713,8 +1713,20 @@ Every other key is `puzpuzpuz:…` or `<game>:…`. The second costs nothing to
 rename — nobody types it. The first is typed by hand in devtools, so renaming
 it is a real choice and it is Joel's.
 
-**Left open on 2026-09-02 when `F-deep-40` … `-47` were fixed**: renaming a
-key is code, and Joel's instruction covered prose only.
+> **resolution: `puzpuzpuz:rt:verbose` and `puzpuzpuz:staleChunk:reloadedAt`**
+> (Joel, 2026-09-02: *"make better names and fix"*). Both on the
+> `puzpuzpuz:<area>:<thing>` shape the chat and scratchpad keys use, so the
+> whole set now reads as one family. The verbose key became a named constant,
+> `VERBOSE_KEY`, so the literal is in one place — which also closes
+> `F-deep-54`'s third mention. The recipe is updated in all three places it is
+> written: `realtimeDiag.ts`'s docstring, `supabase.ts`'s comment, and
+> docs/realtime-lost-events.md. The `[rt-verbose]` console TAG in `supabase.ts`
+> is a log prefix, not a key, and stays.
+>
+> **No migration, same decision as `F-deep-15`.** Anyone holding `rt-verbose`
+> set in a real browser silently drops out of verbose mode; it is a dev lever
+> with no UI, and re-setting it is one line. The sessionStorage key costs
+> nothing at all — it lives for one tab session and is never typed.
 
 ### Behavior
 

@@ -23,7 +23,7 @@
  * gets no recovery at all rather than an uncounted one; see `reloadedRecently`.
  */
 
-const GUARD_KEY = 'stale-chunk-reload-at'
+const GUARD_KEY = 'puzpuzpuz:staleChunk:reloadedAt'
 const GUARD_MS = 60_000
 
 /**

@@ -104,7 +104,7 @@ export const supabase = createClient<Database>(url, publishableKey, {
         routine ? 'log' : 'warn',
       )
     },
-    // Deep-debug lever: localStorage.setItem('rt-verbose', '1') + reload
+    // Deep-debug lever: localStorage.setItem('puzpuzpuz:rt:verbose', '1') + reload
     // turns on realtime-js's own logger (every push/receive the socket
     // sees). See realtimeDiag.ts for the full story.
     ...(rtVerbose()
