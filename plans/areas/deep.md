@@ -31,11 +31,11 @@ understood, tidied* — `cs-blessed` here means he has read the file, not seen i
 
 **Every heading says its status**; a heading with **no status prefix means OPEN**.
 
-**Two passes of three have run.** The BOOT pass is done — nine files, sixteen
-findings, nothing left open (fourteen RESOLVED, one CLOSED, one MOVED to
-`corecss`). The DATA PATH was read 2026-09-02: eleven files, **eleven findings
-`F-deep-17` … `F-deep-27`** — ten RESOLVED, one open. The realtime plumbing (7 files) has not
-been read.
+**Two passes of three are DONE, with nothing open.** The BOOT pass: nine files,
+sixteen findings — fourteen RESOLVED, one CLOSED, one MOVED to `corecss`. The
+DATA PATH, read 2026-09-02: eleven files, eleven findings `F-deep-17` …
+`F-deep-27`, **all RESOLVED**. The realtime plumbing (7 files, 651 lines) is
+what is left of this area.
 
 ## The roster — 33 files, 4,880 lines
 
@@ -914,7 +914,7 @@ it is not allowed to have.
 > because its two failure paths need different statuses. That is the whole of it;
 > there is no fourth shape.
 
-## F-deep-24 · `is-environmental-null-check-is-dead` · A guard that cannot change the answer
+## RESOLVED · F-deep-24 · `is-environmental-null-check-is-dead` · A guard that cannot change the answer
 
 `dbEnvelope.ts:131`:
 
@@ -926,7 +926,19 @@ return dbcode !== null && Object.values(NO_ANSWER_TO_CODE_AND_TEXT).some((s) => 
 answers `false` for it. The conjunct reads as a necessary null guard and is
 inert.
 
-> resolution:
+> **resolution: the conjunct deleted** (Joel, 2026-09-02), leaving the `.some`
+> alone. Proved inert before removing rather than argued: both forms were run
+> against `null`, `undefined`, `''`, a real code, an unknown `FE` code and
+> nonsense, and agree on all six. Both live callers (`useGameTimer:98`, `:132`)
+> pass `res.dbcode` off a narrowed `not-ok`, so neither depended on it either.
+>
+> **Why it was worth removing rather than shrugging at**, since the cost was
+> four skipped comparisons: the line made a claim about the domain that is not
+> true — that `null` is a special case here — and this is the one function where
+> that misreads worst. Its own docstring records that `dbcode === null` USED to
+> be the whole test, and that the four codes exist so nothing has to identify
+> these by an absence. A leftover null check on the function that replaced the
+> null check is exactly where the old idea gets read back in.
 
 ## RESOLVED · F-deep-25 · `no-test-covers-the-silent-throw` · The suite pins the envelope on that path and not the reporting
 

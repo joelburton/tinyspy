@@ -127,10 +127,7 @@ export function situationFor(statusText: string | undefined) {
  * these codes exist.
  */
 export function isEnvironmental(dbcode: string | null): boolean {
-  return (
-    dbcode !== null
-    && Object.values(NO_ANSWER_TO_CODE_AND_TEXT).some((s) => s.code === dbcode)
-  )
+  return Object.values(NO_ANSWER_TO_CODE_AND_TEXT).some((s) => s.code === dbcode)
 }
 
 
