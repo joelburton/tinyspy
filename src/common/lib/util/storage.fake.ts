@@ -3,15 +3,20 @@
 /**
  * A Storage-shaped stand-in for tests, plus a switch that makes it throw.
  *
- * **jsdom in this project ships no real `localStorage`** — `window.localStorage`
- * is `undefined` under our config, so a test that merely calls it fails with
- * "cannot read properties of undefined" rather than testing anything. Every
- * test touching storage therefore installs a fake, and two did it by hand
- * before this existed (`useStickyChoice.test.ts`, `chatOpenStore.test.ts`, which
- * cross-reference each other's copy).
+ * **`window.localStorage` is `undefined` under vitest here, and that is Node's
+ * doing, not jsdom's.** jsdom provides both storages — `sessionStorage` is the
+ * real one, and `reloadOnStaleChunk.test.ts` clears it raw — but recent Node
+ * also defines its own experimental `localStorage` global, which reads as
+ * `undefined` until Node is started with `--localstorage-file`, and vitest
+ * leaves that one in place over jsdom's. (Node prints exactly that warning at
+ * the top of a run.) So a test that merely calls `localStorage.getItem` fails
+ * with "cannot read properties of undefined" rather than testing anything, and
+ * every test touching local storage installs a fake. Two did it by hand before
+ * this existed — `useStickyChoice.test.ts`, whose note points at
+ * `chatOpenStore.test.ts`'s copy.
  *
  * The reason it is worth sharing rather than copying a third time is
- * {@link installedStorage.block}: making storage FAIL is the interesting case —
+ * {@link InstalledStorage.block}: making storage FAIL is the interesting case —
  * it is the entire reason `common/lib/util/storage.ts` exists — and it is the
  * fiddly part, because the methods have to live on a prototype for `vi.spyOn`
  * to replace them.

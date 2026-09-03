@@ -579,7 +579,7 @@ is on it — the test fake, and the few tests that have to reach the real thing
 on `window`. No number left to rot. "Fails the build" stays; see "Checked and
 deliberately NOT raised" — it is the repo's idiom.
 
-### F-utils-16 · `fake-docstring-three-false-claims` · `storage.fake.ts` misattributes the thing it exists for
+### RESOLVED 2026-09-03 — F-utils-16 · `fake-docstring-three-false-claims` · `storage.fake.ts` misattributes the thing it exists for
 
 Three claims in `storage.fake.ts`'s header, each checked:
 
@@ -602,6 +602,21 @@ Three claims in `storage.fake.ts`'s header, each checked:
 - **`:14`, `{@link installedStorage.block}`** names no symbol. The type is
   `InstalledStorage` and the value is what `installFakeStorage` returns; an
   editor resolves this link to nothing.
+
+**Fixed 2026-09-03**, all three in the header, no code:
+
+- The opening now says what was measured: `window.localStorage` is undefined
+  under vitest **because recent Node defines its own experimental
+  `localStorage` global** that reads as undefined without
+  `--localstorage-file`, and vitest leaves it in place over jsdom's; jsdom
+  itself provides both, and `sessionStorage` is the real one. Named so that
+  nobody hunts the vitest config for a cause that is not there, and so the
+  day a Node upgrade makes the fake look redundant, the reason it is not is
+  already written down.
+- "Cross-reference each other's copy" became what is true: `useStickyChoice`'s
+  note points at `chatOpenStore`'s.
+- `{@link installedStorage.block}` → `{@link InstalledStorage.block}`, the
+  type that actually declares it.
 
 ### F-utils-17 · `block-models-the-call-not-the-access` · the design's central claim has no test
 
