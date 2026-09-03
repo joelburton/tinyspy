@@ -31,8 +31,9 @@ understood, tidied* — `cs-blessed` here means he has read the file, not seen i
 
 **Every heading says its status**; a heading with **no status prefix means OPEN**.
 
-**⭐ REOPENED 2026-09-02 by a second read — twenty findings, `F-deep-40` …
-`F-deep-59`: eighteen resolved, two OPEN.** Joel asked a fresh session to read
+**⭐ READ THROUGH TWICE, AND NOTHING IS OPEN.** A second read on 2026-09-02
+added twenty findings, `F-deep-40` … `F-deep-59`, all worked the same day one
+at a time on Joel's word: nineteen resolved, one closed. Joel asked a fresh session to read
 the 35 files and `deep.md` after the first six passes closed, and it found
 mostly prose the code has moved out from under — including four things the
 first read's own resolutions claimed fixed and were not (`F-deep-41`,
@@ -44,8 +45,10 @@ one console line onto `[rt]`; `F-deep-53` left the channel list in one
 place, and `F-deep-54` did the same for the verbose recipe; `F-deep-55`
 folded the two wrappers' identical tails into `readEnvelope`; `F-deep-56`
 put each twice-told fact with its own file; `F-deep-57` took the counts and
-the "used to"s out. `F-deep-58` and `-59` wait. **The `cs-fixed-deep` stamps were NOT moved**; with open
-findings against them they overstate, and restamping is Joel's call.
+the "used to"s out; `F-deep-58` was closed by decision (the underscore export
+is fine, being test-only) and `F-deep-59`'s last two typos fixed by hand.
+**Nothing in pass 7 is open.** The `cs-fixed-deep` stamps were not moved
+during it and are true again now; `cs-blessed` remains Joel's.
 
 The six passes before it, all on 2026-09-02:
 
@@ -58,8 +61,8 @@ The six passes before it, all on 2026-09-02:
 | `cls.ts` | 1 | `F-deep-36` — resolved |
 | the server side of the envelope | 3 | `F-deep-37` … `F-deep-39` — all resolved |
 
-**Fifty-nine findings: fifty-five resolved, one closed, one moved, two open**
-(both in pass 7).
+**Fifty-nine findings: fifty-six resolved, two closed, one moved, none
+open.**
 
 **What is left besides pass 7 is `cs-blessed`, which is Joel's alone** — nine files carry it,
 twenty-six are `cs-fixed-deep`. `cs-fixed` is "Claude changed it and stands
@@ -1544,9 +1547,8 @@ Every line reference below was verified by reading the line, not by grep alone.
 **Twenty findings, `F-deep-40` … `F-deep-59`.** Joel, the same day: *"for
 F40–F48, it looks like these are just documentation/comment fixes. for those
 which do not change code, go ahead and do them. skip those which would change
-code."* So `F-deep-40` … `-47` are RESOLVED below, and `F-deep-48` followed
-when he asked for the rename by name. A heading with no status prefix means open,
-as everywhere in this file. The shape
+code."* So `F-deep-40` … `-47` went first, and the rest followed one at a
+time, each on a recommendation and his word. Nothing in this pass is open. The shape
 of what turned up: the LOGIC held; what drifted is prose the code moved out from
 under — and four of the first read's resolutions said "fixed" of something that
 was only half fixed (`F-deep-41`, `F-deep-42`, `F-deep-46`, `F-deep-48`). Two
@@ -1996,25 +1998,35 @@ right and the sprint's "done" is the thing to qualify.
 > `raiseCodes.test.ts:359` says the sequence *"already spans SQL and 64 Deno
 > raises"* — the same count `dbEnvelope.ts` just dropped.
 
-## F-deep-58 · `underscore-export` · `_isEnvelope` is exported, and the underscore says private
+## CLOSED · F-deep-58 · `underscore-export` · `_isEnvelope` is exported, and the underscore says private
 
 `dbResult.ts:221`. Its only caller outside the file is `dbResult.test.ts`. Either
 the underscore goes, or the export does and the test reads the behavior through
 `runRpc`, which already has a case for every shape `_isEnvelope` rejects.
 
-## F-deep-59 · `typos-the-area-wrote` · Four slips in files pass 1 and pass 3 edited
+> **CLOSED, nothing changes** (Joel, 2026-09-02): *"the underscore is fine;
+> it's only exported for tests."* That is what the underscore says — exported,
+> and not for app code — and the same convention `__resetChannelTeardowns`
+> and the `…ForTest` seams use. Recorded so it is not re-raised.
 
-- `loadTheme.ts:20` — the comment opens *"A theme is not worth failing to start
-  over.\*\*"*, a bold marker with no opener (`F-deep-13`'s edit).
+## RESOLVED · F-deep-59 · `typos-the-area-wrote` · Four slips in files pass 1 and pass 3 edited
+
+- ~~`loadTheme.ts:20` — the comment opens *"A theme is not worth failing to
+  start over.\*\*"*, a bold marker with no opener (`F-deep-13`'s edit).~~
+  **Fixed.**
 - ~~`logStamp.ts:11` — the docstring closes with `**/` (`F-deep-28`'s file).~~
   **Fixed with `F-deep-53`**, which rewrote that docstring's tail.
-- `main.tsx:3` — `/** Top of React application.*/`, no space before the close.
+- ~~`main.tsx:3` — `/** Top of React application.*/`, no space before the
+  close.~~ **Fixed**, and it reads "Top of the React application."
 - ~~`main.tsx:46-68` — `showBootPanic` (`F-deep-4`'s edit) uses semicolons and
   double quotes; every other file on the roster uses neither.~~ **Gone with
   `F-deep-49`**: the function was rewritten into `panic.ts` in the repo's
   convention. No eslint rule enforces it (`eslint.config.js` has no `semi` or
-  `quotes`), so it was convention, not a red check. The other three bullets
-  stand.
+  `quotes`), so it was convention, not a red check.
+
+> **resolution: all four gone** (Joel, 2026-09-02: *"f59: fix"*) — two as
+> side effects of `F-deep-49` and `F-deep-53`, the last two by hand the same
+> day.
 
 ## Questions this pass raises rather than answers
 

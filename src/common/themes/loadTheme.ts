@@ -17,7 +17,7 @@ const STORAGE_KEY = 'puzpuzpuz:theme'
  * storage to ask.
  */
 function storedTheme(): ThemeName | null {
-  // A theme is not worth failing to start over.** `localStorage` throws where a
+  // A theme is not worth failing to start over. `localStorage` throws where a
   // browser blocks site data, and this runs before a single stylesheet is
   // requested, so an unguarded read takes `loadTheme()` down with it and the app
   // paints main.tsx's "could not start" instead of a page. Falling back to
