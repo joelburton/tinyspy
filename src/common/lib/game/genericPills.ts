@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-game-lib
 
 import type { GenericFeedbackMsg } from '../games'
 import type { Envelope } from '../supabase/envelope'

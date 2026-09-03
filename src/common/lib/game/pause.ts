@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-game-lib
 
 import type { Member } from '../games'
 

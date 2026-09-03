@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-game-lib
 
 import { describe, expect, it } from 'vitest'
 import { outOfRacePill, stickyPill, terminalPill } from './localPills'

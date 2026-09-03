@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-game-lib
 
 /**
  * Shared manifest RPC dispatchers — the tiny, identical wrappers every game's

@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-game-lib
 
 import type { WordListRow } from '../../components/game/lists/WordList'
 import type { FoundWordRow, FoundWordsWord } from './foundWords'

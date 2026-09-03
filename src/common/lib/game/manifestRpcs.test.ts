@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-game-lib
 
 /**
  * Tests for manifestRpcs — what is left of it.

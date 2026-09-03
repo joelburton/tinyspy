@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-game-lib
 
 /**
  * The per-status copy a game's terminal state shows — every game's `buildOver()`

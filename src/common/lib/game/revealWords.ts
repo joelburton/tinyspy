@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-game-lib
 
 /**
  * The terminal **missed-word reveal**, shared by the three word-hunt games

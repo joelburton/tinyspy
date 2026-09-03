@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-game-lib
 
 /**
  * Order a player list with the viewer first, then everyone else

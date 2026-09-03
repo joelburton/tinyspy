@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-game-lib
 
 /**
  * Vocabulary-difficulty bands (1..6), shared by every word game's setup. The

@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-game-lib
 
 import { describe, expect, it } from 'vitest'
 import { playerCountFits, playerCountLabel } from './games'

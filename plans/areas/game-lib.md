@@ -14,11 +14,10 @@ of files were on no area's roster at all: `deep` listed them out as "names every
 game" (`deep.md:160`, `:161`) and nothing picked them up — the identical gap that
 created `utils` one folder over.
 
-**Status: NOT OPENED.**
-
-This file exists **before** the area opens so there is somewhere to put a note the
-moment one turns up. Nothing below is a commitment; the roster is agreed with
-Joel when the area actually opens, by listing its files and stopping.
+**Status: OPEN.** Opened 2026-09-03 by listing the files and stopping (§21); Joel
+agreed the list — *"that matches the files i'd expect"* — and then asked for it
+in groups, *"so we don't have to do them all as one big audit"*, the way `deep`
+ran in passes. The six groups are below; all 34 files are `cs-met-game-lib`.
 
 ## Why it runs where it runs
 
@@ -33,33 +32,366 @@ is about the *shape of a game area* rather than about a game, and it cannot do
 that while §21's "dependencies are listed and left" turns its opening into a list
 of 155 files.
 
-**The split below touches 236 files.** `common/lib/games.ts` is imported across
+**The split below touches 233 files.** `common/lib/games.ts` is imported across
 every area in the sprint. Split it late and it edits files that are already
 `cs-blessed`; split it early and every area after this one reads the settled
 shape. Hence its slot near the front, ahead of the other two scaffolding areas
 rather than beside them — §7 holds where, as it holds every area's position.
 
-## The roster
+## The roster — 34 files, 3,240 lines
 
-*(agreed with Joel when the area opens — §21: list the files and STOP)*
-
-The four groups as they stand, listed so the shell is useful rather than empty —
-**not agreed**. Measured 2026-09-03:
+Agreed with Joel 2026-09-03 before anything was read, and stamped
+**`cs-met-game-lib`**. Measured at the opening, not guessed:
 
 | | files | lines |
 |---|---|---|
 | `src/common/lib/game/` | 31 | 2,181 |
-| `src/common/lib/games.ts` + `games.test.ts` | 2 | 1,003 |
-| `src/games.ts` — the manifest list, the one file allowed to import each game | 1 | 56 |
+| `src/common/lib/games.ts` + `games.test.ts` | 2 | 959 |
+| `src/games.ts` — the manifest list, the one file allowed to import each game | 1 | 100 |
+
+**The shell's own numbers were wrong in two of three rows** and are corrected
+above: it had the `games.ts` pair at 1,003 (it is 959) and `src/games.ts` at 56
+(it is 100). `lib/game/` was right. This is §21's rule earning itself again — *a
+shell's guessed roster is a note, never a count* — and the reason to re-measure
+at every opening. The split table under "Already waiting for this area" carried
+the same drift (909 lines, 236 files, 361 imports) and has been corrected to the
+measured 908 / 233 / 364.
 
 **Not this area's**, and named so the boundary is visible: `common/components/game/`
 is `shared-game-chrome`, and `common/hooks/game/` is a question `hooks` answers at
 its own opening (§7 row 4). Adding this area deliberately does not preempt that.
 
+## The six groups
+
+Joel asked for the area in groups rather than one audit (2026-09-03), which is
+how `deep` ran — its six passes are the model. **Every file is in exactly one
+group** and the counts sum to the roster: a file that belongs to two groups means
+the grouping is wrong, not that the file is special.
+
+Order is **A first**, on the same reasoning that put this area early in §7: A
+holds the split, and reading B–F after it means reading them in the settled shape
+instead of re-reading them once the sweep has moved five vocabularies. The
+counter-argument was put and rejected — that B–F would teach what the registry
+serves before restructuring it — because it trades a re-read of 29 files against
+a better-informed read of 5.
+
+### A · The registry and the manifest contract — 5 files, 1,182 lines
+
+| file | lines |
+|---|---|
+| `common/lib/games.ts` | 908 |
+| `common/lib/games.test.ts` | 51 |
+| `src/games.ts` | 100 |
+| `common/lib/game/manifestRpcs.ts` | 63 |
+| `common/lib/game/manifestRpcs.test.ts` | 60 |
+
+The area's center of gravity, and the group carrying the **233-file split**
+(below). `manifestRpcs` is here rather than with the live-session files because
+it is the dispatcher half of the contract `GameManifest` declares — reading the
+declaration without its dispatchers is how the two drift.
+
+### B · The found-words family — 7 files, 561 lines
+
+| file | lines |
+|---|---|
+| `foundWords.ts` | 54 |
+| `foundWordsDisplayRows.ts` + `.test.ts` | 71 + 130 |
+| `foundWordsLeaderboard.ts` | 28 |
+| `rankLadder.ts` + `.test.ts` | 72 + 163 |
+| `revealWords.ts` | 43 |
+
+The most self-contained group here. Every one was extracted from byte-identical
+spellingbee/wordwheel copies (`revealWords` adds boggle), so it reads as one
+subsystem because it is one: the rank-ladder word-hunt model.
+
+### C · What a game says about itself — 6 files, 439 lines
+
+| file | lines |
+|---|---|
+| `setupRows.ts` | 172 |
+| `difficulty.ts` | 96 |
+| `statusLabel.ts` | 93 |
+| `terminalCopy.ts` | 33 |
+| `timerLabel.ts` + `.test.ts` | 24 + 21 |
+
+Strings a game renders about its own configuration or its own ending — the setup
+recap, the club-page status line, the terminal verdict. Three docs govern this
+group ([game-status-labels.md](../../docs/game-status-labels.md),
+[pdf.md](../../docs/pdf.md), [win-lose.md](../../docs/win-lose.md)), which is the
+argument for reading it in one sitting.
+
+### D · The feedback pills — 5 files, 277 lines
+
+| file | lines |
+|---|---|
+| `localPills.ts` + `.test.ts` | 92 + 32 |
+| `genericPills.ts` + `.test.ts` | 55 + 73 |
+| `feedbackTiming.ts` | 25 |
+
+One vocabulary. The two pill files already argue in their docstrings about which
+is which — `genericPills` opens by explaining why it is not `localPills` — so
+they get read together or the distinction gets re-derived. `feedbackTiming` holds
+the durations that vocabulary uses.
+
+### E · The live session — 7 files, 532 lines
+
+| file | lines |
+|---|---|
+| `gameMenu.ts` | 128 |
+| `gameInvites.ts` + `.test.ts` | 113 + 73 |
+| `pause.ts` + `.test.ts` | 35 + 90 |
+| `infoSheetStore.ts` | 57 |
+| `peers.ts` | 36 |
+
+A game in progress: who is seated, who is connected, what the menu offers, which
+mobile page is showing. **The loosest of the six**, and the one to redraw first if
+any needs it — `gameMenu.ts` and `infoSheetStore.ts` are chrome-adjacent, talking
+to `shared-game-chrome`'s components, so the seam that bothers anyone bothers
+them here. If it splits, it splits into presence/seating and the two chrome
+stores.
+
+### F · The two pure algorithms — 4 files, 249 lines
+
+| file | lines |
+|---|---|
+| `trie.ts` + `.test.ts` | 93 + 58 |
+| `gridCursor.ts` + `.test.ts` | 47 + 51 |
+
+Pure math shared by exactly two games each (`trie`: boggle + scrabble;
+`gridCursor`: bananagrams + scrabble), both fully tested, neither touching the
+shell. The group whose position in the order matters least.
+
+## Group A — the registry and the manifest contract, read 2026-09-03
+
+Five files, 1,182 lines, all five read in full. **No logic bug.** The shipped
+behavior is correct everywhere; all nine findings are about what the files SAY —
+which in a file 233 others import is the product, because nobody reads
+`games.ts` to learn what it does, they read it to learn what they may rely on.
+
+**The recurring fault is a counted claim that stopped being true.** Four of the
+nine are a number the file states and the tree contradicts — ten games, fifteen
+games, one player-count max, one status consumer. This is `F-deep-27`
+(`fifteen-games`) again, and it is worth naming as a pattern rather than fixing
+four times quietly: **a count in a docstring is a claim with an expiry date, and
+nothing in the repo checks one.** Every instance here is in the file the whole
+app imports, so each wrong number is read by the most people possible.
+
+### The split's own numbers, re-measured
+
+Group A's work is the `games.ts` split, so its sizing was re-counted before
+anything else. The shell's figures were close but not right, and the corrected
+ones are used from here on:
+
+| | shell said | measured 2026-09-03 |
+|---|---|---|
+| files importing `common/lib/games` | 236 | **233** |
+| named imports across them | 361 | **364** |
+
+Counted by resolving every `from '…games'` specifier to an absolute path, which
+is what the earlier count missed: `from '../../../games'` from a component folder
+is `src/games`, the REGISTRY, not this file. Eleven files import that one, and
+they are not part of the split.
+
+**The split table's own rows were right all along** — every per-name figure
+re-verified exactly, and its five subtotals (129 · 97 · 80 · 44 · 14) sum to
+**364**, the measured number. Only the sentence above the table said 361. So the
+work the table represents stands; it was the summary line that drifted, which is
+the same fault as `F-game-lib-3` through `F-game-lib-6` and in the same document
+that is finding them.
+
+One row could not be verified because its count is zero — `playerOutcome`, listed
+without a number. See `F-game-lib-9`.
+
 ## Findings
 
 *(IDs are `F-game-lib-1`, `F-game-lib-2`, … — §21 → Areas. Every heading states
 its status; no status prefix means OPEN.)*
+
+### F-game-lib-1 · `registry-has-no-header` · The file 233 others import opens with no docstring
+
+`games.ts` is 908 lines holding five unrelated vocabularies, and **there is no
+module docstring**. The first `/**` in the file is line 11, and it belongs to
+`MODE_LABEL`. Nothing at the top says what the file is, why these five things
+live together, or which of them a newcomer should expect to find here.
+
+The only description that exists is `docs/common-folders.md:134` — *"the
+GameManifest type + registry helpers"* — and the shell already records that as no
+longer true. So the file's one-line summary lives in another document and is
+wrong, which is the worst of both.
+
+`GameManifest` is 22 of 364 named imports. The most-imported name in "the
+registry file" is `Member`, at 103, which names no game.
+
+This finding is the argument for the split rather than a request for a header:
+a docstring honest about today's contents would have to say "five vocabularies
+that share a file for historical reasons," and writing that sentence is what
+makes the split obviously right. **Resolve it by splitting**, not by describing.
+
+### F-game-lib-2 · `two-orphaned-docstrings` · Two stacked docstrings, both allowlisted to this area
+
+`games.ts:414` and `games.ts:588` are the stacked-docstring fault that
+`src/guards/orphanedDocstrings.test.ts` exists for, and both sit on that guard's
+`KNOWN` list (lines 66–67) awaiting this area:
+
+- **`:402-413`** documents `SetupBodyProps` — *"Props the per-game setup-form body
+  receives from the common `SetupGameModal` wrapper…"* — and is followed
+  immediately by `:414-425`'s docstring for `SetupOf`. `SetupOf` gets documented
+  twice over; `SetupBodyProps`, declared 36 lines later at `:450`, reads as
+  undocumented.
+- **`:582-587`** documents `GameManifest` — *"Manifest exported by each game's
+  `manifest.ts`…"* — and is followed by `:588-592`'s docstring for
+  `GameStopResult`. `GameManifest`, declared at `:595`, reads as undocumented.
+
+Both stranded docstrings are correct prose about the right thing, merely attached
+to their neighbor — the guard's own description of the fault. The guard says the
+area that opens the file removes its lines, *"never add one to quiet a new
+failure"*, so **the fix includes deleting `orphanedDocstrings.test.ts:66-67`** and
+the shrinking allowlist gets two entries shorter.
+
+### F-game-lib-3 · `dispatcher-says-ten-games` · "all ten games" is sixteen
+
+`manifestRpcs.ts:43`: *"Collapses the byte-identical `submitTimeout` / `endGame`
+wrappers across all ten games."*
+
+`makeRpcDispatcher` has **16** callers — one per game folder, every one of them:
+
+```
+bananagrams boggle codenamesduet connections crosswords letterboxed psychicnum
+scrabble setgame spellingbee stackdown strands waffle wordiply wordle wordwheel
+```
+
+The number matters more than usual here because the file's own test docstring
+argues from it: *"it is ONE frontend path over sixteen SQL definitions, so a
+regression here breaks every game at once."* The test says sixteen and the source
+says ten, in a two-file group, about the same fact.
+
+Fold in while there: the file ends with **three trailing blank lines**
+(`manifestRpcs.ts:61-64`), the residue of the deleted start-game adapters. ESLint
+does not flag it.
+
+### F-game-lib-4 · `menu-icon-says-fifteen-games` · "all fifteen games" is sixteen
+
+`games.ts:229`, in `MenuItemBase.icon`'s docstring — the one that calls itself
+*"the icon language's legend"*: *"it reads in all fifteen games afterwards."*
+
+Sixteen game folders, and `src/games.ts` registers 30 gametypes across them. The
+argument the docstring makes is unaffected; only its count is wrong.
+
+### F-game-lib-5 · `player-count-doc-names-one-max` · A stated max that four games don't use
+
+`games.ts:709-712`, in `GameManifest.numberOfPlayers`: *"For an 'any club' game,
+pick a reasonable max — today we use 6 for all the open-N games (connections,
+psychicnum, spellingbee) and `[2, 2]` for fixed-seat codenamesduet."*
+
+Measured across all 16 manifests (30 entries):
+
+| range | entries |
+|---|---|
+| `[1, 6]` | 12 |
+| `[2, 6]` | 11 |
+| `[1, 8]` | 2 |
+| `[2, 8]` | 2 |
+| `[1, 4]` | 2 |
+| `[2, 2]` | 1 |
+
+So "6 for all the open-N games" is false three ways: **four entries use 8, two use
+4**, and the three games named as the examples are 3 of 16. The `[2, 2]`
+codenamesduet half is still exactly right.
+
+The advice the paragraph is giving — pick a bounded max, here is the house
+default — is still good advice. It has just been overtaken by a roster that grew
+from four games to sixteen and picked two other numbers on the way.
+
+### F-game-lib-6 · `status-consumer-is-six-games` · "Today's primary consumer" is six games, and the future it defers to has arrived
+
+`games.ts:99-104`, in `GamePageCtx.status`: *"Today's primary consumer is
+spellingbee's compete-mode OpponentStrip, which reads `status.leaderboard` for
+the per-player rank summary. The same channel is open to any future game that
+wants a live status field surfaced to the play surface."*
+
+Six games read `status.leaderboard` today: **boggle, letterboxed, setgame,
+spellingbee, wordiply, wordwheel** (plus `common/`). The sentence describes a
+one-game special case with an open invitation; the field is in fact a general
+mechanism that six games took up.
+
+Worth fixing rather than deleting, because the docstring is doing real work — it
+is where a seventh game learns the channel exists. It should say so as a rule
+instead of as one game's example.
+
+### F-game-lib-7 · `ctx-timer-undocumented-and-misindented` · The one non-obvious field in the render-prop contract has no docstring
+
+`games.ts:68`:
+
+```ts
+  isTerminal: boolean
+    timer: {
+    displaySeconds: number
+    expired: boolean
+  }
+  /** Turn-order gate for the opt-in turn-by-turn coop mode. … */
+```
+
+Two things at once, both on the field opener:
+
+1. **It is indented four spaces** where every sibling in `GamePageCtx` is at two.
+   The body lines and the closing `}` are correct; only the `timer:` line is
+   wrong, which is why it reads as a stray rather than as a nested block.
+2. **It has no docstring**, and it is the field that most needs one. `session`
+   and `gameId` also carry none and do not need any — a `Session` named `session`
+   explains itself. `timer` is a structured object whose two fields raise real
+   questions the type does not answer: is `displaySeconds` counting up or down,
+   and does `expired` mean "the countdown hit zero" or "the timeout RPC has
+   landed"? Every other non-obvious field here is documented, several of them at
+   length; this is the gap in an otherwise complete contract.
+
+### F-game-lib-8 · `player-count-short-untested` · Three sibling formatters, two tested
+
+`games.test.ts` opens *"Pure-function tests for the player-count helpers"* —
+plural, and it covers `playerCountFits` and `playerCountLabel`. `playerCountShort`
+has no test.
+
+It is not dead code: `StartGameRow.tsx:50` renders it on **every per-gametype
+Start button in the club**, which is the most-seen string of the three. It carries
+the same singular/plural branch `playerCountLabel` has a dedicated test for
+(`'singularizes "member" when the exact count is 1'`), and that branch is
+reachable — twelve entries are `[1, 6]`, so `playerCountShort([1, 1])` is one
+manifest edit away from rendering.
+
+The two that are tested drive an enable/disable decision and a tooltip; the
+untested one is the one on screen in every club, every time.
+
+### F-game-lib-9 · `player-outcome-exported-unread` · An exported function with no importer, and four docstrings that name it
+
+`playerOutcome` (`games.ts:369`) is exported and **imported by nothing**. Its only
+caller is `outcomeVerb`, eighteen lines below it in the same file.
+
+This is the one row of the split table that did not survive re-counting: the
+identity row lists `playerOutcome` among the names moving to `lib/members/`,
+without a count. The count is zero.
+
+Three consequences, and the third is the one that matters:
+
+1. Its own docstring describes a usage that does not exist — *"Games render it as
+   e.g. `${playerOutcome(p)} at ${rankName}`."* No game does. The games render
+   `${outcomeVerb(p)} at ${value}`, which is what `outcomeVerb`'s docstring
+   correctly says.
+2. `outcomeVerb`'s docstring says the two live together *"so the strip verbs stay
+   in lockstep with its vocabulary"* — true, and an argument for keeping the
+   function, not for exporting it.
+3. **Four games' docstrings name `playerOutcome` as the thing that reads their
+   data** — `wordwheel/components/InfoCol.tsx:78`,
+   `spellingbee/components/InfoCol.tsx:78`, `boggle/components/InfoCol.tsx:70`,
+   `scrabble/components/InfoCol.tsx:107`, each some form of *"per-player
+   concede/result bits `playerOutcome` reads"*. All four are describing a path
+   that actually runs through `outcomeVerb`. The mention count is four and the
+   caller count is zero, which is the shape `feedback_count_the_callers` warns
+   about — and it is how an unread export acquires the appearance of an API.
+
+Whether it stays exported is a real question rather than an obvious deletion:
+`'won' | 'quit' | 'lost'` is the vocabulary and `'Won' | 'Quit' | 'Lost'` is one
+presentation of it, so a second presentation would want the first. **Not resolved
+here** — it needs the `lib/members/` split to be decided anyway, and the four
+game docstrings are in four other areas' files.
 
 ## Notes, to-dos and deferrals
 
@@ -78,13 +410,14 @@ the area.
 during `utils`'s opening, and assigned here rather than to `utils` on his call
 that the game half waits: *"i don't want to dive into game-stuff yet."*
 
-`games.ts` is **909 lines holding five unrelated vocabularies**, and
+`games.ts` is **908 lines holding five unrelated vocabularies**, and
 `docs/common-folders.md`'s one-line description of it ("the GameManifest type +
 registry helpers") is no longer true. Its position at the root of `lib/` is a
 recorded judgment call — *"it's THE registry, and a dead-obvious top-level path
 beats one more level of nesting"* — and that is defensible for the registry.
-What is not defensible is what rode in on the exemption. Counted across the 236
-importing files, 361 named imports:
+What is not defensible is what rode in on the exemption. Counted across the 233
+importing files, 364 named imports (re-measured at group A's read — see "The
+split's own numbers, re-measured"):
 
 | what | names | imports | destination |
 |---|---|---|---|
@@ -94,7 +427,7 @@ importing files, 361 named imports:
 | feedback | `GenericFeedbackMsg` 39 · `GenericFeedbackApi` 5 | 44 | `lib/feedback/` |
 | the menu | `MenuSection` 7 · `MenuApi` 2 · `MenuItem` 2 · `MenuHeader` · `isSubmenu` · `MenuSubmenu` 1 each · `MenuAction`, `MenuItemBase` | 14 | `lib/menu/` — the folder already exists |
 
-**`GameManifest` is 22 of 361.** The most-imported name in the registry file is
+**`GameManifest` is 22 of 364.** The most-imported name in the registry file is
 `Member`, which names no game. The loose-file exemption was granted for the
 file's smallest constituency, which is the whole finding.
 
@@ -131,15 +464,16 @@ It belongs to `forms`.
 name, and 6c established that a doc already recording a decision is updated as
 the work lands (§13).
 
-### Open question — `outcomes.ts`
+### SETTLED — `outcomes.ts` went to `utils`
 
-`src/common/lib/outcomes.ts` is the third loose file at the root of `lib/`: 46
-lines, one type (`Outcome`), nine importers. It is **not** this area's — it names
-no game — and it is left loose on purpose for now. Its own docstring makes the
-argument: *"Its own file because it is a vocabulary rather than a feature."* The
-two candidate owners are `utils` (whose membership rule it matches word for word:
-no page, no game, no subsystem) and `corecss` (the outcome families are also a
-color bucket). Undecided as of 2026-09-03; recorded here so it is not lost.
+`src/common/lib/outcomes.ts`, the third loose file at the root of `lib/`, was the
+open question here: not this area's (it names no game), with `utils` and
+`corecss` as the candidate owners. **Joel ruled it into `utils` the same day**
+(2026-09-03), on the membership rule it matches word for word — no page, no game,
+no subsystem — and against `corecss`, which would only ever see its color half.
+It was audited there with no findings and is now `cs-blessed-utils`. Kept as a
+settled row rather than deleted, because the question will read as open again the
+next time someone counts the loose files at that root.
 
 ## Predicted test breaks
 

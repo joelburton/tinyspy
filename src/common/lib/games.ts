@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-game-lib
 
 import type { Session } from '@supabase/supabase-js'
 import type { ComponentType, ReactNode } from 'react'

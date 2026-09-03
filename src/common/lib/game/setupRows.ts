@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-game-lib
 
 import type { CoopStyle, CoopTurnSetup } from '../../components/setup/SetupCoopStyleSection'
 import type { Member, TimerMode } from '../games'

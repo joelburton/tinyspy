@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-game-lib
 
 /**
  * The vocabulary every game's `labelFor` speaks — the club-page **status

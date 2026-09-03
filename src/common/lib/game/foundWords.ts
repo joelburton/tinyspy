@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-game-lib
 
 /**
  * Shared data model for the found-words rank-ladder games (spellingbee +

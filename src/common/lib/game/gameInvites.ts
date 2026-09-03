@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-game-lib
 
 import { readStored, writeStored } from '../util/storage'
 

@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-game-lib
 
 /**
  * The Start..Genius rank ladder shared by the found-words rank-ladder games

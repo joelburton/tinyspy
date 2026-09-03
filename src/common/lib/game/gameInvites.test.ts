@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-game-lib
 
 import { describe, expect, it } from 'vitest'
 import { INVITE_MAX_AGE_MS, inviteCutoffIso, newInviteCandidates, type InviteCandidate } from './gameInvites'
