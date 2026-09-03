@@ -71,6 +71,11 @@ export function friendlyDate(iso: string, now: Date = new Date()): string {
  *  subtracting 24-hour windows, which is the distinction the whole
  *  format ladder rests on.
  *
+ *  Rounded, not floored, because two local midnights are 23 or 25
+ *  hours apart across a daylight-saving change, so the quotient is
+ *  not an integer on those days — `floor` would call a two-day-old
+ *  game "Yesterday" the Monday after the clocks go forward.
+ *
  *  `then` is always in the past here: `friendlyDate` answers "Just
  *  now" below a minute, and that covers every negative delta, so a
  *  future timestamp never reaches this. */

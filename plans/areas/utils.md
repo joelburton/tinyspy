@@ -660,7 +660,7 @@ is the proof the case was missing: before today the same plant passed 10 of 10.
 and is left alone — `deep`'s file, `cs-blessed-deep`, and its case is about
 fail-closed behavior, which either switch demonstrates.
 
-### F-utils-18 · `calendar-day-diff-round-is-dst` · the one non-obvious line in `friendlyDate` has no reason and no test
+### RESOLVED 2026-09-03 — F-utils-18 · `calendar-day-diff-round-is-dst` · the one non-obvious line in `friendlyDate` has no reason and no test
 
 `F-utils-6` deleted the false explanation of `Math.round` at
 `friendlyDate.ts:89` and put nothing in its place, so the round now sits
@@ -674,6 +674,14 @@ Fix: one sentence in the helper's docstring, and one test anchored across
 March 8 2026. (A no-DST machine still passes it — 48h rounds to 2 — it just
 proves less there, same as the rest of the file, which already assumes the local
 zone.)
+
+**Fixed 2026-09-03.** One paragraph on `calendarDayDiff`'s docstring saying
+why it rounds, and one test with both directions: spring (Sat Mar 7 21:00 seen
+Mon Mar 9 14:30 → "Sat 9pm"; the 23-hour day makes the quotient 1.96, which
+`floor` would turn into "Yesterday") and fall (Sun Nov 1 09:00 seen Tue Nov 3
+→ "Sun 9am"; the 25-hour day makes it 2.04, which `ceil` would turn into the
+wrong weekday). **Planted:** with `Math.round` swapped for `Math.floor`, the
+spring assertion fails with `Yesterday 9pm`; reverted. No behavior change.
 
 ### F-utils-19 · `test-comment-misquotes-the-seeds` · the file re-audited by `F-utils-8` quotes two expressions, neither correctly
 

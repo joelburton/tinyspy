@@ -84,6 +84,23 @@ describe('friendlyDate', () => {
     expect(friendlyDate(stamp, NOW)).toBe('Mar 12, 2025')
   })
 
+  it('counts calendar days correctly across a daylight-saving change', () => {
+    // Local midnights are 23h apart on the spring-forward day and 25h on the
+    // fall-back day, so the midnight subtraction is not a whole number of
+    // days there. Spring catches `floor` (1.96 → 1 would say "Yesterday");
+    // fall catches `ceil` (2.04 → 3 would say the wrong weekday). Both pass
+    // trivially on a machine in a zone without DST — they prove less there,
+    // the same as the rest of this file, which already assumes the local zone.
+    // US DST 2026: forward Sun Mar 8, back Sun Nov 1.
+    const springNow = new Date(2026, 2, 9, 14, 30) // Mon
+    const springStamp = new Date(2026, 2, 7, 21, 0).toISOString() // Sat
+    expect(friendlyDate(springStamp, springNow)).toBe('Sat 9pm')
+
+    const fallNow = new Date(2026, 10, 3, 14, 30) // Tue
+    const fallStamp = new Date(2026, 10, 1, 9, 0).toISOString() // Sun
+    expect(friendlyDate(fallStamp, fallNow)).toBe('Sun 9am')
+  })
+
   it('treats the exact 7-day boundary as old enough for a date', () => {
     // Exactly 7 days before NOW: 2026-06-10 at 14:30.
     const stamp = new Date(2026, 5, 10, 14, 30).toISOString()
