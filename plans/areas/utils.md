@@ -683,7 +683,7 @@ Mon Mar 9 14:30 → "Sat 9pm"; the 23-hour day makes the quotient 1.96, which
 wrong weekday). **Planted:** with `Math.round` swapped for `Math.floor`, the
 spring assertion fails with `Yesterday 9pm`; reverted. No behavior change.
 
-### F-utils-19 · `test-comment-misquotes-the-seeds` · the file re-audited by `F-utils-8` quotes two expressions, neither correctly
+### RESOLVED 2026-09-03 — F-utils-19 · `test-comment-misquotes-the-seeds` · the file re-audited by `F-utils-8` quotes two expressions, neither correctly
 
 `mulberry32.test.ts:51-54` justifies the normalization case by quoting the
 callers' seed arithmetic. Neither quotation is what the code says:
@@ -701,6 +701,14 @@ purpose") holds for the self-play loop alone. The case itself is right and
 worth keeping; the comment should quote the one caller that actually overflows,
 verbatim, or describe the property without quoting. Same class as `F-utils-9`,
 and in the one file this area had already audited twice.
+
+**Fixed 2026-09-03.** The comment now quotes the one caller that actually
+overflows — the self-play loop's `(bagSeed ^ 0x9e3779b9) + turns * 0x85ebca6b`,
+verbatim from `policy.ts` — and says in a parenthetical that the edge function
+normalizes its own seed with `>>> 0` before calling, so the case is for the
+callers that don't. The premise went from "callers overflow on purpose" to
+"not all of it stays inside int32", which is what the code shows. The case's
+seeds and assertions are unchanged.
 
 ### F-utils-20 · `v8-fingerprinting-claim-unsourced` · a reason nobody can check
 

@@ -48,10 +48,13 @@ describe('mulberry32', () => {
   })
 
   it('normalizes any seed a caller can produce', () => {
-    // Callers derive seeds by arithmetic that overflows int32 on purpose —
-    // scrabble's AI seeds with `(version * 31 + seat) ^ 0x9e3779b9`, and the
-    // self-play loop with `bagSeed + turns * 0x85ebca6b`. Every one of these
-    // must give a usable stream rather than NaN.
+    // Callers derive seeds by arithmetic, and not all of it stays inside int32:
+    // scrabble's self-play loop seeds each turn with
+    // `(bagSeed ^ 0x9e3779b9) + turns * 0x85ebca6b` (policy.ts), which for any
+    // real turn count is a double well past 2³². (The scrabble AI edge function
+    // normalizes its own seed with `>>> 0` before calling; this test is for the
+    // callers that don't.) Every one of these must give a usable stream rather
+    // than NaN.
     for (const seed of [0, -1, -42, 2 ** 31, 2 ** 32, 2 ** 32 + 7, 12345.7]) {
       const v = mulberry32(seed)()
       expect(Number.isFinite(v), `seed ${seed}`).toBe(true)
