@@ -6,8 +6,9 @@
  *
  * Reach for these instead of touching storage directly: `src/guards/
  * rawStorage.test.ts` fails the build on any mention of `localStorage` or
- * `sessionStorage` outside this file and a short allowlist — the test fake
- * beside it, plus three tests that install a fake of their own. The convention
+ * `sessionStorage` outside this file and a short allowlist (`ALLOWED` in the
+ * guard, each entry with its reason: the test fake beside this file, and the
+ * few tests that have to reach the real thing on `window`). The convention
  * this replaces was held by eight files and broken by two, and those two were
  * separate bugs found in a single audit.
  *

@@ -561,7 +561,7 @@ two false clauses struck through with a pointer here, rather than rewritten —
 the record of what was believed at the time is the point of an area file, and
 the decision it reached still stands on its remaining reason.
 
-### F-utils-15 · `wrapper-docstring-miscounts-the-allowlist` · `storage.ts` describes an allowlist that has since grown
+### RESOLVED 2026-09-03 — F-utils-15 · `wrapper-docstring-miscounts-the-allowlist` · `storage.ts` describes an allowlist that has since grown
 
 `storage.ts:7-10`: the guard fails *"outside this file and a short allowlist —
 the test fake beside it, plus three tests that install a fake of their own."*
@@ -572,6 +572,12 @@ between cases, swapping a fake in for one case only. Same commit that made
 `F-utils-13` stale; the wrapper's docstring counted the same list and was not
 re-read either. Fix: stop enumerating — say "a short allowlist, `ALLOWED` in the
 guard, each entry with its reason" and let the list be the one home.
+
+**Fixed 2026-09-03.** One sentence in `storage.ts`'s header: the count and the
+enumeration are gone, replaced by a pointer at `ALLOWED` and the shape of what
+is on it — the test fake, and the few tests that have to reach the real thing
+on `window`. No number left to rot. "Fails the build" stays; see "Checked and
+deliberately NOT raised" — it is the repo's idiom.
 
 ### F-utils-16 · `fake-docstring-three-false-claims` · `storage.fake.ts` misattributes the thing it exists for
 
