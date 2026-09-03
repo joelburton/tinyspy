@@ -63,10 +63,9 @@ import { logStamp } from '../util/logStamp'
  * Timestamped, prefixed console line. Level `'warn'` for things that should pop
  * out of a screenshot (failure statuses, system errors).
  *
- * **`level` comes before `extra`** because that is how callers use them: of the
- * twelve call sites, eight pass neither and three pass both — and none has ever
- * wanted `extra` alone, while two wanted only the level and had to write
- * `undefined` to reach past it.
+ * **`level` comes before `extra`** because that is how callers use them: most
+ * pass neither, several want the level alone, and none has ever wanted `extra`
+ * alone — which the other order would have made them write `undefined` to reach.
  */
 export function rtLog(
   topic: string,
@@ -134,12 +133,12 @@ export function bareName(topic: string): string {
  * any `.on()` / `.subscribe()` the owning hook performs. Returns the same
  * channel (the factory's callers chain off it).
  *
- * Implementation is deliberately wrap-the-public-API, not reach-into-
- * internals: `.on()`, `.subscribe()`, `.unsubscribe()` are stable surface.
- * The `system` binding is safe to add here (before subscribe) because only
- * `postgres_changes` bindings affect the join payload.
  */
 export function instrumentChannel(ch: RealtimeChannel): RealtimeChannel {
+  // Deliberately wrap-the-public-API, not reach-into-internals: `.on()`,
+  // `.subscribe()` and `.unsubscribe()` are stable surface. The `system`
+  // binding is safe to add here, before subscribe, because only
+  // `postgres_changes` bindings affect the join payload.
   const topic = bareName(ch.topic)
 
   // The postgres-changes health signal. `status: 'ok'` means the WAL

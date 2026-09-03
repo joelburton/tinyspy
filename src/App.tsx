@@ -118,16 +118,14 @@ export default function App() {
     <ClaimHandleScreen onClaimed={refresh} email={session.user.email} />
   )
 
-  /**
-   * The game route: the `<GamePage>` shell with the manifest's PlayArea as its
-   * render-prop child.
-   *
-   * The gametype is matched case-INSENSITIVELY but the registry is keyed on the
-   * lowercase codename, so it is normalized before the lookup. Without that,
-   * `/g/Wordle/<id>` matches the route, misses the registry, and is reported as
-   * a fault — which it isn't. `urlGametype` survives for the two places that
-   * should echo what the URL actually said.
-   */
+  // The game route: the `<GamePage>` shell with the manifest's PlayArea as its
+  // render-prop child.
+  //
+  // The gametype is matched case-INSENSITIVELY but the registry is keyed on the
+  // lowercase codename, so it is normalized before the lookup. Without that,
+  // `/g/Wordle/<id>` matches the route, misses the registry, and is reported as
+  // a fault — which it isn't. `urlGametype` survives for the two places that
+  // should echo what the URL actually said.
   const gamePage = (urlGametype: string, gameId: string) => {
     const gametype = urlGametype.toLowerCase()
     const gameManifest = games.find((g) => g.gametype === gametype)
@@ -176,12 +174,10 @@ export default function App() {
     )
   }
 
-  /**
-   * The current route, as a page. CALLED, not rendered as a component — the
-   * elements it returns reconcile exactly as if they were written inline, where
-   * a component defined in here would take a new identity every render and
-   * remount its whole subtree.
-   */
+  // The current route, as a page. CALLED, not rendered as a component — the
+  // elements it returns reconcile exactly as if they were written inline, where
+  // a component defined in here would take a new identity every render and
+  // remount its whole subtree.
   const currentPage = () => {
 
     const { handle } = path.match(RE_CLUB_ROUTE)?.groups ?? {}

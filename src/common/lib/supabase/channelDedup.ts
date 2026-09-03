@@ -1,5 +1,9 @@
 // cs-fixed-deep
 
+// Bumped per fallback call, so two suffixes minted in the same
+// millisecond still differ.
+let counter = 0
+
 /**
  * Generate a unique-enough suffix for a supabase-js Realtime
  * channel name — and ONLY for that purpose.
@@ -12,16 +16,6 @@
  * suffix makes each channel name unique, sidestepping the
  * cache. See `useGame.ts` files for the canonical example.
  *
- * Prefers `crypto.randomUUID()` when available — but it isn't
- * always: the Web Crypto API restricts `randomUUID` to
- * **secure contexts** (HTTPS or `localhost` / `127.0.0.1`).
- * Hitting the dev server at a LAN IP like `http://10.0.0.89:5173`
- * is NOT a secure context, so `crypto.randomUUID` is undefined
- * and calling it throws `not a function`. Same on `file://`
- * pages, older browsers, some embedded WebViews. The fallback
- * is `Date.now()` + a process-local counter + Math.random
- * words — unique enough for channel-name deduplication.
- *
  * **DO NOT** use this for cryptographic randomness (auth
  * nonces, session tokens, CSRF values, anything user-visible
  * that needs to be unpredictable). The function name reflects
@@ -32,11 +26,13 @@
  * surface a clear error when the secure context isn't
  * available.
  */
-let counter = 0
-
 export function channelDedupSuffix(): string {
-  // Prefer the platform UUID when available (secure-context dev
-  // on localhost; HTTPS in production).
+  // Prefer the platform UUID — but it is not always there. Web
+  // Crypto restricts `randomUUID` to SECURE CONTEXTS (HTTPS, or
+  // localhost / 127.0.0.1), so hitting the dev server at a LAN
+  // IP like `http://10.0.0.89:5173` leaves it undefined and
+  // calling it throws `not a function`. Same on `file://`,
+  // older browsers, some embedded WebViews.
   if (
     typeof crypto !== 'undefined' &&
     typeof crypto.randomUUID === 'function'

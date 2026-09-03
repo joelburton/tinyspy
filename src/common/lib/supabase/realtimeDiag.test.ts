@@ -46,10 +46,10 @@ function fakeChannel(topic = 'realtime:game:abc') {
   }
   return {
     ch: ch as unknown as RealtimeChannel,
-    /** Deliver a payload to every binding of a type, as the server would. */
+    // Deliver a payload to every binding of a type, as the server would.
     deliver: (type: string, payload: unknown) =>
       bindings.filter((b) => b.type === type).forEach((b) => b.cb(payload)),
-    /** Report a subscribe status, as realtime-js would. */
+    // Report a subscribe status, as realtime-js would.
     report: (status: string, err?: Error) => subscribeCb?.(status, err),
     bindings,
   }
