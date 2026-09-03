@@ -13,8 +13,11 @@ such area.
 **Created 2026-09-02** by Joel, while resolving `deep`'s two storage findings,
 and scheduled directly after `deep`.
 
-**Status: OPEN — roster agreed with Joel 2026-09-03**, and the seven files below
-are stamped `cs-met-utils` (§21: agreed, on an open area's roster, not yet read).
+**Status: OPEN, audited, every finding resolved — waiting on Joel's `cs-blessed`
+pass, which is the exit criterion.** Twelve files at `cs-audited-utils`: the
+seven on the roster below, plus the five this area wrote (see "Files this area
+wrote"). Twelve findings, `F-utils-1` … `F-utils-12`; eleven resolved, and
+`F-utils-7` is a note whose work belongs to `floating-panels`.
 
 ## The roster
 
@@ -317,6 +320,79 @@ is FOR:
 **The migration story is not lost — it is in this file**, above, where the
 record of what the sprint did belongs. That is the split: the area file carries
 the history, the code carries the contract.
+
+### RESOLVED 2026-09-03 — F-utils-9 · `storage-docstring-describes-the-old-regex` · two false claims in one sentence
+
+`storage.ts:7-9` says the guard *"fails the build on a raw `localStorage.`
+outside this file"*. Both halves are wrong, and both were made wrong by edits
+made within the hour:
+
+- **`localStorage.`, with the trailing dot,** describes the regex's FIRST
+  version. It was widened to the bare identifier when the allowlist's shrink
+  test caught it missing `storage.ts`'s own helper, and the docstring was not
+  followed through.
+- **"outside this file"** — `ALLOWED` has five entries, not one. Four other
+  files may touch storage, three of them tests.
+
+The same class as `F-utils-1`, `-2` and `-6`, which is the point worth recording:
+this area spent a day on docstrings overtaken by later changes, and then produced
+one overtaken by a change made an hour later in the same sitting. Being the
+person who just wrote it is no protection at all.
+
+### RESOLVED 2026-09-03 — F-utils-10 · `guard-docstring-undercounts-comments` · "the one place" is at least four
+
+`rawStorage.test.ts:20-24` justifies comment-stripping with *"the one place that
+legitimately shows a raw call is `realtimeDiag`'s docstring"*.
+
+Measured across `src/`: **about sixty comment mentions of storage in thirty
+files**, of which at least four show real call syntax that the scan would flag —
+`chatOpenStore.test.ts:24` (*"a tiny try-catch around localStorage.getItem"*),
+`chatOpenStore.test.ts:37` (*"window.localStorage.__proto__, 'setItem')"*),
+`reloadOnStaleChunk.test.ts:75` (*"vi.spyOn(sessionStorage, 'getItem')"*), and
+`realtimeDiag.ts:58-59`.
+
+The claim is wrong in the direction that makes the design look weaker than it is:
+comment-stripping is not a courtesy extended to one docstring, it is load-bearing
+across the repo, and without it this guard would have been red on arrival.
+
+### F-utils-11 · `strip-comments-ignores-string-literals` · a stated limit, not a fix
+
+`stripComments` blanks `//` to end of line and `/* … */` anywhere, with no notion
+of string literals. Two consequences:
+
+- a line containing `'https://…'` is truncated at the `//`, so a storage touch
+  later on that same line would be missed;
+- a `/*` inside a string literal starts a fake block comment that blanks
+  everything to the next `*/` — which could hide real code.
+
+Neither is reachable in the repo today: the tree is green, and the three planted
+violations prove the scan catches what it claims. **Recording the limit rather
+than fixing it** — doing this properly needs a tokenizer, which is out of
+proportion to a guard whose subject is one identifier, and a limit written down
+is one a future reader can weigh. The same trade `noRawServerMessage` makes with
+its line-window heuristic.
+
+### RESOLVED 2026-09-03 — F-utils-12 · `guard-scans-tests-and-does-not-say-so`
+
+`rawStorage.test.ts` sweeps `.test.ts` files along with everything else. That is
+deliberate and unusual — `noRawServerMessage`, the guard it is modeled on,
+explicitly excludes them (`!/\.test\.tsx?$/`) — and it is why three of the five
+`ALLOWED` entries are tests. A test poking raw storage is exactly the thing that
+should have to justify itself, since the fake exists precisely so it does not
+have to. Nothing in the file says any of that, so the next reader meets it as an
+oddity in the allowlist rather than as a decision.
+
+### `storage.test.ts` and `storage.fake.ts` — audited, no findings
+
+One asymmetry noted and left: `removeStored` is tested against local storage only,
+where `readStored` and `writeStored` each have a session case. `store()` picks the
+storage the same way for all three, so the third case would assert the same
+branch twice.
+
+`storage.fake.ts` importing `vitest` from a non-`.test.ts` file was checked
+against precedent rather than assumed:
+`src/common/components/fields/fieldContract.tsx` does the same, so the pattern is
+the repo's, not this area's invention.
 
 ### NOTE, NO ACTION HERE — F-utils-7 · `keyboard-handoff-has-a-successor`
 

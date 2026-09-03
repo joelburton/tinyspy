@@ -1,13 +1,15 @@
-// cs-unmet
+// cs-audited-utils
 
 /**
  * Read and write `localStorage` / `sessionStorage` without the app falling over
  * when the browser refuses.
  *
- * Reach for these instead of touching storage directly — `src/guards/
- * rawStorage.test.ts` fails the build on a raw `localStorage.` outside this
- * file, because the convention this replaces was held by eight files and broken
- * by two, and that produced two separate bugs in one audit.
+ * Reach for these instead of touching storage directly: `src/guards/
+ * rawStorage.test.ts` fails the build on any mention of `localStorage` or
+ * `sessionStorage` outside this file and a short allowlist — the test fake
+ * beside it, plus three tests that install a fake of their own. The convention
+ * this replaces was held by eight files and broken by two, and those two were
+ * separate bugs found in a single audit.
  *
  * **Why a wrapper at all.** A browser set to block site data doesn't return
  * `null` from these APIs — it *throws*, and it throws on the property access
