@@ -1,4 +1,4 @@
-// cs-fixed-deep
+// cs-blessed-deep
 
 import { supabase } from './supabase'
 import type { DbError } from './dbEnvelope'

@@ -78,7 +78,7 @@ export function nothingAnswered(status: number | undefined): boolean {
 const SEVERITY_TO_DB_LOG_KIND: Record<Exclude<Severity, 'fault'>, DbLogKind> = {
   'service-error': 'SERVICE_ERROR',
   'form-validation': 'FORM_VALIDATION',
-  race: 'RACE',
+  'race': 'RACE',
 }
 
 /**
@@ -94,10 +94,10 @@ const SEVERITY_TO_DB_LOG_KIND: Record<Exclude<Severity, 'fault'>, DbLogKind> = {
  * is the same problem one layer up.
  */
 const SEVERITY_TO_OUTCOME: Record<Severity, Outcome> = {
-  fault: 'error',
+  'fault': 'error',
   'form-validation': 'error',
   'service-error': 'error',
-  race: 'warning',
+  'race': 'warning',
 }
 
 /**
@@ -117,8 +117,9 @@ export function notOkOutcome(envelope: Envelope & { type: 'not-ok' }): Outcome {
 }
 
 /**
- * **Log an outcome that is NOT a fault** — a form-validation, a lost race, a
- * wait-and-retry service-error, or an `ok` carrying words.
+ * **Log an answer that is NOT a fault** — a form-validation, a lost race, a
+ * wait-and-retry service-error, or an `ok` carrying words. The line and nothing
+ * else: `reportFault` is the path that also puts a modal up.
  *
  * The `service-error` half is the one that matters, and it is why "an expected
  * rejection is not worth logging" is the wrong rule: it makes a MISCLASSIFIED
@@ -126,7 +127,7 @@ export function notOkOutcome(envelope: Envelope & { type: 'not-ok' }): Outcome {
  * because something is broken, nothing anywhere says so. Logging it at `warn`
  * costs one line and keeps that visible without putting a modal in anyone's way.
  */
-function logDbOutcome(transport: TransportFacts, envelope: Envelope): void {
+function logDbNonFault(transport: TransportFacts, envelope: Envelope): void {
   logDb(dbLogKindFor(envelope), envAndTransportToDiagFields(transport, envelope), envelope.message)
 }
 
@@ -157,7 +158,7 @@ function dbLogKindFor(envelope: Envelope): DbLogKind {
  * Then "nothing answered at all", which the status alone identifies. Then
  * Postgres speaking for itself, which is the case that needs no help.
  */
-function failureEnvelope(
+function envelopeForDbError(
   settled: { error: DbError; status?: number; statusText?: string },
   environmentalDetail: string | undefined,
   fallback: string,
@@ -185,9 +186,9 @@ function failureEnvelope(
  * about it passes the flag, and the flag is visible at the call rather than in
  * a list in another file.
  */
-export type CallOptions = {
-  /** Default `true`. Pass `false` only with a plan for handling faults
-   *  yourself — `src/guards/callSiteShape.test.ts` checks that you have one. */
+type DbCallOptions = {
+  // Default `true`. Pass `false` only with a plan for handling faults yourself —
+  // `src/guards/callSiteShape.test.ts` checks that you have one.
   presentFaults?: boolean
 }
 
@@ -204,7 +205,7 @@ export type CallOptions = {
  * `severity: 'fault'` before reaching here, so the message is a `string` and
  * there is no null to hedge against.
  */
-function reportFault(transport: TransportFacts, envelope: NotOkEnv, opts?: CallOptions): void {
+function reportFault(transport: TransportFacts, envelope: NotOkEnv, opts?: DbCallOptions): void {
   if (opts?.presentFaults === false) {
     logDb('FAULT', envAndTransportToDiagFields(transport, envelope), envelope.message)
     return
@@ -292,7 +293,7 @@ type QueryLike<T> = PromiseLike<{
  * Not for `readRows`, which builds an envelope around rows nobody authored and
  * never receives one — `src/guards/dbCallShape.test.ts` guards that split.
  */
-function readEnvelope<T>(transport: TransportFacts, body: unknown, opts?: CallOptions): Envelope<T> {
+function readEnvelope<T>(transport: TransportFacts, body: unknown, opts?: DbCallOptions): Envelope<T> {
   if (!_isEnvelope(body)) {
     const rawBody = `rawBody: ${JSON.stringify(body)?.slice(0, 120)}`
     const unreadable = faultEnvelope(
@@ -314,7 +315,7 @@ function readEnvelope<T>(transport: TransportFacts, body: unknown, opts?: CallOp
   if (body.type === 'not-ok' && body.severity === 'fault') {
     reportFault(transport, body, opts)
   } else {
-    logDbOutcome(transport, body)
+    logDbNonFault(transport, body)
   }
   return body as Envelope<T>
 }
@@ -340,7 +341,7 @@ function readEnvelope<T>(transport: TransportFacts, body: unknown, opts?: CallOp
 export async function runEdgeFn<T>(
   fnName: string,
   body: Record<string, unknown>,
-  opts?: CallOptions,
+  opts?: DbCallOptions,
 ): Promise<Envelope<T>> {
   const started = performance.now()
   const { data, error } = await edgeFnTransport(fnName, body)
@@ -410,7 +411,7 @@ function callLabel(call: unknown, fallback: string): string {
  */
 export async function runRpc<T>(
   call: PromiseLike<{ data: unknown; error: DbError; status?: number; statusText?: string }>,
-  opts?: CallOptions,
+  opts?: DbCallOptions,
 ): Promise<Envelope<T>> {
   // Timed here because `dbFetch` stays quiet on an RPC's 2xx — the answer
   // inside it is this function's to read, and one line per call beats a `OK`
@@ -443,7 +444,7 @@ export async function runRpc<T>(
     ms: Math.round(performance.now() - started),
   }
   if (settled.error) {
-    const envelope = failureEnvelope(settled, settled.error.message, 'The server refused the request.')
+    const envelope = envelopeForDbError(settled, settled.error.message, 'The server refused the request.')
     reportFault(transport, envelope, opts)
     return envelope
   }
@@ -470,7 +471,7 @@ export async function runRpc<T>(
  */
 export async function readRows<Row>(
   query: QueryLike<Row[]>,
-  opts?: CallOptions,
+  opts?: DbCallOptions,
 ): Promise<Envelope<Row[]>> {
   // Timed here, exactly as `runRpc` times itself: a postgrest builder is LAZY,
   // so `await query` is what fires the request, and wrapping it captures the
@@ -497,7 +498,7 @@ export async function readRows<Row>(
     return envelope
   }
   if (settled.error) {
-    const envelope = failureEnvelope(settled, `${call} — ${settled.error.message}`, 'The read failed.', call)
+    const envelope = envelopeForDbError(settled, `${call} — ${settled.error.message}`, 'The read failed.', call)
     reportFault({ call, status: settled.status, ms: Math.round(performance.now() - started) }, envelope, opts)
     return envelope
   }

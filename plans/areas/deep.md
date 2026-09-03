@@ -725,7 +725,7 @@ and the only trace is whatever the call site does with the envelope.
 The comment on the branch says this is *"the same case by another road, not a
 different one"*. That is exactly the argument for treating it the same, and the
 two roads differ in the one thing this system exists to guarantee: the `status:
-0` road goes `settled.error` → `failureEnvelope` → `reportFault`, logged and
+0` road goes `settled.error` → `envelopeForDbError` → `reportFault`, logged and
 shown.
 
 **The tests can already see this and are not pointed at it.**
@@ -824,7 +824,7 @@ definition nobody could parse it — did not.
 
 > **resolution: clamped in `environmentalEnvelope`**, which is the single builder
 > every environmental path reaches, including `nothingReachedUs` and both of
-> `failureEnvelope`'s branches. Same 120 as the existing five, with an ellipsis;
+> `envelopeForDbError`'s branches. Same 120 as the existing five, with an ellipsis;
 > matching them matters more than the number does. `faultEnvelope` is deliberately
 > untouched — a raw fault's detail is Postgres talking, which is bounded and worth
 > having whole.
@@ -867,7 +867,7 @@ off by one, in the one place in this file where getting the branch wrong matters
 ## RESOLVED · F-deep-21 · `nothing-answered-says-four-sites` · A docstring counts call sites, and the count is wrong
 
 `dbResult.ts:55` — *"it is asked at four call sites, and getting it wrong is
-invisible"*. It is asked at **two**: `:167` in `failureEnvelope` and `:295` in
+invisible"*. It is asked at **two**: `:167` in `envelopeForDbError` and `:295` in
 `runEdgeFn`. The argument for naming the predicate still holds; the number does
 not, and a number in a docstring is a thing a reader checks.
 
