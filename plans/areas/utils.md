@@ -257,7 +257,7 @@ nobody could see had not been read in a while:
 
 No behavior change; `tsc -b` clean, the folder's 31 tests pass, eslint silent.
 
-### F-utils-6 · `calendar-day-diff-false-claim` · a claim that is both wrong and unreachable
+### RESOLVED 2026-09-03 — F-utils-6 · `calendar-day-diff-false-claim` · a claim that is both wrong and unreachable
 
 `friendlyDate.ts:69` documents the private helper:
 
@@ -275,6 +275,20 @@ Neither clause survives reading:
 
 The behavior is correct (`friendlyDate.test.ts:31` pins clock-skew futures as
 "Just now"); it is the explanation of an unreachable case that is wrong.
+
+**Fixed 2026-09-03.** The false half is gone and the true half is kept and
+stated as the reason: `then` is always in the past here, because `friendlyDate`
+answers "Just now" below a minute and that covers every negative delta.
+
+The replacement also says what the helper is FOR, which the old one left to the
+reader: it compares local midnights rather than subtracting 24-hour windows.
+That is the distinction the whole format ladder rests on — it is why
+"yesterday 11pm" seen at 1am reads as "Yesterday 11pm" and not "2 hours ago" —
+and the docstring on the function that implements it was the one place not
+saying so.
+
+Nothing else changed; the behavior was always correct, and
+`friendlyDate.test.ts:31` already pinned it.
 
 ### F-utils-7 · `keyboard-handoff-has-a-successor` · NOTE, not a fix here
 

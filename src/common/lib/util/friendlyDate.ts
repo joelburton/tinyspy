@@ -66,9 +66,14 @@ export function friendlyDate(iso: string, now: Date = new Date()): string {
   })
 }
 
-/** Number of calendar days between `then` and `now` in local time.
- *  Same day: 0. Yesterday: 1. Returns 0 for future timestamps via
- *  the round (the caller has already handled the < 0 ms case). */
+/** Number of calendar days between `then` and `now` in local time —
+ *  same day: 0, yesterday: 1. Compares local midnights rather than
+ *  subtracting 24-hour windows, which is the distinction the whole
+ *  format ladder rests on.
+ *
+ *  `then` is always in the past here: `friendlyDate` answers "Just
+ *  now" below a minute, and that covers every negative delta, so a
+ *  future timestamp never reaches this. */
 function calendarDayDiff(then: Date, now: Date): number {
   const thenMidnight = new Date(
     then.getFullYear(),
