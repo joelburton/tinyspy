@@ -108,8 +108,8 @@ twice while the passes ran, because the area kept editing its own files.
 | `src/common/lib/supabase/dbResult.test.ts` | 811 |
 | `src/common/lib/supabase/dbFetch.ts` | 282 |
 | `src/common/lib/supabase/dbFetch.test.ts` | 289 |
-| `src/common/lib/supabase/callEdgeFn.ts` | 101 |
-| `src/common/lib/supabase/callEdgeFn.test.ts` | 95 |
+| `src/common/lib/supabase/edgeFnTransport.ts` | 101 |
+| `src/common/lib/supabase/edgeFnTransport.test.ts` | 95 |
 | `src/common/lib/supabase/dbLog.ts` | 175 |
 
 **The realtime plumbing — 8 files, 865 lines**
@@ -672,7 +672,7 @@ presentation path and two facts computed and thrown away.
 **Checked and NOT findings**, recorded so they are not re-derived:
 
 - `faultEnvelope`'s `error?.code || ourCode || null` uses `||` rather than `??`
-  deliberately: `callEdgeFn:98` sets `code: ''` for a codeless transport failure,
+  deliberately: `edgeFnTransport:98` sets `code: ''` for a codeless transport failure,
   and `??` would let the empty string win over `ourCode`.
 - `db.ts` (26 lines) and `dbLog.ts` (175) are clean. `dbLog`'s fixed-field line,
   its `fieldValue` / `quotedText` split, and the level→console-method map all
@@ -782,7 +782,7 @@ nothing is an empty reply."*
 declaration, that assignment, and `!unparsed` as a boolean at `:258`. The
 content-type never reaches a log or an envelope.
 
-The comparison is what makes it a finding rather than a nit: `callEdgeFn:86`
+The comparison is what makes it a finding rather than a nit: `edgeFnTransport:86`
 builds the identical sentence for the identical situation and **carries it**, as
 `details`, so it lands on the `[db]` line. The same fact survives on the edge
 path and evaporates on the database path.
@@ -901,7 +901,7 @@ registered** — sixteen manifest imports in `src/games.ts`, sixteen folders und
 
 ## RESOLVED · F-deep-22 · `calledgefn-doc-describes-the-superseded-contract` · The transport adapter documents the system that replaced it
 
-Two ways, both in `callEdgeFn.ts`:
+Two ways, both in `edgeFnTransport.ts`:
 
 - **`:39` names three functions that do not exist.** *"`{ error }` ready for
   `failureMessage` / `faultMessage` / `failureText`, which own all wording per
@@ -1010,7 +1010,7 @@ just as quiet.
 
 ## Notes from this pass that belong to OTHER areas
 
-Filed here because `callEdgeFn`'s docstring is what led to them; **none is this
+Filed here because `edgeFnTransport`'s docstring is what led to them; **none is this
 area's to fix.**
 
 1. **`src/guards/edgeFnErrorKeys.test.ts` guards a shape almost nothing emits.**
@@ -1684,10 +1684,10 @@ source kept the old half.
 > 2026-09-02): PN307, not null — no SQLSTATE, but "the frontend built this" is
 > itself an answer, and a call site should not identify it by an absence.
 
-## RESOLVED · F-deep-46 · `callerror-does-not-exist` · `F-deep-22` removed the deleted helpers from `callEdgeFn.ts` and not from its neighbors
+## RESOLVED · F-deep-46 · `callerror-does-not-exist` · `F-deep-22` removed the deleted helpers from `edgeFnTransport.ts` and not from its neighbors
 
 `dbResult.ts:273`: a 4xx *"arrives as a transport-shaped `CallError`"*.
-`callEdgeFn.test.ts:5,8`: *"a classifiable `CallError`"*, *"so
+`edgeFnTransport.test.ts:5,8`: *"a classifiable `CallError`"*, *"so
 `classifyFailure` treats it like a direct RPC failure"*, *"the behavior
 matrix"*. **None of `CallError`, `classifyFailure` or a behavior matrix exists
 in `src/`**; the adapter returns `NonNullable<DbError>`. Two more mentions sit
@@ -1696,8 +1696,8 @@ owner's, recorded here with the other two notes to that owner in pass 2.
 
 > **resolution: both this area's mentions rewritten** (Joel, 2026-09-02).
 > `dbResult.ts` now says what is true of the 4xx path — the function's own
-> `error` channel fired, `callEdgeFn` digs it out as a `DbError`, and it becomes
-> a fault here. `callEdgeFn.test.ts` names `DbError` and `runEdgeFn` where it
+> `error` channel fired, `edgeFnTransport` digs it out as a `DbError`, and it becomes
+> a fault here. `edgeFnTransport.test.ts` names `DbError` and `runEdgeFn` where it
 > named the two deleted helpers, and "the cells these pin (the edge-fn column of
 > the behavior matrix)" became "the cases these pin". **The three in
 > `noRawServerMessage.test.ts` are left**, being the guards owner's — now the
@@ -1970,7 +1970,7 @@ follow:
 |---|---|
 | `dbResult.ts:195` | *"the seven sites that used to call `reportDbFault` directly"* |
 | `dbEnvelope.ts:139` | *"64 Deno ones"* |
-| `callEdgeFn.ts:17` | *"Five call sites used to each hand-roll"* |
+| `edgeFnTransport.ts:17` | *"Five call sites used to each hand-roll"* |
 | `dbFetch.test.ts:12` | *"the 47 sites that render an error"* |
 | `dbLog.ts:90-93` | *"which is how it came to be silently dropped below"* — nothing below drops it; the drop was in `envAndTransportToDiagFields`, and is gone |
 | `_shared/dbResult.ts:116` | *"until now whether a call said anything at all was per-function taste"* |

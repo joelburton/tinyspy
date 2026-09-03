@@ -48,7 +48,7 @@ const ALLOWED = new Map<string, string>([
   ['src/common/lib/supabase/dbResult.ts', "puts the browser's opaque string in an envelope's DETAIL, which no surface renders — the MESSAGE on that path is the frontend's own sentence"],
   // Reads the message to build a CallError for the classifier — the opposite of
   // rendering it.
-  ['src/common/lib/supabase/callEdgeFn.ts', 'builds the classifiable CallError off a functions-js failure'],
+  ['src/common/lib/supabase/edgeFnTransport.ts', 'builds the classifiable CallError off a functions-js failure'],
   // Not server errors at all.
   ['src/crosswords/components/pickers/UploadPickerBlockingModal.tsx', 'a FileReader failure reading a local .ipuz'],
   // GoTrue auth errors are the AUTH SERVICE's own user-facing text ("Token has

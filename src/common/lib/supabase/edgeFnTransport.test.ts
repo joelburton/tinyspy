@@ -1,7 +1,7 @@
 // cs-fixed-deep
 
 /**
- * callEdgeFn — the one place a functions-js failure becomes a classifiable
+ * edgeFnTransport — the one place a functions-js failure becomes a classifiable
  * `DbError` for `runEdgeFn`. The cases these pin:
  *
  *   - a response body with our `{ error, code? }` shape → `answered: true` and
@@ -17,7 +17,7 @@
  * and a broken deploy tell the player the same thing.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { callEdgeFn } from './callEdgeFn'
+import { edgeFnTransport } from './edgeFnTransport'
 import { supabase } from './supabase'
 
 vi.mock('./supabase', () => ({ supabase: { functions: { invoke: vi.fn() } } }))
@@ -33,10 +33,10 @@ function fnError(body: string | null, contentType = 'application/json') {
 
 afterEach(() => vi.restoreAllMocks())
 
-describe('callEdgeFn', () => {
+describe('edgeFnTransport', () => {
   it('passes a 2xx payload through untouched', async () => {
     invoke.mockResolvedValue({ data: { id: 'g1' }, error: null })
-    expect(await callEdgeFn('x-build-board', {})).toEqual({ data: { id: 'g1' }, error: null })
+    expect(await edgeFnTransport('x-build-board', {})).toEqual({ data: { id: 'g1' }, error: null })
   })
 
   it('recovers { error, code } from the body and marks it ANSWERED', async () => {
@@ -44,7 +44,7 @@ describe('callEdgeFn', () => {
       data: null,
       error: fnError(JSON.stringify({ error: 'no-required-words|', code: 'P0001' })),
     })
-    const res = await callEdgeFn('x-build-board', {})
+    const res = await edgeFnTransport('x-build-board', {})
     // status 200 is the fixture Response's default; real failures carry 4xx/5xx.
     expect(res.error).toEqual({ message: 'no-required-words|', code: 'P0001', status: 200, answered: true })
   })
@@ -58,7 +58,7 @@ describe('callEdgeFn', () => {
       data: null,
       error: fnError(JSON.stringify({ error: 'no candidate words for band 3' })),
     })
-    const res = await callEdgeFn('x-build-board', {})
+    const res = await edgeFnTransport('x-build-board', {})
     expect(res.error).toEqual({
       message: 'no candidate words for band 3', code: 'PN489', status: 200, answered: true,
     })
@@ -71,7 +71,7 @@ describe('callEdgeFn', () => {
   // so the parse attempt and the content-type are both in reach.
   it('blames our own deploy when the body will not parse', async () => {
     invoke.mockResolvedValue({ data: null, error: fnError('<html>502</html>', 'text/html') })
-    const res = await callEdgeFn('x-build-board', {})
+    const res = await edgeFnTransport('x-build-board', {})
     expect(res.error).toMatchObject({
       code: 'PN310',
       status: 200,
@@ -87,7 +87,7 @@ describe('callEdgeFn', () => {
   // our bug. No `answered`: our function never spoke.
   it('calls a reply that was not ours FE003', async () => {
     invoke.mockResolvedValue({ data: null, error: fnError(JSON.stringify({ msg: 'not ours' })) })
-    const res = await callEdgeFn('x-build-board', {})
+    const res = await edgeFnTransport('x-build-board', {})
     expect(res.error).toEqual({
       message: 'Edge Function returned a non-2xx status code', code: 'FE003', status: 200,
     })
@@ -100,7 +100,7 @@ describe('callEdgeFn', () => {
   // layer knows only that nothing replied.
   it('reports status 0 when there was no response at all', async () => {
     invoke.mockResolvedValue({ data: null, error: fnError(null) })
-    const res = await callEdgeFn('x-build-board', {})
+    const res = await edgeFnTransport('x-build-board', {})
     expect(res.error).toEqual({
       message: 'Edge Function returned a non-2xx status code', status: 0,
     })

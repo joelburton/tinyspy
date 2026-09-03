@@ -35,7 +35,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
-const WRAPPERS = ['runRpc', 'readRows', 'runEdgeFn', 'callEdgeFn']
+const WRAPPERS = ['runRpc', 'readRows', 'runEdgeFn', 'edgeFnTransport']
 
 /**
  * Files that ARE the boundary rather than crossing it: the wrappers themselves,
@@ -44,7 +44,7 @@ const WRAPPERS = ['runRpc', 'readRows', 'runEdgeFn', 'callEdgeFn']
 const THE_BOUNDARY_ITSELF = new Set([
   'src/common/lib/supabase/dbResult.ts',
   'src/common/lib/supabase/dbFetch.ts',
-  'src/common/lib/supabase/callEdgeFn.ts',
+  'src/common/lib/supabase/edgeFnTransport.ts',
 ])
 
 function sourceFiles(dir: string): string[] {
@@ -111,7 +111,7 @@ describe('every server call goes through a wrapper', () => {
     for (const file of files) {
       const src = readFileSync(file, 'utf8')
       const mask = commentMask(src)
-      const spans = [...src.matchAll(/\b(?:runRpc|readRows|runEdgeFn|callEdgeFn)\s*(?:<[^(]*?>)?\s*\(/g)]
+      const spans = [...src.matchAll(/\b(?:runRpc|readRows|runEdgeFn|edgeFnTransport)\s*(?:<[^(]*?>)?\s*\(/g)]
         .map((m) => argumentSpan(src, m.index! + m[0].length - 1))
       for (const m of src.matchAll(/\.rpc\s*\(/g)) {
         const at = m.index!

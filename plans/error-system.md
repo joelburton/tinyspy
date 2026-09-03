@@ -20,7 +20,7 @@ was waiting on, converted with the cross-cutting four.
 
 The prose took a second pass (2026-09-02): the count here was wrong, and it was
 **nine** comments naming the deleted files rather than four — in `FaultModal`,
-`faultStore`, `genericPills`, `callEdgeFn`, `games.ts`, `useCells`,
+`faultStore`, `genericPills`, `edgeFnTransport`, `games.ts`, `useCells`,
 `guards/README.md` and two letterboxed tests. `docs/envelopes.md` needed it too:
 its opening still described the convention as being rolled out.
 
@@ -447,8 +447,8 @@ and took twenty assertions with it.
       longer waiting for something that has not happened. `moves` renamed
       `turns`: one loop pass is one seat's TURN however many words it crossed,
       and 0 is the common value since every client pokes and one wins. It was
-      also the last raw `callEdgeFn` call site, and is not one now:
-      `callEdgeFn` has exactly one consumer, `runEdgeFn`, with a guard in
+      also the last raw `edgeFnTransport` call site, and is not one now:
+      `edgeFnTransport` has exactly one consumer, `runEdgeFn`, with a guard in
       `callSiteShape.test.ts` keeping it there — the export cannot say who it is
       for, and an auto-import is all a second would take
 - [x] `scrabble-suggest-move` · edge fn — PN330–PN332 faults, and

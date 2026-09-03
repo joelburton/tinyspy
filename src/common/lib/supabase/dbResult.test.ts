@@ -59,7 +59,7 @@ beforeEach(() => {
  * player saw a modal and a pill disagreeing about one event.
  *
  * `status: 0` is the signal: postgrest-js sets it on its fetch-rejection path
- * and only there, and `callEdgeFn` matches it for the same case.
+ * and only there, and `edgeFnTransport` matches it for the same case.
  *
  * The browser's string is not thrown away — it moves to `detail`, which is the
  * one field that separates a dead socket from a TLS failure. It just stops
@@ -217,7 +217,7 @@ describe('_isEnvelope', () => {
   })
 
   // **A refusal with no code cannot be one of ours**: SQL writes the SQLSTATE
-  // unconditionally, Deno's builders require it, and `callEdgeFn` names every
+  // unconditionally, Deno's builders require it, and `edgeFnTransport` names every
   // failure it forwards. So the strictness costs no real answer, and what it
   // catches is a hand-built shape that would otherwise travel unidentifiable
   // through every log. An `ok` is unaffected — it has a code only when a raise
@@ -625,7 +625,7 @@ describe('runEdgeFn — the same shape, through Deno', () => {
   })
 
   it('raises the modal for a declared fault, though the call succeeded', async () => {
-    // The whole reason this function exists rather than callEdgeFn alone: a
+    // The whole reason this function exists rather than edgeFnTransport alone: a
     // fault that arrives 200 is invisible to `dbFetch`, which only reads a
     // non-2xx body. Without this, `severity: fault` would mean two different
     // things depending on which transport carried it.
@@ -645,7 +645,7 @@ describe('runEdgeFn — the same shape, through Deno', () => {
   // to be made to. SQL writes the SQLSTATE unconditionally and Deno's builders
   // take the code as a required argument; what could arrive without one is a
   // function of ours answering non-2xx with `{ error }` and no `code`, which
-  // `callEdgeFn` forwards codeless (its own test pins that shape). `PN489` is
+  // `edgeFnTransport` forwards codeless (its own test pins that shape). `PN489` is
   // what `faultEnvelope` puts there so no fault is left unidentifiable in a log.
   it('gives a codeless refusal our own code', async () => {
     mockInvoke.mockResolvedValue({
@@ -665,7 +665,7 @@ describe('runEdgeFn — the same shape, through Deno', () => {
   })
 
   // **A reply that was not our function is an OUTAGE, not our bug** — the third
-  // answer this path was missing. `callEdgeFn` names it `FE003`, the same code
+  // answer this path was missing. `edgeFnTransport` names it `FE003`, the same code
   // `dbFetch` gives it on the database path, and `situationFor` reads it back
   // here so the player gets the frontend's sentence rather than the gateway's
   // own words.

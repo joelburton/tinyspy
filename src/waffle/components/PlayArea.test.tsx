@@ -24,7 +24,7 @@ import { gp } from '../../common/test/gamePlayers'
 import type { WaffleGame, WafflePlayerState, SwapRow } from '../hooks/useGame'
 import { db } from '../db'
 import { db as commonDb } from '../../common/db'
-import { callEdgeFn } from '../../common/lib/supabase/callEdgeFn'
+import { edgeFnTransport } from '../../common/lib/supabase/edgeFnTransport'
 import { PlayArea } from './PlayArea'
 import { clearFaultsForTest, peekFaultsForTest } from '../../common/lib/fault/faultStore'
 
@@ -46,7 +46,7 @@ vi.mock('../../common/db', () => ({ db: { rpc: vi.fn() } }))
 // different shape, the test kept passing against a helper nothing used any more.
 // Mocking one layer down runs the real `runEdgeFn`, which is what reads the
 // envelope and raises the fault.
-vi.mock('../../common/lib/supabase/callEdgeFn', () => ({ callEdgeFn: vi.fn() }))
+vi.mock('../../common/lib/supabase/edgeFnTransport', () => ({ edgeFnTransport: vi.fn() }))
 
 const rpc = db.rpc as unknown as ReturnType<typeof vi.fn>
 
@@ -66,7 +66,7 @@ const okEnvelope = {
   error: null,
 }
 const commonRpc = commonDb.rpc as unknown as ReturnType<typeof vi.fn>
-const startEdgeFn = callEdgeFn as unknown as ReturnType<typeof vi.fn>
+const startEdgeFn = edgeFnTransport as unknown as ReturnType<typeof vi.fn>
 
 // A 25-char board (holes at 6/8/16/18); the exact letters don't matter for these
 // mount-level tests — holes render as gaps regardless of what sits there.

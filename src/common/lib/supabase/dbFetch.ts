@@ -247,7 +247,7 @@ export const dbFetch: typeof fetch = async (input, init) => {
     // An unparseable body. PostgREST ALWAYS speaks JSON, so something that is
     // not PostgREST answered: a captive portal, a proxy, an ISP error page.
     // (An edge function's unparseable body means something else — the runtime
-    // answering instead of the function — but `callEdgeFn` holds the Response
+    // answering instead of the function — but `edgeFnTransport` holds the Response
     // and decides that for itself.)
     : NO_ANSWER_TO_CODE_AND_TEXT.foreignResponder
 

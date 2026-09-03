@@ -83,7 +83,7 @@ describe('call-site shape', () => {
    * reads are the unconverted roster, not this rule's business.
    */
   /**
-   * Guard: **`callEdgeFn` is `runEdgeFn`'s, and nobody else's.**
+   * Guard: **`edgeFnTransport` is `runEdgeFn`'s, and nobody else's.**
    *
    * It is the transport adapter — it digs the real error out of a functions-js
    * failure and normalizes it into the `{ data, error }` shape a postgrest call
@@ -99,10 +99,10 @@ describe('call-site shape', () => {
    * TESTS may: mocking the adapter is how you drive the real `runEdgeFn` from a
    * component test, which is the opposite of reaching past it.
    */
-  it('nothing but runEdgeFn imports callEdgeFn', () => {
+  it('nothing but runEdgeFn imports edgeFnTransport', () => {
     const offenders = sourceFiles('src')
-      .filter((f) => !f.endsWith('dbResult.ts') && !f.includes('callEdgeFn') && !f.includes('.test.'))
-      .filter((f) => /from '[^']*callEdgeFn'/.test(readFileSync(f, 'utf8')))
+      .filter((f) => !f.endsWith('dbResult.ts') && !f.includes('edgeFnTransport') && !f.includes('.test.'))
+      .filter((f) => /from '[^']*edgeFnTransport'/.test(readFileSync(f, 'utf8')))
     expect(
       offenders,
       'imported the transport adapter directly — it neither logs nor presents',

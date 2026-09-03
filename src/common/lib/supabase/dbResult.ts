@@ -1,6 +1,6 @@
 // cs-fixed-deep
 
-import { callEdgeFn } from './callEdgeFn'
+import { edgeFnTransport } from './edgeFnTransport'
 import {
   envAndTransportToDiagFields, environmentalEnvelope, faultEnvelope, nothingReachedUs,
   OUR_BUG_TO_CODE_AND_TEXT, reportDbFault, situationFor, type DbError,
@@ -59,7 +59,7 @@ import type { Envelope, NotOkEnv, Severity } from './envelope'
  *
  * `0` is not an HTTP status. postgrest-js sets it when the `fetch` REJECTED
  * (its `.catch` branch in `PostgrestBuilder`), and only then — anything that
- * actually replied carries a real status. `callEdgeFn` reports the same `0`
+ * actually replied carries a real status. `edgeFnTransport` reports the same `0`
  * for the same case, so one predicate covers both transports.
  *
  * **Known limit:** an abort also arrives as `0`. Unreachable today (nothing in
@@ -221,7 +221,7 @@ function reportFault(transport: TransportFacts, envelope: NotOkEnv, opts?: CallO
  *
  * **A `not-ok` must name a `dbcode`**, and that is now a thing this can insist
  * on rather than hope for: SQL writes the SQLSTATE unconditionally, Deno's
- * builders take the code as a required argument, and `callEdgeFn` names every
+ * builders take the code as a required argument, and `edgeFnTransport` names every
  * failure it forwards. So a refusal with no code is not a refusal we can have
  * produced — it is a hand-built shape, and the loud answer is the right one.
  * An `ok` is unaffected: it carries a code only when a raise wrote one.
@@ -333,7 +333,7 @@ function readEnvelope<T>(transport: TransportFacts, body: unknown, opts?: CallOp
  * envelope arrives 200 and the modal for a declared fault is raised HERE.
  *
  * A function whose own `error` channel fires — the RPC never ran, or a shape
- * from before the conversion — answers `{ error }` with a 4xx. `callEdgeFn`
+ * from before the conversion — answers `{ error }` with a 4xx. `edgeFnTransport`
  * digs that out as a `DbError`, and it becomes a fault envelope here, which is
  * the right treatment for a shape no caller can read.
  */
@@ -343,7 +343,7 @@ export async function runEdgeFn<T>(
   opts?: CallOptions,
 ): Promise<Envelope<T>> {
   const started = performance.now()
-  const { data, error } = await callEdgeFn(fnName, body)
+  const { data, error } = await edgeFnTransport(fnName, body)
   // Built before the failure branch, not after, because these failures are
   // presented HERE now — and a presented fault needs the transport facts for
   // its diagnostics line.
@@ -354,7 +354,7 @@ export async function runEdgeFn<T>(
   }
   if (error) {
     // The same three answers the database path decides between, in the same
-    // order — `callEdgeFn` is this transport's `dbFetch`, and it has already
+    // order — `edgeFnTransport` is this transport's `dbFetch`, and it has already
     // named which happened. Nothing answered; something answered that was not
     // our function (`FE003`, read back by code exactly as `situationFor` reads
     // `dbFetch`'s verdict out of `statusText`); or our function itself refused.

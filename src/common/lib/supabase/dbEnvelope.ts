@@ -23,7 +23,7 @@ import type { Envelope, NotOkEnv } from './envelope'
  * The error shape a failed call resolves to. Structural, so a PostgrestError
  * and a hand-built object both satisfy it.
  *
- * The first four fields are PostgREST's. The last two are `callEdgeFn`'s, which
+ * The first four fields are PostgREST's. The last two are `edgeFnTransport`'s, which
  * has a Response in hand where the database path has only a flattened message:
  * `status` is read back by `runEdgeFn` to tell "nothing answered" from "the
  * function refused", and `answered` says the runtime replied at all.
@@ -36,7 +36,7 @@ export type DbError = {
   // The HTTP status, when the failure came through an edge function. Direct
   // PostgREST errors don't carry one.
   status?: number
-  // Set by `callEdgeFn` when the runtime answered — the function's own refusal,
+  // Set by `edgeFnTransport` when the runtime answered — the function's own refusal,
   // or a container that replied with something unparseable.
   answered?: true
 } | null | undefined
@@ -187,7 +187,7 @@ export const OUR_BUG_TO_CODE_AND_TEXT = {
   // One of OUR edge functions answered non-2xx with `{ error }` and no `code`.
   // A function that ran answers 200 with an envelope, and one that relays a
   // raise sends the SQLSTATE beside the message — so neither happened here, and
-  // the failure would otherwise travel with nothing to key on. `callEdgeFn`
+  // the failure would otherwise travel with nothing to key on. `edgeFnTransport`
   // stamps this at the one place that can tell it from a reply that was not
   // ours at all (which is `FE003`, not a bug of ours).
   //
