@@ -367,9 +367,10 @@ of string literals. Two consequences:
 - a `/*` inside a string literal starts a fake block comment that blanks
   everything to the next `*/` — which could hide real code.
 
-Neither is reachable in the repo today: the tree is green, and the three planted
-violations prove the scan catches what it claims. **Recording the limit rather
-than fixing it** — doing this properly needs a tokenizer, which is out of
+~~Neither is reachable in the repo today~~ (**wrong — the second pass measured
+it, `F-utils-14`**: the `/*` half is reached by a glob in `cssTokens.test.ts`);
+the tree is green, and the three planted violations prove the scan catches what
+it claims. **Recording the limit rather than fixing it** — doing this properly needs a tokenizer, which is out of
 proportion to a guard whose subject is one identifier, and a limit written down
 is one a future reader can weigh. The same trade `noRawServerMessage` makes with
 its line-window heuristic.
@@ -394,7 +395,10 @@ old strip truncated the line at `https:` and reported nothing.
 **Not fixed, deliberately: `/*` inside a string literal.** Two reasons, the
 second stronger than the first:
 
-- a TS string holding `/*` with a later close is contrived, where a URL is not;
+- ~~a TS string holding `/*` with a later close is contrived, where a URL is
+  not;~~ (**wrong** — a glob is a string holding `/*`, and `src/guards/` has
+  one that reaches twenty-five lines; `F-utils-14`. The second reason carries
+  the decision alone.)
 - **three other guards carry the identical hole** — `cssClasses.test.ts:55` and
   `cssTokens.test.ts:40` use the same block-comment regex, and
   `callSiteShape.test.ts` is cruder still. Fixing this one with a tokenizer
@@ -521,7 +525,7 @@ No line numbers in the new text — `cssTokens.test.ts:419` is named by file
 only, because a line reference in a docstring rots the way this finding's own
 subject did.
 
-### F-utils-14 · `string-glob-hole-is-reachable` · "not reachable in this repo today" was asserted, not measured — and it is false
+### RESOLVED 2026-09-03 — F-utils-14 · `string-glob-hole-is-reachable` · "not reachable in this repo today" was asserted, not measured — and it is false
 
 `F-utils-11` left the `/*`-inside-a-string half unfixed on the argument that *"a
 TS string holding `/*` with a later close is contrived, where a URL is not."*
@@ -548,9 +552,14 @@ wrong is the *sentence*: three places say the hole cannot be reached and one
 guard file is already inside it. Fix: correct all three, and give the deferred
 item the measurement so the next reader has the fact instead of the guess.
 
-**One of three done** — the guard file's own copy of the sentence was rewritten
-under `F-utils-13`. Still owed here: `docs/deferred.md:65`'s "Not reachable in
-the repo today", and this file's `F-utils-11` text above.
+**Fixed 2026-09-03, in three places.** The guard file's copy went under
+`F-utils-13`. The other two, done here: `docs/deferred.md`'s item now carries
+the measurement in place of "not reachable" (the numbers, the one real region,
+and that every hidden line is inside `src/guards/`), so the standing register
+holds the fact rather than the guess; and `F-utils-11`'s record above has its
+two false clauses struck through with a pointer here, rather than rewritten —
+the record of what was believed at the time is the point of an area file, and
+the decision it reached still stands on its remaining reason.
 
 ### F-utils-15 · `wrapper-docstring-miscounts-the-allowlist` · `storage.ts` describes an allowlist that has since grown
 
