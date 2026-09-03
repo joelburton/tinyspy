@@ -76,7 +76,7 @@ the area.
 ### Already waiting for this area
 
 **1. `App.tsx` cannot be blessed until this area runs** (Joel, 2026-09-02). It
-is `cs-met-deep` and audited — the boot pass took it — but six of its lines are
+is `cs-fixed-deep` and audited — the boot pass took it — but six of its lines are
 hook calls, and four of those hooks are this area's: `useSession`,
 `useRealtimeReconnect`, `useBacktickEscape`, plus the two store reads
 (`useEditProfileOpen`, `useWordEdit`) that decide what hangs off the root.
@@ -104,7 +104,7 @@ takes an option to turn off one of its three bindings is a hook doing two jobs.
 [common-hosts.md](common-hosts.md) → note 3's question (`TooltipHost` shows a
 root-mounted anchored host works); the HOOK's shape is this area's.
 
-**5. Four of `ui/`'s hooks are already `cs-met-deep`-adjacent** —
+**5. Four of `ui/`'s hooks were read by an audit that no longer exists** —
 `useDraggablePanel`, `useFocusTrap`, `useConfirmation`, `useAcknowledge` were
 read as machinery by the first `floating-panels` audit. That audit is deleted, so
 they come back unread; its forward-pointing items are in §7 → "Carried forward".

@@ -27,26 +27,30 @@ The folder as it stands, listed so the shell is useful rather than empty —
 **not agreed**:
 
 ```
-  22  cls.ts                     (on `deep`'s roster — see the question below)
+  18  cls.ts                                                  (READ — `deep`'s)
   99  friendlyDate.ts        94  friendlyDate.test.ts
   35  keyboardHandoff.ts
   52  layoutWidth.ts
   42  linkify.tsx            91  linkify.test.tsx
+  22  logStamp.ts                                             (READ — `deep`'s)
   27  mulberry32.ts
-  63  reloadOnStaleChunk.ts 107  reloadOnStaleChunk.test.ts   (`deep`'s — boot machinery)
+  63  reloadOnStaleChunk.ts 107  reloadOnStaleChunk.test.ts   (READ — `deep`'s)
 ```
 
-**Two of the ten are already `cs-met-deep`**, and the question of whether they
-move is Joel's:
+**Three of the eleven are already read and `cs-fixed-deep`** — `deep` finished
+2026-09-02 — and they stay `deep`'s rather than moving here:
 
-- **`reloadOnStaleChunk`** is boot machinery that happens to live here.
-  `main.tsx` calls it before the first render, `deep` audited it, and two of that
-  area's findings are resolved against it. It should almost certainly stay
-  `deep`'s.
-- **`cls.ts`** is on `deep`'s roster as "one util", read by nearly every
-  component. It has not been read yet — `deep`'s remaining passes are the data
-  path and the realtime plumbing — so it could move here without losing
-  anything.
+- **`reloadOnStaleChunk`** is boot machinery that happens to live in this
+  folder. `main.tsx` calls it before the first render, and two of `deep`'s
+  findings are resolved against it (`F-deep-4`, `F-deep-11`).
+- **`cls.ts`** was on `deep`'s roster as "one util", read by nearly every
+  component; `F-deep-36` resolved against it.
+- **`logStamp.ts`** did not exist when this shell was written. `F-deep-28`
+  created it, moving an app-wide primitive out of `realtimeDiag.ts` — so this
+  folder gained a file from an area that was auditing somewhere else.
+
+**What that leaves this area: eight files, none of them read.** The three above
+need no re-reading; they are listed so the folder's contents are complete.
 
 ## Findings
 

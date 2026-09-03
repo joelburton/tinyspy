@@ -65,7 +65,7 @@ hosts combined, which is a fair argument for the narrow rule.
 
 **Also to decide at the opening:** whether the stores come with the components —
 `toastStore`, `editProfileStore`, `wordEditStore`, and `faultStore`, which is
-already `cs-met-deep` because `deep` took the fault sink.
+already `cs-fixed-deep` because `deep` took the fault sink.
 
 ## Findings
 

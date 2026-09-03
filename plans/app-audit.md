@@ -29,8 +29,12 @@ loses its story; how something was discovered is `css-philosophy.md`'s.
 
 ## Where to start
 
-**The live area is `deep`** — [plans/areas/deep.md](areas/deep.md). Its boot
-pass is done; the data path and the realtime plumbing are next.
+**`deep` is read through** — [plans/areas/deep.md](areas/deep.md), six passes
+over 35 files, 39 findings, nothing open. It is waiting on `cs-blessed`, which
+only Joel sets; `App.tsx` is held back on purpose until `hooks` runs.
+
+**Next is `utils`** — [plans/areas/utils.md](areas/utils.md), eight unread files
+in `src/common/lib/util/`. Opening it means listing its files and stopping (§21).
 
 - **§21** is the process — the stamps, what opening an area means, and what
   "broken" is allowed to mean while this runs. Read it before doing anything.

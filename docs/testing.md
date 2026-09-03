@@ -430,6 +430,13 @@ game needing its own copy. The full set:
 | `concedeLock` | each elimination game locks its own row before `_set_conceded` |
 | `schemaExposure.e2e` | the running PostgREST stack, per registered schema |
 | `docLinks` | `docs/`, `plans/`, `CLAUDE.md`, `README.md` link targets |
+| `americanSpelling` | the whole repo — no British form of any word on its list |
+| `cssClasses` | every class name — defined ⇄ used, in both directions |
+| `vocabularies` | a converted surface writes vocabulary values, not literals |
+| `orphanedDocstrings` | `src/`, `supabase/functions/`, `e2e/`, `scripts/` — no docstring stranded above another |
+| `fieldTests` | every field component has its own test file |
+| `pgtapIncludes` | every pgTAP file `\ir`s the file defining each helper it uses |
+| `csStamps` | every file in the sprint's scope carries a valid `cs-` stamp |
 
 Two placement notes for a new guard:
 

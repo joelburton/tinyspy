@@ -355,7 +355,7 @@ if (res.type === 'not-ok') {
   showMsg({ tone: res.outcome, text: res.message, mode: { kind: 'sticky' } })
   return
 } else {
-  showFaultModal({ text: 'BUG: submit_word fell through to unhandled' })
+  reportUnhandled('submit_word', res)
   return
 }
 // Nothing may follow. `allowUnreachableCode: false` makes anything here TS7027.
@@ -431,11 +431,19 @@ say it is unreachable, not when you have just read the RPC and know it cannot
 happen — those are the claims that rot, and the whole job of this branch is to
 be there on the day one of them stops being true.
 
-**The wording is fixed: `BUG: <rpc_name> fell through to unhandled`.** It is
-addressed to whoever is debugging, and what they need from the sentence is which
-RPC and that no branch matched; everything else — the codes, the payload, the
-call — is already in the modal's diagnostics. Saying it the same way everywhere
-also makes the whole class greppable, which a per-site paraphrase would not be.
+**The scream is one call: `reportUnhandled(<rpc_name>, res)`** (`PN488`, from
+`dbEnvelope.ts`). It writes the sentence — `BUG: <rpc_name> fell through to
+unhandled` — logs a `[db]` line, and raises the modal with real diagnostics
+under it. **Pass the answer, not just the name.** The useful fact about a
+fall-through is what the server actually said, and `res` is what carries it;
+`call` stays hand-written because an envelope does not know the name of the call
+that produced it.
+
+Before it existed each site hand-wrote `showFaultModal({ text: … })`, and the
+one fault category that always means a bug of OURS was the only one arriving
+with no console trail and no diagnostics line — `runRpc` had already logged the
+call as `OK`, because at the wire level it was. `src/guards/callSiteShape.test.ts`
+now requires the helper, and that only `dbEnvelope.ts` writes the sentence.
 
 **Do not contort anything to serve it.** It should be rare, it is a plain bug
 when it fires, and the modal's `detail` carries enough to work out what
@@ -587,7 +595,7 @@ if (res.type === 'not-ok' && res.severity === 'fault') {
 } else if (…) {
   …
 } else {
-  showFaultModal({ text: 'BUG: unset_current_view fell through to unhandled' })
+  reportUnhandled('unset_current_view', res)
 }
 ```
 
@@ -1230,8 +1238,13 @@ can double-apply.
 
 `PN`, not a class of their own: the letter says what a code does to `type`, not
 who authored it, and the sequence already spans SQL raises and 64 Deno ones.
-All four are OURS, so every message opens `BUG:` — something answered, and the
-answer was wrong.
+All of them are OURS, so every message opens `BUG:` — something answered, and
+the answer was wrong.
+
+`PN488` is out of family on purpose. `max + 1` across the whole `PN` class is
+what allocates a code, and the 3xx block filled with SQL raises long after
+307–310 were taken; never filling gaps is the rule, so "PN488" in a bug report
+can only ever mean the one thing.
 
 | code | what happened |
 |---|---|
@@ -1239,6 +1252,7 @@ answer was wrong.
 | `PN308` | an `ok` carrying a message with no outcome |
 | `PN309` | `readRows` got a value instead of rows |
 | `PN310` | the edge-function runtime answered instead of the function |
+| `PN488` | a call site's branches did not cover the answer it got |
 
 **Why these have codes at all:** without them a frontend-built envelope carried
 `dbcode: null`, and `useGameTimer` — the first call site that had to tell one

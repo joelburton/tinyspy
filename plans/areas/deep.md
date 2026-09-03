@@ -46,73 +46,77 @@ all on 2026-09-02:
 **Thirty-nine findings: thirty-seven resolved, one closed, one moved.**
 
 **What is left is `cs-blessed`, which is Joel's alone** — nine files carry it,
-twenty-six are still `cs-met-deep`. `cs-fixed` is "Claude found nothing";
-blessed is "Joel read it", and that is the area's exit criterion (§21).
+twenty-six are `cs-fixed-deep`. `cs-fixed` is "Claude changed it and stands
+behind it"; blessed is "Joel read it", and that is the area's exit criterion
+(§21). One of the twenty-six, `App.tsx`, is held back deliberately: Joel is not
+blessing it until the `hooks` area runs, because six of its lines are hook
+calls.
 
-## The roster — 35 files, 4,880 lines
+## The roster — 35 files, 5,322 lines
 
 Agreed with Joel 2026-09-02 before anything was read, and stamped **`cs-met`** —
 the eighth stamp, added the same day for exactly this state: on an open area's
 roster, agreed, and not yet read (app-audit.md §21 → The stamp). About half the
-line count is tests. **Line counts measured 2026-09-02, after the boot fixes** —
-they move as this area edits its own files, so they date rather than promise.
+line count is tests. **Every count here was re-measured when the area finished
+reading**, so these are final rather than a snapshot mid-pass — they drifted
+twice while the passes ran, because the area kept editing its own files.
 
-**The boot path — 9 files, 874 lines**
+**The boot path — 9 files, 933 lines**
 
 | file | lines | |
 |---|---|---|
-| `src/main.tsx` | 81 | |
-| `src/App.tsx` | 237 | **the boot half only** — its per-page and per-game routing rows belong to the areas that own those pages and games |
+| `src/main.tsx` | 69 | |
+| `src/App.tsx` | 239 | **the boot half only** — its per-page and per-game routing rows belong to the areas that own those pages and games |
 | `src/common/lib/routing/router.ts` | 103 | |
 | `src/common/lib/routing/router.test.ts` | 142 | |
-| `src/common/lib/routing/Link.tsx` | 48 | the homepage writes no link at all now — its last one went when the create-club page became a modal; the file is still the router's |
+| `src/common/lib/routing/Link.tsx` | 49 | the homepage writes no link at all now — its last one went when the create-club page became a modal; the file is still the router's |
 | `src/common/lib/routing/Link.test.tsx` | 78 | **written 2026-09-02 by `F-deep-7`**, which found the file had no test at all; stamped `cs-met-deep` on Joel's call |
-| `src/common/lib/util/reloadOnStaleChunk.ts` | 36 | filed under `util/`, but it is boot machinery |
-| `src/common/lib/util/reloadOnStaleChunk.test.ts` | 80 | |
-| `src/common/themes/loadTheme.ts` | 69 | **added 2026-09-02 by `F-deep-9`** — `main.tsx` awaits it before the first render, and it names no game and no page |
+| `src/common/lib/util/reloadOnStaleChunk.ts` | 63 | filed under `util/`, but it is boot machinery |
+| `src/common/lib/util/reloadOnStaleChunk.test.ts` | 107 | |
+| `src/common/themes/loadTheme.ts` | 83 | **added 2026-09-02 by `F-deep-9`** — `main.tsx` awaits it before the first render, and it names no game and no page |
 
-**The data path — 11 files, 2,860 lines**
+**The data path — 11 files, 2,997 lines**
 
 | file | lines |
 |---|---|
-| `src/common/lib/supabase/supabase.ts` | 128 |
+| `src/common/lib/supabase/supabase.ts` | 127 |
 | `src/common/db.ts` | 26 |
 | `src/common/lib/supabase/envelope.ts` | 156 |
-| `src/common/lib/supabase/dbEnvelope.ts` | 321 |
-| `src/common/lib/supabase/dbResult.ts` | 530 |
-| `src/common/lib/supabase/dbResult.test.ts` | 759 |
+| `src/common/lib/supabase/dbEnvelope.ts` | 394 |
+| `src/common/lib/supabase/dbResult.ts` | 541 |
+| `src/common/lib/supabase/dbResult.test.ts` | 811 |
 | `src/common/lib/supabase/dbFetch.ts` | 282 |
 | `src/common/lib/supabase/dbFetch.test.ts` | 289 |
-| `src/common/lib/supabase/callEdgeFn.ts` | 99 |
+| `src/common/lib/supabase/callEdgeFn.ts` | 101 |
 | `src/common/lib/supabase/callEdgeFn.test.ts` | 95 |
 | `src/common/lib/supabase/dbLog.ts` | 175 |
 
-**The realtime plumbing — 7 files, 651 lines**
+**The realtime plumbing — 8 files, 865 lines**
 
 | file | lines |
 |---|---|
 | `src/common/lib/supabase/channelDedup.ts` + `.test.ts` | 56 + 110 |
 | `src/common/lib/supabase/channelTeardown.ts` + `.test.ts` | 108 + 86 |
 | `src/common/lib/supabase/postgresAttached.ts` + `.test.ts` | 42 + 54 |
-| `src/common/lib/supabase/realtimeDiag.ts` | 195 |
+| `src/common/lib/supabase/realtimeDiag.ts` | 218 |
 
-**The fault sink — 2 files, 152 lines**
+**The fault sink — 2 files, 159 lines**
 
 `src/common/lib/fault/faultStore.ts` (84) + `faultStore.test.ts` (68). Its modal
 is a floating-panel instance, not this area's.
 
-**One util — 1 file, 22 lines**
+**Two utils — 2 files, 40 lines**
 
 `src/common/lib/util/cls.ts`. It is in almost every component, and the first
 homepage audit noted that the comment justifying a hand-rolled `cls` is off by
 about thirty lines.
 
-**The server side of the envelope — 3 files, 321 lines**
+**The server side of the envelope — 3 files, 328 lines**
 
 | file | lines |
 |---|---|
-| `supabase/functions/_shared/envelope.ts` | 168 |
-| `supabase/functions/_shared/dbResult.ts` | 120 |
+| `supabase/functions/_shared/envelope.ts` | 173 |
+| `supabase/functions/_shared/dbResult.ts` | 122 |
 | `supabase/functions/_shared/http.ts` | 33 |
 
 In because the envelope has two halves that have to agree, and reading one

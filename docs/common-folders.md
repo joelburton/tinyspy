@@ -152,8 +152,9 @@ lib/
       scratchpadOpenStore
   toast/         # the toast store
       toastStore
-  util/          # tiny cross-cutting utilities (class names, dates, layout width)
-      cls, friendlyDate, layoutWidth
+  util/          # tiny cross-cutting utilities (class names, dates, log stamps)
+      cls, friendlyDate, keyboardHandoff, layoutWidth, linkify,
+      logStamp, mulberry32, reloadOnStaleChunk
 ```
 
 ## Judgment calls (recorded so they don't get re-litigated)
