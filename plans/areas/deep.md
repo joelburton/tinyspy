@@ -35,11 +35,11 @@ understood, tidied* — `cs-blessed` here means he has read the file, not seen i
 sixteen findings — fourteen RESOLVED, one CLOSED, one MOVED to `corecss`. The
 DATA PATH, read 2026-09-02: eleven files, eleven findings `F-deep-17` …
 `F-deep-27`, **all RESOLVED**. The REALTIME PLUMBING was read the same day:
-seven files, **five findings `F-deep-28` … `F-deep-32`, all open** — no defects,
+seven files, **five findings `F-deep-28` … `F-deep-32`** — one RESOLVED, four open — no defects,
 four duplications-of-one-fact and a coverage gap. **All three passes have now
 run.**
 
-## The roster — 33 files, 4,880 lines
+## The roster — 34 files, 4,880 lines
 
 Agreed with Joel 2026-09-02 before anything was read, and stamped **`cs-met`** —
 the eighth stamp, added the same day for exactly this state: on an open area's
@@ -1012,7 +1012,7 @@ work:
 - `channelDedupSuffix`'s docstring cites "`useGame.ts` files" as the canonical
   example; those exist, one per game.
 
-## F-deep-28 · `logstamp-lives-in-the-realtime-module` · An app-wide primitive is imported from the diagnostics of one subsystem
+## RESOLVED · F-deep-28 · `logstamp-lives-in-the-realtime-module` · An app-wide primitive is imported from the diagnostics of one subsystem
 
 `logStamp()` is defined in `realtimeDiag.ts:64` and its own docstring says it is
 shared *"across the console-diagnostics families"* — three of them, and only one
@@ -1034,7 +1034,29 @@ lives.
 dependency read raised it as `logstamp-in-realtimediag`; that audit was deleted
 2026-09-02, and both files are `cs-met-deep`, so this area can own it.
 
-> resolution:
+> **resolution: moved to `src/common/lib/util/logStamp.ts`** (Joel, 2026-09-02).
+> Four files, no behavior change. `docs/common-folders.md:155` defines that
+> folder as *"tiny cross-cutting utilities (class names, dates, layout width)"*,
+> which this matches more exactly than `cls` or `layoutWidth` do — and, the point,
+> it now lives somewhere **none of its three consumers owns**. Moving it into
+> `dbLog` instead would have rotated the oddity rather than removed it: `[rt]` and
+> `[ui]` would import from the database module.
+>
+> Its docstring is rewritten from the neutral position and names all three
+> channels; the old one was written from inside `realtimeDiag`, so it called one
+> family "here", named `[ui]`, and omitted `[db]` altogether — the very consumer
+> that made this a finding.
+>
+> **A `lib/log/` module for the console channels was considered and rejected.**
+> The three share a convention (`[tag HH:MM:SS.mmm]`) but only the stamp is
+> genuinely common: `logDb` writes a fixed nine-field line, `rtLog` writes
+> `topic — msg` with a level, `PlayAreaMountLog` writes prose. A `channelLine()`
+> helper would have one real caller and two pass-throughs, which is the generic
+> layer this sprint keeps learning not to build.
+>
+> The roster is 34 files; `utils` inherits the question of whether the file
+> belongs to it permanently, exactly as it already does for `cls.ts` and
+> `reloadOnStaleChunk.ts`.
 
 ## F-deep-29 · `bare-topic-written-twice` · One fact about realtime-js, in two functions
 

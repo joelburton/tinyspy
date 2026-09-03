@@ -1,6 +1,7 @@
 // cs-met-deep
 
 import type { RealtimeChannel } from '@supabase/supabase-js'
+import { logStamp } from '../util/logStamp'
 
 /**
  * Console diagnostics for the Realtime layer — the evidence trail for the
@@ -57,18 +58,6 @@ import type { RealtimeChannel } from '@supabase/supabase-js'
  * line per game event) and stay on for everyone — that's the point:
  * when a friend hits the bug, the evidence is already in their console.
  */
-
-/** `HH:MM:SS.mmm` wall-clock stamp, shared across the console-diagnostics
- *  families (`[rt …]` here, `[ui …]` in PlayAreaMountLog) — one format so a
- *  screenshot of a friend's console interleaves both trails cleanly. */
-export function logStamp(): string {
-  const t = new Date()
-  const hh = String(t.getHours()).padStart(2, '0')
-  const mm = String(t.getMinutes()).padStart(2, '0')
-  const ss = String(t.getSeconds()).padStart(2, '0')
-  const ms = String(t.getMilliseconds()).padStart(3, '0')
-  return `${hh}:${mm}:${ss}.${ms}`
-}
 
 /** Timestamped, prefixed console line. Level 'warn' for things that should
  *  pop out of a screenshot (failure statuses, system errors). */

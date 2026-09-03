@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { useEffect, useRef, type ReactNode } from 'react'
-import { logStamp } from '../../lib/supabase/realtimeDiag'
+import { logStamp } from '../../lib/util/logStamp'
 
 /**
  * Console breadcrumbs for the play surface's LIFECYCLE — the diagnosis
