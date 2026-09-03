@@ -257,8 +257,28 @@ export function environmentalEnvelope(
     field: null,
     meta: null,
     dbcode: situation.code,
-    detail: detail ?? null,
+    detail: clampDetail(detail),
   }
+}
+
+/** The longest a `detail` may be. The same 120 the raw-body details in
+ *  `dbResult` use; matching them matters more than the number does. */
+const DETAIL_MAX = 120
+
+/**
+ * **Trim a detail that a server chose the length of.**
+ *
+ * On this path `detail` is frequently a body we could not parse — a captive
+ * portal's whole HTML page, a gateway's error document — and it does not stay in
+ * the console: `reportDbFault` puts the diagnostics line into the fault modal,
+ * so an untrimmed one renders on screen.
+ *
+ * Only the environmental builder needs this. A raw fault's detail is Postgres
+ * talking, which is bounded and worth in full.
+ */
+function clampDetail(detail: string | undefined): string | null {
+  if (detail === undefined) return null
+  return detail.length > DETAIL_MAX ? `${detail.slice(0, DETAIL_MAX)}…` : detail
 }
 
 /**

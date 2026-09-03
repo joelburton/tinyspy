@@ -33,8 +33,8 @@ understood, tidied* — `cs-blessed` here means he has read the file, not seen i
 
 **Two passes of three have run.** The BOOT pass is done — nine files, sixteen
 findings, nothing left open (fourteen RESOLVED, one CLOSED, one MOVED to
-`corecss`). The DATA PATH was read 2026-09-02: eleven files, **nine findings
-`F-deep-17` … `F-deep-25`** — three RESOLVED, six open. The realtime plumbing (7 files) has not
+`corecss`). The DATA PATH was read 2026-09-02: eleven files, **ten findings
+`F-deep-17` … `F-deep-26`** — five RESOLVED, five open. The realtime plumbing (7 files) has not
 been read.
 
 ## The roster — 33 files, 4,880 lines
@@ -725,7 +725,7 @@ is why it would be silent for a long time.
 > survive the library to the wrapper. The mechanism is intact in production, not
 > only in tests.
 
-## F-deep-19 · `content-type-tell-is-computed-and-dropped` · The one fact that identifies a foreign responder is built and discarded
+## RESOLVED · F-deep-19 · `content-type-tell-is-computed-and-dropped` · The one fact that identifies a foreign responder is built and discarded
 
 `dbFetch:246` builds `` `body was not JSON (content-type: ${contentType})` ``
 into `unparsed`, above a comment saying *"The content-type is the tell, and it is
@@ -741,7 +741,55 @@ builds the identical sentence for the identical situation and **carries it**, as
 `details`, so it lands on the `[db]` line. The same fact survives on the edge
 path and evaporates on the database path.
 
-> resolution:
+> **resolution: the string goes, and the fact turns out not to be lost** (Joel,
+> 2026-09-02). Tracing where it would have gone answered the finding: for an
+> unparseable body `processResponse` does `else error = { message: body }`, so
+> **the body itself already reaches the wrapper** and lands on the `[db]` line as
+> `detail`. The content-type is redundant beside it — `<html><head><title>502…`
+> says everything `content-type: text/html` does, and names the gateway.
+>
+> `unparsed: string | undefined` is now `parsed: boolean`, which is all the
+> verdict chain ever read.
+>
+> **The alternative was rejected for a stated reason**, not omitted: logging it in
+> `dbFetch` contradicts that file's own rule — *"this narrates only what nothing
+> else will… a line here as well would put a bare `OK` directly above one that may
+> contradict it"* — and there is no other channel, since `statusText` carries the
+> verdict code that `situationFor` matches exactly, headers do not survive
+> postgrest-js, and the body belongs to the caller.
+>
+> **What the chase actually turned up is `F-deep-26`**, below, which is the more
+> valuable half.
+
+## RESOLVED · F-deep-26 · `environmental-detail-is-unbounded` · A body the server chose the length of renders in the fault modal
+
+Found while resolving `F-deep-19`, and the reason that one was worth chasing.
+
+On the environmental path `detail` is frequently **a body we could not parse** —
+a captive portal's whole HTML page, a gateway's error document — and it does not
+stay in the console. `reportDbFault` passes the diagnostics line to
+`showFaultModal`, and `diagnosticsLine` prints `detail=` in full. So an
+untrimmed body renders on screen, quoted, on one line.
+
+**The codebase already knew to guard this and this path was the exception**: five
+sites in `dbResult.ts` trim a raw body into `detail` with `.slice(0, 120)`. The
+environmental path — the one most likely to receive something enormous, since by
+definition nobody could parse it — did not.
+
+> **resolution: clamped in `environmentalEnvelope`**, which is the single builder
+> every environmental path reaches, including `nothingReachedUs` and both of
+> `failureEnvelope`'s branches. Same 120 as the existing five, with an ellipsis;
+> matching them matters more than the number does. `faultEnvelope` is deliberately
+> untouched — a raw fault's detail is Postgres talking, which is bounded and worth
+> having whole.
+>
+> Pinned by a test and proved by planting: removing the clamp fails it.
+>
+> **A note for whoever owns `src/guards/`:** my first version of the `dbFetch`
+> comment tripped `noRawServerMessage`, because that guard matches
+> `<ident>.message` **inside comments** — so prose explaining the rule violates the
+> rule. I reworded rather than take an exemption, but the guard reading comments
+> as code is worth knowing about.
 
 ## F-deep-20 · `verdict-comments-trail-their-branch` · In the file's subtlest expression, each comment explains the line above it
 

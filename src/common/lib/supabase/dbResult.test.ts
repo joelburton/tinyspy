@@ -104,6 +104,17 @@ describe('a request nothing answered', () => {
     expect(r).toMatchObject({ message: UNREACHABLE })
   })
 
+  it('clamps a server-chosen detail, which the fault modal renders', async () => {
+    // The unparseable body lands here, and a captive portal's page is as long as
+    // it likes. `detail` reaches the screen via reportDbFault -> the modal's
+    // diagnostics line, so it is trimmed to the same 120 the raw-body details use.
+    setOnline(false)
+    const huge = 'x'.repeat(500)
+    const r = await readRows(Promise.reject(new TypeError(huge)))
+    expect(r.detail!.length).toBeLessThan(200)
+    expect(r.detail).toMatch(/…$/)
+  })
+
   it('keeps the browser string as the DETAIL, where it is worth having', async () => {
     setOnline(false)
     const r = await readRows(Promise.resolve(rejected))

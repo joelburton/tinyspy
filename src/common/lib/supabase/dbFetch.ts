@@ -236,14 +236,14 @@ export const dbFetch: typeof fetch = async (input, init) => {
   // annotated.
   const text = await res.text()
   let body: DbError = null
-  let unparsed: string | undefined
+  let parsed = true
   try {
     body = JSON.parse(text) as DbError
   } catch {
-    // The content-type is the tell, and it is free: `text/html` is a gateway's
-    // error page, `text/plain` is the edge runtime, nothing is an empty reply.
-    const contentType = res.headers.get('content-type') ?? 'none'
-    unparsed = `body was not JSON (content-type: ${contentType})`
+    // Only WHETHER it parsed is kept. The body itself is the better record and
+    // already travels: postgrest-js puts an unparseable one on the error's own
+    // `message`, which the wrapper writes to the `[db]` line as `detail`.
+    parsed = false
   }
 
   // ─── WHO answered ────────────────────────────────────────────
@@ -255,7 +255,7 @@ export const dbFetch: typeof fetch = async (input, init) => {
   // with a SQLSTATE, and the wrapper reads that straight off the error.
   const verdict =
     body?.code ? null
-    : !unparsed ? NO_ANSWER_TO_CODE_AND_TEXT.upstreamDown
+    : parsed ? NO_ANSWER_TO_CODE_AND_TEXT.upstreamDown
     // It PARSED but carried no SQLSTATE — Kong's own `{"message":"no Route
     // matched…"}`, or any platform layer answering for us. Our gateway is up
     // and the thing behind it is not.
