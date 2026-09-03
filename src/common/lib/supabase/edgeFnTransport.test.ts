@@ -1,4 +1,4 @@
-// cs-fixed-deep
+// cs-blessed-deep
 
 /**
  * edgeFnTransport — the one place a functions-js failure becomes a classifiable

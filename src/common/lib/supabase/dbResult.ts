@@ -1,4 +1,4 @@
-// cs-fixed-deep
+// cs-blessed-deep
 
 import { edgeFnTransport } from './edgeFnTransport'
 import {
@@ -32,12 +32,20 @@ import type { Envelope, NotOkEnv, Severity } from './envelope'
  *     not-ok / service-error    show `message` in a pill; wait and retry
  *     not-ok / fault            show `message` too — see below
  *
- * Faults are presented centrally — `reportDbFault`, from the three wrappers
- * below and from nowhere else — so no call site classifies a failure, words a
- * network problem, or reaches for `showFaultModal` itself. `dbFetch` classifies
- * and logs but never shows: all it knows is the URL, so the only rule it could
- * express was "this path never modals", which cannot serve a call that wants
- * quiet for one answer and a modal for another.
+ * Faults are presented centrally — `reportDbFault` — so no call site has to
+ * classify a failure, word a network problem, or decide when a modal is due.
+ * The three wrappers below call it for every fault they see, and the two places
+ * that build an envelope by hand hand theirs over the same way (`reportUnhandled`,
+ * and `useProfile`'s missing-row fault).
+ *
+ * **The exception is sanctioned and narrow**: a caller passing
+ * `presentFaults: false` has promised to show its own, which is why three files
+ * call `showFaultModal` directly (`HomePage`, `useGameTimer`, `useWordSubmit`) —
+ * `src/guards/callSiteShape.test.ts` holds each of them to the promise.
+ *
+ * `dbFetch` classifies and logs but never shows: all it knows is the URL, so the
+ * only rule it could express was "this path never modals", which cannot serve a
+ * call that wants quiet for one answer and a modal for another.
  *
  * A call site still SHOWS a fault's message, though: the modal is an escalation,
  * not a replacement, and nothing reads `severity` to decide whether to display
@@ -137,11 +145,11 @@ function dbLogKindFor(envelope: Envelope): DbLogKind {
   // It worked. Whether it also carried words is `message`'s business, not the
   // kind's.
   if (envelope.type === 'ok') return 'OK'
-  // Both callers already routed a fault to `reportDbFault`, so this is
-  // unreachable at runtime — but `severity` is still typed as the full union
-  // here, and `SEVERITY_TO_DB_LOG_KIND` deliberately omits `fault`. So the branch
-  // is what the map's own shape demands, and it is the right answer besides,
-  // the day a third caller forgets to filter.
+  // `readEnvelope` — the one road here — routes a fault to `reportDbFault`
+  // before this is reached, so it is unreachable at runtime. But `severity` is
+  // still typed as the full union, and `SEVERITY_TO_DB_LOG_KIND` deliberately
+  // omits `fault`, so the branch is what the map's own shape demands — and it
+  // is the right answer besides, the day a second road forgets to filter.
   if (envelope.severity === 'fault') return 'FAULT'
   // Every remaining severity maps, and the `Record` makes that total: a new
   // severity is a compile error here rather than a silent fall-through.
@@ -292,10 +300,11 @@ function readEnvelope<T>(transport: TransportFacts, body: unknown, opts?: DbCall
  * (docs/envelopes.md → How edge functions build one), so everything with an
  * envelope arrives 200 and the modal for a declared fault is raised HERE.
  *
- * A function whose own `error` channel fires — the RPC never ran, or a shape
- * from before the conversion — answers `{ error }` with a 4xx. `edgeFnTransport`
- * digs that out as a `DbError`, and it becomes a fault envelope here, which is
- * the right treatment for a shape no caller can read.
+ * When no envelope comes back at all, `edgeFnTransport` has already named which
+ * of three things happened, and this turns its verdict into the same envelope
+ * the database path would build: nothing reached us, a reply that was not our
+ * function (an outage, `FE003`), or our own function refusing — the only one of
+ * the three that is a fault of ours.
  */
 export async function runEdgeFn<T>(
   fnName: string,
