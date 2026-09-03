@@ -1,4 +1,4 @@
-// cs-fixed-deep
+// cs-blessed-deep
 
 // Bumped per fallback call, so two suffixes minted in the same
 // millisecond still differ.
@@ -8,13 +8,30 @@ let counter = 0
  * Generate a unique-enough suffix for a supabase-js Realtime
  * channel name — and ONLY for that purpose.
  *
- * The use case is narrow and specific: supabase-js caches
- * channels by name. In React StrictMode (and on legitimate
- * remount) the same channel name on a second mount returns the
- * already-subscribed cached instance, so a `.on(...)` call
- * after `.subscribe(...)` throws. Appending a per-effect-run
- * suffix makes each channel name unique, sidestepping the
- * cache. See `useGame.ts` files for the canonical example.
+ * A channel name is a ROOM on the server: two browsers that pass
+ * the same name land in the same room, which is how they see each
+ * other's presence and hear each other's broadcasts. Two browsers
+ * watching the same TABLE need nothing of the sort — the server
+ * tells each one about the table independently — so a table-watching
+ * channel's name is private to the browser that opened it, and is
+ * free to be anything at all.
+ *
+ * This function spends that freedom, to dodge a collision that
+ * happens INSIDE one browser (nothing to do with peers). supabase-js
+ * caches channels by name, and a channel sits in that cache while it
+ * is still shutting down; reopening the same name inside that window
+ * — StrictMode's double-mount, or a real remount like navigating away
+ * and straight back — hands you the dying instance, whose `.subscribe()`
+ * never reaches SUBSCRIBED and which throws on a `.on(...)` after its
+ * `.subscribe(...)`. A name that is never reused can never collide.
+ * See `useGame.ts` files for the canonical example.
+ *
+ * **Only for channels whose name is private.** One carrying presence
+ * or broadcast must keep the name its peers know, so it can't take a
+ * suffix and uses `channelTeardown.ts` (wait for the old channel to
+ * finish leaving) instead. A channel is in that group if ANY of its
+ * cargo is shared: `game:<gameId>` carries table changes too, but its
+ * presence half pins the name for the whole channel.
  *
  * **DO NOT** use this for cryptographic randomness (auth
  * nonces, session tokens, CSRF values, anything user-visible

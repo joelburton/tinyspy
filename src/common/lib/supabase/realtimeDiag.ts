@@ -1,11 +1,14 @@
-// cs-fixed-deep
+// cs-blessed-deep
 
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { logStamp } from '../util/logStamp'
 
 /**
- * Console diagnostics for the Realtime layer — the evidence trail for the
- * lost-event failure mode (docs/realtime-lost-events.md).
+ * **This is what writes the `[rt …]` lines in the browser console.** They are
+ * the Realtime layer's evidence trail, and they are on for everyone, always —
+ * no flag, no opt-in per hook (see "How it's wired" below). Read them when a
+ * page has quietly stopped updating; what the trail is FOR is the lost-event
+ * failure mode in docs/realtime-lost-events.md.
  *
  * ─── Why this exists ──────────────────────────────────────────────────
  * A channel can report `SUBSCRIBED` and then never deliver a single

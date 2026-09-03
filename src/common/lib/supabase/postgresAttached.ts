@@ -1,11 +1,20 @@
-// cs-fixed-deep
+// cs-blessed-deep
 
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import type { SystemPayload } from './realtimeDiag'
 
 /**
- * Fire `cb` each time the server confirms this channel's postgres_changes
- * subscription is really attached to the WAL poller — the `system` message
+ * **Plainly: a channel saying it's connected does not yet mean the server is
+ * watching your table. This tells you when it really is — so pass it your
+ * refetch.** There is a short gap between the two, and a row written during
+ * that gap is never announced to you at all, so a load that ran on "connected"
+ * can be the last thing you ever hear. Loading a second time when this fires
+ * is what closes that hole. Every hook that watches a table should call it;
+ * one that only carries presence or broadcast has nothing to gain.
+ *
+ * Concretely: fire `cb` each time the server confirms this channel's
+ * postgres_changes subscription is really attached to the WAL poller — the
+ * `system` message
  * `{ extension: 'postgres_changes', status: 'ok', message: 'Subscribed to
  * PostgreSQL' }`.
  *

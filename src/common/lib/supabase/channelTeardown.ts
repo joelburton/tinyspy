@@ -1,4 +1,4 @@
-// cs-fixed-deep
+// cs-blessed-deep
 
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from './supabase'
@@ -64,6 +64,17 @@ const leaving = new Map<string, Promise<unknown>>()
  * failed leave must not wedge every future join of that room, and by the time
  * `removeChannel` settles we've waited as long as we usefully can whether the
  * status was `ok`, `timed out`, or `error`.
+ *
+ * **What it returns is the timing, and nothing else.** The promise resolves to
+ * `undefined` once the leave has settled; that "when" is the whole payload, and
+ * it is what makes the room safe to join again. `removeChannel`'s own
+ * `'ok' | 'timed out' | 'error'` is spent on the diagnostic line below and
+ * deliberately not passed on — there is nothing to branch on, since the right
+ * move after all three is the same one (go ahead and re-join). This is the very
+ * promise `channelLeaving(name)` will hand a re-create until it settles, so the
+ * return value is a convenience: every call site today drops it
+ * (`void releaseChannel(ch)` in a cleanup), and awaiting it is for a caller that
+ * wants its own teardown finished before it does something else.
  */
 export function releaseChannel(ch: RealtimeChannel): Promise<unknown> {
   const name = bareName(ch.topic)
