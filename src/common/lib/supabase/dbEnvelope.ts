@@ -310,7 +310,16 @@ export function nothingReachedUs(detail?: string): NotOk {
   return environmentalEnvelope(offline ? OFFLINE : UNREACHABLE, detail)
 }
 
-/** The `[db]` fields for an envelope, merged with what the transport knows. */
+/**
+ * The `[db]` fields for an envelope, merged with what the transport knows.
+ *
+ * **Where `null` becomes `undefined`, for every line that has an envelope.** An
+ * envelope's keys are always present and often null; a `[db]` field is either
+ * there or left out, and `DiagFields` accepts only the second spelling. Every
+ * `?? undefined` below is that conversion. The only other place needing it is
+ * `EnvelopeErrorPage`, which builds a line during render with no transport to
+ * merge.
+ */
 export function envelopeFields(transport: TransportFacts, envelope: Envelope): DiagFields {
   // **Both details, joined — not the envelope's INSTEAD of the transport's.**
   // They answer different questions and neither substitutes for the other: the
@@ -323,12 +332,12 @@ export function envelopeFields(transport: TransportFacts, envelope: Envelope): D
   return {
     ...transport,
     severity: envelope.type === 'not-ok' ? envelope.severity : undefined,
-    outcome: envelope.outcome,
-    dbcode: envelope.dbcode,
-    field: envelope.type === 'not-ok' ? envelope.field : undefined,
-    // `null` rather than `''` when neither said anything, so it prints like
+    outcome: envelope.outcome ?? undefined,
+    dbcode: envelope.dbcode ?? undefined,
+    field: envelope.type === 'not-ok' ? envelope.field ?? undefined : undefined,
+    // Left out rather than `''` when neither said anything, so it prints like
     // every other empty field.
-    detail: details.length ? details.join(' — ') : null,
+    detail: details.length ? details.join(' — ') : undefined,
   }
 }
 

@@ -1,4 +1,4 @@
-// cs-fixed-deep
+// cs-blessed-deep
 
 import { logStamp } from '../util/logStamp'
 import type { Severity } from './envelope'
@@ -65,19 +65,24 @@ const DB_LOG_KIND_TO_CONSOLE_LOG_METHOD: Record<DbLogKind, 'error' | 'warn' | 'd
  * same position whether you are reading one line or scanning fifty, and a blank
  * is itself information (no `dbcode` means nothing raised; no `status` means the
  * server never answered).
+ *
+ * **There is ONE way to say nothing here, and it is leaving the key out.**
+ * `null` is the ENVELOPE's word for empty — its keys are always present, and
+ * often null — so a value coming from one is converted on the way in, with
+ * `?? undefined`, by whoever builds the fields (`envelopeFields`, and
+ * `EnvelopeErrorPage`, which builds a line during render). A type accepting both
+ * would offer a distinction nothing downstream reads: a field prints blank
+ * either way, and the two formatters below would each need to know it.
  */
 export type DiagFields = {
   call: string                  // METHOD /path
-  // `| null` because an envelope's are always PRESENT and null when empty, and
-  // this reads them straight through. The formatter already treats the two
-  // alike (`fieldValue` returns '' for either), so this only lets the type say so.
-  severity?: Severity | null
-  outcome?: string | null
-  dbcode?: string | null
+  severity?: Severity
+  outcome?: string
+  dbcode?: string
   status?: number               // HTTP status
   ms?: number                   // Round-trip milliseconds.
-  field?: string | null         // Raise's COLUMN, on a form-validation.
-  detail?: string | null        // Debugging info, show in console + fault modal
+  field?: string                // Raise's COLUMN, on a form-validation.
+  detail?: string               // Debugging info, show in console + fault modal
 }
 
 /** What the LAYER THAT MADE THE REQUEST knows and the envelope cannot: which
@@ -94,13 +99,11 @@ export type TransportFacts = {
   detail?: string
 }
 
-/** A field's value for the `[db]` line: itself, or **empty** when it has nothing
- *  to say. Both "absent" and "explicitly null" print as nothing, because the
- *  line's promise is that a blank means the same thing wherever you see one —
- *  an envelope's keys are always present and often null, while the transport's
- *  are simply missing, and a reader should not have to know which they are
- *  looking at. */
-const fieldValue = (x: unknown) => (x === undefined || x === null ? '' : String(x))
+/** A field's value for the `[db]` line: itself, or **empty** when the key was
+ *  left out. Typed rather than `unknown` now that a missing field has one
+ *  spelling — the only values a `[db]` field ever holds are a string, a number,
+ *  or nothing. */
+const fieldValue = (x: string | number | undefined) => (x === undefined ? '' : String(x))
 
 /** The same, for **free text**, wrapped in quotes so its spaces and `|` cannot
  *  be mistaken for the line's own delimiters — and with its own quotes escaped,
@@ -108,8 +111,8 @@ const fieldValue = (x: unknown) => (x === undefined || x === null ? '' : String(
  *  "clubs.name"` and an unescaped one makes the line unparseable exactly where
  *  it is most worth parsing. An empty string prints as nothing rather than as
  *  `""`, so it reads like every other empty field. */
-const quotedText = (x: unknown) =>
-  x === undefined || x === null || x === '' ? '' : `"${String(x).replace(/"/g, '\\"')}"`
+const quotedText = (x: string | undefined) =>
+  x === undefined || x === '' ? '' : `"${x.replace(/"/g, '\\"')}"`
 
 /**
  * **The diagnostics line** — every field, in a fixed order, empty after the `=`
@@ -163,8 +166,11 @@ export function logDb(kind: DbLogKind, f: DiagFields, message?: string | null): 
   // Built ONCE and shared, so the screen and the log carry the same timestamp as
   // well as the same fields. Two `logStamp()` calls would drift immediately.
   const diagnostics = diagnosticsLine(kind, f)
-  // `null` as well as `undefined`: an `ok` envelope always CARRIES a `message`
-  // key and it is usually null, so "nothing to say" arrives both ways.
+  // **The one place null still arrives**, and deliberately: `message` is handed
+  // straight from an envelope by three of the four callers, and an envelope
+  // always CARRIES the key with null in it. Converting at those call sites would
+  // put `?? undefined` on each and buy nothing — the boundary is one comparison,
+  // and it is here. Everything in `f` was normalized by `envelopeFields`.
   console[DB_LOG_KIND_TO_CONSOLE_LOG_METHOD[kind]](
     `[db] ${diagnostics}${message === undefined || message === null ? '' : ` | msg=${quotedText(message)}`}`,
   )

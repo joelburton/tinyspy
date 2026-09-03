@@ -44,11 +44,14 @@ export function EnvelopeErrorPage({ envelope, action }: { envelope: NotOk; actio
       // request, and the line's fixed shape is a promise that a blank means
       // something. The wrapper wrote the full line when it happened; `detail`
       // names the call, which is what survives into the envelope.
+      // `?? undefined` because an envelope always CARRIES these keys, null when
+      // it has nothing to say, while a `[db]` field says nothing by being left
+      // out — see `DiagFields`.
       diagnostics={diagnosticsLine('FAULT', {
         call: '(read)',
         severity: envelope.severity,
-        dbcode: envelope.dbcode,
-        detail: envelope.detail,
+        dbcode: envelope.dbcode ?? undefined,
+        detail: envelope.detail ?? undefined,
       })}
       action={action}
     />
