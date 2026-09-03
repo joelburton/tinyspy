@@ -5,7 +5,7 @@ import {
   envelopeFields, environmentalEnvelope, faultEnvelope, nothingReachedUs,
   OUR_BUG_TO_CODE_AND_TEXT, reportDbFault, situationFor, type DbError,
 } from './dbEnvelope'
-import { logDb, type LogLevel, type Transport } from './dbLog'
+import { logDb, type DbLogKind, type TransportFacts } from './dbLog'
 import type { Outcome } from '../outcomes'
 import type { Envelope, NotOk, Severity } from './envelope'
 
@@ -71,11 +71,11 @@ export function nothingAnswered(status: number | undefined): boolean {
   return status === 0
 }
 
-/** A `not-ok`'s severity decides its `[db]` level, so a line's level and its
+/** A `not-ok`'s severity decides its db log kind, so a line's kind and its
  *  severity can never disagree. Total by construction: a new severity is a
  *  compile error here, which is the point of the `Record`. A `fault` is not in
  *  the map because it never reaches this path — `reportDbFault` logs it. */
-const SEVERITY_TO_LOGLEVEL: Record<Exclude<Severity, 'fault'>, LogLevel> = {
+const SEVERITY_TO_DB_LOG_KIND: Record<Exclude<Severity, 'fault'>, DbLogKind> = {
   'service-error': 'SERVICE_ERROR',
   'form-validation': 'FORM_VALIDATION',
   race: 'RACE',
@@ -126,25 +126,25 @@ export function notOkOutcome(envelope: Envelope & { type: 'not-ok' }): Outcome {
  * because something is broken, nothing anywhere says so. Logging it at `warn`
  * costs one line and keeps that visible without putting a modal in anyone's way.
  */
-function logDbOutcome(transport: Transport, envelope: Envelope): void {
-  logDb(logLevelFor(envelope), envelopeFields(transport, envelope), envelope.message)
+function logDbOutcome(transport: TransportFacts, envelope: Envelope): void {
+  logDb(dbLogKindFor(envelope), envelopeFields(transport, envelope), envelope.message)
 }
 
-/** Which `[db]` level an answer is written at — one case per line, in the order
- *  they are decided. */
-function logLevelFor(envelope: Envelope): LogLevel {
+/** Which db log kind an answer is written under — one case per line, in the
+ *  order they are decided. */
+function dbLogKindFor(envelope: Envelope): DbLogKind {
   // It worked. Whether it also carried words is `message`'s business, not the
-  // level's.
+  // kind's.
   if (envelope.type === 'ok') return 'OK'
   // Both callers already routed a fault to `reportDbFault`, so this is
   // unreachable at runtime — but `severity` is still typed as the full union
-  // here, and `SEVERITY_TO_LOGLEVEL` deliberately omits `fault`. So the branch
+  // here, and `SEVERITY_TO_DB_LOG_KIND` deliberately omits `fault`. So the branch
   // is what the map's own shape demands, and it is the right answer besides,
   // the day a third caller forgets to filter.
   if (envelope.severity === 'fault') return 'FAULT'
   // Every remaining severity maps, and the `Record` makes that total: a new
   // severity is a compile error here rather than a silent fall-through.
-  return SEVERITY_TO_LOGLEVEL[envelope.severity]
+  return SEVERITY_TO_DB_LOG_KIND[envelope.severity]
 }
 
 /**
@@ -204,7 +204,7 @@ export type CallOptions = {
  * `severity: 'fault'` before reaching here, so the message is a `string` and
  * there is no null to hedge against.
  */
-function reportFault(transport: Transport, envelope: NotOk, opts?: CallOptions): void {
+function reportFault(transport: TransportFacts, envelope: NotOk, opts?: CallOptions): void {
   if (opts?.presentFaults === false) {
     logDb('FAULT', envelopeFields(transport, envelope), envelope.message)
     return
@@ -284,7 +284,7 @@ type QueryLike<T> = PromiseLike<{
  * Not for `readRows`, which builds an envelope around rows nobody authored and
  * never receives one — `src/guards/dbCallShape.test.ts` guards that split.
  */
-function readEnvelope<T>(transport: Transport, body: unknown, opts?: CallOptions): Envelope<T> {
+function readEnvelope<T>(transport: TransportFacts, body: unknown, opts?: CallOptions): Envelope<T> {
   if (!_isEnvelope(body)) {
     const rawBody = `rawBody: ${JSON.stringify(body)?.slice(0, 120)}`
     const unreadable = faultEnvelope(

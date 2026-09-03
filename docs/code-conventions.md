@@ -18,7 +18,7 @@ The explanation bar in this codebase is higher than the average TypeScript proje
   ```ts
   /* three paragraphs on what `field` means */  →  field: string | null  // which input; '_' = not one field
   ```
-- **A lookup table's name says what it maps, and what the values ARE.** `LOGLEVEL_TO_CONSOLE_LOG_METHOD`, not `LEVEL_METHOD`; `SEVERITY_TO_LOGLEVEL`, not `NOT_OK_LEVEL`. The house form is `FOO_TO_BAR`, spelled out: `_TO_METHOD` only parses for a reader who already knows the values are `console`'s own method names, which is the thing worth saying.
+- **A lookup table's name says what it maps, and what the values ARE.** `DB_LOG_KIND_TO_CONSOLE_LOG_METHOD`, not `KIND_METHOD`; `SEVERITY_TO_DB_LOG_KIND`, not `NOT_OK_KIND`. The house form is `FOO_TO_BAR`, spelled out: `_TO_METHOD` only parses for a reader who already knows the values are `console`'s own method names, which is the thing worth saying.
 - **No single-letter helpers**, even for a formatter used twice on the next line. `fieldValue` and `quotedText` each carry a docstring saying what "empty" means for them — which is the only interesting thing about either, and exactly what `v` and `q` hid.
 - **`useEffect`, `useCallback`, and `useMemo` get header comments. `useEffect` callbacks also get a named function expression when non-trivial; `useCallback` / `useMemo` results assigned to a `const` skip the inner name (the const already carries it).** See [the hook-callback rule](#naming-and-commenting-hook-callbacks) below.
 

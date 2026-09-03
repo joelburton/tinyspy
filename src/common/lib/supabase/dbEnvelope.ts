@@ -1,7 +1,7 @@
 // cs-fixed-deep
 
 import { showFaultModal } from '../fault/faultStore'
-import { logDb, type DiagFields, type Transport } from './dbLog'
+import { logDb, type DiagFields, type TransportFacts } from './dbLog'
 import type { Envelope, NotOk } from './envelope'
 
 /**
@@ -311,7 +311,7 @@ export function nothingReachedUs(detail?: string): NotOk {
 }
 
 /** The `[db]` fields for an envelope, merged with what the transport knows. */
-export function envelopeFields(transport: Transport, envelope: Envelope): DiagFields {
+export function envelopeFields(transport: TransportFacts, envelope: Envelope): DiagFields {
   // **Both details, joined — not the envelope's INSTEAD of the transport's.**
   // They answer different questions and neither substitutes for the other: the
   // envelope's is what the server said (Postgres's own details + hint, or a
@@ -349,7 +349,7 @@ export function envelopeFields(transport: Transport, envelope: Envelope): DiagFi
  * caller can produce — a string that read like a considered choice and was
  * really an artifact of the signature.
  */
-export function reportDbFault(transport: Transport, envelope: NotOk): void {
+export function reportDbFault(transport: TransportFacts, envelope: NotOk): void {
   const diagnostics = logDb('FAULT', envelopeFields(transport, envelope), envelope.message)
   showFaultModal({ text: envelope.message, diagnostics })
 }

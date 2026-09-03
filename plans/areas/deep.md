@@ -1830,7 +1830,7 @@ empty"*) or to say in the comment that it is inferred.
 > own line — and is dropped at the wrapper's `return`, because the envelope's
 > nine keys do not include it and the call site holds only the envelope.
 >
-> Three fixes were weighed. A `WeakMap<Envelope, Transport>` side channel in
+> Three fixes were weighed. A `WeakMap<Envelope, TransportFacts>` side channel in
 > the wrappers (Joel: *"messy"*), a tenth envelope key (*"not something we
 > should fix right now"* — **filed in docs/deferred.md → Common /
 > architecture** so it can be considered later), and this. Pinned by a test

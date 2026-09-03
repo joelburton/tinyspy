@@ -800,7 +800,7 @@ Two reasons, and the second is the load-bearing one:
 | `field` | not-ok | which control a `form-validation` is about |
 | `meta` | both | the additive slot — SQL can leave breadcrumbs with no FE change |
 | `dbcode` | both | **which answer this is** — a SQLSTATE when a raise produced it, an `FE`/`PN` code when the frontend built the envelope |
-| `detail` | both | the debugging line — **never shown to a player** |
+| `detail` | both | the debugging line — **never the player's sentence**; it reaches the screen only as the muted diagnostics under the message |
 
 **The message is written at the raise, by the RPC author.** This is the decision
 the whole convention rests on: whoever knows why the answer is what it is writes
@@ -944,7 +944,7 @@ author's judgment, and no test can second-guess it.
 | `message` | `message` | the player's sentence |
 | `hint` | `outcome` (PA) or `severity` (PN) | disjoint vocabularies, so one channel is unambiguous |
 | `column` | `field` | `'_'` for "not one field" |
-| `detail` | `detail` | for the log, never the player |
+| `detail` | `detail` | for the log and the diagnostics line, never the player's sentence |
 | `constraint` | `outcome`, on a `not-ok` | the appearance OVERRIDE — omit it and the severity's default applies |
 
 **Why the override needs a channel of its own:** a `not-ok` has two things to
@@ -1298,10 +1298,12 @@ say, so a fact is always in the same position and a blank is itself information:
 no `dbcode` means nothing raised, no `status` means the server never answered.
 `call` is never blank.
 
-The level is the first word and picks the console method, so a line's level and
-its severity cannot disagree:
+**The db log kind** is the first word of the line, and it picks the console
+method — so a line's kind and its severity cannot disagree. It is a KIND rather
+than a level because "log level" is console's own idea (`error` / `warn` /
+`debug`), which these six map to but are not:
 
-| level | method | is |
+| db log kind | method | is |
 |---|---|---|
 | `FAULT` | `console.error` | a bug |
 | `SERVICE_ERROR` | `console.warn` | something we depend on didn't answer |
@@ -1310,16 +1312,16 @@ its severity cannot disagree:
 | `FORM_VALIDATION` | `console.debug` | the values you sent |
 | `OK` | `console.debug` | it worked |
 
-**Four of the six are a severity, spelled the same way**, so a line's level and
+**Four of the six are a severity, spelled the same way**, so a line's kind and
 the `severity=` on it cannot read as two different claims. `SLOW` and `OK` are
 the exceptions: they are `dbFetch` narrating transport, where no envelope
 reached a decision at all.
 
-The two quiet levels are why every call can be logged without drowning
+The two quiet kinds are why every call can be logged without drowning
 anything — the browser's own level filter is the volume control, and no custom
 verbose flag is needed.
 
-**`RACE` is `warn` even though nothing is wrong**, and it is the one level that
+**`RACE` is `warn` even though nothing is wrong**, and it is the one kind that
 isn't tracking how bad something is. A lost race is rare and genuinely puzzling
 from the player's side — the move they made simply didn't happen — so the
 question it produces is "what was that?", and the answer should be one glance at
@@ -1329,8 +1331,8 @@ the console rather than a dig through debug output.
 "expected rejections are NOT logged", which makes a MISCLASSIFIED bug completely
 silent: if "already deleted" starts firing on every click because something
 broke, nothing anywhere says so. One line keeps that visible without putting a
-modal in anyone's way, and tagging by level keeps real faults from being buried
-among them.
+modal in anyone's way, and tagging by db log kind keeps real faults from being
+buried among them.
 
 `SLOW` is the one line about the REQUEST rather than an answer, and it carries
 fewer fields on purpose: it is written before the body is read, so printing

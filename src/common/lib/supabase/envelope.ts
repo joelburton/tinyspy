@@ -61,7 +61,8 @@ type OkCommon<T> = {
   /** The SQLSTATE, when the outcome came from a raise. Named `dbcode` because
    *  "code" is too broad for one specific thing. */
   dbcode: string | null
-  /** PL/pgSQL's DETAIL — the debugging line, never shown to a player. */
+  /** PL/pgSQL's DETAIL — the debugging line. Never the player's SENTENCE; it
+   *  reaches the screen only as the muted diagnostics under the message. */
   detail: string | null
 }
 
