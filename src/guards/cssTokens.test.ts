@@ -78,7 +78,7 @@ function scanTokens() {
       define(m[1], f)
   // Set inline from a component (quoted style key).
   for (const f of codeFiles)
-    for (const m of stripComments(readFileSync(f, 'utf8')).matchAll(new RegExp(`['\"](${TOKEN})['\"]`, 'g')))
+    for (const m of stripComments(readFileSync(f, 'utf8')).matchAll(new RegExp(`['"](${TOKEN})['"]`, 'g')))
       define(m[1], f)
 
   // name → first file that reads it via var().
