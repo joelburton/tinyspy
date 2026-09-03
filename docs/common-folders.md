@@ -152,11 +152,24 @@ lib/
       scratchpadOpenStore
   toast/         # the toast store
       toastStore
-  util/          # tiny cross-cutting utilities (class names, dates, log stamps,
-                 # the boot/render last-resort screen)
+  util/          # tiny cross-cutting utilities — the ones belonging to no page,
+                 #   no game and no subsystem: class names, dates, seeded
+                 #   randomness, web storage, log stamps, the boot/render
+                 #   last-resort screen
       cls, friendlyDate, keyboardHandoff, layoutWidth, linkify,
-      logStamp, mulberry32, panic, reloadOnStaleChunk
+      logStamp, mulberry32, panic, reloadOnStaleChunk,
+      storage (+ storage.fake, the Storage stand-in tests install)
 ```
+
+**Touch web storage only through `util/storage.ts`.** `localStorage` and
+`sessionStorage` *throw* where a browser blocks site data — on the property
+access as readily as on the call — so `readStored` / `writeStored` /
+`removeStored` wrap every access, and
+[`src/guards/rawStorage.test.ts`](../src/guards/rawStorage.test.ts) fails the
+build on a raw one outside them. `readStored`'s `whenUnavailable` argument is
+required on purpose: storage being *gone* is not the same event as a key being
+*absent*, and `reloadOnStaleChunk` is the caller that needs the opposite answer
+from everyone else.
 
 ## Judgment calls (recorded so they don't get re-litigated)
 

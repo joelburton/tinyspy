@@ -4,7 +4,7 @@ Every other test in this repo sits beside its subject: `waffle/lib/colors.test.t
 next to `colors.ts`, `common/pdf/frame.test.ts` next to `frame.ts`. Co-location is
 the convention, and it decides placement for you.
 
-These ten have no subject to sit beside. Each one sweeps the **whole repository** —
+These have no subject to sit beside. Each one sweeps the **whole repository** —
 every stylesheet, every game folder, every edge function, every markdown file — so
 there is no module to co-locate with. That's the single thing they have in common,
 and it's why they piled up loose at the root of `src/` until this folder existed.

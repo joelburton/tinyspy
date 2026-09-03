@@ -436,6 +436,7 @@ game needing its own copy. The full set:
 | `orphanedDocstrings` | `src/`, `supabase/functions/`, `e2e/`, `scripts/` — no docstring stranded above another |
 | `fieldTests` | every field component has its own test file |
 | `pgtapIncludes` | every pgTAP file `\ir`s the file defining each helper it uses |
+| `rawStorage` | every `localStorage` / `sessionStorage` touch in `src/` goes through `common/lib/util/storage.ts` |
 | `csStamps` | every file in the sprint's scope carries a valid `cs-` stamp |
 
 Two placement notes for a new guard:
