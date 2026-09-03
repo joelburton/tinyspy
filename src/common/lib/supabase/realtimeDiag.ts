@@ -83,6 +83,27 @@ export function rtVerbose(): boolean {
 }
 
 /**
+ * **The server's `system` message**, which is how a channel reports on its
+ * postgres_changes subscription AFTER the join ack:
+ *
+ *     { extension: 'postgres_changes', status: 'ok',
+ *       message: 'Subscribed to PostgreSQL' }    ← events will flow
+ *     { …, status: 'error', message: '…' }       ← they never will
+ *
+ * Named here rather than at each reader because two things read it and they
+ * are the two that must not fail together: `onPostgresAttached` closes the
+ * deaf window with it, and `instrumentChannel` below is what you would read to
+ * find out that the first had stopped firing.
+ *
+ * Every field is optional — it is a wire shape, not ours.
+ */
+export type SystemPayload = {
+  status?: string
+  extension?: string
+  message?: string
+}
+
+/**
  * **A realtime-js topic as the name we gave it.** The library prefixes every
  * topic with `realtime:`; our channel names — and the rest of the app's logs —
  * speak the bare one.
@@ -112,13 +133,12 @@ export function instrumentChannel(ch: RealtimeChannel): RealtimeChannel {
   // The postgres-changes health signal. `status: 'ok'` means the WAL
   // poller really carries this channel's subscription; its absence after
   // SUBSCRIBED is the deaf-channel signature.
-  ch.on('system', {}, (payload: Record<string, unknown> | undefined) => {
-    const status = payload?.['status']
+  ch.on('system', {}, (payload: SystemPayload | undefined) => {
     rtLog(
       topic,
-      `system ${String(status)}: ${String(payload?.['message'] ?? '')}`,
-      payload?.['extension'] ? `(${String(payload['extension'])})` : undefined,
-      status === 'ok' ? 'log' : 'warn',
+      `system ${String(payload?.status)}: ${payload?.message ?? ''}`,
+      payload?.extension ? `(${payload.extension})` : undefined,
+      payload?.status === 'ok' ? 'log' : 'warn',
     )
   })
 

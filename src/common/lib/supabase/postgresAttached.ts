@@ -1,6 +1,7 @@
 // cs-met-deep
 
 import type { RealtimeChannel } from '@supabase/supabase-js'
+import type { SystemPayload } from './realtimeDiag'
 
 /**
  * Fire `cb` each time the server confirms this channel's postgres_changes
@@ -31,12 +32,7 @@ import type { RealtimeChannel } from '@supabase/supabase-js'
  * actually consume table changes.
  */
 export function onPostgresAttached(ch: RealtimeChannel, cb: () => void): void {
-  ch.on('system', {}, (payload: Record<string, unknown> | undefined) => {
-    if (
-      payload?.['status'] === 'ok' &&
-      payload?.['extension'] === 'postgres_changes'
-    ) {
-      cb()
-    }
+  ch.on('system', {}, (payload: SystemPayload | undefined) => {
+    if (payload?.status === 'ok' && payload?.extension === 'postgres_changes') cb()
   })
 }

@@ -35,7 +35,7 @@ understood, tidied* — `cs-blessed` here means he has read the file, not seen i
 sixteen findings — fourteen RESOLVED, one CLOSED, one MOVED to `corecss`. The
 DATA PATH, read 2026-09-02: eleven files, eleven findings `F-deep-17` …
 `F-deep-27`, **all RESOLVED**. The REALTIME PLUMBING was read the same day:
-seven files, **five findings `F-deep-28` … `F-deep-32`** — two RESOLVED, three open — no defects,
+seven files, **five findings `F-deep-28` … `F-deep-32`** — three RESOLVED, two open — no defects,
 four duplications-of-one-fact and a coverage gap. **All three passes have now
 run.**
 
@@ -1091,7 +1091,7 @@ it would need finding in two places.
 > topic prefix."* Topic is the library's word, name is ours, and the function
 > converts one to the other.
 
-## F-deep-30 · `system-payload-parsed-twice` · The correctness guard and the diagnostic read one message independently
+## RESOLVED · F-deep-30 · `system-payload-parsed-twice` · The correctness guard and the diagnostic read one message independently
 
 `onPostgresAttached` (`postgresAttached.ts:35`) and `instrumentChannel`
 (`realtimeDiag.ts:119`) both bind `'system'` on every channel and both pick
@@ -1106,7 +1106,21 @@ diagnostic is exactly what you would read to discover the guard had stopped
 firing. The two things that must not fail together are the two that share no
 code.
 
-> resolution:
+> **resolution: the message gets a name — `SystemPayload`, in `realtimeDiag`**
+> (Joel, 2026-09-02), and both readers take it. Exported from the module that
+> instruments channels generally rather than from the one specific concern, which
+> is the same direction `F-deep-29` sent `bareName`; no cycle either way, so the
+> rule was consistency rather than necessity.
+>
+> **What it buys, stated exactly, because it is less than it looks.** A wire
+> shape can be renamed by the server and a TypeScript type will not notice — the
+> field just reads `undefined` in both places, as before. What the type removes is
+> the key names being spelled independently at two call sites, and it makes both
+> read in dot notation instead of `payload?.['status']`. Its docstring carries the
+> reason the pair matters, at the shape rather than at either reader.
+>
+> Neither reader lost anything: the guard is one line now, and the diagnostic
+> still logs EVERY system message, not just the postgres_changes one.
 
 ## F-deep-31 · `realtimediag-has-no-test` · The one file that patches a third-party API by hand is the one with no test
 
