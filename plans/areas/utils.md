@@ -13,29 +13,66 @@ such area.
 **Created 2026-09-02** by Joel, while resolving `deep`'s two storage findings,
 and scheduled directly after `deep`.
 
-**Status: OPEN, audited twice — ten findings open from the second pass.** Twelve
-files at `cs-audited-utils`: the seven on the roster below, plus the five this
-area wrote (see "Files this area wrote"). The first pass produced `F-utils-1` …
-`F-utils-12`, eleven resolved and `F-utils-7` a note whose work belongs to
-`floating-panels`. **The second pass (2026-09-03, over the fixes themselves and
-every file they touched) produced `F-utils-13` … `F-utils-22`, and all ten are
-RESOLVED** — see "The second pass". `cs-blessed` remains the exit criterion and
-Joel's alone.
+**Status: CLOSED 2026-09-03. All twelve files at `cs-blessed-utils`** — the seven
+agreed at the opening plus the five this area wrote, all set by Joel, which is
+this area's exit criterion and his alone.
+
+Audited twice, 22 findings, none open. The first pass produced `F-utils-1` …
+`F-utils-12`: eleven resolved, and `F-utils-7` a note whose work belongs to
+`floating-panels` (recorded there, `plans/areas/floating-panels.md:43`). The
+second pass — 2026-09-03, over the fixes themselves and every file they touched —
+produced `F-utils-13` … `F-utils-22`, all resolved; see "The second pass".
+`F-utils-11` is the one marked PARTLY RESOLVED, and deliberately: the limit it
+names is worth fixing across all four `stripComments` copies at once or not at
+all, so it went to [docs/deferred.md](../../docs/deferred.md) → Common /
+architecture rather than being half-done here.
+
+**Why it closes on stamps rather than on a surface.** Every other area ends with
+Joel looking at something; this one renders nothing, so it closes on *read,
+understood, tidied* (app-audit.md:1025). Naming that up front is what stopped it
+being the area that never ends.
 
 ## The roster
 
-**Seven files, 433 lines.** Agreed 2026-09-03 by listing them and stopping.
+**Seven files at the opening, twelve at the close.** The seven were agreed
+2026-09-03 by listing them and stopping; the other five are ones this area
+wrote, which §21 gives a roster row each when the area closes.
+
+Line counts are as they stand at the close, not as they were agreed — the audit
+added a test file and grew four docstrings.
 
 ```
-  99  friendlyDate.ts        94  friendlyDate.test.ts
-  35  keyboardHandoff.ts
-  42  linkify.tsx            91  linkify.test.tsx
-  27  mulberry32.ts
+ 109  friendlyDate.ts       111  friendlyDate.test.ts
+  36  keyboardHandoff.ts
+  54  linkify.tsx            91  linkify.test.tsx
+  46  mulberry32.ts
   45  outcomes.ts                                    (lib/ root, not lib/util/)
 ```
 
-Three units carry a test; `keyboardHandoff` and `mulberry32` have none, which is
-a question for the audit rather than an assumption.
+At the opening, three of those units carried a test and `keyboardHandoff` and
+`mulberry32` had none — a question for the audit rather than an assumption. It
+was answered: `F-utils-4` wrote `mulberry32.test.ts`; `keyboardHandoff` still has
+none and `F-utils-7` says why, since its two callers are `floating-panels`' to
+convert.
+
+### Written by this area — five files, 546 lines
+
+Roster rows per §21: a file an area creates is that area's. All five are
+`cs-blessed-utils` — the rule's default is `cs-fixed-<area>` at close, and these
+went past it because Joel read them.
+
+```
+  74  mulberry32.test.ts                             created by F-utils-4
+  84  storage.ts                                     the helper
+ 114  storage.test.ts                                its cases
+ 116  storage.fake.ts                                the Storage stand-in for tests
+ 158  guards/rawStorage.test.ts                      the guard that requires the helper
+```
+
+`rawStorage.test.ts` sits in `src/guards/`, not `lib/util/`. That folder is on no
+area's roster — §7 does not list it — which is the gap `F-utils-11` ran into when
+it needed somewhere to file the `stripComments` item. This row settles the one
+file: it is `utils`'. The folder remains unclaimed.
 
 **`outcomes.ts` is IN** (Joel, 2026-09-03, answering the shell's open question).
 It sits at the root of `lib/` rather than in `lib/util/`, but it matches this
@@ -916,7 +953,7 @@ that choice into a single default.
   hand-back. A mention, not a caller; `F-utils-7`'s count stands.
 - **`storage.ts` and `common-folders.md` say the guard "fails the build".** The
   build is `tsc -b && vite build` and runs no tests; strictly the guard fails
-  the *suite*. Left alone because `app-audit.md:1230` uses the same phrase for
+  the *suite*. Left alone because `app-audit.md:1239` uses the same phrase for
   the token guard — it is the repo's loose idiom, not this area's invention.
 - **`outcomes.ts:16-18`'s parenthetical** ("the two spellings this list once
   had … hid that behind a rename buried in a CSS rule") is history in the
@@ -931,17 +968,24 @@ that choice into a single default.
 
 ## Files this area wrote
 
-Per §21's rule that a file an area creates is that area's: at close, each gets a
-roster row and a `cs-fixed-utils` stamp. It stays `cs-unmet` until then — a new
-file has never been through an audit.
-
-- `src/common/lib/util/mulberry32.test.ts` — created 2026-09-03 by `F-utils-4`.
-- `src/common/lib/util/storage.ts` — the helper.
-- `src/common/lib/util/storage.test.ts` — its cases.
-- `src/common/lib/util/storage.fake.ts` — the Storage stand-in for tests.
-- `src/guards/rawStorage.test.ts` — the guard that requires the helper.
+**Done at the close** — the five are listed in "The roster" → "Written by this
+area", with their line counts and what each is for, and all five are
+`cs-blessed-utils`. §21's rule (a file an area creates is that area's; it gets a
+roster row and a stamp when the area closes) is satisfied there rather than
+repeated here.
 
 ## Predicted test breaks
 
 *(written when the area starts changing things, per §21's test-break rule:
 predict them, name the specs, leave them)*
+
+**None predicted, and none happened.** This area changed docstrings, comments and
+one guard's allowlist; the only behavior change was `F-utils-1`'s de-duplication
+of `mulberry32`, which the parity proof covered before the duplicates were
+deleted (see "The parity proof"). At the close: **Vitest 2556 in 269 files,
+pgTAP 2454 in 176 files, both green.**
+
+The e2e suite is 230 of 231, and the one red spec is not this area's:
+`setgame-mobile.e2e.ts` lost to browser contexts leaked by eleven other specs,
+diagnosed and fixed 2026-09-03 (`e2e/helpers/contexts.ts`). The fix ships outside
+`utils` and has not been re-run.

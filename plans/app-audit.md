@@ -30,11 +30,20 @@ loses its story; how something was discovered is `css-philosophy.md`'s.
 ## Where to start
 
 **`deep` is read through** — [plans/areas/deep.md](areas/deep.md), six passes
-over 35 files, 39 findings, nothing open. It is waiting on `cs-blessed`, which
-only Joel sets; `App.tsx` is held back on purpose until `hooks` runs.
+over 35 files, 39 findings, nothing open. Thirty-nine of its files are
+`cs-blessed-deep`; `App.tsx` is the one held back, on purpose, until `hooks`
+runs, and it sits at `cs-fixed-deep`.
 
-**Next is `utils`** — [plans/areas/utils.md](areas/utils.md), eight unread files
-in `src/common/lib/util/`. Opening it means listing its files and stopping (§21).
+**`utils` is CLOSED** (2026-09-03) — [plans/areas/utils.md](areas/utils.md), two
+passes over twelve files, 22 findings, none open, all twelve `cs-blessed-utils`.
+`F-utils-7` handed `keyboardHandoff`'s conversion to `floating-panels`;
+`F-utils-11` handed the `stripComments` limit to
+[docs/deferred.md](../docs/deferred.md) → Common / architecture, because
+`src/guards/` is on no area's roster.
+
+**Next is `game-lib`** — [plans/areas/game-lib.md](areas/game-lib.md), the
+non-visual half of the game shell (§7 row 3). Opening it means listing its files
+and stopping (§21).
 
 - **§21** is the process — the stamps, what opening an area means, and what
   "broken" is allowed to mean while this runs. Read it before doing anything.
