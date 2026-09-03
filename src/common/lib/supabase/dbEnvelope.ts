@@ -369,18 +369,61 @@ export function envAndTransportToDiagFields(transport: TransportFacts, envelope:
 }
 
 /**
- * **Report a database failure**: write the `[db]` line, then put the modal up.
+ * **What a caller may ask of a wrapper.** One question today, and the default
+ * is the answer almost every site wants.
  *
- * It decides nothing. Whoever built the envelope already chose the words —
- * `faultEnvelope` for a raw Postgres error, `environmentalEnvelope` for a
+ * `presentFaults: false` says *I will handle my own faults* — not *drop them*.
+ * It exists because the alternative was a path test in `dbFetch` (`isPolled`),
+ * which is all-or-nothing per endpoint: it could silence `tick_timer` entirely
+ * but not silence its transport failures while still showing its `PN011`. A
+ * wrapper holds the parsed envelope, so a caller that opts out can decide per
+ * ANSWER (docs/envelopes.md → Presenting a fault).
+ *
+ * **Default ON is what keeps forgetting impossible.** A call site that ignores
+ * its result entirely still surfaces the failure; only a site that has thought
+ * about it passes the flag, and the flag is visible at the call rather than in
+ * a list in another file.
+ *
+ * It lives HERE rather than with the wrappers because presenting is what it
+ * controls, and presenting is this file's: `dbResult` imports `dbEnvelope`, so
+ * the type could not travel the other way without a cycle.
+ */
+export type DbCallOptions = {
+  // Default `true`. Pass `false` only with a plan for handling faults yourself —
+  // `src/guards/callSiteShape.test.ts` checks that you have one.
+  presentFaults?: boolean
+}
+
+/**
+ * **Report a database failure**: write the `[db]` line, and put the modal up
+ * unless the caller said it would show its own.
+ *
+ * It decides nothing about the WORDS. Whoever built the envelope already chose
+ * them — `faultEnvelope` for a raw Postgres error, `environmentalEnvelope` for a
  * request that never completed, the RPC's own author for a declared fault — so
  * there is one path here and no taxonomy of failure kinds to keep in step with
  * the envelope's own.
  *
+ * **The line is written either way.** Opting out of the modal is not opting out
+ * of the record: a misclassified failure that stops being visible on screen must
+ * not also stop being visible in the console.
+ *
+ * Takes the NOT-OK ARM rather than the union. Every caller has established
+ * `severity: 'fault'` before reaching here, so the message is a `string` and
+ * there is no null to hedge against — and typing the parameter wider than the
+ * truth once forced a fallback sentence ("Something went wrong.") for a case no
+ * caller can produce, a string that read like a choice and was really an
+ * artifact of the signature.
+ *
  * Returns nothing: by the time the caller resumes, the news is delivered.
  */
-export function reportDbFault(transport: TransportFacts, envelope: NotOkEnv): void {
+export function reportDbFault(
+  transport: TransportFacts,
+  envelope: NotOkEnv,
+  opts?: DbCallOptions,
+): void {
   const diagnostics = logDb('FAULT', envAndTransportToDiagFields(transport, envelope), envelope.message)
+  if (opts?.presentFaults === false) return
   showFaultModal({ text: envelope.message, diagnostics })
 }
 
