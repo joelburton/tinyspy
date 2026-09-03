@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { IconHideSolution, IconNewGame, IconPrint, IconRestart, IconReveal, IconScratchpad } from '../../common/components/icons'
-import type { GamePageCtx, GameStopResult } from '../../common/lib/games'
+import type { GameStopResult } from '../../common/lib/gameManifest'
+import type { GamePageCtx } from '../../common/lib/gamePageCtx'
 import type { Member } from '../../common/lib/members/member'
 import { CelebrationBlockingModal } from '../../common/components/game/CelebrationBlockingModal'
 import { useCelebration } from '../../common/hooks/game/useCelebration'

@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { MODE_LABEL } from '../../lib/games'
+import { MODE_LABEL } from '../../lib/gameManifest'
 
 /**
  * The mode filter's vocabulary — its legal values and the buttons that offer

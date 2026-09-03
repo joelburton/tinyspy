@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { Suspense, useCallback, useState } from 'react'
-import { MODE_LABEL, type GameManifest } from '../../lib/games'
+import { MODE_LABEL, type GameManifest } from '../../lib/gameManifest'
 import { type Member } from '../../lib/members/member'
 import { NormalModal } from '../floating-panels/NormalModal'
 import { HelpButton } from '../buttons/HelpButton'

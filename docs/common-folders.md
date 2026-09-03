@@ -131,14 +131,17 @@ hooks/
 
 ```
 lib/
-  games.ts       # THE REGISTRY'S CONTRACT and nothing else: GameManifest (what a
-                 #   game declares) + GamePageCtx (what the shell hands its
-                 #   PlayArea), plus the supporting CommonGameListRow, TimerMode,
+  gameManifest.ts # WHAT A GAME DECLARES: GameManifest, plus the supporting types
+                 #   its members are written in — CommonGameListRow, TimerMode,
                  #   CreatedGame, GameStopResult, MODE_LABEL, playerCount*.
-                 #   NOT the manifest list itself, which lives in src/games.ts
+                 #   NOT the manifest list itself, which lives in src/gametypes.ts
                  #   (the one file allowed to import games). Kept at the lib root
                  #   as a heavily-imported entry point. The test for anything
                  #   proposed for it: does it name a GAME?
+  gamePageCtx.ts # WHAT A GAME IS HANDED: the values <GamePage> passes down to a
+                 #   game's PlayArea. The runtime half of the same contract, and
+                 #   its own module because its readers are its own — 32 files
+                 #   import it and all 32 are a game's components
   members/       # who someone is — Member + GamePlayer (member.ts, TYPES ONLY so
                  #   its 103 importers erase at runtime), and the two values that
                  #   read them (playerOutcome.ts)
@@ -196,8 +199,12 @@ from everyone else.
   game header AND on club cards), grouped with `PuzpuzpuzLogo` by that shape.
 - **`RichMessage`** → `text/`. General-purpose; it renders setup errors today but
   its job is inline player-segment text, not feedback.
-- **`games.ts`** stays at `lib/` root (not `lib/game/`) — it's THE registry, and
-  a dead-obvious top-level path beats one more level of nesting.
+- **`gameManifest.ts` and `gamePageCtx.ts`** stay at `lib/` root (not `lib/game/`)
+  — they are THE contract, and a dead-obvious top-level path beats one more level
+  of nesting. **Both were named `games.ts` until 2026-09-03**, alongside
+  `src/games.ts` — two very different files with one vague name, in a repo whose
+  whole subject is games. Renamed for what each holds, and because `game` in this
+  repo means *a specific playing* (docs/naming.md): neither file is about one.
 
 ## How this was applied (for the next reorg)
 

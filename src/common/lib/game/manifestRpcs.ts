@@ -25,7 +25,7 @@
 
 import { runRpc } from '../supabase/dbResult'
 import type { Envelope } from '../supabase/envelope'
-import type { GameStopResult } from '../games'
+import type { GameStopResult } from '../gameManifest'
 
 /**
  * A minimal structural view of a schema-scoped Supabase client's `.rpc`, narrow

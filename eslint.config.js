@@ -19,9 +19,9 @@ const SRC = join(dirname(fileURLToPath(import.meta.url)), 'src')
  * construction — a game absent from the forbidden list simply produces no
  * lint error, so nothing fails and nobody notices. Hence deriving it.
  *
- * We read `src/games.ts` (the registry, and the app's own single source of
+ * We read `src/gametypes.ts` (the registry, and the app's own single source of
  * truth) rather than importing it: this config is plain JS loaded by Node,
- * and `games.ts` pulls in every game's manifest, which pulls in React
+ * and `gametypes.ts` pulls in every game's manifest, which pulls in React
  * components. A regex over the import specifiers costs nothing and can't
  * fail on a broken game.
  *
@@ -32,7 +32,7 @@ const SRC = join(dirname(fileURLToPath(import.meta.url)), 'src')
 const GAMETYPES = [
   ...new Set(
     Array.from(
-      readFileSync(join(SRC, 'games.ts'), 'utf8').matchAll(
+      readFileSync(join(SRC, 'gametypes.ts'), 'utf8').matchAll(
         /from '\.\/([a-z0-9]+)\/manifest'/g,
       ),
       (m) => m[1],
@@ -61,11 +61,11 @@ if (missing.length || extra.length) {
   throw new Error(
     `eslint.config.js: the game registry and src/ disagree.\n` +
       (missing.length
-        ? `  Folders with a manifest.ts but NOT in src/games.ts: ${missing.join(', ')}\n` +
+        ? `  Folders with a manifest.ts but NOT in src/gametypes.ts: ${missing.join(', ')}\n` +
           `  (their cross-game imports would be unguarded — register them.)\n`
         : '') +
       (extra.length
-        ? `  In src/games.ts but no src/<name>/manifest.ts: ${extra.join(', ')}\n` +
+        ? `  In src/gametypes.ts but no src/<name>/manifest.ts: ${extra.join(', ')}\n` +
           `  (a half-finished removal? the app won't build either.)\n`
         : ''),
   )
@@ -90,7 +90,7 @@ const forbidGameImports = (forbidden, fromContext) =>
     message:
       `Cross-feature import of \`src/${g}/\` from ${fromContext}. ` +
       `Games must stay independent; common/shell code reaches games ` +
-      `through the registry (\`src/games.ts\`). See docs/naming.md.`,
+      `through the registry (\`src/gametypes.ts\`). See docs/naming.md.`,
   }))
 
 export default defineConfig([
@@ -116,7 +116,7 @@ export default defineConfig([
   // Cross-feature import-direction rules — see docs/naming.md.
   //
   // The rule of thumb: removing a game from this repo should be three
-  // actions (delete its folder, delete its line in `src/games.ts`, drop
+  // actions (delete its folder, delete its line in `src/gametypes.ts`, drop
   // its Postgres schema). If common/shell/another-game code reached
   // into the game's folder, that property would silently break. ESLint
   // catches the violation at lint time, before it lands in main.
@@ -134,7 +134,7 @@ export default defineConfig([
   },
 
   // The shell — App.tsx, main.tsx, test-setup.ts — stays game-agnostic.
-  // Games are reached via the registry (`src/games.ts`), which is the
+  // Games are reached via the registry (`src/gametypes.ts`), which is the
   // ONE allowed exception (it lives at the top level of `src/` and is
   // not matched by any of these file-blocks).
   {

@@ -2,7 +2,7 @@
 
 import { lazy } from 'react'
 import { runRpc } from '../common/lib/supabase/dbResult'
-import type { CreatedGame, GameManifest } from '../common/lib/games'
+import type { CreatedGame, GameManifest } from '../common/lib/gameManifest'
 import { db } from './db'
 import { makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
 import { count, outcome, statusLine, wonBy } from '../common/lib/game/statusLabel'

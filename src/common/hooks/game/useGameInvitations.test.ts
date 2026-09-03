@@ -43,8 +43,8 @@ vi.mock('../../lib/routing/router', () => ({
 
 vi.mock('../../lib/supabase/channelDedup', () => ({ channelDedupSuffix: () => 'test' }))
 
-vi.mock('../../../games', () => ({
-  games: [{ gametype: 'spellingbee_coop', name: 'Test Game' }],
+vi.mock('../../../gametypes', () => ({
+  gametypes: [{ gametype: 'spellingbee_coop', name: 'Test Game' }],
 }))
 
 // A real game id is a hex UUID — the path regex only captures `[0-9a-f-]+`,

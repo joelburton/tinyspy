@@ -6,8 +6,8 @@ everything else.
 
 **What it is.** The non-visual half of the game shell — the registry, the
 manifest contract, and the game logic every game shares, none of which belongs to
-any one game: `src/common/lib/game/`, `src/common/lib/games.ts` + its test, and
-`src/games.ts`.
+any one game: `src/common/lib/game/`, `src/common/lib/gameManifest.ts` + its test, and
+`src/gametypes.ts`.
 
 **Created 2026-09-03** by Joel, during `utils`'s opening. Two of its four groups
 of files were on no area's roster at all: `deep` listed them out as "names every
@@ -32,7 +32,7 @@ is about the *shape of a game area* rather than about a game, and it cannot do
 that while §21's "dependencies are listed and left" turns its opening into a list
 of 155 files.
 
-**The split below touches 233 files.** `common/lib/games.ts` is imported across
+**The split below touches 233 files.** `common/lib/gameManifest.ts` is imported across
 every area in the sprint. Split it late and it edits files that are already
 `cs-blessed`; split it early and every area after this one reads the settled
 shape. Hence its slot near the front, ahead of the other two scaffolding areas
@@ -46,11 +46,11 @@ Agreed with Joel 2026-09-03 before anything was read, and stamped
 | | files | lines |
 |---|---|---|
 | `src/common/lib/game/` | 31 | 2,181 |
-| `src/common/lib/games.ts` + `games.test.ts` | 2 | 959 |
-| `src/games.ts` — the manifest list, the one file allowed to import each game | 1 | 100 |
+| `src/common/lib/gameManifest.ts` + `gameManifest.test.ts` | 2 | 959 |
+| `src/gametypes.ts` — the manifest list, the one file allowed to import each game | 1 | 100 |
 
 **The shell's own numbers were wrong in two of three rows** and are corrected
-above: it had the `games.ts` pair at 1,003 (it is 959) and `src/games.ts` at 56
+above: it had the `gameManifest.ts` pair at 1,003 (it is 959) and `src/gametypes.ts` at 56
 (it is 100). `lib/game/` was right. This is §21's rule earning itself again — *a
 shell's guessed roster is a note, never a count* — and the reason to re-measure
 at every opening. The split table under "Already waiting for this area" carried
@@ -79,9 +79,9 @@ a better-informed read of 5.
 
 | file | lines |
 |---|---|
-| `common/lib/games.ts` | 908 |
-| `common/lib/games.test.ts` | 51 |
-| `src/games.ts` | 100 |
+| `common/lib/gameManifest.ts` | 908 |
+| `common/lib/gameManifest.test.ts` | 51 |
+| `src/gametypes.ts` | 100 |
 | `common/lib/game/manifestRpcs.ts` | 63 |
 | `common/lib/game/manifestRpcs.test.ts` | 60 |
 
@@ -225,6 +225,19 @@ without a number. See `F-game-lib-9`.
 *(IDs are `F-game-lib-1`, `F-game-lib-2`, … — §21 → Areas. Every heading states
 its status; no status prefix means OPEN.)*
 
+**Citations name a SYMBOL, not just a line** (Joel, 2026-09-03, on finding
+`F-game-lib-7` pointing at `games.ts:68` — a line the split had moved 40 rows and
+which by then landed in the middle of a docstring it had nothing to do with).
+This area moved 233 files in one commit, so every bare line number in it went
+stale at once. Write `games.ts:108 — GamePageCtx.timer`: the number is the
+convenience and the symbol is what survives the next sweep.
+
+**An OPEN finding's citation points at the code now; a RESOLVED one's points at
+where the fault WAS.** Those are different claims and both are wanted — the
+second is the record of what was found, and updating it to a line that no longer
+holds anything would erase that. Resolved findings whose lines have since moved
+say so at the top of the finding.
+
 ### RESOLVED 2026-09-03 — F-game-lib-1 · `registry-has-no-header` · The file 233 others import opens with no docstring
 
 `games.ts` is 908 lines holding five unrelated vocabularies, and **there is no
@@ -275,7 +288,7 @@ stays anyway, beside the interface it satisfies.
    file 233 others import. Still `forms`'.
 2. **`members/member.ts` is types-only, and that is enforced by having nowhere
    else to put a value.** `playerOutcome` and `outcomeVerb` went to a sibling
-   module precisely so the 121-importer module has no runtime half. `games.ts:6`'s
+   module precisely so the 121-importer module has no runtime half. `games.ts:5`'s
    standing cycle warning is now about a much smaller file.
 3. **`F-game-lib-2` and `F-game-lib-4` fell out of it** — see their entries.
 
@@ -284,6 +297,9 @@ stays anyway, beside the interface it satisfies.
 the only check that resolves every import in the project.
 
 ### RESOLVED 2026-09-03 — F-game-lib-2 · `two-orphaned-docstrings` · Two stacked docstrings, both allowlisted to this area
+
+*(Line numbers below are where these WERE, at the audit. Both are resolved and
+the declarations have since moved — see the resolution note.)*
 
 `games.ts:414` and `games.ts:588` are the stacked-docstring fault that
 `src/guards/orphanedDocstrings.test.ts` exists for, and both sit on that guard's
@@ -326,6 +342,9 @@ do this again**, and the guard's failure message ("fixed, or moved") is the only
 thing that tells the two apart.
 
 ### RESOLVED 2026-09-03 — F-game-lib-3 · `dispatcher-says-ten-games` · "all ten games" is sixteen
+
+*(Line numbers in this finding are where things WERE, at the audit; it is
+resolved and the file has since been rewritten.)*
 
 `manifestRpcs.ts:43`: *"Collapses the byte-identical `submitTimeout` / `endGame`
 wrappers across all ten games."*
@@ -382,10 +401,10 @@ spec plus all 23 guards.
 
 ### RESOLVED 2026-09-03 — F-game-lib-4 · `menu-icon-says-fifteen-games` · "all fifteen games" is sixteen
 
-`games.ts:229`, in `MenuItemBase.icon`'s docstring — the one that calls itself
+`MenuItemBase.icon`'s docstring — the one that calls itself
 *"the icon language's legend"*: *"it reads in all fifteen games afterwards."*
 
-Sixteen game folders, and `src/games.ts` registers 30 gametypes across them. The
+Sixteen game folders, and `src/gametypes.ts` registers 30 gametypes across them. The
 argument the docstring makes is unaffected; only its count is wrong.
 
 #### Resolved in passing 2026-09-03, and flagged rather than done quietly
@@ -403,7 +422,7 @@ byte-identical to what it was in `games.ts`, except `SetupBodyProps`'s — see
 
 ### RESOLVED 2026-09-03 — F-game-lib-5 · `player-count-doc-names-one-max` · A stated max that four games don't use
 
-`games.ts:709-712`, in `GameManifest.numberOfPlayers`: *"For an 'any club' game,
+`games.ts:324` — `GameManifest.numberOfPlayers`: *"For an 'any club' game,
 pick a reasonable max — today we use 6 for all the open-N games (connections,
 psychicnum, spellingbee) and `[2, 2]` for fixed-seat codenamesduet."*
 
@@ -472,7 +491,7 @@ first, which is `F-utils-11`'s open question one folder over.
 
 ### RESOLVED 2026-09-03 — F-game-lib-6 · `status-consumer-is-six-games` · "Today's primary consumer" is six games, and the future it defers to has arrived
 
-`games.ts:99-104`, in `GamePageCtx.status`: *"Today's primary consumer is
+`games.ts:140` — `GamePageCtx.status`: *"Today's primary consumer is
 spellingbee's compete-mode OpponentStrip, which reads `status.leaderboard` for
 the per-player rank summary. The same channel is open to any future game that
 wants a live status field surfaced to the play surface."*
@@ -498,7 +517,7 @@ Checking who reads the field turned up a separate thing, which is
 
 ### F-game-lib-7 · `ctx-timer-undocumented-and-misindented` · The one non-obvious field in the render-prop contract has no docstring
 
-`games.ts:68`:
+`games.ts:108` — `GamePageCtx.timer`:
 
 ```ts
   isTerminal: boolean
@@ -524,7 +543,7 @@ Two things at once, both on the field opener:
 
 ### F-game-lib-8 · `player-count-short-untested` · Three sibling formatters, two tested
 
-`games.test.ts` opens *"Pure-function tests for the player-count helpers"* —
+`gameManifest.test.ts` opens *"Pure-function tests for the player-count helpers"* —
 plural, and it covers `playerCountFits` and `playerCountLabel`. `playerCountShort`
 has no test.
 
@@ -540,7 +559,9 @@ untested one is the one on screen in every club, every time.
 
 ### F-game-lib-9 · `player-outcome-exported-unread` · An exported function with no importer, and four docstrings that name it
 
-`playerOutcome` (`games.ts:369`) is exported and **imported by nothing**. Its only
+`playerOutcome` (`lib/members/playerOutcome.ts:27`, moved there by `F-game-lib-1`
+— it was `games.ts:369` when this was written) is exported and **imported by
+nothing**. Its only
 caller is `outcomeVerb`, eighteen lines below it in the same file.
 
 This is the one row of the split table that did not survive re-counting: the
@@ -557,9 +578,9 @@ Three consequences, and the third is the one that matters:
    in lockstep with its vocabulary"* — true, and an argument for keeping the
    function, not for exporting it.
 3. **Four games' docstrings name `playerOutcome` as the thing that reads their
-   data** — `wordwheel/components/InfoCol.tsx:78`,
-   `spellingbee/components/InfoCol.tsx:78`, `boggle/components/InfoCol.tsx:70`,
-   `scrabble/components/InfoCol.tsx:107`, each some form of *"per-player
+   data** — `wordwheel/components/InfoCol.tsx:79`,
+   `spellingbee/components/InfoCol.tsx:79`, `boggle/components/InfoCol.tsx:71`,
+   `scrabble/components/InfoCol.tsx:108`, each some form of *"per-player
    concede/result bits `playerOutcome` reads"*. All four are describing a path
    that actually runs through `outcomeVerb`. The mention count is four and the
    caller count is zero, which is the shape `feedback_count_the_callers` warns
@@ -584,7 +605,7 @@ the area.
 
 ### Already waiting for this area
 
-**Split `common/lib/games.ts`.** Agreed with Joel 2026-09-03 (*"yes, split"*)
+**Split `common/lib/gameManifest.ts`.** Agreed with Joel 2026-09-03 (*"yes, split"*)
 during `utils`'s opening, and assigned here rather than to `utils` on his call
 that the game half waits: *"i don't want to dive into game-stuff yet."*
 
@@ -600,7 +621,7 @@ split's own numbers, re-measured"):
 | what | names | imports | destination |
 |---|---|---|---|
 | identity | `Member` 103 · `GamePlayer` 18 · `outcomeVerb` 7 · `playerOutcome` · `RichMessage` 1 | 129 | `lib/members/` (Joel, 2026-09-03) |
-| the registry | `GamePageCtx` 32 · `GameManifest` 22 · `TimerMode` 21 · `CommonGameListRow` 7 · `GameStopResult` 5 · `MODE_LABEL` 5 · `playerCount*` 5 | 97 | stays in `lib/games.ts` |
+| the registry | `GamePageCtx` 32 · `GameManifest` 22 · `TimerMode` 21 · `CommonGameListRow` 7 · `GameStopResult` 5 · `MODE_LABEL` 5 · `playerCount*` 5 | 97 | stays in `lib/gameManifest.ts` |
 | setup forms | `CreatedGame` 31 · `SetupBodyProps` 17 · `SetupSetter` 16 · `SetupOf` 16 · `GameSetupForm` | 80 | `lib/setup/` — except `CreatedGame`, below |
 | feedback | `GenericFeedbackMsg` 39 · `GenericFeedbackApi` 5 | 44 | `lib/feedback/` |
 | the menu | `MenuSection` 7 · `MenuApi` 2 · `MenuItem` 2 · `MenuHeader` · `isSubmenu` · `MenuSubmenu` 1 each · `MenuAction`, `MenuItemBase` | 14 | `lib/menu/` — the folder already exists |
@@ -614,7 +635,7 @@ The planned destinations, with the calls that are not obvious:
 - **`lib/members/member.ts`** — `Member`, `GamePlayer`. **Types only, and that is
   load-bearing:** `Member` is the name 103 files import, so a pure-type module
   means those 103 imports erase at runtime and cannot close a cycle whatever else
-  moves. `games.ts:6` already carries a warning about the cycle the current
+  moves. `games.ts:5` already carries a warning about the cycle the current
   arrangement participates in.
 - **`lib/members/playerOutcome.ts`** — `playerOutcome`, `outcomeVerb`. The two
   values, kept out of the 103-importer file for exactly that reason.

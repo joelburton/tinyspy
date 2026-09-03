@@ -3,7 +3,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { games } from '../games'
+import { gametypes } from '../gametypes'
 
 /**
  * The hand-maintained lists that have to name every game — checked against the
@@ -39,7 +39,7 @@ import { games } from '../games'
 const read = (path: string) => readFileSync(resolve(process.cwd(), path), 'utf8')
 
 /** Every schema the app talks to — one per game, plus `common`. */
-const schemas = [...new Set([...games.map((g) => g.schema), 'common'])].sort()
+const schemas = [...new Set([...gametypes.map((g) => g.schema), 'common'])].sort()
 
 /** `schemas = ["public", …]` in the `[api]` block. */
 function configTomlSchemas(): string[] {

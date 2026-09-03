@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { db as commonDb } from '../../db'
 import { runRpc } from '../../lib/supabase/dbResult'
-import { games } from '../../../games'
+import { gametypes } from '../../../gametypes'
 import { NormalModal } from '../floating-panels/NormalModal'
 import { FailureLine } from '../feedback/FailureLine'
 import { ModePill } from '../game/ModePill'
@@ -71,7 +71,7 @@ export function EditClubModal({
 
   // One row per registered gametype. Sort by display name, then by
   // mode, so a coop/compete sibling pair sits together.
-  const sorted = [...games].sort(
+  const sorted = [...gametypes].sort(
     (a, b) => a.name.localeCompare(b.name) || a.mode.localeCompare(b.mode),
   )
 

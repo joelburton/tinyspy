@@ -71,7 +71,7 @@ docs/                             # see Documentation below
 CLAUDE.md                         # project priors for AI / contributors
 ```
 
-The structural integrity check: **removing a game should be three actions** — delete its folder, delete its line from `src/games.ts`, drop its Postgres schema (its migration, its `supabase/sql/` file, and a `drop schema` migration). ESLint's `no-restricted-imports` rules enforce this at lint time; the games registry pattern (one manifest per game, shell never names a game) enforces it structurally. See [`docs/common.md`](docs/common.md) for the removability invariant and [`docs/code-conventions.md`](docs/code-conventions.md) for the lint rules.
+The structural integrity check: **removing a game should be three actions** — delete its folder, delete its line from `src/gametypes.ts`, drop its Postgres schema (its migration, its `supabase/sql/` file, and a `drop schema` migration). ESLint's `no-restricted-imports` rules enforce this at lint time; the games registry pattern (one manifest per game, shell never names a game) enforces it structurally. See [`docs/common.md`](docs/common.md) for the removability invariant and [`docs/code-conventions.md`](docs/code-conventions.md) for the lint rules.
 
 ## Quick start
 
@@ -165,6 +165,6 @@ The detail behind everything above lives in `docs/`. **[CLAUDE.md](CLAUDE.md) ca
 
 ## Status
 
-Alpha software (see [`CLAUDE.md`](CLAUDE.md) for what that means in practice). Sixteen games are live — bananagrams, boggle, codenamesduet, connections, crosswords, letterboxed, psychicnum, scrabble, setgame, spellingbee, stackdown, strands, waffle, wordiply, wordle, wordwheel — most multiplayer ones a coop + compete sibling pair (codenamesduet is coop-only, bananagrams a single competitive race); psychicnum is a deliberately-tiny toy that keeps the multi-game architecture honest. Further games slot into the same shape — one new folder under `src/`, one new line in `src/games.ts`, one new Postgres schema.
+Alpha software (see [`CLAUDE.md`](CLAUDE.md) for what that means in practice). Sixteen games are live — bananagrams, boggle, codenamesduet, connections, crosswords, letterboxed, psychicnum, scrabble, setgame, spellingbee, stackdown, strands, waffle, wordiply, wordle, wordwheel — most multiplayer ones a coop + compete sibling pair (codenamesduet is coop-only, bananagrams a single competitive race); psychicnum is a deliberately-tiny toy that keeps the multi-game architecture honest. Further games slot into the same shape — one new folder under `src/`, one new line in `src/gametypes.ts`, one new Postgres schema.
 
 Known cosmetic gaps and deferred work are in [`docs/deferred.md`](docs/deferred.md).

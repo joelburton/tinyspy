@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useRef, useMemo, useState } from 'react'
 import { IconHideSolution, IconNewGame, IconPrint, IconRestart, IconReveal } from '../../common/components/icons'
-import type { CreatedGame, GamePageCtx } from '../../common/lib/games'
+import type { CreatedGame } from '../../common/lib/gameManifest'
+import type { GamePageCtx } from '../../common/lib/gamePageCtx'
 import type { GenericFeedbackMsg } from '../../common/lib/feedback/genericFeedback'
 import { cls } from '../../common/lib/util/cls'
 import { terminalPill, outOfRacePill } from '../../common/lib/game/localPills'

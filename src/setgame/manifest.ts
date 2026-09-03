@@ -2,7 +2,7 @@
 
 import { lazy } from 'react'
 import { runRpc } from '../common/lib/supabase/dbResult'
-import type { CommonGameListRow, CreatedGame, GameManifest } from '../common/lib/games'
+import type { CommonGameListRow, CreatedGame, GameManifest } from '../common/lib/gameManifest'
 import { deckSize } from './lib/cards'
 import { CLAIM_SIZE } from './lib/selection'
 import { db } from './db'

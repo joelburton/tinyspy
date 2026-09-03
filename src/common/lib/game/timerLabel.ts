@@ -1,6 +1,6 @@
 // cs-met-game-lib
 
-import type { TimerMode } from '../games'
+import type { TimerMode } from '../gameManifest'
 
 /**
  * The VALUE of a game's CONFIGURED timer, for the `Timer: …` row of the

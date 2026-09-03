@@ -777,7 +777,7 @@ menu: {
 
 **Keyboard.** Enter / Space on the logo opens the menu and focuses the first enabled item. Arrow up / down navigate; Enter or Space activates; Esc closes. Tab while the menu is open closes it and advances focus normally. Disabled items are skipped by arrow navigation.
 
-**Submenus** are a two-shape hybrid, one level deep. A row with `items` instead of `onClick` ([`MenuSubmenu`](../src/common/lib/games.ts)) opens:
+**Submenus** are a two-shape hybrid, one level deep. A row with `items` instead of `onClick` ([`MenuSubmenu`](../src/common/lib/gameManifest.ts)) opens:
 
 - **desktop — a flyout** beside the parent row, parent left lit so it's clear which panel belongs to it;
 - **mobile — a drill-down** that replaces the list, headed by a `‹ <parent>` row.
@@ -1338,7 +1338,7 @@ A gametype's interaction `mode` (`'coop'` / `'compete'`, on the manifest) is **n
 
 Rules:
 
-- **Spelling.** The DB, code, and gametype strings spell it `coop`; the **UI says "Co-op"** (and "Compete"). The one place the FE text differs from the stored value — `MODE_LABEL` in [`lib/games.ts`](../src/common/lib/games.ts) owns the mapping.
+- **Spelling.** The DB, code, and gametype strings spell it `coop`; the **UI says "Co-op"** (and "Compete"). The one place the FE text differs from the stored value — `MODE_LABEL` in [`lib/gameManifest.ts`](../src/common/lib/gameManifest.ts) owns the mapping.
 - **Look.** The shared `.badge` — an outlined lozenge, transparent background, border and text both one color. That color is one of the app's two **flexible** colors (`--flex-color-1` / `--flex-color-2`, teal and purple today), and which mode gets which is arbitrary: the pair carries no meaning, and the two only have to be clearly different from each other. What isn't arbitrary is that they sit outside the won/lost/active outcome palette, so a mode never reads as a result.
 - **Solo clubs.** In a solo club (handle starts with `=`, one player) **no pill renders** — neither "Co-op" (no one to cooperate with) nor "Compete" — **with one exception**: a compete variant whose manifest declares **`aiOpponent: true`** (scrabble — solo play seats an autonomous AI opponent) shows an **"AI Compete"** pill, because there IS someone to beat. A compete variant *without* an AI (bananagrams) is "compete for 1" — a race with nobody to beat, effectively coop — so it stays pill-less. The flag lives on the manifest so the club UI never has to know about specific games (the removability invariant); pass `soloClub` + the manifest's `aiOpponent` to `<ModePill>`.
 - **Where it shows.** Anywhere a gametype name appears next to its mode: the per-gametype Start buttons (`StartGameButtons`), the club's games list (`ClubGameCard`), and the club editor (`EditClubModal`). The Start buttons + games list pass `soloClub` (so solo clubs show no pill); the editor **never** passes it, so it always shows the pill — it lists both siblings, and the pill is the only thing distinguishing two now-identically-named rows. The setup dialog confirms the mode in its title via `MODE_LABEL` (dropped in a solo club, matching the suppression).
@@ -1563,7 +1563,7 @@ icon buttons).
 tooltips, and a touch device has no hover — `TooltipHost` disables the hover
 path there outright, because a tap's synthetic hover leaves a stuck bubble. So
 the glyphs had no legend on the surface with the least room for words. The fix
-is [`MenuItem.icon`](../src/common/lib/games.ts): the game menu already spells
+is [`MenuItem.icon`](../src/common/lib/gameManifest.ts): the game menu already spells
 these actions out (Restart, New game, Reveal answer, Hint, Spoiler, End game,
 Concede, Back to club, Print), so each row shows its glyph beside its name.
 A button whose glyph isn't in the menu yet gets a row **added** — that's how

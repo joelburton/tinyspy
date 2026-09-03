@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { cls } from '../../lib/util/cls'
-import { MODE_LABEL } from '../../lib/games'
+import { MODE_LABEL } from '../../lib/gameManifest'
 import styles from './ModePill.module.css'
 
 type Props = {

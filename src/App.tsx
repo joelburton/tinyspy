@@ -25,7 +25,7 @@ import { TooltipHost } from './common/components/tooltips/TooltipHost'
 import { useRealtimeReconnect } from './common/hooks/realtime/useRealtimeReconnect'
 import { useBacktickEscape } from './common/hooks/input/useBacktickEscape'
 import { usePath } from './common/lib/routing/router'
-import { games } from './games'
+import { gametypes } from './gametypes'
 
 
 /** `/c/<handle>`, with or without a trailing slash. */
@@ -128,7 +128,7 @@ export default function App() {
   // should echo what the URL actually said.
   const gamePage = (urlGametype: string, gameId: string) => {
     const gametype = urlGametype.toLowerCase()
-    const gameManifest = games.find((g) => g.gametype === gametype)
+    const gameManifest = gametypes.find((g) => g.gametype === gametype)
 
     if (!gameManifest)
       return (

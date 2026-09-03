@@ -12,7 +12,7 @@ For the shared layer see [`common.md`](../common.md). For testing theory + perso
 
 ## The sibling-manifest pattern
 
-psychicnum is a coop/compete sibling pair — the full pattern (two `common.gametypes` rows + two `src/games.ts` manifests over one folder, one schema, one `create_game(target_club, setup, player_user_ids, mode)` RPC, RLS branching on a denormalized `mode` column, why-per-variant-not-a-radio) is documented once in [common.md → The sibling-manifest pattern](../common.md#the-sibling-manifest-pattern), which uses psychicnum as its worked example. psychicnum's specifics:
+psychicnum is a coop/compete sibling pair — the full pattern (two `common.gametypes` rows + two `src/gametypes.ts` manifests over one folder, one schema, one `create_game(target_club, setup, player_user_ids, mode)` RPC, RLS branching on a denormalized `mode` column, why-per-variant-not-a-radio) is documented once in [common.md → The sibling-manifest pattern](../common.md#the-sibling-manifest-pattern), which uses psychicnum as its worked example. psychicnum's specifics:
 
 | field             | `psychicnumCoopGame` | `psychicnumCompeteGame` |
 |-------------------|----------------------|-------------------------|
@@ -64,7 +64,7 @@ Both siblings share the same display `name` — the brand, `PsychicNum`, read fr
 
 - **Not a turn-based game.** Any player can guess at any time. The server serializes simultaneous guesses via `SELECT ... FOR UPDATE` on the game row.
 - **Not strategic.** There's no skill in the spec — it's "guess a random number." The "fun" parameter is left at zero.
-- **Slated for removal after beta** — the roster has filled in, so the toy no longer earns its keep. The removal will validate the **removability-in-three-actions** invariant for real: `rm -rf src/psychicnum/`, drop the two entries from `src/games.ts` AND drop the two `common.gametypes` rows from the schema, drop the migration file. If anything else breaks, the architecture leaked.
+- **Slated for removal after beta** — the roster has filled in, so the toy no longer earns its keep. The removal will validate the **removability-in-three-actions** invariant for real: `rm -rf src/psychicnum/`, drop the two entries from `src/gametypes.ts` AND drop the two `common.gametypes` rows from the schema, drop the migration file. If anything else breaks, the architecture leaked.
 
 ## Schema: `psychicnum.*`
 

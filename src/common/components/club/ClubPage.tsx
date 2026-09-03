@@ -18,7 +18,7 @@ import { useTabRing } from '../../hooks/input/useTabRing'
 import { useAccountMenuSection } from '../../hooks/account/useAccountMenuSection'
 import { useStickyChoice } from '../../hooks/ui/useStickyChoice'
 import { IconBack, IconHelp } from '../icons'
-import { MODE_LABEL, playerCountFits, playerCountLabel } from '../../lib/games'
+import { MODE_LABEL, playerCountFits, playerCountLabel } from '../../lib/gameManifest'
 import { useClubPresence } from '../../hooks/realtime/useClubPresence'
 import { useClubSetupPresence } from '../../hooks/realtime/useClubSetupPresence'
 import { Loading } from '../loading-and-errs/Loading'
@@ -39,8 +39,8 @@ import { SetupGameModal } from '../setup/SetupGameModal'
 import { StartGameRow } from './StartGameRow'
 import { SelectionList } from '../lists/SelectionList'
 import { PageHeaderStatusSlot } from '../page-header/PageHeaderStatusSlot'
-import { games } from '../../../games'
-import type { CommonGameListRow, GameManifest } from '../../lib/games'
+import { gametypes } from '../../../gametypes'
+import type { CommonGameListRow, GameManifest } from '../../lib/gameManifest'
 import type { GenericFeedbackApi, GenericFeedbackMsg } from '../../lib/feedback/genericFeedback'
 import type { MenuSection } from '../../lib/menu/menu'
 import { useChatFeedback } from '../../hooks/chat/useChatFeedback'
@@ -314,7 +314,7 @@ export function ClubPage({ handle, session }: Props) {
     pendingSetup ??
     (loading || requestConsumed
       ? null
-      : (games.find((g) => g.gametype === requestedGametype) ?? null))
+      : (gametypes.find((g) => g.gametype === requestedGametype) ?? null))
 
   /** Close the setup dialog, whichever way it was opened, and drop `?new=` from
    *  the URL so a refresh doesn't re-open it.
@@ -401,7 +401,7 @@ export function ClubPage({ handle, session }: Props) {
   // order the buttons render in.
   const startableGames = useMemo(
     () =>
-      games
+      gametypes
         .filter((g) => allowedGametypes.has(g.gametype))
         .sort((a, b) => a.name.localeCompare(b.name)),
     [allowedGametypes],
@@ -569,7 +569,7 @@ export function ClubPage({ handle, session }: Props) {
    * is `startGame`.
    */
   function handleStartSetup(gametype: string) {
-    const game = games.find((g) => g.gametype === gametype)
+    const game = gametypes.find((g) => g.gametype === gametype)
     if (!club || !game) return
     setPendingSetup(game)
   }
@@ -744,7 +744,7 @@ export function ClubPage({ handle, session }: Props) {
       const listed: ListedGame[] = []
       for (const r of rows) {
         if (r.is_current_view) currentId = r.id
-        const manifest = games.find((g) => g.gametype === r.gametype)
+        const manifest = gametypes.find((g) => g.gametype === r.gametype)
         if (!manifest) continue
         const listRow: CommonGameListRow = {
           id: r.id,

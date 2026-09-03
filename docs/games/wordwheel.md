@@ -490,7 +490,7 @@ border. See [docs/pdf.md](../pdf.md).
 | Frontend | `src/wordwheel/` |
 | Board geometry | `src/wordwheel/lib/wheel.ts` (shared: board + PDF) |
 | pgTAP tests | `supabase/tests/wordwheel/` |
-| Registry | `src/games.ts`; schema in `supabase/config.toml` `[api].schemas` |
+| Registry | `src/gametypes.ts`; schema in `supabase/config.toml` `[api].schemas` |
 
 ## Deferred
 

@@ -1,7 +1,7 @@
 // cs-unmet
 
-import type { GameManifest } from '../../lib/games'
-import { playerCountShort } from '../../lib/games'
+import type { GameManifest } from '../../lib/gameManifest'
+import { playerCountShort } from '../../lib/gameManifest'
 import { GameLogo } from '../branding/GameLogo'
 import { ModePill } from '../game/ModePill'
 import styles from './StartGameRow.module.css'

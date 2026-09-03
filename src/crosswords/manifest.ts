@@ -2,7 +2,7 @@
 
 import { lazy } from 'react'
 import type { FormErrors } from '../common/components/fields/formState'
-import type { CreatedGame, GameManifest } from '../common/lib/games'
+import type { CreatedGame, GameManifest } from '../common/lib/gameManifest'
 import { makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
 import { runEdgeFn, runRpc } from '../common/lib/supabase/dbResult'
 import { db } from './db'

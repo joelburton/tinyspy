@@ -157,7 +157,7 @@ NOT this area's; the four notes to their owner in pass 2 and pass 7 stand.
 
 | | why |
 |---|---|
-| `src/games.ts`, `src/common/lib/games.ts` + test | name every game. **`game-lib`**, the area created 2026-09-03 to take them |
+| `src/gametypes.ts`, `src/common/lib/gameManifest.ts` + test | name every game. **`game-lib`**, the area created 2026-09-03 to take them |
 | all 32 files of `src/common/lib/game/` (31 when `game-lib` measured it, 2026-09-03) | same, and the same area. Like `lib/util/` one row down, "names every game" said which area it is NOT, and no area then claimed it — `utils`'s opening is what turned that up |
 | `supabase/functions/_shared/startGame.ts` | same |
 | `src/types/db.ts` (4,422 lines) | generated, and it names every game's schema. **Set `cs-na` 2026-09-02** (Joel): it carries a stamp it could never earn its way off, because nobody will ever hand-read it |
@@ -883,19 +883,19 @@ not, and a number in a docstring is a thing a reader checks.
 ## RESOLVED · F-deep-27 · `fifteen-games` · Three comments count the games, and the count is one behind
 
 Found by sweeping for counted claims after `F-deep-21`. **Sixteen games are
-registered** — sixteen manifest imports in `src/games.ts`, sixteen folders under
+registered** — sixteen manifest imports in `src/gametypes.ts`, sixteen folders under
 `src/` — and three comments say fifteen:
 
 - `dbResult.ts:104` — *"so fifteen boards can't drift on it"*
 - `supabase.ts:124` — *"covers all fifteen games' data channels"*
-- `lib/games.ts:229` — *"it reads in all fifteen games afterwards"*
+- `lib/gameManifest.ts:229` — *"it reads in all fifteen games afterwards"*
 
 > **resolution: the two in this area are rewritten to say the thing that stays
 > true** — "so no board can drift on it", "covers every game's data channels" —
 > rather than bumped to sixteen, which would rot again the next time the roster
 > grows. That is `F-deep-21`'s lesson applied rather than restated.
 >
-> **The third is NOT this area's.** `src/common/lib/games.ts` names every game,
+> **The third is NOT this area's.** `src/common/lib/gameManifest.ts` names every game,
 > so `deep`'s membership rule excludes it; it belongs to whichever area takes the
 > manifest registry. Recorded here so it is not lost.
 

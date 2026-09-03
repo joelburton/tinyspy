@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { describe, expect, it } from 'vitest'
-import { games as GAMES } from '../games'
+import { gametypes as GAMES } from '../gametypes'
 import { ROSTER_KEY, type SetupRow } from '../common/lib/game/setupRows'
 import type { Member } from '../common/lib/members/member'
 

@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { games } from '../../../games'
+import { gametypes } from '../../../gametypes'
 import { cls } from '../../lib/util/cls'
 import { friendlyDate } from '../../lib/util/friendlyDate'
 import { GameLogo } from '../branding/GameLogo'
@@ -59,7 +59,7 @@ export function ClubGameRow({
   soloClub,
   onDelete,
 }: Props) {
-  const manifest = games.find((g) => g.gametype === gametype)
+  const manifest = gametypes.find((g) => g.gametype === gametype)
   // Friendly relative date — see friendlyDate.ts. Doesn't tick; re-renders when
   // ClubPage refetches via realtime, which is often enough for a game list.
   const dateLabel = friendlyDate(lastActiveAt)

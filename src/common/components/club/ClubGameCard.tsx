@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { games } from '../../../games'
+import { gametypes } from '../../../gametypes'
 import { Link } from '../../lib/routing/Link'
 import { friendlyDate } from '../../lib/util/friendlyDate'
 import { GameLogo } from '../branding/GameLogo'
@@ -51,7 +51,7 @@ export function ClubGameCard({
   onDelete,
   soloClub,
 }: Props) {
-  const manifest = games.find((g) => g.gametype === gametype)
+  const manifest = gametypes.find((g) => g.gametype === gametype)
   const dateLabel = friendlyDate(lastActiveAt)
 
   return (

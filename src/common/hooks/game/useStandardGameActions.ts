@@ -2,7 +2,7 @@
 
 import type { DbError } from '../../lib/supabase/dbEnvelope'
 import type { GenericFeedbackMsg } from '../../lib/feedback/genericFeedback'
-import type { GameStopResult } from '../../lib/games'
+import type { GameStopResult } from '../../lib/gameManifest'
 import { getNotOkFeedback } from '../../lib/game/genericPills'
 import { runRpc } from '../../lib/supabase/dbResult'
 import { useCallback, useRef } from 'react'

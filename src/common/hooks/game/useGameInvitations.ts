@@ -8,7 +8,7 @@ import { readRows } from '../../lib/supabase/dbResult'
 import { navigate, usePath } from '../../lib/routing/router'
 import { channelDedupSuffix } from '../../lib/supabase/channelDedup'
 import { onPostgresAttached } from '../../lib/supabase/postgresAttached'
-import { games } from '../../../games'
+import { gametypes } from '../../../gametypes'
 import {
   inviteCutoffIso,
   loadSeenInvites,
@@ -101,7 +101,7 @@ export function useGameInvitations(session: Session): {
     const fresh = newInviteCandidates(candidates, {
       selfId,
       seen: loadSeenInvites(),
-    }).filter((c) => games.some((g) => g.gametype === c.gametype))
+    }).filter((c) => gametypes.some((g) => g.gametype === c.gametype))
     if (fresh.length === 0) return
 
     // Resolve inviter usernames (the game's creator).
@@ -121,7 +121,7 @@ export function useGameInvitations(session: Session): {
     const built: GameInvite[] = fresh.map((c) => ({
       gameId: c.id,
       gametype: c.gametype,
-      gameName: games.find((g) => g.gametype === c.gametype)!.name,
+      gameName: gametypes.find((g) => g.gametype === c.gametype)!.name,
       clubHandle: c.club_handle,
       inviterName: nameById.get(c.created_by) ?? 'Someone',
     }))

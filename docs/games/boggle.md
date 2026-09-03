@@ -542,7 +542,7 @@ Other files: `manifest.ts` (the two sibling manifests, `BRAND='MothCubes'`,
 `db.ts`, `theme.css`, `logo.svg`, `hooks/useGame.ts` (realtime refetch on
 `boggle.{games, found_words}`), `lib/{setup, customBoard, boardTrace,
 displayRows}`. Registered
-in `src/games.ts`; `boggle` is in `supabase/config.toml` schemas and the eslint
+in `src/gametypes.ts`; `boggle` is in `supabase/config.toml` schemas and the eslint
 `GAMETYPES`. Presence-pause is inherited via `<GamePage>` + `useCommonGame`
 ([[feedback_pause_on_disconnect]]).
 

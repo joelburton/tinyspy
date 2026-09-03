@@ -14,7 +14,7 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { GamePageCtx } from '../../common/lib/games'
+import type { GamePageCtx } from '../../common/lib/gamePageCtx'
 import { gp } from '../../common/test/gamePlayers'
 import type { CrosswordsGame } from '../hooks/useGame'
 import type { CellsMap, CellState } from '../hooks/useCells'

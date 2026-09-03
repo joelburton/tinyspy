@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react'
 import { supabase } from '../../lib/supabase/supabase'
 import { channelLeaving, releaseChannel } from '../../lib/supabase/channelTeardown'
-import { MODE_LABEL } from '../../lib/games'
+import { MODE_LABEL } from '../../lib/gameManifest'
 import { showToast, dismissToast } from '../../lib/toast/toastStore'
 
 /**

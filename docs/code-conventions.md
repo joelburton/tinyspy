@@ -422,11 +422,11 @@ Enforced by ESLint's `no-restricted-imports` (see [`eslint.config.js`](../eslint
 - `common/` may not import from any `<game>/`.
 - `<game>/` may not import from another `<game>/`.
 - Only legal cross-feature direction: `<game>/` → `common/`.
-- `src/games.ts` is the **one** allowed exception — it imports every game's manifest by definition.
+- `src/gametypes.ts` is the **one** allowed exception — it imports every game's manifest by definition.
 
 If you find yourself wanting to import a component from another game, that's a signal to promote it to `common/`. If a `common/` piece wants to import from a game, the abstraction is wrong — generalize the common piece (often: take a `db` handle or a render prop) so it doesn't need to know the game.
 
-`GAMETYPES` in `eslint.config.js` is the list the rule works from, and it's **derived** — a regex over `src/games.ts`'s manifest imports, cross-checked against the `src/<name>/manifest.ts` folders on disk. A new game needs no lint edit; a folder registered in neither place throws at config-load time (`npm run lint` fails with the mismatch). It's derived because a hand-maintained copy drifted twice, and drift here is silent: a game missing from the forbidden list produces no error, it just stops being guarded.
+`GAMETYPES` in `eslint.config.js` is the list the rule works from, and it's **derived** — a regex over `src/gametypes.ts`'s manifest imports, cross-checked against the `src/<name>/manifest.ts` folders on disk. A new game needs no lint edit; a folder registered in neither place throws at config-load time (`npm run lint` fails with the mismatch). It's derived because a hand-maintained copy drifted twice, and drift here is silent: a game missing from the forbidden list produces no error, it just stops being guarded.
 
 ### Stable-name Realtime channels
 
@@ -651,7 +651,7 @@ If you see a type whose fields are snake_case but whose *name* doesn't end in `R
 
 #### Member vs Player — one type, context-driven variable names
 
-The codebase has a single canonical identity shape — `Member` in [`src/common/lib/games.ts`](../src/common/lib/games.ts) — and each per-game folder exposes a `Player` alias on top of it. Same shape, sometimes enriched (codenamesduet adds `seat`); the naming carries the *context*, not the type-level distinction.
+The codebase has a single canonical identity shape — `Member` in [`src/common/lib/gameManifest.ts`](../src/common/lib/gameManifest.ts) — and each per-game folder exposes a `Player` alias on top of it. Same shape, sometimes enriched (codenamesduet adds `seat`); the naming carries the *context*, not the type-level distinction.
 
 > **Rule:** `Member` is the type for identity. Per game, declare `Player` (alias or extension). At the call site, the **variable name** reflects whether you're in club context (`members: Member[]`) or game context (`players: Player[]`).
 

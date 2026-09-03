@@ -1,7 +1,7 @@
 // cs-audited-game-lib
 
 import { describe, expect, it } from 'vitest'
-import { playerCountFits, playerCountLabel } from './games'
+import { playerCountFits, playerCountLabel } from './gameManifest'
 
 /**
  * Pure-function tests for the player-count helpers. These drive

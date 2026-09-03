@@ -1,6 +1,6 @@
 // cs-audited-game-lib
 
-import type { GameManifest } from './common/lib/games'
+import type { GameManifest } from './common/lib/gameManifest'
 import { codenamesduetGame } from './codenamesduet/manifest'
 import {
   psychicnumCoopGame,
@@ -66,7 +66,7 @@ import { setgameCoopGame, setgameCompeteGame } from './setgame/manifest'
  * specifiers below, so keep them in that literal shape (no aliasing the
  * path, no computed imports) or a game silently stops being guarded.
  */
-export const games: GameManifest[] = [
+export const gametypes: GameManifest[] = [
   codenamesduetGame,
   psychicnumCoopGame,
   psychicnumCompeteGame,

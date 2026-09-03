@@ -5,7 +5,7 @@ import { db as commonDb } from '../../db'
 import { readRows, runRpc } from '../../lib/supabase/dbResult'
 import { isEnvironmental } from '../../lib/supabase/dbEnvelope'
 import { showFaultModal } from '../../lib/fault/faultStore'
-import type { TimerMode } from '../../lib/games'
+import type { TimerMode } from '../../lib/gameManifest'
 import { reportUnhandled } from '../../lib/supabase/dbEnvelope'
 
 /**

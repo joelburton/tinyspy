@@ -6,7 +6,7 @@ import { timerLabel } from '../../lib/game/timerLabel'
 import { RadioRow } from '../fields/RadioRow'
 import type { FormErrors } from '../fields/formState'
 import { SetupSection } from './SetupSection'
-import type { TimerMode } from '../../lib/games'
+import type { TimerMode } from '../../lib/gameManifest'
 import styles from './SetupTimerSection.module.css'
 
 /**

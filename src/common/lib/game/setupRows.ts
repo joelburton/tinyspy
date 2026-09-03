@@ -1,7 +1,7 @@
 // cs-met-game-lib
 
 import type { CoopStyle, CoopTurnSetup } from '../../components/setup/SetupCoopStyleSection'
-import type { TimerMode } from '../games'
+import type { TimerMode } from '../gameManifest'
 import type { Member } from '../members/member'
 import { timerLabel } from './timerLabel'
 

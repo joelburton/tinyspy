@@ -41,70 +41,71 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 /**
- * Known orphans, `path:line` of the SECOND docstring's opening, each owned by
- * the area that will read the file. Delete a line when its area fixes it;
- * never add one to quiet a new failure.
+ * Known orphans as `path › subject` — the declaration the stacked docstrings
+ * are crowding — each owned by the area that will read the file. Delete a line
+ * when its area fixes it; never add one to quiet a new failure.
+ *
+ * **Not line numbers**, deliberately; `orphansIn` below says why.
  */
 const KNOWN: string[] = [
   // → bananagrams
-  'src/bananagrams/hooks/usePlayerBoard.ts:109',
+  'src/bananagrams/hooks/usePlayerBoard.ts › BananagramsCheckResult',
   // → boggle
-  'src/boggle/manifest.ts:62',
-  'src/boggle/manifest.ts:89',
+  'src/boggle/manifest.ts › coopLabel',
+  'src/boggle/manifest.ts › competeLabel',
   // → codenamesduet
-  'src/codenamesduet/components/BoardCol.tsx:135',
-  'src/codenamesduet/components/CluePanel.tsx:61',
-  'src/codenamesduet/components/CluePanel.tsx:94',
+  'src/codenamesduet/components/BoardCol.tsx › onError',
+  'src/codenamesduet/components/CluePanel.tsx › onError',
+  'src/codenamesduet/components/CluePanel.tsx › SuggestedClue',
   // → common — club-page / hooks / common-hosts / shared-game-chrome
-  'src/common/components/account/EditProfileModal.tsx:42',
-  'src/common/components/club/CreateClubModal.tsx:105',
-  'src/common/components/club/EditClubModal.tsx:54',
-  'src/common/components/definitions/AnagramDialog.tsx:56',
-  'src/common/components/game/GamePage.tsx:143',
-  'src/common/hooks/scratchpad/useScratchpad.ts:52',
-  'src/common/hooks/session/useProfile.ts:137',
+  'src/common/components/account/EditProfileModal.tsx › Values',
+  'src/common/components/club/CreateClubModal.tsx › Values',
+  'src/common/components/club/EditClubModal.tsx › Values',
+  'src/common/components/definitions/AnagramDialog.tsx › Values',
+  'src/common/components/game/GamePage.tsx › PEER_PILL_MS',
+  'src/common/hooks/scratchpad/useScratchpad.ts › SavedPad',
+  'src/common/hooks/session/useProfile.ts › useCurrentProfile',
   // → connections
-  'src/connections/components/BoardCol.tsx:54',
+  'src/connections/components/BoardCol.tsx › GuessAnswer',
   // → crosswords
-  'src/crosswords/components/PlayArea.tsx:97',
-  'src/crosswords/components/PuzzleSourceField.tsx:58',
-  'src/crosswords/components/pickers/LibraryPickerBlockingModal.tsx:70',
-  'src/crosswords/lib/setup.ts:63',
-  'src/crosswords/manifest.ts:119',
+  'src/crosswords/components/PlayArea.tsx › CheckAnswer',
+  'src/crosswords/components/PuzzleSourceField.tsx › NextDateAnswer',
+  'src/crosswords/components/pickers/LibraryPickerBlockingModal.tsx › LibraryAnswer',
+  'src/crosswords/lib/setup.ts › PuzzleChoice',
+  'src/crosswords/manifest.ts › coopLabel',
   // → e2e
-  'e2e/gallery/index.ts:43',
+  'e2e/gallery/index.ts › renderViewer',
   // → letterboxed
-  'src/letterboxed/components/InfoCol.tsx:103',
-  'src/letterboxed/components/PlayArea.tsx:75',
+  'src/letterboxed/components/InfoCol.tsx › setupRows',
+  'src/letterboxed/components/PlayArea.tsx › WordAnswer',
   // → psychicnum
-  'src/psychicnum/components/PlayArea.tsx:67',
+  'src/psychicnum/components/PlayArea.tsx › HintAnswer',
   // → scrabble
-  'src/scrabble/components/BoardCol.tsx:168',
-  'src/scrabble/components/BoardCol.tsx:37',
-  'src/scrabble/components/BoardCol.tsx:48',
-  'src/scrabble/manifest.ts:58',
+  'src/scrabble/components/BoardCol.tsx › PlayAnswer',
+  'src/scrabble/components/BoardCol.tsx › LocalFeedbackMsg',
+  'src/scrabble/manifest.ts › labelFor',
   // → setgame
-  'src/setgame/components/Card.tsx:36',
+  'src/setgame/components/Card.tsx › flash',
   // → spellingbee
-  'src/spellingbee/components/InfoCol.tsx:120',
+  'src/spellingbee/components/InfoCol.tsx › reveal',
   // → src/guards
-  'src/guards/callSiteShape.test.ts:85',
-  'src/guards/cssTokens.test.ts:490',
-  'src/guards/dbCallShape.test.ts:40',
+  'src/guards/callSiteShape.test.ts › it',
+  'src/guards/cssTokens.test.ts › describe',
+  'src/guards/dbCallShape.test.ts › BUILDER',
   // → stackdown
-  'src/stackdown/components/PlayArea.tsx:90',
-  'src/stackdown/manifest.ts:60',
+  'src/stackdown/components/PlayArea.tsx › SOLUTION_WORDS',
+  'src/stackdown/manifest.ts › labelFor',
   // → strands
-  'src/strands/components/PlayArea.tsx:52',
-  'src/strands/pdf/model.ts:112',
+  'src/strands/components/PlayArea.tsx › HintAnswer',
+  'src/strands/pdf/model.ts › FoundEvent',
   // → waffle
-  'src/waffle/manifest.ts:68',
+  'src/waffle/manifest.ts › labelFor',
   // → wordiply
-  'src/wordiply/components/PlayArea.tsx:66',
+  'src/wordiply/components/PlayArea.tsx › GuessResult',
   // → wordle
-  'src/wordle/manifest.ts:61',
+  'src/wordle/manifest.ts › labelFor',
   // → wordwheel
-  'src/wordwheel/components/InfoCol.tsx:120',
+  'src/wordwheel/components/InfoCol.tsx › reveal',
 ]
 
 const ROOTS = ['src', 'supabase/functions', 'e2e', 'scripts']
@@ -145,19 +146,58 @@ function docstringSpans(lines: string[]): [number, number][] {
   return spans
 }
 
-/** Every stacked pair in one file, as `path:line` of the SECOND docstring. */
+/**
+ * What a run of stacked docstrings is sitting on top of — the name from the
+ * first line of code below them, which is the declaration all of them are
+ * crowding.
+ *
+ * Falls back to that line's text when it declares nothing nameable, so a key is
+ * always produced. Silently dropping one would let an orphan escape the census,
+ * which is the way this guard would fail without saying so.
+ */
+function subjectBelow(lines: string[], spans: [number, number][], from: number): string {
+  let i = from
+  // Walk to the end of the run — the stacked docstrings after this one.
+  while (i + 1 < spans.length && spans[i][1] === spans[i + 1][0] - 1) i++
+  for (let n = spans[i][1] + 1; n < lines.length; n++) {
+    const t = lines[n].trim()
+    if (!t) continue
+    const m = /(?:export\s+)?(?:async\s+)?(?:type|function|const|let|interface|class|enum)\s+(\w+)/.exec(t)
+      ?? /^(\w+)\s*[?:(<]/.exec(t)
+    return m ? m[1] : t.slice(0, 40)
+  }
+  return '<end of file>'
+}
+
+/**
+ * Every stacked run in one file, as `path › subject` — the declaration being
+ * crowded, NOT a line number.
+ *
+ * **Keyed by subject because line numbers move and the fault does not.** An
+ * allowlist keyed `path:line` breaks on any edit ABOVE an entry: splitting one
+ * import into two shifted six of these by a line and failed the suite twice
+ * over, once for a "new" orphan and once for a "fixed" one, about docstrings
+ * nobody had touched (2026-09-03, three times in one sitting). The number
+ * carries no meaning — it is where the pair happens to sit — and a guard that
+ * cries wolf on unrelated edits teaches people to re-anchor it without looking,
+ * which is how a shrinking allowlist quietly becomes a rubber stamp.
+ *
+ * A run of three docstrings over one declaration is **one** entry, not two.
+ * It is one problem, and its fix is one act: reattach each stranded docstring
+ * to what it describes.
+ */
 function orphansIn(file: string): string[] {
   const lines = readFileSync(file, 'utf8').split('\n')
   const spans = docstringSpans(lines)
-  return spans
-    .slice(1)
-    .filter(([start], k) => {
-      const [prevStart, prevEnd] = spans[k]
-      // Adjacent, and the earlier one is not the file's own header — a module
-      // docstring meeting the first declaration's is the ordinary shape.
-      return prevEnd === start - 1 && prevStart !== spans[0][0]
-    })
-    .map(([start]) => `${file}:${start + 1}`)
+  const found = new Set<string>()
+  spans.slice(1).forEach(([start], k) => {
+    const [prevStart, prevEnd] = spans[k]
+    // Adjacent, and the earlier one is not the file's own header — a module
+    // docstring meeting the first declaration's is the ordinary shape.
+    if (prevEnd !== start - 1 || prevStart === spans[0][0]) return
+    found.add(`${file} › ${subjectBelow(lines, spans, k + 1)}`)
+  })
+  return [...found]
 }
 
 describe('docstrings sit on what they describe', () => {

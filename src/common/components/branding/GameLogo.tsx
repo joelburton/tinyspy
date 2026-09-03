@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { games } from '../../../games'
+import { gametypes } from '../../../gametypes'
 import styles from './GameLogo.module.css'
 
 type Props = {
@@ -28,7 +28,7 @@ type Props = {
  * built yet; the click is single-purpose for now.
  */
 export function GameLogo({ gametype }: Props) {
-  const manifest = games.find((g) => g.gametype === gametype)
+  const manifest = gametypes.find((g) => g.gametype === gametype)
   if (!manifest) return null
   return (
     <img

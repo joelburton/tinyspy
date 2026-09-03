@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { beforeAll, describe, expect, it } from 'vitest'
-import { games } from '../games'
+import { gametypes } from '../gametypes'
 
 /**
  * Every registered game reaches its tables / RPCs through PostgREST via
@@ -28,7 +28,7 @@ const url = import.meta.env.VITE_SUPABASE_URL as string | undefined
 const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined
 
 // One probe per unique schema the app talks to (every game + common).
-const schemas = [...new Set([...games.map((g) => g.schema), 'common'])]
+const schemas = [...new Set([...gametypes.map((g) => g.schema), 'common'])]
 
 async function probe(schema: string): Promise<{ code?: string; message?: string }> {
   const res = await fetch(`${url}/rest/v1/__exposure_probe__?select=x`, {
