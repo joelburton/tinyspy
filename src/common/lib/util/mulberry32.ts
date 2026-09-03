@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-utils
 
 /**
  * mulberry32 — a tiny, fast, seedable 32-bit PRNG.

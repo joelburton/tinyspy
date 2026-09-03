@@ -13,44 +13,54 @@ such area.
 **Created 2026-09-02** by Joel, while resolving `deep`'s two storage findings,
 and scheduled directly after `deep`.
 
-**Status: NOT OPENED.**
-
-This file exists **before** the area opens so there is somewhere to put a note
-the moment one turns up. Nothing below is a commitment; the roster is agreed with
-Joel when the area actually opens, by listing its files and stopping.
+**Status: OPEN — roster agreed with Joel 2026-09-03**, and the seven files below
+are stamped `cs-met-utils` (§21: agreed, on an open area's roster, not yet read).
 
 ## The roster
 
-*(agreed with Joel when the area opens — §21: list the files and STOP)*
-
-The folder as it stands, listed so the shell is useful rather than empty —
-**not agreed**:
+**Seven files, 433 lines.** Agreed 2026-09-03 by listing them and stopping.
 
 ```
-  18  cls.ts                                                  (READ — `deep`'s)
   99  friendlyDate.ts        94  friendlyDate.test.ts
   35  keyboardHandoff.ts
-  52  layoutWidth.ts
   42  linkify.tsx            91  linkify.test.tsx
-  22  logStamp.ts                                             (READ — `deep`'s)
   27  mulberry32.ts
-  63  reloadOnStaleChunk.ts 107  reloadOnStaleChunk.test.ts   (READ — `deep`'s)
+  45  outcomes.ts                                    (lib/ root, not lib/util/)
 ```
 
-**Three of the eleven are already read and `cs-fixed-deep`** — `deep` finished
-2026-09-02 — and they stay `deep`'s rather than moving here:
+Three units carry a test; `keyboardHandoff` and `mulberry32` have none, which is
+a question for the audit rather than an assumption.
 
-- **`reloadOnStaleChunk`** is boot machinery that happens to live in this
-  folder. `main.tsx` calls it before the first render, and two of `deep`'s
-  findings are resolved against it (`F-deep-4`, `F-deep-11`).
-- **`cls.ts`** was on `deep`'s roster as "one util", read by nearly every
-  component; `F-deep-36` resolved against it.
-- **`logStamp.ts`** did not exist when this shell was written. `F-deep-28`
-  created it, moving an app-wide primitive out of `realtimeDiag.ts` — so this
-  folder gained a file from an area that was auditing somewhere else.
+**`outcomes.ts` is IN** (Joel, 2026-09-03, answering the shell's open question).
+It sits at the root of `lib/` rather than in `lib/util/`, but it matches this
+area's membership rule word for word — no page, no game, no subsystem — and the
+competing owner (`corecss`, since the outcome families are also a color bucket)
+would only ever see its color half. The other two loose files at that root went
+to **`game-lib`**.
 
-**What that leaves this area: eight files, none of them read.** The three above
-need no re-reading; they are listed so the folder's contents are complete.
+### Already read — `deep`'s, and not re-read here
+
+Six files, 408 lines, all `cs-blessed-deep`. Listed so the folder's contents are
+complete; they are `deep`'s record, not this area's:
+
+```
+  21  cls.ts                     F-deep-36 — "one util", read by nearly every component
+  31  layoutWidth.ts
+  22  logStamp.ts                created BY F-deep-28, out of realtimeDiag.ts
+  68  panic.ts               96  panic.test.ts
+  63  reloadOnStaleChunk.ts 107  reloadOnStaleChunk.test.ts   F-deep-4, F-deep-11
+```
+
+`reloadOnStaleChunk` is boot machinery that happens to live in this folder —
+`main.tsx` calls it before the first render. `logStamp.ts` is the reverse: this
+folder GAINED a file from an area auditing somewhere else.
+
+**This shell's original roster was wrong in three ways**, recorded because the
+same trap is set for every unopened area: it predated `panic.ts` /
+`panic.test.ts` entirely, listed `layoutWidth.ts` as unread when it is blessed,
+and gave stale line counts for `cls.ts` and `layoutWidth.ts`. Its summary line —
+"eight files, none of them read" — was wrong in both halves. **A shell's guessed
+roster is a note, never a count**; check the stamps at the opening.
 
 ## Findings
 
@@ -70,21 +80,22 @@ the area.
 
 ### Already waiting for this area
 
-**Does `src/common/lib/outcomes.ts` belong here?** Open, 2026-09-03. It is one of
-the three loose files at the root of `lib/`, and the only one still without a
-home: 46 lines, one type (`Outcome`), nine importers. It matches this area's
-membership rule word for word — no page, no game, no subsystem — and its own
-docstring argues for staying loose (*"Its own file because it is a vocabulary
-rather than a feature"*). The competing owner is `corecss`, since the outcome
-families are also a color bucket. Decide it when the roster is agreed.
-
-The other two loose files went to **`game-lib`**, the area created 2026-09-03 out
-of this one's opening: `games.ts` + its test, along with the split of `games.ts`
-into five vocabularies. Joel's call on why they are not here: *"i don't want to
-dive into game-stuff yet."*
+**RESOLVED at the opening — `outcomes.ts` is on the roster.** See "The roster"
+above. The other two loose files at that root went to **`game-lib`**, the area
+created 2026-09-03 out of this one's opening: `games.ts` + its test, along with
+the split of `games.ts` into five vocabularies. Joel's call on why they are not
+here: *"i don't want to dive into game-stuff yet."*
 
 **A shared "storage that cannot throw" helper, and a guard that requires it.**
 Raised by `deep` 2026-09-02 while fixing `F-deep-11` and `F-deep-13`.
+**IN SCOPE for this area** (Joel, 2026-09-03, at the opening) — so this area
+writes files that were not on the roster it agreed.
+
+**One question to settle before building it, not now: how far does the
+conversion go?** Eight of the eleven callers belong to areas that have not
+opened, and two recorded rules point opposite ways — a migration done to one
+layer is a regression, but a scoped pass never edits another area's code. The
+answer decides whether this is one sitting or three files.
 
 `localStorage` and `sessionStorage` throw where a browser blocks site data, so
 every access needs a `try/catch`. **Eleven files touch storage and the same three
