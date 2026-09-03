@@ -24,23 +24,28 @@
  * `realtimeDiag`'s docstring, which tells a person what to type into their own
  * console to enable the verbose socket log, plus `chatOpenStore.test.ts` and
  * `reloadOnStaleChunk.test.ts` describing the spies they install. Without the
- * stripping this guard would have been red the day it was written. A guard that
- * counts prose about its own subject is how `serverErrorKeys.test.ts` came to
- * believe a dead key was still live.
+ * stripping this guard would have been red the day it was written — and a guard
+ * that counts prose about its own subject will sooner or later report a
+ * sentence as a violation, or count a sentence as proof something is still in
+ * use.
  *
  * **Test files are swept too, deliberately** — unlike `noRawServerMessage`,
  * which this is otherwise modeled on and which skips them. A test reaching for
  * raw storage is exactly what should have to justify itself, because
- * `storage.fake.ts` exists so that it does not have to; that is why three of
- * the five `ALLOWED` entries are tests, and why `storage.test.ts` is not one of
+ * `storage.fake.ts` exists so that it does not have to; that is why tests
+ * outnumber source files in `ALLOWED`, and why `storage.test.ts` is not among
  * them.
  *
- * **Known limit: `stripComments` has no notion of string literals.** A line
- * holding `'https://…'` is truncated at the `//`, and a `/*` inside a string
- * would blank code to the next close. Neither is reachable in this repo today,
- * and doing it properly needs a tokenizer — out of proportion for a guard whose
- * subject is one identifier. Written down rather than fixed, the same trade
- * `noRawServerMessage` makes with its line-window heuristic.
+ * **Known limit: `stripComments` has no notion of string literals.** A `/*`
+ * inside a string opens a fake block comment that blanks everything to the next
+ * close, code included, and a glob is the ordinary way that happens — a
+ * `'themes/*.css'` in `cssTokens.test.ts` hides the twenty-odd lines after it
+ * from this scan. Measured across `src/`: every such region is inside
+ * `src/guards/`, so no storage touch is hidden today, but the hole is real.
+ * Closing it needs a tokenizer, and three other guards carry the same stripper,
+ * so it is filed in `docs/deferred.md` as one change to all four rather than
+ * fixed in one. The other half of the same hole — a URL's `//` swallowing the
+ * rest of its line — IS handled; see `stripComments`.
  */
 
 import { readFileSync, readdirSync, statSync } from 'node:fs'

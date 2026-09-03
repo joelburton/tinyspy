@@ -13,11 +13,13 @@ such area.
 **Created 2026-09-02** by Joel, while resolving `deep`'s two storage findings,
 and scheduled directly after `deep`.
 
-**Status: OPEN, audited, every finding resolved — waiting on Joel's `cs-blessed`
-pass, which is the exit criterion.** Twelve files at `cs-audited-utils`: the
-seven on the roster below, plus the five this area wrote (see "Files this area
-wrote"). Twelve findings, `F-utils-1` … `F-utils-12`; eleven resolved, and
-`F-utils-7` is a note whose work belongs to `floating-panels`.
+**Status: OPEN, audited twice — ten findings open from the second pass.** Twelve
+files at `cs-audited-utils`: the seven on the roster below, plus the five this
+area wrote (see "Files this area wrote"). The first pass produced `F-utils-1` …
+`F-utils-12`, eleven resolved and `F-utils-7` a note whose work belongs to
+`floating-panels`. **The second pass (2026-09-03, over the fixes themselves and
+every file they touched) produced `F-utils-13` … `F-utils-22`, all OPEN** — see
+"The second pass". `cs-blessed` remains the exit criterion and Joel's alone.
 
 ## The roster
 
@@ -457,6 +459,232 @@ is real: `src/guards/raiseCodes.test.ts:49` sets `NOT_ON_A_SUCCESS = 'error'` an
 `:343` asserts `error` belongs to the vocabulary. Its argument for being its own
 file holds. Nothing to change.
 
+## The second pass, 2026-09-03 — auditing the fixes and what they touched
+
+Joel: *"please do an audit of what was fixed in utils area and the code in those
+files."* Read: the twelve `cs-audited-utils` files, and the full diff
+`e4baacd7..132eb6c6` — every converted call site in the six other areas, boggle's
+three files, the stackdown script, and the three docs. Two things were measured
+rather than read, because reading could not settle them: whether the guard's
+comment stripper hides any real code in today's tree (it does — `F-utils-14`),
+and whether `calendarDayDiff`'s rounding is load-bearing (it is —
+`F-utils-18`).
+
+**Still no logic bug in the shipped code.** The ten findings are, again, mostly
+docstrings — and the pattern the first pass named (a claim overtaken by a change
+made within the hour) recurs FOUR times here, twice in the same file that
+`F-utils-11`'s fix was the change. Two are test-coverage gaps in the design's
+central claims, one is a comment-rule breach this area wrote into two other
+areas, and one is a §20 vocabulary breach in a file the first pass called clean.
+
+### RESOLVED 2026-09-03 — F-utils-13 · `guard-docstring-overtaken-by-its-own-fix` · the guard's header contradicts its own function
+
+`rawStorage.test.ts` was last edited by `F-utils-11`, and its file-level
+docstring was not read again afterwards. Three claims in it are now false:
+
+- **`:38-43`, "Known limit … A line holding `'https://…'` is truncated at the
+  `//`."** That is the half `F-utils-11` FIXED. The function docstring at
+  `:97-101` says so, and the test at `:126` pins it. So the file's header names
+  as a limit the thing its own function forty lines down says it handles.
+- **`:34-36`, "three of the five `ALLOWED` entries are tests."** `ALLOWED` has
+  six entries (`:69-82`), four of them tests — `F-utils-11` added the guard
+  itself to the list after this sentence was written.
+- **`:28-29`** cites `serverErrorKeys.test.ts` as the cautionary example. That
+  file was deleted when the error sprint closed (CLAUDE.md → plans table). A
+  reader cannot go and look, which is what a citation is for; the lesson
+  survives without the filename.
+
+Same class as `F-utils-9`: the docstring was made false by the very next commit
+to the file. Fix: rewrite the "Known limit" paragraph to cover the `/*` half
+only, replace the count with a pointer at `ALLOWED`, drop the dead citation.
+
+**Fixed 2026-09-03**, chosen first because it is the guard's own header
+contradicting the function forty lines below it, and because it costs one
+comment block. Three edits to `rawStorage.test.ts`'s header, no code:
+
+- The "Known limit" paragraph now covers the `/*` half only and says the URL
+  half is handled, pointing at `stripComments`. Rewriting it meant its "neither
+  is reachable" sentence had to go too — it is the one this pass measured as
+  false — so the paragraph now states the measured fact instead: a glob in a
+  string is the ordinary case, `cssTokens.test.ts` has one, every hidden region
+  is inside `src/guards/`, and the fix is filed in `deferred.md` as one change
+  to all four strippers. **That is the guard-file third of `F-utils-14`**; the
+  other two homes of the false sentence (this file's `F-utils-11`, and
+  `docs/deferred.md`) are still `F-utils-14`'s.
+- The count is gone. "Three of the five" became "tests outnumber source files
+  in `ALLOWED`" — a shape that stays true as the list moves, with the list
+  itself as the one home for the number.
+- The `serverErrorKeys.test.ts` citation is replaced by the lesson it carried,
+  stated without the filename, since the file no longer exists to be read.
+
+No line numbers in the new text — `cssTokens.test.ts:419` is named by file
+only, because a line reference in a docstring rots the way this finding's own
+subject did.
+
+### F-utils-14 · `string-glob-hole-is-reachable` · "not reachable in this repo today" was asserted, not measured — and it is false
+
+`F-utils-11` left the `/*`-inside-a-string half unfixed on the argument that *"a
+TS string holding `/*` with a later close is contrived, where a URL is not."*
+That sentence went into three places — `rawStorage.test.ts:40`, this file's
+`F-utils-11`, and `docs/deferred.md:65` — and none of them checked.
+
+**Measured 2026-09-03:** the guard's `stripComments` was run over every `.ts` /
+`.tsx` in `src/` and compared line-by-line against the TypeScript parser's own
+comment ranges. Result: **38 lines in 8 files are blanked by the regex that the
+parser says are code**, and 0 lines go the other way (the regex never keeps
+comment text, so it produces no false violations — only false silence). All
+eight files are in `src/guards/`. Seven are one-line and self-contained: the
+guards' own regex literals (`/\/\*[\s\S]*?\*\//`, which contains both delimiters
+on one line), `dbCallWrapped.test.ts:91-92`'s `'/*'` / `'*/'` string pair,
+`setupRows.test.ts:34`'s glob. **The eighth is the real one:
+`cssTokens.test.ts:419`** — `where: 'fixed.css for fill/edge, themes/*.css for
+ink'` — opens a fake block comment that runs to the next `*/` and hides
+**lines 419–443, twenty-five lines of code**, from this guard's scan. A glob in
+a string is the ordinary case, not the contrived one.
+
+Nothing hides a storage touch today, and the decision `F-utils-11` made — fix
+all four strippers at once or not at all — stands on its own reasoning. What is
+wrong is the *sentence*: three places say the hole cannot be reached and one
+guard file is already inside it. Fix: correct all three, and give the deferred
+item the measurement so the next reader has the fact instead of the guess.
+
+**One of three done** — the guard file's own copy of the sentence was rewritten
+under `F-utils-13`. Still owed here: `docs/deferred.md:65`'s "Not reachable in
+the repo today", and this file's `F-utils-11` text above.
+
+### F-utils-15 · `wrapper-docstring-miscounts-the-allowlist` · `storage.ts` describes an allowlist that has since grown
+
+`storage.ts:7-10`: the guard fails *"outside this file and a short allowlist —
+the test fake beside it, plus three tests that install a fake of their own."*
+That enumerates five entries; `ALLOWED` has six (the guard itself joined it in
+`F-utils-11`), four of them tests, and one of the "three that install a fake" —
+`reloadOnStaleChunk.test.ts` — is there for clearing the REAL session store
+between cases, swapping a fake in for one case only. Same commit that made
+`F-utils-13` stale; the wrapper's docstring counted the same list and was not
+re-read either. Fix: stop enumerating — say "a short allowlist, `ALLOWED` in the
+guard, each entry with its reason" and let the list be the one home.
+
+### F-utils-16 · `fake-docstring-three-false-claims` · `storage.fake.ts` misattributes the thing it exists for
+
+Three claims in `storage.fake.ts`'s header, each checked:
+
+- **`:6-7`, "jsdom in this project ships no real `localStorage` —
+  `window.localStorage` is `undefined` under our config."** Half right, and the
+  wrong half is the explanation. Probed under this project's vitest (jsdom 29,
+  vitest 4.1, Node 26.8): `typeof window.sessionStorage` is `object` — jsdom's,
+  and `reloadOnStaleChunk.test.ts:27` calls `sessionStorage.clear()` on it raw
+  and passes — while `typeof window.localStorage` is `undefined`. jsdom ships
+  BOTH. What removes `localStorage` is **Node's own experimental `localStorage`
+  global**, which vitest leaves in place over jsdom's and which reads as
+  `undefined` until Node is started with `--localstorage-file` (Node prints
+  exactly that warning at the top of every run). So the cause is the Node
+  version, not jsdom and not our config, and it flips with either a Node upgrade
+  or that flag. The fake is still needed; its docstring should name the real
+  reason so nobody "fixes" the vitest config looking for it.
+- **`:10-11`, the two older tests "cross-reference each other's copy."**
+  `useStickyChoice.test.ts:15` cites `chatOpenStore.test.ts`; nothing in
+  `chatOpenStore.test.ts` mentions `useStickyChoice`. One direction.
+- **`:14`, `{@link installedStorage.block}`** names no symbol. The type is
+  `InstalledStorage` and the value is what `installFakeStorage` returns; an
+  editor resolves this link to nothing.
+
+### F-utils-17 · `block-models-the-call-not-the-access` · the design's central claim has no test
+
+`storage.ts:14-19` and the `StoreName` docstring rest on one fact: a blocking
+browser throws **on the property access** (`window.localStorage`), which is why
+the storage is named rather than passed. `storage.fake.ts`'s `block()` makes the
+*methods* throw (`:88-90`); the property access always succeeds. So no test in
+the repo exercises the case the design was built for, and a refactor to
+`readStored(window.localStorage, …)` — the exact mistake the docstring warns
+against — would pass every test. The `reloadOnStaleChunk.test.ts:81-84` case is
+the same shape: a throwing-methods object.
+
+Fix, small: install the fakes as accessor properties, and have `block()` also
+spy the getters (`vi.spyOn(window, 'localStorage', 'get')`) — restored by the
+same `vi.restoreAllMocks()` — then add one case to `storage.test.ts` asserting
+`readStored` returns `whenUnavailable` when the ACCESS throws. That is the
+[verify guards by planting] rule applied to a design claim rather than a guard.
+
+### F-utils-18 · `calendar-day-diff-round-is-dst` · the one non-obvious line in `friendlyDate` has no reason and no test
+
+`F-utils-6` deleted the false explanation of `Math.round` at
+`friendlyDate.ts:89` and put nothing in its place, so the round now sits
+unexplained. Its real reason is daylight saving: local midnights are 23 or 25
+hours apart across a change, so the subtraction is not an integer. Measured in
+`America/Los_Angeles`: a game at Sat Mar 7 2026 21:00 viewed Mon Mar 9 14:30
+gives `1.958` — `round` says 2 ("Sat 9pm", correct), `floor` would say 1
+("Yesterday 9pm", wrong). So the round is load-bearing, and every case in
+`friendlyDate.test.ts` is anchored to June 17, on the far side of both changes.
+Fix: one sentence in the helper's docstring, and one test anchored across
+March 8 2026. (A no-DST machine still passes it — 48h rounds to 2 — it just
+proves less there, same as the rest of the file, which already assumes the local
+zone.)
+
+### F-utils-19 · `test-comment-misquotes-the-seeds` · the file re-audited by `F-utils-8` quotes two expressions, neither correctly
+
+`mulberry32.test.ts:51-54` justifies the normalization case by quoting the
+callers' seed arithmetic. Neither quotation is what the code says:
+
+- "scrabble's AI seeds with `(version * 31 + seat) ^ 0x9e3779b9`" — the edge
+  function (`scrabble-ai-move/index.ts:124`) has
+  `(((ctx.version * 31 + ctx.seat) >>> 0) ^ 0x9e3779b9) >>> 0`. It normalizes
+  itself, so it never hands an overflowed value in, which is the opposite of the
+  comment's premise.
+- "the self-play loop with `bagSeed + turns * 0x85ebca6b`" — `policy.ts:225` has
+  `(bagSeed ^ 0x9e3779b9) + turns * 0x85ebca6b`.
+
+The premise ("callers derive seeds by arithmetic that overflows int32 on
+purpose") holds for the self-play loop alone. The case itself is right and
+worth keeping; the comment should quote the one caller that actually overflows,
+verbatim, or describe the property without quoting. Same class as `F-utils-9`,
+and in the one file this area had already audited twice.
+
+### F-utils-20 · `v8-fingerprinting-claim-unsourced` · a reason nobody can check
+
+`mulberry32.ts:14`: `Math.random()` cannot be seeded because *"the spec leaves it
+implementation-defined and V8 declines on fingerprinting grounds."* The first
+clause is the whole answer and is true. The second attributes a motive to V8
+that this audit could not source, and the docstring gives no way to. Drop the
+clause; it adds a claim without adding an argument.
+
+### F-utils-21 · `archaeology-written-into-two-other-areas` · the `F-utils-8` fault, twice more, in files this area was allowed into
+
+`F-utils-8` fixed a docstring that narrated the migration instead of the code.
+The same sitting wrote two more of the same, into the two other areas Joel let
+this one edit:
+
+- `src/boggle/lib/generate.test.ts:13-16` — *"The `describe('mulberry32')` block
+  that used to sit here moved to …"* Pure history; the import two lines up
+  already says where `mulberry32` lives. Delete it.
+- `supabase/scripts/generate-stackdown-boards.ts:62-64` — *"This script had its
+  own copy until 2026-09-03; the two agreed bit-for-bit, so …"* Half history,
+  half contract. The keepable half is the second: *regenerating at a given seed
+  reproduces the vendored boards* is a property of the script today and worth
+  one line. The date and the deleted copy are this file's record, not the
+  script's.
+
+These files stay `cs-unmet` and belong to `boggle` and `supabase/scripts/`; the
+lines are this area's, so the correction is too, under the same scope override
+recorded at `F-utils-1…4`.
+
+### F-utils-22 · `panel-alone-in-two-docstrings` · a §20 breach in a file the first pass called clean
+
+app-audit §20: *"'Panel' on its own means nothing and is banned — in prose, in
+docs, in conversation, and in any component name."* Two hits, one old and one
+new:
+
+- **`keyboardHandoff.ts`**, which `F-utils-7` recorded as *"audits clean: every
+  claim in its docstring checks out."* The claims do; the vocabulary does not.
+  `:6` says "floating panel" correctly, then `:16` "out of the panel", `:18`
+  "neither the panel nor the game", `:21` "the panel's own controls", `:24` "the
+  two panels you type into". Four uses of the banned word in one docstring.
+- **`useDraggablePanel.ts:316-317`**, a comment this area wrote during the
+  storage conversion: *"costs the panel its remembered position; state still
+  drives the live panel."* Twice. (`useDraggablePanel` itself keeps its name by
+  §20's own rule; the prose does not get the exemption.)
+
+`useDraggablePanel.ts` is `hooks`'s file; the lines are this area's.
+
 ## Notes, to-dos and deferrals
 
 Findings, notes, and the record of what the sprint did here — **all of it lives
@@ -592,6 +820,26 @@ that choice into a single default.
 - **`friendlyDate`'s docstring says "the club-page game list and other glance-at
   surfaces"** — there are no other surfaces today. Too small to spend a finding
   on; it becomes true or false as surfaces appear.
+
+*(added by the second pass, 2026-09-03)*
+
+- **`handOffKeyboardOnTab` still has exactly two callers.** A third file names
+  it — `hooks/input/useSwallowTab.ts:25` — but in its docstring, describing the
+  hand-back. A mention, not a caller; `F-utils-7`'s count stands.
+- **`storage.ts` and `common-folders.md` say the guard "fails the build".** The
+  build is `tsc -b && vite build` and runs no tests; strictly the guard fails
+  the *suite*. Left alone because `app-audit.md:1230` uses the same phrase for
+  the token guard — it is the repo's loose idiom, not this area's invention.
+- **`outcomes.ts:16-18`'s parenthetical** ("the two spellings this list once
+  had … hid that behind a rename buried in a CSS rule") is history in the
+  `F-utils-8` sense, but it is the argument for *why the rule is strict* rather
+  than a narrative of a change, and the first pass passed it. Not re-raised.
+- **The converted call sites are sound.** Every one of the ten was re-read
+  against its old `try/catch`: each `whenUnavailable` matches the fallback the
+  old `catch` returned, `reloadOnStaleChunk`'s stand-in still fails closed, and
+  the two sites that also parse JSON (`useDraggablePanel.readRect`,
+  `gameInvites.loadSeenInvites`) correctly kept a `try` of their own around the
+  parse, which is a different failure from storage being gone.
 
 ## Files this area wrote
 
