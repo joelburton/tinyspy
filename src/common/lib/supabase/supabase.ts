@@ -104,9 +104,9 @@ export const supabase = createClient<Database>(url, publishableKey, {
         routine ? 'log' : 'warn',
       )
     },
-    // Deep-debug lever: localStorage.setItem('puzpuzpuz:rt:verbose', '1') + reload
-    // turns on realtime-js's own logger (every push/receive the socket
-    // sees). See realtimeDiag.ts for the full story.
+    // Deep-debug lever: when `rtVerbose()` says so, turn on realtime-js's own
+    // logger (every push/receive the socket sees). This file only consumes the
+    // flag; how to flip it is with the flag, realtimeDiag.ts → Verbose mode.
     ...(rtVerbose()
       ? {
           logger: (kind: string, msg: string, data?: unknown) =>
