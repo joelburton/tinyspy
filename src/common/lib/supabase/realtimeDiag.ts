@@ -82,10 +82,17 @@ export function rtVerbose(): boolean {
   }
 }
 
-/** realtime-js prefixes every topic with `realtime:`; our channel names —
- *  and the rest of the app's logs — speak the bare name. */
-function bareTopic(ch: RealtimeChannel): string {
-  return ch.topic.replace(/^realtime:/, '')
+/**
+ * **A realtime-js topic as the name we gave it.** The library prefixes every
+ * topic with `realtime:`; our channel names — and the rest of the app's logs —
+ * speak the bare one.
+ *
+ * Exported because `channelTeardown` keys its in-flight map on the same bare
+ * name, and the prefix is a convention of a DEPENDENCY: one place to change if
+ * a version ever changes it, rather than two that would have to be found.
+ */
+export function bareName(topic: string): string {
+  return topic.replace(/^realtime:/, '')
 }
 
 /**
@@ -100,7 +107,7 @@ function bareTopic(ch: RealtimeChannel): string {
  * `postgres_changes` bindings affect the join payload.
  */
 export function instrumentChannel(ch: RealtimeChannel): RealtimeChannel {
-  const topic = bareTopic(ch)
+  const topic = bareName(ch.topic)
 
   // The postgres-changes health signal. `status: 'ok'` means the WAL
   // poller really carries this channel's subscription; its absence after

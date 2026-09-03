@@ -35,7 +35,7 @@ understood, tidied* — `cs-blessed` here means he has read the file, not seen i
 sixteen findings — fourteen RESOLVED, one CLOSED, one MOVED to `corecss`. The
 DATA PATH, read 2026-09-02: eleven files, eleven findings `F-deep-17` …
 `F-deep-27`, **all RESOLVED**. The REALTIME PLUMBING was read the same day:
-seven files, **five findings `F-deep-28` … `F-deep-32`** — one RESOLVED, four open — no defects,
+seven files, **five findings `F-deep-28` … `F-deep-32`** — two RESOLVED, three open — no defects,
 four duplications-of-one-fact and a coverage gap. **All three passes have now
 run.**
 
@@ -1058,7 +1058,7 @@ dependency read raised it as `logstamp-in-realtimediag`; that audit was deleted
 > belongs to it permanently, exactly as it already does for `cls.ts` and
 > `reloadOnStaleChunk.ts`.
 
-## F-deep-29 · `bare-topic-written-twice` · One fact about realtime-js, in two functions
+## RESOLVED · F-deep-29 · `bare-topic-written-twice` · One fact about realtime-js, in two functions
 
 `channelTeardown.ts:62` and `realtimeDiag.ts:98` are the same three lines:
 
@@ -1077,7 +1077,19 @@ convention of a dependency this area's comments elsewhere pin to an exact
 version ("verified against `@supabase/realtime-js` 2.108.1"), and a change to
 it would need finding in two places.
 
-> resolution:
+> **resolution: one definition, exported from `realtimeDiag`** (Joel,
+> 2026-09-02), taking a string so both callers use the same one —
+> `channelTeardown` on `ch.topic`, `instrumentChannel` on `ch.topic`.
+>
+> **The direction was forced, not chosen.** `channelTeardown` already imports
+> `rtLog` from `realtimeDiag`, so exporting from there adds no new coupling;
+> putting it the other way would have made a cycle.
+>
+> Kept `bareName` over `bareTopic`, because it names the ANSWER rather than the
+> input, and matches the vocabulary `channelTeardown`'s own map docstring already
+> uses: *"keyed by the bare channel name … without realtime-js's `realtime:`
+> topic prefix."* Topic is the library's word, name is ours, and the function
+> converts one to the other.
 
 ## F-deep-30 · `system-payload-parsed-twice` · The correctness guard and the diagnostic read one message independently
 

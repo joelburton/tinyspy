@@ -8,11 +8,7 @@
  *     [db …]   dbLog.ts                 — every database call
  *     [rt …]   realtimeDiag.ts          — channel lifecycle and events
  *     [ui …]   PlayAreaMountLog.tsx     — the play surface's mount breadcrumbs
- *
- * It lives here rather than with any of them because it belongs to none: it
- * used to sit in `realtimeDiag`, which meant the database log imported its
- * timestamp from the realtime diagnostics.
- */
+ **/
 export function logStamp(): string {
   const t = new Date()
   const hh = String(t.getHours()).padStart(2, '0')

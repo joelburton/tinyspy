@@ -2,7 +2,7 @@
 
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from './supabase'
-import { rtLog } from './realtimeDiag'
+import { bareName, rtLog } from './realtimeDiag'
 
 /**
  * Serialize teardown → re-create for **stable-name** Realtime channels.
@@ -57,11 +57,6 @@ import { rtLog } from './realtimeDiag'
  * per-hook ref would never see the outgoing mount's teardown.
  */
 const leaving = new Map<string, Promise<unknown>>()
-
-/** realtime-js prefixes topics; our callers speak the bare name. */
-function bareName(topic: string): string {
-  return topic.replace(/^realtime:/, '')
-}
 
 /**
  * `supabase.removeChannel(ch)`, with the resulting promise parked where a
