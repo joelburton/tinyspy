@@ -2076,6 +2076,17 @@ it is the sprint's record of the area, so it is written down here.
   `envelope.ts` and in envelopes.md's two field tables. And `TransportFacts`'s
   own `detail` no longer claims "no envelope can carry" it: the frontend's
   envelope builders could and simply don't.
+- **`dbFetch.ts`'s file docstring lost its rejected-design essay.** Eighteen
+  lines under "Why it THROWS rather than answering with an envelope" — a
+  heading that also mis-stated the behavior, since dbFetch throws only when
+  nothing answered — argued against a synthetic-200 alternative nobody reading
+  the file is choosing between. Joel, 2026-09-02: *"here, it's just stuff to
+  read that you don't need to know when you're figuring out whether you should
+  call dbFetch and what's its purpose."* The contract it was defending is now
+  one paragraph saying what actually happens on both paths, and the argument
+  moved to [docs/envelopes.md](../../docs/envelopes.md) → "Environmental" means
+  the JS fetch failed, which is where a design question about the envelope
+  system is asked.
 - **Docstring vs comment.** `/**` is for the file, a type, a structure or a
   function; a note about one field or one line takes `//`. `dbLog.ts` is the
   worked example — the marker moved on `TransportFacts.detail`, and `logSlow`'s

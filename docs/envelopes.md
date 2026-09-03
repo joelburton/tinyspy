@@ -1194,6 +1194,22 @@ for a request we withdrew. Calls to Supabase's own auth endpoints are excluded
 too; the sign-in screen speaks for those. So, fully: *the JS fetch failed, and
 we didn't cause it.*
 
+**`dbFetch` throws on one of these rather than answering with an envelope**, and
+that is a decision, not an oversight. It is installed as the client's `fetch`
+and keeps `fetch`'s contract on both paths: everything that answered comes back
+as a `Response`, failures included, and only a request that never completed
+throws. The alternative was real — stop throwing, resolve with a synthetic 200
+whose body is the envelope built here, and every wrapper's failure handling
+collapses to "if the body is an envelope, return it unchanged". It would have
+worked, too: auth is fenced off by `isSupabaseInternal`, so supabase-js's own
+token refresh would never have seen one. **It was rejected because it buys
+nothing.** The wrappers already hold every fact they need — `status === 0` says
+nothing answered, `navigator.onLine` says which sentence — so the trade was
+inverting a standard contract, and teaching every future reader that this
+`fetch` sometimes resolves for a request that never happened, in exchange for
+information they can read for themselves. Both paths call the same builder
+instead.
+
 What is **not** environmental, though each is tempting:
 
 | | is | because |
