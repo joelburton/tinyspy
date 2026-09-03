@@ -164,13 +164,15 @@ shell. The group whose position in the order matters least.
 ## Group A — the registry and the manifest contract, read 2026-09-03
 
 Five files, 1,182 lines, all five read in full. **No logic bug.** The shipped
-behavior is correct everywhere; all nine findings are about what the files SAY —
-plus `F-game-lib-10`, raised later while resolving the first.
+behavior is correct everywhere; all nine findings are about what the files SAY.
+Two more were raised later, while resolving the first six: `F-game-lib-10`
+(group A's) and `F-game-lib-11` (**group B's**, filed here rather than fixed).
 
-**Six resolved 2026-09-03** — `F-game-lib-1` (the split, which Joel authorized
+**Seven resolved 2026-09-03** — `F-game-lib-1` (the split, which Joel authorized
 after the audit), with `F-game-lib-2`, `F-game-lib-4` and `F-game-lib-10` as its
-consequences, then `F-game-lib-3` and `F-game-lib-5` on their own. **Four
-open:** `F-game-lib-6`, `7`, `8`, `9`.
+consequences, then `F-game-lib-3`, `F-game-lib-5` and `F-game-lib-6` on their
+own. **Three open in group A:** `F-game-lib-7`, `8`, `9`. **One open elsewhere:**
+`F-game-lib-11`, which group B resolves.
 
 **Three of the six resolved turned out bigger than filed**, all the same way:
 the audit caught a wrong number, and fixing it meant re-reading the file, where
@@ -468,7 +470,7 @@ read both and assert they match — it is the same move `cssTokens.test.ts` make
 for tokens. It needs someone to decide whether `src/guards/` belongs to an area
 first, which is `F-utils-11`'s open question one folder over.
 
-### F-game-lib-6 · `status-consumer-is-six-games` · "Today's primary consumer" is six games, and the future it defers to has arrived
+### RESOLVED 2026-09-03 — F-game-lib-6 · `status-consumer-is-six-games` · "Today's primary consumer" is six games, and the future it defers to has arrived
 
 `games.ts:99-104`, in `GamePageCtx.status`: *"Today's primary consumer is
 spellingbee's compete-mode OpponentStrip, which reads `status.leaderboard` for
@@ -483,6 +485,16 @@ mechanism that six games took up.
 Worth fixing rather than deleting, because the docstring is doing real work — it
 is where a seventh game learns the channel exists. It should say so as a rule
 instead of as one game's example.
+
+#### Resolved 2026-09-03 — one paragraph
+
+The two sentences now say `status.leaderboard` is the settled convention, that
+most compete games write and read it, and that anything changing how the field
+is delivered affects them all. **The rule, not the roster** — naming the six
+would be six claims that go stale, which is the fault this area keeps finding.
+
+Checking who reads the field turned up a separate thing, which is
+`F-game-lib-11` and not this.
 
 ### F-game-lib-7 · `ctx-timer-undocumented-and-misindented` · The one non-obvious field in the render-prop contract has no docstring
 
@@ -663,6 +675,43 @@ shipped.
 Corrected in the moved copy. It is `F-game-lib-1`'s doing in the same way the
 orphan was: prose is checked against its declaration when — and only when —
 someone has to decide which declaration it belongs to.
+
+### GROUP B — F-game-lib-11 · `leaderboard-read-written-five-ways` · The shared read for `status.leaderboard` has two callers and four reimplementations
+
+Raised 2026-09-03 while checking `F-game-lib-6`'s claim about who reads
+`status`. **Not group A's** — the helper is `lib/game/foundWordsLeaderboard.ts`,
+which is group B — so it is filed here with an ID rather than resolved, and
+group B does not have to rediscover it.
+
+`readLeaderboard(status)` exists to be the defensive narrow-and-default for that
+field: check the status blob, check the value is an array, return `[]` otherwise.
+Six games read `status.leaderboard`; **two call the helper and four write it out
+by hand**, identically:
+
+| game | reads via |
+|---|---|
+| spellingbee · wordwheel | `readLeaderboard(status)` |
+| boggle · letterboxed · setgame · wordiply | `(status?.leaderboard as LeaderRow[] \| undefined) ?? []` |
+
+**The row shapes genuinely differ**, so this is a duplicated READ, not a
+duplicated type — each game scores differently and its `LeaderRow` says so
+(`sets_found`, `words_used` + `letters_covered`, `guesses_used` +
+`length_score`…). What every one of them shares is `user_id: string`, and three
+also carry `won?: boolean`. So the extractable thing is a generic
+`readLeaderboard<T>(status): T[]`, not a shared `LeaderboardEntry`.
+
+**One game is a closer call than the others.** boggle's `LeaderRow` is
+`{ user_id, found_words_count, found_words_score }` — the existing shared
+`LeaderboardEntry` minus `rank_idx` — and boggle is a word-hunt game, the family
+`foundWordsLeaderboard.ts` was extracted for in the first place. Whether it
+should be on the shared type or is deliberately apart is a question for boggle's
+own area; group B only has to decide whether the READ generalizes.
+
+**Scope note.** The helper is group B's. The four inline reads live in each
+game's `PlayArea`, so changing them belongs to `boggle`, `letterboxed`, `setgame`
+and `wordiply` when those areas open — §21's "focused scope: leave others". Group
+B can widen the helper without touching a single game; the call sites convert
+per area, which is the same shape as `F-utils-7`'s handoff to `floating-panels`.
 
 ## Predicted test breaks
 

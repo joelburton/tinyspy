@@ -137,11 +137,11 @@ export type GamePageCtx = {
    *  the latest value seen by `useCommonGame`'s realtime
    *  subscription — updates in place as RPCs land.
    *
-   *  Today's primary consumer is spellingbee's compete-mode
-   *  OpponentStrip, which reads `status.leaderboard` for
-   *  the per-player rank summary. The same channel is open to
-   *  any future game that wants a live status field surfaced
-   *  to the play surface. */
+   *  **Load-bearing across the roster, not a spare channel.** The settled
+   *  convention is `status.leaderboard` — a per-player array each compete
+   *  game's RPCs rewrite on every accepted move, which that game's PlayArea
+   *  reads for its OpponentStrip. Most of the compete games do this. Anything
+   *  changing how this field is fetched or delivered affects them all. */
   status: Record<string, unknown> | null
   /** Imperative API for the GLOBAL feedback area (the GamePage-header
    *  slot — peer/opponent news, per the feedback naming convention in
