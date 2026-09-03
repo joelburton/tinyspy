@@ -33,8 +33,8 @@ understood, tidied* — `cs-blessed` here means he has read the file, not seen i
 
 **Two passes of three have run.** The BOOT pass is done — nine files, sixteen
 findings, nothing left open (fourteen RESOLVED, one CLOSED, one MOVED to
-`corecss`). The DATA PATH was read 2026-09-02: eleven files, **ten findings
-`F-deep-17` … `F-deep-26`** — six RESOLVED, four open. The realtime plumbing (7 files) has not
+`corecss`). The DATA PATH was read 2026-09-02: eleven files, **eleven findings
+`F-deep-17` … `F-deep-27`** — eight RESOLVED, three open. The realtime plumbing (7 files) has not
 been read.
 
 ## The roster — 33 files, 4,880 lines
@@ -818,14 +818,40 @@ off by one, in the one place in this file where getting the branch wrong matters
 > says *"`null` means there is nothing for this layer to add — Postgres named
 > itself with a SQLSTATE."*
 
-## F-deep-21 · `nothing-answered-says-four-sites` · A docstring counts call sites, and the count is wrong
+## RESOLVED · F-deep-21 · `nothing-answered-says-four-sites` · A docstring counts call sites, and the count is wrong
 
 `dbResult.ts:55` — *"it is asked at four call sites, and getting it wrong is
 invisible"*. It is asked at **two**: `:167` in `failureEnvelope` and `:295` in
 `runEdgeFn`. The argument for naming the predicate still holds; the number does
 not, and a number in a docstring is a thing a reader checks.
 
-> resolution:
+> **resolution: the count comes out rather than being corrected** (Joel,
+> 2026-09-02) — the same move he made on `router.ts` for `F-deep-8`, and for the
+> same reason: a number in a comment is a thing that rots, and this one already
+> had. The argument survives whole without it, because the argument was never the
+> count — *"getting it wrong is invisible: both answers produce an
+> `Envelope<never>`, so no type and no test notices the difference."*
+>
+> **Fixing it prompted a sweep for the same species, which found `F-deep-27`.**
+
+## RESOLVED · F-deep-27 · `fifteen-games` · Three comments count the games, and the count is one behind
+
+Found by sweeping for counted claims after `F-deep-21`. **Sixteen games are
+registered** — sixteen manifest imports in `src/games.ts`, sixteen folders under
+`src/` — and three comments say fifteen:
+
+- `dbResult.ts:104` — *"so fifteen boards can't drift on it"*
+- `supabase.ts:124` — *"covers all fifteen games' data channels"*
+- `lib/games.ts:229` — *"it reads in all fifteen games afterwards"*
+
+> **resolution: the two in this area are rewritten to say the thing that stays
+> true** — "so no board can drift on it", "covers every game's data channels" —
+> rather than bumped to sixteen, which would rot again the next time the roster
+> grows. That is `F-deep-21`'s lesson applied rather than restated.
+>
+> **The third is NOT this area's.** `src/common/lib/games.ts` names every game,
+> so `deep`'s membership rule excludes it; it belongs to whichever area takes the
+> manifest registry. Recorded here so it is not lost.
 
 ## F-deep-22 · `calledgefn-doc-describes-the-superseded-contract` · The transport adapter documents the system that replaced it
 

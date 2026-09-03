@@ -121,7 +121,7 @@ export const supabase = createClient<Database>(url, publishableKey, {
 // Route every channel the app creates through the realtime diagnostics
 // (subscribe statuses, the postgres-changes `system` health message, event
 // deliveries, teardowns — see realtimeDiag.ts). Patching the factory here
-// covers all fifteen games' data channels plus the game/club rooms, chat,
+// covers every game's data channels plus the game/club rooms, chat,
 // presence, and scratchpad without touching each hook.
 const rawChannel = supabase.channel.bind(supabase)
 supabase.channel = (...args: Parameters<typeof supabase.channel>) =>

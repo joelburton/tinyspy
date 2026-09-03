@@ -52,9 +52,9 @@ import type { Envelope, NotOk, Severity } from './envelope'
  * **Did anything answer at all?**
  *
  * The one question separating the two kinds of failure, and the reason it gets
- * a name rather than an inline `=== 0`: it is asked at four call sites, and
- * getting it wrong is invisible — both answers produce an `Envelope<never>`,
- * so no type and no test notices the difference.
+ * a name rather than an inline `=== 0`: getting it wrong is invisible — both
+ * answers produce an `Envelope<never>`, so no type and no test notices the
+ * difference.
  *
  * `0` is not an HTTP status. postgrest-js sets it when the `fetch` REJECTED
  * (its `.catch` branch in `PostgrestBuilder`), and only then — anything that
@@ -101,8 +101,8 @@ const SEVERITY_TO_OUTCOME: Record<Severity, Outcome> = {
 
 /**
  * **How a `not-ok` reads**: what its author asked for, or its severity's
- * default. The one place that question is answered, so fifteen boards can't
- * drift on it.
+ * default. The one place that question is answered, so no board can drift on
+ * it.
  *
  * Note what this does NOT do: it does not write the answer back into the
  * envelope. A caller reads the same envelope the server sent, and `outcome`
