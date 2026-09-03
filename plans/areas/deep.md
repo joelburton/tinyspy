@@ -37,8 +37,9 @@ DATA PATH, read 2026-09-02: eleven files, eleven findings `F-deep-17` …
 `F-deep-27`, **all RESOLVED**. The REALTIME PLUMBING was read the same day:
 seven files, **five findings `F-deep-28` … `F-deep-32`, all RESOLVED** — no
 defects, four duplications-of-one-fact and a coverage gap. **The three named
-passes are done; the fault sink, `cls` and the server-side envelope files are
-what remain of the roster.**
+passes are done. The FAULT SINK was read the same day: two files, **three
+findings `F-deep-33` … `F-deep-35`, all open.** `cls.ts` and the three
+server-side envelope files are what remain of the roster.**
 
 ## The roster — 35 files, 4,880 lines
 
@@ -1190,6 +1191,83 @@ knobs)` and the knobs are in the wrong order for how they are used.
 >
 > That count is now the docstring's justification, where there was none.
 > `grep "rtLog(.*undefined"` returns nothing.
+
+## Pass 4 — the fault sink, read 2026-09-02
+
+Two files, 152 lines: `faultStore.ts` and its test. Small, and it produced the
+largest gap between what a file says and what the app does that this area has
+turned up.
+
+**Findings F-deep-33 … F-deep-35.** All three are the same shape — the store's
+docstring describes the world of a week ago — but the first has a consequence
+worth more than a doc fix.
+
+**Checked and NOT a finding:** `useCurrentFault` passes an INLINE arrow as
+`getSnapshot` where `usePath` (fixed in `F-deep-5`) uses a module-level
+function. That difference is fine and should not be "made consistent":
+`useSyncExternalStore` compares the RESULT of `getSnapshot`, not its identity —
+only `subscribe` must be stable, and here it is module-level.
+
+## F-deep-33 · `showfaultmodal-has-a-hundred-callers` · The store documents one caller, and there are 101
+
+`faultStore.ts:14` — *"Nothing decides here. `reportDbFault` … picks the words
+and writes the `[db]` line, then calls `showFaultModal`"* — reads as a
+description of the one path in. Counted:
+
+| | |
+|---|---|
+| direct `showFaultModal` call sites outside the store | **101** |
+| of those, the hand-written scream-else `{ text: 'BUG: <rpc> fell through to unhandled' }` | **94** |
+| of those, passing `diagnostics` | **4** |
+
+The scream-else is a deliberate convention — the mandatory `else` at an RPC call
+site — so the callers are not wrong. **The docstring is**, and it takes two
+other claims down with it:
+
+- **`FaultEntry.diagnostics`** says it is *"Absent only for hand-triggered test
+  faults."* It is absent at ~97 production call sites.
+- **The `QUEUE_CAP` comment** says a dropped fault costs nothing because *"the
+  classifier already wrote the `[db]` console line before routing, so nothing is
+  lost to diagnosis."* True of `reportDbFault`'s faults. For the 94 it is only
+  half true: `runRpc` did log the CALL, so there is a `[db]` line for it — but
+  the fact that the call site fell through exists nowhere except the modal, so
+  at the cap that specific diagnosis is gone with no trace.
+
+**The fix is not obviously "make the 94 carry diagnostics".** That is a question
+about the call-site convention (docs/envelopes.md → The shape of a call site),
+which is not this file's and not this area's — the scream-else fires exactly
+when a caller's branches did not cover an answer, and what it should record is a
+decision about that convention. What IS this file's is that its docstring should
+describe the callers it has.
+
+> resolution:
+
+## F-deep-34 · `faultstore-cites-the-wrong-file` · `reportDbFault` is pointed at twice, and both point at the wrong module
+
+`faultStore.ts:14` and `:49` both say `reportDbFault (lib/supabase/dbResult.ts)`.
+It is in **`dbEnvelope.ts:335`**. `dbResult.ts` has `reportFault`, a different
+function — the private wrapper that honors `presentFaults: false` — so the
+citation does not merely miss, it lands next to a similarly-named neighbor.
+
+> resolution:
+
+## F-deep-35 · `fault-true-sinks-are-gone` · The source describes a routing flag its own test says was deleted
+
+`faultStore.ts:15` — *"the older `fault: true` sinks (useLocalFeedback / the
+GamePage global slot) route here the same way, so no game wires anything."*
+
+**That flag is gone, and the store's own test file says so** in its docstring:
+*"It used to guard a routing rule as well: a `fault: true` message handed to a
+sink had to reach the modal queue instead of slot state. That flag is gone
+(2026-09-01)."* `useLocalFeedback:76` agrees in the past tense — *"This branched
+on a `fault` flag until…"*.
+
+So the test and the consumer both record the deletion and the source does not.
+The rule it encoded still holds — a fault never sits in a pill slot — but by
+construction rather than by a branch, which is a better thing for the docstring
+to say.
+
+> resolution:
 
 ## Questions this pass raises rather than answers
 
