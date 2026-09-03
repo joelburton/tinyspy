@@ -31,8 +31,16 @@ understood, tidied* — `cs-blessed` here means he has read the file, not seen i
 
 **Every heading says its status**; a heading with **no status prefix means OPEN**.
 
-**⭐ THE AREA IS READ THROUGH, AND NOTHING IS OPEN.** Six passes over 35 files,
-all on 2026-09-02:
+**⭐ REOPENED 2026-09-02 by a second read — twenty findings, `F-deep-40` …
+`F-deep-59`, ALL OPEN.** Joel asked a fresh session to read the 35 files and
+`deep.md` after the first six passes closed, and it found mostly prose the code
+has moved out from under — including four things the first read's own
+resolutions claimed fixed and were not (`F-deep-41`, `F-deep-42`, `F-deep-46`,
+`F-deep-48`). Pass 7, at the end of this file, holds them. **The
+`cs-fixed-deep` stamps were NOT moved**; with open findings against them they
+overstate, and restamping is Joel's call.
+
+The six passes before it, all on 2026-09-02:
 
 | pass | files | findings |
 |---|---|---|
@@ -43,9 +51,10 @@ all on 2026-09-02:
 | `cls.ts` | 1 | `F-deep-36` — resolved |
 | the server side of the envelope | 3 | `F-deep-37` … `F-deep-39` — all resolved |
 
-**Thirty-nine findings: thirty-seven resolved, one closed, one moved.**
+**Fifty-nine findings: thirty-seven resolved, one closed, one moved, twenty
+open** (pass 7).
 
-**What is left is `cs-blessed`, which is Joel's alone** — nine files carry it,
+**What is left besides pass 7 is `cs-blessed`, which is Joel's alone** — nine files carry it,
 twenty-six are `cs-fixed-deep`. `cs-fixed` is "Claude changed it and stands
 behind it"; blessed is "Joel read it", and that is the area's exit criterion
 (§21). One of the twenty-six, `App.tsx`, is held back deliberately: Joel is not
@@ -1514,6 +1523,260 @@ repoint, not a claim to delete.
 > The only remaining mentions of `deno-callers.md` are the two in
 > `plans/error-system.md` that record its deletion — which is where a note about
 > a deleted plan belongs, so those stay.
+
+## Pass 7 — a second read of the whole roster, 2026-09-02
+
+Joel: *"read the files in this area, and the findings in `deep.md`. please
+suggest any other findings or improvement to code or documentation."* A fresh
+session read all 35 files, `logStamp.ts`, the two guards the area wrote, and
+checked every claim in the first six passes' resolutions against the tree.
+Every line reference below was verified by reading the line, not by grep alone.
+
+**Twenty findings, `F-deep-40` … `F-deep-59`, and every one is OPEN** — a
+heading with no status prefix means open, as everywhere in this file. The shape
+of what turned up: the LOGIC held; what drifted is prose the code moved out from
+under — and four of the first read's resolutions said "fixed" of something that
+was only half fixed (`F-deep-41`, `F-deep-42`, `F-deep-46`, `F-deep-48`). Two
+are behavior (`F-deep-49`, `F-deep-50`); two are questions for Joel rather than
+fixes (`F-deep-50`, the last item of `F-deep-57`).
+
+**Checked and NOT findings**, so they are not re-derived:
+
+- `nothingAnswered`'s claim that nothing in `src/` uses `AbortController` or
+  `.abortSignal()` holds — the only non-test match is the comment itself.
+- `_shared/envelope.ts:21`'s "four" builders is right, as pass 6 said.
+- `supabase.ts`'s description of the session check is TRUE (`useSession.ts:130`
+  does read `profiles`); it is only in the wrong file — see `F-deep-56`.
+- `dbResult.test.ts:15-32` is two stacked docstrings, but the first is the
+  file's own header meeting `env`'s, which is the shape the guard exempts.
+
+### Claims the code now contradicts
+
+## F-deep-40 · `dbfetch-still-says-it-presents` · Six places say `dbFetch` words or shows the modal; it does neither
+
+`dbFetch.ts` imports `NO_ANSWER_TO_CODE_AND_TEXT`, `DbError`, `logDb` and
+`logSlow` — no builder, and nothing that shows anything. docs/envelopes.md:610
+says so: *"never `dbFetch`, which classifies and logs but shows nothing."*
+Six places say the opposite:
+
+| where | says |
+|---|---|
+| `dbFetch.ts:36-39` | *"It does word the MODAL for a request nothing answered … the sentence comes from `environmentalEnvelope`"* |
+| `dbFetch.ts:128`, `:136-140` | *"**where faults are presented**"*, *"Why presentation lives here"* |
+| `dbEnvelope.ts:14-15` | *"`dbFetch` calls these to word and show a transport failure"* |
+| `dbEnvelope.ts:245-247` | *"`dbFetch` calls it to word the modal; the three wrappers call it to word the envelope"* |
+| `dbResult.ts:450` | *"the modal is already up (`dbFetch` presented it)"* |
+| **docs/envelopes.md:1209** | *"`dbFetch` calls it to word the modal"* — so the canonical doc contradicts its own :610 |
+
+The tests carry it too: `dbResult.test.ts:55-56` (*"`dbFetch` words a request
+that never reached the server … and shows it"*), and the comment at
+`:650-653` says `dbFetch` *"has already presented this one"* directly above a
+test whose title and assertion say `runEdgeFn` presents.
+
+## F-deep-41 · `three-generations-stacked` · `dbFetch.test.ts` has three docstrings in a row, and the guard files two of them under other areas
+
+`dbFetch.test.ts:172-201` is THREE stacked docstrings: *"if `dbFetch` stops
+presenting, nothing else notices"*, then *"`dbFetch` classifies; it no longer
+presents"*, then *"`dbFetch` classifies; the wrapper logs and presents."* Each
+is the header the one below replaced; only the third is true.
+
+They are the two `KNOWN` orphans `src/guards/orphanedDocstrings.test.ts` lists
+at `:182` and `:192` — **filed under "common — club-page / hooks /
+common-hosts / shared-game-chrome"**, while the file is `cs-fixed-deep` and on
+this roster. The guard's own rule is that the area that opens the file removes
+the line, so `deep` closed with two of its own still listed, under someone
+else's name.
+
+## F-deep-42 · `faultstore-second-citation-not-fixed` · `F-deep-34` corrected one of the two lines it named
+
+`F-deep-34` found `reportDbFault` cited at `faultStore.ts:14` and `:49` as
+living in `dbResult.ts`, and its resolution says *"the citation corrected"*.
+Line 14 was. **`faultStore.ts:56` still reads `reportDbFault
+(lib/supabase/dbResult.ts)`** — the second of the two, moved down by the edits
+to the first. [[feedback_verify_the_edit_landed]] again.
+
+## F-deep-43 · `field-plumbing-is-built` · Two comments say nothing reads `field`; eight forms do
+
+`envelope.ts:136`: *"The form plumbing that reads this isn't built yet."*
+`dbResult.test.ts:355-357`: *"Nothing renders it yet — the form plumbing is
+designed but unbuilt."* Eight forms read it today with `res.field ??
+FORM_ERROR_KEYNAME`: `CreateClubModal:166`, `EditClubModal:93`,
+`ClaimHandleScreen:136`, `SetupGameModal:186`, `EditProfileModal:67`,
+`WordEditDialog:226`, and `connections/SetupForm` at `:99` and `:118`.
+
+## F-deep-44 · `all-four-are-five` · The docstring above `OUR_BUG_TO_CODE_AND_TEXT` counts four and promises a prefix the fifth lacks
+
+`dbEnvelope.ts:143`: *"All four are OURS, which is why every message opens
+`BUG:`."* `F-deep-33` added a fifth entry beneath it, `unhandledAnswer`, whose
+text is `fell through to unhandled` — the `BUG:` is prepended at the call in
+`reportUnhandled`. Both halves of the sentence are now false, and it is the
+count-in-a-docstring species `F-deep-21` and `F-deep-36` named.
+
+## F-deep-45 · `no-dbcode-to-carry` · A comment says there is no code to carry, five lines under the call that carries one
+
+`dbResult.ts:414-416`: *"No `dbcode` to carry — the call SUCCEEDED (a 200 with
+an unreadable body), so there is no Postgres error."* The `faultEnvelope` call
+five lines above passes `OUR_BUG_TO_CODE_AND_TEXT.unreadable.code` — PN307.
+The test at `dbResult.test.ts:434-437` has the corrected reasoning (*"PN307,
+not null … 'the frontend built this envelope' is itself an answer"*); the
+source kept the old half.
+
+## F-deep-46 · `callerror-does-not-exist` · `F-deep-22` removed the deleted helpers from `callEdgeFn.ts` and not from its neighbors
+
+`dbResult.ts:273`: a 4xx *"arrives as a transport-shaped `CallError`"*.
+`callEdgeFn.test.ts:5,8`: *"a classifiable `CallError`"*, *"so
+`classifyFailure` treats it like a direct RPC failure"*, *"the behavior
+matrix"*. **None of `CallError`, `classifyFailure` or a behavior matrix exists
+in `src/`**; the adapter returns `NonNullable<DbError>`. Two more mentions sit
+in `src/guards/noRawServerMessage.test.ts:49,51,85`, which is the guards
+owner's, recorded here with the other two notes to that owner in pass 2.
+
+## F-deep-47 · `dbresult-header-claims-three-files` · The module docstring says it holds what two other files hold
+
+`dbResult.ts:12-14`: *"Types, classification, the environmental sentences, and
+the read wrapper — all of it, in one file on purpose."* The types are in
+`envelope.ts` and the environmental sentences in `dbEnvelope.ts`, both split
+out by the error sprint. It also calls itself *"**The new server-result
+system**"* (and `dbResult.test.ts:16`) — new relative to a system that has been
+deleted, which is the archaeology this repo rules out.
+
+## F-deep-48 · `three-off-convention-keys` · `F-deep-15`'s premise was wrong: two more hyphenated keys remain, both this area's
+
+`F-deep-15` said `pup-theme` was *"the only key with a hyphen instead of a
+colon."* Measured across `src/`:
+
+| key | where | storage |
+|---|---|---|
+| `rt-verbose` | `realtimeDiag.ts:86`, and the instructions at `:54-55` and `supabase.ts:107` | localStorage |
+| `stale-chunk-reload-at` | `reloadOnStaleChunk.ts:26` | sessionStorage |
+
+Every other key is `puzpuzpuz:…` or `<game>:…`. The second costs nothing to
+rename — nobody types it. The first is typed by hand in devtools, so renaming
+it is a real choice and it is Joel's.
+
+### Behavior
+
+## F-deep-49 · `render-throw-is-still-a-white-page` · `F-deep-4` closed two roads to a blank page; a third is open
+
+`F-deep-4` wrapped the theme load, the `#root` lookup and `createRoot().render()`
+in one `try`. But `render()` schedules; it does not throw. A throw during the
+RENDER of HomePage, ClubPage, or anything outside PlayArea is still a blank
+page: there is no boundary above `PlayAreaErrorBoundary` (the only one in
+`src/`), React 19 unmounts the root on an uncaught render error, and
+`main.tsx`'s catch has already exited by then.
+
+The seam is in this area's file. React 19's `createRoot(root, {
+onUncaughtError })` is built for this, and `showBootPanic` is already there to
+call from it — the same "one sentence and the diagnostics line" `F-deep-4`
+settled on, painted by plain DOM because the app may be what failed.
+
+## F-deep-50 · `unhandled-status-is-asserted` · The PN488 line claims `status=200` for an answer whose status it does not know
+
+`reportUnhandled` (`dbEnvelope.ts:384-386`) writes `status: 200` for any
+non-environmental answer, and its comment argues a fall-through *"needs an
+answer to fall through ON."* True — but the envelope does not carry the HTTP
+status, so 200 is asserted, not known.
+
+`ClubPage.tsx:256-264` shows the shape that makes it wrong: a not-ok branch
+named by `dbcode`, then an ok branch, then the scream. A raw fault with any
+other dbcode falls through, and it arrived 4xx — so the line says 200 for a
+403, on the second modal for one event (`runRpc` already presented the fault).
+
+**A question rather than a fix**: is a fall-through on an already-presented
+not-ok intended, and if so should the line claim a status it does not have?
+The honest alternatives are to omit it (as `logSlow` does — *"omitted beats
+empty"*) or to say in the comment that it is inferred.
+
+## F-deep-51 · `route-warn-in-render` · A `console.warn` in the render path, on an undocumented channel
+
+`App.tsx:197` writes `[route] no match for …` from inside `currentPage()`, which
+runs on every App render — every store change (edit-profile, word-edit,
+session), and twice under StrictMode — so one bad URL logs many times. It is
+also the one console tag with no `logStamp()` and no mention in envelopes.md
+beside `[db]`, `[rt]`, `[ui]`, `[rpc]`.
+
+## F-deep-52 · `teardown-failure-bypasses-rt` · The one line that says a teardown failed is not on the `[rt]` channel
+
+`channelTeardown.ts:78-80` reports a rejected `removeChannel` through
+`console.error` while the `.then` above it uses `rtLog`. A console filtered to
+`[rt]` shows every teardown that worked and misses the one that did not.
+
+### Duplication, and the species the first read already named
+
+## F-deep-53 · `db-channel-fact-five-times` · "`[db]` is its own channel beside `[rt]` and `[ui]`" is written in five places
+
+`dbFetch.ts:132`, `dbLog.ts:15`, `dbLog.ts:164` (twice in one file),
+`logStamp.ts:4-10`, docs/envelopes.md:1327. `F-deep-28` made `logStamp.ts` the
+neutral home for the stamp; it is the natural single home for the channel list
+too, with the doc pointing at it.
+
+## F-deep-54 · `rt-verbose-instructions-twice` · The lever is documented in two files and its literal is in a third place
+
+`realtimeDiag.ts:54-55` and `supabase.ts:107-109` both give the
+`localStorage.setItem('rt-verbose', '1')` recipe, and the literal is repeated in
+`rtVerbose()` at `:86`. `F-deep-29`'s species: one fact, written more than
+once. (Renaming the key is `F-deep-48`.)
+
+## F-deep-55 · `envelope-tail-written-twice` · `runEdgeFn` and `runRpc` end in the same thirty lines
+
+`dbResult.ts:301-324` and `:407-439`: the unreadable-body check, the
+message-without-outcome check, fault-or-log, and the cast — identical. The
+docstring at `:263` says the two exist separately *"because the transports
+differ, not because the results do"*, which is precisely the argument for one
+shared reader of the result.
+
+Joel's call against [[feedback_no_generic_layer_when_uses_known]]: here both
+uses are known, identical, and in the same file, so a private
+`readEnvelope(transport, body, opts)` is a shared step rather than a generic
+layer. Not done unasked.
+
+## F-deep-56 · `explained-twice-across-files` · Two facts each carried by two files
+
+- The Fast Refresh reason for splitting `Link.tsx` from `router.ts` is at
+  `router.ts:21-24` AND `Link.tsx:13-16`.
+- `supabase.ts:23-30` describes `useSession`'s profile check — a consumer's
+  behavior, in the client's docstring. `useSession.ts:14-35` documents it
+  itself, and does the check at `:130`.
+
+## F-deep-57 · `counts-and-archaeology-remaining` · The `F-deep-8` / `-21` / `-36` rule, applied to what the first read left
+
+Each is a count that will rot, a "used to", or a pointer a reader cannot
+follow:
+
+| where | says |
+|---|---|
+| `dbResult.ts:195` | *"the seven sites that used to call `reportDbFault` directly"* |
+| `dbEnvelope.ts:139` | *"64 Deno ones"* |
+| `callEdgeFn.ts:17` | *"Five call sites used to each hand-roll"* |
+| `dbFetch.test.ts:12` | *"the 47 sites that render an error"* |
+| `dbLog.ts:90-93` | *"which is how it came to be silently dropped below"* — nothing below drops it; the drop was in `envelopeFields`, and is gone |
+| `_shared/dbResult.ts:116` | *"until now whether a call said anything at all was per-function taste"* |
+| `_shared/http.ts:5-7` | *"the copy-per-function drift **the review** flagged … used to be stamped five times"* — "the review" is outside the repo, `F-deep-8`'s species |
+| `router.test.ts:3-13` | enumerates four contract items; the file now pins eight |
+| `dbFetch.ts:210-212` | *"until the conversion finishes … the raw `db.rpc()` and `db.from()` sites … the roster's to-do list"* — the error sprint is recorded DONE |
+
+**The last row is a question.** A grep cannot settle whether any unwrapped
+`db.rpc()` / `db.from()` call remains (wrappers span lines), and
+`callSiteShape.test.ts:83` says *"reads are the unconverted roster"*. If none
+remains, the paragraph describes a to-do that is finished; if some do, it is
+right and the sprint's "done" is the thing to qualify.
+
+## F-deep-58 · `underscore-export` · `_isEnvelope` is exported, and the underscore says private
+
+`dbResult.ts:221`. Its only caller outside the file is `dbResult.test.ts`. Either
+the underscore goes, or the export does and the test reads the behavior through
+`runRpc`, which already has a case for every shape `_isEnvelope` rejects.
+
+## F-deep-59 · `typos-the-area-wrote` · Four slips in files pass 1 and pass 3 edited
+
+- `loadTheme.ts:20` — the comment opens *"A theme is not worth failing to start
+  over.\*\*"*, a bold marker with no opener (`F-deep-13`'s edit).
+- `logStamp.ts:11` — the docstring closes with `**/` (`F-deep-28`'s file).
+- `main.tsx:3` — `/** Top of React application.*/`, no space before the close.
+- `main.tsx:46-68` — `showBootPanic` (`F-deep-4`'s edit) uses semicolons and
+  double quotes; every other file on the roster uses neither. No eslint rule
+  enforces it (`eslint.config.js` has no `semi` or `quotes`), so this is
+  convention, not a red check.
 
 ## Questions this pass raises rather than answers
 
