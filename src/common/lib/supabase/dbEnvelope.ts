@@ -380,14 +380,16 @@ export function reportDbFault(transport: Transport, envelope: NotOk): void {
  */
 export function reportUnhandled(call: string, answer: Envelope): void {
   const { code, text } = OUR_BUG_TO_CODE_AND_TEXT.unhandledAnswer
-  // **`status` is derived, not left blank.** A blank one means "the server
-  // never answered" on every other `[db]` line — the opposite of what happened
-  // here, since a fall-through needs an answer to fall through ON. The one
-  // envelope that arrives without a server answering is the one the frontend
-  // built for exactly that, which `isEnvironmental` names.
-  const answered = !isEnvironmental(answer.dbcode)
+  // **`status` is claimed only where it is known.** An `ok` arrived 200 on
+  // every transport, so it says so. A `not-ok` may have arrived 200 (a declared
+  // refusal) or 4xx (a raw fault), and the envelope does not carry which: the
+  // wrapper knew, and logged it on the call's own `[db]` line one line up, but
+  // that fact stops at the wrapper's `return`. So it is left off rather than
+  // guessed — the one line where a blank `status=` means "not known here"
+  // rather than "nothing answered". docs/deferred.md holds the change that
+  // would make it known: the status in the envelope.
   reportDbFault(
-    { call, status: answered ? 200 : undefined },
+    { call, ...(answer.type === 'ok' ? { status: 200 } : {}) },
     faultEnvelope(
       null,
       `BUG: ${call} ${text}`,

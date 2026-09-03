@@ -803,6 +803,27 @@ describe('reportUnhandled', () => {
     expect(fault.diagnostics).toContain('dbcode=PN488')
   })
 
+  it('leaves the status blank for a not-ok, whose HTTP status it cannot know', () => {
+    // A raw fault arrived 4xx and a declared refusal arrived 200; the envelope
+    // carries neither. Printing 200 for a not-ok would state a fact this layer
+    // does not have — so the field is left off, and this is the one [db] line
+    // where a blank status= means "not known here".
+    //
+    // `mockClear`: the test above spied `console.error` without restoring it,
+    // so this `spyOn` hands back the SAME spy with its `status=200` line still
+    // on it, and the negative assertion below would read that one.
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    spy.mockClear()
+    reportUnhandled('end_game', {
+      ...okAnswer, type: 'not-ok', data: null, severity: 'fault',
+      message: 'permission denied', dbcode: '42501',
+    })
+    const line = spy.mock.calls.map((c) => String(c[0])).join('\n')
+    expect(line).toContain('dbcode=PN488')
+    expect(line).toContain('| status= |')
+    expect(line).not.toContain('status=200')
+  })
+
   it('names the call it was given, so two fall-throughs are distinguishable', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
     reportUnhandled('submit_guess', okAnswer)

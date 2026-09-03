@@ -32,14 +32,14 @@ understood, tidied* — `cs-blessed` here means he has read the file, not seen i
 **Every heading says its status**; a heading with **no status prefix means OPEN**.
 
 **⭐ REOPENED 2026-09-02 by a second read — twenty findings, `F-deep-40` …
-`F-deep-59`: ten resolved, ten OPEN.** Joel asked a fresh session to read
+`F-deep-59`: eleven resolved, nine OPEN.** Joel asked a fresh session to read
 the 35 files and `deep.md` after the first six passes closed, and it found
 mostly prose the code has moved out from under — including four things the
 first read's own resolutions claimed fixed and were not (`F-deep-41`,
 `F-deep-42`, `F-deep-46`, `F-deep-48`). Pass 7, at the end of this file, holds
-them. `F-deep-40` … `-49` were fixed the same day on Joel's instruction —
-eight prose, one key rename, and the render-crash screen; `F-deep-50` on
-waits. **The `cs-fixed-deep` stamps were NOT moved**; with open
+them. `F-deep-40` … `-50` were fixed the same day on Joel's instruction —
+eight prose, one key rename, the render-crash screen, and the PN488 line's
+status; `F-deep-51` on waits. **The `cs-fixed-deep` stamps were NOT moved**; with open
 findings against them they overstate, and restamping is Joel's call.
 
 The six passes before it, all on 2026-09-02:
@@ -53,8 +53,8 @@ The six passes before it, all on 2026-09-02:
 | `cls.ts` | 1 | `F-deep-36` — resolved |
 | the server side of the envelope | 3 | `F-deep-37` … `F-deep-39` — all resolved |
 
-**Fifty-nine findings: forty-seven resolved, one closed, one moved, ten
-open** (all ten in pass 7).
+**Fifty-nine findings: forty-eight resolved, one closed, one moved, nine
+open** (all nine in pass 7).
 
 **What is left besides pass 7 is `cs-blessed`, which is Joel's alone** — nine files carry it,
 twenty-six are `cs-fixed-deep`. `cs-fixed` is "Claude changed it and stands
@@ -1782,7 +1782,7 @@ settled on, painted by plain DOM because the app may be what failed.
 > `PlayAreaErrorBoundary`'s "the only boundary in the app" stays true — this is
 > a root OPTION, not a boundary.
 
-## F-deep-50 · `unhandled-status-is-asserted` · The PN488 line claims `status=200` for an answer whose status it does not know
+## RESOLVED · F-deep-50 · `unhandled-status-is-asserted` · The PN488 line claims `status=200` for an answer whose status it does not know
 
 `reportUnhandled` (`dbEnvelope.ts:384-386`) writes `status: 200` for any
 non-environmental answer, and its comment argues a fall-through *"needs an
@@ -1798,6 +1798,28 @@ other dbcode falls through, and it arrived 4xx — so the line says 200 for a
 not-ok intended, and if so should the line claim a status it does not have?
 The honest alternatives are to omit it (as `logSlow` does — *"omitted beats
 empty"*) or to say in the comment that it is inferred.
+
+> **resolution: claim only what is provable** (Joel, 2026-09-02: *"we should
+> definitely not show 200 if we don't know"*). `reportUnhandled` prints
+> `status=200` for an `ok`, which arrives 200 on every transport, and leaves
+> the field off for a `not-ok` — the one `[db]` line where a blank means "not
+> known here" rather than "nothing answered", and the comment, the doc
+> (envelopes.md → the scream paragraph) and a new test all say so. The
+> `isEnvironmental` read is gone from it; that function keeps its two callers
+> in `useGameTimer`.
+>
+> **Why it is unknown, since Joel asked:** not `dbFetch`'s doing. The status
+> survives every layer — `dbFetch` keeps it on the Response, postgrest-js
+> forwards it, the wrapper reads it into `transport` and logs it on the call's
+> own line — and is dropped at the wrapper's `return`, because the envelope's
+> nine keys do not include it and the call site holds only the envelope.
+>
+> Three fixes were weighed. A `WeakMap<Envelope, Transport>` side channel in
+> the wrappers (Joel: *"messy"*), a tenth envelope key (*"not something we
+> should fix right now"* — **filed in docs/deferred.md → Common /
+> architecture** so it can be considered later), and this. Pinned by a test
+> that hands a raw-fault `not-ok` to the scream and asserts `| status= |` and
+> no `status=200`; proved by planting — restoring the always-200 form fails it.
 
 ## F-deep-51 · `route-warn-in-render` · A `console.warn` in the render path, on an undocumented channel
 

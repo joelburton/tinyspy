@@ -437,7 +437,11 @@ unhandled` — logs a `[db]` line, and raises the modal with real diagnostics
 under it. **Pass the answer, not just the name.** The useful fact about a
 fall-through is what the server actually said, and `res` is what carries it;
 `call` stays hand-written because an envelope does not know the name of the call
-that produced it.
+that produced it. For the same reason its `status=` is 200 for an `ok` — which
+arrives 200 on every transport — and **blank for a `not-ok`**, whose HTTP
+status the envelope does not carry: the one `[db]` line where a blank means
+"not known here" rather than "nothing answered". The change that would make it
+known is filed in [deferred.md](deferred.md#common--architecture).
 
 Before it existed each site hand-wrote `showFaultModal({ text: … })`, and the
 one fault category that always means a bug of OURS was the only one arriving
