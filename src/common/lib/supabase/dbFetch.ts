@@ -255,16 +255,16 @@ export const dbFetch: typeof fetch = async (input, init) => {
   // with a SQLSTATE, and the wrapper reads that straight off the error.
   const verdict =
     body?.code ? null
-    : parsed ? NO_ANSWER_TO_CODE_AND_TEXT.upstreamDown
     // It PARSED but carried no SQLSTATE — Kong's own `{"message":"no Route
     // matched…"}`, or any platform layer answering for us. Our gateway is up
     // and the thing behind it is not.
-    : NO_ANSWER_TO_CODE_AND_TEXT.foreignResponder
+    : parsed ? NO_ANSWER_TO_CODE_AND_TEXT.upstreamDown
     // An unparseable body. PostgREST ALWAYS speaks JSON, so something that is
     // not PostgREST answered: a captive portal, a proxy, an ISP error page.
     // (An edge function's unparseable body means something else — the runtime
     // answering instead of the function — but `callEdgeFn` holds the Response
     // and decides that for itself.)
+    : NO_ANSWER_TO_CODE_AND_TEXT.foreignResponder
 
   // **The verdict rides in `statusText`.** It is the one field that survives
   // postgrest-js untouched, and the wrapper reads it to build the envelope a

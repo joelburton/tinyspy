@@ -34,7 +34,7 @@ understood, tidied* — `cs-blessed` here means he has read the file, not seen i
 **Two passes of three have run.** The BOOT pass is done — nine files, sixteen
 findings, nothing left open (fourteen RESOLVED, one CLOSED, one MOVED to
 `corecss`). The DATA PATH was read 2026-09-02: eleven files, **ten findings
-`F-deep-17` … `F-deep-26`** — five RESOLVED, five open. The realtime plumbing (7 files) has not
+`F-deep-17` … `F-deep-26`** — six RESOLVED, four open. The realtime plumbing (7 files) has not
 been read.
 
 ## The roster — 33 files, 4,880 lines
@@ -791,7 +791,7 @@ definition nobody could parse it — did not.
 > rule. I reworded rather than take an exemption, but the guard reading comments
 > as code is worth knowing about.
 
-## F-deep-20 · `verdict-comments-trail-their-branch` · In the file's subtlest expression, each comment explains the line above it
+## RESOLVED · F-deep-20 · `verdict-comments-trail-their-branch` · In the file's subtlest expression, each comment explains the line above it
 
 `dbFetch:256` decides who answered, in a four-way chain. Every comment in it
 FOLLOWS the branch it explains, where every other comment in the file leads:
@@ -809,7 +809,14 @@ expression. **The code is correct** and matches docs/envelopes.md (`FE003` =
 parsed without a SQLSTATE, `FE004` = would not parse); it is the reading that is
 off by one, in the one place in this file where getting the branch wrong matters.
 
-> resolution:
+> **resolution: each comment moved above the branch it explains** (Joel,
+> 2026-09-02), which is the convention everywhere else in the file. No prose
+> changed and no branch moved — `git diff --numstat` is `2 2`, and the four
+> changed lines are the same two expressions in the other order.
+>
+> The `null` arm needs no comment of its own: the block above `verdict` already
+> says *"`null` means there is nothing for this layer to add — Postgres named
+> itself with a SQLSTATE."*
 
 ## F-deep-21 · `nothing-answered-says-four-sites` · A docstring counts call sites, and the count is wrong
 
