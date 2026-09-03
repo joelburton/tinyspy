@@ -115,11 +115,31 @@ app-level host, the `/`-chat binding stays with the pages that have a chat panel
 That is two listeners instead of one, which is the cost, against scopes that
 match reality.
 
-**2. `FaultModal` is `floating-panels`' orphan.** That area is explicitly *the
+**2. `FaultModal`'s docstring promises a diagnostics line it renders
+conditionally.** Raised by `deep` 2026-09-02.
+
+Its docstring lists the modal as three parts and states the third flatly:
+*"Small muted diagnostics — everything we know (the call, severity, outcome,
+dbcode, HTTP status, ms, field, detail, timestamp), the SAME string the `[db]`
+console line carries."* The render is `{fault.diagnostics && <p …>}` (`:51`), so
+when there is none the line is simply absent and the modal is a red "Error", a
+sentence, and nothing else.
+
+That is not hypothetical: **~97 of the ~101 `showFaultModal` call sites pass no
+`diagnostics`** — the hand-written scream-else at every RPC call site. So the
+population the docstring describes is the minority.
+
+`deep` is fixing the cause from its own side (`F-deep-33`: `reportUnhandled`
+routes a fall-through through `reportDbFault`, which builds a real diagnostics
+line), so this may end up true by the time the area opens. **Check before
+editing** — and either way the docstring should say whether the line is
+guaranteed or optional, because it currently reads as guaranteed.
+
+**3. `FaultModal` is `floating-panels`' orphan.** That area is explicitly *the
 machinery and the shared look, not the instances*, so the one fault-modal host
 has had no area. It is this one's.
 
-**3. `DefinitionPopover` is mounted sixteen times, and `TooltipHost` is the
+**4. `DefinitionPopover` is mounted sixteen times, and `TooltipHost` is the
 proof that it needn't be.** `useDefinePopover()` is called at sixteen sites, each
 holding its own `{ word, rect }`.
 

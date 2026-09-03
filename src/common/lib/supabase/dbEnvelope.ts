@@ -176,6 +176,19 @@ export const OUR_BUG_TO_CODE_AND_TEXT = {
     code: 'PN310',
     text: 'BUG: the edge-function runtime answered instead of the function',
   },
+  /** A call site's branches did not cover the answer it got — the mandatory
+   *  `else` at the end of an RPC call site, which fires only when the server
+   *  said something this caller was never taught to read.
+   *
+   *  Its number is out of family on purpose: `max + 1` across the whole `PN`
+   *  class is what allocates a code (docs/envelopes.md → Allocating one), and
+   *  the 3xx block filled up with SQL raises long after 307–310 were taken.
+   *  Never filling gaps is the rule, so a bug report saying "PN488" can only
+   *  ever mean this. */
+  unhandledAnswer: {
+    code: 'PN488',
+    text: 'fell through to unhandled',
+  },
 } as const
 
 /**
@@ -335,4 +348,28 @@ export function envelopeFields(transport: Transport, envelope: Envelope): DiagFi
 export function reportDbFault(transport: Transport, envelope: NotOk): void {
   const diagnostics = logDb('FAULT', envelopeFields(transport, envelope), envelope.message)
   showFaultModal({ text: envelope.message, diagnostics })
+}
+
+/**
+ * **A call site got an answer its branches do not cover** — the mandatory
+ * `else` that ends every RPC call site.
+ *
+ * It fires only on a bug of ours: the server answered, `runRpc` read the
+ * envelope and logged it as the perfectly good answer it was, and then the
+ * caller had no branch for it. **That is why this needs its own report.** The
+ * `[db]` line for the call itself says `OK`, so without this the only record
+ * that anything went wrong is a modal — dismissible, capped at five, and
+ * carrying no diagnostics line at all.
+ *
+ * Goes through `reportDbFault` rather than calling `showFaultModal` directly,
+ * which is the whole point: one line in the console and one modal with a real
+ * `k=v` line under it, built by the same builder as every other fault.
+ *
+ * `call` is the RPC or edge function whose answer went unhandled. It is a
+ * hand-written string and this does not change that — by the `else` branch the
+ * caller holds an envelope, and an envelope does not carry the call's name.
+ */
+export function reportUnhandled(call: string): void {
+  const { code, text } = OUR_BUG_TO_CODE_AND_TEXT.unhandledAnswer
+  reportDbFault({ call }, faultEnvelope(null, `BUG: ${call} ${text}`, undefined, code))
 }

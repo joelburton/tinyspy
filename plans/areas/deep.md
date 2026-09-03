@@ -38,7 +38,7 @@ DATA PATH, read 2026-09-02: eleven files, eleven findings `F-deep-17` …
 seven files, **five findings `F-deep-28` … `F-deep-32`, all RESOLVED** — no
 defects, four duplications-of-one-fact and a coverage gap. **The three named
 passes are done. The FAULT SINK was read the same day: two files, **three
-findings `F-deep-33` … `F-deep-35`, all open.** `cls.ts` and the three
+findings `F-deep-33` … `F-deep-35`** — one RESOLVED, two open. `cls.ts` and the three
 server-side envelope files are what remain of the roster.**
 
 ## The roster — 35 files, 4,880 lines
@@ -1208,7 +1208,7 @@ function. That difference is fine and should not be "made consistent":
 `useSyncExternalStore` compares the RESULT of `getSnapshot`, not its identity —
 only `subscribe` must be stable, and here it is module-level.
 
-## F-deep-33 · `showfaultmodal-has-a-hundred-callers` · The store documents one caller, and there are 101
+## RESOLVED · F-deep-33 · `showfaultmodal-has-a-hundred-callers` · The store documents one caller, and there are 101
 
 `faultStore.ts:14` — *"Nothing decides here. `reportDbFault` … picks the words
 and writes the `[db]` line, then calls `showFaultModal`"* — reads as a
@@ -1240,7 +1240,41 @@ when a caller's branches did not cover an answer, and what it should record is a
 decision about that convention. What IS this file's is that its docstring should
 describe the callers it has.
 
-> resolution:
+> **resolution: `reportUnhandled(call)` and `PN488`, built but NOT swept in**
+> (Joel, 2026-09-02, asking *"given that the scream clause is always the same …
+> should we make this a small function that can log and put the modal up?"*).
+>
+> **Why it needed a report of its own, which is the part worth keeping:** the
+> scream-else fires when the server answered fine and the CALLER had no branch —
+> so `runRpc` has already logged the call, at `OK`. The console line for a
+> fall-through reads exactly like a healthy call. The only record that anything
+> went wrong is a modal: dismissible, capped at five, and carrying no diagnostics
+> at all. **The one fault category that always means a bug of ours was the only
+> one with no console trail.**
+>
+> `reportUnhandled` goes through `reportDbFault`, so a fall-through now gets the
+> same `[db] FAULT` line and the same `k=v` diagnostics under the modal as every
+> other fault, from the same builder. Five lines, no new machinery.
+>
+> **`PN488`, and the number is not a typo.** The frontend-caught family is
+> `PN307`–`PN310`, but the allocator is `max + 1` across the whole `PN` class and
+> never fills gaps (docs/envelopes.md → Allocating one); the 3xx block filled with
+> SQL raises long after those four were taken. Verified free everywhere. Its
+> docstring says why it is out of family, so the next reader does not "fix" it.
+>
+> **The 95 call sites are NOT converted, deliberately.** That is a sweep across
+> ~30 files in a dozen game areas, and doing it in the same breath would mean the
+> helper's shape gets settled by whoever is mid-sweep. The helper is one file to
+> read and reject; the sweep is thirty to re-do. **Joel's call, separately** — and
+> if it happens it should ship with a guard forbidding the old literal outside the
+> helper, since a 95-site rule held by habit is what produced 94 copies.
+>
+> Proved by planting: reverting `reportUnhandled` to a bare `showFaultModal`
+> fails the new test, which asserts both halves — the `[db]` line AND the modal's
+> diagnostics.
+>
+> **A note went to `common-hosts`** for `FaultModal`, whose docstring promises the
+> diagnostics line it actually renders conditionally.
 
 ## F-deep-34 · `faultstore-cites-the-wrong-file` · `reportDbFault` is pointed at twice, and both point at the wrong module
 

@@ -3,7 +3,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { PostgrestClient } from '@supabase/postgrest-js'
 import {
-  faultEnvelope, nothingReachedUs, reportDbFault,
+  faultEnvelope, nothingReachedUs, reportDbFault, reportUnhandled,
 } from './dbEnvelope'
 import { diagnosticsLine, logDb, logSlow } from './dbLog'
 import { _isEnvelope, notOkOutcome, readRows, runEdgeFn, runRpc } from './dbResult'
@@ -772,5 +772,31 @@ describe('notOkOutcome', () => {
   // always-present-nullable keys exist to make readable.
   it('reads a null outcome as unset, not as an answer', () => {
     expect(notOkOutcome(notOk('race', null))).toBe('warning')
+  })
+})
+
+describe('reportUnhandled', () => {
+  // The scream-else's whole problem was that it reached the screen and nothing
+  // else. Both halves are asserted: the modal, and the [db] line under it.
+  it('writes a FAULT line AND raises a modal carrying it', () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    reportUnhandled('end_game')
+
+    const line = spy.mock.calls.map((c) => String(c[0])).join('\n')
+    expect(line).toContain('[db]')
+    expect(line).toContain('FAULT')
+    expect(line).toContain('end_game')
+    expect(line).toContain('dbcode=PN488')
+
+    const [fault] = peekFaultsForTest()
+    expect(fault.text).toBe('BUG: end_game fell through to unhandled')
+    // The half the 94 call sites lack today: something under the sentence.
+    expect(fault.diagnostics).toContain('dbcode=PN488')
+  })
+
+  it('names the call it was given, so two fall-throughs are distinguishable', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    reportUnhandled('submit_guess')
+    expect(peekFaultsForTest()[0].text).toBe('BUG: submit_guess fell through to unhandled')
   })
 })
