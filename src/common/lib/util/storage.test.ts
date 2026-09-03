@@ -44,10 +44,20 @@ describe('readStored', () => {
     expect(readStored('local', KEY, 'STAND-IN')).toBeNull()
   })
 
-  it('returns whenUnavailable when storage throws', () => {
-    storage.block()
+  it('returns whenUnavailable when the ACCESS throws — a browser blocking site data', () => {
+    // The case the whole design is shaped by: `window.localStorage` itself
+    // throws, before any method is reached. It is why the wrapper takes a NAME
+    // and does the property access inside its own `try`; a wrapper taking the
+    // storage object would have thrown at the call site and passed the other
+    // cases here.
+    storage.blockAccess()
     expect(readStored('local', KEY, 'STAND-IN')).toBe('STAND-IN')
     expect(readStored('local', KEY, null)).toBeNull()
+  })
+
+  it('returns whenUnavailable when the CALL throws — a storage that died mid-session', () => {
+    storage.failCalls()
+    expect(readStored('local', KEY, 'STAND-IN')).toBe('STAND-IN')
   })
 
   it('reads session storage separately from local', () => {
@@ -63,13 +73,18 @@ describe('writeStored', () => {
     expect(storage.local.getItem(KEY)).toBe('written')
   })
 
-  it('does not throw when storage does', () => {
+  it('does not throw when the CALL throws — a full quota', () => {
     // A write can fail where reads succeed — a full quota — and a throw would
     // escape into whatever the caller was midway through. reloadOnStaleChunk is
     // the case that made it matter: a throw there would skip the
     // `preventDefault` after it, leaving the page neither reloaded nor showing
     // the error it had swallowed.
-    storage.block()
+    storage.failCalls()
+    expect(() => writeStored('local', KEY, 'x')).not.toThrow()
+  })
+
+  it('does not throw when the ACCESS throws', () => {
+    storage.blockAccess()
     expect(() => writeStored('local', KEY, 'x')).not.toThrow()
   })
 
@@ -87,8 +102,13 @@ describe('removeStored', () => {
     expect(storage.local.getItem(KEY)).toBeNull()
   })
 
-  it('does not throw when storage does', () => {
-    storage.block()
+  it('does not throw when the ACCESS throws', () => {
+    storage.blockAccess()
+    expect(() => removeStored('local', KEY)).not.toThrow()
+  })
+
+  it('does not throw when the CALL throws', () => {
+    storage.failCalls()
     expect(() => removeStored('local', KEY)).not.toThrow()
   })
 })

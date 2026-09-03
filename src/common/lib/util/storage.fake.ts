@@ -15,11 +15,15 @@
  * this existed — `useStickyChoice.test.ts`, whose note points at
  * `chatOpenStore.test.ts`'s copy.
  *
- * The reason it is worth sharing rather than copying a third time is
- * {@link InstalledStorage.block}: making storage FAIL is the interesting case —
- * it is the entire reason `common/lib/util/storage.ts` exists — and it is the
- * fiddly part, because the methods have to live on a prototype for `vi.spyOn`
- * to replace them.
+ * The reason it is worth sharing rather than copying a third time is the two
+ * switches, {@link InstalledStorage.blockAccess} and
+ * {@link InstalledStorage.failCalls}: making storage FAIL is the interesting
+ * case — it is the entire reason `common/lib/util/storage.ts` exists — and it
+ * is the fiddly part. A browser blocking site data throws on the property
+ * ACCESS (`window.localStorage` itself), which a fake can only model if it is
+ * installed as an accessor; a full quota throws on the CALL, which needs the
+ * methods on a prototype. Either way `vi.spyOn` has to have something to
+ * replace, and a plain object with arrow-function fields gives it nothing.
  *
  * Not a `.test.ts` file, so it ships no cases of its own; it is imported by the
  * tests that need it, the way boggle's `solver.fixture.ts` is.
@@ -58,12 +62,21 @@ export type InstalledStorage = {
   /** Empty both, e.g. between cases. */
   clear: () => void
   /**
-   * Make every method throw the way a browser blocking site data does.
+   * Make `window.localStorage` / `window.sessionStorage` THEMSELVES throw, the
+   * way a browser blocking site data does — before any method is reached. This
+   * is the case `storage.ts` names its storages for rather than taking them as
+   * arguments, so it is the one to assert against.
    *
    * Undone by `vi.restoreAllMocks()`, so a test that calls this should restore
    * in `afterEach` — otherwise the next case inherits broken storage.
    */
-  block: () => void
+  blockAccess: () => void
+  /**
+   * Leave the storages reachable but make every method throw, the way a full
+   * quota does on a write (and a storage that died mid-session does on any
+   * call). Same restore rule as {@link InstalledStorage.blockAccess}.
+   */
+  failCalls: () => void
 }
 
 /**
@@ -77,7 +90,11 @@ export function installFakeStorage(): InstalledStorage {
     ['localStorage', local],
     ['sessionStorage', session],
   ] as const) {
-    Object.defineProperty(window, name, { value, configurable: true })
+    // An accessor, not a data property, so `blockAccess` has a getter to spy.
+    Object.defineProperty(window, name, { get: () => value, configurable: true })
+  }
+  const boom = () => {
+    throw new DOMException('access denied', 'SecurityError')
   }
   return {
     local,
@@ -86,10 +103,11 @@ export function installFakeStorage(): InstalledStorage {
       local.clear()
       session.clear()
     },
-    block: () => {
-      const boom = () => {
-        throw new DOMException('access denied', 'SecurityError')
-      }
+    blockAccess: () => {
+      vi.spyOn(window, 'localStorage', 'get').mockImplementation(boom)
+      vi.spyOn(window, 'sessionStorage', 'get').mockImplementation(boom)
+    },
+    failCalls: () => {
       vi.spyOn(FakeStorage.prototype, 'getItem').mockImplementation(boom)
       vi.spyOn(FakeStorage.prototype, 'setItem').mockImplementation(boom)
       vi.spyOn(FakeStorage.prototype, 'removeItem').mockImplementation(boom)

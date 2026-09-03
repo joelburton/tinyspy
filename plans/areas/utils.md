@@ -618,7 +618,7 @@ Three claims in `storage.fake.ts`'s header, each checked:
 - `{@link installedStorage.block}` → `{@link InstalledStorage.block}`, the
   type that actually declares it.
 
-### F-utils-17 · `block-models-the-call-not-the-access` · the design's central claim has no test
+### RESOLVED 2026-09-03 — F-utils-17 · `block-models-the-call-not-the-access` · the design's central claim has no test
 
 `storage.ts:14-19` and the `StoreName` docstring rest on one fact: a blocking
 browser throws **on the property access** (`window.localStorage`), which is why
@@ -634,6 +634,31 @@ spy the getters (`vi.spyOn(window, 'localStorage', 'get')`) — restored by the
 same `vi.restoreAllMocks()` — then add one case to `storage.test.ts` asserting
 `readStored` returns `whenUnavailable` when the ACCESS throws. That is the
 [verify guards by planting] rule applied to a design claim rather than a guard.
+
+**Fixed 2026-09-03.** `block()` is gone; the fake now has **two switches named
+for the browser event each models**, because they are different events and the
+old name had quietly merged them:
+
+- `blockAccess()` — `window.localStorage` / `window.sessionStorage` themselves
+  throw, before any method is reached. A browser blocking site data. The fakes
+  are now installed as ACCESSORS (`get: () => value`) so `vi.spyOn(window,
+  name, 'get')` has a getter to replace; a data property gave it nothing.
+- `failCalls()` — the storages resolve but every method throws. A full quota on
+  a write, or a storage that died mid-session. The old `block()`, renamed for
+  what it does.
+
+`storage.test.ts` grew from ten cases to twelve: each of the three functions
+now has an ACCESS case and a CALL case, and the read's access case says in its
+comment why it is the one the design is shaped by.
+
+**Planted.** With the property access moved outside `readStored`'s `try` — the
+exact refactor the finding said would pass every test — the suite went
+**1 failed, 11 passed**, and the one was the new ACCESS case. Reverted. That
+is the proof the case was missing: before today the same plant passed 10 of 10.
+
+`reloadOnStaleChunk.test.ts:81-84`'s throwing-methods object is the same shape
+and is left alone — `deep`'s file, `cs-blessed-deep`, and its case is about
+fail-closed behavior, which either switch demonstrates.
 
 ### F-utils-18 · `calendar-day-diff-round-is-dst` · the one non-obvious line in `friendlyDate` has no reason and no test
 
