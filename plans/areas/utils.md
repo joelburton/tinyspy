@@ -70,6 +70,19 @@ the area.
 
 ### Already waiting for this area
 
+**Does `src/common/lib/outcomes.ts` belong here?** Open, 2026-09-03. It is one of
+the three loose files at the root of `lib/`, and the only one still without a
+home: 46 lines, one type (`Outcome`), nine importers. It matches this area's
+membership rule word for word — no page, no game, no subsystem — and its own
+docstring argues for staying loose (*"Its own file because it is a vocabulary
+rather than a feature"*). The competing owner is `corecss`, since the outcome
+families are also a color bucket. Decide it when the roster is agreed.
+
+The other two loose files went to **`game-lib`**, the area created 2026-09-03 out
+of this one's opening: `games.ts` + its test, along with the split of `games.ts`
+into five vocabularies. Joel's call on why they are not here: *"i don't want to
+dive into game-stuff yet."*
+
 **A shared "storage that cannot throw" helper, and a guard that requires it.**
 Raised by `deep` 2026-09-02 while fixing `F-deep-11` and `F-deep-13`.
 

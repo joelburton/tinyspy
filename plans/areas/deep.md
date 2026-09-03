@@ -157,8 +157,8 @@ NOT this area's; the four notes to their owner in pass 2 and pass 7 stand.
 
 | | why |
 |---|---|
-| `src/games.ts`, `src/common/lib/games.ts` + test | name every game |
-| all 32 files of `src/common/lib/game/` | same |
+| `src/games.ts`, `src/common/lib/games.ts` + test | name every game. **`game-lib`**, the area created 2026-09-03 to take them |
+| all 32 files of `src/common/lib/game/` (31 when `game-lib` measured it, 2026-09-03) | same, and the same area. Like `lib/util/` one row down, "names every game" said which area it is NOT, and no area then claimed it — `utils`'s opening is what turned that up |
 | `supabase/functions/_shared/startGame.ts` | same |
 | `src/types/db.ts` (4,422 lines) | generated, and it names every game's schema. **Set `cs-na` 2026-09-02** (Joel): it carries a stamp it could never earn its way off, because nobody will ever hand-read it |
 | `lib/util/`: `mulberry32`, `friendlyDate`, `linkify`, `layoutWidth`, `keyboardHandoff` | **`utils`**, the area created 2026-09-02 to take them. `deep` had said each would be picked up by whichever area uses it, which is no answer for a helper with callers in six areas. `cls.ts` and `reloadOnStaleChunk` stay here for now — see that area's roster |

@@ -944,20 +944,26 @@ area**.
 reached them: **`deep`**, then **`utils`**, **`common-hosts`**, **`hooks`** and
 **`corecss`** — the last four all created by `deep`'s own findings and questions. Each has a paragraph under the table.
 
+**Resequenced 2026-09-03** — **`game-lib`** added at 3, pushing eight areas down
+one. It came out of `utils`'s opening: the three loose files at the root of
+`common/lib/` needed homes, and answering that turned up 31 more files —
+`common/lib/game/` — that `deep` had listed out and no area had taken.
+
 | #  | area | what it is |
 |----|---|---|
 | 1  | `deep` | **NEW 2026-09-02, and it runs FIRST.** The boot path and the data path — the files every page and every game sits on and none of them owns: `main.tsx`, `App.tsx`'s boot half, the router, the Supabase client and the envelope wrappers, the realtime plumbing, the fault sink. **The membership rule is "it names no game and no page"** (below). Read before `homepage` so the theoretically-simple page is not read on top of a layer nobody has understood. **Opened 2026-09-02 at 31 files** (`plans/areas/deep.md`) |
 | 2  | `utils` | **NEW 2026-09-02**, created while resolving `deep`'s two storage findings and scheduled directly after it. `src/common/lib/util/` — the small general helpers belonging to no page, no game and no subsystem. `deep` set them aside as "picked up by whichever area uses them", which was wrong in the ordinary way: a helper with ten callers across six areas has no such area. It also inherits the **shared storage helper + its guard** (`plans/areas/utils.md`) |
-| 3  | `hooks` | **NEW 2026-09-02**, created when Joel declined to bless `App.tsx`: *"not blessing until we get to all the hooks in the hooks area."* `src/common/hooks/` — 87 files, 12,177 lines, which `deep` set aside as the same kind of thing that would have doubled it. **The first question at its opening is whether it stays ONE area**: `hooks/game/` is 43% of the lines and answers to `shared-game-chrome`, and taking it out leaves ~6,900 lines of genuinely cross-cutting hooks. **Placed here provisionally** — it is coupled to `common-hosts` in both directions (`useAppShortcuts`, `useDefinePopover`), so it could as easily run before it (`plans/areas/hooks.md`) |
-| 4  | `common-hosts` | **NEW 2026-09-02**, out of `deep`'s question about `App.tsx` having no seam where §7 splits it. The answer: **`App.tsx` does not get split** — it is a shell, and a shell holds the route table and what hangs off the root — and the root-mounted components become an area. `GameInvitations`, `ToastHost`, `FaultModal`, `TooltipHost`, with `EditProfileModal` and `WordEditDialog` an open question at the opening. **The question it exists to answer is what earns a mount at the root**, since six things sit there for differing reasons and two more sit a level down for none (`plans/areas/common-hosts.md`) |
-| 5  | `corecss` | **NEW 2026-09-02**, created while resolving `deep`'s first finding. The core stylesheets — the ones every page and every game loads and none of them owns: `fixed.css`, `base.css`, `patterns/*.css`, `utilities.css`, `breakpoints.css`, and the themes. It runs directly after `deep` on the same argument `deep` was created on: reading a page on top of a stylesheet nobody has read means auditing the same questions once per page. **`/palette` and `/font` are not in it, or in anything** (`plans/areas/corecss.md`) |
-| 6  | `homepage` | **RE-AUDITED FROM SCRATCH** (§21 → the 2026-09-02 restart). It was audited once, 2026-08-22 → 08-26, and that file was deleted — the machinery underneath it moved too far. Everything that audit found and did not do survives in "Carried forward" above. The landing page after login: your clubs, and the button that opens `<CreateClubModal>` over them (`plans/areas/homepage.md`) |
-| 7  | `floating-panels` | **RE-AUDITED FROM SCRATCH** (§21 → the 2026-09-02 restart); audited once 2026-08-24 → 08-26 and that file deleted. The machinery and shared look of every window-like thing that floats over the page — the shell, the blocking modal, the confirmation and the acknowledgment, the drag hook, the focus trap. **Not the instances**, and since 2026-08-24 **not the forms either**. Two red e2e specs are known to be waiting for it, `page-no-scroll` and `anagram-finder` (`plans/areas/floating-panels.md`) |
-| 8  | `forms` | **RE-AUDITED FROM SCRATCH** (§21 → the 2026-09-02 restart); audited once 2026-08-25 → 08-26 and that file deleted. Split out of the area above 2026-08-24. The design language of forms: the shared field components, the setup scaffolding, and **the question the homepage could not answer — are a form's buttons really different from action buttons?** Seven hand-written Cancels say the taxonomy has a hole (F44). Split because a floating panel and a form share a container and nothing else; keeping them together meant one area holding two vocabularies |
-| 9  | `simple-page` | **NEW.** The pages that are not home, club or game: `LoginScreen`, `ClaimHandleScreen`, `ErrorPage`, `Loading`. (`CreateClubPage` was on this roster; F36 took it on 2026-08-26 and it is a modal now.) **The roster's test is "does `App` render it directly?"**, which is better than "is it routable": it catches `ErrorPage` and `Loading`, both of which stand in for a page AND appear inside one (`ClubPage:719`, `:726`, `PlayAreaErrorBoundary:47`) — which is exactly what the shell decision has to cover |
-| 10 | `club-page` | Absorbs the punted viewport-fit chain, the `.frame` rename, `<ModePill>` reading the shared `.badge`, and the leftovers listed in "Why 6 stopped" |
-| 11 | `shared-game-chrome` | `common/components/game/` — 258 rules, and every game sits on it. Also: the **contract-slot guard**, checked per mount point (§9, §10) |
-| 12 | per game, one area each | **Sixteen areas, and each has its file already** (`plans/areas/<game>.md`, keyed by CODENAME). Two passes back to back: the audit — React, SQL and CSS together — then the **tile-feedback** pass against [tile-feedback.md](tile-feedback.md), which is read per area rather than run as a sprint. `psychicnum` first, as the control: the deliberately minimal toy, so what it settles is about the shape of a game area rather than about the game |
+| 3  | `game-lib` | **NEW 2026-09-03.** The non-visual half of the game shell: the registry, the manifest contract, and the game logic every game shares — `common/lib/game/` (31 files), `common/lib/games.ts` + test, and `src/games.ts`. `deep` listed every one of these out as "names every game" (`plans/areas/deep.md:160`, `:161`) and nothing picked them up — the same gap that created `utils` one folder over. It also carries **the `games.ts` split** (below). Placed here rather than beside the other game scaffolding because `games.ts` is imported by 236 files: split it late and it re-touches areas already blessed (`plans/areas/game-lib.md`) |
+| 4  | `hooks` | **NEW 2026-09-02**, created when Joel declined to bless `App.tsx`: *"not blessing until we get to all the hooks in the hooks area."* `src/common/hooks/` — 87 files, 12,177 lines, which `deep` set aside as the same kind of thing that would have doubled it. **The first question at its opening is whether it stays ONE area**: `hooks/game/` is 43% of the lines and answers to `shared-game-chrome`, and taking it out leaves ~6,900 lines of genuinely cross-cutting hooks. **Placed here provisionally** — it is coupled to `common-hosts` in both directions (`useAppShortcuts`, `useDefinePopover`), so it could as easily run before it (`plans/areas/hooks.md`) |
+| 5  | `common-hosts` | **NEW 2026-09-02**, out of `deep`'s question about `App.tsx` having no seam where §7 splits it. The answer: **`App.tsx` does not get split** — it is a shell, and a shell holds the route table and what hangs off the root — and the root-mounted components become an area. `GameInvitations`, `ToastHost`, `FaultModal`, `TooltipHost`, with `EditProfileModal` and `WordEditDialog` an open question at the opening. **The question it exists to answer is what earns a mount at the root**, since six things sit there for differing reasons and two more sit a level down for none (`plans/areas/common-hosts.md`) |
+| 6  | `corecss` | **NEW 2026-09-02**, created while resolving `deep`'s first finding. The core stylesheets — the ones every page and every game loads and none of them owns: `fixed.css`, `base.css`, `patterns/*.css`, `utilities.css`, `breakpoints.css`, and the themes. It runs directly after `deep` on the same argument `deep` was created on: reading a page on top of a stylesheet nobody has read means auditing the same questions once per page. **`/palette` and `/font` are not in it, or in anything** (`plans/areas/corecss.md`) |
+| 7  | `homepage` | **RE-AUDITED FROM SCRATCH** (§21 → the 2026-09-02 restart). It was audited once, 2026-08-22 → 08-26, and that file was deleted — the machinery underneath it moved too far. Everything that audit found and did not do survives in "Carried forward" above. The landing page after login: your clubs, and the button that opens `<CreateClubModal>` over them (`plans/areas/homepage.md`) |
+| 8  | `floating-panels` | **RE-AUDITED FROM SCRATCH** (§21 → the 2026-09-02 restart); audited once 2026-08-24 → 08-26 and that file deleted. The machinery and shared look of every window-like thing that floats over the page — the shell, the blocking modal, the confirmation and the acknowledgment, the drag hook, the focus trap. **Not the instances**, and since 2026-08-24 **not the forms either**. Two red e2e specs are known to be waiting for it, `page-no-scroll` and `anagram-finder` (`plans/areas/floating-panels.md`) |
+| 9  | `forms` | **RE-AUDITED FROM SCRATCH** (§21 → the 2026-09-02 restart); audited once 2026-08-25 → 08-26 and that file deleted. Split out of the area above 2026-08-24. The design language of forms: the shared field components, the setup scaffolding, and **the question the homepage could not answer — are a form's buttons really different from action buttons?** Seven hand-written Cancels say the taxonomy has a hole (F44). Split because a floating panel and a form share a container and nothing else; keeping them together meant one area holding two vocabularies |
+| 10 | `simple-page` | **NEW.** The pages that are not home, club or game: `LoginScreen`, `ClaimHandleScreen`, `ErrorPage`, `Loading`. (`CreateClubPage` was on this roster; F36 took it on 2026-08-26 and it is a modal now.) **The roster's test is "does `App` render it directly?"**, which is better than "is it routable": it catches `ErrorPage` and `Loading`, both of which stand in for a page AND appear inside one (`ClubPage:719`, `:726`, `PlayAreaErrorBoundary:47`) — which is exactly what the shell decision has to cover |
+| 11 | `club-page` | Absorbs the punted viewport-fit chain, the `.frame` rename, `<ModePill>` reading the shared `.badge`, and the leftovers listed in "Why 6 stopped" |
+| 12 | `shared-game-chrome` | `common/components/game/` — 66 files, 7,190 lines, 258 rules, and every game sits on it. **The visual half of the game shell**, of which `game-lib` is the other half; the third piece, `common/hooks/game/`, is `hooks`'s question to answer at its own opening. Also: the **contract-slot guard**, checked per mount point (§9, §10) |
+| 13 | per game, one area each | **Sixteen areas, and each has its file already** (`plans/areas/<game>.md`, keyed by CODENAME). Two passes back to back: the audit — React, SQL and CSS together — then the **tile-feedback** pass against [tile-feedback.md](tile-feedback.md), which is read per area rather than run as a sprint. `psychicnum` first, as the control: the deliberately minimal toy, so what it settles is about the shape of a game area rather than about the game |
 
 #### `deep` — the rule, and what it is not (Joel, 2026-09-02)
 
@@ -1021,6 +1027,42 @@ one (`F-deep-3`) about *when* those two routes render, on the reasoning that the
 finding was against `App.tsx`'s comment rather than against the pages. It was
 closed on exactly this rule: a finding about when those routes render is a finding
 about those routes.
+
+#### `game-lib` — why the scaffolding is read before the first game (2026-09-03)
+
+Joel, on the games running last: *"i don't want the first game area to have 200
+dependencies just because its the first game, and brings all the game
+scaffolding in at once."*
+
+**The shared game scaffolding is 155 files and 15,715 lines**, in four places
+under three owners — and two of the four had no owner at all:
+
+| where | files | lines | owned by |
+|---|---|---|---|
+| `common/components/game/` | 66 | 7,190 | `shared-game-chrome` |
+| `common/hooks/game/` | 27 | 5,285 | `hooks`, provisionally — and its own row says it "answers to `shared-game-chrome`" |
+| `common/lib/game/` | 31 | 2,181 | **nobody, until now** |
+| `games.ts` · `src/games.ts` · test | 3 | 1,059 | **nobody, until now** |
+
+`psychicnum` is the control game precisely so that what it settles is about the
+shape of a game area rather than about a game. It cannot do that opening onto
+scaffolding nobody has read: §21 says dependencies are listed and left, so the
+control would hand Joel a list of 155 files and stop.
+
+**It is not one area.** 15,715 lines is three, split along the layer boundary the
+repo already uses — this one, `shared-game-chrome`, and whatever `hooks` decides
+about `hooks/game/` at its opening. That last question is left exactly where it
+already was; adding this area does not preempt it.
+
+**Why it runs at 3 and not beside the other two.** `common/lib/games.ts` is
+imported by 236 files spanning every area in the sprint, and this area carries
+the split of it. Splitting late means editing files that are already `cs-blessed`;
+splitting early means every area after this one reads the settled shape. It is
+also **extract early**
+([docs/code-conventions.md → Shared vs game-specific](../docs/code-conventions.md#shared-vs-game-specific))
+applied to a plan: three of the
+split's destinations are folders whose areas have not opened, and a named seam
+waiting for them beats a vocabulary buried in a game file.
 
 ### How a value gets converted (Joel, 2026-08-21)
 
