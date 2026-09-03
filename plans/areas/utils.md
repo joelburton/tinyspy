@@ -290,7 +290,35 @@ saying so.
 Nothing else changed; the behavior was always correct, and
 `friendlyDate.test.ts:31` already pinned it.
 
-### F-utils-7 · `keyboard-handoff-has-a-successor` · NOTE, not a fix here
+### RESOLVED 2026-09-03 — F-utils-8 · `test-docstring-is-archaeology` · the file this area WROTE narrated the change instead of the code
+
+Found by auditing `mulberry32.test.ts` — the one file this area created — on
+Joel's instruction to audit it like any other rather than trusting it because it
+was written carefully three hours earlier. **It broke the repo's own comment
+rule, and I wrote it.**
+
+CLAUDE.md: *"do not make purely archaeological comments or docs; 'how it used to
+work' is not useful"*, and comments explain the code, never the change that
+produced it. The docstring opened with *"The shared PRNG had no test of its own
+until `utils` was audited … the copy we deleted"*, and two of the five cases
+carried the migration story rather than the property. All of it reads as history
+to anyone who arrives after this sprint, which is everyone.
+
+Rewritten to state the contract — same seed, same sequence; different seeds
+differ; every draw in `[0, 1)` — and each case's comment now says what the case
+is FOR:
+
+- the `Array.from` note explains the idiom (one stream, five successive draws),
+  which is genuinely non-obvious, instead of saying where the block moved from;
+- the bit-32 case states the property (the seed is `seed >>> 0`, so bits above
+  32 are discarded) and why a caller cares, instead of recounting which spelling
+  the stackdown script used.
+
+**The migration story is not lost — it is in this file**, above, where the
+record of what the sprint did belongs. That is the split: the area file carries
+the history, the code carries the contract.
+
+### NOTE, NO ACTION HERE — F-utils-7 · `keyboard-handoff-has-a-successor`
 
 `handOffKeyboardOnTab` is row 7 of the eight behaviors in
 [tab-rings.md](../tab-rings.md) — "chat box · scratchpad → hands the keyboard
@@ -332,16 +360,82 @@ created 2026-09-03 out of this one's opening: `games.ts` + its test, along with
 the split of `games.ts` into five vocabularies. Joel's call on why they are not
 here: *"i don't want to dive into game-stuff yet."*
 
-**A shared "storage that cannot throw" helper, and a guard that requires it.**
-Raised by `deep` 2026-09-02 while fixing `F-deep-11` and `F-deep-13`.
-**IN SCOPE for this area** (Joel, 2026-09-03, at the opening) — so this area
-writes files that were not on the roster it agreed.
+**BUILT 2026-09-03 — a shared "storage that cannot throw" helper, and a guard
+that requires it.** Raised by `deep` 2026-09-02 while fixing `F-deep-11` and
+`F-deep-13`; put in scope at this area's opening, and the conversion question it
+carried was answered by Joel the same day: *"i think it will be better to do
+this now, rather than carrying a todo for the next week in each section."* So
+all of it landed at once rather than five areas each inheriting the same to-do.
 
-**One question to settle before building it, not now: how far does the
-conversion go?** Eight of the eleven callers belong to areas that have not
-opened, and two recorded rules point opposite ways — a migration done to one
-layer is a regression, but a scoped pass never edits another area's code. The
-answer decides whether this is one sitting or three files.
+**Three new files, ten call sites converted, one guard.**
+
+| file | what |
+|---|---|
+| `common/lib/util/storage.ts` | `readStored` · `writeStored` · `removeStored` |
+| `common/lib/util/storage.test.ts` | ten cases, most of them the failing one |
+| `common/lib/util/storage.fake.ts` | the Storage stand-in tests need, + `block()` |
+| `src/guards/rawStorage.test.ts` | no raw storage outside the wrapper |
+
+#### The two things the code forced, neither of them a preference
+
+- **`whenUnavailable` is a REQUIRED argument.** Nine callers fall back to a
+  benign value; `reloadOnStaleChunk` falls back to **`true`** — no storage means
+  DON'T reload, because an uncounted reload is the loop its counter exists to
+  prevent. A helper with a default would have flipped that into an infinite
+  reload silently. Requiring the argument is what makes each site answer.
+- **The storage is NAMED (`'local'` / `'session'`), not passed as an object.**
+  Accessing `window.localStorage` is itself what throws in a cookie-blocking
+  browser, so `readStored(window.localStorage, …)` would throw at the call site,
+  outside the wrapper's `try`. Every pre-existing site did the property access
+  inside its own `try`, which is the evidence.
+
+**Absent ≠ unavailable, and `reloadOnStaleChunk` is why.** It reads an absent key
+as "reloaded long ago" (reload allowed) and unavailable storage as "reloaded just
+now" (reload skipped) — opposite conclusions from what a naive wrapper would
+flatten into one `null`. It now says so at the call site, passing
+`String(Date.now())` as the stand-in.
+
+#### Two discoveries worth keeping
+
+- **jsdom in this project ships no `localStorage` at all** — `window.localStorage`
+  is `undefined` under our vitest config. Two test files already worked around it
+  with a hand-rolled Storage fake, cross-referencing each other's copy. Rather
+  than write a third, `storage.fake.ts` is the extraction; its `block()` is the
+  part actually worth sharing, since making storage FAIL is the whole subject and
+  needs the methods on a prototype for `vi.spyOn` to reach. The two older files
+  keep their copies and their guard exemptions, with a note to adopt it when
+  `hooks` and chat open — converting them now is another area's audit.
+- **The first regex was too narrow and its own subject evaded it.** Requiring a
+  `.` after `localStorage` missed both `const ls = window.localStorage` and
+  `storage.ts`'s own `store()` helper — which is how it was caught, by the
+  allowlist's shrink test rather than by the scan. Widened to the bare
+  identifier.
+
+**The guard was verified by planting, three ways** ([[verify guards by
+planting]] — a check that cannot fail is worse than none): a raw call is caught
+with `file:line`, the alias form the widening exists for is caught, and prose
+mentioning storage in a comment is ignored. That last one matters —
+`realtimeDiag`'s docstring legitimately shows a raw call, because it tells a
+person what to type into their own console.
+
+#### Files edited outside this area
+
+Ten call sites, in six areas. Three of them are **`cs-blessed-deep`** —
+`loadTheme.ts`, `realtimeDiag.ts`, `reloadOnStaleChunk.ts` — files Joel has
+already signed off. They were converted anyway, because leaving them raw would
+have needed three guard exemptions and a guard with a hole where its own
+motivating bugs were is not a guard. **No stamp moved**: a mechanical conversion
+is not an audit, and the blessing still describes the reading Joel did.
+
+One unrelated repair: `orphanedDocstrings.test.ts` pins known orphans BY LINE
+NUMBER, and the import added to crosswords' `PlayArea.tsx` shifted one down five
+lines. The allowlist entry moved 91 → 96; the orphan itself is crosswords' to
+fix.
+
+#### Verification
+
+`npx tsc -b` clean · `npx vitest run` **2551 passed, 269 files** · `npx eslint
+src` one warning, the pre-existing `useWordSubmit.ts:264`, which is `hooks`'s.
 
 `localStorage` and `sessionStorage` throw where a browser blocks site data, so
 every access needs a `try/catch`. **Eleven files touch storage and the same three
@@ -390,6 +484,10 @@ roster row and a `cs-fixed-utils` stamp. It stays `cs-unmet` until then — a ne
 file has never been through an audit.
 
 - `src/common/lib/util/mulberry32.test.ts` — created 2026-09-03 by `F-utils-4`.
+- `src/common/lib/util/storage.ts` — the helper.
+- `src/common/lib/util/storage.test.ts` — its cases.
+- `src/common/lib/util/storage.fake.ts` — the Storage stand-in for tests.
+- `src/guards/rawStorage.test.ts` — the guard that requires the helper.
 
 ## Predicted test breaks
 

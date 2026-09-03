@@ -1,27 +1,23 @@
-// cs-unmet
+// cs-audited-utils
 
 import { describe, expect, it } from 'vitest'
 import { mulberry32 } from './mulberry32'
 
 /**
- * The shared PRNG had no test of its own until `utils` was audited: the only
- * assertions about a mulberry32 lived in `src/boggle/lib/generate.test.ts` and
- * covered boggle's private copy, which this module has since absorbed. So the
- * function three kinds of caller depend on was the untested one, and the
- * property that makes it worth sharing — same seed, same sequence — was pinned
- * only on the copy we deleted.
+ * Everything a caller of `mulberry32` is promised, asserted: the same seed
+ * gives the same sequence, different seeds give different ones, and every draw
+ * is a float in `[0, 1)`.
  *
- * What's asserted here is exactly what the docstring promises a caller, since
- * that is the whole contract: determinism, independence across seeds, and the
- * `Math.random` range. Statistical quality is deliberately NOT tested — it is
- * not why we use this (see the module docstring), so a distribution assertion
- * would pin a property no caller relies on.
+ * That is the whole contract rather than a sample of it — reproducibility is
+ * the only reason to reach for this over `Math.random()` (see the module's
+ * docstring). Statistical quality is deliberately NOT asserted: nothing here
+ * relies on it, so a distribution test would pin a property no caller reads.
  */
 
 describe('mulberry32', () => {
   it('is deterministic for a seed and varies across seeds', () => {
-    // Relocated from boggle's generate.test.ts, which owned it before the
-    // duplicate was removed.
+    // `Array.from` calls the generator once per slot, so each of these is five
+    // successive draws from one stream rather than five fresh ones.
     const a = Array.from({ length: 5 }, mulberry32(1))
     const b = Array.from({ length: 5 }, mulberry32(1))
     const c = Array.from({ length: 5 }, mulberry32(2))
@@ -64,10 +60,10 @@ describe('mulberry32', () => {
   })
 
   it('treats seeds that differ only above bit 32 as the same seed', () => {
-    // A 32-bit generator, so `>>> 0` is the seed. Worth pinning because it is
-    // the difference between the two spellings this module absorbed — the
-    // stackdown script normalized with `|= 0` inside the closure instead — and
-    // the migration was only safe because the two agree.
+    // A 32-bit generator: the seed is `seed >>> 0`, so bits above 32 are
+    // discarded and two seeds differing only up there are ONE seed. Pinned
+    // because callers derive seeds by arithmetic that overflows int32 (above),
+    // which makes "who survives the truncation" part of the contract.
     expect(Array.from({ length: 3 }, mulberry32(7))).toEqual(
       Array.from({ length: 3 }, mulberry32(7 + 2 ** 32)),
     )

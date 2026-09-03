@@ -1,5 +1,7 @@
 // cs-blessed-deep
 
+import { readStored, writeStored } from './storage'
+
 /**
  * Reload the page when a code-split chunk fails to load — stale-deploy recovery.
  *
@@ -36,21 +38,21 @@ const GUARD_MS = 60_000
  * a chunk failed, which is the loop the counter exists to prevent.
  */
 function reloadedRecently(): boolean {
-  try {
-    return Date.now() - Number(sessionStorage.getItem(GUARD_KEY) ?? '0') < GUARD_MS
-  } catch {
-    return true
-  }
+  // The fail-closed half, spelled as the stand-in VALUE rather than a second
+  // branch: no storage stands in "reloaded just now", so this answers yes and
+  // the reload is skipped. An ABSENT key is a different answer — `'0'`, i.e.
+  // long ago — and the two must not collapse, which is why `whenUnavailable`
+  // exists and has no default.
+  const at = readStored('session', GUARD_KEY, String(Date.now()))
+  return Date.now() - Number(at ?? '0') < GUARD_MS
 }
 
 function rememberReload(): void {
-  try {
-    sessionStorage.setItem(GUARD_KEY, String(Date.now()))
-  } catch {
-    // Reads can succeed where a write fails (a full quota), and a throw here
-    // would skip the preventDefault below — leaving the page neither reloaded
-    // nor showing the error it swallowed.
-  }
+  // Reads can succeed where a write fails (a full quota); `writeStored`
+  // swallowing that is what keeps a throw here from skipping the
+  // preventDefault below, which would leave the page neither reloaded nor
+  // showing the error it swallowed.
+  writeStored('session', GUARD_KEY, String(Date.now()))
 }
 
 export function reloadOnStaleChunk() {

@@ -1,6 +1,7 @@
 // cs-unmet
 
 import { useSyncExternalStore } from 'react'
+import { readStored, writeStored } from '../util/storage'
 
 /**
  * Shared open/closed state for the Chat panel.
@@ -31,11 +32,8 @@ import { useSyncExternalStore } from 'react'
 const KEY = 'puzpuzpuz:chat:open'
 
 function readInitial(): boolean {
-  try {
-    return window.localStorage.getItem(KEY) === 'true'
-  } catch {
-    return false
-  }
+  // No storage means closed, same as never having opened it.
+  return readStored('local', KEY, null) === 'true'
 }
 
 let value = readInitial()
@@ -63,11 +61,7 @@ export function getChatOpen(): boolean {
 export function setChatOpen(next: boolean): void {
   if (value === next) return
   value = next
-  try {
-    window.localStorage.setItem(KEY, next ? 'true' : 'false')
-  } catch {
-    // ignore — same posture as useDraggablePanel's storage glue
-  }
+  writeStored('local', KEY, next ? 'true' : 'false')
   for (const listener of listeners) listener()
 }
 

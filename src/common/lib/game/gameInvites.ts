@@ -1,5 +1,7 @@
 // cs-unmet
 
+import { readStored, writeStored } from '../util/storage'
+
 /**
  * Game-invitation model — the data + pure logic behind the "Moth added
  * you to a new spellingbee game" popup (see `useGameInvitations`).
@@ -92,22 +94,20 @@ const SEEN_KEY = 'puzpuzpuz:gameInvitesSeen'
 const SEEN_CAP = 200 // bound growth; keep the most recent
 
 export function loadSeenInvites(): Set<string> {
+  // No storage reads as "nothing seen yet" — invites just won't dedup across
+  // reloads. Acceptable; the club page is still the durable entry point.
+  const raw = readStored('local', SEEN_KEY, null)
+  if (!raw) return new Set()
+  // A malformed value is its own failure, separate from storage being gone.
   try {
-    const raw = localStorage.getItem(SEEN_KEY)
-    return new Set(raw ? (JSON.parse(raw) as string[]) : [])
+    return new Set(JSON.parse(raw) as string[])
   } catch {
     return new Set()
   }
 }
 
 export function markInviteSeen(gameId: string): void {
-  try {
-    const seen = loadSeenInvites()
-    seen.add(gameId)
-    localStorage.setItem(SEEN_KEY, JSON.stringify([...seen].slice(-SEEN_CAP)))
-  } catch {
-    // localStorage unavailable (private mode, etc.) — invites just won't
-    // dedup across reloads. Acceptable; the club page is still the
-    // durable entry point.
-  }
+  const seen = loadSeenInvites()
+  seen.add(gameId)
+  writeStored('local', SEEN_KEY, JSON.stringify([...seen].slice(-SEEN_CAP)))
 }

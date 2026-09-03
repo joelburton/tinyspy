@@ -1,6 +1,7 @@
 // cs-unmet
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { readStored, writeStored } from '../../lib/util/storage'
 
 /** A floating panel's persisted geometry. */
 export type PanelRect = {
@@ -288,9 +289,12 @@ export function clampToViewport(
 }
 
 function readRect(key: string): PanelRect | null {
+  // No stored rect and no storage at all both mean "open where you always do".
+  const raw = readStored('local', key, null)
+  if (!raw) return null
+  // The parse still needs its own guard: a hand-edited or truncated value is a
+  // different failure from storage being unavailable, and only this one throws.
   try {
-    const raw = window.localStorage.getItem(key)
-    if (!raw) return null
     const parsed = JSON.parse(raw) as unknown
     if (
       parsed === null ||
@@ -309,10 +313,7 @@ function readRect(key: string): PanelRect | null {
 }
 
 function writeRect(key: string, rect: PanelRect): void {
-  try {
-    window.localStorage.setItem(key, JSON.stringify(rect))
-  } catch {
-    // localStorage may be unavailable (private mode, SSR). State
-    // still drives the live panel; we just lose persistence.
-  }
+  // Losing this costs the panel its remembered position; state still drives the
+  // live panel.
+  writeStored('local', key, JSON.stringify(rect))
 }

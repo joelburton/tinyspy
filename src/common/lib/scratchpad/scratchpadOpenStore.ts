@@ -1,6 +1,7 @@
 // cs-unmet
 
 import { useSyncExternalStore } from 'react'
+import { readStored, writeStored } from '../util/storage'
 
 /**
  * The scratchpad panel's open/closed state — a tiny module-level pub-sub
@@ -15,11 +16,8 @@ import { useSyncExternalStore } from 'react'
 const KEY = 'puzpuzpuz:scratchpad:open'
 
 function readInitial(): boolean {
-  try {
-    return localStorage.getItem(KEY) === '1'
-  } catch {
-    return false
-  }
+  // No storage means closed, same as never having opened it.
+  return readStored('local', KEY, null) === '1'
 }
 
 let open = readInitial()
@@ -33,11 +31,7 @@ function emit(): void {
 export function setScratchpadOpen(next: boolean): void {
   if (next === open) return
   open = next
-  try {
-    localStorage.setItem(KEY, next ? '1' : '0')
-  } catch {
-    // localStorage unavailable (private mode) — in-memory state still works.
-  }
+  writeStored('local', KEY, next ? '1' : '0')
   emit()
 }
 

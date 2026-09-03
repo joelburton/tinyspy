@@ -1,6 +1,7 @@
 // cs-unmet
 
 import { useCallback, useState } from 'react'
+import { readStored, writeStored } from '../../lib/util/storage'
 
 /**
  * `useState` for a small set of named choices, mirrored to `localStorage` so the
@@ -36,14 +37,11 @@ export function useStickyChoice<T extends string>(
   fallback: T,
 ): [T, (next: T) => void] {
   const [value, setValue] = useState<T>(() => {
-    try {
-      const stored = window.localStorage.getItem(key)
-      return stored !== null && (options as readonly string[]).includes(stored)
-        ? (stored as T)
-        : fallback
-    } catch {
-      return fallback
-    }
+    // No storage reads the same as no stored choice: you get `fallback`.
+    const stored = readStored('local', key, null)
+    return stored !== null && (options as readonly string[]).includes(stored)
+      ? (stored as T)
+      : fallback
   })
 
   // The write lives in the CHOOSE handler, not an effect: an effect would fire
@@ -52,11 +50,8 @@ export function useStickyChoice<T extends string>(
   const choose = useCallback(
     (next: T) => {
       setValue(next)
-      try {
-        window.localStorage.setItem(key, next)
-      } catch {
-        // Private mode / storage disabled — in-memory state still works.
-      }
+      // Losing this costs the choice its stickiness; state still works.
+      writeStored('local', key, next)
     },
     [key],
   )

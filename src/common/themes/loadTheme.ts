@@ -1,5 +1,7 @@
 // cs-blessed-deep
 
+import { readStored, removeStored, writeStored } from '../lib/util/storage'
+
 // ⚠️ MIDNIGHT IS A SPIKE, behind a flag, and is not finished design. Reach it
 // with `?theme=midnight`; the choice sticks in localStorage so it survives the
 // in-app navigation that follows, and `?theme=daylight` clears it. There is no
@@ -24,22 +26,15 @@ function storedTheme(): ThemeName | null {
   // daylight costs a midnight user their stickiness in that browser and nothing
   // else. It is the same rule the rest of the app already follows — see
   // `useStickyChoice`: storage failures are non-fatal.
-  try {
-    return window.localStorage.getItem(STORAGE_KEY) === 'midnight' ? 'midnight' : null
-  } catch {
-    return null
-  }
+  return readStored('local', STORAGE_KEY, null) === 'midnight' ? 'midnight' : null
 }
 
 /** Remember the choice, or forget it when passed null. */
 function rememberTheme(theme: ThemeName | null): void {
-  try {
-    if (theme) window.localStorage.setItem(STORAGE_KEY, theme)
-    else window.localStorage.removeItem(STORAGE_KEY)
-  } catch {
-    // Nothing to do about it: the `?theme=` in the URL still applies to THIS
-    // load, it just won't survive the next navigation.
-  }
+  // Nothing to do if it fails: the `?theme=` in the URL still applies to THIS
+  // load, it just won't survive the next navigation.
+  if (theme) writeStored('local', STORAGE_KEY, theme)
+  else removeStored('local', STORAGE_KEY)
 }
 
 /**

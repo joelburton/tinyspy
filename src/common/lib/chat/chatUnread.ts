@@ -4,6 +4,7 @@ import { useSyncExternalStore } from 'react'
 import { colorVarFor } from '../color/memberColor'
 import type { Member } from '../games'
 import type { ClubMessage } from '../../hooks/chat/useClubChat'
+import { readStored, writeStored } from '../util/storage'
 
 /**
  * The chat-unread indicator's shared state + logic.
@@ -67,19 +68,13 @@ const lastSeenKey = (clubHandle: string) =>
 /** The `sent_at` of the newest message this member had seen, or null
  *  if they've never opened this club's chat. */
 export function getChatLastSeen(clubHandle: string): string | null {
-  try {
-    return window.localStorage.getItem(lastSeenKey(clubHandle))
-  } catch {
-    return null
-  }
+  // No storage reads as "never opened this club's chat" — everything shows
+  // unread, which is the safe direction for a badge.
+  return readStored('local', lastSeenKey(clubHandle), null)
 }
 
 export function setChatLastSeen(clubHandle: string, sentAt: string): void {
-  try {
-    window.localStorage.setItem(lastSeenKey(clubHandle), sentAt)
-  } catch {
-    // ignore — same posture as chatOpenStore's storage glue
-  }
+  writeStored('local', lastSeenKey(clubHandle), sentAt)
 }
 
 // ─── pure derivation (unit-tested) ──────────────────────────────────

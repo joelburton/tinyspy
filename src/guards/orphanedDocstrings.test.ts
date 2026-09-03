@@ -68,7 +68,7 @@ const KNOWN: string[] = [
   // → connections
   'src/connections/components/BoardCol.tsx:54',
   // → crosswords
-  'src/crosswords/components/PlayArea.tsx:91',
+  'src/crosswords/components/PlayArea.tsx:96',
   'src/crosswords/components/PuzzleSourceField.tsx:58',
   'src/crosswords/components/pickers/LibraryPickerBlockingModal.tsx:70',
   'src/crosswords/lib/setup.ts:62',

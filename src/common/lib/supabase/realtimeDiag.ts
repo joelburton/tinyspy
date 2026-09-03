@@ -2,6 +2,7 @@
 
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { logStamp } from '../util/logStamp'
+import { readStored } from '../util/storage'
 
 /**
  * **This is what writes the `[rt …]` lines in the browser console.** They are
@@ -89,11 +90,7 @@ const VERBOSE_KEY = 'puzpuzpuz:rt:verbose'
  *  docstring → Verbose mode). localStorage can throw (privacy modes); treat
  *  that as off. */
 export function rtVerbose(): boolean {
-  try {
-    return localStorage.getItem(VERBOSE_KEY) === '1'
-  } catch {
-    return false
-  }
+  return readStored('local', VERBOSE_KEY, null) === '1'
 }
 
 /**
