@@ -35,11 +35,12 @@ understood, tidied* — `cs-blessed` here means he has read the file, not seen i
 sixteen findings — fourteen RESOLVED, one CLOSED, one MOVED to `corecss`. The
 DATA PATH, read 2026-09-02: eleven files, eleven findings `F-deep-17` …
 `F-deep-27`, **all RESOLVED**. The REALTIME PLUMBING was read the same day:
-seven files, **five findings `F-deep-28` … `F-deep-32`** — three RESOLVED, two open — no defects,
-four duplications-of-one-fact and a coverage gap. **All three passes have now
-run.**
+seven files, **five findings `F-deep-28` … `F-deep-32`, all RESOLVED** — no
+defects, four duplications-of-one-fact and a coverage gap. **The three named
+passes are done; the fault sink, `cls` and the server-side envelope files are
+what remain of the roster.**
 
-## The roster — 34 files, 4,880 lines
+## The roster — 35 files, 4,880 lines
 
 Agreed with Joel 2026-09-02 before anything was read, and stamped **`cs-met`** —
 the eighth stamp, added the same day for exactly this state: on an open area's
@@ -1122,7 +1123,7 @@ code.
 > Neither reader lost anything: the guard is one line now, and the diagnostic
 > still logs EVERY system message, not just the postgres_changes one.
 
-## F-deep-31 · `realtimediag-has-no-test` · The one file that patches a third-party API by hand is the one with no test
+## RESOLVED · F-deep-31 · `realtimediag-has-no-test` · The one file that patches a third-party API by hand is the one with no test
 
 Three of the four modules here have tests — `channelDedup` (110 lines),
 `channelTeardown` (86), `postgresAttached` (54). `realtimeDiag.ts` is the
@@ -1141,9 +1142,30 @@ symptom is **console lines going missing** — which is the one symptom nobody
 notices, because the module's whole job is to be the thing you read when
 something else is wrong.
 
-> resolution:
+> **resolution: `realtimeDiag.test.ts`, fourteen cases** (Joel, 2026-09-02),
+> stamped `cs-met-deep`. The roster is 35 files.
+>
+> **Every wrapper test asserts BOTH halves, and the second is the point:** the
+> line is written, AND the app's own callback still runs with the payload
+> untouched. A wrapper that logs but swallows the callback would break every
+> realtime feature in the app while looking perfectly healthy in the console —
+> the failure this module could produce and nothing would have caught.
+>
+> Proved by planting both: dropping `cb(payload)` from the `.on` wrapper fails
+> the postgres_changes case, dropping `cb?.(status, err)` from the subscribe
+> wrapper fails the status case. One test each, nothing else.
+>
+> **The channel double is hand-built rather than mocked from the library**, and
+> deliberately: what is under test is that we forward what a channel hands us, so
+> a double built from our own expectations would agree with us about the wrong
+> thing. It implements `topic`, `on`, `subscribe`, `unsubscribe` — what this
+> module touches and nothing more.
+>
+> Also covered: a binding type the module does NOT wrap (`presence`) passes
+> through with no line written, a `subscribe()` with no callback does not throw,
+> and every line is named by the bare topic.
 
-## F-deep-32 · `rtlog-takes-level-last` · Reaching the last argument means passing a placeholder
+## RESOLVED · F-deep-32 · `rtlog-takes-level-last` · Reaching the last argument means passing a placeholder
 
 `rtLog(topic, msg, extra?, level?)`, so a caller that wants to raise a line to
 `warn` without attaching an object writes `undefined` to get past `extra`:
@@ -1159,7 +1181,15 @@ alone, since it is what makes a failure stand out in a friend's screenshot.
 Not a bug and not urgent; the shape is `(what, message, then two optional
 knobs)` and the knobs are in the wrong order for how they are used.
 
-> resolution:
+> **resolution: the two optionals swapped — `(topic, msg, level?, extra?)`**
+> (Joel, 2026-09-02). **The order was decided by counting the call sites rather
+> than by taste:** of the twelve, eight pass neither, three pass both, two pass a
+> placeholder to reach `level` — and **none has ever passed `extra` alone.** So
+> the swap costs nothing anywhere and removes every placeholder; the eight bare
+> calls are untouched.
+>
+> That count is now the docstring's justification, where there was none.
+> `grep "rtLog(.*undefined"` returns nothing.
 
 ## Questions this pass raises rather than answers
 

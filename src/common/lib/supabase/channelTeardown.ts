@@ -73,8 +73,7 @@ export function releaseChannel(ch: RealtimeChannel): Promise<unknown> {
     // re-join (the room stays parked in `leaving` until this settles) —
     // worth a console line when chasing a join that never happened.
     .then((status) => {
-      rtLog(name, `teardown ${String(status)}`, undefined,
-        status === 'ok' ? 'log' : 'warn')
+      rtLog(name, `teardown ${String(status)}`, status === 'ok' ? 'log' : 'warn')
     })
     .catch((err) => {
       console.error(`releaseChannel: removing "${name}" failed`, err)

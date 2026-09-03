@@ -59,13 +59,20 @@ import { logStamp } from '../util/logStamp'
  * when a friend hits the bug, the evidence is already in their console.
  */
 
-/** Timestamped, prefixed console line. Level 'warn' for things that should
- *  pop out of a screenshot (failure statuses, system errors). */
+/**
+ * Timestamped, prefixed console line. Level `'warn'` for things that should pop
+ * out of a screenshot (failure statuses, system errors).
+ *
+ * **`level` comes before `extra`** because that is how callers use them: of the
+ * twelve call sites, eight pass neither and three pass both — and none has ever
+ * wanted `extra` alone, while two wanted only the level and had to write
+ * `undefined` to reach past it.
+ */
 export function rtLog(
   topic: string,
   msg: string,
-  extra?: unknown,
   level: 'log' | 'warn' = 'log',
+  extra?: unknown,
 ): void {
   const line = `[rt ${logStamp()}] ${topic} — ${msg}`
   if (extra === undefined) console[level](line)
@@ -137,8 +144,8 @@ export function instrumentChannel(ch: RealtimeChannel): RealtimeChannel {
     rtLog(
       topic,
       `system ${String(payload?.status)}: ${payload?.message ?? ''}`,
-      payload?.extension ? `(${payload.extension})` : undefined,
       payload?.status === 'ok' ? 'log' : 'warn',
+      payload?.extension ? `(${payload.extension})` : undefined,
     )
   })
 
@@ -167,8 +174,8 @@ export function instrumentChannel(ch: RealtimeChannel): RealtimeChannel {
         rtLog(
           topic,
           `event ${p.eventType} ${p.schema}.${p.table}`,
-          p.errors ?? undefined,
           p.errors ? 'warn' : 'log',
+          p.errors ?? undefined,
         )
         cb(payload)
       }
@@ -192,8 +199,8 @@ export function instrumentChannel(ch: RealtimeChannel): RealtimeChannel {
       rtLog(
         topic,
         `status ${status}`,
-        err ?? undefined,
         status === 'SUBSCRIBED' || status === 'CLOSED' ? 'log' : 'warn',
+        err ?? undefined,
       )
       cb?.(status, err)
     }, timeout)

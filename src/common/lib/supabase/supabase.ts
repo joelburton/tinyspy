@@ -101,7 +101,6 @@ export const supabase = createClient<Database>(url, publishableKey, {
       rtLog(
         'socket',
         `heartbeat ${status}${latency != null ? ` (${Math.round(latency)}ms)` : ''}`,
-        undefined,
         routine ? 'log' : 'warn',
       )
     },
