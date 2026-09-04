@@ -19,10 +19,10 @@ agreed the list — *"that matches the files i'd expect"* — and then asked for
 in groups, *"so we don't have to do them all as one big audit"*, the way `deep`
 ran in passes. The six groups are below.
 
-**Where the stamps stand (2026-09-04)** — 37 files: **30 `cs-blessed-game-lib`**,
-**3 `cs-fixed-game-lib`** (`gameInvites.ts`, `infoSheetStore.ts`,
-`memberList.ts` — waiting on Joel's read), and **4 `cs-met-game-lib`**, which is
-all of group F and the whole of what is unread.
+**Where the stamps stand (2026-09-04)** — 37 files: **33 `cs-blessed-game-lib`**
+— every file of groups A through E, Joel having read the last three on
+2026-09-04 — and **4 `cs-met-game-lib`**, which is all of group F and the whole
+of what is unread. Nothing sits at `cs-fixed`.
 
 **Group E's three test files are blessed** — `gameMenu.test.ts`,
 `gameInvites.test.ts`, `pause.test.ts`. Joel, 2026-09-04: *"go ahead and bless

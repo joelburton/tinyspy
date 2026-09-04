@@ -1,4 +1,4 @@
-// cs-fixed-game-lib
+// cs-blessed-game-lib
 
 import { readStored, writeStored } from '../util/storage'
 
