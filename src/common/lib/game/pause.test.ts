@@ -18,17 +18,17 @@ const cade: Member = { user_id: 'cade', username: 'cade', color: 'green' }
 /**
  * `computePause` is the FE-side derivation of pause-on-disconnect:
  * given the set of currently-connected user_ids (the channel's
- * presence state) and the club's expected member list, return
- * `{ paused, missing }`.
+ * presence state) and the players expected to be present — this
+ * game's roster, not the club's — return `{ paused, missing }`.
  *
  * Rules:
- *   - paused === true iff at least one expected member is missing
- *   - missing is the subset of `members` whose user_id isn't in
+ *   - paused === true iff at least one expected player is missing
+ *   - missing is the subset of `players` whose user_id isn't in
  *     `presentUserIds`
- *   - extra ids in `presentUserIds` (not in `members`) are
+ *   - extra ids in `presentUserIds` (not in `players`) are
  *     ignored — they can't make the game more-paused or
  *     less-paused
- *   - an empty `members` list (mid-load, never-loaded edge) is
+ *   - an empty `players` list (mid-load, never-loaded edge) is
  *     not paused — there's nothing to be missing
  *
  * This test pins the matrix so `useCommonGame`'s pause derivation
@@ -70,7 +70,7 @@ describe('computePause', () => {
   })
 
   it('returns paused=false on an empty roster (mid-load edge)', () => {
-    // useCommonGame's first render has members=[] for a tick
+    // useCommonGame's first render has players=[] for a tick
     // before the roster fetch resolves. Showing the pause overlay
     // immediately on every fresh mount would be a UX bug —
     // computePause has to treat "no roster yet" as "nothing
@@ -80,7 +80,7 @@ describe('computePause', () => {
     expect(missing).toEqual([])
   })
 
-  it('preserves the original members array order in `missing`', () => {
+  it('preserves the original players array order in `missing`', () => {
     // Stable order matters for the UI — "Bea and Cade have gone
     // offline" should render in roster order, not in iteration
     // order of the Set.

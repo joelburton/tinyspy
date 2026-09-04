@@ -1673,7 +1673,7 @@ rather than merely stale.
 
 vitest **2567/2567 in 271 files**, `tsc -b` clean.
 
-### F-game-lib-32 · `pause-input-is-the-game-not-the-club` · The docstring names the club's roster; the caller passes the game's players
+### RESOLVED 2026-09-04 — F-game-lib-32 · `pause-input-is-the-game-not-the-club` · The docstring names the club's roster; the caller passes the game's players
 
 `pause.ts:6-8` — *"given the set of currently-connected user_ids … and the
 expected member list (**from the club's roster**), is the game paused?"* —
@@ -1694,6 +1694,31 @@ member who simply isn't in the game.
 The `conceded` filter is documented too — at the call site, in nine lines. What
 the shared function's own docstring should say is what it is handed: **the
 players expected to be present**, which is the game's non-conceded roster.
+
+#### Resolved 2026-09-04 — and the sentence says why, not just what
+
+The opening line now reads *"the players expected to be present"*, followed by
+the part that makes it stick: *"Expected means THIS GAME's roster, not the
+club's — a club of five can be running a two-player game, so the club list would
+report three people missing forever."* Naming the failure is what stops the
+wrong list being passed by someone who reads only this file; "not the club's"
+alone is a rule with no teeth.
+
+**The `conceded` filter is named here and argued at the call site**, which is
+the split that was already right: this docstring says the hook passes
+`common.game_players` minus anyone who conceded, and points at
+`useCommonGame` for why a conceder stops counting. That reasoning belongs beside
+the roster it filters, not in a pure function that never sees a concede.
+
+**The test's docstring said the same wrong thing and now matches.** Three of its
+rule lines named a parameter called `members` that does not exist — the
+parameter is `players` — as did the mid-load comment (`members=[]`, where
+`useCommonGame`'s state is `players`) and one spec title. Corrected together,
+because the naming rule they were drifting from is a real one:
+[naming.md](../../docs/naming.md) makes the *variable* carry the context, club
+versus game, for exactly this reason.
+
+vitest **2567/2567 in 271 files**, `tsc -b` clean.
 
 ### F-game-lib-33 · `invite-example-names-a-codename` · The two examples in this file show a string the app never renders
 

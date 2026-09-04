@@ -4,8 +4,14 @@ import type { Member } from '../members/member'
 
 /**
  * Pure derivation: given the set of currently-connected user_ids
- * (from a realtime channel's presence state) and the expected
- * member list (from the club's roster), is the game paused?
+ * (from a realtime channel's presence state) and the players
+ * expected to be present, is the game paused?
+ *
+ * Expected means THIS GAME's roster, not the club's — a club of
+ * five can be running a two-player game, so the club list would
+ * report three people missing forever. `useCommonGame` passes
+ * `common.game_players` for the game, minus anyone who conceded;
+ * why a conceder stops counting is argued at that call site.
  *
  * "Paused" is the transient gameplay-pause state — same UX as
  * a video player's pause: clock stops, no moves accepted, an
