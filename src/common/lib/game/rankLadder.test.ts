@@ -1,4 +1,4 @@
-// cs-audited-game-lib
+// cs-blessed-game-lib
 
 import { describe, expect, it } from 'vitest'
 import {

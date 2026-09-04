@@ -1,4 +1,4 @@
-// cs-audited-game-lib
+// cs-blessed-game-lib
 
 /**
  * The compete-mode leaderboard payload on `common.games.status`, shared by the

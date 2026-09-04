@@ -3,43 +3,14 @@
 import type { WordListRow } from '../../components/game/lists/WordList'
 
 /**
- * Build the alphabetized shared `WordListRow`s from the found words + (post-
- * terminal) the missed-word reveal. Shared by spellingbee + wordwheel (their
- * `lib/displayRows.ts` copies were byte-identical). Each word renders **at most
- * once**; two dedup rules:
+ * The rows behind the info column's found-words list, for any word-hunt game.
  *
- *  1. **Found-vs-found.** In compete the post-terminal reveal exposes every
- *     player's `found_words` rows (RLS opens at `is_terminal`), so a word more
- *     than one player found arrives more than once. It shows once, attributed to
- *     the **first finder** (earliest `found_at`) — that's whose color it renders
- *     in — but every finder is kept in `finderIds` so the list's WHO filter can
- *     still match the others. In coop each word has a single finder (`submit_word`
- *     rejects a word anyone already found), so both are no-ops there.
- *  2. **Found-vs-unfound.** A found word shadows its reveal entry — we never show a
- *     word as both found-in-color AND missed-in-gray.
- *
- * `revealWords` is the caller's whole missed set — **required AND bonus** — each
- * entry flagged with which list it came from. The builder doesn't care which; it
- * just carries `is_bonus` through so the list can filter on it.
- *
- * Pure + synchronous so it's unit-testable away from the component.
- *
- * **The parameters are STRUCTURAL, not the named types**, so a word-hunt game
- * without pangrams can pass its own rows. `FoundWordRow` and `FoundWordsWord`
- * still satisfy them — a required field is assignable to an optional one — so
- * spellingbee and wordwheel are unaffected, and `WordListRow.isPangram` is
- * already optional, so the body needs no branch.
- *
- * That was widened for boggle, which keeps a byte-for-byte copy of this
- * function in `boggle/lib/displayRows.ts` differing only by that one field.
- * **A note here used to say boggle "deliberately keeps a different rule
- * (per-player duplicates in compete)" and must NOT use this one — that was
- * false**: boggle dedups by word to the earliest finder exactly as this does,
- * and its own tests say so. Adopting it is boggle's to do
- * (plans/areas/boggle.md); this side is ready.
+ * Its two parameter types are STRUCTURAL rather than a game's named types, so
+ * a game whose words have no pangram flag passes its own rows unchanged.
  */
 
-/** What this needs off a found row — `FoundWordRow` and boggle's both fit. */
+/** What this needs off a found row. `is_pangram` is optional because only some
+ *  word-hunt games have the concept; `WordListRow` carries it optionally too. */
 type DisplayableFound = {
   word: string
   user_id: string
@@ -57,6 +28,29 @@ type DisplayableReveal = {
   is_pangram?: boolean
 }
 
+/**
+ * One alphabetized row per word — the found ones, plus (once the game is over)
+ * the ones nobody found.
+ *
+ * **Each word appears at most once**, which takes two different dedup rules:
+ *
+ *  1. **Found vs found.** In compete, terminal opens RLS on every player's
+ *     `found_words`, so a word several people found arrives several times. It
+ *     shows once, attributed to the **first finder** (earliest `found_at`) —
+ *     that is whose color it renders in — but every finder is kept in
+ *     `finderIds`, so filtering the list to a later finder still matches the
+ *     word they genuinely found. In coop both are no-ops: `submit_word` rejects
+ *     a word anyone already has, so there is only ever one finder.
+ *  2. **Found vs unfound.** A found word shadows its reveal entry, so no word
+ *     is ever shown as both found-in-color and missed-in-gray.
+ *
+ * `revealWords` is the caller's whole missed set — **required and bonus both** —
+ * each entry already flagged with which list it came from. This does not care
+ * which; it carries `is_bonus` through so the list can filter on it. Pass
+ * `null` or `undefined` mid-game, when nothing is revealed yet.
+ *
+ * Pure and synchronous, so it tests away from the component.
+ */
 export function buildDisplayRows(
   foundWords: DisplayableFound[],
   revealWords: readonly DisplayableReveal[] | null | undefined,
