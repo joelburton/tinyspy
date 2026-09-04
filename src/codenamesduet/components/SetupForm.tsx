@@ -33,7 +33,7 @@ import { SetupSection } from '../../common/components/setup/SetupSection'
  * `value as CodenamesduetSetup` cast at the top is the boundary
  * between the manifest's `unknown` setup type and codenamesduet's
  * narrow shape — see the SetupBodyProps doc in
- * src/common/lib/games.ts.
+ * src/common/lib/setup/setupForm.ts.
  *
  * Component name `SetupForm` matches the file + the
  * `manifest.setupForm` field — this is the *form definition*,

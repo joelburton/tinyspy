@@ -16,9 +16,9 @@ import type { LucideIcon } from 'lucide-react'
  * `common/components/menu/`, and the open/closed state in `pageMenuStore.ts`
  * next door.
  *
- * **Why its own module.** These eight names spent a long time in
- * `lib/games.ts`, which is the game REGISTRY — they are 14 of the 364 imports
- * that file served, and none of them names a game. See
+ * **Why its own module.** These eight names spent a long time in the file that
+ * was then `lib/games.ts` and is now `lib/gameManifest.ts` — they were 14 of
+ * the 364 imports it served, and none of them names a game. See
  * plans/areas/game-lib.md → `F-game-lib-1`.
  */
 

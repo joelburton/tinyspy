@@ -40,7 +40,7 @@ type Props = {
  * — but it's framed as a general club-options panel so future
  * settings (rename, member management) slot in beside the games list.
  *
- * The games list is the full FE registry (`src/games.ts`), NOT
+ * The games list is the full FE registry (`src/gametypes.ts`), NOT
  * filtered by player count: per the product call, a solo club may
  * list a two-player game if its member wants it shown — they simply
  * won't be able to start it (the Start button stays disabled by the

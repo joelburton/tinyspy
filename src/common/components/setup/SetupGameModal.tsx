@@ -251,7 +251,7 @@ export function SetupGameModal({
               {/* WHAT THIS GAME IS, first — above the form. It used to live inside
                   each game's SetupForm, which meant it rendered BELOW the player
                   picker: an introduction under the thing it introduces. It is
-                  manifest copy now (games.ts → GameSetupForm.intro), so the modal
+                  manifest copy now (setupForm.ts → GameSetupForm.intro), so the modal
                   decides where it goes. */}
               {manifest.setupForm.intro && (
                 <p className={styles.intro}>{manifest.setupForm.intro}</p>

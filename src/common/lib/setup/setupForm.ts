@@ -15,7 +15,7 @@ import type { Member } from '../members/member'
  * and `GameSetupForm` is the object your manifest's `setupForm` must be.
  *
  * **`CreatedGame` is deliberately NOT here** even though it reads like setup.
- * It stays in `lib/games.ts` beside `GameManifest.startGameInClub`, the
+ * It stays in `lib/gameManifest.ts` beside `GameManifest.startGameInClub`, the
  * interface it satisfies, so the two cannot drift.
  *
  * **The upward import is known and stays.** `SetupBodyProps.errors` is a

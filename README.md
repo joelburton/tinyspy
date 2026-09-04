@@ -50,7 +50,7 @@ See [`docs/common.md`](docs/common.md) for the full club model and [`CLAUDE.md`]
 
 ```
 src/
-  App.tsx, main.tsx, games.ts    # shell + the games registry
+  App.tsx, main.tsx, gametypes.ts # shell + the gametype registry
   common/                         # cross-game UI, hooks, lib, db handle
   codenamesduet/                  # Codenames Duet
   psychicnum/                     # toy game; exercises multi-game wiring

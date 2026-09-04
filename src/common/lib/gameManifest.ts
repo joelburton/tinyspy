@@ -13,7 +13,7 @@ import type { GamePageCtx } from './gamePageCtx'
  * Two halves, and everything in this file is one or the other:
  *
  *   - **`GameManifest`** is the declaration. Each game's `manifest.ts` exports
- *     one; `src/games.ts` collects them into the list the shell iterates. It is
+ *     one; `src/gametypes.ts` collects them into the list the shell iterates. It is
  *     the whole reason common code can render sixteen games without naming any
  *     of them — see docs/common.md → "removability in three actions".
  *   - **`GamePageCtx`** is what comes back: the values `<GamePage>` passes to
@@ -82,7 +82,7 @@ export type GameStopResult = { result: 'ended' }
 
 /**
  * Manifest exported by each game's `manifest.ts`. The shell
- * consumes the registry of manifests (`src/games.ts`) and never
+ * consumes the registry of manifests (`src/gametypes.ts`) and never
  * names a specific game directly — see docs/common.md for the
  * "removability in three actions" rule that motivates this.
  */

@@ -10,7 +10,7 @@ import { gametypes } from '../gametypes'
  * registry, statically.
  *
  * **Why this exists.** Adding a game means editing several enumerations that no
- * type system connects to `games.ts`, and each one fails in a different place
+ * type system connects to `gametypes.ts`, and each one fails in a different place
  * and at a different time:
  *
  * | list | where | what a missing entry costs |

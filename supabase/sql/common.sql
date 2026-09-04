@@ -329,7 +329,7 @@ create policy messages_select on common.messages
 
 -- Permissive read on gametypes — gametype identifiers are not
 -- sensitive, and the FE needs to discover them anyway (the
--- registry table mirrors what src/games.ts declares on the FE
+-- registry table mirrors what src/gametypes.ts declares on the FE
 -- side).
 drop policy if exists gametypes_select on common.gametypes;
 create policy gametypes_select on common.gametypes

@@ -1000,7 +1000,7 @@ before we hit even the homepage."*
 describes all 83 files of `src/common/lib/`, `trie.ts` and `rankLadder.ts`
 included; the rule is what keeps game logic that merely lives in `lib/` out. It
 admits the boot path, the data path, the realtime plumbing and the fault sink,
-and it excludes `games.ts` and the manifest, all of `lib/game/`, and every
+and it excludes `gametypes.ts` and the manifest, all of `lib/game/`, and every
 per-page module.
 
 **`App.tsx` splits, and the split is the rule applied to one file.** Its **boot

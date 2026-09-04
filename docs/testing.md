@@ -447,7 +447,7 @@ Two placement notes for a new guard:
   carry the pattern verbatim (`../<game>/lib/setupSummary.ts`), so a lookup
   built from the old prefix silently matches nothing.
 - **`tsconfig` placement is per-file, not per-folder.** A guard that imports
-  app code (`games.ts`, a manifest, `common/`) has to stay in the *app*
+  app code (`gametypes.ts`, a manifest, `common/`) has to stay in the *app*
   project — moving it to `tsconfig.node.json` drags the browser half of the app
   into a project with no `dom` lib, no `jsx`, and no `vite/client`. Only a
   guard that reads the repo and imports nothing from `src/` can live there

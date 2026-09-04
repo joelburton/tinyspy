@@ -37,7 +37,7 @@ import logoUrl from './logo.svg?url'
  *   - `name` shown in titles and Start-button copy.
  *   - `mode` declaration (the canonical axis for downstream
  *     code that wants to distinguish behavior — see
- *     GameManifest.mode in src/common/lib/games.ts).
+ *     GameManifest.mode in src/common/lib/gameManifest.ts).
  *   - `numberOfPlayers`: coop allows solo (`[1, 6]`), compete
  *     requires an opposing player (`[2, 6]`).
  *   - `labelFor`: terminal copy reads differently per mode.

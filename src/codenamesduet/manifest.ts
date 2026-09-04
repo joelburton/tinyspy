@@ -12,7 +12,7 @@ import logoUrl from './logo.svg?url'
 /**
  * codenamesduet's registration with the shell. Exported as the only thing
  * outside `src/codenamesduet/` needs to know about this gametype —
- * `src/games.ts` imports this constant and adds it to the registry.
+ * `src/gametypes.ts` imports this constant and adds it to the registry.
  *
  * The `gametype` matches the Postgres `schema` name by convention.
  * Nothing enforces that today; the type just keeps them as separate
@@ -68,7 +68,7 @@ export const codenamesduetGame: GameManifest = {
   // radio. The Component is lazy-loaded so the form ships in
   // codenamesduet's chunk (not the registry); `defaults` is a tiny
   // literal that travels with the manifest itself. See
-  // src/common/lib/games.ts for why this split.
+  // src/common/lib/setup/setupForm.ts for why this split.
   setupForm: {
     Component: lazy(() =>
       import('./components/SetupForm').then((m) => ({ default: m.SetupForm })),

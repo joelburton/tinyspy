@@ -44,7 +44,7 @@ than no guard, because it reads as coverage.
 
 `tsconfig.app.json` excludes, and `tsconfig.node.json` includes, **individual
 files** here — not the folder. That looks like a list waiting to drift, but it
-can't be a folder rule: a guard that imports app code (`games.ts`, a manifest,
+can't be a folder rule: a guard that imports app code (`gametypes.ts`, a manifest,
 anything in `common/`) pulls the browser half of the app into whichever project
 holds it. In the node project that means no `dom` lib, no `jsx`, and no
 `vite/client` — hundreds of errors. Only a guard that reads the repo and imports
