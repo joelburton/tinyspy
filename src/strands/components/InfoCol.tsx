@@ -1,7 +1,7 @@
 // cs-unmet
 
 import type React from 'react'
-import { outcomeVerb } from '../../common/lib/members/playerOutcome'
+import { outcomeVerb } from '../../common/lib/members/outcomeVerb'
 import { type GamePlayer } from '../../common/lib/members/member'
 import { OpponentStrip } from '../../common/components/game/OpponentStrip'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'

@@ -143,9 +143,9 @@ lib/
                  #   its own module because its readers are its own — 32 files
                  #   import it and all 32 are a game's components
   members/       # who someone is — Member + GamePlayer (member.ts, TYPES ONLY so
-                 #   its 103 importers erase at runtime), and the two values that
-                 #   read them (playerOutcome.ts)
-      member, playerOutcome
+                 #   its 103 importers erase at runtime), and the one value that
+                 #   reads them (outcomeVerb.ts)
+      member, outcomeVerb
   setup/         # the <SetupGameModal> ↔ game-form contract — SetupBodyProps,
                  #   SetupSetter, SetupOf, GameSetupForm
       setupForm

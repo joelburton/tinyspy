@@ -12,9 +12,9 @@
  * **Types only, and that is load-bearing.** `Member` is the single
  * most-imported name in `common/lib/` — 103 files — so a module with no
  * runtime half means all 103 of those imports erase at compile time and cannot
- * participate in an import cycle, whatever else moves later. The two VALUES
- * that read these types live next door in `playerOutcome.ts` precisely so they
- * stay out of this file. Keep it that way: no functions, no constants.
+ * participate in an import cycle, whatever else moves later. The one VALUE that
+ * reads these types lives next door in `outcomeVerb.ts` precisely so it stays
+ * out of this file. Keep it that way: no functions, no constants.
  *
  * The naming convention — `members` in club code, `players` in game code, for
  * the same shape — is docs/naming.md → "member" and "player".

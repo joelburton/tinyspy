@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { outcomeVerb } from '../../common/lib/members/playerOutcome'
+import { outcomeVerb } from '../../common/lib/members/outcomeVerb'
 import { type GamePlayer } from '../../common/lib/members/member'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { TerminalActionRow } from '../../common/components/game/terminal/TerminalActionRow'
@@ -68,7 +68,7 @@ export function InfoCol({
   stats: BoggleStats
 
   // ── Players (the OpponentStrip — compete) ──
-  /** The roster (identity + per-player concede/result bits playerOutcome reads). */
+  /** The roster (identity + per-player concede/result bits outcomeVerb reads). */
   players: GamePlayer[]
   selfId: string
   /** Each peer's score, from the compete leaderboard (self reads `myScore`). */

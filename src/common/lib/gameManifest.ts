@@ -34,7 +34,7 @@ import type { GamePageCtx } from './gamePageCtx'
  * name in it was `Member`, which names no game. The other four moved out, each
  * to a module named for its job (plans/areas/game-lib.md → `F-game-lib-1`):
  *
- *   - who someone is ......... `lib/members/member.ts` · `playerOutcome.ts`
+ *   - who someone is ......... `lib/members/member.ts` · `outcomeVerb.ts`
  *   - what a setup form is ... `lib/setup/setupForm.ts`
  *   - what a pill says ....... `lib/feedback/genericFeedback.ts`
  *   - what a menu is ......... `lib/menu/menu.ts`

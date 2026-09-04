@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { outcomeVerb } from '../../common/lib/members/playerOutcome'
+import { outcomeVerb } from '../../common/lib/members/outcomeVerb'
 import { type GamePlayer } from '../../common/lib/members/member'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { TerminalActionRow } from '../../common/components/game/terminal/TerminalActionRow'
@@ -76,7 +76,7 @@ export function InfoCol({
   requiredWordsCount: number
 
   // ── Opponent strip (compete) ──
-  /** The roster (identity + per-player concede/result bits playerOutcome reads). */
+  /** The roster (identity + per-player concede/result bits outcomeVerb reads). */
   players: GamePlayer[]
   selfId: string
   /** The compete target rank index, or null (coop / not set). Gates the strip. */

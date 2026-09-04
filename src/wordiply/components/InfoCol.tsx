@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { outcomeVerb } from '../../common/lib/members/playerOutcome'
+import { outcomeVerb } from '../../common/lib/members/outcomeVerb'
 import { type GamePlayer } from '../../common/lib/members/member'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { TerminalActionRow } from '../../common/components/game/terminal/TerminalActionRow'

@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { outcomeVerb } from '../../common/lib/members/playerOutcome'
+import { outcomeVerb } from '../../common/lib/members/outcomeVerb'
 import { type Member, type GamePlayer } from '../../common/lib/members/member'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { OpponentStrip } from '../../common/components/game/OpponentStrip'
@@ -105,7 +105,7 @@ export function InfoCol({
   bagCount: number
 
   // ── Players (the OpponentStrip) ──
-  /** The roster (GamePlayer — carries the concede/result bits playerOutcome reads). */
+  /** The roster (GamePlayer — carries the concede/result bits outcomeVerb reads). */
   players: GamePlayer[]
   selfId: string
   playerStates: PlayerRow[]

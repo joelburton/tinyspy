@@ -169,12 +169,12 @@ Three more were raised later: `F-game-lib-10` and `F-game-lib-12` (group A's,
 both resolved), and `F-game-lib-11` (**group B's**, filed here rather than
 fixed).
 
-**Ten resolved 2026-09-03** — `F-game-lib-1` (the split, which Joel authorized
+**Eleven resolved 2026-09-03** — `F-game-lib-1` (the split, which Joel authorized
 after the audit), with `F-game-lib-2`, `F-game-lib-4` and `F-game-lib-10` as its
 consequences, then `F-game-lib-3`, `F-game-lib-5` and `F-game-lib-6` on their
 own, `F-game-lib-12` after Joel found the two `games.ts` files, and
-`F-game-lib-7` and `F-game-lib-8`. **One open
-in group A:** `F-game-lib-9`. **One open elsewhere:**
+`F-game-lib-7`, `F-game-lib-8` and `F-game-lib-9`. **Group A is
+CLOSED.** **One open elsewhere:**
 `F-game-lib-11`, which group B resolves.
 
 **Three of the six resolved turned out bigger than filed**, all the same way:
@@ -607,7 +607,7 @@ which the `F-game-lib-12` rename had made a dead path. The blanket doc sweep
 there only reached `docs/` and `plans/`, so source-comment references to the old
 name survived it — worth knowing when the next rename lands.
 
-### F-game-lib-9 · `player-outcome-exported-unread` · An exported function with no importer, and four docstrings that name it
+### RESOLVED 2026-09-03 — F-game-lib-9 · `player-outcome-exported-unread` · An exported function with no importer, and four docstrings that name it
 
 `playerOutcome` (`lib/members/playerOutcome.ts:27`, moved there by `F-game-lib-1`
 — it was `games.ts:369` when this was written) is exported and **imported by
@@ -636,11 +636,52 @@ Three consequences, and the third is the one that matters:
    caller count is zero, which is the shape `feedback_count_the_callers` warns
    about — and it is how an unread export acquires the appearance of an API.
 
-Whether it stays exported is a real question rather than an obvious deletion:
-`'won' | 'quit' | 'lost'` is the vocabulary and `'Won' | 'Quit' | 'Lost'` is one
-presentation of it, so a second presentation would want the first. **Not resolved
-here** — it needs the `lib/members/` split to be decided anyway, and the four
-game docstrings are in four other areas' files.
+#### Resolved 2026-09-03 by MERGING the two, which nobody had proposed
+
+I offered three options — fix the docstrings, un-export, or un-export and
+rename — and Joel rejected all of them for a fourth: *"if no one calls
+playerOutcome but outcomeVerb, why not combine them into one function? changing
+them to 'lost'/'won'/etc only to immediate turn to 'Lost'/'Won' seems silly."*
+
+He is right, and the reason I missed it is instructive. **I had been defending
+the lowercase form as "the vocabulary"** — and it is not. The app's `Outcome`
+vocabulary is the seven words in `lib/outcomes.ts`, and `quit` is not among
+them. So `'won' | 'quit' | 'lost'` was never a vocabulary; it was an
+intermediate that split three ways and then got re-split three ways to
+capitalize. Nothing observed it. 29 lines became 5:
+
+```ts
+export function outcomeVerb(member: GamePlayer | undefined): 'Won' | 'Quit' | 'Lost' {
+  if (member?.result?.won === true) return 'Won'
+  if (member?.conceded) return 'Quit'
+  return 'Lost'
+}
+```
+
+**The module is renamed `outcomeVerb.ts`.** Seven files imported `outcomeVerb`
+from a file named `playerOutcome.ts` — which is what taught four of them to name
+the wrong function in their docstrings. Those four are corrected; leaving them
+was not an option once `playerOutcome` ceased to exist.
+
+**A test came with it, because a behavior-preserving merge without one is an
+assertion.** Neither function had ever had a direct test. Six cases pin the
+truth table, and were verified by planting three breaks a merge could plausibly
+introduce:
+
+| planted | caught |
+|---|---|
+| the two branches reordered (concede before won) | 1 failed |
+| the `undefined` guard removed | 2 failed |
+| `won: false` counted as a win | 1 failed |
+
+The reorder is the one that matters: **win TRUMPS concede**, and it is
+reachable — you can concede a race someone has already ended in your favor. That
+precedence lives only in the branch order now, so it needed pinning.
+
+Suite 2566 in 270 files, was 2560 in 269. Downstream: `docs/common.md`,
+`docs/games/scrabble.md` and `docs/games/spellingbee.md` all described the
+outcome through `playerOutcome`, and `member.ts` said "the two VALUES" next
+door. One value now.
 
 ## Notes, to-dos and deferrals
 
