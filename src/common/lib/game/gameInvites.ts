@@ -4,7 +4,7 @@ import { readStored, writeStored } from '../util/storage'
 
 /**
  * Game-invitation model — the data + pure logic behind the "Moth added
- * you to a new spellingbee game" popup (see `useGameInvitations`).
+ * you to a new FreeBee game" toast (see `useGameInvitations`).
  *
  * Games seat every player at creation (a `common.game_players` row each),
  * but we no longer drag people into the game. Instead, wherever a player
@@ -27,14 +27,16 @@ export type InviteCandidate = {
   created_by: string
 }
 
-/** A pending invitation, ready to render as a popup. */
+/** A pending invitation, ready to render as a toast. */
 export type GameInvite = {
   gameId: string
   gametype: string
-  /** Display name from the manifest registry (e.g. "spellingbee (coop)"). */
+  // The manifest's `name`, which is the game's BRAND — "FreeBee", not
+  // "spellingbee" and not the mode. Sibling manifests share one brand, so a
+  // coop and a compete invitation read identically here.
   gameName: string
   clubHandle: string
-  /** The game's creator — "<inviterName> added you to a new …". */
+  // The game's creator — "<inviterName> added you to a new …".
   inviterName: string
 }
 

@@ -1720,7 +1720,7 @@ versus game, for exactly this reason.
 
 vitest **2567/2567 in 271 files**, `tsc -b` clean.
 
-### F-game-lib-33 · `invite-example-names-a-codename` · The two examples in this file show a string the app never renders
+### RESOLVED 2026-09-04 — F-game-lib-33 · `invite-example-names-a-codename` · The two examples in this file show a string the app never renders
 
 `gameInvites.ts` opens on *"the data + pure logic behind the 'Moth added you to
 a new **spellingbee** game' popup"*, and its `gameName` field reads
@@ -1741,6 +1741,27 @@ one name. This is the rule CLAUDE.md keeps in `docs/games/*` (brand lives in
 **toast**, bottom-right, stacking, with one optional action button *("e.g.
 'Join'")* — and `:193` names `useGameInvitations` as one of the three consumers.
 The word appears twice in this file.
+
+#### Resolved 2026-09-04 — the brand, the word, and one field marker taken in passing
+
+Both examples read **FreeBee**, both surfaces read **toast**. The `gameName`
+note now says *why* the value looks the way it does rather than showing a
+sample: it is the manifest's `name`, which is the game's brand, and sibling
+manifests share one — so a coop and a compete invitation read identically there.
+An example that has to be kept true is worse than the rule it illustrates.
+
+**`useGameInvitations.ts` was left alone.** It calls the surface a "popup" in
+two more places, and it is `hooks`'s file — §21's focused scope. The note
+already filed there stands, and the word dies in that area's pass.
+
+**One `F-game-lib-40` site went with this.** Rewriting `gameName`'s note meant
+writing it in the right form, so it became a `//` comment; `inviterName` beside
+it followed, because one field marked `/**` and its neighbor `//` inside a
+four-field type is a worse artifact than either. **`F-game-lib-40` is now
+`gameMenu.ts` only** — recorded in both places rather than left for whoever
+opens that finding to discover the count has moved.
+
+vitest **2567/2567 in 271 files**, `tsc -b` clean.
 
 ### RESOLVED 2026-09-04 — F-game-lib-34 · `peers-is-not-about-peers` · Two member-list helpers, named for presence, sitting in the wrong folder since the split
 
@@ -1934,16 +1955,20 @@ question "what does this file defend?" is answered on the second read.
 subjects (the filter, the cutoff), which is what the missing file docstring
 would say.
 
-### F-game-lib-40 · `menu-opts-fields-use-docstring-markers` · Ten field notes written as docstrings, in the files whose neighbors were converted
+### F-game-lib-40 · `menu-opts-fields-use-docstring-markers` · Eight field notes written as docstrings, in a file whose neighbors were converted
 
 §21's docstring-marker pass, applied per area. Group A's own outputs already
 follow it — `menu.ts:110` and `gameManifest.ts:111` note their fields with `//`
-— but two group E files were not swept:
+— but group E was not swept:
 
 - **`gameMenu.ts:21-46`** — all eight `opts` fields carry `/**`, including the
   four-line `onEndGame` note and the five-line `offerEndInCompete` one, which
   are exactly the "rationale that belongs on the line it defends" case.
-- **`gameInvites.ts:34, 37`** — `GameInvite.gameName` and `.inviterName`.
+- ~~**`gameInvites.ts:34, 37`**~~ — `GameInvite.gameName` and `.inviterName`,
+  **done 2026-09-04 under `F-game-lib-33`**, which rewrote `gameName`'s note for
+  other reasons and could hardly write it back in the wrong form; `inviterName`
+  beside it followed rather than leave one field in each style inside one type.
+  This finding **opened at ten sites and is down to eight**, all in one file.
 
 The type-level and function-level `/**` in both files are correct and stay.
 
