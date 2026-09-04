@@ -1630,7 +1630,7 @@ because a docstring edit is exactly what moves the line numbers the
 orphaned-docstring guard reads (`F-game-lib-2`): **vitest 2567/2567 in 271
 files**, `tsc -b` clean.
 
-### F-game-lib-31 · `pause-cites-a-game-doc-for-common-machinery` · Both of this file's citations are wrong, and the second one points away from the canonical doc
+### RESOLVED 2026-09-04 — F-game-lib-31 · `pause-cites-a-game-doc-for-common-machinery` · Both of this file's citations are wrong, and the second one points away from the canonical doc
 
 `pause.ts` ends *"See docs/games/connections.md → 'Pause on disconnect' for the
 wider pattern"*, and `:15` sends "suspended" to *"docs/common.md → three-state
@@ -1649,6 +1649,29 @@ wider pattern, and the game doc points back past it to `docs/states.md`, which
 is where the vocabulary actually lives (CLAUDE.md's doc table says so too:
 `states.md` = *suspend / current / pause*). Both citations should read
 `docs/states.md → paused`.
+
+#### Resolved 2026-09-04 — one citation where there were two
+
+Both wrong pointers are gone and **one** replaces them, at the end of the
+docstring: *"Both words — paused, suspended — are defined once in
+docs/states.md → paused, which also holds the wider pattern: the two trigger
+sources, the overlay and its two escapes, and why a paused game and a suspended
+one can never be the same game."* The "suspended" sentence keeps its one-line
+gloss and loses its own dead link, because the same citation now covers it.
+
+**Each clause of that sentence was checked against the section it advertises**,
+rather than trusting the heading: the two trigger sources are `states.md:26-27`,
+the two escapes (Suspend-and-return, End game) are `:29`, and the never-both
+rule is `:33` — *"a suspended game isn't being looked at by anyone, so there's
+no Presence channel to pause it."* A citation that promises more than the target
+delivers is the same defect one level down.
+
+**The connections link was not kept alongside.** What remains in that section
+after its own opening sentence is two notes about connections' tile selections —
+nothing a reader of this file needs, and the reason the pointer was misleading
+rather than merely stale.
+
+vitest **2567/2567 in 271 files**, `tsc -b` clean.
 
 ### F-game-lib-32 · `pause-input-is-the-game-not-the-club` · The docstring names the club's roster; the caller passes the game's players
 
