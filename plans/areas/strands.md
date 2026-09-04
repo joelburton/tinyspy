@@ -45,6 +45,29 @@ Rows §7 → "Carried forward" already assigns here, indexed so opening this are
 
 - `HintBar.tsx` reads `styles.hint` and the module defines only `.hintReady` — the base class resolves to undefined
 
+#### The clue pill passes a `variant` that nothing reads
+
+From `game-lib` group D, 2026-09-03. **Dead code, one property.**
+`components/PlayArea.tsx:787` builds the under-board clue pill as
+
+```ts
+{ tone: 'neutral' as const, text: `“${game.clue}”`, variant: 'outline' as const, mode: { kind: 'sticky' as const } }
+```
+
+`GenericFeedbackMsg` has no `variant`. The pill component derives outline from
+the mode instead (`GenericFeedbackPill.tsx:65`, `kind !== 'permanent'`), so the
+property is silently dropped — and the rendering is unaffected either way, since
+`sticky` is not `permanent` and the pill was going to be outline regardless.
+
+Nothing is broken; the line just claims a decision it isn't making. Delete the
+property.
+
+**Where it came from:** `GenericFeedbackPill`'s own docstring says *"`msg.variant`
+is the transient-vs-permanent axis"*, which is false and is filed against that
+component in [shared-game-chrome.md](shared-game-chrome.md). This is the one
+call site that believed it, which is the argument for fixing the docstring
+rather than only this line.
+
 ## Predicted test breaks
 
 *(written when the area starts changing things, per §21's test-break rule: predict

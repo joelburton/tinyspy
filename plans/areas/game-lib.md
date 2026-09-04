@@ -133,6 +133,8 @@ is which — `genericPills` opens by explaining why it is not `localPills` — s
 they get read together or the distinction gets re-derived. `feedbackTiming` holds
 the durations that vocabulary uses.
 
+**Audited 2026-09-03** — see "Group D" below. Three findings, all this area's.
+
 ### E · The live session — 7 files, 532 lines
 
 | file | lines |
@@ -1395,6 +1397,140 @@ three callers. *"Thirteen games each wrote their own strings"* is past tense and
 correct as history; all sixteen use the shared vocabulary now.
 
 `terminalCopy.ts`: clean — nothing asserted that could be wrong.
+
+## Group D — the feedback pills, read 2026-09-03
+
+Five files, 277 lines, all read. **Three findings**, all this area's. One is
+about a seam that doesn't work, one is a duplicated type, one is an unguarded
+hand-maintained pair. No defect in this group belongs to a game, which makes it
+the first group where everything found is fixable from here.
+
+The comment pass ran BEFORE the audit (as with group B) and is recorded at the
+end of this section, because two of its corrections are what made the first
+finding visible.
+
+### F-game-lib-27 · `sticky-pill-and-not-ok-dont-compose` · The builder that claims every own-move message has 29 of 81
+
+`localPills.ts`'s `stickyPill` is documented as *"The one builder for every
+'here's what your last action did' message."* Counted:
+
+| | |
+|---|---|
+| `stickyPill(…)` calls | **29** |
+| hand-built `mode: { kind: 'sticky' }` | **52** |
+| — of those, `{ ...getNotOkFeedback(res), mode: { kind: 'sticky' } }` | **40** |
+
+**Those 40 are not rogue call sites.** `genericPills.ts`'s own docstring prints
+that line as the contract, and it is the right contract: the envelope decides
+tone and text, the surface decides permanence.
+
+The finding is that **the two shared helpers of one vocabulary cannot
+compose.** `getNotOkFeedback` returns `{tone, text}`; `stickyPill(tone, text)`
+takes positional arguments. A caller holding the envelope's half has no way to
+hand it to the builder, so it spreads and writes the mode itself.
+
+The consequence is exactly what `localPills.ts` warns about one paragraph
+earlier — that the mode is a one-word decision with nothing at runtime to catch
+a wrong one. It is written out by hand at 52 sites, on the most common path in
+the app, while the builders cover the 12 cases that were easy anyway.
+
+**Not fixed here.** The shape is small — a builder taking the pair, or
+`stickyPill` accepting an object — but it changes a call pattern that is
+documented and used across sixteen games, which is a decision rather than a
+comment fix. Recommendation: make `getNotOkFeedback`'s result passable to a
+builder, so the mode is chosen by picking a function everywhere and not just
+where the text happens to be a literal.
+
+### F-game-lib-28 · `outcome-tone-union-spelled-twice` · A type that names what it duplicates
+
+`localPills.ts:38`:
+
+```ts
+/** A game's terminal outcome tone (`TerminalCopy.tone` / `over.tone`). */
+type OutcomeTone = 'won' | 'lost' | 'neutral'
+```
+
+It cites the type it is copying, then copies it. `terminalCopy.ts:16` declares
+the same union as `TerminalCopy.tone`, one file away in the same folder, and
+`terminalPill` exists to be handed `over.tone` — so the parameter should be
+`TerminalCopy['tone']` and the local type should go.
+
+The union is spelled out in **eight more places** across the game areas, all as
+`gameOver` props. Those are not this area's and are not filed; they are worth
+knowing about if this one is ever centralized.
+
+### F-game-lib-29 · `flash-durations-unguarded` · "Change both" is a request, not a rule
+
+`feedbackTiming.ts` documents a hand-maintained pair:
+
+| JS | CSS (`base.css:285-286`) |
+|---|---|
+| `ATTENTION_FLASH_MS = 700` | `--mark-attention-flash-duration: 0.7s` |
+| `YOUR_TURN_FLASH_MS = 1200` | `--mark-yourTurn-flash-duration: 1.1s` |
+
+The JS value removes the class and the CSS value runs the animation, so **the JS
+one must be at least the CSS one** or the class is pulled mid-fade. The
+docstring says "change both" and nothing checks.
+
+Cheap to guard: each twin has exactly one consumer
+(`PlayArea.module.css:733` and `:749`), so a test that reads `base.css`, parses
+the two durations and asserts `ms >= s * 1000` would hold the pair without
+anyone remembering. This is the same argument the repo already accepted for
+`cssTokens` — a vocabulary is guarded, not just named.
+
+### What checked out — verified, not assumed
+
+- **Every severity IS mapped**, as `genericPills.ts` claims. `SEVERITY_TO_OUTCOME`
+  is typed `Record<Severity, Outcome>`, so the compiler enforces it; the
+  docstring's "fault included" is not a convention.
+- **The fill/outline language is accurate.** Neither builder sets a variant, and
+  they shouldn't: `GenericFeedbackPill:65` derives `outline` from
+  `kind !== 'permanent'`.
+- **`psychicnum/BoardCol.tsx:253`** calls `stickyPill(res.outcome, res.message)`,
+  which looked like it bypassed `notOkOutcome`'s severity mapping. It is an `ok`
+  branch, and its comment asserts `outcome` is non-null there. Not a bug.
+- **Both CSS twins exist**, with one consumer each, and all constants are used.
+- **`feedbackTiming`'s "every game that raises one of these marks"** holds: four
+  importers, and no game hardcodes a flash duration of its own.
+
+### Two notes for other areas — FILED THERE 2026-09-03
+
+Neither is fixable from here, and neither is this area's finding. Both are now
+written up where they will be read, with their evidence:
+
+- **[shared-game-chrome.md](shared-game-chrome.md)** — `GenericFeedbackPill.tsx:49`
+  documents a `msg.variant` property that does not exist; the axis is derived
+  from `mode.kind` twelve lines below the sentence claiming otherwise. Filed
+  with a roster caveat: the file is `cs-unmet` and no area's roster names it.
+- **[strands.md](strands.md)** — `PlayArea.tsx:787` passes `variant: 'outline'`
+  on a feedback message. Dead, and harmless, but it is the one call site that
+  believed the docstring above, which is the argument for fixing that docstring
+  and not only this line.
+
+### The comment pass, done before the audit
+
+Every `/**` in the five files already attached to a file, type, const or
+function, so no marker conversions were needed and the work was content.
+
+**Two contradictions in `localPills.ts`, and the audit's first finding is
+downstream of removing what hid them.** The file documented `outOfRacePill` as
+STICKY twice — in the priority list, and in its own docstring ("A neutral
+`stickyPill`") — while the code builds it `permanent`, and the paragraph above
+the list says permanent means "the game's over, or you're out of the race". The
+file disagreed with itself and with the code, as a leftover of the very fix the
+archaeology beneath it was narrating.
+
+**Archaeology, five passages**, per CLAUDE.md's "how it used to work is not
+useful": the 2026-08-10 incident and the "~25 copies-by-convention across the
+ten games" paragraph; `stickyPill`'s list of the per-game copies it replaced;
+`terminalPill`'s "since the pill vocabulary took the outcome names in 2026-08";
+`localPills.test.ts`'s "This is the thing that was wrong…"; and
+`genericPills.test.ts`'s "The flag itself is gone now (2026-09-01)".
+
+Also **two roster counts** ("Fifteen boards", twice), **two British spellings**
+(`miscategorised`, `ellipsises`), and **one plan citation** —
+`feedbackTiming.ts` ended *"See plans/tile-feedback.md"*, and plans are deleted
+when their work ships.
 
 ## Predicted test breaks
 
