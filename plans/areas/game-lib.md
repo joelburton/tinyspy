@@ -17,7 +17,11 @@ created `utils` one folder over.
 **Status: OPEN.** Opened 2026-09-03 by listing the files and stopping (§21); Joel
 agreed the list — *"that matches the files i'd expect"* — and then asked for it
 in groups, *"so we don't have to do them all as one big audit"*, the way `deep`
-ran in passes. The six groups are below; all 34 files are `cs-met-game-lib`.
+ran in passes. The six groups are below.
+
+**Where the stamps stand (2026-09-04):** groups A–D are `cs-blessed-game-lib`,
+group E is `cs-audited-game-lib` (audited below, unfixed, unread by Joel), and
+**group F's four files are the only ones left at `cs-met-game-lib`.**
 
 ## Why it runs where it runs
 
@@ -142,7 +146,7 @@ ever here because of its name: it holds the durations of BOARD marks — the
 attention wash, the your-turn frame — and answers to tile-feedback, not to
 pills. Its finding (`F-game-lib-29`) stays with it.
 
-### E · The live session — 7 files, 532 lines
+### E · The live session — 7 files, 532 lines — **audited 2026-09-04**
 
 | file | lines |
 |---|---|
@@ -1557,6 +1561,342 @@ Also **two roster counts** ("Fifteen boards", twice), **two British spellings**
 (`miscategorised`, `ellipsises`), and **one plan citation** —
 `feedbackTiming.ts` ended *"See plans/tile-feedback.md"*, and plans are deleted
 when their work ships.
+
+## Group E — the live session, read 2026-09-04
+
+Seven files, 532 lines, all seven read in full. **No crash-class defect**, and
+one **behavior question that is Joel's to rule on** (`F-game-lib-36`): a
+conceded player can still End the whole table. The rest is accuracy — five
+docstrings that describe something the code does not do, and a folder name that
+stopped being true when group A's split created `lib/members/`.
+
+**Nothing was changed.** The comment pass and the audit were one read here, and
+everything it turned up is filed rather than swept — including the mechanical
+items (markers, archaeology), because two of them sit next to a decision
+(`F-game-lib-34`'s folder, `F-game-lib-36`'s rule) that should be settled before
+anyone rewrites the paragraph around it.
+
+**The group held.** Its own roster paragraph called it "the loosest of the six"
+and offered to redraw it into presence/seating + the two chrome stores. Read
+together, the seven do sit at one seam — the game as a live session — and the
+split that actually wants making is not inside the group: it is `peers.ts`
+leaving `lib/game/` altogether (`F-game-lib-34`). No redraw.
+
+### F-game-lib-30 · `menu-doc-omits-the-chat-row` · "The three framing items" are four
+
+`gameMenu.ts:8-12` opens: *"the three framing items are identical everywhere, so
+this builds them once: **Help** at the top, the game's own `extra` sections in
+the middle, and a **End game / Concede game** + **Back to club** tail."*
+
+The builder emits **four**. The top section is Help **and Chat** — a labeled
+twin of the header bubble, and the only place in the app the `/` shortcut is
+written down (`gameMenu.ts:86-96`). It is not a stray: crosswords' own test
+asserts the full order and leads with it —
+`['help', 'chat', …]` (`crosswords/components/PlayArea.test.tsx:251-259`).
+
+**The same omission is in the doc.** `docs/ui.md:732`'s ASCII sketch shows a
+Help row alone in the top section, and `:741`'s paragraph says *"a **Help**
+section at the top"*. So a reader who checks the doc against the docstring finds
+them agreeing with each other and not with the code.
+
+Also, grammar, in the same sentence: *"a **End game**"*.
+
+### F-game-lib-31 · `pause-cites-a-game-doc-for-common-machinery` · Both of this file's citations are wrong, and the second one points away from the canonical doc
+
+`pause.ts` ends *"See docs/games/connections.md → 'Pause on disconnect' for the
+wider pattern"*, and `:15` sends "suspended" to *"docs/common.md → three-state
+lifecycle"*.
+
+| citation | what is there |
+|---|---|
+| connections.md → "Pause on disconnect" | **No such heading.** The real one is `### Pause (presence-driven + manual)` (`connections.md:643`) |
+| common.md → "three-state lifecycle" | **No such section**, in that file or any other (`grep -ri "three-state" docs/` finds crosswords' chrome strip and a `naming.md` aside) |
+
+And the first citation is wrong in a second way, which is the more useful half:
+connections.md's pause section exists to say *this is not ours* — *"Pause is
+common machinery … documented once in [states.md → paused]"*, followed by two
+connections-specific notes. So the shared file points at a game doc for the
+wider pattern, and the game doc points back past it to `docs/states.md`, which
+is where the vocabulary actually lives (CLAUDE.md's doc table says so too:
+`states.md` = *suspend / current / pause*). Both citations should read
+`docs/states.md → paused`.
+
+### F-game-lib-32 · `pause-input-is-the-game-not-the-club` · The docstring names the club's roster; the caller passes the game's players
+
+`pause.ts:6-8` — *"given the set of currently-connected user_ids … and the
+expected member list (**from the club's roster**), is the game paused?"* —
+repeated in the test's own docstring (`pause.test.ts:20-21`, *"the club's
+expected member list"*).
+
+**The one caller passes neither.** `useCommonGame.ts:677-681` passes
+`activePlayers` — `players` (which the hook builds from `common.game_players ⨯
+profiles`, `:150`) filtered to `!p.conceded`.
+
+This is not pedantry, because **the two lists genuinely differ and the
+difference is the feature**: `SetupGameModal` lets a subset of a club start a
+game (`naming.md:130`), and `GamePage.tsx:501-503` keeps a *separate*
+`clubMembers` for chat with the comment *"The FULL club roster (not just this
+game's players)"*. A pause derived from the club roster would fire for every
+member who simply isn't in the game.
+
+The `conceded` filter is documented too — at the call site, in nine lines. What
+the shared function's own docstring should say is what it is handed: **the
+players expected to be present**, which is the game's non-conceded roster.
+
+### F-game-lib-33 · `invite-example-names-a-codename` · The two examples in this file show a string the app never renders
+
+`gameInvites.ts` opens on *"the data + pure logic behind the 'Moth added you to
+a new **spellingbee** game' popup"*, and its `gameName` field reads
+*"Display name from the manifest registry (e.g. **"spellingbee (coop)"**)"*.
+
+Neither is what the value holds. `gameName` is
+`gametypes.find(…)!.name` (`useGameInvitations.ts:124`), and a manifest's `name`
+is the **brand**: `spellingbee/manifest.ts:102` sets `const BRAND = 'FreeBee'`
+and both siblings set `name: BRAND`. The toast reads *"Moth added you to a new
+**FreeBee** game"* (`GameInvitations.tsx:42-45`).
+
+So the example is wrong twice over — a codename where the UI shows a brand, and
+a mode that isn't in the string at all, from two sibling manifests that share
+one name. This is the rule CLAUDE.md keeps in `docs/games/*` (brand lives in
+`manifest.BRAND`) landing on a docstring.
+
+**And "popup" is not what this is.** `docs/ui.md:179` defines the surface — a
+**toast**, bottom-right, stacking, with one optional action button *("e.g.
+'Join'")* — and `:193` names `useGameInvitations` as one of the three consumers.
+The word appears twice in this file.
+
+### F-game-lib-34 · `peers-is-not-about-peers` · Two member-list helpers, named for presence, sitting in the wrong folder since the split
+
+`peers.ts` holds `orderSelfFirst` (you first, then everyone alphabetically) and
+`memberById` (the `user_id` → member lookup). Neither touches presence,
+Broadcast, or a channel. What they touch is a member list — and **group A
+created `lib/members/` for exactly that**, with the rule already worked out:
+`member.ts` is types only so its 103 importers erase at runtime, and the one
+value that reads them lives beside it as its own module
+(`terminalOutcomeVerb.ts`).
+
+`memberById` has **16 importers**; `orderSelfFirst` has 4. So the file is not
+small enough to be beneath the question, and `lib/members/` is not a folder that
+has to be invented for it.
+
+Two more things in the same 36 lines:
+
+- **Archaeology, and a citation to a document that is gone.** *"This was
+  copy-pasted — comment and all — into four games' opponent strips before it
+  landed here; the duplication was **review item 4.2**."* CLAUDE.md: how it used
+  to work is not useful. The review it names is finished and deleted, so the
+  number resolves to nothing.
+- **The stated consumer is one of four.** *"the stable 'You, then peers' order
+  every in-game progress strip wants (see `OpponentStrip`)"* — the four callers
+  are `OpponentStrip`, `useTurnLogPlayerPicker`, `useWordListFilter` and
+  `scrabble/InfoCol`, and only the first is a progress strip. Same shape as
+  `F-game-lib-6`.
+
+**Recommendation:** move the two to `lib/members/`, under a name that says what
+they do to a member list. That leaves `lib/game/` holding game logic and
+`lib/members/` holding identity, which is the split group A already argued for
+and stopped one file short of.
+
+### F-game-lib-35 · `info-sheet-says-thirteen-games` · Thirteen is sixteen, and the count should go rather than be corrected
+
+`infoSheetStore.ts:14` — *"Threading a flag down would mean adding it to
+`GamePageCtx` and touching **all thirteen games**."* Sixteen.
+
+Fourth of its kind here (`F-game-lib-3`, `-4`, `-21`), and the standing answer
+applies: **a tally of the roster always rots, so name the condition instead** —
+"every game", which is what the sentence means and what stays true when the
+seventeenth arrives.
+
+Everything else in this file's long docstring **checked out** — see below.
+
+### F-game-lib-36 · `conceder-can-still-end-the-table` · A player who quit the race keeps an enabled control that ends it for everyone
+
+A decision for Joel; the code is doing what it was written to do.
+
+```ts
+const endItem     = { …, disabled: isTerminal }
+const concedeItem = { …, disabled: isTerminal || !!conceded }
+```
+
+`conceded` gates Concede and nothing else. In a compete game that also offers
+End (`offerEndInCompete`), a player who has conceded still sees **End game**
+enabled — and `end_game` is the whole-table stop, so one quitter can end the
+race for the people still playing it.
+
+**Bananagrams is the only game this reaches** (`PlayArea.tsx:494`, the sole
+`offerEndInCompete: true`), and its own concede model is what makes the question
+sharp: `useCommonGame.ts:670-676` deliberately drops conceders from the
+presence-pause roster so that *"a conceder has willfully quit the race, so their
+leaving the tab must NOT wedge everyone else"*. The menu grants the same player
+a bigger stop than the pause system will let them cause by leaving.
+
+The counter-argument is in this file's own docstring, and it is a real one:
+ending is *"the group agreeing there's no result"*, and we are friends on a call
+— someone who conceded is still in the conversation, and may be the one who says
+"let's just stop". **Not fixed either way pending a ruling**; the one-word
+version is whether `endItem` should also take `|| !!conceded`.
+
+### F-game-lib-37 · `offer-end-in-compete-untested` · The one branch with a single user is the one nothing pins
+
+`buildGameMenu`'s output is well covered *through the games*: ten PlayArea tests
+name End/Concede, and crosswords asserts the whole id order plus the ⌥⌫ and ⇧<
+hints. **The exception is the compete-with-both shape.** bananagrams is its only
+caller, and `bananagrams/components/PlayArea.test.tsx:90` hands
+`setGameSections: vi.fn()` and never reads the mock — so nothing anywhere
+asserts that this branch emits `[concede, end-game]` in that order, and nothing
+pins the rule the order encodes: **⌥⌫ follows the mode's primary exit**, which
+only works because `GamePage.tsx:491-493` takes the *first* matching id and
+Concede is written first.
+
+Same shape as `F-game-lib-8` — the sibling that reads as obviously fine is the
+one that has no test — and cheap here: `buildGameMenu` is a pure function of its
+options, so the missing coverage is one `gameMenu.test.ts` with three cases
+(coop, compete, compete-with-both), not a render test.
+
+### F-game-lib-38 · `split-left-six-stale-doc-citations` · The split updated one doc; four others still point at the old home
+
+Raised while checking `gameMenu.ts`'s doc citation, so it is not group E's file
+— but it is **this area's own doing** and nothing else will catch it.
+`F-game-lib-1`/`F-game-lib-12` moved five vocabularies out of `gameManifest.ts`
+and updated `docs/common-folders.md`, which the plan named in advance. The other
+docs were not swept.
+
+Ten places outside `common-folders.md` cite `src/common/lib/gameManifest.ts`.
+**Six of them are now wrong:**
+
+| doc | names | lives at |
+|---|---|---|
+| `code-conventions.md:654` | `Member` | `lib/members/member.ts` |
+| `naming.md:132` | `Member` | `lib/members/member.ts` |
+| `common.md:236` | `GamePlayer` | `lib/members/member.ts` |
+| `common.md:583` | `GamePageCtx` | `lib/gamePageCtx.ts` |
+| `ui.md:780` | `MenuSubmenu` | `lib/menu/menu.ts` |
+| `ui.md:1566` | `MenuItem.icon` | `lib/menu/menu.ts` |
+
+The four that are right (`common.md:33` `playerCount*`, `common.md:608`
+`GameManifest`, `ui.md:1341` `MODE_LABEL`) are right because those names stayed.
+`common.md:236` is the one to look at first: the same sentence cites the moved
+`terminalOutcomeVerb` at its **new** path and `GamePlayer` at its old one, so
+the sweep reached that line and stopped inside it.
+
+Three more, found in the same pass:
+
+- **`code-conventions.md:667` and `:671`** are code samples reading
+  `import type { Member } from '../../common/lib/games'` — a path that is **two
+  renames stale** (`games.ts` → `gameManifest.ts` → the name moving out
+  entirely). All three games shown import from `lib/members/member` today.
+- **`naming.md:320`** glosses `SetupMember` — *"the TS type for a club member in
+  a setup-flow context"* — and `grep -rn SetupMember src` returns **nothing**.
+  A glossary row for a type the repo does not have.
+- **`ui.md:754-761`**'s API sketch has `MenuItem` as a plain object with
+  `{id, label, onClick, disabled?, shortcut?}` and `MenuSection = { items }`.
+  Today `MenuItem` is a union with `MenuSubmenu`, carries `icon`, and a section
+  carries `header`. Same file's prose (`:780`) describes the submenu shape it
+  omits.
+
+### F-game-lib-39 · `group-e-tests-have-no-file-docstring` · Both test files open on their imports
+
+Third time (`F-game-lib-18` for group B, `F-game-lib-23` for group C).
+`gameInvites.test.ts` and `pause.test.ts` both start stamp → imports. Both then
+have good prose *inside* — `pause.test.ts:18-36` is a four-rule matrix and
+`gameInvites.test.ts:50-54` explains why the age bound is tested apart from the
+filter — it just sits above a `describe` instead of above the file, so the
+question "what does this file defend?" is answered on the second read.
+
+`gameInvites.test.ts` has the extra wrinkle that its two describes are two
+subjects (the filter, the cutoff), which is what the missing file docstring
+would say.
+
+### F-game-lib-40 · `menu-opts-fields-use-docstring-markers` · Ten field notes written as docstrings, in the files whose neighbors were converted
+
+§21's docstring-marker pass, applied per area. Group A's own outputs already
+follow it — `menu.ts:110` and `gameManifest.ts:111` note their fields with `//`
+— but two group E files were not swept:
+
+- **`gameMenu.ts:21-46`** — all eight `opts` fields carry `/**`, including the
+  four-line `onEndGame` note and the five-line `offerEndInCompete` one, which
+  are exactly the "rationale that belongs on the line it defends" case.
+- **`gameInvites.ts:34, 37`** — `GameInvite.gameName` and `.inviterName`.
+
+The type-level and function-level `/**` in both files are correct and stay.
+
+### F-game-lib-41 · `empty-section-rule-omits-the-header` · A stated rule that would delete the feature the next field describes
+
+`menu.ts:106-107` (group A's file, `cs-blessed`): *"Sections are separated by a
+thin divider. **Empty sections drop out** — no leading or trailing dividers
+around them."* Six lines later, the `header` field: *"A section may be
+header-only (no `items`)."*
+
+Read in order, the first sentence deletes the second — and `gameMenu.ts:76`
+depends on the second, emitting `{ header, items: [] }` for crosswords' puzzle
+credits. The renderer has it right and says so in code:
+`Menu.tsx:474` is `if (section.items.length === 0 && !section.header) return`.
+
+One clause fixes it: a section drops out when it has **neither items nor a
+header**. **`Menu.tsx:59-61` repeats the incomplete version** in its own props
+docstring — that file is `shared-game-chrome`'s and is noted there, not fixed
+here.
+
+### What checked out — verified, not assumed
+
+- **All sixteen games call `buildGameMenu`**, so *"every game owns its own menu
+  now"* is exactly true — not fifteen-and-an-exception, which is how the last
+  three of these counts went (`F-game-lib-22`).
+- **`/` really is written down only in the menu row.** The chat bubble's tooltip
+  is the bare word "Chat" (`ChatButton.tsx:35`), so the claim in `gameMenu.ts:88-90`
+  holds **for the app**; `docs/keyboard-shortcuts.md:57` documents the key, and a
+  doc is not an affordance.
+- **⌥⌫ and `+` do inherit `disabled`**, as `NEW_GAME_ID`'s docstring promises:
+  `GamePage.tsx:469` and `:494` are both `if (item && !item.disabled)`.
+- **The `find`-the-first-id dispatch is safe today.** `extra` sections are
+  inserted *before* the exits, so a game shipping its own `end-game`/`concede`
+  id would win the shortcut — no game does; the ids appear only where
+  `buildGameMenu` writes them.
+- **`infoSheetStore`'s structural argument is sound in every part.** `GamePage`
+  is keyed by game id (`App.tsx:154`), its reset effect is keyed to match
+  (`GamePage.tsx:354-356`), and the desktop no-op is real —
+  `InfoSheet.module.css:10` is `display: contents`.
+- **A module-level store is NOT the untested sibling here.** The obvious finding
+  — `chatOpenStore` has a test and `infoSheetStore` doesn't — dies on the
+  roster: `scratchpadOpenStore`, `pageMenuStore` and `toastStore` have none
+  either, so `chatOpenStore.test.ts` is the exception and this file is the rule.
+  Not filed.
+- **`markInviteSeen`'s cap keeps the right 200.** `loadSeenInvites` rebuilds the
+  Set from the stored array, so insertion order survives a reload and
+  `slice(-SEEN_CAP)` really does drop the oldest, as the comment claims.
+- **The invite query matches `InviteCandidate` exactly** — `id, gametype,
+  club_handle, created_by` (`useGameInvitations.ts:81`) — and the age bound
+  rides on the query, not on `newInviteCandidates`, which is what both
+  docstrings say.
+- **No British spelling and no roster count** in the seven files, beyond
+  `F-game-lib-35`'s thirteen.
+
+### Two notes for other areas — not filed there yet
+
+- **`shared-game-chrome`** — `Menu.tsx:59-61` carries `F-game-lib-41`'s
+  incomplete rule ("Empty sections drop out") in its own props docstring.
+- **`hooks`** — `useGameInvitations.ts:31, 50` calls the invitation surface a
+  "popup" too (`F-game-lib-33`), and `docs/ui.md:193` calls that hook "now
+  headless", which is the doc agreeing that the component is the toast.
+
+### One note for the plan
+
+**`src/common/components/icons.ts` is on no area's roster** — `cs-unmet`, and
+`grep -rn "components/icons" plans/` finds nothing. It is the only file at the
+root of `common/components/`, and `gameMenu.ts` imports five values from it.
+Third instance of the gap that created `utils` and `feedback`; §7's coverage is
+the plan's business, not this file's.
+
+### One seam, recorded rather than filed
+
+**`gameMenu.ts` is the only `lib/` file that imports a runtime VALUE from
+`components/`.** The other three lib→components edges are `import type`
+(`setupForm.ts:4`, `foundWordsDisplayRows.ts:3`, `setupRows.ts:3`) and erase at
+build. This one is five icon constants, and it cannot close a cycle today
+because `components/icons.ts` is a pure re-export of `lucide-react` with no
+imports of its own. Same seam group A recorded for `SetupBodyProps` and handed
+to `forms` — noted here so the two are counted together if anyone ever draws the
+layer line.
 
 ## Predicted test breaks
 

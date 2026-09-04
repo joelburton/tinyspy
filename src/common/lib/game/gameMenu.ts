@@ -1,4 +1,4 @@
-// cs-met-game-lib
+// cs-audited-game-lib
 
 import { IconBack, IconChat, IconConcede, IconEnd, IconHelp } from '../../components/icons'
 import { setChatOpen } from '../chat/chatOpenStore'
