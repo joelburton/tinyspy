@@ -1,4 +1,4 @@
-// cs-met-game-lib
+// cs-audited-game-lib
 
 import { describe, it, expect } from 'vitest'
 import { timerLabel } from './timerLabel'

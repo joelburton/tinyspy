@@ -1167,6 +1167,115 @@ about it holds:
 stale count in the seven files — the numbers are all small, structural and
 tested, rather than tallies of a roster that grows.
 
+## Group C — what a game says about itself, read 2026-09-03
+
+Six files, 440 lines, all read. **One real bug**, four stale claims, one missing
+docstring. The bug is the first this area has found that a player could see.
+
+### F-game-lib-19 · `bananagrams-recap-written-twice` · The drift `setupRows` says it fixed, live in one game — with an inverted value
+
+`setupRows.ts`'s docstring states the problem it was built to end:
+
+> *It used to be written twice: literal `<li>`s in each game's `InfoCol`, and a
+> separate hand-built `{label, value}[]` in its `PlayArea` for the print model…
+> **psychicnum went as far as reporting different facts on paper than on
+> screen.** Each game now exports `setupRows()`… and **both consumers render
+> that**.*
+
+**bananagrams never converted.** `PlayArea.tsx:111` calls `setupRows()` for the
+PDF, and `PlayArea.tsx:638-657` hand-writes the screen's `<li>`s. Two sources,
+one recap — and they have drifted four ways:
+
+| | screen (`<li>`) | PDF (`setupRows`) |
+|---|---|---|
+| roster | absent | `rosterRow()` — "the FIRST row of every game's recap" |
+| order | Bunch, then Starter hand | Starter hand, then Bunch |
+| label | "Word check" | "Words" |
+| **`dump_to_bag`** | correct | **inverted** |
+
+**The last row is a bug a player can hit.** `lib/setup.ts:60-62` is
+unambiguous — *"`false` (default) = back into the bunch… `true` = to the
+out-of-play 'bag'"* — and the setup form agrees (`'to bag' : 'to bunch'`). So
+with the box ticked:
+
+- screen (`PlayArea.tsx:655`): `'set aside (bag)'` — right
+- **PDF (`lib/setupSummary.ts:34`): `'back to the bunch'` — the opposite**
+
+Both arms are swapped, so the printout misstates the rule on either setting. It
+is exactly psychicnum's failure — different facts on paper than on screen — in
+the one game that never made the move.
+
+**Nothing could have caught it.** `guards/setupRows.test.ts` asserts every setup
+KEY produces a row; it cannot see that a game renders its screen recap from
+something else entirely. A guard that could would have to compare the two
+surfaces, which is a different check from the one that exists.
+
+Scope: the inverted value and the duplicate `<li>`s are `bananagrams`'; the
+docstring's "both consumers render that" is this file's.
+
+### F-game-lib-20 · `timer-label-doc-names-the-old-call-site` · Its stated caller is the one game that shouldn't be doing that
+
+`timerLabel.ts:8-9`: *"Every gametype renders it as
+`<li>Timer: {timerLabel(setup.timer)}</li>`"*. Exactly one does —
+**bananagrams**, and only because of `F-game-lib-19`. Every other game reaches
+it through `setupRows.ts:172`'s `timerRow()`. The docstring describes the call
+pattern the recap unification replaced, so the one call site matching it is the
+one that is wrong.
+
+Second claim in the same docstring: *"The timer CHOOSER is a separate component,
+`<SetupTimerSection>`; this just formats what it produced."* True about the
+separation, misleading about the direction — `SetupTimerSection.tsx:111` CALLS
+`timerLabel` to build its own section label. The chooser is a consumer, not just
+a producer.
+
+### F-game-lib-21 · `board-key-says-three-games` · Three named, four use it
+
+`setupRows.ts:32-33`: *"The letter games that BUILD a board from letters —
+freebee, MooseWheel, MothCubes"*. **Four** games import `BOARD_KEY`:
+spellingbee, wordwheel, boggle **and letterboxed**.
+
+The nice part: `letterboxed/lib/setupSummary.ts:28-29` says *"the board-identity
+exception the three OTHER board-from-letters games take"* — counting correctly
+from its own side. The caller knows there are four; the shared file says three.
+
+Also `freebee` is written lowercase where docs/naming.md gives the brand as
+**FreeBee**.
+
+### F-game-lib-22 · `each-game-exports-setup-rows` · Fifteen of sixteen, and the exception lives elsewhere
+
+`setupRows.ts:16-18`: *"Each game now exports `setupRows()` from
+`<game>/lib/setupSummary.ts`… and both consumers render that."* Fifteen games
+do; **crosswords has no `setupSummary.ts` at all**.
+
+That is deliberate and written down — `guards/setupRows.test.ts:37-42` carries a
+`NO_RECAP` entry saying crosswords *"never had a recap on either surface… adding
+one would be new UI, not the unification this rule is about"*. But a reader of
+`setupRows.ts` is told "each game", learns something false, and has no reason to
+go looking in the guard for the carve-out.
+
+### F-game-lib-23 · `timer-label-test-has-no-docstring` · The group's one test opens on its imports
+
+`timerLabel.test.ts` begins at its import block. Same class as `F-game-lib-18`,
+and the smallest instance of it — four cases, one of which pins the zero-padding
+that makes `0:05` rather than `0:5`.
+
+### What checked out — verified, not assumed
+
+`difficulty.ts` is the surprise: its docstring disclaims the sample words as
+*"illustrative only — NOT a validated word list"*, and **every one of them is
+valid**. Checked all 114 `(word, band)` pairs against `common.words`: **0
+missing, 0 at a different band.** The structural claims hold too — `SAMPLES_3PLUS`
+is exactly `SAMPLES_OPEN` minus its 2-letter entries band by band, `SAMPLES_2` is
+all 2-letter words and `SAMPLES_5` all 5-letter, and all five arrays have six
+rows. (The disclaimer is still right about the thing it actually says: a game may
+reject a word for its own length rules.)
+
+`statusLabel.ts`: `dictLabel`'s *"waffle, wordle, stackdown"* is exactly the
+three callers. *"Thirteen games each wrote their own strings"* is past tense and
+correct as history; all sixteen use the shared vocabulary now.
+
+`terminalCopy.ts`: clean — nothing asserted that could be wrong.
+
 ## Predicted test breaks
 
 *(written when the area starts changing things, per §21's test-break rule:
