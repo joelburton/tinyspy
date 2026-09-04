@@ -165,14 +165,16 @@ shell. The group whose position in the order matters least.
 
 Five files, 1,182 lines, all five read in full. **No logic bug.** The shipped
 behavior is correct everywhere; all nine findings are about what the files SAY.
-Two more were raised later, while resolving the first six: `F-game-lib-10`
-(group A's) and `F-game-lib-11` (**group B's**, filed here rather than fixed).
+Three more were raised later: `F-game-lib-10` and `F-game-lib-12` (group A's,
+both resolved), and `F-game-lib-11` (**group B's**, filed here rather than
+fixed).
 
-**Seven resolved 2026-09-03** — `F-game-lib-1` (the split, which Joel authorized
+**Eight resolved 2026-09-03** — `F-game-lib-1` (the split, which Joel authorized
 after the audit), with `F-game-lib-2`, `F-game-lib-4` and `F-game-lib-10` as its
 consequences, then `F-game-lib-3`, `F-game-lib-5` and `F-game-lib-6` on their
-own. **Three open in group A:** `F-game-lib-7`, `8`, `9`. **One open elsewhere:**
-`F-game-lib-11`, which group B resolves.
+own, and `F-game-lib-12` after Joel found the two `games.ts` files. **Three open
+in group A:** `F-game-lib-7`, `8`, `9`. **One open elsewhere:** `F-game-lib-11`,
+which group B resolves.
 
 **Three of the six resolved turned out bigger than filed**, all the same way:
 the audit caught a wrong number, and fixing it meant re-reading the file, where
@@ -229,7 +231,7 @@ its status; no status prefix means OPEN.)*
 `F-game-lib-7` pointing at `games.ts:68` — a line the split had moved 40 rows and
 which by then landed in the middle of a docstring it had nothing to do with).
 This area moved 233 files in one commit, so every bare line number in it went
-stale at once. Write `games.ts:108 — GamePageCtx.timer`: the number is the
+stale at once. Write `gamePageCtx.ts:55 — GamePageCtx.timer`: the number is the
 convenience and the symbol is what survives the next sweep.
 
 **An OPEN finding's citation points at the code now; a RESOLVED one's points at
@@ -517,7 +519,9 @@ Checking who reads the field turned up a separate thing, which is
 
 ### F-game-lib-7 · `ctx-timer-undocumented-and-misindented` · The one non-obvious field in the render-prop contract has no docstring
 
-`games.ts:108` — `GamePageCtx.timer`:
+`gamePageCtx.ts:55` — `GamePageCtx.timer` (it was `games.ts:68` at the audit,
+then `games.ts:108`, and is here since `F-game-lib-12` — three moves in a day,
+which is the convention's own argument):
 
 ```ts
   isTerminal: boolean
@@ -733,6 +737,69 @@ game's `PlayArea`, so changing them belongs to `boggle`, `letterboxed`, `setgame
 and `wordiply` when those areas open — §21's "focused scope: leave others". Group
 B can widen the helper without touching a single game; the call sites convert
 per area, which is the same shape as `F-utils-7`'s handoff to `floating-panels`.
+
+### RESOLVED 2026-09-03 — F-game-lib-12 · `two-files-named-games` · Two very different files share one vague name, in a repo about games
+
+Raised by Joel, 2026-09-03, after reading `F-game-lib-7`'s citation in the wrong
+file: *"we have two files `games.ts`. i read the wrong one."*
+
+```
+src/games.ts               the LIST — 30 registered entries
+src/common/lib/games.ts    the CONTRACT — what a game declares
+```
+
+**The near-miss is the evidence, and it is not the ordinary kind.** Sixteen files
+are named `PlayArea.tsx` and nobody confuses them, because they mean the same
+thing for different games. These two meant different things under one name — and
+a name that is the repo's single most overloaded noun.
+
+**Both names were also wrong by the glossary.** docs/naming.md defines a **game**
+as *"a specific playing… one row in `<gametype>.games`, identified by a UUID."*
+Neither file is about a playing. Its `gametype` entry even spells out what the
+filename should have said: *"the registered entry… one row in `common.gametypes`,
+one TS manifest in `src/games.ts`."* And `games` sits squarely in that same file's
+**watch list of generic words** — the rule being that a wide-visibility name has
+to be specific, and 233 importers is as wide as this repo gets.
+
+| now | holds |
+|---|---|
+| `src/gametypes.ts` (export `gametypes`) | the registered entries — the glossary's own word, mirroring the `common.gametypes` table |
+| `src/common/lib/gameManifest.ts` | what a game DECLARES |
+| `src/common/lib/gamePageCtx.ts` | what a game is HANDED |
+
+**The third file is a split, not a rename**, and it came out of Joel refusing the
+first answer. Told the file should be named for its "primary export", he asked
+whether that was even true. It was not — **53 files import that module and
+exactly ONE imports both `GameManifest` and `GamePageCtx`**:
+
+| | files | overlap |
+|---|---|---|
+| `GameManifest` | 22 — the 16 manifests, `gametypes.ts`, 4 club/setup surfaces | 1 |
+| `GamePageCtx` | 32 — **all 32 are a game's own components** | 1 |
+
+Two audiences at two moments: declaring a game, and playing one. `GamePageCtx`
+was also 105 of the file's 542 lines. The unifying rule that DID hold — every
+export is `GameManifest` or the type of one specific `GameManifest` member — is
+still true of what remains, and is now the file's stated admission test.
+
+**A pairing deliberately avoided:** `gametypes.ts` + `gametype.ts`. Tempting
+symmetry, but two names differing by one `s` reproduces the exact failure this
+finding is about.
+
+**Two mechanical things nearly slipped**, both worth remembering for the next
+rename:
+
+- **`eslint.config.js` reads the registry BY PATH** and regexes
+  `from './<name>/manifest'` out of it to build the game list for
+  `no-restricted-imports`. Miss it and a game silently stops being guarded —
+  which the file's own docstring warns about. Repointed and verified to still
+  derive all sixteen.
+- **The `vi.mock()` gotcha finally landed.** `useGameInvitations.test.ts` mocks
+  the registry and its factory returned `{ games: [...] }`; the module now
+  exports `gametypes`, so five tests failed. It is the ONLY `vi.mock` in the repo
+  naming either file — which is why `F-game-lib-1`'s split could not reach it
+  (that split moved only types, and nothing mocks a type). See "Predicted test
+  breaks".
 
 ## Predicted test breaks
 
