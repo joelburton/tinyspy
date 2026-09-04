@@ -7,9 +7,10 @@ import type { MenuApi, MenuHeader, MenuItem, MenuSection } from '../menu/menu'
 /**
  * Assemble a game's FULL header menu. Every game owns its own menu now (the
  * shell no longer injects a common section — see docs/ui.md → GamePage menu),
- * but the three framing items are identical everywhere, so this builds them
- * once: **Help** at the top, the game's own `extra` sections in the middle, and
- * a **End game / Concede game** + **Back to club** tail at the bottom.
+ * but the four framing items are identical everywhere, so this builds them
+ * once: **Help** + **Open chat** at the top, the game's own `extra` sections in
+ * the middle, and an **End game / Concede game** + **Back to club** tail at the
+ * bottom.
  *
  * The end/concede item's id is standardized (`end-game` in coop, `concede` in
  * compete) so the shell's ⌥⌫ shortcut can find + fire it; Back to club carries

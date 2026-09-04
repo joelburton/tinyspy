@@ -730,6 +730,7 @@ The logo is a menu trigger. Click opens a dropdown anchored below it; same trigg
     │
     └─→  ┌──────────────────────┐
          │ Help                 │
+         │ Open chat           /│
          ├──────────────────────┤
          │ …game sections…      │
          ├──────────────────────┤
@@ -738,7 +739,7 @@ The logo is a menu trigger. Click opens a dropdown anchored below it; same trigg
          └──────────────────────┘
 ```
 
-**The `buildGameMenu` helper** ([common/lib/game/gameMenu.ts](../src/common/lib/game/gameMenu.ts)) assembles the standard framing so games don't duplicate it: a **Help** section at the top, the game's own `extra` sections in the middle, and a tail with **End game** (coop) / **Concede game** (compete, id `concede`) + **Back to club**. The end/concede item dispatches through the game's own handler (each game's `db` is schema-typed, so the RPC stays at the call site); Help/Back use the shell actions. Most games call it in one line with `extra: [{ items: [printItem] }]` (or `[]`); crosswords passes its full check/reveal/clear section list.
+**The `buildGameMenu` helper** ([common/lib/game/gameMenu.ts](../src/common/lib/game/gameMenu.ts)) assembles the standard framing so games don't duplicate it: a **Help** + **Open chat** section at the top, the game's own `extra` sections in the middle, and a tail with **End game** (coop) / **Concede game** (compete, id `concede`) + **Back to club**. Chat has a bubble in the header and a `/` shortcut, and the menu row exists for both reasons: it's the labeled twin every other action has, and the shortcut column is the only place in the app `/` is written down. The end/concede item dispatches through the game's own handler (each game's `db` is schema-typed, so the RPC stays at the call site); Help/Back use the shell actions. Most games call it in one line with `extra: [{ items: [printItem] }]` (or `[]`); crosswords passes its full check/reveal/clear section list.
 
 **Shortcut hints.** A `MenuItem` may carry an optional `shortcut` string (e.g. `'⌥C'`) rendered right-aligned + muted. Three are shell-global (work on any game, dispatching to the game's own menu items / actions): **⌥⌫** fires End/Concede (finds the `end-game`/`concede` item and clicks it), **+** fires New game (finds the `new-game` item — `NEW_GAME_ID`), **⇧<** fires Back to club. All bail inside any editable field, so ⌥Backspace stays "delete word" while typing.
 

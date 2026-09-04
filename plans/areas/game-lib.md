@@ -1590,7 +1590,7 @@ leaving `lib/game/` altogether (`F-game-lib-34`, done). No redraw. **Group E is
 six files now**, and the seam it names is cleaner for having lost the one file
 that never belonged to it.
 
-### F-game-lib-30 · `menu-doc-omits-the-chat-row` · "The three framing items" are four
+### RESOLVED 2026-09-04 — F-game-lib-30 · `menu-doc-omits-the-chat-row` · "The three framing items" are four
 
 `gameMenu.ts:8-12` opens: *"the three framing items are identical everywhere, so
 this builds them once: **Help** at the top, the game's own `extra` sections in
@@ -1608,6 +1608,27 @@ section at the top"*. So a reader who checks the doc against the docstring finds
 them agreeing with each other and not with the code.
 
 Also, grammar, in the same sentence: *"a **End game**"*.
+
+#### Resolved 2026-09-04 — description only, in the two places that disagreed with the code
+
+**Four, named.** The docstring now reads *"the four framing items … **Help** +
+**Open chat** at the top"*, and `an End game`. `docs/ui.md`'s sketch grows the
+row it was missing (with its `/` in the shortcut column, where the menu itself
+puts it), and `:741`'s paragraph names Chat and says why the row exists beside a
+header bubble that already opens the panel: it is the labeled twin every other
+action has, and the shortcut column is the only place in the app `/` is written
+down.
+
+**"Four" rather than "three plus a Chat row."** The audit offered both. What
+settles it is that the builder puts Chat in Help's own section, unconditionally,
+for every game — so a reader counting what `buildGameMenu` guarantees counts
+four. The reason Chat is *there* rather than framing in the shell sense is worth
+a clause, which is what the doc paragraph now carries.
+
+**No behavior changed** — two docstrings and one sketch. Verified anyway,
+because a docstring edit is exactly what moves the line numbers the
+orphaned-docstring guard reads (`F-game-lib-2`): **vitest 2567/2567 in 271
+files**, `tsc -b` clean.
 
 ### F-game-lib-31 · `pause-cites-a-game-doc-for-common-machinery` · Both of this file's citations are wrong, and the second one points away from the canonical doc
 
