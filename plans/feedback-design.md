@@ -149,7 +149,7 @@ numbers are one proposed order:
 | a standing note | no | 5 | owner | local | theme clue, "Chain is full", "reached Genius", history description |
 | a not-ok during play | no | 6 | gesture | either | 40 |
 | an own-move result | no | 6 | gesture | local | `stickyPill` + hand-built, 46 |
-| an own-move acknowledgement | no | 6 | timer | local | accepted word, dump, peel, pencil note, 4 |
+| an own-move acknowledgment | no | 6 | timer | local | accepted word, dump, peel, pencil note, 4 |
 | peer narration | no | 6 | timer | global | 21 |
 | peer status | no | 5 | owner | global | "moth is writing a clue" |
 
@@ -159,7 +159,7 @@ What the table decides, or exposes for deciding:
    not-ok shows over the verdict while it's up, and the verdict is what's
    underneath when it's dismissed.
 2. **The three inconsistencies become one decision each.** An accepted word
-   is a timed acknowledgement in letterboxed and a gesture-cleared result in
+   is a timed acknowledgment in letterboxed and a gesture-cleared result in
    spellingbee, strands and connections; "reached Genius" is a standing note
    where every other peer event is narration. Whichever constructor a site
    calls settles it.

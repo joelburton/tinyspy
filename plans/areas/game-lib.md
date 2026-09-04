@@ -19,9 +19,10 @@ agreed the list — *"that matches the files i'd expect"* — and then asked for
 in groups, *"so we don't have to do them all as one big audit"*, the way `deep`
 ran in passes. The six groups are below.
 
-**Where the stamps stand (2026-09-04):** groups A–D are `cs-blessed-game-lib`,
-group E is `cs-audited-game-lib` (audited below, unfixed, unread by Joel), and
-**group F's four files are the only ones left at `cs-met-game-lib`.**
+**Where the stamps stand (2026-09-04)** — 37 files: **25 `cs-blessed-game-lib`**
+(groups A–D), **8 `cs-audited-game-lib`** (group E — audited, and 8 of its 12
+findings settled; it reaches `cs-fixed` when the last four do), and **4
+`cs-met-game-lib`**, which is all of group F and the whole of what is unread.
 
 ## Why it runs where it runs
 
@@ -74,6 +75,30 @@ that last file, which is why nobody could see the whole. Two of the six were
 blessed here and two more were audited here; that work is recorded in
 `feedback.md` and stands. What stayed is `feedbackTiming.ts`, whose name says
 feedback but whose contents are BOARD-mark durations.
+
+**Where the count has moved since, and why it is 37 today** — the roster above
+is the measurement at the opening and stays as written; this is what has
+happened to it:
+
+| | files |
+|---|---|
+| agreed at the opening, 2026-09-03 | 34 |
+| **left** for `feedback`, 2026-09-04 | **−6** |
+| **written** here: 7 by group A (six from the split, plus `terminalOutcomeVerb.test.ts` — `F-game-lib-9`), 1 by group B (`revealWords.test.ts` — `F-game-lib-17`), 1 by group E (`gameMenu.test.ts` — `F-game-lib-37`) | **+9** |
+| | **= 37** |
+
+`genericFeedback.ts` is in both middle rows: group A's split created it and the
+`feedback` move took it, six days later in file terms and one in real ones.
+That is the only row where a file is counted twice, and it nets to zero.
+
+**Reconciled against the stamps, not against this column** — `grep -rl
+"cs-.*-game-lib" src` returns 37, which is the number to trust here and at
+close: 27 in `lib/game/`, 4 in `lib/members/`, 3 at the `lib/` root, one each in
+`lib/menu/` and `lib/setup/`, and `src/gametypes.ts`.
+
+**A rename moves no number.** `peers.ts` → `lib/members/memberList.ts`
+(`F-game-lib-34`) is the same file at a better name — still this area's, and
+part of why `lib/members/` holds four today.
 
 ## The six groups
 
@@ -146,15 +171,20 @@ ever here because of its name: it holds the durations of BOARD marks — the
 attention wash, the your-turn frame — and answers to tile-feedback, not to
 pills. Its finding (`F-game-lib-29`) stays with it.
 
-### E · The live session — 7 files, 532 lines → **6 files, 496 lines** — **audited 2026-09-04**
+### E · The live session — 7 files, 532 lines in → **8 files, 680 lines out** — **audited + fixed 2026-09-04**
 
-| file | lines |
-|---|---|
-| `gameMenu.ts` | 128 |
-| `gameInvites.ts` + `.test.ts` | 113 + 73 |
-| `pause.ts` + `.test.ts` | 35 + 90 |
-| `infoSheetStore.ts` | 57 |
-| ~~`peers.ts`~~ | ~~36~~ → `lib/members/memberList.ts` (`F-game-lib-34`) |
+| file | lines in | lines now |
+|---|---|---|
+| `gameMenu.ts` | 128 | 129 |
+| `gameMenu.test.ts` | — | **122** — written by `F-game-lib-37` |
+| `gameInvites.ts` + `.test.ts` | 113 + 73 | 115 + 73 |
+| `pause.ts` + `.test.ts` | 35 + 90 | 43 + 90 |
+| `infoSheetStore.ts` | 57 | 57 |
+| `peers.ts` → **`lib/members/memberList.ts`** | 36 | 51 — moved by `F-game-lib-34`, still this area's |
+
+Six files in `lib/game/`, plus the test one of them earned and the one that left
+the folder. The growth is all docstrings and one test file; no behavior changed
+anywhere in the group.
 
 A game in progress: who is seated, who is connected, what the menu offers, which
 mobile page is showing. **The loosest of the six** on the way in — `gameMenu.ts`
@@ -1569,26 +1599,36 @@ when their work ships.
 Seven files, 532 lines, all seven read in full. **No crash-class defect.** The
 one behavior question — a conceded player can still End the whole table — went
 to Joel and came back as **shipped-is-correct** (`F-game-lib-36`, closed the
-same day, no change). The rest is accuracy — five
-docstrings that describe something the code does not do, and a folder name that
-stopped being true when group A's split created `lib/members/`.
+same day, no change). The rest is accuracy — five docstrings that describe
+something the code does not do, and a folder name that stopped being true when
+group A's split created `lib/members/`.
 
-**The audit changed nothing; the two decisions it raised have since been
-taken.** The comment pass and the audit were one read here, and everything it
-turned up was filed rather than swept — including the mechanical items (markers,
-archaeology), because two of them sat next to a decision that had to be settled
-before anyone rewrote the paragraph around it. Both were, the same day:
-`F-game-lib-36`'s rule (**closed, no change**) and `F-game-lib-34`'s folder
-(**done** — `peers.ts` is now `lib/members/memberList.ts`). **Ten findings
-remain open**, all of them accuracy work.
+**Twelve findings; eight settled the same day.** The comment pass and the audit
+were one read here, and everything it turned up was filed rather than swept,
+including the mechanical items (markers, archaeology) — because two of them sat
+next to a decision that had to be settled before anyone rewrote the paragraph
+around them. Both were: `F-game-lib-36`'s rule (**closed, no change**) and
+`F-game-lib-34`'s folder (**done** — `peers.ts` is now
+`lib/members/memberList.ts`).
+
+| status | findings |
+|---|---|
+| RESOLVED | `F-game-lib-30`, `-31`, `-32`, `-33`, `-34`, `-35`, `-37` |
+| CLOSED, no change | `F-game-lib-36` — Joel's ruling |
+| **open** | `F-game-lib-38` (the split's stale doc citations), `-39` (test file docstrings), `-40` (eight field markers), `-41` (the empty-section rule) |
+
+**One behavior change in the group: none.** Six of the seven resolutions are
+prose; the seventh is a `git mv` plus a test file. `gameMenu.ts` is
+byte-identical to what shipped, verified after both of `F-game-lib-37`'s
+planted failures were reverted.
 
 **The group held.** Its own roster paragraph called it "the loosest of the six"
 and offered to redraw it into presence/seating + the two chrome stores. Read
 together, the seven do sit at one seam — the game as a live session — and the
 split that actually wanted making was not inside the group: it was `peers.ts`
-leaving `lib/game/` altogether (`F-game-lib-34`, done). No redraw. **Group E is
-six files now**, and the seam it names is cleaner for having lost the one file
-that never belonged to it.
+leaving `lib/game/` altogether (`F-game-lib-34`, done). No redraw. **Six files
+in `lib/game/` now**, and the seam is cleaner for having lost the one that never
+belonged to it.
 
 ### RESOLVED 2026-09-04 — F-game-lib-30 · `menu-doc-omits-the-chat-row` · "The three framing items" are four
 
@@ -1904,8 +1944,10 @@ a bigger stop than the pause system will let them cause by leaving.
 The counter-argument is in this file's own docstring, and it is a real one:
 ending is *"the group agreeing there's no result"*, and we are friends on a call
 — someone who conceded is still in the conversation, and may be the one who says
-"let's just stop". **Not fixed either way pending a ruling**; the one-word
-version is whether `endItem` should also take `|| !!conceded`.
+"let's just stop". **Nothing was changed either way pending a ruling**; the
+one-word version put to Joel was whether `endItem` should also take
+`|| !!conceded`. It should not — see the closure at the top of this finding, and
+`gameMenu.test.ts` now holds that answer as a case (`F-game-lib-37`).
 
 ### RESOLVED 2026-09-04 — F-game-lib-37 · `offer-end-in-compete-untested` · The one branch with a single user is the one nothing pins
 
@@ -2011,6 +2053,12 @@ question "what does this file defend?" is answered on the second read.
 `gameInvites.test.ts` has the extra wrinkle that its two describes are two
 subjects (the filter, the cutoff), which is what the missing file docstring
 would say.
+
+**The group's third test file arrived with one.** `gameMenu.test.ts`
+(`F-game-lib-37`, 2026-09-04) opens on what it defends — that order is behavior,
+because ⌥⌫ takes the first matching id — so this finding still names exactly the
+two files it named at the audit, and the pattern it is asking for now has a
+worked example one directory over.
 
 ### F-game-lib-40 · `menu-opts-fields-use-docstring-markers` · Eight field notes written as docstrings, in a file whose neighbors were converted
 
@@ -2143,8 +2191,25 @@ not.
 **What did break: the orphaned-docstring guard**, two tests, from line drift
 rather than from anything being wrong. Recorded under `F-game-lib-2`.
 
-**Final:** Vitest **2556/2556** in 269 files, `tsc -b` clean, `vite build` clean.
-ESLint reports one pre-existing warning in `hooks/game/useWordSubmit.ts:264`
-(`react-hooks/exhaustive-deps`, an unnecessary `clearLocalFeedback` dependency);
-this area's only edit to that file was its import path, so the warning predates
-the split and belongs to `hooks`. Described, not fixed.
+**After the split:** Vitest **2556/2556** in 269 files, `tsc -b` clean,
+`vite build` clean. ESLint reports one pre-existing warning in
+`hooks/game/useWordSubmit.ts:264` (`react-hooks/exhaustive-deps`, an unnecessary
+`clearLocalFeedback` dependency); this area's only edit to that file was its
+import path, so the warning predates the split and belongs to `hooks`.
+Described, not fixed.
+
+### Group E's rename — predicted, and what happened
+
+**Predicted: nothing, for the reason the split had already proved.** Moving
+`peers.ts` to `lib/members/memberList.ts` rewrites 19 import lines, and the
+`vi.mock` gotcha above cannot bite a module that is two pure functions: there is
+no runtime behavior to stand in for, so nothing mocks it.
+
+**That held.** No spec named the old path, and no test broke.
+
+**Where the area's suite stands now:** Vitest **2574/2574 in 272 files** — the
+seven cases `F-game-lib-37` added, on top of the 2567/271 that the group E
+prose fixes ran against. `tsc -b` clean; ESLint clean on every file this group
+touched, with the `useWordSubmit` warning above still standing and still
+`hooks`'s. **`vite build` has not been re-run since the split** — say so rather
+than inherit its result, since nothing group E did could plausibly move it.
