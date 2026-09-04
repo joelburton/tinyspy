@@ -61,6 +61,16 @@ measured 908 / 233 / 364.
 is `shared-game-chrome`, and `common/hooks/game/` is a question `hooks` answers at
 its own opening (§7 row 4). Adding this area deliberately does not preempt that.
 
+**SIX FILES LEFT THIS AREA on 2026-09-04** for the new `feedback` area
+([feedback.md](feedback.md)), which runs immediately after this one: the roster is
+now **28 files**. `genericFeedback.ts`, `terminalCopy.ts`, `localPills.ts` +
+test and `genericPills.ts` + test are one vocabulary with the feedback hooks,
+`turnCopy.tsx` and `GenericFeedbackPill` — and no area's roster had ever named
+that last file, which is why nobody could see the whole. Two of the six were
+blessed here and two more were audited here; that work is recorded in
+`feedback.md` and stands. What stayed is `feedbackTiming.ts`, whose name says
+feedback but whose contents are BOARD-mark durations.
+
 ## The six groups
 
 Joel asked for the area in groups rather than one audit (2026-09-03), which is
@@ -120,20 +130,17 @@ group ([game-status-labels.md](../../docs/game-status-labels.md),
 [pdf.md](../../docs/pdf.md), [win-lose.md](../../docs/win-lose.md)), which is the
 argument for reading it in one sitting.
 
-### D · The feedback pills — 5 files, 277 lines
+### D · The feedback pills — 5 files, 277 lines → **1 file, 25 lines**
 
-| file | lines |
-|---|---|
-| `localPills.ts` + `.test.ts` | 92 + 32 |
-| `genericPills.ts` + `.test.ts` | 55 + 73 |
-| `feedbackTiming.ts` | 25 |
+**Audited 2026-09-03; FOUR OF ITS FIVE FILES LEFT THE AREA 2026-09-04.**
+`localPills.ts` + test and `genericPills.ts` + test went to `feedback`
+([feedback.md](feedback.md)) — the audit is what showed they were one vocabulary
+with six hooks, `turnCopy.tsx` and a component no roster owned.
 
-One vocabulary. The two pill files already argue in their docstrings about which
-is which — `genericPills` opens by explaining why it is not `localPills` — so
-they get read together or the distinction gets re-derived. `feedbackTiming` holds
-the durations that vocabulary uses.
-
-**Audited 2026-09-03** — see "Group D" below. Three findings, all this area's.
+What remains in this group is **`feedbackTiming.ts` (25 lines)**, which was only
+ever here because of its name: it holds the durations of BOARD marks — the
+attention wash, the your-turn frame — and answers to tile-feedback, not to
+pills. Its finding (`F-game-lib-29`) stays with it.
 
 ### E · The live session — 7 files, 532 lines
 
@@ -1400,16 +1407,28 @@ correct as history; all sixteen use the shared vocabulary now.
 
 ## Group D — the feedback pills, read 2026-09-03
 
-Five files, 277 lines, all read. **Three findings**, all this area's. One is
-about a seam that doesn't work, one is a duplicated type, one is an unguarded
-hand-maintained pair. No defect in this group belongs to a game, which makes it
-the first group where everything found is fixable from here.
+Five files, 277 lines, all read. **Three findings**, all this area's at the
+time. One is about a seam that doesn't work, one is a duplicated type, one is an
+unguarded hand-maintained pair. No defect belonged to a game, which made it the
+first group where everything found was fixable from here.
+
+**Then two of the three left the area.** Reading these five together is what
+showed that the pill vocabulary is one system spread across six areas, with its
+final component (`GenericFeedbackPill`) owned by none of them — so `feedback`
+was created 2026-09-04 and took four of the five files with it.
+`F-game-lib-27` and `F-game-lib-28` are **MOVED, not resolved**: they are open as
+`F-feedback-1` and `F-feedback-2`. `F-game-lib-29` stays, with
+`feedbackTiming.ts`.
+
+The audit below is kept as written, because it is the evidence the new area
+starts from — and because `F-game-lib-27` is the finding that made the case for
+the area existing.
 
 The comment pass ran BEFORE the audit (as with group B) and is recorded at the
 end of this section, because two of its corrections are what made the first
 finding visible.
 
-### F-game-lib-27 · `sticky-pill-and-not-ok-dont-compose` · The builder that claims every own-move message has 29 of 81
+### MOVED 2026-09-04 to `feedback` — F-game-lib-27 · `sticky-pill-and-not-ok-dont-compose` · The builder that claims every own-move message has 29 of 81
 
 `localPills.ts`'s `stickyPill` is documented as *"The one builder for every
 'here's what your last action did' message."* Counted:
@@ -1441,7 +1460,7 @@ comment fix. Recommendation: make `getNotOkFeedback`'s result passable to a
 builder, so the mode is chosen by picking a function everywhere and not just
 where the text happens to be a literal.
 
-### F-game-lib-28 · `outcome-tone-union-spelled-twice` · A type that names what it duplicates
+### MOVED 2026-09-04 to `feedback` — F-game-lib-28 · `outcome-tone-union-spelled-twice` · A type that names what it duplicates
 
 `localPills.ts:38`:
 

@@ -1,4 +1,4 @@
-// cs-met-game-lib
+// cs-met-feedback
 
 import { describe, expect, it } from 'vitest'
 import { outOfRacePill, stickyPill, terminalPill } from './localPills'

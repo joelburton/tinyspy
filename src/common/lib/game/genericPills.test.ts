@@ -1,4 +1,4 @@
-// cs-met-game-lib
+// cs-met-feedback
 
 import { describe, expect, it } from 'vitest'
 import { getNotOkFeedback } from './genericPills'

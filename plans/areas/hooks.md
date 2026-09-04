@@ -23,6 +23,12 @@ Joel when the area actually opens, by listing its files and stopping.
 *(agreed with Joel when the area opens — §21: list the files and STOP)*
 
 **`common/hooks/` is 87 files and 12,177 lines**, which is not one sitting.
+
+**Six of those went to `feedback` on 2026-09-04** — all of `hooks/feedback/`
+(`useLocalFeedback`, `useGlobalFeedback`, `useDismissLocalFeedbackOnKey`, with
+their tests), leaving **81 files**. They are one vocabulary with the pill
+builders and the pill component, and splitting the slot from the message is what
+had kept anyone from seeing the system whole. See [feedback.md](feedback.md).
 Measured 2026-09-02, by folder:
 
 | folder | files | tests | lines | |

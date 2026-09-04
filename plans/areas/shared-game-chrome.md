@@ -6,6 +6,13 @@ areas, in order"), this file holds everything else.
 
 **What it is.** `common/components/game/` — the chrome around every play surface. 258 rules, and every game sits on it.
 
+**`turnCopy.tsx` went to `feedback` on 2026-09-04** — it holds two message
+builders (`waitingTurnPill`, `yourTurnPill`), which are the same vocabulary as
+`localPills` rather than chrome. `GamePage.tsx` stays here, but **the global
+feedback slot it holds inline is `feedback`'s concern**: whatever that area
+decides about slot ownership lands as a change this one applies.
+See [feedback.md](feedback.md).
+
 **Status: NOT OPENED.** Not opened. Also owns the **contract-slot guard**, checked per mount point (§9, §10).
 
 This file exists **before** the area opens so there is somewhere to put a note
@@ -35,32 +42,12 @@ the area.
 
 ### Already waiting for this area
 
-#### `GenericFeedbackPill`'s docstring names a property that doesn't exist
+#### MOVED 2026-09-04 to `feedback` — `GenericFeedbackPill`'s docstring names a property that doesn't exist
 
-From `game-lib` group D, 2026-09-03. `common/components/feedback/GenericFeedbackPill.tsx:49`:
-
-> *`msg.variant` is the transient-vs-permanent axis (docs/ui.md → …)*
-
-**There is no `variant` on the message type.** `GenericFeedbackMsg`
-(`common/lib/feedback/genericFeedback.ts`) declares `tone`, `text` and `mode`,
-and nothing else. The axis the sentence describes is real, but it is derived —
-twelve lines below the claim, at `:65`:
-
-```ts
-const outline = kind !== 'permanent'
-```
-
-So the docstring sends a reader looking for a prop to set, when the answer is
-that `mode` decides it and there is nothing to set. Worth checking at the same
-time whether any surface believes the docstring: **strands does** — see the note
-filed in [strands.md](strands.md), where a message carries a `variant` that
-nothing reads.
-
-**Roster note:** this file is `cs-unmet` and no area's roster names it. It is
-filed here because it is the below-board pill and every game sits on it, but
-this area's stated scope is `common/components/game/` and the pill is in
-`common/components/feedback/`. Confirm the assignment when the area opens; the
-alternative homes are `common-hosts` and `hooks`.
+Filed here on 2026-09-03 with a roster caveat, because the file was `cs-unmet`
+and no area's roster named it. That is now settled: it belongs to `feedback`
+([feedback.md](feedback.md) → "Already waiting for this area"), along with the
+`strands` call site that believed the docstring.
 
 ## Predicted test breaks
 

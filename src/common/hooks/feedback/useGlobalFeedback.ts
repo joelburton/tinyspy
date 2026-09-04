@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-feedback
 
 import { useEffect, useRef } from 'react'
 import type { GenericFeedbackApi, GenericFeedbackMsg } from '../../lib/feedback/genericFeedback'

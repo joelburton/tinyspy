@@ -1,4 +1,4 @@
-// cs-blessed-game-lib
+// cs-met-feedback
 
 /**
  * The per-status copy a game's terminal state shows — every game's `buildOver()`

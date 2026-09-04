@@ -1,4 +1,4 @@
-// cs-met-game-lib
+// cs-met-feedback
 
 import type { ReactNode } from 'react'
 import type { Outcome } from '../outcomes'
