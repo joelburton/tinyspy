@@ -4,9 +4,9 @@
  * The vocabulary every game's `labelFor` speaks — the club-page **status
  * line**, the second line of a game card (see docs/game-status-labels.md).
  *
- * Thirteen games each wrote their own strings and drifted into six words for
- * "in progress" and four phrasings of "alice won". These helpers exist so the
- * shape is decided once:
+ * Every game wrote its own strings, and they drifted into six words for "in
+ * progress" and four phrasings of "alice won". These helpers exist so the shape
+ * is decided once:
  *
  *     OUTCOME (why) · other · facts
  *
@@ -40,7 +40,7 @@ export function statusLine(...parts: (string | null | undefined | false)[]): str
 }
 
 /**
- * An outcome word with an optional parenthesised reason:
+ * An outcome word with an optional parenthesized reason:
  * `Lost` / `Lost (out of time)`. The reason is the *why*, phrased in the
  * game's own noun — "out of guesses", "out of swaps", "4 mistakes".
  */
@@ -86,7 +86,7 @@ export function tally(
   return `${have}/${total} ${noun}`
 }
 
-/** `1 mistake` / `2 mistakes` — pluralise a counted noun. */
+/** `1 mistake` / `2 mistakes` — pluralize a counted noun. */
 export function count(n: number | null | undefined, noun: string, plural = `${noun}s`): string | null {
   if (n == null) return null
   return `${n} ${n === 1 ? noun : plural}`

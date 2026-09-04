@@ -63,9 +63,10 @@ import { timerLabel } from './timerLabel'
 export type SetupRow = {
   /**
    * The setup key this row describes — `'timer'`, `'legal_band'`, … Nothing
-   * RENDERS it; it exists so `setupRows.test.ts` can assert that every key in a
-   * game's default setup produces a row. A convention that two lists agree is
-   * exactly what we had before, and it drifted; this makes it a failing build.
+   * RENDERS it; it exists so `src/guards/setupRows.test.ts` can assert that
+   * every key in a game's default setup produces a row. A convention that two
+   * lists agree is exactly what we had before, and it drifted; this makes it a
+   * failing build.
    *
    * The PSEUDO-KEYS below are the rows that describe something real but aren't
    * a key on the setup object: the roster, and the board's own letters.
@@ -80,7 +81,7 @@ export type SetupRow = {
   value: string
 }
 
-/** Row keys that aren't keys on a game's setup object. */
+/** Who played. One of the two pseudo-keys — see `SetupRow.key`. */
 export const ROSTER_KEY = 'players'
 
 /**

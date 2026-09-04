@@ -1142,6 +1142,59 @@ the first thing a reader needs in order to know why any of it matters.
 
 All eight files in the group now carry one, `revealWords.test.ts` included.
 
+### RESOLVED 2026-09-03 — F-game-lib-26 · `group-c-comment-pass` · A comments audit of the six, after they were done
+
+Same pass as `F-game-lib-13` did for group A: re-read all six files end to end
+once the findings were fixed, and check every comment and docstring against the
+code rather than against the last reading of it. Seven corrections, in three
+classes.
+
+**One false claim about other games** — the class this area keeps producing.
+`terminalCopy.ts:21` said the manual-end copy was *"Identical across games (the
+`'ended'` branch led every `buildOver`)"*. Thirteen of sixteen games call
+`endedCopy()`. The header now says most games call it and that it is **not** a
+guarantee about what a player sees, and names MothCubes' deliberate divergence
+(`Ended: 12/40` — a compete word hunt spends the pill's width on the tally, and
+its own comment says so). The other two are unconverted rather than decided and
+went to their areas:
+
+- **RackAttack** hand-writes `{ verdict: 'Ended', message: 'Ended' }`, so the
+  same event reads differently there than anywhere else — and `verdict` equals
+  `message`, which is the one thing `TerminalCopy` exists to separate. Filed in
+  [scrabble.md](scrabble.md).
+- **MonkeyGrams** has no manual-end arm at all; its ternary appears to fall
+  through and announce a winner for a game nobody won. Filed in
+  [bananagrams.md](bananagrams.md) as a **suspected** bug needing a repro.
+
+**Two British spellings the guard does not carry.** `parenthesised` and
+`pluralise` (`statusLabel.ts`), `ellipsising` twice (`terminalCopy.ts`).
+`guards/americanSpelling.test.ts` is an explicit word list with no `-ise` rule
+by design — its own docstring explains why (`advertise`, `surprise` and two
+dozen more are correct) — so none of these four failed anything. The repo
+already spells both the American way elsewhere, which is how they were spotted.
+**Three more instances sit outside this area** and were left there:
+`scrabble/components/PlayArea.test.tsx` (`parenthesised`),
+`wordiply/components/PlayArea.tsx` and `crosswords/components/PlayArea.tsx`
+(`ellipsising`), plus `wordwheel`'s `ellipsises`.
+
+**One more roster count**, `statusLabel.ts:7`: *"Thirteen games each wrote their
+own strings"* — sixteen now, and the number was never the point. Reads "Every
+game wrote its own strings" and says the same thing permanently.
+
+**Two pointers that pointed at nothing.** `setupRows.ts`'s `SetupRow.key` cited
+`setupRows.test.ts`, which does not exist — there is no sibling test; the guard
+is `src/guards/setupRows.test.ts`, which the same file cites correctly forty
+lines above. And `ROSTER_KEY`'s docstring read *"Row keys that aren't keys on a
+game's setup object"* — plural, written to head both pseudo-key constants, but
+attached to one of them, leaving `BOARD_KEY` looking like it had wandered in.
+
+**What checked out**, verified rather than assumed: `coopRows`' *"everything
+with a `<SetupCoopStyleSection>`"* (nine dialogs, the same nine recaps);
+`dictLabel`'s named three (waffle, wordle, stackdown — exactly the three
+manifests that import it); `timerRow`'s *"every game's dialog offers"* (all
+sixteen, crosswords included); `difficulty.ts`'s `DictBandField`; and the
+`outcome_won|lost|neutral` classes `TerminalCopy.tone` names.
+
 ### What checked out — verified, not assumed
 
 The arithmetic in `rankLadder.ts` is unusually well-defended and every claim

@@ -108,6 +108,30 @@ value survive on the surface nobody proofreads.
 Worth fixing **first and separately**: it is a wrong sentence on a record people
 keep and print, it is one line, and it does not wait on the refactor.
 
+#### A manual end has no branch at all — it prints a winner that doesn't exist
+
+From `game-lib` group C, 2026-09-03. **Suspected bug, needs a repro before it is
+believed.** `components/PlayArea.tsx:575-583` builds the terminal copy as one
+ternary chain over `ctx.status?.outcome`: `timeout`, then `conceded`, then
+`selfWon`, then a final else that reads
+
+```ts
+{ verdict: `${winnerName} went out — Bananas!`, message: `${winnerName} won`, tone: 'lost' }
+```
+
+There is no arm for a manual end (`play_state === 'ended'`), which is the
+terminal the other games route to the shared `endedCopy()`. If a game is stopped
+by agreement, this appears to fall through to that last arm and announce a
+winner for a game nobody won — with `winnerName` whatever it resolves to when
+there is no winner.
+
+Every other game handles this: thirteen call `endedCopy(mode)` and MothCubes
+writes its own on purpose. This game alone has no branch.
+
+**Verify before fixing** — end a bananagrams game manually and read the pill.
+The chain may be unreachable for `ended` if `isTerminal` excludes it, in which
+case the finding is that the code cannot say so.
+
 ## Predicted test breaks
 
 *(written when the area starts changing things, per §21's test-break rule: predict

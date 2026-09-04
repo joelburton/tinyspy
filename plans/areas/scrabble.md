@@ -47,6 +47,32 @@ Rows §7 → "Carried forward" already assigns here, indexed so opening this are
 - `ScrabbleBlankPickerBlockingModal`'s overlay at `z-index: 50`, below the panel tier — the ladder's known anomaly
 - `<ShuffleButton>` should never take focus at all — game stuff doesn't. The fix is removing the tab stop, not restyling the ring
 
+#### The manual-end terminal is hand-written, and reads differently from every other game
+
+From `game-lib` group C, 2026-09-03. `components/PlayArea.tsx:765`:
+
+```ts
+if (playState === 'ended') return { verdict: 'Ended', message: 'Ended', tone: 'neutral' }
+```
+
+Thirteen games call the shared `endedCopy(mode)` from
+`common/lib/game/terminalCopy.ts`, which returns `Game ended` (coop) /
+`Game ended — no winner` (compete) with `Game over` as the message. RackAttack
+says `Ended` on both surfaces instead, so the same event reads differently here
+than anywhere else in the app.
+
+Two things wrong beyond the drift:
+
+- **`verdict` and `message` are the same string**, which is the one thing
+  `TerminalCopy` exists to separate — its own docstring calls them "two cuts at
+  the same outcome, for two surfaces of different width".
+- **No comment says why.** MothCubes also diverges here and explains itself (a
+  compete word hunt spends the pill's width on the tally); this looks
+  unconverted rather than decided.
+
+The fix is almost certainly `return endedCopy(mode)`. Left for this area in case
+the divergence turns out to be wanted, in which case it needs a comment instead.
+
 ## Predicted test breaks
 
 *(written when the area starts changing things, per §21's test-break rule: predict
