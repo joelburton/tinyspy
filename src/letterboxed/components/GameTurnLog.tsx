@@ -11,7 +11,7 @@ import {
   type TurnOutcome,
 } from '../../common/components/game/lists/TurnLog'
 import { TurnLogActor } from '../../common/components/game/lists/TurnLogActor'
-import { memberById } from '../../common/lib/game/peers'
+import { memberById } from '../../common/lib/members/memberList'
 import { BOARD_SIZE } from '../lib/board'
 import { hintPrefix } from '../lib/help'
 import type { EventRow } from '../hooks/useGame'

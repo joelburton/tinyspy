@@ -15,7 +15,7 @@ import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandle
 import { useFlash } from '../../common/hooks/ui/useFlash'
 import { outOfRacePill, stickyPill, terminalPill } from '../../common/lib/game/localPills'
 import { waitingTurnPill } from '../../common/components/game/turnCopy'
-import { memberById } from '../../common/lib/game/peers'
+import { memberById } from '../../common/lib/members/memberList'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { NEW_GAME_CONFIRM, useConfirmation } from '../../common/hooks/ui/useConfirmation'
 import { useAcknowledge } from '../../common/hooks/ui/useAcknowledge'

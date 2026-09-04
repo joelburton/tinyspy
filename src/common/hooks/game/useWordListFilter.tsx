@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import type { WordListRow } from '../../components/game/lists/WordList'
 import infoPanel from '../../components/game/infoPanel.module.css'
-import { orderSelfFirst } from '../../lib/game/peers'
+import { orderSelfFirst } from '../../lib/members/memberList'
 import { FilterSelect } from '../../components/game/FilterSelect'
 import type { Member } from '../../lib/members/member'
 

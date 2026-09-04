@@ -143,9 +143,10 @@ lib/
                  #   its own module because its readers are its own — 32 files
                  #   import it and all 32 are a game's components
   members/       # who someone is — Member + GamePlayer (member.ts, TYPES ONLY so
-                 #   its 103 importers erase at runtime), and the one value that
-                 #   reads them (terminalOutcomeVerb.ts)
-      member, terminalOutcomeVerb
+                 #   its 103 importers erase at runtime), and the values that
+                 #   read them: the terminal verb, and the two operations on a
+                 #   LIST of members (order it, find one in it)
+      member, terminalOutcomeVerb, memberList
   setup/         # the <SetupGameModal> ↔ game-form contract — SetupBodyProps,
                  #   SetupSetter, SetupOf, GameSetupForm
       setupForm
@@ -158,7 +159,7 @@ lib/
   routing/       # the hash router + <Link>
       router, Link
   game/          # game-logic helpers (NOT the registry above)
-      gridCursor, pause, terminalCopy, timerLabel, difficulty, peers, gameInvites,
+      gridCursor, pause, terminalCopy, timerLabel, difficulty, gameInvites,
       trie (the flat dictionary trie shared by boggle's solver + scrabble's suggester)
   definitions/   # dictionary-definition parsing
       parseDefinition

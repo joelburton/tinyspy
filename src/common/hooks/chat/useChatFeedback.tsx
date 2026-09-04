@@ -2,7 +2,7 @@
 
 import { useClubChat } from './useClubChat'
 import { useGlobalFeedback } from '../feedback/useGlobalFeedback'
-import { memberById } from '../../lib/game/peers'
+import { memberById } from '../../lib/members/memberList'
 import type { Member } from '../../lib/members/member'
 import type { GenericFeedbackApi } from '../../lib/feedback/genericFeedback'
 

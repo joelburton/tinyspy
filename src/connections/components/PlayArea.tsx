@@ -21,7 +21,7 @@ import { useConfirmation, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConf
 import { useAcknowledge } from '../../common/hooks/ui/useAcknowledge'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
-import { memberById } from '../../common/lib/game/peers'
+import { memberById } from '../../common/lib/members/memberList'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { buildConnectionsPrintModel } from '../pdf/model'

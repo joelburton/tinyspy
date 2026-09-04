@@ -3,7 +3,7 @@
 import type { MouseEvent } from 'react'
 import { TurnLogActor } from '../../common/components/game/lists/TurnLogActor'
 import { cls } from '../../common/lib/util/cls'
-import { memberById } from '../../common/lib/game/peers'
+import { memberById } from '../../common/lib/members/memberList'
 import { useDefinePopover } from '../../common/hooks/definitions/useDefinePopover'
 import { TurnLog, TurnLogBar, TurnLogNumber } from '../../common/components/game/lists/TurnLog'
 import turnLog from '../../common/components/game/lists/TurnLog.module.css'

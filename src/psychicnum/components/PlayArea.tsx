@@ -21,7 +21,7 @@ import { solvedByMe, useSolutionReveal } from '../../common/hooks/game/useSoluti
 import { useSingleFlight } from '../../common/hooks/ui/useSingleFlight'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { setupRows } from '../lib/setupSummary'
-import { memberById } from '../../common/lib/game/peers'
+import { memberById } from '../../common/lib/members/memberList'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'

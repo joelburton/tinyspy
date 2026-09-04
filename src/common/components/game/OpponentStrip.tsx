@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react'
 import type { Member } from '../../lib/members/member'
-import { orderSelfFirst } from '../../lib/game/peers'
+import { orderSelfFirst } from '../../lib/members/memberList'
 import { Dot } from '../text/Dot'
 import styles from './OpponentStrip.module.css'
 

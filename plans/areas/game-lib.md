@@ -146,7 +146,7 @@ ever here because of its name: it holds the durations of BOARD marks — the
 attention wash, the your-turn frame — and answers to tile-feedback, not to
 pills. Its finding (`F-game-lib-29`) stays with it.
 
-### E · The live session — 7 files, 532 lines — **audited 2026-09-04**
+### E · The live session — 7 files, 532 lines → **6 files, 496 lines** — **audited 2026-09-04**
 
 | file | lines |
 |---|---|
@@ -154,14 +154,16 @@ pills. Its finding (`F-game-lib-29`) stays with it.
 | `gameInvites.ts` + `.test.ts` | 113 + 73 |
 | `pause.ts` + `.test.ts` | 35 + 90 |
 | `infoSheetStore.ts` | 57 |
-| `peers.ts` | 36 |
+| ~~`peers.ts`~~ | ~~36~~ → `lib/members/memberList.ts` (`F-game-lib-34`) |
 
 A game in progress: who is seated, who is connected, what the menu offers, which
-mobile page is showing. **The loosest of the six**, and the one to redraw first if
-any needs it — `gameMenu.ts` and `infoSheetStore.ts` are chrome-adjacent, talking
-to `shared-game-chrome`'s components, so the seam that bothers anyone bothers
-them here. If it splits, it splits into presence/seating and the two chrome
-stores.
+mobile page is showing. **The loosest of the six** on the way in — `gameMenu.ts`
+and `infoSheetStore.ts` are chrome-adjacent, talking to `shared-game-chrome`'s
+components, so the seam that bothers anyone bothers them here. It was offered a
+redraw into presence/seating + the two chrome stores and **did not need one**:
+the audit found the loose file was `peers.ts`, which was not about this seam or
+any other in `lib/game/`, and moving it out left the rest coherent. It stays
+this area's file at its new path.
 
 ### F · The two pure algorithms — 4 files, 249 lines
 
@@ -1571,18 +1573,22 @@ same day, no change). The rest is accuracy — five
 docstrings that describe something the code does not do, and a folder name that
 stopped being true when group A's split created `lib/members/`.
 
-**Nothing was changed.** The comment pass and the audit were one read here, and
-everything it turned up is filed rather than swept — including the mechanical
-items (markers, archaeology), because two of them sit next to a decision that
-should be settled before anyone rewrites the paragraph around it —
-`F-game-lib-36`'s rule, since ruled on, and `F-game-lib-34`'s folder, still
-open.
+**The audit changed nothing; the two decisions it raised have since been
+taken.** The comment pass and the audit were one read here, and everything it
+turned up was filed rather than swept — including the mechanical items (markers,
+archaeology), because two of them sat next to a decision that had to be settled
+before anyone rewrote the paragraph around it. Both were, the same day:
+`F-game-lib-36`'s rule (**closed, no change**) and `F-game-lib-34`'s folder
+(**done** — `peers.ts` is now `lib/members/memberList.ts`). **Ten findings
+remain open**, all of them accuracy work.
 
 **The group held.** Its own roster paragraph called it "the loosest of the six"
 and offered to redraw it into presence/seating + the two chrome stores. Read
 together, the seven do sit at one seam — the game as a live session — and the
-split that actually wants making is not inside the group: it is `peers.ts`
-leaving `lib/game/` altogether (`F-game-lib-34`). No redraw.
+split that actually wanted making was not inside the group: it was `peers.ts`
+leaving `lib/game/` altogether (`F-game-lib-34`, done). No redraw. **Group E is
+six files now**, and the seam it names is cleaner for having lost the one file
+that never belonged to it.
 
 ### F-game-lib-30 · `menu-doc-omits-the-chat-row` · "The three framing items" are four
 
@@ -1667,7 +1673,7 @@ one name. This is the rule CLAUDE.md keeps in `docs/games/*` (brand lives in
 'Join'")* — and `:193` names `useGameInvitations` as one of the three consumers.
 The word appears twice in this file.
 
-### F-game-lib-34 · `peers-is-not-about-peers` · Two member-list helpers, named for presence, sitting in the wrong folder since the split
+### RESOLVED 2026-09-04 — F-game-lib-34 · `peers-is-not-about-peers` · Two member-list helpers, named for presence, sitting in the wrong folder since the split
 
 `peers.ts` holds `orderSelfFirst` (you first, then everyone alphabetically) and
 `memberById` (the `user_id` → member lookup). Neither touches presence,
@@ -1677,9 +1683,12 @@ created `lib/members/` for exactly that**, with the rule already worked out:
 value that reads them lives beside it as its own module
 (`terminalOutcomeVerb.ts`).
 
-`memberById` has **16 importers**; `orderSelfFirst` has 4. So the file is not
-small enough to be beneath the question, and `lib/members/` is not a folder that
-has to be invented for it.
+**Nineteen files import from `lib/game/peers`**, and the two halves are used
+very differently: `memberById` is called 19 times across 16 files — 15 games and
+`useChatFeedback` — while `orderSelfFirst` has exactly **three** call sites,
+every one of them in `common/` (`OpponentStrip`, `useTurnLogPlayerPicker`,
+`useWordListFilter`). So the file is not small enough to be beneath the
+question, and `lib/members/` is not a folder that has to be invented for it.
 
 Two more things in the same 36 lines:
 
@@ -1688,16 +1697,53 @@ Two more things in the same 36 lines:
   landed here; the duplication was **review item 4.2**."* CLAUDE.md: how it used
   to work is not useful. The review it names is finished and deleted, so the
   number resolves to nothing.
-- **The stated consumer is one of four.** *"the stable 'You, then peers' order
-  every in-game progress strip wants (see `OpponentStrip`)"* — the four callers
-  are `OpponentStrip`, `useTurnLogPlayerPicker`, `useWordListFilter` and
-  `scrabble/InfoCol`, and only the first is a progress strip. Same shape as
-  `F-game-lib-6`.
+- **The stated consumer is one of three.** *"the stable 'You, then peers' order
+  every in-game progress strip wants (see `OpponentStrip`)"* — the other two
+  callers are `useTurnLogPlayerPicker` (a filter dropdown) and
+  `useWordListFilter` (a word-list filter), neither of them a progress strip.
+  Same shape as `F-game-lib-6`. **This entry first said four callers, counting
+  `scrabble/InfoCol.tsx:227` — which only NAMES the function in a comment about
+  seat order.** Corrected by listing the call sites; a mention is not a caller.
 
 **Recommendation:** move the two to `lib/members/`, under a name that says what
 they do to a member list. That leaves `lib/game/` holding game logic and
 `lib/members/` holding identity, which is the split group A already argued for
 and stopped one file short of.
+
+#### Resolved 2026-09-04 — three calls put to Joel, all three taken
+
+The recommendation carried three open choices; Joel took the recommended answer
+on each (*"i'll go with your recs. do it."*):
+
+| choice | taken |
+|---|---|
+| the name | **rename**, not just a folder move — `lib/members/memberList.ts`. "Peers" is the word that made this hard to find |
+| one file or two | **keep them together.** Group A's reason for splitting `terminalOutcomeVerb.ts` off `member.ts` was runtime erasure, and it does not apply: both of these are values |
+| does `orderSelfFirst` move too | **yes.** Its three callers are all `common/` components, which was the one argument for leaving it — but what it operates on is still a member list |
+
+**`git mv` + 19 import rewrites**, no call site otherwise touched. Clean at
+`npx tsc -b`, and **vitest 2567/2567 in 271 files**. No test named the old path:
+nothing mocks it, because it is two pure functions with nothing to stand in for
+— the same reason `F-game-lib-1`'s much larger split broke no mock.
+
+**The docstrings did not just move — they were rewritten on the way**, which is
+where the rest of the finding went:
+
+- The archaeology is gone — the copy-paste history and `review item 4.2`, a
+  number that no longer resolves to anything.
+- `orderSelfFirst` now names **all three** of its callers and says what the
+  order is FOR (the viewer first, then a list that does not reorder itself as
+  scores move), instead of naming one and generalizing from it.
+- A short file docstring says why the pair sits in `members/` and, explicitly,
+  why it is not IN `member.ts`: that module is types-only so its 103 imports
+  erase at runtime, and a value module cannot promise that.
+
+`docs/common-folders.md` updated as the work landed (§13's 6c rule): `peers`
+leaves the `lib/game/` line, and the `members/` block now reads "the values that
+read them" — the terminal verb, and the two operations on a list.
+
+**The file keeps its `cs-audited-game-lib` stamp.** A rename is not a creation:
+this is the same file, at a name that describes it.
 
 ### F-game-lib-35 · `info-sheet-says-thirteen-games` · Thirteen is sixteen, and the count should go rather than be corrected
 

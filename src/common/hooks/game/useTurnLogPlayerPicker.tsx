@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { useState } from 'react'
-import { orderSelfFirst } from '../../lib/game/peers'
+import { orderSelfFirst } from '../../lib/members/memberList'
 import type { Member } from '../../lib/members/member'
 import { FilterSelect } from '../../components/game/FilterSelect'
 

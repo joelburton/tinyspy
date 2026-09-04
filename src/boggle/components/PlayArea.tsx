@@ -17,7 +17,7 @@ import { CelebrationBlockingModal } from '../../common/components/game/Celebrati
 import { useCelebration } from '../../common/hooks/game/useCelebration'
 import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback'
 import { outOfRacePill } from '../../common/lib/game/localPills'
-import { memberById } from '../../common/lib/game/peers'
+import { memberById } from '../../common/lib/members/memberList'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import { useWordSubmit, wordWithBonusDot, type WordEntry } from '../../common/hooks/game/useWordSubmit'
 import { useSingleFlight } from '../../common/hooks/ui/useSingleFlight'

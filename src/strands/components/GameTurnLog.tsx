@@ -5,7 +5,7 @@ import { TurnLog, TurnLogBar, TurnLogNumber, type TurnOutcome } from '../../comm
 import { TurnLogActor } from '../../common/components/game/lists/TurnLogActor'
 import { useTurnLogPlayerPicker } from '../../common/hooks/game/useTurnLogPlayerPicker'
 import { useDefinePopover } from '../../common/hooks/definitions/useDefinePopover'
-import { memberById } from '../../common/lib/game/peers'
+import { memberById } from '../../common/lib/members/memberList'
 import {
   IconBestFind,
   IconHint,
