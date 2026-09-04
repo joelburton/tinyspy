@@ -15,14 +15,22 @@ export type LeaderboardEntry = {
   found_words_count: number
 }
 
-/** Type-narrow read for `status.leaderboard`. Returns an empty array if
- *  the field is missing or malformed (defensive — the server writes it
- *  on every submit, but pre-first-submission it's `[]`). */
-export function readLeaderboard(
+/**
+ * Type-narrow read for `status.leaderboard`. Returns an empty array if the
+ * field is missing or malformed (defensive — the server writes it on every
+ * submit, but pre-first-submission it's `[]`).
+ *
+ * **Generic over the ROW, because every compete game keeps a leaderboard and
+ * they do not agree on its columns** — each scores differently. The defensive
+ * read is the shared part; `LeaderboardEntry` is only the default, for the two
+ * rank-ladder games. A game with its own row calls
+ * `readLeaderboard<ItsRow>(status)` rather than writing the cast inline.
+ */
+export function readLeaderboard<T = LeaderboardEntry>(
   status: Record<string, unknown> | null,
-): LeaderboardEntry[] {
+): T[] {
   if (!status) return []
   const raw = status.leaderboard
   if (!Array.isArray(raw)) return []
-  return raw as LeaderboardEntry[]
+  return raw as T[]
 }

@@ -973,6 +973,65 @@ With the five on the opening roster — `gameManifest.ts`, `gameManifest.test.ts
 files at `cs-audited-game-lib`. Two of the originals were renamed by
 `F-game-lib-12`; none was deleted.
 
+### RESOLVED 2026-09-03 — F-game-lib-15 · `boggle-is-the-third-hive-game` · Two shared modules widened for a game the extraction stopped short of
+
+Raised at group B's opening, before its files were read, by Joel asking the
+question the roster invites: *"are spellingbee + wordwheel the only users? does
+boggle use any of these files (it's fairly similar to the other two)"*.
+
+**It uses one of five** — `revealWords.ts`. Investigating the other four turned
+up that boggle is a third member of this family, and that ONE of the reasons it
+was left out is written down and false.
+
+| module | boggle | verdict |
+|---|---|---|
+| `revealWords.ts` | already shares it | — |
+| `foundWordsDisplayRows.ts` | its own 48-line copy | **same algorithm line for line**, differing only by `isPangram` |
+| `foundWordsLeaderboard.ts` | two inline casts | its `LeaderRow` is `LeaderboardEntry` minus `rank_idx` |
+| `foundWords.ts` (header type) | `board`/`n`/`min_word_length` | genuinely different game |
+| `rankLadder.ts` | no ranks at all | genuinely inapplicable |
+
+**The false note.** `foundWordsDisplayRows.ts` ended with *"boggle deliberately
+keeps a different rule (per-player duplicates in compete) — it has its own
+displayRows and must NOT use this one."* Boggle dedups by word to the earliest
+finder identically, and its own tests assert it (*"each found word once"*,
+*"dedups a word to its earliest finder"*). **There is no per-player-duplicates
+rule anywhere in boggle.** Corrected — a false justification is worse than none,
+because it is how a wrong decision survives by being cited. `revealWords`'s own
+docstring cites the same premise, and was always the counter-example: it was
+split out precisely so all THREE games could share it.
+
+**Widened, both strictly additive, both leaving spellingbee and wordwheel
+untouched:**
+
+- `readLeaderboard<T = LeaderboardEntry>` — one line. The defensive read is the
+  shared part; the row never was.
+- `buildDisplayRows` takes STRUCTURAL parameters (`DisplayableFound` /
+  `DisplayableReveal`, `is_pangram` optional) instead of the named types. The
+  named types still satisfy them, and the body needed no edit at all since
+  `WordListRow.isPangram` was already optional.
+
+**Verified by compiling boggle's real types against both signatures**, not by
+assuming: a temporary probe importing boggle's `FoundWordRow` and its
+`LeaderRow` typechecked clean, then was removed.
+
+**`makeFoundWordsGame` was considered and REJECTED.** 57% of boggle's `useGame`
+is byte-identical to it (53 of 93 code lines, indentation normalized) — same
+state, same two `readRows` chains, same failure-slot split — but boggle reads
+`games` where the hive games read a `games_state` view, with different columns
+and a different header type. Sharing it means parameterising the table, the
+select list and the row→object mapping. Joel, 2026-09-03: *"i prefer clarity and
+not over-generalizing … the third sounds like one i'd skip."*
+
+**The call sites are boggle's**, noted in plans/areas/boggle.md → "Already
+waiting for this area": adopting these deletes `boggle/lib/displayRows.ts` and
+its test, and replaces two inline casts. Group B did all the widening without
+touching a game — the same handoff shape as `F-utils-7` and `F-game-lib-11`.
+
+**This also resolves `F-game-lib-11`'s common half**, which asked for exactly
+the `readLeaderboard<T>` generalization; what remains of it is the four games'
+inline casts, each that game's own area.
+
 ## Predicted test breaks
 
 *(written when the area starts changing things, per §21's test-break rule:

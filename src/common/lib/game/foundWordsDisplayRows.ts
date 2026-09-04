@@ -1,8 +1,6 @@
 // cs-met-game-lib
 
 import type { WordListRow } from '../../components/game/lists/WordList'
-import type { FoundWordRow, FoundWordsWord } from './foundWords'
-import type { RevealWord } from './revealWords'
 
 /**
  * Build the alphabetized shared `WordListRow`s from the found words + (post-
@@ -26,17 +24,46 @@ import type { RevealWord } from './revealWords'
  *
  * Pure + synchronous so it's unit-testable away from the component.
  *
- * NOTE: this is the SET-semantics dedup (one row per distinct word). boggle
- * deliberately keeps a different rule (per-player duplicates in compete) — it
- * has its own displayRows and must NOT use this one.
+ * **The parameters are STRUCTURAL, not the named types**, so a word-hunt game
+ * without pangrams can pass its own rows. `FoundWordRow` and `FoundWordsWord`
+ * still satisfy them — a required field is assignable to an optional one — so
+ * spellingbee and wordwheel are unaffected, and `WordListRow.isPangram` is
+ * already optional, so the body needs no branch.
+ *
+ * That was widened for boggle, which keeps a byte-for-byte copy of this
+ * function in `boggle/lib/displayRows.ts` differing only by that one field.
+ * **A note here used to say boggle "deliberately keeps a different rule
+ * (per-player duplicates in compete)" and must NOT use this one — that was
+ * false**: boggle dedups by word to the earliest finder exactly as this does,
+ * and its own tests say so. Adopting it is boggle's to do
+ * (plans/areas/boggle.md); this side is ready.
  */
+
+/** What this needs off a found row — `FoundWordRow` and boggle's both fit. */
+type DisplayableFound = {
+  word: string
+  user_id: string
+  points: number
+  is_bonus: boolean
+  found_at: string
+  is_pangram?: boolean
+}
+
+/** What this needs off a reveal entry. Same story, minus the finder. */
+type DisplayableReveal = {
+  word: string
+  points: number
+  is_bonus: boolean
+  is_pangram?: boolean
+}
+
 export function buildDisplayRows(
-  foundWords: FoundWordRow[],
-  revealWords: RevealWord<FoundWordsWord>[] | null | undefined,
+  foundWords: DisplayableFound[],
+  revealWords: readonly DisplayableReveal[] | null | undefined,
 ): WordListRow[] {
   // Dedup found rows by word, keeping the earliest finder. `found_at` is an ISO
   // timestamp, so a lexicographic compare is chronological.
-  const foundByWord = new Map<string, FoundWordRow>()
+  const foundByWord = new Map<string, DisplayableFound>()
   // Every finder per word, in first-found order — the WHO filter's input.
   const findersByWord = new Map<string, string[]>()
   for (const r of [...foundWords].sort((a, b) => a.found_at.localeCompare(b.found_at))) {
