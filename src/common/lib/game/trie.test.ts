@@ -55,4 +55,19 @@ describe('walkWord', () => {
     expect(walkWord(trie, 'catsup')).toBe(-1)
     expect(walkWord(trie, 'c-t')).toBe(-1)
   })
+
+  it('returns -1 for the empty string rather than the root node', () => {
+    // Walking nothing lands on node 0, which is also `children`'s "no child"
+    // sentinel — so returning it would hand back a value that means the
+    // opposite everywhere else in this structure. A caller testing `!== -1`
+    // would then read eow[0], and eow[0] is only 0 for as long as no word list
+    // contains an empty string: buildTrie accepts one silently and marks the
+    // ROOT as a word, at which point every empty query answers "yes".
+    const trie = buildTrie(['cat'])
+    expect(walkWord(trie, '')).toBe(-1)
+
+    const withEmpty = buildTrie(['', 'cat'])
+    expect(withEmpty.eow[0]).toBe(1) // the root really does get marked
+    expect(walkWord(withEmpty, '')).toBe(-1) // and it is still unreachable
+  })
 })

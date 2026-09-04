@@ -80,8 +80,16 @@ export function buildTrie(words: readonly string[], ratings?: readonly number[])
 /** Walk a (lowercase `a`–`z`) word from the root; the node reached, or -1 if
  *  the trie has no such path. `trie.eow[node]` then answers is-it-a-word (and
  *  at what difficulty). Handy at boundaries — inner loops walk `children`
- *  themselves, one letter at a time. */
+ *  themselves, one letter at a time.
+ *
+ *  **Never returns 0.** A returned node is always a real one, so a caller can
+ *  test `!== -1` and index `eow` safely. The empty string is the case that
+ *  would otherwise break that: it walks nothing and lands on the root, which is
+ *  node 0 — the same value `children` uses for "no child". Rejecting it here
+ *  keeps one meaning per value instead of asking every caller to know that the
+ *  root can come back. */
 export function walkWord(trie: Trie, word: string): number {
+  if (word.length === 0) return -1
   let node = 0
   for (let i = 0; i < word.length; i++) {
     const c = word.charCodeAt(i) - A

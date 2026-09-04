@@ -2446,7 +2446,7 @@ accepted word into a non-word. The pointer adds nothing the paragraph does not
 already say. Same shape as `F-game-lib-31`: keep the argument, drop the dead
 address.
 
-### F-game-lib-45 · `walk-word-has-a-third-return` · The contract names two outcomes; there are three, and the one caller quietly knows it
+### RESOLVED 2026-09-04 — F-game-lib-45 · `walk-word-has-a-third-return` · The contract names two outcomes; there are three, and the one caller quietly knows it
 
 `walkWord`'s docstring: *"the node reached, or **-1** if the trie has no such
 path."* Two outcomes. There is a third: **the empty string returns `0`, the
@@ -2474,6 +2474,33 @@ Two ways to settle it, and the choice is Joel's: **document the third case**
 returning `-1` for an empty word, which is what the docstring already promises.
 The second changes behavior in a module two games depend on; the only production
 caller is already compatible with both.
+
+#### Resolved 2026-09-04 — made it two, which is what the contract already said
+
+Joel took the recommendation: **`walkWord` returns `-1` for an empty word.** One
+line, at the top of the function, and the docstring now states the property that
+line buys — *"never returns 0"*, so a caller can test `!== -1` and index `eow`
+safely. The reasoning is on the line it defends: walking nothing lands on the
+root, which is node `0`, the same value `children` uses for "no child", and one
+value with two meanings is what made this a trap.
+
+**A test, and it was planted before it was believed.** With the guard removed
+the new case fails on exactly the reported defect — *expected +0 to be -1* — and
+passes with it back. It also pins the latent half rather than describing it:
+`buildTrie(['', 'cat'])` really does mark the ROOT as a word (`eow[0] === 1`),
+and the empty query is unreachable anyway now.
+
+**`scrabble/lib/policy.ts` was NOT touched, and the fix is why.** Its guard
+reads `node > 0`, which was the only thing standing between an empty word and
+`eow[0]`; with `0` no longer returnable, `> 0` and `!== -1` mean the same thing
+and the line needs no explanation. The note this finding was going to ask
+`scrabble`'s area for is no longer owed — the better fix removed the need for
+the comment rather than adding one.
+
+Behavior change in shared code, so measured: `tsc -b` clean, vitest
+**2575/2575 in 272 files** (2574 plus the new case). Boggle's solver does not
+call `walkWord` at all — only its tests do — and scrabble's one production
+caller is compatible either way.
 
 ### F-game-lib-46 · `trie-growth-never-exercised` · The one line that can corrupt the structure is the one nothing runs
 
