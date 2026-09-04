@@ -2523,7 +2523,7 @@ Behavior change in shared code, so measured: `tsc -b` clean, vitest
 call `walkWord` at all — only its tests do — and scrabble's one production
 caller is compatible either way.
 
-### F-game-lib-46 · `trie-growth-never-exercised` · The one line that can corrupt the structure is the one nothing runs
+### RESOLVED 2026-09-04 — F-game-lib-46 · `trie-growth-never-exercised` · The one line that can corrupt the structure is the one nothing runs
 
 `buildTrie` starts at `1 << 16` nodes and doubles on demand — `grow()` allocates
 two new typed arrays and copies. It is the only branch in group F that can
@@ -2542,6 +2542,26 @@ The reason to want it pinned is the shape of the code, not a doubt about it:
 `nx = n++; if (n > cap) grow()` is exactly one comparison away from writing past
 the end, and the failure mode is a corrupted dictionary at cold start in
 production — no exception, just words that stop being words.
+
+#### Resolved 2026-09-04 — to `docs/deferred.md`, not to a test
+
+Joel, 2026-09-04: *"put it in deferred."* The case would be the slowest in
+`trie.test.ts` by a wide margin — 17,576 words where every other case builds
+three — against a suite that is deliberately instant, and the path is verified
+correct rather than suspected broken.
+
+**Filed in [docs/deferred.md](../../docs/deferred.md) → Common / architecture**,
+which is §21's one destination for something an area turns up that is genuinely
+out of the sprint's scope. The entry carries what a later reader needs and this
+file would not give them: the ordering that has to hold, the measurement that
+proved it holds today (71,006 nodes, several doublings), where the big tries
+actually get built (the scrabble edge function's cold start, reached by no unit
+test), the failure mode (a corrupted dictionary with no exception), and the
+eight-line recipe if anyone ever wants the case after all.
+
+**Resolved here means handed over, not done** — the same sense as
+`F-game-lib-11`'s four game areas. What this area owed was a decision and a
+written record of it, and both exist.
 
 ### F-game-lib-47 · `grid-cursor-doesnt-name-the-third-grid-game` · Two grid games share this; a third has its own and nobody wrote down why
 
