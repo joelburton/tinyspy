@@ -1,7 +1,7 @@
-// cs-audited-game-lib
+// cs-blessed-game-lib
 
 import { describe, expect, it } from 'vitest'
-import { outcomeVerb } from './outcomeVerb'
+import { terminalOutcomeVerb } from './terminalOutcomeVerb'
 import type { GamePlayer } from './member'
 
 /**
@@ -25,33 +25,33 @@ const player = (over: Partial<GamePlayer> = {}): GamePlayer => ({
   ...over,
 })
 
-describe('outcomeVerb', () => {
+describe('terminalOutcomeVerb', () => {
   it('says Won when the end-state says they won', () => {
-    expect(outcomeVerb(player({ result: { won: true } }))).toBe('Won')
+    expect(terminalOutcomeVerb(player({ result: { won: true } }))).toBe('Won')
   })
 
   it('says Quit for a conceder', () => {
-    expect(outcomeVerb(player({ conceded: true, conceded_at: '2026-09-03T00:00:00Z' }))).toBe('Quit')
+    expect(terminalOutcomeVerb(player({ conceded: true, conceded_at: '2026-09-03T00:00:00Z' }))).toBe('Quit')
   })
 
   it('says Lost for anyone else who did not win', () => {
-    expect(outcomeVerb(player())).toBe('Lost')
-    expect(outcomeVerb(player({ result: { won: false } }))).toBe('Lost')
+    expect(terminalOutcomeVerb(player())).toBe('Lost')
+    expect(terminalOutcomeVerb(player({ result: { won: false } }))).toBe('Lost')
     // A result that exists but says nothing about winning is still not a win.
-    expect(outcomeVerb(player({ result: { score: 40 } }))).toBe('Lost')
+    expect(terminalOutcomeVerb(player({ result: { score: 40 } }))).toBe('Lost')
   })
 
   it('lets Won TRUMP a concede, which is branch order and not an accident', () => {
     // Reachable: concede a race that someone has already ended in your favor.
     // If the branches were reordered this would read "Quit" and nothing else
     // in the suite would notice.
-    expect(outcomeVerb(player({ conceded: true, result: { won: true } }))).toBe('Won')
+    expect(terminalOutcomeVerb(player({ conceded: true, result: { won: true } }))).toBe('Won')
   })
 
   it('says Lost for a member it cannot resolve', () => {
     // A peer missing from the roster did not win. The strip renders a verb per
     // player, so this must return a word rather than throw or come back empty.
-    expect(outcomeVerb(undefined)).toBe('Lost')
+    expect(terminalOutcomeVerb(undefined)).toBe('Lost')
   })
 
   it('only ever answers with one of the three verbs', () => {
@@ -63,6 +63,6 @@ describe('outcomeVerb', () => {
       player({ conceded: true, result: { won: true } }),
       player({ result: {} }),
     ]
-    for (const c of cases) expect(['Won', 'Quit', 'Lost']).toContain(outcomeVerb(c))
+    for (const c of cases) expect(['Won', 'Quit', 'Lost']).toContain(terminalOutcomeVerb(c))
   })
 })

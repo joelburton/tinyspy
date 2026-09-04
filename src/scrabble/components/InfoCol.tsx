@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { outcomeVerb } from '../../common/lib/members/outcomeVerb'
+import { terminalOutcomeVerb } from '../../common/lib/members/terminalOutcomeVerb'
 import { type Member, type GamePlayer } from '../../common/lib/members/member'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { OpponentStrip } from '../../common/components/game/OpponentStrip'
@@ -105,7 +105,7 @@ export function InfoCol({
   bagCount: number
 
   // ── Players (the OpponentStrip) ──
-  /** The roster (GamePlayer — carries the concede/result bits outcomeVerb reads). */
+  /** The roster (GamePlayer — carries the concede/result bits terminalOutcomeVerb reads). */
   players: GamePlayer[]
   selfId: string
   playerStates: PlayerRow[]
@@ -176,13 +176,13 @@ export function InfoCol({
     aiOfMember(player)?.score
     ?? playerStates.find((p) => p.user_id === player.user_id)?.score
     ?? 0
-  // A bot has no common.game_players row, so `outcomeVerb` can't reach it — its
+  // A bot has no common.game_players row, so `terminalOutcomeVerb` can't reach it — its
   // result comes off the winning SEAT instead. A bot can't concede, so Won/Lost
   // is the whole space for it.
   const outcomeOf = (player: Member): string => {
     const ai = aiOfMember(player)
     if (ai) return ai.seat === winnerSeat ? 'Won' : 'Lost'
-    return outcomeVerb(players.find((m) => m.user_id === player.user_id))
+    return terminalOutcomeVerb(players.find((m) => m.user_id === player.user_id))
   }
 
   return (

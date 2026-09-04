@@ -144,8 +144,8 @@ lib/
                  #   import it and all 32 are a game's components
   members/       # who someone is — Member + GamePlayer (member.ts, TYPES ONLY so
                  #   its 103 importers erase at runtime), and the one value that
-                 #   reads them (outcomeVerb.ts)
-      member, outcomeVerb
+                 #   reads them (terminalOutcomeVerb.ts)
+      member, terminalOutcomeVerb
   setup/         # the <SetupGameModal> ↔ game-form contract — SetupBodyProps,
                  #   SetupSetter, SetupOf, GameSetupForm
       setupForm

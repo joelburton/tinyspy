@@ -169,12 +169,13 @@ Three more were raised later: `F-game-lib-10` and `F-game-lib-12` (group A's,
 both resolved), and `F-game-lib-11` (**group B's**, filed here rather than
 fixed).
 
-**Eleven resolved 2026-09-03** — `F-game-lib-1` (the split, which Joel authorized
+**Fourteen resolved 2026-09-03** — `F-game-lib-1` (the split, which Joel authorized
 after the audit), with `F-game-lib-2`, `F-game-lib-4` and `F-game-lib-10` as its
 consequences, then `F-game-lib-3`, `F-game-lib-5` and `F-game-lib-6` on their
 own, `F-game-lib-12` after Joel found the two `games.ts` files, and
-`F-game-lib-7`, `F-game-lib-8` and `F-game-lib-9`. **Group A is
-CLOSED.** **One open elsewhere:**
+`F-game-lib-7`, `F-game-lib-8` and `F-game-lib-9`; then, over the twelve
+files once they were done, `F-game-lib-13` (a comments pass) and
+`F-game-lib-14` (the `terminalOutcomeVerb` rename). **Group A is CLOSED.** **One open elsewhere:**
 `F-game-lib-11`, which group B resolves.
 
 **Three of the six resolved turned out bigger than filed**, all the same way:
@@ -887,6 +888,90 @@ rename:
   naming either file — which is why `F-game-lib-1`'s split could not reach it
   (that split moved only types, and nothing mocks a type). See "Predicted test
   breaks".
+
+### RESOLVED 2026-09-03 — F-game-lib-13 · `group-a-comment-pass` · A comments audit of the twelve, after they were done
+
+Joel, at group A's close: *"do a comments correctness and tidyness check for the
+A set"*, then *"make sure you're also doing the docstring-vs-comment pass"*.
+
+**Tidiness was clean.** No trailing whitespace, no doubled blank lines, every
+file newline-terminated. One ragged docstring line was rewrapped.
+
+**Correctness: seven wrong claims, and FIVE were mine, from the same day.**
+
+| where | claimed | true |
+|---|---|---|
+| `gameManifest.ts` header | *"everything in this file is one of two halves"* | `GamePageCtx` had moved out hours earlier |
+| same | *"The other FOUR moved out"* | five did |
+| same | *"it is THE registry"* | the registry is `gametypes.ts`; its own line 16 said so |
+| `member.ts` | `Member` imported by **103** files | **105** |
+| `member.ts` | `GamePlayer` adds **the two** | **three** |
+| `gamePageCtx.ts` | **32** importers, **all 32** a game's component | **33**, one is `gameManifest.ts` |
+| `gameManifest.ts` | *"iterate `games`"* / *"StartGameButtons"* | `gametypes`; the component is `StartGameRow` |
+
+**The sharpest version of `F-game-lib-3` yet.** Every one is a count, or a "this
+file contains X" claim, that a LATER STEP IN THE SAME SESSION falsified. The
+`gamePageCtx.ts` one is purest: its importer count IS the file's argument for
+existing, and I broke it an hour later by importing the type back into
+`gameManifest.ts`. **A counted claim has an expiry date, and it can be two
+hours.** Fixed by stating the SHAPE rather than the tally.
+
+**The docstring-vs-comment pass: 60 conversions.**
+[docs/code-conventions.md](../../docs/code-conventions.md) is explicit — a note
+about one field takes `//` — and names `dbLog.ts`'s `TransportFacts` as the
+model, where the TYPE carries `/**` and every FIELD carries `//`. All 60
+indented `/**` in these files were field notes and are now `//`; the top-level
+docstrings are untouched.
+
+**The converter flattened three bulleted lists** (`genericFeedback.ts`'s four
+`mode` kinds, `gamePageCtx.ts`'s two `timer` fields, `gameManifest.ts`'s
+`startGameInClub` parameters) because it stripped every line. Restored by hand.
+**If groups B–F need the same pass, preserve indentation relative to the block
+rather than flattening to zero** — that is the flaw to fix before reusing it.
+
+**One cost, stated because it is real:** `//` does not render in editor hover,
+so a game author implementing `GameManifest` loses its field notes as tooltips.
+The convention weighs that against the signal `/**` loses when everything wears
+it; `TransportFacts` already took the same trade.
+
+### RESOLVED 2026-09-03 — F-game-lib-14 · `outcome-verb-not-just-any-outcome` · `outcomeVerb` renamed `terminalOutcomeVerb`
+
+Joel: *"for the file outcomeVerb.ts, please rename this & the function it exports
+to terminalOutcomeVerb"*. The verb is only ever asked for at game-over, and the
+app has a separate `Outcome` vocabulary (`lib/outcomes.ts`) that is about
+anything but — a move, a guess, a pill. `outcomeVerb` read as the verb for THAT.
+
+`lib/members/outcomeVerb.ts` → `lib/members/terminalOutcomeVerb.ts` (with its
+test), the export with it, and every reference across 17 files: the seven game
+`InfoCol`s, `member.ts`, `gameManifest.ts`, `docs/common-folders.md`,
+`docs/common.md`, `docs/games/scrabble.md`, `docs/games/spellingbee.md`.
+
+**A word-boundary substitution was safe here and is not in general** — the name
+is a distinctive compound appearing in no other symbol, unlike `games`. It was
+NOT safe over `plans/`: run across this file it rewrote the historical record of
+`F-game-lib-9`, including Joel's own quoted words, which is why the record above
+still reads `outcomeVerb` wherever it describes what was true at the time.
+
+## Files group A wrote
+
+Per §21, a file an area creates is that area's and gets a roster row at close.
+Group A's audit produced **seven**, six of them from `F-game-lib-1`'s split and
+one test from `F-game-lib-9`:
+
+```
+ 148  lib/gamePageCtx.ts                 F-game-lib-12 — what a game is handed
+ 189  lib/setup/setupForm.ts             the SetupGameModal contract
+ 146  lib/menu/menu.ts                   what a menu is made of
+  78  lib/feedback/genericFeedback.ts    what a feedback pill is
+  65  lib/members/member.ts              who someone is — types only
+  42  lib/members/terminalOutcomeVerb.ts the terminal verb
+  68  lib/members/terminalOutcomeVerb.test.ts   its truth table
+```
+
+With the five on the opening roster — `gameManifest.ts`, `gameManifest.test.ts`,
+`gametypes.ts`, `manifestRpcs.ts`, `manifestRpcs.test.ts` — that is the twelve
+files at `cs-audited-game-lib`. Two of the originals were renamed by
+`F-game-lib-12`; none was deleted.
 
 ## Predicted test breaks
 

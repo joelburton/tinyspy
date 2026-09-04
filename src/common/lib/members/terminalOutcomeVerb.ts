@@ -1,4 +1,4 @@
-// cs-audited-game-lib
+// cs-blessed-game-lib
 
 import type { GamePlayer } from './member'
 
@@ -6,8 +6,8 @@ import type { GamePlayer } from './member'
  * How one player's game ENDED, as the word the OpponentStrip prints.
  *
  * Reach for this when rendering a terminal readout for a single player:
- * several games format it as `${outcomeVerb(p)} at ${value}` ("Won at 40",
- * "Won at Genius") or `${outcomeVerb(p)} · ${value}` (scrabble). Each game
+ * several games format it as `${terminalOutcomeVerb(p)} at ${value}` ("Won at 40",
+ * "Won at Genius") or `${terminalOutcomeVerb(p)} · ${value}` (scrabble). Each game
  * keeps its own separator and value, which genuinely differ; the verb is the
  * part that must not.
  *
@@ -35,7 +35,7 @@ import type { GamePlayer } from './member'
  * in `lib/outcomes.ts`, and `quit` is not among them. See
  * plans/areas/game-lib.md → `F-game-lib-9`.
  */
-export function outcomeVerb(member: GamePlayer | undefined): 'Won' | 'Quit' | 'Lost' {
+export function terminalOutcomeVerb(member: GamePlayer | undefined): 'Won' | 'Quit' | 'Lost' {
   if (member?.result?.won === true) return 'Won'
   if (member?.conceded) return 'Quit'
   return 'Lost'

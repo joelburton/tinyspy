@@ -274,7 +274,7 @@ The **"Restart"** game-menu item + the terminal action row's `RestartButton` (th
 
 ### `spellingbee.concede(target_game uuid) → void`
 
-The compete-mode counterpart to `end_game`: a per-player "I quit, the others keep racing". spellingbee has no per-player elimination (you're only ever done by winning — first to `target_rank` — or by conceding), so this is a **thin wrapper over `common.concede`** with a compete-only guard: it marks the caller out and ends the game as a collective loss only when the last racer drops. The FE shows `<ConcedeGameButton>` in compete and `<EndGameButton>` in coop; the OpponentStrip marks a conceder "out" mid-game and reads "Quit at \<rank\>" vs "Lost at \<rank\>" vs "Won at \<rank\>" at terminal (via `outcomeVerb` over `ctx.players[].conceded`/`result`). Full mechanism: [common.md → Concede](../common.md#concede--per-player-drop-out). pgTAP: `concede_test.sql`.
+The compete-mode counterpart to `end_game`: a per-player "I quit, the others keep racing". spellingbee has no per-player elimination (you're only ever done by winning — first to `target_rank` — or by conceding), so this is a **thin wrapper over `common.concede`** with a compete-only guard: it marks the caller out and ends the game as a collective loss only when the last racer drops. The FE shows `<ConcedeGameButton>` in compete and `<EndGameButton>` in coop; the OpponentStrip marks a conceder "out" mid-game and reads "Quit at \<rank\>" vs "Lost at \<rank\>" vs "Won at \<rank\>" at terminal (via `terminalOutcomeVerb` over `ctx.players[].conceded`/`result`). Full mechanism: [common.md → Concede](../common.md#concede--per-player-drop-out). pgTAP: `concede_test.sql`.
 
 ### Helper functions
 

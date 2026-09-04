@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { outcomeVerb } from '../../common/lib/members/outcomeVerb'
+import { terminalOutcomeVerb } from '../../common/lib/members/terminalOutcomeVerb'
 import { type GamePlayer } from '../../common/lib/members/member'
 import { OpponentStrip } from '../../common/components/game/OpponentStrip'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
@@ -138,7 +138,7 @@ export function InfoCol({
               const n = foundByUser.get(p.user_id) ?? 0
               if (!isTerminal) return concededIds.has(p.user_id) ? 'out' : `${n}`
               const member = players.find((m) => m.user_id === p.user_id)
-              return `${outcomeVerb(member)} · ${n}`
+              return `${terminalOutcomeVerb(member)} · ${n}`
             }}
           />
         )}

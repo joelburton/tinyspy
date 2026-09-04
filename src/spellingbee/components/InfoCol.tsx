@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { outcomeVerb } from '../../common/lib/members/outcomeVerb'
+import { terminalOutcomeVerb } from '../../common/lib/members/terminalOutcomeVerb'
 import { type GamePlayer } from '../../common/lib/members/member'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { TerminalActionRow } from '../../common/components/game/terminal/TerminalActionRow'
@@ -76,7 +76,7 @@ export function InfoCol({
   requiredWordsCount: number
 
   // ── Opponent strip (compete) ──
-  /** The roster (identity + per-player concede/result bits outcomeVerb reads). */
+  /** The roster (identity + per-player concede/result bits terminalOutcomeVerb reads). */
   players: GamePlayer[]
   selfId: string
   /** The compete target rank index, or null (coop / not set). Gates the strip. */
@@ -156,7 +156,7 @@ export function InfoCol({
               // Amazing" vs "Lost at Amazing" vs "Won at Genius".
               if (!isTerminal) return concededIds.has(p.user_id) ? 'out' : rank
               const member = players.find((m) => m.user_id === p.user_id)
-              return `${outcomeVerb(member)} at ${rank}`
+              return `${terminalOutcomeVerb(member)} at ${rank}`
             }}
           />
         )}

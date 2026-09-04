@@ -1,7 +1,7 @@
 // cs-unmet
 
 import type React from 'react'
-import { outcomeVerb } from '../../common/lib/members/outcomeVerb'
+import { terminalOutcomeVerb } from '../../common/lib/members/terminalOutcomeVerb'
 import { type GamePlayer } from '../../common/lib/members/member'
 import { OpponentStrip } from '../../common/components/game/OpponentStrip'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
@@ -153,7 +153,7 @@ export function InfoCol({
               const hints = hintsByUser.get(p.user_id) ?? 0
               if (isTerminal) {
                 const member = players.find((m) => m.user_id === p.user_id)
-                return `${outcomeVerb(member)} on ${hints}`
+                return `${terminalOutcomeVerb(member)} on ${hints}`
               }
               // Mid-race: a rival who is done is worth showing as done — that's
               // race status, not puzzle content, and it tells you the bar you

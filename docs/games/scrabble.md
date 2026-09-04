@@ -509,7 +509,7 @@ picks the winner among **non-conceded** players (a drop-out forfeits even a tyin
 score), and `scrabble.concede` hands the turn off if it was the conceder's, or
 ends the game (final scoring, nobody eligible to win) when the last active player
 drops. FE: `<ConcedeGameButton>` in compete, conceder "out" in the OpponentStrip
-(and `Quit · score` at terminal via `outcomeVerb`), input disabled once
+(and `Quit · score` at terminal via `terminalOutcomeVerb`), input disabled once
 conceded. See [common.md → Concede](../common.md#concede--per-player-drop-out).
 pgTAP: `concede_test.sql`. All the terminal paths do the realtime-touch self-write
 on a `scrabble` row so the FE subscription wakes to reveal final racks.

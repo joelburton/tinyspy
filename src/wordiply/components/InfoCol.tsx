@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { outcomeVerb } from '../../common/lib/members/outcomeVerb'
+import { terminalOutcomeVerb } from '../../common/lib/members/terminalOutcomeVerb'
 import { type GamePlayer } from '../../common/lib/members/member'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { TerminalActionRow } from '../../common/components/game/terminal/TerminalActionRow'
@@ -178,7 +178,7 @@ export function InfoCol({
                 return concededIds.has(p.user_id) ? 'out' : `${guessesByUser.get(p.user_id) ?? 0}/${MAX_GUESSES}`
               }
               const member = players.find((m) => m.user_id === p.user_id)
-              return `${outcomeVerb(member)} · ${scoreByUser.get(p.user_id) ?? 0}%`
+              return `${terminalOutcomeVerb(member)} · ${scoreByUser.get(p.user_id) ?? 0}%`
             }}
           />
         )}

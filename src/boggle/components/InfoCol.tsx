@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { outcomeVerb } from '../../common/lib/members/outcomeVerb'
+import { terminalOutcomeVerb } from '../../common/lib/members/terminalOutcomeVerb'
 import { type GamePlayer } from '../../common/lib/members/member'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { TerminalActionRow } from '../../common/components/game/terminal/TerminalActionRow'
@@ -68,7 +68,7 @@ export function InfoCol({
   stats: BoggleStats
 
   // ── Players (the OpponentStrip — compete) ──
-  /** The roster (identity + per-player concede/result bits outcomeVerb reads). */
+  /** The roster (identity + per-player concede/result bits terminalOutcomeVerb reads). */
   players: GamePlayer[]
   selfId: string
   /** Each peer's score, from the compete leaderboard (self reads `myScore`). */
@@ -138,7 +138,7 @@ export function InfoCol({
               // vs "Lost at 12" vs "Won at 40"; an ordinary player shows the number.
               if (!isTerminal) return concededIds.has(p.user_id) ? 'out' : peerScore
               const member = players.find((m) => m.user_id === p.user_id)
-              return `${outcomeVerb(member)} at ${peerScore}`
+              return `${terminalOutcomeVerb(member)} at ${peerScore}`
             }}
           />
         )}

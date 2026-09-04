@@ -1,4 +1,4 @@
-// cs-audited-game-lib
+// cs-blessed-game-lib
 
 /**
  * Who someone IS — the identity shape every render site in the app shares, and
@@ -6,14 +6,14 @@
  *
  * Reach for this whenever you render a person: a chat sender, a club roster
  * row, a player in an OpponentStrip, a name in a turn log. `Member` is the
- * three fields you always need; `GamePlayer` adds the two that only exist once
- * someone is seated in a game.
+ * three fields you always need; `GamePlayer` adds the three that only exist
+ * once someone is seated in a game.
  *
  * **Types only, and that is load-bearing.** `Member` is the single
- * most-imported name in `common/lib/` — 103 files — so a module with no
- * runtime half means all 103 of those imports erase at compile time and cannot
+ * most-imported name in `common/lib/` — over a hundred files — so a module
+ * with no runtime half means all of those imports erase at compile time and cannot
  * participate in an import cycle, whatever else moves later. The one VALUE that
- * reads these types lives next door in `outcomeVerb.ts` precisely so it stays
+ * reads these types lives next door in `terminalOutcomeVerb.ts` precisely so it stays
  * out of this file. Keep it that way: no functions, no constants.
  *
  * The naming convention — `members` in club code, `players` in game code, for
@@ -35,9 +35,9 @@
 export type Member = {
   user_id: string
   username: string
-  /** Palette name from `common.profiles.color`. Pass through
-   *  `colorVarFor` (src/common/lib/color/memberColor.ts) for the
-   *  matching CSS variable. */
+  // Palette name from `common.profiles.color`. Pass through
+  // `colorVarFor` (src/common/lib/color/memberColor.ts) for the
+  // matching CSS variable.
   color: string
 }
 
