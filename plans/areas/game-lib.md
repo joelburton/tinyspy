@@ -1564,17 +1564,19 @@ when their work ships.
 
 ## Group E — the live session, read 2026-09-04
 
-Seven files, 532 lines, all seven read in full. **No crash-class defect**, and
-one **behavior question that is Joel's to rule on** (`F-game-lib-36`): a
-conceded player can still End the whole table. The rest is accuracy — five
+Seven files, 532 lines, all seven read in full. **No crash-class defect.** The
+one behavior question — a conceded player can still End the whole table — went
+to Joel and came back as **shipped-is-correct** (`F-game-lib-36`, closed the
+same day, no change). The rest is accuracy — five
 docstrings that describe something the code does not do, and a folder name that
 stopped being true when group A's split created `lib/members/`.
 
 **Nothing was changed.** The comment pass and the audit were one read here, and
 everything it turned up is filed rather than swept — including the mechanical
-items (markers, archaeology), because two of them sit next to a decision
-(`F-game-lib-34`'s folder, `F-game-lib-36`'s rule) that should be settled before
-anyone rewrites the paragraph around it.
+items (markers, archaeology), because two of them sit next to a decision that
+should be settled before anyone rewrites the paragraph around it —
+`F-game-lib-36`'s rule, since ruled on, and `F-game-lib-34`'s folder, still
+open.
 
 **The group held.** Its own roster paragraph called it "the loosest of the six"
 and offered to redraw it into presence/seating + the two chrome stores. Read
@@ -1709,9 +1711,19 @@ seventeenth arrives.
 
 Everything else in this file's long docstring **checked out** — see below.
 
-### F-game-lib-36 · `conceder-can-still-end-the-table` · A player who quit the race keeps an enabled control that ends it for everyone
+### CLOSED 2026-09-04, no change — F-game-lib-36 · `conceder-can-still-end-the-table` · A player who quit the race keeps an enabled control that ends it for everyone
 
-A decision for Joel; the code is doing what it was written to do.
+**CLOSED, no change.** Joel, 2026-09-04: *"the conceder should be able to end a
+game. ending is something players talk about and choosing it is freely open."*
+The shipped behavior is the intended one; `conceded` gates Concede alone on
+purpose. The audit below is kept because the question will look open again to
+the next reader who notices the two `disabled` expressions differ.
+
+**What the ruling settles, beyond this line:** ending is not a privilege that
+tracks your standing in the race. It is the group's decision, taken out loud,
+and any player at the table may be the one who clicks it — which is why no
+condition on the *player* belongs on that item. Only `isTerminal` does, because
+that is a fact about the game rather than about who is asking.
 
 ```ts
 const endItem     = { …, disabled: isTerminal }
