@@ -169,12 +169,13 @@ Three more were raised later: `F-game-lib-10` and `F-game-lib-12` (group A's,
 both resolved), and `F-game-lib-11` (**group B's**, filed here rather than
 fixed).
 
-**Eight resolved 2026-09-03** — `F-game-lib-1` (the split, which Joel authorized
+**Nine resolved 2026-09-03** — `F-game-lib-1` (the split, which Joel authorized
 after the audit), with `F-game-lib-2`, `F-game-lib-4` and `F-game-lib-10` as its
 consequences, then `F-game-lib-3`, `F-game-lib-5` and `F-game-lib-6` on their
-own, and `F-game-lib-12` after Joel found the two `games.ts` files. **Three open
-in group A:** `F-game-lib-7`, `8`, `9`. **One open elsewhere:** `F-game-lib-11`,
-which group B resolves.
+own, `F-game-lib-12` after Joel found the two `games.ts` files, and
+`F-game-lib-7`. **Two open
+in group A:** `F-game-lib-8` and `F-game-lib-9`. **One open elsewhere:**
+`F-game-lib-11`, which group B resolves.
 
 **Three of the six resolved turned out bigger than filed**, all the same way:
 the audit caught a wrong number, and fixing it meant re-reading the file, where
@@ -517,7 +518,7 @@ would be six claims that go stale, which is the fault this area keeps finding.
 Checking who reads the field turned up a separate thing, which is
 `F-game-lib-11` and not this.
 
-### F-game-lib-7 · `ctx-timer-undocumented-and-misindented` · The one non-obvious field in the render-prop contract has no docstring
+### RESOLVED 2026-09-03 — F-game-lib-7 · `ctx-timer-undocumented-and-misindented` · The one non-obvious field in the render-prop contract has no docstring
 
 `gamePageCtx.ts:55` — `GamePageCtx.timer` (it was `games.ts:68` at the audit,
 then `games.ts:108`, and is here since `F-game-lib-12` — three moves in a day,
@@ -544,6 +545,28 @@ Two things at once, both on the field opener:
    and does `expired` mean "the countdown hit zero" or "the timeout RPC has
    landed"? Every other non-obvious field here is documented, several of them at
    length; this is the gap in an otherwise complete contract.
+
+#### Resolved 2026-09-03 — and both questions had real answers
+
+The indent is fixed and the field is documented. **The two questions the finding
+posed were not rhetorical**; each has an answer worth writing down, and reading
+`useGameTimer.ts:164-170` to get them is what the docstring saves the next
+person:
+
+- **`displaySeconds` counts UP for `countup` and DOWN for `countdown`** —
+  `ticks` in one mode, `max(0, mode.seconds - ticks)` in the other, `0` for
+  `none`. So it is the number to render either way, with no per-game arithmetic,
+  and a countdown floors at zero rather than going negative. It also freezes
+  while paused or terminal (`useGameTimer`'s `running` gate), which is why a
+  finished game keeps showing its final value.
+- **`expired` is the TRIGGER, not the outcome.** It is
+  `mode.kind === 'countdown' && displaySeconds === 0`, so a count-up clock never
+  expires — it is not counting toward anything. GamePage watches it and fires
+  the manifest's `submitTimeout` (`GamePage.tsx:316-338`), which is what
+  actually ends the game. **It therefore flips BEFORE the game is over**, and a
+  PlayArea reading it as "the game ended" would be a step early; `isTerminal` is
+  that question. That is the trap the missing docstring left open, and the one
+  thing here that could have produced a real bug.
 
 ### F-game-lib-8 · `player-count-short-untested` · Three sibling formatters, two tested
 

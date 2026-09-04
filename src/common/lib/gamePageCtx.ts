@@ -52,7 +52,26 @@ export type GamePageCtx = {
   /** Materialized "any terminal play_state" from
    *  `common.games.is_terminal`. */
   isTerminal: boolean
-    timer: {
+  /**
+   * The clock, already reduced to the two things a play surface wants: the
+   * number to show, and whether the countdown ran out. Produced by
+   * `useGameTimer` from the gametype's `TimerMode` and the server's tick count.
+   *
+   *   - `displaySeconds` — **counts UP for `countup` and DOWN for `countdown`**,
+   *     so it is the number to render either way, with no per-game arithmetic.
+   *     A countdown floors at 0 rather than going negative, and `none` is
+   *     always 0. Frozen while the game is paused or terminal, so a finished
+   *     game keeps showing its final value.
+   *   - `expired` — **a countdown reached zero.** Only ever true for
+   *     `countdown`; a count-up clock never expires because it is not counting
+   *     toward anything.
+   *
+   * `expired` is the TRIGGER, not the outcome: GamePage watches it and fires
+   * the manifest's `submitTimeout`, which is what actually ends the game. So it
+   * flips before the game is over, and a PlayArea reading it as "the game
+   * ended" would be a step early — `isTerminal` above is that question.
+   */
+  timer: {
     displaySeconds: number
     expired: boolean
   }
