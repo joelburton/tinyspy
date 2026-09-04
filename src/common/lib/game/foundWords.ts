@@ -1,4 +1,4 @@
-// cs-met-game-lib
+// cs-audited-game-lib
 
 /**
  * Shared data model for the found-words rank-ladder games (spellingbee +
@@ -26,19 +26,19 @@ export type FoundWordsWord = { word: string; points: number; is_pangram: boolean
 export type FoundWordsGame = {
   id: string
   club_handle: string
-  /** Denormalized from `<schema>.games.mode`. Drives FE branching for the
-   *  OpponentStrip + win-vs-loss verdict copy in the PlayArea. */
+  // Denormalized from `<schema>.games.mode`. Drives FE branching for the
+  // OpponentStrip + win-vs-loss verdict copy in the PlayArea.
   mode: 'coop' | 'compete'
   outer_letters: string
   center_letter: string
-  /** Score of the required set — the rank-ladder denominator. */
+  // Score of the required set — the rank-ladder denominator.
   required_words_score: number
-  /** Count of required words — the "X / Y words" goal (Y). */
+  // Count of required words — the "X / Y words" goal (Y).
   required_words_count: number
   created_at: string
-  /** The required-words answer key (the displayed goal + the terminal reveal). */
+  // The required-words answer key (the displayed goal + the terminal reveal).
   requiredWords: FoundWordsWord[]
-  /** The bonus set (legal − required): accepted + scored, never revealed. */
+  // The bonus set (legal − required): accepted + scored, never revealed.
   bonusWords: FoundWordsWord[]
 }
 

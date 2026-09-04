@@ -1,4 +1,4 @@
-// cs-met-game-lib
+// cs-audited-game-lib
 
 /**
  * The terminal **missed-word reveal**, shared by the three word-hunt games

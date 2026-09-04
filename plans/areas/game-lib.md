@@ -1032,6 +1032,84 @@ touching a game — the same handoff shape as `F-utils-7` and `F-game-lib-11`.
 the `readLeaderboard<T>` generalization; what remains of it is the four games'
 inline casts, each that game's own area.
 
+## Group B — the found-words family, read 2026-09-03
+
+Seven files, 561 lines, all read in full. **No logic bug**, and the arithmetic
+half is the best-tested code this area has seen — see "What checked out". Three
+findings, all about the writing and the shape of the test files.
+
+### F-game-lib-16 · `reveal-words-cites-the-false-flavors` · The same false premise, in a second file
+
+`revealWords.ts:7-9` explains its own existence with the claim `F-game-lib-15`
+just proved false:
+
+> *"Lives in its own module rather than beside `buildDisplayRows` because that
+> one comes in **two deliberately different flavors** — the shared
+> spellingbee/wordwheel copy and boggle's own — while this step is genuinely
+> identical for all three."*
+
+There are not two flavors. The two `buildDisplayRows` are the same algorithm
+line for line, differing only in an optional `isPangram`, and boggle's own tests
+assert the same set-semantics dedup the shared one uses.
+
+**This file is the counter-example to its own claim**, which is what makes it
+worth its own finding rather than a footnote to `F-game-lib-15`. It was split
+out precisely so all THREE games could share it — it is the proof that the shape
+was always three games, while its docstring cites the two-flavors story to
+explain why it had to be separate. The reasoning is backwards: it is separate
+because it is shareable, not because its neighbor isn't.
+
+### F-game-lib-17 · `reveal-words-has-no-test-file` · A unit tested inside another unit's file
+
+`buildRevealWords` has **no `revealWords.test.ts`**. Its two cases live in
+`foundWordsDisplayRows.test.ts` as a `describe('buildRevealWords')` block, which
+also makes that file import a module it is not the test for.
+
+It is the only unit in the group without its own test file — `rankLadder`,
+`buildDisplayRows` and the leaderboard reader all have one or are covered where
+they live. The two cases are good ones (*"returns every unfound word from both
+lists, tagged by which list"*, *"an empty bonus list reveals only the required
+half"*, the latter pinning exactly the boggle behavior the docstring describes);
+they are simply in the wrong file, so a reader looking for the reveal's coverage
+finds none where they look.
+
+### F-game-lib-18 · `two-tests-open-on-their-imports` · The group's two test files have no docstring
+
+`foundWordsDisplayRows.test.ts` and `rankLadder.test.ts` both begin at their
+import block. Every test file in group A carries a module docstring saying what
+the file pins and why.
+
+`rankLadder.test.ts` is the one that costs something: 163 lines and 21 cases,
+and its last case — *"agrees with the integer-math formula used by each game's
+`_rank_idx`"* — is a **FE/SQL lockstep guard**, the only thing standing between
+this ladder and the two `submit_word` RPCs drifting apart. That is not obvious
+from a list of `it(...)` names, and it is exactly what a docstring is for.
+
+### What checked out — verified, not assumed
+
+The arithmetic in `rankLadder.ts` is unusually well-defended and every claim
+about it holds:
+
+- **The FE and SQL agree everywhere reachable.** Brute-forced `currentRankIndex`
+  against the SQL's `least(6, (score * 60) / (total * 7))` over
+  `total = 1..2000`, `score = 0..2×total`: **zero mismatches**. Worth doing
+  because `rankPoints` was deliberately made integer-exact while
+  `currentRankIndex` still compares floats — the divergence is plausible and
+  simply is not there. (The file's own test already asserts this at `:151`.)
+- **The float example is exact**: `i=5, total=108` really does give
+  `63.00000000000001` in float and `63` in integer math.
+- 7 tiers · `GENIUS_AT = 0.7` · a full clear at "~143% of GENIUS_AT" (1/0.7 =
+  142.86%) · the quoted SQL formula, character for character.
+- `readLeaderboard`'s *"two FE readers"* — four call sites, two per game.
+- `revealWords`'s claim that boggle passes `[]` for bonus when its bands match:
+  `boggle/components/PlayArea.tsx:271` is
+  `hasBonusDifficulty ? game.bonus_words : []`, exactly as described.
+- Both schemas do define the `games_state` view `foundWords.ts` names.
+
+**Nothing in this group repeats group A's recurring fault.** There is not one
+stale count in the seven files — the numbers are all small, structural and
+tested, rather than tallies of a roster that grows.
+
 ## Predicted test breaks
 
 *(written when the area starts changing things, per §21's test-break rule:

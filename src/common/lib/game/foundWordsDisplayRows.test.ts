@@ -1,4 +1,4 @@
-// cs-met-game-lib
+// cs-audited-game-lib
 
 import { describe, expect, it } from 'vitest'
 import type { FoundWordRow } from './foundWords'
