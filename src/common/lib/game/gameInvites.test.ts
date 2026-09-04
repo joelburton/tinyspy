@@ -1,4 +1,4 @@
-// cs-fixed-game-lib
+// cs-blessed-game-lib
 
 import { describe, expect, it } from 'vitest'
 import { INVITE_MAX_AGE_MS, inviteCutoffIso, newInviteCandidates, type InviteCandidate } from './gameInvites'

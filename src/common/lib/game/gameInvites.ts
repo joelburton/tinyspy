@@ -95,6 +95,15 @@ export function newInviteCandidates(
 const SEEN_KEY = 'puzpuzpuz:gameInvitesSeen'
 const SEEN_CAP = 200 // bound growth; keep the most recent
 
+/**
+ * The game ids whose invitation has already been shown on this device.
+ *
+ * Pass it to `newInviteCandidates` as `seen` — it is the reason one invite pops
+ * once rather than on every reload and every reconnect rescan. It comes back
+ * EMPTY on a device that has never seen an invite and on one whose storage was
+ * cleared, which is the normal case, not an error: the worst that follows is an
+ * invite surfacing a second time.
+ */
 export function loadSeenInvites(): Set<string> {
   // No storage reads as "nothing seen yet" — invites just won't dedup across
   // reloads. Acceptable; the club page is still the durable entry point.
@@ -108,6 +117,17 @@ export function loadSeenInvites(): Set<string> {
   }
 }
 
+/**
+ * Record that this game's invitation has been surfaced, so it never pops again
+ * on this device.
+ *
+ * Call it the moment the invitation is SHOWN, not when it is acted on — a
+ * dismissed invite and a joined one are equally seen, and the way back to a
+ * game you ignored is the club page rather than a second nudge.
+ *
+ * The stored set is capped at the most recent `SEEN_CAP` ids, so it cannot grow
+ * without bound on a device that plays for years.
+ */
 export function markInviteSeen(gameId: string): void {
   const seen = loadSeenInvites()
   seen.add(gameId)

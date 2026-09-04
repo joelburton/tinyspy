@@ -19,10 +19,16 @@ agreed the list — *"that matches the files i'd expect"* — and then asked for
 in groups, *"so we don't have to do them all as one big audit"*, the way `deep`
 ran in passes. The six groups are below.
 
-**Where the stamps stand (2026-09-04)** — 37 files: **25 `cs-blessed-game-lib`**
-(groups A–D), **8 `cs-fixed-game-lib`** (group E — audited, all twelve findings
-settled, waiting only on Joel's read), and **4 `cs-met-game-lib`**, which is all
-of group F and the whole of what is unread.
+**Where the stamps stand (2026-09-04)** — 37 files: **30 `cs-blessed-game-lib`**,
+**3 `cs-fixed-game-lib`** (`gameInvites.ts`, `infoSheetStore.ts`,
+`memberList.ts` — waiting on Joel's read), and **4 `cs-met-game-lib`**, which is
+all of group F and the whole of what is unread.
+
+**Group E's three test files are blessed** — `gameMenu.test.ts`,
+`gameInvites.test.ts`, `pause.test.ts`. Joel, 2026-09-04: *"go ahead and bless
+the 'fixed' .test.ts files."* Recorded with his words because `cs-blessed` means
+*Joel read it himself*, and a stamp set on instruction should say so rather than
+imply a file-by-file read.
 
 **One blessed file was edited after being blessed:** `menu/menu.ts`, one clause,
 under `F-game-lib-41`. Its stamp is left at `cs-blessed` — the stamp records
@@ -1648,7 +1654,8 @@ same day, no change). The rest is accuracy — five docstrings that describe
 something the code does not do, and a folder name that stopped being true when
 group A's split created `lib/members/`.
 
-**Twelve findings; eight settled the same day.** The comment pass and the audit
+**Twelve findings from the audit, and a thirteenth raised after it.** The
+comment pass and the audit
 were one read here, and everything it turned up was filed rather than swept,
 including the mechanical items (markers, archaeology) — because two of them sat
 next to a decision that had to be settled before anyone rewrote the paragraph
@@ -1658,13 +1665,18 @@ around them. Both were: `F-game-lib-36`'s rule (**closed, no change**) and
 
 | status | findings |
 |---|---|
-| RESOLVED | `F-game-lib-30`, `-31`, `-32`, `-33`, `-34`, `-35`, `-37`, `-38`, `-39`, `-40`, `-41` |
+| RESOLVED | `F-game-lib-30`, `-31`, `-32`, `-33`, `-34`, `-35`, `-37`, `-38`, `-39`, `-40`, `-41`, `-42` |
 | CLOSED, no change | `F-game-lib-36` — Joel's ruling |
 | **open** | **none** |
 
-**All twelve are settled as of 2026-09-04**, so group E's eight files are
-stamped **`cs-fixed-game-lib`** — §21's "every finding resolved", which is
-Claude's to set. `cs-blessed` is only ever Joel's, and waits on his read.
+`F-game-lib-42` was raised by Joel after the audit, not by it — two exported
+functions with no docstring in a file the audit had read through. A finding does
+not have to come from the audit (§21), and this one says something about the
+audit: it looked at the prose that was there and not for the prose that wasn't.
+
+**All thirteen are settled as of 2026-09-04**, so group E's files reached
+`cs-fixed-game-lib` — §21's "every finding resolved", which is Claude's to set —
+and Joel has since blessed four of the eight.
 
 **One behavior change in the group: none.** Six of the seven resolutions are
 prose; the seventh is a `git mv` plus a test file. `gameMenu.ts` is
@@ -2230,6 +2242,40 @@ of them right, is better than reaching into another area's file — and the
 renderer, which is the thing that decides, has always been right.
 
 `tsc -b` clean, vitest **2574/2574**.
+
+### RESOLVED 2026-09-04 — F-game-lib-42 · `seen-set-functions-undocumented` · Two exported functions with no docstring, in a file the audit had already read
+
+Raised by Joel, 2026-09-04, reading `gameInvites.ts` after the group E fixes:
+*"gameInvites.ts has two exported functions without docstrings."*
+
+`loadSeenInvites` and `markInviteSeen` — the localStorage half of the file — had
+only in-body `//` comments, both of which explain a *branch* (what an absent
+value means, what a malformed one means) rather than what the function is for.
+Everything else exported from the file was documented, including the two types
+and the age constant, whose docstring runs twenty lines.
+
+**The audit read this file and did not flag it**, which is the part worth
+recording. It caught the two false examples and the wrong word for the surface
+(`F-game-lib-33`) — content errors in prose that existed — and missed prose that
+was absent. Looking at what is written is not the same pass as asking what is
+missing, and only the first one happened here.
+
+Both now open on why you would call them:
+
+- **`loadSeenInvites`** — the game ids whose invitation has already been shown
+  on this device, to hand to `newInviteCandidates` as `seen`. It says the empty
+  return is normal rather than a failure (a new device, cleared storage), and
+  what follows from it: an invite surfaces a second time, and nothing worse.
+- **`markInviteSeen`** — call it when the invitation is SHOWN, not when it is
+  acted on. That is the whole rule the pair exists to enforce, and it was
+  nowhere: a dismissed invite and a joined one are equally seen, and the route
+  back to one you ignored is the club page rather than a second nudge.
+
+**Checked against the call sites rather than asserted**:
+`useGameInvitations.ts:128` marks every built invite at surface time, and `:195`
+marks again on Join — so "when shown" describes what the hook actually does.
+
+`tsc -b` clean, vitest **2574/2574 in 272 files**.
 
 ### What checked out — verified, not assumed
 

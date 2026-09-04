@@ -1,4 +1,4 @@
-// cs-fixed-game-lib
+// cs-blessed-game-lib
 
 import { IconBack, IconChat, IconConcede, IconEnd, IconHelp } from '../../components/icons'
 import { setChatOpen } from '../chat/chatOpenStore'
