@@ -3,7 +3,6 @@
 import { describe, expect, it } from 'vitest'
 import type { FoundWordRow } from './foundWords'
 import { buildDisplayRows } from './foundWordsDisplayRows'
-import { buildRevealWords } from './revealWords'
 
 /** A reveal entry. `is_bonus` says which shipped list it came from. */
 const rw = (word: string, is_bonus = false, is_pangram = false) =>
@@ -104,27 +103,5 @@ describe('buildDisplayRows', () => {
     )
     const words = rows.map((r) => r.word)
     expect(words).toEqual(['aaaa', 'cead'])
-  })
-})
-
-/**
- * buildRevealWords — the missed set handed to buildDisplayRows. Both shipped
- * lists are already on the client, so this is a pure client-side fold.
- */
-describe('buildRevealWords', () => {
-  it('returns every unfound word from both lists, tagged by which list', () => {
-    const reveal = buildRevealWords(
-      [{ word: 'bead', points: 1, is_pangram: false }, { word: 'bald', points: 1, is_pangram: false }],
-      [{ word: 'blag', points: 1, is_pangram: false }],
-      [{ word: 'bead' }],
-    )
-    expect(reveal.map((w) => [w.word, w.is_bonus])).toEqual([['bald', false], ['blag', true]])
-  })
-
-  it('an empty bonus list reveals only the required half', () => {
-    // boggle passes [] when its legal band equals its required band, where
-    // "bonus" would mean only the words the clean filter removed.
-    const reveal = buildRevealWords([{ word: 'bald', points: 1, is_pangram: false }], [], [])
-    expect(reveal.map((w) => w.word)).toEqual(['bald'])
   })
 })

@@ -1075,7 +1075,7 @@ Worth keeping in view: the sentence survived because it sounded like a decision.
 nobody re-derives a settled thing. It took reading boggle's copy line by line to
 find there was no second flavor.
 
-### F-game-lib-17 · `reveal-words-has-no-test-file` · A unit tested inside another unit's file
+### RESOLVED 2026-09-03 — F-game-lib-17 · `reveal-words-has-no-test-file` · A unit tested inside another unit's file
 
 `buildRevealWords` has **no `revealWords.test.ts`**. Its two cases live in
 `foundWordsDisplayRows.test.ts` as a `describe('buildRevealWords')` block, which
@@ -1088,6 +1088,27 @@ lists, tagged by which list"*, *"an empty bonus list reveals only the required
 half"*, the latter pinning exactly the boggle behavior the docstring describes);
 they are simply in the wrong file, so a reader looking for the reveal's coverage
 finds none where they look.
+
+#### Resolved 2026-09-03 — and the move exposed a hole
+
+`revealWords.test.ts` now exists, carrying the two cases and a docstring; the
+display-rows test loses the block and the import it only needed for it.
+
+**The move was worth more than the tidiness.** Planting a break to check the
+moved tests still bit turned up one that they did NOT catch: making the bonus
+half of the fold ignore the found set entirely
+(`bonusWords.filter(() => true)`) left every case passing. The two filters are
+separate expressions, so "already found" has to be applied twice, and no case
+had a found word in the BONUS list — the one existing bonus word was never
+found, so the filter was never asked to exclude anything.
+
+The consequence was real, not theoretical: a player would be shown a word they
+had already found, listed among the ones they missed. A third case now covers
+it, and the same plant fails with it in place.
+
+**That hole was invisible while the tests lived in the other file.** Nobody
+counting the reveal's coverage would have gone looking there, which is the
+argument for the move stated better than the finding stated it.
 
 ### F-game-lib-18 · `two-tests-open-on-their-imports` · The group's two test files have no docstring
 
