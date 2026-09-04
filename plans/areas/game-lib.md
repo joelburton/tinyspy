@@ -169,12 +169,12 @@ Three more were raised later: `F-game-lib-10` and `F-game-lib-12` (group A's,
 both resolved), and `F-game-lib-11` (**group B's**, filed here rather than
 fixed).
 
-**Nine resolved 2026-09-03** — `F-game-lib-1` (the split, which Joel authorized
+**Ten resolved 2026-09-03** — `F-game-lib-1` (the split, which Joel authorized
 after the audit), with `F-game-lib-2`, `F-game-lib-4` and `F-game-lib-10` as its
 consequences, then `F-game-lib-3`, `F-game-lib-5` and `F-game-lib-6` on their
 own, `F-game-lib-12` after Joel found the two `games.ts` files, and
-`F-game-lib-7`. **Two open
-in group A:** `F-game-lib-8` and `F-game-lib-9`. **One open elsewhere:**
+`F-game-lib-7` and `F-game-lib-8`. **One open
+in group A:** `F-game-lib-9`. **One open elsewhere:**
 `F-game-lib-11`, which group B resolves.
 
 **Three of the six resolved turned out bigger than filed**, all the same way:
@@ -568,7 +568,7 @@ person:
   that question. That is the trap the missing docstring left open, and the one
   thing here that could have produced a real bug.
 
-### F-game-lib-8 · `player-count-short-untested` · Three sibling formatters, two tested
+### RESOLVED 2026-09-03 — F-game-lib-8 · `player-count-short-untested` · Three sibling formatters, two tested
 
 `gameManifest.test.ts` opens *"Pure-function tests for the player-count helpers"* —
 plural, and it covers `playerCountFits` and `playerCountLabel`. `playerCountShort`
@@ -583,6 +583,29 @@ manifest edit away from rendering.
 
 The two that are tested drive an enable/disable decision and a tooltip; the
 untested one is the one on screen in every club, every time.
+
+#### Resolved 2026-09-03 — four cases, and they were planted before being believed
+
+`gameManifest.test.ts` gains a `playerCountShort` block mirroring its sibling's:
+the exact-match form, the singular branch, and the bounded form — the last
+using the three shapes actually in the roster (`[1, 6]` the house default,
+`[2, 8]` boggle/crosswords, `[1, 4]` scrabble) rather than invented ones.
+
+**A fourth case has no sibling: the EN DASH.** Both helpers render a range with
+`–` (U+2013), which is invisible in review and the obvious thing to "correct"
+to a hyphen. They describe the same range on the same page — the tooltip on a
+disabled Start button and the meta line on an enabled one — so a divergence
+shows up as two spellings of one number in one club.
+
+**Verified by planting**, per the standing rule that a test which cannot fail is
+worse than none: removing the singular branch fails 1, and swapping the en dash
+for a hyphen fails 2. Suite 2560 (was 2556); `gameManifest.ts` itself is
+untouched, since this finding was a test gap and not a defect.
+
+Fixed in passing: the file's docstring pointed at `src/common/lib/games.ts`,
+which the `F-game-lib-12` rename had made a dead path. The blanket doc sweep
+there only reached `docs/` and `plans/`, so source-comment references to the old
+name survived it — worth knowing when the next rename lands.
 
 ### F-game-lib-9 · `player-outcome-exported-unread` · An exported function with no importer, and four docstrings that name it
 
