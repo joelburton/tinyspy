@@ -6,13 +6,13 @@
  * different width, kept in one object so they stay in sync.
  */
 export type TerminalCopy = {
-  /** The below-board pill's verdict — terse, leading with the outcome word
-   *  ("Won: fewest guesses", "Lost: out of time"), no trailing period: the pill
-   *  is a one-line, ellipsizing LABEL (~48 chars on a phone), not prose. */
+  // The below-board pill's verdict — terse, leading with the outcome word
+  // ("Won: fewest guesses", "Lost: out of time"), no trailing period: the pill
+  // is a one-line, ellipsizing LABEL (~48 chars on a phone), not prose.
   verdict: string
-  /** The short info-column outcome line ("You won!", "Out of guesses"). */
+  // The short info-column outcome line ("You won!", "Out of guesses").
   message: string
-  /** Color of BOTH surfaces (`shared.outcome_<tone>` for the line). */
+  // Color of BOTH surfaces (`shared.outcome_<tone>` for the line).
   tone: 'won' | 'lost' | 'neutral'
 }
 
@@ -22,11 +22,9 @@ export type TerminalCopy = {
  * game-specific, which is why it can live here at all — a manual end is the one
  * terminal every game reaches the same way.
  *
- * **Most games call this; not all do, so it is not a guarantee about what a
- * player sees.** MothCubes deliberately writes its own (`Ended: 12/40`) because
- * a compete word hunt spends the pill's width on the tally — a considered
- * divergence, and its own comment says so. The others are unconverted rather
- * than decided, and belong to their areas.
+ * **A game may still write its own** — boggle does, spending the pill's width
+ * on the tally instead (`Ended: 12/40`) — so this is not a guarantee about what
+ * a player sees. Read the game's `buildOver` before assuming.
  */
 export function endedCopy(mode: 'coop' | 'compete'): TerminalCopy {
   return {

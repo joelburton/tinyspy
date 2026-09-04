@@ -4,9 +4,8 @@
  * The vocabulary every game's `labelFor` speaks — the club-page **status
  * line**, the second line of a game card (see docs/game-status-labels.md).
  *
- * Every game wrote its own strings, and they drifted into six words for "in
- * progress" and four phrasings of "alice won". These helpers exist so the shape
- * is decided once:
+ * These helpers decide the shape once, so no game has to invent its own word
+ * for "in progress" or its own phrasing of "alice won":
  *
  *     OUTCOME (why) · other · facts
  *
