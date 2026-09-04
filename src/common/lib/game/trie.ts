@@ -1,4 +1,4 @@
-// cs-met-game-lib
+// cs-audited-game-lib
 
 /**
  * Flat typed-array trie — the shared dictionary structure for word games.

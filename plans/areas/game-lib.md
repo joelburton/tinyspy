@@ -21,8 +21,8 @@ ran in passes. The six groups are below.
 
 **Where the stamps stand (2026-09-04)** — 37 files: **33 `cs-blessed-game-lib`**
 — every file of groups A through E, Joel having read the last three on
-2026-09-04 — and **4 `cs-met-game-lib`**, which is all of group F and the whole
-of what is unread. Nothing sits at `cs-fixed`.
+2026-09-04 — and **4 `cs-audited-game-lib`**, which is group F, audited below
+with five findings open. **Nothing in this area is unread any more.**
 
 **Group E's three test files are blessed** — `gameMenu.test.ts`,
 `gameInvites.test.ts`, `pause.test.ts`. Joel, 2026-09-04: *"go ahead and bless
@@ -206,7 +206,7 @@ the audit found the loose file was `peers.ts`, which was not about this seam or
 any other in `lib/game/`, and moving it out left the rest coherent. It stays
 this area's file at its new path.
 
-### F · The two pure algorithms — 4 files, 249 lines
+### F · The two pure algorithms — 4 files, 249 lines — **audited 2026-09-04**
 
 | file | lines |
 |---|---|
@@ -2404,8 +2404,157 @@ Group E made one of each:
    -  lib/game/peers.ts → lib/members/memberList.ts    F-game-lib-34 — renamed, not created
 ```
 
-Both carry `cs-audited-game-lib`. The rename is **not** a roster addition: it is
-group E's own file at a name that describes it, and it leaves the group at six.
+Both carry `cs-blessed-game-lib` as of 2026-09-04. The rename is **not** a
+roster addition: it is group E's own file at a name that describes it, and it
+leaves the group at six.
+
+## Group F — the two pure algorithms, read 2026-09-04
+
+Four files, 249 lines, all four read in full. **No bug, and the code is the best
+in the area** — two genuinely pure modules, both well tested, both with an
+honest account of why they are shared. Everything found is in the prose around
+them: **two citations to documents that no longer exist**, a contract that
+describes two of its three outcomes, an untested branch that is the only line
+here capable of corrupting anything, and a third game the sharing story does not
+mention.
+
+**The group's own description held.** It was called "pure math shared by exactly
+two games each, both fully tested, neither touching the shell", and every clause
+of that is true. It is also why this group was read last and why that was right:
+nothing in it constrains anything else.
+
+### F-game-lib-44 · `trie-cites-two-deleted-docs` · Both of this file's outside references are gone
+
+`trie.ts` sends the reader to two documents, and **neither exists**:
+
+| citation | status |
+|---|---|
+| *"so scrabble's move suggester can share it (`docs/scrabble-ai.md`)"* | **No such file.** `find . -name "scrabble-ai*"` outside `node_modules` finds an e2e spec, an edge function, and a git branch — no doc |
+| *"We throw instead of storing a self-erasing terminal (`docs/scrabble-ai-fixes.md §7`)"* | **No such file either**, and no §7 anywhere to land on |
+
+Both are the residue of a shipped plan — CLAUDE.md's rule is that a plan is
+deleted when its work lands, so a citation to one dies with it. The live home is
+**`docs/games/scrabble.md:900-901`**, which documents this exact module: *"the
+shared flat trie (`common/lib/game/trie.ts`), whose **rated terminals** carry
+each word's difficulty 1..6"*.
+
+**The `§7` pointer should go rather than be redirected.** What it cited is the
+*reasoning* for the rating guard, and that reasoning is already written out in
+full immediately above it — the terminal is a `Uint8Array` cell whose truthiness
+IS "this is a word", so a missing, zero, or wrapping rating silently turns an
+accepted word into a non-word. The pointer adds nothing the paragraph does not
+already say. Same shape as `F-game-lib-31`: keep the argument, drop the dead
+address.
+
+### F-game-lib-45 · `walk-word-has-a-third-return` · The contract names two outcomes; there are three, and the one caller quietly knows it
+
+`walkWord`'s docstring: *"the node reached, or **-1** if the trie has no such
+path."* Two outcomes. There is a third: **the empty string returns `0`, the
+root** — the loop never runs, so nothing can fail and nothing is walked.
+
+That matters because `0` is also this structure's "no child" sentinel, which the
+file's own layout note calls out (*"0 = none; node 0 is the root, which nothing
+points back to, so 0 is unambiguous"*). It is unambiguous **inside** `children`;
+as a *return value* it is a third case the contract does not mention.
+
+**The one production caller already defends against it, and its guard is the
+evidence.** `scrabble/lib/policy.ts:104` reads
+`return node > 0 ? trie.eow[node] : 7` — `> 0`, not `!== -1`. That is correct,
+and nothing says why, so it reads as belt-and-braces rather than as the only
+thing standing between an empty word and `eow[0]`. A caller written against the
+docstring would test `!== -1` and read the root's terminal.
+
+`eow[0]` is `0` today, so nothing is broken. It stops being `0` the moment a word
+list contains an empty string, at which point **every** empty query answers "yes,
+a word" — and `buildTrie` accepts `''` silently, since a zero-length word skips
+the character loop and marks `eow[0] = 1`.
+
+Two ways to settle it, and the choice is Joel's: **document the third case**
+(one sentence, and a note on `policy.ts`'s guard), or **make it two** by
+returning `-1` for an empty word, which is what the docstring already promises.
+The second changes behavior in a module two games depend on; the only production
+caller is already compatible with both.
+
+### F-game-lib-46 · `trie-growth-never-exercised` · The one line that can corrupt the structure is the one nothing runs
+
+`buildTrie` starts at `1 << 16` nodes and doubles on demand — `grow()` allocates
+two new typed arrays and copies. It is the only branch in group F that can
+silently produce a wrong structure rather than a wrong answer, and **no test in
+the repo reaches it.** Every trie built in a test is small: `trie.test.ts` uses
+a handful of words, and the boggle solver's parity suite uses a 2,000-word
+fixture. The tries that actually cross 65,536 nodes are built at the scrabble
+edge function's cold start, from a bundled list — production only.
+
+**It works.** Verified by execution, not by reading: a probe building 17,576
+six-letter words (71,006 nodes, several doublings) came back with correct
+lookups, correct terminals, correct misses. The probe was run and removed; it is
+about eight lines and is worth keeping as a real case, which is the finding.
+
+The reason to want it pinned is the shape of the code, not a doubt about it:
+`nx = n++; if (n > cap) grow()` is exactly one comparison away from writing past
+the end, and the failure mode is a corrupted dictionary at cold start in
+production — no exception, just words that stop being words.
+
+### F-game-lib-47 · `grid-cursor-doesnt-name-the-third-grid-game` · Two grid games share this; a third has its own and nobody wrote down why
+
+`gridCursor.ts` opens: *"The shared keyboard-cursor movement math for the two
+grid games (bananagrams + scrabble)."* True of this module, and misleading about
+the app: **crosswords is a third grid game with a keyboard cursor**, and it does
+not use this — `crosswords/lib/cursor.ts:214` declares its own `moveCursor`.
+
+The reason is real and none of it is written down:
+
+| | this module | crosswords |
+|---|---|---|
+| position | `{ x, y }` | `{ row, col }` |
+| direction | `'h'` / `'v'` | `'across'` / `'down'` |
+| knows the grid? | no — clamps to `[0, max]` | **yes** — skips blocked cells, and has `jumpWordEdge` |
+
+So crosswords genuinely cannot use this one: its movement is grid-aware, which
+is the whole difference between a crossword and a rack game. **That is a good
+answer, and it exists nowhere** — so the next person to notice two functions
+named `moveCursor` in one repo re-derives it, which is exactly what
+`F-game-lib-15` had to do for boggle after a *false* reason had been written
+down. A sentence naming crosswords and saying why is cheaper than the
+rediscovery.
+
+**Not proposing they unify.** Precedent is directly on point — Joel on
+`makeFoundWordsGame`, 2026-09-03: *"i prefer clarity and not over-generalizing."*
+Parameterising a cursor over "does the grid have holes" would make a framework
+out of eleven lines of arithmetic.
+
+### F-game-lib-48 · `group-f-tests-have-no-file-docstring` · Both test files open on their imports
+
+Fourth time in this area (`F-game-lib-18` for group B, `-23` for C, `-39` for E),
+and the mildest instance: `trie.test.ts` at least opens on a `//` note that says
+the real workout is elsewhere (*"the boggle solver suite, including the C-oracle
+parity test"* — verified: `boggle/lib/solver.test.ts:16` is
+`describe('boggle solver — parity vs C oracle (libwords.c)')`), which is the
+most useful sentence a reader of this file could have. It is a comment above the
+imports rather than a docstring, and it does not say what THIS file covers.
+
+`gridCursor.test.ts` has nothing at all — stamp, imports, `describe`.
+
+### What checked out — verified, not assumed
+
+- **`trie.test.ts`'s claim about its scope is accurate.** The boggle parity
+  suite exists and is what it says (`solver.test.ts:10-16`, a fixture generated
+  by `boggle-c-solver/dump_fixture.c`), so this file's job really is "what is new
+  since the extraction" — rated terminals and `walkWord`.
+- **The rating guard's cases are all covered**, including the subtle one: a word
+  skipped for non-`a`–`z` characters never writes a terminal, so its rating is
+  never validated (`trie.test.ts:45-47`).
+- **`gridCursor.test.ts`'s per-game maxes are right** — `GRID = 25` in
+  `bananagrams/lib/board.ts:19` and `BOARD_SIZE = 15` in `scrabble/lib/board.ts:19`,
+  which are the 24 and 14 the test names.
+- **"The games' own `Cursor` types are structurally identical" is exactly true.**
+  `scrabble/components/Board.tsx:20` is `{ x, y, dir: 'h' | 'v' }`; bananagrams'
+  is `Cell & { dir: 'h' | 'v' }` where `Cell` is `{ x, y }`. Both pass without
+  conversion, as claimed.
+- **`walkWord` is used at four production-adjacent sites and only one ships** —
+  `policy.ts`; the rest are scrabble tests. The docstring's "handy at boundaries
+  — inner loops walk `children` themselves" describes the real usage.
+- **No British spelling and no roster count** in the four files.
 
 ## Predicted test breaks
 

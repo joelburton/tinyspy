@@ -1,4 +1,4 @@
-// cs-met-game-lib
+// cs-audited-game-lib
 
 /**
  * The shared keyboard-cursor *movement* math for the two grid games
