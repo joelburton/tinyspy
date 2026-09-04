@@ -1169,55 +1169,89 @@ tested, rather than tallies of a roster that grows.
 
 ## Group C — what a game says about itself, read 2026-09-03
 
-Six files, 440 lines, all read. **One real bug**, four stale claims, one missing
-docstring. The bug is the first this area has found that a player could see.
+Six files, 440 lines, all read. **Seven findings**, of which two are this area's
+to fix and one is a real bug — the first this area has found that a player could
+see.
 
-### F-game-lib-19 · `bananagrams-recap-written-twice` · The drift `setupRows` says it fixed, live in one game — with an inverted value
+**Three of the seven belong to `bananagrams`, not here** (`F-game-lib-24`,
+`F-game-lib-25`, and the call site named in `F-game-lib-20`). They were one
+finding until Joel pointed out it was three things: a false claim in THIS file, a
+migration one game skipped, and an inverted string on that game's PDF. They have
+different owners, different urgency, and could be fixed in any order, which is
+three findings and not one.
 
-`setupRows.ts`'s docstring states the problem it was built to end:
+### F-game-lib-19 · `setup-rows-claims-a-finished-migration` · The one claim here that is this file's own
 
-> *It used to be written twice: literal `<li>`s in each game's `InfoCol`, and a
-> separate hand-built `{label, value}[]` in its `PlayArea` for the print model…
-> **psychicnum went as far as reporting different facts on paper than on
-> screen.** Each game now exports `setupRows()`… and **both consumers render
-> that**.*
+**THIS AREA'S.** `setupRows.ts:16-18` states the migration it exists for as
+done:
 
-**bananagrams never converted.** `PlayArea.tsx:111` calls `setupRows()` for the
-PDF, and `PlayArea.tsx:638-657` hand-writes the screen's `<li>`s. Two sources,
-one recap — and they have drifted four ways:
+> *Each game now exports `setupRows()` from `<game>/lib/setupSummary.ts`… and
+> **both consumers render that**.*
+
+It is not done — `F-game-lib-24` is the game that never converted. And the
+sentence is load-bearing in the worst way: a reader of `setupRows.ts`, including
+anyone later auditing that game, is told the two surfaces CANNOT drift, which is
+exactly the sentence that stops them checking. The docstring goes on to name
+psychicnum's old "different facts on paper than on screen" as the thing this
+ended, while a live instance of it sits one game over.
+
+Fixing this is one paragraph, and it does not depend on the game being fixed
+first — the honest version says most games render the shared rows, names the
+holdout, and stops promising.
+
+### F-game-lib-24 · `bananagrams-recap-written-twice` · The one game that never converted
+
+**`bananagrams`'.** `PlayArea.tsx:111` calls `setupRows()` for the PDF while
+`PlayArea.tsx:638-657` hand-writes the screen's `<li>`s. Two sources for one
+recap, which is the arrangement `setupRows.ts` was built to remove, and they
+have drifted three ways on their own:
 
 | | screen (`<li>`) | PDF (`setupRows`) |
 |---|---|---|
 | roster | absent | `rosterRow()` — "the FIRST row of every game's recap" |
 | order | Bunch, then Starter hand | Starter hand, then Bunch |
 | label | "Word check" | "Words" |
-| **`dump_to_bag`** | correct | **inverted** |
 
-**The last row is a bug a player can hit.** `lib/setup.ts:60-62` is
-unambiguous — *"`false` (default) = back into the bunch… `true` = to the
-out-of-play 'bag'"* — and the setup form agrees (`'to bag' : 'to bunch'`). So
-with the box ticked:
+Nothing in `common/` can prevent this: a shared builder cannot make a game call
+it. The fix is bananagrams rendering the rows it already builds.
 
-- screen (`PlayArea.tsx:655`): `'set aside (bag)'` — right
-- **PDF (`lib/setupSummary.ts:34`): `'back to the bunch'` — the opposite**
+**Nothing catches it either.** `guards/setupRows.test.ts` asserts every setup KEY
+produces a row; it cannot see that a game renders its screen recap from
+something else. A guard that could would have to compare the two surfaces, which
+is a different check from the one that exists — worth considering when this is
+fixed, since bananagrams is unlikely to be the last game to skip a migration.
 
-Both arms are swapped, so the printout misstates the rule on either setting. It
-is exactly psychicnum's failure — different facts on paper than on screen — in
-the one game that never made the move.
+### F-game-lib-25 · `bananagrams-pdf-inverts-dump-to-bag` · A shipped, player-visible wrong statement
 
-**Nothing could have caught it.** `guards/setupRows.test.ts` asserts every setup
-KEY produces a row; it cannot see that a game renders its screen recap from
-something else entirely. A guard that could would have to compare the two
-surfaces, which is a different check from the one that exists.
+**`bananagrams`', and the only defect in this group that is not prose.**
+`lib/setupSummary.ts:34`:
 
-Scope: the inverted value and the duplicate `<li>`s are `bananagrams`'; the
-docstring's "both consumers render that" is this file's.
+```ts
+value: setup.dump_to_bag ? 'back to the bunch' : 'out of play'
+```
+
+Both arms are swapped. `lib/setup.ts:60-62` is unambiguous — *"`false`
+(default) = back into the bunch… `true` = to the out-of-play 'bag'"* — and the
+setup form agrees (`'to bag' : 'to bunch'`), as does the screen recap
+(`PlayArea.tsx:655`, `'set aside (bag)' : 'return to the bunch'`).
+
+So the PDF misstates the rule on **either** setting: a printout of a game played
+with dumps going to the bag says they went back to the bunch, and vice versa.
+
+**It is only invisible because of `F-game-lib-24`.** With one source for the
+recap the wrong string would show on screen as well, where somebody would have
+hit it in a game. The duplication is what let a wrong value survive on the
+surface nobody checks.
+
+Filed apart from `F-game-lib-24` deliberately: that one is a refactor with no
+user-visible symptom, this is a wrong sentence on a record people keep. They have
+different urgency and could reasonably be fixed in either order.
 
 ### F-game-lib-20 · `timer-label-doc-names-the-old-call-site` · Its stated caller is the one game that shouldn't be doing that
 
 `timerLabel.ts:8-9`: *"Every gametype renders it as
 `<li>Timer: {timerLabel(setup.timer)}</li>`"*. Exactly one does —
-**bananagrams**, and only because of `F-game-lib-19`. Every other game reaches
+**bananagrams**, and only because of `F-game-lib-24`. Every other game reaches
 it through `setupRows.ts:172`'s `timerRow()`. The docstring describes the call
 pattern the recap unification replaced, so the one call site matching it is the
 one that is wrong.
