@@ -1,4 +1,4 @@
-// cs-audited-game-lib
+// cs-fixed-game-lib
 
 import { IconBack, IconChat, IconConcede, IconEnd, IconHelp } from '../../components/icons'
 import { setChatOpen } from '../chat/chatOpenStore'
@@ -19,31 +19,31 @@ import type { MenuApi, MenuHeader, MenuItem, MenuSection } from '../menu/menu'
  * schema-typed, so the RPC call stays at the call site.
  */
 export function buildGameMenu(opts: {
-  /** The shell menu actions (openHelp / requestBackToClub) from `ctx.menu`. */
+  // The shell menu actions (openHelp / requestBackToClub) from `ctx.menu`.
   menu: Pick<MenuApi, 'openHelp' | 'requestBackToClub'>
   mode: 'coop' | 'compete'
   isTerminal: boolean
-  /** Compete only: a conceded player has already dropped out — gray the item. */
+  // Compete only: a conceded player has already dropped out — gray the item.
   conceded?: boolean
-  /** Fires the game's `end_game` RPC (the neutral, whole-table give-up).
-   *  Coop shows it as the mode's exit; compete ignores it unless
-   *  `offerEndInCompete` is set (several compete PlayAreas pass a handler
-   *  unconditionally and rely on the mode to pick, so its mere presence can't
-   *  mean "offer it here"). */
+  // Fires the game's `end_game` RPC (the neutral, whole-table give-up).
+  // Coop shows it as the mode's exit; compete ignores it unless
+  // `offerEndInCompete` is set (several compete PlayAreas pass a handler
+  // unconditionally and rely on the mode to pick, so its mere presence can't
+  // mean "offer it here").
   onEndGame?: () => void
-  /** Compete only: ALSO offer the whole-table End beneath Concede. They're
-   *  different acts — conceding is a loss on your record and it takes every
-   *  player doing it to close a game the group has simply lost interest in;
-   *  ending is the group agreeing there's no result. Opt-in per game, because
-   *  most races genuinely have no whole-table stop (the RPC won't exist). */
+  // Compete only: ALSO offer the whole-table End beneath Concede. They're
+  // different acts — conceding is a loss on your record and it takes every
+  // player doing it to close a game the group has simply lost interest in;
+  // ending is the group agreeing there's no result. Opt-in per game, because
+  // most races genuinely have no whole-table stop (the RPC won't exist).
   offerEndInCompete?: boolean
-  /** Compete: fires the game's `concede` RPC (drop out of the race). */
+  // Compete: fires the game's `concede` RPC (drop out of the race).
   onConcede?: () => void
-  /** The game's own sections, inserted between Help and the End/Back tail. */
+  // The game's own sections, inserted between Help and the End/Back tail.
   extra?: MenuSection[]
-  /** Optional info block pinned at the VERY TOP of the menu (above Help) — a
-   *  non-clickable title + credit lines. crosswords passes the loaded puzzle's
-   *  title / author / copyright, matching crossplay's menu. */
+  // Optional info block pinned at the VERY TOP of the menu (above Help) — a
+  // non-clickable title + credit lines. crosswords passes the loaded puzzle's
+  // title / author / copyright, matching crossplay's menu.
   header?: MenuHeader
 }): MenuSection[] {
   const { menu, mode, isTerminal, conceded, onEndGame, onConcede, offerEndInCompete, extra = [], header } = opts

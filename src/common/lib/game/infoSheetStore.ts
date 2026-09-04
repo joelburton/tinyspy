@@ -1,4 +1,4 @@
-// cs-audited-game-lib
+// cs-fixed-game-lib
 
 import { useSyncExternalStore } from 'react'
 

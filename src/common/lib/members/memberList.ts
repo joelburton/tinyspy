@@ -1,4 +1,4 @@
-// cs-audited-game-lib
+// cs-fixed-game-lib
 
 /**
  * Two operations on a list of members: put it in reading order, and find one

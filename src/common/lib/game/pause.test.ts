@@ -1,8 +1,26 @@
-// cs-audited-game-lib
+// cs-fixed-game-lib
 
 import { describe, expect, it } from 'vitest'
 import { computePause } from './pause'
 import type { Member } from '../members/member'
+
+/**
+ * The rule that stops a game while somebody is missing, pinned as a matrix.
+ *
+ * Everything about presence-pause that could go wrong lives in this one
+ * derivation, and two of its cases are the kind that only show up in front of
+ * players: an **empty roster** must not read as "everyone is missing" (every
+ * fresh mount would raise the overlay for a tick), and an **unknown id in the
+ * channel** must not read as anyone at all (it can make the game neither more
+ * nor less paused). The other two — nobody missing, somebody missing — are the
+ * feature itself.
+ *
+ * `useCommonGame` owns the harder half and it is not tested here: which people
+ * count as expected (this game's players, minus anyone who conceded) and how
+ * presence arrives. What this file defends is that, given those two inputs, the
+ * answer is right and its `missing` list stays in roster order — the order the
+ * overlay reads names in.
+ */
 
 // Stand-ins for the personas the pgTAP suite uses. The values
 // don't have to match those uuids — `computePause` is a pure

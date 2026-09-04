@@ -104,13 +104,15 @@ export function isSubmenu(item: MenuItem): item is MenuSubmenu {
 }
 
 /** A group of items rendered together in the menu popover.
- *  Sections are separated by a thin divider. Empty sections drop
- *  out — no leading or trailing dividers around them. */
+ *  Sections are separated by a thin divider. A section with NEITHER items nor a
+ *  header drops out — no leading or trailing dividers around them — so a
+ *  header-only section is kept and drawn. */
 export type MenuSection = {
   // Optional non-clickable header shown ABOVE the section's items — a bold
   // `title` plus muted `lines` (e.g. "by Author", a copyright). crosswords uses
   // it to show the loaded puzzle's title + credits at the top of its menu, the
-  // way crossplay's menu does. A section may be header-only (no `items`).
+  // way crossplay's menu does. A section may be header-only (`items: []`), which
+  // is how `buildGameMenu` pins that block above everything.
   header?: MenuHeader
   items: MenuItem[]
 }

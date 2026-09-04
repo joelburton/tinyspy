@@ -20,9 +20,14 @@ in groups, *"so we don't have to do them all as one big audit"*, the way `deep`
 ran in passes. The six groups are below.
 
 **Where the stamps stand (2026-09-04)** — 37 files: **25 `cs-blessed-game-lib`**
-(groups A–D), **8 `cs-audited-game-lib`** (group E — audited, and 8 of its 12
-findings settled; it reaches `cs-fixed` when the last four do), and **4
-`cs-met-game-lib`**, which is all of group F and the whole of what is unread.
+(groups A–D), **8 `cs-fixed-game-lib`** (group E — audited, all twelve findings
+settled, waiting only on Joel's read), and **4 `cs-met-game-lib`**, which is all
+of group F and the whole of what is unread.
+
+**One blessed file was edited after being blessed:** `menu/menu.ts`, one clause,
+under `F-game-lib-41`. Its stamp is left at `cs-blessed` — the stamp records
+that Joel read the file, and downgrading it would claim he had not — but the
+edit is named here so it is not invisible.
 
 ## Why it runs where it runs
 
@@ -1653,9 +1658,13 @@ around them. Both were: `F-game-lib-36`'s rule (**closed, no change**) and
 
 | status | findings |
 |---|---|
-| RESOLVED | `F-game-lib-30`, `-31`, `-32`, `-33`, `-34`, `-35`, `-37` |
+| RESOLVED | `F-game-lib-30`, `-31`, `-32`, `-33`, `-34`, `-35`, `-37`, `-38`, `-39`, `-40`, `-41` |
 | CLOSED, no change | `F-game-lib-36` — Joel's ruling |
-| **open** | `F-game-lib-38` (the split's stale doc citations), `-39` (test file docstrings), `-40` (eight field markers), `-41` (the empty-section rule) |
+| **open** | **none** |
+
+**All twelve are settled as of 2026-09-04**, so group E's eight files are
+stamped **`cs-fixed-game-lib`** — §21's "every finding resolved", which is
+Claude's to set. `cs-blessed` is only ever Joel's, and waits on his read.
 
 **One behavior change in the group: none.** Six of the seven resolutions are
 prose; the seventh is a `git mv` plus a test file. `gameMenu.ts` is
@@ -2119,7 +2128,7 @@ citation is only as good as the moment it was taken.
 Docs only, no source. Guards **261/261 in 23 files**; full suite **2574/2574 in
 272 files**.
 
-### F-game-lib-39 · `group-e-tests-have-no-file-docstring` · Both test files open on their imports
+### RESOLVED 2026-09-04 — F-game-lib-39 · `group-e-tests-have-no-file-docstring` · Both test files open on their imports
 
 Third time (`F-game-lib-18` for group B, `F-game-lib-23` for group C).
 `gameInvites.test.ts` and `pause.test.ts` both start stamp → imports. Both then
@@ -2138,7 +2147,26 @@ because ⌥⌫ takes the first matching id — so this finding still names exact
 two files it named at the audit, and the pattern it is asking for now has a
 worked example one directory over.
 
-### F-game-lib-40 · `menu-opts-fields-use-docstring-markers` · Eight field notes written as docstrings, in a file whose neighbors were converted
+#### Resolved 2026-09-04 — each says what it defends, and neither restates the file below it
+
+- **`pause.test.ts`** now opens on *the rule that stops a game while somebody is
+  missing*, and names the two cases that only ever show up in front of players:
+  an empty roster must not read as "everyone is missing" (every fresh mount
+  would flash the overlay), and an unknown id in the channel must not read as
+  anyone at all. It also says what is NOT tested here — which people count as
+  expected, and how presence arrives, both `useCommonGame`'s.
+- **`gameInvites.test.ts`** now names its two subjects as the two questions that
+  decide whether you see an invitation — *is this game new to me* and *is it
+  recent* — and why they are tested apart: the second rides on the query, so the
+  arithmetic is all there is to check.
+
+Neither docstring lists its cases; the cases are readable. The prose that was
+already inside both files (`pause.test.ts`'s rule list, `gameInvites.test.ts`'s
+note on the age bound) is kept where it is, above the `describe` it belongs to.
+
+Comments only — no assertion touched. `tsc -b` clean, vitest **2574/2574**.
+
+### RESOLVED 2026-09-04 — F-game-lib-40 · `menu-opts-fields-use-docstring-markers` · Eight field notes written as docstrings, in a file whose neighbors were converted
 
 §21's docstring-marker pass, applied per area. Group A's own outputs already
 follow it — `menu.ts:110` and `gameManifest.ts:111` note their fields with `//`
@@ -2155,7 +2183,18 @@ follow it — `menu.ts:110` and `gameManifest.ts:111` note their fields with `//
 
 The type-level and function-level `/**` in both files are correct and stay.
 
-### F-game-lib-41 · `empty-section-rule-omits-the-header` · A stated rule that would delete the feature the next field describes
+#### Resolved 2026-09-04 — eight markers, no words changed
+
+All eight `opts` fields now carry `//`. **The text is untouched** — this is the
+marker only, which is the whole point of the rule: Joel's editor lights `/**`
+up, so a field note written that way claims "read me first" and drowns the
+signal that says which docstrings actually matter. The file's two real
+docstrings — the function's, and nothing else — are what should light up in
+`gameMenu.ts`, and now do.
+
+`tsc -b` clean, vitest **2574/2574**.
+
+### RESOLVED 2026-09-04 — F-game-lib-41 · `empty-section-rule-omits-the-header` · A stated rule that would delete the feature the next field describes
 
 `menu.ts:106-107` (group A's file, `cs-blessed`): *"Sections are separated by a
 thin divider. **Empty sections drop out** — no leading or trailing dividers
@@ -2171,6 +2210,26 @@ One clause fixes it: a section drops out when it has **neither items nor a
 header**. **`Menu.tsx:59-61` repeats the incomplete version** in its own props
 docstring — that file is `shared-game-chrome`'s and is noted there, not fixed
 here.
+
+#### Resolved 2026-09-04 — the rule now states the condition the renderer checks
+
+*"A section with NEITHER items nor a header drops out … so a header-only section
+is kept and drawn."* The `header` field's own note gained the same precision —
+`header-only (`items: []`)` rather than "no `items`", since `items` is required
+and an empty array is what a caller actually writes — plus who writes one:
+`buildGameMenu`, to pin crosswords' puzzle credits above everything.
+
+**This edits a `cs-blessed` file**, which is allowed — the stamp tracks the file
+and this is the same area that blessed it — but it means a sentence Joel has
+already read has changed, so it is called out here rather than folded in
+quietly.
+
+**`Menu.tsx` still carries the incomplete version** and is still
+`shared-game-chrome`'s: the note filed there stands. Two files saying it, one
+of them right, is better than reaching into another area's file — and the
+renderer, which is the thing that decides, has always been right.
+
+`tsc -b` clean, vitest **2574/2574**.
 
 ### What checked out — verified, not assumed
 

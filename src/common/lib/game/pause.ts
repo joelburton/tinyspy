@@ -1,4 +1,4 @@
-// cs-audited-game-lib
+// cs-fixed-game-lib
 
 import type { Member } from '../members/member'
 

@@ -1,7 +1,26 @@
-// cs-audited-game-lib
+// cs-fixed-game-lib
 
 import { describe, expect, it } from 'vitest'
 import { INVITE_MAX_AGE_MS, inviteCutoffIso, newInviteCandidates, type InviteCandidate } from './gameInvites'
+
+/**
+ * The two questions that decide whether you are shown an invitation, which are
+ * asked in two different places and so are tested apart.
+ *
+ * **Is this game NEW to me?** `newInviteCandidates` drops games I created (I am
+ * already in it) and games whose invite has been surfaced before. What it
+ * deliberately does NOT drop is the game I am looking at right now — that is a
+ * render-time concern, so a game you are playing still gets marked seen and
+ * never pops later.
+ *
+ * **Is it RECENT?** That one rides on the query, not on the filter, so stale
+ * rows never leave the database — which leaves the arithmetic as the only
+ * testable part. It exists because `is_terminal = false` is not a staleness
+ * bound: an abandoned game never becomes terminal, so without an age cap the
+ * candidate pool is every unfinished game you have ever been seated in, and an
+ * empty `seen` set (new device, cleared storage) pops the entire backlog at
+ * sign-in.
+ */
 
 const me = 'me-id'
 const candidate = (over: Partial<InviteCandidate>): InviteCandidate => ({

@@ -1,4 +1,4 @@
-// cs-audited-game-lib
+// cs-fixed-game-lib
 
 import { describe, it, expect, vi } from 'vitest'
 import { buildGameMenu, END_OR_CONCEDE_IDS } from './gameMenu'
