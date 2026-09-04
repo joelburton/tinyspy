@@ -1,4 +1,4 @@
-// cs-audited-game-lib
+// cs-blessed-game-lib
 
 import type { WordListRow } from '../../components/game/lists/WordList'
 
