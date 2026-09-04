@@ -1835,7 +1835,7 @@ read them" — the terminal verb, and the two operations on a list.
 **The file keeps its `cs-audited-game-lib` stamp.** A rename is not a creation:
 this is the same file, at a name that describes it.
 
-### F-game-lib-35 · `info-sheet-says-thirteen-games` · Thirteen is sixteen, and the count should go rather than be corrected
+### RESOLVED 2026-09-04 — F-game-lib-35 · `info-sheet-says-thirteen-games` · Thirteen is sixteen, and the count should go rather than be corrected
 
 `infoSheetStore.ts:14` — *"Threading a flag down would mean adding it to
 `GamePageCtx` and touching **all thirteen games**."* Sixteen.
@@ -1846,6 +1846,29 @@ applies: **a tally of the roster always rots, so name the condition instead** �
 seventeenth arrives.
 
 Everything else in this file's long docstring **checked out** — see below.
+
+#### Resolved 2026-09-04 — "every game"
+
+*"touching all thirteen games"* → *"touching every game"*. The sentence is an
+argument about **reach**, not about arithmetic: what makes threading the flag
+through `GamePageCtx` expensive is that it lands on all of them, whichever
+number that is this month. Naming the condition says the same thing and cannot
+go stale, which is the fourth time this area has reached that answer.
+
+**Checking that claim turned up that this area has answered the question both
+ways, and one of them is blessed.** `manifestRpcs.ts:13` and `:54` still carry a
+tally — *"the sixteen games would otherwise write the same closure"*, *"across
+all sixteen games"* — because `F-game-lib-3` fixed its "ten" by **correcting the
+number**, not by removing it. Both are true today.
+
+A defense exists: there the number is the point (how much duplication the helper
+absorbs), where here it was incidental to an argument about reach. It is thin,
+because both rot on the same schedule. **Not changed** — `manifestRpcs.ts` is
+`cs-blessed`, and re-opening a resolved finding in a blessed file to apply a
+rule the other way is Joel's call, not a tidy-up. Recorded so the next person to
+notice the two files disagree finds the reason rather than the discrepancy.
+
+vitest **2567/2567 in 271 files**, `tsc -b` clean.
 
 ### CLOSED 2026-09-04, no change — F-game-lib-36 · `conceder-can-still-end-the-table` · A player who quit the race keeps an enabled control that ends it for everyone
 

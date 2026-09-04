@@ -11,9 +11,9 @@ import { useSyncExternalStore } from 'react'
  * game's `<InfoCol>`), but the *switch button* that flips it — and the header
  * contents that swap with it — belong to the shell's `<GamePage>` header, which
  * sits above PlayArea and re-renders independently of it. Threading a flag down
- * would mean adding it to `GamePageCtx` and touching all thirteen games;
- * lifting the sheet out of PlayArea isn't possible, because the InfoCol it
- * wraps is the game's.
+ * would mean adding it to `GamePageCtx` and touching every game; lifting the
+ * sheet out of PlayArea isn't possible, because the InfoCol it wraps is the
+ * game's.
  *
  * A module-level slot is safe here for the same structural reason the app has
  * one game at a time (`is_current_view` — see docs/common.md): only one
