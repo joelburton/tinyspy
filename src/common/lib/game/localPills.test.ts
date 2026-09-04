@@ -6,12 +6,14 @@ import { outOfRacePill, stickyPill, terminalPill } from './localPills'
 /**
  * Which MODE each below-board pill is filed under.
  *
- * This is the thing that was wrong: `outOfRacePill` — "Conceded — race
- * continues" — was built as `sticky`, so a keystroke wiped the only statement of
- * the player's own status, and (once tap-to-dismiss shipped) it advertised a tap
- * that couldn't work. It's a standing CONDITION, replaced later by the verdict,
- * never dismissed. Categories are a one-word decision at a call site and there's
- * nothing at runtime to notice a wrong one, so they're pinned here.
+ * A mode is a one-word decision at a call site, and nothing at runtime notices
+ * a wrong one — the pill still renders, just dismissible when it shouldn't be,
+ * or standing when it should have gone. So the three are pinned here.
+ *
+ * `outOfRacePill` is the one worth the case. "Conceded — race continues" is a
+ * standing CONDITION, replaced later by the verdict and never dismissed; built
+ * as `sticky` it would advertise a tap that clears the only statement of the
+ * player's own status.
  */
 
 describe('below-board pill modes', () => {

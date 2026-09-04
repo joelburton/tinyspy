@@ -13,8 +13,6 @@
  * duration back to JS, so the pair is kept in step by hand: **change both.** The
  * JS value is what removes the class, so it must be at least the CSS one — a
  * shorter value cuts the animation off mid-fade.
- *
- * See plans/tile-feedback.md.
  */
 
 /** A piece wearing the attention wash: "this changed, look here". */

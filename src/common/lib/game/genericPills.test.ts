@@ -9,9 +9,9 @@ import type { Envelope } from '../supabase/envelope'
  *
  * What these pin is the DIVISION, more than the values: the answer decides the
  * outcome and the words, the surface decides everything else. A regression here
- * doesn't look like a crash — it looks like fifteen boards slowly disagreeing
- * about what a lost race is colored, which is what one shared function exists
- * to prevent.
+ * doesn't look like a crash — it looks like the boards slowly disagreeing about
+ * what color a lost race is, which is what one shared function exists to
+ * prevent.
  */
 
 const notOk = (partial: Partial<Envelope & { type: 'not-ok' }>) =>
@@ -53,11 +53,9 @@ describe('getNotOkFeedback', () => {
   })
 
   // The modal has already fired centrally, with diagnostics only the transport
-  // layer could build. This returning a fault flag is what would have caused a
-  // SECOND one — a duplicate, and a poorer one. The flag itself is gone now
-  // (2026-09-01), which is why this asserts an ABSENT property rather than a
-  // false one: nothing downstream would read it, and the assertion is here to
-  // say the shape stays tone-and-text.
+  // layer could build, so anything raising a second one from here would be a
+  // duplicate and a poorer one. Asserts ABSENCE rather than a false flag: the
+  // return shape is tone-and-text, and this is what says it stays that way.
   it('never marks a message as a fault, so no second modal fires', () => {
     const msg = getNotOkFeedback(notOk({ severity: 'fault' }))
     expect(msg).not.toHaveProperty('fault')

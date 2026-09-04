@@ -17,8 +17,8 @@ import { notOkOutcome } from '../supabase/dbResult'
 /**
  * **How a `not-ok` looks and reads.** One function, because it is one mapping —
  * and the moment a single call can answer three ways, no call site can write it
- * by hand. `submit_guess` is the first: `ok`, a race, or a fault, from one
- * button. Fifteen boards deriving that separately is exactly the drift one
+ * by hand. `submit_guess` is the one to look at: `ok`, a race, or a fault, from
+ * one button. Every board deriving that separately is exactly the drift one
  * shared mapping exists to prevent.
  *
  * Returns the answer's half of a message. The caller adds the two halves the
