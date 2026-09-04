@@ -1199,6 +1199,13 @@ Fixing this is one paragraph, and it does not depend on the game being fixed
 first — the honest version says most games render the shared rows, names the
 holdout, and stops promising.
 
+**RESOLVED.** The header now counts (fourteen of sixteen), and names both games
+that are not there with the reason each: bananagrams hand-writes its screen list
+and has already drifted, crosswords never had a recap on either surface. It also
+points at `guards/setupRows.test.ts` → `NO_RECAP`, which was the only place
+crosswords' carve-out was written down — the wrong place for a reader of this
+file to have to find it.
+
 ### F-game-lib-24 · `bananagrams-recap-written-twice` · The one game that never converted
 
 **`bananagrams`'.** `PlayArea.tsx:111` calls `setupRows()` for the PDF while

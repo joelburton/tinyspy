@@ -6,16 +6,28 @@ import type { Member } from '../members/member'
 import { timerLabel } from './timerLabel'
 
 /**
- * The setup recap — **one array per game, rendered by both the info column and
- * the PDF** (docs/pdf.md → Setup rows).
+ * The setup recap — **one array per game, for the info column and the PDF to
+ * share** (docs/pdf.md → Setup rows).
  *
  * It used to be written twice: literal `<li>`s in each game's `InfoCol`, and a
  * separate hand-built `{label, value}[]` in its `PlayArea` for the print model.
  * They shared only their value formatters, so the values agreed while the
  * labels and the row set drifted — psychicnum went as far as reporting
- * *different facts* on paper than on screen. Each game now exports
- * `setupRows()` from `<game>/lib/setupSummary.ts` (the same per-game seam
- * `lib/history.ts` uses) and both consumers render that.
+ * *different facts* on paper than on screen. The fix is one `setupRows()` per
+ * game, exported from `<game>/lib/setupSummary.ts` (the same per-game seam
+ * `lib/history.ts` uses) and rendered by both surfaces.
+ *
+ * **Fourteen of the sixteen games are there; two are not, and sharing this
+ * array is the only thing that keeps two surfaces honest, so check before you
+ * assume a game's recaps agree:**
+ *
+ *  - **bananagrams** calls `setupRows()` for its PDF but still hand-writes the
+ *    `<li>`s on screen, so it has exactly the split this module exists to end —
+ *    and they have already drifted.
+ *  - **crosswords** has no `setupSummary.ts` at all, deliberately: it never had
+ *    a recap on either surface, and giving it one is new UI rather than this
+ *    unification. `guards/setupRows.test.ts` → `NO_RECAP` carries the reason,
+ *    and holds every other game to having a module.
  *
  * ── The rule ────────────────────────────────────────────────────────────────
  * **The recap is the setup dialog, read back.** Every control the dialog showed
