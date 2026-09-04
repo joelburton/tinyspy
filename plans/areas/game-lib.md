@@ -1308,11 +1308,23 @@ its reason and points at `NO_RECAP`, which is where the carve-out is enforced
 but was not where a reader of this file would find it. Filed separately because
 they were found separately and either could have been true without the other.
 
-### F-game-lib-23 · `timer-label-test-has-no-docstring` · The group's one test opens on its imports
+### RESOLVED 2026-09-03 — F-game-lib-23 · `timer-label-test-has-no-docstring` · The group's one test opens on its imports
 
 `timerLabel.test.ts` begins at its import block. Same class as `F-game-lib-18`,
 and the smallest instance of it — four cases, one of which pins the zero-padding
 that makes `0:05` rather than `0:5`.
+
+**RESOLVED.** A docstring, and nothing else — no case added, no code touched.
+It names the one assertion that isn't self-evident (`0:05`: an unpadded seconds
+field only shows on a countdown under a minute, and `padStart(2, '0')` reads as
+removable), and records why asserting `'none'` isn't a restatement of the
+implementation — the value is always printed after a "Timer:" label, by
+`timerRow()` and by `<SetupTimerSection>`, which is the fact `F-game-lib-20`
+established.
+
+Unlike `F-game-lib-17`, writing this turned up no missing case: the four
+assertions cover all three arms of `TimerMode`, sub-minute padding, and
+(via `600 → 10:00`) two-digit minutes.
 
 ### What checked out — verified, not assumed
 
