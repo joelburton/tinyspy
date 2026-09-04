@@ -2040,7 +2040,7 @@ primary exit" is implemented entirely by Concede being written before End.
 **Test-only.** No source touched. vitest **2574/2574 in 272 files** (from
 2567/271 — the seven new cases), `tsc -b` clean.
 
-### F-game-lib-38 · `split-left-six-stale-doc-citations` · The split updated one doc; four others still point at the old home
+### RESOLVED 2026-09-04 — F-game-lib-38 · `split-left-six-stale-doc-citations` · The split updated one doc; four others still point at the old home
 
 Raised while checking `gameMenu.ts`'s doc citation, so it is not group E's file
 — but it is **this area's own doing** and nothing else will catch it.
@@ -2080,6 +2080,44 @@ Three more, found in the same pass:
   Today `MenuItem` is a union with `MenuSubmenu`, carries `icon`, and a section
   carries `header`. Same file's prose (`:780`) describes the submenu shape it
   omits.
+
+#### Resolved 2026-09-04 — six paths, two samples, a deleted row, and a sketch replaced by a pointer
+
+| what | done |
+|---|---|
+| six wrong citations | `Member` ×2 (`code-conventions.md`, `naming.md`) and `GamePlayer` (`common.md`) → `lib/members/member.ts`; `GamePageCtx` → `lib/gamePageCtx.ts`; `MenuSubmenu` + `MenuItem.icon` (`ui.md`) → `lib/menu/menu.ts` |
+| two code samples | both `'../../common/lib/games'` → `'../../common/lib/members/member'`, which is what all three games shown actually import |
+| `SetupMember` glossary row | **deleted** |
+| `ui.md`'s type sketch | **replaced by a pointer** to `lib/menu/menu.ts`, with a sentence on what a section and an item are |
+
+**Deleting the `SetupMember` row loses nothing, and keeping it taught the
+opposite of the rule.** The setup flow uses plain `Member` today
+(`setupForm.ts:60`, `SetupGameModal.tsx:28`), and a type-level
+`SetupMember` would contradict the convention two hundred lines above it in the
+same file: one canonical `Member`, with the **variable name** carrying club-vs-game
+context. The row documented a decision the repo went the other way on.
+
+**The sketch went rather than being corrected**, on Joel's call. It was a copy of
+two type literals, and being a copy is precisely why it fell behind them — it
+still showed a `MenuItem` with no `icon` and no submenu arm long after both
+shipped, twenty lines above prose describing the submenu. The `menu:` API block
+stays (that is `GamePageCtx`'s own shape, not a copy of someone else's), and the
+types are now cited where they are declared and documented.
+
+**Verifying the fix found a seventh site the audit missed.** `naming.md:265`
+also named `SetupMember`, as an example of *"the common types and hooks that
+force consistency"* — an argument for shared naming, illustrated with a name
+that no longer exists. Now `Member`. It survived the audit because the finding
+grepped for the *path*, and this mention carries only the type name; the fix
+grepped for the name, which is the check that should have run first.
+
+**And the finding's own line numbers had already drifted** — `F-game-lib-30`
+added the Chat row to `ui.md` and pushed everything below it down one. Re-grepped
+at fix time rather than trusted. Both are the same lesson at two scales: a
+citation is only as good as the moment it was taken.
+
+Docs only, no source. Guards **261/261 in 23 files**; full suite **2574/2574 in
+272 files**.
 
 ### F-game-lib-39 · `group-e-tests-have-no-file-docstring` · Both test files open on their imports
 

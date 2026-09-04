@@ -752,21 +752,14 @@ Dispatching through the *menu item* rather than a callback is what makes `+` wor
 API on `GamePageCtx`:
 
 ```ts
-type MenuItem = {
-  id: string        // for React keying
-  label: string
-  onClick: () => void
-  disabled?: boolean
-  shortcut?: string // right-aligned hint, e.g. "⌥C" (display only)
-}
-type MenuSection = { items: MenuItem[] }
-
 menu: {
   setGameSections: (sections: MenuSection[]) => void
   openHelp: () => void      // opens the manifest Help modal
   requestBackToClub: () => void   // Back to club (terminal-nav or suspend-confirm)
 }
 ```
+
+**`MenuSection`, `MenuItem` and the rest live in [`src/common/lib/menu/menu.ts`](../src/common/lib/menu/menu.ts) — read the shapes there, not here.** A section is items plus an optional `header`; an item is either an action (`onClick`, an optional `shortcut` hint, an optional `icon`) or a submenu (`items`, one level deep). This paragraph used to be a copy of those type literals, which is exactly why it fell behind them: it still showed a plain `MenuItem` with no `icon` and no submenu arm long after both shipped. The file's own docstrings are thorough; the doc's job is what the menu is FOR, which is everything above and below this line.
 
 **Stability.** `setGameSections` is a `setState`, so a PlayArea's menu-building effect must NOT re-run every render (that loops). Keep its deps to stable values; route any late-declared or unstable item handlers (typically End/Concede) through a stable ref populated in a separate effect — the crosswords `actionsRef` pattern. The shell's menu actions (`openHelp` / `requestBackToClub`) have stable identity.
 
@@ -778,7 +771,7 @@ menu: {
 
 **Keyboard.** Enter / Space on the logo opens the menu and focuses the first enabled item. Arrow up / down navigate; Enter or Space activates; Esc closes. Tab while the menu is open closes it and advances focus normally. Disabled items are skipped by arrow navigation.
 
-**Submenus** are a two-shape hybrid, one level deep. A row with `items` instead of `onClick` ([`MenuSubmenu`](../src/common/lib/gameManifest.ts)) opens:
+**Submenus** are a two-shape hybrid, one level deep. A row with `items` instead of `onClick` ([`MenuSubmenu`](../src/common/lib/menu/menu.ts)) opens:
 
 - **desktop — a flyout** beside the parent row, parent left lit so it's clear which panel belongs to it;
 - **mobile — a drill-down** that replaces the list, headed by a `‹ <parent>` row.
@@ -1564,7 +1557,7 @@ icon buttons).
 tooltips, and a touch device has no hover — `TooltipHost` disables the hover
 path there outright, because a tap's synthetic hover leaves a stuck bubble. So
 the glyphs had no legend on the surface with the least room for words. The fix
-is [`MenuItem.icon`](../src/common/lib/gameManifest.ts): the game menu already spells
+is [`MenuItem.icon`](../src/common/lib/menu/menu.ts): the game menu already spells
 these actions out (Restart, New game, Reveal answer, Hint, Spoiler, End game,
 Concede, Back to club, Print), so each row shows its glyph beside its name.
 A button whose glyph isn't in the menu yet gets a row **added** — that's how

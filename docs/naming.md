@@ -129,7 +129,7 @@ For the database row specifically (regardless of context), `profile` is the name
 
 A member who's in a specific game — i.e. someone in `common.game_players` for that game id. Always a club member; not always *every* club member, because the `SetupGameModal` player picker lets a subset of the club start a game. (The creator is locked in — they can't deselect their own checkbox, since whoever starts a game must play it.)
 
-**Same shape as a member, different vocabulary.** In TypeScript this lands as one canonical `Member` type in `src/common/lib/gameManifest.ts` plus a per-game `Player` alias in each game's hook file:
+**Same shape as a member, different vocabulary.** In TypeScript this lands as one canonical `Member` type in `src/common/lib/members/member.ts` plus a per-game `Player` alias in each game's hook file:
 
 - connections, spellingbee, psychicnum: `type Player = Member` (pure re-export — no per-game enrichment today).
 - codenamesduet: `type Player = Member & { seat: 'A' | 'B' }` (the seat is a real per-game enrichment — codenamesduet is intrinsically 2-seat).
@@ -262,7 +262,7 @@ If you reach for `group` or `set` or `level` and find yourself thinking "well, i
 
 ### Consistency across gametypes for the same concept is non-negotiable
 
-When two games have a concept that *is the same thing*, they MUST use the same name. The common types and hooks force this for everything they touch (`SetupMember`, `useGameTimer`, `PauseBoundary`); the discipline lives at the boundary where a new game starts to introduce its own surface.
+When two games have a concept that *is the same thing*, they MUST use the same name. The common types and hooks force this for everything they touch (`Member`, `useGameTimer`, `PauseBoundary`); the discipline lives at the boundary where a new game starts to introduce its own surface.
 
 When a third game adopts a term that's standard in two others, that term graduates to the "cross-game canonical names" list below. That's also the moment to verify the pre-existing two are already using it the same way (often the catalyst for a small rename).
 
@@ -317,7 +317,6 @@ Names that recur across gametypes and MUST be identical when the underlying conc
 | `winner_user_id` / `winner_username` | The two `status` jsonb keys naming a compete game's winner: the **uuid** (which the FE compares against `session.user.id` for the celebration + the self-aware verdict) and the **cached display name** (so a club-page label prints the winner without a join). Standardized 2026-08-01: the uuid had been `winner` in five games, `winner_user_id` in three, `winner_id` in boggle. Bare `winner` is the wrong name because it always sits directly beside `winner_username`, where it reads as *a name*; `_user_id` also matches the column convention the value is joined against. Both keys are OPTIONAL — connections, psychicnum and bananagrams write only the username and answer "did I win?" from per-player state, which is fine: don't add a key nothing reads. |
 | `TurnSnapshot` / `turnSnapshot` | The turn-history replay shape (type `TurnSnapshot`) and its pure builder (`turnSnapshot(rows, index)`) in each game's `lib/history.ts`, consumed by the shared `useHistoryViewer` to render a past turn on the board. Identical across the games with a board-replay viewer. (scrabble is the documented exception — its replay is `boardUpToSeq` in `lib/play.ts`.) |
 | `<table>_select` | The SELECT RLS policy naming pattern — `games_select`, `guesses_select`. Other policy directions follow the same pattern (`<table>_insert` etc.) if/when we ever add them. |
-| `SetupMember` | The TS type for a club member in a setup-flow context. From `src/common/lib/gameManifest.ts`. |
 | `useGameTimer`, `PauseBoundary`, `PauseOverlay`, `computePause`, `Chat` | Common hooks / components / helpers. Every game that uses one consumes it under this exact import — there is no per-game variant. |
 
 ## Watch list of generic words
