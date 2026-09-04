@@ -1907,7 +1907,7 @@ ending is *"the group agreeing there's no result"*, and we are friends on a call
 "let's just stop". **Not fixed either way pending a ruling**; the one-word
 version is whether `endItem` should also take `|| !!conceded`.
 
-### F-game-lib-37 · `offer-end-in-compete-untested` · The one branch with a single user is the one nothing pins
+### RESOLVED 2026-09-04 — F-game-lib-37 · `offer-end-in-compete-untested` · The one branch with a single user is the one nothing pins
 
 `buildGameMenu`'s output is well covered *through the games*: ten PlayArea tests
 name End/Concede, and crosswords asserts the whole id order plus the ⌥⌫ and ⇧<
@@ -1923,6 +1923,40 @@ Same shape as `F-game-lib-8` — the sibling that reads as obviously fine is the
 one that has no test — and cheap here: `buildGameMenu` is a pure function of its
 options, so the missing coverage is one `gameMenu.test.ts` with three cases
 (coop, compete, compete-with-both), not a render test.
+
+#### Resolved 2026-09-04 — `gameMenu.test.ts`, seven cases, and BOTH load-bearing ones were planted first
+
+The three shapes proposed, plus four the same file gets for nothing:
+
+| case | what it holds |
+|---|---|
+| coop | `[help, chat, end-game, back]`; End carries ⌥⌫, Back carries ⇧< |
+| compete | `[help, chat, concede, back]` — Concede *instead of* End, carrying ⌥⌫ |
+| **compete + both** | `[help, chat, concede, end-game, back]` — **by position**, Concede's ⌥⌫, End's absent shortcut, and the shell's own first-match dispatch reproduced, landing on `concede` |
+| conceded | Concede disabled, **End still enabled** — `F-game-lib-36`'s ruling, pinned |
+| terminal | both exits disabled |
+| `extra` | a game's own section lands between the two framing halves |
+| `header` | a header-only section sits above everything, with `items: []` |
+
+**Both assertions that matter were broken on purpose before being believed** —
+the repo's rule that a check which cannot fail is worse than none:
+
+- **reordering the exits** to `[end, concede]` failed the compete-with-both case
+  (*expected `['help','chat','end-game',…]` to deeply equal
+  `['help','chat','concede',…]`*), which is the point of asserting position: that
+  edit moves ⌥⌫ onto the wrong act and breaks nothing else;
+- **adding `|| !!conceded` to `endItem`** — the exact one-word change
+  `F-game-lib-36` considered and Joel declined — failed the conceder case.
+
+Both plants reverted; `git diff` on `gameMenu.ts` is empty, so the file is
+byte-identical to what shipped.
+
+**The file docstring says why order is behavior**, not what the cases are: ⌥⌫
+takes the FIRST id in `END_OR_CONCEDE_IDS`, so "the shortcut follows the mode's
+primary exit" is implemented entirely by Concede being written before End.
+
+**Test-only.** No source touched. vitest **2574/2574 in 272 files** (from
+2567/271 — the seven new cases), `tsc -b` clean.
 
 ### F-game-lib-38 · `split-left-six-stale-doc-citations` · The split updated one doc; four others still point at the old home
 
@@ -2072,6 +2106,19 @@ because `components/icons.ts` is a pure re-export of `lucide-react` with no
 imports of its own. Same seam group A recorded for `SetupBodyProps` and handed
 to `forms` — noted here so the two are counted together if anyone ever draws the
 layer line.
+
+## Files group E wrote, and the one it moved
+
+Per §21, a file an area creates is that area's and gets a roster row at close.
+Group E made one of each:
+
+```
+ 122  lib/game/gameMenu.test.ts          F-game-lib-37 — the framing, by position
+   -  lib/game/peers.ts → lib/members/memberList.ts    F-game-lib-34 — renamed, not created
+```
+
+Both carry `cs-audited-game-lib`. The rename is **not** a roster addition: it is
+group E's own file at a name that describes it, and it leaves the group at six.
 
 ## Predicted test breaks
 
