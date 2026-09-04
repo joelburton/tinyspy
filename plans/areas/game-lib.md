@@ -834,7 +834,7 @@ Corrected in the moved copy. It is `F-game-lib-1`'s doing in the same way the
 orphan was: prose is checked against its declaration when — and only when —
 someone has to decide which declaration it belongs to.
 
-### GROUP B — F-game-lib-11 · `leaderboard-read-written-five-ways` · The shared read for `status.leaderboard` has two callers and four reimplementations
+### RESOLVED 2026-09-04 — F-game-lib-11 · `leaderboard-read-written-five-ways` · The shared read for `status.leaderboard` has two callers and four reimplementations
 
 Raised 2026-09-03 while checking `F-game-lib-6`'s claim about who reads
 `status`. **Not group A's** — the helper is `lib/game/foundWordsLeaderboard.ts`,
@@ -865,11 +865,51 @@ also carry `won?: boolean`. So the extractable thing is a generic
 should be on the shared type or is deliberately apart is a question for boggle's
 own area; group B only has to decide whether the READ generalizes.
 
-**Scope note.** The helper is group B's. The four inline reads live in each
-game's `PlayArea`, so changing them belongs to `boggle`, `letterboxed`, `setgame`
-and `wordiply` when those areas open — §21's "focused scope: leave others". Group
-B can widen the helper without touching a single game; the call sites convert
-per area, which is the same shape as `F-utils-7`'s handoff to `floating-panels`.
+**Scope note.** The helper is group B's. The inline reads belong to `boggle`,
+`letterboxed`, `setgame` and `wordiply` when those areas open — §21's "focused
+scope: leave others". Group B can widen the helper without touching a single
+game; the call sites convert per area, which is the same shape as
+`F-utils-7`'s handoff to `floating-panels`.
+
+**Corrected 2026-09-04: there are EIGHT sites, not four, and half of them are on
+a different screen.** This note said the reads "live in each game's `PlayArea`".
+Each of letterboxed, setgame and wordiply has a second one in its `manifest.ts`,
+inside `labelFor` — the club-page status line, not the play area — and boggle
+has two in its PlayArea. Counted by grep at the handoff rather than by the
+sentence that created it; whoever picked this up from the old wording would have
+converted half of it and believed it done.
+
+#### RESOLVED 2026-09-04 — everything that is this area's, and the handoff finally filed
+
+Two halves, and only one was ever `game-lib`'s:
+
+- **The common half shipped** under `F-game-lib-15`, which generalized the
+  helper to `readLeaderboard<T = LeaderboardEntry>` — precisely what this
+  finding asked for. Nothing else in `common/` is owed.
+- **The per-game half is filed in the four game area files**, where the people
+  who will act on it are reading: `boggle.md` (2026-09-03, with its
+  displayRows item) and — **new, 2026-09-04** — `letterboxed.md`, `setgame.md`
+  and `wordiply.md`.
+
+**Three of the four notes had never been written**, which is the part worth
+recording. The finding said "the call sites convert per area" and stopped there,
+so the work existed only in this file — the one file nobody opening
+`letterboxed` reads. A handoff is not made by naming the receiving area; it is
+made by writing in the receiving area's file. This finding carried no status
+either, which is how the gap survived: it read as still in flight.
+
+**Each note carries what that game's own area has to decide**, which turned out
+to be more than "adopt the helper". Every one of the three declares `LeaderRow`
+**twice** — once in `manifest.ts`, once in `PlayArea.tsx` — and two of the
+three disagree with themselves: letterboxed's manifest copy has no `won` (the
+PlayArea copy documents it across four lines, for co-winners on a timeout), and
+wordiply's PlayArea copy has a `letter_count` its manifest copy has never heard
+of. One copy in each pair is wrong about what the server writes. Adopting the
+shared read is what makes that visible, because both sites then name one type.
+
+Also verified so no area is handed a surprise: all three `StatusBlob`s are
+`type StatusBlob = Record<string, unknown>`, which is exactly
+`readLeaderboard`'s parameter, so every site converts with no type friction.
 
 ### RESOLVED 2026-09-03 — F-game-lib-12 · `two-files-named-games` · Two very different files share one vague name, in a repo about games
 

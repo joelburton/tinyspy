@@ -39,7 +39,36 @@ genuinely OUT of the sprint's scope goes to `docs/games/wordiply.md` → Deferre
 deliberately and by name. That is the game's standing register; this file is the
 sprint's record of the game.
 
-*(§7 → "Carried forward" assigns nothing to this game yet.)*
+### Already waiting for this area
+
+*(§7 → "Carried forward" assigns nothing to this game. The item below came from
+another area's audit, not from that checklist.)*
+
+#### Adopt the shared leaderboard read — the common side is ALREADY WIDENED
+
+From `game-lib` group B (`F-game-lib-11`), filed here 2026-09-04. Six games read
+`status.leaderboard`; two call the shared helper and four write the same
+defensive cast by hand. **Nothing here is blocked** —
+`readLeaderboard<T>(status)` is generic over the row since `F-game-lib-15`, and
+`StatusBlob` is already `Record<string, unknown>`, which is exactly the
+parameter. Two call sites:
+
+| where | today |
+|---|---|
+| `manifest.ts:117` (the club-page status line) | `(s.leaderboard as LeaderRow[] \| undefined) ?? []` |
+| `components/PlayArea.tsx:297` | `(status?.leaderboard as LeaderRow[] \| undefined) ?? []` |
+
+Each becomes `readLeaderboard<LeaderRow>(…)`. It is a small correctness gain as
+well as one less copy: the hand-written version falls back to `[]` only when the
+field is *missing*, while the helper also catches it being present and not an
+array.
+
+**The question this area actually has to answer is the row, not the read.**
+`LeaderRow` is declared **twice** — `manifest.ts:79` and `PlayArea.tsx:43` — and
+the two disagree: the PlayArea copy carries `letter_count?`, which the manifest
+copy has never heard of. One of them is wrong about what the server writes.
+Adopting the helper is the moment that becomes visible, because both call sites
+then name the same type parameter.
 
 ## Predicted test breaks
 

@@ -45,6 +45,31 @@ Rows §7 → "Carried forward" already assigns here, indexed so opening this are
 
 - `PlayArea.module.css` `.breakdown` + its three children are read by nothing
 
+#### Adopt the shared leaderboard read — the common side is ALREADY WIDENED
+
+From `game-lib` group B (`F-game-lib-11`), filed here 2026-09-04. Six games read
+`status.leaderboard`; two call the shared helper and four write the same
+defensive cast by hand. **Nothing here is blocked** —
+`readLeaderboard<T>(status)` is generic over the row since `F-game-lib-15`, and
+`StatusBlob` is already `Record<string, unknown>`, which is exactly the
+parameter. Two call sites:
+
+| where | today |
+|---|---|
+| `manifest.ts:120` (the club-page status line) | `(s.leaderboard as LeaderRow[] \| undefined) ?? []` |
+| `components/PlayArea.tsx:442` | `(status?.leaderboard as LeaderRow[] \| undefined) ?? []` |
+
+Each becomes `readLeaderboard<LeaderRow>(…)`. It is a small correctness gain as
+well as one less copy: the hand-written version falls back to `[]` only when the
+field is *missing*, while the helper also catches it being present and not an
+array.
+
+**`LeaderRow` is declared twice** — `manifest.ts:70` and `PlayArea.tsx:57` —
+and setgame is the closest of the four to having one row: the two copies carry
+the same four columns and differ only in whether `user_id` is optional. Worth
+collapsing to one declaration while both call sites are open, rather than
+keeping a copy per file that agrees today by luck.
+
 ## Predicted test breaks
 
 *(written when the area starts changing things, per §21's test-break rule: predict
