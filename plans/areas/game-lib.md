@@ -2616,7 +2616,7 @@ down at the place the next reader will ask.
 
 Prose only, one file.
 
-### F-game-lib-48 · `group-f-tests-have-no-file-docstring` · Both test files open on their imports
+### RESOLVED 2026-09-04 — F-game-lib-48 · `group-f-tests-have-no-file-docstring` · Both test files open on their imports
 
 Fourth time in this area (`F-game-lib-18` for group B, `-23` for C, `-39` for E),
 and the mildest instance: `trie.test.ts` at least opens on a `//` note that says
@@ -2627,6 +2627,29 @@ most useful sentence a reader of this file could have. It is a comment above the
 imports rather than a docstring, and it does not say what THIS file covers.
 
 `gridCursor.test.ts` has nothing at all — stamp, imports, `describe`.
+
+#### Resolved 2026-09-04 — one promoted, one written, both saying what they defend
+
+- **`trie.test.ts`'s note became its docstring**, keeping the sentence that was
+  already the most useful thing in the file (the real workout is boggle's
+  C-oracle parity suite) and correcting what it claims to cover: since
+  `F-game-lib-45` this file also pins `walkWord`'s contract, which exists for
+  callers rather than for the code. The guard's subtle case is named too — a
+  word skipped for non-`a`–`z` characters never writes a terminal, so its rating
+  is never validated.
+- **`gridCursor.test.ts` gained one**, leading with the rule a player actually
+  feels: an arrow either rotates the cursor onto its axis or steps along it,
+  never both — press ↓ on a horizontal cursor and the cell must not move. It
+  also says what is deliberately absent (what a keypress places or removes, and
+  where the cursor goes afterward), which is the module's own sharing boundary
+  restated where someone might otherwise think the file was thin.
+
+Neither lists its cases. Fourth and last instance of this pattern in the area
+(`F-game-lib-18`, `-23`, `-39`), and the only one where the missing docstring
+had a good sentence sitting one marker away from being one.
+
+Comments only, no assertion touched. `tsc -b` clean, vitest **2575/2575 in 272
+files**.
 
 ### What checked out — verified, not assumed
 

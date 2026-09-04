@@ -3,9 +3,21 @@
 import { describe, expect, it } from 'vitest'
 import { buildTrie, walkWord } from './trie'
 
-// The trie's behavioral workout is the boggle solver suite (including the
-// C-oracle parity test); this covers what's new since the extraction — rated
-// terminals and the walkWord boundary helper.
+/**
+ * What this file defends is NOT that the trie finds words — the boggle solver
+ * suite does that, against a C oracle, on every board it generates. This covers
+ * what the extraction added on top and what a caller can get wrong.
+ *
+ * **Rated terminals**, including the guard: the terminal is a `Uint8Array` cell
+ * whose truthiness IS "this is a word", so a rating outside 1..255 would erase
+ * an accepted word silently, and `buildTrie` throws instead. The subtle case is
+ * the last one — a word skipped for non-`a`–`z` characters never writes a
+ * terminal, so its rating is never consulted and never validated.
+ *
+ * **`walkWord`'s contract**, which exists for callers rather than for the code:
+ * it returns a real node or -1, and never 0. The empty-string case is the one
+ * that makes that a promise rather than an accident.
+ */
 
 describe('buildTrie', () => {
   it('marks terminals 1 when no ratings are given (the boggle contract)', () => {

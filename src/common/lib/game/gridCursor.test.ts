@@ -3,6 +3,21 @@
 import { describe, expect, it } from 'vitest'
 import { moveCursor, stepBack, type GridCursor } from './gridCursor'
 
+/**
+ * The crossword-style cursor rule that bananagrams and scrabble both run: an
+ * arrow either ROTATES the cursor onto its axis or STEPS along it, never both.
+ * That is the one thing a player feels — press ↓ on a horizontal cursor and the
+ * cell must not move — and the one thing an "improvement" would break.
+ *
+ * The rest is bounds. Positions clamp to `[0, max]` at both ends, and `max` is
+ * the caller's, which is why one case runs the two real grids side by side:
+ * 14 for scrabble's 15×15, 24 for bananagrams's 25×25.
+ *
+ * Nothing here touches what a keypress PLACES or REMOVES, or where the cursor
+ * goes after a placement — those differ deeply between the two games and stay
+ * per-game by design (see the module docstring), so they are tested there.
+ */
+
 const C = (x: number, y: number, dir: 'h' | 'v'): GridCursor => ({ x, y, dir })
 
 describe('moveCursor', () => {
