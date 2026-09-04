@@ -1169,18 +1169,18 @@ tested, rather than tallies of a roster that grows.
 
 ## Group C — what a game says about itself, read 2026-09-03
 
-Six files, 440 lines, all read. **Seven findings**, of which two are this area's
-to fix and one is a real bug — the first this area has found that a player could
-see.
+Six files, 440 lines, all read. **Five findings**, all of them prose — every
+defect this group turned up in the CODE belongs to a game.
 
-**Three of the seven belong to `bananagrams`, not here** (`F-game-lib-24`,
-`F-game-lib-25`, and the call site named in `F-game-lib-20`). They were one
-finding until Joel pointed out it was three things: a false claim in THIS file, a
-migration one game skipped, and an inverted string on that game's PDF. They have
-different owners, different urgency, and could be fixed in any order, which is
-three findings and not one.
+**Two items left for `bananagrams`** and now live in
+[bananagrams.md](bananagrams.md) → "Already waiting for this area": its setup
+recap is written twice and has drifted, and its PDF inverts `dump_to_bag`. They
+started as one finding with `F-game-lib-19` until Joel pointed out it was three
+things — a false claim in THIS area's file, a migration one game skipped, and a
+wrong string on that game's printout. Only the first is ours; nothing in
+`common/` can make a game call a shared builder.
 
-### F-game-lib-19 · `setup-rows-claims-a-finished-migration` · The one claim here that is this file's own
+### RESOLVED 2026-09-03 — F-game-lib-19 · `setup-rows-claims-a-finished-migration` · The one claim here that is this file's own
 
 **THIS AREA'S.** `setupRows.ts:16-18` states the migration it exists for as
 done:
@@ -1188,7 +1188,8 @@ done:
 > *Each game now exports `setupRows()` from `<game>/lib/setupSummary.ts`… and
 > **both consumers render that**.*
 
-It is not done — `F-game-lib-24` is the game that never converted. And the
+It is not done — bananagrams never converted its screen recap (left for that
+area; see [bananagrams.md](bananagrams.md)). And the
 sentence is load-bearing in the worst way: a reader of `setupRows.ts`, including
 anyone later auditing that game, is told the two surfaces CANNOT drift, which is
 exactly the sentence that stops them checking. The docstring goes on to name
@@ -1206,59 +1207,12 @@ points at `guards/setupRows.test.ts` → `NO_RECAP`, which was the only place
 crosswords' carve-out was written down — the wrong place for a reader of this
 file to have to find it.
 
-### F-game-lib-24 · `bananagrams-recap-written-twice` · The one game that never converted
-
-**`bananagrams`'.** `PlayArea.tsx:111` calls `setupRows()` for the PDF while
-`PlayArea.tsx:638-657` hand-writes the screen's `<li>`s. Two sources for one
-recap, which is the arrangement `setupRows.ts` was built to remove, and they
-have drifted three ways on their own:
-
-| | screen (`<li>`) | PDF (`setupRows`) |
-|---|---|---|
-| roster | absent | `rosterRow()` — "the FIRST row of every game's recap" |
-| order | Bunch, then Starter hand | Starter hand, then Bunch |
-| label | "Word check" | "Words" |
-
-Nothing in `common/` can prevent this: a shared builder cannot make a game call
-it. The fix is bananagrams rendering the rows it already builds.
-
-**Nothing catches it either.** `guards/setupRows.test.ts` asserts every setup KEY
-produces a row; it cannot see that a game renders its screen recap from
-something else. A guard that could would have to compare the two surfaces, which
-is a different check from the one that exists — worth considering when this is
-fixed, since bananagrams is unlikely to be the last game to skip a migration.
-
-### F-game-lib-25 · `bananagrams-pdf-inverts-dump-to-bag` · A shipped, player-visible wrong statement
-
-**`bananagrams`', and the only defect in this group that is not prose.**
-`lib/setupSummary.ts:34`:
-
-```ts
-value: setup.dump_to_bag ? 'back to the bunch' : 'out of play'
-```
-
-Both arms are swapped. `lib/setup.ts:60-62` is unambiguous — *"`false`
-(default) = back into the bunch… `true` = to the out-of-play 'bag'"* — and the
-setup form agrees (`'to bag' : 'to bunch'`), as does the screen recap
-(`PlayArea.tsx:655`, `'set aside (bag)' : 'return to the bunch'`).
-
-So the PDF misstates the rule on **either** setting: a printout of a game played
-with dumps going to the bag says they went back to the bunch, and vice versa.
-
-**It is only invisible because of `F-game-lib-24`.** With one source for the
-recap the wrong string would show on screen as well, where somebody would have
-hit it in a game. The duplication is what let a wrong value survive on the
-surface nobody checks.
-
-Filed apart from `F-game-lib-24` deliberately: that one is a refactor with no
-user-visible symptom, this is a wrong sentence on a record people keep. They have
-different urgency and could reasonably be fixed in either order.
-
 ### F-game-lib-20 · `timer-label-doc-names-the-old-call-site` · Its stated caller is the one game that shouldn't be doing that
 
 `timerLabel.ts:8-9`: *"Every gametype renders it as
 `<li>Timer: {timerLabel(setup.timer)}</li>`"*. Exactly one does —
-**bananagrams**, and only because of `F-game-lib-24`. Every other game reaches
+**bananagrams**, and only because its screen recap was never converted (left
+for that area; see [bananagrams.md](bananagrams.md)). Every other game reaches
 it through `setupRows.ts:172`'s `timerRow()`. The docstring describes the call
 pattern the recap unification replaced, so the one call site matching it is the
 one that is wrong.
@@ -1282,7 +1236,7 @@ from its own side. The caller knows there are four; the shared file says three.
 Also `freebee` is written lowercase where docs/naming.md gives the brand as
 **FreeBee**.
 
-### F-game-lib-22 · `each-game-exports-setup-rows` · Fifteen of sixteen, and the exception lives elsewhere
+### RESOLVED 2026-09-03 — F-game-lib-22 · `each-game-exports-setup-rows` · Fifteen of sixteen, and the exception lives elsewhere
 
 `setupRows.ts:16-18`: *"Each game now exports `setupRows()` from
 `<game>/lib/setupSummary.ts`… and both consumers render that."* Fifteen games
@@ -1293,6 +1247,13 @@ That is deliberate and written down — `guards/setupRows.test.ts:37-42` carries
 one would be new UI, not the unification this rule is about"*. But a reader of
 `setupRows.ts` is told "each game", learns something false, and has no reason to
 go looking in the guard for the carve-out.
+
+**RESOLVED by `F-game-lib-19`'s paragraph** — the same sentence was wrong twice
+over, once about crosswords (no module) and once about bananagrams (a module it
+half-renders), so one rewrite fixed both. The new header names crosswords with
+its reason and points at `NO_RECAP`, which is where the carve-out is enforced
+but was not where a reader of this file would find it. Filed separately because
+they were found separately and either could have been true without the other.
 
 ### F-game-lib-23 · `timer-label-test-has-no-docstring` · The group's one test opens on its imports
 

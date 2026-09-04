@@ -45,6 +45,69 @@ Rows §7 → "Carried forward" already assigns here, indexed so opening this are
 
 - `<ShuffleButton>` should never take focus at all — game stuff doesn't. The fix is removing the tab stop, not restyling the ring
 
+#### The setup recap is written twice — and has drifted three ways
+
+From `game-lib` group C, 2026-09-03 (was `F-game-lib-24`). **Bananagrams is the
+last game rendering its setup recap from two sources**, which is the exact
+arrangement `common/lib/game/setupRows.ts` was built to remove. Fourteen of the
+other fifteen games call `setupRows()` once and render it on both surfaces;
+crosswords has no recap at all, deliberately.
+
+- `components/PlayArea.tsx:111` calls `setupRows()` for the **PDF**
+- `components/PlayArea.tsx:638-657` hand-writes the **screen's** `<li>`s inside
+  `<SetupDisclosure>`
+
+Two hand-maintained copies of one list, and they have already diverged:
+
+| | screen (`<li>`) | PDF (`setupRows`) |
+|---|---|---|
+| roster | absent | `rosterRow()` — "the FIRST row of every game's recap" |
+| order | Bunch, then Starter hand | Starter hand, then Bunch |
+| word-check label | "Word check" | "Words" |
+| dumped tiles | `set aside (bag)` / `return to the bunch` | **inverted** — see the next item |
+
+Nobody chose any of those differences. They are what two copies of the same list
+do over time, which is the argument `setupRows.ts`'s own docstring makes using
+psychicnum's old "different facts on paper than on screen" as its example.
+
+**The fix is here, not in `common/`.** `setupRows()` is exported and correct;
+this game's screen recap simply doesn't call it. A shared builder cannot make a
+game call it. Delete the hand-written `<li>`s and render the array line 111
+already computes, through the same list markup the other games use. Small — the
+risk is layout, not correctness, since `guards/setupRows.test.ts` already
+enforces the rules the array follows.
+
+**Nothing catches this today.** That guard asserts every setup KEY produces a
+row; it cannot see that a game renders its screen recap from something else. A
+guard that could would have to compare the two surfaces — a different check from
+the one that exists, and worth considering while fixing this, since bananagrams
+is unlikely to be the last game to skip a migration.
+
+#### The PDF inverts `dump_to_bag` — a shipped, player-visible wrong statement
+
+From `game-lib` group C, 2026-09-03 (was `F-game-lib-25`). **A real bug, one
+line.** `lib/setupSummary.ts:34`:
+
+```ts
+value: setup.dump_to_bag ? 'back to the bunch' : 'out of play'
+```
+
+Both arms are swapped. `lib/setup.ts:60-62` is unambiguous — *"`false`
+(default) = back into the bunch… `true` = to the out-of-play 'bag'"* — and the
+setup form agrees (`'to bag' : 'to bunch'`), as does the screen recap
+(`components/PlayArea.tsx:655`, `'set aside (bag)' : 'return to the bunch'`).
+
+So the printout misstates the rule on **either** setting: a game played with
+dumps going to the bag prints that they went back to the bunch, and vice versa.
+
+**It is only invisible because of the item above.** With one source for the
+recap this string would render on screen too, in a disclosure players open
+mid-game, and somebody would have hit it. The duplication is what let a wrong
+value survive on the surface nobody proofreads.
+
+Worth fixing **first and separately**: it is a wrong sentence on a record people
+keep and print, it is one line, and it does not wait on the refactor.
+
 ## Predicted test breaks
 
 *(written when the area starts changing things, per §21's test-break rule: predict
