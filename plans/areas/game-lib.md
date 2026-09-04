@@ -1478,7 +1478,7 @@ The union is spelled out in **eight more places** across the game areas, all as
 `gameOver` props. Those are not this area's and are not filed; they are worth
 knowing about if this one is ever centralized.
 
-### F-game-lib-29 · `flash-durations-unguarded` · "Change both" is a request, not a rule
+### CLOSED 2026-09-04, no change — F-game-lib-29 · `flash-durations-unguarded` · "Change both" is a request, not a rule
 
 `feedbackTiming.ts` documents a hand-maintained pair:
 
@@ -1496,6 +1496,13 @@ Cheap to guard: each twin has exactly one consumer
 the two durations and asserts `ms >= s * 1000` would hold the pair without
 anyone remembering. This is the same argument the repo already accepted for
 `cssTokens` — a vocabulary is guarded, not just named.
+
+**CLOSED, no change.** Joel, 2026-09-04: *"it's fine. no guard needed."* The
+pair is two numbers with one consumer each and a stated rule; the guard was
+worth offering and is not worth its file. Recorded rather than deleted so the
+next person to change a flash duration finds the reasoning already done —
+including that the two pairs differ deliberately (attention is exactly equal,
+your-turn keeps 100ms of slack).
 
 ### What checked out — verified, not assumed
 
