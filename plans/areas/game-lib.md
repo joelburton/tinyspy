@@ -1207,7 +1207,7 @@ points at `guards/setupRows.test.ts` → `NO_RECAP`, which was the only place
 crosswords' carve-out was written down — the wrong place for a reader of this
 file to have to find it.
 
-### F-game-lib-20 · `timer-label-doc-names-the-old-call-site` · Its stated caller is the one game that shouldn't be doing that
+### RESOLVED 2026-09-03 — F-game-lib-20 · `timer-label-doc-names-the-old-call-site` · Its stated caller is the one game that shouldn't be doing that
 
 `timerLabel.ts:8-9`: *"Every gametype renders it as
 `<li>Timer: {timerLabel(setup.timer)}</li>`"*. Exactly one does —
@@ -1216,6 +1216,29 @@ for that area; see [bananagrams.md](bananagrams.md)). Every other game reaches
 it through `setupRows.ts:172`'s `timerRow()`. The docstring describes the call
 pattern the recap unification replaced, so the one call site matching it is the
 one that is wrong.
+
+**Two more wrong claims in the same eleven lines, found while verifying it:**
+
+1. *"The timer CHOOSER is a separate component, `<SetupTimerSection>`; this just
+   formats what it produced."* The chooser calls `timerLabel` itself
+   (`SetupTimerSection.tsx:111`) for its own section heading, so the string you
+   pick by is the string the recap shows later. The sentence drew a line the
+   code deliberately crosses, and hid the better fact.
+2. *"all **9** timer-bearing PlayAreas held a byte-identical copy"* — a count,
+   and the fault group A kept turning up. **This group has it too**; I had said
+   it didn't, having checked only the other five files.
+
+The count was also measuring the wrong thing. Fifteen games put a timer in a
+recap; **sixteen offer one.** The odd one out is crosswords, which has the timer
+section like everybody else (`SetupForm.tsx:83`) and simply has no recap to put
+a row in — the same `NO_RECAP` carve-out as `F-game-lib-19`/`22`. So the stale
+number invited the wrong conclusion, that crosswords has no timer.
+
+Joel, 2026-09-03: *"stuff showing numbers like this just become pointlessly
+stale."* **RESOLVED** with no number at all: the docstring now names the two real
+call sites, attaches the "value stands alone after a label" reasoning to them
+rather than to an `<li>` nobody writes, and says "every timer-bearing PlayArea
+held a copy" — true however the roster moves.
 
 Second claim in the same docstring: *"The timer CHOOSER is a separate component,
 `<SetupTimerSection>`; this just formats what it produced."* True about the
