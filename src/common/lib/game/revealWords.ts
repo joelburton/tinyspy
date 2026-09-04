@@ -4,11 +4,17 @@
  * The terminal **missed-word reveal**, shared by the three word-hunt games
  * (spellingbee, wordwheel, boggle).
  *
- * Lives in its own module rather than beside `buildDisplayRows` because that one
- * comes in two deliberately different flavors — the shared spellingbee/wordwheel
- * copy and boggle's own — while this step is genuinely identical for all three.
- * (Each game's word shape differs slightly: spellingbee/wordwheel entries carry
- * `is_pangram`, boggle's don't. Hence the generic.)
+ * **Generic over the word, because that is the only thing the three disagree
+ * about**: spellingbee and wordwheel entries carry `is_pangram` and boggle's do
+ * not. Everything else here — which words were missed, and which shipped list
+ * each came from — is the same question in all three.
+ *
+ * Its own module rather than a second export of `foundWordsDisplayRows.ts`,
+ * because it is the step every word-hunt game shares while the row-building
+ * next door still belongs to a narrower family in spirit, even now that boggle
+ * can call it (`F-game-lib-15` widened it; `plans/areas/boggle.md` has the
+ * adoption). The three-game split here is what showed the family was three
+ * games all along.
  */
 
 /** A missed word, tagged with which shipped list it came from. The games hold

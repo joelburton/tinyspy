@@ -1038,7 +1038,7 @@ Seven files, 561 lines, all read in full. **No logic bug**, and the arithmetic
 half is the best-tested code this area has seen — see "What checked out". Three
 findings, all about the writing and the shape of the test files.
 
-### F-game-lib-16 · `reveal-words-cites-the-false-flavors` · The same false premise, in a second file
+### RESOLVED 2026-09-03 — F-game-lib-16 · `reveal-words-cites-the-false-flavors` · The same false premise, in a second file
 
 `revealWords.ts:7-9` explains its own existence with the claim `F-game-lib-15`
 just proved false:
@@ -1058,6 +1058,22 @@ out precisely so all THREE games could share it — it is the proof that the sha
 was always three games, while its docstring cites the two-flavors story to
 explain why it had to be separate. The reasoning is backwards: it is separate
 because it is shareable, not because its neighbor isn't.
+
+#### Resolved 2026-09-03 — the true reason was in the parenthesis all along
+
+The paragraph is replaced, and what replaces it was already in the docstring's
+own aside: **generic over the word, because `is_pangram` is the only thing the
+three games disagree about.** That is the real explanation of the signature, and
+it was parenthetical under a false headline.
+
+The separateness is now stated as what it is — this is the step every word-hunt
+game shares — with a pointer to `F-game-lib-15` and to boggle's adoption note,
+so the next reader meets the CURRENT position rather than the superseded one.
+
+Worth keeping in view: the sentence survived because it sounded like a decision.
+"Two deliberately different flavors" reads as something weighed and settled, and
+nobody re-derives a settled thing. It took reading boggle's copy line by line to
+find there was no second flavor.
 
 ### F-game-lib-17 · `reveal-words-has-no-test-file` · A unit tested inside another unit's file
 
