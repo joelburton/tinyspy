@@ -2563,7 +2563,7 @@ eight-line recipe if anyone ever wants the case after all.
 `F-game-lib-11`'s four game areas. What this area owed was a decision and a
 written record of it, and both exist.
 
-### F-game-lib-47 · `grid-cursor-doesnt-name-the-third-grid-game` · Two grid games share this; a third has its own and nobody wrote down why
+### RESOLVED 2026-09-04 — F-game-lib-47 · `grid-cursor-doesnt-name-the-third-grid-game` · Two grid games share this; a third has its own and nobody wrote down why
 
 `gridCursor.ts` opens: *"The shared keyboard-cursor movement math for the two
 grid games (bananagrams + scrabble)."* True of this module, and misleading about
@@ -2590,6 +2590,31 @@ rediscovery.
 `makeFoundWordsGame`, 2026-09-03: *"i prefer clarity and not over-generalizing."*
 Parameterising a cursor over "does the grid have holes" would make a framework
 out of eleven lines of arithmetic.
+
+#### Resolved 2026-09-04 — the answer written down where the question gets asked
+
+A paragraph in `gridCursor.ts` names crosswords as the third grid game, says why
+it is apart (its cursor is **grid-aware** — skips blocked cells, jumps to a
+word's edge — so movement is a function of the puzzle, not of a bound), and says
+why unifying is not wanted, in the words the precedent used: a framework out of
+eleven lines of arithmetic.
+
+**It also names the naming split without opening it.** `{ row, col }` +
+`'across'`/`'down'` against `{ x, y }` + `'h'`/`'v'` is one concept under two
+vocabularies, which [naming.md](../../docs/naming.md) says must not happen across
+games. That is a real question and a bigger one than this module — it reaches
+crosswords' whole keyboard layer — so the docstring records it as open rather
+than pretending the difference is only stylistic. **Left for `crosswords`**, and
+not filed there: it is a question about a rule, not work owed to that area, and
+inventing an item for it would be pre-deciding the answer.
+
+**The shape is `F-game-lib-15`'s, run correctly.** There, a shared module had
+stopped one game short and the *stated* reason was false — the worst case,
+because a wrong decision survives by being cited. Here the reason is right and
+was simply unwritten, which is the cheaper failure and the same fix: write it
+down at the place the next reader will ask.
+
+Prose only, one file.
 
 ### F-game-lib-48 · `group-f-tests-have-no-file-docstring` · Both test files open on their imports
 
