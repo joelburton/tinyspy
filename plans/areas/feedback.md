@@ -11,7 +11,10 @@ areas, in order"), this file holds everything else.
 what a message IS, who owns a slot, and how one reaches React. It is the only
 area created because of a DESIGN problem rather than a directory — see
 [feedback-system.md](../feedback-system.md), which documents the system as it
-stands today and is this area's first read.
+stands today and is this area's first read. **The design it builds to is
+[feedback-design.md](../feedback-design.md)**, started 2026-09-04 and kept
+current as decisions land; the questions under "What the opening should
+decide" below are answered there, not here.
 
 **This area redesigns, it does not just audit.** Joel, 2026-09-04: *"this whole
 area feels poorly designed and **very** poorly named. this isn't something we
