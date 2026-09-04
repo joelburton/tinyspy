@@ -1,4 +1,4 @@
-// cs-audited-game-lib
+// cs-blessed-game-lib
 
 import type { TimerMode } from '../gameManifest'
 
