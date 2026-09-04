@@ -1,4 +1,4 @@
-// cs-audited-game-lib
+// cs-blessed-game-lib
 
 /**
  * The vocabulary every game's `labelFor` speaks — the club-page **status

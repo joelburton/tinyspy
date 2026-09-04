@@ -1,4 +1,4 @@
-// cs-audited-game-lib
+// cs-blessed-game-lib
 
 import type { CoopStyle, CoopTurnSetup } from '../../components/setup/SetupCoopStyleSection'
 import type { TimerMode } from '../gameManifest'
