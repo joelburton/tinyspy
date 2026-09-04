@@ -4,6 +4,24 @@ import { describe, expect, it } from 'vitest'
 import type { FoundWordRow } from './foundWords'
 import { buildDisplayRows } from './foundWordsDisplayRows'
 
+/**
+ * One row per word in the found-words list, whoever found it and whether
+ * anybody did.
+ *
+ * **Most of these cases are about compete after the game ends**, which is the
+ * only time the input is interesting: RLS opens at terminal, so every player's
+ * finds arrive at once and the same word turns up more than once. The rules
+ * that follow — one row per word, attributed to the earliest finder, with every
+ * finder kept for the WHO filter, and a found word shadowing its reveal entry —
+ * only ever bite there. In coop `submit_word` rejects a word anyone already
+ * found, so each of them is a no-op.
+ *
+ * The dedup is deliberately BY WORD and not per player: the row carries one
+ * identity disc, so it can show one color. Keeping every finder anyway is what
+ * stops filtering the list to a player from hiding a word they genuinely found
+ * but were second to.
+ */
+
 /** A reveal entry. `is_bonus` says which shipped list it came from. */
 const rw = (word: string, is_bonus = false, is_pangram = false) =>
   ({ word, points: 1, is_pangram, is_bonus })

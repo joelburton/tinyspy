@@ -9,6 +9,24 @@ import {
   rankThreshold,
 } from './rankLadder'
 
+/**
+ * The Start..Genius ladder — the seven tiers, where each one starts, and the
+ * score that unlocks it.
+ *
+ * **The point of most of this file is that the ladder is computed TWICE**, once
+ * here and once in each game's `<schema>._rank_idx` as integer SQL, and the two
+ * must never disagree: this side draws the bar and prints "needs N points",
+ * that side decides who wins a compete race. Nothing enforces the pairing but
+ * these tests, so two of them compare the TypeScript against the SQL formula
+ * directly rather than against expected values.
+ *
+ * That is also why float arithmetic gets its own case. `(5/6)*0.7*108` is
+ * exactly 63 on paper and `63.00000000000001` in IEEE-754, which a naive
+ * `Math.ceil` turns into 64 — a label one point above where the rank is really
+ * awarded. `rankPoints` uses integer math to avoid it, and the regression case
+ * pins the number that caught it.
+ */
+
 describe('RANKS', () => {
   it('has 7 entries in the expected order', () => {
     expect(RANKS).toEqual([

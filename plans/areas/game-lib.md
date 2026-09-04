@@ -1110,7 +1110,7 @@ it, and the same plant fails with it in place.
 counting the reveal's coverage would have gone looking there, which is the
 argument for the move stated better than the finding stated it.
 
-### F-game-lib-18 · `two-tests-open-on-their-imports` · The group's two test files have no docstring
+### RESOLVED 2026-09-03 — F-game-lib-18 · `two-tests-open-on-their-imports` · The group's two test files have no docstring
 
 `foundWordsDisplayRows.test.ts` and `rankLadder.test.ts` both begin at their
 import block. Every test file in group A carries a module docstring saying what
@@ -1121,6 +1121,26 @@ and its last case — *"agrees with the integer-math formula used by each game's
 `_rank_idx`"* — is a **FE/SQL lockstep guard**, the only thing standing between
 this ladder and the two `submit_word` RPCs drifting apart. That is not obvious
 from a list of `it(...)` names, and it is exactly what a docstring is for.
+
+#### Resolved 2026-09-03 — both say what the file is DEFENDING, not what it covers
+
+Neither docstring lists cases; a reader can see those. Each says the thing the
+list of `it(...)` names hides.
+
+`rankLadder.test.ts` leads with the reason most of it exists: **the ladder is
+computed twice** — here and in each game's `_rank_idx` as integer SQL — and
+nothing but these tests keeps the two agreeing, one drawing the bar and printing
+"needs N points" while the other decides who wins a compete race. That is why
+two cases compare against the SQL formula rather than against expected values,
+and why float arithmetic gets a case of its own.
+
+`foundWordsDisplayRows.test.ts` leads with the fact that **most of its cases are
+about compete after the game ends** — the only time the input is interesting,
+since RLS opens at terminal and every player's finds arrive at once. In coop
+each rule it tests is a no-op, which is not visible from the case names and is
+the first thing a reader needs in order to know why any of it matters.
+
+All eight files in the group now carry one, `revealWords.test.ts` included.
 
 ### What checked out — verified, not assumed
 
