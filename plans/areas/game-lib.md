@@ -1654,7 +1654,7 @@ same day, no change). The rest is accuracy — five docstrings that describe
 something the code does not do, and a folder name that stopped being true when
 group A's split created `lib/members/`.
 
-**Twelve findings from the audit, and a thirteenth raised after it.** The
+**Twelve findings from the audit, and two more raised after it.** The
 comment pass and the audit
 were one read here, and everything it turned up was filed rather than swept,
 including the mechanical items (markers, archaeology) — because two of them sat
@@ -1665,16 +1665,19 @@ around them. Both were: `F-game-lib-36`'s rule (**closed, no change**) and
 
 | status | findings |
 |---|---|
-| RESOLVED | `F-game-lib-30`, `-31`, `-32`, `-33`, `-34`, `-35`, `-37`, `-38`, `-39`, `-40`, `-41`, `-42` |
+| RESOLVED | `F-game-lib-30`, `-31`, `-32`, `-33`, `-34`, `-35`, `-37`, `-38`, `-39`, `-40`, `-41`, `-42`, `-43` |
 | CLOSED, no change | `F-game-lib-36` — Joel's ruling |
 | **open** | **none** |
 
-`F-game-lib-42` was raised by Joel after the audit, not by it — two exported
-functions with no docstring in a file the audit had read through. A finding does
-not have to come from the audit (§21), and this one says something about the
-audit: it looked at the prose that was there and not for the prose that wasn't.
+**`F-game-lib-42` and `-43` were both raised by Joel after the audit, reading
+the files it had just finished with** — a file whose two exported functions had
+no docstring, and an exported function with no caller. A finding does not have
+to come from the audit (§21), but two in a row from the same reader say
+something about it: the audit checked the prose that was there and did not ask
+what was missing, in either sense — a missing docstring, or a missing caller.
+Both are absences, and absence is what it did not look for.
 
-**All thirteen are settled as of 2026-09-04**, so group E's files reached
+**All fourteen are settled as of 2026-09-04**, so group E's files reached
 `cs-fixed-game-lib` — §21's "every finding resolved", which is Claude's to set —
 and Joel has since blessed four of the eight.
 
@@ -2274,6 +2277,59 @@ Both now open on why you would call them:
 **Checked against the call sites rather than asserted**:
 `useGameInvitations.ts:128` marks every built invite at surface time, and `:195`
 marks again on Join — so "when shown" describes what the hook actually does.
+
+`tsc -b` clean, vitest **2574/2574 in 272 files**.
+
+### RESOLVED 2026-09-04 — F-game-lib-43 · `info-sheet-getter-has-no-caller` · An exported read with no reader, documenting a pattern the app does not use
+
+Raised by Joel, 2026-09-04, reading `infoSheetStore.ts` after the group E fixes:
+*"this function appears to never be used."* It is not used, and the investigation
+is worth more than the deletion.
+
+```ts
+/** Read the current page without subscribing — for click handlers. */
+export function getInfoSheetOpen(): boolean { return value }
+```
+
+**No caller anywhere** — `grep -rn getInfoSheetOpen src docs plans e2e` returned
+exactly one line, its own declaration. Four files import from this module; none
+imports this.
+
+**No bug behind it: the case its docstring names cannot arise.** "For click
+handlers" points at `InfoSwitchButton`, the only handler that toggles the sheet
+— and that component takes `open` as a **prop** and never touches the store,
+because it needs the value for its glyph and label anyway
+(`InfoSwitchButton.tsx:36-40`). `GamePage:349` subscribes once and passes it
+down. The other two writers (`useHistoryViewer:102`, `useInfoSheet:36`) set
+`false` unconditionally and read nothing. So no site wants a non-subscribing
+read, and nothing was doing without it or doing it worse.
+
+**Where it came from — a copied shape, and the copies are unused too:**
+
+| store | getter | callers |
+|---|---|---|
+| `chatOpenStore` | `getChatOpen` | **tests only** (`chatOpenStore.test.ts`, `useAppShortcuts.test.ts`) |
+| `scratchpadOpenStore` | `getScratchpadOpen` | **none** |
+| `infoSheetStore` | `getInfoSheetOpen` | **none** |
+| `pageMenuStore` | — | has none |
+
+The get/set/use trio is the house shape for these `useSyncExternalStore`
+modules, and the getter has **no production caller in any of them**; chat's
+earns its keep as a test seam, letting a shortcut test assert the store without
+rendering. It also duplicated the module's own private `getSnapshot()`, three
+lines above, body for body.
+
+**Deleted.** The alternative — keep it for symmetry with the two siblings and
+fix the sentence — was offered and not taken: a public read nobody reads invites
+someone to reach for the store where the prop is right there. What was NOT
+acceptable was leaving it, because the docstring taught a pattern the app does
+not use.
+
+**Nothing in the repo would have caught this.** No `knip`, no `ts-prune`, and
+ESLint does not flag unused *exports* — which is why an export with no importer
+survives here in a way an unused local never would. Two sibling stores still
+carry one; they belong to `chat` and to whichever area owns the scratchpad, and
+are not touched from here.
 
 `tsc -b` clean, vitest **2574/2574 in 272 files**.
 

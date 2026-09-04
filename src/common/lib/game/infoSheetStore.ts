@@ -46,11 +46,6 @@ export function setInfoSheetOpen(next: boolean): void {
   for (const listener of listeners) listener()
 }
 
-/** Read the current page without subscribing — for click handlers. */
-export function getInfoSheetOpen(): boolean {
-  return value
-}
-
 /** Subscribe to which page is showing. */
 export function useInfoSheetOpen(): boolean {
   return useSyncExternalStore(subscribe, getSnapshot)
