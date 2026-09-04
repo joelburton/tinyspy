@@ -2423,7 +2423,7 @@ two games each, both fully tested, neither touching the shell", and every clause
 of that is true. It is also why this group was read last and why that was right:
 nothing in it constrains anything else.
 
-### F-game-lib-44 · `trie-cites-two-deleted-docs` · Both of this file's outside references are gone
+### RESOLVED 2026-09-04 — F-game-lib-44 · `trie-cites-two-deleted-docs` · Both of this file's outside references are gone
 
 `trie.ts` sends the reader to two documents, and **neither exists**:
 
@@ -2445,6 +2445,27 @@ IS "this is a word", so a missing, zero, or wrapping rating silently turns an
 accepted word into a non-word. The pointer adds nothing the paragraph does not
 already say. Same shape as `F-game-lib-31`: keep the argument, drop the dead
 address.
+
+#### Resolved 2026-09-04 — one redirected, one deleted, and the grep found nineteen more next door
+
+`docs/scrabble-ai.md` → **`docs/games/scrabble.md`**, and the `§7` pointer is
+**gone** with its paragraph untouched. Two lines, no behavior.
+
+**Verifying it turned this from a two-line fix into a handoff.** Grepping the
+doc names rather than the file — the check `F-game-lib-38` learned to run — found
+that `src/scrabble/` cites the same two dead documents on **nineteen lines
+across eleven files**, several with a section number (`S3`, `S5`, `fixes §1`,
+`band rule`) that has nowhere to land. `lib/policy.ts` alone has five.
+
+Filed in **[scrabble.md](scrabble.md) → "Already waiting for this area"** with
+the file list, the live destinations (`docs/games/scrabble.md` §11 at `:888`,
+§12 at `:951`), and the per-site judgment this finding made: a pointer whose
+reasoning is already inline gets deleted, not redirected. **Not fixed from
+here** — eleven files, all `scrabble`'s.
+
+This is the second time a group F fix has been worth more for what the
+verification found than for the fix itself; the first was `F-game-lib-45`, where
+checking the call sites is what showed the `> 0` guard needed no comment.
 
 ### RESOLVED 2026-09-04 — F-game-lib-45 · `walk-word-has-a-third-return` · The contract names two outcomes; there are three, and the one caller quietly knows it
 

@@ -5,7 +5,7 @@
  *
  * Extracted from the boggle solver (its original home; see
  * `src/boggle/lib/solver.ts` for the solver built on top) so scrabble's move
- * suggester can share it (`docs/scrabble-ai.md`). Deliberately a trie, not a
+ * suggester can share it (`docs/games/scrabble.md`). Deliberately a trie, not a
  * minimized DAWG: a DAWG merges shared suffixes, so a node can't identify a
  * word; in a trie every word gets its own terminal node, which is what lets
  * boggle dedup found words by stamping the node and lets scrabble hang a
@@ -41,7 +41,7 @@ export interface Trie {
  *  rating (short array → `undefined`), a `0`, or a value that wraps mod 256
  *  would silently turn an accepted word into a non-word and desync a
  *  consumer's legality check from the real dictionary. We throw instead of
- *  storing a self-erasing terminal (docs/scrabble-ai-fixes.md §7). */
+ *  storing a self-erasing terminal. */
 export function buildTrie(words: readonly string[], ratings?: readonly number[]): Trie {
   let cap = 1 << 16
   let children = new Int32Array(cap * 26)

@@ -47,6 +47,38 @@ Rows §7 → "Carried forward" already assigns here, indexed so opening this are
 - `ScrabbleBlankPickerBlockingModal`'s overlay at `z-index: 50`, below the panel tier — the ladder's known anomaly
 - `<ShuffleButton>` should never take focus at all — game stuff doesn't. The fix is removing the tab stop, not restyling the ring
 
+#### Nineteen citations to two documents that do not exist
+
+From `game-lib` group F (`F-game-lib-44`), filed here 2026-09-04. Fixing that
+finding's two dead citations in `common/lib/game/trie.ts` meant grepping for the
+doc names, and the grep came back with this folder.
+
+**Neither `docs/scrabble-ai.md` nor `docs/scrabble-ai-strength.md` exists** —
+both are residue of shipped plans, which CLAUDE.md deletes when their work
+lands. **Nineteen lines across eleven files still cite them**, several with a
+section number to make it worse: `S3`, `S5`, `fixes §1`, `band rule`.
+
+| file | citations |
+|---|---|
+| `lib/policy.ts` | 5 (all `-strength`) |
+| `components/PlayArea.tsx` | 2 · `components/InfoCol.tsx` 2 · `components/BoardCol.tsx` 2 · `lib/rank.ts` 2 · `lib/setup.ts` 2 |
+| `lib/suggest.ts`, `manifest.ts`, `components/SetupForm.tsx`, `components/InfoCol.module.css` | 1 each |
+
+**The live home exists and is good**, which is what makes this cheap:
+`docs/games/scrabble.md` **§11 "The move suggester (AI)"** (`:888`) and **§12
+"The AI opponent (compete)"** (`:951`) are where that knowledge landed. Most
+citations redirect to one of those two sections.
+
+**The judgment, per site, is the same one `F-game-lib-44` made:** a pointer
+whose *reasoning is already inline* should be deleted rather than redirected —
+`trie.ts`'s `§7` cited an argument the paragraph above it already made in full,
+so the address went and the argument stayed. Some of these nineteen will be that
+case; the ones carrying a section number (`S3`, `S5`) most likely are not, since
+they point at content the docstring summarizes rather than repeats.
+
+**Not fixed from here** — eleven files, all `scrabble`'s, and §21's focused
+scope. `common/lib/game/trie.ts` was `game-lib`'s and is done.
+
 #### The manual-end terminal is hand-written, and reads differently from every other game
 
 From `game-lib` group C, 2026-09-03. `components/PlayArea.tsx:765`:
