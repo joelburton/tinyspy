@@ -41,9 +41,18 @@ passes over twelve files, 22 findings, none open, all twelve `cs-blessed-utils`.
 [docs/deferred.md](../docs/deferred.md) → Common / architecture, because
 `src/guards/` is on no area's roster.
 
-**Next is `game-lib`** — [plans/areas/game-lib.md](areas/game-lib.md), the
-non-visual half of the game shell (§7 row 3). Opening it means listing its files
-and stopping (§21).
+**`game-lib` is OPEN and part-done** — [plans/areas/game-lib.md](areas/game-lib.md),
+the non-visual half of the game shell (§7 row 3). It runs in six groups; **A, B, C
+and D are audited, fixed and blessed**, and 29 findings are all statused with none
+open. **Groups E and F are unread — 11 files at `cs-met-game-lib`**, which is where
+a session picks up.
+
+**It also produced a new area.** Auditing group D showed that the feedback pills
+are one vocabulary spread over six areas, with the component at the end of every
+path (`GenericFeedbackPill`) owned by none of them. `feedback` is now §7 row 4 and
+runs straight after this one, having taken sixteen files with it
+([plans/areas/feedback.md](areas/feedback.md), and
+[feedback-system.md](feedback-system.md) for what the system is today).
 
 - **§21** is the process — the stamps, what opening an area means, and what
   "broken" is allowed to mean while this runs. Read it before doing anything.

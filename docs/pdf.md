@@ -213,13 +213,13 @@ above) — a game picks one.
 
 ### Setup rows
 
-**One source per game feeds both the info column and the paper.** Each game exports
-`setupRows(setup, ctx) => SetupRow[]` from `<game>/lib/setupSummary.ts` (the same
-per-game seam `lib/history.ts` uses); `<SetupDisclosure>` renders it as `<li>`s and the
-print model passes the identical array to `drawSetup`. Before this the two lists were
-written by hand in different files, shared only their value formatters, and drifted in
-both labels and rows — psychicnum went as far as reporting *different facts* on paper
-than on screen.
+**One source per game feeds both the info column and the paper.** A game exports
+`setupRows(setup, mode, players, …) => SetupRow[]` from `<game>/lib/setupSummary.ts`
+(the same per-game seam `lib/history.ts` uses); `<SetupDisclosure>` renders it as
+`<li>`s and the print model passes the identical array to `drawSetup`. Sharing the array
+is what makes the two surfaces agree — two hand-maintained lists of the same facts will
+not stay in step, and a game that renders one surface from something else has no way to
+keep them together.
 
 Three rules hold the shape:
 
@@ -251,20 +251,26 @@ Three rules hold the shape:
   that appeared only on hand-picked boards would be exactly the half nobody needs
   to copy), and like the roster it's the most useful line on a record you keep,
   since nothing else says WHICH board this was. The key is the shared
-  `BOARD_KEY`; each game formats its own value (`A-CHIROT` for the center-letter
-  pair, `ABCD EFGH IJKL MNOP` for the grid). Derived numbers still belong in Help
+  `BOARD_KEY`; the label and the value are each game's own (`A-CHIROT` for a
+  center-plus-outer board, `ABCD EFGH IJKL MNOP` for a grid; some say `Letters`,
+  some say `Board`). Derived numbers still belong in Help
   — this is an exception, not a loophole.
 - **Every row carries the setup `key` it describes**, which nothing renders. A
   roster-wide test uses it to assert that every key in a game's default setup produces a
-  row, with an explicit opt-out list for keys that aren't player choices. A convention
-  that two files agree is what we had, and it drifted; this makes it a failing build
-  instead.
+  row, with an explicit opt-out list for keys that aren't player choices — so adding a
+  setup field forces a decision about whether players see it recorded, rather than
+  leaving two lists to agree by convention.
 
-Fourteen games have one. **crosswords is the documented exception**: it never had a
-recap on either surface — no `<SetupDisclosure>`, and its PDF is the whole-cloth ported
-printer with no Setup block — so there was nothing to unify, and adding one would be new
-UI rather than a sweep. `src/guards/setupRows.test.ts` names it explicitly, so the exception is
-a decision on record rather than a game the guard forgot.
+**Two games are not on this arrangement**, and both are on record:
+
+- **crosswords** has no `setupSummary.ts` at all — it shows no recap on either surface
+  (no `<SetupDisclosure>`, and its PDF is the whole-cloth ported printer with no Setup
+  block), so there was nothing to unify and adding one would be new UI rather than a
+  sweep. `src/guards/setupRows.test.ts` names it explicitly, so the exception is a
+  decision on record rather than a game the guard forgot.
+- **bananagrams** exports `setupRows()` and prints it, but still hand-writes the `<li>`s
+  on screen — the split this section describes ending. Its two recaps have drifted; the
+  work is filed in `plans/areas/bananagrams.md`.
 
 The sweep that introduced this found what a hand-kept convention hides: bananagrams'
 two word-check bands appeared on **neither** surface, and boggle printed
