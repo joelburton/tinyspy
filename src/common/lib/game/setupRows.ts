@@ -17,9 +17,9 @@ import { timerLabel } from './timerLabel'
  * game, exported from `<game>/lib/setupSummary.ts` (the same per-game seam
  * `lib/history.ts` uses) and rendered by both surfaces.
  *
- * **Fourteen of the sixteen games are there; two are not, and sharing this
- * array is the only thing that keeps two surfaces honest, so check before you
- * assume a game's recaps agree:**
+ * **Two games are not there yet, and sharing this array is the only thing that
+ * keeps two surfaces honest — so check before you assume a game's recaps
+ * agree:**
  *
  *  - **bananagrams** calls `setupRows()` for its PDF but still hand-writes the
  *    `<li>`s on screen, so it has exactly the split this module exists to end —
@@ -41,13 +41,12 @@ import { timerLabel } from './timerLabel'
  * the PDF's heading instead (`Setup: Co-op`). See `drawSetup`.
  *
  * ── The board-identity exception (`BOARD_KEY`) ───────────────────────────────
- * The letter games that BUILD a board from letters — freebee, MooseWheel,
- * MothCubes — each print a `Letters` row naming the board itself, and they
- * print it whether the letters were hand-picked in the dialog or rolled at
- * random. On a random board that is plainly not a control read back, so it
- * needs saying why it's allowed:
+ * Every game that BUILDS a board out of letters prints a row naming the board
+ * itself, and prints it whether the letters were hand-picked in the dialog or
+ * rolled at random. On a random board that is plainly not a control read back,
+ * so it needs saying why it's allowed:
  *
- *   1. All three dialogs can TAKE those letters as input ("Custom letters" /
+ *   1. Those dialogs can all TAKE the letters as input ("Custom letters" /
  *      "Custom board"), so the row is the round trip — you read a board you
  *      liked off the recap (or off the printout) and paste it into the next
  *      game's dialog to hand a friend the same puzzle. A row that only appeared
@@ -85,10 +84,18 @@ export type SetupRow = {
 export const ROSTER_KEY = 'players'
 
 /**
- * The board's own letters — see "The board-identity exception" above. Shared as
- * a constant rather than spelled per game so the three letter games can't drift
- * into three different keys for one idea; each still FORMATS its own value, the
- * shapes being genuinely different (`A-CHIROT` vs `ABCD EFGH IJKL MNOP`).
+ * The board's own letters — see "The board-identity exception" above.
+ *
+ * **The KEY is what's shared; the label and the value are each game's own.** A
+ * board is a different shape in every one of these games (`A-CHIROT` vs `ABCD
+ * EFGH IJKL MNOP`), and they don't all call it the same thing either — some say
+ * `Letters`, some say `Board`. What they must NOT do is drift into different
+ * keys for one idea, since the key is what the guard matches against a game's
+ * setup.
+ *
+ * Two routes to it, decided by board shape rather than by game: a board that is
+ * a center plus an outer ring gets its row from `centerLettersRow()` below and
+ * never names this constant; any other shape imports it and builds its own row.
  */
 export const BOARD_KEY = 'letters'
 
@@ -142,7 +149,7 @@ export function coopRows(
 }
 
 /**
- * The board of a CENTER-LETTER game — freebee's honeycomb and MooseWheel's
+ * The board of a CENTER-LETTER game — FreeBee's honeycomb and MooseWheel's
  * wheel, both "one letter every word must use, plus the others". Reads
  * `A-CHIROT`: the center, a dash, then the rest.
  *
@@ -156,7 +163,7 @@ export function coopRows(
  *
  *   • Both games let a player shuffle the outer letters on screen, so "as
  *     drawn" would print a different row per player for one board.
- *   • Even the stored order is arbitrary. A random freebee board arrives
+ *   • Even the stored order is arbitrary. A random FreeBee board arrives
  *     alphabetized but a hand-picked one arrives as it was typed, so the same
  *     seven letters printed two ways — and the game's own TITLE (`E·ABCDFG`)
  *     alphabetizes, which put two spellings of one board on a single PDF.

@@ -1246,7 +1246,7 @@ separation, misleading about the direction — `SetupTimerSection.tsx:111` CALLS
 `timerLabel` to build its own section label. The chooser is a consumer, not just
 a producer.
 
-### F-game-lib-21 · `board-key-says-three-games` · Three named, four use it
+### RESOLVED 2026-09-03 — F-game-lib-21 · `board-key-says-three-games` · Three named, four use it
 
 `setupRows.ts:32-33`: *"The letter games that BUILD a board from letters —
 freebee, MooseWheel, MothCubes"*. **Four** games import `BOARD_KEY`:
@@ -1258,6 +1258,36 @@ from its own side. The caller knows there are four; the shared file says three.
 
 Also `freebee` is written lowercase where docs/naming.md gives the brand as
 **FreeBee**.
+
+**Two more claims wrong in the same two docstrings, found while verifying:**
+
+1. *"each print a **`Letters`** row"*. SnakeBox labels its row **`Board`**, and
+   MothCubes uses both — `Letters` for the tiles, `Board` for the dice set. What
+   is shared is the **key**, which is the entire point of the constant, and the
+   next docstring down already said so (*"each still FORMATS its own value"*).
+   Line 44 contradicted line 90 about the one thing `BOARD_KEY` exists to fix.
+2. **There are two routes to the key and nothing said so.** FreeBee and
+   MooseWheel never write `BOARD_KEY` — they call `centerLettersRow()`, which
+   supplies it. MothCubes and SnakeBox import the constant and build their own
+   row, their boards being neither a center nor an outer ring.
+
+**RESOLVED**, both docstrings, with no count in either: the games are named
+rather than tallied, the KEY is stated as the shared thing against the label and
+value that aren't, the two routes are given, and FreeBee is capitalized — in the
+three places it appeared lowercase, not just the one this finding named.
+
+**Also fixes a count I had just written.** `F-game-lib-19`'s new header opened
+*"Fourteen of the sixteen games are there"*, which is the same fault one commit
+later; it now says "two games are not there yet" and names them, which is the
+part that was ever load-bearing. Joel, 2026-09-03: *"stuff showing numbers like
+this just become pointlessly stale."*
+
+**Nothing would have caught letterboxed joining.** `guards/setupRows.test.ts:59`
+mentions `BOARD_KEY` in a comment but asserts nothing about who uses it, so the
+fourth game arrived silently — and its own docstring counted correctly (*"the
+three OTHER board-from-letters games"*) while the shared file it was joining did
+not. Same shape as the un-caught drift left for bananagrams. Not fixed here: a
+guard over an opt-in exception list is a design question, not a comment fix.
 
 ### RESOLVED 2026-09-03 — F-game-lib-22 · `each-game-exports-setup-rows` · Fifteen of sixteen, and the exception lives elsewhere
 
