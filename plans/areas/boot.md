@@ -7,7 +7,7 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN** — audited 2026-09-05, twelve findings; F-boot-1 closed with no
 change, F-boot-2 worked, F-boot-3 handed to `game-page`, F-boot-4 closed with
-no change, F-boot-5 worked, the other seven open.
+no change, F-boot-5 and -6 worked, the other six open.
 
 ## The roster
 
@@ -26,6 +26,7 @@ instead, we're going to audit it and treat it as this area"), and gave the word
 | `src/common/boot/reloadOnStaleChunk.ts` | one reload per minute per tab when a lazy chunk fails to load | `cs-audited-boot` |
 | `src/common/boot/reloadOnStaleChunk.test.ts` | the reload, the guard window, the fail-closed read, the window passing | `cs-audited-boot` |
 | `src/common/themes/loadTheme.ts` | pick a theme chain and import it before the first render | `cs-audited-boot` |
+| `src/common/themes/loadTheme.test.ts` | WRITTEN by this area (F-boot-6): the four rules the file used to argue only in comments | `cs-unmet` |
 | `src/common/boot/doc.md` | lede only ("What `main.tsx` runs before React mounts…"), no Design; on `DESIGNS_OWED` | (no stamp — markdown) |
 | `src/common/boot/todo.md` | empty at the open | (no stamp — markdown) |
 
@@ -297,6 +298,32 @@ Written after F-boot-5, so the cases pin the shape that stays.
 
 8. Agree?
 
+**Resolution (2026-09-05, Joel: "do it")** — `src/common/themes/loadTheme.test.ts`,
+eight cases, all through the one export: midnight from the URL and it sticks ·
+`?theme=daylight` CLEARS a stored midnight · the stored choice wins when the
+URL is silent · daylight with neither · a theme name we do not have falls
+through to the stored choice · blocked storage answers daylight · a blocked
+browser still honors the URL for THIS load and stores nothing · `<html>`
+carries `data-theme`.
+
+The URL is set with `history.replaceState`, which jsdom derives
+`location.search` from, so this file needs none of the `window.location` stub
+machinery F-boot-8 is about. `installFakeStorage()` is required rather than
+convenient: `window.localStorage` is `undefined` under vitest.
+
+**Two cases were rewritten because they passed for the wrong reason.** As
+first written, "falls back to daylight when the browser blocks site data"
+stored nothing before calling `blockAccess()` — so it would have passed with
+`blockAccess` as a no-op, since nothing stored answers daylight anyway. It now
+stores midnight first, and can only pass by the read actually throwing. The
+same for the honors-the-URL case, which now also asserts the write did not
+land, read off the fake directly (reachable while `window.localStorage` is
+not).
+
+Verified by planting: replacing the pick with a constant `'daylight'` fails
+five of the eight, and dropping the clear (`?theme=daylight` storing nothing
+instead of removing) fails exactly the clears case.
+
 ### F-boot-7 · `blocked-storage-by-hand` · The stale-chunk test models a blocked browser by hand, as the wrong failure, beside a fake built for it
 
 `reloadOnStaleChunk.test.ts:68–93`: the "fails closed" case swaps
@@ -436,8 +463,10 @@ The CSS import comments (`:8–15`) are `corecss`'s words and are not touched.
   names this test as the one that "clears it raw" (F-boot-7).
 - `src/guards/folderDocs.test.ts` — `DESIGNS_OWED` loses `common/boot` when the
   Design is written, at the close.
-- `src/guards/csStamps.test.ts` — a new `reload.fake.ts` (F-boot-8) and
-  `loadTheme.test.ts` (F-boot-6) need a stamp on their first line.
+- `src/guards/csStamps.test.ts` — a new `reload.fake.ts` (F-boot-8) needs a
+  stamp on its first line. `loadTheme.test.ts` has one (`cs-unmet`) and the
+  guard passes; the tally only counts TRACKED files, so a new file does not
+  appear in it until it is committed.
 
 ## Closing
 
