@@ -2,6 +2,7 @@
 
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { installFakeStorage, type InstalledStorage } from '../web-storage/storage.fake'
+import { installFakeReload, type FakeReload } from './reload.fake'
 import { reloadOnStaleChunk } from './reloadOnStaleChunk'
 
 /**
@@ -10,12 +11,11 @@ import { reloadOnStaleChunk } from './reloadOnStaleChunk'
  * window does NOT — it must fall through and throw, so a genuine outage lands
  * in PlayAreaErrorBoundary's card instead of a reload loop.
  *
- * jsdom's `location.reload` is non-configurable, so the whole `location` is
- * swapped for a stub for the duration.
+ * Reloading is what this module does, so `location` is stubbed throughout; see
+ * `reload.fake.ts`.
  */
 describe('reloadOnStaleChunk', () => {
-  const realLocation = window.location
-  let reload: ReturnType<typeof vi.fn>
+  let location: FakeReload
   let dispose: AbortController
   let storage: InstalledStorage
 
@@ -24,12 +24,7 @@ describe('reloadOnStaleChunk', () => {
   })
 
   beforeEach(() => {
-    reload = vi.fn()
-    Object.defineProperty(window, 'location', {
-      value: { ...realLocation, reload },
-      writable: true,
-      configurable: true,
-    })
+    location = installFakeReload()
     storage.clear()
     // Isolate each test's listener — reloadOnStaleChunk registers on window
     // for the page's lifetime, which in vitest is the whole file's lifetime.
@@ -43,11 +38,7 @@ describe('reloadOnStaleChunk', () => {
   afterEach(() => {
     dispose.abort()
     vi.restoreAllMocks()
-    Object.defineProperty(window, 'location', {
-      value: realLocation,
-      writable: true,
-      configurable: true,
-    })
+    location.restore()
   })
 
   function firePreloadError() {
@@ -59,7 +50,7 @@ describe('reloadOnStaleChunk', () => {
   it('reloads on the first chunk failure and swallows the error', () => {
     reloadOnStaleChunk()
     const event = firePreloadError()
-    expect(reload).toHaveBeenCalledTimes(1)
+    expect(location.reload).toHaveBeenCalledTimes(1)
     expect(event.defaultPrevented).toBe(true)
   })
 
@@ -67,7 +58,7 @@ describe('reloadOnStaleChunk', () => {
     reloadOnStaleChunk()
     firePreloadError()
     const second = firePreloadError()
-    expect(reload).toHaveBeenCalledTimes(1)
+    expect(location.reload).toHaveBeenCalledTimes(1)
     expect(second.defaultPrevented).toBe(false)
   })
 
@@ -82,7 +73,7 @@ describe('reloadOnStaleChunk', () => {
     storage.blockAccess()
     reloadOnStaleChunk()
     const event = firePreloadError()
-    expect(reload).not.toHaveBeenCalled()
+    expect(location.reload).not.toHaveBeenCalled()
     expect(event.defaultPrevented).toBe(false)
   })
 
@@ -93,7 +84,7 @@ describe('reloadOnStaleChunk', () => {
       firePreloadError()
       vi.setSystemTime(Date.now() + 61_000)
       firePreloadError()
-      expect(reload).toHaveBeenCalledTimes(2)
+      expect(location.reload).toHaveBeenCalledTimes(2)
     } finally {
       vi.useRealTimers()
     }

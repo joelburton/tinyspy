@@ -4,6 +4,7 @@ import { createElement } from 'react'
 import { flushSync } from 'react-dom'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { installFakeReload, type FakeReload } from './reload.fake'
 import { onUncaughtRender, showPanic } from './panic'
 
 /**
@@ -13,31 +14,21 @@ import { onUncaughtRender, showPanic } from './panic'
  * because the whole point of that path is that React calls us after it has
  * unmounted the tree, and only React can prove it does.
  *
- * `location.reload` is non-configurable in jsdom, so `location` is swapped
- * for a stub while a test needs the button to be pressable.
+ * The Reload button needs to be pressable, which takes a stubbed `location`;
+ * see `reload.fake.ts`.
  */
 describe('panic', () => {
-  const realLocation = window.location
-  let reload: ReturnType<typeof vi.fn>
+  let location: FakeReload
 
   beforeEach(() => {
     document.body.innerHTML = ''
     vi.spyOn(console, 'error').mockImplementation(() => {})
-    reload = vi.fn()
-    Object.defineProperty(window, 'location', {
-      value: { ...realLocation, reload },
-      writable: true,
-      configurable: true,
-    })
+    location = installFakeReload()
   })
 
   afterEach(() => {
     vi.restoreAllMocks()
-    Object.defineProperty(window, 'location', {
-      value: realLocation,
-      writable: true,
-      configurable: true,
-    })
+    location.restore()
   })
 
   it('paints the boot sentence, the diagnostics line, and a Reload button', () => {
@@ -53,7 +44,7 @@ describe('panic', () => {
   it('the Reload button reloads', () => {
     showPanic('boot', new Error('x'))
     document.querySelector('button')!.click()
-    expect(reload).toHaveBeenCalledTimes(1)
+    expect(location.reload).toHaveBeenCalledTimes(1)
   })
 
   it('renders a non-Error throw without crashing on it', () => {

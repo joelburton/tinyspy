@@ -7,7 +7,7 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN** — audited 2026-09-05, twelve findings; F-boot-1 closed with no
 change, F-boot-2 worked, F-boot-3 handed to `game-page`, F-boot-4 closed with
-no change, F-boot-5, -6 and -7 worked, the other five open.
+no change, F-boot-5 to -8 worked, the four prose findings open.
 
 ## The roster
 
@@ -27,6 +27,7 @@ instead, we're going to audit it and treat it as this area"), and gave the word
 | `src/common/boot/reloadOnStaleChunk.test.ts` | the reload, the guard window, the fail-closed read, the window passing | `cs-audited-boot` |
 | `src/common/themes/loadTheme.ts` | pick a theme chain and import it before the first render | `cs-audited-boot` |
 | `src/common/themes/loadTheme.test.ts` | WRITTEN by this area (F-boot-6): the four rules the file used to argue only in comments | `cs-unmet` |
+| `src/common/boot/reload.fake.ts` | WRITTEN by this area (F-boot-8): a pressable `location.reload()`, shared by both boot tests | `cs-unmet` |
 | `src/common/boot/doc.md` | lede only ("What `main.tsx` runs before React mounts…"), no Design; on `DESIGNS_OWED` | (no stamp — markdown) |
 | `src/common/boot/todo.md` | empty at the open | (no stamp — markdown) |
 
@@ -371,7 +372,7 @@ Verified by planting: dropping the `blockAccess()` call fails exactly the
 fail-closed case (the reload fires, uncounted), which is the loop the counter
 exists to prevent.
 
-### F-boot-8 · `location-stub-thrice` · The reload stub is written verbatim in three test files
+### WORKED · F-boot-8 · `location-stub-thrice` · The reload stub is written verbatim in three test files
 
 `panic.test.ts:20–41`, `reloadOnStaleChunk.test.ts:16–45` and
 `auth/ClaimHandleScreen.test.tsx` each hold the same twelve lines: keep
@@ -388,6 +389,30 @@ reading, stamp unchanged) or when `simple-page` opens. In `boot` because
 reloading the page IS boot's business: both of its modules do it.
 
 10. Agree, and is `boot` the home?
+
+**Resolution (2026-09-05, Joel: "10 yes")** — `src/common/boot/reload.fake.ts`,
+`installFakeReload(): { reload, restore }`, used by both boot tests. Twelve
+lines per file become two, each docstring keeps a pointer instead of its own
+copy of the jsdom explanation, and the assertions read `location.reload`.
+
+**The finding was wrong about its own scope, twice, and the correction is the
+interesting half.** It is a TWO-file duplication, not three:
+`ClaimHandleScreen.test.tsx:22–33` stubs `location` for **`assign`**, with a
+different stub shape (`{ assign, href }`), for a different reason (jsdom
+cannot navigate), through a `stubLocation()` helper rather than a
+`beforeEach`/`afterEach` pair. Same property, different method, different
+purpose — so it was left alone, and one fake serving both would have been a
+stub doing `reload` AND `assign` for a caller that is not asking. And "the
+second boot test already dropped the explanation" was false: both carried one
+(`panic.test.ts:16–17`, `reloadOnStaleChunk.test.ts:13–14`), so no drift had
+started.
+
+`vi.restoreAllMocks()` does NOT undo a defined property, so `restore()` is
+called explicitly in both `afterEach`s — the fake's docstring says so, since
+that is the trap.
+
+Verified by planting: dropping the `reload` override from the stub fails four
+of the eight cases across the two files.
 
 ### F-boot-9 · `app-docstring-half-the-file` · App's docstring describes the route table and nothing else the file does, and parts of what it does say are stale
 
@@ -491,10 +516,10 @@ The CSS import comments (`:8–15`) are `corecss`'s words and are not touched.
   docstring no longer names this test as the one that "clears it raw".
 - `src/guards/folderDocs.test.ts` — `DESIGNS_OWED` loses `common/boot` when the
   Design is written, at the close.
-- `src/guards/csStamps.test.ts` — a new `reload.fake.ts` (F-boot-8) needs a
-  stamp on its first line. `loadTheme.test.ts` has one (`cs-unmet`) and the
-  guard passes; the tally only counts TRACKED files, so a new file does not
-  appear in it until it is committed.
+- ~~`src/guards/csStamps.test.ts`~~ DONE: `loadTheme.test.ts` (F-boot-6) and
+  `reload.fake.ts` (F-boot-8) both carry `cs-unmet` and the guard passes. The
+  tally counts TRACKED files only, so a new file does not appear in it until
+  it is committed.
 
 ## Closing
 
