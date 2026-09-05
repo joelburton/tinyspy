@@ -19,9 +19,18 @@ import { useCallback, useRef, useState } from 'react'
  * covers all of them at once, whatever fires it.
  *
  *     const [newGame, starting] = useSingleFlight(handleNewGame)
- *     // …then feed `starting` to the button + menu item's `disabled`, so the
- *     // UI says so and the `+` shortcut inherits it (GamePage's dispatcher
- *     // already skips a disabled item).
+ *     // …then feed `starting` to whatever control should show the wait — the
+ *     // terminal New game button grays while the create is out, so a slow
+ *     // network reads as "working" rather than "nothing happened". No trigger
+ *     // NEEDS that: they all route through the guarded handler, which is the
+ *     // whole point of guarding there.
+ *
+ * **The other shape it gets used for**, since New game dominates the story
+ * above: a control that stays live across a round trip and changes the board
+ * rather than leaving the page (waffle's swap, setgame's hint) — where a second
+ * press runs against the state the first press is still changing. Those callers
+ * ignore `pending`, which is worth knowing about the drop: nothing else reports
+ * it, so where nobody reads `pending` the dropped press leaves no trace at all.
  *
  * A ref does the gating and state does the reporting, deliberately: the ref is
  * readable synchronously by the very next event (a `setState` wouldn't have
