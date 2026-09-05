@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { IconHideSolution, IconHint, IconNewGame, IconPrint, IconRestart, IconReveal, IconSpoiler } from '@/common/icons/icons'
+import { IconHideSolution, IconHint, IconNewGame, IconPrint, IconRestart, IconRevealSolution, IconSpoiler } from '@/common/icons/icons'
 import { cls } from '@/common/utils/cls'
 import { ActorDot } from '@/common/turn-log/ActorMention'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
@@ -539,7 +539,7 @@ export function PlayArea(ctx: GamePageCtx) {
               // until the game is over for EVERYONE.
               {
                 id: 'reveal',
-                icon: solutionShown ? IconHideSolution : IconReveal,
+                icon: solutionShown ? IconHideSolution : IconRevealSolution,
                 label: solutionShown ? 'Hide solution' : 'Reveal solution',
                 disabled: !isTerminal,
                 onClick: () => actionsRef.current?.reveal(),

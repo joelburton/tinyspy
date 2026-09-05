@@ -1,13 +1,13 @@
 // cs-unmet
 
-import { IconEnd } from '../icons/icons'
+import { IconEndGame } from '../icons/icons'
 import { StandardButton, type PurposeButtonProps } from './StandardButton'
 
 /**
  * End-the-game button — the manual "we're done" stop for solo / coop. The
  * **`destructive`** tone (dark red) marks it as the irreversible action in the
  * row, and the glyph is the crossed-out stop
- * sign (`IconEnd`), not the flag it used to share with Concede — bananagrams
+ * sign (`IconEndGame`), not the flag it used to share with Concede — bananagrams
  * shows both buttons at once, and two red flags read as one act repeated.
  *
  * Label is always **"End game"** — the canonical, consistent label across every
@@ -23,7 +23,7 @@ import { StandardButton, type PurposeButtonProps } from './StandardButton'
  */
 export function EndGameButton({
   name = 'End game',
-  icon = IconEnd,
+  icon = IconEndGame,
   tone = 'destructive',
   ...rest
 }: PurposeButtonProps) {

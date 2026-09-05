@@ -2,7 +2,7 @@
 
 import { runRpc } from '@/common/supabase/dbResult'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { IconHideSolution, IconHint, IconNewGame, IconPrint, IconRestart, IconReveal, IconSpoiler } from '@/common/icons/icons'
+import { IconHideSolution, IconHint, IconNewGame, IconPrint, IconRestart, IconRevealSolution, IconSpoiler } from '@/common/icons/icons'
 import { cls } from '@/common/utils/cls'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
@@ -277,7 +277,7 @@ export function PlayArea({
                 // The same two faces as the terminal row's button — one toggle.
                 // The View glyph, not EyeOff, once solving put it there — see
                 // RevealButton for why the inert face keeps the plain eye.
-                icon: secretsShown && !impliedBySolve ? IconHideSolution : IconReveal,
+                icon: secretsShown && !impliedBySolve ? IconHideSolution : IconRevealSolution,
                 label: impliedBySolve
                   ? 'Solution already shown'
                   : secretsShown

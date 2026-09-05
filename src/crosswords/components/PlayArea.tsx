@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { IconHideSolution, IconNewGame, IconPrint, IconRestart, IconReveal, IconScratchpad } from '@/common/icons/icons'
+import { IconHideSolution, IconNewGame, IconPrint, IconRestart, IconRevealSolution, IconScratchpad } from '@/common/icons/icons'
 import type { GameStopResult } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import type { Member } from '@/common/members/member'
@@ -778,7 +778,7 @@ type Explained =
                 // only unshields the solution then). Wears the same two faces as
                 // the strip's button, because it's the same toggle.
                 id: 'reveal-board',
-                icon: solutionShown ? IconHideSolution : IconReveal,
+                icon: solutionShown ? IconHideSolution : IconRevealSolution,
                 label: solutionShown ? 'Hide board' : 'Reveal board',
                 disabled: !isTerminal,
                 onClick: toggleSolution,

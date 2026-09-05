@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { PageHeaderButton } from '../page-header/PageHeaderButton'
-import { IconInfoPanelClose, IconInfoPanelOpen } from '../icons/icons'
+import { IconInfoSheetClose, IconInfoSheetOpen } from '../icons/icons'
 import { setInfoSheetOpen } from './infoSheetStore'
 
 type Props = {
@@ -33,7 +33,7 @@ type Props = {
 export function InfoSwitchButton({ open }: Props) {
   return (
     <PageHeaderButton
-      icon={open ? IconInfoPanelClose : IconInfoPanelOpen}
+      icon={open ? IconInfoSheetClose : IconInfoSheetOpen}
       // The label names the DESTINATION, not the state — it's a navigation
       // control, and "Game info" / "Back to board" are what the tap gets you.
       label={open ? 'Back to board' : 'Game info'}

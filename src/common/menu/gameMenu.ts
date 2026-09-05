@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { IconBack, IconChat, IconConcede, IconEnd, IconHelp } from '../icons/icons'
+import { IconBack, IconChat, IconConcede, IconEndGame, IconHelp } from '../icons/icons'
 import { setChatOpen } from '../chat/chatOpenStore'
 import type { MenuApi, MenuHeader, MenuItem, MenuSection } from './menuModel'
 
@@ -54,7 +54,7 @@ export function buildGameMenu(opts: {
   const endItem: MenuItem = {
     id: 'end-game',
     label: 'End game',
-    icon: IconEnd,
+    icon: IconEndGame,
     // The shortcut belongs to whichever item is the mode's PRIMARY exit —
     // Concede in a race, End otherwise — so a compete game offering both keeps
     // ⌥⌫ on Concede.

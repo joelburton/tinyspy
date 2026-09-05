@@ -2,7 +2,7 @@
 
 import { runRpc } from '@/common/supabase/dbResult'
 import { useCallback, useEffect, useRef, useState, type ReactNode, useMemo } from 'react'
-import { IconHideSolution, IconNewGame, IconPrint, IconRestart, IconReveal } from '@/common/icons/icons'
+import { IconHideSolution, IconNewGame, IconPrint, IconRestart, IconRevealSolution } from '@/common/icons/icons'
 import { useSolutionReveal } from '@/common/reveal/useSolutionReveal'
 import type { Outcome } from '@/common/outcomes/outcomes'
 import type { CreatedGame, GameStopResult } from '@/common/manifest/gameManifest'
@@ -547,7 +547,7 @@ export function PlayArea({
               {
                 id: 'reveal',
                 // The same two faces as the terminal row's button — one toggle.
-                icon: peerKeyShown ? IconHideSolution : IconReveal,
+                icon: peerKeyShown ? IconHideSolution : IconRevealSolution,
                 label: peerKeyShown ? "Hide partner's key" : "Reveal partner's key",
                 disabled: !isTerminal,
                 onClick: togglePeerKey,

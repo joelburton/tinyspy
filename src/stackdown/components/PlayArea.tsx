@@ -2,7 +2,7 @@
 
 import { runRpc } from '@/common/supabase/dbResult'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { IconHideSolution, IconHint, IconNewGame, IconPrint, IconRestart, IconReveal, IconSpoiler } from '@/common/icons/icons'
+import { IconHideSolution, IconHint, IconNewGame, IconPrint, IconRestart, IconRevealSolution, IconSpoiler } from '@/common/icons/icons'
 import { cls } from '@/common/utils/cls'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
@@ -542,7 +542,7 @@ export function PlayArea({
                 id: 'reveal',
                 // The View glyph, not EyeOff, once solving put it there — see
                 // RevealButton for why the inert face keeps the plain eye.
-                icon: solutionShown && !impliedBySolve ? IconHideSolution : IconReveal,
+                icon: solutionShown && !impliedBySolve ? IconHideSolution : IconRevealSolution,
                 label: impliedBySolve
                   ? 'Solution already shown'
                   : solutionShown

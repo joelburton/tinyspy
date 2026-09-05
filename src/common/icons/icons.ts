@@ -20,13 +20,13 @@ export {
   Sparkles as IconAI,
   // The three eyes, and the differences between them are load-bearing:
   //
-  //   IconSpoiler (bare Eye)  — mid-game "just tell me THIS one": stackdown's
-  //     next word, psychicnum's answer word. One item, while the game is live.
-  //   IconReveal (boxed View) — post-game "show me the whole solution". The box
-  //     is the magnitude signal: same eye, but framed, so it reads as MORE
-  //     without needing a caption (and still reads as more in grayscale).
-  //   IconHideSolution (EyeOff) — the SAME button as IconReveal, showing its
-  //     other face. The reveal is a local, reversible view (docs/ui.md →
+  //   IconSpoiler (bare Eye)  — mid-game "just tell me THIS one": one item,
+  //     while the game is live. Worn by SpoilerButton.
+  //   IconRevealSolution (boxed View) — post-game "show me the whole solution".
+  //     The box is the magnitude signal: same eye, but framed, so it reads as
+  //     MORE without needing a caption (and still reads as more in grayscale).
+  //   IconHideSolution (EyeOff) — the SAME button as IconRevealSolution, showing
+  //     its other face. The reveal is a local, reversible view (docs/ui.md →
   //     Terminal results), so the control that opened the solution is the one
   //     that puts it away, and the struck-through eye is the universal "stop
   //     showing me this". Deliberately NOT boxed: the box says "this is the
@@ -36,7 +36,7 @@ export {
   // family. A spoiler is NOT IconHint's lightbulb: a hint points AT the answer,
   // a spoiler hands it over.
   Eye as IconSpoiler,
-  View as IconReveal,
+  View as IconRevealSolution,
   EyeOff as IconHideSolution,
   // check my own work against the rules — bananagrams' "Check words". NOT an
   // eye: it reveals nothing, it marks what's already on screen as failing a
@@ -49,13 +49,12 @@ export {
   // once in scrabble (Pass in the board controls, End in the info column), so
   // they also differ by tone — Pass is amber, End is destructive red.
   //
-  // It was the flag until 2026-08-03, which it now shares with nothing:
-  // Concede kept the flag (below), and two red flag buttons in the same row
-  // read as the same act.
-  OctagonX as IconEnd,
+  // Not the flag: Concede wears that (below), and two red flag buttons in the
+  // same row read as the same act.
+  OctagonX as IconEndGame,
   // Concede — drop out of a race while it continues without you. The white
   // flag: surrender, one player, not a stop for the table. Distinct from
-  // IconEnd since bananagrams shows BOTH in one row.
+  // IconEndGame since bananagrams shows BOTH in one row.
   Flag as IconConcede,
   // submit a game move/guess/clue — an UP-pointing triangle: it "sends" the move
   // up to the other players (boards put YOU at the bottom, others above), and
@@ -63,20 +62,20 @@ export {
   // for sending a move — not the setup dialog or other form submits.
   Triangle as IconSubmit,
   // end the current turn without making (another) move — a stop-sign octagon.
-  // The plain half of the octagon pair (see IconEnd above): this stops just your
+  // The plain half of the octagon pair (see IconEndGame above): this stops just your
   // turn and hands play on, so it carries no X and wears amber rather than red.
-  // codenamesduet's "Pass" is the first user.
+  // Worn by both EndTurnButton and PassButton.
   Octagon as IconEndTurn,
   Eraser as IconClear, // clear the current selection
   // swap/exchange tiles for new ones — the two-way horizontal arrows are the
-  // near-universal "exchange" idiom (scrabble's "Swap"). Distinct from
-  // IconShuffle's single rotate glyph (reorder my OWN tiles, no server trade).
+  // near-universal "exchange" idiom (ExchangeButton, labeled "Swap"). Distinct
+  // from IconShuffle's single rotate glyph (reorder my OWN tiles, no server
+  // trade).
   ArrowLeftRight as IconExchange,
   Delete as IconDelete, // delete the last typed character (the backspace key glyph)
   // DESTROY a thing, as opposed to dismissing one. `Trash2` is the lidded can
   // with the lines; `Trash` is the plain one. Deliberately NOT a ✕ — an ✕ means
-  // "close this", and a game row's delete used to wear one, which made an
-  // irreversible act look like a dismiss (Joel, 2026-08-25).
+  // "close this", which would make an irreversible act look like a dismiss.
   Trash2 as IconTrash,
   RotateCw as IconShuffle, // reshuffle my own tiles for a fresh look
   // bananagrams' "Peel" — draw a fresh round of tiles (or, when the bunch is
@@ -111,44 +110,38 @@ export {
   ChevronLeft as IconBack,
   // The little "this opens a menu" chevron beside a page-header logo. It is an
   // AFFORDANCE MARK rather than an icon in the button sense — nothing labels it
-  // and nothing acts on it alone — but it belongs here anyway, because the
-  // alternative was the one glyph in the app hand-inlined as raw <svg>, living
-  // in a layout component. Same family as IconBack: a chevron points,
-  // and this one points at the list that is about to appear.
+  // and nothing acts on it alone — but it belongs here anyway: a glyph kept
+  // out of the registry, inlined as raw <svg> in a layout component, is a glyph
+  // that drifts. Same family as IconBack: a chevron points, and this one points
+  // at the list that is about to appear.
   ChevronDown as IconMenuChevron,
-  // Print to PDF. The one glyph here with NO button — print is a menu-only
-  // action — but the menu's legend earns it anyway: a printer is instantly
+  // Print to PDF. The one ACTION here with no button — print is menu-only —
+  // but the menu's legend earns it anyway: a printer is instantly
   // scannable in a list of words, and if a print button ever appears it has
   // already been taught. (docs/ui.md → Button iconography.)
   Printer as IconPrint,
   // The shared notes panel. `FilePenLine` (a page, a ruled line, a pen) over
-  // `NotepadText` (a spiral pad): it's the closer match to the hand-rolled glyph
-  // the bubble wore for years, so adopting the registry barely moves the header
-  // — and the pen is the part that says "you WRITE here", which is what
-  // separates a scratchpad from any other document.
+  // `NotepadText` (a spiral pad): the pen is the part that says "you WRITE
+  // here", which is what separates a scratchpad from any other document.
   FilePenLine as IconScratchpad,
-  // Club chat. The bubbles hand-rolled this for years: the inlined path was
-  // FEATHER's `message-circle`, i.e. a frozen copy of Lucide's own ancestor
-  // from before this app used Lucide at all. Harmless until the menu started
-  // teaching glyphs — a legend that shows a different bubble than the header
-  // does is worse than no legend — so ChatButton and Chat now render
-  // this, and Lucide's redrawn (rounder, chunkier-tailed) version is what you
-  // see in both places.
+  // Club chat. The menu's legend and the header have to show the SAME bubble —
+  // a legend that teaches a different glyph than the header draws is worse than
+  // no legend — which is why the bubble comes from here.
   MessageCircle as IconChat,
-  // restart THIS board from scratch (waffle's replay-board). The skip-back
-  // "jump to the start" transport glyph: it rewinds to the beginning of the
-  // same board, distinct from IconShuffle's rotate (rearrange, new look).
+  // restart THIS board from scratch — RestartButton, and every game's menu. The
+  // skip-back "jump to the start" transport glyph: it rewinds to the beginning
+  // of the same board, distinct from IconShuffle's rotate (rearrange, new look).
   SkipBack as IconRestart,
   // take back the LAST MOVE, leaving the rest of the game standing
   // (letterboxed's "Undo" — pop the last word off the chain). The curved
   // back-arrow is the universal undo idiom, and it reads as one step where
   // IconRestart's rewind-to-start reads as all of them.
   Undo2 as IconUndo,
-  // start a FRESH follow-up game (same setup, new board + id — waffle's
-  // "New game"). The square-plus "create new" glyph: adds a NEW thing,
-  // distinct from IconRestart's rewind-the-same-thing.
+  // start a FRESH follow-up game, same setup but a new board + id —
+  // NewGameButton, and every game's menu. The square-plus "create new" glyph:
+  // adds a NEW thing, distinct from IconRestart's rewind-the-same-thing.
   SquarePlus as IconNewGame,
-  // open the game's rules/help — the "?" the setup dialog's HelpButton shows.
+  // open the rules/help — the "?" on HelpButton and on every Help menu row.
   // The circled question mark is the near-universal "help / what is this?" idiom.
   CircleQuestionMark as IconHelp,
   // NB: pause is NOT here — lucide's Pause is two outlined rounded rects, not
@@ -188,15 +181,15 @@ export {
   // lucide glyph, for the same reason the two above are separate: one marks a
   // verdict, one removes an item, this one closes a surface.
   //
-  // It replaces a TEXT `×` (U+00D7), which is how the app came to have two
-  // different close characters — InfoSheet hand-wrote `✕` (U+2715) and nobody
-  // could see the difference because that button was never shown. A glyph that
-  // is not in this registry is a glyph that drifts. The note above applies here
-  // too: as an SVG it is centered by its own box, where the text × is not.
+  // Deliberately not a TEXT `×`: a close mark that isn't in this registry
+  // drifts (there is more than one × character, and they don't look alike).
+  // The note above applies here too: as an SVG it is centered by its own box,
+  // where the text character is not.
   X as IconClose,
-  // The mobile page switch (GamePage header). A right-hand panel opening /
-  // closing IS the gesture — the info column slides in from the right — so the
-  // pair says what a bare chevron couldn't: which panel, and which way.
-  PanelRightOpen as IconInfoPanelOpen, // show the info page
-  PanelRightClose as IconInfoPanelClose, // back to the board
+  // The mobile page switch (InfoSwitchButton, in the GamePage header). The two
+  // faces of ONE button: the info sheet slides in from the right, and Lucide's
+  // right-hand pane opening / closing draws exactly that, which is what a bare
+  // chevron couldn't say — which surface, and which way.
+  PanelRightOpen as IconInfoSheetOpen, // show the info sheet
+  PanelRightClose as IconInfoSheetClose, // back to the board
 } from 'lucide-react'

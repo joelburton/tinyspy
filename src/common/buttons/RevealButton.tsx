@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { IconHideSolution, IconReveal } from '../icons/icons'
+import { IconHideSolution, IconRevealSolution } from '../icons/icons'
 import { StandardButton, type PurposeButtonProps } from './StandardButton'
 
 /**
@@ -66,7 +66,7 @@ export function RevealButton({
       // thing they'd expect: showing the solution isn't available, because it's
       // already here.
       name={shownName}
-      icon={icon ?? (revealed && !alreadyShown ? IconHideSolution : IconReveal)}
+      icon={icon ?? (revealed && !alreadyShown ? IconHideSolution : IconRevealSolution)}
       tone={tone}
       // Present but inert, never absent — the row must not change shape between
       // a solved game and a lost one (docs/ui.md → Layout stability), and "there

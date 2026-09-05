@@ -14,16 +14,16 @@ import { describe, expect, it } from 'vitest'
 import { StandardButton } from './StandardButton'
 import { RestartButton } from './RestartButton'
 import { CancelButton } from './CancelButton'
-import { IconEnd } from '../icons/icons'
+import { IconEndGame } from '../icons/icons'
 
 describe('StandardButton — name, label, tooltip', () => {
   it('draws the name when no label is given', () => {
-    render(<StandardButton name="End" icon={IconEnd} />)
+    render(<StandardButton name="End" icon={IconEndGame} />)
     expect(screen.getByRole('button', { name: 'End' })).toHaveTextContent('End')
   })
 
   it('label={null} draws nothing but keeps the name as the bubble', () => {
-    render(<StandardButton name="End" icon={IconEnd} label={null} />)
+    render(<StandardButton name="End" icon={IconEndGame} label={null} />)
     const btn = screen.getByRole('button', { name: 'End' })
     expect(btn).toHaveTextContent('')
     expect(btn).toHaveAttribute('aria-label', 'End')
@@ -31,12 +31,12 @@ describe('StandardButton — name, label, tooltip', () => {
   })
 
   it('a drawn label gets NO bubble — one that repeated it would be noise', () => {
-    render(<StandardButton name="End" icon={IconEnd} />)
+    render(<StandardButton name="End" icon={IconEndGame} />)
     expect(screen.getByRole('button', { name: 'End' })).not.toHaveAttribute('data-tooltip')
   })
 
   it('an explicit tooltip shows even when the label is drawn', () => {
-    render(<StandardButton name="End" icon={IconEnd} tooltip="End the game for everyone" />)
+    render(<StandardButton name="End" icon={IconEndGame} tooltip="End the game for everyone" />)
     expect(screen.getByRole('button', { name: 'End' })).toHaveAttribute(
       'data-tooltip',
       'End the game for everyone',
@@ -44,12 +44,12 @@ describe('StandardButton — name, label, tooltip', () => {
   })
 
   it('tooltip={null} suppresses the bubble on an icon-only button', () => {
-    render(<StandardButton name="End" icon={IconEnd} label={null} tooltip={null} />)
+    render(<StandardButton name="End" icon={IconEndGame} label={null} tooltip={null} />)
     expect(screen.getByRole('button', { name: 'End' })).not.toHaveAttribute('data-tooltip')
   })
 
   it('never carries a native title — two bubbles would race', () => {
-    render(<StandardButton name="End" icon={IconEnd} label={null} />)
+    render(<StandardButton name="End" icon={IconEndGame} label={null} />)
     expect(screen.getByRole('button', { name: 'End' })).not.toHaveAttribute('title')
   })
 })

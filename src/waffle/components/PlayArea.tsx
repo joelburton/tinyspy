@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { useCallback, useEffect, useRef, useMemo, useState } from 'react'
-import { IconHideSolution, IconNewGame, IconPrint, IconRestart, IconReveal } from '@/common/icons/icons'
+import { IconHideSolution, IconNewGame, IconPrint, IconRestart, IconRevealSolution } from '@/common/icons/icons'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import type { GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
@@ -493,7 +493,7 @@ export function PlayArea({
                 // The same two faces as the terminal row's button — one toggle.
                 // The View glyph, not EyeOff, once solving put it there — see
                 // RevealButton for why the inert face keeps the plain eye.
-                icon: answerShown && !impliedBySolve ? IconHideSolution : IconReveal,
+                icon: answerShown && !impliedBySolve ? IconHideSolution : IconRevealSolution,
                 label: impliedBySolve
                   ? 'Solution already shown'
                   : answerShown

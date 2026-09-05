@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react'
-import { IconHideSolution, IconNewGame, IconPrint, IconRestart, IconReveal } from '@/common/icons/icons'
+import { IconHideSolution, IconNewGame, IconPrint, IconRestart, IconRevealSolution } from '@/common/icons/icons'
 import { cls } from '@/common/utils/cls'
 import { ActorDot } from '@/common/turn-log/ActorMention'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
@@ -344,7 +344,7 @@ export function PlayArea(ctx: GamePageCtx) {
               // over for everyone, so a player who conceded can't spoil a race.
               {
                 id: 'reveal',
-                icon: solutionShown ? IconHideSolution : IconReveal,
+                icon: solutionShown ? IconHideSolution : IconRevealSolution,
                 label: solutionShown ? 'Hide best word' : 'Reveal best word',
                 disabled: !isTerminal,
                 onClick: () => actionsRef.current?.reveal(),
