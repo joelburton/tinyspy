@@ -138,10 +138,27 @@ It belongs to no page — ClubPage and GamePage both mount it.
 - **The lede is unlabeled prose, at most three sentences.** No heading above
   it, so it cannot quietly grow into a section. Write it for someone who has
   never opened the folder.
-- **`## Design` is required**, even when it is four lines. It answers *why is
-  it like this* — the decisions, the seams, and the rules a reader must not
-  break. It is **not** a tour of the files; the files have docstrings.
-- After that, any sections you like.
+- **`## Design` is required**, even when it is four lines. It explains the area
+  at a high level, to someone who does not know it: what problem the folder
+  exists for, and how its pieces answer that. **Narrative and jargon-free** —
+  paragraphs that follow one another, not a stack of bolded claims. It is
+  **not** a tour of the files; the files have docstrings.
+- After that, any sections you like — **and that is where technical depth
+  goes.** A `## Details` section carries the sharp specifics a reader consults
+  once they have the shape (`common/mobile` is the pattern).
+
+**The register to aim for.** Describing a whole GAME this way would take a few
+paragraphs, not a chapter: which tables hold its state, whether the frontend
+knows the solution, how a turn resolves, and what makes it different from the
+other games. That is the altitude — enough that a reader can hold the area in
+their head and know where to look next. Everything sharper is a later section or
+a docstring.
+
+Two tests for a draft. Read it as if you had never opened the folder: a sentence
+that only lands once you already know the answer is not explaining anything, and
+belongs in `## Details`. And read the lede again once the Design exists — the
+lede written when the folder was created describes it from outside, and usually
+wants rewriting the day someone finally explains the folder.
 
 **What does not go in**, which is the half that actually stops the drift:
 
