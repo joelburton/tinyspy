@@ -28,7 +28,9 @@ Agreed 2026-09-05 (Joel: "i agree. read and audit.") — every file of
 | `src/common/realtime/useRealtimeReconnect.test.ts` | its contract — reconnect only when down and visible; listeners removed on unmount | `cs-audited-realtime` |
 | `src/common/realtime/useClubPresence.ts` | the `club:<handle>` presence roster: who is in the club orbit and which game they are viewing | `cs-audited-realtime` |
 | `src/common/realtime/useClubPresence.test.ts` | the teardown gate only; the roster is pinned by `e2e/presence.e2e.ts` | `cs-audited-realtime` |
-| `src/common/realtime/useClubSetupPresence.tsx` | the `club-setup:<handle>` presence → "X is setting up a game…" toast; the only `.tsx`, the only source file with no test | `cs-audited-realtime` |
+| `src/common/realtime/useClubSetupPresence.tsx` | the `club-setup:<handle>` presence → "X is setting up a game…" toast; the only `.tsx` | `cs-audited-realtime` |
+| `src/common/realtime/useClubSetupPresence.test.tsx` | its contract — the toast reconcile and where it sits in the stack, announce vs the join ack, the teardown gate (written by F-realtime-2) | `cs-audited-realtime` |
+| `src/common/realtime/channel.fake.ts` | the folder's fake channel: the server's two moves, the join ack and a presence sync, under the test's hand (written by F-realtime-2) | `cs-audited-realtime` |
 | `src/common/realtime/doc.md` | lede only at the open: "Supabase channels, reconnect, refetch, and presence." No Design; row on `DESIGNS_OWED` | (no stamp — markdown) |
 | `src/common/realtime/todo.md` | empty under all four headings at the open | (no stamp — markdown) |
 
@@ -122,7 +124,7 @@ case + the deferred.md entry removed.
 Green: `tsc -b`, `eslint` on the folder and the spec, and vitest over
 `realtime`, `club`, `page-header` and `guards` (332 tests).
 
-### F-realtime-2 · setup-presence-untested · `useClubSetupPresence` has no unit test
+### WORKED · F-realtime-2 · setup-presence-untested · `useClubSetupPresence` has no unit test
 
 **Where:** `useClubSetupPresence.tsx`, whole file; created in `40f6a7b0` with
 no test, none since.
@@ -142,6 +144,38 @@ my own setup → no toast; `announce` set before SUBSCRIBED → tracked on
 SUBSCRIBED; `announce` → null while subscribed → untrack; unmount → all
 dismissed and the channel released. Plant each (every test in `boot` that
 passed for the wrong reason was one that was not planted).
+
+**Resolution (2026-09-05, Joel: "do it")** — done, all three ways it was
+posed: the test written, the fake extracted, the real toast store used.
+
+- **`channel.fake.ts`** (new) is the folder's fake channel. It answers
+  nothing on its own: `subscribed()` plays the join ack and `sync(state)`
+  plays a roster, so the two server moves are separable, which is what the
+  announce-ordering cases need and what makes the pre-sync window the default
+  state rather than something to race. `useClubPresence.test.ts` moved onto
+  it — the fake it grew during F-realtime-1 was the same object, minus the
+  join ack — and `lastFakeChannel(channel)` keeps the one cast in one place.
+- **`useClubSetupPresence.test.tsx`** (new), thirteen cases in three groups:
+  the peer-toast reconcile, announcing my own setup, and the teardown gate.
+  The toast store is the real one, so "one toast per peer" is a claim about
+  the stack rather than about an id we passed in.
+- **The finding's reason was half wrong, and planting is what showed it.**
+  It said the stable toast id is what keeps a re-sync from stacking toasts.
+  It isn't — the reconcile loop dismisses anything not in the new roster, so
+  a random id per sync still leaves ONE toast up. What the stable id actually
+  buys is the toast's PLACE: `showToast` replaces in position, where a fresh
+  id drops the toast and re-adds it at the corner, so a peer who keeps
+  setting up would shuffle past every toast that arrived after them. That is
+  the case that was added once the planted random id passed.
+- **Planted, in four rounds:** the self-skip, the dismiss-gone loop, the
+  dismiss-all on unmount, the catch-up track on the join ack, the
+  `subscribedRef` wait, the untrack branch, `dismissible: false`, the random
+  id, and the teardown gate. Each round failed exactly the cases it should
+  and no others; the hook is byte-identical to HEAD afterward.
+
+Not covered: the `?? 'Someone'` / `?? 'game'` wire fallbacks at `:96–97` — a
+peer whose payload is missing a field — which F-realtime-4 keeps and is the
+finding to fold a case into if it is worked.
 
 ### F-realtime-3 · untrack-try-catch-is-dead · a `try` around an async call catches nothing
 
@@ -362,6 +396,8 @@ sentence is about this area's subject; the file it names is evidence here.
   `'test-suffix'` and asserts channel NAMES, not log lines — green.
   `e2e/realtime-deaf-window.e2e.ts:95–97` matches `wordwheel:<id>` by
   `includes`, so a suffixed topic still matches.
+- F-realtime-2 (worked): held — nothing existed to break. `useClubPresence`'s
+  own cases moved onto the shared fake unchanged and stayed green.
 - F-realtime-8/9/10: comments and docstrings only; `americanSpelling` and
   `csStamps` are the guards that read them, neither cares.
 
