@@ -28,6 +28,12 @@
   trap, no Esc, and a scrim click CANCELS, the opposite of every other
   modal's contract). Long recorded as the ladder's known anomaly; it wants a
   look, not a reflex bump. On the z-index guard's pending list until then.
+- **`shuffle` in `lib/policy.ts` is a hand-written Fisher–Yates** —
+  `src/common/utils/shuffle.ts` is the same function with the rng optional,
+  so the local one goes and its one seeded call site (the self-play bag)
+  passes its `rng` exactly as it does today. Import it the way this file already imports
+  `mulberry32` (the alias with an explicit `.ts`, because Deno loads
+  `policy.ts` too).
 - `<ShuffleButton>` should never take focus at all — game stuff doesn't. The
   fix is removing the tab stop, not restyling the ring
   (`src/common/buttons/todo.md`).

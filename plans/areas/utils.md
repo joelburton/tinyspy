@@ -5,7 +5,9 @@ The folders it reads: `utils`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN** (2026-09-04). Roster agreed, every file stamped
-`cs-met-utils`, lede + Design written, findings recorded. Nothing worked yet.
+`cs-met-utils`, lede + Design written, findings recorded. F-utils-1
+(`shuffle-six-copies`) worked — the util and its test ship; its nine callers
+do not, and that half is still open. F-utils-2 through F-utils-8 untouched.
 
 ## The roster
 
@@ -18,6 +20,7 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 | `linkify.tsx` + `.test.tsx` | URLs in a run of text become `<a>`s | `cs-met-utils` |
 | `logStamp.ts` | the `HH:MM:SS.mmm` console stamp | `cs-met-utils` |
 | `mulberry32.ts` + `.test.ts` | the seedable random-number generator | `cs-met-utils` |
+| `shuffle.ts` + `.test.ts` | Fisher–Yates, a copy back, optional seeded rng — written by this area (F-utils-1) | `cs-met-utils` |
 | `doc.md` | lede + Design, written at the opening | — |
 | `todo.md` | empty in all four sections at the opening | — |
 
@@ -61,6 +64,26 @@ input is untouched.
 other areas' files** — each game's area converts its own when it opens, unless
 Joel calls the switch a sweep (a rename-shaped change, `tsc -b` stays alive).
 Either way the callers' stamps do not move.
+
+**WORKED (2026-09-04).** `utils/shuffle.ts` + `shuffle.test.ts` written as
+proposed, both stamped, `doc.md`'s lede names the shuffle. Four tests: a
+permutation with the input untouched, a seeded rng repeating and varying by
+seed, the default rng actually moving things, and the empty/single arrays whose
+loop body never runs. Which order a seed gives is deliberately not asserted —
+that would pin `mulberry32`'s stream and the loop's draw order together. Folder
+tests 24 → 28, `tsc -b` and eslint clean.
+
+**Still open under this finding:** all nine hand-rolled copies stand
+unconverted, and each is now a line in its game's `todo.md` — `wordwheel` and
+`spellingbee` carry two apiece (component + edge function), `psychicnum`,
+`connections`, `scrabble`, `bananagrams` and `letterboxed` one each. Each line
+names its call sites and how the import is written; the three Deno copies reach
+the util by relative path with an explicit `.ts`, the way `scrabble-ai-move`
+reaches `mulberry32`. Two decisions the lines record rather than settle:
+`bananagrams`'s `shuffleString` is the one string-shaped copy and may stay as a
+one-line wrapper (the util stays array-only either way), and the local
+permutation tests in `connections`, `bananagrams` and `letterboxed` are now
+pinned beside the util, so they go with their functions.
 
 ### F-utils-2 · `linkify-home` · `linkify` describes itself as chat's and has one caller in chat; `friendlyDate` names the club page. Do they belong here?
 

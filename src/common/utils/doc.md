@@ -1,10 +1,10 @@
 # utils
 
 Small helpers that belong to no feature: a class-name combiner, a friendly
-relative date, clickable URLs in a run of text, the console timestamp, and a
-seedable random-number generator. Each is a plain function with no hooks, no
-React state and no Supabase, and each has its test beside it when it has a
-contract worth pinning.
+relative date, clickable URLs in a run of text, the console timestamp, a
+seedable random-number generator, and a shuffle. Each is a plain function with
+no hooks, no React state and no Supabase, and each has its test beside it when
+it has a contract worth pinning.
 
 ## Design
 
