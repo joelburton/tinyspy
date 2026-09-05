@@ -102,10 +102,19 @@ describe('navigate', () => {
   it('replaces the current entry when replace=true', () => {
     const replaceSpy = vi.spyOn(window.history, 'replaceState')
     const pushSpy = vi.spyOn(window.history, 'pushState')
+    // The popstate matters on this branch too, and is easy to lose: a replace
+    // that forgot to dispatch would strand every usePath() subscriber on the
+    // old path while the URL bar showed the new one.
+    const popstateListener = vi.fn()
+    window.addEventListener('popstate', popstateListener)
+
     navigate('/g/some-id', true)
+
     expect(replaceSpy).toHaveBeenCalledWith(null, '', '/g/some-id')
     expect(pushSpy).not.toHaveBeenCalled()
     expect(window.location.pathname).toBe('/g/some-id')
+    expect(popstateListener).toHaveBeenCalledTimes(1)
+    window.removeEventListener('popstate', popstateListener)
   })
 
   it('does nothing when the URL is already the one asked for', () => {

@@ -40,10 +40,8 @@ import { useSyncExternalStore } from 'react'
  * Vite's dev server does the equivalent by default.
  */
 
-/**
- * Both module-level, so they are stable across renders — a `subscribe`
- * that changed identity would make React resubscribe every render.
- */
+// Both module-level, so they are stable across renders — a `subscribe` that
+// changed identity would make React resubscribe every render.
 const subscribeToPath = (onChange: () => void) => {
   window.addEventListener('popstate', onChange)
   return () => window.removeEventListener('popstate', onChange)

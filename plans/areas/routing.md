@@ -4,8 +4,8 @@ The folders it reads: `routing`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN — audited 2026-09-05. F-routing-1, -2, -3, -4 and -8 worked;
-F-routing-5, -6, -7 and -9 left, all four inside the folder.**
+**Status: OPEN — audited 2026-09-05, all nine findings worked. What is left is
+the Closing.**
 
 ## The roster
 
@@ -151,6 +151,12 @@ Two honest shapes:
   say it is belt-and-braces for a browser that does not exist. Costs nothing at
   runtime; costs the reader the same stop.
 
+**RULED (a), 2026-09-05 — done.** The branch and its test are gone. The
+docstring now says the true thing in its own paragraph: a non-primary button
+fires `auxclick`, not `click`, so it never reaches the handler and the browser
+opens the href itself. The middle-click affordance is unchanged — it was never
+this code's doing.
+
 ### F-routing-6 · link-file-note-marker · `Link.tsx`'s file note is a `//` block, and it is archaeology
 
 `Link.tsx:13-17` is the explanation of why the file exists — *"Lives in its own
@@ -172,6 +178,10 @@ sweep: `router.ts:43-46` puts a `/**` on `subscribeToPath` that says "Both
 module-level", but `readPath` right under it carries nothing — the note is
 about the pair and about why the body is shaped so, which is `//` territory.
 
+**DONE 2026-09-05.** The file note is a `/**` docstring above the props type,
+placed after the imports to match `router.ts`, and it opens by saying what the
+file is before why it is separate. `router.ts`'s pair note is a `//` block.
+
 ### F-routing-7 · replace-popstate-untested · the test file promises "either way" and asserts one way
 
 `router.test.ts:12` — *"`navigate(to)` updates the URL via pushState,
@@ -184,6 +194,11 @@ that forgot the dispatch would pass this file.
 **Recommend:** add the popstate listener to the replace test — two lines — or
 one more `it` beside the existing one. The strip-a-query test at 127 is a
 replace too and could carry the assertion instead.
+
+**DONE 2026-09-05** — the assertion went into the existing replace test rather
+than a new `it`, so the branch's three claims stay in one place. Its comment
+names the failure: a replace that forgot the dispatch strands every subscriber
+on the old path while the URL bar shows the new one.
 
 ### F-routing-8 · game-route-parsed-twice · the `/g/…` shape is matched in two files and built in seven, and the two matchers disagree
 
@@ -258,6 +273,12 @@ which calls `preventDefault()` AFTER the component's handler has had its turn
 default is swallowed by the test rather than attempted by jsdom. Five lines of
 setup, and the assertions do not change.
 
+**DONE 2026-09-05**, as recommended, returning its own teardown. The full run
+is clean of the message — the only "Not implemented" lines left are two
+`HTMLMediaElement` ones from elsewhere. The assertions are untouched and still
+mean what they meant: `preventDefault` does not move the pathname, so an
+unchanged path still proves `navigate()` did not run.
+
 ## Notes
 
 - **The folder's `todo.md` was empty at open** — nothing handed in from earlier
@@ -285,6 +306,12 @@ setup, and the assertions do not change.
   read here as evidence only.
 
 ## Predicted test breaks
+
+All as predicted; the suite went 2611 → 2610 (F-routing-5's deleted case) with
+`routes.test.ts`'s new file more than covering it. `useGameInvitations.test.ts`
+did not pin the regex — it carried a COMMENT saying the fixture id had to be
+uuid-shaped for it, which now says why the fixture is realistic instead.
+
 
 - F-routing-5 (a): `Link.test.tsx` loses the non-left-button case; the file's
   docstring sentence "a modifier key, a non-left button, and the `target`
