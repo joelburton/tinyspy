@@ -731,6 +731,20 @@ When the code wants to discriminate "is this me or someone else in this game?", 
 
 `peer` doesn't get its own TypeScript symbol. It's how you *talk about* a Player[] when the viewer is the implicit subject. The relationship lives in variable names (`isPeer`, `peers`, `peerCount`) and prose (docstrings, CSS comments), not in a `type Peer = …`. See [`naming.md → peer`](naming.md#peer) for what does and doesn't qualify as a peer concept.
 
+#### A hook that answers yes/no names itself as a predicate
+
+> **A hook returning `boolean` is named for the question it answers, not the thing it is about: `useIsMobile`, `useIsPhone`, `useIsCoarsePointer`.** `is` is the default form; `has` where that reads better (`useGameHasKeyboard`). Same reason a plain function is `isEmpty()` rather than `empty()`.
+
+Without it the name reads as a noun and the call site looks like it hands
+something back — `usePhone()` reads as "give me a phone" rather than "am I on a
+phone". It also flattens the difference between a hook that ANSWERS something
+and one that DOES something, which are otherwise spelled identically.
+
+Several folders still spell it the other way — `useChatOpen`,
+`useScratchpadOpen`, `useInfoSheetOpen`, `useEditProfileOpen`. They convert as
+each folder is next worked on rather than in one sweep, so both spellings are in
+the tree meanwhile. A new hook takes the rule.
+
 #### Other casing rules
 
 | kind | convention | examples |

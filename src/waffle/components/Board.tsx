@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { cls } from '@/common/utils/cls'
 import { tileColor } from '@/shared/wordle-style/tileColor'
 import type { TerminalOutcome } from '@/common/terminal/terminalCopy'
-import { useCoarsePointer } from '@/common/mobile/useCoarsePointer'
+import { useIsCoarsePointer } from '@/common/mobile/useIsCoarsePointer'
 import { ATTENTION_FLASH_MS } from '@/common/move-flash/feedbackTiming'
 import { useMoveCausedChange } from '@/common/move-flash/useMoveCausedChange'
 import { CELLS, isHole } from '../lib/waffle'
@@ -113,7 +113,7 @@ export function Board({
   // MOUSE affordance: on a touch device it's off (HTML5 DnD doesn't fire on touch
   // anyway, and a `draggable` tile there just invites a long-press drag-ghost),
   // leaving the tap-two-tiles model — which works everywhere — as the sole input.
-  const coarse = useCoarsePointer()
+  const coarse = useIsCoarsePointer()
   const dragFrom = useRef<number | null>(null)
 
   // ATTENTION — the cells that just changed under the player, washed yellow for

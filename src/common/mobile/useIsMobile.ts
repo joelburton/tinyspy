@@ -5,10 +5,10 @@ import { useMediaQuery } from './useMediaQuery'
 /**
  * The shared desktop→mobile line (see docs/mobile.md). Phones + portrait
  * tablets sit below it; landscape tablets + desktops at/above keep the desktop
- * layout. Kept in sync by hand with the `56.25rem` in every mobile `@media`
- * override — CSS can't share the constant without a build step, so grep it.
+ * layout. The JS copy of `--mobile` in breakpoints.css; exported so
+ * `useIsMobile.test.ts` can hold the two copies together.
  */
-const MOBILE_QUERY = '(max-width: 56.25rem)'
+export const MOBILE_QUERY = '(max-width: 56.25rem)'
 
 /**
  * `true` when the viewport is at mobile width (≤ the shared breakpoint).

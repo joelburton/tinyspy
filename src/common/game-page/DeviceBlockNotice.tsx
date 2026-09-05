@@ -22,8 +22,8 @@ type Props = {
  * place of its board when the device can't support it.
  *
  * Purely presentational — it takes no view of *which* device or *why*. The
- * decision (which axis to gate on — `useCoarsePointer` for a drag-only game,
- * `usePhone` for a keyboard-required one — and the copy) stays in the game's
+ * decision (which axis to gate on — `useIsCoarsePointer` for a drag-only game,
+ * `useIsPhone` for a keyboard-required one — and the copy) stays in the game's
  * PlayArea, so each game states its own constraint. Today only bananagrams uses
  * it (blocked on all touch); scrabble + crossplay are keyboard-required but
  * deliberately left un-gated (see docs/mobile.md).

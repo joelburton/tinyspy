@@ -14,7 +14,7 @@ import { CONCEDE_CONFIRM } from '@/common/game-page/useStandardGameActions'
 import { TerminalActionRow } from '@/common/terminal/TerminalActionRow'
 import { LocalTerminalRow } from '@/common/terminal/LocalTerminalRow'
 import { DeviceBlockNotice } from '@/common/game-page/DeviceBlockNotice'
-import { useCoarsePointer } from '@/common/mobile/useCoarsePointer'
+import { useIsCoarsePointer } from '@/common/mobile/useIsCoarsePointer'
 import { GenericFeedbackPill } from '@/common/feedback/GenericFeedbackPill'
 import { ConcedeGameButton } from '@/common/buttons/ConcedeGameButton'
 import { NewGameButton } from '@/common/buttons/NewGameButton'
@@ -120,7 +120,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // keys off the pointer (not width): a touch tablet is desktop-width but still
   // has no mouse to drag with. (scrabble/crossplay are keyboard-required, NOT
   // desktop-only, and are deliberately left un-gated — see docs/mobile.md.)
-  const isTouch = useCoarsePointer()
+  const isTouch = useIsCoarsePointer()
 
   const { gameId, isTerminal, menu, brand, title } = ctx
 

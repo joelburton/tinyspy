@@ -303,7 +303,7 @@ export function SetupGameModal({
                   autoFocus
                   // On a phone the button is just "Start" — "Start PsychicNum · Co-op"
                   // doesn't fit beside Cancel at 390px. The detail is dropped in CSS
-                  // rather than by a `usePhone()` branch: it's presentation, and the
+                  // rather than by a `useIsPhone()` branch: it's presentation, and the
                   // dialog TITLE right above still names the game + mode, so nothing
                   // is actually lost. Hence a NODE for what is drawn while `name`
                   // stays the plain word — the span is a rendering detail, not a

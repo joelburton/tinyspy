@@ -5,15 +5,15 @@ import { useMediaQuery } from './useMediaQuery'
 /**
  * The touch-device signal (docs/mobile.md → "Input is the primary axis"): a
  * coarse pointer means no precise mouse, so we disable dragging/resizing and
- * favor bigger tap targets. This is the JS mirror of the `--touch`
- * (`pointer: coarse`) custom-media in src/common/mobile/breakpoints.css — the two must
- * be kept in sync by hand, since matchMedia can't read a custom-media name.
+ * favor bigger tap targets. This is the JS copy of the `--touch`
+ * (`pointer: coarse`) custom-media in src/common/mobile/breakpoints.css;
+ * `useIsCoarsePointer.test.ts` asserts the two still say the same thing.
  *
  * NOT width-based: a touch tablet is desktop-width but still touch. Use this
  * (not useIsMobile) when the branch is about *how you point*, not how wide the
  * screen is.
  */
-const COARSE_QUERY = '(pointer: coarse)'
+export const COARSE_QUERY = '(pointer: coarse)'
 
 /**
  * `true` when the primary pointer is coarse (a touchscreen — phone or tablet).
@@ -29,6 +29,6 @@ const COARSE_QUERY = '(pointer: coarse)'
  * shared `useMediaQuery` engine — no setState-in-effect, so it's clean under the
  * repo's lint rule.
  */
-export function useCoarsePointer(): boolean {
+export function useIsCoarsePointer(): boolean {
   return useMediaQuery(COARSE_QUERY)
 }

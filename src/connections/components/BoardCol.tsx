@@ -12,7 +12,7 @@ import { SubmitButton } from '@/common/buttons/SubmitButton'
 import { ClearButton } from '@/common/buttons/ClearButton'
 import { StrikeMarks } from './StrikeMarks'
 import { useGlobalKeyHandler } from '@/common/keyboard/useGlobalKeyHandler'
-import { usePhone } from '@/common/mobile/usePhone'
+import { useIsPhone } from '@/common/mobile/useIsPhone'
 import { db } from '../db'
 import { evaluateGuess, sameTileSet, RESULT_FOR_OUTCOME, type GuessOutcome } from '../lib/evaluate'
 import { reconcileLocalOrder, shuffleTiles } from '../lib/localOrder'
@@ -170,7 +170,7 @@ export function BoardCol({
   // icon-only (the shared buttons support it) and the mistakes label shortens to
   // "Mistakes" (the strike dots already carry "lose at 4"). Desktop keeps the full
   // labels. (docs/mobile.md — same phone treatment as codenamesduet's action row.)
-  const phone = usePhone()
+  const phone = useIsPhone()
   // Per-player local tile order. NULL = use `remainingTiles` as-is (the create_game
   // shuffle, same for every player). A permutation gives this client its own view;
   // doesn't broadcast.

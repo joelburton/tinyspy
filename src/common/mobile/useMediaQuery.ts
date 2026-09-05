@@ -4,7 +4,7 @@ import { useCallback, useSyncExternalStore } from 'react'
 
 /**
  * Subscribe to a CSS media query and re-render when it flips. The shared engine
- * behind the app's device hooks (`useIsMobile` / `usePhone` / `useCoarsePointer`)
+ * behind the app's device hooks (`useIsMobile` / `useIsPhone` / `useIsCoarsePointer`)
  * — they're all this same `useSyncExternalStore(matchMedia)` wrapper differing
  * only in the query string, so the subscribe/getSnapshot/jsdom-guard boilerplate
  * lives here ONCE and each device hook is a one-liner that names its query and
@@ -18,8 +18,9 @@ import { useCallback, useSyncExternalStore } from 'react'
  * setState-in-effect — clean under the repo's lint rule (see docs/code-conventions).
  *
  * NOTE for callers: matchMedia can't read a `@custom-media` name from
- * breakpoints.css, so each device hook duplicates its query string and must be
- * kept in sync with breakpoints.css by hand (grep the literal, e.g. `34rem`).
+ * breakpoints.css, so each device hook writes its condition out again in JS —
+ * and each one's spec asserts that copy still equals the CSS, which is what
+ * keeps the two from drifting (see `readCustomMedia`).
  */
 export function useMediaQuery(query: string): boolean {
   // Memoized on `query` so the identity is stable across renders (a changing

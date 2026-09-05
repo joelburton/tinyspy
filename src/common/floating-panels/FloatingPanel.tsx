@@ -9,8 +9,8 @@ import {
   VIEWPORT_EDGE_MARGIN,
   type PanelRect,
 } from './useDraggablePanel'
-import { useCoarsePointer } from '../mobile/useCoarsePointer'
-import { usePhone } from '../mobile/usePhone'
+import { useIsCoarsePointer } from '../mobile/useIsCoarsePointer'
+import { useIsPhone } from '../mobile/useIsPhone'
 import { useVisualViewport } from '../mobile/useVisualViewport'
 import { useFocusTrap } from './useFocusTrap'
 import { cls } from '../utils/cls'
@@ -332,7 +332,7 @@ export function FloatingPanel({
   // handle → the X works. The full-screen-sheet geometry on phones
   // is handled in CSS (@media (--phone)); tablets keep the centered
   // rect, just pinned in place. See docs/mobile.md → "Panels on touch".
-  const coarse = useCoarsePointer()
+  const coarse = useIsCoarsePointer()
   const effectiveDraggable = claims.draggable && !coarse
   const effectiveResizable = resizable && !coarse
   // A viewport change RE-CENTERS this panel unless it remembers where you put
@@ -725,7 +725,7 @@ function PanelRnd({
   // sheet fill the clip layer (elsewhere it's a floating/centered panel, so
   // shrinking the layer would just clip it). Off a phone the hooks are inert
   // (no soft keyboard → visual viewport == layout viewport).
-  const isPhone = usePhone()
+  const isPhone = useIsPhone()
   const viewport = useVisualViewport()
   const clampToKeyboard = reserveKeyboard && isPhone
 

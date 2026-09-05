@@ -136,7 +136,7 @@ Principles that fall out:
 [`<DeviceBlockNotice>`](../src/common/game-page/DeviceBlockNotice.tsx)),
 not soft-warned: we don't let people limp through a broken experience. It's
 desktop-only (a drag-heavy 25×25 arena), so the gate keys off the *pointer* —
-`useCoarsePointer()` in its PlayArea blocks *all* touch (phone + tablet), since
+`useIsCoarsePointer()` in its PlayArea blocks *all* touch (phone + tablet), since
 even a keyboard tablet has no mouse to drag with.
 
 The two keyboard-required games — **scrabble + crossplay** — are **NOT**
@@ -342,7 +342,7 @@ Realizes [decision 1](#decisions--directions). Every [`FloatingPanel`](../src/co
 (chat, scratchpad, Setup, Help, the modals) now adapts to touch:
 
 - **Non-draggable + non-resizable on any coarse pointer.** A new
-  [`useCoarsePointer`](../src/common/mobile/useCoarsePointer.ts) hook (the JS
+  [`useIsCoarsePointer`](../src/common/mobile/useIsCoarsePointer.ts) hook (the JS
   mirror of the `--touch` custom-media, like `useIsMobile` mirrors `--mobile`)
   forces `draggable`/`resizable` off when `(pointer: coarse)`. Dragging a
   floating box is a mouse affordance; more importantly this is the **fix for the
@@ -376,7 +376,7 @@ a `reserveKeyboard` prop (chat opts in) drives the fixed clip layer's `height` /
 the visible region, which shrinks by exactly the keyboard. The sheet then ends at
 the keyboard's top edge: the input rides the keyboard, nothing is hidden behind
 it, and there's nothing to scroll to. Phone-only (gated by
-[`usePhone`](../src/common/mobile/usePhone.ts)); off a phone the hooks are
+[`useIsPhone`](../src/common/mobile/useIsPhone.ts)); off a phone the hooks are
 inert (no soft keyboard → visual viewport == layout viewport). This *does* resize
 the sheet when the keyboard toggles — but that's the expected native-chat
 behavior (the input bar riding the keyboard), and it's the chat sheet only, not
@@ -579,7 +579,7 @@ variation rather than psychicnum's assumptions:
   So there's **no special layout code** — just the standard board-fills recipe.
   Two mobile tweaks: the clue inputs are already ≥16px (no focus-zoom), and the
   below-board action buttons (Submit / AI / Pass) go **icon-only on a phone**
-  (`iconOnly={usePhone()}` — the shared buttons already support it) so the tight
+  (`iconOnly={useIsPhone()}` — the shared buttons already support it) so the tight
   clue row fits. Guarded by
   [`codenamesduet-mobile.e2e.ts`](../e2e/codenamesduet-mobile.e2e.ts) (board
   fills, no scroll at rest, collapsed sheet, buttons icon-only). The
@@ -702,7 +702,7 @@ like psychicnum); input is tap-a-tile (touch-native), no keyboard/drag; the info
 column (mistakes/turn-log/Hints/End, no WordList) uses the **plain** sheet. Unlike
 the pure-board games it has a below-board **commit row** (mistakes readout +
 Clear/Submit), which is tight on a phone, so — same treatment as codenamesduet's
-action row — the **buttons go icon-only** (`iconOnly={usePhone()}` + a `@media
+action row — the **buttons go icon-only** (`iconOnly={useIsPhone()}` + a `@media
 (--phone)` drop of their text-era `min-width`) and the **label shortens to
 "Mistakes"** (the strike dots already carry "lose at 4"). One tile-text tweak:
 connections is the only game with multi-letter WORD tiles, and on a narrow phone
@@ -954,13 +954,13 @@ setgame**.
   type). The board fills the width; on phones the rack + controls row wraps to
   two rows (`@media (--phone)` in BoardCol/PlayArea `.module.css`, with the
   below-board reserve and `--avail-h` grown in lockstep). It stays **un-gated**
-  (no `usePhone()` block) so a keyboard-attached phone/tablet — which the
+  (no `useIsPhone()` block) so a keyboard-attached phone/tablet — which the
   browser can't detect — stays playable; a bare phone renders fine but can't
   enter tiles. Guard: `e2e/scrabble-mobile.e2e.ts`.
 - **bananagrams** is genuinely **desktop-only** (a large 25×25 drag-heavy arena,
   unpleasant even on a keyboard tablet) — **hard-blocked on *all* touch** via the
   shared [`<DeviceBlockNotice>`](../src/common/game-page/DeviceBlockNotice.tsx)
-  (`useCoarsePointer()` in its PlayArea). The one game that actually gates the
+  (`useIsCoarsePointer()` in its PlayArea). The one game that actually gates the
   device, and the sole unconverted one.
 
 The app *chrome* (the `.card` shell pages, club page, header/player strip, chat,

@@ -8,7 +8,7 @@ import { signIn } from './helpers/session'
  * bananagrams is DESKTOP-ONLY (docs/mobile.md → "Where each game plays"): a
  * drag-heavy 25×25 arena that's unpleasant even on a keyboard tablet, so it's
  * hard-blocked on *all* touch — the PlayArea renders the shared
- * `<DeviceBlockNotice>` in place of the board when `useCoarsePointer()` matches.
+ * `<DeviceBlockNotice>` in place of the board when `useIsCoarsePointer()` matches.
  *
  * Two checks. On a TOUCH context (coarse pointer): the block screen shows and the
  * drag board never mounts. On a mouse/desktop context at the same phone-ish

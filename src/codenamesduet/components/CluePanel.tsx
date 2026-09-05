@@ -9,7 +9,7 @@ import { ActorDot, ActorTag } from '@/common/turn-log/ActorMention'
 import { SubmitButton } from '@/common/buttons/SubmitButton'
 import { AIButton } from '@/common/buttons/AIButton'
 import { EndTurnButton } from '@/common/buttons/EndTurnButton'
-import { usePhone } from '@/common/mobile/usePhone'
+import { useIsPhone } from '@/common/mobile/useIsPhone'
 import { db } from '../db'
 import type { Seat } from '../lib/phase'
 import type { Player } from '../hooks/useGame'
@@ -243,7 +243,7 @@ function ClueForm({
   const [suggesting, setSuggesting] = useState(false)
   // On a phone the below-board row is tight, so the Submit + AI buttons go
   // icon-only (label → aria-label/title). Desktop/tablet keep the labels.
-  const isPhone = usePhone()
+  const isPhone = useIsPhone()
 
   // Keep Tab INSIDE the clue form: it toggles between the count and word inputs and
   // goes nowhere else — not the turn-log #N handles, page links, or the browser
@@ -411,7 +411,7 @@ function PassButton({
 }) {
   const [busy, setBusy] = useState(false)
   // Icon-only on a phone (the below-board row is tight); label → aria-label/title.
-  const isPhone = usePhone()
+  const isPhone = useIsPhone()
   return (
     <EndTurnButton
       name="Pass & End Turn"
