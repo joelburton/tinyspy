@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-utils
 
 import { describe, expect, it } from 'vitest'
 import { mulberry32 } from './mulberry32'

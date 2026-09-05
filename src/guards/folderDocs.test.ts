@@ -85,7 +85,7 @@ const DESIGNS_OWED: string[] = [
   'common/routing', 'common/scratchpad', 'common/session', 'common/setup-form',
   'common/single-flight', 'common/supabase', 'common/terminal', 'common/text',
   'common/themes', 'common/timer', 'common/toasts', 'common/tooltips',
-  'common/turn-log', 'common/utils', 'common/web-storage', 'common/word-entry',
+  'common/turn-log', 'common/web-storage', 'common/word-entry',
   'common/word-list',
   'shared/bee-games', 'shared/board-cursor', 'shared/dict-trie',
   'shared/grid-and-drag', 'shared/onscreen-keyboard', 'shared/rank-ladder',
