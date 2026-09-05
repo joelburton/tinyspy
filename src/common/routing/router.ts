@@ -3,10 +3,11 @@
 import { useSyncExternalStore } from 'react'
 
 /**
- * Tiny hand-rolled path-based router. The non-component half.
+ * Tiny hand-rolled path-based router. The store half — where the page is, and
+ * how to move it.
  *
- * We don't use `react-router`. The route surface is flat and small enough
- * that a regex match is the whole job.
+ * We don't use `react-router`. The route surface is flat and small enough that
+ * a regex match is the whole job, and `routes.ts` does that matching.
  *
  * What's here:
  *

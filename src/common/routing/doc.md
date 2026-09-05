@@ -1,9 +1,9 @@
 # routing
 
 How the page moves between URLs without reloading. Two ways to move — `<Link>`
-for a click, `navigate()` for code — and one hook, `usePath()`, that tells a
-component where the page is now. What each path SHOWS is decided in `App.tsx`,
-not here.
+for a click, `navigate()` for code — one hook, `usePath()`, that tells a
+component where the page is now, and the app's two URL shapes, built and matched
+in one place. What each path SHOWS is decided in `App.tsx`, not here.
 
 ## Design
 
@@ -20,8 +20,8 @@ We wrote it ourselves rather than adopt a routing library because the route
 surface is flat — home, a club, a game, and everything else lands on home.
 Matching that is a regex per shape, and a library would be a dependency for
 nested layouts, loaders and transitions that nothing here wants. The trade is
-that the folder is deliberately dumb: it moves the page and reports the path,
-and that is all.
+how little the folder does: it moves the page, reports the path, and spells the
+two URLs — and stops there.
 
 The idea worth understanding is that everything rides on the browser's own
 history. `navigate()` calls `pushState` (or `replaceState`, for a move that
@@ -58,7 +58,7 @@ that stripping `?new=` from a path that stays the same still counts as a move.
 
 **`<Link>` is a separate file for Fast Refresh.** Vite's HMR wants a module
 that exports a component to export only components, so the component sits in
-`Link.tsx` and the two functions in `router.ts`. A caller that only wants
+`Link.tsx` and `usePath` / `navigate` in `router.ts`. A caller that only wants
 `navigate()` also stays clear of the JSX import graph that way.
 
 **The route shapes live in `routes.ts`** — `/c/<handle>` for a club,

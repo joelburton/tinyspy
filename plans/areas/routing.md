@@ -4,8 +4,8 @@ The folders it reads: `routing`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN — audited 2026-09-05, all nine findings worked. What is left is
-the Closing.**
+**Status: OPEN — audited 2026-09-05, all nine findings worked, re-read done.
+The files are NOT blessed yet.**
 
 ## The roster
 
@@ -327,7 +327,34 @@ uuid-shaped for it, which now says why the fixture is realistic instead.
 
 ## Closing
 
-- [ ] the whole area re-read in one sitting after the last group
+- [x] the whole area re-read in one sitting after the last group
 - [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
 - [ ] `todo.md` holds everything still owed; nothing durable left in this file
 - [ ] every file on the roster blessed, or its stamp says why not
+
+### What the re-read caught
+
+Six places, all of them the same shape: `routes.ts` arriving mid-area left
+sentences describing a two-file folder.
+
+- `router.ts` called itself "the non-component half" — true of two files, not
+  of three; it is the store half. Its "a regex match is the whole job" now says
+  where the matching went, so a reader does not look for a regex in it.
+- `doc.md`'s lede named two ways to move and one hook, and stopped. It names the
+  URL shapes too now, so it agrees with `docs/common-folders.md`'s row.
+- `doc.md`'s Design said the folder "is deliberately dumb: it moves the page and
+  reports the path, and that is all" — contradicting the paragraph above it,
+  which had just said the folder also spells the URLs. The trade is now stated
+  as how little it does, and the list is right.
+- `doc.md`'s Fast-Refresh detail said "the two functions in `router.ts`", which
+  reads as a count of the folder's functions now that `routes.ts` exports four.
+  It names `usePath` and `navigate`.
+- `Link.test.tsx`'s `target` comment still said "modifier keys and the button",
+  a check F-routing-5 deleted an hour earlier.
+- `Link.tsx`'s `to` prop now says to build the path with `clubPath` / `gamePath`
+  rather than a template literal — the prop docstring is where a caller about to
+  write `` `/g/${…}` `` is actually looking.
+
+Nothing the re-read caught was deferred — all six were fixed in the sitting, so
+nothing new is owed. The one item this area's reading turned up for elsewhere —
+`gameManifest.ts`'s `lib/` docstring — was fixed rather than deferred.

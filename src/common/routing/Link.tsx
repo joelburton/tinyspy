@@ -13,7 +13,9 @@ import { navigate } from './router'
  */
 
 type LinkProps = {
-  /** Destination path, e.g. `/c/joel-leah` or `/g/codenamesduet/<gameId>`. */
+  /** Destination path, e.g. `/c/joel-leah` or `/g/codenamesduet/<gameId>`.
+   *  Build it with `routes.ts`'s `clubPath` / `gamePath` rather than a
+   *  template literal, so the shape is spelled in one place. */
   to: string
   children: ReactNode
 } & Omit<AnchorHTMLAttributes<HTMLAnchorElement>, 'href' | 'onClick'>

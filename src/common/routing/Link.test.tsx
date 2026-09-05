@@ -62,9 +62,9 @@ describe('Link', () => {
 
   it('hands a click on a targeted link back to the browser', async () => {
     // The failure this pins: `target` arrives through the props spread, so a
-    // handler that only checks modifier keys and the button would route it
-    // in-page — eating the one "open elsewhere" gesture that is written
-    // declaratively rather than held down.
+    // handler that only checked modifier keys would route it in-page — eating
+    // the one "open elsewhere" gesture that is written declaratively rather
+    // than held down.
     render(
       <Link to="/c/joel-leah" target="_blank">
         Club

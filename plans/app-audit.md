@@ -181,7 +181,7 @@ will list the other as a dependency whichever goes first.
 
 | #  | area | the folders it reads | what it is |
 |----|---|---|---|
-| | **Foundations** — read by nearly everything, reading nothing | | |
+|    | **Foundations** — read by nearly everything, reading nothing | | |
 | 1  | `utils` | `utils` | **CLOSED 2026-09-04.** The small general helpers that belong to no page, no game and no subsystem; thirty folders and every game import them |
 | 2  | `icons` | `icons` | **CLOSED 2026-09-04.** the glyph registry — every glyph, under the name of what it means |
 | 3  | `web-storage` | `web-storage` | **CLOSED 2026-09-05.** storage that cannot throw, and the sticky-choice hook |
@@ -189,40 +189,40 @@ will list the other as a dependency whichever goes first.
 | 5  | `single-flight` | `single-flight` | **CLOSED 2026-09-05.** the guard every submit wraps |
 | 6  | `mobile` | `mobile` | **CLOSED 2026-09-05.** the one desktop→mobile breakpoint, the device hooks, the viewport. `breakpoints.css` lives here |
 | 7  | `routing` | `routing` | the router and `usePath` |
-| | **The look, before anything renders** | | |
-| 8  | `corecss` | `core-css` · `themes` | the stylesheets every page loads and none owns, and the theme chain |
-| 9  | `branding` | `branding` | the app logo, the wordmark, and the `<GameLogo>` that renders a game's. **Not step 11's asset pass** — the 17 logo files live in `src/<game>/`, so that stays one sweep at the end |
-| | **The data path and the boot** | | |
-| 10 | `supabase` | `supabase` | the client, the wrappers, the envelope. It reaches `faults` for the fault sink; the sink's function is read here and its modal waits for `common-hosts` |
-| 11 | `session` | `session` | who is signed in, and their profile |
-| 12 | `boot` | `boot` | mounting, the session gate, panic, the stale-chunk reload |
-| 13 | `realtime` | `realtime` | presence, reconnect, the subscribe hooks. Presence is what pauses a game and the pause boundary that reads it is `pause-suspend`'s; whichever opens second inherits what the first decided |
-| | **The people** | | |
+|    | **The data path and the boot** | | |
+| 8  | `supabase` | `supabase` | the client, the wrappers, the envelope. It reaches `faults` for the fault sink; the sink's function is read here and its modal waits for `common-hosts` |
+| 9  | `session` | `session` | who is signed in, and their profile |
+| 10 | `boot` | `boot` | mounting, the session gate, panic, the stale-chunk reload |
+| 11 | `realtime` | `realtime` | presence, reconnect, the subscribe hooks. Presence is what pauses a game and the pause boundary that reads it is `pause-suspend`'s; whichever opens second inherits what the first decided |
+|    | **The look, before anything renders** | | |
+| 12 | `corecss` | `core-css` · `themes` | the stylesheets every page loads and none owns, and the theme chain |
+| 13 | `branding` | `branding` | the app logo, the wordmark, and the `<GameLogo>` that renders a game's. **Not step 11's asset pass** — the 17 logo files live in `src/<game>/`, so that stays one sweep at the end |
+|    | **The people** | | |
 | 14 | `members` | `members` · `text` | who someone is, their color, the disc, and the inline text that renders player segments |
-| | **The controls everyone touches** | | |
+|    | **The controls everyone touches** | | |
 | 15 | `buttons` | `buttons` | the button taxonomy |
 | 16 | `keyboard` | `keyboard` | key capture, tab rings, shortcuts — and [tab-rings.md](tab-rings.md)'s mechanism |
 | 17 | `lists` | `lists` | pick-one and scrolling lists — [SelectionList](../docs/ui.md#selection-lists) is the canonical one |
 | 18 | `forms` | `forms` · `fields` | the design language of forms: the frame, the state, and every field — including the three only a setup form renders |
-| | **Floating things and the root hosts** | | |
+|    | **Floating things and the root hosts** | | |
 | 19 | `floating-panels` | `floating-panels` | the machinery and shared look of every window-like thing that floats over the page. Not the instances |
 | 20 | `menu` | `menu` | the one menu, its store, and what a game puts in it |
 | 21 | `common-hosts` | `toasts` · `tooltips` · `faults` · `invitations` | **the question is what earns a mount at the root.** Two defensible rules — *wide*: mounted once at the root, driven by a store, because what triggers it is elsewhere (six things qualify); *narrow*: renders other people's content (the three hosts; `GameInvitations` is headless; `EditProfileModal` and `WordEditDialog` are instances that merely live at the root). Either is fine once written down; the narrow one has to say where the other two go. Also to decide: whether the stores come with the components |
 | 22 | `root-files` | `main.tsx` · `App.tsx` · `gametypes.ts` | the three files in no folder; the shell holds the route table and what hangs off the root, and is not split. After the hosts, because `App.tsx` is mostly what hangs off the root |
-| | **The feedback system** | | |
+|    | **The feedback system** | | |
 | 23 | `feedback` | `feedback` · `terminalCopy` (in `terminal`) · `turnCopy` (in `turn-log`) | A redesign, not a tidy: everything between an envelope and a player reading words. [feedback-system.md](feedback-system.md) is what it is, [feedback-design.md](feedback-design.md) is the target. `FailureLine` and its stylesheet sit in the folder and were not on the earlier sixteen-file roster — settle that at the opening |
-| | **Page furniture** | | |
+|    | **Page furniture** | | |
 | 24 | `page-header` | `page-header` | the top strip and the marks in it — furniture every page carries and no page owns |
 | 25 | `definitions` | `definitions` · `anagram-finder` | click-a-word lookup, dictionary curation, and the anagram dialog |
 | 26 | `chat` | `chat` | the club chat panel end to end. It belongs to no page: `ClubPage` and `GamePage` both mount it, which is why it is not `club-page`'s |
 | 27 | `scratchpad` | `scratchpad` | the shared notes panel |
 | 28 | `account` | `account` | your own menu and profile editing |
-| | **The pages** | | |
+|    | **The pages** | | |
 | 29 | `simple-page` | `auth` · `loading` · `error-page` | the pages that are not home, club or game. **The roster's test is "does `App` render it directly?"** — it catches `ErrorPage` and `Loading`, which stand in for a page AND appear inside one |
 | 30 | `homepage` | `home` | the landing page after login |
 | 31 | `club-page` | `club` | the club page; its `todo.md` carries what step 6 left |
 | 32 | `setup-form` | `setup-form` | the start-a-game dialog, its sections, and the recap rows the info column and the PDF share. With the pages because the club page is where a game starts |
-| | **The game shell** — needed by games and nothing else | | |
+|    | **The game shell** — needed by games and nothing else | | |
 | 33 | `manifest` | `manifest` | the registry and the manifest contract every game fills in |
 | 34 | `game-page` | `game-page` | the live game's page and what it hands down — `GamePage`, `gamePageCtx`, `useCommonGame`, the error boundary, the device gate, the mount points. It imports 23 folders, which is why it comes after them |
 | 35 | `info-sheet` | `info-sheet` | the info column: its mobile sheet, its switch, and the bordered panel its readouts wear |
@@ -235,7 +235,7 @@ will list the other as a dependency whichever goes first.
 | 42 | `reveal` | `reveal` | showing the answer after the end — and [the reveal-solution taxonomy](../docs/deferred.md) it has to build |
 | 43 | `move-flash` | `move-flash` | flashing the tiles a move changed. **Read [tile-feedback.md](tile-feedback.md) here**, not only per game — this is the mechanism that pass is about |
 | 44 | `pdf` | `pdf` | printing a board — the frame, the columns, the marks. [docs/pdf.md](../docs/pdf.md) is already its doc |
-| | **The shared families** | | |
+|    | **The shared families** | | |
 | 45 | `dict-trie` | `shared/dict-trie` | the shared dictionary trie |
 | 46 | `rank-ladder` | `shared/rank-ladder` | the Start..Genius ladder, its bar and its stat grid |
 | 47 | `board-cursor` | `shared/board-cursor` | arrows move a cursor over a board. [keyboard-nav-plan.md](keyboard-nav-plan.md) would add five games to it |
@@ -244,7 +244,7 @@ will list the other as a dependency whichever goes first.
 | 50 | `grid-and-drag` | `shared/grid-and-drag` | dragging a tile to the right place on the grid |
 | 51 | `bee-games` | `shared/bee-games` | what spellingbee and wordwheel share and nothing else does. **The name is a placeholder** |
 | 52 | `word-hunt` | `shared/word-hunt` | find-words-on-a-board games |
-| | **The games** | | |
+|    | **The games** | | |
 | 53 | per game, one area each | `src/<game>/` | **Sixteen areas**, keyed by CODENAME. Two passes back to back: the audit — React, SQL and CSS together — then the **tile-feedback** pass against [tile-feedback.md](tile-feedback.md). `psychicnum` first, as the control: the deliberately minimal toy, so what it settles is about the shape of a game area rather than about the game |
 
 **`common/devtools` is on no row, deliberately.** `/palette` and `/font` are
@@ -441,6 +441,23 @@ making every single-line change in four folders its own commit is dumb.)
    better home — and its row comes off `DESIGNS_OWED` in
    `src/guards/folderDocs.test.ts`. Anything still owed goes to `todo.md`. The
    area file is then a record of the reading and nothing more.
+
+**Those two steps are the last things CLAUDE does. Neither is the close.** An
+area is closed when its roster files read `cs-blessed-<area>`, and only Joel
+sets that stamp — [The stamp](#the-stamp) above. So an area with every finding
+worked, the re-read done and the `doc.md` harvested is still OPEN, waiting on a
+read Claude cannot perform on Joel's behalf. Claude never writes a `cs-blessed`
+stamp and never ticks that box: recording that Joel read something is a claim
+only Joel can make.
+
+**And the blessing check must not be run the easy way.** "Every roster file
+blessed" is not "every roster file has a stamp." While an area is open its files
+carry `cs-audited-<area>` — the stamp the area itself wrote on the way in — so a
+check for *a stamp being present* passes on the area's first day and every day
+after, and passes hardest at the moment it is meant to fail. Claude ran exactly
+that check on `routing` (2026-09-05), saw six stamped files, ticked the box and
+declared the area closed with not one blessed file in it. The check is: does
+every roster file say `cs-blessed`, with THIS area's name after it.
 
 **Claude does not decide that we are moving on.** Finishing a step is not
 permission to start the next one, and that includes the sprint's own setup.
