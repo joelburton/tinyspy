@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-session
 
 import { useEffect, useSyncExternalStore } from 'react'
 import type { Session } from '@supabase/supabase-js'
