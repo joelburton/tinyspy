@@ -13,8 +13,7 @@
  *
  * `envelope.ts` beside this holds the builders for the answer a function
  * **sends**; this is the answer it **receives**. Without it every function
- * hand-writes the same three steps, and a boundary written thirteen times is a
- * boundary spelled thirteen ways.
+ * hand-writes the same three steps, and each spells the boundary its own way.
  *
  * **Why this is a second implementation and not an import.** The frontend's
  * `dbResult.ts` reaches into `dbFetch`, the fault-modal store and browser

@@ -157,6 +157,13 @@ other place" is true too. Nothing to fix; the docstrings stand.
 
 Fix: the condition, never the number — the routing rule.
 
+**Resolved 2026-09-05 (Joel: "do it").** All six, as one edit: "every one but
+`unhandledAnswer`"; "reachable in ordinary use, unlike the shape bugs above";
+"every SQL exception handler that re-raises…"; the three `showFaultModal`
+callers dropped from `dbResult.ts`'s header in favor of the guard that names
+them; "the half a call site cannot write itself"; "each spells the boundary its
+own way".
+
 ## F-supabase-6 · `docs-stale-paths` · Five link texts write the pre-reorg path for this folder's files
 
 docs/supabase.md writes `src/common/lib/supabase/supabase.ts` and
@@ -181,11 +188,18 @@ never restores; three later tests each carry a paragraph on why they call
 specs have `afterEach(() => vi.restoreAllMocks())`. Fix: the same `afterEach`,
 and the three paragraphs and the manual restore go.
 
+**Resolved 2026-09-05 (Joel: "do it").** The `afterEach` sits under the
+file's `beforeEach` with a two-line comment saying why; the three `mockClear`
+paragraphs and the one `mockRestore` are gone.
+
 ## F-supabase-8 · `dbfetch-test-doubled-comment` · The same paragraph twice, one of them archaeology
 
 `dbFetch.test.ts` above "marks an unparseable body with a verdict": two
 versions of one comment, back to back, both saying what the failure "used to"
 be. Fix: one paragraph, present tense.
+
+**Resolved 2026-09-05 (Joel: "do it").** One paragraph: why the failure is
+worth showing, and what the layer says about it now.
 
 ## F-supabase-9 · `typeof-window-guards` · Five guards for a case that cannot happen
 

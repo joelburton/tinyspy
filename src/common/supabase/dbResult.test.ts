@@ -1,6 +1,6 @@
 // cs-audited-supabase
 
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { PostgrestClient } from '@supabase/postgrest-js'
 import {
   faultEnvelope, nothingReachedUs, reportDbFault, reportUnhandled,
@@ -47,6 +47,9 @@ beforeEach(() => {
   clearFaultsForTest()
   vi.spyOn(console, 'error').mockImplementation(() => {})
 })
+// Every test starts with fresh console spies: `vi.spyOn` on an already-spied
+// method hands back THAT spy, calls and all.
+afterEach(() => vi.restoreAllMocks())
 
 /**
  * **Nothing answered: every wrapper says the same thing.**
@@ -509,9 +512,6 @@ describe('the [db] line', () => {
       line.replace(/\| (severity|outcome|dbcode|status|field)=/g, '| SHOULD-NOT-BE-HERE='),
     )
     expect(line).toContain('| SLOW | POST /rest/v1/rpc/delete_game | ms=5210 |')
-    // Restored so the next test's spy starts empty — `vi.spyOn` on an
-    // already-spied method hands back THIS spy, calls and all.
-    spy.mockRestore()
   })
 
   // Postgres hands back hints like `Perhaps you meant "clubs.name"`, and an
@@ -731,11 +731,7 @@ describe('runEdgeFn — the same shape, through Deno', () => {
 // both "no override" and "an override we didn't print".
 describe('the [db] line carries a not-ok outcome', () => {
   it('logs an override the author set on a failure', async () => {
-    // `mockClear`: an earlier test in this file spied `console.warn` without
-    // restoring it, so a fresh `spyOn` hands back the SAME spy with its calls
-    // still on it, and `calls[0]` would be somebody else's line.
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    warn.mockClear()
     await runRpc(
       Promise.resolve({
         data: env({
@@ -750,11 +746,7 @@ describe('the [db] line carries a not-ok outcome', () => {
   })
 
   it('leaves it blank when the severity default applies', async () => {
-    // `mockClear`: an earlier test in this file spied `console.warn` without
-    // restoring it, so a fresh `spyOn` hands back the SAME spy with its calls
-    // still on it, and `calls[0]` would be somebody else's line.
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    warn.mockClear()
     await runRpc(
       Promise.resolve({
         data: env({
@@ -864,7 +856,7 @@ describe('reportUnhandled', () => {
 
     const [fault] = peekFaultsForTest()
     expect(fault.text).toBe('BUG: end_game fell through to unhandled')
-    // The half the 94 call sites lack today: something under the sentence.
+    // The half a call site cannot write itself: something under the sentence.
     expect(fault.diagnostics).toContain('dbcode=PN488')
   })
 
@@ -873,12 +865,7 @@ describe('reportUnhandled', () => {
     // carries neither. Printing 200 for a not-ok would state a fact this layer
     // does not have — so the field is left off, and this is the one [db] line
     // where a blank status= means "not known here".
-    //
-    // `mockClear`: the test above spied `console.error` without restoring it,
-    // so this `spyOn` hands back the SAME spy with its `status=200` line still
-    // on it, and the negative assertion below would read that one.
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
-    spy.mockClear()
     reportUnhandled('end_game', {
       ...okAnswer, type: 'not-ok', data: null, severity: 'fault',
       message: 'permission denied', dbcode: '42501',

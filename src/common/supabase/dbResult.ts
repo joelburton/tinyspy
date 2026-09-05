@@ -39,9 +39,9 @@ import type { Envelope, NotOkEnvelope, Severity } from './envelope'
  * and `useProfile`'s missing-row fault).
  *
  * **The exception is sanctioned and narrow**: a caller passing
- * `presentFaults: false` has promised to show its own, which is why three files
- * call `showFaultModal` directly (`HomePage`, `useGameTimer`, `useWordSubmit`) —
- * `src/guards/callSiteShape.test.ts` holds each of them to the promise.
+ * `presentFaults: false` has promised to show its own, which is why a few files
+ * call `showFaultModal` directly — `src/guards/callSiteShape.test.ts` names each
+ * and holds it to the promise.
  *
  * `dbFetch` classifies and logs but never shows: all it knows is the URL, so the
  * only rule it could express was "this path never modals", which cannot serve a

@@ -133,11 +133,9 @@ describe('dbFetch — requests that DID reach the server', () => {
   })
 
   // A body that isn't JSON is the failure most worth showing — a Kong 502 on a
-  // PostgREST call means the stack is broken — and it used to be the quietest,
-  // arriving with `dbcode=` and `detail=` both blank.
-  // A body that will not parse used to be the quietest failure here, printing
-  // `dbcode=` and `detail=` blank. It is now the loudest thing this layer says:
-  // a verdict in `statusText` that the wrapper turns into a real sentence.
+  // PostgREST call means the stack is broken — so it is the loudest thing this
+  // layer says: a verdict in `statusText` that the wrapper turns into a real
+  // sentence, rather than `dbcode=` and `detail=` both blank.
   it('marks an unparseable body with a verdict, and keeps the body readable', async () => {
     stubFetch(() =>
       Promise.resolve(

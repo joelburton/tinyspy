@@ -49,8 +49,8 @@ export type DbError = {
  * built because nothing usable came back. Nothing raises these; they are
  * written straight into an envelope here.
  *
- * `^FE[0-9]{3}$` cannot collide with `^P[AN][0-9]{3}$`, so the forty-odd SQL
- * exception handlers that re-raise anything not matching theirs are untouched —
+ * `^FE[0-9]{3}$` cannot collide with `^P[AN][0-9]{3}$`, so every SQL exception
+ * handler that re-raises anything not matching its own pattern is untouched —
  * correctly, since an `FE` code never arrives in SQL.
  *
  * **Why four codes and not one.** They are four different things to go fix, and
@@ -134,8 +134,9 @@ export function isEnvironmental(dbcode: string | null): boolean {
  * not care which layer noticed.
  *
  * All of them are OURS, which is why every sentence a player reads opens
- * `BUG:` — four carry it in their text, and `unhandledAnswer`'s is prefixed at
- * its one call, `reportUnhandled`, where the call's name goes between. They are
+ * `BUG:` — every one but `unhandledAnswer` carries it in its text, and that
+ * one is prefixed at its one call, `reportUnhandled`, where the call's name
+ * goes between. They are
  * the failures where something answered and the answer was wrong — as against
  * the `FE` codes above, where our server did not answer at all.
  */
@@ -209,9 +210,9 @@ export const OUR_BUG_TO_CODE_AND_TEXT = {
     text: 'BUG: a database error arrived with no SQLSTATE',
   },
   // A signed-in session whose profile row is gone — `useProfile` reads zero
-  // rows for its own `user_id`. Reachable, unlike the three above: a `db:reset`
-  // under a live tab, or an account deleted mid-session, which is
-  // `claim_username`'s PN018 arriving by another door.
+  // rows for its own `user_id`. Reachable in ordinary use, unlike the shape
+  // bugs above: a `db:reset` under a live tab, or an account deleted
+  // mid-session, which is `claim_username`'s PN018 arriving by another door.
   //
   // Its `text` is the code's MEANING, not the sentence the player reads: that
   // hook words its own ("Your profile is no longer on the server. Please
