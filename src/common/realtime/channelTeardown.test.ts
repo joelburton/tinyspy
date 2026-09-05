@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-realtime
 
 /**
  * Tests for the stable-name channel teardown registry.

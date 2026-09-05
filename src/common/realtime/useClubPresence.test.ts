@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-realtime
 
 /**
  * Tests for useClubPresence — specifically the stable-name teardown gate.

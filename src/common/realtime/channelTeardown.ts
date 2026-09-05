@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-realtime
 
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from '../supabase/supabase'
