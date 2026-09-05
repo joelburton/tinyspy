@@ -46,10 +46,11 @@ re-audit** — [plans/areas/game-lib.md](areas/game-lib.md), the non-visual half
 of the game shell (§7 row 3). All six groups ran, 2026-09-03 → 09-04, and **all
 37 files are `cs-blessed-game-lib`**. Then the whole area was read again in one
 sitting, at Joel's ask, and that pass found what the group passes had not:
-`F-game-lib-49` … `-57` — a dead manifest field (`timerMode`), three claims
-sibling findings had already disproved, a doc cite to the wrong file, five
-counts written that week and already drifted, and a question about history in
-docstrings. **57 IDs issued, 48 settled** — 55 statused in the area file, two
+`F-game-lib-49` … `-58` — a dead manifest field (`timerMode`, deleted), three
+claims sibling findings had already disproved, a doc cite to the wrong file,
+five counts written that week and already drifted, a question about history in
+docstrings, and docs/common.md's manifest table describing a contract several
+versions old. **58 IDs issued, 49 settled** — 56 statused in the area file, two
 (`F-game-lib-24`, `-25`) moved to `bananagrams` with the files they were about.
 What it leaves behind, all filed where it will be read: `F-game-lib-11`'s
 leaderboard adoption in four game areas, `F-game-lib-44`'s nineteen dead doc

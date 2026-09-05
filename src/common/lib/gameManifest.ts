@@ -12,9 +12,12 @@ import type { GamePageCtx } from './gamePageCtx'
  *
  * `GameManifest` is the whole subject; everything else here exists because one
  * of its members needs a type. `CommonGameListRow` is the narrow row slice
- * `labelFor` may read; `TimerMode` is what `timerMode` may be; `CreatedGame`
- * and `GameStopResult` are what its three RPC members answer with; the
- * `playerCount*` helpers format `numberOfPlayers` for the club page.
+ * `labelFor` may read; `CreatedGame` and `GameStopResult` are what its three
+ * RPC members answer with; the `playerCount*` helpers format `numberOfPlayers`
+ * for the club page. `TimerMode` is the one exception to "a member needs it":
+ * it is the shape of a game's `setup.timer`, kept here because every setup
+ * form and `useGameTimer` speak it and the manifest is where a game's contract
+ * with the shell is read.
  *
  * **The two files either side of this one**, since the names are close:
  * `src/gametypes.ts` is the REGISTRY — the list that collects these manifests,
@@ -135,12 +138,6 @@ export type GameManifest = {
   // "How to play <brand>" title is sourced from the single
   // branding source rather than hardcoded in each game's Help.
   help: ComponentType<{ onClose: () => void; brand: string }>
-
-  // Per-gametype baseline timer. Optional; default is no timer.
-  // When set, every game of this gametype runs with it. When
-  // the manifest omits it, individual games may still opt into
-  // a timer per-game via their setup form (`common.games.setup.timer`).
-  timerMode?: TimerMode
 
   // Opt into the per-game scratchpad — a floating notepad (a `common/`
   // feature) players can jot in during play. Absent = no scratchpad (most

@@ -14,7 +14,8 @@ of files were on no area's roster at all: `deep` listed them out as "names every
 game" (`deep.md:160`, `:161`) and nothing picked them up — the identical gap that
 created `utils` one folder over.
 
-**Status: READ THROUGH; re-audited at the close, NINE FINDINGS OPEN.** Opened
+**Status: READ THROUGH; re-audited at the close, NINE FINDINGS OPEN** (ten
+were, `F-game-lib-49` is resolved, `-58` was found resolving it). Opened
 2026-09-03 by listing the files and stopping (§21); Joel agreed the list —
 *"that matches the files i'd expect"* — and then asked for it in groups, *"so we
 don't have to do them all as one big audit"*, the way `deep` ran in passes. All
@@ -30,14 +31,14 @@ file has been read by Claude and by Joel. The stamp records that he read the
 file; the open findings are changes wanted in files he has read, which the
 stamp was never a claim about.
 
-**Fifty-seven IDs issued; forty-eight settled, nine open.** Two of them —
+**Fifty-eight IDs issued; forty-nine settled, nine open.** Two of them —
 `F-game-lib-24` and `-25` — moved to [bananagrams.md](bananagrams.md) with the
-files they were about, so **55 carry a heading in this file**:
+files they were about, so **56 carry a heading in this file**:
 
 | status | count | which |
 |---|---|---|
-| **OPEN** | **9** | `F-game-lib-49` … `-57`, the closing re-audit's — one dead manifest field, three stale claims, one wrong doc cite, five drifted counts, a history-in-docstrings question, a plan-cite note, and a heading of fold-ins |
-| RESOLVED | 42 | includes the two that are resolved by being handed on: `F-game-lib-11` (its remaining half filed in four game areas) and `-46` (deferred to the app's standing register) |
+| **OPEN** | **9** | `F-game-lib-50` … `-58`, the closing re-audit's — three stale claims, one wrong doc cite, five drifted counts, a history-in-docstrings question, a plan-cite note, a heading of fold-ins, and the stale manifest table in docs/common.md |
+| RESOLVED | 43 | includes the two that are resolved by being handed on: `F-game-lib-11` (its remaining half filed in four game areas) and `-46` (deferred to the app's standing register), and `-49`, the re-audit's first |
 | CLOSED, no change | 2 | `F-game-lib-29` and `-36`, both on Joel's ruling |
 | MOVED to `feedback` | 2 | `F-game-lib-27`, `-28` — open there as `F-feedback-1`, `-2` |
 
@@ -2754,7 +2755,7 @@ files he has read, which the stamp was never a claim about.
 - **No British spelling** in the 37 files. The `puzpuzpuz:` storage-key prefix
   in `gameInvites.ts` is the app's own brand prefix, used by two other keys.
 
-### F-game-lib-49 · `timer-mode-has-no-reader` · An optional manifest field nothing sets and nothing reads
+### RESOLVED 2026-09-04 — F-game-lib-49 · `timer-mode-has-no-reader` · An optional manifest field nothing sets and nothing reads
 
 `gameManifest.ts` — `GameManifest.timerMode`: *"Per-gametype baseline timer.
 Optional; default is no timer. When set, every game of this gametype runs with
@@ -2772,6 +2773,28 @@ A dead optional field in the contract every game implements is the strongest
 kind of false docstring: a sixteenth-game author reads it, sets it, and nothing
 happens. **Recommendation: delete the field and its comment.** A removal, so it
 is Joel's call rather than done.
+
+#### Resolved 2026-09-04 — deleted, and the doc had called it deliberate
+
+Joel: *"do it."* The field and its comment are gone from `GameManifest`, and
+the module header no longer lists `TimerMode` as "what `timerMode` may be" —
+it now says what the type is for (the shape of `setup.timer`) and why it lives
+here anyway. `TimerMode` itself is untouched; every setup form and
+`useGameTimer` read it.
+
+**Worth knowing before anyone reverses this:** `docs/common.md`'s manifest
+table had a row for the field saying *"No game uses this field today … The
+field is preserved for the per-gametype-constant case"* — so it was a
+reservation, not an oversight. It was also wrong in the same row: *"Consumed by
+`useGameTimer` (via `useCommonGame`)"* described a read that did not exist, and
+it placed `<SetupTimerSection>` in `components/fields/` when it is in
+`components/setup/`. The row is deleted with the field. If a per-gametype
+constant timer is ever wanted, it is a five-line addition with a real reader,
+not a slot to keep warm.
+
+That table is stale in several other rows too — `F-game-lib-58`.
+
+`tsc -b` clean; `src/common/lib` + `src/guards` **567/567 in 58 files**.
 
 ### F-game-lib-50 · `menu-says-end-rpc-may-not-exist` · The claim F-game-lib-3 disproved, one file over
 
@@ -2895,6 +2918,34 @@ in two days, and the step-12 sweep needs the list.
 - `gameMenu.ts:46` and `menu.ts:114` say *"crossplay's menu"* meaning the
   ported source app, while **CrossPlay** is this repo's brand for crosswords —
   a reader here has no way to tell the two apart.
+
+### F-game-lib-58 · `manifest-table-in-common-md-stale` · The doc's `GameManifest` table describes a contract several versions old
+
+Found while deleting `F-game-lib-49`'s row from `docs/common.md` → the
+manifest-fields table (`common.md:610-621`). Read against `gameManifest.ts`
+today, the rows that are wrong:
+
+| row | says | `gameManifest.ts` says |
+|---|---|---|
+| `schema` | *"Same as `gametype` today"* | variants share a schema — `psychicnum_coop` and `psychicnum_compete` both set `schema: 'psychicnum'`; the field's own comment gives that example |
+| `numberOfPlayers` | *"`[min, max \| null]` … `null` upper bound means 'no maximum'"* | `[number, number]`, both ends required — `F-game-lib-5` settled that |
+| `setupForm` | *"`{ Component, defaults } \| null` … `null` for games whose start needs no choices; the dialog is then bypassed"* | non-nullable — *"Every gametype carries one — at the very least the timer mode is a setup choice"*; `intro` and `validate` are unmentioned |
+| `submitTimeout` | *"Returns `{ error? }`"*; *"Gametypes without a setup-side timer (codenamesduet today) can no-op this"* | returns `Promise<Envelope<GameStopResult>>` — the pre-envelope shape `F-game-lib-3` struck from the source |
+| `startGameInClub(clubId, setup)` | *"Returns `{id}` on success or `{error}` on failure"*, two arguments | `(clubHandle, setup, playerUserIds) => Promise<Envelope<CreatedGame>>` — three arguments, envelope out |
+| `labelFor` | row shape `{ id, gametype, play_state, is_terminal, status }` | `CommonGameListRow` also carries `setup`, which five manifests read |
+
+Missing rows: `baseGametype`, `mode`, `aiOpponent`, `logoUrl`, `help`,
+`scratchpad`, `endGame` — seven of the contract's members.
+
+The table sits under *"Each gametype's manifest implements `GameManifest`"* and
+links to the source, so the honest question is whether it should exist at all:
+a field-by-field mirror of a 250-line type is sixteen claims with an expiry
+date, which is `F-game-lib-5`'s argument again. **Recommendation:** replace the
+table with two sentences — what a manifest is for, and that the type's own
+comments are the reference — and keep only what the doc adds that the source
+cannot (the removability rule, the variants paragraph). Filed rather than done:
+it is a doc rewrite, and docs/common.md is the architecture doc, not this
+area's file.
 
 ### One more note for the plan — `pageMenuStore.ts`
 
