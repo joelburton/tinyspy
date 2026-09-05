@@ -5,7 +5,8 @@ import type { GenericFeedbackMsg } from '../feedback/genericFeedback'
 import type { GameStopResult } from '../manifest/gameManifest'
 import { getNotOkFeedback } from '../feedback/genericPills'
 import { runRpc } from '../supabase/dbResult'
-import { useCallback, useRef } from 'react'
+import { useCallback } from 'react'
+import { useSingleFlight } from '../single-flight/useSingleFlight'
 import { END_GAME_CONFIRM, RESTART_CONFIRM, type ConfirmOptions } from '../floating-panels/useConfirmation'
 import { reportUnhandled } from '../supabase/dbEnvelope'
 
@@ -134,60 +135,32 @@ export function useStandardGameActions({
     })()
   }, [db, gameId, isTerminal, myConceded, showError])
 
-  /**
-   * Restart is in flight — drop a second click rather than firing a second
-   * `replay_board`.
-   *
-   * Why this needs a guard and the other two don't: `isTerminal` / `myConceded`
-   * already stop a double End / Concede once the first RPC lands, and a second
-   * call that beats the round trip just errors harmlessly ("game is not
-   * active"). Replay has no such state — a replayed board is a perfectly legal
-   * thing to replay again — so a double-click genuinely runs it twice, and the
-   * second wipe can land *after* someone has started guessing on the fresh
-   * board. At terminal there's no confirm to slow the second click down either.
-   *
-   * A ref, not state: this gates an event handler and drives no UI, so it must
-   * not re-render (and must be readable synchronously by the very next click —
-   * a state update wouldn't have committed yet). Same pattern the games use for
-   * their own submit handlers.
-   */
-  const restarting = useRef(false)
-
   // Restart — restart THIS board for everyone. Confirmed MID-GAME only (it
   // wipes the group's progress); at terminal there's nothing left to lose. The
   // reset arrives via each game's realtime refetch (the RPC's games touch).
-  //
-  // The mid-game question goes through the styled modal now (2026-08-03) — it
-  // was one of the legacy `window.confirm` calls docs/ui.md flagged to migrate
-  // when touched, and this is the touch: Restart became reachable in all
-  // thirteen games, so the destructive one deserved a real dialog with a named
-  // confirm button rather than a browser alert with an "OK".
-  const restart = useCallback(() => {
-    void (async () => {
-      // Checked BEFORE the confirm so a second click during the round trip is
-      // dropped silently rather than re-prompting.
-      if (restarting.current) return
-      if (!isTerminal && !(await confirm(RESTART_CONFIRM))) return
-      restarting.current = true
-      try {
-        const res = await runRpc<ReplayResult>(db.rpc('replay_board', { target_game: gameId }))
-        if (res.type === 'not-ok') {
-          // The one race here is the game having been deleted out from under
-          // the page — a club member tidying the list while you had it open.
-          showError({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
-        } else if (res.type === 'ok' && res.data?.result === 'replayed') {
-          // The fresh board arrives by subscription; this is the game's own
-          // post-replay cleanup (wordle/waffle re-hide the answer).
-          onRestarted?.()
-        } else {
-          reportUnhandled('replay_board', res)
-        }
-      } finally {
-        // Cleared on every path — a failed replay must stay retryable.
-        restarting.current = false
-      }
-    })()
+  const doRestart = useCallback(async () => {
+    if (!isTerminal && !(await confirm(RESTART_CONFIRM))) return
+    const res = await runRpc<ReplayResult>(db.rpc('replay_board', { target_game: gameId }))
+    if (res.type === 'not-ok') {
+      // The one race here is the game having been deleted out from under the
+      // page — a club member tidying the list while you had it open.
+      showError({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+    } else if (res.type === 'ok' && res.data?.result === 'replayed') {
+      // The fresh board arrives by subscription; this is the game's own
+      // post-replay cleanup (wordle/waffle re-hide the answer).
+      onRestarted?.()
+    } else {
+      reportUnhandled('replay_board', res)
+    }
   }, [db, gameId, isTerminal, confirm, showError, onRestarted])
+
+  // Guards a non-idempotent request from firing twice; see `useSingleFlight`.
+  // End and Concede need no such guard — `isTerminal` / `myConceded` stop the
+  // second call once the first lands, and one that beats the round trip errors
+  // harmlessly. A replayed board is a perfectly legal thing to replay again, so
+  // nothing stops the second wipe from landing after someone has started
+  // guessing on the fresh one.
+  const [restart] = useSingleFlight(doRestart)
 
   return { endGame, concede, restart }
 }

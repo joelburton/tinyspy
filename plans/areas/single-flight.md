@@ -138,11 +138,16 @@ divergence is undocumented and the doc explains it wrongly.
 
 **Owner:** `common/game-page`.
 
-**Resolution: the doc half is DONE.** `code-conventions.md` no longer explains
-the duplication with "already inside a shared hook"; it states the actual
-difference — the ref is read before the confirm and set after, so the guard
-covers the round trip rather than the open dialog. **Still open:** whether
-`restart` converts to the hook, which is `common/game-page`'s to take.
+**Resolution: DONE.** Joel ruled it fine to fix in `useStandardGameActions`, so
+`restart` calls the hook: the body is a plain `useCallback` (identity kept, so
+the games' `actionsRef` effects don't re-run every render) wrapped in
+`useSingleFlight`, and the ref, the `try/finally` and the IIFE are gone. The
+gate now closes on the click rather than on the confirm's answer — the change
+this conversion carries, and unobservable today. Its two existing specs (drops a
+second click; retryable after a failure) pass unchanged. The comment above it is
+one sentence and a pointer, per the rule settled at F-4, plus the part that is
+true here and nowhere else: why End and Concede need no guard.
+`code-conventions.md` no longer describes a hand-rolled ref.
 
 ### F-single-flight-6 · `codenamesduet-guess-in-flight` · a game hand-rolls the same gate
 
@@ -156,9 +161,15 @@ Reviewed and NOT the same job, so not listed: bananagrams' `dumpPending` (a
 label for the next tile-growth announcement) and crosswords' `committed` (a
 blur-vs-commit guard).
 
-**Owner:** `codenamesduet`.
+**Owner:** `codenamesduet`, and Joel had it done here rather than filed.
 
-**Resolution:** *(open)*
+**Resolution: DONE.** The handler is a plain `useCallback` named `submitGuess`,
+wrapped as `const [handleGuess] = useSingleFlight(submitGuess)`; the ref and both
+of its assignments are gone, and `useRef` left the file's imports. `pendingPos`
+stays — it says WHICH tile is committing, which Board reads to mark and disable
+that one, so the hook's boolean can't stand in for it; its note now says that
+instead of explaining the ref. The gate also gained a `finally` it never had, so
+a throw in the handler can no longer wedge the board.
 
 ### F-single-flight-7 · `gate-survives-a-new-action` · the suite misses the property a plausible rewrite breaks
 

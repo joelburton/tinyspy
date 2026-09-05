@@ -475,10 +475,9 @@ state, and clears in a `finally` so a failure stays retryable.
 
 Don't reach for it when a state flag already gates the action — End and Concede
 stop themselves once `isTerminal` / `myConceded` flips — or for idempotent calls
-every client fires (`submit_timeout`). `useStandardGameActions.restart` holds its
-own equivalent ref inline, gating on a slightly different window: it reads the
-ref before its confirm but sets it after, so the guard covers the round trip
-rather than the open dialog.
+every client fires (`submit_timeout`). Restart is the shared trio's one user of
+the hook: a replayed board is a perfectly legal thing to replay again, so no
+state flag stops the second click the way `isTerminal` stops a second End.
 
 Related: `GamePage`'s global shortcut listener drops `e.repeat`, so *holding* a
 key can't machine-gun a one-shot command.

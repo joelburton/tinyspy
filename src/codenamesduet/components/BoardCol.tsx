@@ -1,6 +1,7 @@
 // cs-unmet
 
-import { useCallback, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useState, type ReactNode } from 'react'
+import { useSingleFlight } from '@/common/single-flight/useSingleFlight'
 import { cls } from '@/common/utils/cls'
 import type { GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
 import type { TerminalCopy } from '@/common/terminal/terminalCopy'
@@ -163,17 +164,12 @@ export function BoardCol({
   // The guess move — a board click. Owned here (beside the board it gates). The
   // reveal arrives via realtime, so there's no optimistic state; the only own-move
   // feedback is an ERROR (a rejected guess), routed up via `onError`.
+  //
+  // `pendingPos` says WHICH tile is committing — Board marks that one pending
+  // and disables it — so the single-flight flag below can't stand in for it.
   const [pendingPos, setPendingPos] = useState<number | null>(null)
-  // In-flight guard against a double-guess. A synchronous ref, not the `pendingPos`
-  // state, because it must block BEFORE any re-render: the tile's `disabled` gate
-  // only follows setPendingPos → re-render, so it misses a same-tick double-tap on
-  // the tile AND a click on a DIFFERENT tile while the first guess is still
-  // committing (you shouldn't guess again until the reveal resolves).
-  const guessInFlight = useRef(false)
-  const handleGuess = useCallback(
+  const submitGuess = useCallback(
     async (position: number) => {
-      if (guessInFlight.current) return
-      guessInFlight.current = true
       clearLocalFeedback()
       setPendingPos(position)
       const res = await runRpc<GuessAnswer>(db.rpc('submit_guess', {
@@ -181,7 +177,6 @@ export function BoardCol({
         target_position: position,
       }))
       setPendingPos(null)
-      guessInFlight.current = false
       // Five answers, and every one of them says nothing here: each is a
       // REVEAL, and the reveal arrives via Realtime → useBoard
       // refetches → the tile re-renders in its result color. No optimistic
@@ -215,6 +210,12 @@ export function BoardCol({
     },
     [gameId, onError, clearLocalFeedback],
   )
+
+  // Guards a non-idempotent request from firing twice; see `useSingleFlight`.
+  // A tile's `disabled` can't do it: that follows `pendingPos` → re-render, so
+  // it misses a same-tick double-tap, and a click on a DIFFERENT tile while the
+  // first guess commits (you shouldn't guess again until the reveal resolves).
+  const [handleGuess] = useSingleFlight(submitGuess)
 
   // The below-board slot's one pill, by the shared priority (localPills.ts):
   // the terminal verdict, then the own-action result. `null` hands the slot back
