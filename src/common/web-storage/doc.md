@@ -1,31 +1,49 @@
 # web-storage
 
 `localStorage` and `sessionStorage`, wrapped so a browser that blocks site data
-cannot throw, plus the hook for a control whose position should survive a
+cannot crash the app, plus the hook for a control whose position should survive a
 reload. Nothing outside this folder touches either storage raw.
 
 ## Design
 
-**The folder is three guarded functions and one hook on top of them**, and that
-is the whole of it. `storage.ts` carries the reasoning a caller needs — why it
-takes the NAME of a storage rather than a `Storage`, why a failed write is
-swallowed while a failed read makes you decide, and the shape every key in the
-app takes. `src/guards/rawStorage.test.ts` keeps everyone else out, and argues
-the case for being a guard rather than a convention.
+Browser storage looks like a plain key-value box and behaves like one right up
+until it doesn't. A browser set to block site data throws on `window.localStorage`
+itself — before any method is called — and a full quota throws on the write. Both
+are rare, neither is an error the player did anything about, and either one
+uncaught takes down whatever was rendering. Remembering which tab you had open is
+not worth a blank screen, so every access in the app goes through three small
+functions here that cannot throw, and a guard keeps everyone else out.
 
-Three rulings that belong to the folder rather than to any file in it:
+The interesting half is what a failure should mean, because that is not the same
+for reading and writing. A write that fails is swallowed: the app carries on with
+the value in memory, and the only cost is that the preference will not be there
+next time. A read that fails cannot be swallowed the same way, because "nothing
+stored" and "storage unreachable" may deserve different answers — so a caller
+passes what it wants an absent value to mean, and almost every caller says
+"treat it as unset". The one that doesn't is a reload guard, which has to fail
+closed.
 
-- **`localStorage` is nearly all of it.** Preferences, panel rects, the theme,
+On top of that sits one hook, for the common case: a control whose choice should
+still be there after a reload. It takes the list of positions the control can be
+in and validates whatever it finds against that list, so a renamed option or a
+hand-edited key cannot wedge the UI into a state its own control can't
+represent. A boolean is not a special case — it is a two-position choice, which
+is why crosswords' rebus preference is this same hook with `['off', 'on']` and
+there is no separate flag hook.
+
+## Details
+
+- **`localStorage` is nearly all of it** — preferences, panel rects, the theme,
   what you have already seen. `sessionStorage` has exactly one caller,
   `reloadOnStaleChunk`, because a per-tab lifetime is precisely what a reload
-  guard wants — and that is the bar for reaching for it.
-- **A boolean is a two-position choice, not a special case.** Crosswords' rebus
-  preference is `useStickyChoice` with `['off', 'on']`. There is no
-  `useStickyFlag` and the folder does not want one until something needs it.
+  guard wants. That is the bar for reaching for it.
 - **Renaming a key orphans whatever is stored under it**, since nothing reads
-  both. That costs a preference reset, never correctness — but it is visible to
-  a player, so it is a decision to take rather than a detail to discover
-  afterwards.
-
-Tests do not get the real thing: `storage.fake.ts` installs a stand-in and
-supplies both ways storage fails, for reasons its own docstring explains.
+  both. The cost is a preference reset, never correctness — but a player sees
+  it, so it is a decision to take rather than a surprise to discover.
+- **The key shape** every stored key takes is stated in `storage.ts`, in the
+  wrapper all of them go through.
+- **`src/guards/rawStorage.test.ts`** is what keeps raw access out, and argues
+  why this is a guard rather than a convention.
+- **Tests never get the real thing**: `storage.fake.ts` installs a stand-in and
+  can make storage fail both ways — the property access and the method call —
+  because those are two different bugs.
