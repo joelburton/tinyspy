@@ -1,12 +1,12 @@
 // cs-unmet
 
-import { DictBandField } from '../../common/components/fields/DictBandField'
-import { PlayersSection } from '../../common/components/setup/PlayersSection'
-import { RadioRow } from '../../common/components/fields/RadioRow'
-import { SetupTimerSection } from '../../common/components/setup/SetupTimerSection'
-import { SetupSection } from '../../common/components/setup/SetupSection'
-import { difficultyValue } from '../../common/lib/game/difficulty'
-import type { SetupBodyProps, SetupSetter } from '../../common/lib/setup/setupForm'
+import { DictBandField } from '@/common/fields/DictBandField'
+import { PlayersSection } from '@/common/setup-form/PlayersSection'
+import { RadioRow } from '@/common/fields/RadioRow'
+import { SetupTimerSection } from '@/common/setup-form/SetupTimerSection'
+import { SetupSection } from '@/common/setup-form/SetupSection'
+import { difficultyValue } from '@/common/setup-form/difficulty'
+import type { SetupBodyProps, SetupSetter } from '@/common/setup-form/setupForm'
 import {
   HAND_SIZE_OPTIONS,
   WORD_CHECK_OPTIONS,
@@ -15,8 +15,8 @@ import {
   type BananagramsValues,
 } from '../lib/setup'
 import styles from './SetupForm.module.css'
-import { NumberField } from '../../common/components/fields/NumberField'
-import { CheckboxField } from '../../common/components/fields/CheckboxField'
+import { NumberField } from '@/common/fields/NumberField'
+import { CheckboxField } from '@/common/fields/CheckboxField'
 
 /**
  * bananagrams's per-game setup form, rendered inside the common

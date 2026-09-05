@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { supabase } from '../common/lib/supabase/supabase'
+import { supabase } from '@/common/supabase/supabase'
 
 /**
  * stackdown's PostgREST handle — scopes every query/RPC to the

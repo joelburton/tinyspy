@@ -1,186 +1,162 @@
-# How `common/` is organized
+# How `common/` and `shared/` are organized
 
-`src/common/` is the shared shell every game builds on — its `components/`,
-`hooks/`, and `lib/` had grown flat (50+ / ~30 / ~20 files), so finding things
-and knowing where a new file goes got hard. This doc is the **folder taxonomy**
-and, more importantly, the **purpose of each folder** — so placement is decided
-by a folder's stated job, not by guessing from whatever files happen to sit next
-to each other.
+The app's non-game code lives in two top-level folders under `src/`, and which
+one a module is in is a statement about it:
+
+- **`src/common/`** — the shell every game (or every page) is MADE OF: chat,
+  the manifest, setup, the club page, the terminal row, feedback, the supabase
+  wrappers. A game that lacks one of these is an exception, not a category.
+- **`src/shared/`** — a FAMILY: code factored out of two or three games that
+  happened to need the same thing. The found-words data model, the two games
+  that drag tiles on a grid, the pair with an on-screen keyboard. Most games
+  will never import any of it.
+
+The import path is where that distinction is said out loud. `@/shared/bee-games/…`
+tells the reader "this is a spellingbee-shaped game"; `@/common/chat/…` tells
+them "everybody has this".
 
 ## Principles
 
-- **Organized by feature-DOMAIN** (club, game, chat, setup, definitions, …),
-  with a few **cross-cutting UI-primitive** folders (buttons, floating-panels,
-  feedback, toasts, fields, text) for things used across domains.
-- **The same domain name recurs across the three layers.** `definitions/`,
-  `chat/`, and `toast(s)/` appear in `components/`, `hooks/`, and/or `lib/`. That
-  echo is deliberate — you find everything about a concept by its name in each
-  layer — which is why a folder is kept even when it holds a single file today.
+- **One folder per feature, holding everything about that feature.** `chat/` is
+  the panel, its hooks and its stores together. There is no `components/` ·
+  `hooks/` · `lib/` split — not at the top, and **not inside a feature folder
+  either**. The naming convention carries that distinction on its own:
+  leading-cap is a component (`Chat.tsx`), `useX` is a hook (`useClubChat.ts`),
+  lowercase is everything else (`chatUnread.ts`), and `.module.css` is a
+  stylesheet.
+- **A feature big enough to want subfolders splits by sub-feature, not by
+  type.** `core-css/patterns/` is the one nesting in the tree, and `patterns`
+  names a kind of stylesheet, not a kind of file.
 - **Co-located siblings move together.** A component's `*.module.css` and its
-  `*.test.tsx` live beside it; treat the pair/triple as one unit.
+  `*.test.tsx` live beside it; treat the pair or triple as one unit.
 - **Per-game code is NOT here.** Each game's `PlayArea` / `BoardCol` / `InfoCol`
-  / `useGame` lives under `src/<game>/`. `common/` is only the shared shell — if
-  a thing is specific to one gametype, it doesn't belong in `common/`.
+  / `useGame` lives under `src/<game>/`. A file with exactly one game importing
+  it belongs to that game, not to `shared/` — `StrikeMarks` is connections's.
+  The deliberate exception is `common/buttons/`, which holds every purpose
+  button whoever uses it, because a button is a look (an icon, a default name,
+  a tone) and not logic.
+
+### Common never imports shared
+
+The direction is one way:
+
+```
+    game  ──→  common          a game is made of the shell
+    game  ──→  shared          a game may belong to a family
+  shared  ──→  common          a family may use the shell
+  common  ──✗  shared          NEVER
+```
+
+A shell file importing `@/shared/…` makes every game carry a family's code and
+empties the word "common" of meaning — the reader can no longer tell from a
+path whether a module is everyone's or three games'. Nothing about it breaks,
+which is why it is guarded rather than trusted:
+[`src/guards/commonNeverImportsShared.test.ts`](../src/guards/commonNeverImportsShared.test.ts)
+fails on any such import, in either spelling.
+
+A family importing another family is fine and unguarded; there is no such edge
+today. And `src/shared/` is held to the same cross-game rule `src/common/` is —
+eslint blocks it from importing `src/<game>/`.
+
+### Imports use the `@/` alias when they leave their folder
+
+`@/` is the root of `src/` (a `paths` entry in `tsconfig.app.json` /
+`tsconfig.node.json` and a matching `resolve.alias` in `vite.config.ts` — both
+must change together; neither works alone).
+
+**The scope: alias when the import leaves its own top-level folder, relative
+within it.** A game reaching the shell writes `@/common/turn-log/TurnLog`; one
+file in `common/chat/` reaching another writes `./chatUnread`; `common/chat/`
+reaching `common/supabase/` writes `../supabase/db`. Root files (`main.tsx`,
+`App.tsx`, `gametypes.ts`) stay relative — they are in no top-level folder and
+never climb `../`, which is the thing the alias exists to kill.
 
 ## Where does a new file go?
 
-Read the folder comment and match the file's **job**, not its shape. Some rules
-that fall out of the taxonomy and have bitten us before:
+Read the folder's stated job below and match the file's **job**, not its shape.
+The rules that have bitten before:
 
 - **Furniture that every page carries and no page owns** (the top strip) →
-  `components/page-header/`. It isn't home's, club's or game's just because all
-  three render it — filing it under any one of them is what let three copies
-  drift. **A button that lives in the strip goes here too**, even when what it
-  opens lives elsewhere: `ChatButton` and `ScratchpadButton` are header marks,
-  not parts of chat or of the scratchpad.
-- A **reusable form control** (a labeled input/select/radio) → `components/fields/`,
-  even if today it's only used by the setup dialog. Fields are general; the setup
-  dialog is one consumer.
-- The **in-game move-entry input** (the box you type a word into) is NOT a form
-  field → `components/game/entry/`.
-- A **toast** (bottom-right announcement) is NOT feedback → `toasts/`. **Feedback**
-  is specifically the near-input validity pill + its local/global state.
-- A **generic text renderer** (e.g. `RichMessage`) is NOT feedback just because an
-  error happens to use it → `components/text/`.
-- A **game-invitation** surface/hook is game domain, not feedback and not session
-  → `game/`.
+  `page-header/`. It isn't home's, club's or game's just because all three
+  render it — filing it under any one of them is what let three copies drift.
+  **A button that lives in the strip goes here too**, even when what it opens
+  lives elsewhere: `ChatButton` and `ScratchpadButton` are header marks, not
+  parts of chat or of the scratchpad.
+- **Every field is in `fields/`** — including the three only a setup form
+  renders today. `fields/` is the repo of fields; the setup dialog is one
+  consumer. The form frame itself (`StandardForm`, `formState`) is `forms/`.
+- The **in-game move-entry box** is NOT a form field → `word-entry/`. It has no
+  `<input>`; it reads keystrokes off the window.
+- A **toast** (bottom-right announcement) is NOT feedback → `toasts/`.
+  **Feedback** is specifically the near-input validity pill and its
+  local/global state.
+- A **generic text renderer** (`RichMessage`) is NOT feedback just because an
+  error happens to use it → `text/`.
+- **A generic primitive is common regardless of how many games use it**
+  (`useArrowHistory` has one caller and is still an input helper), and **a game
+  mechanic is shared regardless of how many use it** (`RankBar` would still be
+  shared if a fourth game grew a rank ladder). Count is not the test; whether
+  the family can be NAMED is.
 
-## `common/components/`
+## `src/common/`
 
-```
-components/
-  page-header/   # everything about the top strip — furniture every page carries,
-                 #   belonging to no one page, including the marks that open a
-                 #   floating panel from it
-      PageHeader, PageHeaderButton, PageHeaderMenu, PageHeaderStatusSlot,
-      PageHeaderPlayersStrip, ChatButton, ScratchpadButton
-  auth/          # pre-app screens — sign in, claim a handle
-      LoginScreen, ClaimHandleScreen
-  home/          # the landing page after login (your clubs)
-      HomePage
-  club/          # the club "room": its page + everything shown on it
-      ClubPage, CreateClubModal, ClubGameCard, ClubHelpCompanion, EditClubModal, StartGameButtons,
-      ModeFilter, GametypeFilter
-  account/       # your own menu + profile editing
-      UserMenu, EditProfileModal, ColorChoiceList
-  chat/          # the club chat floating panel (its header mark is in page-header/)
-      ChatBody, Chat
-  setup/         # the start-a-game dialog (collect per-game options → create)
-      SetupGameModal, SetupDisclosure
-  fields/        # reusable form controls (any form, not just setup)
-      DictBandField, SetupTimerSection, SelectField, RadioRow,
-      SetupCoopStyleSection, SetupNextPuzzleSection
-  game/          # a live game's shell + the chrome around the play surface
-      GamePage, PauseBoundary, PauseOverlay, SuspendConfirmationBlockingModal,
-      OpponentStrip, ModePill, StrikeMarks, GameInvitations
-    entry/       # the in-game typed-move input — the word box + its row
-        EntryBox, EntryRow
-    terminal/    # what shows when a game ENDS
-        TerminalActionRow, LocalTerminalRow
-    lists/       # info-column list views (turn history, found words) + actor tags
-        TurnLog, WordList, TurnLogActor, ActorTag
-  definitions/   # click-a-word dictionary lookup
-      DefinitionPopover, DefinitionView, WordLookupDialog
-  floating-panels/ # the shared shell for every window-like thing that floats over
-                 #   the page, + the panels that ride on it
-      FloatingPanel, ConfirmationBlockingModal, GameScratchpadCompanion
-  menu/          # the one menu (it contains different things on different pages)
-      Menu
-  feedback/      # the near-input validity pill ("not a word", "too short")
-      GenericFeedbackPill
-  toasts/        # the bottom-right announcement stack (a generic primitive)
-      Toast, ToastHost
-  buttons/       # every purpose button + the ActionButton base
-      ActionButton, SubmitButton, EndGameButton, ConcedeGameButton, PeelButton,
-      BackToClubButton, … (all existing)
-  text/          # general rich-text rendering (messages w/ inline player discs)
-      RichMessage
-  branding/      # the app + per-game logos
-      PuzpuzpuzLogo, GameLogo
-  icons.ts       # the shared inline-SVG icon set (a root file, not a subfolder)
-```
+| folder | what it is |
+|---|---|
+| `account` | your own menu and profile editing |
+| `anagram-finder` | the anagram dialog |
+| `auth` | the pre-app screens — sign in, claim a handle |
+| `boot` | what `main.tsx` runs before React mounts (`panic`, `reloadOnStaleChunk`) |
+| `branding` | the app and per-game logos |
+| `buttons` | every purpose button and the `StandardButton` base |
+| `chat` | the club chat panel end to end (its header mark is in `page-header`) |
+| `club` | the club room and everything on it |
+| `core-css` | the stylesheets every page loads, plus `patterns/` |
+| `definitions` | click-a-word lookup and dictionary curation |
+| `devtools` | pages that ship for the author, not for players (palette, font specimen) |
+| `error-page` | the stand-in when a page can't render |
+| `faults` | the fault sink and its modal |
+| `feedback` | the near-input pill and its local/global state |
+| `fields` | every field — the repo of fields, whoever renders them |
+| `floating-panels` | the shell every floating thing rides on, and the panels on it |
+| `forms` | the form frame and what every form shares that isn't a field |
+| `game-page` | the live game's page and what it hands down |
+| `home` | the landing page |
+| `icons` | the inline SVG set |
+| `info-sheet` | the info column: its mobile sheet, its switch, the chrome its panels share |
+| `invitations` | game invitations |
+| `keyboard` | key capture, tab rings, shortcuts |
+| `lists` | pick-one and scrolling lists |
+| `loading` | the stand-in while a page loads |
+| `manifest` | what a game declares — the contract |
+| `members` | who someone is, their color, and the disc that shows it |
+| `menu` | the one menu, its store, and what a game puts in it |
+| `mobile` | the desktop-versus-mobile machinery: the breakpoint, the device hooks, the viewport |
+| `move-flash` | flashing the tiles a move changed |
+| `outcomes` | the outcome vocabulary — won · lost · near · warning · neutral · noted |
+| `page-header` | the top strip and the marks in it |
+| `pause-suspend` | pausing, presence-pause, suspend |
+| `pdf` | everything about printing a board |
+| `realtime` | channels, reconnect, refetch, presence |
+| `reveal` | showing the answer after the end |
+| `routing` | the hash router and `<Link>` |
+| `scratchpad` | the shared notes panel |
+| `session` | who is signed in, and their profile |
+| `setup-form` | the start-a-game dialog, its sections, and its data |
+| `single-flight` | one run of an async action at a time — a second click while the first is in flight is dropped |
+| `supabase` | the client, the envelope wrappers, the DB handle |
+| `terminal` | what shows when a game ends |
+| `text` | inline rich text |
+| `themes` | the theme files and the loader |
+| `timer` | the game clock |
+| `toasts` | the bottom-right stack |
+| `tooltips` | the tooltip host |
+| `turn-log` | the chronological history readout and its viewer |
+| `utils` | simple logic helpers with no feature — plain functions only, no hooks |
+| `web-storage` | `localStorage` and `sessionStorage`, wrapped so a browser that blocks them can't throw |
+| `word-entry` | the typed-word box and its row |
+| `word-list` | the alphabetical finds readout |
 
-## `common/hooks/`
-
-```
-hooks/
-  game/          # live-game state, timer, terminal, move-submit, invitations, history
-      useCommonGame, useGameTimer, useCelebration, useStandardGameActions,
-      useWordSubmit, useHistoryViewer, useRecentlyFound, useGameInvitations,
-      makeFoundWordsGame
-  realtime/      # supabase presence + reconnect/refetch plumbing
-      useClubPresence, useClubSetupPresence, useRealtimeRefetch, useRealtimeReconnect
-  session/       # the auth session + the user's own profile
-      useSession, useProfile
-  feedback/      # the local/global feedback-pill state
-      useGlobalFeedback, useLocalFeedback, useDismissLocalFeedbackOnKey
-  input/         # keyboard capture, board-cursor, app shortcuts
-      useCaptureKeys, useBoardCursorKeys, useArrowHistory, useGlobalKeyHandler,
-      useGameHasKeyboard, useAppShortcuts
-  ui/            # generic UI helpers (drag, draggable panel, transient flash)
-      useDragGesture, useDraggablePanel, useFlash
-  definitions/   # word-definition fetch + popover state
-      useDefinition, useDefinePopover
-  chat/          # club-chat data
-      useClubChat
-  scratchpad/    # the per-game shared-notes body + takeover-lock state
-      useScratchpad
-```
-
-## `common/lib/`
-
-```
-lib/
-  gameManifest.ts # WHAT A GAME DECLARES: GameManifest, plus the supporting types
-                 #   its members are written in — CommonGameListRow, TimerMode,
-                 #   CreatedGame, GameStopResult, MODE_LABEL, playerCount*.
-                 #   NOT the manifest list itself, which lives in src/gametypes.ts
-                 #   (the one file allowed to import games). Kept at the lib root
-                 #   as a heavily-imported entry point. The test for anything
-                 #   proposed for it: does it name a GAME?
-  gamePageCtx.ts # WHAT A GAME IS HANDED: the values <GamePage> passes down to a
-                 #   game's PlayArea. The runtime half of the same contract, and
-                 #   its own module because its readers are its own — 32 files
-                 #   import it and all 32 are a game's components
-  members/       # who someone is — Member + GamePlayer (member.ts, TYPES ONLY so
-                 #   its 103 importers erase at runtime), and the values that
-                 #   read them: the terminal verb, and the two operations on a
-                 #   LIST of members (order it, find one in it)
-      member, terminalOutcomeVerb, memberList
-  setup/         # the <SetupGameModal> ↔ game-form contract — SetupBodyProps,
-                 #   SetupSetter, SetupOf, GameSetupForm
-      setupForm
-  feedback/      # what a feedback pill IS — GenericFeedbackMsg + GenericFeedbackApi
-      genericFeedback
-  menu/          # what a menu is made of, plus its open/closed state
-      menu, pageMenuStore
-  supabase/      # the supabase client + realtime channel-name helper
-      supabase, channelDedup
-  routing/       # the hash router + <Link>
-      router, Link
-  game/          # game-logic helpers (NOT the registry above)
-      gridCursor, pause, terminalCopy, timerLabel, difficulty, gameInvites,
-      trie (the flat dictionary trie shared by boggle's solver + scrabble's suggester)
-  definitions/   # dictionary-definition parsing
-      parseDefinition
-  color/         # member/tile color derivation
-      memberColor, tileColor
-  chat/          # chat open-state + unread stores
-      chatOpenStore, chatUnread
-  scratchpad/    # the scratchpad open-state store (mirrors chatOpenStore)
-      scratchpadOpenStore
-  toast/         # the toast store
-      toastStore
-  util/          # tiny cross-cutting utilities — the ones belonging to no page,
-                 #   no game and no subsystem: class names, dates, seeded
-                 #   randomness, web storage, log stamps, the boot/render
-                 #   last-resort screen
-      cls, friendlyDate, keyboardHandoff, layoutWidth, linkify,
-      logStamp, mulberry32, panic, reloadOnStaleChunk,
-      storage (+ storage.fake, the Storage stand-in tests install)
-```
-
-**Touch web storage only through `util/storage.ts`.** `localStorage` and
+**Touch web storage only through `web-storage/storage.ts`.** `localStorage` and
 `sessionStorage` *throw* where a browser blocks site data — on the property
 access as readily as on the call — so `readStored` / `writeStored` /
 `removeStored` wrap every access, and
@@ -190,39 +166,81 @@ required on purpose: storage being *gone* is not the same event as a key being
 *absent*, and `reloadOnStaleChunk` is the caller that needs the opposite answer
 from everyone else.
 
+## `src/shared/`
+
+| folder | the family | what it is |
+|---|---|---|
+| `bee-games` | spellingbee, wordwheel | the found-words data model, the game factory, the compete leaderboard, the typed-word look |
+| `board-cursor` | bananagrams, scrabble | arrows move a cursor over a board: the reusable key handling plus the letter-grid cursor math |
+| `dict-trie` | boggle, scrabble | the flat trie behind boggle's solver and scrabble's suggester |
+| `grid-and-drag` | bananagrams, scrabble | dragging a tile to the right place on the grid |
+| `onscreen-keyboard` | wordle, wordiply | the on-screen QWERTY |
+| `rank-ladder` | the games with a Start..Genius ladder | the ladder, its bar and its stat grid — no data model behind it, so any game with a ladder can take it |
+| `word-hunt` | spellingbee, wordwheel, boggle, wordiply | find-words-on-a-board games: the display rows, the reveal, the submit hook |
+| `wordle-style` | wordle, waffle | the per-letter color codes of the hidden-target games, on screen (`tileColor`) and on paper (`pdfTiles`) |
+
 ## Judgment calls (recorded so they don't get re-litigated)
 
-- **`useCommonGame`** is both game-state and realtime; it lives in `hooks/game/`
+- **`useCommonGame`** is both game-state and realtime; it lives in `game-page/`
   (its job is "the common game," realtime is the mechanism).
-- **`GameInvitations` / `useGameInvitations`** → `game/`. They're game-invite UI,
-  not feedback and not session.
 - **`GameLogo`** → `branding/` with the app logo. It's a logo (rendered in the
   game header AND on club cards), grouped with `PuzpuzpuzLogo` by that shape.
-- **`RichMessage`** → `text/`. General-purpose; it renders setup errors today but
-  its job is inline player-segment text, not feedback.
-- **`gameManifest.ts` and `gamePageCtx.ts`** stay at `lib/` root (not `lib/game/`)
-  — they are THE contract, and a dead-obvious top-level path beats one more level
-  of nesting. **Both were named `games.ts` until 2026-09-03**, alongside
-  `src/games.ts` — two very different files with one vague name, in a repo whose
-  whole subject is games. Renamed for what each holds, and because `game` in this
-  repo means *a specific playing* (docs/naming.md): neither file is about one.
+- **`RichMessage`** → `text/`. General-purpose; it renders setup errors today
+  but its job is inline player-segment text, not feedback.
+- **`gameManifest.ts` and `gamePageCtx.ts`** are THE contract a game is written
+  against, so they keep dead-obvious paths: the manifest in `manifest/`, the
+  context in `game-page/` with the page that builds it. The manifest LIST is
+  `src/gametypes.ts` — the one file allowed to import games.
+- **`ClubGameDeleteButton`** stays in `club/`, not `buttons/`: it is the card's
+  hover trash can with its own two-step confirmation, not a purpose button.
+- **`outcomes`** is its own folder, not terminal's. It is read by boards, the
+  pills, the feedback layer and `dbResult`; [outcomes.md](outcomes.md) is
+  already its doc.
+- **`revealWords` stays in `shared/word-hunt`** while `useSolutionReveal` is
+  `common/reveal` — reveal is split between common and shared on purpose.
+- **`pdfTiles` is the one printer outside `common/pdf/`.** Printing lives in
+  one folder deliberately, and this bends that: it takes `TileColor` from
+  `wordle-style`, and common may not import a family. It is honestly a
+  wordle/waffle file anyway — those two are its only callers. It still reads
+  `common/pdf/frame`'s grays, which is a family using the shell, the allowed
+  direction. Joel's call, 2026-09-04, when the guard surfaced the edge.
+- **`Menu.tsx` + `menuModel.ts`, `FilterSelect.tsx` + `filterSelectHelpers.ts`.**
+  A component and a same-named lowercase module cannot share a folder: the
+  filesystem is case-insensitive, so `./menu` and `./Menu` name the same file
+  and the resolver picks whichever it reaches first. Both lowercase modules
+  were renamed rather than the components. **This is the cost of the
+  no-type-subfolders rule**, and the next collision has to be resolved the same
+  way.
+
+## The rest of `docs/` still cites pre-move paths
+
+Only this file was rewritten with the move, along with every markdown LINK
+target that pointed into `src/common/`. **Prose mentions of an old path
+elsewhere in `docs/` were deliberately left alone** — they are corrected as
+each doc is decomposed (plans/common-restructure.md §4). So a sentence naming
+`common/lib/game/…` is stale, not a second layout; a link that resolves is
+current.
 
 ## How this was applied (for the next reorg)
 
-The move was done as a **`git mv` + import-rewrite codemod** (a throwaway Node
-script), not by hand, then verified with `tsc -b` (the definitive net — it resolves
-every import in the project) + `vitest` + a club→game e2e. Two gotchas worth knowing
-if you reorganize again:
+The move was a **`git mv` + import-rewrite codemod** (a throwaway Node script),
+not hand work, then verified with `tsc -b` → `vitest` → `vite build` → a
+club→game e2e. Gotchas worth knowing if you reorganize again:
 
 - **`vi.mock('…relative…')` paths are NOT `import` statements**, so an
-  import-rewriting codemod misses them — the mocks silently stop intercepting and
-  ~50 tests fail with "real module ran." Rewrite `vi.mock()` path args in a second
-  pass (same resolve-old-path → map-to-new-path logic).
-- **Restart the vite dev server afterward.** HMR caches module resolutions, and a
-  rename storm leaves the running server serving 404s for old paths (Playwright
-  reuses that server, so e2e breaks until it's restarted).
-
-`git mv` kept history for all 182 moved files. The pre-existing `react-hooks/refs`
-lint errors in `useGlobalFeedback` / `useLocalFeedback` / `useWordSubmit` were
-unrelated to this move (they failed at HEAD too) and have since been fixed
-(`f3b6cc2`).
+  import-rewriting codemod that only walks import statements misses them — the
+  mocks silently stop intercepting and tests fail with "real module ran."
+- **`import.meta.glob` keys carry the pattern verbatim**, and are invisible to
+  a codemod for the same reason.
+- **Paths live outside `src/` too.** `postcss.config.js` names a stylesheet as
+  global data, and the Deno edge functions and `supabase/scripts/` import
+  `trie`, `envelope`, `mulberry32` and `memberColor` by relative path with an
+  explicit `.ts`. None of these is reachable by a pass that walks `src/`.
+- **A guard's path list is code.** Twelve files under `src/guards/` name paths
+  under `src/common/`; several also encode a SCOPE (`vocabularies` walks the
+  shell, `fieldTests` reads one directory) that a move can silently empty.
+  Re-path them, then **plant a break in each and watch it fail** — that is the
+  only way to know a re-pathed guard still bites.
+- **Restart the vite dev server afterward.** HMR caches module resolutions, and
+  a rename storm leaves the running server serving 404s for old paths
+  (Playwright reuses that server, so e2e breaks until it's restarted).

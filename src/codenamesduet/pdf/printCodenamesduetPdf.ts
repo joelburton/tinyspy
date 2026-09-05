@@ -1,9 +1,9 @@
 // cs-unmet
 
 import type { jsPDF } from 'jspdf'
-import { BLACK, DARK_GRAY, drawHeader, fit, newPrintDoc, savePrint } from '../../common/pdf/frame'
-import { drawCheck, drawCross, drawDash } from '../../common/pdf/marks'
-import { drawTurnLog, twoColGeom } from '../../common/pdf/turnLog'
+import { BLACK, DARK_GRAY, drawHeader, fit, newPrintDoc, savePrint } from '@/common/pdf/frame'
+import { drawCheck, drawCross, drawDash } from '@/common/pdf/marks'
+import { drawTurnLog, twoColGeom } from '@/common/pdf/turnLog'
 import type { DuetPrintModel, Mark, PrintCell } from './model'
 
 /**

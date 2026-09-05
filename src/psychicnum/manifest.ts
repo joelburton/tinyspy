@@ -1,11 +1,11 @@
 // cs-unmet
 
 import { lazy } from 'react'
-import { runRpc } from '../common/lib/supabase/dbResult'
-import type { CreatedGame, GameManifest } from '../common/lib/gameManifest'
+import { runRpc } from '@/common/supabase/dbResult'
+import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { db } from './db'
-import { count, outcome, statusLine, tally, wonBy } from '../common/lib/game/statusLabel'
-import { makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
+import { count, outcome, statusLine, tally, wonBy } from '@/common/manifest/statusLabel'
+import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
 import { DEFAULT_PSYCHICNUM_SETUP, type PsychicnumSetup } from './lib/setup'
 import logoUrl from './logo.svg?url'
 
@@ -30,7 +30,7 @@ import logoUrl from './logo.svg?url'
  *   - `name` shown in titles and Start-button copy.
  *   - `mode` declaration (the canonical axis for downstream
  *     code that wants to distinguish behavior — see
- *     GameManifest.mode in src/common/lib/gameManifest.ts).
+ *     GameManifest.mode in src/common/manifest/gameManifest.ts).
  *   - `numberOfPlayers`: coop allows solo (`[1, 6]`), compete
  *     requires an opposing player (`[2, 6]`).
  *   - `labelFor`: terminal copy reads differently per mode.
@@ -129,7 +129,7 @@ const LOSS: Record<string, string> = {
 const BRAND = 'PsychicNum'
 
 // Timeout + manual end — the shared one-arg RPC dispatchers, referenced by both
-// sibling manifests (see common/lib/game/manifestRpcs).
+// sibling manifests (see common/manifest/manifestRpcs).
 const submitTimeout = makeRpcDispatcher(db, 'submit_timeout')
 const endGame = makeRpcDispatcher(db, 'end_game')
 

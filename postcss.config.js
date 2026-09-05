@@ -8,7 +8,7 @@
 // can't express them. `@custom-media` names each condition once; every module
 // then writes `@media (--phone) { … }` instead of re-typing the raw query.
 //
-// The definitions live in one file (src/common/breakpoints.css); global-data
+// The definitions live in one file (src/common/mobile/breakpoints.css); global-data
 // injects them into every processed file so custom-media can resolve them
 // cross-module. Order matters: global-data must run before custom-media.
 // See docs/mobile.md → "Naming the device classes".
@@ -17,7 +17,7 @@ import customMedia from 'postcss-custom-media'
 
 export default {
   plugins: [
-    globalData({ files: ['src/common/breakpoints.css'] }),
+    globalData({ files: ['src/common/mobile/breakpoints.css'] }),
     customMedia(),
   ],
 }

@@ -1,14 +1,14 @@
 // cs-unmet
 
 import { useEffect, useRef, useState } from 'react'
-import { cls } from '../../common/lib/util/cls'
-import { tileColor } from '../../common/lib/color/tileColor'
-import { useCoarsePointer } from '../../common/hooks/ui/useCoarsePointer'
-import { ATTENTION_FLASH_MS } from '../../common/lib/game/feedbackTiming'
-import { useMoveCausedChange } from '../../common/hooks/game/useMoveCausedChange'
+import { cls } from '@/common/utils/cls'
+import { tileColor } from '@/shared/wordle-style/tileColor'
+import { useCoarsePointer } from '@/common/mobile/useCoarsePointer'
+import { ATTENTION_FLASH_MS } from '@/common/move-flash/feedbackTiming'
+import { useMoveCausedChange } from '@/common/move-flash/useMoveCausedChange'
 import { CELLS, isHole } from '../lib/waffle'
-import shared from '../../common/components/game/PlayArea.module.css'
-import history from '../../common/components/game/lists/historyViewer.module.css'
+import shared from '@/common/game-page/PlayArea.module.css'
+import history from '@/common/turn-log/historyViewer.module.css'
 import styles from './Board.module.css'
 
 /** A stable empty set, so "nothing is flashing" is one object rather than a new
@@ -190,7 +190,7 @@ export function Board({
     <div className={styles.board}>
       {/* Four marks ride on the board box, all shared: the gray-blue frame of
           "you're viewing a past turn"
-          (common/components/game/lists/historyViewer.module.css), the dim of "a
+          (common/turn-log/historyViewer.module.css), the dim of "a
           teammate holds the move", the yellow flash of "your turn just started",
           and the dark-gray frame of "this game is over". The turn marks can't
           collide with the last one — a finished game has no turn to wait for and

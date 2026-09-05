@@ -22,11 +22,11 @@ const { mockRpc } = vi.hoisted(() => ({ mockRpc: vi.fn() }))
 vi.mock('../db', () => ({ db: { rpc: mockRpc } }))
 
 import { SetupForm } from './SetupForm'
-import { fieldNames } from '../../common/components/setup/fieldNames'
-import { errorUnder } from '../../common/components/fields/errorUnder'
+import { fieldNames } from '@/common/setup-form/fieldNames'
+import { errorUnder } from '@/common/fields/errorUnder'
 import { DEFAULT_CONNECTIONS_SETUP } from '../lib/setup'
-import type { Member } from '../../common/lib/members/member'
-import type { FormErrors } from '../../common/components/fields/formState'
+import type { Member } from '@/common/members/member'
+import type { FormErrors } from '@/common/forms/formState'
 
 const MEMBERS = [
   { user_id: 'self', username: 'joel', color: 'red' },

@@ -1,6 +1,6 @@
 // cs-unmet
 
-import type { GamePlayer } from '../../common/lib/members/member'
+import type { GamePlayer } from '@/common/members/member'
 import { DimmedBaseWord } from './DimmedBaseWord'
 import styles from './OpponentReveal.module.css'
 

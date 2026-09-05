@@ -1,11 +1,11 @@
 // cs-unmet
 
 import { useState } from 'react'
-import { useRealtimeRefetch } from '../../common/hooks/realtime/useRealtimeRefetch'
-import { readRows } from '../../common/lib/supabase/dbResult'
-import type { NotOkEnv } from '../../common/lib/supabase/envelope'
+import { useRealtimeRefetch } from '@/common/realtime/useRealtimeRefetch'
+import { readRows } from '@/common/supabase/dbResult'
+import type { NotOkEnv } from '@/common/supabase/envelope'
 import { db } from '../db'
-import type { Member } from '../../common/lib/members/member'
+import type { Member } from '@/common/members/member'
 
 /**
  * One player in a psychicnum game. Today psychicnum doesn't
@@ -105,7 +105,7 @@ export type GuessRow = {
  *
  * The cross-cutting machinery (members, presence, manual-pause,
  * timer) lives on `useCommonGame` inside `GamePage` — see
- * `src/common/hooks/game/useCommonGame.ts`.
+ * `src/common/game-page/useCommonGame.ts`.
  */
 export function useGame(gameId: string): {
   game: PsychicnumGame | null

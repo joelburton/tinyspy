@@ -9,10 +9,10 @@ import {
   fit,
   newPrintDoc,
   savePrint,
-} from '../../common/pdf/frame'
-import { drawInTracks, type Track } from '../../common/pdf/columns'
-import { drawTurnLog, twoColGeom } from '../../common/pdf/turnLog'
-import { drawCheck, drawCross } from '../../common/pdf/marks'
+} from '@/common/pdf/frame'
+import { drawInTracks, type Track } from '@/common/pdf/columns'
+import { drawTurnLog, twoColGeom } from '@/common/pdf/turnLog'
+import { drawCheck, drawCross } from '@/common/pdf/marks'
 import type { PrintTile, PrintTrack, PsychicnumPrintModel } from './model'
 
 /**

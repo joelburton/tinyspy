@@ -44,24 +44,24 @@ const ALLOWED = new Map<string, string>([
   // there, because the alternative is "something went wrong" with the diagnosis
   // thrown away. Anything we authored arrives as an envelope and is read from
   // `message` on that, not here.
-  ['src/common/lib/supabase/dbEnvelope.ts', "shows a raw fault's own text, since nobody wrote one for it"],
-  ['src/common/lib/supabase/dbResult.ts', "puts the browser's opaque string in an envelope's DETAIL, which no surface renders — the MESSAGE on that path is the frontend's own sentence"],
+  ['src/common/supabase/dbEnvelope.ts', "shows a raw fault's own text, since nobody wrote one for it"],
+  ['src/common/supabase/dbResult.ts', "puts the browser's opaque string in an envelope's DETAIL, which no surface renders — the MESSAGE on that path is the frontend's own sentence"],
   // Reads the message to build a CallError for the classifier — the opposite of
   // rendering it.
-  ['src/common/lib/supabase/edgeFnTransport.ts', 'builds the classifiable CallError off a functions-js failure'],
+  ['src/common/supabase/edgeFnTransport.ts', 'builds the classifiable CallError off a functions-js failure'],
   // Not server errors at all.
   ['src/crosswords/components/pickers/UploadPickerBlockingModal.tsx', 'a FileReader failure reading a local .ipuz'],
   // GoTrue auth errors are the AUTH SERVICE's own user-facing text ("Token has
   // expired or is invalid") — not our DB speaking, no fe-error-keys, and its
   // sentences are written for end users. The form line shows them as-is.
-  ['src/common/components/auth/LoginScreen.tsx', "GoTrue's own user-facing auth errors, shown in the form line"],
-  ['src/common/components/game/PlayAreaErrorBoundary.tsx', 'a React render error, not a server one'],
+  ['src/common/auth/LoginScreen.tsx', "GoTrue's own user-facing auth errors, shown in the form line"],
+  ['src/common/game-page/PlayAreaErrorBoundary.tsx', 'a React render error, not a server one'],
   // The boot catch. Nothing has rendered and no call has been made — the error
   // is a theme chunk that would not load or a missing `#root`, so there is no
   // envelope to classify and no server sentence to protect a player from. It
   // paints the message because the alternative is a blank page with the one
   // useful fact thrown away.
-  ['src/common/lib/util/panic.ts', 'the last-resort screen for a boot or render failure, which has no envelope and no server sentence'],
+  ['src/common/boot/panic.ts', 'the last-resort screen for a boot or render failure, which has no envelope and no server sentence'],
 ])
 
 function sourceFiles(dir: string): string[] {

@@ -4,8 +4,8 @@
 // (pure-TS suite, no DOM — and the brute-force parity tests below are
 // allocation-heavy enough that skipping jsdom is a real speedup)
 import { describe, expect, it } from 'vitest'
-import { buildTrie, walkWord } from '../../common/lib/game/trie'
-import { mulberry32 } from '../../common/lib/util/mulberry32'
+import { buildTrie, walkWord } from '@/shared/dict-trie/trie'
+import { mulberry32 } from '@/common/utils/mulberry32'
 import { CENTER, cellIndex, inBounds, type Cell } from './board'
 import { evaluatePlay, type Placement } from './play'
 import { generateMoves, isLegal, type Bands } from './suggest'

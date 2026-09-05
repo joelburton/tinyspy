@@ -1,9 +1,9 @@
 // cs-unmet
 
 import { useEffect, useRef, useState } from 'react'
-import { BlockingModal } from '../../../common/components/floating-panels/BlockingModal'
-import { CancelButton } from '../../../common/components/buttons/CancelButton'
-import { cls } from '../../../common/lib/util/cls'
+import { BlockingModal } from '@/common/floating-panels/BlockingModal'
+import { CancelButton } from '@/common/buttons/CancelButton'
+import { cls } from '@/common/utils/cls'
 import { importCrosswordFile } from '../../lib/importFile'
 import type { ImportedBoard } from '../../lib/importFile'
 import styles from './pickers.module.css'

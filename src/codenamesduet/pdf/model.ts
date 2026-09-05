@@ -1,7 +1,7 @@
 // cs-unmet
 
-import type { PrintHeader , SetupRow } from '../../common/pdf/frame'
-import type { TurnRow } from '../../common/pdf/turnLog'
+import type { PrintHeader , SetupRow } from '@/common/pdf/frame'
+import type { TurnRow } from '@/common/pdf/turnLog'
 import type { KeyLabel } from '../lib/labels'
 import type { Seat } from '../lib/phase'
 import type { ClueRow } from '../hooks/useClues'

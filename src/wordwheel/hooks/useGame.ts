@@ -1,7 +1,7 @@
 // cs-unmet
 
-import type { Member } from '../../common/lib/members/member'
-import { makeFoundWordsGame } from '../../common/hooks/game/makeFoundWordsGame'
+import type { Member } from '@/common/members/member'
+import { makeFoundWordsGame } from '@/shared/bee-games/makeFoundWordsGame'
 
 /**
  * One player in a wordwheel game — a straight Member re-export (wordwheel adds
@@ -23,6 +23,6 @@ export type {
   FoundWordsGame as WordwheelGame,
   FoundWordsWord as WordwheelWord,
   FoundWordRow,
-} from '../../common/lib/game/foundWords'
+} from '@/shared/bee-games/foundWords'
 
 export const useGame = makeFoundWordsGame('wordwheel')

@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { cls } from '../../common/lib/util/cls'
+import { cls } from '@/common/utils/cls'
 import { DimmedBaseWord } from './DimmedBaseWord'
 import styles from './GuessBoard.module.css'
 

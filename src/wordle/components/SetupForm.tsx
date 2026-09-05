@@ -1,13 +1,13 @@
 // cs-unmet
 
-import { DictBandField } from '../../common/components/fields/DictBandField'
-import { PlayersSection } from '../../common/components/setup/PlayersSection'
-import { SelectField } from '../../common/components/fields/SelectField'
-import { SetupTimerSection } from '../../common/components/setup/SetupTimerSection'
-import { SetupCoopStyleSection } from '../../common/components/setup/SetupCoopStyleSection'
-import { SetupSection } from '../../common/components/setup/SetupSection'
-import { difficultyValue } from '../../common/lib/game/difficulty'
-import type { SetupBodyProps, SetupSetter } from '../../common/lib/setup/setupForm'
+import { DictBandField } from '@/common/fields/DictBandField'
+import { PlayersSection } from '@/common/setup-form/PlayersSection'
+import { SelectField } from '@/common/fields/SelectField'
+import { SetupTimerSection } from '@/common/setup-form/SetupTimerSection'
+import { SetupCoopStyleSection } from '@/common/setup-form/SetupCoopStyleSection'
+import { SetupSection } from '@/common/setup-form/SetupSection'
+import { difficultyValue } from '@/common/setup-form/difficulty'
+import type { SetupBodyProps, SetupSetter } from '@/common/setup-form/setupForm'
 import { answerMaxBand, GUESS_OPTIONS, type WordleValues } from '../lib/setup'
 
 /**

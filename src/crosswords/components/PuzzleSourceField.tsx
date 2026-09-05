@@ -2,20 +2,20 @@
 
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Field } from '../../common/components/fields/Field'
-import type { AllFieldProps } from '../../common/components/fields/fieldProps'
-import { cls } from '../../common/lib/util/cls'
+import { Field } from '@/common/fields/Field'
+import type { AllFieldProps } from '@/common/fields/fieldProps'
+import { cls } from '@/common/utils/cls'
 import { db } from '../db'
 import type { PuzzleChoice } from '../lib/setup'
 import { LibraryPickerBlockingModal } from './pickers/LibraryPickerBlockingModal'
 import { NytPickerBlockingModal } from './pickers/NytPickerBlockingModal'
 import { DEFAULT_WEEKDAY } from '../lib/nytDays'
 import { summarize } from '../lib/puzzleSummary'
-import { runRpc } from '../../common/lib/supabase/dbResult'
+import { runRpc } from '@/common/supabase/dbResult'
 import { GuardianPickerBlockingModal } from './pickers/GuardianPickerBlockingModal'
 import { UploadPickerBlockingModal } from './pickers/UploadPickerBlockingModal'
 import styles from './PuzzleSourceField.module.css'
-import { reportUnhandled } from '../../common/lib/supabase/dbEnvelope'
+import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
 /** Which picker is open, or none. */
 type OpenPicker = 'library' | 'nyt' | 'guardian' | 'upload' | null

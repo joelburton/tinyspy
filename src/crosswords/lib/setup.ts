@@ -1,7 +1,7 @@
 // cs-unmet
 
-import type { TimerMode } from '../../common/lib/gameManifest'
-import type { SetupOf } from '../../common/lib/setup/setupForm'
+import type { TimerMode } from '@/common/manifest/gameManifest'
+import type { SetupOf } from '@/common/setup-form/setupForm'
 // Type-only so `setup.ts` (eagerly loaded via the manifest) doesn't pull the
 // parser + puzjs into the main bundle — those load lazily with the SetupForm.
 import type { ImportedBoard } from './importFile'

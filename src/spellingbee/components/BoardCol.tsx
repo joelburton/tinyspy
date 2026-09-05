@@ -1,20 +1,20 @@
 // cs-unmet
 
 import { useCallback, useMemo, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react'
-import { cls } from '../../common/lib/util/cls'
-import type { GenericFeedbackMsg } from '../../common/lib/feedback/genericFeedback'
-import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
-import { terminalPill } from '../../common/lib/game/localPills'
-import { ShuffleButton } from '../../common/components/buttons/ShuffleButton'
-import { EntryRow } from '../../common/components/game/entry/EntryRow'
-import { MobileStatusBar } from '../../common/components/game/MobileStatusBar'
-import { RankBar } from '../../common/components/game/RankBar'
-import { Stats } from '../../common/components/game/Stats'
-import { asciiLetters } from '../../common/hooks/input/useCaptureKeys'
+import { cls } from '@/common/utils/cls'
+import type { GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
+import type { TerminalCopy } from '@/common/terminal/terminalCopy'
+import { terminalPill } from '@/common/feedback/localPills'
+import { ShuffleButton } from '@/common/buttons/ShuffleButton'
+import { EntryRow } from '@/common/word-entry/EntryRow'
+import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
+import { RankBar } from '@/shared/rank-ladder/RankBar'
+import { Stats } from '@/shared/rank-ladder/Stats'
+import { asciiLetters } from '@/common/keyboard/useCaptureKeys'
 import { Letters } from './Letters'
 import { TypedWord } from './TypedWord'
-import shared from '../../common/components/game/PlayArea.module.css'
-import surface from '../../common/components/game/foundWordsPlayArea.module.css'
+import shared from '@/common/game-page/PlayArea.module.css'
+import surface from '@/shared/bee-games/foundWordsPlayArea.module.css'
 
 /** Fisher–Yates shuffle on a copy. Pure — doesn't mutate input. */
 function shuffled<T>(arr: readonly T[]): T[] {

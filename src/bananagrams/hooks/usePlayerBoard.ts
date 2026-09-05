@@ -10,7 +10,7 @@ import {
   type RefObject,
 } from 'react'
 import { db } from '../db'
-import { runRpc } from '../../common/lib/supabase/dbResult'
+import { runRpc } from '@/common/supabase/dbResult'
 import {
   GRID,
   DEFAULT_CELL,
@@ -23,11 +23,11 @@ import {
   reconcileHandOrder,
   shuffleString,
 } from '../lib/board'
-import { useDragGesture, type DragGesture, type DragState } from '../../common/hooks/ui/useDragGesture'
-import { moveCursor, stepBack } from '../../common/lib/game/gridCursor'
-import { useBoardCursorKeys } from '../../common/hooks/input/useBoardCursorKeys'
-import { isEditableField } from '../../common/hooks/input/useGameHasKeyboard'
-import { reportUnhandled } from '../../common/lib/supabase/dbEnvelope'
+import { useDragGesture, type DragGesture, type DragState } from '@/shared/grid-and-drag/useDragGesture'
+import { moveCursor, stepBack } from '@/shared/board-cursor/gridCursor'
+import { useBoardCursorKeys } from '@/shared/board-cursor/useBoardCursorKeys'
+import { isEditableField } from '@/common/game-page/useGameHasKeyboard'
+import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
 /**
  * bananagrams' player-board **interaction engine** — the cross-column state and

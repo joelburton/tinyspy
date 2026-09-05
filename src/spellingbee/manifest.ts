@@ -1,18 +1,18 @@
 // cs-unmet
 
 import { lazy } from 'react'
-import type { CreatedGame, GameManifest } from '../common/lib/gameManifest'
+import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { db } from './db'
-import { outcome, statusLine, tally, wonBy } from '../common/lib/game/statusLabel'
-import { makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
-import { runEdgeFn } from '../common/lib/supabase/dbResult'
+import { outcome, statusLine, tally, wonBy } from '@/common/manifest/statusLabel'
+import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
+import { runEdgeFn } from '@/common/supabase/dbResult'
 import {
   DEFAULT_SPELLINGBEE_SETUP_COMPETE,
   DEFAULT_SPELLINGBEE_SETUP_COOP,
   spellingbeeSetupError,
   type SpellingbeeSetup,
 } from './lib/setup'
-import { RANKS } from '../common/lib/game/rankLadder'
+import { RANKS } from '@/shared/rank-ladder/rankLadder'
 import logoUrl from './logo.svg?url'
 
 /**
@@ -87,7 +87,7 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
 }
 
 // Timeout + manual end — the shared one-arg RPC dispatchers (see
-// common/lib/game/manifestRpcs). submit_timeout is mode-aware server-side
+// common/manifest/manifestRpcs). submit_timeout is mode-aware server-side
 // (per-mode terminal vocab lives in spellingbee.submit_timeout) + idempotent.
 const submitTimeout = makeRpcDispatcher(db, 'submit_timeout')
 const endGame = makeRpcDispatcher(db, 'end_game')

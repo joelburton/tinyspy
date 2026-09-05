@@ -1,11 +1,11 @@
 // cs-unmet
 
 import { useCallback, useMemo, type CSSProperties, type ReactNode } from 'react'
-import { cls } from '../../common/lib/util/cls'
-import type { GenericFeedbackMsg } from '../../common/lib/feedback/genericFeedback'
-import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
-import { stickyPill, terminalPill } from '../../common/lib/game/localPills'
-import { EntryRow } from '../../common/components/game/entry/EntryRow'
+import { cls } from '@/common/utils/cls'
+import type { GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
+import type { TerminalCopy } from '@/common/terminal/terminalCopy'
+import { stickyPill, terminalPill } from '@/common/feedback/localPills'
+import { EntryRow } from '@/common/word-entry/EntryRow'
 import { Board } from './Board'
 import { ChainStrip } from './ChainStrip'
 import { TypedWord } from './TypedWord'
@@ -15,8 +15,8 @@ import {
   MOBILE_ROW_BUDGET_REM,
   estimateChainRows,
 } from '../lib/chainRows'
-import history from '../../common/components/game/lists/historyViewer.module.css'
-import shared from '../../common/components/game/PlayArea.module.css'
+import history from '@/common/turn-log/historyViewer.module.css'
+import shared from '@/common/game-page/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 
 /**

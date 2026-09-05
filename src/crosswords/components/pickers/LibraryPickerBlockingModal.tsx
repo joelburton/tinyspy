@@ -1,15 +1,15 @@
 // cs-unmet
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { runRpc } from '../../../common/lib/supabase/dbResult'
-import { BlockingModal } from '../../../common/components/floating-panels/BlockingModal'
-import { CancelButton } from '../../../common/components/buttons/CancelButton'
-import { SelectionList } from '../../../common/components/lists/SelectionList'
-import { cls } from '../../../common/lib/util/cls'
+import { runRpc } from '@/common/supabase/dbResult'
+import { BlockingModal } from '@/common/floating-panels/BlockingModal'
+import { CancelButton } from '@/common/buttons/CancelButton'
+import { SelectionList } from '@/common/lists/SelectionList'
+import { cls } from '@/common/utils/cls'
 import { db } from '../../db'
 import styles from './pickers.module.css'
 import '../../theme.css'
-import { reportUnhandled } from '../../../common/lib/supabase/dbEnvelope'
+import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
 /**
  * Whether the club opening this picker has played a given puzzle, as

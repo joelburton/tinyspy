@@ -62,7 +62,7 @@ import { fileURLToPath } from 'node:url'
 // The app's one seedable PRNG — the same generator the FE and the edge
 // functions use, so a board regenerated at a given seed is the board the
 // vendored .jsonl already holds.
-import { mulberry32 } from '../../src/common/lib/util/mulberry32.ts'
+import { mulberry32 } from '../../src/common/utils/mulberry32.ts'
 
 const DB_URL =
   process.env.SUPABASE_DB_URL ??

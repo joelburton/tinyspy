@@ -33,8 +33,8 @@ import { describe, expect, it } from 'vitest'
 import { GameTurnLog } from './GameTurnLog'
 import type { GuessRow } from '../hooks/useBoard'
 import type { Player } from '../hooks/useGame'
-import type { Database } from '../../types/db'
-import { filterOptions, pickFilter } from '../../common/test/filterSelect'
+import type { Database } from '@/types/db'
+import { filterOptions, pickFilter } from '@/common/lists/filterSelectHelpers'
 
 // Stable two-seat roster for every render. Colors aren't asserted on (they ride
 // an inline style attr the tests don't introspect), but the lookup needs both

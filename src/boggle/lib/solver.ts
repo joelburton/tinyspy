@@ -17,7 +17,7 @@
  *   1. A flat typed-array **trie** (not a minimized DAWG). A DAWG merges shared
  *      suffixes, so a node can't identify a word; a trie gives every word its own
  *      terminal node, which unlocks choice 2. The trie itself lives in
- *      `common/lib/game/trie.ts` (shared with scrabble's move suggester) and is
+ *      `shared/dict-trie/trie.ts` (shared with scrabble's move suggester) and is
  *      re-exported here — to boggle code, `./solver` is still the surface.
  *   2. Dedup via a **generation stamp** on the terminal node. A board lets you
  *      trace the same word along several paths, so we must dedup — but because a
@@ -34,8 +34,8 @@
 // The flat trie moved to common (scrabble's move suggester shares it); keep
 // `./solver` as boggle's one-stop import surface. `.ts` extensions because
 // this module is on the Deno import graph (boggle-build-board → here).
-import type { Trie } from '../../common/lib/game/trie.ts'
-export { buildTrie } from '../../common/lib/game/trie.ts'
+import type { Trie } from '@/shared/dict-trie/trie.ts'
+export { buildTrie } from '@/shared/dict-trie/trie.ts'
 export type { Trie }
 
 /** Multiface tiles, encoded in board strings as a digit. Each occupies one tile

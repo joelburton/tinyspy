@@ -42,9 +42,9 @@ const WRAPPERS = ['runRpc', 'readRows', 'runEdgeFn', 'edgeFnTransport']
  * and the transport under them. Each one's raw call is its whole job.
  */
 const THE_BOUNDARY_ITSELF = new Set([
-  'src/common/lib/supabase/dbResult.ts',
-  'src/common/lib/supabase/dbFetch.ts',
-  'src/common/lib/supabase/edgeFnTransport.ts',
+  'src/common/supabase/dbResult.ts',
+  'src/common/supabase/dbFetch.ts',
+  'src/common/supabase/edgeFnTransport.ts',
 ])
 
 function sourceFiles(dir: string): string[] {

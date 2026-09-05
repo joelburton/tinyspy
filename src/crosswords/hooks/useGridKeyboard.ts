@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { useEffect, type RefObject } from 'react'
-import { isNonGameField } from '../../common/hooks/input/useAppShortcuts'
+import { isNonGameField } from '@/common/keyboard/useAppShortcuts'
 import {
   advanceAfterFill,
   jumpClue,

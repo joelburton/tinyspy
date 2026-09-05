@@ -10,7 +10,7 @@
  * **Every builder is TYPED as `Envelope`, and writes all nine keys out.**
  * Neither is decoration:
  *
- *   - The type comes from `src/common/lib/supabase/envelope.ts`, the same one
+ *   - The type comes from `src/common/supabase/envelope.ts`, the same one
  *     the frontend uses. Deno can reach that file because it holds a type and
  *     nothing else; `dbResult.ts` would drag in the browser client.
  *   - The keys are spelled out at each call rather than spread from a shared
@@ -30,7 +30,7 @@
  */
 
 import { json } from './http.ts'
-import type { Envelope } from '../../../src/common/lib/supabase/envelope.ts'
+import type { Envelope } from '../../../src/common/supabase/envelope.ts'
 
 /**
  * **Is this an envelope?** — for a function that calls a converted RPC and

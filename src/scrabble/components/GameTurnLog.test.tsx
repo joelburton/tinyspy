@@ -15,10 +15,10 @@
 
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import type { Member } from '../../common/lib/members/member'
+import type { Member } from '@/common/members/member'
 import type { PlayRow } from '../hooks/useGame'
 import { GameTurnLog } from './GameTurnLog'
-import { filterOptions, pickFilter } from '../../common/test/filterSelect'
+import { filterOptions, pickFilter } from '@/common/lists/filterSelectHelpers'
 
 const PLAYERS: Member[] = [
   { user_id: 'u1', username: 'ada', color: 'red' },

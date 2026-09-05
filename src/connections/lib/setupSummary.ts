@@ -1,7 +1,7 @@
 // cs-unmet
 
-import type { Member } from '../../common/lib/members/member'
-import { coopRows, rosterRow, timerRow, type SetupRow } from '../../common/lib/game/setupRows'
+import type { Member } from '@/common/members/member'
+import { coopRows, rosterRow, timerRow, type SetupRow } from '@/common/setup-form/setupRows'
 import type { ConnectionsSetup } from './setup'
 
 /** Format a puzzle's NYT date (`YYYY-MM-DD`) for the recap. Parsed as UTC so a

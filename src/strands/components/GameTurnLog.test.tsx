@@ -21,7 +21,7 @@ import { render, screen, within } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { GameTurnLog } from './GameTurnLog'
 import type { EventRow, GuessResult } from '../hooks/useGame'
-import type { Member } from '../../common/lib/members/member'
+import type { Member } from '@/common/members/member'
 
 const ADA = 'ada'
 const PLAYERS = [

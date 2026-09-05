@@ -49,7 +49,7 @@
 }
 
 /* Click-to-define, on dictionary words only. Pointer-only and NOT focusable —
- * the shared rule for every definable word (common/utilities.css → .definable). */
+ * the shared rule for every definable word (common/core-css/utilities.css → .definable). */
 /* @@ */ .definable {
   cursor: pointer;
 }

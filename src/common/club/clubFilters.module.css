@@ -1,0 +1,75 @@
+/* cs-unmet */
+
+/* Shared styles for ClubPage's two list filters — the mode segmented buttons
+ * (ModeFilter, over "Start a new game") and the gametype dropdown
+ * (GametypeFilter, over "Your games").
+ *
+ * ONE file for both, for the same reason ClubPage.module.css shares a rule
+ * between `.startList` and `.gamesList`: the two controls sit in matching
+ * heading rows one column apart, so anything that lets them drift apart
+ * cosmetically is a bug. They share a font size, a height, and the
+ * surface/border treatment.
+ *
+ * Both are sized DOWN from the app's standard controls (theme.css's <button>,
+ * fields/SelectField). A filter is chrome ON a heading, not something you came
+ * to the page to press — it should read as quieter than the game buttons and
+ * game cards it's filtering.
+ */
+
+/* ─── ModeFilter — the All / Co-op / Compete segmented buttons ───────────── */
+
+/* The mode filter is the shared `.segmented` (common/core-css/patterns/segmented.css);
+ * only "don't let this squeeze" is the club page's. */
+/* @@ */ .modeFilter {
+  flex-shrink: 0;
+}
+
+/* ─── GametypeFilter — the compact dropdown ──────────────────────────────── */
+
+/* The club page's skin for <FilterSelect>'s closed state — SAME NAME as the
+ * class it lands beside in FilterSelect.module.css, deliberately: the two are
+ * the same element seen from two files. (see GametypeFilter.tsx for
+ * why it isn't a native <select>). Same surface + border treatment and the
+ * same 0.8rem as .modeOption beside it, so the two filters read as one pair —
+ * the whole reason both live in this file.
+ *
+ * FilterSelect draws its own caret, so there is no background-image chevron
+ * here and no `appearance: none` to suppress. There is no `:focus` rule either:
+ * the control declines focus on mousedown, so it can never be focused, and a
+ * ring here would impersonate the games list's own 2px keyboard cursor
+ * (docs/ui.md → ClubPage keyboard navigation). */
+/* @@ */ .closedSelect {
+  font-size: 0.8rem;
+  padding: 0.25rem 0.55rem;
+  max-width: 11rem;
+  border: 1px solid var(--page-surface-border-color);
+  border-radius: var(--radius-md);
+  background-color: var(--page-surface-color);
+  color: var(--page-text-color);
+}
+
+/* @@ */ .closedSelect:hover {
+  background-color: var(--page-surface-hover-color);
+}
+
+/* On touch the filter goes up to full size. Note this is now purely a
+ * TAP-TARGET decision: the old rule was defending against mobile Safari's
+ * focus-zoom on a sub-16px form control (docs/mobile.md → Decisions #3), and a
+ * button that never takes focus can't trigger that. It stays big because it's
+ * the mobile layout's only filter control, sitting alone in the row under the
+ * tab bar, where it's something you tap rather than heading chrome. */
+/* Touch: bigger tap targets. NOT the iOS focus-zoom floor — that only applies
+ * to focusable text fields, and both of these are <button>s (docs/mobile.md →
+ * Decisions #3). The closed select reaching 16px is a coincidence of the two aiming
+ * at similar sizes. */
+@media (--touch) {
+/* @@ */   .closedSelect {
+    font-size: max(16px, 1em);
+    padding: 0.4rem 0.7rem;
+  }
+
+/* @@ */   .modeOption {
+    font-size: 0.9rem;
+    padding: 0.4rem 0.75rem;
+  }
+}

@@ -1,13 +1,13 @@
 // cs-unmet
 
 import { useEffect, useState, type ReactNode } from 'react'
-import { cls } from '../../common/lib/util/cls'
-import type { Member } from '../../common/lib/members/member'
-import { Dot } from '../../common/components/text/Dot'
-import { ATTENTION_FLASH_MS } from '../../common/lib/game/feedbackTiming'
-import { useMoveCausedChange } from '../../common/hooks/game/useMoveCausedChange'
-import shared from '../../common/components/game/PlayArea.module.css'
-import history from '../../common/components/game/lists/historyViewer.module.css'
+import { cls } from '@/common/utils/cls'
+import type { Member } from '@/common/members/member'
+import { Dot } from '@/common/members/Dot'
+import { ATTENTION_FLASH_MS } from '@/common/move-flash/feedbackTiming'
+import { useMoveCausedChange } from '@/common/move-flash/useMoveCausedChange'
+import shared from '@/common/game-page/PlayArea.module.css'
+import history from '@/common/turn-log/historyViewer.module.css'
 import styles from './Board.module.css'
 
 /** A stable empty set, so "nothing is flashing" is one object per render. */

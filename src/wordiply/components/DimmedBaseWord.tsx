@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { cls } from '../../common/lib/util/cls'
+import { cls } from '@/common/utils/cls'
 import styles from './DimmedBaseWord.module.css'
 
 /**

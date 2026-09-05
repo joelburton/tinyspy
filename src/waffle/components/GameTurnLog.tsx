@@ -1,10 +1,10 @@
 // cs-unmet
 
-import { TurnLogActor } from '../../common/components/game/lists/TurnLogActor'
-import { TurnLog, TurnLogBar, TurnLogNumber } from '../../common/components/game/lists/TurnLog'
-import turnLog from '../../common/components/game/lists/TurnLog.module.css'
-import { useTurnLogPlayerPicker } from '../../common/hooks/game/useTurnLogPlayerPicker'
-import type { Member } from '../../common/lib/members/member'
+import { TurnLogActor } from '@/common/turn-log/TurnLogActor'
+import { TurnLog, TurnLogBar, TurnLogNumber } from '@/common/turn-log/TurnLog'
+import turnLog from '@/common/turn-log/TurnLog.module.css'
+import { useTurnLogPlayerPicker } from '@/common/turn-log/useTurnLogPlayerPicker'
+import type { Member } from '@/common/members/member'
 import { coord } from '../lib/waffle'
 import type { SwapRow } from '../hooks/useGame'
 import styles from './GameTurnLog.module.css'

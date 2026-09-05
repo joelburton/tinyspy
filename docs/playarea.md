@@ -10,7 +10,7 @@ modals, mode pills, iconography), see [ui.md](ui.md).
 
 The shape every game's play surface takes — **all sixteen games** are on it. The
 scaffold + readout classes live in
-[`common/components/game/PlayArea.module.css`](../src/common/components/game/PlayArea.module.css)
+[`common/components/game/PlayArea.module.css`](../src/common/game-page/PlayArea.module.css)
 (a CSS-only module imported the way `setupForm.module.css` is, composed with a thin
 per-game module via `cls()`). It was validated on **psychicnum**, then **connections**,
 then stress-tested on **codenamesduet** — the structural odd-one-out (turn-based, one
@@ -110,7 +110,7 @@ anything *else* to say:
 
 - **The line is only a turn indicator** → it goes **inert but keeps its height**
   — a blank height-holder, no wording. That's the shared
-  [`<TurnStatusLine>`](../src/common/components/game/TurnStatusLine.tsx), used by
+  [`<TurnStatusLine>`](../src/common/turn-log/TurnStatusLine.tsx), used by
   connections / psychicnum / strands / waffle / wordiply / wordle / scrabble
   coop, and pinned by its own test ("goes inert at terminal"). The height is held
   because dropping the element would reflow the column below on the
@@ -423,7 +423,7 @@ guesses spanning beneath on row 2 (its per-turn outcome derived in
 
 Every turn-log game carries the same **"whose turns?"** dropdown in its log
 header, from
-[`useTurnLogPlayerPicker`](../src/common/hooks/game/useTurnLogPlayerPicker.tsx).
+[`useTurnLogPlayerPicker`](../src/common/turn-log/useTurnLogPlayerPicker.tsx).
 One vocabulary, settled 2026-08-02:
 
 | game shape | options |
@@ -511,7 +511,7 @@ disagree about whether this board has bonus words.
 ### The two-axis filter
 
 The list header carries **two** selects, from
-[`useWordListFilter`](../src/common/hooks/game/useWordListFilter.tsx):
+[`useWordListFilter`](../src/common/word-list/useWordListFilter.tsx):
 
 | axis | options | gated? |
 |---|---|---|

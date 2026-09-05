@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { useDefinePopover } from '../../common/hooks/definitions/useDefinePopover'
+import { useDefinePopover } from '@/common/definitions/useDefinePopover'
 import styles from './SolutionReveal.module.css'
 
 /**

@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { GameHelpCompanion } from '../../common/components/game/GameHelpCompanion'
+import { GameHelpCompanion } from '@/common/game-page/GameHelpCompanion'
 
 /**
  * crosswords' help / rules modal — opened from the "Help" item in the

@@ -32,8 +32,8 @@ import { BOARD_SIZE, RACK_SIZE, cellIndex, fullBag, type Cell } from './board.ts
 import { tilesUsed, type FormedWord, type Placement } from './play.ts'
 import { generateMoves, type Bands } from './suggest.ts'
 import { leaveValue, rankMoves, type RankedMove } from './rank.ts'
-import { walkWord, type Trie } from '../../common/lib/game/trie.ts'
-import { mulberry32 } from '../../common/lib/util/mulberry32.ts'
+import { walkWord, type Trie } from '@/shared/dict-trie/trie.ts'
+import { mulberry32 } from '@/common/utils/mulberry32.ts'
 
 // ── The strength knobs ──────────────────────────────────────────────────────
 

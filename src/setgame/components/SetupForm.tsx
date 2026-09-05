@@ -1,11 +1,11 @@
 // cs-unmet
 
-import { SetupTimerSection } from '../../common/components/setup/SetupTimerSection'
-import { PlayersSection } from '../../common/components/setup/PlayersSection'
-import { SetupCoopStyleSection } from '../../common/components/setup/SetupCoopStyleSection'
-import { RadioRow } from '../../common/components/fields/RadioRow'
-import { SetupSection } from '../../common/components/setup/SetupSection'
-import type { SetupBodyProps, SetupSetter } from '../../common/lib/setup/setupForm'
+import { SetupTimerSection } from '@/common/setup-form/SetupTimerSection'
+import { PlayersSection } from '@/common/setup-form/PlayersSection'
+import { SetupCoopStyleSection } from '@/common/setup-form/SetupCoopStyleSection'
+import { RadioRow } from '@/common/fields/RadioRow'
+import { SetupSection } from '@/common/setup-form/SetupSection'
+import type { SetupBodyProps, SetupSetter } from '@/common/setup-form/setupForm'
 import type { DeckKind } from '../lib/cards'
 import { paletteOf, type Palette, type SetgameValues } from '../lib/setup'
 

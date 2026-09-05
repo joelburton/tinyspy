@@ -22,11 +22,11 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ReactNode } from 'react'
-import type { GamePageCtx } from '../../common/lib/gamePageCtx'
-import { gp } from '../../common/test/gamePlayers'
+import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import { gp } from '@/common/members/gamePlayers'
 import type { WordwheelGame, FoundWordRow } from '../hooks/useGame'
 import { db } from '../db'
-import { runEdgeFn } from '../../common/lib/supabase/dbResult'
+import { runEdgeFn } from '@/common/supabase/dbResult'
 import { PlayArea } from './PlayArea'
 
 // Feedback `text` is now a ReactNode (an <ActorDot> widget + sentence) rather
@@ -45,8 +45,8 @@ vi.mock('../db', () => ({ db: { rpc: vi.fn() } }))
 // Only `runEdgeFn` is stubbed — the create-game path. `runRpc` stays REAL so
 // the submit path exercises the envelope it actually receives; the `db.rpc`
 // mock above is what feeds it.
-vi.mock('../../common/lib/supabase/dbResult', async (orig) => ({
-  ...(await orig<typeof import('../../common/lib/supabase/dbResult')>()),
+vi.mock('@/common/supabase/dbResult', async (orig) => ({
+  ...(await orig<typeof import('@/common/supabase/dbResult')>()),
   runEdgeFn: vi.fn(),
 }))
 

@@ -142,7 +142,14 @@ function usagesIn(file: string): Usage[] {
   const out: Usage[] = []
   for (const m of src.matchAll(/import\s+(\w+)\s+from\s+['"]([^'"]+\.module\.css)['"]/g)) {
     const [, ident, spec] = m
-    const modPath = resolve(dirname(file), spec)
+    // `@/` is the root of `src/` (tsconfig `paths` + vite `resolve.alias`), and
+    // it is how every cross-folder stylesheet import is written — a game
+    // reaching `@/common/game-page/PlayArea.module.css`. Resolving it as a
+    // relative path would produce `<dir>/@/common/…`, which matches no module,
+    // and the sheet would then look like nobody reads it.
+    const modPath = spec!.startsWith('@/')
+      ? join(CWD, 'src', spec!.slice('@/'.length))
+      : resolve(dirname(file), spec!)
     const read = new Set<string>()
     for (const a of body.matchAll(new RegExp(`\\b${ident}\\.([A-Za-z_]\\w*)`, 'g'))) read.add(a[1])
     out.push({ module: modPath, read, dynamic: new RegExp(`\\b${ident}\\s*\\[`).test(body) })
@@ -406,7 +413,7 @@ describe('a class name resolves — the e2e side', () => {
 describe('a CSS-module import is named for where it comes from', () => {
   /** Same-directory imports only — `./X.module.css`. A basename match is not
    *  enough: every game's `PlayArea.tsx` imports BOTH its own `./PlayArea.module.css`
-   *  as `styles` and `common/components/game/PlayArea.module.css` as `shared`,
+   *  as `styles` and `common/game-page/PlayArea.module.css` as `shared`,
    *  which is the convention working, not breaking it. */
   const IMPORT = /^import (\w+) from '\.\/([A-Za-z]+)\.module\.css'$/gm
 

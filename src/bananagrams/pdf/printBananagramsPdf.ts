@@ -1,8 +1,8 @@
 // cs-unmet
 
 import type { jsPDF } from 'jspdf'
-import { BLACK, DARK_GRAY, drawHeader, drawSetup, fit, newPrintDoc, savePrint, type PrintHeader, type SetupRow } from '../../common/pdf/frame'
-import { drawInTracks, type Track } from '../../common/pdf/columns'
+import { BLACK, DARK_GRAY, drawHeader, drawSetup, fit, newPrintDoc, savePrint, type PrintHeader, type SetupRow } from '@/common/pdf/frame'
+import { drawInTracks, type Track } from '@/common/pdf/columns'
 
 /**
  * bananagrams's print-to-PDF — the **track family** (docs/pdf.md; see

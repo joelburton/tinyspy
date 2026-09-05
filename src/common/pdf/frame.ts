@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { jsPDF } from 'jspdf'
-import type { SetupRow } from '../lib/game/setupRows'
+import type { SetupRow } from '../setup-form/setupRows'
 
 export type { SetupRow }
 

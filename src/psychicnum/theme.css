@@ -8,7 +8,7 @@
  * on the chopping block post-beta), and its palette currently
  * piggybacks entirely on common/themes/daylight.css: the guess-outcome
  * strip down a turn-log row is the SHARED TurnLog's `.barInner_*`
- * (common/components/game/lists/TurnLog.module.css), drawn with
+ * (common/turn-log/TurnLog.module.css), drawn with
  * `--outcome-{won,lost,near}-fill-color`; the placeholder text uses
  * `--page-text-muted-color`, the surface tokens come from the global
  * palette, and the board's marks are the shared ones

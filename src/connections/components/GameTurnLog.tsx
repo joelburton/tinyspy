@@ -1,12 +1,12 @@
 // cs-unmet
 
 import { Fragment } from 'react'
-import { TurnLogActor } from '../../common/components/game/lists/TurnLogActor'
-import { cls } from '../../common/lib/util/cls'
-import { memberById } from '../../common/lib/members/memberList'
-import { TurnLog, TurnLogBar, TurnLogNumber } from '../../common/components/game/lists/TurnLog'
-import turnLog from '../../common/components/game/lists/TurnLog.module.css'
-import { useTurnLogPlayerPicker } from '../../common/hooks/game/useTurnLogPlayerPicker'
+import { TurnLogActor } from '@/common/turn-log/TurnLogActor'
+import { cls } from '@/common/utils/cls'
+import { memberById } from '@/common/members/memberList'
+import { TurnLog, TurnLogBar, TurnLogNumber } from '@/common/turn-log/TurnLog'
+import turnLog from '@/common/turn-log/TurnLog.module.css'
+import { useTurnLogPlayerPicker } from '@/common/turn-log/useTurnLogPlayerPicker'
 import type { Category } from '../lib/board'
 import type { GuessRow, Player } from '../hooks/useGame'
 import styles from './GameTurnLog.module.css'

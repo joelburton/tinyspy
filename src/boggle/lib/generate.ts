@@ -18,7 +18,7 @@ import type { FoundWord, LadderName, Trie } from './solver.ts'
 import type { DiceSet } from './dice.ts'
 // Board generation is seeded so a board is reproducible from its seed — per
 // CLAUDE.md's trust table, seeds are server-chosen for fairness, not secrecy.
-import { mulberry32 } from '../../common/lib/util/mulberry32.ts'
+import { mulberry32 } from '@/common/utils/mulberry32.ts'
 
 /** Roll one board: Fisher–Yates shuffle the dice across cells, then pick a random
  *  face per die. Returns the row-major raw-face string (length n²). */

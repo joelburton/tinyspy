@@ -1,12 +1,12 @@
 // cs-unmet
 
 import type { ReactNode } from 'react'
-import type { GenericFeedbackMsg } from '../../common/lib/feedback/genericFeedback'
-import { GenericFeedbackPill } from '../../common/components/feedback/GenericFeedbackPill'
-import { MobileStatusBar } from '../../common/components/game/MobileStatusBar'
+import type { GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
+import { GenericFeedbackPill } from '@/common/feedback/GenericFeedbackPill'
+import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
 import { Board } from './Board'
-import shared from '../../common/components/game/PlayArea.module.css'
-import history from '../../common/components/game/lists/historyViewer.module.css'
+import shared from '@/common/game-page/PlayArea.module.css'
+import history from '@/common/turn-log/historyViewer.module.css'
 import styles from './BoardCol.module.css'
 
 /**

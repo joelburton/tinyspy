@@ -1,7 +1,7 @@
 // cs-unmet
 
-import { cls } from '../../common/lib/util/cls'
-import { IconRemove } from '../../common/components/icons'
+import { cls } from '@/common/utils/cls'
+import { IconRemove } from '@/common/icons/icons'
 import styles from './PlayArea.module.css'
 
 /**

@@ -1,7 +1,7 @@
 // cs-unmet
 
-import type { PrintHeader , SetupRow } from '../../common/pdf/frame'
-import type { TurnRow } from '../../common/pdf/turnLog'
+import type { PrintHeader , SetupRow } from '@/common/pdf/frame'
+import type { TurnRow } from '@/common/pdf/turnLog'
 import { offBoardIds, type Tile } from '../lib/board'
 import type { SubmissionRow } from '../hooks/useGame'
 

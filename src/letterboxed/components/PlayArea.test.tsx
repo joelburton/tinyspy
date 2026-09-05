@@ -17,12 +17,12 @@
 import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { GamePageCtx } from '../../common/lib/gamePageCtx'
-import { gp } from '../../common/test/gamePlayers'
+import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import { gp } from '@/common/members/gamePlayers'
 import type { LetterboxedGame, PlayerRow } from '../hooks/useGame'
 import { db } from '../db'
 import { PlayArea } from './PlayArea'
-import { clearFaultsForTest, peekFaultsForTest } from '../../common/lib/fault/faultStore'
+import { clearFaultsForTest, peekFaultsForTest } from '@/common/faults/faultStore'
 
 type GameHook = ReturnType<typeof import('../hooks/useGame').useGame>
 
@@ -31,7 +31,7 @@ type GameHook = ReturnType<typeof import('../hooks/useGame').useGame>
 const h = vi.hoisted(() => ({ result: null as unknown as GameHook }))
 vi.mock('../hooks/useGame', () => ({ useGame: () => h.result }))
 vi.mock('../db', () => ({ db: { rpc: vi.fn() } }))
-vi.mock('../../common/db', () => ({ db: { rpc: vi.fn() } }))
+vi.mock('@/common/supabase/db', () => ({ db: { rpc: vi.fn() } }))
 
 const rpc = db.rpc as unknown as ReturnType<typeof vi.fn>
 
@@ -155,7 +155,7 @@ describe('letterboxed PlayArea — the game menu is the icon legend', () => {
   })
 
   it('the Reveal row is a local toggle — no RPC, and its label flips', async () => {
-    const commonDb = (await import('../../common/db')).db as unknown as { rpc: ReturnType<typeof vi.fn> }
+    const commonDb = (await import('@/common/supabase/db')).db as unknown as { rpc: ReturnType<typeof vi.fn> }
     commonDb.rpc.mockClear()
     const ctx = makeCtx({ isTerminal: true, playState: 'lost' })
     render(<PlayArea {...ctx} />)

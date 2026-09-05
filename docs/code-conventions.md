@@ -10,7 +10,7 @@ The explanation bar in this codebase is higher than the average TypeScript proje
 
 - **Docstrings on every exported function, component, hook, and RPC.** Explain what it does, why it exists, and any non-obvious constraints. The codenamesduet RPCs in [`supabase/sql/codenamesduet.sql`](../supabase/sql/codenamesduet.sql) and components like [`src/codenamesduet/components/CluePanel.tsx`](../src/codenamesduet/components/CluePanel.tsx) are the model — generous prose, examples, references to related pieces.
 - **Code comments where the WHY isn't obvious.** Design decisions, subtle invariants, non-obvious trade-offs ("we refetch on SUBSCRIBED because broadcasts can be missed during reconnect"), workarounds for specific platform behavior.
-- **The `/**` marker belongs to docstrings alone; a note inside a structure or a body takes `//`.** A docstring documents a file, a type, a structure or a function — it answers *should I read this, and how do I call it* — and the editor lights it up so that question can be answered by scanning. A note about one field, one statement, or why the body is written the way it is answers a different question, and taking the docstring marker for it destroys the signal: everything on screen looks like something you must read first. `//` is preferred; `/* */` is fine. This is also how a docstring stays short — when a paragraph explains why the implementation is what it is, it belongs on the line it defends, inside the function, not in the docstring a caller reads. [`dbLog.ts`](../src/common/lib/supabase/dbLog.ts) is the model: `logSlow`'s "omitted beats empty" and `logDb`'s "built ONCE and shared" sit in the bodies, and `TransportFacts.detail`'s note is `//` like every other field's.
+- **The `/**` marker belongs to docstrings alone; a note inside a structure or a body takes `//`.** A docstring documents a file, a type, a structure or a function — it answers *should I read this, and how do I call it* — and the editor lights it up so that question can be answered by scanning. A note about one field, one statement, or why the body is written the way it is answers a different question, and taking the docstring marker for it destroys the signal: everything on screen looks like something you must read first. `//` is preferred; `/* */` is fine. This is also how a docstring stays short — when a paragraph explains why the implementation is what it is, it belongs on the line it defends, inside the function, not in the docstring a caller reads. [`dbLog.ts`](../src/common/supabase/dbLog.ts) is the model: `logSlow`'s "omitted beats empty" and `logDb`'s "built ONCE and shared" sit in the bodies, and `TransportFacts.detail`'s note is `//` like every other field's.
 - **Names describe role, not implementation.** `isClueGiver` not `playerA`. See [`naming.md`](naming.md) for the terminology lexicon.
 - **Prefer one clear path over a clever one.** A few extra lines of straightforward code beat a tight expression that requires the reader to pause.
 - **Extract a small helper over a deeply-nested ternary.** A single `a ? b : c` is fine; two-or-more-deep nests almost always read better as a small function with `if` branches — each case lands on its own line, picks up a name (or at least a local variable), and survives a future tweak without re-balancing the whole expression. See [`psychicnum/manifest.ts → labelFor`](../src/psychicnum/manifest.ts) for the model: a 3-deep ternary refactored into a 6-line helper. The only reason to keep the ternary inline is a measured hot path where allocating the helper actually shows up in a profile — and there are no such hot paths in this codebase today.
@@ -206,7 +206,7 @@ Two shapes recur across the per-game data hooks, and the choice between them is 
 
 #### Pattern A — refetch-only via `useRealtimeRefetch`
 
-For hooks that subscribe to postgres-changes and refetch on any event. The recurring shape — initial load → postgres-changes subscription → SUBSCRIBED-driven refetch on reconnect → attach-confirmation refetch (the deaf-window closer, [`postgresAttached.ts`](../src/common/lib/supabase/postgresAttached.ts) / [realtime-lost-events.md](realtime-lost-events.md)) → cleanup — is factored into [`useRealtimeRefetch`](../src/common/hooks/realtime/useRealtimeRefetch.ts). Canonical calls:
+For hooks that subscribe to postgres-changes and refetch on any event. The recurring shape — initial load → postgres-changes subscription → SUBSCRIBED-driven refetch on reconnect → attach-confirmation refetch (the deaf-window closer, [`postgresAttached.ts`](../src/common/realtime/postgresAttached.ts) / [realtime-lost-events.md](realtime-lost-events.md)) → cleanup — is factored into [`useRealtimeRefetch`](../src/common/realtime/useRealtimeRefetch.ts). Canonical calls:
 
 ```ts
 useRealtimeRefetch({
@@ -226,16 +226,16 @@ The `tables` field accepts one subscription or an array — psychicnum's useGame
 
 The channel name is UUID-suffixed (`<prefix>:<id>:<uuid>`) — every peer's tab gets its own room. That's safe because there's no peer-coordination state on this channel.
 
-Tested at [`useRealtimeRefetch.test.ts`](../src/common/hooks/realtime/useRealtimeRefetch.test.ts) — initial load, SUBSCRIBED refetch, attach-confirmation refetch (+ its not-ok filter), event refetch, multi-table fan-in, `id`-change channel rebuild, cleanup mounted-guard, ref-trick (caller-fresh-load-each-render doesn't thrash the channel).
+Tested at [`useRealtimeRefetch.test.ts`](../src/common/realtime/useRealtimeRefetch.test.ts) — initial load, SUBSCRIBED refetch, attach-confirmation refetch (+ its not-ok filter), event refetch, multi-table fan-in, `id`-change channel rebuild, cleanup mounted-guard, ref-trick (caller-fresh-load-each-render doesn't thrash the channel).
 
 #### Pattern B — broadcast-coupled, hand-rolled, single stable-name channel
 
 For hooks that need to **send and receive Broadcast events between peers** (selection sharing, manual-pause, suspend-cascade, future scratchpad-takeover-lock, etc.). Broadcast peers only see each other when they share a channel name, so the channel name has to be stable across peers (no UUID suffix). Once that channel is open, postgres-changes ride along on it — opening a second UUID-suffixed channel just for postgres-changes would split one coherent hook into two coordinating effects with no functional gain.
 
 Canonical examples:
-- [`common/useCommonGame`](../src/common/hooks/game/useCommonGame.ts) — stable `game:${gameId}` channel carrying presence, manual-pause Broadcast, suspend Broadcast, AND postgres-changes on `common.games`.
+- [`common/useCommonGame`](../src/common/game-page/useCommonGame.ts) — stable `game:${gameId}` channel carrying presence, manual-pause Broadcast, suspend Broadcast, AND postgres-changes on `common.games`.
 - [`connections/useGame`](../src/connections/hooks/useGame.ts) — stable `connections:${gameId}` channel carrying the shared-selection Broadcast (`select` / `deselect` / `clear`) AND postgres-changes on `connections.{games, guesses}`.
-- [`common/useClubPresence`](../src/common/hooks/realtime/useClubPresence.ts) — stable `club:${handle}` channel carrying **only Presence** (no broadcast, no postgres-changes): every connected member of the club orbit announces whether they're on the club page or viewing a game. It's the leanest Pattern B instance — still Pattern B because presence rosters are keyed per-channel-name, so the name must be stable across peers (rule 2 below). Drives the member-strip dots and the abandoned-current-view heal; see [`docs/states.md`](states.md).
+- [`common/useClubPresence`](../src/common/realtime/useClubPresence.ts) — stable `club:${handle}` channel carrying **only Presence** (no broadcast, no postgres-changes): every connected member of the club orbit announces whether they're on the club page or viewing a game. It's the leanest Pattern B instance — still Pattern B because presence rosters are keyed per-channel-name, so the name must be stable across peers (rule 2 below). Drives the member-strip dots and the abandoned-current-view heal; see [`docs/states.md`](states.md).
 
 The shape is:
 
@@ -276,11 +276,11 @@ Mixing — Pattern B for broadcast + a separate Pattern A call for postgres-chan
 
 #### Append-on-event exception — and the merge rule it requires
 
-[`useClubChat`](../src/common/hooks/chat/useClubChat.ts) is hand-rolled in a third shape: postgres-changes on `common.messages`, but the INSERT handler **appends the new row to local state** instead of refetching. That's a meaningful optimization for chat-heavy moments where refetching on every message would be wasteful. It's the only consumer of this shape; new game hooks shouldn't copy it unless they have the same volume profile.
+[`useClubChat`](../src/common/chat/useClubChat.ts) is hand-rolled in a third shape: postgres-changes on `common.messages`, but the INSERT handler **appends the new row to local state** instead of refetching. That's a meaningful optimization for chat-heavy moments where refetching on every message would be wasteful. It's the only consumer of this shape; new game hooks shouldn't copy it unless they have the same volume profile.
 
-**If you append on INSERT, the SUBSCRIBED refetch MUST merge — never `setX(data)`.** A wholesale replace races with the append: a row that arrives via INSERT *after* the refetch's query snapshot but before it resolves gets clobbered, and nothing re-adds it. (This shipped — two messages in quick succession left the unread badge stuck at "1," and the chat e2e failed ~90% under repeat-each stress.) The refetch instead **unions** the snapshot with any rows appended since (they're newest by construction — the table is append-only, so a row absent from a fresh full snapshot was inserted *after* it), and the INSERT append **dedupes by id** against a row a concurrent refetch already picked up. Regression-tested in [`useClubChat.test.ts`](../src/common/hooks/chat/useClubChat.test.ts) ("does not drop a live-appended message when a stale refetch lacks it").
+**If you append on INSERT, the SUBSCRIBED refetch MUST merge — never `setX(data)`.** A wholesale replace races with the append: a row that arrives via INSERT *after* the refetch's query snapshot but before it resolves gets clobbered, and nothing re-adds it. (This shipped — two messages in quick succession left the unread badge stuck at "1," and the chat e2e failed ~90% under repeat-each stress.) The refetch instead **unions** the snapshot with any rows appended since (they're newest by construction — the table is append-only, so a row absent from a fresh full snapshot was inserted *after* it), and the INSERT append **dedupes by id** against a row a concurrent refetch already picked up. Regression-tested in [`useClubChat.test.ts`](../src/common/chat/useClubChat.test.ts) ("does not drop a live-appended message when a stale refetch lacks it").
 
-The rule in one line: **append-on-INSERT ⇒ merge-on-refetch** (dedupe by id, keep appended-since rows); **refetch-everything ⇒ replace is fine** (Pattern A has no separate append to clobber, so its `load` can `setX(data)` freely). The two other places that build state incrementally already follow the merge/prune form and so are safe: [`useGameInvitations`](../src/common/hooks/game/useGameInvitations.ts) (its `load()` adds only deduped-new invites, never replaces) and [`stackdown/useGame`](../src/stackdown/hooks/useGame.ts)'s optimistic `pendingRemoved` (the refetch *prunes* confirmed ids out of `prev` via `filter`, never replaces).
+The rule in one line: **append-on-INSERT ⇒ merge-on-refetch** (dedupe by id, keep appended-since rows); **refetch-everything ⇒ replace is fine** (Pattern A has no separate append to clobber, so its `load` can `setX(data)` freely). The two other places that build state incrementally already follow the merge/prune form and so are safe: [`useGameInvitations`](../src/common/invitations/useGameInvitations.ts) (its `load()` adds only deduped-new invites, never replaces) and [`stackdown/useGame`](../src/stackdown/hooks/useGame.ts)'s optimistic `pendingRemoved` (the refetch *prunes* confirmed ids out of `prev` via `filter`, never replaces).
 
 ## Frontend
 
@@ -395,7 +395,7 @@ The decision rule is mechanical: "does this game's per-row state name specific s
 
 Concrete examples in the tree today:
 - Shared: `<GamePage>`, `<PauseBoundary>`, `<Chat>`, `<SetupTimerSection>`, `<ClubGameCard>`, `<StartGameButtons>`, `<SuspendConfirmationBlockingModal>`, `useCommonGame`, `useGameTimer`, `useHistoryViewer`.
-- Same name, per-game body: `PlayArea` (every game), `BoardCol` / `InfoCol` (every standard two-column game — see the decomposition note below), `SetupForm` (every game), `Help` (every game), `useGame` (every game), `GameTurnLog` (all eight turn-log games; its "whose turns?" header dropdown is the shared [`useTurnLogPlayerPicker`](../src/common/hooks/game/useTurnLogPlayerPicker.tsx) — **every** turn-log game carries it, on one vocabulary, and it brings the filter, the `#N`-handle gate and the honest RLS-hidden empty line with it; see [playarea.md → Whose turns?](playarea.md#whose-turns--the-shared-player-picker) — the turn-log component was unified on this name, retiring stackdown's `FoundWords` and scrabble's `PlayLog`), `lib/history` (the six games with a turn-history viewer — scrabble is the exception, its replay is `boardUpToSeq` in `lib/play.ts`).
+- Same name, per-game body: `PlayArea` (every game), `BoardCol` / `InfoCol` (every standard two-column game — see the decomposition note below), `SetupForm` (every game), `Help` (every game), `useGame` (every game), `GameTurnLog` (all eight turn-log games; its "whose turns?" header dropdown is the shared [`useTurnLogPlayerPicker`](../src/common/turn-log/useTurnLogPlayerPicker.tsx) — **every** turn-log game carries it, on one vocabulary, and it brings the filter, the `#N`-handle gate and the honest RLS-hidden empty line with it; see [playarea.md → Whose turns?](playarea.md#whose-turns--the-shared-player-picker) — the turn-log component was unified on this name, retiring stackdown's `FoundWords` and scrabble's `PlayLog`), `lib/history` (the six games with a turn-history viewer — scrabble is the exception, its replay is `boardUpToSeq` in `lib/play.ts`).
 - Extracted-to-common after recurrence: `TerminalActionRow`, `ChatButton`, `PageHeaderPlayersStrip`, `PageHeaderStatusSlot`, `Menu`, `PauseButton`, `GameLogo`, `PuzpuzpuzLogo` — each used by multiple call sites with the per-game variability flowing through props.
 
 #### PlayArea decomposition — `BoardCol` / `InfoCol`
@@ -433,7 +433,7 @@ If you find yourself wanting to import a component from another game, that's a s
 A channel whose name IS the room — every peer must join the identical topic for
 presence and broadcast to work — can't take the `channelDedupSuffix()` that the
 per-client data channels use. Open and close it through
-[`channelTeardown.ts`](../src/common/lib/supabase/channelTeardown.ts):
+[`channelTeardown.ts`](../src/common/realtime/channelTeardown.ts):
 
 ```ts
 const pending = channelLeaving(room)   // null on the fast path
@@ -462,7 +462,7 @@ game on every call — so two calls really do make two games, the first orphaned
 the club list, with a second invitation toast to every peer. A `disabled` prop
 would have covered one trigger of three.
 
-Use [`useSingleFlight`](../src/common/hooks/ui/useSingleFlight.ts): it returns the
+Use [`useSingleFlight`](../src/common/single-flight/useSingleFlight.ts): it returns the
 guarded handler plus a `pending` flag for the button's `disabled`, gates on a ref
 (readable synchronously by the very next event, unlike state) and reports through
 state, and clears in a `finally` so a failure stays retryable.
@@ -486,9 +486,9 @@ src/common/components/chat/ChatBody.tsx
 src/common/components/chat/ChatBody.module.css
 ```
 
-**Design tokens at `:root`**, split by what they are: colors live in [`src/common/themes/daylight.css`](../src/common/themes/daylight.css) (the theme) and [`src/common/fixed.css`](../src/common/fixed.css) (member + wordle, exempt from theming); everything that isn't a color — radii, sizes, spacing, durations, the depth family — lives in [`src/common/base.css`](../src/common/base.css). Every `*.module.css` references them via `var(--token-name)`. Each game's `theme.css` (optional) declares that gametype's brand tokens.
+**Design tokens at `:root`**, split by what they are: colors live in [`src/common/themes/daylight.css`](../src/common/themes/daylight.css) (the theme) and [`src/common/fixed.css`](../src/common/core-css/fixed.css) (member + wordle, exempt from theming); everything that isn't a color — radii, sizes, spacing, durations, the depth family — lives in [`src/common/base.css`](../src/common/core-css/base.css). Every `*.module.css` references them via `var(--token-name)`. Each game's `theme.css` (optional) declares that gametype's brand tokens.
 
-`cls()` (in [`src/common/lib/util/cls.ts`](../src/common/lib/util/cls.ts)) is a tiny hand-rolled `clsx` equivalent for combining conditional class names. ~10 lines; no dependency.
+`cls()` (in [`src/common/lib/util/cls.ts`](../src/common/utils/cls.ts)) is a tiny hand-rolled `clsx` equivalent for combining conditional class names. ~10 lines; no dependency.
 
 **What we don't use:**
 
@@ -505,12 +505,12 @@ Six rules that are otherwise only discoverable by reading the code:
 2. **Desktop-first: `@media (--mobile)` blocks override the base rule**, never the reverse. See [`ui.md`](ui.md#audience-and-platform-desktop-first) — a `min-width` media query means a rule got written backwards.
 3. **A component that renders on two surfaces keeps the roomier one as its base rule.** The compressed variant is an override scoped to the surface — e.g. `[data-mobile-status] .stats { … }`, keyed off the attribute `<MobileStatusBar>` already stamps. No media query needed (the bar doesn't exist on desktop) and no `compact` prop to thread through call sites. Writing it the other way round leaks the phone's budget onto a desktop that has room to spare; see [`mobile.md`](mobile.md).
 4. **State classes win by re-setting tokens, not by out-cascading.** A state (`.achieved`, `.dropOk`) should set `--tile-slot-fill-color` and let the base rule consume it, rather than restating `background` at higher specificity.
-5. **Click-to-define words are pointer-only** — no `tabIndex`, no `role="button"`, no focus style. The reasoning is in [`utilities.css`](../src/common/utilities.css)'s `.definable` block. A word that genuinely needs keyboard reach gets a real `<button>`.
+5. **Click-to-define words are pointer-only** — no `tabIndex`, no `role="button"`, no focus style. The reasoning is in [`utilities.css`](../src/common/core-css/utilities.css)'s `.definable` block. A word that genuinely needs keyboard reach gets a real `<button>`.
 6. **`_variant` suffixes** name the classes behind a `` styles[`base_${key}`] `` lookup: `.outcome_won`, `.day_lost`, `.barInner_good`, `.viewedTile_oneAway`, `.guessWord_G`. Base name, underscore, the key's value. The underscore is what marks a class as *dynamically* selected — grep it to find every class that isn't referenced literally anywhere.
 
 #### The z- layers
 
-**The layers are named, and they live in [`base.css`](../src/common/base.css) → "THE Z- LAYERS".** Read a token; never write a page-level number. This is a stacking *order*, not a scale — its failure mode is a visible bug (a menu behind a scrim), which is why the layers carry names and not `--z-index-1…5`: nothing about "3" says whether it beats chat.
+**The layers are named, and they live in [`base.css`](../src/common/core-css/base.css) → "THE Z- LAYERS".** Read a token; never write a page-level number. This is a stacking *order*, not a scale — its failure mode is a visible bug (a menu behind a scrim), which is why the layers carry names and not `--z-index-1…5`: nothing about "3" says whether it beats chat.
 
 **`--z-<layer>`, not `--z-index-<layer>`**: the token IS the layer, and that is the point of the split. `--radius-md` feeds `border-radius` and `--shadow-panel` feeds `box-shadow` — a token named for the property that consumes it was the odd one out. It also lets a layer that needs no z-index sit in the list without claiming a mechanism it doesn't use, which is exactly what `z-pause-gate` is.
 
@@ -651,7 +651,7 @@ If you see a type whose fields are snake_case but whose *name* doesn't end in `R
 
 #### Member vs Player — one type, context-driven variable names
 
-The codebase has a single canonical identity shape — `Member` in [`src/common/lib/members/member.ts`](../src/common/lib/members/member.ts) — and each per-game folder exposes a `Player` alias on top of it. Same shape, sometimes enriched (codenamesduet adds `seat`); the naming carries the *context*, not the type-level distinction.
+The codebase has a single canonical identity shape — `Member` in [`src/common/lib/members/member.ts`](../src/common/members/member.ts) — and each per-game folder exposes a `Player` alias on top of it. Same shape, sometimes enriched (codenamesduet adds `seat`); the naming carries the *context*, not the type-level distinction.
 
 > **Rule:** `Member` is the type for identity. Per game, declare `Player` (alias or extension). At the call site, the **variable name** reflects whether you're in club context (`members: Member[]`) or game context (`players: Player[]`).
 
@@ -803,7 +803,7 @@ The games that let you place tiles onto a coordinate-addressed grid with a keybo
 
 > **`x` = horizontal (column), `y` = vertical (row); `'h'` / `'v'` for the cursor's axis; flat index `idx(x, y) => y * width + x` (x first, matching scrabble's `cellIndex`).**
 
-Not `row`/`col`, not `'H'`/`'V'`, not a y-first index. The point is read-time parallelism: these two games' cursor + placement code is meant to be compared side by side (one's interaction is a near-port of the other's), so a stray `row`/`col` in one against `x`/`y` in the other is pure friction. With the names aligned, the *real* divergence stands out — the tile-identity model — and the genuinely-shared mechanics lift cleanly into [`common/lib/game/gridCursor.ts`](../src/common/lib/game/gridCursor.ts) (`moveCursor` / `stepBack`) and [`common/hooks/ui/useDragGesture.ts`](../src/common/hooks/ui/useDragGesture.ts).
+Not `row`/`col`, not `'H'`/`'V'`, not a y-first index. The point is read-time parallelism: these two games' cursor + placement code is meant to be compared side by side (one's interaction is a near-port of the other's), so a stray `row`/`col` in one against `x`/`y` in the other is pure friction. With the names aligned, the *real* divergence stands out — the tile-identity model — and the genuinely-shared mechanics lift cleanly into [`common/lib/game/gridCursor.ts`](../src/shared/board-cursor/gridCursor.ts) (`moveCursor` / `stepBack`) and [`common/hooks/ui/useDragGesture.ts`](../src/shared/grid-and-drag/useDragGesture.ts).
 
 **Scope — this only binds the coordinate-pair-with-cursor games.** Most grids deliberately *don't* address cells by an `(x, y)` pair, and that's correct — they have no cursor to drift:
 

@@ -3,7 +3,7 @@
 /* psychicnum-specific bits of the turn log. The panel chrome (heading + scroll
  * box), the column-fill (`flex: 1` on `.turnLog`), the row look (outcome bar,
  * divider lines) and content classes all come from the shared
- * common/components/game/lists/TurnLog; only the wrapping hint cell is psychicnum's. */
+ * common/turn-log/TurnLog; only the wrapping hint cell is psychicnum's. */
 
 /* A hint row's colspan cell carries a clue sentence (not a one-word value), so
  * let it wrap to as many lines as it needs — the log scrolls, so a taller row
@@ -12,7 +12,7 @@
   white-space: normal;
 }
 
-/* (Click-to-define uses the GLOBAL `.definable` utility in common/utilities.css — the
+/* (Click-to-define uses the GLOBAL `.definable` utility in common/core-css/utilities.css — the
  * same underline-on-hover the other text-word logs wear. There was a local copy
  * here that differed only by keeping a focus ring; now that definable words
  * aren't focusable at all, the two are the same thing and the local one is gone.

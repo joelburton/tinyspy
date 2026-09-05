@@ -1,11 +1,11 @@
 // cs-unmet
 
 import { lazy } from 'react'
-import type { CreatedGame, GameManifest } from '../common/lib/gameManifest'
+import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { db } from './db'
-import { count, outcome, setupNum, statusLine, wonBy } from '../common/lib/game/statusLabel'
-import { makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
-import { runEdgeFn } from '../common/lib/supabase/dbResult'
+import { count, outcome, setupNum, statusLine, wonBy } from '@/common/manifest/statusLabel'
+import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
+import { runEdgeFn } from '@/common/supabase/dbResult'
 import {
   DEFAULT_BOGGLE_SETUP_COMPETE,
   DEFAULT_BOGGLE_SETUP_COOP,
@@ -51,7 +51,7 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
 }
 
 // Timeout (mode-aware + idempotent server-side) + manual end — the shared
-// one-arg RPC dispatchers (see common/lib/game/manifestRpcs).
+// one-arg RPC dispatchers (see common/manifest/manifestRpcs).
 const submitTimeout = makeRpcDispatcher(db, 'submit_timeout')
 const endGame = makeRpcDispatcher(db, 'end_game')
 

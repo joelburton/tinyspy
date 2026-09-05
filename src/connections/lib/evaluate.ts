@@ -1,7 +1,7 @@
 // cs-unmet
 
 import type { Category, CategoryRank } from './board'
-import type { Outcome } from '../../common/lib/outcomes'
+import type { Outcome } from '@/common/outcomes/outcomes'
 
 /**
  * Evaluate a 4-tile guess against the board's categories.

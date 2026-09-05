@@ -1,0 +1,129 @@
+// cs-unmet
+
+import type { jsPDF } from 'jspdf'
+import type { TileColor } from './tileColor'
+import { BLACK, DARK_GRAY, MEDIUM_GRAY } from '@/common/pdf/frame'
+
+/**
+ * The printed form of a **Wordle-style letter tile** — the four states wordle
+ * and waffle share (`shared/wordle-style/tileColor`).
+ *
+ * On screen these are four colors. On paper they can't be, because the whole
+ * point of a printout is that it survives a black-and-white printer, and green /
+ * yellow / gray flatten to nearly the same gray. So the four states are carried
+ * by **border and fill weight** instead — an ordering you can read as intensity,
+ * darkest = best:
+ *
+ *   blank  (not used yet)  → no border at all. An empty slot, not a result.
+ *   gray   (not in word)   → border only, white inside. Tried, and it's out.
+ *   yellow (wrong place)   → light gray fill. Present but misplaced.
+ *   green  (right place)   → dark gray fill, white letter. The strongest mark.
+ *
+ * ─── This is a deliberate exception to "backgrounds are white" ───────────
+ * [`pdf.md`](../../../docs/pdf.md) says don't fill tiles, and says outcome
+ * meaning should ride a ✓/✗-style mark instead. That rule assumes there's room
+ * for a mark beside the content — and a letter tile has none: the letter IS the
+ * content, and a mark next to it at this size is unreadable. The four states are
+ * also the entire game rather than a decoration, which is exactly the "unless a
+ * filled background is specifically agreed to communicate something" case the
+ * rule carves out. Using **grays rather than hues** keeps it honest by
+ * construction: what you see on a color printer is what you see on a mono one.
+ *
+ * **Why this is the one printer outside `common/pdf/`.** Everything else about
+ * printing lives together there, deliberately. This one takes `TileColor` from
+ * the family next door, and a shell module may not import a family — so it
+ * either lives here or the rule it breaks stops meaning anything. It is also
+ * honestly a wordle/waffle file: those two are its only callers, the same two
+ * games `tileColor` serves. It still reads `common/pdf/frame`'s grays, which
+ * is a family using the shell and exactly the allowed direction.
+ */
+
+/** One tile's box. `size` is the side; the letter is centered. */
+export type TileBox = {
+  x: number
+  y: number
+  size: number
+  letter: string
+  state: TileColor
+  /**
+   * Draw a `blank` tile as an empty OUTLINED box instead of nothing.
+   *
+   * For the keyboard, blank means "never tried" and no box is right — the
+   * letters just sit there. For a BOARD it's different: wordle's unplayed rows
+   * are real slots you're going to fill, and leaving them invisible turns the
+   * grid into a short block floating above a void. An outlined empty box can't
+   * be confused with "not in word" either, because that state always carries a
+   * letter and this one never does.
+   */
+  outlineBlank?: boolean
+}
+
+/** Fill levels, chosen so the two filled states stay distinct after the ~15%
+ *  darkening a real printer adds (dot gain), and so a dark tile's white letter
+ *  keeps enough contrast. */
+const YELLOW_FILL = 205
+const GREEN_FILL = 105
+
+/**
+ * Draw one tile. Returns nothing — callers lay out the grid.
+ *
+ * A `blank` tile draws NOTHING but its letter (usually there isn't one): an
+ * unused row should read as empty space, not as a box you might mistake for a
+ * played-and-rejected letter.
+ */
+export function drawTile(doc: jsPDF, t: TileBox): void {
+  const { x, y, size, state } = t
+
+  if (state === 'wordleYellow' || state === 'wordleGreen') {
+    const level = state === 'wordleGreen' ? GREEN_FILL : YELLOW_FILL
+    doc.setFillColor(level, level, level)
+    doc.setDrawColor(DARK_GRAY).setLineWidth(0.6)
+    doc.rect(x, y, size, size, 'FD')
+  } else if (state === 'wordleGray') {
+    doc.setDrawColor(DARK_GRAY).setLineWidth(0.6)
+    doc.rect(x, y, size, size, 'S')
+  } else if (t.outlineBlank) {
+    // A slot still to fill — lighter than a played tile's border so the grid
+    // reads as "three rows played, three to go" at a glance.
+    doc.setDrawColor(MEDIUM_GRAY).setLineWidth(0.5)
+    doc.rect(x, y, size, size, 'S')
+  }
+  // An un-outlined 'blank' draws no box at all.
+
+  if (!t.letter.trim()) return
+  // White on the dark fill, black everywhere else — the only place the letter's
+  // own color carries anything, and it's a contrast decision, not a code.
+  const fontSize = size * 0.58
+  doc.setFont('helvetica', 'bold').setFontSize(fontSize)
+  if (state === 'wordleGreen') doc.setTextColor(255, 255, 255)
+  else doc.setTextColor(BLACK)
+  doc.text(t.letter.toUpperCase(), x + size / 2, y + size / 2 + fontSize * 0.35, {
+    align: 'center',
+  })
+}
+
+/**
+ * The legend for the four states. Worth printing wherever the tiles are: the
+ * border/fill ordering is legible once you know it, and guessable-but-not-certain
+ * before that.
+ */
+export function drawTileLegend(
+  doc: jsPDF,
+  x: number,
+  y: number,
+  size = 9,
+): number {
+  const items: [TileColor, string][] = [
+    ['wordleGray', 'not in word'],
+    ['wordleYellow', 'wrong place'],
+    ['wordleGreen', 'right place'],
+  ]
+  let cx = x
+  items.forEach(([state, label]) => {
+    drawTile(doc, { x: cx, y: y - size + 2, size, letter: '', state })
+    doc.setFont('helvetica', 'normal').setFontSize(7.5).setTextColor(DARK_GRAY)
+    doc.text(label, cx + size + 3, y)
+    cx += size + 3 + doc.getTextWidth(label) + 10
+  })
+  return y + 4
+}

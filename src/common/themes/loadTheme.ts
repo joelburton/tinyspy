@@ -1,6 +1,6 @@
 // cs-blessed-deep
 
-import { readStored, removeStored, writeStored } from '../lib/util/storage'
+import { readStored, removeStored, writeStored } from '../web-storage/storage'
 
 // ⚠️ MIDNIGHT IS A SPIKE, behind a flag, and is not finished design. Reach it
 // with `?theme=midnight`; the choice sticks in localStorage so it survives the

@@ -1,0 +1,192 @@
+/* cs-unmet */
+
+/* ClubPage layout + component-scoped styles.
+ *
+ * The page fills the viewport and doesn't scroll — the shared
+ * `.pageHeaderAndMainArea` (common/core-css/patterns/page.css) supplies that bound, as
+ * it does on every page. The header is auto-sized; the two-column body takes
+ * the rest, and the right column's games-list frame absorbs growth via
+ * overflow-y: auto.
+ *
+ * There is no `.card` on this page. The only card-style chrome is
+ * the gamesList frame (a border + radius around the scroll region)
+ * and the per-game ClubGameCard items inside it.
+ */
+
+/* The wrapper's layout is the shared `.pageHeaderAndMainArea`
+ * (common/core-css/patterns/page.css); all this adds is the page's own
+ * content width.
+ *
+ * BESPOKE, and deliberately not a second tier in the vocabulary: 1000px was
+ * chosen for THIS page, so that two columns of dense rows have room without
+ * sprawling on a wide desktop. Set as the shared token so everything below
+ * reads one number (plans/areas/homepage.md → `pagemain-widths`). */
+/* @@ */ .frame {
+  --pageMain-width: 62.5rem;
+}
+
+/* The page's `<main>` supplies the well (the shared `.pageMain`) and the flex
+ * column that fills it (`.pageMain-fills`). All it adds is the space between
+ * its four stacked blocks. */
+/* @@ */ .main {
+  gap: var(--spacer-2);
+}
+
+/* The two-column body, which takes whatever height the blocks above it leave.
+ * `min-height: 0` is what lets each column's list scroll rather than the column
+ * growing to fit; `flex-direction: row` is why this cannot be `.pageMain-fills`
+ * itself — that hands height down through a COLUMN, and this is the app's one
+ * place that hands it down through a row. */
+/* @@ */ .columns {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+  min-height: 0;
+}
+
+/* The two columns. Each takes half the width and has a DEFINITE height —
+ * `flex: 1` + `min-height: 0` are the two halves of "this column's internal
+ * scroll works": without them the column expands to fit its content and the
+ * list inside has nothing to scroll against. Neither column scrolls itself;
+ * scrolling lives in the list frame, so both headings stay put. */
+.left,
+/* @@ */ .right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Only the LEFT column has two blocks to separate — the active-game callout
+ * above the start-a-new-game block. The right column is one heading and one
+ * list, where the h3's own margin is the whole space above the frame (and
+ * matches what the left column has between its h3 and its first row). */
+/* @@ */ .left {
+  gap: 1.25rem;
+}
+
+/* The left column's lower half: the "Start a new game" heading, fixed, above
+ * the scrolling list. `flex: 1` + `min-height: 0` are what give the list a
+ * definite height to scroll against — the right column doesn't need this
+ * because its heading and list are the column's only children. */
+/* @@ */ .startBlock {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* This page's two lists say both of these for themselves now: `fills` for the
+ * "take what's left of the column after the heading" half, and `density`
+ * for the packed rows every entry here wants — two lines of text where home's
+ * carry one. Both used to be written here, the second by reaching through
+ * `:global(.item-row)` into a shared pattern, which is the door
+ * <SelectionList>'s module closed (docs/ui.md → Selection lists). */
+
+/* Club title block — a full-width row of the .frame column (between
+ * the header and the two-column body), so the "Club: <name>" heading
+ * spans both columns rather than living inside the left one. */
+/* @@ */ .clubNameBlock {
+  flex-shrink: 0;
+}
+
+/* @@ */ .clubName {
+  margin: 0;
+  /* The 20-character cap on club names (common.clubs.name) keeps a realistic
+   * name on one line at 390px — but a capped name can still be ONE unbroken
+   * token, and 20 wide capitals overflowed the viewport horizontally, which
+   * breaks the no-scroll invariant (docs/ui.md → Page-height fits the
+   * viewport). The cap bounds how bad it gets; this makes it impossible: an
+   * unbreakable run wraps rather than pushing the page wider. */
+  overflow-wrap: anywhere;
+}
+
+/* ─── Mobile tab switcher ────────────────────────────────────────────
+ *
+ * This app is desktop-first (docs/ui.md): the desktop layout above is
+ * the default, and mobile is expressed as an *exception* layered on
+ * top — never mobile-first min-width. `--mobile` is the shared
+ * collapse breakpoint (src/common/mobile/breakpoints.css): 900px, capturing
+ * phones and portrait tablets while landscape tablets (≥ ~1024px)
+ * keep the two-column desktop layout.
+ *
+ * On desktop the tab bar is hidden and both body columns show side by
+ * side. Below the breakpoint the two columns would be too cramped, so
+ * the body stacks to a single column and this tab bar switches between
+ * the "New game" (.left) and "Your games" (.right) views — only
+ * one renders at a time, so the page still fits the viewport without
+ * scrolling. */
+/* @@ */ .tabs {
+  /* Desktop: no tabs. The mobile query below flips this to flex. */
+  display: none;
+}
+
+/* The mobile filter row — the showing tab's filter, directly under the tab
+ * bar. Desktop puts each filter in its column's .headingRow instead (and
+ * hides that row here, below), so exactly one instance of each control is
+ * ever visible. */
+/* @@ */ .mobileFilters {
+  display: none;
+}
+
+/* `.headingRow` is a bare hook: the shape is the shared
+ * `.heading-with-controls` (common/core-css/patterns/heading.css), and this class
+ * exists only so the mobile block below can hide the row. A module can't
+ * target a global class without `:global()`, which nothing in this codebase
+ * uses. */
+
+@media (--mobile) {
+  /* The bar spans the same centered well the club name and the columns do —
+   * `.segmented` is inline-flex by default, since most of them hug. */
+/* @@ */   .tabs {
+    display: flex;
+    flex-shrink: 0;
+    align-self: stretch;
+  }
+
+  /* Two segments splitting the bar evenly; the rest of their look is the
+   * shared `.segmented` (common/core-css/patterns/segmented.css). */
+/* @@ */   .tab {
+    flex: 1;
+  }
+
+  /* The body becomes a single stacked column; the selected section
+   * fills it (its own flex: 1 from the desktop rules still applies). */
+/* @@ */   .columns {
+    flex-direction: column;
+  }
+
+  /* Show exactly one column, chosen by the tab (data-tab on .columns). */
+/* @@ */   .columns[data-tab='new'] .right {
+    display: none;
+  }
+
+/* @@ */   .columns[data-tab='completed'] .left {
+    display: none;
+  }
+
+  /* Drop the per-section heading rows ("Start a new game" / "Your games
+   * (N)") — the tab above already names the view, so the heading just
+   * repeats it and costs vertical space. Desktop keeps them (they label the
+   * two side-by-side columns). Hiding the whole ROW takes each column's
+   * filter with it; the .mobileFilters row below the tabs is where the
+   * filter lives here instead. The "Join the active game" h3 is NOT in a
+   * .headingRow, so it stays — it's a live call to action, not a column
+   * label. */
+/* @@ */   .headingRow {
+    display: none;
+  }
+
+  /* Filter for the showing tab, in the same content well as the tabs it sits
+   * under. RIGHT-aligned, matching where both filters sit on desktop (at the
+   * right of their list's heading) — so the control doesn't jump sides across
+   * the breakpoint. It also keeps the app's faux-selects uniformly right-hung:
+   * `<FilterSelect>`'s list opens leftward from the trigger's right edge, which
+   * can only stay on-screen if the trigger is itself toward the right. */
+/* @@ */   .mobileFilters {
+    display: flex;
+    justify-content: flex-end;
+    flex-shrink: 0;
+  }
+}

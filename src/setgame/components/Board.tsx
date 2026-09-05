@@ -4,7 +4,7 @@ import { useState } from 'react'
 import type { Card as CardCode } from '../lib/cards'
 import type { FlashKind } from '../lib/flash'
 import { letterForSlot } from '../lib/letters'
-import { cls } from '../../common/lib/util/cls'
+import { cls } from '@/common/utils/cls'
 import { Card, CardDefs } from './Card'
 import styles from './Board.module.css'
 

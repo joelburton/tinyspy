@@ -1,10 +1,10 @@
 // cs-unmet
 
-import type { PrintHeader, SetupRow } from '../../common/pdf/frame'
-import type { TurnRow } from '../../common/pdf/turnLog'
+import type { PrintHeader, SetupRow } from '@/common/pdf/frame'
+import type { TurnRow } from '@/common/pdf/turnLog'
 import { BOARD_SIZE, coveredLetters } from '../lib/board'
 import type { EventRow, PlayerRow } from '../hooks/useGame'
-import type { GamePlayer } from '../../common/lib/members/member'
+import type { GamePlayer } from '@/common/members/member'
 
 /**
  * Build the letterboxed print model — the pure half, away from jsPDF so the

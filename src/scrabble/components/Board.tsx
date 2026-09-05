@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { cls } from '../../common/lib/util/cls'
+import { cls } from '@/common/utils/cls'
 import {
   BOARD_SIZE,
   CENTER,
@@ -10,8 +10,8 @@ import {
   type Cell,
   type PremiumType,
 } from '../lib/board'
-import history from '../../common/components/game/lists/historyViewer.module.css'
-import gridCursor from '../../common/components/game/gridCursor.module.css'
+import history from '@/common/turn-log/historyViewer.module.css'
+import gridCursor from '@/shared/board-cursor/gridCursor.module.css'
 import styles from './Board.module.css'
 
 /** A tile a player has placed this turn but not yet committed. */

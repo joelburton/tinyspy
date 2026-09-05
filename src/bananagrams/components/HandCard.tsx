@@ -1,12 +1,12 @@
 // cs-unmet
 
 import type { PointerEvent as ReactPointerEvent } from 'react'
-import { ShuffleButton } from '../../common/components/buttons/ShuffleButton'
-import { IconExchange } from '../../common/components/icons'
-import type { DragState } from '../../common/hooks/ui/useDragGesture'
+import { ShuffleButton } from '@/common/buttons/ShuffleButton'
+import { IconExchange } from '@/common/icons/icons'
+import type { DragState } from '@/shared/grid-and-drag/useDragGesture'
 import { DUMP_COUNT, blurActiveField, type DragSource } from '../hooks/usePlayerBoard'
-import { cls } from '../../common/lib/util/cls'
-import infoPanel from '../../common/components/game/infoPanel.module.css'
+import { cls } from '@/common/utils/cls'
+import infoPanel from '@/common/info-sheet/infoPanel.module.css'
 import styles from './PlayerBoard.module.css'
 
 /**

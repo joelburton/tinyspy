@@ -1,7 +1,7 @@
 // cs-unmet
 
-import type { Member } from '../../common/lib/members/member'
-import type { PrintHeader, SetupRow } from '../../common/pdf/frame'
+import type { Member } from '@/common/members/member'
+import type { PrintHeader, SetupRow } from '@/common/pdf/frame'
 import type { Card } from '../lib/cards'
 import type { Palette } from '../lib/setup'
 import type { EventRow } from '../hooks/useGame'

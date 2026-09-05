@@ -1,6 +1,6 @@
 // cs-unmet
 
-import styles from '../../common/components/game/Stats.module.css'
+import styles from '@/shared/rank-ladder/Stats.module.css'
 
 /** The figures behind boggle's 4-cell stat grid (all `found / total`). */
 export type BoggleStats = {

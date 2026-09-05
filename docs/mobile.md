@@ -78,11 +78,11 @@ The thresholds above are a **starting proposal — tune against real devices.**
 configured in [`postcss.config.js`](../postcss.config.js) — global-data injects
 the definitions from `src/common/breakpoints.css` into every file, custom-media
 resolves them. Vite auto-loads the config. Definitions live once in
-[`breakpoints.css`](../src/common/breakpoints.css); edit a value there and it
+[`breakpoints.css`](../src/common/mobile/breakpoints.css); edit a value there and it
 changes everywhere. **A running `vite dev` only picks up the postcss config on
 restart** (it's a startup-time config, not HMR'd) — so after pulling this,
 restart the dev server or the breakpoints won't resolve. The JS side keeps its
-own copy of the `--mobile` line ([`useIsMobile`](../src/common/hooks/ui/useIsMobile.ts));
+own copy of the `--mobile` line ([`useIsMobile`](../src/common/mobile/useIsMobile.ts));
 the two must be kept in sync by hand.
 
 ### Input is the primary axis
@@ -133,7 +133,7 @@ Principles that fall out:
   tablet with a keyboard).
 
 **bananagrams is HARD-BLOCKED on touch** (a "needs a desktop" screen — the shared
-[`<DeviceBlockNotice>`](../src/common/components/game/DeviceBlockNotice.tsx)),
+[`<DeviceBlockNotice>`](../src/common/game-page/DeviceBlockNotice.tsx)),
 not soft-warned: we don't let people limp through a broken experience. It's
 desktop-only (a drag-heavy 25×25 arena), so the gate keys off the *pointer* —
 `useCoarsePointer()` in its PlayArea blocks *all* touch (phone + tablet), since
@@ -232,7 +232,7 @@ layout. This is the layout-collapse switch — two columns fold to one (+ the
 info-column sheet) — and every component agrees on where it happens.
 
 It's defined once as a custom-media in
-[`breakpoints.css`](../src/common/breakpoints.css) and used as `@media (--mobile)`
+[`breakpoints.css`](../src/common/mobile/breakpoints.css) and used as `@media (--mobile)`
 everywhere — see [Naming the device classes](#naming-the-device-classes-breakpoints)
 for the full set (`--phone`, `--touch`, the four orientation classes) and how the
 PostCSS pipeline resolves them.
@@ -241,7 +241,7 @@ PostCSS pipeline resolves them.
 
 ### Club page — tabs instead of two columns
 
-[`ClubPage`](../src/common/components/club/ClubPage.tsx) is a two-column body on
+[`ClubPage`](../src/common/club/ClubPage.tsx) is a two-column body on
 desktop (left = active game + start-a-new-game; right = the "Your games" list).
 On a phone the two columns are too cramped, so below the breakpoint the body
 becomes a **single column with a tab switcher**: a "New game" tab (the left
@@ -266,7 +266,7 @@ in that row, and a sub-16px select would trigger the iOS focus-zoom trap
 
 ### Player strip — dots only on mobile
 
-[`PageHeaderPlayersStrip`](../src/common/components/page-header/PageHeaderPlayersStrip.tsx) (the header's
+[`PageHeaderPlayersStrip`](../src/common/page-header/PageHeaderPlayersStrip.tsx) (the header's
 "who's playing, what color is who" row, shared by the club page and every game
 page) shows a colored dot + username per player. Usernames are variable-length
 and can be long handles; on a narrow header they overflow and scroll the page.
@@ -278,7 +278,7 @@ name is the droppable half. Desktop still shows names.
 
 The same "the dot IS the identity, the name is droppable" idea, extended to
 **feedback**. A shared pair of widgets in
-[`ActorMention.tsx`](../src/common/components/game/lists/ActorMention.tsx) —
+[`ActorMention.tsx`](../src/common/turn-log/ActorMention.tsx) —
 `ActorTag` (name-then-dot, "moth ●") and `ActorDot` (dot-then-name, "● moth") —
 render the name in a real `.name` span rather than baking it into the message
 string. A `show` prop (`auto` / `both` / `name` / `dot` / `none`) controls it;
@@ -303,10 +303,10 @@ migration: not worth the churn for games you don't play on a phone. Unit tests t
 
 ### The `.card` shell pages — home / login / claim-username
 
-The three shell screens ([`HomePage`](../src/common/components/home/HomePage.tsx),
-[`LoginScreen`](../src/common/components/auth/LoginScreen.tsx),
-[`ClaimHandleScreen`](../src/common/components/auth/ClaimHandleScreen.tsx)) all
-render inside the global `.card` (in [`utilities.css`](../src/common/utilities.css)). Two
+The three shell screens ([`HomePage`](../src/common/home/HomePage.tsx),
+[`LoginScreen`](../src/common/auth/LoginScreen.tsx),
+[`ClaimHandleScreen`](../src/common/auth/ClaimHandleScreen.tsx)) all
+render inside the global `.card` (in [`utilities.css`](../src/common/core-css/utilities.css)). Two
 fixes made them phone-safe:
 
 - **`overflow-wrap: anywhere` on `.card`.** Long *unbreakable* tokens — a long
@@ -325,7 +325,7 @@ fixes made them phone-safe:
 ### Breakpoint system + phone-only page padding
 
 The device classes are now real, shared custom-media
-([`breakpoints.css`](../src/common/breakpoints.css) + the PostCSS pipeline; see
+([`breakpoints.css`](../src/common/mobile/breakpoints.css) + the PostCSS pipeline; see
 [Naming the device classes](#naming-the-device-classes-breakpoints)). The
 existing `56.25rem` overrides were migrated to `@media (--mobile)`
 (behavior-neutral). The first behavior split on the new system: the tight page
@@ -338,11 +338,11 @@ resolves to 4px on a phone vs 16/8px on tablet + desktop.
 
 ### Panels on touch — full-screen sheets + the close-button fix
 
-Realizes [decision 1](#decisions--directions). Every [`FloatingPanel`](../src/common/components/floating-panels/FloatingPanel.tsx)
+Realizes [decision 1](#decisions--directions). Every [`FloatingPanel`](../src/common/floating-panels/FloatingPanel.tsx)
 (chat, scratchpad, Setup, Help, the modals) now adapts to touch:
 
 - **Non-draggable + non-resizable on any coarse pointer.** A new
-  [`useCoarsePointer`](../src/common/hooks/ui/useCoarsePointer.ts) hook (the JS
+  [`useCoarsePointer`](../src/common/mobile/useCoarsePointer.ts) hook (the JS
   mirror of the `--touch` custom-media, like `useIsMobile` mirrors `--mobile`)
   forces `draggable`/`resizable` off when `(pointer: coarse)`. Dragging a
   floating box is a mouse affordance; more importantly this is the **fix for the
@@ -351,7 +351,7 @@ Realizes [decision 1](#decisions--directions). Every [`FloatingPanel`](../src/co
   close button's `onClick` never fired. No drag binding → the X works. One hook
   fixes it for every panel at once.
 - **Full-screen sheet on phones.** Below `--phone`, a CSS override in
-  [`FloatingPanel.module.css`](../src/common/components/floating-panels/FloatingPanel.module.css)
+  [`FloatingPanel.module.css`](../src/common/floating-panels/FloatingPanel.module.css)
   cancels react-rnd's inline position/size (`!important` — only that beats an
   inline style) so the panel fills the viewport instead of floating. Insets use
   `env(safe-area-inset-*)` so the header clears a notch / status bar in
@@ -372,11 +372,11 @@ this by *guessing* the keyboard height: it varies by device, and Apple's
 QuickType predictive bar (which **can't be hidden** from web content) makes it
 taller still. So the sheet is sized to the **measured visual viewport** instead:
 a `reserveKeyboard` prop (chat opts in) drives the fixed clip layer's `height` /
-`top` from [`useVisualViewport`](../src/common/hooks/ui/useVisualViewport.ts) —
+`top` from [`useVisualViewport`](../src/common/mobile/useVisualViewport.ts) —
 the visible region, which shrinks by exactly the keyboard. The sheet then ends at
 the keyboard's top edge: the input rides the keyboard, nothing is hidden behind
 it, and there's nothing to scroll to. Phone-only (gated by
-[`usePhone`](../src/common/hooks/ui/usePhone.ts)); off a phone the hooks are
+[`usePhone`](../src/common/mobile/usePhone.ts)); off a phone the hooks are
 inert (no soft keyboard → visual viewport == layout viewport). This *does* resize
 the sheet when the keyboard toggles — but that's the expected native-chat
 behavior (the input bar riding the keyboard), and it's the chat sheet only, not
@@ -393,7 +393,7 @@ back out), leaving the sheet wider than the screen. `@media (--touch)` pins the
 field to 16px; desktop keeps 0.9rem. This is the exact trap
 [Decisions #3](#decisions--directions) warned about. That sweep has since
 happened: a global `@media (--touch) { input, textarea { font-size: max(16px,
-1em) } }` in [base.css](../src/common/base.css) floors every element-styled
+1em) } }` in [base.css](../src/common/core-css/base.css) floors every element-styled
 field, and the three class-styled fields that would out-specificity it (this
 chat input, the scratchpad textarea, the word-lookup input) each carry their own
 `--touch` pin — so no sub-16px input remains.
@@ -468,7 +468,7 @@ the board — so this is **two full-screen pages** and the affordance is page
 navigation.
 
 **One switch button**, pinned to the header's right edge
-([`InfoSwitchButton`](../src/common/components/game/InfoSwitchButton.tsx)),
+([`InfoSwitchButton`](../src/common/info-sheet/InfoSwitchButton.tsx)),
 drawing lucide's `panel-right-open` / `panel-right-close` — a right-hand panel
 opening and closing IS the gesture, where a bare chevron said nothing about
 which panel and collided with the info column's own icon-only "Back to club".
@@ -523,7 +523,7 @@ a widen-and-narrow round trip.
 **Where the state lives.** The sheet is rendered by each game's PlayArea (it
 wraps that game's `<InfoCol>`) but the switch button and the header live in the
 shell's `<GamePage>` — different subtrees. So the flag is a module store
-([`infoSheetStore`](../src/common/lib/game/infoSheetStore.ts)), safe as a single
+([`infoSheetStore`](../src/common/info-sheet/infoSheetStore.ts)), safe as a single
 slot for the same structural reason the app has one game at a time; `GamePage`
 resets it on mount so a sheet left open in one game doesn't greet you in the next.
 
@@ -589,12 +589,12 @@ variation rather than psychicnum's assumptions:
 proved it byte-identical — rule of three). Three shared pieces, and a game's
 mobile pass is now composing them, not copy-paste:
 
-- [`useInfoSheet()`](../src/common/hooks/game/useInfoSheet.ts) — a game's handle
+- [`useInfoSheet()`](../src/common/info-sheet/useInfoSheet.ts) — a game's handle
   on the sheet: the open flag to hand `<InfoSheet>`, and `close`. It used to also
   return a mobile-only "Game info" **menu item**, which was a placeholder that
   buried a half-of-the-app navigation two taps inside a menu. See
   [The two mobile pages](#the-two-mobile-pages) for what replaced it.
-- [`<InfoSheet>`](../src/common/components/game/InfoSheet.tsx) — the off-canvas
+- [`<InfoSheet>`](../src/common/info-sheet/InfoSheet.tsx) — the off-canvas
   wrapper around the game's `<InfoCol>` (`display: contents` on desktop → fixed
   slide-in sheet on mobile + the ✕), owning the sheet CSS. **Accessibility:** the
   *closed* mobile sheet is `visibility: hidden` (not just slid off-canvas), so a
@@ -618,7 +618,7 @@ mobile pass is now composing them, not copy-paste:
   spec in `waffle-mobile.e2e.ts`.) `overflow-y: auto` stays as the fallback for
   content that can't fit even after the log has shrunk.
 - **`shared.mobileFill`** on `.layout` (in the scaffold
-  [`PlayArea.module.css`](../src/common/components/game/PlayArea.module.css)) —
+  [`PlayArea.module.css`](../src/common/game-page/PlayArea.module.css)) —
   the `@media (--mobile)` full-width `--avail-w` + height override.
 
 A converted game is now: `useInfoSheet()`, `cls(shared.layout, shared.mobileFill,
@@ -792,7 +792,7 @@ whose-turn in turn-coop, since the `TurnStatusLine` is off-canvas.
 The info-sheet recipe has a cost: the moment the info column goes off-canvas, the
 game's **live state readout** ("3/15 agents · 4/9 turns") goes with it, so
 answering "how many agents left?" costs a menu tap mid-game.
-[`<MobileStatusBar>`](../src/common/components/game/MobileStatusBar.tsx) puts that
+[`<MobileStatusBar>`](../src/common/info-sheet/MobileStatusBar.tsx) puts that
 one line back on the play surface — rendered as the **first child of
 `shared.boardCol`**, above the board, and hidden by pure CSS (`display: none`)
 above `--mobile`, so it's exactly the InfoSheet's own breakpoint and generates no
@@ -818,7 +818,7 @@ Two rules for a game adopting it:
   and `<Stats>` were compressed at the base — rules and margins stripped, the rank
   name inlined beside its track — which quietly imposed the phone's height budget
   on a desktop that had room to spare. See
-  [`RankBar.module.css`](../src/common/components/game/RankBar.module.css) for the
+  [`RankBar.module.css`](../src/shared/rank-ladder/RankBar.module.css) for the
   worked example.
 - **Fixed height, never content-driven.** The bar defaults to `1.75rem` +
   `nowrap` + `flex-shrink: 0`; it sits above a `flex: 1` board, so anything that
@@ -890,9 +890,9 @@ clearing), costing no layout since the slot already exists. See
 spellingbee + boggle grew bespoke tap feedback first (gray-flash suppression + an
 `:active` press on their own tiles); that treatment is now **canonical on the
 shared surfaces**, so every tap game matches instead of a handful. The shared
-`.tile` (in [`PlayArea.module.css`](../src/common/components/game/PlayArea.module.css)
+`.tile` (in [`PlayArea.module.css`](../src/common/game-page/PlayArea.module.css)
 — psychicnum / connections / waffle / codenamesduet) and the shared
-on-screen-keyboard `.key` (in [`GuessKeyboard.module.css`](../src/common/components/game/entry/GuessKeyboard.module.css)
+on-screen-keyboard `.key` (in [`GuessKeyboard.module.css`](../src/shared/onscreen-keyboard/GuessKeyboard.module.css)
 — wordle + wordiply) each carry three things:
 
 - `-webkit-tap-highlight-color: transparent` — kill the browser's default gray
@@ -959,7 +959,7 @@ setgame**.
   enter tiles. Guard: `e2e/scrabble-mobile.e2e.ts`.
 - **bananagrams** is genuinely **desktop-only** (a large 25×25 drag-heavy arena,
   unpleasant even on a keyboard tablet) — **hard-blocked on *all* touch** via the
-  shared [`<DeviceBlockNotice>`](../src/common/components/game/DeviceBlockNotice.tsx)
+  shared [`<DeviceBlockNotice>`](../src/common/game-page/DeviceBlockNotice.tsx)
   (`useCoarsePointer()` in its PlayArea). The one game that actually gates the
   device, and the sole unconverted one.
 
@@ -980,7 +980,7 @@ mobile and tightens the rosters, chat, and club lists everywhere.
   (`=<username>`). Enforced where the handle is created — the SQL `CHECK` on
   `common.profiles.username` (`^[a-z][a-z0-9-]{2,14}$`) and the `claim_username`
   RPC, mirrored by `HANDLE_REGEX` + a `maxLength` on the input in
-  [`ClaimHandleScreen`](../src/common/components/auth/ClaimHandleScreen.tsx),
+  [`ClaimHandleScreen`](../src/common/auth/ClaimHandleScreen.tsx),
   which also states "3–15 characters" in its help text. The **club** handle
   regex is deliberately unchanged (`{2,29}`): it has to keep accommodating the
   `=<username>` solo form and slugified club names, which is a separate cap.

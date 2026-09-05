@@ -1,6 +1,6 @@
 // cs-unmet
 
-import type { TurnOutcome } from '../../common/components/game/lists/TurnLog'
+import type { TurnOutcome } from '@/common/turn-log/TurnLog'
 import type { GuessRow } from '../hooks/useBoard'
 
 /**

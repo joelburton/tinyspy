@@ -16,7 +16,7 @@ links to:
 ## The client
 
 One typed client for the whole app —
-[`src/common/lib/supabase/supabase.ts`](../src/common/lib/supabase/supabase.ts):
+[`src/common/lib/supabase/supabase.ts`](../src/common/supabase/supabase.ts):
 
 - Created once with the **publishable key** and the generated `Database`
   type (`npm run types:gen` after any schema change). There is no
@@ -41,7 +41,7 @@ reaches each through a **pre-bound handle**:
 
 - Every game folder has a one-line `src/<game>/db.ts`:
   `export const db = supabase.schema('<game>')`.
-- The common layer has [`src/common/db.ts`](../src/common/db.ts); game
+- The common layer has [`src/common/db.ts`](../src/common/supabase/db.ts); game
   code that needs common tables imports it as `commonDb` to alias around
   its own `db`.
 - Auth, Edge Functions, and Realtime channels use the raw `supabase`
@@ -257,7 +257,7 @@ name-cache + StrictMode double-mount collision.
 
 A stable name can't take that suffix, so it needs the other half of the fix:
 every one of the eight below opens through
-[`channelTeardown.ts`](../src/common/lib/supabase/channelTeardown.ts) —
+[`channelTeardown.ts`](../src/common/realtime/channelTeardown.ts) —
 `channelLeaving(room)` before `supabase.channel(room)`, `releaseChannel(ch)`
 instead of `supabase.removeChannel(ch)`. Without it a remount inside the
 previous mount's leave round-trip is handed realtime-js's still-dying cached
@@ -295,11 +295,11 @@ The decision rule lives in
 the short version, with every current member:
 
 1. **Pattern A — refetch-on-any-event via
-   [`useRealtimeRefetch`](../src/common/hooks/realtime/useRealtimeRefetch.ts).**
+   [`useRealtimeRefetch`](../src/common/realtime/useRealtimeRefetch.ts).**
    The default. Initial load + refetch on every CDC event + refetch on
    every SUBSCRIBED (reconnect catch-up) + refetch on the
    postgres_changes **attach confirmation** (the deaf-window closer —
-   [`postgresAttached.ts`](../src/common/lib/supabase/postgresAttached.ts),
+   [`postgresAttached.ts`](../src/common/realtime/postgresAttached.ts),
    [realtime-lost-events.md](realtime-lost-events.md)), with a generation
    counter so a slow superseded load can't clobber a newer one. Members: codenamesduet
    (×3 hooks), psychicnum, wordle, stackdown, scrabble (data side),
@@ -330,12 +330,12 @@ Four cooperating pieces:
 - Every postgres_changes hook ALSO refetches when the server confirms the
   subscription is attached to the WAL poller (the `system` "Subscribed to
   PostgreSQL" message, via
-  [`onPostgresAttached`](../src/common/lib/supabase/postgresAttached.ts)).
+  [`onPostgresAttached`](../src/common/realtime/postgresAttached.ts)).
   SUBSCRIBED is only the join ack; events committed before the attach are
   dropped, so without this second refetch a write landing in that gap was
   lost for good — the measured **deaf window** of
   [realtime-lost-events.md](realtime-lost-events.md).
-- [`useRealtimeReconnect`](../src/common/hooks/realtime/useRealtimeReconnect.ts)
+- [`useRealtimeReconnect`](../src/common/realtime/useRealtimeReconnect.ts)
   (mounted once at app level) nudges the socket on visibilitychange /
   focus / online, so the SUBSCRIBED refetch actually fires promptly after
   a laptop-lid cycle.
@@ -421,7 +421,7 @@ Server-side conventions
   `is_terminal` never lag the game.
 
 FE-side, three shared wrappers in
-[`manifestRpcs.ts`](../src/common/lib/game/manifestRpcs.ts) keep call sites
+[`manifestRpcs.ts`](../src/common/manifest/manifestRpcs.ts) keep call sites
 uniform: `makeRpcDispatcher(db, 'submit_timeout' | 'end_game' | …)` for
 fire-and-report RPCs, `invokeStartGameEdgeFn` for edge-function game
 creation, and `unwrapEdgeFnError` for reading the real server message out

@@ -1,6 +1,6 @@
 // cs-blessed-game-lib
 
-import type { GameManifest } from './common/lib/gameManifest'
+import type { GameManifest } from './common/manifest/gameManifest'
 import { codenamesduetGame } from './codenamesduet/manifest'
 import {
   psychicnumCoopGame,

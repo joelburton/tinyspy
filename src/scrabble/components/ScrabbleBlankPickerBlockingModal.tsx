@@ -1,7 +1,7 @@
 // cs-unmet
 
 import styles from './ScrabbleBlankPickerBlockingModal.module.css'
-import { CancelButton } from '../../common/components/buttons/CancelButton'
+import { CancelButton } from '@/common/buttons/CancelButton'
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')
 

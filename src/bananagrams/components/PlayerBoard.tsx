@@ -1,14 +1,14 @@
 // cs-unmet
 
 import type { ReactNode, RefObject } from 'react'
-import { WordCheckButton } from '../../common/components/buttons/WordCheckButton'
-import { PeelButton } from '../../common/components/buttons/PeelButton'
-import { cls } from '../../common/lib/util/cls'
+import { WordCheckButton } from '@/common/buttons/WordCheckButton'
+import { PeelButton } from '@/common/buttons/PeelButton'
+import { cls } from '@/common/utils/cls'
 import { usePlayerBoard, LETTER_SCALE, type BananagramsCheckResult } from '../hooks/usePlayerBoard'
 import { BoardArena } from './BoardArena'
 import { HandCard } from './HandCard'
-import shared from '../../common/components/game/PlayArea.module.css'
-import dragGhost from '../../common/components/game/dragGhost.module.css'
+import shared from '@/common/game-page/PlayArea.module.css'
+import dragGhost from '@/shared/grid-and-drag/dragGhost.module.css'
 import styles from './PlayerBoard.module.css'
 
 /**

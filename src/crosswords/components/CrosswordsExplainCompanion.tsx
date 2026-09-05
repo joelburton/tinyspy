@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { Fragment, type ReactNode } from 'react'
-import { Companion } from '../../common/components/floating-panels/Companion'
+import { Companion } from '@/common/floating-panels/Companion'
 import styles from './CrosswordsExplainCompanion.module.css'
 
 /** The dialog's state — mirrors crossplay's ExplainPopover states, minus the

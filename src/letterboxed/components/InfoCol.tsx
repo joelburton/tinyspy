@@ -2,29 +2,29 @@
 
 import type React from 'react'
 import type { ReactNode } from 'react'
-import { cls } from '../../common/lib/util/cls'
-import type { GamePlayer } from '../../common/lib/members/member'
-import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
-import { OpponentStrip } from '../../common/components/game/OpponentStrip'
-import { TurnStatusLine } from '../../common/components/game/TurnStatusLine'
-import { TerminalActionRow } from '../../common/components/game/terminal/TerminalActionRow'
-import { LocalTerminalRow } from '../../common/components/game/terminal/LocalTerminalRow'
-import { EndGameButton } from '../../common/components/buttons/EndGameButton'
-import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
-import { RestartButton } from '../../common/components/buttons/RestartButton'
-import { NewGameButton } from '../../common/components/buttons/NewGameButton'
-import { BackToClubButton } from '../../common/components/buttons/BackToClubButton'
-import { HintButton } from '../../common/components/buttons/HintButton'
-import { SpoilerButton } from '../../common/components/buttons/SpoilerButton'
-import { RevealButton } from '../../common/components/buttons/RevealButton'
-import { useDefinePopover } from '../../common/hooks/definitions/useDefinePopover'
-import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
-import type { SetupRow } from '../../common/lib/game/setupRows'
+import { cls } from '@/common/utils/cls'
+import type { GamePlayer } from '@/common/members/member'
+import type { TerminalCopy } from '@/common/terminal/terminalCopy'
+import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
+import { TurnStatusLine } from '@/common/turn-log/TurnStatusLine'
+import { TerminalActionRow } from '@/common/terminal/TerminalActionRow'
+import { LocalTerminalRow } from '@/common/terminal/LocalTerminalRow'
+import { EndGameButton } from '@/common/buttons/EndGameButton'
+import { ConcedeGameButton } from '@/common/buttons/ConcedeGameButton'
+import { RestartButton } from '@/common/buttons/RestartButton'
+import { NewGameButton } from '@/common/buttons/NewGameButton'
+import { BackToClubButton } from '@/common/buttons/BackToClubButton'
+import { HintButton } from '@/common/buttons/HintButton'
+import { SpoilerButton } from '@/common/buttons/SpoilerButton'
+import { RevealButton } from '@/common/buttons/RevealButton'
+import { useDefinePopover } from '@/common/definitions/useDefinePopover'
+import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
+import type { SetupRow } from '@/common/setup-form/setupRows'
 import { BOARD_SIZE } from '../lib/board'
 import { GameTurnLog } from './GameTurnLog'
 import { StateLine } from './StateLine'
 import type { EventRow } from '../hooks/useGame'
-import shared from '../../common/components/game/PlayArea.module.css'
+import shared from '@/common/game-page/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 
 /**
@@ -127,7 +127,7 @@ export function InfoCol({
   // Click-to-define, the shared popover the word lists and turn logs use.
   const { define, popover } = useDefinePopover()
   // Pointer-only, deliberately: NOT focusable, no role="button". See
-  // common/utilities.css → `.definable` for why every definable word is like this.
+  // common/core-css/utilities.css → `.definable` for why every definable word is like this.
   const defineProps = (word: string) => ({
     className: 'definable',
     title: 'Click to define',

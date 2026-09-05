@@ -1,7 +1,7 @@
 // cs-unmet
 
-import type { TimerMode } from '../../common/lib/gameManifest'
-import type { SetupOf } from '../../common/lib/setup/setupForm'
+import type { TimerMode } from '@/common/manifest/gameManifest'
+import type { SetupOf } from '@/common/setup-form/setupForm'
 
 /**
  * codenamesduet's per-game setup — the choices collected by the

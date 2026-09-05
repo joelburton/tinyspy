@@ -221,7 +221,7 @@ describe('CSS custom-property tokens', () => {
    * **A reserved cell in a color family is not dead**, and it no longer needs an
    * exception here to prove it. A family is picked at one sitting by one formula,
    * including the cells nothing consumes yet, and
-   * `common/components/palette/palette.ts` reads every one of them — so the
+   * `common/devtools/palette.ts` reads every one of them — so the
    * palette page is the reader, and this guard keeps its teeth everywhere else.
    * That replaced a hand-maintained allow-list, which had to argue its own case
    * in a paragraph and got argued with anyway.
@@ -250,7 +250,7 @@ describe('CSS custom-property tokens', () => {
     expect(
       dead,
       `Defined but never read via var() — delete them. If the token is a reserved cell in a ` +
-        `color family, it belongs on the palette page (common/components/palette/palette.ts), ` +
+        `color family, it belongs on the palette page (common/devtools/palette.ts), ` +
         `which is what keeps it alive:\n${dead.join('\n')}`,
     ).toEqual([])
 
@@ -292,7 +292,7 @@ describe('CSS custom-property tokens', () => {
  * anything.
  */
 describe('button shape and treatment are separate', () => {
-  const BUTTON_CSS = join(SRC, 'common/components/buttons/StandardButton.module.css')
+  const BUTTON_CSS = join(SRC, 'common/buttons/StandardButton.module.css')
 
   /** The declarations of a top-level rule in the module, by exact selector. */
   const ruleBody = (selector: string) => {

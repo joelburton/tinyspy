@@ -26,10 +26,10 @@ const { keyCfg, mockStart, mockRpc } = vi.hoisted(() => ({
 }))
 
 vi.mock('../db', () => ({ db: { rpc: mockRpc } }))
-vi.mock('../../common/hooks/ui/useDragGesture', () => ({
+vi.mock('@/shared/grid-and-drag/useDragGesture', () => ({
   useDragGesture: () => ({ drag: null, hover: null, start: mockStart }),
 }))
-vi.mock('../../common/hooks/input/useBoardCursorKeys', () => ({
+vi.mock('@/shared/board-cursor/useBoardCursorKeys', () => ({
   useBoardCursorKeys: (cfg: typeof keyCfg.current) => {
     keyCfg.current = cfg
   },

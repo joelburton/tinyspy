@@ -1,14 +1,14 @@
 // cs-unmet
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { supabase } from '../../common/lib/supabase/supabase'
-import { channelDedupSuffix } from '../../common/lib/supabase/channelDedup'
-import { onPostgresAttached } from '../../common/lib/supabase/postgresAttached'
-import { readRows, runRpc } from '../../common/lib/supabase/dbResult'
-import type { Envelope } from '../../common/lib/supabase/envelope'
+import { supabase } from '@/common/supabase/supabase'
+import { channelDedupSuffix } from '@/common/realtime/channelDedup'
+import { onPostgresAttached } from '@/common/realtime/postgresAttached'
+import { readRows, runRpc } from '@/common/supabase/dbResult'
+import type { Envelope } from '@/common/supabase/envelope'
 import { db } from '../db'
 import type { MarkSide, MarkType } from '../lib/types'
-import { reportUnhandled } from '../../common/lib/supabase/dbEnvelope'
+import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
 export type CellState = {
   fill: string | null

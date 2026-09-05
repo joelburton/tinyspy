@@ -70,7 +70,7 @@ const WRAPPERS = [
  * examples, which is the subject matter — the same trap `serverErrorKeys`
  * fell into by counting prose as usage.
  */
-const DEFINES_THEM = 'src/common/lib/supabase/dbResult.ts'
+const DEFINES_THEM = 'src/common/supabase/dbResult.ts'
 
 function sourceFiles(dir: string): string[] {
   return readdirSync(dir).flatMap((entry) => {
@@ -149,7 +149,7 @@ function callSites(src: string, name: string) {
  * be the tail wagging the dog.
  */
 const BUILDER_IN_A_VARIABLE = new Set([
-  'src/common/hooks/scratchpad/useScratchpad.ts',
+  'src/common/scratchpad/useScratchpad.ts',
   // crosswords' cells read has the identical shape, for the identical reason:
   // the shared grid needs `.is('owner_id', null)` and a private one
   // `.eq('owner_id', id)`, so only the last link differs.

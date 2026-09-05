@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react'
 import { SCOPE_LABEL, type Scope } from '../lib/types'
-import { cls } from '../../common/lib/util/cls'
+import { cls } from '@/common/utils/cls'
 import styles from './Controls.module.css'
 
 type Props = {

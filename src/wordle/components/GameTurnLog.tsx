@@ -1,14 +1,14 @@
 // cs-unmet
 
 import type { MouseEvent } from 'react'
-import { TurnLogActor } from '../../common/components/game/lists/TurnLogActor'
-import { cls } from '../../common/lib/util/cls'
-import { memberById } from '../../common/lib/members/memberList'
-import { useTurnLogPlayerPicker } from '../../common/hooks/game/useTurnLogPlayerPicker'
-import { useDefinePopover } from '../../common/hooks/definitions/useDefinePopover'
-import { TurnLog, TurnLogBar, TurnLogNumber } from '../../common/components/game/lists/TurnLog'
-import turnLog from '../../common/components/game/lists/TurnLog.module.css'
-import type { Member } from '../../common/lib/members/member'
+import { TurnLogActor } from '@/common/turn-log/TurnLogActor'
+import { cls } from '@/common/utils/cls'
+import { memberById } from '@/common/members/memberList'
+import { useTurnLogPlayerPicker } from '@/common/turn-log/useTurnLogPlayerPicker'
+import { useDefinePopover } from '@/common/definitions/useDefinePopover'
+import { TurnLog, TurnLogBar, TurnLogNumber } from '@/common/turn-log/TurnLog'
+import turnLog from '@/common/turn-log/TurnLog.module.css'
+import type { Member } from '@/common/members/member'
 import { tileColor } from '../lib/colors'
 import type { GuessRow } from '../hooks/useGame'
 import styles from './GameTurnLog.module.css'
@@ -89,13 +89,13 @@ export function GameTurnLog({
   // shows MY board, so their rows stay a plain, read-only `#N` (no replay).
   const boardIsShown = who.boardIsShown
 
-  // Click-to-define (a common feature — see common/hooks/definitions/useDefinePopover). Every
+  // Click-to-define (a common feature — see common/definitions/useDefinePopover). Every
   // wordle guess is a legal dictionary word, so the whole guess is definable — the
   // affordance rides the WORD (the five-square group), not the individual cells, so
   // one click looks up the guess. Guesses are stored lowercase, which the lookup wants.
   const { define, popover } = useDefinePopover()
   // Pointer-only, deliberately: NOT focusable, no `role="button"`. See
-  // common/utilities.css → `.definable` for why every definable word is like this.
+  // common/core-css/utilities.css → `.definable` for why every definable word is like this.
   const defineProps = (word: string) => ({
     className: cls(styles.squares, styles.definable),
     title: 'Click to define',

@@ -1,19 +1,19 @@
 // cs-unmet
 
-import { SetupCoopStyleSection } from '../../common/components/setup/SetupCoopStyleSection'
-import { PlayersSection } from '../../common/components/setup/PlayersSection'
-import { DictBandField } from '../../common/components/fields/DictBandField'
-import { SelectField } from '../../common/components/fields/SelectField'
-import { SetupTimerSection } from '../../common/components/setup/SetupTimerSection'
-import { SetupNextPuzzleSection } from '../../common/components/setup/SetupNextPuzzleSection'
-import { SetupSection } from '../../common/components/setup/SetupSection'
-import { difficultyValue } from '../../common/lib/game/difficulty'
-import type { SetupBodyProps, SetupSetter } from '../../common/lib/setup/setupForm'
-import { FORM_ERROR_KEYNAME } from '../../common/components/fields/formState'
-import { runRpc } from '../../common/lib/supabase/dbResult'
+import { SetupCoopStyleSection } from '@/common/setup-form/SetupCoopStyleSection'
+import { PlayersSection } from '@/common/setup-form/PlayersSection'
+import { DictBandField } from '@/common/fields/DictBandField'
+import { SelectField } from '@/common/fields/SelectField'
+import { SetupTimerSection } from '@/common/setup-form/SetupTimerSection'
+import { SetupNextPuzzleSection } from '@/common/setup-form/SetupNextPuzzleSection'
+import { SetupSection } from '@/common/setup-form/SetupSection'
+import { difficultyValue } from '@/common/setup-form/difficulty'
+import type { SetupBodyProps, SetupSetter } from '@/common/setup-form/setupForm'
+import { FORM_ERROR_KEYNAME } from '@/common/forms/formState'
+import { runRpc } from '@/common/supabase/dbResult'
 import { db } from '../db'
 import type { PuzzleAnswer, StrandsValues } from '../lib/setup'
-import { reportUnhandled } from '../../common/lib/supabase/dbEnvelope'
+import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
 /**
  * strands' setup form.

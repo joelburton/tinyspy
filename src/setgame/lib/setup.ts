@@ -1,9 +1,9 @@
 // cs-unmet
 
-import type { TimerMode } from '../../common/lib/gameManifest'
-import type { SetupOf } from '../../common/lib/setup/setupForm'
-import type { FormErrors } from '../../common/components/fields/formState'
-import type { CoopTurnSetup } from '../../common/components/setup/SetupCoopStyleSection'
+import type { TimerMode } from '@/common/manifest/gameManifest'
+import type { SetupOf } from '@/common/setup-form/setupForm'
+import type { FormErrors } from '@/common/forms/formState'
+import type { CoopTurnSetup } from '@/common/setup-form/SetupCoopStyleSection'
 import type { DeckKind } from './cards'
 
 /**

@@ -1,8 +1,8 @@
 // cs-unmet
 
-import type { PrintHeader , SetupRow } from '../../common/pdf/frame'
-import type { TurnRow } from '../../common/pdf/turnLog'
-import { tileColor, type TileColor } from '../../common/lib/color/tileColor'
+import type { PrintHeader , SetupRow } from '@/common/pdf/frame'
+import type { TurnRow } from '@/common/pdf/turnLog'
+import { tileColor, type TileColor } from '@/shared/wordle-style/tileColor'
 import { coord, isHole } from '../lib/waffle'
 import type { SwapRow } from '../hooks/useGame'
 

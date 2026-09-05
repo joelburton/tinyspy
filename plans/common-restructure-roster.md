@@ -14,6 +14,23 @@
 
 Generated 2026-09-04. Regenerate rather than hand-edit when a ruling changes.
 
+**Two files were renamed on arrival**, because a component and a same-named
+lowercase module cannot share a folder on a case-insensitive filesystem
+(`./menu` and `./Menu` resolve to the same file):
+
+| roster row | landed as |
+|---|---|
+| `lib/menu/menu.ts` → `common/menu` | `common/menu/menuModel.ts` |
+| `test/filterSelect.ts` → `common/lists` | `common/lists/filterSelectHelpers.ts` |
+
+**And one row changed destination**, ruled by Joel on 2026-09-04 once the
+common-never-imports-shared guard surfaced the edge (see
+[common-restructure.md](common-restructure.md) §7a):
+
+| roster row | landed as |
+|---|---|
+| `pdf/tiles.ts` → `common/pdf` | `shared/wordle-style/pdfTiles.ts` |
+
 
 ### `common/account` — 6 files
 

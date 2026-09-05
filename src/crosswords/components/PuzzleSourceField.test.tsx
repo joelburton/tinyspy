@@ -20,8 +20,8 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { PuzzleSourceField } from './PuzzleSourceField'
 import { summarize } from '../lib/puzzleSummary'
-import { errorUnder } from '../../common/components/fields/errorUnder'
-import { expectFieldContract } from '../../common/components/fields/fieldContract'
+import { errorUnder } from '@/common/fields/errorUnder'
+import { expectFieldContract } from '@/common/fields/fieldContract'
 import type { PuzzleChoice } from '../lib/setup'
 
 // jsdom doesn't implement scrollIntoView, and SelectionList keeps its cursor

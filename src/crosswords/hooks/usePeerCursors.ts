@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { RealtimeChannel } from '@supabase/supabase-js'
-import { supabase } from '../../common/lib/supabase/supabase'
-import { channelLeaving, releaseChannel } from '../../common/lib/supabase/channelTeardown'
+import { supabase } from '@/common/supabase/supabase'
+import { channelLeaving, releaseChannel } from '@/common/realtime/channelTeardown'
 import type { Cursor } from '../lib/cursor'
 
 export type PeerCursor = { row: number; col: number; color: string }
@@ -161,7 +161,7 @@ export function usePeerCursors(
     // Stable ROOM name (peer presence + cursor Broadcast need every peer on
     // the same topic), so a remount inside the previous mount's leave
     // round-trip would otherwise be handed the dying channel. See
-    // common/lib/supabase/channelTeardown.ts.
+    // common/realtime/channelTeardown.ts.
     const pending = channelLeaving(room)
     if (pending) void pending.then(join)
     else join()

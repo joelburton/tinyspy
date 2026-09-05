@@ -1,7 +1,7 @@
 /* cs-unmet */
 
 /* letterboxed's play-surface layout. The standard v3 two-column shell does the
- * heavy lifting (common/components/game/PlayArea.module.css); this file only
+ * heavy lifting (common/game-page/PlayArea.module.css); this file only
  * carries what the square board and the chain readouts need. */
 
 /* Every game declares its own info-column width HERE, and the shared

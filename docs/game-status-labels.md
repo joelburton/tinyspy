@@ -238,7 +238,7 @@ hand-maintained: those expressions live in SQL, out of reach of the FE.
 ## The status-line grammar
 
 Every line above is built from the same four leading words and two devices, via the
-helpers in [`common/lib/game/statusLabel.ts`](../src/common/lib/game/statusLabel.ts):
+helpers in [`common/lib/game/statusLabel.ts`](../src/common/manifest/statusLabel.ts):
 
 ```
 OUTCOME (why) · other · facts

@@ -1,11 +1,11 @@
 // cs-unmet
 
 import { lazy } from 'react'
-import { runRpc } from '../common/lib/supabase/dbResult'
-import type { CreatedGame, GameManifest } from '../common/lib/gameManifest'
+import { runRpc } from '@/common/supabase/dbResult'
+import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { db } from './db'
-import { count, outcome, statusLine } from '../common/lib/game/statusLabel'
-import { makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
+import { count, outcome, statusLine } from '@/common/manifest/statusLabel'
+import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
 import {
   DEFAULT_STRANDS_SETUP_COMPETE,
   DEFAULT_STRANDS_SETUP_COOP,

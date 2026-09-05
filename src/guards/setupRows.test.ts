@@ -1,9 +1,9 @@
 // cs-unmet
 
 import { describe, expect, it } from 'vitest'
-import { gametypes as GAMES } from '../gametypes'
-import { ROSTER_KEY, type SetupRow } from '../common/lib/game/setupRows'
-import type { Member } from '../common/lib/members/member'
+import { gametypes as GAMES } from '@/gametypes'
+import { ROSTER_KEY, type SetupRow } from '@/common/setup-form/setupRows'
+import type { Member } from '@/common/members/member'
 
 /**
  * The roster-wide guard on setup recaps (docs/pdf.md → Setup rows).

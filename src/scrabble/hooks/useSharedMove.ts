@@ -1,8 +1,8 @@
 // cs-unmet
 
 import { useCallback, useEffect, useRef } from 'react'
-import { supabase } from '../../common/lib/supabase/supabase'
-import { channelLeaving, releaseChannel } from '../../common/lib/supabase/channelTeardown'
+import { supabase } from '@/common/supabase/supabase'
+import { channelLeaving, releaseChannel } from '@/common/realtime/channelTeardown'
 import type { Placement } from '../lib/play'
 
 /**
@@ -77,7 +77,7 @@ export function useSharedMove({
 
     // Stable ROOM name (peers must share the topic), so a remount inside the
     // previous mount's leave round-trip would otherwise be handed the dying
-    // channel. See common/lib/supabase/channelTeardown.ts.
+    // channel. See common/realtime/channelTeardown.ts.
     const pending = channelLeaving(room)
     if (pending) void pending.then(join)
     else join()

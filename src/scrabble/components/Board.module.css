@@ -21,7 +21,7 @@
 }
 
 /* The "you're viewing a past turn" board frame is the shared yellow outline — see
-   common/components/game/lists/historyViewer.module.css (.frame), applied in Board.tsx. */
+   common/turn-log/historyViewer.module.css (.frame), applied in Board.tsx. */
 
 .cell,
 /* @@ */ .tile {
@@ -170,7 +170,7 @@
 /* The keyboard cursor's one game-specific declaration: it hugs the cell it sits
  * in, and scrabble's cells are 3px (`.cell, .tile` above). The ring itself — the
  * thick-on-the-axis shape and its direction variants — is the shared
- * common/components/game/gridCursor.module.css. */
+ * shared/board-cursor/gridCursor.module.css. */
 /* @@ */ .cursor {
   border-radius: 3px;
 }

@@ -58,13 +58,13 @@ const KNOWN: string[] = [
   'src/codenamesduet/components/CluePanel.tsx › onError',
   'src/codenamesduet/components/CluePanel.tsx › SuggestedClue',
   // → common — club-page / hooks / common-hosts / shared-game-chrome
-  'src/common/components/account/EditProfileModal.tsx › Values',
-  'src/common/components/club/CreateClubModal.tsx › Values',
-  'src/common/components/club/EditClubModal.tsx › Values',
-  'src/common/components/definitions/AnagramDialog.tsx › Values',
-  'src/common/components/game/GamePage.tsx › PEER_PILL_MS',
-  'src/common/hooks/scratchpad/useScratchpad.ts › SavedPad',
-  'src/common/hooks/session/useProfile.ts › useCurrentProfile',
+  'src/common/account/EditProfileModal.tsx › Values',
+  'src/common/club/CreateClubModal.tsx › Values',
+  'src/common/club/EditClubModal.tsx › Values',
+  'src/common/anagram-finder/AnagramDialog.tsx › Values',
+  'src/common/game-page/GamePage.tsx › PEER_PILL_MS',
+  'src/common/scratchpad/useScratchpad.ts › SavedPad',
+  'src/common/session/useProfile.ts › useCurrentProfile',
   // → connections
   'src/connections/components/BoardCol.tsx › GuessAnswer',
   // → crosswords

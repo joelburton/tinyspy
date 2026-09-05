@@ -14,14 +14,14 @@
  *
  * Unlike boggle's dict.ts there are no per-band tries: we build ONE
  * all-bands trie whose terminals carry each word's difficulty (rated
- * terminals — see `src/common/lib/game/trie.ts`), and the per-game band
+ * terminals — see `src/shared/dict-trie/trie.ts`), and the per-game band
  * check happens at query time via the `isLegal` predicate. Memoised as a
  * per-isolate singleton, so warm invocations skip both the gzip decode and
  * the build.
  */
 
-import { buildTrie } from '../../../src/common/lib/game/trie.ts'
-import type { Trie } from '../../../src/common/lib/game/trie.ts'
+import { buildTrie } from '../../../src/shared/dict-trie/trie.ts'
+import type { Trie } from '../../../src/shared/dict-trie/trie.ts'
 import { WORDLIST_GZ_B64 } from './wordlist.ts'
 
 let triePromise: Promise<Trie> | null = null

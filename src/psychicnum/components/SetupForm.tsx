@@ -1,14 +1,14 @@
 // cs-unmet
 
-import { SetupTimerSection } from '../../common/components/setup/SetupTimerSection'
-import { SetupCoopStyleSection } from '../../common/components/setup/SetupCoopStyleSection'
-import { DictBandField } from '../../common/components/fields/DictBandField'
-import { SelectField } from '../../common/components/fields/SelectField'
-import { RadioRow } from '../../common/components/fields/RadioRow'
-import { SetupSection } from '../../common/components/setup/SetupSection'
-import { PlayersSection } from '../../common/components/setup/PlayersSection'
-import { difficultyValue } from '../../common/lib/game/difficulty'
-import type { SetupBodyProps, SetupSetter } from '../../common/lib/setup/setupForm'
+import { SetupTimerSection } from '@/common/setup-form/SetupTimerSection'
+import { SetupCoopStyleSection } from '@/common/setup-form/SetupCoopStyleSection'
+import { DictBandField } from '@/common/fields/DictBandField'
+import { SelectField } from '@/common/fields/SelectField'
+import { RadioRow } from '@/common/fields/RadioRow'
+import { SetupSection } from '@/common/setup-form/SetupSection'
+import { PlayersSection } from '@/common/setup-form/PlayersSection'
+import { difficultyValue } from '@/common/setup-form/difficulty'
+import type { SetupBodyProps, SetupSetter } from '@/common/setup-form/setupForm'
 import {
   GUESS_OPTIONS,
   WORD_COUNT_OPTIONS,

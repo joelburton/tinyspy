@@ -1,11 +1,11 @@
 // cs-unmet
 
 import { lazy } from 'react'
-import type { CreatedGame, GameManifest } from '../common/lib/gameManifest'
+import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { db } from './db'
-import { count, outcome, statusLine, wonBy } from '../common/lib/game/statusLabel'
-import { makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
-import { runEdgeFn } from '../common/lib/supabase/dbResult'
+import { count, outcome, statusLine, wonBy } from '@/common/manifest/statusLabel'
+import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
+import { runEdgeFn } from '@/common/supabase/dbResult'
 import {
   DEFAULT_WORDIPLY_SETUP_COMPETE,
   DEFAULT_WORDIPLY_SETUP_COOP,

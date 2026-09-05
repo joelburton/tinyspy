@@ -1,11 +1,11 @@
 // cs-unmet
 
 import { lazy } from 'react'
-import { runRpc } from '../common/lib/supabase/dbResult'
-import type { CommonGameListRow, CreatedGame, GameManifest } from '../common/lib/gameManifest'
+import { runRpc } from '@/common/supabase/dbResult'
+import type { CommonGameListRow, CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { db } from './db'
-import { count, dictLabel, outcome, setupNum, statusLine, wonBy } from '../common/lib/game/statusLabel'
-import { makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
+import { count, dictLabel, outcome, setupNum, statusLine, wonBy } from '@/common/manifest/statusLabel'
+import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
 import { DEFAULT_WORDLE_SETUP, legalGuessError, type WordleSetup } from './lib/setup'
 import logoUrl from './logo.svg?url'
 
@@ -51,7 +51,7 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
 }
 
 // Timeout (fired by every client on countdown expiry) + manual end — the shared
-// one-arg RPC dispatchers (see common/lib/game/manifestRpcs).
+// one-arg RPC dispatchers (see common/manifest/manifestRpcs).
 const submitTimeout = makeRpcDispatcher(db, 'submit_timeout')
 const endGame = makeRpcDispatcher(db, 'end_game')
 

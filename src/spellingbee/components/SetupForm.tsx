@@ -1,16 +1,16 @@
 // cs-unmet
 
-import { DictBandField } from '../../common/components/fields/DictBandField'
-import { PlayersSection } from '../../common/components/setup/PlayersSection'
-import { SelectField } from '../../common/components/fields/SelectField'
-import { SetupTimerSection } from '../../common/components/setup/SetupTimerSection'
-import { SetupSection } from '../../common/components/setup/SetupSection'
-import { difficultyValue } from '../../common/lib/game/difficulty'
-import type { SetupBodyProps, SetupSetter } from '../../common/lib/setup/setupForm'
-import { RANKS } from '../../common/lib/game/rankLadder'
+import { DictBandField } from '@/common/fields/DictBandField'
+import { PlayersSection } from '@/common/setup-form/PlayersSection'
+import { SelectField } from '@/common/fields/SelectField'
+import { SetupTimerSection } from '@/common/setup-form/SetupTimerSection'
+import { SetupSection } from '@/common/setup-form/SetupSection'
+import { difficultyValue } from '@/common/setup-form/difficulty'
+import type { SetupBodyProps, SetupSetter } from '@/common/setup-form/setupForm'
+import { RANKS } from '@/shared/rank-ladder/rankLadder'
 import type { SpellingbeeValues } from '../lib/setup'
-import { ManualBoardField } from '../../common/components/fields/ManualBoardField'
-import { groupTiles } from '../../common/components/fields/groupTiles'
+import { ManualBoardField } from '@/common/fields/ManualBoardField'
+import { groupTiles } from '@/common/fields/groupTiles'
 
 /** Normalize a letter input: lowercase, drop anything but a–z, cap the length.
  *  Keeps state canonical (lowercase, letters-only) so validation + the edge

@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from 'vitest'
 import { generateBoard, rollBoard } from './generate'
-import { mulberry32 } from '../../common/lib/util/mulberry32'
+import { mulberry32 } from '@/common/utils/mulberry32'
 import { DICE_BY_NAME } from './dice'
 import { buildTrie } from './solver'
 import { boggleSolverFixture as fixture } from './solver.fixture'

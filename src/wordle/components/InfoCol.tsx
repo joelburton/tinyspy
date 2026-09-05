@@ -1,25 +1,25 @@
 // cs-unmet
 
-import { cls } from '../../common/lib/util/cls'
-import { TerminalActionRow } from '../../common/components/game/terminal/TerminalActionRow'
-import { LocalTerminalRow } from '../../common/components/game/terminal/LocalTerminalRow'
-import { OpponentStrip } from '../../common/components/game/OpponentStrip'
-import { EndGameButton } from '../../common/components/buttons/EndGameButton'
-import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
-import { RevealButton } from '../../common/components/buttons/RevealButton'
-import { NewGameButton } from '../../common/components/buttons/NewGameButton'
-import { BackToClubButton } from '../../common/components/buttons/BackToClubButton'
-import { RestartButton } from '../../common/components/buttons/RestartButton'
-import type { SetupRow } from '../../common/lib/game/setupRows'
-import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
-import { useDefinePopover } from '../../common/hooks/definitions/useDefinePopover'
-import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
-import type { Member } from '../../common/lib/members/member'
+import { cls } from '@/common/utils/cls'
+import { TerminalActionRow } from '@/common/terminal/TerminalActionRow'
+import { LocalTerminalRow } from '@/common/terminal/LocalTerminalRow'
+import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
+import { EndGameButton } from '@/common/buttons/EndGameButton'
+import { ConcedeGameButton } from '@/common/buttons/ConcedeGameButton'
+import { RevealButton } from '@/common/buttons/RevealButton'
+import { NewGameButton } from '@/common/buttons/NewGameButton'
+import { BackToClubButton } from '@/common/buttons/BackToClubButton'
+import { RestartButton } from '@/common/buttons/RestartButton'
+import type { SetupRow } from '@/common/setup-form/setupRows'
+import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
+import { useDefinePopover } from '@/common/definitions/useDefinePopover'
+import type { TerminalCopy } from '@/common/terminal/terminalCopy'
+import type { Member } from '@/common/members/member'
 import type { WordlePlayerState, GuessRow } from '../hooks/useGame'
 import type { WordleSetup } from '../lib/setup'
 import { GameTurnLog } from './GameTurnLog'
-import { TurnStatusLine } from '../../common/components/game/TurnStatusLine'
-import shared from '../../common/components/game/PlayArea.module.css'
+import { TurnStatusLine } from '@/common/turn-log/TurnStatusLine'
+import shared from '@/common/game-page/PlayArea.module.css'
 import styles from './InfoCol.module.css'
 
 /**
@@ -266,7 +266,7 @@ export function InfoCol({
             <p className={cls(shared.infoState, styles.answerLine)}>
               The answer was{' '}
               {/* Pointer-only, deliberately: NOT focusable, no `role="button"`.
-                  See common/utilities.css → `.definable`. */}
+                  See common/core-css/utilities.css → `.definable`. */}
               <strong
                 className={cls('definable', styles.answerReveal)}
                 title="Click to define"

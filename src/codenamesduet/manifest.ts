@@ -1,11 +1,11 @@
 // cs-unmet
 
 import { lazy } from 'react'
-import { runRpc } from '../common/lib/supabase/dbResult'
-import type { CreatedGame, GameManifest } from '../common/lib/gameManifest'
+import { runRpc } from '@/common/supabase/dbResult'
+import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { db } from './db'
-import { makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
-import { count, outcome, statusLine, tally } from '../common/lib/game/statusLabel'
+import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
+import { count, outcome, statusLine, tally } from '@/common/manifest/statusLabel'
 import { DEFAULT_CODENAMESDUET_SETUP, type CodenamesduetSetup } from './lib/setup'
 import logoUrl from './logo.svg?url'
 
@@ -68,7 +68,7 @@ export const codenamesduetGame: GameManifest = {
   // radio. The Component is lazy-loaded so the form ships in
   // codenamesduet's chunk (not the registry); `defaults` is a tiny
   // literal that travels with the manifest itself. See
-  // src/common/lib/setup/setupForm.ts for why this split.
+  // src/common/setup-form/setupForm.ts for why this split.
   setupForm: {
     Component: lazy(() =>
       import('./components/SetupForm').then((m) => ({ default: m.SetupForm })),
@@ -121,7 +121,7 @@ export const codenamesduetGame: GameManifest = {
   // common.games.status.outcome='timeout' — the play_state carries the verdict,
   // the outcome names the cause. Idempotent, so peers racing to
   // fire it is fine. end_game is the irreversible in-game "End game" button.
-  // Both are the shared one-arg dispatchers (see common/lib/game/manifestRpcs).
+  // Both are the shared one-arg dispatchers (see common/manifest/manifestRpcs).
   submitTimeout: makeRpcDispatcher(db, 'submit_timeout'),
   endGame: makeRpcDispatcher(db, 'end_game'),
 }

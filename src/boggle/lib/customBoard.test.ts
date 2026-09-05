@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest'
 import { DICE_SETS } from './dice'
 import { rollBoard } from './generate'
-import { mulberry32 } from '../../common/lib/util/mulberry32'
+import { mulberry32 } from '@/common/utils/mulberry32'
 import { capBoard, cleanCustomBoard, formatBoard, parseCustomBoard, readTiles } from './customBoard'
 
 /**

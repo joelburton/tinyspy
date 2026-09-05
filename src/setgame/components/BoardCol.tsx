@@ -1,16 +1,16 @@
 // cs-unmet
 
-import { cls } from '../../common/lib/util/cls'
-import { GenericFeedbackPill } from '../../common/components/feedback/GenericFeedbackPill'
-import { HintButton } from '../../common/components/buttons/HintButton'
-import { MobileStatusBar } from '../../common/components/game/MobileStatusBar'
-import type { GenericFeedbackMsg } from '../../common/lib/feedback/genericFeedback'
+import { cls } from '@/common/utils/cls'
+import { GenericFeedbackPill } from '@/common/feedback/GenericFeedbackPill'
+import { HintButton } from '@/common/buttons/HintButton'
+import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
+import type { GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
 import type { Card as CardCode } from '../lib/cards'
 import type { FlashKind } from '../lib/flash'
 import { Board } from './Board'
 import { Counts } from './Counts'
 import { countsFor, hintLabel } from '../lib/readouts'
-import shared from '../../common/components/game/PlayArea.module.css'
+import shared from '@/common/game-page/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 
 type Props = {

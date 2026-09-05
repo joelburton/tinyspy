@@ -1,13 +1,13 @@
 // cs-unmet
 
 import { useState } from 'react'
-import { useRealtimeRefetch } from '../../common/hooks/realtime/useRealtimeRefetch'
+import { useRealtimeRefetch } from '@/common/realtime/useRealtimeRefetch'
 import { db } from '../db'
-import { db as commonDb } from '../../common/db'
-import { readRows } from '../../common/lib/supabase/dbResult'
-import type { NotOkEnv } from '../../common/lib/supabase/envelope'
-import type { Member } from '../../common/lib/members/member'
-import type { Database } from '../../types/db'
+import { db as commonDb } from '@/common/supabase/db'
+import { readRows } from '@/common/supabase/dbResult'
+import type { NotOkEnv } from '@/common/supabase/envelope'
+import type { Member } from '@/common/members/member'
+import type { Database } from '@/types/db'
 
 // Narrower than Database[...]['Row'] — see code-conventions.md's "Avoid
 // SELECT *". Adding a new column to codenamesduet.games requires

@@ -1,15 +1,15 @@
 // cs-unmet
 
-import type { GenericFeedbackMsg } from '../../common/lib/feedback/genericFeedback'
-import { GenericFeedbackPill } from '../../common/components/feedback/GenericFeedbackPill'
-import { ClearButton } from '../../common/components/buttons/ClearButton'
-import { SharePreviewButton } from '../../common/components/buttons/SharePreviewButton'
-import { ExchangeButton } from '../../common/components/buttons/ExchangeButton'
-import { SubmitWithScore } from '../../common/components/buttons/SubmitWithScore'
-import { PassButton } from '../../common/components/buttons/PassButton'
-import { cls } from '../../common/lib/util/cls'
+import type { GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
+import { GenericFeedbackPill } from '@/common/feedback/GenericFeedbackPill'
+import { ClearButton } from '@/common/buttons/ClearButton'
+import { SharePreviewButton } from '@/common/buttons/SharePreviewButton'
+import { ExchangeButton } from '@/common/buttons/ExchangeButton'
+import { SubmitWithScore } from '@/common/buttons/SubmitWithScore'
+import { PassButton } from '@/common/buttons/PassButton'
+import { cls } from '@/common/utils/cls'
 import styles from './PlayArea.module.css'
-import shared from '../../common/components/game/PlayArea.module.css'
+import shared from '@/common/game-page/PlayArea.module.css'
 
 /**
  * The action half of scrabble's below-board row (the rack — with its floating

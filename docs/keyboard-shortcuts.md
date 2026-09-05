@@ -9,7 +9,7 @@ crosswords is keyboard-first by design, and every word game takes physical keys.
 
 There is almost no `onKeyDown` on the board. A play surface has nothing
 meaningful to focus, so games listen on `window` and share one dispatcher,
-[`useGlobalKeyHandler`](../src/common/hooks/input/useGlobalKeyHandler.ts). Four
+[`useGlobalKeyHandler`](../src/common/keyboard/useGlobalKeyHandler.ts). Four
 gates apply before a key ever reaches game code:
 
 | gate | effect |
@@ -25,14 +25,14 @@ rule in code: the floating-panel gate *is* "this is a real form, the panel owns
 the keyboard", and the focused-text-field gate is what makes category 3 (chat,
 scratchpad, clue fields) work. Note the `<select>` in the first row is now
 almost vestigial outside real forms: gameplay and club-page dropdowns are
-[`FilterSelect`](../src/common/components/game/FilterSelect.tsx), which never
+[`FilterSelect`](../src/common/lists/FilterSelect.tsx), which never
 takes focus, so it never trips that gate at all.
 
 Two consequences worth knowing:
 
 - **The blinking caret is honest.** The simulated caret in an `<EntryBox>` shows
   only while the game actually owns the keyboard
-  ([`useGameHasKeyboard`](../src/common/hooks/input/useGameHasKeyboard.ts)) — it
+  ([`useGameHasKeyboard`](../src/common/game-page/useGameHasKeyboard.ts)) — it
   stops the moment chat takes focus.
 - **Tab is not a navigation key on a board.** Fourteen of the sixteen games
   swallow it (see the per-game table); crosswords uses it for clue navigation
@@ -46,7 +46,7 @@ Two consequences worth knowing:
 
 ## Global — any page with chat and the logo menu (club page + play area)
 
-From [`useAppShortcuts`](../src/common/hooks/input/useAppShortcuts.tsx). These
+From [`useAppShortcuts`](../src/common/keyboard/useAppShortcuts.tsx). These
 fire when nothing is focused **and** while a *game* input is focused
 (codenamesduet's clue field, psychicnum's guess box — they opt in with
 `data-game-input`), so you can hit `/` to chat without clicking away first. They
@@ -61,7 +61,7 @@ type literally in a non-game field (chat, a setup form, the scratchpad).
 
 ## Global — any play area
 
-From [`GamePage`](../src/common/components/game/GamePage.tsx). All of these bail
+From [`GamePage`](../src/common/game-page/GamePage.tsx). All of these bail
 inside any editable field (so `⌥⌫` stays "delete word" while typing a clue),
 ignore `Cmd`/`Ctrl`, and ignore auto-repeat — every one is a discrete command,
 and holding `+` would otherwise start dozens of games.
@@ -118,7 +118,7 @@ capture keyboard: there is no `<input>` to lose focus when you click a tile.
 
 ## bananagrams
 
-A 2-D board cursor ([`useBoardCursorKeys`](../src/common/hooks/input/useBoardCursorKeys.ts),
+A 2-D board cursor ([`useBoardCursorKeys`](../src/shared/board-cursor/useBoardCursorKeys.ts),
 shared with scrabble). Frozen once you've conceded.
 
 | key | what it does |

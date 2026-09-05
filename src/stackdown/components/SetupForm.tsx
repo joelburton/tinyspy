@@ -1,11 +1,11 @@
 // cs-unmet
 
-import { DictBandField } from '../../common/components/fields/DictBandField'
-import { PlayersSection } from '../../common/components/setup/PlayersSection'
-import { SetupTimerSection } from '../../common/components/setup/SetupTimerSection'
-import { SetupSection } from '../../common/components/setup/SetupSection'
-import { difficultyValue } from '../../common/lib/game/difficulty'
-import type { SetupBodyProps, SetupSetter } from '../../common/lib/setup/setupForm'
+import { DictBandField } from '@/common/fields/DictBandField'
+import { PlayersSection } from '@/common/setup-form/PlayersSection'
+import { SetupTimerSection } from '@/common/setup-form/SetupTimerSection'
+import { SetupSection } from '@/common/setup-form/SetupSection'
+import { difficultyValue } from '@/common/setup-form/difficulty'
+import type { SetupBodyProps, SetupSetter } from '@/common/setup-form/setupForm'
 import type { StackdownValues } from '../lib/setup'
 
 /**

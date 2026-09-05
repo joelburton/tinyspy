@@ -1,14 +1,14 @@
 // cs-unmet
 
-import { DictBandField } from '../../common/components/fields/DictBandField'
-import { PlayersSection } from '../../common/components/setup/PlayersSection'
-import { SetupTimerSection } from '../../common/components/setup/SetupTimerSection'
-import { SetupCoopStyleSection } from '../../common/components/setup/SetupCoopStyleSection'
-import { RadioRow } from '../../common/components/fields/RadioRow'
-import { SelectField } from '../../common/components/fields/SelectField'
-import { SetupSection } from '../../common/components/setup/SetupSection'
-import { difficultyValue } from '../../common/lib/game/difficulty'
-import type { SetupBodyProps, SetupSetter } from '../../common/lib/setup/setupForm'
+import { DictBandField } from '@/common/fields/DictBandField'
+import { PlayersSection } from '@/common/setup-form/PlayersSection'
+import { SetupTimerSection } from '@/common/setup-form/SetupTimerSection'
+import { SetupCoopStyleSection } from '@/common/setup-form/SetupCoopStyleSection'
+import { RadioRow } from '@/common/fields/RadioRow'
+import { SelectField } from '@/common/fields/SelectField'
+import { SetupSection } from '@/common/setup-form/SetupSection'
+import { difficultyValue } from '@/common/setup-form/difficulty'
+import type { SetupBodyProps, SetupSetter } from '@/common/setup-form/setupForm'
 import { AI_BAND, AI_LEVELS, AI_LEVEL_LABEL, type AiLevel, type ScrabbleValues } from '../lib/setup'
 
 /**

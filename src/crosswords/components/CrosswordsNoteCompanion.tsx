@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { Companion } from '../../common/components/floating-panels/Companion'
+import { Companion } from '@/common/floating-panels/Companion'
 import styles from './CrosswordsNoteCompanion.module.css'
 
 type Props = {

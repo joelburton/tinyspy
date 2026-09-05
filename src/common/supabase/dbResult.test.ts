@@ -1,0 +1,896 @@
+// cs-blessed-deep
+
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { PostgrestClient } from '@supabase/postgrest-js'
+import {
+  faultEnvelope, nothingReachedUs, reportDbFault, reportUnhandled,
+} from './dbEnvelope'
+import { diagnosticsLine, logDb, logSlow } from './dbLog'
+import { _isEnvelope, notOkOutcome, readRows, runEdgeFn, runRpc } from './dbResult'
+import { clearFaultsForTest, peekFaultsForTest } from '../faults/faultStore'
+
+const { mockInvoke } = vi.hoisted(() => ({ mockInvoke: vi.fn() }))
+vi.mock('./supabase', () => ({ supabase: { functions: { invoke: mockInvoke } } }))
+
+/**
+ * The server-result wrappers' own tests (docs/envelopes.md).
+ *
+ * The load-bearing one: zero rows must be `ok`. An empty result is a correct
+ * protocol answer, and only a caller can know it is impossible — so a helper
+ * that treated it as a failure would take that judgment away from the one place
+ * that has it.
+ */
+
+/**
+ * An envelope with EVERY key — the nine that always travel — so an assertion
+ * below states the whole shape rather than a subset of it.
+ *
+ * That is the point of exact equality here: this file is where the shape IS the
+ * contract, and `toMatchObject` would pass an envelope that had quietly lost a
+ * key. Spelling the nulls out at each call site would bury the one or two
+ * fields a given test is actually about.
+ */
+const env = (partial: Record<string, unknown>) => ({
+  type: null,
+  data: null,
+  outcome: null,
+  severity: null,
+  message: null,
+  field: null,
+  meta: null,
+  dbcode: null,
+  detail: null,
+  ...partial,
+})
+
+beforeEach(() => {
+  clearFaultsForTest()
+  vi.spyOn(console, 'error').mockImplementation(() => {})
+})
+
+/**
+ * **Nothing answered: every wrapper says the same thing.**
+ *
+ * This is the guard for the failure that had none, and its absence is why the
+ * two authors drifted (docs/envelopes.md → Who writes the words, per answer).
+ * The sentence for a request that never reached the server — "You appear to be
+ * offline…" — is chosen once, in `dbEnvelope`, and the three wrappers say it.
+ * They used to word it themselves from the browser's own opaque string, so a
+ * player saw a modal and a pill disagreeing about one event.
+ *
+ * `status: 0` is the signal: postgrest-js sets it on its fetch-rejection path
+ * and only there, and `edgeFnTransport` matches it for the same case.
+ *
+ * The browser's string is not thrown away — it moves to `detail`, which is the
+ * one field that separates a dead socket from a TLS failure. It just stops
+ * being the sentence a player reads.
+ */
+describe('a request nothing answered', () => {
+  const OFFLINE = 'You appear to be offline. Please refresh and try again.'
+  const UNREACHABLE =
+    "You appear online, but the server didn't answer. Please refresh and try again."
+
+  /** `navigator.onLine` picks WHICH sentence; both are pinned below. */
+  const setOnline = (online: boolean) =>
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(online)
+
+  const rejected = {
+    data: null,
+    error: { message: 'TypeError: Failed to fetch', code: '' },
+    status: 0,
+  }
+
+  it('readRows says the frontend sentence, not the browser string', async () => {
+    setOnline(false)
+    const r = await readRows(Promise.resolve(rejected))
+    expect(r).toMatchObject({ type: 'not-ok', severity: 'fault', message: OFFLINE })
+  })
+
+  it('runRpc says it too', async () => {
+    setOnline(false)
+    const r = await runRpc(Promise.resolve(rejected))
+    expect(r).toMatchObject({ type: 'not-ok', severity: 'fault', message: OFFLINE })
+  })
+
+  it('runEdgeFn says it too', async () => {
+    setOnline(false)
+    mockInvoke.mockResolvedValue({ data: null, error: { message: 'TypeError: Failed to fetch' } })
+    const r = await runEdgeFn('anything', {})
+    expect(r).toMatchObject({ type: 'not-ok', severity: 'fault', message: OFFLINE })
+  })
+
+  it('picks the unreachable sentence when the device thinks it is online', async () => {
+    setOnline(true)
+    const r = await readRows(Promise.resolve(rejected))
+    expect(r).toMatchObject({ message: UNREACHABLE })
+  })
+
+  it('clamps a server-chosen detail, which the fault modal renders', async () => {
+    // The unparseable body lands here, and a captive portal's page is as long as
+    // it likes. `detail` reaches the screen via reportDbFault -> the modal's
+    // diagnostics line, so it is trimmed to the same 120 the raw-body details use.
+    setOnline(false)
+    const huge = 'x'.repeat(500)
+    const r = await readRows(Promise.reject(new TypeError(huge)))
+    expect(r.detail!.length).toBeLessThan(200)
+    expect(r.detail).toMatch(/…$/)
+  })
+
+  it('keeps the browser string as the DETAIL, where it is worth having', async () => {
+    setOnline(false)
+    const r = await readRows(Promise.resolve(rejected))
+    expect(r.detail).toContain('TypeError: Failed to fetch')
+  })
+
+  // The other half of the rule. Without this, a wrapper that ALWAYS said the
+  // offline sentence would pass every test above.
+  it('leaves a real server error alone — something did answer', async () => {
+    setOnline(false)
+    const r = await readRows(
+      Promise.resolve({
+        data: null,
+        error: { message: 'permission denied', code: '42501' },
+        status: 403,
+      }),
+    )
+    expect(r).toMatchObject({ message: 'permission denied', dbcode: '42501' })
+  })
+
+  // The wrapper presents now — `dbFetch` logs and stops
+  // (docs/envelopes.md → Presenting a fault). This used to assert the opposite, on the
+  // reasoning that a second modal was the same news twice; there is no first
+  // modal any more.
+  it('presents it, because dbFetch no longer does', async () => {
+    setOnline(false)
+    mockInvoke.mockResolvedValue({ data: null, error: { message: 'TypeError: Failed to fetch' } })
+    await runEdgeFn('anything', {})
+    expect(peekFaultsForTest()).toHaveLength(1)
+  })
+
+  // And a caller that took the job gets nothing shown — but the line is still
+  // written, because opting out of the modal is not opting out of the record.
+  it('shows nothing when the caller opted out', async () => {
+    setOnline(false)
+    mockInvoke.mockResolvedValue({ data: null, error: { message: 'TypeError: Failed to fetch' } })
+    await runEdgeFn('anything', {}, { presentFaults: false })
+    expect(peekFaultsForTest()).toHaveLength(0)
+  })
+})
+
+/**
+ * **The verdict `dbFetch` left, read back.**
+ *
+ * The one thing a wrapper cannot work out for itself: postgrest-js flattens a
+ * parsed body and an unparseable one into the same `{ message: string }`, so
+ * Kong's JSON and a captive portal's HTML are indistinguishable by the time
+ * they arrive. `dbFetch` writes which it was into `statusText`, and these pin
+ * that the envelope a call site reads carries it.
+ */
+describe('the verdict from dbFetch', () => {
+  it('turns FE004 into the sentence, not the raw body', async () => {
+    const r = await readRows(
+      Promise.resolve({
+        data: null,
+        error: { message: '<html>502 Bad Gateway</html>' },
+        status: 502,
+        statusText: 'FE004',
+      }),
+    )
+    expect(r).toMatchObject({ type: 'not-ok', dbcode: 'FE004' })
+    expect(r.message).toContain('a server other than ours')
+    // The raw body is not thrown away — it is just not the sentence.
+    expect(r.detail).toContain('502 Bad Gateway')
+  })
+
+  it('turns FE003 into ours-is-down', async () => {
+    const r = await runRpc(
+      Promise.resolve({
+        data: null,
+        error: { message: 'no Route matched with those values' },
+        status: 502,
+        statusText: 'FE003',
+      }),
+    )
+    expect(r).toMatchObject({ type: 'not-ok', dbcode: 'FE003' })
+    expect(r.message).toContain('Our server appears to be down')
+  })
+
+  // The other half: Postgres naming itself needs no verdict, and must not be
+  // overridden by one. Without this, "always trust statusText" would pass.
+  it('leaves a real SQLSTATE alone', async () => {
+    const r = await readRows(
+      Promise.resolve({
+        data: null,
+        error: { message: 'permission denied', code: '42501' },
+        status: 403,
+        statusText: 'Forbidden',
+      }),
+    )
+    expect(r).toMatchObject({ message: 'permission denied', dbcode: '42501' })
+  })
+})
+
+describe('_isEnvelope', () => {
+  it('accepts both branches', () => {
+    expect(_isEnvelope({ type: 'ok' })).toBe(true)
+    expect(_isEnvelope({ type: 'not-ok', severity: 'fault', dbcode: 'PN012' })).toBe(true)
+  })
+
+  // **A refusal with no code cannot be one of ours**: SQL writes the SQLSTATE
+  // unconditionally, Deno's builders require it, and `edgeFnTransport` names every
+  // failure it forwards. So the strictness costs no real answer, and what it
+  // catches is a hand-built shape that would otherwise travel unidentifiable
+  // through every log. An `ok` is unaffected — it has a code only when a raise
+  // wrote one.
+  it('rejects a not-ok that names no code', () => {
+    expect(_isEnvelope({ type: 'not-ok', severity: 'fault', message: 'x' })).toBe(false)
+    expect(_isEnvelope({ type: 'not-ok', severity: 'fault', dbcode: null })).toBe(false)
+    expect(_isEnvelope({ type: 'not-ok', severity: 'fault', dbcode: '' })).toBe(false)
+    expect(_isEnvelope({ type: 'ok', dbcode: null })).toBe(true)
+  })
+
+  // Plenty of non-envelopes arrive on this path; each must fall through cleanly
+  // rather than be half-read as one.
+  it('rejects the other shapes an RPC can return', () => {
+    expect(_isEnvelope('won')).toBe(false)
+    expect(_isEnvelope(3)).toBe(false)
+    expect(_isEnvelope(null)).toBe(false)
+    expect(_isEnvelope([{ id: 'x' }])).toBe(false)
+    expect(_isEnvelope({ result: 'accepted', points: 5 })).toBe(false)
+    expect(_isEnvelope({ type: 'accepted' })).toBe(false)
+  })
+})
+
+describe('readRows', () => {
+  it('hands back the rows on success', async () => {
+    const r = await readRows(Promise.resolve({ data: [{ handle: 'a' }], error: null }))
+    expect(r).toEqual(env({ type: 'ok', data: [{ handle: 'a' }] }))
+  })
+
+  it('treats zero rows as ok, leaving the judgment to the caller', async () => {
+    const r = await readRows(Promise.resolve({ data: [], error: null }))
+    expect(r).toEqual(env({ type: 'ok', data: [] }))
+  })
+
+  it('collapses a null payload to an empty array', async () => {
+    const r = await readRows(Promise.resolve({ data: null, error: null }))
+    expect(r).toEqual(env({ type: 'ok', data: [] }))
+  })
+
+  // A read that failed still comes back as an ENVELOPE — the database didn't
+  // give us one, so we build it, carrying what we know. `detail` joins what the
+  // SERVER said with which read it was; a bare promise has no url, so the label
+  // falls back to `read`.
+  it('builds a fault envelope from a read error', async () => {
+    const r = await readRows(
+      Promise.resolve({ data: null, error: { message: 'nope', code: '42501', details: 'why' } }),
+    )
+    expect(r).toEqual(
+      env({
+        type: 'not-ok', severity: 'fault', message: 'nope', dbcode: '42501',
+        detail: 'why — read',
+      }),
+    )
+  })
+
+  // A THROW is "nothing answered" by another road, so it gets that sentence
+  // rather than the browser's. postgrest-js converts a rejected fetch into
+  // `{ error, status: 0 }` before it reaches here, so what this actually
+  // exercises is a throw from some other layer.
+  it('says the frontend sentence for a thrown rejection too', async () => {
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false)
+    const r = await readRows(Promise.reject(new TypeError('Load failed')))
+    expect(r).toMatchObject({
+      type: 'not-ok',
+      severity: 'fault',
+      message: 'You appear to be offline. Please refresh and try again.',
+    })
+    // Not discarded — kept where it is useful and invisible to players.
+    expect(r.detail).toContain('Load failed')
+    // **And it is REPORTED**, which is the half that was missing. The branch is
+    // unreachable through a real postgrest builder — the library converts every
+    // rejection to `{ status: 0 }` first — so only a hand-built rejection like
+    // this one reaches it. That is exactly why the assertion belongs here: if
+    // the branch ever does fire, it must not fire silently.
+    expect(peekFaultsForTest()).toHaveLength(1)
+  })
+
+  // **Which read it was.** A hook makes several, the player's sentence is
+  // generic by design, and `dbFetch`'s line has this fact while the envelope —
+  // the thing a hook actually KEEPS — did not. Both failure paths carry it.
+  it('names the read in the detail of a server-side failure', async () => {
+    const r = await readRows(
+      Promise.resolve({
+        data: null, error: { message: 'permission denied', code: '42501' }, status: 403,
+      }),
+    )
+    expect(r.detail).toContain('read')
+  })
+
+  it('names it on the nothing-answered path too', async () => {
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false)
+    const r = await readRows(
+      Promise.resolve({ data: null, error: { message: 'TypeError: Failed to fetch' }, status: 0 }),
+    )
+    expect(r.detail).toContain('read')
+    expect(r.detail).toContain('TypeError: Failed to fetch')
+  })
+
+  // ── Pointed at an RPC ────────────────────────────────────────
+  // The cast is the point: TypeScript rejects `readRows(db.rpc(…))` because an
+  // RPC resolves to `data: T | null`, not `Row[]` — but a `returns setof`
+  // function slips through that, and so does any cast. The envelope would
+  // otherwise be nested inside `data`, where its own `type` and `severity`
+  // are invisible to every call site.
+  it('faults when handed an RPC envelope instead of rows', async () => {
+    const envelope = { type: 'not-ok', severity: 'race', message: 'too late', dbcode: 'PN013' }
+    const r = await readRows(
+      Promise.resolve({ data: envelope, error: null }) as unknown as Promise<
+        { data: unknown[] | null; error: null }
+      >,
+    )
+    expect(r).toMatchObject({
+      type: 'not-ok',
+      severity: 'fault',
+      message: 'BUG: a table read did not answer with rows',
+    })
+    expect(r.detail).toContain('an RPC envelope')
+    // The modal is raised here, like every other fault the wrappers detect.
+    expect(peekFaultsForTest()).toHaveLength(1)
+  })
+
+  it('faults on a scalar too, and says what it got', async () => {
+    const r = await readRows(
+      Promise.resolve({ data: 42, error: null }) as unknown as Promise<
+        { data: unknown[] | null; error: null }
+      >,
+    )
+    expect(r).toMatchObject({ type: 'not-ok', severity: 'fault' })
+    expect(r.detail).toContain('a number')
+  })
+})
+
+// Nothing is stripped between the wire and the caller: the plan's rule is that
+// one shape travels all the way through rather than each layer deciding which
+// fields the next one deserves.
+describe('runRpc — one shape, always', () => {
+  it('keeps dbcode and detail on an ok result', async () => {
+    const r = await runRpc<{ n: number }>(
+      Promise.resolve({
+        data: env({ type: 'ok', data: { n: 1 }, outcome: 'warning', dbcode: 'PA004', detail: 'why' }),
+        error: null,
+      }),
+    )
+    expect(r).toEqual(
+      env({ type: 'ok', data: { n: 1 }, outcome: 'warning', dbcode: 'PA004', detail: 'why' }),
+    )
+  })
+
+  // `field` names which input a validation is about, and every form reads it
+  // (`res.field ?? FORM_ERROR_KEYNAME`) — so this pins that the value survives
+  // the trip rather than being dropped in a layer on the way.
+  it('carries the field a validation is about', async () => {
+    const r = await runRpc(
+      Promise.resolve({
+        data: {
+          type: 'not-ok', severity: 'form-validation', field: 'letters',
+          message: '2–15 letters, or ?', dbcode: 'PN001',
+        },
+        error: null,
+      }),
+    )
+    expect(r).toMatchObject({ severity: 'form-validation', field: 'letters' })
+  })
+
+  it('keeps them on a not-ok result too', async () => {
+    const r = await runRpc(
+      Promise.resolve({
+        data: { type: 'not-ok', severity: 'form-validation', message: 'Nope', dbcode: 'PN001', detail: 'why' },
+        error: null,
+      }),
+    )
+    expect(r).toEqual({
+      type: 'not-ok', severity: 'form-validation', message: 'Nope', dbcode: 'PN001', detail: 'why',
+    })
+  })
+
+  // A declared fault passes through UNCHANGED, like any other envelope. The
+  // modal is already up; what keeps a call site from rendering it is that it
+  // bails on anything that isn't `ok`, not that we hid it.
+  it('passes a declared fault through unchanged, and reports it', async () => {
+    const envelope = { type: 'not-ok', severity: 'fault', message: 'Broken', dbcode: 'PN500' }
+    const r = await runRpc(Promise.resolve({ data: envelope, error: null }))
+    expect(r).toEqual(envelope)
+    // It arrives HTTP 200, so the seam never saw it — without this the modal
+    // would never appear and `severity: 'fault'` would mean two different
+    // things depending on how the fault arose.
+    const [fault] = peekFaultsForTest()
+    expect(fault.text).toBe('Broken')
+    expect(fault.diagnostics).toContain('dbcode=PN500')
+  })
+
+  // A declared fault is the ONLY kind `dbFetch` never sees — it arrives HTTP
+  // 200 — so if `runRpc` can't name the call, it is the one fault in the app
+  // that can't say where it came from. The name is not passed in: postgrest-js
+  // builds every call around a `url`, and reading it keeps the line identical
+  // to the seam's with nothing to maintain.
+  //
+  // PINNED because `url` and `method` are `protected` upstream. If a version
+  // bump renames either, this goes red instead of the diagnostics quietly
+  // degrading to "rpc" everywhere.
+  it('names the call in a declared fault, taken from the builder', async () => {
+    // A REAL PostgrestClient, because the whole assertion is about postgrest-js's
+    // internals. A hand-made object with a `url` on it would pass whatever
+    // upstream did.
+    const client = new PostgrestClient('http://local/rest/v1', {
+      fetch: (() =>
+        Promise.resolve(
+          new Response(
+            JSON.stringify({ type: 'not-ok', severity: 'fault', message: 'Broken', dbcode: 'PN500' }),
+            { headers: { 'content-type': 'application/json' } },
+          ),
+        )) as never,
+    })
+    await runRpc(client.schema('common').rpc('create_club', { club_name: 'x' }))
+    const [fault] = peekFaultsForTest()
+    expect(fault.diagnostics).toContain('POST /rest/v1/rpc/create_club')
+  })
+
+  it('falls back to a bare label when the builder has no url', async () => {
+    const envelope = { type: 'not-ok', severity: 'fault', message: 'Broken', dbcode: 'PN500' }
+    await runRpc(Promise.resolve({ data: envelope, error: null }))
+    expect(peekFaultsForTest()[0].diagnostics).toContain('| rpc |')
+  })
+
+  it('builds a fault envelope when the reply is not an envelope at all', async () => {
+    const r = await runRpc(Promise.resolve({ data: 'won', error: null }))
+    expect(r).toMatchObject({ type: 'not-ok', severity: 'fault' })
+    // PN307, not null. The call SUCCEEDED, so there is no Postgres SQLSTATE to
+    // carry — but "the frontend built this envelope" is itself an answer, and
+    // giving it a code is what stopped `useGameTimer` identifying a case by an
+    // absence. The unreadable body survives in `detail`.
+    expect((r as { dbcode: string | null }).dbcode).toBe('PN307')
+    expect((r as { detail?: string }).detail).toBe('rawBody: "won"')
+    expect(peekFaultsForTest()).toHaveLength(1)
+  })
+
+  // Postgres's HINT is the most useful field in many raw faults, and the
+  // envelope has one debugging slot — so it is folded in, not dropped.
+  it("keeps Postgres's hint alongside the detail on a raw fault", async () => {
+    const r = await runRpc(
+      Promise.resolve({
+        data: null,
+        error: {
+          message: 'permission denied for table clubs',
+          code: '42501',
+          details: null,
+          hint: 'Grant the required privileges to the current role',
+        },
+      }),
+    )
+    expect(r).toMatchObject({
+      type: 'not-ok',
+      severity: 'fault',
+      dbcode: '42501',
+      detail: 'Grant the required privileges to the current role',
+    })
+  })
+
+  it('joins detail and hint when both arrive', async () => {
+    const r = await runRpc(
+      Promise.resolve({
+        data: null,
+        error: { message: 'boom', code: '23514', details: 'Failing row contains (…)', hint: 'try less' },
+      }),
+    )
+    expect((r as { detail?: string }).detail).toBe('Failing row contains (…) — try less')
+  })
+})
+
+describe('the [db] line', () => {
+  // Every field prints every time, so the same fact is always in the same
+  // position — a blank is information (no dbcode = nothing raised; no status =
+  // the server never answered).
+  it('emits every field in a fixed order, blank when unknown', () => {
+    expect(diagnosticsLine('SLOW', { call: 'GET /rest/v1/games', status: 200, ms: 5210 })).toMatch(
+      /^\d\d:\d\d:\d\d\.\d\d\d \| SLOW \| GET \/rest\/v1\/games \| severity= \| outcome= \| dbcode= \| status=200 \| ms=5210 \| field= \| detail=$/,
+    )
+  })
+
+  // A blank field is a promise that we LOOKED and there was nothing. A line
+  // written before the body was read can't keep it, so it omits those fields
+  // instead of printing them empty.
+  it('omits the answer fields on the slow line', () => {
+    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    logSlow({ call: 'POST /rest/v1/rpc/delete_game', ms: 5210, detail: 'online=true' })
+    const line = spy.mock.calls[0][0] as string
+    expect(line).toBe(
+      line.replace(/\| (severity|outcome|dbcode|status|field)=/g, '| SHOULD-NOT-BE-HERE='),
+    )
+    expect(line).toContain('| SLOW | POST /rest/v1/rpc/delete_game | ms=5210 |')
+    // Restored so the next test's spy starts empty — `vi.spyOn` on an
+    // already-spied method hands back THIS spy, calls and all.
+    spy.mockRestore()
+  })
+
+  // Postgres hands back hints like `Perhaps you meant "clubs.name"`, and an
+  // unescaped quote breaks the line exactly where it is most worth reading.
+  it('escapes quotes inside free text', () => {
+    const line = diagnosticsLine('FAULT', {
+      call: 'GET /rest/v1/clubs',
+      detail: 'Perhaps you meant "clubs.name".',
+    })
+    expect(line).toContain('detail="Perhaps you meant \\"clubs.name\\"."')
+  })
+
+  // The modal and <ErrorPage> lead with the message, so repeating it under
+  // them would say the same thing twice.
+  it('logs the message but leaves it out of the diagnostics', () => {
+    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const diagnostics = logDb('SERVICE_ERROR', { call: 'POST /rest/v1/rpc/delete_game' }, 'Already deleted')
+    expect(spy.mock.calls[0][0]).toContain('msg="Already deleted"')
+    expect(diagnostics).not.toContain('msg=')
+  })
+})
+
+describe('reportDbFault', () => {
+  // The two details answer different questions — what the SERVER said, and what
+  // the DEVICE knew — so a line carrying one used to silently drop the other.
+  it('keeps the transport detail alongside the envelope one', () => {
+    reportDbFault(
+      { call: 'GET /rest/v1/clubs', detail: 'online=false hidden' },
+      faultEnvelope({ message: 'nope', code: '42501', details: 'why' }, 'fallback', undefined, 'PN900'),
+    )
+    const [fault] = peekFaultsForTest()
+    expect(fault.diagnostics).toContain('online=false hidden')
+    expect(fault.diagnostics).toContain('why')
+  })
+
+  it('words an offline failure itself, naming no action', () => {
+    // `nothingReachedUs` reads `navigator.onLine` rather than taking it, so
+    // that two callers cannot ask the same global and disagree about the answer.
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false)
+    reportDbFault({ call: 'GET /rest/v1/clubs' }, nothingReachedUs())
+    const [fault] = peekFaultsForTest()
+    expect(fault.text).toBe('You appear to be offline. Please refresh and try again.')
+    // It must NOT claim the call did or didn't land — the link can die on the
+    // way back, after the write committed.
+    expect(String(fault.text)).not.toMatch(/didn't send|wasn't saved|failed to/i)
+  })
+
+  it('puts the call in the diagnostics rather than the sentence', () => {
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true)
+    reportDbFault({ call: 'POST /rest/v1/rpc/submit_guess' }, nothingReachedUs())
+    const [fault] = peekFaultsForTest()
+    expect(fault.diagnostics).toContain('POST /rest/v1/rpc/submit_guess')
+    expect(fault.text).not.toContain('submit_guess')
+  })
+
+  it('shows a raw fault its own text, since nobody wrote one for it', () => {
+    reportDbFault(
+      { call: 'POST /rest/v1/rpc/submit_guess' },
+      faultEnvelope(
+        { code: '23514', message: 'violates check constraint "players_guesses_remaining_check"' },
+        'unused', undefined, 'PN900',
+      ),
+    )
+    const [fault] = peekFaultsForTest()
+    expect(fault.text).toContain('players_guesses_remaining_check')
+    expect(fault.diagnostics).toContain('dbcode=23514')
+  })
+
+  it('shows a declared fault the sentence its author wrote', () => {
+    reportDbFault({ call: 'POST /rest/v1/rpc/submit_guess' }, {
+      type: 'not-ok',
+      data: null,
+      outcome: null,
+      severity: 'fault',
+      message: 'BUG: guess that is not on the board',
+      field: null,
+      meta: null,
+      dbcode: 'PN500',
+      detail: 'guess absent from games.words',
+    })
+    const [fault] = peekFaultsForTest()
+    expect(fault.text).toBe('BUG: guess that is not on the board')
+    expect(fault.diagnostics).toContain('dbcode=PN500')
+    expect(fault.diagnostics).toContain('guess absent from games.words')
+  })
+})
+
+describe('runEdgeFn — the same shape, through Deno', () => {
+  // The status says whether the function RAN, never what it decided. These
+  // pin that: an envelope always arrives 200, faults included, and the modal
+  // comes from the envelope rather than from the HTTP code.
+  beforeEach(() => mockInvoke.mockReset())
+
+  it('hands back an ok envelope', async () => {
+    mockInvoke.mockResolvedValue({ data: env({ type: 'ok', data: { id: 'g1' } }), error: null })
+    const r = await runEdgeFn<{ id: string }>('boggle-build-board', {})
+    expect(r).toEqual(env({ type: 'ok', data: { id: 'g1' } }))
+    expect(peekFaultsForTest()).toHaveLength(0)
+  })
+
+  it('leaves a validation alone — no modal, the form will say it', async () => {
+    const envelope = {
+      type: 'not-ok', severity: 'form-validation', field: 'band',
+      message: 'No board could be built at that difficulty', dbcode: 'PN500',
+    }
+    mockInvoke.mockResolvedValue({ data: envelope, error: null })
+
+    const r = await runEdgeFn('boggle-build-board', {})
+
+    expect(r).toEqual(envelope)
+    expect(peekFaultsForTest()).toHaveLength(0)
+  })
+
+  it('raises the modal for a declared fault, though the call succeeded', async () => {
+    // The whole reason this function exists rather than edgeFnTransport alone: a
+    // fault that arrives 200 is invisible to `dbFetch`, which only reads a
+    // non-2xx body. Without this, `severity: fault` would mean two different
+    // things depending on which transport carried it.
+    mockInvoke.mockResolvedValue({
+      data: { type: 'not-ok', severity: 'fault', message: 'Broken', dbcode: 'PN501' },
+      error: null,
+    })
+
+    await runEdgeFn('boggle-build-board', {})
+
+    const [fault] = peekFaultsForTest()
+    expect(fault.text).toBe('Broken')
+    expect(fault.diagnostics).toContain('dbcode=PN501')
+  })
+
+  // **A not-ok always carries a `dbcode`**, and this is the only path that had
+  // to be made to. SQL writes the SQLSTATE unconditionally and Deno's builders
+  // take the code as a required argument; what could arrive without one is a
+  // function of ours answering non-2xx with `{ error }` and no `code`, which
+  // `edgeFnTransport` forwards codeless (its own test pins that shape). `PN489` is
+  // what `faultEnvelope` puts there so no fault is left unidentifiable in a log.
+  it('gives a codeless refusal our own code', async () => {
+    mockInvoke.mockResolvedValue({
+      data: null,
+      error: {
+        message: 'Edge Function returned a non-2xx status code',
+        context: new Response(JSON.stringify({ error: 'the model refused' }), {
+          status: 500, headers: { 'Content-Type': 'application/json' },
+        }),
+      },
+    })
+
+    const r = await runEdgeFn('codenamesduet-suggest-clue', {})
+
+    expect(r).toMatchObject({ type: 'not-ok', severity: 'fault', dbcode: 'PN489' })
+    expect(peekFaultsForTest()[0].diagnostics).toContain('dbcode=PN489')
+  })
+
+  // **A reply that was not our function is an OUTAGE, not our bug** — the third
+  // answer this path was missing. `edgeFnTransport` names it `FE003`, the same code
+  // `dbFetch` gives it on the database path, and `situationFor` reads it back
+  // here so the player gets the frontend's sentence rather than the gateway's
+  // own words.
+  it('says the server is down when something other than our function replied', async () => {
+    mockInvoke.mockResolvedValue({
+      data: null,
+      error: {
+        message: 'Edge Function returned a non-2xx status code',
+        context: new Response(JSON.stringify({ msg: 'no Route matched' }), {
+          status: 502, headers: { 'Content-Type': 'application/json' },
+        }),
+      },
+    })
+
+    const r = await runEdgeFn('boggle-build-board', {})
+
+    expect(r).toMatchObject({
+      type: 'not-ok',
+      severity: 'fault',
+      dbcode: 'FE003',
+      message: 'Our server appears to be down. Please refresh and try again later.',
+    })
+  })
+
+  it('names the function in the diagnostics', async () => {
+    mockInvoke.mockResolvedValue({
+      data: { type: 'not-ok', severity: 'fault', message: 'Broken' },
+      error: null,
+    })
+    await runEdgeFn('waffle-build-board', {})
+    expect(peekFaultsForTest()[0].diagnostics).toContain('/functions/v1/waffle-build-board')
+  })
+
+  it('treats a body that is not an envelope as a fault', async () => {
+    // An unconverted function still answering `{ id }`, or anything else no
+    // caller can read.
+    mockInvoke.mockResolvedValue({ data: { id: 'g1' }, error: null })
+
+    const r = await runEdgeFn('boggle-build-board', {})
+
+    expect(r).toMatchObject({ type: 'not-ok', severity: 'fault' })
+    expect(peekFaultsForTest()[0].text).toContain('no caller can read')
+  })
+
+  // A fault, AND the modal. Nothing below this layer presents — `dbFetch`
+  // classifies and logs — so the one modal for a function that never answered
+  // is raised here, with the transport facts this layer holds.
+  it('treats a function that never answered as a fault, and presents it', async () => {
+    mockInvoke.mockResolvedValue({ data: null, error: { message: 'network down' } })
+
+    const r = await runEdgeFn('boggle-build-board', {})
+
+    expect(r).toMatchObject({ type: 'not-ok', severity: 'fault' })
+    expect(peekFaultsForTest()).toHaveLength(1)
+  })
+})
+
+// The override is the ONE field on a `[db]` line you cannot infer from the
+// others, so a not-ok that carries it has to print it. It was dropped for a
+// while: `envAndTransportToDiagFields` logged `outcome` only on the ok arm,
+// correct until a not-ok could carry one, after which `outcome=` blank meant
+// both "no override" and "an override we didn't print".
+describe('the [db] line carries a not-ok outcome', () => {
+  it('logs an override the author set on a failure', async () => {
+    // `mockClear`: an earlier test in this file spied `console.warn` without
+    // restoring it, so a fresh `spyOn` hands back the SAME spy with its calls
+    // still on it, and `calls[0]` would be somebody else's line.
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    warn.mockClear()
+    await runRpc(
+      Promise.resolve({
+        data: env({
+          type: 'not-ok', severity: 'race', outcome: 'lost',
+          message: 'That game was already deleted', dbcode: 'PN010',
+        }),
+        error: null,
+      }),
+    )
+    expect(warn.mock.calls[0][0]).toContain('severity=race')
+    expect(warn.mock.calls[0][0]).toContain('outcome=lost')
+  })
+
+  it('leaves it blank when the severity default applies', async () => {
+    // `mockClear`: an earlier test in this file spied `console.warn` without
+    // restoring it, so a fresh `spyOn` hands back the SAME spy with its calls
+    // still on it, and `calls[0]` would be somebody else's line.
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    warn.mockClear()
+    await runRpc(
+      Promise.resolve({
+        data: env({
+          type: 'not-ok', severity: 'race', message: 'Someone got there first', dbcode: 'PN011',
+        }),
+        error: null,
+      }),
+    )
+    expect(warn.mock.calls[0][0]).toContain('outcome= |')
+  })
+})
+
+// A signature violation, not a game's problem: a non-null message means "render
+// this" and the outcome is how it renders, so an `ok` with one and not the other
+// leaves a call site nothing to do but guess — and a guess turns a server bug
+// into a pill nobody questions.
+describe('an ok that breaks its own contract', () => {
+  it('faults on a message with no outcome', async () => {
+    const r = await runRpc(
+      Promise.resolve({
+        data: env({ type: 'ok', data: { x: 1 }, message: 'Already guessed' }),
+        error: null,
+      }),
+    )
+    expect(r).toMatchObject({ type: 'not-ok', severity: 'fault', dbcode: 'PN308' })
+    // Its OWN sentence AND its own code, not the unreadable-body one: a player
+    // who quotes this back has to be identifiable as this failure rather than
+    // that one, and `dbcode` is what makes that true without reading prose.
+    const [fault] = peekFaultsForTest()
+    expect(fault.text).toBe('BUG: an ok carried a message with no outcome')
+    expect(fault.diagnostics).toContain('a message with no outcome')
+  })
+
+  it('lets an ok with BOTH through, and one with neither', async () => {
+    const withBoth = await runRpc(
+      Promise.resolve({
+        data: env({ type: 'ok', outcome: 'warning', message: 'Already guessed' }),
+        error: null,
+      }),
+    )
+    expect(withBoth.type).toBe('ok')
+    const withNeither = await runRpc(
+      Promise.resolve({ data: env({ type: 'ok', data: { x: 1 } }), error: null }),
+    )
+    expect(withNeither.type).toBe('ok')
+  })
+
+  // An outcome with no message is the ORDINARY case — the surface composes the
+  // words — so it must not trip this.
+  it('lets an outcome with no message through', async () => {
+    const r = await runRpc(
+      Promise.resolve({ data: env({ type: 'ok', outcome: 'won' }), error: null }),
+    )
+    expect(r.type).toBe('ok')
+  })
+})
+
+describe('notOkOutcome', () => {
+  const notOk = (severity: string, outcome: string | null = null) =>
+    ({ ...env({ type: 'not-ok', severity, outcome, message: 'x' }) }) as never
+
+  // The three that read red and the one that doesn't. `race` is the whole
+  // reason the defaults aren't a single constant: it is not a losing move, so
+  // it must not wear the color of one.
+  it('gives each severity its default appearance', () => {
+    expect(notOkOutcome(notOk('fault'))).toBe('error')
+    expect(notOkOutcome(notOk('form-validation'))).toBe('error')
+    expect(notOkOutcome(notOk('service-error'))).toBe('error')
+    expect(notOkOutcome(notOk('race'))).toBe('warning')
+  })
+
+  // What the `outcome` key on a not-ok is FOR: one race that reads as news
+  // rather than as a rejection, without inventing a severity for it.
+  it("prefers the author's outcome over the default", () => {
+    expect(notOkOutcome(notOk('race', 'noted'))).toBe('noted')
+    expect(notOkOutcome(notOk('fault', 'lost'))).toBe('lost')
+  })
+
+  // Null means "use the default", NOT "no appearance" — the distinction the
+  // always-present-nullable keys exist to make readable.
+  it('reads a null outcome as unset, not as an answer', () => {
+    expect(notOkOutcome(notOk('race', null))).toBe('warning')
+  })
+})
+
+describe('reportUnhandled', () => {
+  // The scream-else's whole problem was that it reached the screen and nothing
+  // else. Both halves are asserted: the modal, and the [db] line under it.
+  const okAnswer = {
+    type: 'ok', data: { result: 'already_ended' }, message: null, outcome: null,
+    severity: null, field: null, meta: null, dbcode: null, detail: null,
+  } as const
+
+  it('writes a FAULT line AND raises a modal carrying it', () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    reportUnhandled('end_game', okAnswer)
+
+    const line = spy.mock.calls.map((c) => String(c[0])).join('\n')
+    expect(line).toContain('[db]')
+    expect(line).toContain('FAULT')
+    expect(line).toContain('end_game')
+    expect(line).toContain('dbcode=PN488')
+    // The answer itself, which is what turns "there is a bug" into "here it is".
+    expect(line).toContain('already_ended')
+    // And NOT a blank status, which would claim nothing answered.
+    expect(line).toContain('status=200')
+
+    const [fault] = peekFaultsForTest()
+    expect(fault.text).toBe('BUG: end_game fell through to unhandled')
+    // The half the 94 call sites lack today: something under the sentence.
+    expect(fault.diagnostics).toContain('dbcode=PN488')
+  })
+
+  it('leaves the status blank for a not-ok, whose HTTP status it cannot know', () => {
+    // A raw fault arrived 4xx and a declared refusal arrived 200; the envelope
+    // carries neither. Printing 200 for a not-ok would state a fact this layer
+    // does not have — so the field is left off, and this is the one [db] line
+    // where a blank status= means "not known here".
+    //
+    // `mockClear`: the test above spied `console.error` without restoring it,
+    // so this `spyOn` hands back the SAME spy with its `status=200` line still
+    // on it, and the negative assertion below would read that one.
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    spy.mockClear()
+    reportUnhandled('end_game', {
+      ...okAnswer, type: 'not-ok', data: null, severity: 'fault',
+      message: 'permission denied', dbcode: '42501',
+    })
+    const line = spy.mock.calls.map((c) => String(c[0])).join('\n')
+    expect(line).toContain('dbcode=PN488')
+    expect(line).toContain('| status= |')
+    expect(line).not.toContain('status=200')
+  })
+
+  it('names the call it was given, so two fall-throughs are distinguishable', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    reportUnhandled('submit_guess', okAnswer)
+    expect(peekFaultsForTest()[0].text).toBe('BUG: submit_guess fell through to unhandled')
+  })
+})

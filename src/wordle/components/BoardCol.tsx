@@ -1,22 +1,22 @@
 // cs-unmet
 
-import { getNotOkFeedback } from '../../common/lib/game/genericPills'
-import { runRpc } from '../../common/lib/supabase/dbResult'
-import type { Outcome } from '../../common/lib/outcomes'
+import { getNotOkFeedback } from '@/common/feedback/genericPills'
+import { runRpc } from '@/common/supabase/dbResult'
+import type { Outcome } from '@/common/outcomes/outcomes'
 import { useEffect, useCallback, useState } from 'react'
-import type { GenericFeedbackMsg } from '../../common/lib/feedback/genericFeedback'
-import { GenericFeedbackPill } from '../../common/components/feedback/GenericFeedbackPill'
-import { useCaptureKeys, asciiLetters } from '../../common/hooks/input/useCaptureKeys'
+import type { GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
+import { GenericFeedbackPill } from '@/common/feedback/GenericFeedbackPill'
+import { useCaptureKeys, asciiLetters } from '@/common/keyboard/useCaptureKeys'
 import { db } from '../db'
-import { stickyPill } from '../../common/lib/game/localPills'
+import { stickyPill } from '@/common/feedback/localPills'
 import { colorRank, tileColor, type TileColor } from '../lib/colors'
 import type { SnapshotRow, TurnSnapshot } from '../lib/history'
 import { Board } from './Board'
-import { GuessKeyboard, type KeyTone } from '../../common/components/game/entry/GuessKeyboard'
-import shared from '../../common/components/game/PlayArea.module.css'
-import history from '../../common/components/game/lists/historyViewer.module.css'
+import { GuessKeyboard, type KeyTone } from '@/shared/onscreen-keyboard/GuessKeyboard'
+import shared from '@/common/game-page/PlayArea.module.css'
+import history from '@/common/turn-log/historyViewer.module.css'
 import styles from './BoardCol.module.css'
-import { reportUnhandled } from '../../common/lib/supabase/dbEnvelope'
+import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
 /**
  * wordle's board column — the `<Board>` plus the below-board region under it

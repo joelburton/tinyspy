@@ -1,7 +1,7 @@
 /* cs-unmet */
 
 /* setgame's play-surface specifics. The two-column shell itself is the shared
- * common/components/game/PlayArea.module.css.
+ * common/game-page/PlayArea.module.css.
  *
  * Card sizing lives in Board.module.css, next to the grid it sizes — it needs
  * the column count, which is a render-time value, so it can't be resolved here.

@@ -1,11 +1,11 @@
 // cs-unmet
 
 import { lazy } from 'react'
-import { runRpc } from '../common/lib/supabase/dbResult'
-import type { CreatedGame, GameManifest } from '../common/lib/gameManifest'
+import { runRpc } from '@/common/supabase/dbResult'
+import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { db } from './db'
-import { makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
-import { count, outcome, statusLine, wonBy } from '../common/lib/game/statusLabel'
+import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
+import { count, outcome, statusLine, wonBy } from '@/common/manifest/statusLabel'
 import {
   bunchSizeError,
   DEFAULT_BANANAGRAMS_SETUP,
@@ -112,7 +112,7 @@ export const bananagramsGame: GameManifest = {
   // Fired by GamePage when a chosen countdown hits 0. Ends the race as a
   // collective loss (nobody went out in time) via bananagrams.submit_timeout.
   // Idempotent server-side, so a peer racing to fire it is fine. The shared
-  // one-arg dispatcher (see common/lib/game/manifestRpcs).
+  // one-arg dispatcher (see common/manifest/manifestRpcs).
   submitTimeout: makeRpcDispatcher(db, 'submit_timeout'),
 
   // The whole-table stop, alongside per-player `concede`. They're different

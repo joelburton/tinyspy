@@ -1,7 +1,7 @@
 // cs-unmet
 
-import { Dot } from '../../common/components/text/Dot'
-import type { Member } from '../../common/lib/members/member'
+import { Dot } from '@/common/members/Dot'
+import type { Member } from '@/common/members/member'
 
 /**
  * scrabble's core live-state readout — "Your turn · 7 in bag" (compete, mine),

@@ -5,20 +5,20 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 
-import './common/fixed.css'                 // colors themes don't change
-import './common/base.css'                  // resets & non-color values
-import './common/patterns/badge.css'        // CSS patterns
-import './common/patterns/focus-ring.css'
-import './common/patterns/heading.css'
-import './common/patterns/page.css'
-import './common/patterns/segmented.css'
-import './common/utilities.css'             // tiny utilities: muted, etc
+import './common/core-css/fixed.css'                 // colors themes don't change
+import './common/core-css/base.css'                  // resets & non-color values
+import './common/core-css/patterns/badge.css'        // CSS patterns
+import './common/core-css/patterns/focus-ring.css'
+import './common/core-css/patterns/heading.css'
+import './common/core-css/patterns/page.css'
+import './common/core-css/patterns/segmented.css'
+import './common/core-css/utilities.css'             // tiny utilities: muted, etc
 
 import App from './App.tsx'
 import { loadTheme } from './common/themes/loadTheme'
-import { trackLayoutWidth } from './common/lib/util/layoutWidth'
-import { reloadOnStaleChunk } from './common/lib/util/reloadOnStaleChunk'
-import { onUncaughtRender, showPanic } from './common/lib/util/panic'
+import { trackLayoutWidth } from './common/mobile/layoutWidth'
+import { reloadOnStaleChunk } from './common/boot/reloadOnStaleChunk'
+import { onUncaughtRender, showPanic } from './common/boot/panic'
 
 // Publish `--client-width` (usable viewport width, scrollbar excluded) for the
 // board-sizing math.

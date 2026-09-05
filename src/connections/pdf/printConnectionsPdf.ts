@@ -9,9 +9,9 @@ import {
   fit,
   newPrintDoc,
   savePrint,
-} from '../../common/pdf/frame'
-import { drawInTracks, type Track } from '../../common/pdf/columns'
-import { drawTurnLog, twoColGeom } from '../../common/pdf/turnLog'
+} from '@/common/pdf/frame'
+import { drawInTracks, type Track } from '@/common/pdf/columns'
+import { drawTurnLog, twoColGeom } from '@/common/pdf/turnLog'
 import type { CategoryRank } from '../lib/board'
 import type { ConnectionsPrintModel, PrintBand, PrintTrack } from './model'
 

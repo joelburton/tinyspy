@@ -1,8 +1,8 @@
 // cs-unmet
 
-import type { Member } from '../../common/lib/members/member'
-import { difficultyValue } from '../../common/lib/game/difficulty'
-import { coopRows, rosterRow, timerRow, type SetupRow } from '../../common/lib/game/setupRows'
+import type { Member } from '@/common/members/member'
+import { difficultyValue } from '@/common/setup-form/difficulty'
+import { coopRows, rosterRow, timerRow, type SetupRow } from '@/common/setup-form/setupRows'
 import type { WaffleSetup } from './setup'
 
 /**

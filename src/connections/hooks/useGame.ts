@@ -2,15 +2,15 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import { supabase } from '../../common/lib/supabase/supabase'
-import { channelLeaving, releaseChannel } from '../../common/lib/supabase/channelTeardown'
-import { onPostgresAttached } from '../../common/lib/supabase/postgresAttached'
-import { readRows } from '../../common/lib/supabase/dbResult'
-import type { NotOkEnv } from '../../common/lib/supabase/envelope'
+import { supabase } from '@/common/supabase/supabase'
+import { channelLeaving, releaseChannel } from '@/common/realtime/channelTeardown'
+import { onPostgresAttached } from '@/common/realtime/postgresAttached'
+import { readRows } from '@/common/supabase/dbResult'
+import type { NotOkEnv } from '@/common/supabase/envelope'
 import { OUTCOME_FOR_RESULT, type GuessOutcome, type GuessResult } from '../lib/evaluate'
 import { db } from '../db'
-import type { Database } from '../../types/db'
-import type { Member } from '../../common/lib/members/member'
+import type { Database } from '@/types/db'
+import type { Member } from '@/common/members/member'
 import type { Board, CategoryRank } from '../lib/board'
 
 /**
@@ -376,7 +376,7 @@ export function useGame(
 
     // Stable ROOM name (peers must share the topic), so a remount inside the
     // previous mount's leave round-trip would otherwise be handed the dying
-    // channel. See common/lib/supabase/channelTeardown.ts.
+    // channel. See common/realtime/channelTeardown.ts.
     const pending = channelLeaving(room)
     if (pending) void pending.then(join)
     else join()

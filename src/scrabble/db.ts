@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { supabase } from '../common/lib/supabase/supabase'
+import { supabase } from '@/common/supabase/supabase'
 
 /**
  * scrabble's PostgREST handle — scopes every query/RPC to the

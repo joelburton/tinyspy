@@ -1,10 +1,10 @@
 // cs-unmet
 
 import type { jsPDF } from 'jspdf'
-import { BLACK, DARK_GRAY, drawHeader, drawSetup, fit, newPrintDoc, savePrint } from '../../common/pdf/frame'
-import { drawInTracks, type Track } from '../../common/pdf/columns'
-import { drawTile, drawTileLegend } from '../../common/pdf/tiles'
-import type { TileColor } from '../../common/lib/color/tileColor'
+import { BLACK, DARK_GRAY, drawHeader, drawSetup, fit, newPrintDoc, savePrint } from '@/common/pdf/frame'
+import { drawInTracks, type Track } from '@/common/pdf/columns'
+import { drawTile, drawTileLegend } from '@/shared/wordle-style/pdfTiles'
+import type { TileColor } from '@/shared/wordle-style/tileColor'
 import type { PrintTrack, WordlePrintModel } from './model'
 
 /**
@@ -15,7 +15,7 @@ import type { PrintTrack, WordlePrintModel } from './model'
  * own board and a wrapped single-stream log would file one player's guesses
  * under another player's grid. See `common/pdf/columns.ts`.
  *
- * The four tile states are the shared `common/pdf/tiles` encoding (border and
+ * The four tile states are the shared `shared/wordle-style/pdfTiles` encoding (border and
  * fill weight, not color), which is the whole reason this game is printable at
  * all: on a mono printer green/yellow/gray are one gray, and wordle without its
  * feedback is just a list of words.

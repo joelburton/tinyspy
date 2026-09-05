@@ -1,8 +1,8 @@
 // cs-unmet
 
-import type { Member } from '../../common/lib/members/member'
-import { difficultyValue } from '../../common/lib/game/difficulty'
-import { BOARD_KEY, rosterRow, timerRow, type SetupRow } from '../../common/lib/game/setupRows'
+import type { Member } from '@/common/members/member'
+import { difficultyValue } from '@/common/setup-form/difficulty'
+import { BOARD_KEY, rosterRow, timerRow, type SetupRow } from '@/common/setup-form/setupRows'
 import { DICE_BY_NAME } from './dice'
 import { formatBoard } from './customBoard'
 import type { BoggleSetup } from './setup'

@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { beforeAll, describe, expect, it } from 'vitest'
-import { gametypes } from '../gametypes'
+import { gametypes } from '@/gametypes'
 
 /**
  * Every registered game reaches its tables / RPCs through PostgREST via

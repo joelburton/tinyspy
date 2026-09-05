@@ -1,14 +1,14 @@
 // cs-unmet
 
 import { type MouseEvent } from 'react'
-import type { Member } from '../../common/lib/members/member'
-import { cls } from '../../common/lib/util/cls'
-import { memberById } from '../../common/lib/members/memberList'
-import { TurnLogActor } from '../../common/components/game/lists/TurnLogActor'
-import { TurnLog, TurnLogBar, TurnLogNumber, type TurnOutcome } from '../../common/components/game/lists/TurnLog'
-import turnLog from '../../common/components/game/lists/TurnLog.module.css'
-import { useDefinePopover } from '../../common/hooks/definitions/useDefinePopover'
-import { useTurnLogPlayerPicker } from '../../common/hooks/game/useTurnLogPlayerPicker'
+import type { Member } from '@/common/members/member'
+import { cls } from '@/common/utils/cls'
+import { memberById } from '@/common/members/memberList'
+import { TurnLogActor } from '@/common/turn-log/TurnLogActor'
+import { TurnLog, TurnLogBar, TurnLogNumber, type TurnOutcome } from '@/common/turn-log/TurnLog'
+import turnLog from '@/common/turn-log/TurnLog.module.css'
+import { useDefinePopover } from '@/common/definitions/useDefinePopover'
+import { useTurnLogPlayerPicker } from '@/common/turn-log/useTurnLogPlayerPicker'
 import type { SubmissionRow } from '../hooks/useGame'
 import styles from './GameTurnLog.module.css'
 
@@ -73,14 +73,14 @@ export function GameTurnLog({
   })
   const shown = who.filter(submissions)
 
-  // Click-to-define plumbing (a common feature — see common/hooks/definitions/useDefinePopover).
+  // Click-to-define plumbing (a common feature — see common/definitions/useDefinePopover).
   const { define: openDefine, popover } = useDefinePopover()
 
   // Click / keyboard activation for a clickable word chip (mirrors
   // spellingbee's WordList — same "Click to define" affordance). stopPropagation
   // so defining a word doesn't ALSO open that row's turn viewer.
   // Pointer-only, deliberately: NOT focusable, no `role="button"`. See
-  // common/utilities.css → `.definable` for why every definable word is like this.
+  // common/core-css/utilities.css → `.definable` for why every definable word is like this.
   const defineActivation = (word: string) => ({
     onClick: (e: MouseEvent<HTMLSpanElement>) => {
       e.stopPropagation()

@@ -14,6 +14,11 @@
     "moduleDetection": "force",
     "noEmit": true,
 
+    // Same `@/` alias as tsconfig.app.json — set here too so a file does not
+    // lose it by which project happens to include it, the same reasoning as
+    // `allowUnreachableCode` below.
+    "paths": { "@/*": ["./src/*"] },
+
     /* Linting */
     "noUnusedLocals": true,
     "noUnusedParameters": true,

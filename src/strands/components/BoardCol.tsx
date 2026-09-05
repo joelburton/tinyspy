@@ -1,15 +1,15 @@
 // cs-unmet
 
-import { GenericFeedbackPill } from '../../common/components/feedback/GenericFeedbackPill'
-import { cls } from '../../common/lib/util/cls'
-import type { GenericFeedbackMsg } from '../../common/lib/feedback/genericFeedback'
+import { GenericFeedbackPill } from '@/common/feedback/GenericFeedbackPill'
+import { cls } from '@/common/utils/cls'
+import type { GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
 import type { Coord } from '../lib/board'
-import { MoveRow } from '../../common/components/game/entry/MoveRow'
-import { EntryBox } from '../../common/components/game/entry/EntryBox'
+import { MoveRow } from '@/common/word-entry/MoveRow'
+import { EntryBox } from '@/common/word-entry/EntryBox'
 import { Board, type FoundPath } from './Board'
 import { HintBar } from './HintBar'
-import history from '../../common/components/game/lists/historyViewer.module.css'
-import shared from '../../common/components/game/PlayArea.module.css'
+import history from '@/common/turn-log/historyViewer.module.css'
+import shared from '@/common/game-page/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 
 type Props = {

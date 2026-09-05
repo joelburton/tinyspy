@@ -1,16 +1,16 @@
 // cs-unmet
 
 import { useEffect, useState, type ReactNode } from 'react'
-import { cls } from '../../common/lib/util/cls'
+import { cls } from '@/common/utils/cls'
 import type { Category, CategoryRank } from '../lib/board'
 import type { MatchedCategory } from '../hooks/useGame'
 import type { GuessOutcome } from '../lib/evaluate'
-import type { Outcome } from '../../common/lib/outcomes'
+import type { Outcome } from '@/common/outcomes/outcomes'
 import { RANK_TOKEN } from '../lib/rankColors'
-import { useMoveCausedChange } from '../../common/hooks/game/useMoveCausedChange'
-import { ATTENTION_FLASH_MS } from '../../common/lib/game/feedbackTiming'
-import shared from '../../common/components/game/PlayArea.module.css'
-import history from '../../common/components/game/lists/historyViewer.module.css'
+import { useMoveCausedChange } from '@/common/move-flash/useMoveCausedChange'
+import { ATTENTION_FLASH_MS } from '@/common/move-flash/feedbackTiming'
+import shared from '@/common/game-page/PlayArea.module.css'
+import history from '@/common/turn-log/historyViewer.module.css'
 import styles from './PlayArea.module.css'
 
 const COLS = 4

@@ -1,9 +1,9 @@
 // cs-unmet
 
 import { useMemo } from 'react'
-import { cls } from '../../common/lib/util/cls'
+import { cls } from '@/common/utils/cls'
 import { depthMap, exposedIds, letterCorner, type Tile } from '../lib/board'
-import history from '../../common/components/game/lists/historyViewer.module.css'
+import history from '@/common/turn-log/historyViewer.module.css'
 import styles from './Board.module.css'
 
 // Tile size is decoupled from grid spacing for readability (ported from

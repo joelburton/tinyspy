@@ -1,6 +1,6 @@
 // cs-unmet
 
-import type { WordListRow } from '../../common/components/game/lists/WordList'
+import type { WordListRow } from '@/common/word-list/WordList'
 import type { FoundWordRow } from '../hooks/useGame'
 
 /**

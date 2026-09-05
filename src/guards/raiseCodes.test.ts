@@ -325,12 +325,12 @@ describe('the raise codes', () => {
 
   // The SQL↔TypeScript link, and the assertion most likely to rot unwatched:
   // the sets above are hand-written strings in a test, while the truth is a
-  // union in `src/common/lib/`. Nothing but this notices when someone adds a
+  // union under `src/common/`. Nothing but this notices when someone adds a
   // severity and every SQL raise carrying it starts failing the vocabulary
   // check for a reason the message wouldn't explain.
   it('keeps its vocabularies equal to the TypeScript unions', () => {
     const union = (file: string, name: string): Set<string> => {
-      const src = readFileSync(resolve(HERE, '../common/lib', file), 'utf8')
+      const src = readFileSync(resolve(HERE, '../common', file), 'utf8')
       // Up to the next blank line, or the end of the file — a union is often
       // the last thing in its module, and requiring a trailing blank line would
       // make this fail for a reason that has nothing to do with vocabulary.
@@ -339,7 +339,7 @@ describe('the raise codes', () => {
       return new Set([...decl![1]!.matchAll(/'([^']+)'/g)].map((m) => m[1]!))
     }
 
-    const outcomes = union('outcomes.ts', 'Outcome')
+    const outcomes = union('outcomes/outcomes.ts', 'Outcome')
     expect(outcomes.has(NOT_ON_A_SUCCESS), '`error` belongs to the outcome vocabulary').toBe(true)
     expect(
       [...OUTCOMES].sort(),
@@ -363,7 +363,7 @@ describe('the raise codes', () => {
    * checked for uniqueness and shape here but do not feed the PN counter.
    */
   const frontendCodes = () => {
-    const ts = readFileSync('src/common/lib/supabase/dbEnvelope.ts', 'utf8')
+    const ts = readFileSync('src/common/supabase/dbEnvelope.ts', 'utf8')
     // The ASSIGNMENT form only — a docstring naming a code as an example is
     // prose, not an allocation, and counting it reports a duplicate that is
     // not one.

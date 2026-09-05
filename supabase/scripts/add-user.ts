@@ -78,7 +78,7 @@ import { createClient } from '@supabase/supabase-js'
 // The palette is IMPORTED, not restated: one list, already kept in sync with
 // the CHECK on common.profiles.color and the claim_username allow-list. This
 // module is dependency-free (no React, no CSS), so a node script can read it.
-import { MEMBER_COLORS, defaultColorFor } from '../../src/common/lib/color/memberColor'
+import { MEMBER_COLORS, defaultColorFor } from '../../src/common/members/memberColor'
 
 const SUPABASE_URL = process.env.SUPABASE_URL ?? 'http://127.0.0.1:54321'
 // Local-dev defaults — the well-known keys from `supabase status`, the same

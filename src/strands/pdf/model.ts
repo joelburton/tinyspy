@@ -1,9 +1,9 @@
 // cs-unmet
 
-import type { PrintHeader } from '../../common/pdf/frame'
+import type { PrintHeader } from '@/common/pdf/frame'
 import type { Coord } from '../lib/board'
 import type { EventRow, GuessResult, StrandsPlayer, StrandsSolution } from '../hooks/useGame'
-import type { Member } from '../../common/lib/members/member'
+import type { Member } from '@/common/members/member'
 
 /**
  * Build the strands print model — the pure half, away from jsPDF so the

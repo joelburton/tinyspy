@@ -21,7 +21,7 @@
  * picked at one sitting is picked by one formula; a value chosen alone
  * in two years, beside the one button that needed it, is reasoned
  * about differently and drifts out of family. Reserved is not dead —
- * common/components/palette/palette.ts reads every cell, which is what
+ * common/devtools/palette.ts reads every cell, which is what
  * keeps the no-dead-tokens guard honest.
  *
  * Not here: member and wordle colors (fixed.css — exempt from

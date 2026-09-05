@@ -5,7 +5,7 @@
  *
  * Everything else (the two-column layout vars, the mobile status block, the
  * `--u` arithmetic, the below-board slot, loading/empty) lives in the shared
- * `common/components/game/foundWordsPlayArea.module.css`, composed alongside
+ * `shared/bee-games/foundWordsPlayArea.module.css`, composed alongside
  * this class at the call site. See that file's header for why the split is here.
  *
  * ─── Board size — TINKER HERE ────────────────────────────────────────────────

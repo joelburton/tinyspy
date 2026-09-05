@@ -51,7 +51,7 @@ atoms and each game composes them with its OWN board renderer + a plain-data mod
 
 | module | used by | what it does |
 |---|---|---|
-| `common/pdf/tiles.ts` | wordle, waffle | `drawTile` / `drawTileLegend` — the four Wordle-style letter states as **border + fill weight** rather than color (see the exception note below) |
+| `shared/wordle-style/pdfTiles.ts` | wordle, waffle | `drawTile` / `drawTileLegend` — the four Wordle-style letter states as **border + fill weight** rather than color (see the exception note below) |
 | `common/pdf/columns.ts` | wordle, waffle, strands | `drawInTracks` — lays a page out as N side-by-side player tracks, capped at 3 per page, spilling onto further pages |
 | `common/pdf/marks.ts` | psychicnum, codenamesduet | `drawCheck` / `drawCross` / `drawDash` — the ✓ / ✗ / – outcome marks, DRAWN from line segments because jsPDF's core fonts are WinAnsi and have no such glyphs. Each takes a center + size, so the caller owns placement (a cell corner, a keycard inset) |
 | `common/pdf/frame.ts` | **all** | the shade constants, `PrintHeader` base model, `newPrintDoc`, `drawHeader`, `drawSetup`, `fit`, `savePrint` |
@@ -121,7 +121,7 @@ something (and even then, prefer a mark or a shade over a fill). In particular:
   medium-gray rule instead.
 - **No outcome fills** on tiles — the ✓/✗ mark alone says correct vs miss.
 
-**The agreed exception: Wordle-style letter tiles** (`common/pdf/tiles.ts`, used by
+**The agreed exception: Wordle-style letter tiles** (`shared/wordle-style/pdfTiles.ts`, used by
 wordle and waffle). Those four states — not-yet-used, not-in-word, wrong-place,
 right-place — are the entire game, not a decoration, and a letter tile has no room
 for a mark beside its letter: the letter IS the content. So they're carried by

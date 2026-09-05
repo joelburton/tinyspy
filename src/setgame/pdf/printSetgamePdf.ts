@@ -1,8 +1,8 @@
 // cs-unmet
 
 import type { jsPDF } from 'jspdf'
-import { BLACK, DARK_GRAY, drawHeader, drawSetup, newPrintDoc, savePrint } from '../../common/pdf/frame'
-import { twoColGeom } from '../../common/pdf/turnLog'
+import { BLACK, DARK_GRAY, drawHeader, drawSetup, newPrintDoc, savePrint } from '@/common/pdf/frame'
+import { twoColGeom } from '@/common/pdf/turnLog'
 import { decode, type Card } from '../lib/cards'
 import { CARD_BOX, SYMBOL_ASPECT, SYMBOL_BOX } from '../lib/shapes'
 import type { Palette } from '../lib/setup'

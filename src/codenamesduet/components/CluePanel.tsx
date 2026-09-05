@@ -1,20 +1,20 @@
 // cs-unmet
 
-import type { GenericFeedbackMsg } from '../../common/lib/feedback/genericFeedback'
+import type { GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
 import { useRef, useState, type KeyboardEvent, type RefObject, type SubmitEvent } from 'react'
-import { runEdgeFn, runRpc } from '../../common/lib/supabase/dbResult'
-import { getNotOkFeedback } from '../../common/lib/game/genericPills'
-import { cls } from '../../common/lib/util/cls'
-import { ActorDot, ActorTag } from '../../common/components/game/lists/ActorMention'
-import { SubmitButton } from '../../common/components/buttons/SubmitButton'
-import { AIButton } from '../../common/components/buttons/AIButton'
-import { EndTurnButton } from '../../common/components/buttons/EndTurnButton'
-import { usePhone } from '../../common/hooks/ui/usePhone'
+import { runEdgeFn, runRpc } from '@/common/supabase/dbResult'
+import { getNotOkFeedback } from '@/common/feedback/genericPills'
+import { cls } from '@/common/utils/cls'
+import { ActorDot, ActorTag } from '@/common/turn-log/ActorMention'
+import { SubmitButton } from '@/common/buttons/SubmitButton'
+import { AIButton } from '@/common/buttons/AIButton'
+import { EndTurnButton } from '@/common/buttons/EndTurnButton'
+import { usePhone } from '@/common/mobile/usePhone'
 import { db } from '../db'
 import type { Seat } from '../lib/phase'
 import type { Player } from '../hooks/useGame'
 import styles from './CluePanel.module.css'
-import { reportUnhandled } from '../../common/lib/supabase/dbEnvelope'
+import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
 type Clue = { word: string; count: number }
 

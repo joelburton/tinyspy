@@ -1,21 +1,21 @@
 // cs-unmet
 
 import type { MouseEvent } from 'react'
-import type { GamePlayer } from '../../common/lib/members/member'
-import { useTurnLogPlayerPicker } from '../../common/hooks/game/useTurnLogPlayerPicker'
-import { useDefinePopover } from '../../common/hooks/definitions/useDefinePopover'
+import type { GamePlayer } from '@/common/members/member'
+import { useTurnLogPlayerPicker } from '@/common/turn-log/useTurnLogPlayerPicker'
+import { useDefinePopover } from '@/common/definitions/useDefinePopover'
 import {
   TurnLog,
   TurnLogBar,
   TurnLogNumber,
   type TurnOutcome,
-} from '../../common/components/game/lists/TurnLog'
-import { TurnLogActor } from '../../common/components/game/lists/TurnLogActor'
-import { memberById } from '../../common/lib/members/memberList'
+} from '@/common/turn-log/TurnLog'
+import { TurnLogActor } from '@/common/turn-log/TurnLogActor'
+import { memberById } from '@/common/members/memberList'
 import { BOARD_SIZE } from '../lib/board'
 import { hintPrefix } from '../lib/help'
 import type { EventRow } from '../hooks/useGame'
-import turnLog from '../../common/components/game/lists/TurnLog.module.css'
+import turnLog from '@/common/turn-log/TurnLog.module.css'
 import styles from './PlayArea.module.css'
 
 /**
@@ -79,13 +79,13 @@ export function GameTurnLog({
   // it every render and hit React's update-depth limit.)
   const boardIsShown = who.boardIsShown
 
-  // Click-to-define (a common feature — common/hooks/definitions/useDefinePopover).
+  // Click-to-define (a common feature — common/definitions/useDefinePopover).
   // Every word in the log is a real dictionary word, whether it was played,
   // taken back, or handed over by a spoiler; words are stored lowercase, which
   // the lookup wants.
   const { define, popover } = useDefinePopover()
   // Pointer-only, deliberately: NOT focusable, no role="button". See
-  // common/utilities.css → `.definable` for why every definable word is like this.
+  // common/core-css/utilities.css → `.definable` for why every definable word is like this.
   const defineProps = (word: string) => ({
     className: 'definable',
     title: 'Click to define',

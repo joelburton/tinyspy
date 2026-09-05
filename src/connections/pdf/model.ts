@@ -1,7 +1,7 @@
 // cs-unmet
 
-import type { PrintHeader, SetupRow } from '../../common/pdf/frame'
-import type { TurnRow } from '../../common/pdf/turnLog'
+import type { PrintHeader, SetupRow } from '@/common/pdf/frame'
+import type { TurnRow } from '@/common/pdf/turnLog'
 import type { Category, CategoryRank } from '../lib/board'
 import type { GuessRow, MatchedCategory } from '../hooks/useGame'
 

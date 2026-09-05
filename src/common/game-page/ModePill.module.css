@@ -1,0 +1,19 @@
+/* cs-unmet */
+
+/* The mode badge IS the shared `.badge` (common/core-css/patterns/badge.css) — a
+ * one-word label saying what KIND of thing this is, the same job "Solo" does on
+ * a club row. The badge paints no color, so all that's left here is which color
+ * each mode takes.
+ *
+ * The app's two FLEXIBLE colors, and which mode gets which is arbitrary: they
+ * only have to differ from each other. A token named for the mode would claim
+ * teal MEANS collaborative, which nothing in the app relies on. Outside the
+ * outcome palette, which is the one thing that isn't arbitrary — a mode is not
+ * a result. */
+/* @@ */ .coop {
+  color: var(--flex-color-1);
+}
+
+/* @@ */ .compete {
+  color: var(--flex-color-2);
+}

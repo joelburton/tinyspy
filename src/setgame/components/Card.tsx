@@ -3,7 +3,7 @@
 import { decode, type Card as CardCode, COLORS } from '../lib/cards'
 import { CARD_BOX, SHAPE_PATHS, STRIPE, SYMBOL_BOX, SYMBOL_LAYOUT, SYMBOL_STROKE } from '../lib/shapes'
 import type { FlashKind } from '../lib/flash'
-import { cls } from '../../common/lib/util/cls'
+import { cls } from '@/common/utils/cls'
 import styles from './Card.module.css'
 
 /**

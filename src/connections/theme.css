@@ -5,7 +5,7 @@
  *
  * Just the rank palette now: the tile chrome (resting beige, dark hover ring,
  * dark selected fill) is the SHARED tile system — see the --tile-* tokens in
- * common/themes/daylight.css and the `.tile` class in common/components/game/PlayArea.module.css.
+ * common/themes/daylight.css and the `.tile` class in common/game-page/PlayArea.module.css.
  * connections keeps only what's game-specific: the four NYT category colors, and
  * (in CSS, not here) the peer-selection identity frame + the wrong-guess shake.
  *

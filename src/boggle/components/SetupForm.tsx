@@ -1,21 +1,21 @@
 // cs-unmet
 
-import { DictBandField } from '../../common/components/fields/DictBandField'
-import { PlayersSection } from '../../common/components/setup/PlayersSection'
-import { RadioRow } from '../../common/components/fields/RadioRow'
-import { SelectField } from '../../common/components/fields/SelectField'
-import { SetupTimerSection } from '../../common/components/setup/SetupTimerSection'
-import { SetupSection } from '../../common/components/setup/SetupSection'
-import { difficultyValue } from '../../common/lib/game/difficulty'
-import type { SetupBodyProps, SetupSetter } from '../../common/lib/setup/setupForm'
+import { DictBandField } from '@/common/fields/DictBandField'
+import { PlayersSection } from '@/common/setup-form/PlayersSection'
+import { RadioRow } from '@/common/fields/RadioRow'
+import { SelectField } from '@/common/fields/SelectField'
+import { SetupTimerSection } from '@/common/setup-form/SetupTimerSection'
+import { SetupSection } from '@/common/setup-form/SetupSection'
+import { difficultyValue } from '@/common/setup-form/difficulty'
+import type { SetupBodyProps, SetupSetter } from '@/common/setup-form/setupForm'
 import type { BoardConstraints } from '../lib/generate'
 import { WIN_PERCENT_OPTIONS, type BoggleValues } from '../lib/setup'
 import { capBoard, cleanCustomBoard, readTiles, twoLetterList } from '../lib/customBoard'
 import type { LadderName } from '../lib/solver'
 import { DICE_SETS, DICE_BY_NAME } from '../lib/dice'
 import styles from './SetupForm.module.css'
-import { ManualBoardField } from '../../common/components/fields/ManualBoardField'
-import { groupTiles } from '../../common/components/fields/groupTiles'
+import { ManualBoardField } from '@/common/fields/ManualBoardField'
+import { groupTiles } from '@/common/fields/groupTiles'
 
 // Ladder labels + order ported verbatim from wsboggle (NewSoloGamePage.tsx).
 const SCORING_LADDERS: ReadonlyArray<{ name: LadderName; label: string }> = [

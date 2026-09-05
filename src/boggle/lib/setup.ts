@@ -1,8 +1,8 @@
 // cs-unmet
 
-import type { TimerMode } from '../../common/lib/gameManifest'
-import type { SetupOf } from '../../common/lib/setup/setupForm'
-import type { FormErrors } from '../../common/components/fields/formState'
+import type { TimerMode } from '@/common/manifest/gameManifest'
+import type { SetupOf } from '@/common/setup-form/setupForm'
+import type { FormErrors } from '@/common/forms/formState'
 import type { BoardConstraints } from './generate'
 import type { LadderName } from './solver'
 import { LADDERS } from './solver'

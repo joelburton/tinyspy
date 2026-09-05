@@ -1,18 +1,18 @@
 // cs-unmet
 
 import { useState } from 'react'
-import { PlayersSection } from '../../common/components/setup/PlayersSection'
-import { DictBandField } from '../../common/components/fields/DictBandField'
-import { SelectField } from '../../common/components/fields/SelectField'
-import { SetupTimerSection } from '../../common/components/setup/SetupTimerSection'
-import { SetupCoopStyleSection } from '../../common/components/setup/SetupCoopStyleSection'
-import { SetupSection } from '../../common/components/setup/SetupSection'
-import { difficultyValue } from '../../common/lib/game/difficulty'
-import type { SetupBodyProps, SetupSetter } from '../../common/lib/setup/setupForm'
+import { PlayersSection } from '@/common/setup-form/PlayersSection'
+import { DictBandField } from '@/common/fields/DictBandField'
+import { SelectField } from '@/common/fields/SelectField'
+import { SetupTimerSection } from '@/common/setup-form/SetupTimerSection'
+import { SetupCoopStyleSection } from '@/common/setup-form/SetupCoopStyleSection'
+import { SetupSection } from '@/common/setup-form/SetupSection'
+import { difficultyValue } from '@/common/setup-form/difficulty'
+import type { SetupBodyProps, SetupSetter } from '@/common/setup-form/setupForm'
 import { PAR } from '../lib/board'
 import { cleanSides, formatSides } from '../lib/customBoard'
 import type { LetterboxedValues } from '../lib/setup'
-import { ManualBoardField } from '../../common/components/fields/ManualBoardField'
+import { ManualBoardField } from '@/common/fields/ManualBoardField'
 import { SIDE_SIZE } from '../lib/board'
 
 /**

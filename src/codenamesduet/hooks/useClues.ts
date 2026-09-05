@@ -1,11 +1,11 @@
 // cs-unmet
 
 import { useState } from 'react'
-import { useRealtimeRefetch } from '../../common/hooks/realtime/useRealtimeRefetch'
-import { readRows } from '../../common/lib/supabase/dbResult'
-import type { NotOkEnv } from '../../common/lib/supabase/envelope'
+import { useRealtimeRefetch } from '@/common/realtime/useRealtimeRefetch'
+import { readRows } from '@/common/supabase/dbResult'
+import type { NotOkEnv } from '@/common/supabase/envelope'
 import { db } from '../db'
-import type { Database } from '../../types/db'
+import type { Database } from '@/types/db'
 
 // Narrower than Database[...]['Row'] — see code-conventions.md's "Avoid
 // SELECT *". Adding a new column to codenamesduet.clues requires

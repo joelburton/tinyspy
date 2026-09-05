@@ -1,15 +1,15 @@
 // cs-unmet
 
 import { useEffect } from 'react'
-import { PlayersSection } from '../../common/components/setup/PlayersSection'
-import { RadioRow } from '../../common/components/fields/RadioRow'
-import { SetupTimerSection } from '../../common/components/setup/SetupTimerSection'
-import type { SetupBodyProps, SetupSetter } from '../../common/lib/setup/setupForm'
+import { PlayersSection } from '@/common/setup-form/PlayersSection'
+import { RadioRow } from '@/common/fields/RadioRow'
+import { SetupTimerSection } from '@/common/setup-form/SetupTimerSection'
+import type { SetupBodyProps, SetupSetter } from '@/common/setup-form/setupForm'
 import {
   TURN_OPTIONS,
   type CodenamesduetValues,
 } from '../lib/setup'
-import { SetupSection } from '../../common/components/setup/SetupSection'
+import { SetupSection } from '@/common/setup-form/SetupSection'
 
 /**
  * codenamesduet's per-game setup form, rendered inside the common
@@ -33,7 +33,7 @@ import { SetupSection } from '../../common/components/setup/SetupSection'
  * `value as CodenamesduetSetup` cast at the top is the boundary
  * between the manifest's `unknown` setup type and codenamesduet's
  * narrow shape — see the SetupBodyProps doc in
- * src/common/lib/setup/setupForm.ts.
+ * src/common/setup-form/setupForm.ts.
  *
  * Component name `SetupForm` matches the file + the
  * `manifest.setupForm` field — this is the *form definition*,

@@ -27,7 +27,7 @@
 
 import { renderHook, act, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { Envelope } from '../../common/lib/supabase/envelope'
+import type { Envelope } from '@/common/supabase/envelope'
 import type { SetCellAnswer, SetMarkAnswer } from './useCells'
 
 /** An `ok` envelope as the wire carries one — all nine keys, because `runRpc`
@@ -48,7 +48,7 @@ vi.mock('../db', () => ({
   db: { from: mockFrom, rpc: mockRpc },
 }))
 
-vi.mock('../../common/lib/supabase/supabase', () => ({
+vi.mock('@/common/supabase/supabase', () => ({
   supabase: { channel: mockChannel, removeChannel: mockRemoveChannel },
 }))
 

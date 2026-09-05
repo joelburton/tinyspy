@@ -10,8 +10,8 @@ import {
   fit,
   newPrintDoc,
   savePrint,
-} from '../../common/pdf/frame'
-import { drawInTracks, type Track } from '../../common/pdf/columns'
+} from '@/common/pdf/frame'
+import { drawInTracks, type Track } from '@/common/pdf/columns'
 import { SIDE_SIZE } from '../lib/board'
 import type { LetterboxedPrintModel, PrintTrack } from './model'
 

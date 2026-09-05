@@ -1,9 +1,9 @@
 // cs-unmet
 
 import { useEffect, useRef, useState } from 'react'
-import { BlockingModal } from '../../../common/components/floating-panels/BlockingModal'
-import { CancelButton } from '../../../common/components/buttons/CancelButton'
-import { SelectionList } from '../../../common/components/lists/SelectionList'
+import { BlockingModal } from '@/common/floating-panels/BlockingModal'
+import { CancelButton } from '@/common/buttons/CancelButton'
+import { SelectionList } from '@/common/lists/SelectionList'
 import { NYT_EARLIEST, WEEKDAYS } from '../../lib/nytDays'
 import styles from './pickers.module.css'
 

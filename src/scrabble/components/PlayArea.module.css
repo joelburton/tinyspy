@@ -1,7 +1,7 @@
 /* cs-unmet */
 
 /* scrabble's play surface, on the shared two-column scaffold
- * (common/components/game/PlayArea.module.css, imported as `shared`). PlayArea holds the
+ * (common/game-page/PlayArea.module.css, imported as `shared`). PlayArea holds the
  * layout-root vars here; the board column's own styles (board sizing + the rack row)
  * live in BoardCol.module.css. The commit-row inner classes below are imported by
  * <Controls> (a BoardCol child) — they stay here so its import is untouched. */

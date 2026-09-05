@@ -1,9 +1,9 @@
 // cs-unmet
 
 import type { jsPDF } from 'jspdf'
-import { BLACK, DARK_GRAY, drawHeader, newPrintDoc, savePrint, type PrintHeader } from '../../common/pdf/frame'
-import type { WordSection } from '../../common/pdf/wordSections'
-import { drawWordListBody } from '../../common/pdf/wordListBody'
+import { BLACK, DARK_GRAY, drawHeader, newPrintDoc, savePrint, type PrintHeader } from '@/common/pdf/frame'
+import type { WordSection } from '@/common/pdf/wordSections'
+import { drawWordListBody } from '@/common/pdf/wordListBody'
 import { BOX_H, BOX_W, TILE_POSITIONS } from '../lib/wheel'
 
 /**

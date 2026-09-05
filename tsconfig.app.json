@@ -15,6 +15,18 @@
     "noEmit": true,
     "jsx": "react-jsx",
 
+    // `@/` is the root of `src/`. An import that leaves its own top-level
+    // folder — a game reaching `@/common/chat/Chat`, a guard reaching
+    // `@/common/supabase/db` — spells it this way; an import that stays
+    // inside one stays relative. Without it, the deeper folders climb
+    // `../../../` to say something the reader has to count out.
+    //
+    // The twin of vite.config.ts's `resolve.alias`, which is what actually
+    // resolves it at build and test time (vitest reads vite's config). This
+    // entry is only how tsc and the editor agree. Both must be changed
+    // together; neither works alone.
+    "paths": { "@/*": ["./src/*"] },
+
     /* Linting */
     "strict": true,
     "noUnusedLocals": true,

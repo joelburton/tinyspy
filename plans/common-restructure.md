@@ -313,6 +313,43 @@ per-folder rulings are in the §5 tables, marked RULED.
 - **The codemod is a throwaway** script; the roster is the durable mapping.
 - **Next session starts the move.** Read the roster first.
 
+**Rulings from the pre-move read (Joel, 2026-09-04).** Five things the handoff
+did not cover, answered before the first `git mv`:
+
+- **The markdown links into `src/common/` are rewritten IN the move commit.**
+  Seventeen files under `docs/` carry 155 markdown links whose target is a
+  path under `src/common/`, and `docLinks.test.ts` asserts
+  every relative markdown link resolves — so all 155 dangle the moment the
+  paths change, and the move commit could not be green without them. The
+  codemod rewrites the LINK TARGET only, the text inside `](…)`; prose
+  mentions of a path are left alone, so the "the rest of docs/ still cites
+  pre-move paths until the decomposition" ruling holds for every word a
+  reader actually reads.
+- **`core-css` keeps its `patterns/` subfolder** —
+  `common/core-css/patterns/badge.css`, not flattened. The no-type-subfolders
+  ruling doesn't reach it: `patterns/` names a kind of stylesheet, not a kind
+  of file.
+- **`src/shared/` gets the eslint block `src/common/` already has**: no shared
+  family may import a game folder. Same `forbidGameImports` helper, added in
+  the move commit.
+- **Shared MAY import shared.** No guard for it, and no such edge exists
+  today. The one-way rule the new guard checks stays exactly what §4 said:
+  common never imports shared.
+- **The new guard file is stamped `cs-unmet`.**
+
+**Verified before the move (2026-09-04), so the codemod can be trusted to be
+mechanical:**
+
+- The roster is executable: every one of its 497 left-hand paths exists, and
+  every file git tracks under `src/common/` is on it — the diff is empty in
+  both directions.
+- No two files land in one destination folder under the same filename.
+- `e2e/` imports nothing from `src/` (one comment mentions a path), so
+  Playwright needs no alias and no rewrite.
+- eslint's cross-game patterns survive the alias: `forbidGameImports` builds
+  picomatch `**/<game>/**`, and `@` is an ordinary path segment, so
+  `@/scrabble/…` still matches. To be proved by planting a break, not assumed.
+
 **Running the move without permission prompts (Joel, 2026-09-04).** The
 scripted move will take a long time, and Joel does not want to sit through
 an hour of approving mechanical steps: *"i don't want to babysit this for an
@@ -505,18 +542,24 @@ first four are ONE commit (Joel: one commit for the move itself).
    (b) rewrites every `import`/`export … from` and every `vi.mock('…')` path
    to the alias form per the alias-scope ruling — alias when the target is
    outside the importer's top-level folder, relative within it; (c) rewrites
-   path-shaped mentions in `src/` comments and docstrings; (d) removes the
-   emptied old folders with `rmdir`, never `rm -rf`. Print what it did.
+   path-shaped mentions in `src/` comments and docstrings, and the markdown
+   LINK TARGETS under `docs/` that point into `src/common/` — the text inside
+   `](…)` only, prose mentions untouched (see §4's pre-move rulings);
+   (d) removes the emptied old folders with `rmdir`, never `rm -rf`. Print
+   what it did.
 3. **The checks, in the agreed order:** `npx tsc -b` → `npx vitest run` →
    `npx vite build` → restart the dev server → ONE e2e. Work the failures;
    the expected kinds are stale `vi.mock` paths the codemod missed, the twelve
    path-coupled guards in `src/guards/`, and the `theme.css`-per-lazy-chunk
    rule if a CSS import changed chunks. **Verify each guard still bites after
    it is re-pathed** (plant a break, watch it fail, unplant).
-4. **The guard for "common never imports shared"** — a new test in
-   `src/guards/` that reads every import under `src/common/` and fails on any
-   `@/shared/` (or relative path into `src/shared/`). Plant a break to prove
-   it, then remove the break.
+4. **The two import-direction checks.** (a) The guard for "common never
+   imports shared" — a new test in `src/guards/`, stamped `cs-unmet`, that
+   reads every import under `src/common/` and fails on any `@/shared/` (or
+   relative path into `src/shared/`). Shared importing shared is fine and is
+   not checked. (b) The eslint block for `src/shared/**`, the twin of the one
+   `src/common/**` has: no shared family may import a game folder. Plant a
+   break in each to prove it bites, then remove the break.
 5. **docs/common-folders.md rewritten** to describe the new layout — both
    `common/` and `shared/`, the one-way import rule, the alias scope, and a
    line saying the rest of docs/ still cites pre-move paths until the
@@ -534,6 +577,62 @@ the roster and the rulings decide everything, and the work is script-and-
 verify. Step 6 has judgment in it — re-filing a finding means reading it and
 deciding which folder owns it now, and the areas table is the sprint's spec —
 so it wants a careful read or a second pair of eyes, not a batch pass.
+
+## 7a. What the move turned up (2026-09-04, the session that ran it)
+
+Steps 1–5 are done and sitting in the working tree on branch `app-org`
+(uncommitted). `tsc -b`, all 2575 vitest tests, `vite build`, `eslint` and a
+board-geometry e2e are green. Five things the design did not foresee:
+
+1. **Two stem collisions, and one open decision behind them.** `Menu.tsx` and
+   `menu.ts` were in different folders and are in one folder now; so were
+   `FilterSelect.tsx` and `filterSelect.ts`. The filesystem is
+   case-insensitive, so `./menu` and `./Menu` name the same file and the
+   resolver picks whichever it reaches first — `tsc` reports TS1149. The
+   lowercase module of each pair was renamed: **`menu.ts` → `menuModel.ts`**
+   and **`filterSelect.ts` → `filterSelectHelpers.ts`** (a test helper).
+   RULED FINE by Joel the same day ("your names are fine"). This is one of the
+   two places the move departed from the roster, and it is a naming decision,
+   not a classification one. It is also a standing cost of the
+   no-type-subfolders ruling: a component and its same-named lib module can
+   never share a folder.
+2. **`common/pdf/tiles.ts` imported `@/shared/wordle-style/tileColor`** — the
+   one real common→shared edge, and flag 2 in §5 was wrong to withdraw. Two
+   rulings met and disagreed: "all of pdf stays together" put the file in
+   common, while "hidden-target color (waffle, wordle)" makes it a family
+   file — and waffle and wordle are its only importers. **RULED (Joel,
+   2026-09-04): the family wins.** *"we can put stuff specific to
+   pdf-wordle-tiles in shared/wordle-style. that bends our 'keep pdf stuff
+   together', but it's the best resolution."* The file is now
+   `shared/wordle-style/pdfTiles.ts` — renamed so the name still says "print",
+   which the `pdf/` folder used to say for it. It reads `common/pdf/frame`'s
+   grays, which is shared→common and allowed, so **the guard has no exceptions
+   at all** and its pending list is gone.
+
+   This amends two §5 rulings: `pdf` is "everything about printing a board
+   EXCEPT the Wordle-style tile", and `wordle-style`'s "no pdf here" is
+   reversed.
+3. **Paths live outside `src/` too.** `postcss.config.js` names
+   `breakpoints.css` as postcss global data (this broke every CSS-module test
+   until fixed), and the Deno edge functions plus `supabase/scripts/` import
+   `trie`, `envelope`, `mulberry32` and `memberColor` by relative path with an
+   explicit `.ts`. A third codemod pass fixed all 19; `deno check` confirms the
+   three edge functions still resolve.
+4. **Two guards encoded a SCOPE, not just paths.** `vocabularies` walked
+   `src/common` alone, so every file that moved to `src/shared/` fell silently
+   out of its reach — it now walks the shell, both folders, which is what it
+   always meant. `cssClasses` resolved stylesheet imports relative to the
+   importer, which no longer works for `@/`-aliased ones; unfixed, six
+   stylesheets looked like nobody read them. `fieldTests` read one directory
+   that no longer existed. All three were re-pathed and **every guard the move
+   touched had a break planted in it and watched to fail** — eight of them,
+   plus the new one and the new eslint block.
+5. **`StrikeMarks.module.css` left the vocabulary guard's scope** by moving
+   into `src/connections/`, where a game's tuned surface is exempt. Its two
+   pending literals are recorded in a comment where the row was; they are
+   connections's to keep or convert.
+
+Not done, and next: everything in §7 step 6.
 
 ## 8. What happens to this file
 

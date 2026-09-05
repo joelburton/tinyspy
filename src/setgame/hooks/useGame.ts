@@ -1,10 +1,10 @@
 // cs-unmet
 
 import { useMemo, useState } from 'react'
-import { useRealtimeRefetch } from '../../common/hooks/realtime/useRealtimeRefetch'
+import { useRealtimeRefetch } from '@/common/realtime/useRealtimeRefetch'
 import type { Card, DeckKind } from '../lib/cards'
-import { readRows } from '../../common/lib/supabase/dbResult'
-import type { NotOkEnv } from '../../common/lib/supabase/envelope'
+import { readRows } from '@/common/supabase/dbResult'
+import type { NotOkEnv } from '@/common/supabase/envelope'
 import { db } from '../db'
 
 /** Projected from `setgame.games_state` — the live table. */

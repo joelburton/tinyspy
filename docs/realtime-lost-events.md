@@ -183,7 +183,7 @@ on screen suggesting a problem.
 the WAL poller really carries this channel's subscription, so a re-read at
 that moment closes the window: anything committed during the gap is picked up
 by the refetch, and everything after it arrives as events. The helper is
-[`common/lib/supabase/postgresAttached.ts`](../src/common/lib/supabase/postgresAttached.ts)
+[`common/lib/supabase/postgresAttached.ts`](../src/common/realtime/postgresAttached.ts)
 (`onPostgresAttached(channel, cb)`), and every postgres_changes consumer
 wires it in next to its SUBSCRIBED refetch: the `useRealtimeRefetch` factory
 (all pattern-A game hooks), `useCommonGame`, the ClubPage games list,

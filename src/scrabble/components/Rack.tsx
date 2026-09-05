@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { cls } from '../../common/lib/util/cls'
+import { cls } from '@/common/utils/cls'
 import { BLANK, LETTER_VALUES } from '../lib/board'
 import styles from './Rack.module.css'
 

@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { supabase } from '../common/lib/supabase/supabase'
+import { supabase } from '@/common/supabase/supabase'
 
 /**
  * Pre-bound DB handle for the `strands` Postgres schema.

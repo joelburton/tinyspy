@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { GameHelpCompanion } from '../../common/components/game/GameHelpCompanion'
+import { GameHelpCompanion } from '@/common/game-page/GameHelpCompanion'
 import styles from './Help.module.css'
 
 type Props = {

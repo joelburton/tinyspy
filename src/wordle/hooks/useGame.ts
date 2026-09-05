@@ -1,10 +1,10 @@
 // cs-unmet
 
 import { useState } from 'react'
-import { useRealtimeRefetch } from '../../common/hooks/realtime/useRealtimeRefetch'
-import type { Member } from '../../common/lib/members/member'
-import { readRows } from '../../common/lib/supabase/dbResult'
-import type { NotOkEnv } from '../../common/lib/supabase/envelope'
+import { useRealtimeRefetch } from '@/common/realtime/useRealtimeRefetch'
+import type { Member } from '@/common/members/member'
+import { readRows } from '@/common/supabase/dbResult'
+import type { NotOkEnv } from '@/common/supabase/envelope'
 import { db } from '../db'
 
 /** A wordle player. No fixed seats — every game_player can guess. */

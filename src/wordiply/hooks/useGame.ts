@@ -1,11 +1,11 @@
 // cs-unmet
 
 import { useEffect, useMemo, useState } from 'react'
-import { useRealtimeRefetch } from '../../common/hooks/realtime/useRealtimeRefetch'
-import { readRows } from '../../common/lib/supabase/dbResult'
-import type { NotOkEnv } from '../../common/lib/supabase/envelope'
+import { useRealtimeRefetch } from '@/common/realtime/useRealtimeRefetch'
+import { readRows } from '@/common/supabase/dbResult'
+import type { NotOkEnv } from '@/common/supabase/envelope'
 import { db } from '../db'
-import type { Member } from '../../common/lib/members/member'
+import type { Member } from '@/common/members/member'
 
 /**
  * One player in a wordiply game. wordiply adds no per-player state beyond

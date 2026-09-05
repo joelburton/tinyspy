@@ -1,8 +1,8 @@
 // cs-unmet
 
 import { COLS, ROWS, coordKey, letterAt, type Board as BoardLetters, type Coord } from '../lib/board'
-import { cls } from '../../common/lib/util/cls'
-import history from '../../common/components/game/lists/historyViewer.module.css'
+import { cls } from '@/common/utils/cls'
+import history from '@/common/turn-log/historyViewer.module.css'
 import styles from './Board.module.css'
 
 /** A found word, as the board needs it: where it runs, and which color. */

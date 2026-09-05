@@ -8,8 +8,8 @@ import {
   drawHeader,
   newPrintDoc,
   savePrint,
-} from '../../common/pdf/frame'
-import { drawTurnLog, twoColGeom } from '../../common/pdf/turnLog'
+} from '@/common/pdf/frame'
+import { drawTurnLog, twoColGeom } from '@/common/pdf/turnLog'
 import type { WordiplyPrintModel } from './model'
 
 /**

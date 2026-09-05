@@ -1,7 +1,7 @@
 /* cs-unmet */
 
 /* bananagrams v3 play surface — composed with the shared scaffold
- * (common/components/game/PlayArea.module.css): `.layout` sets the info-column
+ * (common/game-page/PlayArea.module.css): `.layout` sets the info-column
  * width, and the board column + hand region are game-specific.
  *
  * bananagrams is the documented exception to two house rules:
@@ -162,7 +162,7 @@
 
 /* ---- keyboard cursor ----
  * Just the corner rounding; the ring itself (thick-on-the-axis, plus its
- * direction variants) is the shared common/components/game/gridCursor.module.css.
+ * direction variants) is the shared shared/board-cursor/gridCursor.module.css.
  * A touch of radius on square `.cell`s so the ring doesn't read as a hard box. */
 /* @@ */ .cursor {
   border-radius: 4px;
@@ -303,7 +303,7 @@
 
 /* ---- drag ghost ----
  * The LOOK only; the pointer-following mechanics (fixed + center-translate +
- * tilt) come from the shared common/components/game/dragGhost.module.css,
+ * tilt) come from the shared shared/grid-and-drag/dragGhost.module.css,
  * composed alongside this. */
 /* @@ */ .ghost {
   color: var(--bananagrams-tile-ink);

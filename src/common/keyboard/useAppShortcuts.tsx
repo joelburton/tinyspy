@@ -1,0 +1,144 @@
+// cs-unmet
+
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { AnagramDialog } from '../anagram-finder/AnagramDialog'
+import { WordLookupDialog } from '../definitions/WordLookupDialog'
+import { setChatOpen } from '../chat/chatOpenStore'
+import { openPageMenu } from '../menu/pageMenuStore'
+
+/**
+ * App-level keyboard shortcuts available on any page that has the chat
+ * companion + the logo menu (ClubPage and GamePage — the "real" pages,
+ * as opposed to auth / setup screens):
+ *
+ *   - `/` opens chat (and focuses its input). Already-open stays open.
+ *   - `?` opens the page's header menu. No caller wires this up: whatever
+ *     `<PageHeaderMenu>` is mounted registers itself in `pageMenuStore`, and a
+ *     page with none (or a game whose menu is gone during a pause) simply gets
+ *     nothing. Each page used to thread a `useRef<MenuHandle>` here by hand.
+ *   - `~` opens the free-form "look up a word" dialog. Unlike the other
+ *     two, this shortcut owns its whole feature: the hook holds the
+ *     open/closed state and RETURNS the dialog node for the caller to
+ *     render. The dialog is identical on every page, so centralizing it
+ *     here means each page gets word-lookup for free just by calling
+ *     this hook — there's nothing page-specific to wire up. (This used
+ *     to be re-implemented per-game in spellingbee/scrabble; it now lives
+ *     here so it works almost everywhere.)
+ *   - `⌥\`` toggles the anagram finder (AnagramDialog) — the lookup
+ *     dialog's sibling, owned the same way. Matched by PHYSICAL key
+ *     (`e.code === 'Backquote'` + altKey): on macOS Option-backquote is
+ *     the dead-key accent composer, so `e.key` arrives as 'Dead' — the
+ *     same trap `⌥+` solves by matching `code === 'Equal'`. Shift-
+ *     agnostic, so "option-tilde" and "option-backquote" both land;
+ *     preventDefault keeps the composer from firing.
+ *
+ * These fire when nothing is focused (the common case mid-game, where
+ * word games read keys off `window`) AND when a *game* input is focused
+ * (codenamesduet's clue field, psychicnum's guess field) — so you can hit `/`
+ * to chat without first clicking away. They DON'T fire when a non-game
+ * field has focus (a setup form, the chat box itself, a future
+ * scratchpad), so `/`, `?`, and `~` type literally there. Game inputs
+ * opt in with `data-game-input`; see isNonGameField.
+ *
+ * Escape is deliberately NOT handled here — it stays "close the topmost
+ * open modal", which the dialogs already own (WordLookupDialog's
+ * FloatingPanel closes on Escape).
+ *
+ * **`chat: false`** turns the `/` binding off, for a page that has no chat
+ * panel mounted. Chat is club-scoped (`<Chat>` lives on ClubPage and
+ * GamePage), so on HomePage the shortcut would flip the shared open flag and
+ * produce nothing visible — a key that silently does nothing is worse than one
+ * that isn't bound, because the next person debugging it starts from "chat is
+ * broken" rather than "chat isn't here". `?` and `~` are page-independent and
+ * stay on.
+ *
+ * @param opts.chat Bind `/` to open chat. Default true; pass false on a page
+ *                  with no chat panel.
+ * @returns The word-lookup dialog node (or null when closed). Render it
+ *          somewhere in the page tree.
+ */
+export function useAppShortcuts(opts: { chat?: boolean } = {}): ReactNode {
+  const chatEnabled = opts.chat ?? true
+
+  // The `~` lookup dialog's open/closed state lives here so the dialog
+  // can be owned + rendered centrally for every page (see docstring).
+  const [lookupOpen, setLookupOpen] = useState(false)
+  // Same ownership for the ⌥` anagram finder.
+  const [anagramsOpen, setAnagramsOpen] = useState(false)
+
+  // Read through a ref so the listener still registers exactly once — the flag
+  // is a constant per call site in practice, but this keeps the effect's deps
+  // empty rather than making the listener re-attach on a caller's re-render.
+  const chatEnabledRef = useRef(chatEnabled)
+  useEffect(() => {
+    chatEnabledRef.current = chatEnabled
+  })
+
+  useEffect(function attachShortcuts() {
+    function onKeyDown(e: KeyboardEvent) {
+      // ⌥` — the anagram finder, before the e.key dispatch below because on
+      // macOS this chord's e.key is 'Dead' (see docstring). A toggle: the
+      // same chord closes it (when focus isn't in a text field — from
+      // inside the dialog's own input, Escape is the close).
+      if (e.code === 'Backquote' && e.altKey && !e.metaKey && !e.ctrlKey) {
+        if (isNonGameField(e.target)) return
+        e.preventDefault()
+        setAnagramsOpen((open) => !open)
+        return
+      }
+      if (e.key !== '/' && e.key !== '?' && e.key !== '~') return
+      // An unbound `/` is left to the browser (find-in-page), not swallowed.
+      if (e.key === '/' && !chatEnabledRef.current) return
+      if (e.metaKey || e.ctrlKey || e.altKey) return
+      if (isNonGameField(e.target)) return
+      // We're taking this key — don't also type it into a focused game
+      // input (codenamesduet/psychicnum) or trigger find-in-page.
+      e.preventDefault()
+      if (e.key === '/') {
+        setChatOpen(true)
+        // Focus the chat box so you can type immediately — also covers
+        // the already-open case, where ChatBody's mount-focus won't fire
+        // (no remount). rAF waits for the panel to commit to the DOM.
+        requestAnimationFrame(() => {
+          const input = document.querySelector('[data-chat-input]')
+          if (input instanceof HTMLElement) input.focus()
+        })
+      } else if (e.key === '?') {
+        openPageMenu()
+      } else {
+        setLookupOpen(true)
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
+
+  // Null when both are closed — callers (and tests) treat "nothing to
+  // render" as null, not an empty fragment.
+  if (!lookupOpen && !anagramsOpen) return null
+  return (
+    <>
+      {lookupOpen && <WordLookupDialog onClose={() => setLookupOpen(false)} />}
+      {anagramsOpen && <AnagramDialog onClose={() => setAnagramsOpen(false)} />}
+    </>
+  )
+}
+
+/**
+ * Is the event aimed at a text field that should keep `/`, `?`, and `~`
+ * as literal characters? True for an editable element (input / textarea
+ * / select / contenteditable) that is NOT marked `data-game-input`.
+ *
+ * Game input fields opt in via `data-game-input` so the shortcuts still
+ * work while you're typing a clue/guess; everything else (setup forms,
+ * the chat box, a scratchpad) is a non-game field that owns its keys.
+ */
+export function isNonGameField(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false
+  const editable =
+    target.tagName === 'INPUT' ||
+    target.tagName === 'TEXTAREA' ||
+    target.tagName === 'SELECT' ||
+    target.isContentEditable === true
+  return editable && target.dataset.gameInput === undefined
+}

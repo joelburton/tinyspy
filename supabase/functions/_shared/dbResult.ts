@@ -2,11 +2,11 @@
 
 /**
  * **CALLING AN RPC FROM DENO** — the inbound half of the envelope, the twin of
- * `src/common/lib/supabase/dbResult.ts`'s `runRpc`.
+ * `src/common/supabase/dbResult.ts`'s `runRpc`.
  *
  * The app has four call directions, and this file is the fourth's caller:
  *
- *   | FE → RPC              | `runRpc`    (src/common/lib/supabase/dbResult.ts) |
+ *   | FE → RPC              | `runRpc`    (src/common/supabase/dbResult.ts) |
  *   | FE → table read       | `readRows`  (same file)                           |
  *   | FE → edge function    | `runEdgeFn` (same file)                           |
  *   | edge function → RPC   | HERE                                              |
@@ -36,7 +36,7 @@
  */
 
 import { faultEnvelope, isEnvelope } from './envelope.ts'
-import type { Envelope } from '../../../src/common/lib/supabase/envelope.ts'
+import type { Envelope } from '../../../src/common/supabase/envelope.ts'
 
 /** What supabase-js hands back from `.rpc(...)`, narrowed to what we read. */
 type RpcReply = {

@@ -133,6 +133,26 @@ export default defineConfig([
     },
   },
 
+  // shared/ may not import from any game folder either.
+  //
+  // A shared family is code two or three games happen to need, factored out —
+  // `bee-games`, `grid-and-drag`, `wordle-style`. It is still shell code in
+  // this respect: reaching back into `src/<game>/` would make deleting that
+  // game break a family its siblings depend on, which is the exact property
+  // the rules here exist to keep. (The other direction — a family importing
+  // from `common/` — is fine and common; what must never happen is `common/`
+  // importing a family, which `src/guards/commonNeverImportsShared.test.ts`
+  // catches.)
+  {
+    files: ['src/shared/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        { patterns: forbidGameImports(GAMETYPES, '`src/shared/`') },
+      ],
+    },
+  },
+
   // The shell — App.tsx, main.tsx, test-setup.ts — stays game-agnostic.
   // Games are reached via the registry (`src/gametypes.ts`), which is the
   // ONE allowed exception (it lives at the top level of `src/` and is

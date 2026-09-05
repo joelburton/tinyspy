@@ -3,7 +3,7 @@
 /* wordiply's turn log rides the shared <TurnLog> table — the panel border, the
  * between-turns dividers, the right-aligned who column, the "whose guesses"
  * dropdown and the scroll box all come from
- * common/components/game/lists/TurnLog.module.css. The only wordiply-specific
+ * common/turn-log/TurnLog.module.css. The only wordiply-specific
  * bit is how a REJECTED word reads; that lives here. */
 
 /* A rejected guess: struck through, so the row scans as "tried and didn't

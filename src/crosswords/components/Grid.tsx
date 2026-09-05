@@ -11,7 +11,7 @@ import {
 } from '../lib/cursor'
 import type { Cell as CellT, PuzzleTemplate } from '../lib/types'
 import { cellKey, type CellsMap } from '../hooks/useCells'
-import { cls } from '../../common/lib/util/cls'
+import { cls } from '@/common/utils/cls'
 import styles from './Grid.module.css'
 
 // Board sizing — a single computed cell size, everything else in `em`.

@@ -1,21 +1,21 @@
 // cs-unmet
 
 import type { MouseEvent } from 'react'
-import { TurnLog, TurnLogBar, TurnLogNumber, type TurnOutcome } from '../../common/components/game/lists/TurnLog'
-import { TurnLogActor } from '../../common/components/game/lists/TurnLogActor'
-import { useTurnLogPlayerPicker } from '../../common/hooks/game/useTurnLogPlayerPicker'
-import { useDefinePopover } from '../../common/hooks/definitions/useDefinePopover'
-import { memberById } from '../../common/lib/members/memberList'
+import { TurnLog, TurnLogBar, TurnLogNumber, type TurnOutcome } from '@/common/turn-log/TurnLog'
+import { TurnLogActor } from '@/common/turn-log/TurnLogActor'
+import { useTurnLogPlayerPicker } from '@/common/turn-log/useTurnLogPlayerPicker'
+import { useDefinePopover } from '@/common/definitions/useDefinePopover'
+import { memberById } from '@/common/members/memberList'
 import {
   IconBestFind,
   IconHint,
   IconThemeFind,
   IconWordNo,
   IconWordOk,
-} from '../../common/components/icons'
-import { cls } from '../../common/lib/util/cls'
-import type { Member } from '../../common/lib/members/member'
-import turnLog from '../../common/components/game/lists/TurnLog.module.css'
+} from '@/common/icons/icons'
+import { cls } from '@/common/utils/cls'
+import type { Member } from '@/common/members/member'
+import turnLog from '@/common/turn-log/TurnLog.module.css'
 import type { EventRow, GuessResult } from '../hooks/useGame'
 import styles from './GameTurnLog.module.css'
 

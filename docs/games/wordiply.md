@@ -577,7 +577,7 @@ rows, and letting them advance `seq` would put row 7 on a five-row board. The lo
 orders by `guessed_at`.
 
 **The log itself** is `GameTurnLog` in the info column, using the shared
-[`useTurnLogPlayerPicker`](../../src/common/hooks/game/useTurnLogPlayerPicker.tsx)
+[`useTurnLogPlayerPicker`](../../src/common/turn-log/useTurnLogPlayerPicker.tsx)
 for the whose-guesses dropdown. Rejects show struck through with their reason
 instead of a length, and aren't click-to-define (a lookup of a just-rejected word
 dead-ends). There is deliberately **no `#N` history handle**: wordiply has no

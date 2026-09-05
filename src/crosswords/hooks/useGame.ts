@@ -1,8 +1,8 @@
 // cs-unmet
 
 import { useEffect, useState } from 'react'
-import { readRows } from '../../common/lib/supabase/dbResult'
-import type { NotOkEnv } from '../../common/lib/supabase/envelope'
+import { readRows } from '@/common/supabase/dbResult'
+import type { NotOkEnv } from '@/common/supabase/envelope'
 import { db } from '../db'
 import type { PuzzleTemplate } from '../lib/types'
 

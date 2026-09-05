@@ -19,8 +19,8 @@
 import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { GamePageCtx } from '../../common/lib/gamePageCtx'
-import { gp } from '../../common/test/gamePlayers'
+import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import { gp } from '@/common/members/gamePlayers'
 import type { PsychicnumGame, PlayerRow } from '../hooks/useGame'
 import { db } from '../db'
 import { PlayArea } from './PlayArea'
@@ -226,7 +226,7 @@ describe('psychicnum PlayArea — click-to-define (turn log)', () => {
     expect(define).toHaveTextContent('BRAVO')
     // POINTER-ONLY: not a tab stop and not announced as a control. Definitions
     // are a convenience on a word you're already pointing at, and the entry
-    // swallows Tab anyway (common/utilities.css → `.definable`).
+    // swallows Tab anyway (common/core-css/utilities.css → `.definable`).
     expect(define).not.toHaveAttribute('role')
     expect(define).not.toHaveAttribute('tabindex')
     // ...but the hint sentence is not (only the one define affordance in the log).

@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { BLACK, DARK_GRAY, MEDIUM_GRAY, drawSetup, fit, type PrintDoc } from './frame'
-import type { SetupRow } from '../lib/game/setupRows'
+import type { SetupRow } from '../setup-form/setupRows'
 
 /**
  * The newspaper-flow turn log — shared by the turn-based printable games (scrabble,

@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { supabase } from '../common/lib/supabase/supabase'
+import { supabase } from '@/common/supabase/supabase'
 
 /**
  * spellingbee-schema-scoped supabase client. Imported by every

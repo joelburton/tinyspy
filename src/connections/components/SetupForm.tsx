@@ -1,17 +1,17 @@
 // cs-unmet
 
-import { SetupTimerSection } from '../../common/components/setup/SetupTimerSection'
-import { runRpc } from '../../common/lib/supabase/dbResult'
-import { PlayersSection } from '../../common/components/setup/PlayersSection'
-import { SetupCoopStyleSection } from '../../common/components/setup/SetupCoopStyleSection'
+import { SetupTimerSection } from '@/common/setup-form/SetupTimerSection'
+import { runRpc } from '@/common/supabase/dbResult'
+import { PlayersSection } from '@/common/setup-form/PlayersSection'
+import { SetupCoopStyleSection } from '@/common/setup-form/SetupCoopStyleSection'
 import {
   SetupNextPuzzleSection,
-} from '../../common/components/setup/SetupNextPuzzleSection'
-import { FORM_ERROR_KEYNAME } from '../../common/components/fields/formState'
-import type { SetupBodyProps, SetupSetter } from '../../common/lib/setup/setupForm'
+} from '@/common/setup-form/SetupNextPuzzleSection'
+import { FORM_ERROR_KEYNAME } from '@/common/forms/formState'
+import type { SetupBodyProps, SetupSetter } from '@/common/setup-form/setupForm'
 import { db } from '../db'
 import type { ConnectionsValues, PuzzleAnswer } from '../lib/setup'
-import { reportUnhandled } from '../../common/lib/supabase/dbEnvelope'
+import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
 /**
  * connections's per-game setup form. Two choices — and the puzzle is no

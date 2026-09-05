@@ -2,8 +2,8 @@
 
 import type { PointerEvent as ReactPointerEvent, RefObject } from 'react'
 import { GRID, MAX_CELL } from '../lib/board'
-import { ZoomFitButton } from '../../common/components/buttons/ZoomFitButton'
-import type { DragState } from '../../common/hooks/ui/useDragGesture'
+import { ZoomFitButton } from '@/common/buttons/ZoomFitButton'
+import type { DragState } from '@/shared/grid-and-drag/useDragGesture'
 import {
   LETTER_SCALE,
   blurActiveField,
@@ -12,8 +12,8 @@ import {
   type DragSource,
 } from '../hooks/usePlayerBoard'
 import { idx } from '../lib/board'
-import { cls } from '../../common/lib/util/cls'
-import gridCursor from '../../common/components/game/gridCursor.module.css'
+import { cls } from '@/common/utils/cls'
+import gridCursor from '@/shared/board-cursor/gridCursor.module.css'
 import styles from './PlayerBoard.module.css'
 
 /**

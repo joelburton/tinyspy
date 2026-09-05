@@ -33,8 +33,14 @@ import { describe, expect, it } from 'vitest'
  *
  * ⚠️ TUNED SURFACES ARE EXEMPT, and that is the DEFAULT scope, not the rule.
  * A game's board fits its own game; that is what tuned means (docs/naming.md
- * → tuned / justified / locked), so a vocabulary checks `src/common/` unless
- * it says otherwise.
+ * → tuned / justified / locked), so a vocabulary checks the shell — both
+ * `src/common/` and `src/shared/` — unless it says otherwise.
+ *
+ * Shared is in scope for the same reason common is: a family's surface
+ * (`RankBar`, `GuessKeyboard`, the grid cursor) is worn by two or three games
+ * and is nobody's tuned board, so it answers to the app's vocabulary. The two
+ * roots are one scope, not two policies — before the restructure these files
+ * sat under `src/common/` and were checked by this same list.
  *
  * `z-index` says otherwise, and is the shape of the exception: a board's
  * radius is a game's decision, but a board's rank against the chat panel is a
@@ -160,18 +166,18 @@ const VOCABULARIES: Vocabulary[] = [
       // own area answers rather than a rounding: a counter chip and a round
       // icon button. Both may want `50%` instead — they are square boxes, and
       // `50%` says circle without leaning on a number the browser clamps.
-      'src/common/components/page-header/ChatButton.module.css': ['999px'],
-      'src/common/components/buttons/ShuffleButton.module.css': ['999px'],
+      'src/common/page-header/ChatButton.module.css': ['999px'],
+      'src/common/buttons/ShuffleButton.module.css': ['999px'],
       // Deliberate, and the reason is at the declaration: the pill's thick left
       // accent bar would curve into a crescent on round ends. This is the
       // sprint's first real bespoke-BY-INTENT value, and §18 has the open item
       // about giving those somewhere better to live than a pending row.
-      'src/common/components/feedback/GenericFeedbackPill.module.css': ['0.5rem'],
-      'src/common/components/game/entry/GuessKeyboard.module.css': ['4px'],
-      'src/common/components/game/FilterSelect.module.css': ['4px'],
-      'src/common/components/game/lists/TurnLog.module.css': ['3px'],
-      'src/common/components/game/RankBar.module.css': ['2px', '4px'],
-      'src/common/components/floating-panels/GameScratchpadCompanion.module.css': ['6px'],
+      'src/common/feedback/GenericFeedbackPill.module.css': ['0.5rem'],
+      'src/shared/onscreen-keyboard/GuessKeyboard.module.css': ['4px'],
+      'src/common/lists/FilterSelect.module.css': ['4px'],
+      'src/common/turn-log/TurnLog.module.css': ['3px'],
+      'src/shared/rank-ladder/RankBar.module.css': ['2px', '4px'],
+      'src/common/scratchpad/GameScratchpadCompanion.module.css': ['6px'],
     },
     fix:
       'Use `--radius-sm` / `-md` / `-lg`, chosen by what the thing IS — a card ' +
@@ -241,88 +247,91 @@ const VOCABULARIES: Vocabulary[] = [
       // guard's side: an area converts a value and deletes it from its row, the
       // row goes when the file is clean, and the day the object is empty the
       // vocabulary is fully in force.
-      'src/common/base.css': ['1rem', '1.25rem', '1.15rem'],
-      'src/common/components/account/ColorChoiceList.module.css': ['0.5rem'],
-      'src/common/components/auth/ClaimHandleScreen.module.css': ['0.75rem', '0.5rem'],
-      'src/common/components/branding/PuzpuzpuzWordmark.module.css': ['1.5rem'],
-      'src/common/components/buttons/SubmitWithScore.module.css': ['0.5rem'],
-      'src/common/components/chat/ChatBody.module.css': ['0.4rem', '0.3rem'],
+      'src/common/core-css/base.css': ['1rem', '1.25rem', '1.15rem'],
+      'src/common/account/ColorChoiceList.module.css': ['0.5rem'],
+      'src/common/auth/ClaimHandleScreen.module.css': ['0.75rem', '0.5rem'],
+      'src/common/branding/PuzpuzpuzWordmark.module.css': ['1.5rem'],
+      'src/common/buttons/SubmitWithScore.module.css': ['0.5rem'],
+      'src/common/chat/ChatBody.module.css': ['0.4rem', '0.3rem'],
       // 0.375rem is BESPOKE by decision (Joel, 2026-08-24), not unconverted: it
       // is the mark gap, and the number you see is that plus each mark's own
       // padding — see the file, and F43 (`unequal-mark-separation`). If a second
       // site ever wants it, it earns a ramp step then.
-      'src/common/components/page-header/PageHeader.module.css': ['0.375rem'],
+      'src/common/page-header/PageHeader.module.css': ['0.375rem'],
       // The icon-and-label gap is `em` BY DESIGN, not unconverted: it tracks the
       // button's own text so the glyph, the label and the space between them stay
       // one proportion at every size. A ramp step in rem could not do that.
-      'src/common/components/buttons/StandardButton.module.css': ['0.4em'],
-      'src/common/components/club/ClubGameCard.module.css': ['0.6rem', '0.4rem', '0.5rem'],
-      'src/common/components/club/ClubGameRow.module.css': ['0.4rem', '0.5rem'],
-      'src/common/components/club/ClubPage.module.css': ['1rem', '1.25rem'],
+      'src/common/buttons/StandardButton.module.css': ['0.4em'],
+      'src/common/club/ClubGameCard.module.css': ['0.6rem', '0.4rem', '0.5rem'],
+      'src/common/club/ClubGameRow.module.css': ['0.4rem', '0.5rem'],
+      'src/common/club/ClubPage.module.css': ['1rem', '1.25rem'],
       // Two of its three literals left with `.buttonRow`, which is the shared
       // `modalActions` row now that this is a modal (F36). The label/hint gap
       // is what remains.
-      'src/common/components/club/CreateClubModal.module.css': ['0.4rem'],
-      'src/common/components/club/StartGameRow.module.css': ['0.4rem'],
-      'src/common/components/definitions/DefinitionView.module.css': ['0.3rem', '0.15rem', '0.1rem'],
-      'src/common/components/definitions/WordEditDialog.module.css': ['0.5rem', '0.35rem'],
-      'src/common/components/feedback/FaultModal.module.css': ['0.5rem'],
-      'src/common/components/feedback/GenericFeedbackPill.module.css': ['0.5rem'],
+      'src/common/club/CreateClubModal.module.css': ['0.4rem'],
+      'src/common/club/StartGameRow.module.css': ['0.4rem'],
+      'src/common/definitions/DefinitionView.module.css': ['0.3rem', '0.15rem', '0.1rem'],
+      'src/common/definitions/WordEditDialog.module.css': ['0.5rem', '0.35rem'],
+      'src/common/faults/FaultModal.module.css': ['0.5rem'],
+      'src/common/feedback/GenericFeedbackPill.module.css': ['0.5rem'],
       // The gap under a checkbox row and under a date override — both moved
       // out of files already on this list, at the same values. The debt
       // traveled with the markup; it did not grow.
-      'src/common/components/fields/CheckboxField.module.css': ['0.5rem'],
+      'src/common/fields/CheckboxField.module.css': ['0.5rem'],
       // The three field components carved out of ClaimHandleScreen,
       // CreateClubModal and EditProfileModal. Same values,
       // now in one place instead of four — the debt traveled and shrank.
-      'src/common/components/fields/field.module.css': ['0.4rem'],
-      'src/common/components/fields/DateField.module.css': ['0.5rem'],
+      'src/common/fields/field.module.css': ['0.4rem'],
+      'src/common/fields/DateField.module.css': ['0.5rem'],
       // setupForm.module.css is gone; each of its values
       // traveled to the component that draws the rule, and none of them grew.
-      'src/common/components/fields/RadioRow.module.css': ['1rem', '0.4rem'],
-      'src/common/components/setup/SetupSection.module.css': ['0.75rem'],
-      'src/common/components/setup/SetupTimerSection.module.css': ['0.3rem'],
-      'src/common/components/game/CelebrationBlockingModal.module.css': ['0.3rem', '0.4rem', '0.2rem', '1.4rem'],
-      'src/common/components/game/DeviceBlockNotice.module.css': ['1rem'],
-      'src/common/components/game/entry/EntryBox.module.css': ['1px'],
-      'src/common/components/game/entry/GuessKeyboard.module.css': ['0.4rem'],
-      'src/common/components/game/entry/MoveRow.module.css': ['0.5rem'],
-      'src/common/components/game/FilterSelect.module.css': ['0.25rem', '0.35rem'],
-      'src/common/components/game/foundWordsPlayArea.module.css': ['1.5rem'],
-      'src/common/components/game/GamePage.module.css': ['1rem', '0.1rem'],
-      'src/common/components/game/GameHelpCompanion.module.css': ['1rem'],
-      'src/common/components/game/infoPanel.module.css': ['0.5rem', '0.35rem'],
-      'src/common/components/game/lists/ActorMention.module.css': ['0.4rem'],
+      'src/common/fields/RadioRow.module.css': ['1rem', '0.4rem'],
+      'src/common/setup-form/SetupSection.module.css': ['0.75rem'],
+      'src/common/setup-form/SetupTimerSection.module.css': ['0.3rem'],
+      'src/common/terminal/CelebrationBlockingModal.module.css': ['0.3rem', '0.4rem', '0.2rem', '1.4rem'],
+      'src/common/game-page/DeviceBlockNotice.module.css': ['1rem'],
+      'src/common/word-entry/EntryBox.module.css': ['1px'],
+      'src/shared/onscreen-keyboard/GuessKeyboard.module.css': ['0.4rem'],
+      'src/common/word-entry/MoveRow.module.css': ['0.5rem'],
+      'src/common/lists/FilterSelect.module.css': ['0.25rem', '0.35rem'],
+      'src/shared/bee-games/foundWordsPlayArea.module.css': ['1.5rem'],
+      'src/common/game-page/GamePage.module.css': ['1rem', '0.1rem'],
+      'src/common/game-page/GameHelpCompanion.module.css': ['1rem'],
+      'src/common/info-sheet/infoPanel.module.css': ['0.5rem', '0.35rem'],
+      'src/common/turn-log/ActorMention.module.css': ['0.4rem'],
       // Both values MOVED here rather than being chosen here: `0.6rem` was the
       // retired list.css pattern's row gap, and `0.85rem` was ClubPage's packed
       // override, now the `packed` density. Both are tuned to the box on
       // purpose (the reason is written in the module), so this row records
       // where they went rather than pretending they are new decisions.
-      'src/common/components/lists/SelectionList.module.css': ['0.6rem', '0.85rem'],
-      'src/common/components/game/lists/historyViewer.module.css': ['0.6rem'],
-      'src/common/components/game/lists/TurnLog.module.css': ['0.5rem', '-1px', '-3px'],
-      'src/common/components/game/lists/WordList.module.css': ['0.5rem', '16px', '7px'],
-      'src/common/components/game/OpponentStrip.module.css': ['0.25rem', '0.3rem', '0.6rem', '0.35rem'],
-      'src/common/components/game/PauseOverlay.module.css': ['0.5rem', '0.75rem', '0.4rem', '1rem'],
-      'src/common/components/game/PlayArea.module.css': ['0.75rem', '1rem', '0.3rem', '0.5rem'],
-      'src/common/components/page-header/PageHeaderPlayersStrip.module.css': ['1.25rem', '0.4rem', '0.6rem'],
-      'src/common/components/game/RankBar.module.css': ['8px', '0.5rem'],
-      'src/common/components/game/Stats.module.css': ['8px', '12px', '2px', '0.25rem'],
-      'src/common/components/game/StrikeMarks.module.css': ['0.3rem', '0.4rem'],
-      'src/common/components/palette/PalettePage.module.css': ['1rem', '0.75rem', '2.5rem', '0.25rem', '0.5rem', '0.35rem', '0.15rem'],
-      'src/common/components/floating-panels/GameScratchpadCompanion.module.css': ['0.4rem', '0.5rem'],
-      'src/common/components/menu/Menu.module.css': ['1.5rem', '0.3rem', '0.1rem', '-1px', '-1rem'],
+      'src/common/lists/SelectionList.module.css': ['0.6rem', '0.85rem'],
+      'src/common/turn-log/historyViewer.module.css': ['0.6rem'],
+      'src/common/turn-log/TurnLog.module.css': ['0.5rem', '-1px', '-3px'],
+      'src/common/word-list/WordList.module.css': ['0.5rem', '16px', '7px'],
+      'src/common/info-sheet/OpponentStrip.module.css': ['0.25rem', '0.3rem', '0.6rem', '0.35rem'],
+      'src/common/pause-suspend/PauseOverlay.module.css': ['0.5rem', '0.75rem', '0.4rem', '1rem'],
+      'src/common/game-page/PlayArea.module.css': ['0.75rem', '1rem', '0.3rem', '0.5rem'],
+      'src/common/page-header/PageHeaderPlayersStrip.module.css': ['1.25rem', '0.4rem', '0.6rem'],
+      'src/shared/rank-ladder/RankBar.module.css': ['8px', '0.5rem'],
+      'src/shared/rank-ladder/Stats.module.css': ['8px', '12px', '2px', '0.25rem'],
+      // StrikeMarks was here with ['0.3rem', '0.4rem'] until the restructure
+      // moved it into `src/connections/` — its only importer. A game's file is
+      // a tuned surface and out of this vocabulary's scope, so the row cannot
+      // stay; the two literals are connections's to keep or convert.
+      'src/common/devtools/PalettePage.module.css': ['1rem', '0.75rem', '2.5rem', '0.25rem', '0.5rem', '0.35rem', '0.15rem'],
+      'src/common/scratchpad/GameScratchpadCompanion.module.css': ['0.4rem', '0.5rem'],
+      'src/common/menu/Menu.module.css': ['1.5rem', '0.3rem', '0.1rem', '-1px', '-1rem'],
       // The picker's summary dots moved out of the modal with <PlayersSection>.
       // Same value, new file — the debt traveled, it did not grow.
-      'src/common/components/setup/PlayersSection.module.css': ['0.3rem'],
+      'src/common/setup-form/PlayersSection.module.css': ['0.3rem'],
       // Lives with <PlayersField>, which draws the rows these size.
       // Same values, new file — the debt traveled, it did not grow.
-      'src/common/components/fields/PlayersField.module.css': ['0.5rem'],
-      'src/common/components/text/RichMessage.module.css': ['0.25rem'],
-      'src/common/components/toasts/Toast.module.css': ['0.7rem'],
-      'src/common/components/toasts/ToastHost.module.css': ['0.6rem'],
-            'src/common/patterns/heading.css': ['0.5rem'],
-      'src/common/utilities.css': ['1rem', '1.5rem'],
+      'src/common/fields/PlayersField.module.css': ['0.5rem'],
+      'src/common/text/RichMessage.module.css': ['0.25rem'],
+      'src/common/toasts/Toast.module.css': ['0.7rem'],
+      'src/common/toasts/ToastHost.module.css': ['0.6rem'],
+            'src/common/core-css/patterns/heading.css': ['0.5rem'],
+      'src/common/core-css/utilities.css': ['1rem', '1.5rem'],
     },
     fix:
       'Use `--spacer-1` … `-5` (1.5 · 1 · 0.75 · 0.5 · 0.25rem), remembering ' +
@@ -338,51 +347,51 @@ const VOCABULARIES: Vocabulary[] = [
     // replace. The ramp is for absolute sizes.
     allowed: /^(\d*\.?\d+(em|%)|inherit|initial|unset|revert)$/,
     pending: {
-      'src/common/base.css': ['1.5rem', '1.25rem', '1.15rem', '1rem', 'max(16px,', '1em)'],
-      'src/common/components/buttons/ShuffleButton.module.css': ['32px'],
-      'src/common/components/chat/ChatBody.module.css': ['0.9rem', 'max(16px,', '1em)'],
-      'src/common/components/page-header/ChatButton.module.css': ['0.7rem'],
-      'src/common/components/club/clubFilters.module.css': ['0.8rem', 'max(16px,', '1em)', '0.9rem'],
-      'src/common/components/club/ClubGameCard.module.css': ['1.25rem', '0.85rem'],
-      'src/common/components/club/ClubGameDeleteButton.module.css': ['0.85rem'],
-      'src/common/components/club/ClubGameRow.module.css': ['1rem', '0.85rem'],
-      'src/common/components/club/CreateClubModal.module.css': ['0.8rem'],
-      'src/common/components/club/StartGameRow.module.css': ['1rem', '0.85rem'],
-      'src/common/components/definitions/DefinitionView.module.css': ['1.05rem', '0.92rem', '0.9rem', '0.72rem', '0.8rem'],
-      'src/common/components/feedback/FaultModal.module.css': ['1.1rem', '0.78rem'],
+      'src/common/core-css/base.css': ['1.5rem', '1.25rem', '1.15rem', '1rem', 'max(16px,', '1em)'],
+      'src/common/buttons/ShuffleButton.module.css': ['32px'],
+      'src/common/chat/ChatBody.module.css': ['0.9rem', 'max(16px,', '1em)'],
+      'src/common/page-header/ChatButton.module.css': ['0.7rem'],
+      'src/common/club/clubFilters.module.css': ['0.8rem', 'max(16px,', '1em)', '0.9rem'],
+      'src/common/club/ClubGameCard.module.css': ['1.25rem', '0.85rem'],
+      'src/common/club/ClubGameDeleteButton.module.css': ['0.85rem'],
+      'src/common/club/ClubGameRow.module.css': ['1rem', '0.85rem'],
+      'src/common/club/CreateClubModal.module.css': ['0.8rem'],
+      'src/common/club/StartGameRow.module.css': ['1rem', '0.85rem'],
+      'src/common/definitions/DefinitionView.module.css': ['1.05rem', '0.92rem', '0.9rem', '0.72rem', '0.8rem'],
+      'src/common/faults/FaultModal.module.css': ['1.1rem', '0.78rem'],
       // ErrorPage is FaultModal's twin as a PAGE (F39 `loading-and-errors`);
       // its two sizes are copied to the digit so the two read as one event.
       // They convert together or not at all.
-      'src/common/components/loading-and-errs/ErrorPage.module.css': ['1.1rem', '0.78rem'],
-      'src/common/components/fields/field.module.css': ['0.9rem'],
-      'src/common/components/fields/ReadOnlyField.module.css': ['1.05rem'],
-      'src/common/components/game/CelebrationBlockingModal.module.css': ['2.4rem', '1.5rem'],
-      'src/common/components/game/DeviceBlockNotice.module.css': ['1.25rem'],
-      'src/common/components/game/entry/GuessKeyboard.module.css': ['1.2rem', '0.85rem'],
-      'src/common/components/game/FilterSelect.module.css': ['0.8rem', '1rem'],
-      'src/common/components/game/infoPanel.module.css': ['0.95rem'],
-      'src/common/components/game/lists/historyViewer.module.css': ['1rem'],
-      'src/common/components/game/lists/TurnLog.module.css': ['0.9rem', '1rem'],
-      'src/common/components/game/lists/WordList.module.css': ['17px'],
-      'src/common/components/game/MobileStatusBar.module.css': ['0.95rem'],
-      'src/common/components/game/OpponentStrip.module.css': ['0.85rem', '0.75rem'],
-      'src/common/components/game/PauseOverlay.module.css': ['1.05rem'],
-      'src/common/components/game/PlayArea.module.css': ['0.85rem', '0.95rem', '0.9rem'],
-      'src/common/components/game/RankBar.module.css': ['14px', '12px'],
-      'src/common/components/game/Stats.module.css': ['11px', '18px', '13px'],
-      'src/common/components/palette/PalettePage.module.css': ['0.85rem', '0.8rem', '0.95rem'],
-      'src/common/components/floating-panels/GameScratchpadCompanion.module.css': ['0.85rem', '0.8rem', '0.9rem', 'max(16px,', '1em)'],
-      'src/common/components/menu/Menu.module.css': ['0.95rem', '0.82rem', '1rem'],
-      'src/common/components/setup/SetupGameModal.module.css': ['0.9rem'],
-      'src/common/components/tooltips/TooltipHost.module.css': ['0.75rem'],
-      'src/common/patterns/badge.css': ['0.7rem'],
-            'src/common/patterns/segmented.css': ['0.8rem'],
-      'src/common/utilities.css': ['0.9rem', '0.85rem'],
+      'src/common/error-page/ErrorPage.module.css': ['1.1rem', '0.78rem'],
+      'src/common/fields/field.module.css': ['0.9rem'],
+      'src/common/fields/ReadOnlyField.module.css': ['1.05rem'],
+      'src/common/terminal/CelebrationBlockingModal.module.css': ['2.4rem', '1.5rem'],
+      'src/common/game-page/DeviceBlockNotice.module.css': ['1.25rem'],
+      'src/shared/onscreen-keyboard/GuessKeyboard.module.css': ['1.2rem', '0.85rem'],
+      'src/common/lists/FilterSelect.module.css': ['0.8rem', '1rem'],
+      'src/common/info-sheet/infoPanel.module.css': ['0.95rem'],
+      'src/common/turn-log/historyViewer.module.css': ['1rem'],
+      'src/common/turn-log/TurnLog.module.css': ['0.9rem', '1rem'],
+      'src/common/word-list/WordList.module.css': ['17px'],
+      'src/common/info-sheet/MobileStatusBar.module.css': ['0.95rem'],
+      'src/common/info-sheet/OpponentStrip.module.css': ['0.85rem', '0.75rem'],
+      'src/common/pause-suspend/PauseOverlay.module.css': ['1.05rem'],
+      'src/common/game-page/PlayArea.module.css': ['0.85rem', '0.95rem', '0.9rem'],
+      'src/shared/rank-ladder/RankBar.module.css': ['14px', '12px'],
+      'src/shared/rank-ladder/Stats.module.css': ['11px', '18px', '13px'],
+      'src/common/devtools/PalettePage.module.css': ['0.85rem', '0.8rem', '0.95rem'],
+      'src/common/scratchpad/GameScratchpadCompanion.module.css': ['0.85rem', '0.8rem', '0.9rem', 'max(16px,', '1em)'],
+      'src/common/menu/Menu.module.css': ['0.95rem', '0.82rem', '1rem'],
+      'src/common/setup-form/SetupGameModal.module.css': ['0.9rem'],
+      'src/common/tooltips/TooltipHost.module.css': ['0.75rem'],
+      'src/common/core-css/patterns/badge.css': ['0.7rem'],
+            'src/common/core-css/patterns/segmented.css': ['0.8rem'],
+      'src/common/core-css/utilities.css': ['0.9rem', '0.85rem'],
       // `.helpText` is the global `.muted` carved out under a name that says
       // what it is, at the SAME values — a rename must not move a pixel. So its
       // 0.9rem is `.muted`'s 0.9rem, listed here, and the two convert together
       // or not at all (the ramp has 1 / 0.85 / 0.75 and no step for it).
-      'src/common/components/setup/SetupSection.module.css': ['0.9rem'],
+      'src/common/setup-form/SetupSection.module.css': ['0.9rem'],
     },
     fix:
       'Use `--font-size-1` … `-3` (1 · 0.85 · 0.75rem), -1 being the biggest. ' +
@@ -394,27 +403,27 @@ const VOCABULARIES: Vocabulary[] = [
     properties: ['line-height'],
     allowed: /^(normal|inherit|initial|unset|revert)$/,
     pending: {
-      'src/common/components/buttons/ShuffleButton.module.css': ['1'],
+      'src/common/buttons/ShuffleButton.module.css': ['1'],
       // The textarea's leading, moved up from CreateClubModal with <TextField>.
-      'src/common/components/fields/TextField.module.css': ['1.4'],
-      'src/common/components/chat/ChatBody.module.css': ['1.35'],
-      'src/common/components/page-header/ChatButton.module.css': ['1.1rem'],
-      'src/common/components/club/ClubGameCard.module.css': ['1.2', '1.25'],
-      'src/common/components/club/ClubGameRow.module.css': ['1.2', '1.25'],
-      'src/common/components/club/StartGameRow.module.css': ['1.2', '1.25'],
-      'src/common/components/definitions/DefinitionView.module.css': ['1.45'],
-      'src/common/components/setup/SetupNextPuzzleSection.module.css': ['1.4'],
-      'src/common/components/game/CelebrationBlockingModal.module.css': ['1'],
-      'src/common/components/game/DeviceBlockNotice.module.css': ['1.5'],
-      'src/common/components/game/lists/historyViewer.module.css': ['1'],
-      'src/common/components/game/PlayArea.module.css': ['1.1'],
-      'src/common/components/game/Stats.module.css': ['1.2'],
-      'src/common/components/palette/PalettePage.module.css': ['1.35'],
-      'src/common/components/floating-panels/GameScratchpadCompanion.module.css': ['1.5'],
-      'src/common/components/menu/Menu.module.css': ['1'],
-      'src/common/components/toasts/Toast.module.css': ['1.35'],
-      'src/common/components/tooltips/TooltipHost.module.css': ['1.2'],
-      'src/common/patterns/badge.css': ['1.4'],
+      'src/common/fields/TextField.module.css': ['1.4'],
+      'src/common/chat/ChatBody.module.css': ['1.35'],
+      'src/common/page-header/ChatButton.module.css': ['1.1rem'],
+      'src/common/club/ClubGameCard.module.css': ['1.2', '1.25'],
+      'src/common/club/ClubGameRow.module.css': ['1.2', '1.25'],
+      'src/common/club/StartGameRow.module.css': ['1.2', '1.25'],
+      'src/common/definitions/DefinitionView.module.css': ['1.45'],
+      'src/common/setup-form/SetupNextPuzzleSection.module.css': ['1.4'],
+      'src/common/terminal/CelebrationBlockingModal.module.css': ['1'],
+      'src/common/game-page/DeviceBlockNotice.module.css': ['1.5'],
+      'src/common/turn-log/historyViewer.module.css': ['1'],
+      'src/common/game-page/PlayArea.module.css': ['1.1'],
+      'src/shared/rank-ladder/Stats.module.css': ['1.2'],
+      'src/common/devtools/PalettePage.module.css': ['1.35'],
+      'src/common/scratchpad/GameScratchpadCompanion.module.css': ['1.5'],
+      'src/common/menu/Menu.module.css': ['1'],
+      'src/common/toasts/Toast.module.css': ['1.35'],
+      'src/common/tooltips/TooltipHost.module.css': ['1.2'],
+      'src/common/core-css/patterns/badge.css': ['1.4'],
     },
     fix:
       'Use `--line-height-1` … `-3` (1.5 · 1.25 · 1): prose, a tighter block, ' +
@@ -427,14 +436,14 @@ const VOCABULARIES: Vocabulary[] = [
     // a different question from how faint something should be.
     allowed: /^(0|1|inherit|initial|unset|revert)$/,
     pending: {
-      'src/common/components/buttons/ShuffleButton.module.css': ['0.45'],
-      'src/common/components/definitions/WordEditDialog.module.css': ['0.6'],
-      'src/common/components/fields/SelectField.module.css': ['0.55'],
-      'src/common/components/setup/SetupTimerSection.module.css': ['0.5'],
-      'src/common/components/game/entry/GuessKeyboard.module.css': ['0.6'],
-      'src/common/components/game/FilterSelect.module.css': ['0.7'],
-      'src/common/components/game/OpponentStrip.module.css': ['0.5'],
-      'src/common/components/menu/Menu.module.css': ['0.45'],
+      'src/common/buttons/ShuffleButton.module.css': ['0.45'],
+      'src/common/definitions/WordEditDialog.module.css': ['0.6'],
+      'src/common/fields/SelectField.module.css': ['0.55'],
+      'src/common/setup-form/SetupTimerSection.module.css': ['0.5'],
+      'src/shared/onscreen-keyboard/GuessKeyboard.module.css': ['0.6'],
+      'src/common/lists/FilterSelect.module.css': ['0.7'],
+      'src/common/info-sheet/OpponentStrip.module.css': ['0.5'],
+      'src/common/menu/Menu.module.css': ['0.45'],
     },
     fix:
       'Use `--opacity-1` / `-2` — or say why this one is a ROLE rather than a ' +
@@ -451,15 +460,15 @@ const VOCABULARIES: Vocabulary[] = [
       // on before <ManualBoardField> existed — spellingbee, wordwheel,
       // wordiply and letterboxed all wrote 0.2em. Unconverted, not
       // unconsidered: it is what makes typed letters read like tiles.
-      'src/common/components/fields/ManualBoardField.module.css': ['0.2em'],
-      'src/common/components/definitions/DefinitionView.module.css': ['0.01em'],
-      'src/common/components/game/entry/EntryBox.module.css': ['0.05em'],
-      'src/common/components/game/lists/WordList.module.css': ['0.02em'],
-      'src/common/components/game/OpponentStrip.module.css': ['0.04em'],
-      'src/common/components/game/PlayArea.module.css': ['0.03em'],
-      'src/common/components/game/RankBar.module.css': ['0.04em'],
-      'src/common/components/game/Stats.module.css': ['0.06em'],
-      'src/common/components/palette/PalettePage.module.css': ['0.03em'],
+      'src/common/fields/ManualBoardField.module.css': ['0.2em'],
+      'src/common/definitions/DefinitionView.module.css': ['0.01em'],
+      'src/common/word-entry/EntryBox.module.css': ['0.05em'],
+      'src/common/word-list/WordList.module.css': ['0.02em'],
+      'src/common/info-sheet/OpponentStrip.module.css': ['0.04em'],
+      'src/common/game-page/PlayArea.module.css': ['0.03em'],
+      'src/shared/rank-ladder/RankBar.module.css': ['0.04em'],
+      'src/shared/rank-ladder/Stats.module.css': ['0.06em'],
+      'src/common/devtools/PalettePage.module.css': ['0.03em'],
     },
     fix:
       'Use `--letter-spacing-label` (a small uppercase label) or `-wide` ' +
@@ -481,14 +490,14 @@ const VOCABULARIES: Vocabulary[] = [
     extract: /\d*\.?\d+m?s\b/g,
     allowed: /^0m?s$/,
     pending: {
-      'src/common/components/buttons/ShuffleButton.module.css': ['120ms'],
-      'src/common/components/club/ClubGameDeleteButton.module.css': ['120ms', '160ms'],
-      'src/common/components/game/entry/GuessKeyboard.module.css': ['80ms'],
-      'src/common/components/game/InfoSheet.module.css': ['160ms'],
-      'src/common/components/game/PlayArea.module.css': ['80ms'],
-      'src/common/components/game/RankBar.module.css': ['80ms'],
-      'src/common/components/menu/Menu.module.css': ['100ms', '80ms'],
-      'src/common/patterns/segmented.css': ['100ms'],
+      'src/common/buttons/ShuffleButton.module.css': ['120ms'],
+      'src/common/club/ClubGameDeleteButton.module.css': ['120ms', '160ms'],
+      'src/shared/onscreen-keyboard/GuessKeyboard.module.css': ['80ms'],
+      'src/common/info-sheet/InfoSheet.module.css': ['160ms'],
+      'src/common/game-page/PlayArea.module.css': ['80ms'],
+      'src/shared/rank-ladder/RankBar.module.css': ['80ms'],
+      'src/common/menu/Menu.module.css': ['100ms', '80ms'],
+      'src/common/core-css/patterns/segmented.css': ['100ms'],
     },
     fix:
       'Use `--transition-duration-paint` (a color settling), `-nudge` (a piece ' +
@@ -521,34 +530,34 @@ const VOCABULARIES: Vocabulary[] = [
     extract: /\d*\.?\d+(?:px|rem|em)\b/g,
     allowed: /^0(px|rem|em)?$/,
     pending: {
-      'src/common/base.css': ['1px'],
-      'src/common/components/account/ColorChoiceList.module.css': ['1px'],
-      'src/common/components/buttons/ShuffleButton.module.css': ['1px'],
-      'src/common/components/chat/ChatBody.module.css': ['1px'],
-      'src/common/components/club/clubFilters.module.css': ['1px'],
-      'src/common/components/definitions/DefinitionPopover.module.css': ['1px'],
-      'src/common/components/feedback/GenericFeedbackPill.module.css': ['2px', '0.4rem'],
-      'src/common/components/fields/SelectField.module.css': ['1px'],
-      'src/common/components/game/DeviceBlockNotice.module.css': ['1px'],
-      'src/common/components/game/entry/GuessKeyboard.module.css': ['1px'],
-      'src/common/components/game/FilterSelect.module.css': ['1px'],
-      'src/common/components/game/gridCursor.module.css': ['1px', '5px'],
-      'src/common/components/game/infoPanel.module.css': ['2px'],
-      'src/common/components/game/lists/historyViewer.module.css': ['2px'],
-      'src/common/components/game/lists/TurnLog.module.css': ['1px'],
-      'src/common/components/game/PauseOverlay.module.css': ['1px'],
-      'src/common/components/game/PlayArea.module.css': ['1px'],
-      'src/common/components/game/RankBar.module.css': ['2px', '3px'],
-      'src/common/components/game/Stats.module.css': ['1px'],
-      'src/common/components/palette/PalettePage.module.css': ['1px'],
-      'src/common/components/floating-panels/GameScratchpadCompanion.module.css': ['1px'],
-      'src/common/components/menu/Menu.module.css': ['1px'],
-      'src/common/components/setup/SetupSection.module.css': ['1px'],
-      'src/common/components/text/Dot.module.css': ['1px'],
-      'src/common/components/toasts/Toast.module.css': ['1px', '4px'],
-      'src/common/patterns/badge.css': ['1px'],
-            'src/common/patterns/segmented.css': ['1px'],
-      'src/common/utilities.css': ['1px'],
+      'src/common/core-css/base.css': ['1px'],
+      'src/common/account/ColorChoiceList.module.css': ['1px'],
+      'src/common/buttons/ShuffleButton.module.css': ['1px'],
+      'src/common/chat/ChatBody.module.css': ['1px'],
+      'src/common/club/clubFilters.module.css': ['1px'],
+      'src/common/definitions/DefinitionPopover.module.css': ['1px'],
+      'src/common/feedback/GenericFeedbackPill.module.css': ['2px', '0.4rem'],
+      'src/common/fields/SelectField.module.css': ['1px'],
+      'src/common/game-page/DeviceBlockNotice.module.css': ['1px'],
+      'src/shared/onscreen-keyboard/GuessKeyboard.module.css': ['1px'],
+      'src/common/lists/FilterSelect.module.css': ['1px'],
+      'src/shared/board-cursor/gridCursor.module.css': ['1px', '5px'],
+      'src/common/info-sheet/infoPanel.module.css': ['2px'],
+      'src/common/turn-log/historyViewer.module.css': ['2px'],
+      'src/common/turn-log/TurnLog.module.css': ['1px'],
+      'src/common/pause-suspend/PauseOverlay.module.css': ['1px'],
+      'src/common/game-page/PlayArea.module.css': ['1px'],
+      'src/shared/rank-ladder/RankBar.module.css': ['2px', '3px'],
+      'src/shared/rank-ladder/Stats.module.css': ['1px'],
+      'src/common/devtools/PalettePage.module.css': ['1px'],
+      'src/common/scratchpad/GameScratchpadCompanion.module.css': ['1px'],
+      'src/common/menu/Menu.module.css': ['1px'],
+      'src/common/setup-form/SetupSection.module.css': ['1px'],
+      'src/common/members/Dot.module.css': ['1px'],
+      'src/common/toasts/Toast.module.css': ['1px', '4px'],
+      'src/common/core-css/patterns/badge.css': ['1px'],
+            'src/common/core-css/patterns/segmented.css': ['1px'],
+      'src/common/core-css/utilities.css': ['1px'],
     },
     fix:
       'Use `--border-width-line` (a divider or a field edge), `-line-thick` ' +
@@ -593,7 +602,9 @@ describe('a converted surface writes vocabulary values, not literals', () => {
       /** What each file actually writes today, for the shrink arms below. */
       const found = new Map<string, Set<string>>()
 
-      for (const f of walk(join(SRC, v.root ?? 'common'))) {
+      // No `root` means the shell, which is two folders — see the header.
+      const roots = v.root ? [v.root] : ['common', 'shared']
+      for (const f of roots.flatMap((r) => walk(join(SRC, r)))) {
         const css = stripFontFace(stripComments(readFileSync(f, 'utf8')))
         const literals = new Set<string>()
         // Boundary is `{`, `;` or a line start — NOT `^` alone. Anchoring on

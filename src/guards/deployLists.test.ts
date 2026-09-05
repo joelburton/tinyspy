@@ -3,7 +3,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { gametypes } from '../gametypes'
+import { gametypes } from '@/gametypes'
 
 /**
  * The hand-maintained lists that have to name every game — checked against the

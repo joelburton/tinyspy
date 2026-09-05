@@ -1,12 +1,12 @@
 // cs-unmet
 
 import { lazy } from 'react'
-import type { FormErrors } from '../common/components/fields/formState'
-import type { CreatedGame, GameManifest } from '../common/lib/gameManifest'
-import { makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
-import { runEdgeFn, runRpc } from '../common/lib/supabase/dbResult'
+import type { FormErrors } from '@/common/forms/formState'
+import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
+import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
+import { runEdgeFn, runRpc } from '@/common/supabase/dbResult'
 import { db } from './db'
-import { outcome, statusLine, wonBy } from '../common/lib/game/statusLabel'
+import { outcome, statusLine, wonBy } from '@/common/manifest/statusLabel'
 import { CROSSWORDS_DEFAULTS, type CrosswordsSetup } from './lib/setup'
 import logoUrl from './logo.svg?url'
 

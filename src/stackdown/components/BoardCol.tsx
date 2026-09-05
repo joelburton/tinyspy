@@ -1,18 +1,18 @@
 // cs-unmet
 
 import { useCallback } from 'react'
-import { cls } from '../../common/lib/util/cls'
-import { useFlash } from '../../common/hooks/ui/useFlash'
-import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
-import type { Outcome } from '../../common/lib/outcomes'
-import type { GenericFeedbackMsg } from '../../common/lib/feedback/genericFeedback'
-import { GenericFeedbackPill } from '../../common/components/feedback/GenericFeedbackPill'
-import { MoveRow } from '../../common/components/game/entry/MoveRow'
+import { cls } from '@/common/utils/cls'
+import { useFlash } from '@/common/move-flash/useFlash'
+import { useGlobalKeyHandler } from '@/common/keyboard/useGlobalKeyHandler'
+import type { Outcome } from '@/common/outcomes/outcomes'
+import type { GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
+import { GenericFeedbackPill } from '@/common/feedback/GenericFeedbackPill'
+import { MoveRow } from '@/common/word-entry/MoveRow'
 import { exposedIds, type Tile } from '../lib/board'
 import { Board } from './Board'
 import { WordEntry, type WordFlash } from './WordEntry'
-import shared from '../../common/components/game/PlayArea.module.css'
-import history from '../../common/components/game/lists/historyViewer.module.css'
+import shared from '@/common/game-page/PlayArea.module.css'
+import history from '@/common/turn-log/historyViewer.module.css'
 import styles from './BoardCol.module.css'
 
 /** Empty highlight set — reused so a live render passes a stable empty green set. */
@@ -212,7 +212,7 @@ export function BoardCol({
         {/* Turn-viewer banner — while inspecting a past turn it overlays the whole
             below-board region (the WordEntry + feedback stay mounted underneath, so
             the built-up word survives). Opaque surface + yellow border = the shared
-            "viewing history" marker (common/components/game/lists/historyViewer.module.css).
+            "viewing history" marker (common/turn-log/historyViewer.module.css).
             Click anywhere to exit; the ✕ far right also exits. */}
         {viewing && (
           <div className={history.banner} onClick={onExitViewing} title="Click to exit">

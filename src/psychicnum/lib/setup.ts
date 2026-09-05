@@ -1,8 +1,8 @@
 // cs-unmet
 
-import type { TimerMode } from '../../common/lib/gameManifest'
-import type { SetupOf } from '../../common/lib/setup/setupForm'
-import type { CoopTurnSetup } from '../../common/components/setup/SetupCoopStyleSection'
+import type { TimerMode } from '@/common/manifest/gameManifest'
+import type { SetupOf } from '@/common/setup-form/setupForm'
+import type { CoopTurnSetup } from '@/common/setup-form/SetupCoopStyleSection'
 
 /**
  * psychicnum's per-game setup — the choices collected by the

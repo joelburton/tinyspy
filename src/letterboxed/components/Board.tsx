@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { useMemo } from 'react'
-import { cls } from '../../common/lib/util/cls'
+import { cls } from '@/common/utils/cls'
 import { canFollow, coveredLetters, EDGE, layout, NODE_R, pathPoints, SPAN } from '../lib/board'
 import styles from './Board.module.css'
 import play from './PlayArea.module.css'

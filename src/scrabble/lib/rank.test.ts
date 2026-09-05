@@ -2,7 +2,7 @@
 
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
-import { buildTrie, walkWord } from '../../common/lib/game/trie'
+import { buildTrie, walkWord } from '@/shared/dict-trie/trie'
 import { cellIndex, type Cell } from './board'
 import { evaluatePlay, tilesUsed, type Placement } from './play'
 import { generateMoves, type Bands } from './suggest'

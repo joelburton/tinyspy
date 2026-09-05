@@ -750,7 +750,7 @@ newspaper flow.)
 
 ## Turn log — whose guesses?
 
-The log carries the shared [`useTurnLogPlayerPicker`](../../src/common/hooks/game/useTurnLogPlayerPicker.tsx)
+The log carries the shared [`useTurnLogPlayerPicker`](../../src/common/turn-log/useTurnLogPlayerPicker.tsx)
 dropdown — the one **every** turn-log game uses, so the vocabulary is identical
 everywhere: **solo → your handle**, **co-op → "Team" plus each player**,
 **compete → "All" plus each player**, defaulting to your own board. See
@@ -783,6 +783,6 @@ otherwise every opponent row would read a bare "Correct".
 | What does the tile grid + category-band render look like | [`src/connections/components/Board.tsx`](../../src/connections/components/Board.tsx) (ONE grid: full-width colored bands + remaining tiles, both wearing the shared `.tileFace`; carries the identity ring, the in-flight dim, the verdict fill, the band attention flash and the three board-scope marks — see [Board feedback](#board-feedback-the-shared-vocabulary). Pulls `RANK_TOKEN` from `lib/rankColors`. Replaced the old separate `TileGrid` + `CategoryBands`.) |
 | How shared selection works | [`src/connections/hooks/useGame.ts`](../../src/connections/hooks/useGame.ts) (the `apply` callbacks + `toggleTile` + selection-events broadcast; `broadcast()` short-circuits to local-only in compete) |
 | How `matchedCategories` is projected | [`src/connections/hooks/useGame.ts`](../../src/connections/hooks/useGame.ts) (the projection at the bottom of the hook) |
-| The pause-on-disconnect pattern | [`src/common/lib/game/pause.ts`](../../src/common/lib/game/pause.ts) + [`src/common/components/game/PauseOverlay.tsx`](../../src/common/components/game/PauseOverlay.tsx) + [`src/common/components/game/PauseBoundary.tsx`](../../src/common/components/game/PauseBoundary.tsx) |
-| The browser-side timer | [`src/common/hooks/game/useGameTimer.ts`](../../src/common/hooks/game/useGameTimer.ts) + the connections setup dialog's timer field |
+| The pause-on-disconnect pattern | [`src/common/lib/game/pause.ts`](../../src/common/pause-suspend/pause.ts) + [`src/common/components/game/PauseOverlay.tsx`](../../src/common/pause-suspend/PauseOverlay.tsx) + [`src/common/components/game/PauseBoundary.tsx`](../../src/common/pause-suspend/PauseBoundary.tsx) |
+| The browser-side timer | [`src/common/hooks/game/useGameTimer.ts`](../../src/common/timer/useGameTimer.ts) + the connections setup dialog's timer field |
 | The evaluator | [`src/connections/lib/evaluate.ts`](../../src/connections/lib/evaluate.ts) |

@@ -1,16 +1,16 @@
 // cs-unmet
 
 import { useCallback, type Dispatch, type ReactNode, type SetStateAction } from 'react'
-import { cls } from '../../common/lib/util/cls'
-import type { GenericFeedbackMsg } from '../../common/lib/feedback/genericFeedback'
-import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
-import { terminalPill } from '../../common/lib/game/localPills'
-import { GenericFeedbackPill } from '../../common/components/feedback/GenericFeedbackPill'
-import { GuessKeyboard } from '../../common/components/game/entry/GuessKeyboard'
-import { useCaptureKeys, asciiLetters } from '../../common/hooks/input/useCaptureKeys'
-import { useArrowHistory } from '../../common/hooks/input/useArrowHistory'
+import { cls } from '@/common/utils/cls'
+import type { GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
+import type { TerminalCopy } from '@/common/terminal/terminalCopy'
+import { terminalPill } from '@/common/feedback/localPills'
+import { GenericFeedbackPill } from '@/common/feedback/GenericFeedbackPill'
+import { GuessKeyboard } from '@/shared/onscreen-keyboard/GuessKeyboard'
+import { useCaptureKeys, asciiLetters } from '@/common/keyboard/useCaptureKeys'
+import { useArrowHistory } from '@/common/word-entry/useArrowHistory'
 import { GuessBoard } from './GuessBoard'
-import shared from '../../common/components/game/PlayArea.module.css'
+import shared from '@/common/game-page/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 
 /** A generous cap on a single guess (the longest possible words are ~30). */

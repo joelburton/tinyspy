@@ -2,8 +2,8 @@
 
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
-import { buildTrie } from '../../common/lib/game/trie'
-import { mulberry32 } from '../../common/lib/util/mulberry32'
+import { buildTrie } from '@/shared/dict-trie/trie'
+import { mulberry32 } from '@/common/utils/mulberry32'
 import type { Cell } from './board'
 import type { Bands } from './suggest'
 import { choosePlay, playSelfGame, LEVELS, type StrengthKnobs } from './policy'

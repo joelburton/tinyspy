@@ -19,11 +19,11 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { SetupForm } from './SetupForm'
-import { fieldNames } from '../../common/components/setup/fieldNames'
-import { errorUnder } from '../../common/components/fields/errorUnder'
+import { fieldNames } from '@/common/setup-form/fieldNames'
+import { errorUnder } from '@/common/fields/errorUnder'
 import { DEFAULT_WORDIPLY_SETUP_COOP } from '../lib/setup'
-import type { Member } from '../../common/lib/members/member'
-import type { FormErrors } from '../../common/components/fields/formState'
+import type { Member } from '@/common/members/member'
+import type { FormErrors } from '@/common/forms/formState'
 
 const MEMBERS = [
   { user_id: 'self', username: 'joel', color: 'red' },

@@ -1,11 +1,11 @@
 // cs-unmet
 
 import { lazy } from 'react'
-import type { CommonGameListRow, CreatedGame, GameManifest } from '../common/lib/gameManifest'
+import type { CommonGameListRow, CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { db } from './db'
-import { count, dictLabel, outcome, setupNum, statusLine, wonBy } from '../common/lib/game/statusLabel'
-import { makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
-import { runEdgeFn } from '../common/lib/supabase/dbResult'
+import { count, dictLabel, outcome, setupNum, statusLine, wonBy } from '@/common/manifest/statusLabel'
+import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
+import { runEdgeFn } from '@/common/supabase/dbResult'
 import { DEFAULT_WAFFLE_SETUP, type WaffleSetup } from './lib/setup'
 import logoUrl from './logo.svg?url'
 
@@ -58,7 +58,7 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
 }
 
 // Timeout + manual end — the shared one-arg RPC dispatchers (see
-// common/lib/game/manifestRpcs).
+// common/manifest/manifestRpcs).
 const submitTimeout = makeRpcDispatcher(db, 'submit_timeout')
 const endGame = makeRpcDispatcher(db, 'end_game')
 

@@ -10,7 +10,7 @@ are saying the same thing, and the two spellings this list used to have
 (`success` / `error` for won / lost) hid that behind a rename buried in a CSS
 rule. One vocabulary, spelled one way, everywhere.
 
-The list lives in [`src/common/lib/outcomes.ts`](../src/common/lib/outcomes.ts)
+The list lives in [`src/common/lib/outcomes.ts`](../src/common/outcomes/outcomes.ts)
 — its own file because it is a vocabulary rather than a feature, and nothing
 should have to import a game manifest to get at it.
 

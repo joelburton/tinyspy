@@ -1,9 +1,9 @@
 // cs-unmet
 
 import { useEffect, useRef } from 'react'
-import { BlockingModal } from '../../../common/components/floating-panels/BlockingModal'
-import { CancelButton } from '../../../common/components/buttons/CancelButton'
-import { SelectionList } from '../../../common/components/lists/SelectionList'
+import { BlockingModal } from '@/common/floating-panels/BlockingModal'
+import { CancelButton } from '@/common/buttons/CancelButton'
+import { SelectionList } from '@/common/lists/SelectionList'
 import { GUARDIAN_SERIES } from '../../lib/setup'
 import styles from './pickers.module.css'
 

@@ -105,7 +105,7 @@
   z-index: 1;
 }
 
-/* Per-tile feedback fill = the shared "Wordle colors" (common/fixed.css),
+/* Per-tile feedback fill = the shared "Wordle colors" (common/core-css/fixed.css),
  * applied by RE-SETTING the shared `.tile`'s `--tile-*` tokens (so the fill wins
  * regardless of stylesheet order — the codenamesduet pattern). White ink on the
  * saturated three, dark ink on the neutral blank.

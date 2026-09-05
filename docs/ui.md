@@ -96,7 +96,7 @@ feedback: {
 
 **Tapping the pill dismisses it** — the `sticky` and `timed` modes. This isn't a new interaction: the rule was always *"your next action clears the feedback"* (a keystroke via `useCaptureKeys`, a tile click via the game's own handler), and tapping the message **is** an action. On touch that rule had one fewer way to fire — there is no next keystroke — so a player who read "Not a word" and tapped it got nothing, and had to start the next word to clear it (found on a phone playing letterboxed). Both feedback areas behave the same way, local and global, because a rule the player has to learn twice isn't a rule.
 
-Two exclusions, both deliberate. **`manual` keeps its `×` as the only target** — its whole point is see-and-acknowledge, and a body that swallowed the gesture would make the `×` look decorative. **`permanent` isn't dismissable at all**: it's a condition, not a message you've finished reading, and nothing would bring it back. The pill is a plain click target, never a `role="button"`: a game can show a hundred of these and none of them should become tab stops; `cursor: pointer` tells a mouse user what the tap teaches by working. Pinned by [`GenericFeedbackPill.test.tsx`](../src/common/components/feedback/GenericFeedbackPill.test.tsx) (both exclusions, both directions) and [`letterboxed.e2e.ts`](../e2e/letterboxed.e2e.ts) at phone size.
+Two exclusions, both deliberate. **`manual` keeps its `×` as the only target** — its whole point is see-and-acknowledge, and a body that swallowed the gesture would make the `×` look decorative. **`permanent` isn't dismissable at all**: it's a condition, not a message you've finished reading, and nothing would bring it back. The pill is a plain click target, never a `role="button"`: a game can show a hundred of these and none of them should become tab stops; `cursor: pointer` tells a mouse user what the tap teaches by working. Pinned by [`GenericFeedbackPill.test.tsx`](../src/common/feedback/GenericFeedbackPill.test.tsx) (both exclusions, both directions) and [`letterboxed.e2e.ts`](../e2e/letterboxed.e2e.ts) at phone size.
 
 **Transient vs permanent (the look, which now follows `mode`).** Every pill's **whole border is the tone color** (saturated `--outcomes-*-ink-color`) — a thick **left bar** (like the turn-log outcome bars) plus thin sides in the *same* color, uniform width on every pill. (A pale-gray side border read as no border, so the sides carry the tone too; `neutral` has no tone, so its border is a visible dark gray.) The mode only changes the **background**: `sticky` / `timed` / `manual` are *messages* and get a plain white background. `permanent` — the terminal verdict, out-of-race, an end-game mode like codenamesduet's sudden death — gets a **lightened-tone background**, so a permanent `error` (light-red fill) reads as *more* emphatically "error" than a transient one (white fill). The fill is the permanence signal. **Peer identity is independent of it:** a message about another player ("● leah found APPLE") carries a leading `dot` in their player color whatever its mode — the dot, never the fill, says *who* (the `dot`-carries-identity rule from [Player identity = a colored disc](#player-identity--a-colored-disc)).
 
@@ -152,7 +152,7 @@ Mechanics:
 
 - **Nothing authors a fault by hand, and nothing can.** The layer that received
   the failure raises the modal itself — `reportDbFault` in
-  [`dbResult.ts`](../src/common/lib/supabase/dbResult.ts), called from the
+  [`dbResult.ts`](../src/common/supabase/dbResult.ts), called from the
   wrappers, with the transport facts no call site could rebuild
   ([envelopes.md → How the frontend receives one](envelopes.md)). Every call
   goes through a wrapper, so there is no second path.
@@ -200,7 +200,7 @@ One shared store + one host: any code calls `showToast(spec)` / `dismissToast(id
 
 Game-end UI splits along one line: **the moment** (a win worth marking, which happens once and then is gone) and **the record** (what the page says about a finished game, every time anyone opens it). The record lives **in-page**; the moment is the only thing that gets a modal.
 
-**The record — two surfaces, one copy object.** Every game's `buildOver()` returns a [`TerminalCopy`](../src/common/lib/game/terminalCopy.ts) — `{ verdict, message, tone }` — so the two surfaces can't drift:
+**The record — two surfaces, one copy object.** Every game's `buildOver()` returns a [`TerminalCopy`](../src/common/terminal/terminalCopy.ts) — `{ verdict, message, tone }` — so the two surfaces can't drift:
 
 - `verdict` → the **below-board pill**, occupying the slot the input/action UI used during play. Terse, leading with the outcome word, no trailing period: it's a one-line ellipsising LABEL (~48 chars on a phone), not prose. "Won: fewest guesses" / "Lost: out of time" / "Game ended".
 - `message` → the **info-column outcome line** in `<TerminalActionRow>`. Shorter still: "You won!" / "Out of guesses" / "Game over".
@@ -268,13 +268,13 @@ The four games without a clear win keep asking: **letterboxed** (a win is any co
 ### Confirm modals — never `window.confirm`
 
 In-game confirmations go through the shared
-[`<ConfirmationBlockingModal>`](../src/common/components/floating-panels/ConfirmationBlockingModal.tsx) — a
+[`<ConfirmationBlockingModal>`](../src/common/floating-panels/ConfirmationBlockingModal.tsx) — a
 true MODAL on the FloatingPanel shell: `backdrop` blocks every pointer action
 on the board underneath, focus is trapped, the confirm button autoFocuses
 (Enter confirms), Esc cancels, and the game key-captures bail inside
 `[data-floating-panel]`. The confirm button always **names the act** ("End
 game", "Suspend") — never a bare "OK". For the imperative form handlers want,
-[`useConfirmation`](../src/common/hooks/ui/useConfirmation.tsx) is
+[`useConfirmation`](../src/common/floating-panels/useConfirmation.tsx) is
 `window.confirm` with a promise: `if (!(await confirm({...}))) return`, plus a
 `{confirmationModal}` node to render.
 
@@ -312,9 +312,9 @@ longer exists (End the game, then Reveal), and Clear board became Restart.
 
 macOS-style placement, consistent across every dialog / modal / confirm: the action row is **right-justified** (`justify-content: flex-end`), with the **default/primary action rightmost** and Cancel (the `secondary` button) to its left — so Cancel comes *first* in the DOM, the primary button *last*. Single-button dialogs (Help's "Got it", the `<CelebrationBlockingModal>`'s "Nice!") right-justify the lone button. Each dialog owns a small `.actions` / `.buttonRow` flex rule, all sharing `gap: 0.75rem` and `min-width: 6rem` on the buttons. `PauseOverlay` is the deliberate exception — it's a page-context banner, not a modal, so its buttons center.
 
-The **setup dialog** (`<SetupGameModal>`) extends this: an icon-only [`<HelpButton>`](../src/common/components/buttons/HelpButton.tsx) (`IconHelp`) is pinned to the **far left** of the footer (`justify-content: space-between`), with the Cancel/Start pair keeping the standard right group. Clicking it opens the game's Help as its own `<FloatingPanel>` *on top of* the setup dialog (which stays open behind it) — so you can read the rules mid-setup, unlike the in-game menu's Help. The icon-only Help button is excluded from the `min-width: 6rem` floor (that floor is only for the two text buttons). Setup fields that recap a value (Timer everywhere; spellingbee's Dictionaries + Custom letters) sit behind a shared [`<SetupSection>`](../src/common/components/setup/SetupSection.tsx) disclosure whose summary shows the current value (`Timer: none`, `Dictionaries: 3 (Familiar) / 5 (Obscure)`, `Custom letters: A-CHIROT`), closed by default.
+The **setup dialog** (`<SetupGameModal>`) extends this: an icon-only [`<HelpButton>`](../src/common/buttons/HelpButton.tsx) (`IconHelp`) is pinned to the **far left** of the footer (`justify-content: space-between`), with the Cancel/Start pair keeping the standard right group. Clicking it opens the game's Help as its own `<FloatingPanel>` *on top of* the setup dialog (which stays open behind it) — so you can read the rules mid-setup, unlike the in-game menu's Help. The icon-only Help button is excluded from the `min-width: 6rem` floor (that floor is only for the two text buttons). Setup fields that recap a value (Timer everywhere; spellingbee's Dictionaries + Custom letters) sit behind a shared [`<SetupSection>`](../src/common/setup-form/SetupSection.tsx) disclosure whose summary shows the current value (`Timer: none`, `Dictionaries: 3 (Familiar) / 5 (Obscure)`, `Custom letters: A-CHIROT`), closed by default.
 
-**Back to club** — the one button that recurs across surfaces (**every** game's terminal row, icon-only + `primary`, via `<TerminalActionRow>` — crosswords' hand-rolled terminal row matches it; plus the *playing* action row in the seven entry-row games, where the row has space for it. The other six reach the club through the game menu's Back-to-club item (⇧<), which is the universal route in every game) is the shared [`<BackToClubButton>`](../src/common/components/buttons/BackToClubButton.tsx), so the glyph (a `‹` U+2039 chevron, `aria-hidden` so screen readers just say "Back to club"), its spacing, and the label stay identical everywhere. `variant` only swaps the fill — the terminal row uses `primary` (filled accent, usually `iconOnly` to fit the row); `secondary` (outline) is the component default, used elsewhere (e.g. the pause overlay's "Suspend and return to club"). The GamePage *menu* item is plain text, not this button.
+**Back to club** — the one button that recurs across surfaces (**every** game's terminal row, icon-only + `primary`, via `<TerminalActionRow>` — crosswords' hand-rolled terminal row matches it; plus the *playing* action row in the seven entry-row games, where the row has space for it. The other six reach the club through the game menu's Back-to-club item (⇧<), which is the universal route in every game) is the shared [`<BackToClubButton>`](../src/common/buttons/BackToClubButton.tsx), so the glyph (a `‹` U+2039 chevron, `aria-hidden` so screen readers just say "Back to club"), its spacing, and the label stay identical everywhere. `variant` only swaps the fill — the terminal row uses `primary` (filled accent, usually `iconOnly` to fit the row); `secondary` (outline) is the component default, used elsewhere (e.g. the pause overlay's "Suspend and return to club"). The GamePage *menu* item is plain text, not this button.
 
 ### Existing offenders to retrofit
 
@@ -503,7 +503,7 @@ not a thing with qualities; the quality *is* the thing. Stated so nobody "fixes"
 `-correct-` would have to be translated. The prefix is what keeps it honest — a
 pink-mode wordle still has a *wordle green* — and it disambiguates in code, where
 plain `green` is already a **player's identity color**. See
-[`tileColor.ts`](../src/common/lib/color/tileColor.ts), whose values are also the
+[`tileColor.ts`](../src/shared/wordle-style/tileColor.ts), whose values are also the
 CSS class names, which is why the prefix lives in the type and not only in the
 stylesheet.
 
@@ -524,7 +524,7 @@ true of *Cancel the button* and false of *quiet the tone*, which made
 **We reserve cells, not concepts.** Filling a grid completes a formula already
 chosen; adding a *member* invents a meaning, and that waits for a real use.
 
-**[`/palette`](../src/common/components/palette/palette.ts) is how this holds.**
+**[`/palette`](../src/common/devtools/palette.ts) is how this holds.**
 It renders every family, members × variants, and it ships (unlinked, no session
 needed) so you can look at a family side by side when tuning one. It is also the
 mechanism: it references every token, so a reserved cell has a reader and the
@@ -628,9 +628,9 @@ token nothing defines; a defined token has no reader; a family in the `button`,
 says "fill"; a color literal sits outside a
 `--…:` line; a component module holds a color value; a `var()` falls back to a
 color; or a `cursor: pointer` out-ranks the disabled cursor.
-[`palette.test.ts`](../src/common/components/palette/palette.test.ts) fails when a
+[`palette.test.ts`](../src/common/devtools/palette.test.ts) fails when a
 family stops being a rectangle, and
-[`tileColor.test.ts`](../src/common/lib/color/tileColor.test.ts) fails when a
+[`tileColor.test.ts`](../src/shared/wordle-style/tileColor.test.ts) fails when a
 stylesheet indexed by a `TileColor` doesn't define every class — which no
 rendering test can catch, since `css: false` in vitest means a CSS module is a
 proxy that fabricates any class name asked of it.
@@ -739,7 +739,7 @@ The logo is a menu trigger. Click opens a dropdown anchored below it; same trigg
          └──────────────────────┘
 ```
 
-**The `buildGameMenu` helper** ([common/lib/game/gameMenu.ts](../src/common/lib/game/gameMenu.ts)) assembles the standard framing so games don't duplicate it: a **Help** + **Open chat** section at the top, the game's own `extra` sections in the middle, and a tail with **End game** (coop) / **Concede game** (compete, id `concede`) + **Back to club**. Chat has a bubble in the header and a `/` shortcut, and the menu row exists for both reasons: it's the labeled twin every other action has, and the shortcut column is the only place in the app `/` is written down. The end/concede item dispatches through the game's own handler (each game's `db` is schema-typed, so the RPC stays at the call site); Help/Back use the shell actions. Most games call it in one line with `extra: [{ items: [printItem] }]` (or `[]`); crosswords passes its full check/reveal/clear section list.
+**The `buildGameMenu` helper** ([common/lib/game/gameMenu.ts](../src/common/menu/gameMenu.ts)) assembles the standard framing so games don't duplicate it: a **Help** + **Open chat** section at the top, the game's own `extra` sections in the middle, and a tail with **End game** (coop) / **Concede game** (compete, id `concede`) + **Back to club**. Chat has a bubble in the header and a `/` shortcut, and the menu row exists for both reasons: it's the labeled twin every other action has, and the shortcut column is the only place in the app `/` is written down. The end/concede item dispatches through the game's own handler (each game's `db` is schema-typed, so the RPC stays at the call site); Help/Back use the shell actions. Most games call it in one line with `extra: [{ items: [printItem] }]` (or `[]`); crosswords passes its full check/reveal/clear section list.
 
 **Shortcut hints.** A `MenuItem` may carry an optional `shortcut` string (e.g. `'⌥C'`) rendered right-aligned + muted. Three are shell-global (work on any game, dispatching to the game's own menu items / actions): **⌥⌫** fires End/Concede (finds the `end-game`/`concede` item and clicks it), **+** fires New game (finds the `new-game` item — `NEW_GAME_ID`), **⇧<** fires Back to club. All bail inside any editable field, so ⌥Backspace stays "delete word" while typing.
 
@@ -759,7 +759,7 @@ menu: {
 }
 ```
 
-**`MenuSection`, `MenuItem` and the rest live in [`src/common/lib/menu/menu.ts`](../src/common/lib/menu/menu.ts) — read the shapes there, not here.** A section is items plus an optional `header`; an item is either an action (`onClick`, an optional `shortcut` hint, an optional `icon`) or a submenu (`items`, one level deep). This paragraph used to be a copy of those type literals, which is exactly why it fell behind them: it still showed a plain `MenuItem` with no `icon` and no submenu arm long after both shipped. The file's own docstrings are thorough; the doc's job is what the menu is FOR, which is everything above and below this line.
+**`MenuSection`, `MenuItem` and the rest live in [`src/common/menu/menuModel.ts`](../src/common/menu/menuModel.ts) — read the shapes there, not here.** A section is items plus an optional `header`; an item is either an action (`onClick`, an optional `shortcut` hint, an optional `icon`) or a submenu (`items`, one level deep). This paragraph used to be a copy of those type literals, which is exactly why it fell behind them: it still showed a plain `MenuItem` with no `icon` and no submenu arm long after both shipped. The file's own docstrings are thorough; the doc's job is what the menu is FOR, which is everything above and below this line.
 
 **Stability.** `setGameSections` is a `setState`, so a PlayArea's menu-building effect must NOT re-run every render (that loops). Keep its deps to stable values; route any late-declared or unstable item handlers (typically End/Concede) through a stable ref populated in a separate effect — the crosswords `actionsRef` pattern. The shell's menu actions (`openHelp` / `requestBackToClub`) have stable identity.
 
@@ -771,7 +771,7 @@ menu: {
 
 **Keyboard.** Enter / Space on the logo opens the menu and focuses the first enabled item. Arrow up / down navigate; Enter or Space activates; Esc closes. Tab while the menu is open closes it and advances focus normally. Disabled items are skipped by arrow navigation.
 
-**Submenus** are a two-shape hybrid, one level deep. A row with `items` instead of `onClick` ([`MenuSubmenu`](../src/common/lib/menu/menu.ts)) opens:
+**Submenus** are a two-shape hybrid, one level deep. A row with `items` instead of `onClick` ([`MenuSubmenu`](../src/common/menu/menuModel.ts)) opens:
 
 - **desktop — a flyout** beside the parent row, parent left lit so it's clear which panel belongs to it;
 - **mobile — a drill-down** that replaces the list, headed by a `‹ <parent>` row.
@@ -812,7 +812,7 @@ The club page wears the same chrome the game page does. Same "no title in the he
 
 The body Members list and the `/c/<handle>` URL line are gone — the header's `<PageHeaderPlayersStrip>` carries identity, and the URL is in the browser address bar already.
 
-**Filtering the two lists.** Each column's heading is a row: the `h3` on the left, that list's filter on the right ([`ModeFilter`](../src/common/components/club/ModeFilter.tsx) / [`GametypeFilter`](../src/common/components/club/GametypeFilter.tsx), sharing `clubFilters.module.css` so the paired controls can't drift). Both are pure FE state over data already in hand — nothing refetches — but they **persist differently**, because they mean different things. The mode filter is a standing taste ("I'm here to play compete games") that narrows a *menu of things you could start*, hiding nothing that exists, so re-picking it every visit is friction: it sticks, via [`useStickyChoice`](../src/common/hooks/ui/useStickyChoice.ts) in localStorage, keyed by user (across clubs — the taste is yours, not the club's). The gametype filter is **not** persisted: it narrows a list of the club's *real games*, so a remembered one hides games that are still there, and a club page that opened already filtered from last week would read as "where did our games go?"
+**Filtering the two lists.** Each column's heading is a row: the `h3` on the left, that list's filter on the right ([`ModeFilter`](../src/common/club/ModeFilter.tsx) / [`GametypeFilter`](../src/common/club/GametypeFilter.tsx), sharing `clubFilters.module.css` so the paired controls can't drift). Both are pure FE state over data already in hand — nothing refetches — but they **persist differently**, because they mean different things. The mode filter is a standing taste ("I'm here to play compete games") that narrows a *menu of things you could start*, hiding nothing that exists, so re-picking it every visit is friction: it sticks, via [`useStickyChoice`](../src/common/web-storage/useStickyChoice.ts) in localStorage, keyed by user (across clubs — the taste is yours, not the club's). The gametype filter is **not** persisted: it narrows a list of the club's *real games*, so a remembered one hides games that are still there, and a club page that opened already filtered from last week would read as "where did our games go?"
 
 - **Start a new game → by mode.** Three `aria-pressed` toggle buttons, `All | Co-op | Compete`, mirroring the mobile tab bar's shape one size down. They decline focus on mousedown, exactly like the start buttons below them, so narrowing the list doesn't blank the keyboard cursor you were about to arrow with. **A solo club gets no mode filter at all** — mode is noise with one player, the same call [`<ModePill>`](#mode-pills) makes when it drops the "Co-op" badge there, and a filter for a distinction the page isn't drawing is worse than the space it frees. (ClubPage still pins the effective mode to `all` there, so nothing can be left filtered by a control that isn't on screen; on mobile the filter row itself is skipped, since an empty one would still claim the frame's gap.)
 - **Your games → by gametype family.** A compact `<select>`, one choice per `baseGametype` **present in the list** (so a choice can never empty it), labeled with the brand and sorted by it. **Siblings collapse:** one "WordNerd" covers `wordle_coop` *and* `wordle_compete` — the friends think in games, not manifest entries, and the mode axis already has its own filter on the other column. A native select rather than more buttons because this is a list of up to sixteen, not a switch. It can't decline focus the way the mode buttons do (a select needs the press to open its popup), so it borrows the games list's focus — and ClubPage hands it straight back on `change`, which makes the detour a round trip: narrow the list, keep arrowing it.
@@ -849,7 +849,7 @@ before this it stayed wherever it had last been, and the next arrow key jumped
 somewhere unrelated. (This works only because those buttons decline focus on
 mousedown, so the container keeps focus and the ring stays visible.)
 
-**The same idiom on the club-list page.** `/` (the [`HomePage`](../src/common/components/home/HomePage.tsx)
+**The same idiom on the club-list page.** `/` (the [`HomePage`](../src/common/home/HomePage.tsx)
 clubs list) navigates identically: the `<ul>` holds focus, which lands there on
 arrival, Up/Down move a clamped no-wrap cursor, and Enter opens the club under
 the ring — the same 2px accent ring, so "blue ring = the keyboard cursor is
@@ -873,13 +873,13 @@ Same principle, applied to components.
 
 - `Chat`, `PauseBoundary`, `PauseOverlay`, `SuspendConfirmationBlockingModal`, `SetupTimerSection`, `ClubGameCard`, `StartGameButtons` are shared. The route-level `<GamePage>` mounts the cross-cutting ones (chat, pause, suspend confirm, timer in header) so every game inherits them.
 - `LoginScreen`, `HomePage`, `ClubPage` are shell-level, game-agnostic.
-- **The account submenu** ([`useAccountMenuSection`](../src/common/hooks/account/useAccountMenuSection.ts)) is the last section of every page's own menu — GamePage's, ClubPage's, and HomePage's. One row labeled with the **username**, opening **Profile** and **Log out**.
+- **The account submenu** ([`useAccountMenuSection`](../src/common/account/useAccountMenuSection.ts)) is the last section of every page's own menu — GamePage's, ClubPage's, and HomePage's. One row labeled with the **username**, opening **Profile** and **Log out**.
   - **It used to be a `<UserMenu>`**: a fixed profile-color dot pinned to the viewport's top-right on every authenticated screen. That chip forced the GamePage header to carry `margin-right: 2rem` of permanently reserved width for it to overlap — dead space at every viewport, and exactly the width the mobile game header needs for feedback. Folding the items into the menu that was already there reclaimed all of it and **removed** a control rather than adding one.
   - **Still user-focused only.** It carries no club- or game-specific items; the two mental models stay separate, now by *nesting* rather than by a second menu. Correspondingly, a game menu never puts game actions inside it.
   - **The label is the username, not "Account"** — the dot it replaced answered "who am I signed in as" at a glance, and a generic label would drop that fact. (The color itself is still on screen wherever identity matters: the players strip, the club member list, a turn log's actor column.)
   - **HomePage gained a header for this** — the square site logo hard against the page's top-left opening the page menu, thin rule beneath, the same strip ClubPage and GamePage carry (measured: the trigger lands at the same x/y as ClubPage's). It is PAGE chrome, outside home's centered `.card`: a first version put it inside, where it inherited the card's 2rem padding and border and so read as content, lining up with nothing else in the app. It had no menu at all before, which made home the one authenticated screen with no route to Profile or Log out once the fixed chip went away. A first attempt hung the menu off the **wordmark**; that reads badly (a hero image isn't a control, and the disclosure chevron had nowhere to sit on a 400px-wide PNG), so the wordmark went back to being artwork. The header is also where a future Help or other non-user item goes — home has nowhere else to put one.
 - **`useAppShortcuts` takes `{ chat: false }`** for a page with no chat panel mounted. Chat is club-scoped, so on HomePage `/` would flip the shared open flag and show nothing — a key that silently does nothing is worse than one that isn't bound, because the next person debugging it starts from "chat is broken" rather than "chat isn't here". Unbound, `/` is left to the browser's find-in-page. `?` and `~` are page-independent and stay on.
-- `<EditProfileModal>` — the Edit-profile popup, a `<FloatingPanel>` (not a route) so the page underneath stays mounted and live. Mounted at App level and opened from the account submenu of whichever page menu is on screen — so the flag crosses subtrees and lives in a tiny store ([`editProfileStore`](../src/common/lib/account/editProfileStore.ts)) rather than in App's own state. It stays mounted high in the tree deliberately: react-rnd positions a `<FloatingPanel>` from its static flow position, so mounting it inside a page's flex column lands it far from where you expect (see the FloatingPanel gotcha below). Today it edits one field — **player color**, via `<ColorChoiceList>` (below), defaulting to the current color. Saves via `common.update_profile_color`, then `setProfileColor` updates the shared profile store so the menu dot repaints at once. Username is shown but immutable in v1. Dialog buttons follow the [Dialog buttons](#dialog-buttons) convention.
+- `<EditProfileModal>` — the Edit-profile popup, a `<FloatingPanel>` (not a route) so the page underneath stays mounted and live. Mounted at App level and opened from the account submenu of whichever page menu is on screen — so the flag crosses subtrees and lives in a tiny store ([`editProfileStore`](../src/common/account/editProfileStore.ts)) rather than in App's own state. It stays mounted high in the tree deliberately: react-rnd positions a `<FloatingPanel>` from its static flow position, so mounting it inside a page's flex column lands it far from where you expect (see the FloatingPanel gotcha below). Today it edits one field — **player color**, via `<ColorChoiceList>` (below), defaulting to the current color. Saves via `common.update_profile_color`, then `setProfileColor` updates the shared profile store so the menu dot repaints at once. Username is shown but immutable in v1. Dialog buttons follow the [Dialog buttons](#dialog-buttons) convention.
 - `<FloatingPanel>` — the shared draggable / resizable / closeable popover (react-rnd) behind `<EditProfileModal>`, `<ConfirmationBlockingModal>`, `<SetupGameModal>`, the help panels, and codenamesduet's AI clue-suggestion dialog. **Gotcha worth knowing: react-rnd positions the panel from its element's *static flow position*** — a panel mounted deep inside a flex column inherits that column's offset, so it can render far from where you expect. codenamesduet's clue-suggestion dialog first mounted ~180px *below* the viewport because it sat deep in the board column. **Mount a `<FloatingPanel>` high in the tree** — at the PlayArea `.layout` level or App level — never nested inside the play surface. The codenamesduet e2e guard (`e2e/codenamesduet.e2e.ts`) asserts the suggestion panel renders fully on-screen, pinning this.
 - `<ColorChoiceList>` — the shared player-color picker: the 8-entry palette (`MEMBER_COLORS`) as a grid of swatches, each its actual color circle + capitalized name, the selected one ringed. Controlled (`value` / `onChange`). Used by both `<EditProfileModal>` and the first-run `<ClaimHandleScreen>` (where it sits beside the username field, pre-selected from a deterministic FE hash of the username — `defaultColorFor` — so a new player isn't picking from a blank slate; the chosen color is sent to `claim_username`).
 - `.card`, `.muted`, `.error`, `.link-button`, `.actions` are universal utility classes in `common/theme.css`.
@@ -907,7 +907,7 @@ Board tiles a player can act on (psychicnum's word tiles, connections's category
 tiles; the pattern every game's tiles share) converge on **one look**, driven
 entirely by the `--tile-*` tokens in [`common/themes/daylight.css`](../src/common/themes/daylight.css)
 and the shared `.tile` / `.tileWord` classes in
-[`common/components/game/PlayArea.module.css`](../src/common/components/game/PlayArea.module.css).
+[`common/components/game/PlayArea.module.css`](../src/common/game-page/PlayArea.module.css).
 A player who learns the board in one game reads it in the next.
 
 - **Resting** — a warm fill from the shared **tile ramp** (`--tile-slot-fill-color`, which
@@ -1058,7 +1058,7 @@ doc calling a game "v3" means "conforms to this standard."
 ## The ring that says the keyboard is here
 
 One ring — `--chrome-cursor-ring` (`2px solid var(--chrome-cursor-color)`, in
-[`patterns/focus-ring.css`](../src/common/patterns/focus-ring.css)) — and the
+[`patterns/focus-ring.css`](../src/common/core-css/patterns/focus-ring.css)) — and the
 only thing that varies is the offset, which follows from what the element sits
 against rather than from taste:
 
@@ -1085,7 +1085,7 @@ paint. It deliberately doesn't read the token, so the two can part company.
 Home, club and game all carry the same strip: the menu trigger hard against the
 page's top-left (the body's own padding is the only margin), a thin rule
 beneath, and whatever else that page needs on the line. It is the shared
-[`<PageHeader>`](../src/common/components/page-header/PageHeader.tsx) — a **component
+[`<PageHeader>`](../src/common/page-header/PageHeader.tsx) — a **component
 rather than a class**, because the two slots are structure, and three pages each
 assembling the same skeleton by hand is how they drifted apart before.
 
@@ -1120,7 +1120,7 @@ assembling the same skeleton by hand is how they drifted apart before.
 A few options in a row, exactly one chosen — the club page's mobile tabs and
 its co-op/compete/all filter, crosswords' puzzle-source picker. The shared
 `.segmented` in
-[`patterns/segmented.css`](../src/common/patterns/segmented.css).
+[`patterns/segmented.css`](../src/common/core-css/patterns/segmented.css).
 
 - **Joined, not a row of buttons.** The shape is the message: the options are
   mutually exclusive, so they share one border and touch. Separate buttons with
@@ -1144,7 +1144,7 @@ the chosen segment with a game brand color today.
 ## The heading levels
 
 Four levels, each with a meaning, declared in
-[`base.css`](../src/common/base.css). **The level is the decision** — a heading
+[`base.css`](../src/common/core-css/base.css). **The level is the decision** — a heading
 takes no class to be the right size.
 
 | | meaning | size | margin |
@@ -1170,11 +1170,11 @@ from a stated size rather than a second guess at the browser's.
 
 `<h1>`–`<h6>` are **headings**; the strip at the top of the page is a **header**
 (`<header>`) and is the shared
-[`<PageHeader>`](../src/common/components/page-header/PageHeader.tsx). Different
+[`<PageHeader>`](../src/common/page-header/PageHeader.tsx). Different
 words for different things.
 
 `.heading-with-controls` in
-[`patterns/heading.css`](../src/common/patterns/heading.css) is the first:
+[`patterns/heading.css`](../src/common/core-css/patterns/heading.css) is the first:
 
 ```
 Your clubs                          [ + New club ]
@@ -1216,7 +1216,7 @@ Converted so far: the homepage. Still to come: the club page's two, and
 **A SelectionList is a list you move a cursor through and choose from** — the
 homepage's clubs, a club's games, the games you can start, the crossword
 library. It is a component,
-[`<SelectionList>`](../src/common/components/lists/SelectionList.tsx), not a set
+[`<SelectionList>`](../src/common/lists/SelectionList.tsx), not a set
 of classes: the paint is a handful of rules, and what was actually duplicated
 was the behavior.
 
@@ -1328,11 +1328,11 @@ that area) and scrabble's suggested-moves box.
 
 ## Mode pills
 
-A gametype's interaction `mode` (`'coop'` / `'compete'`, on the manifest) is **not** baked into its display `name` — it's shown at presentation time as a small colored pill via the shared [`<ModePill>`](../src/common/components/game/ModePill.tsx). So a coop + compete sibling pair carries the same `name` (e.g. both manifests say `wordle`), distinguished by the pill.
+A gametype's interaction `mode` (`'coop'` / `'compete'`, on the manifest) is **not** baked into its display `name` — it's shown at presentation time as a small colored pill via the shared [`<ModePill>`](../src/common/game-page/ModePill.tsx). So a coop + compete sibling pair carries the same `name` (e.g. both manifests say `wordle`), distinguished by the pill.
 
 Rules:
 
-- **Spelling.** The DB, code, and gametype strings spell it `coop`; the **UI says "Co-op"** (and "Compete"). The one place the FE text differs from the stored value — `MODE_LABEL` in [`lib/gameManifest.ts`](../src/common/lib/gameManifest.ts) owns the mapping.
+- **Spelling.** The DB, code, and gametype strings spell it `coop`; the **UI says "Co-op"** (and "Compete"). The one place the FE text differs from the stored value — `MODE_LABEL` in [`lib/gameManifest.ts`](../src/common/manifest/gameManifest.ts) owns the mapping.
 - **Look.** The shared `.badge` — an outlined lozenge, transparent background, border and text both one color. That color is one of the app's two **flexible** colors (`--flex-color-1` / `--flex-color-2`, teal and purple today), and which mode gets which is arbitrary: the pair carries no meaning, and the two only have to be clearly different from each other. What isn't arbitrary is that they sit outside the won/lost/active outcome palette, so a mode never reads as a result.
 - **Solo clubs.** In a solo club (handle starts with `=`, one player) **no pill renders** — neither "Co-op" (no one to cooperate with) nor "Compete" — **with one exception**: a compete variant whose manifest declares **`aiOpponent: true`** (scrabble — solo play seats an autonomous AI opponent) shows an **"AI Compete"** pill, because there IS someone to beat. A compete variant *without* an AI (bananagrams) is "compete for 1" — a race with nobody to beat, effectively coop — so it stays pill-less. The flag lives on the manifest so the club UI never has to know about specific games (the removability invariant); pass `soloClub` + the manifest's `aiOpponent` to `<ModePill>`.
 - **Where it shows.** Anywhere a gametype name appears next to its mode: the per-gametype Start buttons (`StartGameButtons`), the club's games list (`ClubGameCard`), and the club editor (`EditClubModal`). The Start buttons + games list pass `soloClub` (so solo clubs show no pill); the editor **never** passes it, so it always shows the pill — it lists both siblings, and the pill is the only thing distinguishing two now-identically-named rows. The setup dialog confirms the mode in its title via `MODE_LABEL` (dropped in a solo club, matching the suppression).
@@ -1557,7 +1557,7 @@ icon buttons).
 tooltips, and a touch device has no hover — `TooltipHost` disables the hover
 path there outright, because a tap's synthetic hover leaves a stuck bubble. So
 the glyphs had no legend on the surface with the least room for words. The fix
-is [`MenuItem.icon`](../src/common/lib/menu/menu.ts): the game menu already spells
+is [`MenuItem.icon`](../src/common/menu/menuModel.ts): the game menu already spells
 these actions out (Restart, New game, Reveal answer, Hint, Spoiler, End game,
 Concede, Back to club, Print), so each row shows its glyph beside its name.
 A button whose glyph isn't in the menu yet gets a row **added** — that's how
@@ -1583,7 +1583,7 @@ use. The disc and the glyph SHARE that slot: an account row names a person, an
 action names a deed, and no row is both. Which rows get one: everything with a
 button glyph, plus Print — a printer is instantly scannable in a list of words,
 and if a print button ever appears it has already been taught. Pinned by
-[`Menu.test.tsx`](../src/common/components/menu/Menu.test.tsx).
+[`Menu.test.tsx`](../src/common/menu/Menu.test.tsx).
 
 **Four glyphs are self-evident and are exempt.** Not every icon-only button
 needs a menu row: some glyphs are read correctly by anyone who has used a
@@ -1626,7 +1626,7 @@ the text-selection UI in another hat) on `[data-tooltip]` in `theme.css`.
 Without it the bubble still opens on an iPhone, with the system menu sitting on
 top of it. No desktop browser reproduces this, headless or not, so the CSS rule
 is guarded by reading the stylesheet. Pinned by
-[`TooltipHost.test.tsx`](../src/common/components/tooltips/TooltipHost.test.tsx)
+[`TooltipHost.test.tsx`](../src/common/tooltips/TooltipHost.test.tsx)
 and [`tooltip-longpress.e2e.ts`](../e2e/tooltip-longpress.e2e.ts).
 
 **One glyph names a direction, not a thing: `IconBack`.** Every other entry
@@ -1797,7 +1797,7 @@ Where there's no interesting reason, the ordinary tooltip is fine and the button
 just reads as not-yet-available. Either way, say something.
 
 This pairs with how `disabled` is drawn at all
-([base.css → `--chrome-disabled-opacity`](../src/common/base.css)). The fade is
+([base.css → `--chrome-disabled-opacity`](../src/common/core-css/base.css)). The fade is
 only 0.75 — deliberately small — because what actually tells you a control is
 dead is that **it doesn't answer the pointer**. The missing hover carries the
 message; the color only has to be different enough to spot the odd one out in a

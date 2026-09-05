@@ -1,7 +1,7 @@
 /* cs-unmet */
 
 /* boggle play surface, on the shared two-column scaffold
- * (common/components/game/PlayArea.module.css, imported as `shared`) — the same
+ * (common/game-page/PlayArea.module.css, imported as `shared`) — the same
  * .layout / .boardCol / .infoCol / .actionSlot the other converged games use.
  * This module holds only boggle's own bits: the per-game layout vars, the SQUARE
  * board sizing (the waffle model — boggle's board is a square tile grid like
@@ -135,7 +135,7 @@
 }
 
 /* @@ */ .tile span {
-  /* inherit the app's system-ui sans-serif (common/base.css), like every other
+  /* inherit the app's system-ui sans-serif (common/core-css/base.css), like every other
    * game's tiles — don't set a font-family here. */
   font-weight: 700;
   font-size: 42cqmin;
@@ -188,7 +188,7 @@
 
 /* The entry row: icon-only Delete | the entry box | icon-only Submit, centered. */
 /* (The input row + its EntryBox/Delete/Submit live in the shared
- * common/components/game/entry/EntryRow now; only the below-board slot wrapper is here.) */
+ * common/word-entry/EntryRow now; only the below-board slot wrapper is here.) */
 
 /* @@ */ .loading,
 /* @@ */ .empty {

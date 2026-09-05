@@ -19,14 +19,14 @@
 import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { GamePageCtx } from '../../common/lib/gamePageCtx'
-import { gp } from '../../common/test/gamePlayers'
+import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import { gp } from '@/common/members/gamePlayers'
 import type { WaffleGame, WafflePlayerState, SwapRow } from '../hooks/useGame'
 import { db } from '../db'
-import { db as commonDb } from '../../common/db'
-import { edgeFnTransport } from '../../common/lib/supabase/edgeFnTransport'
+import { db as commonDb } from '@/common/supabase/db'
+import { edgeFnTransport } from '@/common/supabase/edgeFnTransport'
 import { PlayArea } from './PlayArea'
-import { clearFaultsForTest, peekFaultsForTest } from '../../common/lib/fault/faultStore'
+import { clearFaultsForTest, peekFaultsForTest } from '@/common/faults/faultStore'
 
 type GameHook = ReturnType<typeof import('../hooks/useGame').useGame>
 
@@ -38,7 +38,7 @@ vi.mock('../hooks/useGame', () => ({ useGame: () => h.result }))
 vi.mock('../db', () => ({ db: { rpc: vi.fn() } }))
 // The terminal reveal is a COMMON RPC now (common.reveal_solution flips the one
 // shared `solution_revealed` flag), so it needs its own mock.
-vi.mock('../../common/db', () => ({ db: { rpc: vi.fn() } }))
+vi.mock('@/common/supabase/db', () => ({ db: { rpc: vi.fn() } }))
 // PlayArea's "New game" calls the start-game edge function directly (the same
 // helper the manifest uses); mocked so no edge runtime is needed.
 // The TRANSPORT, not the seam. This used to mock `invokeStartGameEdgeFn` — the
@@ -46,7 +46,7 @@ vi.mock('../../common/db', () => ({ db: { rpc: vi.fn() } }))
 // different shape, the test kept passing against a helper nothing used any more.
 // Mocking one layer down runs the real `runEdgeFn`, which is what reads the
 // envelope and raises the fault.
-vi.mock('../../common/lib/supabase/edgeFnTransport', () => ({ edgeFnTransport: vi.fn() }))
+vi.mock('@/common/supabase/edgeFnTransport', () => ({ edgeFnTransport: vi.fn() }))
 
 const rpc = db.rpc as unknown as ReturnType<typeof vi.fn>
 
@@ -604,7 +604,7 @@ describe('waffle PlayArea — a swap in flight', () => {
   // twenty changes and lights the whole grid up at the one moment nothing has
   // happened. The flash reads the CAUSE instead — the swap log, which `restart`
   // deletes — so a re-dealt board says nothing. Same rule setgame learned the
-  // hard way; see common/hooks/game/useMoveCausedChange.
+  // hard way; see common/move-flash/useMoveCausedChange.
   it('says nothing when the board is re-dealt rather than played', async () => {
     rpc.mockResolvedValue(okEnvelope)
     h.result = loaded(

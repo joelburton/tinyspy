@@ -18,7 +18,7 @@
  * and `american OR british`, matching `play_word`. All bands ship; the
  * function builds ONE difficulty-rated trie and the per-game band check
  * happens at query time (rated terminals — see
- * `src/common/lib/game/trie.ts`).
+ * `src/shared/dict-trie/trie.ts`).
  *
  * **This is the AI's vocabulary, and it is deliberately NARROWER than
  * `play_word`'s** (2026-08-03): `slur = 0 AND crude = 0` drops 612 of ~277k.

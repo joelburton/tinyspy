@@ -27,18 +27,21 @@ import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const SRC = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const FIELDS_DIR = join(SRC, 'common/components/fields')
+const FIELDS_DIR = join(SRC, 'common/fields')
 
 /**
  * Files in `fields/` that are not a field. Each is machinery the fields are
- * built FROM rather than a member of the family — and the first two have their
- * own test files anyway.
+ * built FROM rather than a member of the family — and `Field.tsx` has its own
+ * test file anyway.
+ *
+ * The form half — `StandardForm.tsx` and `formState.ts` — used to need an
+ * exemption here because it shared the folder. It lives in `common/forms/`
+ * now, outside what this reads, so listing it would be the very rot the third
+ * assertion below is for.
  */
 const NOT_A_FIELD = new Set([
   'Field.tsx', // the shape every field has
-  'StandardForm.tsx', // the form that holds them
   'fieldProps.ts', // the props they share
-  'formState.ts', // the errors object they read
   'fieldContract.tsx', // the assertions they share
 ])
 

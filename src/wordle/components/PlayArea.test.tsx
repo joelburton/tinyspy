@@ -19,13 +19,13 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { GamePageCtx } from '../../common/lib/gamePageCtx'
-import { gp } from '../../common/test/gamePlayers'
+import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import { gp } from '@/common/members/gamePlayers'
 import type { WordleGame, WordlePlayerState, GuessRow } from '../hooks/useGame'
 import { db } from '../db'
-import { db as commonDb } from '../../common/db'
+import { db as commonDb } from '@/common/supabase/db'
 import { PlayArea } from './PlayArea'
-import { filterOptions, pickFilter } from '../../common/test/filterSelect'
+import { filterOptions, pickFilter } from '@/common/lists/filterSelectHelpers'
 
 // Feedback `text` is now a ReactNode (an <ActorDot> widget + sentence) rather
 // than a string — render it and read the plain text to assert on the wording.
@@ -42,7 +42,7 @@ vi.mock('../db', () => ({ db: { rpc: vi.fn() } }))
 // The common client is mocked so the reveal tests can assert that NOTHING is
 // written when the answer is shown — a wordle-schema spy alone couldn't tell a
 // common RPC from no RPC at all.
-vi.mock('../../common/db', () => ({ db: { rpc: vi.fn() } }))
+vi.mock('@/common/supabase/db', () => ({ db: { rpc: vi.fn() } }))
 
 const rpc = db.rpc as unknown as ReturnType<typeof vi.fn>
 const commonRpc = commonDb.rpc as unknown as ReturnType<typeof vi.fn>
@@ -122,7 +122,7 @@ describe('wordle PlayArea — render smoke', () => {
    * fabricates `_<key>_<hash>` for whatever key is asked of it — rename
    * `.wordleYellow` out of the stylesheet and this still passes, which was
    * checked rather than assumed. That half is guarded statically, against the
-   * files themselves, in common/lib/color/tileColor.test.ts.
+   * files themselves, in shared/wordle-style/tileColor.test.ts.
    */
   it('routes each judged code to its class key, on the board and the keyboard', () => {
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null }, [
@@ -640,7 +640,7 @@ describe('wordle PlayArea — click-to-define (turn log)', () => {
     expect(define).toHaveTextContent('SLATE')
     // POINTER-ONLY: not a tab stop and not announced as a control. Definitions
     // are a convenience on a word you're already pointing at, and the entry
-    // swallows Tab anyway (common/utilities.css → `.definable`).
+    // swallows Tab anyway (common/core-css/utilities.css → `.definable`).
     expect(define).not.toHaveAttribute('role')
     expect(define).not.toHaveAttribute('tabindex')
   })

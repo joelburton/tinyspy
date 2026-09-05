@@ -1,14 +1,14 @@
 // cs-unmet
 
 import type { MouseEvent } from 'react'
-import { TurnLogActor } from '../../common/components/game/lists/TurnLogActor'
-import { cls } from '../../common/lib/util/cls'
-import { memberById } from '../../common/lib/members/memberList'
-import { useDefinePopover } from '../../common/hooks/definitions/useDefinePopover'
-import { TurnLog, TurnLogBar } from '../../common/components/game/lists/TurnLog'
-import turnLog from '../../common/components/game/lists/TurnLog.module.css'
-import { useTurnLogPlayerPicker } from '../../common/hooks/game/useTurnLogPlayerPicker'
-import type { Member } from '../../common/lib/members/member'
+import { TurnLogActor } from '@/common/turn-log/TurnLogActor'
+import { cls } from '@/common/utils/cls'
+import { memberById } from '@/common/members/memberList'
+import { useDefinePopover } from '@/common/definitions/useDefinePopover'
+import { TurnLog, TurnLogBar } from '@/common/turn-log/TurnLog'
+import turnLog from '@/common/turn-log/TurnLog.module.css'
+import { useTurnLogPlayerPicker } from '@/common/turn-log/useTurnLogPlayerPicker'
+import type { Member } from '@/common/members/member'
 import type { GuessRow } from '../hooks/useGame'
 import styles from './GameTurnLog.module.css'
 
@@ -69,10 +69,10 @@ export function GameTurnLog({ guesses, players, selfId, mode, isTerminal }: Prop
   })
   const shown = who.filter(guesses)
 
-  // Click-to-define (a common feature — see common/hooks/definitions/useDefinePopover).
+  // Click-to-define (a common feature — see common/definitions/useDefinePopover).
   const { define, popover } = useDefinePopover()
   // Pointer-only, deliberately: NOT focusable, no `role="button"`. See
-  // common/utilities.css → `.definable` for why every definable word is like this.
+  // common/core-css/utilities.css → `.definable` for why every definable word is like this.
   const defineProps = (word: string) => ({
     className: 'definable',
     title: 'Click to define',

@@ -1,9 +1,9 @@
 // cs-unmet
 
-import type { Member } from '../../common/lib/members/member'
-import { difficultyValue } from '../../common/lib/game/difficulty'
-import { centerLettersRow, rosterRow, timerRow, type SetupRow } from '../../common/lib/game/setupRows'
-import { RANKS } from '../../common/lib/game/rankLadder'
+import type { Member } from '@/common/members/member'
+import { difficultyValue } from '@/common/setup-form/difficulty'
+import { centerLettersRow, rosterRow, timerRow, type SetupRow } from '@/common/setup-form/setupRows'
+import { RANKS } from '@/shared/rank-ladder/rankLadder'
 import type { SpellingbeeSetup } from './setup'
 
 /**

@@ -1,9 +1,9 @@
 // cs-unmet
 
 import type { jsPDF } from 'jspdf'
-import { BLACK, DARK_GRAY, drawHeader, drawSetup, fit, newPrintDoc, savePrint } from '../../common/pdf/frame'
-import { drawInTracks, type Track } from '../../common/pdf/columns'
-import { drawTile, drawTileLegend } from '../../common/pdf/tiles'
+import { BLACK, DARK_GRAY, drawHeader, drawSetup, fit, newPrintDoc, savePrint } from '@/common/pdf/frame'
+import { drawInTracks, type Track } from '@/common/pdf/columns'
+import { drawTile, drawTileLegend } from '@/shared/wordle-style/pdfTiles'
 import { GRID } from '../lib/waffle'
 import type { PrintTrack, WafflePrintModel } from './model'
 
@@ -15,7 +15,7 @@ import type { PrintTrack, WafflePrintModel } from './model'
  * together and a single wrapped log stream would separate them. See
  * `common/pdf/columns.ts`.
  *
- * The tiles use the shared `common/pdf/tiles` encoding — border and fill weight
+ * The tiles use the shared `shared/wordle-style/pdfTiles` encoding — border and fill weight
  * rather than color — which is what makes waffle printable at all: green,
  * yellow and gray are one gray on a mono printer, and waffle without its
  * feedback is a grid of unrelated letters.

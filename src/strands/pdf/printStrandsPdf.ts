@@ -10,9 +10,9 @@ import {
   fit,
   newPrintDoc,
   savePrint,
-} from '../../common/pdf/frame'
-import { drawInTracks, type Track } from '../../common/pdf/columns'
-import { drawCheck, drawCross } from '../../common/pdf/marks'
+} from '@/common/pdf/frame'
+import { drawInTracks, type Track } from '@/common/pdf/columns'
+import { drawCheck, drawCross } from '@/common/pdf/marks'
 import { COLS, ROWS } from '../lib/board'
 import type { PrintTrack, PrintTurn, StrandsPrintModel } from './model'
 

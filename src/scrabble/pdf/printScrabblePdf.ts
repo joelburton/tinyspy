@@ -10,8 +10,8 @@ import {
   type Cell,
   type PremiumType,
 } from '../lib/board'
-import { BLACK, DARK_GRAY, drawHeader, newPrintDoc, savePrint, type PrintHeader } from '../../common/pdf/frame'
-import { drawTurnLog, twoColGeom, type TurnRow } from '../../common/pdf/turnLog'
+import { BLACK, DARK_GRAY, drawHeader, newPrintDoc, savePrint, type PrintHeader } from '@/common/pdf/frame'
+import { drawTurnLog, twoColGeom, type TurnRow } from '@/common/pdf/turnLog'
 
 /**
  * scrabble's print-to-PDF, composed from the shared `common/pdf` helpers (docs/pdf.md):

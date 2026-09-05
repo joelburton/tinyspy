@@ -26,7 +26,7 @@
  */
 
 import { execFileSync } from 'node:child_process'
-import { buildTrie, type Trie } from '../../src/common/lib/game/trie.ts'
+import { buildTrie, type Trie } from '../../src/shared/dict-trie/trie.ts'
 import type { Bands } from '../../src/scrabble/lib/suggest.ts'
 import {
   playSelfGame, LEVELS, LEVEL_NAMES, type GameResult, type LevelName,

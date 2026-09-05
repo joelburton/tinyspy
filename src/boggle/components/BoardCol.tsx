@@ -1,16 +1,16 @@
 // cs-unmet
 
 import { useMemo, useState, type ReactNode } from 'react'
-import { cls } from '../../common/lib/util/cls'
-import type { GenericFeedbackMsg } from '../../common/lib/feedback/genericFeedback'
-import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
-import { terminalPill } from '../../common/lib/game/localPills'
-import { EntryRow } from '../../common/components/game/entry/EntryRow'
-import { ShuffleButton } from '../../common/components/buttons/ShuffleButton'
-import { asciiLetters } from '../../common/hooks/input/useCaptureKeys'
-import { MobileStatusBar } from '../../common/components/game/MobileStatusBar'
+import { cls } from '@/common/utils/cls'
+import type { GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
+import type { TerminalCopy } from '@/common/terminal/terminalCopy'
+import { terminalPill } from '@/common/feedback/localPills'
+import { EntryRow } from '@/common/word-entry/EntryRow'
+import { ShuffleButton } from '@/common/buttons/ShuffleButton'
+import { asciiLetters } from '@/common/keyboard/useCaptureKeys'
+import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
 import { Stats, type BoggleStats } from './Stats'
-import shared from '../../common/components/game/PlayArea.module.css'
+import shared from '@/common/game-page/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 
 /** Rotate a square grid 90° clockwise — repositions tiles; the letters themselves

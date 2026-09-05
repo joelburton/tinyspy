@@ -1,14 +1,14 @@
 // cs-unmet
 
-import { DictBandField } from '../../common/components/fields/DictBandField'
-import { PlayersSection } from '../../common/components/setup/PlayersSection'
-import { SetupTimerSection } from '../../common/components/setup/SetupTimerSection'
-import { SetupCoopStyleSection } from '../../common/components/setup/SetupCoopStyleSection'
-import { SetupSection } from '../../common/components/setup/SetupSection'
-import type { SetupBodyProps, SetupSetter } from '../../common/lib/setup/setupForm'
+import { DictBandField } from '@/common/fields/DictBandField'
+import { PlayersSection } from '@/common/setup-form/PlayersSection'
+import { SetupTimerSection } from '@/common/setup-form/SetupTimerSection'
+import { SetupCoopStyleSection } from '@/common/setup-form/SetupCoopStyleSection'
+import { SetupSection } from '@/common/setup-form/SetupSection'
+import type { SetupBodyProps, SetupSetter } from '@/common/setup-form/setupForm'
 import { cleanBase, type WordiplyValues } from '../lib/setup'
-import { difficultyValue } from '../../common/lib/game/difficulty'
-import { ManualBoardField } from '../../common/components/fields/ManualBoardField'
+import { difficultyValue } from '@/common/setup-form/difficulty'
+import { ManualBoardField } from '@/common/fields/ManualBoardField'
 
 /**
  * wordiply's per-game setup form. Mode is locked at the gametype level

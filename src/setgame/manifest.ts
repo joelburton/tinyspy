@@ -1,13 +1,13 @@
 // cs-unmet
 
 import { lazy } from 'react'
-import { runRpc } from '../common/lib/supabase/dbResult'
-import type { CommonGameListRow, CreatedGame, GameManifest } from '../common/lib/gameManifest'
+import { runRpc } from '@/common/supabase/dbResult'
+import type { CommonGameListRow, CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { deckSize } from './lib/cards'
 import { CLAIM_SIZE } from './lib/selection'
 import { db } from './db'
-import { count, outcome, statusLine, wonBy } from '../common/lib/game/statusLabel'
-import { makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
+import { count, outcome, statusLine, wonBy } from '@/common/manifest/statusLabel'
+import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
 import {
   DEFAULT_SETGAME_SETUP_COMPETE,
   DEFAULT_SETGAME_SETUP_COOP,
