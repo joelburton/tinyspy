@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-outcomes
 
 /**
  * The OUTCOME vocabulary — the words the app uses for how a thing turned out.
