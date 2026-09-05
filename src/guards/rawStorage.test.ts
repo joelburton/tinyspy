@@ -1,4 +1,4 @@
-// cs-blessed-utils
+// cs-unmet
 
 /**
  * Guard: **no raw `localStorage` / `sessionStorage` outside the wrapper.**
@@ -8,7 +8,7 @@
  * every touch needs a `try`, and "every touch needs a try" is a convention. This
  * repo answers conventions with mechanisms, because this one was held by eight
  * files and broken by two, and those two were separate bugs found in a single
- * audit (`plans/areas/deep.md`, F-deep-11 and F-deep-13).
+ * audit.
  *
  * The mechanism is `common/web-storage/storage.ts`: `readStored` / `writeStored` /
  * `removeStored`, each guarded, with `whenUnavailable` a REQUIRED argument so a

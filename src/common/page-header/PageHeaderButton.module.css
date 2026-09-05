@@ -40,7 +40,7 @@
    HAVE a pointer: a touch device applies :hover on tap and leaves it applied
    until you tap elsewhere, so on a phone this would be a light gray that never
    goes away. A finger has no hover state — it is off, or it is pressing.
-   (Whether the whole app should do this is plans/app-audit.md §18, open.)
+   (Whether the whole app should do this is open — core-css/todo.md.)
 
    QUIET's washes, both here and pressed. These are quiet buttons in every
    respect except that the glyph is body ink rather than quiet gray, because a

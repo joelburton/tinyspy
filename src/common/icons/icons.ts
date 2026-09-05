@@ -113,8 +113,7 @@ export {
   // AFFORDANCE MARK rather than an icon in the button sense — nothing labels it
   // and nothing acts on it alone — but it belongs here anyway, because the
   // alternative was the one glyph in the app hand-inlined as raw <svg>, living
-  // in a layout component (plans/areas/homepage.md →
-  // `chevron-outside-the-icon-set`). Same family as IconBack: a chevron points,
+  // in a layout component. Same family as IconBack: a chevron points,
   // and this one points at the list that is about to appear.
   ChevronDown as IconMenuChevron,
   // Print to PDF. The one glyph here with NO button — print is a menu-only

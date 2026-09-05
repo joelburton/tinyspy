@@ -1,4 +1,4 @@
-// cs-blessed-game-lib
+// cs-unmet
 
 import type { Session } from '@supabase/supabase-js'
 import type { GamePlayer } from '../members/member'
@@ -20,8 +20,7 @@ import type { MenuApi } from '../menu/menuModel'
  * type only to say `PlayArea: ComponentType<GamePageCtx>`. `GameManifest`'s
  * readers are the other population: every game's manifest and the club surfaces
  * that list them, and at the split exactly one file imported both. Declaring a
- * game and playing one are different moments with different audiences
- * (plans/areas/game-lib.md → `F-game-lib-12`).
+ * game and playing one are different moments with different audiences.
  */
 export type GamePageCtx = {
   session: Session

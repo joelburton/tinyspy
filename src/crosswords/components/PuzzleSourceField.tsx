@@ -33,8 +33,7 @@ type Props = AllFieldProps<PuzzleChoice> & {
 }
 
 /**
- * **WHICH PUZZLE** — four buttons, each opening its own picker
- * (plans/areas/forms.md → `puzzle-source-picks-in-a-dialog`).
+ * **WHICH PUZZLE** — four buttons, each opening its own picker.
  *
  * This is one field with one name, and that is the point of it. The four
  * sources used to be tabs inside the setup form, which made it possible for a
@@ -47,8 +46,7 @@ type Props = AllFieldProps<PuzzleChoice> & {
  * It is also what gives crosswords a field name at all. Every other game's
  * setup messages land under the control they are about; crosswords' landed on
  * the form's bottom line, because none of its controls carried a `name` for the
- * errors object to key on (plans/areas/forms.md →
- * `form-state-and-field-errors`).
+ * errors object to key on.
  *
  * **The summary line is load-bearing.** Once a picker closes, the caption is
  * the only place its answer exists — so for NYT it must say the resolved DATE,

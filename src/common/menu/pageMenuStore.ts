@@ -8,8 +8,7 @@
  * there by hand at every page: each declared a `useRef<MenuHandle>`, passed it
  * to `<Menu ref>`, wrapped `() => ref.current?.open()` in a `useCallback`, and
  * handed that to `useAppShortcuts`. Four lines of plumbing, three times, for one
- * app-level key — and none of it was a decision any page was making
- * (plans/areas/homepage.md → `page-header-trio`).
+ * app-level key — and none of it was a decision any page was making.
  *
  * **Why a module slot is safe here.** One page is mounted at a time and a page
  * has one header menu, so there is nothing to arbitrate. That is the same

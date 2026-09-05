@@ -3,8 +3,7 @@
 /* ============================================================
  * page.css — how every page in the app is laid out.
  *
- * The vocabulary, settled in the homepage area (plans/areas/homepage.md →
- * `three-wrappers`, `pagemain-widths`, `card-only-page`):
+ * The vocabulary:
  *
  *   page      the <body> element, tip to tail. Very light gray, its own
  *             padding, `min-height: 100svh`. NEVER scrolls. Everything

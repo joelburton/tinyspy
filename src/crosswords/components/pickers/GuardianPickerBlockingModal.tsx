@@ -14,8 +14,7 @@ type Props = {
 }
 
 /**
- * **Pick a Guardian series** (plans/areas/forms.md →
- * `puzzle-source-picks-in-a-dialog`).
+ * **Pick a Guardian series.**
  *
  * A LIST rather than the `<select>` + hint line this replaces. The hint is the
  * whole basis for choosing — Quick and Speedy are plain-definition puzzles and

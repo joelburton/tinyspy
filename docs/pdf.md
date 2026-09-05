@@ -270,7 +270,7 @@ Three rules hold the shape:
   decision on record rather than a game the guard forgot.
 - **bananagrams** exports `setupRows()` and prints it, but still hand-writes the `<li>`s
   on screen — the split this section describes ending. Its two recaps have drifted; the
-  work is filed in `plans/areas/bananagrams.md`.
+  work is owed to bananagrams.
 
 The sweep that introduced this found what a hand-kept convention hides: bananagrams'
 two word-check bands appeared on **neither** surface, and boggle printed

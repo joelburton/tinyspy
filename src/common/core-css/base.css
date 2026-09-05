@@ -33,8 +33,8 @@
  * weight. Weight 100–1000, width 25–151%, grade −200…150, slant 0…−10°, and
  * optical size 8–144. `font-stretch` is how CSS spells width, and declaring
  * the ranges here is what lets a rule ask for 62.5% or 700 without a second
- * download. plans/app-audit.md §22 has why this face, what each dial buys
- * and what each one cost in bytes.
+ * download. docs/ui.md → The typeface has why this face and what each dial
+ * buys.
  *
  * WIDTH IS THE ONE THAT EARNED IT. A word on a psychicnum or connections tile
  * has to fit a width the board fixes, and until now the only lever was making
@@ -99,7 +99,7 @@
      a CHOICE FROM A LIST rather than a fresh decision nobody will
      remember making. The radii above are one; these are the rest.
 
-     plans/app-audit.md §6.6 names eight. Seven are here, because a
+     docs/ui.md → The non-color vocabularies names eight. Seven are here, because a
      distance, a duration and a weight of line are the same in daylight
      and midnight. The eighth is the text grays, which is color and
      therefore lives in the theme.
@@ -403,7 +403,7 @@
      **THE OLD `--z-index-*` LADDER IS GONE** (2026-08-25). It ran
      alongside this one while components migrated a rung at a time, and
      it is empty now that every reader has moved — which is the
-     condition plans/app-audit.md §20 set for it to disappear. Eight
+     condition set for it to disappear. Eight
      tokens, thirteen declarations, eleven files.
 
      `--z-<layer>`, not `--z-index-<layer>`. The token IS the layer, and
@@ -677,8 +677,7 @@
      the grid item to its content's MAX-CONTENT width, and a WordList's
      column-major grid leaked ~9500px up through it, dragging the board
      off-screen in Safari. That is why `.layout` pins its own width. Changing
-     this needs a real Safari, not a headless Chromium
-     (plans/areas/homepage.md → `centering-said-4x`).
+     this needs a real Safari, not a headless Chromium.
 
      Horizontal centering of the page's content is the PAGEMAIN's own, and is
      the one rule: it is the thing with a max-width, so it is the thing with

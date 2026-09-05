@@ -1,4 +1,4 @@
-// cs-blessed-game-lib
+// cs-unmet
 
 import type { GamePlayer } from '../members/member'
 

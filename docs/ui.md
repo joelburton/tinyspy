@@ -7,7 +7,7 @@ For the mechanics — CSS Modules, file co-location, `cls()`, what we don't use 
 Read this before:
 
 - Adding a shared component to `common/`.
-- Touching `common/theme.css` or a per-game `theme.css`.
+- Touching `common/themes/`, `common/core-css/`, or a per-game `theme.css`.
 - Designing the screens for a new gametype.
 
 ## Audience and platform: desktop-first
@@ -323,6 +323,121 @@ Not a big-bang refactor — these get fixed game-by-game as we work through the 
 - **codenamesduet turn-state messaging.** Audit needed — does "your turn to write a clue" occupy the same space as "waiting for peer's clue" and "peer gave you: BIRD 3"?
 - **Guess / clue history scroll containment.** Verify each is a scrollable region inside a fixed outer, not a grow-with-content list.
 
+## Floating panels — five families, one shell
+
+**A floating panel is a window-like thing that floats over the page**: its
+own rect, out of the document's flow; a header bar carrying a title and a ✕
+(or, for a card, a heading in the body); its own surface and shadow;
+dismissible. Everything [`<FloatingPanel>`](../src/common/floating-panels/FloatingPanel.tsx)
+provides, and the category is *defined as* the things built on that shell,
+which is why the umbrella word and the component share a name.
+
+**"Panel" on its own means nothing and is banned** — in prose, in docs, in
+conversation, and in any component name. The evidence: connections' `HintList`
+was once called a "panel" while cataloguing the dialog-like things, and it is a
+readout sitting in the info column's flow — no rect of its own, no titlebar, no
+✕, nothing to dismiss. "Floating panel" would have blocked the mistake and
+"panel" invited it. A module-scoped `.panel` class is fine, since a local class
+states its own blast radius. **"Draggable panel"** is the prose name for the
+subset you can drag (every family but the two below the line), and
+`useDraggablePanel` is its hook. Tooltips and menus are not floating panels:
+not window-like, and the menu already has a sharp name.
+
+### The families
+
+They differ in **intent**, not implementation — one component with a `family`
+prop, and the prop is required because a silent default is how the app once
+ended up with a modal that never dimmed. What each family claims is one table
+in `FloatingPanel.tsx`; this is what it means:
+
+| family | what it is | dims | movable | remembers its rect | resizable |
+|---|---|---|---|---|---|
+| `companion` | something you keep NEARBY while you play — open it, keep it open, put it where you want: the scratchpad, a setter's note, a clue explainer, help | no | yes | yes, position and size in one entry | **always** — a rule. Every one genuinely benefits from being sized in both axes, and they are the only floating panels you can drag shut |
+| `dialog` | a question that can wait: the anagram finder, word lookup, edit-word | no | yes | position, yes — that is what "opens where you left it" means | case by case; all of ours fit their content today, which is a fact about these three, not the family |
+| `modal-normal` | a question worth thinking or talking about: setup, edit profile, the celebration | yes, light | yes — to see the board while filling a form | no — a fresh task each time, so it centers | case by case, same reason |
+| `modal-blocking` | the world stops. Answer it now; nothing underneath is live: confirm end game, crosswords' jump-to-number | yes, dark | **no** | no | never — a rule |
+| `modal-fault` | as blocking, but strictly above it — an error must be readable mid-question. Escape is swallowed, so a fault cannot be closed by accident, and nothing under it closes either | yes, dark | **no** | no | never — a rule |
+
+**Immovability is the visible signal**, and a better teacher than a scrim
+shade: if you can drag it, you can leave it for later; if you cannot, deal with
+it now. The two immovable families are also **cards, not windows**: the
+titlebar IS the drag handle, so a family that can never be dragged has no use
+for one, and its ✕ would be a third way out duplicating a button already on
+screen. A card keeps its size at every viewport so the thing the question is
+ABOUT stays visible behind it; a window becomes a full-page sheet on a phone.
+
+**What "dim" must mean: everything under it is inert.** For the two blocking
+families that is literally true — nothing may outrank them. For `modal-normal`
+it means "focus is here", and chat sitting above it is a deliberate exception
+rather than a lie, because a normal modal never claimed the world stopped. The
+focus trap follows the scrim: a backdrop already blocks the pointer, so a modal
+that did not trap would hand a keyboard user Tab access to controls they cannot
+click.
+
+**Buttons don't decide the family.** A dialog very likely carries a **Save** /
+**OK** / **Start** — it has an answer to give — and a companion very unlikely
+does, closing by its ✕. But the sharp test is whether the button ENDS the
+thing: word lookup and the anagram finder each have a primary button (*Look
+up*, *Find*) that acts INSIDE the dialog and leaves it open, which is what
+lets them be the patient kind you keep beside a cryptic while still being
+dialogs.
+
+**Resizing — who knows the right size?** *Content knows* → auto-fit, never
+resizable; a form is as tall as its fields. *The user knows* → resizable; how
+much scratchpad, how much chat history, how many anagram results is a question
+only the person can answer. A resizable blocking modal is broken; a resizable
+dialog is just a dialog nobody has needed to resize yet. A companion's
+MINIMUM size should come from what the body needs — "the titlebar, the
+composer and four messages" — not from what looked about right.
+
+### The names follow the families
+
+**A React component entirely about one family takes that family's name as its
+suffix**: `GameScratchpadCompanion`, `AnagramDialog`, `SetupGameModal`
+(`normal` is the unmarked member, so the suffix is plain `Modal`),
+`ConfirmationBlockingModal`, `FaultModal` (strictly `FaultFaultModal`, which
+is pointless — `Fault` names the member). A component shared ACROSS families
+keeps a generic name — `FloatingPanel` is the shell for all five, so naming it
+after any one would be a lie. **A CSS class names what it styles, not what it
+happens to be attached to**: `.floatingPanel` means "this changes every panel
+in the app"; `.dialog` means "this changes three components you can name".
+
+**"modal" is a family word, never a member.** Two members sit far above chat
+and the third far below it, so if the third were called `modal`, one string
+would mean both "all three" and "the one at 2200". `normal` because this repo
+already uses it for the unmarked member of a family
+(`--button-normal-primary-color`); `-nonblocking` was rejected as defining by
+negation, two characters from `-blocking` at reading speed.
+
+**The layers share the names.** `companion` is a kind of thing; `--z-companion`
+is where that kind of thing lives, and a second vocabulary for the second axis
+would mean every conversation saying which list it means, forever. So **a
+layer is where its family lives unless a component states otherwise**, and
+two do, each with the reason in its own file:
+
+- **`Chat` lives at `--z-chat`, above every dim below it**, because talking is
+  what the app is for, and chat is the one companion that can OPEN ITSELF (a
+  `!` message force-opens it for every recipient) — a self-opening panel
+  materializing under a setup modal would be worse than not opening at all.
+  It is a companion by every test and **does not take the family word**: a
+  name saying `companion` would point at the one layer it deliberately does
+  not live on.
+- **Help lives at `--z-help`**, above the companions, because it is summoned
+  FROM things — including the setup modal's footer "?" — and the rules must
+  never open behind the form you pressed "?" in.
+
+The full ladder, and the satellites that attach to a layer rather than
+occupying one (a scrim, a dropdown, a tooltip), are in
+[code-conventions.md → The z- layers](code-conventions.md#the-z--layers).
+
+**Two panels stay off the shell on purpose.** The
+[`<CelebrationBlockingModal>`](../src/common/terminal/CelebrationBlockingModal.tsx)
+is a hand-rolled fixed scrim with a small card and no media query, so it stays
+a small card over a dimmed board at every size, phone included — that is the
+look Joel wants, and "the modal family should share the shell" would hand it
+the full-screen phone sheet and silently delete the decision. Scrabble's blank
+picker is the other, and it is a todo, not a decision.
+
 ## Real forms, and everything else
 
 **The rule is about who owns the keyboard.** In a real form the *focused element*
@@ -409,9 +524,85 @@ Future targets:
 - **Two-column layouts above a certain content threshold.** When vertical space runs out, split sideways instead of letting one column grow. ClubPage's "active + start" vs "other games" is the canonical example.
 - **Modals for rare-and-rich.** When a page genuinely needs more space than the viewport offers and columns don't help, reach for a modal before letting the page grow. Note the counter-example: a terminal verdict is neither rare nor rich, so it stays in-page ([Terminal results](#terminal-results--the-moment-vs-the-record)) — a modal is for the *moment*, not the record.
 
-## Theme: one global theme today
+## Themes
 
-The current theme is light (`color-scheme: light`, `--page-bg-color: #fafafa` / `--page-surface-color: #ffffff`), with tokens at `:root` in [`common/themes/daylight.css`](../src/common/themes/daylight.css). Most games add a per-game theme file ([`codenamesduet/theme.css`](../src/codenamesduet/theme.css), [`wordle/theme.css`](../src/wordle/theme.css) the letter-feedback palette, [`stackdown/theme.css`](../src/stackdown/theme.css) the felt + tile ink, …) declaring additional tokens scoped to that game's gameplay surface.
+**A theme is almost entirely color.** Switching one shows the same pixels in
+the same places, differing only in color — no spacing, border, margin or
+font-size changes. The layout is precise and difficult to change; themes do
+not touch it. So a radius, a width, a duration and a page padding are the same
+under every theme, and they live outside the theme files
+([`core-css/base.css`](../src/common/core-css/base.css)).
+
+**A theme is one polarity.** There is no theme × polarity grid. Four names,
+two of which are thought experiments kept because *"what would cupcake do?"*
+is how a theme decision gets told apart from a standard one:
+
+| | |
+|---|---|
+| `daylight` | the classic light theme — what ships |
+| `midnight` | classic dark. A **spike**, reachable behind `?theme=midnight`; what it proved and what dark mode would still cost is [`plans/dark-mode.md`](../plans/dark-mode.md) |
+| `cupcake` | imaginary: pink, cheery, light |
+| `horror` | imaginary: dark, broody |
+
+**A theme declares its chain and loads it.** `loadTheme()` in
+[`common/themes/loadTheme.ts`](../src/common/themes/loadTheme.ts) picks one
+and loads that chain, the whole chain and only that one:
+
+```
+daylight  →  light-mode.css + daylight.css
+midnight  →  dark-mode.css  + midnight.css
+cupcake   →  light-mode.css + daylight.css + cupcake.css   (overrides only)
+```
+
+**The base loads because a theme asked for it, never as an unconditional
+default.** Put daylight on a bare `:root` and any role midnight forgets
+resolves silently to a light hex on a dark page — worse than an undefined
+token, because it resolves to something plausible.
+
+### The files
+
+```
+common/
+  themes/
+    light-mode.css   ONLY what is true of every light theme — nearly empty,
+    dark-mode.css    and that is the finding: almost everything that felt like
+                     "light mode" turned out to be a VALUE, which is daylight's
+                     job. What is left is `color-scheme`
+    daylight.css     the role → hex grid, complete
+    midnight.css     complete; the spike
+    loadTheme.ts     picks the chain
+  core-css/
+    fixed.css        colors EXEMPT from theming: member + wordle. Loaded once,
+                     outside the chain
+    base.css         element resets, and every shared value that is NOT a
+                     themed color — radii, spacing, durations, depth, the z-
+                     layers, the font
+    utilities.css    the global classes that are ADJUSTMENTS and name nothing:
+                     muted, error
+    patterns/        ONE NAMED PATTERN PER FILE — badge, focus-ring, heading,
+                     page, segmented
+<game>/
+  theme.css          the game's --<game>-* brand tokens. Nothing else
+```
+
+`main.tsx` loads `fixed.css`, `base.css`, the patterns and `utilities.css`
+statically, then awaits `loadTheme()` before the first render, so the chain is
+in place before anything paints.
+
+### Light mode is the default language
+
+We only have light mode, Joel will probably always play light mode, and light
+mode is how he pictures the app. **Polarity-neutral language failed**: *"a
+hover moves away from the page"* is confusing to read and to write. In code,
+comments and conversation we speak from light mode — a button's hover is
+**dim-down** (darker), even though dark mode does the opposite. That makes
+writing dark mode harder (the author translates in their head) and everywhere
+else easier.
+
+The palette entries themselves are named for their **role**, which is what
+lets the sentence survive the flip: `--page-text-strong-color` is "the most ink
+available against this page", pure black in daylight and pure white in
+midnight.
 
 ### Tokens are semantic, not literal
 
@@ -433,13 +624,9 @@ Reference tokens as `var(--page-surface-color)`, never `var(--page-surface-color
 
 The safety net is build-time, not a fallback: [`src/guards/cssTokens.test.ts`](../src/guards/cssTokens.test.ts) fails if any `var(--x)` references a token that isn't defined in a stylesheet or set inline from a component. That's the "make missing tokens obnoxious-pink" instinct done one better — it screams in CI before the bug can ship, instead of hoping someone looks at the affected pixel. A missing token is always a bug here; treat the test going red as a real failure, not noise.
 
-### Light theme is the default
-
-The theme is light: `common/theme.css` sets the surface tokens light and declares `color-scheme: light`, and each game's palette is tuned against that background. A dark theme is not a separate near-term task — it folds into the user-selectable-themes work below (dark becomes one selectable option, not a global re-swap).
-
 ### User-selectable themes (deferred, with the column reserved)
 
-Dark / light / pink / etc. as a *user setting* is still deferred: there are no alternate themes, no picker on the profile form, and no switching mechanism (a `[data-theme]` selector, `prefers-color-scheme`). The foundation that does exist is the CSS side — vars at `:root`, semantic names — plus, since 2026-08-03, **`common.profiles.theme`**: a reserved free-form `text` column, nullable, unread by anything.
+Dark / light / pink / etc. as a *user setting* is still deferred: there is no picker on the profile form and no switching mechanism beyond the `?theme=` spike flag. A dark theme is not a separate task — it folds into this one (dark becomes one selectable option, not a global re-swap). The foundation that does exist is the CSS side — vars at `:root`, semantic names — plus, since 2026-08-03, **`common.profiles.theme`**: a reserved free-form `text` column, nullable, unread by anything.
 
 Reserving a column while deferring the feature is deliberate and worth distinguishing from pre-engineering. It costs one line and no behavior, and it means the *shape* of the setting ("a per-user string on the profile") isn't being invented later under whatever pressure prompts the theming work. NULL means "no preference — use the app default", which is what every row says today; don't seed a magic default name, and constrain the column (a CHECK or an enum) once real theme names exist.
 
@@ -479,6 +666,46 @@ only the suffix tells you which is which.
 not a thing with qualities; the quality *is* the thing. Stated so nobody "fixes"
 `--radius-md` into `--md-radius`.
 
+**A name without a bucket is a smell.** Names prefer the same word the code
+uses. The rest of the grammar:
+
+- **Hyphens separate DIFFERENT QUESTIONS; camelCase joins words that answer
+  one.** `--button-quiet-primary-hover-color` is hyphenated because `primary`
+  and `hover` are two questions — what am I doing (hovering) and on what (a
+  primary button, toned quiet). `inFlight`, `gameOver`, `terminalFrame` and
+  `centerTile` each join up because the two words are one quality. The test
+  for a multi-word layer is the same: `--z-modal-blocking` keeps its hyphen
+  because `blocking` clarifies `modal` — two questions, not one unsplittable
+  idea. **Part-count is not a thing to optimize**: five parts is fine, and
+  compressing to reach four is how the rule gets misapplied.
+- **Numbers or names?** Numbers when the scale has a visual intuition, names
+  when it doesn't; either way the name says the whole thing (`--font-size-2`,
+  never `--font-2`). [naming.md → Numbers or names?](naming.md#numbers-or-names)
+  has the test.
+- **Only the ENDS are parsed.** A guard matches the bucket at the front and the
+  variant + kind at the back; the middle is a label and needs no constraint.
+- **`_localName`** for a value built up over calculations inside one file:
+  `--_colWidth`. Narrow scope, no bucket needed.
+- **A game's own tokens take the game's name as the bucket**, and a
+  `--<game>-` token referenced from outside `src/<game>/` is an error — one
+  guard, one convention, and it makes co-location checkable. (No codename is
+  another's followed by a hyphen; re-check if a game is added.)
+- **Not every token is a design decision.** A **contract slot** is a blank a
+  game fills in (`--tile-bg-color`, `--grid-gap`), and **local math** is
+  arithmetic (`--cols`, `--side`). Neither is a color, so the game-prefix rule
+  doesn't apply to them.
+- **A value belonging to ONE component carries that component's WHOLE name —
+  and usually shouldn't be a token at all.** First ask whether it wants a name:
+  a value with one reader belongs inside its class as a number, and only
+  something a class cannot hold — a themed color, a slot a game fills — earns a
+  global token. If it does earn one, a shortened component name invents a
+  category: `--shadow-notice` reads as a family of notices with this as one
+  member, and there is no such family, only `DeviceBlockNotice`. Written
+  correctly it is `--deviceBlockNotice-shadow`. **Shortening a name to make it
+  look general is how a one-off acquires the appearance of a system.** If
+  there is genuinely a family, name the family and say what its members are;
+  if there is one consumer, say its name in full.
+
 ### The buckets
 
 | bucket | what it answers |
@@ -490,13 +717,31 @@ not a thing with qualities; the quality *is* the thing. Stated so nobody "fixes"
 | `pill-*` | the feedback pill's seven tones — which ARE the outcome families, aliased |
 | `toast-*` | a toast's left stripe |
 | `view-*` | what you are looking at — history, share-preview |
-| `mark-*` | the board-feedback vocabulary ([tile-feedback.md](../plans/tile-feedback.md)) — dims, attention, flash durations, the grid cursor |
-| `member-*` | player identity, one per value of `common.profiles.color` |
-| `flex-color-*` | the app's two flexible colors — a pair that means nothing, so a badge has two ways to differ (see [Mode pills](#mode-pills)) |
+| `mark-*` | the board-feedback vocabulary ([tile-feedback.md](../plans/tile-feedback.md)) — dims, attention, flash durations, the grid cursor. The **history** frame around an earlier board, the **your-move** frame, and scrabble's **preview** (a possible move — history that hasn't happened yet) are all here |
+| `member-*` | player identity, one per value of `common.profiles.color`: eight colors, each with a paired border. Already chosen, will not change, and have **no relationship to any other color** — a green player is not the winning green. Exempt from theming (`fixed.css`) |
+| `flex-color-*` | the app's two flexible colors, teal and purple — loosely the co-op and compete labels, but a pair that means nothing, so a badge has two ways to differ (see [Mode pills](#mode-pills)). **Fully built out and flexible for one-off cases**, so a rare need doesn't mint a new color |
 | `page-*`, `field-*` | the page's own surfaces and text; the things you type into |
-| `tile-*`, `kbd-*`, `rank-*` | the warm tile ramp, the on-screen keyboard, the word-rank ladder |
-| `wordle-*` | the letter-judgment palette, shared by wordle and waffle |
-| per-game | **brand** colors, in that game's own `theme.css` |
+| `tile-*`, `kbd-*`, `rank-*` | the warm tile ramp, the on-screen keyboard, the word-rank ladder. The ramp has **no semantic meaning** and is fine to reuse for game-ish things (the scrabble rack uses a very dark tile); **the numbers ARE the meaning** — stackdown reads stack depth off them |
+| `wordle-*` | the letter-judgment palette, shared by wordle and waffle. Exempt from theming (`fixed.css`) |
+| per-game | **brand** colors, in that game's own `theme.css`. **NOT the same as any family**: spellingbee's honey is a different yellow from `outcomes-near`, `near` is not used in spellingbee, and the honey is not used elsewhere |
+
+**There are two cursors, and they are independent names.** The chrome one
+(`--chrome-cursor-color`, the ring in lists and menus — [the ring](#the-ring-that-says-the-keyboard-is-here))
+is defined once in the theme and consistent everywhere. The board one
+(`--mark-gridCursor-color`, the entry ring on a tile grid) is shared by every
+grid-entry game and is amber on purpose: scrabble's premium squares already
+use red and blue.
+
+**Two backgrounds, and everything else is an exception.** `--page-bg-color`
+is the PAGE's background, very light gray, and it is `<body>` and nothing
+else. `--page-surface-color` is white, and it is what a background is unless
+something says otherwise — cards, list frames, panels, every dialog, popovers,
+toasts, segments, the info sheet, the pause overlay, the feedback pill, inputs.
+Stated theme-neutrally so the rule survives midnight: **the default background
+is a step lighter than the page**, which is why neither name can carry a color.
+The exceptions — the hover gray, the open/active gray, a dialog titlebar,
+scrims, board dims, the two inverted near-blacks (the tooltip and the chat
+unread chip) — are known and deliberately unnamed until each is on screen.
 
 `wordle-*` is the one family named for colors rather than meanings, deliberately:
 "wordle green" is a phrase people say, so the name is read at speed where
@@ -523,6 +768,48 @@ true of *Cancel the button* and false of *quiet the tone*, which made
 
 **We reserve cells, not concepts.** Filling a grid completes a formula already
 chosen; adding a *member* invents a meaning, and that waits for a real use.
+
+**Names are SEMANTIC, not colors.** `lost` is an outcome family and
+`destructive` is a button family; neither is `red`. Naming by color produced a
+layer of not-helpful names and brain-translation, and forced invented families
+(`direred`, `rust`) to hold two meanings that share a hue.
+
+**Variants are per-BUCKET.** Outcomes need a `bar`, buttons need a `hover`, and
+the two never share: a button never needs `piecefill`, an outcome never needs a
+button's fill. A status bar shows an outcome, so it is
+`--outcomes-lost-bar-color`. Unused cells are computed together, reserved, and
+**never removed by a sweep**.
+
+### How a value gets picked
+
+Each family has one chosen anchor, `base` — the color the family was designed
+from. Nothing paints it; everything derives from it, and siblings derive from
+BASE rather than from each other, so each formula stays independent and the
+set stays comparable: *"ink is base −10%"* reads the same in every family,
+which is what makes a family that needs −20% visibly the exception. Base
+should be a mid-tone; deriving outward from the middle is steadier than
+running a formula from one extreme to the other.
+
+Three ways a value gets picked:
+
+- **Joel-chosen** — the base.
+- **claude-derived** — a formula run at authoring time, its output recorded as
+  a hex so it can be eyeballed and tweaked.
+- **CSS-derived** — handed to the browser, computed at runtime.
+
+**The formula is recorded beside the value, always.** That is the rule the
+whole system rests on: a cached hex without its formula is a stranded value,
+and "change the base and let the rest follow" stops being true. **Chosen and
+derived are listed TOGETHER, in the theme.** A theme saying "ink is 10%
+darker" is a theme making a decision; hiding it in a shared file to save lines
+makes the theme lie about what it decided.
+
+> **Numbers in an example are illustrative.** "10% darker" above is a shape,
+> not a spec. Never change color methodology because an example used a
+> number — the methods are measured, and an offhand figure in prose does not
+> override one. The measurements themselves, and which variants derive
+> cleanly and which need a value per member, are in
+> [`plans/css-philosophy.md` → What actually derives](../plans/css-philosophy.md#appendix-what-actually-derives--measured-2026-08-20).
 
 **[`/palette`](../src/common/devtools/palette.ts) is how this holds.**
 It renders every family, members × variants, and it ships (unlinked, no session
@@ -562,8 +849,8 @@ design decision), while `transparent`, `currentColor` and `inherit` carry no
 decision at all. It covers expressions too — a `color-mix()` at a use site is the
 same problem wearing a function.
 
-**And a component module may reference a color, never hold one.** Values live in a
-`theme.css` — common's when shared, the game's when brand. This is the first
+**And a component module may reference a color, never hold one.** Values live in
+the theme — `themes/daylight.css` when shared, the game's `theme.css` when brand. This is the first
 rule's blind spot stated as its own rule: `--tile-slot-ink-color: #fff` *is* a `--…:`
 line, so it passes cleanly, and twelve boards used exactly that shape to write a
 raw white while `--ink-onDark-color` sat in the theme meaning the same thing. The
@@ -634,6 +921,171 @@ family stops being a rectangle, and
 stylesheet indexed by a `TileColor` doesn't define every class — which no
 rendering test can catch, since `css: false` in vitest means a CSS module is a
 proxy that fabricates any class name asked of it.
+
+## The non-color vocabularies
+
+Eight closed sets for the values that are not colors. Seven are constants in
+[`core-css/base.css`](../src/common/core-css/base.css); the text grays are the
+one themed set, because a theme is color and a distance is the same distance
+in daylight and midnight. **The names are settled; a value is one number to
+edit**, which is the whole point of a token — re-tuning it later is not a
+sweep.
+
+| # | vocabulary | steps |
+|---|---|---|
+| 1 | `--spacer-1 … -5` | `1.5 · 1 · 0.75 · 0.5 · 0.25rem` |
+| 2 | `--font-size-1 … -3` | `1 · 0.85 · 0.75rem` |
+| 3 | `--line-height-1 … -3` | `1.5 · 1.25 · 1` |
+| 4 | the text grays, ×4, **in the theme** | `--page-text-color` · `-muted-color` · `-label-color` · `-strong-color` |
+| 5 | `--opacity-1 … -2` | `0.7 · 0.5` — numbers as a holding position; opacity spans at least two KINDS (a disabled control, a separator) and wants role names once the spectrum is visible |
+| 6 | `--transition-duration-paint / -nudge / -travel` | `100 · 80 · 180ms` |
+| 7 | `--letter-spacing-label / -wide` | `0.03em · 0.2em` |
+| 8 | `--border-width-line / -line-thick / -frame` | `1 · 2 · 4px` |
+
+**`font-weight` is deliberately not a ninth.** CSS already ships that
+vocabulary, `100 … 900`, so a token would only rename it. The rule is that **a
+font-weight must be a multiple of 100**; anything else is a bug. (The old
+argument that a `650` "only renders as 650 on a variable font" stopped being
+true the day the app loaded one; the closed set stands on its own.)
+
+**Tokens are for values with MANY READERS where position is meaningful. A
+value with one reader belongs inside its class as a number.** Size and
+spacing are a soft goal: the consistency people want is a class guarantee
+("every dialog's labels match"), delivered by there being one `Field` pattern,
+not by a ramp. Board geometry is excluded outright.
+
+### What the words mean
+
+- **1 · spacer, not space.** "Space" is a key on the keyboard, and casually the
+  room *inside* a button. "Spacer" is the space BETWEEN things; `gap` and
+  `margin` were rejected as implementation-tied, since the scale feeds both.
+  `--spacer-1` is the BIGGEST, `h1`-style, and reads naturally that way even
+  though it is numerically backwards. **The scale governs `gap` and `margin`;
+  padding is not on it** — the room inside a box tends to run smaller and is
+  usually a tuple fitted to that box, so paddings stay in their class.
+- **4 · the two text grays that looked like one.** `label` is the small
+  uppercase word that says what a GROUP of controls is. It is not `muted`:
+  muted means "this content is de-emphasized", where a label is not content,
+  it is structure, and it has to stay readable at 0.8rem in caps — which is why
+  it is a hair DARKER than muted, not lighter. `strong` is the other end, more
+  ink than body text; midnight answers it by translation, pure white, because
+  the role is "the most ink available against this page".
+- **6 · three transition buckets.** `-paint` is a color settling instead of
+  jumping (hover tints); `-nudge` is a piece answering the pointer by MOVING
+  (the tile lift); `-travel` is something arriving, leaving or growing (the
+  mobile info sheet), and these are slower for a reason — a sheet that snaps
+  in at 80ms reads as a glitch. `nudge` rather than `move` so it doesn't read
+  as a synonym of `travel`: a small response versus a real journey.
+  **Animations are not in this**: a verdict shake, a tile flip, a card-in are
+  game-surface and tuned, and get named when they start recurring.
+- **8 · border width.** `line` is the 1px of a divider or a field edge;
+  `line-thick` is 2px, the "this box is a thing" border (the feedback pill,
+  the info-panel box); `frame` is 4px, "something is happening to what's
+  inside" (the history ring, the game-over frame, the toast stripe). Not
+  `hairline`: in print that is a genuinely hair-thin rule, and on screen it
+  would imply 1px plus a gray to fake thinness. Two scales, one pattern —
+  `line` → `line-thick`, `frame` → `frame-thick` — and `frame-thick` is
+  hypothetical until something needs it.
+
+### The a/b/c rule — a value that doesn't fit
+
+**A value outside the vocabulary is surfaced and explicitly decided.** One of:
+
+- **(a) add it to the vocabulary** — it is a level nobody had named;
+- **(b) fit it to an existing level** — the usual answer;
+- **(c) keep it bespoke** — rare, and it owes a reason written in the file.
+
+**Never silently kept because it is already there.** The test is Joel's:
+*"there is no such thing as 6 bespoke values."* Recurrence means a level
+nobody named, not six exceptions. A value that equals a vocabulary value is
+changed silently — nobody chose `4px` over `--radius-sm`, they're the same
+number; a near-miss (`3px` against 4, `0.45` against a disabled `0.5`) was
+almost always picked at a different time by a different hand, and gets looked
+at once, in context. Tuned surfaces are exempt: a board's radii and dims are
+fitted to the game, and that is the meaning of tuned. The same rule applies to
+characters outside the font's subset (see [The typeface](#the-typeface)).
+
+## The typeface
+
+**The app ships `Roboto Flex`, self-hosted, one variable file for
+everything.** The `@font-face` and the reasoning are at the top of
+[`core-css/base.css`](../src/common/core-css/base.css); the subset is built by
+`scripts/subset-font.py`.
+
+**The point is not that the system font is bad.** Joel designs on macOS, so
+the app was tuned against SF Pro and looked right there. The point is that
+`system-ui` means three faces with three sets of metrics — SF Pro, Segoe UI
+Variable, Roboto — so the app had never been seen as designed by anyone on
+Windows or Android.
+
+**Width is the dial that decided it, and it fixes something that was
+broken.** psychicnum and connections put a whole word on a tile whose width
+the board fixes, so the only lever was making the text SMALLER — worst exactly
+where it hurts most, on a phone. A width dial takes the space out of the
+letters instead, so the word stays at a readable size and gets narrower.
+**Grade is ink without width**: every glyph keeps its exact advance, so text
+can darken or lighten with nothing on the page moving — the clean fix for
+light text on a dark ground reading heavier than the same weight dark-on-light.
+No other candidate face combined the two. All five dials ship (weight, width,
+grade, slant, optical size) even though optical size is the expensive one:
+Netlify is fast, the players have good connections, and the file is cached
+after the first visit. Dropping optical size is the lever if that ever stops
+being true, and it costs nothing but a re-subset. Slant stays because nine
+places ask for italics and this family has no drawn one — its own oblique
+beats the browser's synthesized skew.
+
+**Self-hosted, from the app's own origin.** Not Google's CDN: that is two
+extra servers, and the font's URL is not even known until their stylesheet
+arrives. The old argument for a shared CDN (someone else's visit warmed the
+cache) died when browsers partitioned caches per site. Not Supabase Storage
+either, which is the same third-origin problem wearing our own logo.
+
+**`font-display: swap`.** A moment of system font on a cold load, then a
+switch. `optional` never swaps, and in an SPA a missed window means a whole
+SESSION in the fallback, because there is no second document load to pick the
+font up; `block` hides the text entirely rather than showing the wrong face.
+With the preload in `index.html`, `swap`'s window is small.
+
+### The subset, and the rule that goes with it
+
+**The subset is Latin plus `→ ← ≥ ≈ ≠`.** Those five are drawn in the
+original font and were dropped by Google's Latin slice; `→` alone is used
+dozens of times in the app's own sentences, so taking the slice unchanged would
+have put a fallback glyph mid-sentence.
+
+**A symbol outside the subset is surfaced and decided by the area that wants
+it** — the a/b/c rule, applied to characters. Twelve symbols the app uses are
+not in the font at all (`↔ ↗ ↵ ⇧ ⇒ ⌥ ⌫ ✓ ✕ ✗ ★ ⟲`), and deciding them out of
+context is how a rule becomes six exceptions. The two shapes the decision
+takes:
+
+- **a standalone mark is a clean lucide swap** — `✕` as a close affordance,
+  `★` on a scrabble premium square, `✓`/`✗` as a status mark. They are already
+  icon-shaped and lucide does them better than a text character;
+- **a glyph inside a sentence is not.** `⌥Z` in a keyboard hint is TEXT, with
+  a letter beside it; an inline SVG there has to be sized and baseline-aligned
+  by hand or it looks pasted in. A small design job per site.
+
+Why the boundary matters: `↑` and `↓` are in Google's slice and `←` and `→`
+are not, so an arrow-key hint would have rendered two arrows in the app font
+and two in a fallback, side by side. Emoji are separate and always were — the
+OS draws those, under `system-ui` too.
+
+### Facts that change how CSS gets written
+
+- **Digits are TABULAR by default** — all ten advance the same width. Scores,
+  timers and counts are width-stable with no CSS at all, which is the
+  [layout-stability](#layout-stability) rule getting a win for free. The font
+  carries `pnum` to go the other way if prose ever wants it.
+- **Anything that measures text to fit it must wait for the font.** A tile
+  that measures before the file lands measures the FALLBACK, fits to it, and
+  goes stale when the real font arrives. `document.fonts.ready` is the gate.
+  This only shows on a cold cache, which is exactly the bug nobody can
+  reproduce.
+- **Optical sizing changes advance widths**, and that is fine: it is a
+  function of the font-size, which any fitting code knows already.
+- **Resting width is 100% for now**, though the face sets narrower than SF
+  Pro; tuning it is a `core-css` todo.
 
 ## Two vocabularies
 
@@ -941,6 +1393,22 @@ inner padding): now that the tiles carry their own warm fill and depth, an outer
 frame is redundant, and connections' full-width bands want to sit edge-to-edge
 anyway. The grid fills its column edge-to-edge. (A tray remains available as a
 per-game option if a future board wants one.)
+
+### The verdict mark's state is per game, on purpose
+
+Two games wear the shake-and-ring verdict mark on a rejected row, and each
+holds its state its own way: connections keeps one `verdict` object written
+through a single function, wordle keeps a nonce and a tone as two states
+written together. **What is genuinely shared is the nonce discipline**, and it
+is the thing a third game would get wrong: a CSS animation replays only on a
+NEW element, so a counter has to ride in the row's `key`, and a boolean cannot
+distinguish "rejected again" from "still rejected". **What is not shared is
+the mark's LIFETIME**: wordle clears on a timer, while connections has no
+timer at all — the turn log is its clock, clearing when the log shrinks (a
+restart) or grows with someone else's row. One is wall-clock, the other is
+derived from game state, and a shared hook would have to force one or take it
+as a callback and own almost nothing. With a population of two and both
+working, the extraction point is the third game that wants a shake.
 
 ## The warm tile ramp
 

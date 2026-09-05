@@ -482,13 +482,13 @@ This section covers the *file mechanics* only. For the design philosophy — des
 **CSS Modules**, one `*.module.css` per component, co-located with the `.tsx`:
 
 ```
-src/common/components/chat/ChatBody.tsx
-src/common/components/chat/ChatBody.module.css
+src/common/chat/ChatBody.tsx
+src/common/chat/ChatBody.module.css
 ```
 
-**Design tokens at `:root`**, split by what they are: colors live in [`src/common/themes/daylight.css`](../src/common/themes/daylight.css) (the theme) and [`src/common/fixed.css`](../src/common/core-css/fixed.css) (member + wordle, exempt from theming); everything that isn't a color — radii, sizes, spacing, durations, the depth family — lives in [`src/common/base.css`](../src/common/core-css/base.css). Every `*.module.css` references them via `var(--token-name)`. Each game's `theme.css` (optional) declares that gametype's brand tokens.
+**Design tokens at `:root`**, split by what they are: colors live in [`src/common/themes/daylight.css`](../src/common/themes/daylight.css) (the theme) and [`src/common/core-css/fixed.css`](../src/common/core-css/fixed.css) (member + wordle, exempt from theming); everything that isn't a color — radii, sizes, spacing, durations, the depth family, the z- layers — lives in [`src/common/core-css/base.css`](../src/common/core-css/base.css). Every `*.module.css` references them via `var(--token-name)`. Each game's `theme.css` (optional) declares that gametype's brand tokens. The files, and how a theme loads, are in [`ui.md → Themes`](ui.md#themes).
 
-`cls()` (in [`src/common/lib/util/cls.ts`](../src/common/utils/cls.ts)) is a tiny hand-rolled `clsx` equivalent for combining conditional class names. ~10 lines; no dependency.
+`cls()` (in [`src/common/utils/cls.ts`](../src/common/utils/cls.ts)) is a tiny hand-rolled `clsx` equivalent for combining conditional class names. ~10 lines; no dependency.
 
 **What we don't use:**
 
@@ -501,12 +501,41 @@ src/common/components/chat/ChatBody.module.css
 
 Six rules that are otherwise only discoverable by reading the code:
 
-1. **No `var()` fallbacks.** Write `var(--token)`, never `var(--token, #ccc)`. We own the whole custom-property namespace, so a missing token is always a bug — and a fallback can only ever *mask* that bug while drifting out of sync with the real value. [`src/guards/cssTokens.test.ts`](../src/guards/cssTokens.test.ts) is the safety net, and it guards **both directions**: every `var()` reference resolves to a definition, and every definition has a reader. A token that's a deliberate vocabulary slot with no caller yet goes in that test's `VOCABULARY_COMPLETENESS` list — which is where the "keep the grid complete" policy is enforced rather than argued. (The `var(--client-width, 100vw)` idiom in `common/` is a different thing: an opt-in *parameter* default, not a color fallback.)
-2. **Desktop-first: `@media (--mobile)` blocks override the base rule**, never the reverse. See [`ui.md`](ui.md#audience-and-platform-desktop-first) — a `min-width` media query means a rule got written backwards.
+1. **No `var()` fallbacks.** Write `var(--token)`, never `var(--token, #ccc)`. We own the whole custom-property namespace, so a missing token is always a bug — and a fallback can only ever *mask* that bug while drifting out of sync with the real value. [`src/guards/cssTokens.test.ts`](../src/guards/cssTokens.test.ts) is the safety net, and it guards **both directions**: every `var()` reference resolves to a definition, and every definition has a reader. A token that is deliberately live before anything reads it goes in that test's `DECLARED_AHEAD` list, which fails from both sides — a name on it must still exist, and must still be unread — so the debt is countable and the dead-token guard stays live for everything else. (The `var(--client-width, 100vw)` idiom in `common/` is a different thing: an opt-in *parameter* default, not a color fallback.)
+2. **Desktop-first: `@media (--mobile)` blocks override the base rule**, never the reverse. See [`ui.md`](ui.md#audience-and-platform-desktop-first) — a `min-width` media query means a rule got written backwards. **A device override lives in the same file as the rule it overrides, directly under it**: when a pattern moves to a shared module its phone tweak moves with it, and a pattern is never split across two files. No density stylesheet, no density tokens; `mobile/breakpoints.css` is only the `@custom-media` names, injected everywhere by PostCSS so any file can write `@media (--phone)`.
 3. **A component that renders on two surfaces keeps the roomier one as its base rule.** The compressed variant is an override scoped to the surface — e.g. `[data-mobile-status] .stats { … }`, keyed off the attribute `<MobileStatusBar>` already stamps. No media query needed (the bar doesn't exist on desktop) and no `compact` prop to thread through call sites. Writing it the other way round leaks the phone's budget onto a desktop that has room to spare; see [`mobile.md`](mobile.md).
 4. **State classes win by re-setting tokens, not by out-cascading.** A state (`.achieved`, `.dropOk`) should set `--tile-slot-fill-color` and let the base rule consume it, rather than restating `background` at higher specificity.
 5. **Click-to-define words are pointer-only** — no `tabIndex`, no `role="button"`, no focus style. The reasoning is in [`utilities.css`](../src/common/core-css/utilities.css)'s `.definable` block. A word that genuinely needs keyboard reach gets a real `<button>`.
 6. **`_variant` suffixes** name the classes behind a `` styles[`base_${key}`] `` lookup: `.outcome_won`, `.day_lost`, `.barInner_good`, `.viewedTile_oneAway`, `.guessWord_G`. Base name, underscore, the key's value. The underscore is what marks a class as *dynamically* selected — grep it to find every class that isn't referenced literally anywhere.
+7. **A converted surface writes vocabulary values, not literals**, and [`src/guards/vocabularies.test.ts`](../src/guards/vocabularies.test.ts) holds it there. It is a **shrinking allowlist keyed by VALUE**: a row is `path → the literals still allowed there`, so converting one value on a page protects it immediately even while another value on the same page is still open; a listed value that is no longer written fails, a row whose file no longer offends fails, and a NEW file fails at once because it has no row. Tuned surfaces are exempt by default; `z-index` is the one vocabulary checked across all of `src/`, boards included. The vocabularies themselves are [`ui.md → The non-color vocabularies`](ui.md#the-non-color-vocabularies).
+
+#### Patterns — a class, a token, or a utility
+
+A pattern list is written by reading rendered surfaces, **never by grepping class names**: local names hide shared patterns, so searching by local name reproduces the bug.
+
+- **Names for things, utilities for adjustments.** *Can you say what the thing is without mentioning how it looks?* "The explanatory line under a field" — name it. "This should be quieter than its neighbor" — that's an adjustment, and a utility (`.muted`) is honest. Naming an adjustment manufactures a fake concept.
+- **Promote on the SECOND write.** Not the first (no evidence yet), not the third (you won't be there). Copy-pasting a rule out of another module IS the signal — you've found the pattern and chosen to record it as duplication.
+- **No silent default.** Both variants get said; neither is what you get by staying quiet. `.button` once meant "primary" by silence, which is one name doing two jobs.
+- **Compose on *is-a*, never on *looks-like*.** A danger button IS a button. Help text does NOT compose `.muted`: it isn't a kind of muted, it's a thing that happens to be quiet today. Two classes reading one token is two consumers of one decision, not duplication. **The menu is not a list** — it looks identical and is a different thing: a menu is a set of ACTIONS you pick from and it closes, a list is a set of PLACES that stay put. **A game's corner flag is not an outcome bar** — deliberately more prominent, a different thing. The same question is owed to every row-shaped thing before it converts.
+- **A pattern gets a FILE, named for the pattern** (`core-css/patterns/badge.css`) — the default, not a threshold. Too many files merge easily; one long file has to be read through. `utilities.css` keeps only the adjustments that name nothing.
+
+**Where a pattern lives:**
+
+| kind | where | test |
+|---|---|---|
+| utility — an adjustment with no "what" | `core-css/utilities.css` | naming it would manufacture a concept |
+| pattern with structure or behavior | a React component + its module | a form, a dialog |
+| pattern that is only a look | `core-css/patterns/<name>.css` | a badge, a focus ring |
+| one component's internals | that component's module | `GuessKeyboard`'s `.key` |
+| game-specific | that game's module | spellingbee's center hex |
+
+Two boundary rules, because both edges leak: **a common component's module holds its own internals, never a re-implementation of a pattern** (otherwise every duplication moves house under a new banner, since everything is inside *some* component); and **a shared stylesheet with many consumers and no component is a component waiting to be written**.
+
+**Classes or tokens?**
+
+1. Does shared CSS need the value injected by someone who doesn't know the meaning? → **it must stay a token slot.** The shared `.tile` reads only `--tile-bg-color` so a game restyles by re-setting a token instead of out-cascading. Member colors are the same case: `<Dot>` builds `var(--member-${name}-color)` at runtime, so the token name IS the mapping.
+2. Does the meaning paint several properties together? → **a class.** A button tone paints five values; a bundle is a class, which is why the tone classes read families directly instead of via twenty pass-through tokens.
+3. Otherwise, whichever is fewer names.
 
 #### The z- layers
 
@@ -550,7 +579,7 @@ Six rules that are otherwise only discoverable by reading the code:
 - **In CSS, across all of `src/` — boards included.** This is the one vocabulary where tuned surfaces are *not* exempt: a board's radius is a game's decision, but a board's rank against chat is a whole-app decision that merely happens to be written in a game's file. Values 0–10 stay legal as local layering; anything above must read a token.
 - **In TypeScript.** `<FloatingPanel>`'s `zIndex` prop is typed `string` and takes `var(--z-chat)`, so the order has one home rather than a CSS list and a TS list free to disagree. A numeric literal fails the guard. A *computed* z-index is still fine — stackdown stacks its tile pile with `zIndex: t.z`, which is per-tile data, not a tier.
 
-**Three values are deliberately still literals**, each with an area that owns it (see [app-audit.md](../plans/app-audit.md) § Carried forward): the two drag ghosts, which disagree at 1000 (bananagrams) and 100 (scrabble); and scrabble's `ScrabbleBlankPickerBlockingModal` overlay at 50, a full-screen `position: fixed` modal parked *below* the panel tier, so an open chat or menu paints over it. Naming them would bless arrangements nobody has decided on. They sit on the guard's pending list until then.
+**Three values are deliberately still literals**, each with an owner (`shared/grid-and-drag/todo.md` for the ghosts; the blank picker is scrabble's): the two drag ghosts, which disagree at 1000 (bananagrams) and 100 (scrabble); and scrabble's `ScrabbleBlankPickerBlockingModal` overlay at 50, a full-screen `position: fixed` modal parked *below* the panel tier, so an open chat or menu paints over it. Naming them would bless arrangements nobody has decided on. They sit on the guard's pending list until then.
 
 #### Duplication and drift that are deliberate
 
@@ -937,6 +966,14 @@ Edge Functions live in a **flat namespace** at the Supabase project level — th
 This matches the directory: `supabase/functions/codenamesduet-suggest-clue/index.ts`.
 
 ## Known gotchas
+
+### A game's stylesheet ships in its lazy chunk
+
+The core stylesheets and the theme chain are loaded once from `main.tsx`; every *game's* `theme.css` ships in that game's lazy chunk, which is why a game file rendered outside `PlayArea` — setgame's `SetupForm`, crosswords' two picker modals — imports its game's `theme.css` itself. An undefined custom property invalidates the whole declaration, silently. **Palette, polarity and theme are eager and global; only a game's brand anchors are lazy.**
+
+### Contract slots nobody declares
+
+Common CSS reads some custom properties that a game fills in and no file declares: `--cols`, `--max-tile-width`, `--grid-gap`, `--board-units-w/h/cap`, `--max-board-size`, `--rank-text`, `--tile-font-factor/-min/-max`, `--stats-col-gap`, `--stats-max-width`, `--local-feedback-min-height`, `--swap-box-min-height`. A game that mounts the reader and forgets one gets an undefined property and a dead declaration, and the phantom-token guard passes it because each IS defined — in *some* game. Some are read with a fallback and are harmless when missing; the bare reads (`.hugRectWidth`'s three, the bee games' board units, `--rank-text`) are set by every game that mounts them today. A guard checking per MOUNT POINT is owed (`game-page/todo.md`).
 
 ### Cross-schema embeds (PostgREST)
 

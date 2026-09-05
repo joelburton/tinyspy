@@ -261,8 +261,9 @@
  * dark one — the shade tracked how each was built rather than what it meant.
  *
  * The VALUES are still the pair they have always been, 40% and 45%, which is a
- * difference nobody can see. plans/app-audit.md §20 wants roughly 35% and
- * 55%; that is a separate decision, to be made looking at a real board. */
+ * difference nobody can see. The proposal on the table is roughly 35% and
+ * 55% (todo.md); that is a separate decision, to be made looking at a real
+ * board. */
 /* @@ */ .scrimLight,
 /* @@ */ .scrimDark {
   position: fixed;

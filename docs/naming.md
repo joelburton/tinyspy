@@ -210,15 +210,44 @@ names instead: **tuned / justified / locked**, below.
 ### tuned / justified / locked
 
 How much a surface is allowed to differ from the rest of the app, named for the
-LICENSE each carries: a game's board is **tuned** (a difference is expected),
-game chrome is **justified** (a difference owes a reason in the file), and
-everything non-game is **locked** (a difference is a bug until someone says
-otherwise).
+**license** each carries — which is what you need in a sentence: *"the turn
+log is justified, and we're making it pink for this game because …"*.
 
-**The definition lives in [`plans/app-audit.md` §6.5](../plans/app-audit.md)**
-— including the two boundary rules and what "locked" does and doesn't constrain
-— and that file has precedence while the sprint runs. Repeating it here would
-just create a second copy to disagree with.
+| | the surface | a difference there is |
+|---|---|---|
+| **tuned** | a game's board and its pieces | **expected.** Fitted to the game, wildly different between games, and standardizing it is not a goal |
+| **justified** | game chrome — the info column, and the furniture AROUND the board | **allowed, and it owes a reason** in the file. Standard in general (the turn-log frame, the setup disclosures), with named exceptions where a game genuinely differs (psychicnum's status line can't read like spellingbee's) |
+| **locked** | everything non-game — menus, dialogs, buttons, the homepage, the club page | **a bug**, until someone says otherwise. Not fatal, but it wastes lines and attention for nothing |
+
+`chrome` was considered for the middle and rejected: this codebase already uses
+that word for the NON-game UI, so it would have named the opposite thing.
+
+**LOCKED IS ABOUT WHO DECIDES, NOT ABOUT THE RESULTING NUMBER.** A locked
+component makes no per-instance re-decisions — but a *surface* may declare one
+density and everything inside it follows. That is one decision applying to
+everything in a scope, not a hundred small ones, and the component never
+knows. So `<FilterSelect>` being locked is compatible with it rendering
+smaller in a game's info column, because "things are tighter here" is said
+once by the info column (`.infoCol { --spacer-2: …; --font-size-2: … }`), not
+per instance by each caller. The component states the ROOMY default and the
+surface tightens it, never the reverse.
+
+Two things the split needs to be usable:
+
+- **The boundary is the SURFACE, not the folder.** A folder is not an owner:
+  `<ModePill>` renders only on club surfaces and is locked wherever its file
+  sits, and `<PageHeader>` is locked while GamePage carries it.
+- **The line runs INSIDE boardCol.** A board's contents are tuned; the
+  furniture around them is justified — the board frame, the history ring, the
+  game-over frame, `dimNotYourTurn`, the below-board feedback slot, the
+  your-turn flash. "boardCol is per-game" would otherwise invite a game to
+  restyle the frame.
+
+**The shared vocabulary cuts across all three and is none of them.** The
+outcome colors, the tile ramp, member colors, the feedback pill, the focus
+ring: 100% standard everywhere *including* inside the most-tuned board. The
+three levels answer "how much may this vary"; the vocabulary answers "what may
+never vary".
 
 The cross-cutting terms above apply everywhere. Each game also has its own small lexicon for domain-specific things — connections's `category` / `tile` / `matched`, spellingbee's `pangram` / `bonus word` / `letter mask` / `outcome`, etc. Those lexicons live in the per-game doc's `## Vocabulary` section so the words sit next to the code that uses them:
 

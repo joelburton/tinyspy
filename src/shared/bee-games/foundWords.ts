@@ -1,4 +1,4 @@
-// cs-blessed-game-lib
+// cs-unmet
 
 /**
  * Shared data model for the found-words rank-ladder games (spellingbee +

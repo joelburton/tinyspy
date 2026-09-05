@@ -16,7 +16,7 @@ import styles from './RichMessage.module.css'
  * It lived in `lib/games.ts` until the split, where this file was its only
  * importer — and imported it back out under exactly this alias, which is the
  * tell that the type belongs beside its component (docs/common-folders.md →
- * Judgment calls; plans/areas/game-lib.md → `F-game-lib-1`).
+ * Judgment calls).
  */
 export type RichMessageType = Array<string | { player: Member }>
 

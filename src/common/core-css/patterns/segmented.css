@@ -19,7 +19,7 @@
  *   a long list collapses into `<FilterSelect>`'s menu, which is why the
  *   club page's mode filter is segmented and its gametype filter isn't.
  *
- * One pattern, one file (plans/app-audit.md §7).
+ * One pattern, one file (docs/code-conventions.md → Patterns).
  * ============================================================ */
 
 /* JOINED, NOT A ROW OF BUTTONS, and the shape is the message: these options are

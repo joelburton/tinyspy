@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# cs-blessed-deep
+# cs-unmet
 
 # ============================================================
 # Home-screen / touch icon generator

@@ -1,4 +1,4 @@
-// cs-blessed-game-lib
+// cs-unmet
 
 /**
  * Tests for manifestRpcs — what is left of it.

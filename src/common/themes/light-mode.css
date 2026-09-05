@@ -11,9 +11,9 @@
  * It is nearly empty, and that is the finding rather than a
  * placeholder: almost everything that felt like "light mode" turned
  * out to be a VALUE (daylight's job) or a formula stated beside its
- * value (also daylight's job, per app-audit §6 — a theme that
- * hides its derivations in a shared file is a theme lying about
- * what it decided).
+ * value (also daylight's job — a theme that hides its derivations in
+ * a shared file is a theme lying about what it decided; docs/ui.md →
+ * How a value gets picked).
  * ============================================================ */
 
 /* @@ */ :root {

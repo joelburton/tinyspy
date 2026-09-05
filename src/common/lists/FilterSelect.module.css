@@ -97,7 +97,7 @@
      info column today, a form tomorrow), which as a rung would mean outranking
      a blocking modal, absurd for a filter. So it reads its host's tier, and a
      host that isn't the page sets `--z-host` on itself; `.infoCol` does.
-     plans/app-audit.md §20 → the satellites. */
+     docs/code-conventions.md → The z- layers, "what is NOT a rung". */
   z-index: calc(var(--z-host, var(--z-page)) + 1);
   min-width: 100%;
   width: max-content;

@@ -63,8 +63,7 @@ type Props = {
    * Not the gametype string: App already looks the manifest up to decide
    * whether the URL names a real game at all, and a second lookup here could
    * only fail in a way the first one already ruled out (it did have one, and
-   * the dead branch rendered "Unknown game type." where nobody could reach it —
-   * plans/areas/homepage.md → `loading-and-errors`).
+   * the dead branch rendered "Unknown game type." where nobody could reach it).
    *
    * Used for the submitTimeout dispatcher when the timer expires, the right SVG
    * for `<GameLogo>`, and the per-game `help` component for the menu.

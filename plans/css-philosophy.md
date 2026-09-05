@@ -1634,3 +1634,56 @@ On the color layer specifically — the concept is agreed, these are not:
   reorganization. The durable lesson stands: the doc-link guard only checks
   markdown-to-markdown links, so a doc path named in a *code comment* can dangle
   silently when its plan is deleted.
+
+## Appendix: what actually derives — measured 2026-08-20
+
+Moved here from the app-audit plan on 2026-09-05, when the color system's
+rules went to [docs/ui.md](../docs/ui.md); this is the evidence behind
+them. Established by resolving each candidate in a real browser and comparing
+painted pixels, not by reimplementing oklab. Verified identical under both an
+sRGB and a display-p3 profile.
+
+**Derives exactly:**
+
+- **`edge` is the fill × 0.84 on the gamma-encoded sRGB bytes** —
+  `color-mix(in srgb, <fill> 84%, black)`. All eight of that day's consumers
+  matched. The old `theme.css` called this "16% toward black", which was right
+  about the amount and **wrong about the space**: done in oklab the same 16%
+  gives won `#4f9452` against the real `#569d59`. The two spaces differ in
+  step size, not character (sRGB −13% chroma, oklab −16%).
+- **The four button tones reproduce all sixteen of their values from four
+  anchors**: hover is the anchor at oklab lightness −0.05, the outline's ink at
+  −0.115, the outline's hover at 8% over the card. This is the model working —
+  a family picked at one sitting by one formula — and it is what everything
+  else gets measured against.
+- **`terminalFrame`** (renamed from `dullframe`, since a semantic name beats a
+  descriptive one) was first claimed as `oklch(0.45, 0.105, <family hue>)` and
+  that was **wrong on two counts**, corrected the same day by resolving it in a
+  browser. The hue was the **ink's**, not base's — obvious in warning, whose
+  ink sits 21.5° off its own base because Material's ramps rotate — and it did
+  not reproduce exactly anyway: Chrome's oklch lands 1–4 bytes off each
+  recorded value, because the originals came from a different oklab
+  implementation. It now derives from BASE (Joel's call, small shift
+  accepted), which moved four values: won, lost and near by 1–3 bytes, warning
+  by 10. **Won is lifted to 0.564** at the same chroma, because at the family's
+  lightness a green reads as black at normal zoom; neutral is achromatic.
+
+**Does not derive, and needs a value per member:**
+
+- **`ink`.** The step down from the fill runs **0.037** (near) to **0.305**
+  (neutral) — 0.115 in red, 0.117 in orange, 0.195 in green. Two families
+  happen to match the button step; three don't. This is the tier where the
+  gold problem lives: gold can't go dark without ceasing to be gold, so near's
+  ink stopped short.
+- **`wash`.** Three of five reproduce as a mix with the card — won at 37%
+  oklab, warning at 35% sRGB, neutral at 15% oklab, already three recipes.
+  Lost and near reproduce as nothing: they're Material 100s, and Material's
+  ramps rotate, so they sit **14° and 18° off their own family's hue**.
+- **Member borders.** The comment claimed they were seeded by formula (oklch
+  lightness clamped to `min(0.85 × fillL, 0.55)`); that reproduces **one of
+  the eight**. The rest were hand-tuned afterward, so there is no formula to
+  invert and a dark set is eight fresh judgments.
+- **The tile ramp.** Across all twelve values hue holds at 87–90° while
+  lightness falls 0.976 → 0.662 and chroma **rises** 0.011 → 0.107 — one
+  material getting thicker, not a tint plus a darkening. A single-anchor mix
+  with white misses the deep end by 0.027 of lightness.

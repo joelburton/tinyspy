@@ -104,8 +104,7 @@ function onKeyDown(e: KeyboardEvent) {
  * **Why this is one module-level listener and not one per panel.** It used to be
  * per-panel, and two open panels meant two listeners, so a single Escape fired
  * both: open a game's setup, open Help from its footer "?", press Escape once,
- * and BOTH close — the form you were filling in is gone
- * (plans/areas/floating-panels.md → `esc-closes-every-panel`). A key that
+ * and BOTH close — the form you were filling in is gone. A key that
  * means "dismiss this" cannot be answered by everything at once; something has
  * to know what "this" is, and that is the registry below.
  *

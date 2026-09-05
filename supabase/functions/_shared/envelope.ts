@@ -1,4 +1,4 @@
-// cs-blessed-deep
+// cs-unmet
 
 /**
  * THE ENVELOPE, WRITTEN IN DENO — the same shape `common.ok_envelope` and

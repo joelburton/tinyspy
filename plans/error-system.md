@@ -604,7 +604,7 @@ handoff for all seven — the other six are red until they land. That is the
 chosen sequencing, not an accident.
 
 **ALL SEVEN ARE DONE**, crosswords last, because it needed a field before its
-one validation had anywhere to land — see plans/areas/forms.md → F50
+one validation had anywhere to land — the forms audit's
 `puzzle-source-picks-in-a-dialog`, which turned its four source tabs into one
 `source` field — named for the setup key it writes, like every other field.
 

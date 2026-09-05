@@ -578,7 +578,7 @@ is not making. The argument against is this doc's table, which is otherwise
 strict about one channel per meaning.
 
 **A dark theme raises the stakes**, which is why this surfaced now: on a dark page
-a darkening shadow is capped by the page's own lightness (app-audit §19), so
+a darkening shadow is capped by the page's own lightness ([dark-mode.md](dark-mode.md)), so
 if hover is shadow-only it may not carry there at all — and the lift, which costs
 nothing on any background, might be the half doing the work.
 

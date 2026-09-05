@@ -1,4 +1,4 @@
-// cs-blessed-game-lib
+// cs-unmet
 
 import { describe, it, expect, vi } from 'vitest'
 import { buildGameMenu, END_OR_CONCEDE_IDS } from './gameMenu'

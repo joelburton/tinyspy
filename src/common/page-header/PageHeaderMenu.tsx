@@ -26,8 +26,8 @@ type Props = {
  * real pages.
  *
  * It exists because the same five-line block was written three times, identical
- * apart from the logo, the sections and the label (plans/areas/homepage.md →
- * `page-header-trio`). Two of those three things stayed the same at every
+ * apart from the logo, the sections and the label. Two of those three things
+ * stayed the same at every
  * site and neither was a decision anyone was making:
  *
  * - **The chevron-wrapped logo.** Now `<Menu>`'s own business — it takes a

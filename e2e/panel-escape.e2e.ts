@@ -10,8 +10,7 @@ closeContextsAfterEach()
 
 /**
  * Escape, for floating panels: **what you're IN, else what's on TOP**
- * (`usePanelEscape`; plans/areas/floating-panels.md →
- * `esc-closes-every-panel`).
+ * (`usePanelEscape`).
  *
  * This exists because the old behavior was one window-level listener PER PANEL,
  * so a single Escape fired all of them at once: open a game's setup, open Help

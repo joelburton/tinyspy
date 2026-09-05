@@ -54,8 +54,7 @@ type Props = {
 }
 
 /**
- * **Pick a puzzle from the curated library** (plans/areas/forms.md →
- * `puzzle-source-picks-in-a-dialog`).
+ * **Pick a puzzle from the curated library.**
  *
  * **Choosing CLOSES it**, which is the rule the whole design rests on: with the
  * pick and the Start button in different boxes, a footer "Use this one" would

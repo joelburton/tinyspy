@@ -1,4 +1,4 @@
-// cs-blessed-game-lib
+// cs-unmet
 
 import { describe, it, expect } from 'vitest'
 import { timerLabel } from './timerLabel'

@@ -1,4 +1,4 @@
-// cs-blessed-game-lib
+// cs-unmet
 
 import { IconBack, IconChat, IconConcede, IconEnd, IconHelp } from '../icons/icons'
 import { setChatOpen } from '../chat/chatOpenStore'

@@ -1,4 +1,4 @@
-// cs-blessed-game-lib
+// cs-unmet
 
 import type { GameManifest } from './common/manifest/gameManifest'
 import { codenamesduetGame } from './codenamesduet/manifest'

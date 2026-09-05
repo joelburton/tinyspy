@@ -52,7 +52,7 @@
  * geometry left exactly as it is so only the alpha is under test. If the depth
  * still does not read here, no amount of tuning will get it, and the answer has
  * to be a lighter cue instead (a ground the piece stands on, or
- * lightness-as-hover — plans/app-audit.md §19).
+ * lightness-as-hover — plans/dark-mode.md).
  *
  * Scoped to the dark theme by the attribute `loadTheme()` stamps on <html>. The
  * attribute is available under BOTH themes even though only one chain loads,

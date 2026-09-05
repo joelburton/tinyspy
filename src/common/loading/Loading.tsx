@@ -8,7 +8,7 @@ import styles from './Loading.module.css'
  * ONE component and ONE word, because there was never more than one idea here:
  * the app, the club page and the game page each said it in their own sentence
  * ("Loading…", "Loading club…", "Loading game…") and each wrapped it in a
- * `.card` (plans/areas/homepage.md → `loading-and-errors`).
+ * `.card`.
  *
  * NO BOX, deliberately (Joel, 2026-08-23: *"they're not a card and don't need
  * or want a border"*). A bordered box that exists for 200ms and is then

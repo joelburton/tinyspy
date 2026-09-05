@@ -7,8 +7,7 @@ import { signIn } from './helpers/session'
 
 /**
  * A floating panel must stay REACHABLE when the viewport changes under it —
- * the window is resized, a tablet rotates (`useReclampOnResize`;
- * plans/areas/floating-panels.md → `ephemeral-panels-dont-reclamp`).
+ * the window is resized, a tablet rotates (`useReclampOnResize`).
  *
  * This existed for the panels that PERSIST their rect and for no others, which
  * put the protection on the ones needing it least: chat and the scratchpad were

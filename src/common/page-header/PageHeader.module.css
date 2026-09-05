@@ -50,8 +50,7 @@
    hover padding inside its box, so the visible distance between two of them is
    this gap plus both of those paddings — and since the paddings differ per
    mark, so do the visible distances. Picking a ramp step here would be picking
-   it for a number nobody looks at. See plans/areas/homepage.md →
-   (`unequal-mark-separation`), which is the finding that has to settle what the
+   it for a number nobody looks at. See todo.md, which has to settle what the
    separation should BE before this value can be anything but tuned by eye. */
 /* @@ */ .left {
   display: flex;

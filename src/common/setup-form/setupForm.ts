@@ -1,4 +1,4 @@
-// cs-blessed-game-lib
+// cs-unmet
 
 import type { ComponentType } from 'react'
 import type { FormErrors } from '../forms/formState'
@@ -18,11 +18,10 @@ import type { Member } from '../members/member'
  * It stays in `lib/gameManifest.ts` beside `GameManifest.startGameInClub`, the
  * interface it satisfies, so the two cannot drift.
  *
- * **The upward import is known and stays.** `SetupBodyProps.errors` is a
- * `FormErrors` from `components/fields/formState`, so this module imports from
- * `components/`. A `lib/` file reaching into `components/` is the wrong
- * direction, and `FormErrors` is a form concept, so the fix is the `forms`
- * area's (plans/areas/forms.md → "Handed here by `game-lib`").
+ * **The import of `FormErrors` from `forms/formState` is known and stays.**
+ * `SetupBodyProps.errors` is a `FormErrors`, which is a form concept, so a
+ * setup-form type depends on the form layer for one shape. Whether the type
+ * wants a home both can reach without that dependency is `forms/todo.md`'s.
  */
 
 /**

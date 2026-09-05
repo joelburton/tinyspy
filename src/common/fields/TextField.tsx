@@ -28,7 +28,7 @@ type Props = AllFieldProps<string> & {
  * flex-column caption-over-control, three of them byte-identical
  * (`gap: 0.4rem; border: none; margin: 0; padding: 0; min-width: 0`) and the
  * fourth at its own size. That is the same signature that made spellingbee's
- * and wordwheel's setup stylesheets a finding (plans/areas/forms.md).
+ * and wordwheel's setup stylesheets a finding.
  *
  * `ManualBoardField` is a SPECIALISED text field — the board you type — and its
  * existence is why this one's absence went unnoticed: the setup forms had the

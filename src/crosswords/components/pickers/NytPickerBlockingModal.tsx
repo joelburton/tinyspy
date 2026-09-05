@@ -20,8 +20,7 @@ type Props = {
 }
 
 /**
- * **Pick a New York Times daily** (plans/areas/forms.md →
- * `puzzle-source-picks-in-a-dialog`).
+ * **Pick a New York Times daily.**
  *
  * Two ways in, and they are not equals. The WEEKDAY is the normal path — an NYT
  * crossword's day is its difficulty, so it is a standing club choice, and the

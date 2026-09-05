@@ -36,7 +36,7 @@ type Props = {
  * sheet on a phone and this must stay a small card. That objection is gone: a
  * card family stays a card at every size, and gets no titlebar either, which
  * suits a celebration better than a gray strip with a ✕ would
- * (plans/areas/floating-panels.md → "a panel is a WINDOW or a CARD").
+ * (docs/ui.md → Floating panels).
  *
  * The shared "you won!" celebration, and the ONLY modal a terminal game pops:
  * every game carries its verdict in-page (the below-board pill + the
@@ -119,7 +119,7 @@ export function CelebrationBlockingModal({
     >
       {/* The title is rendered HERE rather than passed to `<BlockingModal>`,
           because the confetti has to come above it — and because this h2 is
-          still at h1's size, which is a live question (plans/app-audit.md §7)
+          still at h1's size, which is a live question (todo.md)
           and not something a structural move should quietly settle. */}
       <div className={styles.content} role="dialog" aria-label={title}>
         <div className={styles.confetti} aria-hidden>

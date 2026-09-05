@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest'
  * Guard: a converted surface writes VOCABULARY values, not literals.
  *
  * The sprint applies its vocabularies area by area, not in one sweep
- * (plans/app-audit.md §13 → "How a value gets converted"): a raw value
+ * (docs/ui.md → The a/b/c rule): a raw value
  * equal to a vocabulary value is changed silently, one that isn't gets
  * looked at once, in context. Which means a guard that fails on every
  * unconverted file would be red for weeks, and a guard that only warns is
@@ -220,7 +220,7 @@ const VOCABULARIES: Vocabulary[] = [
   {
     name: 'spacer',
     // Gap and margin, in every spelling each has. PADDING IS DELIBERATELY
-    // ABSENT — plans/app-audit.md §6.6: whether the room inside a box
+    // ABSENT — core-css/todo.md: whether the room inside a box
     // belongs on the same ramp as the space between boxes is undecided, and
     // today's paddings are often a tuple fitted to one box (`.item-row`'s
     // says so in list.css). Parked, not excluded; it rejoins this list.
@@ -579,8 +579,8 @@ const VOCABULARIES: Vocabulary[] = [
     allowed: /^([0-9]|10|auto|inherit|initial|unset|revert)$/,
     root: '.',
     pending: {
-      // All three are recorded decisions, not oversights — plans/app-audit.md
-      // §7 → Carried forward names the area that owns each.
+      // All three are recorded decisions, not oversights — docs/code-conventions.md
+      // → The z- layers names them, and the owning folder's todo.md carries each.
       'src/bananagrams/components/PlayerBoard.module.css': ['1000'], // drag ghost → shared-game-chrome
       'src/scrabble/components/ScrabbleBlankPickerBlockingModal.module.css': ['50'], //      overlay    → the scrabble area
       'src/scrabble/components/BoardCol.module.css': ['100'], //        drag ghost → shared-game-chrome

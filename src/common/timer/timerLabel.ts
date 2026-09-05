@@ -1,4 +1,4 @@
-// cs-blessed-game-lib
+// cs-unmet
 
 import type { TimerMode } from '../manifest/gameManifest'
 

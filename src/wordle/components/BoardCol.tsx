@@ -239,8 +239,9 @@ export function BoardCol({
    * red for anything else, which is what a failure looks like anyway. It is a
    * TOTAL map rather than a filter — a bare `if` on the value it knows would
    * leave the PREVIOUS rejection's color on the row when anything else arrived,
-   * wrong and silent. (Widening `Board` to take an outcome is filed in
-   * plans/app-audit.md §18 with the rest of this state's shape.)
+   * wrong and silent. (The real fix is for `Board` to take an `Outcome` and
+   * map it to its two colors itself; docs/ui.md → "The verdict mark's state"
+   * has why the rest of this state stays per game.)
    */
   const softReject = useCallback(
     (tone: Outcome, text: string) => {

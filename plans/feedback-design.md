@@ -2,9 +2,9 @@
 
 **This is the target.** [feedback-system.md](feedback-system.md) describes the
 system as it stands; this file describes what it becomes, and is kept current
-as the design is agreed. [areas/feedback.md](areas/feedback.md) is the area's
-record — its roster, findings and stamps — and the work happens under that
-area when it opens.
+as the design is agreed. `src/common/feedback/todo.md` holds what is already
+owed, and the work happens under the `feedback` area of
+[app-audit.md](app-audit.md) when it opens.
 
 Every statement here carries one of three marks:
 

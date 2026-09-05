@@ -1,4 +1,4 @@
-// cs-blessed-game-lib
+// cs-unmet
 
 /**
  * How long the vocabulary's transient marks stay on screen, in milliseconds.

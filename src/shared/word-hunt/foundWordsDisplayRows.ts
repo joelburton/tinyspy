@@ -1,4 +1,4 @@
-// cs-blessed-game-lib
+// cs-unmet
 
 import type { WordListRow } from '@/common/word-list/WordList'
 

@@ -20,7 +20,7 @@
  * BESPOKE, and deliberately not a second tier in the vocabulary: 1000px was
  * chosen for THIS page, so that two columns of dense rows have room without
  * sprawling on a wide desktop. Set as the shared token so everything below
- * reads one number (plans/areas/homepage.md → `pagemain-widths`). */
+ * reads one number. */
 /* @@ */ .frame {
   --pageMain-width: 62.5rem;
 }

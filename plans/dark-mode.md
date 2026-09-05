@@ -155,7 +155,7 @@ invisible until someone opens that page in that theme. Which is exactly how
 stackdown's tiles were transparent for a day.
 
 The instrument for that is **the palette page's theme toggle**
-(app-audit §11), which now has something to toggle to. Both themes' families
+(app-audit step 3), which now has something to toggle to. Both themes' families
 side by side, with the formula under each cell, is how "answered it badly"
 becomes something you catch in one screen rather than one game at a time. **Build
 that before converting anything else.**

@@ -1,4 +1,4 @@
-// cs-blessed-game-lib
+// cs-unmet
 
 import { describe, expect, it } from 'vitest'
 import { moveCursor, stepBack, type GridCursor } from './gridCursor'

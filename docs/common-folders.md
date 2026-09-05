@@ -177,12 +177,14 @@ and re-classifying is a move up the file:
   structure — which is how ad-hoc files drift apart in the first place.
 - **The order is a ramp of certainty**, so an item that firms up moves *up* the
   file. That is the whole re-classification mechanism.
-- **`Bugs`, not `Broken`** — deliberately. `plans/app-audit.md` §21 gives
-  "broken" a specific meaning while that sprint runs, and reusing it here would
-  blur the one word that currently has a sharp edge.
-- **One bullet per item**, first sentence is the whole item, detail after. If
-  it came from an audit, end it with the finding id — `(F-chat-4)` — which ties
-  the file to the area records without inventing a second system.
+- **`Bugs`, not `Broken`** — deliberately. The app audit gives "broken" a
+  specific meaning while it runs (a compile break, a test break and a behavior
+  break each have their own rule), and reusing it here would blur the one word
+  that currently has a sharp edge.
+- **One bullet per item**, first sentence is the whole item, detail after. It
+  states its own reason and **never cites a finding id or an area file**: area
+  files are deleted when the sprint ends and their numbering restarts per
+  area, so an id would dangle or, worse, come to name something else.
 - **A done item is deleted**, not struck through.
 
 **`docs/deferred.md` narrows rather than migrates.** It keeps what crosses

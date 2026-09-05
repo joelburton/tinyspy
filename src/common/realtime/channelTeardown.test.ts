@@ -1,4 +1,4 @@
-// cs-blessed-deep
+// cs-unmet
 
 /**
  * Tests for the stable-name channel teardown registry.

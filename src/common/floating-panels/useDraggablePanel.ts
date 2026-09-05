@@ -33,7 +33,7 @@ type PanelOpts = {
  * Persisted geometry + viewport clamping for a floating panel — the six
  * COMPANIONS, which remember both where you put them and how big you made them,
  * and the three DIALOGS, which remember only a position because they cannot be
- * resized (plans/app-audit.md §20).
+ * resized (docs/ui.md → Floating panels).
  *
  * State lives in React for fast re-renders during a drag/resize,
  * AND is mirrored to localStorage so closing + reopening (or
@@ -117,7 +117,7 @@ export function useDraggablePanel({
  * remember their rect and were watched, while every dialog and modal clamped
  * once on mount and then stopped listening. Drag a modal toward an edge — which
  * the soft clamp lets you do on purpose — shrink the window, and nothing pulled
- * it back (plans/areas/floating-panels.md).
+ * it back.
  *
  * `onReclamp` is what differs: a persisted panel stores the correction, an
  * ephemeral one only holds it in state. It is called ONLY when the rect actually

@@ -21,8 +21,7 @@ import { describe, expect, it } from 'vitest'
  * can assert a class is APPLIED; only reading the stylesheet can assert it
  * EXISTS.
  *
- * Four checks, and each one is here because the homepage area found it live
- * (plans/areas/homepage.md):
+ * Four checks, and each one is here because the homepage audit found it live:
  *
  *   1. every `styles.x` resolves to a class in the module it was imported from;
  *   2. every class a module defines is read by someone;
@@ -167,7 +166,7 @@ for (const f of CODE_FILES) {
  * Files with a known miss, waiting on the area that owns them.
  *
  * The same shrinking-allowlist rule the vocabulary guard uses
- * (plans/app-audit.md §10): a listed path is silent, an unlisted one fails,
+ * (docs/code-conventions.md → The CSS checklist): a listed path is silent, an unlisted one fails,
  * and a listed path that no longer misses has to leave the list. Every line
  * names the area that will clear it — a scoped pass never edits another game's
  * code, so finding these is where this guard's job ends.
@@ -403,7 +402,7 @@ describe('a class name resolves — the e2e side', () => {
  * picked differently. The shared setup stylesheet was `styles` in eleven files,
  * `form` in three and `shared` in one, while the game's own module took whichever
  * word was left — so `styles.checkRow` meant the SHARED class in one file and a
- * local one in the next (plans/areas/forms.md).
+ * local one in the next.
  *
  * Two rules, and both already held nearly everywhere before they were written
  * down. They are GUARDED rather than merely documented because that is the whole

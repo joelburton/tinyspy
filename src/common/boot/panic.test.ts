@@ -1,4 +1,4 @@
-// cs-blessed-deep
+// cs-unmet
 
 import { createElement } from 'react'
 import { flushSync } from 'react-dom'
@@ -63,7 +63,7 @@ describe('panic', () => {
 
   it('paints the render sentence when React reports an uncaught render throw', () => {
     // A real root with the handler installed, and a component that throws
-    // during render with no boundary above it — the case F-deep-49 is about.
+    // during render with no boundary above it.
     // Without the handler React unmounts to a blank page; with it, the same
     // painter runs.
     //

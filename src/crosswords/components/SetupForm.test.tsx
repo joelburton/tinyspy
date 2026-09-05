@@ -8,8 +8,7 @@
  *
  * **The shortest list in the roster, and it used to be the longest file.** Four
  * puzzle sources were four tab bodies held in one component, all mounted at
- * once so the dialog never resized (plans/areas/forms.md →
- * `puzzle-source-picks-in-a-dialog`). They are one field now, and the whole
+ * once so the dialog never resized. They are one field now, and the whole
  * form is players, that field, and the timer.
  *
  * So the thing worth pinning here is a NEGATIVE: no `puzzle_id`, no `weekday`,

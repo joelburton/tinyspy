@@ -1,4 +1,4 @@
-// cs-blessed-deep
+// cs-unmet
 
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'

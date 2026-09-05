@@ -2,7 +2,7 @@
 
 /**
  * The three rules that make `name` / `label` / `tooltip` three separate things
- * rather than one prop doing three jobs (plans/areas/forms.md).
+ * rather than one prop doing three jobs.
  *
  * Worth pinning because two of them are invisible in the markup until they go
  * wrong: a button whose label is suppressed still has to BE something (146 call

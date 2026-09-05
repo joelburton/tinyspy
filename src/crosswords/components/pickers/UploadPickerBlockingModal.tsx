@@ -16,8 +16,7 @@ type Props = {
 }
 
 /**
- * **Play a .puz or .ipuz file** (plans/areas/forms.md →
- * `puzzle-source-picks-in-a-dialog`).
+ * **Play a .puz or .ipuz file.**
  *
  * The file is read HERE, on drop, entirely client-side — not at Start. So this
  * is the one picker whose refusal needs no server and no round trip: the parse

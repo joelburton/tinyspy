@@ -1,7 +1,7 @@
 // cs-unmet
 
 /**
- * WHERE A SERVER VALIDATION LANDS (plans/areas/forms.md).
+ * WHERE A SERVER VALIDATION LANDS.
  *
  * This form is the worked example for the whole shape, so what is pinned here
  * is the round trip rather than the rendering: `common.create_club` raises

@@ -12,7 +12,7 @@
    * Nothing else lives here any more. The four source-tab bodies and everything
    * they needed — the stack that kept them one height, the library list, the
    * drop target, the club-history stripe — moved to pickers/pickers.module.css
-   * with the tabs (plans/areas/forms.md →
-   * `puzzle-source-picks-in-a-dialog`). A form of three fields needs three
+   * when the four source tabs became four picker modals. A form of three
+   * fields needs three
    * fields' worth of CSS. */
 }

@@ -16,8 +16,7 @@ import styles from './SetupForm.module.css'
  * tab wrote: `puzzle_id` · `date` + `weekday` · `series` · `board` + `filename`.
  * `create_game` sees no difference.
  *
- * Why it stopped being tabs (plans/areas/forms.md →
- * `puzzle-source-picks-in-a-dialog`): a refusal about a source could arrive
+ * Why it stopped being tabs: a refusal about a source could arrive
  * while a different source was on screen, which no care in the error system can
  * fix from the outside. It is also what gave this form a field NAME, so a
  * server validation lands under a control here like it does in every other

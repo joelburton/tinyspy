@@ -87,7 +87,7 @@
      frozen by familiarity rather than derived from a base.
 
      NOTE — the wordle-vocabulary rename is scheduled for wordle's own
-     pass (app-audit §14), so these names are UNCHANGED here on
+     pass, so these names are UNCHANGED here on
      purpose. Renaming them now would spend the same call sites twice. */
 /* @@ */   --wordle-green-fill-color:   #66a45f;  /* right letter, right spot */
 /* @@ */   --wordle-yellow-fill-color:  #bd9f35;  /* in the word, wrong spot */

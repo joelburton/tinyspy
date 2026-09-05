@@ -16,8 +16,7 @@ import { useEffect, type RefObject } from 'react'
  *
  * **Who calls it: `<FloatingPanel>`, for the families that DIM.** It used to be
  * opt-in per modal, which is how three dimmed forms ended up letting Tab walk
- * out behind them (plans/areas/floating-panels.md →
- * `backdrop-without-trap`). The trap now FOLLOWS THE SCRIM, because they are the
+ * out behind them. The trap now FOLLOWS THE SCRIM, because they are the
  * same claim said twice: a scrim already blocks the pointer on everything below,
  * so an untrapped one hands a keyboard user Tab access to controls they cannot
  * click. Companions and dialogs never dim and never trap — the page behind them

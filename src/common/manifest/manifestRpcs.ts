@@ -1,4 +1,4 @@
-// cs-blessed-game-lib
+// cs-unmet
 
 /**
  * Build the `submitTimeout` and `endGame` functions a game's manifest declares.

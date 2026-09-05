@@ -1,4 +1,4 @@
-// cs-blessed-game-lib
+// cs-unmet
 
 /**
  * The shared keyboard-cursor *movement* math for the two grid games

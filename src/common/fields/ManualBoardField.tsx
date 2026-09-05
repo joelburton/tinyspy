@@ -22,7 +22,7 @@ type Props = AllFieldProps<string> & {
  *
  * Five games want it: spellingbee and wordwheel (a center letter plus the outer
  * ones), wordiply (the starter word), letterboxed (the four sides), boggle (the
- * whole grid). One field type, named once (plans/areas/forms.md).
+ * whole grid). One field type, named once.
  *
  * **It is one `<input type="text">`**, deliberately, even where the value has
  * parts. spellingbee takes `A-CHIROT` in a single box and splits on the hyphen

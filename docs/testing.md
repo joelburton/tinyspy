@@ -258,7 +258,17 @@ browser sessions, and someone to play both sides. The harness does that.
 **Why not `toHaveScreenshot`.** Baseline snapshots answer "did anything change?",
 which in a UI that changes daily means constant baseline churn for changes you
 meant. The question here is "do these sixteen games look like one app?", and only
-a person answers that. No CI gate, no baselines, no approval workflow.
+a person answers that. No CI gate, no baselines, no approval workflow. The
+gallery also **cannot** be diffed: two consecutive runs with zero code change
+produce no byte-identical tiles, because it plays real games with random
+personas and boards.
+
+**The machine check for a theme change is `scripts/css-token-snapshot.mjs`.**
+It resolves every shared token in a real browser and diffs before against
+after, normalizing through a canvas — `getComputedStyle` reports an `oklch()`
+operation as `oklch(…)` and a hex as `rgb(…)`, so comparing serializations says
+"changed" when the pixel is identical. Verified by planting a moved hex, a
+renamed token and a new one.
 
 ### Running it
 
