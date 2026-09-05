@@ -597,27 +597,20 @@ The shell never imports a specific game. It iterates a registry:
 ```ts
 // src/gametypes.ts — the ONE file that lists games
 import { codenamesduetGame } from './codenamesduet/manifest'
-import { psychicnumGame } from './psychicnum/manifest'
-import { connectionsGame } from './connections/manifest'
+import { psychicnumCoopGame, psychicnumCompeteGame } from './psychicnum/manifest'
+// … one import line per game folder …
 
-export const games: GameManifest[] = [
-  codenamesduetGame, psychicnumGame, connectionsGame, spellingbeeGame,
+export const gametypes: GameManifest[] = [
+  codenamesduetGame, psychicnumCoopGame, psychicnumCompeteGame, // …
 ]
 ```
 
-Each gametype's manifest implements [`GameManifest`](../src/common/lib/gameManifest.ts):
+Each gametype's manifest implements [`GameManifest`](../src/common/lib/gameManifest.ts) — **what a game declares** so the shell can render it without ever naming it: its identity (`gametype`, `schema`, `baseGametype`, `mode`), how it presents (`name`, `shortDescription`, `logoUrl`, `help`), what it needs from the club (`numberOfPlayers`, `setupForm`), and the three RPC members the shell calls on its behalf (`startGameInClub`, `submitTimeout`, `endGame`) plus the one pure function it reads (`labelFor`). **The type's own comments are the reference for each member**; they are written for the person adding a game, and this doc does not repeat them — a field-by-field mirror here went stale one member at a time. The other half of the contract, what a game is *handed* while it is played, is [`GamePageCtx`](../src/common/lib/gamePageCtx.ts), in its own file because its readers are a game's own components rather than the shell.
 
-| field | role |
-|---|---|
-| `gametype` | URL-safe identifier; matches the Postgres schema name by convention. The `<gametype>` segment in `/g/<gametype>/<id>` looks this up. |
-| `schema` | Postgres schema where the game's tables and RPCs live. Same as `gametype` today, but kept as a separate field in case they ever diverge. |
-| `name`, `shortDescription` | Human-readable. `name` is shown in pickers and titles; `shortDescription` is the subtle second line on each Start button. |
-| `numberOfPlayers` | `[min, max \| null]` — the supported player-count range. ClubPage uses this to decide between hidden / disabled / enabled for each game's Start button. `null` upper bound means "no maximum." |
-| `PlayArea` | Lazy-loaded React component, `ComponentType<GamePageCtx>`. App.tsx mounts `<GamePage>` for `/g/<gametype>/<id>` URLs and renders this as the render-prop child. Per-game `theme.css` is imported from the game's `PlayArea.tsx` so it ships in that game's chunk. |
-| `setupForm` | `{ Component, defaults } \| null` — the per-game setup-form *definition*: the lazy-loaded body component + the initial setup value. `null` for games whose start needs no choices; the dialog is then bypassed entirely. (The *output* of the form lands on `<gametype>.games.setup`; same root word, different role — see [docs/naming.md](naming.md).) |
-| `submitTimeout(gameId)` | Async. Called by `<GamePage>` on countdown expiry. Each gametype dispatches to its own per-game `submit_timeout` RPC. Gametypes without a setup-side timer (codenamesduet today) can no-op this. Returns `{ error? }`. |
-| `startGameInClub(clubId, setup)` | Async. Called by the SetupGameModal (or directly by ClubPage when `setupForm: null`). Receives the dialog's collected setup payload. Returns `{id}` on success or `{error}` on failure. |
-| `labelFor(commonGamesRow)` | **Pure and synchronous.** Given a `common.games` row (`{ id, gametype, play_state, is_terminal, status }`), returns the display string for the club page's games list. No I/O — every piece comes off the row. State-transition RPCs keep `common.games.status` populated with whatever shape the manifest's `labelFor` needs (the per-gametype shape is documented in each per-game doc). ClubPage queries `common.games` once for the club and dispatches each row to the matching manifest's `labelFor`. |
+Two things the type cannot say about itself:
+
+- **The three RPC members answer in the envelope**, like every RPC (docs/envelopes.md). `startGameInClub` returns it so a validation that names a setup field can reach the box that wrote it; `submitTimeout` and `endGame` are built by one shared dispatcher (`lib/game/manifestRpcs.ts`) and both answer "the game is over."
+- **`labelFor` is pure and synchronous** because that is what keeps the club listing one query: ClubPage fetches `common.games` once and hands each row to the matching manifest, so everything a label needs must already be on the row — the state-transition RPCs write it there (`common.update_state`, above), and the row's `setup` is available for the create-time choices that shape how a game reads.
 
 Adding a game is one line in `src/gametypes.ts` plus the new folder. Removing a game is one line removed plus `rm -rf` the folder plus dropping the schema. Nothing else in the codebase names a specific game.
 

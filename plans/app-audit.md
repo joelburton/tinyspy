@@ -41,7 +41,7 @@ passes over twelve files, 22 findings, none open, all twelve `cs-blessed-utils`.
 [docs/deferred.md](../docs/deferred.md) → Common / architecture, because
 `src/guards/` is on no area's roster.
 
-**`game-lib` is READ THROUGH, with TWO findings open from its closing
+**`game-lib` is READ THROUGH, with ONE finding open from its closing
 re-audit** — [plans/areas/game-lib.md](areas/game-lib.md), the non-visual half
 of the game shell (§7 row 3). All six groups ran, 2026-09-03 → 09-04, and **all
 37 files are `cs-blessed-game-lib`**. Then the whole area was read again in one
@@ -51,7 +51,7 @@ claims sibling findings had already disproved, a doc cite to the wrong file,
 five counts written that week and already drifted, the roster count "sixteen"
 written a dozen times by the groups that were correcting "ten", a question
 about history in docstrings, and docs/common.md's manifest table describing a
-contract several versions old. **59 IDs issued, 57 settled** — 57 statused in the area file, two
+contract several versions old. **59 IDs issued, 58 settled** — 57 statused in the area file, two
 (`F-game-lib-24`, `-25`) moved to `bananagrams` with the files they were about.
 What it leaves behind, all filed where it will be read: `F-game-lib-11`'s
 leaderboard adoption in four game areas, `F-game-lib-44`'s nineteen dead doc

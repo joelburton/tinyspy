@@ -14,9 +14,9 @@ of files were on no area's roster at all: `deep` listed them out as "names every
 game" (`deep.md:160`, `:161`) and nothing picked them up — the identical gap that
 created `utils` one folder over.
 
-**Status: READ THROUGH; re-audited at the close, TWO FINDINGS OPEN** (ten
-were; `F-game-lib-49` … `-57` are resolved or closed; `-58` was found
-resolving `-49` and `-59` resolving `-54`). Opened
+**Status: READ THROUGH; re-audited at the close, ONE FINDING OPEN** (ten
+were; `F-game-lib-49` … `-58` are resolved or closed; `-59`, found resolving
+`-54`, is the last). Opened
 2026-09-03 by listing the files and stopping (§21); Joel agreed the list —
 *"that matches the files i'd expect"* — and then asked for it in groups, *"so we
 don't have to do them all as one big audit"*, the way `deep` ran in passes. All
@@ -32,14 +32,14 @@ file has been read by Claude and by Joel. The stamp records that he read the
 file; the open findings are changes wanted in files he has read, which the
 stamp was never a claim about.
 
-**Fifty-nine IDs issued; fifty-seven settled, two open.** Two of them —
+**Fifty-nine IDs issued; fifty-eight settled, one open.** Two of them —
 `F-game-lib-24` and `-25` — moved to [bananagrams.md](bananagrams.md) with the
 files they were about, so **57 carry a heading in this file**:
 
 | status | count | which |
 |---|---|---|
-| **OPEN** | **2** | `F-game-lib-58` and `-59`, the closing re-audit's last — the stale manifest table in docs/common.md, and the roster count "sixteen" written ten times |
-| RESOLVED | 50 | includes the two that are resolved by being handed on: `F-game-lib-11` (its remaining half filed in four game areas) and `-46` (deferred to the app's standing register), and `-49` … `-55`, `-57` from the re-audit |
+| **OPEN** | **1** | `F-game-lib-59`, the closing re-audit's last — the roster count "sixteen" written ten times |
+| RESOLVED | 51 | includes the two that are resolved by being handed on: `F-game-lib-11` (its remaining half filed in four game areas) and `-46` (deferred to the app's standing register), and `-49` … `-55`, `-57`, `-58` from the re-audit |
 | CLOSED, no change | 3 | `F-game-lib-29` and `-36` on Joel's ruling; `-56`, whose sweep is step 12's and now has a row in §7 → "Carried forward" |
 | MOVED to `feedback` | 2 | `F-game-lib-27`, `-28` — open there as `F-feedback-1`, `-2` |
 
@@ -3038,7 +3038,7 @@ loses the duplicate on the `describe`; `gameMenu.test.ts` cites
 and both "crossplay's menu" sites say "the original crossplay app it was
 ported from". `tsc -b` clean; `src/common/lib` + `src/guards` green.
 
-### F-game-lib-58 · `manifest-table-in-common-md-stale` · The doc's `GameManifest` table describes a contract several versions old
+### RESOLVED 2026-09-04 — F-game-lib-58 · `manifest-table-in-common-md-stale` · The doc's `GameManifest` table describes a contract several versions old
 
 Found while deleting `F-game-lib-49`'s row from `docs/common.md` → the
 manifest-fields table (`common.md:610-621`). Read against `gameManifest.ts`
@@ -3065,6 +3065,26 @@ comments are the reference — and keep only what the doc adds that the source
 cannot (the removability rule, the variants paragraph). Filed rather than done:
 it is a doc rewrite, and docs/common.md is the architecture doc, not this
 area's file.
+
+#### Resolved 2026-09-04 — the table is a paragraph, and the sample above it was stale too
+
+Joel: *"do it."* The table is gone. In its place: one paragraph saying what
+the manifest declares, grouped by job (identity, presentation, what it needs
+from the club, the RPC members, `labelFor`), stating that **the type's own
+comments are the reference** and why the doc does not mirror them, and
+pointing at `GamePageCtx` as the contract's other half. Then the two things
+the type cannot say about itself — the envelope answer and why `labelFor` is
+pure — kept as two bullets, because those are the doc's to explain.
+
+**The registry sample directly above the table was stale in the same way** and
+went with it: it exported `games` (the `F-game-lib-12` rename), imported a
+`psychicnumGame` that has been a coop/compete pair since psychicnum grew its
+variants, and listed a `spellingbeeGame` it never imported. It now shows the
+real shape — the coop/compete pair, `gametypes` — with an ellipsis for the
+rest rather than a roster that would rot.
+
+Nothing in the doc's surrounding prose (the removability rule, the variants
+paragraph, the ESLint derivation) needed touching; all three still hold.
 
 ### F-game-lib-59 · `sixteen-written-a-dozen-times` · The roster count the area banned, written by the area while banning it
 
