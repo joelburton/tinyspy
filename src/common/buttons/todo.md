@@ -4,6 +4,10 @@
 
 ## Soon
 
+- **`PassButton`'s docstring names a tone that does not exist** — "a
+  `warning` (amber) tone", while the prop it passes is `caution` and
+  `ButtonTone` has no `warning`. Scrabble's `Controls.tsx` docstring says
+  "warning tone" for the same button.
 - **Disabled control** — one utility for the disabled look. Today
   `cursor: not-allowed` is written at eleven sites with the opacity spread
   over 0.45 / 0.5 / 0.55 / 0.6 (`Menu.itemDisabled`, `SelectField`,

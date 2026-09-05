@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-icons
 
 /**
  * Semantic icon registry — the ONE place that maps an action to its Lucide

@@ -27,9 +27,13 @@ findings worked or closed, and a shared `shuffle` written where nine hand-rolled
 Fisher–Yates loops had been — those nine callers are a line in seven games'
 `todo.md`, to convert as each area opens.
 
-**`icons` is next by the order** (§3, by depth). It opens the way every area
-opens: **list the files and STOP** (§4), and its first read is
-`src/common/icons/todo.md`.
+**`icons` is OPEN** (2026-09-04): one code file stamped `cs-met-icons`,
+`doc.md`'s lede + Design committed, and eight findings recorded in
+`plans/areas/icons.md` — an unused export, archaeology in five comments,
+seven stale call-site claims, a "panel" that is a page, three names that say
+the picture, no order, the one-importer rule unguarded, and two docs that
+describe an older file. Nothing in the code has moved; the findings wait for
+Joel's read.
 
 - **§3** is the areas, in order, and the ONLY place an area's position is
   written down.
@@ -124,7 +128,7 @@ will list the other as a dependency whichever goes first.
 |----|---|---|---|
 | | **Foundations** — read by nearly everything, reading nothing | | |
 | 1  | `utils` | `utils` | **CLOSED 2026-09-04.** The small general helpers that belong to no page, no game and no subsystem; thirty folders and every game import them |
-| 2  | `icons` | `icons` | **NEXT.** the glyph registry |
+| 2  | `icons` | `icons` | **OPEN 2026-09-04.** the glyph registry |
 | 3  | `web-storage` | `web-storage` | storage that cannot throw, and the sticky-choice hook |
 | 4  | `outcomes` | `outcomes` | the outcome vocabulary — [docs/outcomes.md](../docs/outcomes.md) |
 | 5  | `single-flight` | `single-flight` | the guard every submit wraps |
