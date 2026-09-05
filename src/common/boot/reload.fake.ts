@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-blessed-boot
 
 import { vi, type Mock } from 'vitest'
 

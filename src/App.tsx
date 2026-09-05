@@ -1,4 +1,4 @@
-// cs-audited-boot
+// cs-blessed-boot
 
 import { Suspense } from 'react'
 import { useSession } from './common/session/useSession'

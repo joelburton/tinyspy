@@ -1,4 +1,4 @@
-// cs-audited-boot
+// cs-blessed-boot
 
 import { createElement } from 'react'
 import { flushSync } from 'react-dom'

@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-blessed-boot
 
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { installFakeStorage, type InstalledStorage } from '../web-storage/storage.fake'
@@ -14,8 +14,8 @@ import { loadTheme } from './loadTheme'
  *
  * The storage cases are the ones worth having. `loadTheme` runs before a
  * single stylesheet is requested, so a `localStorage` read that throws where a
- * browser blocks site data would take boot down with it and paint `main.tsx`'s
- * "could not start" instead of a page.
+ * browser blocks site data would take boot down with it and paint `panic.ts`'s
+ * last-resort screen instead of a page.
  *
  * Two mechanics, both load-bearing. The URL is set with `history.replaceState`
  * rather than a `window.location` stub: jsdom derives `location.search` from
@@ -89,7 +89,7 @@ describe('loadTheme', () => {
     expect(storage.local.getItem(KEY)).toBeNull()
   })
 
-  it('publishes the theme on <html>, where each game theme reads it', async () => {
+  it('publishes the theme on <html>, where a game theme can read it', async () => {
     history.replaceState({}, '', '/?theme=midnight')
     await loadTheme()
     expect(document.documentElement.dataset.theme).toBe('midnight')

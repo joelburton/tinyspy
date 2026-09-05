@@ -1,4 +1,4 @@
-// cs-audited-boot
+// cs-blessed-boot
 
 import { diagnosticsLine } from '../supabase/dbLog'
 

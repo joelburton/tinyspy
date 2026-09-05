@@ -5,10 +5,12 @@ The folders it reads: `boot` · `main.tsx` · `App.tsx` · `themes/loadTheme.ts`
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN, every finding resolved** — audited 2026-09-05, twelve
-findings: F-boot-1 and -4 closed with no change, F-boot-3 handed to
-`game-page`, the other nine worked. What stands between here and the close is
-the whole-area re-read, `boot/doc.md`'s Design, and Joel's word.
+**Status: CLOSED 2026-09-05** (Joel: "mark files in this area as blessed,
+close the area, and commit") — fifteen findings: F-boot-1 and -4 closed with
+no change, F-boot-3 handed to `game-page`, the other twelve worked (the last
+three came from the whole-area re-read, all prose in the `loadTheme` pair).
+Nine files `cs-blessed-boot`, two of them written by the area; `boot/doc.md`'s
+Design written and the folder off `DESIGNS_OWED`.
 
 ## The roster
 
@@ -20,16 +22,16 @@ instead, we're going to audit it and treat it as this area"), and gave the word
 
 | file | what it is | stamp |
 |---|---|---|
-| `src/main.tsx` | the boot ORDER: width tracker, stale-chunk listener, theme, root — and the one `try` around it | `cs-audited-boot` |
-| `src/App.tsx` | the shell: the gates in order, the route → page table, the hosts that hang off the root | `cs-audited-boot` |
-| `src/common/boot/panic.ts` | the last-resort screen, plain DOM, for a boot throw or an unboundaried render throw | `cs-audited-boot` |
-| `src/common/boot/panic.test.ts` | both ways in, the render path against a real `createRoot` | `cs-audited-boot` |
-| `src/common/boot/reloadOnStaleChunk.ts` | one reload per minute per tab when a lazy chunk fails to load | `cs-audited-boot` |
-| `src/common/boot/reloadOnStaleChunk.test.ts` | the reload, the guard window, the fail-closed read, the window passing | `cs-audited-boot` |
-| `src/common/themes/loadTheme.ts` | pick a theme chain and import it before the first render | `cs-audited-boot` |
-| `src/common/themes/loadTheme.test.ts` | WRITTEN by this area (F-boot-6): the four rules the file used to argue only in comments | `cs-unmet` |
-| `src/common/boot/reload.fake.ts` | WRITTEN by this area (F-boot-8): a pressable `location.reload()`, shared by both boot tests | `cs-unmet` |
-| `src/common/boot/doc.md` | lede only ("What `main.tsx` runs before React mounts…"), no Design; on `DESIGNS_OWED` | (no stamp — markdown) |
+| `src/main.tsx` | the boot ORDER: width tracker, stale-chunk listener, theme, root — and the one `try` around it | `cs-blessed-boot` |
+| `src/App.tsx` | the shell: the gates in order, the route → page table, the hosts that hang off the root | `cs-blessed-boot` |
+| `src/common/boot/panic.ts` | the last-resort screen, plain DOM, for a boot throw or an unboundaried render throw | `cs-blessed-boot` |
+| `src/common/boot/panic.test.ts` | both ways in, the render path against a real `createRoot` | `cs-blessed-boot` |
+| `src/common/boot/reloadOnStaleChunk.ts` | one reload per minute per tab when a lazy chunk fails to load | `cs-blessed-boot` |
+| `src/common/boot/reloadOnStaleChunk.test.ts` | the reload, the guard window, the fail-closed read, the window passing | `cs-blessed-boot` |
+| `src/common/themes/loadTheme.ts` | pick a theme chain and import it before the first render | `cs-blessed-boot` |
+| `src/common/themes/loadTheme.test.ts` | WRITTEN by this area (F-boot-6): the four rules the file used to argue only in comments | `cs-blessed-boot` |
+| `src/common/boot/reload.fake.ts` | WRITTEN by this area (F-boot-8): a pressable `location.reload()`, shared by both boot tests | `cs-blessed-boot` |
+| `src/common/boot/doc.md` | lede, Design and Details written at the re-read; off `DESIGNS_OWED` | (no stamp — markdown) |
 | `src/common/boot/todo.md` | empty at the open | (no stamp — markdown) |
 
 **Decided at the opening:**
@@ -257,7 +259,7 @@ does not. `App.tsx:119–122`'s comment ("reported as a fault — which it
 isn't") is about the case-mismatch instance it normalizes away, not about
 this ruling.
 
-### F-boot-5 · `chosen-theme-writes` · `chosenTheme()` persists and clears the stored choice, and its name says read
+### WORKED · F-boot-5 · `chosen-theme-writes` · `chosenTheme()` persists and clears the stored choice, and its name says read
 
 `loadTheme.ts:46–57`: `chosenTheme` reads `?theme=` and, on either value,
 WRITES — `rememberTheme('midnight')` or `rememberTheme(null)` — before
@@ -287,7 +289,7 @@ comment over that write. All three helpers were already private to the file
 and `loadTheme` has one caller (`main.tsx:36`), so nothing outside moved;
 `docs/ui.md:547–556` names the chain, never this function.
 
-### F-boot-6 · `load-theme-untested` · `loadTheme.ts` has no test, and its comments argue three rules nothing pins
+### WORKED · F-boot-6 · `load-theme-untested` · `loadTheme.ts` has no test, and its comments argue three rules nothing pins
 
 No `loadTheme.test.ts`. The rules the file carries in prose: the URL wins over
 the stored choice; `?theme=daylight` CLEARS the stored value; blocked storage
@@ -552,6 +554,87 @@ being two halves of one promise, never a blank page.
 The suffix is dropped — `import App from './App'`. Verified by a real build,
 not just `tsc`: the extension resolution is Vite's, not TypeScript's.
 
+### The whole-area re-read, 2026-09-05
+
+All nine code files read again in one sitting, after the last fix, and every
+citation checked against the tree: the `web-storage` API and its key shape
+(`storage.ts:19–28`, which names `puzpuzpuz::theme` as the one empty-area
+key), `diagnosticsLine`'s format (`FAULT | boot |` is the second and third
+field), the one boundary in the app, `useSession`'s fields, `routes.ts:28`
+carrying the gametype-in-the-URL reason App's docstring credits it with,
+`GamePage`/`PlayAreaSlotLog`/`PlayAreaReadyLog`/`ErrorPage`/`StandardButton`
+props, `WordEditDialog` being a `Dialog` and so a `FloatingPanel`,
+`GameInvitations` returning null, `TooltipHost` reading `data-tooltip`, the
+`docs/ui.md` Faults heading (`:112`) and FloatingPanel gotcha (`:1335`), the
+`docs/common.md` Code-splitting heading (`:588`) and boot lines (`:548–554`),
+the `docs/ui.md` theme chain (`:547–556`), Vite 8.0.16's helper still
+dispatching `vite:preloadError`, and React's `logUncaughtError` pushing to
+`thrownErrors` under `actQueue` and calling `onUncaughtError` only otherwise
+(`react-dom-client.development.js:9427–9431`). All hold. The tests pass
+(boot + themes + the two folder guards, 23 of 23). Three things did not hold,
+all prose, all in the `loadTheme` pair; F-boot-1's ruling also now has a
+durable home (`boot/doc.md` → Details), which nothing in the code recorded.
+
+Also fixed in this file while re-reading it: F-boot-5 and F-boot-6 carried no
+status in their headings despite resolution blocks — both now `WORKED`.
+
+### WORKED · F-boot-13 · `each-game-theme-reads-it` · A test title says every game theme reads `data-theme`; one does
+
+`loadTheme.test.ts:92` — "publishes the theme on <html>, where each game
+theme reads it". The tree has one reader: `stackdown/theme.css:64`
+(`html[data-theme='midnight']`). `codenamesduet/theme.css:17` mentions the
+attribute in a comment as what a future sibling file would key on, and no
+other stylesheet names it. The claim the case pins is true — the attribute is
+published — but the title tells a reader every game theme depends on it,
+which would make removing it a sixteen-game change rather than a one-game one.
+
+**Recommendation.** Title it for what is true: "publishes the theme on <html>,
+where a game theme can read it". The comment in `loadTheme.ts:68` already says
+it that way ("for anything that wants to know").
+
+14. Agree?
+
+**Resolution (2026-09-05, Joel: "f13, f14, f15: fix")** — the title now reads
+"where a game theme can read it". Nothing else in the case changed; it pins
+the attribute being published, which was always the true half.
+
+### WORKED · F-boot-14 · `could-not-start-is-panics` · `loadTheme.ts` and its test credit `main.tsx` with the "could not start" sentence that `panic.ts` owns
+
+`loadTheme.ts:25` — "the app paints main.tsx's "could not start" instead of a
+page"; `loadTheme.test.ts:17–18` says the same. The sentence is
+`panic.ts:25`'s (`SENTENCE.boot`); `main.tsx:65` only catches and calls
+`showPanic('boot', err)`. A reader grepping for the words lands in `panic.ts`
+and finds no `main.tsx` in it. The `.ts` comment predates this area; the test
+was written by it (F-boot-6) and copied the phrasing.
+
+**Recommendation.** Both say "paints `panic.ts`'s last-resort screen" —
+which names the file that owns the words and the screen's own name for
+itself. One phrase, two places.
+
+15. Agree?
+
+**Resolution (2026-09-05, Joel: "f13, f14, f15: fix")** — both places say
+"paints `panic.ts`'s last-resort screen instead of a page". The quoted
+sentence is gone from both, so the words can change in `panic.ts` without
+either going stale.
+
+### WORKED · F-boot-15 · `docstring-detached-by-a-blank` · `loadTheme`'s function docstring is separated from its function by a blank line
+
+`loadTheme.ts:54–56` — the closing `*/` of "Pick a theme and load ITS chain",
+a blank line, then `export async function loadTheme()`. The file's other
+three helpers sit directly under theirs, and so does every function in the
+other eight roster files; the only blank-line gaps elsewhere are the FILE
+docstrings of `App.tsx` and `reloadOnStaleChunk.ts`, where the gap is the
+point. Here it makes a function docstring read as a file one. Predates this
+area (`d0aae843`, 2026-09-02).
+
+**Recommendation.** Delete the blank line.
+
+16. Agree?
+
+**Resolution (2026-09-05, Joel: "f13, f14, f15: fix")** — deleted. The
+docstring now sits directly on the function like the file's other three.
+
 ## Notes
 
 - **Two console channels this area writes, neither one `logStamp` names:**
@@ -581,8 +664,8 @@ not just `tsc`: the extension resolution is Vite's, not TypeScript's.
   `sessionStorage` in its TITLE was renamed, since the regex reads titles too.
 - ~~`src/common/web-storage/storage.fake.ts`~~ DONE with F-boot-7: its
   docstring no longer names this test as the one that "clears it raw".
-- `src/guards/folderDocs.test.ts` — `DESIGNS_OWED` loses `common/boot` when the
-  Design is written, at the close.
+- ~~`src/guards/folderDocs.test.ts`~~ DONE at the re-read: `DESIGNS_OWED`
+  lost `common/boot` when the Design was written.
 - ~~`src/guards/csStamps.test.ts`~~ DONE: `loadTheme.test.ts` (F-boot-6) and
   `reload.fake.ts` (F-boot-8) both carry `cs-unmet` and the guard passes. The
   tally counts TRACKED files only, so a new file does not appear in it until
@@ -590,7 +673,15 @@ not just `tsc`: the extension resolution is Vite's, not TypeScript's.
 
 ## Closing
 
-- [ ] the whole area re-read in one sitting after the last group
-- [ ] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
-- [ ] `todo.md` holds everything still owed; nothing durable left in this file
-- [ ] every file on the roster blessed, or its stamp says why not
+- [x] the whole area re-read in one sitting after the last group — three
+      findings, F-boot-13 to -15, all worked
+- [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
+- [x] `todo.md` holds everything still owed; nothing durable left in this file
+      — `boot/todo.md` is empty and nothing is owed to the folder itself;
+      F-boot-1's ruling moved to `doc.md` → Details. The one unruled item in
+      Notes (`docs/common.md`'s `src/` tree omitting `shared/`, `guards/`,
+      `test-setup.ts`) is a `docs` question with no folder, and stays here
+      until someone rules
+- [x] every file on the roster blessed, or its stamp says why not — nine
+      files `cs-blessed-boot` (Joel, 2026-09-05: "mark files in this area as
+      blessed, close the area, and commit")

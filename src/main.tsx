@@ -1,4 +1,4 @@
-// cs-audited-boot
+// cs-blessed-boot
 
 /**
  * Top of the React application, and an ORDER more than a file.

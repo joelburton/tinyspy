@@ -1,4 +1,4 @@
-// cs-audited-boot
+// cs-blessed-boot
 
 import { readStored, writeStored } from '../web-storage/storage'
 

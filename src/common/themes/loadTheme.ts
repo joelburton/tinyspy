@@ -1,4 +1,4 @@
-// cs-audited-boot
+// cs-blessed-boot
 
 import { readStored, removeStored, writeStored } from '../web-storage/storage'
 
@@ -22,7 +22,7 @@ function storedTheme(): ThemeName | null {
   // A theme is not worth failing to start over. `localStorage` throws where a
   // browser blocks site data, and this runs before a single stylesheet is
   // requested, so an unguarded read takes `loadTheme()` down with it and the app
-  // paints main.tsx's "could not start" instead of a page. Falling back to
+  // paints `panic.ts`'s last-resort screen instead of a page. Falling back to
   // daylight costs a midnight user their stickiness in that browser and nothing
   // else. It is the same rule the rest of the app already follows — see
   // `useStickyChoice`: storage failures are non-fatal.
@@ -52,7 +52,6 @@ function themeFromUrl(): ThemeName | null {
  * a tick after the module graph rather than with it, so the caller awaits this
  * before rendering — otherwise the first paint would be an unstyled flash.
  */
-
 export async function loadTheme(): Promise<ThemeName> {
   const fromUrl = themeFromUrl()
   // The URL wins over the stored choice, so a link can always override a sticky

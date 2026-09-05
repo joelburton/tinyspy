@@ -73,7 +73,7 @@ function featureFolders(): { top: string; name: string; dir: string }[] {
  * is the test.
  */
 const DESIGNS_OWED: string[] = [
-  'common/account', 'common/anagram-finder', 'common/auth', 'common/boot',
+  'common/account', 'common/anagram-finder', 'common/auth',
   'common/branding', 'common/buttons', 'common/chat', 'common/club',
   'common/core-css', 'common/definitions', 'common/error-page', 'common/faults',
   'common/feedback', 'common/fields', 'common/floating-panels', 'common/forms',
