@@ -870,18 +870,7 @@ type Explained =
     navigate(`/c/${clubHandle}?new=crosswords_${mode}`)
   }, [clubHandle, mode, confirmAction, isTerminal])
 
-  // Single-flight guard. New game has THREE triggers (the terminal button, the
-  // game-menu item, and the global `+` shortcut), and `common.create_game` is
-  // NOT idempotent — every call shelves the club's current game and starts
-  // another, orphaning the last in the club list and toasting every peer.
-  // Guarding the HANDLER covers all three triggers at once, which a `disabled`
-  // button could never do. `startingNewGame` then grays the button so a slow
-  // network reads as "working" rather than "nothing happened".
-  //
-  // The MENU ITEM deliberately takes no `disabled`: its effect is built above
-  // this line and is kept independent of handler identity on purpose (the
-  // actionsRef indirection). It doesn't need one — `+` and the menu both route
-  // through this same guarded handler.
+  // Guards a non-idempotent request from firing twice; see `useSingleFlight`.
   const [handleNewGame, startingNewGame] = useSingleFlight(createNewGame)
 
   // Resolve a check/reveal scope to the target coordinates the RPCs want.

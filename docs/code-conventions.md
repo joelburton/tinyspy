@@ -461,23 +461,15 @@ each other. Suffixed channels can't collide and keep using `removeChannel`.
 ### Guarding a non-idempotent action
 
 An action whose second call does real, unwanted work needs an in-flight guard,
-and the guard belongs on the **handler**, not the button. New game is the worked
-example: it has three triggers (the terminal `NewGameButton`, the game-menu item,
-and the global `+` shortcut), and `common.create_game` shelves the club's current
-game on every call — so two calls really do make two games, the first orphaned in
-the club list, with a second invitation toast to every peer. A `disabled` prop
-would have covered one trigger of three.
-
-Use [`useSingleFlight`](../src/common/single-flight/useSingleFlight.ts): it returns the
-guarded handler plus a `pending` flag for the button's `disabled`, gates on a ref
-(readable synchronously by the very next event, unlike state) and reports through
-state, and clears in a `finally` so a failure stays retryable.
+and the guard belongs on the **handler**, not the button: one action is reachable
+from a button, a menu row and a keyboard shortcut, and a `disabled` prop covers
+the first of those. Use
+[`useSingleFlight`](../src/common/single-flight/useSingleFlight.ts) — its
+docstring carries the mechanism and the cases it is not for.
 
 Don't reach for it when a state flag already gates the action — End and Concede
 stop themselves once `isTerminal` / `myConceded` flips — or for idempotent calls
-every client fires (`submit_timeout`). Restart is the shared trio's one user of
-the hook: a replayed board is a perfectly legal thing to replay again, so no
-state flag stops the second click the way `isTerminal` stops a second End.
+every client fires (`submit_timeout`).
 
 Related: `GamePage`'s global shortcut listener drops `e.repeat`, so *holding* a
 key can't machine-gun a one-shot command.

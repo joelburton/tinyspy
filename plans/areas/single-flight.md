@@ -117,8 +117,16 @@ non-idempotent requests from firing twice; see …"). The two files that stated
 the old rule are changed: `CLAUDE.md → Educational priority` and
 `docs/code-conventions.md → Code clarity & docstrings`, whose shared-concept
 bullet now covers a shared MECHANISM and carries the one-line form as its
-example. Still to do: `code-conventions.md`'s own twelve-line section on the
-guard, and the eleven-line comment in thirteen games.
+example.
+
+**Then DONE.** The thirteen game comments are one line each — "Guards a
+non-idempotent request from firing twice; see `useSingleFlight`." — with the
+menu-item paragraph cut rather than left standing while `menu` decides it (that
+claim is recorded in `menu/todo.md`, and thirteen copies of a claim under review
+is how the drift happened the first time). `code-conventions.md`'s section keeps
+the rule and the route: the guard goes on the handler because one action is
+reachable from a button, a menu row and a shortcut, and a `disabled` prop covers
+the first; the mechanism is the docstring's. The New game story is gone from it.
 
 ### F-single-flight-5 · `restart-hand-rolls-it` · the shared restart re-implements the gate, and the doc's reason for that isn't one
 
@@ -200,9 +208,13 @@ strands imports the constant; the other fifteen games write `id: 'new-game'` by
 hand, so the contract that makes the shortcut work is a string literal in
 sixteen files.
 
-**Owner:** `common/menu` (the constant's folder).
+**Not this area's subject at all** — it surfaced only because checking the
+docstring's "`+` inherits it" claim meant reading `GamePage`'s handler, which is
+where the lookup lives.
 
-**Resolution:** *(open)*
+**Resolution: FILED** in `src/common/menu/todo.md` under Soon, with the
+`END_OR_CONCEDE_IDS` pair noted alongside it (those two literals sit in the same
+file as their constant, so they are the same one-line fix).
 
 ## Notes
 
