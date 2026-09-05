@@ -108,6 +108,11 @@ doc because it is called `doc.md`. A file named `chat.md` would instead read as
 a module named chat, which in a folder full of modules named chat is the one
 thing it is not.
 
+**Every game folder carries a `todo.md` too** (since 2026-09-05), in the same
+shape, so a game has a place for owed work the moment it turns up. A game's
+doc stays `docs/games/<game>.md`, which also carries the game's older deferred
+items; the two get reconciled game by game as each is audited, not in a sweep.
+
 The shape of both files is fixed too, because they are written one folder at a
 time over months and a format that is merely described drifts.
 [`src/guards/folderDocs.test.ts`](../src/guards/folderDocs.test.ts) enforces

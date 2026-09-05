@@ -493,36 +493,8 @@ a whole app to look at rather than one screen. The failure this prevents:
 |---|---|
 | *(empty — add as the sweep surfaces them)* | |
 
-## 7. Carried forward — per game
+## 7. Open
 
-Work the sprint already knows is owed to a GAME. The common folders' items
-went to their `todo.md` files on 2026-09-05; games have no `todo.md`, so these
-stay here until that is settled (§8). Each game area reads its rows at its
-opening.
-
-| game | owed |
-|---|---|
-| **every shuffle game** (spellingbee, wordwheel, boggle, connections, psychicnum, bananagrams, scrabble) | apply the `<ShuffleButton>` rule from `buttons/todo.md`: no tab stop at all |
-| **bananagrams** | **The PDF inverts `dump_to_bag`** — `lib/setupSummary.ts` has both arms swapped against `lib/setup.ts`, the setup form and the screen recap, so the printout misstates the rule on either setting. One line; fix first and separately · **The setup recap is written twice and has drifted three ways** — `PlayArea.tsx` calls `setupRows()` for the PDF and hand-writes the screen's `<li>`s (roster absent, order differs, label differs, the dump line inverted). Every other game calls `setupRows()` once and renders it on both surfaces; delete the hand-written list. A guard comparing the two surfaces would catch the next game that skips a migration · **A manual end may print a winner that doesn't exist** — the terminal ternary chain has no arm for `ended`, and every other game routes that to `endedCopy()`. Verify by ending a game manually before believing it |
-| **boggle** | adopt the two shared found-words modules — the common side is already widened: `boggle/lib/displayRows.ts` + test can go for `foundWordsDisplayRows`, and the two inline leaderboard casts become `readLeaderboard<LeaderRow>(status)`. The note that said boggle "must NOT use" the shared rows was false (its own tests dedup to the earliest finder exactly as the shared one does). **Not** `makeFoundWordsGame`: boggle reads a different table with different columns, and sharing it would turn a hook into a framework (Joel: *"i prefer clarity and not over-generalizing"*) |
-| **letterboxed** · **wordiply** · **setgame** | adopt `readLeaderboard<LeaderRow>(status)` at the manifest's status line and the PlayArea (the hand-written cast falls back only when the field is *missing*; the helper also catches it being present and not an array). **The real question is the row**: each declares `LeaderRow` twice, in `manifest.ts` and `PlayArea.tsx`, and the two disagree (letterboxed: `won?` and whether `user_id` is optional; wordiply: `letter_count?`; setgame: only `user_id`'s optionality). One of them is wrong about what the server writes |
-| **letterboxed** | two `font-weight: 650` (`Board.module.css`, `PlayArea.module.css`) — a weight must be a multiple of 100 |
-| **scrabble** | **nineteen lines across eleven files cite `docs/scrabble-ai.md` and `docs/scrabble-ai-strength.md`, which do not exist**; the live home is `docs/games/scrabble.md` §11 and §12. Redirect the ones that point at content the docstring summarizes; delete the ones whose reasoning is already inline · **the manual-end terminal is hand-written** (`'Ended'` on both surfaces) where thirteen games call `endedCopy(mode)`, with no comment saying why — almost certainly `return endedCopy(mode)` · the AI suggest-a-move box is a `SelectionList` site that did not fit (three options in `docs/games/scrabble.md` → Deferred) · `ScrabbleBlankPickerBlockingModal`'s overlay at `z-index: 50`, below the panel tier, and not on the shell — it wants a look, not a reflex bump |
-| **strands** | `HintBar.tsx` reads `styles.hint` and the module defines only `.hintReady`, so the base class resolves to `undefined` (`cssClasses.test.ts` holds it in `MEMBER_PENDING`) · the under-board clue pill passes `variant: 'outline'`, a property the message type does not have; delete it (see `feedback/todo.md` for the docstring that misled it) |
-| **crosswords** | `CrosswordsNumberJumpBlockingModal` is a blocking modal not built as one — a hand-rolled `position: fixed` box with its own scrim, so a menu can open over it. `<BlockingModal>` is what it wants; punted here because the conversion MOVES ITS TIER, and a behavior change to a game's modal should be seen by the area that owns the game · the setup chooser is drifted on three values (`6px` not `--radius-md`, its own hover and rule colors) — unintended, per Joel |
-| **codenamesduet** | `CluePanel` needs a name that says what it is — Joel: *"CLUE FOR WHAT?"* — and the first answer was wrong: it is NOT the AI suggester (that is `CodenamesduetAISuggestCompanion`), it is the below-board clue strip, and it is not a floating panel, so neither `Panel` nor `Modal` belongs in the name · `Board.module.css` sets `ui-monospace, Menlo, monospace` on the board — the most consequential mono use, a play surface (decide with `setup-form/todo.md`'s mono question) · `.clueLabel` in the AI companion's stylesheet is read by nothing (`DEAD_CLASS_PENDING`) |
-| **setgame** | `PlayArea.module.css` `.breakdown` and its three children are read by nothing · `Card.tsx` exports two components (`Card`, `CardDefs`) |
-| **stackdown** | `WordEntry.module.css` `.good` / `.bad` are read by nothing |
-| **wordle** | `Board` should take an `Outcome` and map it to its two colors itself; today the seven-value outcome is narrowed at the call site (`warning` → amber, everything else red), which is total but is narrowing done in the wrong place. The verdict-mark state rule is [docs/ui.md](../docs/ui.md#the-verdict-marks-state-is-per-game-on-purpose) |
-| **waffle** | `SolutionReveal` sets monospace twice so the revealed grid lines up — the alignment need is real; monospace as the answer is not obvious now that the app font's digits are tabular (decide with `setup-form/todo.md`'s mono question) |
-| **psychicnum** | the control game: what it settles is the SHAPE of a game area. `terminal/todo.md`'s two celebration items are answered here, being the first game area |
-
-## 8. Open
-
-- **Where a game-owned note lives.** Common folders have `todo.md`; games do
-  not, so §7 exists. Extending the `doc.md` + `todo.md` convention to
-  `src/<game>/` (the guard already knows the shape) would dissolve §7 into
-  sixteen files. Joel's call.
 - **The real order of §3.** Read the sixty ledes; reorder the table.
 - **A guard has to tell bespoke-BY-INTENT from bespoke-by-laziness** (Joel).
   The vocabularies exist to answer *"are we going crazy-stupid with bespoke
