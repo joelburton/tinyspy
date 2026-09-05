@@ -109,7 +109,9 @@ area, not a pass waiting its turn.
 
 The primary author is an engineer learning AI-assisted development who also genuinely enjoys reading code and writing TypeScript and React. **The codebase itself is part of the artifact.** Optimize for the author reading it later understanding *why* things are the way they are. However, do not make purely archaeological comments or docs; "how it used to work" is not useful.
 
-This **overrides** the general agent default of "no comments unless strictly necessary." Comments that teach are part of the value of this codebase.
+This **overrides** the general agent default of "no comments unless strictly necessary" — for **docstrings**, which carry the explanation of a thing and are read by everyone who calls it.
+
+**A comment is not there to teach.** It explains something non-obvious about the code in front of the reader, so they can read that code. It is not a lesson, not a rationale, and not a second copy of an explanation that already lives somewhere. Where a shared mechanism is involved, the comment is one short sentence and a pointer — "Guards non-idempotent requests from firing twice; see `useSingleFlight`" — because the shared thing's own docstring is the copy that stays right.
 
 See [docs/code-conventions.md → Code clarity & docstrings](docs/code-conventions.md#code-clarity--docstrings) for the concrete rules this implies — what to document, what doesn't belong, and the model examples.
 

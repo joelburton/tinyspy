@@ -54,11 +54,17 @@ So the file that argues "guard the handler, not the button" ends its own example
 by telling the reader to guard the button as well, for a reason (the shortcut
 inheriting it) that the handler guard already covers.
 
-**Resolution: HALF DONE.** The docstring no longer instructs it: the example now
-says to gray whatever control should show the wait, and that no trigger needs it
-because they all route through the guarded handler. **Still open, and Joel's:**
-whether the thirteen games' rule (a menu item takes no `disabled`) is THE rule —
-and so whether strands converges on it or the other fifteen converge on strands.
+**Resolution: DONE here, and the rest is the `menu` area's.** The docstring no
+longer instructs it: the example now says to gray whatever control should show
+the wait, and that no trigger needs it because they all route through the
+guarded handler — true whichever way the menu question goes.
+
+The question itself — does a menu row gray while its action is in flight, as
+opposed to graying for state, which rows already do — is filed in
+`src/common/menu/todo.md` for that area to decide (Joel, 2026-09-05: *"that's
+something worth deciding"*). **Whatever `menu` decides does not come back
+here**: this hook guards the handler, and every trigger is covered whether or
+not any of them also grays.
 
 ### F-single-flight-2 · `lede-says-submit-handlers` · the folder's lede names a caller that doesn't exist
 
@@ -100,9 +106,19 @@ gates and state reports, cleared in a `finally` — exists in full in the hook's
 docstring, again in `docs/code-conventions.md` → "Guarding a non-idempotent
 action", and a third time as a ~10-line comment in thirteen games' `PlayArea.tsx`
 above the call. Fifteen versions, one subject; they have already drifted (F-1 is
-the docstring and the games disagreeing about the menu item).
+the docstring and the games disagreeing about the menu item). The thirteen game
+comments are byte-identical (hashed the comment block in all thirteen: one
+hash), so the paste is literal, not thirteen people explaining it thirteen ways.
 
-**Resolution:** *(open)*
+**Resolution: the RULE is settled; the sweep is not done.** Joel ruled that a
+comment is not there to teach — the generosity is for docstrings, and a call
+site gets one short sentence naming the job plus a pointer ("Guards
+non-idempotent requests from firing twice; see …"). The two files that stated
+the old rule are changed: `CLAUDE.md → Educational priority` and
+`docs/code-conventions.md → Code clarity & docstrings`, whose shared-concept
+bullet now covers a shared MECHANISM and carries the one-line form as its
+example. Still to do: `code-conventions.md`'s own twelve-line section on the
+guard, and the eleven-line comment in thirteen games.
 
 ### F-single-flight-5 · `restart-hand-rolls-it` · the shared restart re-implements the gate, and the doc's reason for that isn't one
 

@@ -4,6 +4,22 @@
 
 ## Soon
 
+- **Does a menu row go gray while its action is in flight?** Undecided, and the
+  games disagree. Rows already gray for STATE — Reveal until terminal, Concede
+  once you have conceded — and nobody disputes that; this is the other case, a
+  row whose RPC is out on a round trip right now, where graying reports a wait
+  rather than a rule. New game is the only such row today: strands sets
+  `disabled` on it from the single-flight flag, every other game deliberately
+  does not and says so in a comment beside the call, on the grounds that the
+  guarded handler already drops the second call however the row looks and that
+  a per-render `disabled` drags the flag into the menu effect's deps (strands
+  rebuilds its whole menu, print model included, when a create starts and again
+  when it lands). What the player sees, meanwhile, is a live-looking row that
+  silently does nothing for a second or two — and the row is where the keyboard
+  shortcut is advertised, so it reads as a promise. The terminal button grays in
+  every game either way. Decide the rule for any row that fires a
+  non-idempotent RPC, not just this one.
+
 - **A menu row picks its glyph by hand, so every game says the same thing
   twice.** `MenuItem.icon` is data, so a game writes `icon: IconRestart` in
   its menu section while its info column renders `<RestartButton>` and passes
