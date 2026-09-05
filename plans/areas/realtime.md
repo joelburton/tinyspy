@@ -4,8 +4,9 @@ The folders it reads: `realtime`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN — read 2026-09-05; findings recorded and worked one at a time,
-each heading saying whether it is.**
+**Status: CLOSED 2026-09-05 (Joel: "mark files as blessed, then close area").**
+Read, eighteen findings recorded and all eighteen worked, re-read in one
+sitting, `doc.md` Design written, every roster file `cs-blessed-realtime`.
 
 ## The roster
 
@@ -14,25 +15,25 @@ Agreed 2026-09-05 (Joel: "i agree. read and audit.") — every file of
 
 | file | what it is | stamp |
 |---|---|---|
-| `src/common/realtime/useRealtimeRefetch.ts` | the subscribe-and-refetch factory every Pattern A hook calls — every hook that reloads its rows on any event rather than applying the event | `cs-audited-realtime` |
-| `src/common/realtime/useRealtimeRefetch.test.ts` | its contract — mount load, SUBSCRIBED refetch, attach refetch and its filter, event refetch, multi-table fan-in, `id` rebuild, mounted-guard, the ref trick | `cs-audited-realtime` |
-| `src/common/realtime/postgresAttached.ts` | `onPostgresAttached` — the deaf-window closer's filter on the `system` message | `cs-audited-realtime` |
-| `src/common/realtime/postgresAttached.test.ts` | its contract — fires on attach ok, on every re-attach, on nothing else | `cs-audited-realtime` |
-| `src/common/realtime/channelDedup.ts` | `channelDedupSuffix` — a private channel name that can never be reused | `cs-audited-realtime` |
-| `src/common/realtime/channelDedup.test.ts` | its contract — platform UUID when present, the fallback's shape and monotonic counter | `cs-audited-realtime` |
-| `src/common/realtime/channelTeardown.ts` | `channelLeaving` / `releaseChannel` — the stable-name room's leave-before-rejoin gate | `cs-audited-realtime` |
-| `src/common/realtime/channelTeardown.test.ts` | its contract — per-name gate, bare-name keying, resolves on a rejected leave, a second release supersedes | `cs-audited-realtime` |
-| `src/common/realtime/realtimeDiag.ts` | `rtLog`, `rtVerbose`, `SystemPayload`, `bareName`, `instrumentChannel` — the `[rt]` console trail every channel writes | `cs-audited-realtime` |
-| `src/common/realtime/realtimeDiag.test.ts` | its contract — every wrapper logs AND forwards the app's callback untouched | `cs-audited-realtime` |
-| `src/common/realtime/useRealtimeReconnect.ts` | the app-wide socket nudge on visible / focus / online | `cs-audited-realtime` |
-| `src/common/realtime/useRealtimeReconnect.test.ts` | its contract — reconnect only when down and visible; listeners removed on unmount | `cs-audited-realtime` |
-| `src/common/realtime/useClubPresence.ts` | the `club:<handle>` presence roster: who is in the club orbit and which game they are viewing | `cs-audited-realtime` |
-| `src/common/realtime/useClubPresence.test.ts` | the teardown gate only; the roster is pinned by `e2e/presence.e2e.ts` | `cs-audited-realtime` |
-| `src/common/realtime/useClubSetupPresence.tsx` | the `club-setup:<handle>` presence → "X is setting up a game…" toast; the only `.tsx` | `cs-audited-realtime` |
-| `src/common/realtime/useClubSetupPresence.test.tsx` | its contract — the toast reconcile and where it sits in the stack, announce vs the join ack, the teardown gate (written by F-realtime-2) | `cs-audited-realtime` |
-| `src/common/realtime/channel.fake.ts` | the folder's fake channel: the server's two moves, the join ack and a presence sync, under the test's hand (written by F-realtime-2) | `cs-audited-realtime` |
-| `src/common/realtime/doc.md` | lede only at the open: "Supabase channels, reconnect, refetch, and presence." No Design; row on `DESIGNS_OWED` | (no stamp — markdown) |
-| `src/common/realtime/todo.md` | empty under all four headings at the open | (no stamp — markdown) |
+| `src/common/realtime/useRealtimeRefetch.ts` | the subscribe-and-refetch factory every Pattern A hook calls — every hook that reloads its rows on any event rather than applying the event | `cs-blessed-realtime` |
+| `src/common/realtime/useRealtimeRefetch.test.ts` | its contract — mount load, SUBSCRIBED refetch, attach refetch and its filter, event refetch, multi-table fan-in, `id` rebuild, mounted-guard, the ref trick | `cs-blessed-realtime` |
+| `src/common/realtime/postgresAttached.ts` | `onPostgresAttached` — the deaf-window closer's filter on the `system` message | `cs-blessed-realtime` |
+| `src/common/realtime/postgresAttached.test.ts` | its contract — fires on attach ok, on every re-attach, on nothing else | `cs-blessed-realtime` |
+| `src/common/realtime/channelDedup.ts` | `channelDedupSuffix` — a private channel name that can never be reused | `cs-blessed-realtime` |
+| `src/common/realtime/channelDedup.test.ts` | its contract — platform UUID when present, the fallback's shape and monotonic counter | `cs-blessed-realtime` |
+| `src/common/realtime/channelTeardown.ts` | `channelLeaving` / `releaseChannel` — the stable-name room's leave-before-rejoin gate | `cs-blessed-realtime` |
+| `src/common/realtime/channelTeardown.test.ts` | its contract — per-name gate, bare-name keying, resolves on a rejected leave, a second release supersedes | `cs-blessed-realtime` |
+| `src/common/realtime/realtimeDiag.ts` | `rtLog`, `rtVerbose`, `SystemPayload`, `bareName`, `instrumentChannel` — the `[rt]` console trail every channel writes | `cs-blessed-realtime` |
+| `src/common/realtime/realtimeDiag.test.ts` | its contract — every wrapper logs AND forwards the app's callback untouched | `cs-blessed-realtime` |
+| `src/common/realtime/useRealtimeReconnect.ts` | the app-wide socket nudge on visible / focus / online | `cs-blessed-realtime` |
+| `src/common/realtime/useRealtimeReconnect.test.ts` | its contract — reconnect only when down and visible; listeners removed on unmount | `cs-blessed-realtime` |
+| `src/common/realtime/useClubPresence.ts` | the `club:<handle>` presence roster: who is in the club orbit and which game they are viewing | `cs-blessed-realtime` |
+| `src/common/realtime/useClubPresence.test.ts` | the teardown gate, and the roster claim that needs no server (self is in it from the first render); the synced roster is pinned by `e2e/presence.e2e.ts` | `cs-blessed-realtime` |
+| `src/common/realtime/useClubSetupPresence.tsx` | the `club-setup:<handle>` presence → "X is setting up a game…" toast; the only `.tsx` | `cs-blessed-realtime` |
+| `src/common/realtime/useClubSetupPresence.test.tsx` | its contract — the toast reconcile and where it sits in the stack, announce vs the join ack, the teardown gate (written by F-realtime-2) | `cs-blessed-realtime` |
+| `src/common/realtime/channel.fake.ts` | the folder's fake channel: the server's two moves, the join ack and a presence sync, under the test's hand (written by F-realtime-2) | `cs-blessed-realtime` |
+| `src/common/realtime/doc.md` | rewritten at the close: a two-sentence lede and a Design built on the one question that shapes the folder — is a channel's name private, or is it the room? Off `DESIGNS_OWED` | (no stamp — markdown) |
+| `src/common/realtime/todo.md` | empty at the open; carries the two cosmetic items the re-read left under Maybe | (no stamp — markdown) |
 
 **Decided at the opening, and why:**
 
@@ -45,10 +46,10 @@ Agreed 2026-09-05 (Joel: "i agree. read and audit.") — every file of
   folder's files, and nothing else is touched. Joel's "i agree" was to the
   list as proposed, with these three posed as his call; recorded as evidence
   because that is the reversible reading — a later word can add them.
-- **The thirty call sites are evidence.** `useCommonGame`, `ClubPage`,
+- **Every call site is evidence.** `useCommonGame`, `ClubPage`,
   `useClubChat`, `useScratchpad`, `useGameInvitations`, `usePeerCursors`,
-  `useSharedMove`, connections' `useGame`, `useCells` and the fourteen game
-  hooks may be read as research; a finding or a change here is about
+  `useSharedMove`, connections' `useGame`, `useCells` and every game hook may
+  be read as research; a finding or a change here is about
   `src/common/realtime/`.
 - **The presence that PAUSES a game is not in this folder.** The areas table
   says "presence is what pauses a game and the pause boundary that reads it
@@ -498,6 +499,91 @@ file is its one-line `loadRef.current = load` ref-sync, which the rule
 exempts, as is `useClubSetupPresence.tsx:62`'s. Those two are all that is
 left anonymous in the folder.
 
+## From the re-read (2026-09-05)
+
+The whole folder read in one sitting after the last group. **No behavior
+problem anywhere** — every hook does what its docstring says, the two
+presence hooks agree with each other now, and the suffixed/stable split holds
+(`useRealtimeRefetch` calls `removeChannel` directly, which is what
+`channelTeardown` says a suffixed channel should do). What the sitting turned
+up is four prose findings and two nits, all of them the same species this
+area has been fixing.
+
+### WORKED · F-realtime-15 · teardown-lists-four-of-eight-rooms · a room list in prose beside the registry
+
+**Where:** `channelTeardown.ts:11–12` — "Channels whose name is the ROOM —
+`game:<id>`, `club:<handle>`, `club-setup:<handle>`, `scratchpad:<id>` —
+can't take the random suffix". There are EIGHT stable rooms (the registry in
+docs/supabase.md), and connections', scrabble's and crosswords' are missing.
+It reads as a list, not an example, and it is the exact rot F-realtime-9 took
+out of two docstrings a few files away.
+
+**Recommendation:** name the condition — channels whose name is the room its
+peers must share — and let the registry carry the list. Same fix, same reason.
+
+**Resolution (2026-09-05, Joel: "fix all four")** — done, and the registry is
+named as where to look.
+
+### WORKED · F-realtime-16 · reading-the-trail-twice · the diagnosis recipe is in two places
+
+**Where:** `realtimeDiag.ts:39–42` ("Reading the trail: a healthy channel
+shows `status SUBSCRIBED` followed shortly by `system ok`…") and
+docs/realtime-lost-events.md:215–220, which is the same recipe at more
+length, under the same words. F-realtime-7 moved the MECHANISM to one home
+and left this, its practical half, in two.
+
+**Recommendation:** decide which home. The console lines are the module's
+output, so a short "healthy is SUBSCRIBED → system ok" belongs with them; the
+longer reading — what a stale client's last lines look like — is the doc's.
+Either keep the one sentence and point at the doc, or drop it and point.
+
+**Resolution (2026-09-05, Joel: "fix all four")** — the module keeps one
+sentence, "healthy is `status SUBSCRIBED` → `system ok`", and sends every
+other shape to the doc.
+
+### WORKED · F-realtime-17 · fake-channel-invitation-overreaches · three hand-built fakes and one shared one, and the shared one claims the job
+
+**Where:** `channel.fake.ts:9` says "Reach for this in any test of a hook that
+opens a channel." Three sibling tests keep their own, each for a reason:
+`realtimeDiag.test.ts` needs bindings recorded BY TYPE and an uninstrumented
+channel (it is testing the instrumentation), `postgresAttached.test.ts` needs
+only a `system` binding, and `channelTeardown.test.ts` needs nothing but
+`.topic`. Those are good reasons, and the invitation as written says they
+were oversights.
+
+**Recommendation:** narrow the sentence to what the fake is actually for — a
+test that drives a hook through subscribe/presence — and say that a test of a
+smaller surface should keep its own smaller double. One sentence.
+
+**Resolution (2026-09-05, Joel: "fix all four")** — narrowed to "when a test
+drives a HOOK through a channel's life", with the three narrower doubles named
+and their reasons given, so the next reader sees four deliberate choices
+rather than one rule and three exceptions.
+
+### WORKED · F-realtime-18 · diag-docstring-dangling-above · "the health signal above" no longer points at anything
+
+**Where:** `realtimeDiag.ts:31` — the wiring list says the module logs "the
+`system` message — the postgres-changes health signal **above**". Before
+F-realtime-7 the section above printed the payload and explained it; now it
+says what the module makes visible and points at `onPostgresAttached`.
+
+**Recommendation:** "the postgres-changes health signal (`SystemPayload`)" —
+the type is twenty lines down in the same file and is where the shape lives.
+
+**Resolution (2026-09-05, Joel: "fix all four")** — done, as
+"(`SystemPayload`, below)".
+
+### Nits, worth one line each
+
+- **Archaeology in `realtimeDiag.test.ts`:** `:13` ("and it had no test") and
+  `:169–170` ("which is why errored channels were invisible before this
+  module existed"). Both describe the repo before the module rather than the
+  code in front of the reader.
+- **Docstring placement in test files splits 6–2:** six put the file
+  docstring above the imports, `realtimeDiag.test.ts` and
+  `useRealtimeReconnect.test.ts` put it below. Cosmetic, and only worth
+  touching if the folder is being made uniform anyway.
+
 ## Notes
 
 - **Listed and left, `game-page` / `pause-suspend`:** docs/deferred.md:241
@@ -552,7 +638,14 @@ left anonymous in the folder.
 
 ## Closing
 
-- [ ] the whole area re-read in one sitting after the last group
-- [ ] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
-- [ ] `todo.md` holds everything still owed; nothing durable left in this file
-- [ ] every file on the roster blessed, or its stamp says why not
+- [x] the whole area re-read in one sitting after the last group — done
+      2026-09-05; no behavior problem, four prose findings (F-realtime-15
+      through -18) and two nits recorded above
+- [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED` —
+      2026-09-05, planted (the row back on turns the guard red)
+- [x] `todo.md` holds everything still owed; nothing durable left in this file
+      — the two cosmetic items from the re-read, under Maybe. Everything else
+      the area found was worked
+- [x] every file on the roster blessed, or its stamp says why not — all
+      seventeen read `cs-blessed-realtime` (Joel, 2026-09-05); the two
+      markdown files carry no stamp, as markdown never does

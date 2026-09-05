@@ -1,4 +1,4 @@
-// cs-audited-realtime
+// cs-blessed-realtime
 
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from '../supabase/supabase'
@@ -8,12 +8,12 @@ import { bareName, rtLog } from './realtimeDiag'
  * Serialize teardown → re-create for **stable-name** Realtime channels.
  *
  * ─── The bug this exists for ──────────────────────────────────────────
- * Channels whose name is the ROOM — `game:<id>`, `club:<handle>`,
- * `club-setup:<handle>`, `scratchpad:<id>` — can't take the random suffix
- * that [`channelDedupSuffix`](./channelDedup.ts) gives the per-client data
- * channels: every peer has to join the *same* topic or presence sees nobody
- * and broadcasts reach nobody. That leaves them exposed to two things, both
- * verified against `@supabase/realtime-js` 2.108.1:
+ * A channel whose name IS the room — one whose peers must all join the
+ * identical topic, or presence sees nobody and broadcasts reach nobody —
+ * can't take the random suffix that [`channelDedupSuffix`](./channelDedup.ts)
+ * gives the per-client data channels. (docs/supabase.md's channel registry
+ * says which channels those are.) That leaves them exposed to two things,
+ * both verified against `@supabase/realtime-js` 2.108.1:
  *
  *  1. **The client cache hands back a dying channel.** `RealtimeClient.channel(topic)`
  *     returns any existing instance with that topic. A channel is removed from

@@ -1,4 +1,4 @@
-// cs-audited-realtime
+// cs-blessed-realtime
 
 import { useEffect, useRef } from 'react'
 import type { RealtimeChannel } from '@supabase/supabase-js'

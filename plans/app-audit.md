@@ -198,6 +198,39 @@ earned its place again** — three more, all prose in the `loadTheme` pair, and
 the F-boot-1 ruling turned out to have no durable home until `doc.md` gave it
 one.
 
+**`realtime` is closed** (2026-09-05): seventeen files `cs-blessed-realtime` —
+fifteen plus the two the area wrote — and eighteen findings, all worked. The one
+bug was the club page painting the viewer's OWN member dot hollow until the
+presence server answered, filed on prod and never diagnosed: the roster started
+empty and only a sync filled it, when self is present by definition while the
+hook that announces it is mounted. It now carries self from the first render,
+memoized because the club page restarts its 2.5s abandoned-game wait whenever
+the roster changes. The folder's one untested hook — the "someone is already
+setting up a game" toast — got thirteen cases and a shared `channel.fake.ts`
+whose two seams are the server's two moves, the join ack and a presence sync;
+holding those apart is what let the announce-before-SUBSCRIBED ordering be
+tested at all. Planting corrected the finding that prompted it: the stable toast
+id is NOT what stops a re-sync stacking toasts (the reconcile loop does), it is
+what keeps the toast in its place in the stack, and that case only exists
+because a planted random id passed. The rest was prose, and it was the same
+defect over and over: **a count or a list written where a condition belonged.**
+Two docstrings claimed "four" and "the other three" against seventeen and eight;
+`code-conventions.md` kept a five-row channel list beside the registry that
+calls itself every channel in one place, naming one channel nothing opens; a
+teardown docstring listed four of eight stable rooms; `supabase.md` credited
+each game's schema test with a publication guard that lives in one common file;
+and the deaf-window story — the reason this whole folder exists — was written
+out in full in four places plus a test comment. One home each now, and every
+list replaced by the condition that decides membership. Twenty-one comments
+across the repo still pointed at `common/lib/supabase/`, the folder's pre-reorg
+path; that sweep shipped here, since this folder moving is what caused it. Also
+from Joel this session, and now a standing rule: a label like "Pattern A" is an
+index into a doc, not a meaning, so it always travels with a short gloss. **The
+closing re-read earned its place again** — four more, three of them created by
+this area's own fixes, including an invitation in the new fake that read the
+three deliberate hand-built doubles as oversights. `todo.md` carries two
+cosmetic items.
+
 - **§3** is the areas, in order, and the ONLY place an area's position is
   written down.
 - **§4** is the process — the stamps, what opening an area means, what "broken"
@@ -302,7 +335,7 @@ will list the other as a dependency whichever goes first.
 | 8  | `supabase` | `supabase` · `functions/_shared/envelope.ts` + `dbResult.ts` | **CLOSED 2026-09-05.** the client, the wrappers, the envelope — including the two Deno files that build and receive the same envelope server-side. The fault sink it reaches is `common-hosts`' to read |
 | 9  | `session` | `session` | **CLOSED 2026-09-05.** who is signed in, and their profile |
 | 10 | `boot` | `boot` · `main.tsx` · `App.tsx` · `themes/loadTheme.ts` | **CLOSED 2026-09-05.** mounting, the theme load, the session gate, panic, the stale-chunk reload. The two root files were added at the opening (Joel, 2026-09-05), and `loadTheme.ts` with them: it STAYS in `common/themes/` and is audited here, so `themes` is the one folder two rows name |
-| 11 | `realtime` | `realtime` | presence, reconnect, the subscribe hooks. Presence is what pauses a game and the pause boundary that reads it is `pause-suspend`'s; whichever opens second inherits what the first decided |
+| 11 | `realtime` | `realtime` | **CLOSED 2026-09-05.** presence, reconnect, the subscribe hooks. Presence is what pauses a game and the pause boundary that reads it is `pause-suspend`'s; whichever opens second inherits what the first decided — and this one decided the CLUB orbit only: the roster that pauses a game is tracked in `game-page`, so `pause-suspend` inherits nothing from here |
 |    | **The look, before anything renders** | | |
 | 12 | `corecss` | `core-css` · `themes` (less `loadTheme.ts`, which is `boot`'s) | the stylesheets every page loads and none owns, and the theme chain |
 | 13 | `branding` | `branding` | the app logo, the wordmark, and the `<GameLogo>` that renders a game's. **Not step 11's asset pass** — the 17 logo files live in `src/<game>/`, so that stays one sweep at the end |

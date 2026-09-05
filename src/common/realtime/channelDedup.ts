@@ -1,4 +1,4 @@
-// cs-audited-realtime
+// cs-blessed-realtime
 
 // Bumped per fallback call, so two suffixes minted in the same
 // millisecond still differ.

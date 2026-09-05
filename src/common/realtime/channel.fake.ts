@@ -1,4 +1,4 @@
-// cs-audited-realtime
+// cs-blessed-realtime
 
 import { vi, type Mock } from 'vitest'
 
@@ -6,11 +6,18 @@ import { vi, type Mock } from 'vitest'
  * A stand-in for a Supabase realtime channel, with the server's two moves —
  * the join ack and a presence sync — under the test's hand.
  *
- * Reach for this in any test of a hook that opens a channel. It is shaped like
- * realtime-js's `RealtimeChannel` in the four ways our hooks touch: `on` to
- * register the presence-sync handler, `subscribe` for the join ack, `track` /
- * `untrack` to announce, and `presenceState()` for the roster. `topic` carries
- * the `realtime:` prefix the real one does, because `channelTeardown` reads it.
+ * Reach for this when a test drives a HOOK through a channel's life —
+ * subscribe, presence, teardown. It is shaped like realtime-js's
+ * `RealtimeChannel` in the four ways those hooks touch: `on` to register the
+ * presence-sync handler, `subscribe` for the join ack, `track` / `untrack` to
+ * announce, and `presenceState()` for the roster. `topic` carries the
+ * `realtime:` prefix the real one does, because `channelTeardown` reads it.
+ *
+ * A test of a smaller surface keeps its own smaller double, on purpose:
+ * `realtimeDiag.test.ts` needs an UNINSTRUMENTED channel that records its
+ * bindings by type (it is testing the instrumentation itself),
+ * `postgresAttached.test.ts` needs one `system` binding, and
+ * `channelTeardown.test.ts` needs nothing but `.topic`.
  *
  * **Nothing happens until the test says so**, which is the point. A real
  * channel answers on its own schedule, so the window between mount and the

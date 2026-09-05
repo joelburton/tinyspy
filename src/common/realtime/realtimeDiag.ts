@@ -1,4 +1,4 @@
-// cs-audited-realtime
+// cs-blessed-realtime
 
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { logStamp } from '../utils/logStamp'
@@ -28,7 +28,8 @@ import { readStored } from '../web-storage/storage'
  *   - every subscribe status (`SUBSCRIBED` / `CHANNEL_ERROR` / `TIMED_OUT`
  *     / `CLOSED`), with the error when there is one — warn-level for the
  *     failure statuses so they stand out in a screenshot
- *   - the `system` message — the postgres-changes health signal above
+ *   - the `system` message — the postgres-changes health signal
+ *     (`SystemPayload`, below)
  *   - every delivered `postgres_changes` event (schema.table + kind), and
  *     the payload's `errors` field when set (RLS/row-image failures ride
  *     inside otherwise-successful deliveries)
@@ -36,10 +37,9 @@ import { readStored } from '../web-storage/storage'
  *   - `unsubscribe` — so a channel that vanished on purpose is
  *     distinguishable from one that went quiet
  *
- * Reading the trail: a healthy channel shows `status SUBSCRIBED` followed
- * shortly by `system ok`. A channel with `SUBSCRIBED` but NO `system ok`
- * is the deaf state — it will never deliver events, and no amount of
- * waiting helps.
+ * Reading the trail: healthy is `status SUBSCRIBED` → `system ok`. What the
+ * other shapes mean, and what a client that has quietly stopped updating
+ * leaves behind, is docs/realtime-lost-events.md.
  *
  * ─── Verbose mode ─────────────────────────────────────────────────────
  * For deep debugging in a deployed browser, flip on the raw socket log

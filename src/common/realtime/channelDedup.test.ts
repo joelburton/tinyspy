@@ -1,4 +1,4 @@
-// cs-audited-realtime
+// cs-blessed-realtime
 
 /**
  * Tests for channelDedupSuffix.

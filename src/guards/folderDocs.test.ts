@@ -81,7 +81,7 @@ const DESIGNS_OWED: string[] = [
   'common/invitations', 'common/keyboard', 'common/lists', 'common/loading',
   'common/manifest', 'common/members', 'common/menu',
   'common/move-flash', 'common/page-header',
-  'common/pause-suspend', 'common/pdf', 'common/realtime', 'common/reveal',
+  'common/pause-suspend', 'common/pdf', 'common/reveal',
   'common/scratchpad', 'common/setup-form',
   'common/terminal', 'common/text',
   'common/themes', 'common/timer', 'common/toasts', 'common/tooltips',
