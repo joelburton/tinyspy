@@ -7,11 +7,9 @@ import type { GamePlayer } from './member'
 /**
  * The whole truth table for the OpponentStrip's terminal verb.
  *
- * Written when `F-game-lib-9` collapsed two functions into one — the old pair
- * computed `'won' | 'quit' | 'lost'` and then re-split the same three cases to
- * capitalize them. A behavior-preserving merge with no test is an assertion, so
- * these pin every branch INCLUDING the two that are easy to lose: an absent
- * member, and the win-beats-concede precedence.
+ * Three branches whose ORDER is the contract, so these pin every branch
+ * INCLUDING the two that are easy to lose: an absent member, and the
+ * win-beats-concede precedence.
  */
 
 /** A player row, defaulted to the ordinary "played and did not win" case. */

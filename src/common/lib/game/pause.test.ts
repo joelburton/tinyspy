@@ -27,8 +27,8 @@ import type { Member } from '../members/member'
 // set/array derivation — but keeping the names parallel makes the
 // test legible alongside the rest of the suite.
 // Color isn't relevant to computePause's logic, but the
-// Member shape now requires it — pick distinct values so
-// any future test that does care can tell the personas apart.
+// Member shape requires it — pick distinct values so any
+// future test that does care can tell the personas apart.
 const ada: Member = { user_id: 'ada', username: 'ada', color: 'red' }
 const bea: Member = { user_id: 'bea', username: 'bea', color: 'blue' }
 const cade: Member = { user_id: 'cade', username: 'cade', color: 'green' }

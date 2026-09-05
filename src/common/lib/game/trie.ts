@@ -3,10 +3,9 @@
 /**
  * Flat typed-array trie — the shared dictionary structure for word games.
  *
- * Extracted from the boggle solver (its original home; see
- * `src/boggle/lib/solver.ts` for the solver built on top) so scrabble's move
- * suggester can share it (`docs/games/scrabble.md`). Deliberately a trie, not a
- * minimized DAWG: a DAWG merges shared suffixes, so a node can't identify a
+ * Shared by the boggle solver (`src/boggle/lib/solver.ts`) and scrabble's move
+ * suggester (`docs/games/scrabble.md`). Deliberately a trie, not a minimized
+ * DAWG: a DAWG merges shared suffixes, so a node can't identify a
  * word; in a trie every word gets its own terminal node, which is what lets
  * boggle dedup found words by stamping the node and lets scrabble hang a
  * per-word difficulty rating off it.

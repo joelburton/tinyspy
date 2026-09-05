@@ -28,13 +28,11 @@ import type { GamePlayer } from './member'
  *
  * A missing member reads as 'Lost': a peer we cannot resolve did not win.
  *
- * **One function, not two.** This used to compute `'won' | 'quit' | 'lost'` and
- * then immediately re-split the same three cases to capitalize them (Joel,
- * 2026-09-03: *"changing them to 'lost'/'won'/etc only to immediate turn to
- * 'Lost'/'Won' seems silly"*). Nothing ever read the lowercase form — it looked
- * like the app's outcome vocabulary but is not it: that one is the seven words
- * in `lib/outcomes.ts`, and `quit` is not among them. See
- * plans/areas/game-lib.md → `F-game-lib-9`.
+ * **The capitalized word is the only form.** A lowercase `'won' | 'quit' |
+ * 'lost'` would look like the app's outcome vocabulary and is not it — that one
+ * is the seven words in `lib/outcomes.ts`, and `quit` is not among them — so
+ * there is no intermediate to split on, and the strip's word is computed once,
+ * here.
  */
 export function terminalOutcomeVerb(member: GamePlayer | undefined): 'Won' | 'Quit' | 'Lost' {
   if (member?.result?.won === true) return 'Won'

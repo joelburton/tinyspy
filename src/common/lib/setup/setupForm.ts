@@ -20,9 +20,9 @@ import type { Member } from '../members/member'
  *
  * **The upward import is known and stays.** `SetupBodyProps.errors` is a
  * `FormErrors` from `components/fields/formState`, so this module imports from
- * `components/` — the same seam `lib/games.ts` had before the split, moved
- * rather than fixed. It belongs to the `forms` area (plans/areas/game-lib.md →
- * "What the split does NOT fix").
+ * `components/`. A `lib/` file reaching into `components/` is the wrong
+ * direction, and `FormErrors` is a form concept, so the fix is the `forms`
+ * area's (plans/areas/forms.md → "Handed here by `game-lib`").
  */
 
 /**
@@ -154,9 +154,9 @@ export type GameSetupForm = {
   // The key is the whole point. It is the same `FormErrors` object a server
   // `validation` writes one entry into, so a message about `legal_guess`
   // appears under the Legal-guesses select whoever noticed it — the frontend
-  // before the request, or `create_game` after. Returning a bare sentence, as
-  // this used to, meant every frontend check landed on the form's bottom line
-  // even when the field that owned it was directly above.
+  // before the request, or `create_game` after. A bare sentence instead would
+  // land every frontend check on the form's bottom line even when the field
+  // that owned it was directly above.
   //
   // It also lets one check flag SEVERAL fields, which a server raise cannot:
   // a raise stops at the first failure, and scrabble's "the AI needs a wider

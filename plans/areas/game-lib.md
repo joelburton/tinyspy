@@ -14,8 +14,8 @@ of files were on no area's roster at all: `deep` listed them out as "names every
 game" (`deep.md:160`, `:161`) and nothing picked them up — the identical gap that
 created `utils` one folder over.
 
-**Status: READ THROUGH; re-audited at the close, FIVE FINDINGS OPEN** (ten
-were; `F-game-lib-49` … `-54` are resolved; `-58` was found resolving `-49`
+**Status: READ THROUGH; re-audited at the close, FOUR FINDINGS OPEN** (ten
+were; `F-game-lib-49` … `-55` are resolved; `-58` was found resolving `-49`
 and `-59` resolving `-54`). Opened
 2026-09-03 by listing the files and stopping (§21); Joel agreed the list —
 *"that matches the files i'd expect"* — and then asked for it in groups, *"so we
@@ -32,14 +32,14 @@ file has been read by Claude and by Joel. The stamp records that he read the
 file; the open findings are changes wanted in files he has read, which the
 stamp was never a claim about.
 
-**Fifty-nine IDs issued; fifty-four settled, five open.** Two of them —
+**Fifty-nine IDs issued; fifty-five settled, four open.** Two of them —
 `F-game-lib-24` and `-25` — moved to [bananagrams.md](bananagrams.md) with the
 files they were about, so **57 carry a heading in this file**:
 
 | status | count | which |
 |---|---|---|
-| **OPEN** | **5** | `F-game-lib-55` … `-59`, the closing re-audit's — a history-in-docstrings question, a plan-cite note, a heading of fold-ins, the stale manifest table in docs/common.md, and the roster count "sixteen" written a dozen times |
-| RESOLVED | 48 | includes the two that are resolved by being handed on: `F-game-lib-11` (its remaining half filed in four game areas) and `-46` (deferred to the app's standing register), and `-49` … `-54` from the re-audit |
+| **OPEN** | **4** | `F-game-lib-56` … `-59`, the closing re-audit's — a plan-cite note, a heading of fold-ins, the stale manifest table in docs/common.md, and the roster count "sixteen" written ten times |
+| RESOLVED | 49 | includes the two that are resolved by being handed on: `F-game-lib-11` (its remaining half filed in four game areas) and `-46` (deferred to the app's standing register), and `-49` … `-55` from the re-audit |
 | CLOSED, no change | 2 | `F-game-lib-29` and `-36`, both on Joel's ruling |
 | MOVED to `feedback` | 2 | `F-game-lib-27`, `-28` — open there as `F-feedback-1`, `-2` |
 
@@ -2917,7 +2917,7 @@ today and gone anyway):
 in the area twelve times**, by groups A–E while they were correcting "ten" and
 "fifteen" — `F-game-lib-59`.
 
-### F-game-lib-55 · `history-in-docstrings` · Twenty lines in eleven files say how it used to be
+### RESOLVED 2026-09-04 — F-game-lib-55 · `history-in-docstrings` · Twenty lines in eleven files say how it used to be
 
 CLAUDE.md → Educational priority: *"do not make purely archaeological comments
 or docs; 'how it used to work' is not useful."* Grepped for the phrasing
@@ -2947,11 +2947,52 @@ a file Joel blessed, and the group A and C comment passes (`F-game-lib-13`,
 this is shared" history he wants kept? If not: keep the reason, drop the "used
 to".
 
+#### Resolved 2026-09-04 — the reason stays, the history goes
+
+Joel: *"i'll take your rec. do it."* Every site in the table, plus
+`manifestRpcs.ts`'s "Collapses the byte-identical wrappers" on
+`makeRpcDispatcher`. What each kept:
+
+- `terminalOutcomeVerb.ts` — that the capitalized word is the only form
+  because a lowercase one would impersonate the outcome vocabulary. The dated
+  quote and the `F-game-lib-9` cite went with the "used to".
+- `menu.ts` — that none of the eight names names a game, so a menu builder
+  should not import the manifest contract. The `lib/games.ts` story went.
+- `manifestRpcs.ts` — that `startGameInClub` needs nothing here because every
+  `create_game` returns the envelope. The adapters paragraph went.
+- `setupForm.ts` — the upward import and whose seam it is, now cited to
+  **`forms.md`**, where the handoff had never been written (it existed only in
+  this file's "What the split does NOT fix"). Filed there under "Handed here by
+  `game-lib`" so the cite lands on the receiving area's own note.
+- `trie.ts` — who shares it, in the present tense; the trie-not-DAWG argument
+  was never history and is untouched.
+- The four "extracted from byte-identical copies" sentences and `timerLabel.ts`'s
+  whole paragraph — deleted outright. Each module's first sentence already
+  says what it is shared by, which is the fact that survives.
+- `gameMenu.ts`, `menu.ts` ×2, `gameInvites.ts`, `pause.test.ts`,
+  `terminalOutcomeVerb.test.ts` — one clause each.
+
+`grep -i "used to\|no longer\|byte-identical\|extracted from\|the old \|before
+the split"` over the roster returns nothing. `tsc -b` clean; `src/common/lib` +
+`src/guards` **567/567 in 58 files**.
+
+**Two later findings shrank as a side effect**, and their entries say so:
+`F-game-lib-56` (two of its four plan cites went with the history they were
+attached to) and `F-game-lib-59` (two of `manifestRpcs.ts`'s "sixteen"s were
+in the deleted paragraph and the rewritten sentence).
+
 ### F-game-lib-56 · `docstrings-cite-the-area-file` · Four docstrings this area wrote point at this file
 
 `gamePageCtx.ts:24`, `menu.ts:22`, `setupForm.ts:24-25`,
 `terminalOutcomeVerb.ts:36` each cite `plans/areas/game-lib.md → F-game-lib-n`
 (a fifth, `components/text/RichMessage.tsx:19`, is outside the roster).
+
+**Shrunk by `F-game-lib-55`, 2026-09-04:** the `menu.ts` and
+`terminalOutcomeVerb.ts` cites were attached to history paragraphs and went
+with them; `setupForm.ts`'s now points at `plans/areas/forms.md`, the area that
+owns the seam, which is the right file but still a plan. **What remains in the
+roster: `gamePageCtx.ts:24` (→ `F-game-lib-12`) and `setupForm.ts:25`
+(→ forms.md).**
 
 CLAUDE.md → Plans: *"When a plan's work ships, its durable knowledge moves into
 `docs/` and the plan is deleted"*, and the 2026-09-02 restart deleted three
@@ -3011,7 +3052,8 @@ Found by `F-game-lib-54`'s closing grep. `F-game-lib-3`, `-4` and `-35` each
 found a stale roster count ("ten", "fifteen", "thirteen") and `-35` resolved
 by saying *"the count should go rather than be corrected"* — "every game". The
 other two corrected the number to sixteen, and groups A–E then wrote "sixteen"
-into fresh prose as they went. Twelve sites in seven files:
+into fresh prose as they went. Twelve sites in seven files at the audit, ten
+after `F-game-lib-55`:
 
 | file | line | the phrase |
 |---|---|---|
@@ -3019,7 +3061,7 @@ into fresh prose as they went. Twelve sites in seven files:
 | `gameManifest.ts` | 48 | *"One shape, sixteen schemas"* |
 | `gameManifest.ts` | 168–171 | *"15 games pass their cap … all sixteen agree … four games declare `[2, 6]`"* — three counts in one comment |
 | `gameManifest.ts` | 197 | *"All sixteen answer this way now"* |
-| `manifestRpcs.ts` | 13–14, 22, 36, 54 | *"the sixteen games would otherwise write the same closure sixteen times over"*; *"before all sixteen games were"*; *"all sixteen schemas define both"*; *"across all sixteen games"* |
+| `manifestRpcs.ts` | 13–14, 36 | *"the sixteen games would otherwise write the same closure sixteen times over"*; *"all sixteen schemas define both"* — two more sites (*"before all sixteen games were"*, *"across all sixteen games"*) went with `F-game-lib-55`'s history deletions |
 | `manifestRpcs.test.ts` | 11 | *"ONE frontend path over sixteen SQL definitions"* |
 | `menu.ts` | 53 | *"it reads in all sixteen games afterwards"* |
 

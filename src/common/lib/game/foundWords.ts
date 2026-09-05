@@ -3,8 +3,7 @@
 /**
  * Shared data model for the found-words rank-ladder games (spellingbee +
  * wordwheel). Both project the same `<schema>.games_state` view and the same
- * `found_words` table, so the FE shapes are identical — extracted here from the
- * two games' byte-identical `hooks/useGame.ts` type blocks.
+ * `found_words` table, so the FE shapes are identical and are declared once.
  *
  * The board shape differs at RENDER time (a hex hive vs a 9-tile wheel) and in
  * game logic (spellingbee's letter SET vs wordwheel's letter MULTISET), but the

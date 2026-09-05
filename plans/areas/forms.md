@@ -33,6 +33,18 @@ genuinely OUT of the sprint's scope goes to `docs/deferred.md`, deliberately and
 by name. That is the app's standing register; this file is the sprint's record of
 the area.
 
+### Handed here by `game-lib` — the one `lib/` → `components/` import in the setup contract
+
+`src/common/lib/setup/setupForm.ts` imports `FormErrors` from
+`components/fields/formState` for `SetupBodyProps.errors`. A `lib/` module
+reaching into `components/` is the wrong direction, and it is the only
+runtime-erased edge of its kind left in the game contract (`game-lib`'s split
+moved it here rather than fixing it — `plans/areas/game-lib.md` →
+`F-game-lib-1`, "What the split does NOT fix"). The fix is this area's because
+`FormErrors` is a form concept: either it moves down to a `lib/` home the setup
+contract can import from, or the setup contract stops naming it. Filed
+2026-09-04; the docstring on `setupForm.ts` points here.
+
 ## Predicted test breaks
 
 *(written when the area starts changing things, per §21's test-break rule:

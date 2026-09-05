@@ -15,9 +15,6 @@ import type { TimerMode } from '../gameManifest'
  *  - `<SetupTimerSection>`, for its own section heading while you are still
  *    choosing. So the string you pick by is the string the recap shows you
  *    later, which is the point of formatting in one place.
- *
- * Extracted because every timer-bearing PlayArea held a byte-identical copy of
- * this formatter (several even commented that they were copies).
  */
 export function timerLabel(t: TimerMode): string {
   if (t.kind === 'countup') return 'count-up'

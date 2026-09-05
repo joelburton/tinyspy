@@ -3,7 +3,6 @@
 /**
  * The Start..Genius rank ladder shared by the found-words rank-ladder games
  * (spellingbee + wordwheel — both ports of the NYT-Bee-style `*-ws` originals).
- * Extracted from the two byte-identical per-game `lib/ranks.ts` copies.
  *
  * 7 rank tiers from Start (0%) to Genius (70%); the middle ranks spread
  * linearly between 0 and GENIUS_AT. The same constants drive:

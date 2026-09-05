@@ -7,8 +7,8 @@ import { readStored, writeStored } from '../util/storage'
  * you to a new FreeBee game" toast (see `useGameInvitations`).
  *
  * Games seat every player at creation (a `common.game_players` row each),
- * but we no longer drag people into the game. Instead, wherever a player
- * is in the app, being added to a game pops an invitation they can Join
+ * but nobody is dragged into one. Wherever a player is in the app, being
+ * added to a game pops an invitation they can Join
  * (or dismiss — the game also shows up on the club page either way).
  *
  * The "seen" set (localStorage) is what keeps a single invite from

@@ -15,12 +15,9 @@
  * already returns the envelope, so this only binds the client and the function
  * name and turns `target_game` into a positional argument.
  *
- * **What used to live here as well were three START-GAME adapters**, and they
- * are gone because every `create_game` in the roster now returns the envelope
- * itself: a manifest calls `runRpc` or `runEdgeFn` and gets the same shape
- * either way. The adapters existed to make an unconverted RPC's `{ data, error }`
- * LOOK like one, so that the frontend could be converted before all sixteen
- * games were — a bridge with a stated end, and this is it.
+ * Nothing here is for `startGameInClub`: every `create_game` returns the
+ * envelope itself, so a manifest calls `runRpc` or `runEdgeFn` for that one
+ * and gets the same shape either way.
  */
 
 import { runRpc } from '../supabase/dbResult'
@@ -50,9 +47,9 @@ type RpcClient<F extends string> = {
 
 /**
  * Build the game-agnostic `(gameId) => Promise<Envelope<GameStopResult>>`
- * dispatcher for a per-game, single-`target_game`-arg RPC. Collapses the
- * byte-identical `submitTimeout` / `endGame` wrappers across all sixteen games
- * — every game folder calls it, twice each.
+ * dispatcher for a per-game, single-`target_game`-arg RPC. Every game folder
+ * calls it twice, once per member, instead of writing the same closure by
+ * hand.
  *
  * `submit_timeout` is fired by every connected client on countdown expiry, so
  * all but one arrive to find the game already over — PN486, a race. The

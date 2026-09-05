@@ -16,10 +16,9 @@ import type { LucideIcon } from 'lucide-react'
  * `common/components/menu/`, and the open/closed state in `pageMenuStore.ts`
  * next door.
  *
- * **Why its own module.** These eight names spent a long time in the file that
- * was then `lib/games.ts` and is now `lib/gameManifest.ts` — they were 14 of
- * the 364 imports it served, and none of them names a game. See
- * plans/areas/game-lib.md → `F-game-lib-1`.
+ * **Why its own module.** None of these names a game: a menu is a shell
+ * thing, and a surface that builds one should not have to import the manifest
+ * contract to get the row type.
  */
 
 /** What every menu row carries, whichever kind it is. */
@@ -126,9 +125,8 @@ export type MenuHeader = {
 
 export type MenuApi = {
   // Replace the game's ENTIRE header menu. Every game owns its whole
-  // menu — the shell no longer injects a common Help / Back-to-club
-  // section — so the game supplies all sections (dividers appear
-  // between them). Use the `buildGameMenu` helper (common/lib/game/
+  // menu — the shell injects nothing — so the game supplies all sections
+  // (dividers appear between them). Use the `buildGameMenu` helper (common/lib/game/
   // gameMenu.ts) to get the standard Help + End/Concede + Back-to-club
   // framing. Pass `[]` to clear (on unmount). Identity is stable across
   // GamePage renders.
@@ -137,8 +135,8 @@ export type MenuApi = {
   // it into your menu's Help item. Stable identity.
   openHelp: () => void
   // "Back to club": navigates directly for a terminal game, or opens
-  // the suspend-confirm modal mid-game (the same logic the old shell
-  // menu item ran). Wire it into your menu's Back-to-club item. The
-  // shell also binds ⇧< to it globally. Stable identity.
+  // the suspend-confirm modal mid-game. Wire it into your menu's
+  // Back-to-club item. The shell also binds ⇧< to it globally. Stable
+  // identity.
   requestBackToClub: () => void
 }
