@@ -46,7 +46,7 @@ describe('buildTrie', () => {
     expect(trie.eow[walkWord(trie, 'don')]).toBe(0)  // …but no terminal anywhere on it
   })
 
-  it('throws when a supplied rating is missing or outside 1..255 (§7 guard)', () => {
+  it('throws when a supplied rating is missing or outside 1..255', () => {
     // The terminal is a Uint8Array cell whose truthiness IS "is a word", so a
     // missing rating (short array), a 0, or a value that wraps mod 256 would
     // silently erase an accepted word. Reject at build time instead.

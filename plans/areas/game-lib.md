@@ -14,9 +14,9 @@ of files were on no area's roster at all: `deep` listed them out as "names every
 game" (`deep.md:160`, `:161`) and nothing picked them up — the identical gap that
 created `utils` one folder over.
 
-**Status: READ THROUGH; re-audited at the close, SEVEN FINDINGS OPEN** (ten
-were; `F-game-lib-49`, `-50` and `-51` are resolved, `-58` was found resolving
-`-49`). Opened
+**Status: READ THROUGH; re-audited at the close, SIX FINDINGS OPEN** (ten
+were; `F-game-lib-49` … `-52` are resolved, `-58` was found resolving `-49`).
+Opened
 2026-09-03 by listing the files and stopping (§21); Joel agreed the list —
 *"that matches the files i'd expect"* — and then asked for it in groups, *"so we
 don't have to do them all as one big audit"*, the way `deep` ran in passes. All
@@ -32,14 +32,14 @@ file has been read by Claude and by Joel. The stamp records that he read the
 file; the open findings are changes wanted in files he has read, which the
 stamp was never a claim about.
 
-**Fifty-eight IDs issued; fifty-one settled, seven open.** Two of them —
+**Fifty-eight IDs issued; fifty-two settled, six open.** Two of them —
 `F-game-lib-24` and `-25` — moved to [bananagrams.md](bananagrams.md) with the
 files they were about, so **56 carry a heading in this file**:
 
 | status | count | which |
 |---|---|---|
-| **OPEN** | **7** | `F-game-lib-52` … `-58`, the closing re-audit's — one dangling section cite, one wrong doc cite, five drifted counts, a history-in-docstrings question, a plan-cite note, a heading of fold-ins, and the stale manifest table in docs/common.md |
-| RESOLVED | 45 | includes the two that are resolved by being handed on: `F-game-lib-11` (its remaining half filed in four game areas) and `-46` (deferred to the app's standing register), and `-49` … `-51` from the re-audit |
+| **OPEN** | **6** | `F-game-lib-53` … `-58`, the closing re-audit's — one wrong doc cite, five drifted counts, a history-in-docstrings question, a plan-cite note, a heading of fold-ins, and the stale manifest table in docs/common.md |
+| RESOLVED | 46 | includes the two that are resolved by being handed on: `F-game-lib-11` (its remaining half filed in four game areas) and `-46` (deferred to the app's standing register), and `-49` … `-52` from the re-audit |
 | CLOSED, no change | 2 | `F-game-lib-29` and `-36`, both on Joel's ruling |
 | MOVED to `feedback` | 2 | `F-game-lib-27`, `-28` — open there as `F-feedback-1`, `-2` |
 
@@ -2836,7 +2836,7 @@ client and a function name and hands the envelope up unchanged — and the
 The test's two cases already asserted the envelope shape; only the prose above
 them had not caught up.
 
-### F-game-lib-52 · `trie-test-cites-section-seven-of-nothing` · A section number whose document was deleted
+### RESOLVED 2026-09-04 — F-game-lib-52 · `trie-test-cites-section-seven-of-nothing` · A section number whose document was deleted
 
 `trie.test.ts:49` — the test title ends *"(§7 guard)"*. That was a section of
 `docs/scrabble-ai.md`, which `F-game-lib-44` established no longer exists.
@@ -2844,6 +2844,13 @@ them had not caught up.
 §7 — *"Frontend (`src/scrabble/`)"* — that says nothing about ratings or a
 guard. `-44` fixed the two citations in `trie.ts` and did not read the test
 file's titles.
+
+#### Resolved 2026-09-04 — the parenthetical is gone
+
+Joel: *"do it."* The title now ends at "1..255". The case's body comment
+already states the guard's reason in full and `trie.ts`'s "Rated terminals"
+paragraph is the reference, so nothing was lost — the cite had been pointing at
+nothing since `-44`. No other line in the file names the dead doc.
 
 ### F-game-lib-53 · `duplicate-write-cited-to-wrong-doc` · Three comments send the reader to a doc that does not use the phrase
 
