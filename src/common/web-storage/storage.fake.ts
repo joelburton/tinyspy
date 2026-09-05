@@ -5,15 +5,14 @@
  *
  * **`window.localStorage` is `undefined` under vitest here, and that is Node's
  * doing, not jsdom's.** jsdom provides both storages — `sessionStorage` is the
- * real one, and `reloadOnStaleChunk.test.ts` clears it raw — but recent Node
- * also defines its own experimental `localStorage` global, which reads as
- * `undefined` until Node is started with `--localstorage-file`, and vitest
- * leaves that one in place over jsdom's. (Node prints exactly that warning at
- * the top of a run.) So a test that merely calls `localStorage.getItem` fails
- * with "cannot read properties of undefined" rather than testing anything, and
- * every test touching local storage installs a fake. `chatOpenStore.test.ts`
- * still rolls its own, and holds the exemption from
- * `src/guards/rawStorage.test.ts` that goes with doing so.
+ * real one — but recent Node also defines its own experimental `localStorage`
+ * global, which reads as `undefined` until Node is started with
+ * `--localstorage-file`, and vitest leaves that one in place over jsdom's.
+ * (Node prints exactly that warning at the top of a run.) So a test that merely
+ * calls `localStorage.getItem` fails with "cannot read properties of undefined"
+ * rather than testing anything, and every test touching local storage installs
+ * a fake. `chatOpenStore.test.ts` still rolls its own, and holds the exemption
+ * from `src/guards/rawStorage.test.ts` that goes with doing so.
  *
  * The reason it is worth sharing rather than hand-rolling one per suite is the
  * two switches, {@link InstalledStorage.blockAccess} and

@@ -1,6 +1,7 @@
 // cs-audited-boot
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { installFakeStorage, type InstalledStorage } from '../web-storage/storage.fake'
 import { reloadOnStaleChunk } from './reloadOnStaleChunk'
 
 /**
@@ -16,6 +17,11 @@ describe('reloadOnStaleChunk', () => {
   const realLocation = window.location
   let reload: ReturnType<typeof vi.fn>
   let dispose: AbortController
+  let storage: InstalledStorage
+
+  beforeAll(() => {
+    storage = installFakeStorage()
+  })
 
   beforeEach(() => {
     reload = vi.fn()
@@ -24,7 +30,7 @@ describe('reloadOnStaleChunk', () => {
       writable: true,
       configurable: true,
     })
-    sessionStorage.clear()
+    storage.clear()
     // Isolate each test's listener — reloadOnStaleChunk registers on window
     // for the page's lifetime, which in vitest is the whole file's lifetime.
     dispose = new AbortController()
@@ -65,31 +71,19 @@ describe('reloadOnStaleChunk', () => {
     expect(second.defaultPrevented).toBe(false)
   })
 
-  it('does NOT reload when sessionStorage is unavailable — it fails closed', () => {
-    // A browser blocking site data throws on the read. The counter cannot
-    // count, so the recovery is given up rather than run uncounted: an
-    // uncounted reload is a reload loop on a real outage, which is the exact
-    // thing the counter is here to prevent.
+  it('does NOT reload when the browser blocks site data — it fails closed', () => {
+    // The counter cannot count, so the recovery is given up rather than run
+    // uncounted: an uncounted reload is a reload loop on a real outage, which
+    // is the exact thing the counter is here to prevent.
     //
-    // The whole accessor is swapped, not spied: jsdom implements `Storage` as
-    // a proxy, so `vi.spyOn(sessionStorage, 'getItem')` defines a property the
-    // proxy does not serve and the real method still runs.
-    const real = window.sessionStorage
-    const blocked = () => {
-      throw new Error('site data blocked')
-    }
-    Object.defineProperty(window, 'sessionStorage', {
-      value: { getItem: blocked, setItem: blocked },
-      configurable: true,
-    })
-    try {
-      reloadOnStaleChunk()
-      const event = firePreloadError()
-      expect(reload).not.toHaveBeenCalled()
-      expect(event.defaultPrevented).toBe(false)
-    } finally {
-      Object.defineProperty(window, 'sessionStorage', { value: real, configurable: true })
-    }
+    // `blockAccess` throws from the PROPERTY, which is what a browser blocking
+    // site data does and what `storage.ts` names its storages for; the spy is
+    // undone by the `restoreAllMocks` below.
+    storage.blockAccess()
+    reloadOnStaleChunk()
+    const event = firePreloadError()
+    expect(reload).not.toHaveBeenCalled()
+    expect(event.defaultPrevented).toBe(false)
   })
 
   it('reloads again once the guard window has passed', () => {

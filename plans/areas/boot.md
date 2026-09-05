@@ -7,7 +7,7 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN** — audited 2026-09-05, twelve findings; F-boot-1 closed with no
 change, F-boot-2 worked, F-boot-3 handed to `game-page`, F-boot-4 closed with
-no change, F-boot-5 and -6 worked, the other six open.
+no change, F-boot-5, -6 and -7 worked, the other five open.
 
 ## The roster
 
@@ -324,7 +324,7 @@ Verified by planting: replacing the pick with a constant `'daylight'` fails
 five of the eight, and dropping the clear (`?theme=daylight` storing nothing
 instead of removing) fails exactly the clears case.
 
-### F-boot-7 · `blocked-storage-by-hand` · The stale-chunk test models a blocked browser by hand, as the wrong failure, beside a fake built for it
+### WORKED · F-boot-7 · `blocked-storage-by-hand` · The stale-chunk test models a blocked browser by hand, as the wrong failure, beside a fake built for it
 
 `reloadOnStaleChunk.test.ts:68–93`: the "fails closed" case swaps
 `window.sessionStorage` for `{ getItem: blocked, setItem: blocked }` under a
@@ -342,6 +342,34 @@ or a spy on the fake's `setItem` alone — for F-boot-1's write-fails case.
 sentence goes with it.
 
 9. Agree?
+9b. The `storage.fake.ts` sentence is in a `cs-blessed-web-storage` file — fix
+    it here as a mechanical consequence, or note it for `web-storage`?
+
+**Resolution (2026-09-05, Joel: "i'll take your rec")** — converted. The fake
+is installed once in `beforeAll`, `storage.clear()` replaces the raw
+`sessionStorage.clear()`, and the fail-closed case is `storage.blockAccess()`
+plus the four assertions: the saved-and-restored accessor, the `finally`, and
+the nine-line comment about jsdom's `Storage` proxy are all gone, since none
+of it is true of the fake. `restoreAllMocks` in `afterEach` undoes the spy,
+which the fake's own docstring specifies.
+
+Both mechanical consequences landed with it: the file's row in
+`rawStorage.test.ts` ALLOWED is deleted (the guard's third case fails from
+that side once the last raw touch goes), and `storage.fake.ts:7–8` no longer
+cites this file as the one that "clears it raw" — 9b answered by taking the
+recommendation, so it was fixed here.
+
+**One thing the conversion turned up.** Deleting the ALLOWED row left the
+guard RED on a hit the audit had not counted: the regex matches the bare word
+anywhere outside a comment, and the case was TITLED "does NOT reload when
+sessionStorage is unavailable". Renamed to "when the browser blocks site
+data", which is what the case actually models and reads better for it. Worth
+knowing for any other file leaving that allowlist: a test NAME can hold the
+last raw touch.
+
+Verified by planting: dropping the `blockAccess()` call fails exactly the
+fail-closed case (the reload fires, uncounted), which is the loop the counter
+exists to prevent.
 
 ### F-boot-8 · `location-stub-thrice` · The reload stub is written verbatim in three test files
 
@@ -456,11 +484,11 @@ The CSS import comments (`:8–15`) are `corecss`'s words and are not touched.
 
 ## Predicted test breaks
 
-- `src/guards/rawStorage.test.ts` — its row for `reloadOnStaleChunk.test.ts`
-  becomes stale when F-boot-7 replaces `sessionStorage.clear()`; the guard
-  fails from both sides, so the row goes in the same change.
-- `src/common/web-storage/storage.fake.ts` — not a test, but its docstring
-  names this test as the one that "clears it raw" (F-boot-7).
+- ~~`src/guards/rawStorage.test.ts` — its row for `reloadOnStaleChunk.test.ts`~~
+  DONE with F-boot-7: the row is deleted, and the case that used to name
+  `sessionStorage` in its TITLE was renamed, since the regex reads titles too.
+- ~~`src/common/web-storage/storage.fake.ts`~~ DONE with F-boot-7: its
+  docstring no longer names this test as the one that "clears it raw".
 - `src/guards/folderDocs.test.ts` — `DESIGNS_OWED` loses `common/boot` when the
   Design is written, at the close.
 - `src/guards/csStamps.test.ts` — a new `reload.fake.ts` (F-boot-8) needs a

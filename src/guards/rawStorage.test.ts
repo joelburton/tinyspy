@@ -79,7 +79,6 @@ const ALLOWED = new Map<string, string>([
   // through the shared fake's handles, which is the pattern this one should
   // adopt too.
   ['src/common/chat/chatOpenStore.test.ts', 'installs its own Storage fake on window, and spies on setItem to make a write throw'],
-  ['src/common/boot/reloadOnStaleChunk.test.ts', 'clears the session guard between cases'],
   // This file scans `src/`, and `src/` includes this file. Its fixture holds
   // real violations on purpose — spelling them around the scan (`'local' +
   // 'Storage'`) would make the test stop testing what it claims to.
