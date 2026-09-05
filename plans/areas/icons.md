@@ -7,8 +7,9 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 **Status: OPEN** (2026-09-04). The roster is agreed and stamped, `doc.md`'s
 lede + Design are written and committed (`985b4e51`), and the audit is
 recorded below: eight findings, of which F-icons-1 is closed with no change
-and F-icons-2 through F-icons-5 are done. Three are still open, taken one at
-a time.
+and F-icons-2 through F-icons-6 are done. F-icons-7 (the unguarded
+one-importer rule) and F-icons-8 (two docs describing an older file) are still
+open.
 
 ## The roster
 
@@ -141,7 +142,7 @@ never what it looks like. Three were checked against it; two names moved.
   button had asymmetric names; both now say what they act on. Ten callers (the
   nine games' menus plus `RevealButton`), all mechanical.
 
-### F-icons-6 · `no-order` · Exports sit in arrival order, with two comment styles and one section header
+### F-icons-6 · `no-order` · Exports sit in arrival order, with two comment styles and one section header — **DONE**
 
 The block is the order glyphs were adopted: hint, AI, the eyes, word-check,
 end, concede, submit, end-turn, clear, exchange, delete, trash, shuffle, peel,
@@ -152,14 +153,32 @@ far from shuffle at 81; the three ✕ aliases at 181–196 while `IconDelete` is
 at 75). The first two exports carry trailing comments, the rest leading; the
 word-outcome marks get a `──` section header and nothing else does.
 
-Proposed: group by what the glyph is for, each group under the same kind of
-header the marks already have — **game actions** (submit, end-turn, end,
-concede, clear, exchange, delete, shuffle, restart, new-game, peel, share,
-zoom-fit) · **help** (hint, AI, the three eyes, word-check) · **chrome**
-(back, help, print, scratchpad, chat, close, menu chevron, info page) ·
-**marks** (strikes, word outcomes, remove). Leading comments throughout. Joel's
-call on the groups; the point is that a family sits together, which is what
-the eyes' comment already asks for ("Keep them adjacent here").
+**Done 2026-09-04** — grouped as proposed, each group under the same `──`
+header the marks already had, in this order: **game actions** (what a player
+does on a board) · **help** (the app handing the player something) · **marks**
+(a verdict or a count, not a control) · **the shell** (page chrome, and the
+club page's own controls). Not one export was added or removed — the set
+before and after is identical.
+
+Three judgment calls the proposal didn't cover:
+
+- **`IconTrash` went to the shell**, not to game actions. It is an action, but
+  it is the club page's row action, and nothing about it happens on a board.
+- **The three ✕ aliases straddle the marks/shell boundary** —
+  `IconWordNo` → `IconRemove` end the marks group and `IconClose` opens the
+  shell, so the chain stays contiguous and its comments still read in order. A
+  verdict and a dismissal genuinely belong to different groups, so this is the
+  one place a family crosses a header, and the file's docstring says so.
+- **Leading comments everywhere EXCEPT a set with a shared block** — the four
+  word marks and the info-sheet pair keep short trailing glosses, because there
+  they are a legend rather than four independent arguments.
+
+Directional words were re-checked against the new order: `IconEndTurn`'s "see
+IconEndGame above" is now "below" (the pair reads turn → game, the smaller
+stop first), and `IconClose`'s "the two above" now names the two marks. The
+`NB: pause is NOT here` note, which had been glued to the front of
+`IconZoomFit`'s comment, is now a standalone note at the end of the shell
+group where `PauseButton` lives.
 
 ### F-icons-7 · `one-importer-rule-unguarded` · Nothing enforces "nothing imports `lucide-react` but this file"
 

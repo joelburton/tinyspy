@@ -11,9 +11,82 @@
  * alias would be parsed as a DOM tag, not a component. They're the same Lucide
  * components, so they take the same props (`size`, `aria-hidden`, …). The set
  * grows as more buttons adopt it.
+ *
+ * The exports are grouped by what a glyph is FOR — a move the player makes, the
+ * app handing something over, a mark that is no control at all, the shell around
+ * the board — and a family sits together inside its group (the octagons, the
+ * eyes, the arrows). That's because a glyph is chosen against its NEIGHBORS: the
+ * argument in each comment is only checkable if the glyphs it argues with are in
+ * view. The three ✕ aliases are the one chain that crosses a group boundary,
+ * since a verdict and a dismissal genuinely belong to different groups.
  */
 export {
-  Lightbulb as IconHint, // get a hint (a clue toward the answer)
+  // ── Game actions: what a player does on a board ────────────────────────────
+
+  // submit a game move/guess/clue — an UP-pointing triangle: it "sends" the move
+  // up to the other players (boards put YOU at the bottom, others above), and
+  // keeps the RIGHT-pointing play triangle free for the play/resume idiom. Only
+  // for sending a move — not the setup dialog or other form submits.
+  Triangle as IconSubmit,
+  // clear the current selection
+  Eraser as IconClear,
+  // delete the last typed character (the backspace key glyph)
+  Delete as IconDelete,
+  // take back the LAST MOVE, leaving the rest of the game standing
+  // (letterboxed's "Undo" — pop the last word off the chain). The curved
+  // back-arrow is the universal undo idiom, and it reads as one step where
+  // IconRestart's rewind-to-start reads as all of them.
+  Undo2 as IconUndo,
+  // swap/exchange tiles for new ones — the two-way horizontal arrows are the
+  // near-universal "exchange" idiom (ExchangeButton, labeled "Swap"). Distinct
+  // from IconShuffle's single rotate glyph (reorder my OWN tiles, no server
+  // trade).
+  ArrowLeftRight as IconExchange,
+  // reshuffle my own tiles for a fresh look
+  RotateCw as IconShuffle,
+  // bananagrams' "Peel" — draw a fresh round of tiles (or, when the bunch is
+  // dry, go out and win). The banana glyph is on-the-nose for the Bananagrams
+  // lineage (bananagrams) and reads as its own distinct action, not a
+  // generic submit. Local to the PeelButton — no other game peels.
+  Banana as IconPeel,
+  // share your in-progress move with coop teammates (scrabble's "show a move" —
+  // broadcasts your staged tiles for the team to preview read-only). The share
+  // node-graph glyph is the near-universal "send this to others" idiom.
+  Share as IconShare,
+  // zoom the view to fit / frame everything (bananagrams' "Center + fit"). The
+  // four-corners fullscreen glyph is the near-universal "fit to view" idiom.
+  Fullscreen as IconZoomFit,
+  // end the current turn without making (another) move — a stop-sign octagon.
+  // The plain half of the octagon pair (see IconEndGame below): this stops just
+  // your turn and hands play on, so it carries no X and wears amber rather than
+  // red. Worn by both EndTurnButton and PassButton.
+  Octagon as IconEndTurn,
+  // End the GAME: an octagon with an X — the stop sign, crossed out. It sits
+  // next to IconEndTurn's plain octagon (Pass / end just your turn) on purpose:
+  // one family, "stop", with the X marking the bigger stop. Both are visible at
+  // once in scrabble (Pass in the board controls, End in the info column), so
+  // they also differ by tone — Pass is amber, End is destructive red.
+  //
+  // Not the flag: Concede wears that (below), and two red flag buttons in the
+  // same row read as the same act.
+  OctagonX as IconEndGame,
+  // Concede — drop out of a race while it continues without you. The white
+  // flag: surrender, one player, not a stop for the table. Distinct from
+  // IconEndGame since bananagrams shows BOTH in one row.
+  Flag as IconConcede,
+  // restart THIS board from scratch — RestartButton, and every game's menu. The
+  // skip-back "jump to the start" transport glyph: it rewinds to the beginning
+  // of the same board, distinct from IconShuffle's rotate (rearrange, new look).
+  SkipBack as IconRestart,
+  // start a FRESH follow-up game, same setup but a new board + id —
+  // NewGameButton, and every game's menu. The square-plus "create new" glyph:
+  // adds a NEW thing, distinct from IconRestart's rewind-the-same-thing.
+  SquarePlus as IconNewGame,
+
+  // ── Help: the app handing the player something ─────────────────────────────
+
+  // get a hint (a clue toward the answer)
+  Lightbulb as IconHint,
   // use an AI-powered helper (e.g. codenamesduet's Claude clue suggester). The
   // sparkles glyph is the near-universal "AI / magic" idiom — kept DISTINCT from
   // IconHint's lightbulb so "ask the AI" reads differently from "give me a hint".
@@ -43,50 +116,50 @@ export {
   // rule the player could have applied themselves. The spell-check glyph (a
   // tick over text) is the near-universal idiom for exactly that.
   SpellCheck as IconWordCheck,
-  // End the GAME: an octagon with an X — the stop sign, crossed out. It sits
-  // next to IconEndTurn's plain octagon (Pass / end just your turn) on purpose:
-  // one family, "stop", with the X marking the bigger stop. Both are visible at
-  // once in scrabble (Pass in the board controls, End in the info column), so
-  // they also differ by tone — Pass is amber, End is destructive red.
+
+  // ── Marks: a verdict or a count, not a control ─────────────────────────────
+
+  // The <StrikeMarks> meter (a status row, not a button): a bounded "N of M used"
+  // counter filling left-to-right — a USED mark is a red square-X, an OPEN slot a
+  // dashed square. Squares (not circles) so they never read as the player-identity
+  // disc (docs/ui.md → Player identity = a colored disc). First used by
+  // connections' mistakes; reusable for any limited-attempts counter.
+  SquareX as IconStrikeUsed,
+  SquareDashed as IconStrikeOpen,
+  // Word-outcome marks: a turn-log row's verdict, as a GLYPH. First used by
+  // strands' turn log, and deliberately named for the OUTCOME rather than for
+  // that game ("the best find" / "a find" / "accepted" / "rejected"), so any
+  // word game's log can reuse the same four.
   //
-  // Not the flag: Concede wears that (below), and two red flag buttons in the
-  // same row read as the same act.
-  OctagonX as IconEndGame,
-  // Concede — drop out of a race while it continues without you. The white
-  // flag: surrender, one player, not a stop for the table. Distinct from
-  // IconEndGame since bananagrams shows BOTH in one row.
-  Flag as IconConcede,
-  // submit a game move/guess/clue — an UP-pointing triangle: it "sends" the move
-  // up to the other players (boards put YOU at the bottom, others above), and
-  // keeps the RIGHT-pointing play triangle free for the play/resume idiom. Only
-  // for sending a move — not the setup dialog or other form submits.
-  Triangle as IconSubmit,
-  // end the current turn without making (another) move — a stop-sign octagon.
-  // The plain half of the octagon pair (see IconEndGame above): this stops just your
-  // turn and hands play on, so it carries no X and wears amber rather than red.
-  // Worn by both EndTurnButton and PassButton.
-  Octagon as IconEndTurn,
-  Eraser as IconClear, // clear the current selection
-  // swap/exchange tiles for new ones — the two-way horizontal arrows are the
-  // near-universal "exchange" idiom (ExchangeButton, labeled "Swap"). Distinct
-  // from IconShuffle's single rotate glyph (reorder my OWN tiles, no server
-  // trade).
-  ArrowLeftRight as IconExchange,
-  Delete as IconDelete, // delete the last typed character (the backspace key glyph)
-  // DESTROY a thing, as opposed to dismissing one. `Trash2` is the lidded can
-  // with the lines; `Trash` is the plain one. Deliberately NOT a ✕ — an ✕ means
-  // "close this", which would make an irreversible act look like a dismiss.
-  Trash2 as IconTrash,
-  RotateCw as IconShuffle, // reshuffle my own tiles for a fresh look
-  // bananagrams' "Peel" — draw a fresh round of tiles (or, when the bunch is
-  // dry, go out and win). The banana glyph is on-the-nose for the Bananagrams
-  // lineage (bananagrams) and reads as its own distinct action, not a
-  // generic submit. Local to the PeelButton — no other game peels.
-  Banana as IconPeel,
-  // share your in-progress move with coop teammates (scrabble's "show a move" —
-  // broadcasts your staged tiles for the team to preview read-only). The share
-  // node-graph glyph is the near-universal "send this to others" idiom.
-  Share as IconShare,
+  // They exist because color alone can't carry this everywhere it needs to go:
+  // the log is printed to PDF in three shades of gray (docs/pdf.md), where a
+  // purple word and a gold word are the same ink. A glyph survives that, and it
+  // gives the row a fixed left column so the words still line up.
+  //
+  // The ladder is deliberate — trophy > star > check — so the three ACCEPTED
+  // marks read as ranked at a glance rather than merely different.
+  Trophy as IconBestFind, // the spangram: the one word that names the theme
+  Star as IconThemeFind, // an ordinary theme word
+  Check as IconWordOk, // a valid word that isn't part of the puzzle
+  X as IconWordNo, // rejected — too short, unknown, or already counted
+  // remove THIS ITEM from a list, in place (letterboxed's × on the chain's
+  // last word). Same lucide glyph as IconWordNo, aliased separately because
+  // the purpose is different — one marks a verdict, the other is an action.
+  // As an SVG it is centered by its own box; the × TEXT glyph is not.
+  X as IconRemove,
+
+  // ── The shell: page chrome, and the club page's own controls ───────────────
+
+  // DISMISS this floating panel — the titlebar ✕. The third alias of the same
+  // lucide glyph as the two marks just above, for the same reason those two are
+  // separate: one marks a verdict, one removes an item, this one closes a
+  // surface.
+  //
+  // Deliberately not a TEXT `×`: a close mark that isn't in this registry
+  // drifts (there is more than one × character, and they don't look alike).
+  // The note above applies here too: as an SVG it is centered by its own box,
+  // where the text character is not.
+  X as IconClose,
   // Go UP ONE LEVEL — game → club today, and the same idea wherever it lands
   // next. Named for the direction rather than a destination, unlike every
   // other glyph here, and that's deliberate on two counts.
@@ -115,81 +188,32 @@ export {
   // that drifts. Same family as IconBack: a chevron points, and this one points
   // at the list that is about to appear.
   ChevronDown as IconMenuChevron,
+  // open the rules/help — the "?" on HelpButton and on every Help menu row.
+  // The circled question mark is the near-universal "help / what is this?" idiom.
+  CircleQuestionMark as IconHelp,
+  // Club chat. The menu's legend and the header have to show the SAME bubble —
+  // a legend that teaches a different glyph than the header draws is worse than
+  // no legend — which is why the bubble comes from here.
+  MessageCircle as IconChat,
+  // The shared notes panel. `FilePenLine` (a page, a ruled line, a pen) over
+  // `NotepadText` (a spiral pad): the pen is the part that says "you WRITE
+  // here", which is what separates a scratchpad from any other document.
+  FilePenLine as IconScratchpad,
   // Print to PDF. The one ACTION here with no button — print is menu-only —
   // but the menu's legend earns it anyway: a printer is instantly
   // scannable in a list of words, and if a print button ever appears it has
   // already been taught. (docs/ui.md → Button iconography.)
   Printer as IconPrint,
-  // The shared notes panel. `FilePenLine` (a page, a ruled line, a pen) over
-  // `NotepadText` (a spiral pad): the pen is the part that says "you WRITE
-  // here", which is what separates a scratchpad from any other document.
-  FilePenLine as IconScratchpad,
-  // Club chat. The menu's legend and the header have to show the SAME bubble —
-  // a legend that teaches a different glyph than the header draws is worse than
-  // no legend — which is why the bubble comes from here.
-  MessageCircle as IconChat,
-  // restart THIS board from scratch — RestartButton, and every game's menu. The
-  // skip-back "jump to the start" transport glyph: it rewinds to the beginning
-  // of the same board, distinct from IconShuffle's rotate (rearrange, new look).
-  SkipBack as IconRestart,
-  // take back the LAST MOVE, leaving the rest of the game standing
-  // (letterboxed's "Undo" — pop the last word off the chain). The curved
-  // back-arrow is the universal undo idiom, and it reads as one step where
-  // IconRestart's rewind-to-start reads as all of them.
-  Undo2 as IconUndo,
-  // start a FRESH follow-up game, same setup but a new board + id —
-  // NewGameButton, and every game's menu. The square-plus "create new" glyph:
-  // adds a NEW thing, distinct from IconRestart's rewind-the-same-thing.
-  SquarePlus as IconNewGame,
-  // open the rules/help — the "?" on HelpButton and on every Help menu row.
-  // The circled question mark is the near-universal "help / what is this?" idiom.
-  CircleQuestionMark as IconHelp,
-  // NB: pause is NOT here — lucide's Pause is two outlined rounded rects, not
-  // the familiar solid two-bars mark, so PauseButton draws its own glyph.
-  // zoom the view to fit / frame everything (bananagrams' "Center + fit"). The
-  // four-corners fullscreen glyph is the near-universal "fit to view" idiom.
-  Fullscreen as IconZoomFit,
-  // The <StrikeMarks> meter (a status row, not a button): a bounded "N of M used"
-  // counter filling left-to-right — a USED mark is a red square-X, an OPEN slot a
-  // dashed square. Squares (not circles) so they never read as the player-identity
-  // disc (docs/ui.md → Player identity = a colored disc). First used by
-  // connections' mistakes; reusable for any limited-attempts counter.
-  SquareX as IconStrikeUsed,
-  SquareDashed as IconStrikeOpen,
-  // ── Word-outcome marks: a turn-log row's verdict, as a GLYPH ──────────────
-  // First used by strands' turn log, and deliberately named for the OUTCOME
-  // rather than for that game ("the best find" / "a find" / "accepted" /
-  // "rejected"), so any word game's log can reuse the same four.
-  //
-  // They exist because color alone can't carry this everywhere it needs to go:
-  // the log is printed to PDF in three shades of gray (docs/pdf.md), where a
-  // purple word and a gold word are the same ink. A glyph survives that, and it
-  // gives the row a fixed left column so the words still line up.
-  //
-  // The ladder is deliberate — trophy > star > check — so the three ACCEPTED
-  // marks read as ranked at a glance rather than merely different.
-  Trophy as IconBestFind, // the spangram: the one word that names the theme
-  Star as IconThemeFind, // an ordinary theme word
-  Check as IconWordOk, // a valid word that isn't part of the puzzle
-  X as IconWordNo, // rejected — too short, unknown, or already counted
-  // remove THIS ITEM from a list, in place (letterboxed's × on the chain's
-  // last word). Same lucide glyph as IconWordNo, aliased separately because
-  // the purpose is different — one marks a verdict, the other is an action.
-  // As an SVG it is centered by its own box; the × TEXT glyph is not.
-  X as IconRemove,
-  // DISMISS this floating panel — the titlebar ✕. A third alias of the same
-  // lucide glyph, for the same reason the two above are separate: one marks a
-  // verdict, one removes an item, this one closes a surface.
-  //
-  // Deliberately not a TEXT `×`: a close mark that isn't in this registry
-  // drifts (there is more than one × character, and they don't look alike).
-  // The note above applies here too: as an SVG it is centered by its own box,
-  // where the text character is not.
-  X as IconClose,
+  // DESTROY a thing, as opposed to dismissing one. `Trash2` is the lidded can
+  // with the lines; `Trash` is the plain one. Deliberately NOT a ✕ — an ✕ means
+  // "close this", which would make an irreversible act look like a dismiss.
+  Trash2 as IconTrash,
   // The mobile page switch (InfoSwitchButton, in the GamePage header). The two
   // faces of ONE button: the info sheet slides in from the right, and Lucide's
   // right-hand pane opening / closing draws exactly that, which is what a bare
   // chevron couldn't say — which surface, and which way.
   PanelRightOpen as IconInfoSheetOpen, // show the info sheet
   PanelRightClose as IconInfoSheetClose, // back to the board
+  // NB: pause is NOT here — lucide's Pause is two outlined rounded rects, not
+  // the familiar solid two-bars mark, so PauseButton draws its own glyph.
 } from 'lucide-react'
