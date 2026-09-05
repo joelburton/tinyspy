@@ -10,7 +10,7 @@ are saying the same thing, and the two spellings this list used to have
 (`success` / `error` for won / lost) hid that behind a rename buried in a CSS
 rule. One vocabulary, spelled one way, everywhere.
 
-The list lives in [`src/common/lib/outcomes.ts`](../src/common/outcomes/outcomes.ts)
+The list lives in [`src/common/outcomes/outcomes.ts`](../src/common/outcomes/outcomes.ts)
 — its own file because it is a vocabulary rather than a feature, and nothing
 should have to import a game manifest to get at it.
 
@@ -96,9 +96,11 @@ same word.
 export type TurnOutcome = 'won' | 'lost' | 'near' | 'neutral'
 ```
 
-That type lists four because four are what the games have needed so far, not
-because a rule keeps the others out. Nothing stops a log row being `warning` or
-`noted`; widen the type when a game wants one.
+The bar's prop is narrower than the vocabulary today: `TurnOutcome` is a
+four-value alias declared in `TurnLog.tsx`, and `TurnLog.module.css` carries
+bar classes for those four only. Nothing about a turn makes it so — any outcome
+can be a turn's outcome. What is owed here is in
+[`src/common/turn-log/todo.md`](../src/common/turn-log/todo.md).
 
 ### Boards and tiles
 
@@ -141,14 +143,29 @@ the `--outcomes-*` bucket:
               lost    ink
 ```
 
-Roles are `base` (the family's identity), `fill` (a background), `ink` (text and
-bars, darkened for contrast), and `edge` (a border, the base mixed toward
-black). A theme redefines the values; nothing outside the theme files picks a
-color.
+Seven roles, each answering "what is this family painting here":
 
-`noted` and `error` are marked **provisional** in the palette: both are declared
-at ink weight with no separate base, because neither has yet earned the full
-four-role treatment the five outcome families have.
+| role | what it paints |
+|---|---|
+| `base` | the family's identity — the anchor the others are derived FROM, and painted by nothing directly |
+| `ink` | text, darkened for contrast against a pale ground |
+| `fill` | a solid background |
+| `edge` | a border — the base mixed toward black |
+| `wash` | the family laid over the page as a tint |
+| `bar` | the turn-log row's outcome bar |
+| `terminalFrame` | the frame around a board that is no longer a live position |
+
+**The grid is rectangular, and that is enforced.** Every family carries every
+role in **both** themes, whether or not anything reads the cell yet;
+[`cssTokens.test.ts`](../src/guards/cssTokens.test.ts) fails on a hole. A theme
+redefines the values; nothing outside the theme files picks a color.
+
+In `daylight.css`, `noted` and `error` are marked **provisional**: both are
+declared at ink weight, with `ink` pointing straight at `base`, because neither
+has yet been given a lighter identity color the way the five older families
+have. `midnight.css` does not do this — there both carry a base and a
+separately-chosen ink like everyone else. It is a fact about one theme's
+values, not about the vocabulary.
 
 ## Adding one
 
@@ -159,6 +176,7 @@ neighbors at a glance and in a sentence.
 If one is genuinely needed:
 
 1. Add it to `Outcome`.
-2. Give it all four `--outcomes-*` roles in **both** themes.
-3. Decide whether it belongs in `TurnOutcome` — most will not.
-4. Say here what it means and how it differs from the nearest existing word.
+2. Give it all seven `--outcomes-*` roles in **both** themes — the grid is a
+   rectangle and a guard says so, so this is not optional and not "the ones
+   something reads today".
+3. Say here what it means and how it differs from the nearest existing word.

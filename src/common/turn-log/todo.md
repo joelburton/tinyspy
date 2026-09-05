@@ -6,7 +6,9 @@
   difference between the two (Joel) — any outcome can be a turn's outcome — so
   the hand-cut four in `TurnLog.tsx` (`'won' | 'lost' | 'near' | 'neutral'`) is
   a second name for a list that already exists, and a narrower one. It is also
-  load-bearing in the wrong direction: see the next item.
+  load-bearing in the wrong direction: see the next item. `TurnLog.module.css`
+  has bar classes for the same four and needs the other three, so the type and
+  the stylesheet move together.
 
 - **A hint row is logged as `near`, and `near` is the wrong word for it.**
   `near` means the guess was close; asking for a hint is not a guess at all.

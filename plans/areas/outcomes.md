@@ -91,7 +91,7 @@ Not proposing a rename. Both names are right in their own context and both
 have earned their spelling; what is missing is one sentence in each place
 saying the other exists.
 
-### F-outcomes-3 · `theme-roles-count` · The four-role claim is three roles short, and following it fails a guard
+### RESOLVED · F-outcomes-3 · `theme-roles-count` · The four-role claim is three roles short, and following it fails a guard
 
 `outcomes.ts`: *"it has the same four theme roles as the rest."*
 `docs/outcomes.md`: *"Roles are `base`, `fill`, `ink`, `edge`"*, and its
@@ -151,7 +151,7 @@ guard, and renders with no color.
 opening), so this is recorded for a ruling rather than fixed on sight — but
 the precedent for the fix is eleven files away.
 
-### F-outcomes-6 · `provisional-is-daylight-only` · A per-theme fact is written as a property of the palette
+### RESOLVED · F-outcomes-6 · `provisional-is-daylight-only` · A per-theme fact is written as a property of the palette
 
 `docs/outcomes.md`: *"`noted` and `error` are marked **provisional** in the
 palette: both are declared at ink weight with no separate base."*
@@ -162,7 +162,7 @@ False in `midnight.css`, where both carry a base and a separately-chosen ink
 (`#42a5f5` / `#90caf9`, `#e53935` / `#ef9a9a`) like every other family. The
 sentence describes one theme and claims the palette.
 
-### F-outcomes-7 · `stale-link-text` · The doc names a path that has not existed since the reorg
+### RESOLVED · F-outcomes-7 · `stale-link-text` · The doc names a path that has not existed since the reorg
 
 `docs/outcomes.md`: the link TEXT reads `` `src/common/lib/outcomes.ts` `` while
 its href is `../src/common/outcomes/outcomes.ts`. The link guard checks the
@@ -219,6 +219,12 @@ things that consume it.
 
 ## Notes
 
+- **`docs/outcomes.md` was corrected in place**, though it stays off the
+  roster: Joel, 2026-09-05 — *"it's later where we'll move some of
+  docs/outcomes into outcomes/doc.md."* That move is the deferred work; the
+  false statements in it were not worth carrying until then. Three findings
+  closed there, plus the `TurnOutcome` paragraph, whose justification for the
+  four was the thing his ruling overturned.
 - **The vocabulary itself is in good shape.** Seven words, each distinguishable
   from its neighbors in a sentence, one type, one spelling in code, and two
   independent guards already pinning it to the SQL and to the palette. Every
