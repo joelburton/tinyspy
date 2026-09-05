@@ -1,4 +1,4 @@
-// cs-audited-supabase
+// cs-blessed-supabase
 
 import { createClient } from '@supabase/supabase-js'
 import { dbFetch } from './dbFetch'
@@ -47,7 +47,7 @@ const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
  * phone-over-LAN case it's meant for.
  */
 function resolveSupabaseUrl(configured: string): string {
-  if (!import.meta.env.DEV || typeof window === 'undefined') return configured
+  if (!import.meta.env.DEV) return configured
   let parsed: URL
   try {
     parsed = new URL(configured)

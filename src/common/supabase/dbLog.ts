@@ -1,4 +1,4 @@
-// cs-audited-supabase
+// cs-blessed-supabase
 
 import { logStamp } from '../utils/logStamp'
 import type { Severity } from './envelope'

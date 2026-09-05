@@ -1,4 +1,4 @@
-// cs-audited-supabase
+// cs-blessed-supabase
 
 import { supabase } from './supabase'
 import type { DbError } from './dbEnvelope'

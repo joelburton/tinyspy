@@ -1,4 +1,4 @@
-// cs-audited-supabase
+// cs-blessed-supabase
 
 /**
  * dbFetch — the wrapper every Supabase request goes through.

@@ -1,4 +1,4 @@
-// cs-audited-supabase
+// cs-blessed-supabase
 
 import {
   NO_ANSWER_TO_CODE_AND_TEXT, type DbError,
@@ -65,8 +65,8 @@ const SLOW_MS = 4000
  *  Duration is NOT here — `ms` is a field of its own (instant reject = a dead
  *  connection, 30s+ = a timeout on a live one: same message, different bug). */
 function getTextualOnlineStatus(): string {
-  const online = typeof navigator !== 'undefined' ? navigator.onLine : true
-  const hidden = typeof document !== 'undefined' && document.visibilityState === 'hidden'
+  const online = navigator.onLine
+  const hidden = document.visibilityState === 'hidden'
   return `online=${online}${hidden ? ' hidden' : ''}`
 }
 
@@ -74,19 +74,19 @@ function getTextualOnlineStatus(): string {
 /** The request's identity, with no credentials in it. A Supabase URL carries
  *  the apikey and often a JWT in the query string, and console output gets
  *  screenshotted into chat — so only the method and path are logged. */
-function getMethodPathClean(input: RequestInfo | URL, init?: RequestInit): string {
+function getMethodPathClean(input: RequestInfo | URL, init?: RequestInit): { method: string; path: string } {
   const raw =
     typeof input === 'string' ? input
       : input instanceof URL ? input.toString()
         : input.url
   let path = raw
   try {
-    path = new URL(raw, typeof location !== 'undefined' ? location.href : undefined).pathname
+    path = new URL(raw, location.href).pathname
   } catch {
     // A malformed URL is itself worth seeing; fall through with the raw string.
   }
   const method = init?.method ?? (typeof input === 'object' && 'method' in input ? input.method : 'GET')
-  return `${method} ${path}`
+  return { method, path }
 }
 
 /**
@@ -106,8 +106,7 @@ function getMethodPathClean(input: RequestInfo | URL, init?: RequestInit): strin
  * a storage call if we ever add one, or a URL we could not parse. That is the
  * conservative default — no modal for a call we cannot identify.
  */
-function isSupabaseInternal(input: RequestInfo | URL, init?: RequestInit): boolean {
-  const path = getMethodPathClean(input, init).split(' ')[1] ?? ''
+function isSupabaseInternal(path: string): boolean {
   return !(path.startsWith('/rest/v1/') || path.startsWith('/functions/v1/'))
 }
 
@@ -138,7 +137,8 @@ export const dbFetch: typeof fetch = async (input, init) => {
     thrown = err
   }
   const ms = Math.round(performance.now() - started)
-  const call = getMethodPathClean(input, init)
+  const { method, path } = getMethodPathClean(input, init)
+  const call = `${method} ${path}`
 
   // EVERY path from here writes exactly one `[db]` line and then returns or
   // throws. Each case is a guard that narrates and leaves, so the cases read in
@@ -165,7 +165,7 @@ export const dbFetch: typeof fetch = async (input, init) => {
     // on OUR endpoints reaches a wrapper, which writes the better line: it
     // knows the severity, the code and the outcome, and this layer knows only
     // that a request did not come back.
-    if (name === 'AbortError' || isSupabaseInternal(input, init)) logDb('FAULT', fields)
+    if (name === 'AbortError' || isSupabaseInternal(path)) logDb('FAULT', fields)
 
     // Re-thrown UNTOUCHED. The error object itself is never reworded here —
     // this function classifies and logs; it does not edit what callers receive.
@@ -195,14 +195,14 @@ export const dbFetch: typeof fetch = async (input, init) => {
     // unrecognized. No wrapper will ever see those, and this is their only line.
     // (A call to OUR endpoints made without a wrapper would leave no line on
     // success — one more reason every such call goes through one.)
-    if (isSupabaseInternal(input, init)) logDb('OK', fields)
+    if (isSupabaseInternal(path)) logDb('OK', fields)
     return res
   }
 
   // ─── IT ANSWERED, WITH A FAILURE ─────────────────────────────
   // Supabase's own endpoints have no wrapper downstream, so this line is the
   // whole record of them.
-  if (isSupabaseInternal(input, init)) {
+  if (isSupabaseInternal(path)) {
     logDb('FAULT', fields)
     return res
   }

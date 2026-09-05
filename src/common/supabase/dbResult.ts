@@ -1,4 +1,4 @@
-// cs-audited-supabase
+// cs-blessed-supabase
 
 import { edgeFnTransport } from './edgeFnTransport'
 import {
@@ -156,6 +156,24 @@ function dbLogKindFor(envelope: Envelope): DbLogKind {
   return SEVERITY_TO_DB_LOG_KIND[envelope.severity]
 }
 
+/** What a postgrest-js call settles to, whether an RPC or a table read.
+ *  Structural, so a schema-scoped builder satisfies it without importing its
+ *  generics.
+ *
+ *  `status` is optional because it is absent from a hand-built test double, not
+ *  because it is absent at runtime — postgrest-js always sets it, and `0` is
+ *  the signal `nothingAnswered` reads. */
+type Settled<T> = {
+  data: T | null
+  error: DbError
+  status?: number
+  // `dbFetch`'s verdict when it had one — see `situationFor`.
+  statusText?: string
+}
+
+/** The call itself: a PostgREST query builder is a `PromiseLike` of `Settled`. */
+type QueryLike<T> = PromiseLike<Settled<T>>
+
 /**
  * **The envelope for a call that came back with an error**, in the order the
  * three answers are decided.
@@ -167,7 +185,7 @@ function dbLogKindFor(envelope: Envelope): DbLogKind {
  * Postgres speaking for itself, which is the case that needs no help.
  */
 function envelopeForDbError(
-  settled: { error: DbError; status?: number; statusText?: string },
+  settled: Settled<unknown>,
   environmentalDetail: string | undefined,
   fallback: string,
   extra?: string,
@@ -217,20 +235,6 @@ function hasMessageWithoutOutcome(envelope: Envelope): boolean {
 // ─────────────────────────────────────────────────────────────
 // The read wrapper
 // ─────────────────────────────────────────────────────────────
-
-/** What a PostgREST query builder resolves to. Structural, so a schema-scoped
- *  builder satisfies it without importing its generics.
- *
- *  `status` is optional because it is absent from a hand-built test double, not
- *  because it is absent at runtime — postgrest-js always sets it, and `0` is
- *  the signal `nothingAnswered` reads. */
-type QueryLike<T> = PromiseLike<{
-  data: T | null
-  error: DbError
-  status?: number
-  // `dbFetch`'s verdict when it had one — see `situationFor`.
-  statusText?: string
-}>
 
 /**
  * **Read the envelope a server wrote** — the half of `runEdgeFn` and `runRpc`
@@ -377,7 +381,7 @@ function callLabel(call: unknown, fallback: string): string {
  *     setResults(r.data)
  */
 export async function runRpc<T>(
-  call: PromiseLike<{ data: unknown; error: DbError; status?: number; statusText?: string }>,
+  call: QueryLike<unknown>,
   opts?: DbCallOptions,
 ): Promise<Envelope<T>> {
   // Timed here because `dbFetch` stays quiet on an RPC's 2xx — the answer
@@ -385,7 +389,7 @@ export async function runRpc<T>(
   // sitting above a `FAULT` about the same request. So this line carries the
   // duration as well as the meaning.
   const started = performance.now()
-  let settled: { data: unknown; error: DbError; status?: number; statusText?: string }
+  let settled: Settled<unknown>
   try {
     settled = await call
   } catch (thrown) {
@@ -453,7 +457,7 @@ export async function readRows<Row>(
   // be offline"). Without this, the envelope a hook keeps says a read failed and
   // cannot say which — the one fact nobody can recover afterwards.
   const call = callLabel(query, 'read')
-  let settled: { data: Row[] | null; error: DbError; status?: number; statusText?: string }
+  let settled: Settled<Row[]>
   try {
     settled = await query
   } catch (thrown) {

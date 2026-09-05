@@ -1,4 +1,4 @@
-// cs-audited-supabase
+// cs-blessed-supabase
 
 /**
  * THE ENVELOPE'S TYPE, and nothing else.

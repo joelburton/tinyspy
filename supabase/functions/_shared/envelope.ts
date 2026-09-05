@@ -1,4 +1,4 @@
-// cs-audited-supabase
+// cs-blessed-supabase
 
 /**
  * THE ENVELOPE, WRITTEN IN DENO — the same shape `common.ok_envelope` and
@@ -39,19 +39,20 @@ import type { Envelope } from '../../../src/common/supabase/envelope.ts'
  * Deliberately strict, like its frontend twin: plenty of things that are not
  * envelopes arrive on that path (a row array, a scalar, a `null` from a branch
  * that never decided), and each must fall through cleanly rather than be
- * half-read as one.
+ * half-read as one. A `not-ok` must also name a `dbcode` — SQL's handler writes
+ * the SQLSTATE unconditionally, so one without is a hand-built shape, not ours.
  *
  * **A type predicate, like that twin too.** Returning a bare `boolean` would
  * leave the caller's value `unknown` after the check, so the cast that follows
  * would be from `unknown` — which accepts anything, including the shapes this
  * function exists to reject. Narrowing means the cast only has to add `T`.
  */
-export const isEnvelope = (body: unknown): body is Envelope =>
-  !!body
-  && typeof body === 'object'
-  && !Array.isArray(body)
-  && ((body as { type?: unknown }).type === 'ok'
-    || (body as { type?: unknown }).type === 'not-ok')
+export const isEnvelope = (body: unknown): body is Envelope => {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) return false
+  const { type, dbcode } = body as { type?: unknown; dbcode?: unknown }
+  if (type === 'not-ok') return typeof dbcode === 'string' && dbcode !== ''
+  return type === 'ok'
+}
 
 /** The function answered, and here is what the caller asked for. */
 export const ok = <T>(data: T): Response =>

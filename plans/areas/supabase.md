@@ -4,7 +4,9 @@ The folders it reads: `supabase`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN (2026-09-05).**
+**Status: CLOSED 2026-09-05** — twelve findings worked, one closed with no
+change, one withdrawn as wrong, the re-read done, thirteen files
+`cs-blessed-supabase`. Joel's call to close, this session.
 
 ## The roster
 
@@ -13,21 +15,21 @@ files that carry the same envelope on the server side of the wire:
 
 | file | what it is | stamp |
 |---|---|---|
-| `src/common/supabase/supabase.ts` | the client | `cs-audited-supabase` |
-| `src/common/supabase/db.ts` | the DB handle | `cs-audited-supabase` |
-| `src/common/supabase/envelope.ts` | the envelope shape; Deno imports it too | `cs-audited-supabase` |
-| `src/common/supabase/dbEnvelope.ts` | envelope-side helpers | `cs-audited-supabase` |
-| `src/common/supabase/dbResult.ts` | the wrappers — `runRpc`, `readRows`, `runEdgeFn` | `cs-audited-supabase` |
-| `src/common/supabase/dbResult.test.ts` | their contract | `cs-audited-supabase` |
-| `src/common/supabase/dbFetch.ts` | the fetch layer under the wrappers | `cs-audited-supabase` |
-| `src/common/supabase/dbFetch.test.ts` | its contract | `cs-audited-supabase` |
-| `src/common/supabase/edgeFnTransport.ts` | the edge-function transport | `cs-audited-supabase` |
-| `src/common/supabase/edgeFnTransport.test.ts` | its contract | `cs-audited-supabase` |
-| `src/common/supabase/dbLog.ts` | the `[db]` console line | `cs-audited-supabase` |
-| `supabase/functions/_shared/envelope.ts` | the Deno envelope builders | `cs-audited-supabase` |
-| `supabase/functions/_shared/dbResult.ts` | the Deno `runRpc` | `cs-audited-supabase` |
-| `src/common/supabase/doc.md` | lede at open: the client, the DB handle, and the wrappers. No Design | (no stamp — markdown) |
-| `src/common/supabase/todo.md` | empty under all four headings at open | (no stamp — markdown) |
+| `src/common/supabase/supabase.ts` | the client | `cs-blessed-supabase` |
+| `src/common/supabase/db.ts` | the DB handle | `cs-blessed-supabase` |
+| `src/common/supabase/envelope.ts` | the envelope shape; Deno imports it too | `cs-blessed-supabase` |
+| `src/common/supabase/dbEnvelope.ts` | envelope-side helpers | `cs-blessed-supabase` |
+| `src/common/supabase/dbResult.ts` | the wrappers — `runRpc`, `readRows`, `runEdgeFn` | `cs-blessed-supabase` |
+| `src/common/supabase/dbResult.test.ts` | their contract | `cs-blessed-supabase` |
+| `src/common/supabase/dbFetch.ts` | the fetch layer under the wrappers | `cs-blessed-supabase` |
+| `src/common/supabase/dbFetch.test.ts` | its contract | `cs-blessed-supabase` |
+| `src/common/supabase/edgeFnTransport.ts` | the edge-function transport | `cs-blessed-supabase` |
+| `src/common/supabase/edgeFnTransport.test.ts` | its contract | `cs-blessed-supabase` |
+| `src/common/supabase/dbLog.ts` | the `[db]` console line | `cs-blessed-supabase` |
+| `supabase/functions/_shared/envelope.ts` | the Deno envelope builders | `cs-blessed-supabase` |
+| `supabase/functions/_shared/dbResult.ts` | the Deno `runRpc` | `cs-blessed-supabase` |
+| `src/common/supabase/doc.md` | lede at open: the client, the DB handle, and the wrappers. No Design. **Lede rewritten and Design written at the close, 2026-09-05**; its row is off `DESIGNS_OWED` | (no stamp — markdown) |
+| `src/common/supabase/todo.md` | empty under all four headings at open, and still empty at the close: nothing is owed | (no stamp — markdown) |
 
 **Decided at the opening, and why:**
 
@@ -54,7 +56,7 @@ classify-here/present-there line between `dbFetch` and `dbResult` all read as
 designed. What drifted is the prose about it and, in two places, a claim that
 a guard exists.
 
-## F-supabase-1 · `db-handle-docstring-paths` · `db.ts` shows two import spellings nobody writes
+### WORKED · F-supabase-1 · `db-handle-docstring-paths` · `db.ts` shows two import spellings nobody writes
 
 Its docstring says a `common/` file imports the handle as `'../db'` and a game
 file as `'../../common/supabase/db'`. Neither is true: the seventeen common
@@ -70,7 +72,7 @@ spellings.
 `commonDb` alias for a game, and says outright that a game's `'../db'` is its
 own handle.
 
-## F-supabase-2 · `not-ok-called-refusal` · Ten places call a not-ok envelope a "refusal"
+### WORKED · F-supabase-2 · `not-ok-called-refusal` · Ten places call a not-ok envelope a "refusal"
 
 `NotOkEnv`'s docstring ("The refusal arm on its own", "renders a refusal"),
 Deno `runRpc` ("relay the refusal", "the RPC's own refusal", "Not a refusal —
@@ -96,7 +98,7 @@ function refusing" in `envelopeForEdgeFnTransport`, the `edgeFnRefusedCodeless`
 key and the two specs named for it, "an outside service down or refusing us",
 and `envelope.ts`'s "refuses an `ok_envelope`", which is a verb about a guard.
 
-## F-supabase-3 · `stale-guard-claims` · Two comments name a guard that no longer exists
+### WORKED · F-supabase-3 · `stale-guard-claims` · Two comments name a guard that no longer exists
 
 `envelope.ts`, on `field`: "`null` — the raise didn't say; a SQL-side guard
 catches it." `common.sql`, in the preamble above `ok_envelope`: "(no column) —
@@ -122,7 +124,7 @@ the `plans/areas/forms.md` cite in the same `common.sql` paragraph became
 docs/envelopes.md → The keys. `raiseCodes.test.ts` is `cs-unmet` under the
 guards area; a forward fix, stamp untouched.
 
-## F-supabase-4 · `envelopeerrorpage-ghost` · Two docstrings name a component that does not exist
+### CLOSED, no change · F-supabase-4 · `envelopeerrorpage-ghost` · Two docstrings name a component that does not exist
 
 `dbEnvelope.ts` (`envAndTransportToDiagFields`) and `dbLog.ts` (`DiagFields`)
 both say the only other place converting null to undefined is
@@ -139,7 +141,7 @@ during render and converts `dbcode` and `detail` with `?? undefined`. No other
 surface outside the folder converts an envelope field that way, so "the only
 other place" is true too. Nothing to fix; the docstrings stand.
 
-## F-supabase-5 · `stale-counts-in-prose` · Six counts and tallies that have rotted or will
+### WORKED · F-supabase-5 · `stale-counts-in-prose` · Six counts and tallies that have rotted or will
 
 - `OUR_BUG_TO_CODE_AND_TEXT`'s docstring: "four carry it in their text" —
   seven do; only `unhandledAnswer` is prefixed at its call.
@@ -164,7 +166,7 @@ callers dropped from `dbResult.ts`'s header in favor of the guard that names
 them; "the half a call site cannot write itself"; "each spells the boundary its
 own way".
 
-## F-supabase-6 · `docs-stale-paths` · Five link texts write the pre-reorg path for this folder's files
+### WORKED · F-supabase-6 · `docs-stale-paths` · Five link texts write the pre-reorg path for this folder's files
 
 docs/supabase.md writes `src/common/lib/supabase/supabase.ts` and
 `src/common/db.ts`; docs/envelopes.md writes `src/common/lib/supabase/…`
@@ -180,7 +182,7 @@ docs/supabase.md and docs/envelopes.md now read `src/common/supabase/…`. The
 two `realtime/` mentions in docs/deferred.md and docs/realtime-lost-events.md
 were left for the realtime area, as proposed.
 
-## F-supabase-7 · `dbresult-test-spy-hygiene` · Console spies leak between tests, and three tests explain it instead of fixing it
+### WORKED · F-supabase-7 · `dbresult-test-spy-hygiene` · Console spies leak between tests, and three tests explain it instead of fixing it
 
 `dbResult.test.ts` spies on `console.warn` and `console.error` per test and
 never restores; three later tests each carry a paragraph on why they call
@@ -192,7 +194,7 @@ and the three paragraphs and the manual restore go.
 file's `beforeEach` with a two-line comment saying why; the three `mockClear`
 paragraphs and the one `mockRestore` are gone.
 
-## F-supabase-8 · `dbfetch-test-doubled-comment` · The same paragraph twice, one of them archaeology
+### WORKED · F-supabase-8 · `dbfetch-test-doubled-comment` · The same paragraph twice, one of them archaeology
 
 `dbFetch.test.ts` above "marks an unparseable body with a verdict": two
 versions of one comment, back to back, both saying what the failure "used to"
@@ -201,7 +203,7 @@ be. Fix: one paragraph, present tense.
 **Resolved 2026-09-05 (Joel: "do it").** One paragraph: why the failure is
 worth showing, and what the layer says about it now.
 
-## F-supabase-9 · `typeof-window-guards` · Five guards for a case that cannot happen
+### WORKED · F-supabase-9 · `typeof-window-guards` · Five guards for a case that cannot happen
 
 `supabase.ts` (`typeof window`), `dbEnvelope.ts` (`typeof navigator`),
 `dbFetch.ts` (`typeof navigator`, `typeof document`, `typeof location`).
@@ -210,7 +212,12 @@ jsdom provides all four globals, so each guard costs a reader a moment
 deciding whether this file is special. Fix: use them bare. The tests already
 depend on `navigator` being present (`vi.spyOn(navigator, 'onLine', 'get')`).
 
-## F-supabase-10 · `settled-shape-written-four-times` · One response shape, spelled in four places
+**Resolved 2026-09-05 (Joel: "do it").** All five bare. No fallback value
+changed anything observable: each was what the global reads in jsdom and in a
+browser. docs/code-conventions.md is the one home for the reason, so no comment
+was left at the sites.
+
+### WORKED · F-supabase-10 · `settled-shape-written-four-times` · One response shape, spelled in four places
 
 `{ data; error: DbError; status?; statusText? }` is `QueryLike<T>` for
 `readRows`, written inline as `runRpc`'s parameter type, and written again as
@@ -218,14 +225,27 @@ the `settled` local's annotation in both wrappers; `envelopeForDbError` takes a
 fifth partial spelling. Fix: one named type the three read, and the locals
 inferred.
 
-## F-supabase-11 · `dbfetch-path-computed-twice` · `isSupabaseInternal` re-derives the path `dbFetch` already has
+**Resolved 2026-09-05 (Joel: "do it").** `Settled<T>` names the object a
+postgrest-js call settles to, and `QueryLike<T>` is `PromiseLike<Settled<T>>`.
+Both moved up beside `envelopeForDbError`, the first reader. `runRpc` takes
+`QueryLike<unknown>`, `envelopeForDbError` takes `Settled<unknown>`, and the
+two locals are annotated `Settled<unknown>` / `Settled<Row[]>` rather than
+inferred — a bare `let` assigned inside a try reads as an evolving type, and
+one word is clearer.
+
+### WORKED · F-supabase-11 · `dbfetch-path-computed-twice` · `isSupabaseInternal` re-derives the path `dbFetch` already has
 
 `dbFetch` builds `call` (`METHOD /path`) once, then calls
 `isSupabaseInternal(input, init)`, which runs `getMethodPathClean` again from
 the raw input — up to twice per request. Fix: `isSupabaseInternal(path)` off
 the `call` already built, computed once beside it.
 
-## F-supabase-12 · `deno-isenvelope-looser-than-twin` · Deno's `isEnvelope` claims parity it does not have
+**Resolved 2026-09-05 (Joel: "do it").** `getMethodPathClean` returns
+`{ method, path }`; `dbFetch` destructures it once and builds `call` from the
+two; `isSupabaseInternal(path)` parses nothing. Its name and docstring stay,
+since the job is unchanged. One URL parse per request.
+
+### WORKED · F-supabase-12 · `deno-isenvelope-looser-than-twin` · Deno's `isEnvelope` claims parity it does not have
 
 Its docstring says "Deliberately strict, like its frontend twin", but
 `_isEnvelope` also refuses a `not-ok` with no `dbcode` and Deno's accepts one.
@@ -234,7 +254,12 @@ the SQLSTATE unconditionally — but the claim is false and the reason the
 frontend insists (a codeless not-ok is not one we can have produced) holds on
 this side too. Fix: match the twin, one line; or say the difference.
 
-## F-supabase-13 · `notokenv-abbreviation` · `NotOkEnv` abbreviates the one word this folder never abbreviates
+**Resolved 2026-09-05 (Joel: "do it").** Matched the twin: the Deno predicate
+is now the same four lines as `_isEnvelope`, and its docstring carries one
+sentence on why a `not-ok` must name a `dbcode`. No Deno spec exists;
+`deno check` and the guard suite are the check.
+
+### WORKED · F-supabase-13 · `notokenv-abbreviation` · `NotOkEnv` abbreviates the one word this folder never abbreviates
 
 The type is `Envelope`; every neighbor spells it out — `faultEnvelope`,
 `environmentalEnvelope`, `readEnvelope`, `ok_envelope`. `Env` also reads as
@@ -248,7 +273,7 @@ file) and plans/error-system.md (so a grep of the closed sprint's record still
 lands). The old spelling survives only in this file's findings, which record
 what was read. No stamps moved; `tsc -b` is the check.
 
-## F-supabase-14 · `plan-cited-from-code` · A spec cites "the plan"
+### WORKED · F-supabase-14 · `plan-cited-from-code` · A spec cites "the plan"
 
 `dbResult.test.ts`, above `runRpc — one shape, always`: "the plan's rule is
 that one shape travels all the way through." The plan is the closed error
@@ -281,7 +306,12 @@ not re-asked.
 
 ## Closing
 
-- [ ] the whole area re-read in one sitting after the last group
-- [ ] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
-- [ ] `todo.md` holds everything still owed; nothing durable left in this file
-- [ ] every file on the roster blessed, or its stamp says why not
+- [x] the whole area re-read in one sitting after the last group (2026-09-05,
+  after F-12). It turned up two ragged wraps left by the F-2 and F-5 edits in
+  `dbEnvelope.ts`, fixed in the same pass, and nothing else.
+- [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
+- [x] `todo.md` holds everything still owed — nothing is; nothing durable left
+  in this file
+- [x] every file on the roster blessed, or its stamp says why not — all
+  thirteen `cs-blessed-supabase`, 2026-09-05 (Joel: "mark files in area
+  blessed then close area")

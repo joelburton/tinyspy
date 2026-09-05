@@ -1,4 +1,4 @@
-// cs-audited-supabase
+// cs-blessed-supabase
 
 import { showFaultModal } from '../faults/faultStore'
 import { logDb, type DiagFields, type TransportFacts } from './dbLog'
@@ -136,9 +136,9 @@ export function isEnvironmental(dbcode: string | null): boolean {
  * All of them are OURS, which is why every sentence a player reads opens
  * `BUG:` — every one but `unhandledAnswer` carries it in its text, and that
  * one is prefixed at its one call, `reportUnhandled`, where the call's name
- * goes between. They are
- * the failures where something answered and the answer was wrong — as against
- * the `FE` codes above, where our server did not answer at all.
+ * goes between. They are the failures where something answered and the answer
+ * was wrong — as against the `FE` codes above, where our server did not answer
+ * at all.
  */
 export const OUR_BUG_TO_CODE_AND_TEXT = {
   // A 2xx whose body is not one of our envelopes — an unconverted RPC, or a
@@ -335,7 +335,7 @@ function clampDetail(detail: string | undefined): string | null {
  * same moment either way.
  */
 export function nothingReachedUs(detail?: string): NotOkEnvelope {
-  const offline = typeof navigator !== 'undefined' && !navigator.onLine
+  const offline = !navigator.onLine
   const { offline: OFFLINE, unreachable: UNREACHABLE } = NO_ANSWER_TO_CODE_AND_TEXT
   return environmentalEnvelope(offline ? OFFLINE : UNREACHABLE, detail)
 }
@@ -452,9 +452,9 @@ export function reportUnhandled(call: string, answer: Envelope): void {
   const { code, text } = OUR_BUG_TO_CODE_AND_TEXT.unhandledAnswer
   // **`status` is claimed only where it is known.** An `ok` arrived 200 on
   // every transport, so it says so. A `not-ok` may have arrived 200 (one a
-  // handler built) or 4xx (a raw fault), and the envelope does not carry which: the
-  // wrapper knew, and logged it on the call's own `[db]` line one line up, but
-  // that fact stops at the wrapper's `return`. So it is left off rather than
+  // handler built) or 4xx (a raw fault), and the envelope does not carry which:
+  // the wrapper knew, and logged it on the call's own `[db]` line one line up,
+  // but that fact stops at the wrapper's `return`. So it is left off rather than
   // guessed — the one line where a blank `status=` means "not known here"
   // rather than "nothing answered". docs/deferred.md holds the change that
   // would make it known: the status in the envelope.

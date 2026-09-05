@@ -1,4 +1,4 @@
-// cs-audited-supabase
+// cs-blessed-supabase
 
 /**
  * edgeFnTransport — the one place a functions-js failure becomes a classifiable

@@ -111,6 +111,31 @@ closing re-read earned its place again** — six more findings, every one a
 sentence describing a two-file folder after `routes.ts` made it three, including
 a Design paragraph contradicting the one directly above it.
 
+**`supabase` is closed** (2026-09-05): thirteen files `cs-blessed-supabase` —
+every file of `src/common/supabase/` plus the two Deno files in
+`supabase/functions/_shared/` that build and read the same envelope — with
+twelve findings worked, one closed with no change and one withdrawn. The code
+held up: the envelope's shape, the three-wrappers split and the
+classify-here/present-there line between `dbFetch` and `dbResult` all read as
+designed, and the folder's `doc.md` now explains that line for a newcomer. What
+had drifted was the prose about it. Two comments promised a guard that no
+longer existed for a form-validation raise with no COLUMN; `raiseCodes.test.ts`
+now has that check, a forward fix into the guards area. `NotOkEnv` became
+`NotOkEnvelope`, the one abbreviation in a folder that spells the word out
+everywhere else. Ten places that called a not-ok a "refusal" say not-ok, since
+the word collides with the game-rule refusal that is an `ok`. Six counts became
+conditions, five doc link texts and one docstring stopped writing pre-reorg
+import paths, and the five `typeof window` guards went bare, this folder's
+half of the per-folder decision `docs/code-conventions.md` leaves open. Three
+small code cleanups: one named `Settled<T>` where the response shape had been
+spelled five ways, one URL parse per request instead of two in `dbFetch`, and
+Deno's `isEnvelope` now as strict as its frontend twin. The withdrawn finding
+is the lesson: the audit grepped for a file named `EnvelopeErrorPage` and found
+none, but it is an export of `ErrorPage.tsx` and both docstrings naming it were
+right — grep the name, not the path. Nothing handed on; `todo.md` is empty.
+Left unplaced for the areas table: `_shared/http.ts`, `_shared/startGame.ts`
+and `supabase/sql/common.sql`, none of which has a row.
+
 - **§3** is the areas, in order, and the ONLY place an area's position is
   written down.
 - **§4** is the process — the stamps, what opening an area means, what "broken"
@@ -211,7 +236,7 @@ will list the other as a dependency whichever goes first.
 | 6  | `mobile` | `mobile` | **CLOSED 2026-09-05.** the one desktop→mobile breakpoint, the device hooks, the viewport. `breakpoints.css` lives here |
 | 7  | `routing` | `routing` | **CLOSED 2026-09-05.** the router, `usePath`, and the app's two URL shapes |
 |    | **The data path and the boot** | | |
-| 8  | `supabase` | `supabase` · `functions/_shared/envelope.ts` + `dbResult.ts` | **OPEN 2026-09-05.** the client, the wrappers, the envelope — including the two Deno files that build and receive the same envelope server-side. It reaches `faults` for the fault sink, which is `common-hosts`' to read |
+| 8  | `supabase` | `supabase` · `functions/_shared/envelope.ts` + `dbResult.ts` | **CLOSED 2026-09-05.** the client, the wrappers, the envelope — including the two Deno files that build and receive the same envelope server-side. The fault sink it reaches is `common-hosts`' to read |
 | 9  | `session` | `session` | who is signed in, and their profile |
 | 10 | `boot` | `boot` | mounting, the session gate, panic, the stale-chunk reload |
 | 11 | `realtime` | `realtime` | presence, reconnect, the subscribe hooks. Presence is what pauses a game and the pause boundary that reads it is `pause-suspend`'s; whichever opens second inherits what the first decided |
