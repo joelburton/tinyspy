@@ -4,12 +4,15 @@ The folders it reads: `icons`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN** (2026-09-04). The roster is agreed and stamped, `doc.md`'s
-lede + Design are written and committed (`985b4e51`), and the audit is
-recorded below: eight findings, of which F-icons-1 is closed with no change
-and F-icons-2 through F-icons-6 are done. F-icons-7 (the unguarded
-one-importer rule) and F-icons-8 (two docs describing an older file) are still
-open.
+**Status: CLOSED** (2026-09-04). `icons.ts` is `cs-blessed-icons`; `doc.md`
+carries the lede and the Design, and `todo.md` is empty in all four sections
+because nothing is owed here. Of the eight findings, F-icons-2 through
+F-icons-6 and F-icons-8 are done and F-icons-1 and F-icons-7 are closed with
+no change.
+
+The one thing this area found and did NOT fix lives in
+`src/common/menu/todo.md`: a menu row picks its glyph by hand, so every game
+names the same action's glyph twice. It is the menu layer's to solve.
 
 ## The roster
 
@@ -17,9 +20,9 @@ open.
 
 | file | what it is | stamp |
 |---|---|---|
-| `icons.ts` | the semantic glyph registry — one re-export block from `lucide-react`, a comment per glyph | `cs-met-icons` |
-| `doc.md` | lede + Design, written at the opening | — |
-| `todo.md` | empty in all four sections at the opening | — |
+| `icons.ts` | the semantic glyph registry — one re-export block from `lucide-react`, a comment per glyph, grouped by what a glyph is for | `cs-blessed-icons` |
+| `doc.md` | lede + Design; the grouping rule was added to it at the close | — |
+| `todo.md` | empty in all four sections — nothing owed here | — |
 
 No CSS, no test, no hook, no component. Dependents are not on the roster: 53
 files import from the registry, and `docs/ui.md` → "Button iconography" is the
@@ -180,7 +183,7 @@ stop first), and `IconClose`'s "the two above" now names the two marks. The
 `IconZoomFit`'s comment, is now a standalone note at the end of the shell
 group where `PauseButton` lives.
 
-### F-icons-7 · `one-importer-rule-unguarded` · Nothing enforces "nothing imports `lucide-react` but this file"
+### F-icons-7 · `one-importer-rule-unguarded` · Nothing enforces "nothing imports `lucide-react` but this file" — **CLOSED, no change**
 
 The Design states it and the tree satisfies it today (one glyph importer, one
 type importer), but nothing fails when a component reaches for Lucide
@@ -190,10 +193,13 @@ would catch a glyph import at lint time, with `menuModel.ts`'s `import type
 { LucideIcon }` the one exception to allow (an eslint pattern cannot tell a
 type import from a value one, so the exception is by path or the type moves
 into the registry as a re-export — `export type { LucideIcon }` beside the
-glyphs, which is arguably where it belongs). Guard the vocabulary, not just
-name it.
+glyphs, which is arguably where it belongs).
 
-### F-icons-8 · `docs-describe-an-older-file` · Two docs disagree with the registry
+**Closed 2026-09-04 (Joel): no guard.** The rule holds on its own — one
+importer, one type importer, and the Design says why. Not everything true of
+the tree needs a test standing over it.
+
+### F-icons-8 · `docs-describe-an-older-file` · Two docs disagree with the registry — **DONE**
 
 Outside the folder, but the docs OF this folder:
 
@@ -212,8 +218,31 @@ Outside the folder, but the docs OF this folder:
 - `docs/common-folders.md:222`: the folder row says "the inline SVG set",
   which the old lede also said. The folder holds no SVG.
 
-Whether these are this area's edits is Joel's call — the utils close edited
-no doc outside its folder. Recorded so they are not lost either way.
+Also found while fixing it: the map table had been **split in half by ~95 lines
+of prose** — five rows (Reveal, End game / Zoom to fit, Concede, Clear
+selection / Help, Restart / New game) sat after the `IconBack` section with no
+header above them, so they rendered as literal text rather than as a table.
+
+**`docs/ui.md` done 2026-09-04 (Joel): fix what is wrong, and stop carrying the
+detail.** The folder has a `doc.md` now, so ui.md keeps the decisions that are
+its own — why Lucide, the menu-is-the-legend rule, the exempt glyphs, the
+tooltip and long-press behavior — and hands the glyph-by-glyph question to the
+registry:
+
+- the map table is **gone**, both halves, replaced by a pointer to
+  `common/icons/icons.ts` and the folder's `doc.md`, plus a line saying why this
+  page does not list the glyphs. That retires the three contradicted rows, the
+  two my renames made stale, and the split, all at once.
+- the path and the importer snapshot are gone with the paragraph that carried
+  them.
+- the `IconBack` passage, which restated the export's comment nearly verbatim,
+  is four sentences pointing at that comment.
+- the "icons come from the semantic registry" rule stays (it is what makes the
+  menu a trustworthy legend) minus the half `doc.md` now owns.
+
+**`docs/common-folders.md` done 2026-09-04**: the folder row now reads "every
+glyph, under the name of what it means" — the folder's job in one line, in the
+register's own voice, and no SVG.
 
 ## Notes
 
@@ -236,11 +265,21 @@ or `todo.md` instead; a note here never stands in for either)*
 
 ## Predicted test breaks
 
-*(the spec names, written when the area starts changing things)*
+None, and none happened. Nothing here renders, and the renames were mechanical:
+`StandardButton.test.tsx` uses `IconEndGame` as an arbitrary icon and was
+updated with the rest. The full suite passed at every step.
 
 ## Closing
 
-- [ ] the whole area re-read in one sitting after the last group
-- [ ] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
-- [ ] `todo.md` holds everything still owed; nothing durable left in this file
-- [ ] every file on the roster blessed, or its stamp says why not
+- [x] the whole area re-read in one sitting after the last group
+- [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
+- [x] `todo.md` holds everything still owed; nothing durable left in this file
+- [x] every file on the roster blessed, or its stamp says why not
+
+The final read caught three things the finding-by-finding passes had left:
+the docstring still called the file "the code form of the icon map in
+docs/ui.md" after ui.md stopped holding a map (it now says this file IS the
+map, and what each doc holds instead); "the set grows as more buttons adopt it"
+described a rollout that has finished; and `IconPrint`'s comment was wrapped
+raggedly. The grouping rule went into `doc.md` as a Design bullet, since a
+decision that shipped belongs there rather than here.

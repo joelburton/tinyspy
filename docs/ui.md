@@ -2001,25 +2001,19 @@ an icon font, not color emoji.** Why:
   `size`, one consistent 2px stroke — and it's the same *form* we already use
   for the logos / chat bubble, just finished.
 
-**The map lives in code** as the semantic icon registry `common/components/icons.ts`
-— each action re-exported under a semantic name (`Lightbulb as IconHint`, …), so
-components import `<IconHint />` and never `lucide-react` directly. Change a glyph
-once there and every button follows. Today's full set of direct importers is the
-registry itself; psychicnum + connections + the shared `ShuffleButton` /
-`BackToClubButton` / `PauseButton` consume it (other games adopt it as they grow
-icon buttons).
+**The map lives in code**, in the semantic icon registry
+[`common/icons/icons.ts`](../src/common/icons/icons.ts): each action is
+re-exported under a semantic name (`Lightbulb as IconHint`, …), so a component
+imports `<IconHint />` and never `lucide-react` directly, and changing a glyph
+there changes every button that draws it. The registry is also where each choice
+is *argued* — the comment beside an export says what the glyph was picked
+against — and the folder's [doc.md](../src/common/icons/doc.md) states the rules
+those comments follow (a name says the MEANING, one file imports Lucide, no size
+or color in the registry).
 
-**The map** (decided; roll out game-by-game):
-
-| button | Lucide | button | Lucide |
-|---|---|---|---|
-| Rotate / shuffle | `RotateCw` | Pass | `SkipForward` |
-| Up one level (back to club) | `ChevronLeft` | Swap tiles | `ArrowLeftRight` |
-| Submit a move | `Triangle` (points up) | Recall | `Undo2` |
-| Get hint | `Lightbulb` | Dump | `ArrowLeftRight` |
-| Use AI (e.g. clue suggester) | `Sparkles` | Pause | `Pause` |
-| Spoiler — one item, mid-game | `Eye` (`IconSpoiler`) | Peel | `Banana` (`IconPeel`) |
-| Check my own work against the rules | `SpellCheck` (`IconWordCheck`) | | |
+This page deliberately does **not** list the glyphs: a second copy of the map
+goes stale the first time a glyph changes, and the registry is the copy that
+can't.
 
 **The menu is the legend.** Icon-only buttons carry their names in hover
 tooltips, and a touch device has no hover — `TooltipHost` disables the hover
@@ -2041,9 +2035,9 @@ buttons themselves (it would tax every future tap to answer a first-encounter
 question) and a Help-page legend (nobody opens it at the moment of doubt).
 
 Two rules keep it honest. **Icons come from the semantic registry**, never
-`lucide-react` directly — the registry is the one place a glyph is chosen, so
-the menu can never teach a symbol the button doesn't use; `MenuItem.icon` is
-typed `LucideIcon`, the same type `ActionButton.icon` takes. And **the gutter is
+`lucide-react` directly, so the menu can never teach a symbol the button doesn't
+use; `MenuItem.icon` is typed `LucideIcon`, the same type `ActionButton.icon`
+takes. And **the gutter is
 reserved per menu**: once any row has an icon every row gets the slot, so labels
 share one column instead of going ragged — while a menu with no icons at all
 (nothing in it maps to the language) gains no indent for a feature it doesn't
@@ -2097,27 +2091,12 @@ is guarded by reading the stylesheet. Pinned by
 [`TooltipHost.test.tsx`](../src/common/tooltips/TooltipHost.test.tsx)
 and [`tooltip-longpress.e2e.ts`](../e2e/tooltip-longpress.e2e.ts).
 
-**One glyph names a direction, not a thing: `IconBack`.** Every other entry
-above names the action or the object; the chevron names "up one level" (game →
-club, and club → home behind `⇧<`). Two reasons it stays that way, both worth
-knowing before someone "fixes" it into a `House` and a `Users`:
-
-- **The ups never co-occur**, so it can't be ambiguous — from a game the only
-  way up is its club, from a club it's home, and no screen offers both. That's
-  what separates it from the arrow-like cluster (`IconRestart` / `IconUndo` /
-  `IconShuffle`), which *had* to be told apart because they share an action row.
-- **It's the only thing that teaches `⇧<`.** The button draws the glyph without
-  printing the key; the menu item prints the key without drawing the glyph. The
-  chevron looking like `<` is what ties them together, and a destination glyph
-  would quietly spend that.
-
-If a screen ever does offer both ups at once, prefer adding the **word** ("<
-Club" / "< Home") over swapping the glyph, so the mnemonic survives.
-| Reveal — the whole solution, at game-over | `View` (`IconReveal`) | | |
-| End game | `OctagonX` (`IconEnd`) | Zoom to fit | `Fullscreen` (`IconZoomFit`) |
-| Concede | `Flag` (`IconConcede`) | | |
-| Clear selection | `Eraser` | Help / rules | `CircleQuestionMark` (`IconHelp`) |
-| Restart board | `SkipBack` (`IconRestart`) | New game (fresh board + id) | `SquarePlus` (`IconNewGame`) |
+**One glyph names a direction, not a thing: `IconBack`.** Every other name in
+the registry names an action or an object; the chevron names "up one level"
+(game → club, and club → home behind `⇧<`). That is deliberate — the ups never
+co-occur, and the chevron is the only thing on screen that teaches `⇧<` — and
+the full argument sits beside the export in `icons.ts`. Read it before "fixing"
+the glyph into a `House` and a `Users`.
 
 **Conventions:**
 

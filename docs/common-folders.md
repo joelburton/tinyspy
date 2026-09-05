@@ -219,7 +219,7 @@ area is audited. No sweep.
 | `forms` | the form frame and what every form shares that isn't a field |
 | `game-page` | the live game's page and what it hands down |
 | `home` | the landing page |
-| `icons` | the inline SVG set |
+| `icons` | every glyph, under the name of what it means |
 | `info-sheet` | the info column: its mobile sheet, its switch, the chrome its panels share |
 | `invitations` | game invitations |
 | `keyboard` | key capture, tab rings, shortcuts |

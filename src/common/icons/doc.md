@@ -27,6 +27,15 @@ the mapping.
   should read as a family (the eyes, the octagons, the arrows). The reason a
   glyph is what it is lives next to it in `icons.ts`, not in a doc, so the
   next person changing one sees what it was chosen against.
+- **The exports are grouped by what a glyph is FOR, and a family sits together
+  inside its group.** A move the player makes · the app handing something over ·
+  a mark that is no control at all · the shell around the board. This follows
+  from the rule above: an argument about neighbors is only checkable when the
+  neighbors are on screen, so a new export goes where its group is rather than
+  at the end. One family crosses a boundary on purpose — the ✕ that marks a
+  verdict, the ✕ that removes an item and the ✕ that closes a surface stay
+  adjacent across the marks/shell line, because the three are only legible
+  against each other.
 - **The registry carries no size, color or weight; the surface does.** An icon
   inherits `currentColor` and is sized by whatever draws it — a standard button
   sizes it in CSS from the button's own font size, a menu row passes the gutter

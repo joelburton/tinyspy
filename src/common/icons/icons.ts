@@ -1,4 +1,4 @@
-// cs-met-icons
+// cs-blessed-icons
 
 /**
  * Semantic icon registry — the ONE place that maps an action to its Lucide
@@ -6,11 +6,14 @@
  * call site. Components import the semantic name (`<IconHint />`), never Lucide
  * directly; change a glyph here and every game's button follows.
  *
- * This is the code form of the icon map in docs/ui.md → "Button iconography".
+ * This file IS the map — no doc repeats it. docs/ui.md → "Button iconography"
+ * holds the icon language around it (why Lucide at all, how the game menu
+ * teaches each glyph, which glyphs are self-evident enough to need no menu row),
+ * and the folder's doc.md holds the rules a name and a comment here follow.
+ *
  * Names are PascalCase because they render as JSX (`<IconHint />`) — a lowercase
  * alias would be parsed as a DOM tag, not a component. They're the same Lucide
- * components, so they take the same props (`size`, `aria-hidden`, …). The set
- * grows as more buttons adopt it.
+ * components, so they take the same props (`size`, `aria-hidden`, …).
  *
  * The exports are grouped by what a glyph is FOR — a move the player makes, the
  * app handing something over, a mark that is no control at all, the shell around
@@ -199,10 +202,10 @@ export {
   // `NotepadText` (a spiral pad): the pen is the part that says "you WRITE
   // here", which is what separates a scratchpad from any other document.
   FilePenLine as IconScratchpad,
-  // Print to PDF. The one ACTION here with no button — print is menu-only —
-  // but the menu's legend earns it anyway: a printer is instantly
-  // scannable in a list of words, and if a print button ever appears it has
-  // already been taught. (docs/ui.md → Button iconography.)
+  // Print to PDF. The one ACTION here with no button — print is menu-only — but
+  // the menu's legend earns it anyway: a printer is instantly scannable in a
+  // list of words, and if a print button ever appears it has already been
+  // taught. (docs/ui.md → Button iconography.)
   Printer as IconPrint,
   // DESTROY a thing, as opposed to dismissing one. `Trash2` is the lidded can
   // with the lines; `Trash` is the plain one. Deliberately NOT a ✕ — an ✕ means

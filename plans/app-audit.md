@@ -27,13 +27,15 @@ findings worked or closed, and a shared `shuffle` written where nine hand-rolled
 Fisher–Yates loops had been — those nine callers are a line in seven games'
 `todo.md`, to convert as each area opens.
 
-**`icons` is OPEN** (2026-09-04): one code file stamped `cs-met-icons`,
-`doc.md`'s lede + Design committed, and eight findings recorded in
-`plans/areas/icons.md` — an unused export, archaeology in five comments,
-seven stale call-site claims, a "panel" that is a page, three names that say
-the picture, no order, the one-importer rule unguarded, and two docs that
-describe an older file. Nothing in the code has moved; the findings wait for
-Joel's read.
+**`icons` is closed** (2026-09-04): `icons.ts` is `cs-blessed-icons`, and all
+eight findings are settled — six worked, two closed with no change. The
+registry's comments lost their archaeology and their stale caller claims, four
+names now say what the glyph MEANS (`IconEndGame`, `IconRevealSolution`,
+`IconInfoSheetOpen` / `Close`), and the exports are grouped by what a glyph is
+for instead of by when it was adopted. `docs/ui.md` stopped carrying a second
+copy of the map and points at the registry. One thing found and left: a menu
+row picks its glyph by hand, so every game names the same action's glyph twice
+— a line in `src/common/menu/todo.md` for when that area opens.
 
 - **§3** is the areas, in order, and the ONLY place an area's position is
   written down.
@@ -128,7 +130,7 @@ will list the other as a dependency whichever goes first.
 |----|---|---|---|
 | | **Foundations** — read by nearly everything, reading nothing | | |
 | 1  | `utils` | `utils` | **CLOSED 2026-09-04.** The small general helpers that belong to no page, no game and no subsystem; thirty folders and every game import them |
-| 2  | `icons` | `icons` | **OPEN 2026-09-04.** the glyph registry |
+| 2  | `icons` | `icons` | **CLOSED 2026-09-04.** the glyph registry — every glyph, under the name of what it means |
 | 3  | `web-storage` | `web-storage` | storage that cannot throw, and the sticky-choice hook |
 | 4  | `outcomes` | `outcomes` | the outcome vocabulary — [docs/outcomes.md](../docs/outcomes.md) |
 | 5  | `single-flight` | `single-flight` | the guard every submit wraps |
