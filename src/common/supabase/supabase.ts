@@ -1,4 +1,4 @@
-// cs-met-supabase
+// cs-audited-supabase
 
 import { createClient } from '@supabase/supabase-js'
 import { dbFetch } from './dbFetch'

@@ -1,4 +1,4 @@
-// cs-met-supabase
+// cs-audited-supabase
 
 import { showFaultModal } from '../faults/faultStore'
 import { logDb, type DiagFields, type TransportFacts } from './dbLog'

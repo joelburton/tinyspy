@@ -1,4 +1,4 @@
-// cs-met-supabase
+// cs-audited-supabase
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { PostgrestClient } from '@supabase/postgrest-js'

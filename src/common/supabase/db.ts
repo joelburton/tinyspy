@@ -1,4 +1,4 @@
-// cs-met-supabase
+// cs-audited-supabase
 
 import { supabase } from './supabase'
 
