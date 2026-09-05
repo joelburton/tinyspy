@@ -14,8 +14,9 @@ of files were on no area's roster at all: `deep` listed them out as "names every
 game" (`deep.md:160`, `:161`) and nothing picked them up — the identical gap that
 created `utils` one folder over.
 
-**Status: READ THROUGH; re-audited at the close, EIGHT FINDINGS OPEN** (ten
-were; `F-game-lib-49` and `-50` are resolved, `-58` was found resolving `-49`). Opened
+**Status: READ THROUGH; re-audited at the close, SEVEN FINDINGS OPEN** (ten
+were; `F-game-lib-49`, `-50` and `-51` are resolved, `-58` was found resolving
+`-49`). Opened
 2026-09-03 by listing the files and stopping (§21); Joel agreed the list —
 *"that matches the files i'd expect"* — and then asked for it in groups, *"so we
 don't have to do them all as one big audit"*, the way `deep` ran in passes. All
@@ -31,14 +32,14 @@ file has been read by Claude and by Joel. The stamp records that he read the
 file; the open findings are changes wanted in files he has read, which the
 stamp was never a claim about.
 
-**Fifty-eight IDs issued; fifty settled, eight open.** Two of them —
+**Fifty-eight IDs issued; fifty-one settled, seven open.** Two of them —
 `F-game-lib-24` and `-25` — moved to [bananagrams.md](bananagrams.md) with the
 files they were about, so **56 carry a heading in this file**:
 
 | status | count | which |
 |---|---|---|
-| **OPEN** | **8** | `F-game-lib-51` … `-58`, the closing re-audit's — two stale claims, one wrong doc cite, five drifted counts, a history-in-docstrings question, a plan-cite note, a heading of fold-ins, and the stale manifest table in docs/common.md |
-| RESOLVED | 44 | includes the two that are resolved by being handed on: `F-game-lib-11` (its remaining half filed in four game areas) and `-46` (deferred to the app's standing register), and `-49`, `-50` from the re-audit |
+| **OPEN** | **7** | `F-game-lib-52` … `-58`, the closing re-audit's — one dangling section cite, one wrong doc cite, five drifted counts, a history-in-docstrings question, a plan-cite note, a heading of fold-ins, and the stale manifest table in docs/common.md |
+| RESOLVED | 45 | includes the two that are resolved by being handed on: `F-game-lib-11` (its remaining half filed in four game areas) and `-46` (deferred to the app's standing register), and `-49` … `-51` from the re-audit |
 | CLOSED, no change | 2 | `F-game-lib-29` and `-36`, both on Joel's ruling |
 | MOVED to `feedback` | 2 | `F-game-lib-27`, `-28` — open there as `F-feedback-1`, `-2` |
 
@@ -2815,7 +2816,7 @@ so: every schema defines `end_game`, most races have no use for a whole-table
 stop, and offering one beside Concede puts a second exit on the menu that means
 something else. The opt-in was never in question; only its justification was.
 
-### F-game-lib-51 · `dispatcher-test-still-says-error-collapse` · The shape F-game-lib-3 struck from the source is still in the test
+### RESOLVED 2026-09-04 — F-game-lib-51 · `dispatcher-test-still-says-error-collapse` · The shape F-game-lib-3 struck from the source is still in the test
 
 `manifestRpcs.test.ts:9-10`: *"What remains is the `{ data, error }` →
 `{ error? }` collapse for `submit_timeout` and `end_game`."*
@@ -2826,6 +2827,14 @@ envelope, which is the exact claim `F-game-lib-3` removed from
 *"Checked and still true: everything in `manifestRpcs.test.ts`"*, which was
 wrong about line 9. The test's other claims (sixteen definitions, `runEdgeFn`
 tested in `dbResult.test.ts`) do hold.
+
+#### Resolved 2026-09-04 — one sentence
+
+Joel: *"do it."* The sentence now says what the dispatcher does — binds a
+client and a function name and hands the envelope up unchanged — and the
+"one path over sixteen definitions" argument that follows it is kept as it was.
+The test's two cases already asserted the envelope shape; only the prose above
+them had not caught up.
 
 ### F-game-lib-52 · `trie-test-cites-section-seven-of-nothing` · A section number whose document was deleted
 

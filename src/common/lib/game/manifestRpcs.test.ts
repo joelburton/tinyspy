@@ -6,9 +6,10 @@
  * The start-game adapters this file also covered are gone: every `create_game`
  * returns the envelope itself now, so a manifest calls `runRpc` / `runEdgeFn`
  * and those two are tested where they live (dbResult.test.ts). What remains is
- * the `{ data, error }` → `{ error? }` collapse for `submit_timeout` and
- * `end_game`, which is small but load-bearing: it is ONE frontend path over
- * sixteen SQL definitions, so a regression here breaks every game at once.
+ * `makeRpcDispatcher`, which binds a client and a function name and hands the
+ * envelope up unchanged for `submit_timeout` and `end_game`. Small but
+ * load-bearing: it is ONE frontend path over sixteen SQL definitions, so a
+ * regression here breaks every game at once.
  *
  * `makeRpcDispatcher` takes the `db` as a param, so it is tested with a fake
  * client and no mocking at all.
