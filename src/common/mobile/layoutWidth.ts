@@ -1,16 +1,5 @@
 // cs-audited-mobile
 
-/**
- * Publish the usable viewport width (excluding the vertical scrollbar) as the
- * CSS custom property `--client-width` on the document root, kept fresh with a
- * ResizeObserver.
- *
- * The viewport-bound game layout sizes the board column from the available
- * width (`--avail-w`, see common/game-page/PlayArea.module.css). The obvious
- * source, `100vw`, is wrong: **`100vw` INCLUDES the vertical scrollbar's width,
- * but the content box doesn't.**
- */
-
 let last = -1
 
 function publish(): void {
@@ -22,7 +11,16 @@ function publish(): void {
   document.documentElement.style.setProperty('--client-width', `${w}px`)
 }
 
-/** Install the measurement (call once at app startup, from main.tsx). */
+/**
+ * Publish the usable viewport width — what's left after the vertical scrollbar —
+ * as `--client-width` on the document root, and keep it fresh. Call once at app
+ * startup, from main.tsx.
+ *
+ * The viewport-bound game layout sizes the board column from the available width
+ * (`--avail-w`, see common/game-page/PlayArea.module.css). The obvious source,
+ * `100vw`, is wrong: **`100vw` INCLUDES the vertical scrollbar's width, but the
+ * content box doesn't.**
+ */
 export function trackLayoutWidth(): void {
   publish()
   // Observe the root: its content-box width changes on window resize AND when a

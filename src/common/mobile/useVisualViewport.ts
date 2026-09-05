@@ -2,25 +2,12 @@
 
 import { useSyncExternalStore } from 'react'
 
-/**
- * The visual viewport — the region actually visible right now — as
- * `{ height, offsetTop }` in CSS pixels.
- *
- * The key difference from `window.innerHeight` (the *layout* viewport): on a
- * phone the visual viewport SHRINKS when the on-screen keyboard opens, while the
- * layout viewport does not. So a `position: fixed` full-screen sheet sized to
- * the layout viewport extends *behind* the keyboard — you can scroll the webview
- * to the hidden part, and iOS auto-scrolls there on focus. Sizing to the visual
- * viewport instead makes the sheet end exactly at the keyboard's top edge.
- *
- * `offsetTop` is how far the visible region has been pushed down (non-zero when
- * iOS scrolls the page to keep a focused field visible); pin a fixed sheet's
- * `top` to it so the sheet tracks the visible region rather than drifting.
- *
- * Falls back to the layout viewport where `visualViewport` is unavailable (old
- * browsers, jsdom) — there's no keyboard to account for there anyway.
- */
-type ViewportMetrics = { height: number; offsetTop: number }
+type ViewportMetrics = {
+  // Height of the region actually visible right now, in CSS pixels.
+  height: number
+  // How far that region has been pushed down — see the hook's docstring.
+  offsetTop: number
+}
 
 // Module-level cache so getSnapshot can return a STABLE reference when nothing
 // changed — useSyncExternalStore compares snapshots with Object.is, so returning
@@ -58,6 +45,25 @@ function getServerSnapshot(): ViewportMetrics {
   return cache
 }
 
+/**
+ * The part of the page a phone can actually show right now, as
+ * `{ height, offsetTop }` in CSS pixels — call this when a full-screen sheet
+ * has to end where the on-screen keyboard begins.
+ *
+ * The difference from `window.innerHeight` (the *layout* viewport): on a phone
+ * the visual viewport SHRINKS when the keyboard opens and the layout viewport
+ * does not. So a `position: fixed` sheet sized to the layout viewport extends
+ * *behind* the keyboard — you can scroll the webview to the hidden part, and iOS
+ * auto-scrolls there on focus. Sizing to the visual viewport ends the sheet at
+ * the keyboard's top edge instead.
+ *
+ * `offsetTop` is how far the visible region has been pushed down, non-zero when
+ * iOS scrolls the page to keep a focused field visible; pin a fixed sheet's
+ * `top` to it so the sheet tracks the visible region rather than drifting.
+ *
+ * Falls back to the layout viewport where `visualViewport` is unavailable (old
+ * browsers, jsdom) — there's no keyboard to account for there anyway.
+ */
 export function useVisualViewport(): ViewportMetrics {
   return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
 }

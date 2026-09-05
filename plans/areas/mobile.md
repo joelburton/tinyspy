@@ -5,8 +5,8 @@ The folders it reads: `mobile`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN** (2026-09-05). Roster agreed; every file read. Thirteen findings
-below; worked so far: F-mobile-1, F-mobile-2, F-mobile-3, F-mobile-4,
-F-mobile-5, F-mobile-11, F-mobile-13.
+below; worked so far: F-mobile-1 through F-mobile-7, F-mobile-11, F-mobile-13.
+Open: F-mobile-8, F-mobile-9, F-mobile-10, F-mobile-12.
 
 ## The roster
 
@@ -230,7 +230,7 @@ called itself the companion to the `@media (max-width: 56.25rem)` overrides.
 After F-mobile-4 no stylesheet writes that literal at all — it says
 `@media (--mobile)` now, which was the last piece of F-mobile-2.
 
-### F-mobile-6 · `caller-story-in-hook` · The hooks tell their callers' stories, and one tells the wrong one
+### WORKED · F-mobile-6 · `caller-story-in-hook` · The hooks tell their callers' stories, and one tells the wrong one
 
 `useIsCoarsePointer`'s function docstring spends six lines on FloatingPanel:
 "the flagship use", the react-draggable `preventDefault` touchstart bug, "remove
@@ -248,7 +248,19 @@ go icon-only because the below-board row is tight on a phone. The docstring's
 rule for choosing it should cover both jobs, or state the general one (a phone
 is the device with no room to spare) and let call sites say which room.
 
-### F-mobile-7 · `docstring-marker` · Five files, five different answers to "what gets `/**`"
+**Done (2026-09-05), together with F-mobile-7** — what a docstring SAYS and
+which block CARRIES it are one edit, and splitting them would have meant writing
+these docstrings twice.
+
+`useIsCoarsePointer` now says what a coarse pointer means (no precise pointer,
+so dragging / resizing / hover / small targets are out) and when to pick it over
+`useIsMobile`; the FloatingPanel story is left where it was already told twice,
+at the call site and in the e2e header. `useIsPhone` states the general rule — a
+phone is the device with no room to spare — and says outright that what is tight
+varies by caller, so the call site owns the reason. Both existing button call
+sites already carry theirs.
+
+### WORKED · F-mobile-7 · `docstring-marker` · Five files, five different answers to "what gets `/**`"
 
 The per-area `/**`-vs-`//` pass (plan §4 → "The docstring marker"):
 
@@ -268,6 +280,22 @@ ONE `/**` on the exported symbol and let it carry the file. Resolution: each
 hook gets one `/**` on its export; the query constant gets a `//` line or
 nothing (after F-mobile-3 it is exported and the docstring names it);
 `layoutWidth`'s floating block becomes `trackLayoutWidth`'s docstring.
+
+**Done (2026-09-05).** Every file in the folder now carries exactly one
+top-level `/**`, on the export a caller reaches for — the three hooks, the
+engine, the reader, the viewport hook, `trackLayoutWidth`. The three query
+constants took `//` lines instead, which is also where "its spec asserts this
+against the CSS" now lives.
+
+**The rule needed one clarification, since F-mobile-3 changed the file's
+shape**: each hook file has TWO exports now (the hook and its query constant),
+so "one `/**` on the export" is really *on the export a caller reaches for* —
+the hook. Anything a caller never imports says its piece in `//`.
+
+`ViewportMetrics` was the one judgment call. The audit called a `/**` on a type
+fine, but its block was the whole file's explanation sitting on a private alias,
+so the explanation moved to the hook and the type kept two `//` field notes —
+per the repo rule that a field note is a comment, not a docstring.
 
 ### F-mobile-8 · `window-guards` · Two files in one folder disagree on whether `window` can be missing
 

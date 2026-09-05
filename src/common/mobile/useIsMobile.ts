@@ -2,16 +2,14 @@
 
 import { useMediaQuery } from './useMediaQuery'
 
-/**
- * The shared desktop→mobile line (see docs/mobile.md). Phones + portrait
- * tablets sit below it; landscape tablets + desktops at/above keep the desktop
- * layout. The JS copy of `--mobile` in breakpoints.css; exported so
- * `useIsMobile.test.ts` can hold the two copies together.
- */
+// The JS copy of `--mobile` in breakpoints.css; useIsMobile.test.ts asserts the
+// two still say the same thing.
 export const MOBILE_QUERY = '(max-width: 56.25rem)'
 
 /**
- * `true` when the viewport is at mobile width (≤ the shared breakpoint).
+ * `true` below the shared desktop→mobile line — where the two-column layouts
+ * fold to one. Phones and portrait tablets are below it; landscape tablets and
+ * desktops are not (docs/mobile.md).
  *
  * The JS companion to the `@media (--mobile)` overrides — for the rare case a
  * mobile layout can't be pure CSS because it changes what the JS *renders*
