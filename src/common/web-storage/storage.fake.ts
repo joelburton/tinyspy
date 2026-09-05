@@ -1,4 +1,4 @@
-// cs-audited-web-storage
+// cs-blessed-web-storage
 
 /**
  * A Storage-shaped stand-in for tests, plus a switch that makes it throw.
@@ -15,8 +15,8 @@
  * still rolls its own, and holds the exemption from
  * `src/guards/rawStorage.test.ts` that goes with doing so.
  *
- * The reason it is worth sharing rather than copying a third time is the two
- * switches, {@link InstalledStorage.blockAccess} and
+ * The reason it is worth sharing rather than hand-rolling one per suite is the
+ * two switches, {@link InstalledStorage.blockAccess} and
  * {@link InstalledStorage.failCalls}: making storage FAIL is the interesting
  * case — it is the entire reason `common/web-storage/storage.ts` exists — and it
  * is the fiddly part. A browser blocking site data throws on the property

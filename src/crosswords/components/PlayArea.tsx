@@ -66,11 +66,12 @@ import { db } from '../db'
 import styles from './PlayArea.module.css'
 import '../theme.css'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
-import { readStored, writeStored } from '@/common/web-storage/storage'
+import { useStickyChoice } from '@/common/web-storage/useStickyChoice'
 
 /** Where the display-only "collapse rebuses" preference is remembered, per
  *  browser. Not per game or per player — it is how you like to READ a grid. */
 const REBUS_KEY = 'puzpuzpuz:crosswords:collapseRebus'
+const REBUS_OPTIONS = ['off', 'on'] as const
 
 /** Timed info pill shown after a Check whose scope contained pencilled cells —
  *  Check skips them (see `handleCheck`), so this flags that they weren't tested.
@@ -161,13 +162,8 @@ export function PlayArea(ctx: GamePageCtx) {
   const [noteOpen, setNoteOpen] = useState(false)
   // Display-only "collapse rebuses" preference (crossplay parity), persisted
   // per browser. When on, multi-char rebus fills show only their first letter.
-  const [collapseRebus, setCollapseRebus] = useState<boolean>(
-    // No storage reads as off, same as never having turned it on.
-    () => readStored('local', REBUS_KEY, null) === '1',
-  )
-  useEffect(() => {
-    writeStored('local', REBUS_KEY, collapseRebus ? '1' : '0')
-  }, [collapseRebus])
+  const [rebusPref, setRebusPref] = useStickyChoice(REBUS_KEY, REBUS_OPTIONS, 'off')
+  const collapseRebus = rebusPref === 'on'
   // The AI clue-explanation dialog: null = closed. `explainLabel` is the clue
   // it was opened for (e.g. "12A"), captured at click time.
   const [explain, setExplain] = useState<ExplainState | null>(null)
@@ -681,7 +677,7 @@ type Explained =
                 // first letter (persisted per browser).
                 id: 'collapse-rebuses',
                 label: collapseRebus ? 'Expand rebuses' : 'Collapse rebuses',
-                onClick: () => setCollapseRebus((v) => !v),
+                onClick: () => setRebusPref(collapseRebus ? 'off' : 'on'),
               },
             ],
           },
@@ -800,7 +796,7 @@ type Explained =
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, game, hasNote, pencil, collapseRebus, mode, myConceded, handleShowNote, handleExplain, toggleSolution, handleRestart, handleDownloadIpuz, handlePrintSolution, isPlayable, isTerminal, solutionShown])
+  }, [menu, game, hasNote, pencil, collapseRebus, setRebusPref, mode, myConceded, handleShowNote, handleExplain, toggleSolution, handleRestart, handleDownloadIpuz, handlePrintSolution, isPlayable, isTerminal, solutionShown])
 
   const over: (TerminalCopy & { verdictNode?: ReactNode }) | null = isTerminal
     ? buildOver(playState, status, mode, myId, players)

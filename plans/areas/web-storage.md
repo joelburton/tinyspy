@@ -4,7 +4,8 @@ The folders it reads: `web-storage`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN** (2026-09-04). Roster agreed, five files `cs-met-web-storage`.
+**Status: CLOSED** (2026-09-05). Five files `cs-blessed-web-storage`, six
+findings settled — five worked, one closed with no change.
 
 ## The roster
 
@@ -156,7 +157,7 @@ wrapper's name-not-object signature prevents — fails that case and only that
 case, with the quota case still green. That is the gap the old suite had: it
 would have passed against the broken wrapper.
 
-### F-web-storage-3 · `nine-of-ten` · A count in the docstring that is right today and rots at the next caller
+### WORKED · F-web-storage-3 · `nine-of-ten` · A count in the docstring that is right today and rots at the next caller
 
 `storage.ts`: *"Nine of ten want 'treat it as unset'."* Verified — ten read
 sites, nine pass `null`. It is exactly the tally that goes stale silently: an
@@ -164,7 +165,14 @@ eleventh caller makes it wrong and nothing fails. The condition is what the
 sentence is reaching for — **every caller but `reloadOnStaleChunk`, which fails
 closed** — and that survives the count changing.
 
-### F-web-storage-4 · `wrapper-argues-the-guards-case` · The wrapper's docstring and the guard's carry the same three paragraphs
+**Done**, and written one step further than "every caller but one", which would
+have gone silently wrong at the second exception in the same way the tally goes
+wrong at the eleventh caller. What the docstring says now is the RULE and its
+named exception: a caller persisting a preference passes `null`, because no
+storage reads the same as no stored choice; `reloadOnStaleChunk` is the one
+that must not.
+
+### WORKED · F-web-storage-4 · `wrapper-argues-the-guards-case` · The wrapper's docstring and the guard's carry the same three paragraphs
 
 `storage.ts` and `rawStorage.test.ts` both explain: why a wrapper at all (the
 throw is on the property access), why `whenUnavailable` is required
@@ -179,10 +187,15 @@ The natural split is: the **wrapper** owns why it is shaped this way; the
 off the roster, so trimming only `storage.ts` would delete the half that is
 better placed and leave the duplicate standing.
 
-**Open question for Joel:** does the guard's docstring count as a mechanical
-consequence here, or does this close with no change?
+**Done, and it needed no edit to the guard.** The split is: the wrapper owns
+why it is shaped this way, the guard owns why a guard exists — and the guard
+already carried its half in full, so only `storage.ts` had a paragraph to lose.
+What it says now is a pointer: the guard fails the build on a raw touch
+anywhere else, and makes the case for why that is worth a guard rather than a
+convention. The eight-files-broken-by-two history went with it; that is the
+guard's evidence for its own existence, and it is still there.
 
-### F-web-storage-5 · `sticky-boolean` · One hook for a sticky choice; three sticky booleans hand-rolled
+### WORKED · F-web-storage-5 · `sticky-boolean` · One hook for a sticky choice; three sticky booleans hand-rolled
 
 `useStickyChoice` is `useState` + validated persistence. Three other surfaces
 are the same shape with two options:
@@ -199,10 +212,33 @@ agree is a smaller question with the same answer-shape. Crosswords has no such
 reason. Reducing this to one idea is what the sprint is for, and the DECISION
 belongs to this folder even though all three call sites are elsewhere.
 
-**Open question for Joel:** does `useStickyChoice<'0' | '1'>` cover a flag, or
-does the folder grow a `useStickyFlag`?
+**Recommended and done, three parts.**
 
-### F-web-storage-6 · `json-round-trips` · Two callers JSON their own values around the wrapper
+- **Crosswords converts to `useStickyChoice`.** Reading its call site turned the
+  finding from a duplication into a defect: the write was in a `useEffect` keyed
+  on the value, so it fired ON MOUNT and persisted `'0'` for every player who
+  had never touched the toggle. That is the exact thing the hook's first stated
+  decision exists to prevent, and it makes "never chose" and "chose off"
+  indistinguishable in storage — harmless while the default is off, and a
+  silent stranding of every untouched player the day it isn't.
+- **No `useStickyFlag`.** One caller would use it. `useStickyChoice` with
+  `['off', 'on']` covers the case, and `'off'`/`'on'` reads better in a storage
+  inspector than `'0'`/`'1'` — the stored value was orphaned by the key rename
+  in this area anyway, so the encoding change is free here and would not be
+  later.
+- **The two stores stay stores.** `chatOpenStore` and `scratchpadOpenStore` are
+  toggled from outside the panel and have subscribers; that is machinery the
+  hook does not have, and a real reason rather than drift. What IS drift is
+  their encodings disagreeing (`'true'`/`'false'` against `'1'`/`'0'`) — a
+  `Maybe` in each folder's `todo.md`, since it is invisible to players and
+  settling it orphans values.
+
+**One cost worth recording**: the menu-sections effect that closes over the
+toggle now lists `setRebusPref` in its deps. A `useState` setter is provably
+stable to the exhaustive-deps rule; a hook-returned `useCallback` is not, even
+when it is stable in fact. The lint warning was right to ask.
+
+### CLOSED, no change · F-web-storage-6 · `json-round-trips` · Two callers JSON their own values around the wrapper
 
 `useDraggablePanel` (a rect) and `gameInvites` (a capped array of ids) each
 `JSON.stringify` on the way in and parse-and-validate on the way out. The
@@ -231,7 +267,38 @@ an omission.
 
 ## Closing
 
-- [ ] the whole area re-read in one sitting after the last group
-- [ ] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
-- [ ] `todo.md` holds everything still owed; nothing durable left in this file
-- [ ] every file on the roster blessed, or its stamp says why not
+- [x] **the whole area re-read in one sitting after the last group.** Four
+  things, three of them this area's own findings recurring in prose written the
+  same week — which is what the closing re-read is for:
+  - `storage.fake.ts` said sharing it beat "copying a third time". Converting
+    `useStickyChoice.test.ts` is what made that false; it now names the
+    condition (hand-rolling one per suite) rather than a count. Same fault as
+    `nine-of-ten`, in a file edited an hour after it was fixed.
+  - `readStored`'s own docstring still said `null` "is what almost every caller
+    wants" — a soft restatement of the rule the module docstring had just been
+    given. One home per rule: the function now points up.
+  - `useStickyChoice` said its in-memory degradation "is exactly the old
+    behavior" — archaeology, and stale. It now names both ways storage fails,
+    which is what its test covers since the conversion.
+  - `useStickyChoice`'s lede called itself the "segmented-control counterpart",
+    written when ClubPage was its only caller. Crosswords made that narrow.
+- [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED` —
+  verified by planting a broken heading, which fails the guard.
+
+  **The first draft was written FROM the docstrings and had to be cut by half**
+  (Joel: *"are you sure that the huge docstring in storage.ts doesn't duplicate
+  what's in the doc.md for this area?"*). It did: four of Design's five
+  paragraphs and three of Details' five items restated a docstring, which is the
+  one thing `docs/common-folders.md` says a `doc.md` must not do. The cut kept
+  what only the folder can say — `sessionStorage` has one caller and why, a
+  boolean is a two-position choice so there is no `useStickyFlag`, and a key
+  rename orphans its value — and cites `storage.ts` for the mechanics. The
+  general fault: a `doc.md` written by summarizing the files it sits beside will
+  always come out as a tour of them.
+- [x] `todo.md` holds everything still owed; nothing durable left in this file.
+  The folder's own `todo.md` is empty — its one item was worked here. What the
+  area handed OUT: `common/chat/todo.md` (adopt the shared fake, with this
+  area's conversion as the worked example) and a `Maybe` in both
+  `common/chat/todo.md` and `common/scratchpad/todo.md` for the two open-store
+  encodings disagreeing.
+- [x] every file on the roster blessed — all five `cs-blessed-web-storage`.

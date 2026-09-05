@@ -1,4 +1,4 @@
-// cs-audited-web-storage
+// cs-blessed-web-storage
 
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { readStored, removeStored, writeStored } from './storage'

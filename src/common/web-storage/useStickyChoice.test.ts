@@ -1,4 +1,4 @@
-// cs-audited-web-storage
+// cs-blessed-web-storage
 
 import { act, renderHook } from '@testing-library/react'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'

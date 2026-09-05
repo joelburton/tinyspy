@@ -37,6 +37,21 @@ copy of the map and points at the registry. One thing found and left: a menu
 row picks its glyph by hand, so every game names the same action's glyph twice
 — a line in `src/common/menu/todo.md` for when that area opens.
 
+**`web-storage` is closed** (2026-09-05): five files `cs-blessed-web-storage`,
+six findings — five worked, one closed with no change. The shape every stored
+key takes was written in a hook's param docstring and asserted in passing by a
+comment, neither of which a new caller reads; it now lives in the wrapper all of
+them go through, and the seven keys that disagreed were renamed. The
+sticky-choice test dropped its hand-rolled fake for the shared one, which let it
+cover the way storage actually fails in a blocking browser — the property access
+throwing, which no test had touched, and which the old suite would have passed
+against a wrapper that had lost it. Crosswords' rebus toggle turned out to be
+that hook rewritten by hand, with its write in an effect that fired on mount;
+converting it removed the write and settled that a boolean is a two-position
+choice rather than a case for a second hook. One thing found and left:
+`chatOpenStore.test.ts` is the last hand-rolled storage fake, a line in
+`src/common/chat/todo.md`.
+
 - **§3** is the areas, in order, and the ONLY place an area's position is
   written down.
 - **§4** is the process — the stamps, what opening an area means, what "broken"
@@ -131,7 +146,7 @@ will list the other as a dependency whichever goes first.
 | | **Foundations** — read by nearly everything, reading nothing | | |
 | 1  | `utils` | `utils` | **CLOSED 2026-09-04.** The small general helpers that belong to no page, no game and no subsystem; thirty folders and every game import them |
 | 2  | `icons` | `icons` | **CLOSED 2026-09-04.** the glyph registry — every glyph, under the name of what it means |
-| 3  | `web-storage` | `web-storage` | storage that cannot throw, and the sticky-choice hook |
+| 3  | `web-storage` | `web-storage` | **CLOSED 2026-09-05.** storage that cannot throw, and the sticky-choice hook |
 | 4  | `outcomes` | `outcomes` | the outcome vocabulary — [docs/outcomes.md](../docs/outcomes.md) |
 | 5  | `single-flight` | `single-flight` | the guard every submit wraps |
 | 6  | `mobile` | `mobile` | the one desktop→mobile breakpoint, the device hooks, the viewport. `breakpoints.css` lives here |

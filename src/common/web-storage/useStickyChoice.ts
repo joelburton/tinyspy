@@ -1,12 +1,13 @@
-// cs-audited-web-storage
+// cs-blessed-web-storage
 
 import { useCallback, useState } from 'react'
 import { readStored, writeStored } from './storage'
 
 /**
  * `useState` for a small set of named choices, mirrored to `localStorage` so the
- * choice survives a reload — the segmented-control counterpart to
- * `useDraggablePanel`'s rect persistence.
+ * choice survives a reload — the counterpart, for a control with a few named
+ * positions, to `useDraggablePanel`'s rect persistence. A two-position toggle
+ * is the same thing: crosswords' rebus preference is `['off', 'on']`.
  *
  * Three properties worth stating, because each is a decision rather than an
  * implementation detail:
@@ -17,9 +18,10 @@ import { readStored, writeStored } from './storage'
  *   - **A stored value is VALIDATED against `options`.** Anything else (a renamed
  *     option, a hand-edited key, a value from an older build) falls back rather
  *     than wedging the UI into a state its control can't represent.
- *   - **`localStorage` failures are non-fatal.** Private mode throws on read and
- *     write; the choice then simply lives in memory for the session, which is
- *     exactly the old behavior.
+ *   - **`localStorage` failures are non-fatal.** Both kinds: a browser blocking
+ *     site data throws on `window.localStorage` itself, a full quota throws on
+ *     the write. Either way the choice lives in memory for the session — it
+ *     works, it just stops outliving the tab.
  *
  * The key is read ONCE, in the lazy initializer — same contract as
  * `useDraggablePanel`. So a key that changes over the component's life won't
