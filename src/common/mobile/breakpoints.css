@@ -35,17 +35,24 @@
 @custom-media --mobile (max-width: 56.25rem);
 
 /* Phones only (portrait OR landscape) — the tightest devices, distinct from
- * tablets. `--phone` is the union used by phone-only tweaks (e.g. the ultra-tight
- * page padding). 34rem = 544px catches every phone width in portrait but not an
- * iPad (768); the landscape arm keys off a short viewport (a phone on its side),
- * which excludes landscape tablets (height ≫ 27.5rem). */
+ * tablets. `--phone` is the union, and the one phone-only tweaks reach for (e.g.
+ * the ultra-tight page padding); it is COMPOSED from the two arms rather than
+ * repeating them, so each condition is written once and a stylesheet wanting
+ * just one orientation has a name for it. 34rem = 544px catches every phone
+ * width in portrait but not an iPad (768); the landscape arm keys off a short
+ * viewport (a phone on its side), which excludes landscape tablets
+ * (height ≫ 27.5rem). */
 @custom-media --phone-p (max-width: 34rem);
 @custom-media --phone-l (orientation: landscape) and (max-height: 27.5rem);
-@custom-media --phone (max-width: 34rem), (orientation: landscape) and (max-height: 27.5rem);
+@custom-media --phone (--phone-p), (--phone-l);
 
 /* Tablets — roomy touch devices; mostly inherit the desktop layout with less
  * width. Split by orientation for the occasional per-mode tweak. tablet-l is
  * distinguished from desktop by `pointer: coarse` (a landscape tablet is
- * desktop-width but touch). */
+ * desktop-width but touch).
+ *
+ * These two are vocabulary: no stylesheet reads either one today, and they are
+ * kept so a tablet-only tweak has a name waiting rather than a hand-written
+ * condition. Nothing else here is unread. */
 @custom-media --tablet-p (min-width: 34.0625rem) and (max-width: 56.25rem) and (orientation: portrait);
 @custom-media --tablet-l (orientation: landscape) and (min-height: 27.5625rem) and (pointer: coarse);

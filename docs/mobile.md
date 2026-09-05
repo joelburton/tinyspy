@@ -64,26 +64,35 @@ reference it is PostCSS **`@custom-media`**:
 @custom-media --mobile   (max-width: 56.25rem);          /* the existing collapse line */
 @custom-media --phone-p  (max-width: 34rem);             /* narrow portrait */
 @custom-media --phone-l  (orientation: landscape) and (max-height: 27.5rem);
+@custom-media --phone    (--phone-p), (--phone-l);       /* either — composed from the arms */
 @custom-media --tablet-p (min-width: 34.0625rem) and (max-width: 56.25rem) and (orientation: portrait);
 @custom-media --tablet-l (orientation: landscape) and (min-height: 27.5625rem) and (pointer: coarse);
 
 @media (--phone-l) { … }   /* usage in any module */
 ```
 
-`--touch` and `--mobile` do the heavy lifting (touch behaviors + layout
-collapse); the four orientation classes are for the occasional per-mode tweak.
-The thresholds above are a **starting proposal — tune against real devices.**
+`--touch`, `--mobile` and `--phone` are what stylesheets actually write (touch
+behaviors, layout collapse, phone-tight tweaks). `--phone-p` / `--phone-l` earn
+their keep by composing `--phone`, and are there for a tweak that wants one
+orientation only. The two tablet classes are vocabulary — nothing reads them
+today; they exist so a tablet-only tweak has a name waiting rather than a
+hand-written condition. The thresholds above are a **starting proposal — tune
+against real devices.**
 
 **Mechanism (wired up):** `postcss-custom-media` + `@csstools/postcss-global-data`,
 configured in [`postcss.config.js`](../postcss.config.js) — global-data injects
-the definitions from `src/common/breakpoints.css` into every file, custom-media
+the definitions from `src/common/mobile/breakpoints.css` into every file, custom-media
 resolves them. Vite auto-loads the config. Definitions live once in
 [`breakpoints.css`](../src/common/mobile/breakpoints.css); edit a value there and it
 changes everywhere. **A running `vite dev` only picks up the postcss config on
 restart** (it's a startup-time config, not HMR'd) — so after pulling this,
-restart the dev server or the breakpoints won't resolve. The JS side keeps its
-own copy of the `--mobile` line ([`useIsMobile`](../src/common/mobile/useIsMobile.ts));
-the two must be kept in sync by hand.
+restart the dev server or the breakpoints won't resolve. Three of the names have
+a JS copy, since matchMedia can't resolve a custom-media name:
+[`useIsMobile`](../src/common/mobile/useIsMobile.ts) ↔ `--mobile`,
+[`useIsPhone`](../src/common/mobile/useIsPhone.ts) ↔ `--phone`,
+[`useIsCoarsePointer`](../src/common/mobile/useIsCoarsePointer.ts) ↔ `--touch`.
+Each hook's spec reads the stylesheet and asserts the two still match, so a
+value changed here fails that spec until the hook follows.
 
 ### Input is the primary axis
 

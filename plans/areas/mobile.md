@@ -4,8 +4,9 @@ The folders it reads: `mobile`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN** (2026-09-05). Roster agreed; every file read; twelve findings
-below, of which F-mobile-3 is worked.
+**Status: OPEN** (2026-09-05). Roster agreed; every file read. Thirteen findings
+below; worked so far: F-mobile-1, F-mobile-3, F-mobile-11, F-mobile-13, and the
+doc + stylesheet halves of F-mobile-2.
 
 ## The roster
 
@@ -43,7 +44,7 @@ CSS side.
 
 ## Findings
 
-### F-mobile-1 · `dead-custom-media` · Four of the seven names have no reader
+### WORKED · F-mobile-1 · `dead-custom-media` · Four of the seven names have no reader
 
 `--phone-p`, `--phone-l`, `--tablet-p` and `--tablet-l` are declared and read by
 no stylesheet (grep `(--<name>)` across `src/`: zero each). `breakpoints.css`
@@ -60,6 +61,29 @@ inside a definition) so the arms have a reader. The doc's "five classes defined
 once" was written before any of them was used; the file has three. Joel's call
 — an unread declaration is the shape the dead-token guard exists for on the
 property side, and this is the same thing on the media side.
+
+**Done (2026-09-05) — branch (b), all four kept.** `--phone` is now
+`(--phone-p), (--phone-l)`, so its condition is written once and the arms have a
+reader; the tablet pair stays as vocabulary, and the stylesheet says so in a
+sentence rather than implying a use that does not exist.
+
+Three things this turned up or needed:
+
+- **The reader had to learn to resolve a name inside a definition**, since
+  `readCustomMedia('--phone')` was suddenly returning `(--phone-p), (--phone-l)`
+  against a hook that says the condition. It now substitutes until nothing is
+  left to substitute, which is what PostCSS does — so a spec compares against
+  the condition a browser sees, not the text of one line.
+- **The emitted CSS is byte-identical.** Every distinct `@media` condition in a
+  full `vite build` was diffed against the same build on HEAD: seven, unchanged.
+  Composition is a source-level change only.
+- **The arms now bite.** Planting `34rem` → `35rem` in `--phone-p` fails
+  `useIsPhone.test.ts` — before this, editing that arm changed nothing anywhere.
+
+Two doc errors fell out of the same paragraph and are fixed with it: the
+`@custom-media` block in `docs/mobile.md` never listed `--phone` at all (the
+most-read of the three), and the sentence beneath it called the four arms "for
+the occasional per-mode tweak" as though they were in use.
 
 ### F-mobile-2 · `mirror-count` · "The JS side keeps its own copy of the `--mobile` line" — it keeps three
 
@@ -85,10 +109,13 @@ custom-media, and how it stays in sync.
 **Half of it went with F-mobile-3** (2026-09-05), which had to rewrite the same
 two sentences: the stylesheet's NOTE names all three mirrors and the test that
 holds them, and `MOBILE_QUERY`'s docstring no longer claims there is no build
-step. **Left here: `docs/mobile.md`'s copy of the undercount** (the same
-paragraph F-mobile-11 corrects), and `useIsMobile`'s HOOK docstring, which
-still describes itself against `@media (max-width: 56.25rem)` overrides rather
-than against the `--mobile` name.
+step. **The doc half went with F-mobile-1**, which rewrote that paragraph:
+`docs/mobile.md` now names all three mirrors and says a spec holds each pair.
+
+**Left: `useIsMobile`'s HOOK docstring**, which still describes itself against
+`@media (max-width: 56.25rem)` overrides rather than against the `--mobile`
+name — the last place the raw literal stands in for the name. One sentence,
+and F-mobile-7 opens that file anyway.
 
 ### WORKED · F-mobile-3 · `sync-by-test` · "Kept in sync by hand" is written five times and nothing checks it
 
@@ -264,13 +291,15 @@ Judged per unit; F-mobile-3 is the first and is not repeated here.
   F-mobile-3 asserts `Q`, `useMediaQuery`'s spec asserts the behavior. A per-hook
   render test would test the engine a second time.
 
-### F-mobile-11 · `stale-doc-path` · `docs/mobile.md` names the pre-reorg path
+### WORKED · F-mobile-11 · `stale-doc-path` · `docs/mobile.md` names the pre-reorg path
 
 `docs/mobile.md → Naming the device classes` says global-data injects "the
 definitions from `src/common/breakpoints.css`"; the link two lines later points
 at the real `src/common/mobile/breakpoints.css`. The doc is off the roster; the
 one-word fix is a side effect and should ride with whichever finding touches
 that paragraph (F-mobile-1 or F-mobile-2 both do).
+
+**Done (2026-09-05)**, riding with F-mobile-1 as predicted.
 
 ### F-mobile-12 · `hand-rolled-hover-query` · `TooltipHost` reads a device query the way this folder did before it had an engine
 
