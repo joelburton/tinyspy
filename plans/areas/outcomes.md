@@ -70,7 +70,7 @@ spend a hue at all, glossing two drawn glyphs rather than naming values — and
 no code symbol is called either word. Left for `pdf`'s area to decide, since
 "✓ won" is not obviously an improvement on paper.
 
-### F-outcomes-2 · `two-outcomes` · "outcome" names two different closed lists and neither one says so
+### RESOLVED · F-outcomes-2 · `two-outcomes` · "outcome" names two different closed lists and neither one says so
 
 The repo spends the word twice, and both spends are documented, guarded, and
 correct on their own terms:
@@ -87,9 +87,21 @@ has as a naming principle. The lists do not even overlap in shape: `won` and
 `lost` are tones, while the game-end causes are deliberately disjoint from
 `play_state` values.
 
-Not proposing a rename. Both names are right in their own context and both
-have earned their spelling; what is missing is one sentence in each place
-saying the other exists.
+**Resolution: rename `status.outcome` → `status.terminal_cause`.** Filed under
+Soon in `src/common/outcomes/todo.md` with its full scope, to run after the
+sprint as one pass; no fallback key, single cutover (all Joel's).
+
+I recommended a documentation fix here and was overruled, correctly: *"that
+was a very poor recommendation — have one of our most central terms be used to
+mean something else?!"* The reasoning I used — that both names are right in
+their own context and a stored JSONB key across sixteen games is expensive to
+move — weighs migration cost against a collision at the center of the
+vocabulary, which is the wrong trade. `outcome` is what a pill, a tile, a log
+bar and an envelope all say; the status key is the one that yields.
+
+Worth keeping from the wrong answer: the two lists really are different KINDS
+of thing, a tone and a cause, and that is what makes `cause` the right second
+word rather than a qualifier on `outcome`.
 
 ### RESOLVED · F-outcomes-3 · `theme-roles-count` · The four-role claim is three roles short, and following it fails a guard
 
