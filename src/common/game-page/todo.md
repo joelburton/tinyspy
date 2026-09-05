@@ -15,6 +15,24 @@
 - `PlayAreaMountLog.tsx` exports two components (`PlayAreaSlotLog`,
   `PlayAreaReadyLog`), so "the filename is the component" is false here. Split
   or justify.
+- **`GamePage` should build the play surface itself, and drop `children`.**
+  Today the hole in the middle of the shell is filled by the caller: `children`
+  is a render-prop, and `App.tsx` passes in the two mount logs, the error
+  boundary, the Suspense and `<manifest.PlayArea {...ctx} />` — five levels of
+  plumbing that are identical for every game and live in the routing file.
+  Nothing in there needs the route: `PlayArea` comes off the `manifest` App
+  hands down on the line above, and `App` is `GamePage`'s only caller, so the
+  render-prop's flexibility is unused. Building it here collapses the route to
+  `<GamePage key={gameId} gameId session manifest />`, drops two of App's three
+  imports out of this folder, and lets `PlayAreaErrorBoundary` stop explaining
+  where it is mounted from. Behavior is unchanged — the same wrappers in the
+  same order, under `PauseBoundary` as now.
+- `PlayAreaErrorBoundary.tsx`'s docstring says the boundary sees a chunk
+  failure only when the stale-chunk path declined to reload. It also catches
+  one ON the reload path: Vite's preload helper returns instead of throwing
+  when the error is default-prevented, so the failed import resolves to
+  nothing, the manifest's `.then((m) => ({ default: m.PlayArea }))` throws on
+  `undefined`, and the card paints for the frame before the reload lands.
 
 ## Someday
 

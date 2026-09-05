@@ -5,7 +5,8 @@ The folders it reads: `boot` · `main.tsx` · `App.tsx` · `themes/loadTheme.ts`
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN** — audited 2026-09-05, twelve findings, none worked yet.
+**Status: OPEN** — audited 2026-09-05, twelve findings; F-boot-1 closed with no
+change, F-boot-2 worked, F-boot-3 handed to `game-page`, the other nine open.
 
 ## The roster
 
@@ -56,7 +57,7 @@ and before the reorg.
 
 Shape findings first (F-boot-1 to -8), so prose is written once.
 
-### F-boot-1 · `write-fails-open` · The reload counter fails closed on a read it cannot make and open on a write it cannot make
+### CLOSED, NO CHANGE · F-boot-1 · `write-fails-open` · The reload counter fails closed on a read it cannot make and open on a write it cannot make
 
 `reloadedRecently` (`reloadOnStaleChunk.ts:40–48`) answers "yes, recently"
 when storage throws, so the reload is skipped — the docstring's argument:
@@ -95,7 +96,23 @@ change to a blessed file for one caller. The test comes with F-boot-7.
 1. Agree it is a bug worth the branch, or close as too rare?
 2. Read-back inside `boot` (the recommendation), or a boolean from `writeStored`?
 
-### F-boot-2 · `swallowed-import-resolves-undefined` · "The reload supersedes it" — a swallowed `vite:preloadError` does not stop the caller; it makes the import resolve to nothing
+**Resolution (2026-09-05, Joel: "close as too-rare")** — no change. A tab whose
+`sessionStorage` reads but will not write is rare enough that the branch, the
+docstring rewrites and the stub it would need are not worth it; the loop it
+guards against needs that rarity AND a chunk failure a fresh `index.html` does
+not fix.
+
+One claim above was wrong and is corrected here rather than in the code: the
+finding cites `storage.fake.ts`'s `failCalls` as naming the reads-work-writes-
+fail case. It throws from `getItem`, `setItem` and `removeItem` alike
+(`storage.fake.ts:110–114`), so it models storage that died entirely — its
+docstring names a full quota, but the switch is wider than the docstring. A
+test wanting writes-only failure would swap the whole accessor for a stub with
+a working `getItem`, the way this file's own test already swaps one
+(`reloadOnStaleChunk.test.ts:77–84`), because jsdom serves `Storage` through a
+proxy that a single-method spy does not reach.
+
+### WORKED · F-boot-2 · `swallowed-import-resolves-undefined` · "The reload supersedes it" — a swallowed `vite:preloadError` does not stop the caller; it makes the import resolve to nothing
 
 `reloadOnStaleChunk.ts:62`: `event.preventDefault() // swallow the import
 error; the reload supersedes it`. Verified against the installed Vite
@@ -125,7 +142,28 @@ than a frame.
 3. Keep `preventDefault` and say so (the recommendation), or drop it and let
    the error through alongside the reload?
 
-### F-boot-3 · `render-prop-with-manifest-in-hand` · App wraps the play surface in the boundary, the Suspense and both mount logs inside a render-prop, for a GamePage that already holds the manifest
+**Resolution (2026-09-05, Joel: "i'll take your rec")** — `preventDefault` kept,
+the comment at `reloadOnStaleChunk.ts:62` replaced with three lines saying what
+the swallow does: the helper returns instead of throwing, so the import
+resolves to nothing and its caller runs once more against `undefined`, and the
+reload replaces the page first.
+
+Two corrections the re-verification made to the finding above:
+
+- The lazy path lands in the boundary for a different reason than written.
+  Every manifest wraps the import — `lazy(() => import('./components/PlayArea')
+  .then((m) => ({ default: m.PlayArea })))` (`wordiply/manifest.ts:46–48` and
+  its siblings) — so `m.PlayArea` throws a `TypeError` on `undefined` inside
+  the `.then` and the promise REJECTS. React never receives a bare `undefined`,
+  and "Expected the result of a dynamic import()" is a dev-only warning
+  (`react.development.js:503`); an unwrapped loader in production would throw
+  `Cannot read properties of undefined (reading 'default')`
+  (`react.production.js:280`). Same destination, different error.
+- The flash costs nothing but pixels: `PlayAreaErrorBoundary` builds its
+  diagnostics with `diagnosticsLine` (`dbLog.ts:127–140`), which formats a
+  string and logs nothing.
+
+### HANDED OFF · F-boot-3 · `render-prop-with-manifest-in-hand` · App wraps the play surface in the boundary, the Suspense and both mount logs inside a render-prop, for a GamePage that already holds the manifest
 
 `App.tsx:144–168` builds `PlayAreaSlotLog > PlayAreaErrorBoundary > Suspense >
 PlayAreaReadyLog > PlayArea` inside `<GamePage>`'s render-prop child. GamePage
@@ -149,6 +187,25 @@ files are `game-page`'s — this is recorded here and goes to
 `src/common/game-page/todo.md` → Soon, with `App.tsx` changing when it lands.
 
 4. Hand it to `game-page` (the recommendation), or do it now from this area?
+
+**Resolution (2026-09-05, Joel: "i'll take your rec")** — handed to
+`game-page`, written into `src/common/game-page/todo.md` → Soon as a change
+that drops `children` from `GamePageProps` entirely. `App.tsx` is untouched by
+this area; its one line changes when that folder does the work.
+
+Two things the re-verification added:
+
+- The count above is wrong: `App` imports THREE files out of `common/game-page/`,
+  not four — `GamePage`, `PlayAreaErrorBoundary`, and `PlayAreaMountLog` for
+  two symbols (`App.tsx:8–10`).
+- **`App` is `GamePage`'s only caller** (`App.tsx:148`; every other hit in the
+  tree is a docstring or a test's `GamePageCtx` fixture), and
+  `gameManifest.PlayArea` is read only at `App.tsx:144`. So the render-prop
+  has one consumer and can go entirely, rather than merely being simplified —
+  which is what makes this a shape change worth that folder deciding.
+
+`PlayAreaErrorBoundary.tsx`'s stale docstring (from F-boot-2) went into the
+same `todo.md` in this change.
 
 ### F-boot-4 · `unknown-gametype-is-a-fault` · A mistyped gametype gets an ErrorPage logged as a FAULT; a mistyped game id gets a card and a debug line
 
@@ -248,7 +305,7 @@ reloading the page IS boot's business: both of its modules do it.
 
 10. Agree, and is `boot` the home?
 
-### F-boot-9 · `app-docstring-half-the-file` · App's docstring describes the route table and nothing else the file does, and two of its claims are stale
+### F-boot-9 · `app-docstring-half-the-file` · App's docstring describes the route table and nothing else the file does, and parts of what it does say are stale
 
 `App.tsx:33–69` opens "Owns the URL → component routing for all paths the app
 understands" and lists routes. The file also renders the gates IN ORDER before
@@ -259,7 +316,9 @@ reader cannot get from `routes.ts`. Inside it: "GamePageCtx (session, gameId,
 members, timer)" — there is no `members`; the ctx has `players` and a dozen
 more fields (`gamePageCtx.ts`); "Why the gametype is in the URL … no
 cross-schema id resolution" is `routing/doc.md:66`'s sentence, a second copy;
-and the `<CreateClubModal>` aside is HomePage's detail.
+and the `<CreateClubModal>` aside is HomePage's detail. Added while working
+F-boot-3: the sketch at `:54` writes `<GamePage gameId session gametype>`, and
+the prop is `manifest` (`GamePage.tsx:61–72`); there is no `gametype` prop.
 
 **Recommendation.** Rewrite in three parts, after F-boot-3 and -4 settle how
 much the game route needs: the gates in order and what each renders; the
@@ -331,8 +390,9 @@ The CSS import comments (`:8–15`) are `corecss`'s words and are not touched.
   the decision is that area's.
 - **Left for `common-hosts`:** `docs/common.md:621` — `<GameInvitations>`
   "renders the popups" (F-boot-11).
-- **Left for `game-page`:** F-boot-3 if handed on; the home of the not-found
-  page (F-boot-4).
+- **Left for `game-page`:** F-boot-3 and the `PlayAreaErrorBoundary` docstring
+  from F-boot-2 are both WRITTEN into `src/common/game-page/todo.md` → Soon.
+  Still to place: the home of the not-found page (F-boot-4).
 - **`docs/ui.md → Faults`** (`App.tsx:218`) resolves — the heading is at
   `docs/ui.md:112`. Checked, not a finding.
 - `common.sql`, `_shared/http.ts` and `_shared/startGame.ts` are still

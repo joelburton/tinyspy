@@ -59,7 +59,10 @@ export function reloadOnStaleChunk() {
   window.addEventListener('vite:preloadError', (event) => {
     if (reloadedRecently()) return // let it throw
     rememberReload()
-    event.preventDefault() // swallow the import error; the reload supersedes it
+    // Swallow the import error: Vite's helper returns instead of throwing, so
+    // the failed import resolves to nothing and its caller runs once more
+    // against `undefined`. The reload already requested replaces the page first.
+    event.preventDefault()
     window.location.reload()
   })
 }
