@@ -1,26 +1,29 @@
 // cs-audited-session
 
 /**
- * Tests for useSession.
+ * Tests for useSession — the states `App` gates on, and what the hook asks the
+ * server for to reach them:
  *
- * The hook resolves to one of three states for any signed-in user:
- *   - `loading` → true while the initial profile probe is in flight
- *   - `needsClaim` → session exists but the user hasn't claimed a
- *                    handle yet (no common.profiles row)
- *   - claimed     → session AND profile both exist; the app routes
- *                   to HomePage and friends
- *
- * The "no profile" state used to force a signOut; it now surfaces
- * as `needsClaim: true` so App.tsx can route to ClaimHandleScreen.
+ *   - `loading`      → the moment before the first answer
+ *   - `needsClaim`   → signed in with no `common.profiles` row, so the claim
+ *                      screen and nothing else
+ *   - claimed        → session and row both there; the app proper
+ *   - `probeFailed`  → the read failed, so which of the two above is true is
+ *                      unknown, and `App` renders the error page
  *
  * Mocking strategy
  * ----------------
- * vi.mock replaces `../lib/supabase` with hand-built spies. The spies
- * are declared via vi.hoisted() so they're constructed BEFORE the
- * mock factory runs (vi.mock is hoisted above imports). Inside each
- * test we wire mockOnAuthStateChange to capture the callback the hook
- * registers, then invoke it manually to simulate the auth events
- * Supabase would emit on the real client.
+ * `vi.mock` replaces `'../supabase/supabase'` — the client itself — with
+ * hand-built spies, declared via `vi.hoisted()` so they exist before the mock
+ * factory runs (`vi.mock` is hoisted above imports). The hook's queries go
+ * through `'../supabase/db'`, which is `supabase.schema('common')`, so mocking
+ * `schema` is what puts the fake in the query's path.
+ *
+ * The whole builder chain collapses to one terminal spy: `eq()` is what the
+ * hook awaits, since zero rows is a real answer here rather than something to
+ * ask PostgREST to turn into an error. Each test then wires
+ * `mockOnAuthStateChange` to capture the callback the hook registers and fires
+ * the auth events by hand.
  */
 
 import { renderHook, waitFor, act } from '@testing-library/react'
@@ -41,13 +44,8 @@ vi.mock('../supabase/supabase', () => ({
       signOut: mockSignOut,
       getUser: mockGetUser,
     },
-    // The hook's query is `supabase.schema('common').from('profiles')
-    //   .select('username, color, can_edit_words').eq('user_id', X)` — we
-    // collapse the whole chain
-    // (including schema()) to its terminal mock so we don't have to model
-    // each intermediate method's return value. `eq()` IS the terminal now:
-    // the query is awaited directly, since zero rows is a real answer here
-    // rather than something to ask PostgREST to turn into an error.
+    // The query being stood in for: `supabase.schema('common').from('profiles')
+    //   .select('username, color, can_edit_words').eq('user_id', X)`.
     schema: () => ({
       from: () => ({
         select: () => ({
@@ -179,13 +177,11 @@ describe('useSession', () => {
   })
 
   it('signs out when the stored JWT refers to a deleted user (4xx from getUser)', async () => {
-    // The "db:reset wiped auth.users while a JWT is still in
-    // localStorage" case: getUser returns a 401-ish AuthError.
-    // The hook must call signOut so the next render falls back
-    // to LoginScreen — without this, the user lands on
-    // ClaimHandleScreen and the claim attempt fails with 23503,
-    // which surfaces as a confusing inline error rather than a
-    // clean restart.
+    // The "db:reset wiped auth.users while a JWT is still in localStorage"
+    // case: getUser returns a 401-ish AuthError. Signing out is what makes the
+    // next render LoginScreen; the alternative is the claim screen, where the
+    // RPC raises PN018 and signs them out anyway — a confusing detour to the
+    // same place.
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
     mockGetUser.mockResolvedValueOnce({
       data: { user: null },
@@ -210,11 +206,10 @@ describe('useSession', () => {
   })
 
   it('treats a transient getUser error as trust-the-session (no signOut)', async () => {
-    // 5xx / network-down case: Supabase is reachable enough to
-    // attempt the request but the response is unusable. Friends-
-    // alpha posture is "trust the stored session, proceed to the
-    // profile probe" — better than booting the user out every
-    // time Supabase has a hiccup.
+    // 5xx / network-down case: Supabase is reachable enough to attempt the
+    // request but the response is unusable, which says nothing about the user.
+    // So the stored session is trusted and the probe goes ahead — better than
+    // booting everyone out whenever Supabase has a hiccup.
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
     mockGetUser.mockResolvedValueOnce({
       data: { user: null },
@@ -229,23 +224,21 @@ describe('useSession', () => {
     await waitFor(() => expect(result.current.loading).toBe(false))
     expect(mockSignOut).not.toHaveBeenCalled()
     expect(result.current.session).toBe(fakeSession)
-    expect(result.current.needsClaim).toBe(false)  // profile probe defaulted to claimed
+    expect(result.current.needsClaim).toBe(false)  // the probe ran and found the row
     warnSpy.mockRestore()
   })
 
-  it('signs out when getUser fails WITHOUT a clean 4xx status (the strand regression)', async () => {
-    // The real stale-session errors don't always carry a 4xx `status`:
-    // an expired token whose refresh fails surfaces as a session-missing
-    // / auth error, sometimes with `status` undefined. The previous
-    // 4xx-status-only check let those slip through to the permissive
-    // branch, stranding the user on ClaimHandleScreen with no recovery.
-    // Any non-transient getUser failure must now sign out.
+  it('signs out on an auth error carrying no status at all', async () => {
+    // The shape that makes the rule "sign out unless provably transient"
+    // rather than "sign out on a 4xx": an expired token whose refresh fails
+    // arrives as AuthSessionMissingError with no `status`, so a status-only
+    // test reads it as a blip and leaves the person stranded.
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
     mockGetUser.mockResolvedValueOnce({
       data: { user: null },
       error: Object.assign(new Error('Auth session missing!'), {
         name: 'AuthSessionMissingError',
-        // no `status` — the exact shape the old check mis-read as transient
+        // no `status` — deliberately, that is the case under test
       }),
     })
 

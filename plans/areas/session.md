@@ -4,10 +4,9 @@ The folders it reads: `session`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN and AUDITED 2026-09-05** — twelve findings, nine worked. Open:
-**F-session-9** (test prose), **F-session-11** (what is still untested) and
-**F-session-12** (the `mountedRef` parameter). Three files
-`cs-audited-session`.
+**Status: OPEN and AUDITED 2026-09-05** — twelve findings, ten worked. Open:
+**F-session-11** (what is still untested) and **F-session-12** (the
+`mountedRef` parameter). Three files `cs-audited-session`.
 
 ## The roster
 
@@ -259,8 +258,10 @@ render — so the fix is the sentence, not the branch. Write that reason.
 reason itself: a 5xx or a retryable fetch error says nothing about the user, so
 keeping the stored session costs one wasted render that the next event
 corrects, while being strict would sign everyone out whenever Supabase hiccups.
-The test's copy of the phrase went with F-session-2's rewrite, so nothing in
-this area argues from alpha any more.
+One copy of the phrase went with F-session-2's rewrite. **A fourth was missed
+here and caught by F-session-9** — in the transient-getUser test, where the
+word is split across two lines, so the grep this finding was written from could
+not see it.
 
 ### WORKED · F-session-6 · `archaeology-in-prose` · Both files narrate how things used to work
 
@@ -349,7 +350,7 @@ leaves too when worked.
 described no longer exists, and F-session-7 was fixed — so the whole `todo.md`
 Bugs item is struck.
 
-### F-session-9 · `test-prose-stale` · The test file's header and comments describe a hook that is not this one
+### WORKED · F-session-9 · `test-prose-stale` · The test file's header and comments describe a hook that is not this one
 
 - `useSession.test.ts:18` — "vi.mock replaces `../lib/supabase`"; the mock is
   of `'../supabase/supabase'` (`:37`), and the hook queries through
@@ -363,6 +364,17 @@ Bugs item is struck.
 
 Fix with F-session-2 and -6: header says what is mocked and why the chain
 collapses to `eq`; test names say the behavior.
+
+**Resolution (2026-09-05, Joel: "then fix F9").** The header names the four
+states and says what is mocked and why: the client module, with `schema`
+mocked because the hook queries through `db = supabase.schema('common')`. The
+strand-regression name is now "signs out on an auth error carrying no status at
+all", and its comment states the shape rather than the check that used to miss
+it. Two more the finding had not listed: the deleted-user test still told the
+23503 story (now PN018), and the transient-getUser test still argued from
+"friends-alpha" — **the one F-session-5 missed**, because the phrase is broken
+across two lines there and a grep for it does not match. A sweep of the folder
+for it, and for "used to / no longer / previously", now comes back empty.
 
 ### WORKED · F-session-10 · `warn-spy-silences-nothing` · The probe-error test spies `console.warn` "so the run is clean", and the run is not clean
 
