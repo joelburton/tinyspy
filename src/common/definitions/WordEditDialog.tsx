@@ -277,7 +277,7 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
 
   return (
     <Dialog
-      persistKey="puzpuzpuz:wordEdit:rect"
+      persistKey="puzpuzpuz:word-edit:rect"
       title={editing ? `Edit "${request.word.toUpperCase()}"` : 'Add word'}
       onClose={() => setWordEdit(null)}
       // Height is the content's — the number below is only the first-paint seed.

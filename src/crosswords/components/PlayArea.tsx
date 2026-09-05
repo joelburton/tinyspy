@@ -70,7 +70,7 @@ import { readStored, writeStored } from '@/common/web-storage/storage'
 
 /** Where the display-only "collapse rebuses" preference is remembered, per
  *  browser. Not per game or per player — it is how you like to READ a grid. */
-const REBUS_KEY = 'crosswords:collapseRebus'
+const REBUS_KEY = 'puzpuzpuz:crosswords:collapseRebus'
 
 /** Timed info pill shown after a Check whose scope contained pencilled cells —
  *  Check skips them (see `handleCheck`), so this flags that they weren't tested.

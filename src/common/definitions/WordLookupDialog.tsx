@@ -53,7 +53,7 @@ export function WordLookupDialog({ onClose }: Props) {
 
   return (
     <Dialog
-      persistKey="puzpuzpuz:wordLookup:rect"
+      persistKey="puzpuzpuz:word-lookup:rect"
       title="Look up a word"
       onClose={onClose}
       // Height is the content's — the number below is only the first-paint seed.

@@ -45,7 +45,7 @@ three findings turn on the shape of the set, not on any one caller. All are
 
 ## Findings
 
-### F-web-storage-1 · `key-convention-homeless` · The storage-key convention is written in two places, neither of which is the wrapper
+### WORKED · F-web-storage-1 · `key-convention-homeless` · The storage-key convention is written in two places, neither of which is the wrapper
 
 Every key in the app is `puzpuzpuz:`-scoped and most read
 `puzpuzpuz:<area>:<name>`. That rule is stated in **`useStickyChoice`'s `key`
@@ -65,10 +65,67 @@ Three keys already deviate, in two different ways:
 The convention is this folder's to state. The two deviating call sites are
 other areas' to change.
 
-**Open questions for Joel:** (a) is the two-segment app-wide form legal, or is
-`<area>` always required; (b) does this get a guard, or only a stated rule?
+**Decided (Joel, 2026-09-04):**
 
-### F-web-storage-2 · `sticky-test-fake` · `useStickyChoice.test.ts` hand-rolls a fake, and tests the wrong failure
+- **Three segments, always.** A key that belongs to no area leaves the segment
+  BLANK rather than dropping it: `puzpuzpuz::theme`. So the shape is one rule
+  with no exception, and the empty middle says "app-wide" out loud instead of
+  a reader counting colons to work out which form they are looking at.
+- **`puzpuzpuz:gameInvitesSeen` → `puzpuzpuz:game-invites:seen`** — it has an
+  area, so it writes one.
+- **The rule is stated, not guarded.** It goes in `storage.ts`, where a person
+  writing an eleventh caller will meet it.
+
+- **Casing: the area is kebab, the name is camel.** Joel: *"the areas are
+  kebab-named (they're folders in a case-insensitive way); the last part can be
+  in camel case."* So the rule is `puzpuzpuz:<area-in-kebab>:<nameInCamel>`,
+  optionally followed by whatever scope the preference belongs to (a user id, a
+  club handle, a game id). The area is a folder-shaped NAME rather than a
+  literal folder: `game-invites` is `invitations/gameInvites.ts`'s subject, and
+  `stale-chunk` is a thing inside `boot/`.
+
+**What the rule makes non-conformant.** Seventeen keys, ten of them already
+right (`puzpuzpuz:chat:open`, `puzpuzpuz:chat:rect`,
+`puzpuzpuz:scratchpad:open`, `puzpuzpuz:scratchpad:<gameId>`,
+`puzpuzpuz:anagram:rect`, `puzpuzpuz:help:rect`, `puzpuzpuz:rt:verbose`,
+`puzpuzpuz:club:modeFilter:<selfId>`). Seven are renames, every one of them in
+another area:
+
+| file | today | under the rule |
+|---|---|---|
+| `boot/reloadOnStaleChunk.ts` | `puzpuzpuz:staleChunk:reloadedAt` | `puzpuzpuz:stale-chunk:reloadedAt` |
+| `chat/chatUnread.ts` | `puzpuzpuz:chat:lastseen:<club>` | `puzpuzpuz:chat:lastSeen:<club>` |
+| `definitions/WordLookupDialog.tsx` | `puzpuzpuz:wordLookup:rect` | `puzpuzpuz:word-lookup:rect` |
+| `definitions/WordEditDialog.tsx` | `puzpuzpuz:wordEdit:rect` | `puzpuzpuz:word-edit:rect` |
+| `invitations/gameInvites.ts` | `puzpuzpuz:gameInvitesSeen` | `puzpuzpuz:game-invites:seen` |
+| `themes/loadTheme.ts` | `puzpuzpuz:theme` | `puzpuzpuz::theme` |
+| `crosswords/PlayArea.tsx` | `crosswords:collapseRebus` | `puzpuzpuz:crosswords:collapseRebus` |
+
+**Every rename orphans what is stored under the old key**, since nothing reads
+both. Six of the seven cost a preference reset — a panel returns to its default
+position, the theme reverts to light, a game's rebus toggle forgets. The
+seventh is `game-invites:seen`, where the reset is visible as behavior: a
+dismissed invitation badge comes back once. None of it is Postgres data, and
+none of it is worth a migration; it is written down so the reset is a decision
+rather than a surprise.
+
+`chatOpenStore.test.ts` asserts its key as a literal, so a chat rename would
+reach it — but chat's key is already conformant.
+
+**Done, not deferred** (Joel: *"just change them now, this is an easy
+forward-fix"*). The rule is written into `storage.ts`, where an eleventh caller
+meets it; `useStickyChoice`'s param docstring now points there instead of
+carrying its own copy. All seven keys renamed, plus two mentions the sweep
+reached: `e2e/gallery/run.ts` seeds the invitations key, and `docs/testing.md`
+names it. The renamed files' stamps did not move — a find-and-replace is not a
+reading.
+
+One thing the sweep found and fixed on the way past: `useDraggablePanel`'s
+`persistKey` docstring gave `puzpuzpuz:chat` as its example, and the key is
+`puzpuzpuz:chat:rect`. An example of the rule that is not a legal key is worse
+than no example.
+
+### WORKED · F-web-storage-2 · `sticky-test-fake` · `useStickyChoice.test.ts` hand-rolls a fake, and tests the wrong failure
 
 Already `todo.md`'s Soon item. The file defines its own `FakeStorage` and
 installs it on `window`, which is why it holds an `ALLOWED` exemption. Two
@@ -85,6 +142,19 @@ things the audit adds to what `todo.md` said:
 Adopting the shared fake fixes both, and drops the `ALLOWED` entry —
 mechanically, since the guard's own "every `ALLOWED` entry still touches
 storage" case goes red otherwise.
+
+**Done.** The file takes `installFakeStorage()`, asserts through
+`storage.local`, and splits the old single "unavailable" case into two named
+for what fails: the ACCESS (a browser blocking site data) and the CALLS (a full
+quota). The `ALLOWED` entry is gone and `storage.fake.ts` no longer claims two
+tests roll their own — `chatOpenStore.test.ts` is the last one, and adopting the
+shared fake is now a line in `common/chat/todo.md`.
+
+**The new ACCESS case was verified by planting the mistake it exists to
+catch**: moving `store(name)` out of `readStored`'s `try` — the design error the
+wrapper's name-not-object signature prevents — fails that case and only that
+case, with the quota case still green. That is the gap the old suite had: it
+would have passed against the broken wrapper.
 
 ### F-web-storage-3 · `nine-of-ten` · A count in the docstring that is right today and rots at the next caller
 

@@ -63,7 +63,7 @@ export function useChatUnread(): ChatUnread {
 
 // ─── per-club last-seen bookmark (localStorage) ─────────────────────
 const lastSeenKey = (clubHandle: string) =>
-  `puzpuzpuz:chat:lastseen:${clubHandle}`
+  `puzpuzpuz:chat:lastSeen:${clubHandle}`
 
 /** The `sent_at` of the newest message this member had seen, or null
  *  if they've never opened this club's chat. */

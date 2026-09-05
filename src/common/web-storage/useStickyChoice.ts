@@ -28,8 +28,9 @@ import { readStored, writeStored } from './storage'
  * `docs/code-conventions.md` on frozen async defaults).
  */
 export function useStickyChoice<T extends string>(
-  /** Storage key. Convention: `puzpuzpuz:<area>:<name>`, plus whatever scope the
-   *  preference belongs to (e.g. a trailing user id — see ClubPage). */
+  /** Storage key — `storage.ts` has the shape every key in the app takes. Add
+   *  whatever scope the preference belongs to as further segments; ClubPage
+   *  appends a user id, so two accounts sharing a browser keep their own. */
   key: string,
   /** Every legal value. Doubles as the validator for what's in storage. */
   options: readonly T[],

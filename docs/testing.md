@@ -363,7 +363,7 @@ it.
 ### Two harness gotchas
 
 - **Invitation toasts.** Every context is a fresh browser profile, so the
-  `gameInvitesSeen` set in localStorage starts empty and every game the run has
+  `puzpuzpuz:game-invites:seen` set in localStorage starts empty and every game the run has
   made stacks up as "X added you to a new Y game" over the info column. The runner
   seeds that set from the DB, scoped to the **member** — each game gets its own
   club, but the invite query asks "what games am I a player in?" and doesn't care

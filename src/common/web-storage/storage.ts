@@ -19,6 +19,18 @@
  * defeat the point: the argument would be evaluated at the call site, outside
  * the `try`. Hence the `'local'` / `'session'` name rather than the object.
  *
+ * **What a key looks like: `puzpuzpuz:<area>:<name>`.** Everything the app
+ * stores carries the `puzpuzpuz:` prefix, because the origin is shared with
+ * whatever else a browser has kept for this host. The AREA is kebab-cased, the
+ * way a folder is — `stale-chunk`, `word-lookup`, `game-invites` — and the NAME
+ * is camel: `reloadedAt`, `modeFilter`, `rect`. Anything the preference is
+ * scoped to follows as further segments, so a per-club value reads
+ * `puzpuzpuz:chat:lastSeen:<clubHandle>`.
+ *
+ * A key that belongs to no area leaves the middle segment EMPTY rather than
+ * dropping it — `puzpuzpuz::theme` — so every key has the same shape and a
+ * reader never has to count colons to tell which form they are looking at.
+ *
  * **`whenUnavailable` has no default, on purpose.** Storage being gone is not
  * the same event as a key being absent, and the right answer differs per
  * caller. Nine of ten want "treat it as unset". `reloadOnStaleChunk` wants the

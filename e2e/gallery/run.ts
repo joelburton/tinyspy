@@ -125,7 +125,7 @@ async function suppressInvites(ctx: BrowserContext, userId: string): Promise<voi
     .split('\n')
     .filter(Boolean)
   await ctx.addInitScript(
-    `localStorage.setItem('puzpuzpuz:gameInvitesSeen', ${JSON.stringify(JSON.stringify(ids))})`,
+    `localStorage.setItem('puzpuzpuz:game-invites:seen', ${JSON.stringify(JSON.stringify(ids))})`,
   )
 }
 

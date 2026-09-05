@@ -11,9 +11,9 @@
  * leaves that one in place over jsdom's. (Node prints exactly that warning at
  * the top of a run.) So a test that merely calls `localStorage.getItem` fails
  * with "cannot read properties of undefined" rather than testing anything, and
- * every test touching local storage installs a fake. Two did it by hand before
- * this existed — `useStickyChoice.test.ts`, whose note points at
- * `chatOpenStore.test.ts`'s copy.
+ * every test touching local storage installs a fake. `chatOpenStore.test.ts`
+ * still rolls its own, and holds the exemption from
+ * `src/guards/rawStorage.test.ts` that goes with doing so.
  *
  * The reason it is worth sharing rather than copying a third time is the two
  * switches, {@link InstalledStorage.blockAccess} and

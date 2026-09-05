@@ -92,7 +92,7 @@ export function newInviteCandidates(
 }
 
 // ─── seen-set (localStorage, survives reloads) ──────────────────────
-const SEEN_KEY = 'puzpuzpuz:gameInvitesSeen'
+const SEEN_KEY = 'puzpuzpuz:game-invites:seen'
 const SEEN_CAP = 200 // bound growth; keep the most recent
 
 /**

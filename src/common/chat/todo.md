@@ -5,11 +5,14 @@
 ## Soon
 
 - **`chatOpenStore.test.ts` should adopt `storage.fake.ts` and drop its guard
-  exemption** — the same item as `web-storage/todo.md`'s, for the same reason:
-  it hand-rolls a Storage fake and spies on `setItem` to simulate a throw,
-  which `block()` does. `chatOpenStore.ts` and `chatUnread.ts` are already on
-  `readStored` / `writeStored`; only the test reaches for raw storage, and it
-  is on `rawStorage.test.ts`'s shrinking `ALLOWED` list.
+  exemption.** It hand-rolls a Storage fake and spies on `setItem` to simulate
+  a throw, which the shared fake's `failCalls()` does — and its `blockAccess()`
+  covers the other way storage fails, the property access throwing, which a
+  hand-rolled fake installed as a data property cannot model at all.
+  `useStickyChoice.test.ts` was converted this way and is the worked example.
+  `chatOpenStore.ts` and `chatUnread.ts` are already on `readStored` /
+  `writeStored`; only the test reaches for raw storage, and it is the last
+  entry on `rawStorage.test.ts`'s shrinking `ALLOWED` list that could come off.
 - **`ChatBody`'s Tab hands the keyboard back to the game, and that has a
   scheduled successor** (`floating-panels/todo.md` — the `useTabRing`
   conversion). Noted so the handoff is not read as bespoke.

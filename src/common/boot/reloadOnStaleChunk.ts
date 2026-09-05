@@ -25,7 +25,7 @@ import { readStored, writeStored } from '../web-storage/storage'
  * gets no recovery at all rather than an uncounted one; see `reloadedRecently`.
  */
 
-const GUARD_KEY = 'puzpuzpuz:staleChunk:reloadedAt'
+const GUARD_KEY = 'puzpuzpuz:stale-chunk:reloadedAt'
 const GUARD_MS = 60_000
 
 /**

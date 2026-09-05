@@ -73,12 +73,11 @@ const RAW_STORAGE = /\b(?:local|session)Storage\b/
 const ALLOWED = new Map<string, string>([
   ['src/common/web-storage/storage.ts', 'the wrapper itself'],
   ['src/common/web-storage/storage.fake.ts', 'installs the test fake onto window, which is by definition a raw touch'],
-  // The two below predate `storage.fake.ts` and install a hand-rolled fake onto
-  // `window`, which is a thing no wrapper call can do. `storage.test.ts` is
-  // deliberately NOT here: it asserts through the shared fake's handles, which
-  // is the pattern these two should adopt when their areas open (`hooks` and
-  // whoever takes chat).
-  ['src/common/web-storage/useStickyChoice.test.ts', 'installs its own Storage fake on window; adopt storage.fake.ts when `hooks` opens'],
+  // The one below predates `storage.fake.ts` and installs a hand-rolled fake
+  // onto `window`, which is a thing no wrapper call can do. `storage.test.ts`
+  // and `useStickyChoice.test.ts` are deliberately NOT here: they assert
+  // through the shared fake's handles, which is the pattern this one should
+  // adopt too.
   ['src/common/chat/chatOpenStore.test.ts', 'installs its own Storage fake on window, and spies on setItem to make a write throw'],
   ['src/common/boot/reloadOnStaleChunk.test.ts', 'clears the session guard between cases'],
   // This file scans `src/`, and `src/` includes this file. Its fixture holds

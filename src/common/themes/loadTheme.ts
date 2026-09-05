@@ -12,7 +12,7 @@ import { readStored, removeStored, writeStored } from '../web-storage/storage'
 /** The themes that exist. `daylight` is what ships. */
 export type ThemeName = 'daylight' | 'midnight'
 
-const STORAGE_KEY = 'puzpuzpuz:theme'
+const STORAGE_KEY = 'puzpuzpuz::theme'
 
 /**
  * The stored choice, or null when there isn't one — including when there is no
