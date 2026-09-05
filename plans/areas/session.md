@@ -4,10 +4,10 @@ The folders it reads: `session`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN and AUDITED 2026-09-05** — twelve findings, six worked
-(F-session-1, -7, -8 in one change; F-session-2 and -10 in the next;
-F-session-3 alone). The three shape findings are done, so the prose ones can be
-written once. Three files `cs-audited-session`.
+**Status: OPEN and AUDITED 2026-09-05** — twelve findings, nine worked. Open:
+**F-session-9** (test prose), **F-session-11** (what is still untested) and
+**F-session-12** (the `mountedRef` parameter). Three files
+`cs-audited-session`.
 
 ## The roster
 
@@ -217,7 +217,7 @@ retried by the next event.
 **F-session-12 was NOT folded in** — point 3 was not ruled on, and "do f3"
 named one finding. `probeProfile` still takes `mountedRef` as a parameter.
 
-### F-session-4 · `stale-23503-story` · The stale-JWT case is described as a 23503 at claim time; the RPC raises PN018 and the claim screen reads that
+### WORKED · F-session-4 · `stale-23503-story` · The stale-JWT case is described as a 23503 at claim time; the RPC raises PN018 and the claim screen reads that
 
 `useSession.ts:40–41` ("fail with 23503 on submit") and `docs/common.md:671`
 ("the claim RPC eventually raises 23503 at submit-time and `<ClaimHandleScreen>`
@@ -234,7 +234,15 @@ forward fix here. Left for others: the reject-reasons table at
 maps 23503 in its own docstring — both about the RPC and the screen, not these
 files (Notes).
 
-### F-session-5 · `friends-alpha-posture` · Three comments justify a branch by "friends-alpha", which the project is not
+**Resolution (2026-09-05, Joel: "then do F4,F5,F6").** The docstring now says
+what is true: a stale session that reaches the claim screen raises `PN018`, and
+that screen signs the user out on it — the safety net under the `getUser()`
+check, not the plan. `docs/common.md`'s `useSession` paragraph says the same,
+and while it was being rewritten it also stopped saying "three resolved states"
+and `{session, needsClaim, loading, refresh}`, both of which F-session-2 had
+made wrong. The two mentions left for others still stand.
+
+### WORKED · F-session-5 · `friends-alpha-posture` · Three comments justify a branch by "friends-alpha", which the project is not
 
 `useSession.ts:76` ("same friends-alpha posture as the profile-probe error
 below"), `useSession.ts:89` ("the permissive friends-alpha treatment"), and
@@ -247,7 +255,14 @@ render — so the fix is the sentence, not the branch. Write that reason.
 
 (`useCommonGame.ts:573` carries the fourth; `game-page`'s, in Notes.)
 
-### F-session-6 · `archaeology-in-prose` · Both files narrate how things used to work
+**Resolution (2026-09-05).** Both comments in `useSession.ts` now give the
+reason itself: a 5xx or a retryable fetch error says nothing about the user, so
+keeping the stored session costs one wasted render that the next event
+corrects, while being strict would sign everyone out whenever Supabase hiccups.
+The test's copy of the phrase went with F-session-2's rewrite, so nothing in
+this area argues from alpha any more.
+
+### WORKED · F-session-6 · `archaeology-in-prose` · Both files narrate how things used to work
 
 CLAUDE.md: no archaeological comments; "how it used to work" is not useful.
 The read found:
@@ -286,6 +301,21 @@ file, so every line listed above for it is gone and the two wrong claims with
 them (`doc.md` and `dbEnvelope.ts`'s PN491 comment were corrected in the same
 change). What remains is `useSession.ts`: its 37-line docstring and the four
 inline blocks.
+
+**Resolution (2026-09-05).** Done, with the three shape findings settled first
+as planned. The docstring now says the four states, what `refresh()` is for and
+the getUser-first rule, and nothing else; the getUser
+comment block shrank to a sentence and a pointer, because the docstring above
+it is the copy that stays right. The one live fact inside the archaeology was
+kept: an expired token's failed refresh arrives as `AuthSessionMissingError`
+with no status, which is why transient is tested by NAME and status.
+
+**An absence this turned up.** `docs/deferred.md` carried "Stricter
+`useSession` profile-verify at startup" — that a failed profile read is
+uniformly permissive and "the user is let through" — and pointed at a
+`// Fragile:` comment in `useSession.ts` that no longer exists. F-session-2 is
+what fixed the behavior it describes, so the item is struck. (The neighboring
+`useCommonGame` item is `game-page`'s and still real.)
 
 ### WORKED · F-session-7 · `orphaned-set-profile-color-docstring` · `setProfileColor`'s docstring sits above `useCurrentProfile`
 

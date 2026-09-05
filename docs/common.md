@@ -668,7 +668,7 @@ The code path is what makes cross-device sign-in work: open the email on your ph
 
 On first sign-in, the user lands on `<ClaimHandleScreen>` and picks a username themselves. The `common.claim_username` RPC materializes their profile + solo club (see [Username claim flow](#username-claim-flow) above). Username collision raises 23505, surfaced as an inline "that username is taken" error — the user retries with a different name.
 
-[`useSession`](../src/common/session/useSession.ts) subscribes to `supabase.auth.onAuthStateChange` and returns `{session, needsClaim, loading, refresh}`. It probes `common.profiles` to distinguish the three resolved states (signed out, signed in but unclaimed, signed in and claimed). The probe also catches the stale-JWT edge case — when the JWT is signature-valid but its `auth.uid()` no longer exists in `auth.users`, the claim RPC eventually raises 23503 at submit-time and `<ClaimHandleScreen>` signs the user out.
+[`useSession`](../src/common/session/useSession.ts) subscribes to `supabase.auth.onAuthStateChange` and returns `{session, needsClaim, probeFailed, loading, refresh}`. The first time it sees a given user it verifies the token with `getUser()` and reads `common.profiles`, which settles the resolved states: signed out, signed in but unclaimed, signed in and claimed, and — when that read fails — unknown, which `App` renders as an error page rather than guessing. The stale-JWT case is what the `getUser()` check is for: a signature-valid token whose `auth.uid()` is gone from `auth.users` signs out. If a stale session reaches the claim screen anyway, `common.claim_username` raises **PN018** and `<ClaimHandleScreen>` signs the user out on it.
 
 ## The word list (`common.words`)
 

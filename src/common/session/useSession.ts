@@ -9,46 +9,39 @@ import type { NotOkEnvelope } from '../supabase/envelope'
 import { setProfile } from './useProfile'
 
 /**
- * Source of truth for "is there a logged-in user, and have they
- * claimed a username yet."
+ * Who is signed in, and whether they have picked a username yet — the answer
+ * `App` gates every route on.
  *
- * Four resolved states (the first three driven by the absence/presence
- * of a common.profiles row for the signed-in user):
+ * Four resolved states, after `loading` covers the moment before the first
+ * answer:
  *
  *   { session: null,      needsClaim: false }  → signed out
- *   { session: <Session>, needsClaim: true  }  → signed in but
- *                                                no profile row yet
- *   { session: <Session>, needsClaim: false }  → signed in + claimed
- *   { session: <Session>, probeFailed: <envelope> }
- *                                              → the read failed, so
- *                                                which of the two
- *                                                above is unknown
+ *   { session: <Session>, needsClaim: true  }  → signed in, no profile row
+ *   { session: <Session>, needsClaim: false }  → signed in and claimed
+ *   { session: <Session>, probeFailed: <env> } → the read failed, so which of
+ *                                                the two above is true is
+ *                                                unknown
  *
- * The "needs claim" state replaces the old auto-derived-username
- * trigger flow: the auth.users row is created by Supabase Auth at
- * magic-link verification time, but the profiles row only appears
- * when the user explicitly claims a handle (via the
- * `common.claim_username` RPC). The FE gates everything except
- * <ClaimHandleScreen> on `!needsClaim`.
+ * Signing in and claiming a username are two separate things. Supabase Auth
+ * writes the `auth.users` row when the magic link is verified; the
+ * `common.profiles` row appears only when the person picks a handle and
+ * `common.claim_username` writes it. So a session by itself is not yet an
+ * account this app can use, and everything except <ClaimHandleScreen> is gated
+ * on `!needsClaim`.
  *
- * `refresh()` re-runs the profile probe — used by
- * ClaimHandleScreen to advance the app state after a successful
- * claim_username RPC without forcing a re-auth.
+ * `refresh()` re-runs the probe. <ClaimHandleScreen> calls it after a
+ * successful claim, so the gate flips without a re-auth, and the error page
+ * offers it as "Try again".
  *
- * Stale-session edge case (db:reset wiped auth.users while a JWT
- * is still in localStorage, OR a user was deleted from auth.users
- * in prod while their tab was open): handled upfront via
- * `supabase.auth.getUser()`, which makes a server round-trip that
- * validates the JWT against auth.users. Any non-transient failure
- * (the user is gone, the token/refresh is invalid, the session is
- * missing) means we sign out so the next render falls back to
- * LoginScreen rather than routing to ClaimHandleScreen (the previous
- * behavior was "ask them to pick a username, fail with 23503 on
- * submit," which surfaces the orphan state as a confusing error
- * rather than a clean restart). See the inline note on what counts as
- * transient (and thus permissive). As a last-resort safety net,
- * ClaimHandleScreen itself also offers a sign-out, so a user can
- * never get fully stuck there.
+ * **`getUser()` runs before the profile read**, whenever a new user's session
+ * arrives. What is in localStorage is whatever was cached at sign-in and the
+ * client does not re-verify it, so a JWT can outlive the user it names: a
+ * local `db reset` empties `auth.users` under every open tab, and deleting an
+ * account in prod does the same. `getUser()` is the round trip that asks, and
+ * a failure that is not provably transient signs out, so the next render is
+ * <LoginScreen>. Should a stale session reach the claim screen anyway,
+ * claiming raises `PN018` and that screen signs the user out — the safety net
+ * under this one, and why nobody can be stuck there.
  */
 export function useSession() {
   const [session, setSession] = useState<Session | null>(null)
@@ -82,41 +75,23 @@ export function useSession() {
         return
       }
 
-      // Validate the JWT against auth.users before trusting it.
-      // The session object in localStorage is whatever was cached
-      // at sign-in time; supabase-js doesn't re-verify it on app
-      // load. So a stored JWT can outlive the user it references —
-      // db:reset (dev) or a delete-user in prod both produce that
-      // state. getUser() is the documented "round-trip and check"
-      // call; a 4xx response means the user is no longer in
-      // auth.users. Treat that as definitively-signed-out.
-      //
-      // 5xx / network errors get the permissive treatment (same
-      // friends-alpha posture as the profile-probe error below):
-      // trust the stored session and proceed. The cost of "the
-      // user is actually gone but we couldn't reach Supabase" is
-      // a wasted ClaimHandleScreen render that the next reload
-      // will correct; the cost of being strict on 5xx would be
-      // booting people out every time Supabase has a hiccup.
+      // Ask the server who this token belongs to before trusting it; the
+      // docstring says why a stored JWT can be stale.
       const { data: userRes, error: userErr } = await supabase.auth.getUser()
       if (!mountedRef.value) return
       if (userErr) {
-        // Default to SIGNING OUT on any getUser failure — only a
-        // genuinely transient error keeps us on the stored session.
-        // "Transient" = a retryable network error, or a 5xx (Supabase
-        // reachable but the response unusable); those get the permissive
-        // friends-alpha treatment so a hiccup doesn't boot everyone.
-        // EVERYTHING ELSE means the JWT is no good — expired, or the user
-        // was deleted by db:reset / admin — so we sign out and the app
-        // falls back to LoginScreen.
+        // SIGN OUT unless the failure is provably transient — that way round,
+        // because a stale token's errors do not all carry a status: an expired
+        // token whose refresh fails arrives as AuthSessionMissingError with
+        // none. So transient is tested by NAME and status, not status alone,
+        // and an unrecognized shape is treated as a bad token rather than a
+        // bad moment.
         //
-        // This used to gate only on a clean 4xx STATUS, but the real
-        // errors don't always carry one: an expired token's failed
-        // refresh surfaces as AuthSessionMissingError, and other shapes
-        // arrive with `status` undefined — all of which slipped through
-        // to the permissive branch and stranded the user on
-        // ClaimHandleScreen. Inverting the default (sign out unless
-        // provably transient) closes that gap.
+        // Transient means a retryable fetch error or a 5xx: Supabase was
+        // unreachable or unwell, which says nothing about the user. Keeping
+        // the stored session then costs one wasted render that the next event
+        // corrects; being strict would sign everyone out whenever Supabase
+        // hiccups.
         const status = (userErr as { status?: number }).status
         const transient =
           userErr.name === 'AuthRetryableFetchError' ||
