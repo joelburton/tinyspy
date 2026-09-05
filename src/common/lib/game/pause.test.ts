@@ -33,25 +33,6 @@ const ada: Member = { user_id: 'ada', username: 'ada', color: 'red' }
 const bea: Member = { user_id: 'bea', username: 'bea', color: 'blue' }
 const cade: Member = { user_id: 'cade', username: 'cade', color: 'green' }
 
-/**
- * `computePause` is the FE-side derivation of pause-on-disconnect:
- * given the set of currently-connected user_ids (the channel's
- * presence state) and the players expected to be present — this
- * game's roster, not the club's — return `{ paused, missing }`.
- *
- * Rules:
- *   - paused === true iff at least one expected player is missing
- *   - missing is the subset of `players` whose user_id isn't in
- *     `presentUserIds`
- *   - extra ids in `presentUserIds` (not in `players`) are
- *     ignored — they can't make the game more-paused or
- *     less-paused
- *   - an empty `players` list (mid-load, never-loaded edge) is
- *     not paused — there's nothing to be missing
- *
- * This test pins the matrix so `useCommonGame`'s pause derivation
- * stays correct as the hook itself evolves.
- */
 describe('computePause', () => {
   it('returns paused=false when every member is present', () => {
     const { paused, missing } = computePause(

@@ -14,8 +14,8 @@ of files were on no area's roster at all: `deep` listed them out as "names every
 game" (`deep.md:160`, `:161`) and nothing picked them up — the identical gap that
 created `utils` one folder over.
 
-**Status: READ THROUGH; re-audited at the close, THREE FINDINGS OPEN** (ten
-were; `F-game-lib-49` … `-55` are resolved and `-56` closed; `-58` was found
+**Status: READ THROUGH; re-audited at the close, TWO FINDINGS OPEN** (ten
+were; `F-game-lib-49` … `-57` are resolved or closed; `-58` was found
 resolving `-49` and `-59` resolving `-54`). Opened
 2026-09-03 by listing the files and stopping (§21); Joel agreed the list —
 *"that matches the files i'd expect"* — and then asked for it in groups, *"so we
@@ -32,14 +32,14 @@ file has been read by Claude and by Joel. The stamp records that he read the
 file; the open findings are changes wanted in files he has read, which the
 stamp was never a claim about.
 
-**Fifty-nine IDs issued; fifty-six settled, three open.** Two of them —
+**Fifty-nine IDs issued; fifty-seven settled, two open.** Two of them —
 `F-game-lib-24` and `-25` — moved to [bananagrams.md](bananagrams.md) with the
 files they were about, so **57 carry a heading in this file**:
 
 | status | count | which |
 |---|---|---|
-| **OPEN** | **3** | `F-game-lib-57` … `-59`, the closing re-audit's — a heading of fold-ins, the stale manifest table in docs/common.md, and the roster count "sixteen" written ten times |
-| RESOLVED | 49 | includes the two that are resolved by being handed on: `F-game-lib-11` (its remaining half filed in four game areas) and `-46` (deferred to the app's standing register), and `-49` … `-55` from the re-audit |
+| **OPEN** | **2** | `F-game-lib-58` and `-59`, the closing re-audit's last — the stale manifest table in docs/common.md, and the roster count "sixteen" written ten times |
+| RESOLVED | 50 | includes the two that are resolved by being handed on: `F-game-lib-11` (its remaining half filed in four game areas) and `-46` (deferred to the app's standing register), and `-49` … `-55`, `-57` from the re-audit |
 | CLOSED, no change | 3 | `F-game-lib-29` and `-36` on Joel's ruling; `-56`, whose sweep is step 12's and now has a row in §7 → "Carried forward" |
 | MOVED to `feedback` | 2 | `F-game-lib-27`, `-28` — open there as `F-feedback-1`, `-2` |
 
@@ -3013,7 +3013,7 @@ question for step 12 — redirect them to `docs/` as the knowledge lands there �
 and not this area's to settle. Filed here because this area added four of them
 in two days, and the step-12 sweep needs the list.
 
-### F-game-lib-57 · `five-small-fold-ins` · Formatting and one duplicate docstring, in one heading
+### RESOLVED 2026-09-04 — F-game-lib-57 · `five-small-fold-ins` · Formatting and one duplicate docstring, in one heading
 
 - `foundWordsDisplayRows.ts` ends on a blank line — the residue `F-game-lib-3`
   trimmed from `manifestRpcs.ts`, in the one other file that has it.
@@ -3028,6 +3028,15 @@ in two days, and the step-12 sweep needs the list.
 - `gameMenu.ts:46` and `menu.ts:114` say *"crossplay's menu"* meaning the
   ported source app, while **CrossPlay** is this repo's brand for crosswords —
   a reader here has no way to tell the two apart.
+
+#### Resolved 2026-09-04 — all five
+
+Joel: *"do it."* The trailing blank line is gone; the `numberOfPlayers`
+comment is one block again; `pause.test.ts` keeps its file docstring and
+loses the duplicate on the `describe`; `gameMenu.test.ts` cites
+`GamePage.tsx → globalMenuShortcuts`, the effect that owns the dispatch;
+and both "crossplay's menu" sites say "the original crossplay app it was
+ported from". `tsc -b` clean; `src/common/lib` + `src/guards` green.
 
 ### F-game-lib-58 · `manifest-table-in-common-md-stale` · The doc's `GameManifest` table describes a contract several versions old
 

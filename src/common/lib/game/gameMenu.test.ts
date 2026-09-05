@@ -8,7 +8,8 @@ import type { MenuItem } from '../menu/menu'
  * What the shared menu framing puts on screen, and in what order.
  *
  * **Order is behavior here, not presentation.** The shell's ⌥⌫ takes the FIRST
- * item whose id is in `END_OR_CONCEDE_IDS` (`GamePage.tsx:491-493`), so which
+ * item whose id is in `END_OR_CONCEDE_IDS` (`GamePage.tsx` →
+ * `globalMenuShortcuts`), so which
  * exit the shortcut fires is decided by array position — Concede is written
  * before End, and that is the whole implementation of "the shortcut follows the
  * mode's primary exit". A careless reorder would move the shortcut to the wrong

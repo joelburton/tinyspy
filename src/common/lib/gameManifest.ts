@@ -158,7 +158,7 @@ export type GameManifest = {
   // **Every game's actual numbers are one table**, in
   // docs/features.md → Player counts, beside the cap each `create_game`
   // enforces.
-
+  //
   // The shell uses this to decide whether the "Start" button is
   // hidden / disabled / enabled (in combination with the
   // club's `common.clubs_gametypes` row).

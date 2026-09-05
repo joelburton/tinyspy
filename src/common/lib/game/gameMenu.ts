@@ -45,7 +45,8 @@ export function buildGameMenu(opts: {
   extra?: MenuSection[]
   // Optional info block pinned at the VERY TOP of the menu (above Help) — a
   // non-clickable title + credit lines. crosswords passes the loaded puzzle's
-  // title / author / copyright, matching crossplay's menu.
+  // title / author / copyright, matching the menu of the original crossplay
+  // app it was ported from.
   header?: MenuHeader
 }): MenuSection[] {
   const { menu, mode, isTerminal, conceded, onEndGame, onConcede, offerEndInCompete, extra = [], header } = opts

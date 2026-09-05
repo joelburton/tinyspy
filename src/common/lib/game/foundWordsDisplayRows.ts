@@ -89,4 +89,3 @@ export function buildDisplayRows(
   rows.sort((a, b) => a.word.localeCompare(b.word))
   return rows
 }
-
