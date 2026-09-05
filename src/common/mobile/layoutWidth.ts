@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-mobile
 
 /**
  * Publish the usable viewport width (excluding the vertical scrollbar) as the
