@@ -7,8 +7,9 @@
  *
  * The behaviors worth pinning are the ones a careless rewrite would break:
  * the drop while in flight, the clear on the FAILURE path (a guard that wedges
- * the control is worse than the bug it fixes), and that the gate closes
- * synchronously — before any await — since two clicks can land in one tick.
+ * the control is worse than the bug it fixes), that the gate closes
+ * synchronously — before any await — since two clicks can land in one tick, and
+ * that it stays closed across a re-render that rebuilds the action.
  */
 
 import { act, renderHook } from '@testing-library/react'
@@ -59,6 +60,23 @@ describe('useSingleFlight', () => {
     // …and it's usable again once the first finishes.
     act(() => result.current[0]())
     expect(action).toHaveBeenCalledTimes(2)
+  })
+
+  it('stays closed when a re-render rebuilds the action', async () => {
+    const { action, release } = deferred()
+    // An action that is a NEW function every render — what a caller that
+    // doesn't memoize gives us (strands passes an inline arrow), and what the
+    // hook's own setPending(true) guarantees a render for while a call is out.
+    const { result, rerender } = renderHook(() => useSingleFlight(() => action()))
+
+    act(() => result.current[0]())
+    rerender()
+    act(() => result.current[0]())
+    // A gate held anywhere render-local — a `let` inside the useCallback — is
+    // rebuilt along with the action here, and this second call gets through.
+    expect(action).toHaveBeenCalledTimes(1)
+
+    await act(async () => release())
   })
 
   it('clears the gate when the action REJECTS, so it stays retryable', async () => {

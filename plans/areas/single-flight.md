@@ -172,7 +172,14 @@ It is not hypothetical: strands passes an inline `async () => {…}`, so its
 `action` is a new function on every render, and the hook's own `setPending(true)`
 guarantees a render mid-flight.
 
-**Resolution:** *(open)*
+**Not a bug** — the shipped hook uses the ref and is correct. This is coverage
+for a property nothing pins.
+
+**Resolution: DONE.** One spec added, "stays closed when a re-render rebuilds the
+action", and verified from both sides: planting a render-local `{ current:
+false }` in place of the ref fails the new spec (`expected 1 times, but got 2`)
+and leaves the other five green. The hook's file is byte-identical after the
+plant was removed.
 
 ### F-single-flight-8 · `new-game-id-literal` · fifteen games hard-code a shell contract
 
