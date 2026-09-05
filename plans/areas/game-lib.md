@@ -14,9 +14,9 @@ of files were on no area's roster at all: `deep` listed them out as "names every
 game" (`deep.md:160`, `:161`) and nothing picked them up — the identical gap that
 created `utils` one folder over.
 
-**Status: READ THROUGH; re-audited at the close, FOUR FINDINGS OPEN** (ten
-were; `F-game-lib-49` … `-55` are resolved; `-58` was found resolving `-49`
-and `-59` resolving `-54`). Opened
+**Status: READ THROUGH; re-audited at the close, THREE FINDINGS OPEN** (ten
+were; `F-game-lib-49` … `-55` are resolved and `-56` closed; `-58` was found
+resolving `-49` and `-59` resolving `-54`). Opened
 2026-09-03 by listing the files and stopping (§21); Joel agreed the list —
 *"that matches the files i'd expect"* — and then asked for it in groups, *"so we
 don't have to do them all as one big audit"*, the way `deep` ran in passes. All
@@ -32,15 +32,15 @@ file has been read by Claude and by Joel. The stamp records that he read the
 file; the open findings are changes wanted in files he has read, which the
 stamp was never a claim about.
 
-**Fifty-nine IDs issued; fifty-five settled, four open.** Two of them —
+**Fifty-nine IDs issued; fifty-six settled, three open.** Two of them —
 `F-game-lib-24` and `-25` — moved to [bananagrams.md](bananagrams.md) with the
 files they were about, so **57 carry a heading in this file**:
 
 | status | count | which |
 |---|---|---|
-| **OPEN** | **4** | `F-game-lib-56` … `-59`, the closing re-audit's — a plan-cite note, a heading of fold-ins, the stale manifest table in docs/common.md, and the roster count "sixteen" written ten times |
+| **OPEN** | **3** | `F-game-lib-57` … `-59`, the closing re-audit's — a heading of fold-ins, the stale manifest table in docs/common.md, and the roster count "sixteen" written ten times |
 | RESOLVED | 49 | includes the two that are resolved by being handed on: `F-game-lib-11` (its remaining half filed in four game areas) and `-46` (deferred to the app's standing register), and `-49` … `-55` from the re-audit |
-| CLOSED, no change | 2 | `F-game-lib-29` and `-36`, both on Joel's ruling |
+| CLOSED, no change | 3 | `F-game-lib-29` and `-36` on Joel's ruling; `-56`, whose sweep is step 12's and now has a row in §7 → "Carried forward" |
 | MOVED to `feedback` | 2 | `F-game-lib-27`, `-28` — open there as `F-feedback-1`, `-2` |
 
 **Group E's three test files are blessed** — `gameMenu.test.ts`,
@@ -2981,7 +2981,7 @@ the split"` over the roster returns nothing. `tsc -b` clean; `src/common/lib` +
 attached to) and `F-game-lib-59` (two of `manifestRpcs.ts`'s "sixteen"s were
 in the deleted paragraph and the rewritten sentence).
 
-### F-game-lib-56 · `docstrings-cite-the-area-file` · Four docstrings this area wrote point at this file
+### CLOSED 2026-09-04, no code change — F-game-lib-56 · `docstrings-cite-the-area-file` · Four docstrings this area wrote point at this file
 
 `gamePageCtx.ts:24`, `menu.ts:22`, `setupForm.ts:24-25`,
 `terminalOutcomeVerb.ts:36` each cite `plans/areas/game-lib.md → F-game-lib-n`
@@ -2993,6 +2993,17 @@ with them; `setupForm.ts`'s now points at `plans/areas/forms.md`, the area that
 owns the seam, which is the right file but still a plan. **What remains in the
 roster: `gamePageCtx.ts:24` (→ `F-game-lib-12`) and `setupForm.ts:25`
 (→ forms.md).**
+
+#### CLOSED 2026-09-04 — no code change; the sweep is step 12's, and it now has the row
+
+Joel: *"it'll take your rec. do it."* Both remaining cites stay as they are,
+for different reasons: `gamePageCtx.ts`'s docstring states its reason in full
+and the cite is a courtesy, so nothing depends on it; `setupForm.ts`'s is a
+handoff to an area that has not opened, which is exactly what a plan cite is
+for until `forms` moves the note into a doc. The convention itself —
+57 `plans/` cites across `src/` — is the plan's, and
+**§7 → "Carried forward" now carries a `step 12` row** saying what happens to
+each kind when the durable knowledge moves into `docs/`.
 
 CLAUDE.md → Plans: *"When a plan's work ships, its durable knowledge moves into
 `docs/` and the plan is deleted"*, and the 2026-09-02 restart deleted three

@@ -41,7 +41,7 @@ passes over twelve files, 22 findings, none open, all twelve `cs-blessed-utils`.
 [docs/deferred.md](../docs/deferred.md) → Common / architecture, because
 `src/guards/` is on no area's roster.
 
-**`game-lib` is READ THROUGH, with FOUR findings open from its closing
+**`game-lib` is READ THROUGH, with THREE findings open from its closing
 re-audit** — [plans/areas/game-lib.md](areas/game-lib.md), the non-visual half
 of the game shell (§7 row 3). All six groups ran, 2026-09-03 → 09-04, and **all
 37 files are `cs-blessed-game-lib`**. Then the whole area was read again in one
@@ -51,7 +51,7 @@ claims sibling findings had already disproved, a doc cite to the wrong file,
 five counts written that week and already drifted, the roster count "sixteen"
 written a dozen times by the groups that were correcting "ten", a question
 about history in docstrings, and docs/common.md's manifest table describing a
-contract several versions old. **59 IDs issued, 55 settled** — 57 statused in the area file, two
+contract several versions old. **59 IDs issued, 56 settled** — 57 statused in the area file, two
 (`F-game-lib-24`, `-25`) moved to `bananagrams` with the files they were about.
 What it leaves behind, all filed where it will be read: `F-game-lib-11`'s
 leaderboard adoption in four game areas, `F-game-lib-44`'s nineteen dead doc
@@ -776,6 +776,7 @@ plus justified's per-game half.)
 | `waffle` | **`SolutionReveal` sets monospace twice**, so the revealed grid's letters line up in a column. The alignment need is real; whether monospace is how to meet it is not obvious now that the app font's digits are tabular and its width dial can hold a column |
 | `codenamesduet` | **`Board.module.css` sets `ui-monospace, Menlo, monospace`** on the board. The most consequential of the mono uses, because it is a play surface rather than a form |
 | `the area that takes `/palette`` | `PalettePage` sets monospace for token values and formulas. The one mono use with an obvious reason — a hex is a code-shaped thing — recorded so the sweep does not treat it as an oversight |
+| **step 12** | **Docstrings in `src/` that cite a `plans/` file** — 57 of them at 2026-09-04 (`grep -rn "plans/" src --include='*.ts' --include='*.tsx'`), to area files, to `tile-feedback.md`, to `tab-rings.md`, to this file's §7/§18/§20. A shipped plan is deleted (CLAUDE.md → Plans), so every one has an expiry. When step 12 moves an area's durable knowledge into `docs/`, each cite in that area's files is redirected to where the knowledge landed — or dropped, where the docstring already states the reason in full and the cite was a courtesy (`gamePageCtx.ts` → `F-game-lib-12` is that case). A cite that is a HANDOFF to an unopened area (`setupForm.ts` → `forms.md`) stays a plan cite until that area opens, which is what a plan cite is for. Raised by `game-lib` as `F-game-lib-56` |
 
 ## 8. The buckets
 
