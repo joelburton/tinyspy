@@ -567,7 +567,7 @@ inlines a per-file tree, which went stale on the first reorg).
 
 ### URL routing
 
-Path-based; no hash. The hand-rolled router in [`router.ts`](../src/common/routing/router.ts) is ~40 lines: a `usePath()` hook that subscribes to `popstate`, a `navigate(to, replace?)` function that calls `pushState`/`replaceState` and dispatches a synthetic `popstate`, and a `<Link>` component that intercepts left-click and falls through for cmd/ctrl-click.
+Path-based; no hash. The hand-rolled router is three small files in [`src/common/routing/`](../src/common/routing/): [`router.ts`](../src/common/routing/router.ts) has a `usePath()` hook that subscribes to `popstate` and a `navigate(to, replace?)` function that calls `pushState`/`replaceState` and dispatches a synthetic `popstate`; [`Link.tsx`](../src/common/routing/Link.tsx) has a `<Link>` component that routes a plain left-click and hands every open-elsewhere gesture back to the browser (its docstring lists which); [`routes.ts`](../src/common/routing/routes.ts) builds and matches the two URL shapes below, so the code writing a link and the code recognizing one read the same rule.
 
 Routes the shell knows about:
 
@@ -580,11 +580,11 @@ Routes the shell knows about:
 
 The `/g/<gametype>/<gameId>` shape is what makes multi-game routing work: App.tsx mounts `<GamePage>` directly with the manifest's lazy `PlayArea` as its render-prop child, keyed by `gameId` so navigation between games remounts cleanly (fresh state, no leaked subscriptions).
 
-`<GamePage>` is the route-level shell — it owns the cross-cutting chrome (header / timer / Pause / Back-to-club, `<PauseBoundary>`, `<Chat>`, `<SuspendConfirmationBlockingModal>`) and calls `useCommonGame` for the cross-cutting state. The per-game `PlayArea` receives a `GamePageCtx` (the type exported from `src/common/lib/gamePageCtx.ts` — read it there for the authoritative, doc-commented shape) as props through the render prop. Today it carries `session`, `gameId`, `brand`, `title`, `players`, `playState`, `isTerminal`, `timer`, `setup`, `status`, `clubHandle`, and the imperative handles `globalFeedback`, `menu`, `goToClub`, `goToGame` (navigate to another game's page — for a PlayArea that starts a follow-up game, e.g. waffle's "New game" menu item). `playState` mirrors `common.games.play_state` (gametype-specific string); `isTerminal` mirrors `common.games.is_terminal`. The per-game `useGame` is just the postgres-changes subscription for that gametype's own tables — `play_state` lives on `common.games` and arrives via ctx, not on the per-gametype row.
+`<GamePage>` is the route-level shell — it owns the cross-cutting chrome (header / timer / Pause / Back-to-club, `<PauseBoundary>`, `<Chat>`, `<SuspendConfirmationBlockingModal>`) and calls `useCommonGame` for the cross-cutting state. The per-game `PlayArea` receives a `GamePageCtx` (the type exported from `src/common/game-page/gamePageCtx.ts` — read it there for the authoritative, doc-commented shape) as props through the render prop. Today it carries `session`, `gameId`, `brand`, `title`, `players`, `playState`, `isTerminal`, `timer`, `setup`, `status`, `clubHandle`, and the imperative handles `globalFeedback`, `menu`, `goToClub`, `goToGame` (navigate to another game's page — for a PlayArea that starts a follow-up game, e.g. waffle's "New game" menu item). `playState` mirrors `common.games.play_state` (gametype-specific string); `isTerminal` mirrors `common.games.is_terminal`. The per-game `useGame` is just the postgres-changes subscription for that gametype's own tables — `play_state` lives on `common.games` and arrives via ctx, not on the per-gametype row.
 
 **"Should this survive a pause?" is the rule that decides where state lives.** Because `PauseBoundary` unmounts its children on pause, anything inside the per-game `PlayArea` (component state, `useGame`-local state, form input) resets every time the game pauses. That's deliberate UX — clean slate on resume. State that *must* survive a pause goes either in the DB or in `useCommonGame` above the boundary (members, presence, the timer's pause-accumulator). State that's specifically transient (connections's shared-tile selections, an in-flight submit form) lives in PlayArea and clears naturally on unmount.
 
-Why hand-rolled instead of react-router: the app has five routes, flat structure, no need for loaders or nested layouts. react-router adds 30–50 KB and a learning curve for what we'd write in ~40 lines.
+Why hand-rolled instead of react-router: the route surface is flat — a handful of shapes, no nested layouts, no loaders — so a regex per shape is the whole job. react-router adds 30–50 KB and a learning curve for that.
 
 ### Code-splitting
 
@@ -860,7 +860,7 @@ See [`testing.md`](testing.md) for the full theory. Common-layer specifics:
 - **`supabase/tests/common/clubs_test.sql`** — exercises slugify, `create_club`'s reject paths, solo-club auto-creation, and the RLS hide-from-non-member check. Touches everything in this layer.
 - **`supabase/tests/common/chat_test.sql`** — exercises `send_message` and the messages RLS, standalone (no game). Validates that the chat plumbing works regardless of which game is being played.
 
-No dedicated E2E spec exercises routing as a whole (the `e2e/` Playwright suite covers per-game flows — see [testing.md → E2E](testing.md#e2e-smoke-tests-playwright)), but the router's own contract is unit-tested in [`src/common/lib/routing/router.test.ts`](../src/common/routing/router.test.ts) — `usePath` reacts to `navigate()` and to native back/forward; `navigate(to)` pushes; `navigate(to, true)` replaces.
+No dedicated E2E spec exercises routing as a whole (the `e2e/` Playwright suite covers per-game flows — see [testing.md → E2E](testing.md#e2e-smoke-tests-playwright)), but the router's own contract is unit-tested in [`src/common/routing/router.test.ts`](../src/common/routing/router.test.ts) — `usePath` reacts to `navigate()` and to native back/forward; `navigate(to)` pushes; `navigate(to, true)` replaces.
 
 ## Deferred / open
 

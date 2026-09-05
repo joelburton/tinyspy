@@ -21,19 +21,21 @@ import type { GamePageCtx } from '../game-page/gamePageCtx'
  *
  * **The two files either side of this one**, since the names are close:
  * `src/gametypes.ts` is the REGISTRY — the list that collects these manifests,
- * and the only file allowed to import every game. `lib/gamePageCtx.ts` is the
- * other half of this contract — what the shell hands a game back while it is
- * being played. A game says what it is here and gets that there.
+ * and the only file allowed to import every game. `common/game-page/
+ * gamePageCtx.ts` is the other half of this contract — what the shell hands a
+ * game back while it is being played. A game says what it is here and gets that
+ * there. Those two keep the most obvious paths in `common/` on purpose, because
+ * they are what a new game is written against (docs/common-folders.md →
+ * Judgment calls).
  *
- * **At `lib/` root rather than `lib/game/` deliberately** — a contract every
- * game implements earns a dead-obvious top-level path over one more level of
- * nesting (docs/common-folders.md → Judgment calls).
+ * The smaller contracts a game also meets, and where each one lives:
  *
- *   - who someone is ......... `lib/members/member.ts` · `terminalOutcomeVerb.ts`
- *   - what a setup form is ... `lib/setup/setupForm.ts`
- *   - what a pill says ....... `lib/feedback/genericFeedback.ts`
- *   - what a menu is ......... `lib/menu/menu.ts`
- *   - what a game is handed .. `lib/gamePageCtx.ts`
+ *   - who someone is ......... `common/members/member.ts` ·
+ *                              `common/terminal/terminalOutcomeVerb.ts`
+ *   - what a setup form is ... `common/setup-form/setupForm.ts`
+ *   - what a pill says ....... `common/feedback/genericFeedback.ts`
+ *   - what a menu is ......... `common/menu/menuModel.ts`
+ *   - what a game is handed .. `common/game-page/gamePageCtx.ts`
  */
 
 /**
@@ -175,7 +177,7 @@ export type GameManifest = {
   numberOfPlayers: [number, number]
 
   // The gametype-specific play surface. Mounted inside
-  // `<GamePage>` and receives `GamePageCtx` (`lib/gamePageCtx.ts`).
+  // `<GamePage>` and receives `GamePageCtx` (`common/game-page/gamePageCtx.ts`).
   // Lazy-loaded so each game ships as its own Vite chunk.
   PlayArea: ComponentType<GamePageCtx>
 

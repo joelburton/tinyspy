@@ -187,7 +187,7 @@ Stack: [Vitest](https://vitest.dev/) + [jsdom](https://github.com/jsdom/jsdom) +
 | file | what it tests | shape |
 |---|---|---|
 | [`src/common/hooks/session/useSession.test.ts`](../src/common/session/useSession.test.ts) | The session hook's state transitions (loading → session → null) | Mocks `supabase.auth.onAuthStateChange`, drives it manually via `act`, asserts on the hook's returned state via `renderHook`. The canonical "test a Supabase-hook in isolation" pattern. |
-| [`src/common/lib/routing/router.test.ts`](../src/common/routing/router.test.ts) | The hand-rolled router (`navigate`, `usePath`) | Uses jsdom's `window.location` and `window.history` directly. No mocking required — just drive the History API and assert. |
+| [`src/common/routing/router.test.ts`](../src/common/routing/router.test.ts) | The hand-rolled router (`navigate`, `usePath`) | Uses jsdom's `window.location` and `window.history` directly. No mocking required — just drive the History API and assert. |
 | [`src/codenamesduet/lib/phase.test.ts`](../src/codenamesduet/lib/phase.test.ts) | Pure phase derivation | No DOM, no mocking, no hooks — just `expect(phase(...)).toBe(...)`. The kind of test that's free to write and free to keep. |
 | [`src/codenamesduet/hooks/useBoard.test.ts`](../src/codenamesduet/hooks/useBoard.test.ts) | The board hook's data flow | Mocks the Supabase client at module level, drives the hook through fetch/realtime updates. |
 | [`src/codenamesduet/components/GameTurnLog.test.tsx`](../src/codenamesduet/components/GameTurnLog.test.tsx) | A component rendering its props | Renders the component, asserts on text and structure. No store, no mock — just the input → output. |

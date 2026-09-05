@@ -253,7 +253,7 @@ area is audited. No sweep.
 | `pdf` | everything about printing a board |
 | `realtime` | channels, reconnect, refetch, presence |
 | `reveal` | showing the answer after the end |
-| `routing` | the hash router and `<Link>` |
+| `routing` | the path router, the app's two URL shapes, and `<Link>` |
 | `scratchpad` | the shared notes panel |
 | `session` | who is signed in, and their profile |
 | `setup-form` | the start-a-game dialog, its sections, and its data |

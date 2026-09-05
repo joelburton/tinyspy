@@ -23,7 +23,7 @@ Fifteen games are live today (the parenthetical is each game's in-app brand):
 
 Most multiplayer games ship as a cooperative + competitive sibling pair; codenamesduet is cooperative-only, and bananagrams is a single competitive race. The planned roster is essentially complete; any further game slots into the same shape — most are ports of games already implemented in other stacks (so the rules / problem-space are well understood, and the porting work focuses on fitting them cleanly into the Supabase + React shell).
 
-Built as a learning exercise around Supabase (row-level security, Postgres RPCs, Realtime, Edge Functions) with all game logic enforced server-side. Frontend is React + Vite + TypeScript, no router library — a ~40-line hand-rolled router covers the flat route set.
+Built as a learning exercise around Supabase (row-level security, Postgres RPCs, Realtime, Edge Functions) with all game logic enforced server-side. Frontend is React + Vite + TypeScript, no router library — the route set is flat enough that a hand-rolled router covers it.
 
 ## Audience
 

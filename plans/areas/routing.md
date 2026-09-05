@@ -4,7 +4,8 @@ The folders it reads: `routing`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN — audited 2026-09-05. F-routing-8 worked; eight findings left.**
+**Status: OPEN — audited 2026-09-05. F-routing-1, -2, -3, -4 and -8 worked;
+F-routing-5, -6, -7 and -9 left, all four inside the folder.**
 
 ## The roster
 
@@ -48,6 +49,11 @@ trusts the folder index will look for `hashchange` and a `#` and find neither.
 **Recommend:** both say "the path router". The lede is rewritten in full by the
 Design work this area owes anyway.
 
+**DONE 2026-09-05.** The `doc.md` half fixed itself when the Design was written
+— its lede now opens "How the page moves between URLs without reloading."
+`docs/common-folders.md:256` now reads "the path router, the app's two URL
+shapes, and `<Link>`", the third clause because F-routing-8 added `routes.ts`.
+
 ### F-routing-2 · stale-router-paths · three places point at paths the router has not had since the reorg
 
 | where | says | is |
@@ -63,6 +69,21 @@ and nothing sweeps it.
 **Recommend:** fix the three strings. For `_redirects`, name the folder
 (`src/common/routing/`) rather than a file, since a folder name survives the
 next rename of a file inside it.
+
+**DONE 2026-09-05**, all three, `_redirects` naming the folder. The Notes'
+forward-fix candidate (`docs/common.md`'s `lib/gamePageCtx.ts`) rode along, as
+that note said it could.
+
+**Turned up while checking the fix landed, and fixed with it:**
+`gameManifest.ts`'s file docstring was written against the old `lib/` layout —
+seven stale paths and a paragraph arguing the manifest sits "at `lib/` root
+rather than `lib/game/`". That argument survived the reorg in current terms at
+`docs/common-folders.md` → Judgment calls (the manifest and `gamePageCtx` keep
+the most obvious paths in `common/`, because they are what a new game is written
+against), so the paragraph was rewritten to that and the five-line map of
+neighboring contracts repointed. `menu.ts` in it is `menuModel.ts` now — renamed
+because a folder cannot hold `menu.ts` and `Menu.tsx` on a case-insensitive
+filesystem.
 
 ### F-routing-3 · counts-that-rot · "~40 lines" three times, "five routes" once
 
@@ -80,6 +101,12 @@ dependency for nothing. `router.ts:8-9` already says it that way.
 **Recommend:** drop the four numbers and keep the condition. Same rule as every
 roster tally in the repo: a count rots, a condition stays true.
 
+**DONE 2026-09-05.** All four gone. The "why not react-router" paragraph now
+argues from the condition — "the route surface is flat — a handful of shapes, no
+nested layouts, no loaders — so a regex per shape is the whole job" — and says
+"a handful" rather than counting, because the count would have to answer for
+`/palette` and `/font`, which are out of scope.
+
 ### F-routing-4 · common-md-misplaces-link · the routing section puts `<Link>` in `router.ts` and undercounts what it hands back
 
 `docs/common.md:570`: *"The hand-rolled router in `router.ts` is …: a
@@ -94,6 +121,11 @@ has since grown a rule and a file of its own.
 **Recommend:** the sentence names both files and says `<Link>` "routes a plain
 left-click and hands every open-elsewhere gesture to the browser", and leaves
 the list to the docstring, which is the one copy that stays right.
+
+**DONE 2026-09-05**, naming THREE files rather than two — F-routing-8 landed
+first and added `routes.ts`. Leaving the gesture list to the docstring also
+means F-routing-5 can delete the non-left-button branch without a doc following
+it.
 
 ### F-routing-5 · middle-click-check-is-unreachable · `e.button !== 0` guards a click a browser never sends
 
@@ -239,7 +271,8 @@ setup, and the assertions do not change.
   `src/common/lib/gamePageCtx.ts`; the file is
   `src/common/game-page/gamePageCtx.ts`. A one-line path fix that this area's
   reading turned up — ships with whichever commit fixes F-routing-2's sibling
-  paths, or is left for `game-page`. Joel's call.
+  paths, or is left for `game-page`. Joel's call. **Shipped with F-routing-2**,
+  2026-09-05. The same stale path in `gameManifest.ts` did NOT — see F-routing-2.
 - **Read as evidence, found correct, not findings:** `ClaimHandleScreen.tsx:171`
   reloads with `window.location.assign('/')` rather than `navigate()`, and its
   comment says exactly why (the screen is gated on `needsClaim`, not the path).
