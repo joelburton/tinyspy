@@ -245,10 +245,118 @@ user means the file belongs to that game — except buttons (below).
   columns, turnLog). `mulberry32` is a generic primitive and is common even
   though only boggle and scrabble seed boards on the client.
 
-**Belongs to one game**: `StrikeMarks` → connections; the orphan
-`infoPanel.module.css` (nothing imports it) is bananagrams' or nobody's.
+**Belongs to one game**: `StrikeMarks` → connections. (`infoPanel.module.css`
+was listed here as an orphan on 2026-09-04; wrong — `WordList` imports it, so
+it is common and goes wherever `WordList` goes.)
 
-## 5. Still open
+**Two rulings about the audit, same day.**
+
+- **Blessing markers keep their original area name.** A file tagged
+  `cs-fixed-game-lib` keeps that tag after it moves; it is history. If Joel
+  touches the file again he'll rename it to the current area.
+- **If the reorg happens, it happens BEFORE the `feedback` area opens.** The
+  audit table then loses `hooks`, `shared-game-chrome` and what's left of
+  `utils`, and gains one area per feature folder and per shared family. Several
+  areas so far had to be split into groups because they were unwieldy anyway.
+
+**How to verify the move** (agreed 2026-09-04): `tsc -b` first (it resolves
+every import in the project, not just the ones a test reaches), then the full
+vitest run (the path-coupled guards and any `vi.mock()` path the codemod
+missed both fail there), then `vite build` (CSS-module and `?url` imports are
+typed by a wildcard, so only the build resolves them), then ONE e2e at the end
+after restarting the dev server. Vitest carries most of the weight; the e2e
+only confirms the built app boots and a game renders styled.
+
+## 5. The proposed folder list (Claude's first pass, 2026-09-04 — for Joel to rename and move between)
+
+Every non-test file under `src/common/` is placed below. Names are kebab-case
+and unique across all three tables. "Sampling" is a few files, not a roster.
+Written so Joel can edit the tables in place rather than rule file by file.
+
+### Common
+
+| folder | what it is | sampling | notes |
+|---|---|---|---|
+| `supabase` | the client, the envelope wrappers, the DB handle | supabase, envelope, dbEnvelope, dbResult, dbFetch, dbLog, edgeFnTransport, db | blessed under `deep` already |
+| `realtime` | channels, reconnect, refetch, presence | channelDedup, channelTeardown, postgresAttached, realtimeDiag, useRealtimeRefetch, useRealtimeReconnect, useClubPresence, useClubSetupPresence | could merge into `supabase`; split here because presence and the deaf-window fix are their own subject |
+| `routing` | the hash router and Link | router, Link | |
+| `session` | who is signed in, their profile | useSession, useProfile | |
+| `auth` | the pre-app screens | LoginScreen, ClaimHandleScreen | |
+| `home` | the landing page | HomePage | |
+| `club` | the club room and everything on it | ClubPage, ClubGameCard, ClubGameRow, CreateClubModal, EditClubModal, StartGameRow, ModeFilter, GametypeFilter, useClubRoster, ClubHelpCompanion, friendlyDate | friendlyDate has only club callers today; could stay in `util` |
+| `account` | your own menu and profile editing | EditProfileModal, ColorChoiceList, editProfileStore, useAccountMenuSection | |
+| `chat` | the club chat panel end to end | Chat, ChatBody, useClubChat, useChatFeedback, chatOpenStore, chatUnread, linkify | linkify's only caller is ChatBody. ChatButton: see `page-header` |
+| `scratchpad` | the shared notes panel | GameScratchpadCompanion, useScratchpad, scratchpadOpenStore | ScratchpadButton: see `page-header` |
+| `page-header` | the top strip and the marks in it | PageHeader, PageHeaderButton, PageHeaderMenu, PageHeaderPlayersStrip, PageHeaderStatusSlot, ChatButton, ScratchpadButton | today's rule keeps the chat and scratchpad marks here, not in their features (flag 2). PauseButton is also a header mark but stays in `buttons` per the ruling |
+| `menu` | the one menu, its store, and what a game puts in it | Menu, menu, pageMenuStore, gameMenu | gameMenu assembles a game's header menu; it could go to `game-page` instead |
+| `forms` | every field, the form frame, and the setup dialog with its sections | Field, TextField, SelectField, RadioRow, DictBandField, ManualBoardField, StandardForm, formState, fieldContract, SetupGameModal, SetupSection, PlayersSection, SetupTimerSection, SetupCoopStyleSection, SetupNextPuzzleSection, setupForm, setupRows, difficulty, fieldNames | one folder for fields and setup per the ruling; Joel said `fields`, the audit area is `forms` (flag 1). The largest common folder, about 50 files |
+| `floating-panels` | the shell every floating thing rides on | FloatingPanel, Dialog, NormalModal, BlockingModal, ConfirmationBlockingModal, AcknowledgeBlockingModal, Companion, useDraggablePanel, useFocusTrap, usePanelEscape, useConfirmation, useAcknowledge | |
+| `feedback` | the pill and its local/global state | GenericFeedbackPill, FailureLine, useLocalFeedback, useGlobalFeedback, useDismissLocalFeedbackOnKey, genericFeedback, genericPills, localPills | the `feedback` audit area's roster, minus turnCopy, placed in `turn-log` |
+| `faults` | the last-resort screens and sink | FaultModal, faultStore, panic, reloadOnStaleChunk | panic and reloadOnStaleChunk are called only from main.tsx |
+| `toasts` | the bottom-right stack | Toast, ToastHost, toastStore | |
+| `tooltips` | the tooltip host | TooltipHost | one file |
+| `text` | inline rich text | Dot, RichMessage | |
+| `lists` | pick-one and scrolling lists | SelectionList, SimpleScrollableList, FilterSelect, test/filterSelect | |
+| `loading-and-errs` | the stand-in pages | Loading, ErrorPage | name kept from today; `page-fallbacks` if a job name is wanted |
+| `definitions` | click-a-word lookup and dictionary curation | DefinitionPopover, DefinitionView, WordLookupDialog, AnagramDialog, WordEditDialog, useDefinition, useDefinePopover, parseDefinition, wordEditStore | |
+| `buttons` | every purpose button and the base | StandardButton, EndGameButton, RevealButton, HintButton, PeelButton, PauseButton, … | all 27, per the ruling |
+| `icons` | the inline SVG set | icons | one file |
+| `branding` | the app and per-game logos | PuzpuzpuzLogo, PuzpuzpuzWordmark, GameLogo, homeTitle.png, puzpuzpuz.svg | |
+| `devtools` | pages that ship for the author, not for players | PalettePage, palette, FontPage, fontSpecimen | out of every audit; Joel's name for the folder |
+| `manifest` | what a game declares | gameManifest, statusLabel, manifestRpcs | the contract; stays at a dead-obvious top-level path. `src/gametypes.ts` stays where it is |
+| `game-page` | the live game's page and what it hands down | GamePage, gamePageCtx, useCommonGame, useStandardGameActions, PlayAreaErrorBoundary, PlayAreaMountLog, PlayArea.module.css, GameHelpCompanion, ModePill, OpponentStrip, DeviceBlockNotice, useGameHasKeyboard, useGameTimer, timerLabel | the timer is two files and could be its own folder |
+| `pause` | pausing, presence-pause, suspend | PauseBoundary, PauseOverlay, SuspendConfirmationBlockingModal, pause | PauseButton stays in `buttons` |
+| `info-sheet` | the mobile info sheet and its switch | InfoSheet, useInfoSheet, infoSheetStore, InfoSwitchButton, MobileStatusBar | |
+| `turn-log` | the chronological history readout and its viewer | TurnLog, TurnLogActor, ActorMention, historyViewer.module.css, useHistoryViewer, useTurnLogPlayerPicker, TurnStatusLine, turnCopy, pdf/turnLog | turnCopy is claimed by the `feedback` area; it says whose turn it is, which reads as turn-log |
+| `word-list` | the alphabetical finds readout | WordList, useWordListFilter, useRecentlyFound, infoPanel.module.css | common per the ruling. Its display-row and leaderboard helpers are in `found-words`, so this folder imports from shared (flag 3) |
+| `terminal` | what shows when a game ends | TerminalActionRow, LocalTerminalRow, terminalCopy, CelebrationBlockingModal, useCelebration, terminalOutcomeVerb, outcomes | outcomes is the vocabulary; it could sit in `manifest` instead |
+| `reveal` | showing the answer after the end | useSolutionReveal | RevealButton stays in `buttons`; revealWords is open item 1 in §6 |
+| `entry` | the typed-move box and its row | EntryBox, EntryRow, MoveRow | useWordSubmit is open item 2 in §6 |
+| `invitations` | game invitations | GameInvitations, useGameInvitations, gameInvites | |
+| `members` | who someone is, and their color | member, memberList, memberColor, test/gamePlayers | |
+| `keyboard` | key capture, tab rings, shortcuts | useCaptureKeys, useSwallowTab, useTabRing, useGlobalKeyHandler, useAppShortcuts, useBacktickEscape, useArrowHistory, keyboardHandoff | |
+| `device` | what kind of screen and pointer this is | useIsMobile, useMediaQuery, usePhone, useCoarsePointer, useVisualViewport, layoutWidth, breakpoints.css | breakpoints.css could stay with `core-css` (flag 4) |
+| `storage` | web storage, wrapped | storage, storage.fake, useStickyChoice | |
+| `util` | the residue: helpers with no feature | cls, logStamp, mulberry32, useSingleFlight, useFlash | kept deliberately tiny (flag 4) |
+| `core-css` | the stylesheets every page loads | base.css, fixed.css, utilities.css, patterns/badge.css, patterns/focus-ring.css, … | the `corecss` audit area |
+| `themes` | the theme files and loader | daylight.css, light-mode.css, dark-mode.css, midnight.css, loadTheme | |
+| `pdf` | the printable frame and shared pieces | frame, columns, marks, tiles, wordColumns, wordListBody, wordSections | open item 3 in §6: tiles and the word helpers could ride with their family instead |
+
+### Shared
+
+| folder | what it is | sampling | notes |
+|---|---|---|---|
+| `found-words` | find-many-words games: spellingbee, wordwheel, boggle | makeFoundWordsGame, foundWords, foundWordsDisplayRows, foundWordsLeaderboard, rankLadder, RankBar, Stats, groupTiles, revealWords, typedWord.module.css, foundWordsPlayArea.module.css | the biggest family. groupTiles is used by ManualBoardField in `forms`, so common imports shared there too (flag 3) |
+| `grid-and-drag` | tiles moved on a grid with a cursor: bananagrams, scrabble | gridCursor, gridCursor.module.css, useBoardCursorKeys, useDragGesture, dragGhost.module.css | open item 4 in §6 if the keyboard-nav plan widens it |
+| `color-feedback` | hidden-target color feedback: waffle, wordle | tileColor, pdf/tiles | two files |
+| `move-flash` | flashing the tile a move changed: connections, psychicnum, waffle, wordle | useTurnStartFlash, useMoveCausedChange, feedbackTiming | |
+| `dictionary-trie` | the flat trie behind boggle's solver and scrabble's suggester | trie | one file |
+| `guess-keyboard` | the on-screen QWERTY: wordle, wordiply | GuessKeyboard | one file plus its stylesheet |
+
+### Belongs to a game
+
+| file | game | notes |
+|---|---|---|
+| StrikeMarks, StrikeMarks.module.css | connections | only user |
+
+That is the whole table. The eight single-game buttons stay in `buttons` per
+the ruling; DeviceBlockNotice and useGameHasKeyboard are manifest gates, so
+they sit in `game-page`.
+
+### Flags on the list (numbered for Joel to answer by number)
+
+1. **`forms` versus `fields`** as the one folder's name.
+2. **The header-marks rule.** ChatButton, ScratchpadButton and PauseButton each
+   belong to a feature but live where they're drawn. Keep that, or move them
+   home?
+3. **Two common-imports-shared edges**: `word-list` uses found-words helpers,
+   and `forms` uses groupTiles. Either the helpers move up to common, or the
+   direction is allowed.
+4. **`util` and `device` are the two folders that don't name a feature.**
+   `util` is kept to five files on purpose. If the target is zero type-ish
+   folders, useSingleFlight and useFlash need homes.
+
+## 6. Still open
 
 1. **Reveal straddles the line.** `RevealButton` + `useSolutionReveal` serve ten
    games and are common by the rule; `revealWords` serves only found-words.
@@ -268,7 +376,7 @@ user means the file belongs to that game — except buttons (below).
 7. **Whether a feature folder gets type subfolders.** Open by Joel's own
    statement; §3 argues no.
 
-## 6. What happens to this file
+## 7. What happens to this file
 
 If the idea is agreed, this becomes a real plan with a roster and replaces
 docs/common-folders.md when it ships, at which point the plan is deleted. If
