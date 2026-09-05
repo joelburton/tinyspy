@@ -14,8 +14,8 @@ of files were on no area's roster at all: `deep` listed them out as "names every
 game" (`deep.md:160`, `:161`) and nothing picked them up — the identical gap that
 created `utils` one folder over.
 
-**Status: READ THROUGH; re-audited at the close, NINE FINDINGS OPEN** (ten
-were, `F-game-lib-49` is resolved, `-58` was found resolving it). Opened
+**Status: READ THROUGH; re-audited at the close, EIGHT FINDINGS OPEN** (ten
+were; `F-game-lib-49` and `-50` are resolved, `-58` was found resolving `-49`). Opened
 2026-09-03 by listing the files and stopping (§21); Joel agreed the list —
 *"that matches the files i'd expect"* — and then asked for it in groups, *"so we
 don't have to do them all as one big audit"*, the way `deep` ran in passes. All
@@ -31,14 +31,14 @@ file has been read by Claude and by Joel. The stamp records that he read the
 file; the open findings are changes wanted in files he has read, which the
 stamp was never a claim about.
 
-**Fifty-eight IDs issued; forty-nine settled, nine open.** Two of them —
+**Fifty-eight IDs issued; fifty settled, eight open.** Two of them —
 `F-game-lib-24` and `-25` — moved to [bananagrams.md](bananagrams.md) with the
 files they were about, so **56 carry a heading in this file**:
 
 | status | count | which |
 |---|---|---|
-| **OPEN** | **9** | `F-game-lib-50` … `-58`, the closing re-audit's — three stale claims, one wrong doc cite, five drifted counts, a history-in-docstrings question, a plan-cite note, a heading of fold-ins, and the stale manifest table in docs/common.md |
-| RESOLVED | 43 | includes the two that are resolved by being handed on: `F-game-lib-11` (its remaining half filed in four game areas) and `-46` (deferred to the app's standing register), and `-49`, the re-audit's first |
+| **OPEN** | **8** | `F-game-lib-51` … `-58`, the closing re-audit's — two stale claims, one wrong doc cite, five drifted counts, a history-in-docstrings question, a plan-cite note, a heading of fold-ins, and the stale manifest table in docs/common.md |
+| RESOLVED | 44 | includes the two that are resolved by being handed on: `F-game-lib-11` (its remaining half filed in four game areas) and `-46` (deferred to the app's standing register), and `-49`, `-50` from the re-audit |
 | CLOSED, no change | 2 | `F-game-lib-29` and `-36`, both on Joel's ruling |
 | MOVED to `feedback` | 2 | `F-game-lib-27`, `-28` — open there as `F-feedback-1`, `-2` |
 
@@ -2796,7 +2796,7 @@ That table is stale in several other rows too — `F-game-lib-58`.
 
 `tsc -b` clean; `src/common/lib` + `src/guards` **567/567 in 58 files**.
 
-### F-game-lib-50 · `menu-says-end-rpc-may-not-exist` · The claim F-game-lib-3 disproved, one file over
+### RESOLVED 2026-09-04 — F-game-lib-50 · `menu-says-end-rpc-may-not-exist` · The claim F-game-lib-3 disproved, one file over
 
 `gameMenu.ts` — `offerEndInCompete`'s comment: *"Opt-in per game, because most
 races genuinely have no whole-table stop (the RPC won't exist)."*
@@ -2807,6 +2807,13 @@ opt-in is real and its reason is the one the next sentence of `gameManifest.ts`
 gives — ending and conceding are different acts — but the parenthetical
 justifies it with a fact that is false for every game. `F-game-lib-3` fixed the
 sentence in `manifestRpcs.ts` and did not grep for its twin.
+
+#### Resolved 2026-09-04 — the true reason, stated
+
+Joel: *"do it."* The parenthetical is gone and the sentence now says what is
+so: every schema defines `end_game`, most races have no use for a whole-table
+stop, and offering one beside Concede puts a second exit on the menu that means
+something else. The opt-in was never in question; only its justification was.
 
 ### F-game-lib-51 · `dispatcher-test-still-says-error-collapse` · The shape F-game-lib-3 struck from the source is still in the test
 

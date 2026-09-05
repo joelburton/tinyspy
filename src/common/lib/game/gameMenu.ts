@@ -34,8 +34,10 @@ export function buildGameMenu(opts: {
   // Compete only: ALSO offer the whole-table End beneath Concede. They're
   // different acts — conceding is a loss on your record and it takes every
   // player doing it to close a game the group has simply lost interest in;
-  // ending is the group agreeing there's no result. Opt-in per game, because
-  // most races genuinely have no whole-table stop (the RPC won't exist).
+  // ending is the group agreeing there's no result. Opt-in per game: every
+  // schema defines `end_game`, but most races have no use for a whole-table
+  // stop, and offering one anyway would put a second exit beside Concede that
+  // means something else.
   offerEndInCompete?: boolean
   // Compete: fires the game's `concede` RPC (drop out of the race).
   onConcede?: () => void
